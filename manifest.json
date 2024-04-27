@@ -1,0 +1,10 @@
+{
+  "manifest_version": 3,
+  "name": "DKO3 Helper (beta)",
+  "description": "Stedelijk Onderwijs Antwerpen. Helper extension voor DKO3.",
+  "version": "1.0",
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_icon": "images/hi.png"
+  }
+}
