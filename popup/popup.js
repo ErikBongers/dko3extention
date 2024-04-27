@@ -1,1 +1,1 @@
-console.log("Test of git!")
+console.log("Test of git en HUB!")
