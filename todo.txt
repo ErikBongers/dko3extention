@@ -1,2 +1,0 @@
-* listen for htlm change events:
-  > https://stackoverflow.com/questions/7434685/how-can-i-be-notified-when-an-element-is-added-to-the-page
