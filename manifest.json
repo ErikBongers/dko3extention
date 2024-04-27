@@ -6,5 +6,13 @@
   "action": {
     "default_popup": "popup/popup.html",
     "default_icon": "images/hi.png"
-  }
+  },
+  "content_scripts": [
+    {
+      "js": ["scripts/content.js"],
+      "matches": [
+        "https://administratie.dko3.cloud/*"
+      ]
+    }
+  ]
 }
