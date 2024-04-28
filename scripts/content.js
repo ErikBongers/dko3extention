@@ -72,13 +72,14 @@ function scrapeLesInfo(lesInfo) {
 	let les = {};
 	let vakStrong = lesInfo.firstChild;
 	les.vakNaam = vakStrong.textContent;
-	les.lesNaam = lesInfo.children[1].textContent;
+	les.naam = lesInfo.children[1].textContent;
 	let badges = lesInfo.getElementsByClassName("badge");
 	les.module = Array.from(badges).some((el) => el.textContent === "module");
 	let mutedSpans = lesInfo.getElementsByClassName("text-muted");
 	if (mutedSpans.length > 0) {
 		les.teacher = Array.from(mutedSpans).pop().textContent;
 	}
+
 	return les;
 }
 
@@ -109,6 +110,14 @@ function listIt() {
 		lessen.push(les);
 	}
 	let modules = lessen.filter((les) => les.module);
+
+	for (let module of modules) {
+		//get name of instrument and trimester.
+		const reInstrument = /.*\Snitiatie\s*(\w+).*(\d).*/;
+		const match = module.naam.match(reInstrument);
+		module.instrument = match[1];
+		module.trimester = match[2];
+	}
 
 	db3(modules);
 }
