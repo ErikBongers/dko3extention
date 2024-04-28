@@ -73,6 +73,7 @@ function db3(message) {
 function buildTrimesterTable(instruments) {
 	let orininalTable = document.getElementById("table_lessen_resultaat_tabel");
 	let newTable = document.createElement("table");
+	newTable.id = "trimesterTable";
 	newTable.style.width = "100%";
 	const newTableBody = document.createElement("tbody");
 
@@ -117,14 +118,19 @@ function buildTrimesterTable(instruments) {
 }
 
 function showModules() {
-	let inputModules = scrapeModules();
-	let instruments = mergeTrimesters(inputModules);
-	buildTrimesterTable(instruments);
 	showOriginalTable(document.getElementById("table_lessen_resultaat_tabel").style.display === "none");
 }
 
 function showOriginalTable(show) {
+	//Build lazily and only once. Table will automatically be erased when filters are changed.
+	if (!document.getElementById("trimesterTable")) {
+		let inputModules = scrapeModules();
+		let instruments = mergeTrimesters(inputModules);
+		buildTrimesterTable(instruments);
+	}
+
 	document.getElementById("table_lessen_resultaat_tabel").style.display = show ? "table" : "none";
+	document.getElementById("trimesterTable").style.display = show ? "none" : "table";
 	document.getElementById("moduleButton").innerHTML = show ? "Toon trimesters": "Toon normaal";
 }
 
