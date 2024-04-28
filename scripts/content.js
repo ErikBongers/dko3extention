@@ -103,10 +103,19 @@ function listIt() {
 	let lessen = [];
 	for (const row of body.rows) {
 		let lesInfo = row.cells[0];
-		let studentList = row.cells[1];
-		let studentTable = studentList.querySelectorAll("table")[0];
+		let studentsCell = row.cells[1];
+		let studentsTable = studentsCell.querySelectorAll("table")[0];
 		let les = scrapeLesInfo(lesInfo);
-		les.students = scrapeStudents(studentTable);
+		les.students = scrapeStudents(studentsTable);
+		let smallTags = studentsCell.querySelectorAll("small");
+		let arrayLeerlingenAantal = Array.from(smallTags).map((item) => item.textContent).filter((txt) => txt.includes("leerlingen"));
+		if (arrayLeerlingenAantal.length > 0) {
+			let reAantallen = /(\d+).\D+(\d+)/;
+			let matches = arrayLeerlingenAantal[0].match(reAantallen);
+			les.aantal = matches[1];
+			les.maxAantal = matches[2];
+		}
+
 		lessen.push(les);
 	}
 	let modules = lessen.filter((les) => les.module);
