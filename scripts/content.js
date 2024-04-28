@@ -77,6 +77,22 @@ function buildTrimesterTable(instruments) {
 	newTable.style.width = "100%";
 	const newTableBody = document.createElement("tbody");
 
+	//header
+	const tHead = document.createElement("thead");
+	newTable.appendChild(tHead);
+	tHead.classList.add("table-secondary")
+	const trHeader = document.createElement("tr");
+	tHead.appendChild(trHeader);
+	const th1 = document.createElement("th");
+	trHeader.appendChild(th1);
+	th1.innerHTML = "Trimester 1";
+	const th2 = document.createElement("th");
+	trHeader.appendChild(th2);
+	th2.innerHTML = "Trimester 2";
+	const th3 = document.createElement("th");
+	trHeader.appendChild(th3);
+	th3.innerHTML = "Trimester 3";
+
 	// creating all cells
 	for (let instrument of instruments) {
 		// creates a table row

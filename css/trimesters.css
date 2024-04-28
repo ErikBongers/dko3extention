@@ -1,5 +1,14 @@
-#trimesterTable td {
+#trimesterTable td,
+#trimesterTable th
+{
     padding-left: 3px;
+}
+
+#trimesterTable th {
+    font-weight: bold;
+    border-style: solid;
+    border-width: 2px;
+    border-color: black;
 }
 
 #trimesterTable td.instrumentName {
