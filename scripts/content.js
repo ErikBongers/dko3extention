@@ -39,11 +39,13 @@ const bodyObserverCallback = (mutationList, observer) => {
 		if (mutation.type === "childList") {
 			let printButton = document.getElementById("btn_print_overzicht_lessen");
 			if (printButton) {
+				//check if badge with text "module" is present.
+				let badges = document.getElementsByClassName("badge");
+				if (!Array.from(badges).some((el) => el.textContent === "module")) {
+					return;
+				}
 				let moduleButton = document.getElementById("moduleButton");
 				if (moduleButton === null) {
-					/*
-					* <button class="btn btn-sm btn-primary w-100 mt-3" id="btn_lessen_overzicht_zoeken"><i class="fas fa-search"></i> Lessen zoeken</button>
-					* */
 					db3("adding button");
 					const trimButton = document.createElement("button", );
 					trimButton.classList.add("btn", "btn-sm", "btn-outline-secondary", "w-100");
@@ -80,6 +82,7 @@ function buildTrimesterTable(instruments) {
 		const trName = document.createElement("tr");
 		newTableBody.appendChild(trName);
 		const tdInstrumentName = document.createElement("td");
+		tdInstrumentName.classList.add("instrumentName");
 		tdInstrumentName.innerHTML = instrument.instrumentName;
 		tdInstrumentName.colSpan = 3;
 		trName.appendChild(tdInstrumentName);
