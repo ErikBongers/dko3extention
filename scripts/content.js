@@ -68,9 +68,55 @@ function db3(message) {
 	}
 }
 
+function buildTrimesterTable(instruments) {
+	let orininalTable = document.getElementById("table_lessen_resultaat_tabel");
+	let newTable = document.createElement("table");
+	newTable.style.width = "100%";
+	const newTableBody = document.createElement("tbody");
+
+	// creating all cells
+	for (let instrument of instruments) {
+		// creates a table row
+		const trName = document.createElement("tr");
+		newTableBody.appendChild(trName);
+		const tdInstrumentName = document.createElement("td");
+		tdInstrumentName.innerHTML = instrument.instrumentName;
+		tdInstrumentName.colSpan = 3;
+		trName.appendChild(tdInstrumentName);
+		for(let rowNo = 0; rowNo < 4; rowNo++) {//TODO: use maxAantal, unless 999, in which case use effective max aantal.
+			let row = document.createElement("tr");
+			newTableBody.appendChild(row);
+			for (let trimNo = 0; trimNo < 3; trimNo++) {
+				let trimester = instrument.trimesters[trimNo];
+				const NBSP = 160;
+				let studentName = String.fromCharCode(NBSP);
+				if (trimester) {
+					let student = trimester.students[rowNo];
+					if (student) {
+						studentName = student.name;
+					}
+				}
+				const cell = document.createElement("td");
+				const cellText = document.createTextNode(studentName);
+				cell.appendChild(cellText);
+				row.appendChild(cell);
+			}
+		}
+	}
+
+	// put the <tbody> in the <table>
+	newTable.appendChild(newTableBody);
+	// appends <table> into <body>
+	document.body.appendChild(newTable);
+	// sets the border attribute of newTable to '2'
+	newTable.setAttribute("border", "2");
+	orininalTable.insertAdjacentElement("afterend", newTable);
+}
+
 function showModules() {
 	let inputModules = scrapeModules();
-	mergeTrimesters(inputModules);
+	let instruments = mergeTrimesters(inputModules);
+	buildTrimesterTable(instruments);
 	showOriginalTable(document.getElementById("table_lessen_resultaat_tabel").style.display === "none");
 }
 
@@ -169,4 +215,5 @@ function mergeTrimesters(inputModules) {
 		addTrimesters(instruments[instruments.length-1], inputModules);
 	}
 	db3(instruments);
+	return instruments;
 }
