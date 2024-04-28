@@ -50,6 +50,7 @@ const bodyObserverCallback = (mutationList, observer) => {
 					trimButton.id = "moduleButton";
 					trimButton.textContent = "Toon trimesters";
 					trimButton.style.marginTop = "0";
+					trimButton.onclick = listIt;
 					printButton.insertAdjacentElement("beforebegin", trimButton);
 				}
 			}
@@ -65,4 +66,26 @@ function db3(message) {
 	if (debugDko3) {
 		console.log(message);
 	}
+}
+
+function listIt() {
+	let table = document.getElementById("table_lessen_resultaat_tabel");
+	let body = table.tBodies[0];
+	for (const row of body.rows) {
+		let lesInfo = row.cells[0];
+		let studentList = row.cells[1];
+		let vakStrong = lesInfo.firstChild;
+
+		let les = {};
+		les.vakNaam = vakStrong.textContent;
+		les.lesNaam = lesInfo.children[1].textContent;
+		let badges = lesInfo.getElementsByClassName("badge");
+		les.module = Array.from(badges).some((el) => el.textContent === "module");
+		let mutedSpans = lesInfo.getElementsByClassName("text-muted");
+		if (mutedSpans.length > 0) {
+			les.teacher = Array.from(mutedSpans).pop().textContent;
+		}
+		db3(les);
+	}
+
 }
