@@ -1,4 +1,8 @@
-td.instrumentName {
+#trimesterTable td {
+    padding-left: 3px;
+}
+
+#trimesterTable td.instrumentName {
     font-weight: bold;
     border-width: 2px;
 }
