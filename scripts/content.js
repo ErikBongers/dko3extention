@@ -50,7 +50,7 @@ const bodyObserverCallback = (mutationList, observer) => {
 					trimButton.id = "moduleButton";
 					trimButton.textContent = "Toon trimesters";
 					trimButton.style.marginTop = "0";
-					trimButton.onclick = listIt;
+					trimButton.onclick = showModules;
 					printButton.insertAdjacentElement("beforebegin", trimButton);
 				}
 			}
@@ -66,6 +66,11 @@ function db3(message) {
 	if (debugDko3) {
 		console.log(message);
 	}
+}
+
+function showModules() {
+	let inputModules = scrapeModules();
+	mergeTrimesters(inputModules);
 }
 
 function scrapeLesInfo(lesInfo) {
@@ -97,7 +102,7 @@ function scrapeStudents(studentTable) {
 	return students;
 }
 
-function listIt() {
+function scrapeModules() {
 	let table = document.getElementById("table_lessen_resultaat_tabel");
 	let body = table.tBodies[0];
 	let lessen = [];
@@ -124,9 +129,38 @@ function listIt() {
 		//get name of instrument and trimester.
 		const reInstrument = /.*\Snitiatie\s*(\w+).*(\d).*/;
 		const match = module.naam.match(reInstrument);
-		module.instrument = match[1];
-		module.trimester = match[2];
+		module.instrumentName = match[1];
+		module.trimesterNo = parseInt(match[2]);
 	}
 
 	db3(modules);
+	return modules;
+}
+
+function addTrimesters(instrument, inputModules) {
+	let mergedInstrument = [undefined, undefined, undefined];
+	let modulesForInstrument = inputModules.filter((module) => module.instrumentName === instrument.instrumentName);
+	for (let module of modulesForInstrument) {
+		mergedInstrument[module.trimesterNo-1] = module;
+	}
+	instrument.trimesters = mergedInstrument;
+}
+
+function mergeTrimesters(inputModules) {
+	//get all instruments
+	let instrumentNames = inputModules.map((module) => module.instrumentName);
+	let uniqueInstrumentNames = [...new Set(instrumentNames)];
+
+	let instruments = [];
+	for (let instrumentName of uniqueInstrumentNames) {
+		//get module instrument info
+		let instrumentInfo = {};
+		let module = inputModules.find((module) => module.instrumentName === instrumentName)
+		instrumentInfo.instrumentName = module.instrumentName;
+		instrumentInfo.maxAantal = module.maxAantal; //TODO: could be different for each trim.
+		instrumentInfo.teacher = module.teacher; //TODO: could be different for each trim.
+		instruments.push(instrumentInfo);
+		addTrimesters(instruments[instruments.length-1], inputModules);
+	}
+	db3(instruments);
 }
