@@ -68,24 +68,47 @@ function db3(message) {
 	}
 }
 
+function scrapeLesInfo(lesInfo) {
+	let les = {};
+	let vakStrong = lesInfo.firstChild;
+	les.vakNaam = vakStrong.textContent;
+	les.lesNaam = lesInfo.children[1].textContent;
+	let badges = lesInfo.getElementsByClassName("badge");
+	les.module = Array.from(badges).some((el) => el.textContent === "module");
+	let mutedSpans = lesInfo.getElementsByClassName("text-muted");
+	if (mutedSpans.length > 0) {
+		les.teacher = Array.from(mutedSpans).pop().textContent;
+	}
+	return les;
+}
+
+function scrapeStudents(studentTable) {
+	let students = [];
+	if(studentTable.tBodies.length === 0) {
+		return students;
+	}
+	for (const row of studentTable.tBodies[0].rows) {
+		let studentInfo = {};
+		studentInfo.graadJaar = row.cells[0].children[0].textContent;
+		studentInfo.name = row.cells[0].childNodes[1].textContent;
+		students.push(studentInfo);
+	}
+	return students;
+}
+
 function listIt() {
 	let table = document.getElementById("table_lessen_resultaat_tabel");
 	let body = table.tBodies[0];
+	let lessen = [];
 	for (const row of body.rows) {
 		let lesInfo = row.cells[0];
 		let studentList = row.cells[1];
-		let vakStrong = lesInfo.firstChild;
-
-		let les = {};
-		les.vakNaam = vakStrong.textContent;
-		les.lesNaam = lesInfo.children[1].textContent;
-		let badges = lesInfo.getElementsByClassName("badge");
-		les.module = Array.from(badges).some((el) => el.textContent === "module");
-		let mutedSpans = lesInfo.getElementsByClassName("text-muted");
-		if (mutedSpans.length > 0) {
-			les.teacher = Array.from(mutedSpans).pop().textContent;
-		}
-		db3(les);
+		let studentTable = studentList.querySelectorAll("table")[0];
+		let les = scrapeLesInfo(lesInfo);
+		les.students = scrapeStudents(studentTable);
+		lessen.push(les);
 	}
+	let modules = lessen.filter((les) => les.module);
 
+	db3(modules);
 }
