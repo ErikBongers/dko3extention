@@ -71,6 +71,12 @@ function db3(message) {
 function showModules() {
 	let inputModules = scrapeModules();
 	mergeTrimesters(inputModules);
+	showOriginalTable(document.getElementById("table_lessen_resultaat_tabel").style.display === "none");
+}
+
+function showOriginalTable(show) {
+	document.getElementById("table_lessen_resultaat_tabel").style.display = show ? "table" : "none";
+	document.getElementById("moduleButton").innerHTML = show ? "Toon trimesters": "Toon normaal";
 }
 
 function scrapeLesInfo(lesInfo) {
