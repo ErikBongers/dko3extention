@@ -1,3 +1,7 @@
 * Add waiting list.
   > Names are not available, so just add a message in the cell below
   > in red?
+
+* Force enter in field:
+https://stackoverflow.com/questions/41137575/simulate-pressing-enter-key-on-input-text
+  > search field uses bootstrap event on...input or keyup (not keydown)
