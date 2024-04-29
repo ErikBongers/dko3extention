@@ -40,7 +40,17 @@ function buildTrimesterTable(instruments) {
 function buildInstrument(newTableBody, instrument) {
     // creates a table row
     buildInstrumentHeader(newTableBody, instrument);
-    for (let rowNo = 0; rowNo < 4; rowNo++) {//TODO: use maxAantal, unless 999, in which case use effective max aantal.
+    let studentTopRowNo = newTableBody.children.length;
+    let rowCount = Math.max(...instrument.trimesters
+        .map((trim) => {
+            if (!trim) return 0;
+            return trim.maxAantal > 100 ? 4 : trim.maxAantal;
+        }));
+    let hasWachtlijst = instrument.trimesters.find((trim) => (trim?.wachtlijst?? 0) > 0);
+    if (hasWachtlijst) {
+        rowCount++;
+    }
+    for (let rowNo = 0; rowNo < rowCount; rowNo++) {//TODO: use maxAantal, unless 999, in which case use effective max aantal.
         let row = document.createElement("tr");
         newTableBody.appendChild(row);
         for (let trimNo = 0; trimNo < 3; trimNo++) {
@@ -54,6 +64,25 @@ function buildInstrument(newTableBody, instrument) {
             }
             row.appendChild(buildStudentCell(studentName));
         }
+    }
+    if (!hasWachtlijst) {
+        return;
+    }
+
+    //build the wachtlijst row
+    for (let trimNo = 0; trimNo < 3; trimNo++) {
+        let colNo = trimNo;
+        let rowNo = newTableBody.children.length-1;
+        let cell = newTableBody.children[rowNo].children[colNo];
+        cell.classList.add("wachtlijst");
+        let trimester = instrument.trimesters[trimNo];
+        if ((trimester?.wachtlijst ?? 0) === 0) {
+            continue;
+        }
+        const small = document.createElement("small");
+        cell.appendChild(small);
+        small.appendChild(document.createTextNode(`(${trimester.wachtlijst} op wachtlijst)`));
+        small.classList.add("text-danger");
     }
 }
 

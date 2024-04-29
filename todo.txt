@@ -1,3 +1,2 @@
 * Add waiting list.
-  > Names are not available, so just add a message in the cell below
-  > in red?
+  > if waiting list but class not full > yellow bkg.
