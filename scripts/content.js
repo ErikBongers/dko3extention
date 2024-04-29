@@ -1,3 +1,4 @@
+const NBSP = 160;
 window.navigation.addEventListener("navigatesuccess", (event) => {
 	db3("navigateSuccess");
 	checkAndSetObserverForLessenOverzicht();
@@ -95,33 +96,7 @@ function buildTrimesterTable(instruments) {
 
 	// creating all cells
 	for (let instrument of instruments) {
-		// creates a table row
-		const trName = document.createElement("tr");
-		newTableBody.appendChild(trName);
-		const tdInstrumentName = document.createElement("td");
-		tdInstrumentName.classList.add("instrumentName");
-		tdInstrumentName.innerHTML = instrument.instrumentName;
-		tdInstrumentName.colSpan = 3;
-		trName.appendChild(tdInstrumentName);
-		for(let rowNo = 0; rowNo < 4; rowNo++) {//TODO: use maxAantal, unless 999, in which case use effective max aantal.
-			let row = document.createElement("tr");
-			newTableBody.appendChild(row);
-			for (let trimNo = 0; trimNo < 3; trimNo++) {
-				let trimester = instrument.trimesters[trimNo];
-				const NBSP = 160;
-				let studentName = String.fromCharCode(NBSP);
-				if (trimester) {
-					let student = trimester.students[rowNo];
-					if (student) {
-						studentName = student.name;
-					}
-				}
-				const cell = document.createElement("td");
-				const cellText = document.createTextNode(studentName);
-				cell.appendChild(cellText);
-				row.appendChild(cell);
-			}
-		}
+		buildInstrument(newTableBody, instrument);
 	}
 
 	// put the <tbody> in the <table>
@@ -131,6 +106,80 @@ function buildTrimesterTable(instruments) {
 	// sets the border attribute of newTable to '2'
 	newTable.setAttribute("border", "2");
 	orininalTable.insertAdjacentElement("afterend", newTable);
+}
+
+function buildModuleButton(buttonText, id) {
+	const button = document.createElement("a");
+	button.href = "/?#lessen-les?id=" + id
+	button.classList.add("float-right", "trimesterButton");
+	button.innerText = buttonText;
+	return button;
+}
+
+function buildInstrumentHeader(newTableBody, instrument) {
+	const trName = document.createElement("tr");
+	newTableBody.appendChild(trName);
+	trName.classList.add("instrumentRow");
+
+	const tdInstrumentName = document.createElement("td");
+	trName.appendChild(tdInstrumentName);
+	tdInstrumentName.classList.add("instrumentName", "instrumentCell");
+	tdInstrumentName.appendChild(document.createTextNode(instrument.instrumentName));
+	if (instrument.trimesters[0]) {
+		tdInstrumentName.appendChild(buildModuleButton("1", instrument.trimesters[0].id));
+	}
+
+	const tdCell2 = document.createElement("td");
+	trName.appendChild(tdCell2);
+	tdCell2.classList.add("instrumentCell");
+	tdCell2.appendChild(document.createTextNode(String.fromCharCode(NBSP)));
+	if (instrument.trimesters[1]) {
+		tdCell2.appendChild(buildModuleButton("2", instrument.trimesters[1].id));
+	}
+	const tdCell3 = document.createElement("td");
+	trName.appendChild(tdCell3);
+	tdCell3.classList.add("instrumentCell");
+	tdCell3.appendChild(document.createTextNode(String.fromCharCode(NBSP)));
+	if (instrument.trimesters[2]) {
+		tdCell3.appendChild(buildModuleButton("3", instrument.trimesters[2].id));
+	}
+}
+
+function buildInstrument(newTableBody, instrument) {
+	// creates a table row
+	buildInstrumentHeader(newTableBody, instrument);
+	for (let rowNo = 0; rowNo < 4; rowNo++) {//TODO: use maxAantal, unless 999, in which case use effective max aantal.
+		let row = document.createElement("tr");
+		newTableBody.appendChild(row);
+		for (let trimNo = 0; trimNo < 3; trimNo++) {
+			let trimester = instrument.trimesters[trimNo];
+			let studentName = undefined;
+			if (trimester) {
+				let student = trimester.students[rowNo];
+				if (student) {
+					studentName = student.name;
+				}
+			}
+			row.appendChild(buildStudentCell(studentName));
+		}
+	}
+}
+
+function buildStudentCell(studentName) {
+	const cell = document.createElement("td");
+	cell.appendChild(document.createTextNode(studentName ??  String.fromCharCode(NBSP)));
+	if (!studentName)
+		return cell;
+
+	const anchor = document.createElement("a");
+	cell.appendChild(anchor);
+	anchor.href = "#";
+	anchor.classList.add("pl-2");
+	anchor.onclick= function () { searchText(studentName); };
+	const iTag = document.createElement("i");
+	anchor.appendChild(iTag);
+	iTag.classList.add('fas', "fa-user-alt");
+	return cell;
 }
 
 function showModules() {
@@ -197,7 +246,8 @@ function scrapeModules() {
 			les.aantal = matches[1];
 			les.maxAantal = matches[2];
 		}
-
+		let idTag = Array.from(smallTags).find((item) => item.classList.contains("float-right"));
+		les.id = idTag.textContent;
 		lessen.push(les);
 	}
 	let modules = lessen.filter((les) => les.module);
@@ -241,4 +291,12 @@ function mergeTrimesters(inputModules) {
 	}
 	db3(instruments);
 	return instruments;
+}
+
+function searchText(text) {
+	db3("Forcing enter...");
+	let input = document.querySelector("#snel_zoeken_veld_zoektermen");
+	input.value = text;
+	let evUp = new KeyboardEvent("keyup", {key: "Enter", keyCode: 13, bubbles: true});
+	input.dispatchEvent(evUp);
 }
