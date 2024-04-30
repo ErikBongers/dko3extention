@@ -50,3 +50,7 @@
 #trimesterTable td.wachtlijst {
     border-style: none;
 }
+
+.yellowMarker {
+    background-color: yellow;
+}

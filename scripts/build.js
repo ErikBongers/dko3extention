@@ -83,6 +83,11 @@ function buildInstrument(newTableBody, instrument) {
         cell.appendChild(small);
         small.appendChild(document.createTextNode(`(${trimester.wachtlijst} op wachtlijst)`));
         small.classList.add("text-danger");
+
+        if (trimester.wachtlijst > 0 && trimester.aantal < trimester.maxAantal) {
+            cell.querySelector("small").classList.add("yellowMarker");
+            newTableBody.children[studentTopRowNo + trimester.aantal].children[colNo].classList.add("yellowMarker");
+        }
     }
 }
 
@@ -133,7 +138,11 @@ function buildStudentCell(studentName) {
     cell.appendChild(anchor);
     anchor.href = "#";
     anchor.classList.add("pl-2");
-    anchor.onclick= function () { searchText(studentName); };
+    anchor.onclick= function () {
+        fetchStudentId(studentName)
+            .then((id) => window.location.href = "/?#leerlingen-leerling?id="+id);
+        return false;
+    };
     const iTag = document.createElement("i");
     anchor.appendChild(iTag);
     iTag.classList.add('fas', "fa-user-alt");

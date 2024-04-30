@@ -88,9 +88,35 @@ function showOriginalTable(show) {
 }
 
 function searchText(text) {
-	db3("Forcing enter...");
 	let input = document.querySelector("#snel_zoeken_veld_zoektermen");
 	input.value = text;
 	let evUp = new KeyboardEvent("keyup", {key: "Enter", keyCode: 13, bubbles: true});
 	input.dispatchEvent(evUp);
+}
+
+function findStudentId(studentName, text) {
+	console.log(text);
+	studentName = studentName.replaceAll(",", "");
+	let namePos = text.indexOf(studentName);
+	if (namePos < 0) {
+		return -1
+	}
+	//the name comes AFTER the id, hence the backward search of the leftmost slice of the string.
+	let idPos = text.substring(0, namePos).lastIndexOf("'id=", namePos);
+	let id = text.substring(idPos, idPos+10);
+	id = id.match(/\d+/)[0]; //TODO: may fail!
+	console.log(id);
+	return parseInt(id);
+}
+
+async function fetchStudentId(studentName) {
+	let studentNameForUrl = studentName.replaceAll(",", "").replaceAll("(", "").replaceAll(")", "");
+	return fetch("/view.php?args=zoeken?zoek="+encodeURIComponent(studentNameForUrl))
+		.then((response) => response.text())
+		.then((text) => fetch("/views/zoeken/index.view.php"))
+		.then((response) => response.text())
+		.then((text) => findStudentId(studentName, text))
+		.catch(err => {
+			console.error('Request failed', err)
+		});
 }
