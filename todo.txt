@@ -1,2 +1,15 @@
 * Add waiting list.
   > if waiting list but class not full > yellow bkg.
+
+* Conditions for trimester modules
+  > explain them in popup?
+  - module badge
+  - les_naam: "Initiatie <instrument> ... trim ... <trim_no>"
+    > TODO: to_lowercase
+    > TODO: check for word "trim" (or "trimester")
+    > TODO:: enforce this rule!
+
+* Add an option to specify the les_naam format?
+  : "Initiatie [instrument] trim [trim_num]" ?
+  > spaces mean all possible whitespace, any number of times.
+  > "..." means any character.

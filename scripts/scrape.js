@@ -35,8 +35,11 @@ function scrapeModules() {
 
     for (let module of modules) {
         //get name of instrument and trimester.
+        //TODO: to lowerCase first.
+        //TODO: eheck for word "trim" or "trimester" preceding the trim_no
         const reInstrument = /.*\Snitiatie\s*(\w+).*(\d).*/;
         const match = module.naam.match(reInstrument);
+        //TODO: if match fails, remove the module, and console.log().
         module.instrumentName = match[1];
         module.trimesterNo = parseInt(match[2]);
     }
