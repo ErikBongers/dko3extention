@@ -140,7 +140,7 @@ function buildStudentCell(studentName) {
     anchor.classList.add("pl-2");
     anchor.onclick= function () {
         fetchStudentId(studentName)
-            .then((id) => window.location.href = "/?#leerlingen-leerling?id="+id);
+            .then((id) => window.location.href = "/?#leerlingen-leerling?id="+id+",tab=inschrijvingen");
         return false;
     };
     const iTag = document.createElement("i");
