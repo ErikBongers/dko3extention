@@ -15,3 +15,6 @@
   > "..." means any character.
 
 * if less student places in a trimester, fill rest of cells with grey.
+
+* les names can contain other chars.
+  : trompet/trombone
