@@ -40,6 +40,10 @@ function scrapeModules() {
         const reInstrument = /.*\Snitiatie\s*(\w+).*(\d).*/;
         const match = module.naam.match(reInstrument);
         //TODO: if match fails, remove the module, and console.log().
+        if (match?.length !== 3) {
+            console.log(`Could not process module "${module.naam}" (${module.id}).`);
+            continue;
+        }
         module.instrumentName = match[1];
         module.trimesterNo = parseInt(match[2]);
     }
@@ -73,6 +77,10 @@ function scrapeLesInfo(lesInfo) {
     if (mutedSpans.length > 0) {
         les.teacher = Array.from(mutedSpans).pop().textContent;
     }
+    let textNodes = Array.from(lesInfo.childNodes).filter((node) => node.nodeType === Node.TEXT_NODE);
+    if (!textNodes) return les;
 
+    les.lesmoment = textNodes[0].nodeValue;
+    les.vestiging = textNodes[1].nodeValue;
     return les;
 }

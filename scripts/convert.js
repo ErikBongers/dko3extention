@@ -20,6 +20,8 @@ function mergeTrimesters(inputModules) {
         instrumentInfo.instrumentName = module.instrumentName;
         instrumentInfo.maxAantal = module.maxAantal; //TODO: could be different for each trim.
         instrumentInfo.teacher = module.teacher; //TODO: could be different for each trim.
+        instrumentInfo.lesmoment = module.lesmoment; //TODO: could be different for each trim.
+        instrumentInfo.vestiging = module.vestiging; //TODO: could be different for each trim.
         instruments.push(instrumentInfo);
         addTrimesters(instruments[instruments.length-1], inputModules);
     }

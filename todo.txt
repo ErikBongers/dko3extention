@@ -13,3 +13,5 @@
   : "Initiatie [instrument] trim [trim_num]" ?
   > spaces mean all possible whitespace, any number of times.
   > "..." means any character.
+
+* if less student places in a trimester, fill rest of cells with grey.

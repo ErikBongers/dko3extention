@@ -5,6 +5,17 @@ function buildTrimesterTable(instruments) {
     let newTable = document.createElement("table");
     newTable.id = "trimesterTable";
     newTable.style.width = "100%";
+
+    let col = document.createElement("col");
+    col.setAttribute("width", "100");
+    newTable.appendChild(col);
+    col = document.createElement("col");
+    col.setAttribute("width", "100");
+    newTable.appendChild(col);
+    col = document.createElement("col");
+    col.setAttribute("width", "100");
+    newTable.appendChild(col);
+
     const newTableBody = document.createElement("tbody");
 
     //header
@@ -53,6 +64,7 @@ function buildInstrument(newTableBody, instrument) {
     for (let rowNo = 0; rowNo < rowCount; rowNo++) {//TODO: use maxAantal, unless 999, in which case use effective max aantal.
         let row = document.createElement("tr");
         newTableBody.appendChild(row);
+        row.classList.add("trimesterRow");
         for (let trimNo = 0; trimNo < 3; trimNo++) {
             let trimester = instrument.trimesters[trimNo];
             let studentName = undefined;
@@ -99,25 +111,44 @@ function buildInstrumentHeader(newTableBody, instrument) {
     const tdInstrumentName = document.createElement("td");
     trName.appendChild(tdInstrumentName);
     tdInstrumentName.classList.add("instrumentName", "instrumentCell");
-    tdInstrumentName.appendChild(document.createTextNode(instrument.instrumentName));
+    tdInstrumentName.setAttribute("colspan", "3");
+
+    let nameDiv = document.createElement("div");
+    tdInstrumentName.appendChild(nameDiv);
+    nameDiv.classList.add("moduleName");
+    nameDiv.appendChild(document.createTextNode(instrument.instrumentName));
+    let div = document.createElement("div");
+    tdInstrumentName.appendChild(div);
+    div.classList.add("text-muted");
+    div.appendChild(document.createTextNode(instrument.lesmoment));
+    div.appendChild(document.createElement("br"));
+    div.appendChild(document.createTextNode(instrument.teacher));
+    div.appendChild(document.createElement("br"));
+    div.appendChild(document.createTextNode(instrument.vestiging));
+
+    //build row for module links(the tiny numbered buttons)
+    const trModuleLinks = document.createElement("tr");
+    newTableBody.appendChild(trModuleLinks);
+    trModuleLinks.classList.add("instrumentRow");
+    const tdLink1 = document.createElement("td");
+    trModuleLinks.appendChild(tdLink1);
+    trModuleLinks.classList.add("instrumentCell");
     if (instrument.trimesters[0]) {
-        tdInstrumentName.appendChild(buildModuleButton("1", instrument.trimesters[0].id));
+        tdLink1.appendChild(buildModuleButton("1", instrument.trimesters[0].id));
+    }
+    const tdLink2 = document.createElement("td");
+    trModuleLinks.appendChild(tdLink2);
+    trModuleLinks.classList.add("instrumentCell");
+    if (instrument.trimesters[1]) {
+        tdLink2.appendChild(buildModuleButton("2", instrument.trimesters[1].id));
+    }
+    const tdLink3 = document.createElement("td");
+    trModuleLinks.appendChild(tdLink3);
+    trModuleLinks.classList.add("instrumentCell");
+    if (instrument.trimesters[2]) {
+        tdLink3.appendChild(buildModuleButton("3", instrument.trimesters[2].id));
     }
 
-    const tdCell2 = document.createElement("td");
-    trName.appendChild(tdCell2);
-    tdCell2.classList.add("instrumentCell");
-    tdCell2.appendChild(document.createTextNode(String.fromCharCode(NBSP)));
-    if (instrument.trimesters[1]) {
-        tdCell2.appendChild(buildModuleButton("2", instrument.trimesters[1].id));
-    }
-    const tdCell3 = document.createElement("td");
-    trName.appendChild(tdCell3);
-    tdCell3.classList.add("instrumentCell");
-    tdCell3.appendChild(document.createTextNode(String.fromCharCode(NBSP)));
-    if (instrument.trimesters[2]) {
-        tdCell3.appendChild(buildModuleButton("3", instrument.trimesters[2].id));
-    }
 }
 
 function buildModuleButton(buttonText, id) {
