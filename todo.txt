@@ -1,6 +1,3 @@
-* Add waiting list.
-  > if waiting list but class not full > yellow bkg.
-
 * Conditions for trimester modules
   > explain them in popup?
   - module badge
@@ -18,3 +15,9 @@
 
 * les names can contain other chars.
   : trompet/trombone
+
+* 3 trims the same: set student in bold at top.
+
+Teacher list
+-----------------
+Alle lessen per dag en leraar sorteren – zie uurroosters (deze worden opgemaakt per leraar per dag)
