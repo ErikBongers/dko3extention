@@ -27,6 +27,14 @@
     border-style: none;
 }
 
+#trimesterTable tr.trimesterRow.wachtlijst {
+    border-style: none;
+}
+
+#trimesterTable tr.trimesterRow.wachtlijst .text-danger{
+    font-weight: bold;
+}
+
 #trimesterTable td.instrumentName div.moduleName {
     font-weight: bold;
     border-width: 2px;

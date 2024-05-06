@@ -85,6 +85,7 @@ function buildInstrument(newTableBody, instrument) {
     for (let trimNo = 0; trimNo < 3; trimNo++) {
         let colNo = trimNo;
         let rowNo = newTableBody.children.length-1;
+        newTableBody.children[rowNo].classList.add("wachtlijst");
         let cell = newTableBody.children[rowNo].children[colNo];
         cell.classList.add("wachtlijst");
         let trimester = instrument.trimesters[trimNo];
