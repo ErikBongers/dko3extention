@@ -78,7 +78,7 @@ function showOriginalTable(show) {
 	//Build lazily and only once. Table will automatically be erased when filters are changed.
 	if (!document.getElementById("trimesterTable")) {
 		let inputModules = scrapeModules();
-		let instruments = mergeTrimesters(inputModules);
+		let instruments = buildInstrumentList(inputModules);
 		buildTrimesterTable(instruments);
 	}
 

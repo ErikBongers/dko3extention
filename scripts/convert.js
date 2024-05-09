@@ -7,7 +7,7 @@ function addTrimesters(instrument, inputModules) {
     instrument.trimesters = mergedInstrument;
 }
 
-function mergeTrimesters(inputModules) {
+function buildInstrumentList(inputModules) {
     //get all instruments
     let instrumentNames = inputModules.map((module) => module.instrumentName);
     let uniqueInstrumentNames = [...new Set(instrumentNames)];
