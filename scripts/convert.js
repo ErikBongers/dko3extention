@@ -24,8 +24,25 @@ function buildInstrumentList(inputModules) {
         instrumentInfo.vestiging = module.vestiging; //TODO: could be different for each trim.
         instruments.push(instrumentInfo);
         addTrimesters(instruments[instruments.length-1], inputModules);
+
+        instrumentInfo.students = new Map();
+        for (let trim of instrumentInfo.trimesters) {
+            addTrimesterStudentsToMapAndCount(instrumentInfo.students, trim);
+        }
     }
     db3(instruments);
     return instruments;
 }
 
+function addTrimesterStudentsToMapAndCount(students, trim) {
+    if(!trim) return;
+    for (let student of trim.students) {
+        if (!students.has(student.name)) {
+            students.set(student.name, student);
+        }
+        students.get(student.name).aantalTrims++;
+    }
+    //all trims must reference the students in the overall map.
+    let newTrimStudents = trim.students.map((student) => students.get(student.name));
+    trim.students = newTrimStudents;
+}

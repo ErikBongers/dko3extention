@@ -61,6 +61,7 @@ function scrapeStudents(studentTable) {
         let studentInfo = {};
         studentInfo.graadJaar = row.cells[0].children[0].textContent;
         studentInfo.name = row.cells[0].childNodes[1].textContent;
+        studentInfo.aantalTrims = 0; //will be updated when merging the trimesters per instrument.
         students.push(studentInfo);
     }
     return students;

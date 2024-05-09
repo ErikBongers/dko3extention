@@ -67,14 +67,11 @@ function buildInstrument(newTableBody, instrument) {
         row.classList.add("trimesterRow");
         for (let trimNo = 0; trimNo < 3; trimNo++) {
             let trimester = instrument.trimesters[trimNo];
-            let studentName = undefined;
+            let student = undefined;
             if (trimester) {
-                let student = trimester.students[rowNo];
-                if (student) {
-                    studentName = student.name;
-                }
+                student = trimester.students[rowNo]; //TODO: use .? operator?
             }
-            row.appendChild(buildStudentCell(studentName));
+            row.appendChild(buildStudentCell(student));
         }
     }
     if (!hasWachtlijst) {
@@ -160,18 +157,24 @@ function buildModuleButton(buttonText, id) {
     return button;
 }
 
-function buildStudentCell(studentName) {
+function buildStudentCell(student) {
     const cell = document.createElement("td");
-    cell.appendChild(document.createTextNode(studentName ??  String.fromCharCode(NBSP)));
-    if (!studentName)
+    let studentSpan = document.createElement("span");
+    studentSpan.appendChild(document.createTextNode(student?.name ??  String.fromCharCode(NBSP)));
+    cell.appendChild(studentSpan);
+    if (student?.aantalTrims === 3) {
+        studentSpan.classList.add("allYear");
+    }
+    if (!student) {
         return cell;
+    }
 
     const anchor = document.createElement("a");
     cell.appendChild(anchor);
     anchor.href = "#";
     anchor.classList.add("pl-2");
     anchor.onclick= function () {
-        fetchStudentId(studentName)
+        fetchStudentId(student.name)
             .then((id) => window.location.href = "/?#leerlingen-leerling?id="+id+",tab=inschrijvingen");
         return false;
     };
