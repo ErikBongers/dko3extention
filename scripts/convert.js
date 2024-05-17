@@ -29,6 +29,10 @@ function buildInstrumentList(inputModules) {
         for (let trim of instrumentInfo.trimesters) {
             addTrimesterStudentsToMapAndCount(instrumentInfo.students, trim);
         }
+        //sorting can only be done AFTER counting
+        for (let trim of instrumentInfo.trimesters) {
+            sortTrimesterStudents(trim);
+        }
     }
     db3(instruments);
     return instruments;
@@ -43,6 +47,22 @@ function addTrimesterStudentsToMapAndCount(students, trim) {
         students.get(student.name).aantalTrims++;
     }
     //all trims must reference the students in the overall map.
-    let newTrimStudents = trim.students.map((student) => students.get(student.name));
-    trim.students = newTrimStudents;
+    trim.students = trim.students
+        .map((student) => students.get(student.name));
+}
+
+function sortTrimesterStudents(trim) {
+    if(!trim) return;
+    let comparator = new Intl.Collator();
+    trim.students
+        //sort full year students on top.
+        .sort((a,b) => {
+            if (a.aantalTrims === 3 && b.aantalTrims !== 3) {
+                return -1;
+            } else if (a.aantalTrims !== 3 && b.aantalTrims === 3) {
+                return 1;
+            } else {
+                return comparator.compare(a.name, b.name);
+            }
+        });
 }
