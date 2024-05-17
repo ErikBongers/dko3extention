@@ -78,8 +78,8 @@ function showOriginalTable(show) {
 	//Build lazily and only once. Table will automatically be erased when filters are changed.
 	if (!document.getElementById("trimesterTable")) {
 		let inputModules = scrapeModules();
-		let instruments = buildInstrumentList(inputModules);
-		buildTrimesterTable(instruments);
+		let tableData = buildTableData(inputModules);
+		buildTrimesterTable(tableData.instruments);
 	}
 
 	document.getElementById("table_lessen_resultaat_tabel").style.display = show ? "table" : "none";

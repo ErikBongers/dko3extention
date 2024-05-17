@@ -7,12 +7,15 @@ function addTrimesters(instrument, inputModules) {
     instrument.trimesters = mergedInstrument;
 }
 
-function buildInstrumentList(inputModules) {
+function buildTableData(inputModules) {
+    let tableData = {
+        students: new Map(),
+        instruments: []
+    };
     //get all instruments
     let instrumentNames = inputModules.map((module) => module.instrumentName);
     let uniqueInstrumentNames = [...new Set(instrumentNames)];
 
-    let instruments = [];
     for (let instrumentName of uniqueInstrumentNames) {
         //get module instrument info
         let instrumentInfo = {};
@@ -22,29 +25,54 @@ function buildInstrumentList(inputModules) {
         instrumentInfo.teacher = module.teacher; //TODO: could be different for each trim.
         instrumentInfo.lesmoment = module.lesmoment; //TODO: could be different for each trim.
         instrumentInfo.vestiging = module.vestiging; //TODO: could be different for each trim.
-        instruments.push(instrumentInfo);
-        addTrimesters(instruments[instruments.length-1], inputModules);
+        tableData.instruments.push(instrumentInfo);
+        addTrimesters(tableData.instruments[tableData.instruments.length-1], inputModules);
 
-        instrumentInfo.students = new Map();
-        for (let trim of instrumentInfo.trimesters) {
-            addTrimesterStudentsToMapAndCount(instrumentInfo.students, trim);
+       for (let trim of instrumentInfo.trimesters) {
+            addTrimesterStudentsToMapAndCount(tableData.students, trim);
         }
-        //sorting can only be done AFTER counting
-        for (let trim of instrumentInfo.trimesters) {
+    }
+
+    db3(tableData.students);
+    for(let student of tableData.students.values()) {
+        let trimmed = student.instruments.filter((instr) => instr !== undefined);
+        if(trimmed.length < 3) {
+            student.allYearSame = false;
+            continue;
+        }
+        student.allYearSame = student.instruments.every((instr) => instr.instrumentName === student.instruments[0].instrumentName);
+    }
+
+    for(let instrument of tableData.instruments) {
+        for (let trim of instrument.trimesters) {
             sortTrimesterStudents(trim);
         }
     }
-    db3(instruments);
-    return instruments;
+
+    for(let student of tableData.students.values()) {
+        student.info = "";
+        for(let instr of student.instruments) {
+            if(instr) {
+                student.info += instr.trimesterNo + ". " + instr.instrumentName + "\n";
+            } else {
+                student.info += "?. ---\n";
+            }
+        }
+    }
+
+    db3(tableData);
+    return tableData;
 }
 
 function addTrimesterStudentsToMapAndCount(students, trim) {
     if(!trim) return;
     for (let student of trim.students) {
         if (!students.has(student.name)) {
+            student.instruments = [undefined, undefined, undefined];
             students.set(student.name, student);
         }
-        students.get(student.name).aantalTrims++;
+        let stud = students.get(student.name);
+        stud.instruments[trim.trimesterNo-1] = trim;
     }
     //all trims must reference the students in the overall map.
     trim.students = trim.students
@@ -57,9 +85,9 @@ function sortTrimesterStudents(trim) {
     trim.students
         //sort full year students on top.
         .sort((a,b) => {
-            if (a.aantalTrims === 3 && b.aantalTrims !== 3) {
+            if (a.allYearSame && (!b.allYearSame)) {
                 return -1;
-            } else if (a.aantalTrims !== 3 && b.aantalTrims === 3) {
+            } else if ((!a.allYearSame) && b.allYearSame) {
                 return 1;
             } else {
                 return comparator.compare(a.name, b.name);

@@ -162,7 +162,7 @@ function buildStudentCell(student) {
     let studentSpan = document.createElement("span");
     studentSpan.appendChild(document.createTextNode(student?.name ??  String.fromCharCode(NBSP)));
     cell.appendChild(studentSpan);
-    if (student?.aantalTrims === 3) {
+    if (student?.allYearSame) {
         studentSpan.classList.add("allYear");
     }
     if (!student) {
@@ -173,6 +173,7 @@ function buildStudentCell(student) {
     cell.appendChild(anchor);
     anchor.href = "#";
     anchor.classList.add("pl-2");
+    anchor.title = student.info;
     anchor.onclick= function () {
         fetchStudentId(student.name)
             .then((id) => window.location.href = "/?#leerlingen-leerling?id="+id+",tab=inschrijvingen");
