@@ -151,7 +151,7 @@ function buildInstrumentHeader(newTableBody, instrument) {
 
 function buildModuleButton(buttonText, id) {
     const button = document.createElement("a");
-    button.href = "/?#lessen-les?id=" + id
+    button.href = "/?#lessen-les?id=" + id;
     button.classList.add("float-right", "trimesterButton");
     button.innerText = buttonText;
     return button;
