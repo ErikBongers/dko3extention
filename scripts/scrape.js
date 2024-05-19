@@ -79,12 +79,19 @@ function scrapeLesInfo(lesInfo) {
     let les = {};
     let vakStrong = lesInfo.firstChild;
     les.vakNaam = vakStrong.textContent;
-    les.naam = lesInfo.children[1].textContent;
     let badges = lesInfo.getElementsByClassName("badge");
     les.module = Array.from(badges).some((el) => el.textContent === "module");
     les.alc = Array.from(badges).some((el) => el.textContent === "ALC");
     les.visible = lesInfo.getElementsByClassName("fa-eye-slash").length === 0;
     let mutedSpans = lesInfo.getElementsByClassName("text-muted");
+    //muted spans contain:
+    //  - class name (optional)
+    //  - teacher name (always)
+    if(mutedSpans.length > 1) {
+        les.naam = mutedSpans.item(0).textContent;
+    } else {
+        les.naam = lesInfo.children[1].textContent;
+    }
     if (mutedSpans.length > 0) {
         les.teacher = Array.from(mutedSpans).pop().textContent;
     }
