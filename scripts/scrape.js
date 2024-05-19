@@ -1,13 +1,12 @@
-function scrapeModules() {
+function scrapeLessenOverzicht() {
     let table = document.getElementById("table_lessen_resultaat_tabel");
     let body = table.tBodies[0];
     let lessen = [];
     for (const row of body.rows) {
         let lesInfo = row.cells[0];
         let studentsCell = row.cells[1];
-        let studentsTable = studentsCell.querySelectorAll("table")[0];
         let les = scrapeLesInfo(lesInfo);
-        les.students = scrapeStudents(studentsTable);
+        les.studentsTable = studentsCell.querySelectorAll("table")[0]; //for delayed student scraping.
         let smallTags = studentsCell.querySelectorAll("small");
         //aantallen
         let arrayLeerlingenAantal = Array.from(smallTags).map((item) => item.textContent).filter((txt) => txt.includes("leerlingen"));
@@ -31,9 +30,18 @@ function scrapeModules() {
 
         lessen.push(les);
     }
+    db3(lessen);
+
+    return lessen;
+}
+
+function scrapeModules() {
+    let lessen = scrapeLessenOverzicht();
     let modules = lessen.filter((les) => les.module);
 
     for (let module of modules) {
+        module.students = scrapeStudents(module.studentsTable);
+
         //get name of instrument and trimester.
         //TODO: to lowerCase first.
         //TODO: eheck for word "trim" or "trimester" preceding the trim_no
@@ -73,6 +81,7 @@ function scrapeLesInfo(lesInfo) {
     les.naam = lesInfo.children[1].textContent;
     let badges = lesInfo.getElementsByClassName("badge");
     les.module = Array.from(badges).some((el) => el.textContent === "module");
+    les.alc = Array.from(badges).some((el) => el.textContent === "ALC");
     let mutedSpans = lesInfo.getElementsByClassName("text-muted");
     if (mutedSpans.length > 0) {
         les.teacher = Array.from(mutedSpans).pop().textContent;

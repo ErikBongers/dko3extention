@@ -53,7 +53,9 @@ const bodyObserverCallback = (mutationList, observer) => {
 
 function onLessenOverzichtChanged(printButton) {
 	let badges = document.getElementsByClassName("badge");
-	if (!Array.from(badges).some((el) => el.textContent === "module")) {
+	let hasModules = Array.from(badges).some((el) => el.textContent === "module");
+	let hasAlc = Array.from(badges).some((el) => el.textContent === "ALC")
+	if (!hasModules && !hasAlc) {
 		return;
 	}
 	let moduleButton = document.getElementById("moduleButton");
