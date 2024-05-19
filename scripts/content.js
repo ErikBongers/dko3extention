@@ -36,30 +36,38 @@ function setMainObserver() {
 
 const bodyObserverCallback = (mutationList, observer) => {
 	for (const mutation of mutationList) {
-		if (mutation.type === "childList") {
-			let printButton = document.getElementById("btn_print_overzicht_lessen");
-			if (printButton) {
-				//check if badge with text "module" is present.
-				let badges = document.getElementsByClassName("badge");
-				if (!Array.from(badges).some((el) => el.textContent === "module")) {
-					return;
-				}
-				let moduleButton = document.getElementById("moduleButton");
-				if (moduleButton === null) {
-					db3("adding button");
-					const trimButton = document.createElement("button", );
-					trimButton.classList.add("btn", "btn-sm", "btn-outline-secondary", "w-100");
-					trimButton.id = "moduleButton";
-					trimButton.textContent = "Toon trimesters";
-					trimButton.style.marginTop = "0";
-					trimButton.onclick = showModules;
-					printButton.insertAdjacentElement("beforebegin", trimButton);
-				}
-			}
-
+		if (mutation.type !== "childList") {
+			continue;
 		}
+		let lessenOverzicht = document.getElementById("lessen_overzicht");
+		if (mutation.target !== lessenOverzicht) {
+			continue;
+		}
+		let printButton = document.getElementById("btn_print_overzicht_lessen");
+		if (!printButton) {
+			continue;
+		}
+		onLessenOverzichtChanged(printButton);
 	}
 };
+
+function onLessenOverzichtChanged(printButton) {
+	let badges = document.getElementsByClassName("badge");
+	if (!Array.from(badges).some((el) => el.textContent === "module")) {
+		return;
+	}
+	let moduleButton = document.getElementById("moduleButton");
+	if (moduleButton === null) {
+		db3("adding button");
+		const trimButton = document.createElement("button",);
+		trimButton.classList.add("btn", "btn-sm", "btn-outline-secondary", "w-100");
+		trimButton.id = "moduleButton";
+		trimButton.textContent = "Toon trimesters";
+		trimButton.style.marginTop = "0";
+		trimButton.onclick = showModules;
+		printButton.insertAdjacentElement("beforebegin", trimButton);
+	}
+}
 
 const bodyObserver = new MutationObserver(bodyObserverCallback);
 
