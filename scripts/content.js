@@ -55,19 +55,62 @@ function onLessenOverzichtChanged(printButton) {
 	let badges = document.getElementsByClassName("badge");
 	let hasModules = Array.from(badges).some((el) => el.textContent === "module");
 	let hasAlc = Array.from(badges).some((el) => el.textContent === "ALC")
-	if (!hasModules && !hasAlc) {
+	let warnings = document.getElementsByClassName("text-warning");
+	let hasWarnings = warnings.length !==0;
+
+	let hasFullClasses = Array.from(warnings).map((item) => item.textContent).some((txt) => txt.includes("leerlingen"));
+
+	if (!hasModules && !hasAlc && !hasWarnings && !hasFullClasses) {
 		return;
 	}
-	let moduleButton = document.getElementById("moduleButton");
-	if (moduleButton === null) {
-		db3("adding button");
-		const trimButton = document.createElement("button",);
-		trimButton.classList.add("btn", "btn-sm", "btn-outline-secondary", "w-100");
-		trimButton.id = "moduleButton";
-		trimButton.textContent = "Toon trimesters";
-		trimButton.style.marginTop = "0";
-		trimButton.onclick = showModules;
-		printButton.insertAdjacentElement("beforebegin", trimButton);
+	if (hasModules) {
+		addTrimesterButton(printButton);
+	}
+	if(hasAlc || hasWarnings) {
+		addChecksButton(printButton);
+	}
+	if(hasFullClasses) {
+		addFullClassesButton(printButton);
+	}
+}
+
+function addTrimesterButton(printButton) {
+	let buttonId = "moduleButton";
+	let title = "Toon trimesters";
+	let clickFunction = showModules;
+	let imageId = "fa-sitemap";
+	addButton(buttonId, clickFunction, title, imageId, printButton);
+}
+
+function addChecksButton(printButton) {
+	let buttonId = "checksButton";
+	let title = "Controleer lessen op fouten";
+	let clickFunction = showCheckResults;
+	let imageId = "fa-stethoscope";
+	addButton(buttonId, clickFunction, title, imageId, printButton);
+}
+
+function addFullClassesButton(printButton) {
+	let buttonId = "fullClassButton";
+	let title = "Filter volle klassen";
+	let clickFunction = showFullClasses;
+	let imageId = "fa-weight-hanging";
+	addButton(buttonId, clickFunction, title, imageId, printButton);
+}
+
+function addButton(buttonId, clickFunction, title, imageId, printButton) {
+	let button = document.getElementById(buttonId);
+	if (button === null) {
+		const button = document.createElement("button",);
+		button.classList.add("btn", "btn-sm", "btn-outline-secondary", "w-100");
+		button.id = buttonId;
+		button.style.marginTop = "0";
+		button.onclick = clickFunction;
+		button.title = title;
+		const buttonContent = document.createElement("i");
+		button.appendChild(buttonContent);
+		buttonContent.classList.add("fas", imageId);
+		printButton.insertAdjacentElement("beforebegin", button);
 	}
 }
 
@@ -77,6 +120,39 @@ const debugDko3 = true;
 function db3(message) {
 	if (debugDko3) {
 		console.log(message);
+	}
+}
+
+function showCheckResults() {
+	let lessen = scrapeLessenOverzicht();
+
+	let overzichtDiv = document.getElementById("lessen_overzicht");
+	let table = document.getElementById("table_lessen_resultaat_tabel");
+
+	let checksDiv = document.createElement("div");
+	checksDiv.id = "checksDiv";
+	checksDiv.classList.add("badge-warning");
+
+	let checksText = "";
+	table.parentNode.insertBefore(checksDiv, table.previousSibling);
+	for(let les of lessen) {
+		if (les.alc) {
+			if(les.visible) {
+				checksText += `<div>ALC les <b>${les.naam}</b> is online zichtbaar.</div>`;
+			}
+		}
+	}
+	checksDiv.innerHTML = checksText;
+}
+
+function showFullClasses() {
+	let lessen = scrapeLessenOverzicht();
+	let overzichtDiv = document.getElementById("lessen_overzicht");
+	overzichtDiv.dataset.showFullClasses = (overzichtDiv.dataset.showFullClasses?? "table-row") === "none" ? "table-row" : "none";
+	for(let les of lessen) {
+		if (les.aantal < les.maxAantal) {
+			les.tableRow.style.display = overzichtDiv.dataset.showFullClasses;
+		}
 	}
 }
 
@@ -94,7 +170,7 @@ function showOriginalTable(show) {
 
 	document.getElementById("table_lessen_resultaat_tabel").style.display = show ? "table" : "none";
 	document.getElementById("trimesterTable").style.display = show ? "none" : "table";
-	document.getElementById("moduleButton").innerHTML = show ? "Toon trimesters": "Toon normaal";
+	document.getElementById("moduleButton").title = show ? "Toon trimesters": "Toon normaal";
 }
 
 function searchText(text) {

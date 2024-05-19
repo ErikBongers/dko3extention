@@ -6,6 +6,7 @@ function scrapeLessenOverzicht() {
         let lesInfo = row.cells[0];
         let studentsCell = row.cells[1];
         let les = scrapeLesInfo(lesInfo);
+        les.tableRow = row;
         les.studentsTable = studentsCell.querySelectorAll("table")[0]; //for delayed student scraping.
         let smallTags = studentsCell.querySelectorAll("small");
         //aantallen
@@ -82,6 +83,7 @@ function scrapeLesInfo(lesInfo) {
     let badges = lesInfo.getElementsByClassName("badge");
     les.module = Array.from(badges).some((el) => el.textContent === "module");
     les.alc = Array.from(badges).some((el) => el.textContent === "ALC");
+    les.visible = lesInfo.getElementsByClassName("fa-eye-slash").length === 0;
     let mutedSpans = lesInfo.getElementsByClassName("text-muted");
     if (mutedSpans.length > 0) {
         les.teacher = Array.from(mutedSpans).pop().textContent;
