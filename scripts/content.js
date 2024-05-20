@@ -171,6 +171,12 @@ function showOriginalTable(show) {
 	document.getElementById("table_lessen_resultaat_tabel").style.display = show ? "table" : "none";
 	document.getElementById("trimesterTable").style.display = show ? "none" : "table";
 	document.getElementById("moduleButton").title = show ? "Toon trimesters": "Toon normaal";
+
+	if(show) {
+		document.getElementById("moduleButton").classList.remove("toggled");
+	} else {
+		document.getElementById("moduleButton").classList.add("toggled");
+	}
 }
 
 function searchText(text) {
