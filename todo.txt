@@ -1,3 +1,6 @@
+* Filter full classes doesn't work in trimester view
+  > show rows (the 3 trims) with a full trim.
+
 * Conditions for trimester modules
   > explain them in popup?
   - module badge

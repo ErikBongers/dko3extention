@@ -10,7 +10,7 @@
   "content_scripts": [
     {
       "js": ["scripts/content.js", "scripts/scrape.js", "scripts/build.js", "scripts/convert.js"],
-      "css": ["css/trimesters.css"],
+      "css": ["css/trimesterTable.css"],
       "matches": [
         "https://administratie.dko3.cloud/*"
       ]
