@@ -1,6 +1,21 @@
 * Filter full classes doesn't work in trimester view
   > show rows (the 3 trims) with a full trim.
 
+* Use popover for the student.info popup.
+  > make trimesters links to the classes.
+
+* Checks:
+      >>>> only actual errors to avoid fatigue!
+  > 999 for certain classes
+  > no alias for Woord classes
+  > no teacher?
+  > ALC: should be assigned to Kristel
+  > offline/online
+    - ALC: offline
+    - Woord with alias: offline
+
+
+
 * Conditions for trimester modules
   > explain them in popup?
   - module badge
