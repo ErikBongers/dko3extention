@@ -1,3 +1,8 @@
+const LESSEN_OVERZICHT_ID = "lessen_overzicht";
+const TRIM_BUTTON_ID = "moduleButton";
+const CHECKS_BUTTON_ID = "checksButton";
+const FULL_CLASS_BUTTON_ID = "fullClassButton";
+
 window.navigation.addEventListener("navigatesuccess", (event) => {
 	db3("navigateSuccess");
 	checkAndSetObserverForLessenOverzicht();
@@ -39,7 +44,7 @@ const bodyObserverCallback = (mutationList, observer) => {
 		if (mutation.type !== "childList") {
 			continue;
 		}
-		let lessenOverzicht = document.getElementById("lessen_overzicht");
+		let lessenOverzicht = document.getElementById(LESSEN_OVERZICHT_ID);
 		if (mutation.target !== lessenOverzicht) {
 			continue;
 		}
@@ -53,7 +58,7 @@ const bodyObserverCallback = (mutationList, observer) => {
 
 function onLessenOverzichtChanged(printButton) {
 	//reset state
-	let overzichtDiv = document.getElementById("lessen_overzicht");
+	let overzichtDiv = document.getElementById(LESSEN_OVERZICHT_ID);
 	overzichtDiv.dataset.filterFullClasses = "false";
 
 	let badges = document.getElementsByClassName("badge");
@@ -79,7 +84,7 @@ function onLessenOverzichtChanged(printButton) {
 }
 
 function addTrimesterButton(printButton) {
-	let buttonId = "moduleButton";
+	let buttonId = TRIM_BUTTON_ID;
 	let title = "Toon trimesters";
 	let clickFunction = showModules;
 	let imageId = "fa-sitemap";
@@ -87,7 +92,7 @@ function addTrimesterButton(printButton) {
 }
 
 function addChecksButton(printButton) {
-	let buttonId = "checksButton";
+	let buttonId = CHECKS_BUTTON_ID;
 	let title = "Controleer lessen op fouten";
 	let clickFunction = showCheckResults;
 	let imageId = "fa-stethoscope";
@@ -95,7 +100,7 @@ function addChecksButton(printButton) {
 }
 
 function addFullClassesButton(printButton) {
-	let buttonId = "fullClassButton";
+	let buttonId = FULL_CLASS_BUTTON_ID;
 	let title = "Filter volle klassen";
 	let clickFunction = showFullClasses;
 	let imageId = "fa-weight-hanging";
@@ -130,7 +135,7 @@ function db3(message) {
 function showCheckResults() {
 	let lessen = scrapeLessenOverzicht();
 
-	let overzichtDiv = document.getElementById("lessen_overzicht");
+	let overzichtDiv = document.getElementById(LESSEN_OVERZICHT_ID);
 	let table = document.getElementById("table_lessen_resultaat_tabel");
 
 	let checksDiv = document.createElement("div");
@@ -151,7 +156,7 @@ function showCheckResults() {
 
 function showFullClasses() {
 	let lessen = scrapeLessenOverzicht();
-	let overzichtDiv = document.getElementById("lessen_overzicht");
+	let overzichtDiv = document.getElementById(LESSEN_OVERZICHT_ID);
 	overzichtDiv.dataset.filterFullClasses = (overzichtDiv.dataset.filterFullClasses?? "false") === "false" ? "true" : "false";
 	let displayState = overzichtDiv.dataset.filterFullClasses === "true" ? "none" : "table-row";
 	for(let les of lessen) {
@@ -159,7 +164,7 @@ function showFullClasses() {
 			les.tableRow.style.display = displayState;
 		}
 	}
-	setButtonHighlighted("fullClassButton", overzichtDiv.dataset.filterFullClasses === "true");
+	setButtonHighlighted(FULL_CLASS_BUTTON_ID, overzichtDiv.dataset.filterFullClasses === "true");
 
 }
 
@@ -185,8 +190,8 @@ function showOriginalTable(show) {
 
 	document.getElementById("table_lessen_resultaat_tabel").style.display = show ? "table" : "none";
 	document.getElementById("trimesterTable").style.display = show ? "none" : "table";
-	document.getElementById("moduleButton").title = show ? "Toon trimesters": "Toon normaal";
-	setButtonHighlighted("moduleButton", !show);
+	document.getElementById(TRIM_BUTTON_ID).title = show ? "Toon trimesters": "Toon normaal";
+	setButtonHighlighted(TRIM_BUTTON_ID, !show);
 }
 
 function searchText(text) {
