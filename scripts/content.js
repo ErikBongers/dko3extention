@@ -52,6 +52,10 @@ const bodyObserverCallback = (mutationList, observer) => {
 };
 
 function onLessenOverzichtChanged(printButton) {
+	//reset state
+	let overzichtDiv = document.getElementById("lessen_overzicht");
+	overzichtDiv.dataset.filterFullClasses = "false";
+
 	let badges = document.getElementsByClassName("badge");
 	let hasModules = Array.from(badges).some((el) => el.textContent === "module");
 	let hasAlc = Array.from(badges).some((el) => el.textContent === "ALC")
@@ -148,16 +152,27 @@ function showCheckResults() {
 function showFullClasses() {
 	let lessen = scrapeLessenOverzicht();
 	let overzichtDiv = document.getElementById("lessen_overzicht");
-	overzichtDiv.dataset.showFullClasses = (overzichtDiv.dataset.showFullClasses?? "table-row") === "none" ? "table-row" : "none";
+	overzichtDiv.dataset.filterFullClasses = (overzichtDiv.dataset.filterFullClasses?? "false") === "false" ? "true" : "false";
+	let displayState = overzichtDiv.dataset.filterFullClasses === "true" ? "none" : "table-row";
 	for(let les of lessen) {
 		if (les.aantal < les.maxAantal) {
-			les.tableRow.style.display = overzichtDiv.dataset.showFullClasses;
+			les.tableRow.style.display = displayState;
 		}
 	}
+	setButtonHighlighted("fullClassButton", overzichtDiv.dataset.filterFullClasses === "true");
+
 }
 
 function showModules() {
 	showOriginalTable(document.getElementById("table_lessen_resultaat_tabel").style.display === "none");
+}
+
+function setButtonHighlighted(buttonId, show) {
+	if (show) {
+		document.getElementById(buttonId).classList.add("toggled");
+	} else {
+		document.getElementById(buttonId).classList.remove("toggled");
+	}
 }
 
 function showOriginalTable(show) {
@@ -171,12 +186,7 @@ function showOriginalTable(show) {
 	document.getElementById("table_lessen_resultaat_tabel").style.display = show ? "table" : "none";
 	document.getElementById("trimesterTable").style.display = show ? "none" : "table";
 	document.getElementById("moduleButton").title = show ? "Toon trimesters": "Toon normaal";
-
-	if(show) {
-		document.getElementById("moduleButton").classList.remove("toggled");
-	} else {
-		document.getElementById("moduleButton").classList.add("toggled");
-	}
+	setButtonHighlighted("moduleButton", !show);
 }
 
 function searchText(text) {
