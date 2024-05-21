@@ -2,6 +2,7 @@ const LESSEN_OVERZICHT_ID = "lessen_overzicht";
 const TRIM_BUTTON_ID = "moduleButton";
 const CHECKS_BUTTON_ID = "checksButton";
 const FULL_CLASS_BUTTON_ID = "fullClassButton";
+const TRIM_TABLE_ID = "trimesterTable";
 
 window.navigation.addEventListener("navigatesuccess", (event) => {
 	db3("navigateSuccess");
@@ -182,14 +183,14 @@ function setButtonHighlighted(buttonId, show) {
 
 function showTrimesterTable(show) {
 	//Build lazily and only once. Table will automatically be erased when filters are changed.
-	if (!document.getElementById("trimesterTable")) {
+	if (!document.getElementById(TRIM_TABLE_ID)) {
 		let inputModules = scrapeModules();
 		let tableData = buildTableData(inputModules);
 		buildTrimesterTable(tableData.instruments);
 	}
 
 	document.getElementById("table_lessen_resultaat_tabel").style.display = show ? "none" : "table";
-	document.getElementById("trimesterTable").style.display = show ? "table" : "none";
+	document.getElementById(TRIM_TABLE_ID).style.display = show ? "table" : "none";
 	document.getElementById(TRIM_BUTTON_ID).title = show ? "Toon normaal" : "Toon trimesters";
 	setButtonHighlighted(TRIM_BUTTON_ID, show);
 }
