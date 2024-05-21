@@ -45,12 +45,13 @@ function buildTrimesterTable(instruments) {
     document.body.appendChild(newTable);
     // sets the border attribute of newTable to '2'
     newTable.setAttribute("border", "2");
+    newTable.dataset.showFullClass="false";
     orininalTable.insertAdjacentElement("afterend", newTable);
 }
 
 function buildInstrument(newTableBody, instrument) {
     // creates a table row
-    buildInstrumentHeader(newTableBody, instrument);
+    let headerRows = buildInstrumentHeader(newTableBody, instrument);
     let studentTopRowNo = newTableBody.children.length;
     let rowCount = Math.max(...instrument.trimesters
         .map((trim) => {
@@ -61,18 +62,32 @@ function buildInstrument(newTableBody, instrument) {
     if (hasWachtlijst) {
         rowCount++;
     }
+
+    headerRows.trName.dataset.hasFullClass = "false";
+    headerRows.trModuleLinks.dataset.hasFullClass = "false";
+    let hasFullClass = false;
     for (let rowNo = 0; rowNo < rowCount; rowNo++) {//TODO: use maxAantal, unless 999, in which case use effective max aantal.
         let row = document.createElement("tr");
         newTableBody.appendChild(row);
         row.classList.add("trimesterRow");
+        row.dataset.hasFullClass = "false";
+
         for (let trimNo = 0; trimNo < 3; trimNo++) {
             let trimester = instrument.trimesters[trimNo];
             let student = undefined;
             if (trimester) {
                 student = trimester.students[rowNo]; //TODO: use .? operator?
             }
+            if (trimester.aantal >= trimester.maxAantal) {
+                row.dataset.hasFullClass = "true";
+                hasFullClass = true;
+            }
             row.appendChild(buildStudentCell(student));
         }
+    }
+    if(hasFullClass) {
+        headerRows.trName.dataset.hasFullClass = "true";
+        headerRows.trModuleLinks.dataset.hasFullClass = "true";
     }
     if (!hasWachtlijst) {
         return;
@@ -146,7 +161,10 @@ function buildInstrumentHeader(newTableBody, instrument) {
     if (instrument.trimesters[2]) {
         tdLink3.appendChild(buildModuleButton("3", instrument.trimesters[2].id));
     }
-
+    return {
+        "trName": trName,
+        "trModuleLinks": trModuleLinks
+    };
 }
 
 function buildModuleButton(buttonText, id) {

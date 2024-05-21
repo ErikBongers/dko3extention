@@ -70,4 +70,7 @@
         font-weight: bold;
     }
 
+    &[data-show-full-class="true"] tr[data-has-full-class="false"] {
+        display: none;
+    }
 }

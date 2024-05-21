@@ -155,6 +155,11 @@ function showCheckResults() {
 	checksDiv.innerHTML = checksText;
 }
 
+function showOnlyFullTrimesters(onlyFull) {
+	let trimTable = document.getElementById(TRIM_TABLE_ID);
+	trimTable.dataset.showFullClass = onlyFull ? "true" : "false";
+}
+
 function showFullClasses() {
 	let lessen = scrapeLessenOverzicht();
 	let overzichtDiv = document.getElementById(LESSEN_OVERZICHT_ID);
@@ -166,7 +171,7 @@ function showFullClasses() {
 		}
 	}
 	setButtonHighlighted(FULL_CLASS_BUTTON_ID, overzichtDiv.dataset.filterFullClasses === "true");
-
+	showOnlyFullTrimesters(displayState === "none");
 }
 
 function showModules() {
