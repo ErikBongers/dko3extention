@@ -3,6 +3,7 @@ const TRIM_BUTTON_ID = "moduleButton";
 const CHECKS_BUTTON_ID = "checksButton";
 const FULL_CLASS_BUTTON_ID = "fullClassButton";
 const TRIM_TABLE_ID = "trimesterTable";
+const TRIM_DIV_ID = "trimesterDiv";
 
 window.navigation.addEventListener("navigatesuccess", (event) => {
 	db3("navigateSuccess");
@@ -60,6 +61,13 @@ const bodyObserverCallback = (mutationList, observer) => {
 function onLessenOverzichtChanged(printButton) {
 	//reset state
 	let overzichtDiv = document.getElementById(LESSEN_OVERZICHT_ID);
+	let trimDiv = document.getElementById(TRIM_DIV_ID);
+	if (!trimDiv) {
+		let trimDiv = document.createElement("div");
+		let originalTable = document.getElementById("table_lessen_resultaat_tabel");
+		originalTable.insertAdjacentElement("afterend", trimDiv);
+		trimDiv.id = TRIM_DIV_ID;
+	}
 	overzichtDiv.dataset.filterFullClasses = "false";
 
 	let badges = document.getElementsByClassName("badge");
@@ -87,7 +95,7 @@ function onLessenOverzichtChanged(printButton) {
 function addTrimesterButton(printButton) {
 	let buttonId = TRIM_BUTTON_ID;
 	let title = "Toon trimesters";
-	let clickFunction = showModules;
+	let clickFunction = onClickShowTrimesters;
 	let imageId = "fa-sitemap";
 	addButton(buttonId, clickFunction, title, imageId, printButton);
 }
@@ -103,7 +111,7 @@ function addChecksButton(printButton) {
 function addFullClassesButton(printButton) {
 	let buttonId = FULL_CLASS_BUTTON_ID;
 	let title = "Filter volle klassen";
-	let clickFunction = showFullClasses;
+	let clickFunction = onClickFullClasses;
 	let imageId = "fa-weight-hanging";
 	addButton(buttonId, clickFunction, title, imageId, printButton);
 }
@@ -156,11 +164,11 @@ function showCheckResults() {
 }
 
 function showOnlyFullTrimesters(onlyFull) {
-	let trimTable = document.getElementById(TRIM_TABLE_ID);
-	trimTable.dataset.showFullClass = onlyFull ? "true" : "false";
+	let trimDiv = document.getElementById(TRIM_DIV_ID);
+	trimDiv.dataset.showFullClass = onlyFull ? "true" : "false";
 }
 
-function showFullClasses() {
+function onClickFullClasses() {
 	let lessen = scrapeLessenOverzicht();
 	let overzichtDiv = document.getElementById(LESSEN_OVERZICHT_ID);
 	overzichtDiv.dataset.filterFullClasses = (overzichtDiv.dataset.filterFullClasses?? "false") === "false" ? "true" : "false";
@@ -174,7 +182,7 @@ function showFullClasses() {
 	showOnlyFullTrimesters(displayState === "none");
 }
 
-function showModules() {
+function onClickShowTrimesters() {
 	showTrimesterTable(document.getElementById("table_lessen_resultaat_tabel").style.display !== "none");
 }
 
@@ -184,6 +192,10 @@ function setButtonHighlighted(buttonId, show) {
 	} else {
 		document.getElementById(buttonId).classList.remove("toggled");
 	}
+}
+
+function isButtonHighlighted(buttonId) {
+	return document.getElementById(buttonId).classList.contains("toggled");
 }
 
 function showTrimesterTable(show) {

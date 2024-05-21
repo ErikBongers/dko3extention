@@ -1,7 +1,7 @@
 const NBSP = 160;
 
 function buildTrimesterTable(instruments) {
-    let orininalTable = document.getElementById("table_lessen_resultaat_tabel");
+    let trimDiv = document.getElementById(TRIM_DIV_ID);
     let newTable = document.createElement("table");
     newTable.id = "trimesterTable";
     newTable.style.width = "100%";
@@ -45,8 +45,8 @@ function buildTrimesterTable(instruments) {
     document.body.appendChild(newTable);
     // sets the border attribute of newTable to '2'
     newTable.setAttribute("border", "2");
-    newTable.dataset.showFullClass="false";
-    orininalTable.insertAdjacentElement("afterend", newTable);
+    trimDiv.dataset.showFullClass= isButtonHighlighted(FULL_CLASS_BUTTON_ID) ? "true" : "false";
+    trimDiv.appendChild(newTable);
 }
 
 function buildInstrument(newTableBody, instrument) {

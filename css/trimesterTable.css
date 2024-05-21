@@ -1,7 +1,8 @@
-#trimesterTable {
-    border-style: none;
-    border-color: black;
-
+#trimesterDiv {
+    & table {
+        border-style: none;
+        border-color: black;
+    }
     & tr.trimesterRow {
         border-style: solid;
         border-collapse: collapse;
