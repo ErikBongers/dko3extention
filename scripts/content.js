@@ -82,41 +82,17 @@ function onLessenOverzichtChanged(printButton) {
 		return;
 	}
 	if (hasModules) {
-		addTrimesterButton(printButton);
+		addButton(printButton, TRIM_BUTTON_ID, "Toon trimesters", onClickShowTrimesters, "fa-sitemap");
 	}
 	if(hasAlc || hasWarnings) {
-		addChecksButton(printButton);
+		addButton(printButton, CHECKS_BUTTON_ID, "Controleer lessen op fouten", onClickCheckResults, "fa-stethoscope");
 	}
 	if(hasFullClasses) {
-		addFullClassesButton(printButton);
+		addButton(printButton, FULL_CLASS_BUTTON_ID, "Filter volle klassen", onClickFullClasses, "fa-weight-hanging");
 	}
 }
 
-function addTrimesterButton(printButton) {
-	let buttonId = TRIM_BUTTON_ID;
-	let title = "Toon trimesters";
-	let clickFunction = onClickShowTrimesters;
-	let imageId = "fa-sitemap";
-	addButton(buttonId, clickFunction, title, imageId, printButton);
-}
-
-function addChecksButton(printButton) {
-	let buttonId = CHECKS_BUTTON_ID;
-	let title = "Controleer lessen op fouten";
-	let clickFunction = showCheckResults;
-	let imageId = "fa-stethoscope";
-	addButton(buttonId, clickFunction, title, imageId, printButton);
-}
-
-function addFullClassesButton(printButton) {
-	let buttonId = FULL_CLASS_BUTTON_ID;
-	let title = "Filter volle klassen";
-	let clickFunction = onClickFullClasses;
-	let imageId = "fa-weight-hanging";
-	addButton(buttonId, clickFunction, title, imageId, printButton);
-}
-
-function addButton(buttonId, clickFunction, title, imageId, printButton) {
+function addButton(printButton, buttonId, title, clickFunction, imageId) {
 	let button = document.getElementById(buttonId);
 	if (button === null) {
 		const button = document.createElement("button",);
@@ -141,7 +117,7 @@ function db3(message) {
 	}
 }
 
-function showCheckResults() {
+function onClickCheckResults() {
 	let lessen = scrapeLessenOverzicht();
 
 	let overzichtDiv = document.getElementById(LESSEN_OVERZICHT_ID);

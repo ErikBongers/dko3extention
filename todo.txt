@@ -1,5 +1,6 @@
-* Filter full classes doesn't work in trimester view
-  > show rows (the 3 trims) with a full trim.
+* Filter full classes state is at trimDiv level AND at overzichtDiv.
+  > consolidate state?
+  > in some state machine, or all in the overzicht div?
 
 * Use popover for the student.info popup.
   > make trimesters links to the classes.
