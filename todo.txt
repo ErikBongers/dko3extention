@@ -1,5 +1,3 @@
-* rename showOriginalTable to showTrimesterTable and change the show boolean.
-
 * Filter full classes doesn't work in trimester view
   > show rows (the 3 trims) with a full trim.
 

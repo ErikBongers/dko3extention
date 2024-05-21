@@ -169,7 +169,7 @@ function showFullClasses() {
 }
 
 function showModules() {
-	showOriginalTable(document.getElementById("table_lessen_resultaat_tabel").style.display === "none");
+	showTrimesterTable(document.getElementById("table_lessen_resultaat_tabel").style.display !== "none");
 }
 
 function setButtonHighlighted(buttonId, show) {
@@ -180,7 +180,7 @@ function setButtonHighlighted(buttonId, show) {
 	}
 }
 
-function showOriginalTable(show) {
+function showTrimesterTable(show) {
 	//Build lazily and only once. Table will automatically be erased when filters are changed.
 	if (!document.getElementById("trimesterTable")) {
 		let inputModules = scrapeModules();
@@ -188,10 +188,10 @@ function showOriginalTable(show) {
 		buildTrimesterTable(tableData.instruments);
 	}
 
-	document.getElementById("table_lessen_resultaat_tabel").style.display = show ? "table" : "none";
-	document.getElementById("trimesterTable").style.display = show ? "none" : "table";
-	document.getElementById(TRIM_BUTTON_ID).title = show ? "Toon trimesters": "Toon normaal";
-	setButtonHighlighted(TRIM_BUTTON_ID, !show);
+	document.getElementById("table_lessen_resultaat_tabel").style.display = show ? "none" : "table";
+	document.getElementById("trimesterTable").style.display = show ? "table" : "none";
+	document.getElementById(TRIM_BUTTON_ID).title = show ? "Toon normaal" : "Toon trimesters";
+	setButtonHighlighted(TRIM_BUTTON_ID, show);
 }
 
 function searchText(text) {
