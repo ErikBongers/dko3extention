@@ -1,16 +1,14 @@
-const LESSEN_OVERZICHT_ID = "lessen_overzicht";
-const TRIM_BUTTON_ID = "moduleButton";
-const CHECKS_BUTTON_ID = "checksButton";
-const FULL_CLASS_BUTTON_ID = "fullClassButton";
-const TRIM_TABLE_ID = "trimesterTable";
-const TRIM_DIV_ID = "trimesterDiv";
+import {scrapeLessenOverzicht, scrapeModules} from "./scrape.js";
+import { buildTableData  } from "./convert.js";
+import { buildTrimesterTable  } from "./build.js";
+import * as def from "./def.js";
 
-var lessenOverzichtObserverCallback = (mutationList, observer) => {
+const lessenOverzichtObserverCallback = (mutationList /*, observer*/) => {
     for (const mutation of mutationList) {
         if (mutation.type !== "childList") {
             continue;
         }
-        let lessenOverzicht = document.getElementById(LESSEN_OVERZICHT_ID);
+        let lessenOverzicht = document.getElementById(def.LESSEN_OVERZICHT_ID);
         if (mutation.target !== lessenOverzicht) {
             continue;
         }
@@ -22,9 +20,23 @@ var lessenOverzichtObserverCallback = (mutationList, observer) => {
     }
 };
 
-var bodyObserver = new MutationObserver(lessenOverzichtObserverCallback);
+const bodyObserver  = new MutationObserver(lessenOverzichtObserverCallback);
 
-function setLessenOverzichtObserver() {
+export function disconnectObserver() {
+    bodyObserver.disconnect();
+}
+
+export function onPageChanged() {
+    if (window.location.hash === "#lessen-overzicht") {
+        db3("In lessen overzicht!");
+        setObserver();
+    } else {
+        db3("Niet in lessen overzicht.");
+        disconnectObserver();
+    }
+}
+
+export function setObserver() {
     const attachmentPoint = document.querySelector("main");
 
     if (!attachmentPoint) {
@@ -42,13 +54,13 @@ function setLessenOverzichtObserver() {
 
 function onLessenOverzichtChanged(printButton) {
     //reset state
-    let overzichtDiv = document.getElementById(LESSEN_OVERZICHT_ID);
-    let trimDiv = document.getElementById(TRIM_DIV_ID);
+    let overzichtDiv = document.getElementById(def.LESSEN_OVERZICHT_ID);
+    let trimDiv = document.getElementById(def.TRIM_DIV_ID);
     if (!trimDiv) {
         let trimDiv = document.createElement("div");
         let originalTable = document.getElementById("table_lessen_resultaat_tabel");
         originalTable.insertAdjacentElement("afterend", trimDiv);
-        trimDiv.id = TRIM_DIV_ID;
+        trimDiv.id = def.TRIM_DIV_ID;
     }
     overzichtDiv.dataset.filterFullClasses = "false";
 
@@ -64,13 +76,13 @@ function onLessenOverzichtChanged(printButton) {
         return;
     }
     if (hasModules) {
-        addButton(printButton, TRIM_BUTTON_ID, "Toon trimesters", onClickShowTrimesters, "fa-sitemap");
+        addButton(printButton, def.TRIM_BUTTON_ID, "Toon trimesters", onClickShowTrimesters, "fa-sitemap");
     }
     if(hasAlc || hasWarnings) {
-        addButton(printButton, CHECKS_BUTTON_ID, "Controleer lessen op fouten", onClickCheckResults, "fa-stethoscope");
+        addButton(printButton, def.CHECKS_BUTTON_ID, "Controleer lessen op fouten", onClickCheckResults, "fa-stethoscope");
     }
     if(hasFullClasses) {
-        addButton(printButton, FULL_CLASS_BUTTON_ID, "Filter volle klassen", onClickFullClasses, "fa-weight-hanging");
+        addButton(printButton, def.FULL_CLASS_BUTTON_ID, "Filter volle klassen", onClickFullClasses, "fa-weight-hanging");
     }
 }
 
@@ -93,7 +105,6 @@ function addButton(printButton, buttonId, title, clickFunction, imageId) {
 function onClickCheckResults() {
     let lessen = scrapeLessenOverzicht();
 
-    let overzichtDiv = document.getElementById(LESSEN_OVERZICHT_ID);
     let table = document.getElementById("table_lessen_resultaat_tabel");
 
     let checksDiv = document.createElement("div");
@@ -113,13 +124,13 @@ function onClickCheckResults() {
 }
 
 function showOnlyFullTrimesters(onlyFull) {
-    let trimDiv = document.getElementById(TRIM_DIV_ID);
+    let trimDiv = document.getElementById(def.TRIM_DIV_ID);
     trimDiv.dataset.showFullClass = onlyFull ? "true" : "false";
 }
 
 function onClickFullClasses() {
     let lessen = scrapeLessenOverzicht();
-    let overzichtDiv = document.getElementById(LESSEN_OVERZICHT_ID);
+    let overzichtDiv = document.getElementById(def.LESSEN_OVERZICHT_ID);
     overzichtDiv.dataset.filterFullClasses = (overzichtDiv.dataset.filterFullClasses?? "false") === "false" ? "true" : "false";
     let displayState = overzichtDiv.dataset.filterFullClasses === "true" ? "none" : "table-row";
     for(let les of lessen) {
@@ -127,7 +138,7 @@ function onClickFullClasses() {
             les.tableRow.style.display = displayState;
         }
     }
-    setButtonHighlighted(FULL_CLASS_BUTTON_ID, overzichtDiv.dataset.filterFullClasses === "true");
+    setButtonHighlighted(def.FULL_CLASS_BUTTON_ID, overzichtDiv.dataset.filterFullClasses === "true");
     showOnlyFullTrimesters(displayState === "none");
 }
 
@@ -143,22 +154,18 @@ function setButtonHighlighted(buttonId, show) {
     }
 }
 
-function isButtonHighlighted(buttonId) {
-    return document.getElementById(buttonId).classList.contains("toggled");
-}
-
 function showTrimesterTable(show) {
     //Build lazily and only once. Table will automatically be erased when filters are changed.
-    if (!document.getElementById(TRIM_TABLE_ID)) {
+    if (!document.getElementById(def.TRIM_TABLE_ID)) {
         let inputModules = scrapeModules();
         let tableData = buildTableData(inputModules);
         buildTrimesterTable(tableData.instruments);
     }
 
     document.getElementById("table_lessen_resultaat_tabel").style.display = show ? "none" : "table";
-    document.getElementById(TRIM_TABLE_ID).style.display = show ? "table" : "none";
-    document.getElementById(TRIM_BUTTON_ID).title = show ? "Toon normaal" : "Toon trimesters";
-    setButtonHighlighted(TRIM_BUTTON_ID, show);
+    document.getElementById(def.TRIM_TABLE_ID).style.display = show ? "table" : "none";
+    document.getElementById(def.TRIM_BUTTON_ID).title = show ? "Toon normaal" : "Toon trimesters";
+    setButtonHighlighted(def.TRIM_BUTTON_ID, show);
 }
 
 function searchText(text) {
@@ -168,29 +175,3 @@ function searchText(text) {
     input.dispatchEvent(evUp);
 }
 
-function findStudentId(studentName, text) {
-    console.log(text);
-    studentName = studentName.replaceAll(",", "");
-    let namePos = text.indexOf(studentName);
-    if (namePos < 0) {
-        return -1
-    }
-    //the name comes AFTER the id, hence the backward search of the leftmost slice of the string.
-    let idPos = text.substring(0, namePos).lastIndexOf("'id=", namePos);
-    let id = text.substring(idPos, idPos+10);
-    id = id.match(/\d+/)[0]; //TODO: may fail!
-    console.log(id);
-    return parseInt(id);
-}
-
-async function fetchStudentId(studentName) {
-    let studentNameForUrl = studentName.replaceAll(",", "").replaceAll("(", "").replaceAll(")", "");
-    return fetch("/view.php?args=zoeken?zoek="+encodeURIComponent(studentNameForUrl))
-        .then((response) => response.text())
-        .then((text) => fetch("/views/zoeken/index.view.php"))
-        .then((response) => response.text())
-        .then((text) => findStudentId(studentName, text))
-        .catch(err => {
-            console.error('Request failed', err)
-        });
-}

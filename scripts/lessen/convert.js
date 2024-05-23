@@ -7,7 +7,7 @@ function addTrimesters(instrument, inputModules) {
     instrument.trimesters = mergedInstrument;
 }
 
-function buildTableData(inputModules) {
+export function buildTableData(inputModules) {
     let tableData = {
         students: new Map(),
         instruments: []

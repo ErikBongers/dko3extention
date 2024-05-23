@@ -5,26 +5,30 @@ function db3(message) {
         console.log(message);
     }
 }
-window.navigation.addEventListener("navigatesuccess", (event) => {
-	db3("navigateSuccess");
-	pageListener();
-});
 
 
-window.addEventListener("load", (event) => {
-	db3("loaded");
-	pageListener();
-});
+(async () => {
+    db3("setting up controller");
+    const src = chrome.runtime.getURL('scripts/main.js');
+    const mainScript = await import(src);
 
-function pageListener() {
+    window.navigation.addEventListener("navigatesuccess", (event) => {
+        db3("navigateSuccess");
+        pageListener();
+    });
 
-    if (window.location.hash === "#lessen-overzicht") {
+    window.addEventListener("load", (event) => {
+        db3("loaded");
+        pageListener();
+    });
 
-        db3("In lessen overzicht!");
-        setLessenOverzichtObserver();
-    } else {
-        db3("Niet in lessen overzicht.");
-        bodyObserver.disconnect();
+    function pageListener() {
+        mainScript.onPageChanged();
     }
-}
+
+    pageListener();
+
+})();
+
+
 

@@ -10,11 +10,7 @@
   "content_scripts": [
     {
       "js": [
-        "scripts/lessen/convert.js",
-        "scripts/lessen/setup.js",
-        "scripts/content.js",
-        "scripts/lessen/scrape.js",
-        "scripts/lessen/build.js"
+        "scripts/content.js"
       ],
       "css": [
         "css/general.css",
@@ -24,5 +20,16 @@
         "https://administratie.dko3.cloud/*"
       ]
     }
+  ],
+  "background": {
+    "service_worker": "scripts/serviceworker.js"
+  },
+  "web_accessible_resources": [ {
+    "matches": ["https://administratie.dko3.cloud/*"],
+    "resources": [
+      "scripts/lessen/*",
+      "scripts/main.js"
+    ]
+  }
   ]
 }

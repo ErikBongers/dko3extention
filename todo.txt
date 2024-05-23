@@ -15,7 +15,9 @@
     - ALC: offline
     - Woord with alias: offline
 
-
+* If, for one instrument, the trims have different maxAantal,
+  > Use the max of these
+  > For the smaller trims, gray out the cells that exceed their own max.
 
 * Conditions for trimester modules
   > explain them in popup?

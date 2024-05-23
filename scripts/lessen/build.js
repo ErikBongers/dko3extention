@@ -1,6 +1,8 @@
+import {FULL_CLASS_BUTTON_ID, isButtonHighlighted, TRIM_DIV_ID} from "./def.js";
+
 const NBSP = 160;
 
-function buildTrimesterTable(instruments) {
+export function buildTrimesterTable(instruments) {
     let trimDiv = document.getElementById(TRIM_DIV_ID);
     let newTable = document.createElement("table");
     newTable.id = "trimesterTable";
@@ -66,7 +68,7 @@ function buildInstrument(newTableBody, instrument) {
     headerRows.trName.dataset.hasFullClass = "false";
     headerRows.trModuleLinks.dataset.hasFullClass = "false";
     let hasFullClass = false;
-    for (let rowNo = 0; rowNo < rowCount; rowNo++) {//TODO: use maxAantal, unless 999, in which case use effective max aantal.
+    for (let rowNo = 0; rowNo < rowCount; rowNo++) {
         let row = document.createElement("tr");
         newTableBody.appendChild(row);
         row.classList.add("trimesterRow");
@@ -201,4 +203,31 @@ function buildStudentCell(student) {
     anchor.appendChild(iTag);
     iTag.classList.add('fas', "fa-user-alt");
     return cell;
+}
+
+async function fetchStudentId(studentName) {
+    let studentNameForUrl = studentName.replaceAll(",", "").replaceAll("(", "").replaceAll(")", "");
+    return fetch("/view.php?args=zoeken?zoek="+encodeURIComponent(studentNameForUrl))
+        .then((response) => response.text())
+        .then((text) => fetch("/views/zoeken/index.view.php"))
+        .then((response) => response.text())
+        .then((text) => findStudentId(studentName, text))
+        .catch(err => {
+            console.error('Request failed', err)
+        });
+}
+
+function findStudentId(studentName, text) {
+    console.log(text);
+    studentName = studentName.replaceAll(",", "");
+    let namePos = text.indexOf(studentName);
+    if (namePos < 0) {
+        return -1
+    }
+    //the name comes AFTER the id, hence the backward search of the leftmost slice of the string.
+    let idPos = text.substring(0, namePos).lastIndexOf("'id=", namePos);
+    let id = text.substring(idPos, idPos+10);
+    id = id.match(/\d+/)[0]; //TODO: may fail!
+    console.log(id);
+    return parseInt(id);
 }

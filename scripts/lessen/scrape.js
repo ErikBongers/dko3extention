@@ -1,4 +1,4 @@
-function scrapeLessenOverzicht() {
+export function scrapeLessenOverzicht() {
     let table = document.getElementById("table_lessen_resultaat_tabel");
     let body = table.tBodies[0];
     let lessen = [];
@@ -36,7 +36,7 @@ function scrapeLessenOverzicht() {
     return lessen;
 }
 
-function scrapeModules() {
+export function scrapeModules() {
     let lessen = scrapeLessenOverzicht();
     let modules = lessen.filter((les) => les.module);
 
@@ -44,11 +44,8 @@ function scrapeModules() {
         module.students = scrapeStudents(module.studentsTable);
 
         //get name of instrument and trimester.
-        //TODO: to lowerCase first.
-        //TODO: eheck for word "trim" or "trimester" preceding the trim_no
         const reInstrument = /.*\Snitiatie\s*(\S+).*(\d).*/;
         const match = module.naam.match(reInstrument);
-        //TODO: if match fails, remove the module, and console.log().
         if (match?.length !== 3) {
             console.log(`Could not process module "${module.naam}" (${module.id}).`);
             continue;
