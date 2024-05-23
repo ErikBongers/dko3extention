@@ -78,11 +78,11 @@ function buildInstrument(newTableBody, instrument) {
             let trimester = instrument.trimesters[trimNo];
             let student = undefined;
             if (trimester) {
-                student = trimester.students[rowNo]; //TODO: use .? operator?
-            }
-            if (trimester.aantal >= trimester.maxAantal) {
-                row.dataset.hasFullClass = "true";
-                hasFullClass = true;
+                student = trimester.students[rowNo];
+                if (trimester.aantal >= trimester.maxAantal) {
+                    row.dataset.hasFullClass = "true";
+                    hasFullClass = true;
+                }
             }
             row.appendChild(buildStudentCell(student));
         }

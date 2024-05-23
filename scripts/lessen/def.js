@@ -6,6 +6,6 @@ export const TRIM_TABLE_ID = "trimesterTable";
 export const TRIM_DIV_ID = "trimesterDiv";
 
 export function isButtonHighlighted(buttonId) {
-    return document.getElementById(buttonId).classList.contains("toggled");
+    return document.getElementById(buttonId)?.classList.contains("toggled");
 }
 

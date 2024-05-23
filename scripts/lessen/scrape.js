@@ -38,6 +38,8 @@ export function scrapeLessenOverzicht() {
 
 export function scrapeModules() {
     let lessen = scrapeLessenOverzicht();
+    db3("LESSEN");
+    db3(lessen);
     let modules = lessen.filter((les) => les.module);
 
     for (let module of modules) {
@@ -74,13 +76,13 @@ function scrapeStudents(studentTable) {
 
 function scrapeLesInfo(lesInfo) {
     let les = {};
-    let vakStrong = lesInfo.firstChild;
-    les.vakNaam = vakStrong.textContent;
+    let vakStrong = lesInfo.getElementsByTagName("strong");
+    les.vakNaam = vakStrong[0].textContent;
     let badges = lesInfo.getElementsByClassName("badge");
     les.module = Array.from(badges).some((el) => el.textContent === "module");
     les.alc = Array.from(badges).some((el) => el.textContent === "ALC");
     les.visible = lesInfo.getElementsByClassName("fa-eye-slash").length === 0;
-    let mutedSpans = lesInfo.getElementsByClassName("text-muted");
+    let mutedSpans = lesInfo.querySelectorAll("span.text-muted");
     //muted spans contain:
     //  - class name (optional)
     //  - teacher name (always)
