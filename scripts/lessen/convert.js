@@ -21,12 +21,25 @@ export function buildTableData(inputModules) {
     for (let instrumentName of uniqueInstrumentNames) {
         //get module instrument info
         let instrumentInfo = {};
-        let module = inputModules.find((module) => module.instrumentName === instrumentName)
-        instrumentInfo.instrumentName = module.instrumentName;
-        instrumentInfo.maxAantal = module.maxAantal; //TODO: could be different for each trim.
-        instrumentInfo.teacher = module.teacher; //TODO: could be different for each trim.
-        instrumentInfo.lesmoment = module.lesmoment; //TODO: could be different for each trim.
-        instrumentInfo.vestiging = module.vestiging; //TODO: could be different for each trim.
+        let modules = inputModules.filter((module) => module.instrumentName === instrumentName)
+        instrumentInfo.instrumentName = instrumentName;
+        instrumentInfo.maxAantal = modules
+            .map((module) => module.maxAantal)
+            .reduce((prev, next) => {
+                return prev < next ? next : prev
+            }
+        );
+        let teachers = modules.map((module) => module.teacher);
+        let uniqueTeachers = [...new Set(teachers)];
+        instrumentInfo.teacher = uniqueTeachers.toString();
+
+        let lesMomenten = modules.map((module) => module.lesmoment);
+        let uniqueLesmomenten = [...new Set(lesMomenten)];
+        instrumentInfo.lesmoment = uniqueLesmomenten.toString();
+
+        let vestigingen = modules.map((module) => module.vestiging);
+        let uniqueVestigingen = [...new Set(vestigingen)];
+        instrumentInfo.vestiging = uniqueVestigingen.toString();
         tableData.instruments.push(instrumentInfo);
         addTrimesters(tableData.instruments[tableData.instruments.length-1], inputModules);
 

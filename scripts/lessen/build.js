@@ -84,7 +84,11 @@ function buildInstrument(newTableBody, instrument) {
                     hasFullClass = true;
                 }
             }
-            row.appendChild(buildStudentCell(student));
+            let cell = buildStudentCell(student);
+            row.appendChild(cell);
+            if (trimester.maxAantal <= rowNo) {
+                cell.classList.add("gray");
+            }
         }
     }
     if(hasFullClass) {

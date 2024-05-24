@@ -71,6 +71,10 @@
         font-weight: bold;
     }
 
+    & td.gray {
+        background: #d6d8db;
+    }
+
     &[data-show-full-class="true"] tr[data-has-full-class="false"] {
         display: none;
     }
