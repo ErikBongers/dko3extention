@@ -24,6 +24,10 @@
   "background": {
     "service_worker": "scripts/serviceworker.js"
   },
+  "options_page": "options.html",
+  "permissions": [
+    "storage"
+  ],
   "web_accessible_resources": [ {
     "matches": ["https://administratie.dko3.cloud/*"],
     "resources": [
