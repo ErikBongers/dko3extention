@@ -2,6 +2,7 @@ import {scrapeLessenOverzicht, scrapeModules} from "./scrape.js";
 import { buildTableData  } from "./convert.js";
 import { buildTrimesterTable  } from "./build.js";
 import * as def from "./def.js";
+import { db3 } from "../globals.js";
 
 const lessenOverzichtObserverCallback = (mutationList /*, observer*/) => {
     for (const mutation of mutationList) {

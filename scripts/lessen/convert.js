@@ -1,3 +1,5 @@
+import { db3 } from "../globals.js";
+
 function addTrimesters(instrument, inputModules) {
     let mergedInstrument = [undefined, undefined, undefined];
     let modulesForInstrument = inputModules.filter((module) => module.instrumentName === instrument.instrumentName);

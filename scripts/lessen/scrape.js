@@ -1,3 +1,5 @@
+import { db3 } from "../globals.js";
+
 export function scrapeLessenOverzicht() {
     let table = document.getElementById("table_lessen_resultaat_tabel");
     let body = table.tBodies[0];
