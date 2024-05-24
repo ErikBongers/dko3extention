@@ -33,7 +33,17 @@ export function buildTableData(inputModules) {
         let uniqueTeachers = [...new Set(teachers)];
         instrumentInfo.teacher = uniqueTeachers.toString();
 
-        let lesMomenten = modules.map((module) => module.lesmoment);
+        let reLesMoment = /.*(\w\w) (?:\d+\/\d+ )?(\d\d:\d\d)-(\d\d:\d\d).*/;
+
+        let lesMomenten = modules.map((module) => {
+            let matches = module.lesmoment.match(reLesMoment);
+            if (matches?.length !== 4) {
+                console.log(`Could not process lesmoment "${module.lesmoment}" for instrument "${instrumentName}".`);
+                return "???";
+            }
+
+            return matches[1] + " " + matches[2] + "-" + matches[3];
+        });
         let uniqueLesmomenten = [...new Set(lesMomenten)];
         instrumentInfo.lesmoment = uniqueLesmomenten.toString();
 
