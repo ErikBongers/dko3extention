@@ -15,14 +15,6 @@
     - ALC: offline
     - Woord with alias: offline
 
-* Conditions for trimester modules
-  > explain them in popup?
-  - module badge
-  - les_naam: "Initiatie <instrument> ... trim ... <trim_no>"
-    > TODO: to_lowercase
-    > TODO: check for word "trim" (or "trimester")
-    > TODO:: enforce this rule!
-
 * Add an option to specify the les_naam format?
   : "Initiatie [instrument] trim [trim_num]" ?
   > spaces mean all possible whitespace, any number of times.
@@ -34,3 +26,4 @@
 Teacher list
 -----------------
 Alle lessen per dag en leraar sorteren – zie uurroosters (deze worden opgemaakt per leraar per dag)
+

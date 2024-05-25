@@ -32,6 +32,7 @@
     "matches": ["https://administratie.dko3.cloud/*"],
     "resources": [
       "scripts/lessen/*",
+      "scripts/leerling/*",
       "scripts/main.js",
       "scripts/globals.js"
     ]

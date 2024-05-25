@@ -1,45 +1,48 @@
 //to avoid "unused function" errors in linters, this file is called as a module.
 import * as lessen from "./lessen/setup.js";
+import * as leerling from "./leerling/setup.js";
 import { options, db3 } from "./globals.js";
 
 export function init() {
-    getOptions();
+    getOptions(() => {
+        db3("setting up controller");
 
-    db3("setting up controller");
+        chrome.storage.onChanged.addListener((changes, area) => {
+            if (area === 'sync') {
+                db3('options changed!');
+                db3(changes);
+                getOptions();
+            }
+        });
 
-    chrome.storage.onChanged.addListener((changes, area) => {
-        if (area === 'sync') {
-            db3('options changed!');
-            db3(changes);
-            getOptions();
-        }
-    });
+        window.navigation.addEventListener("navigatesuccess", () => {
+            db3("navigateSuccess");
+            onPageChanged();
+        });
 
-    window.navigation.addEventListener("navigatesuccess", () => {
-        db3("navigateSuccess");
+        window.addEventListener("load", () => {
+            db3("loaded");
+            onPageChanged();
+        });
+
         onPageChanged();
     });
-
-    window.addEventListener("load", () => {
-        db3("loaded");
-        onPageChanged();
-    });
-
-    onPageChanged();
 }
 
 export function onPageChanged() {
     lessen.onPageChanged();
+    leerling.onPageChanged();
     setSchoolBackground();
 }
 
-function getOptions() {
+function getOptions(callback) {
     chrome.storage.sync.get(
         null, //get all
         (items) => {
             Object.assign(options, items);
             db3("OPTIONS:");
             db3(options);
+            callback();
         }
     );
 }
