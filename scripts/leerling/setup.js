@@ -55,15 +55,19 @@ function onInschrijvingChanged(tabInschrijving) {
             .map((arg) => arg.replaceAll("'", ""));
         getModule(...args)
             .then((modName) => {
-                let rx = /Initiatie (.*) - trimester.*/;
-                let matches = modName.match(rx);
-                let instrument = "---";
-                if (matches.length >=1 ) {
-                    instrument = matches[1];
+                let instrumentText = "";
+                if(modName) {
+                    let rx = /Initiatie (.*) - trimester.*/;
+                    let matches = modName.match(rx);
+                    if (matches.length >= 1) {
+                        instrumentText = ": " + matches[1];
+                    } else {
+                        instrumentText = ": ???";
+                    }
                 }
                 let span = document.createElement("span");
                 tr.children[0].appendChild(span);
-                span.innerText = ": " + instrument;
+                span.innerText = instrumentText;
             });
     }
 }
