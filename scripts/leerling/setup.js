@@ -75,15 +75,20 @@ function onInschrijvingChanged(tabInschrijving) {
 async function getModule(size,modal,file,args) {
     let folder = modal.split("-").join("/");
 
-    let res = await fetch('views/'+folder+'/'+file+'.modal.php?'+args); //TODO: can this call be removed?
-    let text = await res.text();
-    let lesmoment_id = args.substring(args.lastIndexOf("=")+1);
+    // This call is being skipped: (probably ok)
+    // let res = await fetch('views/'+folder+'/'+file+'.modal.php?'+args);
+    // let text = await res.text();
+
+    // This call uses the `args` param, although that contains an extra schooljaar paran which is not really needed.
+    // > 'inschrijving_vak_id=289840&schooljaar=2024-2025&lesmoment_id=4102'
+    // let lesmoment_id = args.substring(args.lastIndexOf("=")+1);
     // let res2 = await fetch("/views/leerlingen/leerling/inschrijvingen/modules_kiezen.modules.div.php?inschrijving_vak_id=289840&lesmoment_id=" + lesmoment_id);
     let res2 = await fetch("/views/leerlingen/leerling/inschrijvingen/modules_kiezen.modules.div.php?"+args);
+
     let text2 = await res2.text();
     const template = document.createElement('template');
     template.innerHTML = text2;
     let check = template.content.querySelector("i.fa-check-square");
-    return check.parentNode.parentNode.parentNode.querySelector("strong").textContent;
+    return check?.parentNode.parentNode.parentNode.querySelector("strong").textContent;
 }
 
