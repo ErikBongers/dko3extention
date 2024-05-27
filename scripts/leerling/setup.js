@@ -7,11 +7,15 @@ const observerCallback = (mutationList /*, observer*/) => {
         }
         // db3(mutation);
         let tabInschrijving = document.getElementById("leerling_inschrijvingen_weergave");
-        if (mutation.target !== tabInschrijving) {
-            continue;
+        if (mutation.target === tabInschrijving) {
+            onInschrijvingChanged(tabInschrijving);
+            break;
+        } else {
+            if (mutation.target.id.includes("_uitleningen_table")){
+                onUitleningenChanged(mutation.target);
+                break;
+            }
         }
-        onInschrijvingChanged(tabInschrijving);
-        break;
     }
 };
 
@@ -41,6 +45,22 @@ function setObserver() {
         subtree: true
     };
     bodyObserver.observe(attachmentPoint, config);
+}
+
+function onUitleningenChanged(tableUitleningen) {
+    db3("UITLENING");
+    let firstCells = tableUitleningen.querySelectorAll("tbody > tr > td:first-child");
+    for(let cell of firstCells) {
+        if (cell.classList.contains("text-muted")) {
+            break;//empty table with fake row.
+        }
+        let anchor = document.createElement("a");
+        anchor.innerText = cell.innerText;
+        anchor.setAttribute("href", "/#extra-assets-uitleningen-uitlening?id="+anchor.innerText);
+        cell.textContent = "";
+        cell.appendChild(anchor);
+    }
+    db3(firstCells);
 }
 
 function onInschrijvingChanged(tabInschrijving) {

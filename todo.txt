@@ -1,3 +1,9 @@
+* Filteren op harmonieleer:
+  Knopkes niet actief tenzij modules en alc (en volle klassen?)
+  Klopt dit?
+  Zou de checkbutton niet zichtbaar moeten zijn?
+
+
 * Filter full classes state is at trimDiv level AND at overzichtDiv.
   > consolidate state?
   > in some state machine, or all in the overzicht div?
