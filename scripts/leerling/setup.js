@@ -35,7 +35,6 @@ function setObserver() {
     const attachmentPoint = document.querySelector("main");
 
     if (!attachmentPoint) {
-        db3("MAIN ni gevonne");
         return;
     }
 
@@ -60,7 +59,6 @@ function onUitleningenChanged(tableUitleningen) {
         cell.textContent = "";
         cell.appendChild(anchor);
     }
-    db3(firstCells);
 }
 
 function onInschrijvingChanged(tabInschrijving) {

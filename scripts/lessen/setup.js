@@ -41,7 +41,6 @@ export function setObserver() {
     const attachmentPoint = document.querySelector("main");
 
     if (!attachmentPoint) {
-        db3("MAIN ni gevonne");
         return;
     }
 
