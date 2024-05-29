@@ -9,16 +9,26 @@
         border-width: 2px;
     }
 
-    td,
-    & th {
+    td {
         padding-left: 3px;
     }
 
-    & th {
+    #trimesterTable > thead {
+        background: none;
+    }
+
+    & .table-secondary th {
+        border-style: none;
+        border-width: 0;
+    }
+
+    & th div {
+        margin: 1px;
+        background-color: #d6d8db;
         font-weight: bold;
-        border-style: solid;
-        border-width: 2px;
-        border-color: white;
+        padding-left: 3px;
+        padding-top: 1px;
+        padding-bottom: 1px;
     }
 
     & tr.instrumentRow td {
@@ -77,5 +87,15 @@
 
     &[data-show-full-class="true"] tr[data-has-full-class="false"] {
         display: none;
+    }
+}
+
+:root[data-darkreader-scheme="dark"] #trimesterDiv {
+    & table {
+        border-color: darkslategray;
+    }
+
+    & th div {
+        background-color: darkslategray;
     }
 }
