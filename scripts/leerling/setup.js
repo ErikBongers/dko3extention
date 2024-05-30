@@ -63,6 +63,24 @@ function onUitleningenChanged(tableUitleningen) {
 
 function onInschrijvingChanged(tabInschrijving) {
     db3("inschrijving (tab) changed.");
+
+    //gray out button "Inschrijvingen" if last year selected.
+    let selectedYear = document.querySelector("select#leerling_inschrijvingen_schooljaar")?.value;
+    let now = new Date();
+    let month = now.getMonth();
+    let registrationSchoolYearStart = now.getFullYear();
+    if(month <= 3) {
+        registrationSchoolYearStart--;
+    }
+    let registrationSchoolYear = registrationSchoolYearStart + "-" + (registrationSchoolYearStart+1);
+    if(selectedYear === registrationSchoolYear) {
+        tabInschrijving.parentElement.classList.remove("lastYear");
+    } else {
+        tabInschrijving.parentElement.classList.add("lastYear");
+
+    }
+
+    //Show trimester instruments.
     let moduleButtons = tabInschrijving.querySelectorAll("tr td.right_center > button");
     for(let btn of moduleButtons) {
         let onClick = btn.getAttribute("onclick");

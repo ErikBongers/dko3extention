@@ -13,3 +13,24 @@ body.otherSchool {
             rgba(255, 0, 100, .05) 12px
     );
 }
+
+.lastYear {
+    #leerling_inschrijvingen_btn_nieuwe_inschrijving,
+    #leerling_inschrijvingen_btn_nieuwe_inschrijving + button
+    {
+        background-color: #eee;
+        border-color: #eee;
+    }
+}
+
+:root[data-darkreader-scheme="dark"] {
+    .lastYear {
+        #leerling_inschrijvingen_btn_nieuwe_inschrijving,
+        #leerling_inschrijvingen_btn_nieuwe_inschrijving + button
+        {
+            color: #333;
+            background-color: #111;
+            border-color: #111;
+        }
+    }
+}
