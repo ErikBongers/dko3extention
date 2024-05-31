@@ -80,7 +80,7 @@ export function buildTableData(inputModules) {
         student.info = "";
         for(let instrs of student.instruments) {
             if(instrs.length) {
-                student.info += instrs.map(instr => instr.trimesterNo + ". " + instr.instrumentName) + "\n";
+                student.info += instrs[0].trimesterNo + ". " + instrs.map(instr => instr.instrumentName) + "\n";
             } else {
                 student.info += "?. ---\n";
             }
