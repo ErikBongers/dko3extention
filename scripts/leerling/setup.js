@@ -89,26 +89,32 @@ function onInschrijvingChanged(tabInschrijving) {
         let args = onClick
             .split(", ")
             .map((arg) => arg.replaceAll("'", ""));
-        getModule(...args)
-            .then((modName) => {
+        getModules(...args)
+            .then((modNames) => {
                 let instrumentText = "";
-                if(modName) {
+                if(modNames.length) {
+                    tr.children[0].innerText += ": ";
                     let rx = /Initiatie (.*) - trimester.*/;
-                    let matches = modName.match(rx);
-                    if (matches.length >= 1) {
-                        instrumentText = ": " + matches[1];
-                    } else {
-                        instrumentText = ": ???";
-                    }
+                    instrumentText += modNames
+                        .map(modName => {
+                            let matches = modName.match(rx);
+                            if (matches.length >= 1) {
+                                return matches[1];
+                            } else {
+                                return ": ???";
+                            }
+                        })
+                        .join(", ");
                 }
                 let span = document.createElement("span");
                 tr.children[0].appendChild(span);
+                span.classList.add("badge-warning");
                 span.innerText = instrumentText;
             });
     }
 }
 
-async function getModule(size,modal,file,args) {
+async function getModules(size,modal,file,args) {
     let folder = modal.split("-").join("/");
 
     // This call is being skipped: (probably ok)
@@ -124,7 +130,8 @@ async function getModule(size,modal,file,args) {
     let text2 = await res2.text();
     const template = document.createElement('template');
     template.innerHTML = text2;
-    let check = template.content.querySelector("i.fa-check-square");
-    return check?.parentNode.parentNode.parentNode.querySelector("strong").textContent;
+    let checks = template.content.querySelectorAll("i.fa-check-square");
+    return Array.from(checks)
+        .map(check => check.parentNode.parentNode.parentNode.querySelector("strong").textContent);
 }
 
