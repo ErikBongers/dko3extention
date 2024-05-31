@@ -65,7 +65,9 @@ export function buildTableData(inputModules) {
             student.allYearSame = false;
             continue;
         }
-        student.allYearSame = student.instruments.every((instr) => instr.instrumentName === student.instruments[0].instrumentName);
+        student.allYearSame = student.instruments
+            .flat()
+            .every((instr) => instr.instrumentName === student.instruments[0][0].instrumentName);
     }
 
     for(let instrument of tableData.instruments) {
@@ -76,9 +78,9 @@ export function buildTableData(inputModules) {
 
     for(let student of tableData.students.values()) {
         student.info = "";
-        for(let instr of student.instruments) {
-            if(instr) {
-                student.info += instr.trimesterNo + ". " + instr.instrumentName + "\n";
+        for(let instrs of student.instruments) {
+            if(instrs.length) {
+                student.info += instrs.map(instr => instr.trimesterNo + ". " + instr.instrumentName) + "\n";
             } else {
                 student.info += "?. ---\n";
             }
@@ -93,11 +95,11 @@ function addTrimesterStudentsToMapAndCount(students, trim) {
     if(!trim) return;
     for (let student of trim.students) {
         if (!students.has(student.name)) {
-            student.instruments = [undefined, undefined, undefined];
+            student.instruments = [[], [], []];
             students.set(student.name, student);
         }
         let stud = students.get(student.name);
-        stud.instruments[trim.trimesterNo-1] = trim;
+        stud.instruments[trim.trimesterNo-1].push(trim);
     }
     //all trims must reference the students in the overall map.
     trim.students = trim.students

@@ -95,6 +95,9 @@ function buildInstrument(newTableBody, instrument) {
             if (trimester.maxAantal <= rowNo) {
                 cell.classList.add("gray");
             }
+            if(student?.instruments[trimNo].length > 1) {
+                cell.classList.add("yellowMarker");
+            }
         }
     }
     if(hasFullClass) {
