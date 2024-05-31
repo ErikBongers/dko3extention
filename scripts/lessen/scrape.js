@@ -51,7 +51,7 @@ export function scrapeModules() {
         const reInstrument = /.*\Snitiatie\s*(\S+).*(\d).*/;
         const match = module.naam.match(reInstrument);
         if (match?.length !== 3) {
-            console.log(`Could not process module "${module.naam}" (${module.id}).`);
+            console.error(`Could not process module "${module.naam}" (${module.id}).`);
             continue;
         }
         module.instrumentName = match[1];

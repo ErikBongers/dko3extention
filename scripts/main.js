@@ -52,7 +52,7 @@ function setSchoolBackground () {
     const reInstrument = /.*Je bent aangemeld als (.*)\s@\s(.*)\./;
     const match =  footer.textContent.match(reInstrument);
     if (match?.length !== 3) {
-        console.log(`Could not process footer text "${footer.textContent}"`);
+        console.error(`Could not process footer text "${footer.textContent}"`);
         return;
     }
     let userName = match[1];

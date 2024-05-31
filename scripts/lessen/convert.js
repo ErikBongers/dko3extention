@@ -38,7 +38,7 @@ export function buildTableData(inputModules) {
         let lesMomenten = modules.map((module) => {
             let matches = module.lesmoment.match(reLesMoment);
             if (matches?.length !== 4) {
-                console.log(`Could not process lesmoment "${module.lesmoment}" for instrument "${instrumentName}".`);
+                console.error(`Could not process lesmoment "${module.lesmoment}" for instrument "${instrumentName}".`);
                 return "???";
             }
 

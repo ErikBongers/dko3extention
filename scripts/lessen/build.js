@@ -1,4 +1,5 @@
 import {FULL_CLASS_BUTTON_ID, isButtonHighlighted, TRIM_DIV_ID} from "./def.js";
+import {db3} from "../globals.js";
 
 const NBSP = 160;
 
@@ -231,7 +232,7 @@ async function fetchStudentId(studentName) {
 }
 
 function findStudentId(studentName, text) {
-    console.log(text);
+    db3(text);
     studentName = studentName.replaceAll(",", "");
     let namePos = text.indexOf(studentName);
     if (namePos < 0) {
@@ -241,6 +242,6 @@ function findStudentId(studentName, text) {
     let idPos = text.substring(0, namePos).lastIndexOf("'id=", namePos);
     let id = text.substring(idPos, idPos+10);
     id = id.match(/\d+/)[0]; //TODO: may fail!
-    console.log(id);
+    db3(id);
     return parseInt(id);
 }
