@@ -1,6 +1,3 @@
-* replace console.log with error() function.
-  > console.error ?
-
 * Filteren op harmonieleer:
   Knopkes niet actief tenzij modules en alc (en volle klassen?)
   Klopt dit?

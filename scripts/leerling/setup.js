@@ -114,6 +114,26 @@ function onInschrijvingChanged(tabInschrijving) {
                 span.innerText = instrumentText;
             });
     }
+
+    // stripes for classical classes that are not assigned yet.
+    let classRows= document.querySelectorAll("#leerling_inschrijvingen_weergave tr");
+    let classCells = Array.from(classRows)
+        .filter(row => row.querySelector(".table-info") !== null)
+        .map(row => row.children.item(row.children.length-2));
+
+    for (let td of classCells) {
+        let classDate = td.querySelector("span.text-muted");
+        if (!classDate)
+            continue;
+        if(classDate.textContent === "(geen lesmomenten)")
+            continue;
+        for(let tdd of td.parentElement.children) {
+            if(tdd.classList.contains("table-info")) {
+                tdd.classList.add("runningStripes");
+            }
+        }
+    }
+
 }
 
 async function getModules(size,modal,file,args) {
