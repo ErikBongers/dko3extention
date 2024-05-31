@@ -108,7 +108,9 @@ function onInschrijvingChanged(tabInschrijving) {
                 }
                 let span = document.createElement("span");
                 tr.children[0].appendChild(span);
-                span.classList.add("badge-warning");
+                if(modNames.length > 1) {
+                    span.classList.add("badge-warning");
+                }
                 span.innerText = instrumentText;
             });
     }
