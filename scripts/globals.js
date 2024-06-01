@@ -8,7 +8,6 @@ export function db3(message) {
 }
 
 export function registerObserver(observer) {
-    console.log("registering observer" + observer.urlHash);
     observers.push(observer);
     if(observers.length > 10) //just in case...
         console.error("Too many observers!");
@@ -43,7 +42,7 @@ export class ObserverWrapper {
 
     observeElement(element) {
         if (!element) {
-            console.log("Can't attach observer to element.");
+            console.error("Can't attach observer to element.");
             return;
         }
 
