@@ -14,24 +14,10 @@ export function registerObserver(observer) {
         console.error("Too many observers!");
 }
 
-export function observeElement(observer, element) {
-    if (!element) {
-        console.log("Can't attach observer.");
-        return;
-    }
-
-    const config = {
-        attributes: false,
-        childList: true,
-        subtree: true
-    };
-    observer.observe(element, config);
-}
-
 export class ObserverWrapper {
-    constructor(onMutationCallback, urlHash) {
-        this.onMutation = onMutationCallback;
+    constructor(urlHash, onMutationCallback) {
         this.urlHash = urlHash;
+        this.onMutation = onMutationCallback;
         this.observer = new MutationObserver((mutationList, observer) => this.observerCallback(mutationList, observer));
     }
     observerCallback (mutationList /*, observer*/) {

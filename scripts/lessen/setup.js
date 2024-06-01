@@ -17,8 +17,7 @@ function onMutation (mutation) {
     return true;
 }
 
-const observer  = new ObserverWrapper(onMutation, "#lessen-overzicht");
-registerObserver(observer);
+registerObserver(new ObserverWrapper("#lessen-overzicht", onMutation));
 
 function onLessenOverzichtChanged(printButton) {
     //reset state

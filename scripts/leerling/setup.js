@@ -13,8 +13,7 @@ function onMutation(mutation) {
     return false;
 }
 
-const observer  = new ObserverWrapper(onMutation, "#leerlingen-leerling");
-registerObserver(observer);
+registerObserver(new ObserverWrapper("#leerlingen-leerling", onMutation));
 
 function onUitleningenChanged(tableUitleningen) {
     db3("UITLENING");
