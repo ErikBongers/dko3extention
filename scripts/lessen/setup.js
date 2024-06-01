@@ -2,7 +2,7 @@ import {scrapeLessenOverzicht, scrapeModules} from "./scrape.js";
 import { buildTableData  } from "./convert.js";
 import { buildTrimesterTable  } from "./build.js";
 import * as def from "./def.js";
-import { db3 } from "../globals.js";
+import {db3, observeElement} from "../globals.js";
 
 const lessenOverzichtObserverCallback = (mutationList /*, observer*/) => {
     for (const mutation of mutationList) {
@@ -30,26 +30,11 @@ export function disconnectObserver() {
 export function onPageChanged() {
     if (window.location.hash === "#lessen-overzicht") {
         db3("In lessen overzicht!");
-        setObserver();
+        observeElement(bodyObserver, document.querySelector("main"));
     } else {
         db3("Niet in lessen overzicht.");
         disconnectObserver();
     }
-}
-
-export function setObserver() {
-    const attachmentPoint = document.querySelector("main");
-
-    if (!attachmentPoint) {
-        return;
-    }
-
-    const config = {
-        attributes: false,
-        childList: true,
-        subtree: true
-    };
-    bodyObserver.observe(attachmentPoint, config);
 }
 
 function onLessenOverzichtChanged(printButton) {

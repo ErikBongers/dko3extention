@@ -1,4 +1,4 @@
-import {db3} from "../globals.js";
+import {db3, observeElement} from "../globals.js";
 
 const observerCallback = (mutationList /*, observer*/) => {
     for (const mutation of mutationList) {
@@ -10,11 +10,10 @@ const observerCallback = (mutationList /*, observer*/) => {
         if (mutation.target === tabInschrijving) {
             onInschrijvingChanged(tabInschrijving);
             break;
-        } else {
-            if (mutation.target.id.includes("_uitleningen_table")){
-                onUitleningenChanged(mutation.target);
-                break;
-            }
+        }
+        if (mutation.target.id.includes("_uitleningen_table")){
+            onUitleningenChanged(mutation.target);
+            break;
         }
     }
 };
@@ -24,26 +23,11 @@ const bodyObserver  = new MutationObserver(observerCallback);
 export function onPageChanged() {
     if (window.location.hash.startsWith("#leerlingen-leerling")) {
         db3("In leerling fiche!");
-        setObserver();
+        observeElement(bodyObserver, document.querySelector("main"));
     } else {
         db3("Niet in leerling fiche.");
         bodyObserver.disconnect();
     }
-}
-
-function setObserver() {
-    const attachmentPoint = document.querySelector("main");
-
-    if (!attachmentPoint) {
-        return;
-    }
-
-    const config = {
-        attributes: false,
-        childList: true,
-        subtree: true
-    };
-    bodyObserver.observe(attachmentPoint, config);
 }
 
 function onUitleningenChanged(tableUitleningen) {

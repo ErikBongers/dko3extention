@@ -10,7 +10,7 @@
   "content_scripts": [
     {
       "js": [
-        "scripts/content.js"
+        "scripts/loader.js"
       ],
       "css": [
         "css/general.css",
