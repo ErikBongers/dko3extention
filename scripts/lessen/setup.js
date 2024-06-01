@@ -2,40 +2,23 @@ import {scrapeLessenOverzicht, scrapeModules} from "./scrape.js";
 import { buildTableData  } from "./convert.js";
 import { buildTrimesterTable  } from "./build.js";
 import * as def from "./def.js";
-import {db3, observeElement} from "../globals.js";
+import {db3, ObserverWrapper, registerObserver} from "../globals.js";
 
-const lessenOverzichtObserverCallback = (mutationList /*, observer*/) => {
-    for (const mutation of mutationList) {
-        if (mutation.type !== "childList") {
-            continue;
-        }
-        let lessenOverzicht = document.getElementById(def.LESSEN_OVERZICHT_ID);
-        if (mutation.target !== lessenOverzicht) {
-            continue;
-        }
-        let printButton = document.getElementById("btn_print_overzicht_lessen");
-        if (!printButton) {
-            continue;
-        }
-        onLessenOverzichtChanged(printButton);
+function onMutation (mutation) {
+    let lessenOverzicht = document.getElementById(def.LESSEN_OVERZICHT_ID);
+    if (mutation.target !== lessenOverzicht) {
+        return false;
     }
-};
-
-const bodyObserver  = new MutationObserver(lessenOverzichtObserverCallback);
-
-export function disconnectObserver() {
-    bodyObserver.disconnect();
+    let printButton = document.getElementById("btn_print_overzicht_lessen");
+    if (!printButton) {
+        return false;
+    }
+    onLessenOverzichtChanged(printButton);
+    return true;
 }
 
-export function onPageChanged() {
-    if (window.location.hash === "#lessen-overzicht") {
-        db3("In lessen overzicht!");
-        observeElement(bodyObserver, document.querySelector("main"));
-    } else {
-        db3("Niet in lessen overzicht.");
-        disconnectObserver();
-    }
-}
+const observer  = new ObserverWrapper(onMutation, "#lessen-overzicht");
+registerObserver(observer);
 
 function onLessenOverzichtChanged(printButton) {
     //reset state

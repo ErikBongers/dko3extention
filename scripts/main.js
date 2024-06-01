@@ -1,7 +1,7 @@
 //to avoid "unused function" errors in linters, this file is called as a module.
 import * as lessen from "./lessen/setup.js";
 import * as leerling from "./leerling/setup.js";
-import { options, db3 } from "./globals.js";
+import {options, db3, observers} from "./globals.js";
 
 export function init() {
     getOptions(() => {
@@ -30,8 +30,9 @@ export function init() {
 }
 
 export function onPageChanged() {
-    lessen.onPageChanged();
-    leerling.onPageChanged();
+    for(let observer of observers) {
+        observer.onPageChanged();
+    }
     setSchoolBackground();
 }
 
