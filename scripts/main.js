@@ -1,8 +1,7 @@
 //to avoid "unused function" errors in linters, this file is called as a module.
-import * as lessen from "./lessen/setup.js";
-import * as leerling from "./leerling/setup.js";
 import {options, db3, observers} from "./globals.js";
 
+// noinspection JSUnusedGlobalSymbols
 export function init() {
     getOptions(() => {
         db3("setting up controller");
@@ -15,6 +14,7 @@ export function init() {
             }
         });
 
+        // noinspection JSDeprecatedSymbols
         window.navigation.addEventListener("navigatesuccess", () => {
             db3("navigateSuccess");
             onPageChanged();

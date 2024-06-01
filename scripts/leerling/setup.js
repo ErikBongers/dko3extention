@@ -106,7 +106,7 @@ function onInschrijvingChanged(tabInschrijving) {
 }
 
 async function getModules(size,modal,file,args) {
-    let folder = modal.split("-").join("/");
+    // let folder = modal.split("-").join("/");
 
     // This call is being skipped: (probably ok)
     // let res = await fetch('views/'+folder+'/'+file+'.modal.php?'+args);

@@ -2,7 +2,7 @@ import {scrapeLessenOverzicht, scrapeModules} from "./scrape.js";
 import { buildTableData  } from "./convert.js";
 import { buildTrimesterTable  } from "./build.js";
 import * as def from "./def.js";
-import {db3, ObserverWrapper, registerObserver} from "../globals.js";
+import {ObserverWrapper, registerObserver} from "../globals.js";
 
 function onMutation (mutation) {
     let lessenOverzicht = document.getElementById(def.LESSEN_OVERZICHT_ID);
@@ -133,12 +133,5 @@ function showTrimesterTable(show) {
     document.getElementById(def.TRIM_TABLE_ID).style.display = show ? "table" : "none";
     document.getElementById(def.TRIM_BUTTON_ID).title = show ? "Toon normaal" : "Toon trimesters";
     setButtonHighlighted(def.TRIM_BUTTON_ID, show);
-}
-
-function searchText(text) {
-    let input = document.querySelector("#snel_zoeken_veld_zoektermen");
-    input.value = text;
-    let evUp = new KeyboardEvent("keyup", {key: "Enter", keyCode: 13, bubbles: true});
-    input.dispatchEvent(evUp);
 }
 

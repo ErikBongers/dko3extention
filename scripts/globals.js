@@ -59,3 +59,12 @@ export class ObserverWrapper {
         this.observer.disconnect();
     }
 }
+
+// noinspection JSUnusedGlobalSymbols
+export function searchText(text) {
+    let input = document.querySelector("#snel_zoeken_veld_zoektermen");
+    input.value = text;
+    let evUp = new KeyboardEvent("keyup", {key: "Enter", keyCode: 13, bubbles: true});
+    input.dispatchEvent(evUp);
+}
+
