@@ -2,7 +2,9 @@ import {scrapeLessenOverzicht, scrapeModules} from "./scrape.js";
 import { buildTableData  } from "./convert.js";
 import { buildTrimesterTable  } from "./build.js";
 import * as def from "./def.js";
-import {ObserverWrapper, registerObserver} from "../globals.js";
+import {HashObserver, registerObserver} from "../globals.js";
+
+export default new HashObserver("#lessen-overzicht", onMutation);
 
 function onMutation (mutation) {
     let lessenOverzicht = document.getElementById(def.LESSEN_OVERZICHT_ID);
@@ -16,8 +18,6 @@ function onMutation (mutation) {
     onLessenOverzichtChanged(printButton);
     return true;
 }
-
-registerObserver(new ObserverWrapper("#lessen-overzicht", onMutation));
 
 function onLessenOverzichtChanged(printButton) {
     //reset state

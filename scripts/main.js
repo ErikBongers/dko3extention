@@ -1,5 +1,8 @@
 //to avoid "unused function" errors in linters, this file is called as a module.
-import {options, db3, observers} from "./globals.js";
+import {options, db3, observers, registerObserver} from "./globals.js";
+import leerlingObserver from "./leerling/observer.js";
+import lessenObserver from "./lessen/observer.js";
+import schooljaarObserver from "./schooljaar/observer.js";
 
 // noinspection JSUnusedGlobalSymbols
 export function init() {
@@ -25,15 +28,18 @@ export function init() {
             onPageChanged();
         });
 
+        registerObserver(leerlingObserver);
+        registerObserver(lessenObserver);
+        registerObserver(schooljaarObserver);
         onPageChanged();
     });
 }
 
 export function onPageChanged() {
+    console.log(observers);
     for(let observer of observers) {
         observer.onPageChanged();
     }
-    setSchoolBackground();
 }
 
 function getOptions(callback) {
@@ -46,23 +52,4 @@ function getOptions(callback) {
             callback();
         }
     );
-}
-
-function setSchoolBackground () {
-    let footer = document.querySelector("body > main > div.row > div.col-auto.mr-auto > small");
-    const reInstrument = /.*Je bent aangemeld als (.*)\s@\s(.*)\./;
-    const match =  footer.textContent.match(reInstrument);
-    if (match?.length !== 3) {
-        console.error(`Could not process footer text "${footer.textContent}"`);
-        return;
-    }
-    let userName = match[1];
-    let schoolName = match[2];
-    db3("user:" + userName);
-    db3("school:" + schoolName);
-    if (schoolName !== "Academie Berchem (Muziek-Woord)") {
-        document.body.classList.add("otherSchool");
-    } else {
-        document.body.classList.remove("otherSchool");
-    }
 }

@@ -13,7 +13,13 @@ export function registerObserver(observer) {
         console.error("Too many observers!");
 }
 
-export class ObserverWrapper {
+export class PageObserver {
+    constructor(onPageChangedCallback) {
+        this.onPageChanged = onPageChangedCallback;
+    }
+}
+
+export class HashObserver {
     constructor(urlHash, onMutationCallback) {
         this.urlHash = urlHash;
         this.onMutation = onMutationCallback;

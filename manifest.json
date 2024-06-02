@@ -33,6 +33,7 @@
     "resources": [
       "scripts/lessen/*",
       "scripts/leerling/*",
+      "scripts/schooljaar/*",
       "scripts/main.js",
       "scripts/globals.js"
     ]

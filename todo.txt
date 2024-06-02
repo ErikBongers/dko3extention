@@ -1,15 +1,14 @@
-* Filteren op harmonieleer:
-  Knopkes niet actief tenzij modules en alc (en volle klassen?)
-  Klopt dit?
-  Zou de checkbutton niet zichtbaar moeten zijn?
-
-
 * Filter full classes state is at trimDiv level AND at overzichtDiv.
   > consolidate state?
   > in some state machine, or all in the overzicht div?
 
 * Use popover for the student.info popup.
   > make trimesters links to the classes.
+
+* Extra filters
+ - Offline
+ - No teacher
+ - No max
 
 * Checks:
       >>>> only actual errors to avoid fatigue!
@@ -25,9 +24,6 @@
   : "Initiatie [instrument] trim [trim_num]" ?
   > spaces mean all possible whitespace, any number of times.
   > "..." means any character.
-
-* les names can contain other chars.
-  : trompet/trombone
 
 Teacher list
 -----------------

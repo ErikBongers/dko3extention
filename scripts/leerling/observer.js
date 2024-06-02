@@ -1,4 +1,6 @@
-import {db3, ObserverWrapper, registerObserver} from "../globals.js";
+import {db3, HashObserver, registerObserver} from "../globals.js";
+
+export default new HashObserver("#leerlingen-leerling", onMutation);
 
 function onMutation(mutation) {
     let tabInschrijving = document.getElementById("leerling_inschrijvingen_weergave");
@@ -11,9 +13,8 @@ function onMutation(mutation) {
         return true;
     }
     return false;
-}
 
-registerObserver(new ObserverWrapper("#leerlingen-leerling", onMutation));
+}
 
 function onUitleningenChanged(tableUitleningen) {
     db3("UITLENING");
