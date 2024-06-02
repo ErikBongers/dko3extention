@@ -1,6 +1,6 @@
 let defaultOptions = {
     showDebug: true,
-    test: "yes"
+    showNotAssignedClasses: true
 };
 
 chrome.runtime.onInstalled.addListener(() => {
@@ -9,7 +9,7 @@ chrome.runtime.onInstalled.addListener(() => {
         defaultOptions,
         (items) => {
             chrome.storage.sync.set(
-                items,
+                {...defaultOptions, ...items},
                 () => {
                     console.log("Options initialized");
                 }

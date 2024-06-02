@@ -1,4 +1,4 @@
-import {db3, HashObserver, registerObserver} from "../globals.js";
+import {db3, HashObserver, options, registerObserver} from "../globals.js";
 
 export default new HashObserver("#leerlingen-leerling", onMutation);
 
@@ -85,25 +85,30 @@ function onInschrijvingChanged(tabInschrijving) {
             });
     }
 
-    // stripes for classical classes that are not assigned yet.
-    let classRows= document.querySelectorAll("#leerling_inschrijvingen_weergave tr");
+    if(options.showNotAssignedClasses) {
+        setStripedLessons();
+    }
+
+}
+
+function setStripedLessons() {
+    let classRows = document.querySelectorAll("#leerling_inschrijvingen_weergave tr");
     let classCells = Array.from(classRows)
         .filter(row => row.querySelector(".table-info") !== null)
-        .map(row => row.children.item(row.children.length-2));
+        .map(row => row.children.item(row.children.length - 2));
 
     for (let td of classCells) {
         let classDate = td.querySelector("span.text-muted");
         if (!classDate)
             continue;
-        if(classDate.textContent === "(geen lesmomenten)")
+        if (classDate.textContent === "(geen lesmomenten)")
             continue;
-        for(let tdd of td.parentElement.children) {
-            if(tdd.classList.contains("table-info")) {
+        for (let tdd of td.parentElement.children) {
+            if (tdd.classList.contains("table-info")) {
                 tdd.classList.add("runningStripes");
             }
         }
     }
-
 }
 
 async function getModules(size,modal,file,args) {
