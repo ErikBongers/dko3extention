@@ -1,4 +1,4 @@
-import {db3, PageObserver} from "../globals.js";
+import {db3, options, PageObserver} from "../globals.js";
 
 export default new PageObserver(setSchoolBackground);
 
@@ -14,9 +14,16 @@ function setSchoolBackground () {
     let schoolName = match[2];
     db3("user:" + userName);
     db3("school:" + schoolName);
-    if (schoolName !== "Academie Berchem (Muziek-Woord)") {
-        document.body.classList.add("otherSchool");
-    } else {
+    let isMyAcademy = options.otherAcademies
+        .split("\n")
+        .filter((needle) => needle !== "")
+        .find((needle) =>  schoolName.includes(needle));
+    if (options.otherAcademies === "") {
+        isMyAcademy = true;
+    }
+    if (isMyAcademy) {
         document.body.classList.remove("otherSchool");
+    } else {
+        document.body.classList.add("otherSchool");
     }
 }

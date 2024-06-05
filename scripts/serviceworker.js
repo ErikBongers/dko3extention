@@ -1,7 +1,8 @@
 let defaultOptions = {
     showDebug: true,
     showNotAssignedClasses: true,
-    markOtherAcademies: true
+    markOtherAcademies: true,
+    otherAcademies: ""
 };
 
 chrome.runtime.onInstalled.addListener(() => {
