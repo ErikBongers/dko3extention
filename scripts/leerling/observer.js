@@ -1,4 +1,4 @@
-import {db3, HashObserver, options, registerObserver} from "../globals.js";
+import {db3, HashObserver, options} from "../globals.js";
 
 export default new HashObserver("#leerlingen-leerling", onMutation);
 
