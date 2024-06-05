@@ -22,4 +22,11 @@ button
 label {
     display: block;
     margin: 5px;
+    .wrap {
+        white-space: pre-wrap;
+    }
+    span.remark {
+        font-style: italic;
+        opacity: .5;
+    }
 }
