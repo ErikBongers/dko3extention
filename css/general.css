@@ -14,21 +14,21 @@ body.otherSchool {
     );
 }
 
-.lastYear {
+.oldYear {
     #leerling_inschrijvingen_btn_nieuwe_inschrijving,
     #leerling_inschrijvingen_btn_nieuwe_inschrijving + button
     {
         background-color: #eee;
         border-color: #eee;
     }
-    #leerling_inschrijvingen_weergave button.lastYear {
+    #leerling_inschrijvingen_weergave button.oldYear {
         opacity: 0.1;
     }
 
 }
 
 :root[data-darkreader-scheme="dark"] {
-    .lastYear {
+    .oldYear {
         #leerling_inschrijvingen_btn_nieuwe_inschrijving,
         #leerling_inschrijvingen_btn_nieuwe_inschrijving + button
         {

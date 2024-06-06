@@ -46,16 +46,16 @@ function isActiveYear() {
 function decorateSchooljaar(tabInschrijving) {
     let activeYear = isActiveYear();
     if (activeYear) {
-        tabInschrijving.parentElement.classList.remove("lastYear");
+        tabInschrijving.parentElement.classList.remove("oldYear");
     } else {
-        tabInschrijving.parentElement.classList.add("lastYear");
+        tabInschrijving.parentElement.classList.add("oldYear");
 
     }
     if(!activeYear) {
         let toewijzingButtons = document.querySelectorAll("#leerling_inschrijvingen_weergave button");
         Array.from(toewijzingButtons)
             .filter((el) => el.textContent === "toewijzing")
-            .forEach((btn) => btn.classList.add("lastYear"));//TODO:: rename lastYear to oldYear.
+            .forEach((btn) => btn.classList.add("oldYear"));
     }
 }
 
