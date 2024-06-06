@@ -33,14 +33,14 @@ function onUitleningenChanged(tableUitleningen) {
 
 function isActiveYear() {
     let selectedYear = document.querySelector("select#leerling_inschrijvingen_schooljaar")?.value;
+    selectedYear = parseInt(selectedYear);//only parses the first valid number in the string.
     let now = new Date();
     let month = now.getMonth();
     let registrationSchoolYearStart = now.getFullYear();
     if (month <= 3) {
         registrationSchoolYearStart--;
     }
-    let registrationSchoolYear = registrationSchoolYearStart + "-" + (registrationSchoolYearStart + 1);
-    return selectedYear === registrationSchoolYear;
+    return selectedYear === registrationSchoolYearStart;
 }
 
 function decorateSchooljaar(tabInschrijving) {
