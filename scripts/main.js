@@ -2,7 +2,7 @@
 import {options, db3, observers, registerObserver} from "./globals.js";
 import leerlingObserver from "./leerling/observer.js";
 import lessenObserver from "./lessen/observer.js";
-import schooljaarObserver from "./schooljaar/observer.js";
+import academieObserver from "./academie/observer.js";
 
 // noinspection JSUnusedGlobalSymbols
 export function init() {
@@ -30,7 +30,7 @@ export function init() {
 
         registerObserver(leerlingObserver);
         registerObserver(lessenObserver);
-        registerObserver(schooljaarObserver);
+        registerObserver(academieObserver);
         onPageChanged();
     });
 }
