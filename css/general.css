@@ -16,12 +16,13 @@ body.otherSchool {
 
 .oldYear {
     #leerling_inschrijvingen_btn_nieuwe_inschrijving,
-    #leerling_inschrijvingen_btn_nieuwe_inschrijving + button
-    {
+    #leerling_inschrijvingen_btn_nieuwe_inschrijving + button    {
         background-color: #eee;
         border-color: #eee;
     }
-    #leerling_inschrijvingen_weergave button.oldYear {
+    #leerling_inschrijvingen_weergave button.btn_inschrijvingen_toewijzing_ongedaan_maken,
+    #leerling_inschrijvingen_weergave button.btn_leerling_inschrijvingen_verwijder_of_schrijf_uit,
+    #attesten button.btn-outline-success {
         opacity: 0.1;
     }
 

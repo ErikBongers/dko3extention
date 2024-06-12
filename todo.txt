@@ -1,3 +1,12 @@
+* ALLE knopkes voor dit schooljaar afzetten
+
+* Warning bij opstart: "verkeerd schooljaar"
+  > Attest toevoegen, ...
+
+* Uitleningen: verlengdatum moet 1/9 zijn of in verkeerde jaar!
+
+* link uitlening -> asset.
+
 * Filter full classes state is at trimDiv level AND at overzichtDiv.
   > consolidate state?
   > in some state machine, or all in the overzicht div?

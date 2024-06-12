@@ -12,8 +12,16 @@ function onMutation(mutation) {
         onUitleningenChanged(mutation.target);
         return true;
     }
+    let tabAttesten = document.getElementById("attesten");
+    if (mutation.target === tabAttesten) {
+        onAttestenChanged(tabInschrijving);
+        return true;
+    }
     return false;
+}
 
+function onAttestenChanged(tabInschrijving) {
+    decorateSchooljaar(tabInschrijving);
 }
 
 function onUitleningenChanged(tableUitleningen) {
@@ -31,9 +39,18 @@ function onUitleningenChanged(tableUitleningen) {
     }
 }
 
+function getSchooljaarElement() {
+    let selects = document.querySelectorAll("select");
+    return Array.from(selects)
+        .filter((element) => element.id.includes("schooljaar"))
+        .pop();
+}
+
 function isActiveYear() {
-    let selectedYear = document.querySelector("select#leerling_inschrijvingen_schooljaar")?.value;
-    selectedYear = parseInt(selectedYear);//only parses the first valid number in the string.
+    let selectedYear = getSchooljaarElement();
+    if(!selectedYear)
+        return true;
+    selectedYear = parseInt(selectedYear.value);//only parses the first valid number in the string.
     let now = new Date();
     let month = now.getMonth();
     let registrationSchoolYearStart = now.getFullYear();
@@ -43,13 +60,13 @@ function isActiveYear() {
     return selectedYear === registrationSchoolYearStart;
 }
 
-function decorateSchooljaar(tabInschrijving) {
+function decorateSchooljaar() {
+    let view = document.getElementById("view_contents");
     let activeYear = isActiveYear();
     if (activeYear) {
-        tabInschrijving.parentElement.classList.remove("oldYear");
+        view.classList.remove("oldYear");
     } else {
-        tabInschrijving.parentElement.classList.add("oldYear");
-
+        view.classList.add("oldYear");
     }
     if(!activeYear) {
         let toewijzingButtons = document.querySelectorAll("#leerling_inschrijvingen_weergave button");
