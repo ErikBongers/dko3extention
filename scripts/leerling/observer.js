@@ -39,18 +39,26 @@ function onUitleningenChanged(tableUitleningen) {
     }
 }
 
-function getSchooljaarElement() {
+function getSchooljaarElementAndListen() {
     let selects = document.querySelectorAll("select");
-    return Array.from(selects)
+    let schooljaar =  Array.from(selects)
         .filter((element) => element.id.includes("schooljaar"))
         .pop();
+    let listening = "changeListerenAdded";
+    if(!schooljaar?.classList.contains(listening)){
+        schooljaar?.classList.add(listening);
+        schooljaar?.addEventListener("click", () => {
+           decorateSchooljaar();
+        });
+    }
+    return schooljaar;
 }
 
 function isActiveYear() {
-    let selectedYear = getSchooljaarElement();
-    if(!selectedYear)
+    let selectedYearElement = getSchooljaarElementAndListen();
+    if(!selectedYearElement)
         return true;
-    selectedYear = parseInt(selectedYear.value);//only parses the first valid number in the string.
+    let selectedYear = parseInt(selectedYearElement.value);//only parses the first valid number in the string.
     let now = new Date();
     let month = now.getMonth();
     let registrationSchoolYearStart = now.getFullYear();
