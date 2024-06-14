@@ -1,8 +1,3 @@
-* ALLE knopkes voor dit schooljaar afzetten
-
-* Warning bij opstart: "verkeerd schooljaar"
-  > Attest toevoegen, ...
-
 * Uitleningen: verlengdatum moet 1/9 zijn of in verkeerde jaar!
 
 * link uitlening -> asset.
