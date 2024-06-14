@@ -21,6 +21,7 @@ body.otherSchool {
         border-color: #eee;
     }
     #leerling_inschrijvingen_weergave button.btn_inschrijvingen_toewijzing_ongedaan_maken,
+    #leerling_inschrijvingen_weergave button.btn_inschrijvingen_toewijzen,
     #leerling_inschrijvingen_weergave button.btn_leerling_inschrijvingen_verwijder_of_schrijf_uit,
     #attesten button.btn-outline-success {
         opacity: 0.1;

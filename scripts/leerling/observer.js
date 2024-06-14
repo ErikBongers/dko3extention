@@ -79,7 +79,7 @@ function decorateSchooljaar() {
     if(!activeYear) {
         let toewijzingButtons = document.querySelectorAll("#leerling_inschrijvingen_weergave button");
         Array.from(toewijzingButtons)
-            .filter((el) => el.textContent === "toewijzing")
+            .filter((el) => (el.textContent === "toewijzing") || (el.textContent === "inschrijving"))
             .forEach((btn) => btn.classList.add("oldYear"));
     }
 }
