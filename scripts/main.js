@@ -36,7 +36,6 @@ export function init() {
 }
 
 export function onPageChanged() {
-    console.log(observers);
     for(let observer of observers) {
         observer.onPageChanged();
     }

@@ -32,7 +32,6 @@ const restoreOptions = () => {
     chrome.storage.sync.get(
         null, //get all
         (items) => {
-            console.log(items)
             for (const [key, value] of Object.entries(items)) {
                 let optionDef = optionDefs.get(key);
                 if(!optionDef) {
