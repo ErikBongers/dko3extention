@@ -39,6 +39,10 @@ body.otherSchool {
             border-color: #111;
         }
     }
+    .runningStripes {
+        background-image: linear-gradient(45deg, rgba(255,255,255,0.05) 0%, transparent 0%, transparent 48%, rgba(255,255,255,0.05) 48%, rgba(255,255,255,0.05) 51%, transparent 51%, transparent);
+    }
+
 }
 
 @keyframes barberpole {
