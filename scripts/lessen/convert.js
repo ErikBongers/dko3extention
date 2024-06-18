@@ -67,7 +67,7 @@ export function buildTableData(inputModules) {
         }
         student.allYearSame = student.instruments
             .flat()
-            .every((instr) => instr.instrumentName === student.instruments[0][0].instrumentName);
+            .every((instr) => student?.instruments[0][0]?.instrumentName ?? "---");
     }
 
     for(let instrument of tableData.instruments) {
