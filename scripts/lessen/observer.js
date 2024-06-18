@@ -54,7 +54,7 @@ function onLessenOverzichtChanged(printButton) {
 }
 
 
-function addButton(printButton, buttonId, title, clickFunction, imageId) {
+function addButton(printButton, buttonId, title, clickFunction, imageId) { //TODO: generalize this function.
     let button = document.getElementById(buttonId);
     if (button === null) {
         const button = document.createElement("button",);

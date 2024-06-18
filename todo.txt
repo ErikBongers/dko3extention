@@ -33,3 +33,19 @@ Teacher list
 -----------------
 Alle lessen per dag en leraar sorteren – zie uurroosters (deze worden opgemaakt per leraar per dag)
 
+
+
+werklijst
+---------
+fetch: views/leerlingen/werklijst/werklijst.view.php + sessionId
+  > dit doet...niks, denk ik. Direct verder naar:
+fetch: /views/leerlingen/werklijst/werklijst.table.php
+  > dit doet ook niks denk ik
+fetch: views/ui/datatable.php?id=leerlingen_werklijst
+
+volgende fetch:
+fetch: views/ui/datatable.php?id=leerlingen_werklijst
+  id=...
+  start: 100
+  aantal: 0
+
