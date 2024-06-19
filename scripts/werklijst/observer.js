@@ -44,12 +44,18 @@ function prefillInstruments() {
         {"criteria":"Vak","operator":"=","values":"761,762,763,764,765,734,766,732,767,768,735,795,736,769,770,771,772,773,759,834,775,776,845,777,737,778,779,780,781,808,782,783,738,810,792,791,739,784,760,785,740,786,787,741,733,788,796,742,814,727"}
     ];
     sendCriteria(criteria).then(() => {
-        console.log("Crieria sent.");
+        console.log("Criteria sent.");
+        sendFields([
+            {value: "vak_naam", text: "vak"},
+            {value: "graad_leerjaar", text: "graad + leerjaar"},
+            {value: "klasleerkracht", text: "klasleerkracht"}]
+        ).then(() => {
+            console.log("Fields sent.");
+        });
     })
 }
 
 async function sendCriteria(criteria) {
-    // Construct a FormData instance
     const formData = new FormData();
 
     formData.append("criteria", JSON.stringify(criteria));
@@ -58,7 +64,22 @@ async function sendCriteria(criteria) {
         method: "POST",
         body: formData,
     });
-    // console.log(await response.text());
+}
+
+async function sendFields(fields) {
+    const formData = new FormData();
+
+    let fieldCnt = 0;
+    for(let field of fields) {
+        formData.append(`velden[${fieldCnt}][value]`, field.value);
+        formData.append(`velden[${fieldCnt}][text]`, field.text);
+        fieldCnt++;
+    }
+
+    const response = await fetch("/views/leerlingen/werklijst/index.velden.session_add.php", {
+        method: "POST",
+        body: formData,
+    });
 }
 
 function onWerklijstChanged(tabWerklijst) {
