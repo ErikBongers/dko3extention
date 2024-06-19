@@ -73,3 +73,10 @@ export function searchText(text) {
     input.dispatchEvent(evUp);
 }
 
+export function setButtonHighlighted(buttonId, show) {
+    if (show) {
+        document.getElementById(buttonId).classList.add("toggled");
+    } else {
+        document.getElementById(buttonId).classList.remove("toggled");
+    }
+}

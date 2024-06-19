@@ -1,4 +1,6 @@
-.btn-outline-secondary.toggled {
+.btn-outline-secondary.toggled,
+.btn-outline-info.toggled
+{
     color: #fff;
     background-color: #007bff;
     border-color: #6c757d;

@@ -1,5 +1,6 @@
-import {db3, HashObserver, options} from "../globals.js";
+import {db3, HashObserver, options, setButtonHighlighted} from "../globals.js";
 import * as def from "../lessen/def.js";
+import {buildTable} from "./build.js";
 
 export default new HashObserver("#leerlingen-werklijst", onMutation);
 
@@ -22,7 +23,7 @@ function onWerklijstChanged(tabWerklijst) {
 
 function onButtonBarChanged(buttonBar) {
     let targetButton = document.querySelector("#tablenav_leerlingen_werklijst_top > div > div.btn-group.btn-group-sm.datatable-buttons > button:nth-child(1)");
-    addButton(targetButton, def.FETCH_ALL_BUTTON_ID, "Toon trimesters", onClickFetchAll, "fa-guitar", ["btn-outline-info"]);
+    addButton(targetButton, def.COUNT_BUTTON_ID, "Toon trimesters", onClickShowCounts, "fa-guitar", ["btn-outline-info"]);
 }
 
 function addButton(targetButton, buttonId, title, clickFunction, imageId, classList) { //TODO: generalize this function.
@@ -41,7 +42,29 @@ function addButton(targetButton, buttonId, title, clickFunction, imageId, classL
     }
 }
 
-function onClickFetchAll() {
+
+function onClickShowCounts() {
+    //Build lazily and only once. Table will automatically be erased when filters are changed.
+    if (!document.getElementById(def.COUNT_TABLE_ID)) {
+        fetchAll((counters) => {
+            buildTable(counters);
+            document.getElementById(def.COUNT_TABLE_ID).style.display = "none";
+            showOrHideNewTable();
+        }); //TODO: make async
+        return;
+    }
+    showOrHideNewTable();
+}
+
+function showOrHideNewTable() {
+    let showNewTable = document.getElementById(def.COUNT_TABLE_ID).style.display === "none";
+    document.getElementById("table_leerlingen_werklijst_table").style.display = showNewTable ? "none" : "table";
+    document.getElementById(def.COUNT_TABLE_ID).style.display = showNewTable ? "table" : "none";
+    document.getElementById(def.COUNT_BUTTON_ID).title = showNewTable ? "Toon normaal" : "Toon telling";
+    setButtonHighlighted(def.COUNT_BUTTON_ID, showNewTable);
+}
+
+function fetchAll(doIt) {
     console.log("Fetching ALLLLLLL");
     let counters = new Map();
     fetch("/views/ui/datatable.php?id=leerlingen_werklijst&start=300&aantal=0")
@@ -80,7 +103,7 @@ function onClickFetchAll() {
                     counters.get(keyString).count += 1;
                 }
                 console.log("Counted " + students.length + " students.");
-                console.log(counters);
+                doIt(counters);
             })
         });
 }

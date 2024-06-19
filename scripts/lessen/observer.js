@@ -1,8 +1,8 @@
 import {scrapeLessenOverzicht, scrapeModules} from "./scrape.js";
-import { buildTableData  } from "./convert.js";
-import { buildTrimesterTable  } from "./build.js";
+import {buildTableData} from "./convert.js";
+import {buildTrimesterTable} from "./build.js";
 import * as def from "./def.js";
-import {HashObserver, registerObserver} from "../globals.js";
+import {HashObserver, setButtonHighlighted} from "../globals.js";
 
 export default new HashObserver("#lessen-overzicht", onMutation);
 
@@ -111,14 +111,6 @@ function onClickFullClasses() {
 
 function onClickShowTrimesters() {
     showTrimesterTable(document.getElementById("table_lessen_resultaat_tabel").style.display !== "none");
-}
-
-function setButtonHighlighted(buttonId, show) {
-    if (show) {
-        document.getElementById(buttonId).classList.add("toggled");
-    } else {
-        document.getElementById(buttonId).classList.remove("toggled");
-    }
 }
 
 function showTrimesterTable(show) {
