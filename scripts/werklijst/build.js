@@ -7,9 +7,28 @@ export function buildTable(studentCountMap) {
     let table = document.createElement("table");
     originalTable.parentElement.appendChild(table);
     table.id = def.COUNT_TABLE_ID;
+    let thead = document.createElement("thead");
+    table.appendChild(thead);
+    let tr_head = document.createElement("tr");
+    thead.appendChild(tr_head);
+    let th = document.createElement("th");
+    tr_head.appendChild(th);
+    th.innerText = "Vak";
+    th = document.createElement("th");
+    tr_head.appendChild(th);
+    th.innerText = "Leraar";
+    th = document.createElement("th");
+    tr_head.appendChild(th);
+    th.innerText = "Graad.Jaar";
+    th = document.createElement("th");
+    tr_head.appendChild(th);
+    th.innerText = "Telling";
+
+    let tbody = document.createElement("tbody");
+    table.appendChild(tbody);
     for(let student of studentCountMap) {
         let tr = document.createElement("tr");
-        table.appendChild(tr);
+        tbody.appendChild(tr);
         console.log(student);
         let fields = student[0].split("_");
         console.log(fields);
@@ -17,13 +36,8 @@ export function buildTable(studentCountMap) {
             let td = document.createElement("td");
             tr.appendChild(td);
             td.innerText = field;
-            td.style.borderStyle = "solid";
-            td.style.borderWidth = "1px";
-            td.style.paddingLeft = "4px";
-            td.style.paddingRight = "4px";
-            // tr.style.width = "100px";
         }
-        tr.children[0].style.width = "150px";
+        // tr.children[0].style.width = "150px";
         let td = document.createElement("td");
         tr.appendChild(td);
         td.innerText = student[1].count;

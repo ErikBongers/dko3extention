@@ -84,7 +84,7 @@ function fetchAll(doIt) {
                     }
                 }
                 if(headerIndices.vak === -1 || headerIndices.leraar === -1 || headerIndices.graadLeerjaar === -1) {
-                    alert("ni genoeg velde");
+                    alert("Voeg velden VAK, GRAAD+LEERJAAR en KLASLEERKRACHT toe.");
                     return;
                 }
 
