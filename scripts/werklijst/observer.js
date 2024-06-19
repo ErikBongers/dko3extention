@@ -16,7 +16,21 @@ function onMutation(mutation) {
         onButtonBarChanged(buttonBar);
         return true;
     }
+    if (document.querySelector("#btn_werklijst_maken")) {
+        onPreparingFilter();
+        return true;
+    }
     return false;
+}
+
+function onPreparingFilter() {
+    let btnWerklijstMaken = document.querySelector("#btn_werklijst_maken");
+    if(document.getElementById(def.PREFILL_INSTR_BTN_ID))
+        return;
+    let btnPrefill = document.createElement("button");
+    btnWerklijstMaken.insertAdjacentElement("beforebegin", btnPrefill);
+    btnPrefill.innerText = "prefill";
+    btnPrefill.id = def.PREFILL_INSTR_BTN_ID;
 }
 
 function onWerklijstChanged(tabWerklijst) {
