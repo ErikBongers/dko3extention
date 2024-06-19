@@ -1,16 +1,19 @@
-export function fetchAll(doIt) {
-    let counters = new Map();
+export async function fetchAll() {
     let vakLeraars = new Map();
-    fetch("/views/ui/datatable.php?id=leerlingen_werklijst&start=300&aantal=0")
-        .then((res) => {
-            res.text().then((text) => {
-                extractStudents(text, counters, vakLeraars);
-                doIt(counters);
-            })
-        });
+    let offset = 0;
+    while(true) {
+        console.log("fetching page " + offset);
+        let response = await fetch("/views/ui/datatable.php?id=leerlingen_werklijst&start="+offset+"&aantal=0");
+        let text = await response.text();
+        let count = extractStudents(text, vakLeraars);
+        if(count < 100)
+            break;
+        offset+= 100;
+    }
+    return vakLeraars;
 }
 
-function extractStudents(text, counters, vakLeraars) {
+function extractStudents(text, vakLeraars) {
     const template = document.createElement('template');
     template.innerHTML = text;
     let headers = template.content.querySelectorAll("thead th");
@@ -24,27 +27,38 @@ function extractStudents(text, counters, vakLeraars) {
         }
     }
     if(headerIndices.vak === -1 || headerIndices.leraar === -1 || headerIndices.graadLeerjaar === -1) {
-        alert("Voeg velden VAK, GRAAD+LEERJAAR en KLASLEERKRACHT toe.");
+        alert("Voeg velden VAK, GRAAD_LEERJAAR en KLASLEERKRACHT toe.");
         return;
     }
 
     let students = template.content.querySelectorAll("tbody > tr");
     for(let student of students) {
-        let vak = student.children[headerIndices.vak].textContent;
-        if (!isInstrument(vak))
-            continue;
         let leraar = student.children[headerIndices.leraar].textContent;
         let graadLeerjaar = student.children[headerIndices.graadLeerjaar].textContent;
-        if (leraar === "") leraar = "---";
-        let keyString =  translateVak(vak) + "_" + leraar + "_" + graadLeerjaar;
-        let vakLeraarKey = translateVak(vak) + "_" + leraar;
-        if(!counters.has(keyString)) {
-            counters.set(keyString, { count: 0 });
+        if (leraar === "") leraar = "{nieuw}";
+
+        let vak = student.children[headerIndices.vak].textContent;
+
+        if (!isInstrument(vak)) {
+            console.log("VAK is geen instrument!!!");
+            continue;
         }
-        counters.get(keyString).count += 1;
+        let vakLeraarKey = translateVak(vak) + "_" + leraar;
 
         if(!vakLeraars.has(vakLeraarKey)) {
             let countMap = new Map();
+            countMap.set("2.1", {count:0});
+            countMap.set("2.2", {count:0});
+            countMap.set("2.3", {count:0});
+            countMap.set("2.4", {count:0});
+            countMap.set("3.1", {count:0});
+            countMap.set("3.2", {count:0});
+            countMap.set("3.3", {count:0});
+            countMap.set("4.1", {count:0});
+            countMap.set("4.2", {count:0});
+            countMap.set("4.3", {count:0});
+            countMap.set("S.1", {count:0});
+            countMap.set("S.2", {count:0});
             vakLeraars.set(vakLeraarKey, countMap);
         }
         let vakLeraar = vakLeraars.get(vakLeraarKey);
@@ -55,7 +69,7 @@ function extractStudents(text, counters, vakLeraars) {
     }
     console.log("Counted " + students.length + " students.");
     console.log(vakLeraars);
-
+    return students.length;
 }
 
 function isInstrument(vak) {

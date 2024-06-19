@@ -47,14 +47,12 @@ function addButton(targetButton, buttonId, title, clickFunction, imageId, classL
 function onClickShowCounts() {
     //Build lazily and only once. Table will automatically be erased when filters are changed.
     if (!document.getElementById(def.COUNT_TABLE_ID)) {
-        fetchAll((counters) => {
-            //sort table
-
-            let sorted = new Map([...counters.entries()].sort((a, b) => a[0].localeCompare(b[0])));
-            buildTable(sorted);
+        fetchAll().then((vakLeraars) => {
+            let sortedVakLeraars = new Map([...vakLeraars.entries()].sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0]));
+            buildTable(sortedVakLeraars);
             document.getElementById(def.COUNT_TABLE_ID).style.display = "none";
             showOrHideNewTable();
-        }); //TODO: make async
+        });
         return;
     }
     showOrHideNewTable();
@@ -66,55 +64,4 @@ function showOrHideNewTable() {
     document.getElementById(def.COUNT_TABLE_ID).style.display = showNewTable ? "table" : "none";
     document.getElementById(def.COUNT_BUTTON_ID).title = showNewTable ? "Toon normaal" : "Toon telling";
     setButtonHighlighted(def.COUNT_BUTTON_ID, showNewTable);
-}
-
-function isInstrument(vak) {
-    switch (vak) {
-        case "Muziekatelier": 
-        case "Groepsmusiceren (jazz pop rock)": 
-        case "Groepsmusiceren (klassiek)": 
-        case "Harmonielab": 
-        case "Instrumentinitiatie - elke trimester een ander instrument": 
-        case "instrumentinitiatie – piano het hele jaar": 
-        case "Klanklab elektronische muziek": 
-        case "Muziektheorie": 
-        case "Koor (jazz pop rock)": 
-        case "Koor (musical)": 
-        case "Arrangeren": 
-        case "Groepsmusiceren (opera)": 
-        case "Muziekatelier": 
-        case "Muziekatelier": 
-        case "Muziekatelier": 
-        case "Muziekatelier": 
-        case "Muziekatelier": 
-        case "Muziekatelier": 
-        case "Muziekatelier": 
-        case "Muziekatelier": 
-        case "Muziekatelier": 
-        case "Muziekatelier": 
-        case "Muziekatelier": 
-        case "Muziekatelier": 
-        case "Muziekatelier": 
-        case "Muziekatelier": 
-        case "Muziekatelier": 
-        case "Muziekatelier": 
-        case "Muziekatelier": 
-        case "Muziekatelier": 
-        case "Muziekatelier": 
-        case "Muziekatelier": 
-        case "Muziekatelier": 
-            return false;
-    }
-    return true;
-}
-
-function translateVak(vak) {
-    if(vak.includes("(jazz pop rock)")) {
-        return "JPR " + vak.replace("(jazz pop rock)", "");
-    }
-    if(vak.includes("musical")) {
-        return "M " + vak.replace("(musical)", "");
-    }
-
-    return "K " + vak;
 }
