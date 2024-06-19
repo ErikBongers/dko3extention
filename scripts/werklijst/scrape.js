@@ -92,12 +92,17 @@ function isInstrument(vak) {
 }
 
 function translateVak(vak) {
-    if(vak.includes("(jazz pop rock)")) {
-        return "JPR " + vak.replace("(jazz pop rock)", "");
-    }
-    if(vak.includes("musical")) {
-        return "M " + vak.replace("(musical)", "");
+    function renameInstrument(instrument) {
+        return instrument.replace("Altsaxofoon", "Saxofoon")
     }
 
-    return "K " + vak;
+    if(vak.includes("(jazz pop rock)")) {
+        return "JPR " + renameInstrument(vak).replace("(jazz pop rock)", "");
+    }
+    if(vak.includes("musical")) {
+        return "M " + renameInstrument(vak).replace("(musical)", "");
+    }
+
+
+    return "K " + renameInstrument(vak);
 }
