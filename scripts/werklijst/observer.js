@@ -35,24 +35,46 @@ function onPreparingFilter() {
 }
 
 
-function prefillInstruments() {
-  let criteria = [
-        {"criteria":"Schooljaar","operator":"=","values":"2024-2025"},
-        {"criteria":"Status","operator":"=","values":"12"},
-        {"criteria":"Uitschrijvingen","operator":"=","values":"0"},
-        {"criteria":"Domein","operator":"=","values":"3"},
-        {"criteria":"Vak","operator":"=","values":"761,762,763,764,765,734,766,732,767,768,735,795,736,769,770,771,772,773,759,834,775,776,845,777,737,778,779,780,781,808,782,783,738,810,792,791,739,784,760,785,740,786,787,741,733,788,796,742,814,727"}
+async function prefillInstruments() {
+    await sendClearWerklijst();
+    let criteria = [
+        {"criteria": "Schooljaar", "operator": "=", "values": "2024-2025"},
+        {"criteria": "Status", "operator": "=", "values": "12"},
+        {"criteria": "Uitschrijvingen", "operator": "=", "values": "0"},
+        {"criteria": "Domein", "operator": "=", "values": "3"},
+        {
+            "criteria": "Vak",
+            "operator": "=",
+            "values": "761,762,763,764,765,734,766,732,767,768,735,795,736,769,770,771,772,773,759,834,775,776,845,777,737,778,779,780,781,808,782,783,738,810,792,791,739,784,760,785,740,786,787,741,733,788,796,742,814,727"
+        }
     ];
-    sendCriteria(criteria).then(() => {
-        console.log("Criteria sent.");
-        sendFields([
-            {value: "vak_naam", text: "vak"},
-            {value: "graad_leerjaar", text: "graad + leerjaar"},
-            {value: "klasleerkracht", text: "klasleerkracht"}]
-        ).then(() => {
-            console.log("Fields sent.");
-        });
-    })
+    await sendCriteria(criteria);
+    console.log("Criteria sent.");
+    await sendFields([
+        {value: "vak_naam", text: "vak"},
+        {value: "graad_leerjaar", text: "graad + leerjaar"},
+        {value: "klasleerkracht", text: "klasleerkracht"}]
+    );
+    console.log("Fields sent.");
+    await sendGrouping("vak_id");
+    console.log("Grouping sent.");
+    location.reload();
+}
+
+async function sendClearWerklijst() {
+    const formData = new FormData();
+
+    formData.append("session", "leerlingen_werklijst");
+
+    await fetch("/views/util/clear_session.php", {
+        method: "POST",
+        body: formData,
+    });
+
+    //needed to prefill the default fields.
+    await fetch("views/leerlingen/werklijst/index.velden.php", {
+        method: "GET"
+    });
 }
 
 async function sendCriteria(criteria) {
@@ -61,6 +83,17 @@ async function sendCriteria(criteria) {
     formData.append("criteria", JSON.stringify(criteria));
 
     const response = await fetch("/views/leerlingen/werklijst/index.criteria.session_reload.php", {
+        method: "POST",
+        body: formData,
+    });
+}
+
+async function sendGrouping(grouping) {
+    const formData = new FormData();
+
+    formData.append("groepering", grouping);
+
+    const response = await fetch("/views/leerlingen/werklijst/index.groeperen.session_add.php", {
         method: "POST",
         body: formData,
     });
