@@ -1,6 +1,7 @@
 import * as def  from "../lessen/def.js";
 
 export function buildTable(vakLeraars) {
+    let popoverIndex = 1;
     let originalTable = document.querySelector("#table_leerlingen_werklijst_table");
     let table = document.createElement("table");
     originalTable.parentElement.appendChild(table);
@@ -35,9 +36,32 @@ export function buildTable(vakLeraars) {
         for (let graadJaar of vakLeraar[1]) {
             let td = document.createElement("td");
             tr.appendChild(td);
-            td.innerText = graadJaar[1].count;
-            if (td.innerText === "0")
-                td.innerText = "";
+            if(graadJaar[1].count === 0)
+                continue;
+            let button = document.createElement("button");
+            td.appendChild(button);
+            button.innerText = graadJaar[1].count;
+            button.setAttribute("popovertarget", "students_"+popoverIndex);
+            let popoverDiv = document.createElement("div");
+            td.appendChild(popoverDiv);
+            popoverDiv.id = "students_" + popoverIndex;
+            popoverDiv.setAttribute("popover", "auto");
+            for (let student of graadJaar[1].students) {
+                let studentDiv = document.createElement("div");
+                popoverDiv.appendChild(studentDiv);
+                studentDiv.innerText = student.voornaam + " " + student.naam;
+                const anchor = document.createElement("a");
+                studentDiv.appendChild(anchor);
+                anchor.href = "/?#leerlingen-leerling?id="+student.id+",tab=inschrijvingen";
+                anchor.classList.add("pl-2");
+                anchor.dataset.studentid = student.id;
+
+                const iTag = document.createElement("i");
+                anchor.appendChild(iTag);
+                iTag.classList.add('fas', "fa-user-alt");
+
+            }
+            popoverIndex++;
         }
     }
 }

@@ -6,7 +6,7 @@ export async function fetchAll() {
         let response = await fetch("/views/ui/datatable.php?id=leerlingen_werklijst&start="+offset+"&aantal=0");
         let text = await response.text();
         let count = extractStudents(text, vakLeraars);
-        if(count < 100)
+        // if(count < 100)
             break;
         offset+= 100;
     }
@@ -18,26 +18,32 @@ function extractStudents(text, vakLeraars) {
     template.innerHTML = text;
     let headers = template.content.querySelectorAll("thead th");
 
-    let headerIndices = { vak: -1, graadLeerjaar: -1, leraar: -1 };
+    let headerIndices = { naam: -1, voornaam: -1, vak: -1, graadLeerjaar: -1, leraar: -1 };
     for(let i = 0; i < headers.length ; i++) {
         switch (headers[i].textContent) {
+            case "naam": headerIndices.naam = i; break;
+            case "voornaam": headerIndices.voornaam = i; break;
             case "vak": headerIndices.vak = i; break;
             case "graad + leerjaar": headerIndices.graadLeerjaar = i; break;
             case "klasleerkracht": headerIndices.leraar = i; break;
         }
     }
     if(headerIndices.vak === -1 || headerIndices.leraar === -1 || headerIndices.graadLeerjaar === -1) {
-        alert("Voeg velden VAK, GRAAD_LEERJAAR en KLASLEERKRACHT toe.");
+        alert("Voeg velden NAAM, VOORNAAM, VAK, GRAAD_LEERJAAR en KLASLEERKRACHT toe.");
         return;
     }
 
     let students = template.content.querySelectorAll("tbody > tr");
-    for(let student of students) {
-        let leraar = student.children[headerIndices.leraar].textContent;
-        let graadLeerjaar = student.children[headerIndices.graadLeerjaar].textContent;
+    for(let trStudent of students) {
+        let student = {};
+        student.naam = trStudent.children[headerIndices.naam].textContent;
+        student.voornaam = trStudent.children[headerIndices.voornaam].textContent;
+        student.id = parseInt(trStudent.attributes['onclick'].value.replace("showView('leerlingen-leerling', '', 'id=", ""));
+        let leraar = trStudent.children[headerIndices.leraar].textContent;
+        let graadLeerjaar = trStudent.children[headerIndices.graadLeerjaar].textContent;
         if (leraar === "") leraar = "{nieuw}";
 
-        let vak = student.children[headerIndices.vak].textContent;
+        let vak = trStudent.children[headerIndices.vak].textContent;
 
         if (!isInstrument(vak)) {
             console.log("VAK is geen instrument!!!");
@@ -47,27 +53,28 @@ function extractStudents(text, vakLeraars) {
 
         if(!vakLeraars.has(vakLeraarKey)) {
             let countMap = new Map();
-            countMap.set("2.1", {count:0});
-            countMap.set("2.2", {count:0});
-            countMap.set("2.3", {count:0});
-            countMap.set("2.4", {count:0});
-            countMap.set("3.1", {count:0});
-            countMap.set("3.2", {count:0});
-            countMap.set("3.3", {count:0});
-            countMap.set("4.1", {count:0});
-            countMap.set("4.2", {count:0});
-            countMap.set("4.3", {count:0});
-            countMap.set("S.1", {count:0});
-            countMap.set("S.2", {count:0});
+            countMap.set("2.1", {count:0, students: []});
+            countMap.set("2.2", {count:0, students: []});
+            countMap.set("2.3", {count:0, students: []});
+            countMap.set("2.4", {count:0, students: []});
+            countMap.set("3.1", {count:0, students: []});
+            countMap.set("3.2", {count:0, students: []});
+            countMap.set("3.3", {count:0, students: []});
+            countMap.set("4.1", {count:0, students: []});
+            countMap.set("4.2", {count:0, students: []});
+            countMap.set("4.3", {count:0, students: []});
+            countMap.set("S.1", {count:0, students: []});
+            countMap.set("S.2", {count:0, students: []});
             vakLeraars.set(vakLeraarKey, countMap);
         }
         let vakLeraar = vakLeraars.get(vakLeraarKey);
         if(!vakLeraar.has(graadLeerjaar)) {
-            vakLeraar.set(graadLeerjaar, {count: 0});
+            vakLeraar.set(graadLeerjaar, {count: 0, students: []});
         }
-        vakLeraars.get(vakLeraarKey).get(graadLeerjaar).count += 1;
+        let graadLeraarObject = vakLeraars.get(vakLeraarKey).get(graadLeerjaar);
+        graadLeraarObject.count += 1;
+        graadLeraarObject.students.push(student);
     }
-    console.log("Counted " + students.length + " students.");
     console.log(vakLeraars);
     return students.length;
 }
