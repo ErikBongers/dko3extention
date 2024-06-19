@@ -99,7 +99,7 @@ function fetchAll(doIt) {
                     let leraar = student.children[headerIndices.leraar].textContent;
                     if (leraar === "") leraar = "---";
                     let keyString =
-                        vak + "_" +
+                        translateVak(vak) + "_" +
                         leraar + "_" +
                         student.children[headerIndices.graadLeerjaar].textContent
                     ;
@@ -152,4 +152,12 @@ function isInstrument(vak) {
             return false;
     }
     return true;
+}
+
+function translateVak(vak) {
+    if(vak.includes("(jazz pop rock)")) {
+        return "JPR " + vak.replace("(jazz pop rock)", "");
+    }
+
+    return "K " + vak;
 }
