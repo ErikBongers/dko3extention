@@ -29,9 +29,7 @@ export function buildTable(studentCountMap) {
     for(let student of studentCountMap) {
         let tr = document.createElement("tr");
         tbody.appendChild(tr);
-        console.log(student);
         let fields = student[0].split("_");
-        console.log(fields);
         for(let field of fields) {
             let td = document.createElement("td");
             tr.appendChild(td);

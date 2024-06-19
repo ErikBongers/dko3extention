@@ -1,6 +1,6 @@
 export function fetchAll(doIt) {
-    console.log("Fetching ALLLLLLL");
     let counters = new Map();
+    let vakLeraars = new Map();
     fetch("/views/ui/datatable.php?id=leerlingen_werklijst&start=300&aantal=0")
         .then((res) => {
             res.text().then((text) => {
@@ -28,18 +28,28 @@ export function fetchAll(doIt) {
                     if (!isInstrument(vak)) 
                         continue;
                     let leraar = student.children[headerIndices.leraar].textContent;
+                    let graadLeerjaar = student.children[headerIndices.graadLeerjaar].textContent;
                     if (leraar === "") leraar = "---";
-                    let keyString =
-                        translateVak(vak) + "_" +
-                        leraar + "_" +
-                        student.children[headerIndices.graadLeerjaar].textContent
-                    ;
+                    let keyString =  translateVak(vak) + "_" + leraar + "_" + graadLeerjaar;
+                    let vakLeraarKey = translateVak(vak) + "_" + leraar;
                     if(!counters.has(keyString)) {
                         counters.set(keyString, { count: 0 });
                     }
                     counters.get(keyString).count += 1;
+
+                    if(!vakLeraars.has(vakLeraarKey)) {
+                        let countMap = new Map();
+                        vakLeraars.set(vakLeraarKey, countMap);
+                    }
+                    //todo: register the count
+                    let vakLeraar = vakLeraars.get(vakLeraarKey);
+                    if(!vakLeraar.has(graadLeerjaar)) {
+                        vakLeraar.set(graadLeerjaar, {count: 0});
+                    }
+                    vakLeraars.get(vakLeraarKey).get(graadLeerjaar).count += 1;
                 }
                 console.log("Counted " + students.length + " students.");
+                console.log(vakLeraars);
                 doIt(counters);
             })
         });
