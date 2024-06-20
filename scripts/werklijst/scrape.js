@@ -1,4 +1,4 @@
-export async function fetchAll(progressBar) {
+export async function fetchAll(progressBar, navigationData) {
     let vakLeraars = new Map();
     let offset = 0;
     progressBar.start();
@@ -7,10 +7,9 @@ export async function fetchAll(progressBar) {
         let response = await fetch("/views/ui/datatable.php?id=leerlingen_werklijst&start="+offset+"&aantal=0");
         let text = await response.text();
         let count = extractStudents(text, vakLeraars);
-        // if(count < 100)
+        offset+= navigationData.step;
+        if(!progressBar.next())
             break;
-        offset+= 100;
-        progressBar.next();
     }
     progressBar.stop();
     return vakLeraars;

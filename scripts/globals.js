@@ -125,6 +125,8 @@ export class ProgressBar {
     }
 
     next() {
+        if (this.count >= this.maxCount)
+            return false;
         this.barElement.children[this.count].classList.remove("iddle", "loaded");
         this.barElement.children[this.count].classList.add("loading");
         for (let i = 0; i < this.count; i++) {
@@ -136,6 +138,7 @@ export class ProgressBar {
             this.barElement.children[i].classList.add("iddle");
         }
         this.count++;
+        return true;
     }
 }
 

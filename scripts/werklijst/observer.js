@@ -139,8 +139,8 @@ function onClickShowCounts() {
 
         let navigationData = getNavigation(document.querySelector("#tablenav_leerlingen_werklijst_top"));
         console.log(navigationData);
-        let progressBar = new ProgressBar(divProgressLine, divProgressBar, 6);
-        fetchAll(progressBar).then((vakLeraars) => {
+        let progressBar = new ProgressBar(divProgressLine, divProgressBar, Math.ceil(navigationData.maxCount/navigationData.step));
+        fetchAll(progressBar, navigationData).then((vakLeraars) => {
             let sortedVakLeraars = new Map([...vakLeraars.entries()].sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0]));
             buildTable(sortedVakLeraars);
             document.getElementById(def.COUNT_TABLE_ID).style.display = "none";
