@@ -1,15 +1,18 @@
-export async function fetchAll() {
+export async function fetchAll(progressBar) {
     let vakLeraars = new Map();
     let offset = 0;
+    progressBar.start();
     while(true) {
         console.log("fetching page " + offset);
         let response = await fetch("/views/ui/datatable.php?id=leerlingen_werklijst&start="+offset+"&aantal=0");
         let text = await response.text();
         let count = extractStudents(text, vakLeraars);
-        // if(count < 100)
+        if(count < 100)
             break;
         offset+= 100;
+        progressBar.next();
     }
+    progressBar.stop();
     return vakLeraars;
 }
 

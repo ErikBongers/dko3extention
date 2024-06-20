@@ -80,3 +80,24 @@ export function setButtonHighlighted(buttonId, show) {
         document.getElementById(buttonId).classList.remove("toggled");
     }
 }
+
+export function addButton(targetElement, buttonId, title, clickFunction, imageId, classList, text) {
+    let button = document.getElementById(buttonId);
+    if (button === null) {
+        const button = document.createElement("button");
+        button.classList.add("btn"/*, "btn-sm", "btn-outline-secondary", "w-100"*/, ...classList);
+        button.id = buttonId;
+        button.style.marginTop = "0";
+        button.onclick = clickFunction;
+        button.title = title;
+        if(text) {
+            let span = document.createElement("span");
+            button.appendChild(span);
+            span.innerText = text;
+        }
+        const buttonContent = document.createElement("i");
+        button.appendChild(buttonContent);
+        buttonContent.classList.add("fas", imageId);
+        targetElement.insertAdjacentElement("beforebegin", button);
+    }
+}

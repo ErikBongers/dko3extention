@@ -1,4 +1,4 @@
-import {db3, HashObserver, options, setButtonHighlighted} from "../globals.js";
+import {addButton, HashObserver, setButtonHighlighted} from "../globals.js";
 import * as def from "../lessen/def.js";
 import {buildTable} from "./build.js";
 import {fetchAll} from "./scrape.js";
@@ -28,10 +28,7 @@ function onPreparingFilter() {
     if(document.getElementById(def.PREFILL_INSTR_BTN_ID))
         return;
     let btnPrefill = document.createElement("button");
-    btnWerklijstMaken.insertAdjacentElement("beforebegin", btnPrefill);
-    btnPrefill.innerText = "prefill";
-    btnPrefill.id = def.PREFILL_INSTR_BTN_ID;
-    btnPrefill.onclick = prefillInstruments;
+    addButton(btnWerklijstMaken, def.PREFILL_INSTR_BTN_ID, "Prefill instrumenten", prefillInstruments, "fa-guitar", ["btn", "btn-outline-dark"], "prefill ");
 }
 
 
@@ -120,30 +117,64 @@ function onWerklijstChanged(tabWerklijst) {
 
 function onButtonBarChanged(buttonBar) {
     let targetButton = document.querySelector("#tablenav_leerlingen_werklijst_top > div > div.btn-group.btn-group-sm.datatable-buttons > button:nth-child(1)");
-    addButton(targetButton, def.COUNT_BUTTON_ID, "Toon trimesters", onClickShowCounts, "fa-guitar", ["btn-outline-info"]);
+    addButton(targetButton, def.COUNT_BUTTON_ID, "Toon telling", onClickShowCounts, "fa-guitar", ["btn-outline-info"]);
 }
 
-function addButton(targetButton, buttonId, title, clickFunction, imageId, classList) { //TODO: generalize this function.
-    let button = document.getElementById(buttonId);
-    if (button === null) {
-        const button = document.createElement("button");
-        button.classList.add("btn", "btn-sm"/*, "btn-outline-secondary", "w-100"*/, ...classList);
-        button.id = buttonId;
-        button.style.marginTop = "0";
-        button.onclick = clickFunction;
-        button.title = title;
-        const buttonContent = document.createElement("i");
-        button.appendChild(buttonContent);
-        buttonContent.classList.add("fas", imageId);
-        targetButton.insertAdjacentElement("beforebegin", button);
+class ProgressBar {
+    constructor(containerElement, barElement, maxCount) {
+        this.barElement = barElement;
+        this.containerElement = containerElement;
+        this.maxCount = maxCount;
+        this.count = 0;
+        for(let i = 0; i < maxCount; i++) {
+            let block = document.createElement("div");
+            barElement.appendChild(block);
+            block.classList.add("progressBlock");
+        }
+    }
+
+    start() {
+        this.containerElement.style.visibility = "visible";
+        this.next();
+    }
+
+    stop() {
+        this.containerElement.style.visibility = "hidden";
+    }
+
+    next() {
+        this.barElement.children[this.count].classList.remove("iddle", "loaded");
+        this.barElement.children[this.count].classList.add("loading");
+        for(let i = 0; i < this.count; i++) {
+            this.barElement.children[i].classList.remove("iddle", "loading");
+            this.barElement.children[i].classList.add("loaded");
+        }
+        for(let i = this.count+1; i < this.maxCount; i++) {
+            this.barElement.children[i].classList.remove("loaded", "loading");
+            this.barElement.children[i].classList.add("iddle");
+        }
+        this.count++;
     }
 }
-
 
 function onClickShowCounts() {
     //Build lazily and only once. Table will automatically be erased when filters are changed.
     if (!document.getElementById(def.COUNT_TABLE_ID)) {
-        fetchAll().then((vakLeraars) => {
+        let orgTable = document.getElementById("table_leerlingen_werklijst_table");
+        let divProgressLine = document.createElement("div");
+        orgTable.insertAdjacentElement("beforebegin", divProgressLine);
+        divProgressLine.classList.add("progressLine");
+        divProgressLine.id = def.PROGRESS_BAR_ID;
+        let divProgressText = document.createElement("div");
+        divProgressLine.appendChild(divProgressText);
+        divProgressText.classList.add("progressText");
+        divProgressText.innerText="loading pages... ";
+        let divProgressBar = document.createElement("div");
+        divProgressLine.appendChild(divProgressBar);
+        divProgressBar.classList.add("progressBar");
+
+        let progressBar = new ProgressBar(divProgressLine, divProgressBar, 6);
+        fetchAll(progressBar).then((vakLeraars) => {
             let sortedVakLeraars = new Map([...vakLeraars.entries()].sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0]));
             buildTable(sortedVakLeraars);
             document.getElementById(def.COUNT_TABLE_ID).style.display = "none";
