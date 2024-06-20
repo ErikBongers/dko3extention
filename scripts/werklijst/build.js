@@ -53,7 +53,7 @@ export function buildTable(vakLeraars) {
                 const anchor = document.createElement("a");
                 studentDiv.appendChild(anchor);
                 anchor.href = "/?#leerlingen-leerling?id="+student.id+",tab=inschrijvingen";
-                anchor.classList.add("pl-2");
+                anchor.classList.add("pl-1");
                 anchor.dataset.studentid = student.id;
 
                 const iTag = document.createElement("i");

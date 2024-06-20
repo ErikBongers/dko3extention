@@ -112,6 +112,9 @@ function translateVak(vak) {
     if(vak.includes("musical")) {
         return "M " + renameInstrument(vak).replace("(musical)", "");
     }
+    if(vak.includes("wereldmuziek")) {
+        return "WM " + renameInstrument(vak).replace("(wereldmuziek)", "");
+    }
 
 
     return "K " + renameInstrument(vak);
