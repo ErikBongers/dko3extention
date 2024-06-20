@@ -31,7 +31,7 @@ export function buildTable(vakLeraars) {
         for(let field of fields) {
             let td = document.createElement("td");
             tr.appendChild(td);
-            td.innerText = field === "{nieuw}" ? "" : field;
+            td.innerText = field === "{nieuw}" ? "nieuw" : field;
         }
         for (let graadJaar of vakLeraar[1]) {
             let td = document.createElement("td");
