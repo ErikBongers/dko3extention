@@ -1,4 +1,4 @@
-import {addButton, HashObserver, setButtonHighlighted} from "../globals.js";
+import {addButton, HashObserver, ProgressBar, setButtonHighlighted} from "../globals.js";
 import * as def from "../lessen/def.js";
 import {buildTable} from "./build.js";
 import {fetchAll} from "./scrape.js";
@@ -120,44 +120,8 @@ function onButtonBarChanged(buttonBar) {
     addButton(targetButton, def.COUNT_BUTTON_ID, "Toon telling", onClickShowCounts, "fa-guitar", ["btn-outline-info"]);
 }
 
-class ProgressBar {
-    constructor(containerElement, barElement, maxCount) {
-        this.barElement = barElement;
-        this.containerElement = containerElement;
-        this.maxCount = maxCount;
-        this.count = 0;
-        for(let i = 0; i < maxCount; i++) {
-            let block = document.createElement("div");
-            barElement.appendChild(block);
-            block.classList.add("progressBlock");
-        }
-    }
-
-    start() {
-        this.containerElement.style.visibility = "visible";
-        this.next();
-    }
-
-    stop() {
-        this.containerElement.style.visibility = "hidden";
-    }
-
-    next() {
-        this.barElement.children[this.count].classList.remove("iddle", "loaded");
-        this.barElement.children[this.count].classList.add("loading");
-        for(let i = 0; i < this.count; i++) {
-            this.barElement.children[i].classList.remove("iddle", "loading");
-            this.barElement.children[i].classList.add("loaded");
-        }
-        for(let i = this.count+1; i < this.maxCount; i++) {
-            this.barElement.children[i].classList.remove("loaded", "loading");
-            this.barElement.children[i].classList.add("iddle");
-        }
-        this.count++;
-    }
-}
-
 function onClickShowCounts() {
+
     //Build lazily and only once. Table will automatically be erased when filters are changed.
     if (!document.getElementById(def.COUNT_TABLE_ID)) {
         let orgTable = document.getElementById("table_leerlingen_werklijst_table");
@@ -173,6 +137,8 @@ function onClickShowCounts() {
         divProgressLine.appendChild(divProgressBar);
         divProgressBar.classList.add("progressBar");
 
+        let navigationData = getNavigation(document.querySelector("#tablenav_leerlingen_werklijst_top"));
+        console.log(navigationData);
         let progressBar = new ProgressBar(divProgressLine, divProgressBar, 6);
         fetchAll(progressBar).then((vakLeraars) => {
             let sortedVakLeraars = new Map([...vakLeraars.entries()].sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0]));
@@ -183,6 +149,33 @@ function onClickShowCounts() {
         return;
     }
     showOrHideNewTable();
+}
+
+/* possible ranges of numbers found:
+[1, 100, 100, 500, 580] -> interval is [1] = 100
+[0, 400, 501, 580, 580]  -> interval is [1] -> [2]-1 = 100
+[0, 200, 301, 400, 400, 500, 580] -> interval is [1] -> [2]
+*/
+function getNavigation(element) {
+    //get all possible numbers from the navigation bar and sort them to get the result above.
+    let button = element.querySelector("button.datatable-paging-numbers");
+    let rx = /(\d*) tot (\d*) van (\d*)/;
+    let matches = button.innerText.match(rx);
+    console.log(matches);
+    let buttons = element.querySelectorAll("button.btn-secondary");
+    let numbers = Array.from(buttons)
+        .filter((btn) => btn.attributes["onclick"]?.value.includes("datatable_leerlingen_werklijst_goto("))
+        .map((btn) => btn.attributes["onclick"].value)
+        .map((txt) => txt.replace("datatable_leerlingen_werklijst_goto(", ""))
+        .map((txt) => parseInt(txt));
+    numbers.push(...matches.slice(1).map((txt) => parseInt(txt)));
+    numbers.sort();
+    console.log(numbers);
+    if(numbers[0] === 1) {
+        return { step: numbers[1], maxCount: numbers.pop() };
+    } else {
+        return { step: numbers[2] - numbers[1]  - 1, maxCount: numbers.pop() };
+    }
 }
 
 function showOrHideNewTable() {
