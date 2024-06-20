@@ -67,13 +67,18 @@ function extractStudents(text, vakLeraars) {
             countMap.set("4.3", {count:0, students: []});
             countMap.set("S.1", {count:0, students: []});
             countMap.set("S.2", {count:0, students: []});
-            vakLeraars.set(vakLeraarKey, countMap);
+            let vakLeraarObject = {
+               vak: vak,
+               leraar: leraar,
+               countMap: countMap
+            };
+            vakLeraars.set(vakLeraarKey, vakLeraarObject);
         }
         let vakLeraar = vakLeraars.get(vakLeraarKey);
-        if(!vakLeraar.has(graadLeerjaar)) {
-            vakLeraar.set(graadLeerjaar, {count: 0, students: []});
+        if(!vakLeraar.countMap.has(graadLeerjaar)) {
+            vakLeraar.countMap.set(graadLeerjaar, {count: 0, students: []});
         }
-        let graadLeraarObject = vakLeraars.get(vakLeraarKey).get(graadLeerjaar);
+        let graadLeraarObject = vakLeraars.get(vakLeraarKey).countMap.get(graadLeerjaar);
         graadLeraarObject.count += 1;
         graadLeraarObject.students.push(student);
     }
