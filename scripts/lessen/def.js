@@ -8,6 +8,7 @@ export const FULL_CLASS_BUTTON_ID = "fullClassButton";
 export const TRIM_TABLE_ID = "trimesterTable";
 export const COUNT_TABLE_ID = "countTable";
 export const TRIM_DIV_ID = "trimesterDiv";
+export const JSON_URL = "https://europe-west1-ebo-tain.cloudfunctions.net/json";
 
 export function isButtonHighlighted(buttonId) {
     return document.getElementById(buttonId)?.classList.contains("toggled");

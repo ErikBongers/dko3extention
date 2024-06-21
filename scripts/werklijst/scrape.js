@@ -1,4 +1,5 @@
 import {createValidId} from "../globals.js";
+import * as def from "../lessen/def.js";
 
 export async function fetchAllPages(progressBar, navigationData) {
     let vakLeraars = new Map();
@@ -18,7 +19,7 @@ export async function fetchAllPages(progressBar, navigationData) {
 }
 
 export async function fetchFromCloud(table) {
-    return fetch("https://us-central1-ebo-tain.cloudfunctions.net/json?fileName=brol.json", { method: "GET"})
+    return fetch(def.JSON_URL+"?fileName=brol.json", { method: "GET"})
         .then((res) => res.json());
 }
 

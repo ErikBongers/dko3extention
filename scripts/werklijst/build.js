@@ -2,36 +2,54 @@ import * as def  from "../lessen/def.js";
 import {createValidId} from "../globals.js";
 
 let colDefsArray = [
-    {key:"Uren\n24-25", def: { classList: ["editable_number"], factor: 1.0, fill: (td, colKey, colDef, vakLeraar) => fromCloudMap.get(vakLeraar.id)}},
-    {key:"Vak", def: { classList: [], factor: 1.0, fill: (td, colKey, colDef, vakLeraar) => vakLeraar.vak}},
-    {key:"Leraar", def: { classList: [], factor: 1.0, fill: (td, colKey, colDef, vakLeraar) => vakLeraar.leraar.replaceAll("{", "").replaceAll("}", "")}},
-    {key:"2.1", def: { classList: [], factor: 1/4, fill: fillGraadCell }},
-    {key:"2.2", def: { classList: [], factor: 1/4, fill: fillGraadCell }},
-    {key:"2.3", def: { classList: [], factor: 1/3, fill: fillGraadCell }},
-    {key:"2.4", def: { classList: [], factor: 1/3, fill: fillGraadCell }},
+    {key:"uren_24_25", def: { label:"Uren\n24-25", classList: ["editable_number"], factor: 1.0, getValue: (ctx) => fromCloudMap.get(ctx.vakLeraar.id)}},
+    {key:"vak", def: { label:"Vak", classList: [], factor: 1.0, getValue: (ctx) => ctx.vakLeraar.vak}},
+    {key:"leraar", def: { label:"Leraar", classList: [], factor: 1.0, getValue: (ctx) => ctx.vakLeraar.leraar.replaceAll("{", "").replaceAll("}", "")}},
+    {key:"grjr2_1", def: { label:"2.1", classList: [], factor: 1/4, getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count, fill: fillGraadCell }},
+    {key:"grjr2_2", def: { label:"2.2", classList: [], factor: 1/4, getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count, fill: fillGraadCell }},
+    {key:"grjr2_3", def: { label:"2.3", classList: [], factor: 1/3, getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count, fill: fillGraadCell }},
+    {key:"grjr2_4", def: { label:"2.4", classList: [], factor: 1/3, getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count, fill: fillGraadCell }},
 
-    {key:"uren\n2e gr", def: { classList: ["yellow"], factor: 1.0, fill: (td, colKey, colDef, vakLeraar) => calcUrenFactored(vakLeraar, ["2.1", "2.2", "2.3", "2.4"])}},
+    {key:"uren_2e_gr", def: { label:"uren\n2e gr", classList: ["yellow"], factor: 1.0, getValue: (ctx) => calcUrenFactored(ctx, ["grjr2_1", "grjr2_2", "grjr2_3", "grjr2_4"])}},
 
-    {key:"3.1", def: { classList: [], factor: 1/3, fill: fillGraadCell }},
-    {key:"3.2", def: { classList: [], factor: 1/3, fill: fillGraadCell }},
-    {key:"3.3", def: { classList: [], factor: 1/2, fill: fillGraadCell }},
+    {key:"grjr3_1", def: { label:"3.1", classList: [], factor: 1/3, getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count, fill: fillGraadCell }},
+    {key:"grjr3_2", def: { label:"3.2", classList: [], factor: 1/3, getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count, fill: fillGraadCell }},
+    {key:"grjr3_3", def: { label:"3.3", classList: [], factor: 1/2, getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count, fill: fillGraadCell }},
 
-    {key:"uren\n3e gr", def: { classList: ["yellow"], factor: 1.0, fill: (td, colKey, colDef, vakLeraar) => calcUrenFactored(vakLeraar, ["3.1", "3.2", "3.3"])}},
+    {key:"uren_3e_gr", def: { label:"uren\n3e gr", classList: ["yellow"], factor: 1.0, getValue: (ctx) => calcUrenFactored(ctx, ["grjr3_1", "grjr3_2", "grjr3_3"])}},
 
-    {key:"4.1", def: { classList: [], factor: 1/2, fill: fillGraadCell }},
-    {key:"4.2", def: { classList: [], factor: 1/2, fill: fillGraadCell }},
-    {key:"4.3", def: { classList: [], factor: 1/2, fill: fillGraadCell }},
+    {key:"grjr4_1", def: { label:"4.1", classList: [], factor: 1/2, getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count, fill: fillGraadCell }},
+    {key:"grjr4_2", def: { label:"4.2", classList: [], factor: 1/2, getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count, fill: fillGraadCell }},
+    {key:"grjr4_3", def: { label:"4.3", classList: [], factor: 1/2, getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count, fill: fillGraadCell }},
 
-    {key:"uren\n4e gr", def: { classList: ["yellow"], factor: 1.0, fill: (td, colKey, colDef, vakLeraar) => calcUrenFactored(vakLeraar, ["4.1", "4.2", "4.3"])}},
+    {key:"uren_4e_gr", def: { label:"uren\n4e gr", classList: ["yellow"], factor: 1.0, getValue: (ctx) => calcUrenFactored(ctx, ["grjr4_1", "grjr4_2", "grjr4_3"])}},
 
-    {key:"S.1", def: { classList: [], factor: 1/2, fill: fillGraadCell }},
-    {key:"S.2", def: { classList: [], factor: 1/2, fill: fillGraadCell }},
+    {key:"grjr_s_1", def: { label:"S.1", classList: [], factor: 1/2, getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count, fill: fillGraadCell }},
+    {key:"grjr_s_2", def: { label:"S.2", classList: [], factor: 1/2, getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count, fill: fillGraadCell }},
 
-    {key:"uren\nspec", def: { classList: ["yellow"], factor: 1.0, fill: (td, colKey, colDef, vakLeraar) => calcUrenFactored(vakLeraar, ["S.1", "S.2"])}},
+    {key:"uren_spec", def: { label:"uren\nspec", classList: ["yellow"], factor: 1.0, getValue: (ctx) => calcUrenFactored(ctx, ["grjr_s_1", "grjr_s_2"])}},
 
-    {key:"aantal\nlln", def: { classList: ["blueish"], factor: 1.0, fill: (td, colKey, colDef, vakLeraar) => calcUren(vakLeraar, ["2.1", "2.2", "2.3", "2.4", "3.1", "3.2", "3.3", "4.1", "4.2", "4.3", "S.1", "S.2"])}},
-    {key:"tot\nuren", def: { classList: ["creme"], factor: 1.0, fill: (td, colKey, colDef, vakLeraar) => calcUrenFactored(vakLeraar, ["2.1", "2.2", "2.3", "2.4", "3.1", "3.2", "3.3", "4.1", "4.2", "4.3", "S.1", "S.2"])}},
+    {key:"aantal_lln", def: { label:"aantal\nlln", classList: ["blueish"], factor: 1.0, getValue: (ctx) => calcUren(ctx, ["grjr2_1", "grjr2_2", "grjr2_3", "grjr2_4", "grjr3_1", "grjr3_2", "grjr3_3", "grjr4_1", "grjr4_2", "grjr4_3", "grjr_s_1", "grjr_s_2"])}},
+    {key:"tot_uren", def: { label:"tot\nuren", classList: ["creme"], factor: 1.0, getValue: (ctx) => calcUrenFactored(ctx, ["grjr2_1", "grjr2_2", "grjr2_3", "grjr2_4", "grjr3_1", "grjr3_2", "grjr3_3", "grjr4_1", "grjr4_2", "grjr4_3", "grjr_s_1", "grjr_s_2"])}},
+    {key:"over", def: { label:"Over", classList: [], factor: 1.0, getValue: calcOver}},
 ];
+
+function calcOver(ctx) {
+    let totUren = parseFloat(getColValue(ctx, "tot_uren"));
+    if (isNaN(totUren))
+        totUren = 0;
+    let urenJaar = parseFloat(getColValue(ctx, "uren_24_25"));
+    if (isNaN(urenJaar))
+        urenJaar = 0;
+    return trimNumber(totUren - urenJaar);
+}
+
+function getColValue(ctx, colKey) {
+    let newCtx = {...ctx};
+    newCtx.colKey = colKey;
+    newCtx.colDef = newCtx.colDefs.get(colKey);
+    return newCtx.colDef.getValue(newCtx);
+}
 
 colDefsArray.forEach((colDef, index) => colDef.def.colIndex = index);
 
@@ -60,7 +78,7 @@ function checkAndUpdate() {
         data.rows.push(row);
     }
     console.log(data);
-    fetch("https://us-central1-ebo-tain.cloudfunctions.net/json?fileName=brol.json", {
+    fetch(def.JSON_URL+"?fileName=brol.json", {
         method: "POST",
         body: JSON.stringify(data)
     })
@@ -72,18 +90,6 @@ function checkAndUpdate() {
 setInterval(checkAndUpdate, 5000);
 
 let editableObserver = new MutationObserver((mutationList, observer) => editableObserverCallback(mutationList, observer));
-
-function reloadFromCloud(table) {
-    fetch("https://us-central1-ebo-tain.cloudfunctions.net/json?fileName=brol.json", { method: "GET"})
-        .then((res) => res.json().then((json) => {
-            for(let row of json.rows){
-                let tr = document.getElementById(row.key);
-                if(tr) {
-                  tr.children[0].textContent = row.value;
-              }
-            }
-        }));
-}
 
 let fromCloudMap = new Map();
 
@@ -107,17 +113,16 @@ export function buildTable(vakLeraars, fromCloud) {
         tbody.appendChild(tr);
         tr.dataset["vak_leraar"] = vakLeraarKey;
         tr.id = createValidId(vakLeraarKey);
-        for(let [key, colDef] of colDefs) {
+        for(let [colKey, colDef] of colDefs) {
             let td = document.createElement("td");
             tr.appendChild(td);
             td.classList.add(...colDef.classList);
-            let celltext = colDef.fill(td, key, colDef, vakLeraar);
+            let context = { td, colKey, colDef, vakLeraar, tr, colDefs };
+            let celltext = colDef.getValue(context);
             if(celltext)
                 td.innerText = celltext;
         }
     }
-
-    // reloadFromCloud(table);
 
     let editables = table.querySelectorAll("td.editable_number");
     editables.forEach((td) => td.setAttribute("contenteditable", "true"));
@@ -132,23 +137,23 @@ export function buildTable(vakLeraars, fromCloud) {
     // editableObserver.observe(table, config);
 }
 
-function fillGraadCell(td, colKey, colDef, vakLeraar) {
-    fillStudentCell(td, vakLeraar.countMap.get(colKey));
-}
-
-function calcUren(vakLeraar, keys) {
+function calcUren(ctx, keys) {
     let tot = 0;
     for(let key of keys) {
-        let cnt = vakLeraar.countMap.get(key).students.length;
+        let colDef = ctx.colDefs.get(key);
+        let cnt = ctx.vakLeraar.countMap.get(colDef.label).students.length;
         tot += cnt;
     }
     return trimNumber(tot);
 }
 
-function calcUrenFactored(vakLeraar, keys) {
+function calcUrenFactored(ctx, keys) {
     let tot = 0;
     for(let key of keys) {
-        let cnt = vakLeraar.countMap.get(key).students.length;
+        let colDef = ctx.colDefs.get(key);
+        console.log(ctx);
+        console.log(key);
+        let cnt = ctx.vakLeraar.countMap.get(colDef.label).students.length;
         let factor = colDefs.get(key).factor;
         tot += cnt * factor;
     }
@@ -165,23 +170,24 @@ function fillTableHeader(table, vakLeraars) {
     let tr_head = document.createElement("tr");
     thead.appendChild(tr_head);
     let th = document.createElement("th");
-    for (let key of colDefs.keys()) {
+    for (let colDef of colDefs.values()) {
         th = document.createElement("th");
         tr_head.appendChild(th);
-        th.innerText = key;
+        th.innerText = colDef.label;
     }
 }
 
-function fillStudentCell(td, graadJaar) {
+function fillGraadCell(ctx) {
+    let graadJaar = ctx.vakLeraar.countMap.get(ctx.colKey);
     let button = document.createElement("button");
-    td.appendChild(button);
+    ctx.td.appendChild(button);
     if(graadJaar.count === 0)
         return;
     button.innerText = graadJaar.count;
     popoverIndex++;
     button.setAttribute("popovertarget", "students_" + popoverIndex);
     let popoverDiv = document.createElement("div");
-    td.appendChild(popoverDiv);
+    ctx.td.appendChild(popoverDiv);
     popoverDiv.id = "students_" + popoverIndex;
     popoverDiv.setAttribute("popover", "auto");
     for (let student of graadJaar.students) {
