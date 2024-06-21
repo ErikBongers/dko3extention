@@ -150,6 +150,7 @@ function onClickShowCounts() {
             .then((results) => {
                 let vakLeraars = results[0];
                 let fromCloud = results[1];
+                fromCloud = upgradeCloudData(fromCloud);
                 let sortedVakLeraars = new Map([...vakLeraars.entries()].sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0]));
                 buildTable(sortedVakLeraars, fromCloud);
                 document.getElementById(def.COUNT_TABLE_ID).style.display = "none";
@@ -168,4 +169,9 @@ function showOrHideNewTable() {
     document.getElementById(def.COUNT_TABLE_ID).style.display = showNewTable ? "table" : "none";
     document.getElementById(def.COUNT_BUTTON_ID).title = showNewTable ? "Toon normaal" : "Toon telling";
     setButtonHighlighted(def.COUNT_BUTTON_ID, showNewTable);
+}
+
+function upgradeCloudData(fromCloud) {
+    //if fromCloud.version === "...." --> convert.
+    return fromCloud;
 }

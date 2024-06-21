@@ -3,7 +3,8 @@ import {createValidId} from "../globals.js";
 import {uploadData} from "../cloud.js";
 
 let colDefsArray = [
-    {key:"uren_24_25", def: { label:"Uren\n24-25", classList: ["editable_number"], factor: 1.0, getValue: (ctx) => fromCloudMap.get(ctx.vakLeraar.id)}},
+    {key:"uren_23_24", def: { label:"Uren\n23-24", classList: ["editable_number"], factor: 1.0, getValue: (ctx) => ctx.fromCloud.columnMap.get("uren_23_24")?.get(ctx.vakLeraar.id)}},
+    {key:"uren_24_25", def: { label:"Uren\n24-25", classList: ["editable_number"], factor: 1.0, getValue: (ctx) => ctx.fromCloud.columnMap.get("uren_24_25")?.get(ctx.vakLeraar.id)}},
     {key:"vak", def: { label:"Vak", classList: [], factor: 1.0, getValue: (ctx) => ctx.vakLeraar.vak}},
     {key:"leraar", def: { label:"Leraar", classList: [], factor: 1.0, getValue: (ctx) => ctx.vakLeraar.leraar.replaceAll("{", "").replaceAll("}", "")}},
     {key:"grjr2_1", def: { label:"2.1", classList: [], factor: 1/4, getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count, fill: fillGraadCell }},
@@ -35,26 +36,28 @@ let colDefsArray = [
     {key:"over", def: { label:"Over", classList: [], factor: 1.0, getValue: calcOver}},
 ];
 
+colDefsArray.forEach((colDef, index) => colDef.def.colIndex = index);
+let colDefs = new Map(colDefsArray.map((def) => [def.key, def.def]));
+
 function calcOver(ctx) {
     let totUren = parseFloat(getColValue(ctx, "tot_uren"));
-    if (isNaN(totUren))
+    if (isNaN(totUren)) {
         totUren = 0;
+    }
     let urenJaar = parseFloat(getColValue(ctx, "uren_24_25"));
-    if (isNaN(urenJaar))
+    if (isNaN(urenJaar)) {
         urenJaar = 0;
+    }
     return trimNumber(totUren - urenJaar);
-}
 
+}
 function getColValue(ctx, colKey) {
     let newCtx = {...ctx};
     newCtx.colKey = colKey;
     newCtx.colDef = newCtx.colDefs.get(colKey);
     return newCtx.colDef.getValue(newCtx);
+
 }
-
-colDefsArray.forEach((colDef, index) => colDef.def.colIndex = index);
-
-let colDefs = new Map(colDefsArray.map((def) => [def.key, def.def]));
 
 console.log(colDefs);
 
@@ -70,23 +73,37 @@ function checkAndUpdate() {
         return;
     console.log("updating!");
     cellChanged = false;
-    let data = { rows: []};
+    let data = {
+        version: "1.0",
+        columns: []
+    };
+    data.version = "1.0";
+    addColumnData(data, "uren_23_24");
+    addColumnData(data, "uren_24_25");
+    console.log(data);
+    uploadData("brol.json", data);
+}
+
+function addColumnData(data, colKey) {
+    let colDef = colDefs.get(colKey);
+    console.log(colDef);
+    let rows = [];
     for(let tr of document.querySelectorAll("#"+def.COUNT_TABLE_ID+" tbody tr")) {
         let row = {
             key: tr.id,
-            value: tr.children[0].textContent
+            value: tr.children[colDef.colIndex].textContent
         };
-        data.rows.push(row);
+        rows.push(row);
     }
-    console.log(data);
-    uploadData("brol.json", data);
+    data.columns.push({
+        key: colKey,
+        rows
+    })
 }
 
 setInterval(checkAndUpdate, 5000);
 
 let editableObserver = new MutationObserver((mutationList, observer) => editableObserverCallback(mutationList, observer));
-
-let fromCloudMap = new Map();
 
 export function buildTable(vakLeraars, fromCloud) {
     let originalTable = document.querySelector("#table_leerlingen_werklijst_table");
@@ -97,11 +114,11 @@ export function buildTable(vakLeraars, fromCloud) {
     let tbody = document.createElement("tbody");
     table.appendChild(tbody);
 
-
-    fromCloudMap = new Map(fromCloud.rows.map((row) => [row.key, row.value]));
-    console.log("The map:");
-    console.log(fromCloudMap);
-
+    for(let column of fromCloud.columns) {
+        column.rowMap = new Map(column.rows.map((row) => [row.key, row.value]));
+    }
+    fromCloud.columnMap = new Map(fromCloud.columns.map((col) => [col.key, col.rowMap]));
+    console.log(fromCloud);
 
     for(let [vakLeraarKey, vakLeraar] of vakLeraars) {
         let tr = document.createElement("tr");
@@ -112,7 +129,7 @@ export function buildTable(vakLeraars, fromCloud) {
             let td = document.createElement("td");
             tr.appendChild(td);
             td.classList.add(...colDef.classList);
-            let context = { td, colKey, colDef, vakLeraar, tr, colDefs };
+            let context = { td, colKey, colDef, vakLeraar, tr, colDefs, fromCloud };
             let celltext = colDef.getValue(context);
             if(celltext)
                 td.innerText = celltext;
@@ -129,7 +146,7 @@ export function buildTable(vakLeraars, fromCloud) {
         characterData: true
     };
 
-    // editableObserver.observe(table, config);
+    editableObserver.observe(table, config);
 }
 
 function calcUren(ctx, keys) {
@@ -146,8 +163,6 @@ function calcUrenFactored(ctx, keys) {
     let tot = 0;
     for(let key of keys) {
         let colDef = ctx.colDefs.get(key);
-        console.log(ctx);
-        console.log(key);
         let cnt = ctx.vakLeraar.countMap.get(colDef.label).students.length;
         let factor = colDefs.get(key).factor;
         tot += cnt * factor;
