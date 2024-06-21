@@ -1,3 +1,5 @@
+* move defs.js out of /lessen/
+
 * Uitleningen: verlengdatum moet 1/9 zijn of in verkeerde jaar!
 
 * link uitlening -> asset.
@@ -29,5 +31,9 @@
   > spaces mean all possible whitespace, any number of times.
   > "..." means any character.
 
-Google drive > Berchem > Dko3 > test.txt
-https://drive.google.com/file/d/1RSBK7IIyVTrrbaPqCrryz2j0dKWT8yPQ/view?usp=drive_link
+Werklijst
+----------
+* file: add version number
+* add columns with an id (key)
+* make year independent.
+  > based on selected school year.

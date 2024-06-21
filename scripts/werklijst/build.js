@@ -1,5 +1,6 @@
-import * as def  from "../lessen/def.js";
+import * as def from "../lessen/def.js";
 import {createValidId} from "../globals.js";
+import {uploadData} from "../cloud.js";
 
 let colDefsArray = [
     {key:"uren_24_25", def: { label:"Uren\n24-25", classList: ["editable_number"], factor: 1.0, getValue: (ctx) => fromCloudMap.get(ctx.vakLeraar.id)}},
@@ -78,13 +79,7 @@ function checkAndUpdate() {
         data.rows.push(row);
     }
     console.log(data);
-    fetch(def.JSON_URL+"?fileName=brol.json", {
-        method: "POST",
-        body: JSON.stringify(data)
-    })
-        .then((res) => res.text().then((text) => {
-            console.log(text);
-        }));
+    uploadData("brol.json", data);
 }
 
 setInterval(checkAndUpdate, 5000);

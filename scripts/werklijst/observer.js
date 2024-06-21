@@ -1,7 +1,8 @@
 import {addButton, getNavigation, HashObserver, ProgressBar, setButtonHighlighted} from "../globals.js";
 import * as def from "../lessen/def.js";
 import {buildTable} from "./build.js";
-import {fetchAllPages, fetchFromCloud} from "./scrape.js";
+import {fetchAllPages} from "./scrape.js";
+import {fetchFromCloud} from "../cloud.js";
 
 export default new HashObserver("#leerlingen-werklijst", onMutation);
 
@@ -27,18 +28,6 @@ function onPreparingFilter() {
     let btnWerklijstMaken = document.querySelector("#btn_werklijst_maken");
     if(document.getElementById(def.PREFILL_INSTR_BTN_ID))
         return;
-
-    // fetch("https://us-central1-ebo-tain.cloudfunctions.net/json?fileName=brol.json", {
-    //     method: "POST",
-    //     body: JSON.stringify({brol: "Nief!!"})
-    // })
-    //     .then((res) => res.text().then((text) => {
-    //         console.log(text);
-    //         fetch("https://us-central1-ebo-tain.cloudfunctions.net/json?fileName=brol.json", { method: "GET"})
-    //             .then((res) => res.text().then((text) => console.log(text)));
-    //     }));
-    //
-
 
     let btnPrefill = document.createElement("button");
     addButton(btnWerklijstMaken, def.PREFILL_INSTR_BTN_ID, "Prefill instrumenten", prefillInstruments, "fa-guitar", ["btn", "btn-outline-dark"], "prefill ");
@@ -156,7 +145,7 @@ function onClickShowCounts() {
 
         Promise.all([
             fetchAllPages(progressBar, navigationData),
-            fetchFromCloud()
+            fetchFromCloud("brol.json")
             ])
             .then((results) => {
                 let vakLeraars = results[0];

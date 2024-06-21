@@ -36,7 +36,8 @@
       "scripts/academie/*",
       "scripts/werklijst/*",
       "scripts/main.js",
-      "scripts/globals.js"
+      "scripts/globals.js",
+      "scripts/cloud.js"
     ]
   }
   ]
