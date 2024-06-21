@@ -8,7 +8,7 @@ export async function fetchAll(progressBar, navigationData) {
         let text = await response.text();
         let count = extractStudents(text, vakLeraars);
         offset+= navigationData.step;
-        // if(!progressBar.next())
+        if(!progressBar.next())
             break;
     }
     progressBar.stop();
@@ -107,7 +107,9 @@ function isInstrument(vak) {
 
 function translateVak(vak) {
     function renameInstrument(instrument) {
-        return instrument.replace("Altsaxofoon", "Saxofoon")
+        return instrument
+            .replace("Altsaxofoon", "Saxofoon")
+            .replace("Tenorsaxofoon", "Saxofoon");
     }
 
     if(vak.includes("(jazz pop rock)")) {
