@@ -1,7 +1,7 @@
 import {addButton, getNavigation, HashObserver, ProgressBar, setButtonHighlighted} from "../globals.js";
 import * as def from "../lessen/def.js";
 import {buildTable} from "./build.js";
-import {fetchAll} from "./scrape.js";
+import {fetchAllPages, fetchFromCloud} from "./scrape.js";
 
 export default new HashObserver("#leerlingen-werklijst", onMutation);
 
@@ -55,7 +55,7 @@ async function prefillInstruments() {
         {
             "criteria": "Vak",
             "operator": "=",
-            "values": "761,762,763,764,765,734,766,732,767,768,735,795,736,769,770,771,772,773,759,834,775,776,845,777,737,778,779,780,781,808,782,783,738,810,792,791,739,784,760,785,740,786,787,741,733,788,796,742,814,727"
+            "values": "761,762,763,764,765,734,766,732,767,768,735,795,736,769,770,771,772,773,759,834,774,775,776,845,777,737,778,779,780,781,808,782,783,738,810,792,791,739,784,760,785,740,786,787,741,733,788,796,742,814,727"
         }
     ];
     await sendCriteria(criteria);
@@ -152,12 +152,22 @@ function onClickShowCounts() {
         let navigationData = getNavigation(document.querySelector("#tablenav_leerlingen_werklijst_top"));
         console.log(navigationData);
         let progressBar = new ProgressBar(divProgressLine, divProgressBar, Math.ceil(navigationData.maxCount/navigationData.step));
-        fetchAll(progressBar, navigationData).then((vakLeraars) => {
-            let sortedVakLeraars = new Map([...vakLeraars.entries()].sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0]));
-            buildTable(sortedVakLeraars);
-            document.getElementById(def.COUNT_TABLE_ID).style.display = "none";
-            showOrHideNewTable();
-        });
+
+
+        Promise.all([
+            fetchAllPages(progressBar, navigationData),
+            fetchFromCloud()
+            ])
+            .then((results) => {
+                let vakLeraars = results[0];
+                let fromCloud = results[1];
+                let sortedVakLeraars = new Map([...vakLeraars.entries()].sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0]));
+                buildTable(sortedVakLeraars, fromCloud);
+                document.getElementById(def.COUNT_TABLE_ID).style.display = "none";
+                showOrHideNewTable();
+            });
+
+
         return;
     }
     showOrHideNewTable();

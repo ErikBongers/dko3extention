@@ -1,4 +1,6 @@
-export async function fetchAll(progressBar, navigationData) {
+import {createValidId} from "../globals.js";
+
+export async function fetchAllPages(progressBar, navigationData) {
     let vakLeraars = new Map();
     let offset = 0;
     progressBar.start();
@@ -13,6 +15,11 @@ export async function fetchAll(progressBar, navigationData) {
     }
     progressBar.stop();
     return vakLeraars;
+}
+
+export async function fetchFromCloud(table) {
+    return fetch("https://us-central1-ebo-tain.cloudfunctions.net/json?fileName=brol.json", { method: "GET"})
+        .then((res) => res.json());
 }
 
 function extractStudents(text, vakLeraars) {
@@ -70,6 +77,7 @@ function extractStudents(text, vakLeraars) {
             let vakLeraarObject = {
                vak: translateVak(vak),
                leraar: leraar,
+               id: createValidId(vakLeraarKey),
                countMap: countMap
             };
             vakLeraars.set(vakLeraarKey, vakLeraarObject);
@@ -108,7 +116,20 @@ function isInstrument(vak) {
 function translateVak(vak) {
     function renameInstrument(instrument) {
         return instrument
+            .replace("Altviool", "Viool")
+            .replace("Basklarinet", "Klarinet")
+            .replace("Altfluit", "Dwarsfluit")
+            .replace("Piccolo", "Dwarsfluit")
+
+            .replace("Trompet", "Koper") //keept this one on top because of the next line!
+            .replace("Koper (jazz pop rock)", "Trompet (jazz pop rock)")
+            .replace("Hoorn", "Koper")
+            .replace("Trombone", "Koper")
+            .replace("Bugel", "Koper")
+            .replace("Eufonium", "Koper")
+
             .replace("Altsaxofoon", "Saxofoon")
+            .replace("Sopraansaxofoon", "Saxofoon")
             .replace("Tenorsaxofoon", "Saxofoon");
     }
 

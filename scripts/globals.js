@@ -7,6 +7,14 @@ export function db3(message) {
     }
 }
 
+export function createValidId(id) {
+    return id
+        .replaceAll(" ", "")
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+        .replace(/\W/g,'');
+}
+
+
 export function registerObserver(observer) {
     observers.push(observer);
     if(observers.length > 10) //just in case...

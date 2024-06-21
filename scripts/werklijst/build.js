@@ -1,9 +1,10 @@
 import * as def  from "../lessen/def.js";
+import {createValidId} from "../globals.js";
 
 let colDefsArray = [
-    {key:"Uren", def: { classList: ["editable_number"], factor: 1.0, fill: (td, colKey, colDef, vakLeraar) => "test"}},
+    {key:"Uren\n24-25", def: { classList: ["editable_number"], factor: 1.0, fill: (td, colKey, colDef, vakLeraar) => fromCloudMap.get(vakLeraar.id)}},
     {key:"Vak", def: { classList: [], factor: 1.0, fill: (td, colKey, colDef, vakLeraar) => vakLeraar.vak}},
-    {key:"Leraar", def: { classList: [], factor: 1.0, fill: (td, colKey, colDef, vakLeraar) => vakLeraar.leraar}},
+    {key:"Leraar", def: { classList: [], factor: 1.0, fill: (td, colKey, colDef, vakLeraar) => vakLeraar.leraar.replaceAll("{", "").replaceAll("}", "")}},
     {key:"2.1", def: { classList: [], factor: 1/4, fill: fillGraadCell }},
     {key:"2.2", def: { classList: [], factor: 1/4, fill: fillGraadCell }},
     {key:"2.3", def: { classList: [], factor: 1/3, fill: fillGraadCell }},
@@ -72,26 +73,21 @@ setInterval(checkAndUpdate, 5000);
 
 let editableObserver = new MutationObserver((mutationList, observer) => editableObserverCallback(mutationList, observer));
 
-function createValidId(id) {
-    return id
-        .replaceAll(" ", "")
-        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-        .replace(/\W/g,'');
-}
-
 function reloadFromCloud(table) {
     fetch("https://us-central1-ebo-tain.cloudfunctions.net/json?fileName=brol.json", { method: "GET"})
         .then((res) => res.json().then((json) => {
-            console.log(json);
             for(let row of json.rows){
-                console.log(row);
                 let tr = document.getElementById(row.key);
-                tr.children[0].textContent = row.value;
+                if(tr) {
+                  tr.children[0].textContent = row.value;
+              }
             }
         }));
 }
 
-export function buildTable(vakLeraars) {
+let fromCloudMap = new Map();
+
+export function buildTable(vakLeraars, fromCloud) {
     let originalTable = document.querySelector("#table_leerlingen_werklijst_table");
     let table = document.createElement("table");
     originalTable.parentElement.appendChild(table);
@@ -99,6 +95,13 @@ export function buildTable(vakLeraars) {
     fillTableHeader(table, vakLeraars);
     let tbody = document.createElement("tbody");
     table.appendChild(tbody);
+
+
+    fromCloudMap = new Map(fromCloud.rows.map((row) => [row.key, row.value]));
+    console.log("The map:");
+    console.log(fromCloudMap);
+
+
     for(let [vakLeraarKey, vakLeraar] of vakLeraars) {
         let tr = document.createElement("tr");
         tbody.appendChild(tr);
@@ -114,7 +117,7 @@ export function buildTable(vakLeraars) {
         }
     }
 
-    reloadFromCloud(table);
+    // reloadFromCloud(table);
 
     let editables = table.querySelectorAll("td.editable_number");
     editables.forEach((td) => td.setAttribute("contenteditable", "true"));
@@ -126,7 +129,7 @@ export function buildTable(vakLeraars) {
         characterData: true
     };
 
-    editableObserver.observe(table, config);
+    // editableObserver.observe(table, config);
 }
 
 function fillGraadCell(td, colKey, colDef, vakLeraar) {
