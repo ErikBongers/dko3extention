@@ -8,7 +8,7 @@ export async function fetchAll(progressBar, navigationData) {
         let text = await response.text();
         let count = extractStudents(text, vakLeraars);
         offset+= navigationData.step;
-        if(!progressBar.next())
+        // if(!progressBar.next())
             break;
     }
     progressBar.stop();
@@ -68,7 +68,7 @@ function extractStudents(text, vakLeraars) {
             countMap.set("S.1", {count:0, students: []});
             countMap.set("S.2", {count:0, students: []});
             let vakLeraarObject = {
-               vak: vak,
+               vak: translateVak(vak),
                leraar: leraar,
                countMap: countMap
             };

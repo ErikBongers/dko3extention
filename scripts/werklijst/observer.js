@@ -27,6 +27,19 @@ function onPreparingFilter() {
     let btnWerklijstMaken = document.querySelector("#btn_werklijst_maken");
     if(document.getElementById(def.PREFILL_INSTR_BTN_ID))
         return;
+
+    // fetch("https://us-central1-ebo-tain.cloudfunctions.net/json?fileName=brol.json", {
+    //     method: "POST",
+    //     body: JSON.stringify({brol: "Nief!!"})
+    // })
+    //     .then((res) => res.text().then((text) => {
+    //         console.log(text);
+    //         fetch("https://us-central1-ebo-tain.cloudfunctions.net/json?fileName=brol.json", { method: "GET"})
+    //             .then((res) => res.text().then((text) => console.log(text)));
+    //     }));
+    //
+
+
     let btnPrefill = document.createElement("button");
     addButton(btnWerklijstMaken, def.PREFILL_INSTR_BTN_ID, "Prefill instrumenten", prefillInstruments, "fa-guitar", ["btn", "btn-outline-dark"], "prefill ");
 }
@@ -121,7 +134,6 @@ function onButtonBarChanged(buttonBar) {
 }
 
 function onClickShowCounts() {
-
     //Build lazily and only once. Table will automatically be erased when filters are changed.
     if (!document.getElementById(def.COUNT_TABLE_ID)) {
         let orgTable = document.getElementById("table_leerlingen_werklijst_table");

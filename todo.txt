@@ -29,10 +29,5 @@
   > spaces mean all possible whitespace, any number of times.
   > "..." means any character.
 
-Teacher list
------------------
-Alle lessen per dag en leraar sorteren – zie uurroosters (deze worden opgemaakt per leraar per dag)
-
-[1, 100, 100, 500, 580]
-[0, 400, 501, 580, 580]
-[0, 200, 301, 400, 400, 500, 580]
+Google drive > Berchem > Dko3 > test.txt
+https://drive.google.com/file/d/1RSBK7IIyVTrrbaPqCrryz2j0dKWT8yPQ/view?usp=drive_link

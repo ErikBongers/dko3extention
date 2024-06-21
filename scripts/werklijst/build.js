@@ -1,6 +1,7 @@
 import * as def  from "../lessen/def.js";
 
 let colDefsArray = [
+    {key:"Uren", def: { classList: ["editable_number"], factor: 1.0, fill: (td, colKey, colDef, vakLeraar) => "test"}},
     {key:"Vak", def: { classList: [], factor: 1.0, fill: (td, colKey, colDef, vakLeraar) => vakLeraar.vak}},
     {key:"Leraar", def: { classList: [], factor: 1.0, fill: (td, colKey, colDef, vakLeraar) => vakLeraar.leraar}},
     {key:"2.1", def: { classList: [], factor: 1/4, fill: fillGraadCell }},
@@ -38,6 +39,57 @@ let colDefs = new Map(colDefsArray.map((def) => [def.key, def.def]));
 console.log(colDefs);
 
 let popoverIndex = 1;
+let cellChanged = false;
+
+function editableObserverCallback(mutationList, observer) {
+    cellChanged = true;
+}
+
+function checkAndUpdate() {
+    if(!cellChanged)
+        return;
+    console.log("updating!");
+    cellChanged = false;
+    let data = { rows: []};
+    for(let tr of document.querySelectorAll("#"+def.COUNT_TABLE_ID+" tbody tr")) {
+        let row = {
+            key: tr.id,
+            value: tr.children[0].textContent
+        };
+        data.rows.push(row);
+    }
+    console.log(data);
+    fetch("https://us-central1-ebo-tain.cloudfunctions.net/json?fileName=brol.json", {
+        method: "POST",
+        body: JSON.stringify(data)
+    })
+        .then((res) => res.text().then((text) => {
+            console.log(text);
+        }));
+}
+
+setInterval(checkAndUpdate, 5000);
+
+let editableObserver = new MutationObserver((mutationList, observer) => editableObserverCallback(mutationList, observer));
+
+function createValidId(id) {
+    return id
+        .replaceAll(" ", "")
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+        .replace(/\W/g,'');
+}
+
+function reloadFromCloud(table) {
+    fetch("https://us-central1-ebo-tain.cloudfunctions.net/json?fileName=brol.json", { method: "GET"})
+        .then((res) => res.json().then((json) => {
+            console.log(json);
+            for(let row of json.rows){
+                console.log(row);
+                let tr = document.getElementById(row.key);
+                tr.children[0].textContent = row.value;
+            }
+        }));
+}
 
 export function buildTable(vakLeraars) {
     let originalTable = document.querySelector("#table_leerlingen_werklijst_table");
@@ -47,10 +99,11 @@ export function buildTable(vakLeraars) {
     fillTableHeader(table, vakLeraars);
     let tbody = document.createElement("tbody");
     table.appendChild(tbody);
-    for(let vakLeraar of vakLeraars.values()) {
+    for(let [vakLeraarKey, vakLeraar] of vakLeraars) {
         let tr = document.createElement("tr");
         tbody.appendChild(tr);
-
+        tr.dataset["vak_leraar"] = vakLeraarKey;
+        tr.id = createValidId(vakLeraarKey);
         for(let [key, colDef] of colDefs) {
             let td = document.createElement("td");
             tr.appendChild(td);
@@ -60,6 +113,20 @@ export function buildTable(vakLeraars) {
                 td.innerText = celltext;
         }
     }
+
+    reloadFromCloud(table);
+
+    let editables = table.querySelectorAll("td.editable_number");
+    editables.forEach((td) => td.setAttribute("contenteditable", "true"));
+
+    const config = {
+        attributes: true,
+        childList: true,
+        subtree: true,
+        characterData: true
+    };
+
+    editableObserver.observe(table, config);
 }
 
 function fillGraadCell(td, colKey, colDef, vakLeraar) {
