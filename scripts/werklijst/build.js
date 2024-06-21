@@ -1,31 +1,34 @@
 import * as def  from "../lessen/def.js";
 
 let colDefsArray = [
-    {key:"Vak", def: {colIndex: -1, factor: 1.0, fill: (td, colKey, colDef, vakLeraar) => vakLeraar.vak}},
-    {key:"Leraar", def: {colIndex: -1, factor: 1.0, fill: (td, colKey, colDef, vakLeraar) => vakLeraar.leraar}},
-    {key:"2.1", def: {colIndex: -1, factor: 1.0, fill: fillGraadCell }},
-    {key:"2.2", def: {colIndex: -1, factor: 1.0, fill: fillGraadCell }},
-    {key:"2.3", def: {colIndex: -1, factor: 1.0, fill: fillGraadCell }},
-    {key:"2.4", def: {colIndex: -1, factor: 1.0, fill: fillGraadCell }},
+    {key:"Vak", def: { classList: [], factor: 1.0, fill: (td, colKey, colDef, vakLeraar) => vakLeraar.vak}},
+    {key:"Leraar", def: { classList: [], factor: 1.0, fill: (td, colKey, colDef, vakLeraar) => vakLeraar.leraar}},
+    {key:"2.1", def: { classList: [], factor: 1/4, fill: fillGraadCell }},
+    {key:"2.2", def: { classList: [], factor: 1/4, fill: fillGraadCell }},
+    {key:"2.3", def: { classList: [], factor: 1/3, fill: fillGraadCell }},
+    {key:"2.4", def: { classList: [], factor: 1/3, fill: fillGraadCell }},
 
-    // {key:"uren 2e gr", def: {colIndex: -1, factor: 1.0, fill: (td, colKey, colDef, vakLeraar} => },
+    {key:"uren\n2e gr", def: { classList: ["yellow"], factor: 1.0, fill: (td, colKey, colDef, vakLeraar) => calcUrenFactored(vakLeraar, ["2.1", "2.2", "2.3", "2.4"])}},
 
-    {key:"3.1", def: {colIndex: -1, factor: 1.0, fill: fillGraadCell }},
-    {key:"3.2", def: {colIndex: -1, factor: 1.0, fill: fillGraadCell }},
-    {key:"3.3", def: {colIndex: -1, factor: 1.0, fill: fillGraadCell }},
+    {key:"3.1", def: { classList: [], factor: 1/3, fill: fillGraadCell }},
+    {key:"3.2", def: { classList: [], factor: 1/3, fill: fillGraadCell }},
+    {key:"3.3", def: { classList: [], factor: 1/2, fill: fillGraadCell }},
 
-    // {key:"uren 3e gr", def: {colIndex: -1, factor: 1.0, fill: (td, colKey, colDef, vakLeraar} => },
+    {key:"uren\n3e gr", def: { classList: ["yellow"], factor: 1.0, fill: (td, colKey, colDef, vakLeraar) => calcUrenFactored(vakLeraar, ["3.1", "3.2", "3.3"])}},
 
-    {key:"4.1", def: {colIndex: -1, factor: 1.0, fill: fillGraadCell }},
-    {key:"4.2", def: {colIndex: -1, factor: 1.0, fill: fillGraadCell }},
-    {key:"4.3", def: {colIndex: -1, factor: 1.0, fill: fillGraadCell }},
+    {key:"4.1", def: { classList: [], factor: 1/2, fill: fillGraadCell }},
+    {key:"4.2", def: { classList: [], factor: 1/2, fill: fillGraadCell }},
+    {key:"4.3", def: { classList: [], factor: 1/2, fill: fillGraadCell }},
 
-    // {key:"uren 4e gr", def: {colIndex: -1, factor: 1.0, fill: (td, colKey, colDef, vakLeraar} => },
+    {key:"uren\n4e gr", def: { classList: ["yellow"], factor: 1.0, fill: (td, colKey, colDef, vakLeraar) => calcUrenFactored(vakLeraar, ["4.1", "4.2", "4.3"])}},
 
-    {key:"S.1", def: {colIndex: -1, factor: 1.0, fill: fillGraadCell }},
-    {key:"S.2", def: {colIndex: -1, factor: 1.0, fill: fillGraadCell }},
+    {key:"S.1", def: { classList: [], factor: 1/2, fill: fillGraadCell }},
+    {key:"S.2", def: { classList: [], factor: 1/2, fill: fillGraadCell }},
 
-    // {key:"uren spec", def: {colIndex: -1, factor: 1.0, fill: (td, colKey, colDef, vakLeraar} => },
+    {key:"uren\nspec", def: { classList: ["yellow"], factor: 1.0, fill: (td, colKey, colDef, vakLeraar) => calcUrenFactored(vakLeraar, ["S.1", "S.2"])}},
+
+    {key:"aantal\nlln", def: { classList: ["blueish"], factor: 1.0, fill: (td, colKey, colDef, vakLeraar) => calcUren(vakLeraar, ["2.1", "2.2", "2.3", "2.4", "3.1", "3.2", "3.3", "4.1", "4.2", "4.3", "S.1", "S.2"])}},
+    {key:"tot\nuren", def: { classList: ["creme"], factor: 1.0, fill: (td, colKey, colDef, vakLeraar) => calcUrenFactored(vakLeraar, ["2.1", "2.2", "2.3", "2.4", "3.1", "3.2", "3.3", "4.1", "4.2", "4.3", "S.1", "S.2"])}},
 ];
 
 colDefsArray.forEach((colDef, index) => colDef.def.colIndex = index);
@@ -51,6 +54,7 @@ export function buildTable(vakLeraars) {
         for(let [key, colDef] of colDefs) {
             let td = document.createElement("td");
             tr.appendChild(td);
+            td.classList.add(...colDef.classList);
             let celltext = colDef.fill(td, key, colDef, vakLeraar);
             if(celltext)
                 td.innerText = celltext;
@@ -60,6 +64,29 @@ export function buildTable(vakLeraars) {
 
 function fillGraadCell(td, colKey, colDef, vakLeraar) {
     fillStudentCell(td, vakLeraar.countMap.get(colKey));
+}
+
+function calcUren(vakLeraar, keys) {
+    let tot = 0;
+    for(let key of keys) {
+        let cnt = vakLeraar.countMap.get(key).students.length;
+        tot += cnt;
+    }
+    return trimNumber(tot);
+}
+
+function calcUrenFactored(vakLeraar, keys) {
+    let tot = 0;
+    for(let key of keys) {
+        let cnt = vakLeraar.countMap.get(key).students.length;
+        let factor = colDefs.get(key).factor;
+        tot += cnt * factor;
+    }
+    return trimNumber(tot);
+}
+
+function trimNumber(num) {
+    return (Math.round(num * 100) / 100).toFixed(2);
 }
 
 function fillTableHeader(table, vakLeraars) {

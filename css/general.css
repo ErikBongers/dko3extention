@@ -83,6 +83,15 @@ body.otherSchool {
             outline-style: none;
         }
     }
+    td.yellow {
+        background-color: yellow;
+    }
+    td.blueish {
+        background-color: #acb9ca;
+    }
+    td.creme {
+        background-color: #fff2cc;
+    }
 }
 
 .progressLine {
