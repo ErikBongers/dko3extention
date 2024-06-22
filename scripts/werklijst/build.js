@@ -1,5 +1,5 @@
 import * as def from "../lessen/def.js";
-import {createValidId} from "../globals.js";
+import {createValidId, getSchoolIdString, getSchooljaar} from "../globals.js";
 import {uploadData} from "../cloud.js";
 
 let colDefsArray = [
@@ -72,12 +72,18 @@ function editableObserverCallback(mutationList, observer) {
 }
 
 let pauseUpdate = false;
+
+export function getUrenVakLeraarFileName() {
+    return getSchoolIdString() + "_" + "uren_vak_lk_" + getSchooljaar().replace("-", "_") + ".json";
+}
+
 function checkAndUpdate() {
     if(pauseUpdate)
         return;
     if(!cellChanged)
         return;
-    console.log("updating!");
+    let fileName = getUrenVakLeraarFileName();
+    console.log("updating!" + " " + fileName);
     cellChanged = false;
     let data = {
         version: "1.0",
@@ -86,7 +92,7 @@ function checkAndUpdate() {
     data.version = "1.0";
     addColumnData(data, "uren_23_24");
     addColumnData(data, "uren_24_25");
-    uploadData("brol.json", data);
+    uploadData(fileName, data);
     mapCloudData(data);//TODO: separate stages of data: raw data from/to cloud or from/to scraping, preparing the data, displaying the data.
     theData.fromCloud = data;
     recalculate();

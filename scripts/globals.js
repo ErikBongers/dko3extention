@@ -186,6 +186,14 @@ export function getSchooljaarSelectElement() {
         .pop();
 }
 
+export function getSchooljaar() {
+    let el = getSchooljaarSelectElement();
+    if(el)
+        return el.value;
+    el = document.querySelector("div.alert-info");
+    return el.textContent.match(/schooljaar *= (\d{4}-\d{4})*/)[1];
+}
+
 export function getUserAndSchoolName() {
     let footer = document.querySelector("body > main > div.row > div.col-auto.mr-auto > small");
     const reInstrument = /.*Je bent aangemeld als (.*)\s@\s(.*)\./;
@@ -196,4 +204,14 @@ export function getUserAndSchoolName() {
     let userName = match[1];
     let schoolName = match[2];
     return {userName, schoolName};
+}
+
+export function getSchoolIdString() {
+    let {schoolName} = getUserAndSchoolName();
+    schoolName = schoolName
+        .replace("Academie ", "")
+        .replace("Muziek", "M")
+        .replace("Woord", "W")
+        .toLowerCase();
+    return createValidId(schoolName);
 }

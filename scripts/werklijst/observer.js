@@ -1,13 +1,13 @@
 import {
-    addButton, createValidId,
+    addButton,
     getNavigation,
-    getSchooljaarSelectElement, getUserAndSchoolName,
+    getSchoolIdString,
     HashObserver,
     ProgressBar,
     setButtonHighlighted
 } from "../globals.js";
 import * as def from "../lessen/def.js";
-import {buildTable} from "./build.js";
+import {buildTable, getUrenVakLeraarFileName} from "./build.js";
 import {fetchAllPages} from "./scrape.js";
 import {fetchFromCloud} from "../cloud.js";
 
@@ -29,16 +29,6 @@ function onMutation(mutation) {
         return true;
     }
     return false;
-}
-
-function getSchoolIdString() {
-    let {schoolName} = getUserAndSchoolName();
-    schoolName = schoolName
-        .replace("Academie ", "")
-        .replace("Muziek", "M")
-        .replace("Woord", "W")
-        .toLowerCase();
-    return createValidId(schoolName);
 }
 
 function onPreparingFilter() {
@@ -160,10 +150,11 @@ function onClickShowCounts() {
         console.log(navigationData);
         let progressBar = new ProgressBar(divProgressLine, divProgressBar, Math.ceil(navigationData.maxCount/navigationData.step));
 
-
+        let fileName = getUrenVakLeraarFileName();
+        console.log("reading: " + fileName);
         Promise.all([
             fetchAllPages(progressBar, navigationData),
-            fetchFromCloud("brol.json")
+            fetchFromCloud(fileName)
             ])
             .then((results) => {
                 let vakLeraars = results[0];
@@ -174,7 +165,6 @@ function onClickShowCounts() {
                 document.getElementById(def.COUNT_TABLE_ID).style.display = "none";
                 showOrHideNewTable();
             });
-
 
         return;
     }
