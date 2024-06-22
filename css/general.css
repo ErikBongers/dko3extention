@@ -64,7 +64,7 @@ body.otherSchool {
 
 #countTable {
     tr.darkRow {
-        background-color: rgba(72, 61, 139, 0.05);
+        background-color: rgba(72, 61, 139, 0.08);
     }
     th, td {
         border-style: solid;
@@ -87,7 +87,7 @@ body.otherSchool {
         }
     }
     td.yellow {
-        background-color: yellow;
+        background-color: rgba(255, 255, 0, 0.71);
     }
     td.blueish {
         background-color: rgba(70, 104, 149, 0.48);
