@@ -179,3 +179,10 @@ export function getNavigation(element) {
         return {step: numbers[2] - numbers[1] - 1, maxCount: numbers.pop()};
     }
 }
+
+export function getSchooljaarSelectElement() {
+    let selects = document.querySelectorAll("select");
+    return Array.from(selects)
+        .filter((element) => element.id.includes("schooljaar"))
+        .pop();
+}

@@ -1,4 +1,4 @@
-import {db3, HashObserver, options} from "../globals.js";
+import {db3, getSchooljaarSelectElement, HashObserver, options} from "../globals.js";
 
 export default new HashObserver("#leerlingen-leerling", onMutation);
 
@@ -40,10 +40,7 @@ function onUitleningenChanged(tableUitleningen) {
 }
 
 function getSchooljaarElementAndListen() {
-    let selects = document.querySelectorAll("select");
-    let schooljaar =  Array.from(selects)
-        .filter((element) => element.id.includes("schooljaar"))
-        .pop();
+    let schooljaar = getSchooljaarSelectElement();
     let listening = "changeListerenAdded";
     if(!schooljaar?.classList.contains(listening)){
         schooljaar?.classList.add(listening);
