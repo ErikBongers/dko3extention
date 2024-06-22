@@ -10,7 +10,7 @@ export async function fetchAllPages(progressBar, navigationData) {
         let text = await response.text();
         let count = extractStudents(text, vakLeraars);
         offset+= navigationData.step;
-        // if(!progressBar.next())
+        if(!progressBar.next())
             break;
     }
     progressBar.stop();
