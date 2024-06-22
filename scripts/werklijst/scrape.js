@@ -110,7 +110,6 @@ function isInstrument(vak) {
 function translateVak(vak) {
     function renameInstrument(instrument) {
         return instrument
-            .replace("Altviool", "Viool")
             .replace("Basklarinet", "Klarinet")
             .replace("Altfluit", "Dwarsfluit")
             .replace("Piccolo", "Dwarsfluit")

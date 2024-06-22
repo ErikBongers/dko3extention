@@ -36,7 +36,10 @@ let colDefsArray = [
     {key:"over", def: { label:"Over", classList: [], factor: 1.0, getValue: calcOver}},
 ];
 
-colDefsArray.forEach((colDef, index) => colDef.def.colIndex = index);
+colDefsArray.forEach((colDef, index) => {
+    colDef.def.colIndex = index;
+    colDef.def.total = 0;
+});
 let colDefs = new Map(colDefsArray.map((def) => [def.key, def.def]));
 
 function calcOver(ctx) {
@@ -48,7 +51,7 @@ function calcOver(ctx) {
     if (isNaN(urenJaar)) {
         urenJaar = 0;
     }
-    return trimNumber(totUren - urenJaar);
+    return urenJaar - totUren;
 
 }
 function getColValue(ctx, colKey) {
@@ -118,7 +121,6 @@ export function buildTable(vakLeraars, fromCloud) {
         column.rowMap = new Map(column.rows.map((row) => [row.key, row.value]));
     }
     fromCloud.columnMap = new Map(fromCloud.columns.map((col) => [col.key, col.rowMap]));
-    console.log(fromCloud);
 
     for(let [vakLeraarKey, vakLeraar] of vakLeraars) {
         let tr = document.createElement("tr");
@@ -130,13 +132,28 @@ export function buildTable(vakLeraars, fromCloud) {
             tr.appendChild(td);
             td.classList.add(...colDef.classList);
             let ctx = { td, colKey, colDef, vakLeraar, tr, colDefs, fromCloud };
+            let theValue = colDef.getValue(ctx);
             if(colDef.fill) {
                 colDef.fill(ctx);
             } else {
-                let celltext = colDef.getValue(ctx);
+                let celltext = theValue;
                 if(celltext)
-                    td.innerText = celltext;
-                }
+                    td.innerText = trimNumber(celltext);
+            }
+            if(colDef.totals) {
+                colDef.total += parseFloat(theValue? theValue : "0");
+            }
+        }
+    }
+    let trTotal = document.createElement("tr");
+    tbody.appendChild(trTotal);
+    
+    trTotal.id = "__totals__";
+    for(let [colKey, colDef] of colDefs) {
+        let td = document.createElement("td");
+        trTotal.appendChild(td);
+        if(colDef.totals) {
+            td.innerText = trimNumber(colDef.total);
         }
     }
 
@@ -160,7 +177,7 @@ function calcUren(ctx, keys) {
         let cnt = ctx.vakLeraar.countMap.get(colDef.label).students.length;
         tot += cnt;
     }
-    return trimNumber(tot);
+    return tot;
 }
 
 function calcUrenFactored(ctx, keys) {
@@ -171,11 +188,13 @@ function calcUrenFactored(ctx, keys) {
         let factor = colDefs.get(key).factor;
         tot += cnt * factor;
     }
-    return trimNumber(tot);
+    return tot;
 }
 
 function trimNumber(num) {
-    return (Math.round(num * 100) / 100).toFixed(2);
+    if((typeof num) !== "number")
+        return num;
+    return (Math.round(num * 100) / 100).toFixed(2).replace(".00", "");
 }
 
 function fillTableHeader(table, vakLeraars) {
