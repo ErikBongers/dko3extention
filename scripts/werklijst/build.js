@@ -2,9 +2,18 @@ import * as def from "../lessen/def.js";
 import {createValidId, getSchoolIdString, getSchooljaar} from "../globals.js";
 import {uploadData} from "../cloud.js";
 
+let pauseUpdate = false;
+let cellChanged = false;
+let popoverIndex = 1;
+
+let theData = {fromCloud: {}};
+
+let editableObserver = new MutationObserver((mutationList, observer) => editableObserverCallback(mutationList, observer));
+setInterval(checkAndUpdate, 5000);
+
 let colDefsArray = [
-    {key:"uren_23_24", def: { label:"Uren\n23-24", classList: ["editable_number"], factor: 1.0, getValue: (ctx) => ctx.fromCloud.columnMap.get("uren_23_24")?.get(ctx.vakLeraar.id), totals:true}},
-    {key:"uren_24_25", def: { label:"Uren\n24-25", classList: ["editable_number"], factor: 1.0, getValue: (ctx) => ctx.fromCloud.columnMap.get("uren_24_25")?.get(ctx.vakLeraar.id), totals:true}},
+    {key:"uren_23_24", def: { label:"Uren\n23-24", classList: ["editable_number"], factor: 1.0, getValue: (ctx) => ctx.data.fromCloud.columnMap.get("uren_23_24")?.get(ctx.vakLeraar.id), totals:true}},
+    {key:"uren_24_25", def: { label:"Uren\n24-25", classList: ["editable_number"], factor: 1.0, getValue: (ctx) => ctx.data.fromCloud.columnMap.get("uren_24_25")?.get(ctx.vakLeraar.id), totals:true}},
     {key:"vak", def: { label:"Vak", classList: [], factor: 1.0, getValue: (ctx) => ctx.vakLeraar.vak}},
     {key:"leraar", def: { label:"Leraar", classList: [], factor: 1.0, getValue: (ctx) => ctx.vakLeraar.leraar.replaceAll("{", "").replaceAll("}", "")}},
     {key:"grjr2_1", def: { label:"2.1", classList: [], factor: 1/4, getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count, fill: fillGraadCell }},
@@ -46,6 +55,7 @@ function calcOver(ctx) {
     let totUren = parseFloat(getColValue(ctx, "tot_uren"));
     if (isNaN(totUren)) {
         totUren = 0;
+
     }
     let urenJaar = parseFloat(getColValue(ctx, "uren_24_25"));
     if (isNaN(urenJaar)) {
@@ -54,34 +64,31 @@ function calcOver(ctx) {
     return urenJaar - totUren;
 
 }
+
 function getColValue(ctx, colKey) {
+
     let newCtx = {...ctx};
     newCtx.colKey = colKey;
+
     newCtx.colDef = newCtx.colDefs.get(colKey);
     return newCtx.colDef.getValue(newCtx);
-
 }
-
-console.log(colDefs);
-
-let popoverIndex = 1;
-let cellChanged = false;
 
 function editableObserverCallback(mutationList, observer) {
+
     cellChanged = true;
 }
-
-let pauseUpdate = false;
-
 export function getUrenVakLeraarFileName() {
+
     return getSchoolIdString() + "_" + "uren_vak_lk_" + getSchooljaar().replace("-", "_") + ".json";
 }
-
 function checkAndUpdate() {
-    if(pauseUpdate)
+    if(pauseUpdate) {
         return;
-    if(!cellChanged)
+    }
+    if(!cellChanged) {
         return;
+    }
     let fileName = getUrenVakLeraarFileName();
     console.log("updating!" + " " + fileName);
     cellChanged = false;
@@ -95,9 +102,9 @@ function checkAndUpdate() {
     uploadData(fileName, data);
     mapCloudData(data);//TODO: separate stages of data: raw data from/to cloud or from/to scraping, preparing the data, displaying the data.
     theData.fromCloud = data;
+
     recalculate();
 }
-
 function addColumnData(data, colKey) {
     let colDef = colDefs.get(colKey);
     let rows = [];
@@ -108,17 +115,13 @@ function addColumnData(data, colKey) {
         };
         rows.push(row);
     }
+
     data.columns.push({
         key: colKey,
         rows
     })
+
 }
-
-setInterval(checkAndUpdate, 5000);
-
-let editableObserver = new MutationObserver((mutationList, observer) => editableObserverCallback(mutationList, observer));
-
-let theData = { fromCloud: {}};
 
 function observeTable(observe) {
     const config = {
@@ -168,7 +171,7 @@ function recalculate() { //TODO: generalize to fill ALL the cells or only the ca
         let tr = document.getElementById(createValidId(vakLeraarKey));
         for(let [colKey, colDef] of colDefs) {
             let td = tr.children[colDef.colIndex];
-            let ctx = {td, colKey, colDef, vakLeraar, tr, colDefs, fromCloud: theData.fromCloud}; //TODO: add theData to ctx
+            let ctx = {td, colKey, colDef, vakLeraar, tr, colDefs, data: theData};
             if(colDef.calculated)
                 fillCell(ctx);
             if(colDef.totals) {
@@ -191,21 +194,21 @@ function recalculate() { //TODO: generalize to fill ALL the cells or only the ca
     observeTable(true);
 }
 
-export function buildTable(vakLeraars, fromCloud) {
+export function buildTable(data) {
     pauseUpdate = true;
-    theData = { vakLeraars, fromCloud};
+    theData = data;
     let originalTable = document.querySelector("#table_leerlingen_werklijst_table");
     let table = document.createElement("table");
     originalTable.parentElement.appendChild(table);
     table.id = def.COUNT_TABLE_ID;
-    fillTableHeader(table, vakLeraars);
+    fillTableHeader(table, data.vakLeraars);
     let tbody = document.createElement("tbody");
     table.appendChild(tbody);
-    mapCloudData(fromCloud);
+    mapCloudData(data.fromCloud);
 
     let lastVak = "";
     let rowClass = undefined;
-    for(let [vakLeraarKey, vakLeraar] of vakLeraars) {
+    for(let [vakLeraarKey, vakLeraar] of data.vakLeraars) {
         let tr = document.createElement("tr");
         tbody.appendChild(tr);
         tr.dataset["vak_leraar"] = vakLeraarKey;
@@ -220,7 +223,7 @@ export function buildTable(vakLeraars, fromCloud) {
             let td = document.createElement("td");
             tr.appendChild(td);
             td.classList.add(...colDef.classList);
-            let ctx = {td, colKey, colDef, vakLeraar, tr, colDefs, fromCloud: theData.fromCloud}; //TODO: add theData to ctx
+            let ctx = {td, colKey, colDef, vakLeraar, tr, colDefs, data};
             let theValue = fillCell(ctx);
             if (ctx.colDef.totals) {
                 ctx.colDef.total += parseFloat(theValue ? theValue : "0");

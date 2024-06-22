@@ -161,7 +161,7 @@ function onClickShowCounts() {
                 let fromCloud = results[1];
                 fromCloud = upgradeCloudData(fromCloud);
                 let sortedVakLeraars = new Map([...vakLeraars.entries()].sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0]));
-                buildTable(sortedVakLeraars, fromCloud);
+                buildTable({ vakLeraars: sortedVakLeraars, fromCloud});
                 document.getElementById(def.COUNT_TABLE_ID).style.display = "none";
                 showOrHideNewTable();
             });
