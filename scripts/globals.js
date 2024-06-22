@@ -4,6 +4,7 @@ export let observers = [];
 export function db3(message) {
     if (options?.showDebug) {
         console.log(message);
+        console.log(Error().stack.split("\n")[2]);
     }
 }
 
@@ -46,10 +47,8 @@ export class HashObserver {
 
     onPageChanged() {
         if (window.location.hash.startsWith(this.urlHash)) {
-            db3("In" + this.urlHash);
             this.observeElement(document.querySelector("main"));
         } else {
-            db3("Niet in In" + this.urlHash);
             this.disconnect();
         }
     }
@@ -185,4 +184,16 @@ export function getSchooljaarSelectElement() {
     return Array.from(selects)
         .filter((element) => element.id.includes("schooljaar"))
         .pop();
+}
+
+export function getUserAndSchoolName() {
+    let footer = document.querySelector("body > main > div.row > div.col-auto.mr-auto > small");
+    const reInstrument = /.*Je bent aangemeld als (.*)\s@\s(.*)\./;
+    const match = footer.textContent.match(reInstrument);
+    if (match?.length !== 3) {
+        throw new Error(`Could not process footer text "${footer.textContent}"`);
+    }
+    let userName = match[1];
+    let schoolName = match[2];
+    return {userName, schoolName};
 }

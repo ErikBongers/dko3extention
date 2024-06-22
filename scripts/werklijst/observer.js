@@ -1,4 +1,11 @@
-import {addButton, getNavigation, HashObserver, ProgressBar, setButtonHighlighted} from "../globals.js";
+import {
+    addButton,
+    getNavigation,
+    getSchooljaarSelectElement,
+    HashObserver,
+    ProgressBar,
+    setButtonHighlighted
+} from "../globals.js";
 import * as def from "../lessen/def.js";
 import {buildTable} from "./build.js";
 import {fetchAllPages} from "./scrape.js";
@@ -115,6 +122,7 @@ async function sendFields(fields) {
 }
 
 function onWerklijstChanged(tabWerklijst) {
+    console.log(getSchooljaarSelectElement().value);
 }
 
 function onButtonBarChanged(buttonBar) {

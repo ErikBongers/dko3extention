@@ -8,24 +8,18 @@ import werklijstObserver from "./werklijst/observer.js";
 // noinspection JSUnusedGlobalSymbols
 export function init() {
     getOptions(() => {
-        db3("setting up controller");
-
         chrome.storage.onChanged.addListener((changes, area) => {
             if (area === 'sync') {
-                db3('options changed!');
-                db3(changes);
                 getOptions();
             }
         });
 
         // noinspection JSDeprecatedSymbols
         window.navigation.addEventListener("navigatesuccess", () => {
-            db3("navigateSuccess");
             onPageChanged();
         });
 
         window.addEventListener("load", () => {
-            db3("loaded");
             onPageChanged();
         });
 
@@ -48,8 +42,6 @@ function getOptions(callback) {
         null, //get all
         (items) => {
             Object.assign(options, items);
-            db3("OPTIONS:");
-            db3(options);
             callback();
         }
     );
