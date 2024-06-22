@@ -63,6 +63,9 @@ body.otherSchool {
 }
 
 #countTable {
+    tr.darkRow {
+        background-color: rgba(72, 61, 139, 0.05);
+    }
     th, td {
         border-style: solid;
         border-width: 1px;
@@ -77,7 +80,7 @@ body.otherSchool {
         margin: 0;
         border-style: none;
         border-radius: 4px;
-        background-color: #eef;
+        background-color: rgba(0, 0, 119, 0.07);
         &:focus, &:focus-visible {
             border-style: none;
             outline-style: none;
@@ -87,10 +90,10 @@ body.otherSchool {
         background-color: yellow;
     }
     td.blueish {
-        background-color: #acb9ca;
+        background-color: rgba(70, 104, 149, 0.48);
     }
     td.creme {
-        background-color: #fff2cc;
+        background-color: rgba(189, 141, 1, 0.2);
     }
 }
 

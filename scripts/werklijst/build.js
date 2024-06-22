@@ -122,11 +122,19 @@ export function buildTable(vakLeraars, fromCloud) {
     }
     fromCloud.columnMap = new Map(fromCloud.columns.map((col) => [col.key, col.rowMap]));
 
+    let lastVak = "";
+    let rowClass = undefined;
     for(let [vakLeraarKey, vakLeraar] of vakLeraars) {
         let tr = document.createElement("tr");
         tbody.appendChild(tr);
         tr.dataset["vak_leraar"] = vakLeraarKey;
         tr.id = createValidId(vakLeraarKey);
+        if(vakLeraar.vak !== lastVak) {
+            rowClass = (rowClass === ""? "darkRow" : "");
+        }
+        if(rowClass !== "")
+            tr.classList.add(rowClass);
+        lastVak = vakLeraar.vak;
         for(let [colKey, colDef] of colDefs) {
             let td = document.createElement("td");
             tr.appendChild(td);

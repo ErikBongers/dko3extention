@@ -1,7 +1,7 @@
 import {
-    addButton,
+    addButton, createValidId,
     getNavigation,
-    getSchooljaarSelectElement,
+    getSchooljaarSelectElement, getUserAndSchoolName,
     HashObserver,
     ProgressBar,
     setButtonHighlighted
@@ -31,6 +31,16 @@ function onMutation(mutation) {
     return false;
 }
 
+function getSchoolIdString() {
+    let {schoolName} = getUserAndSchoolName();
+    schoolName = schoolName
+        .replace("Academie ", "")
+        .replace("Muziek", "M")
+        .replace("Woord", "W")
+        .toLowerCase();
+    return createValidId(schoolName);
+}
+
 function onPreparingFilter() {
     let btnWerklijstMaken = document.querySelector("#btn_werklijst_maken");
     if(document.getElementById(def.PREFILL_INSTR_BTN_ID))
@@ -38,6 +48,7 @@ function onPreparingFilter() {
 
     let btnPrefill = document.createElement("button");
     addButton(btnWerklijstMaken, def.PREFILL_INSTR_BTN_ID, "Prefill instrumenten", prefillInstruments, "fa-guitar", ["btn", "btn-outline-dark"], "prefill ");
+    getSchoolIdString();
 }
 
 
@@ -122,7 +133,6 @@ async function sendFields(fields) {
 }
 
 function onWerklijstChanged(tabWerklijst) {
-    console.log(getSchooljaarSelectElement().value);
 }
 
 function onButtonBarChanged(buttonBar) {
