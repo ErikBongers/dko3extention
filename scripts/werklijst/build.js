@@ -82,6 +82,32 @@ export function getUrenVakLeraarFileName() {
 
     return getSchoolIdString() + "_" + "uren_vak_lk_" + getSchooljaar().replace("-", "_") + ".json";
 }
+
+function buildJsonData() {
+    let data = {
+        version: "1.0",
+        columns: []
+    };
+    data.version = "1.0";
+    let col1 = columnToJson(data, "uren_23_24");
+    let col2 = columnToJson(data, "uren_24_25");
+    data.columns.push({key: "uren_23_24", rows: col1});
+    data.columns.push({key: "uren_24_25", rows: col2});
+    return data;
+}
+
+function columnToJson(data, colKey) {
+    let rows = [];
+    for (let [key, value] of theData.fromCloud.columnMap.get(colKey)) {
+        let row = {
+            key: key,
+            value: value
+        };
+        rows.push(row);
+    }
+    return rows;
+}
+
 function checkAndUpdate() {
     if(pauseUpdate) {
         return;
@@ -92,35 +118,22 @@ function checkAndUpdate() {
     let fileName = getUrenVakLeraarFileName();
     console.log("updating!" + " " + fileName);
     cellChanged = false;
-    let data = {
-        version: "1.0",
-        columns: []
-    };
-    data.version = "1.0";
-    addColumnData(data, "uren_23_24");
-    addColumnData(data, "uren_24_25");
+    updateColumnData( "uren_23_24");
+    updateColumnData( "uren_24_25");
+    let data = buildJsonData();
+
     uploadData(fileName, data);
     mapCloudData(data);//TODO: separate stages of data: raw data from/to cloud or from/to scraping, preparing the data, displaying the data.
     theData.fromCloud = data;
 
     recalculate();
 }
-function addColumnData(data, colKey) {
+
+function updateColumnData(colKey) {
     let colDef = colDefs.get(colKey);
-    let rows = [];
     for(let tr of document.querySelectorAll("#"+def.COUNT_TABLE_ID+" tbody tr")) {
-        let row = {
-            key: tr.id,
-            value: tr.children[colDef.colIndex].textContent
-        };
-        rows.push(row);
+        theData.fromCloud.columnMap.get(colKey).set(tr.id, tr.children[colDef.colIndex].textContent);
     }
-
-    data.columns.push({
-        key: colKey,
-        rows
-    })
-
 }
 
 function observeTable(observe) {
