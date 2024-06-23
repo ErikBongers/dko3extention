@@ -1,7 +1,7 @@
 import {
     addButton,
     getNavigation,
-    getSchoolIdString,
+    getSchoolIdString, getSchooljaar,
     HashObserver,
     ProgressBar,
     setButtonHighlighted
@@ -41,9 +41,101 @@ function onPreparingFilter() {
     getSchoolIdString();
 }
 
+let instrumentSet = new Set([
+    "Accordeon",
+    "Altfluit",
+    "Althoorn",
+    "Altklarinet",
+    "Altsaxofoon",
+    "Altsaxofoon (jazz pop rock)",
+    "Altviool",
+    "Baglama/saz (wereldmuziek)",
+    "Bariton",
+    "Baritonsaxofoon",
+    "Baritonsaxofoon (jazz pop rock)",
+    "Basfluit",
+    "Basgitaar (jazz pop rock)",
+    "Basklarinet",
+    "Bastrombone",
+    "Bastuba",
+    "Bugel",
+    "Cello",
+    "Contrabas (jazz pop rock)",
+    "Contrabas (klassiek)",
+    "Dwarsfluit",
+    "Engelse hoorn",
+    "Eufonium",
+    "Fagot",
+    "Gitaar",
+    "Gitaar (jazz pop rock)",
+    "Harp",
+    "Hobo",
+    "Hoorn",
+    "Keyboard (jazz pop rock)",
+    "Klarinet",
+    "Kornet",
+    "Orgel",
+    "Piano",
+    "Piano (jazz pop rock)",
+    "Pianolab",
+    "Piccolo",
+    "Slagwerk",
+    "Slagwerk (jazz pop rock)",
+    "Sopraansaxofoon",
+    "Sopraansaxofoon (jazz pop rock)",
+    "Tenorsaxofoon",
+    "Tenorsaxofoon (jazz pop rock)",
+    "Trombone",
+    "Trompet",
+    "Trompet (jazz pop rock)",
+    "Ud (wereldmuziek)",
+    "Viool",
+    "Zang",
+    "Zang (jazz pop rock)",
+    "Zang (musical 2e graad)",
+    "Zang (musical)",
+]);
+
+function isInstrument(text) {
+    return instrumentSet.has(text);
+}
+
+async function fetchVakken(clear) {
+    if(clear) {
+        await sendClearWerklijst();
+    }
+    await sendAddCriterium("2024-2025","Vak");
+    let text = await fetchCritera("2024-2025");
+    const template = document.createElement('template');
+    template.innerHTML = text;
+    let vakken = template.content.querySelectorAll("#form_field_leerling_werklijst_criterium_vak option");
+    return  Array.from(vakken).map(vak => [vak.label, vak.value]);
+}
+
+async function fetchCritera(schoolYear, criterium) {
+    return (await fetch("https://administratie.dko3.cloud/views/leerlingen/werklijst/index.criteria.php?schooljaar="+schoolYear, {
+        method: "GET"
+    })).text();
+}
+
+async function sendAddCriterium(schoolYear, criterium) {
+    const formData = new FormData();
+    formData.append(`criterium`, criterium);
+    formData.append(`schooljaar`, schoolYear);
+
+    const response = await fetch("https://administratie.dko3.cloud/views/leerlingen/werklijst/index.criteria.session_add.php", {
+        method: "POST",
+        body: formData,
+    });
+}
 
 async function prefillInstruments() {
     await sendClearWerklijst();
+    let vakken = await fetchVakken(false);
+    let instruments = vakken.filter((vak) => isInstrument(vak[0]));
+    let values = instruments.map(vak => parseInt(vak[1]));
+    let valueString = values.join();
+
     let criteria = [
         {"criteria": "Schooljaar", "operator": "=", "values": "2024-2025"},
         {"criteria": "Status", "operator": "=", "values": "12"},
@@ -52,7 +144,7 @@ async function prefillInstruments() {
         {
             "criteria": "Vak",
             "operator": "=",
-            "values": "761,762,763,764,765,734,766,732,767,768,735,795,736,769,770,771,772,773,759,834,774,775,776,845,777,737,778,779,780,781,808,809,782,783,738,810,792,791,739,784,760,785,740,786,787,741,733,788,796,742,814,727"
+            "values": valueString
         }
     ];
     await sendCriteria(criteria);

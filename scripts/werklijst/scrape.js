@@ -88,7 +88,7 @@ function extractStudents(text, vakLeraars) {
     return students.length;
 }
 
-function isInstrument(vak) {
+function isInstrument(vak) {//TODO: get rid of this
     switch (vak) {
         case "Muziekatelier": 
         case "Groepsmusiceren (jazz pop rock)": 

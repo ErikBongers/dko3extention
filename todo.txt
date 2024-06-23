@@ -33,7 +33,3 @@
 
 Werklijst
 ----------
-* file: add version number
-* add columns with an id (key)
-* make year independent.
-  > based on selected school year.
