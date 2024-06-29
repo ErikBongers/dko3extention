@@ -33,3 +33,10 @@
 
 Werklijst
 ----------
+* Perhaps create a dataModel class?
+  > model.load(params) -> fetches from source (dko3 or cloud)
+    - also converts data to indexed (Map) data.
+    - params = schoolName, schoolYear,... -> determines fileName
+  > model.update() or something to change the data and set a isChanged flag?
+  > model.save() -> back to cloud.
+  > model.cache(), refresh(),...

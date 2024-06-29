@@ -1,23 +1,6 @@
 import {createValidId} from "../globals.js";
 
-export async function fetchAllPages(progressBar, navigationData) {
-    let vakLeraars = new Map();
-    let offset = 0;
-    progressBar.start();
-    while(true) {
-        console.log("fetching page " + offset);
-        let response = await fetch("/views/ui/datatable.php?id=leerlingen_werklijst&start="+offset+"&aantal=0");
-        let text = await response.text();
-        let count = extractStudents(text, vakLeraars);
-        offset+= navigationData.step;
-        if(!progressBar.next())
-            break;
-    }
-    progressBar.stop();
-    return vakLeraars;
-}
-
-function extractStudents(text, vakLeraars) {
+export function extractStudents(text, vakLeraars) {
     const template = document.createElement('template');
     template.innerHTML = text;
     let headers = template.content.querySelectorAll("thead th");
