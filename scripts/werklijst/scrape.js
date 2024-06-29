@@ -23,7 +23,7 @@ class TableDef {
         return this.headerLabels.every((name) => this.headerIndices.has(name))
     }
 
-    getColumnText(label) { //TODO: this function should only be accessible within the forEach loop
+    #getColumnText(label) {
         return this.currentRow.children[this.headerIndices.get(label)].textContent;
     }
 
@@ -32,7 +32,7 @@ class TableDef {
             this.currentRow = row;
             let rowObject = {
                 tr: row,
-                getColumnText: (label) => this.getColumnText(label),
+                getColumnText: (label) => this.#getColumnText(label),
                 tableDef: this
             };
             if(!doRow(rowObject, collection))

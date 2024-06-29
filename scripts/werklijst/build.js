@@ -2,7 +2,7 @@ import * as def from "../lessen/def.js";
 import {createValidId, getSchoolIdString, getSchooljaar} from "../globals.js";
 import {uploadData} from "../cloud.js";
 
-let pauseUpdate = false;
+let isUpdatePaused = true;
 let cellChanged = false;
 let popoverIndex = 1;
 
@@ -75,9 +75,11 @@ function getColValue(ctx, colKey) {
 }
 
 function editableObserverCallback(mutationList, observer) {
-
+    if (mutationList.every((mut) => mut.type === "attributes"))
+        return; //ignore attrubute changes.
     cellChanged = true;
 }
+
 export function getUrenVakLeraarFileName() {
 
     return getSchoolIdString() + "_" + "uren_vak_lk_" + getSchooljaar().replace("-", "_") + ".json";
@@ -109,7 +111,7 @@ function columnToJson(data, colKey) {
 }
 
 function checkAndUpdate() {
-    if(pauseUpdate) {
+    if(isUpdatePaused) {
         return;
     }
     if(!cellChanged) {
@@ -122,7 +124,7 @@ function checkAndUpdate() {
     updateColumnData( "uren_24_25");
     let data = buildJsonData();
 
-    // uploadData(fileName, data);
+    uploadData(fileName, data);
     mapCloudData(data);//TODO: separate stages of data: raw data from/to cloud or from/to scraping, preparing the data, displaying the data.
     theData.fromCloud = data;
 
@@ -145,6 +147,7 @@ function observeTable(observe) {
     };
     let table = document.getElementById(def.COUNT_TABLE_ID);
     if(observe) {
+        editableObserver.takeRecords(); //clear
         editableObserver.observe(table, config);
     } else {
         editableObserver.disconnect();
@@ -171,7 +174,7 @@ function fillCell(ctx) {
 }
 
 function recalculate() { //TODO: generalize to fill ALL the cells or only the calculated ones.
-    pauseUpdate = true;
+    isUpdatePaused = true;
     observeTable(false);
 
     for(let [colKey, colDef] of colDefs) {
@@ -203,12 +206,12 @@ function recalculate() { //TODO: generalize to fill ALL the cells or only the ca
     }
 
     cellChanged = false;
-    pauseUpdate = false;
+    isUpdatePaused = false;
     observeTable(true);
 }
 
 export function buildTable(data) {
-    pauseUpdate = true;
+    isUpdatePaused = true;
     theData = data;
     let originalTable = document.querySelector("#table_leerlingen_werklijst_table");
     let table = document.createElement("table");
@@ -259,7 +262,7 @@ export function buildTable(data) {
     let editables = table.querySelectorAll("td.editable_number");
     editables.forEach((td) => td.setAttribute("contenteditable", "true"));
     observeTable(true);
-    pauseUpdate = false;
+    isUpdatePaused = false;
 }
 
 function calcUren(ctx, keys) {
