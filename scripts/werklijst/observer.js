@@ -8,8 +8,9 @@ import {
 } from "../globals.js";
 import * as def from "../lessen/def.js";
 import {buildTable, getUrenVakLeraarFileName} from "./build.js";
-import {extractStudents} from "./scrape.js";
+import {scrapeStudent} from "./scrape.js";
 import {fetchFromCloud} from "../cloud.js";
+import {TableDef} from "../tableDef.js";
 
 export default new HashObserver("#leerlingen-werklijst", onMutation);
 
@@ -222,7 +223,7 @@ function onButtonBarChanged(buttonBar) {
     addButton(targetButton, def.COUNT_BUTTON_ID, "Toon telling", onClickShowCounts, "fa-guitar", ["btn-outline-info"]);
 }
 
-async function fetchFullWerklijst(results, pageReader, parallelAsyncFunction) {
+async function fetchFullWerklijst(results, tableDef, parallelAsyncFunction) {
     let orgTable = document.getElementById("table_leerlingen_werklijst_table");
     let divProgressLine = document.createElement("div");
     orgTable.insertAdjacentElement("beforebegin", divProgressLine);
@@ -241,12 +242,12 @@ async function fetchFullWerklijst(results, pageReader, parallelAsyncFunction) {
     let progressBar = new ProgressBar(divProgressLine, divProgressBar, Math.ceil(navigationData.maxCount/navigationData.step));
 
     return Promise.all([
-        fetchAllWerklijstPages(progressBar, navigationData, results, pageReader),
+        fetchAllWerklijstPages(progressBar, navigationData, results, tableDef),
         parallelAsyncFunction()
         ]);
 }
 
-export async function fetchAllWerklijstPages(progressBar, navigationData, results, pageReader) {
+export async function fetchAllWerklijstPages(progressBar, navigationData, results, tableDef) { //TODO: this is already general (for werklijst).
     let offset = 0;
     progressBar.start();
     try {
@@ -254,7 +255,7 @@ export async function fetchAllWerklijstPages(progressBar, navigationData, result
             console.log("fetching page " + offset);
             let response = await fetch("/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0");
             let text = await response.text();
-            let count = pageReader(text, results);
+            let count = tableDef.readPage(text, results);
             if (!count)
                 return undefined;
             offset += navigationData.step;
@@ -275,7 +276,10 @@ function onClickShowCounts() {
 
         let fileName = getUrenVakLeraarFileName();
         console.log("reading: " + fileName);
-        fetchFullWerklijst(new Map(), extractStudents, () => fetchFromCloud(fileName))
+        let requiredHeaderLabels = ["naam", "voornaam", "vak", "klasleerkracht", "graad + leerjaar"];
+        let tableDef = new TableDef(requiredHeaderLabels, scrapeStudent);
+
+        fetchFullWerklijst(new Map(), tableDef, () => fetchFromCloud(fileName))
             .then((results) => {
                 let vakLeraars = results[0];
                 let fromCloud = results[1];
