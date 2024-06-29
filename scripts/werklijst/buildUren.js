@@ -1,5 +1,6 @@
 import * as def from "../lessen/def.js";
 import {createValidId, getSchoolIdString, getSchooljaar} from "../globals.js";
+import {uploadData} from "../cloud.js";
 
 let isUpdatePaused = true;
 let cellChanged = false;
