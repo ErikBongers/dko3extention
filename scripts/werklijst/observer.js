@@ -249,16 +249,21 @@ async function fetchFullWerklijst(results, pageReader, parallelAsyncFunction) {
 export async function fetchAllWerklijstPages(progressBar, navigationData, results, pageReader) {
     let offset = 0;
     progressBar.start();
-    while(true) {
-        console.log("fetching page " + offset);
-        let response = await fetch("/views/ui/datatable.php?id=leerlingen_werklijst&start="+offset+"&aantal=0");
-        let text = await response.text();
-        let count = pageReader(text, results);
-        offset+= navigationData.step;
-        if(!progressBar.next())
-            break;
+    try {
+        while (true) {
+            console.log("fetching page " + offset);
+            let response = await fetch("/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0");
+            let text = await response.text();
+            let count = pageReader(text, results);
+            if (!count)
+                return undefined;
+            offset += navigationData.step;
+            if (!progressBar.next())
+                break;
+        }
+    } finally {
+        progressBar.stop();
     }
-    progressBar.stop();
     return results;
 }
 

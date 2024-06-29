@@ -1,22 +1,33 @@
 import {createValidId} from "../globals.js";
 
-export function getHeaderIndices(template) {
-    let headers = template.content.querySelectorAll("thead th");
-
-    let headerIndices = new Map();
-    Array.from(headers)
-        .forEach((header, index) =>
-            headerIndices.set(header.textContent, index));
-    return headerIndices;
-}
-
-
 class TableDef {
     constructor(template, requiredHeaderLabels) {
         this.template = template;
         this.headerLabels = requiredHeaderLabels;
         this.rows = template.content.querySelectorAll("tbody > tr");
-        this.headerIndices = getHeaderIndices(template);
+        this.headerIndices = TableDef.getHeaderIndices(template);
+    }
+
+    static buildAndCheck(template, requiredHeaderLabels) {
+        let tableDef = new TableDef(template, requiredHeaderLabels);
+        if( !tableDef.hasAllHeaders() ) {
+            let labelString = requiredHeaderLabels
+                .map((label) => "\"" + label.toUpperCase() + "\"")
+                .join(", ");
+            alert(`Voeg velden ${labelString} toe.`);
+            return undefined;
+        }
+        return tableDef;
+    }
+
+    static getHeaderIndices(template) {
+        let headers = template.content.querySelectorAll("thead th");
+
+        let headerIndices = new Map();
+        Array.from(headers)
+            .forEach((header, index) =>
+                headerIndices.set(header.textContent, index));
+        return headerIndices;
     }
 
     hasAllHeaders() {
@@ -45,12 +56,10 @@ export function extractStudents(text, collection) {
     const template = document.createElement('template');
     template.innerHTML = text;
 
-    let tableDef = new TableDef(template, ["naam", "voornaam", "vak", "klasleerkracht", "graad + leerjaar"])
+    let tableDef = TableDef.buildAndCheck(template, ["naam", "voornaam", "vak", "klasleerkracht", "graad + leerjaar"])
+    if(!tableDef)
+        throw("Cannot build table object - required columns missing");
 
-    if( !tableDef.hasAllHeaders() ) {
-        alert("Voeg velden NAAM, VOORNAAM, VAK, GRAAD_LEERJAAR en KLASLEERKRACHT toe."); //TODO: make this generic.
-        return;
-    }
     let students = template.content.querySelectorAll("tbody > tr");
     tableDef.forEachRow(collection, scrapeStudent);
     return students.length;
