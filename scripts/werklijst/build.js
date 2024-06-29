@@ -122,7 +122,7 @@ function checkAndUpdate() {
     updateColumnData( "uren_24_25");
     let data = buildJsonData();
 
-    uploadData(fileName, data);
+    // uploadData(fileName, data);
     mapCloudData(data);//TODO: separate stages of data: raw data from/to cloud or from/to scraping, preparing the data, displaying the data.
     theData.fromCloud = data;
 
