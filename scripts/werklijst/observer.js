@@ -43,6 +43,29 @@ function onWerklijstChanged(tabWerklijst) {
 function onButtonBarChanged(buttonBar) {
     let targetButton = document.querySelector("#tablenav_leerlingen_werklijst_top > div > div.btn-group.btn-group-sm.datatable-buttons > button:nth-child(1)");
     addButton(targetButton, def.COUNT_BUTTON_ID, "Toon telling", onClickShowCounts, "fa-guitar", ["btn-outline-info"]);
+    addButton(targetButton, def.MAIL_BTN_ID, "Email to clipboard", onClickCopyEmails, "fa-envelope", ["btn", "btn-outline-info"]);
+}
+
+function scrapeEmails(row, collection) {
+    collection.push(row.getColumnText("e-mailadressen"));
+    return true;
+}
+
+function onClickCopyEmails() {
+    let requiredHeaderLabels = ["e-mailadressen"]; //TODO: allow all different email columns.
+    let tableDef = new TableDef(requiredHeaderLabels, scrapeEmails);
+
+    fetchFullWerklijst([], tableDef)
+        .then((results) => {
+            let flattened = results
+                .map((emails) => emails.split(/[,;]/))
+                .flat()
+                .filter((email) => !email.includes("@academiestudent.be"))
+                .filter((email) => email !== "");
+            console.log("email count: " + flattened.length);
+            navigator.clipboard.writeText(flattened.join(";\n")).then();
+        });
+
 }
 
 function onClickShowCounts() {

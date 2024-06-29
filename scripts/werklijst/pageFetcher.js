@@ -21,10 +21,15 @@ export async function fetchFullWerklijst(results, tableDef, parallelAsyncFunctio
     let navigationData = getNavigation(document.querySelector("#tablenav_leerlingen_werklijst_top"));
     let progressBar = insertProgressBar(orgTable, navigationData);
 
-    return Promise.all([
-        fetchAllWerklijstPages(progressBar, navigationData, results, tableDef),
-        parallelAsyncFunction()
-    ]);
+    if(parallelAsyncFunction) {
+        return Promise.all([
+            fetchAllWerklijstPages(progressBar, navigationData, results, tableDef),
+            parallelAsyncFunction()
+        ]);
+    } else {
+        return fetchAllWerklijstPages(progressBar, navigationData, results, tableDef);
+    }
+
 }
 
 async function fetchAllWerklijstPages(progressBar, navigationData, results, tableDef) {

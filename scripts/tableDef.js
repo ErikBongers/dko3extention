@@ -26,13 +26,23 @@ export class TableDef {
 
         let headerIndices = new Map();
         Array.from(headers)
-            .forEach((header, index) =>
-                headerIndices.set(header.textContent, index));
+            .forEach((header, index) => {
+                let label = header.textContent;
+                if (label.startsWith("e-mailadressen")) {
+                    headerIndices.set("e-mailadressen", index);
+                } else {
+                    headerIndices.set(label, index);
+                }
+            });
         return headerIndices;
     }
 
     hasAllHeaders() {
-        return this.requiredHeaderLabels.every((name) => this.headerIndices.has(name))
+        return this.requiredHeaderLabels.every((label) => this.hasHeader(label))
+    }
+
+    hasHeader(label) {
+        return this.headerIndices.has(label);
     }
 
     #getColumnText(label) {

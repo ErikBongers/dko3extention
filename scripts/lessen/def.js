@@ -1,5 +1,6 @@
 export let PROGRESS_BAR_ID = "progressBarFetch";
 export let PREFILL_INSTR_BTN_ID = "prefillInstrButton";
+export let MAIL_BTN_ID = "mailButton";
 export const LESSEN_OVERZICHT_ID = "lessen_overzicht";
 export const TRIM_BUTTON_ID = "moduleButton";
 export const CHECKS_BUTTON_ID = "checksButton";
