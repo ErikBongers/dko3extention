@@ -1,4 +1,4 @@
-import {addButton, getSchoolIdString, HashObserver, setButtonHighlighted} from "../globals.js";
+import {addButton, getSchoolIdString, setButtonHighlighted} from "../globals.js";
 import * as def from "../lessen/def.js";
 import {buildTable, getUrenVakLeraarFileName} from "./buildUren.js";
 import {scrapeStudent} from "./scrapeUren.js";
@@ -6,6 +6,7 @@ import {fetchFromCloud} from "../cloud.js";
 import {TableDef} from "../tableDef.js";
 import {fetchFullWerklijst} from "./pageFetcher.js";
 import {prefillInstruments} from "./prefillInstruments.js";
+import {HashObserver} from "../pageObserver.js";
 
 export default new HashObserver("#leerlingen-werklijst", onMutation);
 

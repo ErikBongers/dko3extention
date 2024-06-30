@@ -34,11 +34,13 @@
       "scripts/lessen/*",
       "scripts/leerling/*",
       "scripts/academie/*",
+      "scripts/table/*",
       "scripts/werklijst/*",
       "scripts/main.js",
       "scripts/globals.js",
       "scripts/tableDef.js",
-      "scripts/cloud.js"
+      "scripts/cloud.js",
+      "scripts/pageObserver.js"
     ]
   }
   ]

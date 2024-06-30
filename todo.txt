@@ -1,3 +1,5 @@
+* db3: setting to turn callstack on/off
+
 * move defs.js out of /lessen/
 
 * Uitleningen: verlengdatum moet 1/9 zijn of in verkeerde jaar!

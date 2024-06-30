@@ -22,56 +22,6 @@ export function registerObserver(observer) {
         console.error("Too many observers!");
 }
 
-export class PageObserver {
-    constructor(onPageChangedCallback) {
-        this.onPageChanged = onPageChangedCallback;
-    }
-}
-
-export class HashObserver {
-    constructor(urlHash, onMutationCallback) {
-        this.urlHash = urlHash;
-        this.onMutation = onMutationCallback;
-        this.observer = new MutationObserver((mutationList, observer) => this.observerCallback(mutationList, observer));
-    }
-    observerCallback (mutationList /*, observer*/) {
-        for (const mutation of mutationList) {
-            if (mutation.type !== "childList") {
-                continue;
-            }
-            if (this.onMutation(mutation)) {
-                break;
-            }
-        }
-    }
-
-    onPageChanged() {
-        if (window.location.hash.startsWith(this.urlHash)) {
-            this.observeElement(document.querySelector("main"));
-        } else {
-            this.disconnect();
-        }
-    }
-
-    observeElement(element) {
-        if (!element) {
-            console.error("Can't attach observer to element.");
-            return;
-        }
-
-        const config = {
-            attributes: false,
-            childList: true,
-            subtree: true
-        };
-        this.observer.observe(element, config);
-    }
-
-    disconnect() {
-        this.observer.disconnect();
-    }
-}
-
 // noinspection JSUnusedGlobalSymbols
 export function searchText(text) {
     let input = document.querySelector("#snel_zoeken_veld_zoektermen");
@@ -88,7 +38,7 @@ export function setButtonHighlighted(buttonId, show) {
     }
 }
 
-export function addButton(targetElement, buttonId, title, clickFunction, imageId, classList, text) {
+export function addButton(targetElement, buttonId, title, clickFunction, imageId, classList, text, where = "beforebegin") {
     let button = document.getElementById(buttonId);
     if (button === null) {
         const button = document.createElement("button");
@@ -105,7 +55,7 @@ export function addButton(targetElement, buttonId, title, clickFunction, imageId
         const buttonContent = document.createElement("i");
         button.appendChild(buttonContent);
         buttonContent.classList.add("fas", imageId);
-        targetElement.insertAdjacentElement("beforebegin", button);
+        targetElement.insertAdjacentElement(where, button);
     }
 }
 

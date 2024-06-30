@@ -4,6 +4,7 @@ import leerlingObserver from "./leerling/observer.js";
 import lessenObserver from "./lessen/observer.js";
 import academieObserver from "./academie/observer.js";
 import werklijstObserver from "./werklijst/observer.js";
+import tableObserver from "./table/observer.js";
 
 // noinspection JSUnusedGlobalSymbols
 export function init() {
@@ -27,6 +28,7 @@ export function init() {
         registerObserver(lessenObserver);
         registerObserver(academieObserver);
         registerObserver(werklijstObserver);
+        registerObserver(tableObserver);
         onPageChanged();
     });
 }
