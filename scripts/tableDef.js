@@ -1,6 +1,8 @@
 export class TableDef {
-    constructor(requiredHeaderLabels, rowScraper) {
+    constructor(orgTable, requiredHeaderLabels, rowScraper, buildFetchUrl) {
+        this.orgTable = orgTable;
         this.requiredHeaderLabels = requiredHeaderLabels;
+        this.buildFetchUrl = buildFetchUrl;
         this.rowScraper = rowScraper;
         this.template = undefined;
         this.rows = undefined;
@@ -62,7 +64,7 @@ export class TableDef {
         }
     }
 
-    readPage(text, collection) {
+    readPage(text, collection, offset) {
         const template = document.createElement('template');
         template.innerHTML = text;
 

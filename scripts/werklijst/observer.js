@@ -4,7 +4,7 @@ import {buildTable, getUrenVakLeraarFileName} from "./buildUren.js";
 import {scrapeStudent} from "./scrapeUren.js";
 import {fetchFromCloud} from "../cloud.js";
 import {TableDef} from "../tableDef.js";
-import {fetchFullWerklijst} from "./pageFetcher.js";
+import {fetchFullTable} from "./pageFetcher.js";
 import {prefillInstruments} from "./prefillInstruments.js";
 import {HashObserver} from "../pageObserver.js";
 
@@ -33,7 +33,6 @@ function onPreparingFilter() {
     if(document.getElementById(def.PREFILL_INSTR_BTN_ID))
         return;
 
-    let btnPrefill = document.createElement("button");
     addButton(btnWerklijstMaken, def.PREFILL_INSTR_BTN_ID, "Prefill instrumenten", prefillInstruments, "fa-guitar", ["btn", "btn-outline-dark"], "prefill ");
     getSchoolIdString();
 }
@@ -41,22 +40,31 @@ function onPreparingFilter() {
 function onWerklijstChanged(tabWerklijst) {
 }
 
-function onButtonBarChanged(buttonBar) {
+function onButtonBarChanged() {
     let targetButton = document.querySelector("#tablenav_leerlingen_werklijst_top > div > div.btn-group.btn-group-sm.datatable-buttons > button:nth-child(1)");
     addButton(targetButton, def.COUNT_BUTTON_ID, "Toon telling", onClickShowCounts, "fa-guitar", ["btn-outline-info"]);
     addButton(targetButton, def.MAIL_BTN_ID, "Email to clipboard", onClickCopyEmails, "fa-envelope", ["btn", "btn-outline-info"]);
 }
 
-function scrapeEmails(row, collection) {
+function scrapeEmails(row, collection, offset) {
     collection.push(row.getColumnText("e-mailadressen"));
     return true;
 }
 
 function onClickCopyEmails() {
-    let requiredHeaderLabels = ["e-mailadressen"]; //TODO: allow all different email columns.
-    let tableDef = new TableDef(requiredHeaderLabels, scrapeEmails);
+    let requiredHeaderLabels = ["e-mailadressen"];
+    let tableDef = new TableDef(
+        document.getElementById("table_leerlingen_werklijst_table"),
+        requiredHeaderLabels,
+        scrapeEmails,
+        (offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0"
+    );
 
-    fetchFullWerklijst([], tableDef)
+    fetchFullTable(
+        tableDef,
+        [],
+        undefined
+    )
         .then((results) => {
             let flattened = results
                 .map((emails) => emails.split(/[,;]/))
@@ -76,9 +84,17 @@ function onClickShowCounts() {
 
         console.log("reading: " + fileName);
         let requiredHeaderLabels = ["naam", "voornaam", "vak", "klasleerkracht", "graad + leerjaar"];
-        let tableDef = new TableDef(requiredHeaderLabels, scrapeStudent);
+        let tableDef = new TableDef(
+            document.getElementById("table_leerlingen_werklijst_table"),
+            requiredHeaderLabels,
+            scrapeStudent,
+            (offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0"
+        );
 
-        fetchFullWerklijst(new Map(), tableDef, () => fetchFromCloud(fileName))
+        fetchFullTable(
+            tableDef,
+            new Map(),
+            () => fetchFromCloud(fileName))
             .then((results) => {
                 let vakLeraars = results[0];
                 let fromCloud = results[1];

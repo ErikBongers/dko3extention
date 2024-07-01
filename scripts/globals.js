@@ -38,7 +38,7 @@ export function setButtonHighlighted(buttonId, show) {
     }
 }
 
-export function addButton(targetElement, buttonId, title, clickFunction, imageId, classList, text, where = "beforebegin") {
+export function addButton(targetElement, buttonId, title, clickFunction, imageId, classList, text = "", where = "beforebegin") {
     let button = document.getElementById(buttonId);
     if (button === null) {
         const button = document.createElement("button");
@@ -108,8 +108,9 @@ function getGotoNumber(functionCall) {
 [0, 400, 501, 580, 580]  -> interval is [1] -> [2]-1 = 100
 [0, 200, 301, 400, 400, 500, 580] -> interval is [1] -> [2]
 */
-export function getNavigation(element) {
+export function getNavigation() {
     //get all possible numbers from the navigation bar and sort them to get the result above.
+    let element = document.querySelector("div.datatable-navigation-toolbar");
     let button = element.querySelector("button.datatable-paging-numbers");
     let rx = /(\d*) tot (\d*) van (\d*)/;
     let matches = button.innerText.match(rx);

@@ -1,9 +1,9 @@
 import * as def from "../lessen/def.js";
 import {getNavigation, ProgressBar} from "../globals.js";
 
-function insertProgressBar(orgTable, navigationData) {
+function insertProgressBar(elementAfter, navigationData) {
     let divProgressLine = document.createElement("div");
-    orgTable.insertAdjacentElement("beforebegin", divProgressLine);
+    elementAfter.insertAdjacentElement("beforebegin", divProgressLine);
     divProgressLine.classList.add("progressLine");
     divProgressLine.id = def.PROGRESS_BAR_ID;
     let divProgressText = document.createElement("div");
@@ -16,31 +16,29 @@ function insertProgressBar(orgTable, navigationData) {
     return new ProgressBar(divProgressLine, divProgressBar, Math.ceil(navigationData.maxCount / navigationData.step));
 }
 
-export async function fetchFullWerklijst(results, tableDef, parallelAsyncFunction) {
-    let orgTable = document.getElementById("table_leerlingen_werklijst_table");
-    let navigationData = getNavigation(document.querySelector("#tablenav_leerlingen_werklijst_top"));
-    let progressBar = insertProgressBar(orgTable, navigationData);
+export async function fetchFullTable(tableDef, results, parallelAsyncFunction) {
+    let navigationData = getNavigation();
+    let progressBar = insertProgressBar(tableDef.orgTable, navigationData);
 
     if(parallelAsyncFunction) {
         return Promise.all([
-            fetchAllWerklijstPages(progressBar, navigationData, results, tableDef),
+            fetchAllPages(progressBar, navigationData, results, tableDef),
             parallelAsyncFunction()
         ]);
     } else {
-        return fetchAllWerklijstPages(progressBar, navigationData, results, tableDef);
+        return fetchAllPages(progressBar, navigationData, results, tableDef);
     }
-
 }
 
-async function fetchAllWerklijstPages(progressBar, navigationData, results, tableDef) {
+async function fetchAllPages(progressBar, navigationData, results, tableDef) {
     let offset = 0;
     progressBar.start();
     try {
         while (true) {
             console.log("fetching page " + offset);
-            let response = await fetch("/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0");
+            let response = await fetch(tableDef.buildFetchUrl(offset));
             let text = await response.text();
-            let count = tableDef.readPage(text, results);
+            let count = tableDef.readPage(text, results, offset);
             if (!count)
                 return undefined;
             offset += navigationData.step;
