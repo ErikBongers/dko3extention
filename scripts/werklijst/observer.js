@@ -3,7 +3,7 @@ import * as def from "../lessen/def.js";
 import {buildTable, getUrenVakLeraarFileName} from "./buildUren.js";
 import {scrapeStudent} from "./scrapeUren.js";
 import {fetchFromCloud} from "../cloud.js";
-import {TableDef} from "../tableDef.js";
+import {ConverterPageHandler, TableDef} from "../tableDef.js";
 import {fetchFullTable} from "./pageFetcher.js";
 import {prefillInstruments} from "./prefillInstruments.js";
 import {HashObserver} from "../pageObserver.js";
@@ -53,11 +53,11 @@ function scrapeEmails(row, collection, offset) {
 
 function onClickCopyEmails() {
     let requiredHeaderLabels = ["e-mailadressen"];
+    let pageHandler = new ConverterPageHandler(requiredHeaderLabels, scrapeEmails);
     let tableDef = new TableDef(
         document.getElementById("table_leerlingen_werklijst_table"),
-        requiredHeaderLabels,
-        scrapeEmails,
-        (offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0"
+        (offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0",
+        pageHandler
     );
 
     fetchFullTable(
@@ -84,11 +84,11 @@ function onClickShowCounts() {
 
         console.log("reading: " + fileName);
         let requiredHeaderLabels = ["naam", "voornaam", "vak", "klasleerkracht", "graad + leerjaar"];
+        let pageHandler = new ConverterPageHandler(requiredHeaderLabels, scrapeStudent);
         let tableDef = new TableDef(
             document.getElementById("table_leerlingen_werklijst_table"),
-            requiredHeaderLabels,
-            scrapeStudent,
-            (offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0"
+            (offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0",
+            pageHandler
         );
 
         fetchFullTable(

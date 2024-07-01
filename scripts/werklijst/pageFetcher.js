@@ -38,7 +38,7 @@ async function fetchAllPages(progressBar, navigationData, results, tableDef) {
             console.log("fetching page " + offset);
             let response = await fetch(tableDef.buildFetchUrl(offset));
             let text = await response.text();
-            let count = tableDef.readPage(text, results, offset);
+            let count = tableDef.onPage(text, results, offset);
             if (!count)
                 return undefined;
             offset += navigationData.step;

@@ -1,18 +1,37 @@
 export class TableDef {
-    constructor(orgTable, requiredHeaderLabels, rowScraper, buildFetchUrl) {
+    constructor(orgTable, buildFetchUrl, pageHandler) {
         this.orgTable = orgTable;
-        this.requiredHeaderLabels = requiredHeaderLabels;
         this.buildFetchUrl = buildFetchUrl;
+        this.pageHandler = pageHandler;
+    }
+
+    onPage(text, collection, offset) {
+        return this.pageHandler.onPage(text, collection, offset);
+    }
+}
+
+/**
+ * PageHandler to convert a table.\
+ * Params are:
+ * @description
+ *      * requiredHeaderLabels: array with labels of required columns.
+ *      * rowScraper: function(rowObject, collection): a row handler that mainly provides a param `rowObject`, which has a member getColumnText(columnLabel)
+ * @implements PageHandler: which requires member `onPage()`
+ */
+export class ConverterPageHandler {
+    constructor(requiredHeaderLabels, rowScraper) {
+        this.requiredHeaderLabels = requiredHeaderLabels;
         this.rowScraper = rowScraper;
         this.template = undefined;
         this.rows = undefined;
         this.headerIndices = undefined;
+        this.currentRow = undefined;
     }
 
     setTemplateAndCheck(template) {
         this.template = template;
         this.rows = template.content.querySelectorAll("tbody > tr");
-        this.headerIndices = TableDef.getHeaderIndices(template);
+        this.headerIndices = ConverterPageHandler.getHeaderIndices(template);
         if (!this.hasAllHeaders()) {
             let labelString = this.requiredHeaderLabels
                 .map((label) => "\"" + label.toUpperCase() + "\"")
@@ -64,7 +83,7 @@ export class TableDef {
         }
     }
 
-    readPage(text, collection, offset) {
+    onPage(text, collection, offset) {
         const template = document.createElement('template');
         template.innerHTML = text;
 
@@ -75,5 +94,4 @@ export class TableDef {
         this.forEachRow(collection, this.rowScraper);
         return rows.length;
     }
-
 }
