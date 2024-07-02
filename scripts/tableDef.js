@@ -1,8 +1,9 @@
 export class TableDef {
-    constructor(orgTable, buildFetchUrl, pageHandler) {
+    constructor(orgTable, buildFetchUrl, pageHandler, navigation) {
         this.orgTable = orgTable;
         this.buildFetchUrl = buildFetchUrl;
         this.pageHandler = pageHandler;
+        this.navigation = navigation;
     }
 
     onPage(text, collection, offset) {
@@ -10,88 +11,45 @@ export class TableDef {
     }
 }
 
-/**
- * PageHandler to convert a table.\
- * Params are:
- * @description
- *      * requiredHeaderLabels: array with labels of required columns.
- *      * rowScraper: function(rowObject, collection): a row handler that mainly provides a param `rowObject`, which has a member getColumnText(columnLabel)
- * @implements PageHandler: which requires member `onPage()`
- */
-export class ConverterPageHandler {
-    constructor(requiredHeaderLabels, onRow) {
-        this.requiredHeaderLabels = requiredHeaderLabels;
-        this.rowScraper = onRow;
-        this.template = undefined;
-        this.rows = undefined;
-        this.headerIndices = undefined;
-        this.currentRow = undefined;
+export class TableNavigation {
+    constructor(step, maxCount, div) {
+        this.step = step;
+        this.maxCount = maxCount;
+        this.div = div;
     }
 
-    setTemplateAndCheck(template) {
-        this.template = template;
-        this.rows = template.content.querySelectorAll("tbody > tr");
-        this.headerIndices = ConverterPageHandler.getHeaderIndices(template);
-        if (!this.hasAllHeaders()) {
-            let labelString = this.requiredHeaderLabels
-                .map((label) => "\"" + label.toUpperCase() + "\"")
-                .join(", ");
-            alert(`Voeg velden ${labelString} toe.`);
-            return false;
-        }
-        return true;
+    steps() {
+        return Math.ceil(this.maxCount / this.step)
     }
+}
 
-    static getHeaderIndices(template) {
-        let headers = template.content.querySelectorAll("thead th");
-
-        let headerIndices = new Map();
-        Array.from(headers)
-            .forEach((header, index) => {
-                let label = header.textContent;
-                if (label.startsWith("e-mailadressen")) {
-                    headerIndices.set("e-mailadressen", index);
-                } else {
-                    headerIndices.set(label, index);
-                }
-            });
-        return headerIndices;
+/* possible ranges of numbers found:
+[1, 100, 100, 500, 580] -> interval is [1] = 100
+[0, 400, 501, 580, 580]  -> interval is [1] -> [2]-1 = 100
+[0, 200, 301, 400, 400, 500, 580] -> interval is [1] -> [2]
+*/
+export function findFirstNavigation() {
+    //get all possible numbers from the navigation bar and sort them to get the result above.
+    let element = document.querySelector("div.datatable-navigation-toolbar");
+    let button = element.querySelector("button.datatable-paging-numbers");
+    let rx = /(\d*) tot (\d*) van (\d*)/;
+    let matches = button.innerText.match(rx);
+    console.log(matches);
+    let buttons = element.querySelectorAll("button.btn-secondary");
+    let numbers = Array.from(buttons)
+        .filter((btn) => btn.attributes["onclick"]?.value.includes("goto("))
+        .map((btn) => btn.attributes["onclick"].value)
+        .map((txt) => getGotoNumber(txt));
+    numbers.push(...matches.slice(1).map((txt) => parseInt(txt)));
+    numbers.sort();
+    console.log(numbers);
+    if (numbers[0] === 1) {
+        return new TableNavigation(numbers[1], numbers.pop());
+    } else {
+        return new TableNavigation(numbers[2] - numbers[1] - 1, numbers.pop());
     }
+}
 
-    hasAllHeaders() {
-        return this.requiredHeaderLabels.every((label) => this.hasHeader(label))
-    }
-
-    hasHeader(label) {
-        return this.headerIndices.has(label);
-    }
-
-    #getColumnText(label) {
-        return this.currentRow.children[this.headerIndices.get(label)].textContent;
-    }
-
-    forEachRow(collection, doRow) {
-        for (let row of this.rows) {
-            this.currentRow = row;
-            let rowObject = {
-                tr: row,
-                getColumnText: (label) => this.#getColumnText(label),
-                tableDef: this
-            };
-            if (!doRow(rowObject, collection))
-                return;
-        }
-    }
-
-    onPage(text, collection, offset) {
-        const template = document.createElement('template');
-        template.innerHTML = text;
-
-        if(!this.setTemplateAndCheck(template))
-            throw("Cannot build table object - required columns missing");
-
-        let rows = template.content.querySelectorAll("tbody > tr");
-        this.forEachRow(collection, this.rowScraper);
-        return rows.length;
-    }
+function getGotoNumber(functionCall) {
+    return parseInt(functionCall.substring(functionCall.indexOf("goto(") + 5));
 }

@@ -3,10 +3,11 @@ import * as def from "../lessen/def.js";
 import {buildTable, getUrenVakLeraarFileName} from "./buildUren.js";
 import {scrapeStudent} from "./scrapeUren.js";
 import {fetchFromCloud} from "../cloud.js";
-import {ConverterPageHandler, TableDef} from "../tableDef.js";
+import {TableDef} from "../tableDef.js";
 import {fetchFullTable} from "./pageFetcher.js";
 import {prefillInstruments} from "./prefillInstruments.js";
 import {HashObserver} from "../pageObserver.js";
+import {ConverterPageHandler} from "../pageHandlers.js";
 
 export default new HashObserver("#leerlingen-werklijst", onMutation);
 
