@@ -1,9 +1,9 @@
 export class TableDef {
-    constructor(orgTable, buildFetchUrl, pageHandler, navigation) {
+    constructor(orgTable, buildFetchUrl, pageHandler, navigationData) {
         this.orgTable = orgTable;
         this.buildFetchUrl = buildFetchUrl;
         this.pageHandler = pageHandler;
-        this.navigation = navigation;
+        this.navigationData = navigationData;
     }
 
     onPage(text, collection, offset) {
@@ -12,10 +12,11 @@ export class TableDef {
 }
 
 export class TableNavigation {
-    constructor(step, maxCount, div) {
+    constructor(step, maxCount, div, navigationData) {
         this.step = step;
         this.maxCount = maxCount;
         this.div = div;
+        this.navigationData = navigationData;
     }
 
     steps() {

@@ -18,16 +18,15 @@ function insertProgressBar(elementAfter, steps, text = "") {
 }
 
 export async function fetchFullTable(tableDef, results, parallelAsyncFunction) {
-    let navigationData = findFirstNavigation();
-    let progressBar = insertProgressBar(tableDef.orgTable, navigationData.steps(), "loading pages... ");
+    let progressBar = insertProgressBar(tableDef.orgTable, tableDef.navigationData.steps(), "loading pages... ");
 
     if(parallelAsyncFunction) {
         return Promise.all([
-            fetchAllPages(progressBar, navigationData, results, tableDef),
+            fetchAllPages(progressBar, tableDef.navigationData, results, tableDef),
             parallelAsyncFunction()
         ]);
     } else {
-        return fetchAllPages(progressBar, navigationData, results, tableDef);
+        return fetchAllPages(progressBar, tableDef.navigationData, results, tableDef);
     }
 }
 

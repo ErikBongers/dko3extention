@@ -3,7 +3,7 @@ import * as def from "../lessen/def.js";
 import {buildTable, getUrenVakLeraarFileName} from "./buildUren.js";
 import {scrapeStudent} from "./scrapeUren.js";
 import {fetchFromCloud} from "../cloud.js";
-import {TableDef} from "../tableDef.js";
+import {findFirstNavigation, TableDef} from "../tableDef.js";
 import {fetchFullTable} from "./pageFetcher.js";
 import {prefillInstruments} from "./prefillInstruments.js";
 import {HashObserver} from "../pageObserver.js";
@@ -58,8 +58,9 @@ function onClickCopyEmails() {
     let tableDef = new TableDef(
         document.getElementById("table_leerlingen_werklijst_table"),
         (offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0",
-        pageHandler
-    );
+        pageHandler,
+        findFirstNavigation()
+);
 
     fetchFullTable(
         tableDef,
@@ -89,7 +90,8 @@ function onClickShowCounts() {
         let tableDef = new TableDef(
             document.getElementById("table_leerlingen_werklijst_table"),
             (offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0",
-            pageHandler
+            pageHandler,
+            findFirstNavigation()
         );
 
         fetchFullTable(
