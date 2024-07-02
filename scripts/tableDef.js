@@ -1,9 +1,35 @@
 export class TableDef {
-    constructor(orgTable, buildFetchUrl, pageHandler, navigationData) {
+    constructor(orgTable, buildFetchUrl, pageHandler, navigationData, cacheKey, calculateChecksum = undefined, newTableId) {
         this.orgTable = orgTable;
         this.buildFetchUrl = buildFetchUrl;
         this.pageHandler = pageHandler;
         this.navigationData = navigationData;
+        this.cacheKey = cacheKey;
+        this.calculateChecksum = calculateChecksum;
+        this.newTableId = newTableId;
+    }
+
+    /**
+     * Save rows in sessionStarage with a checksum to determine if the cache is outDated.
+     * @param checksum
+     */
+    cacheRows(checksum) {
+        console.log(`Caching ${this.cacheKey}.`);
+        window.sessionStorage.setItem(this.cacheKey, this.orgTable.querySelector("tbody").innerHTML);
+        window.sessionStorage.setItem(this.cacheKey+"_checksum", checksum);
+    }
+
+    isCacheValid(checksum) {
+        return window.sessionStorage.getItem(this.cacheKey+"_checksum") === checksum;
+    }
+
+    getCached() {
+        return window.sessionStorage.getItem(this.cacheKey);
+    }
+
+    displayCached() {
+        //TODO: also show "this is cached data" and a link to refresh.
+        this.orgTable.querySelector("tbody").innerHTML = this.getCached();
     }
 }
 

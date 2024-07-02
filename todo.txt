@@ -1,3 +1,21 @@
+* cache werklijst or other tables
+  > store in session
+  > store per lijst.
+  > for werklijst: still valid?
+    > for werklijst: criteria still the same?
+  > retrieve cache?
+    > werklijst: uren :
+      > user sets correct criteria
+      > clicks show list
+      > clicks guitar button.
+        >>> if there's a saved list, use it.
+
+      > users goes somewhere else and comes back to werklijst:
+        > same filter is active.
+        > can do the same thing as above.
+
+
+
 * db3: setting to turn callstack on/off
 
 * move defs.js out of /lessen/

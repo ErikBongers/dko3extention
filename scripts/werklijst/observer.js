@@ -12,9 +12,8 @@ import {NamedCellPageHandler} from "../pageHandlers.js";
 export default new HashObserver("#leerlingen-werklijst", onMutation);
 
 function onMutation(mutation) {
-    let werklijst = document.getElementById("div_table_werklijst");
-    if (mutation.target === werklijst) {
-        onWerklijstChanged(werklijst);
+    if (mutation.target.id === "table_leerlingen_werklijst_table") {
+        onWerklijstChanged();
         return true;
     }
     let buttonBar = document.getElementById("tablenav_leerlingen_werklijst_top");
@@ -38,7 +37,16 @@ function onPreparingFilter() {
     getSchoolIdString();
 }
 
-function onWerklijstChanged(tabWerklijst) {
+function getCriteriaString() {
+    return document.querySelector("#view_contents > div.alert.alert-info").textContent.replace("Criteria aanpassen", "").replace("Criteria:", "").replaceAll(/\s/g, "");
+}
+
+function onWerklijstChanged() {
+    console.log("werklijst chqanged.");
+    //recognize werklijst.
+    let criteriaString = getCriteriaString();
+    console.log(criteriaString);
+    //TODO: remember last werklijst subtype in session storage, independent of tableDef -> log it to test!!!?
 }
 
 function onButtonBarChanged() {
@@ -60,7 +68,10 @@ function onClickCopyEmails() {
         document.getElementById("table_leerlingen_werklijst_table"),
         (offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0",
         pageHandler,
-        findFirstNavigation()
+        findFirstNavigation(),
+        "werklijst",
+        "",
+        ""
     );
 
     fetchFullTable(
@@ -91,7 +102,9 @@ function onClickShowCounts() {
             document.getElementById("table_leerlingen_werklijst_table"),
             (offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0",
             pageHandler,
-            findFirstNavigation()
+            findFirstNavigation(),
+            "werklijst_uren",
+            def.COUNT_TABLE_ID
         );
 
         fetchFullTable(

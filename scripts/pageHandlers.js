@@ -21,6 +21,10 @@ export class RowPageHandler {
         }
         return this.rows.length;
     }
+
+    onLoaded(tableDef) {
+        tableDef.cacheRows(tableDef.calculateChecksum? tableDef.calculateChecksum() : "");
+    }
 }
 
 /**
@@ -32,13 +36,26 @@ export class RowPageHandler {
  * @implements PageHandler: which requires member `onPage()`
  */
 export class NamedCellPageHandler {
-    constructor(requiredHeaderLabels, onRow) {
+    constructor(requiredHeaderLabels, onRow, onBeforeLoading) {
         this.requiredHeaderLabels = requiredHeaderLabels;
         this.onRow = onRow;
+        this.onBeforeLoading = onBeforeLoading;
         this.template = undefined;
         this.rows = undefined;
         this.headerIndices = undefined;
         this.currentRow = undefined;
+    }
+
+    onPage(tableDef, text, collection, offset) {
+        const template = document.createElement('template');
+        template.innerHTML = text;
+
+        if (!this.setTemplateAndCheck(template))
+            throw ("Cannot build table object - required columns missing");
+
+        this.rows = template.content.querySelectorAll("tbody > tr");
+        this.forEachRow(tableDef, collection);
+        return this.rows.length;
     }
 
     setTemplateAndCheck(template) {
@@ -95,15 +112,7 @@ export class NamedCellPageHandler {
         }
     }
 
-    onPage(tableDef, text, collection, offset) {
-        const template = document.createElement('template');
-        template.innerHTML = text;
-
-        if (!this.setTemplateAndCheck(template))
-            throw ("Cannot build table object - required columns missing");
-
-        this.rows = template.content.querySelectorAll("tbody > tr");
-        this.forEachRow(tableDef, collection);
-        return this.rows.length;
+    onLoaded(tableDef) {
+        tableDef.cacheRows(tableDef.calculateChecksum? tableDef.calculateChecksum() : "");
     }
 }

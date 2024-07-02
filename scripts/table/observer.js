@@ -31,7 +31,10 @@ function downloadTable() {
         document.getElementById("table_leerlingen_werklijst_table"),
         (offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0",
         rowPageHandler,
-        findFirstNavigation()
+        findFirstNavigation(),
+        "werklijst",
+        "",
+        ""
     );
 
     fetchFullTable(tableDef, undefined, undefined).then(() => {

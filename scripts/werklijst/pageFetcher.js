@@ -48,6 +48,7 @@ async function fetchAllPages(tableDef, results, progressBar) {
         }
     } finally {
         progressBar.stop();
+        tableDef.pageHandler.onLoaded(tableDef); //TODO: could be undefined.
     }
     return results;
 }
