@@ -1,15 +1,40 @@
+export class RowPageHandler {
+    constructor(onRow, onBeforeLoading) {
+        this.onRow = onRow;
+        this.onBeforeLoading = onBeforeLoading;
+        this.template = undefined;
+        this.rows = undefined;
+        this.currentRow = undefined;
+    }
+
+    onPage(tableDef, text, collection, offset) {
+        const template = document.createElement('template');
+        template.innerHTML = text;
+
+        this.rows = template.content.querySelectorAll("tbody > tr");
+        let index = 0;
+        for (let row of this.rows) {
+            this.currentRow = row;
+            if (!this.onRow(tableDef, row, collection, offset, index))
+                return;
+            index++;
+        }
+        return this.rows.length;
+    }
+}
+
 /**
- * PageHandler to convert a table.\
+ * PageHandler with named column labels.\
  * Params are:
  * @description
  *      * requiredHeaderLabels: array with labels of required columns.
- *      * rowScraper: function(rowObject, collection): a row handler that mainly provides a param `rowObject`, which has a member getColumnText(columnLabel)
+ *      * onRow: function(rowObject, collection): a row handler that mainly provides a param `rowObject`, which has a member getColumnText(columnLabel)
  * @implements PageHandler: which requires member `onPage()`
  */
 export class NamedCellPageHandler {
     constructor(requiredHeaderLabels, onRow) {
         this.requiredHeaderLabels = requiredHeaderLabels;
-        this.rowScraper = onRow;
+        this.onRow = onRow;
         this.template = undefined;
         this.rows = undefined;
         this.headerIndices = undefined;
@@ -58,28 +83,27 @@ export class NamedCellPageHandler {
         return this.currentRow.children[this.headerIndices.get(label)].textContent;
     }
 
-    forEachRow(collection, doRow) {
+    forEachRow(tableDef, collection) {
         for (let row of this.rows) {
             this.currentRow = row;
             let rowObject = {
                 tr: row,
-                getColumnText: (label) => this.#getColumnText(label),
-                tableDef: this
+                getColumnText: (label) => this.#getColumnText(label)
             };
-            if (!doRow(rowObject, collection))
+            if (!this.onRow(tableDef, rowObject, collection))
                 return;
         }
     }
 
-    onPage(text, collection, offset) {
+    onPage(tableDef, text, collection, offset) {
         const template = document.createElement('template');
         template.innerHTML = text;
 
         if (!this.setTemplateAndCheck(template))
             throw ("Cannot build table object - required columns missing");
 
-        let rows = template.content.querySelectorAll("tbody > tr");
-        this.forEachRow(collection, this.rowScraper);
-        return rows.length;
+        this.rows = template.content.querySelectorAll("tbody > tr");
+        this.forEachRow(tableDef, collection);
+        return this.rows.length;
     }
 }

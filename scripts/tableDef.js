@@ -5,10 +5,6 @@ export class TableDef {
         this.pageHandler = pageHandler;
         this.navigationData = navigationData;
     }
-
-    onPage(text, collection, offset) {
-        return this.pageHandler.onPage(text, collection, offset);
-    }
 }
 
 export class TableNavigation {

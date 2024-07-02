@@ -33,12 +33,13 @@ export async function fetchFullTable(tableDef, results, parallelAsyncFunction) {
 async function fetchAllPages(tableDef, results, progressBar) {
     let offset = 0;
     progressBar.start();
+    tableDef.pageHandler.onBeforeLoading(tableDef); //TODO: could be undefined.
     try {
         while (true) {
             console.log("fetching page " + offset);
             let response = await fetch(tableDef.buildFetchUrl(offset));
             let text = await response.text();
-            let count = tableDef.onPage(text, results, offset);
+            let count = tableDef.pageHandler.onPage(tableDef, text, results, offset);
             if (!count)
                 return undefined;
             offset += tableDef.navigationData.step;

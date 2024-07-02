@@ -61,7 +61,7 @@ function onClickCopyEmails() {
         (offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0",
         pageHandler,
         findFirstNavigation()
-);
+    );
 
     fetchFullTable(
         tableDef,
