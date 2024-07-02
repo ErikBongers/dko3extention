@@ -2,7 +2,7 @@ import * as def from "../lessen/def.js";
 import {ProgressBar} from "../globals.js";
 import {findFirstNavigation} from "../tableDef.js";
 
-function insertProgressBar(elementAfter, navigationData, text = "") {
+function insertProgressBar(elementAfter, steps, text = "") {
     let divProgressLine = document.createElement("div");
     elementAfter.insertAdjacentElement("beforebegin", divProgressLine);
     divProgressLine.classList.add("progressLine");
@@ -14,12 +14,12 @@ function insertProgressBar(elementAfter, navigationData, text = "") {
     let divProgressBar = document.createElement("div");
     divProgressLine.appendChild(divProgressBar);
     divProgressBar.classList.add("progressBar");
-    return new ProgressBar(divProgressLine, divProgressBar, navigationData.steps());
+    return new ProgressBar(divProgressLine, divProgressBar, steps);
 }
 
 export async function fetchFullTable(tableDef, results, parallelAsyncFunction) {
     let navigationData = findFirstNavigation();
-    let progressBar = insertProgressBar(tableDef.orgTable, navigationData, "loading pages... ");
+    let progressBar = insertProgressBar(tableDef.orgTable, navigationData.steps(), "loading pages... ");
 
     if(parallelAsyncFunction) {
         return Promise.all([
