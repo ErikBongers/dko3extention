@@ -43,10 +43,10 @@ function getCriteriaString() {
 
 function onWerklijstChanged() {
     console.log("werklijst chqanged.");
-    //recognize werklijst.
     let criteriaString = getCriteriaString();
+    console.log("getting cache for 'werklijst' and checksum:")
     console.log(criteriaString);
-    //TODO: remember last werklijst subtype in session storage, independent of tableDef -> log it to test!!!?
+    //TODO: ust use werklijst_<...criteria...> as the key.
 }
 
 function onButtonBarChanged() {
@@ -70,7 +70,7 @@ function onClickCopyEmails() {
         pageHandler,
         findFirstNavigation(),
         "werklijst",
-        "",
+        undefined,
         ""
     );
 
@@ -104,6 +104,7 @@ function onClickShowCounts() {
             pageHandler,
             findFirstNavigation(),
             "werklijst_uren",
+            undefined,
             def.COUNT_TABLE_ID
         );
 
