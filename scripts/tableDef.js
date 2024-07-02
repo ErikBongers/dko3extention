@@ -19,9 +19,9 @@ export class TableDef {
  * @implements PageHandler: which requires member `onPage()`
  */
 export class ConverterPageHandler {
-    constructor(requiredHeaderLabels, rowScraper) {
+    constructor(requiredHeaderLabels, onRow) {
         this.requiredHeaderLabels = requiredHeaderLabels;
-        this.rowScraper = rowScraper;
+        this.rowScraper = onRow;
         this.template = undefined;
         this.rows = undefined;
         this.headerIndices = undefined;
