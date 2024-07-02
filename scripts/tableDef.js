@@ -35,15 +35,13 @@ export function findFirstNavigation() {
     let button = element.querySelector("button.datatable-paging-numbers");
     let rx = /(\d*) tot (\d*) van (\d*)/;
     let matches = button.innerText.match(rx);
-    console.log(matches);
     let buttons = element.querySelectorAll("button.btn-secondary");
     let numbers = Array.from(buttons)
         .filter((btn) => btn.attributes["onclick"]?.value.includes("goto("))
         .map((btn) => btn.attributes["onclick"].value)
         .map((txt) => getGotoNumber(txt));
-    numbers.push(...matches.slice(1).map((txt) => parseInt(txt)));
-    numbers.sort();
-    console.log(numbers);
+    matches.slice(1).forEach((txt) => numbers.push(parseInt(txt)));
+    numbers.sort((a, b) => a - b);
     if (numbers[0] === 1) {
         return new TableNavigation(numbers[1], numbers.pop());
     } else {
