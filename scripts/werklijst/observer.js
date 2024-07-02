@@ -7,7 +7,7 @@ import {findFirstNavigation, TableDef} from "../tableDef.js";
 import {fetchFullTable} from "./pageFetcher.js";
 import {prefillInstruments} from "./prefillInstruments.js";
 import {HashObserver} from "../pageObserver.js";
-import {ConverterPageHandler} from "../pageHandlers.js";
+import {NamedCellPageHandler} from "../pageHandlers.js";
 
 export default new HashObserver("#leerlingen-werklijst", onMutation);
 
@@ -55,7 +55,7 @@ function scrapeEmails(row, collection, offset) {
 
 function onClickCopyEmails() {
     let requiredHeaderLabels = ["e-mailadressen"];
-    let pageHandler = new ConverterPageHandler(requiredHeaderLabels, scrapeEmails);
+    let pageHandler = new NamedCellPageHandler(requiredHeaderLabels, scrapeEmails);
     let tableDef = new TableDef(
         document.getElementById("table_leerlingen_werklijst_table"),
         (offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0",
@@ -86,7 +86,7 @@ function onClickShowCounts() {
 
         console.log("reading: " + fileName);
         let requiredHeaderLabels = ["naam", "voornaam", "vak", "klasleerkracht", "graad + leerjaar"];
-        let pageHandler = new ConverterPageHandler(requiredHeaderLabels, scrapeStudent);
+        let pageHandler = new NamedCellPageHandler(requiredHeaderLabels, scrapeStudent);
         let tableDef = new TableDef(
             document.getElementById("table_leerlingen_werklijst_table"),
             (offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0",

@@ -6,7 +6,7 @@
  *      * rowScraper: function(rowObject, collection): a row handler that mainly provides a param `rowObject`, which has a member getColumnText(columnLabel)
  * @implements PageHandler: which requires member `onPage()`
  */
-export class ConverterPageHandler {
+export class NamedCellPageHandler {
     constructor(requiredHeaderLabels, onRow) {
         this.requiredHeaderLabels = requiredHeaderLabels;
         this.rowScraper = onRow;
@@ -19,7 +19,7 @@ export class ConverterPageHandler {
     setTemplateAndCheck(template) {
         this.template = template;
         this.rows = template.content.querySelectorAll("tbody > tr");
-        this.headerIndices = ConverterPageHandler.getHeaderIndices(template);
+        this.headerIndices = NamedCellPageHandler.getHeaderIndices(template);
         if (!this.hasAllHeaders()) {
             let labelString = this.requiredHeaderLabels
                 .map((label) => "\"" + label.toUpperCase() + "\"")
