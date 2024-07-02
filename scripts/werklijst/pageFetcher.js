@@ -33,7 +33,8 @@ export async function fetchFullTable(tableDef, results, parallelAsyncFunction) {
 async function fetchAllPages(tableDef, results, progressBar) {
     let offset = 0;
     progressBar.start();
-    tableDef.pageHandler.onBeforeLoading(tableDef); //TODO: could be undefined.
+    if(tableDef.pageHandler.onBeforeLoading)
+        tableDef.pageHandler.onBeforeLoading(tableDef);
     try {
         while (true) {
             console.log("fetching page " + offset);
@@ -48,7 +49,8 @@ async function fetchAllPages(tableDef, results, progressBar) {
         }
     } finally {
         progressBar.stop();
-        tableDef.pageHandler.onLoaded(tableDef); //TODO: could be undefined.
+        if(tableDef.pageHandler.onLoaded)
+            tableDef.pageHandler.onLoaded(tableDef);
     }
     return results;
 }

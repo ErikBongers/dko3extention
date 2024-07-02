@@ -1,7 +1,6 @@
 import {createValidId} from "../globals.js";
 
-// noinspection JSUnusedLocalSymbols
-export function scrapeStudent(row, collection, offset) {
+export function scrapeStudent(tableDef, row, collection) {
     let student = {};
     student.naam = row.getColumnText("naam");
     student.voornaam = row.getColumnText("voornaam");
