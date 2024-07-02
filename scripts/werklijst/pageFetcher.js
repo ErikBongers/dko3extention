@@ -22,15 +22,15 @@ export async function fetchFullTable(tableDef, results, parallelAsyncFunction) {
 
     if(parallelAsyncFunction) {
         return Promise.all([
-            fetchAllPages(progressBar, tableDef.navigationData, results, tableDef),
+            fetchAllPages(tableDef, results, progressBar),
             parallelAsyncFunction()
         ]);
     } else {
-        return fetchAllPages(progressBar, tableDef.navigationData, results, tableDef);
+        return fetchAllPages(tableDef, results, progressBar);
     }
 }
 
-async function fetchAllPages(progressBar, navigationData, results, tableDef) {
+async function fetchAllPages(tableDef, results, progressBar) {
     let offset = 0;
     progressBar.start();
     try {
@@ -41,7 +41,7 @@ async function fetchAllPages(progressBar, navigationData, results, tableDef) {
             let count = tableDef.onPage(text, results, offset);
             if (!count)
                 return undefined;
-            offset += navigationData.step;
+            offset += tableDef.navigationData.step;
             if (!progressBar.next())
                 break;
         }

@@ -47,6 +47,7 @@ function onButtonBarChanged() {
     addButton(targetButton, def.MAIL_BTN_ID, "Email to clipboard", onClickCopyEmails, "fa-envelope", ["btn", "btn-outline-info"]);
 }
 
+// noinspection JSUnusedLocalSymbols
 function scrapeEmails(row, collection, offset) {
     collection.push(row.getColumnText("e-mailadressen"));
     return true;
@@ -76,7 +77,6 @@ function onClickCopyEmails() {
             console.log("email count: " + flattened.length);
             navigator.clipboard.writeText(flattened.join(";\n")).then();
         });
-
 }
 
 function onClickShowCounts() {
