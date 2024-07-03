@@ -1,28 +1,5 @@
-import {TableDef} from "./table/tableDef.js";
-
-type OnRowHandler = (tableDef: TableDef, rowObject: RowObject, collection: any) => boolean;
-type OnBeforeLoadingHandler = (tableDef: TableDef) => void;
-
-export interface PageHandler {
-    onPage(tableDef: TableDef, text: string, collection: any, offset: number) :number;
-    onLoaded?(tableDef: TableDef): void;
-    onBeforeLoading?: OnBeforeLoadingHandler;
-}
-
-export class RowObject {
-    tr: HTMLTableRowElement;
-    getColumnText: (label: string) => string;
-    offset: number;
-    index: number;
-}
-
-export class RowPageHandler implements PageHandler {
-    private readonly onRow: OnRowHandler;
-    onBeforeLoading?: OnBeforeLoadingHandler;
-    private template?: HTMLTemplateElement;
-    private rows?: NodeListOf<HTMLTableRowElement>;
-    private currentRow?: HTMLTableRowElement;
-    constructor(onRow: OnRowHandler, onBeforeLoading: OnBeforeLoadingHandler) {
+export class RowPageHandler {
+    constructor(onRow, onBeforeLoading) {
         this.onRow = onRow;
         this.onBeforeLoading = onBeforeLoading;
         this.template = undefined;
@@ -30,7 +7,7 @@ export class RowPageHandler implements PageHandler {
         this.currentRow = undefined;
     }
 
-    onPage(tableDef: TableDef, text: string, collection: any, offset: number) {
+    onPage(tableDef, text, collection, offset) {
         const template = document.createElement('template');
         template.innerHTML = text;
 
@@ -38,18 +15,14 @@ export class RowPageHandler implements PageHandler {
         let index = 0;
         for (let row of this.rows) {
             this.currentRow = row;
-            let rowObject = new RowObject();
-            rowObject.tr = row;
-            rowObject.offset = offset;
-            rowObject.index = index;
-            if (!this.onRow(tableDef, rowObject, collection))
+            if (!this.onRow(tableDef, row, collection, offset, index))
                 return;
             index++;
         }
         return this.rows.length;
     }
 
-    onLoaded(tableDef: TableDef) {
+    onLoaded(tableDef) {
         tableDef.cacheRows(tableDef.calculateChecksum? tableDef.calculateChecksum() : "");
     }
 }
@@ -62,15 +35,8 @@ export class RowPageHandler implements PageHandler {
  *      * onRow: function(rowObject, collection): a row handler that mainly provides a param `rowObject`, which has a member getColumnText(columnLabel)
  * @implements PageHandler: which requires member `onPage()`
  */
-export class NamedCellPageHandler implements PageHandler {
-    private requiredHeaderLabels: string[];
-    private readonly onRow: OnRowHandler;
-    onBeforeLoading?: OnBeforeLoadingHandler;
-    private template?: HTMLTemplateElement;
-    private rows?: NodeListOf<HTMLTableRowElement>;
-    private headerIndices: Map<string, number>;
-    private currentRow?: HTMLTableRowElement;
-    constructor(requiredHeaderLabels: string[], onRow: OnRowHandler, onBeforeLoading?: OnBeforeLoadingHandler) {
+export class NamedCellPageHandler {
+    constructor(requiredHeaderLabels, onRow, onBeforeLoading) {
         this.requiredHeaderLabels = requiredHeaderLabels;
         this.onRow = onRow;
         this.onBeforeLoading = onBeforeLoading;
@@ -80,7 +46,7 @@ export class NamedCellPageHandler implements PageHandler {
         this.currentRow = undefined;
     }
 
-    onPage(tableDef: TableDef, text: string, collection: any, _offset: number) {
+    onPage(tableDef, text, collection, offset) {
         const template = document.createElement('template');
         template.innerHTML = text;
 
@@ -92,7 +58,7 @@ export class NamedCellPageHandler implements PageHandler {
         return this.rows.length;
     }
 
-    setTemplateAndCheck(template: HTMLTemplateElement) {
+    setTemplateAndCheck(template) {
         this.template = template;
         this.rows = template.content.querySelectorAll("tbody > tr");
         this.headerIndices = NamedCellPageHandler.getHeaderIndices(template);
@@ -106,10 +72,10 @@ export class NamedCellPageHandler implements PageHandler {
         return true;
     }
 
-    static getHeaderIndices(template: HTMLTemplateElement) {
-        let headers = template.content.querySelectorAll("thead th") as NodeListOf<HTMLTableCellElement>;
+    static getHeaderIndices(template) {
+        let headers = template.content.querySelectorAll("thead th");
 
-        let headerIndices: Map<string, number> = new Map();
+        let headerIndices = new Map();
         Array.from(headers)
             .forEach((header, index) => {
                 let label = header.textContent;
@@ -126,26 +92,27 @@ export class NamedCellPageHandler implements PageHandler {
         return this.requiredHeaderLabels.every((label) => this.hasHeader(label))
     }
 
-    hasHeader(label: string) {
+    hasHeader(label) {
         return this.headerIndices.has(label);
     }
 
-    #getColumnText(label: string) {
+    #getColumnText(label) {
         return this.currentRow.children[this.headerIndices.get(label)].textContent;
     }
 
-    forEachRow(tableDef: TableDef, collection: any) {
+    forEachRow(tableDef, collection) {
         for (let row of this.rows) {
             this.currentRow = row;
-            let rowObject = new RowObject();
-            rowObject.tr =  row;
-            rowObject.getColumnText =  (label: string) => this.#getColumnText(label);
+            let rowObject = {
+                tr: row,
+                getColumnText: (label) => this.#getColumnText(label)
+            };
             if (!this.onRow(tableDef, rowObject, collection))
                 return;
         }
     }
 
-    onLoaded(tableDef: TableDef) {
+    onLoaded(tableDef) {
         tableDef.cacheRows(tableDef.calculateChecksum? tableDef.calculateChecksum() : "");
     }
 }

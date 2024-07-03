@@ -1,31 +1,43 @@
-import { addButton } from "../globals.js";
+import {addButton, db3} from "../globals.js";
 import * as def from "../lessen/def.js";
-import { AllPageFilter, BaseObserver } from "../pageObserver.js";
-import { RowPageHandler } from "../pageHandlers.js";
-import { fetchFullTable } from "../werklijst/pageFetcher.js";
-import { IdTableRef, TableDef } from "./tableDef.js";
-import { findFirstNavigation } from "./tableNavigation.js";
+import {AllPageFilter, BaseObserver} from "../pageObserver.js";
+import {RowPageHandler} from "../pageHandlers.js";
+import {fetchFullTable} from "../werklijst/pageFetcher.js";
+import {findFirstNavigation, TableDef} from "../tableDef.js";
+
 export default new BaseObserver(undefined, new AllPageFilter(), onMutation);
-function onMutation(_mutation) {
+
+function onMutation (mutation) {
     let navigationBar = document.querySelector("div.datatable-navigation-toolbar");
-    if (!navigationBar)
-        return false;
+    if(!navigationBar)
+        return;
     addButton(navigationBar.lastElementChild, def.DOWNLOAD_TABLE_BTN_ID, "download full table", downloadTable, "fa-arrow-down", ["btn-secondary"], "", "afterend");
-    return true;
 }
+
 function downloadTable() {
     let rowPageHandler = new RowPageHandler(onRow, onBeforeLoading);
+
     function onBeforeLoading(tableDef) {
-        tableDef.tableRef.getOrgTable().querySelector("tbody").innerHTML = "";
+        tableDef.orgTable.querySelector("tbody").innerHTML = "";
     }
-    function onRow(tableDef, rowObject, _collection) {
-        let tbody = tableDef.tableRef.getOrgTable().querySelector("tbody");
-        tbody.appendChild(rowObject.tr);
+
+    function onRow(tableDef, row, collection, offset, index) {
+        let tbody = tableDef.orgTable.querySelector("tbody");
+        tbody.appendChild(row);
         return true;
     }
-    let tableRef = new IdTableRef("table_leerlingen_werklijst_table", findFirstNavigation(), (offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0");
-    let tableDef = new TableDef(tableRef, rowPageHandler, "werklijst", "", "");
+
+    let tableDef = new TableDef(
+        document.getElementById("table_leerlingen_werklijst_table"),
+        (offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0",
+        rowPageHandler,
+        findFirstNavigation(),
+        "werklijst",
+        "",
+        ""
+    );
+
     fetchFullTable(tableDef, undefined, undefined).then(() => {
         console.log("Fetch complete!");
-    });
+    })
 }

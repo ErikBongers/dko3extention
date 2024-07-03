@@ -1,8 +1,8 @@
 import * as def from "../lessen/def.js";
 import {ProgressBar} from "../globals.js";
-import {TableDef} from "../table/tableDef.js";
+import {findFirstNavigation} from "../tableDef.js";
 
-function insertProgressBar(elementAfter: HTMLElement, steps: number, text: string = "") {
+function insertProgressBar(elementAfter, steps, text = "") {
     let divProgressLine = document.createElement("div");
     elementAfter.insertAdjacentElement("beforebegin", divProgressLine);
     divProgressLine.classList.add("progressLine");
@@ -17,8 +17,8 @@ function insertProgressBar(elementAfter: HTMLElement, steps: number, text: strin
     return new ProgressBar(divProgressLine, divProgressBar, steps);
 }
 
-export async function fetchFullTable(tableDef: TableDef, results: any, parallelAsyncFunction: (() => Promise<any>)) {
-    let progressBar = insertProgressBar(tableDef.tableRef.getOrgTable(), tableDef.tableRef.navigationData.steps(), "loading pages... ");
+export async function fetchFullTable(tableDef, results, parallelAsyncFunction) {
+    let progressBar = insertProgressBar(tableDef.orgTable, tableDef.navigationData.steps(), "loading pages... ");
 
     if(parallelAsyncFunction) {
         return Promise.all([
@@ -30,7 +30,7 @@ export async function fetchFullTable(tableDef: TableDef, results: any, parallelA
     }
 }
 
-async function fetchAllPages(tableDef: TableDef, results: any, progressBar: ProgressBar) {
+async function fetchAllPages(tableDef, results, progressBar) {
     let offset = 0;
     progressBar.start();
     if(tableDef.pageHandler.onBeforeLoading)
@@ -38,12 +38,12 @@ async function fetchAllPages(tableDef: TableDef, results: any, progressBar: Prog
     try {
         while (true) {
             console.log("fetching page " + offset);
-            let response = await fetch(tableDef.tableRef.buildFetchUrl(offset));
+            let response = await fetch(tableDef.buildFetchUrl(offset));
             let text = await response.text();
             let count = tableDef.pageHandler.onPage(tableDef, text, results, offset);
             if (!count)
                 return undefined;
-            offset += tableDef.tableRef.navigationData.step;
+            offset += tableDef.navigationData.step;
             if (!progressBar.next())
                 break;
         }

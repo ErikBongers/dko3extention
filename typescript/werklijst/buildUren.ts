@@ -1,34 +1,21 @@
 import * as def from "../lessen/def.js";
 import {createValidId, getSchoolIdString, getSchooljaar} from "../globals.js";
-import {VakLeraar} from "./scrapeUren.js";
+import {uploadData} from "../cloud.js";
 
 let isUpdatePaused = true;
 let cellChanged = false;
 let popoverIndex = 1;
 
-let theData: TheData;
+let theData = {fromCloud: {}};
 
 let editableObserver = new MutationObserver((mutationList, observer) => editableObserverCallback(mutationList, observer));
 setInterval(checkAndUpdate, 5000);
 
-interface ColDef {
-    label: string,
-    classList: string[],
-    factor: number,
-    getText?: (ctx: Context) => string,
-    getValue?: (ctx: Context) => number,
-    totals?: boolean,
-    calculated?: boolean,
-    fill?:(ctx: Context) => (number|undefined),
-    colIndex?: number,
-    total?: number
-}
-
-let colDefsArray: {key: string, def: ColDef}[] = [
-    {key:"uren_23_24", def: { label:"Uren\n23-24", classList: ["editable_number"], factor: 1.0, getValue: (ctx) => parseInt(ctx.data.fromCloud.columnMap.get("uren_23_24")?.get(ctx.vakLeraar.id)), totals:true}},
-    {key:"uren_24_25", def: { label:"Uren\n24-25", classList: ["editable_number"], factor: 1.0, getValue: (ctx) => parseInt(ctx.data.fromCloud.columnMap.get("uren_24_25")?.get(ctx.vakLeraar.id)), totals:true}},
-    {key:"vak", def: { label:"Vak", classList: [], factor: 1.0, getText: (ctx) => ctx.vakLeraar.vak}},
-    {key:"leraar", def: { label:"Leraar", classList: [], factor: 1.0, getText: (ctx) => ctx.vakLeraar.leraar.replaceAll("{", "").replaceAll("}", "")}},
+let colDefsArray = [
+    {key:"uren_23_24", def: { label:"Uren\n23-24", classList: ["editable_number"], factor: 1.0, getValue: (ctx) => ctx.data.fromCloud.columnMap.get("uren_23_24")?.get(ctx.vakLeraar.id), totals:true}},
+    {key:"uren_24_25", def: { label:"Uren\n24-25", classList: ["editable_number"], factor: 1.0, getValue: (ctx) => ctx.data.fromCloud.columnMap.get("uren_24_25")?.get(ctx.vakLeraar.id), totals:true}},
+    {key:"vak", def: { label:"Vak", classList: [], factor: 1.0, getValue: (ctx) => ctx.vakLeraar.vak}},
+    {key:"leraar", def: { label:"Leraar", classList: [], factor: 1.0, getValue: (ctx) => ctx.vakLeraar.leraar.replaceAll("{", "").replaceAll("}", "")}},
     {key:"grjr2_1", def: { label:"2.1", classList: [], factor: 1/4, getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count, fill: fillGraadCell }},
     {key:"grjr2_2", def: { label:"2.2", classList: [], factor: 1/4, getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count, fill: fillGraadCell }},
     {key:"grjr2_3", def: { label:"2.3", classList: [], factor: 1/3, getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count, fill: fillGraadCell }},
@@ -55,7 +42,7 @@ let colDefsArray: {key: string, def: ColDef}[] = [
 
     {key:"aantal_lln", def: { label:"aantal\nlln", classList: ["blueish"], factor: 1.0, getValue: (ctx) => calcUren(ctx, ["grjr2_1", "grjr2_2", "grjr2_3", "grjr2_4", "grjr3_1", "grjr3_2", "grjr3_3", "grjr4_1", "grjr4_2", "grjr4_3", "grjr_s_1", "grjr_s_2"]), totals:true, calculated:true}},
     {key:"tot_uren", def: { label:"tot\nuren", classList: ["creme"], factor: 1.0, getValue: (ctx) => calcUrenFactored(ctx, ["grjr2_1", "grjr2_2", "grjr2_3", "grjr2_4", "grjr3_1", "grjr3_2", "grjr3_3", "grjr4_1", "grjr4_2", "grjr4_3", "grjr_s_1", "grjr_s_2"]), totals:true, calculated:true}},
-    {key:"over", def: { label:"Over", classList: [], factor: 1.0, getValue: (ctx) => calcOver(ctx), calculated:true}},
+    {key:"over", def: { label:"Over", classList: [], factor: 1.0, getValue: calcOver, calculated:true}},
 ];
 
 colDefsArray.forEach((colDef, index) => {
@@ -64,13 +51,13 @@ colDefsArray.forEach((colDef, index) => {
 });
 let colDefs = new Map(colDefsArray.map((def) => [def.key, def.def]));
 
-function calcOver(ctx: Context) {
-    let totUren = getColValue(ctx, "tot_uren");
+function calcOver(ctx) {
+    let totUren = parseFloat(getColValue(ctx, "tot_uren"));
     if (isNaN(totUren)) {
         totUren = 0;
 
     }
-    let urenJaar = getColValue(ctx, "uren_24_25");
+    let urenJaar = parseFloat(getColValue(ctx, "uren_24_25"));
     if (isNaN(urenJaar)) {
         urenJaar = 0;
     }
@@ -78,26 +65,16 @@ function calcOver(ctx: Context) {
 
 }
 
-interface Context {
-    vakLeraar: VakLeraar;
-    colKey: string;
-    tr: HTMLTableRowElement,
-    td: HTMLTableCellElement,
-    colDef: ColDef,
-    colDefs: Map<string, ColDef>,
-    data: TheData
-}
+function getColValue(ctx, colKey) {
 
-function getColValue(ctx: Context, colKey: string) {
-
-    let newCtx: Context = {...ctx};
+    let newCtx = {...ctx};
     newCtx.colKey = colKey;
 
     newCtx.colDef = newCtx.colDefs.get(colKey);
     return newCtx.colDef.getValue(newCtx);
 }
 
-function editableObserverCallback(mutationList: MutationRecord[], _observer: MutationObserver) {
+function editableObserverCallback(mutationList, observer) {
     if (mutationList.every((mut) => mut.type === "attributes"))
         return; //ignore attrubute changes.
     cellChanged = true;
@@ -108,23 +85,12 @@ export function getUrenVakLeraarFileName() {
     return getSchoolIdString() + "_" + "uren_vak_lk_" + getSchooljaar().replace("-", "_") + ".json";
 }
 
-export interface JsonCloudData {
-    columnMap?: Map<string, Map<string, string>>;
-    version: string,
-    columns: JsonColumn[]
-}
-
-interface JsonColumn {
-    key: string,
-    rows: JsonCell[]
-    rowMap?: Map<string, string>;
-}
-
 function buildJsonData() {
-    let data: JsonCloudData = {
+    let data = {
         version: "1.0",
         columns: []
     };
+    data.version = "1.0";
     let col1 = columnToJson(data, "uren_23_24");
     let col2 = columnToJson(data, "uren_24_25");
     data.columns.push({key: "uren_23_24", rows: col1});
@@ -132,21 +98,16 @@ function buildJsonData() {
     return data;
 }
 
-interface JsonCell {
-    key: string,
-    value: string
-}
-
-function columnToJson(_data: JsonCloudData, colKey: string) {
-    let cells: JsonCell[] = [];
+function columnToJson(data, colKey) {
+    let rows = [];
     for (let [key, value] of theData.fromCloud.columnMap.get(colKey)) {
-        let row: JsonCell = {
+        let row = {
             key: key,
             value: value
         };
-        cells.push(row);
+        rows.push(row);
     }
-    return cells;
+    return rows;
 }
 
 function checkAndUpdate() {
@@ -163,21 +124,21 @@ function checkAndUpdate() {
     updateColumnData( "uren_24_25");
     let data = buildJsonData();
 
-    // uploadData(fileName, data);
+    uploadData(fileName, data);
     mapCloudData(data);//TODO: separate stages of data: raw data from/to cloud or from/to scraping, preparing the data, displaying the data.
     theData.fromCloud = data;
 
     recalculate();
 }
 
-function updateColumnData(colKey: string) {
+function updateColumnData(colKey) {
     let colDef = colDefs.get(colKey);
     for(let tr of document.querySelectorAll("#"+def.COUNT_TABLE_ID+" tbody tr")) {
         theData.fromCloud.columnMap.get(colKey).set(tr.id, tr.children[colDef.colIndex].textContent);
     }
 }
 
-function observeTable(observe: boolean) {
+function observeTable(observe) {
     const config = {
         attributes: true,
         childList: true,
@@ -193,60 +154,52 @@ function observeTable(observe: boolean) {
     }
 }
 
-function mapCloudData(fromCloud: JsonCloudData) {
+function mapCloudData(fromCloud) {
     for (let column of fromCloud.columns) {
         column.rowMap = new Map(column.rows.map((row) => [row.key, row.value]));
     }
     fromCloud.columnMap = new Map(fromCloud.columns.map((col) => [col.key, col.rowMap]));
 }
 
-function fillCell(ctx: Context): (number| undefined) {
-    if(ctx.colDef.getText) {
-        ctx.td.innerText = ctx.colDef.getText(ctx);
-        return undefined;
-    }
+function fillCell(ctx) {
+    let theValue = ctx.colDef.getValue(ctx);
     if (ctx.colDef.fill) {
         ctx.colDef.fill(ctx);
-        return undefined;
+    } else {
+        let celltext = theValue;
+        if (celltext)
+            ctx.td.innerText = trimNumber(celltext);
     }
-    let theValue = ctx.colDef.getValue(ctx);
-    ctx.td.innerText = trimNumber(theValue);
     return theValue;
 }
 
-function calculateAndSumCell(colDef: ColDef, ctx: Context, onlyRecalc: boolean) {
-    let theValue = undefined;
-    if (colDef.calculated || !onlyRecalc)
-        theValue = fillCell(ctx);
-    if (colDef.totals) {
-        if (!theValue)
-            theValue = colDef.getValue(ctx); //get value when not a calculated value.
-        if (theValue)
-            colDef.total += theValue;
-    }
-}
-
-function recalculate() {
+function recalculate() { //TODO: generalize to fill ALL the cells or only the calculated ones.
     isUpdatePaused = true;
     observeTable(false);
 
-    for(let [_colKey, colDef] of colDefs) {
+    for(let [colKey, colDef] of colDefs) {
         if(colDef.totals) {
             colDef.total = 0;
         }
     }
 
     for (let [vakLeraarKey, vakLeraar] of theData.vakLeraars) {
-        let tr = document.getElementById(createValidId(vakLeraarKey)) as HTMLTableRowElement;
+        let tr = document.getElementById(createValidId(vakLeraarKey));
         for(let [colKey, colDef] of colDefs) {
-            let td = tr.children[colDef.colIndex] as HTMLTableCellElement;
-            let ctx: Context = {td, colKey, colDef, vakLeraar, tr, colDefs, data: theData};
-            calculateAndSumCell(colDef, ctx, true);
+            let td = tr.children[colDef.colIndex];
+            let ctx = {td, colKey, colDef, vakLeraar, tr, colDefs, data: theData};
+            if(colDef.calculated)
+                fillCell(ctx);
+            if(colDef.totals) {
+                let theValue = colDef.getValue(ctx); //TODO: second call to getValue()! The first one (may be) in fillCell(), but this isn't always called.
+                colDef.total += parseFloat(theValue ? theValue : "0");
+            }
+
         }
     }
     let trTotal = document.getElementById("__totals__");
-    for(let [_colKey, colDef] of colDefs) {
-        let td = trTotal.children[colDef.colIndex] as HTMLTableCellElement;
+    for(let [colKey, colDef] of colDefs) {
+        let td = trTotal.children[colDef.colIndex];
         if(colDef.totals) {
             td.innerText = trimNumber(colDef.total);
         }
@@ -257,12 +210,7 @@ function recalculate() {
     observeTable(true);
 }
 
-interface TheData {
-    fromCloud: JsonCloudData,
-    vakLeraars: Map<string, VakLeraar>
-}
-
-export function buildTable(data: TheData) {
+export function buildTable(data) {
     isUpdatePaused = true;
     theData = data;
     let originalTable = document.querySelector("#table_leerlingen_werklijst_table");
@@ -292,15 +240,19 @@ export function buildTable(data: TheData) {
             tr.appendChild(td);
             td.classList.add(...colDef.classList);
             let ctx = {td, colKey, colDef, vakLeraar, tr, colDefs, data};
-            calculateAndSumCell(colDef, ctx, false);
+            let theValue = fillCell(ctx);
+            if (ctx.colDef.totals) {
+                ctx.colDef.total += parseFloat(theValue ? theValue : "0");
+            }
+
         }
     }
     let trTotal = document.createElement("tr");
     tbody.appendChild(trTotal);
     
     trTotal.id = "__totals__";
-    for(let [_colKey, colDef] of colDefs) {
-        let td = document.createElement("td") as HTMLTableCellElement;
+    for(let [colKey, colDef] of colDefs) {
+        let td = document.createElement("td");
         trTotal.appendChild(td);
         if(colDef.totals) {
             td.innerText = trimNumber(colDef.total);
@@ -313,7 +265,7 @@ export function buildTable(data: TheData) {
     isUpdatePaused = false;
 }
 
-function calcUren(ctx: Context, keys: string[]) {
+function calcUren(ctx, keys) {
     let tot = 0;
     for(let key of keys) {
         let colDef = ctx.colDefs.get(key);
@@ -323,7 +275,7 @@ function calcUren(ctx: Context, keys: string[]) {
     return tot;
 }
 
-function calcUrenFactored(ctx: Context, keys: string[]) {
+function calcUrenFactored(ctx, keys) {
     let tot = 0;
     for(let key of keys) {
         let colDef = ctx.colDefs.get(key);
@@ -334,14 +286,13 @@ function calcUrenFactored(ctx: Context, keys: string[]) {
     return tot;
 }
 
-function trimNumber(num: number) {
-    if(isNaN(num))
-        return "";
-    // @ts-ignore `num` is checked too be number
+function trimNumber(num) {
+    if((typeof num) !== "number")
+        return num;
     return (Math.round(num * 100) / 100).toFixed(2).replace(".00", "");
 }
 
-function fillTableHeader(table: HTMLTableElement, _vakLeraars: Map<string, VakLeraar>) {
+function fillTableHeader(table, vakLeraars) {
     let thead = document.createElement("thead");
     table.appendChild(thead);
     let tr_head = document.createElement("tr");
@@ -354,13 +305,13 @@ function fillTableHeader(table: HTMLTableElement, _vakLeraars: Map<string, VakLe
     }
 }
 
-function fillGraadCell(ctx: Context) {
+function fillGraadCell(ctx) {
     let graadJaar = ctx.vakLeraar.countMap.get(ctx.colDef.label);
-    let button = document.createElement("button") as HTMLButtonElement;
+    let button = document.createElement("button");
     ctx.td.appendChild(button);
     if(graadJaar.count === 0)
-        return graadJaar.count;
-    button.innerText = graadJaar.count.toString();
+        return;
+    button.innerText = graadJaar.count;
     popoverIndex++;
     button.setAttribute("popovertarget", "students_" + popoverIndex);
     let popoverDiv = document.createElement("div");
@@ -375,11 +326,10 @@ function fillGraadCell(ctx: Context) {
         studentDiv.appendChild(anchor);
         anchor.href = "/?#leerlingen-leerling?id=" + student.id + ",tab=inschrijvingen";
         anchor.classList.add("pl-1");
-        anchor.dataset.studentid = student.id.toString();
+        anchor.dataset.studentid = student.id;
 
         const iTag = document.createElement("i");
         anchor.appendChild(iTag);
         iTag.classList.add('fas', "fa-user-alt");
     }
-    return graadJaar.count;
 }
