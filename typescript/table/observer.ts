@@ -2,7 +2,6 @@ import {addButton} from "../globals.js";
 import * as def from "../lessen/def.js";
 import {AllPageFilter, BaseObserver} from "../pageObserver.js";
 import {RowObject, RowPageHandler} from "../pageHandlers.js";
-import {fetchFullTable} from "../werklijst/pageFetcher.js";
 import {IdTableRef, TableDef} from "./tableDef.js";
 import {findFirstNavigation} from "./tableNavigation.js";
 
@@ -38,7 +37,7 @@ function downloadTable() {
         ""
     );
 
-    fetchFullTable(tableDef, undefined, undefined).then(() => {
+    tableDef.fetchFullTable(undefined, undefined).then(() => {
         console.log("Fetch complete!");
     })
 }

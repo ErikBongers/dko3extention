@@ -2,7 +2,6 @@ import { addButton } from "../globals.js";
 import * as def from "../lessen/def.js";
 import { AllPageFilter, BaseObserver } from "../pageObserver.js";
 import { RowPageHandler } from "../pageHandlers.js";
-import { fetchFullTable } from "../werklijst/pageFetcher.js";
 import { IdTableRef, TableDef } from "./tableDef.js";
 import { findFirstNavigation } from "./tableNavigation.js";
 export default new BaseObserver(undefined, new AllPageFilter(), onMutation);
@@ -25,7 +24,7 @@ function downloadTable() {
     }
     let tableRef = new IdTableRef("table_leerlingen_werklijst_table", findFirstNavigation(), (offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0");
     let tableDef = new TableDef(tableRef, rowPageHandler, "werklijst", "", "");
-    fetchFullTable(tableDef, undefined, undefined).then(() => {
+    tableDef.fetchFullTable(undefined, undefined).then(() => {
         console.log("Fetch complete!");
     });
 }

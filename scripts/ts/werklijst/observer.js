@@ -4,7 +4,6 @@ import { buildTable, getUrenVakLeraarFileName } from "./buildUren.js";
 import { scrapeStudent } from "./scrapeUren.js";
 import { fetchFromCloud } from "../cloud.js";
 import { IdTableRef, TableDef } from "../table/tableDef.js";
-import { fetchFullTable } from "./pageFetcher.js";
 import { prefillInstruments } from "./prefillInstruments.js";
 import { HashObserver } from "../pageObserver.js";
 import { NamedCellPageHandler } from "../pageHandlers.js";
@@ -58,7 +57,7 @@ function onClickCopyEmails() {
     let pageHandler = new NamedCellPageHandler(requiredHeaderLabels, scrapeEmails);
     let tableRef = new IdTableRef("table_leerlingen_werklijst_table", findFirstNavigation(), (offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0");
     let tableDef = new TableDef(tableRef, pageHandler, "werklijst", undefined, "");
-    fetchFullTable(tableDef, [], undefined)
+    tableDef.fetchFullTable([], undefined)
         .then((results) => {
         let flattened = results
             .map((emails) => emails.split(/[,;]/))
@@ -78,7 +77,7 @@ function onClickShowCounts() {
         let pageHandler = new NamedCellPageHandler(requiredHeaderLabels, scrapeStudent);
         let tableRef = new IdTableRef("table_leerlingen_werklijst_table", findFirstNavigation(), (offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0");
         let tableDef = new TableDef(tableRef, pageHandler, "werklijst_uren", undefined, def.COUNT_TABLE_ID);
-        fetchFullTable(tableDef, new Map(), () => fetchFromCloud(fileName))
+        tableDef.fetchFullTable(new Map(), () => fetchFromCloud(fileName))
             .then((results) => {
             let vakLeraars = results[0];
             let fromCloud = results[1];

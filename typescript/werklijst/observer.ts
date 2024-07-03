@@ -4,7 +4,6 @@ import {buildTable, getUrenVakLeraarFileName, JsonCloudData} from "./buildUren.j
 import {scrapeStudent, VakLeraar} from "./scrapeUren.js";
 import {fetchFromCloud} from "../cloud.js";
 import {IdTableRef, TableDef} from "../table/tableDef.js";
-import {fetchFullTable} from "./pageFetcher.js";
 import {prefillInstruments} from "./prefillInstruments.js";
 import {HashObserver} from "../pageObserver.js";
 import {NamedCellPageHandler, RowObject} from "../pageHandlers.js";
@@ -74,8 +73,7 @@ function onClickCopyEmails() {
         ""
     );
 
-    fetchFullTable(
-        tableDef,
+    tableDef.fetchFullTable(
         [],
         undefined
     )
@@ -107,8 +105,7 @@ function onClickShowCounts() {
             def.COUNT_TABLE_ID
         );
 
-        fetchFullTable(
-            tableDef,
+        tableDef.fetchFullTable(
             new Map(),
             () => fetchFromCloud(fileName))
             .then((results) => {
