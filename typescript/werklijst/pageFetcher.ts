@@ -1,6 +1,6 @@
 import * as def from "../lessen/def.js";
 import {ProgressBar} from "../globals.js";
-import {TableDef} from "../tableDef.js";
+import {TableDef} from "../table/tableDef.js";
 
 function insertProgressBar(elementAfter: HTMLElement, steps: number, text: string = "") {
     let divProgressLine = document.createElement("div");

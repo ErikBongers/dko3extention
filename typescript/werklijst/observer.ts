@@ -3,11 +3,12 @@ import * as def from "../lessen/def.js";
 import {buildTable, getUrenVakLeraarFileName, JsonCloudData} from "./buildUren.js";
 import {scrapeStudent, VakLeraar} from "./scrapeUren.js";
 import {fetchFromCloud} from "../cloud.js";
-import {findFirstNavigation, IdTableRef, TableDef} from "../tableDef.js";
+import {IdTableRef, TableDef} from "../table/tableDef.js";
 import {fetchFullTable} from "./pageFetcher.js";
 import {prefillInstruments} from "./prefillInstruments.js";
 import {HashObserver} from "../pageObserver.js";
 import {NamedCellPageHandler, RowObject} from "../pageHandlers.js";
+import {findFirstNavigation} from "../table/tableNavigation.js";
 
 export default new HashObserver("#leerlingen-werklijst", onMutation);
 

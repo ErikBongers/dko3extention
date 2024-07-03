@@ -1,5 +1,5 @@
 import {createValidId} from "../globals.js";
-import {TableDef} from "../tableDef.js";
+import {TableDef} from "../table/tableDef.js";
 import {RowObject} from "../pageHandlers.js";
 import {StudentInfo} from "../lessen/scrape.js";
 

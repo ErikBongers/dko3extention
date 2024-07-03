@@ -38,7 +38,6 @@
       "scripts/werklijst/*",
       "scripts/main.js",
       "scripts/globals.js",
-      "scripts/tableDef.js",
       "scripts/cloud.js",
       "scripts/pageHandlers.js",
       "scripts/pageObserver.js"

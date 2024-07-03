@@ -1,4 +1,4 @@
-import {TableDef} from "./tableDef.js";
+import {TableDef} from "./table/tableDef.js";
 
 type OnRowHandler = (tableDef: TableDef, rowObject: RowObject, collection: any) => boolean;
 type OnBeforeLoadingHandler = (tableDef: TableDef) => void;

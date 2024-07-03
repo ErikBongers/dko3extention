@@ -3,7 +3,8 @@ import * as def from "../lessen/def.js";
 import {AllPageFilter, BaseObserver} from "../pageObserver.js";
 import {RowObject, RowPageHandler} from "../pageHandlers.js";
 import {fetchFullTable} from "../werklijst/pageFetcher.js";
-import {findFirstNavigation, IdTableRef, TableDef} from "../tableDef.js";
+import {IdTableRef, TableDef} from "./tableDef.js";
+import {findFirstNavigation} from "./tableNavigation.js";
 
 export default new BaseObserver(undefined, new AllPageFilter(), onMutation);
 
