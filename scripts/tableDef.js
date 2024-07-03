@@ -1,7 +1,15 @@
-export class TableDef {
-    constructor(orgTable, buildFetchUrl, pageHandler, navigationData, cacheKey, calculateChecksum = undefined, newTableId) {
-        this.orgTable = orgTable;
+export class IdTableRef {
+    constructor(tableId, buildFetchUrl) {
+        this.tableId = tableId;
         this.buildFetchUrl = buildFetchUrl;
+    }
+    getOrgTable() {
+        return document.getElementById(this.tableId);
+    }
+}
+export class TableDef {
+    constructor(tableRef, pageHandler, navigationData, cacheKey, calculateChecksum = undefined, newTableId) {
+        this.tableRef = tableRef;
         this.pageHandler = pageHandler;
         this.navigationData = navigationData;
         this.cacheKey = cacheKey;
@@ -14,7 +22,7 @@ export class TableDef {
      */
     cacheRows(checksum) {
         console.log(`Caching ${this.cacheKey}.`);
-        window.sessionStorage.setItem(this.cacheKey, this.orgTable.querySelector("tbody").innerHTML);
+        window.sessionStorage.setItem(this.cacheKey, this.tableRef.getOrgTable().querySelector("tbody").innerHTML);
         window.sessionStorage.setItem(this.cacheKey + "_checksum", checksum);
     }
     isCacheValid(checksum) {
@@ -25,16 +33,14 @@ export class TableDef {
     }
     displayCached() {
         //TODO: also show "this is cached data" and a link to refresh.
-        this.orgTable.querySelector("tbody").innerHTML = this.getCached();
+        this.tableRef.getOrgTable().querySelector("tbody").innerHTML = this.getCached();
     }
 }
 export class TableNavigation {
-    // private navigationData: any;//TODO: WTF is this???
     constructor(step, maxCount, div /*, navigationData: any*/) {
         this.step = step;
         this.maxCount = maxCount;
         this.div = div;
-        // this.navigationData = navigationData;
     }
     steps() {
         return Math.ceil(this.maxCount / this.step);

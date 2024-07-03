@@ -226,7 +226,7 @@ function calculateAndSumCell(colDef: ColDef, ctx: Context, onlyRecalc: boolean) 
     }
 }
 
-function recalculate() { //TODO: generalize to fill ALL the cells or only the calculated ones.
+function recalculate() {
     isUpdatePaused = true;
     observeTable(false);
 

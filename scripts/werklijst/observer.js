@@ -3,7 +3,7 @@ import * as def from "../lessen/def.js";
 import { buildTable, getUrenVakLeraarFileName } from "./buildUren.js";
 import { scrapeStudent } from "./scrapeUren.js";
 import { fetchFromCloud } from "../cloud.js";
-import { findFirstNavigation, TableDef } from "../tableDef.js";
+import { findFirstNavigation, IdTableRef, TableDef } from "../tableDef.js";
 import { fetchFullTable } from "./pageFetcher.js";
 import { prefillInstruments } from "./prefillInstruments.js";
 import { HashObserver } from "../pageObserver.js";
@@ -55,7 +55,8 @@ function scrapeEmails(_tableDef, row, collection) {
 function onClickCopyEmails() {
     let requiredHeaderLabels = ["e-mailadressen"];
     let pageHandler = new NamedCellPageHandler(requiredHeaderLabels, scrapeEmails);
-    let tableDef = new TableDef(document.getElementById("table_leerlingen_werklijst_table"), (offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0", pageHandler, findFirstNavigation(), "werklijst", undefined, "");
+    let tableRef = new IdTableRef("table_leerlingen_werklijst_table", (offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0");
+    let tableDef = new TableDef(tableRef, pageHandler, findFirstNavigation(), "werklijst", undefined, "");
     fetchFullTable(tableDef, [], undefined)
         .then((results) => {
         let flattened = results
@@ -74,7 +75,8 @@ function onClickShowCounts() {
         console.log("reading: " + fileName);
         let requiredHeaderLabels = ["naam", "voornaam", "vak", "klasleerkracht", "graad + leerjaar"];
         let pageHandler = new NamedCellPageHandler(requiredHeaderLabels, scrapeStudent);
-        let tableDef = new TableDef(document.getElementById("table_leerlingen_werklijst_table"), (offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0", pageHandler, findFirstNavigation(), "werklijst_uren", undefined, def.COUNT_TABLE_ID);
+        let tableRef = new IdTableRef("table_leerlingen_werklijst_table", (offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0");
+        let tableDef = new TableDef(tableRef, pageHandler, findFirstNavigation(), "werklijst_uren", undefined, def.COUNT_TABLE_ID);
         fetchFullTable(tableDef, new Map(), () => fetchFromCloud(fileName))
             .then((results) => {
             let vakLeraars = results[0];

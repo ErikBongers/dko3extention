@@ -3,7 +3,7 @@ import * as def from "../lessen/def.js";
 import {buildTable, getUrenVakLeraarFileName, JsonCloudData} from "./buildUren.js";
 import {scrapeStudent, VakLeraar} from "./scrapeUren.js";
 import {fetchFromCloud} from "../cloud.js";
-import {findFirstNavigation, TableDef} from "../tableDef.js";
+import {findFirstNavigation, IdTableRef, TableDef} from "../tableDef.js";
 import {fetchFullTable} from "./pageFetcher.js";
 import {prefillInstruments} from "./prefillInstruments.js";
 import {HashObserver} from "../pageObserver.js";
@@ -64,9 +64,9 @@ function scrapeEmails(_tableDef: TableDef, row: RowObject, collection: any) {
 function onClickCopyEmails() {
     let requiredHeaderLabels = ["e-mailadressen"];
     let pageHandler = new NamedCellPageHandler(requiredHeaderLabels, scrapeEmails);
+    let tableRef = new IdTableRef("table_leerlingen_werklijst_table", (offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0");
     let tableDef = new TableDef(
-        document.getElementById("table_leerlingen_werklijst_table") as HTMLTableElement,
-        (offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0",
+        tableRef,
         pageHandler,
         findFirstNavigation(),
         "werklijst",
@@ -98,9 +98,9 @@ function onClickShowCounts() {
         console.log("reading: " + fileName);
         let requiredHeaderLabels = ["naam", "voornaam", "vak", "klasleerkracht", "graad + leerjaar"];
         let pageHandler = new NamedCellPageHandler(requiredHeaderLabels, scrapeStudent);
+        let tableRef = new IdTableRef("table_leerlingen_werklijst_table", (offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0");
         let tableDef = new TableDef(
-            document.getElementById("table_leerlingen_werklijst_table") as HTMLTableElement,
-            (offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0",
+            tableRef,
             pageHandler,
             findFirstNavigation(),
             "werklijst_uren",

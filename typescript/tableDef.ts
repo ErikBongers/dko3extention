@@ -1,16 +1,32 @@
 import {PageHandler} from "./pageHandlers.js";
 
+export interface TableRef {
+    buildFetchUrl: (offset: number) => string;
+    getOrgTable: () => HTMLTableElement;
+}
+export class IdTableRef implements TableRef{
+    tableId: string;
+    buildFetchUrl: (offset: number) => string;
+
+    constructor(tableId: string, buildFetchUrl: (offset: number) => string) {
+        this.tableId = tableId;
+        this.buildFetchUrl = buildFetchUrl;
+    }
+
+    getOrgTable() {
+        return document.getElementById(this.tableId) as HTMLTableElement;
+    }
+}
+
 export class TableDef {
     calculateChecksum?: () => string;
-    orgTable: HTMLTableElement;
-    private buildFetchUrl: (offset: number) => string;
-    private pageHandler: PageHandler;
+    tableRef: TableRef;
+    pageHandler: PageHandler;
     navigationData: TableNavigation;
     private readonly cacheKey: string;
     private newTableId: string;
-    constructor(orgTable: HTMLTableElement, buildFetchUrl: (offset: number) => string, pageHandler: PageHandler, navigationData: TableNavigation, cacheKey: string, calculateChecksum = undefined, newTableId: string) {
-        this.orgTable = orgTable;
-        this.buildFetchUrl = buildFetchUrl;
+    constructor(tableRef: TableRef, pageHandler: PageHandler, navigationData: TableNavigation, cacheKey: string, calculateChecksum = undefined, newTableId: string) {
+        this.tableRef = tableRef;
         this.pageHandler = pageHandler;
         this.navigationData = navigationData;
         this.cacheKey = cacheKey;
@@ -24,7 +40,7 @@ export class TableDef {
      */
     cacheRows(checksum: string) {
         console.log(`Caching ${this.cacheKey}.`);
-        window.sessionStorage.setItem(this.cacheKey, this.orgTable.querySelector("tbody").innerHTML);
+        window.sessionStorage.setItem(this.cacheKey, this.tableRef.getOrgTable().querySelector("tbody").innerHTML);
         window.sessionStorage.setItem(this.cacheKey+"_checksum", checksum);
     }
 
@@ -38,20 +54,18 @@ export class TableDef {
 
     displayCached() {
         //TODO: also show "this is cached data" and a link to refresh.
-        this.orgTable.querySelector("tbody").innerHTML = this.getCached();
+        this.tableRef.getOrgTable().querySelector("tbody").innerHTML = this.getCached();
     }
 }
 
 export class TableNavigation {
-    private readonly step: number;
+    readonly step: number;
     private readonly maxCount: number;
     private div: HTMLDivElement;
-    // private navigationData: any;//TODO: WTF is this???
     constructor(step: number, maxCount: number, div: HTMLDivElement/*, navigationData: any*/) {
         this.step = step;
         this.maxCount = maxCount;
         this.div = div;
-        // this.navigationData = navigationData;
     }
 
     steps() {

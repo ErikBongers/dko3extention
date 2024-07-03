@@ -1,8 +1,12 @@
 import {TableDef} from "./tableDef.js";
 
+type OnRowHandler = (tableDef: TableDef, rowObject: RowObject, collection: any) => boolean;
+type OnBeforeLoadingHandler = (tableDef: TableDef) => void;
+
 export interface PageHandler {
     onPage(tableDef: TableDef, text: string, collection: any, offset: number) :number;
     onLoaded?(tableDef: TableDef): void;
+    onBeforeLoading?: OnBeforeLoadingHandler;
 }
 
 export class RowObject {
@@ -12,12 +16,9 @@ export class RowObject {
     index: number;
 }
 
-type OnRowHandler = (tableDef: TableDef, rowObject: RowObject, collection: any) => boolean;
-type OnBeforeLoadingHandler = (tableDef: TableDef) => void;
-
-export class RowPageHandler implements PageHandler{
+export class RowPageHandler implements PageHandler {
     private readonly onRow: OnRowHandler;
-    private onBeforeLoading: OnBeforeLoadingHandler;
+    onBeforeLoading?: OnBeforeLoadingHandler;
     private template?: HTMLTemplateElement;
     private rows?: NodeListOf<HTMLTableRowElement>;
     private currentRow?: HTMLTableRowElement;
@@ -61,10 +62,10 @@ export class RowPageHandler implements PageHandler{
  *      * onRow: function(rowObject, collection): a row handler that mainly provides a param `rowObject`, which has a member getColumnText(columnLabel)
  * @implements PageHandler: which requires member `onPage()`
  */
-export class NamedCellPageHandler {
+export class NamedCellPageHandler implements PageHandler {
     private requiredHeaderLabels: string[];
     private readonly onRow: OnRowHandler;
-    private onBeforeLoading?: OnBeforeLoadingHandler;
+    onBeforeLoading?: OnBeforeLoadingHandler;
     private template?: HTMLTemplateElement;
     private rows?: NodeListOf<HTMLTableRowElement>;
     private headerIndices: Map<string, number>;

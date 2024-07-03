@@ -15,7 +15,7 @@ function insertProgressBar(elementAfter, steps, text = "") {
     return new ProgressBar(divProgressLine, divProgressBar, steps);
 }
 export async function fetchFullTable(tableDef, results, parallelAsyncFunction) {
-    let progressBar = insertProgressBar(tableDef.orgTable, tableDef.navigationData.steps(), "loading pages... ");
+    let progressBar = insertProgressBar(tableDef.tableRef.getOrgTable(), tableDef.navigationData.steps(), "loading pages... ");
     if (parallelAsyncFunction) {
         return Promise.all([
             fetchAllPages(tableDef, results, progressBar),
@@ -34,7 +34,7 @@ async function fetchAllPages(tableDef, results, progressBar) {
     try {
         while (true) {
             console.log("fetching page " + offset);
-            let response = await fetch(tableDef.buildFetchUrl(offset));
+            let response = await fetch(tableDef.tableRef.buildFetchUrl(offset));
             let text = await response.text();
             let count = tableDef.pageHandler.onPage(tableDef, text, results, offset);
             if (!count)
