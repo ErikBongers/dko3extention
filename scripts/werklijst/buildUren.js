@@ -142,6 +142,17 @@ function fillCell(ctx) {
     ctx.td.innerText = trimNumber(theValue);
     return theValue;
 }
+function calculateAndSumCell(colDef, ctx, onlyRecalc) {
+    let theValue = undefined;
+    if (colDef.calculated || !onlyRecalc)
+        theValue = fillCell(ctx);
+    if (colDef.totals) {
+        if (!theValue)
+            theValue = colDef.getValue(ctx); //get value when not a calculated value.
+        if (theValue)
+            colDef.total += theValue;
+    }
+}
 function recalculate() {
     isUpdatePaused = true;
     observeTable(false);
@@ -155,12 +166,7 @@ function recalculate() {
         for (let [colKey, colDef] of colDefs) {
             let td = tr.children[colDef.colIndex];
             let ctx = { td, colKey, colDef, vakLeraar, tr, colDefs, data: theData };
-            if (colDef.calculated)
-                fillCell(ctx);
-            if (colDef.totals) {
-                let theValue = colDef.getValue(ctx); //TODO: second call to getValue()! The first one (may be) in fillCell(), but this isn't always called.
-                colDef.total += theValue;
-            }
+            calculateAndSumCell(colDef, ctx, true);
         }
     }
     let trTotal = document.getElementById("__totals__");
@@ -203,10 +209,7 @@ export function buildTable(data) {
             tr.appendChild(td);
             td.classList.add(...colDef.classList);
             let ctx = { td, colKey, colDef, vakLeraar, tr, colDefs, data };
-            let theValue = fillCell(ctx);
-            if (ctx.colDef.totals) {
-                ctx.colDef.total += theValue;
-            }
+            calculateAndSumCell(colDef, ctx, false);
         }
     }
     let trTotal = document.createElement("tr");
@@ -266,7 +269,7 @@ function fillGraadCell(ctx) {
     let button = document.createElement("button");
     ctx.td.appendChild(button);
     if (graadJaar.count === 0)
-        return;
+        return graadJaar.count;
     button.innerText = graadJaar.count.toString();
     popoverIndex++;
     button.setAttribute("popovertarget", "students_" + popoverIndex);
@@ -287,4 +290,5 @@ function fillGraadCell(ctx) {
         anchor.appendChild(iTag);
         iTag.classList.add('fas', "fa-user-alt");
     }
+    return graadJaar.count;
 }

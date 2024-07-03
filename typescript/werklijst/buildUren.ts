@@ -19,7 +19,7 @@ interface ColDef {
     getValue?: (ctx: Context) => number,
     totals?: boolean,
     calculated?: boolean,
-    fill?:(ctx: Context) => void,
+    fill?:(ctx: Context) => (number|undefined),
     colIndex?: number,
     total?: number
 }
@@ -214,6 +214,18 @@ function fillCell(ctx: Context): (number| undefined) {
     return theValue;
 }
 
+function calculateAndSumCell(colDef: ColDef, ctx: Context, onlyRecalc: boolean) {
+    let theValue = undefined;
+    if (colDef.calculated || !onlyRecalc)
+        theValue = fillCell(ctx);
+    if (colDef.totals) {
+        if (!theValue)
+            theValue = colDef.getValue(ctx); //get value when not a calculated value.
+        if (theValue)
+            colDef.total += theValue;
+    }
+}
+
 function recalculate() { //TODO: generalize to fill ALL the cells or only the calculated ones.
     isUpdatePaused = true;
     observeTable(false);
@@ -229,13 +241,7 @@ function recalculate() { //TODO: generalize to fill ALL the cells or only the ca
         for(let [colKey, colDef] of colDefs) {
             let td = tr.children[colDef.colIndex] as HTMLTableCellElement;
             let ctx: Context = {td, colKey, colDef, vakLeraar, tr, colDefs, data: theData};
-            if(colDef.calculated)
-                fillCell(ctx);
-            if(colDef.totals) {
-                let theValue = colDef.getValue(ctx); //TODO: second call to getValue()! The first one (may be) in fillCell(), but this isn't always called.
-                colDef.total += theValue;
-            }
-
+            calculateAndSumCell(colDef, ctx, true);
         }
     }
     let trTotal = document.getElementById("__totals__");
@@ -286,11 +292,7 @@ export function buildTable(data: TheData) {
             tr.appendChild(td);
             td.classList.add(...colDef.classList);
             let ctx = {td, colKey, colDef, vakLeraar, tr, colDefs, data};
-            let theValue = fillCell(ctx);
-            if (ctx.colDef.totals) {
-                ctx.colDef.total += theValue;
-            }
-
+            calculateAndSumCell(colDef, ctx, false);
         }
     }
     let trTotal = document.createElement("tr");
@@ -357,7 +359,7 @@ function fillGraadCell(ctx: Context) {
     let button = document.createElement("button") as HTMLButtonElement;
     ctx.td.appendChild(button);
     if(graadJaar.count === 0)
-        return;
+        return graadJaar.count;
     button.innerText = graadJaar.count.toString();
     popoverIndex++;
     button.setAttribute("popovertarget", "students_" + popoverIndex);
@@ -379,4 +381,5 @@ function fillGraadCell(ctx: Context) {
         anchor.appendChild(iTag);
         iTag.classList.add('fas', "fa-user-alt");
     }
+    return graadJaar.count;
 }
