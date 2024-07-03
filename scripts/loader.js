@@ -1,5 +1,5 @@
 (async () => {
-    const src = chrome.runtime.getURL('scripts/main.js');
+    const src = chrome.runtime.getURL('scripts/ts/main.js');
     const mainScript = await import(src);
 
     // noinspection JSUnresolvedReference
