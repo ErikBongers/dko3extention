@@ -86,6 +86,6 @@ export async function prefillInstruments() {
     location.reload();
 }
 
-function isInstrument(text) {
+function isInstrument(text: string) {
     return instrumentSet.has(text);
 }

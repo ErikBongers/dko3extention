@@ -1,7 +1,7 @@
-import { db3 } from "../globals.js";
+import {Les, StudentInfo} from "./scrape.js";
 
-function addTrimesters(instrument, inputModules) {
-    let mergedInstrument = [undefined, undefined, undefined];
+function addTrimesters(instrument: any, inputModules: Les[]) {
+    let mergedInstrument: (Les | undefined)[] = [undefined, undefined, undefined];
     let modulesForInstrument = inputModules.filter((module) => module.instrumentName === instrument.instrumentName);
     for (let module of modulesForInstrument) {
         mergedInstrument[module.trimesterNo-1] = module;
@@ -9,19 +9,28 @@ function addTrimesters(instrument, inputModules) {
     instrument.trimesters = mergedInstrument;
 }
 
-export function buildTableData(inputModules) {
+class InstrumentInfo {
+    teacher: string;
+    instrumentName: string;
+    maxAantal: number;
+    lesmoment: string;
+    vestiging: string;
+    trimesters: (Les| undefined)[];
+}
+
+export function buildTableData(inputModules: Les[]) {
     let tableData = {
         students: new Map(),
         instruments: []
     };
     //get all instruments
     let instrumentNames = inputModules.map((module) => module.instrumentName);
-    let uniqueInstrumentNames = [...new Set(instrumentNames)];
+    let uniqueInstrumentNames: [string] = [...new Set(instrumentNames)] as [string];
 
     for (let instrumentName of uniqueInstrumentNames) {
         //get module instrument info
-        let instrumentInfo = {};
-        let modules = inputModules.filter((module) => module.instrumentName === instrumentName)
+        let instrumentInfo: InstrumentInfo = new InstrumentInfo();
+        let modules = inputModules.filter((module) => module.instrumentName === instrumentName);
         instrumentInfo.instrumentName = instrumentName;
         instrumentInfo.maxAantal = modules
             .map((module) => module.maxAantal)
@@ -58,7 +67,6 @@ export function buildTableData(inputModules) {
         }
     }
 
-    db3(tableData.students);
     for(let student of tableData.students.values()) {
         let trimmed = student.instruments.filter((instr) => instr !== undefined);
         if(trimmed.length < 3) {
@@ -67,7 +75,7 @@ export function buildTableData(inputModules) {
         }
         student.allYearSame = student.instruments
             .flat()
-            .every((instr) => student?.instruments[0][0]?.instrumentName ?? "---");
+            .every((_instr: any) => student?.instruments[0][0]?.instrumentName ?? "---");
     }
 
     for(let instrument of tableData.instruments) {
@@ -86,12 +94,10 @@ export function buildTableData(inputModules) {
             }
         }
     }
-
-    db3(tableData);
     return tableData;
 }
 
-function addTrimesterStudentsToMapAndCount(students, trim) {
+function addTrimesterStudentsToMapAndCount(students: Map<string, StudentInfo>, trim: Les) {
     if(!trim) return;
     for (let student of trim.students) {
         if (!students.has(student.name)) {
@@ -106,7 +112,7 @@ function addTrimesterStudentsToMapAndCount(students, trim) {
         .map((student) => students.get(student.name));
 }
 
-function sortTrimesterStudents(trim) {
+function sortTrimesterStudents(trim: Les) {
     if(!trim) return;
     let comparator = new Intl.Collator();
     trim.students

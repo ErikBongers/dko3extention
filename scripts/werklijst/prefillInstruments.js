@@ -1,5 +1,4 @@
-import {fetchVakken, sendClearWerklijst, sendCriteria, sendFields, sendGrouping} from "./criteria.js";
-
+import { fetchVakken, sendClearWerklijst, sendCriteria, sendFields, sendGrouping } from "./criteria.js";
 export let instrumentSet = new Set([
     "Accordeon",
     "Altfluit",
@@ -54,19 +53,17 @@ export let instrumentSet = new Set([
     "Zang (musical 2e graad)",
     "Zang (musical)",
 ]);
-
 export async function prefillInstruments() {
     await sendClearWerklijst();
     let vakken = await fetchVakken(false);
     let instruments = vakken.filter((vak) => isInstrument(vak[0]));
     let values = instruments.map(vak => parseInt(vak[1]));
     let valueString = values.join();
-
     let criteria = [
-        {"criteria": "Schooljaar", "operator": "=", "values": "2024-2025"},
-        {"criteria": "Status", "operator": "=", "values": "12"},
-        {"criteria": "Uitschrijvingen", "operator": "=", "values": "0"},
-        {"criteria": "Domein", "operator": "=", "values": "3"},
+        { "criteria": "Schooljaar", "operator": "=", "values": "2024-2025" },
+        { "criteria": "Status", "operator": "=", "values": "12" },
+        { "criteria": "Uitschrijvingen", "operator": "=", "values": "0" },
+        { "criteria": "Domein", "operator": "=", "values": "3" },
         {
             "criteria": "Vak",
             "operator": "=",
@@ -76,16 +73,15 @@ export async function prefillInstruments() {
     await sendCriteria(criteria);
     console.log("Criteria sent.");
     await sendFields([
-        {value: "vak_naam", text: "vak"},
-        {value: "graad_leerjaar", text: "graad + leerjaar"},
-        {value: "klasleerkracht", text: "klasleerkracht"}]
-    );
+        { value: "vak_naam", text: "vak" },
+        { value: "graad_leerjaar", text: "graad + leerjaar" },
+        { value: "klasleerkracht", text: "klasleerkracht" }
+    ]);
     console.log("Fields sent.");
     await sendGrouping("vak_id");
     console.log("Grouping sent.");
     location.reload();
 }
-
 function isInstrument(text) {
     return instrumentSet.has(text);
 }

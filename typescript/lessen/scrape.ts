@@ -1,9 +1,9 @@
 import { db3 } from "../globals.js";
 
 export function scrapeLessenOverzicht() {
-    let table = document.getElementById("table_lessen_resultaat_tabel");
+    let table = document.getElementById("table_lessen_resultaat_tabel") as HTMLTableElement;
     let body = table.tBodies[0];
-    let lessen = [];
+    let lessen: Les[] = [];
     for (const row of body.rows) {
         let lesInfo = row.cells[0];
         let studentsCell = row.cells[1];
@@ -33,16 +33,12 @@ export function scrapeLessenOverzicht() {
 
         lessen.push(les);
     }
-    db3(lessen);
-
     return lessen;
 }
 
 export function scrapeModules() {
     let lessen = scrapeLessenOverzicht();
-    db3("LESSEN");
-    db3(lessen);
-    let modules = lessen.filter((les) => les.module);
+    let modules = lessen.filter((les) => les.isModule);
 
     for (let module of modules) {
         module.students = scrapeStudents(module.studentsTable);
@@ -62,13 +58,23 @@ export function scrapeModules() {
     return modules;
 }
 
-function scrapeStudents(studentTable) {
-    let students = [];
+export class StudentInfo {
+    graadJaar: string;
+    name: string;
+    instruments: Les[][];
+    allYearSame: boolean;
+    naam: string;
+    voornaam: string;
+    id: number;
+}
+
+function scrapeStudents(studentTable: HTMLTableElement) {
+    let students: StudentInfo[] = [];
     if(studentTable.tBodies.length === 0) {
         return students;
     }
     for (const row of studentTable.tBodies[0].rows) {
-        let studentInfo = {};
+        let studentInfo = new StudentInfo();
         studentInfo.graadJaar = row.cells[0].children[0].textContent;
         studentInfo.name = row.cells[0].childNodes[1].textContent;
         students.push(studentInfo);
@@ -76,12 +82,32 @@ function scrapeStudents(studentTable) {
     return students;
 }
 
-function scrapeLesInfo(lesInfo) {
-    let les = {};
-    let vakStrong = lesInfo.getElementsByTagName("strong");
-    les.vakNaam = vakStrong[0].textContent;
+export class Les {
+    tableRow: HTMLTableRowElement;
+    vakNaam: string;
+    isModule: boolean;
+    alc: boolean;
+    visible: boolean;
+    naam: string;
+    teacher: string;
+    lesmoment: string;
+    vestiging: string;
+    studentsTable: HTMLTableElement;
+    aantal: number;
+    maxAantal: number;
+    id: string;
+    wachtlijst: number;
+    students: StudentInfo[];
+    instrumentName: string;
+    trimesterNo: number;
+}
+
+function scrapeLesInfo(lesInfo: HTMLElement) {
+    let les = new Les();
+    let [first] = lesInfo.getElementsByTagName("strong");
+    les.vakNaam = first.textContent;
     let badges = lesInfo.getElementsByClassName("badge");
-    les.module = Array.from(badges).some((el) => el.textContent === "module");
+    les.isModule = Array.from(badges).some((el) => el.textContent === "module");
     les.alc = Array.from(badges).some((el) => el.textContent === "ALC");
     les.visible = lesInfo.getElementsByClassName("fa-eye-slash").length === 0;
     let mutedSpans = lesInfo.querySelectorAll("span.text-muted");

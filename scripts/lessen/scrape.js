@@ -1,5 +1,4 @@
 import { db3 } from "../globals.js";
-
 export function scrapeLessenOverzicht() {
     let table = document.getElementById("table_lessen_resultaat_tabel");
     let body = table.tBodies[0];
@@ -30,23 +29,15 @@ export function scrapeLessenOverzicht() {
             let matches = arrayWachtlijst[0].match(reWachtlijst);
             les.wachtlijst = parseInt(matches[1]);
         }
-
         lessen.push(les);
     }
-    db3(lessen);
-
     return lessen;
 }
-
 export function scrapeModules() {
     let lessen = scrapeLessenOverzicht();
-    db3("LESSEN");
-    db3(lessen);
-    let modules = lessen.filter((les) => les.module);
-
+    let modules = lessen.filter((les) => les.isModule);
     for (let module of modules) {
         module.students = scrapeStudents(module.studentsTable);
-
         //get name of instrument and trimester.
         const reInstrument = /.*\Snitiatie\s*(\S+).*(\d).*/;
         const match = module.naam.match(reInstrument);
@@ -57,48 +48,50 @@ export function scrapeModules() {
         module.instrumentName = match[1];
         module.trimesterNo = parseInt(match[2]);
     }
-
     db3(modules);
     return modules;
 }
-
+export class StudentInfo {
+}
 function scrapeStudents(studentTable) {
     let students = [];
-    if(studentTable.tBodies.length === 0) {
+    if (studentTable.tBodies.length === 0) {
         return students;
     }
     for (const row of studentTable.tBodies[0].rows) {
-        let studentInfo = {};
+        let studentInfo = new StudentInfo();
         studentInfo.graadJaar = row.cells[0].children[0].textContent;
         studentInfo.name = row.cells[0].childNodes[1].textContent;
         students.push(studentInfo);
     }
     return students;
 }
-
+export class Les {
+}
 function scrapeLesInfo(lesInfo) {
-    let les = {};
-    let vakStrong = lesInfo.getElementsByTagName("strong");
-    les.vakNaam = vakStrong[0].textContent;
+    let les = new Les();
+    let [first] = lesInfo.getElementsByTagName("strong");
+    les.vakNaam = first.textContent;
     let badges = lesInfo.getElementsByClassName("badge");
-    les.module = Array.from(badges).some((el) => el.textContent === "module");
+    les.isModule = Array.from(badges).some((el) => el.textContent === "module");
     les.alc = Array.from(badges).some((el) => el.textContent === "ALC");
     les.visible = lesInfo.getElementsByClassName("fa-eye-slash").length === 0;
     let mutedSpans = lesInfo.querySelectorAll("span.text-muted");
     //muted spans contain:
     //  - class name (optional)
     //  - teacher name (always)
-    if(mutedSpans.length > 1) {
+    if (mutedSpans.length > 1) {
         les.naam = mutedSpans.item(0).textContent;
-    } else {
+    }
+    else {
         les.naam = lesInfo.children[1].textContent;
     }
     if (mutedSpans.length > 0) {
         les.teacher = Array.from(mutedSpans).pop().textContent;
     }
     let textNodes = Array.from(lesInfo.childNodes).filter((node) => node.nodeType === Node.TEXT_NODE);
-    if (!textNodes) return les;
-
+    if (!textNodes)
+        return les;
     les.lesmoment = textNodes[0].nodeValue;
     les.vestiging = textNodes[1].nodeValue;
     return les;

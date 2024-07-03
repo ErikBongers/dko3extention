@@ -1,5 +1,14 @@
+import {PageHandler} from "./pageHandlers.js";
+
 export class TableDef {
-    constructor(orgTable, buildFetchUrl, pageHandler, navigationData, cacheKey, calculateChecksum = undefined, newTableId) {
+    calculateChecksum?: () => string;
+    orgTable: HTMLTableElement;
+    private buildFetchUrl: (offset: number) => string;
+    private pageHandler: PageHandler;
+    navigationData: TableNavigation;
+    private readonly cacheKey: string;
+    private newTableId: string;
+    constructor(orgTable: HTMLTableElement, buildFetchUrl: (offset: number) => string, pageHandler: PageHandler, navigationData: TableNavigation, cacheKey: string, calculateChecksum = undefined, newTableId: string) {
         this.orgTable = orgTable;
         this.buildFetchUrl = buildFetchUrl;
         this.pageHandler = pageHandler;
@@ -13,13 +22,13 @@ export class TableDef {
      * Save rows in sessionStarage with a checksum to determine if the cache is outDated.
      * @param checksum
      */
-    cacheRows(checksum) {
+    cacheRows(checksum: string) {
         console.log(`Caching ${this.cacheKey}.`);
         window.sessionStorage.setItem(this.cacheKey, this.orgTable.querySelector("tbody").innerHTML);
         window.sessionStorage.setItem(this.cacheKey+"_checksum", checksum);
     }
 
-    isCacheValid(checksum) {
+    isCacheValid(checksum: string) {
         return window.sessionStorage.getItem(this.cacheKey+"_checksum") === checksum;
     }
 
@@ -34,11 +43,15 @@ export class TableDef {
 }
 
 export class TableNavigation {
-    constructor(step, maxCount, div, navigationData) {
+    private readonly step: number;
+    private readonly maxCount: number;
+    private div: HTMLDivElement;
+    // private navigationData: any;//TODO: WTF is this???
+    constructor(step: number, maxCount: number, div: HTMLDivElement/*, navigationData: any*/) {
         this.step = step;
         this.maxCount = maxCount;
         this.div = div;
-        this.navigationData = navigationData;
+        // this.navigationData = navigationData;
     }
 
     steps() {
@@ -53,8 +66,8 @@ export class TableNavigation {
 */
 export function findFirstNavigation() {
     //get all possible numbers from the navigation bar and sort them to get the result above.
-    let element = document.querySelector("div.datatable-navigation-toolbar");
-    let button = element.querySelector("button.datatable-paging-numbers");
+    let element = document.querySelector("div.datatable-navigation-toolbar") as HTMLDivElement;
+    let button = element.querySelector("button.datatable-paging-numbers") as HTMLButtonElement;
     let rx = /(\d*) tot (\d*) van (\d*)/;
     let matches = button.innerText.match(rx);
     let buttons = element.querySelectorAll("button.btn-secondary");
@@ -65,9 +78,9 @@ export function findFirstNavigation() {
     matches.slice(1).forEach((txt) => numbers.push(parseInt(txt)));
     numbers.sort((a, b) => a - b);
     if (numbers[0] === 1) {
-        return new TableNavigation(numbers[1], numbers.pop());
+        return new TableNavigation(numbers[1], numbers.pop(), element);
     } else {
-        return new TableNavigation(numbers[2] - numbers[1] - 1, numbers.pop());
+        return new TableNavigation(numbers[2] - numbers[1] - 1, numbers.pop(), element);
     }
 }
 

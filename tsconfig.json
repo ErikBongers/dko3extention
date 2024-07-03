@@ -1,0 +1,7 @@
+{
+  "include": ["typescript/**/*"],
+  "compilerOptions": {
+    "outDir": "./scripts",
+    "target": "es2021"
+  },
+}

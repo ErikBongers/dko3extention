@@ -1,5 +1,10 @@
-export class HashPageFilter {
-    constructor(urlHash) {
+interface PageFilter {
+    match: () => boolean;
+}
+
+export class HashPageFilter implements PageFilter{
+    private readonly urlHash: string;
+    constructor(urlHash: string) {
         this.urlHash = urlHash;
     }
 
@@ -8,7 +13,7 @@ export class HashPageFilter {
     }
 }
 
-export class AllPageFilter {
+export class AllPageFilter implements PageFilter{
     constructor() {
     }
 
@@ -18,7 +23,11 @@ export class AllPageFilter {
 }
 
 export class BaseObserver {
-    constructor(onPageChangedCallback, pageFilter, onMutationCallback) {
+    private readonly onPageChangedCallback: () => void;
+    private pageFilter: PageFilter;
+    private readonly onMutation: (mutation: MutationRecord) => boolean;
+    private observer: MutationObserver;
+    constructor(onPageChangedCallback: () => void, pageFilter: PageFilter, onMutationCallback: (mutation: MutationRecord) => boolean) {
         this.onPageChangedCallback = onPageChangedCallback;
         this.pageFilter = pageFilter;
         this.onMutation = onMutationCallback;
@@ -27,7 +36,7 @@ export class BaseObserver {
         }
     }
 
-    observerCallback(mutationList /*, observer*/) {
+    observerCallback(mutationList: MutationRecord[] , _observer: MutationObserver) {
         for (const mutation of mutationList) {
             if (mutation.type !== "childList") {
                 continue;
@@ -51,7 +60,7 @@ export class BaseObserver {
         this.observeElement(document.querySelector("main"));
     }
 
-    observeElement(element) {
+    observeElement(element: HTMLElement) {
         if (!element) {
             console.error("Can't attach observer to element.");
             return;
@@ -71,7 +80,8 @@ export class BaseObserver {
 }
 
 export class HashObserver {
-    constructor(urlHash, onMutationCallback) {
+    private baseObserver: BaseObserver;
+    constructor(urlHash: string, onMutationCallback: (mutation: MutationRecord) => boolean) {
         this.baseObserver = new BaseObserver(undefined, new HashPageFilter(urlHash), onMutationCallback);
     }
 
@@ -81,7 +91,8 @@ export class HashObserver {
 }
 
 export class PageObserver {
-    constructor(onPageChangedCallback) {
+    private baseObserver: BaseObserver;
+    constructor(onPageChangedCallback: () => void) {
         this.baseObserver = new BaseObserver(onPageChangedCallback, new AllPageFilter(), undefined);
     }
 

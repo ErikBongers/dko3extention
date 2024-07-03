@@ -1,14 +1,24 @@
-export const options = {};
+type Options = {
+  showDebug: boolean;
+    otherAcademies: string;
+    showNotAssignedClasses: boolean;
+};
+export const options: Options = {
+    showDebug: false,
+    otherAcademies: "",
+    showNotAssignedClasses: true
+};
+
 export let observers = [];
 
-export function db3(message) {
+export function db3(message: any) {
     if (options?.showDebug) {
         console.log(message);
         console.log(Error().stack.split("\n")[2]);
     }
 }
 
-export function createValidId(id) {
+export function createValidId(id: string) {
     return id
         .replaceAll(" ", "")
         .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
@@ -23,14 +33,14 @@ export function registerObserver(observer) {
 }
 
 // noinspection JSUnusedGlobalSymbols
-export function searchText(text) {
-    let input = document.querySelector("#snel_zoeken_veld_zoektermen");
+export function searchText(text: string) {
+    let input: HTMLInputElement = document.querySelector("#snel_zoeken_veld_zoektermen");
     input.value = text;
     let evUp = new KeyboardEvent("keyup", {key: "Enter", keyCode: 13, bubbles: true});
     input.dispatchEvent(evUp);
 }
 
-export function setButtonHighlighted(buttonId, show) {
+export function setButtonHighlighted(buttonId: string, show: boolean) {
     if (show) {
         document.getElementById(buttonId).classList.add("toggled");
     } else {
@@ -38,7 +48,7 @@ export function setButtonHighlighted(buttonId, show) {
     }
 }
 
-export function addButton(targetElement, buttonId, title, clickFunction, imageId, classList, text = "", where = "beforebegin") {
+export function addButton(targetElement: HTMLElement, buttonId: string, title: string, clickFunction: (ev:PointerEvent) => void, imageId: string, classList: string[], text = "", where: InsertPosition = "beforebegin") {
     let button = document.getElementById(buttonId);
     if (button === null) {
         const button = document.createElement("button");
@@ -60,7 +70,11 @@ export function addButton(targetElement, buttonId, title, clickFunction, imageId
 }
 
 export class ProgressBar {
-    constructor(containerElement, barElement, maxCount) {
+    private barElement: HTMLElement;
+    private containerElement: HTMLElement;
+    private readonly maxCount: number;
+    private count: number;
+    constructor(containerElement: HTMLElement, barElement: HTMLElement, maxCount: number) {
         this.barElement = barElement;
         this.containerElement = containerElement;
         this.maxCount = maxCount;

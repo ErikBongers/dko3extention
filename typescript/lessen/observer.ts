@@ -7,12 +7,12 @@ import {HashObserver} from "../pageObserver.js";
 
 export default new HashObserver("#lessen-overzicht", onMutation);
 
-function onMutation (mutation) {
+function onMutation (mutation: MutationRecord) {
     let lessenOverzicht = document.getElementById(def.LESSEN_OVERZICHT_ID);
     if (mutation.target !== lessenOverzicht) {
         return false;
     }
-    let printButton = document.getElementById("btn_print_overzicht_lessen");
+    let printButton = document.getElementById("btn_print_overzicht_lessen") as HTMLButtonElement;
     if (!printButton) {
         return false;
     }
@@ -20,7 +20,7 @@ function onMutation (mutation) {
     return true;
 }
 
-function onLessenOverzichtChanged(printButton) {
+function onLessenOverzichtChanged(printButton: HTMLButtonElement) {
     //reset state
     let overzichtDiv = document.getElementById(def.LESSEN_OVERZICHT_ID);
     let trimDiv = document.getElementById(def.TRIM_DIV_ID);
@@ -55,7 +55,7 @@ function onLessenOverzichtChanged(printButton) {
 }
 
 
-function addButton(printButton, buttonId, title, clickFunction, imageId) { //TODO: generalize this function.
+function addButton(printButton: HTMLButtonElement, buttonId: string, title: string, clickFunction: (this: GlobalEventHandlers, ev: MouseEvent) => any, imageId: string) {
     let button = document.getElementById(buttonId);
     if (button === null) {
         const button = document.createElement("button",);
@@ -91,7 +91,7 @@ function onClickCheckResults() {
     checksDiv.innerHTML = checksText;
 }
 
-function showOnlyFullTrimesters(onlyFull) {
+function showOnlyFullTrimesters(onlyFull: boolean) {
     let trimDiv = document.getElementById(def.TRIM_DIV_ID);
     trimDiv.dataset.showFullClass = onlyFull ? "true" : "false";
 }
@@ -114,7 +114,7 @@ function onClickShowTrimesters() {
     showTrimesterTable(document.getElementById("table_lessen_resultaat_tabel").style.display !== "none");
 }
 
-function showTrimesterTable(show) {
+function showTrimesterTable(show: boolean) {
     //Build lazily and only once. Table will automatically be erased when filters are changed.
     if (!document.getElementById(def.TRIM_TABLE_ID)) {
         let inputModules = scrapeModules();

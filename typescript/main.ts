@@ -9,13 +9,14 @@ import tableObserver from "./table/observer.js";
 // noinspection JSUnusedGlobalSymbols
 export function init() {
     getOptions(() => {
-        chrome.storage.onChanged.addListener((changes, area) => {
+        // @ts-ignore
+        chrome.storage.onChanged.addListener((changes: any, area: string) => {
             if (area === 'sync') {
                 getOptions();
             }
         });
 
-        // noinspection JSDeprecatedSymbols
+        // @ts-ignore
         window.navigation.addEventListener("navigatesuccess", () => {
             onPageChanged();
         });
@@ -39,10 +40,12 @@ export function onPageChanged() {
     }
 }
 
-function getOptions(callback) {
+function getOptions(callback?: () => void) {
+    // @ts-ignore
     chrome.storage.sync.get(
         null, //get all
-        (items) => {
+        (items: any) => {
+            // @ts-ignore
             Object.assign(options, items);
             callback();
         }

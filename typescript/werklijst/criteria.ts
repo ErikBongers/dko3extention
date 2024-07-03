@@ -1,4 +1,4 @@
-export async function fetchVakken(clear) {
+export async function fetchVakken(clear: boolean) {
     if (clear) {
         await sendClearWerklijst();
     }
@@ -7,21 +7,20 @@ export async function fetchVakken(clear) {
     const template = document.createElement('template');
     template.innerHTML = text;
     let vakken = template.content.querySelectorAll("#form_field_leerling_werklijst_criterium_vak option");
-    return Array.from(vakken).map(vak => [vak.label, vak.value]);
+    return Array.from(vakken).map((vak: HTMLOptionElement) => [vak.label, vak.value]);
 }
 
-export async function fetchCritera(schoolYear, criterium) {
+export async function fetchCritera(schoolYear: string) {
     return (await fetch("https://administratie.dko3.cloud/views/leerlingen/werklijst/index.criteria.php?schooljaar=" + schoolYear, {
         method: "GET"
     })).text();
 }
 
-async function sendAddCriterium(schoolYear, criterium) {
+async function sendAddCriterium(schoolYear: string, criterium: string) {
     const formData = new FormData();
     formData.append(`criterium`, criterium);
     formData.append(`schooljaar`, schoolYear);
-
-    const response = await fetch("https://administratie.dko3.cloud/views/leerlingen/werklijst/index.criteria.session_add.php", {
+    await fetch("https://administratie.dko3.cloud/views/leerlingen/werklijst/index.criteria.session_add.php", {
         method: "POST",
         body: formData,
     });
@@ -43,29 +42,27 @@ export async function sendClearWerklijst() {
     });
 }
 
-export async function sendCriteria(criteria) {
+export async function sendCriteria(criteria: object) {
     const formData = new FormData();
 
     formData.append("criteria", JSON.stringify(criteria));
-
-    const response = await fetch("/views/leerlingen/werklijst/index.criteria.session_reload.php", {
+    await fetch("/views/leerlingen/werklijst/index.criteria.session_reload.php", {
         method: "POST",
         body: formData,
     });
 }
 
-export async function sendGrouping(grouping) {
+export async function sendGrouping(grouping: string) {
     const formData = new FormData();
 
     formData.append("groepering", grouping);
-
-    const response = await fetch("/views/leerlingen/werklijst/index.groeperen.session_add.php", {
+    await fetch("/views/leerlingen/werklijst/index.groeperen.session_add.php", {
         method: "POST",
         body: formData,
     });
 }
 
-export async function sendFields(fields) {
+export async function sendFields(fields: { value: string, text: string }[]) {
     const formData = new FormData();
 
     let fieldCnt = 0;
@@ -74,8 +71,7 @@ export async function sendFields(fields) {
         formData.append(`velden[${fieldCnt}][text]`, field.text);
         fieldCnt++;
     }
-
-    const response = await fetch("/views/leerlingen/werklijst/index.velden.session_add.php", {
+    await fetch("/views/leerlingen/werklijst/index.velden.session_add.php", {
         method: "POST",
         body: formData,
     });

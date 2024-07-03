@@ -8,8 +8,8 @@ function setSchoolBackground () {
     let isMyAcademy = options.otherAcademies
         .split("\n")
         .filter((needle) => needle !== "")
-        .find((needle) =>  schoolName.includes(needle));
-    if (options.otherAcademies === "") {
+        .find((needle) =>  schoolName.includes(needle)) != undefined;
+    if (options.otherAcademies === "") { //TODO: rename to myAcademies !!
         isMyAcademy = true;
     }
     if (isMyAcademy) {

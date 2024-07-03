@@ -1,24 +1,24 @@
 import {addButton, getSchoolIdString, setButtonHighlighted} from "../globals.js";
 import * as def from "../lessen/def.js";
-import {buildTable, getUrenVakLeraarFileName} from "./buildUren.js";
-import {scrapeStudent} from "./scrapeUren.js";
+import {buildTable, getUrenVakLeraarFileName, JsonCloudData} from "./buildUren.js";
+import {scrapeStudent, VakLeraar} from "./scrapeUren.js";
 import {fetchFromCloud} from "../cloud.js";
 import {findFirstNavigation, TableDef} from "../tableDef.js";
 import {fetchFullTable} from "./pageFetcher.js";
 import {prefillInstruments} from "./prefillInstruments.js";
 import {HashObserver} from "../pageObserver.js";
-import {NamedCellPageHandler} from "../pageHandlers.js";
+import {NamedCellPageHandler, RowObject} from "../pageHandlers.js";
 
 export default new HashObserver("#leerlingen-werklijst", onMutation);
 
-function onMutation(mutation) {
-    if (mutation.target.id === "table_leerlingen_werklijst_table") {
+function onMutation(mutation: MutationRecord) {
+    if ((mutation.target as HTMLElement).id === "table_leerlingen_werklijst_table") {
         onWerklijstChanged();
         return true;
     }
     let buttonBar = document.getElementById("tablenav_leerlingen_werklijst_top");
     if (mutation.target === buttonBar) {
-        onButtonBarChanged(buttonBar);
+        onButtonBarChanged();
         return true;
     }
     if (document.querySelector("#btn_werklijst_maken")) {
@@ -29,7 +29,7 @@ function onMutation(mutation) {
 }
 
 function onPreparingFilter() {
-    let btnWerklijstMaken = document.querySelector("#btn_werklijst_maken");
+    let btnWerklijstMaken = document.querySelector("#btn_werklijst_maken") as HTMLButtonElement;
     if(document.getElementById(def.PREFILL_INSTR_BTN_ID))
         return;
 
@@ -50,13 +50,13 @@ function onWerklijstChanged() {
 }
 
 function onButtonBarChanged() {
-    let targetButton = document.querySelector("#tablenav_leerlingen_werklijst_top > div > div.btn-group.btn-group-sm.datatable-buttons > button:nth-child(1)");
+    let targetButton = document.querySelector("#tablenav_leerlingen_werklijst_top > div > div.btn-group.btn-group-sm.datatable-buttons > button:nth-child(1)") as HTMLButtonElement;
     addButton(targetButton, def.COUNT_BUTTON_ID, "Toon telling", onClickShowCounts, "fa-guitar", ["btn-outline-info"]);
     addButton(targetButton, def.MAIL_BTN_ID, "Email to clipboard", onClickCopyEmails, "fa-envelope", ["btn", "btn-outline-info"]);
 }
 
 // noinspection JSUnusedLocalSymbols
-function scrapeEmails(row, collection, offset) {
+function scrapeEmails(_tableDef: TableDef, row: RowObject, collection: any) {
     collection.push(row.getColumnText("e-mailadressen"));
     return true;
 }
@@ -65,7 +65,7 @@ function onClickCopyEmails() {
     let requiredHeaderLabels = ["e-mailadressen"];
     let pageHandler = new NamedCellPageHandler(requiredHeaderLabels, scrapeEmails);
     let tableDef = new TableDef(
-        document.getElementById("table_leerlingen_werklijst_table"),
+        document.getElementById("table_leerlingen_werklijst_table") as HTMLTableElement,
         (offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0",
         pageHandler,
         findFirstNavigation(),
@@ -81,10 +81,10 @@ function onClickCopyEmails() {
     )
         .then((results) => {
             let flattened = results
-                .map((emails) => emails.split(/[,;]/))
+                .map((emails: string) => emails.split(/[,;]/))
                 .flat()
-                .filter((email) => !email.includes("@academiestudent.be"))
-                .filter((email) => email !== "");
+                .filter((email: string) => !email.includes("@academiestudent.be"))
+                .filter((email: string) => email !== "");
             console.log("email count: " + flattened.length);
             navigator.clipboard.writeText(flattened.join(";\n")).then();
         });
@@ -99,7 +99,7 @@ function onClickShowCounts() {
         let requiredHeaderLabels = ["naam", "voornaam", "vak", "klasleerkracht", "graad + leerjaar"];
         let pageHandler = new NamedCellPageHandler(requiredHeaderLabels, scrapeStudent);
         let tableDef = new TableDef(
-            document.getElementById("table_leerlingen_werklijst_table"),
+            document.getElementById("table_leerlingen_werklijst_table") as HTMLTableElement,
             (offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0",
             pageHandler,
             findFirstNavigation(),
@@ -114,9 +114,9 @@ function onClickShowCounts() {
             () => fetchFromCloud(fileName))
             .then((results) => {
                 let vakLeraars = results[0];
-                let fromCloud = results[1];
+                let fromCloud = results[1] as JsonCloudData;
                 fromCloud = upgradeCloudData(fromCloud);
-                let sortedVakLeraars = new Map([...vakLeraars.entries()].sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0]));
+                let sortedVakLeraars: Map<string, VakLeraar> = new Map([...vakLeraars.entries()].sort((a, b) => a[0] < b[0] ? -1 : ((a[0] > b[0])? 1 : 0)));
                 buildTable({ vakLeraars: sortedVakLeraars, fromCloud});
                 document.getElementById(def.COUNT_TABLE_ID).style.display = "none";
                 showOrHideNewTable();
@@ -134,7 +134,7 @@ function showOrHideNewTable() {
     setButtonHighlighted(def.COUNT_BUTTON_ID, showNewTable);
 }
 
-function upgradeCloudData(fromCloud) {
+function upgradeCloudData(fromCloud: JsonCloudData) {
     //if fromCloud.version === "...." --> convert.
     return fromCloud;
 }

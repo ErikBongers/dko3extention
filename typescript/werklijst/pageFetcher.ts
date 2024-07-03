@@ -1,8 +1,8 @@
 import * as def from "../lessen/def.js";
 import {ProgressBar} from "../globals.js";
-import {findFirstNavigation} from "../tableDef.js";
+import {TableDef} from "../tableDef.js";
 
-function insertProgressBar(elementAfter, steps, text = "") {
+function insertProgressBar(elementAfter: HTMLElement, steps: number, text: string = "") {
     let divProgressLine = document.createElement("div");
     elementAfter.insertAdjacentElement("beforebegin", divProgressLine);
     divProgressLine.classList.add("progressLine");
@@ -17,7 +17,7 @@ function insertProgressBar(elementAfter, steps, text = "") {
     return new ProgressBar(divProgressLine, divProgressBar, steps);
 }
 
-export async function fetchFullTable(tableDef, results, parallelAsyncFunction) {
+export async function fetchFullTable(tableDef: TableDef, results: any, parallelAsyncFunction: (() => Promise<any>)) {
     let progressBar = insertProgressBar(tableDef.orgTable, tableDef.navigationData.steps(), "loading pages... ");
 
     if(parallelAsyncFunction) {
@@ -30,7 +30,7 @@ export async function fetchFullTable(tableDef, results, parallelAsyncFunction) {
     }
 }
 
-async function fetchAllPages(tableDef, results, progressBar) {
+async function fetchAllPages(tableDef: any, results: any, progressBar: ProgressBar) {
     let offset = 0;
     progressBar.start();
     if(tableDef.pageHandler.onBeforeLoading)

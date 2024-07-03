@@ -3,14 +3,14 @@ import {HashObserver} from "../pageObserver.js";
 
 export default new HashObserver("#leerlingen-leerling", onMutation);
 
-function onMutation(mutation) {
+function onMutation(mutation: MutationRecord) {
     let tabInschrijving = document.getElementById("leerling_inschrijvingen_weergave");
     if (mutation.target === tabInschrijving) {
         onInschrijvingChanged(tabInschrijving);
         return true;
     }
-    if (mutation.target.id.includes("_uitleningen_table")){
-        onUitleningenChanged(mutation.target);
+    if ((mutation.target as HTMLElement).id.includes("_uitleningen_table")){
+        onUitleningenChanged(mutation.target as HTMLElement);
         return true;
     }
     let tabAttesten = document.getElementById("attesten");
@@ -21,13 +21,12 @@ function onMutation(mutation) {
     return false;
 }
 
-function onAttestenChanged(tabInschrijving) {
-    decorateSchooljaar(tabInschrijving);
+function onAttestenChanged(_tabInschrijving: HTMLElement) {
+    decorateSchooljaar();
 }
 
-function onUitleningenChanged(tableUitleningen) {
-    db3("UITLENING");
-    let firstCells = tableUitleningen.querySelectorAll("tbody > tr > td:first-child");
+function onUitleningenChanged(tableUitleningen: HTMLElement) {
+    let firstCells :NodeListOf<HTMLTableCellElement> = tableUitleningen.querySelectorAll("tbody > tr > td:first-child");
     for(let cell of firstCells) {
         if (cell.classList.contains("text-muted")) {
             break;//empty table with fake row.
@@ -82,10 +81,10 @@ function decorateSchooljaar() {
     }
 }
 
-function onInschrijvingChanged(tabInschrijving) {
+function onInschrijvingChanged(tabInschrijving: HTMLElement) {
     db3("inschrijving (tab) changed.");
 
-    decorateSchooljaar(tabInschrijving);
+    decorateSchooljaar();
 
     //Show trimester instruments.
     let moduleButtons = tabInschrijving.querySelectorAll("tr td.right_center > button");
@@ -96,11 +95,12 @@ function onInschrijvingChanged(tabInschrijving) {
         let args = onClick
             .split(", ")
             .map((arg) => arg.replaceAll("'", ""));
-        getModules(...args)
+        // @ts-ignore
+        getModules(...args)//TODO: making assumptions about the arguments here.
             .then((modNames) => {
                 let instrumentText = "";
                 if(modNames.length) {
-                    tr.children[0].innerText += ": ";
+                    (tr.children[0] as HTMLTableCellElement).innerText += ": ";
                     let rx = /Initiatie (.*) - trimester.*/;
                     instrumentText += modNames
                         .map(modName => {
