@@ -1,7 +1,5 @@
 import * as def from "../lessen/def.js";
-import {ProgressBar} from "../globals.js";
-import {findFirstNavigation} from "../tableDef.js";
-
+import { ProgressBar } from "../globals.js";
 function insertProgressBar(elementAfter, steps, text = "") {
     let divProgressLine = document.createElement("div");
     elementAfter.insertAdjacentElement("beforebegin", divProgressLine);
@@ -16,40 +14,39 @@ function insertProgressBar(elementAfter, steps, text = "") {
     divProgressBar.classList.add("progressBar");
     return new ProgressBar(divProgressLine, divProgressBar, steps);
 }
-
 export async function fetchFullTable(tableDef, results, parallelAsyncFunction) {
-    let progressBar = insertProgressBar(tableDef.orgTable, tableDef.navigationData.steps(), "loading pages... ");
-
-    if(parallelAsyncFunction) {
+    let progressBar = insertProgressBar(tableDef.tableRef.getOrgTable(), tableDef.tableRef.navigationData.steps(), "loading pages... ");
+    if (parallelAsyncFunction) {
         return Promise.all([
             fetchAllPages(tableDef, results, progressBar),
             parallelAsyncFunction()
         ]);
-    } else {
+    }
+    else {
         return fetchAllPages(tableDef, results, progressBar);
     }
 }
-
 async function fetchAllPages(tableDef, results, progressBar) {
     let offset = 0;
     progressBar.start();
-    if(tableDef.pageHandler.onBeforeLoading)
+    if (tableDef.pageHandler.onBeforeLoading)
         tableDef.pageHandler.onBeforeLoading(tableDef);
     try {
         while (true) {
             console.log("fetching page " + offset);
-            let response = await fetch(tableDef.buildFetchUrl(offset));
+            let response = await fetch(tableDef.tableRef.buildFetchUrl(offset));
             let text = await response.text();
             let count = tableDef.pageHandler.onPage(tableDef, text, results, offset);
             if (!count)
                 return undefined;
-            offset += tableDef.navigationData.step;
+            offset += tableDef.tableRef.navigationData.step;
             if (!progressBar.next())
                 break;
         }
-    } finally {
+    }
+    finally {
         progressBar.stop();
-        if(tableDef.pageHandler.onLoaded)
+        if (tableDef.pageHandler.onLoaded)
             tableDef.pageHandler.onLoaded(tableDef);
     }
     return results;

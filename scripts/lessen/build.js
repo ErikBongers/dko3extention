@@ -169,8 +169,7 @@ function buildInstrumentHeader(newTableBody, instrument) {
 }
 function buildModuleButton(buttonText, id) {
     const button = document.createElement("a");
-    button.href = "#";
-    button.setAttribute("onclick", `showView('lessen-les','','id=${id}'); return false;`);
+    button.href = "/?#lessen-les?id=" + id;
     button.classList.add("float-right", "trimesterButton");
     button.innerText = buttonText;
     return button;

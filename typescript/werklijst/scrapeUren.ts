@@ -1,7 +1,27 @@
 import {createValidId} from "../globals.js";
+import {TableDef} from "../table/tableDef.js";
+import {RowObject} from "../pageHandlers.js";
+import {StudentInfo} from "../lessen/scrape.js";
 
-export function scrapeStudent(tableDef, row, collection) {
-    let student = {};
+export interface CountStudentsPerJaar {
+    count: number,
+    students: StudentInfo[]
+}
+export interface VakLeraar {
+    vak: string,
+    leraar: string,
+    id: string,
+    countMap: Map<string, CountStudentsPerJaar>
+}
+
+/**
+ *
+ * @param _tableDef
+ * @param row
+ * @param collection Map<vakLeraarKey, VakLeraar>
+ */
+export function scrapeStudent(_tableDef: TableDef, row: RowObject, collection: any) {
+    let student: StudentInfo = new StudentInfo();
     student.naam = row.getColumnText("naam");
     student.voornaam = row.getColumnText("voornaam");
     student.id = parseInt(row.tr.attributes['onclick'].value.replace("showView('leerlingen-leerling', '', 'id=", ""));
@@ -18,7 +38,7 @@ export function scrapeStudent(tableDef, row, collection) {
     let vakLeraarKey = translateVak(vak) + "_" + leraar;
 
     if (!collection.has(vakLeraarKey)) {
-        let countMap = new Map();
+        let countMap: Map<string, CountStudentsPerJaar> = new Map();
         countMap.set("2.1", {count: 0, students: []});
         countMap.set("2.2", {count: 0, students: []});
         countMap.set("2.3", {count: 0, students: []});
@@ -49,7 +69,7 @@ export function scrapeStudent(tableDef, row, collection) {
     return true;
 }
 
-function isInstrument(vak) {//TODO: get rid of this
+function isInstrument(vak: string) {
     switch (vak) {
         case "Muziekatelier": 
         case "Groepsmusiceren (jazz pop rock)": 
@@ -68,8 +88,8 @@ function isInstrument(vak) {//TODO: get rid of this
     return true;
 }
 
-function translateVak(vak) {
-    function renameInstrument(instrument) {
+function translateVak(vak: string) {
+    function renameInstrument(instrument: string) {
         return instrument
             .replace("Basklarinet", "Klarinet")
             .replace("Altfluit", "Dwarsfluit")
