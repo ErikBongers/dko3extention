@@ -1,19 +1,4 @@
-import * as def from "../lessen/def.js";
-import { ProgressBar } from "../globals.js";
-function insertProgressBar(elementAfter, steps, text = "") {
-    let divProgressLine = document.createElement("div");
-    elementAfter.insertAdjacentElement("beforebegin", divProgressLine);
-    divProgressLine.classList.add("progressLine");
-    divProgressLine.id = def.PROGRESS_BAR_ID;
-    let divProgressText = document.createElement("div");
-    divProgressLine.appendChild(divProgressText);
-    divProgressText.classList.add("progressText");
-    divProgressText.innerText = text;
-    let divProgressBar = document.createElement("div");
-    divProgressLine.appendChild(divProgressBar);
-    divProgressBar.classList.add("progressBar");
-    return new ProgressBar(divProgressLine, divProgressBar, steps);
-}
+import { insertProgressBar } from "../progressBar.js";
 export async function fetchFullTable(tableDef, results, parallelAsyncFunction) {
     let progressBar = insertProgressBar(tableDef.tableRef.getOrgTable(), tableDef.tableRef.navigationData.steps(), "loading pages... ");
     if (parallelAsyncFunction) {

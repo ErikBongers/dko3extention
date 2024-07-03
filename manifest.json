@@ -31,16 +31,7 @@
   "web_accessible_resources": [ {
     "matches": ["https://administratie.dko3.cloud/*"],
     "resources": [
-      "scripts/ts/lessen/*",
-      "scripts/ts/leerling/*",
-      "scripts/ts/academie/*",
-      "scripts/ts/table/*",
-      "scripts/ts/werklijst/*",
-      "scripts/ts/main.js",
-      "scripts/ts/globals.js",
-      "scripts/ts/cloud.js",
-      "scripts/ts/pageHandlers.js",
-      "scripts/ts/pageObserver.js"
+      "scripts/ts/*"
     ]
   }
   ]
