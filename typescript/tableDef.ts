@@ -3,14 +3,18 @@ import {PageHandler} from "./pageHandlers.js";
 export interface TableRef {
     buildFetchUrl: (offset: number) => string;
     getOrgTable: () => HTMLTableElement;
+    navigationData: TableNavigation;
 }
-export class IdTableRef implements TableRef{
+
+export class IdTableRef implements TableRef {
     tableId: string;
     buildFetchUrl: (offset: number) => string;
+    navigationData: TableNavigation;
 
-    constructor(tableId: string, buildFetchUrl: (offset: number) => string) {
+    constructor(tableId: string, navigationData: TableNavigation, buildFetchUrl: (offset: number) => string) {
         this.tableId = tableId;
         this.buildFetchUrl = buildFetchUrl;
+        this.navigationData = navigationData;
     }
 
     getOrgTable() {
@@ -22,13 +26,11 @@ export class TableDef {
     calculateChecksum?: () => string;
     tableRef: TableRef;
     pageHandler: PageHandler;
-    navigationData: TableNavigation;
     private readonly cacheKey: string;
     private newTableId: string;
-    constructor(tableRef: TableRef, pageHandler: PageHandler, navigationData: TableNavigation, cacheKey: string, calculateChecksum = undefined, newTableId: string) {
+    constructor(tableRef: TableRef, pageHandler: PageHandler, cacheKey: string, calculateChecksum = undefined, newTableId: string) {
         this.tableRef = tableRef;
         this.pageHandler = pageHandler;
-        this.navigationData = navigationData;
         this.cacheKey = cacheKey;
         this.calculateChecksum = calculateChecksum;
         this.newTableId = newTableId;
@@ -98,6 +100,6 @@ export function findFirstNavigation() {
     }
 }
 
-function getGotoNumber(functionCall) {
+function getGotoNumber(functionCall: string) {
     return parseInt(functionCall.substring(functionCall.indexOf("goto(") + 5));
 }

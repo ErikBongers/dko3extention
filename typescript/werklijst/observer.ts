@@ -64,11 +64,10 @@ function scrapeEmails(_tableDef: TableDef, row: RowObject, collection: any) {
 function onClickCopyEmails() {
     let requiredHeaderLabels = ["e-mailadressen"];
     let pageHandler = new NamedCellPageHandler(requiredHeaderLabels, scrapeEmails);
-    let tableRef = new IdTableRef("table_leerlingen_werklijst_table", (offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0");
+    let tableRef = new IdTableRef("table_leerlingen_werklijst_table", findFirstNavigation(),(offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0");
     let tableDef = new TableDef(
         tableRef,
         pageHandler,
-        findFirstNavigation(),
         "werklijst",
         undefined,
         ""
@@ -98,11 +97,10 @@ function onClickShowCounts() {
         console.log("reading: " + fileName);
         let requiredHeaderLabels = ["naam", "voornaam", "vak", "klasleerkracht", "graad + leerjaar"];
         let pageHandler = new NamedCellPageHandler(requiredHeaderLabels, scrapeStudent);
-        let tableRef = new IdTableRef("table_leerlingen_werklijst_table", (offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0");
+        let tableRef = new IdTableRef("table_leerlingen_werklijst_table", findFirstNavigation(),(offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0");
         let tableDef = new TableDef(
             tableRef,
             pageHandler,
-            findFirstNavigation(),
             "werklijst_uren",
             undefined,
             def.COUNT_TABLE_ID

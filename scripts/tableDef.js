@@ -1,17 +1,17 @@
 export class IdTableRef {
-    constructor(tableId, buildFetchUrl) {
+    constructor(tableId, navigationData, buildFetchUrl) {
         this.tableId = tableId;
         this.buildFetchUrl = buildFetchUrl;
+        this.navigationData = navigationData;
     }
     getOrgTable() {
         return document.getElementById(this.tableId);
     }
 }
 export class TableDef {
-    constructor(tableRef, pageHandler, navigationData, cacheKey, calculateChecksum = undefined, newTableId) {
+    constructor(tableRef, pageHandler, cacheKey, calculateChecksum = undefined, newTableId) {
         this.tableRef = tableRef;
         this.pageHandler = pageHandler;
-        this.navigationData = navigationData;
         this.cacheKey = cacheKey;
         this.calculateChecksum = calculateChecksum;
         this.newTableId = newTableId;

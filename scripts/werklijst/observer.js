@@ -55,8 +55,8 @@ function scrapeEmails(_tableDef, row, collection) {
 function onClickCopyEmails() {
     let requiredHeaderLabels = ["e-mailadressen"];
     let pageHandler = new NamedCellPageHandler(requiredHeaderLabels, scrapeEmails);
-    let tableRef = new IdTableRef("table_leerlingen_werklijst_table", (offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0");
-    let tableDef = new TableDef(tableRef, pageHandler, findFirstNavigation(), "werklijst", undefined, "");
+    let tableRef = new IdTableRef("table_leerlingen_werklijst_table", findFirstNavigation(), (offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0");
+    let tableDef = new TableDef(tableRef, pageHandler, "werklijst", undefined, "");
     fetchFullTable(tableDef, [], undefined)
         .then((results) => {
         let flattened = results
@@ -75,8 +75,8 @@ function onClickShowCounts() {
         console.log("reading: " + fileName);
         let requiredHeaderLabels = ["naam", "voornaam", "vak", "klasleerkracht", "graad + leerjaar"];
         let pageHandler = new NamedCellPageHandler(requiredHeaderLabels, scrapeStudent);
-        let tableRef = new IdTableRef("table_leerlingen_werklijst_table", (offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0");
-        let tableDef = new TableDef(tableRef, pageHandler, findFirstNavigation(), "werklijst_uren", undefined, def.COUNT_TABLE_ID);
+        let tableRef = new IdTableRef("table_leerlingen_werklijst_table", findFirstNavigation(), (offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0");
+        let tableDef = new TableDef(tableRef, pageHandler, "werklijst_uren", undefined, def.COUNT_TABLE_ID);
         fetchFullTable(tableDef, new Map(), () => fetchFromCloud(fileName))
             .then((results) => {
             let vakLeraars = results[0];

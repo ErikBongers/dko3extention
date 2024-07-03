@@ -18,7 +18,7 @@ function insertProgressBar(elementAfter: HTMLElement, steps: number, text: strin
 }
 
 export async function fetchFullTable(tableDef: TableDef, results: any, parallelAsyncFunction: (() => Promise<any>)) {
-    let progressBar = insertProgressBar(tableDef.tableRef.getOrgTable(), tableDef.navigationData.steps(), "loading pages... ");
+    let progressBar = insertProgressBar(tableDef.tableRef.getOrgTable(), tableDef.tableRef.navigationData.steps(), "loading pages... ");
 
     if(parallelAsyncFunction) {
         return Promise.all([
@@ -43,7 +43,7 @@ async function fetchAllPages(tableDef: TableDef, results: any, progressBar: Prog
             let count = tableDef.pageHandler.onPage(tableDef, text, results, offset);
             if (!count)
                 return undefined;
-            offset += tableDef.navigationData.step;
+            offset += tableDef.tableRef.navigationData.step;
             if (!progressBar.next())
                 break;
         }

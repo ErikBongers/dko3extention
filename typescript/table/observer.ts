@@ -28,11 +28,10 @@ function downloadTable() {
         return true;
     }
 
-    let tableRef = new IdTableRef("table_leerlingen_werklijst_table", (offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0");
+    let tableRef = new IdTableRef("table_leerlingen_werklijst_table", findFirstNavigation(),(offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0");
     let tableDef = new TableDef(
         tableRef,
         rowPageHandler,
-        findFirstNavigation(),
         "werklijst",
         "",
         ""
