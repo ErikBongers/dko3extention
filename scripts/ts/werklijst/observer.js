@@ -32,15 +32,11 @@ function onPreparingFilter() {
     addButton(btnWerklijstMaken, def.PREFILL_INSTR_BTN_ID, "Prefill instrumenten", prefillInstruments, "fa-guitar", ["btn", "btn-outline-dark"], "prefill ");
     getSchoolIdString();
 }
-function getCriteriaString() {
-    return document.querySelector("#view_contents > div.alert.alert-info").textContent.replace("Criteria aanpassen", "").replace("Criteria:", "").replaceAll(/\s/g, "");
-}
+let getCriteriaString = (tableDef) => {
+    return document.querySelector("#view_contents > div.alert.alert-info").textContent.replace("Criteria aanpassen", "").replace("Criteria:", "");
+};
 function onWerklijstChanged() {
     console.log("werklijst chqanged.");
-    let criteriaString = getCriteriaString();
-    console.log("getting cache for 'werklijst' and checksum:");
-    console.log(criteriaString);
-    //TODO: ust use werklijst_<...criteria...> as the key.
 }
 function onButtonBarChanged() {
     let targetButton = document.querySelector("#tablenav_leerlingen_werklijst_top > div > div.btn-group.btn-group-sm.datatable-buttons > button:nth-child(1)");
@@ -56,7 +52,7 @@ function onClickCopyEmails() {
     let requiredHeaderLabels = ["e-mailadressen"];
     let pageHandler = new NamedCellPageHandler(requiredHeaderLabels, scrapeEmails, getData, onLoaded);
     let tableRef = new IdTableRef("table_leerlingen_werklijst_table", findFirstNavigation(), (offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0");
-    let tableDef = new TableDef(tableRef, pageHandler, "werklijst", undefined, "");
+    let tableDef = new TableDef(tableRef, pageHandler, "werklijst", undefined);
     let theData = undefined;
     function getData() {
         return JSON.stringify(theData);
@@ -71,7 +67,7 @@ function onClickCopyEmails() {
         navigator.clipboard.writeText(flattened.join(";\n")).then();
         theData = flattened;
     }
-    tableDef.fetchFullTable([], undefined)
+    tableDef.getTableData([], undefined)
         .then((results) => { });
 }
 function onClickShowCounts() {
@@ -82,7 +78,7 @@ function onClickShowCounts() {
         let requiredHeaderLabels = ["naam", "voornaam", "vak", "klasleerkracht", "graad + leerjaar"];
         let pageHandler = new NamedCellPageHandler(requiredHeaderLabels, scrapeStudent, getData, onLoaded);
         let tableRef = new IdTableRef("table_leerlingen_werklijst_table", findFirstNavigation(), (offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0");
-        let tableDef = new TableDef(tableRef, pageHandler, "werklijst_uren", undefined, def.COUNT_TABLE_ID);
+        let tableDef = new TableDef(tableRef, pageHandler, def.COUNT_TABLE_ID, getCriteriaString);
         let theData = {
             vakLeraars: undefined,
             fromCloud: undefined
@@ -100,31 +96,28 @@ function onClickShowCounts() {
                     return value;
                 }
             }
-            // console.log(theData);
-            return JSON.stringify(theData, replacer);
+            return JSON.stringify(theData, replacer); //TODO: build a stringify function that can handle Map data.
+            /*
+             function reviver(key, value) {
+              if(typeof value === 'object' && value !== null) {
+                if (value.dataType === 'Map') {
+                  return new Map(value.value);
+                }
+              }
+              return value;
+            }
+             */
         }
         function onLoaded(tableDef) {
             let vakLeraars = tableDef.lastFetchResults[0];
             theData.fromCloud = tableDef.lastFetchResults[1];
             theData.fromCloud = upgradeCloudData(theData.fromCloud);
             theData.vakLeraars = new Map([...vakLeraars.entries()].sort((a, b) => a[0] < b[0] ? -1 : ((a[0] > b[0]) ? 1 : 0)));
-            let test = getData(tableDef);
-            console.log(test);
-            function reviver(key, value) {
-                if (typeof value === 'object' && value !== null) {
-                    if (value.dataType === 'Map') {
-                        return new Map(value.value);
-                    }
-                }
-                return value;
-            }
-            let newData = JSON.parse(test, reviver);
-            console.log("BUILDING WITH STRING DATA");
-            buildTable(newData);
+            buildTable(theData);
             document.getElementById(def.COUNT_TABLE_ID).style.display = "none";
             showOrHideNewTable();
         }
-        tableDef.fetchFullTable(new Map(), () => fetchFromCloud(fileName))
+        tableDef.getTableData(new Map(), () => fetchFromCloud(fileName))
             .then((results) => {
         });
         return;

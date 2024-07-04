@@ -24,39 +24,30 @@ export class IdTableRef implements TableRef {
     }
 }
 
+export type CalculateTableCheckSumHandler = (tableDef: TableDef) => string;
+
 export class TableDef {
-    calculateChecksum?: () => string;
     tableRef: TableRef;
     pageHandler: PageHandler;
-    private readonly cacheKey: string;
-    private newTableId: string;
+    newTableId: string;
     lastFetchResults: any;
     theData: string;
+    calculateTableCheckSum: CalculateTableCheckSumHandler;
 
-    constructor(tableRef: TableRef, pageHandler: PageHandler, cacheKey: string, calculateChecksum = undefined, newTableId: string) {
+    constructor(tableRef: TableRef, pageHandler: PageHandler, newTableId: string, calculateTableCheckSum: CalculateTableCheckSumHandler) {
         this.tableRef = tableRef;
         this.pageHandler = pageHandler;
-        this.cacheKey = cacheKey;
-        this.calculateChecksum = calculateChecksum;
         this.newTableId = newTableId;
+        this.calculateTableCheckSum = calculateTableCheckSum;
     }
 
-    /**
-     * Save rows in sessionStarage with a checksum to determine if the cache is outDated.
-     * @param checksum
-     */
-    cacheRows(checksum: string) {
-        console.log(`Caching ${this.cacheKey}.`);
-        window.sessionStorage.setItem(this.cacheKey, this.tableRef.getOrgTable().querySelector("tbody").innerHTML);
-        window.sessionStorage.setItem(this.cacheKey+"_checksum", checksum);
-    }
-
-    isCacheValid(checksum: string) {
-        return window.sessionStorage.getItem(this.cacheKey+"_checksum") === checksum;
+    cacheData() {
+        console.log(`Caching ${this.newTableId}.`);
+        window.sessionStorage.setItem(this.newTableId, this.tableRef.getOrgTable().querySelector("tbody").innerHTML);
     }
 
     getCached() {
-        return window.sessionStorage.getItem(this.cacheKey);
+        return window.sessionStorage.getItem(this.newTableId);
     }
 
     displayCached() {
@@ -64,27 +55,52 @@ export class TableDef {
         this.tableRef.getOrgTable().querySelector("tbody").innerHTML = this.getCached();
     }
 
-    async fetchFullTable(results: any, parallelAsyncFunction: (() => Promise<any>)) {
-        let progressBar = insertProgressBar(this.tableRef.getOrgTable(), this.tableRef.navigationData.steps(), "loading pages... ");
+    getCacheId() {
+        let checksum = this.calculateTableCheckSum?.(this) ?? "";
+        let id = this.newTableId + "__" + checksum;
+        return id.replaceAll(/\s/g, "");
+    }
 
+    async getTableData(rawData: any, parallelAsyncFunction: (() => Promise<any>)) {
+        console.log(`TODO: try to load cache with key: ${this.getCacheId()}`);
+        let cachedData = this.getCached();
+
+        if(cachedData) {
+            if(parallelAsyncFunction) {
+                this.lastFetchResults = await parallelAsyncFunction();
+            }
+        } else {
+            await this.#fetchPages(parallelAsyncFunction, rawData);
+        }
+    }
+
+    async #fetchPages(parallelAsyncFunction: () => Promise<any>, rawData: any) {
+        let progressBar = insertProgressBar(this.tableRef.getOrgTable(), this.tableRef.navigationData.steps(), "loading pages... ");
         progressBar.start();
         if (this.pageHandler.onBeforeLoading)
             this.pageHandler.onBeforeLoading(this);
 
         if (parallelAsyncFunction) {
             this.lastFetchResults = await Promise.all([
-                this.fetchAllPages(results, progressBar),
+                this.#doFetchAllPages(rawData, progressBar),
                 parallelAsyncFunction()
             ]);
         } else {
-            this.lastFetchResults = await this.fetchAllPages(results, progressBar);
+            this.lastFetchResults = await this.#doFetchAllPages(rawData, progressBar);
         }
         if (this.pageHandler.onLoaded)
             this.pageHandler.onLoaded(this);
         this.theData = this.pageHandler.getData(this);
+        //TODO: merge theData and lastFetchedData? Two types of data: the fetchedData is literally that. The cachedData may be the same or may be the html text of the table body! Only the tableDef knows this!
+        // Make a handler that builds the table, based on the prepared data.
+        // rawData and preparedData.
+        // handlers:
+        // - convertToSavableData()
+        // - showTable() ? or not needed?
+        console.log(`TODO: save cache with key: ${this.getCacheId()}`);
     }
 
-    async fetchAllPages(results: any, progressBar: ProgressBar) {
+    async #doFetchAllPages(results: any, progressBar: ProgressBar) {
         let offset = 0;
         try {
             while (true) {

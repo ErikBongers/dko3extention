@@ -3,7 +3,7 @@ import * as def from "../lessen/def.js";
 import {buildTable, getUrenVakLeraarFileName, JsonCloudData, TheData} from "./buildUren.js";
 import {scrapeStudent, VakLeraar} from "./scrapeUren.js";
 import {fetchFromCloud} from "../cloud.js";
-import {IdTableRef, TableDef} from "../table/tableDef.js";
+import {CalculateTableCheckSumHandler, IdTableRef, TableDef} from "../table/tableDef.js";
 import {prefillInstruments} from "./prefillInstruments.js";
 import {HashObserver} from "../pageObserver.js";
 import {NamedCellPageHandler, RowObject} from "../pageHandlers.js";
@@ -37,16 +37,12 @@ function onPreparingFilter() {
     getSchoolIdString();
 }
 
-function getCriteriaString() {
-    return document.querySelector("#view_contents > div.alert.alert-info").textContent.replace("Criteria aanpassen", "").replace("Criteria:", "").replaceAll(/\s/g, "");
+let getCriteriaString: CalculateTableCheckSumHandler =  (tableDef: TableDef) => {
+    return document.querySelector("#view_contents > div.alert.alert-info").textContent.replace("Criteria aanpassen", "").replace("Criteria:", "");
 }
 
 function onWerklijstChanged() {
     console.log("werklijst chqanged.");
-    let criteriaString = getCriteriaString();
-    console.log("getting cache for 'werklijst' and checksum:")
-    console.log(criteriaString);
-    //TODO: ust use werklijst_<...criteria...> as the key.
 }
 
 function onButtonBarChanged() {
@@ -71,8 +67,7 @@ function onClickCopyEmails() {
         tableRef,
         pageHandler,
         "werklijst",
-        undefined,
-        ""
+        undefined
     );
 
     let theData = undefined;
@@ -92,7 +87,7 @@ function onClickCopyEmails() {
         theData = flattened;
     }
 
-    tableDef.fetchFullTable([], undefined )
+    tableDef.getTableData([], undefined )
         .then((results) => { });
 }
 
@@ -108,9 +103,8 @@ function onClickShowCounts() {
         let tableDef = new TableDef(
             tableRef,
             pageHandler,
-            "werklijst_uren",
-            undefined,
-            def.COUNT_TABLE_ID
+            def.COUNT_TABLE_ID,
+            getCriteriaString
         );
 
         let theData = {
@@ -154,7 +148,7 @@ function onClickShowCounts() {
 
         }
 
-        tableDef.fetchFullTable(
+        tableDef.getTableData(
             new Map(),
             () => fetchFromCloud(fileName))
             .then((results) => {

@@ -1,7 +1,7 @@
 import {addButton} from "../globals.js";
 import * as def from "../lessen/def.js";
 import {AllPageFilter, BaseObserver} from "../pageObserver.js";
-import {RowObject, RowPageHandler} from "../pageHandlers.js";
+import {PrebuildTableHandler, RowObject, RowPageHandler} from "../pageHandlers.js";
 import {IdTableRef, TableDef} from "./tableDef.js";
 import {findFirstNavigation} from "./tableNavigation.js";
 
@@ -16,36 +16,32 @@ function onMutation (_mutation: MutationRecord) {
 }
 
 function downloadTable() {
-    let rowPageHandler = new RowPageHandler(onRow, onLoading, onBeforeLoading, onData);
+    let prebuildPageHandler = new PrebuildTableHandler(onLoaded, onBeforeLoading, onData);
 
     function onBeforeLoading(tableDef: TableDef) {
         tableDef.tableRef.getOrgTable().querySelector("tbody").innerHTML = "";
     }
 
-    function onRow(tableDef: TableDef, rowObject: RowObject, _collection: any) {
-        let tbody = tableDef.tableRef.getOrgTable().querySelector("tbody");
-        tbody.appendChild(rowObject.tr);
-        return true;
-    }
-
     function onData(tableDef: TableDef) {
-        return tableDef.tableRef.getOrgTable().querySelector("tbody").innerHTML;
+        return 'TODO';
     }
 
-    function onLoading(tableDef: TableDef) {
-        //nothing to do. The data is the tbody content.
+    function onLoaded(_tableDef: TableDef) {
+        let template = (tableDef.pageHandler as PrebuildTableHandler).template;
+        tableDef.tableRef.getOrgTable()
+            .querySelector("tbody")
+            .replaceChildren(...template.content.querySelectorAll("tbody tr"));
     }
 
     let tableRef = new IdTableRef("table_leerlingen_werklijst_table", findFirstNavigation(),(offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0");
     let tableDef = new TableDef(
         tableRef,
-        rowPageHandler,
+        prebuildPageHandler,
         "werklijst",
-        "",
-        ""
+        undefined
     );
 
-    tableDef.fetchFullTable(undefined, undefined).then(() => {
+    tableDef.getTableData(undefined, undefined).then(() => {
         console.log("Fetch complete!");
     })
 }

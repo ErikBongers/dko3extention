@@ -31,6 +31,25 @@ export class RowPageHandler {
         return this.rows.length;
     }
 }
+export class PrebuildTableHandler {
+    constructor(onLoaded, onBeforeLoading, getData) {
+        this.onBeforeLoading = onBeforeLoading;
+        this.getData = getData;
+        this.onLoaded = onLoaded;
+    }
+    onPage(tableDef, text, collection, offset) {
+        if (offset === 0) {
+            this.template = document.createElement('template');
+            this.template.innerHTML = text;
+            return this.template.content.querySelectorAll("tbody > tr").length;
+        }
+        let template = document.createElement('template');
+        template.innerHTML = text;
+        let rows = template.content.querySelectorAll("tbody > tr");
+        this.template.content.querySelector("tbody").append(...rows);
+        return rows.length;
+    }
+}
 /**
  * PageHandler with named column labels.\
  * Params are:

@@ -1,7 +1,7 @@
 import { addButton } from "../globals.js";
 import * as def from "../lessen/def.js";
 import { AllPageFilter, BaseObserver } from "../pageObserver.js";
-import { RowPageHandler } from "../pageHandlers.js";
+import { PrebuildTableHandler } from "../pageHandlers.js";
 import { IdTableRef, TableDef } from "./tableDef.js";
 import { findFirstNavigation } from "./tableNavigation.js";
 export default new BaseObserver(undefined, new AllPageFilter(), onMutation);
@@ -13,24 +13,22 @@ function onMutation(_mutation) {
     return true;
 }
 function downloadTable() {
-    let rowPageHandler = new RowPageHandler(onRow, onLoading, onBeforeLoading, onData);
+    let prebuildPageHandler = new PrebuildTableHandler(onLoaded, onBeforeLoading, onData);
     function onBeforeLoading(tableDef) {
         tableDef.tableRef.getOrgTable().querySelector("tbody").innerHTML = "";
     }
-    function onRow(tableDef, rowObject, _collection) {
-        let tbody = tableDef.tableRef.getOrgTable().querySelector("tbody");
-        tbody.appendChild(rowObject.tr);
-        return true;
-    }
     function onData(tableDef) {
-        return tableDef.tableRef.getOrgTable().querySelector("tbody").innerHTML;
+        return 'TODO';
     }
-    function onLoading(tableDef) {
-        //nothing to do. The data is the tbody content.
+    function onLoaded(_tableDef) {
+        let template = tableDef.pageHandler.template;
+        tableDef.tableRef.getOrgTable()
+            .querySelector("tbody")
+            .replaceChildren(...template.content.querySelectorAll("tbody tr"));
     }
     let tableRef = new IdTableRef("table_leerlingen_werklijst_table", findFirstNavigation(), (offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0");
-    let tableDef = new TableDef(tableRef, rowPageHandler, "werklijst", "", "");
-    tableDef.fetchFullTable(undefined, undefined).then(() => {
+    let tableDef = new TableDef(tableRef, prebuildPageHandler, "werklijst", undefined);
+    tableDef.getTableData(undefined, undefined).then(() => {
         console.log("Fetch complete!");
     });
 }

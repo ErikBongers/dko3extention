@@ -1,18 +1,13 @@
-* cache werklijst or other tables
-  > store in session
-  > store per lijst.
-  > for werklijst: still valid?
-    > for werklijst: criteria still the same?
-  > retrieve cache?
-    > werklijst: uren :
-      > user sets correct criteria
-      > clicks show list
-      > clicks guitar button.
-        >>> if there's a saved list, use it.
+* fetching table data - how?
+ - first page creates a template.
+   > only the table.
+   > have an onHeaderRow() handler to index the column labels.
+ - next pages template.content (=DocumentFragment) .append() the row nodes.
+ - at the end, insert all the rows at once?
+   > Node.replaceChild(new, old)
 
-      > users goes somewhere else and comes back to werklijst:
-        > same filter is active.
-        > can do the same thing as above.
+* cache werklijst or other tables
+  - table fetches data rows and auxData (fromCloud).
 
 
 
