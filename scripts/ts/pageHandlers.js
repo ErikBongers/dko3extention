@@ -7,12 +7,12 @@ var _NamedCellPageHandler_instances, _NamedCellPageHandler_getColumnText;
 export class RowObject {
 }
 export class RowPageHandler {
-    constructor(onRow, onBeforeLoading) {
+    constructor(onRow, onLoaded, onBeforeLoading, getData) {
         this.onRow = onRow;
         this.onBeforeLoading = onBeforeLoading;
-        this.template = undefined;
+        this.getData = getData;
+        this.onLoaded = onLoaded;
         this.rows = undefined;
-        this.currentRow = undefined;
     }
     onPage(tableDef, text, collection, offset) {
         const template = document.createElement('template');
@@ -20,7 +20,6 @@ export class RowPageHandler {
         this.rows = template.content.querySelectorAll("tbody > tr");
         let index = 0;
         for (let row of this.rows) {
-            this.currentRow = row;
             let rowObject = new RowObject();
             rowObject.tr = row;
             rowObject.offset = offset;
@@ -30,9 +29,6 @@ export class RowPageHandler {
             index++;
         }
         return this.rows.length;
-    }
-    onLoaded(tableDef) {
-        tableDef.cacheRows(tableDef.calculateChecksum ? tableDef.calculateChecksum() : "");
     }
 }
 /**
@@ -44,12 +40,13 @@ export class RowPageHandler {
  * @implements PageHandler: which requires member `onPage()`
  */
 export class NamedCellPageHandler {
-    constructor(requiredHeaderLabels, onRow, onBeforeLoading) {
+    constructor(requiredHeaderLabels, onRow, getData, onLoaded, onBeforeLoading) {
         _NamedCellPageHandler_instances.add(this);
         this.requiredHeaderLabels = requiredHeaderLabels;
         this.onRow = onRow;
         this.onBeforeLoading = onBeforeLoading;
-        this.template = undefined;
+        this.onLoaded = onLoaded;
+        this.getData = getData;
         this.rows = undefined;
         this.headerIndices = undefined;
         this.currentRow = undefined;
@@ -64,7 +61,6 @@ export class NamedCellPageHandler {
         return this.rows.length;
     }
     setTemplateAndCheck(template) {
-        this.template = template;
         this.rows = template.content.querySelectorAll("tbody > tr");
         this.headerIndices = NamedCellPageHandler.getHeaderIndices(template);
         if (!this.hasAllHeaders()) {
@@ -106,9 +102,6 @@ export class NamedCellPageHandler {
             if (!this.onRow(tableDef, rowObject, collection))
                 return;
         }
-    }
-    onLoaded(tableDef) {
-        tableDef.cacheRows(tableDef.calculateChecksum ? tableDef.calculateChecksum() : "");
     }
 }
 _NamedCellPageHandler_instances = new WeakSet(), _NamedCellPageHandler_getColumnText = function _NamedCellPageHandler_getColumnText(label) {

@@ -54,19 +54,25 @@ function scrapeEmails(_tableDef, row, collection) {
 }
 function onClickCopyEmails() {
     let requiredHeaderLabels = ["e-mailadressen"];
-    let pageHandler = new NamedCellPageHandler(requiredHeaderLabels, scrapeEmails);
+    let pageHandler = new NamedCellPageHandler(requiredHeaderLabels, scrapeEmails, getData, onLoaded);
     let tableRef = new IdTableRef("table_leerlingen_werklijst_table", findFirstNavigation(), (offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0");
     let tableDef = new TableDef(tableRef, pageHandler, "werklijst", undefined, "");
-    tableDef.fetchFullTable([], undefined)
-        .then((results) => {
-        let flattened = results
+    let theData = undefined;
+    function getData() {
+        return JSON.stringify(theData);
+    }
+    function onLoaded(tableDef) {
+        let flattened = tableDef.lastFetchResults
             .map((emails) => emails.split(/[,;]/))
             .flat()
             .filter((email) => !email.includes("@academiestudent.be"))
             .filter((email) => email !== "");
         console.log("email count: " + flattened.length);
         navigator.clipboard.writeText(flattened.join(";\n")).then();
-    });
+        theData = flattened;
+    }
+    tableDef.fetchFullTable([], undefined)
+        .then((results) => { });
 }
 function onClickShowCounts() {
     //Build lazily and only once. Table will automatically be erased when filters are changed.
@@ -74,18 +80,52 @@ function onClickShowCounts() {
         let fileName = getUrenVakLeraarFileName();
         console.log("reading: " + fileName);
         let requiredHeaderLabels = ["naam", "voornaam", "vak", "klasleerkracht", "graad + leerjaar"];
-        let pageHandler = new NamedCellPageHandler(requiredHeaderLabels, scrapeStudent);
+        let pageHandler = new NamedCellPageHandler(requiredHeaderLabels, scrapeStudent, getData, onLoaded);
         let tableRef = new IdTableRef("table_leerlingen_werklijst_table", findFirstNavigation(), (offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0");
         let tableDef = new TableDef(tableRef, pageHandler, "werklijst_uren", undefined, def.COUNT_TABLE_ID);
-        tableDef.fetchFullTable(new Map(), () => fetchFromCloud(fileName))
-            .then((results) => {
-            let vakLeraars = results[0];
-            let fromCloud = results[1];
-            fromCloud = upgradeCloudData(fromCloud);
-            let sortedVakLeraars = new Map([...vakLeraars.entries()].sort((a, b) => a[0] < b[0] ? -1 : ((a[0] > b[0]) ? 1 : 0)));
-            buildTable({ vakLeraars: sortedVakLeraars, fromCloud });
+        let theData = {
+            vakLeraars: undefined,
+            fromCloud: undefined
+        };
+        //https://stackoverflow.com/questions/29085197/how-do-you-json-stringify-an-es6-map
+        function getData(tableDef) {
+            function replacer(key, value) {
+                if (value instanceof Map) {
+                    return {
+                        dataType: 'Map',
+                        value: Array.from(value.entries()), // or with spread: value: [...value]
+                    };
+                }
+                else {
+                    return value;
+                }
+            }
+            // console.log(theData);
+            return JSON.stringify(theData, replacer);
+        }
+        function onLoaded(tableDef) {
+            let vakLeraars = tableDef.lastFetchResults[0];
+            theData.fromCloud = tableDef.lastFetchResults[1];
+            theData.fromCloud = upgradeCloudData(theData.fromCloud);
+            theData.vakLeraars = new Map([...vakLeraars.entries()].sort((a, b) => a[0] < b[0] ? -1 : ((a[0] > b[0]) ? 1 : 0)));
+            let test = getData(tableDef);
+            console.log(test);
+            function reviver(key, value) {
+                if (typeof value === 'object' && value !== null) {
+                    if (value.dataType === 'Map') {
+                        return new Map(value.value);
+                    }
+                }
+                return value;
+            }
+            let newData = JSON.parse(test, reviver);
+            console.log("BUILDING WITH STRING DATA");
+            buildTable(newData);
             document.getElementById(def.COUNT_TABLE_ID).style.display = "none";
             showOrHideNewTable();
+        }
+        tableDef.fetchFullTable(new Map(), () => fetchFromCloud(fileName))
+            .then((results) => {
         });
         return;
     }

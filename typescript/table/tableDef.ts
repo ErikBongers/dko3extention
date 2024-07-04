@@ -30,6 +30,9 @@ export class TableDef {
     pageHandler: PageHandler;
     private readonly cacheKey: string;
     private newTableId: string;
+    lastFetchResults: any;
+    theData: string;
+
     constructor(tableRef: TableRef, pageHandler: PageHandler, cacheKey: string, calculateChecksum = undefined, newTableId: string) {
         this.tableRef = tableRef;
         this.pageHandler = pageHandler;
@@ -64,21 +67,25 @@ export class TableDef {
     async fetchFullTable(results: any, parallelAsyncFunction: (() => Promise<any>)) {
         let progressBar = insertProgressBar(this.tableRef.getOrgTable(), this.tableRef.navigationData.steps(), "loading pages... ");
 
+        progressBar.start();
+        if (this.pageHandler.onBeforeLoading)
+            this.pageHandler.onBeforeLoading(this);
+
         if (parallelAsyncFunction) {
-            return Promise.all([
+            this.lastFetchResults = await Promise.all([
                 this.fetchAllPages(results, progressBar),
                 parallelAsyncFunction()
             ]);
         } else {
-            return this.fetchAllPages(results, progressBar);
+            this.lastFetchResults = await this.fetchAllPages(results, progressBar);
         }
+        if (this.pageHandler.onLoaded)
+            this.pageHandler.onLoaded(this);
+        this.theData = this.pageHandler.getData(this);
     }
 
     async fetchAllPages(results: any, progressBar: ProgressBar) {
         let offset = 0;
-        progressBar.start();
-        if (this.pageHandler.onBeforeLoading)
-            this.pageHandler.onBeforeLoading(this);
         try {
             while (true) {
                 console.log("fetching page " + offset);
@@ -93,8 +100,6 @@ export class TableDef {
             }
         } finally {
             progressBar.stop();
-            if (this.pageHandler.onLoaded)
-                this.pageHandler.onLoaded(this);
         }
         return results;
     }

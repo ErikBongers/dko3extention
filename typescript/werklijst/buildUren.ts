@@ -257,7 +257,7 @@ function recalculate() {
     observeTable(true);
 }
 
-interface TheData {
+export interface TheData {
     fromCloud: JsonCloudData,
     vakLeraars: Map<string, VakLeraar>
 }

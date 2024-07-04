@@ -13,7 +13,7 @@ function onMutation(_mutation) {
     return true;
 }
 function downloadTable() {
-    let rowPageHandler = new RowPageHandler(onRow, onBeforeLoading);
+    let rowPageHandler = new RowPageHandler(onRow, onLoading, onBeforeLoading, onData);
     function onBeforeLoading(tableDef) {
         tableDef.tableRef.getOrgTable().querySelector("tbody").innerHTML = "";
     }
@@ -21,6 +21,12 @@ function downloadTable() {
         let tbody = tableDef.tableRef.getOrgTable().querySelector("tbody");
         tbody.appendChild(rowObject.tr);
         return true;
+    }
+    function onData(tableDef) {
+        return tableDef.tableRef.getOrgTable().querySelector("tbody").innerHTML;
+    }
+    function onLoading(tableDef) {
+        //nothing to do. The data is the tbody content.
     }
     let tableRef = new IdTableRef("table_leerlingen_werklijst_table", findFirstNavigation(), (offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0");
     let tableDef = new TableDef(tableRef, rowPageHandler, "werklijst", "", "");

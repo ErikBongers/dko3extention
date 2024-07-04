@@ -38,21 +38,25 @@ export class TableDef {
     }
     async fetchFullTable(results, parallelAsyncFunction) {
         let progressBar = insertProgressBar(this.tableRef.getOrgTable(), this.tableRef.navigationData.steps(), "loading pages... ");
+        progressBar.start();
+        if (this.pageHandler.onBeforeLoading)
+            this.pageHandler.onBeforeLoading(this);
         if (parallelAsyncFunction) {
-            return Promise.all([
+            this.lastFetchResults = await Promise.all([
                 this.fetchAllPages(results, progressBar),
                 parallelAsyncFunction()
             ]);
         }
         else {
-            return this.fetchAllPages(results, progressBar);
+            this.lastFetchResults = await this.fetchAllPages(results, progressBar);
         }
+        if (this.pageHandler.onLoaded)
+            this.pageHandler.onLoaded(this);
+        this.theData = this.pageHandler.getData(this);
+        console.log(this.theData);
     }
     async fetchAllPages(results, progressBar) {
         let offset = 0;
-        progressBar.start();
-        if (this.pageHandler.onBeforeLoading)
-            this.pageHandler.onBeforeLoading(this);
         try {
             while (true) {
                 console.log("fetching page " + offset);
@@ -68,8 +72,6 @@ export class TableDef {
         }
         finally {
             progressBar.stop();
-            if (this.pageHandler.onLoaded)
-                this.pageHandler.onLoaded(this);
         }
         return results;
     }
