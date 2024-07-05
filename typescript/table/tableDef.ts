@@ -57,8 +57,10 @@ export class TableDef {
     }
 
     getCacheId() {
-        let checksum = this.calculateTableCheckSum?.(this) ?? "";
-        let id = this.newTableId + "__" + checksum;
+        let checksum = "";
+        if (this.calculateTableCheckSum)
+            checksum = "__" + this.calculateTableCheckSum(this);
+        let id = this.newTableId + checksum;
         return id.replaceAll(/\s/g, "");
     }
 
@@ -108,7 +110,8 @@ export class TableDef {
                 console.log("fetching page " + offset);
                 let response = await fetch(this.tableRef.buildFetchUrl(offset));
                 let text = await response.text();
-                this.pageHandler.onPage?.(this, text, results, offset); //TODO: make optional call
+                if(this.pageHandler.onPage)
+                    this.pageHandler.onPage(this, text, results, offset);
                 this.addPagetoShadowTable(text, offset);
                 offset += this.tableRef.navigationData.step;
                 if (!progressBar.next())

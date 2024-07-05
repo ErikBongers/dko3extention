@@ -4,9 +4,10 @@ type OnRowHandler = (tableDef: TableDef, rowObject: RowObject, collection: any) 
 type OnBeforeLoadingHandler = (tableDef: TableDef) => void;
 type OnLoadedHandler = (tableDef: TableDef) => void;
 type GetDataHandler = (tableDef: TableDef) => string;
+type OnPageHandler = (tableDef: TableDef, text: string, collection: any, offset: number) => void;
 
 export interface PageHandler {
-    onPage?(tableDef: TableDef, text: string, collection: any, offset: number) :number;
+    onPage: OnPageHandler;
     onLoaded: OnLoadedHandler;
     onBeforeLoading?: OnBeforeLoadingHandler;
     getData: (tableDef: TableDef) => string;
@@ -57,11 +58,13 @@ export class SimpleTableHandler implements PageHandler {
     onBeforeLoading?: OnBeforeLoadingHandler;
     getData: GetDataHandler;
     onLoaded: OnLoadedHandler;
+    onPage: OnPageHandler;
 
     constructor(onLoaded: OnLoadedHandler, onBeforeLoading: OnBeforeLoadingHandler, getData: GetDataHandler) {
         this.onBeforeLoading = onBeforeLoading;
         this.getData = getData;
         this.onLoaded = onLoaded;
+        this.onPage = undefined;
     }
 }
 
@@ -94,15 +97,17 @@ export class NamedCellPageHandler implements PageHandler {
         this.currentRow = undefined;
     }
 
-    onPage(tableDef: TableDef, text: string, collection: any, _offset: number) {
-        const template = document.createElement('template');
-        template.innerHTML = text;
+    onPage(tableDef: TableDef, text: string, collection: any, offset: number) {
+        if(offset === 0) {
+            const template = document.createElement('template');
+            template.innerHTML = text;
 
-        if (!this.setTemplateAndCheck(template))
-            throw ("Cannot build table object - required columns missing");
+            if (!this.setTemplateAndCheck(template))
+                throw ("Cannot build table object - required columns missing");
 
-        this.rows = template.content.querySelectorAll("tbody > tr");
-        this.forEachRow(tableDef, collection);
+            this.rows = template.content.querySelectorAll("tbody > tr");
+            this.forEachRow(tableDef, collection);
+        }
         return this.rows.length;
     }
 
@@ -145,6 +150,10 @@ export class NamedCellPageHandler implements PageHandler {
 
     #getColumnText(label: string) {
         return this.currentRow.children[this.headerIndices.get(label)].textContent;
+    }
+
+    getColumnText2(tr: HTMLTableRowElement, label: string) : string {
+        return tr.children[this.headerIndices.get(label)].textContent;
     }
 
     forEachRow(tableDef: TableDef, collection: any) {

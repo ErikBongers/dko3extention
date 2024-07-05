@@ -35,8 +35,10 @@ export class TableDef {
         this.tableRef.getOrgTable().querySelector("tbody").innerHTML = this.getCached();
     }
     getCacheId() {
-        let checksum = this.calculateTableCheckSum?.(this) ?? "";
-        let id = this.newTableId + "__" + checksum;
+        let checksum = "";
+        if (this.calculateTableCheckSum)
+            checksum = "__" + this.calculateTableCheckSum(this);
+        let id = this.newTableId + checksum;
         return id.replaceAll(/\s/g, "");
     }
     async getTableData(rawData, parallelAsyncFunction) {
@@ -95,7 +97,8 @@ _TableDef_instances = new WeakSet(), _TableDef_fetchPages = async function _Tabl
             console.log("fetching page " + offset);
             let response = await fetch(this.tableRef.buildFetchUrl(offset));
             let text = await response.text();
-            this.pageHandler.onPage?.(this, text, results, offset); //TODO: make optional call
+            if (this.pageHandler.onPage)
+                this.pageHandler.onPage(this, text, results, offset);
             this.addPagetoShadowTable(text, offset);
             offset += this.tableRef.navigationData.step;
             if (!progressBar.next())

@@ -51,12 +51,6 @@ function onButtonBarChanged() {
     addButton(targetButton, def.MAIL_BTN_ID, "Email to clipboard", onClickCopyEmails, "fa-envelope", ["btn", "btn-outline-info"]);
 }
 
-// noinspection JSUnusedLocalSymbols
-function scrapeEmails(_tableDef: TableDef, row: RowObject, collection: any) {
-    collection.push(row.getColumnText("e-mailadressen"));
-    return true;
-}
-
 function onClickCopyEmails() {
     let requiredHeaderLabels = ["e-mailadressen"];
 
@@ -72,12 +66,20 @@ function onClickCopyEmails() {
 
     let theData = undefined;
 
+    function scrapeEmails(tableDef: TableDef, row: RowObject, collection: any) {
+        return true;
+    }
+
     function getData() {
-        return JSON.stringify(theData);
+        return "TODO";
     }
 
     function onLoaded(tableDef: TableDef) {
-        let flattened = tableDef.lastFetchResults
+        let rows = this.rows = tableDef.shadowTableTemplate.content.querySelectorAll("tbody > tr") as NodeListOf<HTMLTableRowElement>;
+        let allEmails = Array.from(rows)
+            .map(tr=> (tableDef.pageHandler as NamedCellPageHandler).getColumnText2(tr, "e-mailadressen"));
+
+        let flattened = allEmails
             .map((emails: string) => emails.split(/[,;]/))
             .flat()
             .filter((email: string) => !email.includes("@academiestudent.be"))

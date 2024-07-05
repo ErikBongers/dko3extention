@@ -43,22 +43,23 @@ function onButtonBarChanged() {
     addButton(targetButton, def.COUNT_BUTTON_ID, "Toon telling", onClickShowCounts, "fa-guitar", ["btn-outline-info"]);
     addButton(targetButton, def.MAIL_BTN_ID, "Email to clipboard", onClickCopyEmails, "fa-envelope", ["btn", "btn-outline-info"]);
 }
-// noinspection JSUnusedLocalSymbols
-function scrapeEmails(_tableDef, row, collection) {
-    collection.push(row.getColumnText("e-mailadressen"));
-    return true;
-}
 function onClickCopyEmails() {
     let requiredHeaderLabels = ["e-mailadressen"];
     let pageHandler = new NamedCellPageHandler(requiredHeaderLabels, scrapeEmails, getData, onLoaded);
     let tableRef = new IdTableRef("table_leerlingen_werklijst_table", findFirstNavigation(), (offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0");
     let tableDef = new TableDef(tableRef, pageHandler, "werklijst", undefined);
     let theData = undefined;
+    function scrapeEmails(tableDef, row, collection) {
+        return true;
+    }
     function getData() {
-        return JSON.stringify(theData);
+        return "TODO";
     }
     function onLoaded(tableDef) {
-        let flattened = tableDef.lastFetchResults
+        let rows = this.rows = tableDef.shadowTableTemplate.content.querySelectorAll("tbody > tr");
+        let allEmails = Array.from(rows)
+            .map(tr => tableDef.pageHandler.getColumnText2(tr, "e-mailadressen"));
+        let flattened = allEmails
             .map((emails) => emails.split(/[,;]/))
             .flat()
             .filter((email) => !email.includes("@academiestudent.be"))

@@ -12,11 +12,20 @@
           > but store the retrieved data in the shadow table.
 
 
+
+
+Features
+-----------
+* add table buttons to top AND bottom navigation.
+
 * cache werklijst or other tables
   - table fetches data rows and auxData (fromCloud).
 
 * cache info: show age of data:
  : 3 hours old,...
+
+* cache: option to never cache.
+  > per table?
 
 * db3: setting to turn callstack on/off
 
