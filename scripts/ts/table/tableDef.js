@@ -53,18 +53,6 @@ export class TableDef {
             await __classPrivateFieldGet(this, _TableDef_instances, "m", _TableDef_fetchPages).call(this, parallelAsyncFunction, rawData);
         }
     }
-    addPagetoShadowTable(text, offset) {
-        if (offset === 0) {
-            this.shadowTableTemplate = document.createElement('template');
-            this.shadowTableTemplate.innerHTML = text;
-            return this.shadowTableTemplate.content.querySelectorAll("tbody > tr").length;
-        }
-        let template = document.createElement('template');
-        template.innerHTML = text;
-        let rows = template.content.querySelectorAll("tbody > tr");
-        this.shadowTableTemplate.content.querySelector("tbody").append(...rows);
-        return rows.length;
-    }
 }
 _TableDef_instances = new WeakSet(), _TableDef_fetchPages = async function _TableDef_fetchPages(parallelAsyncFunction, rawData) {
     let progressBar = insertProgressBar(this.tableRef.getOrgTable(), this.tableRef.navigationData.steps(), "loading pages... ");
@@ -82,13 +70,6 @@ _TableDef_instances = new WeakSet(), _TableDef_fetchPages = async function _Tabl
     }
     if (this.pageHandler.onLoaded)
         this.pageHandler.onLoaded(this);
-    this.theData = this.pageHandler.getData(this);
-    //TODO: merge theData and lastFetchedData? Two types of data: the fetchedData is literally that. The cachedData may be the same or may be the html text of the table body! Only the tableDef knows this!
-    // Make a handler that builds the table, based on the prepared data.
-    // rawData and preparedData.
-    // handlers:
-    // - convertToSavableData()
-    // - showTable() ? or not needed?
     console.log(`TODO: save cache with key: ${this.getCacheId()}`);
 }, _TableDef_doFetchAllPages = async function _TableDef_doFetchAllPages(results, progressBar) {
     let offset = 0;
@@ -97,9 +78,22 @@ _TableDef_instances = new WeakSet(), _TableDef_fetchPages = async function _Tabl
             console.log("fetching page " + offset);
             let response = await fetch(this.tableRef.buildFetchUrl(offset));
             let text = await response.text();
+            let template;
+            if (offset === 0) {
+                this.shadowTableTemplate = document.createElement('template');
+                this.shadowTableTemplate.innerHTML = text;
+                template = this.shadowTableTemplate;
+            }
+            else {
+                template = document.createElement('template');
+                template.innerHTML = text;
+            }
+            let rows = template.content.querySelectorAll("tbody > tr");
             if (this.pageHandler.onPage)
-                this.pageHandler.onPage(this, text, results, offset);
-            this.addPagetoShadowTable(text, offset);
+                this.pageHandler.onPage(this, text, results, offset, template, rows);
+            if (offset !== 0) {
+                this.shadowTableTemplate.content.querySelector("tbody").append(...rows);
+            }
             offset += this.tableRef.navigationData.step;
             if (!progressBar.next())
                 break;

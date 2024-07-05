@@ -16,12 +16,12 @@ export interface VakLeraar {
 
 export function scrapeStudent(tableDef: TableDef, tr: HTMLTableRowElement, collection: any) {
     let student: StudentInfo = new StudentInfo();
-    student.naam = (tableDef.pageHandler as NamedCellPageHandler).getColumnText2(tr, "naam");
-    student.voornaam = (tableDef.pageHandler as NamedCellPageHandler).getColumnText2(tr,"voornaam");
+    student.naam = (tableDef.pageHandler as NamedCellPageHandler).getColumnText(tr, "naam");
+    student.voornaam = (tableDef.pageHandler as NamedCellPageHandler).getColumnText(tr,"voornaam");
     student.id = parseInt(tr.attributes['onclick'].value.replace("showView('leerlingen-leerling', '', 'id=", ""));
-    let leraar = (tableDef.pageHandler as NamedCellPageHandler).getColumnText2(tr,"klasleerkracht");
-    let vak = (tableDef.pageHandler as NamedCellPageHandler).getColumnText2(tr,"vak");
-    let graadLeerjaar = (tableDef.pageHandler as NamedCellPageHandler).getColumnText2(tr,"graad + leerjaar");
+    let leraar = (tableDef.pageHandler as NamedCellPageHandler).getColumnText(tr,"klasleerkracht");
+    let vak = (tableDef.pageHandler as NamedCellPageHandler).getColumnText(tr,"vak");
+    let graadLeerjaar = (tableDef.pageHandler as NamedCellPageHandler).getColumnText(tr,"graad + leerjaar");
 
     if (leraar === "") leraar = "{nieuw}";
 

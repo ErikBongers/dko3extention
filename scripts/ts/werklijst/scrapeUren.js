@@ -2,12 +2,12 @@ import { createValidId } from "../globals.js";
 import { StudentInfo } from "../lessen/scrape.js";
 export function scrapeStudent(tableDef, tr, collection) {
     let student = new StudentInfo();
-    student.naam = tableDef.pageHandler.getColumnText2(tr, "naam");
-    student.voornaam = tableDef.pageHandler.getColumnText2(tr, "voornaam");
+    student.naam = tableDef.pageHandler.getColumnText(tr, "naam");
+    student.voornaam = tableDef.pageHandler.getColumnText(tr, "voornaam");
     student.id = parseInt(tr.attributes['onclick'].value.replace("showView('leerlingen-leerling', '', 'id=", ""));
-    let leraar = tableDef.pageHandler.getColumnText2(tr, "klasleerkracht");
-    let vak = tableDef.pageHandler.getColumnText2(tr, "vak");
-    let graadLeerjaar = tableDef.pageHandler.getColumnText2(tr, "graad + leerjaar");
+    let leraar = tableDef.pageHandler.getColumnText(tr, "klasleerkracht");
+    let vak = tableDef.pageHandler.getColumnText(tr, "vak");
+    let graadLeerjaar = tableDef.pageHandler.getColumnText(tr, "graad + leerjaar");
     if (leraar === "")
         leraar = "{nieuw}";
     if (!isInstrument(vak)) {

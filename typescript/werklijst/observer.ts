@@ -54,9 +54,7 @@ function onButtonBarChanged() {
 function onClickCopyEmails() {
     let requiredHeaderLabels = ["e-mailadressen"];
 
-    function getData() { return "TODO"; }
-
-    let pageHandler = new NamedCellPageHandler(requiredHeaderLabels, scrapeEmails, getData, onLoaded);
+    let pageHandler = new NamedCellPageHandler(requiredHeaderLabels, onLoaded);
 
     let tableRef = new IdTableRef("table_leerlingen_werklijst_table", findFirstNavigation(),(offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0");
     let tableDef = new TableDef(
@@ -75,7 +73,7 @@ function onClickCopyEmails() {
     function onLoaded(tableDef: TableDef) {
         let rows = this.rows = tableDef.shadowTableTemplate.content.querySelectorAll("tbody > tr") as NodeListOf<HTMLTableRowElement>;
         let allEmails = Array.from(rows)
-            .map(tr=> (tableDef.pageHandler as NamedCellPageHandler).getColumnText2(tr, "e-mailadressen"));
+            .map(tr=> (tableDef.pageHandler as NamedCellPageHandler).getColumnText(tr, "e-mailadressen"));
 
         let flattened = allEmails
             .map((emails: string) => emails.split(/[,;]/))
@@ -98,11 +96,10 @@ function onClickShowCounts() {
         let fileName = getUrenVakLeraarFileName();
 
         function dummy() { return true;}
-        // function getData() { return "TODO"; }
 
         console.log("reading: " + fileName);
         let requiredHeaderLabels = ["naam", "voornaam", "vak", "klasleerkracht", "graad + leerjaar"];
-        let pageHandler = new NamedCellPageHandler(requiredHeaderLabels, dummy, getData, onLoaded);
+        let pageHandler = new NamedCellPageHandler(requiredHeaderLabels, onLoaded);
         let tableRef = new IdTableRef("table_leerlingen_werklijst_table", findFirstNavigation(),(offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0");
         let tableDef = new TableDef(
             tableRef,

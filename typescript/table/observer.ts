@@ -16,14 +16,10 @@ function onMutation (_mutation: MutationRecord) {
 }
 
 function downloadTable() {
-    let prebuildPageHandler = new SimpleTableHandler(onLoaded, onBeforeLoading, onData);
+    let prebuildPageHandler = new SimpleTableHandler(onLoaded, onBeforeLoading);
 
     function onBeforeLoading(tableDef: TableDef) {
         tableDef.tableRef.getOrgTable().querySelector("tbody").innerHTML = "";
-    }
-
-    function onData(tableDef: TableDef) {
-        return 'TODO';
     }
 
     function onLoaded(_tableDef: TableDef) {

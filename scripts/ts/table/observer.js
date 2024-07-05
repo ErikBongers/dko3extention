@@ -13,12 +13,9 @@ function onMutation(_mutation) {
     return true;
 }
 function downloadTable() {
-    let prebuildPageHandler = new SimpleTableHandler(onLoaded, onBeforeLoading, onData);
+    let prebuildPageHandler = new SimpleTableHandler(onLoaded, onBeforeLoading);
     function onBeforeLoading(tableDef) {
         tableDef.tableRef.getOrgTable().querySelector("tbody").innerHTML = "";
-    }
-    function onData(tableDef) {
-        return 'TODO';
     }
     function onLoaded(_tableDef) {
         let template = tableDef.shadowTableTemplate;

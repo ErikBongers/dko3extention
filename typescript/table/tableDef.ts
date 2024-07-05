@@ -31,7 +31,6 @@ export class TableDef {
     pageHandler: PageHandler;
     newTableId: string;
     lastFetchResults: any;
-    theData: string;
     calculateTableCheckSum: CalculateTableCheckSumHandler;
     shadowTableTemplate: HTMLTemplateElement;
 
@@ -49,11 +48,6 @@ export class TableDef {
 
     getCached() {
         return window.sessionStorage.getItem(this.newTableId);
-    }
-
-    displayCached() {
-        //TODO: also show "this is cached data" and a link to refresh.
-        this.tableRef.getOrgTable().querySelector("tbody").innerHTML = this.getCached();
     }
 
     getCacheId() {
@@ -93,13 +87,6 @@ export class TableDef {
         }
         if (this.pageHandler.onLoaded)
             this.pageHandler.onLoaded(this);
-        this.theData = this.pageHandler.getData(this);
-        //TODO: merge theData and lastFetchedData? Two types of data: the fetchedData is literally that. The cachedData may be the same or may be the html text of the table body! Only the tableDef knows this!
-        // Make a handler that builds the table, based on the prepared data.
-        // rawData and preparedData.
-        // handlers:
-        // - convertToSavableData()
-        // - showTable() ? or not needed?
         console.log(`TODO: save cache with key: ${this.getCacheId()}`);
     }
 
@@ -110,9 +97,21 @@ export class TableDef {
                 console.log("fetching page " + offset);
                 let response = await fetch(this.tableRef.buildFetchUrl(offset));
                 let text = await response.text();
-                if(this.pageHandler.onPage)
-                    this.pageHandler.onPage(this, text, results, offset);
-                this.addPagetoShadowTable(text, offset);
+                let template: HTMLTemplateElement;
+                if(offset === 0) {
+                    this.shadowTableTemplate = document.createElement('template');
+                    this.shadowTableTemplate.innerHTML = text;
+                    template = this.shadowTableTemplate;
+                } else {
+                    template = document.createElement('template');
+                    template.innerHTML = text;
+                }
+                let rows = template.content.querySelectorAll("tbody > tr") as NodeListOf<HTMLTableRowElement>;
+                if (this.pageHandler.onPage)
+                    this.pageHandler.onPage(this, text, results, offset, template, rows);
+                if(offset !== 0) {
+                    this.shadowTableTemplate.content.querySelector("tbody").append(...rows);
+                }
                 offset += this.tableRef.navigationData.step;
                 if (!progressBar.next())
                     break;
@@ -121,19 +120,6 @@ export class TableDef {
             progressBar.stop();
         }
         return results;
-    }
-
-    addPagetoShadowTable(text: string, offset: number) {
-        if(offset === 0) {
-            this.shadowTableTemplate = document.createElement('template');
-            this.shadowTableTemplate.innerHTML = text;
-            return this.shadowTableTemplate.content.querySelectorAll("tbody > tr").length;
-        }
-        let template = document.createElement('template');
-        template.innerHTML = text;
-        let rows = template.content.querySelectorAll("tbody > tr");
-        this.shadowTableTemplate.content.querySelector("tbody").append(...rows);
-        return rows.length;
     }
 }
 

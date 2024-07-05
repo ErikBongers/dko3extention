@@ -45,8 +45,7 @@ function onButtonBarChanged() {
 }
 function onClickCopyEmails() {
     let requiredHeaderLabels = ["e-mailadressen"];
-    function getData() { return "TODO"; }
-    let pageHandler = new NamedCellPageHandler(requiredHeaderLabels, scrapeEmails, getData, onLoaded);
+    let pageHandler = new NamedCellPageHandler(requiredHeaderLabels, onLoaded);
     let tableRef = new IdTableRef("table_leerlingen_werklijst_table", findFirstNavigation(), (offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0");
     let tableDef = new TableDef(tableRef, pageHandler, "werklijst", undefined);
     let theData = undefined;
@@ -56,7 +55,7 @@ function onClickCopyEmails() {
     function onLoaded(tableDef) {
         let rows = this.rows = tableDef.shadowTableTemplate.content.querySelectorAll("tbody > tr");
         let allEmails = Array.from(rows)
-            .map(tr => tableDef.pageHandler.getColumnText2(tr, "e-mailadressen"));
+            .map(tr => tableDef.pageHandler.getColumnText(tr, "e-mailadressen"));
         let flattened = allEmails
             .map((emails) => emails.split(/[,;]/))
             .flat()
@@ -74,10 +73,9 @@ function onClickShowCounts() {
     if (!document.getElementById(def.COUNT_TABLE_ID)) {
         let fileName = getUrenVakLeraarFileName();
         function dummy() { return true; }
-        // function getData() { return "TODO"; }
         console.log("reading: " + fileName);
         let requiredHeaderLabels = ["naam", "voornaam", "vak", "klasleerkracht", "graad + leerjaar"];
-        let pageHandler = new NamedCellPageHandler(requiredHeaderLabels, dummy, getData, onLoaded);
+        let pageHandler = new NamedCellPageHandler(requiredHeaderLabels, onLoaded);
         let tableRef = new IdTableRef("table_leerlingen_werklijst_table", findFirstNavigation(), (offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0");
         let tableDef = new TableDef(tableRef, pageHandler, def.COUNT_TABLE_ID, getCriteriaString);
         let theData = {

@@ -16,6 +16,8 @@
 
 Features
 -----------
+* use onRow() to find first row that matches given criteria.
+
 * add table buttons to top AND bottom navigation.
 
 * cache werklijst or other tables
