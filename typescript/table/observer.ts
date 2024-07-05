@@ -23,23 +23,6 @@ function downloadTable() {
         tableDef.tableRef.getOrgTable()
             .querySelector("tbody")
             .replaceChildren(...template.content.querySelectorAll("tbody tr"));
-        if(tableDef.isUsingChached) {
-            let p = document.createElement("p");
-            tableDef.divInfoContainer.appendChild(p);
-            p.classList.add("cacheInfo");
-            p.innerHTML = `Gegevens uit cache, ${millisToString((new Date()).getTime()-tableDef.shadowTableDate.getTime())} oud. `;
-            let a = document.createElement("a");
-            p.appendChild(a);
-            a.innerHTML = "refresh";
-            a.href="#";
-            a.onclick = (e ) => {
-                e.preventDefault();
-                tableDef.clearCache();
-                // noinspection JSIgnoredPromiseFromCall
-                tableDef.getTableData();
-                return true;
-            }
-        }
     }
 
     let tableRef = new TableRef("table_leerlingen_werklijst_table", findFirstNavigation(),(offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0");
@@ -49,7 +32,6 @@ function downloadTable() {
         undefined
     );
 
-    tableDef.setupInfoBar();//TODO: this is a bit mandatory. How?
     tableDef.getTableData().then(() => {
         console.log("Fetch complete!");
     })

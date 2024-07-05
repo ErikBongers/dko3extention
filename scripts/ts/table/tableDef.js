@@ -6,7 +6,7 @@ var __classPrivateFieldGet = (this && this.__classPrivateFieldGet) || function (
 var _TableDef_instances, _TableDef_fetchPages, _TableDef_doFetchAllPages;
 import { insertProgressBar } from "../progressBar.js";
 import * as def from "../lessen/def.js";
-import { db3 } from "../globals.js";
+import { db3, millisToString } from "../globals.js";
 export class TableRef {
     constructor(tableId, navigationData, buildFetchUrl) {
         this.tableId = tableId;
@@ -25,6 +25,7 @@ export class TableDef {
         this.tableRef = tableRef;
         this.pageHandler = pageHandler;
         this.calculateTableCheckSum = calculateTableCheckSum;
+        this.setupInfoBar();
     }
     saveToCache() {
         db3(`Caching ${this.tableRef.tableId}.`);
@@ -61,6 +62,25 @@ export class TableDef {
     clearInfoBar() {
         this.divInfoContainer.innerHTML = "";
     }
+    updateInfoBar() {
+        if (this.isUsingChached) {
+            let p = document.createElement("p");
+            this.divInfoContainer.appendChild(p);
+            p.classList.add("cacheInfo");
+            p.innerHTML = `Gegevens uit cache, ${millisToString((new Date()).getTime() - this.shadowTableDate.getTime())} oud. `;
+            let a = document.createElement("a");
+            p.appendChild(a);
+            a.innerHTML = "refresh";
+            a.href = "#";
+            a.onclick = (e) => {
+                e.preventDefault();
+                this.clearCache();
+                // noinspection JSIgnoredPromiseFromCall
+                this.getTableData();
+                return true;
+            };
+        }
+    }
     async getTableData(rawData, parallelAsyncFunction) {
         this.clearInfoBar();
         let cachedData = this.loadFromCache();
@@ -87,6 +107,7 @@ export class TableDef {
             if (this.pageHandler.onLoaded)
                 this.pageHandler.onLoaded(this);
         }
+        this.updateInfoBar();
     }
 }
 _TableDef_instances = new WeakSet(), _TableDef_fetchPages = async function _TableDef_fetchPages(parallelAsyncFunction, collection) {

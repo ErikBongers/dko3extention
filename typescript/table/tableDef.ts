@@ -1,8 +1,8 @@
 import {PageHandler} from "../pageHandlers.js";
-import {TableNavigation} from "./tableNavigation.js";
+import {findFirstNavigation, TableNavigation} from "./tableNavigation.js";
 import {insertProgressBar, ProgressBar} from "../progressBar.js";
 import * as def from "../lessen/def.js";
-import {db3} from "../globals.js";
+import {db3, millisToString} from "../globals.js";
 
 export class TableRef {
     tableId: string;
@@ -20,6 +20,17 @@ export class TableRef {
     }
 }
 
+let tableRefs = new Map([
+    ["werklijst", new TableRef("table_leerlingen_werklijst_table", findFirstNavigation(),(offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0")]
+]);
+
+
+
+
+
+
+
+
 export type CalculateTableCheckSumHandler = (tableDef: TableDef) => string;
 
 export class TableDef {
@@ -36,6 +47,7 @@ export class TableDef {
         this.tableRef = tableRef;
         this.pageHandler = pageHandler;
         this.calculateTableCheckSum = calculateTableCheckSum;
+        this.setupInfoBar();
     }
 
     saveToCache() {
@@ -79,6 +91,25 @@ export class TableDef {
         this.divInfoContainer.innerHTML = "";
     }
 
+    updateInfoBar() {
+        if(this.isUsingChached) {
+            let p = document.createElement("p");
+            this.divInfoContainer.appendChild(p);
+            p.classList.add("cacheInfo");
+            p.innerHTML = `Gegevens uit cache, ${millisToString((new Date()).getTime()-this.shadowTableDate.getTime())} oud. `;
+            let a = document.createElement("a");
+            p.appendChild(a);
+            a.innerHTML = "refresh";
+            a.href="#";
+            a.onclick = (e ) => {
+                e.preventDefault();
+                this.clearCache();
+                // noinspection JSIgnoredPromiseFromCall
+                this.getTableData();
+                return true;
+            }
+        }
+    }
     async getTableData(rawData?: any, parallelAsyncFunction?: (() => Promise<any>)) {
         this.clearInfoBar();
         let cachedData = this.loadFromCache();
@@ -105,6 +136,7 @@ export class TableDef {
             if (this.pageHandler.onLoaded)
                 this.pageHandler.onLoaded(this);
         }
+        this.updateInfoBar();
     }
 
     async #fetchPages(parallelAsyncFunction: () => Promise<any>, collection: any) {
