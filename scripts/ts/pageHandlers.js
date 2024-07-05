@@ -37,18 +37,6 @@ export class PrebuildTableHandler {
         this.getData = getData;
         this.onLoaded = onLoaded;
     }
-    onPage(tableDef, text, collection, offset) {
-        if (offset === 0) {
-            this.template = document.createElement('template');
-            this.template.innerHTML = text;
-            return this.template.content.querySelectorAll("tbody > tr").length;
-        }
-        let template = document.createElement('template');
-        template.innerHTML = text;
-        let rows = template.content.querySelectorAll("tbody > tr");
-        this.template.content.querySelector("tbody").append(...rows);
-        return rows.length;
-    }
 }
 /**
  * PageHandler with named column labels.\
@@ -126,3 +114,4 @@ export class NamedCellPageHandler {
 _NamedCellPageHandler_instances = new WeakSet(), _NamedCellPageHandler_getColumnText = function _NamedCellPageHandler_getColumnText(label) {
     return this.currentRow.children[this.headerIndices.get(label)].textContent;
 };
+//# sourceMappingURL=pageHandlers.js.map

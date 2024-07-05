@@ -64,3 +64,4 @@ export async function sendFields(fields) {
         body: formData,
     });
 }
+//# sourceMappingURL=criteria.js.map

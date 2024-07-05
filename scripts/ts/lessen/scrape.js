@@ -96,3 +96,4 @@ function scrapeLesInfo(lesInfo) {
     les.vestiging = textNodes[1].nodeValue;
     return les;
 }
+//# sourceMappingURL=scrape.js.map

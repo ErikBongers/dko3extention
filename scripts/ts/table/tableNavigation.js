@@ -36,3 +36,4 @@ export function findFirstNavigation() {
 function getGotoNumber(functionCall) {
     return parseInt(functionCall.substring(functionCall.indexOf("goto(") + 5));
 }
+//# sourceMappingURL=tableNavigation.js.map

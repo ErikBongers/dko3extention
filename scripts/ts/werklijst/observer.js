@@ -135,3 +135,4 @@ function upgradeCloudData(fromCloud) {
     //if fromCloud.version === "...." --> convert.
     return fromCloud;
 }
+//# sourceMappingURL=observer.js.map

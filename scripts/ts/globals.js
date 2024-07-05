@@ -89,3 +89,4 @@ export function getSchoolIdString() {
         .toLowerCase();
     return createValidId(schoolName);
 }
+//# sourceMappingURL=globals.js.map

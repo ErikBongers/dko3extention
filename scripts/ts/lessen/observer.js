@@ -111,3 +111,4 @@ function showTrimesterTable(show) {
     document.getElementById(def.TRIM_BUTTON_ID).title = show ? "Toon normaal" : "Toon trimesters";
     setButtonHighlighted(def.TRIM_BUTTON_ID, show);
 }
+//# sourceMappingURL=observer.js.map

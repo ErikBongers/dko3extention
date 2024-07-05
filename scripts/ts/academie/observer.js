@@ -17,3 +17,4 @@ function setSchoolBackground() {
         document.body.classList.add("otherSchool");
     }
 }
+//# sourceMappingURL=observer.js.map

@@ -21,7 +21,7 @@ function downloadTable() {
         return 'TODO';
     }
     function onLoaded(_tableDef) {
-        let template = tableDef.pageHandler.template;
+        let template = tableDef.shadowTableTemplate;
         tableDef.tableRef.getOrgTable()
             .querySelector("tbody")
             .replaceChildren(...template.content.querySelectorAll("tbody tr"));
@@ -32,3 +32,4 @@ function downloadTable() {
         console.log("Fetch complete!");
     });
 }
+//# sourceMappingURL=observer.js.map

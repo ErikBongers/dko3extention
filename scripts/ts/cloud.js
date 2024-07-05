@@ -12,3 +12,4 @@ export function uploadData(fileName, data) {
         console.log(text);
     }));
 }
+//# sourceMappingURL=cloud.js.map

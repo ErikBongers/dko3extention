@@ -97,3 +97,4 @@ function translateVak(vak) {
     }
     return "K " + renameInstrument(vak);
 }
+//# sourceMappingURL=scrapeUren.js.map

@@ -51,6 +51,18 @@ export class TableDef {
             await __classPrivateFieldGet(this, _TableDef_instances, "m", _TableDef_fetchPages).call(this, parallelAsyncFunction, rawData);
         }
     }
+    addPagetoShadowTable(text, offset) {
+        if (offset === 0) {
+            this.shadowTableTemplate = document.createElement('template');
+            this.shadowTableTemplate.innerHTML = text;
+            return this.shadowTableTemplate.content.querySelectorAll("tbody > tr").length;
+        }
+        let template = document.createElement('template');
+        template.innerHTML = text;
+        let rows = template.content.querySelectorAll("tbody > tr");
+        this.shadowTableTemplate.content.querySelector("tbody").append(...rows);
+        return rows.length;
+    }
 }
 _TableDef_instances = new WeakSet(), _TableDef_fetchPages = async function _TableDef_fetchPages(parallelAsyncFunction, rawData) {
     let progressBar = insertProgressBar(this.tableRef.getOrgTable(), this.tableRef.navigationData.steps(), "loading pages... ");
@@ -83,9 +95,8 @@ _TableDef_instances = new WeakSet(), _TableDef_fetchPages = async function _Tabl
             console.log("fetching page " + offset);
             let response = await fetch(this.tableRef.buildFetchUrl(offset));
             let text = await response.text();
-            let count = this.pageHandler.onPage(this, text, results, offset);
-            if (!count)
-                return undefined;
+            this.pageHandler.onPage?.(this, text, results, offset); //TODO: make optional call
+            this.addPagetoShadowTable(text, offset);
             offset += this.tableRef.navigationData.step;
             if (!progressBar.next())
                 break;
@@ -96,3 +107,4 @@ _TableDef_instances = new WeakSet(), _TableDef_fetchPages = async function _Tabl
     }
     return results;
 };
+//# sourceMappingURL=tableDef.js.map

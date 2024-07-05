@@ -33,6 +33,7 @@ export class TableDef {
     lastFetchResults: any;
     theData: string;
     calculateTableCheckSum: CalculateTableCheckSumHandler;
+    shadowTableTemplate: HTMLTemplateElement;
 
     constructor(tableRef: TableRef, pageHandler: PageHandler, newTableId: string, calculateTableCheckSum: CalculateTableCheckSumHandler) {
         this.tableRef = tableRef;
@@ -107,9 +108,8 @@ export class TableDef {
                 console.log("fetching page " + offset);
                 let response = await fetch(this.tableRef.buildFetchUrl(offset));
                 let text = await response.text();
-                let count = this.pageHandler.onPage(this, text, results, offset);
-                if (!count)
-                    return undefined;
+                this.pageHandler.onPage?.(this, text, results, offset); //TODO: make optional call
+                this.addPagetoShadowTable(text, offset);
                 offset += this.tableRef.navigationData.step;
                 if (!progressBar.next())
                     break;
@@ -118,6 +118,19 @@ export class TableDef {
             progressBar.stop();
         }
         return results;
+    }
+
+    addPagetoShadowTable(text: string, offset: number) {
+        if(offset === 0) {
+            this.shadowTableTemplate = document.createElement('template');
+            this.shadowTableTemplate.innerHTML = text;
+            return this.shadowTableTemplate.content.querySelectorAll("tbody > tr").length;
+        }
+        let template = document.createElement('template');
+        template.innerHTML = text;
+        let rows = template.content.querySelectorAll("tbody > tr");
+        this.shadowTableTemplate.content.querySelector("tbody").append(...rows);
+        return rows.length;
     }
 }
 

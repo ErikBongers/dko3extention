@@ -1,7 +1,7 @@
 import {addButton} from "../globals.js";
 import * as def from "../lessen/def.js";
 import {AllPageFilter, BaseObserver} from "../pageObserver.js";
-import {PrebuildTableHandler, RowObject, RowPageHandler} from "../pageHandlers.js";
+import {SimpleTableHandler, RowObject, RowPageHandler} from "../pageHandlers.js";
 import {IdTableRef, TableDef} from "./tableDef.js";
 import {findFirstNavigation} from "./tableNavigation.js";
 
@@ -16,7 +16,7 @@ function onMutation (_mutation: MutationRecord) {
 }
 
 function downloadTable() {
-    let prebuildPageHandler = new PrebuildTableHandler(onLoaded, onBeforeLoading, onData);
+    let prebuildPageHandler = new SimpleTableHandler(onLoaded, onBeforeLoading, onData);
 
     function onBeforeLoading(tableDef: TableDef) {
         tableDef.tableRef.getOrgTable().querySelector("tbody").innerHTML = "";
@@ -27,7 +27,7 @@ function downloadTable() {
     }
 
     function onLoaded(_tableDef: TableDef) {
-        let template = (tableDef.pageHandler as PrebuildTableHandler).template;
+        let template = tableDef.shadowTableTemplate;
         tableDef.tableRef.getOrgTable()
             .querySelector("tbody")
             .replaceChildren(...template.content.querySelectorAll("tbody tr"));

@@ -152,3 +152,4 @@ async function getModules(size, modal, file, args) {
     return Array.from(checks)
         .map(check => check.parentNode.parentNode.parentNode.querySelector("strong").textContent);
 }
+//# sourceMappingURL=observer.js.map

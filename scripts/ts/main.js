@@ -43,3 +43,4 @@ function getOptions(callback) {
         callback();
     });
 }
+//# sourceMappingURL=main.js.map

@@ -49,3 +49,4 @@ export function insertProgressBar(elementAfter, steps, text = "") {
     divProgressBar.classList.add("progressBar");
     return new ProgressBar(divProgressLine, divProgressBar, steps);
 }
+//# sourceMappingURL=progressBar.js.map

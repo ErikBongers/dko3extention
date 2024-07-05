@@ -14,3 +14,4 @@ export const JSON_URL = "https://europe-west1-ebo-tain.cloudfunctions.net/json";
 export function isButtonHighlighted(buttonId) {
     return document.getElementById(buttonId)?.classList.contains("toggled");
 }
+//# sourceMappingURL=def.js.map
