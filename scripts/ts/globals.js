@@ -89,4 +89,20 @@ export function getSchoolIdString() {
         .toLowerCase();
     return createValidId(schoolName);
 }
+export function millisToString(duration) {
+    let seconds = Math.floor((duration / 1000) % 60);
+    let minutes = Math.floor((duration / (1000 * 60)) % 60);
+    let hours = Math.floor((duration / (1000 * 60 * 60)) % 24);
+    let days = Math.floor((duration / (1000 * 60 * 60 * 24)));
+    if (days > 0)
+        return days + (days === 1 ? " dag" : " dagen");
+    else if (hours > 0)
+        return hours + " uur";
+    else if (minutes > 0)
+        return minutes + (minutes === 1 ? " minuut" : " minuten");
+    else if (seconds > 0)
+        return seconds + " seconden";
+    else
+        return "";
+}
 //# sourceMappingURL=globals.js.map

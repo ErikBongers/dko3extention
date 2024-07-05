@@ -21,7 +21,7 @@ export class TableDef {
     constructor(tableRef, pageHandler, calculateTableCheckSum) {
         _TableDef_instances.add(this);
         this.parallelData = undefined;
-        this.isUsingChached = true;
+        this.isUsingChached = false;
         this.tableRef = tableRef;
         this.pageHandler = pageHandler;
         this.calculateTableCheckSum = calculateTableCheckSum;
@@ -29,15 +29,21 @@ export class TableDef {
     saveToCache() {
         db3(`Caching ${this.tableRef.tableId}.`);
         window.sessionStorage.setItem(this.getCacheId(), this.shadowTableTemplate.innerHTML);
-        window.sessionStorage.setItem(this.getCacheId() + def.CACHE_DATE_SUFFIX, JSON.stringify(new Date()));
+        window.sessionStorage.setItem(this.getCacheId() + def.CACHE_DATE_SUFFIX, (new Date()).toJSON());
+    }
+    clearCache() {
+        db3(`Clear cache for ${this.tableRef.tableId}.`);
+        window.sessionStorage.removeItem(this.getCacheId());
+        window.sessionStorage.removeItem(this.getCacheId() + def.CACHE_DATE_SUFFIX);
     }
     loadFromCache() {
         let text = window.sessionStorage.getItem(this.getCacheId());
+        let dateString = window.sessionStorage.getItem(this.getCacheId() + def.CACHE_DATE_SUFFIX);
         if (!text)
             return undefined;
         return {
             text,
-            date: window.sessionStorage.getItem(this.getCacheId() + def.CACHE_DATE_SUFFIX)
+            date: new Date(dateString)
         };
     }
     getCacheId() {
@@ -47,7 +53,16 @@ export class TableDef {
         let id = this.tableRef.tableId + checksum;
         return id.replaceAll(/\s/g, "");
     }
+    setupInfoBar() {
+        this.divInfoContainer = document.createElement("div");
+        this.tableRef.getOrgTable().insertAdjacentElement("beforebegin", this.divInfoContainer);
+        this.divInfoContainer.classList.add("infoLine");
+    }
+    clearInfoBar() {
+        this.divInfoContainer.innerHTML = "";
+    }
     async getTableData(rawData, parallelAsyncFunction) {
+        this.clearInfoBar();
         let cachedData = this.loadFromCache();
         if (cachedData) {
             if (parallelAsyncFunction) {
@@ -55,6 +70,7 @@ export class TableDef {
             }
             this.shadowTableTemplate = document.createElement("template");
             this.shadowTableTemplate.innerHTML = cachedData.text;
+            this.shadowTableDate = cachedData.date;
             this.isUsingChached = true;
             db3(`${this.tableRef.tableId}: using cached data.`);
             let rows = this.shadowTableTemplate.content.querySelectorAll("tbody > tr");
@@ -65,6 +81,7 @@ export class TableDef {
                 this.pageHandler.onLoaded(this);
         }
         else {
+            this.isUsingChached = false;
             await __classPrivateFieldGet(this, _TableDef_instances, "m", _TableDef_fetchPages).call(this, parallelAsyncFunction, rawData);
             this.saveToCache();
             if (this.pageHandler.onLoaded)
@@ -73,7 +90,7 @@ export class TableDef {
     }
 }
 _TableDef_instances = new WeakSet(), _TableDef_fetchPages = async function _TableDef_fetchPages(parallelAsyncFunction, collection) {
-    let progressBar = insertProgressBar(this.tableRef.getOrgTable(), this.tableRef.navigationData.steps(), "loading pages... ");
+    let progressBar = insertProgressBar(this.divInfoContainer, this.tableRef.navigationData.steps(), "loading pages... ");
     progressBar.start();
     if (this.pageHandler.onBeforeLoading)
         this.pageHandler.onBeforeLoading(this);

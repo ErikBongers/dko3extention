@@ -45,10 +45,10 @@ export class ProgressBar {
     }
 }
 
-export function insertProgressBar(elementAfter: HTMLElement, steps: number, text: string = "") {
+export function insertProgressBar(container: HTMLElement, steps: number, text: string = "") {
     let divProgressLine = document.createElement("div");
-    elementAfter.insertAdjacentElement("beforebegin", divProgressLine);
-    divProgressLine.classList.add("progressLine");
+    container.append(divProgressLine);
+    divProgressLine.classList.add("infoLine");
     divProgressLine.id = def.PROGRESS_BAR_ID;
     let divProgressText = document.createElement("div");
     divProgressLine.appendChild(divProgressText);
