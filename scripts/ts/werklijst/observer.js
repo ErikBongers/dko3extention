@@ -3,11 +3,10 @@ import * as def from "../lessen/def.js";
 import { buildTable, getUrenVakLeraarFileName } from "./buildUren.js";
 import { scrapeStudent } from "./scrapeUren.js";
 import { fetchFromCloud } from "../cloud.js";
-import { TableRef, TableDef } from "../table/tableDef.js";
+import { TableDef, findTableRefInCode } from "../table/tableDef.js";
 import { prefillInstruments } from "./prefillInstruments.js";
 import { HashObserver } from "../pageObserver.js";
 import { NamedCellPageHandler } from "../pageHandlers.js";
-import { findFirstNavigation } from "../table/tableNavigation.js";
 export default new HashObserver("#leerlingen-werklijst", onMutation);
 function onMutation(mutation) {
     if (mutation.target.id === "table_leerlingen_werklijst_table") {
@@ -46,8 +45,7 @@ function onButtonBarChanged() {
 function onClickCopyEmails() {
     let requiredHeaderLabels = ["e-mailadressen"];
     let pageHandler = new NamedCellPageHandler(requiredHeaderLabels, onLoaded);
-    let tableRef = new TableRef("table_leerlingen_werklijst_table", findFirstNavigation(), (offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0");
-    let tableDef = new TableDef(tableRef, pageHandler, undefined);
+    let tableDef = new TableDef(findTableRefInCode(), pageHandler, undefined);
     function onLoaded(tableDef) {
         let rows = this.rows = tableDef.shadowTableTemplate.content.querySelectorAll("tbody > tr");
         let allEmails = Array.from(rows)
@@ -58,10 +56,11 @@ function onClickCopyEmails() {
             .filter((email) => !email.includes("@academiestudent.be"))
             .filter((email) => email !== "");
         console.log("email count: " + flattened.length);
-        navigator.clipboard.writeText(flattened.join(";\n")).then();
+        navigator.clipboard.writeText(flattened.join(";\n")).then(() => alert("Alle emails zijn naar het clipboard gekopieerd. Je kan ze plakken in Outlook."));
     }
     tableDef.getTableData([], undefined)
-        .then((_results) => { });
+        .then((_results) => {
+    });
 }
 function onClickShowCounts() {
     //Build lazily and only once. Table will automatically be erased when filters are changed.
@@ -69,8 +68,7 @@ function onClickShowCounts() {
         let fileName = getUrenVakLeraarFileName();
         let requiredHeaderLabels = ["naam", "voornaam", "vak", "klasleerkracht", "graad + leerjaar"];
         let pageHandler = new NamedCellPageHandler(requiredHeaderLabels, onLoaded);
-        let tableRef = new TableRef("table_leerlingen_werklijst_table", findFirstNavigation(), (offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0");
-        let tableDef = new TableDef(tableRef, pageHandler, getCriteriaString);
+        let tableDef = new TableDef(findTableRefInCode(), pageHandler, getCriteriaString);
         function onLoaded(tableDef) {
             let vakLeraars = new Map();
             let rows = this.rows = tableDef.shadowTableTemplate.content.querySelectorAll("tbody > tr");

@@ -4,6 +4,7 @@ var __classPrivateFieldGet = (this && this.__classPrivateFieldGet) || function (
     return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
 };
 var _TableDef_instances, _TableDef_fetchPages, _TableDef_doFetchAllPages;
+import { findFirstNavigation } from "./tableNavigation.js";
 import { insertProgressBar } from "../progressBar.js";
 import * as def from "../lessen/def.js";
 import { db3, millisToString } from "../globals.js";
@@ -16,6 +17,36 @@ export class TableRef {
     getOrgTable() {
         return document.getElementById(this.tableId);
     }
+}
+// let tableRefs = [
+//     new TableRef("table_leerlingen_werklijst_table", findFirstNavigation(),(offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0"),
+//     // new TableRef("table_werklijst_allevoorstellen_table", findFirstNavigation(),(offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0"),
+//
+// ];
+export function findTableRefInCode() {
+    let foundTableRef = findTable();
+    if (!foundTableRef)
+        return undefined;
+    let buildFetchUrl = (offset) => `/views/ui/datatable.php?id=${foundTableRef.viewId}&start=${offset}&aantal=0`;
+    return new TableRef(foundTableRef.tableId, findFirstNavigation(), buildFetchUrl);
+}
+function findTable() {
+    let table = document.querySelector(".nanobar ~ div.table-responsive > table");
+    let tableId = table.id
+        .replace("table_", "")
+        .replace("_table", "");
+    let parentDiv = document.querySelector("div#" + "table_" + tableId);
+    let scripts = Array.from(parentDiv.querySelectorAll("script")).map((script) => script.text).join("\n");
+    let goto = scripts.split("_goto(")[1];
+    let func = goto.split(/ function *\w/)[0];
+    let viewId = / *datatable_id *= *'(.*)'/.exec(func)[1];
+    let url = /_table'\).load\('(.*?)\?id='\s*\+\s*datatable_id\s*\+\s*'&start='\s*\+\s*start/.exec(func)[1];
+    //if we got so far, we can be sure this table is a standard one.
+    return {
+        tableId: table.id,
+        viewId,
+        url
+    };
 }
 export class TableDef {
     constructor(tableRef, pageHandler, calculateTableCheckSum) {

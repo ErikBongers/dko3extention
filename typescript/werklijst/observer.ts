@@ -3,7 +3,7 @@ import * as def from "../lessen/def.js";
 import {buildTable, getUrenVakLeraarFileName, JsonCloudData} from "./buildUren.js";
 import {scrapeStudent, VakLeraar} from "./scrapeUren.js";
 import {fetchFromCloud} from "../cloud.js";
-import {CalculateTableCheckSumHandler, TableRef, TableDef} from "../table/tableDef.js";
+import {CalculateTableCheckSumHandler, TableRef, TableDef, findTableRefInCode} from "../table/tableDef.js";
 import {prefillInstruments} from "./prefillInstruments.js";
 import {HashObserver} from "../pageObserver.js";
 import {NamedCellPageHandler} from "../pageHandlers.js";
@@ -56,9 +56,8 @@ function onClickCopyEmails() {
 
     let pageHandler = new NamedCellPageHandler(requiredHeaderLabels, onLoaded);
 
-    let tableRef = new TableRef("table_leerlingen_werklijst_table", findFirstNavigation(),(offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0");
     let tableDef = new TableDef(
-        tableRef,
+        findTableRefInCode(),
         pageHandler,
         undefined
     );
@@ -74,11 +73,14 @@ function onClickCopyEmails() {
             .filter((email: string) => !email.includes("@academiestudent.be"))
             .filter((email: string) => email !== "");
         console.log("email count: " + flattened.length);
-        navigator.clipboard.writeText(flattened.join(";\n")).then();
+        navigator.clipboard.writeText(flattened.join(";\n")).then(() =>
+            alert("Alle emails zijn naar het clipboard gekopieerd. Je kan ze plakken in Outlook.")
+        );
     }
 
     tableDef.getTableData([], undefined )
-        .then((_results) => { });
+        .then((_results) => {
+        });
 }
 
 function onClickShowCounts() {
@@ -88,9 +90,8 @@ function onClickShowCounts() {
 
         let requiredHeaderLabels = ["naam", "voornaam", "vak", "klasleerkracht", "graad + leerjaar"];
         let pageHandler = new NamedCellPageHandler(requiredHeaderLabels, onLoaded);
-        let tableRef = new TableRef("table_leerlingen_werklijst_table", findFirstNavigation(),(offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0");
         let tableDef = new TableDef(
-            tableRef,
+            findTableRefInCode(),
             pageHandler,
             getCriteriaString
         );
