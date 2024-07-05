@@ -183,12 +183,11 @@ function recalculate() {
     isUpdatePaused = false;
     observeTable(true);
 }
-export function buildTable(data) {
+export function buildTable(data, tableDef) {
     isUpdatePaused = true;
     theData = data;
-    let originalTable = document.querySelector("#table_leerlingen_werklijst_table");
     let table = document.createElement("table");
-    originalTable.parentElement.appendChild(table);
+    tableDef.tableRef.getOrgTable().insertAdjacentElement("afterend", table);
     table.id = def.COUNT_TABLE_ID;
     fillTableHeader(table, data.vakLeraars);
     let tbody = document.createElement("tbody");

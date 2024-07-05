@@ -80,7 +80,7 @@ function onClickShowCounts() {
             let fromCloud = tableDef.parallelData;
             fromCloud = upgradeCloudData(fromCloud);
             vakLeraars = new Map([...vakLeraars.entries()].sort((a, b) => a[0] < b[0] ? -1 : ((a[0] > b[0]) ? 1 : 0)));
-            buildTable({ vakLeraars, fromCloud });
+            buildTable({ vakLeraars, fromCloud }, tableDef);
             document.getElementById(def.COUNT_TABLE_ID).style.display = "none";
             showOrHideNewTable();
         }

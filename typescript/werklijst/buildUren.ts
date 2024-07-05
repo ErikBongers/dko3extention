@@ -1,6 +1,7 @@
 import * as def from "../lessen/def.js";
 import {createValidId, getSchoolIdString, getSchooljaar} from "../globals.js";
 import {VakLeraar} from "./scrapeUren.js";
+import {TableDef} from "../table/tableDef";
 
 let isUpdatePaused = true;
 let cellChanged = false;
@@ -265,12 +266,11 @@ export interface TheData {
     vakLeraars: Map<string, VakLeraar>
 }
 
-export function buildTable(data: TheData) {
+export function buildTable(data: TheData, tableDef: TableDef) {
     isUpdatePaused = true;
     theData = data;
-    let originalTable = document.querySelector("#table_leerlingen_werklijst_table");
     let table = document.createElement("table");
-    originalTable.parentElement.appendChild(table);
+    tableDef.tableRef.getOrgTable().insertAdjacentElement("afterend", table);
     table.id = def.COUNT_TABLE_ID;
     fillTableHeader(table, data.vakLeraars);
     let tbody = document.createElement("tbody");
