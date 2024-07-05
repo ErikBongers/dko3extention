@@ -17,7 +17,6 @@ export interface PageHandler {
 
 export class RowObject {
     tr: HTMLTableRowElement;
-    getColumnText: (label: string) => string;
     offset: number;
     index: number;
 }
@@ -33,7 +32,7 @@ export class RowPageHandler implements PageHandler {
         this.onLoaded = onLoaded;
     }
 
-    onPage: OnPageHandler = (tableDef: TableDef, text: string, collection: any, offset: number, template, rows) => {
+    onPage: OnPageHandler = (tableDef: TableDef, _text: string, collection: any, offset: number, _template, rows) => {
         if(!this.onRow)
             return;
         let index = 0;

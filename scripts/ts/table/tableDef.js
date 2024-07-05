@@ -5,7 +5,9 @@ var __classPrivateFieldGet = (this && this.__classPrivateFieldGet) || function (
 };
 var _TableDef_instances, _TableDef_fetchPages, _TableDef_doFetchAllPages;
 import { insertProgressBar } from "../progressBar.js";
-export class IdTableRef {
+import * as def from "../lessen/def.js";
+import { db3 } from "../globals.js";
+export class TableRef {
     constructor(tableId, navigationData, buildFetchUrl) {
         this.tableId = tableId;
         this.buildFetchUrl = buildFetchUrl;
@@ -16,61 +18,75 @@ export class IdTableRef {
     }
 }
 export class TableDef {
-    constructor(tableRef, pageHandler, newTableId, calculateTableCheckSum) {
+    constructor(tableRef, pageHandler, calculateTableCheckSum) {
         _TableDef_instances.add(this);
+        this.parallelData = undefined;
+        this.isUsingChached = true;
         this.tableRef = tableRef;
         this.pageHandler = pageHandler;
-        this.newTableId = newTableId;
         this.calculateTableCheckSum = calculateTableCheckSum;
     }
-    cacheData() {
-        console.log(`Caching ${this.newTableId}.`);
-        window.sessionStorage.setItem(this.newTableId, this.tableRef.getOrgTable().querySelector("tbody").innerHTML);
+    saveToCache() {
+        db3(`Caching ${this.tableRef.tableId}.`);
+        window.sessionStorage.setItem(this.getCacheId(), this.shadowTableTemplate.innerHTML);
+        window.sessionStorage.setItem(this.getCacheId() + def.CACHE_DATE_SUFFIX, JSON.stringify(new Date()));
     }
-    getCached() {
-        return window.sessionStorage.getItem(this.newTableId);
-    }
-    displayCached() {
-        //TODO: also show "this is cached data" and a link to refresh.
-        this.tableRef.getOrgTable().querySelector("tbody").innerHTML = this.getCached();
+    loadFromCache() {
+        let text = window.sessionStorage.getItem(this.getCacheId());
+        if (!text)
+            return undefined;
+        return {
+            text,
+            date: window.sessionStorage.getItem(this.getCacheId() + def.CACHE_DATE_SUFFIX)
+        };
     }
     getCacheId() {
         let checksum = "";
         if (this.calculateTableCheckSum)
             checksum = "__" + this.calculateTableCheckSum(this);
-        let id = this.newTableId + checksum;
+        let id = this.tableRef.tableId + checksum;
         return id.replaceAll(/\s/g, "");
     }
     async getTableData(rawData, parallelAsyncFunction) {
-        console.log(`TODO: try to load cache with key: ${this.getCacheId()}`);
-        let cachedData = this.getCached();
+        let cachedData = this.loadFromCache();
         if (cachedData) {
             if (parallelAsyncFunction) {
-                this.lastFetchResults = await parallelAsyncFunction();
+                this.parallelData = await parallelAsyncFunction();
             }
+            this.shadowTableTemplate = document.createElement("template");
+            this.shadowTableTemplate.innerHTML = cachedData.text;
+            this.isUsingChached = true;
+            db3(`${this.tableRef.tableId}: using cached data.`);
+            let rows = this.shadowTableTemplate.content.querySelectorAll("tbody > tr");
+            //TODO: collection is set to undefined. This call to onPage(), should be EXACTLY the same as with a real fetch.
+            if (this.pageHandler.onPage)
+                this.pageHandler.onPage(this, this.shadowTableTemplate.innerHTML, undefined, 0, this.shadowTableTemplate, rows);
+            if (this.pageHandler.onLoaded)
+                this.pageHandler.onLoaded(this);
         }
         else {
             await __classPrivateFieldGet(this, _TableDef_instances, "m", _TableDef_fetchPages).call(this, parallelAsyncFunction, rawData);
+            this.saveToCache();
+            if (this.pageHandler.onLoaded)
+                this.pageHandler.onLoaded(this);
         }
     }
 }
-_TableDef_instances = new WeakSet(), _TableDef_fetchPages = async function _TableDef_fetchPages(parallelAsyncFunction, rawData) {
+_TableDef_instances = new WeakSet(), _TableDef_fetchPages = async function _TableDef_fetchPages(parallelAsyncFunction, collection) {
     let progressBar = insertProgressBar(this.tableRef.getOrgTable(), this.tableRef.navigationData.steps(), "loading pages... ");
     progressBar.start();
     if (this.pageHandler.onBeforeLoading)
         this.pageHandler.onBeforeLoading(this);
     if (parallelAsyncFunction) {
-        this.lastFetchResults = await Promise.all([
-            __classPrivateFieldGet(this, _TableDef_instances, "m", _TableDef_doFetchAllPages).call(this, rawData, progressBar),
+        let doubleResults = await Promise.all([
+            __classPrivateFieldGet(this, _TableDef_instances, "m", _TableDef_doFetchAllPages).call(this, collection, progressBar),
             parallelAsyncFunction()
         ]);
+        this.parallelData = doubleResults[1];
     }
     else {
-        this.lastFetchResults = await __classPrivateFieldGet(this, _TableDef_instances, "m", _TableDef_doFetchAllPages).call(this, rawData, progressBar);
+        await __classPrivateFieldGet(this, _TableDef_instances, "m", _TableDef_doFetchAllPages).call(this, collection, progressBar);
     }
-    if (this.pageHandler.onLoaded)
-        this.pageHandler.onLoaded(this);
-    console.log(`TODO: save cache with key: ${this.getCacheId()}`);
 }, _TableDef_doFetchAllPages = async function _TableDef_doFetchAllPages(results, progressBar) {
     let offset = 0;
     try {

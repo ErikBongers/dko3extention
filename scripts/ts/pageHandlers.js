@@ -2,7 +2,7 @@ export class RowObject {
 }
 export class RowPageHandler {
     constructor(onRow, onLoaded, onBeforeLoading) {
-        this.onPage = (tableDef, text, collection, offset, template, rows) => {
+        this.onPage = (tableDef, _text, collection, offset, _template, rows) => {
             if (!this.onRow)
                 return;
             let index = 0;

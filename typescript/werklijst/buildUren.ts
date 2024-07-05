@@ -226,15 +226,18 @@ function calculateAndSumCell(colDef: ColDef, ctx: Context, onlyRecalc: boolean) 
     }
 }
 
-function recalculate() {
-    isUpdatePaused = true;
-    observeTable(false);
-
-    for(let [_colKey, colDef] of colDefs) {
-        if(colDef.totals) {
+function clearTotals() {
+    for (let [_colKey, colDef] of colDefs) {
+        if (colDef.totals) {
             colDef.total = 0;
         }
     }
+}
+
+function recalculate() {
+    isUpdatePaused = true;
+    observeTable(false);
+    clearTotals();
 
     for (let [vakLeraarKey, vakLeraar] of theData.vakLeraars) {
         let tr = document.getElementById(createValidId(vakLeraarKey)) as HTMLTableRowElement;
@@ -276,6 +279,8 @@ export function buildTable(data: TheData) {
 
     let lastVak = "";
     let rowClass = undefined;
+    clearTotals();
+
     for(let [vakLeraarKey, vakLeraar] of data.vakLeraars) {
         let tr = document.createElement("tr");
         tbody.appendChild(tr);

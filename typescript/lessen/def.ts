@@ -16,3 +16,4 @@ export function isButtonHighlighted(buttonId) {
     return document.getElementById(buttonId)?.classList.contains("toggled");
 }
 
+export const CACHE_DATE_SUFFIX = "__date";

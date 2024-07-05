@@ -1,12 +1,12 @@
 import {addButton, getSchoolIdString, setButtonHighlighted} from "../globals.js";
 import * as def from "../lessen/def.js";
-import {buildTable, getUrenVakLeraarFileName, JsonCloudData, TheData} from "./buildUren.js";
+import {buildTable, getUrenVakLeraarFileName, JsonCloudData} from "./buildUren.js";
 import {scrapeStudent, VakLeraar} from "./scrapeUren.js";
 import {fetchFromCloud} from "../cloud.js";
-import {CalculateTableCheckSumHandler, IdTableRef, TableDef} from "../table/tableDef.js";
+import {CalculateTableCheckSumHandler, TableRef, TableDef} from "../table/tableDef.js";
 import {prefillInstruments} from "./prefillInstruments.js";
 import {HashObserver} from "../pageObserver.js";
-import {NamedCellPageHandler, RowObject} from "../pageHandlers.js";
+import {NamedCellPageHandler} from "../pageHandlers.js";
 import {findFirstNavigation} from "../table/tableNavigation.js";
 
 export default new HashObserver("#leerlingen-werklijst", onMutation);
@@ -37,7 +37,7 @@ function onPreparingFilter() {
     getSchoolIdString();
 }
 
-let getCriteriaString: CalculateTableCheckSumHandler =  (tableDef: TableDef) => {
+let getCriteriaString: CalculateTableCheckSumHandler =  (_tableDef: TableDef) => {
     return document.querySelector("#view_contents > div.alert.alert-info").textContent.replace("Criteria aanpassen", "").replace("Criteria:", "");
 }
 
@@ -56,19 +56,12 @@ function onClickCopyEmails() {
 
     let pageHandler = new NamedCellPageHandler(requiredHeaderLabels, onLoaded);
 
-    let tableRef = new IdTableRef("table_leerlingen_werklijst_table", findFirstNavigation(),(offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0");
+    let tableRef = new TableRef("table_leerlingen_werklijst_table", findFirstNavigation(),(offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0");
     let tableDef = new TableDef(
         tableRef,
         pageHandler,
-        "werklijst",
         undefined
     );
-
-    let theData = undefined;
-
-    function scrapeEmails(tableDef: TableDef, row: RowObject, collection: any) {
-        return true;
-    }
 
     function onLoaded(tableDef: TableDef) {
         let rows = this.rows = tableDef.shadowTableTemplate.content.querySelectorAll("tbody > tr") as NodeListOf<HTMLTableRowElement>;
@@ -82,61 +75,25 @@ function onClickCopyEmails() {
             .filter((email: string) => email !== "");
         console.log("email count: " + flattened.length);
         navigator.clipboard.writeText(flattened.join(";\n")).then();
-        theData = flattened;
     }
 
     tableDef.getTableData([], undefined )
-        .then((results) => { });
+        .then((_results) => { });
 }
 
 function onClickShowCounts() {
-
     //Build lazily and only once. Table will automatically be erased when filters are changed.
     if (!document.getElementById(def.COUNT_TABLE_ID)) {
         let fileName = getUrenVakLeraarFileName();
 
-        function dummy() { return true;}
-
-        console.log("reading: " + fileName);
         let requiredHeaderLabels = ["naam", "voornaam", "vak", "klasleerkracht", "graad + leerjaar"];
         let pageHandler = new NamedCellPageHandler(requiredHeaderLabels, onLoaded);
-        let tableRef = new IdTableRef("table_leerlingen_werklijst_table", findFirstNavigation(),(offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0");
+        let tableRef = new TableRef("table_leerlingen_werklijst_table", findFirstNavigation(),(offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0");
         let tableDef = new TableDef(
             tableRef,
             pageHandler,
-            def.COUNT_TABLE_ID,
             getCriteriaString
         );
-
-        let theData = {
-            vakLeraars: undefined,
-            fromCloud: undefined
-        };
-
-        //https://stackoverflow.com/questions/29085197/how-do-you-json-stringify-an-es6-map
-        function getData(tableDef: TableDef) {
-            function replacer(key, value) {
-                if(value instanceof Map) {
-                    return {
-                        dataType: 'Map',
-                        value: Array.from(value.entries()), // or with spread: value: [...value]
-                    };
-                } else {
-                    return value;
-                }
-            }
-            return JSON.stringify(theData, replacer); //TODO: build a stringify function that can handle Map data.
-/*
- function reviver(key, value) {
-  if(typeof value === 'object' && value !== null) {
-    if (value.dataType === 'Map') {
-      return new Map(value.value);
-    }
-  }
-  return value;
-}
- */
-        }
 
         function onLoaded(tableDef: TableDef) {
             let vakLeraars = new Map();
@@ -144,22 +101,16 @@ function onClickShowCounts() {
             for(let tr of rows) {
                 scrapeStudent(tableDef, tr, vakLeraars);//TODO: returns false if fails. Report error.
             }
-
-            // let vakLeraars = tableDef.lastFetchResults[0];
-            theData.fromCloud = tableDef.lastFetchResults[1] as JsonCloudData;
-            theData.fromCloud = upgradeCloudData(theData.fromCloud);
-            theData.vakLeraars = new Map([...vakLeraars.entries()].sort((a, b) => a[0] < b[0] ? -1 : ((a[0] > b[0])? 1 : 0))) as Map<string, VakLeraar>;
-            buildTable(theData);
+            let fromCloud = tableDef.parallelData as JsonCloudData;
+            fromCloud = upgradeCloudData(fromCloud);
+            vakLeraars = new Map([...vakLeraars.entries()].sort((a, b) => a[0] < b[0] ? -1 : ((a[0] > b[0])? 1 : 0))) as Map<string, VakLeraar>;
+            buildTable({vakLeraars, fromCloud});
             document.getElementById(def.COUNT_TABLE_ID).style.display = "none";
             showOrHideNewTable();
-
         }
 
-        tableDef.getTableData(
-            new Map(),
-            () => fetchFromCloud(fileName))
-            .then((results) => {
-            });
+        tableDef.getTableData(new Map(), () => fetchFromCloud(fileName))
+            .then((_results) => { });
         return;
     }
     showOrHideNewTable();

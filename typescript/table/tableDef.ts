@@ -1,14 +1,10 @@
 import {PageHandler} from "../pageHandlers.js";
 import {TableNavigation} from "./tableNavigation.js";
 import {insertProgressBar, ProgressBar} from "../progressBar.js";
+import * as def from "../lessen/def.js";
+import {db3} from "../globals.js";
 
-export interface TableRef {
-    buildFetchUrl: (offset: number) => string;
-    getOrgTable: () => HTMLTableElement;
-    navigationData: TableNavigation;
-}
-
-export class IdTableRef implements TableRef {
+export class TableRef {
     tableId: string;
     buildFetchUrl: (offset: number) => string;
     navigationData: TableNavigation;
@@ -29,65 +25,81 @@ export type CalculateTableCheckSumHandler = (tableDef: TableDef) => string;
 export class TableDef {
     tableRef: TableRef;
     pageHandler: PageHandler;
-    newTableId: string;
-    lastFetchResults: any;
+    parallelData = undefined;
     calculateTableCheckSum: CalculateTableCheckSumHandler;
     shadowTableTemplate: HTMLTemplateElement;
+    isUsingChached = true;
 
-    constructor(tableRef: TableRef, pageHandler: PageHandler, newTableId: string, calculateTableCheckSum: CalculateTableCheckSumHandler) {
+    constructor(tableRef: TableRef, pageHandler: PageHandler, calculateTableCheckSum: CalculateTableCheckSumHandler) {
         this.tableRef = tableRef;
         this.pageHandler = pageHandler;
-        this.newTableId = newTableId;
         this.calculateTableCheckSum = calculateTableCheckSum;
     }
 
-    cacheData() {
-        console.log(`Caching ${this.newTableId}.`);
-        window.sessionStorage.setItem(this.newTableId, this.tableRef.getOrgTable().querySelector("tbody").innerHTML);
+    saveToCache() {
+        db3(`Caching ${this.tableRef.tableId}.`);
+        window.sessionStorage.setItem(this.getCacheId(), this.shadowTableTemplate.innerHTML);
+        window.sessionStorage.setItem(this.getCacheId()+ def.CACHE_DATE_SUFFIX, JSON.stringify(new Date()));
     }
 
-    getCached() {
-        return window.sessionStorage.getItem(this.newTableId);
+    loadFromCache() {
+        let text =  window.sessionStorage.getItem(this.getCacheId());
+        if(!text)
+            return undefined;
+        return {
+            text,
+            date: window.sessionStorage.getItem(this.getCacheId() + def.CACHE_DATE_SUFFIX)
+        };
     }
 
     getCacheId() {
         let checksum = "";
         if (this.calculateTableCheckSum)
             checksum = "__" + this.calculateTableCheckSum(this);
-        let id = this.newTableId + checksum;
+        let id = this.tableRef.tableId + checksum;
         return id.replaceAll(/\s/g, "");
     }
 
     async getTableData(rawData: any, parallelAsyncFunction: (() => Promise<any>)) {
-        console.log(`TODO: try to load cache with key: ${this.getCacheId()}`);
-        let cachedData = this.getCached();
+        let cachedData = this.loadFromCache();
 
         if(cachedData) {
             if(parallelAsyncFunction) {
-                this.lastFetchResults = await parallelAsyncFunction();
+                this.parallelData = await parallelAsyncFunction();
             }
+            this.shadowTableTemplate = document.createElement("template");
+            this.shadowTableTemplate.innerHTML = cachedData.text;
+            this.isUsingChached = true;
+            db3(`${this.tableRef.tableId}: using cached data.`);
+            let rows = this.shadowTableTemplate.content.querySelectorAll("tbody > tr") as NodeListOf<HTMLTableRowElement>;
+            //TODO: collection is set to undefined. This call to onPage(), should be EXACTLY the same as with a real fetch.
+            if (this.pageHandler.onPage)
+                this.pageHandler.onPage(this, this.shadowTableTemplate.innerHTML, undefined, 0, this.shadowTableTemplate, rows);
+            if (this.pageHandler.onLoaded)
+                this.pageHandler.onLoaded(this);
         } else {
             await this.#fetchPages(parallelAsyncFunction, rawData);
+            this.saveToCache();
+            if (this.pageHandler.onLoaded)
+                this.pageHandler.onLoaded(this);
         }
     }
 
-    async #fetchPages(parallelAsyncFunction: () => Promise<any>, rawData: any) {
+    async #fetchPages(parallelAsyncFunction: () => Promise<any>, collection: any) {
         let progressBar = insertProgressBar(this.tableRef.getOrgTable(), this.tableRef.navigationData.steps(), "loading pages... ");
         progressBar.start();
         if (this.pageHandler.onBeforeLoading)
             this.pageHandler.onBeforeLoading(this);
 
         if (parallelAsyncFunction) {
-            this.lastFetchResults = await Promise.all([
-                this.#doFetchAllPages(rawData, progressBar),
+            let doubleResults = await Promise.all([
+                this.#doFetchAllPages(collection, progressBar),
                 parallelAsyncFunction()
             ]);
+            this.parallelData = doubleResults[1];
         } else {
-            this.lastFetchResults = await this.#doFetchAllPages(rawData, progressBar);
+            await this.#doFetchAllPages(collection, progressBar);
         }
-        if (this.pageHandler.onLoaded)
-            this.pageHandler.onLoaded(this);
-        console.log(`TODO: save cache with key: ${this.getCacheId()}`);
     }
 
     async #doFetchAllPages(results: any, progressBar: ProgressBar) {

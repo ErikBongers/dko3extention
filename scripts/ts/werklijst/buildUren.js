@@ -153,14 +153,17 @@ function calculateAndSumCell(colDef, ctx, onlyRecalc) {
             colDef.total += theValue;
     }
 }
-function recalculate() {
-    isUpdatePaused = true;
-    observeTable(false);
+function clearTotals() {
     for (let [_colKey, colDef] of colDefs) {
         if (colDef.totals) {
             colDef.total = 0;
         }
     }
+}
+function recalculate() {
+    isUpdatePaused = true;
+    observeTable(false);
+    clearTotals();
     for (let [vakLeraarKey, vakLeraar] of theData.vakLeraars) {
         let tr = document.getElementById(createValidId(vakLeraarKey));
         for (let [colKey, colDef] of colDefs) {
@@ -193,6 +196,7 @@ export function buildTable(data) {
     mapCloudData(data.fromCloud);
     let lastVak = "";
     let rowClass = undefined;
+    clearTotals();
     for (let [vakLeraarKey, vakLeraar] of data.vakLeraars) {
         let tr = document.createElement("tr");
         tbody.appendChild(tr);

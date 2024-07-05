@@ -3,7 +3,7 @@ import * as def from "../lessen/def.js";
 import { buildTable, getUrenVakLeraarFileName } from "./buildUren.js";
 import { scrapeStudent } from "./scrapeUren.js";
 import { fetchFromCloud } from "../cloud.js";
-import { IdTableRef, TableDef } from "../table/tableDef.js";
+import { TableRef, TableDef } from "../table/tableDef.js";
 import { prefillInstruments } from "./prefillInstruments.js";
 import { HashObserver } from "../pageObserver.js";
 import { NamedCellPageHandler } from "../pageHandlers.js";
@@ -32,7 +32,7 @@ function onPreparingFilter() {
     addButton(btnWerklijstMaken, def.PREFILL_INSTR_BTN_ID, "Prefill instrumenten", prefillInstruments, "fa-guitar", ["btn", "btn-outline-dark"], "prefill ");
     getSchoolIdString();
 }
-let getCriteriaString = (tableDef) => {
+let getCriteriaString = (_tableDef) => {
     return document.querySelector("#view_contents > div.alert.alert-info").textContent.replace("Criteria aanpassen", "").replace("Criteria:", "");
 };
 function onWerklijstChanged() {
@@ -46,12 +46,8 @@ function onButtonBarChanged() {
 function onClickCopyEmails() {
     let requiredHeaderLabels = ["e-mailadressen"];
     let pageHandler = new NamedCellPageHandler(requiredHeaderLabels, onLoaded);
-    let tableRef = new IdTableRef("table_leerlingen_werklijst_table", findFirstNavigation(), (offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0");
-    let tableDef = new TableDef(tableRef, pageHandler, "werklijst", undefined);
-    let theData = undefined;
-    function scrapeEmails(tableDef, row, collection) {
-        return true;
-    }
+    let tableRef = new TableRef("table_leerlingen_werklijst_table", findFirstNavigation(), (offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0");
+    let tableDef = new TableDef(tableRef, pageHandler, undefined);
     function onLoaded(tableDef) {
         let rows = this.rows = tableDef.shadowTableTemplate.content.querySelectorAll("tbody > tr");
         let allEmails = Array.from(rows)
@@ -63,67 +59,33 @@ function onClickCopyEmails() {
             .filter((email) => email !== "");
         console.log("email count: " + flattened.length);
         navigator.clipboard.writeText(flattened.join(";\n")).then();
-        theData = flattened;
     }
     tableDef.getTableData([], undefined)
-        .then((results) => { });
+        .then((_results) => { });
 }
 function onClickShowCounts() {
     //Build lazily and only once. Table will automatically be erased when filters are changed.
     if (!document.getElementById(def.COUNT_TABLE_ID)) {
         let fileName = getUrenVakLeraarFileName();
-        function dummy() { return true; }
-        console.log("reading: " + fileName);
         let requiredHeaderLabels = ["naam", "voornaam", "vak", "klasleerkracht", "graad + leerjaar"];
         let pageHandler = new NamedCellPageHandler(requiredHeaderLabels, onLoaded);
-        let tableRef = new IdTableRef("table_leerlingen_werklijst_table", findFirstNavigation(), (offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0");
-        let tableDef = new TableDef(tableRef, pageHandler, def.COUNT_TABLE_ID, getCriteriaString);
-        let theData = {
-            vakLeraars: undefined,
-            fromCloud: undefined
-        };
-        //https://stackoverflow.com/questions/29085197/how-do-you-json-stringify-an-es6-map
-        function getData(tableDef) {
-            function replacer(key, value) {
-                if (value instanceof Map) {
-                    return {
-                        dataType: 'Map',
-                        value: Array.from(value.entries()), // or with spread: value: [...value]
-                    };
-                }
-                else {
-                    return value;
-                }
-            }
-            return JSON.stringify(theData, replacer); //TODO: build a stringify function that can handle Map data.
-            /*
-             function reviver(key, value) {
-              if(typeof value === 'object' && value !== null) {
-                if (value.dataType === 'Map') {
-                  return new Map(value.value);
-                }
-              }
-              return value;
-            }
-             */
-        }
+        let tableRef = new TableRef("table_leerlingen_werklijst_table", findFirstNavigation(), (offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0");
+        let tableDef = new TableDef(tableRef, pageHandler, getCriteriaString);
         function onLoaded(tableDef) {
             let vakLeraars = new Map();
             let rows = this.rows = tableDef.shadowTableTemplate.content.querySelectorAll("tbody > tr");
             for (let tr of rows) {
                 scrapeStudent(tableDef, tr, vakLeraars); //TODO: returns false if fails. Report error.
             }
-            // let vakLeraars = tableDef.lastFetchResults[0];
-            theData.fromCloud = tableDef.lastFetchResults[1];
-            theData.fromCloud = upgradeCloudData(theData.fromCloud);
-            theData.vakLeraars = new Map([...vakLeraars.entries()].sort((a, b) => a[0] < b[0] ? -1 : ((a[0] > b[0]) ? 1 : 0)));
-            buildTable(theData);
+            let fromCloud = tableDef.parallelData;
+            fromCloud = upgradeCloudData(fromCloud);
+            vakLeraars = new Map([...vakLeraars.entries()].sort((a, b) => a[0] < b[0] ? -1 : ((a[0] > b[0]) ? 1 : 0)));
+            buildTable({ vakLeraars, fromCloud });
             document.getElementById(def.COUNT_TABLE_ID).style.display = "none";
             showOrHideNewTable();
         }
         tableDef.getTableData(new Map(), () => fetchFromCloud(fileName))
-            .then((results) => {
-        });
+            .then((_results) => { });
         return;
     }
     showOrHideNewTable();

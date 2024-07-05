@@ -1,8 +1,8 @@
 import {addButton} from "../globals.js";
 import * as def from "../lessen/def.js";
 import {AllPageFilter, BaseObserver} from "../pageObserver.js";
-import {SimpleTableHandler, RowObject, RowPageHandler} from "../pageHandlers.js";
-import {IdTableRef, TableDef} from "./tableDef.js";
+import {SimpleTableHandler} from "../pageHandlers.js";
+import {TableDef, TableRef} from "./tableDef.js";
 import {findFirstNavigation} from "./tableNavigation.js";
 
 export default new BaseObserver(undefined, new AllPageFilter(), onMutation);
@@ -16,11 +16,7 @@ function onMutation (_mutation: MutationRecord) {
 }
 
 function downloadTable() {
-    let prebuildPageHandler = new SimpleTableHandler(onLoaded, onBeforeLoading);
-
-    function onBeforeLoading(tableDef: TableDef) {
-        tableDef.tableRef.getOrgTable().querySelector("tbody").innerHTML = "";
-    }
+    let prebuildPageHandler = new SimpleTableHandler(onLoaded, undefined);
 
     function onLoaded(_tableDef: TableDef) {
         let template = tableDef.shadowTableTemplate;
@@ -29,11 +25,10 @@ function downloadTable() {
             .replaceChildren(...template.content.querySelectorAll("tbody tr"));
     }
 
-    let tableRef = new IdTableRef("table_leerlingen_werklijst_table", findFirstNavigation(),(offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0");
+    let tableRef = new TableRef("table_leerlingen_werklijst_table", findFirstNavigation(),(offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0");
     let tableDef = new TableDef(
         tableRef,
         prebuildPageHandler,
-        "werklijst",
         undefined
     );
 
