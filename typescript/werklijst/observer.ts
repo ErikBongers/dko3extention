@@ -1,13 +1,12 @@
 import {addButton, getSchoolIdString, setButtonHighlighted} from "../globals.js";
-import * as def from "../lessen/def.js";
+import * as def from "../def.js";
 import {buildTable, getUrenVakLeraarFileName, JsonCloudData} from "./buildUren.js";
 import {scrapeStudent, VakLeraar} from "./scrapeUren.js";
 import {fetchFromCloud} from "../cloud.js";
-import {CalculateTableCheckSumHandler, TableRef, TableDef, findTableRefInCode} from "../table/tableDef.js";
+import {CalculateTableCheckSumHandler, TableDef, findTableRefInCode} from "../table/tableDef.js";
 import {prefillInstruments} from "./prefillInstruments.js";
 import {HashObserver} from "../pageObserver.js";
 import {NamedCellPageHandler} from "../pageHandlers.js";
-import {findFirstNavigation} from "../table/tableNavigation.js";
 
 export default new HashObserver("#leerlingen-werklijst", onMutation);
 

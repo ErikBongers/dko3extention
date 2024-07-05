@@ -1,8 +1,8 @@
-import {addButton, millisToString} from "../globals.js";
-import * as def from "../lessen/def.js";
+import {addButton} from "../globals.js";
+import * as def from "../def.js";
 import {AllPageFilter, BaseObserver} from "../pageObserver.js";
 import {SimpleTableHandler} from "../pageHandlers.js";
-import {findTableRefInCode, TableDef, TableRef} from "./tableDef.js";
+import {findTableRefInCode, TableDef} from "./tableDef.js";
 
 export default new BaseObserver(undefined, new AllPageFilter(), onMutation);
 

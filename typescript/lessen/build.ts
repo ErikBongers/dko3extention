@@ -1,4 +1,4 @@
-import {FULL_CLASS_BUTTON_ID, isButtonHighlighted, TRIM_DIV_ID} from "./def.js";
+import {FULL_CLASS_BUTTON_ID, isButtonHighlighted, TRIM_DIV_ID} from "../def.js";
 import {db3} from "../globals.js";
 
 const NBSP = 160;

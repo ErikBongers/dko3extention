@@ -1,7 +1,7 @@
 import {PageHandler} from "../pageHandlers.js";
 import {findFirstNavigation, TableNavigation} from "./tableNavigation.js";
 import {insertProgressBar, ProgressBar} from "../progressBar.js";
-import * as def from "../lessen/def.js";
+import * as def from "../def.js";
 import {db3, millisToString} from "../globals.js";
 
 export class TableRef {

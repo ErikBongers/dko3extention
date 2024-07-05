@@ -1,7 +1,7 @@
-import * as def from "../lessen/def.js";
+import * as def from "../def.js";
 import {createValidId, getSchoolIdString, getSchooljaar} from "../globals.js";
 import {VakLeraar} from "./scrapeUren.js";
-import {TableDef} from "../table/tableDef";
+import {TableDef} from "../table/tableDef.js";
 
 let isUpdatePaused = true;
 let cellChanged = false;

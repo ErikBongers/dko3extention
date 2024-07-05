@@ -1,7 +1,7 @@
 import { scrapeLessenOverzicht, scrapeModules } from "./scrape.js";
 import { buildTableData } from "./convert.js";
 import { buildTrimesterTable } from "./build.js";
-import * as def from "./def.js";
+import * as def from "../def.js";
 import { setButtonHighlighted } from "../globals.js";
 import { HashObserver } from "../pageObserver.js";
 export default new HashObserver("#lessen-overzicht", onMutation);

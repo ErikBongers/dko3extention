@@ -1,5 +1,5 @@
 import { addButton } from "../globals.js";
-import * as def from "../lessen/def.js";
+import * as def from "../def.js";
 import { AllPageFilter, BaseObserver } from "../pageObserver.js";
 import { SimpleTableHandler } from "../pageHandlers.js";
 import { findTableRefInCode, TableDef } from "./tableDef.js";

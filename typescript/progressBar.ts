@@ -1,4 +1,4 @@
-import * as def from "./lessen/def.js";
+import * as def from "./def.js";
 
 export class ProgressBar {
     private barElement: HTMLElement;

@@ -6,7 +6,7 @@ var __classPrivateFieldGet = (this && this.__classPrivateFieldGet) || function (
 var _TableDef_instances, _TableDef_fetchPages, _TableDef_doFetchAllPages;
 import { findFirstNavigation } from "./tableNavigation.js";
 import { insertProgressBar } from "../progressBar.js";
-import * as def from "../lessen/def.js";
+import * as def from "../def.js";
 import { db3, millisToString } from "../globals.js";
 export class TableRef {
     constructor(tableId, navigationData, buildFetchUrl) {
@@ -18,11 +18,6 @@ export class TableRef {
         return document.getElementById(this.tableId);
     }
 }
-// let tableRefs = [
-//     new TableRef("table_leerlingen_werklijst_table", findFirstNavigation(),(offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0"),
-//     // new TableRef("table_werklijst_allevoorstellen_table", findFirstNavigation(),(offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0"),
-//
-// ];
 export function findTableRefInCode() {
     let foundTableRef = findTable();
     if (!foundTableRef)

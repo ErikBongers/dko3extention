@@ -1,5 +1,5 @@
 import { addButton, getSchoolIdString, setButtonHighlighted } from "../globals.js";
-import * as def from "../lessen/def.js";
+import * as def from "../def.js";
 import { buildTable, getUrenVakLeraarFileName } from "./buildUren.js";
 import { scrapeStudent } from "./scrapeUren.js";
 import { fetchFromCloud } from "../cloud.js";

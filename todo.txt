@@ -1,5 +1,3 @@
-* move def.js a level up.
-
 * fetching table data - how?
   > shadowTable added to TableDef
     > use this to build emails, uren counters, show full table,...

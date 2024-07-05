@@ -1,4 +1,4 @@
-import * as def from "../lessen/def.js";
+import * as def from "../def.js";
 import { createValidId, getSchoolIdString, getSchooljaar } from "../globals.js";
 let isUpdatePaused = true;
 let cellChanged = false;
