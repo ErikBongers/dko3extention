@@ -54,6 +54,8 @@ function onButtonBarChanged() {
 function onClickCopyEmails() {
     let requiredHeaderLabels = ["e-mailadressen"];
 
+    function getData() { return "TODO"; }
+
     let pageHandler = new NamedCellPageHandler(requiredHeaderLabels, scrapeEmails, getData, onLoaded);
 
     let tableRef = new IdTableRef("table_leerlingen_werklijst_table", findFirstNavigation(),(offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0");
@@ -68,10 +70,6 @@ function onClickCopyEmails() {
 
     function scrapeEmails(tableDef: TableDef, row: RowObject, collection: any) {
         return true;
-    }
-
-    function getData() {
-        return "TODO";
     }
 
     function onLoaded(tableDef: TableDef) {
@@ -94,13 +92,17 @@ function onClickCopyEmails() {
 }
 
 function onClickShowCounts() {
+
     //Build lazily and only once. Table will automatically be erased when filters are changed.
     if (!document.getElementById(def.COUNT_TABLE_ID)) {
         let fileName = getUrenVakLeraarFileName();
 
+        function dummy() { return true;}
+        // function getData() { return "TODO"; }
+
         console.log("reading: " + fileName);
         let requiredHeaderLabels = ["naam", "voornaam", "vak", "klasleerkracht", "graad + leerjaar"];
-        let pageHandler = new NamedCellPageHandler(requiredHeaderLabels, scrapeStudent, getData, onLoaded);
+        let pageHandler = new NamedCellPageHandler(requiredHeaderLabels, dummy, getData, onLoaded);
         let tableRef = new IdTableRef("table_leerlingen_werklijst_table", findFirstNavigation(),(offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0");
         let tableDef = new TableDef(
             tableRef,
@@ -140,7 +142,13 @@ function onClickShowCounts() {
         }
 
         function onLoaded(tableDef: TableDef) {
-            let vakLeraars = tableDef.lastFetchResults[0];
+            let vakLeraars = new Map();
+            let rows = this.rows = tableDef.shadowTableTemplate.content.querySelectorAll("tbody > tr") as NodeListOf<HTMLTableRowElement>;
+            for(let tr of rows) {
+                scrapeStudent(tableDef, tr, vakLeraars);//TODO: returns false if fails. Report error.
+            }
+
+            // let vakLeraars = tableDef.lastFetchResults[0];
             theData.fromCloud = tableDef.lastFetchResults[1] as JsonCloudData;
             theData.fromCloud = upgradeCloudData(theData.fromCloud);
             theData.vakLeraars = new Map([...vakLeraars.entries()].sort((a, b) => a[0] < b[0] ? -1 : ((a[0] > b[0])? 1 : 0))) as Map<string, VakLeraar>;

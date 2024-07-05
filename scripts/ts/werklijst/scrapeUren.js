@@ -1,19 +1,13 @@
 import { createValidId } from "../globals.js";
 import { StudentInfo } from "../lessen/scrape.js";
-/**
- *
- * @param _tableDef
- * @param row
- * @param collection Map<vakLeraarKey, VakLeraar>
- */
-export function scrapeStudent(_tableDef, row, collection) {
+export function scrapeStudent(tableDef, tr, collection) {
     let student = new StudentInfo();
-    student.naam = row.getColumnText("naam");
-    student.voornaam = row.getColumnText("voornaam");
-    student.id = parseInt(row.tr.attributes['onclick'].value.replace("showView('leerlingen-leerling', '', 'id=", ""));
-    let leraar = row.getColumnText("klasleerkracht");
-    let vak = row.getColumnText("vak");
-    let graadLeerjaar = row.getColumnText("graad + leerjaar");
+    student.naam = tableDef.pageHandler.getColumnText2(tr, "naam");
+    student.voornaam = tableDef.pageHandler.getColumnText2(tr, "voornaam");
+    student.id = parseInt(tr.attributes['onclick'].value.replace("showView('leerlingen-leerling', '', 'id=", ""));
+    let leraar = tableDef.pageHandler.getColumnText2(tr, "klasleerkracht");
+    let vak = tableDef.pageHandler.getColumnText2(tr, "vak");
+    let graadLeerjaar = tableDef.pageHandler.getColumnText2(tr, "graad + leerjaar");
     if (leraar === "")
         leraar = "{nieuw}";
     if (!isInstrument(vak)) {
