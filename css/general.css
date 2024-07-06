@@ -140,20 +140,32 @@ body.otherSchool {
 }
 
 #powerQuery {
-    background-color: white;
+    background-color:#d6d8d9;
     margin-top: 200px;
     border: none;
     border-radius: 3px;
     padding: 5px;
-    box-shadow: 3px 3px 10px 1px #ccc;
+    box-shadow: 3px 3px 10px 1px rgb(0 0 0 / 20%);
     min-width: 300px;
-    div {
-        font-family: "Open Sans", sans-serif;
-        padding: 0 5px;
-        margin: 2px;
-        background-color: #f8f8ff;
-        .selected {
-            background-color: lightslategray;
+    font-family: "Open Sans", sans-serif;
+    label {
+        height: 23px;
+        padding: 0 3px;
+        border-radius: 3px;
+        background-color: white;
+        display: block;
+    }
+    div.list {
+        padding: 0;
+        background-color: white;
+        border-radius: 3px;
+        max-height: 800px;
+        overflow-y: hidden;
+        div {
+            padding: 0 3px;
+        }
+        div.selected {
+            background-color: #f0f0ff;
         }
     }
 }

@@ -17,3 +17,4 @@ export function isButtonHighlighted(buttonId) {
 }
 
 export const CACHE_DATE_SUFFIX = "__date";
+export const POWER_QUERY_ID = "savedPowerQuery";

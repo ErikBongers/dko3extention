@@ -1,7 +1,29 @@
 import { clamp, isAlphaNumeric } from "./globals.js";
+import * as def from "./def.js";
 let powerQueryItems = [];
 let popoverVisible = false;
 let selectedItem = 0;
+export function saveQueryItems(page, queryItems) {
+    let savedPowerQueryString = localStorage.getItem(def.POWER_QUERY_ID);
+    if (!savedPowerQueryString) {
+        savedPowerQueryString = "{}";
+    }
+    let savedPowerQuery = JSON.parse(savedPowerQueryString);
+    savedPowerQuery[page] = queryItems;
+    localStorage.setItem(def.POWER_QUERY_ID, JSON.stringify(savedPowerQuery));
+}
+function getSavedQueryItems() {
+    let savedPowerQueryString = localStorage.getItem(def.POWER_QUERY_ID);
+    if (!savedPowerQueryString) {
+        return [];
+    }
+    let allItems = [];
+    let savedPowerQuery = JSON.parse(savedPowerQueryString);
+    for (let page in savedPowerQuery) {
+        allItems.push(...savedPowerQuery[page]);
+    }
+    return allItems;
+}
 function screpeDropDownMenu(headerMenu) {
     let headerLabel = headerMenu.querySelector("a").textContent.trim();
     let newItems = Array.from(headerMenu.querySelectorAll("div.dropdown-menu > a"))
@@ -36,6 +58,7 @@ export function setupPowerQuery() {
 document.body.addEventListener("keydown", (ev) => {
     if (ev.key === "q" && ev.ctrlKey && !ev.shiftKey && !ev.altKey) {
         scrapeMainMenu();
+        powerQueryItems.push(...getSavedQueryItems());
         popover.showPopover();
         filterItems(searchField.textContent);
     }
@@ -80,6 +103,7 @@ let searchField = document.createElement("label");
 popover.appendChild(searchField);
 let list = document.createElement("div");
 popover.appendChild(list);
+list.classList.add("list");
 function filterItems(needle) {
     for (const item of powerQueryItems) {
         item.weight = 0;
@@ -100,10 +124,12 @@ function filterItems(needle) {
             .every(char => item.lowerCase.includes(char)))
             item.weight += 20;
     }
+    const MAX_VISIBLE_QUERY_ITEMS = 30;
     list.innerHTML = powerQueryItems
         .filter((item) => item.weight != 0)
         .sort((a, b) => b.weight - a.weight)
-        .map((item) => `<div data-long-label="${item.longLabel}">${item.weight}: ${item.longLabel}</div>`)
+        .map((item) => `<div data-long-label="${item.longLabel}">${item.longLabel}</div>`)
+        .slice(0, MAX_VISIBLE_QUERY_ITEMS)
         .join("\n");
     selectedItem = clamp(selectedItem, 0, list.children.length - 1);
     list.children[selectedItem]?.classList.add("selected");

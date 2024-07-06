@@ -6,7 +6,7 @@ import academieObserver from "./academie/observer.js";
 import werklijstObserver from "./werklijst/observer.js";
 import tableObserver from "./table/observer.js";
 import {setupPowerQuery} from "./setupPowerQuery.js";
-
+import {allLijstenObserver, extraInschrijvingenObserver} from "./pages/observer.js";
 
 // noinspection JSUnusedGlobalSymbols
 export function init() {
@@ -32,6 +32,8 @@ export function init() {
         registerObserver(academieObserver);
         registerObserver(werklijstObserver);
         registerObserver(tableObserver);
+        registerObserver(extraInschrijvingenObserver);
+        registerObserver(allLijstenObserver);
         onPageChanged();
         setupPowerQuery();
     });

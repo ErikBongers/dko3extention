@@ -1,5 +1,9 @@
-* sorting and filtering.
+* powerQuery:
+  > include pages with reports and links.
+    > how?
+      > don't ask user: if they go to a pages with links, scrape the links and store them locally.
 
+* sorting and filtering.
 
 
 Features
