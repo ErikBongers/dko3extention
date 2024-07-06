@@ -3,10 +3,11 @@ import * as def from "../def.js";
 import {buildTable, getUrenVakLeraarFileName, JsonCloudData} from "./buildUren.js";
 import {scrapeStudent, VakLeraar} from "./scrapeUren.js";
 import {fetchFromCloud} from "../cloud.js";
-import {CalculateTableCheckSumHandler, TableDef, findTableRefInCode} from "../table/tableDef.js";
+import {CalculateTableCheckSumHandler, findTableRefInCode, TableDef} from "../table/tableDef.js";
 import {prefillInstruments} from "./prefillInstruments.js";
 import {HashObserver} from "../pageObserver.js";
 import {NamedCellPageHandler} from "../pageHandlers.js";
+import {addTableHeaderClickEvents} from "../table/tableHeaders.js";
 
 export default new HashObserver("#leerlingen-werklijst", onMutation);
 
@@ -41,7 +42,7 @@ let getCriteriaString: CalculateTableCheckSumHandler =  (_tableDef: TableDef) =>
 }
 
 function onWerklijstChanged() {
-    console.log("werklijst chqanged.");
+    addTableHeaderClickEvents(document.querySelector("table#table_leerlingen_werklijst_table") as HTMLTableElement);
 }
 
 function onButtonBarChanged() {
@@ -128,3 +129,4 @@ function upgradeCloudData(fromCloud: JsonCloudData) {
     //if fromCloud.version === "...." --> convert.
     return fromCloud;
 }
+

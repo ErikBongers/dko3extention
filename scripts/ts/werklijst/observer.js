@@ -3,10 +3,11 @@ import * as def from "../def.js";
 import { buildTable, getUrenVakLeraarFileName } from "./buildUren.js";
 import { scrapeStudent } from "./scrapeUren.js";
 import { fetchFromCloud } from "../cloud.js";
-import { TableDef, findTableRefInCode } from "../table/tableDef.js";
+import { findTableRefInCode, TableDef } from "../table/tableDef.js";
 import { prefillInstruments } from "./prefillInstruments.js";
 import { HashObserver } from "../pageObserver.js";
 import { NamedCellPageHandler } from "../pageHandlers.js";
+import { addTableHeaderClickEvents } from "../table/tableHeaders.js";
 export default new HashObserver("#leerlingen-werklijst", onMutation);
 function onMutation(mutation) {
     if (mutation.target.id === "table_leerlingen_werklijst_table") {
@@ -35,7 +36,7 @@ let getCriteriaString = (_tableDef) => {
     return document.querySelector("#view_contents > div.alert.alert-info").textContent.replace("Criteria aanpassen", "").replace("Criteria:", "");
 };
 function onWerklijstChanged() {
-    console.log("werklijst chqanged.");
+    addTableHeaderClickEvents(document.querySelector("table#table_leerlingen_werklijst_table"));
 }
 function onButtonBarChanged() {
     let targetButton = document.querySelector("#tablenav_leerlingen_werklijst_top > div > div.btn-group.btn-group-sm.datatable-buttons > button:nth-child(1)");
