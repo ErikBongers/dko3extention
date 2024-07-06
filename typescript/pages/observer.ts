@@ -4,12 +4,12 @@ import {QueryItem, saveQueryItems} from "../setupPowerQuery.js";
 export let extraInschrijvingenObserver = new HashObserver("#extra-inschrijvingen", onMutationExtraInschrijvingen);
 export let allLijstenObserver = new HashObserver("#leerlingen-lijsten", onMutationAlleLijsten);
 
-function onMutationAlleLijsten(mutation: MutationRecord) {
+function onMutationAlleLijsten(_mutation: MutationRecord) {
     saveQueryItems("Lijsten", scrapeAlleLijstenLinks());
     return true;
 }
 
-function onMutationExtraInschrijvingen(mutation: MutationRecord) {
+function onMutationExtraInschrijvingen(_mutation: MutationRecord) {
     saveQueryItems("ExtraInschrijvingen", scrapeExtraInschrijvingenLinks());
     return true;
 }
