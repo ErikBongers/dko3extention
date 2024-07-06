@@ -1,16 +1,7 @@
-* fetching table data - how?
-  > shadowTable added to TableDef
-    > use this to build emails, uren counters, show full table,...
+* global search
+  > ctrl+q ?
 
-  > This full fetched shadowTable allows to build any conversion, like vak_leraar_uren.
-  > if page with a table is opened, the prefetched (shadow) table can be displayed
-    > only if more than one page.
-    > only if needed:
-      - table filters/sorting is on.
-      > to fetch emails, the table does not need to be displayd: the shadow table can be used.
-        > in case of emails, ALWAYS GET LIVE DATA!
-          > but store the retrieved data in the shadow table.
-
+* sorting and filtering.
 
 
 
