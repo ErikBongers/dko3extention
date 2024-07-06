@@ -12,7 +12,7 @@ export const COUNT_TABLE_ID = "werklijst_uren";
 export const TRIM_DIV_ID = "trimesterDiv";
 export const JSON_URL = "https://europe-west1-ebo-tain.cloudfunctions.net/json";
 
-export function isButtonHighlighted(buttonId) {
+export function isButtonHighlighted(buttonId: string) {
     return document.getElementById(buttonId)?.classList.contains("toggled");
 }
 
