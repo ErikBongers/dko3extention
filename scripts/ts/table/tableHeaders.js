@@ -23,9 +23,7 @@ export function addTableHeaderClickEvents(table) {
     if (table.tHead.classList.contains("clickHandler"))
         return;
     table.tHead.classList.add("clickHandler");
-    debugger;
     Array.from(table.tHead.children[0].children).forEach((header, index) => {
-        console.log(`index: ${index}`);
         header.onclick = _ev => {
             sortTableByColumn(table, index);
         };
