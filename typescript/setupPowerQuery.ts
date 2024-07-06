@@ -91,41 +91,28 @@ export function setupPowerQuery() {
     popover.appendChild(list);
 
     function filterItems(needle: string) {
-        powerQueryItems.forEach((item) => {
+        for (const item of powerQueryItems) {
             item.weight = 0;
-        });
-        //exact match
-        powerQueryItems
-            .filter(item => item.lowerCase.includes(needle))
-            .forEach(item => item.weight += 1000);
+            //exact match
+            if (item.lowerCase.includes(needle))
+                item.weight += 1000;
 
-        //exact match of each word in needle.
-        powerQueryItems
-            .filter(item => {
-                let needleWordsWithSeparator = needle.split(/(?= )/g);
-                return needleWordsWithSeparator.every(word => item.lowerCase.includes(word));
-            })
-            .forEach(item => item.weight += 500);
+            //exact match of each word in needle.
+            let needleWordsWithSeparator = needle.split(/(?= )/g);
+            if (needleWordsWithSeparator.every(word => item.lowerCase.includes(word)))
+                item.weight += 500;
 
-        //all chars match  in order
-        powerQueryItems
-            .filter(item => {
-                let indices = needle.split('')
-                    .map(char => item.lowerCase.indexOf(char));
-                if(indices.find(num => num === -1))
-                    return false;
-                return checkSorted(indices);
-            })
-            .forEach(item => item.weight += 50);
+            //all chars match  in order
+            let indices = needle.split('')
+                .map(char => item.lowerCase.indexOf(char));
+            if(indices.every(num => num !== -1) && isSorted(indices))
+                item.weight += 50;
 
-        //all chars match
-        powerQueryItems
-            .filter(item => {
-                return needle.split('')
-                    .every(char => item.lowerCase.includes(char));
-            })
-            .forEach(item => item.weight += 20);
-
+            //all chars match
+            if (needle.split('')
+                .every(char => item.lowerCase.includes(char)))
+                item.weight += 20;
+        }
 
         list.innerHTML = powerQueryItems
             .filter((item) => item.weight != 0)
@@ -137,7 +124,7 @@ export function setupPowerQuery() {
     }
 }
 
-function checkSorted(arr: number[]) {
+function isSorted(arr: number[]) {
     for (let i = 0; i < arr.length - 1; i++) {
         if (arr[i] > arr[i + 1]) {
             return false;
