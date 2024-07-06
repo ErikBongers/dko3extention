@@ -122,3 +122,25 @@ export function millisToString(duration: number) {
         return seconds + " seconden";
     else return "";
 }
+
+export function clamp(value: number, min: number, max: number) {
+    return Math.min(Math.max(value, min), max);
+}
+
+export function isAlphaNumeric(str: string) {
+    if (str.length > 1)
+        return false;
+    let code: number;
+    let i: number;
+    let len: number;
+
+    for (i = 0, len = str.length; i < len; i++) {
+        code = str.charCodeAt(i);
+        if (!(code > 47 && code < 58) && // numeric (0-9)
+            !(code > 64 && code < 91) && // upper alpha (A-Z)
+            !(code > 96 && code < 123)) { // lower alpha (a-z)
+            return false;
+        }
+    }
+    return true;
+}

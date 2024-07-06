@@ -1,5 +1,6 @@
-* global search
-  > ctrl+q ?
+* powerQuery - global search
+  > include assets page, leerlingenlijsten,...
+  > persist in localStorage?
 
 * sorting and filtering.
 

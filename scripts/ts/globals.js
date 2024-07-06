@@ -105,4 +105,23 @@ export function millisToString(duration) {
     else
         return "";
 }
+export function clamp(value, min, max) {
+    return Math.min(Math.max(value, min), max);
+}
+export function isAlphaNumeric(str) {
+    if (str.length > 1)
+        return false;
+    let code;
+    let i;
+    let len;
+    for (i = 0, len = str.length; i < len; i++) {
+        code = str.charCodeAt(i);
+        if (!(code > 47 && code < 58) && // numeric (0-9)
+            !(code > 64 && code < 91) && // upper alpha (A-Z)
+            !(code > 96 && code < 123)) { // lower alpha (a-z)
+            return false;
+        }
+    }
+    return true;
+}
 //# sourceMappingURL=globals.js.map
