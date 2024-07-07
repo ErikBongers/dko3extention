@@ -1,16 +1,3 @@
-* werklijst: show uren -> jump to genrated list automatically.
-  - in criteria: press on prefill button
-  - automaticall jump to the standard list view.
-  - detect that we really want the special view.
-    > how?
-      - store in some global var
-        > session storage is kept on refresh!
-        > when to clear this var?
-          > have a storage for pageState, which clears when you switch pages.
-
-* sorting and filtering.
-   > sort leerlingen in les.
-
 * Werklijst: save criteria.
 
 * Werklijst: immediately jump to results?

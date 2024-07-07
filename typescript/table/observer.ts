@@ -15,6 +15,10 @@ function onMutation (_mutation: MutationRecord) {
     if(document.querySelector("main div.table-responsive table thead")) {
         addTableHeaderClickEvents(document.querySelector("main div.table-responsive table"));
     }
+    let customTable = document.querySelector("table.canSort") as HTMLTableElement;
+    if(customTable) {
+        addTableHeaderClickEvents(customTable);
+    }
     return true;
 }
 

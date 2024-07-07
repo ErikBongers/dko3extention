@@ -169,3 +169,8 @@ body.otherSchool {
         }
     }
 }
+table tfoot.separatorLine {
+    border-top-style: solid;
+    border-top-color: black;
+    border-top-width: 2px;
+}

@@ -271,6 +271,7 @@ export function buildTable(data: TheData, tableDef: TableDef) {
     let table = document.createElement("table");
     tableDef.tableRef.getOrgTable().insertAdjacentElement("afterend", table);
     table.id = def.COUNT_TABLE_ID;
+    table.classList.add("canSort");
     fillTableHeader(table, data.vakLeraars);
     let tbody = document.createElement("tbody");
     table.appendChild(tbody);
@@ -299,8 +300,11 @@ export function buildTable(data: TheData, tableDef: TableDef) {
             calculateAndSumCell(colDef, ctx, false);
         }
     }
+    let tFoot = document.createElement("tfoot");
+    table.appendChild(tFoot);
+    tFoot.classList.add("separatorLine");
     let trTotal = document.createElement("tr");
-    tbody.appendChild(trTotal);
+    tFoot.appendChild(trTotal);
     
     trTotal.id = "__totals__";
     for(let [_colKey, colDef] of colDefs) {
