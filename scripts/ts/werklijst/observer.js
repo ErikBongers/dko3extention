@@ -8,6 +8,7 @@ import { prefillInstruments } from "./prefillInstruments.js";
 import { HashObserver } from "../pageObserver.js";
 import { NamedCellPageHandler } from "../pageHandlers.js";
 import { addTableHeaderClickEvents } from "../table/tableHeaders.js";
+import { getPageStateOrDefault, Goto, PageName, savePageState } from "../pageState.js";
 export default new HashObserver("#leerlingen-werklijst", onMutation);
 function onMutation(mutation) {
     if (mutation.target.id === "table_leerlingen_werklijst_table") {
@@ -20,22 +21,35 @@ function onMutation(mutation) {
         return true;
     }
     if (document.querySelector("#btn_werklijst_maken")) {
-        onPreparingFilter();
+        onCriteriaShown();
         return true;
     }
     return false;
 }
-function onPreparingFilter() {
+function onCriteriaShown() {
+    let pageState = getPageStateOrDefault(PageName.Werklijst);
+    if (pageState.goto == Goto.Werklijst_uren) {
+        pageState.goto = Goto.None;
+        savePageState(pageState);
+        prefillInstruments().then(() => { });
+        return;
+    }
+    pageState.werklijstTableName = "";
+    savePageState(pageState);
     let btnWerklijstMaken = document.querySelector("#btn_werklijst_maken");
     if (document.getElementById(def.PREFILL_INSTR_BTN_ID))
         return;
-    addButton(btnWerklijstMaken, def.PREFILL_INSTR_BTN_ID, "Prefill instrumenten", prefillInstruments, "fa-guitar", ["btn", "btn-outline-dark"], "prefill ");
+    addButton(btnWerklijstMaken, def.PREFILL_INSTR_BTN_ID, "Prefill instrumenten", prefillInstruments, "fa-guitar", ["btn", "btn-outline-dark"], "Uren ");
     getSchoolIdString();
 }
 let getCriteriaString = (_tableDef) => {
     return document.querySelector("#view_contents > div.alert.alert-info").textContent.replace("Criteria aanpassen", "").replace("Criteria:", "");
 };
 function onWerklijstChanged() {
+    let werklijstPageState = getPageStateOrDefault(PageName.Werklijst);
+    if (werklijstPageState.werklijstTableName === def.UREN_TABLE_STATE_NAME) {
+        tryUntil(onClickShowCounts);
+    }
     addTableHeaderClickEvents(document.querySelector("table#table_leerlingen_werklijst_table"));
 }
 function onButtonBarChanged() {
@@ -56,20 +70,26 @@ function onClickCopyEmails() {
             .flat()
             .filter((email) => !email.includes("@academiestudent.be"))
             .filter((email) => email !== "");
-        console.log("email count: " + flattened.length);
         navigator.clipboard.writeText(flattened.join(";\n")).then(() => alert("Alle emails zijn naar het clipboard gekopieerd. Je kan ze plakken in Outlook."));
     }
     tableDef.getTableData([], undefined)
         .then((_results) => {
     });
 }
+function tryUntil(func) {
+    if (!func())
+        setTimeout(() => tryUntil(func), 100);
+}
 function onClickShowCounts() {
     //Build lazily and only once. Table will automatically be erased when filters are changed.
     if (!document.getElementById(def.COUNT_TABLE_ID)) {
+        let tableRef = findTableRefInCode();
+        if (!tableRef)
+            return false;
         let fileName = getUrenVakLeraarFileName();
         let requiredHeaderLabels = ["naam", "voornaam", "vak", "klasleerkracht", "graad + leerjaar"];
         let pageHandler = new NamedCellPageHandler(requiredHeaderLabels, onLoaded);
-        let tableDef = new TableDef(findTableRefInCode(), pageHandler, getCriteriaString);
+        let tableDef = new TableDef(tableRef, pageHandler, getCriteriaString);
         function onLoaded(tableDef) {
             let vakLeraars = new Map();
             let rows = this.rows = tableDef.shadowTableTemplate.content.querySelectorAll("tbody > tr");
@@ -85,9 +105,10 @@ function onClickShowCounts() {
         }
         tableDef.getTableData(new Map(), () => fetchFromCloud(fileName))
             .then((_results) => { });
-        return;
+        return true;
     }
     showOrHideNewTable();
+    return true;
 }
 function showOrHideNewTable() {
     let showNewTable = document.getElementById(def.COUNT_TABLE_ID).style.display === "none";
@@ -95,6 +116,9 @@ function showOrHideNewTable() {
     document.getElementById(def.COUNT_TABLE_ID).style.display = showNewTable ? "table" : "none";
     document.getElementById(def.COUNT_BUTTON_ID).title = showNewTable ? "Toon normaal" : "Toon telling";
     setButtonHighlighted(def.COUNT_BUTTON_ID, showNewTable);
+    let pageState = getPageStateOrDefault(PageName.Werklijst);
+    pageState.werklijstTableName = showNewTable ? def.UREN_TABLE_STATE_NAME : "";
+    savePageState(pageState);
 }
 function upgradeCloudData(fromCloud) {
     //if fromCloud.version === "...." --> convert.

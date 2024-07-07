@@ -41,7 +41,6 @@ function scrapeFinancialLinks() {
             queryItems.push(item);
         }
     }
-    console.log(queryItems);
     return queryItems;
 }
 
@@ -66,7 +65,6 @@ function scrapeAlleLijstenLinks() {
             queryItems.push(item);
         }
     }
-    console.log(queryItems);
     return queryItems;
 }
 
@@ -95,6 +93,5 @@ function scrapeExtraInschrijvingenLinks() {
             queryItems.push(item);
         }
     }
-    console.log(queryItems);
     return queryItems;
 }

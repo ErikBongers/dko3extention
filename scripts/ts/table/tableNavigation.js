@@ -15,11 +15,16 @@ export class TableNavigation {
 */
 export function findFirstNavigation() {
     //get all possible numbers from the navigation bar and sort them to get the result above.
-    let element = document.querySelector("div.datatable-navigation-toolbar");
-    let button = element.querySelector("button.datatable-paging-numbers");
+    let buttonPagination = document.querySelector("button.datatable-paging-numbers");
+    if (!buttonPagination)
+        return undefined;
+    let buttonContainer = buttonPagination.closest("div");
+    if (!buttonContainer) {
+        return undefined;
+    }
     let rx = /(\d*) tot (\d*) van (\d*)/;
-    let matches = button.innerText.match(rx);
-    let buttons = element.querySelectorAll("button.btn-secondary");
+    let matches = buttonPagination.innerText.match(rx);
+    let buttons = buttonContainer.querySelectorAll("button.btn-secondary");
     let numbers = Array.from(buttons)
         .filter((btn) => btn.attributes["onclick"]?.value.includes("goto("))
         .map((btn) => btn.attributes["onclick"].value)
@@ -27,10 +32,10 @@ export function findFirstNavigation() {
     matches.slice(1).forEach((txt) => numbers.push(parseInt(txt)));
     numbers.sort((a, b) => a - b);
     if (numbers[0] === 1) {
-        return new TableNavigation(numbers[1], numbers.pop(), element);
+        return new TableNavigation(numbers[1], numbers.pop(), buttonContainer);
     }
     else {
-        return new TableNavigation(numbers[2] - numbers[1] - 1, numbers.pop(), element);
+        return new TableNavigation(numbers[2] - numbers[1] - 1, numbers.pop(), buttonContainer);
     }
 }
 function getGotoNumber(functionCall) {

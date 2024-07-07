@@ -36,6 +36,7 @@ export function init() {
     });
 }
 export function onPageChanged() {
+    // clearPageState();
     for (let observer of observers) {
         observer.onPageChanged();
     }

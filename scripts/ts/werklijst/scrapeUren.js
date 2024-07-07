@@ -11,7 +11,7 @@ export function scrapeStudent(tableDef, tr, collection) {
     if (leraar === "")
         leraar = "{nieuw}";
     if (!isInstrument(vak)) {
-        console.log("vak is geen instrument!!!");
+        console.error("vak is geen instrument!!!");
         return false;
     }
     let vakLeraarKey = translateVak(vak) + "_" + leraar;

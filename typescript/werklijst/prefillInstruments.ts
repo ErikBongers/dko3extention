@@ -1,4 +1,6 @@
 import {fetchVakken, sendClearWerklijst, sendCriteria, sendFields, sendGrouping} from "./criteria.js";
+import * as def from "../def.js";
+import {getPageStateOrDefault, PageName, savePageState, WerklijstPageState} from "../pageState.js";
 
 export let instrumentSet = new Set([
     "Accordeon",
@@ -74,16 +76,16 @@ export async function prefillInstruments() {
         }
     ];
     await sendCriteria(criteria);
-    console.log("Criteria sent.");
     await sendFields([
         {value: "vak_naam", text: "vak"},
         {value: "graad_leerjaar", text: "graad + leerjaar"},
         {value: "klasleerkracht", text: "klasleerkracht"}]
     );
-    console.log("Fields sent.");
     await sendGrouping("vak_id");
-    console.log("Grouping sent.");
-    location.reload();
+    let pageState = getPageStateOrDefault(PageName.Werklijst) as WerklijstPageState;
+    pageState.werklijstTableName = def.UREN_TABLE_STATE_NAME;
+    savePageState(pageState);
+    (document.querySelector("#btn_werklijst_maken") as HTMLButtonElement).click();
 }
 
 function isInstrument(text: string) {

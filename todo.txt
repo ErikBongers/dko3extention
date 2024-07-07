@@ -1,13 +1,34 @@
-* powerQuery:
-  > include pages with reports and links.
+* werklijst: show uren -> jump to genrated list automatically.
+  - in criteria: press on prefill button
+  - automaticall jump to the standard list view.
+  - detect that we really want the special view.
     > how?
-      > don't ask user: if they go to a pages with links, scrape the links and store them locally.
+      - store in some global var
+        > session storage is kept on refresh!
+        > when to clear this var?
+          > have a storage for pageState, which clears when you switch pages.
 
 * sorting and filtering.
+   > sort leerlingen in les.
 
+* Werklijst: save criteria.
+
+* Werklijst: immediately jump to results?
+
+Nav history
+------------
+* Search bar: add history.
+  > Where?
+  > How? What sort of UI?
+  > Give each a name
+    > And add it to PQ!
+* PowerQuery: keep list of last visited pages. Always on top.
+* Add a forward-backward button in black top bar.
 
 Features
 -----------
+* werklijst: Show uren button: make it a button/dropdown to be able to select a previous year.
+
 * use onRow() to find first row that matches given criteria.
 
 * add table buttons to top AND bottom navigation.

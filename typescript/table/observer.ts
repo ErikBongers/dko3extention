@@ -36,7 +36,5 @@ function downloadTable() {
         undefined
     );
 
-    tableDef.getTableData().then(() => {
-        console.log("Fetch complete!");
-    })
+    tableDef.getTableData().then(() => { });
 }

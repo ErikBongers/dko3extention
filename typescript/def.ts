@@ -18,3 +18,7 @@ export function isButtonHighlighted(buttonId: string) {
 
 export const CACHE_DATE_SUFFIX = "__date";
 export const POWER_QUERY_ID = "savedPowerQuery";
+export const STORAGE_PAGE_STATE_KEY = "pageState";
+export const WERKLIJST_TABLE_NAME_PROP = "werklijstTableName";
+export const UREN_TELLER = "urenTeller";
+export const UREN_TABLE_STATE_NAME = "__uren__";

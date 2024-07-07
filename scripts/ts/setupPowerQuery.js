@@ -1,5 +1,6 @@
 import { clamp, isAlphaNumeric } from "./globals.js";
 import * as def from "./def.js";
+import { getPageStateOrDefault, Goto, PageName, savePageState } from "./pageState.js";
 let powerQueryItems = [];
 let popoverVisible = false;
 let selectedItem = 0;
@@ -29,6 +30,7 @@ function screpeDropDownMenu(headerMenu) {
     let newItems = Array.from(headerMenu.querySelectorAll("div.dropdown-menu > a"))
         .map((item) => {
         let queryItem = {
+            func: undefined,
             headerLabel,
             label: item.textContent.trim(),
             href: item.href,
@@ -50,17 +52,33 @@ function scrapeMainMenu() {
     for (let headerMenu of headerMenus.values()) {
         screpeDropDownMenu(headerMenu);
     }
-    console.log(powerQueryItems);
 }
 export function setupPowerQuery() {
     //don' do nottin' - just initialize this module, below.
+}
+function gotoWerklijstUren(_queryItem) {
+    let pageState = getPageStateOrDefault(PageName.Werklijst);
+    pageState.goto = Goto.Werklijst_uren;
+    savePageState(pageState);
+    location.href = "/#leerlingen-werklijst";
+}
+function getHardCodedQueryItems() {
+    let items = [];
+    let item = {
+        headerLabel: "Werklijst", href: "", label: "Uren per vak per leraar", longLabel: "", lowerCase: "", weight: 0
+    };
+    item.longLabel = item.headerLabel + " > " + item.label;
+    item.lowerCase = item.longLabel.toLowerCase();
+    item.func = gotoWerklijstUren;
+    items.push(item);
+    return items;
 }
 document.body.addEventListener("keydown", (ev) => {
     if (ev.key === "q" && ev.ctrlKey && !ev.shiftKey && !ev.altKey) {
         scrapeMainMenu();
         powerQueryItems.push(...getSavedQueryItems());
+        powerQueryItems.push(...getHardCodedQueryItems());
         popover.showPopover();
-        filterItems(searchField.textContent);
     }
     else {
         if (popoverVisible === false)
@@ -83,13 +101,16 @@ document.body.addEventListener("keydown", (ev) => {
         else if (ev.key == "Enter") {
             let item = powerQueryItems.find((item) => item.longLabel === list.children[selectedItem].dataset.longLabel);
             popover.hidePopover();
-            location.href = item.href;
-            console.log(`selected: `);
-            console.log(item);
+            if (item.func) {
+                item.func(item);
+            }
+            else {
+                location.href = item.href;
+            }
             ev.preventDefault();
         }
-        filterItems(searchField.textContent);
     }
+    filterItems(searchField.textContent);
 });
 let popover = document.createElement("div");
 document.querySelector("main").appendChild(popover);

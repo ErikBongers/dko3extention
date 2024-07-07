@@ -26,8 +26,6 @@ function downloadTable() {
     // let tableRef = new TableRef("table_leerlingen_werklijst_table", findFirstNavigation(),(offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0");
     let tableRef = findTableRefInCode();
     let tableDef = new TableDef(tableRef, prebuildPageHandler, undefined);
-    tableDef.getTableData().then(() => {
-        console.log("Fetch complete!");
-    });
+    tableDef.getTableData().then(() => { });
 }
 //# sourceMappingURL=observer.js.map

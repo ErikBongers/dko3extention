@@ -36,7 +36,6 @@ function scrapeFinancialLinks() {
             queryItems.push(item);
         }
     }
-    console.log(queryItems);
     return queryItems;
 }
 function scrapeAlleLijstenLinks() {
@@ -60,7 +59,6 @@ function scrapeAlleLijstenLinks() {
             queryItems.push(item);
         }
     }
-    console.log(queryItems);
     return queryItems;
 }
 function scrapeExtraInschrijvingenLinks() {
@@ -89,7 +87,6 @@ function scrapeExtraInschrijvingenLinks() {
             queryItems.push(item);
         }
     }
-    console.log(queryItems);
     return queryItems;
 }
 //# sourceMappingURL=observer.js.map

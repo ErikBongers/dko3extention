@@ -23,10 +23,15 @@ export function findTableRefInCode() {
     if (!foundTableRef)
         return undefined;
     let buildFetchUrl = (offset) => `/views/ui/datatable.php?id=${foundTableRef.viewId}&start=${offset}&aantal=0`;
-    return new TableRef(foundTableRef.tableId, findFirstNavigation(), buildFetchUrl);
+    let navigation = findFirstNavigation();
+    if (!navigation)
+        return undefined;
+    return new TableRef(foundTableRef.tableId, navigation, buildFetchUrl);
 }
 function findTable() {
-    let table = document.querySelector(".nanobar ~ div.table-responsive > table");
+    let table = document.querySelector("div.table-responsive > table");
+    if (!table)
+        debugger;
     let tableId = table.id
         .replace("table_", "")
         .replace("_table", "");

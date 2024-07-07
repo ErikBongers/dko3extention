@@ -91,7 +91,6 @@ function checkAndUpdate() {
         return;
     }
     let fileName = getUrenVakLeraarFileName();
-    console.log("updating!" + " " + fileName);
     cellChanged = false;
     updateColumnData("uren_23_24");
     updateColumnData("uren_24_25");

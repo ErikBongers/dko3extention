@@ -7,6 +7,7 @@ import werklijstObserver from "./werklijst/observer.js";
 import tableObserver from "./table/observer.js";
 import {setupPowerQuery} from "./setupPowerQuery.js";
 import {allLijstenObserver, extraInschrijvingenObserver, financialObserver} from "./pages/observer.js";
+import {clearPageState} from "./pageState.js";
 
 // noinspection JSUnusedGlobalSymbols
 export function init() {
@@ -39,7 +40,9 @@ export function init() {
         setupPowerQuery();
     });
 }
+
 export function onPageChanged() {
+    // clearPageState();
     for(let observer of observers) {
         observer.onPageChanged();
     }
