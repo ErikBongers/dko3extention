@@ -124,4 +124,7 @@ export function isAlphaNumeric(str) {
     }
     return true;
 }
+export function rangeGenerator(start, stop, step = 1) {
+    return Array(Math.ceil((stop - start) / step)).fill(start).map((x, y) => x + y * step);
+}
 //# sourceMappingURL=globals.js.map

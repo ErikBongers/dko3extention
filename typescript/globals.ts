@@ -144,3 +144,7 @@ export function isAlphaNumeric(str: string) {
     }
     return true;
 }
+
+export function rangeGenerator(start: number, stop: number, step = 1): number[] {
+    return Array(Math.ceil((stop - start) / step)).fill(start).map((x, y) => x + y * step);
+}

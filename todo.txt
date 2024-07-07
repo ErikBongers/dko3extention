@@ -1,7 +1,5 @@
 * Werklijst: save criteria.
 
-* Werklijst: immediately jump to results?
-
 Nav history
 ------------
 * Search bar: add history.

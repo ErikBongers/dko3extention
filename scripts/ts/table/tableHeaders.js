@@ -1,3 +1,46 @@
+import { rangeGenerator } from "../globals.js";
+function sortRowsAlpha(wasAscending, rows, index, header) {
+    if (wasAscending) {
+        rows.sort((a, b) => {
+            return b.cells[index].innerText.localeCompare(a.cells[index].innerText);
+        });
+        header.classList.add("sortDescending");
+    }
+    else {
+        rows.sort((a, b) => {
+            return a.cells[index].innerText.localeCompare(b.cells[index].innerText);
+        });
+        header.classList.add("sortAscending");
+    }
+}
+function trySortTableNumeric(wasAscending, rows, index, header) {
+    try {
+        if (wasAscending) {
+            rows.sort((a, b) => {
+                let res = Number(b.cells[index].innerText) - Number(a.cells[index].innerText);
+                if (isNaN(res)) {
+                    throw new Error();
+                }
+                return res;
+            });
+            header.classList.add("sortDescending");
+        }
+        else {
+            rows.sort((a, b) => {
+                let res = Number(a.cells[index].innerText) - Number(b.cells[index].innerText);
+                if (isNaN(res)) {
+                    throw new Error();
+                }
+                return res;
+            });
+            header.classList.add("sortAscending");
+        }
+        return true;
+    }
+    catch (e) {
+        return false;
+    }
+}
 function sortTableByColumn(table, index) {
     let header = table.tHead.children[0].children[index];
     let rows = Array.from(table.tBodies[0].rows);
@@ -5,19 +48,24 @@ function sortTableByColumn(table, index) {
     for (let thead of table.tHead.children[0].children) {
         thead.classList.remove("sortAscending", "sortDescending");
     }
-    if (wasAscending) {
-        rows.sort((a, b) => {
-            return b.cells[index].textContent.localeCompare(a.cells[index].textContent);
-        });
-        header.classList.add("sortDescending");
+    if (isColumnProbablyNumeric(table, index)) {
+        if (!trySortTableNumeric(wasAscending, rows, index, header))
+            sortRowsAlpha(wasAscending, rows, index, header);
     }
     else {
-        rows.sort((a, b) => {
-            return a.cells[index].textContent.localeCompare(b.cells[index].textContent);
-        });
-        header.classList.add("sortAscending");
+        sortRowsAlpha(wasAscending, rows, index, header);
     }
     rows.forEach(row => table.tBodies[0].appendChild(row));
+}
+function isColumnProbablyNumeric(table, index) {
+    let rows = Array.from(table.tBodies[0].rows);
+    const MAX_SAMPLES = 100;
+    let samples = rangeGenerator(0, rows.length, rows.length > MAX_SAMPLES ? rows.length / MAX_SAMPLES : 1);
+    return !samples
+        .map(rowIndex => rows[rowIndex])
+        .some(row => {
+        return isNaN(Number(row.children[index].innerText));
+    });
 }
 export function addTableHeaderClickEvents(table) {
     if (table.tHead.classList.contains("clickHandler"))
