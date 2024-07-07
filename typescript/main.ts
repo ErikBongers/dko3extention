@@ -7,10 +7,11 @@ import werklijstObserver from "./werklijst/observer.js";
 import tableObserver from "./table/observer.js";
 import {setupPowerQuery} from "./setupPowerQuery.js";
 import {allLijstenObserver, extraInschrijvingenObserver, financialObserver} from "./pages/observer.js";
-import {clearPageState} from "./pageState.js";
+
+init();
 
 // noinspection JSUnusedGlobalSymbols
-export function init() {
+function init() {
     getOptions(() => {
         // @ts-ignore
         chrome.storage.onChanged.addListener((_changes: any, area: string) => {

@@ -10,7 +10,7 @@
   "content_scripts": [
     {
       "js": [
-        "scripts/loader.js"
+        "scripts/ts/bundle.js"
       ],
       "css": [
         "css/general.css",
