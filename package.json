@@ -1,0 +1,15 @@
+{
+  "name": "dko3extention",
+  "version": "1.0.0",
+  "description": "This chrome plugin only works with the Belgian DKO3 public art school (academy) administration software.",
+  "main": "options.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "node esbuild.config.mjs"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "esbuild": "^0.23.0"
+  }
+}
