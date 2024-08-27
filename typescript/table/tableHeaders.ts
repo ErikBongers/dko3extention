@@ -61,12 +61,13 @@ function isColumnProbablyNumeric(table: HTMLTableElement, index: number) {
     let rows = Array.from(table.tBodies[0].rows);
 
     const MAX_SAMPLES = 100;
-    let samples = rangeGenerator(0, rows.length, rows.length > MAX_SAMPLES ? rows.length/MAX_SAMPLES : 1);
+    let samples = rangeGenerator(0, rows.length, rows.length > MAX_SAMPLES ? rows.length/MAX_SAMPLES : 1)
+        .map(float => Math.floor(float));
     return !samples
         .map(rowIndex => rows[rowIndex])
         .some(row => {
-             return isNaN(Number((row.children[index] as HTMLElement).innerText));
-        })
+            return isNaN(Number((row.children[index] as HTMLElement).innerText));
+        });
 }
 
 export function addTableHeaderClickEvents(table: HTMLTableElement) {
