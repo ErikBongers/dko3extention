@@ -25,10 +25,15 @@
     & th div {
         margin: 1px;
         background-color: #d6d8db;
-        font-weight: bold;
         padding-left: 3px;
         padding-top: 1px;
         padding-bottom: 1px;
+        & span.bold {
+            font-weight: bold;
+        }
+        & span.plain {
+            font-weight: normal;
+        }
     }
 
     & tr.instrumentRow td {

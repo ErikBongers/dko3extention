@@ -23,27 +23,61 @@ export function buildTrimesterTable(instruments: InstrumentInfo[]) {
 
     const newTableBody = document.createElement("tbody");
 
+    let totTrim1 = 0;
+    let totTrim2 = 0;
+    let totTrim3 = 0;
+    for (let instrument of instruments) {
+        totTrim1 += instrument.trimesters[0].students.length;
+        totTrim2 += instrument.trimesters[1].students.length;
+        totTrim3 += instrument.trimesters[2].students.length;
+    }
+
     //header
     const tHead = document.createElement("thead");
     newTable.appendChild(tHead);
     tHead.classList.add("table-secondary")
     const trHeader = document.createElement("tr");
     tHead.appendChild(trHeader);
+
     const th1 = document.createElement("th");
     trHeader.appendChild(th1);
     let div1 = document.createElement("div");
     th1.appendChild(div1);
-    div1.innerHTML = "Trimester 1";
+    let span1 = document.createElement("span");
+    div1.appendChild(span1);
+    span1.classList.add("bold");
+    span1.innerHTML = `Trimester 1`;
+    let spanTot1 = document.createElement("span");
+    div1.appendChild(spanTot1);
+    spanTot1.classList.add("plain");
+    spanTot1.innerHTML = ` (${totTrim1} lln) `;
+
     const th2 = document.createElement("th");
     trHeader.appendChild(th2);
     let div2 = document.createElement("div");
     th2.appendChild(div2);
-    div2.innerHTML = "Trimester 2";
+    let span2 = document.createElement("span");
+    div2.appendChild(span2);
+    span2.classList.add("bold");
+    span2.innerHTML = `Trimester 2`;
+    let spanTot2 = document.createElement("span");
+    div2.appendChild(spanTot2);
+    spanTot2.classList.add("plain");
+    spanTot2.innerHTML = ` (${totTrim2} lln) `;
+
     const th3 = document.createElement("th");
     trHeader.appendChild(th3);
     let div3 = document.createElement("div");
     th3.appendChild(div3);
-    div3.innerHTML = "Trimester 3";
+    let span3 = document.createElement("span");
+    div3.appendChild(span3);
+    span3.classList.add("bold");
+    span3.innerHTML = `Trimester 3`;
+    let spanTot3 = document.createElement("span");
+    div3.appendChild(spanTot3);
+    spanTot3.classList.add("plain");
+    spanTot3.innerHTML = ` (${totTrim3} lln) `;
+
 
     // creating all cells
     for (let instrument of instruments) {
