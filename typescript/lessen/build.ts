@@ -1,9 +1,11 @@
 import {FULL_CLASS_BUTTON_ID, isButtonHighlighted, TRIM_DIV_ID} from "../def.js";
 import {db3} from "../globals.js";
+import {InstrumentInfo} from "./convert.js";
+import {StudentInfo} from "./scrape";
 
 const NBSP = 160;
 
-export function buildTrimesterTable(instruments) {
+export function buildTrimesterTable(instruments: InstrumentInfo[]) {
     let trimDiv = document.getElementById(TRIM_DIV_ID);
     let newTable = document.createElement("table");
     newTable.id = "trimesterTable";
@@ -58,7 +60,7 @@ export function buildTrimesterTable(instruments) {
     trimDiv.appendChild(newTable);
 }
 
-function buildInstrument(newTableBody, instrument) {
+function buildInstrument(newTableBody: HTMLTableSectionElement, instrument: InstrumentInfo) {
     // creates a table row
     let headerRows = buildInstrumentHeader(newTableBody, instrument);
     let studentTopRowNo = newTableBody.children.length;
@@ -83,7 +85,7 @@ function buildInstrument(newTableBody, instrument) {
 
         for (let trimNo = 0; trimNo < 3; trimNo++) {
             let trimester = instrument.trimesters[trimNo];
-            let student = undefined;
+            let student: StudentInfo = undefined;
             if (trimester) {
                 student = trimester.students[rowNo];
                 if (trimester.aantal >= trimester.maxAantal) {
@@ -132,7 +134,7 @@ function buildInstrument(newTableBody, instrument) {
     }
 }
 
-function buildInstrumentHeader(newTableBody, instrument) {
+function buildInstrumentHeader(newTableBody: HTMLTableSectionElement, instrument: InstrumentInfo) {
     const trName = document.createElement("tr");
     newTableBody.appendChild(trName);
     trName.classList.add("instrumentRow");
@@ -183,7 +185,7 @@ function buildInstrumentHeader(newTableBody, instrument) {
     };
 }
 
-function buildModuleButton(buttonText, id) {
+function buildModuleButton(buttonText: string, id: string) {
     const button = document.createElement("a");
     button.href = "#";
     button.setAttribute("onclick", `showView('lessen-les','','id=${id}'); return false;`);
@@ -192,7 +194,7 @@ function buildModuleButton(buttonText, id) {
     return button;
 }
 
-function buildStudentCell(student) {
+function buildStudentCell(student: StudentInfo) {
     const cell = document.createElement("td");
     let studentSpan = document.createElement("span");
     studentSpan.appendChild(document.createTextNode(student?.name ??  String.fromCharCode(NBSP)));
@@ -220,11 +222,11 @@ function buildStudentCell(student) {
     return cell;
 }
 
-async function fetchStudentId(studentName) {
+async function fetchStudentId(studentName: string) {
     let studentNameForUrl = studentName.replaceAll(",", "").replaceAll("(", "").replaceAll(")", "");
     return fetch("/view.php?args=zoeken?zoek="+encodeURIComponent(studentNameForUrl))
         .then((response) => response.text())
-        .then((text) => fetch("/views/zoeken/index.view.php"))
+        .then((_text) => fetch("/views/zoeken/index.view.php"))
         .then((response) => response.text())
         .then((text) => findStudentId(studentName, text))
         .catch(err => {
@@ -232,7 +234,7 @@ async function fetchStudentId(studentName) {
         });
 }
 
-function findStudentId(studentName, text) {
+function findStudentId(studentName: string, text: string) {
     db3(text);
     studentName = studentName.replaceAll(",", "");
     let namePos = text.indexOf(studentName);

@@ -730,7 +730,7 @@
   }
   async function fetchStudentId(studentName) {
     let studentNameForUrl = studentName.replaceAll(",", "").replaceAll("(", "").replaceAll(")", "");
-    return fetch("/view.php?args=zoeken?zoek=" + encodeURIComponent(studentNameForUrl)).then((response) => response.text()).then((text) => fetch("/views/zoeken/index.view.php")).then((response) => response.text()).then((text) => findStudentId(studentName, text)).catch((err) => {
+    return fetch("/view.php?args=zoeken?zoek=" + encodeURIComponent(studentNameForUrl)).then((response) => response.text()).then((_text) => fetch("/views/zoeken/index.view.php")).then((response) => response.text()).then((text) => findStudentId(studentName, text)).catch((err) => {
       console.error("Request failed", err);
     });
   }

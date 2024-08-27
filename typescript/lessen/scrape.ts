@@ -66,6 +66,7 @@ export class StudentInfo {
     naam: string;
     voornaam: string;
     id: number;
+    info: string;
 }
 
 function scrapeStudents(studentTable: HTMLTableElement) {

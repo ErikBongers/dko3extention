@@ -9,7 +9,7 @@ function addTrimesters(instrument: any, inputModules: Les[]) {
     instrument.trimesters = mergedInstrument;
 }
 
-class InstrumentInfo {
+export class InstrumentInfo {
     teacher: string;
     instrumentName: string;
     maxAantal: number;
@@ -18,8 +18,13 @@ class InstrumentInfo {
     trimesters: (Les| undefined)[];
 }
 
-export function buildTableData(inputModules: Les[]) {
-    let tableData = {
+export interface TableData {
+    students : Map<string, StudentInfo>,
+    instruments: InstrumentInfo[]
+}
+
+export function buildTableData(inputModules: Les[]) : TableData {
+    let tableData: TableData = {
         students: new Map(),
         instruments: []
     };
