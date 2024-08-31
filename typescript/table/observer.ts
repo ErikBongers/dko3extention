@@ -4,6 +4,7 @@ import {AllPageFilter, BaseObserver} from "../pageObserver.js";
 import {SimpleTableHandler} from "../pageHandlers.js";
 import {findTableRefInCode, TableDef} from "./tableDef.js";
 import {addTableHeaderClickEvents} from "./tableHeaders.js";
+import {getCriteriaString} from "../werklijst/observer.js";
 
 export default new BaseObserver(undefined, new AllPageFilter(), onMutation);
 
@@ -39,7 +40,7 @@ function downloadTable() {
     let tableDef = new TableDef(
         tableRef,
         prebuildPageHandler,
-        undefined
+        getCriteriaString
     );
 
     tableDef.getTableData().then(() => { });

@@ -47,8 +47,8 @@ function onCriteriaShown() {
     getSchoolIdString();
 }
 
-let getCriteriaString: CalculateTableCheckSumHandler =  (_tableDef: TableDef) => {
-    return document.querySelector("#view_contents > div.alert.alert-info").textContent.replace("Criteria aanpassen", "").replace("Criteria:", "");
+export let getCriteriaString: CalculateTableCheckSumHandler =  (_tableDef: TableDef) => {
+    return document.querySelector("#view_contents > div.alert.alert-info").textContent.replace("Criteria aanpassen", "")?.replace("Criteria:", "") ?? "";
 }
 
 function onWerklijstChanged() {
@@ -77,7 +77,7 @@ function onClickCopyEmails() {
     let tableDef = new TableDef(
         findTableRefInCode(),
         pageHandler,
-        undefined
+        getCriteriaString
     );
 
     function onEmailPageLoaded(tableDef: TableDef) {

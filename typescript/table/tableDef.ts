@@ -77,7 +77,7 @@ export class TableDef {
     }
 
     saveToCache() {
-        db3(`Caching ${this.tableRef.tableId}.`);
+        db3(`Caching ${this.getCacheId()}.`);
         window.sessionStorage.setItem(this.getCacheId(), this.shadowTableTemplate.innerHTML);
         window.sessionStorage.setItem(this.getCacheId()+ def.CACHE_DATE_SUFFIX, (new Date()).toJSON());
     }
@@ -92,6 +92,7 @@ export class TableDef {
         if(this.tableRef.navigationData.isOnePage())
             return null;
 
+        db3(`Loading from cache: ${this.getCacheId()}.`);
         let text =  window.sessionStorage.getItem(this.getCacheId());
         let dateString = window.sessionStorage.getItem(this.getCacheId() + def.CACHE_DATE_SUFFIX);
         if(!text)

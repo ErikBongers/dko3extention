@@ -1420,7 +1420,7 @@
       this.setupInfoBar();
     }
     saveToCache() {
-      db3(`Caching ${this.tableRef.tableId}.`);
+      db3(`Caching ${this.getCacheId()}.`);
       window.sessionStorage.setItem(this.getCacheId(), this.shadowTableTemplate.innerHTML);
       window.sessionStorage.setItem(this.getCacheId() + CACHE_DATE_SUFFIX, (/* @__PURE__ */ new Date()).toJSON());
     }
@@ -1432,6 +1432,7 @@
     loadFromCache() {
       if (this.tableRef.navigationData.isOnePage())
         return null;
+      db3(`Loading from cache: ${this.getCacheId()}.`);
       let text = window.sessionStorage.getItem(this.getCacheId());
       let dateString = window.sessionStorage.getItem(this.getCacheId() + CACHE_DATE_SUFFIX);
       if (!text)
@@ -1917,7 +1918,7 @@
     getSchoolIdString();
   }
   var getCriteriaString = (_tableDef) => {
-    return document.querySelector("#view_contents > div.alert.alert-info").textContent.replace("Criteria aanpassen", "").replace("Criteria:", "");
+    return document.querySelector("#view_contents > div.alert.alert-info").textContent.replace("Criteria aanpassen", "")?.replace("Criteria:", "") ?? "";
   };
   function onWerklijstChanged() {
     let werklijstPageState = getPageStateOrDefault("Werklijst" /* Werklijst */);
@@ -1941,7 +1942,7 @@
     let tableDef = new TableDef(
       findTableRefInCode(),
       pageHandler,
-      void 0
+      getCriteriaString
     );
     function onEmailPageLoaded(tableDef2) {
       let rows = this.rows = tableDef2.shadowTableTemplate.content.querySelectorAll("tbody > tr");
@@ -2034,7 +2035,7 @@
     let tableDef = new TableDef(
       tableRef,
       prebuildPageHandler,
-      void 0
+      getCriteriaString
     );
     tableDef.getTableData().then(() => {
     });
