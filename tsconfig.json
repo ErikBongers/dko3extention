@@ -3,6 +3,7 @@
   "compilerOptions": {
     "outDir": "./scripts/ts",
     "target": "es2021",
-    "sourceMap": true
+    "sourceMap": true,
+    "noEmit": true
   },
 }
