@@ -1,7 +1,5 @@
 * If table is one page long: don't cache it.
 
-* Cache refresh message is displayed multiple times.
-
 * Quick menu: longer storage. Not per session.
   > How to refresh?
     > Just add items and leave obsolete ones dangling?

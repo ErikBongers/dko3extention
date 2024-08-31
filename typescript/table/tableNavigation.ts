@@ -12,6 +12,10 @@ export class TableNavigation {
     steps() {
         return Math.ceil(this.maxCount / this.step)
     }
+
+    isOnePage() {
+        return this.step >= this.maxCount;
+    }
 }
 
 /* possible ranges of numbers found:

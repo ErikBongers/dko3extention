@@ -1292,6 +1292,9 @@
     steps() {
       return Math.ceil(this.maxCount / this.step);
     }
+    isOnePage() {
+      return this.step >= this.maxCount;
+    }
   };
   function findFirstNavigation() {
     let buttonPagination = document.querySelector("button.datatable-paging-numbers");
@@ -1427,6 +1430,8 @@
       window.sessionStorage.removeItem(this.getCacheId() + CACHE_DATE_SUFFIX);
     }
     loadFromCache() {
+      if (this.tableRef.navigationData.isOnePage())
+        return null;
       let text = window.sessionStorage.getItem(this.getCacheId());
       let dateString = window.sessionStorage.getItem(this.getCacheId() + CACHE_DATE_SUFFIX);
       if (!text)
@@ -1452,26 +1457,31 @@
       this.divInfoContainer.innerHTML = "";
     }
     updateInfoBar() {
-      if (this.isUsingChached) {
-        let p = document.getElementById(CACHE_INFO_ID);
-        if (!p) {
-          p = document.createElement("p");
-          this.divInfoContainer.appendChild(p);
-          p.classList.add("cacheInfo");
-          p.id = CACHE_INFO_ID;
-        }
-        p.innerHTML = `Gegevens uit cache, ${millisToString((/* @__PURE__ */ new Date()).getTime() - this.shadowTableDate.getTime())} oud. `;
-        let a = document.createElement("a");
-        p.appendChild(a);
-        a.innerHTML = "refresh";
-        a.href = "#";
-        a.onclick = (e) => {
-          e.preventDefault();
-          this.clearCache();
-          this.getTableData();
-          return true;
-        };
+      this.updateCacheInfo();
+    }
+    updateCacheInfo() {
+      let p = document.getElementById(CACHE_INFO_ID);
+      if (!this.isUsingChached) {
+        if (p) p.remove();
+        return;
       }
+      if (!p) {
+        p = document.createElement("p");
+        this.divInfoContainer.appendChild(p);
+        p.classList.add("cacheInfo");
+        p.id = CACHE_INFO_ID;
+      }
+      p.innerHTML = `Gegevens uit cache, ${millisToString((/* @__PURE__ */ new Date()).getTime() - this.shadowTableDate.getTime())} oud. `;
+      let a = document.createElement("a");
+      p.appendChild(a);
+      a.innerHTML = "refresh";
+      a.href = "#";
+      a.onclick = (e) => {
+        e.preventDefault();
+        this.clearCache();
+        this.getTableData();
+        return true;
+      };
     }
     async getTableData(rawData, parallelAsyncFunction) {
       this.clearInfoBar();

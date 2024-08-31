@@ -89,6 +89,9 @@ export class TableDef {
     }
 
     loadFromCache() {
+        if(this.tableRef.navigationData.isOnePage())
+            return null;
+
         let text =  window.sessionStorage.getItem(this.getCacheId());
         let dateString = window.sessionStorage.getItem(this.getCacheId() + def.CACHE_DATE_SUFFIX);
         if(!text)
@@ -118,26 +121,34 @@ export class TableDef {
     }
 
     updateInfoBar() {
-        if(this.isUsingChached) {
-            let p = document.getElementById(def.CACHE_INFO_ID);
-            if(!p) {
-                p = document.createElement("p");
-                this.divInfoContainer.appendChild(p);
-                p.classList.add("cacheInfo");
-                p.id = def.CACHE_INFO_ID;
-            }
-            p.innerHTML = `Gegevens uit cache, ${millisToString((new Date()).getTime()-this.shadowTableDate.getTime())} oud. `;
-            let a = document.createElement("a");
-            p.appendChild(a);
-            a.innerHTML = "refresh";
-            a.href="#";
-            a.onclick = (e ) => {
-                e.preventDefault();
-                this.clearCache();
-                // noinspection JSIgnoredPromiseFromCall
-                this.getTableData();
-                return true;
-            }
+        this.updateCacheInfo();
+        //...update other info...
+    }
+
+    updateCacheInfo() {
+        let p = document.getElementById(def.CACHE_INFO_ID);
+        if(!this.isUsingChached) {
+            if(p) p.remove();
+            return;
+        }
+
+        if(!p) {
+            p = document.createElement("p");
+            this.divInfoContainer.appendChild(p);
+            p.classList.add("cacheInfo");
+            p.id = def.CACHE_INFO_ID;
+        }
+        p.innerHTML = `Gegevens uit cache, ${millisToString((new Date()).getTime()-this.shadowTableDate.getTime())} oud. `;
+        let a = document.createElement("a");
+        p.appendChild(a);
+        a.innerHTML = "refresh";
+        a.href="#";
+        a.onclick = (e ) => {
+            e.preventDefault();
+            this.clearCache();
+            // noinspection JSIgnoredPromiseFromCall
+            this.getTableData();
+            return true;
         }
     }
     async getTableData(rawData?: any, parallelAsyncFunction?: (() => Promise<any>)) {
