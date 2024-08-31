@@ -119,9 +119,13 @@ export class TableDef {
 
     updateInfoBar() {
         if(this.isUsingChached) {
-            let p = document.createElement("p");
-            this.divInfoContainer.appendChild(p);
-            p.classList.add("cacheInfo");
+            let p = document.getElementById(def.CACHE_INFO_ID);
+            if(!p) {
+                p = document.createElement("p");
+                this.divInfoContainer.appendChild(p);
+                p.classList.add("cacheInfo");
+                p.id = def.CACHE_INFO_ID;
+            }
             p.innerHTML = `Gegevens uit cache, ${millisToString((new Date()).getTime()-this.shadowTableDate.getTime())} oud. `;
             let a = document.createElement("a");
             p.appendChild(a);

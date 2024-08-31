@@ -529,6 +529,7 @@
   var COUNT_TABLE_ID = "werklijst_uren";
   var TRIM_DIV_ID = "trimesterDiv";
   var JSON_URL = "https://europe-west1-ebo-tain.cloudfunctions.net/json";
+  var CACHE_INFO_ID = "dko3plugin_cacheInfo";
   function isButtonHighlighted(buttonId) {
     return document.getElementById(buttonId)?.classList.contains("toggled");
   }
@@ -1452,9 +1453,13 @@
     }
     updateInfoBar() {
       if (this.isUsingChached) {
-        let p = document.createElement("p");
-        this.divInfoContainer.appendChild(p);
-        p.classList.add("cacheInfo");
+        let p = document.getElementById(CACHE_INFO_ID);
+        if (!p) {
+          p = document.createElement("p");
+          this.divInfoContainer.appendChild(p);
+          p.classList.add("cacheInfo");
+          p.id = CACHE_INFO_ID;
+        }
         p.innerHTML = `Gegevens uit cache, ${millisToString((/* @__PURE__ */ new Date()).getTime() - this.shadowTableDate.getTime())} oud. `;
         let a = document.createElement("a");
         p.appendChild(a);
