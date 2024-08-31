@@ -68,7 +68,11 @@ function onButtonBarChanged() {
 function onClickCopyEmails() {
     let requiredHeaderLabels = ["e-mailadressen"];
 
-    let pageHandler = new NamedCellPageHandler(requiredHeaderLabels, onLoaded);
+    let pageHandler = new NamedCellPageHandler(requiredHeaderLabels, onEmailPageLoaded, tableDef1 => {
+        navigator.clipboard.writeText("").then(value => {
+            console.log("Clipboard cleared.")
+        });
+    });
 
     let tableDef = new TableDef(
         findTableRefInCode(),
@@ -76,7 +80,7 @@ function onClickCopyEmails() {
         undefined
     );
 
-    function onLoaded(tableDef: TableDef) {
+    function onEmailPageLoaded(tableDef: TableDef) {
         let rows = this.rows = tableDef.shadowTableTemplate.content.querySelectorAll("tbody > tr") as NodeListOf<HTMLTableRowElement>;
         let allEmails = Array.from(rows)
             .map(tr=> (tableDef.pageHandler as NamedCellPageHandler).getColumnText(tr, "e-mailadressen"));
@@ -110,7 +114,7 @@ function onClickShowCounts() {
 
         let fileName = getUrenVakLeraarFileName();
         let requiredHeaderLabels = ["naam", "voornaam", "vak", "klasleerkracht", "graad + leerjaar"];
-        let pageHandler = new NamedCellPageHandler(requiredHeaderLabels, onLoaded);
+        let pageHandler = new NamedCellPageHandler(requiredHeaderLabels, onLoaded, () => {});
         let tableDef = new TableDef(
             tableRef,
             pageHandler,

@@ -7,6 +7,7 @@ type OnRowHandler = (tableDef: TableDef, rowObject: RowObject, collection: any) 
 
 type OnBeforeLoadingHandler = (tableDef: TableDef) => void;
 type OnLoadedHandler = (tableDef: TableDef) => void;
+type OnRequiredColumnsMissingHandler = (tableDef: TableDef) => void;
 type OnPageHandler = (tableDef: TableDef, text: string, collection: any, offset: number, template: HTMLTemplateElement, rows: NodeListOf<HTMLTableRowElement>) => void;
 
 export interface PageHandler {
@@ -73,17 +74,38 @@ export class NamedCellPageHandler implements PageHandler {
     onBeforeLoading?: OnBeforeLoadingHandler;
     private headerIndices: Map<string, number>;
     onLoaded: OnLoadedHandler;
+    onLoadedExternal: OnLoadedHandler;
+    onColumnsMissing: OnRequiredColumnsMissingHandler;
+    isValidPage: boolean;
 
-    constructor(requiredHeaderLabels: string[], onLoaded: OnLoadedHandler) {
+    constructor(requiredHeaderLabels: string[], onLoaded: OnLoadedHandler, onRequiredColumnsMissing: OnRequiredColumnsMissingHandler) {
         this.requiredHeaderLabels = requiredHeaderLabels;
-        this.onLoaded = onLoaded;
+        this.onLoaded = this.onLoadedAndCheck;
+        this.onLoadedExternal = onLoaded;
+        this.onColumnsMissing = onRequiredColumnsMissing;
         this.headerIndices = undefined;
+        this.isValidPage = false;
+    }
+
+    onLoadedAndCheck: OnLoadedHandler =  (tableDef: TableDef) => {
+        if(this.isValidPage)
+            this.onLoadedExternal(tableDef);
+        else
+            console.log("NamedCellPageHandler: Not calling OnLoaded handler because page is not valid.")
     }
 
     onPage: OnPageHandler = (_tableDef: TableDef, _text: string, _collection: any, offset: number, template, _rows)  => {
         if(offset === 0) {
-            if (!this.setTemplateAndCheck(template))
-                throw ("Cannot build table object - required columns missing");
+            if (!this.setTemplateAndCheck(template)) {
+                this.isValidPage = false;
+                if (this.onColumnsMissing) {
+                    this.onColumnsMissing(_tableDef);
+                } else {
+                    throw ("Cannot build table object - required columns missing");
+                }
+            } else {
+                this.isValidPage = true;
+            }
         }
     }
 

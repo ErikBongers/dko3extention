@@ -1731,16 +1731,33 @@
     }
   };
   var NamedCellPageHandler = class _NamedCellPageHandler {
-    constructor(requiredHeaderLabels, onLoaded) {
+    constructor(requiredHeaderLabels, onLoaded, onRequiredColumnsMissing) {
+      this.onLoadedAndCheck = (tableDef) => {
+        if (this.isValidPage)
+          this.onLoadedExternal(tableDef);
+        else
+          console.log("NamedCellPageHandler: Not calling OnLoaded handler because page is not valid.");
+      };
       this.onPage = (_tableDef, _text, _collection, offset, template, _rows) => {
         if (offset === 0) {
-          if (!this.setTemplateAndCheck(template))
-            throw "Cannot build table object - required columns missing";
+          if (!this.setTemplateAndCheck(template)) {
+            this.isValidPage = false;
+            if (this.onColumnsMissing) {
+              this.onColumnsMissing(_tableDef);
+            } else {
+              throw "Cannot build table object - required columns missing";
+            }
+          } else {
+            this.isValidPage = true;
+          }
         }
       };
       this.requiredHeaderLabels = requiredHeaderLabels;
-      this.onLoaded = onLoaded;
+      this.onLoaded = this.onLoadedAndCheck;
+      this.onLoadedExternal = onLoaded;
+      this.onColumnsMissing = onRequiredColumnsMissing;
       this.headerIndices = void 0;
+      this.isValidPage = false;
     }
     setTemplateAndCheck(template) {
       this.headerIndices = _NamedCellPageHandler.getHeaderIndices(template);
@@ -1901,13 +1918,17 @@
   }
   function onClickCopyEmails() {
     let requiredHeaderLabels = ["e-mailadressen"];
-    let pageHandler = new NamedCellPageHandler(requiredHeaderLabels, onLoaded);
+    let pageHandler = new NamedCellPageHandler(requiredHeaderLabels, onEmailPageLoaded, (tableDef1) => {
+      navigator.clipboard.writeText("").then((value) => {
+        console.log("Clipboard cleared.");
+      });
+    });
     let tableDef = new TableDef(
       findTableRefInCode(),
       pageHandler,
       void 0
     );
-    function onLoaded(tableDef2) {
+    function onEmailPageLoaded(tableDef2) {
       let rows = this.rows = tableDef2.shadowTableTemplate.content.querySelectorAll("tbody > tr");
       let allEmails = Array.from(rows).map((tr) => tableDef2.pageHandler.getColumnText(tr, "e-mailadressen"));
       let flattened = allEmails.map((emails) => emails.split(/[,;]/)).flat().filter((email) => !email.includes("@academiestudent.be")).filter((email) => email !== "");
@@ -1942,7 +1963,8 @@
         return false;
       let fileName = getUrenVakLeraarFileName();
       let requiredHeaderLabels = ["naam", "voornaam", "vak", "klasleerkracht", "graad + leerjaar"];
-      let pageHandler = new NamedCellPageHandler(requiredHeaderLabels, onLoaded);
+      let pageHandler = new NamedCellPageHandler(requiredHeaderLabels, onLoaded, () => {
+      });
       let tableDef = new TableDef(
         tableRef,
         pageHandler,
