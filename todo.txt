@@ -1,4 +1,4 @@
-* If table is one page long: don't cache it.
+* If table page size is changed: clear cache and update infobar!
 
 * Quick menu: longer storage. Not per session.
   > How to refresh?

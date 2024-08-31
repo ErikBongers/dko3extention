@@ -2012,7 +2012,9 @@
     let navigationBar = document.querySelector("div.datatable-navigation-toolbar");
     if (!navigationBar)
       return false;
-    addButton(navigationBar.lastElementChild, DOWNLOAD_TABLE_BTN_ID, "download full table", downloadTable, "fa-arrow-down", ["btn-secondary"], "", "afterend");
+    if (!findTableRefInCode()?.navigationData.isOnePage()) {
+      addButton(navigationBar.lastElementChild, DOWNLOAD_TABLE_BTN_ID, "download full table", downloadTable, "fa-arrow-down", ["btn-secondary"], "", "afterend");
+    }
     if (document.querySelector("main div.table-responsive table thead")) {
       addTableHeaderClickEvents(document.querySelector("main div.table-responsive table"));
     }
