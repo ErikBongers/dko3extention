@@ -68,6 +68,7 @@ export class TableDef {
     isUsingChached = false;
     divInfoContainer: HTMLDivElement;
     shadowTableDate: Date;
+    private tempMessage = "";
 
     constructor(tableRef: TableRef, pageHandler: PageHandler, calculateTableCheckSum: CalculateTableCheckSumHandler) {
         this.tableRef = tableRef;
@@ -125,7 +126,38 @@ export class TableDef {
 
     updateInfoBar() {
         this.updateCacheInfo();
+        this.#updateTempMessage();
         //...update other info...
+    }
+
+    setTempMessage(msg: string) {
+        this.tempMessage = msg;
+        this.#updateTempMessage();
+        setTimeout(this.clearTempMessage.bind(this), 4000);
+    }
+
+    clearTempMessage() {
+        this.tempMessage = "";
+        this.#updateTempMessage();
+    }
+
+    #updateTempMessage() {
+        let p = document.getElementById(def.TEMP_MSG_ID);
+        if(this.tempMessage === "") {
+            if(p) p.remove();
+            return;
+        }
+        if(!p) {
+            p = document.createElement("p");
+            this.divInfoContainer.appendChild(p);
+            p.classList.add("tempMessage");
+            p.id = def.TEMP_MSG_ID;
+        }
+        p.innerHTML = this.tempMessage;
+    }
+
+    clearCacheInfo() {
+        document.getElementById(def.CACHE_INFO_ID)?.remove();
     }
 
     updateCacheInfo() {
@@ -155,7 +187,7 @@ export class TableDef {
         }
     }
     async getTableData(rawData?: any, parallelAsyncFunction?: (() => Promise<any>)) {
-        this.clearInfoBar();
+        this.clearCacheInfo();
         let cachedData = this.loadFromCache();
 
         if(cachedData) {

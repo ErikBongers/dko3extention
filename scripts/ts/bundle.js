@@ -530,6 +530,7 @@
   var TRIM_DIV_ID = "trimesterDiv";
   var JSON_URL = "https://europe-west1-ebo-tain.cloudfunctions.net/json";
   var CACHE_INFO_ID = "dko3plugin_cacheInfo";
+  var TEMP_MSG_ID = "dko3plugin_tempMessage";
   function isButtonHighlighted(buttonId) {
     return document.getElementById(buttonId)?.classList.contains("toggled");
   }
@@ -1414,6 +1415,7 @@
     constructor(tableRef, pageHandler, calculateTableCheckSum) {
       this.parallelData = void 0;
       this.isUsingChached = false;
+      this.tempMessage = "";
       this.tableRef = tableRef;
       this.pageHandler = pageHandler;
       if (!calculateTableCheckSum)
@@ -1461,6 +1463,33 @@
     }
     updateInfoBar() {
       this.updateCacheInfo();
+      this.#updateTempMessage();
+    }
+    setTempMessage(msg) {
+      this.tempMessage = msg;
+      this.#updateTempMessage();
+      setTimeout(this.clearTempMessage.bind(this), 4e3);
+    }
+    clearTempMessage() {
+      this.tempMessage = "";
+      this.#updateTempMessage();
+    }
+    #updateTempMessage() {
+      let p = document.getElementById(TEMP_MSG_ID);
+      if (this.tempMessage === "") {
+        if (p) p.remove();
+        return;
+      }
+      if (!p) {
+        p = document.createElement("p");
+        this.divInfoContainer.appendChild(p);
+        p.classList.add("tempMessage");
+        p.id = TEMP_MSG_ID;
+      }
+      p.innerHTML = this.tempMessage;
+    }
+    clearCacheInfo() {
+      document.getElementById(CACHE_INFO_ID)?.remove();
     }
     updateCacheInfo() {
       let p = document.getElementById(CACHE_INFO_ID);
@@ -1487,7 +1516,7 @@
       };
     }
     async getTableData(rawData, parallelAsyncFunction) {
-      this.clearInfoBar();
+      this.clearCacheInfo();
       let cachedData = this.loadFromCache();
       if (cachedData) {
         if (parallelAsyncFunction) {
@@ -1951,7 +1980,7 @@
       let allEmails = Array.from(rows).map((tr) => tableDef2.pageHandler.getColumnText(tr, "e-mailadressen"));
       let flattened = allEmails.map((emails) => emails.split(/[,;]/)).flat().filter((email) => !email.includes("@academiestudent.be")).filter((email) => email !== "");
       navigator.clipboard.writeText(flattened.join(";\n")).then(
-        () => alert("Alle emails zijn naar het clipboard gekopieerd. Je kan ze plakken in Outlook.")
+        () => tableDef2.setTempMessage("Alle emails zijn naar het clipboard gekopieerd. Je kan ze plakken in Outlook.")
       );
     }
     tableDef.getTableData([], void 0).then((_results) => {
