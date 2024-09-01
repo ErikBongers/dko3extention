@@ -1416,6 +1416,8 @@
       this.isUsingChached = false;
       this.tableRef = tableRef;
       this.pageHandler = pageHandler;
+      if (!calculateTableCheckSum)
+        throw "Tablechecksum required.";
       this.calculateTableCheckSum = calculateTableCheckSum;
       this.setupInfoBar();
     }
