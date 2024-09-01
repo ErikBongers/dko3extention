@@ -13,6 +13,17 @@ export class HashPageFilter implements PageFilter{
     }
 }
 
+export class ExactHashPageFilter implements PageFilter{
+    private readonly urlHash: string;
+    constructor(urlHash: string) {
+        this.urlHash = urlHash;
+    }
+
+    match() {
+        return window.location.hash === this.urlHash;
+    }
+}
+
 export class AllPageFilter implements PageFilter{
     constructor() {
     }
@@ -83,6 +94,16 @@ export class HashObserver {
     private baseObserver: BaseObserver;
     constructor(urlHash: string, onMutationCallback: (mutation: MutationRecord) => boolean) {
         this.baseObserver = new BaseObserver(undefined, new HashPageFilter(urlHash), onMutationCallback);
+    }
+
+    onPageChanged() {
+        this.baseObserver.onPageChanged();
+    }
+}
+export class ExactHashObserver {
+    private baseObserver: BaseObserver;
+    constructor(urlHash: string, onMutationCallback: (mutation: MutationRecord) => boolean) {
+        this.baseObserver = new BaseObserver(undefined, new ExactHashPageFilter(urlHash), onMutationCallback);
     }
 
     onPageChanged() {

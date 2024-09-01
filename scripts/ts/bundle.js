@@ -121,6 +121,14 @@
       return window.location.hash.startsWith(this.urlHash);
     }
   };
+  var ExactHashPageFilter = class {
+    constructor(urlHash) {
+      this.urlHash = urlHash;
+    }
+    match() {
+      return window.location.hash === this.urlHash;
+    }
+  };
   var AllPageFilter = class {
     constructor() {
     }
@@ -178,6 +186,14 @@
   var HashObserver = class {
     constructor(urlHash, onMutationCallback) {
       this.baseObserver = new BaseObserver(void 0, new HashPageFilter(urlHash), onMutationCallback);
+    }
+    onPageChanged() {
+      this.baseObserver.onPageChanged();
+    }
+  };
+  var ExactHashObserver = class {
+    constructor(urlHash, onMutationCallback) {
+      this.baseObserver = new BaseObserver(void 0, new ExactHashPageFilter(urlHash), onMutationCallback);
     }
     onPageChanged() {
       this.baseObserver.onPageChanged();
@@ -2227,9 +2243,9 @@
   }
 
   // typescript/pages/observer.ts
-  var extraInschrijvingenObserver = new HashObserver("#extra-inschrijvingen", onMutationExtraInschrijvingen);
-  var allLijstenObserver = new HashObserver("#leerlingen-lijsten", onMutationAlleLijsten);
-  var financialObserver = new HashObserver("#extra-financieel", onMutationFinancial);
+  var extraInschrijvingenObserver = new ExactHashObserver("#extra-inschrijvingen", onMutationExtraInschrijvingen);
+  var allLijstenObserver = new ExactHashObserver("#leerlingen-lijsten", onMutationAlleLijsten);
+  var financialObserver = new ExactHashObserver("#extra-financieel", onMutationFinancial);
   function onMutationFinancial(_mutation) {
     saveQueryItems("Financieel", scrapeMenuPage("Financieel > ", defaultLinkToQueryItem));
     return true;

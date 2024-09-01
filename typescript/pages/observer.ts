@@ -1,9 +1,9 @@
-import {HashObserver} from "../pageObserver.js";
+import {ExactHashObserver, HashObserver} from "../pageObserver.js";
 import {QueryItem, saveQueryItems} from "../setupPowerQuery.js";
 
-export let extraInschrijvingenObserver = new HashObserver("#extra-inschrijvingen", onMutationExtraInschrijvingen);
-export let allLijstenObserver = new HashObserver("#leerlingen-lijsten", onMutationAlleLijsten);
-export let financialObserver = new HashObserver("#extra-financieel", onMutationFinancial);
+export let extraInschrijvingenObserver = new ExactHashObserver("#extra-inschrijvingen", onMutationExtraInschrijvingen);
+export let allLijstenObserver = new ExactHashObserver("#leerlingen-lijsten", onMutationAlleLijsten);
+export let financialObserver = new ExactHashObserver("#extra-financieel", onMutationFinancial);
 
 type LinkToQueryConverter = (headerLabel: string, link: HTMLAnchorElement, longLabelPrefix: string) => QueryItem;
 

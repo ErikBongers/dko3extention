@@ -1,9 +1,5 @@
 * If table page size is changed: clear cache and update infobar!
 
-* Quick menu: longer storage. Not per session.
-  > How to refresh?
-    > Just add items and leave obsolete ones dangling?
-
 * Volle klas?: add a quick check.
 
 * Use bundler?
