@@ -1359,10 +1359,15 @@
     }
   };
   function insertProgressBar(container, steps, text = "") {
-    let divProgressLine = document.createElement("div");
-    container.append(divProgressLine);
-    divProgressLine.classList.add("infoLine");
-    divProgressLine.id = PROGRESS_BAR_ID;
+    let divProgressLine = document.getElementById(PROGRESS_BAR_ID);
+    if (divProgressLine) {
+      divProgressLine.innerText = "";
+    } else {
+      divProgressLine = document.createElement("div");
+      container.append(divProgressLine);
+      divProgressLine.classList.add("infoLine");
+      divProgressLine.id = PROGRESS_BAR_ID;
+    }
     let divProgressText = document.createElement("div");
     divProgressLine.appendChild(divProgressText);
     divProgressText.classList.add("progressText");

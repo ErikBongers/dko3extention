@@ -46,10 +46,15 @@ export class ProgressBar {
 }
 
 export function insertProgressBar(container: HTMLElement, steps: number, text: string = "") {
-    let divProgressLine = document.createElement("div");
-    container.append(divProgressLine);
-    divProgressLine.classList.add("infoLine");
-    divProgressLine.id = def.PROGRESS_BAR_ID;
+    let divProgressLine = document.getElementById(def.PROGRESS_BAR_ID);
+    if(divProgressLine) {
+        divProgressLine.innerText = "";
+    } else {
+        divProgressLine = document.createElement("div");
+        container.append(divProgressLine);
+        divProgressLine.classList.add("infoLine");
+        divProgressLine.id = def.PROGRESS_BAR_ID;
+    }
     let divProgressText = document.createElement("div");
     divProgressLine.appendChild(divProgressText);
     divProgressText.classList.add("progressText");
