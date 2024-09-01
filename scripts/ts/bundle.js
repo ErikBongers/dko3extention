@@ -2152,7 +2152,8 @@
     items.push(item);
     return items;
   }
-  document.body.addEventListener("keydown", (ev) => {
+  document.body.addEventListener("keydown", showPowerQuery);
+  function showPowerQuery(ev) {
     if (ev.key === "q" && ev.ctrlKey && !ev.shiftKey && !ev.altKey) {
       scrapeMainMenu();
       powerQueryItems.push(...getSavedQueryItems());
@@ -2184,7 +2185,7 @@
       }
     }
     filterItems(searchField.textContent);
-  });
+  }
   var popover = document.createElement("div");
   document.querySelector("main").appendChild(popover);
   popover.setAttribute("popover", "auto");
@@ -2230,46 +2231,48 @@
   var allLijstenObserver = new HashObserver("#leerlingen-lijsten", onMutationAlleLijsten);
   var financialObserver = new HashObserver("#extra-financieel", onMutationFinancial);
   function onMutationFinancial(_mutation) {
-    saveQueryItems("Financieel", scrapeFinancialLinks());
+    saveQueryItems("Financieel", scrapeMenuPage("Financieel > ", defaultLinkToQueryItem));
     return true;
   }
   function onMutationAlleLijsten(_mutation) {
-    saveQueryItems("Lijsten", scrapeAlleLijstenLinks());
+    saveQueryItems("Lijsten", scrapeMenuPage("Lijsten > ", defaultLinkToQueryItem));
     return true;
   }
   function onMutationExtraInschrijvingen(_mutation) {
-    saveQueryItems("ExtraInschrijvingen", scrapeExtraInschrijvingenLinks());
+    saveQueryItems("ExtraInschrijvingen", scrapeMenuPage("Inschrijvingen > ", inschrijvingeLinkToQueryItem));
     return true;
   }
-  function scrapeFinancialLinks() {
-    let queryItems = [];
-    let blocks = document.querySelectorAll("div.card-body");
-    for (let block of blocks) {
-      let header = block.querySelector("h5");
-      if (!header) {
-        continue;
-      }
-      let headerLabel = header.textContent.trim();
-      let links = block.querySelectorAll("a");
-      for (let link of links) {
-        if (!link.href)
-          continue;
-        let item = {
-          headerLabel,
-          href: link.href,
-          label: link.textContent.trim(),
-          longLabel: "",
-          lowerCase: "",
-          weight: 0
-        };
-        item.longLabel = "Financieel >  > " + item.label;
-        item.lowerCase = item.longLabel.toLowerCase();
-        queryItems.push(item);
-      }
+  function inschrijvingeLinkToQueryItem(headerLabel, link, longLabelPrefix) {
+    let item = {
+      headerLabel,
+      href: link.href,
+      label: link.textContent.trim(),
+      longLabel: "",
+      lowerCase: "",
+      weight: 0
+    };
+    if (item.label.toLowerCase().includes("inschrijving")) {
+      item.longLabel = item.headerLabel + " > " + item.label;
+    } else {
+      item.longLabel = longLabelPrefix + item.headerLabel + " > " + item.label;
     }
-    return queryItems;
+    item.lowerCase = item.longLabel.toLowerCase();
+    return item;
   }
-  function scrapeAlleLijstenLinks() {
+  function defaultLinkToQueryItem(headerLabel, link, longLabelPrefix) {
+    let item = {
+      headerLabel,
+      href: link.href,
+      label: link.textContent.trim(),
+      longLabel: "",
+      lowerCase: "",
+      weight: 0
+    };
+    item.longLabel = longLabelPrefix + item.label;
+    item.lowerCase = item.longLabel.toLowerCase();
+    return item;
+  }
+  function scrapeMenuPage(longLabelPrefix, linkConverter) {
     let queryItems = [];
     let blocks = document.querySelectorAll("div.card-body");
     for (let block of blocks) {
@@ -2282,48 +2285,7 @@
       for (let link of links) {
         if (!link.href)
           continue;
-        let item = {
-          headerLabel,
-          href: link.href,
-          label: link.textContent.trim(),
-          longLabel: "",
-          lowerCase: "",
-          weight: 0
-        };
-        item.longLabel = "Lijsten >  > " + item.label;
-        item.lowerCase = item.longLabel.toLowerCase();
-        queryItems.push(item);
-      }
-    }
-    return queryItems;
-  }
-  function scrapeExtraInschrijvingenLinks() {
-    let queryItems = [];
-    let blocks = document.querySelectorAll("div.card-body");
-    for (let block of blocks) {
-      let header = block.querySelector("h5");
-      if (!header) {
-        continue;
-      }
-      let headerLabel = header.textContent.trim();
-      let links = block.querySelectorAll("a");
-      for (let link of links) {
-        if (!link.href)
-          continue;
-        let item = {
-          headerLabel,
-          href: link.href,
-          label: link.textContent.trim(),
-          longLabel: "",
-          lowerCase: "",
-          weight: 0
-        };
-        if (item.label.toLowerCase().includes("inschrijving")) {
-          item.longLabel = item.headerLabel + " > " + item.label;
-        } else {
-          item.longLabel = "Inschrijvingen > " + item.headerLabel + " > " + item.label;
-        }
-        item.lowerCase = item.longLabel.toLowerCase();
+        let item = linkConverter(headerLabel, link, longLabelPrefix);
         queryItems.push(item);
       }
     }

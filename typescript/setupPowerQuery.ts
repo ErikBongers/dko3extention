@@ -94,7 +94,9 @@ function getHardCodedQueryItems() {
     return items;
 }
 
-document.body.addEventListener("keydown", (ev) => {
+document.body.addEventListener("keydown", showPowerQuery);
+
+function showPowerQuery(ev: KeyboardEvent) {
     if (ev.key === "q" && ev.ctrlKey && !ev.shiftKey && !ev.altKey) {
         scrapeMainMenu();
         powerQueryItems.push(...getSavedQueryItems());
@@ -115,9 +117,9 @@ document.body.addEventListener("keydown", (ev) => {
             selectedItem--;
             ev.preventDefault();
         } else if (ev.key == "Enter") {
-            let item = powerQueryItems.find((item) => item.longLabel ===( list.children[selectedItem] as HTMLElement).dataset.longLabel);
+            let item = powerQueryItems.find((item) => item.longLabel === (list.children[selectedItem] as HTMLElement).dataset.longLabel);
             popover.hidePopover();
-            if(item.func) {
+            if (item.func) {
                 item.func(item);
             } else {
                 location.href = item.href;
@@ -126,7 +128,7 @@ document.body.addEventListener("keydown", (ev) => {
         }
     }
     filterItems(searchField.textContent);
-})
+}
 
 let popover = document.createElement("div");
 document.querySelector("main").appendChild(popover);
