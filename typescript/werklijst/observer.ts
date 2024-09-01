@@ -48,7 +48,7 @@ function onCriteriaShown() {
 }
 
 export let getCriteriaString: CalculateTableCheckSumHandler =  (_tableDef: TableDef) => {
-    return document.querySelector("#view_contents > div.alert.alert-info").textContent.replace("Criteria aanpassen", "")?.replace("Criteria:", "") ?? "";
+    return document.querySelector("#view_contents > div.alert.alert-info")?.textContent.replace("Criteria aanpassen", "")?.replace("Criteria:", "") ?? "";
 }
 
 function onWerklijstChanged() {

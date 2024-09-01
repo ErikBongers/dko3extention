@@ -1970,7 +1970,7 @@
     getSchoolIdString();
   }
   var getCriteriaString = (_tableDef) => {
-    return document.querySelector("#view_contents > div.alert.alert-info").textContent.replace("Criteria aanpassen", "")?.replace("Criteria:", "") ?? "";
+    return document.querySelector("#view_contents > div.alert.alert-info")?.textContent.replace("Criteria aanpassen", "")?.replace("Criteria:", "") ?? "";
   };
   function onWerklijstChanged() {
     let werklijstPageState = getPageStateOrDefault("Werklijst" /* Werklijst */);
