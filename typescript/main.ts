@@ -2,6 +2,7 @@
 import {observers, options, registerObserver} from "./globals.js";
 import leerlingObserver from "./leerling/observer.js";
 import lessenObserver from "./lessen/observer.js";
+import lesObserver from "./les/observer.js";
 import academieObserver from "./academie/observer.js";
 import werklijstObserver from "./werklijst/observer.js";
 import tableObserver from "./table/observer.js";
@@ -31,6 +32,7 @@ function init() {
 
         registerObserver(leerlingObserver);
         registerObserver(lessenObserver);
+        registerObserver(lesObserver);
         registerObserver(academieObserver);
         registerObserver(werklijstObserver);
         registerObserver(tableObserver);
