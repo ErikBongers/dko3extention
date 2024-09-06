@@ -4,8 +4,14 @@ import {QueryItem, saveQueryItems} from "../setupPowerQuery.js";
 export let extraInschrijvingenObserver = new ExactHashObserver("#extra-inschrijvingen", onMutationExtraInschrijvingen);
 export let allLijstenObserver = new ExactHashObserver("#leerlingen-lijsten", onMutationAlleLijsten);
 export let financialObserver = new ExactHashObserver("#extra-financieel", onMutationFinancial);
+export let assetsObserver = new ExactHashObserver("#extra-assets", onMutationAssets);
 
 type LinkToQueryConverter = (headerLabel: string, link: HTMLAnchorElement, longLabelPrefix: string) => QueryItem;
+
+function onMutationAssets(_mutation: MutationRecord) {
+    saveQueryItems("Assets", scrapeMenuPage("Assets > ", defaultLinkToQueryItem));
+    return true;
+}
 
 function onMutationFinancial(_mutation: MutationRecord) {
     saveQueryItems("Financieel", scrapeMenuPage("Financieel > ", defaultLinkToQueryItem));

@@ -7,7 +7,7 @@ import academieObserver from "./academie/observer.js";
 import werklijstObserver from "./werklijst/observer.js";
 import tableObserver from "./table/observer.js";
 import {setupPowerQuery} from "./setupPowerQuery.js";
-import {allLijstenObserver, extraInschrijvingenObserver, financialObserver} from "./pages/observer.js";
+import {allLijstenObserver, assetsObserver, extraInschrijvingenObserver, financialObserver} from "./pages/observer.js";
 
 init();
 
@@ -39,6 +39,7 @@ function init() {
         registerObserver(extraInschrijvingenObserver);
         registerObserver(allLijstenObserver);
         registerObserver(financialObserver);
+        registerObserver(assetsObserver);
         onPageChanged();
         setupPowerQuery();
     });

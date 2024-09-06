@@ -2,9 +2,6 @@
 
 * Volle klas?: add a quick check.
 
-* Use bundler?
-  > Mapping seems to work ok...
-
 * Werklijst: save criteria.
 
 Nav history
@@ -19,8 +16,6 @@ Nav history
 
 Features
 -----------
-* les: sorteer lln op voornaam.
-
 * werklijst: Show uren button: make it a button/dropdown to be able to select a previous year.
 
 * use onRow() to find first row that matches given criteria.
