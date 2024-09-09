@@ -29,11 +29,17 @@ function addSortVoornaamLink() {
         anchorSortVoornaam.href = "#";
         anchorSortVoornaam.innerText = "voornaam";
         anchorSortVoornaam.classList.add("text-muted");
-        anchorSortVoornaam.onclick = sortVoornaam;
+        anchorSortVoornaam.onclick = onSortVoornaam;
         sortSpan.insertBefore(anchorSortVoornaam, graadEnNaam);
         sortSpan.insertBefore(document.createTextNode(" | "), graadEnNaam);
     }
     catch (e) {}
+}
+
+function onSortVoornaam(event: MouseEvent) {
+    sortVoornaam(event);
+    switchNaamVoornaam(event);
+    return false;
 }
 
 function sortVoornaam(event: MouseEvent) {
@@ -53,5 +59,17 @@ function sortVoornaam(event: MouseEvent) {
     Array.from(document.querySelectorAll("#les_leerlingen_leerlingen > span > a"))
         .forEach((a) => a.classList.add("text-muted"));
     (event.target as HTMLElement).classList.remove("text-muted");
-    return false;
+}
+
+function switchNaamVoornaam(event: MouseEvent) {
+    let rows: HTMLTableRowElement[] = Array.from(document.querySelectorAll("#les_leerlingen_leerlingen > table > tbody > tr"));
+
+    rows.forEach((tr) => {
+        let strong = tr.querySelector("td > strong");
+        let name = strong.textContent;
+        let split = name.split(",");
+        let voornaam = split.pop() ?? "";
+        let naam = split.pop() ?? "";
+        strong.textContent = voornaam + " " + naam;
+    });
 }
