@@ -2417,7 +2417,7 @@
       //get all
       (items) => {
         Object.assign(options, items);
-        callback();
+        callback?.();
       }
     );
   }

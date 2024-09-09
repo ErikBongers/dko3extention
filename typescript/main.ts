@@ -59,7 +59,7 @@ function getOptions(callback?: () => void) {
         (items: any) => {
             // @ts-ignore
             Object.assign(options, items);
-            callback();
+            callback?.();
         }
     );
 }
