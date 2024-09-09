@@ -73,14 +73,13 @@ export function buildTableData(inputModules: Les[]) : TableData {
     }
 
     for(let student of tableData.students.values()) {
-        let trimmed = student.instruments.filter((instr) => instr !== undefined);
-        if(trimmed.length < 3) {
+        let instruments = student.instruments.flat();
+        if (instruments.length < 3) {
             student.allYearSame = false;
-            continue;
+            continue; //skip the every() below if we haven't got 3 instruments.
         }
-        student.allYearSame = student.instruments
-            .flat()
-            .every((_instr: any) => student?.instruments[0][0]?.instrumentName ?? "---");
+        student.allYearSame = instruments
+            .every((instr: any) => instr.instrumentName === (student?.instruments[0][0]?.instrumentName ?? "---"));
     }
 
     for(let instrument of tableData.instruments) {

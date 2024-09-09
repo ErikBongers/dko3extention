@@ -481,12 +481,12 @@
       }
     }
     for (let student of tableData.students.values()) {
-      let trimmed = student.instruments.filter((instr) => instr !== void 0);
-      if (trimmed.length < 3) {
+      let instruments = student.instruments.flat();
+      if (instruments.length < 3) {
         student.allYearSame = false;
         continue;
       }
-      student.allYearSame = student.instruments.flat().every((_instr) => student?.instruments[0][0]?.instrumentName ?? "---");
+      student.allYearSame = instruments.every((instr) => instr.instrumentName === (student?.instruments[0][0]?.instrumentName ?? "---"));
     }
     for (let instrument of tableData.instruments) {
       for (let trim of instrument.trimesters) {
