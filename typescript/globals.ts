@@ -28,7 +28,7 @@ export function createValidId(id: string) {
 
 export function registerObserver(observer) {
     observers.push(observer);
-    if(observers.length > 10) //just in case...
+    if(observers.length > 20) //just in case...
         console.error("Too many observers!");
 }
 

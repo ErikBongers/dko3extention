@@ -17,7 +17,7 @@
   }
   function registerObserver(observer) {
     observers.push(observer);
-    if (observers.length > 10)
+    if (observers.length > 20)
       console.error("Too many observers!");
   }
   function setButtonHighlighted(buttonId, show) {
@@ -2157,6 +2157,41 @@
     });
   }
 
+  // typescript/vakgroep/observer.ts
+  var observer_default7 = new HashObserver("#extra-inschrijvingen-vakgroepen-vakgroep", onMutation6);
+  function onMutation6(mutation) {
+    let divVakken = document.getElementById("div_table_vakgroepen_vakken");
+    if (mutation.target !== divVakken) {
+      return false;
+    }
+    onVakgroepChanged(divVakken);
+    return true;
+  }
+  var TXT_FILTER_ID = "txtFilter";
+  var savedSearch = "";
+  function onVakgroepChanged(divVakken) {
+    let table = divVakken.querySelector("table");
+    let input = document.createElement("input");
+    input.type = "text";
+    input.id = TXT_FILTER_ID;
+    input.oninput = onSearchInput;
+    if (!document.getElementById(TXT_FILTER_ID))
+      table.parentElement.insertBefore(input, table);
+    input.value = savedSearch;
+    input.placeholder = "filter";
+    onSearchInput();
+  }
+  function onSearchInput() {
+    let divVakken = document.getElementById("div_table_vakgroepen_vakken");
+    let table = divVakken.querySelector("table");
+    let search = document.getElementById(TXT_FILTER_ID).value;
+    savedSearch = search;
+    for (let tr of table.tBodies[0].rows) {
+      let instrumentName = tr.cells[0].querySelector("label").textContent.trim();
+      tr.style.visibility = instrumentName.includes(search) ? "visible" : "collapse";
+    }
+  }
+
   // typescript/setupPowerQuery.ts
   var powerQueryItems = [];
   var popoverVisible = false;
@@ -2402,6 +2437,7 @@
       registerObserver(allLijstenObserver);
       registerObserver(financialObserver);
       registerObserver(assetsObserver);
+      registerObserver(observer_default7);
       onPageChanged();
       setupPowerQuery();
     });
