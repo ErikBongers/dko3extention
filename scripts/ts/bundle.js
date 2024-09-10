@@ -2192,6 +2192,28 @@
     }
   }
 
+  // typescript/verwittigen/observer.ts
+  var observer_default8 = new HashObserver("#leerlingen-verwittigen", onMutation7);
+  var CHAR_COUNTER = "charCounterClass";
+  var COUNTER_ID = "charCounter";
+  function onMutation7(mutation) {
+    let txtSms = document.getElementById("leerlingen_verwittigen_bericht_sjabloon");
+    if (txtSms && !txtSms?.classList.contains(CHAR_COUNTER)) {
+      txtSms.classList.add(CHAR_COUNTER);
+      txtSms.addEventListener("input", onSmsChanged);
+      let span = document.createElement("span");
+      span.id = COUNTER_ID;
+      txtSms.parentElement.appendChild(span);
+      onSmsChanged(void 0);
+    }
+    return true;
+  }
+  function onSmsChanged(event) {
+    let txtSms = document.getElementById("leerlingen_verwittigen_bericht_sjabloon");
+    let spanCounter = document.getElementById(COUNTER_ID);
+    spanCounter.textContent = txtSms.value.length.toString();
+  }
+
   // typescript/setupPowerQuery.ts
   var powerQueryItems = [];
   var popoverVisible = false;
@@ -2438,6 +2460,7 @@
       registerObserver(financialObserver);
       registerObserver(assetsObserver);
       registerObserver(observer_default7);
+      registerObserver(observer_default8);
       onPageChanged();
       setupPowerQuery();
     });
