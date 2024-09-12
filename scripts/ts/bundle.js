@@ -2187,8 +2187,11 @@
     let search = document.getElementById(TXT_FILTER_ID).value;
     savedSearch = search;
     for (let tr of table.tBodies[0].rows) {
-      let instrumentName = tr.cells[0].querySelector("label").textContent.trim();
-      tr.style.visibility = instrumentName.includes(search) ? "visible" : "collapse";
+      let instrumentName = tr.cells[0].querySelector("label").textContent.trim().toLowerCase();
+      let strong = tr.cells[0].querySelector("strong")?.textContent.trim();
+      let text = instrumentName + " " + strong;
+      let match = text.includes(search);
+      tr.style.visibility = match ? "visible" : "collapse";
     }
   }
 
