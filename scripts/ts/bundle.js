@@ -558,6 +558,7 @@
   // typescript/lessen/build.ts
   var NBSP = 160;
   function buildTrimesterTable(instruments) {
+    instruments.sort((instr1, instr2) => instr1.instrumentName.localeCompare(instr2.instrumentName));
     let trimDiv = document.getElementById(TRIM_DIV_ID);
     let newTable = document.createElement("table");
     newTable.id = "trimesterTable";
