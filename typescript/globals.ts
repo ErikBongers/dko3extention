@@ -26,7 +26,7 @@ export function createValidId(id: string) {
 }
 
 
-export function registerObserver(observer) {
+export function registerObserver(observer) { //TODO: make a general Observer interface and use it as type for this param.
     observers.push(observer);
     if(observers.length > 20) //just in case...
         console.error("Too many observers!");
@@ -147,4 +147,14 @@ export function isAlphaNumeric(str: string) {
 
 export function rangeGenerator(start: number, stop: number, step = 1): number[] {
     return Array(Math.ceil((stop - start) / step)).fill(start).map((x, y) => x + y * step);
+}
+
+export function createScearchField(id: string, onSearchInput: (ev: Event) => any, value: string) {
+    let input = document.createElement("input");
+    input.type = "text";
+    input.id = id;
+    input.oninput = onSearchInput;
+    input.value = value;
+    input.placeholder = "filter"
+    return input;
 }

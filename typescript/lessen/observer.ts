@@ -52,6 +52,13 @@ function onLessenOverzichtChanged(printButton: HTMLButtonElement) {
     if(hasFullClasses) {
         addButton(printButton, def.FULL_CLASS_BUTTON_ID, "Filter volle klassen", onClickFullClasses, "fa-weight-hanging");
     }
+
+    addFilterField();
+}
+
+function addFilterField() {
+    let divButtonBar = document.querySelector("#lessen_overzicht > div");
+
 }
 
 

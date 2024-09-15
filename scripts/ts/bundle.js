@@ -111,6 +111,15 @@
   function rangeGenerator(start, stop, step = 1) {
     return Array(Math.ceil((stop - start) / step)).fill(start).map((x, y) => x + y * step);
   }
+  function createScearchField(id, onSearchInput2, value) {
+    let input = document.createElement("input");
+    input.type = "text";
+    input.id = id;
+    input.oninput = onSearchInput2;
+    input.value = value;
+    input.placeholder = "filter";
+    return input;
+  }
 
   // typescript/pageObserver.ts
   var HashPageFilter = class {
@@ -838,6 +847,10 @@
     if (hasFullClasses) {
       addButton2(printButton, FULL_CLASS_BUTTON_ID, "Filter volle klassen", onClickFullClasses, "fa-weight-hanging");
     }
+    addFilterField();
+  }
+  function addFilterField() {
+    let divButtonBar = document.querySelector("#lessen_overzicht > div");
   }
   function addButton2(printButton, buttonId, title, clickFunction, imageId) {
     let button = document.getElementById(buttonId);
@@ -2172,14 +2185,8 @@
   var savedSearch = "";
   function onVakgroepChanged(divVakken) {
     let table = divVakken.querySelector("table");
-    let input = document.createElement("input");
-    input.type = "text";
-    input.id = TXT_FILTER_ID;
-    input.oninput = onSearchInput;
     if (!document.getElementById(TXT_FILTER_ID))
-      table.parentElement.insertBefore(input, table);
-    input.value = savedSearch;
-    input.placeholder = "filter";
+      table.parentElement.insertBefore(createScearchField(TXT_FILTER_ID, onSearchInput, savedSearch), table);
     onSearchInput();
   }
   function onSearchInput() {
