@@ -2,7 +2,7 @@ import {scrapeLessenOverzicht, scrapeModules} from "./scrape.js";
 import {buildTableData} from "./convert.js";
 import {buildTrimesterTable} from "./build.js";
 import * as def from "../def.js";
-import {setButtonHighlighted} from "../globals.js";
+import {createScearchField, filterTable, setButtonHighlighted} from "../globals.js";
 import {HashObserver} from "../pageObserver.js";
 
 export default new HashObserver("#lessen-overzicht", onMutation);
@@ -56,11 +56,24 @@ function onLessenOverzichtChanged(printButton: HTMLButtonElement) {
     addFilterField();
 }
 
-function addFilterField() {
-    let divButtonBar = document.querySelector("#lessen_overzicht > div");
+const TXT_FILTER_ID = "txtFilter";
+let savedSearch = "";
 
+function addFilterField() {
+    let divButtonNieuweLes = document.querySelector("#lessen_overzicht > div > button");
+    if(!document.getElementById(TXT_FILTER_ID))
+        divButtonNieuweLes.insertAdjacentElement("afterend", createScearchField(TXT_FILTER_ID, onSearchInput, savedSearch));
+
+    onSearchInput();
 }
 
+function onSearchInput() {
+    savedSearch = filterTable(
+        document.getElementById("table_lessen_resultaat_tabel") as HTMLTableElement,
+        TXT_FILTER_ID,
+        (tr) => tr.cells[0].textContent
+    );
+}
 
 function addButton(printButton: HTMLButtonElement, buttonId: string, title: string, clickFunction: (this: GlobalEventHandlers, ev: MouseEvent) => any, imageId: string) {
     let button = document.getElementById(buttonId);

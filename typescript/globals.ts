@@ -153,8 +153,27 @@ export function createScearchField(id: string, onSearchInput: (ev: Event) => any
     let input = document.createElement("input");
     input.type = "text";
     input.id = id;
+    input.classList.add("tableFilter");
     input.oninput = onSearchInput;
     input.value = value;
     input.placeholder = "filter"
     return input;
+}
+
+export function filterTable(table: HTMLTableElement, searchFieldId: string, getRowSearchText: (tr: HTMLTableRowElement) => string) {
+    let searchText = (document.getElementById(searchFieldId) as HTMLInputElement).value;
+    let searches = searchText.split(',').map(txt => txt.trim());
+    for (let tr of table.tBodies[0].rows) {
+        let match = false;
+        for(let search of searches) {
+            let rowText = getRowSearchText(tr);
+            if (search === search.toLowerCase()) { //if all lowercase, make the search case-insensitive
+                rowText = rowText.toLowerCase();
+            }
+            if(rowText.includes(search))
+                match = true;
+        }
+        tr.style.visibility = match ? "visible" : "collapse";
+    }
+    return searchText;
 }

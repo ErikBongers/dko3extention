@@ -1,3 +1,5 @@
+* filter: case sensitive if search contains an uppercase char.
+
 * If table page size is changed: clear cache and update infobar!
 
 * Volle klas?: add a quick check.

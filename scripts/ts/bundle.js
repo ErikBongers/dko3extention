@@ -111,14 +111,32 @@
   function rangeGenerator(start, stop, step = 1) {
     return Array(Math.ceil((stop - start) / step)).fill(start).map((x, y) => x + y * step);
   }
-  function createScearchField(id, onSearchInput2, value) {
+  function createScearchField(id, onSearchInput3, value) {
     let input = document.createElement("input");
     input.type = "text";
     input.id = id;
-    input.oninput = onSearchInput2;
+    input.classList.add("tableFilter");
+    input.oninput = onSearchInput3;
     input.value = value;
     input.placeholder = "filter";
     return input;
+  }
+  function filterTable(table, searchFieldId, getRowSearchText) {
+    let searchText = document.getElementById(searchFieldId).value;
+    let searches = searchText.split(",").map((txt) => txt.trim());
+    for (let tr of table.tBodies[0].rows) {
+      let match = false;
+      for (let search of searches) {
+        let rowText = getRowSearchText(tr);
+        if (search === search.toLowerCase()) {
+          rowText = rowText.toLowerCase();
+        }
+        if (rowText.includes(search))
+          match = true;
+      }
+      tr.style.visibility = match ? "visible" : "collapse";
+    }
+    return searchText;
   }
 
   // typescript/pageObserver.ts
@@ -849,8 +867,20 @@
     }
     addFilterField();
   }
+  var TXT_FILTER_ID = "txtFilter";
+  var savedSearch = "";
   function addFilterField() {
-    let divButtonBar = document.querySelector("#lessen_overzicht > div");
+    let divButtonNieuweLes = document.querySelector("#lessen_overzicht > div > button");
+    if (!document.getElementById(TXT_FILTER_ID))
+      divButtonNieuweLes.insertAdjacentElement("afterend", createScearchField(TXT_FILTER_ID, onSearchInput, savedSearch));
+    onSearchInput();
+  }
+  function onSearchInput() {
+    savedSearch = filterTable(
+      document.getElementById("table_lessen_resultaat_tabel"),
+      TXT_FILTER_ID,
+      (tr) => tr.cells[0].textContent
+    );
   }
   function addButton2(printButton, buttonId, title, clickFunction, imageId) {
     let button = document.getElementById(buttonId);
@@ -2181,26 +2211,24 @@
     onVakgroepChanged(divVakken);
     return true;
   }
-  var TXT_FILTER_ID = "txtFilter";
-  var savedSearch = "";
+  var TXT_FILTER_ID2 = "txtFilter";
+  var savedSearch2 = "";
   function onVakgroepChanged(divVakken) {
     let table = divVakken.querySelector("table");
-    if (!document.getElementById(TXT_FILTER_ID))
-      table.parentElement.insertBefore(createScearchField(TXT_FILTER_ID, onSearchInput, savedSearch), table);
-    onSearchInput();
+    if (!document.getElementById(TXT_FILTER_ID2))
+      table.parentElement.insertBefore(createScearchField(TXT_FILTER_ID2, onSearchInput2, savedSearch2), table);
+    onSearchInput2();
   }
-  function onSearchInput() {
-    let divVakken = document.getElementById("div_table_vakgroepen_vakken");
-    let table = divVakken.querySelector("table");
-    let search = document.getElementById(TXT_FILTER_ID).value;
-    savedSearch = search;
-    for (let tr of table.tBodies[0].rows) {
-      let instrumentName = tr.cells[0].querySelector("label").textContent.trim().toLowerCase();
-      let strong = tr.cells[0].querySelector("strong")?.textContent.trim();
-      let text = instrumentName + " " + strong;
-      let match = text.includes(search);
-      tr.style.visibility = match ? "visible" : "collapse";
-    }
+  function onSearchInput2() {
+    savedSearch2 = filterTable(
+      document.querySelector("#div_table_vakgroepen_vakken table"),
+      TXT_FILTER_ID2,
+      (tr) => {
+        let instrumentName = tr.cells[0].querySelector("label").textContent.trim();
+        let strong = tr.cells[0].querySelector("strong")?.textContent.trim();
+        return instrumentName + " " + strong;
+      }
+    );
   }
 
   // typescript/verwittigen/observer.ts
