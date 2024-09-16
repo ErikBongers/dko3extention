@@ -160,17 +160,33 @@ export function createScearchField(id: string, onSearchInput: (ev: Event) => any
     return input;
 }
 
+/**
+ * Try to match a filter expression of type "string1+string2", where both strings need to be present.
+ * @param searchText
+ * @param rowText
+ * @return true if all strings match
+ */
+function match_AND_expression(searchText: string, rowText: string) {
+    let search_AND_list = searchText.split('+').map(txt => txt.trim());
+    for(let search of search_AND_list) {
+        let caseText = rowText;
+        if (search === search.toLowerCase()) { //if all lowercase, make the search case-insensitive
+            caseText = rowText.toLowerCase();
+        }
+        if (!caseText.includes(search))
+            return false;
+    }
+    return true;
+}
+
 export function filterTable(table: HTMLTableElement, searchFieldId: string, getRowSearchText: (tr: HTMLTableRowElement) => string) {
     let searchText = (document.getElementById(searchFieldId) as HTMLInputElement).value;
-    let searches = searchText.split(',').map(txt => txt.trim());
+    let search_OR_list = searchText.split(',').map(txt => txt.trim());
     for (let tr of table.tBodies[0].rows) {
         let match = false;
-        for(let search of searches) {
+        for(let search of search_OR_list) {
             let rowText = getRowSearchText(tr);
-            if (search === search.toLowerCase()) { //if all lowercase, make the search case-insensitive
-                rowText = rowText.toLowerCase();
-            }
-            if(rowText.includes(search))
+            if (match_AND_expression(search, rowText))
                 match = true;
         }
         tr.style.visibility = match ? "visible" : "collapse";

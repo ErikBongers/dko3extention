@@ -121,17 +121,26 @@
     input.placeholder = "filter";
     return input;
   }
+  function match_AND_expression(searchText, rowText) {
+    let search_AND_list = searchText.split("+").map((txt) => txt.trim());
+    for (let search of search_AND_list) {
+      let caseText = rowText;
+      if (search === search.toLowerCase()) {
+        caseText = rowText.toLowerCase();
+      }
+      if (!caseText.includes(search))
+        return false;
+    }
+    return true;
+  }
   function filterTable(table, searchFieldId, getRowSearchText) {
     let searchText = document.getElementById(searchFieldId).value;
-    let searches = searchText.split(",").map((txt) => txt.trim());
+    let search_OR_list = searchText.split(",").map((txt) => txt.trim());
     for (let tr of table.tBodies[0].rows) {
       let match = false;
-      for (let search of searches) {
+      for (let search of search_OR_list) {
         let rowText = getRowSearchText(tr);
-        if (search === search.toLowerCase()) {
-          rowText = rowText.toLowerCase();
-        }
-        if (rowText.includes(search))
+        if (match_AND_expression(search, rowText))
           match = true;
       }
       tr.style.visibility = match ? "visible" : "collapse";

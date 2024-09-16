@@ -1,4 +1,6 @@
-* filter: case sensitive if search contains an uppercase char.
+* filter AND and OR:
+  : theater+dieter,...
+  > + has higher prio.
 
 * If table page size is changed: clear cache and update infobar!
 
