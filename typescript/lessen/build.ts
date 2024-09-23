@@ -1,11 +1,11 @@
 import {FULL_CLASS_BUTTON_ID, isButtonHighlighted, TRIM_DIV_ID} from "../def.js";
 import {db3} from "../globals.js";
-import {InstrumentInfo} from "./convert.js";
+import {RowInfo} from "./convert.js";
 import {StudentInfo} from "./scrape";
 
 const NBSP = 160;
 
-export function buildTrimesterTable(instruments: InstrumentInfo[]) {
+export function buildTrimesterTable(instruments: RowInfo[]) {
     instruments.sort((instr1, instr2) => instr1.instrumentName.localeCompare(instr2.instrumentName));
     let trimDiv = document.getElementById(TRIM_DIV_ID);
     let newTable = document.createElement("table");
@@ -28,9 +28,9 @@ export function buildTrimesterTable(instruments: InstrumentInfo[]) {
     let totTrim2 = 0;
     let totTrim3 = 0;
     for (let instrument of instruments) {
-        totTrim1 += instrument.trimesters[0].students.length;
-        totTrim2 += instrument.trimesters[1].students.length;
-        totTrim3 += instrument.trimesters[2].students.length;
+        totTrim1 += instrument.trimesters[0]?.students?.length ?? 0;
+        totTrim2 += instrument.trimesters[1]?.students?.length ?? 0;
+        totTrim3 += instrument.trimesters[2]?.students?.length ?? 0;
     }
 
     //header
@@ -95,7 +95,7 @@ export function buildTrimesterTable(instruments: InstrumentInfo[]) {
     trimDiv.appendChild(newTable);
 }
 
-function buildInstrument(newTableBody: HTMLTableSectionElement, instrument: InstrumentInfo) {
+function buildInstrument(newTableBody: HTMLTableSectionElement, instrument: RowInfo) {
     // creates a table row
     let headerRows = buildInstrumentHeader(newTableBody, instrument);
     let studentTopRowNo = newTableBody.children.length;
@@ -130,7 +130,7 @@ function buildInstrument(newTableBody: HTMLTableSectionElement, instrument: Inst
             }
             let cell = buildStudentCell(student);
             row.appendChild(cell);
-            if (trimester.maxAantal <= rowNo) {
+            if (trimester?.maxAantal <= rowNo) {
                 cell.classList.add("gray");
             }
             if(student?.instruments[trimNo].length > 1) {
@@ -169,7 +169,7 @@ function buildInstrument(newTableBody: HTMLTableSectionElement, instrument: Inst
     }
 }
 
-function buildInstrumentHeader(newTableBody: HTMLTableSectionElement, instrument: InstrumentInfo) {
+function buildInstrumentHeader(newTableBody: HTMLTableSectionElement, instrument: RowInfo) {
     const trName = document.createElement("tr");
     newTableBody.appendChild(trName);
     trName.classList.add("instrumentRow");

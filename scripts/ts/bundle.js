@@ -467,53 +467,69 @@
   }
 
   // typescript/lessen/convert.ts
-  function addTrimesters(instrument, inputModules) {
+  var RowInfo = class {
+  };
+  function buildTrimesters(modules) {
     let mergedInstrument = [void 0, void 0, void 0];
-    let modulesForInstrument = inputModules.filter((module) => module.instrumentName === instrument.instrumentName);
-    for (let module of modulesForInstrument) {
+    for (let module of modules) {
       mergedInstrument[module.trimesterNo - 1] = module;
     }
-    instrument.trimesters = mergedInstrument;
+    return mergedInstrument;
   }
-  var InstrumentInfo = class {
-  };
+  function getLesmomenten(modules) {
+    let lesMomenten = modules.map((module) => module.formattedLesmoment);
+    return [...new Set(lesMomenten)];
+  }
+  function getMaxAantal(modules) {
+    return modules.map((module) => module.maxAantal).reduce(
+      (prev, next) => {
+        return prev < next ? next : prev;
+      }
+    );
+  }
+  function getVestigingen(modules) {
+    let vestigingen = modules.map((module) => module.vestiging);
+    let uniqueVestigingen = [...new Set(vestigingen)];
+    return uniqueVestigingen.toString();
+  }
   function buildTableData(inputModules) {
     let tableData = {
       students: /* @__PURE__ */ new Map(),
-      instruments: []
+      rows: []
     };
+    let reLesMoment = /.*(\w\w) (?:\d+\/\d+ )?(\d\d:\d\d)-(\d\d:\d\d).*/;
+    for (let module of inputModules) {
+      let matches = module.lesmoment.match(reLesMoment);
+      if (matches?.length !== 4) {
+        console.error(`Could not process lesmoment "${module.lesmoment}" for instrument "${module.instrumentName}".`);
+        module.formattedLesmoment = "???";
+      }
+      module.formattedLesmoment = matches[1] + " " + matches[2] + "-" + matches[3];
+    }
     let instrumentNames = inputModules.map((module) => module.instrumentName);
-    let uniqueInstrumentNames = [...new Set(instrumentNames)];
-    for (let instrumentName of uniqueInstrumentNames) {
-      let instrumentInfo = new InstrumentInfo();
-      let modules = inputModules.filter((module) => module.instrumentName === instrumentName);
-      instrumentInfo.instrumentName = instrumentName;
-      instrumentInfo.maxAantal = modules.map((module) => module.maxAantal).reduce(
-        (prev, next) => {
-          return prev < next ? next : prev;
+    instrumentNames = [...new Set(instrumentNames)];
+    for (let instrumentName of instrumentNames) {
+      let instrumentModules = inputModules.filter((module) => module.instrumentName === instrumentName);
+      let teachers = instrumentModules.map((module) => module.teacher);
+      teachers = [...new Set(teachers)];
+      for (let teacher of teachers) {
+        let instrumentTeacherModules = instrumentModules.filter((module) => module.teacher === teacher);
+        let lesmomenten = getLesmomenten(instrumentTeacherModules);
+        lesmomenten = [...new Set(lesmomenten)];
+        for (let lesmoment of lesmomenten) {
+          let instrumentTeacherMomentModules = instrumentTeacherModules.filter((module) => module.formattedLesmoment === lesmoment);
+          let rowInfo = new RowInfo();
+          rowInfo.instrumentName = instrumentName;
+          rowInfo.teacher = teacher;
+          rowInfo.lesmoment = lesmoment;
+          rowInfo.maxAantal = getMaxAantal(instrumentTeacherMomentModules);
+          rowInfo.vestiging = getVestigingen(instrumentTeacherMomentModules);
+          rowInfo.trimesters = buildTrimesters(instrumentTeacherMomentModules);
+          tableData.rows.push(rowInfo);
+          for (let trim of rowInfo.trimesters) {
+            addTrimesterStudentsToMapAndCount(tableData.students, trim);
+          }
         }
-      );
-      let teachers = modules.map((module) => module.teacher);
-      let uniqueTeachers = [...new Set(teachers)];
-      instrumentInfo.teacher = uniqueTeachers.toString();
-      let reLesMoment = /.*(\w\w) (?:\d+\/\d+ )?(\d\d:\d\d)-(\d\d:\d\d).*/;
-      let lesMomenten = modules.map((module) => {
-        let matches = module.lesmoment.match(reLesMoment);
-        if (matches?.length !== 4) {
-          console.error(`Could not process lesmoment "${module.lesmoment}" for instrument "${instrumentName}".`);
-          return "???";
-        }
-        return matches[1] + " " + matches[2] + "-" + matches[3];
-      });
-      let uniqueLesmomenten = [...new Set(lesMomenten)];
-      instrumentInfo.lesmoment = uniqueLesmomenten.toString();
-      let vestigingen = modules.map((module) => module.vestiging);
-      let uniqueVestigingen = [...new Set(vestigingen)];
-      instrumentInfo.vestiging = uniqueVestigingen.toString();
-      tableData.instruments.push(instrumentInfo);
-      addTrimesters(tableData.instruments[tableData.instruments.length - 1], inputModules);
-      for (let trim of instrumentInfo.trimesters) {
-        addTrimesterStudentsToMapAndCount(tableData.students, trim);
       }
     }
     for (let student of tableData.students.values()) {
@@ -524,7 +540,7 @@
       }
       student.allYearSame = instruments.every((instr) => instr.instrumentName === (student?.instruments[0][0]?.instrumentName ?? "---"));
     }
-    for (let instrument of tableData.instruments) {
+    for (let instrument of tableData.rows) {
       for (let trim of instrument.trimesters) {
         sortTrimesterStudents(trim);
       }
@@ -613,9 +629,9 @@
     let totTrim2 = 0;
     let totTrim3 = 0;
     for (let instrument of instruments) {
-      totTrim1 += instrument.trimesters[0].students.length;
-      totTrim2 += instrument.trimesters[1].students.length;
-      totTrim3 += instrument.trimesters[2].students.length;
+      totTrim1 += instrument.trimesters[0]?.students?.length ?? 0;
+      totTrim2 += instrument.trimesters[1]?.students?.length ?? 0;
+      totTrim3 += instrument.trimesters[2]?.students?.length ?? 0;
     }
     const tHead = document.createElement("thead");
     newTable.appendChild(tHead);
@@ -698,7 +714,7 @@
         }
         let cell = buildStudentCell(student);
         row.appendChild(cell);
-        if (trimester.maxAantal <= rowNo) {
+        if (trimester?.maxAantal <= rowNo) {
           cell.classList.add("gray");
         }
         if (student?.instruments[trimNo].length > 1) {
@@ -947,7 +963,7 @@
     if (!document.getElementById(TRIM_TABLE_ID)) {
       let inputModules = scrapeModules();
       let tableData = buildTableData(inputModules);
-      buildTrimesterTable(tableData.instruments);
+      buildTrimesterTable(tableData.rows);
     }
     document.getElementById("table_lessen_resultaat_tabel").style.display = show ? "none" : "table";
     document.getElementById(TRIM_TABLE_ID).style.display = show ? "table" : "none";

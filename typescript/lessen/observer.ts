@@ -139,7 +139,7 @@ function showTrimesterTable(show: boolean) {
     if (!document.getElementById(def.TRIM_TABLE_ID)) {
         let inputModules = scrapeModules();
         let tableData = buildTableData(inputModules);
-        buildTrimesterTable(tableData.instruments);
+        buildTrimesterTable(tableData.rows);
     }
 
     document.getElementById("table_lessen_resultaat_tabel").style.display = show ? "none" : "table";

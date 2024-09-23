@@ -92,6 +92,7 @@ export class Les {
     naam: string;
     teacher: string;
     lesmoment: string;
+    formattedLesmoment: string;
     vestiging: string;
     studentsTable: HTMLTableElement;
     aantal: number;
