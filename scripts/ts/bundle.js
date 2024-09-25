@@ -1568,7 +1568,7 @@
   var TableDef = class {
     constructor(tableRef, pageHandler, calculateTableCheckSum) {
       this.parallelData = void 0;
-      this.isUsingChached = false;
+      this.isUsingCached = false;
       this.tempMessage = "";
       this.tableRef = tableRef;
       this.pageHandler = pageHandler;
@@ -1647,7 +1647,7 @@
     }
     updateCacheInfo() {
       let p = document.getElementById(CACHE_INFO_ID);
-      if (!this.isUsingChached) {
+      if (!this.isUsingCached) {
         if (p) p.remove();
         return;
       }
@@ -1679,7 +1679,7 @@
         this.shadowTableTemplate = document.createElement("template");
         this.shadowTableTemplate.innerHTML = cachedData.text;
         this.shadowTableDate = cachedData.date;
-        this.isUsingChached = true;
+        this.isUsingCached = true;
         db3(`${this.tableRef.tableId}: using cached data.`);
         let rows = this.shadowTableTemplate.content.querySelectorAll("tbody > tr");
         if (this.pageHandler.onPage)
@@ -1687,8 +1687,10 @@
         if (this.pageHandler.onLoaded)
           this.pageHandler.onLoaded(this);
       } else {
-        this.isUsingChached = false;
-        await this.#fetchPages(parallelAsyncFunction, rawData);
+        this.isUsingCached = false;
+        let success = await this.#fetchPages(parallelAsyncFunction, rawData);
+        if (!success)
+          return;
         this.saveToCache();
         if (this.pageHandler.onLoaded)
           this.pageHandler.onLoaded(this);
@@ -1696,10 +1698,12 @@
       this.updateInfoBar();
     }
     async #fetchPages(parallelAsyncFunction, collection) {
+      if (this.pageHandler.onBeforeLoading) {
+        if (!this.pageHandler.onBeforeLoading(this))
+          return false;
+      }
       let progressBar = insertProgressBar(this.divInfoContainer, this.tableRef.navigationData.steps(), "loading pages... ");
       progressBar.start();
-      if (this.pageHandler.onBeforeLoading)
-        this.pageHandler.onBeforeLoading(this);
       if (parallelAsyncFunction) {
         let doubleResults = await Promise.all([
           this.#doFetchAllPages(collection, progressBar),
@@ -1709,6 +1713,7 @@
       } else {
         await this.#doFetchAllPages(collection, progressBar);
       }
+      return true;
     }
     async #doFetchAllPages(results, progressBar) {
       let offset = 0;
@@ -1959,9 +1964,13 @@
       this.onColumnsMissing = onRequiredColumnsMissing;
       this.headerIndices = void 0;
       this.isValidPage = false;
+      this.onBeforeLoading = this.onBeforeLoadingHandler;
     }
-    setTemplateAndCheck(template) {
-      this.headerIndices = _NamedCellPageHandler.getHeaderIndices(template);
+    onBeforeLoadingHandler() {
+      this.headerIndices = _NamedCellPageHandler.getHeaderIndicesFromDocument(document.body);
+      return this.hasAllHeadersAndAlert();
+    }
+    hasAllHeadersAndAlert() {
       if (!this.hasAllHeaders()) {
         let labelString = this.requiredHeaderLabels.map((label) => '"' + label.toUpperCase() + '"').join(", ");
         alert(`Voeg velden ${labelString} toe.`);
@@ -1969,8 +1978,19 @@
       }
       return true;
     }
-    static getHeaderIndices(template) {
+    setTemplateAndCheck(template) {
+      this.headerIndices = _NamedCellPageHandler.getHeaderIndicesFromTemplate(template);
+      return this.hasAllHeadersAndAlert();
+    }
+    static getHeaderIndicesFromTemplate(template) {
       let headers = template.content.querySelectorAll("thead th");
+      return this.getHeaderIndicesFromHeaderCells(headers);
+    }
+    static getHeaderIndicesFromDocument(element) {
+      let headers = element.querySelectorAll("thead th");
+      return this.getHeaderIndicesFromHeaderCells(headers);
+    }
+    static getHeaderIndicesFromHeaderCells(headers) {
       let headerIndices = /* @__PURE__ */ new Map();
       Array.from(headers).forEach((header, index) => {
         let label = header.textContent;

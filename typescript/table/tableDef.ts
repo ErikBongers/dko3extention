@@ -207,7 +207,9 @@ export class TableDef {
                 this.pageHandler.onLoaded(this);
         } else {
             this.isUsingCached = false;
-            await this.#fetchPages(parallelAsyncFunction, rawData);
+            let success = await this.#fetchPages(parallelAsyncFunction, rawData);
+            if(!success)
+                return;
             this.saveToCache();
             if (this.pageHandler.onLoaded)
                 this.pageHandler.onLoaded(this);
@@ -216,11 +218,12 @@ export class TableDef {
     }
 
     async #fetchPages(parallelAsyncFunction: () => Promise<any>, collection: any) {
+        if (this.pageHandler.onBeforeLoading) {
+            if(!this.pageHandler.onBeforeLoading(this))
+                return false;
+        }
         let progressBar = insertProgressBar(this.divInfoContainer, this.tableRef.navigationData.steps(), "loading pages... ");
         progressBar.start();
-        if (this.pageHandler.onBeforeLoading)
-            this.pageHandler.onBeforeLoading(this);
-
         if (parallelAsyncFunction) {
             let doubleResults = await Promise.all([
                 this.#doFetchAllPages(collection, progressBar),
@@ -230,6 +233,7 @@ export class TableDef {
         } else {
             await this.#doFetchAllPages(collection, progressBar);
         }
+        return true;
     }
 
     async #doFetchAllPages(results: any, progressBar: ProgressBar) {

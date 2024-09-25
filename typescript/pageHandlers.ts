@@ -5,7 +5,7 @@ import {TableDef} from "./table/tableDef.js";
  */
 type OnRowHandler = (tableDef: TableDef, rowObject: RowObject, collection: any) => boolean;
 
-type OnBeforeLoadingHandler = (tableDef: TableDef) => void;
+type OnBeforeLoadingHandler = (tableDef: TableDef) => boolean;
 type OnLoadedHandler = (tableDef: TableDef) => void;
 type OnRequiredColumnsMissingHandler = (tableDef: TableDef) => void;
 type OnPageHandler = (tableDef: TableDef, text: string, collection: any, offset: number, template: HTMLTemplateElement, rows: NodeListOf<HTMLTableRowElement>) => void;
@@ -13,7 +13,7 @@ type OnPageHandler = (tableDef: TableDef, text: string, collection: any, offset:
 export interface PageHandler {
     onPage: OnPageHandler;
     onLoaded: OnLoadedHandler;
-    onBeforeLoading?: OnBeforeLoadingHandler;
+    onBeforeLoading?: OnBeforeLoadingHandler; //if defined, must return TRUE for loading to proceed.
 }
 
 export class RowObject {
@@ -85,6 +85,7 @@ export class NamedCellPageHandler implements PageHandler {
         this.onColumnsMissing = onRequiredColumnsMissing;
         this.headerIndices = undefined;
         this.isValidPage = false;
+        this.onBeforeLoading = this.onBeforeLoadingHandler;
     }
 
     onLoadedAndCheck: OnLoadedHandler =  (tableDef: TableDef) => {
@@ -109,8 +110,12 @@ export class NamedCellPageHandler implements PageHandler {
         }
     }
 
-    setTemplateAndCheck(template: HTMLTemplateElement) {
-        this.headerIndices = NamedCellPageHandler.getHeaderIndices(template);
+    onBeforeLoadingHandler() {
+        this.headerIndices = NamedCellPageHandler.getHeaderIndicesFromDocument(document.body); //TODO: it's up to the tableDef to determine if a table has the valid columns.
+        return this.hasAllHeadersAndAlert();
+    }
+
+    hasAllHeadersAndAlert() {
         if (!this.hasAllHeaders()) {
             let labelString = this.requiredHeaderLabels
                 .map((label) => "\"" + label.toUpperCase() + "\"")
@@ -121,9 +126,22 @@ export class NamedCellPageHandler implements PageHandler {
         return true;
     }
 
-    static getHeaderIndices(template: HTMLTemplateElement) {
-        let headers = template.content.querySelectorAll("thead th") as NodeListOf<HTMLTableCellElement>;
+    setTemplateAndCheck(template: HTMLTemplateElement) {
+        this.headerIndices = NamedCellPageHandler.getHeaderIndicesFromTemplate(template);
+        return this.hasAllHeadersAndAlert();
+    }
 
+    static getHeaderIndicesFromTemplate(template: HTMLTemplateElement){
+        let headers = template.content.querySelectorAll("thead th") as NodeListOf<HTMLTableCellElement>;
+        return this.getHeaderIndicesFromHeaderCells(headers);
+    }
+
+    static getHeaderIndicesFromDocument(element: HTMLElement){
+        let headers = element.querySelectorAll("thead th") as NodeListOf<HTMLTableCellElement>;
+        return this.getHeaderIndicesFromHeaderCells(headers);
+    }
+
+    static getHeaderIndicesFromHeaderCells(headers: NodeListOf<HTMLTableCellElement>) {
         let headerIndices: Map<string, number> = new Map();
         Array.from(headers)
             .forEach((header, index) => {

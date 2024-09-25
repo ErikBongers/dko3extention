@@ -1,6 +1,5 @@
-* filter AND and OR:
-  : theater+dieter,...
-  > + has higher prio.
+* NamedCellPageHandler does things that have to do with a table, not a page.
+  > Move this to a TableDef subclass?
 
 * If table page size is changed: clear cache and update infobar!
 
