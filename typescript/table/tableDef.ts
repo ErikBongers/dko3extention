@@ -65,7 +65,7 @@ export class TableDef {
     parallelData = undefined;
     calculateTableCheckSum: CalculateTableCheckSumHandler;
     shadowTableTemplate: HTMLTemplateElement;
-    isUsingChached = false;
+    isUsingCached = false;
     divInfoContainer: HTMLDivElement;
     shadowTableDate: Date;
     private tempMessage = "";
@@ -162,7 +162,7 @@ export class TableDef {
 
     updateCacheInfo() {
         let p = document.getElementById(def.CACHE_INFO_ID);
-        if(!this.isUsingChached) {
+        if(!this.isUsingCached) {
             if(p) p.remove();
             return;
         }
@@ -197,7 +197,7 @@ export class TableDef {
             this.shadowTableTemplate = document.createElement("template");
             this.shadowTableTemplate.innerHTML = cachedData.text;
             this.shadowTableDate = cachedData.date;
-            this.isUsingChached = true;
+            this.isUsingCached = true;
             db3(`${this.tableRef.tableId}: using cached data.`);
             let rows = this.shadowTableTemplate.content.querySelectorAll("tbody > tr") as NodeListOf<HTMLTableRowElement>;
             //TODO: collection is set to undefined. This call to onPage(), should be EXACTLY the same as with a real fetch.
@@ -206,7 +206,7 @@ export class TableDef {
             if (this.pageHandler.onLoaded)
                 this.pageHandler.onLoaded(this);
         } else {
-            this.isUsingChached = false;
+            this.isUsingCached = false;
             await this.#fetchPages(parallelAsyncFunction, rawData);
             this.saveToCache();
             if (this.pageHandler.onLoaded)
