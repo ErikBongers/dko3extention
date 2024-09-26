@@ -108,6 +108,13 @@ function showPowerQuery(ev: KeyboardEvent) {
         if (isAlphaNumeric(ev.key) || ev.key === ' ') {
             searchField.textContent += ev.key;
             selectedItem = 0; //back to top.
+        } else if (ev.key == "Escape") {
+            if(searchField.textContent !== "") {
+                searchField.textContent = "";
+                selectedItem = 0;
+                ev.preventDefault();
+            }
+            //else: default behaviour: close popup.
         } else if (ev.key == "Backspace") {
             searchField.textContent = searchField.textContent.slice(0, -1);
         } else if (ev.key == "ArrowDown") {
