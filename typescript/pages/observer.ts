@@ -5,8 +5,14 @@ export let extraInschrijvingenObserver = new ExactHashObserver("#extra-inschrijv
 export let allLijstenObserver = new ExactHashObserver("#leerlingen-lijsten", onMutationAlleLijsten);
 export let financialObserver = new ExactHashObserver("#extra-financieel", onMutationFinancial);
 export let assetsObserver = new ExactHashObserver("#extra-assets", onMutationAssets);
+export let academieMenuObserver = new ExactHashObserver("#extra-academie", onMutationAcademie);
 
 type LinkToQueryConverter = (headerLabel: string, link: HTMLAnchorElement, longLabelPrefix: string) => QueryItem;
+
+function onMutationAcademie(_mutation: MutationRecord) {
+    saveQueryItems("Academie", scrapeMenuPage("Academie > ", defaultLinkToQueryItem));
+    return true;
+}
 
 function onMutationAssets(_mutation: MutationRecord) {
     saveQueryItems("Assets", scrapeMenuPage("Assets > ", defaultLinkToQueryItem));

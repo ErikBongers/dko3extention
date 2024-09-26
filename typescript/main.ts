@@ -9,7 +9,7 @@ import tableObserver from "./table/observer.js";
 import vakgroepObserver from "./vakgroep/observer.js";
 import smsObserver from "./verwittigen/observer.js";
 import {setupPowerQuery} from "./setupPowerQuery.js";
-import {allLijstenObserver, assetsObserver, extraInschrijvingenObserver, financialObserver} from "./pages/observer.js";
+import {allLijstenObserver, assetsObserver, extraInschrijvingenObserver, financialObserver, academieMenuObserver} from "./pages/observer.js";
 
 init();
 
@@ -44,6 +44,7 @@ function init() {
         registerObserver(assetsObserver);
         registerObserver(vakgroepObserver);
         registerObserver(smsObserver);
+        registerObserver(academieMenuObserver);
         onPageChanged();
         setupPowerQuery();
     });

@@ -2452,6 +2452,11 @@
   var allLijstenObserver = new ExactHashObserver("#leerlingen-lijsten", onMutationAlleLijsten);
   var financialObserver = new ExactHashObserver("#extra-financieel", onMutationFinancial);
   var assetsObserver = new ExactHashObserver("#extra-assets", onMutationAssets);
+  var academieMenuObserver = new ExactHashObserver("#extra-academie", onMutationAcademie);
+  function onMutationAcademie(_mutation) {
+    saveQueryItems("Academie", scrapeMenuPage("Academie > ", defaultLinkToQueryItem));
+    return true;
+  }
   function onMutationAssets(_mutation) {
     saveQueryItems("Assets", scrapeMenuPage("Assets > ", defaultLinkToQueryItem));
     return true;
@@ -2545,6 +2550,7 @@
       registerObserver(assetsObserver);
       registerObserver(observer_default7);
       registerObserver(observer_default8);
+      registerObserver(academieMenuObserver);
       onPageChanged();
       setupPowerQuery();
     });
