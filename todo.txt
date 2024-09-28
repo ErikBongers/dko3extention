@@ -1,3 +1,5 @@
+* Global search: sorteer op voornaam.
+
 * NamedCellPageHandler does things that have to do with a table, not a page.
   > Move this to a TableDef subclass?
 

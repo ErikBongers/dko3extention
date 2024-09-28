@@ -14,6 +14,25 @@ function sortRowsAlpha(wasAscending: boolean, rows: HTMLTableRowElement[], index
     }
 }
 
+function normalizeDate(date: string) {
+    let dateParts = date.split('-');
+    return dateParts[2] + dateParts[1] + dateParts[0];
+}
+
+function sortRowsDate(wasAscending: boolean, rows: HTMLTableRowElement[], index: number, header: Element) {
+    if (wasAscending) {
+        rows.sort((a, b) => {
+            return normalizeDate(b.cells[index].innerText).localeCompare(normalizeDate(a.cells[index].innerText));
+        })
+        header.classList.add("sortDescending");
+    } else {
+        rows.sort((a, b) => {
+            return normalizeDate(a.cells[index].innerText).localeCompare(normalizeDate(b.cells[index].innerText));
+        })
+        header.classList.add("sortAscending");
+    }
+}
+
 function trySortTableNumeric(wasAscending: boolean, rows: HTMLTableRowElement[], index: number, header: Element) {
     try {
         if (wasAscending) {
@@ -49,12 +68,20 @@ function sortTableByColumn(table: HTMLTableElement, index: number) {
         thead.classList.remove("sortAscending", "sortDescending")
     }
     if(isColumnProbablyNumeric(table, index)) {
-        if(!trySortTableNumeric(wasAscending, rows, index, header))
+        if (!trySortTableNumeric(wasAscending, rows, index, header))
             sortRowsAlpha(wasAscending, rows, index, header);
+    } else if(isColumnProbablyDate(table, index)) {
+        sortRowsDate(wasAscending, rows, index, header);
     } else {
         sortRowsAlpha(wasAscending, rows, index, header);
     }
     rows.forEach(row => table.tBodies[0].appendChild(row));
+}
+
+function isColumnProbablyDate(table: HTMLTableElement, index: number) {
+    let rows = Array.from(table.tBodies[0].rows);
+    let reDate =/\d\d-\d\d-\d\d\d\d/;
+    return reDate.test(rows[0].cells[index].textContent);
 }
 
 function isColumnProbablyNumeric(table: HTMLTableElement, index: number) {
