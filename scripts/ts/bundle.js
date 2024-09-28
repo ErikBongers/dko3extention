@@ -2014,61 +2014,33 @@
   };
 
   // typescript/table/tableHeaders.ts
-  function sortRowsAlpha(wasAscending, rows, index, header) {
+  function sortRows(cmpFunction, header, rows, index, wasAscending) {
+    let cmpDirectionalFunction;
     if (wasAscending) {
-      rows.sort((a, b) => {
-        return b.cells[index].innerText.localeCompare(a.cells[index].innerText);
-      });
+      cmpDirectionalFunction = (a, b) => cmpFunction(b.cells[index], a.cells[index]);
       header.classList.add("sortDescending");
     } else {
-      rows.sort((a, b) => {
-        return a.cells[index].innerText.localeCompare(b.cells[index].innerText);
-      });
+      cmpDirectionalFunction = (a, b) => cmpFunction(a.cells[index], b.cells[index]);
       header.classList.add("sortAscending");
     }
+    rows.sort((a, b) => cmpDirectionalFunction(a, b));
+  }
+  function cmpAlpha(a, b) {
+    return a.innerText.localeCompare(b.innerText);
+  }
+  function cmpDate(a, b) {
+    return normalizeDate(a.innerText).localeCompare(normalizeDate(b.innerText));
   }
   function normalizeDate(date) {
     let dateParts = date.split("-");
     return dateParts[2] + dateParts[1] + dateParts[0];
   }
-  function sortRowsDate(wasAscending, rows, index, header) {
-    if (wasAscending) {
-      rows.sort((a, b) => {
-        return normalizeDate(b.cells[index].innerText).localeCompare(normalizeDate(a.cells[index].innerText));
-      });
-      header.classList.add("sortDescending");
-    } else {
-      rows.sort((a, b) => {
-        return normalizeDate(a.cells[index].innerText).localeCompare(normalizeDate(b.cells[index].innerText));
-      });
-      header.classList.add("sortAscending");
+  function cmpNumber(a, b) {
+    let res = Number(a.innerText) - Number(b.innerText);
+    if (isNaN(res)) {
+      throw new Error();
     }
-  }
-  function trySortTableNumeric(wasAscending, rows, index, header) {
-    try {
-      if (wasAscending) {
-        rows.sort((a, b) => {
-          let res = Number(b.cells[index].innerText) - Number(a.cells[index].innerText);
-          if (isNaN(res)) {
-            throw new Error();
-          }
-          return res;
-        });
-        header.classList.add("sortDescending");
-      } else {
-        rows.sort((a, b) => {
-          let res = Number(a.cells[index].innerText) - Number(b.cells[index].innerText);
-          if (isNaN(res)) {
-            throw new Error();
-          }
-          return res;
-        });
-        header.classList.add("sortAscending");
-      }
-      return true;
-    } catch (e) {
-      return false;
-    }
+    return res;
   }
   function sortTableByColumn(table, index) {
     let header = table.tHead.children[0].children[index];
@@ -2077,13 +2049,18 @@
     for (let thead of table.tHead.children[0].children) {
       thead.classList.remove("sortAscending", "sortDescending");
     }
+    let cmpFunc = cmpAlpha;
     if (isColumnProbablyNumeric(table, index)) {
-      if (!trySortTableNumeric(wasAscending, rows, index, header))
-        sortRowsAlpha(wasAscending, rows, index, header);
+      cmpFunc = cmpNumber;
     } else if (isColumnProbablyDate(table, index)) {
-      sortRowsDate(wasAscending, rows, index, header);
-    } else {
-      sortRowsAlpha(wasAscending, rows, index, header);
+      cmpFunc = cmpDate;
+    }
+    try {
+      sortRows(cmpFunc, header, rows, index, wasAscending);
+    } catch (e) {
+      console.error(e);
+      if (cmpFunc !== cmpAlpha)
+        sortRows(cmpAlpha, header, rows, index, wasAscending);
     }
     rows.forEach((row) => table.tBodies[0].appendChild(row));
   }
