@@ -4,11 +4,11 @@ import {buildTable, getUrenVakLeraarFileName, JsonCloudData} from "./buildUren.j
 import {scrapeStudent, VakLeraar} from "./scrapeUren.js";
 import {fetchFromCloud} from "../cloud.js";
 import {CalculateTableCheckSumHandler, findTableRefInCode, TableDef} from "../table/tableDef.js";
-import {prefillInstruments} from "./prefillInstruments.js";
 import {HashObserver} from "../pageObserver.js";
 import {NamedCellPageHandler} from "../pageHandlers.js";
 import {addTableHeaderClickEvents} from "../table/tableHeaders.js";
 import {getPageStateOrDefault, Goto, PageName, savePageState, WerklijstPageState} from "../pageState.js";
+import {prefillInstruments} from "./prefillInstruments.js";
 
 export default new HashObserver("#leerlingen-werklijst", onMutation);
 

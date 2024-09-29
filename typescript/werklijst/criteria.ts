@@ -1,3 +1,37 @@
+// noinspection JSUnusedGlobalSymbols
+export enum Domein {
+    Muziek = 3,
+    Woord = 4,
+    Dans = 2,
+    Overschrijdend = 5
+}
+
+export interface Veld {
+    value: string;
+    text: string;
+}
+
+export const VELDEN = {
+    VAK_NAAM: {value: "vak_naam", text: "vak"},
+    GRAAD_LEERJAAR: {value: "graad_leerjaar", text: "graad + leerjaar"},
+    KLAS_LEERKRACHT: {value: "klasleerkracht", text: "klasleerkracht"},
+}
+
+export enum Grouping {
+    LEERLING = "persoon_id",
+    VAK = "vak_id",
+    LES = "les_id",
+    INSCHRIJVING = "inschrijving_id",
+}
+
+export type isSelectedVak = (vak: string) => boolean;
+export interface WerklijstCriteria {
+    vakken: string[] | isSelectedVak;
+    domein:Domein[];
+    velden: Veld[];
+    grouping: Grouping;
+}
+
 export async function fetchVakken(clear: boolean) {
     if (clear) {
         await sendClearWerklijst();
@@ -76,3 +110,35 @@ export async function sendFields(fields: { value: string, text: string }[]) {
         body: formData,
     });
 }
+
+export async function setWerklijstCriteria(criteria: WerklijstCriteria) {
+    await sendClearWerklijst();
+
+    //DEFAULT CRITERIA
+    let criteriaString = [
+        {"criteria": "Schooljaar", "operator": "=", "values": "2024-2025"},
+        {"criteria": "Status", "operator": "=", "values": "12"}, //inschrijvingen en toewijzingen
+        {"criteria": "Uitschrijvingen", "operator": "=", "values": "0"}, // Zonder uitgeschreven leerlingen
+    ];
+
+    //DOMEIN
+    if (criteria.domein.length) {
+        criteriaString.push({"criteria": "Domein", "operator": "=", "values": criteria.domein.join()});
+    }
+
+    //VAKKEN
+    if (criteria.vakken) {
+        let vakken = await fetchVakken(false);
+        if (typeof criteria.vakken === 'function') {
+            let isVak = criteria.vakken;
+            let instruments = vakken.filter((vak) => isVak(vak[0]));
+            let values = instruments.map(vak => parseInt(vak[1]));
+            criteriaString.push({"criteria": "Vak", "operator": "=", "values": values.join()});
+        }
+    }
+
+    await sendCriteria(criteriaString);
+    await sendFields(criteria.velden);
+    await sendGrouping(criteria.grouping);
+}
+
