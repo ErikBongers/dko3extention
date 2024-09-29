@@ -64,7 +64,8 @@ export function addButton(targetElement: HTMLElement, buttonId: string, title: s
         }
         const buttonContent = document.createElement("i");
         button.appendChild(buttonContent);
-        buttonContent.classList.add("fas", imageId);
+        if(imageId)
+            buttonContent.classList.add("fas", imageId);
         targetElement.insertAdjacentElement(where, button);
     }
 }
