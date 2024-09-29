@@ -1,3 +1,25 @@
+* Fetch werklijst in background.
+  > this is the sequence (after criteria are set):
+    - https://administratie.dko3.cloud/view.php?args=leerlingen-werklijst$werklijst&_=1727631307890
+    - https://administratie.dko3.cloud/views/leerlingen/werklijst/werklijst.view.php?_=1727631307891
+      > load the header with the textual summary of the criteria.
+    - https://administratie.dko3.cloud/views/leerlingen/werklijst/werklijst.table.php?_=1727631307892
+      > loads toolbars with spinners "Loading table..."
+    - https://administratie.dko3.cloud/views/ui/datatable.php?id=leerlingen_werklijst&_=1727631307893
+      > loads table's FIRST PAGE !!!!
+    - https://administratie.dko3.cloud/views/ui/datatablenav.php?id=leerlingen_werklijst&pos=top&_=1727631307894
+      > loads navigation and button bar.
+
+   > de-couple fetching from the HTML document and table
+     > extract a page-loadere from TableDef.
+       > have an interface to setup a progress bar.
+
+
+
+
+
+
+
 * Global search: sorteer op voornaam.
 
 * NamedCellPageHandler does things that have to do with a table, not a page.
