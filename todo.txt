@@ -1,4 +1,36 @@
-* move defs.js out of /lessen/
+* Global search: sorteer op voornaam.
+
+* NamedCellPageHandler does things that have to do with a table, not a page.
+  > Move this to a TableDef subclass?
+
+* If table page size is changed: clear cache and update infobar!
+
+* Volle klas?: add a quick check.
+
+* Werklijst: save criteria.
+
+Nav history
+------------
+* Search bar: add history.
+  > Where?
+  > How? What sort of UI?
+  > Give each a name
+    > And add it to PQ!
+* PowerQuery: keep list of last visited pages. Always on top.
+* Add a forward-backward button in black top bar.
+
+Features
+-----------
+* werklijst: Show uren button: make it a button/dropdown to be able to select a previous year.
+
+* use onRow() to find first row that matches given criteria.
+
+* add table buttons to top AND bottom navigation.
+
+* cache: option to never cache.
+  > per table?
+
+* db3: setting to turn callstack on/off
 
 * Uitleningen: verlengdatum moet 1/9 zijn of in verkeerde jaar!
 
@@ -40,3 +72,4 @@ Werklijst
   > model.update() or something to change the data and set a isChanged flag?
   > model.save() -> back to cloud.
   > model.cache(), refresh(),...
+

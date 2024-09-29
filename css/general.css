@@ -62,7 +62,7 @@ body.otherSchool {
     animation: barberpole 0.5s linear infinite;
 }
 
-#countTable {
+#werklijst_uren {
     tr.darkRow {
         background-color: rgba(72, 61, 139, 0.08);
     }
@@ -97,7 +97,7 @@ body.otherSchool {
     }
 }
 
-.progressLine {
+.infoLine {
     display: flex;
     justify-content: center;
     align-items: center;
@@ -129,4 +129,52 @@ body.otherSchool {
     &.loaded {
         background-color: slategray;
     }
+}
+
+.cacheInfo {
+    font-size: .7em;
+    color: darkslateblue;
+    opacity: .5;
+    padding: 0;
+    margin: 0;
+}
+
+#powerQuery {
+    background-color:#d6d8d9;
+    margin-top: 200px;
+    border: none;
+    border-radius: 3px;
+    padding: 5px;
+    box-shadow: 3px 3px 10px 1px rgb(0 0 0 / 20%);
+    min-width: 300px;
+    font-family: "Open Sans", sans-serif;
+    label {
+        height: 23px;
+        padding: 0 3px;
+        border-radius: 3px;
+        background-color: white;
+        display: block;
+    }
+    div.list {
+        padding: 0;
+        background-color: white;
+        border-radius: 3px;
+        max-height: 800px;
+        overflow-y: hidden;
+        div {
+            padding: 0 3px;
+        }
+        div.selected {
+            background-color: #f0f0ff;
+        }
+    }
+}
+table tfoot.separatorLine {
+    border-top-style: solid;
+    border-top-color: black;
+    border-top-width: 2px;
+}
+
+.tableFilter {
+    margin-left: 5px;
 }

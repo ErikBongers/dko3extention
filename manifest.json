@@ -10,7 +10,7 @@
   "content_scripts": [
     {
       "js": [
-        "scripts/loader.js"
+        "scripts/ts/bundle.js"
       ],
       "css": [
         "css/general.css",
@@ -30,15 +30,10 @@
   ],
   "web_accessible_resources": [ {
     "matches": ["https://administratie.dko3.cloud/*"],
+    "_comment": "typescript folder included for debugging in browser!",
     "resources": [
-      "scripts/lessen/*",
-      "scripts/leerling/*",
-      "scripts/academie/*",
-      "scripts/werklijst/*",
-      "scripts/main.js",
-      "scripts/globals.js",
-      "scripts/tableDef.js",
-      "scripts/cloud.js"
+      "scripts/ts/*",
+      "typescript/*"
     ]
   }
   ]
