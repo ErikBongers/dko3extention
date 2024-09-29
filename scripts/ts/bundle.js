@@ -1900,36 +1900,48 @@
     "Zang (musical 2e graad)",
     "Zang (musical)"
   ]);
-  async function prefillInstruments() {
+  var VELDEN = {
+    VAK_NAAM: { value: "vak_naam", text: "vak" },
+    GRAAD_LEERJAAR: { value: "graad_leerjaar", text: "graad + leerjaar" },
+    KLAS_LEERKRACHT: { value: "klasleerkracht", text: "klasleerkracht" }
+  };
+  async function setWerklijstCriteria(criteria) {
     await sendClearWerklijst();
-    let vakken = await fetchVakken(false);
-    let instruments = vakken.filter((vak) => isInstrument2(vak[0]));
-    let values = instruments.map((vak) => parseInt(vak[1]));
-    let valueString = values.join();
-    let criteria = [
+    let criteriaString = [
       { "criteria": "Schooljaar", "operator": "=", "values": "2024-2025" },
       { "criteria": "Status", "operator": "=", "values": "12" },
-      { "criteria": "Uitschrijvingen", "operator": "=", "values": "0" },
-      { "criteria": "Domein", "operator": "=", "values": "3" },
-      {
-        "criteria": "Vak",
-        "operator": "=",
-        "values": valueString
-      }
+      //inschrijvingen en toewijzingen
+      { "criteria": "Uitschrijvingen", "operator": "=", "values": "0" }
+      // Zonder uitgeschreven leerlingen
     ];
-    await sendCriteria(criteria);
-    await sendFields(
-      [
-        { value: "vak_naam", text: "vak" },
-        { value: "graad_leerjaar", text: "graad + leerjaar" },
-        { value: "klasleerkracht", text: "klasleerkracht" }
-      ]
-    );
-    await sendGrouping("vak_id");
+    if (criteria.domein.length) {
+      criteriaString.push({ "criteria": "Domein", "operator": "=", "values": criteria.domein.join() });
+    }
+    if (criteria.vakken) {
+      let vakken = await fetchVakken(false);
+      if (typeof criteria.vakken === "function") {
+        let isVak = criteria.vakken;
+        let instruments = vakken.filter((vak) => isVak(vak[0]));
+        let values = instruments.map((vak) => parseInt(vak[1]));
+        criteriaString.push({ "criteria": "Vak", "operator": "=", "values": values.join() });
+      }
+    }
+    await sendCriteria(criteriaString);
+    await sendFields(criteria.velden);
+    await sendGrouping(criteria.grouping);
     let pageState = getPageStateOrDefault("Werklijst" /* Werklijst */);
     pageState.werklijstTableName = UREN_TABLE_STATE_NAME;
     savePageState(pageState);
     document.querySelector("#btn_werklijst_maken").click();
+  }
+  async function prefillInstruments() {
+    let crit = {
+      vakken: isInstrument2,
+      domein: [3 /* Muziek */],
+      velden: [VELDEN.VAK_NAAM, VELDEN.GRAAD_LEERJAAR, VELDEN.KLAS_LEERKRACHT],
+      grouping: "vak_id" /* VAK */
+    };
+    return setWerklijstCriteria(crit);
   }
   function isInstrument2(text) {
     return instrumentSet.has(text);

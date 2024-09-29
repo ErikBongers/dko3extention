@@ -142,6 +142,38 @@ function onClickShowCounts() {
     showOrHideNewTable();
     return true;
 }
+function onClickShowAnything() {
+    let tableRef = findTableRefInCode();
+    if(!tableRef)
+        return false;
+
+    let fileName = getUrenVakLeraarFileName();
+    let requiredHeaderLabels = ["naam", "voornaam", "vak", "klasleerkracht", "graad + leerjaar"];
+    let pageHandler = new NamedCellPageHandler(requiredHeaderLabels, onLoaded, () => {});
+    let tableDef = new TableDef(
+        tableRef,
+        pageHandler,
+        getCriteriaString
+    );
+
+    function onLoaded(tableDef: TableDef) {
+        let vakLeraars = new Map();
+        let rows = this.rows = tableDef.shadowTableTemplate.content.querySelectorAll("tbody > tr") as NodeListOf<HTMLTableRowElement>;
+        for(let tr of rows) {
+            scrapeStudent(tableDef, tr, vakLeraars);//TODO: returns false if fails. Report error.
+        }
+        let fromCloud = tableDef.parallelData as JsonCloudData;
+        fromCloud = upgradeCloudData(fromCloud);
+        vakLeraars = new Map([...vakLeraars.entries()].sort((a, b) => a[0] < b[0] ? -1 : ((a[0] > b[0])? 1 : 0))) as Map<string, VakLeraar>;
+        buildTable({vakLeraars, fromCloud}, tableDef);
+        document.getElementById(def.COUNT_TABLE_ID).style.display = "none";
+        showOrHideNewTable();
+    }
+
+    tableDef.getTableData(new Map(), () => fetchFromCloud(fileName))
+        .then((_results) => { });
+    return true;
+}
 
 function showOrHideNewTable() {
     let showNewTable = document.getElementById(def.COUNT_TABLE_ID).style.display === "none";
