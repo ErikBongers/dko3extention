@@ -57,7 +57,7 @@ export let instrumentSet = new Set([
     "Zang (musical)",
 ]);
 
-function isInstrument(text: string) {
+export function isInstrument(text: string) {
     return instrumentSet.has(text);
 }
 

@@ -17,6 +17,7 @@ export const VELDEN = {
     KLAS_LEERKRACHT: {value: "klasleerkracht", text: "klasleerkracht"},
 }
 
+// noinspection JSUnusedGlobalSymbols
 export enum Grouping {
     LEERLING = "persoon_id",
     VAK = "vak_id",
@@ -32,7 +33,7 @@ export interface WerklijstCriteria {
     grouping: Grouping;
 }
 
-export async function fetchVakken(clear: boolean) {
+export async function fetchVakDefinitions(clear: boolean) {
     if (clear) {
         await sendClearWerklijst();
     }
@@ -128,13 +129,16 @@ export async function setWerklijstCriteria(criteria: WerklijstCriteria) {
 
     //VAKKEN
     if (criteria.vakken) {
-        let vakken = await fetchVakken(false);
+        let vakDefs = await fetchVakDefinitions(false);
+        let filtered: string[][];
         if (typeof criteria.vakken === 'function') {
             let isVak = criteria.vakken;
-            let instruments = vakken.filter((vak) => isVak(vak[0]));
-            let values = instruments.map(vak => parseInt(vak[1]));
-            criteriaString.push({"criteria": "Vak", "operator": "=", "values": values.join()});
+            filtered = vakDefs.filter((vakDef) => isVak(vakDef[0]));
+        } else {
+            filtered = vakDefs.filter((vakDef) => (criteria.vakken as string[]).includes(vakDef[0]));
         }
+        let codes = filtered.map(vakDefe => parseInt(vakDefe[1]));
+        criteriaString.push({"criteria": "Vak", "operator": "=", "values": codes.join()});
     }
 
     await sendCriteria(criteriaString);
