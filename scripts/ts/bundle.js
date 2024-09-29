@@ -2123,6 +2123,44 @@
     document.querySelector("#btn_werklijst_maken").click();
   }
 
+  // typescript/werklijst/PageLoader.ts
+  var PageLoader = class {
+    constructor(pageId, buildFetchUrl, pageLoadHandler, navigationData) {
+      this.pageId = pageId;
+      this.buildFetchUrl = buildFetchUrl;
+      this.pageLoadHandler = pageLoadHandler;
+      this.navigationData = navigationData;
+    }
+    async justGetTheData() {
+      let offset = 0;
+      try {
+        while (true) {
+          console.log("fetching page " + offset);
+          let response = await fetch(this.buildFetchUrl(offset));
+          let text = await response.text();
+          if (this.pageLoadHandler.onPage?.(text, offset) === 0 /* Cancel */) {
+            throw "Cancelled";
+          }
+          if (!this.navigationData) {
+            let navResponse = await fetch("https://administratie.dko3.cloud/views/ui/datatablenav.php?id=" + this.pageId + "&pos=top");
+            let text2 = await navResponse.text();
+            let shadowTableTemplate = document.createElement("template");
+            shadowTableTemplate.innerHTML = text2;
+            this.navigationData = findFirstNavigation(shadowTableTemplate.content);
+            console.log(this.navigationData);
+          }
+          offset += this.navigationData.step;
+          if (offset > this.navigationData.maxCount) {
+            break;
+          }
+        }
+        this.pageLoadHandler.onLoaded();
+      } catch (e) {
+        this.pageLoadHandler.onAbort(e);
+      }
+    }
+  };
+
   // typescript/werklijst/observer.ts
   var observer_default5 = new HashObserver("#leerlingen-werklijst", onMutation4);
   function onMutation4(mutation) {
@@ -2168,7 +2206,7 @@
       grouping: "persoon_id" /* LEERLING */
     };
     setWerklijstCriteria(crit).then((r) => {
-      location.reload();
+      onClickShowAnything();
     });
   }
   var getCriteriaString = (_tableDef) => {
@@ -2246,6 +2284,27 @@
     }
     showOrHideNewTable();
     return true;
+  }
+  function onClickShowAnything() {
+    let buildFetchUrl = (offset) => `/views/ui/datatable.php?id=leerlingen_werklijst&start=${offset}&aantal=0`;
+    let pageLoadHandler = {
+      onPage: function(text, offset) {
+        console.log(`Loaded page ${offset}:`);
+        console.log(text);
+        return 1 /* Continue */;
+      },
+      onLoaded: function() {
+        console.log("Loading complete!");
+      },
+      onAbort: function(e) {
+        console.error(e);
+      }
+    };
+    let pageLoader = new PageLoader("leerlingen_werklijst", buildFetchUrl, pageLoadHandler);
+    pageLoader.justGetTheData().then(() => {
+      console.log("DONE ??????");
+      location.reload();
+    });
   }
   function showOrHideNewTable() {
     let showNewTable = document.getElementById(COUNT_TABLE_ID).style.display === "none";

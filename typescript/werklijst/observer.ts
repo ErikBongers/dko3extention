@@ -8,8 +8,9 @@ import {HashObserver} from "../pageObserver.js";
 import {NamedCellPageHandler} from "../pageHandlers.js";
 import {addTableHeaderClickEvents} from "../table/tableHeaders.js";
 import {getPageStateOrDefault, Goto, PageName, savePageState, WerklijstPageState} from "../pageState.js";
-import {isInstrument, prefillInstruments} from "./prefillInstruments.js";
-import {Domein, Grouping, setWerklijstCriteria, VELDEN, WerklijstCriteria} from "./criteria";
+import {prefillInstruments} from "./prefillInstruments.js";
+import {Domein, Grouping, setWerklijstCriteria, WerklijstCriteria} from "./criteria";
+import {PageContinue, PageLoader, PageLoadHandler} from "./PageLoader";
 
 export default new HashObserver("#leerlingen-werklijst", onMutation);
 
@@ -32,16 +33,17 @@ function onMutation(mutation: MutationRecord) {
 
 function onCriteriaShown() {
     let pageState = getPageStateOrDefault(PageName.Werklijst) as WerklijstPageState;
-    if(pageState.goto == Goto.Werklijst_uren) {
+    if (pageState.goto == Goto.Werklijst_uren) {
         pageState.goto = Goto.None;
         savePageState(pageState);
-        prefillInstruments().then(() => {});
+        prefillInstruments().then(() => {
+        });
         return;
     }
     pageState.werklijstTableName = "";
     savePageState(pageState);
     let btnWerklijstMaken = document.querySelector("#btn_werklijst_maken") as HTMLButtonElement;
-    if(document.getElementById(def.PREFILL_INSTR_BTN_ID))
+    if (document.getElementById(def.PREFILL_INSTR_BTN_ID))
         return;
 
     addButton(btnWerklijstMaken, def.PREFILL_INSTR_BTN_ID, "Prefill instrumenten", prefillInstruments, "fa-guitar", ["btn", "btn-outline-dark"], "Uren ");
@@ -57,16 +59,18 @@ function prefillAnything() {
         velden: [],
         grouping: Grouping.LEERLING
     };
-    setWerklijstCriteria(crit).then(r => {location.reload()});
+    setWerklijstCriteria(crit).then(r => {
+        onClickShowAnything();
+    });
 }
 
-export let getCriteriaString: CalculateTableCheckSumHandler =  (_tableDef: TableDef) => {
+export let getCriteriaString: CalculateTableCheckSumHandler = (_tableDef: TableDef) => {
     return document.querySelector("#view_contents > div.alert.alert-info")?.textContent.replace("Criteria aanpassen", "")?.replace("Criteria:", "") ?? "";
 }
 
 function onWerklijstChanged() {
     let werklijstPageState = getPageStateOrDefault(PageName.Werklijst) as WerklijstPageState;
-    if(werklijstPageState.werklijstTableName === def.UREN_TABLE_STATE_NAME) {
+    if (werklijstPageState.werklijstTableName === def.UREN_TABLE_STATE_NAME) {
         tryUntil(onClickShowCounts);
     }
     addTableHeaderClickEvents(document.querySelector("table#table_leerlingen_werklijst_table") as HTMLTableElement);
@@ -96,7 +100,7 @@ function onClickCopyEmails() {
     function onEmailPageLoaded(tableDef: TableDef) {
         let rows = this.rows = tableDef.shadowTableTemplate.content.querySelectorAll("tbody > tr") as NodeListOf<HTMLTableRowElement>;
         let allEmails = Array.from(rows)
-            .map(tr=> (tableDef.pageHandler as NamedCellPageHandler).getColumnText(tr, "e-mailadressen"));
+            .map(tr => (tableDef.pageHandler as NamedCellPageHandler).getColumnText(tr, "e-mailadressen"));
 
         let flattened = allEmails
             .map((emails: string) => emails.split(/[,;]/))
@@ -108,13 +112,13 @@ function onClickCopyEmails() {
         );
     }
 
-    tableDef.getTableData([], undefined )
+    tableDef.getTableData([], undefined)
         .then((_results) => {
         });
 }
 
 function tryUntil(func: () => boolean) {
-    if(!func())
+    if (!func())
         setTimeout(() => tryUntil(func), 100);
 }
 
@@ -122,12 +126,13 @@ function onClickShowCounts() {
     //Build lazily and only once. Table will automatically be erased when filters are changed.
     if (!document.getElementById(def.COUNT_TABLE_ID)) {
         let tableRef = findTableRefInCode();
-        if(!tableRef)
+        if (!tableRef)
             return false;
 
         let fileName = getUrenVakLeraarFileName();
         let requiredHeaderLabels = ["naam", "voornaam", "vak", "klasleerkracht", "graad + leerjaar"];
-        let pageHandler = new NamedCellPageHandler(requiredHeaderLabels, onLoaded, () => {});
+        let pageHandler = new NamedCellPageHandler(requiredHeaderLabels, onLoaded, () => {
+        });
         let tableDef = new TableDef(
             tableRef,
             pageHandler,
@@ -137,55 +142,46 @@ function onClickShowCounts() {
         function onLoaded(tableDef: TableDef) {
             let vakLeraars = new Map();
             let rows = this.rows = tableDef.shadowTableTemplate.content.querySelectorAll("tbody > tr") as NodeListOf<HTMLTableRowElement>;
-            for(let tr of rows) {
+            for (let tr of rows) {
                 scrapeStudent(tableDef, tr, vakLeraars);//TODO: returns false if fails. Report error.
             }
             let fromCloud = tableDef.parallelData as JsonCloudData;
             fromCloud = upgradeCloudData(fromCloud);
-            vakLeraars = new Map([...vakLeraars.entries()].sort((a, b) => a[0] < b[0] ? -1 : ((a[0] > b[0])? 1 : 0))) as Map<string, VakLeraar>;
+            vakLeraars = new Map([...vakLeraars.entries()].sort((a, b) => a[0] < b[0] ? -1 : ((a[0] > b[0]) ? 1 : 0))) as Map<string, VakLeraar>;
             buildTable({vakLeraars, fromCloud}, tableDef);
             document.getElementById(def.COUNT_TABLE_ID).style.display = "none";
             showOrHideNewTable();
         }
 
         tableDef.getTableData(new Map(), () => fetchFromCloud(fileName))
-            .then((_results) => { });
+            .then((_results) => {
+            });
         return true;
     }
     showOrHideNewTable();
     return true;
 }
+
 function onClickShowAnything() {
-    let tableRef = findTableRefInCode();
-    if(!tableRef)
-        return false;
-
-    let fileName = getUrenVakLeraarFileName();
-    let requiredHeaderLabels = ["naam", "voornaam", "vak", "klasleerkracht", "graad + leerjaar"];
-    let pageHandler = new NamedCellPageHandler(requiredHeaderLabels, onLoaded, () => {});
-    let tableDef = new TableDef(
-        tableRef,
-        pageHandler,
-        getCriteriaString
-    );
-
-    function onLoaded(tableDef: TableDef) {
-        let vakLeraars = new Map();
-        let rows = this.rows = tableDef.shadowTableTemplate.content.querySelectorAll("tbody > tr") as NodeListOf<HTMLTableRowElement>;
-        for(let tr of rows) {
-            scrapeStudent(tableDef, tr, vakLeraars);//TODO: returns false if fails. Report error.
+    let buildFetchUrl = (offset: number) => `/views/ui/datatable.php?id=leerlingen_werklijst&start=${offset}&aantal=0`;
+    let pageLoadHandler: PageLoadHandler = {
+        onPage: function (text: string, offset: number): PageContinue {
+            console.log(`Loaded page ${offset}:`);
+            console.log(text);
+            return PageContinue.Continue;
+        },
+        onLoaded: function (): void {
+            console.log("Loading complete!");
+        },
+        onAbort: function (e: any): void {
+            console.error(e);
         }
-        let fromCloud = tableDef.parallelData as JsonCloudData;
-        fromCloud = upgradeCloudData(fromCloud);
-        vakLeraars = new Map([...vakLeraars.entries()].sort((a, b) => a[0] < b[0] ? -1 : ((a[0] > b[0])? 1 : 0))) as Map<string, VakLeraar>;
-        buildTable({vakLeraars, fromCloud}, tableDef);
-        document.getElementById(def.COUNT_TABLE_ID).style.display = "none";
-        showOrHideNewTable();
-    }
-
-    tableDef.getTableData(new Map(), () => fetchFromCloud(fileName))
-        .then((_results) => { });
-    return true;
+    };
+    let pageLoader = new PageLoader("leerlingen_werklijst", buildFetchUrl, pageLoadHandler);
+    pageLoader.justGetTheData().then(() => {
+        console.log("DONE ??????");
+        location.reload();
+    });
 }
 
 function showOrHideNewTable() {
