@@ -27,7 +27,7 @@ export function findTableRefInCode() {
 
     let buildFetchUrl = (offset: number) => `/views/ui/datatable.php?id=${foundTableRef.viewId}&start=${offset}&aantal=0`;
 
-    let navigation = findFirstNavigation();
+    let navigation = findFirstNavigation(document);
     if(!navigation)
         return undefined;
 
@@ -217,12 +217,21 @@ export class TableDef {
         this.updateInfoBar();
     }
 
+    async justGetTheData(rawData?: any) {
+        this.isUsingCached = false;
+        let success = await this.#fetchPages(undefined, rawData);
+        if(!success)
+            return;
+        if (this.pageHandler.onLoaded)
+            this.pageHandler.onLoaded(this);
+    }
+
     async #fetchPages(parallelAsyncFunction: () => Promise<any>, collection: any) {
         if (this.pageHandler.onBeforeLoading) {
             if(!this.pageHandler.onBeforeLoading(this))
                 return false;
         }
-        let progressBar = insertProgressBar(this.divInfoContainer, this.tableRef.navigationData.steps(), "loading pages... ");
+        let progressBar = insertProgressBar(this.divInfoContainer, this.tableRef.navigationData.steps(), "loading pages... "); //TODO: make "loading pages" a customizable message.
         progressBar.start();
         if (parallelAsyncFunction) {
             let doubleResults = await Promise.all([

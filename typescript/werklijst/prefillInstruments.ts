@@ -64,6 +64,7 @@ export function isInstrument(text: string) {
 export async function prefillInstruments() {
     let crit: WerklijstCriteria = {
         vakken: isInstrument,
+        vakGroepen: [],
         domein: [Domein.Muziek],
         velden: [VELDEN.VAK_NAAM, VELDEN.GRAAD_LEERJAAR, VELDEN.KLAS_LEERKRACHT],
         grouping: Grouping.VAK

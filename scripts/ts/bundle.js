@@ -43,7 +43,8 @@
       }
       const buttonContent = document.createElement("i");
       button2.appendChild(buttonContent);
-      buttonContent.classList.add("fas", imageId);
+      if (imageId)
+        buttonContent.classList.add("fas", imageId);
       targetElement.insertAdjacentElement(where, button2);
     }
   }
@@ -1446,8 +1447,8 @@
       return this.step >= this.maxCount;
     }
   };
-  function findFirstNavigation() {
-    let buttonPagination = document.querySelector("button.datatable-paging-numbers");
+  function findFirstNavigation(root) {
+    let buttonPagination = root.querySelector("button.datatable-paging-numbers");
     if (!buttonPagination)
       return void 0;
     let buttonContainer = buttonPagination.closest("div");
@@ -1543,7 +1544,7 @@
     if (!foundTableRef)
       return void 0;
     let buildFetchUrl = (offset) => `/views/ui/datatable.php?id=${foundTableRef.viewId}&start=${offset}&aantal=0`;
-    let navigation = findFirstNavigation();
+    let navigation = findFirstNavigation(document);
     if (!navigation)
       return void 0;
     return new TableRef(foundTableRef.tableId, navigation, buildFetchUrl);
@@ -1696,6 +1697,14 @@
           this.pageHandler.onLoaded(this);
       }
       this.updateInfoBar();
+    }
+    async justGetTheData(rawData) {
+      this.isUsingCached = false;
+      let success = await this.#fetchPages(void 0, rawData);
+      if (!success)
+        return;
+      if (this.pageHandler.onLoaded)
+        this.pageHandler.onLoaded(this);
     }
     async #fetchPages(parallelAsyncFunction, collection) {
       if (this.pageHandler.onBeforeLoading) {
@@ -1937,16 +1946,16 @@
     GRAAD_LEERJAAR: { value: "graad_leerjaar", text: "graad + leerjaar" },
     KLAS_LEERKRACHT: { value: "klasleerkracht", text: "klasleerkracht" }
   };
-  async function fetchVakken(clear) {
+  async function fetchMultiSelectDefinitions(criterium, clear) {
     if (clear) {
       await sendClearWerklijst();
     }
-    await sendAddCriterium("2024-2025", "Vak");
+    await sendAddCriterium("2024-2025", criterium);
     let text = await fetchCritera("2024-2025");
     const template = document.createElement("template");
     template.innerHTML = text;
-    let vakken = template.content.querySelectorAll("#form_field_leerling_werklijst_criterium_vak option");
-    return Array.from(vakken).map((vak) => [vak.label, vak.value]);
+    let defs = template.content.querySelectorAll("#form_field_leerling_werklijst_criterium_" + criterium.toLowerCase() + " option");
+    return Array.from(defs).map((def) => [def.label, def.value]);
   }
   async function fetchCritera(schoolYear) {
     return (await fetch("https://administratie.dko3.cloud/views/leerlingen/werklijst/index.criteria.php?schooljaar=" + schoolYear, {
@@ -2002,6 +2011,16 @@
       body: formData
     });
   }
+  function textToCodes(items, vakDefs) {
+    let filtered;
+    if (typeof items === "function") {
+      let isIncluded = items;
+      filtered = vakDefs.filter((vakDef) => isIncluded(vakDef[0]));
+    } else {
+      filtered = vakDefs.filter((vakDef) => items.includes(vakDef[0]));
+    }
+    return filtered.map((vakDefe) => parseInt(vakDefe[1]));
+  }
   async function setWerklijstCriteria(criteria) {
     await sendClearWerklijst();
     let criteriaString = [
@@ -2014,14 +2033,17 @@
     if (criteria.domein.length) {
       criteriaString.push({ "criteria": "Domein", "operator": "=", "values": criteria.domein.join() });
     }
+    async function addCodesForCriterium(criterium, items) {
+      let defs = await fetchMultiSelectDefinitions(criterium, false);
+      let codes = textToCodes(items, defs);
+      if (codes.length)
+        criteriaString.push({ "criteria": criterium, "operator": "=", "values": codes.join() });
+    }
     if (criteria.vakken) {
-      let vakken = await fetchVakken(false);
-      if (typeof criteria.vakken === "function") {
-        let isVak = criteria.vakken;
-        let instruments = vakken.filter((vak) => isVak(vak[0]));
-        let values = instruments.map((vak) => parseInt(vak[1]));
-        criteriaString.push({ "criteria": "Vak", "operator": "=", "values": values.join() });
-      }
+      await addCodesForCriterium("Vak", criteria.vakken);
+    }
+    if (criteria.vakGroepen) {
+      await addCodesForCriterium("Vakgroep", criteria.vakGroepen);
     }
     await sendCriteria(criteriaString);
     await sendFields(criteria.velden);
@@ -2089,6 +2111,7 @@
   async function prefillInstruments() {
     let crit = {
       vakken: isInstrument2,
+      vakGroepen: [],
       domein: [3 /* Muziek */],
       velden: [VELDEN.VAK_NAAM, VELDEN.GRAAD_LEERJAAR, VELDEN.KLAS_LEERKRACHT],
       grouping: "vak_id" /* VAK */
@@ -2133,7 +2156,20 @@
     if (document.getElementById(PREFILL_INSTR_BTN_ID))
       return;
     addButton(btnWerklijstMaken, PREFILL_INSTR_BTN_ID, "Prefill instrumenten", prefillInstruments, "fa-guitar", ["btn", "btn-outline-dark"], "Uren ");
+    addButton(btnWerklijstMaken, "test123", "Test 123", prefillAnything, "", ["btn", "btn-outline-dark"], "Test 123");
     getSchoolIdString();
+  }
+  function prefillAnything() {
+    let crit = {
+      vakken: [],
+      vakGroepen: ["Instrument/zang klassiek"],
+      domein: [3 /* Muziek */],
+      velden: [],
+      grouping: "persoon_id" /* LEERLING */
+    };
+    setWerklijstCriteria(crit).then((r) => {
+      location.reload();
+    });
   }
   var getCriteriaString = (_tableDef) => {
     return document.querySelector("#view_contents > div.alert.alert-info")?.textContent.replace("Criteria aanpassen", "")?.replace("Criteria:", "") ?? "";

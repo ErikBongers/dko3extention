@@ -8,7 +8,8 @@ import {HashObserver} from "../pageObserver.js";
 import {NamedCellPageHandler} from "../pageHandlers.js";
 import {addTableHeaderClickEvents} from "../table/tableHeaders.js";
 import {getPageStateOrDefault, Goto, PageName, savePageState, WerklijstPageState} from "../pageState.js";
-import {prefillInstruments} from "./prefillInstruments.js";
+import {isInstrument, prefillInstruments} from "./prefillInstruments.js";
+import {Domein, Grouping, setWerklijstCriteria, VELDEN, WerklijstCriteria} from "./criteria";
 
 export default new HashObserver("#leerlingen-werklijst", onMutation);
 
@@ -44,7 +45,19 @@ function onCriteriaShown() {
         return;
 
     addButton(btnWerklijstMaken, def.PREFILL_INSTR_BTN_ID, "Prefill instrumenten", prefillInstruments, "fa-guitar", ["btn", "btn-outline-dark"], "Uren ");
+    addButton(btnWerklijstMaken, "test123", "Test 123", prefillAnything, "", ["btn", "btn-outline-dark"], "Test 123");
     getSchoolIdString();
+}
+
+function prefillAnything() {
+    let crit: WerklijstCriteria = {
+        vakken: [],
+        vakGroepen: ["Instrument/zang klassiek"],
+        domein: [Domein.Muziek],
+        velden: [],
+        grouping: Grouping.LEERLING
+    };
+    setWerklijstCriteria(crit).then(r => {location.reload()});
 }
 
 export let getCriteriaString: CalculateTableCheckSumHandler =  (_tableDef: TableDef) => {

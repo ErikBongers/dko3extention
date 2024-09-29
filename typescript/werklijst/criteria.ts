@@ -25,24 +25,33 @@ export enum Grouping {
     INSCHRIJVING = "inschrijving_id",
 }
 
-export type isSelectedVak = (vak: string) => boolean;
+export type IsSelectedItem = (vak: string) => boolean;
 export interface WerklijstCriteria {
-    vakken: string[] | isSelectedVak;
+    vakken: string[] | IsSelectedItem;
+    vakGroepen: string[] | IsSelectedItem;
     domein:Domein[];
     velden: Veld[];
     grouping: Grouping;
 }
 
 export async function fetchVakDefinitions(clear: boolean) {
+    return fetchMultiSelectDefinitions("Vak", clear);
+}
+
+export async function fetchVakGroepDefinitions(clear: boolean) {
+    return fetchMultiSelectDefinitions("Vakgroep", clear);
+}
+
+export async function fetchMultiSelectDefinitions(criterium: string, clear: boolean) {
     if (clear) {
         await sendClearWerklijst();
     }
-    await sendAddCriterium("2024-2025", "Vak");
+    await sendAddCriterium("2024-2025", criterium);
     let text = await fetchCritera("2024-2025");
     const template = document.createElement('template');
     template.innerHTML = text;
-    let vakken = template.content.querySelectorAll("#form_field_leerling_werklijst_criterium_vak option");
-    return Array.from(vakken).map((vak: HTMLOptionElement) => [vak.label, vak.value]);
+    let defs = template.content.querySelectorAll("#form_field_leerling_werklijst_criterium_"+ criterium.toLowerCase() +" option");
+    return Array.from(defs).map((def: HTMLOptionElement) => [def.label, def.value]);
 }
 
 export async function fetchCritera(schoolYear: string) {
@@ -112,6 +121,17 @@ export async function sendFields(fields: { value: string, text: string }[]) {
     });
 }
 
+function textToCodes(items: (string[] | IsSelectedItem), vakDefs: string[][]) {
+    let filtered: string[][];
+    if (typeof items === 'function') {
+        let isIncluded = items;
+        filtered = vakDefs.filter((vakDef) => isIncluded(vakDef[0]));
+    } else {
+        filtered = vakDefs.filter((vakDef) => (items as string[]).includes(vakDef[0]));
+    }
+    return filtered.map(vakDefe => parseInt(vakDefe[1]));
+}
+
 export async function setWerklijstCriteria(criteria: WerklijstCriteria) {
     await sendClearWerklijst();
 
@@ -127,18 +147,18 @@ export async function setWerklijstCriteria(criteria: WerklijstCriteria) {
         criteriaString.push({"criteria": "Domein", "operator": "=", "values": criteria.domein.join()});
     }
 
-    //VAKKEN
+    async function addCodesForCriterium(criterium: string, items: (string[] | IsSelectedItem)) {
+        let defs = await fetchMultiSelectDefinitions(criterium, false);
+        let codes = textToCodes(items, defs);
+        if(codes.length)
+            criteriaString.push({"criteria": criterium, "operator": "=", "values": codes.join()});
+    }
+
     if (criteria.vakken) {
-        let vakDefs = await fetchVakDefinitions(false);
-        let filtered: string[][];
-        if (typeof criteria.vakken === 'function') {
-            let isVak = criteria.vakken;
-            filtered = vakDefs.filter((vakDef) => isVak(vakDef[0]));
-        } else {
-            filtered = vakDefs.filter((vakDef) => (criteria.vakken as string[]).includes(vakDef[0]));
-        }
-        let codes = filtered.map(vakDefe => parseInt(vakDefe[1]));
-        criteriaString.push({"criteria": "Vak", "operator": "=", "values": codes.join()});
+        await addCodesForCriterium("Vak", criteria.vakken);
+    }
+    if (criteria.vakGroepen) {
+        await addCodesForCriterium("Vakgroep", criteria.vakGroepen);
     }
 
     await sendCriteria(criteriaString);
