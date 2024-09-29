@@ -1755,198 +1755,6 @@
     }
   };
 
-  // typescript/werklijst/criteria.ts
-  async function fetchVakken(clear) {
-    if (clear) {
-      await sendClearWerklijst();
-    }
-    await sendAddCriterium("2024-2025", "Vak");
-    let text = await fetchCritera("2024-2025");
-    const template = document.createElement("template");
-    template.innerHTML = text;
-    let vakken = template.content.querySelectorAll("#form_field_leerling_werklijst_criterium_vak option");
-    return Array.from(vakken).map((vak) => [vak.label, vak.value]);
-  }
-  async function fetchCritera(schoolYear) {
-    return (await fetch("https://administratie.dko3.cloud/views/leerlingen/werklijst/index.criteria.php?schooljaar=" + schoolYear, {
-      method: "GET"
-    })).text();
-  }
-  async function sendAddCriterium(schoolYear, criterium) {
-    const formData = new FormData();
-    formData.append(`criterium`, criterium);
-    formData.append(`schooljaar`, schoolYear);
-    await fetch("https://administratie.dko3.cloud/views/leerlingen/werklijst/index.criteria.session_add.php", {
-      method: "POST",
-      body: formData
-    });
-  }
-  async function sendClearWerklijst() {
-    const formData = new FormData();
-    formData.append("session", "leerlingen_werklijst");
-    await fetch("/views/util/clear_session.php", {
-      method: "POST",
-      body: formData
-    });
-    await fetch("views/leerlingen/werklijst/index.velden.php", {
-      method: "GET"
-    });
-  }
-  async function sendCriteria(criteria) {
-    const formData = new FormData();
-    formData.append("criteria", JSON.stringify(criteria));
-    await fetch("/views/leerlingen/werklijst/index.criteria.session_reload.php", {
-      method: "POST",
-      body: formData
-    });
-  }
-  async function sendGrouping(grouping) {
-    const formData = new FormData();
-    formData.append("groepering", grouping);
-    await fetch("/views/leerlingen/werklijst/index.groeperen.session_add.php", {
-      method: "POST",
-      body: formData
-    });
-  }
-  async function sendFields(fields) {
-    const formData = new FormData();
-    let fieldCnt = 0;
-    for (let field of fields) {
-      formData.append(`velden[${fieldCnt}][value]`, field.value);
-      formData.append(`velden[${fieldCnt}][text]`, field.text);
-      fieldCnt++;
-    }
-    await fetch("/views/leerlingen/werklijst/index.velden.session_add.php", {
-      method: "POST",
-      body: formData
-    });
-  }
-
-  // typescript/pageState.ts
-  function savePageState(state) {
-    sessionStorage.setItem(STORAGE_PAGE_STATE_KEY, JSON.stringify(state));
-  }
-  function defaultPageState(pageName) {
-    if (pageName === "Werklijst" /* Werklijst */) {
-      let werklijstPageState = {
-        goto: "" /* None */,
-        pageName: "Werklijst" /* Werklijst */,
-        werklijstTableName: ""
-      };
-      return werklijstPageState;
-    }
-    return void 0;
-  }
-  function getPageStateOrDefault(pageName) {
-    let pageState = JSON.parse(sessionStorage.getItem(STORAGE_PAGE_STATE_KEY));
-    if (pageState?.pageName === pageName)
-      return pageState;
-    else
-      return defaultPageState(pageName);
-  }
-
-  // typescript/werklijst/prefillInstruments.ts
-  var instrumentSet = /* @__PURE__ */ new Set([
-    "Accordeon",
-    "Altfluit",
-    "Althoorn",
-    "Altklarinet",
-    "Altsaxofoon",
-    "Altsaxofoon (jazz pop rock)",
-    "Altviool",
-    "Baglama/saz (wereldmuziek)",
-    "Bariton",
-    "Baritonsaxofoon",
-    "Baritonsaxofoon (jazz pop rock)",
-    "Basfluit",
-    "Basgitaar (jazz pop rock)",
-    "Basklarinet",
-    "Bastrombone",
-    "Bastuba",
-    "Bugel",
-    "Cello",
-    "Contrabas (jazz pop rock)",
-    "Contrabas (klassiek)",
-    "Dwarsfluit",
-    "Engelse hoorn",
-    "Eufonium",
-    "Fagot",
-    "Gitaar",
-    "Gitaar (jazz pop rock)",
-    "Harp",
-    "Hobo",
-    "Hoorn",
-    "Keyboard (jazz pop rock)",
-    "Klarinet",
-    "Kornet",
-    "Orgel",
-    "Piano",
-    "Piano (jazz pop rock)",
-    "Pianolab",
-    "Piccolo",
-    "Slagwerk",
-    "Slagwerk (jazz pop rock)",
-    "Sopraansaxofoon",
-    "Sopraansaxofoon (jazz pop rock)",
-    "Tenorsaxofoon",
-    "Tenorsaxofoon (jazz pop rock)",
-    "Trombone",
-    "Trompet",
-    "Trompet (jazz pop rock)",
-    "Ud (wereldmuziek)",
-    "Viool",
-    "Zang",
-    "Zang (jazz pop rock)",
-    "Zang (musical 2e graad)",
-    "Zang (musical)"
-  ]);
-  var VELDEN = {
-    VAK_NAAM: { value: "vak_naam", text: "vak" },
-    GRAAD_LEERJAAR: { value: "graad_leerjaar", text: "graad + leerjaar" },
-    KLAS_LEERKRACHT: { value: "klasleerkracht", text: "klasleerkracht" }
-  };
-  async function setWerklijstCriteria(criteria) {
-    await sendClearWerklijst();
-    let criteriaString = [
-      { "criteria": "Schooljaar", "operator": "=", "values": "2024-2025" },
-      { "criteria": "Status", "operator": "=", "values": "12" },
-      //inschrijvingen en toewijzingen
-      { "criteria": "Uitschrijvingen", "operator": "=", "values": "0" }
-      // Zonder uitgeschreven leerlingen
-    ];
-    if (criteria.domein.length) {
-      criteriaString.push({ "criteria": "Domein", "operator": "=", "values": criteria.domein.join() });
-    }
-    if (criteria.vakken) {
-      let vakken = await fetchVakken(false);
-      if (typeof criteria.vakken === "function") {
-        let isVak = criteria.vakken;
-        let instruments = vakken.filter((vak) => isVak(vak[0]));
-        let values = instruments.map((vak) => parseInt(vak[1]));
-        criteriaString.push({ "criteria": "Vak", "operator": "=", "values": values.join() });
-      }
-    }
-    await sendCriteria(criteriaString);
-    await sendFields(criteria.velden);
-    await sendGrouping(criteria.grouping);
-    let pageState = getPageStateOrDefault("Werklijst" /* Werklijst */);
-    pageState.werklijstTableName = UREN_TABLE_STATE_NAME;
-    savePageState(pageState);
-    document.querySelector("#btn_werklijst_maken").click();
-  }
-  async function prefillInstruments() {
-    let crit = {
-      vakken: isInstrument2,
-      domein: [3 /* Muziek */],
-      velden: [VELDEN.VAK_NAAM, VELDEN.GRAAD_LEERJAAR, VELDEN.KLAS_LEERKRACHT],
-      grouping: "vak_id" /* VAK */
-    };
-    return setWerklijstCriteria(crit);
-  }
-  function isInstrument2(text) {
-    return instrumentSet.has(text);
-  }
-
   // typescript/pageHandlers.ts
   var SimpleTableHandler = class {
     constructor(onLoaded, onBeforeLoading) {
@@ -2105,6 +1913,198 @@
         sortTableByColumn(table, index);
       };
     });
+  }
+
+  // typescript/pageState.ts
+  function savePageState(state) {
+    sessionStorage.setItem(STORAGE_PAGE_STATE_KEY, JSON.stringify(state));
+  }
+  function defaultPageState(pageName) {
+    if (pageName === "Werklijst" /* Werklijst */) {
+      let werklijstPageState = {
+        goto: "" /* None */,
+        pageName: "Werklijst" /* Werklijst */,
+        werklijstTableName: ""
+      };
+      return werklijstPageState;
+    }
+    return void 0;
+  }
+  function getPageStateOrDefault(pageName) {
+    let pageState = JSON.parse(sessionStorage.getItem(STORAGE_PAGE_STATE_KEY));
+    if (pageState?.pageName === pageName)
+      return pageState;
+    else
+      return defaultPageState(pageName);
+  }
+
+  // typescript/werklijst/criteria.ts
+  var VELDEN = {
+    VAK_NAAM: { value: "vak_naam", text: "vak" },
+    GRAAD_LEERJAAR: { value: "graad_leerjaar", text: "graad + leerjaar" },
+    KLAS_LEERKRACHT: { value: "klasleerkracht", text: "klasleerkracht" }
+  };
+  async function fetchVakken(clear) {
+    if (clear) {
+      await sendClearWerklijst();
+    }
+    await sendAddCriterium("2024-2025", "Vak");
+    let text = await fetchCritera("2024-2025");
+    const template = document.createElement("template");
+    template.innerHTML = text;
+    let vakken = template.content.querySelectorAll("#form_field_leerling_werklijst_criterium_vak option");
+    return Array.from(vakken).map((vak) => [vak.label, vak.value]);
+  }
+  async function fetchCritera(schoolYear) {
+    return (await fetch("https://administratie.dko3.cloud/views/leerlingen/werklijst/index.criteria.php?schooljaar=" + schoolYear, {
+      method: "GET"
+    })).text();
+  }
+  async function sendAddCriterium(schoolYear, criterium) {
+    const formData = new FormData();
+    formData.append(`criterium`, criterium);
+    formData.append(`schooljaar`, schoolYear);
+    await fetch("https://administratie.dko3.cloud/views/leerlingen/werklijst/index.criteria.session_add.php", {
+      method: "POST",
+      body: formData
+    });
+  }
+  async function sendClearWerklijst() {
+    const formData = new FormData();
+    formData.append("session", "leerlingen_werklijst");
+    await fetch("/views/util/clear_session.php", {
+      method: "POST",
+      body: formData
+    });
+    await fetch("views/leerlingen/werklijst/index.velden.php", {
+      method: "GET"
+    });
+  }
+  async function sendCriteria(criteria) {
+    const formData = new FormData();
+    formData.append("criteria", JSON.stringify(criteria));
+    await fetch("/views/leerlingen/werklijst/index.criteria.session_reload.php", {
+      method: "POST",
+      body: formData
+    });
+  }
+  async function sendGrouping(grouping) {
+    const formData = new FormData();
+    formData.append("groepering", grouping);
+    await fetch("/views/leerlingen/werklijst/index.groeperen.session_add.php", {
+      method: "POST",
+      body: formData
+    });
+  }
+  async function sendFields(fields) {
+    const formData = new FormData();
+    let fieldCnt = 0;
+    for (let field of fields) {
+      formData.append(`velden[${fieldCnt}][value]`, field.value);
+      formData.append(`velden[${fieldCnt}][text]`, field.text);
+      fieldCnt++;
+    }
+    await fetch("/views/leerlingen/werklijst/index.velden.session_add.php", {
+      method: "POST",
+      body: formData
+    });
+  }
+  async function setWerklijstCriteria(criteria) {
+    await sendClearWerklijst();
+    let criteriaString = [
+      { "criteria": "Schooljaar", "operator": "=", "values": "2024-2025" },
+      { "criteria": "Status", "operator": "=", "values": "12" },
+      //inschrijvingen en toewijzingen
+      { "criteria": "Uitschrijvingen", "operator": "=", "values": "0" }
+      // Zonder uitgeschreven leerlingen
+    ];
+    if (criteria.domein.length) {
+      criteriaString.push({ "criteria": "Domein", "operator": "=", "values": criteria.domein.join() });
+    }
+    if (criteria.vakken) {
+      let vakken = await fetchVakken(false);
+      if (typeof criteria.vakken === "function") {
+        let isVak = criteria.vakken;
+        let instruments = vakken.filter((vak) => isVak(vak[0]));
+        let values = instruments.map((vak) => parseInt(vak[1]));
+        criteriaString.push({ "criteria": "Vak", "operator": "=", "values": values.join() });
+      }
+    }
+    await sendCriteria(criteriaString);
+    await sendFields(criteria.velden);
+    await sendGrouping(criteria.grouping);
+  }
+
+  // typescript/werklijst/prefillInstruments.ts
+  var instrumentSet = /* @__PURE__ */ new Set([
+    "Accordeon",
+    "Altfluit",
+    "Althoorn",
+    "Altklarinet",
+    "Altsaxofoon",
+    "Altsaxofoon (jazz pop rock)",
+    "Altviool",
+    "Baglama/saz (wereldmuziek)",
+    "Bariton",
+    "Baritonsaxofoon",
+    "Baritonsaxofoon (jazz pop rock)",
+    "Basfluit",
+    "Basgitaar (jazz pop rock)",
+    "Basklarinet",
+    "Bastrombone",
+    "Bastuba",
+    "Bugel",
+    "Cello",
+    "Contrabas (jazz pop rock)",
+    "Contrabas (klassiek)",
+    "Dwarsfluit",
+    "Engelse hoorn",
+    "Eufonium",
+    "Fagot",
+    "Gitaar",
+    "Gitaar (jazz pop rock)",
+    "Harp",
+    "Hobo",
+    "Hoorn",
+    "Keyboard (jazz pop rock)",
+    "Klarinet",
+    "Kornet",
+    "Orgel",
+    "Piano",
+    "Piano (jazz pop rock)",
+    "Pianolab",
+    "Piccolo",
+    "Slagwerk",
+    "Slagwerk (jazz pop rock)",
+    "Sopraansaxofoon",
+    "Sopraansaxofoon (jazz pop rock)",
+    "Tenorsaxofoon",
+    "Tenorsaxofoon (jazz pop rock)",
+    "Trombone",
+    "Trompet",
+    "Trompet (jazz pop rock)",
+    "Ud (wereldmuziek)",
+    "Viool",
+    "Zang",
+    "Zang (jazz pop rock)",
+    "Zang (musical 2e graad)",
+    "Zang (musical)"
+  ]);
+  function isInstrument2(text) {
+    return instrumentSet.has(text);
+  }
+  async function prefillInstruments() {
+    let crit = {
+      vakken: isInstrument2,
+      domein: [3 /* Muziek */],
+      velden: [VELDEN.VAK_NAAM, VELDEN.GRAAD_LEERJAAR, VELDEN.KLAS_LEERKRACHT],
+      grouping: "vak_id" /* VAK */
+    };
+    await setWerklijstCriteria(crit);
+    let pageState = getPageStateOrDefault("Werklijst" /* Werklijst */);
+    pageState.werklijstTableName = UREN_TABLE_STATE_NAME;
+    savePageState(pageState);
+    document.querySelector("#btn_werklijst_maken").click();
   }
 
   // typescript/werklijst/observer.ts
