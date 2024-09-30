@@ -41,6 +41,8 @@ export function findFirstNavigation(root: (Document | HTMLElement | DocumentFrag
         .map((txt) => getGotoNumber(txt));
     matches.slice(1).forEach((txt) => numbers.push(parseInt(txt)));
     numbers.sort((a, b) => a - b);
+    if(numbers.length >=2 && isNaN(numbers[1]))
+        return undefined;
     if (numbers[0] === 1) {
         return new TableNavigation(numbers[1], numbers.pop(), buttonContainer);
     } else {

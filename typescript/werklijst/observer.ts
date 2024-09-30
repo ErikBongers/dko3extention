@@ -51,7 +51,7 @@ function onCriteriaShown() {
     getSchoolIdString();
 }
 
-function prefillAnything() {
+export function prefillAnything() {
     let crit: WerklijstCriteria = {
         vakken: [],
         vakGroepen: ["Instrument/zang klassiek"],

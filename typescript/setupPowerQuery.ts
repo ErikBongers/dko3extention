@@ -1,6 +1,7 @@
 import {clamp, isAlphaNumeric} from "./globals.js";
 import * as def from "./def.js";
 import {getPageStateOrDefault, Goto, PageName, savePageState} from "./pageState.js";
+import {prefillAnything} from "./werklijst/observer";
 
 let powerQueryItems: QueryItem[] = [];
 let popoverVisible = false;
@@ -96,7 +97,21 @@ function getHardCodedQueryItems() {
 
 document.body.addEventListener("keydown", showPowerQuery);
 
+async function testIt() {
+    // await fetch("https://administratie.dko3.cloud/#leerlingen-werklijst");
+    // await fetch("https://administratie.dko3.cloud/view.php?args=leerlingen-werklijst");
+    await fetch("https://administratie.dko3.cloud/views/leerlingen/werklijst/index.criteria.php?schooljaar=2024-2025");
+    prefillAnything();
+}
+
+
 function showPowerQuery(ev: KeyboardEvent) {
+    if (ev.key === "t" && ev.ctrlKey && !ev.shiftKey && ev.altKey) {
+        console.log("Testing...");
+        testIt().then(() => {});
+        ev.preventDefault();
+        return;
+    }
     if (ev.key === "q" && ev.ctrlKey && !ev.shiftKey && !ev.altKey) {
         scrapeMainMenu();
         powerQueryItems.push(...getSavedQueryItems());
