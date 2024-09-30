@@ -37,7 +37,7 @@ export function findTableRefInCode() {
 function findTable() {
     let table = document.querySelector("div.table-responsive > table");
     if(!table)
-        debugger;
+        debugger; //TODO: WTF???
     let tableId = table.id
         .replace("table_", "")
         .replace("_table", "");
