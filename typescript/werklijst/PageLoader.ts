@@ -36,12 +36,17 @@ export class PageLoader {
                     // noinspection ExceptionCaughtLocallyJS
                     throw "Cancelled";
                 }
+
                 if(!this.navigationData) {
                     let navResponse = await fetch("https://administratie.dko3.cloud/views/ui/datatablenav.php?id="+this.pageId+"&pos=top"); //TODO: leave hard code are have buildNavUrl() callback?
                     let text = await navResponse.text();
                     let shadowTableTemplate = document.createElement("template");
                     shadowTableTemplate.innerHTML = text;
                     this.navigationData = findFirstNavigation(shadowTableTemplate.content);
+                    if(!this.navigationData) {
+                        // noinspection ExceptionCaughtLocallyJS
+                        throw "Can't find navigation data.";
+                    }
                     console.log(this.navigationData);
                 }
                 offset += this.navigationData.step;

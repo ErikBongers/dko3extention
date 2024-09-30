@@ -1,3 +1,5 @@
+* test onClickShowAnything() from another screen than werklijst.
+
 * Fetch werklijst in background.
   > this is the sequence (after criteria are set):
     - https://administratie.dko3.cloud/view.php?args=leerlingen-werklijst$werklijst&_=1727631307890

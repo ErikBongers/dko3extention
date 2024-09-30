@@ -1461,6 +1461,8 @@
     let numbers = Array.from(buttons).filter((btn) => btn.attributes["onclick"]?.value.includes("goto(")).map((btn) => btn.attributes["onclick"].value).map((txt) => getGotoNumber(txt));
     matches.slice(1).forEach((txt) => numbers.push(parseInt(txt)));
     numbers.sort((a, b) => a - b);
+    if (numbers.length >= 2 && isNaN(numbers[1]))
+      return void 0;
     if (numbers[0] === 1) {
       return new TableNavigation(numbers[1], numbers.pop(), buttonContainer);
     } else {
@@ -2147,6 +2149,9 @@
             let shadowTableTemplate = document.createElement("template");
             shadowTableTemplate.innerHTML = text2;
             this.navigationData = findFirstNavigation(shadowTableTemplate.content);
+            if (!this.navigationData) {
+              throw "Can't find navigation data.";
+            }
             console.log(this.navigationData);
           }
           offset += this.navigationData.step;
@@ -2206,6 +2211,7 @@
       grouping: "persoon_id" /* LEERLING */
     };
     setWerklijstCriteria(crit).then((r) => {
+      debugger;
       onClickShowAnything();
     });
   }
@@ -2482,7 +2488,19 @@
     return items;
   }
   document.body.addEventListener("keydown", showPowerQuery);
+  async function testIt() {
+    await fetch("https://administratie.dko3.cloud/views/leerlingen/werklijst/index.criteria.php?schooljaar=2024-2025");
+    debugger;
+    prefillAnything();
+  }
   function showPowerQuery(ev) {
+    if (ev.key === "t" && ev.ctrlKey && !ev.shiftKey && ev.altKey) {
+      console.log("Testing...");
+      testIt().then(() => {
+      });
+      ev.preventDefault();
+      return;
+    }
     if (ev.key === "q" && ev.ctrlKey && !ev.shiftKey && !ev.altKey) {
       scrapeMainMenu();
       powerQueryItems.push(...getSavedQueryItems());
