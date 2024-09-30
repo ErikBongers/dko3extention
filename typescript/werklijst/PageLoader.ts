@@ -26,6 +26,9 @@ export class PageLoader {
     }
 
     async justGetTheData() {
+        await fetch("https://administratie.dko3.cloud/view.php?args=leerlingen-werklijst$werklijst");
+        // https://administratie.dko3.cloud/views/leerlingen/werklijst/werklijst.view.php?_=1727727065784
+        // https://administratie.dko3.cloud/views/leerlingen/werklijst/werklijst.table.php?_=1727727065785
         let offset = 0;
         try {
             while (true) {

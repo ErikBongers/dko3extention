@@ -179,8 +179,7 @@ function onClickShowAnything() {
     };
     let pageLoader = new PageLoader("leerlingen_werklijst", buildFetchUrl, pageLoadHandler);
     pageLoader.justGetTheData().then(() => {
-        console.log("DONE ??????");
-        location.reload();
+        console.log("DONE!");
     });
 }
 

@@ -1,4 +1,5 @@
 * test onClickShowAnything() from another screen than werklijst.
+  > Load the text fragments into a table.
 
 * Fetch werklijst in background.
   > this is the sequence (after criteria are set):
