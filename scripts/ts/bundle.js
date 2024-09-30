@@ -2141,6 +2141,7 @@
       this.navigationData = navigationData;
     }
     async justGetTheData() {
+      await fetch("https://administratie.dko3.cloud/view.php?args=leerlingen-werklijst$werklijst");
       let offset = 0;
       try {
         while (true) {
@@ -2218,7 +2219,6 @@
       grouping: "persoon_id" /* LEERLING */
     };
     setWerklijstCriteria(crit).then((r) => {
-      debugger;
       onClickShowAnything();
     });
   }
@@ -2316,7 +2316,6 @@
     let pageLoader = new PageLoader("leerlingen_werklijst", buildFetchUrl, pageLoadHandler);
     pageLoader.justGetTheData().then(() => {
       console.log("DONE ??????");
-      location.reload();
     });
   }
   function showOrHideNewTable() {
@@ -2496,8 +2495,11 @@
   }
   document.body.addEventListener("keydown", showPowerQuery);
   async function testIt() {
+    await fetch("https://administratie.dko3.cloud/#leerlingen-werklijst");
+    await fetch("https://administratie.dko3.cloud/view.php?args=leerlingen-werklijst");
     await fetch("https://administratie.dko3.cloud/views/leerlingen/werklijst/index.criteria.php?schooljaar=2024-2025");
-    debugger;
+    await fetch("https://administratie.dko3.cloud/views/leerlingen/werklijst/index.velden.php");
+    await fetch("https://administratie.dko3.cloud/views/leerlingen/werklijst/index.groeperen.php");
     prefillAnything();
   }
   function showPowerQuery(ev) {

@@ -98,9 +98,11 @@ function getHardCodedQueryItems() {
 document.body.addEventListener("keydown", showPowerQuery);
 
 async function testIt() {
-    // await fetch("https://administratie.dko3.cloud/#leerlingen-werklijst");
-    // await fetch("https://administratie.dko3.cloud/view.php?args=leerlingen-werklijst");
+    await fetch("https://administratie.dko3.cloud/#leerlingen-werklijst");
+    await fetch("https://administratie.dko3.cloud/view.php?args=leerlingen-werklijst");
     await fetch("https://administratie.dko3.cloud/views/leerlingen/werklijst/index.criteria.php?schooljaar=2024-2025");
+    await fetch("https://administratie.dko3.cloud/views/leerlingen/werklijst/index.velden.php");
+    await fetch("https://administratie.dko3.cloud/views/leerlingen/werklijst/index.groeperen.php");
     prefillAnything();
 }
 
