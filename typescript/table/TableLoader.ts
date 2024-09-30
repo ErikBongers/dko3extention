@@ -18,16 +18,37 @@ import {PageContinue, PageLoader, PageLoadHandler} from "../werklijst/PageLoader
 
 
 export class TableLoader implements PageLoadHandler {
+    shadowTableTemplate: HTMLTemplateElement;
+    externalPageLoadHandler: PageLoadHandler;
+
+    constructor(externalPageLoader: PageLoadHandler) {
+        this.externalPageLoadHandler = externalPageLoader;
+    }
+
     onPage (text: string, offset: number) : PageContinue {
         console.log(`Loaded table page ${offset}:`);
-        console.log(text);
-        return PageContinue.Continue;
+        let template: HTMLTemplateElement;
+        if(offset === 0) {
+            this.shadowTableTemplate = document.createElement('template');
+            this.shadowTableTemplate.innerHTML = text;
+            template = this.shadowTableTemplate;
+        } else {
+            template = document.createElement('template');
+            template.innerHTML = text;
+        }
+        let rows = template.content.querySelectorAll("tbody > tr") as NodeListOf<HTMLTableRowElement>;
+        if(offset !== 0) {
+            this.shadowTableTemplate.content.querySelector("tbody").append(...rows);
+        }
+        return this.externalPageLoadHandler.onPage(text, offset);
     }
     onLoaded() {
         console.log("Table loading complete!");
+        this.externalPageLoadHandler.onLoaded();
     }
     onAbort(e: any) {
         console.error(e);
+        this.externalPageLoadHandler.onAbort(e);
     }
 
     loadTheTable() {
