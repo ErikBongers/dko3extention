@@ -10,7 +10,8 @@ import {addTableHeaderClickEvents} from "../table/tableHeaders.js";
 import {getPageStateOrDefault, Goto, PageName, savePageState, WerklijstPageState} from "../pageState.js";
 import {prefillInstruments} from "./prefillInstruments.js";
 import {Domein, Grouping, setWerklijstCriteria, WerklijstCriteria} from "./criteria";
-import {PageContinue, PageLoader, PageLoadHandler} from "./PageLoader";
+import {PageContinue, PageLoadHandler} from "./PageLoader";
+import {TableLoader} from "../table/TableLoader";
 
 export default new HashObserver("#leerlingen-werklijst", onMutation);
 
@@ -163,24 +164,20 @@ function onClickShowCounts() {
 }
 
 function onClickShowAnything() {
-    let buildFetchUrl = (offset: number) => `/views/ui/datatable.php?id=leerlingen_werklijst&start=${offset}&aantal=0`;
     let pageLoadHandler: PageLoadHandler = {
         onPage: function (text: string, offset: number): PageContinue {
-            console.log(`Loaded page ${offset}:`);
-            console.log(text);
             return PageContinue.Continue;
         },
         onLoaded: function (): void {
-            console.log("Loading complete!");
+            console.log("Ready to process table");
+            console.log(tableLoader.shadowTableTemplate.content);
         },
         onAbort: function (e: any): void {
-            console.error(e);
+            console.log("Alas...");
         }
-    };
-    let pageLoader = new PageLoader("leerlingen_werklijst", buildFetchUrl, pageLoadHandler);
-    pageLoader.justGetTheData().then(() => {
-        console.log("DONE!");
-    });
+    }
+    let tableLoader = new TableLoader(pageLoadHandler);
+    tableLoader.loadTheTable();
 }
 
 function showOrHideNewTable() {

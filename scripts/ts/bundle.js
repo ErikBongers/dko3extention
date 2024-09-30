@@ -2174,6 +2174,45 @@
     }
   };
 
+  // typescript/table/TableLoader.ts
+  var TableLoader = class {
+    constructor(externalPageLoader) {
+      this.externalPageLoadHandler = externalPageLoader;
+    }
+    onPage(text, offset) {
+      console.log(`Loaded table page ${offset}:`);
+      let template;
+      if (offset === 0) {
+        this.shadowTableTemplate = document.createElement("template");
+        this.shadowTableTemplate.innerHTML = text;
+        template = this.shadowTableTemplate;
+      } else {
+        template = document.createElement("template");
+        template.innerHTML = text;
+      }
+      let rows = template.content.querySelectorAll("tbody > tr");
+      if (offset !== 0) {
+        this.shadowTableTemplate.content.querySelector("tbody").append(...rows);
+      }
+      return this.externalPageLoadHandler.onPage(text, offset);
+    }
+    onLoaded() {
+      console.log("Table loading complete!");
+      this.externalPageLoadHandler.onLoaded();
+    }
+    onAbort(e) {
+      console.error(e);
+      this.externalPageLoadHandler.onAbort(e);
+    }
+    loadTheTable() {
+      let buildFetchUrl = (offset) => `/views/ui/datatable.php?id=leerlingen_werklijst&start=${offset}&aantal=0`;
+      let pageLoader = new PageLoader("leerlingen_werklijst", buildFetchUrl, this);
+      pageLoader.justGetTheData().then(() => {
+        console.log("Table loader DONE!");
+      });
+    }
+  };
+
   // typescript/werklijst/observer.ts
   var observer_default5 = new HashObserver("#leerlingen-werklijst", onMutation4);
   function onMutation4(mutation) {
@@ -2299,24 +2338,20 @@
     return true;
   }
   function onClickShowAnything() {
-    let buildFetchUrl = (offset) => `/views/ui/datatable.php?id=leerlingen_werklijst&start=${offset}&aantal=0`;
     let pageLoadHandler = {
       onPage: function(text, offset) {
-        console.log(`Loaded page ${offset}:`);
-        console.log(text);
         return 1 /* Continue */;
       },
       onLoaded: function() {
-        console.log("Loading complete!");
+        console.log("Ready to process table");
+        console.log(tableLoader.shadowTableTemplate.content);
       },
       onAbort: function(e) {
-        console.error(e);
+        console.log("Alas...");
       }
     };
-    let pageLoader = new PageLoader("leerlingen_werklijst", buildFetchUrl, pageLoadHandler);
-    pageLoader.justGetTheData().then(() => {
-      console.log("DONE ??????");
-    });
+    let tableLoader = new TableLoader(pageLoadHandler);
+    tableLoader.loadTheTable();
   }
   function showOrHideNewTable() {
     let showNewTable = document.getElementById(COUNT_TABLE_ID).style.display === "none";
