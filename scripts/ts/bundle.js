@@ -428,6 +428,37 @@
   }
   var StudentInfo = class {
   };
+  function scrapePianoLessen(studentTable) {
+    let lessen = /* @__PURE__ */ new Map();
+    for (const row of studentTable.tBodies[0].rows) {
+      let teacher = row.cells[4].textContent;
+      let les = lessen.get(teacher);
+      if (!les) {
+        les = new Les();
+        les.naam = "Piano";
+        les.instrumentName = "Piano";
+        les.visible = true;
+        les.wachtlijst = 0;
+        les.formattedLesmoment = "zo 00:00-00:30";
+        les.teacher = row.cells[4].textContent;
+        les.vestiging = "---";
+        les.studentsTable = void 0;
+        les.trimesterNo = -1;
+        les.isModule = true;
+        les.students = [];
+        lessen.set(teacher, les);
+      }
+      let studentInfo = new StudentInfo();
+      studentInfo.graadJaar = row.cells[3].textContent;
+      studentInfo.name = row.cells[1].textContent;
+      studentInfo.id = parseInt(row.attributes["onclick"].value.replace("showView('leerlingen-leerling', '', 'id=", ""));
+      les.students.push(studentInfo);
+    }
+    for (let les of lessen.values()) {
+      les.maxAantal = les.students.length;
+    }
+    return lessen.values();
+  }
   function scrapeStudents(studentTable) {
     let students = [];
     if (studentTable.tBodies.length === 0) {
@@ -473,6 +504,9 @@
   function buildTrimesters(modules) {
     let mergedInstrument = [void 0, void 0, void 0];
     for (let module of modules) {
+      let trimNo = module.trimesterNo - 1;
+      if (trimNo < 0)
+        trimNo = 0;
       mergedInstrument[module.trimesterNo - 1] = module;
     }
     return mergedInstrument;
@@ -500,6 +534,8 @@
     };
     let reLesMoment = /.*(\w\w) (?:\d+\/\d+ )?(\d\d:\d\d)-(\d\d:\d\d).*/;
     for (let module of inputModules) {
+      if (module.formattedLesmoment)
+        continue;
       let matches = module.lesmoment.match(reLesMoment);
       if (matches?.length !== 4) {
         console.error(`Could not process lesmoment "${module.lesmoment}" for instrument "${module.instrumentName}".`);
@@ -1960,7 +1996,7 @@
     return Array.from(defs).map((def) => [def.label, def.value]);
   }
   async function fetchCritera(schoolYear) {
-    return (await fetch("https://administratie.dko3.cloud/views/leerlingen/werklijst/index.criteria.php?schooljaar=" + schoolYear, {
+    return (await fetch("/views/leerlingen/werklijst/index.criteria.php?schooljaar=" + schoolYear, {
       method: "GET"
     })).text();
   }
@@ -1968,7 +2004,7 @@
     const formData = new FormData();
     formData.append(`criterium`, criterium);
     formData.append(`schooljaar`, schoolYear);
-    await fetch("https://administratie.dko3.cloud/views/leerlingen/werklijst/index.criteria.session_add.php", {
+    await fetch("/views/leerlingen/werklijst/index.criteria.session_add.php", {
       method: "POST",
       body: formData
     });
@@ -2125,92 +2161,6 @@
     document.querySelector("#btn_werklijst_maken").click();
   }
 
-  // typescript/werklijst/PageLoader.ts
-  var PageLoader = class {
-    constructor(pageId, buildFetchUrl, pageLoadHandler, navigationData) {
-      this.pageId = pageId;
-      this.buildFetchUrl = buildFetchUrl;
-      this.pageLoadHandler = pageLoadHandler;
-      this.navigationData = navigationData;
-    }
-    async justGetTheData() {
-      await fetch("https://administratie.dko3.cloud/view.php?args=leerlingen-werklijst$werklijst");
-      await fetch("https://administratie.dko3.cloud/views/leerlingen/werklijst/werklijst.view.php");
-      await fetch("https://administratie.dko3.cloud/views/leerlingen/werklijst/werklijst.table.php");
-      let offset = 0;
-      try {
-        while (true) {
-          console.log("fetching page " + offset);
-          let response = await fetch(this.buildFetchUrl(offset));
-          let text = await response.text();
-          if (this.pageLoadHandler.onPage?.(text, offset) === 0 /* Cancel */) {
-            throw "Cancelled";
-          }
-          if (!this.navigationData) {
-            let navResponse = await fetch("https://administratie.dko3.cloud/views/ui/datatablenav.php?id=" + this.pageId + "&pos=top");
-            let text2 = await navResponse.text();
-            let shadowTableTemplate = document.createElement("template");
-            shadowTableTemplate.innerHTML = text2;
-            this.navigationData = findFirstNavigation(shadowTableTemplate.content);
-            if (!this.navigationData) {
-              throw "Can't find navigation data.";
-            }
-            console.log(this.navigationData);
-          }
-          offset += this.navigationData.step;
-          if (offset > this.navigationData.maxCount) {
-            break;
-          }
-        }
-        this.pageLoadHandler.onLoaded();
-      } catch (e) {
-        this.pageLoadHandler.onAbort(e);
-      }
-    }
-  };
-
-  // typescript/table/TableLoader.ts
-  var TableLoader = class {
-    constructor(externalPageLoader) {
-      this.externalPageLoadHandler = externalPageLoader;
-    }
-    onPage(text, offset) {
-      console.log(`Loaded table page ${offset}:`);
-      let template;
-      if (offset === 0) {
-        this.shadowTableTemplate = document.createElement("template");
-        this.shadowTableTemplate.innerHTML = text;
-        template = this.shadowTableTemplate;
-      } else {
-        template = document.createElement("template");
-        template.innerHTML = text;
-      }
-      let rows = template.content.querySelectorAll("tbody > tr");
-      if (offset !== 0) {
-        this.shadowTableTemplate.content.querySelector("tbody").append(...rows);
-      }
-      return this.externalPageLoadHandler.onPage(text, offset);
-    }
-    onLoaded() {
-      console.log("Table loading complete!");
-      this.externalPageLoadHandler.onLoaded();
-    }
-    onAbort(e) {
-      console.error(e);
-      this.externalPageLoadHandler.onAbort(e);
-    }
-    loadTheTable() {
-      let buildFetchUrl = (offset) => `/views/ui/datatable.php?id=leerlingen_werklijst&start=${offset}&aantal=0`;
-      let pageLoader = new PageLoader("leerlingen_werklijst", buildFetchUrl, this);
-      pageLoader.justGetTheData().then(() => {
-        console.log("Table loader DONE!");
-      });
-    }
-    getTable() {
-      return this.shadowTableTemplate.content.querySelector("table");
-    }
-  };
-
   // typescript/werklijst/observer.ts
   var observer_default5 = new HashObserver("#leerlingen-werklijst", onMutation4);
   function onMutation4(mutation) {
@@ -2244,20 +2194,7 @@
     if (document.getElementById(PREFILL_INSTR_BTN_ID))
       return;
     addButton(btnWerklijstMaken, PREFILL_INSTR_BTN_ID, "Prefill instrumenten", prefillInstruments, "fa-guitar", ["btn", "btn-outline-dark"], "Uren ");
-    addButton(btnWerklijstMaken, "test123", "Test 123", prefillAnything, "", ["btn", "btn-outline-dark"], "Test 123");
     getSchoolIdString();
-  }
-  function prefillAnything() {
-    let crit = {
-      vakken: [],
-      vakGroepen: ["Instrument/zang klassiek"],
-      domein: [3 /* Muziek */],
-      velden: [],
-      grouping: "persoon_id" /* LEERLING */
-    };
-    setWerklijstCriteria(crit).then((r) => {
-      onClickShowAnything();
-    });
   }
   var getCriteriaString = (_tableDef) => {
     return document.querySelector("#view_contents > div.alert.alert-info")?.textContent.replace("Criteria aanpassen", "")?.replace("Criteria:", "") ?? "";
@@ -2334,21 +2271,6 @@
     }
     showOrHideNewTable();
     return true;
-  }
-  function onClickShowAnything() {
-    let pageLoadHandler = {
-      onPage: function(text, offset) {
-        return 1 /* Continue */;
-      },
-      onLoaded: function() {
-        console.log(`Rows collected: ${tableLoader.getTable().tBodies[0].rows.length}`);
-      },
-      onAbort: function(e) {
-        console.log("Alas...");
-      }
-    };
-    let tableLoader = new TableLoader(pageLoadHandler);
-    tableLoader.loadTheTable();
   }
   function showOrHideNewTable() {
     let showNewTable = document.getElementById(COUNT_TABLE_ID).style.display === "none";
@@ -2450,6 +2372,124 @@
     spanCounter.textContent = txtSms.value.length.toString();
   }
 
+  // typescript/werklijst/PaginatedLoader.ts
+  var PaginatedLoader = class {
+    constructor(pageId, buildFetchUrl, pageLoadHandler, navigationData) {
+      this.pageId = pageId;
+      this.buildFetchUrl = buildFetchUrl;
+      this.pageLoadHandler = pageLoadHandler;
+      this.navigationData = navigationData;
+    }
+    async justGetTheData() {
+      await fetch("https://administratie.dko3.cloud/view.php?args=leerlingen-werklijst$werklijst");
+      await fetch("https://administratie.dko3.cloud/views/leerlingen/werklijst/werklijst.view.php");
+      await fetch("https://administratie.dko3.cloud/views/leerlingen/werklijst/werklijst.table.php");
+      let offset = 0;
+      try {
+        while (true) {
+          console.log("fetching page " + offset);
+          let response = await fetch(this.buildFetchUrl(offset));
+          let text = await response.text();
+          if (this.pageLoadHandler.onPage?.(text, offset) === 0 /* Cancel */) {
+            throw "Cancelled";
+          }
+          if (!this.navigationData) {
+            let navResponse = await fetch("https://administratie.dko3.cloud/views/ui/datatablenav.php?id=" + this.pageId + "&pos=top");
+            let text2 = await navResponse.text();
+            let shadowTableTemplate = document.createElement("template");
+            shadowTableTemplate.innerHTML = text2;
+            this.navigationData = findFirstNavigation(shadowTableTemplate.content);
+            if (!this.navigationData) {
+              throw "Can't find navigation data.";
+            }
+            console.log(this.navigationData);
+          }
+          offset += this.navigationData.step;
+          if (offset >= this.navigationData.maxCount) {
+            break;
+          }
+        }
+        this.pageLoadHandler.onLoaded();
+      } catch (e) {
+        this.pageLoadHandler.onAbort(e);
+      }
+    }
+  };
+
+  // typescript/table/TableLoader.ts
+  var TableLoader = class {
+    constructor(externalPageLoader) {
+      this.externalPageLoadHandler = externalPageLoader;
+    }
+    onPage(text, offset) {
+      console.log(`Loaded table page ${offset}:`);
+      let template;
+      if (offset === 0) {
+        this.shadowTableTemplate = document.createElement("template");
+        this.shadowTableTemplate.innerHTML = text;
+        template = this.shadowTableTemplate;
+      } else {
+        template = document.createElement("template");
+        template.innerHTML = text;
+      }
+      let rows = template.content.querySelectorAll("tbody > tr");
+      if (offset !== 0) {
+        this.shadowTableTemplate.content.querySelector("tbody").append(...rows);
+      }
+      return this.externalPageLoadHandler.onPage(text, offset);
+    }
+    onLoaded() {
+      console.log("Table loading complete!");
+      this.externalPageLoadHandler.onLoaded();
+    }
+    onAbort(e) {
+      console.error(e);
+      this.externalPageLoadHandler.onAbort(e);
+    }
+    loadTheTable() {
+      let buildFetchUrl = (offset) => `/views/ui/datatable.php?id=leerlingen_werklijst&start=${offset}&aantal=0`;
+      let pageLoader = new PaginatedLoader("leerlingen_werklijst", buildFetchUrl, this);
+      pageLoader.justGetTheData().then(() => {
+        console.log("Table loader DONE!");
+      });
+    }
+    getTable() {
+      return this.shadowTableTemplate.content.querySelector("table");
+    }
+  };
+
+  // typescript/werklijst/getWerklijst.ts
+  async function fetchWerklijstTable() {
+    return new Promise((resolve, reject) => _fetchWerklijstTable(resolve, reject));
+  }
+  function _fetchWerklijstTable(resolve, reject) {
+    let pageLoadHandler = {
+      onPage: function(text, offset) {
+        return 1 /* Continue */;
+      },
+      onLoaded: function() {
+        console.log(`Rows collected: ${tableLoader.getTable().tBodies[0].rows.length}`);
+        console.log(tableLoader.getTable());
+        resolve(tableLoader.getTable());
+      },
+      onAbort: function(e) {
+        console.log("Alas...");
+        reject(e);
+      }
+    };
+    let tableLoader = new TableLoader(pageLoadHandler);
+    tableLoader.loadTheTable();
+  }
+  async function getWerklijst(criteria) {
+    await fetch("/#leerlingen-werklijst");
+    await fetch("/view.php?args=leerlingen-werklijst");
+    await fetch("/views/leerlingen/werklijst/index.criteria.php?schooljaar=2024-2025");
+    await fetch("/views/leerlingen/werklijst/index.velden.php");
+    await fetch("/views/leerlingen/werklijst/index.groeperen.php");
+    await setWerklijstCriteria(criteria);
+    return fetchWerklijstTable();
+  }
+
   // typescript/setupPowerQuery.ts
   var powerQueryItems = [];
   var popoverVisible = false;
@@ -2526,19 +2566,24 @@
     return items;
   }
   document.body.addEventListener("keydown", showPowerQuery);
-  async function testIt() {
-    await fetch("https://administratie.dko3.cloud/#leerlingen-werklijst");
-    await fetch("https://administratie.dko3.cloud/view.php?args=leerlingen-werklijst");
-    await fetch("https://administratie.dko3.cloud/views/leerlingen/werklijst/index.criteria.php?schooljaar=2024-2025");
-    await fetch("https://administratie.dko3.cloud/views/leerlingen/werklijst/index.velden.php");
-    await fetch("https://administratie.dko3.cloud/views/leerlingen/werklijst/index.groeperen.php");
-    prefillAnything();
+  function testIt() {
+    let criteria = {
+      vakken: ["instrumentinitiatie \u2013 piano het hele jaar"],
+      vakGroepen: [],
+      //["Instrument/zang klassiek"],
+      domein: [3 /* Muziek */],
+      velden: [VELDEN.GRAAD_LEERJAAR, VELDEN.KLAS_LEERKRACHT],
+      grouping: "persoon_id" /* LEERLING */
+    };
+    getWerklijst(criteria).then((table) => {
+      let pianoLessen = scrapePianoLessen(table);
+      console.log(pianoLessen);
+    });
   }
   function showPowerQuery(ev) {
     if (ev.key === "t" && ev.ctrlKey && !ev.shiftKey && ev.altKey) {
       console.log("Testing...");
-      testIt().then(() => {
-      });
+      testIt();
       ev.preventDefault();
       return;
     }

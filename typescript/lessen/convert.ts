@@ -18,6 +18,9 @@ export interface TableData {
 function buildTrimesters(modules: Les[]) {
     let mergedInstrument: (Les | undefined)[] = [undefined, undefined, undefined];
     for (let module of modules) {
+        let trimNo = module.trimesterNo-1;
+        if(trimNo < 0)
+            trimNo = 0; // for year modules it could be -1 -> default it to the 1str trimester.
         mergedInstrument[module.trimesterNo-1] = module;
     }
     return mergedInstrument;
@@ -51,6 +54,8 @@ export function buildTableData(inputModules: Les[]) : TableData {
     //prepare data
     let reLesMoment = /.*(\w\w) (?:\d+\/\d+ )?(\d\d:\d\d)-(\d\d:\d\d).*/;
     for(let module of inputModules){
+        if(module.formattedLesmoment)
+            continue;
         let matches = module.lesmoment.match(reLesMoment);
         if (matches?.length !== 4) {
             console.error(`Could not process lesmoment "${module.lesmoment}" for instrument "${module.instrumentName}".`);

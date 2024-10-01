@@ -55,7 +55,7 @@ export async function fetchMultiSelectDefinitions(criterium: string, clear: bool
 }
 
 export async function fetchCritera(schoolYear: string) {
-    return (await fetch("https://administratie.dko3.cloud/views/leerlingen/werklijst/index.criteria.php?schooljaar=" + schoolYear, {
+    return (await fetch("/views/leerlingen/werklijst/index.criteria.php?schooljaar=" + schoolYear, {
         method: "GET"
     })).text();
 }
@@ -64,7 +64,7 @@ async function sendAddCriterium(schoolYear: string, criterium: string) {
     const formData = new FormData();
     formData.append(`criterium`, criterium);
     formData.append(`schooljaar`, schoolYear);
-    await fetch("https://administratie.dko3.cloud/views/leerlingen/werklijst/index.criteria.session_add.php", {
+    await fetch("/views/leerlingen/werklijst/index.criteria.session_add.php", {
         method: "POST",
         body: formData,
     });
