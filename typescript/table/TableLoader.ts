@@ -59,4 +59,7 @@ export class TableLoader implements PageLoadHandler {
         });
     }
 
+    getTable(): HTMLTableElement {
+        return this.shadowTableTemplate.content.querySelector("table");
+    }
 }

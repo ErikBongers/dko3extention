@@ -169,8 +169,7 @@ function onClickShowAnything() {
             return PageContinue.Continue;
         },
         onLoaded: function (): void {
-            console.log("Ready to process table");
-            console.log(tableLoader.shadowTableTemplate.content);
+            console.log(`Rows collected: ${tableLoader.getTable().tBodies[0].rows.length}`);
         },
         onAbort: function (e: any): void {
             console.log("Alas...");
