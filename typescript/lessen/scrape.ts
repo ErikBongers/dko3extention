@@ -69,6 +69,40 @@ export class StudentInfo {
     info: string;
 }
 
+export function scrapePianoLessen(studentTable: HTMLTableElement) {
+    let lessen: Map<string, Les> = new Map();
+
+    for (const row of studentTable.tBodies[0].rows) {
+        let teacher = row.cells[4].textContent;
+        let les = lessen.get(teacher);
+        if(!les) {
+            les = new Les();
+            les.naam = "Piano";
+            les.instrumentName = "Piano";
+            les.visible = true;
+            les.wachtlijst = 0;
+            les.formattedLesmoment = "zo 00:00-00:30";
+            les.teacher = row.cells[4].textContent;
+            les.vestiging = "---";
+            les.studentsTable = undefined;
+            les.trimesterNo = -1; //year module.
+            les.isModule = true; // a year module is still a module, I guess...
+            les.students = [];
+
+            lessen.set(teacher, les);
+        }
+        let studentInfo = new StudentInfo();
+        studentInfo.graadJaar = row.cells[3].textContent;
+        studentInfo.name = row.cells[1].textContent;
+        studentInfo.id = parseInt(row.attributes['onclick'].value.replace("showView('leerlingen-leerling', '', 'id=", ""));
+        les.students.push(studentInfo);
+    }
+    for(let les of lessen.values()) {
+        les.maxAantal = les.students.length;
+    }
+    return lessen.values();
+}
+
 function scrapeStudents(studentTable: HTMLTableElement) {
     let students: StudentInfo[] = [];
     if(studentTable.tBodies.length === 0) {

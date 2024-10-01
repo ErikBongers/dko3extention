@@ -9,9 +9,6 @@ import {NamedCellPageHandler} from "../pageHandlers.js";
 import {addTableHeaderClickEvents} from "../table/tableHeaders.js";
 import {getPageStateOrDefault, Goto, PageName, savePageState, WerklijstPageState} from "../pageState.js";
 import {prefillInstruments} from "./prefillInstruments.js";
-import {Domein, Grouping, setWerklijstCriteria, WerklijstCriteria} from "./criteria";
-import {PageContinue, PageLoadHandler} from "./PageLoader";
-import {TableLoader} from "../table/TableLoader";
 
 export default new HashObserver("#leerlingen-werklijst", onMutation);
 
@@ -48,21 +45,7 @@ function onCriteriaShown() {
         return;
 
     addButton(btnWerklijstMaken, def.PREFILL_INSTR_BTN_ID, "Prefill instrumenten", prefillInstruments, "fa-guitar", ["btn", "btn-outline-dark"], "Uren ");
-    addButton(btnWerklijstMaken, "test123", "Test 123", prefillAnything, "", ["btn", "btn-outline-dark"], "Test 123");
     getSchoolIdString();
-}
-
-export function prefillAnything() {
-    let crit: WerklijstCriteria = {
-        vakken: [],
-        vakGroepen: ["Instrument/zang klassiek"],
-        domein: [Domein.Muziek],
-        velden: [],
-        grouping: Grouping.LEERLING
-    };
-    setWerklijstCriteria(crit).then(r => {
-        onClickShowAnything();
-    });
 }
 
 export let getCriteriaString: CalculateTableCheckSumHandler = (_tableDef: TableDef) => {
@@ -161,22 +144,6 @@ function onClickShowCounts() {
     }
     showOrHideNewTable();
     return true;
-}
-
-function onClickShowAnything() {
-    let pageLoadHandler: PageLoadHandler = {
-        onPage: function (text: string, offset: number): PageContinue {
-            return PageContinue.Continue;
-        },
-        onLoaded: function (): void {
-            console.log(`Rows collected: ${tableLoader.getTable().tBodies[0].rows.length}`);
-        },
-        onAbort: function (e: any): void {
-            console.log("Alas...");
-        }
-    }
-    let tableLoader = new TableLoader(pageLoadHandler);
-    tableLoader.loadTheTable();
 }
 
 function showOrHideNewTable() {

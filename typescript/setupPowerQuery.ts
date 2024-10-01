@@ -1,7 +1,9 @@
 import {clamp, isAlphaNumeric} from "./globals.js";
 import * as def from "./def.js";
 import {getPageStateOrDefault, Goto, PageName, savePageState} from "./pageState.js";
-import {prefillAnything} from "./werklijst/observer";
+import {Domein, Grouping, VELDEN, WerklijstCriteria} from "./werklijst/criteria";
+import {scrapePianoLessen} from "./lessen/scrape";
+import {getWerklijst} from "./werklijst/getWerklijst";
 
 let powerQueryItems: QueryItem[] = [];
 let popoverVisible = false;
@@ -97,20 +99,26 @@ function getHardCodedQueryItems() {
 
 document.body.addEventListener("keydown", showPowerQuery);
 
-async function testIt() {
-    await fetch("https://administratie.dko3.cloud/#leerlingen-werklijst");
-    await fetch("https://administratie.dko3.cloud/view.php?args=leerlingen-werklijst");
-    await fetch("https://administratie.dko3.cloud/views/leerlingen/werklijst/index.criteria.php?schooljaar=2024-2025");
-    await fetch("https://administratie.dko3.cloud/views/leerlingen/werklijst/index.velden.php");
-    await fetch("https://administratie.dko3.cloud/views/leerlingen/werklijst/index.groeperen.php");
-    prefillAnything();
+function testIt() {
+    let criteria: WerklijstCriteria = {
+        vakken: ["instrumentinitiatie – piano het hele jaar"],
+        vakGroepen: [], //["Instrument/zang klassiek"],
+        domein: [Domein.Muziek],
+        velden: [VELDEN.GRAAD_LEERJAAR, VELDEN.KLAS_LEERKRACHT],
+        grouping: Grouping.LEERLING
+    };
+
+    getWerklijst(criteria).then((table) => {
+        let pianoLessen = scrapePianoLessen(table);
+        console.log(pianoLessen);
+    });
 }
 
 
 function showPowerQuery(ev: KeyboardEvent) {
     if (ev.key === "t" && ev.ctrlKey && !ev.shiftKey && ev.altKey) {
         console.log("Testing...");
-        testIt().then(() => {});
+        testIt();
         ev.preventDefault();
         return;
     }

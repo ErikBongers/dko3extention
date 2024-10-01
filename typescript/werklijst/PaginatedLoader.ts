@@ -12,7 +12,7 @@ export interface PageLoadHandler {
     onAbort: OnAbortHandler;
 }
 
-export class PageLoader {
+export class PaginatedLoader {
     readonly buildFetchUrl: (offset: number) => string;
     pageLoadHandler: PageLoadHandler;
     navigationData: TableNavigation;
@@ -53,7 +53,7 @@ export class PageLoader {
                     console.log(this.navigationData);
                 }
                 offset += this.navigationData.step;
-                if (offset > this.navigationData.maxCount) {
+                if (offset >= this.navigationData.maxCount) {
                     break;
                 }
             }

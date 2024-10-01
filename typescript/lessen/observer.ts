@@ -138,6 +138,7 @@ function showTrimesterTable(show: boolean) {
     //Build lazily and only once. Table will automatically be erased when filters are changed.
     if (!document.getElementById(def.TRIM_TABLE_ID)) {
         let inputModules = scrapeModules();
+
         let tableData = buildTableData(inputModules);
         buildTrimesterTable(tableData.rows);
     }
