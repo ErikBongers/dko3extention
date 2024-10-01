@@ -2135,6 +2135,8 @@
     }
     async justGetTheData() {
       await fetch("https://administratie.dko3.cloud/view.php?args=leerlingen-werklijst$werklijst");
+      await fetch("https://administratie.dko3.cloud/views/leerlingen/werklijst/werklijst.view.php");
+      await fetch("https://administratie.dko3.cloud/views/leerlingen/werklijst/werklijst.table.php");
       let offset = 0;
       try {
         while (true) {
@@ -2203,6 +2205,9 @@
       pageLoader.justGetTheData().then(() => {
         console.log("Table loader DONE!");
       });
+    }
+    getTable() {
+      return this.shadowTableTemplate.content.querySelector("table");
     }
   };
 
@@ -2336,8 +2341,7 @@
         return 1 /* Continue */;
       },
       onLoaded: function() {
-        console.log("Ready to process table");
-        console.log(tableLoader.shadowTableTemplate.content);
+        console.log(`Rows collected: ${tableLoader.getTable().tBodies[0].rows.length}`);
       },
       onAbort: function(e) {
         console.log("Alas...");
