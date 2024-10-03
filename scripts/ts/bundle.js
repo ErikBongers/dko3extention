@@ -688,7 +688,8 @@
     let studentTopRowNo = newTableBody.children.length;
     let rowCount = Math.max(...instrument.trimesters.map((trim) => {
       if (!trim) return 0;
-      return trim.maxAantal > 100 ? 4 : trim.maxAantal;
+      let cnt = trim.maxAantal > 100 ? 4 : trim.maxAantal;
+      return cnt > trim.students.length ? cnt : trim.students.length;
     }));
     let hasWachtlijst = instrument.trimesters.find((trim) => (trim?.wachtlijst ?? 0) > 0);
     if (hasWachtlijst) {
