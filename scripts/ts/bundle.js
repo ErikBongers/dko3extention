@@ -329,13 +329,19 @@
         let instrumentText = "";
         if (modNames.length) {
           tr.children[0].innerText += ": ";
-          let rx = /Initiatie (.*) - trimester.*/;
+          let rxBasic = /Initiatie +(.*) *- *trimester.*/i;
+          let rxWide = /Initiatie +(.*) *- *trimester.* *- *(.*)/i;
           instrumentText += modNames.map((modName) => {
-            let matches = modName.match(rx);
-            if (matches.length >= 1) {
-              return matches[1];
+            let matches = modName.match(rxWide);
+            if (matches?.length >= 2) {
+              return matches[1].trim() + " - " + matches[2].trim();
             } else {
-              return ": ???";
+              let matches2 = modName.match(rxBasic);
+              if (matches2?.length >= 1) {
+                return matches2[1].trim();
+              } else {
+                return ": ???";
+              }
             }
           }).join(", ");
         }
