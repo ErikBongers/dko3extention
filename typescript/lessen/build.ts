@@ -249,7 +249,12 @@ function buildStudentCell(student: StudentInfo) {
     anchor.title = student.info;
     anchor.onclick= function () {
         fetchStudentId(student.name)
-            .then((id) => window.location.href = "/?#leerlingen-leerling?id="+id+",tab=inschrijvingen");
+            .then((id) => {
+                if(id <= 0)
+                    window.location.href = "/?#zoeken?zoek="+ stripStudentName(student.name);
+                else
+                    window.location.href = "/?#leerlingen-leerling?id=" + id + ",tab=inschrijvingen";
+            });
         return false;
     };
     const iTag = document.createElement("i");
@@ -258,24 +263,30 @@ function buildStudentCell(student: StudentInfo) {
     return cell;
 }
 
+function stripStudentName(name: string): string {
+    return name.replaceAll(/[,()'-]/g, " ").replaceAll("  ", " ");
+}
+
 async function fetchStudentId(studentName: string) {
-    let studentNameForUrl = studentName.replaceAll(",", "").replaceAll("(", "").replaceAll(")", "");
-    return fetch("/view.php?args=zoeken?zoek="+encodeURIComponent(studentNameForUrl))
+    let strippedStudentName = stripStudentName(studentName);
+    return fetch("/view.php?args=zoeken?zoek="+encodeURIComponent(strippedStudentName))
         .then((response) => response.text())
         .then((_text) => fetch("/views/zoeken/index.view.php"))
         .then((response) => response.text())
         .then((text) => findStudentId(studentName, text))
         .catch(err => {
-            console.error('Request failed', err)
+            console.error('Request failed', err);
+            return -1;
         });
 }
 
 function findStudentId(studentName: string, text: string) {
+    studentName = studentName.replaceAll(",", ""); // search results do not contain a comma between first and last name.
+    db3(studentName);
     db3(text);
-    studentName = studentName.replaceAll(",", "");
     let namePos = text.indexOf(studentName);
     if (namePos < 0) {
-        return -1
+        return 0
     }
     //the name comes AFTER the id, hence the backward search of the leftmost slice of the string.
     let idPos = text.substring(0, namePos).lastIndexOf("'id=", namePos);

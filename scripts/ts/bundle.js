@@ -827,7 +827,12 @@
     anchor.classList.add("pl-2");
     anchor.title = student.info;
     anchor.onclick = function() {
-      fetchStudentId(student.name).then((id) => window.location.href = "/?#leerlingen-leerling?id=" + id + ",tab=inschrijvingen");
+      fetchStudentId(student.name).then((id) => {
+        if (id <= 0)
+          window.location.href = "/?#zoeken?zoek=" + stripStudentName(student.name);
+        else
+          window.location.href = "/?#leerlingen-leerling?id=" + id + ",tab=inschrijvingen";
+      });
       return false;
     };
     const iTag = document.createElement("i");
@@ -835,18 +840,23 @@
     iTag.classList.add("fas", "fa-user-alt");
     return cell;
   }
+  function stripStudentName(name) {
+    return name.replaceAll(/[,()'-]/g, " ").replaceAll("  ", " ");
+  }
   async function fetchStudentId(studentName) {
-    let studentNameForUrl = studentName.replaceAll(",", "").replaceAll("(", "").replaceAll(")", "");
-    return fetch("/view.php?args=zoeken?zoek=" + encodeURIComponent(studentNameForUrl)).then((response) => response.text()).then((_text) => fetch("/views/zoeken/index.view.php")).then((response) => response.text()).then((text) => findStudentId(studentName, text)).catch((err) => {
+    let strippedStudentName = stripStudentName(studentName);
+    return fetch("/view.php?args=zoeken?zoek=" + encodeURIComponent(strippedStudentName)).then((response) => response.text()).then((_text) => fetch("/views/zoeken/index.view.php")).then((response) => response.text()).then((text) => findStudentId(studentName, text)).catch((err) => {
       console.error("Request failed", err);
+      return -1;
     });
   }
   function findStudentId(studentName, text) {
-    db3(text);
     studentName = studentName.replaceAll(",", "");
+    db3(studentName);
+    db3(text);
     let namePos = text.indexOf(studentName);
     if (namePos < 0) {
-      return -1;
+      return 0;
     }
     let idPos = text.substring(0, namePos).lastIndexOf("'id=", namePos);
     let id = text.substring(idPos, idPos + 10);
