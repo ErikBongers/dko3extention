@@ -51,6 +51,10 @@ export function buildTableData(inputModules: Les[]) : TableData {
     //prepare data
     let reLesMoment = /.*(\w\w) (?:\d+\/\d+ )?(\d\d:\d\d)-(\d\d:\d\d).*/;
     for(let module of inputModules){
+        if(module.lesmoment === "(geen volgende les)") {
+            module.formattedLesmoment = module.lesmoment;
+            continue;
+        }
         let matches = module.lesmoment.match(reLesMoment);
         if (matches?.length !== 4) {
             console.error(`Could not process lesmoment "${module.lesmoment}" for instrument "${module.instrumentName}".`);
