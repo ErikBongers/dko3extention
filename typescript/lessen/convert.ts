@@ -55,6 +55,8 @@ export function buildTableData(inputModules: Les[]) : TableData {
         if (matches?.length !== 4) {
             console.error(`Could not process lesmoment "${module.lesmoment}" for instrument "${module.instrumentName}".`);
             module.formattedLesmoment =  "???";
+        } else {
+            module.formattedLesmoment = matches[1] + " " + matches[2] + "-" + matches[3];
         }
 
         module.formattedLesmoment =  matches[1] + " " + matches[2] + "-" + matches[3];
