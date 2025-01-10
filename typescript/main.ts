@@ -8,6 +8,7 @@ import werklijstObserver from "./werklijst/observer.js";
 import tableObserver from "./table/observer.js";
 import vakgroepObserver from "./vakgroep/observer.js";
 import smsObserver from "./verwittigen/observer.js";
+import aanwezighedenObserver from "./aanwezigheden/observer.js";
 import {setupPowerQuery} from "./setupPowerQuery.js";
 import {allLijstenObserver, assetsObserver, extraInschrijvingenObserver, financialObserver, academieMenuObserver} from "./pages/observer.js";
 
@@ -45,6 +46,7 @@ function init() {
         registerObserver(vakgroepObserver);
         registerObserver(smsObserver);
         registerObserver(academieMenuObserver);
+        registerObserver(aanwezighedenObserver);
         onPageChanged();
         setupPowerQuery();
     });

@@ -505,10 +505,16 @@
     };
     let reLesMoment = /.*(\w\w) (?:\d+\/\d+ )?(\d\d:\d\d)-(\d\d:\d\d).*/;
     for (let module of inputModules) {
+      if (module.lesmoment === "(geen volgende les)") {
+        module.formattedLesmoment = module.lesmoment;
+        continue;
+      }
       let matches = module.lesmoment.match(reLesMoment);
       if (matches?.length !== 4) {
         console.error(`Could not process lesmoment "${module.lesmoment}" for instrument "${module.instrumentName}".`);
         module.formattedLesmoment = "???";
+      } else {
+        module.formattedLesmoment = matches[1] + " " + matches[2] + "-" + matches[3];
       }
       module.formattedLesmoment = matches[1] + " " + matches[2] + "-" + matches[3];
     }
@@ -594,6 +600,7 @@
   var PREFILL_INSTR_BTN_ID = "prefillInstrButton";
   var MAIL_BTN_ID = "mailButton";
   var DOWNLOAD_TABLE_BTN_ID = "downloadTableButton";
+  var COPY_TABLE_BTN_ID = "copyTableButton";
   var LESSEN_OVERZICHT_ID = "lessen_overzicht";
   var TRIM_BUTTON_ID = "moduleButton";
   var CHECKS_BUTTON_ID = "checksButton";
@@ -2316,6 +2323,127 @@
     spanCounter.textContent = txtSms.value.length.toString();
   }
 
+  // typescript/aanwezigheden/observer.ts
+  var observer_default9 = new HashObserver("#leerlingen-lijsten-awi-percentages_leerling_vak", onMutationAanwezgheden);
+  function onMutationAanwezgheden(mutation) {
+    let tableId = document.getElementById("table_lijst_awi_percentages_leerling_vak_table");
+    if (!tableId) {
+      return false;
+    }
+    console.log("aanwezig");
+    addTableNavigationButton(COPY_TABLE_BTN_ID, "copy table to clipboard", copyTable, "fa-clipboard");
+    return true;
+  }
+  function copyTable() {
+    let prebuildPageHandler = new SimpleTableHandler(onLoaded, void 0);
+    function onLoaded(tableDef2) {
+      let template = tableDef2.shadowTableTemplate;
+      let rows = template.content.querySelectorAll("tbody tr");
+      let rowsArray = Array.from(rows);
+      let text = "data:\n";
+      rowsArray.map((row) => {
+        let percentFinancierbaar = parseFloat(row.cells[1].querySelector("strong").textContent.replace(",", ".")) / 100;
+        let percentTotaal = parseFloat(row.cells[2].querySelector("strong").textContent.replace(",", ".")) / 100;
+        let vak = row.cells[0].querySelector("br")?.nextSibling?.textContent;
+        let namen = row.cells[0].querySelector("strong").textContent.split(", ");
+        let aanw = {
+          naam: namen[0],
+          voornaam: namen[1],
+          vak,
+          vakReduced: reduceVaknaam(vak),
+          percentFinancierbaar,
+          percentTotaal,
+          percentFinancierbaarAP: 0,
+          percentTotaalAP: 0
+        };
+        return aanw;
+      }).forEach((aanw) => {
+        text += "lln: " + aanw.naam + "," + aanw.voornaam + "," + aanw.vakReduced + "," + aanw.percentFinancierbaar + "\n";
+      });
+      console.log(text);
+      navigator.clipboard.writeText(text).then((r) => {
+      });
+      tableDef2.tableRef.getOrgTable().querySelector("tbody").replaceChildren(...template.content.querySelectorAll("tbody tr"));
+    }
+    let tableRef = findTableRefInCode();
+    let tableDef = new TableDef(
+      tableRef,
+      prebuildPageHandler,
+      getCriteriaString
+    );
+    tableDef.getTableData().then(() => {
+    });
+  }
+  function addTableNavigationButton(btnId, title, onClick, fontIconId) {
+    let navigationBar = document.querySelector("div.datatable-navigation-toolbar");
+    if (!navigationBar)
+      return false;
+    addButton(navigationBar.lastElementChild, btnId, title, onClick, fontIconId, ["btn-secondary"], "", "afterend");
+    return true;
+  }
+  function reduceVaknaam(vaknaam) {
+    if (vaknaam.includes("culturele vorming")) {
+      if (vaknaam.includes("3."))
+        return "ML";
+      else
+        return "MA";
+    }
+    if (vaknaam.includes("roepsmusiceren")) {
+      return "GM";
+    }
+    if (vaknaam.includes("theorie")) {
+      return "MT";
+    }
+    if (vaknaam.includes("geleidingspraktijk")) {
+      return "BP";
+    }
+    if (vaknaam.includes("oordatelier")) {
+      return "WA";
+    }
+    if (vaknaam.includes("oordlab")) {
+      return "WL";
+    }
+    if (vaknaam.includes("mprovisatie")) {
+      return "impro";
+    }
+    if (vaknaam.includes("omeinoverschrijdende")) {
+      return "KB";
+    }
+    if (vaknaam.includes("ramalab")) {
+      return "DL";
+    }
+    if (vaknaam.includes("oordstudio")) {
+      return "WS";
+    }
+    if (vaknaam.includes("ompositie")) {
+      return "compositie";
+    }
+    if (vaknaam.includes("Instrument: klassiek: ")) {
+      let rx = /Instrument: klassiek: (\S*)/;
+      let matches2 = vaknaam.match(rx);
+      if (matches2.length > 1)
+        return matches2[1];
+      else
+        return vaknaam;
+    }
+    if (vaknaam.includes("Instrument: jazz-pop-rock: ")) {
+      let rx = /Instrument: jazz-pop-rock: (\S*)/;
+      let matches2 = vaknaam.match(rx);
+      if (matches2.length > 1)
+        return matches2[1];
+      else
+        return vaknaam;
+    }
+    if (vaknaam.includes("rrangeren") || vaknaam.includes("opname") || vaknaam.includes("electronics")) {
+      return "elektronische muziek";
+    }
+    let rx2 = /(.*).•./;
+    let matches = vaknaam.match(rx2);
+    if (matches.length > 1)
+      return matches[1];
+    return "??";
+  }
+
   // typescript/setupPowerQuery.ts
   var powerQueryItems = [];
   var popoverVisible = false;
@@ -2575,6 +2703,7 @@
       registerObserver(observer_default7);
       registerObserver(observer_default8);
       registerObserver(academieMenuObserver);
+      registerObserver(observer_default9);
       onPageChanged();
       setupPowerQuery();
     });
