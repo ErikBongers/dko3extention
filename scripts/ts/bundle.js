@@ -2371,6 +2371,7 @@
       prebuildPageHandler,
       getCriteriaString
     );
+    tableDef.clearCache();
     tableDef.getTableData().then(() => {
     });
   }

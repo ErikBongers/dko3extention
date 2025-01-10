@@ -74,7 +74,7 @@ function copyTable() {
         prebuildPageHandler,
         getCriteriaString
     );
-
+    tableDef.clearCache();
     tableDef.getTableData().then(() => { });
 }
 

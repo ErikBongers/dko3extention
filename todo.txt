@@ -1,3 +1,12 @@
+Aanwezigheden
+------------------
+* Vlemincx: waarom staat hier niet het laatste percentage van de 2 vakken?
+* Alleen Ps.
+* 3 wekenregel
+* Mankeren er lln in de excel? -> automatisch toevoegen.
+* Orkestslagwerk -> slagwerk
+
+
 * Global search: sorteer op voornaam.
 
 * NamedCellPageHandler does things that have to do with a table, not a page.
