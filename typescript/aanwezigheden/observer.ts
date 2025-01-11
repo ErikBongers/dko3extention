@@ -43,6 +43,15 @@ interface Pees {
     code: string
 }
 
+function showInfoMessage(message: string) {
+    let div = document.querySelector("#"+def.INFO_MSG_ID);
+    if(!div)
+        return; //meh...
+
+    div.innerHTML = message;
+}
+
+
 async function copyTable() {
     let prebuildPageHandler = new SimpleTableHandler(onLoaded, undefined);
 
@@ -56,7 +65,15 @@ async function copyTable() {
         getCriteriaString
     );
 
-    tableDef.setupInfoBar();
+    // tableDef.setupInfoBar();
+    let div = tableRef.createElementAboveTable("div");
+    let msgDiv = div.appendChild(document.createElement("div"));
+    msgDiv.classList.add("infoMessage");
+    msgDiv.id = def.INFO_MSG_ID;
+    tableDef.divInfoContainer = div.appendChild(document.createElement("div"));
+
+    showInfoMessage("Fetching data...");
+
     let wekenLijst = await getTableFromHash("leerlingen-lijsten-awi-3weken", tableDef.divInfoContainer, true).then(bckTableDef => {
         let template = bckTableDef.shadowTableTemplate;
 ``        // convert table to text
@@ -153,6 +170,7 @@ async function copyTable() {
         tableDef.tableRef.getOrgTable()
             .querySelector("tbody")
             .replaceChildren(...template.content.querySelectorAll("tbody tr"));
+        showInfoMessage("Data copied to clipboard!");
     });
 }
 

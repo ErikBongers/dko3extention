@@ -612,6 +612,7 @@
   var JSON_URL = "https://europe-west1-ebo-tain.cloudfunctions.net/json";
   var CACHE_INFO_ID = "dko3plugin_cacheInfo";
   var TEMP_MSG_ID = "dko3plugin_tempMessage";
+  var INFO_MSG_ID = "dko3plugin_infoMessage";
   function isButtonHighlighted(buttonId) {
     return document.getElementById(buttonId)?.classList.contains("toggled");
   }
@@ -1562,6 +1563,11 @@
     getOrgTable() {
       return document.getElementById(this.htmlTableId);
     }
+    createElementAboveTable(element) {
+      let el = document.createElement(element);
+      this.getOrgTable().insertAdjacentElement("beforebegin", el);
+      return el;
+    }
   };
   function findTableRefInCode() {
     let foundTableRef = findTable();
@@ -2510,6 +2516,12 @@
     addTableNavigationButton(COPY_TABLE_BTN_ID, "copy table to clipboard", copyTable, "fa-clipboard");
     return true;
   }
+  function showInfoMessage(message) {
+    let div = document.querySelector("#" + INFO_MSG_ID);
+    if (!div)
+      return;
+    div.innerHTML = message;
+  }
   async function copyTable() {
     let prebuildPageHandler = new SimpleTableHandler(onLoaded, void 0);
     function onLoaded(tableDef2) {
@@ -2520,7 +2532,12 @@
       prebuildPageHandler,
       getCriteriaString
     );
-    tableDef.setupInfoBar();
+    let div = tableRef.createElementAboveTable("div");
+    let msgDiv = div.appendChild(document.createElement("div"));
+    msgDiv.classList.add("infoMessage");
+    msgDiv.id = INFO_MSG_ID;
+    tableDef.divInfoContainer = div.appendChild(document.createElement("div"));
+    showInfoMessage("Fetching data...");
     let wekenLijst = await getTableFromHash("leerlingen-lijsten-awi-3weken", tableDef.divInfoContainer, true).then((bckTableDef) => {
       let template = bckTableDef.shadowTableTemplate;
       ``;
@@ -2595,6 +2612,7 @@
       navigator.clipboard.writeText(text).then((r) => {
       });
       tableDef.tableRef.getOrgTable().querySelector("tbody").replaceChildren(...template.content.querySelectorAll("tbody tr"));
+      showInfoMessage("Data copied to clipboard!");
     });
   }
   function addTableNavigationButton(btnId, title, onClick, fontIconId) {

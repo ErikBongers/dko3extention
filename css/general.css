@@ -96,6 +96,9 @@ body.otherSchool {
         background-color: rgba(189, 141, 1, 0.2);
     }
 }
+.infoMessage {
+    text-align: center;
+}
 
 .infoLine {
     display: flex;

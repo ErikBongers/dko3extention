@@ -18,6 +18,12 @@ export class TableRef {
     getOrgTable() {
         return document.getElementById(this.htmlTableId) as HTMLTableElement;
     }
+
+    createElementAboveTable(element: string): HTMLElement {
+        let el = document.createElement(element);
+        this.getOrgTable().insertAdjacentElement("beforebegin", el);
+        return el;
+    }
 }
 
 export function findTableRefInCode() {
@@ -113,8 +119,10 @@ export class TableDef {
         return id.replaceAll(/\s/g, "");
     }
 
+
     setupInfoBar() {
         if(!this.divInfoContainer) {
+            //TODO: replace with tableRef.createElementAboveTable()
             this.divInfoContainer = document.createElement("div");
             this.tableRef.getOrgTable().insertAdjacentElement("beforebegin", this.divInfoContainer);
         }
