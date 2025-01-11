@@ -3,25 +3,36 @@ import {TableDef, TableRef} from "./tableDef";
 import {getCriteriaString} from "../werklijst/observer";
 import {SimpleTableHandler} from "../pageHandlers";
 
-async function setViewFromCurrentUrl() {
-    let hash = window.location.hash.replace("#", "");
+export async function getTableFromHash(hash: string, divInfoContainer: HTMLDivElement, clearCache: boolean) {
     let page = await fetch("https://administratie.dko3.cloud/#"+hash).then(res => res.text());
-    // call to changeView() - assuming this is always the same, so no parsing here.
-    let view = await fetch("view.php?args="+hash).then(res => res.text());
-}
 
-export async function getTableFromHash(hash: string, divInfoContainer: HTMLDivElement) {
-    let page = await fetch("https://administratie.dko3.cloud/#"+hash).then(res => res.text());
     // call to changeView() - assuming this is always the same, so no parsing here.
     let view = await fetch("view.php?args="+hash).then(res => res.text());
     let index_viewUrl = getDocReadyLoadUrl(view);
+
+    //get the htmlTableId (from index.view.php
     let index_view = await fetch(index_viewUrl).then(res => res.text());
     let scanner = new TokenScanner(index_view);
     let htmlTableId = findDocReady(scanner)
         .find("$", "(", "'#")
         .clipTo("'")
         .result();
-    let datatableUrl = getDocReadyLoadUrl(index_view);
+    if(!htmlTableId) {//TODO: try this with ifMatch or getString?
+        let scanner = new TokenScanner(index_view);
+        htmlTableId = findDocReady(scanner)
+            .find("$", "(", "\"#")
+            .clipTo("\"")
+            .result();
+    }
+    let someUrl = getDocReadyLoadUrl(index_view); //NOT SURE THIS IS datatable.php !!!
+    //>> keep going unti we get to datatable.php...
+    if (!someUrl.includes("ui/datatable.php")) {
+        //fetch again. Don't loop to avoid dead loop.
+        let someCode = await fetch(someUrl).then(res => res.text());
+        someUrl = getDocReadyLoadUrl(someCode); //NOT SURE THIS IS datatable.php !!!
+    }
+    let datatableUrl = someUrl; //hope and pray...
+    //get datatable id an url from datatable.php
     let datatable = await fetch(datatableUrl).then(result => result.text());
     scanner = new TokenScanner(datatable);
     let datatable_id = "";
@@ -55,10 +66,18 @@ export async function getTableFromHash(hash: string, divInfoContainer: HTMLDivEl
         getCriteriaString //TODO: this function looks in document instead of the (perhaps in background) loaded table
     );
     tableDef.divInfoContainer = divInfoContainer;
-    tableDef.clearCache();
+    if(clearCache)
+        tableDef.clearCache();
     await tableDef.getTableData();
     await setViewFromCurrentUrl();
     return tableDef;
+}
+
+async function setViewFromCurrentUrl() {
+    let hash = window.location.hash.replace("#", "");
+    let page = await fetch("https://administratie.dko3.cloud/#"+hash).then(res => res.text());
+    // call to changeView() - assuming this is always the same, so no parsing here.
+    let view = await fetch("view.php?args="+hash).then(res => res.text());
 }
 
 function findDocReady(scanner: TokenScanner) {

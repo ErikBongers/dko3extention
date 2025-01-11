@@ -6,7 +6,6 @@ function main(workbook: ExcelScript.Workbook) {
     }
     invalidatePercentages(workbook); //todo: combine with updatePercentage()?
     updatePercentages(workbook);
-    setInfo(workbook, "TODO: set date of imported data");
 }
 
 enum MessageType { Info, Error}
@@ -44,7 +43,8 @@ interface Aanwezigheid {
     // percentTotaal: number,
     // percentFinancierbaarAP: number,
     // percentTotaalAP: number,
-    weken: string
+    weken: string,
+    codeP: number
 }
 
 interface Lln {
@@ -52,7 +52,12 @@ interface Lln {
     aanwList: Aanwezigheid[]
 }
 
-function getData(worksheet: ExcelScript.Worksheet) {
+interface TheData {
+    dataInfo: string,
+    llnMap: Map<string, Lln>
+}
+
+function getData(worksheet: ExcelScript.Worksheet) : TheData {
 
     let sourceRange = worksheet.getUsedRange();
     let sourceRangeValues = sourceRange.getValues();
@@ -62,8 +67,11 @@ function getData(worksheet: ExcelScript.Worksheet) {
         //todo: test if row starts with "lln:"
         lines.push(sourceRangeValues[row][0].toString());
     }
-    let aanwList = lines.filter(line => line.startsWith("lln: "))
-        .map(line => {
+    let dataInfo = "";
+    let aanwList: Aanwezigheid[] = [];
+    lines.forEach(line => {
+
+        if (line.startsWith("lln: ")) {
             let lln = line.substring(5);
             let fields = lln.split(",");
             let aanw: Aanwezigheid = {
@@ -71,10 +79,14 @@ function getData(worksheet: ExcelScript.Worksheet) {
                 voornaam: fields[1],
                 vakReduced: fields[2],
                 percentFinancierbaar: parseFloat(fields[3]),
-                weken: fields[4]
+                weken: fields[4],
+                codeP: parseInt(fields[5])
             };
-            return aanw;
-        })
+            aanwList.push(aanw);
+        } else if (line.startsWith("data:")) {
+            dataInfo = line.substring(5);
+        }
+    })
     // build llnList
     let llnList = new Map<string, Lln>();
     for(let aanw of aanwList) {
@@ -90,7 +102,7 @@ function getData(worksheet: ExcelScript.Worksheet) {
         lln.aanwList.push(aanw);
     }
     console.log(llnList);
-    return llnList;
+    return { dataInfo, llnMap: llnList };
 }
 
 function normalizeKey(key: string) {
@@ -117,7 +129,7 @@ function invalidatePercentages(workbook: ExcelScript.Workbook) {
 }
 
 function updatePercentages(workbook: ExcelScript.Workbook) {
-    let map = getData(workbook.getLastWorksheet());
+    let theData = getData(workbook.getLastWorksheet());
     let table = workbook.getTable("MiserieTabel");
     let tableRange = table.getRangeBetweenHeaderAndTotal();
     let tableValues = tableRange.getValues();
@@ -126,6 +138,7 @@ function updatePercentages(workbook: ExcelScript.Workbook) {
     let klasColumn = table.getColumnByName("Klas").getIndex();
     let percentColumn = table.getColumnByName("Percentage").getIndex();
     let wekenColumn = table.getColumnByName("Weken").getIndex();
+    let peeColumn = table.getColumnByName("Ps").getIndex();
     let rowCount = table.getRowCount();
     for (let r = 0; r < rowCount; r++) {
         let achterNaamOrg = tableValues[r][achterNaamColumn] as string;
@@ -140,13 +153,14 @@ function updatePercentages(workbook: ExcelScript.Workbook) {
         key = normalizeKey(key);
         if (key === ",")
             continue;
-        let lln = map.get(key);
+        let lln = theData.llnMap.get(key);
         if(!lln) {
             tableRange.getCell(r, achterNaamColumn).setValue(achterNaam + "???");
             tableRange.getCell(r,voorNaamColumn).setValue(voorNaam + "???");
             continue;
         } else {
-            tableRange.getCell(r, wekenColumn).setValue(lln.aanwList[0].weken)
+            tableRange.getCell(r, wekenColumn).setValue(lln.aanwList[0].weken);
+            tableRange.getCell(r, peeColumn).setValue(lln.aanwList[0].codeP);
             if(achterNaamOrg.includes("?")) {
                 tableRange.getCell(r, achterNaamColumn).setValue(achterNaam);
                 tableRange.getCell(r,voorNaamColumn).setValue(voorNaam);
@@ -181,4 +195,21 @@ function updatePercentages(workbook: ExcelScript.Workbook) {
         }
     }
 
+    //filter problem students and add them to table if needed
+    theData.llnMap.forEach((lln, key) => {
+        if(lln.aanwList[0].codeP > 3) {
+            let col = table.getColumn("Achternaam");
+            let foundRange = col.getRangeBetweenHeaderAndTotal().find(normalizeKey(lln.aanwList[0].naam), { completeMatch: true, matchCase: true, searchDirection: ExcelScript.SearchDirection.forward});
+            //TODO: if found: also check voornaam !!!
+            if(!foundRange) {
+                //add the row.
+                table.addRow();
+                let row = table.getRangeBetweenHeaderAndTotal().getLastRow();
+                row.getCell(0, achterNaamColumn).setValue(lln.aanwList[0].naam);
+                row.getCell(0, voorNaamColumn).setValue(lln.aanwList[0].voornaam);
+                row.getCell(0, peeColumn).setValue(lln.aanwList[0].codeP);
+            }
+        }
+    });
+    setInfo(workbook, "Laatste update: " + theData.dataInfo);
 }

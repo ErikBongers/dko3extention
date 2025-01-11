@@ -2327,19 +2327,23 @@
   }
 
   // typescript/table/loadAnyTable.ts
-  async function setViewFromCurrentUrl() {
-    let hash = window.location.hash.replace("#", "");
-    let page = await fetch("https://administratie.dko3.cloud/#" + hash).then((res) => res.text());
-    let view = await fetch("view.php?args=" + hash).then((res) => res.text());
-  }
-  async function getTableFromHash(hash, divInfoContainer) {
+  async function getTableFromHash(hash, divInfoContainer, clearCache) {
     let page = await fetch("https://administratie.dko3.cloud/#" + hash).then((res) => res.text());
     let view = await fetch("view.php?args=" + hash).then((res) => res.text());
     let index_viewUrl = getDocReadyLoadUrl(view);
     let index_view = await fetch(index_viewUrl).then((res) => res.text());
     let scanner = new TokenScanner(index_view);
     let htmlTableId = findDocReady(scanner).find("$", "(", "'#").clipTo("'").result();
-    let datatableUrl = getDocReadyLoadUrl(index_view);
+    if (!htmlTableId) {
+      let scanner2 = new TokenScanner(index_view);
+      htmlTableId = findDocReady(scanner2).find("$", "(", '"#').clipTo('"').result();
+    }
+    let someUrl = getDocReadyLoadUrl(index_view);
+    if (!someUrl.includes("ui/datatable.php")) {
+      let someCode = await fetch(someUrl).then((res) => res.text());
+      someUrl = getDocReadyLoadUrl(someCode);
+    }
+    let datatableUrl = someUrl;
     let datatable = await fetch(datatableUrl).then((result) => result.text());
     scanner = new TokenScanner(datatable);
     let datatable_id = "";
@@ -2366,10 +2370,16 @@
       //TODO: this function looks in document instead of the (perhaps in background) loaded table
     );
     tableDef.divInfoContainer = divInfoContainer;
-    tableDef.clearCache();
+    if (clearCache)
+      tableDef.clearCache();
     await tableDef.getTableData();
     await setViewFromCurrentUrl();
     return tableDef;
+  }
+  async function setViewFromCurrentUrl() {
+    let hash = window.location.hash.replace("#", "");
+    let page = await fetch("https://administratie.dko3.cloud/#" + hash).then((res) => res.text());
+    let view = await fetch("view.php?args=" + hash).then((res) => res.text());
   }
   function findDocReady(scanner) {
     return scanner.find("$", "(", "document", ")", ".", "ready", "(");
@@ -2511,7 +2521,7 @@
       getCriteriaString
     );
     tableDef.setupInfoBar();
-    let wekenLijst = await getTableFromHash("leerlingen-lijsten-awi-3weken", tableDef.divInfoContainer).then((bckTableDef) => {
+    let wekenLijst = await getTableFromHash("leerlingen-lijsten-awi-3weken", tableDef.divInfoContainer, true).then((bckTableDef) => {
       let template = bckTableDef.shadowTableTemplate;
       ``;
       let rows = template.content.querySelectorAll("tbody tr");
@@ -2522,6 +2532,16 @@
       });
     });
     console.log(wekenLijst);
+    let pList = await getTableFromHash("leerlingen-lijsten-awi-afwezigheidsregistraties", tableDef.divInfoContainer, false).then((bckTableDef) => {
+      let template = bckTableDef.shadowTableTemplate;
+      let rows = template.content.querySelectorAll("tbody tr");
+      let rowsArray = Array.from(rows);
+      return rowsArray.map((row) => {
+        let namen = row.cells[1].querySelector("strong").textContent.split(", ");
+        return { naam: namen[0], voornaam: namen[1], code: row.cells[2].textContent[0] };
+      });
+    });
+    console.log(pList);
     tableDef.clearCache();
     tableDef.getTableData().then(() => {
       let wekenMap = /* @__PURE__ */ new Map();
@@ -2531,8 +2551,9 @@
       let template = tableDef.shadowTableTemplate;
       let rows = template.content.querySelectorAll("tbody tr");
       let rowsArray = Array.from(rows);
-      let text = "data:\n";
-      rowsArray.map((row) => {
+      let nu = /* @__PURE__ */ new Date();
+      let text = "data:" + nu.toLocaleDateString() + "\n";
+      let aanwList = rowsArray.map((row) => {
         let percentFinancierbaar = parseFloat(row.cells[1].querySelector("strong").textContent.replace(",", ".")) / 100;
         let percentTotaal = parseFloat(row.cells[2].querySelector("strong").textContent.replace(",", ".")) / 100;
         let vak = row.cells[0].querySelector("br")?.nextSibling?.textContent;
@@ -2546,7 +2567,8 @@
           percentTotaal,
           percentFinancierbaarAP: 0,
           percentTotaalAP: 0,
-          weken: ""
+          weken: "",
+          codeP: 0
         };
         let week = wekenMap.get(aanw.naam + "," + aanw.voornaam);
         if (week) {
@@ -2557,8 +2579,17 @@
           }
         }
         return aanw;
-      }).forEach((aanw) => {
-        text += "lln: " + aanw.naam + "," + aanw.voornaam + "," + aanw.vakReduced + "," + aanw.percentFinancierbaar + "," + aanw.weken + "\n";
+      });
+      let studentPees = /* @__PURE__ */ new Map();
+      pList.filter((line) => line.code === "P").forEach((p) => {
+        studentPees.set(p.naam + "," + p.voornaam, (studentPees.get(p.naam + "," + p.voornaam) ?? 0) + 1);
+      });
+      console.log(studentPees);
+      aanwList.forEach((aanw) => {
+        aanw.codeP = studentPees.get(aanw.naam + "," + aanw.voornaam) ?? 0;
+      });
+      aanwList.forEach((aanw) => {
+        text += "lln: " + aanw.naam + "," + aanw.voornaam + "," + aanw.vakReduced + "," + aanw.percentFinancierbaar + "," + aanw.weken + "," + aanw.codeP + "\n";
       });
       console.log(text);
       navigator.clipboard.writeText(text).then((r) => {
