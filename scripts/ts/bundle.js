@@ -2532,7 +2532,7 @@
       });
     });
     console.log(wekenLijst);
-    let pList = await getTableFromHash("leerlingen-lijsten-awi-afwezigheidsregistraties", tableDef.divInfoContainer, false).then((bckTableDef) => {
+    let pList = await getTableFromHash("leerlingen-lijsten-awi-afwezigheidsregistraties", tableDef.divInfoContainer, true).then((bckTableDef) => {
       let template = bckTableDef.shadowTableTemplate;
       let rows = template.content.querySelectorAll("tbody tr");
       let rowsArray = Array.from(rows);

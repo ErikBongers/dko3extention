@@ -70,8 +70,7 @@ async function copyTable() {
     });
     console.log(wekenLijst);
 
-    //TODO: temporarily using cache!!!!
-    let pList = await getTableFromHash("leerlingen-lijsten-awi-afwezigheidsregistraties", tableDef.divInfoContainer, false).then(bckTableDef => {
+    let pList = await getTableFromHash("leerlingen-lijsten-awi-afwezigheidsregistraties", tableDef.divInfoContainer, true).then(bckTableDef => {
         let template = bckTableDef.shadowTableTemplate;
         let rows = template.content.querySelectorAll("tbody tr") as NodeListOf<HTMLTableRowElement>;
         let rowsArray = Array.from(rows);
