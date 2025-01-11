@@ -1,5 +1,5 @@
 function main(workbook: ExcelScript.Workbook) {
-    setInfo(workbook, "Updating...");
+    setHighlight(workbook, "Updating...");
     if(workbook.getWorksheets().length < 2) {
         setError(workbook, "Geen 2e worksheet met data gevonden.");
         return;
@@ -8,7 +8,7 @@ function main(workbook: ExcelScript.Workbook) {
     updatePercentages(workbook);
 }
 
-enum MessageType { Info, Error}
+enum MessageType { Info, Error, Highlight}
 
 function setError(workbook: ExcelScript.Workbook, msg: string) {
     _setMessage(workbook, msg, MessageType.Error);
@@ -18,6 +18,10 @@ function setInfo(workbook: ExcelScript.Workbook, msg: string) {
     _setMessage(workbook, msg, MessageType.Info);
 }
 
+function setHighlight(workbook: ExcelScript.Workbook, msg: string) {
+    _setMessage(workbook, msg, MessageType.Highlight);
+}
+
 function _setMessage(workbook: ExcelScript.Workbook, msg: string, type: MessageType) {
     let cell = workbook.getFirstWorksheet().getCell(1, 4);
     cell.setValue(msg);
@@ -25,6 +29,9 @@ function _setMessage(workbook: ExcelScript.Workbook, msg: string, type: MessageT
     switch(type) {
         case MessageType.Error:
             cell.getFormat().getFill().setColor("FF0000");
+            break;
+        case MessageType.Highlight:
+            cell.getFormat().getFill().setColor("FFFF00");
             break;
         case MessageType.Info:
             cell.getFormat().getFill().clear();
@@ -101,7 +108,6 @@ function getData(worksheet: ExcelScript.Worksheet) : TheData {
         }
         lln.aanwList.push(aanw);
     }
-    console.log(llnList);
     return { dataInfo, llnMap: llnList };
 }
 
