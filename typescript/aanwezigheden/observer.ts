@@ -4,6 +4,7 @@ import {addButton} from "../globals";
 import {SimpleTableHandler} from "../pageHandlers";
 import {findTableRefInCode, TableDef} from "../table/tableDef";
 import {getCriteriaString} from "../werklijst/observer";
+import {getTableFromHash, testScanner} from "../table/loadAnyTable";
 
 export default new HashObserver("#leerlingen-lijsten-awi-percentages_leerling_vak", onMutationAanwezgheden);
 
@@ -26,13 +27,51 @@ interface Aanwezigheid {
     percentTotaal: number,
     percentFinancierbaarAP: number,
     percentTotaalAP: number,
+    weken: string
 }
 
-function copyTable() {
+interface Weken {
+    naam: string,
+    voornaam: string,
+    weken: number
+}
+
+async function copyTable() {
     let prebuildPageHandler = new SimpleTableHandler(onLoaded, undefined);
 
     function onLoaded(tableDef: TableDef) {
-        //TODO: this really is just the downloadTable() function from table/observer.ts.
+    }
+
+    let tableRef = findTableRefInCode();
+    let tableDef = new TableDef(
+        tableRef,
+        prebuildPageHandler,
+        getCriteriaString
+    );
+
+    tableDef.setupInfoBar();
+    let wekenLijst = await getTableFromHash("leerlingen-lijsten-awi-3weken", tableDef.divInfoContainer).then(bckTableDef => {
+        let template = bckTableDef.shadowTableTemplate;
+``        // convert table to text
+        let rows = template.content.querySelectorAll("tbody tr") as NodeListOf<HTMLTableRowElement>;
+        let rowsArray = Array.from(rows);
+        return rowsArray
+            .map(row => {
+                let namen = row.cells[0].textContent.split(", ");
+                return { naam: namen[0], voornaam: namen[1], weken: parseInt(row.cells[3].textContent)} as Weken;
+            });
+    });
+    console.log(wekenLijst);
+
+    tableDef.clearCache();
+    tableDef.getTableData().then(() => {
+
+        let wekenMap: Map<string, Weken> = new Map();
+
+        for(let week of wekenLijst) {
+            wekenMap.set(week.naam+","+week.voornaam, week);
+        }
+
         let template = tableDef.shadowTableTemplate;
         // convert table to text
         let rows = template.content.querySelectorAll("tbody tr") as NodeListOf<HTMLTableRowElement>;
@@ -52,12 +91,21 @@ function copyTable() {
                     percentFinancierbaar,
                     percentTotaal,
                     percentFinancierbaarAP: 0,
-                    percentTotaalAP: 0
+                    percentTotaalAP: 0,
+                    weken: ""
                 };
+                let week = wekenMap.get(aanw.naam+","+aanw.voornaam);
+                if(week) {
+                    if (aanw.weken) {
+                        aanw.weken += " + " + week.weken;
+                    } else {
+                        aanw.weken = week.weken.toString();
+                    }
+                }
                 return aanw;
             })
             .forEach(aanw => {
-                text += "lln: " + aanw.naam + "," + aanw.voornaam + "," + aanw.vakReduced + "," + aanw.percentFinancierbaar + "\n";
+                text += "lln: " + aanw.naam + "," + aanw.voornaam + "," + aanw.vakReduced + "," + aanw.percentFinancierbaar + "," + aanw.weken + "\n";
             });
         console.log(text);
         navigator.clipboard.writeText(text).then(r => {});
@@ -66,16 +114,7 @@ function copyTable() {
         tableDef.tableRef.getOrgTable()
             .querySelector("tbody")
             .replaceChildren(...template.content.querySelectorAll("tbody tr"));
-    }
-
-    let tableRef = findTableRefInCode();
-    let tableDef = new TableDef(
-        tableRef,
-        prebuildPageHandler,
-        getCriteriaString
-    );
-    tableDef.clearCache();
-    tableDef.getTableData().then(() => { });
+    });
 }
 
 //todo: use in table/observer as well.

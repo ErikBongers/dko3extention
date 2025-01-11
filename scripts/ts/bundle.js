@@ -1470,8 +1470,9 @@
       return this.step >= this.maxCount;
     }
   };
-  function findFirstNavigation() {
-    let buttonPagination = document.querySelector("button.datatable-paging-numbers");
+  function findFirstNavigation(element) {
+    element = element ?? document.body;
+    let buttonPagination = element.querySelector("button.datatable-paging-numbers");
     if (!buttonPagination)
       return void 0;
     let buttonContainer = buttonPagination.closest("div");
@@ -1553,13 +1554,13 @@
 
   // typescript/table/tableDef.ts
   var TableRef = class {
-    constructor(tableId, navigationData, buildFetchUrl) {
-      this.tableId = tableId;
+    constructor(htmlTableId, navigationData, buildFetchUrl) {
+      this.htmlTableId = htmlTableId;
       this.buildFetchUrl = buildFetchUrl;
       this.navigationData = navigationData;
     }
     getOrgTable() {
-      return document.getElementById(this.tableId);
+      return document.getElementById(this.htmlTableId);
     }
   };
   function findTableRefInCode() {
@@ -1599,7 +1600,6 @@
       if (!calculateTableCheckSum)
         throw "Tablechecksum required.";
       this.calculateTableCheckSum = calculateTableCheckSum;
-      this.setupInfoBar();
     }
     saveToCache() {
       db3(`Caching ${this.getCacheId()}.`);
@@ -1607,7 +1607,7 @@
       window.sessionStorage.setItem(this.getCacheId() + CACHE_DATE_SUFFIX, (/* @__PURE__ */ new Date()).toJSON());
     }
     clearCache() {
-      db3(`Clear cache for ${this.tableRef.tableId}.`);
+      db3(`Clear cache for ${this.tableRef.htmlTableId}.`);
       window.sessionStorage.removeItem(this.getCacheId());
       window.sessionStorage.removeItem(this.getCacheId() + CACHE_DATE_SUFFIX);
     }
@@ -1628,12 +1628,14 @@
       let checksum = "";
       if (this.calculateTableCheckSum)
         checksum = "__" + this.calculateTableCheckSum(this);
-      let id = this.tableRef.tableId + checksum;
+      let id = this.tableRef.htmlTableId + checksum;
       return id.replaceAll(/\s/g, "");
     }
     setupInfoBar() {
-      this.divInfoContainer = document.createElement("div");
-      this.tableRef.getOrgTable().insertAdjacentElement("beforebegin", this.divInfoContainer);
+      if (!this.divInfoContainer) {
+        this.divInfoContainer = document.createElement("div");
+        this.tableRef.getOrgTable().insertAdjacentElement("beforebegin", this.divInfoContainer);
+      }
       this.divInfoContainer.classList.add("infoLine");
     }
     clearInfoBar() {
@@ -1694,6 +1696,7 @@
       };
     }
     async getTableData(rawData, parallelAsyncFunction) {
+      this.setupInfoBar();
       this.clearCacheInfo();
       let cachedData = this.loadFromCache();
       if (cachedData) {
@@ -1704,7 +1707,7 @@
         this.shadowTableTemplate.innerHTML = cachedData.text;
         this.shadowTableDate = cachedData.date;
         this.isUsingCached = true;
-        db3(`${this.tableRef.tableId}: using cached data.`);
+        db3(`${this.tableRef.htmlTableId}: using cached data.`);
         let rows = this.shadowTableTemplate.content.querySelectorAll("tbody > tr");
         if (this.pageHandler.onPage)
           this.pageHandler.onPage(this, this.shadowTableTemplate.innerHTML, void 0, 0, this.shadowTableTemplate, rows);
@@ -2323,6 +2326,169 @@
     spanCounter.textContent = txtSms.value.length.toString();
   }
 
+  // typescript/table/loadAnyTable.ts
+  async function setViewFromCurrentUrl() {
+    let hash = window.location.hash.replace("#", "");
+    let page = await fetch("https://administratie.dko3.cloud/#" + hash).then((res) => res.text());
+    let view = await fetch("view.php?args=" + hash).then((res) => res.text());
+  }
+  async function getTableFromHash(hash, divInfoContainer) {
+    let page = await fetch("https://administratie.dko3.cloud/#" + hash).then((res) => res.text());
+    let view = await fetch("view.php?args=" + hash).then((res) => res.text());
+    let index_viewUrl = getDocReadyLoadUrl(view);
+    let index_view = await fetch(index_viewUrl).then((res) => res.text());
+    let scanner = new TokenScanner(index_view);
+    let htmlTableId = findDocReady(scanner).find("$", "(", "'#").clipTo("'").result();
+    let datatableUrl = getDocReadyLoadUrl(index_view);
+    let datatable = await fetch(datatableUrl).then((result) => result.text());
+    scanner = new TokenScanner(datatable);
+    let datatable_id = "";
+    let tableNavUrl = "";
+    scanner.find("var", "datatable_id", "=").getString((res) => {
+      datatable_id = res;
+    }).clipTo("<\/script>").find(".", "load", "(").getString((res) => tableNavUrl = res).result();
+    tableNavUrl += datatable_id + "&pos=top";
+    let tableNavText = await fetch(tableNavUrl).then((res) => res.text().then());
+    let div = document.createElement("div");
+    div.innerHTML = tableNavText;
+    let tableNav = findFirstNavigation(div);
+    console.log(tableNav);
+    let buildFetchUrl = (offset) => `/views/ui/datatable.php?id=${datatable_id}&start=${offset}&aantal=0`;
+    let tableRef = new TableRef(htmlTableId, tableNav, buildFetchUrl);
+    console.log(tableRef);
+    let prebuildPageHandler = new SimpleTableHandler(onLoaded, void 0);
+    function onLoaded(tableDef2) {
+    }
+    let tableDef = new TableDef(
+      tableRef,
+      prebuildPageHandler,
+      getCriteriaString
+      //TODO: this function looks in document instead of the (perhaps in background) loaded table
+    );
+    tableDef.divInfoContainer = divInfoContainer;
+    tableDef.clearCache();
+    await tableDef.getTableData();
+    await setViewFromCurrentUrl();
+    return tableDef;
+  }
+  function findDocReady(scanner) {
+    return scanner.find("$", "(", "document", ")", ".", "ready", "(");
+  }
+  function getDocReadyLoadUrl(text) {
+    let scanner = new TokenScanner(text);
+    return findDocReady(scanner).clipTo("<\/script>").find(".", "load", "(").clipString().result();
+  }
+  function escapeRegexChars(text) {
+    return text.replaceAll("\\", "\\\\").replaceAll("^", "\\^").replaceAll("$", "\\$").replaceAll(".", "\\.").replaceAll("|", "\\|").replaceAll("?", "\\?").replaceAll("*", "\\*").replaceAll("+", "\\+").replaceAll("(", "\\(").replaceAll(")", "\\)").replaceAll("[", "\\[").replaceAll("]", "\\]").replaceAll("{", "\\{").replaceAll("}", "\\}");
+  }
+  var ScannerElse = class {
+    constructor(scannerIf) {
+      this.scannerIf = scannerIf;
+    }
+    not(callback) {
+      if (!this.scannerIf.yes) {
+        callback?.(this.scannerIf.scanner);
+      }
+      return this.scannerIf.scanner;
+    }
+  };
+  var ScannerIf = class {
+    constructor(yes, scanner) {
+      this.yes = yes;
+      this.scanner = scanner;
+    }
+    then(callback) {
+      if (this.yes) {
+        callback(this.scanner);
+      }
+      return new ScannerElse(this);
+    }
+  };
+  var TokenScanner = class _TokenScanner {
+    constructor(text) {
+      this.valid = true;
+      this.source = text;
+      this.cursor = text;
+    }
+    result() {
+      if (this.valid)
+        return this.cursor;
+      return void 0;
+    }
+    find(...tokens) {
+      return this.#find("", tokens);
+    }
+    match(...tokens) {
+      return this.#find("^\\s*", tokens);
+    }
+    #find(prefix, tokens) {
+      if (!this.valid)
+        return this;
+      let rxString = prefix + tokens.map((token) => escapeRegexChars(token) + "\\s*").join("");
+      let match = RegExp(rxString).exec(this.cursor);
+      if (match) {
+        this.cursor = this.cursor.substring(match.index + match[0].length);
+        return this;
+      }
+      this.valid = false;
+      return this;
+    }
+    ifMatch(...tokens) {
+      if (!this.valid)
+        return new ScannerIf(true, this);
+      this.match(...tokens);
+      if (this.valid) {
+        return new ScannerIf(true, this);
+      } else {
+        this.valid = true;
+        return new ScannerIf(false, this);
+      }
+    }
+    clip(len) {
+      if (!this.valid)
+        return this;
+      this.cursor = this.cursor.substring(0, len);
+      return this;
+    }
+    clipTo(end) {
+      if (!this.valid)
+        return this;
+      let found = this.cursor.indexOf(end);
+      if (found < 0) {
+        this.valid = false;
+        return this;
+      }
+      this.cursor = this.cursor.substring(0, found);
+      return this;
+    }
+    clone() {
+      let newScanner = new _TokenScanner(this.cursor);
+      newScanner.valid = this.valid;
+      return newScanner;
+    }
+    clipString() {
+      let isString = false;
+      this.ifMatch("'").then((result) => {
+        isString = true;
+        return result.clipTo("'");
+      }).not().ifMatch('"').then((result) => {
+        isString = true;
+        return result.clipTo('"');
+      }).not();
+      this.valid = this.valid && isString;
+      return this;
+    }
+    getString(callback) {
+      let subScanner = this.clone();
+      let result = subScanner.clipString().result();
+      if (result) {
+        callback(result);
+        this.ifMatch("'").then((result2) => result2.find("'")).not().ifMatch('"').then((result2) => result2.find('"')).not();
+      }
+      return this;
+    }
+  };
+
   // typescript/aanwezigheden/observer.ts
   var observer_default9 = new HashObserver("#leerlingen-lijsten-awi-percentages_leerling_vak", onMutationAanwezgheden);
   function onMutationAanwezgheden(mutation) {
@@ -2334,10 +2500,35 @@
     addTableNavigationButton(COPY_TABLE_BTN_ID, "copy table to clipboard", copyTable, "fa-clipboard");
     return true;
   }
-  function copyTable() {
+  async function copyTable() {
     let prebuildPageHandler = new SimpleTableHandler(onLoaded, void 0);
     function onLoaded(tableDef2) {
-      let template = tableDef2.shadowTableTemplate;
+    }
+    let tableRef = findTableRefInCode();
+    let tableDef = new TableDef(
+      tableRef,
+      prebuildPageHandler,
+      getCriteriaString
+    );
+    tableDef.setupInfoBar();
+    let wekenLijst = await getTableFromHash("leerlingen-lijsten-awi-3weken", tableDef.divInfoContainer).then((bckTableDef) => {
+      let template = bckTableDef.shadowTableTemplate;
+      ``;
+      let rows = template.content.querySelectorAll("tbody tr");
+      let rowsArray = Array.from(rows);
+      return rowsArray.map((row) => {
+        let namen = row.cells[0].textContent.split(", ");
+        return { naam: namen[0], voornaam: namen[1], weken: parseInt(row.cells[3].textContent) };
+      });
+    });
+    console.log(wekenLijst);
+    tableDef.clearCache();
+    tableDef.getTableData().then(() => {
+      let wekenMap = /* @__PURE__ */ new Map();
+      for (let week of wekenLijst) {
+        wekenMap.set(week.naam + "," + week.voornaam, week);
+      }
+      let template = tableDef.shadowTableTemplate;
       let rows = template.content.querySelectorAll("tbody tr");
       let rowsArray = Array.from(rows);
       let text = "data:\n";
@@ -2354,25 +2545,25 @@
           percentFinancierbaar,
           percentTotaal,
           percentFinancierbaarAP: 0,
-          percentTotaalAP: 0
+          percentTotaalAP: 0,
+          weken: ""
         };
+        let week = wekenMap.get(aanw.naam + "," + aanw.voornaam);
+        if (week) {
+          if (aanw.weken) {
+            aanw.weken += " + " + week.weken;
+          } else {
+            aanw.weken = week.weken.toString();
+          }
+        }
         return aanw;
       }).forEach((aanw) => {
-        text += "lln: " + aanw.naam + "," + aanw.voornaam + "," + aanw.vakReduced + "," + aanw.percentFinancierbaar + "\n";
+        text += "lln: " + aanw.naam + "," + aanw.voornaam + "," + aanw.vakReduced + "," + aanw.percentFinancierbaar + "," + aanw.weken + "\n";
       });
       console.log(text);
       navigator.clipboard.writeText(text).then((r) => {
       });
-      tableDef2.tableRef.getOrgTable().querySelector("tbody").replaceChildren(...template.content.querySelectorAll("tbody tr"));
-    }
-    let tableRef = findTableRefInCode();
-    let tableDef = new TableDef(
-      tableRef,
-      prebuildPageHandler,
-      getCriteriaString
-    );
-    tableDef.clearCache();
-    tableDef.getTableData().then(() => {
+      tableDef.tableRef.getOrgTable().querySelector("tbody").replaceChildren(...template.content.querySelectorAll("tbody tr"));
     });
   }
   function addTableNavigationButton(btnId, title, onClick, fontIconId) {

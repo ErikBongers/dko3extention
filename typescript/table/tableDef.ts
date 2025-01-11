@@ -5,18 +5,18 @@ import * as def from "../def.js";
 import {db3, millisToString} from "../globals.js";
 
 export class TableRef {
-    tableId: string;
+    htmlTableId: string;
     buildFetchUrl: (offset: number) => string;
     navigationData: TableNavigation;
 
-    constructor(tableId: string, navigationData: TableNavigation, buildFetchUrl: (offset: number) => string) {
-        this.tableId = tableId;
+    constructor(htmlTableId: string, navigationData: TableNavigation, buildFetchUrl: (offset: number) => string) {
+        this.htmlTableId = htmlTableId;
         this.buildFetchUrl = buildFetchUrl;
         this.navigationData = navigationData;
     }
 
     getOrgTable() {
-        return document.getElementById(this.tableId) as HTMLTableElement;
+        return document.getElementById(this.htmlTableId) as HTMLTableElement;
     }
 }
 
@@ -76,7 +76,6 @@ export class TableDef {
         if(!calculateTableCheckSum)
             throw ("Tablechecksum required.");
         this.calculateTableCheckSum = calculateTableCheckSum;
-        this.setupInfoBar();
     }
 
     saveToCache() {
@@ -86,7 +85,7 @@ export class TableDef {
     }
 
     clearCache() {
-        db3(`Clear cache for ${this.tableRef.tableId}.`);
+        db3(`Clear cache for ${this.tableRef.htmlTableId}.`);
         window.sessionStorage.removeItem(this.getCacheId());
         window.sessionStorage.removeItem(this.getCacheId()+ def.CACHE_DATE_SUFFIX);
     }
@@ -110,13 +109,15 @@ export class TableDef {
         let checksum = "";
         if (this.calculateTableCheckSum)
             checksum = "__" + this.calculateTableCheckSum(this);
-        let id = this.tableRef.tableId + checksum;
+        let id = this.tableRef.htmlTableId + checksum;
         return id.replaceAll(/\s/g, "");
     }
 
     setupInfoBar() {
-        this.divInfoContainer = document.createElement("div");
-        this.tableRef.getOrgTable().insertAdjacentElement("beforebegin", this.divInfoContainer);
+        if(!this.divInfoContainer) {
+            this.divInfoContainer = document.createElement("div");
+            this.tableRef.getOrgTable().insertAdjacentElement("beforebegin", this.divInfoContainer);
+        }
         this.divInfoContainer.classList.add("infoLine");
     }
 
@@ -187,6 +188,7 @@ export class TableDef {
         }
     }
     async getTableData(rawData?: any, parallelAsyncFunction?: (() => Promise<any>)) {
+        this.setupInfoBar();
         this.clearCacheInfo();
         let cachedData = this.loadFromCache();
 
@@ -198,7 +200,7 @@ export class TableDef {
             this.shadowTableTemplate.innerHTML = cachedData.text;
             this.shadowTableDate = cachedData.date;
             this.isUsingCached = true;
-            db3(`${this.tableRef.tableId}: using cached data.`);
+            db3(`${this.tableRef.htmlTableId}: using cached data.`);
             let rows = this.shadowTableTemplate.content.querySelectorAll("tbody > tr") as NodeListOf<HTMLTableRowElement>;
             //TODO: collection is set to undefined. This call to onPage(), should be EXACTLY the same as with a real fetch.
             if (this.pageHandler.onPage)

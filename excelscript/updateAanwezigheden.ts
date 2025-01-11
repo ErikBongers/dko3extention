@@ -44,6 +44,7 @@ interface Aanwezigheid {
     // percentTotaal: number,
     // percentFinancierbaarAP: number,
     // percentTotaalAP: number,
+    weken: string
 }
 
 interface Lln {
@@ -69,7 +70,8 @@ function getData(worksheet: ExcelScript.Worksheet) {
                 naam: fields[0],
                 voornaam: fields[1],
                 vakReduced: fields[2],
-                percentFinancierbaar: parseFloat(fields[3])
+                percentFinancierbaar: parseFloat(fields[3]),
+                weken: fields[4]
             };
             return aanw;
         })
@@ -123,6 +125,7 @@ function updatePercentages(workbook: ExcelScript.Workbook) {
     let voorNaamColumn = table.getColumnByName("Voornaam").getIndex();
     let klasColumn = table.getColumnByName("Klas").getIndex();
     let percentColumn = table.getColumnByName("Percentage").getIndex();
+    let wekenColumn = table.getColumnByName("Weken").getIndex();
     let rowCount = table.getRowCount();
     for (let r = 0; r < rowCount; r++) {
         let achterNaamOrg = tableValues[r][achterNaamColumn] as string;
@@ -143,6 +146,7 @@ function updatePercentages(workbook: ExcelScript.Workbook) {
             tableRange.getCell(r,voorNaamColumn).setValue(voorNaam + "???");
             continue;
         } else {
+            tableRange.getCell(r, wekenColumn).setValue(lln.aanwList[0].weken)
             if(achterNaamOrg.includes("?")) {
                 tableRange.getCell(r, achterNaamColumn).setValue(achterNaam);
                 tableRange.getCell(r,voorNaamColumn).setValue(voorNaam);

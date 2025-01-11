@@ -23,9 +23,10 @@ export class TableNavigation {
 [0, 400, 501, 580, 580]  -> interval is [1] -> [2]-1 = 100
 [0, 200, 301, 400, 400, 500, 580] -> interval is [1] -> [2]
 */
-export function findFirstNavigation() {
+export function findFirstNavigation(element?: HTMLElement) {
+    element = element?? document.body;
     //get all possible numbers from the navigation bar and sort them to get the result above.
-    let buttonPagination = document.querySelector("button.datatable-paging-numbers") as HTMLButtonElement;
+    let buttonPagination = element.querySelector("button.datatable-paging-numbers") as HTMLButtonElement;
     if(!buttonPagination)
         return undefined;
     let buttonContainer = buttonPagination.closest("div") as HTMLDivElement;
