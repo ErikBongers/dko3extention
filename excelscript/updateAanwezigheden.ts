@@ -136,6 +136,7 @@ function invalidatePercentages(workbook: ExcelScript.Workbook) {
 
 function updatePercentages(workbook: ExcelScript.Workbook) {
     let theData = getData(workbook.getLastWorksheet());
+    console.log(theData);
     let table = workbook.getTable("MiserieTabel");
     let tableRange = table.getRangeBetweenHeaderAndTotal();
     let tableValues = tableRange.getValues();
@@ -146,6 +147,8 @@ function updatePercentages(workbook: ExcelScript.Workbook) {
     let wekenColumn = table.getColumnByName("Weken").getIndex();
     let peeColumn = table.getColumnByName("Ps").getIndex();
     let rowCount = table.getRowCount();
+    let tableKeys = new Set<string>();
+
     for (let r = 0; r < rowCount; r++) {
         let achterNaamOrg = tableValues[r][achterNaamColumn] as string;
         let voorNaamOrg = tableValues[r][voorNaamColumn] as string;
@@ -157,6 +160,7 @@ function updatePercentages(workbook: ExcelScript.Workbook) {
         let percent = tableValues[r][percentColumn];
         let key = achterNaam + "," + voorNaam;
         key = normalizeKey(key);
+        tableKeys.add(key);
         if (key === ",")
             continue;
         let lln = theData.llnMap.get(key);
@@ -204,11 +208,7 @@ function updatePercentages(workbook: ExcelScript.Workbook) {
     //filter problem students and add them to table if needed
     theData.llnMap.forEach((lln, key) => {
         if(lln.aanwList[0].codeP > 3) {
-            let col = table.getColumn("Achternaam");
-            let foundRange = findName(lln.aanwList[0].naam, lln.aanwList[0].voornaam, col);
-
-            if(!foundRange) {
-                //add the row.
+            if (!tableKeys.has(key)) {
                 table.addRow();
                 let row = table.getRangeBetweenHeaderAndTotal().getLastRow();
                 row.getCell(0, achterNaamColumn).setValue(lln.aanwList[0].naam);
@@ -221,21 +221,3 @@ function updatePercentages(workbook: ExcelScript.Workbook) {
 }
 
 
-function findName(naam: string, voornaam: string, achternaamCol: ExcelScript.TableColumn) : ExcelScript.Range {
-    let searchRange = achternaamCol.getRangeBetweenHeaderAndTotal();
-    while(true) {
-        let foundRange = searchRange.find(naam, { completeMatch: true, matchCase: true, searchDirection: ExcelScript.SearchDirection.forward });
-        if(!foundRange)
-            return undefined;
-        //also check voornaam, assuming cell to the right of naam.
-        if (foundRange?.getCell(0, 1).getValue() === voornaam) { //TODO: use faster method.
-            return foundRange;
-        }
-        searchRange = foundRange.getWorksheet().getRangeByIndexes(
-            foundRange.getLastCell().getRowIndex()+1,
-            foundRange.getLastCell().getColumnIndex(),
-            searchRange.getLastCell().getRowIndex(),
-            searchRange.getLastCell().getColumnIndex(),
-        )
-    }
-}
