@@ -205,8 +205,8 @@ function updatePercentages(workbook: ExcelScript.Workbook) {
     theData.llnMap.forEach((lln, key) => {
         if(lln.aanwList[0].codeP > 3) {
             let col = table.getColumn("Achternaam");
-            let foundRange = col.getRangeBetweenHeaderAndTotal().find(normalizeKey(lln.aanwList[0].naam), { completeMatch: true, matchCase: true, searchDirection: ExcelScript.SearchDirection.forward});
-            //TODO: if found: also check voornaam !!!
+            let foundRange = findName(lln.aanwList[0].naam, lln.aanwList[0].voornaam, col);
+
             if(!foundRange) {
                 //add the row.
                 table.addRow();
@@ -218,4 +218,24 @@ function updatePercentages(workbook: ExcelScript.Workbook) {
         }
     });
     setInfo(workbook, "Laatste update: " + theData.dataInfo);
+}
+
+
+function findName(naam: string, voornaam: string, achternaamCol: ExcelScript.TableColumn) : ExcelScript.Range {
+    let searchRange = achternaamCol.getRangeBetweenHeaderAndTotal();
+    while(true) {
+        let foundRange = searchRange.find(naam, { completeMatch: true, matchCase: true, searchDirection: ExcelScript.SearchDirection.forward });
+        if(!foundRange)
+            return undefined;
+        //also check voornaam, assuming cell to the right of naam.
+        if (foundRange?.getCell(0, 1).getValue() === voornaam) { //TODO: use faster method.
+            return foundRange;
+        }
+        searchRange = foundRange.getWorksheet().getRangeByIndexes(
+            foundRange.getLastCell().getRowIndex()+1,
+            foundRange.getLastCell().getColumnIndex(),
+            searchRange.getLastCell().getRowIndex(),
+            searchRange.getLastCell().getColumnIndex(),
+        )
+    }
 }
