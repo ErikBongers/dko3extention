@@ -213,6 +213,8 @@ function updatePercentages(workbook: ExcelScript.Workbook) {
                 let row = table.getRangeBetweenHeaderAndTotal().getLastRow();
                 row.getCell(0, achterNaamColumn).setValue(lln.aanwList[0].naam);
                 row.getCell(0, voorNaamColumn).setValue(lln.aanwList[0].voornaam);
+                row.getCell(0, klasColumn).setValue(lln.aanwList.map(aanw => aanw.vakReduced).join(" en "));
+
                 row.getCell(0, peeColumn).setValue(lln.aanwList[0].codeP);
                 row.getCell(0, wekenColumn).setValue(Math.max(...lln.aanwList.map(aanw => parseInt(aanw.weken))));
                 row.getCell(0, percentColumn).setValue(Math.min(...lln.aanwList.map(aanw => aanw.percentFinancierbaar)))
