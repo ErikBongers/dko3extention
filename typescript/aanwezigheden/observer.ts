@@ -220,6 +220,9 @@ function reduceVaknaam(vaknaam: string) : string {
     if (vaknaam.includes("ompositie")) {
         return "compositie";
     }
+    if (vaknaam.includes(" saz")) {
+        return "saz";
+    }
     if (vaknaam.includes("Instrument: klassiek: ")) {
         let rx = /Instrument: klassiek: (\S*)/;
         let matches = vaknaam.match(rx);
@@ -231,8 +234,12 @@ function reduceVaknaam(vaknaam: string) : string {
     if (vaknaam.includes("Instrument: jazz-pop-rock: ")) {
         let rx = /Instrument: jazz-pop-rock: (\S*)/;
         let matches = vaknaam.match(rx);
-        if(matches.length > 1)
-            return matches[1];
+        if(matches.length > 1) {
+            if(matches[1].includes("elektrische"))
+                return "gitaar JPR"
+            else
+                return matches[1];
+        }
         else
             return vaknaam;
     }
