@@ -217,6 +217,9 @@ function reduceVaknaam(vaknaam: string) : string {
     if (vaknaam.includes("oordstudio")) {
         return "WS";
     }
+    if (vaknaam.includes("ramastudio")) {
+        return "DS";
+    }
     if (vaknaam.includes("ompositie")) {
         return "compositie";
     }
