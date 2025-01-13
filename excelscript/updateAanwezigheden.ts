@@ -207,17 +207,31 @@ function updatePercentages(workbook: ExcelScript.Workbook) {
 
     //filter problem students and add them to table if needed
     theData.llnMap.forEach((lln, key) => {
-        if(lln.aanwList[0].codeP > 3) {
+        if(hasIssues(lln)) {
             if (!tableKeys.has(key)) {
                 table.addRow();
                 let row = table.getRangeBetweenHeaderAndTotal().getLastRow();
                 row.getCell(0, achterNaamColumn).setValue(lln.aanwList[0].naam);
                 row.getCell(0, voorNaamColumn).setValue(lln.aanwList[0].voornaam);
                 row.getCell(0, peeColumn).setValue(lln.aanwList[0].codeP);
+                row.getCell(0, wekenColumn).setValue(Math.max(...lln.aanwList.map(aanw => parseInt(aanw.weken))));
+                row.getCell(0, percentColumn).setValue(Math.min(...lln.aanwList.map(aanw => aanw.percentFinancierbaar)))
             }
         }
     });
     setInfo(workbook, "Laatste update: " + theData.dataInfo);
 }
 
+
+function hasIssues(lln: Lln): boolean {
+    for(let aanw of lln.aanwList) {
+        if(aanw.codeP > 3)
+            return true;
+        if(parseInt(aanw.weken) >= 3) //TODO: could have more than one value...
+            return true;
+        if(aanw.percentFinancierbaar < 0.66)
+            return true;
+    }
+    return false;
+}
 
