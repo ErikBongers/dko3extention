@@ -2555,7 +2555,8 @@
       let rowsArray = Array.from(rows);
       return rowsArray.map((row) => {
         let namen = row.cells[1].querySelector("strong").textContent.split(", ");
-        return { naam: namen[0], voornaam: namen[1], code: row.cells[2].textContent[0] };
+        let leraar = row.cells[1].querySelector("small").textContent.substring(16);
+        return { naam: namen[0], voornaam: namen[1], code: row.cells[2].textContent[0], leraar };
       });
     });
     console.log(pList);
@@ -2598,15 +2599,21 @@
         return aanw;
       });
       let studentPees = /* @__PURE__ */ new Map();
+      let leraarPees = /* @__PURE__ */ new Map();
       pList.filter((line) => line.code === "P").forEach((p) => {
         studentPees.set(p.naam + "," + p.voornaam, (studentPees.get(p.naam + "," + p.voornaam) ?? 0) + 1);
+        leraarPees.set(p.leraar, (leraarPees.get(p.leraar) ?? 0) + 1);
       });
       console.log(studentPees);
+      console.log(leraarPees);
       aanwList.forEach((aanw) => {
         aanw.codeP = studentPees.get(aanw.naam + "," + aanw.voornaam) ?? 0;
       });
       aanwList.forEach((aanw) => {
         text += "lln: " + aanw.naam + "," + aanw.voornaam + "," + aanw.vakReduced + "," + aanw.percentFinancierbaar + "," + aanw.weken + "," + aanw.codeP + "\n";
+      });
+      leraarPees.forEach((leraarP, key) => {
+        text += "leraar: " + key + "," + leraarP + "\n";
       });
       console.log(text);
       navigator.clipboard.writeText(text).then((r) => {

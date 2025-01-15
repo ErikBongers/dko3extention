@@ -60,9 +60,15 @@ interface Lln {
     aanwList: Aanwezigheid[]
 }
 
+interface Leraar {
+    leraar: string,
+    Ps: number
+}
+
 interface TheData {
     dataInfo: string,
-    llnMap: Map<string, Lln>
+    llnMap: Map<string, Lln>,
+    leraarList: Leraar[]
 }
 
 function getData(worksheet: ExcelScript.Worksheet) : TheData {
@@ -77,6 +83,7 @@ function getData(worksheet: ExcelScript.Worksheet) : TheData {
     }
     let dataInfo = "";
     let aanwList: Aanwezigheid[] = [];
+    let leraarList: Leraar[] = [];
     lines.forEach(line => {
 
         if (line.startsWith("lln: ")) {
@@ -93,6 +100,14 @@ function getData(worksheet: ExcelScript.Worksheet) : TheData {
             aanwList.push(aanw);
         } else if (line.startsWith("data:")) {
             dataInfo = line.substring(5);
+        } else if (line.startsWith("leraar: ")) {
+            let leraar = line.substring(8);
+            let fields = leraar.split(",");
+            let lk: Leraar = {
+                leraar: fields[0] + ", " + fields[1],
+                Ps: parseInt(fields[2])
+            };
+            leraarList.push(lk);
         }
     })
     // build llnList
@@ -109,7 +124,7 @@ function getData(worksheet: ExcelScript.Worksheet) : TheData {
         }
         lln.aanwList.push(aanw);
     }
-    return { dataInfo, llnMap: llnList };
+    return { dataInfo, llnMap: llnList, leraarList };
 }
 
 function normalizeKey(key: string) {
@@ -226,6 +241,21 @@ function updatePercentages(workbook: ExcelScript.Workbook, tableName: string) {
             }
         }
     });
+    let leraarTable = workbook.getTable("PsPerLeraar");
+    let leraarRange = leraarTable.getRangeBetweenHeaderAndTotal();
+    leraarRange.clear();
+    console.log(leraarRange.getCell(0, 0).getRowIndex());
+    console.log(leraarRange.getCell(0, 0).getColumnIndex());
+    let newRange = leraarRange.getWorksheet()
+        .getRangeByIndexes(
+            leraarRange.getCell(0, 0).getRowIndex(),
+            leraarRange.getCell(0, 0).getColumnIndex(),
+            theData.leraarList.length,
+            2);
+    for (let r = 0; r < theData.leraarList.length; r++) {
+        newRange.getCell(r, 0).setValue(theData.leraarList[r].leraar);
+        newRange.getCell(r, 1).setValue(theData.leraarList[r].Ps);
+    }
     setInfo(workbook, "Laatste update: " + theData.dataInfo);
 }
 
