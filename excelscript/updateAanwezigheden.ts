@@ -4,8 +4,9 @@ function main(workbook: ExcelScript.Workbook) {
         setError(workbook, "Geen 2e worksheet met data gevonden.");
         return;
     }
-    invalidatePercentages(workbook); //todo: combine with updatePercentage()?
-    updatePercentages(workbook);
+    let tableName = "MiserieTabel";
+    invalidatePercentages(workbook, tableName); //todo: combine with updatePercentage()?
+    updatePercentages(workbook, tableName);
 }
 
 enum MessageType { Info, Error, Highlight}
@@ -118,8 +119,8 @@ function normalizeKey(key: string) {
         .replace(" ", "");
 }
 
-function invalidatePercentages(workbook: ExcelScript.Workbook) {
-    let table = workbook.getTable("MiserieTabel");
+function invalidatePercentages(workbook: ExcelScript.Workbook, tableName: string) {
+    let table = workbook.getTable(tableName);
     let percentageColumn = table.getColumnByName("Percentage");
     let r = percentageColumn.getRangeBetweenHeaderAndTotal();
     let rangeValues = r.getValues();
@@ -134,10 +135,10 @@ function invalidatePercentages(workbook: ExcelScript.Workbook) {
     }
 }
 
-function updatePercentages(workbook: ExcelScript.Workbook) {
+function updatePercentages(workbook: ExcelScript.Workbook, tableName: string) {
     let theData = getData(workbook.getLastWorksheet());
     console.log(theData);
-    let table = workbook.getTable("MiserieTabel");
+    let table = workbook.getTable(tableName);
     let tableRange = table.getRangeBetweenHeaderAndTotal();
     let tableValues = tableRange.getValues();
     let achterNaamColumn = table.getColumnByName("Achternaam").getIndex();
@@ -177,31 +178,35 @@ function updatePercentages(workbook: ExcelScript.Workbook) {
             }
         }
 
+        function updateAanw(aanw: Aanwezigheid) {
+            if (typeof (percent) === "number") {
+                if (aanw.percentFinancierbaar < percent) { // set the lowest value!
+                    tableRange.getCell(r, percentColumn).setValue(aanw.percentFinancierbaar);
+                    percent = aanw.percentFinancierbaar;
+                } //else: don't overwrite
+            } else {
+                tableRange.getCell(r, percentColumn).setValue(aanw.percentFinancierbaar);
+                percent = aanw.percentFinancierbaar;
+            }
+        }
         //Do we haz the claz?
-        let aanw: undefined | Aanwezigheid;
+        let foundAanw = false;
         for(let aan of lln.aanwList) {
             if(klas.includes(aan.vakReduced)) {
-                aanw = aan;
-                break;
+                foundAanw = true;
+                updateAanw(aan);
             } else { // do some creative matching
                 let klasj = klas;
                 klasj = klasj.replace("&", "en");
                 if (klasj.toLowerCase() === aan.vakReduced.toLowerCase()) {
-                    aanw = aan;
-                    break;
+                    foundAanw = true;
+                    updateAanw(aan);
                 }
             }
         }
-        if(!aanw) {
+        if(!foundAanw) {
             //todo: how to report that we couldn't find the class? Also with "???"
             continue;
-        }
-        if(typeof(percent) === "number") {
-            if(aanw.percentFinancierbaar < percent) { // set the lowest value!
-                tableRange.getCell(r, percentColumn).setValue(aanw.percentFinancierbaar);
-            } //else: don't overwrite
-        } else {
-            tableRange.getCell(r, percentColumn).setValue(aanw.percentFinancierbaar);
         }
     }
 
