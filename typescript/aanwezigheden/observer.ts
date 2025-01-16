@@ -254,7 +254,7 @@ function reduceVaknaamStep1(vaknaam: string) : string {
             if(matches[1].includes("elektrische"))
                 return "gitaar JPR"
             else
-                return matches[1];
+                return matches[1] + " JPR";
         }
         else
             return vaknaam;
