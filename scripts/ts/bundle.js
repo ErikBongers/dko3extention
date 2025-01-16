@@ -596,6 +596,7 @@
   }
 
   // typescript/def.ts
+  var COPY_AGAIN = "copy_again";
   var PROGRESS_BAR_ID = "progressBarFetch";
   var PREFILL_INSTR_BTN_ID = "prefillInstrButton";
   var MAIL_BTN_ID = "mailButton";
@@ -613,6 +614,7 @@
   var CACHE_INFO_ID = "dko3plugin_cacheInfo";
   var TEMP_MSG_ID = "dko3plugin_tempMessage";
   var INFO_MSG_ID = "dko3plugin_infoMessage";
+  var AANW_LIST = "aanwezighedenList";
   function isButtonHighlighted(buttonId) {
     return document.getElementById(buttonId)?.classList.contains("toggled");
   }
@@ -2516,11 +2518,14 @@
     addTableNavigationButton(COPY_TABLE_BTN_ID, "copy table to clipboard", copyTable, "fa-clipboard");
     return true;
   }
-  function showInfoMessage(message) {
+  function showInfoMessage(message, click_element_id, callback) {
     let div = document.querySelector("#" + INFO_MSG_ID);
     if (!div)
       return;
     div.innerHTML = message;
+    if (click_element_id) {
+      document.getElementById(click_element_id).onclick = callback;
+    }
   }
   async function copyTable() {
     let prebuildPageHandler = new SimpleTableHandler(onLoaded, void 0);
@@ -2616,10 +2621,21 @@
         text += "leraar: " + key + "," + leraarP + "\n";
       });
       console.log(text);
-      navigator.clipboard.writeText(text).then((r) => {
-      });
+      window.sessionStorage.setItem(AANW_LIST, text);
+      aanwezighedenToClipboard();
       tableDef.tableRef.getOrgTable().querySelector("tbody").replaceChildren(...template.content.querySelectorAll("tbody tr"));
-      showInfoMessage("Data copied to clipboard!");
+    });
+  }
+  function aanwezighedenToClipboard() {
+    let text = window.sessionStorage.getItem(AANW_LIST);
+    navigator.clipboard.writeText(text).then((r) => {
+      showInfoMessage("Data copied to clipboard. <a id=" + COPY_AGAIN + " href='javascript:void(0);'>Copy again</a>", COPY_AGAIN, () => {
+        aanwezighedenToClipboard();
+      });
+    }).catch((reason) => {
+      showInfoMessage("Could not copy to clipboard!!! <a id=" + COPY_AGAIN + " href='javascript:void(0);'>Copy again</a>", COPY_AGAIN, () => {
+        aanwezighedenToClipboard();
+      });
     });
   }
   function addTableNavigationButton(btnId, title, onClick, fontIconId) {
@@ -2630,6 +2646,10 @@
     return true;
   }
   function reduceVaknaam(vaknaam) {
+    let vak = reduceVaknaamStep1(vaknaam);
+    return vak.replace("orkestslagwerk", "slagwerk");
+  }
+  function reduceVaknaamStep1(vaknaam) {
     if (vaknaam.includes("culturele vorming")) {
       if (vaknaam.includes("3."))
         return "ML";
@@ -2687,7 +2707,7 @@
         if (matches2[1].includes("elektrische"))
           return "gitaar JPR";
         else
-          return matches2[1];
+          return matches2[1] + " JPR";
       } else
         return vaknaam;
     }

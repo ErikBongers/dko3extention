@@ -1,3 +1,4 @@
+export let COPY_AGAIN = "copy_again";
 export let PROGRESS_BAR_ID = "progressBarFetch";
 export let PREFILL_INSTR_BTN_ID = "prefillInstrButton";
 export let MAIL_BTN_ID = "mailButton";
@@ -15,6 +16,7 @@ export const JSON_URL = "https://europe-west1-ebo-tain.cloudfunctions.net/json";
 export const CACHE_INFO_ID =  "dko3plugin_cacheInfo";
 export const TEMP_MSG_ID =  "dko3plugin_tempMessage";
 export const INFO_MSG_ID =  "dko3plugin_infoMessage";
+export const AANW_LIST =  "aanwezighedenList";
 
 export function isButtonHighlighted(buttonId: string) {
     return document.getElementById(buttonId)?.classList.contains("toggled");

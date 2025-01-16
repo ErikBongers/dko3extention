@@ -44,12 +44,15 @@ interface Pees {
     leraar: string
 }
 
-function showInfoMessage(message: string) {
+function showInfoMessage(message: string, click_element_id?: string, callback?: () => void) {
     let div = document.querySelector("#"+def.INFO_MSG_ID);
     if(!div)
         return; //meh...
 
     div.innerHTML = message;
+    if(click_element_id) {
+        document.getElementById(click_element_id).onclick = callback;
+    }
 }
 
 
@@ -172,14 +175,29 @@ async function copyTable() {
                 text += "leraar: " + key + "," + leraarP + "\n";
             });
         console.log(text);
-        navigator.clipboard.writeText(text).then(r => {});
+        window.sessionStorage.setItem(def.AANW_LIST, text);
+        aanwezighedenToClipboard();
 
         //replace the visible table
         tableDef.tableRef.getOrgTable()
             .querySelector("tbody")
             .replaceChildren(...template.content.querySelectorAll("tbody tr"));
-        showInfoMessage("Data copied to clipboard!");
     });
+}
+
+function aanwezighedenToClipboard() {
+    let text = window.sessionStorage.getItem(def.AANW_LIST);
+    navigator.clipboard.writeText(text)
+        .then(r => {
+            showInfoMessage("Data copied to clipboard. <a id="+def.COPY_AGAIN+" href='javascript:void(0);'>Copy again</a>", def.COPY_AGAIN, () => {
+                aanwezighedenToClipboard();
+            });
+        })
+        .catch(reason => {
+            showInfoMessage("Could not copy to clipboard!!! <a id="+def.COPY_AGAIN+" href='javascript:void(0);'>Copy again</a>", def.COPY_AGAIN, () => {
+                aanwezighedenToClipboard();
+            });
+        });
 }
 
 //todo: use in table/observer as well.
