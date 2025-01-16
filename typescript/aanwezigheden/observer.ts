@@ -192,6 +192,11 @@ function addTableNavigationButton(btnId: string, title: string, onClick: any, fo
 }
 
 function reduceVaknaam(vaknaam: string) : string {
+    let vak = reduceVaknaamStep1(vaknaam);
+    return vak.replace("orkestslagwerk", "slagwerk");
+}
+
+function reduceVaknaamStep1(vaknaam: string) : string {
     if (vaknaam.includes("culturele vorming")) {
         if(vaknaam.includes("3."))
             return "ML";
