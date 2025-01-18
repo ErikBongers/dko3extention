@@ -1077,6 +1077,19 @@
     }
   }
 
+  // typescript/cloud.ts
+  async function fetchFromCloud(fileName) {
+    return fetch(JSON_URL + "?fileName=" + fileName, { method: "GET" }).then((res) => res.json());
+  }
+  function uploadData(fileName, data) {
+    fetch(JSON_URL + "?fileName=" + fileName, {
+      method: "POST",
+      body: JSON.stringify(data)
+    }).then((res) => res.text().then((text) => {
+      console.log(text);
+    }));
+  }
+
   // typescript/werklijst/buildUren.ts
   var isUpdatePaused = true;
   var cellChanged = false;
@@ -1173,6 +1186,7 @@
     updateColumnData("uren_23_24");
     updateColumnData("uren_24_25");
     let data = buildJsonData();
+    uploadData(fileName, data);
     mapCloudData(data);
     theData.fromCloud = data;
     recalculate();
@@ -1452,11 +1466,6 @@
       return "WM " + renameInstrument(vak).replace("(wereldmuziek)", "");
     }
     return "K " + renameInstrument(vak);
-  }
-
-  // typescript/cloud.ts
-  async function fetchFromCloud(fileName) {
-    return fetch(JSON_URL + "?fileName=" + fileName, { method: "GET" }).then((res) => res.json());
   }
 
   // typescript/table/tableNavigation.ts
