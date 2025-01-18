@@ -2560,8 +2560,10 @@
       let rowsArray = Array.from(rows);
       return rowsArray.map((row) => {
         let namen = row.cells[1].querySelector("strong").textContent.split(", ");
+        let vakTxt = Array.from(row.cells[1].childNodes).filter((node) => node.nodeType === Node.TEXT_NODE).map((node) => node.textContent).join("");
+        let vak = reduceVaknaam(vakTxt.substring(3));
         let leraar = row.cells[1].querySelector("small").textContent.substring(16);
-        return { naam: namen[0], voornaam: namen[1], code: row.cells[2].textContent[0], leraar };
+        return { naam: namen[0], voornaam: namen[1], code: row.cells[2].textContent[0], vak, leraar };
       });
     });
     console.log(pList);
@@ -2603,16 +2605,18 @@
         }
         return aanw;
       });
-      let studentPees = /* @__PURE__ */ new Map();
+      let studentVakPees = /* @__PURE__ */ new Map();
       let leraarPees = /* @__PURE__ */ new Map();
       pList.filter((line) => line.code === "P").forEach((p) => {
-        studentPees.set(p.naam + "," + p.voornaam, (studentPees.get(p.naam + "," + p.voornaam) ?? 0) + 1);
+        studentVakPees.set(p.naam + "," + p.voornaam + "," + p.vak, (studentVakPees.get(p.naam + "," + p.voornaam + "," + p.vak) ?? 0) + 1);
         leraarPees.set(p.leraar, (leraarPees.get(p.leraar) ?? 0) + 1);
       });
-      console.log(studentPees);
+      console.log(studentVakPees);
       console.log(leraarPees);
       aanwList.forEach((aanw) => {
-        aanw.codeP = studentPees.get(aanw.naam + "," + aanw.voornaam) ?? 0;
+        let newP = studentVakPees.get(aanw.naam + "," + aanw.voornaam + "," + aanw.vakReduced) ?? 0;
+        if (newP > aanw.codeP)
+          aanw.codeP = newP;
       });
       aanwList.forEach((aanw) => {
         text += "lln: " + aanw.naam + "," + aanw.voornaam + "," + aanw.vakReduced + "," + aanw.percentFinancierbaar + "," + aanw.weken + "," + aanw.codeP + "\n";
@@ -2646,15 +2650,24 @@
     return true;
   }
   function reduceVaknaam(vaknaam) {
+    if (!vaknaam)
+      debugger;
     let vak = reduceVaknaamStep1(vaknaam);
-    return vak.replace("orkestslagwerk", "slagwerk");
+    return vak.replace("orkestslagwerk", "slagwerk").replace("jazz pop rock)", "JPR").replace("koor", "GM").replace(": musical", "").replace(" (musical)", "");
   }
   function reduceVaknaamStep1(vaknaam) {
+    vaknaam = vaknaam.toLowerCase();
     if (vaknaam.includes("culturele vorming")) {
       if (vaknaam.includes("3."))
         return "ML";
       else
         return "MA";
+    }
+    if (vaknaam.includes("uziekatelier")) {
+      return "MA";
+    }
+    if (vaknaam.includes("uzieklab")) {
+      return "ML";
     }
     if (vaknaam.includes("roepsmusiceren")) {
       return "GM";
@@ -2677,6 +2690,9 @@
     if (vaknaam.includes("omeinoverschrijdende")) {
       return "KB";
     }
+    if (vaknaam.includes("unstenbad")) {
+      return "KB";
+    }
     if (vaknaam.includes("ramalab")) {
       return "DL";
     }
@@ -2692,16 +2708,16 @@
     if (vaknaam.includes(" saz")) {
       return "saz";
     }
-    if (vaknaam.includes("Instrument: klassiek: ")) {
-      let rx = /Instrument: klassiek: (\S*)/;
+    if (vaknaam.includes("instrument: klassiek: ")) {
+      let rx = /instrument: klassiek: (\S*)/;
       let matches2 = vaknaam.match(rx);
       if (matches2.length > 1)
         return matches2[1];
       else
         return vaknaam;
     }
-    if (vaknaam.includes("Instrument: jazz-pop-rock: ")) {
-      let rx = /Instrument: jazz-pop-rock: (\S*)/;
+    if (vaknaam.includes("instrument: jazz-pop-rock: ")) {
+      let rx = /instrument: jazz-pop-rock: (\S*)/;
       let matches2 = vaknaam.match(rx);
       if (matches2.length > 1) {
         if (matches2[1].includes("elektrische"))

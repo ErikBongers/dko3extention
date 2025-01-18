@@ -5,7 +5,7 @@ function main(workbook: ExcelScript.Workbook) {
         return;
     }
     let tableName = "MiserieTabel";
-    invalidatePercentages(workbook, tableName); //todo: combine with updatePercentage()?
+    invalidateData(workbook, tableName); //todo: combine with updatePercentage()?
     updatePercentages(workbook, tableName);
 }
 
@@ -134,19 +134,26 @@ function normalizeKey(key: string) {
         .replace(" ", "");
 }
 
-function invalidatePercentages(workbook: ExcelScript.Workbook, tableName: string) {
+function invalidateData(workbook: ExcelScript.Workbook, tableName: string) {
     let table = workbook.getTable(tableName);
     let percentageColumn = table.getColumnByName("Percentage");
+    let peeColumn = table.getColumnByName("Ps");
     let r = percentageColumn.getRangeBetweenHeaderAndTotal();
+    let p = peeColumn.getRangeBetweenHeaderAndTotal();
     let rangeValues = r.getValues();
+    let peeValues = p.getValues();
     let rowCount = r.getRowCount();
     for(let i = 0; i < rowCount; i++) {
-        let cell = r.getCell(i, 0);
-        let value = rangeValues[i][0];
-        if (typeof(value) === "string")
+        let percCell = r.getCell(i, 0);
+        let perc = rangeValues[i][0];
+        if (typeof(perc) === "string")
             continue;
-        cell.setValue(`'(${(value as number)*100})`);
-        // cell.setValue(value.replace("(", "").replace(")", ""));
+        percCell.setValue(`'(${(perc as number)*100})`);
+        let peeCell = p.getCell(i, 0);
+        let pee = peeValues[i][0];
+        if (typeof (perc) === "string")
+            continue;
+        peeCell.setValue(`'(${pee as number})`);
     }
 }
 
@@ -174,6 +181,7 @@ function updatePercentages(workbook: ExcelScript.Workbook, tableName: string) {
         voorNaam = voorNaam.replace("?", "").replace("???", "").replace("??", "").replace("?", "");
         let klas = tableValues[r][klasColumn] as string;
         let percent = tableValues[r][percentColumn];
+        let pee = tableValues[r][peeColumn];
         let key = achterNaam + "," + voorNaam;
         key = normalizeKey(key);
         tableKeys.add(key);
@@ -186,7 +194,6 @@ function updatePercentages(workbook: ExcelScript.Workbook, tableName: string) {
             continue;
         } else {
             tableRange.getCell(r, wekenColumn).setValue(lln.aanwList[0].weken);
-            tableRange.getCell(r, peeColumn).setValue(lln.aanwList[0].codeP);
             if(achterNaamOrg.includes("?")) {
                 tableRange.getCell(r, achterNaamColumn).setValue(achterNaam);
                 tableRange.getCell(r,voorNaamColumn).setValue(voorNaam);
@@ -204,18 +211,31 @@ function updatePercentages(workbook: ExcelScript.Workbook, tableName: string) {
                 percent = aanw.percentFinancierbaar;
             }
         }
+        function updatePee(aanw: Aanwezigheid) {
+            if (typeof (pee) === "number") {
+                if (aanw.codeP > pee) { // set the highest value!
+                    tableRange.getCell(r, peeColumn).setValue(aanw.codeP);
+                    pee = aanw.codeP;
+                } //else: don't overwrite
+            } else {
+                tableRange.getCell(r, peeColumn).setValue(aanw.codeP);
+                pee = aanw.codeP;
+            }
+        }
         //Do we haz the claz?
         let foundAanw = false;
         for(let aan of lln.aanwList) {
-            if(klas.includes(aan.vakReduced)) {
+            if(hazClazz(klas, aan.vakReduced)) {
                 foundAanw = true;
                 updateAanw(aan);
+                updatePee(aan);
             } else { // do some creative matching
                 let klasj = klas;
                 klasj = klasj.replace("&", "en");
                 if (klasj.toLowerCase() === aan.vakReduced.toLowerCase()) {
                     foundAanw = true;
                     updateAanw(aan);
+                    updatePee(aan);
                 }
             }
         }
@@ -223,6 +243,18 @@ function updatePercentages(workbook: ExcelScript.Workbook, tableName: string) {
             //todo: how to report that we couldn't find the class? Also with "???"
             continue;
         }
+    }
+
+    // if vakReduced is an abbreviation, it will be in uppercase and we should not do a case-incensitive find.
+    function hazClazz(klasses: string, vakReduced: string): boolean {
+        if(klasses.includes(vakReduced))
+            return true;
+
+        let vakLowercase = vakReduced.toLowerCase();
+        if(vakReduced === vakLowercase)
+            return klasses.toLowerCase().includes(vakLowercase);
+
+        return false;
     }
 
     //filter problem students and add them to table if needed
