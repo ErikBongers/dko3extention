@@ -1790,6 +1790,11 @@
       }
       return results;
     }
+    getRows() {
+      let template = this.shadowTableTemplate;
+      let rows = template.content.querySelectorAll("tbody tr");
+      return Array.from(rows);
+    }
   };
 
   // typescript/werklijst/criteria.ts
@@ -2551,7 +2556,7 @@
     msgDiv.classList.add("infoMessage");
     msgDiv.id = INFO_MSG_ID;
     tableDef.divInfoContainer = div.appendChild(document.createElement("div"));
-    showInfoMessage("Fetching data...");
+    showInfoMessage("Fetching 3-weken data...");
     let wekenLijst = await getTableFromHash("leerlingen-lijsten-awi-3weken", tableDef.divInfoContainer, true).then((bckTableDef) => {
       let template = bckTableDef.shadowTableTemplate;
       ``;
@@ -2563,6 +2568,22 @@
       });
     });
     console.log(wekenLijst);
+    showInfoMessage("Fetching attesten...");
+    let attestenLijst = await getTableFromHash("leerlingen-lijsten-awi-ontbrekende_attesten", tableDef.divInfoContainer, true).then((bckTableDef) => {
+      return bckTableDef.getRows().map(
+        (tr) => {
+          return {
+            datum: tr.cells[0].textContent,
+            leerling: tr.cells[1].textContent,
+            vak: tr.cells[2].textContent,
+            leraar: tr.cells[3].textContent,
+            reden: tr.cells[4].textContent
+          };
+        }
+      );
+    });
+    console.log(attestenLijst);
+    showInfoMessage("Fetching afwezigheidscodes...");
     let pList = await getTableFromHash("leerlingen-lijsten-awi-afwezigheidsregistraties", tableDef.divInfoContainer, true).then((bckTableDef) => {
       let template = bckTableDef.shadowTableTemplate;
       let rows = template.content.querySelectorAll("tbody tr");
@@ -2632,6 +2653,9 @@
       });
       leraarPees.forEach((leraarP, key) => {
         text += "leraar: " + key + "," + leraarP + "\n";
+      });
+      attestenLijst.forEach((attest) => {
+        text += "attest: " + attest.datum + "," + attest.leerling + "," + attest.vak + "," + attest.leraar + "," + attest.reden + "\n";
       });
       console.log(text);
       window.sessionStorage.setItem(AANW_LIST, text);

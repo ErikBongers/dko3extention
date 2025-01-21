@@ -277,6 +277,13 @@ export class TableDef {
         }
         return results;
     }
+
+    getRows() {
+        //TODO: this function should be only accessible after a fetch of the table. Perhaps the fetch should return a promise<FetchedTable> where FetchedTable is a proxy/wrap of TableDef?
+        let template = this.shadowTableTemplate;
+        let rows = template.content.querySelectorAll("tbody tr") as NodeListOf<HTMLTableRowElement>;
+        return Array.from(rows);
+    }
 }
 
 

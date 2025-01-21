@@ -45,6 +45,14 @@ interface Pees {
     leraar: string
 }
 
+interface Attest {
+    datum: string,
+    leerling: string,
+    vak: string,
+    leraar: string,
+    reden: string
+}
+
 function showInfoMessage(message: string, click_element_id?: string, callback?: () => void) {
     let div = document.querySelector("#"+def.INFO_MSG_ID);
     if(!div)
@@ -77,7 +85,7 @@ async function copyTable() {
     msgDiv.id = def.INFO_MSG_ID;
     tableDef.divInfoContainer = div.appendChild(document.createElement("div"));
 
-    showInfoMessage("Fetching data...");
+    showInfoMessage("Fetching 3-weken data...");
 
     let wekenLijst = await getTableFromHash("leerlingen-lijsten-awi-3weken", tableDef.divInfoContainer, true).then(bckTableDef => {
         let template = bckTableDef.shadowTableTemplate;
@@ -92,6 +100,24 @@ async function copyTable() {
     });
     console.log(wekenLijst);
 
+    showInfoMessage("Fetching attesten...");
+
+    let attestenLijst = await getTableFromHash("leerlingen-lijsten-awi-ontbrekende_attesten", tableDef.divInfoContainer, true).then(bckTableDef => {
+        return bckTableDef.getRows().map(tr => {
+                return {
+                    datum: tr.cells[0].textContent,
+                    leerling: tr.cells[1].textContent,
+                    vak: tr.cells[2].textContent,
+                    leraar: tr.cells[3].textContent,
+                    reden: tr.cells[4].textContent,
+                } as Attest;
+            }
+        )
+    });
+    console.log(attestenLijst);
+
+    showInfoMessage("Fetching afwezigheidscodes...");
+
     let pList = await getTableFromHash("leerlingen-lijsten-awi-afwezigheidsregistraties", tableDef.divInfoContainer, true).then(bckTableDef => {
         let template = bckTableDef.shadowTableTemplate;
         let rows = template.content.querySelectorAll("tbody tr") as NodeListOf<HTMLTableRowElement>;
@@ -105,8 +131,6 @@ async function copyTable() {
                 let leraar = row.cells[1].querySelector("small").textContent.substring(16); //remove "Klasleerkracht: "
                 return { naam: namen[0], voornaam: namen[1], code: row.cells[2].textContent[0], vak, leraar} as Pees;
             });
-
-
     });
     console.log(pList);
 
@@ -176,9 +200,12 @@ async function copyTable() {
             aanwList.forEach(aanw => {
                 text += "lln: " + aanw.naam + "," + aanw.voornaam + "," + aanw.vakReduced + "," + aanw.percentFinancierbaar + "," + aanw.weken + "," + aanw.codeP + "\n";
             });
-            leraarPees.forEach((leraarP , key)=> {
-                text += "leraar: " + key + "," + leraarP + "\n";
-            });
+        leraarPees.forEach((leraarP , key)=> {
+            text += "leraar: " + key + "," + leraarP + "\n";
+        });
+        attestenLijst.forEach((attest)=> {
+            text += "attest: " + attest.datum + "," + attest.leerling + "," + attest.vak + "," + attest.leraar + "," + attest.reden + "\n";
+        });
         console.log(text);
         window.sessionStorage.setItem(def.AANW_LIST, text);
         aanwezighedenToClipboard();
