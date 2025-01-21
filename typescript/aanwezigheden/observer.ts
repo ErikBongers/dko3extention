@@ -178,28 +178,28 @@ async function copyTable() {
                 return aanw;
             });
 
-            let studentVakPees = new Map<string, number>();
-            let leraarPees = new Map<string, number>();
+        let studentVakPees = new Map<string, number>();
+        let leraarPees = new Map<string, number>();
 
-            pList
-                .filter(line => line.code === "P")
-                .forEach(p => {
-                   studentVakPees.set(p.naam+","+p.voornaam+","+p.vak, (studentVakPees.get(p.naam+","+p.voornaam+","+p.vak)??0)+1);
-                   leraarPees.set(p.leraar, (leraarPees.get(p.leraar)??0)+1);
-                });
-
-            console.log(studentVakPees);
-            console.log(leraarPees);
-
-            aanwList.forEach(aanw => {
-                let newP = studentVakPees.get(aanw.naam+","+aanw.voornaam+","+aanw.vakReduced)??0;
-                if(newP > aanw.codeP)
-                    aanw.codeP = newP;
+        pList
+            .filter(line => line.code === "P")
+            .forEach(p => {
+               studentVakPees.set(p.naam+","+p.voornaam+","+p.vak, (studentVakPees.get(p.naam+","+p.voornaam+","+p.vak)??0)+1);
+               leraarPees.set(p.leraar, (leraarPees.get(p.leraar)??0)+1);
             });
 
-            aanwList.forEach(aanw => {
-                text += "lln: " + aanw.naam + "," + aanw.voornaam + "," + aanw.vakReduced + "," + aanw.percentFinancierbaar + "," + aanw.weken + "," + aanw.codeP + "\n";
-            });
+        console.log(studentVakPees);
+        console.log(leraarPees);
+
+        aanwList.forEach(aanw => {
+            let newP = studentVakPees.get(aanw.naam+","+aanw.voornaam+","+aanw.vakReduced)??0;
+            if(newP > aanw.codeP)
+                aanw.codeP = newP;
+        });
+
+        aanwList.forEach(aanw => {
+            text += "lln: " + aanw.naam + "," + aanw.voornaam + "," + aanw.vakReduced + "," + aanw.percentFinancierbaar + "," + aanw.weken + "," + aanw.codeP + "\n";
+        });
         leraarPees.forEach((leraarP , key)=> {
             text += "leraar: " + key + "," + leraarP + "\n";
         });
