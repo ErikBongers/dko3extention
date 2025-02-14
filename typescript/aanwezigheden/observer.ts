@@ -4,7 +4,7 @@ import {addButton} from "../globals";
 import {SimpleTableHandler} from "../pageHandlers";
 import {findTableRefInCode, TableDef} from "../table/tableDef";
 import {getCriteriaString} from "../werklijst/observer";
-import {getTableFromHash, testScanner} from "../table/loadAnyTable";
+import {getTableFromHash} from "../table/loadAnyTable";
 
 export default new HashObserver("#leerlingen-lijsten-awi-percentages_leerling_vak", onMutationAanwezgheden);
 
@@ -151,8 +151,8 @@ async function copyTable() {
         let text = "data:"+ nu.toLocaleDateString() +"\n";
         let aanwList = rowsArray
             .map(row => {
-                let percentFinancierbaar =  parseFloat(row.cells[1].querySelector("strong").textContent.replace(",", "."))/100;
-                let percentTotaal =  parseFloat(row.cells[2].querySelector("strong").textContent.replace(",", "."))/100;
+                let percentFinancierbaar =  parseFloat(row.cells[1].querySelector("strong")?.textContent?.replace(",", ".") ?? "0")/100;
+                let percentTotaal =  parseFloat(row.cells[2].querySelector("strong")?.textContent?.replace(",", ".") ?? "0")/100;
                 let vak = row.cells[0].querySelector("br")?.nextSibling?.textContent;
                 let namen = row.cells[0].querySelector("strong").textContent.split(", ");
                 let aanw: Aanwezigheid = {

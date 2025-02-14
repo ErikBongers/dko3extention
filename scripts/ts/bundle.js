@@ -2609,8 +2609,8 @@
       let nu = /* @__PURE__ */ new Date();
       let text = "data:" + nu.toLocaleDateString() + "\n";
       let aanwList = rowsArray.map((row) => {
-        let percentFinancierbaar = parseFloat(row.cells[1].querySelector("strong").textContent.replace(",", ".")) / 100;
-        let percentTotaal = parseFloat(row.cells[2].querySelector("strong").textContent.replace(",", ".")) / 100;
+        let percentFinancierbaar = parseFloat(row.cells[1].querySelector("strong")?.textContent?.replace(",", ".") ?? "0") / 100;
+        let percentTotaal = parseFloat(row.cells[2].querySelector("strong")?.textContent?.replace(",", ".") ?? "0") / 100;
         let vak = row.cells[0].querySelector("br")?.nextSibling?.textContent;
         let namen = row.cells[0].querySelector("strong").textContent.split(", ");
         let aanw = {
