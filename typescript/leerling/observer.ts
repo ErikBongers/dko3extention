@@ -103,19 +103,22 @@ function onInschrijvingChanged(tabInschrijving: HTMLElement) {
                     (tr.children[0] as HTMLTableCellElement).innerText += ": ";
                     let rxBasic = /Initiatie +(.*) *- *trimester.*/i;
                     let rxWide = /Initiatie +(.*) *- *trimester.* *- *(.*)/i;
+                    let rxDesperate = /Initiatie +(.*)/i;
                     instrumentText += modNames
                         .map(modName => {
                             let matches = modName.match(rxWide);
                             if (matches?.length >= 2) {
                                 return matches[1].trim() + " - " + matches[2].trim();
-                            } else {
-                                let matches = modName.match(rxBasic);
-                                if (matches?.length >= 1) {
-                                    return matches[1].trim();
-                                } else {
-                                    return ": ???";
-                                }
                             }
+                            matches = modName.match(rxBasic);
+                            if (matches?.length >= 1) {
+                                return matches[1].trim();
+                            }
+                            matches = modName.match(rxDesperate);
+                            if (matches?.length >= 1) {
+                                return matches[1].trim();
+                            }
+                            return ": ???";
                         })
                         .join(", ");
                 }
