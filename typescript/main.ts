@@ -1,16 +1,16 @@
 //to avoid "unused function" errors in linters, this file is called as a module.
-import {observers, options, registerObserver} from "./globals.js";
-import leerlingObserver from "./leerling/observer.js";
-import lessenObserver from "./lessen/observer.js";
-import lesObserver from "./les/observer.js";
-import academieObserver from "./academie/observer.js";
-import werklijstObserver from "./werklijst/observer.js";
-import tableObserver from "./table/observer.js";
-import vakgroepObserver from "./vakgroep/observer.js";
-import smsObserver from "./verwittigen/observer.js";
-import aanwezighedenObserver from "./aanwezigheden/observer.js";
-import {setupPowerQuery} from "./setupPowerQuery.js";
-import {allLijstenObserver, assetsObserver, extraInschrijvingenObserver, financialObserver, academieMenuObserver, evaluatieObserver} from "./pages/observer.js";
+import {observers, options, registerObserver} from "./globals";
+import leerlingObserver from "./leerling/observer";
+import lessenObserver from "./lessen/observer";
+import lesObserver from "./les/observer";
+import academieObserver from "./academie/observer";
+import werklijstObserver from "./werklijst/observer";
+import tableObserver from "./table/observer";
+import vakgroepObserver from "./vakgroep/observer";
+import smsObserver from "./verwittigen/observer";
+import aanwezighedenObserver from "./aanwezigheden/observer";
+import {setupPowerQuery} from "./setupPowerQuery";
+import {allLijstenObserver, assetsObserver, extraInschrijvingenObserver, financialObserver, academieMenuObserver, evaluatieObserver} from "./pages/observer";
 
 init();
 

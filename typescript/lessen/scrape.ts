@@ -1,4 +1,4 @@
-import { db3 } from "../globals.js";
+import { db3 } from "../globals";
 
 export function scrapeLessenOverzicht() {
     let table = document.getElementById("table_lessen_resultaat_tabel") as HTMLTableElement;

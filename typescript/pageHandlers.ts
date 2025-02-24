@@ -1,4 +1,4 @@
-import {TableDef} from "./table/tableDef.js";
+import {TableDef} from "./table/tableDef";
 
 /**
  * @returns `true` to continue, `false` to cancel further handling.

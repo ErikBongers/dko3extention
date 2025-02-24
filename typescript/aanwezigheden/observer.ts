@@ -1,5 +1,5 @@
 import * as def from "../def.js";
-import {HashObserver} from "../pageObserver.js";
+import {HashObserver} from "../pageObserver";
 import {addButton} from "../globals";
 import {SimpleTableHandler} from "../pageHandlers";
 import {findTableRefInCode, TableDef} from "../table/tableDef";

@@ -1,6 +1,6 @@
-import {FULL_CLASS_BUTTON_ID, isButtonHighlighted, TRIM_DIV_ID} from "../def.js";
-import {db3} from "../globals.js";
-import {RowInfo} from "./convert.js";
+import {FULL_CLASS_BUTTON_ID, isButtonHighlighted, TRIM_DIV_ID} from "../def";
+import {db3} from "../globals";
+import {RowInfo} from "./convert";
 import {StudentInfo} from "./scrape";
 
 const NBSP = 160;

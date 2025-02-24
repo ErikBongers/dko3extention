@@ -1,14 +1,14 @@
-import {addButton, getSchoolIdString, setButtonHighlighted} from "../globals.js";
-import * as def from "../def.js";
-import {buildTable, getUrenVakLeraarFileName, JsonCloudData} from "./buildUren.js";
-import {scrapeStudent, VakLeraar} from "./scrapeUren.js";
-import {fetchFromCloud} from "../cloud.js";
-import {CalculateTableCheckSumHandler, findTableRefInCode, TableDef} from "../table/tableDef.js";
-import {prefillInstruments} from "./prefillInstruments.js";
-import {HashObserver} from "../pageObserver.js";
-import {NamedCellPageHandler} from "../pageHandlers.js";
-import {addTableHeaderClickEvents} from "../table/tableHeaders.js";
-import {getPageStateOrDefault, Goto, PageName, savePageState, WerklijstPageState} from "../pageState.js";
+import {addButton, getSchoolIdString, setButtonHighlighted} from "../globals";
+import * as def from "../def";
+import {buildTable, getUrenVakLeraarFileName, JsonCloudData} from "./buildUren";
+import {scrapeStudent, VakLeraar} from "./scrapeUren";
+import {fetchFromCloud} from "../cloud";
+import {CalculateTableCheckSumHandler, findTableRefInCode, TableDef} from "../table/tableDef";
+import {prefillInstruments} from "./prefillInstruments";
+import {HashObserver} from "../pageObserver";
+import {NamedCellPageHandler} from "../pageHandlers";
+import {addTableHeaderClickEvents} from "../table/tableHeaders";
+import {getPageStateOrDefault, Goto, PageName, savePageState, WerklijstPageState} from "../pageState";
 
 export default new HashObserver("#leerlingen-werklijst", onMutation);
 

@@ -1,5 +1,5 @@
-import {ExactHashObserver, HashObserver} from "../pageObserver.js";
-import {QueryItem, saveQueryItems} from "../setupPowerQuery.js";
+import {ExactHashObserver, HashObserver} from "../pageObserver";
+import {QueryItem, saveQueryItems} from "../setupPowerQuery";
 
 export let extraInschrijvingenObserver = new ExactHashObserver("#extra-inschrijvingen", onMutationExtraInschrijvingen);
 export let allLijstenObserver = new ExactHashObserver("#leerlingen-lijsten", onMutationAlleLijsten);

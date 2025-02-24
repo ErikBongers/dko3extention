@@ -1,5 +1,5 @@
-import {HashObserver} from "../pageObserver.js";
-import {createScearchField, filterTable} from "../globals.js";
+import {HashObserver} from "../pageObserver";
+import {createScearchField, filterTable} from "../globals";
 
 export default new HashObserver("#extra-inschrijvingen-vakgroepen-vakgroep", onMutation);
 

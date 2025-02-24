@@ -1,6 +1,6 @@
-import {fetchVakken, sendClearWerklijst, sendCriteria, sendFields, sendGrouping} from "./criteria.js";
-import * as def from "../def.js";
-import {getPageStateOrDefault, PageName, savePageState, WerklijstPageState} from "../pageState.js";
+import {fetchVakken, sendClearWerklijst, sendCriteria, sendFields, sendGrouping} from "./criteria";
+import * as def from "../def";
+import {getPageStateOrDefault, PageName, savePageState, WerklijstPageState} from "../pageState";
 
 export let instrumentSet = new Set([
     "Accordeon",

@@ -1,9 +1,9 @@
-import {scrapeLessenOverzicht, scrapeModules} from "./scrape.js";
-import {buildTableData} from "./convert.js";
-import {buildTrimesterTable} from "./build.js";
-import * as def from "../def.js";
-import {createScearchField, filterTable, setButtonHighlighted} from "../globals.js";
-import {HashObserver} from "../pageObserver.js";
+import {scrapeLessenOverzicht, scrapeModules} from "./scrape";
+import {buildTableData} from "./convert";
+import {buildTrimesterTable} from "./build";
+import * as def from "../def";
+import {createScearchField, filterTable, setButtonHighlighted} from "../globals";
+import {HashObserver} from "../pageObserver";
 
 export default new HashObserver("#lessen-overzicht", onMutation);
 

@@ -1,5 +1,5 @@
-import {db3, getUserAndSchoolName, options} from "../globals.js";
-import {PageObserver} from "../pageObserver.js";
+import {db3, getUserAndSchoolName, options} from "../globals";
+import {PageObserver} from "../pageObserver";
 
 export default new PageObserver(setSchoolBackground);
 

@@ -1,8 +1,8 @@
-import {PageHandler} from "../pageHandlers.js";
-import {findFirstNavigation, TableNavigation} from "./tableNavigation.js";
-import {insertProgressBar, ProgressBar} from "../progressBar.js";
-import * as def from "../def.js";
-import {db3, millisToString} from "../globals.js";
+import {PageHandler} from "../pageHandlers";
+import {findFirstNavigation, TableNavigation} from "./tableNavigation";
+import {insertProgressBar, ProgressBar} from "../progressBar";
+import * as def from "../def";
+import {db3, millisToString} from "../globals";
 
 export class TableRef {
     htmlTableId: string;

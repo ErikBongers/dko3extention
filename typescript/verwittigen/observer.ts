@@ -1,4 +1,4 @@
-import {HashObserver} from "../pageObserver.js";
+import {HashObserver} from "../pageObserver";
 
 export default new HashObserver("#leerlingen-verwittigen", onMutation);
 

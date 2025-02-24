@@ -1,10 +1,10 @@
-import {addButton} from "../globals.js";
-import * as def from "../def.js";
-import {AllPageFilter, BaseObserver} from "../pageObserver.js";
-import {SimpleTableHandler} from "../pageHandlers.js";
-import {findTableRefInCode, TableDef} from "./tableDef.js";
-import {addTableHeaderClickEvents} from "./tableHeaders.js";
-import {getCriteriaString} from "../werklijst/observer.js";
+import {addButton} from "../globals";
+import * as def from "../def";
+import {AllPageFilter, BaseObserver} from "../pageObserver";
+import {SimpleTableHandler} from "../pageHandlers";
+import {findTableRefInCode, TableDef} from "./tableDef";
+import {addTableHeaderClickEvents} from "./tableHeaders";
+import {getCriteriaString} from "../werklijst/observer";
 
 export default new BaseObserver(undefined, new AllPageFilter(), onMutation);
 

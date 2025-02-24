@@ -1,4 +1,4 @@
-import * as def from "./def.js";
+import * as def from "./def";
 
 export function clearPageState() {
     sessionStorage.removeItem(def.STORAGE_PAGE_STATE_KEY);

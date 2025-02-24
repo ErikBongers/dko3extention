@@ -1,4 +1,4 @@
-import {Les, StudentInfo} from "./scrape.js";
+import {Les, StudentInfo} from "./scrape";
 
 
 export class RowInfo {

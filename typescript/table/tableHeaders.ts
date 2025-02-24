@@ -1,4 +1,4 @@
-import {rangeGenerator} from "../globals.js";
+import {rangeGenerator} from "../globals";
 
 function sortRows(cmpFunction: (a: HTMLTableCellElement, b: HTMLTableCellElement) => number, header: Element, rows: HTMLTableRowElement[], index: number, wasAscending: boolean) {
     let cmpDirectionalFunction: (a: HTMLTableRowElement, b: HTMLTableRowElement) => number;

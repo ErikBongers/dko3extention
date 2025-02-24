@@ -1,4 +1,4 @@
-import * as def from "./def.js";
+import * as def from "./def";
 
 export async function fetchFromCloud(fileName: string) {
     return fetch(def.JSON_URL + "?fileName="+fileName, {method: "GET"})

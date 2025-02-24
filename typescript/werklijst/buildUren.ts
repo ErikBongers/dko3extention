@@ -1,7 +1,7 @@
-import * as def from "../def.js";
-import {createValidId, getSchoolIdString, getSchooljaar} from "../globals.js";
-import {VakLeraar} from "./scrapeUren.js";
-import {TableDef} from "../table/tableDef.js";
+import * as def from "../def";
+import {createValidId, getSchoolIdString, getSchooljaar} from "../globals";
+import {VakLeraar} from "./scrapeUren";
+import {TableDef} from "../table/tableDef";
 import {uploadData} from "../cloud";
 
 let isUpdatePaused = true;

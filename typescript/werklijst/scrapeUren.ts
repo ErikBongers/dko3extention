@@ -1,7 +1,7 @@
-import {createValidId} from "../globals.js";
-import {TableDef} from "../table/tableDef.js";
-import {NamedCellPageHandler} from "../pageHandlers.js";
-import {StudentInfo} from "../lessen/scrape.js";
+import {createValidId} from "../globals";
+import {TableDef} from "../table/tableDef";
+import {NamedCellPageHandler} from "../pageHandlers";
+import {StudentInfo} from "../lessen/scrape";
 
 export interface CountStudentsPerJaar {
     count: number,

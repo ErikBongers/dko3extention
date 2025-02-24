@@ -1,6 +1,6 @@
-import {clamp, isAlphaNumeric} from "./globals.js";
-import * as def from "./def.js";
-import {getPageStateOrDefault, Goto, PageName, savePageState} from "./pageState.js";
+import {clamp, isAlphaNumeric} from "./globals";
+import * as def from "./def";
+import {getPageStateOrDefault, Goto, PageName, savePageState} from "./pageState";
 
 let powerQueryItems: QueryItem[] = [];
 let popoverVisible = false;
