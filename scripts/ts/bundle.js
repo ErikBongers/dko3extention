@@ -2933,6 +2933,7 @@
   var allLijstenObserver = new ExactHashObserver("#leerlingen-lijsten", onMutationAlleLijsten);
   var financialObserver = new ExactHashObserver("#extra-financieel", onMutationFinancial);
   var assetsObserver = new ExactHashObserver("#extra-assets", onMutationAssets);
+  var evaluatieObserver = new ExactHashObserver("#extra-evaluatie", onMutationEvaluatie);
   var academieMenuObserver = new ExactHashObserver("#extra-academie", onMutationAcademie);
   function onMutationAcademie(_mutation) {
     saveQueryItems("Academie", scrapeMenuPage("Academie > ", defaultLinkToQueryItem));
@@ -2940,6 +2941,10 @@
   }
   function onMutationAssets(_mutation) {
     saveQueryItems("Assets", scrapeMenuPage("Assets > ", defaultLinkToQueryItem));
+    return true;
+  }
+  function onMutationEvaluatie(_mutation) {
+    saveQueryItems("Evaluatie", scrapeMenuPage("Evaluatie > ", defaultLinkToQueryItem));
     return true;
   }
   function onMutationFinancial(_mutation) {
@@ -3029,6 +3034,7 @@
       registerObserver(allLijstenObserver);
       registerObserver(financialObserver);
       registerObserver(assetsObserver);
+      registerObserver(evaluatieObserver);
       registerObserver(observer_default7);
       registerObserver(observer_default8);
       registerObserver(academieMenuObserver);
