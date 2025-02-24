@@ -420,6 +420,7 @@
   function scrapeModules() {
     let lessen = scrapeLessenOverzicht();
     let modules = lessen.filter((les) => les.isModule);
+    let trimesterModules = [];
     for (let module of modules) {
       module.students = scrapeStudents(module.studentsTable);
       const reInstrument = /.*\Snitiatie\s*(\S+).*(\d).*/;
@@ -430,9 +431,10 @@
       }
       module.instrumentName = match[1];
       module.trimesterNo = parseInt(match[2]);
+      trimesterModules.push(module);
     }
-    db3(modules);
-    return modules;
+    db3(trimesterModules);
+    return trimesterModules;
   }
   var StudentInfo = class {
   };

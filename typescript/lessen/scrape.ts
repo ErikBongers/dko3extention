@@ -40,6 +40,8 @@ export function scrapeModules() {
     let lessen = scrapeLessenOverzicht();
     let modules = lessen.filter((les) => les.isModule);
 
+    let trimesterModules: Les[] = [];
+
     for (let module of modules) {
         module.students = scrapeStudents(module.studentsTable);
 
@@ -52,10 +54,11 @@ export function scrapeModules() {
         }
         module.instrumentName = match[1];
         module.trimesterNo = parseInt(match[2]);
+        trimesterModules.push(module);
     }
 
-    db3(modules);
-    return modules;
+    db3(trimesterModules);
+    return trimesterModules;
 }
 
 export class StudentInfo {
