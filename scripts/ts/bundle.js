@@ -2360,10 +2360,9 @@
     let index_viewUrl = getDocReadyLoadUrl(view);
     let index_view = await fetch(index_viewUrl).then((res) => res.text());
     let scanner = new TokenScanner(index_view);
-    let htmlTableId = findDocReady(scanner).find("$", "(", "'#").clipTo("'").result();
+    let htmlTableId = getDocReadyLoadScript(index_view).find("$", "(", "'#").clipTo("'").result();
     if (!htmlTableId) {
-      let scanner2 = new TokenScanner(index_view);
-      htmlTableId = findDocReady(scanner2).find("$", "(", '"#').clipTo('"').result();
+      htmlTableId = getDocReadyLoadScript(index_view).find("$", "(", '"#').clipTo('"').result();
     }
     let someUrl = getDocReadyLoadUrl(index_view);
     if (!someUrl.includes("ui/datatable.php")) {
@@ -2413,7 +2412,28 @@
   }
   function getDocReadyLoadUrl(text) {
     let scanner = new TokenScanner(text);
-    return findDocReady(scanner).clipTo("<\/script>").find(".", "load", "(").clipString().result();
+    while (true) {
+      let docReady = findDocReady(scanner);
+      if (!docReady.valid)
+        return void 0;
+      let url = docReady.clone().clipTo("<\/script>").find(".", "load", "(").clipString().result();
+      if (url)
+        return url;
+      scanner = docReady;
+    }
+  }
+  function getDocReadyLoadScript(text) {
+    let scanner = new TokenScanner(text);
+    while (true) {
+      let docReady = findDocReady(scanner);
+      if (!docReady.valid)
+        return void 0;
+      let script = docReady.clone().clipTo("<\/script>");
+      let load = script.clone().find(".", "load", "(");
+      if (load.valid)
+        return script;
+      scanner = docReady;
+    }
   }
   function escapeRegexChars(text) {
     return text.replaceAll("\\", "\\\\").replaceAll("^", "\\^").replaceAll("$", "\\$").replaceAll(".", "\\.").replaceAll("|", "\\|").replaceAll("?", "\\?").replaceAll("*", "\\*").replaceAll("+", "\\+").replaceAll("(", "\\(").replaceAll(")", "\\)").replaceAll("[", "\\[").replaceAll("]", "\\]").replaceAll("{", "\\{").replaceAll("}", "\\}");
@@ -2569,7 +2589,7 @@
       let rowsArray = Array.from(rows);
       return rowsArray.map((row) => {
         let namen = row.cells[0].textContent.split(", ");
-        return { naam: namen[0], voornaam: namen[1], weken: parseInt(row.cells[3].textContent) };
+        return { naam: namen[0], voornaam: namen[1], weken: parseInt(row.cells[2].textContent) };
       });
     });
     console.log(wekenLijst);

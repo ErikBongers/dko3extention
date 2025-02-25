@@ -13,13 +13,12 @@ export async function getTableFromHash(hash: string, divInfoContainer: HTMLDivEl
     //get the htmlTableId (from index.view.php
     let index_view = await fetch(index_viewUrl).then(res => res.text());
     let scanner = new TokenScanner(index_view);
-    let htmlTableId = findDocReady(scanner)
+    let htmlTableId =  getDocReadyLoadScript(index_view)
         .find("$", "(", "'#")
         .clipTo("'")
         .result();
     if(!htmlTableId) {//TODO: try this with ifMatch or getString?
-        let scanner = new TokenScanner(index_view);
-        htmlTableId = findDocReady(scanner)
+        htmlTableId = getDocReadyLoadScript(index_view)
             .find("$", "(", "\"#")
             .clipTo("\"")
             .result();
@@ -86,12 +85,48 @@ function findDocReady(scanner: TokenScanner) {
 
 function getDocReadyLoadUrl(text: string) {
     let scanner = new TokenScanner(text);
-    return findDocReady(scanner)
-        .clipTo("</script>")
+    while(true) {
+        let docReady = findDocReady(scanner);
+        if(!docReady.valid)
+            return undefined;
+        let url = docReady
+            .clone()
+            .clipTo("</script>")
+            .find(".", "load", "(")
+            .clipString()
+            .result();
+        if(url)
+            return url;
+        scanner = docReady;
+    }
+}
+
+function getLoadUrl(text: string) {
+    let scanner = new TokenScanner(text);
+    return scanner
         .find(".", "load", "(")
         .clipString()
         .result();
 }
+
+function getDocReadyLoadScript(text: string) {
+    let scanner = new TokenScanner(text);
+    while(true) {
+        let docReady = findDocReady(scanner);
+        if(!docReady.valid)
+            return undefined;
+        let script = docReady
+            .clone()
+            .clipTo("</script>");
+        let load = script
+            .clone()
+            .find(".", "load", "(");
+        if(load.valid)
+            return script;
+        scanner = docReady;
+    }
+}
+
 
 function escapeRegexChars(text: string): string {
     return text

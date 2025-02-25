@@ -95,7 +95,7 @@ async function copyTable() {
         return rowsArray
             .map(row => {
                 let namen = row.cells[0].textContent.split(", ");
-                return { naam: namen[0], voornaam: namen[1], weken: parseInt(row.cells[3].textContent)} as Weken;
+                return { naam: namen[0], voornaam: namen[1], weken: parseInt(row.cells[2].textContent)} as Weken;
             });
     });
     console.log(wekenLijst);
