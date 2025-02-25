@@ -55,7 +55,7 @@
     let el = getSchooljaarSelectElement();
     if (el)
       return el.value;
-    el = document.querySelector("div.alert-info");
+    el = document.querySelector("div.alert-primary");
     return el.textContent.match(/schooljaar *= (\d{4}-\d{4})*/)[1];
   }
   function getUserAndSchoolName() {
