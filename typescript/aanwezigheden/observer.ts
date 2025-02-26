@@ -1,6 +1,6 @@
 import * as def from "../def.js";
 import {HashObserver} from "../pageObserver";
-import {addButton} from "../globals";
+import {addTableNavigationButton, getBothToolbars} from "../globals";
 import {SimpleTableHandler} from "../pageHandlers";
 import {findTableRefInCode, TableDef} from "../table/tableDef";
 import {getCriteriaString} from "../werklijst/observer";
@@ -13,8 +13,10 @@ function onMutationAanwezgheden(mutation: MutationRecord) {
     if (!tableId) {
         return false;
     }
-    console.log("aanwezig")
-    addTableNavigationButton(def.COPY_TABLE_BTN_ID, "copy table to clipboard", copyTable, "fa-clipboard");
+    let navigationBars = getBothToolbars();
+    if(!navigationBars)
+        return; //wait for top and bottom bars.
+    addTableNavigationButton(navigationBars, def.COPY_TABLE_BTN_ID, "copy table to clipboard", copyTable, "fa-clipboard");
     return true;
 }
 
@@ -230,15 +232,6 @@ function aanwezighedenToClipboard() {
                 aanwezighedenToClipboard();
             });
         });
-}
-
-//todo: use in table/observer as well.
-function addTableNavigationButton(btnId: string, title: string, onClick: any, fontIconId: string ) {
-    let navigationBar = document.querySelector("div.datatable-navigation-toolbar") as HTMLElement;
-    if(!navigationBar)
-        return false;
-    addButton(navigationBar.lastElementChild as HTMLElement, btnId, title, onClick, fontIconId, ["btn-secondary"], "", "afterend");
-    return true;
 }
 
 function reduceVaknaam(vaknaam: string) : string {

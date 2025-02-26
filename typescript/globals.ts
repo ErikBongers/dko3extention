@@ -193,3 +193,15 @@ export function filterTable(table: HTMLTableElement, searchFieldId: string, getR
     }
     return searchText;
 }
+
+export function getBothToolbars() {
+    let navigationBars = document.querySelectorAll("div.datatable-navigation-toolbar"); // as HTMLElement;
+    if (navigationBars.length < 2)
+        return undefined; //wait for top and bottom bars.
+    return navigationBars;
+}
+
+export function addTableNavigationButton(navigationBars: NodeListOf<Element>, btnId: string, title: string, onClick: any, fontIconId: string) {
+    addButton(navigationBars[0].lastElementChild as HTMLElement, btnId, title, onClick, fontIconId, ["btn-secondary"], "", "afterend");
+    return true;
+}

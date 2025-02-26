@@ -1,4 +1,4 @@
-import {addButton} from "../globals";
+import {addButton, addTableNavigationButton, getBothToolbars} from "../globals";
 import * as def from "../def";
 import {AllPageFilter, BaseObserver} from "../pageObserver";
 import {SimpleTableHandler} from "../pageHandlers";
@@ -9,11 +9,11 @@ import {getCriteriaString} from "../werklijst/observer";
 export default new BaseObserver(undefined, new AllPageFilter(), onMutation);
 
 function onMutation (_mutation: MutationRecord) {
-    let navigationBar = document.querySelector("div.datatable-navigation-toolbar") as HTMLElement;
-    if(!navigationBar)
-        return false;
+    let navigationBars = getBothToolbars();
+    if(!navigationBars)
+        return; //wait for top and bottom bars.
     if(!findTableRefInCode()?.navigationData.isOnePage()) {
-        addButton(navigationBar.lastElementChild as HTMLElement, def.DOWNLOAD_TABLE_BTN_ID, "download full table", downloadTable, "fa-arrow-down", ["btn-secondary"], "", "afterend");
+        addTableNavigationButton(navigationBars, def.DOWNLOAD_TABLE_BTN_ID, "download full table", downloadTable, "fa-arrow-down");
     }
     if(document.querySelector("main div.table-responsive table thead")) {
         addTableHeaderClickEvents(document.querySelector("main div.table-responsive table"));

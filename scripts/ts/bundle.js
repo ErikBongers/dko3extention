@@ -147,6 +147,16 @@
     }
     return searchText;
   }
+  function getBothToolbars() {
+    let navigationBars = document.querySelectorAll("div.datatable-navigation-toolbar");
+    if (navigationBars.length < 2)
+      return void 0;
+    return navigationBars;
+  }
+  function addTableNavigationButton(navigationBars, btnId, title, onClick, fontIconId) {
+    addButton(navigationBars[0].lastElementChild, btnId, title, onClick, fontIconId, ["btn-secondary"], "", "afterend");
+    return true;
+  }
 
   // typescript/pageObserver.ts
   var HashPageFilter = class {
@@ -2276,11 +2286,11 @@
   // typescript/table/observer.ts
   var observer_default6 = new BaseObserver(void 0, new AllPageFilter(), onMutation5);
   function onMutation5(_mutation) {
-    let navigationBar = document.querySelector("div.datatable-navigation-toolbar");
-    if (!navigationBar)
-      return false;
+    let navigationBars = getBothToolbars();
+    if (!navigationBars)
+      return;
     if (!findTableRefInCode()?.navigationData.isOnePage()) {
-      addButton(navigationBar.lastElementChild, DOWNLOAD_TABLE_BTN_ID, "download full table", downloadTable, "fa-arrow-down", ["btn-secondary"], "", "afterend");
+      addTableNavigationButton(navigationBars, DOWNLOAD_TABLE_BTN_ID, "download full table", downloadTable, "fa-arrow-down");
     }
     if (document.querySelector("main div.table-responsive table thead")) {
       addTableHeaderClickEvents(document.querySelector("main div.table-responsive table"));
@@ -2559,8 +2569,10 @@
     if (!tableId) {
       return false;
     }
-    console.log("aanwezig");
-    addTableNavigationButton(COPY_TABLE_BTN_ID, "copy table to clipboard", copyTable, "fa-clipboard");
+    let navigationBars = getBothToolbars();
+    if (!navigationBars)
+      return;
+    addTableNavigationButton(navigationBars, COPY_TABLE_BTN_ID, "copy table to clipboard", copyTable, "fa-clipboard");
     return true;
   }
   function showInfoMessage(message, click_element_id, callback) {
@@ -2705,13 +2717,6 @@
         aanwezighedenToClipboard();
       });
     });
-  }
-  function addTableNavigationButton(btnId, title, onClick, fontIconId) {
-    let navigationBar = document.querySelector("div.datatable-navigation-toolbar");
-    if (!navigationBar)
-      return false;
-    addButton(navigationBar.lastElementChild, btnId, title, onClick, fontIconId, ["btn-secondary"], "", "afterend");
-    return true;
   }
   function reduceVaknaam(vaknaam) {
     if (!vaknaam)
