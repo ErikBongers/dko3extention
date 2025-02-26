@@ -2103,10 +2103,13 @@
     for (let thead of table.tHead.children[0].children) {
       thead.classList.remove("sortAscending", "sortDescending");
     }
+    debugger;
+    console.log("WTF");
     let cmpFunc = cmpAlpha;
     if (isColumnProbablyNumeric(table, index)) {
       cmpFunc = cmpNumber;
     } else if (isColumnProbablyDate(table, index)) {
+      debugger;
       cmpFunc = cmpDate;
     }
     try {
@@ -2120,8 +2123,14 @@
   }
   function isColumnProbablyDate(table, index) {
     let rows = Array.from(table.tBodies[0].rows);
-    let reDate = /\d\d-\d\d-\d\d\d\d/;
-    return reDate.test(rows[0].cells[index].textContent);
+    return stringToDate(rows[0].cells[index].textContent);
+  }
+  function stringToDate(text) {
+    let reDate = /^(\d\d)[-\/](\d\d)[-\/](\d\d\d\d)/;
+    let matches = text.match(reDate);
+    if (!matches)
+      return void 0;
+    return /* @__PURE__ */ new Date(matches[3] + "-" + matches[2] + "/" + matches[1]);
   }
   function isColumnProbablyNumeric(table, index) {
     let rows = Array.from(table.tBodies[0].rows);

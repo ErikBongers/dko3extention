@@ -61,8 +61,15 @@ function sortTableByColumn(table: HTMLTableElement, index: number) {
 
 function isColumnProbablyDate(table: HTMLTableElement, index: number) {
     let rows = Array.from(table.tBodies[0].rows);
-    let reDate =/\d\d-\d\d-\d\d\d\d/;
-    return reDate.test(rows[0].cells[index].textContent);
+    return stringToDate(rows[0].cells[index].textContent);
+}
+
+function stringToDate(text: string) {
+    let reDate =/^(\d\d)[-\/](\d\d)[-\/](\d\d\d\d)/;
+    let matches = text.match(reDate);
+    if(!matches)
+        return undefined;
+    return new Date(matches[3] + "-" + matches[2] + "/" + matches[1]);
 }
 
 function isColumnProbablyNumeric(table: HTMLTableElement, index: number) {
