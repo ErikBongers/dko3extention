@@ -1,93 +1,8 @@
-AAnw codes
-------------------
->>> https://administratie.dko3.cloud/#leerlingen-lijsten-awi-afwezigheidsregistraties
-  = initial url
->>> https://administratie.dko3.cloud/view.php?args=leerlingen-lijsten-awi-afwezigheidsregistraties
-<script type="text/javascript">
-                    $(document).ready(function () {
-                        $('#view_contents').load('views/leerlingen/lijsten/awi/afwezigheidsregistraties/index.view.php', function(){
-                            $('.view_loading_indicator').fadeOut(100, function() {
-                                $('#view_contents').fadeIn(100);
-                                $('.popover').remove();
-                            });
-                        });
-                    });
-                </script>
->>> https://administratie.dko3.cloud/views/leerlingen/lijsten/awi/afwezigheidsregistraties/index.view.php
-<div class="row mb-1"><div class="col-7"><h4 id='vh_header_werklijst_lessen_zonder_aanwezigheden_left_title'><a href="#leerlingen-lijsten">Lijsten</a>: Aanwezigheden: Afwezigheidsregistraties</h4></div><div class="col-5"><h4 class="float-right"><i class="fa fa-user"></i></h4></div></div>        <div class='alert alert-info shadow-sm'>
-            <i class="fas fa-info-circle pr-2"></i>Dit is een lijst met alle afwezigheidsregistraties. Deze kunnen (optioneel) worden nagekeken.
-        </div>
-
-        <div id="div_leerlingen_lijst_awi_afwezigheidsregistraties_table">
-            <span class='text-muted'><i class='fas fa-spinner fa-spin'></i>&nbsp;Bezig met laden...</span>
-        </div>
-
-        <script type="text/javascript">
-            $(document).ready(function(){
-                load_div_leerlingen_lijst_awi_afwezigheidsregistraties_table();
-            });
-
-            function load_div_leerlingen_lijst_awi_afwezigheidsregistraties_table(){
-                $("#div_leerlingen_lijst_awi_afwezigheidsregistraties_table").css('pointer-events', 'none').fadeTo("fast", 0.2, function(){
-                    $("#div_leerlingen_lijst_awi_afwezigheidsregistraties_table").load("/views/leerlingen/lijsten/awi/afwezigheidsregistraties/index.table.php", function(){
-                        $("#div_leerlingen_lijst_awi_afwezigheidsregistraties_table").css('pointer-events', 'auto').fadeTo("fast", 1);
-                    });
-                });
-            }
-        </script>
->>> https://administratie.dko3.cloud/views/leerlingen/lijsten/awi/afwezigheidsregistraties/index.table.php
- <script type="text/javascript">
-            $(document).ready(function() {
-
-                load_datatable_werklijst_awi_afwezigheidsregistraties();
-            });
-
-            function load_datatable_werklijst_awi_afwezigheidsregistraties(){
-                $('#table_werklijst_awi_afwezigheidsregistraties_table').load('views/ui/datatable.php?id=werklijst_awi_afwezigheidsregistraties');
-            }
-        </script>        <script type="text/javascript">
-            $(document).ready(function(){
-                $(document).on('change', '#table_werklijst_awi_afwezigheidsregistraties_tr_filter_top_schooljaar', function() {
-                    load_div_leerlingen_lijst_awi_afwezigheidsregistraties_table();
-                });
-
-                $(document).on('click', '#btn_awi_afwezigheidsregistraties_bulk', function() {
-                    showModal('l', 'leerlingen-lijsten-awi-afwezigheidsregistraties-bulk', '');
-                });
-            });
-        </script>
- >>> https://administratie.dko3.cloud/views/ui/datatable.php?id=werklijst_awi_afwezigheidsregistraties
- ... table!
-  $(document).ready(function() {
-         $('[data-toggle="tooltip"]').tooltip();
-
-         var datatable_id = 'werklijst_awi_afwezigheidsregistraties';
-
-         var nanobar = new Nanobar({
-             target: document.getElementById('table_' + datatable_id + '_nanobar')
-         });
-
-         nanobar.go(50);
-
-         $('#tablenav_' + datatable_id + '_top').load('views/ui/datatablenav.php?id=' + datatable_id + '&pos=top');
-         $('#tablenav_' + datatable_id + '_bottom').load('views/ui/datatablenav.php?id=' + datatable_id + '&pos=bottom');
->>> https://administratie.dko3.cloud/views/ui/datatablenav.php?id=werklijst_awi_afwezigheidsregistraties&pos=top
-...navbar stuf...
-
-
-Aanwezigheden
-------------------
-* Vlemincx: waarom staat hier niet het laatste percentage van de 2 vakken?
-* Alleen Ps.
-* 3 wekenregel
-* Mankeren er lln in de excel? -> automatisch toevoegen.
-* Orkestslagwerk -> slagwerk
-
+* werklijst: Show uren button:
+  > how to select a (next) year?
+  > make it a button/dropdown to be able to select a previous year?
 
 * Global search: sorteer op voornaam.
-
-* NamedCellPageHandler does things that have to do with a table, not a page.
-  > Move this to a TableDef subclass?
 
 * If table page size is changed: clear cache and update infobar!
 
@@ -107,8 +22,6 @@ Nav history
 
 Features
 -----------
-* werklijst: Show uren button: make it a button/dropdown to be able to select a previous year.
-
 * use onRow() to find first row that matches given criteria.
 
 * add table buttons to top AND bottom navigation.

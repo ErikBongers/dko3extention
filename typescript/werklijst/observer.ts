@@ -6,7 +6,7 @@ import {fetchFromCloud} from "../cloud";
 import {CalculateTableCheckSumHandler, findTableRefInCode, TableDef} from "../table/tableDef";
 import {prefillInstruments} from "./prefillInstruments";
 import {HashObserver} from "../pageObserver";
-import {NamedCellPageHandler} from "../pageHandlers";
+import {NamedCellTablePageHandler} from "../pageHandlers";
 import {addTableHeaderClickEvents} from "../table/tableHeaders";
 import {getPageStateOrDefault, Goto, PageName, savePageState, WerklijstPageState} from "../pageState";
 
@@ -68,7 +68,7 @@ function onButtonBarChanged() {
 function onClickCopyEmails() {
     let requiredHeaderLabels = ["e-mailadressen"];
 
-    let pageHandler = new NamedCellPageHandler(requiredHeaderLabels, onEmailPageLoaded, tableDef1 => {
+    let pageHandler = new NamedCellTablePageHandler(requiredHeaderLabels, onEmailPageLoaded, tableDef1 => {
         navigator.clipboard.writeText("").then(value => {
             console.log("Clipboard cleared.")
         });
@@ -83,7 +83,7 @@ function onClickCopyEmails() {
     function onEmailPageLoaded(tableDef: TableDef) {
         let rows = this.rows = tableDef.shadowTableTemplate.content.querySelectorAll("tbody > tr") as NodeListOf<HTMLTableRowElement>;
         let allEmails = Array.from(rows)
-            .map(tr=> (tableDef.pageHandler as NamedCellPageHandler).getColumnText(tr, "e-mailadressen"));
+            .map(tr=> (tableDef.pageHandler as NamedCellTablePageHandler).getColumnText(tr, "e-mailadressen"));
 
         let flattened = allEmails
             .map((emails: string) => emails.split(/[,;]/))
@@ -114,7 +114,7 @@ function onClickShowCounts() {
 
         let fileName = getUrenVakLeraarFileName();
         let requiredHeaderLabels = ["naam", "voornaam", "vak", "klasleerkracht", "graad + leerjaar"];
-        let pageHandler = new NamedCellPageHandler(requiredHeaderLabels, onLoaded, () => {});
+        let pageHandler = new NamedCellTablePageHandler(requiredHeaderLabels, onLoaded, () => {});
         let tableDef = new TableDef(
             tableRef,
             pageHandler,

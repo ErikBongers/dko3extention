@@ -69,7 +69,7 @@ export class SimpleTableHandler implements PageHandler {
  *      * onRow: function(rowObject, collection): a row handler that mainly provides a param `rowObject`, which has a member getColumnText(columnLabel)
  * @implements PageHandler: which requires member `onPage()`
  */
-export class NamedCellPageHandler implements PageHandler {
+export class NamedCellTablePageHandler implements PageHandler {
     private requiredHeaderLabels: string[];
     onBeforeLoading?: OnBeforeLoadingHandler;
     private headerIndices: Map<string, number>;
@@ -111,7 +111,7 @@ export class NamedCellPageHandler implements PageHandler {
     }
 
     onBeforeLoadingHandler() {
-        this.headerIndices = NamedCellPageHandler.getHeaderIndicesFromDocument(document.body); //TODO: it's up to the tableDef to determine if a table has the valid columns.
+        this.headerIndices = NamedCellTablePageHandler.getHeaderIndicesFromDocument(document.body); //TODO: it's up to the tableDef to determine if a table has the valid columns.
         return this.hasAllHeadersAndAlert();
     }
 
@@ -127,7 +127,7 @@ export class NamedCellPageHandler implements PageHandler {
     }
 
     setTemplateAndCheck(template: HTMLTemplateElement) {
-        this.headerIndices = NamedCellPageHandler.getHeaderIndicesFromTemplate(template);
+        this.headerIndices = NamedCellTablePageHandler.getHeaderIndicesFromTemplate(template);
         return this.hasAllHeadersAndAlert();
     }
 

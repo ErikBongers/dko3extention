@@ -1,6 +1,6 @@
 import {createValidId} from "../globals";
 import {TableDef} from "../table/tableDef";
-import {NamedCellPageHandler} from "../pageHandlers";
+import {NamedCellTablePageHandler} from "../pageHandlers";
 import {StudentInfo} from "../lessen/scrape";
 
 export interface CountStudentsPerJaar {
@@ -16,12 +16,12 @@ export interface VakLeraar {
 
 export function scrapeStudent(tableDef: TableDef, tr: HTMLTableRowElement, collection: any) {
     let student: StudentInfo = new StudentInfo();
-    student.naam = (tableDef.pageHandler as NamedCellPageHandler).getColumnText(tr, "naam");
-    student.voornaam = (tableDef.pageHandler as NamedCellPageHandler).getColumnText(tr,"voornaam");
+    student.naam = (tableDef.pageHandler as NamedCellTablePageHandler).getColumnText(tr, "naam");
+    student.voornaam = (tableDef.pageHandler as NamedCellTablePageHandler).getColumnText(tr,"voornaam");
     student.id = parseInt(tr.attributes['onclick'].value.replace("showView('leerlingen-leerling', '', 'id=", ""));
-    let leraar = (tableDef.pageHandler as NamedCellPageHandler).getColumnText(tr,"klasleerkracht");
-    let vak = (tableDef.pageHandler as NamedCellPageHandler).getColumnText(tr,"vak");
-    let graadLeerjaar = (tableDef.pageHandler as NamedCellPageHandler).getColumnText(tr,"graad + leerjaar");
+    let leraar = (tableDef.pageHandler as NamedCellTablePageHandler).getColumnText(tr,"klasleerkracht");
+    let vak = (tableDef.pageHandler as NamedCellTablePageHandler).getColumnText(tr,"vak");
+    let graadLeerjaar = (tableDef.pageHandler as NamedCellTablePageHandler).getColumnText(tr,"graad + leerjaar");
 
     if (leraar === "") leraar = "{nieuw}";
 

@@ -1990,7 +1990,7 @@
       this.onPage = void 0;
     }
   };
-  var NamedCellPageHandler = class _NamedCellPageHandler {
+  var NamedCellTablePageHandler = class _NamedCellTablePageHandler {
     constructor(requiredHeaderLabels, onLoaded, onRequiredColumnsMissing) {
       this.onLoadedAndCheck = (tableDef) => {
         if (this.isValidPage)
@@ -2021,7 +2021,7 @@
       this.onBeforeLoading = this.onBeforeLoadingHandler;
     }
     onBeforeLoadingHandler() {
-      this.headerIndices = _NamedCellPageHandler.getHeaderIndicesFromDocument(document.body);
+      this.headerIndices = _NamedCellTablePageHandler.getHeaderIndicesFromDocument(document.body);
       return this.hasAllHeadersAndAlert();
     }
     hasAllHeadersAndAlert() {
@@ -2033,7 +2033,7 @@
       return true;
     }
     setTemplateAndCheck(template) {
-      this.headerIndices = _NamedCellPageHandler.getHeaderIndicesFromTemplate(template);
+      this.headerIndices = _NamedCellTablePageHandler.getHeaderIndicesFromTemplate(template);
       return this.hasAllHeadersAndAlert();
     }
     static getHeaderIndicesFromTemplate(template) {
@@ -2103,13 +2103,10 @@
     for (let thead of table.tHead.children[0].children) {
       thead.classList.remove("sortAscending", "sortDescending");
     }
-    debugger;
-    console.log("WTF");
     let cmpFunc = cmpAlpha;
     if (isColumnProbablyNumeric(table, index)) {
       cmpFunc = cmpNumber;
     } else if (isColumnProbablyDate(table, index)) {
-      debugger;
       cmpFunc = cmpDate;
     }
     try {
@@ -2203,7 +2200,7 @@
   }
   function onClickCopyEmails() {
     let requiredHeaderLabels = ["e-mailadressen"];
-    let pageHandler = new NamedCellPageHandler(requiredHeaderLabels, onEmailPageLoaded, (tableDef1) => {
+    let pageHandler = new NamedCellTablePageHandler(requiredHeaderLabels, onEmailPageLoaded, (tableDef1) => {
       navigator.clipboard.writeText("").then((value) => {
         console.log("Clipboard cleared.");
       });
@@ -2248,7 +2245,7 @@
         return false;
       let fileName = getUrenVakLeraarFileName();
       let requiredHeaderLabels = ["naam", "voornaam", "vak", "klasleerkracht", "graad + leerjaar"];
-      let pageHandler = new NamedCellPageHandler(requiredHeaderLabels, onLoaded, () => {
+      let pageHandler = new NamedCellTablePageHandler(requiredHeaderLabels, onLoaded, () => {
       });
       let tableDef = new TableDef(
         tableRef,
