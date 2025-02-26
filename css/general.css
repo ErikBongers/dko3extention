@@ -142,6 +142,22 @@ body.otherSchool {
     margin: 0;
 }
 
+html[data-darkreader-scheme="dark"] {
+    color: white;
+    #powerQuery {
+        background-color: #454559;
+        label {
+            background-color: #282839;
+        }
+        div.list {
+            background-color: #33333a;
+            div.selected {
+                background-color: rgba(240,240,255,0.2);
+            }
+        }
+    }
+}
+
 #powerQuery {
     background-color:#d6d8d9;
     margin-top: 200px;
@@ -160,7 +176,10 @@ body.otherSchool {
     }
     div.list {
         padding: 0;
-        background-color: white;
+        background-color: rgb(255,255,254);
+        @media (prefers-color-scheme: dark) {
+            background-color: darkgray;
+        }
         border-radius: 3px;
         max-height: 800px;
         overflow-y: hidden;
