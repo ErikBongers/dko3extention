@@ -247,14 +247,15 @@ function buildStudentCell(student: StudentInfo) {
     anchor.href = "#";
     anchor.classList.add("pl-2");
     anchor.title = student.info;
-    anchor.onclick= function () {
-        fetchStudentId(student.name)
-            .then((id) => {
-                if(id <= 0)
-                    window.location.href = "/?#zoeken?zoek="+ stripStudentName(student.name);
-                else
-                    window.location.href = "/?#leerlingen-leerling?id=" + id + ",tab=inschrijvingen";
-            });
+    anchor.onclick= async function () {
+        let id = await fetchStudentId(student.name);
+        if(id <= 0)
+            window.location.href = "/?#zoeken?zoek="+ stripStudentName(student.name);
+        else {
+            await fetch("https://administratie.dko3.cloud/view.php?args=leerlingen-leerling?id="+id);
+            await fetch("https://administratie.dko3.cloud/views/leerlingen/leerling/index.inschrijvingen.tab.php");
+            window.location.href = "/?#leerlingen-leerling?id=" + id + ",tab=inschrijvingen";
+        }
         return false;
     };
     const iTag = document.createElement("i");
