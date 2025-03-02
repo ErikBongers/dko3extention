@@ -68,7 +68,7 @@ export class TableDef {
     pageHandler: PageHandler;
     parallelData = undefined;
     calculateTableCheckSum: CalculateTableCheckSumHandler;
-    shadowTableTemplate: HTMLTemplateElement;
+    private shadowTableTemplate: HTMLTemplateElement;
     isUsingCached = false;
     divInfoContainer: HTMLDivElement;
     shadowTableDate: Date;
@@ -275,8 +275,10 @@ export class TableDef {
     getRows() {
         //TODO: this function should be only accessible after a fetch of the table. Perhaps the fetch should return a promise<FetchedTable> where FetchedTable is a proxy/wrap of TableDef?
         let template = this.shadowTableTemplate;
-        let rows = template.content.querySelectorAll("tbody tr") as NodeListOf<HTMLTableRowElement>;
-        return Array.from(rows);
+        return template.content.querySelectorAll("tbody tr") as NodeListOf<HTMLTableRowElement>;
+    }
+    getRowsAsArray() {
+        return Array.from(this.getRows());
     }
 }
 

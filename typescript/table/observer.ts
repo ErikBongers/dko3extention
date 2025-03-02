@@ -30,10 +30,9 @@ function downloadTable() {
     let prebuildPageHandler = new SimpleTableHandler(onLoaded, undefined);
 
     function onLoaded(tableDef: TableDef) {
-        let template = tableDef.shadowTableTemplate;
         tableDef.tableRef.getOrgTable()
             .querySelector("tbody")
-            .replaceChildren(...template.content.querySelectorAll("tbody tr"));
+            .replaceChildren(...tableDef.getRows());
     }
 
     // let tableRef = new TableRef("table_leerlingen_werklijst_table", findFirstNavigation(),(offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0");

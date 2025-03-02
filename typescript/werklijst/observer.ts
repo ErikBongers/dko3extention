@@ -85,7 +85,7 @@ function onClickCopyEmails() {
     );
 
     function onEmailPageLoaded(tableDef: TableDef) {
-        let rows = this.rows = tableDef.shadowTableTemplate.content.querySelectorAll("tbody > tr") as NodeListOf<HTMLTableRowElement>;
+        let rows = this.rows = tableDef.getRows();
         let allEmails = Array.from(rows)
             .map(tr=> (tableDef.pageHandler as NamedCellTablePageHandler).getColumnText(tr, "e-mailadressen"));
 
@@ -127,7 +127,7 @@ function onClickShowCounts() {
 
         function onLoaded(tableDef: TableDef) {
             let vakLeraars = new Map();
-            let rows = this.rows = tableDef.shadowTableTemplate.content.querySelectorAll("tbody > tr") as NodeListOf<HTMLTableRowElement>;
+            let rows = this.rows = tableDef.getRows();
             for(let tr of rows) {
                 scrapeStudent(tableDef, tr, vakLeraars);//TODO: returns false if fails. Report error.
             }

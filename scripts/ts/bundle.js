@@ -1806,8 +1806,10 @@
     }
     getRows() {
       let template = this.shadowTableTemplate;
-      let rows = template.content.querySelectorAll("tbody tr");
-      return Array.from(rows);
+      return template.content.querySelectorAll("tbody tr");
+    }
+    getRowsAsArray() {
+      return Array.from(this.getRows());
     }
   };
 
@@ -2179,8 +2181,7 @@
   function downloadTable() {
     let prebuildPageHandler = new SimpleTableHandler(onLoaded, void 0);
     function onLoaded(tableDef2) {
-      let template = tableDef2.shadowTableTemplate;
-      tableDef2.tableRef.getOrgTable().querySelector("tbody").replaceChildren(...template.content.querySelectorAll("tbody tr"));
+      tableDef2.tableRef.getOrgTable().querySelector("tbody").replaceChildren(...tableDef2.getRows());
     }
     let tableRef = findTableRefInCode();
     let tableDef = new TableDef(
@@ -2268,7 +2269,7 @@
       getChecksumHandler(tableId)
     );
     function onEmailPageLoaded(tableDef2) {
-      let rows = this.rows = tableDef2.shadowTableTemplate.content.querySelectorAll("tbody > tr");
+      let rows = this.rows = tableDef2.getRows();
       let allEmails = Array.from(rows).map((tr) => tableDef2.pageHandler.getColumnText(tr, "e-mailadressen"));
       let flattened = allEmails.map((emails) => emails.split(/[,;]/)).flat().filter((email) => !email.includes("@academiestudent.be")).filter((email) => email !== "");
       navigator.clipboard.writeText(flattened.join(";\n")).then(
@@ -2286,7 +2287,7 @@
     if (!document.getElementById(COUNT_TABLE_ID)) {
       let onLoaded = function(tableDef2) {
         let vakLeraars = /* @__PURE__ */ new Map();
-        let rows = this.rows = tableDef2.shadowTableTemplate.content.querySelectorAll("tbody > tr");
+        let rows = this.rows = tableDef2.getRows();
         for (let tr of rows) {
           scrapeStudent(tableDef2, tr, vakLeraars);
         }
@@ -2614,10 +2615,8 @@
     tableDef.divInfoContainer = div.appendChild(document.createElement("div"));
     showInfoMessage("Fetching 3-weken data...");
     let wekenLijst = await getTableFromHash("leerlingen-lijsten-awi-3weken", tableDef.divInfoContainer, true).then((bckTableDef) => {
-      let template = bckTableDef.shadowTableTemplate;
       ``;
-      let rows = template.content.querySelectorAll("tbody tr");
-      let rowsArray = Array.from(rows);
+      let rowsArray = bckTableDef.getRowsAsArray();
       return rowsArray.map((row) => {
         let namen = row.cells[0].textContent.split(", ");
         return { naam: namen[0], voornaam: namen[1], weken: parseInt(row.cells[2].textContent) };
@@ -2626,7 +2625,7 @@
     console.log(wekenLijst);
     showInfoMessage("Fetching attesten...");
     let attestenLijst = await getTableFromHash("leerlingen-lijsten-awi-ontbrekende_attesten", tableDef.divInfoContainer, true).then((bckTableDef) => {
-      return bckTableDef.getRows().map(
+      return bckTableDef.getRowsAsArray().map(
         (tr) => {
           return {
             datum: tr.cells[0].textContent,
@@ -2641,9 +2640,7 @@
     console.log(attestenLijst);
     showInfoMessage("Fetching afwezigheidscodes...");
     let pList = await getTableFromHash("leerlingen-lijsten-awi-afwezigheidsregistraties", tableDef.divInfoContainer, true).then((bckTableDef) => {
-      let template = bckTableDef.shadowTableTemplate;
-      let rows = template.content.querySelectorAll("tbody tr");
-      let rowsArray = Array.from(rows);
+      let rowsArray = bckTableDef.getRowsAsArray();
       return rowsArray.map((row) => {
         let namen = row.cells[1].querySelector("strong").textContent.split(", ");
         let vakTxt = Array.from(row.cells[1].childNodes).filter((node) => node.nodeType === Node.TEXT_NODE).map((node) => node.textContent).join("");
@@ -2659,9 +2656,7 @@
       for (let week of wekenLijst) {
         wekenMap.set(week.naam + "," + week.voornaam, week);
       }
-      let template = tableDef.shadowTableTemplate;
-      let rows = template.content.querySelectorAll("tbody tr");
-      let rowsArray = Array.from(rows);
+      let rowsArray = tableDef.getRowsAsArray();
       let nu = /* @__PURE__ */ new Date();
       let text = "data:" + nu.toLocaleDateString() + "\n";
       let aanwList = rowsArray.map((row) => {
@@ -2716,7 +2711,7 @@
       console.log(text);
       window.sessionStorage.setItem(AANW_LIST, text);
       aanwezighedenToClipboard();
-      tableDef.tableRef.getOrgTable().querySelector("tbody").replaceChildren(...template.content.querySelectorAll("tbody tr"));
+      tableDef.tableRef.getOrgTable().querySelector("tbody").replaceChildren(...tableDef.getRows());
     });
   }
   function aanwezighedenToClipboard() {

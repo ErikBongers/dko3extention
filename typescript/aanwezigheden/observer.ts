@@ -90,10 +90,8 @@ async function copyTable() {
     showInfoMessage("Fetching 3-weken data...");
 
     let wekenLijst = await getTableFromHash("leerlingen-lijsten-awi-3weken", tableDef.divInfoContainer, true).then(bckTableDef => {
-        let template = bckTableDef.shadowTableTemplate;
 ``        // convert table to text
-        let rows = template.content.querySelectorAll("tbody tr") as NodeListOf<HTMLTableRowElement>;
-        let rowsArray = Array.from(rows);
+        let rowsArray = bckTableDef.getRowsAsArray();
         return rowsArray
             .map(row => {
                 let namen = row.cells[0].textContent.split(", ");
@@ -105,7 +103,7 @@ async function copyTable() {
     showInfoMessage("Fetching attesten...");
 
     let attestenLijst = await getTableFromHash("leerlingen-lijsten-awi-ontbrekende_attesten", tableDef.divInfoContainer, true).then(bckTableDef => {
-        return bckTableDef.getRows().map(tr => {
+        return bckTableDef.getRowsAsArray().map(tr => {
                 return {
                     datum: tr.cells[0].textContent,
                     leerling: tr.cells[1].textContent,
@@ -121,9 +119,7 @@ async function copyTable() {
     showInfoMessage("Fetching afwezigheidscodes...");
 
     let pList = await getTableFromHash("leerlingen-lijsten-awi-afwezigheidsregistraties", tableDef.divInfoContainer, true).then(bckTableDef => {
-        let template = bckTableDef.shadowTableTemplate;
-        let rows = template.content.querySelectorAll("tbody tr") as NodeListOf<HTMLTableRowElement>;
-        let rowsArray = Array.from(rows);
+        let rowsArray = bckTableDef.getRowsAsArray();
 
         return rowsArray
             .map(row => {
@@ -145,10 +141,8 @@ async function copyTable() {
             wekenMap.set(week.naam+","+week.voornaam, week);
         }
 
-        let template = tableDef.shadowTableTemplate;
         // convert table to text
-        let rows = template.content.querySelectorAll("tbody tr") as NodeListOf<HTMLTableRowElement>;
-        let rowsArray = Array.from(rows);
+        let rowsArray = tableDef.getRowsAsArray();
         let nu = new Date();
         let text = "data:"+ nu.toLocaleDateString() +"\n";
         let aanwList = rowsArray
@@ -215,7 +209,7 @@ async function copyTable() {
         //replace the visible table
         tableDef.tableRef.getOrgTable()
             .querySelector("tbody")
-            .replaceChildren(...template.content.querySelectorAll("tbody tr"));
+            .replaceChildren(...tableDef.getRows());
     });
 }
 
