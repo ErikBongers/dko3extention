@@ -99,7 +99,7 @@ function onClickCopyEmails() {
         );
     }
 
-    tableDef.getTableData([], undefined )
+    tableDef.getTableData(undefined )
         .then((_results) => {
         });
 }
@@ -140,7 +140,7 @@ function onClickShowCounts() {
             showOrHideNewTable();
         }
 
-        tableDef.getTableData(new Map(), () => fetchFromCloud(fileName))
+        tableDef.getTableData(() => fetchFromCloud(fileName))
             .then((_results) => { });
         return true;
     }

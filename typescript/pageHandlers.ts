@@ -3,12 +3,12 @@ import {TableDef} from "./table/tableDef";
 /**
  * @returns `true` to continue, `false` to cancel further handling.
  */
-type OnRowHandler = (tableDef: TableDef, rowObject: RowObject, collection: any) => boolean;
+type OnRowHandler = (tableDef: TableDef, rowObject: RowObject) => boolean;
 
 type OnBeforeLoadingHandler = (tableDef: TableDef) => boolean;
 type OnLoadedHandler = (tableDef: TableDef) => void;
 type OnRequiredColumnsMissingHandler = (tableDef: TableDef) => void;
-type OnPageHandler = (tableDef: TableDef, text: string, collection: any, offset: number, template: HTMLTemplateElement, rows: NodeListOf<HTMLTableRowElement>) => void;
+type OnPageHandler = (tableDef: TableDef, text: string, offset: number, template: HTMLTemplateElement, rows: NodeListOf<HTMLTableRowElement>) => void;
 
 export interface PageHandler {
     onPage: OnPageHandler;
@@ -33,7 +33,7 @@ export class RowPageHandler implements PageHandler {
         this.onLoaded = onLoaded;
     }
 
-    onPage: OnPageHandler = (tableDef: TableDef, _text: string, collection: any, offset: number, _template, rows) => {
+    onPage: OnPageHandler = (tableDef: TableDef, _text: string, offset: number, _template, rows) => {
         if(!this.onRow)
             return;
         let index = 0;
@@ -42,7 +42,7 @@ export class RowPageHandler implements PageHandler {
             rowObject.tr = row;
             rowObject.offset = offset;
             rowObject.index = index;
-            if (!this.onRow(tableDef, rowObject, collection))
+            if (!this.onRow(tableDef, rowObject))
                 return;
             index++;
         }
@@ -95,7 +95,7 @@ export class NamedCellTablePageHandler implements PageHandler {
             console.log("NamedCellPageHandler: Not calling OnLoaded handler because page is not valid.")
     }
 
-    onPage: OnPageHandler = (_tableDef: TableDef, _text: string, _collection: any, offset: number, template, _rows)  => {
+    onPage: OnPageHandler = (_tableDef: TableDef, _text: string, offset: number, template, _rows)  => {
         if(offset === 0) {
             if (!this.setTemplateAndCheck(template)) {
                 this.isValidPage = false;

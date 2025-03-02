@@ -191,7 +191,7 @@ export class TableDef {
             return true;
         }
     }
-    async getTableData(rawData?: any, parallelAsyncFunction?: (() => Promise<any>)) {
+    async getTableData(parallelAsyncFunction?: (() => Promise<any>)) {
         this.setupInfoBar();
         this.clearCacheInfo();
         let cachedData = this.loadFromCache();
@@ -206,14 +206,13 @@ export class TableDef {
             this.isUsingCached = true;
             db3(`${this.tableRef.htmlTableId}: using cached data.`);
             let rows = this.shadowTableTemplate.content.querySelectorAll("tbody > tr") as NodeListOf<HTMLTableRowElement>;
-            //TODO: collection is set to undefined. This call to onPage(), should be EXACTLY the same as with a real fetch.
             if (this.pageHandler.onPage)
-                this.pageHandler.onPage(this, this.shadowTableTemplate.innerHTML, undefined, 0, this.shadowTableTemplate, rows);
+                this.pageHandler.onPage(this, this.shadowTableTemplate.innerHTML, 0, this.shadowTableTemplate, rows);
             if (this.pageHandler.onLoaded)
                 this.pageHandler.onLoaded(this);
         } else {
             this.isUsingCached = false;
-            let success = await this.#fetchPages(parallelAsyncFunction, rawData);
+            let success = await this.#fetchPages(parallelAsyncFunction);
             if(!success)
                 return;
             this.saveToCache();
@@ -223,7 +222,7 @@ export class TableDef {
         this.updateInfoBar();
     }
 
-    async #fetchPages(parallelAsyncFunction: () => Promise<any>, collection: any) {
+    async #fetchPages(parallelAsyncFunction: () => Promise<any>) {
         if (this.pageHandler.onBeforeLoading) {
             if(!this.pageHandler.onBeforeLoading(this))
                 return false;
@@ -232,17 +231,17 @@ export class TableDef {
         progressBar.start();
         if (parallelAsyncFunction) {
             let doubleResults = await Promise.all([
-                this.#doFetchAllPages(collection, progressBar),
+                this.#doFetchAllPages(progressBar),
                 parallelAsyncFunction()
             ]);
             this.parallelData = doubleResults[1];
         } else {
-            await this.#doFetchAllPages(collection, progressBar);
+            await this.#doFetchAllPages(progressBar);
         }
         return true;
     }
 
-    async #doFetchAllPages(results: any, progressBar: ProgressBar) {
+    async #doFetchAllPages(progressBar: ProgressBar) {
         let offset = 0;
         try {
             while (true) {
@@ -260,7 +259,7 @@ export class TableDef {
                 }
                 let rows = template.content.querySelectorAll("tbody > tr") as NodeListOf<HTMLTableRowElement>;
                 if (this.pageHandler.onPage)
-                    this.pageHandler.onPage(this, text, results, offset, template, rows);
+                    this.pageHandler.onPage(this, text, offset, template, rows);
                 if(offset !== 0) {
                     this.shadowTableTemplate.content.querySelector("tbody").append(...rows);
                 }
@@ -271,7 +270,6 @@ export class TableDef {
         } finally {
             progressBar.stop();
         }
-        return results;
     }
 
     getRows() {

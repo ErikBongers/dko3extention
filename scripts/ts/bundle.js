@@ -1727,7 +1727,7 @@
         return true;
       };
     }
-    async getTableData(rawData, parallelAsyncFunction) {
+    async getTableData(parallelAsyncFunction) {
       this.setupInfoBar();
       this.clearCacheInfo();
       let cachedData = this.loadFromCache();
@@ -1742,12 +1742,12 @@
         db3(`${this.tableRef.htmlTableId}: using cached data.`);
         let rows = this.shadowTableTemplate.content.querySelectorAll("tbody > tr");
         if (this.pageHandler.onPage)
-          this.pageHandler.onPage(this, this.shadowTableTemplate.innerHTML, void 0, 0, this.shadowTableTemplate, rows);
+          this.pageHandler.onPage(this, this.shadowTableTemplate.innerHTML, 0, this.shadowTableTemplate, rows);
         if (this.pageHandler.onLoaded)
           this.pageHandler.onLoaded(this);
       } else {
         this.isUsingCached = false;
-        let success = await this.#fetchPages(parallelAsyncFunction, rawData);
+        let success = await this.#fetchPages(parallelAsyncFunction);
         if (!success)
           return;
         this.saveToCache();
@@ -1756,7 +1756,7 @@
       }
       this.updateInfoBar();
     }
-    async #fetchPages(parallelAsyncFunction, collection) {
+    async #fetchPages(parallelAsyncFunction) {
       if (this.pageHandler.onBeforeLoading) {
         if (!this.pageHandler.onBeforeLoading(this))
           return false;
@@ -1765,16 +1765,16 @@
       progressBar.start();
       if (parallelAsyncFunction) {
         let doubleResults = await Promise.all([
-          this.#doFetchAllPages(collection, progressBar),
+          this.#doFetchAllPages(progressBar),
           parallelAsyncFunction()
         ]);
         this.parallelData = doubleResults[1];
       } else {
-        await this.#doFetchAllPages(collection, progressBar);
+        await this.#doFetchAllPages(progressBar);
       }
       return true;
     }
-    async #doFetchAllPages(results, progressBar) {
+    async #doFetchAllPages(progressBar) {
       let offset = 0;
       try {
         while (true) {
@@ -1792,7 +1792,7 @@
           }
           let rows = template.content.querySelectorAll("tbody > tr");
           if (this.pageHandler.onPage)
-            this.pageHandler.onPage(this, text, results, offset, template, rows);
+            this.pageHandler.onPage(this, text, offset, template, rows);
           if (offset !== 0) {
             this.shadowTableTemplate.content.querySelector("tbody").append(...rows);
           }
@@ -1803,7 +1803,6 @@
       } finally {
         progressBar.stop();
       }
-      return results;
     }
     getRows() {
       let template = this.shadowTableTemplate;
@@ -2008,7 +2007,7 @@
         else
           console.log("NamedCellPageHandler: Not calling OnLoaded handler because page is not valid.");
       };
-      this.onPage = (_tableDef, _text, _collection, offset, template, _rows) => {
+      this.onPage = (_tableDef, _text, offset, template, _rows) => {
         if (offset === 0) {
           if (!this.setTemplateAndCheck(template)) {
             this.isValidPage = false;
@@ -2276,7 +2275,7 @@
         () => tableDef2.setTempMessage("Alle emails zijn naar het clipboard gekopieerd. Je kan ze plakken in Outlook.")
       );
     }
-    tableDef.getTableData([], void 0).then((_results) => {
+    tableDef.getTableData(void 0).then((_results) => {
     });
   }
   function tryUntil(func) {
@@ -2311,7 +2310,7 @@
         pageHandler,
         getChecksumHandler(tableRef.htmlTableId)
       );
-      tableDef.getTableData(/* @__PURE__ */ new Map(), () => fetchFromCloud(fileName)).then((_results) => {
+      tableDef.getTableData(() => fetchFromCloud(fileName)).then((_results) => {
       });
       return true;
     }
