@@ -35,18 +35,16 @@ export function findFirstNavigation(element?: HTMLElement) {
     }
     let rx = /(\d*) tot (\d*) van (\d*)/;
     let matches = buttonPagination.innerText.match(rx);
+    let step = parseInt(matches[2]) - parseInt(matches[1]) + 1;
     let buttons = buttonContainer.querySelectorAll("button.btn-secondary");
     let numbers = Array.from(buttons)
         .filter((btn) => btn.attributes["onclick"]?.value.includes("goto("))
         .map((btn) => btn.attributes["onclick"].value)
-        .map((txt) => getGotoNumber(txt));
+        .map((txt) => getGotoNumber(txt))
+        .filter(num => num > 0);
     matches.slice(1).forEach((txt) => numbers.push(parseInt(txt)));
     numbers.sort((a, b) => a - b);
-    if (numbers[0] === 1) {
-        return new TableNavigation(numbers[1], numbers.pop(), buttonContainer);
-    } else {
-        return new TableNavigation(numbers[2] - numbers[1] - 1, numbers.pop(), buttonContainer);
-    }
+    return new TableNavigation(step, numbers.pop(), buttonContainer);
 }
 
 function getGotoNumber(functionCall: string) {
