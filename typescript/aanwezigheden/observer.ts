@@ -235,8 +235,6 @@ function aanwezighedenToClipboard() {
 }
 
 function reduceVaknaam(vaknaam: string) : string {
-    if(!vaknaam)
-        debugger;
     let vak = reduceVaknaamStep1(vaknaam);
     return vak
         .replace("orkestslagwerk", "slagwerk")

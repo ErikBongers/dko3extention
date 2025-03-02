@@ -49,7 +49,6 @@ function downloadTable() {
 
 export function getChecksumHandler(tableId: string): CalculateTableCheckSumHandler {
     let handler = tableCriteriaBuilders.get(tableId);
-    debugger;
     if(handler)
         return handler;
     return (tableDef: TableDef) => "";

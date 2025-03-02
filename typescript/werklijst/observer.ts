@@ -14,12 +14,11 @@ import {getChecksumHandler, registerChecksumHandler} from "../table/observer";
 const tableId = "table_leerlingen_werklijst_table";
 
 registerChecksumHandler(tableId,  (_tableDef: TableDef) => {
-    debugger;
     return document.querySelector("#view_contents > div.alert.alert-primary")?.textContent.replace("Criteria aanpassen", "")?.replace("Criteria:", "") ?? ""
     }
     );
 
-export default new HashObserver("#leerlingen-werklijst", onMutation); //TODO: register it here, instead of in main.ts?
+export default new HashObserver("#leerlingen-werklijst", onMutation);
 
 function onMutation(mutation: MutationRecord) {
     if ((mutation.target as HTMLElement).id === "table_leerlingen_werklijst_table") {
