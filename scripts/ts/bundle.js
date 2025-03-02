@@ -1607,8 +1607,6 @@
   }
   function findTable() {
     let table = document.querySelector("div.table-responsive > table");
-    if (!table)
-      debugger;
     let tableId2 = table.id.replace("table_", "").replace("_table", "");
     let parentDiv = document.querySelector("div#table_" + tableId2);
     let scripts = Array.from(parentDiv.querySelectorAll("script")).map((script) => script.text).join("\n");
@@ -1665,8 +1663,7 @@
     }
     setupInfoBar() {
       if (!this.divInfoContainer) {
-        this.divInfoContainer = document.createElement("div");
-        this.tableRef.getOrgTable().insertAdjacentElement("beforebegin", this.divInfoContainer);
+        this.divInfoContainer = this.tableRef.createElementAboveTable("div");
       }
       this.divInfoContainer.classList.add("infoLine");
     }
@@ -2194,7 +2191,6 @@
   }
   function getChecksumHandler(tableId2) {
     let handler = tableCriteriaBuilders.get(tableId2);
-    debugger;
     if (handler)
       return handler;
     return (tableDef) => "";
@@ -2208,7 +2204,6 @@
   registerChecksumHandler(
     tableId,
     (_tableDef) => {
-      debugger;
       return document.querySelector("#view_contents > div.alert.alert-primary")?.textContent.replace("Criteria aanpassen", "")?.replace("Criteria:", "") ?? "";
     }
   );
@@ -2735,8 +2730,6 @@
     });
   }
   function reduceVaknaam(vaknaam) {
-    if (!vaknaam)
-      debugger;
     let vak = reduceVaknaamStep1(vaknaam);
     return vak.replace("orkestslagwerk", "slagwerk").replace("jazz pop rock)", "JPR").replace("koor", "GM").replace(": musical", "").replace(" (musical)", "");
   }

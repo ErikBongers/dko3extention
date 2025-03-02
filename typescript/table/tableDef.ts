@@ -42,8 +42,6 @@ export function findTableRefInCode() {
 
 function findTable() {
     let table = document.querySelector("div.table-responsive > table");
-    if(!table)
-        debugger;
     let tableId = table.id
         .replace("table_", "")
         .replace("_table", "");
@@ -122,9 +120,7 @@ export class TableDef {
 
     setupInfoBar() {
         if(!this.divInfoContainer) {
-            //TODO: replace with tableRef.createElementAboveTable()
-            this.divInfoContainer = document.createElement("div");
-            this.tableRef.getOrgTable().insertAdjacentElement("beforebegin", this.divInfoContainer);
+            this.divInfoContainer = this.tableRef.createElementAboveTable("div") as HTMLDivElement;
         }
         this.divInfoContainer.classList.add("infoLine");
     }
