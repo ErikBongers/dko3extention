@@ -2,9 +2,8 @@ import {addButton, addTableNavigationButton, getBothToolbars} from "../globals";
 import * as def from "../def";
 import {AllPageFilter, BaseObserver} from "../pageObserver";
 import {SimpleTableHandler} from "../pageHandlers";
-import {findTableRefInCode, TableDef} from "./tableDef";
+import {CalculateTableCheckSumHandler, findTableRefInCode, TableDef} from "./tableDef";
 import {addTableHeaderClickEvents} from "./tableHeaders";
-import {getCriteriaString} from "../werklijst/observer";
 
 export default new BaseObserver(undefined, new AllPageFilter(), onMutation);
 
@@ -25,6 +24,8 @@ function onMutation (_mutation: MutationRecord) {
     return true;
 }
 
+let tableCriteriaBuilders = new Map<string, CalculateTableCheckSumHandler>();
+
 function downloadTable() {
     let prebuildPageHandler = new SimpleTableHandler(onLoaded, undefined);
 
@@ -40,8 +41,20 @@ function downloadTable() {
     let tableDef = new TableDef(
         tableRef,
         prebuildPageHandler,
-        getCriteriaString
+        getChecksumHandler(tableRef.htmlTableId)
     );
 
     tableDef.getTableData().then(() => { });
+}
+
+export function getChecksumHandler(tableId: string): CalculateTableCheckSumHandler {
+    let handler = tableCriteriaBuilders.get(tableId);
+    debugger;
+    if(handler)
+        return handler;
+    return (tableDef: TableDef) => "";
+}
+
+export function registerChecksumHandler(tableId: string, checksumHandler: CalculateTableCheckSumHandler) {
+    tableCriteriaBuilders.set(tableId, checksumHandler);
 }

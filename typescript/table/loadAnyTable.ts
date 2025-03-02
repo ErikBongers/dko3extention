@@ -1,7 +1,7 @@
 import {findFirstNavigation} from "./tableNavigation";
 import {TableDef, TableRef} from "./tableDef";
-import {getCriteriaString} from "../werklijst/observer";
 import {SimpleTableHandler} from "../pageHandlers";
+import { getChecksumHandler } from "./observer";
 
 export async function getTableFromHash(hash: string, divInfoContainer: HTMLDivElement, clearCache: boolean) {
     let page = await fetch("https://administratie.dko3.cloud/#"+hash).then(res => res.text());
@@ -62,7 +62,7 @@ export async function getTableFromHash(hash: string, divInfoContainer: HTMLDivEl
     let tableDef = new TableDef(
         tableRef,
         prebuildPageHandler,
-        getCriteriaString //TODO: this function looks in document instead of the (perhaps in background) loaded table
+        getChecksumHandler(tableRef.htmlTableId)
     );
     tableDef.divInfoContainer = divInfoContainer;
     if(clearCache)

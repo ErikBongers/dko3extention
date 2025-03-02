@@ -1609,8 +1609,8 @@
     let table = document.querySelector("div.table-responsive > table");
     if (!table)
       debugger;
-    let tableId = table.id.replace("table_", "").replace("_table", "");
-    let parentDiv = document.querySelector("div#table_" + tableId);
+    let tableId2 = table.id.replace("table_", "").replace("_table", "");
+    let parentDiv = document.querySelector("div#table_" + tableId2);
     let scripts = Array.from(parentDiv.querySelectorAll("script")).map((script) => script.text).join("\n");
     let goto = scripts.split("_goto(")[1];
     let func = goto.split(/ function *\w/)[0];
@@ -2158,9 +2158,62 @@
     });
   }
 
+  // typescript/table/observer.ts
+  var observer_default5 = new BaseObserver(void 0, new AllPageFilter(), onMutation4);
+  function onMutation4(_mutation) {
+    let navigationBars = getBothToolbars();
+    if (!navigationBars)
+      return;
+    if (!findTableRefInCode()?.navigationData.isOnePage()) {
+      addTableNavigationButton(navigationBars, DOWNLOAD_TABLE_BTN_ID, "download full table", downloadTable, "fa-arrow-down");
+    }
+    if (document.querySelector("main div.table-responsive table thead")) {
+      addTableHeaderClickEvents(document.querySelector("main div.table-responsive table"));
+    }
+    let customTable = document.querySelector("table.canSort");
+    if (customTable) {
+      addTableHeaderClickEvents(customTable);
+    }
+    return true;
+  }
+  var tableCriteriaBuilders = /* @__PURE__ */ new Map();
+  function downloadTable() {
+    let prebuildPageHandler = new SimpleTableHandler(onLoaded, void 0);
+    function onLoaded(tableDef2) {
+      let template = tableDef2.shadowTableTemplate;
+      tableDef2.tableRef.getOrgTable().querySelector("tbody").replaceChildren(...template.content.querySelectorAll("tbody tr"));
+    }
+    let tableRef = findTableRefInCode();
+    let tableDef = new TableDef(
+      tableRef,
+      prebuildPageHandler,
+      getChecksumHandler(tableRef.htmlTableId)
+    );
+    tableDef.getTableData().then(() => {
+    });
+  }
+  function getChecksumHandler(tableId2) {
+    let handler = tableCriteriaBuilders.get(tableId2);
+    debugger;
+    if (handler)
+      return handler;
+    return (tableDef) => "";
+  }
+  function registerChecksumHandler(tableId2, checksumHandler) {
+    tableCriteriaBuilders.set(tableId2, checksumHandler);
+  }
+
   // typescript/werklijst/observer.ts
-  var observer_default5 = new HashObserver("#leerlingen-werklijst", onMutation4);
-  function onMutation4(mutation) {
+  var tableId = "table_leerlingen_werklijst_table";
+  registerChecksumHandler(
+    tableId,
+    (_tableDef) => {
+      debugger;
+      return document.querySelector("#view_contents > div.alert.alert-primary")?.textContent.replace("Criteria aanpassen", "")?.replace("Criteria:", "") ?? "";
+    }
+  );
+  var observer_default6 = new HashObserver("#leerlingen-werklijst", onMutation5);
+  function onMutation5(mutation) {
     if (mutation.target.id === "table_leerlingen_werklijst_table") {
       onWerklijstChanged();
       return true;
@@ -2193,9 +2246,6 @@
     addButton(btnWerklijstMaken, PREFILL_INSTR_BTN_ID, "Prefill instrumenten", prefillInstruments, "fa-guitar", ["btn", "btn-outline-dark"], "Uren ");
     getSchoolIdString();
   }
-  var getCriteriaString = (_tableDef) => {
-    return document.querySelector("#view_contents > div.alert.alert-primary")?.textContent.replace("Criteria aanpassen", "")?.replace("Criteria:", "") ?? "";
-  };
   function onWerklijstChanged() {
     let werklijstPageState = getPageStateOrDefault("Werklijst" /* Werklijst */);
     if (werklijstPageState.werklijstTableName === UREN_TABLE_STATE_NAME) {
@@ -2218,7 +2268,7 @@
     let tableDef = new TableDef(
       findTableRefInCode(),
       pageHandler,
-      getCriteriaString
+      getChecksumHandler(tableId)
     );
     function onEmailPageLoaded(tableDef2) {
       let rows = this.rows = tableDef2.shadowTableTemplate.content.querySelectorAll("tbody > tr");
@@ -2260,7 +2310,7 @@
       let tableDef = new TableDef(
         tableRef,
         pageHandler,
-        getCriteriaString
+        getChecksumHandler(tableRef.htmlTableId)
       );
       tableDef.getTableData(/* @__PURE__ */ new Map(), () => fetchFromCloud(fileName)).then((_results) => {
       });
@@ -2281,40 +2331,6 @@
   }
   function upgradeCloudData(fromCloud) {
     return fromCloud;
-  }
-
-  // typescript/table/observer.ts
-  var observer_default6 = new BaseObserver(void 0, new AllPageFilter(), onMutation5);
-  function onMutation5(_mutation) {
-    let navigationBars = getBothToolbars();
-    if (!navigationBars)
-      return;
-    if (!findTableRefInCode()?.navigationData.isOnePage()) {
-      addTableNavigationButton(navigationBars, DOWNLOAD_TABLE_BTN_ID, "download full table", downloadTable, "fa-arrow-down");
-    }
-    if (document.querySelector("main div.table-responsive table thead")) {
-      addTableHeaderClickEvents(document.querySelector("main div.table-responsive table"));
-    }
-    let customTable = document.querySelector("table.canSort");
-    if (customTable) {
-      addTableHeaderClickEvents(customTable);
-    }
-    return true;
-  }
-  function downloadTable() {
-    let prebuildPageHandler = new SimpleTableHandler(onLoaded, void 0);
-    function onLoaded(tableDef2) {
-      let template = tableDef2.shadowTableTemplate;
-      tableDef2.tableRef.getOrgTable().querySelector("tbody").replaceChildren(...template.content.querySelectorAll("tbody tr"));
-    }
-    let tableRef = findTableRefInCode();
-    let tableDef = new TableDef(
-      tableRef,
-      prebuildPageHandler,
-      getCriteriaString
-    );
-    tableDef.getTableData().then(() => {
-    });
   }
 
   // typescript/vakgroep/observer.ts
@@ -2408,8 +2424,7 @@
     let tableDef = new TableDef(
       tableRef,
       prebuildPageHandler,
-      getCriteriaString
-      //TODO: this function looks in document instead of the (perhaps in background) loaded table
+      getChecksumHandler(tableRef.htmlTableId)
     );
     tableDef.divInfoContainer = divInfoContainer;
     if (clearCache)
@@ -2565,8 +2580,8 @@
   // typescript/aanwezigheden/observer.ts
   var observer_default9 = new HashObserver("#leerlingen-lijsten-awi-percentages_leerling_vak", onMutationAanwezgheden);
   function onMutationAanwezgheden(mutation) {
-    let tableId = document.getElementById("table_lijst_awi_percentages_leerling_vak_table");
-    if (!tableId) {
+    let tableId2 = document.getElementById("table_lijst_awi_percentages_leerling_vak_table");
+    if (!tableId2) {
       return false;
     }
     let navigationBars = getBothToolbars();
@@ -2592,7 +2607,7 @@
     let tableDef = new TableDef(
       tableRef,
       prebuildPageHandler,
-      getCriteriaString
+      getChecksumHandler(tableRef.htmlTableId)
     );
     let div = tableRef.createElementAboveTable("div");
     let msgDiv = div.appendChild(document.createElement("div"));
@@ -3061,8 +3076,8 @@
       registerObserver(observer_default2);
       registerObserver(observer_default3);
       registerObserver(observer_default4);
-      registerObserver(observer_default5);
       registerObserver(observer_default6);
+      registerObserver(observer_default5);
       registerObserver(extraInschrijvingenObserver);
       registerObserver(allLijstenObserver);
       registerObserver(financialObserver);

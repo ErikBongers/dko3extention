@@ -9,8 +9,17 @@ import {HashObserver} from "../pageObserver";
 import {NamedCellTablePageHandler} from "../pageHandlers";
 import {addTableHeaderClickEvents} from "../table/tableHeaders";
 import {getPageStateOrDefault, Goto, PageName, savePageState, WerklijstPageState} from "../pageState";
+import {getChecksumHandler, registerChecksumHandler} from "../table/observer";
 
-export default new HashObserver("#leerlingen-werklijst", onMutation);
+const tableId = "table_leerlingen_werklijst_table";
+
+registerChecksumHandler(tableId,  (_tableDef: TableDef) => {
+    debugger;
+    return document.querySelector("#view_contents > div.alert.alert-primary")?.textContent.replace("Criteria aanpassen", "")?.replace("Criteria:", "") ?? ""
+    }
+    );
+
+export default new HashObserver("#leerlingen-werklijst", onMutation); //TODO: register it here, instead of in main.ts?
 
 function onMutation(mutation: MutationRecord) {
     if ((mutation.target as HTMLElement).id === "table_leerlingen_werklijst_table") {
@@ -47,10 +56,6 @@ function onCriteriaShown() {
     getSchoolIdString();
 }
 
-export let getCriteriaString: CalculateTableCheckSumHandler =  (_tableDef: TableDef) => {
-    return document.querySelector("#view_contents > div.alert.alert-primary")?.textContent.replace("Criteria aanpassen", "")?.replace("Criteria:", "") ?? "";
-}
-
 function onWerklijstChanged() {
     let werklijstPageState = getPageStateOrDefault(PageName.Werklijst) as WerklijstPageState;
     if(werklijstPageState.werklijstTableName === def.UREN_TABLE_STATE_NAME) {
@@ -77,7 +82,7 @@ function onClickCopyEmails() {
     let tableDef = new TableDef(
         findTableRefInCode(),
         pageHandler,
-        getCriteriaString
+        getChecksumHandler(tableId)
     );
 
     function onEmailPageLoaded(tableDef: TableDef) {
@@ -118,7 +123,7 @@ function onClickShowCounts() {
         let tableDef = new TableDef(
             tableRef,
             pageHandler,
-            getCriteriaString
+            getChecksumHandler(tableRef.htmlTableId)
         );
 
         function onLoaded(tableDef: TableDef) {

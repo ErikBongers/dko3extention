@@ -3,8 +3,8 @@ import {HashObserver} from "../pageObserver";
 import {addTableNavigationButton, getBothToolbars} from "../globals";
 import {SimpleTableHandler} from "../pageHandlers";
 import {findTableRefInCode, TableDef} from "../table/tableDef";
-import {getCriteriaString} from "../werklijst/observer";
 import {getTableFromHash} from "../table/loadAnyTable";
+import {getChecksumHandler} from "../table/observer";
 
 export default new HashObserver("#leerlingen-lijsten-awi-percentages_leerling_vak", onMutationAanwezgheden);
 
@@ -77,7 +77,7 @@ async function copyTable() {
     let tableDef = new TableDef(
         tableRef,
         prebuildPageHandler,
-        getCriteriaString
+        getChecksumHandler(tableRef.htmlTableId)
     );
 
     // tableDef.setupInfoBar();
