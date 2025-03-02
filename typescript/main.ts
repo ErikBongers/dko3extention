@@ -33,6 +33,7 @@ function init() {
             onPageChanged();
         });
 
+        //do registrations here to get all these observers/pages into the same compilation unit.
         registerObserver(leerlingObserver);
         registerObserver(lessenObserver);
         registerObserver(lesObserver);

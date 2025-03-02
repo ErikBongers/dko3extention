@@ -90,7 +90,11 @@ export class BaseObserver {
     }
 }
 
-export class HashObserver {
+export interface Observer {
+    onPageChanged: () => void;
+}
+
+export class HashObserver implements Observer {
     private baseObserver: BaseObserver;
     constructor(urlHash: string, onMutationCallback: (mutation: MutationRecord) => boolean) {
         this.baseObserver = new BaseObserver(undefined, new HashPageFilter(urlHash), onMutationCallback);
@@ -100,7 +104,7 @@ export class HashObserver {
         this.baseObserver.onPageChanged();
     }
 }
-export class ExactHashObserver {
+export class ExactHashObserver implements Observer {
     private baseObserver: BaseObserver;
     constructor(urlHash: string, onMutationCallback: (mutation: MutationRecord) => boolean) {
         this.baseObserver = new BaseObserver(undefined, new ExactHashPageFilter(urlHash), onMutationCallback);
@@ -111,7 +115,7 @@ export class ExactHashObserver {
     }
 }
 
-export class PageObserver {
+export class PageObserver implements Observer {
     private baseObserver: BaseObserver;
     constructor(onPageChangedCallback: () => void) {
         this.baseObserver = new BaseObserver(onPageChangedCallback, new AllPageFilter(), undefined);

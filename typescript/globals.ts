@@ -1,3 +1,5 @@
+import {Observer} from "./pageObserver";
+
 type Options = {
   showDebug: boolean;
     otherAcademies: string;
@@ -26,7 +28,7 @@ export function createValidId(id: string) {
 }
 
 
-export function registerObserver(observer) { //TODO: make a general Observer interface and use it as type for this param.
+export function registerObserver(observer: Observer) {
     observers.push(observer);
     if(observers.length > 20) //just in case...
         console.error("Too many observers!");
