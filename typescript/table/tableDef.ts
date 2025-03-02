@@ -194,7 +194,7 @@ export class TableDef {
             if(parallelAsyncFunction) {
                 this.parallelData = await parallelAsyncFunction();
             }
-            fetchedTable.setText(cachedData.text);
+            fetchedTable.addPage(cachedData.text);
             this.shadowTableDate = cachedData.date;
             this.isUsingCached = true;
             db3(`${this.tableRef.htmlTableId}: using cached data.`);
@@ -258,7 +258,7 @@ export class FetchedTable {
 
     constructor(tableDef: TableDef) {
         this.tableDef = tableDef;
-        this.lastPageNumber = 0;
+        this.lastPageNumber = -1;
         this.lastPageStartRow = 0;
         this.shadowTableTemplate = document.createElement("template");
     }
@@ -272,17 +272,13 @@ export class FetchedTable {
     getLastPageRows = () => this.getRowsAsArray().slice(this.lastPageStartRow);
     getLastPageNumber = () => this.lastPageNumber;
     getNextPageNumber = () => this.lastPageNumber+1;
-    getNextOffset = () => this.lastPageNumber*this.tableDef.tableRef.navigationData.step;
+    getNextOffset = () => this.getNextPageNumber()*this.tableDef.tableRef.navigationData.step;
     getTemplate = () => this.shadowTableTemplate;
 
     saveToCache() {
         db3(`Caching ${this.tableDef.getCacheId()}.`);
         window.sessionStorage.setItem(this.tableDef.getCacheId(), this.shadowTableTemplate.innerHTML);
         window.sessionStorage.setItem(this.tableDef.getCacheId()+ def.CACHE_DATE_SUFFIX, (new Date()).toJSON());
-    }
-
-    setText(text) {
-        this.shadowTableTemplate.innerHTML = text;
     }
 
     addPage(text: string) {
@@ -292,7 +288,7 @@ export class FetchedTable {
         let rows = pageTemplate.content.querySelectorAll("tbody > tr") as NodeListOf<HTMLTableRowElement>;
 
         this.lastPageStartRow = this.getRows().length;
-        if(this.lastPageNumber === 0)
+        if(this.lastPageNumber === -1)
             this.shadowTableTemplate.innerHTML = text; //to create the <table> and <tbody> and such.
         else
             this.shadowTableTemplate.content.querySelector("tbody").append(...rows);
