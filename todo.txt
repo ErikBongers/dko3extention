@@ -14,8 +14,6 @@ console.error("vak is geen instrument!!!");  Kazoo en FlokBluit
 * hoe lessen van Lievenka bundelen?
  Zal alleen zichtbaar zijn in de plugin…nooit waterdicht.
 
-
-* Urenlijst: cache houdt persies geen rekening met criteria
 * werklijst: Show uren button:
   > how to select a (next) year?
   > make it a button/dropdown to be able to select a previous year?

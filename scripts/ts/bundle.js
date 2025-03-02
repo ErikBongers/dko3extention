@@ -2296,6 +2296,7 @@
         let fromCloud = tableDef2.parallelData;
         fromCloud = upgradeCloudData(fromCloud);
         vakLeraars = new Map([...vakLeraars.entries()].sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
+        document.getElementById(COUNT_TABLE_ID)?.remove();
         buildTable({ vakLeraars, fromCloud }, tableDef2);
         document.getElementById(COUNT_TABLE_ID).style.display = "none";
         showOrHideNewTable();
