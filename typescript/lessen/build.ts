@@ -291,7 +291,8 @@ function findStudentId(studentName: string, text: string) {
     //the name comes AFTER the id, hence the backward search of the leftmost slice of the string.
     let idPos = text.substring(0, namePos).lastIndexOf("'id=", namePos);
     let id = text.substring(idPos, idPos+10);
-    id = id.match(/\d+/)[0]; //TODO: may fail!
-    db3(id);
-    return parseInt(id);
+    let found = id.match(/\d+/);
+    if(found?.length)
+        return parseInt(found[0]);
+    throw `No id found for student ${studentName}.`;
 }

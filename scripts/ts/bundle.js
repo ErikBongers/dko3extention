@@ -885,9 +885,10 @@
     }
     let idPos = text.substring(0, namePos).lastIndexOf("'id=", namePos);
     let id = text.substring(idPos, idPos + 10);
-    id = id.match(/\d+/)[0];
-    db3(id);
-    return parseInt(id);
+    let found = id.match(/\d+/);
+    if (found?.length)
+      return parseInt(found[0]);
+    throw `No id found for student ${studentName}.`;
   }
 
   // typescript/lessen/observer.ts
