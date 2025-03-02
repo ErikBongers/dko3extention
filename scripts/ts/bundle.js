@@ -1511,12 +1511,15 @@
     }
     let rx = /(\d*) tot (\d*) van (\d*)/;
     let matches = buttonPagination.innerText.match(rx);
-    let step = parseInt(matches[2]) - parseInt(matches[1]) + 1;
     let buttons = buttonContainer.querySelectorAll("button.btn-secondary");
-    let numbers = Array.from(buttons).filter((btn) => btn.attributes["onclick"]?.value.includes("goto(")).map((btn) => btn.attributes["onclick"].value).map((txt) => getGotoNumber(txt)).filter((num) => num > 0);
-    matches.slice(1).forEach((txt) => numbers.push(parseInt(txt)));
+    let offsets = Array.from(buttons).filter((btn) => btn.attributes["onclick"]?.value.includes("goto(")).filter((btn) => !btn.querySelector("i.fa-fast-backward")).map((btn) => getGotoNumber(btn.attributes["onclick"].value));
+    let numbers = matches.slice(1).map((txt) => parseInt(txt));
+    numbers[0] = numbers[0] - 1;
+    numbers = numbers.concat(offsets);
     numbers.sort((a, b) => a - b);
-    return new TableNavigation(step, numbers.pop(), buttonContainer);
+    numbers = [...new Set(numbers)];
+    console.log(numbers);
+    return new TableNavigation(numbers[1] - numbers[0], numbers.pop(), buttonContainer);
   }
   function getGotoNumber(functionCall) {
     return parseInt(functionCall.substring(functionCall.indexOf("goto(") + 5));
@@ -1728,7 +1731,7 @@
         if (parallelAsyncFunction) {
           this.parallelData = await parallelAsyncFunction();
         }
-        fetchedTable.setText(cachedData.text);
+        fetchedTable.addPage(cachedData.text);
         this.shadowTableDate = cachedData.date;
         this.isUsingCached = true;
         db3(`${this.tableRef.htmlTableId}: using cached data.`);
@@ -1786,10 +1789,10 @@
       this.getLastPageRows = () => this.getRowsAsArray().slice(this.lastPageStartRow);
       this.getLastPageNumber = () => this.lastPageNumber;
       this.getNextPageNumber = () => this.lastPageNumber + 1;
-      this.getNextOffset = () => this.lastPageNumber * this.tableDef.tableRef.navigationData.step;
+      this.getNextOffset = () => this.getNextPageNumber() * this.tableDef.tableRef.navigationData.step;
       this.getTemplate = () => this.shadowTableTemplate;
       this.tableDef = tableDef;
-      this.lastPageNumber = 0;
+      this.lastPageNumber = -1;
       this.lastPageStartRow = 0;
       this.shadowTableTemplate = document.createElement("template");
     }
@@ -1802,16 +1805,13 @@
       window.sessionStorage.setItem(this.tableDef.getCacheId(), this.shadowTableTemplate.innerHTML);
       window.sessionStorage.setItem(this.tableDef.getCacheId() + CACHE_DATE_SUFFIX, (/* @__PURE__ */ new Date()).toJSON());
     }
-    setText(text) {
-      this.shadowTableTemplate.innerHTML = text;
-    }
     addPage(text) {
       let pageTemplate;
       pageTemplate = document.createElement("template");
       pageTemplate.innerHTML = text;
       let rows = pageTemplate.content.querySelectorAll("tbody > tr");
       this.lastPageStartRow = this.getRows().length;
-      if (this.lastPageNumber === 0)
+      if (this.lastPageNumber === -1)
         this.shadowTableTemplate.innerHTML = text;
       else
         this.shadowTableTemplate.content.querySelector("tbody").append(...rows);
@@ -2016,6 +2016,7 @@
           console.log("NamedCellPageHandler: Not calling OnLoaded handler because page is not valid.");
       };
       this.onPage = (_tableDef, _text, fetchedTable) => {
+        console.log(`checking page ${fetchedTable.getLastPageNumber()}`);
         if (fetchedTable.getLastPageNumber() === 0) {
           if (!this.setTemplateAndCheck(fetchedTable.getTemplate())) {
             this.isValidPage = false;

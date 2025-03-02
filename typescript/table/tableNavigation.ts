@@ -19,9 +19,6 @@ export class TableNavigation {
 }
 
 /* possible ranges of numbers found:
-[1, 100, 100, 500, 580] -> interval is [1] = 100
-[0, 400, 501, 580, 580]  -> interval is [1] -> [2]-1 = 100
-[0, 200, 301, 400, 400, 500, 580] -> interval is [1] -> [2]
 */
 export function findFirstNavigation(element?: HTMLElement) {
     element = element?? document.body;
@@ -35,16 +32,17 @@ export function findFirstNavigation(element?: HTMLElement) {
     }
     let rx = /(\d*) tot (\d*) van (\d*)/;
     let matches = buttonPagination.innerText.match(rx);
-    let step = parseInt(matches[2]) - parseInt(matches[1]) + 1;
     let buttons = buttonContainer.querySelectorAll("button.btn-secondary");
-    let numbers = Array.from(buttons)
+    let offsets = Array.from(buttons)
         .filter((btn) => btn.attributes["onclick"]?.value.includes("goto("))
-        .map((btn) => btn.attributes["onclick"].value)
-        .map((txt) => getGotoNumber(txt))
-        .filter(num => num > 0);
-    matches.slice(1).forEach((txt) => numbers.push(parseInt(txt)));
+        .filter((btn: HTMLElement) => !btn.querySelector("i.fa-fast-backward")) //ignore the value of the fast backward button, which is always 0
+        .map((btn: HTMLElement) => getGotoNumber(btn.attributes["onclick"].value));
+    let numbers = matches.slice(1).map((txt) => parseInt(txt));
+    numbers[0] = numbers[0]-1;//convert 1-based user index to 0-based offset.
+    numbers = numbers.concat(offsets);
     numbers.sort((a, b) => a - b);
-    return new TableNavigation(step, numbers.pop(), buttonContainer);
+    numbers = [...new Set(numbers)];
+    return new TableNavigation(numbers[1] - numbers[0], numbers.pop(), buttonContainer);
 }
 
 function getGotoNumber(functionCall: string) {
