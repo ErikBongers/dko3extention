@@ -3,7 +3,7 @@ import * as def from "../def";
 import {buildTable, getUrenVakLeraarFileName, JsonCloudData} from "./buildUren";
 import {scrapeStudent, VakLeraar} from "./scrapeUren";
 import {fetchFromCloud} from "../cloud";
-import {CalculateTableCheckSumHandler, findTableRefInCode, TableDef} from "../table/tableDef";
+import {CalculateTableCheckSumHandler, FetchedTable, findTableRefInCode, TableDef} from "../table/tableDef";
 import {prefillInstruments} from "./prefillInstruments";
 import {HashObserver} from "../pageObserver";
 import {NamedCellTablePageHandler} from "../pageHandlers";
@@ -72,7 +72,7 @@ function onButtonBarChanged() {
 function onClickCopyEmails() {
     let requiredHeaderLabels = ["e-mailadressen"];
 
-    let pageHandler = new NamedCellTablePageHandler(requiredHeaderLabels, onEmailPageLoaded, tableDef1 => {
+    let pageHandler = new NamedCellTablePageHandler(requiredHeaderLabels, onEmailsLoaded, tableDef1 => {
         navigator.clipboard.writeText("").then(value => {
             console.log("Clipboard cleared.")
         });
@@ -84,9 +84,8 @@ function onClickCopyEmails() {
         getChecksumHandler(tableId)
     );
 
-    function onEmailPageLoaded(tableDef: TableDef) {
-        let rows = this.rows = tableDef.getRows();
-        let allEmails = Array.from(rows)
+    function onEmailsLoaded(fetchedTable: FetchedTable) {
+        let allEmails = this.rows = fetchedTable.getRowsAsArray()
             .map(tr=> (tableDef.pageHandler as NamedCellTablePageHandler).getColumnText(tr, "e-mailadressen"));
 
         let flattened = allEmails
@@ -125,9 +124,9 @@ function onClickShowCounts() {
             getChecksumHandler(tableRef.htmlTableId)
         );
 
-        function onLoaded(tableDef: TableDef) {
+        function onLoaded(fetchedTable: FetchedTable) {
             let vakLeraars = new Map();
-            let rows = this.rows = tableDef.getRows();
+            let rows = this.rows = fetchedTable.getRows();
             for(let tr of rows) {
                 scrapeStudent(tableDef, tr, vakLeraars);//TODO: returns false if fails. Report error.
             }

@@ -54,10 +54,7 @@ export async function getTableFromHash(hash: string, divInfoContainer: HTMLDivEl
 
     let tableRef = new TableRef(htmlTableId, tableNav, buildFetchUrl);
     console.log(tableRef);
-    let prebuildPageHandler = new SimpleTableHandler(onLoaded, undefined);
-
-    function onLoaded(tableDef: TableDef) {
-    }
+    let prebuildPageHandler = new SimpleTableHandler(undefined, undefined);
 
     let tableDef = new TableDef(
         tableRef,
@@ -67,9 +64,9 @@ export async function getTableFromHash(hash: string, divInfoContainer: HTMLDivEl
     tableDef.divInfoContainer = divInfoContainer;
     if(clearCache)
         tableDef.clearCache();
-    await tableDef.getTableData();
+    let fetchedTable = await tableDef.getTableData();
     await setViewFromCurrentUrl();
-    return tableDef;
+    return fetchedTable;
 }
 
 async function setViewFromCurrentUrl() {

@@ -68,7 +68,6 @@ export class TableDef {
     pageHandler: PageHandler;
     parallelData = undefined;
     calculateTableCheckSum: CalculateTableCheckSumHandler;
-    private shadowTableTemplate: HTMLTemplateElement;
     isUsingCached = false;
     divInfoContainer: HTMLDivElement;
     shadowTableDate: Date;
@@ -80,12 +79,6 @@ export class TableDef {
         if(!calculateTableCheckSum)
             throw ("Tablechecksum required.");
         this.calculateTableCheckSum = calculateTableCheckSum;
-    }
-
-    saveToCache() {
-        db3(`Caching ${this.getCacheId()}.`);
-        window.sessionStorage.setItem(this.getCacheId(), this.shadowTableTemplate.innerHTML);
-        window.sessionStorage.setItem(this.getCacheId()+ def.CACHE_DATE_SUFFIX, (new Date()).toJSON());
     }
 
     clearCache() {
@@ -196,33 +189,31 @@ export class TableDef {
         this.clearCacheInfo();
         let cachedData = this.loadFromCache();
 
+        let fetchedTable = new FetchedTable(this);
         if(cachedData) {
             if(parallelAsyncFunction) {
                 this.parallelData = await parallelAsyncFunction();
             }
-            this.shadowTableTemplate = document.createElement("template");
-            this.shadowTableTemplate.innerHTML = cachedData.text;
+            fetchedTable.setText(cachedData.text);
             this.shadowTableDate = cachedData.date;
             this.isUsingCached = true;
             db3(`${this.tableRef.htmlTableId}: using cached data.`);
-            let rows = this.shadowTableTemplate.content.querySelectorAll("tbody > tr") as NodeListOf<HTMLTableRowElement>;
-            if (this.pageHandler.onPage)
-                this.pageHandler.onPage(this, this.shadowTableTemplate.innerHTML, 0, this.shadowTableTemplate, rows);
-            if (this.pageHandler.onLoaded)
-                this.pageHandler.onLoaded(this);
+            let rows = fetchedTable.getRows();
+            this.pageHandler.onPage?.(this, cachedData.text, fetchedTable);
+            this.pageHandler.onLoaded?.(fetchedTable);
         } else {
             this.isUsingCached = false;
-            let success = await this.#fetchPages(parallelAsyncFunction);
+            let success = await this.#fetchPages(fetchedTable, parallelAsyncFunction);
             if(!success)
-                return;
-            this.saveToCache();
-            if (this.pageHandler.onLoaded)
-                this.pageHandler.onLoaded(this);
+                return fetchedTable;
+            fetchedTable.saveToCache();
+            this.pageHandler.onLoaded?.(fetchedTable);
         }
         this.updateInfoBar();
+        return fetchedTable;
     }
 
-    async #fetchPages(parallelAsyncFunction: () => Promise<any>) {
+    async #fetchPages(fetchedTable: FetchedTable, parallelAsyncFunction: () => Promise<any>) {
         if (this.pageHandler.onBeforeLoading) {
             if(!this.pageHandler.onBeforeLoading(this))
                 return false;
@@ -231,39 +222,24 @@ export class TableDef {
         progressBar.start();
         if (parallelAsyncFunction) {
             let doubleResults = await Promise.all([
-                this.#doFetchAllPages(progressBar),
+                this.#doFetchAllPages(fetchedTable, progressBar),
                 parallelAsyncFunction()
             ]);
             this.parallelData = doubleResults[1];
         } else {
-            await this.#doFetchAllPages(progressBar);
+            await this.#doFetchAllPages(fetchedTable, progressBar);
         }
         return true;
     }
 
-    async #doFetchAllPages(progressBar: ProgressBar) {
-        let offset = 0;
+    async #doFetchAllPages(fetchedTable: FetchedTable, progressBar: ProgressBar) {
         try {
             while (true) {
-                console.log("fetching page " + offset);
-                let response = await fetch(this.tableRef.buildFetchUrl(offset));
+                console.log("fetching page " + fetchedTable.getNextPageNumber());
+                let response = await fetch(this.tableRef.buildFetchUrl(fetchedTable.getNextOffset()));
                 let text = await response.text();
-                let template: HTMLTemplateElement;
-                if(offset === 0) {
-                    this.shadowTableTemplate = document.createElement('template');
-                    this.shadowTableTemplate.innerHTML = text;
-                    template = this.shadowTableTemplate;
-                } else {
-                    template = document.createElement('template');
-                    template.innerHTML = text;
-                }
-                let rows = template.content.querySelectorAll("tbody > tr") as NodeListOf<HTMLTableRowElement>;
-                if (this.pageHandler.onPage)
-                    this.pageHandler.onPage(this, text, offset, template, rows);
-                if(offset !== 0) {
-                    this.shadowTableTemplate.content.querySelector("tbody").append(...rows);
-                }
-                offset += this.tableRef.navigationData.step;
+                fetchedTable.addPage(text);
+                this.pageHandler.onPage?.(this, text, fetchedTable);
                 if (!progressBar.next())
                     break;
             }
@@ -272,14 +248,57 @@ export class TableDef {
         }
     }
 
+}
+
+export class FetchedTable {
+    private shadowTableTemplate: HTMLTemplateElement;
+    tableDef: TableDef;
+    lastPageNumber: number;
+    lastPageStartRow: number;
+
+    constructor(tableDef: TableDef) {
+        this.tableDef = tableDef;
+        this.lastPageNumber = 0;
+        this.lastPageStartRow = 0;
+        this.shadowTableTemplate = document.createElement("template");
+    }
+
     getRows() {
-        //TODO: this function should be only accessible after a fetch of the table. Perhaps the fetch should return a promise<FetchedTable> where FetchedTable is a proxy/wrap of TableDef?
         let template = this.shadowTableTemplate;
         return template.content.querySelectorAll("tbody tr") as NodeListOf<HTMLTableRowElement>;
     }
-    getRowsAsArray() {
-        return Array.from(this.getRows());
+
+    getRowsAsArray = () => Array.from(this.getRows());
+    getLastPageRows = () => this.getRowsAsArray().slice(this.lastPageStartRow);
+    getLastPageNumber = () => this.lastPageNumber;
+    getNextPageNumber = () => this.lastPageNumber+1;
+    getNextOffset = () => this.lastPageNumber*this.tableDef.tableRef.navigationData.step;
+    getTemplate = () => this.shadowTableTemplate;
+
+    saveToCache() {
+        db3(`Caching ${this.tableDef.getCacheId()}.`);
+        window.sessionStorage.setItem(this.tableDef.getCacheId(), this.shadowTableTemplate.innerHTML);
+        window.sessionStorage.setItem(this.tableDef.getCacheId()+ def.CACHE_DATE_SUFFIX, (new Date()).toJSON());
     }
+
+    setText(text) {
+        this.shadowTableTemplate.innerHTML = text;
+    }
+
+    addPage(text: string) {
+        let pageTemplate: HTMLTemplateElement;
+        pageTemplate = document.createElement('template');
+        pageTemplate.innerHTML = text;
+        let rows = pageTemplate.content.querySelectorAll("tbody > tr") as NodeListOf<HTMLTableRowElement>;
+
+        this.lastPageStartRow = this.getRows().length;
+        if(this.lastPageNumber === 0)
+            this.shadowTableTemplate.innerHTML = text; //to create the <table> and <tbody> and such.
+        else
+            this.shadowTableTemplate.content.querySelector("tbody").append(...rows);
+        this.lastPageNumber++;
+    }
+
 }
 
 

@@ -68,10 +68,7 @@ function showInfoMessage(message: string, click_element_id?: string, callback?: 
 
 
 async function copyTable() {
-    let prebuildPageHandler = new SimpleTableHandler(onLoaded, undefined);
-
-    function onLoaded(tableDef: TableDef) {
-    }
+    let prebuildPageHandler = new SimpleTableHandler(undefined, undefined);
 
     let tableRef = findTableRefInCode();
     let tableDef = new TableDef(
@@ -133,7 +130,7 @@ async function copyTable() {
     console.log(pList);
 
     tableDef.clearCache();
-    tableDef.getTableData().then(() => {
+    tableDef.getTableData().then((fetchedTable) => {
 
         let wekenMap: Map<string, Weken> = new Map();
 
@@ -142,7 +139,7 @@ async function copyTable() {
         }
 
         // convert table to text
-        let rowsArray = tableDef.getRowsAsArray();
+        let rowsArray = fetchedTable.getRowsAsArray();
         let nu = new Date();
         let text = "data:"+ nu.toLocaleDateString() +"\n";
         let aanwList = rowsArray
@@ -209,7 +206,7 @@ async function copyTable() {
         //replace the visible table
         tableDef.tableRef.getOrgTable()
             .querySelector("tbody")
-            .replaceChildren(...tableDef.getRows());
+            .replaceChildren(...fetchedTable.getRows());
     });
 }
 

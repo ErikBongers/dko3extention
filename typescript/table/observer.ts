@@ -2,7 +2,7 @@ import {addButton, addTableNavigationButton, getBothToolbars} from "../globals";
 import * as def from "../def";
 import {AllPageFilter, BaseObserver} from "../pageObserver";
 import {SimpleTableHandler} from "../pageHandlers";
-import {CalculateTableCheckSumHandler, findTableRefInCode, TableDef} from "./tableDef";
+import {CalculateTableCheckSumHandler, FetchedTable, findTableRefInCode, TableDef} from "./tableDef";
 import {addTableHeaderClickEvents} from "./tableHeaders";
 
 export default new BaseObserver(undefined, new AllPageFilter(), onMutation);
@@ -29,10 +29,10 @@ let tableCriteriaBuilders = new Map<string, CalculateTableCheckSumHandler>();
 function downloadTable() {
     let prebuildPageHandler = new SimpleTableHandler(onLoaded, undefined);
 
-    function onLoaded(tableDef: TableDef) {
+    function onLoaded(fetchedTable: FetchedTable) {
         tableDef.tableRef.getOrgTable()
             .querySelector("tbody")
-            .replaceChildren(...tableDef.getRows());
+            .replaceChildren(...fetchedTable.getRows());
     }
 
     // let tableRef = new TableRef("table_leerlingen_werklijst_table", findFirstNavigation(),(offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0");

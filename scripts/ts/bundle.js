@@ -1511,15 +1511,12 @@
     }
     let rx = /(\d*) tot (\d*) van (\d*)/;
     let matches = buttonPagination.innerText.match(rx);
+    let step = parseInt(matches[2]) - parseInt(matches[1]) + 1;
     let buttons = buttonContainer.querySelectorAll("button.btn-secondary");
-    let numbers = Array.from(buttons).filter((btn) => btn.attributes["onclick"]?.value.includes("goto(")).map((btn) => btn.attributes["onclick"].value).map((txt) => getGotoNumber(txt));
+    let numbers = Array.from(buttons).filter((btn) => btn.attributes["onclick"]?.value.includes("goto(")).map((btn) => btn.attributes["onclick"].value).map((txt) => getGotoNumber(txt)).filter((num) => num > 0);
     matches.slice(1).forEach((txt) => numbers.push(parseInt(txt)));
     numbers.sort((a, b) => a - b);
-    if (numbers[0] === 1) {
-      return new TableNavigation(numbers[1], numbers.pop(), buttonContainer);
-    } else {
-      return new TableNavigation(numbers[2] - numbers[1] - 1, numbers.pop(), buttonContainer);
-    }
+    return new TableNavigation(step, numbers.pop(), buttonContainer);
   }
   function getGotoNumber(functionCall) {
     return parseInt(functionCall.substring(functionCall.indexOf("goto(") + 5));
@@ -1634,11 +1631,6 @@
         throw "Tablechecksum required.";
       this.calculateTableCheckSum = calculateTableCheckSum;
     }
-    saveToCache() {
-      db3(`Caching ${this.getCacheId()}.`);
-      window.sessionStorage.setItem(this.getCacheId(), this.shadowTableTemplate.innerHTML);
-      window.sessionStorage.setItem(this.getCacheId() + CACHE_DATE_SUFFIX, (/* @__PURE__ */ new Date()).toJSON());
-    }
     clearCache() {
       db3(`Clear cache for ${this.tableRef.htmlTableId}.`);
       window.sessionStorage.removeItem(this.getCacheId());
@@ -1731,32 +1723,30 @@
       this.setupInfoBar();
       this.clearCacheInfo();
       let cachedData = this.loadFromCache();
+      let fetchedTable = new FetchedTable(this);
       if (cachedData) {
         if (parallelAsyncFunction) {
           this.parallelData = await parallelAsyncFunction();
         }
-        this.shadowTableTemplate = document.createElement("template");
-        this.shadowTableTemplate.innerHTML = cachedData.text;
+        fetchedTable.setText(cachedData.text);
         this.shadowTableDate = cachedData.date;
         this.isUsingCached = true;
         db3(`${this.tableRef.htmlTableId}: using cached data.`);
-        let rows = this.shadowTableTemplate.content.querySelectorAll("tbody > tr");
-        if (this.pageHandler.onPage)
-          this.pageHandler.onPage(this, this.shadowTableTemplate.innerHTML, 0, this.shadowTableTemplate, rows);
-        if (this.pageHandler.onLoaded)
-          this.pageHandler.onLoaded(this);
+        let rows = fetchedTable.getRows();
+        this.pageHandler.onPage?.(this, cachedData.text, fetchedTable);
+        this.pageHandler.onLoaded?.(fetchedTable);
       } else {
         this.isUsingCached = false;
-        let success = await this.#fetchPages(parallelAsyncFunction);
+        let success = await this.#fetchPages(fetchedTable, parallelAsyncFunction);
         if (!success)
-          return;
-        this.saveToCache();
-        if (this.pageHandler.onLoaded)
-          this.pageHandler.onLoaded(this);
+          return fetchedTable;
+        fetchedTable.saveToCache();
+        this.pageHandler.onLoaded?.(fetchedTable);
       }
       this.updateInfoBar();
+      return fetchedTable;
     }
-    async #fetchPages(parallelAsyncFunction) {
+    async #fetchPages(fetchedTable, parallelAsyncFunction) {
       if (this.pageHandler.onBeforeLoading) {
         if (!this.pageHandler.onBeforeLoading(this))
           return false;
@@ -1765,38 +1755,23 @@
       progressBar.start();
       if (parallelAsyncFunction) {
         let doubleResults = await Promise.all([
-          this.#doFetchAllPages(progressBar),
+          this.#doFetchAllPages(fetchedTable, progressBar),
           parallelAsyncFunction()
         ]);
         this.parallelData = doubleResults[1];
       } else {
-        await this.#doFetchAllPages(progressBar);
+        await this.#doFetchAllPages(fetchedTable, progressBar);
       }
       return true;
     }
-    async #doFetchAllPages(progressBar) {
-      let offset = 0;
+    async #doFetchAllPages(fetchedTable, progressBar) {
       try {
         while (true) {
-          console.log("fetching page " + offset);
-          let response = await fetch(this.tableRef.buildFetchUrl(offset));
+          console.log("fetching page " + fetchedTable.getNextPageNumber());
+          let response = await fetch(this.tableRef.buildFetchUrl(fetchedTable.getNextOffset()));
           let text = await response.text();
-          let template;
-          if (offset === 0) {
-            this.shadowTableTemplate = document.createElement("template");
-            this.shadowTableTemplate.innerHTML = text;
-            template = this.shadowTableTemplate;
-          } else {
-            template = document.createElement("template");
-            template.innerHTML = text;
-          }
-          let rows = template.content.querySelectorAll("tbody > tr");
-          if (this.pageHandler.onPage)
-            this.pageHandler.onPage(this, text, offset, template, rows);
-          if (offset !== 0) {
-            this.shadowTableTemplate.content.querySelector("tbody").append(...rows);
-          }
-          offset += this.tableRef.navigationData.step;
+          fetchedTable.addPage(text);
+          this.pageHandler.onPage?.(this, text, fetchedTable);
           if (!progressBar.next())
             break;
         }
@@ -1804,12 +1779,43 @@
         progressBar.stop();
       }
     }
+  };
+  var FetchedTable = class {
+    constructor(tableDef) {
+      this.getRowsAsArray = () => Array.from(this.getRows());
+      this.getLastPageRows = () => this.getRowsAsArray().slice(this.lastPageStartRow);
+      this.getLastPageNumber = () => this.lastPageNumber;
+      this.getNextPageNumber = () => this.lastPageNumber + 1;
+      this.getNextOffset = () => this.lastPageNumber * this.tableDef.tableRef.navigationData.step;
+      this.getTemplate = () => this.shadowTableTemplate;
+      this.tableDef = tableDef;
+      this.lastPageNumber = 0;
+      this.lastPageStartRow = 0;
+      this.shadowTableTemplate = document.createElement("template");
+    }
     getRows() {
       let template = this.shadowTableTemplate;
       return template.content.querySelectorAll("tbody tr");
     }
-    getRowsAsArray() {
-      return Array.from(this.getRows());
+    saveToCache() {
+      db3(`Caching ${this.tableDef.getCacheId()}.`);
+      window.sessionStorage.setItem(this.tableDef.getCacheId(), this.shadowTableTemplate.innerHTML);
+      window.sessionStorage.setItem(this.tableDef.getCacheId() + CACHE_DATE_SUFFIX, (/* @__PURE__ */ new Date()).toJSON());
+    }
+    setText(text) {
+      this.shadowTableTemplate.innerHTML = text;
+    }
+    addPage(text) {
+      let pageTemplate;
+      pageTemplate = document.createElement("template");
+      pageTemplate.innerHTML = text;
+      let rows = pageTemplate.content.querySelectorAll("tbody > tr");
+      this.lastPageStartRow = this.getRows().length;
+      if (this.lastPageNumber === 0)
+        this.shadowTableTemplate.innerHTML = text;
+      else
+        this.shadowTableTemplate.content.querySelector("tbody").append(...rows);
+      this.lastPageNumber++;
     }
   };
 
@@ -2003,15 +2009,15 @@
   };
   var NamedCellTablePageHandler = class _NamedCellTablePageHandler {
     constructor(requiredHeaderLabels, onLoaded, onRequiredColumnsMissing) {
-      this.onLoadedAndCheck = (tableDef) => {
+      this.onLoadedAndCheck = (fetchedTable) => {
         if (this.isValidPage)
-          this.onLoadedExternal(tableDef);
+          this.onLoadedExternal(fetchedTable);
         else
           console.log("NamedCellPageHandler: Not calling OnLoaded handler because page is not valid.");
       };
-      this.onPage = (_tableDef, _text, offset, template, _rows) => {
-        if (offset === 0) {
-          if (!this.setTemplateAndCheck(template)) {
+      this.onPage = (_tableDef, _text, fetchedTable) => {
+        if (fetchedTable.getLastPageNumber() === 0) {
+          if (!this.setTemplateAndCheck(fetchedTable.getTemplate())) {
             this.isValidPage = false;
             if (this.onColumnsMissing) {
               this.onColumnsMissing(_tableDef);
@@ -2180,8 +2186,8 @@
   var tableCriteriaBuilders = /* @__PURE__ */ new Map();
   function downloadTable() {
     let prebuildPageHandler = new SimpleTableHandler(onLoaded, void 0);
-    function onLoaded(tableDef2) {
-      tableDef2.tableRef.getOrgTable().querySelector("tbody").replaceChildren(...tableDef2.getRows());
+    function onLoaded(fetchedTable) {
+      tableDef.tableRef.getOrgTable().querySelector("tbody").replaceChildren(...fetchedTable.getRows());
     }
     let tableRef = findTableRefInCode();
     let tableDef = new TableDef(
@@ -2258,7 +2264,7 @@
   }
   function onClickCopyEmails() {
     let requiredHeaderLabels = ["e-mailadressen"];
-    let pageHandler = new NamedCellTablePageHandler(requiredHeaderLabels, onEmailPageLoaded, (tableDef1) => {
+    let pageHandler = new NamedCellTablePageHandler(requiredHeaderLabels, onEmailsLoaded, (tableDef1) => {
       navigator.clipboard.writeText("").then((value) => {
         console.log("Clipboard cleared.");
       });
@@ -2268,12 +2274,11 @@
       pageHandler,
       getChecksumHandler(tableId)
     );
-    function onEmailPageLoaded(tableDef2) {
-      let rows = this.rows = tableDef2.getRows();
-      let allEmails = Array.from(rows).map((tr) => tableDef2.pageHandler.getColumnText(tr, "e-mailadressen"));
+    function onEmailsLoaded(fetchedTable) {
+      let allEmails = this.rows = fetchedTable.getRowsAsArray().map((tr) => tableDef.pageHandler.getColumnText(tr, "e-mailadressen"));
       let flattened = allEmails.map((emails) => emails.split(/[,;]/)).flat().filter((email) => !email.includes("@academiestudent.be")).filter((email) => email !== "");
       navigator.clipboard.writeText(flattened.join(";\n")).then(
-        () => tableDef2.setTempMessage("Alle emails zijn naar het clipboard gekopieerd. Je kan ze plakken in Outlook.")
+        () => tableDef.setTempMessage("Alle emails zijn naar het clipboard gekopieerd. Je kan ze plakken in Outlook.")
       );
     }
     tableDef.getTableData(void 0).then((_results) => {
@@ -2285,17 +2290,17 @@
   }
   function onClickShowCounts() {
     if (!document.getElementById(COUNT_TABLE_ID)) {
-      let onLoaded = function(tableDef2) {
+      let onLoaded = function(fetchedTable) {
         let vakLeraars = /* @__PURE__ */ new Map();
-        let rows = this.rows = tableDef2.getRows();
+        let rows = this.rows = fetchedTable.getRows();
         for (let tr of rows) {
-          scrapeStudent(tableDef2, tr, vakLeraars);
+          scrapeStudent(tableDef, tr, vakLeraars);
         }
-        let fromCloud = tableDef2.parallelData;
+        let fromCloud = tableDef.parallelData;
         fromCloud = upgradeCloudData(fromCloud);
         vakLeraars = new Map([...vakLeraars.entries()].sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
         document.getElementById(COUNT_TABLE_ID)?.remove();
-        buildTable({ vakLeraars, fromCloud }, tableDef2);
+        buildTable({ vakLeraars, fromCloud }, tableDef);
         document.getElementById(COUNT_TABLE_ID).style.display = "none";
         showOrHideNewTable();
       };
@@ -2417,9 +2422,7 @@
     let buildFetchUrl = (offset) => `/views/ui/datatable.php?id=${datatable_id}&start=${offset}&aantal=0`;
     let tableRef = new TableRef(htmlTableId, tableNav, buildFetchUrl);
     console.log(tableRef);
-    let prebuildPageHandler = new SimpleTableHandler(onLoaded, void 0);
-    function onLoaded(tableDef2) {
-    }
+    let prebuildPageHandler = new SimpleTableHandler(void 0, void 0);
     let tableDef = new TableDef(
       tableRef,
       prebuildPageHandler,
@@ -2428,9 +2431,9 @@
     tableDef.divInfoContainer = divInfoContainer;
     if (clearCache)
       tableDef.clearCache();
-    await tableDef.getTableData();
+    let fetchedTable = await tableDef.getTableData();
     await setViewFromCurrentUrl();
-    return tableDef;
+    return fetchedTable;
   }
   async function setViewFromCurrentUrl() {
     let hash = window.location.hash.replace("#", "");
@@ -2599,9 +2602,7 @@
     }
   }
   async function copyTable() {
-    let prebuildPageHandler = new SimpleTableHandler(onLoaded, void 0);
-    function onLoaded(tableDef2) {
-    }
+    let prebuildPageHandler = new SimpleTableHandler(void 0, void 0);
     let tableRef = findTableRefInCode();
     let tableDef = new TableDef(
       tableRef,
@@ -2651,12 +2652,12 @@
     });
     console.log(pList);
     tableDef.clearCache();
-    tableDef.getTableData().then(() => {
+    tableDef.getTableData().then((fetchedTable) => {
       let wekenMap = /* @__PURE__ */ new Map();
       for (let week of wekenLijst) {
         wekenMap.set(week.naam + "," + week.voornaam, week);
       }
-      let rowsArray = tableDef.getRowsAsArray();
+      let rowsArray = fetchedTable.getRowsAsArray();
       let nu = /* @__PURE__ */ new Date();
       let text = "data:" + nu.toLocaleDateString() + "\n";
       let aanwList = rowsArray.map((row) => {
@@ -2711,7 +2712,7 @@
       console.log(text);
       window.sessionStorage.setItem(AANW_LIST, text);
       aanwezighedenToClipboard();
-      tableDef.tableRef.getOrgTable().querySelector("tbody").replaceChildren(...tableDef.getRows());
+      tableDef.tableRef.getOrgTable().querySelector("tbody").replaceChildren(...fetchedTable.getRows());
     });
   }
   function aanwezighedenToClipboard() {

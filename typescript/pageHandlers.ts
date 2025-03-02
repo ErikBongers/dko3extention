@@ -1,4 +1,4 @@
-import {TableDef} from "./table/tableDef";
+import {FetchedTable, TableDef} from "./table/tableDef";
 
 /**
  * @returns `true` to continue, `false` to cancel further handling.
@@ -6,9 +6,9 @@ import {TableDef} from "./table/tableDef";
 type OnRowHandler = (tableDef: TableDef, rowObject: RowObject) => boolean;
 
 type OnBeforeLoadingHandler = (tableDef: TableDef) => boolean;
-type OnLoadedHandler = (tableDef: TableDef) => void;
+type OnLoadedHandler = (fetchedTable: FetchedTable) => void;
 type OnRequiredColumnsMissingHandler = (tableDef: TableDef) => void;
-type OnPageHandler = (tableDef: TableDef, text: string, offset: number, template: HTMLTemplateElement, rows: NodeListOf<HTMLTableRowElement>) => void;
+type OnPageHandler = (tableDef: TableDef, text: string, fetchedTable: FetchedTable) => void;
 
 export interface PageHandler {
     onPage: OnPageHandler;
@@ -33,14 +33,15 @@ export class RowPageHandler implements PageHandler {
         this.onLoaded = onLoaded;
     }
 
-    onPage: OnPageHandler = (tableDef: TableDef, _text: string, offset: number, _template, rows) => {
+    onPage: OnPageHandler = (tableDef: TableDef, _text: string, fetchedTable) => {
         if(!this.onRow)
             return;
         let index = 0;
+        let rows = fetchedTable.getLastPageRows();
         for (let row of rows) {
             let rowObject = new RowObject();
             rowObject.tr = row;
-            rowObject.offset = offset;
+            rowObject.offset = fetchedTable.getLastPageNumber();
             rowObject.index = index;
             if (!this.onRow(tableDef, rowObject))
                 return;
@@ -88,16 +89,16 @@ export class NamedCellTablePageHandler implements PageHandler {
         this.onBeforeLoading = this.onBeforeLoadingHandler;
     }
 
-    onLoadedAndCheck: OnLoadedHandler =  (tableDef: TableDef) => {
+    onLoadedAndCheck: OnLoadedHandler =  (fetchedTable: FetchedTable) => {
         if(this.isValidPage)
-            this.onLoadedExternal(tableDef);
+            this.onLoadedExternal(fetchedTable);
         else
             console.log("NamedCellPageHandler: Not calling OnLoaded handler because page is not valid.")
     }
 
-    onPage: OnPageHandler = (_tableDef: TableDef, _text: string, offset: number, template, _rows)  => {
-        if(offset === 0) {
-            if (!this.setTemplateAndCheck(template)) {
+    onPage: OnPageHandler = (_tableDef: TableDef, _text: string, fetchedTable)  => {
+        if(fetchedTable.getLastPageNumber() === 0) {
+            if (!this.setTemplateAndCheck(fetchedTable.getTemplate())) {
                 this.isValidPage = false;
                 if (this.onColumnsMissing) {
                     this.onColumnsMissing(_tableDef);
