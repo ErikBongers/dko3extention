@@ -3,7 +3,7 @@ let optionDefs = new Map();
 defineOption("showDebug", 'checked');
 defineOption("showNotAssignedClasses", 'checked');
 defineOption("markOtherAcademies", 'checked');
-defineOption("otherAcademies", 'value');
+defineOption("myAcademies", 'value');
 
 const saveOptions = () => {
     let newOptions = {};

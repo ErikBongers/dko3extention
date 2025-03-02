@@ -2,12 +2,12 @@ import {Observer} from "./pageObserver";
 
 type Options = {
   showDebug: boolean;
-    otherAcademies: string;
+    myAcademies: string;
     showNotAssignedClasses: boolean;
 };
 export const options: Options = {
     showDebug: false,
-    otherAcademies: "",
+    myAcademies: "",
     showNotAssignedClasses: true
 };
 

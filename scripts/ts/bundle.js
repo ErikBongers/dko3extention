@@ -2,7 +2,7 @@
   // typescript/globals.ts
   var options = {
     showDebug: false,
-    otherAcademies: "",
+    myAcademies: "",
     showNotAssignedClasses: true
   };
   var observers = [];
@@ -1081,8 +1081,8 @@
   var observer_default4 = new PageObserver(setSchoolBackground);
   function setSchoolBackground() {
     let { userName, schoolName } = getUserAndSchoolName();
-    let isMyAcademy = options.otherAcademies.split("\n").filter((needle) => needle !== "").find((needle) => schoolName.includes(needle)) != void 0;
-    if (options.otherAcademies === "") {
+    let isMyAcademy = options.myAcademies.split("\n").filter((needle) => needle !== "").find((needle) => schoolName.includes(needle)) != void 0;
+    if (options.myAcademies === "") {
       isMyAcademy = true;
     }
     if (isMyAcademy) {

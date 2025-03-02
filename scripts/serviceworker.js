@@ -24,8 +24,6 @@ chrome.runtime.onInstalled.addListener(() => {
 
 async function downloadFile(realFileId) {
     // Get credentials and build service
-    // TODO (developer) - Use appropriate auth mechanism for your app
-
     const {GoogleAuth} = require('google-auth-library');
     const {google} = require('googleapis');
 
@@ -43,7 +41,6 @@ async function downloadFile(realFileId) {
         console.log(file.status);
         return file.status;
     } catch (err) {
-        // TODO(developer) - Handle error
         throw err;
     }
 }

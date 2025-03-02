@@ -78,7 +78,6 @@ function getData(worksheet: ExcelScript.Worksheet) : TheData {
     let rowCount = sourceRange.getRowCount();
     let lines: Array<string> = [];
     for (let row = 0; row < rowCount; row++) {
-        //todo: test if row starts with "lln:"
         lines.push(sourceRangeValues[row][0].toString());
     }
     let dataInfo = "";

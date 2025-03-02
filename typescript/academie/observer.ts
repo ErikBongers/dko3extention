@@ -5,11 +5,11 @@ export default new PageObserver(setSchoolBackground);
 
 function setSchoolBackground () {
     let {userName, schoolName} = getUserAndSchoolName();
-    let isMyAcademy = options.otherAcademies
+    let isMyAcademy = options.myAcademies
         .split("\n")
         .filter((needle) => needle !== "")
         .find((needle) =>  schoolName.includes(needle)) != undefined;
-    if (options.otherAcademies === "") { //TODO: rename to myAcademies !!
+    if (options.myAcademies === "") {
         isMyAcademy = true;
     }
     if (isMyAcademy) {
