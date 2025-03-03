@@ -36,9 +36,9 @@ export function scrapeLessenOverzicht() {
     return lessen;
 }
 
-export function scrapeModules() {
+export function scrapeTrimesterModules() {
     let lessen = scrapeLessenOverzicht();
-    let modules = lessen.filter((les) => les.isModule);
+    let modules = lessen.filter((les) => les.lesType === LesType.TrimesterModule);
 
     let trimesterModules: Les[] = [];
 
@@ -49,7 +49,7 @@ export function scrapeModules() {
         const reInstrument = /.*\Snitiatie\s*(\S+).*(\d).*/;
         const match = module.naam.match(reInstrument);
         if (match?.length !== 3) {
-            console.error(`Could not process module "${module.naam}" (${module.id}).`);
+            console.error(`Could not process trimester module "${module.naam}" (${module.id}).`);
             continue;
         }
         module.instrumentName = match[1];
@@ -86,10 +86,12 @@ function scrapeStudents(studentTable: HTMLTableElement) {
     return students;
 }
 
+export enum LesType { TrimesterModule, JaarModule, Les, UnknownModule}
+
 export class Les {
     tableRow: HTMLTableRowElement;
     vakNaam: string;
-    isModule: boolean;
+    lesType: LesType;
     alc: boolean;
     visible: boolean;
     naam: string;
@@ -112,7 +114,6 @@ function scrapeLesInfo(lesInfo: HTMLElement) {
     let [first] = lesInfo.getElementsByTagName("strong");
     les.vakNaam = first.textContent;
     let badges = lesInfo.getElementsByClassName("badge");
-    les.isModule = Array.from(badges).some((el) => el.textContent === "module");
     les.alc = Array.from(badges).some((el) => el.textContent === "ALC");
     les.visible = lesInfo.getElementsByClassName("fa-eye-slash").length === 0;
     let mutedSpans = lesInfo.querySelectorAll("span.text-muted");
@@ -123,6 +124,17 @@ function scrapeLesInfo(lesInfo: HTMLElement) {
         les.naam = mutedSpans.item(0).textContent;
     } else {
         les.naam = lesInfo.children[1].textContent;
+    }
+    if(Array.from(badges).some((el) => el.textContent !== "module")) {
+        if(les.naam.includes("jaar"))
+            les.lesType = LesType.JaarModule;
+        else if(les.naam.includes("rimester"))
+            les.lesType = LesType.TrimesterModule;
+        else
+            les.lesType = LesType.UnknownModule;
+    }
+    else{
+        les.lesType = LesType.Les;
     }
     if (mutedSpans.length > 0) {
         les.teacher = Array.from(mutedSpans).pop().textContent;

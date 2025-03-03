@@ -427,16 +427,16 @@
     }
     return lessen;
   }
-  function scrapeModules() {
+  function scrapeTrimesterModules() {
     let lessen = scrapeLessenOverzicht();
-    let modules = lessen.filter((les) => les.isModule);
+    let modules = lessen.filter((les) => les.lesType === 0 /* TrimesterModule */);
     let trimesterModules = [];
     for (let module of modules) {
       module.students = scrapeStudents(module.studentsTable);
       const reInstrument = /.*\Snitiatie\s*(\S+).*(\d).*/;
       const match = module.naam.match(reInstrument);
       if (match?.length !== 3) {
-        console.error(`Could not process module "${module.naam}" (${module.id}).`);
+        console.error(`Could not process trimester module "${module.naam}" (${module.id}).`);
         continue;
       }
       module.instrumentName = match[1];
@@ -468,7 +468,6 @@
     let [first] = lesInfo.getElementsByTagName("strong");
     les.vakNaam = first.textContent;
     let badges = lesInfo.getElementsByClassName("badge");
-    les.isModule = Array.from(badges).some((el) => el.textContent === "module");
     les.alc = Array.from(badges).some((el) => el.textContent === "ALC");
     les.visible = lesInfo.getElementsByClassName("fa-eye-slash").length === 0;
     let mutedSpans = lesInfo.querySelectorAll("span.text-muted");
@@ -476,6 +475,16 @@
       les.naam = mutedSpans.item(0).textContent;
     } else {
       les.naam = lesInfo.children[1].textContent;
+    }
+    if (Array.from(badges).some((el) => el.textContent !== "module")) {
+      if (les.naam.includes("jaar"))
+        les.lesType = 1 /* JaarModule */;
+      else if (les.naam.includes("rimester"))
+        les.lesType = 0 /* TrimesterModule */;
+      else
+        les.lesType = 3 /* UnknownModule */;
+    } else {
+      les.lesType = 2 /* Les */;
     }
     if (mutedSpans.length > 0) {
       les.teacher = Array.from(mutedSpans).pop().textContent;
@@ -1006,7 +1015,7 @@
   }
   function showTrimesterTable(show) {
     if (!document.getElementById(TRIM_TABLE_ID)) {
-      let inputModules = scrapeModules();
+      let inputModules = scrapeTrimesterModules();
       let tableData = buildTableData(inputModules);
       buildTrimesterTable(tableData.rows);
     }
@@ -1518,7 +1527,6 @@
     numbers = numbers.concat(offsets);
     numbers.sort((a, b) => a - b);
     numbers = [...new Set(numbers)];
-    console.log(numbers);
     return new TableNavigation(numbers[1] - numbers[0], numbers.pop(), buttonContainer);
   }
   function getGotoNumber(functionCall) {
@@ -2016,7 +2024,6 @@
           console.log("NamedCellPageHandler: Not calling OnLoaded handler because page is not valid.");
       };
       this.onPage = (_tableDef, _text, fetchedTable) => {
-        console.log(`checking page ${fetchedTable.getLastPageNumber()}`);
         if (fetchedTable.getLastPageNumber() === 0) {
           if (!this.setTemplateAndCheck(fetchedTable.getTemplate())) {
             this.isValidPage = false;
