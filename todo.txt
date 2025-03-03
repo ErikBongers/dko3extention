@@ -1,9 +1,3 @@
-* Trimesters: goto student
-  > by loading the les by id and then find the student?
-  > or try to force the view by calling view.php or something...
-
-* geen cache voor copy aanwezigheden
-
 *  tables: distinct column? How? > clear other columns? What shortcut?
   > popup menu?
 

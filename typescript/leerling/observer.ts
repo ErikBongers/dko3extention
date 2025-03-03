@@ -96,7 +96,7 @@ function onInschrijvingChanged(tabInschrijving: HTMLElement) {
             .split(", ")
             .map((arg) => arg.replaceAll("'", ""));
         // @ts-ignore
-        getModules(...args)//TODO: making assumptions about the arguments here.
+        getModules(...args) // making assumptions about the arguments here.
             .then((modNames) => {
                 let instrumentText = "";
                 if(modNames.length) {

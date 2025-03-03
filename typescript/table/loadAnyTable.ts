@@ -17,7 +17,7 @@ export async function getTableFromHash(hash: string, divInfoContainer: HTMLDivEl
         .find("$", "(", "'#")
         .clipTo("'")
         .result();
-    if(!htmlTableId) {//TODO: try this with ifMatch or getString?
+    if(!htmlTableId) {
         htmlTableId = getDocReadyLoadScript(index_view)
             .find("$", "(", "\"#")
             .clipTo("\"")
