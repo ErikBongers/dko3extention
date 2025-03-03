@@ -1,11 +1,11 @@
 import {FULL_CLASS_BUTTON_ID, isButtonHighlighted, TRIM_DIV_ID} from "../def";
 import {db3} from "../globals";
-import {RowInfo} from "./convert";
+import {BlockInfo} from "./convert";
 import {StudentInfo} from "./scrape";
 
 const NBSP = 160;
 
-export function buildTrimesterTable(instruments: RowInfo[]) {
+export function buildTrimesterTable(instruments: BlockInfo[]) {
     instruments.sort((instr1, instr2) => instr1.instrumentName.localeCompare(instr2.instrumentName));
     let trimDiv = document.getElementById(TRIM_DIV_ID);
     let newTable = document.createElement("table");
@@ -95,7 +95,7 @@ export function buildTrimesterTable(instruments: RowInfo[]) {
     trimDiv.appendChild(newTable);
 }
 
-function buildInstrument(newTableBody: HTMLTableSectionElement, instrument: RowInfo) {
+function buildInstrument(newTableBody: HTMLTableSectionElement, instrument: BlockInfo) {
     // creates a table row
     let headerRows = buildInstrumentHeader(newTableBody, instrument);
     let studentTopRowNo = newTableBody.children.length;
@@ -170,7 +170,7 @@ function buildInstrument(newTableBody: HTMLTableSectionElement, instrument: RowI
     }
 }
 
-function buildInstrumentHeader(newTableBody: HTMLTableSectionElement, instrument: RowInfo) {
+function buildInstrumentHeader(newTableBody: HTMLTableSectionElement, instrument: BlockInfo) {
     const trName = document.createElement("tr");
     newTableBody.appendChild(trName);
     trName.classList.add("instrumentRow");

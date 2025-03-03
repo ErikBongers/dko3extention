@@ -1,7 +1,7 @@
 import {Les, StudentInfo} from "./scrape";
 
 
-export class RowInfo {
+export class BlockInfo {
     teacher: string;
     instrumentName: string;
     maxAantal: number;
@@ -12,7 +12,7 @@ export class RowInfo {
 
 export interface TableData {
     students : Map<string, StudentInfo>,
-    rows: RowInfo[]
+    rows: BlockInfo[]
 }
 
 function buildTrimesters(modules: Les[]) {
@@ -44,11 +44,12 @@ function getVestigingen(modules: Les[]) {
 }
 
 export function buildTableData(inputModules: Les[]) : TableData {
-    let tableData: TableData = {
-        students: new Map(),
-        rows: []
-    };
-    //prepare data
+    prepareLesmomenten(inputModules);
+    return buildTrimesterTableData(inputModules);
+    // buildJAarTableData(inputModules);
+}
+
+export function prepareLesmomenten(inputModules: Les[]) {
     let reLesMoment = /.*(\w\w) (?:\d+\/\d+ )?(\d\d:\d\d)-(\d\d:\d\d).*/;
     for(let module of inputModules){
         if(module.lesmoment === "(geen volgende les)") {
@@ -65,7 +66,84 @@ export function buildTableData(inputModules: Les[]) : TableData {
 
         module.formattedLesmoment =  matches[1] + " " + matches[2] + "-" + matches[3];
     }
+}
 
+export function buildTrimesterTableData(inputModules: Les[]) : TableData {
+    let tableData: TableData = {
+        students: new Map(),
+        rows: []
+    };
+
+    //create a block per instrument/teacher/lesmoment
+    // group by INSTRUMENT
+    let instruments = inputModules.map((module) => module.instrumentName);
+    instruments = [...new Set(instruments)] as [string];
+    for (let instrumentName of instruments) {
+        let instrumentModules = inputModules.filter((module) => module.instrumentName === instrumentName);
+
+        // group by TEACHER
+        let teachers = instrumentModules.map((module) => module.teacher);
+        teachers = [...new Set(teachers)];
+        for(let teacher of teachers) {
+            let instrumentTeacherModules = instrumentModules.filter(module => module.teacher === teacher);
+
+            // group by LESMOMENT
+            let lesmomenten = getLesmomenten(instrumentTeacherModules);
+            lesmomenten = [...new Set(lesmomenten)];
+            for(let lesmoment of lesmomenten) {
+                let instrumentTeacherMomentModules = instrumentTeacherModules.filter(module => module.formattedLesmoment === lesmoment);
+
+                let block: BlockInfo = new BlockInfo();
+                block.instrumentName = instrumentName;
+                block.teacher = teacher;
+                block.lesmoment = lesmoment;
+                block.maxAantal = getMaxAantal(instrumentTeacherMomentModules);
+                block.vestiging = getVestigingen(instrumentTeacherMomentModules);
+                block.trimesters = buildTrimesters(instrumentTeacherMomentModules);
+
+                tableData.rows.push(block);
+
+                for (let trim of block.trimesters) {
+                    addTrimesterStudentsToMapAndCount(tableData.students, trim);
+                }
+            }
+        }
+    }
+
+    for(let student of tableData.students.values()) {
+        let instruments = student.instruments.flat();
+        if (instruments.length < 3) {
+            student.allYearSame = false;
+            continue; //skip the every() below if we haven't got 3 instruments.
+        }
+        student.allYearSame = instruments
+            .every((instr: any) => instr.instrumentName === (student?.instruments[0][0]?.instrumentName ?? "---"));
+    }
+
+    for(let instrument of tableData.rows) {
+        for (let trim of instrument.trimesters) {
+            sortTrimesterStudents(trim);
+        }
+    }
+
+    for(let student of tableData.students.values()) {
+        student.info = "";
+        for(let instrs of student.instruments) {
+            if(instrs.length) {
+                student.info += instrs[0].trimesterNo + ". " + instrs.map(instr => instr.instrumentName) + "\n";
+            } else {
+                student.info += "?. ---\n";
+            }
+        }
+    }
+    return tableData;
+}
+export function buildJAarTableData(inputModules: Les[]) : TableData {
+    let tableData: TableData = {
+        students: new Map(),
+        rows: []
+    };
+    //prepare data
     let instrumentNames = inputModules.map((module) => module.instrumentName);
     instrumentNames = [...new Set(instrumentNames)] as [string];
 
@@ -84,7 +162,7 @@ export function buildTableData(inputModules: Les[]) : TableData {
             for(let lesmoment of lesmomenten) {
                 let instrumentTeacherMomentModules = instrumentTeacherModules.filter(module => module.formattedLesmoment === lesmoment);
 
-                let rowInfo: RowInfo = new RowInfo();
+                let rowInfo: BlockInfo = new BlockInfo();
                 rowInfo.instrumentName = instrumentName;
                 rowInfo.teacher = teacher;
                 rowInfo.lesmoment = lesmoment;

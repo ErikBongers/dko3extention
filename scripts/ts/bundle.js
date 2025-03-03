@@ -427,8 +427,14 @@
     }
     return lessen;
   }
-  function scrapeTrimesterModules() {
+  function scrapeModules() {
     let lessen = scrapeLessenOverzicht();
+    return {
+      trimesterModules: scrapeTrimesterModules(lessen),
+      jaarModules: scrapeJaarModules(lessen)
+    };
+  }
+  function scrapeTrimesterModules(lessen) {
     let modules = lessen.filter((les) => les.lesType === 0 /* TrimesterModule */);
     let trimesterModules = [];
     for (let module of modules) {
@@ -445,6 +451,24 @@
     }
     db3(trimesterModules);
     return trimesterModules;
+  }
+  function scrapeJaarModules(lessen) {
+    let modules = lessen.filter((les) => les.lesType === 1 /* JaarModule */);
+    let jaarModules = [];
+    for (let module of modules) {
+      module.students = scrapeStudents(module.studentsTable);
+      const reInstrument = /.*\Snitiatie\s*(\S+).*/;
+      const match = module.naam.match(reInstrument);
+      if (match?.length !== 2) {
+        console.error(`Could not process jaar module "${module.naam}" (${module.id}).`);
+        continue;
+      }
+      module.instrumentName = match[1];
+      module.trimesterNo = parseInt(match[2]);
+      jaarModules.push(module);
+    }
+    db3(jaarModules);
+    return jaarModules;
   }
   var StudentInfo = class {
   };
@@ -497,7 +521,7 @@
   }
 
   // typescript/lessen/convert.ts
-  var RowInfo = class {
+  var BlockInfo = class {
   };
   function buildTrimesters(modules) {
     let mergedInstrument = [void 0, void 0, void 0];
@@ -523,10 +547,10 @@
     return uniqueVestigingen.toString();
   }
   function buildTableData(inputModules) {
-    let tableData = {
-      students: /* @__PURE__ */ new Map(),
-      rows: []
-    };
+    prepareLesmomenten(inputModules);
+    return buildTrimesterTableData(inputModules);
+  }
+  function prepareLesmomenten(inputModules) {
     let reLesMoment = /.*(\w\w) (?:\d+\/\d+ )?(\d\d:\d\d)-(\d\d:\d\d).*/;
     for (let module of inputModules) {
       if (module.lesmoment === "(geen volgende les)") {
@@ -542,9 +566,15 @@
       }
       module.formattedLesmoment = matches[1] + " " + matches[2] + "-" + matches[3];
     }
-    let instrumentNames = inputModules.map((module) => module.instrumentName);
-    instrumentNames = [...new Set(instrumentNames)];
-    for (let instrumentName of instrumentNames) {
+  }
+  function buildTrimesterTableData(inputModules) {
+    let tableData = {
+      students: /* @__PURE__ */ new Map(),
+      rows: []
+    };
+    let instruments = inputModules.map((module) => module.instrumentName);
+    instruments = [...new Set(instruments)];
+    for (let instrumentName of instruments) {
       let instrumentModules = inputModules.filter((module) => module.instrumentName === instrumentName);
       let teachers = instrumentModules.map((module) => module.teacher);
       teachers = [...new Set(teachers)];
@@ -554,27 +584,27 @@
         lesmomenten = [...new Set(lesmomenten)];
         for (let lesmoment of lesmomenten) {
           let instrumentTeacherMomentModules = instrumentTeacherModules.filter((module) => module.formattedLesmoment === lesmoment);
-          let rowInfo = new RowInfo();
-          rowInfo.instrumentName = instrumentName;
-          rowInfo.teacher = teacher;
-          rowInfo.lesmoment = lesmoment;
-          rowInfo.maxAantal = getMaxAantal(instrumentTeacherMomentModules);
-          rowInfo.vestiging = getVestigingen(instrumentTeacherMomentModules);
-          rowInfo.trimesters = buildTrimesters(instrumentTeacherMomentModules);
-          tableData.rows.push(rowInfo);
-          for (let trim of rowInfo.trimesters) {
+          let block = new BlockInfo();
+          block.instrumentName = instrumentName;
+          block.teacher = teacher;
+          block.lesmoment = lesmoment;
+          block.maxAantal = getMaxAantal(instrumentTeacherMomentModules);
+          block.vestiging = getVestigingen(instrumentTeacherMomentModules);
+          block.trimesters = buildTrimesters(instrumentTeacherMomentModules);
+          tableData.rows.push(block);
+          for (let trim of block.trimesters) {
             addTrimesterStudentsToMapAndCount(tableData.students, trim);
           }
         }
       }
     }
     for (let student of tableData.students.values()) {
-      let instruments = student.instruments.flat();
-      if (instruments.length < 3) {
+      let instruments2 = student.instruments.flat();
+      if (instruments2.length < 3) {
         student.allYearSame = false;
         continue;
       }
-      student.allYearSame = instruments.every((instr) => instr.instrumentName === (student?.instruments[0][0]?.instrumentName ?? "---"));
+      student.allYearSame = instruments2.every((instr) => instr.instrumentName === (student?.instruments[0][0]?.instrumentName ?? "---"));
     }
     for (let instrument of tableData.rows) {
       for (let trim of instrument.trimesters) {
@@ -1015,8 +1045,8 @@
   }
   function showTrimesterTable(show) {
     if (!document.getElementById(TRIM_TABLE_ID)) {
-      let inputModules = scrapeTrimesterModules();
-      let tableData = buildTableData(inputModules);
+      let inputModules = scrapeModules();
+      let tableData = buildTableData(inputModules.trimesterModules);
       buildTrimesterTable(tableData.rows);
     }
     document.getElementById("table_lessen_resultaat_tabel").style.display = show ? "none" : "table";

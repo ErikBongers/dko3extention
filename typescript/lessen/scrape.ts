@@ -36,8 +36,15 @@ export function scrapeLessenOverzicht() {
     return lessen;
 }
 
-export function scrapeTrimesterModules() {
+export function scrapeModules() {
     let lessen = scrapeLessenOverzicht();
+    return {
+        trimesterModules: scrapeTrimesterModules(lessen),
+        jaarModules: scrapeJaarModules(lessen)
+    };
+}
+
+function scrapeTrimesterModules(lessen: Les[] ) {
     let modules = lessen.filter((les) => les.lesType === LesType.TrimesterModule);
 
     let trimesterModules: Les[] = [];
@@ -59,6 +66,30 @@ export function scrapeTrimesterModules() {
 
     db3(trimesterModules);
     return trimesterModules;
+}
+
+function scrapeJaarModules(lessen: Les[] ) {
+    let modules = lessen.filter((les) => les.lesType === LesType.JaarModule);
+
+    let jaarModules: Les[] = [];
+
+    for (let module of modules) {
+        module.students = scrapeStudents(module.studentsTable);
+
+        //get name of instrument
+        const reInstrument = /.*\Snitiatie\s*(\S+).*/;
+        const match = module.naam.match(reInstrument);
+        if (match?.length !== 2) {
+            console.error(`Could not process jaar module "${module.naam}" (${module.id}).`);
+            continue;
+        }
+        module.instrumentName = match[1];
+        module.trimesterNo = parseInt(match[2]);
+        jaarModules.push(module);
+    }
+
+    db3(jaarModules);
+    return jaarModules;
 }
 
 export class StudentInfo {

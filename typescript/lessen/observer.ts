@@ -1,4 +1,4 @@
-import {scrapeLessenOverzicht, scrapeTrimesterModules} from "./scrape";
+import {scrapeLessenOverzicht, scrapeModules} from "./scrape";
 import {buildTableData} from "./convert";
 import {buildTrimesterTable} from "./build";
 import * as def from "../def";
@@ -137,8 +137,8 @@ function onClickShowTrimesters() {
 function showTrimesterTable(show: boolean) {
     //Build lazily and only once. Table will automatically be erased when filters are changed.
     if (!document.getElementById(def.TRIM_TABLE_ID)) {
-        let inputModules = scrapeTrimesterModules();
-        let tableData = buildTableData(inputModules);
+        let inputModules = scrapeModules();
+        let tableData = buildTableData(inputModules.trimesterModules);
         buildTrimesterTable(tableData.rows);
     }
 
