@@ -879,7 +879,20 @@
     nameDiv.classList.add("moduleName");
     nameDiv.appendChild(document.createTextNode(block.instrumentName));
     for (let jaarModule of block.jaarModules) {
-      nameDiv.appendChild(buildModuleButton("&gt;", jaarModule.id, false));
+      nameDiv.appendChild(buildModuleButton(">", jaarModule.id, false));
+    }
+    let errorsAndWarnings = "";
+    let maxMoreThan100 = block.jaarModules.map((module) => module.maxAantal > 100).includes(true);
+    if (!maxMoreThan100) {
+      maxMoreThan100 = block.trimesters.flat().map((module) => module?.maxAantal > 100).includes(true);
+    }
+    if (maxMoreThan100)
+      errorsAndWarnings += "Max aantal lln > 100";
+    if (errorsAndWarnings) {
+      let errorSpan = document.createElement("span");
+      errorSpan.appendChild(document.createTextNode(errorsAndWarnings));
+      errorSpan.classList.add("lesError");
+      nameDiv.appendChild(errorSpan);
     }
     let div = document.createElement("div");
     tdInstrumentName.appendChild(div);

@@ -4,8 +4,6 @@
 * modules: show if trimesters overlap?
   > probably difficult in lessen overzicht.
 
-* modules: module without a max: show warning in trimester overview\
-
   > popup menu?
 
 * lessenoverzicht: search field ook bij niet-modules.

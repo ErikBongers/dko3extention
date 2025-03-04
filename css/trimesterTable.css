@@ -88,6 +88,12 @@
         margin-left: 5px;
     }
 
+    & .lesError {
+        background-color: yellow;
+        margin-left: 5px;
+        font-weight: normal;
+    }
+
     & td.wachtlijst {
         border-style: none;
     }
