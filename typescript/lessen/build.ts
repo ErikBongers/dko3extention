@@ -5,8 +5,8 @@ import {StudentInfo} from "./scrape";
 
 const NBSP = 160;
 
-export function buildTrimesterTable(instruments: BlockInfo[]) {
-    instruments.sort((instr1, instr2) => instr1.instrumentName.localeCompare(instr2.instrumentName));
+export function buildTrimesterTable(blocks: BlockInfo[]) {
+    blocks.sort((block1, block2) => block1.instrumentName.localeCompare(block2.instrumentName)); //TODO: also sort on teacher and lesmoment.
     let trimDiv = document.getElementById(TRIM_DIV_ID);
     let newTable = document.createElement("table");
     newTable.id = "trimesterTable";
@@ -27,10 +27,14 @@ export function buildTrimesterTable(instruments: BlockInfo[]) {
     let totTrim1 = 0;
     let totTrim2 = 0;
     let totTrim3 = 0;
-    for (let instrument of instruments) {
-        totTrim1 += instrument.trimesters[0]?.students?.length ?? 0;
-        totTrim2 += instrument.trimesters[1]?.students?.length ?? 0;
-        totTrim3 += instrument.trimesters[2]?.students?.length ?? 0;
+    for (let block of blocks) {
+        totTrim1 += block.trimesters[0]?.students?.length ?? 0;
+        totTrim2 += block.trimesters[1]?.students?.length ?? 0;
+        totTrim3 += block.trimesters[2]?.students?.length ?? 0;
+        let totJaar = block.jaarModules.map(mod => mod.students.length).reduce((prev, curr) => prev + curr, 0);
+        totTrim1 +=  totJaar;
+        totTrim2 +=  totJaar;
+        totTrim3 +=  totJaar;
     }
 
     //header
@@ -81,8 +85,8 @@ export function buildTrimesterTable(instruments: BlockInfo[]) {
 
 
     // creating all cells
-    for (let instrument of instruments) {
-        buildInstrument(newTableBody, instrument);
+    for (let block of blocks) {
+        buildBlock(newTableBody, block);
     }
 
     // put the <tbody> in the <table>
@@ -95,46 +99,111 @@ export function buildTrimesterTable(instruments: BlockInfo[]) {
     trimDiv.appendChild(newTable);
 }
 
-function buildInstrument(newTableBody: HTMLTableSectionElement, instrument: BlockInfo) {
-    // creates a table row
-    let headerRows = buildInstrumentHeader(newTableBody, instrument);
+function createStudentRow(tableBody: HTMLTableSectionElement, rowClass: string) {
+    let row = document.createElement("tr");
+    tableBody.appendChild(row);
+    row.classList.add(rowClass);
+    row.dataset.hasFullClass = "false";
+    return row;
+}
+
+/*
+
+A block should have only ONE les per trimester and ONE per jaar.
+In case multiple: Show error next to class link? Or show 2 class links?
+But merge all students anyway (and waitinglists).
+
+A block has a max number of rows,
+ For trimesters: based on the max for the trimesters. (plus one in case of a waitinglist)
+ For jaarmodules: based on max of all jaarmodules. (plus one in case of a waitinglist)
+
+Sinde both are on the same lesmoment, the max numbers should not be added.
+
+Say we have a jaarmodule of 2 students and trimestermodules of max() 4 students.
+Total max = 4.
+If jaarmodule has 3 students, and trimester only 1...fine. Note that they are on the SAME lesmoment.
+What is tot max allowed per trimester? The max of jaar and trimester.
+
+
+First draw the 2 jaarmodule students.
+
+
+ */
+
+function buildBlock(newTableBody: HTMLTableSectionElement, block: BlockInfo) {
+    let headerRows = buildInstrumentHeader(newTableBody, block);
     let studentTopRowNo = newTableBody.children.length;
-    let rowCount = Math.max(...instrument.trimesters
+    let blockNeededRows = Math.max(...block.trimesters
         .map((trim) => {
             if (!trim) return 0;
             let cnt = trim.maxAantal > 100 ? 4 : trim.maxAantal;
             return cnt > trim.students.length ? cnt : trim.students.length;
         }));
-    let hasWachtlijst = instrument.trimesters.find((trim) => (trim?.wachtlijst?? 0) > 0);
+    let hasWachtlijst = block.trimesters.find((trim) => (trim?.wachtlijst?? 0) > 0);
     if (hasWachtlijst) {
-        rowCount++;
+        blockNeededRows++;
     }
 
+    let maxJaarStudentCount = block.jaarModules.map(mod => mod.maxAantal).reduce((prev, count) => Math.max(prev, count), 0);
     headerRows.trName.dataset.hasFullClass = "false";
     headerRows.trModuleLinks.dataset.hasFullClass = "false";
     let hasFullClass = false;
-    for (let rowNo = 0; rowNo < rowCount; rowNo++) {
-        let row = document.createElement("tr");
-        newTableBody.appendChild(row);
-        row.classList.add("trimesterRow");
-        row.dataset.hasFullClass = "false";
+
+    /*
+
+    Say, we may have 2 jaar rows available...but only one filled.
+    > first fill that row
+    > start filling trims on the next row, but do mark that 2nd row as "jaarRow"
+      > give that overlapping row a different color.
+        > give the filled cells a class of "trimesterStudent".
+
+  >>> give a cell.trimesterStudent in a row.jaarModule a different color to indicate the overlap.
+     */
+    //TODO: DOES NOT WORK FOR MULTIPLE JAAR MODULES !!!!! What about the max number of rows???
+
+    //Fill jaar rows
+    let filledRowCount = 0;
+    for(let jaarModule of block.jaarModules)  {
+        for(let student of jaarModule.students) {
+            let row = createStudentRow(newTableBody, "jaarRow");
+            for (let trimNo = 0; trimNo < 3; trimNo++) {
+                let cell = buildStudentCell(student);
+                row.appendChild(cell);
+                cell.classList.add("jaarStudent");
+                if (jaarModule.maxAantal <= filledRowCount) {
+                    cell.classList.add("gray");
+                }
+                //TODO: add all jaarModules to the students, and if more than one: yellow
+                // if (student? trimesterInstruments[trimNo].length > 1) {
+                //     cell.classList.add("yellowMarker");
+                // }
+            }
+            filledRowCount++;
+        }
+    }
+
+    //Fill trimester rows
+    for (let rowNo = 0; rowNo < (blockNeededRows - filledRowCount); rowNo++) {
+        let row = createStudentRow(newTableBody,"trimesterRow");
 
         for (let trimNo = 0; trimNo < 3; trimNo++) {
-            let trimester = instrument.trimesters[trimNo];
+            let trimester = block.trimesters[trimNo];
             let student: StudentInfo = undefined;
             if (trimester) {
                 student = trimester.students[rowNo];
-                if (trimester.aantal >= trimester.maxAantal) {
+                let maxTrimStudentCount = Math.max(trimester.maxAantal, maxJaarStudentCount);
+                if (trimester.aantal >= maxTrimStudentCount) {
                     row.dataset.hasFullClass = "true";
                     hasFullClass = true;
                 }
             }
             let cell = buildStudentCell(student);
             row.appendChild(cell);
+            cell.classList.add("trimesterStudent");
             if (trimester?.maxAantal <= rowNo) {
                 cell.classList.add("gray");
             }
-            if(student?.instruments[trimNo].length > 1) {
+            if(student?.trimesterInstruments[trimNo].length > 1) {
                 cell.classList.add("yellowMarker");
             }
         }
@@ -154,7 +223,7 @@ function buildInstrument(newTableBody: HTMLTableSectionElement, instrument: Bloc
         newTableBody.children[rowNo].classList.add("wachtlijst");
         let cell = newTableBody.children[rowNo].children[colNo];
         cell.classList.add("wachtlijst");
-        let trimester = instrument.trimesters[trimNo];
+        let trimester = block.trimesters[trimNo];
         if ((trimester?.wachtlijst ?? 0) === 0) {
             continue;
         }

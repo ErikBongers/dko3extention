@@ -9,6 +9,19 @@
         border-width: 2px;
     }
 
+    & tr.jaarRow {
+        border-style: solid;
+        border-width: thin;
+        & > td.jaarStudent {
+            border-style: none;
+        }
+        & > td:nth-child(n+2) {
+            opacity: 0.3;
+        }
+
+    }
+
+
     td {
         padding-left: 3px;
     }

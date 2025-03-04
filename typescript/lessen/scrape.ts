@@ -95,7 +95,8 @@ function scrapeJaarModules(lessen: Les[] ) {
 export class StudentInfo {
     graadJaar: string;
     name: string;
-    instruments: Les[][];
+    trimesterInstruments: Les[][];
+    jaarInstruments: Les[];
     allYearSame: boolean;
     naam: string;
     voornaam: string;

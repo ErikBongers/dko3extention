@@ -1,4 +1,4 @@
-import {Les, StudentInfo} from "./scrape";
+import {Les, LesType, StudentInfo} from "./scrape";
 
 
 export class BlockInfo {
@@ -8,18 +8,21 @@ export class BlockInfo {
     lesmoment: string;
     vestiging: string;
     trimesters: (Les| undefined)[];
+    jaarModules: Les[];
 }
 
 export interface TableData {
     students : Map<string, StudentInfo>,
-    rows: BlockInfo[]
+    blocks: BlockInfo[]
 }
 
 function buildTrimesters(modules: Les[]) {
     let mergedInstrument: (Les | undefined)[] = [undefined, undefined, undefined];
-    for (let module of modules) {
+    modules
+        .filter(module => module.lesType === LesType.TrimesterModule)
+        .forEach(module => {
         mergedInstrument[module.trimesterNo-1] = module;
-    }
+    });
     return mergedInstrument;
 }
 
@@ -43,12 +46,6 @@ function getVestigingen(modules: Les[]) {
     return uniqueVestigingen.toString();
 }
 
-export function buildTableData(inputModules: Les[]) : TableData {
-    prepareLesmomenten(inputModules);
-    return buildTrimesterTableData(inputModules);
-    // buildJAarTableData(inputModules);
-}
-
 export function prepareLesmomenten(inputModules: Les[]) {
     let reLesMoment = /.*(\w\w) (?:\d+\/\d+ )?(\d\d:\d\d)-(\d\d:\d\d).*/;
     for(let module of inputModules){
@@ -68,10 +65,12 @@ export function prepareLesmomenten(inputModules: Les[]) {
     }
 }
 
-export function buildTrimesterTableData(inputModules: Les[]) : TableData {
+export function buildTableData(inputModules: Les[]) : TableData {
+    prepareLesmomenten(inputModules);
+
     let tableData: TableData = {
         students: new Map(),
-        rows: []
+        blocks: []
     };
 
     //create a block per instrument/teacher/lesmoment
@@ -99,105 +98,50 @@ export function buildTrimesterTableData(inputModules: Les[]) : TableData {
                 block.lesmoment = lesmoment;
                 block.maxAantal = getMaxAantal(instrumentTeacherMomentModules);
                 block.vestiging = getVestigingen(instrumentTeacherMomentModules);
+                // we could have both trimesters and jaar modules for this instrument/teacher/lesmoment
                 block.trimesters = buildTrimesters(instrumentTeacherMomentModules);
+                block.jaarModules = instrumentTeacherMomentModules.filter(module => module.lesType === LesType.JaarModule);
 
-                tableData.rows.push(block);
+                tableData.blocks.push(block);
 
                 for (let trim of block.trimesters) {
                     addTrimesterStudentsToMapAndCount(tableData.students, trim);
                 }
-            }
-        }
-    }
-
-    for(let student of tableData.students.values()) {
-        let instruments = student.instruments.flat();
-        if (instruments.length < 3) {
-            student.allYearSame = false;
-            continue; //skip the every() below if we haven't got 3 instruments.
-        }
-        student.allYearSame = instruments
-            .every((instr: any) => instr.instrumentName === (student?.instruments[0][0]?.instrumentName ?? "---"));
-    }
-
-    for(let instrument of tableData.rows) {
-        for (let trim of instrument.trimesters) {
-            sortTrimesterStudents(trim);
-        }
-    }
-
-    for(let student of tableData.students.values()) {
-        student.info = "";
-        for(let instrs of student.instruments) {
-            if(instrs.length) {
-                student.info += instrs[0].trimesterNo + ". " + instrs.map(instr => instr.instrumentName) + "\n";
-            } else {
-                student.info += "?. ---\n";
-            }
-        }
-    }
-    return tableData;
-}
-export function buildJAarTableData(inputModules: Les[]) : TableData {
-    let tableData: TableData = {
-        students: new Map(),
-        rows: []
-    };
-    //prepare data
-    let instrumentNames = inputModules.map((module) => module.instrumentName);
-    instrumentNames = [...new Set(instrumentNames)] as [string];
-
-    for (let instrumentName of instrumentNames) {
-        let instrumentModules = inputModules.filter((module) => module.instrumentName === instrumentName);
-
-        let teachers = instrumentModules.map((module) => module.teacher);
-        teachers = [...new Set(teachers)];
-
-        for(let teacher of teachers) {
-            let instrumentTeacherModules = instrumentModules.filter(module => module.teacher === teacher);
-
-            let lesmomenten = getLesmomenten(instrumentTeacherModules);
-            lesmomenten = [...new Set(lesmomenten)];
-
-            for(let lesmoment of lesmomenten) {
-                let instrumentTeacherMomentModules = instrumentTeacherModules.filter(module => module.formattedLesmoment === lesmoment);
-
-                let rowInfo: BlockInfo = new BlockInfo();
-                rowInfo.instrumentName = instrumentName;
-                rowInfo.teacher = teacher;
-                rowInfo.lesmoment = lesmoment;
-                rowInfo.maxAantal = getMaxAantal(instrumentTeacherMomentModules);
-                rowInfo.vestiging = getVestigingen(instrumentTeacherMomentModules);
-                rowInfo.trimesters = buildTrimesters(instrumentTeacherMomentModules);
-
-                tableData.rows.push(rowInfo);
-
-                for (let trim of rowInfo.trimesters) {
-                    addTrimesterStudentsToMapAndCount(tableData.students, trim);
+                for (let jaarModule of block.jaarModules) {
+                    addJaarStudentsToMapAndCount(tableData.students, jaarModule);
                 }
             }
         }
     }
 
+    //set flag if all 3 trims the same instrumt for a student.
     for(let student of tableData.students.values()) {
-        let instruments = student.instruments.flat();
+        if(!student.trimesterInstruments)
+            continue;
+        let instruments = student.trimesterInstruments.flat();
         if (instruments.length < 3) {
             student.allYearSame = false;
             continue; //skip the every() below if we haven't got 3 instruments.
         }
         student.allYearSame = instruments
-            .every((instr: any) => instr.instrumentName === (student?.instruments[0][0]?.instrumentName ?? "---"));
+            .every((instr: any) => instr.instrumentName === (student?.trimesterInstruments[0][0]?.instrumentName ?? "---"));
     }
 
-    for(let instrument of tableData.rows) {
+    //sort students, putting allYearSame studetns on top. (will be in bold).
+    for(let instrument of tableData.blocks) {
         for (let trim of instrument.trimesters) {
-            sortTrimesterStudents(trim);
+            sortModuleStudents(trim);
+        }
+        for (let jaarModule of instrument.jaarModules) {
+            sortModuleStudents(jaarModule);
         }
     }
 
     for(let student of tableData.students.values()) {
         student.info = "";
-        for(let instrs of student.instruments) {
+        if(!student.trimesterInstruments)
+            continue;
+        for(let instrs of student.trimesterInstruments) {
             if(instrs.length) {
                 student.info += instrs[0].trimesterNo + ". " + instrs.map(instr => instr.instrumentName) + "\n";
             } else {
@@ -208,25 +152,40 @@ export function buildJAarTableData(inputModules: Les[]) : TableData {
     return tableData;
 }
 
-function addTrimesterStudentsToMapAndCount(students: Map<string, StudentInfo>, trim: Les) {
-    if(!trim) return;
-    for (let student of trim.students) {
+function addTrimesterStudentsToMapAndCount(students: Map<string, StudentInfo>, trimModule: Les) {
+    if(!trimModule) return;
+    for (let student of trimModule.students) {
         if (!students.has(student.name)) {
-            student.instruments = [[], [], []];
+            student.trimesterInstruments = [[], [], []];
             students.set(student.name, student);
         }
         let stud = students.get(student.name);
-        stud.instruments[trim.trimesterNo-1].push(trim);
+        stud.trimesterInstruments[trimModule.trimesterNo-1].push(trimModule);
     }
     //all trims must reference the students in the overall map.
-    trim.students = trim.students
+    trimModule.students = trimModule.students
         .map((student) => students.get(student.name));
 }
 
-function sortTrimesterStudents(trim: Les) {
-    if(!trim) return;
+function addJaarStudentsToMapAndCount(students: Map<string, StudentInfo>, jaarModule: Les) {
+    if(!jaarModule) return;
+    for (let student of jaarModule.students) {
+        if (!students.has(student.name)) {
+            student.jaarInstruments = [];
+            students.set(student.name, student);
+        }
+        let stud = students.get(student.name);
+        stud.jaarInstruments.push(jaarModule);
+    }
+    //all jaarModules must reference the students in the overall map.
+    jaarModule.students = jaarModule.students
+        .map((student) => students.get(student.name));
+}
+
+function sortModuleStudents(les: Les) {
+    if(!les) return;
     let comparator = new Intl.Collator();
-    trim.students
+    les.students
         //sort full year students on top.
         .sort((a,b) => {
             if (a.allYearSame && (!b.allYearSame)) {
