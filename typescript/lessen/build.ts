@@ -131,7 +131,7 @@ First draw the 2 jaarmodule students.
  */
 
 function buildBlock(newTableBody: HTMLTableSectionElement, block: BlockInfo) {
-    let headerRows = buildInstrumentHeader(newTableBody, block);
+    let headerRows = buildBlockHeader(newTableBody, block);
     let studentTopRowNo = newTableBody.children.length;
     let blockNeededRows = Math.max(...block.trimesters
         .map((trim) => {
@@ -239,7 +239,7 @@ function buildBlock(newTableBody: HTMLTableSectionElement, block: BlockInfo) {
     }
 }
 
-function buildInstrumentHeader(newTableBody: HTMLTableSectionElement, instrument: BlockInfo) {
+function buildBlockHeader(newTableBody: HTMLTableSectionElement, block: BlockInfo) {
     const trName = document.createElement("tr");
     newTableBody.appendChild(trName);
     trName.classList.add("instrumentRow");
@@ -252,15 +252,18 @@ function buildInstrumentHeader(newTableBody: HTMLTableSectionElement, instrument
     let nameDiv = document.createElement("div");
     tdInstrumentName.appendChild(nameDiv);
     nameDiv.classList.add("moduleName");
-    nameDiv.appendChild(document.createTextNode(instrument.instrumentName));
+    nameDiv.appendChild(document.createTextNode(block.instrumentName));
+    for(let jaarModule of block.jaarModules) {
+        nameDiv.appendChild(buildModuleButton(">", jaarModule.id, false))
+    }
     let div = document.createElement("div");
     tdInstrumentName.appendChild(div);
     div.classList.add("text-muted");
-    div.appendChild(document.createTextNode(instrument.lesmoment));
+    div.appendChild(document.createTextNode(block.lesmoment));
     div.appendChild(document.createElement("br"));
-    div.appendChild(document.createTextNode(instrument.teacher));
+    div.appendChild(document.createTextNode(block.teacher));
     div.appendChild(document.createElement("br"));
-    div.appendChild(document.createTextNode(instrument.vestiging));
+    div.appendChild(document.createTextNode(block.vestiging));
 
     //build row for module links(the tiny numbered buttons)
     const trModuleLinks = document.createElement("tr");
@@ -269,20 +272,20 @@ function buildInstrumentHeader(newTableBody: HTMLTableSectionElement, instrument
     const tdLink1 = document.createElement("td");
     trModuleLinks.appendChild(tdLink1);
     trModuleLinks.classList.add("instrumentCell");
-    if (instrument.trimesters[0]) {
-        tdLink1.appendChild(buildModuleButton("1", instrument.trimesters[0].id));
+    if (block.trimesters[0]) {
+        tdLink1.appendChild(buildModuleButton("1", block.trimesters[0].id, true));
     }
     const tdLink2 = document.createElement("td");
     trModuleLinks.appendChild(tdLink2);
     trModuleLinks.classList.add("instrumentCell");
-    if (instrument.trimesters[1]) {
-        tdLink2.appendChild(buildModuleButton("2", instrument.trimesters[1].id));
+    if (block.trimesters[1]) {
+        tdLink2.appendChild(buildModuleButton("2", block.trimesters[1].id, true));
     }
     const tdLink3 = document.createElement("td");
     trModuleLinks.appendChild(tdLink3);
     trModuleLinks.classList.add("instrumentCell");
-    if (instrument.trimesters[2]) {
-        tdLink3.appendChild(buildModuleButton("3", instrument.trimesters[2].id));
+    if (block.trimesters[2]) {
+        tdLink3.appendChild(buildModuleButton("3", block.trimesters[2].id, true));
     }
     return {
         "trName": trName,
@@ -290,11 +293,13 @@ function buildInstrumentHeader(newTableBody: HTMLTableSectionElement, instrument
     };
 }
 
-function buildModuleButton(buttonText: string, id: string) {
+function buildModuleButton(buttonText: string, id: string, floatRight: boolean) {
     const button = document.createElement("a");
     button.href = "#";
     button.setAttribute("onclick", `showView('lessen-les','','id=${id}'); return false;`);
-    button.classList.add("float-right", "trimesterButton");
+    button.classList.add("lesButton");
+    if(floatRight)
+        button.classList.add("float-right");
     button.innerText = buttonText;
     return button;
 }

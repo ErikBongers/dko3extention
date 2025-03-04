@@ -157,7 +157,7 @@ function scrapeLesInfo(lesInfo: HTMLElement) {
     } else {
         les.naam = lesInfo.children[1].textContent;
     }
-    if(Array.from(badges).some((el) => el.textContent !== "module")) {
+    if(Array.from(badges).some((el) => el.textContent === "module")) {
         if(les.naam.includes("jaar"))
             les.lesType = LesType.JaarModule;
         else if(les.naam.includes("rimester"))
