@@ -181,19 +181,47 @@ function match_AND_expression(searchText: string, rowText: string) {
     return true;
 }
 
-export function filterTable(table: HTMLTableElement, searchFieldId: string, getRowSearchText: (tr: HTMLTableRowElement) => string) {
-    let searchText = (document.getElementById(searchFieldId) as HTMLInputElement).value;
-    let search_OR_list = searchText.split(',').map(txt => txt.trim());
-    for (let tr of table.tBodies[0].rows) {
-        let match = false;
-        for(let search of search_OR_list) {
-            let rowText = getRowSearchText(tr);
-            if (match_AND_expression(search, rowText))
-                match = true;
-        }
-        tr.style.visibility = match ? "visible" : "collapse";
+export function filterTableRows(table: (HTMLTableElement | string), rowFilter:RowFilter) {
+    if(typeof table === "string" )
+        table = document.getElementById(table) as HTMLTableElement;
+    return Array.from(table.tBodies[0].rows)
+        .filter(tr => rowFilter.rowFilter(tr, rowFilter.context));
+}
+
+export function filterTable(table: (HTMLTableElement | string), rowFilter:RowFilter) {
+    if(typeof table === "string" )
+        table = document.getElementById(table) as HTMLTableElement;
+    for(let tr of table.tBodies[0].rows) {
+        tr.style.visibility = "collapse";
     }
-    return searchText;
+    for (let tr of filterTableRows(table, rowFilter)) {
+        tr.style.visibility = "visible";
+    }
+}
+
+/*
+Creates a text filter where a comma is interpreted as OR and a plus sign as AND.
+ */
+export function createTextRowFilter(searchText: string, getRowSearchText: (tr: HTMLTableRowElement) => string): RowFilter {
+    let search_OR_list = searchText.split(',').map(txt => txt.trim());
+    let context = {
+        search_OR_list,
+        getRowSearchText
+    };
+    let rowFilter = function (tr: HTMLTableRowElement, context: any) {
+        for(let search of context.search_OR_list) {
+            let rowText = context.getRowSearchText(tr);
+            if (match_AND_expression(search, rowText))
+                return true;
+        }
+        return false;
+    };
+    return {context, rowFilter};
+}
+
+interface RowFilter {
+    context: any,
+    rowFilter: (tr: HTMLTableRowElement, context: any) => boolean
 }
 
 export function getBothToolbars() {

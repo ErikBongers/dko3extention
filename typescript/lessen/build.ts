@@ -41,7 +41,7 @@ export function buildTrimesterTable(blocks: BlockInfo[]) {
     const tHead = document.createElement("thead");
     newTable.appendChild(tHead);
     tHead.classList.add("table-secondary")
-    const trHeader = document.createElement("tr");
+    const trHeader = createLesRow();
     tHead.appendChild(trHeader);
 
     const th1 = document.createElement("th");
@@ -100,7 +100,7 @@ export function buildTrimesterTable(blocks: BlockInfo[]) {
 }
 
 function createStudentRow(tableBody: HTMLTableSectionElement, rowClass: string) {
-    let row = document.createElement("tr");
+    let row = createLesRow();
     tableBody.appendChild(row);
     row.classList.add(rowClass);
     row.dataset.hasFullClass = "false";
@@ -239,8 +239,17 @@ function buildBlock(newTableBody: HTMLTableSectionElement, block: BlockInfo) {
     }
 }
 
+let blockCounter = 0;
+
+function createLesRow() {
+    let tr = document.createElement("tr");
+    tr.dataset.blockId = "block"+blockCounter;
+    return tr;
+}
+
 function buildBlockHeader(newTableBody: HTMLTableSectionElement, block: BlockInfo) {
-    const trName = document.createElement("tr");
+    blockCounter++;
+    const trName = createLesRow();
     newTableBody.appendChild(trName);
     trName.classList.add("instrumentRow");
 
@@ -287,7 +296,7 @@ function buildBlockHeader(newTableBody: HTMLTableSectionElement, block: BlockInf
     div.appendChild(document.createTextNode(block.vestiging));
 
     //build row for module links(the tiny numbered buttons)
-    const trModuleLinks = document.createElement("tr");
+    const trModuleLinks = createLesRow();
     newTableBody.appendChild(trModuleLinks);
     trModuleLinks.classList.add("instrumentRow");
     const tdLink1 = document.createElement("td");
@@ -309,8 +318,9 @@ function buildBlockHeader(newTableBody: HTMLTableSectionElement, block: BlockInf
         tdLink3.appendChild(buildModuleButton("3", block.trimesters[2].id, true));
     }
     return {
-        "trName": trName,
-        "trModuleLinks": trModuleLinks
+        trName,
+        trModuleLinks: trModuleLinks,
+        blockId: blockCounter
     };
 }
 

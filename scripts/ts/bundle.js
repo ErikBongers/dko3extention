@@ -133,19 +133,36 @@
     }
     return true;
   }
-  function filterTable(table, searchFieldId, getRowSearchText) {
-    let searchText = document.getElementById(searchFieldId).value;
-    let search_OR_list = searchText.split(",").map((txt) => txt.trim());
+  function filterTableRows(table, rowFilter) {
+    if (typeof table === "string")
+      table = document.getElementById(table);
+    return Array.from(table.tBodies[0].rows).filter((tr) => rowFilter.rowFilter(tr, rowFilter.context));
+  }
+  function filterTable(table, rowFilter) {
+    if (typeof table === "string")
+      table = document.getElementById(table);
     for (let tr of table.tBodies[0].rows) {
-      let match = false;
-      for (let search of search_OR_list) {
-        let rowText = getRowSearchText(tr);
-        if (match_AND_expression(search, rowText))
-          match = true;
-      }
-      tr.style.visibility = match ? "visible" : "collapse";
+      tr.style.visibility = "collapse";
     }
-    return searchText;
+    for (let tr of filterTableRows(table, rowFilter)) {
+      tr.style.visibility = "visible";
+    }
+  }
+  function createTextRowFilter(searchText, getRowSearchText) {
+    let search_OR_list = searchText.split(",").map((txt) => txt.trim());
+    let context = {
+      search_OR_list,
+      getRowSearchText
+    };
+    let rowFilter = function(tr, context2) {
+      for (let search of context2.search_OR_list) {
+        let rowText = context2.getRowSearchText(tr);
+        if (match_AND_expression(search, rowText))
+          return true;
+      }
+      return false;
+    };
+    return { context, rowFilter };
   }
   function getBothToolbars() {
     let navigationBars = document.querySelectorAll("div.datatable-navigation-toolbar");
@@ -730,7 +747,7 @@
     const tHead = document.createElement("thead");
     newTable.appendChild(tHead);
     tHead.classList.add("table-secondary");
-    const trHeader = document.createElement("tr");
+    const trHeader = createLesRow();
     tHead.appendChild(trHeader);
     const th1 = document.createElement("th");
     trHeader.appendChild(th1);
@@ -778,7 +795,7 @@
     trimDiv.appendChild(newTable);
   }
   function createStudentRow(tableBody, rowClass) {
-    let row = document.createElement("tr");
+    let row = createLesRow();
     tableBody.appendChild(row);
     row.classList.add(rowClass);
     row.dataset.hasFullClass = "false";
@@ -866,8 +883,15 @@
       }
     }
   }
+  var blockCounter = 0;
+  function createLesRow() {
+    let tr = document.createElement("tr");
+    tr.dataset.blockId = "block" + blockCounter;
+    return tr;
+  }
   function buildBlockHeader(newTableBody, block) {
-    const trName = document.createElement("tr");
+    blockCounter++;
+    const trName = createLesRow();
     newTableBody.appendChild(trName);
     trName.classList.add("instrumentRow");
     const tdInstrumentName = document.createElement("td");
@@ -902,7 +926,7 @@
     div.appendChild(document.createTextNode(block.teacher));
     div.appendChild(document.createElement("br"));
     div.appendChild(document.createTextNode(block.vestiging));
-    const trModuleLinks = document.createElement("tr");
+    const trModuleLinks = createLesRow();
     newTableBody.appendChild(trModuleLinks);
     trModuleLinks.classList.add("instrumentRow");
     const tdLink1 = document.createElement("td");
@@ -924,8 +948,9 @@
       tdLink3.appendChild(buildModuleButton("3", block.trimesters[2].id, true));
     }
     return {
-      "trName": trName,
-      "trModuleLinks": trModuleLinks
+      trName,
+      trModuleLinks,
+      blockId: blockCounter
     };
   }
   function buildModuleButton(buttonText, id, floatRight) {
@@ -1049,11 +1074,19 @@
     onSearchInput();
   }
   function onSearchInput() {
-    savedSearch = filterTable(
-      document.getElementById("table_lessen_resultaat_tabel"),
-      TXT_FILTER_ID,
-      (tr) => tr.cells[0].textContent
-    );
+    savedSearch = document.getElementById(TXT_FILTER_ID).value;
+    if (isTrimesterTableVisible()) {
+      let blockFilter = function(tr, context) {
+        return context.includes(tr.dataset.blockId);
+      };
+      let rowFilter = createTextRowFilter(savedSearch, (tr) => tr.textContent);
+      let rows = filterTableRows(TRIM_TABLE_ID, rowFilter);
+      let blockIds = [...new Set(rows.map((tr) => tr.dataset.blockId))];
+      filterTable(TRIM_TABLE_ID, { context: blockIds, rowFilter: blockFilter });
+    } else {
+      let rowFilter = createTextRowFilter(savedSearch, (tr) => tr.cells[0].textContent);
+      filterTable("table_lessen_resultaat_tabel", rowFilter);
+    }
   }
   function addButton2(printButton, buttonId, title, clickFunction, imageId) {
     let button = document.getElementById(buttonId);
@@ -1105,7 +1138,10 @@
     showOnlyFullTrimesters(displayState === "none");
   }
   function onClickShowTrimesters() {
-    showTrimesterTable(document.getElementById("table_lessen_resultaat_tabel").style.display !== "none");
+    showTrimesterTable(!isTrimesterTableVisible());
+  }
+  function isTrimesterTableVisible() {
+    return document.getElementById("table_lessen_resultaat_tabel").style.display === "none";
   }
   function showTrimesterTable(show) {
     if (!document.getElementById(TRIM_TABLE_ID)) {
@@ -2458,15 +2494,14 @@
     onSearchInput2();
   }
   function onSearchInput2() {
-    savedSearch2 = filterTable(
-      document.querySelector("#div_table_vakgroepen_vakken table"),
-      TXT_FILTER_ID2,
-      (tr) => {
-        let instrumentName = tr.cells[0].querySelector("label").textContent.trim();
-        let strong = tr.cells[0].querySelector("strong")?.textContent.trim();
-        return instrumentName + " " + strong;
-      }
-    );
+    savedSearch2 = document.getElementById(TXT_FILTER_ID2).value;
+    function getRowText(tr) {
+      let instrumentName = tr.cells[0].querySelector("label").textContent.trim();
+      let strong = tr.cells[0].querySelector("strong")?.textContent.trim();
+      return instrumentName + " " + strong;
+    }
+    let rowFilter = createTextRowFilter(savedSearch2, getRowText);
+    filterTable(document.querySelector("#div_table_vakgroepen_vakken table"), rowFilter);
   }
 
   // typescript/verwittigen/observer.ts

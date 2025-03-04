@@ -2,7 +2,7 @@ import {scrapeLessenOverzicht, scrapeModules} from "./scrape";
 import {buildTableData} from "./convert";
 import {buildTrimesterTable} from "./build";
 import * as def from "../def";
-import {createScearchField, filterTable, setButtonHighlighted} from "../globals";
+import {createScearchField, createTextRowFilter, filterTable, filterTableRows, setButtonHighlighted} from "../globals";
 import {HashObserver} from "../pageObserver";
 
 export default new HashObserver("#lessen-overzicht", onMutation);
@@ -57,6 +57,7 @@ function onLessenOverzichtChanged(printButton: HTMLButtonElement) {
 }
 
 const TXT_FILTER_ID = "txtFilter";
+// Well, saved until the browser is refreshed :)
 let savedSearch = "";
 
 function addFilterField() {
@@ -68,11 +69,23 @@ function addFilterField() {
 }
 
 function onSearchInput() {
-    savedSearch = filterTable(
-        document.getElementById("table_lessen_resultaat_tabel") as HTMLTableElement,
-        TXT_FILTER_ID,
-        (tr) => tr.cells[0].textContent
-    );
+    savedSearch = (document.getElementById(TXT_FILTER_ID) as HTMLInputElement).value;
+    if(isTrimesterTableVisible()) {
+        let rowFilter = createTextRowFilter(savedSearch, (tr) => tr.textContent);
+        let rows = filterTableRows(def.TRIM_TABLE_ID, rowFilter);
+
+        //now gather the blockIds of the matching rows and show ALL of the rows in those blocks. (not just the matching rows).
+        let blockIds = [...new Set(rows.map(tr => tr.dataset.blockId))];
+
+        function blockFilter(tr: HTMLTableRowElement, context: any) {
+            return (<string[]>context).includes(tr.dataset.blockId);
+        }
+
+        filterTable(def.TRIM_TABLE_ID, {context: blockIds, rowFilter: blockFilter});
+    } else {
+        let rowFilter = createTextRowFilter(savedSearch, (tr) => tr.cells[0].textContent);
+        filterTable("table_lessen_resultaat_tabel",rowFilter);
+    }
 }
 
 function addButton(printButton: HTMLButtonElement, buttonId: string, title: string, clickFunction: (this: GlobalEventHandlers, ev: MouseEvent) => any, imageId: string) {
@@ -131,7 +144,11 @@ function onClickFullClasses() {
 }
 
 function onClickShowTrimesters() {
-    showTrimesterTable(document.getElementById("table_lessen_resultaat_tabel").style.display !== "none");
+    showTrimesterTable(!isTrimesterTableVisible());
+}
+
+export function isTrimesterTableVisible() {
+    return document.getElementById("table_lessen_resultaat_tabel").style.display === "none";
 }
 
 function showTrimesterTable(show: boolean) {

@@ -6,13 +6,7 @@
 
   > popup menu?
 
-* lessenoverzicht: search field ook bij niet-modules.
 
-* bug lessenoverzicht
-if (!isInstrument(vak)) {
-console.error("vak is geen instrument!!!");  Kazoo en FlokBluit
-      return false;
-    }
 * modules met VAST lesmoment en modules met nader te bepalen lesmoment...soort van wachtlijstklas per instrument?
 * hoe lessen van Lievenka bundelen?
  Zal alleen zichtbaar zijn in de plugin…nooit waterdicht.
