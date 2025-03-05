@@ -143,9 +143,11 @@
       table = document.getElementById(table);
     for (let tr of table.tBodies[0].rows) {
       tr.style.visibility = "collapse";
+      tr.style.borderColor = "transparent";
     }
     for (let tr of filterTableRows(table, rowFilter)) {
       tr.style.visibility = "visible";
+      tr.style.borderColor = "";
     }
   }
   function createTextRowFilter(searchText, getRowSearchText) {
@@ -929,6 +931,7 @@
   }
   function buildTitleRow(newTableBody, trimesterSorting, title) {
     const trTitle = createLesRow(title);
+    trTitle.dataset.blockId = "";
     newTableBody.appendChild(trTitle);
     trTitle.classList.add("blockRow", "groupHeader");
     trTitle.dataset.groupId = title;
@@ -1138,12 +1141,15 @@
     savedSearch = document.getElementById(TXT_FILTER_ID).value;
     if (isTrimesterTableVisible()) {
       let blockFilter = function(tr, context) {
-        return context.includes(tr.dataset.blockId);
+        if (context.blockIds.includes(tr.dataset.blockId))
+          return true;
+        return context.groupIds.includes(tr.dataset.groupId) && tr.classList.contains("groupHeader");
       };
       let rowFilter = createTextRowFilter(savedSearch, (tr) => tr.textContent);
       let rows = filterTableRows(TRIM_TABLE_ID, rowFilter);
       let blockIds = [...new Set(rows.map((tr) => tr.dataset.blockId))];
-      filterTable(TRIM_TABLE_ID, { context: blockIds, rowFilter: blockFilter });
+      let groupIds = [...new Set(rows.map((tr) => tr.dataset.groupId))];
+      filterTable(TRIM_TABLE_ID, { context: { blockIds, groupIds }, rowFilter: blockFilter });
     } else {
       let rowFilter = createTextRowFilter(savedSearch, (tr) => tr.cells[0].textContent);
       filterTable("table_lessen_resultaat_tabel", rowFilter);

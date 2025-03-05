@@ -270,6 +270,7 @@ function createLesRow(groupId: string) {
 
 function buildTitleRow(newTableBody: HTMLTableSectionElement, trimesterSorting: TrimesterSorting, title: string) {
     const trTitle = createLesRow(title);
+    trTitle.dataset.blockId = "";// a title row does not belong to a block.
     newTableBody.appendChild(trTitle);
     trTitle.classList.add("blockRow", "groupHeader");
     trTitle.dataset.groupId = title;

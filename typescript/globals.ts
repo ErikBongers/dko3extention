@@ -193,9 +193,11 @@ export function filterTable(table: (HTMLTableElement | string), rowFilter:RowFil
         table = document.getElementById(table) as HTMLTableElement;
     for(let tr of table.tBodies[0].rows) {
         tr.style.visibility = "collapse";
+        tr.style.borderColor = "transparent"; //get rid of some risidual border lines
     }
     for (let tr of filterTableRows(table, rowFilter)) {
         tr.style.visibility = "visible";
+        tr.style.borderColor = "";
     }
 }
 

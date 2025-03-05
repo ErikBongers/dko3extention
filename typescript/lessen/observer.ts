@@ -74,14 +74,19 @@ function onSearchInput() {
         let rowFilter = createTextRowFilter(savedSearch, (tr) => tr.textContent);
         let rows = filterTableRows(def.TRIM_TABLE_ID, rowFilter);
 
-        //now gather the blockIds of the matching rows and show ALL of the rows in those blocks. (not just the matching rows).
+        //now gather the blockIds and groupIds of the matching rows and show ALL of the rows in those blocks. (not just the matching rows).
         let blockIds = [...new Set(rows.map(tr => tr.dataset.blockId))];
+        let groupIds = [...new Set(rows.map(tr => tr.dataset.groupId))];
 
         function blockFilter(tr: HTMLTableRowElement, context: any) {
-            return (<string[]>context).includes(tr.dataset.blockId);
+            //display all rows of the found blocks
+            if((<string[]>context.blockIds).includes(tr.dataset.blockId))
+                return true;
+            //also display the group rows that these blocks belong to
+            return (<string[]>context.groupIds).includes(tr.dataset.groupId) && tr.classList.contains("groupHeader");
         }
 
-        filterTable(def.TRIM_TABLE_ID, {context: blockIds, rowFilter: blockFilter});
+        filterTable(def.TRIM_TABLE_ID, {context: {blockIds, groupIds}, rowFilter: blockFilter});
     } else {
         let rowFilter = createTextRowFilter(savedSearch, (tr) => tr.cells[0].textContent);
         filterTable("table_lessen_resultaat_tabel",rowFilter);
