@@ -155,7 +155,7 @@ export function buildTableData(inputModules: Les[]) : TableData {
     }
 
     //group by teacher
-    let teachers = [...new Set(tableData.blocks.map(b => b.teacher))]
+    let teachers = [...new Set(tableData.blocks.map(b => b.teacher))].sort((a,b) => { return a.localeCompare(b);});
     for(let t of teachers) {
         tableData.teachers.set(t, []);
     }
@@ -164,14 +164,14 @@ export function buildTableData(inputModules: Les[]) : TableData {
     }
 
     //group by instrument
-    let instrumentNames = [...new Set(tableData.blocks.map(b => b.instrumentName))]
+    let instrumentNames = [...new Set(tableData.blocks.map(b => b.instrumentName))].sort((a,b) => { return a.localeCompare(b);});
+    console.log(instrumentNames);
     for(let instr of instrumentNames) {
         tableData.instruments.set(instr, []);
     }
     for(let block of tableData.blocks) {
         tableData.instruments.get(block.instrumentName).push(block);
     }
-    console.log(tableData.instruments);
     return tableData;
 }
 

@@ -648,21 +648,25 @@
         }
       }
     }
-    let teachers = [...new Set(tableData.blocks.map((b) => b.teacher))];
+    let teachers = [...new Set(tableData.blocks.map((b) => b.teacher))].sort((a, b) => {
+      return a.localeCompare(b);
+    });
     for (let t of teachers) {
       tableData.teachers.set(t, []);
     }
     for (let block of tableData.blocks) {
       tableData.teachers.get(block.teacher).push(block);
     }
-    let instrumentNames = [...new Set(tableData.blocks.map((b) => b.instrumentName))];
+    let instrumentNames = [...new Set(tableData.blocks.map((b) => b.instrumentName))].sort((a, b) => {
+      return a.localeCompare(b);
+    });
+    console.log(instrumentNames);
     for (let instr of instrumentNames) {
       tableData.instruments.set(instr, []);
     }
     for (let block of tableData.blocks) {
       tableData.instruments.get(block.instrumentName).push(block);
     }
-    console.log(tableData.instruments);
     return tableData;
   }
   function addTrimesterStudentsToMapAndCount(students, trimModule) {
@@ -733,7 +737,8 @@
 
   // typescript/lessen/build.ts
   var NBSP = 160;
-  function buildTrimesterTable(blocks) {
+  function buildTrimesterTable(tableData, trimesterSorting) {
+    let blocks = tableData.blocks;
     blocks.sort((block1, block2) => block1.instrumentName.localeCompare(block2.instrumentName));
     let trimDiv = document.getElementById(TRIM_DIV_ID);
     let newTable = document.createElement("table");
@@ -764,7 +769,7 @@
     const tHead = document.createElement("thead");
     newTable.appendChild(tHead);
     tHead.classList.add("table-secondary");
-    const trHeader = createLesRow();
+    const trHeader = createLesRow("tableheader");
     tHead.appendChild(trHeader);
     const th1 = document.createElement("th");
     trHeader.appendChild(th1);
@@ -802,8 +807,19 @@
     div3.appendChild(spanTot3);
     spanTot3.classList.add("plain");
     spanTot3.innerHTML = ` (${totTrim3} lln) `;
-    for (let block of blocks) {
-      buildBlockForInstrument(newTableBody, block);
+    switch (trimesterSorting) {
+      case 0 /* Teacher */: {
+        for (let [teacher, blocks2] of tableData.teachers) {
+          buildGroup(newTableBody, blocks2, trimesterSorting, teacher);
+        }
+        break;
+      }
+      case 1 /* Instrument */: {
+        for (let [instrument, blocks2] of tableData.instruments) {
+          buildGroup(newTableBody, blocks2, trimesterSorting, instrument);
+        }
+        break;
+      }
     }
     newTable.appendChild(newTableBody);
     document.body.appendChild(newTable);
@@ -811,15 +827,21 @@
     trimDiv.dataset.showFullClass = isButtonHighlighted(FULL_CLASS_BUTTON_ID) ? "true" : "false";
     trimDiv.appendChild(newTable);
   }
-  function createStudentRow(tableBody, rowClass) {
-    let row = createLesRow();
+  function buildGroup(newTableBody, blocks, trimesterSorting, groupId) {
+    buildTitleRow(newTableBody, trimesterSorting, groupId);
+    for (let block of blocks) {
+      buildBlock(newTableBody, block, trimesterSorting, groupId);
+    }
+  }
+  function createStudentRow(tableBody, rowClass, groupId) {
+    let row = createLesRow(groupId);
     tableBody.appendChild(row);
     row.classList.add(rowClass);
     row.dataset.hasFullClass = "false";
     return row;
   }
-  function buildBlockForInstrument(newTableBody, block) {
-    let headerRows = buildBlockHeader(newTableBody, block, 1 /* Teacher */);
+  function buildBlock(newTableBody, block, trimesterSorting, groupId) {
+    let headerRows = buildBlockHeader(newTableBody, block, trimesterSorting, groupId);
     let studentTopRowNo = newTableBody.children.length;
     let blockNeededRows = Math.max(...block.trimesters.map((trim) => {
       if (!trim) return 0;
@@ -831,13 +853,12 @@
       blockNeededRows++;
     }
     let maxJaarStudentCount = block.jaarModules.map((mod) => mod.maxAantal).reduce((prev, count) => Math.max(prev, count), 0);
-    headerRows.trTitle.dataset.hasFullClass = "false";
     headerRows.trModuleLinks.dataset.hasFullClass = "false";
     let hasFullClass = false;
     let filledRowCount = 0;
     for (let jaarModule of block.jaarModules) {
       for (let student of jaarModule.students) {
-        let row = createStudentRow(newTableBody, "jaarRow");
+        let row = createStudentRow(newTableBody, "jaarRow", groupId);
         for (let trimNo = 0; trimNo < 3; trimNo++) {
           let cell = buildStudentCell(student);
           row.appendChild(cell);
@@ -850,7 +871,7 @@
       }
     }
     for (let rowNo = 0; rowNo < blockNeededRows - filledRowCount; rowNo++) {
-      let row = createStudentRow(newTableBody, "trimesterRow");
+      let row = createStudentRow(newTableBody, "trimesterRow", groupId);
       for (let trimNo = 0; trimNo < 3; trimNo++) {
         let trimester = block.trimesters[trimNo];
         let student = void 0;
@@ -874,7 +895,6 @@
       }
     }
     if (hasFullClass) {
-      headerRows.trTitle.dataset.hasFullClass = "true";
       headerRows.trModuleLinks.dataset.hasFullClass = "true";
     }
     if (!hasWachtlijst) {
@@ -901,16 +921,17 @@
     }
   }
   var blockCounter = 0;
-  function createLesRow() {
+  function createLesRow(groupId) {
     let tr = document.createElement("tr");
     tr.dataset.blockId = "block" + blockCounter;
+    tr.dataset.groupId = groupId;
     return tr;
   }
-  function buildBlockHeader(newTableBody, block, blockTitle) {
-    blockCounter++;
-    const trTitle = createLesRow();
+  function buildTitleRow(newTableBody, trimesterSorting, title) {
+    const trTitle = createLesRow(title);
     newTableBody.appendChild(trTitle);
-    trTitle.classList.add("blockRow");
+    trTitle.classList.add("blockRow", "groupHeader");
+    trTitle.dataset.groupId = title;
     const tdTitle = document.createElement("td");
     trTitle.appendChild(tdTitle);
     tdTitle.classList.add("titleCell");
@@ -918,10 +939,26 @@
     let divTitle = document.createElement("div");
     tdTitle.appendChild(divTitle);
     divTitle.classList.add("blockTitle");
-    let titleText = blockTitle === 0 /* Instrument */ ? block.instrumentName : block.teacher;
-    divTitle.appendChild(document.createTextNode(titleText));
+    divTitle.appendChild(document.createTextNode(title));
+    return { trTitle, divTitle };
+  }
+  function buildSubtitleRow(newTableBody, block, subTitle, groupId) {
+    const trSubtitle = createLesRow(groupId);
+    newTableBody.appendChild(trSubtitle);
+    trSubtitle.classList.add("blockRow");
+    const tdSubtitle = document.createElement("td");
+    trSubtitle.appendChild(tdSubtitle);
+    tdSubtitle.classList.add("infoCell");
+    tdSubtitle.setAttribute("colspan", "3");
+    let divSubtitle = document.createElement("div");
+    tdSubtitle.appendChild(divSubtitle);
+    divSubtitle.classList.add("text-muted");
+    let spanSubtitle = document.createElement("span");
+    divSubtitle.appendChild(spanSubtitle);
+    spanSubtitle.classList.add("subTitle");
+    spanSubtitle.appendChild(document.createTextNode(subTitle));
     for (let jaarModule of block.jaarModules) {
-      divTitle.appendChild(buildModuleButton(">", jaarModule.id, false));
+      divSubtitle.appendChild(buildModuleButton(">", jaarModule.id, false));
     }
     let errorsAndWarnings = "";
     let maxMoreThan100 = block.jaarModules.map((module) => module.maxAantal > 100).includes(true);
@@ -934,25 +971,27 @@
       let errorSpan = document.createElement("span");
       errorSpan.appendChild(document.createTextNode(errorsAndWarnings));
       errorSpan.classList.add("lesError");
-      divTitle.appendChild(errorSpan);
+      divSubtitle.appendChild(errorSpan);
     }
-    const trBlockInfo = createLesRow();
+  }
+  function buildBlockHeader(newTableBody, block, trimesterSorting, groupId) {
+    blockCounter++;
+    let subTitle = trimesterSorting === 1 /* Instrument */ ? block.teacher : block.instrumentName;
+    buildSubtitleRow(newTableBody, block, subTitle, groupId);
+    const trBlockInfo = createLesRow(groupId);
     newTableBody.appendChild(trBlockInfo);
     trBlockInfo.classList.add("blockRow");
     const tdBlockkInfo = document.createElement("td");
     trBlockInfo.appendChild(tdBlockkInfo);
-    tdBlockkInfo.classList.add("titleCell");
+    tdBlockkInfo.classList.add("infoCell");
     tdBlockkInfo.setAttribute("colspan", "3");
     let divBlockInfo = document.createElement("div");
     tdBlockkInfo.appendChild(divBlockInfo);
     divBlockInfo.classList.add("text-muted");
     divBlockInfo.appendChild(document.createTextNode(block.lesmoment));
     divBlockInfo.appendChild(document.createElement("br"));
-    let teacherOrTitle = blockTitle === 0 /* Instrument */ ? block.teacher : block.instrumentName;
-    divBlockInfo.appendChild(document.createTextNode(teacherOrTitle));
-    divBlockInfo.appendChild(document.createElement("br"));
     divBlockInfo.appendChild(document.createTextNode(block.vestiging));
-    const trModuleLinks = createLesRow();
+    const trModuleLinks = createLesRow(groupId);
     newTableBody.appendChild(trModuleLinks);
     trModuleLinks.classList.add("blockRow");
     const tdLink1 = document.createElement("td");
@@ -971,7 +1010,6 @@
       tdLink3.appendChild(buildModuleButton("3", block.trimesters[2].id, true));
     }
     return {
-      trTitle,
       trModuleLinks,
       blockId: blockCounter
     };
@@ -1170,7 +1208,7 @@
     if (!document.getElementById(TRIM_TABLE_ID)) {
       let inputModules = scrapeModules();
       let tableData = buildTableData(inputModules.trimesterModules.concat(inputModules.jaarModules));
-      buildTrimesterTable(tableData.blocks);
+      buildTrimesterTable(tableData, 0 /* Teacher */);
     }
     document.getElementById("table_lessen_resultaat_tabel").style.display = show ? "none" : "table";
     document.getElementById(TRIM_TABLE_ID).style.display = show ? "table" : "none";

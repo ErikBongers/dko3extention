@@ -1,6 +1,6 @@
 import {scrapeLessenOverzicht, scrapeModules} from "./scrape";
 import {buildTableData} from "./convert";
-import {buildTrimesterTable} from "./build";
+import {buildTrimesterTable, TrimesterSorting} from "./build";
 import * as def from "../def";
 import {createScearchField, createTextRowFilter, filterTable, filterTableRows, setButtonHighlighted} from "../globals";
 import {HashObserver} from "../pageObserver";
@@ -156,7 +156,7 @@ function showTrimesterTable(show: boolean) {
     if (!document.getElementById(def.TRIM_TABLE_ID)) {
         let inputModules = scrapeModules();
         let tableData = buildTableData(inputModules.trimesterModules.concat(inputModules.jaarModules));
-        buildTrimesterTable(tableData.blocks);
+        buildTrimesterTable(tableData, TrimesterSorting.Teacher);
     }
 
     document.getElementById("table_lessen_resultaat_tabel").style.display = show ? "none" : "table";
