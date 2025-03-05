@@ -1,5 +1,16 @@
 * Allow moduels to be sorted by teacher
   > This allows for Lievenka's modules to merge!
+  > we have the 'blocks' per instrument/teacher/hour
+  > Resort should be easy at teacher level.
+    > per teacher: merge into rows without the instrument.
+      > but what about the hour?
+        > option to collapse the hourM
+        > or 3 sorts:
+          - instrument/teacher/hour
+          - teacher/instrument/hour
+            > option to collapse (this single teacher/instrument
+          - teacher/instrument (collapse all hours)
+          - ...?
 
 * modules: show if trimesters overlap?
   > probably difficult in lessen overzicht.

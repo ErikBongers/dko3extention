@@ -13,6 +13,8 @@ export class BlockInfo {
 
 export interface TableData {
     students : Map<string, StudentInfo>,
+    instruments : Map<string, BlockInfo[]>,
+    teachers : Map<string, BlockInfo[]>,
     blocks: BlockInfo[]
 }
 
@@ -70,6 +72,8 @@ export function buildTableData(inputModules: Les[]) : TableData {
 
     let tableData: TableData = {
         students: new Map(),
+        instruments: new Map(),
+        teachers: new Map(),
         blocks: []
     };
 
@@ -149,6 +153,25 @@ export function buildTableData(inputModules: Les[]) : TableData {
             }
         }
     }
+
+    //group by teacher
+    let teachers = [...new Set(tableData.blocks.map(b => b.teacher))]
+    for(let t of teachers) {
+        tableData.teachers.set(t, []);
+    }
+    for(let block of tableData.blocks) {
+        tableData.teachers.get(block.teacher).push(block);
+    }
+
+    //group by instrument
+    let instrumentNames = [...new Set(tableData.blocks.map(b => b.instrumentName))]
+    for(let instr of instrumentNames) {
+        tableData.instruments.set(instr, []);
+    }
+    for(let block of tableData.blocks) {
+        tableData.instruments.get(block.instrumentName).push(block);
+    }
+    console.log(tableData.instruments);
     return tableData;
 }
 

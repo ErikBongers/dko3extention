@@ -584,15 +584,17 @@
     prepareLesmomenten(inputModules);
     let tableData = {
       students: /* @__PURE__ */ new Map(),
+      instruments: /* @__PURE__ */ new Map(),
+      teachers: /* @__PURE__ */ new Map(),
       blocks: []
     };
     let instruments = inputModules.map((module) => module.instrumentName);
     instruments = [...new Set(instruments)];
     for (let instrumentName of instruments) {
       let instrumentModules = inputModules.filter((module) => module.instrumentName === instrumentName);
-      let teachers = instrumentModules.map((module) => module.teacher);
-      teachers = [...new Set(teachers)];
-      for (let teacher of teachers) {
+      let teachers2 = instrumentModules.map((module) => module.teacher);
+      teachers2 = [...new Set(teachers2)];
+      for (let teacher of teachers2) {
         let instrumentTeacherModules = instrumentModules.filter((module) => module.teacher === teacher);
         let lesmomenten = getLesmomenten(instrumentTeacherModules);
         lesmomenten = [...new Set(lesmomenten)];
@@ -646,6 +648,21 @@
         }
       }
     }
+    let teachers = [...new Set(tableData.blocks.map((b) => b.teacher))];
+    for (let t of teachers) {
+      tableData.teachers.set(t, []);
+    }
+    for (let block of tableData.blocks) {
+      tableData.teachers.get(block.teacher).push(block);
+    }
+    let instrumentNames = [...new Set(tableData.blocks.map((b) => b.instrumentName))];
+    for (let instr of instrumentNames) {
+      tableData.instruments.set(instr, []);
+    }
+    for (let block of tableData.blocks) {
+      tableData.instruments.get(block.instrumentName).push(block);
+    }
+    console.log(tableData.instruments);
     return tableData;
   }
   function addTrimesterStudentsToMapAndCount(students, trimModule) {
@@ -786,7 +803,7 @@
     spanTot3.classList.add("plain");
     spanTot3.innerHTML = ` (${totTrim3} lln) `;
     for (let block of blocks) {
-      buildBlock(newTableBody, block);
+      buildBlockForInstrument(newTableBody, block);
     }
     newTable.appendChild(newTableBody);
     document.body.appendChild(newTable);
@@ -801,8 +818,8 @@
     row.dataset.hasFullClass = "false";
     return row;
   }
-  function buildBlock(newTableBody, block) {
-    let headerRows = buildBlockHeader(newTableBody, block);
+  function buildBlockForInstrument(newTableBody, block) {
+    let headerRows = buildBlockHeader(newTableBody, block, 1 /* Teacher */);
     let studentTopRowNo = newTableBody.children.length;
     let blockNeededRows = Math.max(...block.trimesters.map((trim) => {
       if (!trim) return 0;
@@ -814,7 +831,7 @@
       blockNeededRows++;
     }
     let maxJaarStudentCount = block.jaarModules.map((mod) => mod.maxAantal).reduce((prev, count) => Math.max(prev, count), 0);
-    headerRows.trName.dataset.hasFullClass = "false";
+    headerRows.trTitle.dataset.hasFullClass = "false";
     headerRows.trModuleLinks.dataset.hasFullClass = "false";
     let hasFullClass = false;
     let filledRowCount = 0;
@@ -857,7 +874,7 @@
       }
     }
     if (hasFullClass) {
-      headerRows.trName.dataset.hasFullClass = "true";
+      headerRows.trTitle.dataset.hasFullClass = "true";
       headerRows.trModuleLinks.dataset.hasFullClass = "true";
     }
     if (!hasWachtlijst) {
@@ -889,21 +906,22 @@
     tr.dataset.blockId = "block" + blockCounter;
     return tr;
   }
-  function buildBlockHeader(newTableBody, block) {
+  function buildBlockHeader(newTableBody, block, blockTitle) {
     blockCounter++;
-    const trName = createLesRow();
-    newTableBody.appendChild(trName);
-    trName.classList.add("instrumentRow");
-    const tdInstrumentName = document.createElement("td");
-    trName.appendChild(tdInstrumentName);
-    tdInstrumentName.classList.add("instrumentName", "instrumentCell");
-    tdInstrumentName.setAttribute("colspan", "3");
-    let nameDiv = document.createElement("div");
-    tdInstrumentName.appendChild(nameDiv);
-    nameDiv.classList.add("moduleName");
-    nameDiv.appendChild(document.createTextNode(block.instrumentName));
+    const trTitle = createLesRow();
+    newTableBody.appendChild(trTitle);
+    trTitle.classList.add("blockRow");
+    const tdTitle = document.createElement("td");
+    trTitle.appendChild(tdTitle);
+    tdTitle.classList.add("titleCell");
+    tdTitle.setAttribute("colspan", "3");
+    let divTitle = document.createElement("div");
+    tdTitle.appendChild(divTitle);
+    divTitle.classList.add("blockTitle");
+    let titleText = blockTitle === 0 /* Instrument */ ? block.instrumentName : block.teacher;
+    divTitle.appendChild(document.createTextNode(titleText));
     for (let jaarModule of block.jaarModules) {
-      nameDiv.appendChild(buildModuleButton(">", jaarModule.id, false));
+      divTitle.appendChild(buildModuleButton(">", jaarModule.id, false));
     }
     let errorsAndWarnings = "";
     let maxMoreThan100 = block.jaarModules.map((module) => module.maxAantal > 100).includes(true);
@@ -916,39 +934,44 @@
       let errorSpan = document.createElement("span");
       errorSpan.appendChild(document.createTextNode(errorsAndWarnings));
       errorSpan.classList.add("lesError");
-      nameDiv.appendChild(errorSpan);
+      divTitle.appendChild(errorSpan);
     }
-    let div = document.createElement("div");
-    tdInstrumentName.appendChild(div);
-    div.classList.add("text-muted");
-    div.appendChild(document.createTextNode(block.lesmoment));
-    div.appendChild(document.createElement("br"));
-    div.appendChild(document.createTextNode(block.teacher));
-    div.appendChild(document.createElement("br"));
-    div.appendChild(document.createTextNode(block.vestiging));
+    const trBlockInfo = createLesRow();
+    newTableBody.appendChild(trBlockInfo);
+    trBlockInfo.classList.add("blockRow");
+    const tdBlockkInfo = document.createElement("td");
+    trBlockInfo.appendChild(tdBlockkInfo);
+    tdBlockkInfo.classList.add("titleCell");
+    tdBlockkInfo.setAttribute("colspan", "3");
+    let divBlockInfo = document.createElement("div");
+    tdBlockkInfo.appendChild(divBlockInfo);
+    divBlockInfo.classList.add("text-muted");
+    divBlockInfo.appendChild(document.createTextNode(block.lesmoment));
+    divBlockInfo.appendChild(document.createElement("br"));
+    let teacherOrTitle = blockTitle === 0 /* Instrument */ ? block.teacher : block.instrumentName;
+    divBlockInfo.appendChild(document.createTextNode(teacherOrTitle));
+    divBlockInfo.appendChild(document.createElement("br"));
+    divBlockInfo.appendChild(document.createTextNode(block.vestiging));
     const trModuleLinks = createLesRow();
     newTableBody.appendChild(trModuleLinks);
-    trModuleLinks.classList.add("instrumentRow");
+    trModuleLinks.classList.add("blockRow");
     const tdLink1 = document.createElement("td");
     trModuleLinks.appendChild(tdLink1);
-    trModuleLinks.classList.add("instrumentCell");
     if (block.trimesters[0]) {
       tdLink1.appendChild(buildModuleButton("1", block.trimesters[0].id, true));
     }
     const tdLink2 = document.createElement("td");
     trModuleLinks.appendChild(tdLink2);
-    trModuleLinks.classList.add("instrumentCell");
     if (block.trimesters[1]) {
       tdLink2.appendChild(buildModuleButton("2", block.trimesters[1].id, true));
     }
     const tdLink3 = document.createElement("td");
     trModuleLinks.appendChild(tdLink3);
-    trModuleLinks.classList.add("instrumentCell");
     if (block.trimesters[2]) {
       tdLink3.appendChild(buildModuleButton("3", block.trimesters[2].id, true));
     }
     return {
-      trName,
+      trTitle,
       trModuleLinks,
       blockId: blockCounter
     };
