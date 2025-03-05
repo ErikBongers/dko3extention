@@ -931,7 +931,7 @@
   }
   function buildTitleRow(newTableBody, trimesterSorting, title) {
     const trTitle = createLesRow(title);
-    trTitle.dataset.blockId = "";
+    trTitle.dataset.blockId = "groupTitle";
     newTableBody.appendChild(trTitle);
     trTitle.classList.add("blockRow", "groupHeader");
     trTitle.dataset.groupId = title;
@@ -1140,16 +1140,19 @@
   function onSearchInput() {
     savedSearch = document.getElementById(TXT_FILTER_ID).value;
     if (isTrimesterTableVisible()) {
-      let blockFilter = function(tr, context) {
+      let siblingsAndAncestorsFilter = function(tr, context) {
+        if (context.headerGroupIds.includes(tr.dataset.groupId))
+          return true;
         if (context.blockIds.includes(tr.dataset.blockId))
           return true;
         return context.groupIds.includes(tr.dataset.groupId) && tr.classList.contains("groupHeader");
       };
       let rowFilter = createTextRowFilter(savedSearch, (tr) => tr.textContent);
-      let rows = filterTableRows(TRIM_TABLE_ID, rowFilter);
-      let blockIds = [...new Set(rows.map((tr) => tr.dataset.blockId))];
-      let groupIds = [...new Set(rows.map((tr) => tr.dataset.groupId))];
-      filterTable(TRIM_TABLE_ID, { context: { blockIds, groupIds }, rowFilter: blockFilter });
+      let filteredRows = filterTableRows(TRIM_TABLE_ID, rowFilter);
+      let blockIds = [...new Set(filteredRows.filter((tr) => tr.dataset.blockId !== "groupTitle").map((tr) => tr.dataset.blockId))];
+      let groupIds = [...new Set(filteredRows.map((tr) => tr.dataset.groupId))];
+      let headerGroupIds = [...new Set(filteredRows.filter((tr) => tr.dataset.blockId === "groupTitle").map((tr) => tr.dataset.groupId))];
+      filterTable(TRIM_TABLE_ID, { context: { blockIds, groupIds, headerGroupIds }, rowFilter: siblingsAndAncestorsFilter });
     } else {
       let rowFilter = createTextRowFilter(savedSearch, (tr) => tr.cells[0].textContent);
       filterTable("table_lessen_resultaat_tabel", rowFilter);

@@ -1,5 +1,3 @@
-* trimesters text search: show all rows for blockId...but also for groupId
-
 * Allow moduels to be sorted by teacher
   > This allows for Lievenka's modules to merge!
   > we have the 'blocks' per instrument/teacher/hour

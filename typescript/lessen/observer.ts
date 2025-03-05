@@ -72,21 +72,26 @@ function onSearchInput() {
     savedSearch = (document.getElementById(TXT_FILTER_ID) as HTMLInputElement).value;
     if(isTrimesterTableVisible()) {
         let rowFilter = createTextRowFilter(savedSearch, (tr) => tr.textContent);
-        let rows = filterTableRows(def.TRIM_TABLE_ID, rowFilter);
+        let filteredRows = filterTableRows(def.TRIM_TABLE_ID, rowFilter);
 
-        //now gather the blockIds and groupIds of the matching rows and show ALL of the rows in those blocks. (not just the matching rows).
-        let blockIds = [...new Set(rows.map(tr => tr.dataset.blockId))];
-        let groupIds = [...new Set(rows.map(tr => tr.dataset.groupId))];
+        //gather the blockIds and groupIds of the matching rows and show ALL of the rows in those blocks. (not just the matching rows).
+        let blockIds = [...new Set(filteredRows.filter(tr => tr.dataset.blockId !== "groupTitle").map(tr => tr.dataset.blockId))];
+        let groupIds = [...new Set(filteredRows.map(tr => tr.dataset.groupId))];
+        //also show all rows of headers that match the text filter.
+        let headerGroupIds = [...new Set(filteredRows.filter(tr => tr.dataset.blockId === "groupTitle").map(tr => tr.dataset.groupId))];
 
-        function blockFilter(tr: HTMLTableRowElement, context: any) {
-            //display all rows of the found blocks
+        function siblingsAndAncestorsFilter(tr: HTMLTableRowElement, context: any) {
+            //display all child rows for the headers that match
+            if((<string[]>context.headerGroupIds).includes(tr.dataset.groupId))
+                return true;
+            //display all siblings of non-header rows, thus the full block
             if((<string[]>context.blockIds).includes(tr.dataset.blockId))
                 return true;
-            //also display the group rows that these blocks belong to
+            //display the ancestor (header) rows of matching non-header rows
             return (<string[]>context.groupIds).includes(tr.dataset.groupId) && tr.classList.contains("groupHeader");
         }
 
-        filterTable(def.TRIM_TABLE_ID, {context: {blockIds, groupIds}, rowFilter: blockFilter});
+        filterTable(def.TRIM_TABLE_ID, {context: {blockIds, groupIds, headerGroupIds}, rowFilter: siblingsAndAncestorsFilter});
     } else {
         let rowFilter = createTextRowFilter(savedSearch, (tr) => tr.cells[0].textContent);
         filterTable("table_lessen_resultaat_tabel",rowFilter);
