@@ -5,7 +5,8 @@ import {StudentInfo} from "./scrape";
 
 const NBSP = 160;
 
-export enum TrimesterSorting { Teacher, Instrument }
+export enum TrimesterSorting { TeacherInstrumentHour, InstrumentTeacherHour , TeacherHour}
+
 export function buildTrimesterTable(tableData: TableData, trimesterSorting: TrimesterSorting) {
     let blocks = tableData.blocks;//todo: temp - get rid of this.
 
@@ -87,13 +88,13 @@ export function buildTrimesterTable(tableData: TableData, trimesterSorting: Trim
     spanTot3.innerHTML = ` (${totTrim3} lln) `;
 
     switch(trimesterSorting) {
-        case TrimesterSorting.Teacher: {
+        case TrimesterSorting.TeacherInstrumentHour: {
             for (let [teacher, blocks] of tableData.teachers) {
                 buildGroup(newTableBody, blocks, trimesterSorting, teacher);
             }
             break;
         }
-        case TrimesterSorting.Instrument: {
+        case TrimesterSorting.InstrumentTeacherHour: {
             for (let [instrument, blocks] of tableData.instruments) {
                 buildGroup(newTableBody, blocks, trimesterSorting, instrument);
             }
@@ -334,7 +335,7 @@ function buildSubtitleRow(newTableBody: HTMLTableSectionElement, block: BlockInf
 
 function buildBlockHeader(newTableBody: HTMLTableSectionElement, block: BlockInfo, trimesterSorting: TrimesterSorting, groupId: string) {
     blockCounter++;
-    let subTitle = trimesterSorting === TrimesterSorting.Instrument ? block.teacher : block.instrumentName;
+    let subTitle = trimesterSorting === TrimesterSorting.InstrumentTeacherHour ? block.teacher : block.instrumentName;
     buildSubtitleRow(newTableBody, block, subTitle, groupId);
 
     //INFO

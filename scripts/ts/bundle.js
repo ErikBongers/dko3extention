@@ -810,13 +810,13 @@
     spanTot3.classList.add("plain");
     spanTot3.innerHTML = ` (${totTrim3} lln) `;
     switch (trimesterSorting) {
-      case 0 /* Teacher */: {
+      case 0 /* TeacherInstrumentHour */: {
         for (let [teacher, blocks2] of tableData.teachers) {
           buildGroup(newTableBody, blocks2, trimesterSorting, teacher);
         }
         break;
       }
-      case 1 /* Instrument */: {
+      case 1 /* InstrumentTeacherHour */: {
         for (let [instrument, blocks2] of tableData.instruments) {
           buildGroup(newTableBody, blocks2, trimesterSorting, instrument);
         }
@@ -979,7 +979,7 @@
   }
   function buildBlockHeader(newTableBody, block, trimesterSorting, groupId) {
     blockCounter++;
-    let subTitle = trimesterSorting === 1 /* Instrument */ ? block.teacher : block.instrumentName;
+    let subTitle = trimesterSorting === 1 /* InstrumentTeacherHour */ ? block.teacher : block.instrumentName;
     buildSubtitleRow(newTableBody, block, subTitle, groupId);
     const trBlockInfo = createLesRow(groupId);
     newTableBody.appendChild(trBlockInfo);
@@ -1208,21 +1208,70 @@
     showOnlyFullTrimesters(displayState === "none");
   }
   function onClickShowTrimesters() {
-    showTrimesterTable(!isTrimesterTableVisible());
+    showTrimesterTable(!isTrimesterTableVisible(), 0 /* TeacherInstrumentHour */);
   }
   function isTrimesterTableVisible() {
     return document.getElementById("table_lessen_resultaat_tabel").style.display === "none";
   }
-  function showTrimesterTable(show) {
+  function showTrimesterTable(show, sorting) {
+    document.getElementById(TRIM_TABLE_ID)?.remove();
     if (!document.getElementById(TRIM_TABLE_ID)) {
       let inputModules = scrapeModules();
       let tableData = buildTableData(inputModules.trimesterModules.concat(inputModules.jaarModules));
-      buildTrimesterTable(tableData, 0 /* Teacher */);
+      buildTrimesterTable(tableData, sorting);
     }
     document.getElementById("table_lessen_resultaat_tabel").style.display = show ? "none" : "table";
     document.getElementById(TRIM_TABLE_ID).style.display = show ? "table" : "none";
     document.getElementById(TRIM_BUTTON_ID).title = show ? "Toon normaal" : "Toon trimesters";
     setButtonHighlighted(TRIM_BUTTON_ID, show);
+    setSorteerLine(show, sorting);
+    onSearchInput();
+  }
+  function setSorteerLine(showTrimTable, sorting) {
+    let oldSorteerSpan = document.querySelector("#lessen_overzicht > span");
+    let newSorteerDiv = document.getElementById("trimSorteerDiv");
+    if (!newSorteerDiv) {
+      newSorteerDiv = document.createElement("div");
+      newSorteerDiv.id = "trimSorteerDiv";
+      newSorteerDiv.classList.add("text-muted");
+      oldSorteerSpan.parentNode.insertBefore(newSorteerDiv, oldSorteerSpan.nextSibling);
+    }
+    newSorteerDiv.innerText = "Sorteer: ";
+    oldSorteerSpan.style.display = showTrimTable ? "none" : "";
+    newSorteerDiv.style.display = showTrimTable ? "" : "none";
+    newSorteerDiv.appendChild(createSortingAnchorOrText(1 /* InstrumentTeacherHour */, sorting));
+    newSorteerDiv.appendChild(document.createTextNode(" | "));
+    newSorteerDiv.appendChild(createSortingAnchorOrText(0 /* TeacherInstrumentHour */, sorting));
+    newSorteerDiv.appendChild(document.createTextNode(" | "));
+    newSorteerDiv.appendChild(createSortingAnchorOrText(2 /* TeacherHour */, sorting));
+  }
+  function createSortingAnchorOrText(sorting, activeSorting) {
+    let sortingText = "";
+    switch (sorting) {
+      case 1 /* InstrumentTeacherHour */:
+        sortingText = "instrument+leraar+lesuur";
+        break;
+      case 0 /* TeacherInstrumentHour */:
+        sortingText = "leraar+instrument+lesuur";
+        break;
+      case 2 /* TeacherHour */:
+        sortingText = "leraar+lesuur";
+        break;
+    }
+    if (activeSorting === sorting) {
+      let strong = document.createElement("strong");
+      strong.appendChild(document.createTextNode(sortingText));
+      return strong;
+    } else {
+      let anchor = document.createElement("a");
+      anchor.innerText = sortingText;
+      anchor.href = "#";
+      anchor.onclick = () => {
+        showTrimesterTable(true, sorting);
+        return false;
+      };
+      return anchor;
+    }
   }
 
   // typescript/les/observer.ts
