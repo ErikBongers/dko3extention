@@ -7,14 +7,26 @@ export class BlockInfo {
     maxAantal: number;
     lesmoment: string;
     vestiging: string;
-    trimesters: (Les| undefined)[];
+    trimesters: (Les| undefined)[][];
     jaarModules: Les[];
+}
+
+interface LesMoment {
+    moment: string;
+    trimesterLessen: Les[][];
+    jaarModules: Les[];
+
+}
+interface Teacher {
+    name: string;
+    blocks: BlockInfo[];
+    lesMomenten: Map<string, BlockInfo>;
 }
 
 export interface TableData {
     students : Map<string, StudentInfo>,
     instruments : Map<string, BlockInfo[]>,
-    teachers : Map<string, BlockInfo[]>,
+    teachers : Map<string, Teacher>,
     blocks: BlockInfo[]
 }
 
@@ -74,7 +86,7 @@ export function buildTableData(inputModules: Les[]) : TableData {
         students: new Map(),
         instruments: new Map(),
         teachers: new Map(),
-        blocks: []
+        blocks: [],
     };
 
     //create a block per instrument/teacher/lesmoment
@@ -103,7 +115,14 @@ export function buildTableData(inputModules: Les[]) : TableData {
                 block.maxAantal = getMaxAantal(instrumentTeacherMomentModules);
                 block.vestiging = getVestigingen(instrumentTeacherMomentModules);
                 // we could have both trimesters and jaar modules for this instrument/teacher/lesmoment
-                block.trimesters = buildTrimesters(instrumentTeacherMomentModules);
+                block.trimesters = [[], [], []];
+                let trims = buildTrimesters(instrumentTeacherMomentModules);
+                if(trims[0])
+                    block.trimesters[0].push(trims[0]);
+                if(trims[1])
+                    block.trimesters[1].push(trims[1]);
+                if(trims[2])
+                    block.trimesters[2].push(trims[2]);
                 block.jaarModules = instrumentTeacherMomentModules.filter(module => module.lesType === LesType.JaarModule);
 
                 tableData.blocks.push(block);
@@ -134,7 +153,7 @@ export function buildTableData(inputModules: Les[]) : TableData {
     //sort students, putting allYearSame studetns on top. (will be in bold).
     for(let instrument of tableData.blocks) {
         for (let trim of instrument.trimesters) {
-            sortModuleStudents(trim);
+            sortModuleStudents(trim[0]);
         }
         for (let jaarModule of instrument.jaarModules) {
             sortModuleStudents(jaarModule);
@@ -154,39 +173,71 @@ export function buildTableData(inputModules: Les[]) : TableData {
         }
     }
 
-    //group by teacher
-    let teachers = [...new Set(tableData.blocks.map(b => b.teacher))].sort((a,b) => { return a.localeCompare(b);});
-    for(let t of teachers) {
-        tableData.teachers.set(t, []);
-    }
-    for(let block of tableData.blocks) {
-        tableData.teachers.get(block.teacher).push(block);
-    }
-
     //group by instrument
     let instrumentNames = [...new Set(tableData.blocks.map(b => b.instrumentName))].sort((a,b) => { return a.localeCompare(b);});
-    console.log(instrumentNames);
     for(let instr of instrumentNames) {
         tableData.instruments.set(instr, []);
     }
     for(let block of tableData.blocks) {
         tableData.instruments.get(block.instrumentName).push(block);
     }
+
+    //group by teacher
+    let teachers = [...new Set(tableData.blocks.map(b => b.teacher))].sort((a,b) => { return a.localeCompare(b);});
+    for(let t of teachers) {
+        tableData.teachers.set(t, <Teacher>{name: t, blocks: []});
+    }
+    for(let block of tableData.blocks) {
+        tableData.teachers.get(block.teacher).blocks.push(block);
+    }
+
+    for(let [teacherName, teacher] of tableData.teachers) {
+        // merge blocks per teachter/hour
+        // for jaarmodules: merge all students
+        // for trimestermodules: merge all students
+        //add the maxAantal, even though they may not be meant to be added.
+        // add a row with the total amount of students (per trimester, including jaarstudents)
+
+
+        let hours = [...new Set(teacher.blocks.map(b => b.lesmoment))];
+        //TODO: convert LesMoment into a block so that buildBlock() can still be used.
+        //> first convert BlockInfo.trimesters to a 2-dim array of trimester lessen. (like LesMoment
+        teacher.lesMomenten = new Map(hours.map(moment =>
+            [moment,
+                <BlockInfo>{
+                    teacher: teacherName,
+                    vestiging: "TODO",
+                    maxAantal: 123, //TODO
+                    instrumentName: undefined,
+                    lesmoment: moment,
+                    trimesters: [[], [], []],
+                    jaarModules: []
+                }]));
+        //bundle the blocks per hour
+        for(let block of teacher.blocks) {
+            teacher.lesMomenten.get(block.lesmoment).jaarModules.push(...block.jaarModules);
+            for(let trimNo of [0,1,2] ) {
+                teacher.lesMomenten.get(block.lesmoment).trimesters[trimNo].push(block.trimesters[trimNo][0]);
+            }
+        }
+    }
+    console.log(tableData);
     return tableData;
 }
 
-function addTrimesterStudentsToMapAndCount(students: Map<string, StudentInfo>, trimModule: Les) {
-    if(!trimModule) return;
-    for (let student of trimModule.students) {
+function addTrimesterStudentsToMapAndCount(students: Map<string, StudentInfo>, trimModules: Les[]) {
+    //for now, only looking ath the first module. Could be expanded if more modues are added to the block.
+    if(!trimModules[0]) return;
+    for (let student of trimModules[0].students) {
         if (!students.has(student.name)) {
             student.trimesterInstruments = [[], [], []];
             students.set(student.name, student);
         }
         let stud = students.get(student.name);
-        stud.trimesterInstruments[trimModule.trimesterNo-1].push(trimModule);
+        stud.trimesterInstruments[trimModules[0].trimesterNo-1].push(trimModules[0]);
     }
     //all trims must reference the students in the overall map.
-    trimModule.students = trimModule.students
+    trimModules[0].students = trimModules[0].students
         .map((student) => students.get(student.name));
 }
 
