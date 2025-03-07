@@ -221,7 +221,7 @@ export function buildTableData(inputModules: Les[]) : TableData {
             }
         }
         teacher.lesMomenten.forEach(hour => {
-            hour.vestiging = hour.trimesters.flat().filter(les => les).map(les => les.vestiging).join(", ");
+            hour.vestiging = [...new Set(hour.trimesters.flat().filter(les => les).map(les => les.vestiging))].join(", ");
         });
 
     }
