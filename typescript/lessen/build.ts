@@ -160,33 +160,30 @@ First draw the 2 jaarmodule students.
 
  */
 
-function buildBlock(newTableBody: HTMLTableSectionElement, blockx: BlockInfo, groupId: string, getBlockTitle: (block: BlockInfo) => string) {
-    let headerRows = buildBlockHeader(newTableBody, blockx, groupId, getBlockTitle);
-    let studentTopRowNo = newTableBody.children.length;
-
+function buildBlock(newTableBody: HTMLTableSectionElement, block: BlockInfo, groupId: string, getBlockTitle: (block: BlockInfo) => string) {
     //merge all the students
-    let jaarStudents = blockx.jaarModules.map(les => les.students).flat();
+    let jaarStudents = block.jaarModules.map(les => les.students).flat();
     let trimesterStudents = [
-        blockx.trimesters[0].map(les => les?.students ?? []).flat(),
-        blockx.trimesters[1].map(les => les?.students ?? []).flat(),
-        blockx.trimesters[2].map(les => les?.students ?? []).flat(),
+        block.trimesters[0].map(les => les?.students ?? []).flat(),
+        block.trimesters[1].map(les => les?.students ?? []).flat(),
+        block.trimesters[2].map(les => les?.students ?? []).flat(),
     ];
 
-    let maxAantallen = blockx.trimesters
+    let maxAantallen = block.trimesters
         .map((trimLessen) => {
             if(trimLessen.length === 0)
                 return 0;
             return trimLessen
                 .map(les => les?.maxAantal ?? 0)
                 .map(maxAantal => maxAantal > 100 ? 4 : maxAantal)
-                .reduce((a,b) => a+b);
+                .reduce((a,b) => a+b); //TODO: this is dangerous as it assumes that the hours can be summed.
         });
 
     let blockNeededRows = Math.max(
         ...maxAantallen,
         ...trimesterStudents.map(stud => stud.length)
     );
-    let wachtlijsten = blockx.trimesters
+    let wachtlijsten = block.trimesters
         .map((trimLessen) => {
             if(trimLessen.length === 0)
                 return 0;
@@ -195,7 +192,7 @@ function buildBlock(newTableBody: HTMLTableSectionElement, blockx: BlockInfo, gr
                 .reduce((a,b) => a + b);
         });
 
-    console.log(blockx.teacher + " " +  getBlockTitle(blockx));
+    console.log(block.teacher + " " +  getBlockTitle(block));
     console.log(wachtlijsten);
     let hasWachtlijst = wachtlijsten
         .some(wachtLijst => wachtLijst>0);
@@ -207,9 +204,21 @@ function buildBlock(newTableBody: HTMLTableSectionElement, blockx: BlockInfo, gr
     console.log(maxAantallen);
     console.log(blockNeededRows);
 
-    let maxJaarStudentCount = blockx.jaarModules
+    let maxJaarStudentCount = block.jaarModules
         .map(mod => mod.maxAantal)
         .reduce((a, b) => Math.max(a, b), 0);
+
+
+
+    let trimesterHeaders = [0,1,2] .map(trimNo => {
+        if(trimesterStudents[trimNo].length < 5 && maxAantallen[trimNo] < 5)
+            return "";
+        return `${trimesterStudents[trimNo].length} van ${maxAantallen[trimNo]} lln`;
+    });
+
+    let headerRows = buildBlockHeader(newTableBody, block, groupId, getBlockTitle, trimesterHeaders);
+    let studentTopRowNo = newTableBody.children.length;
+
     //TODO: headerRows.trTitle.dataset.hasFullClass = "false";
     headerRows.trModuleLinks.dataset.hasFullClass = "false";
     let hasFullClass = false;
@@ -377,7 +386,7 @@ function buildBlockTitle(newTableBody: HTMLTableSectionElement, block: BlockInfo
 
 }
 
-function buildBlockHeader(newTableBody: HTMLTableSectionElement, block: BlockInfo, groupId: string, getBlockTitle: (block: BlockInfo) => string) {
+function buildBlockHeader(newTableBody: HTMLTableSectionElement, block: BlockInfo, groupId: string, getBlockTitle: (block: BlockInfo) => string, trimesterHeaders: string[]) {
     blockCounter++;
     buildBlockTitle(newTableBody, block, getBlockTitle(block), groupId);
     //INFO
@@ -403,16 +412,19 @@ function buildBlockHeader(newTableBody: HTMLTableSectionElement, block: BlockInf
     trModuleLinks.classList.add("blockRow");
     const tdLink1 = document.createElement("td");
     trModuleLinks.appendChild(tdLink1);
+    tdLink1.appendChild(document.createTextNode(trimesterHeaders[0]));
     if (block.trimesters[0][0]) {
         tdLink1.appendChild(buildModuleButton("1", block.trimesters[0][0].id, true));
     }
     const tdLink2 = document.createElement("td");
     trModuleLinks.appendChild(tdLink2);
+    tdLink2.appendChild(document.createTextNode(trimesterHeaders[1]));
     if (block.trimesters[1][0]) {
         tdLink2.appendChild(buildModuleButton("2", block.trimesters[1][0].id, true));
     }
     const tdLink3 = document.createElement("td");
     trModuleLinks.appendChild(tdLink3);
+    tdLink3.appendChild(document.createTextNode(trimesterHeaders[2]));
     if (block.trimesters[2][0]) {
         tdLink3.appendChild(buildModuleButton("3", block.trimesters[2][0].id, true));
     }
