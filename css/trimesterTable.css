@@ -55,11 +55,14 @@
 
     & tr.trimesterRow.wachtlijst {
         border-style: none;
+        & td {
+            border-style: none;
+        }
+        & .text-danger {
+            font-weight: bold;
+        }
     }
 
-    & tr.trimesterRow.wachtlijst .text-danger {
-        font-weight: bold;
-    }
     & td.titleCell {
         background-color: rgba(0, 0, 0, 0.05);
     }
@@ -97,10 +100,6 @@
         background-color: yellow;
         margin-left: 5px;
         font-weight: normal;
-    }
-
-    & td.wachtlijst {
-        border-style: none;
     }
 
     & .yellowMarker {

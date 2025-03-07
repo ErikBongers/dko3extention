@@ -815,69 +815,47 @@
     let newTable = document.createElement("table");
     newTable.id = "trimesterTable";
     newTable.style.width = "100%";
-    let col = document.createElement("col");
+    let col = newTable.appendChild(document.createElement("col"));
     col.setAttribute("width", "100");
-    newTable.appendChild(col);
-    col = document.createElement("col");
+    col = newTable.appendChild(document.createElement("col"));
     col.setAttribute("width", "100");
-    newTable.appendChild(col);
-    col = document.createElement("col");
+    col = newTable.appendChild(document.createElement("col"));
     col.setAttribute("width", "100");
-    newTable.appendChild(col);
     const newTableBody = document.createElement("tbody");
-    let totTrim1 = 0;
-    let totTrim2 = 0;
-    let totTrim3 = 0;
+    let totTrim = [0, 0, 0];
     for (let block of tableData.blocks) {
-      totTrim1 += block.trimesters[0][0]?.students?.length ?? 0;
-      totTrim2 += block.trimesters[1][0]?.students?.length ?? 0;
-      totTrim3 += block.trimesters[2][0]?.students?.length ?? 0;
       let totJaar = block.jaarModules.map((mod) => mod.students.length).reduce((prev, curr) => prev + curr, 0);
-      totTrim1 += totJaar;
-      totTrim2 += totJaar;
-      totTrim3 += totJaar;
+      for (let trimNo of [0, 1, 2]) {
+        totTrim[trimNo] += totJaar + (block.trimesters[trimNo][0]?.students?.length ?? 0);
+      }
     }
-    const tHead = document.createElement("thead");
-    newTable.appendChild(tHead);
+    const tHead = newTable.appendChild(document.createElement("thead"));
     tHead.classList.add("table-secondary");
-    const trHeader = createLesRow("tableheader");
-    tHead.appendChild(trHeader);
-    const th1 = document.createElement("th");
-    trHeader.appendChild(th1);
-    let div1 = document.createElement("div");
-    th1.appendChild(div1);
-    let span1 = document.createElement("span");
-    div1.appendChild(span1);
+    const trHeader = tHead.appendChild(createLesRow("tableheader"));
+    const th1 = trHeader.appendChild(document.createElement("th"));
+    let div1 = th1.appendChild(document.createElement("div"));
+    let span1 = div1.appendChild(document.createElement("span"));
     span1.classList.add("bold");
     span1.innerHTML = `Trimester 1`;
-    let spanTot1 = document.createElement("span");
-    div1.appendChild(spanTot1);
+    let spanTot1 = div1.appendChild(document.createElement("span"));
     spanTot1.classList.add("plain");
-    spanTot1.innerHTML = ` (${totTrim1} lln) `;
-    const th2 = document.createElement("th");
-    trHeader.appendChild(th2);
-    let div2 = document.createElement("div");
-    th2.appendChild(div2);
-    let span2 = document.createElement("span");
-    div2.appendChild(span2);
+    spanTot1.innerHTML = ` (${totTrim[0]} lln) `;
+    const th2 = trHeader.appendChild(document.createElement("th"));
+    let div2 = th2.appendChild(document.createElement("div"));
+    let span2 = div2.appendChild(document.createElement("span"));
     span2.classList.add("bold");
     span2.innerHTML = `Trimester 2`;
-    let spanTot2 = document.createElement("span");
-    div2.appendChild(spanTot2);
+    let spanTot2 = div2.appendChild(document.createElement("span"));
     spanTot2.classList.add("plain");
-    spanTot2.innerHTML = ` (${totTrim2} lln) `;
-    const th3 = document.createElement("th");
-    trHeader.appendChild(th3);
-    let div3 = document.createElement("div");
-    th3.appendChild(div3);
-    let span3 = document.createElement("span");
-    div3.appendChild(span3);
+    spanTot2.innerHTML = ` (${totTrim[1]} lln) `;
+    const th3 = trHeader.appendChild(document.createElement("th"));
+    let div3 = th3.appendChild(document.createElement("div"));
+    let span3 = div3.appendChild(document.createElement("span"));
     span3.classList.add("bold");
     span3.innerHTML = `Trimester 3`;
-    let spanTot3 = document.createElement("span");
-    div3.appendChild(spanTot3);
+    let spanTot3 = div3.appendChild(document.createElement("span"));
     spanTot3.classList.add("plain");
-    spanTot3.innerHTML = ` (${totTrim3} lln) `;
+    spanTot3.innerHTML = ` (${totTrim[2]} lln) `;
     switch (trimesterSorting) {
       case 1 /* InstrumentTeacherHour */: {
         for (let [instrument, blocks] of tableData.instruments) {
@@ -980,12 +958,10 @@
     if (!mergedBlock.hasWachtlijst) {
       return;
     }
-    for (let trimNo = 0; trimNo < 3; trimNo++) {
-      let colNo = trimNo;
-      let rowNo = newTableBody.children.length - 1;
-      newTableBody.children[rowNo].classList.add("wachtlijst");
-      let cell = newTableBody.children[rowNo].children[colNo];
-      cell.classList.add("wachtlijst");
+    for (let trimNo of [0, 1, 2]) {
+      let row = newTableBody.children[newTableBody.children.length - 1];
+      row.classList.add("wachtlijst");
+      let cell = row.children[trimNo];
       if (mergedBlock.wachtlijsten[trimNo] === 0) {
         continue;
       }
@@ -995,7 +971,7 @@
       small.classList.add("text-danger");
       if (mergedBlock.wachtlijsten[trimNo] > 0 && mergedBlock.trimesterStudents[trimNo].length < mergedBlock.maxAantallen[trimNo]) {
         cell.querySelector("small").classList.add("yellowMarker");
-        newTableBody.children[studentTopRowNo + mergedBlock.trimesterStudents[trimNo].length].children[colNo].classList.add("yellowMarker");
+        newTableBody.children[studentTopRowNo + mergedBlock.trimesterStudents[trimNo].length].children[trimNo].classList.add("yellowMarker");
       }
     }
   }
