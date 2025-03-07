@@ -74,6 +74,31 @@ export function prepareLesmomenten(inputModules: Les[]) {
     }
 }
 
+function setStudentPopupInfo(student: StudentInfo) {
+    student.info = "";
+    if (!student.trimesterInstruments)
+        return;
+    for (let instrs of student.trimesterInstruments) {
+        if (instrs.length) {
+            student.info += instrs[0].trimesterNo + ". " + instrs.map(instr => instr.instrumentName) + "\n";
+        } else {
+            student.info += "?. ---\n";
+        }
+    }
+}
+
+function setStudentAllTrimsTheSameInstrument(student: StudentInfo) {
+    if(!student.trimesterInstruments)
+        return;
+    let instruments = student.trimesterInstruments.flat();
+    if (instruments.length < 3) {
+        student.allYearSame = false;
+        return; //skip the every() below if we haven't got 3 instruments.
+    }
+    student.allYearSame = instruments
+        .every((instr: any) => instr.instrumentName === (student?.trimesterInstruments[0][0]?.instrumentName ?? "---"));
+}
+
 export function buildTableData(inputModules: Les[]) : TableData {
     prepareLesmomenten(inputModules);
 
@@ -126,17 +151,9 @@ export function buildTableData(inputModules: Les[]) : TableData {
         }
     }
 
-    //set flag if all 3 trims the same instrument for a student.
     for(let student of tableData.students.values()) {
-        if(!student.trimesterInstruments)
-            continue;
-        let instruments = student.trimesterInstruments.flat();
-        if (instruments.length < 3) {
-            student.allYearSame = false;
-            continue; //skip the every() below if we haven't got 3 instruments.
-        }
-        student.allYearSame = instruments
-            .every((instr: any) => instr.instrumentName === (student?.trimesterInstruments[0][0]?.instrumentName ?? "---"));
+        setStudentPopupInfo(student);
+        setStudentAllTrimsTheSameInstrument(student);
     }
 
     //sort students, putting allYearSame studetns on top. (will be in bold).
@@ -146,19 +163,6 @@ export function buildTableData(inputModules: Les[]) : TableData {
         }
         for (let jaarModule of instrument.jaarModules) {
             sortStudents(jaarModule?.students);
-        }
-    }
-
-    for(let student of tableData.students.values()) {
-        student.info = "";
-        if(!student.trimesterInstruments)
-            continue;
-        for(let instrs of student.trimesterInstruments) {
-            if(instrs.length) {
-                student.info += instrs[0].trimesterNo + ". " + instrs.map(instr => instr.instrumentName) + "\n";
-            } else {
-                student.info += "?. ---\n";
-            }
         }
     }
 

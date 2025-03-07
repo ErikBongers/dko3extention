@@ -585,6 +585,28 @@
       module.formattedLesmoment = matches[1] + " " + matches[2] + "-" + matches[3];
     }
   }
+  function setStudentPopupInfo(student) {
+    student.info = "";
+    if (!student.trimesterInstruments)
+      return;
+    for (let instrs of student.trimesterInstruments) {
+      if (instrs.length) {
+        student.info += instrs[0].trimesterNo + ". " + instrs.map((instr) => instr.instrumentName) + "\n";
+      } else {
+        student.info += "?. ---\n";
+      }
+    }
+  }
+  function setStudentAllTrimsTheSameInstrument(student) {
+    if (!student.trimesterInstruments)
+      return;
+    let instruments = student.trimesterInstruments.flat();
+    if (instruments.length < 3) {
+      student.allYearSame = false;
+      return;
+    }
+    student.allYearSame = instruments.every((instr) => instr.instrumentName === (student?.trimesterInstruments[0][0]?.instrumentName ?? "---"));
+  }
   function buildTableData(inputModules) {
     prepareLesmomenten(inputModules);
     let tableData = {
@@ -626,14 +648,8 @@
       }
     }
     for (let student of tableData.students.values()) {
-      if (!student.trimesterInstruments)
-        continue;
-      let instruments2 = student.trimesterInstruments.flat();
-      if (instruments2.length < 3) {
-        student.allYearSame = false;
-        continue;
-      }
-      student.allYearSame = instruments2.every((instr) => instr.instrumentName === (student?.trimesterInstruments[0][0]?.instrumentName ?? "---"));
+      setStudentPopupInfo(student);
+      setStudentAllTrimsTheSameInstrument(student);
     }
     for (let instrument of tableData.blocks) {
       for (let trim of instrument.trimesters) {
@@ -641,18 +657,6 @@
       }
       for (let jaarModule of instrument.jaarModules) {
         sortStudents(jaarModule?.students);
-      }
-    }
-    for (let student of tableData.students.values()) {
-      student.info = "";
-      if (!student.trimesterInstruments)
-        continue;
-      for (let instrs of student.trimesterInstruments) {
-        if (instrs.length) {
-          student.info += instrs[0].trimesterNo + ". " + instrs.map((instr) => instr.instrumentName) + "\n";
-        } else {
-          student.info += "?. ---\n";
-        }
       }
     }
     let instrumentNames = distinct(tableData.blocks.map((b) => b.instrumentName)).sort((a, b) => {
