@@ -103,8 +103,8 @@ export function buildTrimesterTable(tableData: TableData, trimesterSorting: Trim
         case TrimesterSorting.TeacherHour: {
             for (let [teacherName, teacher] of tableData.teachers) {
                 buildTitleRow(newTableBody, trimesterSorting, teacherName);
-                for (let [_hour, block] of teacher.lesMomenten) {
-                    buildBlock(newTableBody, block, teacherName, (block) => block.lesmoment);
+                for (let [hour, block] of teacher.lesMomenten) {
+                    buildBlock(newTableBody, block, teacherName, (_block) => hour);
                 }
             }
             break;
@@ -161,6 +161,8 @@ First draw the 2 jaarmodule students.
  */
 
 function buildBlock(newTableBody: HTMLTableSectionElement, block: BlockInfo, groupId: string, getBlockTitle: (block: BlockInfo) => string) {
+    blockCounter++;
+
     let mergedBlock = mergeBlockStudents(block);
 
     let trimesterHeaders = [0,1,2] .map(trimNo => {
@@ -169,6 +171,7 @@ function buildBlock(newTableBody: HTMLTableSectionElement, block: BlockInfo, gro
         return `${mergedBlock.trimesterStudents[trimNo].length} van ${mergedBlock.maxAantallen[trimNo]} lln`;
     });
 
+    buildBlockTitle(newTableBody, block, getBlockTitle(block), groupId);
     let headerRows = buildBlockHeader(newTableBody, block, groupId, getBlockTitle, trimesterHeaders);
     let studentTopRowNo = newTableBody.children.length;
 
@@ -340,8 +343,6 @@ function buildBlockTitle(newTableBody: HTMLTableSectionElement, block: BlockInfo
 }
 
 function buildBlockHeader(newTableBody: HTMLTableSectionElement, block: BlockInfo, groupId: string, getBlockTitle: (block: BlockInfo) => string, trimesterHeaders: string[]) {
-    blockCounter++;
-    buildBlockTitle(newTableBody, block, getBlockTitle(block), groupId);
     //INFO
     const trBlockInfo = createLesRow(groupId);
     newTableBody.appendChild(trBlockInfo);
@@ -355,9 +356,13 @@ function buildBlockHeader(newTableBody: HTMLTableSectionElement, block: BlockInf
     let divBlockInfo = document.createElement("div");
     tdBlockkInfo.appendChild(divBlockInfo);
     divBlockInfo.classList.add("text-muted");
-    divBlockInfo.appendChild(document.createTextNode(block.lesmoment));
-    divBlockInfo.appendChild(document.createElement("br"));
-    divBlockInfo.appendChild(document.createTextNode(block.vestiging));
+    if(block.lesmoment) {
+        divBlockInfo.appendChild(document.createTextNode(block.lesmoment));
+    }
+    if(block.vestiging) {
+        if(block.lesmoment) divBlockInfo.appendChild(document.createElement("br"));
+        divBlockInfo.appendChild(document.createTextNode(block.vestiging));
+    }
 
     //build row for module links(the tiny numbered buttons)
     const trModuleLinks = createLesRow(groupId);

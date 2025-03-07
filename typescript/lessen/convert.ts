@@ -206,10 +206,10 @@ export function buildTableData(inputModules: Les[]) : TableData {
             [moment,
                 <BlockInfo>{
                     teacher: teacherName,
-                    vestiging: "TODO",
-                    maxAantal: 123, //TODO
+                    vestiging: undefined,
+                    maxAantal: -1,
                     instrumentName: undefined,
-                    lesmoment: moment,
+                    lesmoment: undefined, //avoid that it gets displayed in info row as well.
                     trimesters: [[], [], []],
                     jaarModules: []
                 }]));
@@ -220,6 +220,10 @@ export function buildTableData(inputModules: Les[]) : TableData {
                 teacher.lesMomenten.get(block.lesmoment).trimesters[trimNo].push(block.trimesters[trimNo][0]);
             }
         }
+        teacher.lesMomenten.forEach(hour => {
+            hour.vestiging = hour.trimesters.flat().filter(les => les).map(les => les.vestiging).join(", ");
+        });
+
     }
     console.log(tableData);
     return tableData;

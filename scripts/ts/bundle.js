@@ -681,11 +681,11 @@
         moment,
         {
           teacher: teacherName,
-          vestiging: "TODO",
-          maxAantal: 123,
-          //TODO
+          vestiging: void 0,
+          maxAantal: -1,
           instrumentName: void 0,
-          lesmoment: moment,
+          lesmoment: void 0,
+          //avoid that it gets displayed in info row as well.
           trimesters: [[], [], []],
           jaarModules: []
         }
@@ -696,6 +696,9 @@
           teacher.lesMomenten.get(block.lesmoment).trimesters[trimNo].push(block.trimesters[trimNo][0]);
         }
       }
+      teacher.lesMomenten.forEach((hour) => {
+        hour.vestiging = hour.trimesters.flat().filter((les) => les).map((les) => les.vestiging).join(", ");
+      });
     }
     console.log(tableData);
     return tableData;
@@ -891,8 +894,8 @@
       case 2 /* TeacherHour */: {
         for (let [teacherName, teacher] of tableData.teachers) {
           buildTitleRow(newTableBody, trimesterSorting, teacherName);
-          for (let [_hour, block] of teacher.lesMomenten) {
-            buildBlock(newTableBody, block, teacherName, (block2) => block2.lesmoment);
+          for (let [hour, block] of teacher.lesMomenten) {
+            buildBlock(newTableBody, block, teacherName, (_block) => hour);
           }
         }
         break;
@@ -918,12 +921,14 @@
     return row;
   }
   function buildBlock(newTableBody, block, groupId, getBlockTitle) {
+    blockCounter++;
     let mergedBlock = mergeBlockStudents(block);
     let trimesterHeaders = [0, 1, 2].map((trimNo) => {
       if (mergedBlock.trimesterStudents[trimNo].length < 5 && mergedBlock.maxAantallen[trimNo] < 5)
         return "";
       return `${mergedBlock.trimesterStudents[trimNo].length} van ${mergedBlock.maxAantallen[trimNo]} lln`;
     });
+    buildBlockTitle(newTableBody, block, getBlockTitle(block), groupId);
     let headerRows = buildBlockHeader(newTableBody, block, groupId, getBlockTitle, trimesterHeaders);
     let studentTopRowNo = newTableBody.children.length;
     headerRows.trModuleLinks.dataset.hasFullClass = "false";
@@ -1049,8 +1054,6 @@
     }
   }
   function buildBlockHeader(newTableBody, block, groupId, getBlockTitle, trimesterHeaders) {
-    blockCounter++;
-    buildBlockTitle(newTableBody, block, getBlockTitle(block), groupId);
     const trBlockInfo = createLesRow(groupId);
     newTableBody.appendChild(trBlockInfo);
     trBlockInfo.classList.add("blockRow");
@@ -1061,9 +1064,13 @@
     let divBlockInfo = document.createElement("div");
     tdBlockkInfo.appendChild(divBlockInfo);
     divBlockInfo.classList.add("text-muted");
-    divBlockInfo.appendChild(document.createTextNode(block.lesmoment));
-    divBlockInfo.appendChild(document.createElement("br"));
-    divBlockInfo.appendChild(document.createTextNode(block.vestiging));
+    if (block.lesmoment) {
+      divBlockInfo.appendChild(document.createTextNode(block.lesmoment));
+    }
+    if (block.vestiging) {
+      if (block.lesmoment) divBlockInfo.appendChild(document.createElement("br"));
+      divBlockInfo.appendChild(document.createTextNode(block.vestiging));
+    }
     const trModuleLinks = createLesRow(groupId);
     newTableBody.appendChild(trModuleLinks);
     trModuleLinks.classList.add("blockRow");
