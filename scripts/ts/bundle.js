@@ -639,10 +639,10 @@
     }
     for (let instrument of tableData.blocks) {
       for (let trim of instrument.trimesters) {
-        sortModuleStudents(trim[0]);
+        sortStudents(trim[0]?.students);
       }
       for (let jaarModule of instrument.jaarModules) {
-        sortModuleStudents(jaarModule);
+        sortStudents(jaarModule?.students);
       }
     }
     for (let student of tableData.students.values()) {
@@ -724,10 +724,10 @@
     }
     jaarModule.students = jaarModule.students.map((student) => students.get(student.name));
   }
-  function sortModuleStudents(les) {
-    if (!les) return;
+  function sortStudents(students) {
+    if (!students) return;
     let comparator = new Intl.Collator();
-    les.students.sort((a, b) => {
+    students.sort((a, b) => {
       if (a.allYearSame && !b.allYearSame) {
         return -1;
       } else if (!a.allYearSame && b.allYearSame) {
@@ -736,6 +736,43 @@
         return comparator.compare(a.name, b.name);
       }
     });
+  }
+  function mergeBlockStudents(block) {
+    let jaarStudents = block.jaarModules.map((les) => les.students).flat();
+    let trimesterStudents = [
+      block.trimesters[0].map((les) => les?.students ?? []).flat(),
+      block.trimesters[1].map((les) => les?.students ?? []).flat(),
+      block.trimesters[2].map((les) => les?.students ?? []).flat()
+    ];
+    trimesterStudents.forEach((trim) => sortStudents(trim));
+    let maxAantallen = block.trimesters.map((trimLessen) => {
+      if (trimLessen.length === 0)
+        return 0;
+      return trimLessen.map((les) => les?.maxAantal ?? 0).map((maxAantal) => maxAantal > 100 ? 4 : maxAantal).reduce((a, b) => a + b);
+    });
+    let blockNeededRows = Math.max(
+      ...maxAantallen,
+      ...trimesterStudents.map((stud) => stud.length)
+    );
+    let wachtlijsten = block.trimesters.map((trimLessen) => {
+      if (trimLessen.length === 0)
+        return 0;
+      return trimLessen.map((les) => les?.wachtlijst ?? 0).reduce((a, b) => a + b);
+    });
+    let hasWachtlijst = wachtlijsten.some((wachtLijst) => wachtLijst > 0);
+    if (hasWachtlijst) {
+      blockNeededRows++;
+    }
+    let maxJaarStudentCount = block.jaarModules.map((mod) => mod.maxAantal).reduce((a, b) => Math.max(a, b), 0);
+    return {
+      jaarStudents,
+      trimesterStudents,
+      maxAantallen,
+      blockNeededRows,
+      wachtlijsten,
+      hasWachtlijst,
+      maxJaarStudentCount
+    };
   }
 
   // typescript/def.ts
@@ -881,67 +918,37 @@
     return row;
   }
   function buildBlock(newTableBody, block, groupId, getBlockTitle) {
-    let jaarStudents = block.jaarModules.map((les) => les.students).flat();
-    let trimesterStudents = [
-      block.trimesters[0].map((les) => les?.students ?? []).flat(),
-      block.trimesters[1].map((les) => les?.students ?? []).flat(),
-      block.trimesters[2].map((les) => les?.students ?? []).flat()
-    ];
-    let maxAantallen = block.trimesters.map((trimLessen) => {
-      if (trimLessen.length === 0)
-        return 0;
-      return trimLessen.map((les) => les?.maxAantal ?? 0).map((maxAantal) => maxAantal > 100 ? 4 : maxAantal).reduce((a, b) => a + b);
-    });
-    let blockNeededRows = Math.max(
-      ...maxAantallen,
-      ...trimesterStudents.map((stud) => stud.length)
-    );
-    let wachtlijsten = block.trimesters.map((trimLessen) => {
-      if (trimLessen.length === 0)
-        return 0;
-      return trimLessen.map((les) => les?.wachtlijst ?? 0).reduce((a, b) => a + b);
-    });
-    console.log(block.teacher + " " + getBlockTitle(block));
-    console.log(wachtlijsten);
-    let hasWachtlijst = wachtlijsten.some((wachtLijst) => wachtLijst > 0);
-    console.log(hasWachtlijst);
-    if (hasWachtlijst) {
-      console.log("plus one");
-      blockNeededRows++;
-    }
-    console.log(maxAantallen);
-    console.log(blockNeededRows);
-    let maxJaarStudentCount = block.jaarModules.map((mod) => mod.maxAantal).reduce((a, b) => Math.max(a, b), 0);
+    let mergedBlock = mergeBlockStudents(block);
     let trimesterHeaders = [0, 1, 2].map((trimNo) => {
-      if (trimesterStudents[trimNo].length < 5 && maxAantallen[trimNo] < 5)
+      if (mergedBlock.trimesterStudents[trimNo].length < 5 && mergedBlock.maxAantallen[trimNo] < 5)
         return "";
-      return `${trimesterStudents[trimNo].length} van ${maxAantallen[trimNo]} lln`;
+      return `${mergedBlock.trimesterStudents[trimNo].length} van ${mergedBlock.maxAantallen[trimNo]} lln`;
     });
     let headerRows = buildBlockHeader(newTableBody, block, groupId, getBlockTitle, trimesterHeaders);
     let studentTopRowNo = newTableBody.children.length;
     headerRows.trModuleLinks.dataset.hasFullClass = "false";
     let hasFullClass = false;
     let filledRowCount = 0;
-    for (let student of jaarStudents) {
+    for (let student of mergedBlock.jaarStudents) {
       let row = createStudentRow(newTableBody, "jaarRow", groupId);
       for (let trimNo = 0; trimNo < 3; trimNo++) {
         let cell = buildStudentCell(student);
         row.appendChild(cell);
         cell.classList.add("jaarStudent");
-        if (maxAantallen[trimNo] <= filledRowCount) {
+        if (mergedBlock.maxAantallen[trimNo] <= filledRowCount) {
           cell.classList.add("gray");
         }
       }
       filledRowCount++;
     }
-    for (let rowNo = 0; rowNo < blockNeededRows - filledRowCount; rowNo++) {
+    for (let rowNo = 0; rowNo < mergedBlock.blockNeededRows - filledRowCount; rowNo++) {
       let row = createStudentRow(newTableBody, "trimesterRow", groupId);
       for (let trimNo = 0; trimNo < 3; trimNo++) {
-        let trimester = trimesterStudents[trimNo];
+        let trimester = mergedBlock.trimesterStudents[trimNo];
         let student = void 0;
         if (trimester) {
           student = trimester[rowNo];
-          let maxTrimStudentCount = Math.max(maxAantallen[trimNo], maxJaarStudentCount);
+          let maxTrimStudentCount = Math.max(mergedBlock.maxAantallen[trimNo], mergedBlock.maxJaarStudentCount);
           if (trimester.length >= maxTrimStudentCount) {
             row.dataset.hasFullClass = "true";
             hasFullClass = true;
@@ -950,7 +957,7 @@
         let cell = buildStudentCell(student);
         row.appendChild(cell);
         cell.classList.add("trimesterStudent");
-        if (maxAantallen[trimNo] <= rowNo) {
+        if (mergedBlock.maxAantallen[trimNo] <= rowNo) {
           cell.classList.add("gray");
         }
         if (student?.trimesterInstruments) {
@@ -963,7 +970,7 @@
     if (hasFullClass) {
       headerRows.trModuleLinks.dataset.hasFullClass = "true";
     }
-    if (!hasWachtlijst) {
+    if (!mergedBlock.hasWachtlijst) {
       return;
     }
     for (let trimNo = 0; trimNo < 3; trimNo++) {
@@ -972,17 +979,17 @@
       newTableBody.children[rowNo].classList.add("wachtlijst");
       let cell = newTableBody.children[rowNo].children[colNo];
       cell.classList.add("wachtlijst");
-      let trimester = trimesterStudents[trimNo];
-      if (wachtlijsten[trimNo] === 0) {
+      let trimester = mergedBlock.trimesterStudents[trimNo];
+      if (mergedBlock.wachtlijsten[trimNo] === 0) {
         continue;
       }
       const small = document.createElement("small");
       cell.appendChild(small);
-      small.appendChild(document.createTextNode(`(${wachtlijsten[trimNo]} op wachtlijst)`));
+      small.appendChild(document.createTextNode(`(${mergedBlock.wachtlijsten[trimNo]} op wachtlijst)`));
       small.classList.add("text-danger");
-      if (wachtlijsten[trimNo] > 0 && trimesterStudents[trimNo].length < maxAantallen[trimNo]) {
+      if (mergedBlock.wachtlijsten[trimNo] > 0 && mergedBlock.trimesterStudents[trimNo].length < mergedBlock.maxAantallen[trimNo]) {
         cell.querySelector("small").classList.add("yellowMarker");
-        newTableBody.children[studentTopRowNo + trimesterStudents[trimNo].length].children[colNo].classList.add("yellowMarker");
+        newTableBody.children[studentTopRowNo + mergedBlock.trimesterStudents[trimNo].length].children[colNo].classList.add("yellowMarker");
       }
     }
   }

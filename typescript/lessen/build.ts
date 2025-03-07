@@ -1,6 +1,6 @@
 import {FULL_CLASS_BUTTON_ID, isButtonHighlighted, TRIM_DIV_ID} from "../def";
 import {db3} from "../globals";
-import {BlockInfo, TableData} from "./convert";
+import {BlockInfo, mergeBlockStudents, TableData} from "./convert";
 import {StudentInfo} from "./scrape";
 
 const NBSP = 160;
@@ -161,59 +161,12 @@ First draw the 2 jaarmodule students.
  */
 
 function buildBlock(newTableBody: HTMLTableSectionElement, block: BlockInfo, groupId: string, getBlockTitle: (block: BlockInfo) => string) {
-    //merge all the students
-    let jaarStudents = block.jaarModules.map(les => les.students).flat();
-    let trimesterStudents = [
-        block.trimesters[0].map(les => les?.students ?? []).flat(),
-        block.trimesters[1].map(les => les?.students ?? []).flat(),
-        block.trimesters[2].map(les => les?.students ?? []).flat(),
-    ];
-
-    let maxAantallen = block.trimesters
-        .map((trimLessen) => {
-            if(trimLessen.length === 0)
-                return 0;
-            return trimLessen
-                .map(les => les?.maxAantal ?? 0)
-                .map(maxAantal => maxAantal > 100 ? 4 : maxAantal)
-                .reduce((a,b) => a+b); //TODO: this is dangerous as it assumes that the hours can be summed.
-        });
-
-    let blockNeededRows = Math.max(
-        ...maxAantallen,
-        ...trimesterStudents.map(stud => stud.length)
-    );
-    let wachtlijsten = block.trimesters
-        .map((trimLessen) => {
-            if(trimLessen.length === 0)
-                return 0;
-            return trimLessen
-                .map(les => les?.wachtlijst ?? 0)
-                .reduce((a,b) => a + b);
-        });
-
-    console.log(block.teacher + " " +  getBlockTitle(block));
-    console.log(wachtlijsten);
-    let hasWachtlijst = wachtlijsten
-        .some(wachtLijst => wachtLijst>0);
-    console.log(hasWachtlijst);
-    if (hasWachtlijst) {
-        console.log("plus one");
-        blockNeededRows++;
-    }
-    console.log(maxAantallen);
-    console.log(blockNeededRows);
-
-    let maxJaarStudentCount = block.jaarModules
-        .map(mod => mod.maxAantal)
-        .reduce((a, b) => Math.max(a, b), 0);
-
-
+    let mergedBlock = mergeBlockStudents(block);
 
     let trimesterHeaders = [0,1,2] .map(trimNo => {
-        if(trimesterStudents[trimNo].length < 5 && maxAantallen[trimNo] < 5)
+        if(mergedBlock.trimesterStudents[trimNo].length < 5 && mergedBlock.maxAantallen[trimNo] < 5)
             return "";
-        return `${trimesterStudents[trimNo].length} van ${maxAantallen[trimNo]} lln`;
+        return `${mergedBlock.trimesterStudents[trimNo].length} van ${mergedBlock.maxAantallen[trimNo]} lln`;
     });
 
     let headerRows = buildBlockHeader(newTableBody, block, groupId, getBlockTitle, trimesterHeaders);
@@ -237,13 +190,13 @@ function buildBlock(newTableBody: HTMLTableSectionElement, block: BlockInfo, gro
 
     //Fill jaar rows
     let filledRowCount = 0;
-        for(let student of jaarStudents) {
+        for(let student of mergedBlock.jaarStudents) {
             let row = createStudentRow(newTableBody, "jaarRow", groupId);
             for (let trimNo = 0; trimNo < 3; trimNo++) {
                 let cell = buildStudentCell(student);
                 row.appendChild(cell);
                 cell.classList.add("jaarStudent");
-                if (maxAantallen[trimNo] <= filledRowCount) {
+                if (mergedBlock.maxAantallen[trimNo] <= filledRowCount) {
                     cell.classList.add("gray");
                 }
                 //TODO: add all jaarModules to the students, and if more than one: yellow
@@ -255,15 +208,15 @@ function buildBlock(newTableBody: HTMLTableSectionElement, block: BlockInfo, gro
         }
 
     //Fill trimester rows
-    for (let rowNo = 0; rowNo < (blockNeededRows - filledRowCount); rowNo++) {
+    for (let rowNo = 0; rowNo < (mergedBlock.blockNeededRows - filledRowCount); rowNo++) {
         let row = createStudentRow(newTableBody,"trimesterRow", groupId);
 
         for (let trimNo = 0; trimNo < 3; trimNo++) {
-            let trimester = trimesterStudents[trimNo];
+            let trimester = mergedBlock.trimesterStudents[trimNo];
             let student: StudentInfo = undefined;
             if (trimester) {
                 student = trimester[rowNo];
-                let maxTrimStudentCount = Math.max(maxAantallen[trimNo], maxJaarStudentCount);
+                let maxTrimStudentCount = Math.max(mergedBlock.maxAantallen[trimNo], mergedBlock.maxJaarStudentCount);
                 if (trimester.length >= maxTrimStudentCount) {
                     row.dataset.hasFullClass = "true";
                     hasFullClass = true;
@@ -272,7 +225,7 @@ function buildBlock(newTableBody: HTMLTableSectionElement, block: BlockInfo, gro
             let cell = buildStudentCell(student);
             row.appendChild(cell);
             cell.classList.add("trimesterStudent");
-            if (maxAantallen[trimNo] <= rowNo) {
+            if (mergedBlock.maxAantallen[trimNo] <= rowNo) {
                 cell.classList.add("gray");
             }
             if(student?.trimesterInstruments) {
@@ -286,7 +239,7 @@ function buildBlock(newTableBody: HTMLTableSectionElement, block: BlockInfo, gro
         //todo: headerRows.trTitle.dataset.hasFullClass = "true";
         headerRows.trModuleLinks.dataset.hasFullClass = "true";
     }
-    if (!hasWachtlijst) {
+    if (!mergedBlock.hasWachtlijst) {
         return;
     }
 
@@ -297,18 +250,18 @@ function buildBlock(newTableBody: HTMLTableSectionElement, block: BlockInfo, gro
         newTableBody.children[rowNo].classList.add("wachtlijst");
         let cell = newTableBody.children[rowNo].children[colNo];
         cell.classList.add("wachtlijst");
-        let trimester = trimesterStudents[trimNo];
-        if (wachtlijsten[trimNo] === 0) {
+        let trimester = mergedBlock.trimesterStudents[trimNo];
+        if (mergedBlock.wachtlijsten[trimNo] === 0) {
             continue;
         }
         const small = document.createElement("small");
         cell.appendChild(small);
-        small.appendChild(document.createTextNode(`(${wachtlijsten[trimNo]} op wachtlijst)`));
+        small.appendChild(document.createTextNode(`(${mergedBlock.wachtlijsten[trimNo]} op wachtlijst)`));
         small.classList.add("text-danger");
 
-        if (wachtlijsten[trimNo] > 0 && trimesterStudents[trimNo].length < maxAantallen[trimNo]) {
+        if (mergedBlock.wachtlijsten[trimNo] > 0 && mergedBlock.trimesterStudents[trimNo].length < mergedBlock.maxAantallen[trimNo]) {
             cell.querySelector("small").classList.add("yellowMarker");
-            newTableBody.children[studentTopRowNo + trimesterStudents[trimNo].length].children[colNo].classList.add("yellowMarker");
+            newTableBody.children[studentTopRowNo + mergedBlock.trimesterStudents[trimNo].length].children[colNo].classList.add("yellowMarker");
         }
     }
 }

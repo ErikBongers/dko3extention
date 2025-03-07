@@ -153,10 +153,10 @@ export function buildTableData(inputModules: Les[]) : TableData {
     //sort students, putting allYearSame studetns on top. (will be in bold).
     for(let instrument of tableData.blocks) {
         for (let trim of instrument.trimesters) {
-            sortModuleStudents(trim[0]);
+            sortStudents(trim[0]?.students);
         }
         for (let jaarModule of instrument.jaarModules) {
-            sortModuleStudents(jaarModule);
+            sortStudents(jaarModule?.students);
         }
     }
 
@@ -256,10 +256,10 @@ function addJaarStudentsToMapAndCount(students: Map<string, StudentInfo>, jaarMo
         .map((student) => students.get(student.name));
 }
 
-function sortModuleStudents(les: Les) {
-    if(!les) return;
+function sortStudents(students: StudentInfo[]) {
+    if(!students) return;
     let comparator = new Intl.Collator();
-    les.students
+    students
         //sort full year students on top.
         .sort((a,b) => {
             if (a.allYearSame && (!b.allYearSame)) {
@@ -270,4 +270,68 @@ function sortModuleStudents(les: Les) {
                 return comparator.compare(a.name, b.name);
             }
         });
+}
+
+interface MergedBlockStudents {
+    jaarStudents: StudentInfo[],
+    trimesterStudents: StudentInfo[][],
+    maxAantallen: number[],
+    blockNeededRows: number,
+    wachtlijsten: number[],
+    hasWachtlijst: boolean,
+    maxJaarStudentCount: number
+}
+
+export function mergeBlockStudents(block: BlockInfo) {
+    let jaarStudents = block.jaarModules.map(les => les.students).flat();
+    let trimesterStudents = [
+        block.trimesters[0].map(les => les?.students ?? []).flat(),
+        block.trimesters[1].map(les => les?.students ?? []).flat(),
+        block.trimesters[2].map(les => les?.students ?? []).flat(),
+    ];
+
+    trimesterStudents.forEach( trim => sortStudents(trim));
+
+    let maxAantallen = block.trimesters
+        .map((trimLessen) => {
+            if(trimLessen.length === 0)
+                return 0;
+            return trimLessen
+                .map(les => les?.maxAantal ?? 0)
+                .map(maxAantal => maxAantal > 100 ? 4 : maxAantal)
+                .reduce((a,b) => a+b); //TODO: this is dangerous as it assumes that the hours can be summed.
+        });
+
+    let blockNeededRows = Math.max(
+        ...maxAantallen,
+        ...trimesterStudents.map(stud => stud.length)
+    );
+    let wachtlijsten = block.trimesters
+        .map((trimLessen) => {
+            if(trimLessen.length === 0)
+                return 0;
+            return trimLessen
+                .map(les => les?.wachtlijst ?? 0)
+                .reduce((a,b) => a + b);
+        });
+
+    let hasWachtlijst = wachtlijsten
+        .some(wachtLijst => wachtLijst>0);
+    if (hasWachtlijst) {
+        blockNeededRows++;
+    }
+
+    let maxJaarStudentCount = block.jaarModules
+        .map(mod => mod.maxAantal)
+        .reduce((a, b) => Math.max(a, b), 0);
+    return {
+        jaarStudents,
+        trimesterStudents,
+        maxAantallen,
+        blockNeededRows,
+        wachtlijsten,
+        hasWachtlijst,
+        maxJaarStudentCount
+    } as MergedBlockStudents;
+
 }

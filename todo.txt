@@ -1,5 +1,3 @@
-* Add totals row per of block contains more than 4 lines.
-  > "13 van 12 leerlingen"
 * modules: show if trimesters overlap?
   > probably difficult in lessen overzicht.
 
