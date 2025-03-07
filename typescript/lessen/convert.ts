@@ -1,4 +1,5 @@
 import {Les, LesType, StudentInfo} from "./scrape";
+import {distinct} from "../globals";
 
 
 export class BlockInfo {
@@ -11,12 +12,6 @@ export class BlockInfo {
     jaarModules: Les[];
 }
 
-interface LesMoment {
-    moment: string;
-    trimesterLessen: Les[][];
-    jaarModules: Les[];
-
-}
 interface Teacher {
     name: string;
     blocks: BlockInfo[];
@@ -91,20 +86,17 @@ export function buildTableData(inputModules: Les[]) : TableData {
 
     //create a block per instrument/teacher/lesmoment
     // group by INSTRUMENT
-    let instruments = inputModules.map((module) => module.instrumentName);
-    instruments = [...new Set(instruments)] as [string];
+    let instruments = distinct(inputModules.map((module) => module.instrumentName));
     for (let instrumentName of instruments) {
         let instrumentModules = inputModules.filter((module) => module.instrumentName === instrumentName);
 
         // group by TEACHER
-        let teachers = instrumentModules.map((module) => module.teacher);
-        teachers = [...new Set(teachers)];
+        let teachers = distinct(instrumentModules.map((module) => module.teacher));
         for(let teacher of teachers) {
             let instrumentTeacherModules = instrumentModules.filter(module => module.teacher === teacher);
 
             // group by LESMOMENT
-            let lesmomenten = getLesmomenten(instrumentTeacherModules);
-            lesmomenten = [...new Set(lesmomenten)];
+            let lesmomenten = distinct(getLesmomenten(instrumentTeacherModules));
             for(let lesmoment of lesmomenten) {
                 let instrumentTeacherMomentModules = instrumentTeacherModules.filter(module => module.formattedLesmoment === lesmoment);
 
@@ -117,14 +109,11 @@ export function buildTableData(inputModules: Les[]) : TableData {
                 // we could have both trimesters and jaar modules for this instrument/teacher/lesmoment
                 block.trimesters = [[], [], []];
                 let trims = buildTrimesters(instrumentTeacherMomentModules);
-                if(trims[0])
-                    block.trimesters[0].push(trims[0]);
-                if(trims[1])
-                    block.trimesters[1].push(trims[1]);
-                if(trims[2])
-                    block.trimesters[2].push(trims[2]);
+                for(let trimNo of [0,1,2]) {
+                    if(trims[trimNo])
+                        block.trimesters[trimNo].push(trims[trimNo]);
+                }
                 block.jaarModules = instrumentTeacherMomentModules.filter(module => module.lesType === LesType.JaarModule);
-
                 tableData.blocks.push(block);
 
                 for (let trim of block.trimesters) {
@@ -137,7 +126,7 @@ export function buildTableData(inputModules: Les[]) : TableData {
         }
     }
 
-    //set flag if all 3 trims the same instrumt for a student.
+    //set flag if all 3 trims the same instrument for a student.
     for(let student of tableData.students.values()) {
         if(!student.trimesterInstruments)
             continue;
@@ -174,7 +163,7 @@ export function buildTableData(inputModules: Les[]) : TableData {
     }
 
     //group by instrument
-    let instrumentNames = [...new Set(tableData.blocks.map(b => b.instrumentName))].sort((a,b) => { return a.localeCompare(b);});
+    let instrumentNames = distinct(tableData.blocks.map(b => b.instrumentName)).sort((a,b) => { return a.localeCompare(b);});
     for(let instr of instrumentNames) {
         tableData.instruments.set(instr, []);
     }
@@ -183,7 +172,7 @@ export function buildTableData(inputModules: Les[]) : TableData {
     }
 
     //group by teacher
-    let teachers = [...new Set(tableData.blocks.map(b => b.teacher))].sort((a,b) => { return a.localeCompare(b);});
+    let teachers = distinct(tableData.blocks.map(b => b.teacher)).sort((a,b) => { return a.localeCompare(b);});
     for(let t of teachers) {
         tableData.teachers.set(t, <Teacher>{name: t, blocks: []});
     }
@@ -191,15 +180,9 @@ export function buildTableData(inputModules: Les[]) : TableData {
         tableData.teachers.get(block.teacher).blocks.push(block);
     }
 
+    //group by teacher/lesmoment
     for(let [teacherName, teacher] of tableData.teachers) {
-        // merge blocks per teachter/hour
-        // for jaarmodules: merge all students
-        // for trimestermodules: merge all students
-        //add the maxAantal, even though they may not be meant to be added.
-        // add a row with the total amount of students (per trimester, including jaarstudents)
-
-
-        let hours = [...new Set(teacher.blocks.map(b => b.lesmoment))];
+        let hours = distinct(teacher.blocks.map(b => b.lesmoment));
         //TODO: convert LesMoment into a block so that buildBlock() can still be used.
         //> first convert BlockInfo.trimesters to a 2-dim array of trimester lessen. (like LesMoment
         teacher.lesMomenten = new Map(hours.map(moment =>

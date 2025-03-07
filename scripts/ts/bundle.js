@@ -176,6 +176,9 @@
     addButton(navigationBars[0].lastElementChild, btnId, title, onClick, fontIconId, ["btn-secondary"], "", "afterend");
     return true;
   }
+  function distinct(array) {
+    return [...new Set(array)];
+  }
 
   // typescript/pageObserver.ts
   var HashPageFilter = class {
@@ -590,16 +593,13 @@
       teachers: /* @__PURE__ */ new Map(),
       blocks: []
     };
-    let instruments = inputModules.map((module) => module.instrumentName);
-    instruments = [...new Set(instruments)];
+    let instruments = distinct(inputModules.map((module) => module.instrumentName));
     for (let instrumentName of instruments) {
       let instrumentModules = inputModules.filter((module) => module.instrumentName === instrumentName);
-      let teachers2 = instrumentModules.map((module) => module.teacher);
-      teachers2 = [...new Set(teachers2)];
+      let teachers2 = distinct(instrumentModules.map((module) => module.teacher));
       for (let teacher of teachers2) {
         let instrumentTeacherModules = instrumentModules.filter((module) => module.teacher === teacher);
-        let lesmomenten = getLesmomenten(instrumentTeacherModules);
-        lesmomenten = [...new Set(lesmomenten)];
+        let lesmomenten = distinct(getLesmomenten(instrumentTeacherModules));
         for (let lesmoment of lesmomenten) {
           let instrumentTeacherMomentModules = instrumentTeacherModules.filter((module) => module.formattedLesmoment === lesmoment);
           let block = new BlockInfo();
@@ -610,12 +610,10 @@
           block.vestiging = getVestigingen(instrumentTeacherMomentModules);
           block.trimesters = [[], [], []];
           let trims = buildTrimesters(instrumentTeacherMomentModules);
-          if (trims[0])
-            block.trimesters[0].push(trims[0]);
-          if (trims[1])
-            block.trimesters[1].push(trims[1]);
-          if (trims[2])
-            block.trimesters[2].push(trims[2]);
+          for (let trimNo of [0, 1, 2]) {
+            if (trims[trimNo])
+              block.trimesters[trimNo].push(trims[trimNo]);
+          }
           block.jaarModules = instrumentTeacherMomentModules.filter((module) => module.lesType === 1 /* JaarModule */);
           tableData.blocks.push(block);
           for (let trim of block.trimesters) {
@@ -657,7 +655,7 @@
         }
       }
     }
-    let instrumentNames = [...new Set(tableData.blocks.map((b) => b.instrumentName))].sort((a, b) => {
+    let instrumentNames = distinct(tableData.blocks.map((b) => b.instrumentName)).sort((a, b) => {
       return a.localeCompare(b);
     });
     for (let instr of instrumentNames) {
@@ -666,7 +664,7 @@
     for (let block of tableData.blocks) {
       tableData.instruments.get(block.instrumentName).push(block);
     }
-    let teachers = [...new Set(tableData.blocks.map((b) => b.teacher))].sort((a, b) => {
+    let teachers = distinct(tableData.blocks.map((b) => b.teacher)).sort((a, b) => {
       return a.localeCompare(b);
     });
     for (let t of teachers) {
@@ -676,7 +674,7 @@
       tableData.teachers.get(block.teacher).blocks.push(block);
     }
     for (let [teacherName, teacher] of tableData.teachers) {
-      let hours = [...new Set(teacher.blocks.map((b) => b.lesmoment))];
+      let hours = distinct(teacher.blocks.map((b) => b.lesmoment));
       teacher.lesMomenten = new Map(hours.map((moment) => [
         moment,
         {

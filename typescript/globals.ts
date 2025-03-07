@@ -237,3 +237,7 @@ export function addTableNavigationButton(navigationBars: NodeListOf<Element>, bt
     addButton(navigationBars[0].lastElementChild as HTMLElement, btnId, title, onClick, fontIconId, ["btn-secondary"], "", "afterend");
     return true;
 }
+
+export function distinct<Type>(array: Type[]): Type[] {
+    return [...new Set(array)];
+}
