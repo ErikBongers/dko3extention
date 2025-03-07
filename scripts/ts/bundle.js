@@ -812,16 +812,17 @@
   function buildTrimesterTable(tableData, trimesterSorting) {
     tableData.blocks.sort((block1, block2) => block1.instrumentName.localeCompare(block2.instrumentName));
     let trimDiv = document.getElementById(TRIM_DIV_ID);
-    let newTable = document.createElement("table");
+    trimDiv.dataset.showFullClass = isButtonHighlighted(FULL_CLASS_BUTTON_ID) ? "true" : "false";
+    let newTable = document.body.appendChild(document.createElement("table"));
+    trimDiv.appendChild(newTable);
     newTable.id = "trimesterTable";
     newTable.style.width = "100%";
-    let col = newTable.appendChild(document.createElement("col"));
-    col.setAttribute("width", "100");
-    col = newTable.appendChild(document.createElement("col"));
-    col.setAttribute("width", "100");
-    col = newTable.appendChild(document.createElement("col"));
-    col.setAttribute("width", "100");
-    const newTableBody = document.createElement("tbody");
+    newTable.setAttribute("border", "2");
+    for (let _ of [0, 1, 2]) {
+      let col = newTable.appendChild(document.createElement("col"));
+      col.setAttribute("width", "100");
+    }
+    const newTableBody = newTable.appendChild(document.createElement("tbody"));
     let totTrim = [0, 0, 0];
     for (let block of tableData.blocks) {
       let totJaar = block.jaarModules.map((mod) => mod.students.length).reduce((prev, curr) => prev + curr, 0);
@@ -832,44 +833,28 @@
     const tHead = newTable.appendChild(document.createElement("thead"));
     tHead.classList.add("table-secondary");
     const trHeader = tHead.appendChild(createLesRow("tableheader"));
-    const th1 = trHeader.appendChild(document.createElement("th"));
-    let div1 = th1.appendChild(document.createElement("div"));
-    let span1 = div1.appendChild(document.createElement("span"));
-    span1.classList.add("bold");
-    span1.innerHTML = `Trimester 1`;
-    let spanTot1 = div1.appendChild(document.createElement("span"));
-    spanTot1.classList.add("plain");
-    spanTot1.innerHTML = ` (${totTrim[0]} lln) `;
-    const th2 = trHeader.appendChild(document.createElement("th"));
-    let div2 = th2.appendChild(document.createElement("div"));
-    let span2 = div2.appendChild(document.createElement("span"));
-    span2.classList.add("bold");
-    span2.innerHTML = `Trimester 2`;
-    let spanTot2 = div2.appendChild(document.createElement("span"));
-    spanTot2.classList.add("plain");
-    spanTot2.innerHTML = ` (${totTrim[1]} lln) `;
-    const th3 = trHeader.appendChild(document.createElement("th"));
-    let div3 = th3.appendChild(document.createElement("div"));
-    let span3 = div3.appendChild(document.createElement("span"));
-    span3.classList.add("bold");
-    span3.innerHTML = `Trimester 3`;
-    let spanTot3 = div3.appendChild(document.createElement("span"));
-    spanTot3.classList.add("plain");
-    spanTot3.innerHTML = ` (${totTrim[2]} lln) `;
+    for (let trimNo of [0, 1, 2]) {
+      const th = trHeader.appendChild(document.createElement("th"));
+      let div = th.appendChild(document.createElement("div"));
+      let span = div.appendChild(document.createElement("span"));
+      span.classList.add("bold");
+      span.innerHTML = `Trimester ${trimNo + 1}`;
+      let spanTot = div.appendChild(document.createElement("span"));
+      spanTot.classList.add("plain");
+      spanTot.innerHTML = ` (${totTrim[trimNo]} lln) `;
+    }
     switch (trimesterSorting) {
-      case 1 /* InstrumentTeacherHour */: {
+      case 1 /* InstrumentTeacherHour */:
         for (let [instrument, blocks] of tableData.instruments) {
           buildGroup(newTableBody, blocks, instrument, (block) => block.teacher);
         }
         break;
-      }
-      case 0 /* TeacherInstrumentHour */: {
+      case 0 /* TeacherInstrumentHour */:
         for (let [teacherName, teacher] of tableData.teachers) {
           buildGroup(newTableBody, teacher.blocks, teacherName, (block) => block.instrumentName);
         }
         break;
-      }
-      case 2 /* TeacherHour */: {
+      case 2 /* TeacherHour */:
         for (let [teacherName, teacher] of tableData.teachers) {
           buildTitleRow(newTableBody, teacherName);
           for (let [hour, block] of teacher.lesMomenten) {
@@ -877,13 +862,7 @@
           }
         }
         break;
-      }
     }
-    newTable.appendChild(newTableBody);
-    document.body.appendChild(newTable);
-    newTable.setAttribute("border", "2");
-    trimDiv.dataset.showFullClass = isButtonHighlighted(FULL_CLASS_BUTTON_ID) ? "true" : "false";
-    trimDiv.appendChild(newTable);
   }
   function buildGroup(newTableBody, blocks, groupId, getBlockTitle) {
     buildTitleRow(newTableBody, groupId);
