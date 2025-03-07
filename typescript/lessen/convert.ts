@@ -286,6 +286,8 @@ interface MergedBlockStudents {
     maxJaarStudentCount: number
 }
 
+export const TOO_LARGE_MAX = 100;
+
 export function mergeBlockStudents(block: BlockInfo) {
     let jaarStudents = block.jaarModules.map(les => les.students).flat();
     let trimesterStudents = [
@@ -302,7 +304,7 @@ export function mergeBlockStudents(block: BlockInfo) {
                 return 0;
             return trimLessen
                 .map(les => les?.maxAantal ?? 0)
-                .map(maxAantal => maxAantal > 100 ? 4 : maxAantal)
+                .map(maxAantal => maxAantal > TOO_LARGE_MAX ? 4 : maxAantal)
                 .reduce((a,b) => a+b); //TODO: this is dangerous as it assumes that the hours can be summed.
         });
 

@@ -1,6 +1,6 @@
 import {FULL_CLASS_BUTTON_ID, isButtonHighlighted, TRIM_DIV_ID} from "../def";
 import {db3} from "../globals";
-import {BlockInfo, mergeBlockStudents, TableData} from "./convert";
+import {BlockInfo, mergeBlockStudents, TableData, TOO_LARGE_MAX} from "./convert";
 import {StudentInfo} from "./scrape";
 
 const NBSP = 160;
@@ -8,9 +8,7 @@ const NBSP = 160;
 export enum TrimesterSorting { TeacherInstrumentHour, InstrumentTeacherHour , TeacherHour}
 
 export function buildTrimesterTable(tableData: TableData, trimesterSorting: TrimesterSorting) {
-    let blocks = tableData.blocks;//todo: temp - get rid of this.
-
-    blocks.sort((block1, block2) => block1.instrumentName.localeCompare(block2.instrumentName)); //TODO: also sort on teacher and lesmoment.
+    tableData.blocks.sort((block1, block2) => block1.instrumentName.localeCompare(block2.instrumentName));
     let trimDiv = document.getElementById(TRIM_DIV_ID);
     let newTable = document.createElement("table");
     newTable.id = "trimesterTable";
@@ -31,7 +29,7 @@ export function buildTrimesterTable(tableData: TableData, trimesterSorting: Trim
     let totTrim1 = 0;
     let totTrim2 = 0;
     let totTrim3 = 0;
-    for (let block of blocks) {
+    for (let block of tableData.blocks) {
         totTrim1 += block.trimesters[0][0]?.students?.length ?? 0;
         totTrim2 += block.trimesters[1][0]?.students?.length ?? 0;
         totTrim3 += block.trimesters[2][0]?.students?.length ?? 0;
@@ -90,19 +88,19 @@ export function buildTrimesterTable(tableData: TableData, trimesterSorting: Trim
     switch(trimesterSorting) {
         case TrimesterSorting.InstrumentTeacherHour: {
             for (let [instrument, blocks] of tableData.instruments) {
-                buildGroup(newTableBody, blocks, trimesterSorting, instrument, (block) => block.teacher);
+                buildGroup(newTableBody, blocks, instrument, (block) => block.teacher);
             }
             break;
         }
         case TrimesterSorting.TeacherInstrumentHour: {
             for (let [teacherName, teacher] of tableData.teachers) {
-                buildGroup(newTableBody, teacher.blocks, trimesterSorting, teacherName, (block) => block.instrumentName);
+                buildGroup(newTableBody, teacher.blocks, teacherName, (block) => block.instrumentName);
             }
             break;
         }
         case TrimesterSorting.TeacherHour: {
             for (let [teacherName, teacher] of tableData.teachers) {
-                buildTitleRow(newTableBody, trimesterSorting, teacherName);
+                buildTitleRow(newTableBody, teacherName);
                 for (let [hour, block] of teacher.lesMomenten) {
                     buildBlock(newTableBody, block, teacherName, (_block) => hour);
                 }
@@ -122,8 +120,8 @@ export function buildTrimesterTable(tableData: TableData, trimesterSorting: Trim
     trimDiv.appendChild(newTable);
 }
 
-function buildGroup(newTableBody: HTMLTableSectionElement, blocks: BlockInfo[], trimesterSorting: TrimesterSorting, groupId: string, getBlockTitle: (block: BlockInfo) => string) {
-    buildTitleRow(newTableBody, trimesterSorting, groupId);
+function buildGroup(newTableBody: HTMLTableSectionElement, blocks: BlockInfo[], groupId: string, getBlockTitle: (block: BlockInfo) => string) {
+    buildTitleRow(newTableBody, groupId);
     for (let block of blocks) {
         buildBlock(newTableBody, block, groupId, getBlockTitle);
     }
@@ -171,11 +169,11 @@ function buildBlock(newTableBody: HTMLTableSectionElement, block: BlockInfo, gro
         return `${mergedBlock.trimesterStudents[trimNo].length} van ${mergedBlock.maxAantallen[trimNo]} lln`;
     });
 
-    buildBlockTitle(newTableBody, block, getBlockTitle(block), groupId);
-    let headerRows = buildBlockHeader(newTableBody, block, groupId, getBlockTitle, trimesterHeaders);
+    let trTitle= buildBlockTitle(newTableBody, block, getBlockTitle(block), groupId);
+    let headerRows = buildBlockHeader(newTableBody, block, groupId, trimesterHeaders);
     let studentTopRowNo = newTableBody.children.length;
 
-    //TODO: headerRows.trTitle.dataset.hasFullClass = "false";
+    trTitle.dataset.hasFullClass = "false";
     headerRows.trModuleLinks.dataset.hasFullClass = "false";
     let hasFullClass = false;
 
@@ -189,8 +187,6 @@ function buildBlock(newTableBody: HTMLTableSectionElement, block: BlockInfo, gro
 
   >>> give a cell.trimesterStudent in a row.jaarModule a different color to indicate the overlap.
      */
-    //TODO: DOES NOT WORK FOR MULTIPLE JAAR MODULES !!!!! What about the max number of rows???
-
     //Fill jaar rows
     let filledRowCount = 0;
         for(let student of mergedBlock.jaarStudents) {
@@ -220,7 +216,7 @@ function buildBlock(newTableBody: HTMLTableSectionElement, block: BlockInfo, gro
             if (trimester) {
                 student = trimester[rowNo];
                 let maxTrimStudentCount = Math.max(mergedBlock.maxAantallen[trimNo], mergedBlock.maxJaarStudentCount);
-                if (trimester.length >= maxTrimStudentCount) {
+                if (trimester.length > 0 && trimester.length >= maxTrimStudentCount) {
                     row.dataset.hasFullClass = "true";
                     hasFullClass = true;
                 }
@@ -239,7 +235,7 @@ function buildBlock(newTableBody: HTMLTableSectionElement, block: BlockInfo, gro
         }
     }
     if(hasFullClass) {
-        //todo: headerRows.trTitle.dataset.hasFullClass = "true";
+        trTitle.dataset.hasFullClass = "true";
         headerRows.trModuleLinks.dataset.hasFullClass = "true";
     }
     if (!mergedBlock.hasWachtlijst) {
@@ -253,7 +249,6 @@ function buildBlock(newTableBody: HTMLTableSectionElement, block: BlockInfo, gro
         newTableBody.children[rowNo].classList.add("wachtlijst");
         let cell = newTableBody.children[rowNo].children[colNo];
         cell.classList.add("wachtlijst");
-        let trimester = mergedBlock.trimesterStudents[trimNo];
         if (mergedBlock.wachtlijsten[trimNo] === 0) {
             continue;
         }
@@ -278,7 +273,7 @@ function createLesRow(groupId: string) {
     return tr;
 }
 
-function buildTitleRow(newTableBody: HTMLTableSectionElement, trimesterSorting: TrimesterSorting, title: string) {
+function buildTitleRow(newTableBody: HTMLTableSectionElement, title: string) {
     const trTitle = createLesRow(title);
     trTitle.dataset.blockId = "groupTitle";// a title row does not belong to a block.
     newTableBody.appendChild(trTitle);
@@ -297,52 +292,50 @@ function buildTitleRow(newTableBody: HTMLTableSectionElement, trimesterSorting: 
     return {trTitle, divTitle};
 }
 
-function buildBlockTitle(newTableBody: HTMLTableSectionElement, block: BlockInfo, subTitle: string, groupId) {
-    //SUBTITLE
-    const trSubtitle = createLesRow(groupId);
-    newTableBody.appendChild(trSubtitle);
-    trSubtitle.classList.add("blockRow");
+function buildBlockTitle(newTableBody: HTMLTableSectionElement, block: BlockInfo, subTitle: string, groupId: string) {
+    const trBlockTitle = createLesRow(groupId);
+    newTableBody.appendChild(trBlockTitle);
+    trBlockTitle.classList.add("blockRow");
 
-    const tdSubtitle = document.createElement("td");
-    trSubtitle.appendChild(tdSubtitle);
-    tdSubtitle.classList.add("infoCell");
-    tdSubtitle.setAttribute("colspan", "3");
+    const tdBlockTitle = document.createElement("td");
+    trBlockTitle.appendChild(tdBlockTitle);
+    tdBlockTitle.classList.add("infoCell");
+    tdBlockTitle.setAttribute("colspan", "3");
 
-    let divSubtitle = document.createElement("div");
-    tdSubtitle.appendChild(divSubtitle);
-    divSubtitle.classList.add("text-muted");
+    let divBlockTitle = document.createElement("div");
+    tdBlockTitle.appendChild(divBlockTitle);
+    divBlockTitle.classList.add("text-muted");
     let spanSubtitle = document.createElement("span");
-    divSubtitle.appendChild(spanSubtitle);
-    spanSubtitle.classList.add("subTitle");
+    divBlockTitle.appendChild(spanSubtitle);
+    spanSubtitle.classList.add("subTitle"); //TODO: rename to blockTitle
     spanSubtitle.appendChild(document.createTextNode(subTitle));
 
     for (let jaarModule of block.jaarModules) {
-        divSubtitle.appendChild(buildModuleButton(">", jaarModule.id, false))
+        divBlockTitle.appendChild(buildModuleButton(">", jaarModule.id, false))
     }
 
     let errorsAndWarnings = "";
-    //todo: put the max of 100 in a const.
     let maxMoreThan100 = block.jaarModules
-        .map(module => module.maxAantal > 100)
+        .map(module => module.maxAantal > TOO_LARGE_MAX)
         .includes(true);
     if(!maxMoreThan100) {
         maxMoreThan100 = block.trimesters.flat()
-            .map(module => module?.maxAantal > 100)
+            .map(module => module?.maxAantal > TOO_LARGE_MAX)
             .includes(true);
     }
     if(maxMoreThan100)
-        errorsAndWarnings += "Max aantal lln > 100";
+        errorsAndWarnings += "Max aantal lln > " + TOO_LARGE_MAX;
 
     if(errorsAndWarnings) {
         let errorSpan = document.createElement("span");
         errorSpan.appendChild(document.createTextNode(errorsAndWarnings));
         errorSpan.classList.add("lesError");
-        divSubtitle.appendChild(errorSpan);
+        divBlockTitle.appendChild(errorSpan);
     }
-
+    return trBlockTitle;
 }
 
-function buildBlockHeader(newTableBody: HTMLTableSectionElement, block: BlockInfo, groupId: string, getBlockTitle: (block: BlockInfo) => string, trimesterHeaders: string[]) {
+function buildBlockHeader(newTableBody: HTMLTableSectionElement, block: BlockInfo, groupId: string, trimesterHeaders: string[]) {
     //INFO
     const trBlockInfo = createLesRow(groupId);
     newTableBody.appendChild(trBlockInfo);

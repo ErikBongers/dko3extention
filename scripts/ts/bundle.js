@@ -740,6 +740,7 @@
       }
     });
   }
+  var TOO_LARGE_MAX = 100;
   function mergeBlockStudents(block) {
     let jaarStudents = block.jaarModules.map((les) => les.students).flat();
     let trimesterStudents = [
@@ -751,7 +752,7 @@
     let maxAantallen = block.trimesters.map((trimLessen) => {
       if (trimLessen.length === 0)
         return 0;
-      return trimLessen.map((les) => les?.maxAantal ?? 0).map((maxAantal) => maxAantal > 100 ? 4 : maxAantal).reduce((a, b) => a + b);
+      return trimLessen.map((les) => les?.maxAantal ?? 0).map((maxAantal) => maxAantal > TOO_LARGE_MAX ? 4 : maxAantal).reduce((a, b) => a + b);
     });
     let blockNeededRows = Math.max(
       ...maxAantallen,
@@ -809,8 +810,7 @@
   // typescript/lessen/build.ts
   var NBSP = 160;
   function buildTrimesterTable(tableData, trimesterSorting) {
-    let blocks = tableData.blocks;
-    blocks.sort((block1, block2) => block1.instrumentName.localeCompare(block2.instrumentName));
+    tableData.blocks.sort((block1, block2) => block1.instrumentName.localeCompare(block2.instrumentName));
     let trimDiv = document.getElementById(TRIM_DIV_ID);
     let newTable = document.createElement("table");
     newTable.id = "trimesterTable";
@@ -828,7 +828,7 @@
     let totTrim1 = 0;
     let totTrim2 = 0;
     let totTrim3 = 0;
-    for (let block of blocks) {
+    for (let block of tableData.blocks) {
       totTrim1 += block.trimesters[0][0]?.students?.length ?? 0;
       totTrim2 += block.trimesters[1][0]?.students?.length ?? 0;
       totTrim3 += block.trimesters[2][0]?.students?.length ?? 0;
@@ -880,20 +880,20 @@
     spanTot3.innerHTML = ` (${totTrim3} lln) `;
     switch (trimesterSorting) {
       case 1 /* InstrumentTeacherHour */: {
-        for (let [instrument, blocks2] of tableData.instruments) {
-          buildGroup(newTableBody, blocks2, trimesterSorting, instrument, (block) => block.teacher);
+        for (let [instrument, blocks] of tableData.instruments) {
+          buildGroup(newTableBody, blocks, instrument, (block) => block.teacher);
         }
         break;
       }
       case 0 /* TeacherInstrumentHour */: {
         for (let [teacherName, teacher] of tableData.teachers) {
-          buildGroup(newTableBody, teacher.blocks, trimesterSorting, teacherName, (block) => block.instrumentName);
+          buildGroup(newTableBody, teacher.blocks, teacherName, (block) => block.instrumentName);
         }
         break;
       }
       case 2 /* TeacherHour */: {
         for (let [teacherName, teacher] of tableData.teachers) {
-          buildTitleRow(newTableBody, trimesterSorting, teacherName);
+          buildTitleRow(newTableBody, teacherName);
           for (let [hour, block] of teacher.lesMomenten) {
             buildBlock(newTableBody, block, teacherName, (_block) => hour);
           }
@@ -907,8 +907,8 @@
     trimDiv.dataset.showFullClass = isButtonHighlighted(FULL_CLASS_BUTTON_ID) ? "true" : "false";
     trimDiv.appendChild(newTable);
   }
-  function buildGroup(newTableBody, blocks, trimesterSorting, groupId, getBlockTitle) {
-    buildTitleRow(newTableBody, trimesterSorting, groupId);
+  function buildGroup(newTableBody, blocks, groupId, getBlockTitle) {
+    buildTitleRow(newTableBody, groupId);
     for (let block of blocks) {
       buildBlock(newTableBody, block, groupId, getBlockTitle);
     }
@@ -928,9 +928,10 @@
         return "";
       return `${mergedBlock.trimesterStudents[trimNo].length} van ${mergedBlock.maxAantallen[trimNo]} lln`;
     });
-    buildBlockTitle(newTableBody, block, getBlockTitle(block), groupId);
-    let headerRows = buildBlockHeader(newTableBody, block, groupId, getBlockTitle, trimesterHeaders);
+    let trTitle = buildBlockTitle(newTableBody, block, getBlockTitle(block), groupId);
+    let headerRows = buildBlockHeader(newTableBody, block, groupId, trimesterHeaders);
     let studentTopRowNo = newTableBody.children.length;
+    trTitle.dataset.hasFullClass = "false";
     headerRows.trModuleLinks.dataset.hasFullClass = "false";
     let hasFullClass = false;
     let filledRowCount = 0;
@@ -954,7 +955,7 @@
         if (trimester) {
           student = trimester[rowNo];
           let maxTrimStudentCount = Math.max(mergedBlock.maxAantallen[trimNo], mergedBlock.maxJaarStudentCount);
-          if (trimester.length >= maxTrimStudentCount) {
+          if (trimester.length > 0 && trimester.length >= maxTrimStudentCount) {
             row.dataset.hasFullClass = "true";
             hasFullClass = true;
           }
@@ -973,6 +974,7 @@
       }
     }
     if (hasFullClass) {
+      trTitle.dataset.hasFullClass = "true";
       headerRows.trModuleLinks.dataset.hasFullClass = "true";
     }
     if (!mergedBlock.hasWachtlijst) {
@@ -984,7 +986,6 @@
       newTableBody.children[rowNo].classList.add("wachtlijst");
       let cell = newTableBody.children[rowNo].children[colNo];
       cell.classList.add("wachtlijst");
-      let trimester = mergedBlock.trimesterStudents[trimNo];
       if (mergedBlock.wachtlijsten[trimNo] === 0) {
         continue;
       }
@@ -1005,7 +1006,7 @@
     tr.dataset.groupId = groupId;
     return tr;
   }
-  function buildTitleRow(newTableBody, trimesterSorting, title) {
+  function buildTitleRow(newTableBody, title) {
     const trTitle = createLesRow(title);
     trTitle.dataset.blockId = "groupTitle";
     newTableBody.appendChild(trTitle);
@@ -1022,38 +1023,39 @@
     return { trTitle, divTitle };
   }
   function buildBlockTitle(newTableBody, block, subTitle, groupId) {
-    const trSubtitle = createLesRow(groupId);
-    newTableBody.appendChild(trSubtitle);
-    trSubtitle.classList.add("blockRow");
-    const tdSubtitle = document.createElement("td");
-    trSubtitle.appendChild(tdSubtitle);
-    tdSubtitle.classList.add("infoCell");
-    tdSubtitle.setAttribute("colspan", "3");
-    let divSubtitle = document.createElement("div");
-    tdSubtitle.appendChild(divSubtitle);
-    divSubtitle.classList.add("text-muted");
+    const trBlockTitle = createLesRow(groupId);
+    newTableBody.appendChild(trBlockTitle);
+    trBlockTitle.classList.add("blockRow");
+    const tdBlockTitle = document.createElement("td");
+    trBlockTitle.appendChild(tdBlockTitle);
+    tdBlockTitle.classList.add("infoCell");
+    tdBlockTitle.setAttribute("colspan", "3");
+    let divBlockTitle = document.createElement("div");
+    tdBlockTitle.appendChild(divBlockTitle);
+    divBlockTitle.classList.add("text-muted");
     let spanSubtitle = document.createElement("span");
-    divSubtitle.appendChild(spanSubtitle);
+    divBlockTitle.appendChild(spanSubtitle);
     spanSubtitle.classList.add("subTitle");
     spanSubtitle.appendChild(document.createTextNode(subTitle));
     for (let jaarModule of block.jaarModules) {
-      divSubtitle.appendChild(buildModuleButton(">", jaarModule.id, false));
+      divBlockTitle.appendChild(buildModuleButton(">", jaarModule.id, false));
     }
     let errorsAndWarnings = "";
-    let maxMoreThan100 = block.jaarModules.map((module) => module.maxAantal > 100).includes(true);
+    let maxMoreThan100 = block.jaarModules.map((module) => module.maxAantal > TOO_LARGE_MAX).includes(true);
     if (!maxMoreThan100) {
-      maxMoreThan100 = block.trimesters.flat().map((module) => module?.maxAantal > 100).includes(true);
+      maxMoreThan100 = block.trimesters.flat().map((module) => module?.maxAantal > TOO_LARGE_MAX).includes(true);
     }
     if (maxMoreThan100)
-      errorsAndWarnings += "Max aantal lln > 100";
+      errorsAndWarnings += "Max aantal lln > " + TOO_LARGE_MAX;
     if (errorsAndWarnings) {
       let errorSpan = document.createElement("span");
       errorSpan.appendChild(document.createTextNode(errorsAndWarnings));
       errorSpan.classList.add("lesError");
-      divSubtitle.appendChild(errorSpan);
+      divBlockTitle.appendChild(errorSpan);
     }
+    return trBlockTitle;
   }
-  function buildBlockHeader(newTableBody, block, groupId, getBlockTitle, trimesterHeaders) {
+  function buildBlockHeader(newTableBody, block, groupId, trimesterHeaders) {
     const trBlockInfo = createLesRow(groupId);
     newTableBody.appendChild(trBlockInfo);
     trBlockInfo.classList.add("blockRow");
