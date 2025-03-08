@@ -57,15 +57,15 @@ export let instrumentSet = new Set([
     "Zang (musical)",
 ]);
 
-export async function prefillInstruments() {
+export async function prefillInstruments(schooljaar: string) {
     await sendClearWerklijst();
-    let vakken = await fetchVakken(false);
+    let vakken = await fetchVakken(false, schooljaar);
     let instruments = vakken.filter((vak) => isInstrument(vak[0]));
     let values = instruments.map(vak => parseInt(vak[1]));
     let valueString = values.join();
 
     let criteria = [
-        {"criteria": "Schooljaar", "operator": "=", "values": "2024-2025"},
+        {"criteria": "Schooljaar", "operator": "=", "values": schooljaar},
         {"criteria": "Status", "operator": "=", "values": "12"},
         {"criteria": "Uitschrijvingen", "operator": "=", "values": "0"},
         {"criteria": "Domein", "operator": "=", "values": "3"},

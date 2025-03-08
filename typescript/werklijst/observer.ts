@@ -1,4 +1,4 @@
-import {addButton, getSchoolIdString, setButtonHighlighted} from "../globals";
+import {addButton, calculateSchooljaar, createSchoolyearString, createShortSchoolyearString, getHighestSchooljaarAvailable, getSchoolIdString, setButtonHighlighted} from "../globals";
 import * as def from "../def";
 import {buildTable, getUrenVakLeraarFileName, JsonCloudData} from "./buildUren";
 import {scrapeStudent, VakLeraar} from "./scrapeUren";
@@ -39,21 +39,35 @@ function onMutation(mutation: MutationRecord) {
 
 function onCriteriaShown() {
     let pageState = getPageStateOrDefault(PageName.Werklijst) as WerklijstPageState;
-    if(pageState.goto == Goto.Werklijst_uren) {
+    if(pageState.goto == Goto.Werklijst_uren_prevYear) {
         pageState.goto = Goto.None;
         savePageState(pageState);
-        prefillInstruments().then(() => {});
+        prefillInstruments(createSchoolyearString(calculateSchooljaar())).then(() => {});
+        return;
+    }
+    if(pageState.goto == Goto.Werklijst_uren_nextYear) {
+        pageState.goto = Goto.None;
+        savePageState(pageState);
+        prefillInstruments(createSchoolyearString(calculateSchooljaar()+1)).then(() => {});
         return;
     }
     pageState.werklijstTableName = "";
     savePageState(pageState);
     let btnWerklijstMaken = document.querySelector("#btn_werklijst_maken") as HTMLButtonElement;
-    if(document.getElementById(def.PREFILL_INSTR_BTN_ID))
+    if(document.getElementById(def.UREN_PREV_BTN_ID))
         return;
 
-    addButton(btnWerklijstMaken, def.PREFILL_INSTR_BTN_ID, "Prefill instrumenten", prefillInstruments, "fa-guitar", ["btn", "btn-outline-dark"], "Uren ");
+    let year = parseInt(getHighestSchooljaarAvailable());
+    let prevSchoolyear = createSchoolyearString(year-1);
+    let nextSchoolyear = createSchoolyearString(year);
+    let prevSchoolyearShort = createShortSchoolyearString(year-1);
+    let nextSchoolyearShort = createShortSchoolyearString(year);
+    addButton(btnWerklijstMaken, def.UREN_PREV_BTN_ID, "Toon lerarenuren voor "+ prevSchoolyear, async () => { await prefillInstruments(prevSchoolyear); }, "", ["btn", "btn-outline-dark"], "Uren "+ prevSchoolyearShort);
+    addButton(btnWerklijstMaken, def.UREN_NEXT_BTN_ID, "Toon lerarenuren voor "+ nextSchoolyear, async () => { await prefillInstruments(nextSchoolyear); }, "", ["btn", "btn-outline-dark"], "Uren "+ nextSchoolyearShort);
     getSchoolIdString();
 }
+
+
 
 function onWerklijstChanged() {
     let werklijstPageState = getPageStateOrDefault(PageName.Werklijst) as WerklijstPageState;

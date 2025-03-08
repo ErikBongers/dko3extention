@@ -1,9 +1,3 @@
-* modules: show if trimesters overlap?
-  > probably difficult in lessen overzicht.
-
-  > popup menu?
-
-* modules met VAST lesmoment en modules met nader te bepalen lesmoment...soort van wachtlijstklas per instrument?
 * werklijst: Show uren button:
   > how to select a (next) year?
   > make it a button/dropdown to be able to select a previous year?

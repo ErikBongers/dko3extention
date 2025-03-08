@@ -1,6 +1,7 @@
 export let COPY_AGAIN = "copy_again";
 export let PROGRESS_BAR_ID = "progressBarFetch";
-export let PREFILL_INSTR_BTN_ID = "prefillInstrButton";
+export let UREN_PREV_BTN_ID = "prefillInstrButton";
+export let UREN_NEXT_BTN_ID = "prefillInstrButtonNext";
 export let MAIL_BTN_ID = "mailButton";
 export let DOWNLOAD_TABLE_BTN_ID = "downloadTableButton";
 export let COPY_TABLE_BTN_ID = "copyTableButton";

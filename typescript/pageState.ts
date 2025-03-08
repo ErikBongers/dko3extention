@@ -38,7 +38,8 @@ export enum PageName {
 
 export enum Goto {
     None = "",
-    Werklijst_uren = "Werklijst_uren"
+    Werklijst_uren_nextYear = "Werklijst_uren_nextYear",
+    Werklijst_uren_prevYear = "Werklijst_uren_prevYear",
 }
 
 export interface PageState {

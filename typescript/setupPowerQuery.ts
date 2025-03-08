@@ -1,4 +1,4 @@
-import {clamp, isAlphaNumeric} from "./globals";
+import {calculateSchooljaar, clamp, createShortSchoolyearString, isAlphaNumeric} from "./globals";
 import * as def from "./def";
 import {getPageStateOrDefault, Goto, PageName, savePageState} from "./pageState";
 
@@ -75,9 +75,16 @@ export function setupPowerQuery() {
     //don' do nottin' - just initialize this module, below.
 }
 
-function gotoWerklijstUren(_queryItem: QueryItem) {
+function gotoWerklijstUrenNextYear(_queryItem: QueryItem) {
     let pageState = getPageStateOrDefault(PageName.Werklijst);
-    pageState.goto = Goto.Werklijst_uren;
+    pageState.goto = Goto.Werklijst_uren_nextYear;
+    savePageState(pageState);
+    location.href = "/#leerlingen-werklijst";
+}
+
+function gotoWerklijstUrenPrevYear(_queryItem: QueryItem) {
+    let pageState = getPageStateOrDefault(PageName.Werklijst);
+    pageState.goto = Goto.Werklijst_uren_prevYear;
     savePageState(pageState);
     location.href = "/#leerlingen-werklijst";
 }
@@ -85,11 +92,19 @@ function gotoWerklijstUren(_queryItem: QueryItem) {
 function getHardCodedQueryItems() {
     let items: QueryItem[] = [];
     let item: QueryItem = {
-        headerLabel: "Werklijst", href: "", label: "Uren per vak per leraar", longLabel: "", lowerCase: "", weight: 0
+        headerLabel: "Werklijst", href: "", label: "Lerarenuren " +createShortSchoolyearString(calculateSchooljaar()), longLabel: "", lowerCase: "", weight: 0
     }
     item.longLabel = item.headerLabel + " > " + item.label;
     item.lowerCase = item.longLabel.toLowerCase();
-    item.func = gotoWerklijstUren;
+    item.func = gotoWerklijstUrenPrevYear;
+    items.push(item);
+
+    item = {
+        headerLabel: "Werklijst", href: "", label: "Lerarenuren " +createShortSchoolyearString(calculateSchooljaar()+1), longLabel: "", lowerCase: "", weight: 0
+    }
+    item.longLabel = item.headerLabel + " > " + item.label;
+    item.lowerCase = item.longLabel.toLowerCase();
+    item.func = gotoWerklijstUrenNextYear;
     items.push(item);
     return items;
 }
