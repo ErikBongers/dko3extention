@@ -14,7 +14,7 @@ export function buildTrimesterTable(tableData: TableData, trimesterSorting: Trim
 
     trimDiv.dataset.showFullClass= isButtonHighlighted(FULL_CLASS_BUTTON_ID) ? "true" : "false";
 
-    let newTable = emmet("#trimesterTable>tbody+thead.table-secondary");
+    let newTable = emmet("#trimesterTable>tbody+thead.table-secondary>tr");
 
     let newTableBody = newTable.querySelector("tbody");
 
@@ -26,7 +26,7 @@ export function buildTrimesterTable(tableData: TableData, trimesterSorting: Trim
         }
     }
 
-    let trHeader = newTable.querySelector("thead");
+    let trHeader = newTable.querySelector("thead>tr");
 
     for(let trimNo of [0,1,2]) {
         const th = trHeader.appendChild(document.createElement("th"));

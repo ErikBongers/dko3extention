@@ -22,9 +22,11 @@ function addChildren(parent: HTMLElement, nested: string[]) {
         return;
 
     let children = next.split("+");
+    let lastChild = undefined;
     for(let child of children) {
-        addChild(parent, child, nested);
+        lastChild = addChild(parent, child, nested);
     }
+    addChildren(lastChild, nested);
 }
 
 interface AttDef {
@@ -62,7 +64,7 @@ function addChild(parent: HTMLElement, child: string, nested: string[]) {
             el.appendChild(document.createTextNode(def.text));
         }
     }
-    addChildren(el, nested);//TODO: this doesn't multiply the sub-children.
+    return el;
 }
 
 function createChild(parent: HTMLElement, child: string, nested: string[]): ElementDef {

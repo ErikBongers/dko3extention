@@ -849,9 +849,11 @@
     if (!next)
       return;
     let children = next.split("+");
+    let lastChild = void 0;
     for (let child of children) {
-      addChild(parent, child, nested);
+      lastChild = addChild(parent, child, nested);
     }
+    addChildren(lastChild, nested);
   }
   function addChild(parent, child, nested) {
     let def = createChild(parent, child, nested);
@@ -873,7 +875,7 @@
         el.appendChild(document.createTextNode(def.text));
       }
     }
-    addChildren(el, nested);
+    return el;
   }
   function createChild(parent, child, nested) {
     let props = child.split(/([#\.\[\]\*\{\}])/);
@@ -958,7 +960,7 @@
     tableData.blocks.sort((block1, block2) => block1.instrumentName.localeCompare(block2.instrumentName));
     let trimDiv = emmet(`#${TRIM_DIV_ID}>table#trimesterTable[border="2" style.width="100%"]>col[width="100"]*3`);
     trimDiv.dataset.showFullClass = isButtonHighlighted(FULL_CLASS_BUTTON_ID) ? "true" : "false";
-    let newTable = emmet("#trimesterTable>tbody+thead.table-secondary");
+    let newTable = emmet("#trimesterTable>tbody+thead.table-secondary>tr");
     let newTableBody = newTable.querySelector("tbody");
     let totTrim = [0, 0, 0];
     for (let block of tableData.blocks) {
@@ -967,7 +969,7 @@
         totTrim[trimNo] += totJaar + (block.trimesters[trimNo][0]?.students?.length ?? 0);
       }
     }
-    let trHeader = newTable.querySelector("thead");
+    let trHeader = newTable.querySelector("thead>tr");
     for (let trimNo of [0, 1, 2]) {
       const th = trHeader.appendChild(document.createElement("th"));
       let div = th.appendChild(document.createElement("div"));
