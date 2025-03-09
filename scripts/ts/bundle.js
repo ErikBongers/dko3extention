@@ -837,7 +837,7 @@
     let root = void 0;
     let nested;
     if (typeof root_or_text === "string") {
-      nested = root_or_text.split(/([>\(\)])/);
+      nested = root_or_text.split(/([>\(\)\+])/);
       if (nested[0][0] !== "#") {
         throw "No root id defined.";
       }
@@ -845,60 +845,80 @@
       nested.shift();
     } else {
       root = root_or_text;
-      nested = text.split(/([>\(\)])/);
+      nested = text.split(/([>\(\)\+])/);
     }
     if (!root)
       throw `Root ${nested[0]} doesn't exist`;
-    addChildren(root, nested);
+    let rootGroup = {
+      count: 1,
+      children: []
+    };
+    let rootDef = parseChildren(rootGroup, nested);
+    console.log(rootDef);
+    buildElement(root, rootDef, 1);
     return { root, last: lastCreated };
   }
-  function addGroup(parent, nested) {
+  function parseText(nested) {
+    let el1 = parsePlus(nested);
+    return parseDown(el1, nested);
   }
-  function addChildren(parent, nested) {
+  function parseDown(parent, nested) {
     let next = nested.shift();
     if (!next)
-      return;
-    if (next === "(") {
-      addGroup(parent, nested);
-    }
-    let children = next.split("+");
-    let lastChild = void 0;
-    for (let child of children) {
-      lastChild = addChild(parent, child, nested);
-    }
-    next = nested.shift();
+      return parent;
     if (next === ">") {
-      addChildren(lastChild, nested);
+      return parseChildren(parent, nested);
     }
+    nested.unshift(next);
+    return parent;
+  }
+  function parseChildren(parent, nested) {
+    let el = parsePlus(nested);
+    if (el)
+      parent.children.push(el);
+    return parent;
+  }
+  function parsePlus(nested) {
+    let el1 = parseElement(nested);
+    if (!el1)
+      return void 0;
+    let plus = nested.shift();
+    if (!plus)
+      return el1;
+    if (plus !== "+") {
+      nested.unshift(plus);
+      return el1;
+    }
+    let el2 = parseText(nested);
+    if (!el2)
+      return el1;
+    return { count: 1, children: [el1, el2] };
+  }
+  function parseElement(nested) {
+    let next = nested.shift();
+    if (next === "(") {
+      return parseGroup(nested);
+    }
+    return parseChildDef(next, nested);
+  }
+  function parseGroup(nested) {
+    let newNested = [];
+    while (true) {
+      let next = nested.shift();
+      if (next === ")" || !next)
+        break;
+      newNested.push(nested.shift());
+    }
+    let el = parseText(newNested);
+    nested.shift();
+    return el;
   }
   function addIndex(text, index) {
     return text.replace("$", (index + 1).toString());
   }
-  function addChild(parent, child, nested) {
-    let def = createChild(parent, child, nested);
-    let el;
-    for (let index = 0; index < def.count; index++) {
-      el = parent.appendChild(document.createElement(def.tag));
-      lastCreated = el;
-      if (def.id)
-        el.id = addIndex(def.id, index);
-      for (let clazz of def.classList) {
-        el.classList.add(addIndex(clazz, index));
-      }
-      for (let att of def.atts) {
-        if (att.sub)
-          el[addIndex(att.name, index)][addIndex(att.sub, index)] = addIndex(att.value, index);
-        else {
-          el.setAttribute(addIndex(att.name, index), addIndex(att.value, index));
-        }
-      }
-      if (def.text) {
-        el.appendChild(document.createTextNode(addIndex(def.text, index)));
-      }
-    }
-    return el;
-  }
-  function createChild(parent, child, nested) {
+  function parseChildDef(child, nested) {
+    if (!child)
+      return void 0;
     let props = child.split(/([#\.\[\]\*\{\}])/);
     let tag = props.shift();
     let id = void 0;
@@ -926,7 +946,14 @@
           break;
       }
     }
-    return { tag, id, atts, classList, text, count };
+    let el = {
+      count,
+      children: [
+        { tag, id, atts, classList, text, children: [] }
+      ]
+    };
+    parseDown(el.children[0], nested);
+    return el;
   }
   function getAttributes(props) {
     let atts = [];
@@ -974,11 +1001,45 @@
       return text.substring(1, text.length - 1);
     return text;
   }
+  function createElement(parent, def, index) {
+    let el = parent.appendChild(document.createElement(def.tag));
+    if (def.id)
+      el.id = addIndex(def.id, index);
+    for (let clazz of def.classList) {
+      el.classList.add(addIndex(clazz, index));
+    }
+    for (let att of def.atts) {
+      if (att.sub)
+        el[addIndex(att.name, index)][addIndex(att.sub, index)] = addIndex(att.value, index);
+      else {
+        el.setAttribute(addIndex(att.name, index), addIndex(att.value, index));
+      }
+    }
+    if (def.text) {
+      el.appendChild(document.createTextNode(addIndex(def.text, index)));
+    }
+    lastCreated = el;
+    return el;
+  }
+  function buildElement(parent, el, index) {
+    if ("tag" in el) {
+      let created = createElement(parent, el, index);
+      for (let child of el.children)
+        buildElement(created, child, 1);
+      return;
+    }
+    for (let index2 = 0; index2 < el.count; index2++) {
+      for (let def of el.children) {
+        buildElement(parent, def, index2);
+      }
+    }
+  }
 
   // typescript/lessen/build.ts
   var NBSP = 160;
   function buildTrimesterTable(tableData, trimesterSorting) {
     tableData.blocks.sort((block1, block2) => block1.instrumentName.localeCompare(block2.instrumentName));
+    debugger;
     let trimDiv = emmet(`#${TRIM_DIV_ID}>table#trimesterTable[border="2" style.width="100%"]>col[width="100"]*3`).root;
     trimDiv.dataset.showFullClass = isButtonHighlighted(FULL_CLASS_BUTTON_ID) ? "true" : "false";
     let { root: newTable, last: trHeader } = emmet("#trimesterTable>tbody+thead.table-secondary>tr");

@@ -10,6 +10,7 @@ export enum TrimesterSorting { TeacherInstrumentHour, InstrumentTeacherHour , Te
 
 export function buildTrimesterTable(tableData: TableData, trimesterSorting: TrimesterSorting) {
     tableData.blocks.sort((block1, block2) => block1.instrumentName.localeCompare(block2.instrumentName));
+    debugger;
     let trimDiv = html.emmet(`#${TRIM_DIV_ID}>table#trimesterTable[border="2" style.width="100%"]>col[width="100"]*3`).root;
 
     trimDiv.dataset.showFullClass= isButtonHighlighted(FULL_CLASS_BUTTON_ID) ? "true" : "false";
@@ -26,6 +27,7 @@ export function buildTrimesterTable(tableData: TableData, trimesterSorting: Trim
         }
     }
 
+    // html.emmet("(th>div>span>bold{Trimester $)*3");
     for(let trimNo of [0,1,2]) {
         let div = html.emmet(trHeader, "th>div").last;
         let span = div.appendChild(document.createElement("span"));
