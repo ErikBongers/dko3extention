@@ -1,19 +1,22 @@
-export function emmet(text: string) {
-    /*
-       #SOME_ID>div.someClass+anotherDiv>someChild>span*5
-    * */
-    debugger;
-    let nested = text.split(">");
+let lastCreated: HTMLElement = undefined; //TODO: get rid of global.
 
-    if(nested[0][0] !== "#") {
-        throw "No root id defined.";
+export function emmet(root_or_text: (HTMLElement | string), text?: string) {
+    let root: HTMLElement = undefined;
+    let nested: string[];
+    if(typeof root_or_text === "string") {
+        nested = root_or_text.split(">");
+        if (nested[0][0] !== "#") {
+            throw "No root id defined.";
+        }
+        root = document.querySelector(nested.shift()) as HTMLElement;
+    } else {
+        root = root_or_text;
+        nested = text.split(">");
     }
-
-    let root = document.querySelector(nested.shift()) as HTMLElement;
     if(!root)
         throw `Root ${nested[0]} doesn't exist`;
     addChildren(root, nested);
-    return root;
+    return {root, last: lastCreated};
 }
 
 function addChildren(parent: HTMLElement, nested: string[]) {
@@ -44,24 +47,30 @@ interface ElementDef {
     count: number
 }
 
+function addIndex(text: string, index: number) {
+    return text.replace("$", (index+1).toString());
+}
+
 function addChild(parent: HTMLElement, child: string, nested: string[]) {
     let def = createChild(parent, child, nested);
     let el: HTMLElement;
     for(let index = 0; index < def.count; index++) {
         el = parent.appendChild(document.createElement(def.tag));
+        lastCreated = el;
         if (def.id)
-            el.id = def.id;
-        if (def.classList.length)
-            el.classList.add(...def.classList);
+            el.id = addIndex(def.id, index);
+        for(let clazz of def.classList) {
+            el.classList.add(addIndex(clazz, index));
+        }
         for (let att of def.atts) {
             if (att.sub)
-                el[att.name][att.sub] = att.value;
+                el[addIndex(att.name, index)][addIndex(att.sub, index)] = addIndex(att.value, index);
             else {
-                el.setAttribute(att.name, att.value);
+                el.setAttribute(addIndex(att.name, index), addIndex(att.value, index));
             }
         }
         if(def.text) {
-            el.appendChild(document.createTextNode(def.text));
+            el.appendChild(document.createTextNode(addIndex(def.text, index)));
         }
     }
     return el;

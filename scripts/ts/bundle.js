@@ -832,17 +832,24 @@
   var UREN_TABLE_STATE_NAME = "__uren__";
 
   // typescript/lessen/html.ts
-  function emmet(text) {
-    debugger;
-    let nested = text.split(">");
-    if (nested[0][0] !== "#") {
-      throw "No root id defined.";
+  var lastCreated = void 0;
+  function emmet(root_or_text, text) {
+    let root = void 0;
+    let nested;
+    if (typeof root_or_text === "string") {
+      nested = root_or_text.split(">");
+      if (nested[0][0] !== "#") {
+        throw "No root id defined.";
+      }
+      root = document.querySelector(nested.shift());
+    } else {
+      root = root_or_text;
+      nested = text.split(">");
     }
-    let root = document.querySelector(nested.shift());
     if (!root)
       throw `Root ${nested[0]} doesn't exist`;
     addChildren(root, nested);
-    return root;
+    return { root, last: lastCreated };
   }
   function addChildren(parent, nested) {
     let next = nested.shift();
@@ -855,24 +862,29 @@
     }
     addChildren(lastChild, nested);
   }
+  function addIndex(text, index) {
+    return text.replace("$", (index + 1).toString());
+  }
   function addChild(parent, child, nested) {
     let def = createChild(parent, child, nested);
     let el;
     for (let index = 0; index < def.count; index++) {
       el = parent.appendChild(document.createElement(def.tag));
+      lastCreated = el;
       if (def.id)
-        el.id = def.id;
-      if (def.classList.length)
-        el.classList.add(...def.classList);
+        el.id = addIndex(def.id, index);
+      for (let clazz of def.classList) {
+        el.classList.add(addIndex(clazz, index));
+      }
       for (let att of def.atts) {
         if (att.sub)
-          el[att.name][att.sub] = att.value;
+          el[addIndex(att.name, index)][addIndex(att.sub, index)] = addIndex(att.value, index);
         else {
-          el.setAttribute(att.name, att.value);
+          el.setAttribute(addIndex(att.name, index), addIndex(att.value, index));
         }
       }
       if (def.text) {
-        el.appendChild(document.createTextNode(def.text));
+        el.appendChild(document.createTextNode(addIndex(def.text, index)));
       }
     }
     return el;
@@ -958,9 +970,9 @@
   var NBSP = 160;
   function buildTrimesterTable(tableData, trimesterSorting) {
     tableData.blocks.sort((block1, block2) => block1.instrumentName.localeCompare(block2.instrumentName));
-    let trimDiv = emmet(`#${TRIM_DIV_ID}>table#trimesterTable[border="2" style.width="100%"]>col[width="100"]*3`);
+    let trimDiv = emmet(`#${TRIM_DIV_ID}>table#trimesterTable[border="2" style.width="100%"]>col[width="100"]*3`).root;
     trimDiv.dataset.showFullClass = isButtonHighlighted(FULL_CLASS_BUTTON_ID) ? "true" : "false";
-    let newTable = emmet("#trimesterTable>tbody+thead.table-secondary>tr");
+    let { root: newTable, last: trHeader } = emmet("#trimesterTable>tbody+thead.table-secondary>tr");
     let newTableBody = newTable.querySelector("tbody");
     let totTrim = [0, 0, 0];
     for (let block of tableData.blocks) {
@@ -969,10 +981,8 @@
         totTrim[trimNo] += totJaar + (block.trimesters[trimNo][0]?.students?.length ?? 0);
       }
     }
-    let trHeader = newTable.querySelector("thead>tr");
     for (let trimNo of [0, 1, 2]) {
-      const th = trHeader.appendChild(document.createElement("th"));
-      let div = th.appendChild(document.createElement("div"));
+      let div = emmet(trHeader, "th>div").last;
       let span = div.appendChild(document.createElement("span"));
       span.classList.add("bold");
       span.innerHTML = `Trimester ${trimNo + 1}`;

@@ -2,7 +2,7 @@ import {FULL_CLASS_BUTTON_ID, isButtonHighlighted, TRIM_DIV_ID} from "../def";
 import {db3} from "../globals";
 import {BlockInfo, mergeBlockStudents, TableData, TOO_LARGE_MAX} from "./convert";
 import {StudentInfo} from "./scrape";
-import {emmet} from "./html";
+import * as html from "./html";
 
 const NBSP = 160;
 
@@ -10,11 +10,11 @@ export enum TrimesterSorting { TeacherInstrumentHour, InstrumentTeacherHour , Te
 
 export function buildTrimesterTable(tableData: TableData, trimesterSorting: TrimesterSorting) {
     tableData.blocks.sort((block1, block2) => block1.instrumentName.localeCompare(block2.instrumentName));
-    let trimDiv = emmet(`#${TRIM_DIV_ID}>table#trimesterTable[border="2" style.width="100%"]>col[width="100"]*3`);
+    let trimDiv = html.emmet(`#${TRIM_DIV_ID}>table#trimesterTable[border="2" style.width="100%"]>col[width="100"]*3`).root;
 
     trimDiv.dataset.showFullClass= isButtonHighlighted(FULL_CLASS_BUTTON_ID) ? "true" : "false";
 
-    let newTable = emmet("#trimesterTable>tbody+thead.table-secondary>tr");
+    let { root: newTable, last: trHeader } = html.emmet("#trimesterTable>tbody+thead.table-secondary>tr");
 
     let newTableBody = newTable.querySelector("tbody");
 
@@ -26,11 +26,8 @@ export function buildTrimesterTable(tableData: TableData, trimesterSorting: Trim
         }
     }
 
-    let trHeader = newTable.querySelector("thead>tr");
-
     for(let trimNo of [0,1,2]) {
-        const th = trHeader.appendChild(document.createElement("th"));
-        let div = th.appendChild(document.createElement("div"));
+        let div = html.emmet(trHeader, "th>div").last;
         let span = div.appendChild(document.createElement("span"));
         span.classList.add("bold");
         span.innerHTML = `Trimester ${trimNo+1}`;
