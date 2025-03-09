@@ -1,17 +1,39 @@
 let lastCreated: HTMLElement = undefined; //TODO: get rid of global.
 
+/*
+
+aaa>bbb>(ccc+ddd)*3>eee
+aaa
+>
+bbb
+>
+(
+ccc
++
+ddd
+)
+*3
+>
+eee
+
+* */
+
+
 export function emmet(root_or_text: (HTMLElement | string), text?: string) {
     let root: HTMLElement = undefined;
     let nested: string[];
     if(typeof root_or_text === "string") {
-        nested = root_or_text.split(">");
+        // noinspection RegExpRedundantEscape
+        nested = root_or_text.split(/([>\(\)])/);
         if (nested[0][0] !== "#") {
             throw "No root id defined.";
         }
         root = document.querySelector(nested.shift()) as HTMLElement;
+        nested.shift(); //consume > todo: should be tested.
     } else {
         root = root_or_text;
-        nested = text.split(">");
+        // noinspection RegExpRedundantEscape
+        nested = text.split(/([>\(\)])/);
     }
     if(!root)
         throw `Root ${nested[0]} doesn't exist`;
@@ -19,17 +41,43 @@ export function emmet(root_or_text: (HTMLElement | string), text?: string) {
     return {root, last: lastCreated};
 }
 
+function addNext(parent: HTMLElement, nested: string[]) {
+    let separator = nested.shift();
+    if(!separator)
+        return;
+    switch (separator) {
+        case '>':
+            addChildren(parent, nested);
+            break;
+        case '(':
+            addGroup(parent, nested);
+            break;
+    }
+}
+
+function addGroup(parent: HTMLElement, nested: string[]) {
+    //todo:
+    //consume closing brace here.
+}
+
+
 function addChildren(parent: HTMLElement, nested: string[]) {
     let next = nested.shift();
     if(!next)
         return;
+    if(next === '(') {
+        addGroup(parent, nested);
+    }
 
     let children = next.split("+");
     let lastChild = undefined;
     for(let child of children) {
         lastChild = addChild(parent, child, nested);
     }
-    addChildren(lastChild, nested);
+    next = nested.shift();
+    if(next === '>') {
+        addChildren(lastChild, nested);
+    }
 }
 
 interface AttDef {

@@ -837,30 +837,39 @@
     let root = void 0;
     let nested;
     if (typeof root_or_text === "string") {
-      nested = root_or_text.split(">");
+      nested = root_or_text.split(/([>\(\)])/);
       if (nested[0][0] !== "#") {
         throw "No root id defined.";
       }
       root = document.querySelector(nested.shift());
+      nested.shift();
     } else {
       root = root_or_text;
-      nested = text.split(">");
+      nested = text.split(/([>\(\)])/);
     }
     if (!root)
       throw `Root ${nested[0]} doesn't exist`;
     addChildren(root, nested);
     return { root, last: lastCreated };
   }
+  function addGroup(parent, nested) {
+  }
   function addChildren(parent, nested) {
     let next = nested.shift();
     if (!next)
       return;
+    if (next === "(") {
+      addGroup(parent, nested);
+    }
     let children = next.split("+");
     let lastChild = void 0;
     for (let child of children) {
       lastChild = addChild(parent, child, nested);
     }
-    addChildren(lastChild, nested);
+    next = nested.shift();
+    if (next === ">") {
+      addChildren(lastChild, nested);
+    }
   }
   function addIndex(text, index) {
     return text.replace("$", (index + 1).toString());
