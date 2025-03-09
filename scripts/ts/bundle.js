@@ -831,21 +831,112 @@
   var STORAGE_PAGE_STATE_KEY = "pageState";
   var UREN_TABLE_STATE_NAME = "__uren__";
 
+  // typescript/lessen/html.ts
+  function emmet(text) {
+    debugger;
+    let nested = text.split(">");
+    if (nested[0][0] !== "#") {
+      throw "No root id defined.";
+    }
+    let root = document.querySelector(nested.shift());
+    if (!root)
+      throw `Root ${nested[0]} doesn't exist`;
+    addChildren(root, nested);
+    return root;
+  }
+  function addChildren(parent, nested) {
+    let next = nested.shift();
+    if (!next)
+      return;
+    let children = next.split("+");
+    for (let child of children) {
+      addChild(parent, child);
+    }
+  }
+  function addChild(parent, child) {
+    let props = child.split(/([#\.\[\]])/);
+    let tagName = props.shift();
+    let id = void 0;
+    let atts = [];
+    let classList = [];
+    while (props.length) {
+      let prop = props.shift();
+      switch (prop) {
+        case ".":
+          classList.push(props.shift());
+          break;
+        case "#":
+          id = props.shift();
+          break;
+        case "[":
+          atts = getAttributes(props);
+          break;
+      }
+    }
+    let el = parent.appendChild(document.createElement(tagName));
+    if (id)
+      el.id = id;
+    if (classList.length)
+      el.classList.add(...classList);
+    for (let att of atts) {
+      if (att.sub)
+        el[att.name][att.sub] = att.value;
+      else {
+        el.setAttribute(att.name, att.value);
+      }
+    }
+  }
+  function getAttributes(props) {
+    let atts = [];
+    while (props.length) {
+      let prop = props.shift();
+      if (prop == "]")
+        break;
+      atts.push(prop.split(/([\s=])/));
+    }
+    let tokens = atts.flat();
+    let attDefs = [];
+    while (tokens.length) {
+      let name = tokens.shift();
+      let eq = tokens.shift();
+      let sub = "";
+      if (eq === ".") {
+        sub = tokens.shift();
+        eq = tokens.shift();
+      }
+      if (eq != "=") {
+        throw "Equal sign expected.";
+      }
+      let value = stripQuotes(tokens.shift());
+      if (!value)
+        throw "Value expected.";
+      attDefs.push({ name, sub, value });
+      if (!tokens.length)
+        break;
+      let space = tokens.shift();
+    }
+    return attDefs;
+  }
+  function stripQuotes(text) {
+    if (text[0] === "'" || text[0] === '"')
+      return text.substring(1, text.length - 1);
+    return text;
+  }
+
   // typescript/lessen/build.ts
   var NBSP = 160;
   function buildTrimesterTable(tableData, trimesterSorting) {
     tableData.blocks.sort((block1, block2) => block1.instrumentName.localeCompare(block2.instrumentName));
-    let trimDiv = document.getElementById(TRIM_DIV_ID);
+    let trimDiv = emmet(`#${TRIM_DIV_ID}>table#trimesterTable[border="2" style.width="100%"]`);
     trimDiv.dataset.showFullClass = isButtonHighlighted(FULL_CLASS_BUTTON_ID) ? "true" : "false";
-    let newTable = document.body.appendChild(document.createElement("table"));
-    trimDiv.appendChild(newTable);
-    newTable.id = "trimesterTable";
-    newTable.style.width = "100%";
-    newTable.setAttribute("border", "2");
+    let newTable = document.querySelector("#trimesterTable");
     for (let _ of [0, 1, 2]) {
       let col = newTable.appendChild(document.createElement("col"));
       col.setAttribute("width", "100");
     }
+    const tHead = newTable.appendChild(document.createElement("thead"));
+    tHead.classList.add("table-secondary");
+    const trHeader = tHead.appendChild(createLesRow("tableheader"));
     const newTableBody = newTable.appendChild(document.createElement("tbody"));
     let totTrim = [0, 0, 0];
     for (let block of tableData.blocks) {
@@ -854,9 +945,6 @@
         totTrim[trimNo] += totJaar + (block.trimesters[trimNo][0]?.students?.length ?? 0);
       }
     }
-    const tHead = newTable.appendChild(document.createElement("thead"));
-    tHead.classList.add("table-secondary");
-    const trHeader = tHead.appendChild(createLesRow("tableheader"));
     for (let trimNo of [0, 1, 2]) {
       const th = trHeader.appendChild(document.createElement("th"));
       let div = th.appendChild(document.createElement("div"));

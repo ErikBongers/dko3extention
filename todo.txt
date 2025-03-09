@@ -1,7 +1,3 @@
-* werklijst: Show uren button:
-  > how to select a (next) year?
-  > make it a button/dropdown to be able to select a previous year?
-
 * Global search: sorteer op voornaam.
 
 * If table page size is changed: clear cache and update infobar!
@@ -34,10 +30,6 @@ Features
 * Uitleningen: verlengdatum moet 1/9 zijn of in verkeerde jaar!
 
 * link uitlening -> asset.
-
-* Filter full classes state is at trimDiv level AND at overzichtDiv.
-  > consolidate state?
-  > in some state machine, or all in the overzicht div?
 
 * Use popover for the student.info popup.
   > make trimesters links to the classes.

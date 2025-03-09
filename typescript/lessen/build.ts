@@ -2,6 +2,7 @@ import {FULL_CLASS_BUTTON_ID, isButtonHighlighted, TRIM_DIV_ID} from "../def";
 import {db3} from "../globals";
 import {BlockInfo, mergeBlockStudents, TableData, TOO_LARGE_MAX} from "./convert";
 import {StudentInfo} from "./scrape";
+import {emmet} from "./html";
 
 const NBSP = 160;
 
@@ -9,20 +10,23 @@ export enum TrimesterSorting { TeacherInstrumentHour, InstrumentTeacherHour , Te
 
 export function buildTrimesterTable(tableData: TableData, trimesterSorting: TrimesterSorting) {
     tableData.blocks.sort((block1, block2) => block1.instrumentName.localeCompare(block2.instrumentName));
-    let trimDiv = document.getElementById(TRIM_DIV_ID);
-    trimDiv.dataset.showFullClass= isButtonHighlighted(FULL_CLASS_BUTTON_ID) ? "true" : "false";
-    let newTable = document.body.appendChild(document.createElement("table"));
-    trimDiv.appendChild(newTable);
-    newTable.id = "trimesterTable";
-    newTable.style.width = "100%";
-    newTable.setAttribute("border", "2");
+    let trimDiv = emmet(`#${TRIM_DIV_ID}>table#trimesterTable[border="2" style.width="100%"]`);
 
+    trimDiv.dataset.showFullClass= isButtonHighlighted(FULL_CLASS_BUTTON_ID) ? "true" : "false";
+
+    let newTable = document.querySelector("#trimesterTable");
     for(let _ of [0,1,2]) {
         let col = newTable.appendChild(document.createElement("col"));
         col.setAttribute("width", "100");
     }
 
+    //table header
+    const tHead = newTable.appendChild(document.createElement("thead"));
+    tHead.classList.add("table-secondary")
+    const trHeader = tHead.appendChild(createLesRow("tableheader"));
+
     const newTableBody = newTable.appendChild(document.createElement("tbody"));
+
 
     let totTrim = [0,0,0];
     for (let block of tableData.blocks) {
@@ -31,11 +35,6 @@ export function buildTrimesterTable(tableData: TableData, trimesterSorting: Trim
             totTrim[trimNo] += totJaar + (block.trimesters[trimNo][0]?.students?.length ?? 0);
         }
     }
-
-    //table header
-    const tHead = newTable.appendChild(document.createElement("thead"));
-    tHead.classList.add("table-secondary")
-    const trHeader = tHead.appendChild(createLesRow("tableheader"));
 
     for(let trimNo of [0,1,2]) {
         const th = trHeader.appendChild(document.createElement("th"));
