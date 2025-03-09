@@ -850,15 +850,39 @@
       return;
     let children = next.split("+");
     for (let child of children) {
-      addChild(parent, child);
+      addChild(parent, child, nested);
     }
   }
-  function addChild(parent, child) {
-    let props = child.split(/([#\.\[\]])/);
-    let tagName = props.shift();
+  function addChild(parent, child, nested) {
+    let def = createChild(parent, child, nested);
+    let el;
+    for (let index = 0; index < def.count; index++) {
+      el = parent.appendChild(document.createElement(def.tag));
+      if (def.id)
+        el.id = def.id;
+      if (def.classList.length)
+        el.classList.add(...def.classList);
+      for (let att of def.atts) {
+        if (att.sub)
+          el[att.name][att.sub] = att.value;
+        else {
+          el.setAttribute(att.name, att.value);
+        }
+      }
+      if (def.text) {
+        el.appendChild(document.createTextNode(def.text));
+      }
+    }
+    addChildren(el, nested);
+  }
+  function createChild(parent, child, nested) {
+    let props = child.split(/([#\.\[\]\*\{\}])/);
+    let tag = props.shift();
     let id = void 0;
     let atts = [];
     let classList = [];
+    let count = 1;
+    let text = "";
     while (props.length) {
       let prop = props.shift();
       switch (prop) {
@@ -868,23 +892,18 @@
         case "#":
           id = props.shift();
           break;
+        case "*":
+          count = parseInt(props.shift());
+          break;
         case "[":
           atts = getAttributes(props);
           break;
+        case "{":
+          text = getText(props);
+          break;
       }
     }
-    let el = parent.appendChild(document.createElement(tagName));
-    if (id)
-      el.id = id;
-    if (classList.length)
-      el.classList.add(...classList);
-    for (let att of atts) {
-      if (att.sub)
-        el[att.name][att.sub] = att.value;
-      else {
-        el.setAttribute(att.name, att.value);
-      }
-    }
+    return { tag, id, atts, classList, text, count };
   }
   function getAttributes(props) {
     let atts = [];
@@ -917,6 +936,16 @@
     }
     return attDefs;
   }
+  function getText(props) {
+    let text = "";
+    while (props.length) {
+      let prop = props.shift();
+      if (prop == "}")
+        break;
+      text += prop;
+    }
+    return text;
+  }
   function stripQuotes(text) {
     if (text[0] === "'" || text[0] === '"')
       return text.substring(1, text.length - 1);
@@ -927,17 +956,10 @@
   var NBSP = 160;
   function buildTrimesterTable(tableData, trimesterSorting) {
     tableData.blocks.sort((block1, block2) => block1.instrumentName.localeCompare(block2.instrumentName));
-    let trimDiv = emmet(`#${TRIM_DIV_ID}>table#trimesterTable[border="2" style.width="100%"]`);
+    let trimDiv = emmet(`#${TRIM_DIV_ID}>table#trimesterTable[border="2" style.width="100%"]>col[width="100"]*3`);
     trimDiv.dataset.showFullClass = isButtonHighlighted(FULL_CLASS_BUTTON_ID) ? "true" : "false";
-    let newTable = document.querySelector("#trimesterTable");
-    for (let _ of [0, 1, 2]) {
-      let col = newTable.appendChild(document.createElement("col"));
-      col.setAttribute("width", "100");
-    }
-    const tHead = newTable.appendChild(document.createElement("thead"));
-    tHead.classList.add("table-secondary");
-    const trHeader = tHead.appendChild(createLesRow("tableheader"));
-    const newTableBody = newTable.appendChild(document.createElement("tbody"));
+    let newTable = emmet("#trimesterTable>tbody+thead.table-secondary");
+    let newTableBody = newTable.querySelector("tbody");
     let totTrim = [0, 0, 0];
     for (let block of tableData.blocks) {
       let totJaar = block.jaarModules.map((mod) => mod.students.length).reduce((prev, curr) => prev + curr, 0);
@@ -945,6 +967,7 @@
         totTrim[trimNo] += totJaar + (block.trimesters[trimNo][0]?.students?.length ?? 0);
       }
     }
+    let trHeader = newTable.querySelector("thead");
     for (let trimNo of [0, 1, 2]) {
       const th = trHeader.appendChild(document.createElement("th"));
       let div = th.appendChild(document.createElement("div"));

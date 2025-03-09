@@ -23,7 +23,7 @@ function addChildren(parent: HTMLElement, nested: string[]) {
 
     let children = next.split("+");
     for(let child of children) {
-        addChild(parent, child);
+        addChild(parent, child, nested);
     }
 }
 
@@ -37,17 +37,44 @@ interface ElementDef {
     tag: string,
     id: string,
     atts: AttDef[]
-    classList: string[]
+    classList: string[],
+    text: string,
+    count: number
 }
 
-function addChild(parent: HTMLElement, child: string) {
+function addChild(parent: HTMLElement, child: string, nested: string[]) {
+    let def = createChild(parent, child, nested);
+    let el: HTMLElement;
+    for(let index = 0; index < def.count; index++) {
+        el = parent.appendChild(document.createElement(def.tag));
+        if (def.id)
+            el.id = def.id;
+        if (def.classList.length)
+            el.classList.add(...def.classList);
+        for (let att of def.atts) {
+            if (att.sub)
+                el[att.name][att.sub] = att.value;
+            else {
+                el.setAttribute(att.name, att.value);
+            }
+        }
+        if(def.text) {
+            el.appendChild(document.createTextNode(def.text));
+        }
+    }
+    addChildren(el, nested);//TODO: this doesn't multiply the sub-children.
+}
+
+function createChild(parent: HTMLElement, child: string, nested: string[]): ElementDef {
     // table.trimesterTable[border="2" style.width="100%"]
     // noinspection RegExpRedundantEscape
-    let props = child.split(/([#\.\[\]])/);
-    let tagName = props.shift();
+    let props = child.split(/([#\.\[\]\*\{\}])/);
+    let tag = props.shift();
     let id = undefined;
     let atts: AttDef[] = [];
     let classList: string[] = [];
+    let count = 1;
+    let text = "";
 
     while(props.length) {
         let prop = props.shift();
@@ -58,23 +85,18 @@ function addChild(parent: HTMLElement, child: string) {
             case '#':
                 id = props.shift();
                 break;
+            case '*':
+                count = parseInt(props.shift());
+                break;
             case '[':
                 atts = getAttributes( props);
                 break;
+            case '{':
+                text = getText(props);
+                break;
         }
     }
-    let el = parent.appendChild(document.createElement(tagName));
-    if(id)
-        el.id = id;
-    if (classList.length)
-        el.classList.add(...classList);
-    for(let att of atts) {
-        if(att.sub)
-            el[att.name][att.sub] = att.value;
-        else {
-            el.setAttribute(att.name, att.value);
-        }
-    }
+    return { tag, id, atts, classList, text, count };
 }
 
 function getAttributes(props: string[]) {
@@ -111,6 +133,18 @@ function getAttributes(props: string[]) {
         //TODO: should test for multiple spaces
     }
     return attDefs;
+}
+
+function getText(props: string[]) {
+    //gather all the attributes
+    let text = "";
+    while(props.length) {
+        let prop = props.shift();
+        if(prop == '}')
+            break;
+        text += prop;
+    }
+    return text;
 }
 
 function stripQuotes(text: string) {

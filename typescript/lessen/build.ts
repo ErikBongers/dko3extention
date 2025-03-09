@@ -10,23 +10,13 @@ export enum TrimesterSorting { TeacherInstrumentHour, InstrumentTeacherHour , Te
 
 export function buildTrimesterTable(tableData: TableData, trimesterSorting: TrimesterSorting) {
     tableData.blocks.sort((block1, block2) => block1.instrumentName.localeCompare(block2.instrumentName));
-    let trimDiv = emmet(`#${TRIM_DIV_ID}>table#trimesterTable[border="2" style.width="100%"]`);
+    let trimDiv = emmet(`#${TRIM_DIV_ID}>table#trimesterTable[border="2" style.width="100%"]>col[width="100"]*3`);
 
     trimDiv.dataset.showFullClass= isButtonHighlighted(FULL_CLASS_BUTTON_ID) ? "true" : "false";
 
-    let newTable = document.querySelector("#trimesterTable");
-    for(let _ of [0,1,2]) {
-        let col = newTable.appendChild(document.createElement("col"));
-        col.setAttribute("width", "100");
-    }
+    let newTable = emmet("#trimesterTable>tbody+thead.table-secondary");
 
-    //table header
-    const tHead = newTable.appendChild(document.createElement("thead"));
-    tHead.classList.add("table-secondary")
-    const trHeader = tHead.appendChild(createLesRow("tableheader"));
-
-    const newTableBody = newTable.appendChild(document.createElement("tbody"));
-
+    let newTableBody = newTable.querySelector("tbody");
 
     let totTrim = [0,0,0];
     for (let block of tableData.blocks) {
@@ -35,6 +25,8 @@ export function buildTrimesterTable(tableData: TableData, trimesterSorting: Trim
             totTrim[trimNo] += totJaar + (block.trimesters[trimNo][0]?.students?.length ?? 0);
         }
     }
+
+    let trHeader = newTable.querySelector("thead");
 
     for(let trimNo of [0,1,2]) {
         const th = trHeader.appendChild(document.createElement("th"));
