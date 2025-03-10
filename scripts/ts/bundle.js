@@ -857,49 +857,41 @@
   }
   function parse(root, nested) {
     nested = nested.filter((token) => token);
-    let rootGroup = {
-      count: 1,
-      children: []
-    };
-    let rootDef = parseChildren(rootGroup, nested);
+    let rootDef = parseChildren(nested);
     buildElement(root, rootDef, 1);
     return { root, last: lastCreated };
   }
   function parseText(nested) {
-    let el1 = parsePlus(nested);
-    return parseDown(el1, nested);
+    return parsePlus(nested);
   }
-  function parseDown(parent, nested) {
+  function parseDown(nested) {
     let next = nested.shift();
     if (!next)
-      return parent;
+      return void 0;
     if (next === ">") {
-      return parseChildren(parent, nested);
+      return parseChildren(nested);
     }
     nested.unshift(next);
-    return parent;
+    return void 0;
   }
-  function parseChildren(parent, nested) {
-    let el = parsePlus(nested);
-    if (el)
-      parent.children.push(el);
-    return parent;
+  function parseChildren(nested) {
+    return parsePlus(nested);
   }
   function parsePlus(nested) {
-    let el1 = parseMult(nested);
-    if (!el1)
-      return void 0;
-    let plus = nested.shift();
-    if (!plus)
-      return el1;
-    if (plus !== "+") {
-      nested.unshift(plus);
-      return el1;
+    let list2 = [];
+    while (true) {
+      let el = parseMult(nested);
+      if (!el)
+        return list2.length === 1 ? list2[0] : { list: list2 };
+      list2.push(el);
+      let plus = nested.shift();
+      if (!plus)
+        return list2.length === 1 ? list2[0] : { list: list2 };
+      if (plus !== "+") {
+        nested.unshift(plus);
+        return list2.length === 1 ? list2[0] : { list: list2 };
+      }
     }
-    let el2 = parseText(nested);
-    if (!el2)
-      return el1;
-    return { count: 1, children: [el1, el2] };
   }
   function parseMult(nested) {
     let el = parseElement(nested);
@@ -910,13 +902,11 @@
       let count = parseInt(nested.shift());
       return {
         count,
-        children: [
-          parseDown(el, nested)
-        ]
+        child: el
       };
     } else {
       nested.unshift(mult);
-      return parseDown(el, nested);
+      return el;
     }
   }
   function parseElement(nested) {
@@ -924,16 +914,16 @@
     let el;
     if (next === "(") {
       el = parseText(nested);
-      let closingBrace = nested.shift();
+      let _closingBrace = nested.shift();
       return el;
     } else {
-      return parseChildDef(next);
+      return parseChildDef(next, nested);
     }
   }
   function addIndex(text, index) {
     return text.replace("$", (index + 1).toString());
   }
-  function parseChildDef(child) {
+  function parseChildDef(child, nested) {
     if (!child)
       return void 0;
     let props = child.split(/([#\.\[\]\*\{\}])/);
@@ -960,7 +950,7 @@
           break;
       }
     }
-    return { tag, id, atts, classList, text, children: [] };
+    return { tag, id, atts, classList, text, child: parseDown(nested) };
   }
   function getAttributes(props) {
     let atts = [];
@@ -1031,13 +1021,18 @@
   function buildElement(parent, el, index) {
     if ("tag" in el) {
       let created = createElement(parent, el, index);
-      for (let child of el.children)
-        buildElement(created, child, index);
+      if (el.child)
+        buildElement(created, el.child, index);
       return;
     }
-    for (let i = 0; i < el.count; i++) {
-      for (let def of el.children) {
-        buildElement(parent, def, i);
+    if ("list" in el) {
+      for (let def of el.list) {
+        buildElement(parent, def, index);
+      }
+    }
+    if ("count" in el) {
+      for (let i = 0; i < el.count; i++) {
+        buildElement(parent, el.child, i);
       }
     }
   }
@@ -1057,7 +1052,7 @@
         totTrim[trimNo] += totJaar + (block.trimesters[trimNo][0]?.students?.length ?? 0);
       }
     }
-    emmet.append(trHeader, "(th>div>span.bold{Trimester $})*3");
+    emmet.append(trHeader, "(th>div>span.bold{Trimester $}+span.plain{$ lln})*3");
     switch (trimesterSorting) {
       case 1 /* InstrumentTeacherHour */:
         for (let [instrument, blocks] of tableData.instruments) {
