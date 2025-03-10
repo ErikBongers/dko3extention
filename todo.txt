@@ -1,3 +1,6 @@
+* build.ts: test index insertion in text:
+  : html.emmet("(th>div>span>bold{Trimester $)*3");
+
 * Global search: sorteer op voornaam.
 
 * If table page size is changed: clear cache and update infobar!

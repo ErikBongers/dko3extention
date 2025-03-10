@@ -43,25 +43,9 @@ export function emmet(root_or_text: (HTMLElement | string), text?: string) {
         children: []
     };
     let rootDef = parseChildren(rootGroup, nested) ;
-    console.log(rootDef);
     buildElement(root, rootDef, 1);
     return {root, last: lastCreated};
 }
-
-//all binary ops:
-// a+b*c+d*e = a+(b*c)+d*e)
-// parsePlus
-//   > parseMult
-// .    > parseGroup
-
-//(root)>aaa>bbb+ccc>ddd = (root)>bbb+(ccc>ddd)
-// parseList -> parse the full remaining text
-//   - take operand
-//   - if >:  parseNested :
-//   - if +: parsePlus
-
-//   parseNested
-//     parseGroup
 
 function parseText(nested: string[]) {
     let el1 = parsePlus(nested);

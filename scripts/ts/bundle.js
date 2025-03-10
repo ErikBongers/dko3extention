@@ -854,7 +854,6 @@
       children: []
     };
     let rootDef = parseChildren(rootGroup, nested);
-    console.log(rootDef);
     buildElement(root, rootDef, 1);
     return { root, last: lastCreated };
   }
@@ -1039,7 +1038,6 @@
   var NBSP = 160;
   function buildTrimesterTable(tableData, trimesterSorting) {
     tableData.blocks.sort((block1, block2) => block1.instrumentName.localeCompare(block2.instrumentName));
-    debugger;
     let trimDiv = emmet(`#${TRIM_DIV_ID}>table#trimesterTable[border="2" style.width="100%"]>col[width="100"]*3`).root;
     trimDiv.dataset.showFullClass = isButtonHighlighted(FULL_CLASS_BUTTON_ID) ? "true" : "false";
     let { root: newTable, last: trHeader } = emmet("#trimesterTable>tbody+thead.table-secondary>tr");
