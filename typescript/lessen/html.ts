@@ -34,7 +34,7 @@ let lastCreated: HTMLElement = undefined;
 // noinspection RegExpRedundantEscape
 let reSplit = /([>\(\)\+\*])/;
 
-function create(text: string) {
+function create(text: string, onIndex?: (index: number) => string) {
     let root: HTMLElement = undefined;
     let nested: string[];
     // noinspection RegExpRedundantEscape
@@ -46,18 +46,18 @@ function create(text: string) {
     if(!root)
         throw `Root ${nested[0]} doesn't exist`;
     nested.shift(); //consume > todo: should be tested.
-    return parse(root, nested);
+    return parse(root, nested, onIndex);
 }
 
-function append(root: HTMLElement, text: string) {
+function append(root: HTMLElement, text: string, onIndex?: (index: number) => string) {
     let nested = text.split(reSplit);
-    return parse(root, nested);
+    return parse(root, nested, onIndex);
 }
 
-function parse(root: HTMLElement, nested: string[]) {
+function parse(root: HTMLElement, nested: string[], onIndex: (index: number) => string) {
     nested = nested.filter(token => token);
     let rootDef = parseChildren(nested) ;
-    buildElement(root, rootDef, 1);
+    buildElement(root, rootDef, 1, onIndex);
     return {root, last: lastCreated};
 }
 
@@ -130,10 +130,6 @@ function parseElement(nested: string[]): Node {
     } else {
         return parseChildDef(next, nested);
     }
-}
-
-function addIndex(text: string, index: number) {
-    return text.replace("$", (index+1).toString());
 }
 
 function parseChildDef(child: string, nested: string[]): ElementDef {
@@ -223,43 +219,51 @@ function stripQuotes(text: string) {
 }
 
 //CREATION
-function createElement(parent: HTMLElement, def: ElementDef, index: number) {
+function createElement(parent: HTMLElement, def: ElementDef, index: number, onIndex: (index: number) => string) {
     let el = parent.appendChild(document.createElement(def.tag));
     if (def.id)
-        el.id = addIndex(def.id, index);
+        el.id = addIndex(def.id, index, onIndex);
     for(let clazz of def.classList) {
-        el.classList.add(addIndex(clazz, index));
+        el.classList.add(addIndex(clazz, index, onIndex));
     }
     for (let att of def.atts) {
         if (att.sub)
-            el[addIndex(att.name, index)][addIndex(att.sub, index)] = addIndex(att.value, index);
+            el[addIndex(att.name, index, onIndex)][addIndex(att.sub, index, onIndex)] = addIndex(att.value, index, onIndex);
         else {
-            el.setAttribute(addIndex(att.name, index), addIndex(att.value, index));
+            el.setAttribute(addIndex(att.name, index, onIndex), addIndex(att.value, index, onIndex));
         }
     }
     if(def.text) {
-        el.appendChild(document.createTextNode(addIndex(def.text, index)));
+        el.appendChild(document.createTextNode(addIndex(def.text, index, onIndex)));
     }
     lastCreated = el;
     return el;
 }
 
-function buildElement(parent: HTMLElement, el: Node, index: number) {
+function buildElement(parent: HTMLElement, el: Node, index: number, onIndex: (index: number) => string) {
     if("tag" in el) { //ElementDef
-        let created = createElement(parent, el, index);
+        let created = createElement(parent, el, index, onIndex);
         if(el.child)
-            buildElement(created, el.child, index);
+            buildElement(created, el.child, index, onIndex);
         return;
     }
     if("list" in el) { //ListDef
         for( let def of el.list) {
-            buildElement(parent, def, index);
+            buildElement(parent, def, index, onIndex);
         }
     }
     if("count" in el) { //GroupDef
         for(let i = 0; i < el.count; i++) {
-            buildElement(parent, el.child, i);
+            buildElement(parent, el.child, i, onIndex);
         }
     }
+}
+
+function addIndex(text: string, index: number, onIndex: (index: number) => string) {
+    if(onIndex) {
+        let result = onIndex(index);
+        text = text.replace("$$", result);
+    }
+    return text.replace("$", (index+1).toString());
 }
 

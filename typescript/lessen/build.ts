@@ -26,7 +26,7 @@ export function buildTrimesterTable(tableData: TableData, trimesterSorting: Trim
         }
     }
 
-    html.emmet.append(trHeader, "(th>div>span.bold{Trimester $}+span.plain{$ lln})*3");
+    html.emmet.append(trHeader, "(th>div>span.bold{Trimester $}+span.plain{ $$ lln})*3", (index) => totTrim[index].toString());
     // for(let trimNo of [0,1,2]) {
     //     let div = html.emmet(trHeader, "th>div").last;
     //     let span = div.appendChild(document.createElement("span"));

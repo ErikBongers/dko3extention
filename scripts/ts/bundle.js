@@ -838,7 +838,7 @@
   };
   var lastCreated = void 0;
   var reSplit = /([>\(\)\+\*])/;
-  function create(text) {
+  function create(text, onIndex) {
     let root = void 0;
     let nested;
     nested = text.split(reSplit);
@@ -849,16 +849,16 @@
     if (!root)
       throw `Root ${nested[0]} doesn't exist`;
     nested.shift();
-    return parse(root, nested);
+    return parse(root, nested, onIndex);
   }
-  function append(root, text) {
+  function append(root, text, onIndex) {
     let nested = text.split(reSplit);
-    return parse(root, nested);
+    return parse(root, nested, onIndex);
   }
-  function parse(root, nested) {
+  function parse(root, nested, onIndex) {
     nested = nested.filter((token) => token);
     let rootDef = parseChildren(nested);
-    buildElement(root, rootDef, 1);
+    buildElement(root, rootDef, 1, onIndex);
     return { root, last: lastCreated };
   }
   function parseText(nested) {
@@ -919,9 +919,6 @@
     } else {
       return parseChildDef(next, nested);
     }
-  }
-  function addIndex(text, index) {
-    return text.replace("$", (index + 1).toString());
   }
   function parseChildDef(child, nested) {
     if (!child)
@@ -998,43 +995,50 @@
       return text.substring(1, text.length - 1);
     return text;
   }
-  function createElement(parent, def, index) {
+  function createElement(parent, def, index, onIndex) {
     let el = parent.appendChild(document.createElement(def.tag));
     if (def.id)
-      el.id = addIndex(def.id, index);
+      el.id = addIndex(def.id, index, onIndex);
     for (let clazz of def.classList) {
-      el.classList.add(addIndex(clazz, index));
+      el.classList.add(addIndex(clazz, index, onIndex));
     }
     for (let att of def.atts) {
       if (att.sub)
-        el[addIndex(att.name, index)][addIndex(att.sub, index)] = addIndex(att.value, index);
+        el[addIndex(att.name, index, onIndex)][addIndex(att.sub, index, onIndex)] = addIndex(att.value, index, onIndex);
       else {
-        el.setAttribute(addIndex(att.name, index), addIndex(att.value, index));
+        el.setAttribute(addIndex(att.name, index, onIndex), addIndex(att.value, index, onIndex));
       }
     }
     if (def.text) {
-      el.appendChild(document.createTextNode(addIndex(def.text, index)));
+      el.appendChild(document.createTextNode(addIndex(def.text, index, onIndex)));
     }
     lastCreated = el;
     return el;
   }
-  function buildElement(parent, el, index) {
+  function buildElement(parent, el, index, onIndex) {
     if ("tag" in el) {
-      let created = createElement(parent, el, index);
+      let created = createElement(parent, el, index, onIndex);
       if (el.child)
-        buildElement(created, el.child, index);
+        buildElement(created, el.child, index, onIndex);
       return;
     }
     if ("list" in el) {
       for (let def of el.list) {
-        buildElement(parent, def, index);
+        buildElement(parent, def, index, onIndex);
       }
     }
     if ("count" in el) {
       for (let i = 0; i < el.count; i++) {
-        buildElement(parent, el.child, i);
+        buildElement(parent, el.child, i, onIndex);
       }
     }
+  }
+  function addIndex(text, index, onIndex) {
+    if (onIndex) {
+      let result = onIndex(index);
+      text = text.replace("$$", result);
+    }
+    return text.replace("$", (index + 1).toString());
   }
 
   // typescript/lessen/build.ts
@@ -1052,7 +1056,7 @@
         totTrim[trimNo] += totJaar + (block.trimesters[trimNo][0]?.students?.length ?? 0);
       }
     }
-    emmet.append(trHeader, "(th>div>span.bold{Trimester $}+span.plain{$ lln})*3");
+    emmet.append(trHeader, "(th>div>span.bold{Trimester $}+span.plain{ $$ lln})*3", (index) => totTrim[index].toString());
     switch (trimesterSorting) {
       case 1 /* InstrumentTeacherHour */:
         for (let [instrument, blocks] of tableData.instruments) {
