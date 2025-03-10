@@ -29,7 +29,10 @@ interface ElementDef {
 
 type Node = GroupDef | ElementDef | ListDef;
 
+let nested: string[] = undefined;
 let lastCreated: HTMLElement = undefined;
+let globalStringCache: string[] = [];
+
 // noinspection RegExpRedundantEscape
 let reSplit = /([>\(\)\+\*])/;
 
@@ -46,16 +49,13 @@ function prepareNested(text: string) {
     for(let [index, str] of stringCache.entries()) {
         text = text.replace("{"+str+"}", "{"+index+"}");
     }
-    let nested = text.split(reSplit);
-    return {nested, stringCache};
+    nested = text.split(reSplit);
+    return stringCache;
 }
-
-let globalStringCache: string[] = [];
 
 function create(text: string, onIndex?: (index: number) => string) {
     let root: HTMLElement = undefined;
-    let { nested, stringCache } = prepareNested(text);
-    globalStringCache = stringCache;
+    globalStringCache = prepareNested(text);
     if (nested[0][0] !== "#") {
         throw "No root id defined.";
     }
@@ -63,49 +63,48 @@ function create(text: string, onIndex?: (index: number) => string) {
     if(!root)
         throw `Root ${nested[0]} doesn't exist`;
     nested.shift(); //consume > todo: should be tested.
-    return parse(root, nested, onIndex);
+    return parse(root, onIndex);
 }
 
 function append(root: HTMLElement, text: string, onIndex?: (index: number) => string) {
-    let { nested, stringCache } = prepareNested(text);
-    globalStringCache = stringCache;
-    return parse(root, nested, onIndex);
+    globalStringCache = prepareNested(text);
+    return parse(root, onIndex);
 }
 
-function parse(root: HTMLElement, nested: string[], onIndex: (index: number) => string) {
+function parse(root: HTMLElement, onIndex: (index: number) => string) {
     nested = nested.filter(token => token);
-    let rootDef = parseChildren(nested) ;
+    let rootDef = parseChildren() ;
     buildElement(root, rootDef, 1, onIndex);
     return {root, last: lastCreated};
 }
 
 // parse a>b...  or a+b+c>d...
-function parseText(nested: string[]): Node {
-    return parsePlus(nested);
+function parseText(): Node {
+    return parsePlus();
 }
 
 // parse >...
-function parseDown(nested: string[]) : Node {
+function parseDown() : Node {
     let next = nested.shift();
     if(!next)
         return undefined;
     if(next === '>') {
-        return parseChildren(nested);
+        return parseChildren();
     }
     nested.unshift(next);
     return undefined;
 }
 
 //parse everything after a '>'
-function parseChildren(nested: string[]) {
-    return parsePlus(nested);
+function parseChildren() {
+    return parsePlus();
 }
 
 //parse a+b+c>d...
-function parsePlus(nested: string[]): Node {
+function parsePlus(): Node {
     let list = [];
     while(true) {
-        let el = parseMult(nested);
+        let el = parseMult();
         if (!el)
             return list.length===1 ? list[0] : {list};
         list.push(el)
@@ -119,8 +118,8 @@ function parsePlus(nested: string[]): Node {
     }
 }
 
-function parseMult(nested: string[]) : Node {
-    let el = parseElement(nested);
+function parseMult() : Node {
+    let el = parseElement();
     if(!el)
         return el;
     let mult = nested.shift(); //todo: replace shift(), test and unshift() with match();
@@ -138,19 +137,19 @@ function parseMult(nested: string[]) : Node {
 }
 
 // parse group or primary element (and children)
-function parseElement(nested: string[]): Node {
+function parseElement(): Node {
     let next = nested.shift();
     let el: Node;
     if(next === '(') {
-        el = parseText(nested);
+        el = parseText();
         let _closingBrace = nested.shift(); //todo: test!
         return el;
     } else {
-        return parseChildDef(next, nested);
+        return parseChildDef(next);
     }
 }
 
-function parseChildDef(child: string, nested: string[]): ElementDef {
+function parseChildDef(child: string): ElementDef {
     if(!child)
         return undefined;
     // noinspection RegExpRedundantEscape
@@ -179,7 +178,7 @@ function parseChildDef(child: string, nested: string[]): ElementDef {
                 break;
         }
     }
-    return {tag, id, atts, classList, text, child: parseDown(nested)};
+    return {tag, id, atts, classList, text, child: parseDown()};
 }
 
 function getAttributes(props: string[]) {

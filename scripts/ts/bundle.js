@@ -836,7 +836,9 @@
     create,
     append
   };
+  var nested = void 0;
   var lastCreated = void 0;
+  var globalStringCache = [];
   var reSplit = /([>\(\)\+\*])/;
   function prepareNested(text) {
     let stringCache = [];
@@ -850,14 +852,12 @@
     for (let [index, str] of stringCache.entries()) {
       text = text.replace("{" + str + "}", "{" + index + "}");
     }
-    let nested = text.split(reSplit);
-    return { nested, stringCache };
+    nested = text.split(reSplit);
+    return stringCache;
   }
-  var globalStringCache = [];
   function create(text, onIndex) {
     let root = void 0;
-    let { nested, stringCache } = prepareNested(text);
-    globalStringCache = stringCache;
+    globalStringCache = prepareNested(text);
     if (nested[0][0] !== "#") {
       throw "No root id defined.";
     }
@@ -865,39 +865,38 @@
     if (!root)
       throw `Root ${nested[0]} doesn't exist`;
     nested.shift();
-    return parse(root, nested, onIndex);
+    return parse(root, onIndex);
   }
   function append(root, text, onIndex) {
-    let { nested, stringCache } = prepareNested(text);
-    globalStringCache = stringCache;
-    return parse(root, nested, onIndex);
+    globalStringCache = prepareNested(text);
+    return parse(root, onIndex);
   }
-  function parse(root, nested, onIndex) {
+  function parse(root, onIndex) {
     nested = nested.filter((token) => token);
-    let rootDef = parseChildren(nested);
+    let rootDef = parseChildren();
     buildElement(root, rootDef, 1, onIndex);
     return { root, last: lastCreated };
   }
-  function parseText(nested) {
-    return parsePlus(nested);
+  function parseText() {
+    return parsePlus();
   }
-  function parseDown(nested) {
+  function parseDown() {
     let next = nested.shift();
     if (!next)
       return void 0;
     if (next === ">") {
-      return parseChildren(nested);
+      return parseChildren();
     }
     nested.unshift(next);
     return void 0;
   }
-  function parseChildren(nested) {
-    return parsePlus(nested);
+  function parseChildren() {
+    return parsePlus();
   }
-  function parsePlus(nested) {
+  function parsePlus() {
     let list2 = [];
     while (true) {
-      let el = parseMult(nested);
+      let el = parseMult();
       if (!el)
         return list2.length === 1 ? list2[0] : { list: list2 };
       list2.push(el);
@@ -910,8 +909,8 @@
       }
     }
   }
-  function parseMult(nested) {
-    let el = parseElement(nested);
+  function parseMult() {
+    let el = parseElement();
     if (!el)
       return el;
     let mult = nested.shift();
@@ -926,18 +925,18 @@
       return el;
     }
   }
-  function parseElement(nested) {
+  function parseElement() {
     let next = nested.shift();
     let el;
     if (next === "(") {
-      el = parseText(nested);
+      el = parseText();
       let _closingBrace = nested.shift();
       return el;
     } else {
-      return parseChildDef(next, nested);
+      return parseChildDef(next);
     }
   }
-  function parseChildDef(child, nested) {
+  function parseChildDef(child) {
     if (!child)
       return void 0;
     let props = child.split(/([#\.\[\]\*\{\}])/);
@@ -964,7 +963,7 @@
           break;
       }
     }
-    return { tag, id, atts, classList, text, child: parseDown(nested) };
+    return { tag, id, atts, classList, text, child: parseDown() };
   }
   function getAttributes(props) {
     let atts = [];
