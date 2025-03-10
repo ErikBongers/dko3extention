@@ -3,7 +3,6 @@ export let emmet = {
     append
 };
 
-
 interface AttDef {
     name: string,
     sub: string,
@@ -34,11 +33,29 @@ let lastCreated: HTMLElement = undefined;
 // noinspection RegExpRedundantEscape
 let reSplit = /([>\(\)\+\*])/;
 
+// replace {string values} with {n} in case the strings contain special chars.
+function prepareNested(text: string) {
+    let stringCache: string[] = [];
+    let stringMatches = text.matchAll(/{(.*?)}/gm);
+    if(stringMatches) {
+        for(let match of stringMatches){
+            stringCache.push(match[1]);
+        }
+        stringCache = [...new Set(stringCache)];
+    }
+    for(let [index, str] of stringCache.entries()) {
+        text = text.replace("{"+str+"}", "{"+index+"}");
+    }
+    let nested = text.split(reSplit);
+    return {nested, stringCache};
+}
+
+let globalStringCache: string[] = [];
+
 function create(text: string, onIndex?: (index: number) => string) {
     let root: HTMLElement = undefined;
-    let nested: string[];
-    // noinspection RegExpRedundantEscape
-    nested = text.split(reSplit);
+    let { nested, stringCache } = prepareNested(text);
+    globalStringCache = stringCache;
     if (nested[0][0] !== "#") {
         throw "No root id defined.";
     }
@@ -50,7 +67,8 @@ function create(text: string, onIndex?: (index: number) => string) {
 }
 
 function append(root: HTMLElement, text: string, onIndex?: (index: number) => string) {
-    let nested = text.split(reSplit);
+    let { nested, stringCache } = prepareNested(text);
+    globalStringCache = stringCache;
     return parse(root, nested, onIndex);
 }
 
@@ -234,7 +252,8 @@ function createElement(parent: HTMLElement, def: ElementDef, index: number, onIn
         }
     }
     if(def.text) {
-        el.appendChild(document.createTextNode(addIndex(def.text, index, onIndex)));
+        let str = globalStringCache[parseInt(def.text)];
+        el.appendChild(document.createTextNode(addIndex(str, index, onIndex)));
     }
     lastCreated = el;
     return el;

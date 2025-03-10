@@ -838,10 +838,26 @@
   };
   var lastCreated = void 0;
   var reSplit = /([>\(\)\+\*])/;
+  function prepareNested(text) {
+    let stringCache = [];
+    let stringMatches = text.matchAll(/{(.*?)}/gm);
+    if (stringMatches) {
+      for (let match of stringMatches) {
+        stringCache.push(match[1]);
+      }
+      stringCache = [...new Set(stringCache)];
+    }
+    for (let [index, str] of stringCache.entries()) {
+      text = text.replace("{" + str + "}", "{" + index + "}");
+    }
+    let nested = text.split(reSplit);
+    return { nested, stringCache };
+  }
+  var globalStringCache = [];
   function create(text, onIndex) {
     let root = void 0;
-    let nested;
-    nested = text.split(reSplit);
+    let { nested, stringCache } = prepareNested(text);
+    globalStringCache = stringCache;
     if (nested[0][0] !== "#") {
       throw "No root id defined.";
     }
@@ -852,7 +868,8 @@
     return parse(root, nested, onIndex);
   }
   function append(root, text, onIndex) {
-    let nested = text.split(reSplit);
+    let { nested, stringCache } = prepareNested(text);
+    globalStringCache = stringCache;
     return parse(root, nested, onIndex);
   }
   function parse(root, nested, onIndex) {
@@ -1010,7 +1027,8 @@
       }
     }
     if (def.text) {
-      el.appendChild(document.createTextNode(addIndex(def.text, index, onIndex)));
+      let str = globalStringCache[parseInt(def.text)];
+      el.appendChild(document.createTextNode(addIndex(str, index, onIndex)));
     }
     lastCreated = el;
     return el;
@@ -1056,7 +1074,7 @@
         totTrim[trimNo] += totJaar + (block.trimesters[trimNo][0]?.students?.length ?? 0);
       }
     }
-    emmet.append(trHeader, "(th>div>span.bold{Trimester $}+span.plain{ $$ lln})*3", (index) => totTrim[index].toString());
+    emmet.append(trHeader, "(th>div>span.bold{Trimester $}+span.plain{ ($$ lln)})*3", (index) => totTrim[index].toString());
     switch (trimesterSorting) {
       case 1 /* InstrumentTeacherHour */:
         for (let [instrument, blocks] of tableData.instruments) {
