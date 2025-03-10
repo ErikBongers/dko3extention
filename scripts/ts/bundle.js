@@ -832,23 +832,31 @@
   var UREN_TABLE_STATE_NAME = "__uren__";
 
   // typescript/lessen/html.ts
+  var emmet = {
+    create,
+    append
+  };
   var lastCreated = void 0;
-  function emmet(root_or_text, text) {
+  var reSplit = /([>\(\)\+\*])/;
+  function create(text) {
     let root = void 0;
     let nested;
-    if (typeof root_or_text === "string") {
-      nested = root_or_text.split(/([>\(\)\+])/);
-      if (nested[0][0] !== "#") {
-        throw "No root id defined.";
-      }
-      root = document.querySelector(nested.shift());
-      nested.shift();
-    } else {
-      root = root_or_text;
-      nested = text.split(/([>\(\)\+])/);
+    nested = text.split(reSplit);
+    if (nested[0][0] !== "#") {
+      throw "No root id defined.";
     }
+    root = document.querySelector(nested.shift());
     if (!root)
       throw `Root ${nested[0]} doesn't exist`;
+    nested.shift();
+    return parse(root, nested);
+  }
+  function append(root, text) {
+    let nested = text.split(reSplit);
+    return parse(root, nested);
+  }
+  function parse(root, nested) {
+    nested = nested.filter((token) => token);
     let rootGroup = {
       count: 1,
       children: []
@@ -878,7 +886,7 @@
     return parent;
   }
   function parsePlus(nested) {
-    let el1 = parseElement(nested);
+    let el1 = parseMult(nested);
     if (!el1)
       return void 0;
     let plus = nested.shift();
@@ -893,29 +901,39 @@
       return el1;
     return { count: 1, children: [el1, el2] };
   }
+  function parseMult(nested) {
+    let el = parseElement(nested);
+    if (!el)
+      return el;
+    let mult = nested.shift();
+    if (mult === "*") {
+      let count = parseInt(nested.shift());
+      return {
+        count,
+        children: [
+          parseDown(el, nested)
+        ]
+      };
+    } else {
+      nested.unshift(mult);
+      return parseDown(el, nested);
+    }
+  }
   function parseElement(nested) {
     let next = nested.shift();
+    let el;
     if (next === "(") {
-      return parseGroup(nested);
+      el = parseText(nested);
+      let closingBrace = nested.shift();
+      return el;
+    } else {
+      return parseChildDef(next);
     }
-    return parseChildDef(next, nested);
-  }
-  function parseGroup(nested) {
-    let newNested = [];
-    while (true) {
-      let next = nested.shift();
-      if (next === ")" || !next)
-        break;
-      newNested.push(nested.shift());
-    }
-    let el = parseText(newNested);
-    nested.shift();
-    return el;
   }
   function addIndex(text, index) {
     return text.replace("$", (index + 1).toString());
   }
-  function parseChildDef(child, nested) {
+  function parseChildDef(child) {
     if (!child)
       return void 0;
     let props = child.split(/([#\.\[\]\*\{\}])/);
@@ -934,9 +952,6 @@
         case "#":
           id = props.shift();
           break;
-        case "*":
-          count = parseInt(props.shift());
-          break;
         case "[":
           atts = getAttributes(props);
           break;
@@ -945,14 +960,7 @@
           break;
       }
     }
-    let el = {
-      count,
-      children: [
-        { tag, id, atts, classList, text, children: [] }
-      ]
-    };
-    parseDown(el.children[0], nested);
-    return el;
+    return { tag, id, atts, classList, text, children: [] };
   }
   function getAttributes(props) {
     let atts = [];
@@ -1024,12 +1032,12 @@
     if ("tag" in el) {
       let created = createElement(parent, el, index);
       for (let child of el.children)
-        buildElement(created, child, 1);
+        buildElement(created, child, index);
       return;
     }
-    for (let index2 = 0; index2 < el.count; index2++) {
+    for (let i = 0; i < el.count; i++) {
       for (let def of el.children) {
-        buildElement(parent, def, index2);
+        buildElement(parent, def, i);
       }
     }
   }
@@ -1038,9 +1046,9 @@
   var NBSP = 160;
   function buildTrimesterTable(tableData, trimesterSorting) {
     tableData.blocks.sort((block1, block2) => block1.instrumentName.localeCompare(block2.instrumentName));
-    let trimDiv = emmet(`#${TRIM_DIV_ID}>table#trimesterTable[border="2" style.width="100%"]>col[width="100"]*3`).root;
+    let trimDiv = emmet.create(`#${TRIM_DIV_ID}>table#trimesterTable[border="2" style.width="100%"]>col[width="100"]*3`).root;
     trimDiv.dataset.showFullClass = isButtonHighlighted(FULL_CLASS_BUTTON_ID) ? "true" : "false";
-    let { root: newTable, last: trHeader } = emmet("#trimesterTable>tbody+thead.table-secondary>tr");
+    let { root: newTable, last: trHeader } = emmet.create("#trimesterTable>tbody+thead.table-secondary>tr");
     let newTableBody = newTable.querySelector("tbody");
     let totTrim = [0, 0, 0];
     for (let block of tableData.blocks) {
@@ -1049,15 +1057,7 @@
         totTrim[trimNo] += totJaar + (block.trimesters[trimNo][0]?.students?.length ?? 0);
       }
     }
-    for (let trimNo of [0, 1, 2]) {
-      let div = emmet(trHeader, "th>div").last;
-      let span = div.appendChild(document.createElement("span"));
-      span.classList.add("bold");
-      span.innerHTML = `Trimester ${trimNo + 1}`;
-      let spanTot = div.appendChild(document.createElement("span"));
-      spanTot.classList.add("plain");
-      spanTot.innerHTML = ` (${totTrim[trimNo]} lln) `;
-    }
+    emmet.append(trHeader, "(th>div>span.bold{Trimester $})*3");
     switch (trimesterSorting) {
       case 1 /* InstrumentTeacherHour */:
         for (let [instrument, blocks] of tableData.instruments) {

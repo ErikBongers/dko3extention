@@ -1,3 +1,9 @@
+export let emmet = {
+    create,
+    append
+};
+
+
 interface AttDef {
     name: string,
     sub: string,
@@ -18,26 +24,32 @@ interface ElementDef {
     children: (GroupDef | ElementDef)[]
 }
 
-let lastCreated: HTMLElement = undefined; //TODO: get rid of global.
+let lastCreated: HTMLElement = undefined;
+// noinspection RegExpRedundantEscape
+let reSplit = /([>\(\)\+\*])/;
 
-export function emmet(root_or_text: (HTMLElement | string), text?: string) {
+function create(text: string) {
     let root: HTMLElement = undefined;
     let nested: string[];
-    if(typeof root_or_text === "string") {
-        // noinspection RegExpRedundantEscape
-        nested = root_or_text.split(/([>\(\)\+])/);
-        if (nested[0][0] !== "#") {
-            throw "No root id defined.";
-        }
-        root = document.querySelector(nested.shift()) as HTMLElement;
-        nested.shift(); //consume > todo: should be tested.
-    } else {
-        root = root_or_text;
-        // noinspection RegExpRedundantEscape
-        nested = text.split(/([>\(\)\+])/);
+    // noinspection RegExpRedundantEscape
+    nested = text.split(reSplit);
+    if (nested[0][0] !== "#") {
+        throw "No root id defined.";
     }
+    root = document.querySelector(nested.shift()) as HTMLElement;
     if(!root)
         throw `Root ${nested[0]} doesn't exist`;
+    nested.shift(); //consume > todo: should be tested.
+    return parse(root, nested);
+}
+
+function append(root: HTMLElement, text: string) {
+    let nested = text.split(reSplit);
+    return parse(root, nested);
+}
+
+function parse(root: HTMLElement, nested: string[]) {
+    nested = nested.filter(token => token);
     let rootGroup: GroupDef = {
         count:1,
         children: []
@@ -76,7 +88,7 @@ function parseChildren(parent: (GroupDef | ElementDef), nested: string[]) {
 function parsePlus(nested: string[]): (GroupDef | ElementDef) {
     //todo: there could be multiple plus operations...
 
-    let el1 = parseElement(nested);
+    let el1 = parseMult(nested);
     if(!el1)
         return undefined;
     let plus = nested.shift();
@@ -92,26 +104,37 @@ function parsePlus(nested: string[]): (GroupDef | ElementDef) {
     return {count:1, children: [el1, el2]};
 }
 
+function parseMult(nested: string[]) {
+    let el = parseElement(nested);
+    if(!el)
+        return el;
+    let mult = nested.shift(); //todo: replace shift(), test and unshift() with match();
+    if(mult === '*') {
+        let count = parseInt(nested.shift());
+        //wrap el in a count group.
+        return  {
+            count,
+            children: [
+                parseDown(el, nested)
+            ]
+        };
+    } else {
+        nested.unshift(mult);
+        return parseDown(el, nested);
+    }
+}
+
 // parse group or primary element (and children)
 function parseElement(nested: string[]) {
     let next = nested.shift();
+    let el: GroupDef | ElementDef;
     if(next === '(') {
-        return parseGroup(nested);
+        el = parseText(nested);
+        let closingBrace = nested.shift(); //todo: test!
+        return el;
+    } else {
+        return parseChildDef(next);
     }
-    return parseChildDef(next, nested);
-}
-
-function parseGroup(nested: string[]) {
-    let newNested = [];
-    while(true) {
-        let next = nested.shift();
-        if(next === ')' || !next)
-            break;
-        newNested.push(nested.shift());
-    }
-    let el = parseText(newNested);
-    nested.shift(); //consuming ) todo: test
-    return el;
 }
 
 function addIndex(text: string, index: number) {
@@ -119,7 +142,7 @@ function addIndex(text: string, index: number) {
 }
 
 
-function parseChildDef(child: string, nested: string[]): (GroupDef | ElementDef) {
+function parseChildDef(child: string): ElementDef {
     if(!child)
         return undefined;
     // noinspection RegExpRedundantEscape
@@ -140,9 +163,6 @@ function parseChildDef(child: string, nested: string[]): (GroupDef | ElementDef)
             case '#':
                 id = props.shift();
                 break;
-            case '*':
-                count = parseInt(props.shift());
-                break;
             case '[':
                 atts = getAttributes( props);
                 break;
@@ -151,14 +171,7 @@ function parseChildDef(child: string, nested: string[]): (GroupDef | ElementDef)
                 break;
         }
     }
-    let el= {
-        count,
-        children: [
-            {tag, id, atts, classList, text, children: []}
-        ]
-    };
-    parseDown(el.children[0], nested);
-    return el;
+    return {tag, id, atts, classList, text, children: []};
 }
 
 function getAttributes(props: string[]) {
@@ -241,13 +254,13 @@ function buildElement(parent: HTMLElement, el: (GroupDef | ElementDef), index: n
     if("tag" in el) {
         let created = createElement(parent, el, index);
         for(let child of el.children)
-            buildElement(created, child, 1);
+            buildElement(created, child, index);
         return;
     }
     //must be GroupDef
-    for(let index = 0; index < el.count; index++) {
+    for(let i = 0; i < el.count; i++) {
         for( let def of el.children) {
-            buildElement(parent, def, index);
+            buildElement(parent, def, i);
         }
     }
 }
