@@ -26,15 +26,6 @@ export function buildTrimesterTable(tableData: TableData, trimesterSorting: Trim
     }
 
     html.emmet.append(trHeader, "(th>div>span.bold{Trimester $}+span.plain{ ($$ lln)})*3", (index) => totTrim[index].toString());
-    // for(let trimNo of [0,1,2]) {
-    //     let div = html.emmet(trHeader, "th>div").last;
-    //     let span = div.appendChild(document.createElement("span"));
-    //     span.classList.add("bold");
-    //     span.innerHTML = `Trimester ${trimNo+1}`;
-    //     let spanTot = div.appendChild(document.createElement("span"));
-    //     spanTot.classList.add("plain");
-    //     spanTot.innerHTML = ` (${totTrim[trimNo]} lln) `;
-    // }
     switch(trimesterSorting) {
         case TrimesterSorting.InstrumentTeacherHour:
             for (let [instrument, blocks] of tableData.instruments) {
@@ -271,27 +262,27 @@ function buildBlockTitle(newTableBody: HTMLTableSectionElement, block: BlockInfo
     return trBlockTitle;
 }
 
-function buildBlockHeader(newTableBody: HTMLTableSectionElement, block: BlockInfo, groupId: string, trimesterHeaders: string[]) {
-    //INFO
-    const trBlockInfo = createLesRow(groupId);
-    newTableBody.appendChild(trBlockInfo);
+enum DisplayOptions {
+    Teacher = 0x01,
+    Hour = 0x02,
+    Instrument = 0x04,
+    Location = 0x08
+}
+
+function buildInfoRow(newTableBody: HTMLTableSectionElement, text: string, show: boolean) {
+    const trBlockInfo = newTableBody.appendChild(createLesRow(groupId));
     trBlockInfo.classList.add("blockRow");
+    trBlockInfo.style.visibility = show ? "visible" : "collapse";
 
-    const tdBlockkInfo = document.createElement("td");
-    trBlockInfo.appendChild(tdBlockkInfo);
-    tdBlockkInfo.classList.add("infoCell");
-    tdBlockkInfo.setAttribute("colspan", "3");
+    let divBlockInfo = html.emmet.append(trBlockInfo, "td.infoCell[colspan=3]>div.text-muted");
+    divBlockInfo.appendChild(document.createTextNode(text)); // don't emmet this as I may use html templates for this.
+}
 
-    let divBlockInfo = document.createElement("div");
-    tdBlockkInfo.appendChild(divBlockInfo);
-    divBlockInfo.classList.add("text-muted");
-    if(block.lesmoment) {
-        divBlockInfo.appendChild(document.createTextNode(block.lesmoment));
-    }
-    if(block.vestiging) {
-        if(block.lesmoment) divBlockInfo.appendChild(document.createElement("br"));
-        divBlockInfo.appendChild(document.createTextNode(block.vestiging));
-    }
+function buildBlockHeader(newTableBody: HTMLTableSectionElement, block: BlockInfo, groupId: string, trimesterHeaders: string[], displayOptions: number) {
+    //INFO
+    buildInfoRow(newTableBody, block.instrumentName, (DisplayOptions.Instrument & displayOptions));
+    buildInfoRow(newTableBody, block.lesmoment, (DisplayOptions.Hour & displayOptions));
+    buildInfoRow(newTableBody, block.vestiging, (DisplayOptions.Location & displayOptions));
 
     //build row for module links(the tiny numbered buttons)
     const trModuleLinks = createLesRow(groupId);

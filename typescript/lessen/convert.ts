@@ -188,7 +188,7 @@ export function buildTableData(inputModules: Les[]) : TableData {
     for(let [teacherName, teacher] of tableData.teachers) {
         let hours = distinct(teacher.blocks.map(b => b.lesmoment));
         //TODO: convert LesMoment into a block so that buildBlock() can still be used.
-        //> first convert BlockInfo.trimesters to a 2-dim array of trimester lessen. (like LesMoment
+        //> first convert BlockInfo.trimesters to a 2-dim array of trimester lessen. (like LesMoment)
         teacher.lesMomenten = new Map(hours.map(moment =>
             [moment,
                 <BlockInfo>{
@@ -196,7 +196,7 @@ export function buildTableData(inputModules: Les[]) : TableData {
                     vestiging: undefined,
                     maxAantal: -1,
                     instrumentName: undefined,
-                    lesmoment: undefined, //avoid that it gets displayed in info row as well.
+                    lesmoment: moment,
                     trimesters: [[], [], []],
                     jaarModules: []
                 }]));
@@ -208,11 +208,13 @@ export function buildTableData(inputModules: Les[]) : TableData {
             }
         }
         teacher.lesMomenten.forEach(hour => {
-            hour.vestiging = [...new Set(hour.trimesters.flat().filter(les => les).map(les => les.vestiging))].join(", ");
+            let allLessen = hour.trimesters.flat().join(hour.jaarModules);
+            hour.vestiging = [...new Set(allLessen.filter(les => les).map(les => les.vestiging))].join(", ");
+            hour.instrumentName = [...new Set(allLessen.filter(les => les).map(les => les.instrumentName))].join(", ");
         });
 
     }
-    console.log(tableData);
+    db3(tableData);
     return tableData;
 }
 
