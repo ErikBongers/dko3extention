@@ -87,13 +87,9 @@ function parseText(): Node {
 
 // parse >...
 function parseDown() : Node {
-    let next = nested.shift();
-    if(!next)
-        return undefined;
-    if(next === '>') {
+    if(match('>')) {
         return parseChildren();
     }
-    nested.unshift(next);
     return undefined;
 }
 
@@ -120,12 +116,20 @@ function parsePlus(): Node {
     }
 }
 
+function match(expected: string) {
+    let next = nested.shift();
+    if(next === expected)
+        return true;
+    if(next)
+        nested.unshift(next);
+    return false;
+}
+
 function parseMult() : Node {
     let el = parseElement();
     if(!el)
         return el;
-    let mult = nested.shift(); //todo: replace shift(), test and unshift() with match();
-    if(mult === '*') {
+    if(match('*')) {
         let count = parseInt(nested.shift());
         //wrap el in a count group.
         return  {
@@ -133,25 +137,24 @@ function parseMult() : Node {
             child: el
         };
     } else {
-        nested.unshift(mult);
         return el;
     }
 }
 
 // parse group or primary element (and children)
 function parseElement(): Node {
-    let next = nested.shift();
     let el: Node;
-    if(next === '(') {
+    if(match('(')) {
         el = parseText();
         let _closingBrace = nested.shift(); //todo: test!
         return el;
     } else {
-        return parseChildDef(next);
+        return parseChildDef();
     }
 }
 
-function parseChildDef(child: string): ElementDef {
+function parseChildDef(): ElementDef {
+    let child = nested.shift();
     if(!child)
         return undefined;
     // noinspection RegExpRedundantEscape

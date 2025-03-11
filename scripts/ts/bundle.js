@@ -82,12 +82,12 @@
   function getUserAndSchoolName() {
     let footer = document.querySelector("body > main > div.row > div.col-auto.mr-auto > small");
     const reInstrument = /.*Je bent aangemeld als (.*)\s@\s(.*)\./;
-    const match = footer.textContent.match(reInstrument);
-    if (match?.length !== 3) {
+    const match2 = footer.textContent.match(reInstrument);
+    if (match2?.length !== 3) {
       throw new Error(`Could not process footer text "${footer.textContent}"`);
     }
-    let userName = match[1];
-    let schoolName = match[2];
+    let userName = match2[1];
+    let schoolName = match2[2];
     return { userName, schoolName };
   }
   function getSchoolIdString() {
@@ -483,13 +483,13 @@
     for (let module of modules) {
       module.students = scrapeStudents(module.studentsTable);
       const reInstrument = /.*\Snitiatie\s*(\S+).*(\d).*/;
-      const match = module.naam.match(reInstrument);
-      if (match?.length !== 3) {
+      const match2 = module.naam.match(reInstrument);
+      if (match2?.length !== 3) {
         console.error(`Could not process trimester module "${module.naam}" (${module.id}).`);
         continue;
       }
-      module.instrumentName = match[1];
-      module.trimesterNo = parseInt(match[2]);
+      module.instrumentName = match2[1];
+      module.trimesterNo = parseInt(match2[2]);
       trimesterModules.push(module);
     }
     db3(trimesterModules);
@@ -501,13 +501,13 @@
     for (let module of modules) {
       module.students = scrapeStudents(module.studentsTable);
       const reInstrument = /.*\Snitiatie\s*(\S+).*/;
-      const match = module.naam.match(reInstrument);
-      if (match?.length !== 2) {
+      const match2 = module.naam.match(reInstrument);
+      if (match2?.length !== 2) {
         console.error(`Could not process jaar module "${module.naam}" (${module.id}).`);
         continue;
       }
-      module.instrumentName = match[1];
-      module.trimesterNo = parseInt(match[2]);
+      module.instrumentName = match2[1];
+      module.trimesterNo = parseInt(match2[2]);
       jaarModules.push(module);
     }
     db3(jaarModules);
@@ -845,8 +845,8 @@
     let stringCache = [];
     let stringMatches = text.matchAll(/{(.*?)}/gm);
     if (stringMatches) {
-      for (let match of stringMatches) {
-        stringCache.push(match[1]);
+      for (let match2 of stringMatches) {
+        stringCache.push(match2[1]);
       }
       stringCache = [...new Set(stringCache)];
     }
@@ -882,13 +882,9 @@
     return parsePlus();
   }
   function parseDown() {
-    let next = nested.shift();
-    if (!next)
-      return void 0;
-    if (next === ">") {
+    if (match(">")) {
       return parseChildren();
     }
-    nested.unshift(next);
     return void 0;
   }
   function parseChildren() {
@@ -910,34 +906,40 @@
       }
     }
   }
+  function match(expected) {
+    let next = nested.shift();
+    if (next === expected)
+      return true;
+    if (next)
+      nested.unshift(next);
+    return false;
+  }
   function parseMult() {
     let el = parseElement();
     if (!el)
       return el;
-    let mult = nested.shift();
-    if (mult === "*") {
+    if (match("*")) {
       let count = parseInt(nested.shift());
       return {
         count,
         child: el
       };
     } else {
-      nested.unshift(mult);
       return el;
     }
   }
   function parseElement() {
-    let next = nested.shift();
     let el;
-    if (next === "(") {
+    if (match("(")) {
       el = parseText();
       let _closingBrace = nested.shift();
       return el;
     } else {
-      return parseChildDef(next);
+      return parseChildDef();
     }
   }
-  function parseChildDef(child) {
+  function parseChildDef() {
+    let child = nested.shift();
     if (!child)
       return void 0;
     let props = child.split(/([#\.\[\]\*\{\}])/);
@@ -3056,9 +3058,9 @@
       if (!this.valid)
         return this;
       let rxString = prefix + tokens.map((token) => escapeRegexChars(token) + "\\s*").join("");
-      let match = RegExp(rxString).exec(this.cursor);
-      if (match) {
-        this.cursor = this.cursor.substring(match.index + match[0].length);
+      let match2 = RegExp(rxString).exec(this.cursor);
+      if (match2) {
+        this.cursor = this.cursor.substring(match2.index + match2[0].length);
         return this;
       }
       this.valid = false;
