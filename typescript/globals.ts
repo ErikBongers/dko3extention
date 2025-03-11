@@ -224,8 +224,10 @@ export function filterTable(table: (HTMLTableElement | string), rowFilter:RowFil
         tr.style.borderColor = "transparent"; //get rid of some risidual border lines
     }
     for (let tr of filterTableRows(table, rowFilter)) {
-        tr.style.visibility = "visible";
-        tr.style.borderColor = "";
+        if(!tr.dataset.keepHidden) {
+            tr.style.visibility = "visible";
+            tr.style.borderColor = "";
+        }
     }
 }
 

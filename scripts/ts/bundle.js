@@ -167,8 +167,10 @@
       tr.style.borderColor = "transparent";
     }
     for (let tr of filterTableRows(table, rowFilter)) {
-      tr.style.visibility = "visible";
-      tr.style.borderColor = "";
+      if (!tr.dataset.keepHidden) {
+        tr.style.visibility = "visible";
+        tr.style.borderColor = "";
+      }
     }
   }
   function createTextRowFilter(searchText, getRowSearchText) {
@@ -707,8 +709,7 @@
           vestiging: void 0,
           maxAantal: -1,
           instrumentName: void 0,
-          lesmoment: void 0,
-          //avoid that it gets displayed in info row as well.
+          lesmoment: moment,
           trimesters: [[], [], []],
           jaarModules: []
         }
@@ -720,10 +721,12 @@
         }
       }
       teacher.lesMomenten.forEach((hour) => {
-        hour.vestiging = [...new Set(hour.trimesters.flat().filter((les) => les).map((les) => les.vestiging))].join(", ");
+        let allLessen = hour.trimesters.flat().concat(hour.jaarModules);
+        hour.vestiging = [...new Set(allLessen.filter((les) => les).map((les) => les.vestiging))].join(", ");
+        hour.instrumentName = [...new Set(allLessen.filter((les) => les).map((les) => les.instrumentName))].join(", ");
       });
     }
-    console.log(tableData);
+    db3(tableData);
     return tableData;
   }
   function addTrimesterStudentsToMapAndCount(students, trimModules) {
@@ -1079,28 +1082,28 @@
     switch (trimesterSorting) {
       case 1 /* InstrumentTeacherHour */:
         for (let [instrument, blocks] of tableData.instruments) {
-          buildGroup(newTableBody, blocks, instrument, (block) => block.teacher);
+          buildGroup(newTableBody, blocks, instrument, (block) => block.teacher, 2 /* Hour */ | 8 /* Location */);
         }
         break;
       case 0 /* TeacherInstrumentHour */:
         for (let [teacherName, teacher] of tableData.teachers) {
-          buildGroup(newTableBody, teacher.blocks, teacherName, (block) => block.instrumentName);
+          buildGroup(newTableBody, teacher.blocks, teacherName, (block) => block.instrumentName, 2 /* Hour */ | 8 /* Location */);
         }
         break;
       case 2 /* TeacherHour */:
         for (let [teacherName, teacher] of tableData.teachers) {
           buildTitleRow(newTableBody, teacherName);
           for (let [hour, block] of teacher.lesMomenten) {
-            buildBlock(newTableBody, block, teacherName, (_block) => hour);
+            buildBlock(newTableBody, block, teacherName, (_block) => hour, 8 /* Location */);
           }
         }
         break;
     }
   }
-  function buildGroup(newTableBody, blocks, groupId, getBlockTitle) {
+  function buildGroup(newTableBody, blocks, groupId, getBlockTitle, displayOptions) {
     buildTitleRow(newTableBody, groupId);
     for (let block of blocks) {
-      buildBlock(newTableBody, block, groupId, getBlockTitle);
+      buildBlock(newTableBody, block, groupId, getBlockTitle, displayOptions);
     }
   }
   function createStudentRow(tableBody, rowClass, groupId) {
@@ -1110,7 +1113,7 @@
     row.dataset.hasFullClass = "false";
     return row;
   }
-  function buildBlock(newTableBody, block, groupId, getBlockTitle) {
+  function buildBlock(newTableBody, block, groupId, getBlockTitle, displayOptions) {
     blockCounter++;
     let mergedBlock = mergeBlockStudents(block);
     let trimesterHeaders = [0, 1, 2].map((trimNo) => {
@@ -1119,7 +1122,7 @@
       return `${mergedBlock.trimesterStudents[trimNo].length} van ${mergedBlock.maxAantallen[trimNo]} lln`;
     });
     let trTitle = buildBlockTitle(newTableBody, block, getBlockTitle(block), groupId);
-    let headerRows = buildBlockHeader(newTableBody, block, groupId, trimesterHeaders);
+    let headerRows = buildBlockHeader(newTableBody, block, groupId, trimesterHeaders, displayOptions);
     let studentTopRowNo = newTableBody.children.length;
     trTitle.dataset.hasFullClass = "false";
     headerRows.trModuleLinks.dataset.hasFullClass = "false";
@@ -1243,24 +1246,18 @@
     }
     return trBlockTitle;
   }
-  function buildBlockHeader(newTableBody, block, groupId, trimesterHeaders) {
-    const trBlockInfo = createLesRow(groupId);
-    newTableBody.appendChild(trBlockInfo);
+  function buildInfoRow(newTableBody, text, show, groupId) {
+    const trBlockInfo = newTableBody.appendChild(createLesRow(groupId));
     trBlockInfo.classList.add("blockRow");
-    const tdBlockkInfo = document.createElement("td");
-    trBlockInfo.appendChild(tdBlockkInfo);
-    tdBlockkInfo.classList.add("infoCell");
-    tdBlockkInfo.setAttribute("colspan", "3");
-    let divBlockInfo = document.createElement("div");
-    tdBlockkInfo.appendChild(divBlockInfo);
-    divBlockInfo.classList.add("text-muted");
-    if (block.lesmoment) {
-      divBlockInfo.appendChild(document.createTextNode(block.lesmoment));
-    }
-    if (block.vestiging) {
-      if (block.lesmoment) divBlockInfo.appendChild(document.createElement("br"));
-      divBlockInfo.appendChild(document.createTextNode(block.vestiging));
-    }
+    if (show === false)
+      trBlockInfo.dataset.keepHidden = "true";
+    let { root, last: divBlockInfo } = emmet.append(trBlockInfo, "td.infoCell[colspan=3]>div.text-muted");
+    divBlockInfo.appendChild(document.createTextNode(text));
+  }
+  function buildBlockHeader(newTableBody, block, groupId, trimesterHeaders, displayOptions) {
+    buildInfoRow(newTableBody, block.instrumentName, Boolean(4 /* Instrument */ & displayOptions), groupId);
+    buildInfoRow(newTableBody, block.lesmoment, Boolean(2 /* Hour */ & displayOptions), groupId);
+    buildInfoRow(newTableBody, block.vestiging, Boolean(8 /* Location */ & displayOptions), groupId);
     const trModuleLinks = createLesRow(groupId);
     newTableBody.appendChild(trModuleLinks);
     trModuleLinks.classList.add("blockRow");

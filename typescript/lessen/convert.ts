@@ -1,5 +1,5 @@
 import {Les, LesType, StudentInfo} from "./scrape";
-import {distinct} from "../globals";
+import {db3, distinct} from "../globals";
 
 
 export class BlockInfo {
@@ -208,7 +208,7 @@ export function buildTableData(inputModules: Les[]) : TableData {
             }
         }
         teacher.lesMomenten.forEach(hour => {
-            let allLessen = hour.trimesters.flat().join(hour.jaarModules);
+            let allLessen = hour.trimesters.flat().concat(hour.jaarModules);
             hour.vestiging = [...new Set(allLessen.filter(les => les).map(les => les.vestiging))].join(", ");
             hour.instrumentName = [...new Set(allLessen.filter(les => les).map(les => les.instrumentName))].join(", ");
         });

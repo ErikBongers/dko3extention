@@ -29,29 +29,29 @@ export function buildTrimesterTable(tableData: TableData, trimesterSorting: Trim
     switch(trimesterSorting) {
         case TrimesterSorting.InstrumentTeacherHour:
             for (let [instrument, blocks] of tableData.instruments) {
-                buildGroup(newTableBody, blocks, instrument, (block) => block.teacher);
+                buildGroup(newTableBody, blocks, instrument, (block) => block.teacher, DisplayOptions.Hour | DisplayOptions.Location);
             }
             break;
         case TrimesterSorting.TeacherInstrumentHour:
             for (let [teacherName, teacher] of tableData.teachers) {
-                buildGroup(newTableBody, teacher.blocks, teacherName, (block) => block.instrumentName);
+                buildGroup(newTableBody, teacher.blocks, teacherName, (block) => block.instrumentName, DisplayOptions.Hour | DisplayOptions.Location);
             }
             break;
         case TrimesterSorting.TeacherHour:
             for (let [teacherName, teacher] of tableData.teachers) {
                 buildTitleRow(newTableBody, teacherName);
                 for (let [hour, block] of teacher.lesMomenten) {
-                    buildBlock(newTableBody, block, teacherName, (_block) => hour);
+                    buildBlock(newTableBody, block, teacherName, (_block) => hour, DisplayOptions.Location);
                 }
             }
             break;
     }
 }
 
-function buildGroup(newTableBody: HTMLTableSectionElement, blocks: BlockInfo[], groupId: string, getBlockTitle: (block: BlockInfo) => string) {
+function buildGroup(newTableBody: HTMLTableSectionElement, blocks: BlockInfo[], groupId: string, getBlockTitle: (block: BlockInfo) => string, displayOptions: DisplayOptions) {
     buildTitleRow(newTableBody, groupId);
     for (let block of blocks) {
-        buildBlock(newTableBody, block, groupId, getBlockTitle);
+        buildBlock(newTableBody, block, groupId, getBlockTitle, displayOptions);
     }
 }
 
@@ -86,7 +86,7 @@ First draw the 2 jaarmodule students.
 
  */
 
-function buildBlock(newTableBody: HTMLTableSectionElement, block: BlockInfo, groupId: string, getBlockTitle: (block: BlockInfo) => string) {
+function buildBlock(newTableBody: HTMLTableSectionElement, block: BlockInfo, groupId: string, getBlockTitle: (block: BlockInfo) => string, displayOptions: DisplayOptions) {
     blockCounter++;
 
     let mergedBlock = mergeBlockStudents(block);
@@ -98,7 +98,7 @@ function buildBlock(newTableBody: HTMLTableSectionElement, block: BlockInfo, gro
     });
 
     let trTitle= buildBlockTitle(newTableBody, block, getBlockTitle(block), groupId);
-    let headerRows = buildBlockHeader(newTableBody, block, groupId, trimesterHeaders);
+    let headerRows = buildBlockHeader(newTableBody, block, groupId, trimesterHeaders, displayOptions);
     let studentTopRowNo = newTableBody.children.length;
 
     trTitle.dataset.hasFullClass = "false";
@@ -269,20 +269,21 @@ enum DisplayOptions {
     Location = 0x08
 }
 
-function buildInfoRow(newTableBody: HTMLTableSectionElement, text: string, show: boolean) {
+function buildInfoRow(newTableBody: HTMLTableSectionElement, text: string, show: boolean, groupId: string) {
     const trBlockInfo = newTableBody.appendChild(createLesRow(groupId));
     trBlockInfo.classList.add("blockRow");
-    trBlockInfo.style.visibility = show ? "visible" : "collapse";
+    if(show===false)
+        trBlockInfo.dataset.keepHidden = "true";
 
-    let divBlockInfo = html.emmet.append(trBlockInfo, "td.infoCell[colspan=3]>div.text-muted");
+    let {root, last: divBlockInfo} = html.emmet.append(trBlockInfo, "td.infoCell[colspan=3]>div.text-muted");
     divBlockInfo.appendChild(document.createTextNode(text)); // don't emmet this as I may use html templates for this.
 }
 
-function buildBlockHeader(newTableBody: HTMLTableSectionElement, block: BlockInfo, groupId: string, trimesterHeaders: string[], displayOptions: number) {
+function buildBlockHeader(newTableBody: HTMLTableSectionElement, block: BlockInfo, groupId: string, trimesterHeaders: string[], displayOptions: DisplayOptions) {
     //INFO
-    buildInfoRow(newTableBody, block.instrumentName, (DisplayOptions.Instrument & displayOptions));
-    buildInfoRow(newTableBody, block.lesmoment, (DisplayOptions.Hour & displayOptions));
-    buildInfoRow(newTableBody, block.vestiging, (DisplayOptions.Location & displayOptions));
+    buildInfoRow(newTableBody, block.instrumentName, Boolean((DisplayOptions.Instrument & displayOptions)), groupId);
+    buildInfoRow(newTableBody, block.lesmoment, Boolean((DisplayOptions.Hour & displayOptions)), groupId);
+    buildInfoRow(newTableBody, block.vestiging, Boolean((DisplayOptions.Location & displayOptions)), groupId);
 
     //build row for module links(the tiny numbered buttons)
     const trModuleLinks = createLesRow(groupId);
