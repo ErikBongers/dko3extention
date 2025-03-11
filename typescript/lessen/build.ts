@@ -275,7 +275,7 @@ function buildInfoRow(newTableBody: HTMLTableSectionElement, text: string, show:
     if(show===false)
         trBlockInfo.dataset.keepHidden = "true";
 
-    let {root, last: divBlockInfo} = html.emmet.append(trBlockInfo, "td.infoCell[colspan=3]>div.text-muted");
+    let {last: divBlockInfo} = html.emmet.append(trBlockInfo, "td.infoCell[colspan=3]>div.text-muted");
     divBlockInfo.appendChild(document.createTextNode(text)); // don't emmet this as I may use html templates for this.
 }
 
