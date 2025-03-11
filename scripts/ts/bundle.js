@@ -831,7 +831,8 @@
   var STORAGE_PAGE_STATE_KEY = "pageState";
   var UREN_TABLE_STATE_NAME = "__uren__";
 
-  // typescript/lessen/html.ts
+  // typescript/html.ts
+  var NBSP = 160;
   var emmet = {
     create,
     append
@@ -1059,7 +1060,6 @@
   }
 
   // typescript/lessen/build.ts
-  var NBSP = 160;
   function buildTrimesterTable(tableData, trimesterSorting) {
     tableData.blocks.sort((block1, block2) => block1.instrumentName.localeCompare(block2.instrumentName));
     let trimDiv = emmet.create(`#${TRIM_DIV_ID}>table#trimesterTable[border="2" style.width="100%"]>colgroup>col*3`).root;

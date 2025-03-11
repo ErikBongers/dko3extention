@@ -1,3 +1,5 @@
+export const NBSP = 160;
+
 export let emmet = {
     create,
     append
@@ -284,4 +286,3 @@ function addIndex(text: string, index: number, onIndex: (index: number) => strin
     }
     return text.replace("$", (index+1).toString());
 }
-
