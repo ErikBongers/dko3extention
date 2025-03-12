@@ -187,7 +187,7 @@ function setSorteerLine(showTrimTable: boolean, sorting: TrimesterSorting) {
         newSorteerDiv.classList.add("text-muted");
         oldSorteerSpan.parentNode.insertBefore(newSorteerDiv, oldSorteerSpan.nextSibling);
     }
-    newSorteerDiv.innerText = "Sorteer: ";
+    newSorteerDiv.innerText = "Groepeer: ";
     oldSorteerSpan.style.display = showTrimTable ? "none" : "";
     newSorteerDiv.style.display = showTrimTable ? "" : "none";
 
@@ -197,7 +197,9 @@ function setSorteerLine(showTrimTable: boolean, sorting: TrimesterSorting) {
     newSorteerDiv.appendChild(document.createTextNode(" | "));
     newSorteerDiv.appendChild(createSortingAnchorOrText(TrimesterSorting.TeacherHour, sorting));
     newSorteerDiv.appendChild(document.createTextNode(" | "));
-    newSorteerDiv.appendChild(createSortingAnchorOrText(TrimesterSorting.InstrumentHour, sorting));
+    newSorteerDiv.appendChild(createSortingAnchorOrText(TrimesterSorting.Instrument, sorting));
+    newSorteerDiv.appendChild(document.createTextNode(" | "));
+    newSorteerDiv.appendChild(createSortingAnchorOrText(TrimesterSorting.Teacher, sorting));
 }
 
 function createSortingAnchorOrText(sorting: TrimesterSorting, activeSorting: TrimesterSorting) {
@@ -207,6 +209,8 @@ function createSortingAnchorOrText(sorting: TrimesterSorting, activeSorting: Tri
         case TrimesterSorting.TeacherInstrumentHour: sortingText = "leraar+instrument+lesuur"; break;
         case TrimesterSorting.TeacherHour: sortingText = "leraar+lesuur"; break;
         case TrimesterSorting.InstrumentHour: sortingText = "instrument+lesuur"; break;
+        case TrimesterSorting.Instrument: sortingText = "instrument"; break;
+        case TrimesterSorting.Teacher: sortingText = "leraar"; break;
     }
 
     if (activeSorting === sorting) {

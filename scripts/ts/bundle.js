@@ -725,6 +725,14 @@
         primary.lesMomenten = secundary;
       }
     );
+    groupBlocks(
+      tableData.teachers.values(),
+      (block) => block.teacher
+    );
+    groupBlocks(
+      tableData.instruments.values(),
+      (block) => block.instrumentName
+    );
     db3(tableData);
     return tableData;
   }
@@ -743,6 +751,22 @@
         updateMergedBlock(block);
       });
       setSecondaryGroup(primary, secondaryGroup);
+    }
+  }
+  function groupBlocks(primaryGroups, getPrimaryKey) {
+    for (let primary of primaryGroups) {
+      let blocks = primary.blocks;
+      let keys = distinct(blocks.map(getPrimaryKey));
+      primary.mergedBlocks = new Map(keys.map((key) => [key, BlockInfo.emptyBlock()]));
+      for (let block of blocks) {
+        primary.mergedBlocks.get(getPrimaryKey(block)).jaarModules.push(...block.jaarModules);
+        for (let trimNo of [0, 1, 2]) {
+          primary.mergedBlocks.get(getPrimaryKey(block)).trimesters[trimNo].push(block.trimesters[trimNo][0]);
+        }
+      }
+      primary.mergedBlocks.forEach((block) => {
+        updateMergedBlock(block);
+      });
     }
   }
   function updateMergedBlock(block) {
@@ -1129,6 +1153,22 @@
           }
         }
         break;
+      case 4 /* Instrument */:
+        for (let [instrumentName, instrument] of tableData.instruments) {
+          buildTitleRow(newTableBody, instrumentName);
+          for (let [, block] of instrument.mergedBlocks) {
+            buildBlock(newTableBody, block, instrumentName, void 0, 8 /* Location */ | 1 /* Teacher */);
+          }
+        }
+        break;
+      case 5 /* Teacher */:
+        for (let [teacherName, teacher] of tableData.teachers) {
+          buildTitleRow(newTableBody, teacherName);
+          for (let [, block] of teacher.mergedBlocks) {
+            buildBlock(newTableBody, block, teacherName, void 0, 8 /* Location */ | 4 /* Instrument */);
+          }
+        }
+        break;
     }
   }
   function buildGroup(newTableBody, blocks, groupId, getBlockTitle, displayOptions) {
@@ -1152,10 +1192,13 @@
         return "";
       return `${mergedBlock.trimesterStudents[trimNo].length} van ${mergedBlock.maxAantallen[trimNo]} lln`;
     });
-    let trTitle = buildBlockTitle(newTableBody, block, getBlockTitle(block), groupId);
+    let trTitle = void 0;
+    if (getBlockTitle)
+      trTitle = buildBlockTitle(newTableBody, block, getBlockTitle(block), groupId);
     let headerRows = buildBlockHeader(newTableBody, block, groupId, trimesterHeaders, displayOptions);
     let studentTopRowNo = newTableBody.children.length;
-    trTitle.dataset.hasFullClass = "false";
+    if (trTitle)
+      trTitle.dataset.hasFullClass = "false";
     headerRows.trModuleLinks.dataset.hasFullClass = "false";
     let hasFullClass = false;
     let filledRowCount = 0;
@@ -1198,7 +1241,8 @@
       }
     }
     if (hasFullClass) {
-      trTitle.dataset.hasFullClass = "true";
+      if (trTitle)
+        trTitle.dataset.hasFullClass = "true";
       headerRows.trModuleLinks.dataset.hasFullClass = "true";
     }
     if (!mergedBlock.hasWachtlijst) {
@@ -1286,6 +1330,7 @@
     divBlockInfo.appendChild(document.createTextNode(text));
   }
   function buildBlockHeader(newTableBody, block, groupId, trimesterHeaders, displayOptions) {
+    buildInfoRow(newTableBody, block.teacher, Boolean(1 /* Teacher */ & displayOptions), groupId);
     buildInfoRow(newTableBody, block.instrumentName, Boolean(4 /* Instrument */ & displayOptions), groupId);
     buildInfoRow(newTableBody, block.lesmoment, Boolean(2 /* Hour */ & displayOptions), groupId);
     buildInfoRow(newTableBody, block.vestiging, Boolean(8 /* Location */ & displayOptions), groupId);
@@ -1534,7 +1579,7 @@
       newSorteerDiv.classList.add("text-muted");
       oldSorteerSpan.parentNode.insertBefore(newSorteerDiv, oldSorteerSpan.nextSibling);
     }
-    newSorteerDiv.innerText = "Sorteer: ";
+    newSorteerDiv.innerText = "Groepeer: ";
     oldSorteerSpan.style.display = showTrimTable ? "none" : "";
     newSorteerDiv.style.display = showTrimTable ? "" : "none";
     newSorteerDiv.appendChild(createSortingAnchorOrText(1 /* InstrumentTeacherHour */, sorting));
@@ -1543,7 +1588,9 @@
     newSorteerDiv.appendChild(document.createTextNode(" | "));
     newSorteerDiv.appendChild(createSortingAnchorOrText(2 /* TeacherHour */, sorting));
     newSorteerDiv.appendChild(document.createTextNode(" | "));
-    newSorteerDiv.appendChild(createSortingAnchorOrText(3 /* InstrumentHour */, sorting));
+    newSorteerDiv.appendChild(createSortingAnchorOrText(4 /* Instrument */, sorting));
+    newSorteerDiv.appendChild(document.createTextNode(" | "));
+    newSorteerDiv.appendChild(createSortingAnchorOrText(5 /* Teacher */, sorting));
   }
   function createSortingAnchorOrText(sorting, activeSorting) {
     let sortingText = "";
@@ -1559,6 +1606,12 @@
         break;
       case 3 /* InstrumentHour */:
         sortingText = "instrument+lesuur";
+        break;
+      case 4 /* Instrument */:
+        sortingText = "instrument";
+        break;
+      case 5 /* Teacher */:
+        sortingText = "leraar";
         break;
     }
     if (activeSorting === sorting) {

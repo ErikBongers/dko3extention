@@ -5,7 +5,14 @@ import {StudentInfo} from "./scrape";
 import * as html from "../html";
 import {NBSP} from "../html";
 
-export enum TrimesterSorting { TeacherInstrumentHour, InstrumentTeacherHour , TeacherHour, InstrumentHour}
+export enum TrimesterSorting {
+    TeacherInstrumentHour,
+    InstrumentTeacherHour ,
+    TeacherHour,
+    InstrumentHour,
+    Instrument,
+    Teacher
+}
 
 export function buildTrimesterTable(tableData: TableData, trimesterSorting: TrimesterSorting) {
     tableData.blocks.sort((block1, block2) => block1.instrumentName.localeCompare(block2.instrumentName));
@@ -53,6 +60,22 @@ export function buildTrimesterTable(tableData: TableData, trimesterSorting: Trim
                 }
             }
             break;
+        case TrimesterSorting.Instrument:
+            for (let [instrumentName, instrument] of tableData.instruments) {
+                buildTitleRow(newTableBody, instrumentName);
+                for (let [, block] of instrument.mergedBlocks) {
+                    buildBlock(newTableBody, block, instrumentName, undefined, DisplayOptions.Location | DisplayOptions.Teacher);
+                }
+            }
+            break;
+        case TrimesterSorting.Teacher:
+            for (let [teacherName, teacher] of tableData.teachers) {
+                buildTitleRow(newTableBody, teacherName);
+                for (let [, block] of teacher.mergedBlocks) {
+                    buildBlock(newTableBody, block, teacherName, undefined, DisplayOptions.Location | DisplayOptions.Instrument);
+                }
+            }
+            break;
     }
 }
 
@@ -94,7 +117,7 @@ First draw the 2 jaarmodule students.
 
  */
 
-function buildBlock(newTableBody: HTMLTableSectionElement, block: BlockInfo, groupId: string, getBlockTitle: (block: BlockInfo) => string, displayOptions: DisplayOptions) {
+function buildBlock(newTableBody: HTMLTableSectionElement, block: BlockInfo, groupId: string, getBlockTitle: (undefined | ((block: BlockInfo) => string)), displayOptions: DisplayOptions) {
     blockCounter++;
 
     let mergedBlock = mergeBlockStudents(block);
@@ -105,11 +128,14 @@ function buildBlock(newTableBody: HTMLTableSectionElement, block: BlockInfo, gro
         return `${mergedBlock.trimesterStudents[trimNo].length} van ${mergedBlock.maxAantallen[trimNo]} lln`;
     });
 
-    let trTitle= buildBlockTitle(newTableBody, block, getBlockTitle(block), groupId);
+    let trTitle: HTMLTableRowElement = undefined;
+    if(getBlockTitle)
+        trTitle = buildBlockTitle(newTableBody, block, getBlockTitle(block), groupId);
     let headerRows = buildBlockHeader(newTableBody, block, groupId, trimesterHeaders, displayOptions);
     let studentTopRowNo = newTableBody.children.length;
 
-    trTitle.dataset.hasFullClass = "false";
+    if(trTitle)
+        trTitle.dataset.hasFullClass = "false";
     headerRows.trModuleLinks.dataset.hasFullClass = "false";
     let hasFullClass = false;
 
@@ -171,7 +197,8 @@ function buildBlock(newTableBody: HTMLTableSectionElement, block: BlockInfo, gro
         }
     }
     if(hasFullClass) {
-        trTitle.dataset.hasFullClass = "true";
+        if(trTitle)
+            trTitle.dataset.hasFullClass = "true";
         headerRows.trModuleLinks.dataset.hasFullClass = "true";
     }
     if (!mergedBlock.hasWachtlijst) {
@@ -289,6 +316,7 @@ function buildInfoRow(newTableBody: HTMLTableSectionElement, text: string, show:
 
 function buildBlockHeader(newTableBody: HTMLTableSectionElement, block: BlockInfo, groupId: string, trimesterHeaders: string[], displayOptions: DisplayOptions) {
     //INFO
+    buildInfoRow(newTableBody, block.teacher, Boolean((DisplayOptions.Teacher & displayOptions)), groupId);
     buildInfoRow(newTableBody, block.instrumentName, Boolean((DisplayOptions.Instrument & displayOptions)), groupId);
     buildInfoRow(newTableBody, block.lesmoment, Boolean((DisplayOptions.Hour & displayOptions)), groupId);
     buildInfoRow(newTableBody, block.vestiging, Boolean((DisplayOptions.Location & displayOptions)), groupId);

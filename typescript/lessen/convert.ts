@@ -24,15 +24,21 @@ export class BlockInfo {
     }
 }
 
+interface HasBlocks {
+    blocks: BlockInfo[],
+    mergedBlocks: Map<string, BlockInfo>
+}
 interface Teacher {
     name: string;
     blocks: BlockInfo[];
+    mergedBlocks: Map<string, BlockInfo>;
     lesMomenten: Map<string, BlockInfo>;
 }
 
 interface Instrument {
     name: string;
     blocks: BlockInfo[];
+    mergedBlocks: Map<string, BlockInfo>;
     lesMomenten: Map<string, BlockInfo>;
 }
 
@@ -216,12 +222,20 @@ export function buildTableData(inputModules: Les[]) : TableData {
         (primary: Teacher, secundary) => { primary.lesMomenten = secundary; }
     );
 
+    //group by teacher
+    groupBlocks(
+        tableData.teachers.values(),
+        (block) => block.teacher
+    );
+
+    //group by instrument
+    groupBlocks(
+        tableData.instruments.values(),
+        (block) => block.instrumentName
+    );
+
     db3(tableData);
     return tableData;
-}
-
-interface HasBlocks {
-    blocks: BlockInfo[]
 }
 
 function groupBlocksTwoLevels(primaryGroups: Iterable<HasBlocks>, getSecondaryKey: (block: BlockInfo) => string, setSecondaryGroup: (primary: HasBlocks, group: Map<string, BlockInfo>) => void) {
@@ -241,6 +255,25 @@ function groupBlocksTwoLevels(primaryGroups: Iterable<HasBlocks>, getSecondaryKe
             updateMergedBlock(block);
         });
         setSecondaryGroup(primary, secondaryGroup);
+    }
+}
+
+function groupBlocks(primaryGroups: Iterable<HasBlocks>, getPrimaryKey: (block: BlockInfo) => string) {
+    for (let primary of primaryGroups) {
+        let blocks = primary.blocks;
+        let keys = distinct(blocks.map(getPrimaryKey));
+        primary.mergedBlocks = new Map(keys.map(key => [key, BlockInfo.emptyBlock()]));
+        //bundle the blocks per secondary
+        for (let block of blocks) {
+            primary.mergedBlocks.get(getPrimaryKey(block)).jaarModules.push(...block.jaarModules);
+            for (let trimNo of [0, 1, 2]) {
+                primary.mergedBlocks.get(getPrimaryKey(block))
+                    .trimesters[trimNo].push(block.trimesters[trimNo][0]);
+            }
+        }
+        primary.mergedBlocks.forEach(block => {
+            updateMergedBlock(block);
+        });
     }
 }
 
