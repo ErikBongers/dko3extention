@@ -567,6 +567,17 @@
 
   // typescript/lessen/convert.ts
   var BlockInfo = class {
+    static emptyBlock() {
+      return {
+        teacher: void 0,
+        vestiging: void 0,
+        maxAantal: -1,
+        instrumentName: void 0,
+        lesmoment: void 0,
+        trimesters: [[], [], []],
+        jaarModules: []
+      };
+    }
   };
   function buildTrimesters(modules) {
     let mergedInstrument = [void 0, void 0, void 0];
@@ -686,10 +697,10 @@
       return a.localeCompare(b);
     });
     for (let instr of instrumentNames) {
-      tableData.instruments.set(instr, []);
+      tableData.instruments.set(instr, { name: instr, blocks: [] });
     }
     for (let block of tableData.blocks) {
-      tableData.instruments.get(block.instrumentName).push(block);
+      tableData.instruments.get(block.instrumentName).blocks.push(block);
     }
     let teachers = distinct(tableData.blocks.map((b) => b.teacher)).sort((a, b) => {
       return a.localeCompare(b);
@@ -700,34 +711,46 @@
     for (let block of tableData.blocks) {
       tableData.teachers.get(block.teacher).blocks.push(block);
     }
-    for (let [teacherName, teacher] of tableData.teachers) {
-      let hours = distinct(teacher.blocks.map((b) => b.lesmoment));
-      teacher.lesMomenten = new Map(hours.map((moment) => [
-        moment,
-        {
-          teacher: teacherName,
-          vestiging: void 0,
-          maxAantal: -1,
-          instrumentName: void 0,
-          lesmoment: moment,
-          trimesters: [[], [], []],
-          jaarModules: []
-        }
-      ]));
-      for (let block of teacher.blocks) {
-        teacher.lesMomenten.get(block.lesmoment).jaarModules.push(...block.jaarModules);
-        for (let trimNo of [0, 1, 2]) {
-          teacher.lesMomenten.get(block.lesmoment).trimesters[trimNo].push(block.trimesters[trimNo][0]);
-        }
+    groupBlocksTwoLevels(
+      tableData.teachers.values(),
+      (block) => block.lesmoment,
+      (primary, secundary) => {
+        primary.lesMomenten = secundary;
       }
-      teacher.lesMomenten.forEach((hour) => {
-        let allLessen = hour.trimesters.flat().concat(hour.jaarModules);
-        hour.vestiging = [...new Set(allLessen.filter((les) => les).map((les) => les.vestiging))].join(", ");
-        hour.instrumentName = [...new Set(allLessen.filter((les) => les).map((les) => les.instrumentName))].join(", ");
-      });
-    }
+    );
+    groupBlocksTwoLevels(
+      tableData.instruments.values(),
+      (block) => block.lesmoment,
+      (primary, secundary) => {
+        primary.lesMomenten = secundary;
+      }
+    );
     db3(tableData);
     return tableData;
+  }
+  function groupBlocksTwoLevels(primaryGroups, getSecondaryKey, setSecondaryGroup) {
+    for (let primary of primaryGroups) {
+      let blocks = primary.blocks;
+      let secondaryKeys = distinct(blocks.map(getSecondaryKey));
+      let secondaryGroup = new Map(secondaryKeys.map((key) => [key, BlockInfo.emptyBlock()]));
+      for (let block of blocks) {
+        secondaryGroup.get(getSecondaryKey(block)).jaarModules.push(...block.jaarModules);
+        for (let trimNo of [0, 1, 2]) {
+          secondaryGroup.get(getSecondaryKey(block)).trimesters[trimNo].push(block.trimesters[trimNo][0]);
+        }
+      }
+      secondaryGroup.forEach((block) => {
+        updateMergedBlock(block);
+      });
+      setSecondaryGroup(primary, secondaryGroup);
+    }
+  }
+  function updateMergedBlock(block) {
+    let allLessen = block.trimesters.flat().concat(block.jaarModules);
+    block.lesmoment = [...new Set(allLessen.filter((les) => les).map((les) => les.lesmoment))].join(", ");
+    block.teacher = [...new Set(allLessen.filter((les) => les).map((les) => les.teacher))].join(", ");
+    block.vestiging = [...new Set(allLessen.filter((les) => les).map((les) => les.vestiging))].join(", ");
+    block.instrumentName = [...new Set(allLessen.filter((les) => les).map((les) => les.instrumentName))].join(", ");
   }
   function addTrimesterStudentsToMapAndCount(students, trimModules) {
     if (!trimModules[0]) return;
@@ -1081,8 +1104,8 @@
     emmet.append(trHeader, "(th>div>span.bold{Trimester $}+span.plain{ ($$ lln)})*3", (index) => totTrim[index].toString());
     switch (trimesterSorting) {
       case 1 /* InstrumentTeacherHour */:
-        for (let [instrument, blocks] of tableData.instruments) {
-          buildGroup(newTableBody, blocks, instrument, (block) => block.teacher, 2 /* Hour */ | 8 /* Location */);
+        for (let [instrumentName, instrument] of tableData.instruments) {
+          buildGroup(newTableBody, instrument.blocks, instrumentName, (block) => block.teacher, 2 /* Hour */ | 8 /* Location */);
         }
         break;
       case 0 /* TeacherInstrumentHour */:

@@ -10,6 +10,18 @@ export class BlockInfo {
     vestiging: string;
     trimesters: (Les| undefined)[][];
     jaarModules: Les[];
+
+    static emptyBlock() {
+        return <BlockInfo>{
+            teacher: undefined,
+            vestiging: undefined,
+            maxAantal: -1,
+            instrumentName: undefined,
+            lesmoment: undefined,
+            trimesters: [[], [], []],
+            jaarModules: []
+        }
+    }
 }
 
 interface Teacher {
@@ -172,7 +184,7 @@ export function buildTableData(inputModules: Les[]) : TableData {
         tableData.instruments.set(instr, []);
     }
     for(let block of tableData.blocks) {
-        tableData.instruments.get(block.instrumentName).push(block);
+        tableData.instruments.get(block.instrumentName).blocks.push(block);
     }
 
     //group by teacher
@@ -185,37 +197,53 @@ export function buildTableData(inputModules: Les[]) : TableData {
     }
 
     //group by teacher/lesmoment
-    for(let [teacherName, teacher] of tableData.teachers) {
-        let hours = distinct(teacher.blocks.map(b => b.lesmoment));
-        //TODO: convert LesMoment into a block so that buildBlock() can still be used.
-        //> first convert BlockInfo.trimesters to a 2-dim array of trimester lessen. (like LesMoment)
-        teacher.lesMomenten = new Map(hours.map(moment =>
-            [moment,
-                <BlockInfo>{
-                    teacher: teacherName,
-                    vestiging: undefined,
-                    maxAantal: -1,
-                    instrumentName: undefined,
-                    lesmoment: moment,
-                    trimesters: [[], [], []],
-                    jaarModules: []
-                }]));
-        //bundle the blocks per hour
-        for(let block of teacher.blocks) {
-            teacher.lesMomenten.get(block.lesmoment).jaarModules.push(...block.jaarModules);
-            for(let trimNo of [0,1,2] ) {
-                teacher.lesMomenten.get(block.lesmoment).trimesters[trimNo].push(block.trimesters[trimNo][0]);
-            }
-        }
-        teacher.lesMomenten.forEach(hour => {
-            let allLessen = hour.trimesters.flat().concat(hour.jaarModules);
-            hour.vestiging = [...new Set(allLessen.filter(les => les).map(les => les.vestiging))].join(", ");
-            hour.instrumentName = [...new Set(allLessen.filter(les => les).map(les => les.instrumentName))].join(", ");
-        });
+    groupBlocksTwoLevels(
+        tableData.teachers.values(),
+        (block) => block.lesmoment,
+        (primary: Teacher, secundary) => { primary.lesMomenten = secundary; }
+    );
 
-    }
+    //group by instrument/lesmoment
+    groupBlocksTwoLevels(
+        tableData.instruments.values(),
+        (block) => block.lesmoment,
+        (primary: Teacher, secundary) => { primary.lesMomenten = secundary; }
+    );
+
     db3(tableData);
     return tableData;
+}
+
+interface HasBlocks {
+    blocks: BlockInfo[]
+}
+
+function groupBlocksTwoLevels(primaryGroups: Iterable<HasBlocks>, getSecondaryKey: (block: BlockInfo) => string, setSecondaryGroup: (primary: HasBlocks, group: Map<string, BlockInfo>) => void) {
+    for (let primary of primaryGroups) {
+        let blocks = primary.blocks;
+        let secondaryKeys = distinct(blocks.map(getSecondaryKey));
+        let secondaryGroup = new Map(secondaryKeys.map(key => [key, BlockInfo.emptyBlock()]));
+        //bundle the blocks per secondary
+        for (let block of blocks) {
+            secondaryGroup.get(getSecondaryKey(block)).jaarModules.push(...block.jaarModules);
+            for (let trimNo of [0, 1, 2]) {
+                secondaryGroup.get(getSecondaryKey(block))
+                    .trimesters[trimNo].push(block.trimesters[trimNo][0]);
+            }
+        }
+        secondaryGroup.forEach(block => {
+            updateMergedBlock(block);
+        });
+        setSecondaryGroup(primary, secondaryGroup);
+    }
+}
+
+function updateMergedBlock(block: BlockInfo) {
+    let allLessen = block.trimesters.flat().concat(block.jaarModules);
+    block.lesmoment = [...new Set(allLessen.filter(les => les).map(les => les.lesmoment))].join(", ");
+    block.teacher = [...new Set(allLessen.filter(les => les).map(les => les.teacher))].join(", ");
+    block.vestiging = [...new Set(allLessen.filter(les => les).map(les => les.vestiging))].join(", ");
+    block.instrumentName = [...new Set(allLessen.filter(les => les).map(les => les.instrumentName))].join(", ");
 }
 
 function addTrimesterStudentsToMapAndCount(students: Map<string, StudentInfo>, trimModules: Les[]) {
