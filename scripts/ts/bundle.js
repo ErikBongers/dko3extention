@@ -1251,7 +1251,7 @@
     trBlockInfo.classList.add("blockRow");
     if (show === false)
       trBlockInfo.dataset.keepHidden = "true";
-    let { root, last: divBlockInfo } = emmet.append(trBlockInfo, "td.infoCell[colspan=3]>div.text-muted");
+    let { last: divBlockInfo } = emmet.append(trBlockInfo, "td.infoCell[colspan=3]>div.text-muted");
     divBlockInfo.appendChild(document.createTextNode(text));
   }
   function buildBlockHeader(newTableBody, block, groupId, trimesterHeaders, displayOptions) {
