@@ -28,8 +28,8 @@ export function buildTrimesterTable(tableData: TableData, trimesterSorting: Trim
     html.emmet.append(trHeader, "(th>div>span.bold{Trimester $}+span.plain{ ($$ lln)})*3", (index) => totTrim[index].toString());
     switch(trimesterSorting) {
         case TrimesterSorting.InstrumentTeacherHour:
-            for (let [instrument, blocks] of tableData.instruments) {
-                buildGroup(newTableBody, blocks, instrument, (block) => block.teacher, DisplayOptions.Hour | DisplayOptions.Location);
+            for (let [instrumentName, instrument] of tableData.instruments) {
+                buildGroup(newTableBody, instrument.blocks, instrumentName, (block) => block.teacher, DisplayOptions.Hour | DisplayOptions.Location);
             }
             break;
         case TrimesterSorting.TeacherInstrumentHour:

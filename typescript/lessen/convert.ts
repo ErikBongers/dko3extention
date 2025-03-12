@@ -30,9 +30,15 @@ interface Teacher {
     lesMomenten: Map<string, BlockInfo>;
 }
 
+interface Instrument {
+    name: string;
+    blocks: BlockInfo[];
+    lesMomenten: Map<string, BlockInfo>;
+}
+
 export interface TableData {
     students : Map<string, StudentInfo>,
-    instruments : Map<string, BlockInfo[]>,
+    instruments : Map<string, Instrument>,
     teachers : Map<string, Teacher>,
     blocks: BlockInfo[]
 }
@@ -181,7 +187,7 @@ export function buildTableData(inputModules: Les[]) : TableData {
     //group by instrument
     let instrumentNames = distinct(tableData.blocks.map(b => b.instrumentName)).sort((a,b) => { return a.localeCompare(b);});
     for(let instr of instrumentNames) {
-        tableData.instruments.set(instr, []);
+        tableData.instruments.set(instr, <Instrument>{name: instr, blocks: []});
     }
     for(let block of tableData.blocks) {
         tableData.instruments.get(block.instrumentName).blocks.push(block);
