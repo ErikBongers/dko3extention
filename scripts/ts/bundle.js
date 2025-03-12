@@ -1121,6 +1121,14 @@
           }
         }
         break;
+      case 3 /* InstrumentHour */:
+        for (let [instrumentName, instrument] of tableData.instruments) {
+          buildTitleRow(newTableBody, instrumentName);
+          for (let [hour, block] of instrument.lesMomenten) {
+            buildBlock(newTableBody, block, instrumentName, (_block) => hour, 8 /* Location */);
+          }
+        }
+        break;
     }
   }
   function buildGroup(newTableBody, blocks, groupId, getBlockTitle, displayOptions) {
@@ -1534,6 +1542,8 @@
     newSorteerDiv.appendChild(createSortingAnchorOrText(0 /* TeacherInstrumentHour */, sorting));
     newSorteerDiv.appendChild(document.createTextNode(" | "));
     newSorteerDiv.appendChild(createSortingAnchorOrText(2 /* TeacherHour */, sorting));
+    newSorteerDiv.appendChild(document.createTextNode(" | "));
+    newSorteerDiv.appendChild(createSortingAnchorOrText(3 /* InstrumentHour */, sorting));
   }
   function createSortingAnchorOrText(sorting, activeSorting) {
     let sortingText = "";
@@ -1546,6 +1556,9 @@
         break;
       case 2 /* TeacherHour */:
         sortingText = "leraar+lesuur";
+        break;
+      case 3 /* InstrumentHour */:
+        sortingText = "instrument+lesuur";
         break;
     }
     if (activeSorting === sorting) {

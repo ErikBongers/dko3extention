@@ -196,6 +196,8 @@ function setSorteerLine(showTrimTable: boolean, sorting: TrimesterSorting) {
     newSorteerDiv.appendChild(createSortingAnchorOrText(TrimesterSorting.TeacherInstrumentHour, sorting));
     newSorteerDiv.appendChild(document.createTextNode(" | "));
     newSorteerDiv.appendChild(createSortingAnchorOrText(TrimesterSorting.TeacherHour, sorting));
+    newSorteerDiv.appendChild(document.createTextNode(" | "));
+    newSorteerDiv.appendChild(createSortingAnchorOrText(TrimesterSorting.InstrumentHour, sorting));
 }
 
 function createSortingAnchorOrText(sorting: TrimesterSorting, activeSorting: TrimesterSorting) {
@@ -204,6 +206,7 @@ function createSortingAnchorOrText(sorting: TrimesterSorting, activeSorting: Tri
         case TrimesterSorting.InstrumentTeacherHour: sortingText = "instrument+leraar+lesuur"; break;
         case TrimesterSorting.TeacherInstrumentHour: sortingText = "leraar+instrument+lesuur"; break;
         case TrimesterSorting.TeacherHour: sortingText = "leraar+lesuur"; break;
+        case TrimesterSorting.InstrumentHour: sortingText = "instrument+lesuur"; break;
     }
 
     if (activeSorting === sorting) {

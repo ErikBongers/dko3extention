@@ -5,7 +5,7 @@ import {StudentInfo} from "./scrape";
 import * as html from "../html";
 import {NBSP} from "../html";
 
-export enum TrimesterSorting { TeacherInstrumentHour, InstrumentTeacherHour , TeacherHour}
+export enum TrimesterSorting { TeacherInstrumentHour, InstrumentTeacherHour , TeacherHour, InstrumentHour}
 
 export function buildTrimesterTable(tableData: TableData, trimesterSorting: TrimesterSorting) {
     tableData.blocks.sort((block1, block2) => block1.instrumentName.localeCompare(block2.instrumentName));
@@ -42,6 +42,14 @@ export function buildTrimesterTable(tableData: TableData, trimesterSorting: Trim
                 buildTitleRow(newTableBody, teacherName);
                 for (let [hour, block] of teacher.lesMomenten) {
                     buildBlock(newTableBody, block, teacherName, (_block) => hour, DisplayOptions.Location);
+                }
+            }
+            break;
+        case TrimesterSorting.InstrumentHour:
+            for (let [instrumentName, instrument] of tableData.instruments) {
+                buildTitleRow(newTableBody, instrumentName);
+                for (let [hour, block] of instrument.lesMomenten) {
+                    buildBlock(newTableBody, block, instrumentName, (_block) => hour, DisplayOptions.Location);
                 }
             }
             break;
