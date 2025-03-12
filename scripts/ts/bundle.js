@@ -1474,6 +1474,7 @@
   }
   var TXT_FILTER_ID = "txtFilter";
   var savedSearch = "";
+  var savedGrouping = 1 /* InstrumentTeacherHour */;
   function addFilterField() {
     let divButtonNieuweLes = document.querySelector("#lessen_overzicht > div > button");
     if (!document.getElementById(TXT_FILTER_ID))
@@ -1551,7 +1552,7 @@
     showOnlyFullTrimesters(displayState === "none");
   }
   function onClickShowTrimesters() {
-    showTrimesterTable(!isTrimesterTableVisible(), 0 /* TeacherInstrumentHour */);
+    showTrimesterTable(!isTrimesterTableVisible(), savedGrouping);
   }
   function isTrimesterTableVisible() {
     return document.getElementById("table_lessen_resultaat_tabel").style.display === "none";
@@ -1623,6 +1624,7 @@
       anchor.innerText = sortingText;
       anchor.href = "#";
       anchor.onclick = () => {
+        savedGrouping = sorting;
         showTrimesterTable(true, sorting);
         return false;
       };

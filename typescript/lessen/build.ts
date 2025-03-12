@@ -5,7 +5,7 @@ import {StudentInfo} from "./scrape";
 import * as html from "../html";
 import {NBSP} from "../html";
 
-export enum TrimesterSorting {
+export enum TrimesterGrouping {
     TeacherInstrumentHour,
     InstrumentTeacherHour ,
     TeacherHour,
@@ -14,7 +14,7 @@ export enum TrimesterSorting {
     Teacher
 }
 
-export function buildTrimesterTable(tableData: TableData, trimesterSorting: TrimesterSorting) {
+export function buildTrimesterTable(tableData: TableData, trimesterSorting: TrimesterGrouping) {
     tableData.blocks.sort((block1, block2) => block1.instrumentName.localeCompare(block2.instrumentName));
     let trimDiv = html.emmet.create(`#${TRIM_DIV_ID}>table#trimesterTable[border="2" style.width="100%"]>colgroup>col*3`).root;
 
@@ -34,17 +34,17 @@ export function buildTrimesterTable(tableData: TableData, trimesterSorting: Trim
 
     html.emmet.append(trHeader, "(th>div>span.bold{Trimester $}+span.plain{ ($$ lln)})*3", (index) => totTrim[index].toString());
     switch(trimesterSorting) {
-        case TrimesterSorting.InstrumentTeacherHour:
+        case TrimesterGrouping.InstrumentTeacherHour:
             for (let [instrumentName, instrument] of tableData.instruments) {
                 buildGroup(newTableBody, instrument.blocks, instrumentName, (block) => block.teacher, DisplayOptions.Hour | DisplayOptions.Location);
             }
             break;
-        case TrimesterSorting.TeacherInstrumentHour:
+        case TrimesterGrouping.TeacherInstrumentHour:
             for (let [teacherName, teacher] of tableData.teachers) {
                 buildGroup(newTableBody, teacher.blocks, teacherName, (block) => block.instrumentName, DisplayOptions.Hour | DisplayOptions.Location);
             }
             break;
-        case TrimesterSorting.TeacherHour:
+        case TrimesterGrouping.TeacherHour:
             for (let [teacherName, teacher] of tableData.teachers) {
                 buildTitleRow(newTableBody, teacherName);
                 for (let [hour, block] of teacher.lesMomenten) {
@@ -52,7 +52,7 @@ export function buildTrimesterTable(tableData: TableData, trimesterSorting: Trim
                 }
             }
             break;
-        case TrimesterSorting.InstrumentHour:
+        case TrimesterGrouping.InstrumentHour:
             for (let [instrumentName, instrument] of tableData.instruments) {
                 buildTitleRow(newTableBody, instrumentName);
                 for (let [hour, block] of instrument.lesMomenten) {
@@ -60,7 +60,7 @@ export function buildTrimesterTable(tableData: TableData, trimesterSorting: Trim
                 }
             }
             break;
-        case TrimesterSorting.Instrument:
+        case TrimesterGrouping.Instrument:
             for (let [instrumentName, instrument] of tableData.instruments) {
                 buildTitleRow(newTableBody, instrumentName);
                 for (let [, block] of instrument.mergedBlocks) {
@@ -68,7 +68,7 @@ export function buildTrimesterTable(tableData: TableData, trimesterSorting: Trim
                 }
             }
             break;
-        case TrimesterSorting.Teacher:
+        case TrimesterGrouping.Teacher:
             for (let [teacherName, teacher] of tableData.teachers) {
                 buildTitleRow(newTableBody, teacherName);
                 for (let [, block] of teacher.mergedBlocks) {

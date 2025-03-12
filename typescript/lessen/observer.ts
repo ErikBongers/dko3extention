@@ -1,6 +1,6 @@
 import {scrapeLessenOverzicht, scrapeModules} from "./scrape";
 import {buildTableData} from "./convert";
-import {buildTrimesterTable, TrimesterSorting} from "./build";
+import {buildTrimesterTable, TrimesterGrouping} from "./build";
 import * as def from "../def";
 import {createScearchField, createTextRowFilter, filterTable, filterTableRows, setButtonHighlighted} from "../globals";
 import {HashObserver} from "../pageObserver";
@@ -59,6 +59,7 @@ function onLessenOverzichtChanged(printButton: HTMLButtonElement) {
 const TXT_FILTER_ID = "txtFilter";
 // Well, saved until the browser is refreshed :)
 let savedSearch = "";
+let savedGrouping = TrimesterGrouping.InstrumentTeacherHour;
 
 function addFilterField() {
     let divButtonNieuweLes = document.querySelector("#lessen_overzicht > div > button");
@@ -154,14 +155,14 @@ function onClickFullClasses() {
 }
 
 function onClickShowTrimesters() {
-    showTrimesterTable(!isTrimesterTableVisible(), TrimesterSorting.TeacherInstrumentHour);
+    showTrimesterTable(!isTrimesterTableVisible(), savedGrouping);
 }
 
 export function isTrimesterTableVisible() {
     return document.getElementById("table_lessen_resultaat_tabel").style.display === "none";
 }
 
-export function showTrimesterTable(show: boolean, sorting: TrimesterSorting) {
+export function showTrimesterTable(show: boolean, sorting: TrimesterGrouping) {
     document.getElementById(def.TRIM_TABLE_ID)?.remove(); //todo: cleaner way to do this once the prefered sorting has been saved.
     //Build lazily and only once. Table will automatically be erased when filters are changed.
     if (!document.getElementById(def.TRIM_TABLE_ID)) {
@@ -178,7 +179,7 @@ export function showTrimesterTable(show: boolean, sorting: TrimesterSorting) {
     onSearchInput();
 }
 
-function setSorteerLine(showTrimTable: boolean, sorting: TrimesterSorting) {
+function setSorteerLine(showTrimTable: boolean, sorting: TrimesterGrouping) {
     let oldSorteerSpan = document.querySelector("#lessen_overzicht > span") as HTMLElement;
     let newSorteerDiv = document.getElementById("trimSorteerDiv");
     if(!newSorteerDiv) {
@@ -191,26 +192,26 @@ function setSorteerLine(showTrimTable: boolean, sorting: TrimesterSorting) {
     oldSorteerSpan.style.display = showTrimTable ? "none" : "";
     newSorteerDiv.style.display = showTrimTable ? "" : "none";
 
-    newSorteerDiv.appendChild(createSortingAnchorOrText(TrimesterSorting.InstrumentTeacherHour, sorting));
+    newSorteerDiv.appendChild(createSortingAnchorOrText(TrimesterGrouping.InstrumentTeacherHour, sorting));
     newSorteerDiv.appendChild(document.createTextNode(" | "));
-    newSorteerDiv.appendChild(createSortingAnchorOrText(TrimesterSorting.TeacherInstrumentHour, sorting));
+    newSorteerDiv.appendChild(createSortingAnchorOrText(TrimesterGrouping.TeacherInstrumentHour, sorting));
     newSorteerDiv.appendChild(document.createTextNode(" | "));
-    newSorteerDiv.appendChild(createSortingAnchorOrText(TrimesterSorting.TeacherHour, sorting));
+    newSorteerDiv.appendChild(createSortingAnchorOrText(TrimesterGrouping.TeacherHour, sorting));
     newSorteerDiv.appendChild(document.createTextNode(" | "));
-    newSorteerDiv.appendChild(createSortingAnchorOrText(TrimesterSorting.Instrument, sorting));
+    newSorteerDiv.appendChild(createSortingAnchorOrText(TrimesterGrouping.Instrument, sorting));
     newSorteerDiv.appendChild(document.createTextNode(" | "));
-    newSorteerDiv.appendChild(createSortingAnchorOrText(TrimesterSorting.Teacher, sorting));
+    newSorteerDiv.appendChild(createSortingAnchorOrText(TrimesterGrouping.Teacher, sorting));
 }
 
-function createSortingAnchorOrText(sorting: TrimesterSorting, activeSorting: TrimesterSorting) {
+function createSortingAnchorOrText(sorting: TrimesterGrouping, activeSorting: TrimesterGrouping) {
     let sortingText = "";
     switch (sorting) {
-        case TrimesterSorting.InstrumentTeacherHour: sortingText = "instrument+leraar+lesuur"; break;
-        case TrimesterSorting.TeacherInstrumentHour: sortingText = "leraar+instrument+lesuur"; break;
-        case TrimesterSorting.TeacherHour: sortingText = "leraar+lesuur"; break;
-        case TrimesterSorting.InstrumentHour: sortingText = "instrument+lesuur"; break;
-        case TrimesterSorting.Instrument: sortingText = "instrument"; break;
-        case TrimesterSorting.Teacher: sortingText = "leraar"; break;
+        case TrimesterGrouping.InstrumentTeacherHour: sortingText = "instrument+leraar+lesuur"; break;
+        case TrimesterGrouping.TeacherInstrumentHour: sortingText = "leraar+instrument+lesuur"; break;
+        case TrimesterGrouping.TeacherHour: sortingText = "leraar+lesuur"; break;
+        case TrimesterGrouping.InstrumentHour: sortingText = "instrument+lesuur"; break;
+        case TrimesterGrouping.Instrument: sortingText = "instrument"; break;
+        case TrimesterGrouping.Teacher: sortingText = "leraar"; break;
     }
 
     if (activeSorting === sorting) {
@@ -222,6 +223,7 @@ function createSortingAnchorOrText(sorting: TrimesterSorting, activeSorting: Tri
         anchor.innerText = sortingText;
         anchor.href = "#";
         anchor.onclick = () => {
+            savedGrouping = sorting;
             showTrimesterTable(true, sorting);
             return false;
         };
