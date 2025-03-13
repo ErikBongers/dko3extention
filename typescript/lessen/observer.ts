@@ -12,9 +12,22 @@ function onMutation (mutation: MutationRecord) {
     if (mutation.target !== lessenOverzicht) {
         return false;
     }
+
+    // #lessen_overzicht > div.mb-3 > div > button.btn.btn-sm.btn-outline-info > i
     let printButton = document.getElementById("btn_print_overzicht_lessen") as HTMLButtonElement;
     if (!printButton) {
         return false;
+    }
+    let copyLessonButton = printButton.parentElement.querySelector("button:has(i.fa-reply-all)") as HTMLButtonElement;
+    if(copyLessonButton?.title === "") {
+        copyLessonButton.title = copyLessonButton.textContent.replaceAll("\n", " ").replaceAll("      ", " ").replaceAll("     ", " ").replaceAll("    ", " ").replaceAll("   ", " ").replaceAll("  ", " ");
+        copyLessonButton.childNodes.forEach(node => {
+            if(node.nodeType === Node.TEXT_NODE)
+                node.remove();
+        });
+        copyLessonButton.querySelector("strong")?.remove();
+        copyLessonButton.style.backgroundColor = "red";
+        copyLessonButton.style.color = "white";
     }
     onLessenOverzichtChanged(printButton);
     return true;

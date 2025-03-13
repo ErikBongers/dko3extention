@@ -1439,6 +1439,17 @@
     if (!printButton) {
       return false;
     }
+    let copyLessonButton = printButton.parentElement.querySelector("button:has(i.fa-reply-all)");
+    if (copyLessonButton?.title === "") {
+      copyLessonButton.title = copyLessonButton.textContent.replaceAll("\n", " ").replaceAll("      ", " ").replaceAll("     ", " ").replaceAll("    ", " ").replaceAll("   ", " ").replaceAll("  ", " ");
+      copyLessonButton.childNodes.forEach((node) => {
+        if (node.nodeType === Node.TEXT_NODE)
+          node.remove();
+      });
+      copyLessonButton.querySelector("strong")?.remove();
+      copyLessonButton.style.backgroundColor = "red";
+      copyLessonButton.style.color = "white";
+    }
     onLessenOverzichtChanged(printButton);
     return true;
   }
