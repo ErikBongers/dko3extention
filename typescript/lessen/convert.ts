@@ -248,11 +248,7 @@ function groupBlocksTwoLevels(primaryGroups: Iterable<HasBlocks>, getSecondaryKe
         let secondaryGroup = new Map(secondaryKeys.map(key => [key, BlockInfo.emptyBlock()]));
         //bundle the blocks per secondary
         for (let block of blocks) {
-            secondaryGroup.get(getSecondaryKey(block)).jaarModules.push(...block.jaarModules);
-            for (let trimNo of [0, 1, 2]) {
-                secondaryGroup.get(getSecondaryKey(block))
-                    .trimesters[trimNo].push(block.trimesters[trimNo][0]);
-            }
+            mergeBlock(secondaryGroup.get(getSecondaryKey(block)), block);
         }
         secondaryGroup.forEach(block => {
             updateMergedBlock(block);
@@ -268,17 +264,22 @@ function groupBlocks(primaryGroups: Iterable<HasBlocks>, getPrimaryKey: (block: 
         primary.mergedBlocks = new Map(keys.map(key => [key, BlockInfo.emptyBlock()]));
         //bundle the blocks per secondary
         for (let block of blocks) {
-            primary.mergedBlocks.get(getPrimaryKey(block)).jaarModules.push(...block.jaarModules);
-            for (let trimNo of [0, 1, 2]) {
-                primary.mergedBlocks.get(getPrimaryKey(block))
-                    .trimesters[trimNo].push(block.trimesters[trimNo][0]);
-            }
+            mergeBlock(primary.mergedBlocks.get(getPrimaryKey(block)), block);
         }
         primary.mergedBlocks.forEach(block => {
             updateMergedBlock(block);
         });
     }
 }
+
+function mergeBlock(blockToMergeTo: BlockInfo, block2: BlockInfo) {{
+    blockToMergeTo.jaarModules.push(...block2.jaarModules);
+    for (let trimNo of [0, 1, 2]) {
+        blockToMergeTo.trimesters[trimNo].push(block2.trimesters[trimNo][0]);
+    }
+    blockToMergeTo.errors += block2.errors;
+    return blockToMergeTo;
+}}
 
 function updateMergedBlock(block: BlockInfo) {
     let allLessen = block.trimesters.flat().concat(block.jaarModules);

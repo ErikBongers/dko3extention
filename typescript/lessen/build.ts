@@ -128,9 +128,7 @@ function buildBlock(newTableBody: HTMLTableSectionElement, block: BlockInfo, gro
         return `${mergedBlock.trimesterStudents[trimNo].length} van ${mergedBlock.maxAantallen[trimNo]} lln`;
     });
 
-    let trTitle: HTMLTableRowElement = undefined;
-    if(getBlockTitle)
-        trTitle = buildBlockTitle(newTableBody, block, getBlockTitle(block), groupId);
+    let trTitle = buildBlockTitle(newTableBody, block, getBlockTitle, groupId);
     let headerRows = buildBlockHeader(newTableBody, block, groupId, trimesterHeaders, displayOptions);
     let studentTopRowNo = newTableBody.children.length;
 
@@ -254,23 +252,19 @@ function buildTitleRow(newTableBody: HTMLTableSectionElement, title: string) {
     return {trTitle, divTitle};
 }
 
-function buildBlockTitle(newTableBody: HTMLTableSectionElement, block: BlockInfo, subTitle: string, groupId: string) {
-    const trBlockTitle = createLesRow(groupId);
-    newTableBody.appendChild(trBlockTitle);
+function buildBlockTitle(newTableBody: HTMLTableSectionElement, block: BlockInfo, getBlockTitle: (undefined | ((block: BlockInfo) => string)), groupId: string) {
+    if(!getBlockTitle && !block.errors)
+        return undefined;
+    const trBlockTitle = newTableBody.appendChild(createLesRow(groupId));
     trBlockTitle.classList.add("blockRow");
 
-    const tdBlockTitle = document.createElement("td");
-    trBlockTitle.appendChild(tdBlockTitle);
-    tdBlockTitle.classList.add("infoCell");
-    tdBlockTitle.setAttribute("colspan", "3");
-
-    let divBlockTitle = document.createElement("div");
-    tdBlockTitle.appendChild(divBlockTitle);
-    divBlockTitle.classList.add("text-muted");
-    let spanSubtitle = document.createElement("span");
-    divBlockTitle.appendChild(spanSubtitle);
-    spanSubtitle.classList.add("subTitle"); //TODO: rename to blockTitle
-    spanSubtitle.appendChild(document.createTextNode(subTitle));
+    let {last: divBlockTitle} = html.emmet.append(trBlockTitle, "td.infoCell[colspan=3]>div.text-muted");
+    if(getBlockTitle) {
+        let spanSubtitle = document.createElement("span");
+        divBlockTitle.appendChild(spanSubtitle);
+        spanSubtitle.classList.add("subTitle"); //TODO: rename to blockTitle
+        spanSubtitle.appendChild(document.createTextNode(getBlockTitle(block)));
+    }
 
     for (let jaarModule of block.jaarModules) {
         divBlockTitle.appendChild(buildModuleButton(">", jaarModule.id, false))
