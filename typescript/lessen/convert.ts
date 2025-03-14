@@ -151,7 +151,7 @@ export function buildTableData(inputModules: Les[]) : TableData {
             for(let lesmoment of lesmomenten) {
                 let instrumentTeacherMomentModules = instrumentTeacherModules.filter(module => module.formattedLesmoment === lesmoment);
 
-                let block: BlockInfo = new BlockInfo();
+                let block: BlockInfo = BlockInfo.emptyBlock();
                 block.instrumentName = instrumentName;
                 block.teacher = teacher;
                 block.lesmoment = lesmoment;
@@ -181,10 +181,6 @@ export function buildTableData(inputModules: Les[]) : TableData {
     for(let student of tableData.students.values()) {
         setStudentPopupInfo(student);
         setStudentAllTrimsTheSameInstrument(student);
-    }
-
-    for(let block of tableData.blocks) {
-        checkBlockForErrors(block);
     }
 
     //sort students, putting allYearSame studetns on top. (will be in bold).

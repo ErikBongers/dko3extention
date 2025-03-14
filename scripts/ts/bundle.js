@@ -575,7 +575,8 @@
         instrumentName: void 0,
         lesmoment: void 0,
         trimesters: [[], [], []],
-        jaarModules: []
+        jaarModules: [],
+        errors: ""
       };
     }
   };
@@ -658,7 +659,7 @@
         let lesmomenten = distinct(getLesmomenten(instrumentTeacherModules));
         for (let lesmoment of lesmomenten) {
           let instrumentTeacherMomentModules = instrumentTeacherModules.filter((module) => module.formattedLesmoment === lesmoment);
-          let block = new BlockInfo();
+          let block = BlockInfo.emptyBlock();
           block.instrumentName = instrumentName;
           block.teacher = teacher;
           block.lesmoment = lesmoment;
@@ -671,6 +672,7 @@
               block.trimesters[trimNo].push(trims[trimNo]);
           }
           block.jaarModules = instrumentTeacherMomentModules.filter((module) => module.lesType === 1 /* JaarModule */);
+          checkBlockForErrors(block);
           tableData.blocks.push(block);
           for (let trim of block.trimesters) {
             addTrimesterStudentsToMapAndCount(tableData.students, trim);
@@ -775,6 +777,14 @@
     block.teacher = [...new Set(allLessen.filter((les) => les).map((les) => les.teacher))].join(", ");
     block.vestiging = [...new Set(allLessen.filter((les) => les).map((les) => les.vestiging))].join(", ");
     block.instrumentName = [...new Set(allLessen.filter((les) => les).map((les) => les.instrumentName))].join(", ");
+  }
+  function checkBlockForErrors(block) {
+    let maxMoreThan100 = block.jaarModules.map((module) => module.maxAantal > TOO_LARGE_MAX).includes(true);
+    if (!maxMoreThan100) {
+      maxMoreThan100 = block.trimesters.flat().map((module) => module?.maxAantal > TOO_LARGE_MAX).includes(true);
+    }
+    if (maxMoreThan100)
+      block.errors += "Max aantal lln > " + TOO_LARGE_MAX;
   }
   function addTrimesterStudentsToMapAndCount(students, trimModules) {
     if (!trimModules[0]) return;
@@ -1157,7 +1167,7 @@
         for (let [instrumentName, instrument] of tableData.instruments) {
           buildTitleRow(newTableBody, instrumentName);
           for (let [, block] of instrument.mergedBlocks) {
-            buildBlock(newTableBody, block, instrumentName, void 0, 2 | 8 /* Location */ | 1 /* Teacher */);
+            buildBlock(newTableBody, block, instrumentName, void 0, 2 /* Hour */ | 8 /* Location */ | 1 /* Teacher */);
           }
         }
         break;
@@ -1165,7 +1175,7 @@
         for (let [teacherName, teacher] of tableData.teachers) {
           buildTitleRow(newTableBody, teacherName);
           for (let [, block] of teacher.mergedBlocks) {
-            buildBlock(newTableBody, block, teacherName, void 0, 2 | 8 /* Location */ | 4 /* Instrument */);
+            buildBlock(newTableBody, block, teacherName, void 0, 2 /* Hour */ | 8 /* Location */ | 4 /* Instrument */);
           }
         }
         break;
@@ -1306,16 +1316,9 @@
     for (let jaarModule of block.jaarModules) {
       divBlockTitle.appendChild(buildModuleButton(">", jaarModule.id, false));
     }
-    let errorsAndWarnings = "";
-    let maxMoreThan100 = block.jaarModules.map((module) => module.maxAantal > TOO_LARGE_MAX).includes(true);
-    if (!maxMoreThan100) {
-      maxMoreThan100 = block.trimesters.flat().map((module) => module?.maxAantal > TOO_LARGE_MAX).includes(true);
-    }
-    if (maxMoreThan100)
-      errorsAndWarnings += "Max aantal lln > " + TOO_LARGE_MAX;
-    if (errorsAndWarnings) {
+    if (block.errors) {
       let errorSpan = document.createElement("span");
-      errorSpan.appendChild(document.createTextNode(errorsAndWarnings));
+      errorSpan.appendChild(document.createTextNode(block.errors));
       errorSpan.classList.add("lesError");
       divBlockTitle.appendChild(errorSpan);
     }
