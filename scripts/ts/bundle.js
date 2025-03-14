@@ -1157,7 +1157,7 @@
         for (let [instrumentName, instrument] of tableData.instruments) {
           buildTitleRow(newTableBody, instrumentName);
           for (let [, block] of instrument.mergedBlocks) {
-            buildBlock(newTableBody, block, instrumentName, void 0, 8 /* Location */ | 1 /* Teacher */);
+            buildBlock(newTableBody, block, instrumentName, void 0, 2 | 8 /* Location */ | 1 /* Teacher */);
           }
         }
         break;
@@ -1165,7 +1165,7 @@
         for (let [teacherName, teacher] of tableData.teachers) {
           buildTitleRow(newTableBody, teacherName);
           for (let [, block] of teacher.mergedBlocks) {
-            buildBlock(newTableBody, block, teacherName, void 0, 8 /* Location */ | 4 /* Instrument */);
+            buildBlock(newTableBody, block, teacherName, void 0, 2 | 8 /* Location */ | 4 /* Instrument */);
           }
         }
         break;

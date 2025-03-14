@@ -64,7 +64,7 @@ export function buildTrimesterTable(tableData: TableData, trimesterSorting: Trim
             for (let [instrumentName, instrument] of tableData.instruments) {
                 buildTitleRow(newTableBody, instrumentName);
                 for (let [, block] of instrument.mergedBlocks) {
-                    buildBlock(newTableBody, block, instrumentName, undefined, DisplayOptions.Location | DisplayOptions.Teacher);
+                    buildBlock(newTableBody, block, instrumentName, undefined, DisplayOptions.Hour | DisplayOptions.Location | DisplayOptions.Teacher);
                 }
             }
             break;
@@ -72,7 +72,7 @@ export function buildTrimesterTable(tableData: TableData, trimesterSorting: Trim
             for (let [teacherName, teacher] of tableData.teachers) {
                 buildTitleRow(newTableBody, teacherName);
                 for (let [, block] of teacher.mergedBlocks) {
-                    buildBlock(newTableBody, block, teacherName, undefined, DisplayOptions.Location | DisplayOptions.Instrument);
+                    buildBlock(newTableBody, block, teacherName, undefined, DisplayOptions.Hour | DisplayOptions.Location | DisplayOptions.Instrument);
                 }
             }
             break;
