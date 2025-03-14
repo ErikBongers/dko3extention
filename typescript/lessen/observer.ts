@@ -201,6 +201,7 @@ function setSorteerLine(showTrimTable: boolean, sorting: TrimesterGrouping) {
         newSorteerDiv.classList.add("text-muted");
         oldSorteerSpan.parentNode.insertBefore(newSorteerDiv, oldSorteerSpan.nextSibling);
     }
+    let newNameSortDiv = html.emmet.create("div{Sorteer: }>a{Naam}+{ | }+a{Voornaam}");
     newSorteerDiv.innerText = "Groepeer: ";
     oldSorteerSpan.style.display = showTrimTable ? "none" : "";
     newSorteerDiv.style.display = showTrimTable ? "" : "none";

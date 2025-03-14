@@ -5,6 +5,11 @@ import {StudentInfo} from "./scrape";
 import * as html from "../html";
 import {NBSP} from "../html";
 
+
+export enum NameSorting {
+    FirstName, LastName
+}
+
 export enum TrimesterGrouping {
     TeacherInstrumentHour,
     InstrumentTeacherHour ,
@@ -351,7 +356,11 @@ function buildModuleButton(buttonText: string, id: string, floatRight: boolean) 
 function buildStudentCell(student: StudentInfo) {
     const cell = document.createElement("td");
     let studentSpan = document.createElement("span");
-    studentSpan.appendChild(document.createTextNode(student?.name ??  String.fromCharCode(NBSP)));
+    let displayName = String.fromCharCode(NBSP):
+    if(student) {
+        displayName = student.voornaam + ", " + student.naam;
+    }
+    studentSpan.appendChild(document.createTextNode(displayName));
     cell.appendChild(studentSpan);
     if (student?.allYearSame) {
         studentSpan.classList.add("allYear");
