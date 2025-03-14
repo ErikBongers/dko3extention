@@ -350,9 +350,9 @@ function buildModuleButton(buttonText: string, id: string, floatRight: boolean) 
 function buildStudentCell(student: StudentInfo) {
     const cell = document.createElement("td");
     let studentSpan = document.createElement("span");
-    let displayName = String.fromCharCode(NBSP):
+    let displayName = String.fromCharCode(NBSP);
     if(student) {
-        displayName = student.voornaam + ", " + student.naam;
+        displayName = student.voornaam + " " + student.naam;
     }
     studentSpan.appendChild(document.createTextNode(displayName));
     cell.appendChild(studentSpan);

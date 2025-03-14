@@ -4,6 +4,7 @@ import {buildTrimesterTable, TrimesterGrouping} from "./build";
 import * as def from "../def";
 import {createScearchField, createTextRowFilter, filterTable, filterTableRows, setButtonHighlighted} from "../globals";
 import {HashObserver} from "../pageObserver";
+import * as html from "../html";
 
 export default new HashObserver("#lessen-overzicht", onMutation);
 
@@ -201,7 +202,7 @@ function setSorteerLine(showTrimTable: boolean, sorting: TrimesterGrouping) {
         newSorteerDiv.classList.add("text-muted");
         oldSorteerSpan.parentNode.insertBefore(newSorteerDiv, oldSorteerSpan.nextSibling);
     }
-    let newNameSortDiv = html.emmet.create("div{Sorteer: }>a{Naam}+{ | }+a{Voornaam}");
+    // let newNameSortDiv = html.emmet.create("div.text-muted{Sorteer: }>a{Naam}+{ | }+a{Voornaam}");
     newSorteerDiv.innerText = "Groepeer: ";
     oldSorteerSpan.style.display = showTrimTable ? "none" : "";
     newSorteerDiv.style.display = showTrimTable ? "" : "none";

@@ -113,6 +113,9 @@ function scrapeStudents(studentTable: HTMLTableElement) {
         let studentInfo = new StudentInfo();
         studentInfo.graadJaar = row.cells[0].children[0].textContent;
         studentInfo.name = row.cells[0].childNodes[1].textContent;
+        let names = studentInfo.name.split(", ");
+        studentInfo.naam = names[0];
+        studentInfo.voornaam = names[1];
         students.push(studentInfo);
     }
     return students;

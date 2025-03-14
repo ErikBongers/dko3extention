@@ -526,6 +526,9 @@
       let studentInfo = new StudentInfo();
       studentInfo.graadJaar = row.cells[0].children[0].textContent;
       studentInfo.name = row.cells[0].childNodes[1].textContent;
+      let names = studentInfo.name.split(", ");
+      studentInfo.naam = names[0];
+      studentInfo.voornaam = names[1];
       students.push(studentInfo);
     }
     return students;
@@ -1375,7 +1378,11 @@
   function buildStudentCell(student) {
     const cell = document.createElement("td");
     let studentSpan = document.createElement("span");
-    studentSpan.appendChild(document.createTextNode(student?.name ?? String.fromCharCode(NBSP)));
+    let displayName = String.fromCharCode(NBSP);
+    if (student) {
+      displayName = student.voornaam + " " + student.naam;
+    }
+    studentSpan.appendChild(document.createTextNode(displayName));
     cell.appendChild(studentSpan);
     if (student?.allYearSame) {
       studentSpan.classList.add("allYear");
