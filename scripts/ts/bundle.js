@@ -575,7 +575,8 @@
         instrumentName: void 0,
         lesmoment: void 0,
         trimesters: [[], [], []],
-        jaarModules: []
+        jaarModules: [],
+        errors: ""
       };
     }
   };
@@ -658,7 +659,7 @@
         let lesmomenten = distinct(getLesmomenten(instrumentTeacherModules));
         for (let lesmoment of lesmomenten) {
           let instrumentTeacherMomentModules = instrumentTeacherModules.filter((module) => module.formattedLesmoment === lesmoment);
-          let block = new BlockInfo();
+          let block = BlockInfo.emptyBlock();
           block.instrumentName = instrumentName;
           block.teacher = teacher;
           block.lesmoment = lesmoment;
@@ -671,6 +672,7 @@
               block.trimesters[trimNo].push(trims[trimNo]);
           }
           block.jaarModules = instrumentTeacherMomentModules.filter((module) => module.lesType === 1 /* JaarModule */);
+          checkBlockForErrors(block);
           tableData.blocks.push(block);
           for (let trim of block.trimesters) {
             addTrimesterStudentsToMapAndCount(tableData.students, trim);
@@ -742,10 +744,7 @@
       let secondaryKeys = distinct(blocks.map(getSecondaryKey));
       let secondaryGroup = new Map(secondaryKeys.map((key) => [key, BlockInfo.emptyBlock()]));
       for (let block of blocks) {
-        secondaryGroup.get(getSecondaryKey(block)).jaarModules.push(...block.jaarModules);
-        for (let trimNo of [0, 1, 2]) {
-          secondaryGroup.get(getSecondaryKey(block)).trimesters[trimNo].push(block.trimesters[trimNo][0]);
-        }
+        mergeBlock(secondaryGroup.get(getSecondaryKey(block)), block);
       }
       secondaryGroup.forEach((block) => {
         updateMergedBlock(block);
@@ -759,14 +758,21 @@
       let keys = distinct(blocks.map(getPrimaryKey));
       primary.mergedBlocks = new Map(keys.map((key) => [key, BlockInfo.emptyBlock()]));
       for (let block of blocks) {
-        primary.mergedBlocks.get(getPrimaryKey(block)).jaarModules.push(...block.jaarModules);
-        for (let trimNo of [0, 1, 2]) {
-          primary.mergedBlocks.get(getPrimaryKey(block)).trimesters[trimNo].push(block.trimesters[trimNo][0]);
-        }
+        mergeBlock(primary.mergedBlocks.get(getPrimaryKey(block)), block);
       }
       primary.mergedBlocks.forEach((block) => {
         updateMergedBlock(block);
       });
+    }
+  }
+  function mergeBlock(blockToMergeTo, block2) {
+    {
+      blockToMergeTo.jaarModules.push(...block2.jaarModules);
+      for (let trimNo of [0, 1, 2]) {
+        blockToMergeTo.trimesters[trimNo].push(block2.trimesters[trimNo][0]);
+      }
+      blockToMergeTo.errors += block2.errors;
+      return blockToMergeTo;
     }
   }
   function updateMergedBlock(block) {
@@ -775,6 +781,14 @@
     block.teacher = [...new Set(allLessen.filter((les) => les).map((les) => les.teacher))].join(", ");
     block.vestiging = [...new Set(allLessen.filter((les) => les).map((les) => les.vestiging))].join(", ");
     block.instrumentName = [...new Set(allLessen.filter((les) => les).map((les) => les.instrumentName))].join(", ");
+  }
+  function checkBlockForErrors(block) {
+    let maxMoreThan100 = block.jaarModules.map((module) => module.maxAantal > TOO_LARGE_MAX).includes(true);
+    if (!maxMoreThan100) {
+      maxMoreThan100 = block.trimesters.flat().map((module) => module?.maxAantal > TOO_LARGE_MAX).includes(true);
+    }
+    if (maxMoreThan100)
+      block.errors += "Max aantal lln > " + TOO_LARGE_MAX;
   }
   function addTrimesterStudentsToMapAndCount(students, trimModules) {
     if (!trimModules[0]) return;
@@ -1157,7 +1171,7 @@
         for (let [instrumentName, instrument] of tableData.instruments) {
           buildTitleRow(newTableBody, instrumentName);
           for (let [, block] of instrument.mergedBlocks) {
-            buildBlock(newTableBody, block, instrumentName, void 0, 2 | 8 /* Location */ | 1 /* Teacher */);
+            buildBlock(newTableBody, block, instrumentName, void 0, 2 /* Hour */ | 8 /* Location */ | 1 /* Teacher */);
           }
         }
         break;
@@ -1165,7 +1179,7 @@
         for (let [teacherName, teacher] of tableData.teachers) {
           buildTitleRow(newTableBody, teacherName);
           for (let [, block] of teacher.mergedBlocks) {
-            buildBlock(newTableBody, block, teacherName, void 0, 2 | 8 /* Location */ | 4 /* Instrument */);
+            buildBlock(newTableBody, block, teacherName, void 0, 2 /* Hour */ | 8 /* Location */ | 4 /* Instrument */);
           }
         }
         break;
@@ -1192,9 +1206,7 @@
         return "";
       return `${mergedBlock.trimesterStudents[trimNo].length} van ${mergedBlock.maxAantallen[trimNo]} lln`;
     });
-    let trTitle = void 0;
-    if (getBlockTitle)
-      trTitle = buildBlockTitle(newTableBody, block, getBlockTitle(block), groupId);
+    let trTitle = buildBlockTitle(newTableBody, block, getBlockTitle, groupId);
     let headerRows = buildBlockHeader(newTableBody, block, groupId, trimesterHeaders, displayOptions);
     let studentTopRowNo = newTableBody.children.length;
     if (trTitle)
@@ -1288,34 +1300,24 @@
     divTitle.appendChild(document.createTextNode(title));
     return { trTitle, divTitle };
   }
-  function buildBlockTitle(newTableBody, block, subTitle, groupId) {
-    const trBlockTitle = createLesRow(groupId);
-    newTableBody.appendChild(trBlockTitle);
+  function buildBlockTitle(newTableBody, block, getBlockTitle, groupId) {
+    if (!getBlockTitle && !block.errors)
+      return void 0;
+    const trBlockTitle = newTableBody.appendChild(createLesRow(groupId));
     trBlockTitle.classList.add("blockRow");
-    const tdBlockTitle = document.createElement("td");
-    trBlockTitle.appendChild(tdBlockTitle);
-    tdBlockTitle.classList.add("infoCell");
-    tdBlockTitle.setAttribute("colspan", "3");
-    let divBlockTitle = document.createElement("div");
-    tdBlockTitle.appendChild(divBlockTitle);
-    divBlockTitle.classList.add("text-muted");
-    let spanSubtitle = document.createElement("span");
-    divBlockTitle.appendChild(spanSubtitle);
-    spanSubtitle.classList.add("subTitle");
-    spanSubtitle.appendChild(document.createTextNode(subTitle));
+    let { last: divBlockTitle } = emmet.append(trBlockTitle, "td.infoCell[colspan=3]>div.text-muted");
+    if (getBlockTitle) {
+      let spanSubtitle = document.createElement("span");
+      divBlockTitle.appendChild(spanSubtitle);
+      spanSubtitle.classList.add("subTitle");
+      spanSubtitle.appendChild(document.createTextNode(getBlockTitle(block)));
+    }
     for (let jaarModule of block.jaarModules) {
       divBlockTitle.appendChild(buildModuleButton(">", jaarModule.id, false));
     }
-    let errorsAndWarnings = "";
-    let maxMoreThan100 = block.jaarModules.map((module) => module.maxAantal > TOO_LARGE_MAX).includes(true);
-    if (!maxMoreThan100) {
-      maxMoreThan100 = block.trimesters.flat().map((module) => module?.maxAantal > TOO_LARGE_MAX).includes(true);
-    }
-    if (maxMoreThan100)
-      errorsAndWarnings += "Max aantal lln > " + TOO_LARGE_MAX;
-    if (errorsAndWarnings) {
+    if (block.errors) {
       let errorSpan = document.createElement("span");
-      errorSpan.appendChild(document.createTextNode(errorsAndWarnings));
+      errorSpan.appendChild(document.createTextNode(block.errors));
       errorSpan.classList.add("lesError");
       divBlockTitle.appendChild(errorSpan);
     }
