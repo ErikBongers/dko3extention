@@ -10,6 +10,7 @@ export class BlockInfo {
     vestiging: string;
     trimesters: (Les| undefined)[][];
     jaarModules: Les[];
+    errors: string;
 
     static emptyBlock() {
         return <BlockInfo>{
@@ -19,7 +20,8 @@ export class BlockInfo {
             instrumentName: undefined,
             lesmoment: undefined,
             trimesters: [[], [], []],
-            jaarModules: []
+            jaarModules: [],
+            errors: ""
         }
     }
 }
@@ -163,6 +165,7 @@ export function buildTableData(inputModules: Les[]) : TableData {
                         block.trimesters[trimNo].push(trims[trimNo]);
                 }
                 block.jaarModules = instrumentTeacherMomentModules.filter(module => module.lesType === LesType.JaarModule);
+                checkBlockForErrors(block);
                 tableData.blocks.push(block);
 
                 for (let trim of block.trimesters) {
@@ -178,6 +181,10 @@ export function buildTableData(inputModules: Les[]) : TableData {
     for(let student of tableData.students.values()) {
         setStudentPopupInfo(student);
         setStudentAllTrimsTheSameInstrument(student);
+    }
+
+    for(let block of tableData.blocks) {
+        checkBlockForErrors(block);
     }
 
     //sort students, putting allYearSame studetns on top. (will be in bold).
@@ -283,6 +290,19 @@ function updateMergedBlock(block: BlockInfo) {
     block.teacher = [...new Set(allLessen.filter(les => les).map(les => les.teacher))].join(", ");
     block.vestiging = [...new Set(allLessen.filter(les => les).map(les => les.vestiging))].join(", ");
     block.instrumentName = [...new Set(allLessen.filter(les => les).map(les => les.instrumentName))].join(", ");
+}
+
+function checkBlockForErrors(block: BlockInfo) {
+    let maxMoreThan100 = block.jaarModules
+        .map(module => module.maxAantal > TOO_LARGE_MAX)
+        .includes(true);
+    if(!maxMoreThan100) {
+        maxMoreThan100 = block.trimesters.flat()
+            .map(module => module?.maxAantal > TOO_LARGE_MAX)
+            .includes(true);
+    }
+    if(maxMoreThan100)
+        block.errors += "Max aantal lln > " + TOO_LARGE_MAX;
 }
 
 function addTrimesterStudentsToMapAndCount(students: Map<string, StudentInfo>, trimModules: Les[]) {

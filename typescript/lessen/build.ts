@@ -276,21 +276,9 @@ function buildBlockTitle(newTableBody: HTMLTableSectionElement, block: BlockInfo
         divBlockTitle.appendChild(buildModuleButton(">", jaarModule.id, false))
     }
 
-    let errorsAndWarnings = "";
-    let maxMoreThan100 = block.jaarModules
-        .map(module => module.maxAantal > TOO_LARGE_MAX)
-        .includes(true);
-    if(!maxMoreThan100) {
-        maxMoreThan100 = block.trimesters.flat()
-            .map(module => module?.maxAantal > TOO_LARGE_MAX)
-            .includes(true);
-    }
-    if(maxMoreThan100)
-        errorsAndWarnings += "Max aantal lln > " + TOO_LARGE_MAX;
-
-    if(errorsAndWarnings) {
+    if(block.errors) {
         let errorSpan = document.createElement("span");
-        errorSpan.appendChild(document.createTextNode(errorsAndWarnings));
+        errorSpan.appendChild(document.createTextNode(block.errors));
         errorSpan.classList.add("lesError");
         divBlockTitle.appendChild(errorSpan);
     }
