@@ -2,9 +2,8 @@ import {FULL_CLASS_BUTTON_ID, isButtonHighlighted, TRIM_DIV_ID} from "../def";
 import {db3} from "../globals";
 import {BlockInfo, mergeBlockStudents, TableData, TOO_LARGE_MAX} from "./convert";
 import {StudentInfo} from "./scrape";
-import * as html from "../html";
-import {NBSP} from "../html";
-
+import * as html from "../../libs/Emmeter/html";
+import {NBSP} from "../../libs/Emmeter/html";
 
 export enum NameSorting {
     FirstName, LastName

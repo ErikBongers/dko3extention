@@ -4,7 +4,7 @@ import {buildTrimesterTable, TrimesterGrouping} from "./build";
 import * as def from "../def";
 import {createScearchField, createTextRowFilter, filterTable, filterTableRows, setButtonHighlighted} from "../globals";
 import {HashObserver} from "../pageObserver";
-import * as html from "../html";
+import * as html from "../../libs/Emmeter/html";
 
 export default new HashObserver("#lessen-overzicht", onMutation);
 

@@ -1,0 +1,3 @@
+[submodule "libs/Emmeter"]
+	path = libs/Emmeter
+	url = https://github.com/ErikBongers/Emmeter.git

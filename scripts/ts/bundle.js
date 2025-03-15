@@ -898,16 +898,18 @@
   var STORAGE_PAGE_STATE_KEY = "pageState";
   var UREN_TABLE_STATE_NAME = "__uren__";
 
-  // typescript/html.ts
+  // libs/Emmeter/html.ts
   var NBSP = 160;
   var emmet = {
     create,
-    append
+    append,
+    testEmmet
+    //todo: this should only be exported to test.ts
   };
   var nested = void 0;
   var lastCreated = void 0;
   var globalStringCache = [];
-  var reSplit = /([>\(\)\+\*])/;
+  var reSplit = /([>\(\)\+\*#\.\[\]\{\}])/;
   function prepareNested(text) {
     let stringCache = [];
     let stringMatches = text.matchAll(/{(.*?)}/gm);
@@ -921,40 +923,34 @@
       text = text.replace("{" + str + "}", "{" + index + "}");
     }
     nested = text.split(reSplit);
+    nested = nested.filter((token) => token);
     return stringCache;
   }
   function create(text, onIndex) {
     let root = void 0;
     globalStringCache = prepareNested(text);
-    if (nested[0][0] !== "#") {
+    if (!match("#")) {
       throw "No root id defined.";
     }
-    root = document.querySelector(nested.shift());
+    root = document.getElementById(nested.shift());
     if (!root)
       throw `Root ${nested[0]} doesn't exist`;
     nested.shift();
-    return parse(root, onIndex);
+    return parseAndBuild(root, onIndex);
   }
   function append(root, text, onIndex) {
     globalStringCache = prepareNested(text);
-    return parse(root, onIndex);
+    return parseAndBuild(root, onIndex);
   }
-  function parse(root, onIndex) {
-    nested = nested.filter((token) => token);
-    let rootDef = parseChildren();
-    buildElement(root, rootDef, 1, onIndex);
+  function parseAndBuild(root, onIndex) {
+    buildElement(root, parse(), 1, onIndex);
     return { root, last: lastCreated };
   }
-  function parseText() {
-    return parsePlus();
+  function testEmmet(text) {
+    globalStringCache = prepareNested(text);
+    return parse();
   }
-  function parseDown() {
-    if (match(">")) {
-      return parseChildren();
-    }
-    return void 0;
-  }
-  function parseChildren() {
+  function parse() {
     return parsePlus();
   }
   function parsePlus() {
@@ -964,22 +960,9 @@
       if (!el)
         return list2.length === 1 ? list2[0] : { list: list2 };
       list2.push(el);
-      let plus = nested.shift();
-      if (!plus)
+      if (!match("+"))
         return list2.length === 1 ? list2[0] : { list: list2 };
-      if (plus !== "+") {
-        nested.unshift(plus);
-        return list2.length === 1 ? list2[0] : { list: list2 };
-      }
     }
-  }
-  function match(expected) {
-    let next = nested.shift();
-    if (next === expected)
-      return true;
-    if (next)
-      nested.unshift(next);
-    return false;
   }
   function parseMult() {
     let el = parseElement();
@@ -998,47 +981,55 @@
   function parseElement() {
     let el;
     if (match("(")) {
-      el = parseText();
+      el = parsePlus();
       let _closingBrace = nested.shift();
       return el;
+    } else if (match("{")) {
+      let text = getText();
+      return { text };
     } else {
       return parseChildDef();
     }
   }
   function parseChildDef() {
-    let child = nested.shift();
-    if (!child)
-      return void 0;
-    let props = child.split(/([#\.\[\]\*\{\}])/);
-    let tag = props.shift();
+    let tag = nested.shift();
     let id = void 0;
     let atts = [];
     let classList = [];
-    let count = 1;
     let text = "";
-    while (props.length) {
-      let prop = props.shift();
-      switch (prop) {
-        case ".":
-          classList.push(props.shift());
-          break;
-        case "#":
-          id = props.shift();
-          break;
-        case "[":
-          atts = getAttributes(props);
-          break;
-        case "{":
-          text = getText(props);
-          break;
+    breakWhile:
+      while (nested.length) {
+        let token = nested.shift();
+        switch (token) {
+          case ".":
+            classList.push(nested.shift());
+            break;
+          case "#":
+            id = nested.shift();
+            break;
+          case "[":
+            atts = getAttributes();
+            break;
+          case "{":
+            text = getText();
+            break;
+          default:
+            nested.unshift(token);
+            break breakWhile;
+        }
       }
-    }
-    return { tag, id, atts, classList, text, child: parseDown() };
+    return { tag, id, atts, classList, innerText: text, child: parseDown() };
   }
-  function getAttributes(props) {
+  function parseDown() {
+    if (match(">")) {
+      return parsePlus();
+    }
+    return void 0;
+  }
+  function getAttributes() {
     let atts = [];
-    while (props.length) {
-      let prop = props.shift();
+    while (nested.length) {
+      let prop = nested.shift();
       if (prop == "]")
         break;
       atts.push(prop.split(/([\s=])/));
@@ -1066,15 +1057,23 @@
     }
     return attDefs;
   }
-  function getText(props) {
+  function getText() {
     let text = "";
-    while (props.length) {
-      let prop = props.shift();
+    while (nested.length) {
+      let prop = nested.shift();
       if (prop == "}")
         break;
       text += prop;
     }
     return text;
+  }
+  function match(expected) {
+    let next = nested.shift();
+    if (next === expected)
+      return true;
+    if (next)
+      nested.unshift(next);
+    return false;
   }
   function stripQuotes(text) {
     if (text[0] === "'" || text[0] === '"')
@@ -1095,8 +1094,8 @@
         el.setAttribute(addIndex(att.name, index, onIndex), addIndex(att.value, index, onIndex));
       }
     }
-    if (def.text) {
-      let str = globalStringCache[parseInt(def.text)];
+    if (def.innerText) {
+      let str = globalStringCache[parseInt(def.innerText)];
       el.appendChild(document.createTextNode(addIndex(str, index, onIndex)));
     }
     lastCreated = el;
