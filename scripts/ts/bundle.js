@@ -1128,6 +1128,11 @@
         buildElement(parent, el.child, i, onIndex);
       }
     }
+    if ("text" in el) {
+      let str = globalStringCache[parseInt(el.text)];
+      parent.appendChild(document.createTextNode(addIndex(str, index, onIndex)));
+      return;
+    }
   }
   function addIndex(text, index, onIndex) {
     if (onIndex) {
