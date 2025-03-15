@@ -9,6 +9,12 @@ export enum NameSorting {
     FirstName, LastName
 }
 
+let savedNameSorting = NameSorting.LastName;
+
+export function setSavedNameSorting(sorting: NameSorting) {
+    savedNameSorting = sorting;
+}
+
 export enum TrimesterGrouping {
     TeacherInstrumentHour,
     InstrumentTeacherHour ,
@@ -351,7 +357,10 @@ function buildStudentCell(student: StudentInfo) {
     let studentSpan = document.createElement("span");
     let displayName = String.fromCharCode(NBSP);
     if(student) {
-        displayName = student.voornaam + " " + student.naam;
+        if(savedNameSorting === NameSorting.LastName)
+            displayName = student.naam + " " + student.voornaam;
+        else
+            displayName = student.voornaam + " " + student.naam;
     }
     studentSpan.appendChild(document.createTextNode(displayName));
     cell.appendChild(studentSpan);

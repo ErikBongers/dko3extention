@@ -903,6 +903,7 @@
   var emmet = {
     create,
     append,
+    insertBefore,
     testEmmet
     //todo: this should only be exported to test.ts
   };
@@ -941,6 +942,15 @@
   function append(root, text, onIndex) {
     globalStringCache = prepareNested(text);
     return parseAndBuild(root, onIndex);
+  }
+  function insertBefore(root, text, onIndex) {
+    globalStringCache = prepareNested(text);
+    let tempRoot = document.createElement("div");
+    let result = parseAndBuild(tempRoot, onIndex);
+    for (let child of tempRoot.children) {
+      root.parentElement.insertBefore(child, root);
+    }
+    return { root, last: result.last };
   }
   function parseAndBuild(root, onIndex) {
     buildElement(root, parse(), 1, onIndex);
@@ -1128,6 +1138,10 @@
   }
 
   // typescript/lessen/build.ts
+  var savedNameSorting = 1 /* LastName */;
+  function setSavedNameSorting(sorting) {
+    savedNameSorting = sorting;
+  }
   function buildTrimesterTable(tableData, trimesterSorting) {
     tableData.blocks.sort((block1, block2) => block1.instrumentName.localeCompare(block2.instrumentName));
     let trimDiv = emmet.create(`#${TRIM_DIV_ID}>table#trimesterTable[border="2" style.width="100%"]>colgroup>col*3`).root;
@@ -1379,7 +1393,10 @@
     let studentSpan = document.createElement("span");
     let displayName = String.fromCharCode(NBSP);
     if (student) {
-      displayName = student.voornaam + " " + student.naam;
+      if (savedNameSorting === 1 /* LastName */)
+        displayName = student.naam + " " + student.voornaam;
+      else
+        displayName = student.voornaam + " " + student.naam;
     }
     studentSpan.appendChild(document.createTextNode(displayName));
     cell.appendChild(studentSpan);
@@ -1576,45 +1593,62 @@
   function isTrimesterTableVisible() {
     return document.getElementById("table_lessen_resultaat_tabel").style.display === "none";
   }
-  function showTrimesterTable(show, sorting) {
+  function showTrimesterTable(show, grouping) {
     document.getElementById(TRIM_TABLE_ID)?.remove();
     if (!document.getElementById(TRIM_TABLE_ID)) {
       let inputModules = scrapeModules();
       let tableData = buildTableData(inputModules.trimesterModules.concat(inputModules.jaarModules));
-      buildTrimesterTable(tableData, sorting);
+      buildTrimesterTable(tableData, grouping);
     }
     document.getElementById("table_lessen_resultaat_tabel").style.display = show ? "none" : "table";
     document.getElementById(TRIM_TABLE_ID).style.display = show ? "table" : "none";
     document.getElementById(TRIM_BUTTON_ID).title = show ? "Toon normaal" : "Toon trimesters";
     setButtonHighlighted(TRIM_BUTTON_ID, show);
-    setSorteerLine(show, sorting);
+    setSorteerLine(show, grouping);
     onSearchInput();
   }
-  function setSorteerLine(showTrimTable, sorting) {
+  function setSorteerLine(showTrimTable, grouping) {
     let oldSorteerSpan = document.querySelector("#lessen_overzicht > span");
-    let newSorteerDiv = document.getElementById("trimSorteerDiv");
-    if (!newSorteerDiv) {
-      newSorteerDiv = document.createElement("div");
-      newSorteerDiv.id = "trimSorteerDiv";
-      newSorteerDiv.classList.add("text-muted");
-      oldSorteerSpan.parentNode.insertBefore(newSorteerDiv, oldSorteerSpan.nextSibling);
+    let newGroupingDiv = document.getElementById("trimGroepeerDiv");
+    if (!newGroupingDiv) {
+      newGroupingDiv = document.createElement("div");
+      newGroupingDiv.id = "trimGroepeerDiv";
+      newGroupingDiv.classList.add("text-muted");
+      oldSorteerSpan.parentNode.insertBefore(newGroupingDiv, oldSorteerSpan.nextSibling);
     }
-    newSorteerDiv.innerText = "Groepeer: ";
+    let newSortingDiv = document.getElementById("trimSorteerDiv");
+    if (!newSortingDiv) {
+      emmet.insertBefore(newGroupingDiv, "div#trimSorteerDiv.text-muted{Sorteer: }>a{Naam}+{ | }+a{Voornaam}");
+      newSortingDiv = document.getElementById("trimSorteerDiv");
+      for (let anchor of newSortingDiv.querySelectorAll("a")) {
+        anchor.href = "#";
+        anchor.onclick = (mouseEvent) => {
+          debugger;
+          if (mouseEvent.target.textContent === "Naam")
+            setSavedNameSorting(1 /* LastName */);
+          else
+            setSavedNameSorting(0 /* FirstName */);
+          showTrimesterTable(true, grouping);
+          return false;
+        };
+      }
+    }
+    newGroupingDiv.innerText = "Groepeer: ";
     oldSorteerSpan.style.display = showTrimTable ? "none" : "";
-    newSorteerDiv.style.display = showTrimTable ? "" : "none";
-    newSorteerDiv.appendChild(createSortingAnchorOrText(1 /* InstrumentTeacherHour */, sorting));
-    newSorteerDiv.appendChild(document.createTextNode(" | "));
-    newSorteerDiv.appendChild(createSortingAnchorOrText(0 /* TeacherInstrumentHour */, sorting));
-    newSorteerDiv.appendChild(document.createTextNode(" | "));
-    newSorteerDiv.appendChild(createSortingAnchorOrText(2 /* TeacherHour */, sorting));
-    newSorteerDiv.appendChild(document.createTextNode(" | "));
-    newSorteerDiv.appendChild(createSortingAnchorOrText(4 /* Instrument */, sorting));
-    newSorteerDiv.appendChild(document.createTextNode(" | "));
-    newSorteerDiv.appendChild(createSortingAnchorOrText(5 /* Teacher */, sorting));
+    newGroupingDiv.style.display = showTrimTable ? "" : "none";
+    newGroupingDiv.appendChild(createGroupingAnchorOrText(1 /* InstrumentTeacherHour */, grouping));
+    newGroupingDiv.appendChild(document.createTextNode(" | "));
+    newGroupingDiv.appendChild(createGroupingAnchorOrText(0 /* TeacherInstrumentHour */, grouping));
+    newGroupingDiv.appendChild(document.createTextNode(" | "));
+    newGroupingDiv.appendChild(createGroupingAnchorOrText(2 /* TeacherHour */, grouping));
+    newGroupingDiv.appendChild(document.createTextNode(" | "));
+    newGroupingDiv.appendChild(createGroupingAnchorOrText(4 /* Instrument */, grouping));
+    newGroupingDiv.appendChild(document.createTextNode(" | "));
+    newGroupingDiv.appendChild(createGroupingAnchorOrText(5 /* Teacher */, grouping));
   }
-  function createSortingAnchorOrText(sorting, activeSorting) {
+  function createGroupingAnchorOrText(grouping, activeSorting) {
     let sortingText = "";
-    switch (sorting) {
+    switch (grouping) {
       case 1 /* InstrumentTeacherHour */:
         sortingText = "instrument+leraar+lesuur";
         break;
@@ -1634,7 +1668,7 @@
         sortingText = "leraar";
         break;
     }
-    if (activeSorting === sorting) {
+    if (activeSorting === grouping) {
       let strong = document.createElement("strong");
       strong.appendChild(document.createTextNode(sortingText));
       return strong;
@@ -1643,8 +1677,8 @@
       anchor.innerText = sortingText;
       anchor.href = "#";
       anchor.onclick = () => {
-        savedGrouping = sorting;
-        showTrimesterTable(true, sorting);
+        savedGrouping = grouping;
+        showTrimesterTable(true, grouping);
         return false;
       };
       return anchor;

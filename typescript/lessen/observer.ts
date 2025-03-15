@@ -1,6 +1,6 @@
 import {scrapeLessenOverzicht, scrapeModules} from "./scrape";
 import {buildTableData} from "./convert";
-import {buildTrimesterTable, TrimesterGrouping} from "./build";
+import {buildTrimesterTable, NameSorting, setSavedNameSorting, TrimesterGrouping} from "./build";
 import * as def from "../def";
 import {createScearchField, createTextRowFilter, filterTable, filterTableRows, setButtonHighlighted} from "../globals";
 import {HashObserver} from "../pageObserver";
@@ -176,51 +176,67 @@ export function isTrimesterTableVisible() {
     return document.getElementById("table_lessen_resultaat_tabel").style.display === "none";
 }
 
-export function showTrimesterTable(show: boolean, sorting: TrimesterGrouping) {
-    document.getElementById(def.TRIM_TABLE_ID)?.remove(); //todo: cleaner way to do this once the prefered sorting has been saved.
+export function showTrimesterTable(show: boolean, grouping: TrimesterGrouping) {
+    document.getElementById(def.TRIM_TABLE_ID)?.remove(); //todo: cleaner way to do this once the prefered grouping has been saved.
     //Build lazily and only once. Table will automatically be erased when filters are changed.
     if (!document.getElementById(def.TRIM_TABLE_ID)) {
         let inputModules = scrapeModules();
         let tableData = buildTableData(inputModules.trimesterModules.concat(inputModules.jaarModules));
-        buildTrimesterTable(tableData, sorting);
+        buildTrimesterTable(tableData, grouping);
     }
 
     document.getElementById("table_lessen_resultaat_tabel").style.display = show ? "none" : "table";
     document.getElementById(def.TRIM_TABLE_ID).style.display = show ? "table" : "none";
     document.getElementById(def.TRIM_BUTTON_ID).title = show ? "Toon normaal" : "Toon trimesters";
     setButtonHighlighted(def.TRIM_BUTTON_ID, show);
-    setSorteerLine(show, sorting);
+    setSorteerLine(show, grouping);
     onSearchInput();
 }
 
-function setSorteerLine(showTrimTable: boolean, sorting: TrimesterGrouping) {
+function setSorteerLine(showTrimTable: boolean, grouping: TrimesterGrouping) {
     let oldSorteerSpan = document.querySelector("#lessen_overzicht > span") as HTMLElement;
-    let newSorteerDiv = document.getElementById("trimSorteerDiv");
-    if(!newSorteerDiv) {
-        newSorteerDiv = document.createElement("div");
-        newSorteerDiv.id = "trimSorteerDiv";
-        newSorteerDiv.classList.add("text-muted");
-        oldSorteerSpan.parentNode.insertBefore(newSorteerDiv, oldSorteerSpan.nextSibling);
+    let newGroupingDiv = document.getElementById("trimGroepeerDiv");
+    if(!newGroupingDiv) {
+        newGroupingDiv = document.createElement("div");
+        newGroupingDiv.id = "trimGroepeerDiv";
+        newGroupingDiv.classList.add("text-muted");
+        oldSorteerSpan.parentNode.insertBefore(newGroupingDiv, oldSorteerSpan.nextSibling);
     }
-    // let newNameSortDiv = html.emmet.create("div.text-muted{Sorteer: }>a{Naam}+{ | }+a{Voornaam}");
-    newSorteerDiv.innerText = "Groepeer: ";
+    let newSortingDiv = document.getElementById("trimSorteerDiv");
+    if(!newSortingDiv) {
+        html.emmet.insertBefore(newGroupingDiv, "div#trimSorteerDiv.text-muted{Sorteer: }>a{Naam}+{ | }+a{Voornaam}");
+        newSortingDiv = document.getElementById("trimSorteerDiv");
+        for (let anchor of newSortingDiv.querySelectorAll("a")) {
+            anchor.href = "#";
+            anchor.onclick = (mouseEvent) => {
+                debugger;
+                if ((mouseEvent.target as HTMLElement).textContent === "Naam")
+                    setSavedNameSorting(NameSorting.LastName);
+                else
+                    setSavedNameSorting(NameSorting.FirstName);
+                showTrimesterTable(true, grouping);
+                return false;
+            };
+        }
+    }
+    newGroupingDiv.innerText = "Groepeer: ";
     oldSorteerSpan.style.display = showTrimTable ? "none" : "";
-    newSorteerDiv.style.display = showTrimTable ? "" : "none";
+    newGroupingDiv.style.display = showTrimTable ? "" : "none";
 
-    newSorteerDiv.appendChild(createSortingAnchorOrText(TrimesterGrouping.InstrumentTeacherHour, sorting));
-    newSorteerDiv.appendChild(document.createTextNode(" | "));
-    newSorteerDiv.appendChild(createSortingAnchorOrText(TrimesterGrouping.TeacherInstrumentHour, sorting));
-    newSorteerDiv.appendChild(document.createTextNode(" | "));
-    newSorteerDiv.appendChild(createSortingAnchorOrText(TrimesterGrouping.TeacherHour, sorting));
-    newSorteerDiv.appendChild(document.createTextNode(" | "));
-    newSorteerDiv.appendChild(createSortingAnchorOrText(TrimesterGrouping.Instrument, sorting));
-    newSorteerDiv.appendChild(document.createTextNode(" | "));
-    newSorteerDiv.appendChild(createSortingAnchorOrText(TrimesterGrouping.Teacher, sorting));
+    newGroupingDiv.appendChild(createGroupingAnchorOrText(TrimesterGrouping.InstrumentTeacherHour, grouping));
+    newGroupingDiv.appendChild(document.createTextNode(" | "));
+    newGroupingDiv.appendChild(createGroupingAnchorOrText(TrimesterGrouping.TeacherInstrumentHour, grouping));
+    newGroupingDiv.appendChild(document.createTextNode(" | "));
+    newGroupingDiv.appendChild(createGroupingAnchorOrText(TrimesterGrouping.TeacherHour, grouping));
+    newGroupingDiv.appendChild(document.createTextNode(" | "));
+    newGroupingDiv.appendChild(createGroupingAnchorOrText(TrimesterGrouping.Instrument, grouping));
+    newGroupingDiv.appendChild(document.createTextNode(" | "));
+    newGroupingDiv.appendChild(createGroupingAnchorOrText(TrimesterGrouping.Teacher, grouping));
 }
 
-function createSortingAnchorOrText(sorting: TrimesterGrouping, activeSorting: TrimesterGrouping) {
+function createGroupingAnchorOrText(grouping: TrimesterGrouping, activeSorting: TrimesterGrouping) {
     let sortingText = "";
-    switch (sorting) {
+    switch (grouping) {
         case TrimesterGrouping.InstrumentTeacherHour: sortingText = "instrument+leraar+lesuur"; break;
         case TrimesterGrouping.TeacherInstrumentHour: sortingText = "leraar+instrument+lesuur"; break;
         case TrimesterGrouping.TeacherHour: sortingText = "leraar+lesuur"; break;
@@ -229,7 +245,7 @@ function createSortingAnchorOrText(sorting: TrimesterGrouping, activeSorting: Tr
         case TrimesterGrouping.Teacher: sortingText = "leraar"; break;
     }
 
-    if (activeSorting === sorting) {
+    if (activeSorting === grouping) {
         let strong = document.createElement("strong");
         strong.appendChild(document.createTextNode(sortingText));
         return strong;
@@ -238,8 +254,8 @@ function createSortingAnchorOrText(sorting: TrimesterGrouping, activeSorting: Tr
         anchor.innerText = sortingText;
         anchor.href = "#";
         anchor.onclick = () => {
-            savedGrouping = sorting;
-            showTrimesterTable(true, sorting);
+            savedGrouping = grouping;
+            showTrimesterTable(true, grouping);
             return false;
         };
         return anchor;
