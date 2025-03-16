@@ -904,54 +904,97 @@
     create,
     append,
     insertBefore,
-    testEmmet
+    testEmmet,
+    //todo: this should only be exported to test.ts
+    tokenize
     //todo: this should only be exported to test.ts
   };
   var nested = void 0;
   var lastCreated = void 0;
-  var globalStringCache = [];
-  var reSplit = /([>#=\(\)\+\*\.\[\]\{\}])/;
   var CLOSING_BRACE = "__CLOSINGBRACE__";
   var DOUBLE_QUOTE = "__DOUBLEQUOTE__";
   function unescape(text) {
     return text.replaceAll(CLOSING_BRACE, "}").replaceAll(DOUBLE_QUOTE, '"');
   }
-  function replaceStringsByPlaceholders(stringCache, text, regex, leftDelim, rightDelim) {
-    let matches = text.matchAll(regex);
-    if (matches) {
-      for (let match2 of matches) {
-        text = text.replace(match2[0], leftDelim + stringCache.length + rightDelim);
-        stringCache.push(unescape(match2[1]));
+  function tokenize(textToTokenize) {
+    let tokens = [];
+    let txt = textToTokenize.replaceAll("\\}", CLOSING_BRACE).replaceAll('\\"', DOUBLE_QUOTE);
+    let pos = 0;
+    let start = pos;
+    function pushToken() {
+      if (start != pos)
+        tokens.push(unescape(txt.substring(start, pos)));
+      start = pos;
+    }
+    function getTo(to) {
+      pushToken();
+      do {
+        pos++;
+      } while (pos < txt.length && txt[pos] != to);
+      if (pos >= txt.length)
+        throw `Missing '${to}' at matching from pos ${start}.`;
+      pos++;
+      pushToken();
+    }
+    function getChar() {
+      pushToken();
+      pos++;
+      pushToken();
+    }
+    while (pos < txt.length) {
+      switch (txt[pos]) {
+        case "{":
+          getTo("}");
+          break;
+        case '"':
+          getTo('"');
+          break;
+        case "#":
+          pushToken();
+          pos++;
+          break;
+        case ">":
+        case "+":
+        case "[":
+        case "]":
+        case "(":
+        case ")":
+        case "*":
+        case ".":
+        case "=":
+          getChar();
+          break;
+        case " ":
+          pushToken();
+          start = ++pos;
+          break;
+        default:
+          pos++;
       }
     }
-    return { text, stringCache };
-  }
-  function prepareNested(text) {
-    let unescaped = text.replaceAll("\\}", CLOSING_BRACE).replaceAll('\\"', DOUBLE_QUOTE);
-    let result = replaceStringsByPlaceholders([], unescaped, /{(.*?)}/gm, "{", "}");
-    result = replaceStringsByPlaceholders(result.stringCache, result.text, /"(.*?)"/gm, '"', '"');
-    nested = result.text.split(reSplit);
-    nested = nested.filter((token) => token);
-    return result.stringCache;
+    pushToken();
+    return tokens;
   }
   function create(text, onIndex) {
     let root = void 0;
-    globalStringCache = prepareNested(text);
-    if (!match("#")) {
+    nested = tokenize(text);
+    let rootId = nested.shift();
+    if (rootId[0] != "#") {
       throw "No root id defined.";
     }
-    root = document.getElementById(nested.shift());
+    root = document.querySelector(rootId);
     if (!root)
-      throw `Root ${nested[0]} doesn't exist`;
-    nested.shift();
+      throw `Root ${rootId} doesn't exist`;
+    if (!match(">"))
+      throw "Expected '>' after root id.";
     return parseAndBuild(root, onIndex);
   }
   function append(root, text, onIndex) {
-    globalStringCache = prepareNested(text);
+    nested = tokenize(text);
     return parseAndBuild(root, onIndex);
   }
   function insertBefore(root, text, onIndex) {
-    globalStringCache = prepareNested(text);
+    nested = tokenize(text);
     let tempRoot = document.createElement("div");
     let result = parseAndBuild(tempRoot, onIndex);
     for (let child of tempRoot.children) {
@@ -964,7 +1007,7 @@
     return { root, last: lastCreated };
   }
   function testEmmet(text) {
-    globalStringCache = prepareNested(text);
+    nested = tokenize(text);
     return parse();
   }
   function parse() {
@@ -999,13 +1042,17 @@
     let el;
     if (match("(")) {
       el = parsePlus();
-      let _closingBrace = nested.shift();
+      if (!match(")"))
+        throw "Expected ')'";
       return el;
-    } else if (match("{")) {
-      let text = getText();
-      return { text };
     } else {
-      return parseChildDef();
+      let text = matchStartsWith("{");
+      if (text) {
+        text = stripStringDelimiters(text);
+        return { text };
+      } else {
+        return parseChildDef();
+      }
     }
   }
   function parseChildDef() {
@@ -1013,28 +1060,26 @@
     let id = void 0;
     let atts = [];
     let classList = [];
-    let text = "";
-    breakWhile:
-      while (nested.length) {
-        let token = nested.shift();
-        switch (token) {
-          case ".":
-            classList.push(nested.shift());
+    let text = void 0;
+    while (nested.length) {
+      if (match(".")) {
+        classList.push(nested.shift());
+      } else if (match("[")) {
+        atts = getAttributes();
+      } else {
+        let token = matchStartsWith("#");
+        if (token) {
+          id = token.substring(1);
+        } else {
+          let token2 = matchStartsWith("{");
+          if (token2) {
+            text = stripStringDelimiters(token2);
+          } else {
             break;
-          case "#":
-            id = nested.shift();
-            break;
-          case "[":
-            atts = getAttributes();
-            break;
-          case "{":
-            text = getText();
-            break;
-          default:
-            nested.unshift(token);
-            break breakWhile;
+          }
         }
       }
+    }
     return { tag, id, atts, classList, innerText: text, child: parseDown() };
   }
   function parseDown() {
@@ -1065,27 +1110,15 @@
       }
       let value = tokens.shift();
       if (value[0] === '"') {
-        value = stripQuotes(value);
-        value = globalStringCache[parseInt(value)];
+        value = stripStringDelimiters(value);
       }
       if (!value)
         throw "Value expected.";
       attDefs.push({ name, sub, value });
       if (!tokens.length)
         break;
-      let space = tokens.shift();
     }
     return attDefs;
-  }
-  function getText() {
-    let text = "";
-    while (nested.length) {
-      let prop = nested.shift();
-      if (prop == "}")
-        break;
-      text += prop;
-    }
-    return text;
   }
   function match(expected) {
     let next = nested.shift();
@@ -1095,8 +1128,16 @@
       nested.unshift(next);
     return false;
   }
-  function stripQuotes(text) {
-    if (text[0] === "'" || text[0] === '"')
+  function matchStartsWith(expected) {
+    let next = nested.shift();
+    if (next.startsWith(expected))
+      return next;
+    if (next)
+      nested.unshift(next);
+    return void 0;
+  }
+  function stripStringDelimiters(text) {
+    if (text[0] === "'" || text[0] === '"' || text[0] === "{")
       return text.substring(1, text.length - 1);
     return text;
   }
@@ -1115,8 +1156,7 @@
       }
     }
     if (def.innerText) {
-      let str = globalStringCache[parseInt(def.innerText)];
-      el.appendChild(document.createTextNode(addIndex(str, index, onIndex)));
+      el.appendChild(document.createTextNode(addIndex(def.innerText, index, onIndex)));
     }
     lastCreated = el;
     return el;
@@ -1139,8 +1179,7 @@
       }
     }
     if ("text" in el) {
-      let str = globalStringCache[parseInt(el.text)];
-      parent.appendChild(document.createTextNode(addIndex(str, index, onIndex)));
+      parent.appendChild(document.createTextNode(addIndex(el.text, index, onIndex)));
       return;
     }
   }
