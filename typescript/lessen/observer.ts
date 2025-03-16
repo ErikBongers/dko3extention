@@ -204,12 +204,10 @@ function setSorteerLine(showTrimTable: boolean, grouping: TrimesterGrouping) {
     }
     let newSortingDiv = document.getElementById("trimSorteerDiv");
     if(!newSortingDiv) {
-        html.emmet.insertBefore(newGroupingDiv, "div#trimSorteerDiv.text-muted{Sorteer: }>a{Naam}+{ | }+a{Voornaam}");
+        html.emmet.insertBefore(newGroupingDiv, 'div#trimSorteerDiv.text-muted{Sorteer: }>a{Naam}[href="#"]+{ | }+a{Voornaam}[href="#"]');
         newSortingDiv = document.getElementById("trimSorteerDiv");
         for (let anchor of newSortingDiv.querySelectorAll("a")) {
-            anchor.href = "#";
             anchor.onclick = (mouseEvent) => {
-                debugger;
                 if ((mouseEvent.target as HTMLElement).textContent === "Naam")
                     setSavedNameSorting(NameSorting.LastName);
                 else

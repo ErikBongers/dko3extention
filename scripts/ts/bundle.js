@@ -910,22 +910,29 @@
   var nested = void 0;
   var lastCreated = void 0;
   var globalStringCache = [];
-  var reSplit = /([>\(\)\+\*#\.\[\]\{\}])/;
-  function prepareNested(text) {
-    let stringCache = [];
-    let stringMatches = text.matchAll(/{(.*?)}/gm);
-    if (stringMatches) {
-      for (let match2 of stringMatches) {
-        stringCache.push(match2[1]);
+  var reSplit = /([>#=\(\)\+\*\.\[\]\{\}])/;
+  var CLOSING_BRACE = "__CLOSINGBRACE__";
+  var DOUBLE_QUOTE = "__DOUBLEQUOTE__";
+  function unescape(text) {
+    return text.replaceAll(CLOSING_BRACE, "}").replaceAll(DOUBLE_QUOTE, '"');
+  }
+  function replaceStringsByPlaceholders(stringCache, text, regex, leftDelim, rightDelim) {
+    let matches = text.matchAll(regex);
+    if (matches) {
+      for (let match2 of matches) {
+        text = text.replace(match2[0], leftDelim + stringCache.length + rightDelim);
+        stringCache.push(unescape(match2[1]));
       }
-      stringCache = [...new Set(stringCache)];
     }
-    for (let [index, str] of stringCache.entries()) {
-      text = text.replace("{" + str + "}", "{" + index + "}");
-    }
-    nested = text.split(reSplit);
+    return { text, stringCache };
+  }
+  function prepareNested(text) {
+    let unescaped = text.replaceAll("\\}", CLOSING_BRACE).replaceAll('\\"', DOUBLE_QUOTE);
+    let result = replaceStringsByPlaceholders([], unescaped, /{(.*?)}/gm, "{", "}");
+    result = replaceStringsByPlaceholders(result.stringCache, result.text, /"(.*?)"/gm, '"', '"');
+    nested = result.text.split(reSplit);
     nested = nested.filter((token) => token);
-    return stringCache;
+    return result.stringCache;
   }
   function create(text, onIndex) {
     let root = void 0;
@@ -1037,14 +1044,13 @@
     return void 0;
   }
   function getAttributes() {
-    let atts = [];
+    let tokens = [];
     while (nested.length) {
       let prop = nested.shift();
       if (prop == "]")
         break;
-      atts.push(prop.split(/([\s=])/));
+      tokens.push(prop);
     }
-    let tokens = atts.flat();
     let attDefs = [];
     while (tokens.length) {
       let name = tokens.shift();
@@ -1057,7 +1063,11 @@
       if (eq != "=") {
         throw "Equal sign expected.";
       }
-      let value = stripQuotes(tokens.shift());
+      let value = tokens.shift();
+      if (value[0] === '"') {
+        value = stripQuotes(value);
+        value = globalStringCache[parseInt(value)];
+      }
       if (!value)
         throw "Value expected.";
       attDefs.push({ name, sub, value });
@@ -1623,12 +1633,10 @@
     }
     let newSortingDiv = document.getElementById("trimSorteerDiv");
     if (!newSortingDiv) {
-      emmet.insertBefore(newGroupingDiv, "div#trimSorteerDiv.text-muted{Sorteer: }>a{Naam}+{ | }+a{Voornaam}");
+      emmet.insertBefore(newGroupingDiv, 'div#trimSorteerDiv.text-muted{Sorteer: }>a{Naam}[href="#"]+{ | }+a{Voornaam}[href="#"]');
       newSortingDiv = document.getElementById("trimSorteerDiv");
       for (let anchor of newSortingDiv.querySelectorAll("a")) {
-        anchor.href = "#";
         anchor.onclick = (mouseEvent) => {
-          debugger;
           if (mouseEvent.target.textContent === "Naam")
             setSavedNameSorting(1 /* LastName */);
           else
