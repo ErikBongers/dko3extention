@@ -1196,6 +1196,9 @@
   function setSavedNameSorting(sorting) {
     savedNameSorting = sorting;
   }
+  function getSavedNameSorting() {
+    return savedNameSorting;
+  }
   function buildTrimesterTable(tableData, trimesterSorting) {
     tableData.blocks.sort((block1, block2) => block1.instrumentName.localeCompare(block2.instrumentName));
     let trimDiv = emmet.create(`#${TRIM_DIV_ID}>table#trimesterTable[border="2" style.width="100%"]>colgroup>col*3`).root;
@@ -1661,6 +1664,26 @@
     setSorteerLine(show, grouping);
     onSearchInput();
   }
+  function addSortingAnchorOrText() {
+    let sorteerDiv = document.getElementById("trimSorteerDiv");
+    sorteerDiv.innerHTML = "";
+    if (getSavedNameSorting() === 0 /* FirstName */) {
+      emmet.append(sorteerDiv, 'a{Naam}[href="#"]+{ | }+strong{Voornaam}');
+    } else {
+      emmet.append(sorteerDiv, 'strong{Naam}+{ | }+a{Voornaam}[href="#"]');
+    }
+    for (let anchor of sorteerDiv.querySelectorAll("a")) {
+      anchor.onclick = (mouseEvent) => {
+        if (mouseEvent.target.textContent === "Naam")
+          setSavedNameSorting(1 /* LastName */);
+        else
+          setSavedNameSorting(0 /* FirstName */);
+        showTrimesterTable(true, savedGrouping);
+        addSortingAnchorOrText();
+        return false;
+      };
+    }
+  }
   function setSorteerLine(showTrimTable, grouping) {
     let oldSorteerSpan = document.querySelector("#lessen_overzicht > span");
     let newGroupingDiv = document.getElementById("trimGroepeerDiv");
@@ -1672,18 +1695,8 @@
     }
     let newSortingDiv = document.getElementById("trimSorteerDiv");
     if (!newSortingDiv) {
-      emmet.insertBefore(newGroupingDiv, 'div#trimSorteerDiv.text-muted{Sorteer: }>a{Naam}[href="#"]+{ | }+a{Voornaam}[href="#"]');
-      newSortingDiv = document.getElementById("trimSorteerDiv");
-      for (let anchor of newSortingDiv.querySelectorAll("a")) {
-        anchor.onclick = (mouseEvent) => {
-          if (mouseEvent.target.textContent === "Naam")
-            setSavedNameSorting(1 /* LastName */);
-          else
-            setSavedNameSorting(0 /* FirstName */);
-          showTrimesterTable(true, grouping);
-          return false;
-        };
-      }
+      emmet.insertBefore(newGroupingDiv, "div#trimSorteerDiv.text-muted{Sorteer: }");
+      addSortingAnchorOrText();
     }
     newGroupingDiv.innerText = "Groepeer: ";
     oldSorteerSpan.style.display = showTrimTable ? "none" : "";

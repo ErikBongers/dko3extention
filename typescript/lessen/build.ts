@@ -15,6 +15,10 @@ export function setSavedNameSorting(sorting: NameSorting) {
     savedNameSorting = sorting;
 }
 
+export function getSavedNameSorting() {
+    return savedNameSorting;
+}
+
 export enum TrimesterGrouping {
     TeacherInstrumentHour,
     InstrumentTeacherHour ,

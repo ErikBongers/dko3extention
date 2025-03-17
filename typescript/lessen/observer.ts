@@ -1,6 +1,6 @@
 import {scrapeLessenOverzicht, scrapeModules} from "./scrape";
 import {buildTableData} from "./convert";
-import {buildTrimesterTable, NameSorting, setSavedNameSorting, TrimesterGrouping} from "./build";
+import {buildTrimesterTable, getSavedNameSorting, NameSorting, setSavedNameSorting, TrimesterGrouping} from "./build";
 import * as def from "../def";
 import {createScearchField, createTextRowFilter, filterTable, filterTableRows, setButtonHighlighted} from "../globals";
 import {HashObserver} from "../pageObserver";
@@ -193,6 +193,27 @@ export function showTrimesterTable(show: boolean, grouping: TrimesterGrouping) {
     onSearchInput();
 }
 
+function addSortingAnchorOrText() {
+    let sorteerDiv = document.getElementById("trimSorteerDiv");
+    sorteerDiv.innerHTML = "";
+    if(getSavedNameSorting() === NameSorting.FirstName) {
+        html.emmet.append(sorteerDiv, "a{Naam}[href=\"#\"]+{ | }+strong{Voornaam}");
+    } else {
+        html.emmet.append(sorteerDiv, "strong{Naam}+{ | }+a{Voornaam}[href=\"#\"]");
+    }
+    for (let anchor of sorteerDiv.querySelectorAll("a")) {
+        anchor.onclick = (mouseEvent: MouseEvent) => {
+            if ((mouseEvent.target as HTMLElement).textContent === "Naam")
+                setSavedNameSorting(NameSorting.LastName);
+            else
+                setSavedNameSorting(NameSorting.FirstName);
+            showTrimesterTable(true, savedGrouping);
+            addSortingAnchorOrText();
+            return false;
+        };
+    }
+}
+
 function setSorteerLine(showTrimTable: boolean, grouping: TrimesterGrouping) {
     let oldSorteerSpan = document.querySelector("#lessen_overzicht > span") as HTMLElement;
     let newGroupingDiv = document.getElementById("trimGroepeerDiv");
@@ -204,18 +225,8 @@ function setSorteerLine(showTrimTable: boolean, grouping: TrimesterGrouping) {
     }
     let newSortingDiv = document.getElementById("trimSorteerDiv");
     if(!newSortingDiv) {
-        html.emmet.insertBefore(newGroupingDiv, 'div#trimSorteerDiv.text-muted{Sorteer: }>a{Naam}[href="#"]+{ | }+a{Voornaam}[href="#"]');
-        newSortingDiv = document.getElementById("trimSorteerDiv");
-        for (let anchor of newSortingDiv.querySelectorAll("a")) {
-            anchor.onclick = (mouseEvent) => {
-                if ((mouseEvent.target as HTMLElement).textContent === "Naam")
-                    setSavedNameSorting(NameSorting.LastName);
-                else
-                    setSavedNameSorting(NameSorting.FirstName);
-                showTrimesterTable(true, grouping);
-                return false;
-            };
-        }
+        html.emmet.insertBefore(newGroupingDiv, 'div#trimSorteerDiv.text-muted{Sorteer: }');
+        addSortingAnchorOrText();
     }
     newGroupingDiv.innerText = "Groepeer: ";
     oldSorteerSpan.style.display = showTrimTable ? "none" : "";
