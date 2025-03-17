@@ -1671,7 +1671,7 @@
   }
   function addSortingAnchorOrText() {
     let sorteerDiv = document.getElementById("trimSorteerDiv");
-    sorteerDiv.innerHTML = "";
+    sorteerDiv.innerHTML = "Sorteer : ";
     if (getSavedNameSorting() === 0 /* FirstName */) {
       emmet.append(sorteerDiv, 'a{Naam}[href="#"]+{ | }+strong{Voornaam}');
     } else {
@@ -1700,7 +1700,7 @@
     }
     let newSortingDiv = document.getElementById("trimSorteerDiv");
     if (!newSortingDiv) {
-      emmet.insertBefore(newGroupingDiv, "div#trimSorteerDiv.text-muted{Sorteer: }");
+      emmet.insertBefore(newGroupingDiv, "div#trimSorteerDiv.text-muted");
       addSortingAnchorOrText();
     }
     newGroupingDiv.innerText = "Groepeer: ";

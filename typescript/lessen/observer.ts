@@ -195,7 +195,7 @@ export function showTrimesterTable(show: boolean, grouping: TrimesterGrouping) {
 
 function addSortingAnchorOrText() {
     let sorteerDiv = document.getElementById("trimSorteerDiv");
-    sorteerDiv.innerHTML = "";
+    sorteerDiv.innerHTML = "Sorteer : ";
     if(getSavedNameSorting() === NameSorting.FirstName) {
         html.emmet.append(sorteerDiv, "a{Naam}[href=\"#\"]+{ | }+strong{Voornaam}");
     } else {
@@ -225,7 +225,7 @@ function setSorteerLine(showTrimTable: boolean, grouping: TrimesterGrouping) {
     }
     let newSortingDiv = document.getElementById("trimSorteerDiv");
     if(!newSortingDiv) {
-        html.emmet.insertBefore(newGroupingDiv, 'div#trimSorteerDiv.text-muted{Sorteer: }');
+        html.emmet.insertBefore(newGroupingDiv, 'div#trimSorteerDiv.text-muted');
         addSortingAnchorOrText();
     }
     newGroupingDiv.innerText = "Groepeer: ";
