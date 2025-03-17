@@ -2,6 +2,7 @@
     & table {
         border-style: none;
         border-color: black;
+        table-layout: fixed;
     }
     & tr.trimesterRow {
         border-style: solid;
