@@ -568,307 +568,6 @@
     return les;
   }
 
-  // typescript/lessen/convert.ts
-  var BlockInfo = class {
-    static emptyBlock() {
-      return {
-        teacher: void 0,
-        vestiging: void 0,
-        maxAantal: -1,
-        instrumentName: void 0,
-        lesmoment: void 0,
-        trimesters: [[], [], []],
-        jaarModules: [],
-        errors: ""
-      };
-    }
-  };
-  function buildTrimesters(modules) {
-    let mergedInstrument = [void 0, void 0, void 0];
-    modules.filter((module) => module.lesType === 0 /* TrimesterModule */).forEach((module) => {
-      mergedInstrument[module.trimesterNo - 1] = module;
-    });
-    return mergedInstrument;
-  }
-  function getLesmomenten(modules) {
-    let lesMomenten = modules.map((module) => module.formattedLesmoment);
-    return [...new Set(lesMomenten)];
-  }
-  function getMaxAantal(modules) {
-    return modules.map((module) => module.maxAantal).reduce(
-      (prev, next) => {
-        return prev < next ? next : prev;
-      }
-    );
-  }
-  function getVestigingen(modules) {
-    let vestigingen = modules.map((module) => module.vestiging);
-    let uniqueVestigingen = [...new Set(vestigingen)];
-    return uniqueVestigingen.toString();
-  }
-  function prepareLesmomenten(inputModules) {
-    let reLesMoment = /.*(\w\w) (?:\d+\/\d+ )?(\d\d:\d\d)-(\d\d:\d\d).*/;
-    for (let module of inputModules) {
-      if (module.lesmoment === "(geen volgende les)") {
-        module.formattedLesmoment = module.lesmoment;
-        continue;
-      }
-      let matches = module.lesmoment.match(reLesMoment);
-      if (matches?.length !== 4) {
-        console.error(`Could not process lesmoment "${module.lesmoment}" for instrument "${module.instrumentName}".`);
-        module.formattedLesmoment = "???";
-      } else {
-        module.formattedLesmoment = matches[1] + " " + matches[2] + "-" + matches[3];
-      }
-      module.formattedLesmoment = matches[1] + " " + matches[2] + "-" + matches[3];
-    }
-  }
-  function setStudentPopupInfo(student) {
-    student.info = "";
-    if (!student.trimesterInstruments)
-      return;
-    for (let instrs of student.trimesterInstruments) {
-      if (instrs.length) {
-        student.info += instrs[0].trimesterNo + ". " + instrs.map((instr) => instr.instrumentName) + "\n";
-      } else {
-        student.info += "?. ---\n";
-      }
-    }
-  }
-  function setStudentAllTrimsTheSameInstrument(student) {
-    if (!student.trimesterInstruments)
-      return;
-    let instruments = student.trimesterInstruments.flat();
-    if (instruments.length < 3) {
-      student.allYearSame = false;
-      return;
-    }
-    student.allYearSame = instruments.every((instr) => instr.instrumentName === (student?.trimesterInstruments[0][0]?.instrumentName ?? "---"));
-  }
-  function buildTableData(inputModules) {
-    prepareLesmomenten(inputModules);
-    let tableData = {
-      students: /* @__PURE__ */ new Map(),
-      instruments: /* @__PURE__ */ new Map(),
-      teachers: /* @__PURE__ */ new Map(),
-      blocks: []
-    };
-    let instruments = distinct(inputModules.map((module) => module.instrumentName));
-    for (let instrumentName of instruments) {
-      let instrumentModules = inputModules.filter((module) => module.instrumentName === instrumentName);
-      let teachers2 = distinct(instrumentModules.map((module) => module.teacher));
-      for (let teacher of teachers2) {
-        let instrumentTeacherModules = instrumentModules.filter((module) => module.teacher === teacher);
-        let lesmomenten = distinct(getLesmomenten(instrumentTeacherModules));
-        for (let lesmoment of lesmomenten) {
-          let instrumentTeacherMomentModules = instrumentTeacherModules.filter((module) => module.formattedLesmoment === lesmoment);
-          let block = BlockInfo.emptyBlock();
-          block.instrumentName = instrumentName;
-          block.teacher = teacher;
-          block.lesmoment = lesmoment;
-          block.maxAantal = getMaxAantal(instrumentTeacherMomentModules);
-          block.vestiging = getVestigingen(instrumentTeacherMomentModules);
-          block.trimesters = [[], [], []];
-          let trims = buildTrimesters(instrumentTeacherMomentModules);
-          for (let trimNo of [0, 1, 2]) {
-            if (trims[trimNo])
-              block.trimesters[trimNo].push(trims[trimNo]);
-          }
-          block.jaarModules = instrumentTeacherMomentModules.filter((module) => module.lesType === 1 /* JaarModule */);
-          checkBlockForErrors(block);
-          tableData.blocks.push(block);
-          for (let trim of block.trimesters) {
-            addTrimesterStudentsToMapAndCount(tableData.students, trim);
-          }
-          for (let jaarModule of block.jaarModules) {
-            addJaarStudentsToMapAndCount(tableData.students, jaarModule);
-          }
-        }
-      }
-    }
-    for (let student of tableData.students.values()) {
-      setStudentPopupInfo(student);
-      setStudentAllTrimsTheSameInstrument(student);
-    }
-    for (let instrument of tableData.blocks) {
-      for (let trim of instrument.trimesters) {
-        sortStudents(trim[0]?.students);
-      }
-      for (let jaarModule of instrument.jaarModules) {
-        sortStudents(jaarModule?.students);
-      }
-    }
-    let instrumentNames = distinct(tableData.blocks.map((b) => b.instrumentName)).sort((a, b) => {
-      return a.localeCompare(b);
-    });
-    for (let instr of instrumentNames) {
-      tableData.instruments.set(instr, { name: instr, blocks: [] });
-    }
-    for (let block of tableData.blocks) {
-      tableData.instruments.get(block.instrumentName).blocks.push(block);
-    }
-    let teachers = distinct(tableData.blocks.map((b) => b.teacher)).sort((a, b) => {
-      return a.localeCompare(b);
-    });
-    for (let t of teachers) {
-      tableData.teachers.set(t, { name: t, blocks: [] });
-    }
-    for (let block of tableData.blocks) {
-      tableData.teachers.get(block.teacher).blocks.push(block);
-    }
-    groupBlocksTwoLevels(
-      tableData.teachers.values(),
-      (block) => block.lesmoment,
-      (primary, secundary) => {
-        primary.lesMomenten = secundary;
-      }
-    );
-    groupBlocksTwoLevels(
-      tableData.instruments.values(),
-      (block) => block.lesmoment,
-      (primary, secundary) => {
-        primary.lesMomenten = secundary;
-      }
-    );
-    groupBlocks(
-      tableData.teachers.values(),
-      (block) => block.teacher
-    );
-    groupBlocks(
-      tableData.instruments.values(),
-      (block) => block.instrumentName
-    );
-    db3(tableData);
-    return tableData;
-  }
-  function groupBlocksTwoLevels(primaryGroups, getSecondaryKey, setSecondaryGroup) {
-    for (let primary of primaryGroups) {
-      let blocks = primary.blocks;
-      let secondaryKeys = distinct(blocks.map(getSecondaryKey));
-      let secondaryGroup = new Map(secondaryKeys.map((key) => [key, BlockInfo.emptyBlock()]));
-      for (let block of blocks) {
-        mergeBlock(secondaryGroup.get(getSecondaryKey(block)), block);
-      }
-      secondaryGroup.forEach((block) => {
-        updateMergedBlock(block);
-      });
-      setSecondaryGroup(primary, secondaryGroup);
-    }
-  }
-  function groupBlocks(primaryGroups, getPrimaryKey) {
-    for (let primary of primaryGroups) {
-      let blocks = primary.blocks;
-      let keys = distinct(blocks.map(getPrimaryKey));
-      primary.mergedBlocks = new Map(keys.map((key) => [key, BlockInfo.emptyBlock()]));
-      for (let block of blocks) {
-        mergeBlock(primary.mergedBlocks.get(getPrimaryKey(block)), block);
-      }
-      primary.mergedBlocks.forEach((block) => {
-        updateMergedBlock(block);
-      });
-    }
-  }
-  function mergeBlock(blockToMergeTo, block2) {
-    {
-      blockToMergeTo.jaarModules.push(...block2.jaarModules);
-      for (let trimNo of [0, 1, 2]) {
-        blockToMergeTo.trimesters[trimNo].push(block2.trimesters[trimNo][0]);
-      }
-      blockToMergeTo.errors += block2.errors;
-      return blockToMergeTo;
-    }
-  }
-  function updateMergedBlock(block) {
-    let allLessen = block.trimesters.flat().concat(block.jaarModules);
-    block.lesmoment = [...new Set(allLessen.filter((les) => les).map((les) => les.lesmoment))].join(", ");
-    block.teacher = [...new Set(allLessen.filter((les) => les).map((les) => les.teacher))].join(", ");
-    block.vestiging = [...new Set(allLessen.filter((les) => les).map((les) => les.vestiging))].join(", ");
-    block.instrumentName = [...new Set(allLessen.filter((les) => les).map((les) => les.instrumentName))].join(", ");
-  }
-  function checkBlockForErrors(block) {
-    let maxMoreThan100 = block.jaarModules.map((module) => module.maxAantal > TOO_LARGE_MAX).includes(true);
-    if (!maxMoreThan100) {
-      maxMoreThan100 = block.trimesters.flat().map((module) => module?.maxAantal > TOO_LARGE_MAX).includes(true);
-    }
-    if (maxMoreThan100)
-      block.errors += "Max aantal lln > " + TOO_LARGE_MAX;
-  }
-  function addTrimesterStudentsToMapAndCount(students, trimModules) {
-    if (!trimModules[0]) return;
-    for (let student of trimModules[0].students) {
-      if (!students.has(student.name)) {
-        student.trimesterInstruments = [[], [], []];
-        students.set(student.name, student);
-      }
-      let stud = students.get(student.name);
-      stud.trimesterInstruments[trimModules[0].trimesterNo - 1].push(trimModules[0]);
-    }
-    trimModules[0].students = trimModules[0].students.map((student) => students.get(student.name));
-  }
-  function addJaarStudentsToMapAndCount(students, jaarModule) {
-    if (!jaarModule) return;
-    for (let student of jaarModule.students) {
-      if (!students.has(student.name)) {
-        student.jaarInstruments = [];
-        students.set(student.name, student);
-      }
-      let stud = students.get(student.name);
-      stud.jaarInstruments.push(jaarModule);
-    }
-    jaarModule.students = jaarModule.students.map((student) => students.get(student.name));
-  }
-  function sortStudents(students) {
-    if (!students) return;
-    let comparator = new Intl.Collator();
-    students.sort((a, b) => {
-      if (a.allYearSame && !b.allYearSame) {
-        return -1;
-      } else if (!a.allYearSame && b.allYearSame) {
-        return 1;
-      } else {
-        return comparator.compare(a.name, b.name);
-      }
-    });
-  }
-  var TOO_LARGE_MAX = 100;
-  function mergeBlockStudents(block) {
-    let jaarStudents = block.jaarModules.map((les) => les.students).flat();
-    let trimesterStudents = [
-      block.trimesters[0].map((les) => les?.students ?? []).flat(),
-      block.trimesters[1].map((les) => les?.students ?? []).flat(),
-      block.trimesters[2].map((les) => les?.students ?? []).flat()
-    ];
-    trimesterStudents.forEach((trim) => sortStudents(trim));
-    let maxAantallen = block.trimesters.map((trimLessen) => {
-      if (trimLessen.length === 0)
-        return 0;
-      return trimLessen.map((les) => les?.maxAantal ?? 0).map((maxAantal) => maxAantal > TOO_LARGE_MAX ? 4 : maxAantal).reduce((a, b) => a + b);
-    });
-    let blockNeededRows = Math.max(
-      ...maxAantallen,
-      ...trimesterStudents.map((stud) => stud.length)
-    );
-    let wachtlijsten = block.trimesters.map((trimLessen) => {
-      if (trimLessen.length === 0)
-        return 0;
-      return trimLessen.map((les) => les?.wachtlijst ?? 0).reduce((a, b) => a + b);
-    });
-    let hasWachtlijst = wachtlijsten.some((wachtLijst) => wachtLijst > 0);
-    if (hasWachtlijst) {
-      blockNeededRows++;
-    }
-    let maxJaarStudentCount = block.jaarModules.map((mod) => mod.maxAantal).reduce((a, b) => Math.max(a, b), 0);
-    return {
-      jaarStudents,
-      trimesterStudents,
-      maxAantallen,
-      blockNeededRows,
-      wachtlijsten,
-      hasWachtlijst,
-      maxJaarStudentCount
-    };
-  }
-
   // typescript/def.ts
   var COPY_AGAIN = "copy_again";
   var PROGRESS_BAR_ID = "progressBarFetch";
@@ -1287,6 +986,7 @@
     headerRows.trModuleLinks.dataset.hasFullClass = "false";
     let hasFullClass = false;
     let filledRowCount = 0;
+    sortStudents(mergedBlock.jaarStudents);
     for (let student of mergedBlock.jaarStudents) {
       let row = createStudentRow(newTableBody, "jaarRow", groupId);
       for (let trimNo = 0; trimNo < 3; trimNo++) {
@@ -1303,6 +1003,7 @@
       let row = createStudentRow(newTableBody, "trimesterRow", groupId);
       for (let trimNo = 0; trimNo < 3; trimNo++) {
         let trimester = mergedBlock.trimesterStudents[trimNo];
+        sortStudents(trimester);
         let student = void 0;
         if (trimester) {
           student = trimester[rowNo];
@@ -1508,6 +1209,310 @@
     if (found?.length)
       return parseInt(found[0]);
     throw `No id found for student ${studentName}.`;
+  }
+
+  // typescript/lessen/convert.ts
+  var BlockInfo2 = class {
+    static emptyBlock() {
+      return {
+        teacher: void 0,
+        vestiging: void 0,
+        maxAantal: -1,
+        instrumentName: void 0,
+        lesmoment: void 0,
+        trimesters: [[], [], []],
+        jaarModules: [],
+        errors: ""
+      };
+    }
+  };
+  function buildTrimesters(modules) {
+    let mergedInstrument = [void 0, void 0, void 0];
+    modules.filter((module) => module.lesType === 0 /* TrimesterModule */).forEach((module) => {
+      mergedInstrument[module.trimesterNo - 1] = module;
+    });
+    return mergedInstrument;
+  }
+  function getLesmomenten(modules) {
+    let lesMomenten = modules.map((module) => module.formattedLesmoment);
+    return [...new Set(lesMomenten)];
+  }
+  function getMaxAantal(modules) {
+    return modules.map((module) => module.maxAantal).reduce(
+      (prev, next) => {
+        return prev < next ? next : prev;
+      }
+    );
+  }
+  function getVestigingen(modules) {
+    let vestigingen = modules.map((module) => module.vestiging);
+    let uniqueVestigingen = [...new Set(vestigingen)];
+    return uniqueVestigingen.toString();
+  }
+  function prepareLesmomenten(inputModules) {
+    let reLesMoment = /.*(\w\w) (?:\d+\/\d+ )?(\d\d:\d\d)-(\d\d:\d\d).*/;
+    for (let module of inputModules) {
+      if (module.lesmoment === "(geen volgende les)") {
+        module.formattedLesmoment = module.lesmoment;
+        continue;
+      }
+      let matches = module.lesmoment.match(reLesMoment);
+      if (matches?.length !== 4) {
+        console.error(`Could not process lesmoment "${module.lesmoment}" for instrument "${module.instrumentName}".`);
+        module.formattedLesmoment = "???";
+      } else {
+        module.formattedLesmoment = matches[1] + " " + matches[2] + "-" + matches[3];
+      }
+      module.formattedLesmoment = matches[1] + " " + matches[2] + "-" + matches[3];
+    }
+  }
+  function setStudentPopupInfo(student) {
+    student.info = "";
+    if (!student.trimesterInstruments)
+      return;
+    for (let instrs of student.trimesterInstruments) {
+      if (instrs.length) {
+        student.info += instrs[0].trimesterNo + ". " + instrs.map((instr) => instr.instrumentName) + "\n";
+      } else {
+        student.info += "?. ---\n";
+      }
+    }
+  }
+  function setStudentAllTrimsTheSameInstrument(student) {
+    if (!student.trimesterInstruments)
+      return;
+    let instruments = student.trimesterInstruments.flat();
+    if (instruments.length < 3) {
+      student.allYearSame = false;
+      return;
+    }
+    student.allYearSame = instruments.every((instr) => instr.instrumentName === (student?.trimesterInstruments[0][0]?.instrumentName ?? "---"));
+  }
+  function buildTableData(inputModules) {
+    prepareLesmomenten(inputModules);
+    let tableData = {
+      students: /* @__PURE__ */ new Map(),
+      instruments: /* @__PURE__ */ new Map(),
+      teachers: /* @__PURE__ */ new Map(),
+      blocks: []
+    };
+    let instruments = distinct(inputModules.map((module) => module.instrumentName));
+    for (let instrumentName of instruments) {
+      let instrumentModules = inputModules.filter((module) => module.instrumentName === instrumentName);
+      let teachers2 = distinct(instrumentModules.map((module) => module.teacher));
+      for (let teacher of teachers2) {
+        let instrumentTeacherModules = instrumentModules.filter((module) => module.teacher === teacher);
+        let lesmomenten = distinct(getLesmomenten(instrumentTeacherModules));
+        for (let lesmoment of lesmomenten) {
+          let instrumentTeacherMomentModules = instrumentTeacherModules.filter((module) => module.formattedLesmoment === lesmoment);
+          let block = BlockInfo2.emptyBlock();
+          block.instrumentName = instrumentName;
+          block.teacher = teacher;
+          block.lesmoment = lesmoment;
+          block.maxAantal = getMaxAantal(instrumentTeacherMomentModules);
+          block.vestiging = getVestigingen(instrumentTeacherMomentModules);
+          block.trimesters = [[], [], []];
+          let trims = buildTrimesters(instrumentTeacherMomentModules);
+          for (let trimNo of [0, 1, 2]) {
+            if (trims[trimNo])
+              block.trimesters[trimNo].push(trims[trimNo]);
+          }
+          block.jaarModules = instrumentTeacherMomentModules.filter((module) => module.lesType === 1 /* JaarModule */);
+          checkBlockForErrors(block);
+          tableData.blocks.push(block);
+          for (let trim of block.trimesters) {
+            addTrimesterStudentsToMapAndCount(tableData.students, trim);
+          }
+          for (let jaarModule of block.jaarModules) {
+            addJaarStudentsToMapAndCount(tableData.students, jaarModule);
+          }
+        }
+      }
+    }
+    for (let student of tableData.students.values()) {
+      setStudentPopupInfo(student);
+      setStudentAllTrimsTheSameInstrument(student);
+    }
+    for (let instrument of tableData.blocks) {
+      for (let trim of instrument.trimesters) {
+        sortStudents(trim[0]?.students);
+      }
+      for (let jaarModule of instrument.jaarModules) {
+        sortStudents(jaarModule?.students);
+      }
+    }
+    let instrumentNames = distinct(tableData.blocks.map((b) => b.instrumentName)).sort((a, b) => {
+      return a.localeCompare(b);
+    });
+    for (let instr of instrumentNames) {
+      tableData.instruments.set(instr, { name: instr, blocks: [] });
+    }
+    for (let block of tableData.blocks) {
+      tableData.instruments.get(block.instrumentName).blocks.push(block);
+    }
+    let teachers = distinct(tableData.blocks.map((b) => b.teacher)).sort((a, b) => {
+      return a.localeCompare(b);
+    });
+    for (let t of teachers) {
+      tableData.teachers.set(t, { name: t, blocks: [] });
+    }
+    for (let block of tableData.blocks) {
+      tableData.teachers.get(block.teacher).blocks.push(block);
+    }
+    groupBlocksTwoLevels(
+      tableData.teachers.values(),
+      (block) => block.lesmoment,
+      (primary, secundary) => {
+        primary.lesMomenten = secundary;
+      }
+    );
+    groupBlocksTwoLevels(
+      tableData.instruments.values(),
+      (block) => block.lesmoment,
+      (primary, secundary) => {
+        primary.lesMomenten = secundary;
+      }
+    );
+    groupBlocks(
+      tableData.teachers.values(),
+      (block) => block.teacher
+    );
+    groupBlocks(
+      tableData.instruments.values(),
+      (block) => block.instrumentName
+    );
+    db3(tableData);
+    return tableData;
+  }
+  function groupBlocksTwoLevels(primaryGroups, getSecondaryKey, setSecondaryGroup) {
+    for (let primary of primaryGroups) {
+      let blocks = primary.blocks;
+      let secondaryKeys = distinct(blocks.map(getSecondaryKey));
+      let secondaryGroup = new Map(secondaryKeys.map((key) => [key, BlockInfo2.emptyBlock()]));
+      for (let block of blocks) {
+        mergeBlock(secondaryGroup.get(getSecondaryKey(block)), block);
+      }
+      secondaryGroup.forEach((block) => {
+        updateMergedBlock(block);
+      });
+      setSecondaryGroup(primary, secondaryGroup);
+    }
+  }
+  function groupBlocks(primaryGroups, getPrimaryKey) {
+    for (let primary of primaryGroups) {
+      let blocks = primary.blocks;
+      let keys = distinct(blocks.map(getPrimaryKey));
+      primary.mergedBlocks = new Map(keys.map((key) => [key, BlockInfo2.emptyBlock()]));
+      for (let block of blocks) {
+        mergeBlock(primary.mergedBlocks.get(getPrimaryKey(block)), block);
+      }
+      primary.mergedBlocks.forEach((block) => {
+        updateMergedBlock(block);
+      });
+    }
+  }
+  function mergeBlock(blockToMergeTo, block2) {
+    {
+      blockToMergeTo.jaarModules.push(...block2.jaarModules);
+      for (let trimNo of [0, 1, 2]) {
+        blockToMergeTo.trimesters[trimNo].push(block2.trimesters[trimNo][0]);
+      }
+      blockToMergeTo.errors += block2.errors;
+      return blockToMergeTo;
+    }
+  }
+  function updateMergedBlock(block) {
+    let allLessen = block.trimesters.flat().concat(block.jaarModules);
+    block.lesmoment = [...new Set(allLessen.filter((les) => les).map((les) => les.lesmoment))].join(", ");
+    block.teacher = [...new Set(allLessen.filter((les) => les).map((les) => les.teacher))].join(", ");
+    block.vestiging = [...new Set(allLessen.filter((les) => les).map((les) => les.vestiging))].join(", ");
+    block.instrumentName = [...new Set(allLessen.filter((les) => les).map((les) => les.instrumentName))].join(", ");
+  }
+  function checkBlockForErrors(block) {
+    let maxMoreThan100 = block.jaarModules.map((module) => module.maxAantal > TOO_LARGE_MAX2).includes(true);
+    if (!maxMoreThan100) {
+      maxMoreThan100 = block.trimesters.flat().map((module) => module?.maxAantal > TOO_LARGE_MAX2).includes(true);
+    }
+    if (maxMoreThan100)
+      block.errors += "Max aantal lln > " + TOO_LARGE_MAX2;
+  }
+  function addTrimesterStudentsToMapAndCount(students, trimModules) {
+    if (!trimModules[0]) return;
+    for (let student of trimModules[0].students) {
+      if (!students.has(student.name)) {
+        student.trimesterInstruments = [[], [], []];
+        students.set(student.name, student);
+      }
+      let stud = students.get(student.name);
+      stud.trimesterInstruments[trimModules[0].trimesterNo - 1].push(trimModules[0]);
+    }
+    trimModules[0].students = trimModules[0].students.map((student) => students.get(student.name));
+  }
+  function addJaarStudentsToMapAndCount(students, jaarModule) {
+    if (!jaarModule) return;
+    for (let student of jaarModule.students) {
+      if (!students.has(student.name)) {
+        student.jaarInstruments = [];
+        students.set(student.name, student);
+      }
+      let stud = students.get(student.name);
+      stud.jaarInstruments.push(jaarModule);
+    }
+    jaarModule.students = jaarModule.students.map((student) => students.get(student.name));
+  }
+  function sortStudents(students) {
+    if (!students) return;
+    let comparator = new Intl.Collator();
+    let sorting = getSavedNameSorting();
+    students.sort((a, b) => {
+      if (a.allYearSame && !b.allYearSame) {
+        return -1;
+      } else if (!a.allYearSame && b.allYearSame) {
+        return 1;
+      } else {
+        let aName = sorting === 1 /* LastName */ ? a.naam + a.voornaam : a.voornaam + a.naam;
+        let bName = sorting === 1 /* LastName */ ? b.naam + b.voornaam : b.voornaam + b.naam;
+        return comparator.compare(aName, bName);
+      }
+    });
+  }
+  var TOO_LARGE_MAX2 = 100;
+  function mergeBlockStudents(block) {
+    let jaarStudents = block.jaarModules.map((les) => les.students).flat();
+    let trimesterStudents = [
+      block.trimesters[0].map((les) => les?.students ?? []).flat(),
+      block.trimesters[1].map((les) => les?.students ?? []).flat(),
+      block.trimesters[2].map((les) => les?.students ?? []).flat()
+    ];
+    trimesterStudents.forEach((trim) => sortStudents(trim));
+    let maxAantallen = block.trimesters.map((trimLessen) => {
+      if (trimLessen.length === 0)
+        return 0;
+      return trimLessen.map((les) => les?.maxAantal ?? 0).map((maxAantal) => maxAantal > TOO_LARGE_MAX2 ? 4 : maxAantal).reduce((a, b) => a + b);
+    });
+    let blockNeededRows = Math.max(
+      ...maxAantallen,
+      ...trimesterStudents.map((stud) => stud.length)
+    );
+    let wachtlijsten = block.trimesters.map((trimLessen) => {
+      if (trimLessen.length === 0)
+        return 0;
+      return trimLessen.map((les) => les?.wachtlijst ?? 0).reduce((a, b) => a + b);
+    });
+    let hasWachtlijst = wachtlijsten.some((wachtLijst) => wachtLijst > 0);
+    if (hasWachtlijst) {
+      blockNeededRows++;
+    }
+    let maxJaarStudentCount = block.jaarModules.map((mod) => mod.maxAantal).reduce((a, b) => Math.max(a, b), 0);
+    return {
+      jaarStudents,
+      trimesterStudents,
+      maxAantallen,
+      blockNeededRows,
+      wachtlijsten,
+      hasWachtlijst,
+      maxJaarStudentCount
+    };
   }
 
   // typescript/lessen/observer.ts

@@ -1,6 +1,6 @@
 import {FULL_CLASS_BUTTON_ID, isButtonHighlighted, TRIM_DIV_ID} from "../def";
 import {db3} from "../globals";
-import {BlockInfo, mergeBlockStudents, TableData, TOO_LARGE_MAX} from "./convert";
+import {BlockInfo, mergeBlockStudents, sortStudents, TableData, TOO_LARGE_MAX} from "./convert";
 import {StudentInfo} from "./scrape";
 import * as html from "../../libs/Emmeter/html";
 import {NBSP} from "../../libs/Emmeter/html";
@@ -163,6 +163,7 @@ function buildBlock(newTableBody: HTMLTableSectionElement, block: BlockInfo, gro
      */
     //Fill jaar rows
     let filledRowCount = 0;
+        sortStudents(mergedBlock.jaarStudents);
         for(let student of mergedBlock.jaarStudents) {
             let row = createStudentRow(newTableBody, "jaarRow", groupId);
             for (let trimNo = 0; trimNo < 3; trimNo++) {
@@ -186,6 +187,7 @@ function buildBlock(newTableBody: HTMLTableSectionElement, block: BlockInfo, gro
 
         for (let trimNo = 0; trimNo < 3; trimNo++) {
             let trimester = mergedBlock.trimesterStudents[trimNo];
+            sortStudents(trimester);
             let student: StudentInfo = undefined;
             if (trimester) {
                 student = trimester[rowNo];

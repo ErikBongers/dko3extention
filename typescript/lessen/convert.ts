@@ -1,5 +1,6 @@
 import {Les, LesType, StudentInfo} from "./scrape";
 import {db3, distinct} from "../globals";
+import {getSavedNameSorting, NameSorting} from "./build";
 
 
 export class BlockInfo {
@@ -333,9 +334,10 @@ function addJaarStudentsToMapAndCount(students: Map<string, StudentInfo>, jaarMo
         .map((student) => students.get(student.name));
 }
 
-function sortStudents(students: StudentInfo[]) {
+export function sortStudents(students: StudentInfo[]) {
     if(!students) return;
     let comparator = new Intl.Collator();
+    let sorting = getSavedNameSorting();
     students
         //sort full year students on top.
         .sort((a,b) => {
@@ -344,7 +346,9 @@ function sortStudents(students: StudentInfo[]) {
             } else if ((!a.allYearSame) && b.allYearSame) {
                 return 1;
             } else {
-                return comparator.compare(a.name, b.name);
+                let aName = sorting === NameSorting.LastName ? a.naam + a.voornaam : a.voornaam + a.naam;
+                let bName = sorting === NameSorting.LastName ? b.naam + b.voornaam : b.voornaam + b.naam;
+                return comparator.compare(aName, bName);
             }
         });
 }
