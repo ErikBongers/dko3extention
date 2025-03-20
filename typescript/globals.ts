@@ -271,3 +271,21 @@ export function addTableNavigationButton(navigationBars: NodeListOf<Element>, bt
 export function distinct<Type>(array: Type[]): Type[] {
     return [...new Set(array)];
 }
+
+export async function fetchStudentsSearch(search: string) {
+    return fetch("/view.php?args=zoeken?zoek=" + encodeURIComponent(search))
+        .then((response) => response.text())
+        .then((_text) => fetch("/views/zoeken/index.view.php"))
+        .then((response) => response.text())
+        .catch(err => {
+            console.error('Request failed', err);
+            return "";
+        });
+}
+
+export async function setViewFromCurrentUrl() {
+    let hash = window.location.hash.replace("#", "");
+    let page = await fetch("https://administratie.dko3.cloud/#" + hash).then(res => res.text());
+    // call to changeView() - assuming this is always the same, so no parsing here.
+    let view = await fetch("view.php?args=" + hash).then(res => res.text());
+}

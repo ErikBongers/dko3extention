@@ -1,6 +1,6 @@
 import {FULL_CLASS_BUTTON_ID, isButtonHighlighted, TRIM_DIV_ID} from "../def";
 import {db3} from "../globals";
-import {BlockInfo, mergeBlockStudents, sortStudents, TableData, TOO_LARGE_MAX} from "./convert";
+import {BlockInfo, mergeBlockStudents, sortStudents, TableData} from "./convert";
 import {StudentInfo} from "./scrape";
 import * as html from "../../libs/Emmeter/html";
 import {NBSP} from "../../libs/Emmeter/html";
@@ -404,7 +404,7 @@ function stripStudentName(name: string): string {
 }
 
 async function fetchStudentId(studentName: string) {
-    let strippedStudentName = stripStudentName(studentName);
+    let strippedStudentName = stripStudentName(studentName); //todo: use global function
     return fetch("/view.php?args=zoeken?zoek="+encodeURIComponent(strippedStudentName))
         .then((response) => response.text())
         .then((_text) => fetch("/views/zoeken/index.view.php"))

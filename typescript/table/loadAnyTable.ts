@@ -1,7 +1,8 @@
 import {findFirstNavigation} from "./tableNavigation";
 import {TableDef, TableRef} from "./tableDef";
 import {SimpleTableHandler} from "../pageHandlers";
-import { getChecksumHandler } from "./observer";
+import {getChecksumHandler} from "./observer";
+import {setViewFromCurrentUrl} from "../globals";
 
 export async function getTableFromHash(hash: string, divInfoContainer: HTMLDivElement, clearCache: boolean) {
     let page = await fetch("https://administratie.dko3.cloud/#"+hash).then(res => res.text());
@@ -67,13 +68,6 @@ export async function getTableFromHash(hash: string, divInfoContainer: HTMLDivEl
     let fetchedTable = await tableDef.getTableData();
     await setViewFromCurrentUrl();
     return fetchedTable;
-}
-
-async function setViewFromCurrentUrl() {
-    let hash = window.location.hash.replace("#", "");
-    let page = await fetch("https://administratie.dko3.cloud/#"+hash).then(res => res.text());
-    // call to changeView() - assuming this is always the same, so no parsing here.
-    let view = await fetch("view.php?args="+hash).then(res => res.text());
 }
 
 function findDocReady(scanner: TokenScanner) {

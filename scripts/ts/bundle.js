@@ -202,6 +202,17 @@
   function distinct(array) {
     return [...new Set(array)];
   }
+  async function fetchStudentsSearch(search) {
+    return fetch("/view.php?args=zoeken?zoek=" + encodeURIComponent(search)).then((response) => response.text()).then((_text) => fetch("/views/zoeken/index.view.php")).then((response) => response.text()).catch((err) => {
+      console.error("Request failed", err);
+      return "";
+    });
+  }
+  async function setViewFromCurrentUrl() {
+    let hash = window.location.hash.replace("#", "");
+    let page = await fetch("https://administratie.dko3.cloud/#" + hash).then((res) => res.text());
+    let view = await fetch("view.php?args=" + hash).then((res) => res.text());
+  }
 
   // typescript/pageObserver.ts
   var HashPageFilter = class {
@@ -228,10 +239,11 @@
     }
   };
   var BaseObserver = class {
-    constructor(onPageChangedCallback, pageFilter, onMutationCallback) {
+    constructor(onPageChangedCallback, pageFilter, onMutationCallback, trackModal = false) {
       this.onPageChangedCallback = onPageChangedCallback;
       this.pageFilter = pageFilter;
       this.onMutation = onMutationCallback;
+      this.trackModal = trackModal;
       if (onMutationCallback) {
         this.observer = new MutationObserver((mutationList, observer) => this.observerCallback(mutationList, observer));
       }
@@ -257,6 +269,8 @@
       if (!this.onMutation)
         return;
       this.observeElement(document.querySelector("main"));
+      if (this.trackModal)
+        this.observeElement(document.getElementById("dko3_modal"));
     }
     observeElement(element) {
       if (!element) {
@@ -275,16 +289,18 @@
     }
   };
   var HashObserver = class {
-    constructor(urlHash, onMutationCallback) {
-      this.baseObserver = new BaseObserver(void 0, new HashPageFilter(urlHash), onMutationCallback);
+    //onMutationCallback should return true if handled definitively.
+    constructor(urlHash, onMutationCallback, trackModal = false) {
+      this.baseObserver = new BaseObserver(void 0, new HashPageFilter(urlHash), onMutationCallback, trackModal);
     }
     onPageChanged() {
       this.baseObserver.onPageChanged();
     }
   };
   var ExactHashObserver = class {
-    constructor(urlHash, onMutationCallback) {
-      this.baseObserver = new BaseObserver(void 0, new ExactHashPageFilter(urlHash), onMutationCallback);
+    //onMutationCallback should return true if handled definitively.
+    constructor(urlHash, onMutationCallback, trackModal = false) {
+      this.baseObserver = new BaseObserver(void 0, new ExactHashPageFilter(urlHash), onMutationCallback, trackModal);
     }
     onPageChanged() {
       this.baseObserver.onPageChanged();
@@ -292,7 +308,7 @@
   };
   var PageObserver = class {
     constructor(onPageChangedCallback) {
-      this.baseObserver = new BaseObserver(onPageChangedCallback, new AllPageFilter(), void 0);
+      this.baseObserver = new BaseObserver(onPageChangedCallback, new AllPageFilter(), void 0, false);
     }
     onPageChanged() {
       this.baseObserver.onPageChanged();
@@ -1429,12 +1445,12 @@
     block.instrumentName = [...new Set(allLessen.filter((les) => les).map((les) => les.instrumentName))].join(", ");
   }
   function checkBlockForErrors(block) {
-    let maxMoreThan100 = block.jaarModules.map((module) => module.maxAantal > TOO_LARGE_MAX2).includes(true);
+    let maxMoreThan100 = block.jaarModules.map((module) => module.maxAantal > TOO_LARGE_MAX).includes(true);
     if (!maxMoreThan100) {
-      maxMoreThan100 = block.trimesters.flat().map((module) => module?.maxAantal > TOO_LARGE_MAX2).includes(true);
+      maxMoreThan100 = block.trimesters.flat().map((module) => module?.maxAantal > TOO_LARGE_MAX).includes(true);
     }
     if (maxMoreThan100)
-      block.errors += "Max aantal lln > " + TOO_LARGE_MAX2;
+      block.errors += "Max aantal lln > " + TOO_LARGE_MAX;
   }
   function addTrimesterStudentsToMapAndCount(students, trimModules) {
     if (!trimModules[0]) return;
@@ -1476,7 +1492,7 @@
       }
     });
   }
-  var TOO_LARGE_MAX2 = 100;
+  var TOO_LARGE_MAX = 100;
   function mergeBlockStudents(block) {
     let jaarStudents = block.jaarModules.map((les) => les.students).flat();
     let trimesterStudents = [
@@ -1488,7 +1504,7 @@
     let maxAantallen = block.trimesters.map((trimLessen) => {
       if (trimLessen.length === 0)
         return 0;
-      return trimLessen.map((les) => les?.maxAantal ?? 0).map((maxAantal) => maxAantal > TOO_LARGE_MAX2 ? 4 : maxAantal).reduce((a, b) => a + b);
+      return trimLessen.map((les) => les?.maxAantal ?? 0).map((maxAantal) => maxAantal > TOO_LARGE_MAX ? 4 : maxAantal).reduce((a, b) => a + b);
     });
     let blockNeededRows = Math.max(
       ...maxAantallen,
@@ -3189,11 +3205,6 @@
     await setViewFromCurrentUrl();
     return fetchedTable;
   }
-  async function setViewFromCurrentUrl() {
-    let hash = window.location.hash.replace("#", "");
-    let page = await fetch("https://administratie.dko3.cloud/#" + hash).then((res) => res.text());
-    let view = await fetch("view.php?args=" + hash).then((res) => res.text());
-  }
   function findDocReady(scanner) {
     return scanner.find("$", "(", "document", ")", ".", "ready", "(");
   }
@@ -3567,6 +3578,82 @@
     return "??";
   }
 
+  // typescript/afwezigheden/observer.ts
+  var observer_default10 = new ExactHashObserver("#extra-tickets?h=afwezigheden", onMutation8, true);
+  function onMutation8(mutation) {
+    console.log(mutation);
+    if (mutation.target === document.getElementById("ticket_payload")) {
+      onTicket();
+      return true;
+    }
+    if (mutation.target === document.getElementById("dko3_modal_contents")) {
+      onAddMelding();
+      return true;
+    }
+    if (mutation.target === document.getElementById("div_tickets_afwezigheid_toevoegen_leerling") && mutation.addedNodes.length > 0) {
+      setTimeout(gotoVolgende, 10);
+      return true;
+    }
+    return false;
+  }
+  function gotoVolgende() {
+    let table = document.querySelector("#div_tickets_afwezigheid_toevoegen_leerling table");
+    let tableHasOneStudent = table.querySelectorAll("i.fa-square").length === 1;
+    if (tableHasOneStudent) {
+      console.log("ONE STUDENT");
+      let tr = document.querySelector(".tr-ticket-afwezigheidsmelding-leerling");
+      tr.click();
+      document.getElementById("btn_opslaan_tickets_afwezigheid_toevoegen").click();
+    }
+  }
+  function onAddMelding() {
+    let leerlingLabel = document.querySelector("#form_field_tickets_afwezigheid_toevoegen_leerling_zoeken > label");
+    if (leerlingLabel && !leerlingLabel.dataset.filled) {
+      leerlingLabel.dataset.filled = "true";
+      leerlingLabel.textContent = "Leerling:   reeds gevonden: ";
+      for (let lln of matchinLeerlingen) {
+        let anchor = document.createElement("a");
+        anchor.href = "#";
+        anchor.text = lln.name;
+        anchor.onclick = () => fillAndClick(lln.name);
+        leerlingLabel.insertAdjacentElement("afterend", anchor);
+        leerlingLabel.parentElement.insertBefore(document.createTextNode(" "), anchor);
+      }
+    }
+  }
+  function fillAndClick(name) {
+    let formDiv = document.querySelector("#form_field_tickets_afwezigheid_toevoegen_leerling_zoeken");
+    let input = formDiv.querySelector("input");
+    input.value = name;
+    let button = formDiv.querySelector("button");
+    button.click();
+    return false;
+  }
+  var matchinLeerlingen = [];
+  async function onTicket() {
+    let card_bodyDiv = document.querySelector(".card-body");
+    if (!card_bodyDiv)
+      return;
+    let rxEmail = /\w[\w.\-]*\@\w+\.\w+/gm;
+    let matches = [...card_bodyDiv.textContent.matchAll(rxEmail)];
+    let uniqueEmails = [...new Set(matches.map((match2) => match2[0]))];
+    let allScripts = document.querySelectorAll("script");
+    let scriptTexts = [...allScripts].map((s) => s.textContent).join();
+    let myEmail = scriptTexts.match(rxEmail)[0];
+    uniqueEmails = uniqueEmails.filter((m) => m != myEmail);
+    console.log(uniqueEmails);
+    let div = document.createElement("div");
+    div.innerHTML = await fetchStudentsSearch(uniqueEmails.join(" "));
+    let tds = [...div.querySelectorAll("td")];
+    matchinLeerlingen = tds.map((td) => {
+      let id = td.querySelector("small").textContent;
+      let name = td.querySelector("strong").textContent;
+      setViewFromCurrentUrl();
+      return { id, name };
+    });
+    console.log(matchinLeerlingen);
+  }
+
   // typescript/setupPowerQuery.ts
   var powerQueryItems = [];
   var popoverVisible = false;
@@ -3851,6 +3938,7 @@
       registerObserver(observer_default8);
       registerObserver(academieMenuObserver);
       registerObserver(observer_default9);
+      registerObserver(observer_default10);
       onPageChanged();
       setupPowerQuery();
     });

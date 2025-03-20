@@ -38,10 +38,12 @@ export class BaseObserver {
     private pageFilter: PageFilter;
     private readonly onMutation: (mutation: MutationRecord) => boolean;
     private observer: MutationObserver;
-    constructor(onPageChangedCallback: () => void, pageFilter: PageFilter, onMutationCallback: (mutation: MutationRecord) => boolean) {
+    private readonly trackModal: boolean;
+    constructor(onPageChangedCallback: () => void, pageFilter: PageFilter, onMutationCallback: (mutation: MutationRecord) => boolean, trackModal: boolean = false) {
         this.onPageChangedCallback = onPageChangedCallback;
         this.pageFilter = pageFilter;
         this.onMutation = onMutationCallback;
+        this.trackModal = trackModal;
         if (onMutationCallback) {
             this.observer = new MutationObserver((mutationList, observer) => this.observerCallback(mutationList, observer));
         }
@@ -69,6 +71,8 @@ export class BaseObserver {
         if (!this.onMutation)
             return;
         this.observeElement(document.querySelector("main"));
+        if(this.trackModal)
+            this.observeElement(document.getElementById("dko3_modal"));
     }
 
     observeElement(element: HTMLElement) {
@@ -97,8 +101,8 @@ export interface Observer {
 export class HashObserver implements Observer {
     private baseObserver: BaseObserver;
     //onMutationCallback should return true if handled definitively.
-    constructor(urlHash: string, onMutationCallback: (mutation: MutationRecord) => boolean) {
-        this.baseObserver = new BaseObserver(undefined, new HashPageFilter(urlHash), onMutationCallback);
+    constructor(urlHash: string, onMutationCallback: (mutation: MutationRecord) => boolean, trackModal: boolean = false) {
+        this.baseObserver = new BaseObserver(undefined, new HashPageFilter(urlHash), onMutationCallback, trackModal);
     }
 
     onPageChanged() {
@@ -108,8 +112,8 @@ export class HashObserver implements Observer {
 export class ExactHashObserver implements Observer {
     private baseObserver: BaseObserver;
     //onMutationCallback should return true if handled definitively.
-    constructor(urlHash: string, onMutationCallback: (mutation: MutationRecord) => boolean) {
-        this.baseObserver = new BaseObserver(undefined, new ExactHashPageFilter(urlHash), onMutationCallback);
+    constructor(urlHash: string, onMutationCallback: (mutation: MutationRecord) => boolean, trackModal: boolean = false) {
+        this.baseObserver = new BaseObserver(undefined, new ExactHashPageFilter(urlHash), onMutationCallback, trackModal);
     }
 
     onPageChanged() {
@@ -120,7 +124,7 @@ export class ExactHashObserver implements Observer {
 export class PageObserver implements Observer {
     private baseObserver: BaseObserver;
     constructor(onPageChangedCallback: () => void) {
-        this.baseObserver = new BaseObserver(onPageChangedCallback, new AllPageFilter(), undefined);
+        this.baseObserver = new BaseObserver(onPageChangedCallback, new AllPageFilter(), undefined, false);
     }
 
     onPageChanged() {
