@@ -4,7 +4,6 @@ import {fetchStudentsSearch, setViewFromCurrentUrl} from "../globals";
 export default new ExactHashObserver("#extra-tickets?h=afwezigheden", onMutation, true);
 
 function onMutation (mutation: MutationRecord) {
-    console.log(mutation)
     if (mutation.target === document.getElementById("ticket_payload")){
         // noinspection JSIgnoredPromiseFromCall
         onTicket();
@@ -28,7 +27,6 @@ function gotoVolgende() {
     let table = document.querySelector("#div_tickets_afwezigheid_toevoegen_leerling table") as HTMLTableElement;
     let tableHasOneStudent = table.querySelectorAll("i.fa-square").length === 1;
     if(tableHasOneStudent) {
-        console.log("ONE STUDENT");
         let tr = document.querySelector(".tr-ticket-afwezigheidsmelding-leerling") as HTMLTableRowElement;
         tr.click();
         document.getElementById("btn_opslaan_tickets_afwezigheid_toevoegen").click();
@@ -83,5 +81,4 @@ async function onTicket() {
         setViewFromCurrentUrl();
         return {id, name};
     })
-    console.log(matchinLeerlingen);
 }
