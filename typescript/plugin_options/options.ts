@@ -1,11 +1,11 @@
 import {fetchGlobalSettings, GlobalSettings, saveGlobalSettings} from "../globals";
 
-let optionDefs = new Map();
+let htmlOptionDefs = new Map();
 
-defineOption("showDebug", 'checked');
-defineOption("showNotAssignedClasses", 'checked');
-defineOption("markOtherAcademies", 'checked');
-defineOption("myAcademies", 'value');
+defineHtmlOption("showDebug", 'checked');
+defineHtmlOption("showNotAssignedClasses", 'checked');
+defineHtmlOption("markOtherAcademies", 'checked');
+defineHtmlOption("myAcademies", 'value');
 
 document.body.addEventListener("keydown", onKeyDown);
 
@@ -33,7 +33,7 @@ const saveOptions = () => {
     let newOptions = {
         touched: Date.now() // needed to trigger the storage changed event.
     };
-    for (let option of optionDefs.values()) {
+    for (let option of htmlOptionDefs.values()) {
         newOptions[option.id] = document.getElementById(option.id)[option.property];
 
     }
@@ -51,8 +51,8 @@ const saveOptions = () => {
 
 };
 
-function defineOption(id, property) {
-    optionDefs.set(id, {id: id, property: property});
+function defineHtmlOption(id, property) {
+    htmlOptionDefs.set(id, {id: id, property: property});
 }
 
 const restoreOptions = () => {
@@ -61,11 +61,9 @@ const restoreOptions = () => {
         null, //get all
         (items) => {
             for (const [key, value] of Object.entries(items)) {
-                let optionDef = optionDefs.get(key);
-                if(!optionDef) {
-                    console.error(`No option definition "${key}".`);
-                    continue;
-                }
+                let optionDef = htmlOptionDefs.get(key);
+                if(!optionDef)
+                    continue; //no GUI for this option.
                 document.getElementById(optionDef.id)[optionDef.property] = value;
             }
         }

@@ -1,6 +1,6 @@
-* No option definition "otherAcademies".
-
 * Uren tabel: buildUren.ts: hardcoded years!!!
+
+* option markOtherAcademies is not taken into account.
 
 * getOptions() make async instead of callback param?
 
