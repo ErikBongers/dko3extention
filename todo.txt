@@ -1,6 +1,7 @@
-
 * Turn off plugin remotely!!!
   > including icon.
+
+* Uren tabel: buildUren.ts: hardcoded years!!!
 
 * getOptions() make async instead of callback param?
 

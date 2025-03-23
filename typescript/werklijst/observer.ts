@@ -153,7 +153,7 @@ function onClickShowCounts() {
             showOrHideNewTable();
         }
 
-        tableDef.getTableData(() => cloud.fetch(fileName))
+        tableDef.getTableData(() => cloud.json.fetch(fileName))
             .then((_results) => { });
         return true;
     }

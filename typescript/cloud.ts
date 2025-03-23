@@ -1,21 +1,21 @@
 import * as def from "./def";
 
 export let cloud = {
-    fetch: fetchFromCloud,
-    upload: uploadData
+    json: {
+        fetch: fetchJson,
+        upload: uploadJson
+    }
 };
 
-export async function fetchFromCloud(fileName: string) {
+export async function fetchJson(fileName: string) {
     return fetch(def.JSON_URL + "?fileName="+fileName, {method: "GET"})
         .then((res) => res.json());
 }
 
-export function uploadData(fileName: string, data: any) {
-    fetch(def.JSON_URL + "?fileName="+fileName, {
+export async function uploadJson(fileName: string, data: any) {
+    let res = await fetch(def.JSON_URL + "?fileName=" + fileName, {
         method: "POST",
         body: JSON.stringify(data)
-    })
-        .then((res) => res.text().then((text) => {
-            console.log(text);
-        }));
+    });
+    return await res.text();
 }

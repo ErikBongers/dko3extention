@@ -1852,19 +1852,20 @@
 
   // typescript/cloud.ts
   var cloud = {
-    fetch: fetchFromCloud,
-    upload: uploadData
+    json: {
+      fetch: fetchJson,
+      upload: uploadJson
+    }
   };
-  async function fetchFromCloud(fileName) {
+  async function fetchJson(fileName) {
     return fetch(JSON_URL + "?fileName=" + fileName, { method: "GET" }).then((res) => res.json());
   }
-  function uploadData(fileName, data) {
-    fetch(JSON_URL + "?fileName=" + fileName, {
+  async function uploadJson(fileName, data) {
+    let res = await fetch(JSON_URL + "?fileName=" + fileName, {
       method: "POST",
       body: JSON.stringify(data)
-    }).then((res) => res.text().then((text) => {
-      console.log(text);
-    }));
+    });
+    return await res.text();
   }
 
   // typescript/werklijst/buildUren.ts
@@ -1963,7 +1964,9 @@
     updateColumnData("uren_23_24");
     updateColumnData("uren_24_25");
     let data = buildJsonData();
-    cloud.upload(fileName, data);
+    cloud.json.upload(fileName, data).then((r) => {
+      console.log("Uploaded uren.");
+    });
     mapCloudData(data);
     theData.fromCloud = data;
     recalculate();
@@ -3091,7 +3094,7 @@
         pageHandler,
         getChecksumHandler(tableRef.htmlTableId)
       );
-      tableDef.getTableData(() => cloud.fetch(fileName)).then((_results) => {
+      tableDef.getTableData(() => cloud.json.fetch(fileName)).then((_results) => {
       });
       return true;
     }
