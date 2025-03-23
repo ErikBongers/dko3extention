@@ -1,10 +1,3 @@
-* Uren tabel: buildUren.ts: hardcoded years!!!
-
-* option markOtherAcademies is not taken into account.
-
-* getOptions() make async instead of callback param?
-
-
 * Global search: sorteer op voornaam.
 
 * If table page size is changed: clear cache and update infobar!
@@ -28,11 +21,6 @@ Features
 * use onRow() to find first row that matches given criteria.
 
 * add table buttons to top AND bottom navigation.
-
-* cache: option to never cache.
-  > per table?
-
-* db3: setting to turn callstack on/off
 
 * Uitleningen: verlengdatum moet 1/9 zijn of in verkeerde jaar!
 

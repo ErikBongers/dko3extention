@@ -51,7 +51,8 @@
   var options = {
     showDebug: false,
     myAcademies: "",
-    showNotAssignedClasses: true
+    showNotAssignedClasses: true,
+    markOtherAcademies: true
   };
   var observers = [];
   var settingsObservers = [];
@@ -1887,7 +1888,7 @@
     if (options.myAcademies === "") {
       isMyAcademy = true;
     }
-    if (isMyAcademy || getGlobalSettings().globalHide === true) {
+    if (isMyAcademy || getGlobalSettings().globalHide === true || options.markOtherAcademies === false) {
       document.body.classList.remove("otherSchool");
     } else {
       document.body.classList.add("otherSchool");

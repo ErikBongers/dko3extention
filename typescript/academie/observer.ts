@@ -14,7 +14,7 @@ function setSchoolBackground () {
     if (options.myAcademies === "") {
         isMyAcademy = true;
     }
-    if (isMyAcademy || getGlobalSettings().globalHide === true) {
+    if (isMyAcademy || getGlobalSettings().globalHide === true || options.markOtherAcademies === false) {
         document.body.classList.remove("otherSchool");
     } else {
         document.body.classList.add("otherSchool");

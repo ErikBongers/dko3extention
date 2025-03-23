@@ -6,11 +6,13 @@ type Options = {
   showDebug: boolean;
     myAcademies: string;
     showNotAssignedClasses: boolean;
+    markOtherAcademies: boolean;
 };
 export const options: Options = {
     showDebug: false,
     myAcademies: "",
-    showNotAssignedClasses: true
+    showNotAssignedClasses: true,
+    markOtherAcademies: true
 };
 
 export let observers = [];
