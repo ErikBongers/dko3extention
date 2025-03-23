@@ -1,4 +1,52 @@
 (() => {
+  // typescript/def.ts
+  var COPY_AGAIN = "copy_again";
+  var PROGRESS_BAR_ID = "progressBarFetch";
+  var UREN_PREV_BTN_ID = "prefillInstrButton";
+  var UREN_NEXT_BTN_ID = "prefillInstrButtonNext";
+  var MAIL_BTN_ID = "mailButton";
+  var DOWNLOAD_TABLE_BTN_ID = "downloadTableButton";
+  var COPY_TABLE_BTN_ID = "copyTableButton";
+  var LESSEN_OVERZICHT_ID = "lessen_overzicht";
+  var TRIM_BUTTON_ID = "moduleButton";
+  var CHECKS_BUTTON_ID = "checksButton";
+  var COUNT_BUTTON_ID = "fetchAllButton";
+  var FULL_CLASS_BUTTON_ID = "fullClassButton";
+  var TRIM_TABLE_ID = "trimesterTable";
+  var COUNT_TABLE_ID = "werklijst_uren";
+  var TRIM_DIV_ID = "trimesterDiv";
+  var JSON_URL = "https://europe-west1-ebo-tain.cloudfunctions.net/json";
+  var CACHE_INFO_ID = "dko3plugin_cacheInfo";
+  var TEMP_MSG_ID = "dko3plugin_tempMessage";
+  var INFO_MSG_ID = "dko3plugin_infoMessage";
+  var AANW_LIST = "aanwezighedenList";
+  var GLOBAL_SETTINGS_FILENAME = "global_settings.json";
+  function isButtonHighlighted(buttonId) {
+    return document.getElementById(buttonId)?.classList.contains("toggled");
+  }
+  var CACHE_DATE_SUFFIX = "__date";
+  var POWER_QUERY_ID = "savedPowerQuery";
+  var STORAGE_PAGE_STATE_KEY = "pageState";
+  var UREN_TABLE_STATE_NAME = "__uren__";
+
+  // typescript/cloud.ts
+  var cloud = {
+    json: {
+      fetch: fetchJson,
+      upload: uploadJson
+    }
+  };
+  async function fetchJson(fileName) {
+    return fetch(JSON_URL + "?fileName=" + fileName, { method: "GET" }).then((res) => res.json());
+  }
+  async function uploadJson(fileName, data) {
+    let res = await fetch(JSON_URL + "?fileName=" + fileName, {
+      method: "POST",
+      body: JSON.stringify(data)
+    });
+    return await res.text();
+  }
+
   // typescript/globals.ts
   var options = {
     showDebug: false,
@@ -6,6 +54,7 @@
     showNotAssignedClasses: true
   };
   var observers = [];
+  var settingsObservers = [];
   function db3(message) {
     if (options?.showDebug) {
       console.log(message);
@@ -19,6 +68,11 @@
     observers.push(observer);
     if (observers.length > 20)
       console.error("Too many observers!");
+  }
+  function registerSettingsObserver(observer) {
+    settingsObservers.push(observer);
+    if (settingsObservers.length > 20)
+      console.error("Too many settingsObservers!");
   }
   function setButtonHighlighted(buttonId, show) {
     if (show) {
@@ -212,6 +266,24 @@
     let hash = window.location.hash.replace("#", "");
     let page = await fetch("https://administratie.dko3.cloud/#" + hash).then((res) => res.text());
     let view = await fetch("view.php?args=" + hash).then((res) => res.text());
+  }
+  function equals(g1, g2) {
+    return g1.globalHide === g2.globalHide;
+  }
+  async function fetchGlobalSettings(defaultSettings) {
+    return await cloud.json.fetch(GLOBAL_SETTINGS_FILENAME).catch((err) => {
+      console.log(err);
+      return defaultSettings;
+    });
+  }
+  var globalSettings = {
+    globalHide: false
+  };
+  function getGlobalSettings() {
+    return globalSettings;
+  }
+  function setGlobalSetting(settings) {
+    globalSettings = settings;
   }
 
   // typescript/pageObserver.ts
@@ -583,35 +655,6 @@
     les.vestiging = textNodes[1].nodeValue;
     return les;
   }
-
-  // typescript/def.ts
-  var COPY_AGAIN = "copy_again";
-  var PROGRESS_BAR_ID = "progressBarFetch";
-  var UREN_PREV_BTN_ID = "prefillInstrButton";
-  var UREN_NEXT_BTN_ID = "prefillInstrButtonNext";
-  var MAIL_BTN_ID = "mailButton";
-  var DOWNLOAD_TABLE_BTN_ID = "downloadTableButton";
-  var COPY_TABLE_BTN_ID = "copyTableButton";
-  var LESSEN_OVERZICHT_ID = "lessen_overzicht";
-  var TRIM_BUTTON_ID = "moduleButton";
-  var CHECKS_BUTTON_ID = "checksButton";
-  var COUNT_BUTTON_ID = "fetchAllButton";
-  var FULL_CLASS_BUTTON_ID = "fullClassButton";
-  var TRIM_TABLE_ID = "trimesterTable";
-  var COUNT_TABLE_ID = "werklijst_uren";
-  var TRIM_DIV_ID = "trimesterDiv";
-  var JSON_URL = "https://europe-west1-ebo-tain.cloudfunctions.net/json";
-  var CACHE_INFO_ID = "dko3plugin_cacheInfo";
-  var TEMP_MSG_ID = "dko3plugin_tempMessage";
-  var INFO_MSG_ID = "dko3plugin_infoMessage";
-  var AANW_LIST = "aanwezighedenList";
-  function isButtonHighlighted(buttonId) {
-    return document.getElementById(buttonId)?.classList.contains("toggled");
-  }
-  var CACHE_DATE_SUFFIX = "__date";
-  var POWER_QUERY_ID = "savedPowerQuery";
-  var STORAGE_PAGE_STATE_KEY = "pageState";
-  var UREN_TABLE_STATE_NAME = "__uren__";
 
   // libs/Emmeter/html.ts
   var NBSP = 160;
@@ -1837,35 +1880,18 @@
 
   // typescript/academie/observer.ts
   var observer_default4 = new PageObserver(setSchoolBackground);
+  registerSettingsObserver(setSchoolBackground);
   function setSchoolBackground() {
     let { userName, schoolName } = getUserAndSchoolName();
     let isMyAcademy = options.myAcademies.split("\n").filter((needle) => needle !== "").find((needle) => schoolName.includes(needle)) != void 0;
     if (options.myAcademies === "") {
       isMyAcademy = true;
     }
-    if (isMyAcademy) {
+    if (isMyAcademy || getGlobalSettings().globalHide === true) {
       document.body.classList.remove("otherSchool");
     } else {
       document.body.classList.add("otherSchool");
     }
-  }
-
-  // typescript/cloud.ts
-  var cloud = {
-    json: {
-      fetch: fetchJson,
-      upload: uploadJson
-    }
-  };
-  async function fetchJson(fileName) {
-    return fetch(JSON_URL + "?fileName=" + fileName, { method: "GET" }).then((res) => res.json());
-  }
-  async function uploadJson(fileName, data) {
-    let res = await fetch(JSON_URL + "?fileName=" + fileName, {
-      method: "POST",
-      body: JSON.stringify(data)
-    });
-    return await res.text();
   }
 
   // typescript/werklijst/buildUren.ts
@@ -3915,13 +3941,16 @@
   // typescript/main.ts
   init();
   function init() {
-    getOptions(() => {
+    getOptions().then(() => {
       chrome.storage.onChanged.addListener((_changes, area) => {
         if (area === "sync") {
-          getOptions();
+          getOptions().then((r) => {
+            onSettingsChanged();
+          });
         }
       });
       window.navigation.addEventListener("navigatesuccess", () => {
+        checkGlobalSettings();
         onPageChanged();
       });
       window.addEventListener("load", () => {
@@ -3947,20 +3976,37 @@
       setupPowerQuery();
     });
   }
+  var lastCheckTime = Date.now();
+  function checkGlobalSettings() {
+    if (Date.now() > lastCheckTime + 10 * 1e3) {
+      lastCheckTime = Date.now();
+      console.log("Re-fetching global settings.");
+      fetchGlobalSettings(getGlobalSettings()).then((r) => {
+        if (!equals(getGlobalSettings(), r)) {
+          setGlobalSetting(r);
+          onSettingsChanged();
+        }
+      });
+    }
+  }
+  function onSettingsChanged() {
+    console.log("on settings changed.");
+    for (let observer of settingsObservers) {
+      observer();
+    }
+  }
   function onPageChanged() {
+    if (getGlobalSettings().globalHide) {
+      return;
+    }
     for (let observer of observers) {
       observer.onPageChanged();
     }
   }
-  function getOptions(callback) {
-    chrome.storage.sync.get(
-      null,
-      //get all
-      (items) => {
-        Object.assign(options, items);
-        callback?.();
-      }
-    );
+  async function getOptions() {
+    let items = await chrome.storage.sync.get(null);
+    Object.assign(options, items);
+    setGlobalSetting(await fetchGlobalSettings(getGlobalSettings()));
   }
 })();
 //# sourceMappingURL=bundle.js.map

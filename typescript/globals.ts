@@ -1,4 +1,6 @@
 import {Observer} from "./pageObserver";
+import {cloud} from "./cloud";
+import {GLOBAL_SETTINGS_FILENAME} from "./def";
 
 type Options = {
   showDebug: boolean;
@@ -12,6 +14,7 @@ export const options: Options = {
 };
 
 export let observers = [];
+export let settingsObservers: (() => void)[] = [];
 
 export function db3(message: any) {
     if (options?.showDebug) {
@@ -32,6 +35,12 @@ export function registerObserver(observer: Observer) {
     observers.push(observer);
     if(observers.length > 20) //just in case...
         console.error("Too many observers!");
+}
+
+export function registerSettingsObserver(observer: () => void) {
+    settingsObservers.push(observer);
+    if(settingsObservers.length > 20) //just in case...
+        console.error("Too many settingsObservers!");
 }
 
 // noinspection JSUnusedGlobalSymbols
@@ -288,4 +297,37 @@ export async function setViewFromCurrentUrl() {
     let page = await fetch("https://administratie.dko3.cloud/#" + hash).then(res => res.text());
     // call to changeView() - assuming this is always the same, so no parsing here.
     let view = await fetch("view.php?args=" + hash).then(res => res.text());
+}
+
+export interface GlobalSettings {
+    globalHide: boolean
+}
+
+export function equals(g1: GlobalSettings, g2: GlobalSettings){
+    return (
+        g1.globalHide === g2.globalHide
+    );
+}
+
+export async function saveGlobalSettings(globalSettings: GlobalSettings) {
+    return cloud.json.upload(GLOBAL_SETTINGS_FILENAME, globalSettings);
+}
+
+export async function fetchGlobalSettings(defaultSettings: GlobalSettings) {
+    return await cloud.json.fetch(GLOBAL_SETTINGS_FILENAME)
+        .catch(err => {
+            console.log(err);
+            return defaultSettings;
+        }) as GlobalSettings;
+}
+
+let globalSettings: GlobalSettings = {
+    globalHide: false,
+}
+
+export function getGlobalSettings() {
+    return globalSettings;
+}
+export function  setGlobalSetting(settings: GlobalSettings) {
+    globalSettings = settings;
 }

@@ -1,5 +1,4 @@
-* Turn off plugin remotely!!!
-  > including icon.
+* No option definition "otherAcademies".
 
 * Uren tabel: buildUren.ts: hardcoded years!!!
 

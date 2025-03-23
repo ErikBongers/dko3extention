@@ -1,0 +1,10 @@
+{
+  "include": ["typescript/**/*"],
+  "compilerOptions": {
+    "outDir": "./scripts/options",
+    "target": "es2021",
+    "sourceMap": true,
+    "noEmit": true
+  },
+  "files": ["./typescript/plugin_options/options.ts"]
+}

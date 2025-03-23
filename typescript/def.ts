@@ -18,6 +18,7 @@ export const CACHE_INFO_ID =  "dko3plugin_cacheInfo";
 export const TEMP_MSG_ID =  "dko3plugin_tempMessage";
 export const INFO_MSG_ID =  "dko3plugin_infoMessage";
 export const AANW_LIST =  "aanwezighedenList";
+export const GLOBAL_SETTINGS_FILENAME =  "global_settings.json";
 
 export function isButtonHighlighted(buttonId: string) {
     return document.getElementById(buttonId)?.classList.contains("toggled");

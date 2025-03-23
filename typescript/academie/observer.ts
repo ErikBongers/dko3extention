@@ -1,7 +1,9 @@
-import {db3, getUserAndSchoolName, options} from "../globals";
+import {getGlobalSettings, getUserAndSchoolName, options, registerSettingsObserver} from "../globals";
 import {PageObserver} from "../pageObserver";
 
 export default new PageObserver(setSchoolBackground);
+
+registerSettingsObserver(setSchoolBackground);
 
 function setSchoolBackground () {
     let {userName, schoolName} = getUserAndSchoolName();
@@ -12,7 +14,7 @@ function setSchoolBackground () {
     if (options.myAcademies === "") {
         isMyAcademy = true;
     }
-    if (isMyAcademy) {
+    if (isMyAcademy || getGlobalSettings().globalHide === true) {
         document.body.classList.remove("otherSchool");
     } else {
         document.body.classList.add("otherSchool");
