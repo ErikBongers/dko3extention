@@ -1,4 +1,4 @@
-import {addButton, calculateSchooljaar, createSchoolyearString, createShortSchoolyearString, getHighestSchooljaarAvailable, getSchoolIdString, setButtonHighlighted} from "../globals";
+import {addButton, calculateSchooljaar, createSchoolyearString, createShortSchoolyearString, findSchooljaar, getHighestSchooljaarAvailable, getSchoolIdString, setButtonHighlighted} from "../globals";
 import * as def from "../def";
 import {buildTable, getUrenVakLeraarFileName, JsonCloudData} from "./buildUren";
 import {scrapeStudent, VakLeraar} from "./scrapeUren";
@@ -148,7 +148,9 @@ function onClickShowCounts() {
             fromCloud = upgradeCloudData(fromCloud);
             vakLeraars = new Map([...vakLeraars.entries()].sort((a, b) => a[0] < b[0] ? -1 : ((a[0] > b[0])? 1 : 0))) as Map<string, VakLeraar>;
             document.getElementById(def.COUNT_TABLE_ID)?.remove();
-            buildTable({vakLeraars, fromCloud}, tableDef);
+            let schoolYear = findSchooljaar();
+            let year = parseInt(schoolYear);
+            buildTable({year, vakLeraars, fromCloud}, tableDef);
             document.getElementById(def.COUNT_TABLE_ID).style.display = "none";
             showOrHideNewTable();
         }

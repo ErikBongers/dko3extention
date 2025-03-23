@@ -33,11 +33,11 @@
   }
 
   // typescript/plugin_options/options.ts
-  var optionDefs = /* @__PURE__ */ new Map();
-  defineOption("showDebug", "checked");
-  defineOption("showNotAssignedClasses", "checked");
-  defineOption("markOtherAcademies", "checked");
-  defineOption("myAcademies", "value");
+  var htmlOptionDefs = /* @__PURE__ */ new Map();
+  defineHtmlOption("showDebug", "checked");
+  defineHtmlOption("showNotAssignedClasses", "checked");
+  defineHtmlOption("markOtherAcademies", "checked");
+  defineHtmlOption("myAcademies", "value");
   document.body.addEventListener("keydown", onKeyDown);
   var globalSettings = {
     globalHide: false
@@ -60,7 +60,7 @@
       touched: Date.now()
       // needed to trigger the storage changed event.
     };
-    for (let option of optionDefs.values()) {
+    for (let option of htmlOptionDefs.values()) {
       newOptions[option.id] = document.getElementById(option.id)[option.property];
     }
     chrome.storage.sync.set(
@@ -74,8 +74,8 @@
       }
     );
   };
-  function defineOption(id, property) {
-    optionDefs.set(id, { id, property });
+  function defineHtmlOption(id, property) {
+    htmlOptionDefs.set(id, { id, property });
   }
   var restoreOptions = () => {
     chrome.storage.sync.get(
@@ -83,11 +83,9 @@
       //get all
       (items) => {
         for (const [key, value] of Object.entries(items)) {
-          let optionDef = optionDefs.get(key);
-          if (!optionDef) {
-            console.error(`No option definition "${key}".`);
+          let optionDef = htmlOptionDefs.get(key);
+          if (!optionDef)
             continue;
-          }
           document.getElementById(optionDef.id)[optionDef.property] = value;
         }
       }

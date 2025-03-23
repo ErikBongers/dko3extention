@@ -27,8 +27,6 @@ interface ColDef {
 }
 
 let colDefsArray: {key: string, def: ColDef}[] = [
-    {key:"uren_23_24", def: { label:"Uren\n23-24", classList: ["editable_number"], factor: 1.0, getValue: (ctx) => parseInt(ctx.data.fromCloud.columnMap.get("uren_23_24")?.get(ctx.vakLeraar.id)), totals:true}},
-    {key:"uren_24_25", def: { label:"Uren\n24-25", classList: ["editable_number"], factor: 1.0, getValue: (ctx) => parseInt(ctx.data.fromCloud.columnMap.get("uren_24_25")?.get(ctx.vakLeraar.id)), totals:true}},
     {key:"vak", def: { label:"Vak", classList: [], factor: 1.0, getText: (ctx) => ctx.vakLeraar.vak}},
     {key:"leraar", def: { label:"Leraar", classList: [], factor: 1.0, getText: (ctx) => ctx.vakLeraar.leraar.replaceAll("{", "").replaceAll("}", "")}},
     {key:"grjr2_1", def: { label:"2.1", classList: [], factor: 1/4, getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count, fill: fillGraadCell }},
@@ -60,11 +58,31 @@ let colDefsArray: {key: string, def: ColDef}[] = [
     {key:"over", def: { label:"Over", classList: [], factor: 1.0, getValue: (ctx) => calcOver(ctx), calculated:true}},
 ];
 
-colDefsArray.forEach((colDef, index) => {
-    colDef.def.colIndex = index;
-    colDef.def.total = 0;
-});
 let colDefs = new Map(colDefsArray.map((def) => [def.key, def.def]));
+
+function getYearKeys(year: number) {
+    let yrPrev = year - 2000 - 1;
+    let yrNow = yrPrev + 1;
+    let yrNext = yrPrev + 2;
+    let keyPrev = `uren_${yrPrev}_${yrNow}`;
+    let keyNext = `uren_${yrNow}_${yrNext}`;
+    return {yrPrev, yrNow, yrNext, keyPrev, keyNext};
+}
+
+function updateColDefs(year: number) {
+    let {yrPrev, yrNow, yrNext, keyPrev, keyNext} = getYearKeys(year);
+    let yearColDefs = new Map();
+    yearColDefs.set(keyPrev, { label:`Uren\n${yrPrev}-${yrNow}`, classList: ["editable_number"], factor: 1.0, getValue: (ctx) => parseInt(ctx.data.fromCloud.columnMap.get(`uren_${yrPrev}_${yrNow}`)?.get(ctx.vakLeraar.id)), totals:true});
+    yearColDefs.set(keyNext, { label:`Uren\n${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1.0, getValue: (ctx) => parseInt(ctx.data.fromCloud.columnMap.get(`uren_${yrNow}_${yrNext}`)?.get(ctx.vakLeraar.id)), totals:true});
+    colDefs = new Map([...yearColDefs, ...new Map(colDefsArray.map((def) => [def.key, def.def]))]);
+    let idx = 0;
+    colDefs.forEach(colDef => {
+        colDef.colIndex = idx++;
+        colDef.total = 0;
+    });
+    debugger;
+}
+
 
 function calcOver(ctx: Context) {
     let totUren = getColValue(ctx, "tot_uren");
@@ -72,7 +90,8 @@ function calcOver(ctx: Context) {
         totUren = 0;
 
     }
-    let urenJaar = getColValue(ctx, "uren_24_25");
+    debugger;
+    let urenJaar = getColValue(ctx, ctx.yearKey);
     if (isNaN(urenJaar)) {
         urenJaar = 0;
     }
@@ -87,7 +106,8 @@ interface Context {
     td: HTMLTableCellElement,
     colDef: ColDef,
     colDefs: Map<string, ColDef>,
-    data: TheData
+    data: TheData,
+    yearKey: string
 }
 
 function getColValue(ctx: Context, colKey: string) {
@@ -106,7 +126,6 @@ function editableObserverCallback(mutationList: MutationRecord[], _observer: Mut
 }
 
 export function getUrenVakLeraarFileName() {
-
     return getSchoolIdString() + "_" + "uren_vak_lk_" + findSchooljaar().replace("-", "_") + ".json";
 }
 
@@ -127,10 +146,10 @@ function buildJsonData() {
         version: "1.0",
         columns: []
     };
-    let col1 = columnToJson(data, "uren_23_24");
-    let col2 = columnToJson(data, "uren_24_25");
-    data.columns.push({key: "uren_23_24", rows: col1});
-    data.columns.push({key: "uren_24_25", rows: col2});
+    let col1 = columnToJson(data, getYearKeys(theData.year).keyPrev);
+    let col2 = columnToJson(data, getYearKeys(theData.year).keyNext);
+    data.columns.push({key: getYearKeys(theData.year).keyPrev, rows: col1});
+    data.columns.push({key: getYearKeys(theData.year).keyNext, rows: col2});
     return data;
 }
 
@@ -160,8 +179,8 @@ function checkAndUpdate() {
     }
     let fileName = getUrenVakLeraarFileName();
     cellChanged = false;
-    updateColumnData( "uren_23_24");
-    updateColumnData( "uren_24_25");
+    updateColumnData(getYearKeys(theData.year).keyPrev);
+    updateColumnData(getYearKeys(theData.year).keyNext);
     let data = buildJsonData();
 
     cloud.json.upload(fileName, data).then(r => { console.log("Uploaded uren.")});
@@ -240,11 +259,13 @@ function recalculate() {
     observeTable(false);
     clearTotals();
 
+    let yearKey = getYearKeys(theData.year).keyNext;
+
     for (let [vakLeraarKey, vakLeraar] of theData.vakLeraars) {
         let tr = document.getElementById(createValidId(vakLeraarKey)) as HTMLTableRowElement;
         for(let [colKey, colDef] of colDefs) {
             let td = tr.children[colDef.colIndex] as HTMLTableCellElement;
-            let ctx: Context = {td, colKey, colDef, vakLeraar, tr, colDefs, data: theData};
+            let ctx: Context = {td, colKey, colDef, vakLeraar, tr, colDefs, data: theData, yearKey };
             calculateAndSumCell(colDef, ctx, true);
         }
     }
@@ -262,6 +283,7 @@ function recalculate() {
 }
 
 export interface TheData {
+    year: number,
     fromCloud: JsonCloudData,
     vakLeraars: Map<string, VakLeraar>
 }
@@ -273,6 +295,7 @@ export function buildTable(data: TheData, tableDef: TableDef) {
     tableDef.tableRef.getOrgTable().insertAdjacentElement("afterend", table);
     table.id = def.COUNT_TABLE_ID;
     table.classList.add("canSort");
+    updateColDefs(data.year);
     fillTableHeader(table, data.vakLeraars);
     let tbody = document.createElement("tbody");
     table.appendChild(tbody);
@@ -281,6 +304,8 @@ export function buildTable(data: TheData, tableDef: TableDef) {
     let lastVak = "";
     let rowClass = undefined;
     clearTotals();
+
+    let yearKey = getYearKeys(theData.year).keyNext;
 
     for(let [vakLeraarKey, vakLeraar] of data.vakLeraars) {
         let tr = document.createElement("tr");
@@ -297,7 +322,7 @@ export function buildTable(data: TheData, tableDef: TableDef) {
             let td = document.createElement("td");
             tr.appendChild(td);
             td.classList.add(...colDef.classList);
-            let ctx = {td, colKey, colDef, vakLeraar, tr, colDefs, data};
+            let ctx = {td, colKey, colDef, vakLeraar, tr, colDefs, data, yearKey};
             calculateAndSumCell(colDef, ctx, false);
         }
     }
