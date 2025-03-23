@@ -1,5 +1,10 @@
 import * as def from "./def";
 
+export let cloud = {
+    fetch: fetchFromCloud,
+    upload: uploadData
+};
+
 export async function fetchFromCloud(fileName: string) {
     return fetch(def.JSON_URL + "?fileName="+fileName, {method: "GET"})
         .then((res) => res.json());

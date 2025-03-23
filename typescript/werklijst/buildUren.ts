@@ -2,7 +2,7 @@ import * as def from "../def";
 import {createValidId, getSchoolIdString, findSchooljaar} from "../globals";
 import {VakLeraar} from "./scrapeUren";
 import {TableDef} from "../table/tableDef";
-import {uploadData} from "../cloud";
+import {cloud} from "../cloud";
 
 let isUpdatePaused = true;
 let cellChanged = false;
@@ -164,7 +164,7 @@ function checkAndUpdate() {
     updateColumnData( "uren_24_25");
     let data = buildJsonData();
 
-    uploadData(fileName, data);
+    cloud.upload(fileName, data);
     mapCloudData(data);//TODO: separate stages of data: raw data from/to cloud or from/to scraping, preparing the data, displaying the data.
     theData.fromCloud = data;
 

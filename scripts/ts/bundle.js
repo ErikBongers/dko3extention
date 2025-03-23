@@ -1851,6 +1851,10 @@
   }
 
   // typescript/cloud.ts
+  var cloud = {
+    fetch: fetchFromCloud,
+    upload: uploadData
+  };
   async function fetchFromCloud(fileName) {
     return fetch(JSON_URL + "?fileName=" + fileName, { method: "GET" }).then((res) => res.json());
   }
@@ -1959,7 +1963,7 @@
     updateColumnData("uren_23_24");
     updateColumnData("uren_24_25");
     let data = buildJsonData();
-    uploadData(fileName, data);
+    cloud.upload(fileName, data);
     mapCloudData(data);
     theData.fromCloud = data;
     recalculate();
@@ -3087,7 +3091,7 @@
         pageHandler,
         getChecksumHandler(tableRef.htmlTableId)
       );
-      tableDef.getTableData(() => fetchFromCloud(fileName)).then((_results) => {
+      tableDef.getTableData(() => cloud.fetch(fileName)).then((_results) => {
       });
       return true;
     }
@@ -3581,7 +3585,6 @@
   // typescript/afwezigheden/observer.ts
   var observer_default10 = new ExactHashObserver("#extra-tickets?h=afwezigheden", onMutation8, true);
   function onMutation8(mutation) {
-    console.log(mutation);
     if (mutation.target === document.getElementById("ticket_payload")) {
       onTicket();
       return true;
@@ -3600,7 +3603,6 @@
     let table = document.querySelector("#div_tickets_afwezigheid_toevoegen_leerling table");
     let tableHasOneStudent = table.querySelectorAll("i.fa-square").length === 1;
     if (tableHasOneStudent) {
-      console.log("ONE STUDENT");
       let tr = document.querySelector(".tr-ticket-afwezigheidsmelding-leerling");
       tr.click();
       document.getElementById("btn_opslaan_tickets_afwezigheid_toevoegen").click();
@@ -3651,7 +3653,6 @@
       setViewFromCurrentUrl();
       return { id, name };
     });
-    console.log(matchinLeerlingen);
   }
 
   // typescript/setupPowerQuery.ts

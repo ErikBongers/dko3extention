@@ -1,3 +1,10 @@
+
+* Turn off plugin remotely!!!
+  > including icon.
+
+* getOptions() make async instead of callback param?
+
+
 * Global search: sorteer op voornaam.
 
 * If table page size is changed: clear cache and update infobar!

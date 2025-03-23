@@ -2,8 +2,8 @@ import {addButton, calculateSchooljaar, createSchoolyearString, createShortSchoo
 import * as def from "../def";
 import {buildTable, getUrenVakLeraarFileName, JsonCloudData} from "./buildUren";
 import {scrapeStudent, VakLeraar} from "./scrapeUren";
-import {fetchFromCloud} from "../cloud";
-import {CalculateTableCheckSumHandler, FetchedTable, findTableRefInCode, TableDef} from "../table/tableDef";
+import {cloud} from "../cloud";
+import {FetchedTable, findTableRefInCode, TableDef} from "../table/tableDef";
 import {prefillInstruments} from "./prefillInstruments";
 import {HashObserver} from "../pageObserver";
 import {NamedCellTablePageHandler} from "../pageHandlers";
@@ -153,7 +153,7 @@ function onClickShowCounts() {
             showOrHideNewTable();
         }
 
-        tableDef.getTableData(() => fetchFromCloud(fileName))
+        tableDef.getTableData(() => cloud.fetch(fileName))
             .then((_results) => { });
         return true;
     }
