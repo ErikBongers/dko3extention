@@ -1286,10 +1286,10 @@
       };
     }
   };
-  function buildTrimesters(modules) {
-    let mergedInstrument = [void 0, void 0, void 0];
-    modules.filter((module) => module.lesType === 0 /* TrimesterModule */).forEach((module) => {
-      mergedInstrument[module.trimesterNo - 1] = module;
+  function buildTrimesters(instrumentTeacherMomentModules) {
+    let mergedInstrument = [[], [], []];
+    instrumentTeacherMomentModules.filter((module) => module.lesType === 0 /* TrimesterModule */).forEach((module) => {
+      mergedInstrument[module.trimesterNo - 1].push(module);
     });
     return mergedInstrument;
   }
@@ -1331,6 +1331,8 @@
     if (!student.trimesterInstruments)
       return;
     for (let instrs of student.trimesterInstruments) {
+      if (instrs.length > 1)
+        debugger;
       if (instrs.length) {
         student.info += instrs[0].trimesterNo + ". " + instrs.map((instr) => instr.instrumentName) + "\n";
       } else {
@@ -1371,12 +1373,7 @@
           block.lesmoment = lesmoment;
           block.maxAantal = getMaxAantal(instrumentTeacherMomentModules);
           block.vestiging = getVestigingen(instrumentTeacherMomentModules);
-          block.trimesters = [[], [], []];
-          let trims = buildTrimesters(instrumentTeacherMomentModules);
-          for (let trimNo of [0, 1, 2]) {
-            if (trims[trimNo])
-              block.trimesters[trimNo].push(trims[trimNo]);
-          }
+          block.trimesters = buildTrimesters(instrumentTeacherMomentModules);
           block.jaarModules = instrumentTeacherMomentModules.filter((module) => module.lesType === 1 /* JaarModule */);
           checkBlockForErrors(block);
           tableData.blocks.push(block);
@@ -1392,14 +1389,6 @@
     for (let student of tableData.students.values()) {
       setStudentPopupInfo(student);
       setStudentAllTrimsTheSameInstrument(student);
-    }
-    for (let instrument of tableData.blocks) {
-      for (let trim of instrument.trimesters) {
-        sortStudents(trim[0]?.students);
-      }
-      for (let jaarModule of instrument.jaarModules) {
-        sortStudents(jaarModule?.students);
-      }
     }
     let instrumentNames = distinct(tableData.blocks.map((b) => b.instrumentName)).sort((a, b) => {
       return a.localeCompare(b);
@@ -1496,17 +1485,20 @@
     if (maxMoreThan100)
       block.errors += "Max aantal lln > " + TOO_LARGE_MAX;
   }
-  function addTrimesterStudentsToMapAndCount(students, trimModules) {
-    if (!trimModules[0]) return;
-    for (let student of trimModules[0].students) {
-      if (!students.has(student.name)) {
-        student.trimesterInstruments = [[], [], []];
-        students.set(student.name, student);
+  function addTrimesterStudentsToMapAndCount(allStudents, blockTrimModules) {
+    for (let blockTrimModule of blockTrimModules) {
+      if (!blockTrimModule)
+        continue;
+      for (let student of blockTrimModule.students) {
+        if (!allStudents.has(student.name)) {
+          student.trimesterInstruments = [[], [], []];
+          allStudents.set(student.name, student);
+        }
+        let stud = allStudents.get(student.name);
+        stud.trimesterInstruments[blockTrimModule.trimesterNo - 1].push(blockTrimModule);
       }
-      let stud = students.get(student.name);
-      stud.trimesterInstruments[trimModules[0].trimesterNo - 1].push(trimModules[0]);
+      blockTrimModule.students = blockTrimModule.students.map((student) => allStudents.get(student.name));
     }
-    trimModules[0].students = trimModules[0].students.map((student) => students.get(student.name));
   }
   function addJaarStudentsToMapAndCount(students, jaarModule) {
     if (!jaarModule) return;

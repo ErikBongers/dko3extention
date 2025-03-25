@@ -52,12 +52,12 @@ export interface TableData {
     blocks: BlockInfo[]
 }
 
-function buildTrimesters(modules: Les[]) {
-    let mergedInstrument: (Les | undefined)[] = [undefined, undefined, undefined];
-    modules
+function buildTrimesters(instrumentTeacherMomentModules: Les[]) {
+    let mergedInstrument: (Les | undefined)[][] = [[], [], []];
+    instrumentTeacherMomentModules
         .filter(module => module.lesType === LesType.TrimesterModule)
         .forEach(module => {
-        mergedInstrument[module.trimesterNo-1] = module;
+        mergedInstrument[module.trimesterNo-1].push(module);
     });
     return mergedInstrument;
 }
@@ -106,6 +106,8 @@ function setStudentPopupInfo(student: StudentInfo) {
     if (!student.trimesterInstruments)
         return;
     for (let instrs of student.trimesterInstruments) {
+        if(instrs.length > 1)
+            debugger;
         if (instrs.length) {
             student.info += instrs[0].trimesterNo + ". " + instrs.map(instr => instr.instrumentName) + "\n";
         } else {
@@ -159,12 +161,7 @@ export function buildTableData(inputModules: Les[]) : TableData {
                 block.maxAantal = getMaxAantal(instrumentTeacherMomentModules);
                 block.vestiging = getVestigingen(instrumentTeacherMomentModules);
                 // we could have both trimesters and jaar modules for this instrument/teacher/lesmoment
-                block.trimesters = [[], [], []];
-                let trims = buildTrimesters(instrumentTeacherMomentModules);
-                for(let trimNo of [0,1,2]) {
-                    if(trims[trimNo])
-                        block.trimesters[trimNo].push(trims[trimNo]);
-                }
+                block.trimesters = buildTrimesters(instrumentTeacherMomentModules);
                 block.jaarModules = instrumentTeacherMomentModules.filter(module => module.lesType === LesType.JaarModule);
                 checkBlockForErrors(block);
                 tableData.blocks.push(block);
@@ -182,16 +179,6 @@ export function buildTableData(inputModules: Les[]) : TableData {
     for(let student of tableData.students.values()) {
         setStudentPopupInfo(student);
         setStudentAllTrimsTheSameInstrument(student);
-    }
-
-    //sort students, putting allYearSame studetns on top. (will be in bold).
-    for(let instrument of tableData.blocks) {
-        for (let trim of instrument.trimesters) {
-            sortStudents(trim[0]?.students);
-        }
-        for (let jaarModule of instrument.jaarModules) {
-            sortStudents(jaarModule?.students);
-        }
     }
 
     //group by instrument
@@ -303,20 +290,23 @@ function checkBlockForErrors(block: BlockInfo) {
         block.errors += "Max aantal lln > " + TOO_LARGE_MAX;
 }
 
-function addTrimesterStudentsToMapAndCount(students: Map<string, StudentInfo>, trimModules: Les[]) {
-    //for now, only looking ath the first module. Could be expanded if more modues are added to the block.
-    if(!trimModules[0]) return;
-    for (let student of trimModules[0].students) {
-        if (!students.has(student.name)) {
-            student.trimesterInstruments = [[], [], []];
-            students.set(student.name, student);
+function addTrimesterStudentsToMapAndCount(allStudents: Map<string, StudentInfo>, blockTrimModules: Les[]) {
+    for(let blockTrimModule of blockTrimModules) {
+        if (!blockTrimModule)
+            continue;
+        for (let student of blockTrimModule.students) {
+            if (!allStudents.has(student.name)) {
+                student.trimesterInstruments = [[], [], []];
+                allStudents.set(student.name, student);
+            }
+            let stud = allStudents.get(student.name);
+            stud.trimesterInstruments[blockTrimModule.trimesterNo - 1].push(blockTrimModule);
         }
-        let stud = students.get(student.name);
-        stud.trimesterInstruments[trimModules[0].trimesterNo-1].push(trimModules[0]);
+        //all trims must reference the students in the overall map.
+        //TODO: this may not be needed. All students are always part of the allStudents array.
+        blockTrimModule.students = blockTrimModule.students
+            .map((student) => allStudents.get(student.name));
     }
-    //all trims must reference the students in the overall map.
-    trimModules[0].students = trimModules[0].students
-        .map((student) => students.get(student.name));
 }
 
 function addJaarStudentsToMapAndCount(students: Map<string, StudentInfo>, jaarModule: Les) {
