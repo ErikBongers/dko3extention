@@ -362,19 +362,20 @@ function buildStudentCell(student: StudentInfo) {
     const cell = document.createElement("td");
     let studentSpan = document.createElement("span");
     let displayName = String.fromCharCode(NBSP);
-    if(student) {
-        if(savedNameSorting === NameSorting.LastName)
-            displayName = student.naam + " " + student.voornaam;
-        else
-            displayName = student.voornaam + " " + student.naam;
-    }
     studentSpan.appendChild(document.createTextNode(displayName));
     cell.appendChild(studentSpan);
-    if (student?.allYearSame) {
-        studentSpan.classList.add("allYear");
-    }
     if (!student) {
         return cell;
+    }
+
+    if(savedNameSorting === NameSorting.LastName)
+        displayName = student.naam + " " + student.voornaam;
+    else
+        displayName = student.voornaam + " " + student.naam;
+    studentSpan.textContent = displayName;
+
+    if (student.allYearSame) {
+        studentSpan.classList.add("allYear");
     }
 
     const anchor = document.createElement("a");
@@ -396,6 +397,9 @@ function buildStudentCell(student: StudentInfo) {
     const iTag = document.createElement("i");
     anchor.appendChild(iTag);
     iTag.classList.add('fas', "fa-user-alt");
+    if (student.notAllTrimsHaveAnInstrument) {
+        iTag.classList.add("no3trims");
+    }
     return cell;
 }
 

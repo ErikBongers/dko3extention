@@ -1210,19 +1210,18 @@
     const cell = document.createElement("td");
     let studentSpan = document.createElement("span");
     let displayName = String.fromCharCode(NBSP);
-    if (student) {
-      if (savedNameSorting === 1 /* LastName */)
-        displayName = student.naam + " " + student.voornaam;
-      else
-        displayName = student.voornaam + " " + student.naam;
-    }
     studentSpan.appendChild(document.createTextNode(displayName));
     cell.appendChild(studentSpan);
-    if (student?.allYearSame) {
-      studentSpan.classList.add("allYear");
-    }
     if (!student) {
       return cell;
+    }
+    if (savedNameSorting === 1 /* LastName */)
+      displayName = student.naam + " " + student.voornaam;
+    else
+      displayName = student.voornaam + " " + student.naam;
+    studentSpan.textContent = displayName;
+    if (student.allYearSame) {
+      studentSpan.classList.add("allYear");
     }
     const anchor = document.createElement("a");
     cell.appendChild(anchor);
@@ -1243,6 +1242,9 @@
     const iTag = document.createElement("i");
     anchor.appendChild(iTag);
     iTag.classList.add("fas", "fa-user-alt");
+    if (student.notAllTrimsHaveAnInstrument) {
+      iTag.classList.add("no3trims");
+    }
     return cell;
   }
   function stripStudentName(name) {
@@ -1350,6 +1352,15 @@
     }
     student.allYearSame = instruments.every((instr) => instr.instrumentName === (student?.trimesterInstruments[0][0]?.instrumentName ?? "---"));
   }
+  function setStudentNoInstrumentForAllTrims(student) {
+    if (!student.trimesterInstruments)
+      return;
+    student.notAllTrimsHaveAnInstrument = false;
+    for (let trim of student.trimesterInstruments) {
+      if (trim.length == 0)
+        student.notAllTrimsHaveAnInstrument = true;
+    }
+  }
   function buildTableData(inputModules) {
     prepareLesmomenten(inputModules);
     let tableData = {
@@ -1389,6 +1400,7 @@
     for (let student of tableData.students.values()) {
       setStudentPopupInfo(student);
       setStudentAllTrimsTheSameInstrument(student);
+      setStudentNoInstrumentForAllTrims(student);
     }
     let instrumentNames = distinct(tableData.blocks.map((b) => b.instrumentName)).sort((a, b) => {
       return a.localeCompare(b);

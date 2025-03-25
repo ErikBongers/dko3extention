@@ -102,6 +102,7 @@ export class StudentInfo {
     voornaam: string;
     id: number;
     info: string;
+    notAllTrimsHaveAnInstrument: boolean;
 }
 
 function scrapeStudents(studentTable: HTMLTableElement) {

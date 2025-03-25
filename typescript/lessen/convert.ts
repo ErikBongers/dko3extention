@@ -128,6 +128,16 @@ function setStudentAllTrimsTheSameInstrument(student: StudentInfo) {
         .every((instr: any) => instr.instrumentName === (student?.trimesterInstruments[0][0]?.instrumentName ?? "---"));
 }
 
+function setStudentNoInstrumentForAllTrims(student: StudentInfo) {
+    if(!student.trimesterInstruments)
+        return;
+    student.notAllTrimsHaveAnInstrument = false;
+    for(let trim of student.trimesterInstruments) {
+        if(trim.length == 0)
+            student.notAllTrimsHaveAnInstrument = true;
+    }
+}
+
 export function buildTableData(inputModules: Les[]) : TableData {
     prepareLesmomenten(inputModules);
 
@@ -179,6 +189,7 @@ export function buildTableData(inputModules: Les[]) : TableData {
     for(let student of tableData.students.values()) {
         setStudentPopupInfo(student);
         setStudentAllTrimsTheSameInstrument(student);
+        setStudentNoInstrumentForAllTrims(student);
     }
 
     //group by instrument

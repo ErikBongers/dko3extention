@@ -110,6 +110,9 @@
     & .allYear {
         font-weight: bold;
     }
+    & i.no3trims  {
+        color: red;
+    }
 
     & td.gray {
         background: #d6d8db;

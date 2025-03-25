@@ -1,5 +1,11 @@
 * Global search: sorteer op voornaam.
 
+* trims search: combined search werkt niet. viool+Hannah
+
+* afw: zoek ook op naam
+
+* mark lln die geen 3 instrumenten gekozen hebben.
+
 * If table page size is changed: clear cache and update infobar!
 
 * Volle klas?: add a quick check.
