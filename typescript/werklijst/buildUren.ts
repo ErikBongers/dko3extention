@@ -80,7 +80,6 @@ function updateColDefs(year: number) {
         colDef.colIndex = idx++;
         colDef.total = 0;
     });
-    debugger;
 }
 
 
@@ -88,9 +87,7 @@ function calcOver(ctx: Context) {
     let totUren = getColValue(ctx, "tot_uren");
     if (isNaN(totUren)) {
         totUren = 0;
-
     }
-    debugger;
     let urenJaar = getColValue(ctx, ctx.yearKey);
     if (isNaN(urenJaar)) {
         urenJaar = 0;
@@ -141,11 +138,16 @@ interface JsonColumn {
     rowMap?: Map<string, string>;
 }
 
-function buildJsonData() {
-    let data: JsonCloudData = {
+export function createJsonCloudData() {
+    return <JsonCloudData> {
         version: "1.0",
         columns: []
     };
+}
+
+
+function dataToJson() {
+    let data = createJsonCloudData();
     let col1 = columnToJson(data, getYearKeys(theData.year).keyPrev);
     let col2 = columnToJson(data, getYearKeys(theData.year).keyNext);
     data.columns.push({key: getYearKeys(theData.year).keyPrev, rows: col1});
@@ -181,7 +183,7 @@ function checkAndUpdate() {
     cellChanged = false;
     updateColumnData(getYearKeys(theData.year).keyPrev);
     updateColumnData(getYearKeys(theData.year).keyNext);
-    let data = buildJsonData();
+    let data = dataToJson();
 
     cloud.json.upload(fileName, data).then(r => { console.log("Uploaded uren.")});
     mapCloudData(data);//TODO: separate stages of data: raw data from/to cloud or from/to scraping, preparing the data, displaying the data.

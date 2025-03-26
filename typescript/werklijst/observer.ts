@@ -1,6 +1,6 @@
 import {addButton, calculateSchooljaar, createSchoolyearString, createShortSchoolyearString, findSchooljaar, getHighestSchooljaarAvailable, getSchoolIdString, setButtonHighlighted} from "../globals";
 import * as def from "../def";
-import {buildTable, getUrenVakLeraarFileName, JsonCloudData} from "./buildUren";
+import {buildTable, createJsonCloudData, getUrenVakLeraarFileName, JsonCloudData} from "./buildUren";
 import {scrapeStudent, VakLeraar} from "./scrapeUren";
 import {cloud} from "../cloud";
 import {FetchedTable, findTableRefInCode, TableDef} from "../table/tableDef";
@@ -155,12 +155,21 @@ function onClickShowCounts() {
             showOrHideNewTable();
         }
 
-        tableDef.getTableData(() => cloud.json.fetch(fileName))
+        tableDef.getTableData(() => getUrenFromCloud(fileName))
             .then((_results) => { });
+
         return true;
     }
     showOrHideNewTable();
     return true;
+}
+
+async function getUrenFromCloud(fileName: string) {
+    try {
+        return await cloud.json.fetch(fileName);
+    } catch (e) {
+        return createJsonCloudData();
+    }
 }
 
 function showOrHideNewTable() {

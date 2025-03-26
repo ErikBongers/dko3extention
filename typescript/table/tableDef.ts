@@ -265,7 +265,7 @@ export class FetchedTable {
 
     getRows() {
         let template = this.shadowTableTemplate;
-        return template.content.querySelectorAll("tbody tr") as NodeListOf<HTMLTableRowElement>;
+        return template.content.querySelectorAll("tbody tr:not(:has(i.fa-meh))") as NodeListOf<HTMLTableRowElement>;
     }
 
     getRowsAsArray = () => Array.from(this.getRows());

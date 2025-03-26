@@ -106,8 +106,6 @@ function setStudentPopupInfo(student: StudentInfo) {
     if (!student.trimesterInstruments)
         return;
     for (let instrs of student.trimesterInstruments) {
-        if(instrs.length > 1)
-            debugger;
         if (instrs.length) {
             student.info += instrs[0].trimesterNo + ". " + instrs.map(instr => instr.instrumentName) + "\n";
         } else {

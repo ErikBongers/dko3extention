@@ -1333,8 +1333,6 @@
     if (!student.trimesterInstruments)
       return;
     for (let instrs of student.trimesterInstruments) {
-      if (instrs.length > 1)
-        debugger;
       if (instrs.length) {
         student.info += instrs[0].trimesterNo + ". " + instrs.map((instr) => instr.instrumentName) + "\n";
       } else {
@@ -1951,14 +1949,12 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
       colDef.colIndex = idx++;
       colDef.total = 0;
     });
-    debugger;
   }
   function calcOver(ctx) {
     let totUren = getColValue(ctx, "tot_uren");
     if (isNaN(totUren)) {
       totUren = 0;
     }
-    debugger;
     let urenJaar = getColValue(ctx, ctx.yearKey);
     if (isNaN(urenJaar)) {
       urenJaar = 0;
@@ -1979,11 +1975,14 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
   function getUrenVakLeraarFileName() {
     return getSchoolIdString() + "_uren_vak_lk_" + findSchooljaar().replace("-", "_") + ".json";
   }
-  function buildJsonData() {
-    let data = {
+  function createJsonCloudData() {
+    return {
       version: "1.0",
       columns: []
     };
+  }
+  function dataToJson() {
+    let data = createJsonCloudData();
     let col1 = columnToJson(data, getYearKeys(theData.year).keyPrev);
     let col2 = columnToJson(data, getYearKeys(theData.year).keyNext);
     data.columns.push({ key: getYearKeys(theData.year).keyPrev, rows: col1 });
@@ -2012,7 +2011,7 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
     cellChanged = false;
     updateColumnData(getYearKeys(theData.year).keyPrev);
     updateColumnData(getYearKeys(theData.year).keyNext);
-    let data = buildJsonData();
+    let data = dataToJson();
     cloud.json.upload(fileName, data).then((r) => {
       console.log("Uploaded uren.");
     });
@@ -2611,7 +2610,7 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
     }
     getRows() {
       let template = this.shadowTableTemplate;
-      return template.content.querySelectorAll("tbody tr");
+      return template.content.querySelectorAll("tbody tr:not(:has(i.fa-meh))");
     }
     saveToCache() {
       db3(`Caching ${this.tableDef.getCacheId()}.`);
@@ -3148,12 +3147,19 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
         pageHandler,
         getChecksumHandler(tableRef.htmlTableId)
       );
-      tableDef.getTableData(() => cloud.json.fetch(fileName)).then((_results) => {
+      tableDef.getTableData(() => getUrenFromCloud(fileName)).then((_results) => {
       });
       return true;
     }
     showOrHideNewTable();
     return true;
+  }
+  async function getUrenFromCloud(fileName) {
+    try {
+      return await cloud.json.fetch(fileName);
+    } catch (e) {
+      return createJsonCloudData();
+    }
   }
   function showOrHideNewTable() {
     let showNewTable = document.getElementById(COUNT_TABLE_ID).style.display === "none";
