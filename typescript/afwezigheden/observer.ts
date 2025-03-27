@@ -58,27 +58,68 @@ function fillAndClick(name: string) {
     return false;
 }
 
-let matchinLeerlingen: {id: string, name: string}[] = [];
+let matchingLeerlingen: {id: string, name: string, weight: number}[] = [];
 
 async function onTicket() {
     let card_bodyDiv = document.querySelector(".card-body");
     if(!card_bodyDiv)
         return;
     let rxEmail = /\w[\w.\-]*\@\w+\.\w+/gm;
-    let matches = [...card_bodyDiv.textContent.matchAll(rxEmail)];
+    let emailText = card_bodyDiv.textContent;
+    let matches = [...emailText.matchAll(rxEmail)];
     let uniqueEmails = [...new Set(matches.map(match => match[0]))];
-    let allScripts = document.querySelectorAll("script");
-    let scriptTexts = [...allScripts].map(s => s.textContent).join();
-    let myEmail = scriptTexts.match(rxEmail)[0];
+    
+    let {email: myEmail} = whoAmI();
     uniqueEmails = uniqueEmails.filter(m => m != myEmail);
     console.log(uniqueEmails);
-    let div = document.createElement("div");
-    div.innerHTML = await fetchStudentsSearch(uniqueEmails.join(" "));
-    let tds = [...div.querySelectorAll("td")];
-    matchinLeerlingen = tds.map(td => {
+
+    let template = document.createElement("div");
+    template.innerHTML = await fetchStudentsSearch(uniqueEmails.join(" "));
+    let tdLln = [...template.querySelectorAll("td")];
+    matchingLeerlingen = tdLln.map(td => {
         let id = td.querySelector("small").textContent;
         let name = td.querySelector("strong").textContent;
         setViewFromCurrentUrl();
-        return {id, name};
-    })
+        return {id, name, weight: 0};
+    });
+    findUniqueMatch(emailText, matchingLeerlingen);
+}
+
+/*
+ <script type="text/javascript">
+            FreshworksWidget('identify', 'ticketForm', {
+                name: 'Erik Bongers',
+                email: 'erik.bongers@so.antwerpen.be',
+            });
+        </script>
+*/
+
+//TODO: put in globals
+function whoAmI() {
+    let allScripts = document.querySelectorAll("script");
+    let scriptTexts = [...allScripts].map(s => s.textContent).join();
+    let email = scriptTexts.match(rxEmail)[0];
+    return { email }; //todo also catch my full name.
+}
+
+function findUniqueMatch(emailText: string, matchingLeerlingen) {
+    if(matchingLeerlingen.length === 1)
+        return matchingLeerlingen[0];
+
+    //lln: [Erik Pierre Bongers, Iris Marlies Bongers]
+    // "Onzen Erik is ziek."
+    // Erik: weight:2, Iris: 1
+    for(let lln of matchingLeerlingen) {
+        let nameParts = lln.split(" ");
+        for(let namePart of namePart) {
+            if(emailText.includes(" "+namePart+" ")) {
+                lln.weight++;
+            }
+        }
+    }
+    //do we have a winner?
+    matchingLeerlingen.sort((a, b) => a.weight - b.weight);
+    if(matchingLeerlingen[0].weight > matchingLeerlingen[1].weight)
+        return matchingLeerlingen[0];
+    return undefinedm
 }
