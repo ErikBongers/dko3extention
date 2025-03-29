@@ -333,3 +333,14 @@ export function getGlobalSettings() {
 export function  setGlobalSetting(settings: GlobalSettings) {
     globalSettings = settings;
 }
+
+export let rxEmail = /\w[\w.\-]*\@\w+\.\w+/gm;
+
+export function whoAmI() {
+    let allScripts = document.querySelectorAll("script");
+    let scriptTexts = [...allScripts].map(s => s.textContent).join();
+    let email = scriptTexts.match(rxEmail)[0];
+    let rxName = /name: '(.*)'/;
+    let name = scriptTexts.match(rxName)[1];
+    return {email, name}; //todo also catch my full name.
+}

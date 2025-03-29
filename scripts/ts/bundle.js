@@ -286,6 +286,15 @@
   function setGlobalSetting(settings) {
     globalSettings = settings;
   }
+  var rxEmail = /\w[\w.\-]*\@\w+\.\w+/gm;
+  function whoAmI() {
+    let allScripts = document.querySelectorAll("script");
+    let scriptTexts = [...allScripts].map((s) => s.textContent).join();
+    let email = scriptTexts.match(rxEmail)[0];
+    let rxName = /name: '(.*)'/;
+    let name = scriptTexts.match(rxName)[1];
+    return { email, name };
+  }
 
   // typescript/pageObserver.ts
   var HashPageFilter = class {
@@ -3676,11 +3685,14 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
     if (leerlingLabel && !leerlingLabel.dataset.filled) {
       leerlingLabel.dataset.filled = "true";
       leerlingLabel.textContent = "Leerling:   reeds gevonden: ";
-      for (let lln of matchinLeerlingen) {
+      matchingLeerlingen.sort((a, b) => a.weight - b.weight);
+      for (let lln of matchingLeerlingen) {
         let anchor = document.createElement("a");
         anchor.href = "#";
         anchor.text = lln.name;
         anchor.onclick = () => fillAndClick(lln.name);
+        if (lln.winner)
+          anchor.classList.add("bold");
         leerlingLabel.insertAdjacentElement("afterend", anchor);
         leerlingLabel.parentElement.insertBefore(document.createTextNode(" "), anchor);
       }
@@ -3694,28 +3706,46 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
     button.click();
     return false;
   }
-  var matchinLeerlingen = [];
+  var matchingLeerlingen = [];
   async function onTicket() {
     let card_bodyDiv = document.querySelector(".card-body");
     if (!card_bodyDiv)
       return;
-    let rxEmail = /\w[\w.\-]*\@\w+\.\w+/gm;
-    let matches = [...card_bodyDiv.textContent.matchAll(rxEmail)];
+    let emailText = card_bodyDiv.textContent;
+    let matches = [...emailText.matchAll(rxEmail)];
     let uniqueEmails = [...new Set(matches.map((match2) => match2[0]))];
-    let allScripts = document.querySelectorAll("script");
-    let scriptTexts = [...allScripts].map((s) => s.textContent).join();
-    let myEmail = scriptTexts.match(rxEmail)[0];
+    let { email: myEmail } = whoAmI();
     uniqueEmails = uniqueEmails.filter((m) => m != myEmail);
     console.log(uniqueEmails);
-    let div = document.createElement("div");
-    div.innerHTML = await fetchStudentsSearch(uniqueEmails.join(" "));
-    let tds = [...div.querySelectorAll("td")];
-    matchinLeerlingen = tds.map((td) => {
+    let template = document.createElement("div");
+    template.innerHTML = await fetchStudentsSearch(uniqueEmails.join(" "));
+    let tdLln = [...template.querySelectorAll("td")];
+    matchingLeerlingen = tdLln.map((td) => {
       let id = td.querySelector("small").textContent;
       let name = td.querySelector("strong").textContent;
       setViewFromCurrentUrl();
-      return { id, name };
+      return { id, name, weight: 0, winner: false };
     });
+    findUniqueMatch(emailText, matchingLeerlingen);
+  }
+  function findUniqueMatch(emailText, matchingLeerlingen2) {
+    if (matchingLeerlingen2.length === 1)
+      return matchingLeerlingen2[0];
+    let mailLowerCase = emailText.toLowerCase();
+    for (let lln of matchingLeerlingen2) {
+      let nameParts = lln.name.split(" ");
+      for (let namePart of nameParts) {
+        if (emailText.includes(" " + namePart + " ")) {
+          lln.weight++;
+        }
+        if (mailLowerCase.includes(" " + namePart.toLowerCase() + " ")) {
+          lln.weight++;
+        }
+      }
+    }
+    matchingLeerlingen2.sort((a, b) => b.weight - a.weight);
+    if (matchingLeerlingen2[0].weight > matchingLeerlingen2[1].weight)
+      matchingLeerlingen2[0].winner = true;
   }
 
   // typescript/setupPowerQuery.ts

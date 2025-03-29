@@ -200,3 +200,6 @@ table tfoot.separatorLine {
 .tableFilter {
     margin-left: 5px;
 }
+a.bold {
+    font-weight: bold;
+}
