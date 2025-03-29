@@ -55,8 +55,7 @@ function addMatchingStudents() {
 }
 
 function addEmailText() {
-    let modalBody = document.querySelector("div.modal-body") as HTMLElement;
-    let emailDiv  = emmet.append(modalBody, 'div>button#btnShowEmail{Show email}.btn.btn-sm.btn-outline-success+div#showEmail.collapsed').last;
+    let emailDiv  = emmet.create('div.modal-body>div>button#btnShowEmail{Show email}.btn.btn-sm.btn-outline-success+div#showEmail.collapsed').last;
     emailDiv.innerHTML = currentEmailHtml;
     document.getElementById("btnShowEmail").addEventListener("click", showEmail);
 }

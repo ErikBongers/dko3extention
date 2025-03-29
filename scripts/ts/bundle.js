@@ -666,24 +666,10 @@
     return les;
   }
 
-  // libs/Emmeter/html.ts
-  var NBSP = 160;
-  var emmet = {
-    create,
-    append,
-    insertBefore,
-    testEmmet,
-    //todo: this should only be exported to test.ts
-    tokenize
-    //todo: this should only be exported to test.ts
-  };
-  var nested = void 0;
-  var lastCreated = void 0;
+  // libs/Emmeter/tokenizer.ts
   var CLOSING_BRACE = "__CLOSINGBRACE__";
   var DOUBLE_QUOTE = "__DOUBLEQUOTE__";
-  function unescape(text) {
-    return text.replaceAll(CLOSING_BRACE, "}").replaceAll(DOUBLE_QUOTE, '"');
-  }
+  var NBSP = 160;
   function tokenize(textToTokenize) {
     let tokens = [];
     let txt = textToTokenize.replaceAll("\\}", CLOSING_BRACE).replaceAll('\\"', DOUBLE_QUOTE);
@@ -743,19 +729,44 @@
     pushToken();
     return tokens;
   }
-  function create(text, onIndex) {
-    let root = void 0;
-    nested = tokenize(text);
-    let rootId = nested.shift();
-    if (rootId[0] != "#") {
-      throw "No root id defined.";
+
+  // libs/Emmeter/html.ts
+  var emmet = {
+    create,
+    append,
+    insertBefore,
+    testEmmet,
+    //todo: this should only be exported to test.ts
+    tokenize
+    //todo: this should only be exported to test.ts
+  };
+  var nested = void 0;
+  var lastCreated = void 0;
+  function toSelector(node) {
+    if (!("tag" in node)) {
+      throw "TODO: not yet implemented.";
     }
-    root = document.querySelector(rootId);
-    if (!root)
-      throw `Root ${rootId} doesn't exist`;
-    if (!match(">"))
-      throw "Expected '>' after root id.";
-    return parseAndBuild(root, onIndex);
+    let selector = "";
+    if (node.tag)
+      selector += node.tag;
+    if (node.id)
+      selector += "#" + node.id;
+    if (node.classList.length > 0) {
+      selector += "." + node.classList.join(".");
+    }
+    return selector;
+  }
+  function create(text, onIndex) {
+    nested = tokenize(text);
+    let root = parse();
+    let parent = document.querySelector(toSelector(root));
+    if ("tag" in root) {
+      root = root.child;
+    } else {
+      throw "root should be a single element.";
+    }
+    buildElement(parent, root, 1, onIndex);
+    return { root: parent, last: lastCreated };
   }
   function append(root, text, onIndex) {
     nested = tokenize(text);
@@ -3699,8 +3710,7 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
     }
   }
   function addEmailText() {
-    let modalBody = document.querySelector("div.modal-body");
-    let emailDiv = emmet.append(modalBody, "div>button#btnShowEmail{Show email}.btn.btn-sm.btn-outline-success+div#showEmail.collapsed").last;
+    let emailDiv = emmet.create("div.modal-body>div>button#btnShowEmail{Show email}.btn.btn-sm.btn-outline-success+div#showEmail.collapsed").last;
     emailDiv.innerHTML = currentEmailHtml;
     document.getElementById("btnShowEmail").addEventListener("click", showEmail);
   }

@@ -3,7 +3,7 @@ import {db3} from "../globals";
 import {BlockInfo, mergeBlockStudents, sortStudents, TableData} from "./convert";
 import {StudentInfo} from "./scrape";
 import * as html from "../../libs/Emmeter/html";
-import {NBSP} from "../../libs/Emmeter/html";
+import {NBSP} from "../../libs/Emmeter/tokenizer";
 
 export enum NameSorting {
     FirstName, LastName
