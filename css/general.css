@@ -203,3 +203,7 @@ table tfoot.separatorLine {
 a.bold {
     font-weight: bold;
 }
+
+div.collapsed {
+    display: none;
+}

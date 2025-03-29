@@ -1,5 +1,6 @@
 import {ExactHashObserver} from "../pageObserver";
 import {fetchStudentsSearch, rxEmail, setViewFromCurrentUrl, whoAmI} from "../globals";
+import {emmet} from "../../libs/Emmeter/html";
 
 export default new ExactHashObserver("#extra-tickets?h=afwezigheden", onMutation, true);
 
@@ -33,9 +34,9 @@ function gotoVolgende() {
     }
 }
 
-function onAddMelding() {
+function addMatchingStudents() {
     let leerlingLabel = document.querySelector("#form_field_tickets_afwezigheid_toevoegen_leerling_zoeken > label") as HTMLLabelElement;
-    if(leerlingLabel && !leerlingLabel.dataset.filled) {
+    if (leerlingLabel && !leerlingLabel.dataset.filled) {
         leerlingLabel.dataset.filled = "true";
         leerlingLabel.textContent = "Leerling:   reeds gevonden: ";
         matchingLeerlingen.sort((a, b) => a.weight - b.weight); //sort ascending because of the insertBefore()
@@ -45,12 +46,28 @@ function onAddMelding() {
             anchor.href = "#";
             anchor.text = lln.name;
             anchor.onclick = () => fillAndClick(lln.name);
-            if(lln.winner)
+            if (lln.winner)
                 anchor.classList.add("bold");
             leerlingLabel.insertAdjacentElement("afterend", anchor);
             leerlingLabel.parentElement.insertBefore(document.createTextNode(" "), anchor);
         }
     }
+}
+
+function addEmailText() {
+    let modalBody = document.querySelector("div.modal-body") as HTMLElement;
+    let emailDiv  = emmet.append(modalBody, 'div>button#btnShowEmail{Show email}+div#showEmail.collapsed').last;
+    emailDiv.innerHTML = currentEmailHtml;
+    document.getElementById("btnShowEmail").addEventListener("click", showEmail);
+}
+
+function showEmail() {
+    document.getElementById("showEmail").classList.toggle("collapsed");
+}
+
+function onAddMelding() {
+    addMatchingStudents();
+    addEmailText();
 }
 
 function fillAndClick(name: string) {

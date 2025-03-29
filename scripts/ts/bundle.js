@@ -3680,7 +3680,7 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
       document.getElementById("btn_opslaan_tickets_afwezigheid_toevoegen").click();
     }
   }
-  function onAddMelding() {
+  function addMatchingStudents() {
     let leerlingLabel = document.querySelector("#form_field_tickets_afwezigheid_toevoegen_leerling_zoeken > label");
     if (leerlingLabel && !leerlingLabel.dataset.filled) {
       leerlingLabel.dataset.filled = "true";
@@ -3698,6 +3698,19 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
       }
     }
   }
+  function addEmailText() {
+    let modalBody = document.querySelector("div.modal-body");
+    let emailDiv = emmet.append(modalBody, "div>button#btnShowEmail{Show email}+div#showEmail.collapsed").last;
+    emailDiv.innerHTML = currentEmailHtml;
+    document.getElementById("btnShowEmail").addEventListener("click", showEmail);
+  }
+  function showEmail() {
+    document.getElementById("showEmail").classList.toggle("collapsed");
+  }
+  function onAddMelding() {
+    addMatchingStudents();
+    addEmailText();
+  }
   function fillAndClick(name) {
     let formDiv = document.querySelector("#form_field_tickets_afwezigheid_toevoegen_leerling_zoeken");
     let input = formDiv.querySelector("input");
@@ -3707,11 +3720,13 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
     return false;
   }
   var matchingLeerlingen = [];
+  var currentEmailHtml = "";
   async function onTicket() {
     let card_bodyDiv = document.querySelector(".card-body");
     if (!card_bodyDiv)
       return;
     let emailText = card_bodyDiv.textContent;
+    currentEmailHtml = card_bodyDiv.innerHTML;
     let matches = [...emailText.matchAll(rxEmail)];
     let uniqueEmails = [...new Set(matches.map((match2) => match2[0]))];
     let { email: myEmail } = whoAmI();

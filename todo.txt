@@ -1,3 +1,5 @@
+* emmet.create: allow the specified root to be any query, not just an #id.
+
 * Global search: sorteer op voornaam.
 
 * trims search: combined search werkt niet. viool+Hannah
