@@ -3700,7 +3700,7 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
   }
   function addEmailText() {
     let modalBody = document.querySelector("div.modal-body");
-    let emailDiv = emmet.append(modalBody, "div>button#btnShowEmail{Show email}+div#showEmail.collapsed").last;
+    let emailDiv = emmet.append(modalBody, "div>button#btnShowEmail{Show email}.btn.btn-sm.btn-outline-success+div#showEmail.collapsed").last;
     emailDiv.innerHTML = currentEmailHtml;
     document.getElementById("btnShowEmail").addEventListener("click", showEmail);
   }
