@@ -377,7 +377,7 @@ export function mergeBlockStudents(block: BlockInfo) {
             return trimLessen
                 .map(les => les?.maxAantal ?? 0)
                 .map(maxAantal => maxAantal > TOO_LARGE_MAX ? 4 : maxAantal)
-                .reduce((a,b) => a+b); //TODO: this is dangerous as it assumes that the hours can be summed.
+                .reduce((a,b) => a+b);
         });
 
     let blockNeededRows = Math.max(

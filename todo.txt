@@ -1,3 +1,10 @@
+* Trims: summing hours per block
+  > for Lievenka: fine: just add the hours of all the blooks
+  > for Rhea: NOT fine: altviool and viool share the same hour!
+     > how do we indicate this?
+     > what is the default? Sum or merge(max)?
+     > via a tag?
+
 * Global search: sorteer op voornaam.
 
 * trims search: combined search werkt niet. viool+Hannah
