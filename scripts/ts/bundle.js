@@ -1540,7 +1540,6 @@
         let stud = allStudents.get(student.name);
         stud.trimesterInstruments[blockTrimModule.trimesterNo - 1].push(blockTrimModule);
       }
-      blockTrimModule.students = blockTrimModule.students.map((student) => allStudents.get(student.name));
     }
   }
   function addJaarStudentsToMapAndCount(students, jaarModule) {

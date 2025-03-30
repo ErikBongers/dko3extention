@@ -311,10 +311,6 @@ function addTrimesterStudentsToMapAndCount(allStudents: Map<string, StudentInfo>
             let stud = allStudents.get(student.name);
             stud.trimesterInstruments[blockTrimModule.trimesterNo - 1].push(blockTrimModule);
         }
-        //all trims must reference the students in the overall map.
-        //TODO: this may not be needed. All students are always part of the allStudents array.
-        blockTrimModule.students = blockTrimModule.students
-            .map((student) => allStudents.get(student.name));
     }
 }
 
