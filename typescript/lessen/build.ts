@@ -1,10 +1,10 @@
 import {FULL_CLASS_BUTTON_ID, isButtonHighlighted, TRIM_DIV_ID} from "../def";
-import {db3} from "../globals";
+import {db3, stripStudentName} from "../globals";
 import {BlockInfo, mergeBlockStudents, sortStudents, TableData} from "./convert";
 import {StudentInfo} from "./scrape";
 import * as html from "../../libs/Emmeter/html";
-import {NBSP} from "../../libs/Emmeter/tokenizer";
 import {emmet} from "../../libs/Emmeter/html";
+import {NBSP} from "../../libs/Emmeter/tokenizer";
 
 export enum NameSorting {
     FirstName, LastName
@@ -401,12 +401,8 @@ function buildStudentCell(student: StudentInfo) {
     return cell;
 }
 
-function stripStudentName(name: string): string {
-    return name.replaceAll(/[,()'-]/g, " ").replaceAll("  ", " ");
-}
-
 async function fetchStudentId(studentName: string) {
-    let strippedStudentName = stripStudentName(studentName); //todo: use global function
+    let strippedStudentName = stripStudentName(studentName);
     return fetch("/view.php?args=zoeken?zoek="+encodeURIComponent(strippedStudentName))
         .then((response) => response.text())
         .then((_text) => fetch("/views/zoeken/index.view.php"))

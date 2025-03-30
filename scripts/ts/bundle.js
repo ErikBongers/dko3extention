@@ -295,6 +295,9 @@
     let name = scriptTexts.match(rxName)[1];
     return { email, name };
   }
+  function stripStudentName(name) {
+    return name.replaceAll(/[,()'-]/g, " ").replaceAll("  ", " ");
+  }
 
   // typescript/pageObserver.ts
   var HashPageFilter = class {
@@ -1279,9 +1282,6 @@
       iTag.classList.add("no3trims");
     }
     return cell;
-  }
-  function stripStudentName(name) {
-    return name.replaceAll(/[,()'-]/g, " ").replaceAll("  ", " ");
   }
   async function fetchStudentId(studentName) {
     let strippedStudentName = stripStudentName(studentName);

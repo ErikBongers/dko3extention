@@ -344,3 +344,7 @@ export function whoAmI() {
     let name = scriptTexts.match(rxName)[1];
     return {email, name}; //todo also catch my full name.
 }
+
+export function stripStudentName(name: string): string {
+    return name.replaceAll(/[,()'-]/g, " ").replaceAll("  ", " ");
+}
