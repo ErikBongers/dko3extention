@@ -4,6 +4,7 @@ import {BlockInfo, mergeBlockStudents, sortStudents, TableData} from "./convert"
 import {StudentInfo} from "./scrape";
 import * as html from "../../libs/Emmeter/html";
 import {NBSP} from "../../libs/Emmeter/tokenizer";
+import {emmet} from "../../libs/Emmeter/html";
 
 export enum NameSorting {
     FirstName, LastName
@@ -276,10 +277,7 @@ function buildBlockTitle(newTableBody: HTMLTableSectionElement, block: BlockInfo
 
     let {last: divBlockTitle} = html.emmet.append(trBlockTitle, "td.infoCell[colspan=3]>div.text-muted");
     if(getBlockTitle) {
-        let spanSubtitle = document.createElement("span");
-        divBlockTitle.appendChild(spanSubtitle);
-        spanSubtitle.classList.add("subTitle"); //TODO: rename to blockTitle
-        spanSubtitle.appendChild(document.createTextNode(getBlockTitle(block)));
+        emmet.appendChild(divBlockTitle, `span.blockTitle{${getBlockTitle(block)}}`);
     }
 
     for (let jaarModule of block.jaarModules) {

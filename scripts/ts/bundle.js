@@ -1177,10 +1177,7 @@
     trBlockTitle.classList.add("blockRow");
     let { last: divBlockTitle } = emmet.append(trBlockTitle, "td.infoCell[colspan=3]>div.text-muted");
     if (getBlockTitle) {
-      let spanSubtitle = document.createElement("span");
-      divBlockTitle.appendChild(spanSubtitle);
-      spanSubtitle.classList.add("subTitle");
-      spanSubtitle.appendChild(document.createTextNode(getBlockTitle(block)));
+      emmet.appendChild(divBlockTitle, `span.blockTitle{${getBlockTitle(block)}}`);
     }
     for (let jaarModule of block.jaarModules) {
       divBlockTitle.appendChild(buildModuleButton(">", jaarModule.id, false));
