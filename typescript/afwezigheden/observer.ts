@@ -41,14 +41,13 @@ function addMatchingStudents() {
         leerlingLabel.textContent = "Leerling:   reeds gevonden: ";
         let target = leerlingLabel as HTMLElement;
         for (let lln of matchingLeerlingen) {
-            let anchorClasses = "";
-            if (lln.winner)
-                anchorClasses = ".bold";
-            target = emmet.insertAfter(target, `a[href="#"].leerlingLabel${anchorClasses}{${lln.name}}`).last as HTMLElement; //todo: should be .first, in case A has child elements. Add this to emmet.
-            let anchors = leerlingLabel.parentElement.querySelectorAll("a");
-            //todo: add hooks to emmet.
-            let anchor = anchors[anchors.length-1];
-            anchor.onclick = () => fillAndClick(lln.name);
+            let anchorClasses = lln.winner ? ".bold" : "";
+            function hook(el: HTMLElement) {
+                if(el.tagName == "A") {
+                    el.onclick = () => fillAndClick(lln.name);
+                }
+            }
+            target = emmet.insertAfter(target, `a[href="#"].leerlingLabel${anchorClasses}{${lln.name}}`, undefined, hook).last as HTMLElement; //todo: should be .first, in case A has child elements. Add this to emmet.
         }
     }
 }

@@ -758,7 +758,7 @@
     }
     return selector;
   }
-  function create(text, onIndex) {
+  function create(text, onIndex, hook) {
     nested = tokenize(text);
     let root = parse();
     let parent = document.querySelector(toSelector(root));
@@ -767,33 +767,33 @@
     } else {
       throw "root should be a single element.";
     }
-    buildElement(parent, root, 1, onIndex);
+    buildElement(parent, root, 1, onIndex, hook);
     return { root: parent, last: lastCreated };
   }
-  function append(root, text, onIndex) {
+  function append(root, text, onIndex, hook) {
     nested = tokenize(text);
-    return parseAndBuild(root, onIndex);
+    return parseAndBuild(root, onIndex, hook);
   }
-  function insertBefore(target, text, onIndex) {
-    return insertAt("beforebegin", target, text, onIndex);
+  function insertBefore(target, text, onIndex, hook) {
+    return insertAt("beforebegin", target, text, onIndex, hook);
   }
-  function insertAfter(target, text, onIndex) {
-    return insertAt("afterend", target, text, onIndex);
+  function insertAfter(target, text, onIndex, hook) {
+    return insertAt("afterend", target, text, onIndex, hook);
   }
-  function appendChild(parent, text, onIndex) {
-    return insertAt("beforeend", parent, text, onIndex);
+  function appendChild(parent, text, onIndex, hook) {
+    return insertAt("beforeend", parent, text, onIndex, hook);
   }
-  function insertAt(position, target, text, onIndex) {
+  function insertAt(position, target, text, onIndex, hook) {
     nested = tokenize(text);
     let tempRoot = document.createElement("div");
-    let result = parseAndBuild(tempRoot, onIndex);
+    let result = parseAndBuild(tempRoot, onIndex, hook);
     for (let child of tempRoot.children) {
       target.insertAdjacentElement(position, child);
     }
     return { target, first: tempRoot.children[0], last: result.last };
   }
-  function parseAndBuild(root, onIndex) {
-    buildElement(root, parse(), 1, onIndex);
+  function parseAndBuild(root, onIndex, hook) {
+    buildElement(root, parse(), 1, onIndex, hook);
     return { root, last: lastCreated };
   }
   function testEmmet(text) {
@@ -931,7 +931,7 @@
       return text.substring(1, text.length - 1);
     return text;
   }
-  function createElement(parent, def, index, onIndex) {
+  function createElement(parent, def, index, onIndex, hook) {
     let el = parent.appendChild(document.createElement(def.tag));
     if (def.id)
       el.id = addIndex(def.id, index, onIndex);
@@ -949,23 +949,25 @@
       el.appendChild(document.createTextNode(addIndex(def.innerText, index, onIndex)));
     }
     lastCreated = el;
+    if (hook)
+      hook(el);
     return el;
   }
-  function buildElement(parent, el, index, onIndex) {
+  function buildElement(parent, el, index, onIndex, hook) {
     if ("tag" in el) {
-      let created = createElement(parent, el, index, onIndex);
+      let created = createElement(parent, el, index, onIndex, hook);
       if (el.child)
-        buildElement(created, el.child, index, onIndex);
+        buildElement(created, el.child, index, onIndex, hook);
       return;
     }
     if ("list" in el) {
       for (let def of el.list) {
-        buildElement(parent, def, index, onIndex);
+        buildElement(parent, def, index, onIndex, hook);
       }
     }
     if ("count" in el) {
       for (let i = 0; i < el.count; i++) {
-        buildElement(parent, el.child, i, onIndex);
+        buildElement(parent, el.child, i, onIndex, hook);
       }
     }
     if ("text" in el) {
@@ -3709,13 +3711,13 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
       leerlingLabel.textContent = "Leerling:   reeds gevonden: ";
       let target = leerlingLabel;
       for (let lln of matchingLeerlingen) {
-        let anchorClasses = "";
-        if (lln.winner)
-          anchorClasses = ".bold";
-        target = emmet.insertAfter(target, `a[href="#"].leerlingLabel${anchorClasses}{${lln.name}}`).last;
-        let anchors = leerlingLabel.parentElement.querySelectorAll("a");
-        let anchor = anchors[anchors.length - 1];
-        anchor.onclick = () => fillAndClick(lln.name);
+        let hook = function(el) {
+          if (el.tagName == "A") {
+            el.onclick = () => fillAndClick(lln.name);
+          }
+        };
+        let anchorClasses = lln.winner ? ".bold" : "";
+        target = emmet.insertAfter(target, `a[href="#"].leerlingLabel${anchorClasses}{${lln.name}}`, void 0, hook).last;
       }
     }
   }
