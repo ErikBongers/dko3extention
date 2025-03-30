@@ -177,7 +177,7 @@ export function isTrimesterTableVisible() {
 }
 
 export function showTrimesterTable(show: boolean, grouping: TrimesterGrouping) {
-    document.getElementById(def.TRIM_TABLE_ID)?.remove(); //todo: cleaner way to do this once the prefered grouping has been saved.
+    document.getElementById(def.TRIM_TABLE_ID)?.remove();
     //Build lazily and only once. Table will automatically be erased when filters are changed.
     if (!document.getElementById(def.TRIM_TABLE_ID)) {
         let inputModules = scrapeModules();
