@@ -39,13 +39,12 @@ function addMatchingStudents() {
     if (leerlingLabel && !leerlingLabel.dataset.filled) {
         leerlingLabel.dataset.filled = "true";
         leerlingLabel.textContent = "Leerling:   reeds gevonden: ";
-        //sort ascending because of the insertBefore()
-        matchingLeerlingen.sort((a, b) => a.weight - b.weight);
+        let target = leerlingLabel as HTMLElement;
         for (let lln of matchingLeerlingen) {
             let anchorClasses = "";
             if (lln.winner)
                 anchorClasses = ".bold";
-            emmet.insertAfter(leerlingLabel, `a[href="#"].leerlingLabel${anchorClasses}{${lln.name}}`);
+            target = emmet.insertAfter(target, `a[href="#"].leerlingLabel${anchorClasses}{${lln.name}}`).last as HTMLElement; //todo: should be .first, in case A has child elements. Add this to emmet.
             let anchors = leerlingLabel.parentElement.querySelectorAll("a");
             //todo: add hooks to emmet.
             let anchor = anchors[anchors.length-1];

@@ -3707,13 +3707,12 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
     if (leerlingLabel && !leerlingLabel.dataset.filled) {
       leerlingLabel.dataset.filled = "true";
       leerlingLabel.textContent = "Leerling:   reeds gevonden: ";
-      matchingLeerlingen.sort((a, b) => a.weight - b.weight);
+      let target = leerlingLabel;
       for (let lln of matchingLeerlingen) {
-        debugger;
         let anchorClasses = "";
         if (lln.winner)
           anchorClasses = ".bold";
-        emmet.insertAfter(leerlingLabel, `a[href="#"].leerlingLabel${anchorClasses}{${lln.name}}`);
+        target = emmet.insertAfter(target, `a[href="#"].leerlingLabel${anchorClasses}{${lln.name}}`).last;
         let anchors = leerlingLabel.parentElement.querySelectorAll("a");
         let anchor = anchors[anchors.length - 1];
         anchor.onclick = () => fillAndClick(lln.name);
