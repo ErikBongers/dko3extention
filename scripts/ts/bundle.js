@@ -735,6 +735,8 @@
     create,
     append,
     insertBefore,
+    insertAfter,
+    appendChild,
     testEmmet,
     //todo: this should only be exported to test.ts
     tokenize
@@ -772,14 +774,23 @@
     nested = tokenize(text);
     return parseAndBuild(root, onIndex);
   }
-  function insertBefore(root, text, onIndex) {
+  function insertBefore(target, text, onIndex) {
+    return insertAt("beforebegin", target, text, onIndex);
+  }
+  function insertAfter(target, text, onIndex) {
+    return insertAt("afterend", target, text, onIndex);
+  }
+  function appendChild(parent, text, onIndex) {
+    return insertAt("beforeend", parent, text, onIndex);
+  }
+  function insertAt(position, target, text, onIndex) {
     nested = tokenize(text);
     let tempRoot = document.createElement("div");
     let result = parseAndBuild(tempRoot, onIndex);
     for (let child of tempRoot.children) {
-      root.parentElement.insertBefore(child, root);
+      target.insertAdjacentElement(position, child);
     }
-    return { root, last: result.last };
+    return { target, first: tempRoot.children[0], last: result.last };
   }
   function parseAndBuild(root, onIndex) {
     buildElement(root, parse(), 1, onIndex);
@@ -3698,14 +3709,14 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
       leerlingLabel.textContent = "Leerling:   reeds gevonden: ";
       matchingLeerlingen.sort((a, b) => a.weight - b.weight);
       for (let lln of matchingLeerlingen) {
-        let anchor = document.createElement("a");
-        anchor.href = "#";
-        anchor.text = lln.name;
-        anchor.onclick = () => fillAndClick(lln.name);
+        debugger;
+        let anchorClasses = "";
         if (lln.winner)
-          anchor.classList.add("bold");
-        leerlingLabel.insertAdjacentElement("afterend", anchor);
-        leerlingLabel.parentElement.insertBefore(document.createTextNode(" "), anchor);
+          anchorClasses = ".bold";
+        emmet.insertAfter(leerlingLabel, `a[href="#"].leerlingLabel${anchorClasses}{${lln.name}}`);
+        let anchors = leerlingLabel.parentElement.querySelectorAll("a");
+        let anchor = anchors[anchors.length - 1];
+        anchor.onclick = () => fillAndClick(lln.name);
       }
     }
   }

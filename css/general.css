@@ -204,6 +204,10 @@ a.bold {
     font-weight: bold;
 }
 
+a.leerlingLabel {
+    margin-left: 1ch;
+}
+
 div.collapsed {
     display: none;
 }

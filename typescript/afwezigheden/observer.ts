@@ -39,17 +39,17 @@ function addMatchingStudents() {
     if (leerlingLabel && !leerlingLabel.dataset.filled) {
         leerlingLabel.dataset.filled = "true";
         leerlingLabel.textContent = "Leerling:   reeds gevonden: ";
-        matchingLeerlingen.sort((a, b) => a.weight - b.weight); //sort ascending because of the insertBefore()
+        //sort ascending because of the insertBefore()
+        matchingLeerlingen.sort((a, b) => a.weight - b.weight);
         for (let lln of matchingLeerlingen) {
-            //todo: try to use emmet for this
-            let anchor = document.createElement("a");
-            anchor.href = "#";
-            anchor.text = lln.name;
-            anchor.onclick = () => fillAndClick(lln.name);
+            let anchorClasses = "";
             if (lln.winner)
-                anchor.classList.add("bold");
-            leerlingLabel.insertAdjacentElement("afterend", anchor);
-            leerlingLabel.parentElement.insertBefore(document.createTextNode(" "), anchor);
+                anchorClasses = ".bold";
+            emmet.insertAfter(leerlingLabel, `a[href="#"].leerlingLabel${anchorClasses}{${lln.name}}`);
+            let anchors = leerlingLabel.parentElement.querySelectorAll("a");
+            //todo: add hooks to emmet.
+            let anchor = anchors[anchors.length-1];
+            anchor.onclick = () => fillAndClick(lln.name);
         }
     }
 }
