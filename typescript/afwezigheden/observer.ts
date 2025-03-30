@@ -47,7 +47,7 @@ function addMatchingStudents() {
                     el.onclick = () => fillAndClick(lln.name);
                 }
             }
-            target = emmet.insertAfter(target, `a[href="#"].leerlingLabel${anchorClasses}{${lln.name}}`, undefined, hook).last as HTMLElement; //todo: should be .first, in case A has child elements. Add this to emmet.
+            target = emmet.insertAfter(target, `a[href="#"].leerlingLabel${anchorClasses}{${lln.name}}`, undefined, hook).first as HTMLElement;
         }
     }
 }

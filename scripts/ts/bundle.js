@@ -787,10 +787,13 @@
     nested = tokenize(text);
     let tempRoot = document.createElement("div");
     let result = parseAndBuild(tempRoot, onIndex, hook);
+    let first = void 0;
     for (let child of tempRoot.children) {
-      target.insertAdjacentElement(position, child);
+      let result2 = target.insertAdjacentElement(position, child);
+      if (!first)
+        first = result2;
     }
-    return { target, first: tempRoot.children[0], last: result.last };
+    return { target, first, last: result.last };
   }
   function parseAndBuild(root, onIndex, hook) {
     buildElement(root, parse(), 1, onIndex, hook);
@@ -3717,7 +3720,7 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
           }
         };
         let anchorClasses = lln.winner ? ".bold" : "";
-        target = emmet.insertAfter(target, `a[href="#"].leerlingLabel${anchorClasses}{${lln.name}}`, void 0, hook).last;
+        target = emmet.insertAfter(target, `a[href="#"].leerlingLabel${anchorClasses}{${lln.name}}`, void 0, hook).first;
       }
     }
   }
