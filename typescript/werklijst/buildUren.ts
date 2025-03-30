@@ -1,17 +1,21 @@
 import * as def from "../def";
-import {createValidId, getSchoolIdString, findSchooljaar} from "../globals";
+import {createValidId, findSchooljaar, getSchoolIdString} from "../globals";
 import {VakLeraar} from "./scrapeUren";
 import {TableDef} from "../table/tableDef";
 import {cloud} from "../cloud";
+import {UrenData} from "./urenData";
 
 let isUpdatePaused = true;
 let cellChanged = false;
 let popoverIndex = 1;
 
-let theData: TheData;
-
 let editableObserver = new MutationObserver((mutationList, observer) => editableObserverCallback(mutationList, observer));
-setInterval(checkAndUpdate, 5000);
+
+setInterval(onTimer, 5000);
+function onTimer() {
+    checkAndUpdate(globalUrenData);
+}
+let globalUrenData: UrenData = undefined;
 
 interface ColDef {
     label: string,
@@ -103,7 +107,7 @@ interface Context {
     td: HTMLTableCellElement,
     colDef: ColDef,
     colDefs: Map<string, ColDef>,
-    data: TheData,
+    data: UrenData,
     yearKey: string
 }
 
@@ -126,76 +130,30 @@ export function getUrenVakLeraarFileName() {
     return getSchoolIdString() + "_" + "uren_vak_lk_" + findSchooljaar().replace("-", "_") + ".json";
 }
 
-export interface JsonCloudData {
-    columnMap?: Map<string, Map<string, string>>;
-    version: string,
-    columns: JsonColumn[]
-}
-
-interface JsonColumn {
-    key: string,
-    rows: JsonCell[]
-    rowMap?: Map<string, string>;
-}
-
-export function createJsonCloudData() {
-    return <JsonCloudData> {
-        version: "1.0",
-        columns: []
-    };
-}
-
-
-function dataToJson() {
-    let data = createJsonCloudData();
-    let col1 = columnToJson(data, getYearKeys(theData.year).keyPrev);
-    let col2 = columnToJson(data, getYearKeys(theData.year).keyNext);
-    data.columns.push({key: getYearKeys(theData.year).keyPrev, rows: col1});
-    data.columns.push({key: getYearKeys(theData.year).keyNext, rows: col2});
-    return data;
-}
-
-interface JsonCell {
-    key: string,
-    value: string
-}
-
-function columnToJson(_data: JsonCloudData, colKey: string) {
-    let cells: JsonCell[] = [];
-    for (let [key, value] of theData.fromCloud.columnMap.get(colKey)) {
-        let row: JsonCell = {
-            key: key,
-            value: value
-        };
-        cells.push(row);
-    }
-    return cells;
-}
-
-function checkAndUpdate() {
+function checkAndUpdate(urenData: UrenData) {
     if(isUpdatePaused) {
         return;
     }
     if(!cellChanged) {
         return;
     }
-    let fileName = getUrenVakLeraarFileName();
     cellChanged = false;
-    updateColumnData(getYearKeys(theData.year).keyPrev);
-    updateColumnData(getYearKeys(theData.year).keyNext);
-    let data = dataToJson();
+    let colKeys = getYearKeys(urenData.year);
+    updateCloudColumnMapFromScreen(urenData, colKeys.keyPrev);
+    updateCloudColumnMapFromScreen(urenData, colKeys.keyNext);
 
-    cloud.json.upload(fileName, data).then(r => { console.log("Uploaded uren.")});
-    mapCloudData(data);//TODO: separate stages of data: raw data from/to cloud or from/to scraping, preparing the data, displaying the data.
-    theData.fromCloud = data;
+    cloud.json.upload(
+        getUrenVakLeraarFileName(),
+        urenData.fromCloud.toJson(colKeys.keyPrev, colKeys.keyNext))
+        .then(r => { console.log("Uploaded uren.")});
 
-    recalculate();
+    recalculate(urenData);
 }
 
-function updateColumnData(colKey: string) {
+function updateCloudColumnMapFromScreen(urenData: UrenData, colKey: string) {
     let colDef = colDefs.get(colKey);
     for(let tr of document.querySelectorAll("#"+def.COUNT_TABLE_ID+" tbody tr")) {
-        theData.fromCloud.columnMap.get(colKey).set(tr.id, tr.children[colDef.colIndex].textContent);
+        urenData.fromCloud.columnMap.get(colKey).set(tr.id, tr.children[colDef.colIndex].textContent);
     }
 }
 
@@ -213,13 +171,6 @@ function observeTable(observe: boolean) {
     } else {
         editableObserver.disconnect();
     }
-}
-
-function mapCloudData(fromCloud: JsonCloudData) {
-    for (let column of fromCloud.columns) {
-        column.rowMap = new Map(column.rows.map((row) => [row.key, row.value]));
-    }
-    fromCloud.columnMap = new Map(fromCloud.columns.map((col) => [col.key, col.rowMap]));
 }
 
 function fillCell(ctx: Context): (number| undefined) {
@@ -256,18 +207,18 @@ function clearTotals() {
     }
 }
 
-function recalculate() {
+function recalculate(urenData: UrenData) {
     isUpdatePaused = true;
     observeTable(false);
     clearTotals();
 
-    let yearKey = getYearKeys(theData.year).keyNext;
+    let yearKey = getYearKeys(urenData.year).keyNext;
 
-    for (let [vakLeraarKey, vakLeraar] of theData.vakLeraars) {
+    for (let [vakLeraarKey, vakLeraar] of urenData.vakLeraars) {
         let tr = document.getElementById(createValidId(vakLeraarKey)) as HTMLTableRowElement;
         for(let [colKey, colDef] of colDefs) {
             let td = tr.children[colDef.colIndex] as HTMLTableCellElement;
-            let ctx: Context = {td, colKey, colDef, vakLeraar, tr, colDefs, data: theData, yearKey };
+            let ctx: Context = {td, colKey, colDef, vakLeraar, tr, colDefs, data: urenData, yearKey };
             calculateAndSumCell(colDef, ctx, true);
         }
     }
@@ -284,32 +235,25 @@ function recalculate() {
     observeTable(true);
 }
 
-export interface TheData {
-    year: number,
-    fromCloud: JsonCloudData,
-    vakLeraars: Map<string, VakLeraar>
-}
-
-export function buildTable(data: TheData, tableDef: TableDef) {
+export function buildTable(urenData: UrenData, tableDef: TableDef) {
     isUpdatePaused = true;
-    theData = data;
+    globalUrenData = urenData;
     let table = document.createElement("table");
     tableDef.tableRef.getOrgTable().insertAdjacentElement("afterend", table);
     table.id = def.COUNT_TABLE_ID;
     table.classList.add("canSort");
-    updateColDefs(data.year);
-    fillTableHeader(table, data.vakLeraars);
+    updateColDefs(urenData.year);
+    fillTableHeader(table, urenData.vakLeraars);
     let tbody = document.createElement("tbody");
     table.appendChild(tbody);
-    mapCloudData(data.fromCloud);
 
     let lastVak = "";
     let rowClass = undefined;
     clearTotals();
 
-    let yearKey = getYearKeys(theData.year).keyNext;
+    let yearKey = getYearKeys(urenData.year).keyNext;
 
-    for(let [vakLeraarKey, vakLeraar] of data.vakLeraars) {
+    for(let [vakLeraarKey, vakLeraar] of urenData.vakLeraars) {
         let tr = document.createElement("tr");
         tbody.appendChild(tr);
         tr.dataset["vak_leraar"] = vakLeraarKey;
@@ -324,7 +268,7 @@ export function buildTable(data: TheData, tableDef: TableDef) {
             let td = document.createElement("td");
             tr.appendChild(td);
             td.classList.add(...colDef.classList);
-            let ctx = {td, colKey, colDef, vakLeraar, tr, colDefs, data, yearKey};
+            let ctx = {td, colKey, colDef, vakLeraar, tr, colDefs, data: urenData, yearKey};
             calculateAndSumCell(colDef, ctx, false);
         }
     }

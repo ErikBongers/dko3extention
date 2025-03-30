@@ -1,6 +1,6 @@
 import {addButton, calculateSchooljaar, createSchoolyearString, createShortSchoolyearString, findSchooljaar, getHighestSchooljaarAvailable, getSchoolIdString, setButtonHighlighted} from "../globals";
 import * as def from "../def";
-import {buildTable, createJsonCloudData, getUrenVakLeraarFileName, JsonCloudData} from "./buildUren";
+import {buildTable, getUrenVakLeraarFileName} from "./buildUren";
 import {scrapeStudent, VakLeraar} from "./scrapeUren";
 import {cloud} from "../cloud";
 import {FetchedTable, findTableRefInCode, TableDef} from "../table/tableDef";
@@ -10,6 +10,7 @@ import {NamedCellTablePageHandler} from "../pageHandlers";
 import {addTableHeaderClickEvents} from "../table/tableHeaders";
 import {getPageStateOrDefault, Goto, PageName, savePageState, WerklijstPageState} from "../pageState";
 import {getChecksumHandler, registerChecksumHandler} from "../table/observer";
+import {CloudData, JsonCloudData, UrenData} from "./urenData";
 
 const tableId = "table_leerlingen_werklijst_table";
 
@@ -144,13 +145,13 @@ function onClickShowCounts() {
             for(let tr of rows) {
                 scrapeStudent(tableDef, tr, vakLeraars);//TODO: returns false if fails. Report error.
             }
-            let fromCloud = tableDef.parallelData as JsonCloudData;
+            let fromCloud = new JsonCloudData(tableDef.parallelData as JsonCloudData)
             fromCloud = upgradeCloudData(fromCloud);
             vakLeraars = new Map([...vakLeraars.entries()].sort((a, b) => a[0] < b[0] ? -1 : ((a[0] > b[0])? 1 : 0))) as Map<string, VakLeraar>;
             document.getElementById(def.COUNT_TABLE_ID)?.remove();
             let schoolYear = findSchooljaar();
             let year = parseInt(schoolYear);
-            buildTable({year, vakLeraars, fromCloud}, tableDef);
+            buildTable(new UrenData(year, new CloudData(fromCloud), vakLeraars), tableDef);
             document.getElementById(def.COUNT_TABLE_ID).style.display = "none";
             showOrHideNewTable();
         }
@@ -164,11 +165,11 @@ function onClickShowCounts() {
     return true;
 }
 
-async function getUrenFromCloud(fileName: string) {
+async function getUrenFromCloud(fileName: string): Promise<JsonCloudData> {
     try {
         return await cloud.json.fetch(fileName);
     } catch (e) {
-        return createJsonCloudData();
+        return new JsonCloudData();
     }
 }
 
