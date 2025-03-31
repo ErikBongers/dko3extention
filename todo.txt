@@ -3,7 +3,14 @@
   > for Rhea: NOT fine: altviool and viool share the same hour!
      > how do we indicate this?
      > what is the default? Sum or merge(max)?
+       > if we make extra classes, this may be because of splitting students over hours.
      > via a tag?
+     > Lievenka is the default because, naively, every instrument has it's own hour.
+     > Rhea is the exception: viool and altviool SHARE the same hour.
+        > a tag?
+          : gedeeld_aantal=rhea_altviool_viool
+          > set this on BOTH altviool and viool.
+          > document these tags.
 
 * Global search: sorteer op voornaam.
 
