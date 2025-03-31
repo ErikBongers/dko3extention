@@ -1203,8 +1203,8 @@
     return emmet.append(trBlockInfo, "td.infoCell[colspan=3]>div.text-muted");
   }
   function buildInfoRowWithText(newTableBody, show, groupId, text) {
-    let { last: td } = buildInfoRow(newTableBody, "", show, groupId);
-    td.appendChild(document.createTextNode(text));
+    let { last: divMuted } = buildInfoRow(newTableBody, "", show, groupId);
+    divMuted.appendChild(document.createTextNode(text));
   }
   function buildBlockHeader(newTableBody, block, groupId, trimesterHeaders, displayOptions) {
     buildInfoRowWithText(newTableBody, Boolean(1 /* Teacher */ & displayOptions), groupId, block.teacher);
@@ -1212,8 +1212,8 @@
     buildInfoRowWithText(newTableBody, Boolean(2 /* Hour */ & displayOptions), groupId, block.lesmoment);
     buildInfoRowWithText(newTableBody, Boolean(8 /* Location */ & displayOptions), groupId, block.vestiging);
     if (block.tags.length > 0) {
-      let { last: td } = buildInfoRow(newTableBody, block.tags.join(), true, groupId);
-      emmet.appendChild(td, block.tags.map((tag) => `span.badge.badge-ill.badge-warning{${tag}}`).join("+"));
+      let { last: divMuted } = buildInfoRow(newTableBody, block.tags.join(), true, groupId);
+      emmet.appendChild(divMuted, block.tags.map((tag) => `span.badge.badge-ill.badge-warning{${tag}}`).join("+"));
     }
     const trModuleLinks = createLesRow(groupId);
     newTableBody.appendChild(trModuleLinks);

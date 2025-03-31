@@ -310,8 +310,8 @@ function buildInfoRow(newTableBody: HTMLTableSectionElement, text: string, show:
 }
 
 function buildInfoRowWithText(newTableBody: HTMLTableSectionElement, show: boolean, groupId: string, text: string)  {
-    let {last: td} = buildInfoRow(newTableBody, "", show, groupId);
-    td.appendChild(document.createTextNode(text));
+    let {last: divMuted} = buildInfoRow(newTableBody, "", show, groupId);
+    divMuted.appendChild(document.createTextNode(text));
 }
 
 function buildBlockHeader(newTableBody: HTMLTableSectionElement, block: BlockInfo, groupId: string, trimesterHeaders: string[], displayOptions: DisplayOptions) {
@@ -321,8 +321,8 @@ function buildBlockHeader(newTableBody: HTMLTableSectionElement, block: BlockInf
     buildInfoRowWithText(newTableBody, Boolean((DisplayOptions.Hour & displayOptions)), groupId, block.lesmoment);
     buildInfoRowWithText(newTableBody, Boolean((DisplayOptions.Location & displayOptions)), groupId, block.vestiging);
     if(block.tags.length > 0) {
-        let {last: td} = buildInfoRow(newTableBody, block.tags.join(), true, groupId);
-        emmet.appendChild(td, block.tags.map(tag => `span.badge.badge-ill.badge-warning{${tag}}`).join('+'))
+        let {last: divMuted} = buildInfoRow(newTableBody, block.tags.join(), true, groupId);
+        emmet.appendChild(divMuted, block.tags.map(tag => `span.badge.badge-ill.badge-warning{${tag}}`).join('+'))
     }
 
     //build row for module links(the tiny numbered buttons)
