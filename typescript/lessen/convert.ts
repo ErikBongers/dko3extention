@@ -2,6 +2,10 @@ import {Les, LesType, StudentInfo} from "./scrape";
 import {db3, distinct} from "../globals";
 import {getSavedNameSorting, NameSorting} from "./build";
 
+interface TagInfo {
+    name: string,
+    partial: boolean
+}
 
 export class BlockInfo {
     teacher: string;
@@ -11,7 +15,7 @@ export class BlockInfo {
     vestiging: string;
     trimesters: (Les| undefined)[][];
     jaarModules: Les[];
-    tags: string[];
+    tags: TagInfo[];
     errors: string;
 
     static emptyBlock() {
@@ -170,7 +174,10 @@ export function buildTableData(inputModules: Les[]) : TableData {
                 block.lesmoment = lesmoment;
                 block.maxAantal = getMaxAantal(instrumentTeacherMomentModules);
                 block.vestiging = getVestigingen(instrumentTeacherMomentModules);
-                block.tags = distinct(instrumentTeacherMomentModules.map(les => les.tags).flat());
+                block.tags = distinct(instrumentTeacherMomentModules.map(les => les.tags).flat())
+                    .map(tagName => {
+                        return { name: tagName, partial : !tagFoundInAllModules(tagName, instrumentTeacherMomentModules) }
+                    });
                 // we could have both trimesters and jaar modules for this instrument/teacher/lesmoment
                 block.trimesters = buildTrimesters(instrumentTeacherMomentModules);
                 block.jaarModules = instrumentTeacherMomentModules.filter(module => module.lesType === LesType.JaarModule);
@@ -241,6 +248,14 @@ export function buildTableData(inputModules: Les[]) : TableData {
     return tableData;
 }
 
+function tagFoundInAllModules(tag: string, modules: Les[]) {
+    for(let module of modules) {
+        if(!module.tags.includes(tag))
+            return false;
+    }
+    return true;
+}
+
 function groupBlocksTwoLevels(primaryGroups: Iterable<HasBlocks>, getSecondaryKey: (block: BlockInfo) => string, setSecondaryGroup: (primary: HasBlocks, group: Map<string, BlockInfo>) => void) {
     for (let primary of primaryGroups) {
         let blocks = primary.blocks;
@@ -287,7 +302,9 @@ function updateMergedBlock(block: BlockInfo) {
     block.teacher = [...new Set(allLessen.filter(les => les).map(les => les.teacher))].join(", ");
     block.vestiging = [...new Set(allLessen.filter(les => les).map(les => les.vestiging))].join(", ");
     block.instrumentName =  [...new Set(allLessen.filter(les => les).map(les => les.instrumentName))].join(", ");
-    block.tags = distinct(allLessen.filter(les => les).map(les => les.tags).flat());
+    block.tags = allLessen.filter(les => les).map(les => les.tags).flat().map(tagName => {
+            return { name: tagName, partial: true }
+        });
 }
 
 function checkBlockForErrors(block: BlockInfo) {

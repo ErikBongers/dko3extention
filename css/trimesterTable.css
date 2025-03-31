@@ -121,6 +121,12 @@
     &[data-show-full-class="true"] tr[data-has-full-class="false"] {
         display: none;
     }
+    & span.badge {
+        margin-right: 1ch;
+    }
+    & span.badge.muted {
+        opacity: .5;
+    }
 }
 
 :root[data-darkreader-scheme="dark"] #trimesterDiv {

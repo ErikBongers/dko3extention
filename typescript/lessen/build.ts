@@ -322,7 +322,10 @@ function buildBlockHeader(newTableBody: HTMLTableSectionElement, block: BlockInf
     buildInfoRowWithText(newTableBody, Boolean((DisplayOptions.Location & displayOptions)), groupId, block.vestiging);
     if(block.tags.length > 0) {
         let {last: divMuted} = buildInfoRow(newTableBody, block.tags.join(), true, groupId);
-        emmet.appendChild(divMuted, block.tags.map(tag => `span.badge.badge-ill.badge-warning{${tag}}`).join('+'))
+        emmet.appendChild(divMuted, block.tags.map(tag => {
+            let mutedClass = tag.partial ? ".muted" : "";
+            return `span.badge.badge-ill.badge-warning${mutedClass}{${tag.name}}`;
+        }).join('+'))
     }
 
     //build row for module links(the tiny numbered buttons)

@@ -793,10 +793,14 @@
     let tempRoot = document.createElement("div");
     let result = parseAndBuild(tempRoot, onIndex, hook);
     let first = void 0;
-    for (let child of tempRoot.children) {
-      let result2 = target.insertAdjacentElement(position, child);
-      if (!first)
-        first = result2;
+    let insertPos = target;
+    let children = [...tempRoot.children];
+    for (let child of children) {
+      if (!first) {
+        first = insertPos = insertPos.insertAdjacentElement(position, child);
+      } else {
+        insertPos = insertPos.insertAdjacentElement("afterend", child);
+      }
     }
     return { target, first, last: result.last };
   }
@@ -1213,7 +1217,10 @@
     buildInfoRowWithText(newTableBody, Boolean(8 /* Location */ & displayOptions), groupId, block.vestiging);
     if (block.tags.length > 0) {
       let { last: divMuted } = buildInfoRow(newTableBody, block.tags.join(), true, groupId);
-      emmet.appendChild(divMuted, block.tags.map((tag) => `span.badge.badge-ill.badge-warning{${tag}}`).join("+"));
+      emmet.appendChild(divMuted, block.tags.map((tag) => {
+        let mutedClass = tag.partial ? ".muted" : "";
+        return `span.badge.badge-ill.badge-warning${mutedClass}{${tag.name}}`;
+      }).join("+"));
     }
     const trModuleLinks = createLesRow(groupId);
     newTableBody.appendChild(trModuleLinks);
@@ -1425,7 +1432,9 @@
           block.lesmoment = lesmoment;
           block.maxAantal = getMaxAantal(instrumentTeacherMomentModules);
           block.vestiging = getVestigingen(instrumentTeacherMomentModules);
-          block.tags = distinct(instrumentTeacherMomentModules.map((les) => les.tags).flat());
+          block.tags = distinct(instrumentTeacherMomentModules.map((les) => les.tags).flat()).map((tagName) => {
+            return { name: tagName, partial: !tagFoundInAllModules(tagName, instrumentTeacherMomentModules) };
+          });
           block.trimesters = buildTrimesters(instrumentTeacherMomentModules);
           block.jaarModules = instrumentTeacherMomentModules.filter((module) => module.lesType === 1 /* JaarModule */);
           checkBlockForErrors(block);
@@ -1487,6 +1496,13 @@
     db3(tableData);
     return tableData;
   }
+  function tagFoundInAllModules(tag, modules) {
+    for (let module of modules) {
+      if (!module.tags.includes(tag))
+        return false;
+    }
+    return true;
+  }
   function groupBlocksTwoLevels(primaryGroups, getSecondaryKey, setSecondaryGroup) {
     for (let primary of primaryGroups) {
       let blocks = primary.blocks;
@@ -1530,7 +1546,9 @@
     block.teacher = [...new Set(allLessen.filter((les) => les).map((les) => les.teacher))].join(", ");
     block.vestiging = [...new Set(allLessen.filter((les) => les).map((les) => les.vestiging))].join(", ");
     block.instrumentName = [...new Set(allLessen.filter((les) => les).map((les) => les.instrumentName))].join(", ");
-    block.tags = distinct(allLessen.filter((les) => les).map((les) => les.tags).flat());
+    block.tags = allLessen.filter((les) => les).map((les) => les.tags).flat().map((tagName) => {
+      return { name: tagName, partial: true };
+    });
   }
   function checkBlockForErrors(block) {
     let maxMoreThan100 = block.jaarModules.map((module) => module.maxAantal > TOO_LARGE_MAX).includes(true);

@@ -1,3 +1,5 @@
+* Tags: half transparent if not for all 3 trims present.
+
 * Trims: summing hours per block
   > for Lievenka: fine: just add the hours of all the blooks
   > for Rhea: NOT fine: altviool and viool share the same hour!
