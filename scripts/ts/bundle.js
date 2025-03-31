@@ -640,16 +640,18 @@
     let les = new Les();
     let [first] = lesInfo.getElementsByTagName("strong");
     les.vakNaam = first.textContent;
-    let badges = lesInfo.getElementsByClassName("badge");
-    les.alc = Array.from(badges).some((el) => el.textContent === "ALC");
+    let allBadges = lesInfo.getElementsByClassName("badge");
+    let warningBadges = lesInfo.getElementsByClassName("badge-warning");
+    les.alc = Array.from(allBadges).some((el) => el.textContent === "ALC");
     les.visible = lesInfo.getElementsByClassName("fa-eye-slash").length === 0;
+    les.tags = Array.from(warningBadges).map((el) => el.textContent).filter((txt) => txt !== "ALC").filter((txt) => txt);
     let mutedSpans = lesInfo.querySelectorAll("span.text-muted");
     if (mutedSpans.length > 1) {
       les.naam = mutedSpans.item(0).textContent;
     } else {
       les.naam = lesInfo.children[1].textContent;
     }
-    if (Array.from(badges).some((el) => el.textContent === "module")) {
+    if (Array.from(allBadges).some((el) => el.textContent === "module")) {
       if (les.naam.includes("jaar"))
         les.lesType = 1 /* JaarModule */;
       else if (les.naam.includes("rimester"))
@@ -1198,14 +1200,21 @@
     trBlockInfo.classList.add("blockRow");
     if (show === false)
       trBlockInfo.dataset.keepHidden = "true";
-    let { last: divBlockInfo } = emmet.append(trBlockInfo, "td.infoCell[colspan=3]>div.text-muted");
-    divBlockInfo.appendChild(document.createTextNode(text));
+    return emmet.append(trBlockInfo, "td.infoCell[colspan=3]>div.text-muted");
+  }
+  function buildInfoRowWithText(newTableBody, show, groupId, text) {
+    let { last: td } = buildInfoRow(newTableBody, "", show, groupId);
+    td.appendChild(document.createTextNode(text));
   }
   function buildBlockHeader(newTableBody, block, groupId, trimesterHeaders, displayOptions) {
-    buildInfoRow(newTableBody, block.teacher, Boolean(1 /* Teacher */ & displayOptions), groupId);
-    buildInfoRow(newTableBody, block.instrumentName, Boolean(4 /* Instrument */ & displayOptions), groupId);
-    buildInfoRow(newTableBody, block.lesmoment, Boolean(2 /* Hour */ & displayOptions), groupId);
-    buildInfoRow(newTableBody, block.vestiging, Boolean(8 /* Location */ & displayOptions), groupId);
+    buildInfoRowWithText(newTableBody, Boolean(1 /* Teacher */ & displayOptions), groupId, block.teacher);
+    buildInfoRowWithText(newTableBody, Boolean(4 /* Instrument */ & displayOptions), groupId, block.instrumentName);
+    buildInfoRowWithText(newTableBody, Boolean(2 /* Hour */ & displayOptions), groupId, block.lesmoment);
+    buildInfoRowWithText(newTableBody, Boolean(8 /* Location */ & displayOptions), groupId, block.vestiging);
+    if (block.tags.length > 0) {
+      let { last: td } = buildInfoRow(newTableBody, block.tags.join(), true, groupId);
+      emmet.appendChild(td, block.tags.map((tag) => `span.badge.badge-ill.badge-warning{${tag}}`).join("+"));
+    }
     const trModuleLinks = createLesRow(groupId);
     newTableBody.appendChild(trModuleLinks);
     trModuleLinks.classList.add("blockRow");
@@ -1317,7 +1326,8 @@
         lesmoment: void 0,
         trimesters: [[], [], []],
         jaarModules: [],
-        errors: ""
+        errors: "",
+        tags: []
       };
     }
   };
@@ -1415,6 +1425,7 @@
           block.lesmoment = lesmoment;
           block.maxAantal = getMaxAantal(instrumentTeacherMomentModules);
           block.vestiging = getVestigingen(instrumentTeacherMomentModules);
+          block.tags = distinct(instrumentTeacherMomentModules.map((les) => les.tags).flat());
           block.trimesters = buildTrimesters(instrumentTeacherMomentModules);
           block.jaarModules = instrumentTeacherMomentModules.filter((module) => module.lesType === 1 /* JaarModule */);
           checkBlockForErrors(block);
@@ -1519,6 +1530,7 @@
     block.teacher = [...new Set(allLessen.filter((les) => les).map((les) => les.teacher))].join(", ");
     block.vestiging = [...new Set(allLessen.filter((les) => les).map((les) => les.vestiging))].join(", ");
     block.instrumentName = [...new Set(allLessen.filter((les) => les).map((les) => les.instrumentName))].join(", ");
+    block.tags = distinct(allLessen.filter((les) => les).map((les) => les.tags).flat());
   }
   function checkBlockForErrors(block) {
     let maxMoreThan100 = block.jaarModules.map((module) => module.maxAantal > TOO_LARGE_MAX).includes(true);

@@ -143,15 +143,21 @@ export class Les {
     students: StudentInfo[];
     instrumentName: string;
     trimesterNo: number;
+    tags: string[];
 }
 
 function scrapeLesInfo(lesInfo: HTMLElement) {
     let les = new Les();
     let [first] = lesInfo.getElementsByTagName("strong");
     les.vakNaam = first.textContent;
-    let badges = lesInfo.getElementsByClassName("badge");
-    les.alc = Array.from(badges).some((el) => el.textContent === "ALC");
+    let allBadges = lesInfo.getElementsByClassName("badge");
+    let warningBadges = lesInfo.getElementsByClassName("badge-warning");
+    les.alc = Array.from(allBadges).some((el) => el.textContent === "ALC");
     les.visible = lesInfo.getElementsByClassName("fa-eye-slash").length === 0;
+    les.tags = Array.from(warningBadges)
+        .map((el) => el.textContent)
+        .filter((txt) => txt !== "ALC")
+        .filter((txt) => txt);
     let mutedSpans = lesInfo.querySelectorAll("span.text-muted");
     //muted spans contain:
     //  - class name (optional)
@@ -161,7 +167,7 @@ function scrapeLesInfo(lesInfo: HTMLElement) {
     } else {
         les.naam = lesInfo.children[1].textContent;
     }
-    if(Array.from(badges).some((el) => el.textContent === "module")) {
+    if(Array.from(allBadges).some((el) => el.textContent === "module")) {
         if(les.naam.includes("jaar"))
             les.lesType = LesType.JaarModule;
         else if(les.naam.includes("rimester"))

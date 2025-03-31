@@ -306,16 +306,24 @@ function buildInfoRow(newTableBody: HTMLTableSectionElement, text: string, show:
     if(show===false)
         trBlockInfo.dataset.keepHidden = "true";
 
-    let {last: divBlockInfo} = html.emmet.append(trBlockInfo, "td.infoCell[colspan=3]>div.text-muted");
-    divBlockInfo.appendChild(document.createTextNode(text)); // don't emmet this as I may use html templates for this.
+    return html.emmet.append(trBlockInfo, "td.infoCell[colspan=3]>div.text-muted");
+}
+
+function buildInfoRowWithText(newTableBody: HTMLTableSectionElement, show: boolean, groupId: string, text: string)  {
+    let {last: td} = buildInfoRow(newTableBody, "", show, groupId);
+    td.appendChild(document.createTextNode(text));
 }
 
 function buildBlockHeader(newTableBody: HTMLTableSectionElement, block: BlockInfo, groupId: string, trimesterHeaders: string[], displayOptions: DisplayOptions) {
     //INFO
-    buildInfoRow(newTableBody, block.teacher, Boolean((DisplayOptions.Teacher & displayOptions)), groupId);
-    buildInfoRow(newTableBody, block.instrumentName, Boolean((DisplayOptions.Instrument & displayOptions)), groupId);
-    buildInfoRow(newTableBody, block.lesmoment, Boolean((DisplayOptions.Hour & displayOptions)), groupId);
-    buildInfoRow(newTableBody, block.vestiging, Boolean((DisplayOptions.Location & displayOptions)), groupId);
+    buildInfoRowWithText(newTableBody, Boolean((DisplayOptions.Teacher & displayOptions)), groupId, block.teacher);
+    buildInfoRowWithText(newTableBody, Boolean((DisplayOptions.Instrument & displayOptions)), groupId, block.instrumentName);
+    buildInfoRowWithText(newTableBody, Boolean((DisplayOptions.Hour & displayOptions)), groupId, block.lesmoment);
+    buildInfoRowWithText(newTableBody, Boolean((DisplayOptions.Location & displayOptions)), groupId, block.vestiging);
+    if(block.tags.length > 0) {
+        let {last: td} = buildInfoRow(newTableBody, block.tags.join(), true, groupId);
+        emmet.appendChild(td, block.tags.map(tag => `span.badge.badge-ill.badge-warning{${tag}}`).join('+'))
+    }
 
     //build row for module links(the tiny numbered buttons)
     const trModuleLinks = createLesRow(groupId);

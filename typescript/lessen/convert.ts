@@ -11,6 +11,7 @@ export class BlockInfo {
     vestiging: string;
     trimesters: (Les| undefined)[][];
     jaarModules: Les[];
+    tags: string[];
     errors: string;
 
     static emptyBlock() {
@@ -22,7 +23,8 @@ export class BlockInfo {
             lesmoment: undefined,
             trimesters: [[], [], []],
             jaarModules: [],
-            errors: ""
+            errors: "",
+            tags: []
         }
     }
 }
@@ -168,6 +170,7 @@ export function buildTableData(inputModules: Les[]) : TableData {
                 block.lesmoment = lesmoment;
                 block.maxAantal = getMaxAantal(instrumentTeacherMomentModules);
                 block.vestiging = getVestigingen(instrumentTeacherMomentModules);
+                block.tags = distinct(instrumentTeacherMomentModules.map(les => les.tags).flat());
                 // we could have both trimesters and jaar modules for this instrument/teacher/lesmoment
                 block.trimesters = buildTrimesters(instrumentTeacherMomentModules);
                 block.jaarModules = instrumentTeacherMomentModules.filter(module => module.lesType === LesType.JaarModule);
@@ -283,7 +286,8 @@ function updateMergedBlock(block: BlockInfo) {
     block.lesmoment = [...new Set(allLessen.filter(les => les).map(les => les.lesmoment))].join(", ");
     block.teacher = [...new Set(allLessen.filter(les => les).map(les => les.teacher))].join(", ");
     block.vestiging = [...new Set(allLessen.filter(les => les).map(les => les.vestiging))].join(", ");
-    block.instrumentName = [...new Set(allLessen.filter(les => les).map(les => les.instrumentName))].join(", ");
+    block.instrumentName =  [...new Set(allLessen.filter(les => les).map(les => les.instrumentName))].join(", ");
+    block.tags = distinct(allLessen.filter(les => les).map(les => les.tags).flat());
 }
 
 function checkBlockForErrors(block: BlockInfo) {
