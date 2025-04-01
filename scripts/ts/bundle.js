@@ -595,7 +595,6 @@
       module.trimesterNo = parseInt(match2[2]);
       trimesterModules.push(module);
     }
-    db3(trimesterModules);
     return trimesterModules;
   }
   function scrapeJaarModules(lessen) {
@@ -613,7 +612,6 @@
       module.trimesterNo = parseInt(match2[2]);
       jaarModules.push(module);
     }
-    db3(jaarModules);
     return jaarModules;
   }
   var StudentInfo = class {
@@ -1493,7 +1491,6 @@
       tableData.instruments.values(),
       (block) => block.instrumentName
     );
-    db3(tableData);
     return tableData;
   }
   function tagFoundInAllModules(tag, modules) {
@@ -1534,7 +1531,7 @@
     {
       blockToMergeTo.jaarModules.push(...block2.jaarModules);
       for (let trimNo of [0, 1, 2]) {
-        blockToMergeTo.trimesters[trimNo].push(block2.trimesters[trimNo][0]);
+        blockToMergeTo.trimesters[trimNo].push(...block2.trimesters[trimNo]);
       }
       blockToMergeTo.errors += block2.errors;
       return blockToMergeTo;
@@ -1570,6 +1567,7 @@
         let stud = allStudents.get(student.name);
         stud.trimesterInstruments[blockTrimModule.trimesterNo - 1].push(blockTrimModule);
       }
+      blockTrimModule.students = blockTrimModule.students.map((student) => allStudents.get(student.name));
     }
   }
   function addJaarStudentsToMapAndCount(students, jaarModule) {

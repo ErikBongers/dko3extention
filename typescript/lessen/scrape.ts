@@ -1,5 +1,3 @@
-import { db3 } from "../globals";
-
 export function scrapeLessenOverzicht() {
     let table = document.getElementById("table_lessen_resultaat_tabel") as HTMLTableElement;
     let body = table.tBodies[0];
@@ -64,7 +62,6 @@ function scrapeTrimesterModules(lessen: Les[] ) {
         trimesterModules.push(module);
     }
 
-    db3(trimesterModules);
     return trimesterModules;
 }
 
@@ -88,7 +85,6 @@ function scrapeJaarModules(lessen: Les[] ) {
         jaarModules.push(module);
     }
 
-    db3(jaarModules);
     return jaarModules;
 }
 

@@ -200,7 +200,7 @@ export function buildTableData(inputModules: Les[]) : TableData {
         setStudentNoInstrumentForAllTrims(student);
     }
 
-    //group by instrument
+    //group by instrument/teacher/hour
     let instrumentNames = distinct(tableData.blocks.map(b => b.instrumentName)).sort((a,b) => { return a.localeCompare(b);});
     for(let instr of instrumentNames) {
         tableData.instruments.set(instr, <Instrument>{name: instr, blocks: []});
@@ -209,7 +209,7 @@ export function buildTableData(inputModules: Les[]) : TableData {
         tableData.instruments.get(block.instrumentName).blocks.push(block);
     }
 
-    //group by teacher
+    //group by teacher/instrument/hour
     let teachers = distinct(tableData.blocks.map(b => b.teacher)).sort((a,b) => { return a.localeCompare(b);});
     for(let t of teachers) {
         tableData.teachers.set(t, <Teacher>{name: t, blocks: []});
@@ -244,7 +244,6 @@ export function buildTableData(inputModules: Les[]) : TableData {
         (block) => block.instrumentName
     );
 
-    db3(tableData);
     return tableData;
 }
 
@@ -290,7 +289,7 @@ function groupBlocks(primaryGroups: Iterable<HasBlocks>, getPrimaryKey: (block: 
 function mergeBlock(blockToMergeTo: BlockInfo, block2: BlockInfo) {{
     blockToMergeTo.jaarModules.push(...block2.jaarModules);
     for (let trimNo of [0, 1, 2]) {
-        blockToMergeTo.trimesters[trimNo].push(block2.trimesters[trimNo][0]);
+        blockToMergeTo.trimesters[trimNo].push(...block2.trimesters[trimNo]);
     }
     blockToMergeTo.errors += block2.errors;
     return blockToMergeTo;
