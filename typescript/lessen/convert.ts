@@ -33,7 +33,7 @@ export class BlockInfo {
     }
 }
 
-interface HasBlocks {
+interface MergeableBlocksGroop {
     blocks: BlockInfo[],
     mergedBlocks: Map<string, BlockInfo>
 }
@@ -255,7 +255,7 @@ function tagFoundInAllModules(tag: string, modules: Les[]) {
     return true;
 }
 
-function groupBlocksTwoLevels(primaryGroups: Iterable<HasBlocks>, getSecondaryKey: (block: BlockInfo) => string, setSecondaryGroup: (primary: HasBlocks, group: Map<string, BlockInfo>) => void) {
+function groupBlocksTwoLevels(primaryGroups: Iterable<MergeableBlocksGroop>, getSecondaryKey: (block: BlockInfo) => string, setSecondaryGroup: (primary: MergeableBlocksGroop, group: Map<string, BlockInfo>) => void) {
     for (let primary of primaryGroups) {
         let blocks = primary.blocks;
         let secondaryKeys = distinct(blocks.map(getSecondaryKey));
@@ -271,7 +271,7 @@ function groupBlocksTwoLevels(primaryGroups: Iterable<HasBlocks>, getSecondaryKe
     }
 }
 
-function groupBlocks(primaryGroups: Iterable<HasBlocks>, getPrimaryKey: (block: BlockInfo) => string) {
+function groupBlocks(primaryGroups: Iterable<MergeableBlocksGroop>, getPrimaryKey: (block: BlockInfo) => string) {
     for (let primary of primaryGroups) {
         let blocks = primary.blocks;
         let keys = distinct(blocks.map(getPrimaryKey));
