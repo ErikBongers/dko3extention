@@ -1543,9 +1543,12 @@
     block.teacher = [...new Set(allLessen.filter((les) => les).map((les) => les.teacher))].join(", ");
     block.vestiging = [...new Set(allLessen.filter((les) => les).map((les) => les.vestiging))].join(", ");
     block.instrumentName = [...new Set(allLessen.filter((les) => les).map((les) => les.instrumentName))].join(", ");
-    block.tags = allLessen.filter((les) => les).map((les) => les.tags).flat().map((tagName) => {
-      return { name: tagName, partial: true };
+    block.tags = distinct(allLessen.filter((les) => les).map((les) => les.tags).flat()).map((tagName) => {
+      return { name: tagName, partial: false };
     });
+    for (let tag of block.tags) {
+      tag.partial = !allLessen.every((les) => les.tags.includes(tag.name));
+    }
   }
   function checkBlockForErrors(block) {
     let maxMoreThan100 = block.jaarModules.map((module) => module.maxAantal > TOO_LARGE_MAX).includes(true);

@@ -14,6 +14,8 @@
 
 * Global search: sorteer op voornaam.
 
+* verwittigingen: preview met ingevulde velden.
+
 * trims search: combined search werkt niet. viool+Hannah
 
 * afw: zoek ook op naam
