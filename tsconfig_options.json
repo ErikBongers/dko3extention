@@ -4,7 +4,8 @@
     "outDir": "./scripts/options",
     "target": "es2021",
     "sourceMap": true,
-    "noEmit": true
+    "noEmit": true,
+    "incremental": false
   },
   "files": ["./typescript/plugin_options/options.ts"]
 }

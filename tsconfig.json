@@ -4,6 +4,7 @@
     "outDir": "./scripts/ts",
     "target": "es2021",
     "sourceMap": true,
-    "noEmit": true
+    "noEmit": true,
+    "incremental": false
   },
 }
