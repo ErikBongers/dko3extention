@@ -137,4 +137,9 @@
     & th div {
         background-color: darkslategray;
     }
+
+    & td.gray {
+        background: rgba(255, 255, 255, .1);
+    }
+
 }
