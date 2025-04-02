@@ -1,3 +1,4 @@
 .idea
 /node_modules/
 /scripts/ts/tsconfig.tsbuildinfo
+/publish/edge/dko3extension.zip
