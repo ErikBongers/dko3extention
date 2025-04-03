@@ -120,11 +120,12 @@ function findUniqueMatch(emailText: string, matchingLeerlingen: MatchingLeerling
     //lln: [Erik Pierre Bongers, Iris Marlies Bongers]
     // "Onzen Erik is ziek."
     // Erik: weight:2, Iris: 1
-    let mailLowerCase = emailText.toLowerCase();
+    let strippedText = emailText.replaceAll('\n', ' ').replaceAll('\r', ' ');
+    let mailLowerCase = strippedText.toLowerCase();
     for(let lln of matchingLeerlingen) {
         let nameParts = lln.name.split(" ");
         for(let namePart of nameParts) {
-            if(emailText.includes(" "+namePart+" ")) {
+            if(strippedText.includes(" "+namePart+" ")) {
                 lln.weight++;
             }
             if(mailLowerCase.includes(" "+namePart.toLowerCase()+" ")) {

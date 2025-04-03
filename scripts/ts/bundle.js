@@ -3817,11 +3817,12 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
   function findUniqueMatch(emailText, matchingLeerlingen2) {
     if (matchingLeerlingen2.length === 1)
       return matchingLeerlingen2[0];
-    let mailLowerCase = emailText.toLowerCase();
+    let strippedText = emailText.replaceAll("\n", " ").replaceAll("\r", " ");
+    let mailLowerCase = strippedText.toLowerCase();
     for (let lln of matchingLeerlingen2) {
       let nameParts = lln.name.split(" ");
       for (let namePart of nameParts) {
-        if (emailText.includes(" " + namePart + " ")) {
+        if (strippedText.includes(" " + namePart + " ")) {
           lln.weight++;
         }
         if (mailLowerCase.includes(" " + namePart.toLowerCase() + " ")) {
