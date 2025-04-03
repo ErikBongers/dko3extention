@@ -1,5 +1,5 @@
 import {ExactHashObserver, HashObserver} from "../pageObserver";
-import {QueryItem, saveQueryItems} from "../setupPowerQuery";
+import {addQueryItem, createQueryItem, QueryItem, saveQueryItems} from "../setupPowerQuery";
 
 export let extraInschrijvingenObserver = new ExactHashObserver("#extra-inschrijvingen", onMutationExtraInschrijvingen);
 export let allLijstenObserver = new ExactHashObserver("#leerlingen-lijsten", onMutationAlleLijsten);
@@ -36,30 +36,22 @@ function onMutationAlleLijsten(_mutation: MutationRecord) {
 }
 
 function onMutationExtraInschrijvingen(_mutation: MutationRecord) {
-    saveQueryItems("ExtraInschrijvingen", scrapeMenuPage("Inschrijvingen > ", inschrijvingeLinkToQueryItem));
+    saveQueryItems("ExtraInschrijvingen", scrapeMenuPage("Inschrijvingen > ", inschrijvingenLinkToQueryItem));
     return true;
 }
 
-function inschrijvingeLinkToQueryItem(headerLabel: string, link: HTMLAnchorElement, longLabelPrefix: string) {
-    let item: QueryItem = {
-        headerLabel, href: link.href, label: link.textContent.trim(), longLabel: "", lowerCase: "", weight: 0
-    };
-    if (item.label.toLowerCase().includes("inschrijving")) {
-        item.longLabel = item.headerLabel + " > " + item.label;
-    } else {
-        item.longLabel = longLabelPrefix + item.headerLabel + " > " + item.label;
+function inschrijvingenLinkToQueryItem(headerLabel: string, link: HTMLAnchorElement, longLabelPrefix: string) {
+    let label = link.textContent.trim();
+    let longLabel = longLabelPrefix + headerLabel + " > " + label;
+    if (label.toLowerCase().includes("inschrijving")) {
+        longLabel = headerLabel + " > " + label;
     }
-    item.lowerCase = item.longLabel.toLowerCase();
-    return item;
+    return createQueryItem(headerLabel, label, link.href, undefined, longLabel);
 }
 
 function defaultLinkToQueryItem(headerLabel: string, link: HTMLAnchorElement, longLabelPrefix: string) {
-    let item: QueryItem = {
-        headerLabel, href: link.href, label: link.textContent.trim(), longLabel: "", lowerCase: "", weight: 0
-    };
-    item.longLabel = longLabelPrefix + item.label;
-    item.lowerCase = item.longLabel.toLowerCase();
-    return item;
+    let label = link.textContent.trim();
+    return createQueryItem(headerLabel, label, link.href, undefined, longLabelPrefix + label);
 }
 
 function scrapeMenuPage(longLabelPrefix: string, linkConverter: LinkToQueryConverter) {

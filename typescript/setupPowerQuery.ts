@@ -17,6 +17,23 @@ export interface QueryItem {
     func?: GotoFunc;
 }
 
+export function addQueryItem(headerLabel: string, label: string, href: string, func?: GotoFunc, longLabelText?: string){
+    powerQueryItems.push(createQueryItem(headerLabel, label, href, func, longLabelText));
+}
+
+export function createQueryItem(headerLabel: string, label: string, href: string, func?: GotoFunc, longLabelText?: string){
+    let longLabel = longLabelText ?? headerLabel + " > " + label;
+    return <QueryItem>{
+        headerLabel,
+        label,
+        href,
+        weight: 0,
+        longLabel,
+        lowerCase: longLabel.toLowerCase(),
+        func
+    };
+}
+
 export function saveQueryItems(page: string, queryItems: QueryItem[]) {
     let savedPowerQueryString = localStorage.getItem(def.POWER_QUERY_ID);
     if(!savedPowerQueryString) {
@@ -43,23 +60,15 @@ function getSavedQueryItems(): QueryItem[] {
 function screpeDropDownMenu(headerMenu: Element) {
     let headerLabel = headerMenu.querySelector("a").textContent.trim();
 
-    let newItems = Array.from(headerMenu.querySelectorAll("div.dropdown-menu > a") as NodeListOf<HTMLAnchorElement>)
+    Array.from(headerMenu.querySelectorAll("div.dropdown-menu > a") as NodeListOf<HTMLAnchorElement>)
         .map((item) => {
-            let queryItem: QueryItem = {
-                func: undefined,
-                headerLabel,
-                label: item.textContent.trim(),
-                href: item.href,
-                weight: 0,
-                longLabel: "",
-                lowerCase: ""
+            return {
+                label:  item.textContent.trim(),
+                href: item.href
             };
-            queryItem.longLabel = queryItem.headerLabel + " > " + queryItem.label;
-            queryItem.lowerCase = queryItem.longLabel.toLowerCase();
-            return queryItem;
         })
-        .filter((item) => item.label != "" && item.href != "" && item.href != "https://administratie.dko3.cloud/#");
-    powerQueryItems.push(...newItems);
+        .filter((item) => item.label != "" && item.href != "" && item.href != "https://administratie.dko3.cloud/#")
+        .forEach(item => addQueryItem(headerLabel, item.label, item.href, undefined));
 }
 
 function scrapeMainMenu() {
@@ -90,23 +99,8 @@ function gotoWerklijstUrenPrevYear(_queryItem: QueryItem) {
 }
 
 function getHardCodedQueryItems() {
-    let items: QueryItem[] = [];
-    let item: QueryItem = {
-        headerLabel: "Werklijst", href: "", label: "Lerarenuren " +createShortSchoolyearString(calculateSchooljaar()), longLabel: "", lowerCase: "", weight: 0
-    }
-    item.longLabel = item.headerLabel + " > " + item.label;
-    item.lowerCase = item.longLabel.toLowerCase();
-    item.func = gotoWerklijstUrenPrevYear;
-    items.push(item);
-
-    item = {
-        headerLabel: "Werklijst", href: "", label: "Lerarenuren " +createShortSchoolyearString(calculateSchooljaar()+1), longLabel: "", lowerCase: "", weight: 0
-    }
-    item.longLabel = item.headerLabel + " > " + item.label;
-    item.lowerCase = item.longLabel.toLowerCase();
-    item.func = gotoWerklijstUrenNextYear;
-    items.push(item);
-    return items;
+    addQueryItem("Werklijst", "Lerarenuren " +createShortSchoolyearString(calculateSchooljaar()), "", gotoWerklijstUrenPrevYear);
+    addQueryItem("Werklijst", "Lerarenuren " +createShortSchoolyearString(calculateSchooljaar()+1), "", gotoWerklijstUrenNextYear);
 }
 
 document.body.addEventListener("keydown", showPowerQuery);
@@ -115,7 +109,7 @@ function showPowerQuery(ev: KeyboardEvent) {
     if (ev.key === "q" && ev.ctrlKey && !ev.shiftKey && !ev.altKey) {
         scrapeMainMenu();
         powerQueryItems.push(...getSavedQueryItems());
-        powerQueryItems.push(...getHardCodedQueryItems());
+        getHardCodedQueryItems();
         popover.showPopover();
     } else {
         if (popoverVisible === false)

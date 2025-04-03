@@ -3839,6 +3839,21 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
   var powerQueryItems = [];
   var popoverVisible = false;
   var selectedItem = 0;
+  function addQueryItem(headerLabel, label, href, func, longLabelText) {
+    powerQueryItems.push(createQueryItem(headerLabel, label, href, func, longLabelText));
+  }
+  function createQueryItem(headerLabel, label, href, func, longLabelText) {
+    let longLabel = longLabelText ?? headerLabel + " > " + label;
+    return {
+      headerLabel,
+      label,
+      href,
+      weight: 0,
+      longLabel,
+      lowerCase: longLabel.toLowerCase(),
+      func
+    };
+  }
   function saveQueryItems(page, queryItems) {
     let savedPowerQueryString = localStorage.getItem(POWER_QUERY_ID);
     if (!savedPowerQueryString) {
@@ -3862,21 +3877,12 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
   }
   function screpeDropDownMenu(headerMenu) {
     let headerLabel = headerMenu.querySelector("a").textContent.trim();
-    let newItems = Array.from(headerMenu.querySelectorAll("div.dropdown-menu > a")).map((item) => {
-      let queryItem = {
-        func: void 0,
-        headerLabel,
+    Array.from(headerMenu.querySelectorAll("div.dropdown-menu > a")).map((item) => {
+      return {
         label: item.textContent.trim(),
-        href: item.href,
-        weight: 0,
-        longLabel: "",
-        lowerCase: ""
+        href: item.href
       };
-      queryItem.longLabel = queryItem.headerLabel + " > " + queryItem.label;
-      queryItem.lowerCase = queryItem.longLabel.toLowerCase();
-      return queryItem;
-    }).filter((item) => item.label != "" && item.href != "" && item.href != "https://administratie.dko3.cloud/#");
-    powerQueryItems.push(...newItems);
+    }).filter((item) => item.label != "" && item.href != "" && item.href != "https://administratie.dko3.cloud/#").forEach((item) => addQueryItem(headerLabel, item.label, item.href, void 0));
   }
   function scrapeMainMenu() {
     powerQueryItems = [];
@@ -3901,39 +3907,15 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
     location.href = "/#leerlingen-werklijst";
   }
   function getHardCodedQueryItems() {
-    let items = [];
-    let item = {
-      headerLabel: "Werklijst",
-      href: "",
-      label: "Lerarenuren " + createShortSchoolyearString(calculateSchooljaar()),
-      longLabel: "",
-      lowerCase: "",
-      weight: 0
-    };
-    item.longLabel = item.headerLabel + " > " + item.label;
-    item.lowerCase = item.longLabel.toLowerCase();
-    item.func = gotoWerklijstUrenPrevYear;
-    items.push(item);
-    item = {
-      headerLabel: "Werklijst",
-      href: "",
-      label: "Lerarenuren " + createShortSchoolyearString(calculateSchooljaar() + 1),
-      longLabel: "",
-      lowerCase: "",
-      weight: 0
-    };
-    item.longLabel = item.headerLabel + " > " + item.label;
-    item.lowerCase = item.longLabel.toLowerCase();
-    item.func = gotoWerklijstUrenNextYear;
-    items.push(item);
-    return items;
+    addQueryItem("Werklijst", "Lerarenuren " + createShortSchoolyearString(calculateSchooljaar()), "", gotoWerklijstUrenPrevYear);
+    addQueryItem("Werklijst", "Lerarenuren " + createShortSchoolyearString(calculateSchooljaar() + 1), "", gotoWerklijstUrenNextYear);
   }
   document.body.addEventListener("keydown", showPowerQuery);
   function showPowerQuery(ev) {
     if (ev.key === "q" && ev.ctrlKey && !ev.shiftKey && !ev.altKey) {
       scrapeMainMenu();
       powerQueryItems.push(...getSavedQueryItems());
-      powerQueryItems.push(...getHardCodedQueryItems());
+      getHardCodedQueryItems();
       popover.showPopover();
     } else {
       if (popoverVisible === false)
@@ -4036,38 +4018,20 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
     return true;
   }
   function onMutationExtraInschrijvingen(_mutation) {
-    saveQueryItems("ExtraInschrijvingen", scrapeMenuPage("Inschrijvingen > ", inschrijvingeLinkToQueryItem));
+    saveQueryItems("ExtraInschrijvingen", scrapeMenuPage("Inschrijvingen > ", inschrijvingenLinkToQueryItem));
     return true;
   }
-  function inschrijvingeLinkToQueryItem(headerLabel, link, longLabelPrefix) {
-    let item = {
-      headerLabel,
-      href: link.href,
-      label: link.textContent.trim(),
-      longLabel: "",
-      lowerCase: "",
-      weight: 0
-    };
-    if (item.label.toLowerCase().includes("inschrijving")) {
-      item.longLabel = item.headerLabel + " > " + item.label;
-    } else {
-      item.longLabel = longLabelPrefix + item.headerLabel + " > " + item.label;
+  function inschrijvingenLinkToQueryItem(headerLabel, link, longLabelPrefix) {
+    let label = link.textContent.trim();
+    let longLabel = longLabelPrefix + headerLabel + " > " + label;
+    if (label.toLowerCase().includes("inschrijving")) {
+      longLabel = headerLabel + " > " + label;
     }
-    item.lowerCase = item.longLabel.toLowerCase();
-    return item;
+    return createQueryItem(headerLabel, label, link.href, void 0, longLabel);
   }
   function defaultLinkToQueryItem(headerLabel, link, longLabelPrefix) {
-    let item = {
-      headerLabel,
-      href: link.href,
-      label: link.textContent.trim(),
-      longLabel: "",
-      lowerCase: "",
-      weight: 0
-    };
-    item.longLabel = longLabelPrefix + item.label;
-    item.lowerCase = item.longLabel.toLowerCase();
-    return item;
+    let label = link.textContent.trim();
+    return createQueryItem(headerLabel, label, link.href, void 0, longLabelPrefix + label);
   }
   function scrapeMenuPage(longLabelPrefix, linkConverter) {
     let queryItems = [];
