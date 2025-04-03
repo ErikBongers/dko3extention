@@ -13,15 +13,14 @@ export function getPageState(): PageState {
 }
 
 function defaultPageState(pageName: PageName) {
+    let pageState = <PageState> {
+        goto: Goto.None,
+        pageName,
+    };
     if (pageName === PageName.Werklijst) {
-        let werklijstPageState: WerklijstPageState = {
-            goto: Goto.None,
-            pageName: PageName.Werklijst,
-            werklijstTableName: ""
-        }
-        return werklijstPageState;
+        return <WerklijstPageState> { werklijstTableName: "", ...pageState };
     }
-    return undefined;
+    return pageState;
 }
 
 export function getPageStateOrDefault(pageName: PageName): PageState {
@@ -34,12 +33,15 @@ export function getPageStateOrDefault(pageName: PageName): PageState {
 
 export enum PageName {
     Werklijst = "Werklijst",
+    Lessen = "Lessen",
 }
 
 export enum Goto {
     None = "",
     Werklijst_uren_nextYear = "Werklijst_uren_nextYear",
     Werklijst_uren_prevYear = "Werklijst_uren_prevYear",
+    Lessen_trimesters_set_filter = "Lessen_trimesters_set_filter",
+    Lessen_trimesters_show = "Lessen_trimesters_show",
 }
 
 export interface PageState {

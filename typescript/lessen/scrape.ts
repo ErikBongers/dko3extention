@@ -1,5 +1,4 @@
-export function scrapeLessenOverzicht() {
-    let table = document.getElementById("table_lessen_resultaat_tabel") as HTMLTableElement;
+export function scrapeLessenOverzicht(table: HTMLTableElement) {
     let body = table.tBodies[0];
     let lessen: Les[] = [];
     for (const row of body.rows) {
@@ -34,8 +33,8 @@ export function scrapeLessenOverzicht() {
     return lessen;
 }
 
-export function scrapeModules() {
-    let lessen = scrapeLessenOverzicht();
+export function scrapeModules(table: HTMLTableElement) {
+    let lessen = scrapeLessenOverzicht(table);
     return {
         trimesterModules: scrapeTrimesterModules(lessen),
         jaarModules: scrapeJaarModules(lessen)

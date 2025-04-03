@@ -5,6 +5,8 @@ import * as def from "../def";
 import {createScearchField, createTextRowFilter, filterTable, filterTableRows, setButtonHighlighted} from "../globals";
 import {HashObserver} from "../pageObserver";
 import * as html from "../../libs/Emmeter/html";
+import {emmet} from "../../libs/Emmeter/html";
+import {getPageStateOrDefault, Goto, PageName, savePageState} from "../pageState";
 
 export default new HashObserver("#lessen-overzicht", onMutation);
 
@@ -14,7 +16,77 @@ function onMutation (mutation: MutationRecord) {
         return false;
     }
 
-    // #lessen_overzicht > div.mb-3 > div > button.btn.btn-sm.btn-outline-info > i
+    if(!document.getElementById("btn_show_trimesters")) {
+        let {first} = emmet.insertAfter(document.getElementById("btn_lessen_overzicht_zoeken"),
+            "button.btn.btn-sm.btn-primary.w-100.mt-1#btn_show_trimesters>i.fas.fa-sitemap+{ Toon trimesters}");
+        first.onclick = onClickShowTrimesters;
+    }
+
+    console.log(mutation)
+    let pageState = getPageStateOrDefault(PageName.Lessen);
+    switch (pageState.goto) {
+        case Goto.Lessen_trimesters_set_filter:
+            pageState.goto = Goto.None;
+            savePageState(pageState);
+            onClickShowTrimesters();
+            return true;
+        case Goto.Lessen_trimesters_show:
+            console.log("TODO: show trims");
+            pageState.goto = Goto.None;
+            savePageState(pageState);
+            return true;
+    }
+
+    return decorateTable();
+}
+
+
+function onClickShowTrimesters() {
+    document.getElementById("lessen_overzicht").innerHTML = "<span class=\"text-muted\">\n" +
+        "                <i class=\"fa fa-cog fa-spin\"></i> <i>Bezig met laden...</i>\n" +
+        "            </span>";
+    setTrimesterFilterAndFetch().then((text) => {
+        console.log("Filter been set: show trims after reload...");
+        document.getElementById("lessen_overzicht").innerHTML = text;
+        let table = document.getElementById("table_lessen_resultaat_tabel") as HTMLTableElement;
+        decorateTable();//todo: this call is needed for call below. Inject it.
+        showTrimesterTable(table, true, savedGrouping);
+    });
+}
+
+async function setTrimesterFilterAndFetch() {
+    let params = new URLSearchParams({
+        schooljaar: "2024-2025", //todo: hard coded year!
+        domein:"3", //muziek
+        vestigingsplaats: "",
+        vak: "",
+        graad: "",
+        leerkracht: "",
+        ag: "",
+        lesdag: "",
+        verberg_online:"-1",
+        soorten_lessen:"3", //modules!
+        volzet:"-1",
+        // laad_tabel:"1"
+    });
+    let url = "https://administratie.dko3.cloud/views/lessen/overzicht/index.filters.php";
+    await fetch(url+"?" + params);
+    url = "https://administratie.dko3.cloud/views/lessen/overzicht/index.lessen.php";
+    let res = await fetch(url+"?" + params);
+    return res.text();
+}
+
+
+function createTrimTableDiv() {
+    if (!document.getElementById(def.TRIM_DIV_ID)) {
+        let trimDiv = document.createElement("div");
+        let originalTable = document.getElementById("table_lessen_resultaat_tabel");
+        originalTable.insertAdjacentElement("afterend", trimDiv);
+        trimDiv.id = def.TRIM_DIV_ID;
+    }
+}
+
+function decorateTable() {
     let printButton = document.getElementById("btn_print_overzicht_lessen") as HTMLButtonElement;
     if (!printButton) {
         return false;
@@ -30,20 +102,10 @@ function onMutation (mutation: MutationRecord) {
         copyLessonButton.style.backgroundColor = "red";
         copyLessonButton.style.color = "white";
     }
-    onLessenOverzichtChanged(printButton);
-    return true;
-}
 
-function onLessenOverzichtChanged(printButton: HTMLButtonElement) {
     //reset state
     let overzichtDiv = document.getElementById(def.LESSEN_OVERZICHT_ID);
-    let trimDiv = document.getElementById(def.TRIM_DIV_ID);
-    if (!trimDiv) {
-        let trimDiv = document.createElement("div");
-        let originalTable = document.getElementById("table_lessen_resultaat_tabel");
-        originalTable.insertAdjacentElement("afterend", trimDiv);
-        trimDiv.id = def.TRIM_DIV_ID;
-    }
+    createTrimTableDiv();
     overzichtDiv.dataset.filterFullClasses = "false";
 
     let badges = document.getElementsByClassName("badge");
@@ -55,10 +117,10 @@ function onLessenOverzichtChanged(printButton: HTMLButtonElement) {
     let hasFullClasses = Array.from(warnings).map((item) => item.textContent).some((txt) => txt.includes("leerlingen"));
 
     if (!hasModules && !hasAlc && !hasWarnings && !hasFullClasses) {
-        return;
+        return true;
     }
     if (hasModules) {
-        addButton(printButton, def.TRIM_BUTTON_ID, "Toon trimesters", onClickShowTrimesters, "fa-sitemap");
+        addButton(printButton, def.TRIM_BUTTON_ID, "Toon trimesters", onClickToggleTrimesters, "fa-sitemap");
     }
     if(hasAlc || hasWarnings) {
         addButton(printButton, def.CHECKS_BUTTON_ID, "Controleer lessen op fouten", onClickCheckResults, "fa-stethoscope");
@@ -68,6 +130,7 @@ function onLessenOverzichtChanged(printButton: HTMLButtonElement) {
     }
 
     addFilterField();
+    return true;
 }
 
 const TXT_FILTER_ID = "txtFilter";
@@ -129,9 +192,8 @@ function addButton(printButton: HTMLButtonElement, buttonId: string, title: stri
     }
 }
 function onClickCheckResults() {
-    let lessen = scrapeLessenOverzicht();
-
-    let table = document.getElementById("table_lessen_resultaat_tabel");
+    let table = document.getElementById("table_lessen_resultaat_tabel") as HTMLTableElement;
+    let lessen = scrapeLessenOverzicht(table);
 
     let checksDiv = document.createElement("div");
     checksDiv.id = "checksDiv";
@@ -155,7 +217,8 @@ function showOnlyFullTrimesters(onlyFull: boolean) {
 }
 
 function onClickFullClasses() {
-    let lessen = scrapeLessenOverzicht();
+    let table = document.getElementById("table_lessen_resultaat_tabel") as HTMLTableElement;
+    let lessen = scrapeLessenOverzicht(table);
     let overzichtDiv = document.getElementById(def.LESSEN_OVERZICHT_ID);
     overzichtDiv.dataset.filterFullClasses = (overzichtDiv.dataset.filterFullClasses?? "false") === "false" ? "true" : "false";
     let displayState = overzichtDiv.dataset.filterFullClasses === "true" ? "none" : "table-row";
@@ -168,22 +231,21 @@ function onClickFullClasses() {
     showOnlyFullTrimesters(displayState === "none");
 }
 
-function onClickShowTrimesters() {
-    showTrimesterTable(!isTrimesterTableVisible(), savedGrouping);
+function onClickToggleTrimesters() {
+    let table = document.getElementById("table_lessen_resultaat_tabel") as HTMLTableElement;
+    showTrimesterTable(table, !isTrimesterTableVisible(), savedGrouping);
 }
 
 export function isTrimesterTableVisible() {
     return document.getElementById("table_lessen_resultaat_tabel").style.display === "none";
 }
 
-export function showTrimesterTable(show: boolean, grouping: TrimesterGrouping) {
+export function showTrimesterTable(originalTable: HTMLTableElement, show: boolean, grouping: TrimesterGrouping) {
     document.getElementById(def.TRIM_TABLE_ID)?.remove();
-    //Build lazily and only once. Table will automatically be erased when filters are changed.
-    if (!document.getElementById(def.TRIM_TABLE_ID)) {
-        let inputModules = scrapeModules();
-        let tableData = buildTableData(inputModules.trimesterModules.concat(inputModules.jaarModules));
-        buildTrimesterTable(tableData, grouping);
-    }
+    let inputModules = scrapeModules(originalTable);
+    let tableData = buildTableData(inputModules.trimesterModules.concat(inputModules.jaarModules));
+    createTrimTableDiv();//todo: since required for next function, inject it.
+    buildTrimesterTable(tableData, grouping);
 
     document.getElementById("table_lessen_resultaat_tabel").style.display = show ? "none" : "table";
     document.getElementById(def.TRIM_TABLE_ID).style.display = show ? "table" : "none";
@@ -207,7 +269,8 @@ function addSortingAnchorOrText() {
                 setSavedNameSorting(NameSorting.LastName);
             else
                 setSavedNameSorting(NameSorting.FirstName);
-            showTrimesterTable(true, savedGrouping);
+            let table = document.getElementById("table_lessen_resultaat_tabel") as HTMLTableElement;
+            showTrimesterTable(table, true, savedGrouping);
             addSortingAnchorOrText();
             return false;
         };
@@ -264,7 +327,8 @@ function createGroupingAnchorOrText(grouping: TrimesterGrouping, activeSorting: 
         anchor.href = "#";
         anchor.onclick = () => {
             savedGrouping = grouping;
-            showTrimesterTable(true, grouping);
+            let table = document.getElementById("table_lessen_resultaat_tabel") as HTMLTableElement;
+            showTrimesterTable(table, true, grouping);
             return false;
         };
         return anchor;

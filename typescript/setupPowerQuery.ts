@@ -98,9 +98,17 @@ function gotoWerklijstUrenPrevYear(_queryItem: QueryItem) {
     location.href = "/#leerlingen-werklijst";
 }
 
+function gotoTrimesterModules(_queryItem: QueryItem) {
+    let pageState = getPageStateOrDefault(PageName.Lessen);
+    pageState.goto = Goto.Lessen_trimesters_set_filter;
+    savePageState(pageState);
+    location.href = "/#lessen-overzicht";
+}
+
 function getHardCodedQueryItems() {
     addQueryItem("Werklijst", "Lerarenuren " +createShortSchoolyearString(calculateSchooljaar()), "", gotoWerklijstUrenPrevYear);
     addQueryItem("Werklijst", "Lerarenuren " +createShortSchoolyearString(calculateSchooljaar()+1), "", gotoWerklijstUrenNextYear);
+    addQueryItem("Lessen", "Trimester modules", "", gotoTrimesterModules);
 }
 
 document.body.addEventListener("keydown", showPowerQuery);
