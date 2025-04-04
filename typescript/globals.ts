@@ -1,7 +1,10 @@
 import {Observer} from "./pageObserver";
 import {cloud} from "./cloud";
+import * as def from "./def";
 import {GLOBAL_SETTINGS_FILENAME} from "./def";
 import {emmet} from "../libs/Emmeter/html";
+import {PageName} from "./gotoState";
+import {LessenPageState, PageState} from "./lessen/build";
 
 type Options = {
   showDebug: boolean;
@@ -363,4 +366,26 @@ export function whoAmI() {
 
 export function stripStudentName(name: string): string {
     return name.replaceAll(/[,()'-]/g, " ").replaceAll("  ", " ");
+}
+
+export function getPageState(pageName: PageName, defaultState: LessenPageState): PageState {
+    let storedState = sessionStorage.getItem(def.STORAGE_PAGE_STATE_KEY_PREFIX + pageName);
+    if (storedState)
+        return JSON.parse(storedState);
+    return defaultState;
+}
+
+export function savePageState(state: PageState) {
+    sessionStorage.setItem(def.STORAGE_PAGE_STATE_KEY_PREFIX + state.pageName, JSON.stringify(state));
+}
+
+export function getPageSettings(pageName: PageName, defaultState: LessenPageState): PageState {
+    let storedState = localStorage.getItem(def.STORAGE_PAGE_STATE_KEY_PREFIX + pageName);
+    if (storedState)
+        return JSON.parse(storedState);
+    return defaultState;
+}
+
+export function savePageSettings(state: PageState) {
+    localStorage.setItem(def.STORAGE_PAGE_STATE_KEY_PREFIX + state.pageName, JSON.stringify(state));
 }

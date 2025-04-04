@@ -1,8 +1,8 @@
 import {scrapeLessenOverzicht, scrapeModules} from "./scrape";
 import {buildTableData} from "./convert";
-import {buildTrimesterTable, getDefaultPageState, getPageState, getSavedNameSorting, LessenPageState, NameSorting, savePageState, setSavedNameSorting, TrimesterGrouping} from "./build";
+import {buildTrimesterTable, getDefaultPageSettings, getSavedNameSorting, LessenPageState, NameSorting, setSavedNameSorting, TrimesterGrouping} from "./build";
 import * as def from "../def";
-import {createSearchField, createTextRowFilter, filterTable, filterTableRows, setButtonHighlighted} from "../globals";
+import {createSearchField, createTextRowFilter, filterTable, filterTableRows, getPageSettings, savePageSettings, setButtonHighlighted} from "../globals";
 import {HashObserver} from "../pageObserver";
 import * as html from "../../libs/Emmeter/html";
 import {emmet} from "../../libs/Emmeter/html";
@@ -138,7 +138,7 @@ const TXT_FILTER_ID = "txtFilter";
 function addFilterField() {
     let divButtonNieuweLes = document.querySelector("#lessen_overzicht > div > button");
     if(!document.getElementById(TXT_FILTER_ID)) {
-        let pageState = getPageState(PageName.Lessen, getDefaultPageState()) as LessenPageState;
+        let pageState = getPageSettings(PageName.Lessen, getDefaultPageSettings()) as LessenPageState;
         divButtonNieuweLes.insertAdjacentElement("afterend", createSearchField(TXT_FILTER_ID, onSearchInput, pageState.searchText));
     }
 
@@ -146,9 +146,9 @@ function addFilterField() {
 }
 
 function onSearchInput() {
-    let pageState = getPageState(PageName.Lessen, getDefaultPageState()) as LessenPageState;
+    let pageState = getPageSettings(PageName.Lessen, getDefaultPageSettings()) as LessenPageState;
     pageState.searchText = (document.getElementById(TXT_FILTER_ID) as HTMLInputElement).value;
-    savePageState(pageState);
+    savePageSettings(pageState);
     if(isTrimesterTableVisible()) {
         let rowFilter = createTextRowFilter(pageState.searchText, (tr) => tr.textContent);
         let filteredRows = filterTableRows(def.TRIM_TABLE_ID, rowFilter);
@@ -279,7 +279,7 @@ function addSortingAnchorOrText() {
 }
 
 function setSorteerLine(showTrimTable: boolean) {
-    let pageState = getPageState(PageName.Lessen, getDefaultPageState()) as LessenPageState;
+    let pageState = getPageSettings(PageName.Lessen, getDefaultPageSettings()) as LessenPageState;
     let oldSorteerSpan = document.querySelector("#lessen_overzicht > span") as HTMLElement;
     let newGroupingDiv = document.getElementById("trimGroepeerDiv");
     if(!newGroupingDiv) {
@@ -329,9 +329,9 @@ function createGroupingAnchorOrText(grouping: TrimesterGrouping, activeSorting: 
         anchor.href = "#";
         anchor.onclick = () => {
             let table = document.getElementById("table_lessen_resultaat_tabel") as HTMLTableElement;
-            let pageState = getPageState(PageName.Lessen, getDefaultPageState()) as LessenPageState;
+            let pageState = getPageSettings(PageName.Lessen, getDefaultPageSettings()) as LessenPageState;
             pageState.grouping = grouping;
-            savePageState(pageState);
+            savePageSettings(pageState);
             showTrimesterTable(table, true);
             return false;
         };

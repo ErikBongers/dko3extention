@@ -632,6 +632,15 @@
   function stripStudentName(name) {
     return name.replaceAll(/[,()'-]/g, " ").replaceAll("  ", " ");
   }
+  function getPageSettings(pageName, defaultState) {
+    let storedState = localStorage.getItem(STORAGE_PAGE_STATE_KEY_PREFIX + pageName);
+    if (storedState)
+      return JSON.parse(storedState);
+    return defaultState;
+  }
+  function savePageSettings(state) {
+    localStorage.setItem(STORAGE_PAGE_STATE_KEY_PREFIX + state.pageName, JSON.stringify(state));
+  }
 
   // typescript/pageObserver.ts
   var HashPageFilter = class {
@@ -1025,7 +1034,7 @@
   }
 
   // typescript/lessen/build.ts
-  function getDefaultPageState() {
+  function getDefaultPageSettings() {
     return {
       pageName: "Lessen" /* Lessen */,
       nameSorting: 1 /* LastName */,
@@ -1033,26 +1042,17 @@
       searchText: ""
     };
   }
-  var pageState = getDefaultPageState();
-  function savePageState(state) {
-    sessionStorage.setItem(STORAGE_PAGE_STATE_KEY_PREFIX + state.pageName, JSON.stringify(state));
-  }
-  function getPageState(pageName, defaultState) {
-    let storedState = sessionStorage.getItem(STORAGE_PAGE_STATE_KEY_PREFIX + pageName);
-    if (storedState)
-      return JSON.parse(storedState);
-    return defaultState;
-  }
+  var pageState = getDefaultPageSettings();
   function setSavedNameSorting(sorting) {
     pageState.nameSorting = sorting;
-    savePageState(pageState);
+    savePageSettings(pageState);
   }
   function getSavedNameSorting() {
-    pageState = getPageState("Lessen" /* Lessen */, pageState);
+    pageState = getPageSettings("Lessen" /* Lessen */, pageState);
     return pageState.nameSorting;
   }
   function buildTrimesterTable(tableData) {
-    pageState = getPageState("Lessen" /* Lessen */, pageState);
+    pageState = getPageSettings("Lessen" /* Lessen */, pageState);
     tableData.blocks.sort((block1, block2) => block1.instrumentName.localeCompare(block2.instrumentName));
     let trimDiv = emmet.create(`#${TRIM_DIV_ID}>table#trimesterTable[border="2" style.width="100%"]>colgroup>col*3`).root;
     trimDiv.dataset.showFullClass = isButtonHighlighted(FULL_CLASS_BUTTON_ID) ? "true" : "false";
@@ -1803,15 +1803,15 @@
   function addFilterField() {
     let divButtonNieuweLes = document.querySelector("#lessen_overzicht > div > button");
     if (!document.getElementById(TXT_FILTER_ID)) {
-      let pageState2 = getPageState("Lessen" /* Lessen */, getDefaultPageState());
+      let pageState2 = getPageSettings("Lessen" /* Lessen */, getDefaultPageSettings());
       divButtonNieuweLes.insertAdjacentElement("afterend", createSearchField(TXT_FILTER_ID, onSearchInput, pageState2.searchText));
     }
     onSearchInput();
   }
   function onSearchInput() {
-    let pageState2 = getPageState("Lessen" /* Lessen */, getDefaultPageState());
+    let pageState2 = getPageSettings("Lessen" /* Lessen */, getDefaultPageSettings());
     pageState2.searchText = document.getElementById(TXT_FILTER_ID).value;
-    savePageState(pageState2);
+    savePageSettings(pageState2);
     if (isTrimesterTableVisible()) {
       let siblingsAndAncestorsFilter = function(tr, context) {
         if (context.headerGroupIds.includes(tr.dataset.groupId))
@@ -1923,7 +1923,7 @@
     }
   }
   function setSorteerLine(showTrimTable) {
-    let pageState2 = getPageState("Lessen" /* Lessen */, getDefaultPageState());
+    let pageState2 = getPageSettings("Lessen" /* Lessen */, getDefaultPageSettings());
     let oldSorteerSpan = document.querySelector("#lessen_overzicht > span");
     let newGroupingDiv = document.getElementById("trimGroepeerDiv");
     if (!newGroupingDiv) {
@@ -1982,9 +1982,9 @@
       anchor.href = "#";
       anchor.onclick = () => {
         let table = document.getElementById("table_lessen_resultaat_tabel");
-        let pageState2 = getPageState("Lessen" /* Lessen */, getDefaultPageState());
+        let pageState2 = getPageSettings("Lessen" /* Lessen */, getDefaultPageSettings());
         pageState2.grouping = grouping;
-        savePageState(pageState2);
+        savePageSettings(pageState2);
         showTrimesterTable(table, true);
         return false;
       };

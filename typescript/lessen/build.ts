@@ -1,6 +1,5 @@
-import * as def from "../def";
 import {FULL_CLASS_BUTTON_ID, isButtonHighlighted, TRIM_DIV_ID} from "../def";
-import {db3, stripStudentName} from "../globals";
+import {db3, getPageSettings, savePageSettings, stripStudentName} from "../globals";
 import {BlockInfo, mergeBlockStudents, sortStudents, TableData} from "./convert";
 import {StudentInfo} from "./scrape";
 import * as html from "../../libs/Emmeter/html";
@@ -32,7 +31,7 @@ export interface LessenPageState extends PageState {
     searchText: string,
 }
 
-export function getDefaultPageState() {
+export function getDefaultPageSettings() {
     return {
         pageName: PageName.Lessen,
         nameSorting: NameSorting.LastName,
@@ -41,31 +40,20 @@ export function getDefaultPageState() {
     } as LessenPageState;
 }
 
-let pageState: LessenPageState = getDefaultPageState();
-
-export function savePageState(state: PageState) {
-    sessionStorage.setItem(def.STORAGE_PAGE_STATE_KEY_PREFIX + state.pageName, JSON.stringify(state));
-}
-
-export function getPageState(pageName: PageName, defaultState: LessenPageState): PageState {
-    let storedState = sessionStorage.getItem(def.STORAGE_PAGE_STATE_KEY_PREFIX + pageName);
-    if(storedState)
-        return JSON.parse(storedState);
-    return defaultState;
-}
+let pageState: LessenPageState = getDefaultPageSettings();
 
 export function setSavedNameSorting(sorting: NameSorting) {
     pageState.nameSorting = sorting;
-    savePageState(pageState);
+    savePageSettings(pageState);
 }
 
 export function getSavedNameSorting() {
-    pageState = getPageState(PageName.Lessen, pageState) as LessenPageState;
+    pageState = getPageSettings(PageName.Lessen, pageState) as LessenPageState;
     return pageState.nameSorting;
 }
 
 export function buildTrimesterTable(tableData: TableData) {
-    pageState = getPageState(PageName.Lessen, pageState) as LessenPageState;
+    pageState = getPageSettings(PageName.Lessen, pageState) as LessenPageState;
     tableData.blocks.sort((block1, block2) => block1.instrumentName.localeCompare(block2.instrumentName));
     let trimDiv = html.emmet.create(`#${TRIM_DIV_ID}>table#trimesterTable[border="2" style.width="100%"]>colgroup>col*3`).root;
 
