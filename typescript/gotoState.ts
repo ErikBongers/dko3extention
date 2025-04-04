@@ -1,15 +1,15 @@
 import * as def from "./def";
 
 export function clearGotoState() {
-    sessionStorage.removeItem(def.STORAGE_PAGE_STATE_KEY);
+    sessionStorage.removeItem(def.STORAGE_GOTO_STATE_KEY);
 }
 
 export function saveGotoState(state: GotoState) {
-    sessionStorage.setItem(def.STORAGE_PAGE_STATE_KEY, JSON.stringify(state));
+    sessionStorage.setItem(def.STORAGE_GOTO_STATE_KEY, JSON.stringify(state));
 }
 
 export function getGotoState(): GotoState {
-    return JSON.parse(sessionStorage.getItem(def.STORAGE_PAGE_STATE_KEY));
+    return JSON.parse(sessionStorage.getItem(def.STORAGE_GOTO_STATE_KEY));
 }
 
 function defaultGotoState(pageName: PageName) {
@@ -24,7 +24,7 @@ function defaultGotoState(pageName: PageName) {
 }
 
 export function getGotoStateOrDefault(pageName: PageName): GotoState {
-    let pageState = JSON.parse(sessionStorage.getItem(def.STORAGE_PAGE_STATE_KEY));
+    let pageState = JSON.parse(sessionStorage.getItem(def.STORAGE_GOTO_STATE_KEY));
     if (pageState?.pageName === pageName)
         return pageState;
     else

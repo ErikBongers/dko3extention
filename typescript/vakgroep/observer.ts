@@ -1,5 +1,5 @@
 import {HashObserver} from "../pageObserver";
-import {createScearchField, createTextRowFilter, filterTable} from "../globals";
+import {createSearchField, createTextRowFilter, filterTable} from "../globals";
 
 export default new HashObserver("#extra-inschrijvingen-vakgroepen-vakgroep", onMutation);
 
@@ -18,7 +18,7 @@ let savedSearch = "";
 function onVakgroepChanged(divVakken: HTMLElement) {
     let table = divVakken.querySelector("table");
     if(!document.getElementById(TXT_FILTER_ID))
-        table.parentElement.insertBefore(createScearchField(TXT_FILTER_ID, onSearchInput, savedSearch), table);
+        table.parentElement.insertBefore(createSearchField(TXT_FILTER_ID, onSearchInput, savedSearch), table);
 
     onSearchInput();
 }

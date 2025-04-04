@@ -1,8 +1,8 @@
 import {scrapeLessenOverzicht, scrapeModules} from "./scrape";
 import {buildTableData} from "./convert";
-import {buildTrimesterTable, getSavedNameSorting, NameSorting, setSavedNameSorting, TrimesterGrouping} from "./build";
+import {buildTrimesterTable, getDefaultPageState, getPageState, getSavedNameSorting, LessenPageState, NameSorting, savePageState, setSavedNameSorting, TrimesterGrouping} from "./build";
 import * as def from "../def";
-import {createScearchField, createTextRowFilter, filterTable, filterTableRows, setButtonHighlighted} from "../globals";
+import {createSearchField, createTextRowFilter, filterTable, filterTableRows, setButtonHighlighted} from "../globals";
 import {HashObserver} from "../pageObserver";
 import * as html from "../../libs/Emmeter/html";
 import {emmet} from "../../libs/Emmeter/html";
@@ -50,7 +50,7 @@ function onClickShowTrimesters() {
         document.getElementById("lessen_overzicht").innerHTML = text;
         let table = document.getElementById("table_lessen_resultaat_tabel") as HTMLTableElement;
         decorateTable();//todo: this call is needed for call below. Inject it.
-        showTrimesterTable(table, true, savedGrouping);
+        showTrimesterTable(table, true);
     });
 }
 
@@ -134,22 +134,23 @@ function decorateTable() {
 }
 
 const TXT_FILTER_ID = "txtFilter";
-// Well, saved until the browser is refreshed :)
-let savedSearch = "";
-let savedGrouping = TrimesterGrouping.InstrumentTeacherHour;
 
 function addFilterField() {
     let divButtonNieuweLes = document.querySelector("#lessen_overzicht > div > button");
-    if(!document.getElementById(TXT_FILTER_ID))
-        divButtonNieuweLes.insertAdjacentElement("afterend", createScearchField(TXT_FILTER_ID, onSearchInput, savedSearch));
+    if(!document.getElementById(TXT_FILTER_ID)) {
+        let pageState = getPageState(PageName.Lessen, getDefaultPageState()) as LessenPageState;
+        divButtonNieuweLes.insertAdjacentElement("afterend", createSearchField(TXT_FILTER_ID, onSearchInput, pageState.searchText));
+    }
 
     onSearchInput();
 }
 
 function onSearchInput() {
-    savedSearch = (document.getElementById(TXT_FILTER_ID) as HTMLInputElement).value;
+    let pageState = getPageState(PageName.Lessen, getDefaultPageState()) as LessenPageState;
+    pageState.searchText = (document.getElementById(TXT_FILTER_ID) as HTMLInputElement).value;
+    savePageState(pageState);
     if(isTrimesterTableVisible()) {
-        let rowFilter = createTextRowFilter(savedSearch, (tr) => tr.textContent);
+        let rowFilter = createTextRowFilter(pageState.searchText, (tr) => tr.textContent);
         let filteredRows = filterTableRows(def.TRIM_TABLE_ID, rowFilter);
 
         //gather the blockIds and groupIds of the matching rows and show ALL of the rows in those blocks. (not just the matching rows).
@@ -171,7 +172,7 @@ function onSearchInput() {
 
         filterTable(def.TRIM_TABLE_ID, {context: {blockIds, groupIds, headerGroupIds}, rowFilter: siblingsAndAncestorsFilter});
     } else {
-        let rowFilter = createTextRowFilter(savedSearch, (tr) => tr.cells[0].textContent);
+        let rowFilter = createTextRowFilter(pageState.searchText, (tr) => tr.cells[0].textContent);
         filterTable("table_lessen_resultaat_tabel",rowFilter);
     }
 }
@@ -233,25 +234,25 @@ function onClickFullClasses() {
 
 function onClickToggleTrimesters() {
     let table = document.getElementById("table_lessen_resultaat_tabel") as HTMLTableElement;
-    showTrimesterTable(table, !isTrimesterTableVisible(), savedGrouping);
+    showTrimesterTable(table, !isTrimesterTableVisible());
 }
 
 export function isTrimesterTableVisible() {
     return document.getElementById("table_lessen_resultaat_tabel").style.display === "none";
 }
 
-export function showTrimesterTable(originalTable: HTMLTableElement, show: boolean, grouping: TrimesterGrouping) {
+export function showTrimesterTable(originalTable: HTMLTableElement, show: boolean) {
     document.getElementById(def.TRIM_TABLE_ID)?.remove();
     let inputModules = scrapeModules(originalTable);
     let tableData = buildTableData(inputModules.trimesterModules.concat(inputModules.jaarModules));
     createTrimTableDiv();//todo: since required for next function, inject it.
-    buildTrimesterTable(tableData, grouping);
+    buildTrimesterTable(tableData);
 
     document.getElementById("table_lessen_resultaat_tabel").style.display = show ? "none" : "table";
     document.getElementById(def.TRIM_TABLE_ID).style.display = show ? "table" : "none";
     document.getElementById(def.TRIM_BUTTON_ID).title = show ? "Toon normaal" : "Toon trimesters";
     setButtonHighlighted(def.TRIM_BUTTON_ID, show);
-    setSorteerLine(show, grouping);
+    setSorteerLine(show);
     onSearchInput();
 }
 
@@ -270,14 +271,15 @@ function addSortingAnchorOrText() {
             else
                 setSavedNameSorting(NameSorting.FirstName);
             let table = document.getElementById("table_lessen_resultaat_tabel") as HTMLTableElement;
-            showTrimesterTable(table, true, savedGrouping);
+            showTrimesterTable(table, true);
             addSortingAnchorOrText();
             return false;
         };
     }
 }
 
-function setSorteerLine(showTrimTable: boolean, grouping: TrimesterGrouping) {
+function setSorteerLine(showTrimTable: boolean) {
+    let pageState = getPageState(PageName.Lessen, getDefaultPageState()) as LessenPageState;
     let oldSorteerSpan = document.querySelector("#lessen_overzicht > span") as HTMLElement;
     let newGroupingDiv = document.getElementById("trimGroepeerDiv");
     if(!newGroupingDiv) {
@@ -295,15 +297,15 @@ function setSorteerLine(showTrimTable: boolean, grouping: TrimesterGrouping) {
     oldSorteerSpan.style.display = showTrimTable ? "none" : "";
     newGroupingDiv.style.display = showTrimTable ? "" : "none";
 
-    newGroupingDiv.appendChild(createGroupingAnchorOrText(TrimesterGrouping.InstrumentTeacherHour, grouping));
+    newGroupingDiv.appendChild(createGroupingAnchorOrText(TrimesterGrouping.InstrumentTeacherHour, pageState.grouping));
     newGroupingDiv.appendChild(document.createTextNode(" | "));
-    newGroupingDiv.appendChild(createGroupingAnchorOrText(TrimesterGrouping.TeacherInstrumentHour, grouping));
+    newGroupingDiv.appendChild(createGroupingAnchorOrText(TrimesterGrouping.TeacherInstrumentHour, pageState.grouping));
     newGroupingDiv.appendChild(document.createTextNode(" | "));
-    newGroupingDiv.appendChild(createGroupingAnchorOrText(TrimesterGrouping.TeacherHour, grouping));
+    newGroupingDiv.appendChild(createGroupingAnchorOrText(TrimesterGrouping.TeacherHour, pageState.grouping));
     newGroupingDiv.appendChild(document.createTextNode(" | "));
-    newGroupingDiv.appendChild(createGroupingAnchorOrText(TrimesterGrouping.Instrument, grouping));
+    newGroupingDiv.appendChild(createGroupingAnchorOrText(TrimesterGrouping.Instrument, pageState.grouping));
     newGroupingDiv.appendChild(document.createTextNode(" | "));
-    newGroupingDiv.appendChild(createGroupingAnchorOrText(TrimesterGrouping.Teacher, grouping));
+    newGroupingDiv.appendChild(createGroupingAnchorOrText(TrimesterGrouping.Teacher, pageState.grouping));
 }
 
 function createGroupingAnchorOrText(grouping: TrimesterGrouping, activeSorting: TrimesterGrouping) {
@@ -326,9 +328,11 @@ function createGroupingAnchorOrText(grouping: TrimesterGrouping, activeSorting: 
         anchor.innerText = sortingText;
         anchor.href = "#";
         anchor.onclick = () => {
-            savedGrouping = grouping;
             let table = document.getElementById("table_lessen_resultaat_tabel") as HTMLTableElement;
-            showTrimesterTable(table, true, grouping);
+            let pageState = getPageState(PageName.Lessen, getDefaultPageState()) as LessenPageState;
+            pageState.grouping = grouping;
+            savePageState(pageState);
+            showTrimesterTable(table, true);
             return false;
         };
         return anchor;

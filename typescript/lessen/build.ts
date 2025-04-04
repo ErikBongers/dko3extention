@@ -1,3 +1,4 @@
+import * as def from "../def";
 import {FULL_CLASS_BUTTON_ID, isButtonHighlighted, TRIM_DIV_ID} from "../def";
 import {db3, stripStudentName} from "../globals";
 import {BlockInfo, mergeBlockStudents, sortStudents, TableData} from "./convert";
@@ -5,19 +6,10 @@ import {StudentInfo} from "./scrape";
 import * as html from "../../libs/Emmeter/html";
 import {emmet} from "../../libs/Emmeter/html";
 import {NBSP} from "../../libs/Emmeter/tokenizer";
+import {PageName} from "../gotoState";
 
 export enum NameSorting {
     FirstName, LastName
-}
-
-let savedNameSorting = NameSorting.LastName;
-
-export function setSavedNameSorting(sorting: NameSorting) {
-    savedNameSorting = sorting;
-}
-
-export function getSavedNameSorting() {
-    return savedNameSorting;
 }
 
 export enum TrimesterGrouping {
@@ -29,7 +21,51 @@ export enum TrimesterGrouping {
     Teacher
 }
 
-export function buildTrimesterTable(tableData: TableData, trimesterSorting: TrimesterGrouping) {
+export interface PageState {
+    pageName: PageName
+}
+
+export interface LessenPageState extends PageState {
+    pageName: PageName
+    nameSorting: NameSorting,
+    grouping: TrimesterGrouping,
+    searchText: string,
+}
+
+export function getDefaultPageState() {
+    return {
+        pageName: PageName.Lessen,
+        nameSorting: NameSorting.LastName,
+        grouping: TrimesterGrouping.InstrumentTeacherHour,
+        searchText: ""
+    } as LessenPageState;
+}
+
+let pageState: LessenPageState = getDefaultPageState();
+
+export function savePageState(state: PageState) {
+    sessionStorage.setItem(def.STORAGE_PAGE_STATE_KEY_PREFIX + state.pageName, JSON.stringify(state));
+}
+
+export function getPageState(pageName: PageName, defaultState: LessenPageState): PageState {
+    let storedState = sessionStorage.getItem(def.STORAGE_PAGE_STATE_KEY_PREFIX + pageName);
+    if(storedState)
+        return JSON.parse(storedState);
+    return defaultState;
+}
+
+export function setSavedNameSorting(sorting: NameSorting) {
+    pageState.nameSorting = sorting;
+    savePageState(pageState);
+}
+
+export function getSavedNameSorting() {
+    pageState = getPageState(PageName.Lessen, pageState) as LessenPageState;
+    return pageState.nameSorting;
+}
+
+export function buildTrimesterTable(tableData: TableData) {
+    pageState = getPageState(PageName.Lessen, pageState) as LessenPageState;
     tableData.blocks.sort((block1, block2) => block1.instrumentName.localeCompare(block2.instrumentName));
     let trimDiv = html.emmet.create(`#${TRIM_DIV_ID}>table#trimesterTable[border="2" style.width="100%"]>colgroup>col*3`).root;
 
@@ -48,7 +84,7 @@ export function buildTrimesterTable(tableData: TableData, trimesterSorting: Trim
     }
 
     html.emmet.append(trHeader, "(th>div>span.bold{Trimester $}+span.plain{ ($$ lln)})*3", (index) => totTrim[index].toString());
-    switch(trimesterSorting) {
+    switch(pageState.grouping) {
         case TrimesterGrouping.InstrumentTeacherHour:
             for (let [instrumentName, instrument] of tableData.instruments) {
                 buildGroup(newTableBody, instrument.blocks, instrumentName, (block) => block.teacher, DisplayOptions.Hour | DisplayOptions.Location);
@@ -377,7 +413,7 @@ function buildStudentCell(student: StudentInfo) {
         return cell;
     }
 
-    if(savedNameSorting === NameSorting.LastName)
+    if(pageState.nameSorting === NameSorting.LastName)
         displayName = student.naam + " " + student.voornaam;
     else
         displayName = student.voornaam + " " + student.naam;

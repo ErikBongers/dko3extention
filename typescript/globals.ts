@@ -190,7 +190,7 @@ export function rangeGenerator(start: number, stop: number, step = 1): number[] 
     return Array(Math.ceil((stop - start) / step)).fill(start).map((x, y) => x + y * step);
 }
 
-export function createScearchField(id: string, onSearchInput: (ev: Event) => any, value: string) {
+export function createSearchField(id: string, onSearchInput: (ev: Event) => any, value: string) {
     let input = document.createElement("input");
     input.type = "text";
     input.id = id;

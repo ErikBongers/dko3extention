@@ -26,7 +26,8 @@
   }
   var CACHE_DATE_SUFFIX = "__date";
   var POWER_QUERY_ID = "savedPowerQuery";
-  var STORAGE_PAGE_STATE_KEY = "pageState";
+  var STORAGE_GOTO_STATE_KEY = "gotoState";
+  var STORAGE_PAGE_STATE_KEY_PREFIX = "pageState_";
   var UREN_TABLE_STATE_NAME = "__uren__";
 
   // typescript/cloud.ts
@@ -187,7 +188,7 @@
   function rangeGenerator(start, stop, step = 1) {
     return Array(Math.ceil((stop - start) / step)).fill(start).map((x, y) => x + y * step);
   }
-  function createScearchField(id, onSearchInput3, value) {
+  function createSearchField(id, onSearchInput3, value) {
     let input = document.createElement("input");
     input.type = "text";
     input.id = id;
@@ -992,15 +993,57 @@
     return text.replace("$", (index + 1).toString());
   }
 
+  // typescript/gotoState.ts
+  function saveGotoState(state) {
+    sessionStorage.setItem(STORAGE_GOTO_STATE_KEY, JSON.stringify(state));
+  }
+  function defaultGotoState(pageName) {
+    let pageState2 = {
+      goto: "" /* None */,
+      pageName
+    };
+    if (pageName === "Werklijst" /* Werklijst */) {
+      return { werklijstTableName: "", ...pageState2 };
+    }
+    return pageState2;
+  }
+  function getGotoStateOrDefault(pageName) {
+    let pageState2 = JSON.parse(sessionStorage.getItem(STORAGE_GOTO_STATE_KEY));
+    if (pageState2?.pageName === pageName)
+      return pageState2;
+    else
+      return defaultGotoState(pageName);
+  }
+
   // typescript/lessen/build.ts
-  var savedNameSorting = 1 /* LastName */;
+  function getDefaultPageState() {
+    return {
+      pageName: "Lessen" /* Lessen */,
+      nameSorting: 1 /* LastName */,
+      grouping: 1 /* InstrumentTeacherHour */,
+      searchText: ""
+    };
+  }
+  var pageState = getDefaultPageState();
+  function savePageState(state) {
+    sessionStorage.setItem(STORAGE_PAGE_STATE_KEY_PREFIX + state.pageName, JSON.stringify(state));
+  }
+  function getPageState(pageName, defaultState) {
+    let storedState = sessionStorage.getItem(STORAGE_PAGE_STATE_KEY_PREFIX + pageName);
+    if (storedState)
+      return JSON.parse(storedState);
+    return defaultState;
+  }
   function setSavedNameSorting(sorting) {
-    savedNameSorting = sorting;
+    pageState.nameSorting = sorting;
+    savePageState(pageState);
   }
   function getSavedNameSorting() {
-    return savedNameSorting;
+    pageState = getPageState("Lessen" /* Lessen */, pageState);
+    return pageState.nameSorting;
   }
-  function buildTrimesterTable(tableData, trimesterSorting) {
+  function buildTrimesterTable(tableData) {
+    pageState = getPageState("Lessen" /* Lessen */, pageState);
     tableData.blocks.sort((block1, block2) => block1.instrumentName.localeCompare(block2.instrumentName));
     let trimDiv = emmet.create(`#${TRIM_DIV_ID}>table#trimesterTable[border="2" style.width="100%"]>colgroup>col*3`).root;
     trimDiv.dataset.showFullClass = isButtonHighlighted(FULL_CLASS_BUTTON_ID) ? "true" : "false";
@@ -1014,7 +1057,7 @@
       }
     }
     emmet.append(trHeader, "(th>div>span.bold{Trimester $}+span.plain{ ($$ lln)})*3", (index) => totTrim[index].toString());
-    switch (trimesterSorting) {
+    switch (pageState.grouping) {
       case 1 /* InstrumentTeacherHour */:
         for (let [instrumentName, instrument] of tableData.instruments) {
           buildGroup(newTableBody, instrument.blocks, instrumentName, (block) => block.teacher, 2 /* Hour */ | 8 /* Location */);
@@ -1264,7 +1307,7 @@
     if (!student) {
       return cell;
     }
-    if (savedNameSorting === 1 /* LastName */)
+    if (pageState.nameSorting === 1 /* LastName */)
       displayName = student.naam + " " + student.voornaam;
     else
       displayName = student.voornaam + " " + student.naam;
@@ -1639,28 +1682,6 @@
     };
   }
 
-  // typescript/gotoState.ts
-  function saveGotoState(state) {
-    sessionStorage.setItem(STORAGE_PAGE_STATE_KEY, JSON.stringify(state));
-  }
-  function defaultGotoState(pageName) {
-    let pageState = {
-      goto: "" /* None */,
-      pageName
-    };
-    if (pageName === "Werklijst" /* Werklijst */) {
-      return { werklijstTableName: "", ...pageState };
-    }
-    return pageState;
-  }
-  function getGotoStateOrDefault(pageName) {
-    let pageState = JSON.parse(sessionStorage.getItem(STORAGE_PAGE_STATE_KEY));
-    if (pageState?.pageName === pageName)
-      return pageState;
-    else
-      return defaultGotoState(pageName);
-  }
-
   // typescript/lessen/observer.ts
   var observer_default2 = new HashObserver("#lessen-overzicht", onMutation2);
   function onMutation2(mutation) {
@@ -1676,17 +1697,17 @@
       first.onclick = onClickShowTrimesters;
     }
     console.log(mutation);
-    let pageState = getGotoStateOrDefault("Lessen" /* Lessen */);
-    switch (pageState.goto) {
+    let pageState2 = getGotoStateOrDefault("Lessen" /* Lessen */);
+    switch (pageState2.goto) {
       case "Lessen_trimesters_set_filter" /* Lessen_trimesters_set_filter */:
-        pageState.goto = "" /* None */;
-        saveGotoState(pageState);
+        pageState2.goto = "" /* None */;
+        saveGotoState(pageState2);
         onClickShowTrimesters();
         return true;
       case "Lessen_trimesters_show" /* Lessen_trimesters_show */:
         console.log("TODO: show trims");
-        pageState.goto = "" /* None */;
-        saveGotoState(pageState);
+        pageState2.goto = "" /* None */;
+        saveGotoState(pageState2);
         return true;
     }
     return decorateTable();
@@ -1698,7 +1719,7 @@
       document.getElementById("lessen_overzicht").innerHTML = text;
       let table = document.getElementById("table_lessen_resultaat_tabel");
       decorateTable();
-      showTrimesterTable(table, true, savedGrouping);
+      showTrimesterTable(table, true);
     });
   }
   async function setTrimesterFilterAndFetch() {
@@ -1774,16 +1795,18 @@
     return true;
   }
   var TXT_FILTER_ID = "txtFilter";
-  var savedSearch = "";
-  var savedGrouping = 1 /* InstrumentTeacherHour */;
   function addFilterField() {
     let divButtonNieuweLes = document.querySelector("#lessen_overzicht > div > button");
-    if (!document.getElementById(TXT_FILTER_ID))
-      divButtonNieuweLes.insertAdjacentElement("afterend", createScearchField(TXT_FILTER_ID, onSearchInput, savedSearch));
+    if (!document.getElementById(TXT_FILTER_ID)) {
+      let pageState2 = getPageState("Lessen" /* Lessen */, getDefaultPageState());
+      divButtonNieuweLes.insertAdjacentElement("afterend", createSearchField(TXT_FILTER_ID, onSearchInput, pageState2.searchText));
+    }
     onSearchInput();
   }
   function onSearchInput() {
-    savedSearch = document.getElementById(TXT_FILTER_ID).value;
+    let pageState2 = getPageState("Lessen" /* Lessen */, getDefaultPageState());
+    pageState2.searchText = document.getElementById(TXT_FILTER_ID).value;
+    savePageState(pageState2);
     if (isTrimesterTableVisible()) {
       let siblingsAndAncestorsFilter = function(tr, context) {
         if (context.headerGroupIds.includes(tr.dataset.groupId))
@@ -1792,14 +1815,14 @@
           return true;
         return context.groupIds.includes(tr.dataset.groupId) && tr.classList.contains("groupHeader");
       };
-      let rowFilter = createTextRowFilter(savedSearch, (tr) => tr.textContent);
+      let rowFilter = createTextRowFilter(pageState2.searchText, (tr) => tr.textContent);
       let filteredRows = filterTableRows(TRIM_TABLE_ID, rowFilter);
       let blockIds = [...new Set(filteredRows.filter((tr) => tr.dataset.blockId !== "groupTitle").map((tr) => tr.dataset.blockId))];
       let groupIds = [...new Set(filteredRows.map((tr) => tr.dataset.groupId))];
       let headerGroupIds = [...new Set(filteredRows.filter((tr) => tr.dataset.blockId === "groupTitle").map((tr) => tr.dataset.groupId))];
       filterTable(TRIM_TABLE_ID, { context: { blockIds, groupIds, headerGroupIds }, rowFilter: siblingsAndAncestorsFilter });
     } else {
-      let rowFilter = createTextRowFilter(savedSearch, (tr) => tr.cells[0].textContent);
+      let rowFilter = createTextRowFilter(pageState2.searchText, (tr) => tr.cells[0].textContent);
       filterTable("table_lessen_resultaat_tabel", rowFilter);
     }
   }
@@ -1855,22 +1878,22 @@
   }
   function onClickToggleTrimesters() {
     let table = document.getElementById("table_lessen_resultaat_tabel");
-    showTrimesterTable(table, !isTrimesterTableVisible(), savedGrouping);
+    showTrimesterTable(table, !isTrimesterTableVisible());
   }
   function isTrimesterTableVisible() {
     return document.getElementById("table_lessen_resultaat_tabel").style.display === "none";
   }
-  function showTrimesterTable(originalTable, show, grouping) {
+  function showTrimesterTable(originalTable, show) {
     document.getElementById(TRIM_TABLE_ID)?.remove();
     let inputModules = scrapeModules(originalTable);
     let tableData = buildTableData(inputModules.trimesterModules.concat(inputModules.jaarModules));
     createTrimTableDiv();
-    buildTrimesterTable(tableData, grouping);
+    buildTrimesterTable(tableData);
     document.getElementById("table_lessen_resultaat_tabel").style.display = show ? "none" : "table";
     document.getElementById(TRIM_TABLE_ID).style.display = show ? "table" : "none";
     document.getElementById(TRIM_BUTTON_ID).title = show ? "Toon normaal" : "Toon trimesters";
     setButtonHighlighted(TRIM_BUTTON_ID, show);
-    setSorteerLine(show, grouping);
+    setSorteerLine(show);
     onSearchInput();
   }
   function addSortingAnchorOrText() {
@@ -1888,13 +1911,14 @@
         else
           setSavedNameSorting(0 /* FirstName */);
         let table = document.getElementById("table_lessen_resultaat_tabel");
-        showTrimesterTable(table, true, savedGrouping);
+        showTrimesterTable(table, true);
         addSortingAnchorOrText();
         return false;
       };
     }
   }
-  function setSorteerLine(showTrimTable, grouping) {
+  function setSorteerLine(showTrimTable) {
+    let pageState2 = getPageState("Lessen" /* Lessen */, getDefaultPageState());
     let oldSorteerSpan = document.querySelector("#lessen_overzicht > span");
     let newGroupingDiv = document.getElementById("trimGroepeerDiv");
     if (!newGroupingDiv) {
@@ -1911,15 +1935,15 @@
     newGroupingDiv.innerText = "Groepeer: ";
     oldSorteerSpan.style.display = showTrimTable ? "none" : "";
     newGroupingDiv.style.display = showTrimTable ? "" : "none";
-    newGroupingDiv.appendChild(createGroupingAnchorOrText(1 /* InstrumentTeacherHour */, grouping));
+    newGroupingDiv.appendChild(createGroupingAnchorOrText(1 /* InstrumentTeacherHour */, pageState2.grouping));
     newGroupingDiv.appendChild(document.createTextNode(" | "));
-    newGroupingDiv.appendChild(createGroupingAnchorOrText(0 /* TeacherInstrumentHour */, grouping));
+    newGroupingDiv.appendChild(createGroupingAnchorOrText(0 /* TeacherInstrumentHour */, pageState2.grouping));
     newGroupingDiv.appendChild(document.createTextNode(" | "));
-    newGroupingDiv.appendChild(createGroupingAnchorOrText(2 /* TeacherHour */, grouping));
+    newGroupingDiv.appendChild(createGroupingAnchorOrText(2 /* TeacherHour */, pageState2.grouping));
     newGroupingDiv.appendChild(document.createTextNode(" | "));
-    newGroupingDiv.appendChild(createGroupingAnchorOrText(4 /* Instrument */, grouping));
+    newGroupingDiv.appendChild(createGroupingAnchorOrText(4 /* Instrument */, pageState2.grouping));
     newGroupingDiv.appendChild(document.createTextNode(" | "));
-    newGroupingDiv.appendChild(createGroupingAnchorOrText(5 /* Teacher */, grouping));
+    newGroupingDiv.appendChild(createGroupingAnchorOrText(5 /* Teacher */, pageState2.grouping));
   }
   function createGroupingAnchorOrText(grouping, activeSorting) {
     let sortingText = "";
@@ -1952,9 +1976,11 @@
       anchor.innerText = sortingText;
       anchor.href = "#";
       anchor.onclick = () => {
-        savedGrouping = grouping;
         let table = document.getElementById("table_lessen_resultaat_tabel");
-        showTrimesterTable(table, true, grouping);
+        let pageState2 = getPageState("Lessen" /* Lessen */, getDefaultPageState());
+        pageState2.grouping = grouping;
+        savePageState(pageState2);
+        showTrimesterTable(table, true);
         return false;
       };
       return anchor;
@@ -2894,9 +2920,9 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
       ]
     );
     await sendGrouping("vak_id");
-    let pageState = getGotoStateOrDefault("Werklijst" /* Werklijst */);
-    pageState.werklijstTableName = UREN_TABLE_STATE_NAME;
-    saveGotoState(pageState);
+    let pageState2 = getGotoStateOrDefault("Werklijst" /* Werklijst */);
+    pageState2.werklijstTableName = UREN_TABLE_STATE_NAME;
+    saveGotoState(pageState2);
     document.querySelector("#btn_werklijst_maken").click();
   }
   function isInstrument2(text) {
@@ -3186,23 +3212,23 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
     return false;
   }
   function onCriteriaShown() {
-    let pageState = getGotoStateOrDefault("Werklijst" /* Werklijst */);
-    if (pageState.goto == "Werklijst_uren_prevYear" /* Werklijst_uren_prevYear */) {
-      pageState.goto = "" /* None */;
-      saveGotoState(pageState);
+    let pageState2 = getGotoStateOrDefault("Werklijst" /* Werklijst */);
+    if (pageState2.goto == "Werklijst_uren_prevYear" /* Werklijst_uren_prevYear */) {
+      pageState2.goto = "" /* None */;
+      saveGotoState(pageState2);
       prefillInstruments(createSchoolyearString(calculateSchooljaar())).then(() => {
       });
       return;
     }
-    if (pageState.goto == "Werklijst_uren_nextYear" /* Werklijst_uren_nextYear */) {
-      pageState.goto = "" /* None */;
-      saveGotoState(pageState);
+    if (pageState2.goto == "Werklijst_uren_nextYear" /* Werklijst_uren_nextYear */) {
+      pageState2.goto = "" /* None */;
+      saveGotoState(pageState2);
       prefillInstruments(createSchoolyearString(calculateSchooljaar() + 1)).then(() => {
       });
       return;
     }
-    pageState.werklijstTableName = "";
-    saveGotoState(pageState);
+    pageState2.werklijstTableName = "";
+    saveGotoState(pageState2);
     let btnWerklijstMaken = document.querySelector("#btn_werklijst_maken");
     if (document.getElementById(UREN_PREV_BTN_ID))
       return;
@@ -3307,9 +3333,9 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
     document.getElementById(COUNT_TABLE_ID).style.display = showNewTable ? "table" : "none";
     document.getElementById(COUNT_BUTTON_ID).title = showNewTable ? "Toon normaal" : "Toon telling";
     setButtonHighlighted(COUNT_BUTTON_ID, showNewTable);
-    let pageState = getGotoStateOrDefault("Werklijst" /* Werklijst */);
-    pageState.werklijstTableName = showNewTable ? UREN_TABLE_STATE_NAME : "";
-    saveGotoState(pageState);
+    let pageState2 = getGotoStateOrDefault("Werklijst" /* Werklijst */);
+    pageState2.werklijstTableName = showNewTable ? UREN_TABLE_STATE_NAME : "";
+    saveGotoState(pageState2);
   }
   function upgradeCloudData(fromCloud) {
     return fromCloud;
@@ -3326,21 +3352,21 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
     return true;
   }
   var TXT_FILTER_ID2 = "txtFilter";
-  var savedSearch2 = "";
+  var savedSearch = "";
   function onVakgroepChanged(divVakken) {
     let table = divVakken.querySelector("table");
     if (!document.getElementById(TXT_FILTER_ID2))
-      table.parentElement.insertBefore(createScearchField(TXT_FILTER_ID2, onSearchInput2, savedSearch2), table);
+      table.parentElement.insertBefore(createSearchField(TXT_FILTER_ID2, onSearchInput2, savedSearch), table);
     onSearchInput2();
   }
   function onSearchInput2() {
-    savedSearch2 = document.getElementById(TXT_FILTER_ID2).value;
+    savedSearch = document.getElementById(TXT_FILTER_ID2).value;
     function getRowText(tr) {
       let instrumentName = tr.cells[0].querySelector("label").textContent.trim();
       let strong = tr.cells[0].querySelector("strong")?.textContent.trim();
       return instrumentName + " " + strong;
     }
-    let rowFilter = createTextRowFilter(savedSearch2, getRowText);
+    let rowFilter = createTextRowFilter(savedSearch, getRowText);
     filterTable(document.querySelector("#div_table_vakgroepen_vakken table"), rowFilter);
   }
 
@@ -3953,21 +3979,21 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
   function setupPowerQuery() {
   }
   function gotoWerklijstUrenNextYear(_queryItem) {
-    let pageState = getGotoStateOrDefault("Werklijst" /* Werklijst */);
-    pageState.goto = "Werklijst_uren_nextYear" /* Werklijst_uren_nextYear */;
-    saveGotoState(pageState);
+    let pageState2 = getGotoStateOrDefault("Werklijst" /* Werklijst */);
+    pageState2.goto = "Werklijst_uren_nextYear" /* Werklijst_uren_nextYear */;
+    saveGotoState(pageState2);
     location.href = "/#leerlingen-werklijst";
   }
   function gotoWerklijstUrenPrevYear(_queryItem) {
-    let pageState = getGotoStateOrDefault("Werklijst" /* Werklijst */);
-    pageState.goto = "Werklijst_uren_prevYear" /* Werklijst_uren_prevYear */;
-    saveGotoState(pageState);
+    let pageState2 = getGotoStateOrDefault("Werklijst" /* Werklijst */);
+    pageState2.goto = "Werklijst_uren_prevYear" /* Werklijst_uren_prevYear */;
+    saveGotoState(pageState2);
     location.href = "/#leerlingen-werklijst";
   }
   function gotoTrimesterModules(_queryItem) {
-    let pageState = getGotoStateOrDefault("Lessen" /* Lessen */);
-    pageState.goto = "Lessen_trimesters_set_filter" /* Lessen_trimesters_set_filter */;
-    saveGotoState(pageState);
+    let pageState2 = getGotoStateOrDefault("Lessen" /* Lessen */);
+    pageState2.goto = "Lessen_trimesters_set_filter" /* Lessen_trimesters_set_filter */;
+    saveGotoState(pageState2);
     location.href = "/#lessen-overzicht";
   }
   function getHardCodedQueryItems() {
