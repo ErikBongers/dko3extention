@@ -8,7 +8,7 @@ import {prefillInstruments} from "./prefillInstruments";
 import {HashObserver} from "../pageObserver";
 import {NamedCellTablePageHandler} from "../pageHandlers";
 import {addTableHeaderClickEvents} from "../table/tableHeaders";
-import {getPageStateOrDefault, Goto, PageName, savePageState, WerklijstPageState} from "../pageState";
+import {getGotoStateOrDefault, Goto, PageName, saveGotoState, WerklijstGotoState} from "../gotoState";
 import {getChecksumHandler, registerChecksumHandler} from "../table/observer";
 import {CloudData, JsonCloudData, UrenData} from "./urenData";
 
@@ -39,21 +39,21 @@ function onMutation(mutation: MutationRecord) {
 }
 
 function onCriteriaShown() {
-    let pageState = getPageStateOrDefault(PageName.Werklijst) as WerklijstPageState;
+    let pageState = getGotoStateOrDefault(PageName.Werklijst) as WerklijstGotoState;
     if(pageState.goto == Goto.Werklijst_uren_prevYear) {
         pageState.goto = Goto.None;
-        savePageState(pageState);
+        saveGotoState(pageState);
         prefillInstruments(createSchoolyearString(calculateSchooljaar())).then(() => {});
         return;
     }
     if(pageState.goto == Goto.Werklijst_uren_nextYear) {
         pageState.goto = Goto.None;
-        savePageState(pageState);
+        saveGotoState(pageState);
         prefillInstruments(createSchoolyearString(calculateSchooljaar()+1)).then(() => {});
         return;
     }
     pageState.werklijstTableName = "";
-    savePageState(pageState);
+    saveGotoState(pageState);
     let btnWerklijstMaken = document.querySelector("#btn_werklijst_maken") as HTMLButtonElement;
     if(document.getElementById(def.UREN_PREV_BTN_ID))
         return;
@@ -71,7 +71,7 @@ function onCriteriaShown() {
 
 
 function onWerklijstChanged() {
-    let werklijstPageState = getPageStateOrDefault(PageName.Werklijst) as WerklijstPageState;
+    let werklijstPageState = getGotoStateOrDefault(PageName.Werklijst) as WerklijstGotoState;
     if(werklijstPageState.werklijstTableName === def.UREN_TABLE_STATE_NAME) {
         tryUntil(onClickShowCounts);
     }
@@ -179,9 +179,9 @@ function showOrHideNewTable() {
     document.getElementById(def.COUNT_TABLE_ID).style.display = showNewTable ? "table" : "none";
     document.getElementById(def.COUNT_BUTTON_ID).title = showNewTable ? "Toon normaal" : "Toon telling";
     setButtonHighlighted(def.COUNT_BUTTON_ID, showNewTable);
-    let pageState = getPageStateOrDefault(PageName.Werklijst) as WerklijstPageState;
+    let pageState = getGotoStateOrDefault(PageName.Werklijst) as WerklijstGotoState;
     pageState.werklijstTableName = showNewTable ? def.UREN_TABLE_STATE_NAME : "";
-    savePageState(pageState);
+    saveGotoState(pageState);
 }
 
 function upgradeCloudData(fromCloud: JsonCloudData) {

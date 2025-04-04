@@ -1,6 +1,6 @@
 import {calculateSchooljaar, clamp, createShortSchoolyearString, isAlphaNumeric} from "./globals";
 import * as def from "./def";
-import {getPageStateOrDefault, Goto, PageName, savePageState} from "./pageState";
+import {getGotoStateOrDefault, Goto, PageName, saveGotoState} from "./gotoState";
 
 let powerQueryItems: QueryItem[] = [];
 let popoverVisible = false;
@@ -85,23 +85,23 @@ export function setupPowerQuery() {
 }
 
 function gotoWerklijstUrenNextYear(_queryItem: QueryItem) {
-    let pageState = getPageStateOrDefault(PageName.Werklijst);
+    let pageState = getGotoStateOrDefault(PageName.Werklijst);
     pageState.goto = Goto.Werklijst_uren_nextYear;
-    savePageState(pageState);
+    saveGotoState(pageState);
     location.href = "/#leerlingen-werklijst";
 }
 
 function gotoWerklijstUrenPrevYear(_queryItem: QueryItem) {
-    let pageState = getPageStateOrDefault(PageName.Werklijst);
+    let pageState = getGotoStateOrDefault(PageName.Werklijst);
     pageState.goto = Goto.Werklijst_uren_prevYear;
-    savePageState(pageState);
+    saveGotoState(pageState);
     location.href = "/#leerlingen-werklijst";
 }
 
 function gotoTrimesterModules(_queryItem: QueryItem) {
-    let pageState = getPageStateOrDefault(PageName.Lessen);
+    let pageState = getGotoStateOrDefault(PageName.Lessen);
     pageState.goto = Goto.Lessen_trimesters_set_filter;
-    savePageState(pageState);
+    saveGotoState(pageState);
     location.href = "/#lessen-overzicht";
 }
 

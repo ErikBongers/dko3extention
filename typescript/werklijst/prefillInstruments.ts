@@ -1,6 +1,6 @@
 import {fetchVakken, sendClearWerklijst, sendCriteria, sendFields, sendGrouping} from "./criteria";
 import * as def from "../def";
-import {getPageStateOrDefault, PageName, savePageState, WerklijstPageState} from "../pageState";
+import {getGotoStateOrDefault, PageName, saveGotoState, WerklijstGotoState} from "../gotoState";
 
 export let instrumentSet = new Set([
     "Accordeon",
@@ -82,9 +82,9 @@ export async function prefillInstruments(schooljaar: string) {
         {value: "klasleerkracht", text: "klasleerkracht"}]
     );
     await sendGrouping("vak_id");
-    let pageState = getPageStateOrDefault(PageName.Werklijst) as WerklijstPageState;
+    let pageState = getGotoStateOrDefault(PageName.Werklijst) as WerklijstGotoState;
     pageState.werklijstTableName = def.UREN_TABLE_STATE_NAME;
-    savePageState(pageState);
+    saveGotoState(pageState);
     (document.querySelector("#btn_werklijst_maken") as HTMLButtonElement).click();
 }
 

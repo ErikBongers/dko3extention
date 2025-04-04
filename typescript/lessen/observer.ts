@@ -6,7 +6,7 @@ import {createScearchField, createTextRowFilter, filterTable, filterTableRows, s
 import {HashObserver} from "../pageObserver";
 import * as html from "../../libs/Emmeter/html";
 import {emmet} from "../../libs/Emmeter/html";
-import {getPageStateOrDefault, Goto, PageName, savePageState} from "../pageState";
+import {getGotoStateOrDefault, Goto, PageName, saveGotoState} from "../gotoState";
 
 export default new HashObserver("#lessen-overzicht", onMutation);
 
@@ -23,17 +23,17 @@ function onMutation (mutation: MutationRecord) {
     }
 
     console.log(mutation)
-    let pageState = getPageStateOrDefault(PageName.Lessen);
+    let pageState = getGotoStateOrDefault(PageName.Lessen);
     switch (pageState.goto) {
         case Goto.Lessen_trimesters_set_filter:
             pageState.goto = Goto.None;
-            savePageState(pageState);
+            saveGotoState(pageState);
             onClickShowTrimesters();
             return true;
         case Goto.Lessen_trimesters_show:
             console.log("TODO: show trims");
             pageState.goto = Goto.None;
-            savePageState(pageState);
+            saveGotoState(pageState);
             return true;
     }
 

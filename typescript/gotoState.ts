@@ -1,34 +1,34 @@
 import * as def from "./def";
 
-export function clearPageState() {
+export function clearGotoState() {
     sessionStorage.removeItem(def.STORAGE_PAGE_STATE_KEY);
 }
 
-export function savePageState(state: PageState) {
+export function saveGotoState(state: GotoState) {
     sessionStorage.setItem(def.STORAGE_PAGE_STATE_KEY, JSON.stringify(state));
 }
 
-export function getPageState(): PageState {
+export function getGotoState(): GotoState {
     return JSON.parse(sessionStorage.getItem(def.STORAGE_PAGE_STATE_KEY));
 }
 
-function defaultPageState(pageName: PageName) {
-    let pageState = <PageState> {
+function defaultGotoState(pageName: PageName) {
+    let pageState = <GotoState> {
         goto: Goto.None,
         pageName,
     };
     if (pageName === PageName.Werklijst) {
-        return <WerklijstPageState> { werklijstTableName: "", ...pageState };
+        return <WerklijstGotoState> { werklijstTableName: "", ...pageState };
     }
     return pageState;
 }
 
-export function getPageStateOrDefault(pageName: PageName): PageState {
+export function getGotoStateOrDefault(pageName: PageName): GotoState {
     let pageState = JSON.parse(sessionStorage.getItem(def.STORAGE_PAGE_STATE_KEY));
     if (pageState?.pageName === pageName)
         return pageState;
     else
-        return defaultPageState(pageName);
+        return defaultGotoState(pageName);
 }
 
 export enum PageName {
@@ -44,11 +44,11 @@ export enum Goto {
     Lessen_trimesters_show = "Lessen_trimesters_show",
 }
 
-export interface PageState {
+export interface GotoState {
     pageName: PageName;
     goto: Goto;
 }
 
-export interface WerklijstPageState extends PageState {
+export interface WerklijstGotoState extends GotoState {
     werklijstTableName: string;
 }
