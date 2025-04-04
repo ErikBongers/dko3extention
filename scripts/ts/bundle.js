@@ -48,6 +48,330 @@
     return await res.text();
   }
 
+  // libs/Emmeter/tokenizer.ts
+  var CLOSING_BRACE = "__CLOSINGBRACE__";
+  var DOUBLE_QUOTE = "__DOUBLEQUOTE__";
+  var NBSP = 160;
+  function tokenize(textToTokenize) {
+    let tokens = [];
+    let txt = textToTokenize.replaceAll("\\}", CLOSING_BRACE).replaceAll('\\"', DOUBLE_QUOTE);
+    let pos = 0;
+    let start = pos;
+    function pushToken() {
+      if (start != pos)
+        tokens.push(unescape(txt.substring(start, pos)));
+      start = pos;
+    }
+    function getTo(to) {
+      pushToken();
+      do {
+        pos++;
+      } while (pos < txt.length && txt[pos] != to);
+      if (pos >= txt.length)
+        throw `Missing '${to}' at matching from pos ${start}.`;
+      pos++;
+      pushToken();
+    }
+    function getChar() {
+      pushToken();
+      pos++;
+      pushToken();
+    }
+    while (pos < txt.length) {
+      switch (txt[pos]) {
+        case "{":
+          getTo("}");
+          break;
+        case '"':
+          getTo('"');
+          break;
+        case "#":
+          pushToken();
+          pos++;
+          break;
+        case ">":
+        case "+":
+        case "[":
+        case "]":
+        case "(":
+        case ")":
+        case "*":
+        case ".":
+        case "=":
+          getChar();
+          break;
+        case " ":
+          pushToken();
+          start = ++pos;
+          break;
+        default:
+          pos++;
+      }
+    }
+    pushToken();
+    return tokens;
+  }
+
+  // libs/Emmeter/html.ts
+  var emmet = {
+    create,
+    append,
+    insertBefore,
+    insertAfter,
+    appendChild,
+    testEmmet,
+    //todo: this should only be exported to test.ts
+    tokenize
+    //todo: this should only be exported to test.ts
+  };
+  var nested = void 0;
+  var lastCreated = void 0;
+  function toSelector(node) {
+    if (!("tag" in node)) {
+      throw "TODO: not yet implemented.";
+    }
+    let selector = "";
+    if (node.tag)
+      selector += node.tag;
+    if (node.id)
+      selector += "#" + node.id;
+    if (node.classList.length > 0) {
+      selector += "." + node.classList.join(".");
+    }
+    return selector;
+  }
+  function create(text, onIndex, hook) {
+    nested = tokenize(text);
+    let root = parse();
+    let parent = document.querySelector(toSelector(root));
+    if ("tag" in root) {
+      root = root.child;
+    } else {
+      throw "root should be a single element.";
+    }
+    buildElement(parent, root, 1, onIndex, hook);
+    return { root: parent, last: lastCreated };
+  }
+  function append(root, text, onIndex, hook) {
+    nested = tokenize(text);
+    return parseAndBuild(root, onIndex, hook);
+  }
+  function insertBefore(target, text, onIndex, hook) {
+    return insertAt("beforebegin", target, text, onIndex, hook);
+  }
+  function insertAfter(target, text, onIndex, hook) {
+    return insertAt("afterend", target, text, onIndex, hook);
+  }
+  function appendChild(parent, text, onIndex, hook) {
+    return insertAt("beforeend", parent, text, onIndex, hook);
+  }
+  function insertAt(position, target, text, onIndex, hook) {
+    nested = tokenize(text);
+    let tempRoot = document.createElement("div");
+    let result = parseAndBuild(tempRoot, onIndex, hook);
+    let first = void 0;
+    let insertPos = target;
+    let children = [...tempRoot.children];
+    for (let child of children) {
+      if (!first) {
+        first = insertPos = insertPos.insertAdjacentElement(position, child);
+      } else {
+        insertPos = insertPos.insertAdjacentElement("afterend", child);
+      }
+    }
+    return { target, first, last: result.last };
+  }
+  function parseAndBuild(root, onIndex, hook) {
+    buildElement(root, parse(), 1, onIndex, hook);
+    return { root, last: lastCreated };
+  }
+  function testEmmet(text) {
+    nested = tokenize(text);
+    return parse();
+  }
+  function parse() {
+    return parsePlus();
+  }
+  function parsePlus() {
+    let list2 = [];
+    while (true) {
+      let el = parseMult();
+      if (!el)
+        return list2.length === 1 ? list2[0] : { list: list2 };
+      list2.push(el);
+      if (!match("+"))
+        return list2.length === 1 ? list2[0] : { list: list2 };
+    }
+  }
+  function parseMult() {
+    let el = parseElement();
+    if (!el)
+      return el;
+    if (match("*")) {
+      let count = parseInt(nested.shift());
+      return {
+        count,
+        child: el
+      };
+    } else {
+      return el;
+    }
+  }
+  function parseElement() {
+    let el;
+    if (match("(")) {
+      el = parsePlus();
+      if (!match(")"))
+        throw "Expected ')'";
+      return el;
+    } else {
+      let text = matchStartsWith("{");
+      if (text) {
+        text = stripStringDelimiters(text);
+        return { text };
+      } else {
+        return parseChildDef();
+      }
+    }
+  }
+  function parseChildDef() {
+    let tag = nested.shift();
+    let id = void 0;
+    let atts = [];
+    let classList = [];
+    let text = void 0;
+    while (nested.length) {
+      if (match(".")) {
+        classList.push(nested.shift());
+      } else if (match("[")) {
+        atts = getAttributes();
+      } else {
+        let token = matchStartsWith("#");
+        if (token) {
+          id = token.substring(1);
+        } else {
+          let token2 = matchStartsWith("{");
+          if (token2) {
+            text = stripStringDelimiters(token2);
+          } else {
+            break;
+          }
+        }
+      }
+    }
+    return { tag, id, atts, classList, innerText: text, child: parseDown() };
+  }
+  function parseDown() {
+    if (match(">")) {
+      return parsePlus();
+    }
+    return void 0;
+  }
+  function getAttributes() {
+    let tokens = [];
+    while (nested.length) {
+      let prop = nested.shift();
+      if (prop == "]")
+        break;
+      tokens.push(prop);
+    }
+    let attDefs = [];
+    while (tokens.length) {
+      let name = tokens.shift();
+      let eq = tokens.shift();
+      let sub = "";
+      if (eq === ".") {
+        sub = tokens.shift();
+        eq = tokens.shift();
+      }
+      if (eq != "=") {
+        throw "Equal sign expected.";
+      }
+      let value = tokens.shift();
+      if (value[0] === '"') {
+        value = stripStringDelimiters(value);
+      }
+      if (!value)
+        throw "Value expected.";
+      attDefs.push({ name, sub, value });
+      if (!tokens.length)
+        break;
+    }
+    return attDefs;
+  }
+  function match(expected) {
+    let next = nested.shift();
+    if (next === expected)
+      return true;
+    if (next)
+      nested.unshift(next);
+    return false;
+  }
+  function matchStartsWith(expected) {
+    let next = nested.shift();
+    if (next.startsWith(expected))
+      return next;
+    if (next)
+      nested.unshift(next);
+    return void 0;
+  }
+  function stripStringDelimiters(text) {
+    if (text[0] === "'" || text[0] === '"' || text[0] === "{")
+      return text.substring(1, text.length - 1);
+    return text;
+  }
+  function createElement(parent, def, index, onIndex, hook) {
+    let el = parent.appendChild(document.createElement(def.tag));
+    if (def.id)
+      el.id = addIndex(def.id, index, onIndex);
+    for (let clazz of def.classList) {
+      el.classList.add(addIndex(clazz, index, onIndex));
+    }
+    for (let att of def.atts) {
+      if (att.sub)
+        el[addIndex(att.name, index, onIndex)][addIndex(att.sub, index, onIndex)] = addIndex(att.value, index, onIndex);
+      else {
+        el.setAttribute(addIndex(att.name, index, onIndex), addIndex(att.value, index, onIndex));
+      }
+    }
+    if (def.innerText) {
+      el.appendChild(document.createTextNode(addIndex(def.innerText, index, onIndex)));
+    }
+    lastCreated = el;
+    if (hook)
+      hook(el);
+    return el;
+  }
+  function buildElement(parent, el, index, onIndex, hook) {
+    if ("tag" in el) {
+      let created = createElement(parent, el, index, onIndex, hook);
+      if (el.child)
+        buildElement(created, el.child, index, onIndex, hook);
+      return;
+    }
+    if ("list" in el) {
+      for (let def of el.list) {
+        buildElement(parent, def, index, onIndex, hook);
+      }
+    }
+    if ("count" in el) {
+      for (let i = 0; i < el.count; i++) {
+        buildElement(parent, el.child, i, onIndex, hook);
+      }
+    }
+    if ("text" in el) {
+      parent.appendChild(document.createTextNode(addIndex(el.text, index, onIndex)));
+      return;
+    }
+  }
+  function addIndex(text, index, onIndex) {
+    if (onIndex) {
+      let result = onIndex(index);
+      text = text.replace("$$", result);
+    }
+    return text.replace("$", (index + 1).toString());
+  }
+
   // typescript/globals.ts
   var options = {
     showDebug: false,
@@ -196,7 +520,16 @@
     input.oninput = onSearchInput3;
     input.value = value;
     input.placeholder = "filter";
-    return input;
+    let span = document.createElement("span");
+    span.classList.add("searchButton");
+    span.appendChild(input);
+    let { first: clearButton } = emmet.appendChild(span, "button>span{x}");
+    clearButton.onclick = () => {
+      input.value = "";
+      input.oninput(void 0);
+      input.focus();
+    };
+    return span;
   }
   function match_AND_expression(searchText, rowText) {
     let search_AND_list = searchText.split("+").map((txt) => txt.trim());
@@ -667,330 +1000,6 @@
     les.lesmoment = textNodes[0].nodeValue;
     les.vestiging = textNodes[1].nodeValue;
     return les;
-  }
-
-  // libs/Emmeter/tokenizer.ts
-  var CLOSING_BRACE = "__CLOSINGBRACE__";
-  var DOUBLE_QUOTE = "__DOUBLEQUOTE__";
-  var NBSP = 160;
-  function tokenize(textToTokenize) {
-    let tokens = [];
-    let txt = textToTokenize.replaceAll("\\}", CLOSING_BRACE).replaceAll('\\"', DOUBLE_QUOTE);
-    let pos = 0;
-    let start = pos;
-    function pushToken() {
-      if (start != pos)
-        tokens.push(unescape(txt.substring(start, pos)));
-      start = pos;
-    }
-    function getTo(to) {
-      pushToken();
-      do {
-        pos++;
-      } while (pos < txt.length && txt[pos] != to);
-      if (pos >= txt.length)
-        throw `Missing '${to}' at matching from pos ${start}.`;
-      pos++;
-      pushToken();
-    }
-    function getChar() {
-      pushToken();
-      pos++;
-      pushToken();
-    }
-    while (pos < txt.length) {
-      switch (txt[pos]) {
-        case "{":
-          getTo("}");
-          break;
-        case '"':
-          getTo('"');
-          break;
-        case "#":
-          pushToken();
-          pos++;
-          break;
-        case ">":
-        case "+":
-        case "[":
-        case "]":
-        case "(":
-        case ")":
-        case "*":
-        case ".":
-        case "=":
-          getChar();
-          break;
-        case " ":
-          pushToken();
-          start = ++pos;
-          break;
-        default:
-          pos++;
-      }
-    }
-    pushToken();
-    return tokens;
-  }
-
-  // libs/Emmeter/html.ts
-  var emmet = {
-    create,
-    append,
-    insertBefore,
-    insertAfter,
-    appendChild,
-    testEmmet,
-    //todo: this should only be exported to test.ts
-    tokenize
-    //todo: this should only be exported to test.ts
-  };
-  var nested = void 0;
-  var lastCreated = void 0;
-  function toSelector(node) {
-    if (!("tag" in node)) {
-      throw "TODO: not yet implemented.";
-    }
-    let selector = "";
-    if (node.tag)
-      selector += node.tag;
-    if (node.id)
-      selector += "#" + node.id;
-    if (node.classList.length > 0) {
-      selector += "." + node.classList.join(".");
-    }
-    return selector;
-  }
-  function create(text, onIndex, hook) {
-    nested = tokenize(text);
-    let root = parse();
-    let parent = document.querySelector(toSelector(root));
-    if ("tag" in root) {
-      root = root.child;
-    } else {
-      throw "root should be a single element.";
-    }
-    buildElement(parent, root, 1, onIndex, hook);
-    return { root: parent, last: lastCreated };
-  }
-  function append(root, text, onIndex, hook) {
-    nested = tokenize(text);
-    return parseAndBuild(root, onIndex, hook);
-  }
-  function insertBefore(target, text, onIndex, hook) {
-    return insertAt("beforebegin", target, text, onIndex, hook);
-  }
-  function insertAfter(target, text, onIndex, hook) {
-    return insertAt("afterend", target, text, onIndex, hook);
-  }
-  function appendChild(parent, text, onIndex, hook) {
-    return insertAt("beforeend", parent, text, onIndex, hook);
-  }
-  function insertAt(position, target, text, onIndex, hook) {
-    nested = tokenize(text);
-    let tempRoot = document.createElement("div");
-    let result = parseAndBuild(tempRoot, onIndex, hook);
-    let first = void 0;
-    let insertPos = target;
-    let children = [...tempRoot.children];
-    for (let child of children) {
-      if (!first) {
-        first = insertPos = insertPos.insertAdjacentElement(position, child);
-      } else {
-        insertPos = insertPos.insertAdjacentElement("afterend", child);
-      }
-    }
-    return { target, first, last: result.last };
-  }
-  function parseAndBuild(root, onIndex, hook) {
-    buildElement(root, parse(), 1, onIndex, hook);
-    return { root, last: lastCreated };
-  }
-  function testEmmet(text) {
-    nested = tokenize(text);
-    return parse();
-  }
-  function parse() {
-    return parsePlus();
-  }
-  function parsePlus() {
-    let list2 = [];
-    while (true) {
-      let el = parseMult();
-      if (!el)
-        return list2.length === 1 ? list2[0] : { list: list2 };
-      list2.push(el);
-      if (!match("+"))
-        return list2.length === 1 ? list2[0] : { list: list2 };
-    }
-  }
-  function parseMult() {
-    let el = parseElement();
-    if (!el)
-      return el;
-    if (match("*")) {
-      let count = parseInt(nested.shift());
-      return {
-        count,
-        child: el
-      };
-    } else {
-      return el;
-    }
-  }
-  function parseElement() {
-    let el;
-    if (match("(")) {
-      el = parsePlus();
-      if (!match(")"))
-        throw "Expected ')'";
-      return el;
-    } else {
-      let text = matchStartsWith("{");
-      if (text) {
-        text = stripStringDelimiters(text);
-        return { text };
-      } else {
-        return parseChildDef();
-      }
-    }
-  }
-  function parseChildDef() {
-    let tag = nested.shift();
-    let id = void 0;
-    let atts = [];
-    let classList = [];
-    let text = void 0;
-    while (nested.length) {
-      if (match(".")) {
-        classList.push(nested.shift());
-      } else if (match("[")) {
-        atts = getAttributes();
-      } else {
-        let token = matchStartsWith("#");
-        if (token) {
-          id = token.substring(1);
-        } else {
-          let token2 = matchStartsWith("{");
-          if (token2) {
-            text = stripStringDelimiters(token2);
-          } else {
-            break;
-          }
-        }
-      }
-    }
-    return { tag, id, atts, classList, innerText: text, child: parseDown() };
-  }
-  function parseDown() {
-    if (match(">")) {
-      return parsePlus();
-    }
-    return void 0;
-  }
-  function getAttributes() {
-    let tokens = [];
-    while (nested.length) {
-      let prop = nested.shift();
-      if (prop == "]")
-        break;
-      tokens.push(prop);
-    }
-    let attDefs = [];
-    while (tokens.length) {
-      let name = tokens.shift();
-      let eq = tokens.shift();
-      let sub = "";
-      if (eq === ".") {
-        sub = tokens.shift();
-        eq = tokens.shift();
-      }
-      if (eq != "=") {
-        throw "Equal sign expected.";
-      }
-      let value = tokens.shift();
-      if (value[0] === '"') {
-        value = stripStringDelimiters(value);
-      }
-      if (!value)
-        throw "Value expected.";
-      attDefs.push({ name, sub, value });
-      if (!tokens.length)
-        break;
-    }
-    return attDefs;
-  }
-  function match(expected) {
-    let next = nested.shift();
-    if (next === expected)
-      return true;
-    if (next)
-      nested.unshift(next);
-    return false;
-  }
-  function matchStartsWith(expected) {
-    let next = nested.shift();
-    if (next.startsWith(expected))
-      return next;
-    if (next)
-      nested.unshift(next);
-    return void 0;
-  }
-  function stripStringDelimiters(text) {
-    if (text[0] === "'" || text[0] === '"' || text[0] === "{")
-      return text.substring(1, text.length - 1);
-    return text;
-  }
-  function createElement(parent, def, index, onIndex, hook) {
-    let el = parent.appendChild(document.createElement(def.tag));
-    if (def.id)
-      el.id = addIndex(def.id, index, onIndex);
-    for (let clazz of def.classList) {
-      el.classList.add(addIndex(clazz, index, onIndex));
-    }
-    for (let att of def.atts) {
-      if (att.sub)
-        el[addIndex(att.name, index, onIndex)][addIndex(att.sub, index, onIndex)] = addIndex(att.value, index, onIndex);
-      else {
-        el.setAttribute(addIndex(att.name, index, onIndex), addIndex(att.value, index, onIndex));
-      }
-    }
-    if (def.innerText) {
-      el.appendChild(document.createTextNode(addIndex(def.innerText, index, onIndex)));
-    }
-    lastCreated = el;
-    if (hook)
-      hook(el);
-    return el;
-  }
-  function buildElement(parent, el, index, onIndex, hook) {
-    if ("tag" in el) {
-      let created = createElement(parent, el, index, onIndex, hook);
-      if (el.child)
-        buildElement(created, el.child, index, onIndex, hook);
-      return;
-    }
-    if ("list" in el) {
-      for (let def of el.list) {
-        buildElement(parent, def, index, onIndex, hook);
-      }
-    }
-    if ("count" in el) {
-      for (let i = 0; i < el.count; i++) {
-        buildElement(parent, el.child, i, onIndex, hook);
-      }
-    }
-    if ("text" in el) {
-      parent.appendChild(document.createTextNode(addIndex(el.text, index, onIndex)));
-      return;
-    }
-  }
-  function addIndex(text, index, onIndex) {
-    if (onIndex) {
-      let result = onIndex(index);
-      text = text.replace("$$", result);
-    }
-    return text.replace("$", (index + 1).toString());
   }
 
   // typescript/gotoState.ts

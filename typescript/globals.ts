@@ -1,6 +1,7 @@
 import {Observer} from "./pageObserver";
 import {cloud} from "./cloud";
 import {GLOBAL_SETTINGS_FILENAME} from "./def";
+import {emmet} from "../libs/Emmeter/html";
 
 type Options = {
   showDebug: boolean;
@@ -197,8 +198,17 @@ export function createSearchField(id: string, onSearchInput: (ev: Event) => any,
     input.classList.add("tableFilter");
     input.oninput = onSearchInput;
     input.value = value;
-    input.placeholder = "filter"
-    return input;
+    input.placeholder = "filter";
+    let span = document.createElement("span");
+    span.classList.add("searchButton");
+    span.appendChild(input);
+    let { first: clearButton } = emmet.appendChild(span, "button>span{x}");
+    clearButton.onclick = () => {
+        input.value = "";
+        input.oninput(undefined);
+        input.focus();
+    };
+    return span;
 }
 
 /**

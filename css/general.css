@@ -211,3 +211,27 @@ a.leerlingLabel {
 div.collapsed {
     display: none;
 }
+
+span.searchButton {
+    & button {
+        background-color: rgba(0,0,0, 0.1);
+        border: none;
+        color: white;
+        margin-top: -1.3em;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 16px;
+        margin-left: 1ch;
+        border-radius: 50%;
+        width: 1.5em;
+        height: 1.5em;
+        &:hover {
+            background-color: rgba(0,0,0,0.15);
+        }
+        & span {
+            position: relative;
+            top: -.15em;
+        }
+    }
+}
