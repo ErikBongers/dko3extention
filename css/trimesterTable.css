@@ -127,6 +127,11 @@
     & span.badge.muted {
         opacity: .5;
     }
+    & button.student {
+        border: none;
+        background: none;
+        color: #007bff;
+    }
 }
 
 :root[data-darkreader-scheme="dark"] #trimesterDiv {

@@ -1324,24 +1324,20 @@
     if (student.allYearSame) {
       studentSpan.classList.add("allYear");
     }
-    const anchor = document.createElement("a");
-    cell.appendChild(anchor);
-    anchor.href = "#";
-    anchor.classList.add("pl-2");
-    anchor.title = student.info;
-    anchor.onclick = async function() {
+    const button = cell.appendChild(document.createElement("button"));
+    button.classList.add("student");
+    button.title = student.info;
+    button.onclick = async function() {
       let id = await fetchStudentId(student.name);
       if (id <= 0)
-        window.location.href = "/?#zoeken?zoek=" + stripStudentName(student.name);
+        window.location.href = "/#zoeken?zoek=" + stripStudentName(student.name).replaceAll(" ", "+");
       else {
-        await fetch("https://administratie.dko3.cloud/view.php?args=leerlingen-leerling?id=" + id);
-        await fetch("https://administratie.dko3.cloud/views/leerlingen/leerling/index.inschrijvingen.tab.php");
-        window.location.href = "/?#leerlingen-leerling?id=" + id + ",tab=inschrijvingen";
+        window.location.href = "#leerlingen-leerling?id=" + id + ",tab=inschrijvingen";
       }
       return false;
     };
     const iTag = document.createElement("i");
-    anchor.appendChild(iTag);
+    button.appendChild(iTag);
     iTag.classList.add("fas", "fa-user-alt");
     if (student.notAllTrimsHaveAnInstrument) {
       iTag.classList.add("no3trims");

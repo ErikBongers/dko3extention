@@ -311,6 +311,12 @@ export async function setViewFromCurrentUrl() {
     let view = await fetch("view.php?args=" + hash).then(res => res.text());
 }
 
+export async function setView(hash: string) {
+    let page = await fetch("https://administratie.dko3.cloud/#" + hash).then(res => res.text());
+    // call to changeView() - assuming this is always the same, so no parsing here.
+    return fetch("view.php?args=" + hash).then(res => res.text());
+}
+
 export interface GlobalSettings {
     globalHide: boolean
 }
