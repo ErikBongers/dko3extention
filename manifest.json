@@ -26,14 +26,16 @@
   },
   "options_page": "options.html",
   "permissions": [
-    "storage"
+    "storage",
+    "tabs"
   ],
   "web_accessible_resources": [ {
     "matches": ["https://administratie.dko3.cloud/*"],
     "_comment": "typescript folder included for debugging in browser!",
     "resources": [
       "scripts/ts/*",
-      "typescript/*"
+      "typescript/*",
+      "resources/*"
     ]
   }
   ]

@@ -113,11 +113,27 @@ function getHardCodedQueryItems() {
 
 document.body.addEventListener("keydown", showPowerQuery);
 
+function testMessages() {
+    addQueryItem('Test', "Send message", undefined, sendTestMessage);
+}
+
+function sendTestMessage() {
+    console.log("Sending message...");
+    let message = {
+        action: "open_tab",
+        data: "Brol en zever!"
+    };
+
+    chrome.runtime.sendMessage(message)
+        .then(() => console.log("message sent."));
+}
+
 function showPowerQuery(ev: KeyboardEvent) {
     if (ev.key === "q" && ev.ctrlKey && !ev.shiftKey && !ev.altKey) {
         scrapeMainMenu();
         powerQueryItems.push(...getSavedQueryItems());
         getHardCodedQueryItems();
+        testMessages();
         popover.showPopover();
     } else {
         if (popoverVisible === false)

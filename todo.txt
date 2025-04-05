@@ -1,3 +1,7 @@
+* distinct column in werklijst. (alleen tonen als tabel volledig gedownload?)
+  > Aparte tabel maken voor die distinct waarden. Popup? Nee…kan toch lange lijst zijn.
+  > Aparte tab?
+
 * Trims: summing hours per block
   > for Lievenka: fine: just add the hours of all the blooks
   > for Rhea: NOT fine: altviool and viool share the same hour!
