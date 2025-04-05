@@ -248,3 +248,17 @@ span.searchButton {
         }
     }
 }
+button.miniButton {
+    background: none;
+    border: none;
+    color: inherit;
+    padding: 0;
+    & i {
+        margin-left: .5ch;
+    }
+
+    & i:before {
+        font-size: .7em !important;
+    }
+
+}

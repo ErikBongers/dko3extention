@@ -7,7 +7,7 @@ import {FetchedTable, findTableRefInCode, TableDef} from "../table/tableDef";
 import {prefillInstruments} from "./prefillInstruments";
 import {HashObserver} from "../pageObserver";
 import {NamedCellTablePageHandler} from "../pageHandlers";
-import {addTableHeaderClickEvents} from "../table/tableHeaders";
+import {decorateTableHeader} from "../table/tableHeaders";
 import {getGotoStateOrDefault, Goto, PageName, saveGotoState, WerklijstGotoState} from "../gotoState";
 import {getChecksumHandler, registerChecksumHandler} from "../table/observer";
 import {CloudData, JsonCloudData, UrenData} from "./urenData";
@@ -75,7 +75,7 @@ function onWerklijstChanged() {
     if(werklijstPageState.werklijstTableName === def.UREN_TABLE_STATE_NAME) {
         tryUntil(onClickShowCounts);
     }
-    addTableHeaderClickEvents(document.querySelector("table#table_leerlingen_werklijst_table") as HTMLTableElement);
+    decorateTableHeader(document.querySelector("table#table_leerlingen_werklijst_table") as HTMLTableElement);
 }
 
 function onButtonBarChanged() {

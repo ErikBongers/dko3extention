@@ -1,5 +1,5 @@
 import {findFirstNavigation} from "./tableNavigation";
-import {TableDef, TableRef} from "./tableDef";
+import {FetchedTable, findTableRefInCode, TableDef, TableRef} from "./tableDef";
 import {SimpleTableHandler} from "../pageHandlers";
 import {getChecksumHandler} from "./observer";
 import {setViewFromCurrentUrl} from "../globals";
@@ -340,4 +340,24 @@ export function testScanner() {
     console.log(datatable_id);
     console.log(tableNavUrl);
     console.log("v2");
+}
+
+export function downloadTable() {
+    let prebuildPageHandler = new SimpleTableHandler(onLoaded, undefined);
+
+    function onLoaded(fetchedTable: FetchedTable) {
+        tableDef.tableRef.getOrgTableContainer()
+            .querySelector("tbody")
+            .replaceChildren(...fetchedTable.getRows());
+    }
+
+    // let tableRef = new TableRef("table_leerlingen_werklijst_table", findFirstNavigation(),(offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0");
+    let tableRef = findTableRefInCode();
+    let tableDef = new TableDef(
+        tableRef,
+        prebuildPageHandler,
+        getChecksumHandler(tableRef.htmlTableId)
+    );
+
+    return tableDef.getTableData();
 }

@@ -239,7 +239,7 @@ export function buildTable(urenData: UrenData, tableDef: TableDef) {
     isUpdatePaused = true;
     globalUrenData = urenData;
     let table = document.createElement("table");
-    tableDef.tableRef.getOrgTable().insertAdjacentElement("afterend", table);
+    tableDef.tableRef.getOrgTableContainer().insertAdjacentElement("afterend", table);
     table.id = def.COUNT_TABLE_ID;
     table.classList.add("canSort");
     updateColDefs(urenData.year);

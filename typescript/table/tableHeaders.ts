@@ -1,4 +1,7 @@
-import {rangeGenerator} from "../globals";
+import {distinct, openTab, rangeGenerator} from "../globals";
+import {emmet} from "../../libs/Emmeter/html";
+import { FetchedTable } from "./tableDef";
+import {downloadTable} from "./loadAnyTable";
 
 function sortRows(cmpFunction: (a: HTMLTableCellElement, b: HTMLTableCellElement) => number, header: Element, rows: HTMLTableRowElement[], index: number, wasAscending: boolean) {
     let cmpDirectionalFunction: (a: HTMLTableRowElement, b: HTMLTableRowElement) => number;
@@ -29,7 +32,7 @@ function normalizeDate(date: string) {
 
 function cmpNumber(a: HTMLTableCellElement, b: HTMLTableCellElement) {
     let res = Number(a.innerText) - Number(b.innerText);
-    if(isNaN(res)) {
+    if (isNaN(res)) {
         throw new Error();
     }
     return res;
@@ -43,16 +46,16 @@ function sortTableByColumn(table: HTMLTableElement, index: number) {
         thead.classList.remove("sortAscending", "sortDescending")
     }
     let cmpFunc = cmpAlpha;
-    if(isColumnProbablyNumeric(table, index)) {
+    if (isColumnProbablyNumeric(table, index)) {
         cmpFunc = cmpNumber;
-    } else if(isColumnProbablyDate(table, index)) {
+    } else if (isColumnProbablyDate(table, index)) {
         cmpFunc = cmpDate;
     }
     try {
         sortRows(cmpFunc, header, rows, index, wasAscending);
     } catch (e) {
         console.error(e);
-        if(cmpFunc !== cmpAlpha)
+        if (cmpFunc !== cmpAlpha)
             sortRows(cmpAlpha, header, rows, index, wasAscending);
     }
 
@@ -65,9 +68,9 @@ function isColumnProbablyDate(table: HTMLTableElement, index: number) {
 }
 
 function stringToDate(text: string) {
-    let reDate =/^(\d\d)[-\/](\d\d)[-\/](\d\d\d\d)/;
+    let reDate = /^(\d\d)[-\/](\d\d)[-\/](\d\d\d\d)/;
     let matches = text.match(reDate);
-    if(!matches)
+    if (!matches)
         return undefined;
     return new Date(matches[3] + "-" + matches[2] + "/" + matches[1]);
 }
@@ -76,7 +79,7 @@ function isColumnProbablyNumeric(table: HTMLTableElement, index: number) {
     let rows = Array.from(table.tBodies[0].rows);
 
     const MAX_SAMPLES = 100;
-    let samples = rangeGenerator(0, rows.length, rows.length > MAX_SAMPLES ? rows.length/MAX_SAMPLES : 1)
+    let samples = rangeGenerator(0, rows.length, rows.length > MAX_SAMPLES ? rows.length / MAX_SAMPLES : 1)
         .map(float => Math.floor(float));
     return !samples
         .map(rowIndex => rows[rowIndex])
@@ -85,13 +88,33 @@ function isColumnProbablyNumeric(table: HTMLTableElement, index: number) {
         });
 }
 
-export function addTableHeaderClickEvents(table: HTMLTableElement) {
+export function decorateTableHeader(table: HTMLTableElement) {
     if (table.tHead.classList.contains("clickHandler"))
         return;
     table.tHead.classList.add("clickHandler");
-    Array.from(table.tHead.children[0].children).forEach((header: HTMLElement, index) => {
-        header.onclick = _ev => {
+    Array.from(table.tHead.children[0].children).forEach((colHeader: HTMLElement, index) => {
+        colHeader.onclick = _ev => {
             sortTableByColumn(table, index);
         };
+        let {last} = emmet.appendChild(colHeader, 'button.miniButton>i.fas.fa-list[title="Toon unieke waarden"]');
+        last.onclick = ev => {
+            ev.preventDefault();
+            downloadTable()
+                .then(fetchedTable => {
+                    let cols = getDistinctColumn(fetchedTable.tableDef.tableRef.getOrgTableContainer(), index);
+                    let tmpDiv = document.createElement("div");
+                    let tbody = emmet.appendChild(tmpDiv, "table>tbody").last as HTMLTableSectionElement;
+                    for(let col of cols) {
+                        emmet.appendChild(tbody, `tr>td>{${col}}`);
+                    }
+                    openTab(tmpDiv.innerHTML);
+                });
+        }
     });
+}
+
+function getDistinctColumn(tableContainer: HTMLTableElement, index: number) {
+    let rows = Array.from(tableContainer.querySelector("tbody").rows);
+
+    return distinct(rows.map(row => row.children[index].textContent)).sort();
 }

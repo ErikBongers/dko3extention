@@ -15,13 +15,13 @@ export class TableRef {
         this.navigationData = navigationData;
     }
 
-    getOrgTable() {
+    getOrgTableContainer() {
         return document.getElementById(this.htmlTableId) as HTMLTableElement;
     }
 
     createElementAboveTable(element: string): HTMLElement {
         let el = document.createElement(element);
-        this.getOrgTable().insertAdjacentElement("beforebegin", el);
+        this.getOrgTableContainer().insertAdjacentElement("beforebegin", el);
         return el;
     }
 }

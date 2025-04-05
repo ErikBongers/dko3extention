@@ -641,6 +641,14 @@
   function savePageSettings(state) {
     localStorage.setItem(STORAGE_PAGE_STATE_KEY_PREFIX + state.pageName, JSON.stringify(state));
   }
+  function openTab(html) {
+    let message = {
+      //todo: use interface
+      action: "open_tab",
+      data: html
+    };
+    chrome.runtime.sendMessage(message).then(() => console.log("message sent."));
+  }
 
   // typescript/pageObserver.ts
   var HashPageFilter = class {
@@ -2252,7 +2260,7 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
     isUpdatePaused = true;
     globalUrenData = urenData;
     let table = document.createElement("table");
-    tableDef.tableRef.getOrgTable().insertAdjacentElement("afterend", table);
+    tableDef.tableRef.getOrgTableContainer().insertAdjacentElement("afterend", table);
     table.id = COUNT_TABLE_ID;
     table.classList.add("canSort");
     updateColDefs(urenData.year);
@@ -2547,12 +2555,12 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
       this.buildFetchUrl = buildFetchUrl;
       this.navigationData = navigationData;
     }
-    getOrgTable() {
+    getOrgTableContainer() {
       return document.getElementById(this.htmlTableId);
     }
     createElementAboveTable(element) {
       let el = document.createElement(element);
-      this.getOrgTable().insertAdjacentElement("beforebegin", el);
+      this.getOrgTableContainer().insertAdjacentElement("beforebegin", el);
       return el;
     }
   };
@@ -3019,87 +3027,6 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
     }
   };
 
-  // typescript/table/tableHeaders.ts
-  function sortRows(cmpFunction, header, rows, index, wasAscending) {
-    let cmpDirectionalFunction;
-    if (wasAscending) {
-      cmpDirectionalFunction = (a, b) => cmpFunction(b.cells[index], a.cells[index]);
-      header.classList.add("sortDescending");
-    } else {
-      cmpDirectionalFunction = (a, b) => cmpFunction(a.cells[index], b.cells[index]);
-      header.classList.add("sortAscending");
-    }
-    rows.sort((a, b) => cmpDirectionalFunction(a, b));
-  }
-  function cmpAlpha(a, b) {
-    return a.innerText.localeCompare(b.innerText);
-  }
-  function cmpDate(a, b) {
-    return normalizeDate(a.innerText).localeCompare(normalizeDate(b.innerText));
-  }
-  function normalizeDate(date) {
-    let dateParts = date.split("-");
-    return dateParts[2] + dateParts[1] + dateParts[0];
-  }
-  function cmpNumber(a, b) {
-    let res = Number(a.innerText) - Number(b.innerText);
-    if (isNaN(res)) {
-      throw new Error();
-    }
-    return res;
-  }
-  function sortTableByColumn(table, index) {
-    let header = table.tHead.children[0].children[index];
-    let rows = Array.from(table.tBodies[0].rows);
-    let wasAscending = header.classList.contains("sortAscending");
-    for (let thead of table.tHead.children[0].children) {
-      thead.classList.remove("sortAscending", "sortDescending");
-    }
-    let cmpFunc = cmpAlpha;
-    if (isColumnProbablyNumeric(table, index)) {
-      cmpFunc = cmpNumber;
-    } else if (isColumnProbablyDate(table, index)) {
-      cmpFunc = cmpDate;
-    }
-    try {
-      sortRows(cmpFunc, header, rows, index, wasAscending);
-    } catch (e) {
-      console.error(e);
-      if (cmpFunc !== cmpAlpha)
-        sortRows(cmpAlpha, header, rows, index, wasAscending);
-    }
-    rows.forEach((row) => table.tBodies[0].appendChild(row));
-  }
-  function isColumnProbablyDate(table, index) {
-    let rows = Array.from(table.tBodies[0].rows);
-    return stringToDate(rows[0].cells[index].textContent);
-  }
-  function stringToDate(text) {
-    let reDate = /^(\d\d)[-\/](\d\d)[-\/](\d\d\d\d)/;
-    let matches = text.match(reDate);
-    if (!matches)
-      return void 0;
-    return /* @__PURE__ */ new Date(matches[3] + "-" + matches[2] + "/" + matches[1]);
-  }
-  function isColumnProbablyNumeric(table, index) {
-    let rows = Array.from(table.tBodies[0].rows);
-    const MAX_SAMPLES = 100;
-    let samples = rangeGenerator(0, rows.length, rows.length > MAX_SAMPLES ? rows.length / MAX_SAMPLES : 1).map((float) => Math.floor(float));
-    return !samples.map((rowIndex) => rows[rowIndex]).some((row) => {
-      return isNaN(Number(row.children[index].innerText));
-    });
-  }
-  function addTableHeaderClickEvents(table) {
-    if (table.tHead.classList.contains("clickHandler"))
-      return;
-    table.tHead.classList.add("clickHandler");
-    Array.from(table.tHead.children[0].children).forEach((header, index) => {
-      header.onclick = (_ev) => {
-        sortTableByColumn(table, index);
-      };
-    });
-  }
-
   // typescript/table/observer.ts
   var observer_default5 = new BaseObserver(void 0, new AllPageFilter(), onMutation4);
   function onMutation4(_mutation) {
@@ -3110,29 +3037,15 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
       addTableNavigationButton(navigationBars, DOWNLOAD_TABLE_BTN_ID, "download full table", downloadTable, "fa-arrow-down");
     }
     if (document.querySelector("main div.table-responsive table thead")) {
-      addTableHeaderClickEvents(document.querySelector("main div.table-responsive table"));
+      decorateTableHeader(document.querySelector("main div.table-responsive table"));
     }
     let customTable = document.querySelector("table.canSort");
     if (customTable) {
-      addTableHeaderClickEvents(customTable);
+      decorateTableHeader(customTable);
     }
     return true;
   }
   var tableCriteriaBuilders = /* @__PURE__ */ new Map();
-  function downloadTable() {
-    let prebuildPageHandler = new SimpleTableHandler(onLoaded, void 0);
-    function onLoaded(fetchedTable) {
-      tableDef.tableRef.getOrgTable().querySelector("tbody").replaceChildren(...fetchedTable.getRows());
-    }
-    let tableRef = findTableRefInCode();
-    let tableDef = new TableDef(
-      tableRef,
-      prebuildPageHandler,
-      getChecksumHandler(tableRef.htmlTableId)
-    );
-    tableDef.getTableData().then(() => {
-    });
-  }
   function getChecksumHandler(tableId2) {
     let handler = tableCriteriaBuilders.get(tableId2);
     if (handler)
@@ -3141,260 +3054,6 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
   }
   function registerChecksumHandler(tableId2, checksumHandler) {
     tableCriteriaBuilders.set(tableId2, checksumHandler);
-  }
-
-  // typescript/werklijst/urenData.ts
-  var UrenData = class {
-    constructor(year, cloudData, vakLeraars) {
-      this.year = year;
-      this.fromCloud = cloudData;
-      this.vakLeraars = vakLeraars;
-    }
-  };
-  var JsonCloudData = class {
-    constructor(object) {
-      this.version = "1.0";
-      this.columns = [];
-      if (object) {
-        Object.assign(this, object);
-      }
-    }
-  };
-  var CloudData = class {
-    constructor(jsonCloudData) {
-      this.#buildMapFromJsonData(jsonCloudData);
-    }
-    #buildMapFromJsonData(jsonCloudData) {
-      for (let column of jsonCloudData.columns) {
-        column.rowMap = new Map(column.rows.map((row) => [row.key, row.value]));
-      }
-      this.columnMap = new Map(jsonCloudData.columns.map((col) => [col.key, col.rowMap]));
-    }
-    toJson(colKey1, colKey2) {
-      let data = new JsonCloudData();
-      let col1 = this.#columnToJson(colKey1);
-      let col2 = this.#columnToJson(colKey2);
-      data.columns.push({ key: colKey1, rows: col1 });
-      data.columns.push({ key: colKey2, rows: col2 });
-      return data;
-    }
-    #columnToJson(colKey) {
-      let cells = [];
-      for (let [key, value] of this.columnMap.get(colKey)) {
-        let row = {
-          key,
-          value
-        };
-        cells.push(row);
-      }
-      return cells;
-    }
-  };
-
-  // typescript/werklijst/observer.ts
-  var tableId = "table_leerlingen_werklijst_table";
-  registerChecksumHandler(
-    tableId,
-    (_tableDef) => {
-      return document.querySelector("#view_contents > div.alert.alert-primary")?.textContent.replace("Criteria aanpassen", "")?.replace("Criteria:", "") ?? "";
-    }
-  );
-  var observer_default6 = new HashObserver("#leerlingen-werklijst", onMutation5);
-  function onMutation5(mutation) {
-    if (mutation.target.id === "table_leerlingen_werklijst_table") {
-      onWerklijstChanged();
-      return true;
-    }
-    let buttonBar = document.getElementById("tablenav_leerlingen_werklijst_top");
-    if (mutation.target === buttonBar) {
-      onButtonBarChanged();
-      return true;
-    }
-    if (document.querySelector("#btn_werklijst_maken")) {
-      onCriteriaShown();
-      return true;
-    }
-    return false;
-  }
-  function onCriteriaShown() {
-    let pageState2 = getGotoStateOrDefault("Werklijst" /* Werklijst */);
-    if (pageState2.goto == "Werklijst_uren_prevYear" /* Werklijst_uren_prevYear */) {
-      pageState2.goto = "" /* None */;
-      saveGotoState(pageState2);
-      prefillInstruments(createSchoolyearString(calculateSchooljaar())).then(() => {
-      });
-      return;
-    }
-    if (pageState2.goto == "Werklijst_uren_nextYear" /* Werklijst_uren_nextYear */) {
-      pageState2.goto = "" /* None */;
-      saveGotoState(pageState2);
-      prefillInstruments(createSchoolyearString(calculateSchooljaar() + 1)).then(() => {
-      });
-      return;
-    }
-    pageState2.werklijstTableName = "";
-    saveGotoState(pageState2);
-    let btnWerklijstMaken = document.querySelector("#btn_werklijst_maken");
-    if (document.getElementById(UREN_PREV_BTN_ID))
-      return;
-    let year = parseInt(getHighestSchooljaarAvailable());
-    let prevSchoolyear = createSchoolyearString(year - 1);
-    let nextSchoolyear = createSchoolyearString(year);
-    let prevSchoolyearShort = createShortSchoolyearString(year - 1);
-    let nextSchoolyearShort = createShortSchoolyearString(year);
-    addButton(btnWerklijstMaken, UREN_PREV_BTN_ID, "Toon lerarenuren voor " + prevSchoolyear, async () => {
-      await prefillInstruments(prevSchoolyear);
-    }, "", ["btn", "btn-outline-dark"], "Uren " + prevSchoolyearShort);
-    addButton(btnWerklijstMaken, UREN_NEXT_BTN_ID, "Toon lerarenuren voor " + nextSchoolyear, async () => {
-      await prefillInstruments(nextSchoolyear);
-    }, "", ["btn", "btn-outline-dark"], "Uren " + nextSchoolyearShort);
-    getSchoolIdString();
-  }
-  function onWerklijstChanged() {
-    let werklijstPageState = getGotoStateOrDefault("Werklijst" /* Werklijst */);
-    if (werklijstPageState.werklijstTableName === UREN_TABLE_STATE_NAME) {
-      tryUntil(onClickShowCounts);
-    }
-    addTableHeaderClickEvents(document.querySelector("table#table_leerlingen_werklijst_table"));
-  }
-  function onButtonBarChanged() {
-    let targetButton = document.querySelector("#tablenav_leerlingen_werklijst_top > div > div.btn-group.btn-group-sm.datatable-buttons > button:nth-child(1)");
-    addButton(targetButton, COUNT_BUTTON_ID, "Toon telling", onClickShowCounts, "fa-guitar", ["btn-outline-info"]);
-    addButton(targetButton, MAIL_BTN_ID, "Email to clipboard", onClickCopyEmails, "fa-envelope", ["btn", "btn-outline-info"]);
-  }
-  function onClickCopyEmails() {
-    let requiredHeaderLabels = ["e-mailadressen"];
-    let pageHandler = new NamedCellTablePageHandler(requiredHeaderLabels, onEmailsLoaded, (tableDef1) => {
-      navigator.clipboard.writeText("").then((value) => {
-        console.log("Clipboard cleared.");
-      });
-    });
-    let tableDef = new TableDef(
-      findTableRefInCode(),
-      pageHandler,
-      getChecksumHandler(tableId)
-    );
-    function onEmailsLoaded(fetchedTable) {
-      let allEmails = this.rows = fetchedTable.getRowsAsArray().map((tr) => tableDef.pageHandler.getColumnText(tr, "e-mailadressen"));
-      let flattened = allEmails.map((emails) => emails.split(/[,;]/)).flat().filter((email) => !email.includes("@academiestudent.be")).filter((email) => email !== "");
-      navigator.clipboard.writeText(flattened.join(";\n")).then(
-        () => tableDef.setTempMessage("Alle emails zijn naar het clipboard gekopieerd. Je kan ze plakken in Outlook.")
-      );
-    }
-    tableDef.getTableData(void 0).then((_results) => {
-    });
-  }
-  function tryUntil(func) {
-    if (!func())
-      setTimeout(() => tryUntil(func), 100);
-  }
-  function onClickShowCounts() {
-    if (!document.getElementById(COUNT_TABLE_ID)) {
-      let onLoaded = function(fetchedTable) {
-        let vakLeraars = /* @__PURE__ */ new Map();
-        let rows = this.rows = fetchedTable.getRows();
-        for (let tr of rows) {
-          scrapeStudent(tableDef, tr, vakLeraars);
-        }
-        let fromCloud = new JsonCloudData(tableDef.parallelData);
-        fromCloud = upgradeCloudData(fromCloud);
-        vakLeraars = new Map([...vakLeraars.entries()].sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
-        document.getElementById(COUNT_TABLE_ID)?.remove();
-        let schoolYear = findSchooljaar();
-        let year = parseInt(schoolYear);
-        buildTable(new UrenData(year, new CloudData(fromCloud), vakLeraars), tableDef);
-        document.getElementById(COUNT_TABLE_ID).style.display = "none";
-        showOrHideNewTable();
-      };
-      let tableRef = findTableRefInCode();
-      if (!tableRef)
-        return false;
-      let fileName = getUrenVakLeraarFileName();
-      let requiredHeaderLabels = ["naam", "voornaam", "vak", "klasleerkracht", "graad + leerjaar"];
-      let pageHandler = new NamedCellTablePageHandler(requiredHeaderLabels, onLoaded, () => {
-      });
-      let tableDef = new TableDef(
-        tableRef,
-        pageHandler,
-        getChecksumHandler(tableRef.htmlTableId)
-      );
-      tableDef.getTableData(() => getUrenFromCloud(fileName)).then((_results) => {
-      });
-      return true;
-    }
-    showOrHideNewTable();
-    return true;
-  }
-  async function getUrenFromCloud(fileName) {
-    try {
-      return await cloud.json.fetch(fileName);
-    } catch (e) {
-      return new JsonCloudData();
-    }
-  }
-  function showOrHideNewTable() {
-    let showNewTable = document.getElementById(COUNT_TABLE_ID).style.display === "none";
-    document.getElementById("table_leerlingen_werklijst_table").style.display = showNewTable ? "none" : "table";
-    document.getElementById(COUNT_TABLE_ID).style.display = showNewTable ? "table" : "none";
-    document.getElementById(COUNT_BUTTON_ID).title = showNewTable ? "Toon normaal" : "Toon telling";
-    setButtonHighlighted(COUNT_BUTTON_ID, showNewTable);
-    let pageState2 = getGotoStateOrDefault("Werklijst" /* Werklijst */);
-    pageState2.werklijstTableName = showNewTable ? UREN_TABLE_STATE_NAME : "";
-    saveGotoState(pageState2);
-  }
-  function upgradeCloudData(fromCloud) {
-    return fromCloud;
-  }
-
-  // typescript/vakgroep/observer.ts
-  var observer_default7 = new HashObserver("#extra-inschrijvingen-vakgroepen-vakgroep", onMutation6);
-  function onMutation6(mutation) {
-    let divVakken = document.getElementById("div_table_vakgroepen_vakken");
-    if (mutation.target !== divVakken) {
-      return false;
-    }
-    onVakgroepChanged(divVakken);
-    return true;
-  }
-  var TXT_FILTER_ID2 = "txtFilter";
-  var savedSearch = "";
-  function onVakgroepChanged(divVakken) {
-    let table = divVakken.querySelector("table");
-    if (!document.getElementById(TXT_FILTER_ID2))
-      table.parentElement.insertBefore(createSearchField(TXT_FILTER_ID2, onSearchInput2, savedSearch), table);
-    onSearchInput2();
-  }
-  function onSearchInput2() {
-    savedSearch = document.getElementById(TXT_FILTER_ID2).value;
-    function getRowText(tr) {
-      let instrumentName = tr.cells[0].querySelector("label").textContent.trim();
-      let strong = tr.cells[0].querySelector("strong")?.textContent.trim();
-      return instrumentName + " " + strong;
-    }
-    let rowFilter = createTextRowFilter(savedSearch, getRowText);
-    filterTable(document.querySelector("#div_table_vakgroepen_vakken table"), rowFilter);
-  }
-
-  // typescript/verwittigen/observer.ts
-  var observer_default8 = new HashObserver("#leerlingen-verwittigen", onMutation7);
-  var CHAR_COUNTER = "charCounterClass";
-  var COUNTER_ID = "charCounter";
-  function onMutation7(mutation) {
-    let txtSms = document.getElementById("leerlingen_verwittigen_bericht_sjabloon");
-    if (txtSms && !txtSms?.classList.contains(CHAR_COUNTER)) {
-      txtSms.classList.add(CHAR_COUNTER);
-      txtSms.addEventListener("input", onSmsChanged);
-      let span = document.createElement("span");
-      span.id = COUNTER_ID;
-      txtSms.parentElement.appendChild(span);
-      onSmsChanged(void 0);
-    }
-    return true;
-  }
-  function onSmsChanged(event) {
-    let txtSms = document.getElementById("leerlingen_verwittigen_bericht_sjabloon");
-    let spanCounter = document.getElementById(COUNTER_ID);
-    spanCounter.textContent = txtSms.value.length.toString();
   }
 
   // typescript/table/loadAnyTable.ts
@@ -3581,6 +3240,371 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
       return this;
     }
   };
+  function downloadTable() {
+    let prebuildPageHandler = new SimpleTableHandler(onLoaded, void 0);
+    function onLoaded(fetchedTable) {
+      tableDef.tableRef.getOrgTableContainer().querySelector("tbody").replaceChildren(...fetchedTable.getRows());
+    }
+    let tableRef = findTableRefInCode();
+    let tableDef = new TableDef(
+      tableRef,
+      prebuildPageHandler,
+      getChecksumHandler(tableRef.htmlTableId)
+    );
+    return tableDef.getTableData();
+  }
+
+  // typescript/table/tableHeaders.ts
+  function sortRows(cmpFunction, header, rows, index, wasAscending) {
+    let cmpDirectionalFunction;
+    if (wasAscending) {
+      cmpDirectionalFunction = (a, b) => cmpFunction(b.cells[index], a.cells[index]);
+      header.classList.add("sortDescending");
+    } else {
+      cmpDirectionalFunction = (a, b) => cmpFunction(a.cells[index], b.cells[index]);
+      header.classList.add("sortAscending");
+    }
+    rows.sort((a, b) => cmpDirectionalFunction(a, b));
+  }
+  function cmpAlpha(a, b) {
+    return a.innerText.localeCompare(b.innerText);
+  }
+  function cmpDate(a, b) {
+    return normalizeDate(a.innerText).localeCompare(normalizeDate(b.innerText));
+  }
+  function normalizeDate(date) {
+    let dateParts = date.split("-");
+    return dateParts[2] + dateParts[1] + dateParts[0];
+  }
+  function cmpNumber(a, b) {
+    let res = Number(a.innerText) - Number(b.innerText);
+    if (isNaN(res)) {
+      throw new Error();
+    }
+    return res;
+  }
+  function sortTableByColumn(table, index) {
+    let header = table.tHead.children[0].children[index];
+    let rows = Array.from(table.tBodies[0].rows);
+    let wasAscending = header.classList.contains("sortAscending");
+    for (let thead of table.tHead.children[0].children) {
+      thead.classList.remove("sortAscending", "sortDescending");
+    }
+    let cmpFunc = cmpAlpha;
+    if (isColumnProbablyNumeric(table, index)) {
+      cmpFunc = cmpNumber;
+    } else if (isColumnProbablyDate(table, index)) {
+      cmpFunc = cmpDate;
+    }
+    try {
+      sortRows(cmpFunc, header, rows, index, wasAscending);
+    } catch (e) {
+      console.error(e);
+      if (cmpFunc !== cmpAlpha)
+        sortRows(cmpAlpha, header, rows, index, wasAscending);
+    }
+    rows.forEach((row) => table.tBodies[0].appendChild(row));
+  }
+  function isColumnProbablyDate(table, index) {
+    let rows = Array.from(table.tBodies[0].rows);
+    return stringToDate(rows[0].cells[index].textContent);
+  }
+  function stringToDate(text) {
+    let reDate = /^(\d\d)[-\/](\d\d)[-\/](\d\d\d\d)/;
+    let matches = text.match(reDate);
+    if (!matches)
+      return void 0;
+    return /* @__PURE__ */ new Date(matches[3] + "-" + matches[2] + "/" + matches[1]);
+  }
+  function isColumnProbablyNumeric(table, index) {
+    let rows = Array.from(table.tBodies[0].rows);
+    const MAX_SAMPLES = 100;
+    let samples = rangeGenerator(0, rows.length, rows.length > MAX_SAMPLES ? rows.length / MAX_SAMPLES : 1).map((float) => Math.floor(float));
+    return !samples.map((rowIndex) => rows[rowIndex]).some((row) => {
+      return isNaN(Number(row.children[index].innerText));
+    });
+  }
+  function decorateTableHeader(table) {
+    if (table.tHead.classList.contains("clickHandler"))
+      return;
+    table.tHead.classList.add("clickHandler");
+    Array.from(table.tHead.children[0].children).forEach((colHeader, index) => {
+      colHeader.onclick = (_ev) => {
+        sortTableByColumn(table, index);
+      };
+      let { last } = emmet.appendChild(colHeader, 'button.miniButton>i.fas.fa-list[title="Toon unieke waarden"]');
+      last.onclick = (ev) => {
+        ev.preventDefault();
+        downloadTable().then((fetchedTable) => {
+          let cols = getDistinctColumn(fetchedTable.tableDef.tableRef.getOrgTableContainer(), index);
+          let tmpDiv = document.createElement("div");
+          let tbody = emmet.appendChild(tmpDiv, "table>tbody").last;
+          for (let col of cols) {
+            emmet.appendChild(tbody, `tr>td>{${col}}`);
+          }
+          openTab(tmpDiv.innerHTML);
+        });
+      };
+    });
+  }
+  function getDistinctColumn(tableContainer, index) {
+    let rows = Array.from(tableContainer.querySelector("tbody").rows);
+    return distinct(rows.map((row) => row.children[index].textContent)).sort();
+  }
+
+  // typescript/werklijst/urenData.ts
+  var UrenData = class {
+    constructor(year, cloudData, vakLeraars) {
+      this.year = year;
+      this.fromCloud = cloudData;
+      this.vakLeraars = vakLeraars;
+    }
+  };
+  var JsonCloudData = class {
+    constructor(object) {
+      this.version = "1.0";
+      this.columns = [];
+      if (object) {
+        Object.assign(this, object);
+      }
+    }
+  };
+  var CloudData = class {
+    constructor(jsonCloudData) {
+      this.#buildMapFromJsonData(jsonCloudData);
+    }
+    #buildMapFromJsonData(jsonCloudData) {
+      for (let column of jsonCloudData.columns) {
+        column.rowMap = new Map(column.rows.map((row) => [row.key, row.value]));
+      }
+      this.columnMap = new Map(jsonCloudData.columns.map((col) => [col.key, col.rowMap]));
+    }
+    toJson(colKey1, colKey2) {
+      let data = new JsonCloudData();
+      let col1 = this.#columnToJson(colKey1);
+      let col2 = this.#columnToJson(colKey2);
+      data.columns.push({ key: colKey1, rows: col1 });
+      data.columns.push({ key: colKey2, rows: col2 });
+      return data;
+    }
+    #columnToJson(colKey) {
+      let cells = [];
+      for (let [key, value] of this.columnMap.get(colKey)) {
+        let row = {
+          key,
+          value
+        };
+        cells.push(row);
+      }
+      return cells;
+    }
+  };
+
+  // typescript/werklijst/observer.ts
+  var tableId = "table_leerlingen_werklijst_table";
+  registerChecksumHandler(
+    tableId,
+    (_tableDef) => {
+      return document.querySelector("#view_contents > div.alert.alert-primary")?.textContent.replace("Criteria aanpassen", "")?.replace("Criteria:", "") ?? "";
+    }
+  );
+  var observer_default6 = new HashObserver("#leerlingen-werklijst", onMutation5);
+  function onMutation5(mutation) {
+    if (mutation.target.id === "table_leerlingen_werklijst_table") {
+      onWerklijstChanged();
+      return true;
+    }
+    let buttonBar = document.getElementById("tablenav_leerlingen_werklijst_top");
+    if (mutation.target === buttonBar) {
+      onButtonBarChanged();
+      return true;
+    }
+    if (document.querySelector("#btn_werklijst_maken")) {
+      onCriteriaShown();
+      return true;
+    }
+    return false;
+  }
+  function onCriteriaShown() {
+    let pageState2 = getGotoStateOrDefault("Werklijst" /* Werklijst */);
+    if (pageState2.goto == "Werklijst_uren_prevYear" /* Werklijst_uren_prevYear */) {
+      pageState2.goto = "" /* None */;
+      saveGotoState(pageState2);
+      prefillInstruments(createSchoolyearString(calculateSchooljaar())).then(() => {
+      });
+      return;
+    }
+    if (pageState2.goto == "Werklijst_uren_nextYear" /* Werklijst_uren_nextYear */) {
+      pageState2.goto = "" /* None */;
+      saveGotoState(pageState2);
+      prefillInstruments(createSchoolyearString(calculateSchooljaar() + 1)).then(() => {
+      });
+      return;
+    }
+    pageState2.werklijstTableName = "";
+    saveGotoState(pageState2);
+    let btnWerklijstMaken = document.querySelector("#btn_werklijst_maken");
+    if (document.getElementById(UREN_PREV_BTN_ID))
+      return;
+    let year = parseInt(getHighestSchooljaarAvailable());
+    let prevSchoolyear = createSchoolyearString(year - 1);
+    let nextSchoolyear = createSchoolyearString(year);
+    let prevSchoolyearShort = createShortSchoolyearString(year - 1);
+    let nextSchoolyearShort = createShortSchoolyearString(year);
+    addButton(btnWerklijstMaken, UREN_PREV_BTN_ID, "Toon lerarenuren voor " + prevSchoolyear, async () => {
+      await prefillInstruments(prevSchoolyear);
+    }, "", ["btn", "btn-outline-dark"], "Uren " + prevSchoolyearShort);
+    addButton(btnWerklijstMaken, UREN_NEXT_BTN_ID, "Toon lerarenuren voor " + nextSchoolyear, async () => {
+      await prefillInstruments(nextSchoolyear);
+    }, "", ["btn", "btn-outline-dark"], "Uren " + nextSchoolyearShort);
+    getSchoolIdString();
+  }
+  function onWerklijstChanged() {
+    let werklijstPageState = getGotoStateOrDefault("Werklijst" /* Werklijst */);
+    if (werklijstPageState.werklijstTableName === UREN_TABLE_STATE_NAME) {
+      tryUntil(onClickShowCounts);
+    }
+    decorateTableHeader(document.querySelector("table#table_leerlingen_werklijst_table"));
+  }
+  function onButtonBarChanged() {
+    let targetButton = document.querySelector("#tablenav_leerlingen_werklijst_top > div > div.btn-group.btn-group-sm.datatable-buttons > button:nth-child(1)");
+    addButton(targetButton, COUNT_BUTTON_ID, "Toon telling", onClickShowCounts, "fa-guitar", ["btn-outline-info"]);
+    addButton(targetButton, MAIL_BTN_ID, "Email to clipboard", onClickCopyEmails, "fa-envelope", ["btn", "btn-outline-info"]);
+  }
+  function onClickCopyEmails() {
+    let requiredHeaderLabels = ["e-mailadressen"];
+    let pageHandler = new NamedCellTablePageHandler(requiredHeaderLabels, onEmailsLoaded, (tableDef1) => {
+      navigator.clipboard.writeText("").then((value) => {
+        console.log("Clipboard cleared.");
+      });
+    });
+    let tableDef = new TableDef(
+      findTableRefInCode(),
+      pageHandler,
+      getChecksumHandler(tableId)
+    );
+    function onEmailsLoaded(fetchedTable) {
+      let allEmails = this.rows = fetchedTable.getRowsAsArray().map((tr) => tableDef.pageHandler.getColumnText(tr, "e-mailadressen"));
+      let flattened = allEmails.map((emails) => emails.split(/[,;]/)).flat().filter((email) => !email.includes("@academiestudent.be")).filter((email) => email !== "");
+      navigator.clipboard.writeText(flattened.join(";\n")).then(
+        () => tableDef.setTempMessage("Alle emails zijn naar het clipboard gekopieerd. Je kan ze plakken in Outlook.")
+      );
+    }
+    tableDef.getTableData(void 0).then((_results) => {
+    });
+  }
+  function tryUntil(func) {
+    if (!func())
+      setTimeout(() => tryUntil(func), 100);
+  }
+  function onClickShowCounts() {
+    if (!document.getElementById(COUNT_TABLE_ID)) {
+      let onLoaded = function(fetchedTable) {
+        let vakLeraars = /* @__PURE__ */ new Map();
+        let rows = this.rows = fetchedTable.getRows();
+        for (let tr of rows) {
+          scrapeStudent(tableDef, tr, vakLeraars);
+        }
+        let fromCloud = new JsonCloudData(tableDef.parallelData);
+        fromCloud = upgradeCloudData(fromCloud);
+        vakLeraars = new Map([...vakLeraars.entries()].sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
+        document.getElementById(COUNT_TABLE_ID)?.remove();
+        let schoolYear = findSchooljaar();
+        let year = parseInt(schoolYear);
+        buildTable(new UrenData(year, new CloudData(fromCloud), vakLeraars), tableDef);
+        document.getElementById(COUNT_TABLE_ID).style.display = "none";
+        showOrHideNewTable();
+      };
+      let tableRef = findTableRefInCode();
+      if (!tableRef)
+        return false;
+      let fileName = getUrenVakLeraarFileName();
+      let requiredHeaderLabels = ["naam", "voornaam", "vak", "klasleerkracht", "graad + leerjaar"];
+      let pageHandler = new NamedCellTablePageHandler(requiredHeaderLabels, onLoaded, () => {
+      });
+      let tableDef = new TableDef(
+        tableRef,
+        pageHandler,
+        getChecksumHandler(tableRef.htmlTableId)
+      );
+      tableDef.getTableData(() => getUrenFromCloud(fileName)).then((_results) => {
+      });
+      return true;
+    }
+    showOrHideNewTable();
+    return true;
+  }
+  async function getUrenFromCloud(fileName) {
+    try {
+      return await cloud.json.fetch(fileName);
+    } catch (e) {
+      return new JsonCloudData();
+    }
+  }
+  function showOrHideNewTable() {
+    let showNewTable = document.getElementById(COUNT_TABLE_ID).style.display === "none";
+    document.getElementById("table_leerlingen_werklijst_table").style.display = showNewTable ? "none" : "table";
+    document.getElementById(COUNT_TABLE_ID).style.display = showNewTable ? "table" : "none";
+    document.getElementById(COUNT_BUTTON_ID).title = showNewTable ? "Toon normaal" : "Toon telling";
+    setButtonHighlighted(COUNT_BUTTON_ID, showNewTable);
+    let pageState2 = getGotoStateOrDefault("Werklijst" /* Werklijst */);
+    pageState2.werklijstTableName = showNewTable ? UREN_TABLE_STATE_NAME : "";
+    saveGotoState(pageState2);
+  }
+  function upgradeCloudData(fromCloud) {
+    return fromCloud;
+  }
+
+  // typescript/vakgroep/observer.ts
+  var observer_default7 = new HashObserver("#extra-inschrijvingen-vakgroepen-vakgroep", onMutation6);
+  function onMutation6(mutation) {
+    let divVakken = document.getElementById("div_table_vakgroepen_vakken");
+    if (mutation.target !== divVakken) {
+      return false;
+    }
+    onVakgroepChanged(divVakken);
+    return true;
+  }
+  var TXT_FILTER_ID2 = "txtFilter";
+  var savedSearch = "";
+  function onVakgroepChanged(divVakken) {
+    let table = divVakken.querySelector("table");
+    if (!document.getElementById(TXT_FILTER_ID2))
+      table.parentElement.insertBefore(createSearchField(TXT_FILTER_ID2, onSearchInput2, savedSearch), table);
+    onSearchInput2();
+  }
+  function onSearchInput2() {
+    savedSearch = document.getElementById(TXT_FILTER_ID2).value;
+    function getRowText(tr) {
+      let instrumentName = tr.cells[0].querySelector("label").textContent.trim();
+      let strong = tr.cells[0].querySelector("strong")?.textContent.trim();
+      return instrumentName + " " + strong;
+    }
+    let rowFilter = createTextRowFilter(savedSearch, getRowText);
+    filterTable(document.querySelector("#div_table_vakgroepen_vakken table"), rowFilter);
+  }
+
+  // typescript/verwittigen/observer.ts
+  var observer_default8 = new HashObserver("#leerlingen-verwittigen", onMutation7);
+  var CHAR_COUNTER = "charCounterClass";
+  var COUNTER_ID = "charCounter";
+  function onMutation7(mutation) {
+    let txtSms = document.getElementById("leerlingen_verwittigen_bericht_sjabloon");
+    if (txtSms && !txtSms?.classList.contains(CHAR_COUNTER)) {
+      txtSms.classList.add(CHAR_COUNTER);
+      txtSms.addEventListener("input", onSmsChanged);
+      let span = document.createElement("span");
+      span.id = COUNTER_ID;
+      txtSms.parentElement.appendChild(span);
+      onSmsChanged(void 0);
+    }
+    return true;
+  }
+  function onSmsChanged(event) {
+    let txtSms = document.getElementById("leerlingen_verwittigen_bericht_sjabloon");
+    let spanCounter = document.getElementById(COUNTER_ID);
+    spanCounter.textContent = txtSms.value.length.toString();
+  }
 
   // typescript/aanwezigheden/observer.ts
   var observer_default9 = new HashObserver("#leerlingen-lijsten-awi-percentages_leerling_vak", onMutationAanwezgheden);
@@ -3715,7 +3739,7 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
       console.log(text);
       window.sessionStorage.setItem(AANW_LIST, text);
       aanwezighedenToClipboard();
-      tableDef.tableRef.getOrgTable().querySelector("tbody").replaceChildren(...fetchedTable.getRows());
+      tableDef.tableRef.getOrgTableContainer().querySelector("tbody").replaceChildren(...fetchedTable.getRows());
     });
   }
   function aanwezighedenToClipboard() {
@@ -4008,15 +4032,7 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
   }
   document.body.addEventListener("keydown", showPowerQuery);
   function addOpenTabQueryItem() {
-    addQueryItem("Test", "Open tab", void 0, openTab);
-  }
-  function openTab() {
-    let message = {
-      //todo: use interface
-      action: "open_tab",
-      data: "Important TYPESCRIPT data for this tab!!!"
-    };
-    chrome.runtime.sendMessage(message).then(() => console.log("message sent."));
+    addQueryItem("Test", "Open tab", void 0, () => openTab("Important TYPESCRIPT data for this tab!!!"));
   }
   function showPowerQuery(ev) {
     if (ev.key === "q" && ev.ctrlKey && !ev.shiftKey && !ev.altKey) {

@@ -204,7 +204,7 @@ async function copyTable() {
         aanwezighedenToClipboard();
 
         //replace the visible table
-        tableDef.tableRef.getOrgTable()
+        tableDef.tableRef.getOrgTableContainer()
             .querySelector("tbody")
             .replaceChildren(...fetchedTable.getRows());
     });
