@@ -389,3 +389,13 @@ export function getPageSettings(pageName: PageName, defaultState: LessenPageStat
 export function savePageSettings(state: PageState) {
     localStorage.setItem(def.STORAGE_PAGE_STATE_KEY_PREFIX + state.pageName, JSON.stringify(state));
 }
+
+export enum Actions {
+    OpenTab = "open_tab",
+    GetTabData = "get_tab_data",
+}
+
+export interface ExtensionRequest {
+    action: Actions,
+    data: any
+}

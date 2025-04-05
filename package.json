@@ -5,10 +5,11 @@
   "main": "typescript/plugin_options/options.ts",
   "scripts": {
     "test": "echo \"Note that the build command does a TSC first for stricter compilation.\" && exit 1",
-    "build_all": "npm run build_content && npm run build_options && npm run build_serviceworker",
+    "build_all": "npm run build_content && npm run build_options && npm run build_serviceworker && npm run build_blank",
     "build_content": "tsc --build && node esbuild.config.mjs",
     "build_options": "tsc --project ./tsconfig_options.json && node esbuild_options.config.mjs",
     "build_serviceworker": "tsc --project ./tsconfig_service.json && node esbuild_service.config.mjs",
+    "build_blank": "tsc --project ./tsconfig_blank.json && node esbuild_blank.config.mjs",
     "publish_edge": "powershell ./zip.ps1"
   },
   "author": "",

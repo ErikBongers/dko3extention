@@ -4007,14 +4007,14 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
     addQueryItem("Lessen", "Trimester modules", "", gotoTrimesterModules);
   }
   document.body.addEventListener("keydown", showPowerQuery);
-  function testMessages() {
-    addQueryItem("Test", "Send message", void 0, sendTestMessage);
+  function addOpenTabQueryItem() {
+    addQueryItem("Test", "Open tab", void 0, openTab);
   }
-  function sendTestMessage() {
-    console.log("Sending message...");
+  function openTab() {
     let message = {
+      //todo: use interface
       action: "open_tab",
-      data: "Brol en zever!"
+      data: "Important TYPESCRIPT data for this tab!!!"
     };
     chrome.runtime.sendMessage(message).then(() => console.log("message sent."));
   }
@@ -4023,7 +4023,7 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
       scrapeMainMenu();
       powerQueryItems.push(...getSavedQueryItems());
       getHardCodedQueryItems();
-      testMessages();
+      addOpenTabQueryItem();
       popover.showPopover();
     } else {
       if (popoverVisible === false)

@@ -113,15 +113,14 @@ function getHardCodedQueryItems() {
 
 document.body.addEventListener("keydown", showPowerQuery);
 
-function testMessages() {
-    addQueryItem('Test', "Send message", undefined, sendTestMessage);
+function addOpenTabQueryItem() {
+    addQueryItem('Test', "Open tab", undefined, openTab);
 }
 
-function sendTestMessage() {
-    console.log("Sending message...");
-    let message = {
+function openTab() {
+    let message = { //todo: use interface
         action: "open_tab",
-        data: "Brol en zever!"
+        data: "Important TYPESCRIPT data for this tab!!!"
     };
 
     chrome.runtime.sendMessage(message)
@@ -133,7 +132,7 @@ function showPowerQuery(ev: KeyboardEvent) {
         scrapeMainMenu();
         powerQueryItems.push(...getSavedQueryItems());
         getHardCodedQueryItems();
-        testMessages();
+        addOpenTabQueryItem();
         popover.showPopover();
     } else {
         if (popoverVisible === false)
