@@ -1,8 +1,8 @@
 import * as esbuild from 'esbuild';
 
 await esbuild.build({
-    entryPoints: ['typescript/main.ts'],
+    entryPoints: ['typescript/serviceworker.ts'],
     bundle: true,
     sourcemap: "linked",
-    outfile: 'generated/bundle.js'
+    outfile: 'generated/serviceworker.js'
 });

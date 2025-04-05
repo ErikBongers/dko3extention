@@ -25,7 +25,7 @@ chrome.runtime.onMessage.addListener(
     function(request, sender, sendResponse) {
         console.log("received ");
         console.log(request);
-        switch (request.action) { //todo: make a shared type with content scripts.
+        switch (request.action) { //todo: make a shared type with content generated.
             case "hello":
                 sendResponse({farewell: "goodbye"});
                 break;

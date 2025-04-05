@@ -4,5 +4,5 @@ await esbuild.build({
     entryPoints: ['typescript/plugin_options/options.ts'],
     bundle: true,
     sourcemap: "linked",
-    outfile: 'options.js'
+    outfile: 'generated/options.js'
 });

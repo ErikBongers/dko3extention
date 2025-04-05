@@ -10,7 +10,7 @@
   "content_scripts": [
     {
       "js": [
-        "scripts/ts/bundle.js"
+        "generated/bundle.js"
       ],
       "css": [
         "css/general.css",
@@ -22,7 +22,7 @@
     }
   ],
   "background": {
-    "service_worker": "scripts/serviceworker.js"
+    "service_worker": "generated/serviceworker.js"
   },
   "options_page": "options.html",
   "permissions": [
@@ -33,7 +33,7 @@
     "matches": ["https://administratie.dko3.cloud/*"],
     "_comment": "typescript folder included for debugging in browser!",
     "resources": [
-      "scripts/ts/*",
+      "generated/*",
       "typescript/*",
       "resources/*"
     ]

@@ -7,7 +7,5 @@
     "noEmit": true,
     "incremental": false
   },
-  "types": [
-    "chrome"
-  ]
+  "files": ["./typescript/serviceworker.ts"]
 }
