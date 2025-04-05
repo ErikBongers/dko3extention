@@ -13,6 +13,7 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@types/chrome": "^0.0.313",
     "esbuild": ">=0.25.0"
   }
 }
