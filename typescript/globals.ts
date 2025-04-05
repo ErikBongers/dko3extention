@@ -397,13 +397,15 @@ export enum Actions {
 
 export interface ExtensionRequest {
     action: Actions,
-    data: any
+    data: any,
+    pageTitle: string
 }
 
-export function openTab(html: string) {
-    let message = { //todo: use interface
-        action: "open_tab",
-        data: html
+export function openTab(html: string, pageTitle: string) {
+    let message: ExtensionRequest = {
+        action: Actions.OpenTab,
+        data: html,
+        pageTitle
     };
 
     chrome.runtime.sendMessage(message)

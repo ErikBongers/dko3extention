@@ -11,6 +11,7 @@
       console.log("tab opened: request data message sent and received: ");
       console.log(res);
       document.body.innerHTML = res.data;
+      document.title = res.pageTitle;
     });
   });
 })();

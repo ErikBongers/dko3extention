@@ -107,7 +107,8 @@ export function decorateTableHeader(table: HTMLTableElement) {
                     for(let col of cols) {
                         emmet.appendChild(tbody, `tr>td>{${col}}`);
                     }
-                    openTab(tmpDiv.innerHTML);
+                    let headerRow = fetchedTable.tableDef.tableRef.getOrgTableContainer().querySelector("thead>tr");
+                    openTab(tmpDiv.innerHTML, headerRow.querySelectorAll("th")[index].textContent+ " (uniek)");
                 });
         }
     });

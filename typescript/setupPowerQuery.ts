@@ -114,7 +114,7 @@ function getHardCodedQueryItems() {
 document.body.addEventListener("keydown", showPowerQuery);
 
 function addOpenTabQueryItem() {
-    addQueryItem('Test', "Open tab", undefined, () => openTab("Important TYPESCRIPT data for this tab!!!"));
+    addQueryItem('Test', "Open tab", undefined, () => openTab("Important TYPESCRIPT data for this tab!!!", "Test 123"));
 }
 
 function showPowerQuery(ev: KeyboardEvent) {

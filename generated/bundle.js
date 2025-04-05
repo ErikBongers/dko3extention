@@ -641,11 +641,11 @@
   function savePageSettings(state) {
     localStorage.setItem(STORAGE_PAGE_STATE_KEY_PREFIX + state.pageName, JSON.stringify(state));
   }
-  function openTab(html) {
+  function openTab(html, pageTitle) {
     let message = {
-      //todo: use interface
-      action: "open_tab",
-      data: html
+      action: "open_tab" /* OpenTab */,
+      data: html,
+      pageTitle
     };
     chrome.runtime.sendMessage(message).then(() => console.log("message sent."));
   }
@@ -3342,7 +3342,8 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
           for (let col of cols) {
             emmet.appendChild(tbody, `tr>td>{${col}}`);
           }
-          openTab(tmpDiv.innerHTML);
+          let headerRow = fetchedTable.tableDef.tableRef.getOrgTableContainer().querySelector("thead>tr");
+          openTab(tmpDiv.innerHTML, headerRow.querySelectorAll("th")[index].textContent + " (uniek)");
         });
       };
     });
@@ -4032,7 +4033,7 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
   }
   document.body.addEventListener("keydown", showPowerQuery);
   function addOpenTabQueryItem() {
-    addQueryItem("Test", "Open tab", void 0, () => openTab("Important TYPESCRIPT data for this tab!!!"));
+    addQueryItem("Test", "Open tab", void 0, () => openTab("Important TYPESCRIPT data for this tab!!!", "Test 123"));
   }
   function showPowerQuery(ev) {
     if (ev.key === "q" && ev.ctrlKey && !ev.shiftKey && !ev.altKey) {
