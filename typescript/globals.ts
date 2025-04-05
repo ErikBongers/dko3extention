@@ -399,3 +399,13 @@ export interface ExtensionRequest {
     action: Actions,
     data: any
 }
+
+export function openTab(html: string) {
+    let message = { //todo: use interface
+        action: "open_tab",
+        data: html
+    };
+
+    chrome.runtime.sendMessage(message)
+        .then(() => console.log("message sent."));
+}

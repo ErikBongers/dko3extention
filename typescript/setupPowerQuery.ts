@@ -1,4 +1,4 @@
-import {calculateSchooljaar, clamp, createShortSchoolyearString, isAlphaNumeric} from "./globals";
+import {calculateSchooljaar, clamp, createShortSchoolyearString, isAlphaNumeric, openTab} from "./globals";
 import * as def from "./def";
 import {getGotoStateOrDefault, Goto, PageName, saveGotoState} from "./gotoState";
 
@@ -114,17 +114,7 @@ function getHardCodedQueryItems() {
 document.body.addEventListener("keydown", showPowerQuery);
 
 function addOpenTabQueryItem() {
-    addQueryItem('Test', "Open tab", undefined, openTab);
-}
-
-function openTab() {
-    let message = { //todo: use interface
-        action: "open_tab",
-        data: "Important TYPESCRIPT data for this tab!!!"
-    };
-
-    chrome.runtime.sendMessage(message)
-        .then(() => console.log("message sent."));
+    addQueryItem('Test', "Open tab", undefined, () => openTab("Important TYPESCRIPT data for this tab!!!"));
 }
 
 function showPowerQuery(ev: KeyboardEvent) {
