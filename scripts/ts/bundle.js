@@ -4034,13 +4034,8 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
         selectedItem--;
         ev.preventDefault();
       } else if (ev.key == "Enter") {
-        let item = powerQueryItems.find((item2) => item2.longLabel === list.children[selectedItem].dataset.longLabel);
-        popover.hidePopover();
-        if (item.func) {
-          item.func(item);
-        } else {
-          location.href = item.href;
-        }
+        let selectedDiv = list.children[selectedItem];
+        onItemSelected(selectedDiv);
         ev.preventDefault();
       }
     }
@@ -4075,7 +4070,21 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
     const MAX_VISIBLE_QUERY_ITEMS = 30;
     list.innerHTML = powerQueryItems.filter((item) => item.weight != 0).sort((a, b) => b.weight - a.weight).map((item) => `<div data-long-label="${item.longLabel}">${item.longLabel}</div>`).slice(0, MAX_VISIBLE_QUERY_ITEMS).join("\n");
     selectedItem = clamp(selectedItem, 0, list.children.length - 1);
+    for (let item of list.querySelectorAll("div")) {
+      item.onclick = (ev) => {
+        onItemSelected(ev.target);
+      };
+    }
     list.children[selectedItem]?.classList.add("selected");
+  }
+  function onItemSelected(selectedElement) {
+    let item = powerQueryItems.find((item2) => item2.longLabel === selectedElement.dataset.longLabel);
+    popover.hidePopover();
+    if (item.func) {
+      item.func(item);
+    } else {
+      location.href = item.href;
+    }
   }
   function isSorted(arr) {
     for (let i = 0; i < arr.length - 1; i++) {

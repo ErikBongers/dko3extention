@@ -141,13 +141,8 @@ function showPowerQuery(ev: KeyboardEvent) {
             selectedItem--;
             ev.preventDefault();
         } else if (ev.key == "Enter") {
-            let item = powerQueryItems.find((item) => item.longLabel === (list.children[selectedItem] as HTMLElement).dataset.longLabel);
-            popover.hidePopover();
-            if (item.func) {
-                item.func(item);
-            } else {
-                location.href = item.href;
-            }
+            let selectedDiv = list.children[selectedItem] as HTMLElement;
+            onItemSelected(selectedDiv);
             ev.preventDefault();
         }
     }
@@ -200,7 +195,23 @@ function filterItems(needle: string) {
         .slice(0, MAX_VISIBLE_QUERY_ITEMS)
         .join("\n");
     selectedItem = clamp(selectedItem, 0, list.children.length - 1);
+    for(let item of list.querySelectorAll("div")) {
+        item.onclick = (ev: PointerEvent) => {
+            onItemSelected(ev.target as HTMLElement);
+            // ev.preventDefault();
+        };
+    }
     list.children[selectedItem]?.classList.add("selected");
+}
+
+function onItemSelected(selectedElement: HTMLElement) {
+    let item = powerQueryItems.find((item) => item.longLabel === (selectedElement).dataset.longLabel);
+    popover.hidePopover();
+    if (item.func) {
+        item.func(item);
+    } else {
+        location.href = item.href;
+    }
 }
 
 function isSorted(arr: number[]) {
