@@ -143,8 +143,11 @@ body.otherSchool {
 }
 
 html[data-darkreader-scheme="dark"] {
+
     color: white;
     #powerQuery {
+        --selected-item-color: rgba(240,240,255,0.2);
+
         background-color: #454559;
         label {
             background-color: #282839;
@@ -153,17 +156,19 @@ html[data-darkreader-scheme="dark"] {
             background-color: #33333a;
             div {
                 &:hover {
-                    background-color: rgba(240,240,255,0.2);
+                    background-color: var(--selected-item-color);
                 }
             }
             div.selected {
-                background-color: rgba(240,240,255,0.2);
+                background-color: var(--selected-item-color);
             }
         }
     }
 }
 
 #powerQuery {
+    --selected-item-color: #f0f0ff;
+
     background-color:#d6d8d9;
     margin-top: 200px;
     border: none;
@@ -191,11 +196,11 @@ html[data-darkreader-scheme="dark"] {
         div {
             padding: 0 3px;
             &:hover {
-                background-color: #f0f0ff;
+                background-color: var(--selected-item-color);
             }
         }
         div.selected {
-            background-color: #f0f0ff;
+            background-color: var(--selected-item-color);
         }
     }
 }

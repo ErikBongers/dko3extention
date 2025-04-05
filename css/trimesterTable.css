@@ -22,7 +22,6 @@
 
     }
 
-
     td {
         padding-left: 3px;
     }
@@ -101,6 +100,7 @@
         background-color: yellow;
         margin-left: 5px;
         font-weight: normal;
+        padding: .2em .6em;
     }
 
     & .yellowMarker {
@@ -147,4 +147,8 @@
         background: rgba(255, 255, 255, .1);
     }
 
+    & .yellowMarker, .lesError {
+        background-color: rgba(255, 255, 0, 0.3);
+        color: white !important;
+    }
 }
