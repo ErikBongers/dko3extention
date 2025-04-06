@@ -142,34 +142,44 @@ body.otherSchool {
     margin: 0;
 }
 
+:root {
+    --power-query-background: #d6d8d9;
+    --power-query-selected-item-color: #f0f0ff;
+    --power-query-label-color: white;
+    --power-query-list-color: rgb(255,255,254);
+
+}
+
 html[data-darkreader-scheme="dark"] {
+    --power-query-background: #454559 !important;
+    --power-query-selected-item-color: rgba(240,240,255,0.2) !important;
+    --power-query-label-color: #282839 !important;
+    --power-query-list-color: #33333a !important;
 
     color: white;
     #powerQuery {
-        --selected-item-color: rgba(240,240,255,0.2);
 
-        background-color: #454559;
+        background-color: var(--power-query-background); /*;*/
         label {
-            background-color: #282839;
+            background-color: var(--power-query-label-color);
         }
         div.list {
-            background-color: #33333a;
+            background-color: var(--power-query-list-color);
             div {
                 &:hover {
-                    background-color: var(--selected-item-color);
+                    background-color: var(--power-query-selected-item-color);
                 }
             }
             div.selected {
-                background-color: var(--selected-item-color);
+                background-color: var(--power-query-selected-item-color);
             }
         }
     }
 }
 
 #powerQuery {
-    --selected-item-color: #f0f0ff;
 
-    background-color:#d6d8d9;
+    background-color: var(--power-query-background); /*;*/
     margin-top: 200px;
     border: none;
     border-radius: 3px;
@@ -181,12 +191,12 @@ html[data-darkreader-scheme="dark"] {
         height: 23px;
         padding: 0 3px;
         border-radius: 3px;
-        background-color: white;
+        background-color: var(--power-query-label-color);
         display: block;
     }
     div.list {
         padding: 0;
-        background-color: rgb(255,255,254);
+        background-color: var(--power-query-list-color);
         @media (prefers-color-scheme: dark) {
             background-color: darkgray;
         }
@@ -196,11 +206,11 @@ html[data-darkreader-scheme="dark"] {
         div {
             padding: 0 3px;
             &:hover {
-                background-color: var(--selected-item-color);
+                background-color: var(--power-query-selected-item-color);
             }
         }
         div.selected {
-            background-color: var(--selected-item-color);
+            background-color: var(--power-query-selected-item-color);
         }
     }
 }
