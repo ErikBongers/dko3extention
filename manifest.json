@@ -14,6 +14,8 @@
       ],
       "css": [
         "css/general.css",
+        "css/light_colors.css",
+        "css/dark_colors.css",
         "css/trimesterTable.css"
       ],
       "matches": [

@@ -1,3 +1,6 @@
+@import "light_colors.css";
+@import "dark_colors.css";
+
 .btn-outline-secondary.toggled,
 .btn-outline-info.toggled
 {
@@ -140,41 +143,6 @@ body.otherSchool {
     opacity: .5;
     padding: 0;
     margin: 0;
-}
-
-:root {
-    --power-query-background: #d6d8d9;
-    --power-query-selected-item-color: #f0f0ff;
-    --power-query-label-color: white;
-    --power-query-list-color: rgb(255,255,254);
-
-}
-
-html[data-darkreader-scheme="dark"] {
-    --power-query-background: #454559 !important;
-    --power-query-selected-item-color: rgba(240,240,255,0.2) !important;
-    --power-query-label-color: #282839 !important;
-    --power-query-list-color: #33333a !important;
-
-    color: white;
-    #powerQuery {
-
-        background-color: var(--power-query-background); /*;*/
-        label {
-            background-color: var(--power-query-label-color);
-        }
-        div.list {
-            background-color: var(--power-query-list-color);
-            div {
-                &:hover {
-                    background-color: var(--power-query-selected-item-color);
-                }
-            }
-            div.selected {
-                background-color: var(--power-query-selected-item-color);
-            }
-        }
-    }
 }
 
 #powerQuery {

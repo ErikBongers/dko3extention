@@ -1,0 +1,7 @@
+:root {
+    --power-query-background: #d6d8d9;
+    --power-query-selected-item-color: #f0f0ff;
+    --power-query-label-color: white;
+    --power-query-list-color: rgb(255,255,254);
+    color: inherit;
+}
