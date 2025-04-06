@@ -92,30 +92,51 @@ export function decorateTableHeader(table: HTMLTableElement) {
     if (table.tHead.classList.contains("clickHandler"))
         return;
     table.tHead.classList.add("clickHandler");
-    Array.from(table.tHead.children[0].children).forEach((colHeader: HTMLElement, index) => {
-        colHeader.onclick = _ev => {
-            sortTableByColumn(table, index);
-        };
-        let {last} = emmet.appendChild(colHeader, 'button.miniButton>i.fas.fa-list[title="Toon unieke waarden"]');
-        last.onclick = ev => {
-            ev.preventDefault();
-            downloadTable()
-                .then(fetchedTable => {
-                    let cols = getDistinctColumn(fetchedTable.tableDef.tableRef.getOrgTableContainer(), index);
-                    let tmpDiv = document.createElement("div");
-                    let tbody = emmet.appendChild(tmpDiv, "table>tbody").last as HTMLTableSectionElement;
-                    for(let col of cols) {
-                        emmet.appendChild(tbody, `tr>td>{${col}}`);
-                    }
-                    let headerRow = fetchedTable.tableDef.tableRef.getOrgTableContainer().querySelector("thead>tr");
-                    openTab(tmpDiv.innerHTML, headerRow.querySelectorAll("th")[index].textContent+ " (uniek)");
-                });
-        }
-    });
+    Array.from(table.tHead.children[0].children)
+        .forEach((colHeader: HTMLElement, index) => {
+            // colHeader.onclick = _ev => {
+            //     sortTableByColumn(table, index);
+            // };
+            let {first: span, last: idiom} = emmet.appendChild(colHeader, 'span.dropDownContainer>button.dropDownButton.miniButton.naked>i.dropDownIgnoreHide.fas.fa-list[title="Toon unieke waarden"]');
+            emmet.appendChild(span as HTMLElement, "div.dropDownMenu>button.naked.dropDownItem.dropDownIgnoreHide{Click me $}*3")
+            idiom.onclick = ev => {
+                console.log("showing menu...");
+                (ev.target as HTMLElement).closest(".dropDownContainer").querySelector(".dropDownMenu") .classList.add("show");
+            }
+            let buttons = [...span.querySelectorAll<HTMLButtonElement>("button.dropDownItem")];
+            buttons[0].textContent = "Toon unieke waarden";
+            buttons[0].onclick = () => {
+                console.log("click");
+                showDistinctColumn(index);
+            };
+        });
 }
 
 function getDistinctColumn(tableContainer: HTMLTableElement, index: number) {
     let rows = Array.from(tableContainer.querySelector("tbody").rows);
 
     return distinct(rows.map(row => row.children[index].textContent)).sort();
+}
+
+function showDistinctColumn(index: number) {
+    downloadTable()
+        .then(fetchedTable => {
+            let cols = getDistinctColumn(fetchedTable.tableDef.tableRef.getOrgTableContainer(), index);
+            let tmpDiv = document.createElement("div");
+            let tbody = emmet.appendChild(tmpDiv, "table>tbody").last as HTMLTableSectionElement;
+            for(let col of cols) {
+                emmet.appendChild(tbody, `tr>td>{${col}}`);
+            }
+            let headerRow = fetchedTable.tableDef.tableRef.getOrgTableContainer().querySelector("thead>tr");
+            openTab(tmpDiv.innerHTML, headerRow.querySelectorAll("th")[index].textContent+ " (uniek)");
+        });
+}
+
+window.onclick = function(event) {
+    if (event.target.matches('.dropDownIgnoreHide'))
+        return;
+    let dropdowns = document.getElementsByClassName("dropDownMenu");
+    for (let dropDown of dropdowns) {
+        dropDown.classList.remove('show');
+    }
 }

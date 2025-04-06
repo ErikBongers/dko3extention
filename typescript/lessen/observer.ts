@@ -19,7 +19,7 @@ function onMutation (mutation: MutationRecord) {
     if(!document.getElementById("btn_show_trimesters")) {
         let {first} = emmet.insertAfter(document.getElementById("btn_lessen_overzicht_zoeken"),
             "button.btn.btn-sm.btn-primary.w-100.mt-1#btn_show_trimesters>i.fas.fa-sitemap+{ Toon trimesters}");
-        first.onclick = onClickShowTrimesters;
+        (first as HTMLElement).onclick = onClickShowTrimesters;
     }
 
     console.log(mutation)

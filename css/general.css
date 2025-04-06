@@ -248,11 +248,14 @@ span.searchButton {
         }
     }
 }
-button.miniButton {
+button.naked {
     background: none;
     border: none;
     color: inherit;
     padding: 0;
+}
+
+button.miniButton {
     & i {
         margin-left: .5ch;
     }
@@ -261,4 +264,38 @@ button.miniButton {
         font-size: .7em !important;
     }
 
+}
+
+.dropDownMenu {
+    display: none;
+    position: absolute;
+    background-color: white;
+    width: 20ch;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    z-index: 1;
+}
+
+.dropDownContainer {
+    position: relative;
+    display: inline-block;
+}
+
+.dropDownItem {
+    color: black;
+    padding: 12px 16px;
+    text-decoration: none;
+    text-align: left;
+    display: block;
+    /*noinspection CssInvalidPropertyValue*/
+    width: -webkit-fill-available;
+}
+
+/* Change color of dropdown links on hover */
+.dropDownItem:hover {background-color: #80808020;}
+
+/* Show the dropdown menu on hover */
+/*.dropDownContainer:hover .dropDownMenu {display: block;}*/
+
+.dropDownMenu.show {
+    display:block;
 }
