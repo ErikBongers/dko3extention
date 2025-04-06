@@ -128,7 +128,9 @@ function showDistinctColumn(index: number) {
                 emmet.appendChild(tbody, `tr>td>{${col}}`);
             }
             let headerRow = fetchedTable.tableDef.tableRef.getOrgTableContainer().querySelector("thead>tr");
-            openTab(tmpDiv.innerHTML, headerRow.querySelectorAll("th")[index].textContent+ " (uniek)");
+            let headerNodes = [...headerRow.querySelectorAll("th")[index].childNodes];
+            let headerText = headerNodes.filter(node => node.nodeType === Node.TEXT_NODE).map(node => node.textContent).join(" ");
+            openTab(tmpDiv.innerHTML, headerText + " (uniek)");
         });
 }
 

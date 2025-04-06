@@ -3284,7 +3284,9 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
         emmet.appendChild(tbody, `tr>td>{${col}}`);
       }
       let headerRow = fetchedTable.tableDef.tableRef.getOrgTableContainer().querySelector("thead>tr");
-      openTab(tmpDiv.innerHTML, headerRow.querySelectorAll("th")[index].textContent + " (uniek)");
+      let headerTextNodes = [...headerRow.querySelectorAll("th")[index].childNodes];
+      let headerText = headerTextNodes.filter((node) => node.nodeType === Node.TEXT_NODE).map((node) => node.textContent).join(" ");
+      openTab(tmpDiv.innerHTML, headerText + " (uniek)");
     });
   }
   window.onclick = function(event) {
