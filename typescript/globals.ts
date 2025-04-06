@@ -411,3 +411,10 @@ export function openTab(html: string, pageTitle: string) {
     chrome.runtime.sendMessage(message)
         .then(() => console.log("message sent."));
 }
+
+export function writeTableToClipboardForExcel(table: HTMLTableElement) {
+    let html = table.outerHTML
+        .replaceAll('\n','<br style="mso-data-placement:same-cell;"/>')  // new lines inside html cells => Alt+Enter in Excel
+        .replaceAll('<td','<td style="vertical-align: top;"');  // align top
+    return navigator.clipboard.writeText(html);
+}
