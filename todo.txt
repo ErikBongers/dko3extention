@@ -1,5 +1,3 @@
-  * complate light and dark color css files.
-
 * Trims: summing hours per block
   > for Lievenka: fine: just add the hours of all the blooks
   > for Rhea: NOT fine: altviool and viool share the same hour!

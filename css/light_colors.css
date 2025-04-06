@@ -3,5 +3,11 @@
     --power-query-selected-item-color: #f0f0ff;
     --power-query-label-color: white;
     --power-query-list-color: rgb(255,255,254);
+
+    --old-year-color: white;
+    --old-year-background-color: #eee;
+    --old-year-border-color: #eee;
+
+    --running-stripes-color: white;
     color: inherit;
 }

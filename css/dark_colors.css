@@ -3,6 +3,12 @@ html[data-darkreader-scheme="dark"] {
     --power-query-selected-item-color: rgba(240,240,255,0.2) !important;
     --power-query-label-color: #282839 !important;
     --power-query-list-color: #33333a !important;
+
+    --old-year-color: #333 !important;
+    --old-year-background-color: #111 !important;
+    --old-year-border-color: #111 !important;
+
+    --running-stripes-color: rgba(255,255,255,0.05);
     color: white;
 }
 
