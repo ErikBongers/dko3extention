@@ -1,12 +1,12 @@
 html[data-darkreader-scheme="dark"] {
-    --power-query-background: #454559 !important;
-    --power-query-selected-item-color: rgba(240,240,255,0.2) !important;
-    --power-query-label-color: #282839 !important;
-    --power-query-list-color: #33333a !important;
+    --power-query-background: #454559;
+    --power-query-selected-item-color: rgba(240,240,255,0.2);
+    --power-query-label-color: #282839;
+    --power-query-list-color: #33333a;
 
-    --old-year-color: #333 !important;
-    --old-year-background-color: #111 !important;
-    --old-year-border-color: #111 !important;
+    --old-year-color: #333;
+    --old-year-background-color: #111;
+    --old-year-border-color: #111;
 
     --running-stripes-color: rgba(255,255,255,0.05);
     color: white;
