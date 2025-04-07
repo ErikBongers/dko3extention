@@ -2,6 +2,7 @@ import {distinct, openTab, rangeGenerator} from "../globals";
 import {emmet} from "../../libs/Emmeter/html";
 import {downloadTable} from "./loadAnyTable";
 import {addMenuItem, addMenuSeparator, setupMenu} from "../menus";
+import {FetchedTable} from "./tableDef";
 
 function sortRows(cmpFunction: (a: HTMLTableCellElement, b: HTMLTableCellElement) => number, header: Element, rows: HTMLTableRowElement[], index: number, descending: boolean) {
     let cmpDirectionalFunction: (a: HTMLTableRowElement, b: HTMLTableRowElement) => number;
@@ -61,10 +62,10 @@ function sortTableByColumn(table: HTMLTableElement, index: number, descending: b
     rows.forEach(row => table.tBodies[0].appendChild(row));
 }
 
-function reSortTableByColumn(table: HTMLTableElement, index: number) {
+function reSortTableByColumn(ev: MouseEvent, table: HTMLTableElement, index: number) {
     let header = table.tHead.children[0].children[index];
     let wasAscending = header.classList.contains("sortAscending");
-    sortTableByColumn(table, index, wasAscending);
+    forTableColumnDo(ev, index, (fetchedTable, index) => sortTableByColumn(table, index, wasAscending));
 }
 
 function isColumnProbablyDate(table: HTMLTableElement, index: number) {
@@ -99,45 +100,66 @@ export function decorateTableHeader(table: HTMLTableElement) {
     table.tHead.classList.add("clickHandler");
     Array.from(table.tHead.children[0].children)
         .forEach((colHeader: HTMLElement, index) => {
-            colHeader.onclick = _ev => {
-                reSortTableByColumn(table, index);
+            colHeader.onclick = (ev) => {
+                reSortTableByColumn(ev, table, index);
             };
             let {first: span, last: idiom} = emmet.appendChild(colHeader, 'span>button.miniButton.naked>i.fas.fa-list');
             let menu = setupMenu(span as HTMLElement, idiom.parentElement);
-            addMenuItem(menu, "Toon unieke waarden", 0, () => { showDistinctColumn(index); });
+            addMenuItem(menu, "Toon unieke waarden", 0, (ev) => { forTableColumnDo(ev, index, showDistinctColumn); });
+            addMenuItem(menu, "Verberg kolom", 0, (ev) => { console.log("verberg kolom"); forTableColumnDo(ev, index, hideColumn)});
             addMenuSeparator(menu, "Sorteer", 0);
-            addMenuItem(menu, "Hoog naar laag (z > a)", 1, () => { sortTableByColumn(table, index, false)});
-            addMenuItem(menu, "Laag naar hoog (a > z)", 1, () => { sortTableByColumn(table, index, true)});
+            addMenuItem(menu, "Hoog naar laag (z > a)", 1, (ev) => { forTableColumnDo(ev, index, (fetchedTable, index) => sortTableByColumn(table, index, false))});
+            addMenuItem(menu, "Laag naar hoog (a > z)", 1, (ev) => { forTableColumnDo(ev, index, (fetchedTable, index) => sortTableByColumn(table, index, true))});
             addMenuSeparator(menu, "Kolom bevat", 1);
-            addMenuItem(menu, "Tekst", 2, () => { });
-            addMenuItem(menu, "Getallen", 2, () => { });
+            addMenuItem(menu, "Tekst", 2, (ev) => { });
+            addMenuItem(menu, "Getallen", 2, (ev) => { });
             addMenuSeparator(menu, "<= Samenvoegen", 0);
-            addMenuItem(menu, "met spatie", 1, () => { });
-            addMenuItem(menu, "met comma", 1, () => { });
+            addMenuItem(menu, "met spatie", 1, (ev) => { });
+            addMenuItem(menu, "met comma", 1, (ev) => { });
             addMenuSeparator(menu, "Verplaatsen", 0);
-            addMenuItem(menu, "<=", 1, () => { });
-            addMenuItem(menu, "=>", 1, () => { });
+            addMenuItem(menu, "<=", 1, (ev) => { });
+            addMenuItem(menu, "=>", 1, (ev) => { });
         });
 }
 
-function getDistinctColumn(tableContainer: HTMLTableElement, index: number) {
+function getDistinctColumn(tableContainer: HTMLElement, index: number) {
     let rows = Array.from(tableContainer.querySelector("tbody").rows);
 
     return distinct(rows.map(row => row.children[index].textContent)).sort();
 }
 
-function showDistinctColumn(index: number) {
+type TableColumnDo = (fetchedTable: FetchedTable, index: number) => void;
+
+function forTableColumnDo(ev: MouseEvent, index: number, doIt: TableColumnDo) {
+    ev.preventDefault();
+    ev.stopPropagation();
     downloadTable()
         .then(fetchedTable => {
-            let cols = getDistinctColumn(fetchedTable.tableDef.tableRef.getOrgTableContainer(), index);
-            let tmpDiv = document.createElement("div");
-            let tbody = emmet.appendChild(tmpDiv, "table>tbody").last as HTMLTableSectionElement;
-            for(let col of cols) {
-                emmet.appendChild(tbody, `tr>td>{${col}}`);
-            }
-            let headerRow = fetchedTable.tableDef.tableRef.getOrgTableContainer().querySelector("thead>tr");
-            let headerNodes = [...headerRow.querySelectorAll("th")[index].childNodes];
-            let headerText = headerNodes.filter(node => node.nodeType === Node.TEXT_NODE).map(node => node.textContent).join(" ");
-            openTab(tmpDiv.innerHTML, headerText + " (uniek)");
+            let rows = Array.from(fetchedTable.tableDef.tableRef.getOrgTableContainer().querySelector("tbody").rows);
+            doIt(fetchedTable, index);
         });
+}
+
+let showDistinctColumn: TableColumnDo = function (fetchedTable, index) {
+    let cols = getDistinctColumn(fetchedTable.tableDef.tableRef.getOrgTableContainer(), index);
+    let tmpDiv = document.createElement("div");
+    let tbody = emmet.appendChild(tmpDiv, "table>tbody").last as HTMLTableSectionElement;
+    for(let col of cols) {
+        emmet.appendChild(tbody, `tr>td>{${col}}`);
+    }
+    let headerRow = fetchedTable.tableDef.tableRef.getOrgTableContainer().querySelector("thead>tr");
+    let headerNodes = [...headerRow.querySelectorAll("th")[index].childNodes];
+    let headerText = headerNodes.filter(node => node.nodeType === Node.TEXT_NODE).map(node => node.textContent).join(" ");
+    openTab(tmpDiv.innerHTML, headerText + " (uniek)");
+}
+
+let hideColumn: TableColumnDo = function (fetchedTable, index) {
+    let headerRows = Array.from(fetchedTable.tableDef.tableRef.getOrgTableContainer().querySelector("thead").rows);
+    let rows = Array.from(fetchedTable.tableDef.tableRef.getOrgTableContainer().querySelector("tbody").rows);
+    for(let row of rows) {
+        row.cells[index].style.display = "none";
+    }
+    for(let row of headerRows) {
+        row.cells[index].style.display = "none";
+    }
 }

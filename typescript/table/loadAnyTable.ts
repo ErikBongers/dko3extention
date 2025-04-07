@@ -337,18 +337,16 @@ export function testScanner() {
         .find(".", "load", "(")
         .clipString()
         .result();
-    console.log(datatable_id);
-    console.log(tableNavUrl);
-    console.log("v2");
 }
 
 export function downloadTable() {
     let prebuildPageHandler = new SimpleTableHandler(onLoaded, undefined);
 
     function onLoaded(fetchedTable: FetchedTable) {
+        let fetchedRows = fetchedTable.getRows();
         tableDef.tableRef.getOrgTableContainer()
             .querySelector("tbody")
-            .replaceChildren(...fetchedTable.getRows());
+            .replaceChildren(...fetchedRows);
     }
 
     // let tableRef = new TableRef("table_leerlingen_werklijst_table", findFirstNavigation(),(offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0");

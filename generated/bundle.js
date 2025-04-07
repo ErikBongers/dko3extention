@@ -3243,7 +3243,10 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
   function downloadTable() {
     let prebuildPageHandler = new SimpleTableHandler(onLoaded, void 0);
     function onLoaded(fetchedTable) {
-      tableDef.tableRef.getOrgTableContainer().querySelector("tbody").replaceChildren(...fetchedTable.getRows());
+      let fetchedRows = fetchedTable.getRows();
+      console.log("Fetched rows: " + fetchedRows.length);
+      tableDef.tableRef.getOrgTableContainer().querySelector("tbody").replaceChildren(...fetchedRows);
+      console.log("downloadTable: replaced rows with fetched table.");
     }
     let tableRef = findTableRefInCode();
     let tableDef = new TableDef(
@@ -3259,9 +3262,9 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
     let indentClass = indentLevel ? ".menuIndent" + indentLevel : "";
     let { first } = emmet.appendChild(menu, `button.naked.dropDownItem.dropDownIgnoreHide${indentClass}{${title}}`);
     let item = first;
-    item.onclick = () => {
+    item.onclick = (ev) => {
       closeMenus();
-      onClick();
+      onClick(ev);
     };
   }
   function closeMenus() {
@@ -3357,10 +3360,10 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
     }
     rows.forEach((row) => table.tBodies[0].appendChild(row));
   }
-  function reSortTableByColumn(table, index) {
+  function reSortTableByColumn(ev, table, index) {
     let header = table.tHead.children[0].children[index];
     let wasAscending = header.classList.contains("sortAscending");
-    sortTableByColumn(table, index, wasAscending);
+    forTableColumnDo(ev, index, (fetchedTable, index2) => sortTableByColumn(table, index2, wasAscending));
   }
   function isColumnProbablyDate(table, index) {
     let rows = Array.from(table.tBodies[0].rows);
@@ -3386,35 +3389,39 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
       return;
     table.tHead.classList.add("clickHandler");
     Array.from(table.tHead.children[0].children).forEach((colHeader, index) => {
-      colHeader.onclick = (_ev) => {
-        reSortTableByColumn(table, index);
+      colHeader.onclick = (ev) => {
+        reSortTableByColumn(ev, table, index);
       };
       let { first: span, last: idiom } = emmet.appendChild(colHeader, "span>button.miniButton.naked>i.fas.fa-list");
       let menu = setupMenu(span, idiom.parentElement);
-      addMenuItem(menu, "Toon unieke waarden", 0, () => {
-        showDistinctColumn(index);
+      addMenuItem(menu, "Toon unieke waarden", 0, (ev) => {
+        forTableColumnDo(ev, index, showDistinctColumn);
+      });
+      addMenuItem(menu, "Verberg kolom", 0, (ev) => {
+        console.log("verberg kolom");
+        forTableColumnDo(ev, index, hideColumn);
       });
       addMenuSeparator(menu, "Sorteer", 0);
-      addMenuItem(menu, "Hoog naar laag (z > a)", 1, () => {
-        sortTableByColumn(table, index, false);
+      addMenuItem(menu, "Hoog naar laag (z > a)", 1, (ev) => {
+        forTableColumnDo(ev, index, (fetchedTable, index2) => sortTableByColumn(table, index2, false));
       });
-      addMenuItem(menu, "Laag naar hoog (a > z)", 1, () => {
-        sortTableByColumn(table, index, true);
+      addMenuItem(menu, "Laag naar hoog (a > z)", 1, (ev) => {
+        forTableColumnDo(ev, index, (fetchedTable, index2) => sortTableByColumn(table, index2, true));
       });
       addMenuSeparator(menu, "Kolom bevat", 1);
-      addMenuItem(menu, "Tekst", 2, () => {
+      addMenuItem(menu, "Tekst", 2, (ev) => {
       });
-      addMenuItem(menu, "Getallen", 2, () => {
+      addMenuItem(menu, "Getallen", 2, (ev) => {
       });
       addMenuSeparator(menu, "<= Samenvoegen", 0);
-      addMenuItem(menu, "met spatie", 1, () => {
+      addMenuItem(menu, "met spatie", 1, (ev) => {
       });
-      addMenuItem(menu, "met comma", 1, () => {
+      addMenuItem(menu, "met comma", 1, (ev) => {
       });
       addMenuSeparator(menu, "Verplaatsen", 0);
-      addMenuItem(menu, "<=", 1, () => {
+      addMenuItem(menu, "<=", 1, (ev) => {
       });
-      addMenuItem(menu, "=>", 1, () => {
+      addMenuItem(menu, "=>", 1, (ev) => {
       });
     });
   }
@@ -3422,20 +3429,39 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
     let rows = Array.from(tableContainer.querySelector("tbody").rows);
     return distinct(rows.map((row) => row.children[index].textContent)).sort();
   }
-  function showDistinctColumn(index) {
+  function forTableColumnDo(ev, index, doIt) {
+    ev.preventDefault();
+    ev.stopPropagation();
+    console.log("fortablecolumndo");
     downloadTable().then((fetchedTable) => {
-      let cols = getDistinctColumn(fetchedTable.tableDef.tableRef.getOrgTableContainer(), index);
-      let tmpDiv = document.createElement("div");
-      let tbody = emmet.appendChild(tmpDiv, "table>tbody").last;
-      for (let col of cols) {
-        emmet.appendChild(tbody, `tr>td>{${col}}`);
-      }
-      let headerRow = fetchedTable.tableDef.tableRef.getOrgTableContainer().querySelector("thead>tr");
-      let headerNodes = [...headerRow.querySelectorAll("th")[index].childNodes];
-      let headerText = headerNodes.filter((node) => node.nodeType === Node.TEXT_NODE).map((node) => node.textContent).join(" ");
-      openTab(tmpDiv.innerHTML, headerText + " (uniek)");
+      console.log("Doing stuff with column...");
+      let rows = Array.from(fetchedTable.tableDef.tableRef.getOrgTableContainer().querySelector("tbody").rows);
+      console.log("rows: " + rows.length);
+      doIt(fetchedTable, index);
     });
   }
+  var showDistinctColumn = function(fetchedTable, index) {
+    let cols = getDistinctColumn(fetchedTable.tableDef.tableRef.getOrgTableContainer(), index);
+    let tmpDiv = document.createElement("div");
+    let tbody = emmet.appendChild(tmpDiv, "table>tbody").last;
+    for (let col of cols) {
+      emmet.appendChild(tbody, `tr>td>{${col}}`);
+    }
+    let headerRow = fetchedTable.tableDef.tableRef.getOrgTableContainer().querySelector("thead>tr");
+    let headerNodes = [...headerRow.querySelectorAll("th")[index].childNodes];
+    let headerText = headerNodes.filter((node) => node.nodeType === Node.TEXT_NODE).map((node) => node.textContent).join(" ");
+    openTab(tmpDiv.innerHTML, headerText + " (uniek)");
+  };
+  var hideColumn = function(fetchedTable, index) {
+    let headerRows = Array.from(fetchedTable.tableDef.tableRef.getOrgTableContainer().querySelector("thead").rows);
+    let rows = Array.from(fetchedTable.tableDef.tableRef.getOrgTableContainer().querySelector("tbody").rows);
+    for (let row of rows) {
+      row.cells[index].style.display = "none";
+    }
+    for (let row of headerRows) {
+      row.cells[index].style.display = "none";
+    }
+  };
 
   // typescript/werklijst/urenData.ts
   var UrenData = class {

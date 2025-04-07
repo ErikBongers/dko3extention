@@ -15,13 +15,13 @@ import {emmet} from "../libs/Emmeter/html";
             ...
  */
 
-export function addMenuItem(menu: HTMLElement, title: string, indentLevel: number, onClick: () => void) {
+export function addMenuItem(menu: HTMLElement, title: string, indentLevel: number, onClick: (ev: MouseEvent) => void) {
     let indentClass = indentLevel ? ".menuIndent" + indentLevel : "";
     let {first} = emmet.appendChild(menu, `button.naked.dropDownItem.dropDownIgnoreHide${indentClass}{${title}}`); //todo: do we need .ignoreHide here?
     let item = first as HTMLElement;
-    item.onclick = () => {
+    item.onclick = (ev) => {
         closeMenus();
-        onClick();
+        onClick(ev);
     };
 }
 
