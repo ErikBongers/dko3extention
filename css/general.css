@@ -258,7 +258,8 @@ button.dropDownItem {
 }
 
 div.dropDownSeparator {
-    color: rgba(0,0,0, 0.8);
+    color: rgba(0,0,0, 0.7);
+    background-color: rgba(0,0,0, 0.05);
     padding: 4px 16px 0 16px;
     text-decoration: none;
     text-align: left;
@@ -267,14 +268,27 @@ div.dropDownSeparator {
     width: -webkit-fill-available;
 }
 
+/*TODO: replace with scope to boost specificity?*/
 button.menuIndent1,
 div.menuIndent1
 {
     padding-left: 26px;
 }
 
+button.menuIndent2,
+div.menuIndent2
+{
+    padding-left: 46px;
+}
+
+button.menuIndent3,
+div.menuIndent3
+{
+    padding-left: 66px;
+}
+
 /* Change color of dropdown links on hover */
-.dropDownItem:hover {background-color: #80808020;}
+.dropDownItem:hover {background-color: #8080a030;}
 
 /* Show the dropdown menu on hover */
 /*.dropDownContainer:hover .dropDownMenu {display: block;}*/

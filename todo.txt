@@ -5,7 +5,6 @@
     - Markeer als:
        - numerieke kolom
        - tekstkolom
-  - Toon unieke waarden
   - <= Samenvoegen
     - comma
     - spatie

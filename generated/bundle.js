@@ -3279,9 +3279,13 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
   function initMenuEvents() {
     window.onclick = onWindowClick;
   }
-  function addMenuSeparator(menu, title) {
-    let { first } = emmet.appendChild(menu, `div.dropDownSeparator{${title}}`);
+  function addMenuSeparator(menu, title, indentLevel) {
+    let indentClass = indentLevel ? ".menuIndent" + indentLevel : "";
+    let { first } = emmet.appendChild(menu, `div.dropDownSeparator.dropDownIgnoreHide${indentClass}{${title}}`);
     let item = first;
+    item.onclick = (ev) => {
+      ev.stopPropagation();
+    };
   }
   function setupMenu(container, button) {
     initMenuEvents();
@@ -3304,9 +3308,9 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
   }
 
   // typescript/table/tableHeaders.ts
-  function sortRows(cmpFunction, header, rows, index, wasAscending) {
+  function sortRows(cmpFunction, header, rows, index, descending) {
     let cmpDirectionalFunction;
-    if (wasAscending) {
+    if (descending) {
       cmpDirectionalFunction = (a, b) => cmpFunction(b.cells[index], a.cells[index]);
       header.classList.add("sortDescending");
     } else {
@@ -3332,10 +3336,9 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
     }
     return res;
   }
-  function sortTableByColumn(table, index) {
+  function sortTableByColumn(table, index, descending) {
     let header = table.tHead.children[0].children[index];
     let rows = Array.from(table.tBodies[0].rows);
-    let wasAscending = header.classList.contains("sortAscending");
     for (let thead of table.tHead.children[0].children) {
       thead.classList.remove("sortAscending", "sortDescending");
     }
@@ -3346,13 +3349,18 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
       cmpFunc = cmpDate;
     }
     try {
-      sortRows(cmpFunc, header, rows, index, wasAscending);
+      sortRows(cmpFunc, header, rows, index, descending);
     } catch (e) {
       console.error(e);
       if (cmpFunc !== cmpAlpha)
-        sortRows(cmpAlpha, header, rows, index, wasAscending);
+        sortRows(cmpAlpha, header, rows, index, descending);
     }
     rows.forEach((row) => table.tBodies[0].appendChild(row));
+  }
+  function reSortTableByColumn(table, index) {
+    let header = table.tHead.children[0].children[index];
+    let wasAscending = header.classList.contains("sortAscending");
+    sortTableByColumn(table, index, wasAscending);
   }
   function isColumnProbablyDate(table, index) {
     let rows = Array.from(table.tBodies[0].rows);
@@ -3379,15 +3387,34 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
     table.tHead.classList.add("clickHandler");
     Array.from(table.tHead.children[0].children).forEach((colHeader, index) => {
       colHeader.onclick = (_ev) => {
-        sortTableByColumn(table, index);
+        reSortTableByColumn(table, index);
       };
       let { first: span, last: idiom } = emmet.appendChild(colHeader, "span>button.miniButton.naked>i.fas.fa-list");
       let menu = setupMenu(span, idiom.parentElement);
       addMenuItem(menu, "Toon unieke waarden", 0, () => {
         showDistinctColumn(index);
       });
-      addMenuSeparator(menu, "Separator");
-      addMenuItem(menu, "Sorteer", 1, () => {
+      addMenuSeparator(menu, "Sorteer", 0);
+      addMenuItem(menu, "Hoog naar laag (z > a)", 1, () => {
+        sortTableByColumn(table, index, false);
+      });
+      addMenuItem(menu, "Laag naar hoog (a > z)", 1, () => {
+        sortTableByColumn(table, index, true);
+      });
+      addMenuSeparator(menu, "Kolom bevat", 1);
+      addMenuItem(menu, "Tekst", 2, () => {
+      });
+      addMenuItem(menu, "Getallen", 2, () => {
+      });
+      addMenuSeparator(menu, "<= Samenvoegen", 0);
+      addMenuItem(menu, "met spatie", 1, () => {
+      });
+      addMenuItem(menu, "met comma", 1, () => {
+      });
+      addMenuSeparator(menu, "Verplaatsen", 0);
+      addMenuItem(menu, "<=", 1, () => {
+      });
+      addMenuItem(menu, "=>", 1, () => {
       });
     });
   }

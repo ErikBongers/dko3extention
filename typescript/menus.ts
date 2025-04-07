@@ -43,9 +43,13 @@ function initMenuEvents() {
     window.onclick = onWindowClick;
 }
 
-export function addMenuSeparator(menu: HTMLElement, title: string) {
-    let {first} = emmet.appendChild(menu, `div.dropDownSeparator{${title}}`);
+export function addMenuSeparator(menu: HTMLElement, title: string, indentLevel: number) {
+    let indentClass = indentLevel ? ".menuIndent" + indentLevel : "";
+    let {first} = emmet.appendChild(menu, `div.dropDownSeparator.dropDownIgnoreHide${indentClass}{${title}}`);
     let item = first as HTMLElement;
+    item.onclick = (ev) => {
+        ev.stopPropagation();
+    }
 }
 
 export function setupMenu(container: HTMLElement, button: HTMLElement) {

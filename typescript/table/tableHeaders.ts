@@ -3,9 +3,9 @@ import {emmet} from "../../libs/Emmeter/html";
 import {downloadTable} from "./loadAnyTable";
 import {addMenuItem, addMenuSeparator, setupMenu} from "../menus";
 
-function sortRows(cmpFunction: (a: HTMLTableCellElement, b: HTMLTableCellElement) => number, header: Element, rows: HTMLTableRowElement[], index: number, wasAscending: boolean) {
+function sortRows(cmpFunction: (a: HTMLTableCellElement, b: HTMLTableCellElement) => number, header: Element, rows: HTMLTableRowElement[], index: number, descending: boolean) {
     let cmpDirectionalFunction: (a: HTMLTableRowElement, b: HTMLTableRowElement) => number;
-    if (wasAscending) {
+    if (descending) {
         cmpDirectionalFunction = (a: HTMLTableRowElement, b: HTMLTableRowElement) => cmpFunction(b.cells[index], a.cells[index]);
         header.classList.add("sortDescending");
     } else {
@@ -38,10 +38,9 @@ function cmpNumber(a: HTMLTableCellElement, b: HTMLTableCellElement) {
     return res;
 }
 
-function sortTableByColumn(table: HTMLTableElement, index: number) {
+function sortTableByColumn(table: HTMLTableElement, index: number, descending: boolean) {
     let header = table.tHead.children[0].children[index];
     let rows = Array.from(table.tBodies[0].rows);
-    let wasAscending = header.classList.contains("sortAscending");
     for (let thead of table.tHead.children[0].children) {
         thead.classList.remove("sortAscending", "sortDescending")
     }
@@ -52,14 +51,20 @@ function sortTableByColumn(table: HTMLTableElement, index: number) {
         cmpFunc = cmpDate;
     }
     try {
-        sortRows(cmpFunc, header, rows, index, wasAscending);
+        sortRows(cmpFunc, header, rows, index, descending);
     } catch (e) {
         console.error(e);
         if (cmpFunc !== cmpAlpha)
-            sortRows(cmpAlpha, header, rows, index, wasAscending);
+            sortRows(cmpAlpha, header, rows, index, descending);
     }
 
     rows.forEach(row => table.tBodies[0].appendChild(row));
+}
+
+function reSortTableByColumn(table: HTMLTableElement, index: number) {
+    let header = table.tHead.children[0].children[index];
+    let wasAscending = header.classList.contains("sortAscending");
+    sortTableByColumn(table, index, wasAscending);
 }
 
 function isColumnProbablyDate(table: HTMLTableElement, index: number) {
@@ -95,17 +100,23 @@ export function decorateTableHeader(table: HTMLTableElement) {
     Array.from(table.tHead.children[0].children)
         .forEach((colHeader: HTMLElement, index) => {
             colHeader.onclick = _ev => {
-                sortTableByColumn(table, index);
+                reSortTableByColumn(table, index);
             };
             let {first: span, last: idiom} = emmet.appendChild(colHeader, 'span>button.miniButton.naked>i.fas.fa-list');
             let menu = setupMenu(span as HTMLElement, idiom.parentElement);
-            addMenuItem(menu, "Toon unieke waarden", 0, () => {
-                showDistinctColumn(index);
-            });
-            addMenuSeparator(menu, "Separator");
-            addMenuItem(menu, "Sorteer", 1, () => {
-
-            });
+            addMenuItem(menu, "Toon unieke waarden", 0, () => { showDistinctColumn(index); });
+            addMenuSeparator(menu, "Sorteer", 0);
+            addMenuItem(menu, "Hoog naar laag (z > a)", 1, () => { sortTableByColumn(table, index, false)});
+            addMenuItem(menu, "Laag naar hoog (a > z)", 1, () => { sortTableByColumn(table, index, true)});
+            addMenuSeparator(menu, "Kolom bevat", 1);
+            addMenuItem(menu, "Tekst", 2, () => { });
+            addMenuItem(menu, "Getallen", 2, () => { });
+            addMenuSeparator(menu, "<= Samenvoegen", 0);
+            addMenuItem(menu, "met spatie", 1, () => { });
+            addMenuItem(menu, "met comma", 1, () => { });
+            addMenuSeparator(menu, "Verplaatsen", 0);
+            addMenuItem(menu, "<=", 1, () => { });
+            addMenuItem(menu, "=>", 1, () => { });
         });
 }
 
