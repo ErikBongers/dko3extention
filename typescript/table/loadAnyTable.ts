@@ -339,9 +339,25 @@ export function testScanner() {
         .result();
 }
 
-export function downloadTable() {
-    let prebuildPageHandler = new SimpleTableHandler(onLoaded, undefined);
+let tableDef: TableDef = undefined; //keep until page refresh or other table needed. This prevents table manipulations from being overwritten.
 
+function setCurrentTableDef() {
+    let tableRef = findTableRefInCode();
+    if (tableDef?.tableRef.htmlTableId !== tableRef.htmlTableId) {
+        tableDef = new TableDef(
+            tableRef,
+            undefined, //set handler later!!!
+            getChecksumHandler(tableRef.htmlTableId)
+        );
+    }
+    return tableDef;
+}
+
+export function getCurrentTableDef() {
+    return setCurrentTableDef();
+}
+
+export function downloadTable() {
     function onLoaded(fetchedTable: FetchedTable) {
         let fetchedRows = fetchedTable.getRows();
         tableDef.tableRef.getOrgTableContainer()
@@ -349,13 +365,9 @@ export function downloadTable() {
             .replaceChildren(...fetchedRows);
     }
 
-    // let tableRef = new TableRef("table_leerlingen_werklijst_table", findFirstNavigation(),(offset) => "/views/ui/datatable.php?id=leerlingen_werklijst&start=" + offset + "&aantal=0");
-    let tableRef = findTableRefInCode();
-    let tableDef = new TableDef(
-        tableRef,
-        prebuildPageHandler,
-        getChecksumHandler(tableRef.htmlTableId)
-    );
+    if(!getCurrentTableDef().pageHandler) {
+        tableDef.pageHandler = new SimpleTableHandler(onLoaded, undefined);
+    }
 
     return tableDef.getTableData();
 }

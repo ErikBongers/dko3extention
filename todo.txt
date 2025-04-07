@@ -1,3 +1,7 @@
+* Test werklijst: uren
+  > onLoaded is called only once when loading the table.
+  > test refresh.
+
 * Table menu:
   - Sort:
     - Asc

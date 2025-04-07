@@ -63,6 +63,10 @@ function findTable() {
 
 export type CalculateTableCheckSumHandler = (tableDef: TableDef) => string;
 
+export interface TableHandler {
+    onReset: (tableDef: TableDef) => void;
+}
+
 export class TableDef {
     tableRef: TableRef;
     pageHandler: PageHandler;
@@ -72,19 +76,29 @@ export class TableDef {
     divInfoContainer: HTMLDivElement;
     shadowTableDate: Date;
     private tempMessage = "";
+    fetchedTable?: FetchedTable;
+    tableHandler?: TableHandler;
 
-    constructor(tableRef: TableRef, pageHandler: PageHandler, calculateTableCheckSum: CalculateTableCheckSumHandler) {
+    constructor(tableRef: TableRef, pageHandler: PageHandler, calculateTableCheckSum: CalculateTableCheckSumHandler, tableHandler?: TableHandler) {
         this.tableRef = tableRef;
         this.pageHandler = pageHandler;
         if(!calculateTableCheckSum)
             throw ("Tablechecksum required.");
         this.calculateTableCheckSum = calculateTableCheckSum;
+        this.fetchedTable = undefined;
+        this.tableHandler = tableHandler;
+    }
+
+    reset() {
+        this.clearCache();
+        this.tableHandler?.onReset?.(this);
     }
 
     clearCache() {
         db3(`Clear cache for ${this.tableRef.htmlTableId}.`);
         window.sessionStorage.removeItem(this.getCacheId());
         window.sessionStorage.removeItem(this.getCacheId()+ def.CACHE_DATE_SUFFIX);
+        this.fetchedTable = undefined;
     }
 
     loadFromCache() {
@@ -178,39 +192,40 @@ export class TableDef {
         a.href="#";
         a.onclick = (e ) => {
             e.preventDefault();
-            this.clearCache();
+            this.reset();
             // noinspection JSIgnoredPromiseFromCall
             this.getTableData();
             return true;
         }
     }
     async getTableData(parallelAsyncFunction?: (() => Promise<any>)) {
+        if(this.fetchedTable) {
+            return this.fetchedTable;
+        }
         this.setupInfoBar();
         this.clearCacheInfo();
         let cachedData = this.loadFromCache();
 
-        let fetchedTable = new FetchedTable(this);
+        this.fetchedTable = new FetchedTable(this);
         if(cachedData) {
             if(parallelAsyncFunction) {
                 this.parallelData = await parallelAsyncFunction();
             }
-            fetchedTable.addPage(cachedData.text);
+            this.fetchedTable.addPage(cachedData.text);
             this.shadowTableDate = cachedData.date;
             this.isUsingCached = true;
-            db3(`${this.tableRef.htmlTableId}: using cached data.`);
-            let rows = fetchedTable.getRows();
-            this.pageHandler.onPage?.(this, cachedData.text, fetchedTable);
-            this.pageHandler.onLoaded?.(fetchedTable);
+            this.pageHandler.onPage?.(this, cachedData.text, this.fetchedTable);
+            this.pageHandler.onLoaded?.(this.fetchedTable);
         } else {
             this.isUsingCached = false;
-            let success = await this.#fetchPages(fetchedTable, parallelAsyncFunction);
+            let success = await this.#fetchPages(this.fetchedTable, parallelAsyncFunction);
             if(!success)
-                return fetchedTable;
-            fetchedTable.saveToCache();
-            this.pageHandler.onLoaded?.(fetchedTable);
+                return this.fetchedTable;
+            this.fetchedTable.saveToCache();
+            this.pageHandler.onLoaded?.(this.fetchedTable);
         }
         this.updateInfoBar();
-        return fetchedTable;
+        return this.fetchedTable;
     }
 
     async #fetchPages(fetchedTable: FetchedTable, parallelAsyncFunction: () => Promise<any>) {

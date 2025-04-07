@@ -1,8 +1,8 @@
 import {distinct, openTab, rangeGenerator} from "../globals";
 import {emmet} from "../../libs/Emmeter/html";
-import {downloadTable} from "./loadAnyTable";
+import {downloadTable, getCurrentTableDef} from "./loadAnyTable";
 import {addMenuItem, addMenuSeparator, setupMenu} from "../menus";
-import {FetchedTable} from "./tableDef";
+import {FetchedTable, TableDef, TableHandler} from "./tableDef";
 
 function sortRows(cmpFunction: (a: HTMLTableCellElement, b: HTMLTableCellElement) => number, header: Element, rows: HTMLTableRowElement[], index: number, descending: boolean) {
     let cmpDirectionalFunction: (a: HTMLTableRowElement, b: HTMLTableRowElement) => number;
@@ -108,8 +108,8 @@ export function decorateTableHeader(table: HTMLTableElement) {
             addMenuItem(menu, "Toon unieke waarden", 0, (ev) => { forTableColumnDo(ev, index, showDistinctColumn); });
             addMenuItem(menu, "Verberg kolom", 0, (ev) => { console.log("verberg kolom"); forTableColumnDo(ev, index, hideColumn)});
             addMenuSeparator(menu, "Sorteer", 0);
-            addMenuItem(menu, "Hoog naar laag (z > a)", 1, (ev) => { forTableColumnDo(ev, index, (fetchedTable, index) => sortTableByColumn(table, index, false))});
-            addMenuItem(menu, "Laag naar hoog (a > z)", 1, (ev) => { forTableColumnDo(ev, index, (fetchedTable, index) => sortTableByColumn(table, index, true))});
+            addMenuItem(menu, "Laag naar hoog (a > z)", 1, (ev) => { forTableColumnDo(ev, index, (fetchedTable, index) => sortTableByColumn(table, index, false))});
+            addMenuItem(menu, "Hoog naar laag (z > a)", 1, (ev) => { forTableColumnDo(ev, index, (fetchedTable, index) => sortTableByColumn(table, index, true))});
             addMenuSeparator(menu, "Kolom bevat", 1);
             addMenuItem(menu, "Tekst", 2, (ev) => { });
             addMenuItem(menu, "Getallen", 2, (ev) => { });
@@ -130,12 +130,25 @@ function getDistinctColumn(tableContainer: HTMLElement, index: number) {
 
 type TableColumnDo = (fetchedTable: FetchedTable, index: number) => void;
 
+class TableHandlerForHeaders implements TableHandler {
+    onReset(tableDef: TableDef){
+        let headerRows = Array.from(tableDef.tableRef.getOrgTableContainer().querySelector("thead").rows);
+        for(let row of headerRows) {
+            for(let cell of row.cells) {
+                cell.style.display = "";
+            }
+        }
+    }
+}
+
 function forTableColumnDo(ev: MouseEvent, index: number, doIt: TableColumnDo) {
     ev.preventDefault();
     ev.stopPropagation();
+    if(!getCurrentTableDef().tableHandler) {
+        getCurrentTableDef().tableHandler = new TableHandlerForHeaders();
+    }
     downloadTable()
         .then(fetchedTable => {
-            let rows = Array.from(fetchedTable.tableDef.tableRef.getOrgTableContainer().querySelector("tbody").rows);
             doIt(fetchedTable, index);
         });
 }
