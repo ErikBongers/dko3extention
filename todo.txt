@@ -1,3 +1,21 @@
+* Table menu:
+  - Sort:
+    - Asc
+    - Desc
+    - Markeer als:
+       - numerieke kolom
+       - tekstkolom
+  - Toon unieke waarden
+  - <= Samenvoegen
+    - comma
+    - spatie
+  - Samenvoegen =>
+    - comma
+    - spatie
+  - Verplaatsen:
+    - =>
+    - <=
+  - Verbergen
 * Trims: summing hours per block
   > for Lievenka: fine: just add the hours of all the blooks
   > for Rhea: NOT fine: altviool and viool share the same hour!

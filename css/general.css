@@ -237,7 +237,7 @@ button.miniButton {
     display: none;
     position: absolute;
     background-color: white;
-    width: 20ch;
+    width: 30ch;
     box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
     z-index: 1;
 }
@@ -247,14 +247,30 @@ button.miniButton {
     display: inline-block;
 }
 
-.dropDownItem {
+button.dropDownItem {
     color: black;
-    padding: 12px 16px;
+    padding: 5px 16px;
     text-decoration: none;
     text-align: left;
     display: block;
     /*noinspection CssInvalidPropertyValue*/
     width: -webkit-fill-available;
+}
+
+div.dropDownSeparator {
+    color: rgba(0,0,0, 0.8);
+    padding: 4px 16px 0 16px;
+    text-decoration: none;
+    text-align: left;
+    display: block;
+    /*noinspection CssInvalidPropertyValue*/
+    width: -webkit-fill-available;
+}
+
+button.menuIndent1,
+div.menuIndent1
+{
+    padding-left: 26px;
 }
 
 /* Change color of dropdown links on hover */

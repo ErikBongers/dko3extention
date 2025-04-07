@@ -1,7 +1,7 @@
 import {distinct, openTab, rangeGenerator} from "../globals";
 import {emmet} from "../../libs/Emmeter/html";
-import { FetchedTable } from "./tableDef";
 import {downloadTable} from "./loadAnyTable";
+import {addMenuItem, addMenuSeparator, setupMenu} from "../menus";
 
 function sortRows(cmpFunction: (a: HTMLTableCellElement, b: HTMLTableCellElement) => number, header: Element, rows: HTMLTableRowElement[], index: number, wasAscending: boolean) {
     let cmpDirectionalFunction: (a: HTMLTableRowElement, b: HTMLTableRowElement) => number;
@@ -94,21 +94,18 @@ export function decorateTableHeader(table: HTMLTableElement) {
     table.tHead.classList.add("clickHandler");
     Array.from(table.tHead.children[0].children)
         .forEach((colHeader: HTMLElement, index) => {
-            // colHeader.onclick = _ev => {
-            //     sortTableByColumn(table, index);
-            // };
-            let {first: span, last: idiom} = emmet.appendChild(colHeader, 'span.dropDownContainer>button.dropDownButton.miniButton.naked>i.dropDownIgnoreHide.fas.fa-list[title="Toon unieke waarden"]');
-            emmet.appendChild(span as HTMLElement, "div.dropDownMenu>button.naked.dropDownItem.dropDownIgnoreHide{Click me $}*3")
-            idiom.onclick = ev => {
-                console.log("showing menu...");
-                (ev.target as HTMLElement).closest(".dropDownContainer").querySelector(".dropDownMenu") .classList.add("show");
-            }
-            let buttons = [...span.querySelectorAll<HTMLButtonElement>("button.dropDownItem")];
-            buttons[0].textContent = "Toon unieke waarden";
-            buttons[0].onclick = () => {
-                console.log("click");
-                showDistinctColumn(index);
+            colHeader.onclick = _ev => {
+                sortTableByColumn(table, index);
             };
+            let {first: span, last: idiom} = emmet.appendChild(colHeader, 'span>button.miniButton.naked>i.fas.fa-list');
+            let menu = setupMenu(span as HTMLElement, idiom.parentElement);
+            addMenuItem(menu, "Toon unieke waarden", 0, () => {
+                showDistinctColumn(index);
+            });
+            addMenuSeparator(menu, "Separator");
+            addMenuItem(menu, "Sorteer", 1, () => {
+
+            });
         });
 }
 
@@ -132,13 +129,4 @@ function showDistinctColumn(index: number) {
             let headerText = headerNodes.filter(node => node.nodeType === Node.TEXT_NODE).map(node => node.textContent).join(" ");
             openTab(tmpDiv.innerHTML, headerText + " (uniek)");
         });
-}
-
-window.onclick = function(event) {
-    if (event.target.matches('.dropDownIgnoreHide'))
-        return;
-    let dropdowns = document.getElementsByClassName("dropDownMenu");
-    for (let dropDown of dropdowns) {
-        dropDown.classList.remove('show');
-    }
 }
