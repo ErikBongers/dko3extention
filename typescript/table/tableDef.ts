@@ -16,7 +16,7 @@ export class TableRef {
     }
 
     getOrgTableContainer() {
-        return document.getElementById(this.htmlTableId) as HTMLTableElement;
+        return document.getElementById(this.htmlTableId) as HTMLElement;
     }
 
     createElementAboveTable(element: string): HTMLElement {
