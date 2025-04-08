@@ -63,10 +63,10 @@ function sortTableByColumn(table: HTMLTableElement, index: number, descending: b
     rows.forEach(row => table.tBodies[0].appendChild(row));
 }
 
-function reSortTableByColumn(ev: MouseEvent, table: HTMLTableElement, index: number) {
-    let header = table.tHead.children[0].children[index];
+function reSortTableByColumn(ev: MouseEvent, table: HTMLTableElement) {
+    let header = table.tHead.children[0].children[getColumnIndex(ev)];
     let wasAscending = header.classList.contains("sortAscending");
-    forTableColumnDo(ev, index, (fetchedTable, index) => sortTableByColumn(table, index, wasAscending));
+    forTableColumnDo(ev, (fetchedTable, index) => sortTableByColumn(table, index, wasAscending));
 }
 
 function isColumnProbablyDate(table: HTMLTableElement, index: number) {
@@ -102,26 +102,26 @@ export function decorateTableHeader(table: HTMLTableElement) {
     Array.from(table.tHead.children[0].children)
         .forEach((colHeader: HTMLElement, index) => {
             colHeader.onclick = (ev) => {
-                reSortTableByColumn(ev, table, index);
+                reSortTableByColumn(ev, table);
             };
             if(!table.classList.contains(CAN_HAVE_MENU))
                 return;
             let {first: span, last: idiom} = emmet.appendChild(colHeader, 'span>button.miniButton.naked>i.fas.fa-list');
             let menu = setupMenu(span as HTMLElement, idiom.parentElement);
-            addMenuItem(menu, "Toon unieke waarden", 0, (ev) => { forTableColumnDo(ev, index, showDistinctColumn); });
-            addMenuItem(menu, "Verberg kolom", 0, (ev) => { console.log("verberg kolom"); forTableColumnDo(ev, index, hideColumn)});
-            addMenuItem(menu, "Toon alle kolommen", 0, (ev) => { console.log("verberg kolom"); forTableColumnDo(ev, index, showColumns)});
+            addMenuItem(menu, "Toon unieke waarden", 0, (ev) => { forTableColumnDo(ev, showDistinctColumn); });
+            addMenuItem(menu, "Verberg kolom", 0, (ev) => { console.log("verberg kolom"); forTableColumnDo(ev, hideColumn)});
+            addMenuItem(menu, "Toon alle kolommen", 0, (ev) => { console.log("verberg kolom"); forTableColumnDo(ev, showColumns)});
             addMenuSeparator(menu, "Sorteer", 0);
-            addMenuItem(menu, "Laag naar hoog (a > z)", 1, (ev) => { forTableColumnDo(ev, index, (fetchedTable, index) => sortTableByColumn(table, index, false))});
-            addMenuItem(menu, "Hoog naar laag (z > a)", 1, (ev) => { forTableColumnDo(ev, index, (fetchedTable, index) => sortTableByColumn(table, index, true))});
+            addMenuItem(menu, "Laag naar hoog (a > z)", 1, (ev) => { forTableColumnDo(ev, (fetchedTable, index) => sortTableByColumn(table, index, false))});
+            addMenuItem(menu, "Hoog naar laag (z > a)", 1, (ev) => { forTableColumnDo(ev, (fetchedTable, index) => sortTableByColumn(table, index, true))});
             addMenuSeparator(menu, "Kolom bevat", 1);
             addMenuItem(menu, "Tekst", 2, (ev) => { });
             addMenuItem(menu, "Getallen", 2, (ev) => { });
             addMenuSeparator(menu, "<= Samenvoegen", 0);
-            addMenuItem(menu, "met spatie", 1, (ev) => { });
-            addMenuItem(menu, "met comma", 1, (ev) => { });
+            addMenuItem(menu, "met spatie", 1, (ev) => { forTableColumnDo(ev, mergeColumnWithSpace)});
+            addMenuItem(menu, "met comma", 1, (ev) => { forTableColumnDo(ev, mergeColumnWithComma)});
             addMenuSeparator(menu, "Verplaatsen", 0);
-            addMenuItem(menu, "<=", 1, (ev) => { });
+            addMenuItem(menu, "<=", 1, (ev) => { forTableColumnDo(ev, swapColumnsToLeft)});
             addMenuItem(menu, "=>", 1, (ev) => { });
         });
 }
@@ -145,7 +145,15 @@ class TableHandlerForHeaders implements TableHandler {
     }
 }
 
-function forTableColumnDo(ev: MouseEvent, index: number, doIt: TableColumnDo) {
+function getColumnIndex(ev: MouseEvent) {
+    let td = ev.target as HTMLElement;
+    if (td.tagName !== "TD") {
+        td = td.closest("TH");
+    }
+    return Array.prototype.indexOf.call(td.parentElement.children, td);
+}
+
+function forTableColumnDo(ev: MouseEvent, doIt: TableColumnDo) {
     ev.preventDefault();
     ev.stopPropagation();
     if(!getCurrentTableDef().tableHandler) {
@@ -153,6 +161,7 @@ function forTableColumnDo(ev: MouseEvent, index: number, doIt: TableColumnDo) {
     }
     downloadTable()
         .then(fetchedTable => {
+            let index = getColumnIndex(ev);
             doIt(fetchedTable, index);
         });
 }
@@ -186,5 +195,55 @@ let showColumns: TableColumnDo = function (fetchedTable, index) {
     for(let row of rows) {
         for(let cell of row.cells)
             cell.style.display = "";
+    }
+}
+
+let mergeColumnWithComma: TableColumnDo = function (fetchedTable, index) {
+    mergeColumnToLeft(fetchedTable, index, ", ");
+}
+let mergeColumnWithSpace: TableColumnDo = function (fetchedTable, index) {
+    mergeColumnToLeft(fetchedTable, index, " ");
+}
+
+function mergeColumnToLeft(fetchedTable: FetchedTable, index: number, separator: string) {
+    if(index === 0)
+        return; //just to be sure.
+    let headerRows = Array.from(fetchedTable.tableDef.tableRef.getOrgTableContainer().querySelector("thead").rows);
+    let rows = Array.from(fetchedTable.tableDef.tableRef.getOrgTableContainer().querySelector("tbody").rows);
+    for(let row of rows) {
+        row.cells[index].style.display = "none";
+        row.cells[index-1].innerText += separator + row.cells[index].innerText;
+    }
+    for(let row of headerRows) {
+        row.cells[index].style.display = "none";
+        let firstTextNode = [...row.cells[index-1].childNodes].filter(node => node.nodeType === Node.TEXT_NODE)[0];
+        let secondTextNode = [...row.cells[index].childNodes].filter(node => node.nodeType === Node.TEXT_NODE)[0];
+        if(firstTextNode && secondTextNode) {
+            firstTextNode.textContent += separator + secondTextNode.textContent;
+        }
+    }
+}
+
+let swapColumnsToLeft: TableColumnDo = function (fetchedTable, index) {
+    if(index ===  0)
+        return; //just to be sure.
+    //look for previous VISIBLE column
+    let headerRow = fetchedTable.tableDef.tableRef.getOrgTableContainer().querySelector("thead>tr") as HTMLTableRowElement;
+    let prevIndex: number = undefined;
+    for(let i = index-1; i >=0 ; i--) {
+        if((headerRow.children[i] as HTMLElement).style.display !== "none") {
+            prevIndex = i;
+            break;
+        }
+    }
+    if(prevIndex !== undefined) {
+        swapColumns(fetchedTable, prevIndex, index);
+    }
+}
+
+function swapColumns(fetchedTable:  FetchedTable, index1: number,  index2: number) {
+    let rows = Array.from(fetchedTable.tableDef.tableRef.getOrgTableContainer().querySelectorAll("tr"));
+    for(let row of rows) {
+        row.children[index1].parentElement.insertBefore(row.children[index2], row.children[index1]);
     }
 }

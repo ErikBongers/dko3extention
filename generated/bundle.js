@@ -3382,10 +3382,10 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
     }
     rows.forEach((row) => table.tBodies[0].appendChild(row));
   }
-  function reSortTableByColumn(ev, table, index) {
-    let header = table.tHead.children[0].children[index];
+  function reSortTableByColumn(ev, table) {
+    let header = table.tHead.children[0].children[getColumnIndex(ev)];
     let wasAscending = header.classList.contains("sortAscending");
-    forTableColumnDo(ev, index, (fetchedTable, index2) => sortTableByColumn(table, index2, wasAscending));
+    forTableColumnDo(ev, (fetchedTable, index) => sortTableByColumn(table, index, wasAscending));
   }
   function isColumnProbablyDate(table, index) {
     let rows = Array.from(table.tBodies[0].rows);
@@ -3412,29 +3412,29 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
     table.tHead.classList.add("clickHandler");
     Array.from(table.tHead.children[0].children).forEach((colHeader, index) => {
       colHeader.onclick = (ev) => {
-        reSortTableByColumn(ev, table, index);
+        reSortTableByColumn(ev, table);
       };
       if (!table.classList.contains(CAN_HAVE_MENU))
         return;
       let { first: span, last: idiom } = emmet.appendChild(colHeader, "span>button.miniButton.naked>i.fas.fa-list");
       let menu = setupMenu(span, idiom.parentElement);
       addMenuItem(menu, "Toon unieke waarden", 0, (ev) => {
-        forTableColumnDo(ev, index, showDistinctColumn);
+        forTableColumnDo(ev, showDistinctColumn);
       });
       addMenuItem(menu, "Verberg kolom", 0, (ev) => {
         console.log("verberg kolom");
-        forTableColumnDo(ev, index, hideColumn);
+        forTableColumnDo(ev, hideColumn);
       });
       addMenuItem(menu, "Toon alle kolommen", 0, (ev) => {
         console.log("verberg kolom");
-        forTableColumnDo(ev, index, showColumns);
+        forTableColumnDo(ev, showColumns);
       });
       addMenuSeparator(menu, "Sorteer", 0);
       addMenuItem(menu, "Laag naar hoog (a > z)", 1, (ev) => {
-        forTableColumnDo(ev, index, (fetchedTable, index2) => sortTableByColumn(table, index2, false));
+        forTableColumnDo(ev, (fetchedTable, index2) => sortTableByColumn(table, index2, false));
       });
       addMenuItem(menu, "Hoog naar laag (z > a)", 1, (ev) => {
-        forTableColumnDo(ev, index, (fetchedTable, index2) => sortTableByColumn(table, index2, true));
+        forTableColumnDo(ev, (fetchedTable, index2) => sortTableByColumn(table, index2, true));
       });
       addMenuSeparator(menu, "Kolom bevat", 1);
       addMenuItem(menu, "Tekst", 2, (ev) => {
@@ -3443,11 +3443,14 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
       });
       addMenuSeparator(menu, "<= Samenvoegen", 0);
       addMenuItem(menu, "met spatie", 1, (ev) => {
+        forTableColumnDo(ev, mergeColumnWithSpace);
       });
       addMenuItem(menu, "met comma", 1, (ev) => {
+        forTableColumnDo(ev, mergeColumnWithComma);
       });
       addMenuSeparator(menu, "Verplaatsen", 0);
       addMenuItem(menu, "<=", 1, (ev) => {
+        forTableColumnDo(ev, swapColumnsToLeft);
       });
       addMenuItem(menu, "=>", 1, (ev) => {
       });
@@ -3467,13 +3470,21 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
       }
     }
   };
-  function forTableColumnDo(ev, index, doIt) {
+  function getColumnIndex(ev) {
+    let td = ev.target;
+    if (td.tagName !== "TD") {
+      td = td.closest("TH");
+    }
+    return Array.prototype.indexOf.call(td.parentElement.children, td);
+  }
+  function forTableColumnDo(ev, doIt) {
     ev.preventDefault();
     ev.stopPropagation();
     if (!getCurrentTableDef().tableHandler) {
       getCurrentTableDef().tableHandler = new TableHandlerForHeaders();
     }
     downloadTable().then((fetchedTable) => {
+      let index = getColumnIndex(ev);
       doIt(fetchedTable, index);
     });
   }
@@ -3506,6 +3517,51 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
         cell.style.display = "";
     }
   };
+  var mergeColumnWithComma = function(fetchedTable, index) {
+    mergeColumnToLeft(fetchedTable, index, ", ");
+  };
+  var mergeColumnWithSpace = function(fetchedTable, index) {
+    mergeColumnToLeft(fetchedTable, index, " ");
+  };
+  function mergeColumnToLeft(fetchedTable, index, separator) {
+    if (index === 0)
+      return;
+    let headerRows = Array.from(fetchedTable.tableDef.tableRef.getOrgTableContainer().querySelector("thead").rows);
+    let rows = Array.from(fetchedTable.tableDef.tableRef.getOrgTableContainer().querySelector("tbody").rows);
+    for (let row of rows) {
+      row.cells[index].style.display = "none";
+      row.cells[index - 1].innerText += separator + row.cells[index].innerText;
+    }
+    for (let row of headerRows) {
+      row.cells[index].style.display = "none";
+      let firstTextNode = [...row.cells[index - 1].childNodes].filter((node) => node.nodeType === Node.TEXT_NODE)[0];
+      let secondTextNode = [...row.cells[index].childNodes].filter((node) => node.nodeType === Node.TEXT_NODE)[0];
+      if (firstTextNode && secondTextNode) {
+        firstTextNode.textContent += separator + secondTextNode.textContent;
+      }
+    }
+  }
+  var swapColumnsToLeft = function(fetchedTable, index) {
+    if (index === 0)
+      return;
+    let headerRow = fetchedTable.tableDef.tableRef.getOrgTableContainer().querySelector("thead>tr");
+    let prevIndex = void 0;
+    for (let i = index - 1; i >= 0; i--) {
+      if (headerRow.children[i].style.display !== "none") {
+        prevIndex = i;
+        break;
+      }
+    }
+    if (prevIndex !== void 0) {
+      swapColumns(fetchedTable, prevIndex, index);
+    }
+  };
+  function swapColumns(fetchedTable, index1, index2) {
+    let rows = Array.from(fetchedTable.tableDef.tableRef.getOrgTableContainer().querySelectorAll("tr"));
+    for (let row of rows) {
+      row.children[index1].parentElement.insertBefore(row.children[index2], row.children[index1]);
+    }
+  }
 
   // typescript/werklijst/urenData.ts
   var UrenData = class {
