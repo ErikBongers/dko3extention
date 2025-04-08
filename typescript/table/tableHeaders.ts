@@ -4,6 +4,7 @@ import {downloadTable, getCurrentTableDef} from "./loadAnyTable";
 import {addMenuItem, addMenuSeparator, setupMenu} from "../menus";
 import {FetchedTable, TableDef, TableHandler} from "./tableDef";
 import {CAN_HAVE_MENU} from "../def";
+import clipboard = chrome.contentSettings.clipboard;
 
 function sortRows(cmpFunction: (a: HTMLTableCellElement, b: HTMLTableCellElement) => number, header: Element, rows: HTMLTableRowElement[], index: number, descending: boolean) {
     let cmpDirectionalFunction: (a: HTMLTableRowElement, b: HTMLTableRowElement) => number;
@@ -63,6 +64,44 @@ function sortTableByColumn(table: HTMLTableElement, index: number, descending: b
     rows.forEach(row => table.tBodies[0].appendChild(row));
 }
 
+function copyTable(table: HTMLTableElement, index: number) {
+    let header = table.tHead.children[0].children[index];
+    let rows = Array.from(table.tBodies[0].rows);
+    let  tmpDiv = document.createElement("div");
+    let {first: tmpTable, last: tmpThead} = emmet.appendChild(tmpDiv, "table>thead");
+    for (let el of table.tHead.children[0].children) {
+        let  th = el as HTMLTableCellElement;
+        if(th.style.display !== "none")
+            emmet.appendChild(tmpThead, `th{${(th as  HTMLTableCellElement).innerText}}`);
+    }
+    let tmpTbody = tmpTable.appendChild(document.createElement("tbody"));
+    for (let el of table.tBodies[0].children) {
+        let tr  = el as  HTMLTableRowElement;
+        let tmpTr = tmpTbody.appendChild(document.createElement("tr"));
+        for(let cell of tr.cells) {
+            if(cell.style.display !== "none")
+                emmet.appendChild(tmpTr, `td{${cell.innerText}}`);
+        }
+    }
+     navigator.clipboard.writeText(tmpTable.outerHTML).then(r => {});
+}
+
+function copyColumn(table: HTMLTableElement, index: number) { //todo: combine with copyTable. Have a callback that inserts the needed columns.
+    let header = table.tHead.children[0].children[index];
+    let rows = Array.from(table.tBodies[0].rows);
+    let  tmpDiv = document.createElement("div");
+    let {first: tmpTable, last: tmpThead} = emmet.appendChild(tmpDiv, "table>thead");
+    let  th = table.tHead.children[0].children[index] as HTMLTableCellElement;
+    emmet.appendChild(tmpThead, `th{${(th as  HTMLTableCellElement).innerText}}`);
+    let tmpTbody = tmpTable.appendChild(document.createElement("tbody"));
+    for (let el of table.tBodies[0].children) {
+        let tr  = el as  HTMLTableRowElement;
+        let tmpTr = tmpTbody.appendChild(document.createElement("tr"));
+        emmet.appendChild(tmpTr, `td{${tr.cells[index].innerText}}`);
+    }
+     navigator.clipboard.writeText(tmpTable.outerHTML).then(r => {});
+}
+
 function reSortTableByColumn(ev: MouseEvent, table: HTMLTableElement) {
     let header = table.tHead.children[0].children[getColumnIndex(ev)];
     let wasAscending = header.classList.contains("sortAscending");
@@ -115,6 +154,9 @@ export function decorateTableHeader(table: HTMLTableElement) {
             addMenuSeparator(menu, "Sorteer", 0);
             addMenuItem(menu, "Laag naar hoog (a > z)", 1, (ev) => { forTableColumnDo(ev, (fetchedTable, index) => sortTableByColumn(table, index, false))});
             addMenuItem(menu, "Hoog naar laag (z > a)", 1, (ev) => { forTableColumnDo(ev, (fetchedTable, index) => sortTableByColumn(table, index, true))});
+            addMenuSeparator(menu, "Klipbord", 0);
+            addMenuItem(menu, "Kolom", 1, (ev) => { forTableColumnDo(ev, (fetchedTable, index) => copyColumn(table, index))});
+            addMenuItem(menu, "Hele tabel", 1, (ev) => { forTableColumnDo(ev, (fetchedTable, index) => copyTable(table, index))});
             addMenuSeparator(menu, "Kolom bevat", 1);
             addMenuItem(menu, "Tekst", 2, (ev) => { });
             addMenuItem(menu, "Getallen", 2, (ev) => { });

@@ -3384,6 +3384,44 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
     }
     rows.forEach((row) => table.tBodies[0].appendChild(row));
   }
+  function copyTable(table, index) {
+    let header = table.tHead.children[0].children[index];
+    let rows = Array.from(table.tBodies[0].rows);
+    let tmpDiv = document.createElement("div");
+    let { first: tmpTable, last: tmpThead } = emmet.appendChild(tmpDiv, "table>thead");
+    for (let el of table.tHead.children[0].children) {
+      let th = el;
+      if (th.style.display !== "none")
+        emmet.appendChild(tmpThead, `th{${th.innerText}}`);
+    }
+    let tmpTbody = tmpTable.appendChild(document.createElement("tbody"));
+    for (let el of table.tBodies[0].children) {
+      let tr = el;
+      let tmpTr = tmpTbody.appendChild(document.createElement("tr"));
+      for (let cell of tr.cells) {
+        if (cell.style.display !== "none")
+          emmet.appendChild(tmpTr, `td{${cell.innerText}}`);
+      }
+    }
+    navigator.clipboard.writeText(tmpTable.outerHTML).then((r) => {
+    });
+  }
+  function copyColumn(table, index) {
+    let header = table.tHead.children[0].children[index];
+    let rows = Array.from(table.tBodies[0].rows);
+    let tmpDiv = document.createElement("div");
+    let { first: tmpTable, last: tmpThead } = emmet.appendChild(tmpDiv, "table>thead");
+    let th = table.tHead.children[0].children[index];
+    emmet.appendChild(tmpThead, `th{${th.innerText}}`);
+    let tmpTbody = tmpTable.appendChild(document.createElement("tbody"));
+    for (let el of table.tBodies[0].children) {
+      let tr = el;
+      let tmpTr = tmpTbody.appendChild(document.createElement("tr"));
+      emmet.appendChild(tmpTr, `td{${tr.cells[index].innerText}}`);
+    }
+    navigator.clipboard.writeText(tmpTable.outerHTML).then((r) => {
+    });
+  }
   function reSortTableByColumn(ev, table) {
     let header = table.tHead.children[0].children[getColumnIndex(ev)];
     let wasAscending = header.classList.contains("sortAscending");
@@ -3438,6 +3476,13 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
       });
       addMenuItem(menu, "Hoog naar laag (z > a)", 1, (ev) => {
         forTableColumnDo(ev, (fetchedTable, index2) => sortTableByColumn(table, index2, true));
+      });
+      addMenuSeparator(menu, "Klipbord", 0);
+      addMenuItem(menu, "Kolom", 1, (ev) => {
+        forTableColumnDo(ev, (fetchedTable, index2) => copyColumn(table, index2));
+      });
+      addMenuItem(menu, "Hele tabel", 1, (ev) => {
+        forTableColumnDo(ev, (fetchedTable, index2) => copyTable(table, index2));
       });
       addMenuSeparator(menu, "Kolom bevat", 1);
       addMenuItem(menu, "Tekst", 2, (ev) => {
@@ -3830,7 +3875,7 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
     let navigationBars = getBothToolbars();
     if (!navigationBars)
       return;
-    addTableNavigationButton(navigationBars, COPY_TABLE_BTN_ID, "copy table to clipboard", copyTable, "fa-clipboard");
+    addTableNavigationButton(navigationBars, COPY_TABLE_BTN_ID, "copy table to clipboard", copyTable2, "fa-clipboard");
     return true;
   }
   function showInfoMessage(message, click_element_id, callback) {
@@ -3842,7 +3887,7 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
       document.getElementById(click_element_id).onclick = callback;
     }
   }
-  async function copyTable() {
+  async function copyTable2() {
     let prebuildPageHandler = new SimpleTableHandler(void 0, void 0);
     let tableRef = findTableRefInCode();
     let tableDef2 = new TableDef(
