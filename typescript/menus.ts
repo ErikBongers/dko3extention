@@ -52,13 +52,14 @@ export function addMenuSeparator(menu: HTMLElement, title: string, indentLevel: 
     }
 }
 
-export function setupMenu(container: HTMLElement, button: HTMLElement) {
+export function setupMenu(container: HTMLElement, button: HTMLElement, shiftLeft: boolean) {
     initMenuEvents();
     container.classList.add("dropDownContainer");
     button.classList.add("dropDownIgnoreHide", "dropDownButton");
     let {first} = emmet.appendChild(container as HTMLElement, "div.dropDownMenu");
     let menu = first as HTMLElement;
-
+    if(shiftLeft)
+        menu.classList.add("shiftLeft");
     button.onclick = ev => {
         ev.preventDefault();
         ev.stopPropagation();

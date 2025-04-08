@@ -234,13 +234,18 @@ button.miniButton {
 }
 
 .dropDownMenu {
+    --menu-width:  30ch;
     display: none;
     position: absolute;
     background-color: white;
-    width: 30ch;
+    width: var(--menu-width);
     box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
     z-index: 1;
+    &.shiftLeft {
+        left: calc(2ch - var(--menu-width)); /*subtract estimated widto of buttonn from offset*/
+    }
 }
+
 
 .dropDownContainer {
     position: relative;

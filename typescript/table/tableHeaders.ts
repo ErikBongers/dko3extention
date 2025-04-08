@@ -107,7 +107,8 @@ export function decorateTableHeader(table: HTMLTableElement) {
             if(!table.classList.contains(CAN_HAVE_MENU))
                 return;
             let {first: span, last: idiom} = emmet.appendChild(colHeader, 'span>button.miniButton.naked>i.fas.fa-list');
-            let menu = setupMenu(span as HTMLElement, idiom.parentElement);
+            let shiftLeft = (index+1) >= table.tHead.children[0].children.length;
+            let menu = setupMenu(span as HTMLElement, idiom.parentElement, shiftLeft);
             addMenuItem(menu, "Toon unieke waarden", 0, (ev) => { forTableColumnDo(ev, showDistinctColumn); });
             addMenuItem(menu, "Verberg kolom", 0, (ev) => { console.log("verberg kolom"); forTableColumnDo(ev, hideColumn)});
             addMenuItem(menu, "Toon alle kolommen", 0, (ev) => { console.log("verberg kolom"); forTableColumnDo(ev, showColumns)});

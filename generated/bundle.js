@@ -3312,12 +3312,14 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
       ev.stopPropagation();
     };
   }
-  function setupMenu(container, button) {
+  function setupMenu(container, button, shiftLeft) {
     initMenuEvents();
     container.classList.add("dropDownContainer");
     button.classList.add("dropDownIgnoreHide", "dropDownButton");
     let { first } = emmet.appendChild(container, "div.dropDownMenu");
     let menu = first;
+    if (shiftLeft)
+      menu.classList.add("shiftLeft");
     button.onclick = (ev) => {
       ev.preventDefault();
       ev.stopPropagation();
@@ -3417,7 +3419,8 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
       if (!table.classList.contains(CAN_HAVE_MENU))
         return;
       let { first: span, last: idiom } = emmet.appendChild(colHeader, "span>button.miniButton.naked>i.fas.fa-list");
-      let menu = setupMenu(span, idiom.parentElement);
+      let shiftLeft = index + 1 >= table.tHead.children[0].children.length;
+      let menu = setupMenu(span, idiom.parentElement, shiftLeft);
       addMenuItem(menu, "Toon unieke waarden", 0, (ev) => {
         forTableColumnDo(ev, showDistinctColumn);
       });
