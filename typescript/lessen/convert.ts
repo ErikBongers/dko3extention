@@ -17,18 +17,20 @@ export class BlockInfo {
     jaarModules: Les[];
     tags: TagInfo[];
     errors: string;
+    online: boolean;
 
     static emptyBlock() {
         return <BlockInfo>{
             teacher: undefined,
-            vestiging: undefined,
-            maxAantal: -1,
             instrumentName: undefined,
+            maxAantal: -1,
             lesmoment: undefined,
+            vestiging: undefined,
             trimesters: [[], [], []],
             jaarModules: [],
+            tags: [],
             errors: "",
-            tags: []
+            online: false
         }
     }
 }
@@ -181,6 +183,7 @@ export function buildTableData(inputModules: Les[]) : TableData {
                 // we could have both trimesters and jaar modules for this instrument/teacher/lesmoment
                 block.trimesters = buildTrimesters(instrumentTeacherMomentModules);
                 block.jaarModules = instrumentTeacherMomentModules.filter(module => module.lesType === LesType.JaarModule);
+                block.online = !instrumentTeacherMomentModules.find(module => module.online === false);
                 checkBlockForErrors(block);
                 tableData.blocks.push(block);
 
@@ -309,6 +312,7 @@ function updateMergedBlock(block: BlockInfo) {
     for(let tag of block.tags) {
         tag.partial = !allLessen.every(les => les.tags.includes(tag.name));
     }
+    block.online = !allLessen.find(les => !les.online);
 }
 
 function checkBlockForErrors(block: BlockInfo) {

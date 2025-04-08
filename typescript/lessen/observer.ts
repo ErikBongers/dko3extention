@@ -171,29 +171,39 @@ function applyFilters() {
     let pageState = getPageSettings(PageName.Lessen, getDefaultPageSettings()) as LessenPageState;
     pageState.searchText = (document.getElementById(TXT_FILTER_ID) as HTMLInputElement).value;
     savePageSettings(pageState);
-    let textFilter = buildTextFilter(pageState);
-    let filter = textFilter;
-    if(pageState.filterOffline) {
-        let offLineFilter: RowFilter = {
-            context: undefined,
-            rowFilter: function (tr: HTMLTableRowElement, context: any): boolean {
-                return tr.querySelector("td>i.fa-eye-slash") != undefined;
-            }
-        };
-        filter = combineFilters(textFilter, offLineFilter);
-    }
+
     if(isTrimesterTableVisible()) {
+        let textPreFilter = createTextRowFilter(pageState.searchText, (tr) => tr.textContent);
+
+        let preFilter = textPreFilter;
+        if(pageState.filterOffline) {
+            let offLineFilter: RowFilter = {
+                context: undefined,
+                rowFilter: function (tr: HTMLTableRowElement, context: any): boolean {
+                    return tr.dataset.offline === "true";
+                }
+            };
+            preFilter = combineFilters(textPreFilter, offLineFilter);
+        }
+        let filter = buildAncestorFilter(preFilter);
         filterTable(def.TRIM_TABLE_ID, filter);
     } else {
+        let textFilter = createTextRowFilter(pageState.searchText, (tr) => tr.cells[0].textContent);
+        let filter = textFilter;
+        if(pageState.filterOffline) {
+            let offLineFilter: RowFilter = {
+                context: undefined,
+                rowFilter: function (tr: HTMLTableRowElement, context: any): boolean {
+                    return tr.querySelector("td>i.fa-eye-slash") != undefined;
+                }
+            };
+            filter = combineFilters(textFilter, offLineFilter);
+        }
         filterTable(LESSEN_TABLE_ID, filter);
     }
 }
 
-function buildTextFilter(pageState: LessenPageState) {
-    if(!isTrimesterTableVisible())
-        return createTextRowFilter(pageState.searchText, (tr) => tr.cells[0].textContent);
-
-    let rowPreFilter = createTextRowFilter(pageState.searchText, (tr) => tr.textContent);
+function buildAncestorFilter(rowPreFilter: RowFilter) {
     let filteredRows = filterTableRows(def.TRIM_TABLE_ID, rowPreFilter);
 
     //gather the blockIds and groupIds of the matching rows and show ALL of the rows in those blocks. (not just the matching rows).
@@ -202,18 +212,24 @@ function buildTextFilter(pageState: LessenPageState) {
     //also show all rows of headers that match the text filter.
     let headerGroupIds = [...new Set(filteredRows.filter(tr => tr.dataset.blockId === "groupTitle").map(tr => tr.dataset.groupId))];
 
-    function siblingsAndAncestorsFilter(tr: HTMLTableRowElement, context: any) {
+    function siblingsAndAncestorsFilter(tr: HTMLTableRowElement, context: TrimFilterContext) {
         //display all child rows for the headers that match
-        if((<string[]>context.headerGroupIds).includes(tr.dataset.groupId))
+        if(context.headerGroupIds.includes(tr.dataset.groupId))
             return true;
         //display all siblings of non-header rows, thus the full block
-        if((<string[]>context.blockIds).includes(tr.dataset.blockId))
+        if(context.blockIds.includes(tr.dataset.blockId))
             return true;
         //display the ancestor (header) rows of matching non-header rows
-        return (<string[]>context.groupIds).includes(tr.dataset.groupId) && tr.classList.contains("groupHeader");
+        return context.groupIds.includes(tr.dataset.groupId) && tr.classList.contains("groupHeader");
     }
 
     return {context: {blockIds, groupIds, headerGroupIds}, rowFilter: siblingsAndAncestorsFilter};
+}
+
+interface TrimFilterContext {
+    blockIds: string[],
+    groupIds: string[],
+    headerGroupIds: string[],
 }
 
 function addButton(printButton: HTMLButtonElement, buttonId: string, title: string, clickFunction: (this: GlobalEventHandlers, ev: MouseEvent) => any, imageId: string) {
@@ -244,7 +260,7 @@ function onClickCheckResults() {
     table.parentNode.insertBefore(checksDiv, table.previousSibling);
     for(let les of lessen) {
         if (les.alc) {
-            if(les.visible) {
+            if(les.online) {
                 checksText += `<div>ALC les <b>${les.naam}</b> is online zichtbaar.</div>`;
             }
         }

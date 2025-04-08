@@ -124,7 +124,7 @@ export class Les {
     vakNaam: string;
     lesType: LesType;
     alc: boolean;
-    visible: boolean;
+    online: boolean;
     naam: string;
     teacher: string;
     lesmoment: string;
@@ -148,7 +148,7 @@ function scrapeLesInfo(lesInfo: HTMLElement) {
     let allBadges = lesInfo.getElementsByClassName("badge");
     let warningBadges = lesInfo.getElementsByClassName("badge-warning");
     les.alc = Array.from(allBadges).some((el) => el.textContent === "ALC");
-    les.visible = lesInfo.getElementsByClassName("fa-eye-slash").length === 0;
+    les.online = lesInfo.getElementsByClassName("fa-eye-slash").length === 0;
     les.tags = Array.from(warningBadges)
         .map((el) => el.textContent)
         .filter((txt) => txt !== "ALC")

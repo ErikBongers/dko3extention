@@ -177,6 +177,8 @@ function buildBlock(newTableBody: HTMLTableSectionElement, block: BlockInfo, gro
         trTitle.dataset.hasFullClass = "false";
     headerRows.trModuleLinks.dataset.hasFullClass = "false";
     let hasFullClass = false;
+    if(block.online === false)
+        trTitle.dataset.offline = "true";
 
     /*
 

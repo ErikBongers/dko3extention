@@ -1004,7 +1004,7 @@
     let allBadges = lesInfo.getElementsByClassName("badge");
     let warningBadges = lesInfo.getElementsByClassName("badge-warning");
     les.alc = Array.from(allBadges).some((el) => el.textContent === "ALC");
-    les.visible = lesInfo.getElementsByClassName("fa-eye-slash").length === 0;
+    les.online = lesInfo.getElementsByClassName("fa-eye-slash").length === 0;
     les.tags = Array.from(warningBadges).map((el) => el.textContent).filter((txt) => txt !== "ALC").filter((txt) => txt);
     let mutedSpans = lesInfo.querySelectorAll("span.text-muted");
     if (mutedSpans.length > 1) {
@@ -1161,6 +1161,8 @@
       trTitle.dataset.hasFullClass = "false";
     headerRows.trModuleLinks.dataset.hasFullClass = "false";
     let hasFullClass = false;
+    if (block.online === false)
+      trTitle.dataset.offline = "true";
     let filledRowCount = 0;
     sortStudents(mergedBlock.jaarStudents);
     for (let student of mergedBlock.jaarStudents) {
@@ -1394,14 +1396,15 @@
     static emptyBlock() {
       return {
         teacher: void 0,
-        vestiging: void 0,
-        maxAantal: -1,
         instrumentName: void 0,
+        maxAantal: -1,
         lesmoment: void 0,
+        vestiging: void 0,
         trimesters: [[], [], []],
         jaarModules: [],
+        tags: [],
         errors: "",
-        tags: []
+        online: false
       };
     }
   };
@@ -1504,6 +1507,7 @@
           });
           block.trimesters = buildTrimesters(instrumentTeacherMomentModules);
           block.jaarModules = instrumentTeacherMomentModules.filter((module) => module.lesType === 1 /* JaarModule */);
+          block.online = !instrumentTeacherMomentModules.find((module) => module.online === false);
           checkBlockForErrors(block);
           tableData.blocks.push(block);
           for (let trim of block.trimesters) {
@@ -1618,6 +1622,7 @@
     for (let tag of block.tags) {
       tag.partial = !allLessen.every((les) => les.tags.includes(tag.name));
     }
+    block.online = !allLessen.find((les) => !les.online);
   }
   function checkBlockForErrors(block) {
     let maxMoreThan100 = block.jaarModules.map((module) => module.maxAantal > TOO_LARGE_MAX).includes(true);
@@ -1906,27 +1911,36 @@
     let pageState2 = getPageSettings("Lessen" /* Lessen */, getDefaultPageSettings());
     pageState2.searchText = document.getElementById(TXT_FILTER_ID).value;
     savePageSettings(pageState2);
-    let textFilter = buildTextFilter(pageState2);
-    let filter = textFilter;
-    if (pageState2.filterOffline) {
-      let offLineFilter = {
-        context: void 0,
-        rowFilter: function(tr, context) {
-          return tr.querySelector("td>i.fa-eye-slash") != void 0;
-        }
-      };
-      filter = combineFilters(textFilter, offLineFilter);
-    }
     if (isTrimesterTableVisible()) {
+      let textPreFilter = createTextRowFilter(pageState2.searchText, (tr) => tr.textContent);
+      let preFilter = textPreFilter;
+      if (pageState2.filterOffline) {
+        let offLineFilter = {
+          context: void 0,
+          rowFilter: function(tr, context) {
+            return tr.dataset.offline === "true";
+          }
+        };
+        preFilter = combineFilters(textPreFilter, offLineFilter);
+      }
+      let filter = buildAncestorFilter(preFilter);
       filterTable(TRIM_TABLE_ID, filter);
     } else {
+      let textFilter = createTextRowFilter(pageState2.searchText, (tr) => tr.cells[0].textContent);
+      let filter = textFilter;
+      if (pageState2.filterOffline) {
+        let offLineFilter = {
+          context: void 0,
+          rowFilter: function(tr, context) {
+            return tr.querySelector("td>i.fa-eye-slash") != void 0;
+          }
+        };
+        filter = combineFilters(textFilter, offLineFilter);
+      }
       filterTable(LESSEN_TABLE_ID, filter);
     }
   }
-  function buildTextFilter(pageState2) {
-    if (!isTrimesterTableVisible())
-      return createTextRowFilter(pageState2.searchText, (tr) => tr.cells[0].textContent);
-    let rowPreFilter = createTextRowFilter(pageState2.searchText, (tr) => tr.textContent);
+  function buildAncestorFilter(rowPreFilter) {
     let filteredRows = filterTableRows(TRIM_TABLE_ID, rowPreFilter);
     let blockIds = [...new Set(filteredRows.filter((tr) => tr.dataset.blockId !== "groupTitle").map((tr) => tr.dataset.blockId))];
     let groupIds = [...new Set(filteredRows.map((tr) => tr.dataset.groupId))];
@@ -1965,7 +1979,7 @@
     table.parentNode.insertBefore(checksDiv, table.previousSibling);
     for (let les of lessen) {
       if (les.alc) {
-        if (les.visible) {
+        if (les.online) {
           checksText += `<div>ALC les <b>${les.naam}</b> is online zichtbaar.</div>`;
         }
       }
