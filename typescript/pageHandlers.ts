@@ -146,7 +146,7 @@ export class NamedCellTablePageHandler implements PageHandler {
         let headerIndices: Map<string, number> = new Map();
         Array.from(headers)
             .forEach((header, index) => {
-                let label = header.textContent;
+                let label = header.innerText;
                 if (label.startsWith("e-mailadressen")) {
                     headerIndices.set("e-mailadressen", index);
                 } else {

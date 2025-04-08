@@ -29,3 +29,5 @@ export const POWER_QUERY_ID = "savedPowerQuery";
 export const STORAGE_GOTO_STATE_KEY = "gotoState";
 export const STORAGE_PAGE_STATE_KEY_PREFIX = "pageState_";
 export const UREN_TABLE_STATE_NAME = "__uren__";
+export const CAN_HAVE_MENU = "canHaveMenu";
+export const CAN_SORT = "canSort";

@@ -3,6 +3,7 @@ import {emmet} from "../../libs/Emmeter/html";
 import {downloadTable, getCurrentTableDef} from "./loadAnyTable";
 import {addMenuItem, addMenuSeparator, setupMenu} from "../menus";
 import {FetchedTable, TableDef, TableHandler} from "./tableDef";
+import {CAN_HAVE_MENU} from "../def";
 
 function sortRows(cmpFunction: (a: HTMLTableCellElement, b: HTMLTableCellElement) => number, header: Element, rows: HTMLTableRowElement[], index: number, descending: boolean) {
     let cmpDirectionalFunction: (a: HTMLTableRowElement, b: HTMLTableRowElement) => number;
@@ -103,10 +104,13 @@ export function decorateTableHeader(table: HTMLTableElement) {
             colHeader.onclick = (ev) => {
                 reSortTableByColumn(ev, table, index);
             };
+            if(!table.classList.contains(CAN_HAVE_MENU))
+                return;
             let {first: span, last: idiom} = emmet.appendChild(colHeader, 'span>button.miniButton.naked>i.fas.fa-list');
             let menu = setupMenu(span as HTMLElement, idiom.parentElement);
             addMenuItem(menu, "Toon unieke waarden", 0, (ev) => { forTableColumnDo(ev, index, showDistinctColumn); });
             addMenuItem(menu, "Verberg kolom", 0, (ev) => { console.log("verberg kolom"); forTableColumnDo(ev, index, hideColumn)});
+            addMenuItem(menu, "Toon alle kolommen", 0, (ev) => { console.log("verberg kolom"); forTableColumnDo(ev, index, showColumns)});
             addMenuSeparator(menu, "Sorteer", 0);
             addMenuItem(menu, "Laag naar hoog (a > z)", 1, (ev) => { forTableColumnDo(ev, index, (fetchedTable, index) => sortTableByColumn(table, index, false))});
             addMenuItem(menu, "Hoog naar laag (z > a)", 1, (ev) => { forTableColumnDo(ev, index, (fetchedTable, index) => sortTableByColumn(table, index, true))});
@@ -174,5 +178,13 @@ let hideColumn: TableColumnDo = function (fetchedTable, index) {
     }
     for(let row of headerRows) {
         row.cells[index].style.display = "none";
+    }
+}
+
+let showColumns: TableColumnDo = function (fetchedTable, index) {
+    let rows = fetchedTable.tableDef.tableRef.getOrgTableContainer().querySelectorAll("tr");
+    for(let row of rows) {
+        for(let cell of row.cells)
+            cell.style.display = "";
     }
 }

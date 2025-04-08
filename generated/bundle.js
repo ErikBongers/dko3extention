@@ -29,6 +29,8 @@
   var STORAGE_GOTO_STATE_KEY = "gotoState";
   var STORAGE_PAGE_STATE_KEY_PREFIX = "pageState_";
   var UREN_TABLE_STATE_NAME = "__uren__";
+  var CAN_HAVE_MENU = "canHaveMenu";
+  var CAN_SORT = "canSort";
 
   // typescript/cloud.ts
   var cloud = {
@@ -2262,7 +2264,7 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
     let table = document.createElement("table");
     tableDef2.tableRef.getOrgTableContainer().insertAdjacentElement("afterend", table);
     table.id = COUNT_TABLE_ID;
-    table.classList.add("canSort");
+    table.classList.add(CAN_SORT);
     updateColDefs(urenData.year);
     fillTableHeader(table, urenData.vakLeraars);
     let tbody = document.createElement("tbody");
@@ -3015,7 +3017,7 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
     static getHeaderIndicesFromHeaderCells(headers) {
       let headerIndices = /* @__PURE__ */ new Map();
       Array.from(headers).forEach((header, index) => {
-        let label = header.textContent;
+        let label = header.innerText;
         if (label.startsWith("e-mailadressen")) {
           headerIndices.set("e-mailadressen", index);
         } else {
@@ -3045,11 +3047,13 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
       addTableNavigationButton(navigationBars, DOWNLOAD_TABLE_BTN_ID, "download full table", downloadTable, "fa-arrow-down");
     }
     if (document.querySelector("main div.table-responsive table thead")) {
+      let table = document.querySelector("main div.table-responsive table");
+      table.classList.add(CAN_HAVE_MENU);
       decorateTableHeader(document.querySelector("main div.table-responsive table"));
     }
-    let customTable = document.querySelector("table.canSort");
-    if (customTable) {
-      decorateTableHeader(customTable);
+    let canSort = document.querySelector("table." + CAN_SORT);
+    if (canSort) {
+      decorateTableHeader(canSort);
     }
     return true;
   }
@@ -3410,6 +3414,8 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
       colHeader.onclick = (ev) => {
         reSortTableByColumn(ev, table, index);
       };
+      if (!table.classList.contains(CAN_HAVE_MENU))
+        return;
       let { first: span, last: idiom } = emmet.appendChild(colHeader, "span>button.miniButton.naked>i.fas.fa-list");
       let menu = setupMenu(span, idiom.parentElement);
       addMenuItem(menu, "Toon unieke waarden", 0, (ev) => {
@@ -3418,6 +3424,10 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
       addMenuItem(menu, "Verberg kolom", 0, (ev) => {
         console.log("verberg kolom");
         forTableColumnDo(ev, index, hideColumn);
+      });
+      addMenuItem(menu, "Toon alle kolommen", 0, (ev) => {
+        console.log("verberg kolom");
+        forTableColumnDo(ev, index, showColumns);
       });
       addMenuSeparator(menu, "Sorteer", 0);
       addMenuItem(menu, "Laag naar hoog (a > z)", 1, (ev) => {
@@ -3487,6 +3497,13 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
     }
     for (let row of headerRows) {
       row.cells[index].style.display = "none";
+    }
+  };
+  var showColumns = function(fetchedTable, index) {
+    let rows = fetchedTable.tableDef.tableRef.getOrgTableContainer().querySelectorAll("tr");
+    for (let row of rows) {
+      for (let cell of row.cells)
+        cell.style.display = "";
     }
   };
 
