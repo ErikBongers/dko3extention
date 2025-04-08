@@ -275,7 +275,7 @@ export function createTextRowFilter(searchText: string, getRowSearchText: (tr: H
     return {context, rowFilter};
 }
 
-interface RowFilter {
+export interface RowFilter {
     context: any,
     rowFilter: (tr: HTMLTableRowElement, context: any) => boolean
 }

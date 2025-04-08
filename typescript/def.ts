@@ -31,3 +31,4 @@ export const STORAGE_PAGE_STATE_KEY_PREFIX = "pageState_";
 export const UREN_TABLE_STATE_NAME = "__uren__";
 export const CAN_HAVE_MENU = "canHaveMenu";
 export const CAN_SORT = "canSort";
+export const LESSEN_TABLE_ID = "table_lessen_resultaat_tabel";

@@ -31,6 +31,7 @@
   var UREN_TABLE_STATE_NAME = "__uren__";
   var CAN_HAVE_MENU = "canHaveMenu";
   var CAN_SORT = "canSort";
+  var LESSEN_TABLE_ID = "table_lessen_resultaat_tabel";
 
   // typescript/cloud.ts
   var cloud = {
@@ -1697,6 +1698,61 @@
     };
   }
 
+  // typescript/menus.ts
+  function addMenuItem(menu, title, indentLevel, onClick) {
+    let indentClass = indentLevel ? ".menuIndent" + indentLevel : "";
+    let { first } = emmet.appendChild(menu, `button.naked.dropDownItem.dropDownIgnoreHide${indentClass}{${title}}`);
+    let item = first;
+    item.onclick = (ev) => {
+      closeMenus();
+      onClick(ev);
+    };
+  }
+  function closeMenus() {
+    let dropdowns = document.getElementsByClassName("dropDownMenu");
+    for (let dropDown of dropdowns) {
+      dropDown.classList.remove("show");
+    }
+  }
+  function onWindowClick(event) {
+    console.log("window clicked!!!");
+    if (event.target.matches(".dropDownIgnoreHide"))
+      return;
+    closeMenus();
+  }
+  function initMenuEvents() {
+    window.onclick = onWindowClick;
+  }
+  function addMenuSeparator(menu, title, indentLevel) {
+    let indentClass = indentLevel ? ".menuIndent" + indentLevel : "";
+    let { first } = emmet.appendChild(menu, `div.dropDownSeparator.dropDownIgnoreHide${indentClass}{${title}}`);
+    let item = first;
+    item.onclick = (ev) => {
+      ev.stopPropagation();
+    };
+  }
+  function setupMenu(container, button, shiftLeft) {
+    initMenuEvents();
+    container.classList.add("dropDownContainer");
+    button.classList.add("dropDownIgnoreHide", "dropDownButton");
+    let { first } = emmet.appendChild(container, "div.dropDownMenu");
+    let menu = first;
+    if (shiftLeft)
+      menu.classList.add("shiftLeft");
+    button.onclick = (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      let dropDowwnMenu = ev.target.closest(".dropDownContainer").querySelector(".dropDownMenu");
+      if (dropDowwnMenu.classList.contains("show")) {
+        closeMenus();
+        return;
+      }
+      closeMenus();
+      dropDowwnMenu.classList.add("show");
+    };
+    return menu;
+  }
+
   // typescript/lessen/observer.ts
   var observer_default2 = new HashObserver("#lessen-overzicht", onMutation2);
   function onMutation2(mutation) {
@@ -1732,7 +1788,7 @@
     setTrimesterFilterAndFetch().then((text) => {
       console.log("Filter been set: show trims after reload...");
       document.getElementById("lessen_overzicht").innerHTML = text;
-      let table = document.getElementById("table_lessen_resultaat_tabel");
+      let table = document.getElementById(LESSEN_TABLE_ID);
       decorateTable();
       showTrimesterTable(table, true);
     });
@@ -1764,7 +1820,7 @@
   function createTrimTableDiv() {
     if (!document.getElementById(TRIM_DIV_ID)) {
       let trimDiv = document.createElement("div");
-      let originalTable = document.getElementById("table_lessen_resultaat_tabel");
+      let originalTable = document.getElementById(LESSEN_TABLE_ID);
       originalTable.insertAdjacentElement("afterend", trimDiv);
       trimDiv.id = TRIM_DIV_ID;
     }
@@ -1814,9 +1870,23 @@
     let divButtonNieuweLes = document.querySelector("#lessen_overzicht > div > button");
     if (!document.getElementById(TXT_FILTER_ID)) {
       let pageState2 = getPageSettings("Lessen" /* Lessen */, getDefaultPageSettings());
-      divButtonNieuweLes.insertAdjacentElement("afterend", createSearchField(TXT_FILTER_ID, onSearchInput, pageState2.searchText));
+      let searchField2 = createSearchField(TXT_FILTER_ID, onSearchInput, pageState2.searchText);
+      divButtonNieuweLes.insertAdjacentElement("afterend", searchField2);
+      let { first: span, last: idiom } = emmet.insertAfter(searchField2, "span.btn-group-sm>button.btn.btn-sm.btn-outline-secondary.ml-2>i.fas.fa-list");
+      let menu = setupMenu(span, idiom.parentElement, false);
+      addMenuItem(menu, "Filter offline lessen", 0, (_) => filterOffline());
     }
     onSearchInput();
+  }
+  function filterOffline() {
+    console.log("Filter offline");
+    let rowFilter = {
+      context: void 0,
+      rowFilter: function(tr, context) {
+        return tr.querySelector("td>i.fa-eye-slash") != void 0;
+      }
+    };
+    filterTable(LESSEN_TABLE_ID, rowFilter);
   }
   function onSearchInput() {
     let pageState2 = getPageSettings("Lessen" /* Lessen */, getDefaultPageSettings());
@@ -1838,7 +1908,7 @@
       filterTable(TRIM_TABLE_ID, { context: { blockIds, groupIds, headerGroupIds }, rowFilter: siblingsAndAncestorsFilter });
     } else {
       let rowFilter = createTextRowFilter(pageState2.searchText, (tr) => tr.cells[0].textContent);
-      filterTable("table_lessen_resultaat_tabel", rowFilter);
+      filterTable(LESSEN_TABLE_ID, rowFilter);
     }
   }
   function addButton2(printButton, buttonId, title, clickFunction, imageId) {
@@ -1857,7 +1927,7 @@
     }
   }
   function onClickCheckResults() {
-    let table = document.getElementById("table_lessen_resultaat_tabel");
+    let table = document.getElementById(LESSEN_TABLE_ID);
     let lessen = scrapeLessenOverzicht(table);
     let checksDiv = document.createElement("div");
     checksDiv.id = "checksDiv";
@@ -1878,7 +1948,7 @@
     trimDiv.dataset.showFullClass = onlyFull ? "true" : "false";
   }
   function onClickFullClasses() {
-    let table = document.getElementById("table_lessen_resultaat_tabel");
+    let table = document.getElementById(LESSEN_TABLE_ID);
     let lessen = scrapeLessenOverzicht(table);
     let overzichtDiv = document.getElementById(LESSEN_OVERZICHT_ID);
     overzichtDiv.dataset.filterFullClasses = (overzichtDiv.dataset.filterFullClasses ?? "false") === "false" ? "true" : "false";
@@ -1892,11 +1962,11 @@
     showOnlyFullTrimesters(displayState === "none");
   }
   function onClickToggleTrimesters() {
-    let table = document.getElementById("table_lessen_resultaat_tabel");
+    let table = document.getElementById(LESSEN_TABLE_ID);
     showTrimesterTable(table, !isTrimesterTableVisible());
   }
   function isTrimesterTableVisible() {
-    return document.getElementById("table_lessen_resultaat_tabel").style.display === "none";
+    return document.getElementById(LESSEN_TABLE_ID).style.display === "none";
   }
   function showTrimesterTable(originalTable, show) {
     document.getElementById(TRIM_TABLE_ID)?.remove();
@@ -1904,7 +1974,7 @@
     let tableData = buildTableData(inputModules.trimesterModules.concat(inputModules.jaarModules));
     createTrimTableDiv();
     buildTrimesterTable(tableData);
-    document.getElementById("table_lessen_resultaat_tabel").style.display = show ? "none" : "table";
+    document.getElementById(LESSEN_TABLE_ID).style.display = show ? "none" : "table";
     document.getElementById(TRIM_TABLE_ID).style.display = show ? "table" : "none";
     document.getElementById(TRIM_BUTTON_ID).title = show ? "Toon normaal" : "Toon trimesters";
     setButtonHighlighted(TRIM_BUTTON_ID, show);
@@ -1925,7 +1995,7 @@
           setSavedNameSorting(1 /* LastName */);
         else
           setSavedNameSorting(0 /* FirstName */);
-        let table = document.getElementById("table_lessen_resultaat_tabel");
+        let table = document.getElementById(LESSEN_TABLE_ID);
         showTrimesterTable(table, true);
         addSortingAnchorOrText();
         return false;
@@ -1991,7 +2061,7 @@
       anchor.innerText = sortingText;
       anchor.href = "#";
       anchor.onclick = () => {
-        let table = document.getElementById("table_lessen_resultaat_tabel");
+        let table = document.getElementById(LESSEN_TABLE_ID);
         let pageState2 = getPageSettings("Lessen" /* Lessen */, getDefaultPageSettings());
         pageState2.grouping = grouping;
         savePageSettings(pageState2);
@@ -3277,61 +3347,6 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
       tableDef.pageHandler = new SimpleTableHandler(onLoaded, void 0);
     }
     return tableDef.getTableData();
-  }
-
-  // typescript/menus.ts
-  function addMenuItem(menu, title, indentLevel, onClick) {
-    let indentClass = indentLevel ? ".menuIndent" + indentLevel : "";
-    let { first } = emmet.appendChild(menu, `button.naked.dropDownItem.dropDownIgnoreHide${indentClass}{${title}}`);
-    let item = first;
-    item.onclick = (ev) => {
-      closeMenus();
-      onClick(ev);
-    };
-  }
-  function closeMenus() {
-    let dropdowns = document.getElementsByClassName("dropDownMenu");
-    for (let dropDown of dropdowns) {
-      dropDown.classList.remove("show");
-    }
-  }
-  function onWindowClick(event) {
-    console.log("window clicked!!!");
-    if (event.target.matches(".dropDownIgnoreHide"))
-      return;
-    closeMenus();
-  }
-  function initMenuEvents() {
-    window.onclick = onWindowClick;
-  }
-  function addMenuSeparator(menu, title, indentLevel) {
-    let indentClass = indentLevel ? ".menuIndent" + indentLevel : "";
-    let { first } = emmet.appendChild(menu, `div.dropDownSeparator.dropDownIgnoreHide${indentClass}{${title}}`);
-    let item = first;
-    item.onclick = (ev) => {
-      ev.stopPropagation();
-    };
-  }
-  function setupMenu(container, button, shiftLeft) {
-    initMenuEvents();
-    container.classList.add("dropDownContainer");
-    button.classList.add("dropDownIgnoreHide", "dropDownButton");
-    let { first } = emmet.appendChild(container, "div.dropDownMenu");
-    let menu = first;
-    if (shiftLeft)
-      menu.classList.add("shiftLeft");
-    button.onclick = (ev) => {
-      ev.preventDefault();
-      ev.stopPropagation();
-      let dropDowwnMenu = ev.target.closest(".dropDownContainer").querySelector(".dropDownMenu");
-      if (dropDowwnMenu.classList.contains("show")) {
-        closeMenus();
-        return;
-      }
-      closeMenus();
-      dropDowwnMenu.classList.add("show");
-    };
-    return menu;
   }
 
   // typescript/table/tableHeaders.ts
