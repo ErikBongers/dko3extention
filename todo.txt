@@ -1,3 +1,13 @@
+* Checks:
+      >>>> only actual errors to avoid fatigue!
+  > 999 for certain classes
+  > no alias for Woord classes
+  > no teacher?
+  > ALC: should be assigned to Kristel
+  > offline/online
+    - ALC: offline
+    - Woord with alias: offline
+
 * Trims: summing hours per block
   > for Lievenka: fine: just add the hours of all the blooks
   > for Rhea: NOT fine: altviool and viool share the same hour!
@@ -53,16 +63,6 @@ Features
  - Offline
  - No teacher
  - No max
-
-* Checks:
-      >>>> only actual errors to avoid fatigue!
-  > 999 for certain classes
-  > no alias for Woord classes
-  > no teacher?
-  > ALC: should be assigned to Kristel
-  > offline/online
-    - ALC: offline
-    - Woord with alias: offline
 
 * Add an option to specify the les_naam format?
   : "Initiatie [instrument] trim [trim_num]" ?

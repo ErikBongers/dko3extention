@@ -129,13 +129,13 @@ function decorateTable() {
         addButton(printButton, def.FULL_CLASS_BUTTON_ID, "Filter volle klassen", onClickFullClasses, "fa-weight-hanging");
     }
 
-    addFilterField();
+    addFilterFields();
     return true;
 }
 
 const TXT_FILTER_ID = "txtFilter";
 
-function addFilterField() {
+function addFilterFields() {
     let divButtonNieuweLes = document.querySelector("#lessen_overzicht > div > button");
     if(!document.getElementById(TXT_FILTER_ID)) {
         let pageState = getPageSettings(PageName.Lessen, getDefaultPageSettings()) as LessenPageState;

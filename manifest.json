@@ -37,7 +37,8 @@
     "resources": [
       "generated/*",
       "typescript/*",
-      "resources/*"
+      "resources/*",
+      "images/*"
     ]
   }
   ]

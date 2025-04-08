@@ -525,7 +525,7 @@
     let span = document.createElement("span");
     span.classList.add("searchButton");
     span.appendChild(input);
-    let { first: clearButton } = emmet.appendChild(span, "button>span{x}");
+    let { first: clearButton } = emmet.appendChild(span, `button>img[src="${chrome.runtime.getURL("images/circle-xmark-regular.svg")}"`);
     clearButton.onclick = () => {
       input.value = "";
       input.oninput(void 0);
@@ -1806,11 +1806,11 @@
     if (hasFullClasses) {
       addButton2(printButton, FULL_CLASS_BUTTON_ID, "Filter volle klassen", onClickFullClasses, "fa-weight-hanging");
     }
-    addFilterField();
+    addFilterFields();
     return true;
   }
   var TXT_FILTER_ID = "txtFilter";
-  function addFilterField() {
+  function addFilterFields() {
     let divButtonNieuweLes = document.querySelector("#lessen_overzicht > div > button");
     if (!document.getElementById(TXT_FILTER_ID)) {
       let pageState2 = getPageSettings("Lessen" /* Lessen */, getDefaultPageSettings());
@@ -3477,17 +3477,17 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
       addMenuItem(menu, "Hoog naar laag (z > a)", 1, (ev) => {
         forTableColumnDo(ev, (fetchedTable, index2) => sortTableByColumn(table, index2, true));
       });
-      addMenuSeparator(menu, "Klipbord", 0);
+      addMenuSeparator(menu, "Sorteer als", 1);
+      addMenuItem(menu, "Tekst", 2, (ev) => {
+      });
+      addMenuItem(menu, "Getallen", 2, (ev) => {
+      });
+      addMenuSeparator(menu, "Kopieer nr klipbord", 0);
       addMenuItem(menu, "Kolom", 1, (ev) => {
         forTableColumnDo(ev, (fetchedTable, index2) => copyColumn(table, index2));
       });
       addMenuItem(menu, "Hele tabel", 1, (ev) => {
         forTableColumnDo(ev, (fetchedTable, index2) => copyTable(table, index2));
-      });
-      addMenuSeparator(menu, "Kolom bevat", 1);
-      addMenuItem(menu, "Tekst", 2, (ev) => {
-      });
-      addMenuItem(menu, "Getallen", 2, (ev) => {
       });
       addMenuSeparator(menu, "<= Samenvoegen", 0);
       addMenuItem(menu, "met spatie", 1, (ev) => {

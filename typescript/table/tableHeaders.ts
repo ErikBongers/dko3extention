@@ -154,12 +154,12 @@ export function decorateTableHeader(table: HTMLTableElement) {
             addMenuSeparator(menu, "Sorteer", 0);
             addMenuItem(menu, "Laag naar hoog (a > z)", 1, (ev) => { forTableColumnDo(ev, (fetchedTable, index) => sortTableByColumn(table, index, false))});
             addMenuItem(menu, "Hoog naar laag (z > a)", 1, (ev) => { forTableColumnDo(ev, (fetchedTable, index) => sortTableByColumn(table, index, true))});
-            addMenuSeparator(menu, "Klipbord", 0);
-            addMenuItem(menu, "Kolom", 1, (ev) => { forTableColumnDo(ev, (fetchedTable, index) => copyColumn(table, index))});
-            addMenuItem(menu, "Hele tabel", 1, (ev) => { forTableColumnDo(ev, (fetchedTable, index) => copyTable(table, index))});
-            addMenuSeparator(menu, "Kolom bevat", 1);
+            addMenuSeparator(menu, "Sorteer als", 1);
             addMenuItem(menu, "Tekst", 2, (ev) => { });
             addMenuItem(menu, "Getallen", 2, (ev) => { });
+            addMenuSeparator(menu, "Kopieer nr klipbord", 0);
+            addMenuItem(menu, "Kolom", 1, (ev) => { forTableColumnDo(ev, (fetchedTable, index) => copyColumn(table, index))});
+            addMenuItem(menu, "Hele tabel", 1, (ev) => { forTableColumnDo(ev, (fetchedTable, index) => copyTable(table, index))});
             addMenuSeparator(menu, "<= Samenvoegen", 0);
             addMenuItem(menu, "met spatie", 1, (ev) => { forTableColumnDo(ev, mergeColumnWithSpace)});
             addMenuItem(menu, "met comma", 1, (ev) => { forTableColumnDo(ev, mergeColumnWithComma)});
