@@ -1,5 +1,5 @@
 import {FULL_CLASS_BUTTON_ID, isButtonHighlighted, TRIM_DIV_ID} from "../def";
-import {db3, getPageSettings, savePageSettings, stripStudentName} from "../globals";
+import {db3, filterTable, getPageSettings, savePageSettings, stripStudentName} from "../globals";
 import {BlockInfo, mergeBlockStudents, sortStudents, TableData} from "./convert";
 import {StudentInfo} from "./scrape";
 import * as html from "../../libs/Emmeter/html";
@@ -29,6 +29,7 @@ export interface LessenPageState extends PageState {
     nameSorting: NameSorting,
     grouping: TrimesterGrouping,
     searchText: string,
+    filterOffline: boolean
 }
 
 export function getDefaultPageSettings() {
@@ -36,7 +37,8 @@ export function getDefaultPageSettings() {
         pageName: PageName.Lessen,
         nameSorting: NameSorting.LastName,
         grouping: TrimesterGrouping.InstrumentTeacherHour,
-        searchText: ""
+        searchText: "",
+        filterOffline: false
     } as LessenPageState;
 }
 

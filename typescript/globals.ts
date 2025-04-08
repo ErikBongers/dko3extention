@@ -280,6 +280,17 @@ export interface RowFilter {
     rowFilter: (tr: HTMLTableRowElement, context: any) => boolean
 }
 
+export function combineFilters (f1: RowFilter, f2: RowFilter) {
+    return <RowFilter> {
+        context: {f1, f2},
+        rowFilter: function (tr: HTMLTableRowElement, context: any): boolean {
+            if(!f1.rowFilter(tr, f1.context))
+                return false;
+            return f2.rowFilter(tr, f2.context);
+        }
+    }
+}
+
 export function getBothToolbars() {
     let navigationBars = document.querySelectorAll("div.datatable-navigation-toolbar"); // as HTMLElement;
     if (navigationBars.length < 2)

@@ -581,6 +581,16 @@
     };
     return { context, rowFilter };
   }
+  function combineFilters(f1, f2) {
+    return {
+      context: { f1, f2 },
+      rowFilter: function(tr, context) {
+        if (!f1.rowFilter(tr, f1.context))
+          return false;
+        return f2.rowFilter(tr, f2.context);
+      }
+    };
+  }
   function getBothToolbars() {
     let navigationBars = document.querySelectorAll("div.datatable-navigation-toolbar");
     if (navigationBars.length < 2)
@@ -1050,7 +1060,8 @@
       pageName: "Lessen" /* Lessen */,
       nameSorting: 1 /* LastName */,
       grouping: 1 /* InstrumentTeacherHour */,
-      searchText: ""
+      searchText: "",
+      filterOffline: false
     };
   }
   var pageState = getDefaultPageSettings();
@@ -1874,29 +1885,42 @@
       divButtonNieuweLes.insertAdjacentElement("afterend", searchField2);
       let { first: span, last: idiom } = emmet.insertAfter(searchField2, "span.btn-group-sm>button.btn.btn-sm.btn-outline-secondary.ml-2>i.fas.fa-list");
       let menu = setupMenu(span, idiom.parentElement, false);
+      addMenuItem(menu, "Show all", 0, (_) => filterAll());
       addMenuItem(menu, "Filter offline lessen", 0, (_) => filterOffline());
     }
     applyFilters();
   }
+  function filterAll() {
+    let pageState2 = getPageSettings("Lessen" /* Lessen */, getDefaultPageSettings());
+    pageState2.filterOffline = false;
+    savePageSettings(pageState2);
+    applyFilters();
+  }
   function filterOffline() {
-    console.log("Filter offline");
-    let rowFilter = {
-      context: void 0,
-      rowFilter: function(tr, context) {
-        return tr.querySelector("td>i.fa-eye-slash") != void 0;
-      }
-    };
-    filterTable(LESSEN_TABLE_ID, rowFilter);
+    let pageState2 = getPageSettings("Lessen" /* Lessen */, getDefaultPageSettings());
+    pageState2.filterOffline = true;
+    savePageSettings(pageState2);
+    applyFilters();
   }
   function applyFilters() {
     let pageState2 = getPageSettings("Lessen" /* Lessen */, getDefaultPageSettings());
     pageState2.searchText = document.getElementById(TXT_FILTER_ID).value;
     savePageSettings(pageState2);
     let textFilter = buildTextFilter(pageState2);
+    let filter = textFilter;
+    if (pageState2.filterOffline) {
+      let offLineFilter = {
+        context: void 0,
+        rowFilter: function(tr, context) {
+          return tr.querySelector("td>i.fa-eye-slash") != void 0;
+        }
+      };
+      filter = combineFilters(textFilter, offLineFilter);
+    }
     if (isTrimesterTableVisible()) {
-      filterTable(TRIM_TABLE_ID, textFilter);
+      filterTable(TRIM_TABLE_ID, filter);
     } else {
-      filterTable(LESSEN_TABLE_ID, textFilter);
+      filterTable(LESSEN_TABLE_ID, filter);
     }
   }
   function buildTextFilter(pageState2) {

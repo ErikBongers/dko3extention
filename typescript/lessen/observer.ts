@@ -3,7 +3,7 @@ import {buildTableData} from "./convert";
 import {buildTrimesterTable, getDefaultPageSettings, getSavedNameSorting, LessenPageState, NameSorting, setSavedNameSorting, TrimesterGrouping} from "./build";
 import * as def from "../def";
 import {LESSEN_TABLE_ID} from "../def";
-import {createSearchField, createTextRowFilter, filterTable, filterTableRows, getPageSettings, RowFilter, savePageSettings, setButtonHighlighted} from "../globals";
+import {combineFilters, createSearchField, createTextRowFilter, filterTable, filterTableRows, getPageSettings, RowFilter, savePageSettings, setButtonHighlighted} from "../globals";
 import {HashObserver} from "../pageObserver";
 import * as html from "../../libs/Emmeter/html";
 import {emmet} from "../../libs/Emmeter/html";
@@ -146,21 +146,25 @@ function addFilterFields() {
         //menu
         let {first: span, last: idiom} = emmet.insertAfter(searchField, 'span.btn-group-sm>button.btn.btn-sm.btn-outline-secondary.ml-2>i.fas.fa-list');
         let menu = setupMenu(span as HTMLElement, idiom.parentElement, false);
+        addMenuItem(menu, "Show all", 0, _ => filterAll());
         addMenuItem(menu, "Filter offline lessen", 0, _ => filterOffline());
     }
 
     applyFilters();
 }
 
+function filterAll() {
+    let pageState = getPageSettings(PageName.Lessen, getDefaultPageSettings()) as LessenPageState;
+    pageState.filterOffline = false;
+    savePageSettings(pageState);
+    applyFilters();
+}
+
 function filterOffline() {
-    console.log("Filter offline");
-    let rowFilter: RowFilter = {
-        context: undefined,
-        rowFilter: function (tr: HTMLTableRowElement, context: any): boolean {
-            return tr.querySelector("td>i.fa-eye-slash") != undefined;
-        }
-    };
-    filterTable(LESSEN_TABLE_ID, rowFilter);
+    let pageState = getPageSettings(PageName.Lessen, getDefaultPageSettings()) as LessenPageState;
+    pageState.filterOffline = true;
+    savePageSettings(pageState);
+    applyFilters();
 }
 
 function applyFilters() {
@@ -168,10 +172,20 @@ function applyFilters() {
     pageState.searchText = (document.getElementById(TXT_FILTER_ID) as HTMLInputElement).value;
     savePageSettings(pageState);
     let textFilter = buildTextFilter(pageState);
+    let filter = textFilter;
+    if(pageState.filterOffline) {
+        let offLineFilter: RowFilter = {
+            context: undefined,
+            rowFilter: function (tr: HTMLTableRowElement, context: any): boolean {
+                return tr.querySelector("td>i.fa-eye-slash") != undefined;
+            }
+        };
+        filter = combineFilters(textFilter, offLineFilter);
+    }
     if(isTrimesterTableVisible()) {
-        filterTable(def.TRIM_TABLE_ID, textFilter);
+        filterTable(def.TRIM_TABLE_ID, filter);
     } else {
-        filterTable(LESSEN_TABLE_ID, textFilter);
+        filterTable(LESSEN_TABLE_ID, filter);
     }
 }
 
