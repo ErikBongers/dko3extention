@@ -515,12 +515,12 @@
   function rangeGenerator(start, stop, step = 1) {
     return Array(Math.ceil((stop - start) / step)).fill(start).map((x, y) => x + y * step);
   }
-  function createSearchField(id, onSearchInput3, value) {
+  function createSearchField(id, onSearchInput2, value) {
     let input = document.createElement("input");
     input.type = "text";
     input.id = id;
     input.classList.add("tableFilter");
-    input.oninput = onSearchInput3;
+    input.oninput = onSearchInput2;
     input.value = value;
     input.placeholder = "filter";
     let span = document.createElement("span");
@@ -1870,13 +1870,13 @@
     let divButtonNieuweLes = document.querySelector("#lessen_overzicht > div > button");
     if (!document.getElementById(TXT_FILTER_ID)) {
       let pageState2 = getPageSettings("Lessen" /* Lessen */, getDefaultPageSettings());
-      let searchField2 = createSearchField(TXT_FILTER_ID, onSearchInput, pageState2.searchText);
+      let searchField2 = createSearchField(TXT_FILTER_ID, applyFilters, pageState2.searchText);
       divButtonNieuweLes.insertAdjacentElement("afterend", searchField2);
       let { first: span, last: idiom } = emmet.insertAfter(searchField2, "span.btn-group-sm>button.btn.btn-sm.btn-outline-secondary.ml-2>i.fas.fa-list");
       let menu = setupMenu(span, idiom.parentElement, false);
       addMenuItem(menu, "Filter offline lessen", 0, (_) => filterOffline());
     }
-    onSearchInput();
+    applyFilters();
   }
   function filterOffline() {
     console.log("Filter offline");
@@ -1888,28 +1888,33 @@
     };
     filterTable(LESSEN_TABLE_ID, rowFilter);
   }
-  function onSearchInput() {
+  function applyFilters() {
     let pageState2 = getPageSettings("Lessen" /* Lessen */, getDefaultPageSettings());
     pageState2.searchText = document.getElementById(TXT_FILTER_ID).value;
     savePageSettings(pageState2);
+    let textFilter = buildTextFilter(pageState2);
     if (isTrimesterTableVisible()) {
-      let siblingsAndAncestorsFilter = function(tr, context) {
-        if (context.headerGroupIds.includes(tr.dataset.groupId))
-          return true;
-        if (context.blockIds.includes(tr.dataset.blockId))
-          return true;
-        return context.groupIds.includes(tr.dataset.groupId) && tr.classList.contains("groupHeader");
-      };
-      let rowFilter = createTextRowFilter(pageState2.searchText, (tr) => tr.textContent);
-      let filteredRows = filterTableRows(TRIM_TABLE_ID, rowFilter);
-      let blockIds = [...new Set(filteredRows.filter((tr) => tr.dataset.blockId !== "groupTitle").map((tr) => tr.dataset.blockId))];
-      let groupIds = [...new Set(filteredRows.map((tr) => tr.dataset.groupId))];
-      let headerGroupIds = [...new Set(filteredRows.filter((tr) => tr.dataset.blockId === "groupTitle").map((tr) => tr.dataset.groupId))];
-      filterTable(TRIM_TABLE_ID, { context: { blockIds, groupIds, headerGroupIds }, rowFilter: siblingsAndAncestorsFilter });
+      filterTable(TRIM_TABLE_ID, textFilter);
     } else {
-      let rowFilter = createTextRowFilter(pageState2.searchText, (tr) => tr.cells[0].textContent);
-      filterTable(LESSEN_TABLE_ID, rowFilter);
+      filterTable(LESSEN_TABLE_ID, textFilter);
     }
+  }
+  function buildTextFilter(pageState2) {
+    if (!isTrimesterTableVisible())
+      return createTextRowFilter(pageState2.searchText, (tr) => tr.cells[0].textContent);
+    let rowPreFilter = createTextRowFilter(pageState2.searchText, (tr) => tr.textContent);
+    let filteredRows = filterTableRows(TRIM_TABLE_ID, rowPreFilter);
+    let blockIds = [...new Set(filteredRows.filter((tr) => tr.dataset.blockId !== "groupTitle").map((tr) => tr.dataset.blockId))];
+    let groupIds = [...new Set(filteredRows.map((tr) => tr.dataset.groupId))];
+    let headerGroupIds = [...new Set(filteredRows.filter((tr) => tr.dataset.blockId === "groupTitle").map((tr) => tr.dataset.groupId))];
+    function siblingsAndAncestorsFilter(tr, context) {
+      if (context.headerGroupIds.includes(tr.dataset.groupId))
+        return true;
+      if (context.blockIds.includes(tr.dataset.blockId))
+        return true;
+      return context.groupIds.includes(tr.dataset.groupId) && tr.classList.contains("groupHeader");
+    }
+    return { context: { blockIds, groupIds, headerGroupIds }, rowFilter: siblingsAndAncestorsFilter };
   }
   function addButton2(printButton, buttonId, title, clickFunction, imageId) {
     let button = document.getElementById(buttonId);
@@ -1979,7 +1984,7 @@
     document.getElementById(TRIM_BUTTON_ID).title = show ? "Toon normaal" : "Toon trimesters";
     setButtonHighlighted(TRIM_BUTTON_ID, show);
     setSorteerLine(show);
-    onSearchInput();
+    applyFilters();
   }
   function addSortingAnchorOrText() {
     let sorteerDiv = document.getElementById("trimSorteerDiv");
@@ -3844,10 +3849,10 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
   function onVakgroepChanged(divVakken) {
     let table = divVakken.querySelector("table");
     if (!document.getElementById(TXT_FILTER_ID2))
-      table.parentElement.insertBefore(createSearchField(TXT_FILTER_ID2, onSearchInput2, savedSearch), table);
-    onSearchInput2();
+      table.parentElement.insertBefore(createSearchField(TXT_FILTER_ID2, onSearchInput, savedSearch), table);
+    onSearchInput();
   }
-  function onSearchInput2() {
+  function onSearchInput() {
     savedSearch = document.getElementById(TXT_FILTER_ID2).value;
     function getRowText(tr) {
       let instrumentName = tr.cells[0].querySelector("label").textContent.trim();

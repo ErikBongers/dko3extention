@@ -1,3 +1,5 @@
+* Lessen filters: combine text with menu filters.
+
 * Checks:
       >>>> only actual errors to avoid fatigue!
   > 999 for certain classes

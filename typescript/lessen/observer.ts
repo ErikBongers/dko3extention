@@ -141,7 +141,7 @@ function addFilterFields() {
     let divButtonNieuweLes = document.querySelector("#lessen_overzicht > div > button");
     if(!document.getElementById(TXT_FILTER_ID)) {
         let pageState = getPageSettings(PageName.Lessen, getDefaultPageSettings()) as LessenPageState;
-        let searchField = createSearchField(TXT_FILTER_ID, onSearchInput, pageState.searchText);
+        let searchField = createSearchField(TXT_FILTER_ID, applyFilters, pageState.searchText);
         divButtonNieuweLes.insertAdjacentElement("afterend", searchField);
         //menu
         let {first: span, last: idiom} = emmet.insertAfter(searchField, 'span.btn-group-sm>button.btn.btn-sm.btn-outline-secondary.ml-2>i.fas.fa-list');
@@ -149,7 +149,7 @@ function addFilterFields() {
         addMenuItem(menu, "Filter offline lessen", 0, _ => filterOffline());
     }
 
-    onSearchInput();
+    applyFilters();
 }
 
 function filterOffline() {
@@ -163,36 +163,43 @@ function filterOffline() {
     filterTable(LESSEN_TABLE_ID, rowFilter);
 }
 
-function onSearchInput() {
+function applyFilters() {
     let pageState = getPageSettings(PageName.Lessen, getDefaultPageSettings()) as LessenPageState;
     pageState.searchText = (document.getElementById(TXT_FILTER_ID) as HTMLInputElement).value;
     savePageSettings(pageState);
+    let textFilter = buildTextFilter(pageState);
     if(isTrimesterTableVisible()) {
-        let rowFilter = createTextRowFilter(pageState.searchText, (tr) => tr.textContent);
-        let filteredRows = filterTableRows(def.TRIM_TABLE_ID, rowFilter);
-
-        //gather the blockIds and groupIds of the matching rows and show ALL of the rows in those blocks. (not just the matching rows).
-        let blockIds = [...new Set(filteredRows.filter(tr => tr.dataset.blockId !== "groupTitle").map(tr => tr.dataset.blockId))];
-        let groupIds = [...new Set(filteredRows.map(tr => tr.dataset.groupId))];
-        //also show all rows of headers that match the text filter.
-        let headerGroupIds = [...new Set(filteredRows.filter(tr => tr.dataset.blockId === "groupTitle").map(tr => tr.dataset.groupId))];
-
-        function siblingsAndAncestorsFilter(tr: HTMLTableRowElement, context: any) {
-            //display all child rows for the headers that match
-            if((<string[]>context.headerGroupIds).includes(tr.dataset.groupId))
-                return true;
-            //display all siblings of non-header rows, thus the full block
-            if((<string[]>context.blockIds).includes(tr.dataset.blockId))
-                return true;
-            //display the ancestor (header) rows of matching non-header rows
-            return (<string[]>context.groupIds).includes(tr.dataset.groupId) && tr.classList.contains("groupHeader");
-        }
-
-        filterTable(def.TRIM_TABLE_ID, {context: {blockIds, groupIds, headerGroupIds}, rowFilter: siblingsAndAncestorsFilter});
+        filterTable(def.TRIM_TABLE_ID, textFilter);
     } else {
-        let rowFilter = createTextRowFilter(pageState.searchText, (tr) => tr.cells[0].textContent);
-        filterTable(LESSEN_TABLE_ID,rowFilter);
+        filterTable(LESSEN_TABLE_ID, textFilter);
     }
+}
+
+function buildTextFilter(pageState: LessenPageState) {
+    if(!isTrimesterTableVisible())
+        return createTextRowFilter(pageState.searchText, (tr) => tr.cells[0].textContent);
+
+    let rowPreFilter = createTextRowFilter(pageState.searchText, (tr) => tr.textContent);
+    let filteredRows = filterTableRows(def.TRIM_TABLE_ID, rowPreFilter);
+
+    //gather the blockIds and groupIds of the matching rows and show ALL of the rows in those blocks. (not just the matching rows).
+    let blockIds = [...new Set(filteredRows.filter(tr => tr.dataset.blockId !== "groupTitle").map(tr => tr.dataset.blockId))];
+    let groupIds = [...new Set(filteredRows.map(tr => tr.dataset.groupId))];
+    //also show all rows of headers that match the text filter.
+    let headerGroupIds = [...new Set(filteredRows.filter(tr => tr.dataset.blockId === "groupTitle").map(tr => tr.dataset.groupId))];
+
+    function siblingsAndAncestorsFilter(tr: HTMLTableRowElement, context: any) {
+        //display all child rows for the headers that match
+        if((<string[]>context.headerGroupIds).includes(tr.dataset.groupId))
+            return true;
+        //display all siblings of non-header rows, thus the full block
+        if((<string[]>context.blockIds).includes(tr.dataset.blockId))
+            return true;
+        //display the ancestor (header) rows of matching non-header rows
+        return (<string[]>context.groupIds).includes(tr.dataset.groupId) && tr.classList.contains("groupHeader");
+    }
+
+    return {context: {blockIds, groupIds, headerGroupIds}, rowFilter: siblingsAndAncestorsFilter};
 }
 
 function addButton(printButton: HTMLButtonElement, buttonId: string, title: string, clickFunction: (this: GlobalEventHandlers, ev: MouseEvent) => any, imageId: string) {
@@ -210,6 +217,7 @@ function addButton(printButton: HTMLButtonElement, buttonId: string, title: stri
         printButton.insertAdjacentElement("beforebegin", button);
     }
 }
+
 function onClickCheckResults() {
     let table = document.getElementById(LESSEN_TABLE_ID) as HTMLTableElement;
     let lessen = scrapeLessenOverzicht(table);
@@ -271,7 +279,7 @@ export function showTrimesterTable(originalTable: HTMLTableElement, show: boolea
     document.getElementById(def.TRIM_BUTTON_ID).title = show ? "Toon normaal" : "Toon trimesters";
     setButtonHighlighted(def.TRIM_BUTTON_ID, show);
     setSorteerLine(show);
-    onSearchInput();
+    applyFilters();
 }
 
 function addSortingAnchorOrText() {
