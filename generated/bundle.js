@@ -1061,7 +1061,8 @@
       nameSorting: 1 /* LastName */,
       grouping: 1 /* InstrumentTeacherHour */,
       searchText: "",
-      filterOffline: false
+      filterOffline: false,
+      filterOnline: false
     };
   }
   var pageState = getDefaultPageSettings();
@@ -1161,8 +1162,7 @@
       trTitle.dataset.hasFullClass = "false";
     headerRows.trModuleLinks.dataset.hasFullClass = "false";
     let hasFullClass = false;
-    if (block.online === false)
-      trTitle.dataset.offline = "true";
+    trTitle.dataset.visibility = block.offline ? "offline" : "online";
     let filledRowCount = 0;
     sortStudents(mergedBlock.jaarStudents);
     for (let student of mergedBlock.jaarStudents) {
@@ -1404,7 +1404,7 @@
         jaarModules: [],
         tags: [],
         errors: "",
-        online: false
+        offline: false
       };
     }
   };
@@ -1507,7 +1507,7 @@
           });
           block.trimesters = buildTrimesters(instrumentTeacherMomentModules);
           block.jaarModules = instrumentTeacherMomentModules.filter((module) => module.lesType === 1 /* JaarModule */);
-          block.online = !instrumentTeacherMomentModules.find((module) => module.online === false);
+          block.offline = !instrumentTeacherMomentModules.find((module) => module.online === false);
           checkBlockForErrors(block);
           tableData.blocks.push(block);
           for (let trim of block.trimesters) {
@@ -1622,7 +1622,7 @@
     for (let tag of block.tags) {
       tag.partial = !allLessen.every((les) => les.tags.includes(tag.name));
     }
-    block.online = !allLessen.find((les) => !les.online);
+    block.offline = !allLessen.find((les) => !les.online);
   }
   function checkBlockForErrors(block) {
     let maxMoreThan100 = block.jaarModules.map((module) => module.maxAantal > TOO_LARGE_MAX).includes(true);
@@ -1891,6 +1891,7 @@
       let { first: span, last: idiom } = emmet.insertAfter(searchField2, "span.btn-group-sm>button.btn.btn-sm.btn-outline-secondary.ml-2>i.fas.fa-list");
       let menu = setupMenu(span, idiom.parentElement, false);
       addMenuItem(menu, "Show all", 0, (_) => filterAll());
+      addMenuItem(menu, "Filter online lessen", 0, (_) => filterOnline());
       addMenuItem(menu, "Filter offline lessen", 0, (_) => filterOffline());
     }
     applyFilters();
@@ -1898,12 +1899,21 @@
   function filterAll() {
     let pageState2 = getPageSettings("Lessen" /* Lessen */, getDefaultPageSettings());
     pageState2.filterOffline = false;
+    pageState2.filterOnline = false;
     savePageSettings(pageState2);
     applyFilters();
   }
   function filterOffline() {
     let pageState2 = getPageSettings("Lessen" /* Lessen */, getDefaultPageSettings());
     pageState2.filterOffline = true;
+    pageState2.filterOnline = false;
+    savePageSettings(pageState2);
+    applyFilters();
+  }
+  function filterOnline() {
+    let pageState2 = getPageSettings("Lessen" /* Lessen */, getDefaultPageSettings());
+    pageState2.filterOffline = false;
+    pageState2.filterOnline = true;
     savePageSettings(pageState2);
     applyFilters();
   }
@@ -1914,29 +1924,47 @@
     if (isTrimesterTableVisible()) {
       let textPreFilter = createTextRowFilter(pageState2.searchText, (tr) => tr.textContent);
       let preFilter = textPreFilter;
+      let extraFilter = void 0;
       if (pageState2.filterOffline) {
-        let offLineFilter = {
+        extraFilter = {
           context: void 0,
           rowFilter: function(tr, context) {
-            return tr.dataset.offline === "true";
+            return tr.dataset.visibility === "offline";
           }
         };
-        preFilter = combineFilters(textPreFilter, offLineFilter);
+      } else if (pageState2.filterOnline) {
+        extraFilter = {
+          context: void 0,
+          rowFilter: function(tr, context) {
+            return tr.dataset.visibility === "online";
+          }
+        };
       }
+      if (extraFilter)
+        preFilter = combineFilters(textPreFilter, extraFilter);
       let filter = buildAncestorFilter(preFilter);
       filterTable(TRIM_TABLE_ID, filter);
     } else {
       let textFilter = createTextRowFilter(pageState2.searchText, (tr) => tr.cells[0].textContent);
       let filter = textFilter;
+      let extraFilter = void 0;
       if (pageState2.filterOffline) {
-        let offLineFilter = {
+        extraFilter = {
           context: void 0,
           rowFilter: function(tr, context) {
             return tr.querySelector("td>i.fa-eye-slash") != void 0;
           }
         };
-        filter = combineFilters(textFilter, offLineFilter);
+      } else if (pageState2.filterOnline) {
+        extraFilter = {
+          context: void 0,
+          rowFilter: function(tr, context) {
+            return tr.querySelector("td>i.fa-eye-slash") == void 0;
+          }
+        };
       }
+      if (extraFilter)
+        filter = combineFilters(textFilter, extraFilter);
       filterTable(LESSEN_TABLE_ID, filter);
     }
   }

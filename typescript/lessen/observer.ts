@@ -147,6 +147,7 @@ function addFilterFields() {
         let {first: span, last: idiom} = emmet.insertAfter(searchField, 'span.btn-group-sm>button.btn.btn-sm.btn-outline-secondary.ml-2>i.fas.fa-list');
         let menu = setupMenu(span as HTMLElement, idiom.parentElement, false);
         addMenuItem(menu, "Show all", 0, _ => filterAll());
+        addMenuItem(menu, "Filter online lessen", 0, _ => filterOnline());
         addMenuItem(menu, "Filter offline lessen", 0, _ => filterOffline());
     }
 
@@ -156,6 +157,7 @@ function addFilterFields() {
 function filterAll() {
     let pageState = getPageSettings(PageName.Lessen, getDefaultPageSettings()) as LessenPageState;
     pageState.filterOffline = false;
+    pageState.filterOnline = false;
     savePageSettings(pageState);
     applyFilters();
 }
@@ -163,6 +165,15 @@ function filterAll() {
 function filterOffline() {
     let pageState = getPageSettings(PageName.Lessen, getDefaultPageSettings()) as LessenPageState;
     pageState.filterOffline = true;
+    pageState.filterOnline = false;
+    savePageSettings(pageState);
+    applyFilters();
+}
+
+function filterOnline() {
+    let pageState = getPageSettings(PageName.Lessen, getDefaultPageSettings()) as LessenPageState;
+    pageState.filterOffline = false;
+    pageState.filterOnline = true;
     savePageSettings(pageState);
     applyFilters();
 }
@@ -176,29 +187,49 @@ function applyFilters() {
         let textPreFilter = createTextRowFilter(pageState.searchText, (tr) => tr.textContent);
 
         let preFilter = textPreFilter;
+        let extraFilter: RowFilter = undefined;
         if(pageState.filterOffline) {
-            let offLineFilter: RowFilter = {
+            extraFilter = {
                 context: undefined,
                 rowFilter: function (tr: HTMLTableRowElement, context: any): boolean {
-                    return tr.dataset.offline === "true";
+                    return tr.dataset.visibility === "offline";
                 }
             };
-            preFilter = combineFilters(textPreFilter, offLineFilter);
+        } else if(pageState.filterOnline) {
+            extraFilter = {
+                context: undefined,
+                rowFilter: function (tr: HTMLTableRowElement, context: any): boolean {
+                    return tr.dataset.visibility === "online";
+                }
+            };
         }
+        if(extraFilter)
+            preFilter = combineFilters(textPreFilter, extraFilter);
+
         let filter = buildAncestorFilter(preFilter);
         filterTable(def.TRIM_TABLE_ID, filter);
     } else {
         let textFilter = createTextRowFilter(pageState.searchText, (tr) => tr.cells[0].textContent);
         let filter = textFilter;
+        let extraFilter: RowFilter = undefined;
         if(pageState.filterOffline) {
-            let offLineFilter: RowFilter = {
+            extraFilter = {
                 context: undefined,
                 rowFilter: function (tr: HTMLTableRowElement, context: any): boolean {
                     return tr.querySelector("td>i.fa-eye-slash") != undefined;
                 }
             };
-            filter = combineFilters(textFilter, offLineFilter);
+        } else if(pageState.filterOnline) {
+            extraFilter = {
+                context: undefined,
+                rowFilter: function (tr: HTMLTableRowElement, context: any): boolean {
+                    return tr.querySelector("td>i.fa-eye-slash") == undefined;
+                }
+            };
         }
+
+        if(extraFilter)
+            filter = combineFilters(textFilter, extraFilter);
         filterTable(LESSEN_TABLE_ID, filter);
     }
 }

@@ -30,6 +30,7 @@ export interface LessenPageState extends PageState {
     grouping: TrimesterGrouping,
     searchText: string,
     filterOffline: boolean
+    filterOnline: boolean
 }
 
 export function getDefaultPageSettings() {
@@ -38,7 +39,8 @@ export function getDefaultPageSettings() {
         nameSorting: NameSorting.LastName,
         grouping: TrimesterGrouping.InstrumentTeacherHour,
         searchText: "",
-        filterOffline: false
+        filterOffline: false,
+        filterOnline: false
     } as LessenPageState;
 }
 
@@ -177,8 +179,7 @@ function buildBlock(newTableBody: HTMLTableSectionElement, block: BlockInfo, gro
         trTitle.dataset.hasFullClass = "false";
     headerRows.trModuleLinks.dataset.hasFullClass = "false";
     let hasFullClass = false;
-    if(block.online === false)
-        trTitle.dataset.offline = "true";
+    trTitle.dataset.visibility = block.offline ? "offline" : "online";
 
     /*
 
