@@ -7,7 +7,7 @@ chrome.runtime.onMessage.addListener(
     });
 
 chrome.tabs.getCurrent(tab => {
-    chrome.runtime.sendMessage({ action: "get_tab_data", tabId: tab.id }) //todo: convert file to TS.
+    chrome.runtime.sendMessage({ action: "get_tab_data", tabId: tab.id })
         .then((res: ExtensionRequest) => {
             console.log("tab opened: request data message sent and received: ");
             console.log(res);
