@@ -205,7 +205,7 @@ function applyFilters() {
             };
         }
         if(extraFilter)
-            preFilter = combineFilters(textPreFilter, extraFilter);
+            preFilter = combineFilters(buildAncestorFilter(textPreFilter), extraFilter);
 
         let filter = buildAncestorFilter(preFilter);
         filterTable(def.TRIM_TABLE_ID, filter);

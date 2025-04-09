@@ -1508,7 +1508,7 @@
           });
           block.trimesters = buildTrimesters(instrumentTeacherMomentModules);
           block.jaarModules = instrumentTeacherMomentModules.filter((module) => module.lesType === 1 /* JaarModule */);
-          block.offline = !instrumentTeacherMomentModules.find((module) => module.online === false);
+          block.offline = instrumentTeacherMomentModules.some((module) => !module.online);
           checkBlockForErrors(block);
           tableData.blocks.push(block);
           for (let trim of block.trimesters) {
@@ -1623,7 +1623,7 @@
     for (let tag of block.tags) {
       tag.partial = !allLessen.every((les) => les.tags.includes(tag.name));
     }
-    block.offline = !allLessen.find((les) => !les.online);
+    block.offline = allLessen.some((les) => !les.online);
   }
   function checkBlockForErrors(block) {
     let maxMoreThan100 = block.jaarModules.map((module) => module.maxAantal > TOO_LARGE_MAX).includes(true);
@@ -1941,7 +1941,7 @@
         };
       }
       if (extraFilter)
-        preFilter = combineFilters(textPreFilter, extraFilter);
+        preFilter = combineFilters(buildAncestorFilter(textPreFilter), extraFilter);
       let filter = buildAncestorFilter(preFilter);
       filterTable(TRIM_TABLE_ID, filter);
     } else {
