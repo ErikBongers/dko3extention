@@ -205,10 +205,6 @@ function buildBlock(newTableBody: HTMLTableSectionElement, block: BlockInfo, gro
                 if (mergedBlock.maxAantallen[trimNo] <= filledRowCount) {
                     cell.classList.add("gray");
                 }
-                //TODO: add all jaarModules to the students, and if more than one: yellow
-                // if (student? trimesterInstruments[trimNo].length > 1) {
-                //     cell.classList.add("yellowMarker");
-                // }
             }
             filledRowCount++;
         }
