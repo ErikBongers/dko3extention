@@ -16,7 +16,6 @@
   "license": "ISC",
   "devDependencies": {
     "@types/chrome": "^0.0.313",
-    "@types/node": "^22.14.0",
     "esbuild": ">=0.25.0"
   }
 }

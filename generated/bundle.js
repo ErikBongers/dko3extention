@@ -3474,40 +3474,35 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
     }
     rows.forEach((row) => table.tBodies[0].appendChild(row));
   }
-  function copyTable(table, index) {
-    let header = table.tHead.children[0].children[index];
-    let rows = Array.from(table.tBodies[0].rows);
-    let tmpDiv = document.createElement("div");
-    let { first: tmpTable, last: tmpThead } = emmet.appendChild(tmpDiv, "table>thead");
-    for (let el of table.tHead.children[0].children) {
-      let th = el;
-      if (th.style.display !== "none")
-        emmet.appendChild(tmpThead, `th{${th.innerText}}`);
-    }
-    let tmpTbody = tmpTable.appendChild(document.createElement("tbody"));
-    for (let el of table.tBodies[0].children) {
-      let tr = el;
-      let tmpTr = tmpTbody.appendChild(document.createElement("tr"));
+  function copyFullTable(table) {
+    let insertHeaderColumns = function(headerCells, tmpThead) {
+      for (let th of headerCells) {
+        if (th.style.display !== "none")
+          emmet.appendChild(tmpThead, `th{${th.innerText}}`);
+      }
+    };
+    function insertColumns(tr, tmpTr) {
       for (let cell of tr.cells) {
         if (cell.style.display !== "none")
           emmet.appendChild(tmpTr, `td{${cell.innerText}}`);
       }
     }
-    navigator.clipboard.writeText(tmpTable.outerHTML).then((r) => {
-    });
+    createAndCopyTable(table, insertHeaderColumns, insertColumns);
   }
-  function copyColumn(table, index) {
-    let header = table.tHead.children[0].children[index];
-    let rows = Array.from(table.tBodies[0].rows);
+  function copyOneColumn(table, index) {
+    createAndCopyTable(
+      table,
+      (headerCells, tmpThead) => emmet.appendChild(tmpThead, `th{${headerCells[index].innerText}}`),
+      (tr, tmpTr) => emmet.appendChild(tmpTr, `td{${tr.cells[index].innerText}}`)
+    );
+  }
+  function createAndCopyTable(table, insertHeaderCols, insertCols) {
     let tmpDiv = document.createElement("div");
     let { first: tmpTable, last: tmpThead } = emmet.appendChild(tmpDiv, "table>thead");
-    let th = table.tHead.children[0].children[index];
-    emmet.appendChild(tmpThead, `th{${th.innerText}}`);
+    insertHeaderCols(table.tHead.children[0].children, tmpThead);
     let tmpTbody = tmpTable.appendChild(document.createElement("tbody"));
-    for (let el of table.tBodies[0].children) {
-      let tr = el;
-      let tmpTr = tmpTbody.appendChild(document.createElement("tr"));
-      emmet.appendChild(tmpTr, `td{${tr.cells[index].innerText}}`);
+    for (let tr of table.tBodies[0].children) {
+      insertCols(tr, tmpTbody.appendChild(document.createElement("tr")));
     }
     navigator.clipboard.writeText(tmpTable.outerHTML).then((r) => {
     });
@@ -3574,10 +3569,10 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
       });
       addMenuSeparator(menu, "Kopieer nr klipbord", 0);
       addMenuItem(menu, "Kolom", 1, (ev) => {
-        forTableColumnDo(ev, (fetchedTable, index2) => copyColumn(table, index2));
+        forTableColumnDo(ev, (fetchedTable, index2) => copyOneColumn(table, index2));
       });
       addMenuItem(menu, "Hele tabel", 1, (ev) => {
-        forTableColumnDo(ev, (fetchedTable, index2) => copyTable(table, index2));
+        forTableColumnDo(ev, (fetchedTable, index2) => copyFullTable(table));
       });
       addMenuSeparator(menu, "<= Samenvoegen", 0);
       addMenuItem(menu, "met spatie", 1, (ev) => {
@@ -3965,7 +3960,7 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
     let navigationBars = getBothToolbars();
     if (!navigationBars)
       return;
-    addTableNavigationButton(navigationBars, COPY_TABLE_BTN_ID, "copy table to clipboard", copyTable2, "fa-clipboard");
+    addTableNavigationButton(navigationBars, COPY_TABLE_BTN_ID, "copy table to clipboard", copyTable, "fa-clipboard");
     return true;
   }
   function showInfoMessage(message, click_element_id, callback) {
@@ -3977,7 +3972,7 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
       document.getElementById(click_element_id).onclick = callback;
     }
   }
-  async function copyTable2() {
+  async function copyTable() {
     let prebuildPageHandler = new SimpleTableHandler(void 0, void 0);
     let tableRef = findTableRefInCode();
     let tableDef2 = new TableDef(
