@@ -77,7 +77,7 @@ export function buildTrimesterTable(tableData: TableData, trimElements: TrimElem
         }
     }
 
-    html.emmet.append(trHeader, "(th>div>span.bold{Trimester $}+span.plain{ ($$ lln)})*3", (index) => totTrim[index].toString());
+    html.emmet.append(trHeader as HTMLTableRowElement, "(th>div>span.bold{Trimester $}+span.plain{ ($$ lln)})*3", (index) => totTrim[index].toString());
     switch(pageState.grouping) {
         case TrimesterGrouping.InstrumentTeacherHour:
             for (let [instrumentName, instrument] of tableData.instruments) {
@@ -308,7 +308,7 @@ function buildBlockTitle(newTableBody: HTMLTableSectionElement, block: BlockInfo
 
     let {last: divBlockTitle} = html.emmet.append(trBlockTitle, "td.infoCell[colspan=3]>div.text-muted");
     if(getBlockTitle) {
-        emmet.appendChild(divBlockTitle, `span.blockTitle{${getBlockTitle(block)}}`);
+        emmet.appendChild(divBlockTitle as HTMLDivElement, `span.blockTitle{${getBlockTitle(block)}}`);
     }
 
     for (let jaarModule of block.jaarModules) {
@@ -353,7 +353,7 @@ function buildBlockHeader(newTableBody: HTMLTableSectionElement, block: BlockInf
     buildInfoRowWithText(newTableBody, Boolean((DisplayOptions.Location & displayOptions)), groupId, block.vestiging);
     if(block.tags.length > 0) {
         let {last: divMuted} = buildInfoRow(newTableBody, block.tags.join(), true, groupId);
-        emmet.appendChild(divMuted, block.tags.map(tag => {
+        emmet.appendChild(divMuted as HTMLDivElement, block.tags.map(tag => {
             let mutedClass = tag.partial ? ".muted" : "";
             return `span.badge.badge-ill.badge-warning${mutedClass}{${tag.name}}`;
         }).join('+'))

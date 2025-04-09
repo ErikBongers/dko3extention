@@ -72,7 +72,7 @@ function copyTable(table: HTMLTableElement, index: number) {
     for (let el of table.tHead.children[0].children) {
         let  th = el as HTMLTableCellElement;
         if(th.style.display !== "none")
-            emmet.appendChild(tmpThead, `th{${(th as  HTMLTableCellElement).innerText}}`);
+            emmet.appendChild(tmpThead as HTMLElement, `th{${(th as  HTMLTableCellElement).innerText}}`);
     }
     let tmpTbody = tmpTable.appendChild(document.createElement("tbody"));
     for (let el of table.tBodies[0].children) {
@@ -92,7 +92,7 @@ function copyColumn(table: HTMLTableElement, index: number) { //todo: combine wi
     let  tmpDiv = document.createElement("div");
     let {first: tmpTable, last: tmpThead} = emmet.appendChild(tmpDiv, "table>thead");
     let  th = table.tHead.children[0].children[index] as HTMLTableCellElement;
-    emmet.appendChild(tmpThead, `th{${(th as  HTMLTableCellElement).innerText}}`);
+    emmet.appendChild(tmpThead as HTMLElement, `th{${(th as  HTMLTableCellElement).innerText}}`);
     let tmpTbody = tmpTable.appendChild(document.createElement("tbody"));
     for (let el of table.tBodies[0].children) {
         let tr  = el as  HTMLTableRowElement;
