@@ -104,6 +104,7 @@ export function getHighestSchooljaarAvailable() {
         .pop();
 }
 
+//Tries to return "202x-202y".
 export function findSchooljaar() {
     let el = getSchooljaarSelectElement();
     if(el)

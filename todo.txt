@@ -1,4 +1,5 @@
-* Lessen filters: combine text with menu filters.
+* Lessen filters: show a label for the extra filter.
+  > add a bullet/highlight for the selected extra filter in the menu.
 
 * Checks:
       >>>> only actual errors to avoid fatigue!

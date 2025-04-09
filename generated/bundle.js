@@ -1811,8 +1811,7 @@
   }
   async function setTrimesterFilterAndFetch() {
     let params = new URLSearchParams({
-      schooljaar: "2024-2025",
-      //todo: hard coded year!
+      schooljaar: findSchooljaar(),
       domein: "3",
       //muziek
       vestigingsplaats: "",

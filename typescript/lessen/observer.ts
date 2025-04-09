@@ -3,7 +3,7 @@ import {buildTableData} from "./convert";
 import {buildTrimesterTable, getDefaultPageSettings, getSavedNameSorting, LessenPageState, NameSorting, setSavedNameSorting, TrimesterGrouping} from "./build";
 import * as def from "../def";
 import {LESSEN_TABLE_ID} from "../def";
-import {combineFilters, createSearchField, createTextRowFilter, filterTable, filterTableRows, getPageSettings, RowFilter, savePageSettings, setButtonHighlighted} from "../globals";
+import {combineFilters, createSearchField, createTextRowFilter, filterTable, filterTableRows, findSchooljaar, getPageSettings, getSchooljaarSelectElement, RowFilter, savePageSettings, setButtonHighlighted} from "../globals";
 import {HashObserver} from "../pageObserver";
 import * as html from "../../libs/Emmeter/html";
 import {emmet} from "../../libs/Emmeter/html";
@@ -58,7 +58,7 @@ function onClickShowTrimesters() {
 
 async function setTrimesterFilterAndFetch() {
     let params = new URLSearchParams({
-        schooljaar: "2024-2025", //todo: hard coded year!
+        schooljaar: findSchooljaar(),
         domein:"3", //muziek
         vestigingsplaats: "",
         vak: "",
