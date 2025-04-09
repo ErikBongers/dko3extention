@@ -27,7 +27,7 @@ export function scrapeStudent(tableDef: TableDef, tr: HTMLTableRowElement, colle
 
     if (!isInstrument(vak)) {
         console.error("vak is geen instrument!!!");
-        return false;
+        return `Vak "${vak}" is geen instrument.`;
     }
     let vakLeraarKey = translateVak(vak) + "_" + leraar;
 
@@ -60,7 +60,7 @@ export function scrapeStudent(tableDef: TableDef, tr: HTMLTableRowElement, colle
     let graadLeraarObject = collection.get(vakLeraarKey).countMap.get(graadLeerjaar);
     graadLeraarObject.count += 1;
     graadLeraarObject.students.push(student);
-    return true;
+    return null;
 }
 
 function isInstrument(vak: string) {

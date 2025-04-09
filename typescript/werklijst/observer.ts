@@ -1,4 +1,4 @@
-import {addButton, calculateSchooljaar, createSchoolyearString, createShortSchoolyearString, findSchooljaar, getHighestSchooljaarAvailable, getSchoolIdString, setButtonHighlighted} from "../globals";
+import {addButton, calculateSchooljaar, createSchoolyearString, createShortSchoolyearString, createTable, findSchooljaar, getHighestSchooljaarAvailable, getSchoolIdString, openTab, setButtonHighlighted} from "../globals";
 import * as def from "../def";
 import {buildTable, getUrenVakLeraarFileName} from "./buildUren";
 import {scrapeStudent, VakLeraar} from "./scrapeUren";
@@ -142,9 +142,14 @@ function onClickShowCounts() {
         function onLoaded(fetchedTable: FetchedTable) {
             let vakLeraars = new Map();
             let rows = this.rows = fetchedTable.getRows();
+            let errors = [];
             for(let tr of rows) {
-                scrapeStudent(tableDef, tr, vakLeraars);//TODO: returns false if fails. Report error.
+                let error = scrapeStudent(tableDef, tr, vakLeraars);
+                if(error)
+                    errors.push(error);
             }
+            if(errors.length)
+                openTab(createTable(["Error"], errors.map(error => [error])).outerHTML, "Errors");
             let fromCloud = new JsonCloudData(tableDef.parallelData as JsonCloudData)
             fromCloud = upgradeCloudData(fromCloud);
             vakLeraars = new Map([...vakLeraars.entries()].sort((a, b) => a[0] < b[0] ? -1 : ((a[0] > b[0])? 1 : 0))) as Map<string, VakLeraar>;

@@ -1,10 +1,10 @@
-import {distinct, openTab, rangeGenerator} from "../globals";
+import {createTable, distinct, openTab, rangeGenerator} from "../globals";
 import {emmet} from "../../libs/Emmeter/html";
 import {downloadTable, getCurrentTableDef} from "./loadAnyTable";
 import {addMenuItem, addMenuSeparator, setupMenu} from "../menus";
 import {FetchedTable, TableDef, TableHandler} from "./tableDef";
 import {CAN_HAVE_MENU} from "../def";
-import clipboard = chrome.contentSettings.clipboard;
+
 
 function sortRows(cmpFunction: (a: HTMLTableCellElement, b: HTMLTableCellElement) => number, header: Element, rows: HTMLTableRowElement[], index: number, descending: boolean) {
     let cmpDirectionalFunction: (a: HTMLTableRowElement, b: HTMLTableRowElement) => number;
@@ -64,43 +64,23 @@ function sortTableByColumn(table: HTMLTableElement, index: number, descending: b
     rows.forEach(row => table.tBodies[0].appendChild(row));
 }
 
-type ColInserter = (tr: HTMLTableRowElement, tmpTr: HTMLTableRowElement) => void;
-type HeaderInserter = (headerCells: HTMLCollectionOf<HTMLTableCellElement>, tmpThead: Element) => void;
-
 function copyFullTable(table: HTMLTableElement) {
-    let insertHeaderColumns: HeaderInserter =  function(headerCells, tmpThead) {
-        for (let th of headerCells) {
-            if (th.style.display !== "none")
-                emmet.appendChild(tmpThead as HTMLElement, `th{${(th as HTMLTableCellElement).innerText}}`);
-        }
-    }
-    function insertColumns(tr: HTMLTableRowElement, tmpTr: HTMLTableRowElement) {
-        for (let cell of tr.cells) {
-            if (cell.style.display !== "none")
-                emmet.appendChild(tmpTr, `td{${cell.innerText}}`);
-        }
-    }
-    createAndCopyTable(table, insertHeaderColumns, insertColumns);
+    let headerCells = table.tHead.children[0].children as HTMLCollectionOf<HTMLTableCellElement>;
+    let headers = [...headerCells].filter(cell => cell.style.display !== "none").map(cell => cell.innerText);
+    let rows = table.tBodies[0].children as HTMLCollectionOf<HTMLTableRowElement>;
+    let cells = [...rows].map(row => [...row.cells].filter(cell => cell.style.display !== "none").map(cell => cell.innerText));
+    createAndCopyTable(headers, cells);
 }
 
 function copyOneColumn(table: HTMLTableElement, index: number) {
-    createAndCopyTable(table,
-        (headerCells, tmpThead) =>
-            emmet.appendChild(tmpThead as HTMLElement, `th{${headerCells[index].innerText}}`),
-        (tr, tmpTr) =>
-            emmet.appendChild(tmpTr, `td{${tr.cells[index].innerText}}`)
+    createAndCopyTable(
+        [(table.tHead.children[0].children[index] as HTMLTableCellElement).innerText],
+        [...table.tBodies[0].rows].map(row => [row.cells[index].innerText])
     );
 }
 
-function createAndCopyTable(table: HTMLTableElement, insertHeaderCols: HeaderInserter, insertCols: ColInserter) {
-    let  tmpDiv = document.createElement("div");
-    let {first: tmpTable, last: tmpThead} = emmet.appendChild(tmpDiv, "table>thead");
-    insertHeaderCols(table.tHead.children[0].children as HTMLCollectionOf<HTMLTableCellElement>, tmpThead);
-    let tmpTbody = tmpTable.appendChild(document.createElement("tbody"));
-    for (let tr of table.tBodies[0].children as HTMLCollectionOf<HTMLTableRowElement>) {
-        insertCols(tr, tmpTbody.appendChild(document.createElement("tr")));
-    }
-    navigator.clipboard.writeText(tmpTable.outerHTML).then(r => {});
+function createAndCopyTable(headers: Iterable<string>, cols: Iterable<Iterable<string>>) {
+    navigator.clipboard.writeText(createTable(headers, cols).outerHTML).then(r => {});
 }
 
 function reSortTableByColumn(ev: MouseEvent, table: HTMLTableElement) {

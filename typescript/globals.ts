@@ -430,3 +430,19 @@ export function writeTableToClipboardForExcel(table: HTMLTableElement) {
         .replaceAll('<td','<td style="vertical-align: top;"');  // align top
     return navigator.clipboard.writeText(html);
 }
+
+export function createTable(headers: Iterable<string>, cols: Iterable<Iterable<string>>) {
+    let tmpDiv = document.createElement("div");
+    let {first: tmpTable, last: tmpThead} = emmet.appendChild(tmpDiv, "table>thead");
+    for (let th of headers) {
+        emmet.appendChild(tmpThead as HTMLElement, `th{${th}}`);
+    }
+    let tmpTbody = tmpTable.appendChild(document.createElement("tbody"));
+    for (let tr of cols) {
+        let tmpTr = tmpTbody.appendChild(document.createElement("tr"));
+        for (let cell of tr) {
+            emmet.appendChild(tmpTr, `td{${cell}}`);
+        }
+    }
+    return tmpTable as HTMLTableElement;
+}

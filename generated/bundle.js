@@ -662,6 +662,21 @@
     };
     chrome.runtime.sendMessage(message).then(() => console.log("message sent."));
   }
+  function createTable(headers, cols) {
+    let tmpDiv = document.createElement("div");
+    let { first: tmpTable, last: tmpThead } = emmet.appendChild(tmpDiv, "table>thead");
+    for (let th of headers) {
+      emmet.appendChild(tmpThead, `th{${th}}`);
+    }
+    let tmpTbody = tmpTable.appendChild(document.createElement("tbody"));
+    for (let tr of cols) {
+      let tmpTr = tmpTbody.appendChild(document.createElement("tr"));
+      for (let cell of tr) {
+        emmet.appendChild(tmpTr, `td{${cell}}`);
+      }
+    }
+    return tmpTable;
+  }
 
   // typescript/pageObserver.ts
   var HashPageFilter = class {
@@ -2532,7 +2547,7 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
     if (leraar === "") leraar = "{nieuw}";
     if (!isInstrument(vak)) {
       console.error("vak is geen instrument!!!");
-      return false;
+      return `Vak "${vak}" is geen instrument.`;
     }
     let vakLeraarKey = translateVak(vak) + "_" + leraar;
     if (!collection.has(vakLeraarKey)) {
@@ -2564,7 +2579,7 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
     let graadLeraarObject = collection.get(vakLeraarKey).countMap.get(graadLeerjaar);
     graadLeraarObject.count += 1;
     graadLeraarObject.students.push(student);
-    return true;
+    return null;
   }
   function isInstrument(vak) {
     switch (vak) {
@@ -3475,36 +3490,21 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
     rows.forEach((row) => table.tBodies[0].appendChild(row));
   }
   function copyFullTable(table) {
-    let insertHeaderColumns = function(headerCells, tmpThead) {
-      for (let th of headerCells) {
-        if (th.style.display !== "none")
-          emmet.appendChild(tmpThead, `th{${th.innerText}}`);
-      }
-    };
-    function insertColumns(tr, tmpTr) {
-      for (let cell of tr.cells) {
-        if (cell.style.display !== "none")
-          emmet.appendChild(tmpTr, `td{${cell.innerText}}`);
-      }
-    }
-    createAndCopyTable(table, insertHeaderColumns, insertColumns);
+    let headerCells = table.tHead.children[0].children;
+    let headers = [...headerCells].filter((cell) => cell.style.display !== "none").map((cell) => cell.innerText);
+    let rows = table.tBodies[0].children;
+    let cells = [...rows].map((row) => [...row.cells].filter((cell) => cell.style.display !== "none").map((cell) => cell.innerText));
+    createAndCopyTable(table, headers, cells);
   }
   function copyOneColumn(table, index) {
     createAndCopyTable(
       table,
-      (headerCells, tmpThead) => emmet.appendChild(tmpThead, `th{${headerCells[index].innerText}}`),
-      (tr, tmpTr) => emmet.appendChild(tmpTr, `td{${tr.cells[index].innerText}}`)
+      [table.tHead.children[0].children[index].innerText],
+      [...table.tBodies[0].rows].map((row) => [row.cells[index].innerText])
     );
   }
-  function createAndCopyTable(table, insertHeaderCols, insertCols) {
-    let tmpDiv = document.createElement("div");
-    let { first: tmpTable, last: tmpThead } = emmet.appendChild(tmpDiv, "table>thead");
-    insertHeaderCols(table.tHead.children[0].children, tmpThead);
-    let tmpTbody = tmpTable.appendChild(document.createElement("tbody"));
-    for (let tr of table.tBodies[0].children) {
-      insertCols(tr, tmpTbody.appendChild(document.createElement("tr")));
-    }
-    navigator.clipboard.writeText(tmpTable.outerHTML).then((r) => {
+  function createAndCopyTable(table, headers, cols) {
+    navigator.clipboard.writeText(createTable(headers, cols).outerHTML).then((r) => {
     });
   }
   function reSortTableByColumn(ev, table) {
@@ -3846,9 +3846,14 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
       let onLoaded = function(fetchedTable) {
         let vakLeraars = /* @__PURE__ */ new Map();
         let rows = this.rows = fetchedTable.getRows();
+        let errors = [];
         for (let tr of rows) {
-          scrapeStudent(tableDef2, tr, vakLeraars);
+          let error = scrapeStudent(tableDef2, tr, vakLeraars);
+          if (error)
+            errors.push(error);
         }
+        if (errors.length)
+          openTab(createTable(["Error"], errors.map((error) => [error])).outerHTML, "Errors");
         let fromCloud = new JsonCloudData(tableDef2.parallelData);
         fromCloud = upgradeCloudData(fromCloud);
         vakLeraars = new Map([...vakLeraars.entries()].sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
