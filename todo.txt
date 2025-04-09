@@ -1,3 +1,8 @@
+* TableDef has "paralelData". This doesn't belong there.
+  > Also, the info bar should not be here.
+    > create a separate infoBar class and have both paralelData and TableDef interact with it.
+      > perhaps via an infoListener that starts and listens for both paralelData and table fetch.
+
 * Lessen filters: show a label for the extra filter.
   > add a bullet/highlight for the selected extra filter in the menu.
 

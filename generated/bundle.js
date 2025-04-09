@@ -2753,7 +2753,6 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
   }
   var TableDef = class {
     constructor(tableRef, pageHandler, calculateTableCheckSum, tableHandler) {
-      this.parallelData = void 0;
       this.isUsingCached = false;
       this.tempMessage = "";
       this.tableRef = tableRef;
@@ -2857,7 +2856,7 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
         return true;
       };
     }
-    async getTableData(parallelAsyncFunction) {
+    async getTableData() {
       if (this.fetchedTable) {
         return this.fetchedTable;
       }
@@ -2866,9 +2865,6 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
       let cachedData = this.loadFromCache();
       this.fetchedTable = new FetchedTable(this);
       if (cachedData) {
-        if (parallelAsyncFunction) {
-          this.parallelData = await parallelAsyncFunction();
-        }
         this.fetchedTable.addPage(cachedData.text);
         this.shadowTableDate = cachedData.date;
         this.isUsingCached = true;
@@ -2876,7 +2872,7 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
         this.pageHandler.onLoaded?.(this.fetchedTable);
       } else {
         this.isUsingCached = false;
-        let success = await this.#fetchPages(this.fetchedTable, parallelAsyncFunction);
+        let success = await this.#fetchPages(this.fetchedTable);
         if (!success)
           return this.fetchedTable;
         this.fetchedTable.saveToCache();
@@ -2885,22 +2881,14 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
       this.updateInfoBar();
       return this.fetchedTable;
     }
-    async #fetchPages(fetchedTable, parallelAsyncFunction) {
+    async #fetchPages(fetchedTable) {
       if (this.pageHandler.onBeforeLoading) {
         if (!this.pageHandler.onBeforeLoading(this))
           return false;
       }
       let progressBar = insertProgressBar(this.divInfoContainer, this.tableRef.navigationData.steps(), "loading pages... ");
       progressBar.start();
-      if (parallelAsyncFunction) {
-        let doubleResults = await Promise.all([
-          this.#doFetchAllPages(fetchedTable, progressBar),
-          parallelAsyncFunction()
-        ]);
-        this.parallelData = doubleResults[1];
-      } else {
-        await this.#doFetchAllPages(fetchedTable, progressBar);
-      }
+      await this.#doFetchAllPages(fetchedTable, progressBar);
       return true;
     }
     async #doFetchAllPages(fetchedTable, progressBar) {
@@ -3121,13 +3109,7 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
     }
   };
   var NamedCellTablePageHandler = class _NamedCellTablePageHandler {
-    constructor(requiredHeaderLabels, onLoaded, onRequiredColumnsMissing) {
-      this.onLoadedAndCheck = (fetchedTable) => {
-        if (this.isValidPage)
-          this.onLoadedExternal(fetchedTable);
-        else
-          console.log("NamedCellPageHandler: Not calling OnLoaded handler because page is not valid.");
-      };
+    constructor(requiredHeaderLabels, onRequiredColumnsMissing) {
       this.onPage = (_tableDef, _text, fetchedTable) => {
         if (fetchedTable.getLastPageNumber() === 0) {
           if (!this.setTemplateAndCheck(fetchedTable.getTemplate())) {
@@ -3143,8 +3125,6 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
         }
       };
       this.requiredHeaderLabels = requiredHeaderLabels;
-      this.onLoaded = this.onLoadedAndCheck;
-      this.onLoadedExternal = onLoaded;
       this.onColumnsMissing = onRequiredColumnsMissing;
       this.headerIndices = void 0;
       this.isValidPage = false;
@@ -3494,16 +3474,15 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
     let headers = [...headerCells].filter((cell) => cell.style.display !== "none").map((cell) => cell.innerText);
     let rows = table.tBodies[0].children;
     let cells = [...rows].map((row) => [...row.cells].filter((cell) => cell.style.display !== "none").map((cell) => cell.innerText));
-    createAndCopyTable(table, headers, cells);
+    createAndCopyTable(headers, cells);
   }
   function copyOneColumn(table, index) {
     createAndCopyTable(
-      table,
       [table.tHead.children[0].children[index].innerText],
       [...table.tBodies[0].rows].map((row) => [row.cells[index].innerText])
     );
   }
-  function createAndCopyTable(table, headers, cols) {
+  function createAndCopyTable(headers, cols) {
     navigator.clipboard.writeText(createTable(headers, cols).outerHTML).then((r) => {
     });
   }
@@ -3817,7 +3796,7 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
   }
   function onClickCopyEmails() {
     let requiredHeaderLabels = ["e-mailadressen"];
-    let pageHandler = new NamedCellTablePageHandler(requiredHeaderLabels, onEmailsLoaded, (tableDef1) => {
+    let pageHandler = new NamedCellTablePageHandler(requiredHeaderLabels, (tableDef1) => {
       navigator.clipboard.writeText("").then((value) => {
         console.log("Clipboard cleared.");
       });
@@ -3827,14 +3806,12 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
       pageHandler,
       getChecksumHandler(tableId)
     );
-    function onEmailsLoaded(fetchedTable) {
+    tableDef2.getTableData().then((fetchedTable) => {
       let allEmails = this.rows = fetchedTable.getRowsAsArray().map((tr) => tableDef2.pageHandler.getColumnText(tr, "e-mailadressen"));
       let flattened = allEmails.map((emails) => emails.split(/[,;]/)).flat().filter((email) => !email.includes("@academiestudent.be")).filter((email) => email !== "");
       navigator.clipboard.writeText(flattened.join(";\n")).then(
         () => tableDef2.setTempMessage("Alle emails zijn naar het clipboard gekopieerd. Je kan ze plakken in Outlook.")
       );
-    }
-    tableDef2.getTableData(void 0).then((_results) => {
     });
   }
   function tryUntil(func) {
@@ -3843,7 +3820,20 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
   }
   function onClickShowCounts() {
     if (!document.getElementById(COUNT_TABLE_ID)) {
-      let onLoaded = function(fetchedTable) {
+      let tableRef = findTableRefInCode();
+      if (!tableRef)
+        return false;
+      let fileName = getUrenVakLeraarFileName();
+      let requiredHeaderLabels = ["naam", "voornaam", "vak", "klasleerkracht", "graad + leerjaar"];
+      let pageHandler = new NamedCellTablePageHandler(requiredHeaderLabels, () => {
+      });
+      let tableDef2 = new TableDef(
+        tableRef,
+        pageHandler,
+        getChecksumHandler(tableRef.htmlTableId)
+      );
+      Promise.all([tableDef2.getTableData(), getUrenFromCloud(fileName)]).then((results) => {
+        let [fetchedTable, jsonCloudData] = results;
         let vakLeraars = /* @__PURE__ */ new Map();
         let rows = this.rows = fetchedTable.getRows();
         let errors = [];
@@ -3854,8 +3844,7 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
         }
         if (errors.length)
           openTab(createTable(["Error"], errors.map((error) => [error])).outerHTML, "Errors");
-        let fromCloud = new JsonCloudData(tableDef2.parallelData);
-        fromCloud = upgradeCloudData(fromCloud);
+        let fromCloud = upgradeCloudData(jsonCloudData);
         vakLeraars = new Map([...vakLeraars.entries()].sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
         document.getElementById(COUNT_TABLE_ID)?.remove();
         let schoolYear = findSchooljaar();
@@ -3863,20 +3852,6 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
         buildTable(new UrenData(year, new CloudData(fromCloud), vakLeraars), tableDef2);
         document.getElementById(COUNT_TABLE_ID).style.display = "none";
         showOrHideNewTable();
-      };
-      let tableRef = findTableRefInCode();
-      if (!tableRef)
-        return false;
-      let fileName = getUrenVakLeraarFileName();
-      let requiredHeaderLabels = ["naam", "voornaam", "vak", "klasleerkracht", "graad + leerjaar"];
-      let pageHandler = new NamedCellTablePageHandler(requiredHeaderLabels, onLoaded, () => {
-      });
-      let tableDef2 = new TableDef(
-        tableRef,
-        pageHandler,
-        getChecksumHandler(tableRef.htmlTableId)
-      );
-      tableDef2.getTableData(() => getUrenFromCloud(fileName)).then((_results) => {
       });
       return true;
     }
@@ -3901,7 +3876,7 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
     saveGotoState(pageState2);
   }
   function upgradeCloudData(fromCloud) {
-    return fromCloud;
+    return new JsonCloudData(fromCloud);
   }
 
   // typescript/vakgroep/observer.ts

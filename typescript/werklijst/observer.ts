@@ -87,7 +87,7 @@ function onButtonBarChanged() {
 function onClickCopyEmails() {
     let requiredHeaderLabels = ["e-mailadressen"];
 
-    let pageHandler = new NamedCellTablePageHandler(requiredHeaderLabels, onEmailsLoaded, tableDef1 => {
+    let pageHandler = new NamedCellTablePageHandler(requiredHeaderLabels, tableDef1 => {
         navigator.clipboard.writeText("").then(value => {
             console.log("Clipboard cleared.")
         });
@@ -99,22 +99,19 @@ function onClickCopyEmails() {
         getChecksumHandler(tableId)
     );
 
-    function onEmailsLoaded(fetchedTable: FetchedTable) {
-        let allEmails = this.rows = fetchedTable.getRowsAsArray()
-            .map(tr=> (tableDef.pageHandler as NamedCellTablePageHandler).getColumnText(tr, "e-mailadressen"));
+    tableDef.getTableData( )
+        .then((fetchedTable) => {
+            let allEmails = this.rows = fetchedTable.getRowsAsArray()
+                .map(tr=> (tableDef.pageHandler as NamedCellTablePageHandler).getColumnText(tr, "e-mailadressen"));
 
-        let flattened = allEmails
-            .map((emails: string) => emails.split(/[,;]/))
-            .flat()
-            .filter((email: string) => !email.includes("@academiestudent.be"))
-            .filter((email: string) => email !== "");
-        navigator.clipboard.writeText(flattened.join(";\n")).then(() =>
-            tableDef.setTempMessage("Alle emails zijn naar het clipboard gekopieerd. Je kan ze plakken in Outlook.")
-        );
-    }
-
-    tableDef.getTableData(undefined )
-        .then((_results) => {
+            let flattened = allEmails
+                .map((emails: string) => emails.split(/[,;]/))
+                .flat()
+                .filter((email: string) => !email.includes("@academiestudent.be"))
+                .filter((email: string) => email !== "");
+            navigator.clipboard.writeText(flattened.join(";\n")).then(() =>
+                tableDef.setTempMessage("Alle emails zijn naar het clipboard gekopieerd. Je kan ze plakken in Outlook.")
+            );
         });
 }
 
@@ -132,14 +129,15 @@ function onClickShowCounts() {
 
         let fileName = getUrenVakLeraarFileName();
         let requiredHeaderLabels = ["naam", "voornaam", "vak", "klasleerkracht", "graad + leerjaar"];
-        let pageHandler = new NamedCellTablePageHandler(requiredHeaderLabels, onLoaded, () => {});
+        let pageHandler = new NamedCellTablePageHandler(requiredHeaderLabels, () => {});
         let tableDef = new TableDef(
             tableRef,
             pageHandler,
             getChecksumHandler(tableRef.htmlTableId)
         );
 
-        function onLoaded(fetchedTable: FetchedTable) {
+        Promise.all([tableDef.getTableData(), getUrenFromCloud(fileName)]).then(results => {
+            let [fetchedTable, jsonCloudData] = results;
             let vakLeraars = new Map();
             let rows = this.rows = fetchedTable.getRows();
             let errors = [];
@@ -150,8 +148,7 @@ function onClickShowCounts() {
             }
             if(errors.length)
                 openTab(createTable(["Error"], errors.map(error => [error])).outerHTML, "Errors");
-            let fromCloud = new JsonCloudData(tableDef.parallelData as JsonCloudData)
-            fromCloud = upgradeCloudData(fromCloud);
+            let fromCloud = upgradeCloudData(jsonCloudData);
             vakLeraars = new Map([...vakLeraars.entries()].sort((a, b) => a[0] < b[0] ? -1 : ((a[0] > b[0])? 1 : 0))) as Map<string, VakLeraar>;
             document.getElementById(def.COUNT_TABLE_ID)?.remove();
             let schoolYear = findSchooljaar();
@@ -159,10 +156,7 @@ function onClickShowCounts() {
             buildTable(new UrenData(year, new CloudData(fromCloud), vakLeraars), tableDef);
             document.getElementById(def.COUNT_TABLE_ID).style.display = "none";
             showOrHideNewTable();
-        }
-
-        tableDef.getTableData(() => getUrenFromCloud(fileName))
-            .then((_results) => { });
+        });
 
         return true;
     }
@@ -191,7 +185,7 @@ function showOrHideNewTable() {
 
 function upgradeCloudData(fromCloud: JsonCloudData) {
     //if fromCloud.version === "...." --> convert.
-    return fromCloud;
+    return new JsonCloudData(fromCloud); //re-create, just to be sure we have all the fields.
 
 
 }

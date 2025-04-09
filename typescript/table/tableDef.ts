@@ -70,7 +70,6 @@ export interface TableHandler {
 export class TableDef {
     tableRef: TableRef;
     pageHandler: PageHandler;
-    parallelData = undefined;
     calculateTableCheckSum: CalculateTableCheckSumHandler;
     isUsingCached = false;
     divInfoContainer: HTMLDivElement;
@@ -198,7 +197,7 @@ export class TableDef {
             return true;
         }
     }
-    async getTableData(parallelAsyncFunction?: (() => Promise<any>)) {
+    async getTableData() {
         if(this.fetchedTable) {
             return this.fetchedTable;
         }
@@ -208,9 +207,6 @@ export class TableDef {
 
         this.fetchedTable = new FetchedTable(this);
         if(cachedData) {
-            if(parallelAsyncFunction) {
-                this.parallelData = await parallelAsyncFunction();
-            }
             this.fetchedTable.addPage(cachedData.text);
             this.shadowTableDate = cachedData.date;
             this.isUsingCached = true;
@@ -218,7 +214,7 @@ export class TableDef {
             this.pageHandler.onLoaded?.(this.fetchedTable);
         } else {
             this.isUsingCached = false;
-            let success = await this.#fetchPages(this.fetchedTable, parallelAsyncFunction);
+            let success = await this.#fetchPages(this.fetchedTable);
             if(!success)
                 return this.fetchedTable;
             this.fetchedTable.saveToCache();
@@ -228,22 +224,14 @@ export class TableDef {
         return this.fetchedTable;
     }
 
-    async #fetchPages(fetchedTable: FetchedTable, parallelAsyncFunction: () => Promise<any>) {
+    async #fetchPages(fetchedTable: FetchedTable) {
         if (this.pageHandler.onBeforeLoading) {
             if(!this.pageHandler.onBeforeLoading(this))
                 return false;
         }
         let progressBar = insertProgressBar(this.divInfoContainer, this.tableRef.navigationData.steps(), "loading pages... ");
         progressBar.start();
-        if (parallelAsyncFunction) {
-            let doubleResults = await Promise.all([
-                this.#doFetchAllPages(fetchedTable, progressBar),
-                parallelAsyncFunction()
-            ]);
-            this.parallelData = doubleResults[1];
-        } else {
-            await this.#doFetchAllPages(fetchedTable, progressBar);
-        }
+        await this.#doFetchAllPages(fetchedTable, progressBar);
         return true;
     }
 

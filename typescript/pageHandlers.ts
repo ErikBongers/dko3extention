@@ -79,21 +79,12 @@ export class NamedCellTablePageHandler implements PageHandler {
     onColumnsMissing: OnRequiredColumnsMissingHandler;
     isValidPage: boolean;
 
-    constructor(requiredHeaderLabels: string[], onLoaded: OnLoadedHandler, onRequiredColumnsMissing: OnRequiredColumnsMissingHandler) {
+    constructor(requiredHeaderLabels: string[], onRequiredColumnsMissing: OnRequiredColumnsMissingHandler) {
         this.requiredHeaderLabels = requiredHeaderLabels;
-        this.onLoaded = this.onLoadedAndCheck;
-        this.onLoadedExternal = onLoaded;
         this.onColumnsMissing = onRequiredColumnsMissing;
         this.headerIndices = undefined;
         this.isValidPage = false;
         this.onBeforeLoading = this.onBeforeLoadingHandler;
-    }
-
-    onLoadedAndCheck: OnLoadedHandler =  (fetchedTable: FetchedTable) => {
-        if(this.isValidPage)
-            this.onLoadedExternal(fetchedTable);
-        else
-            console.log("NamedCellPageHandler: Not calling OnLoaded handler because page is not valid.")
     }
 
     onPage: OnPageHandler = (_tableDef: TableDef, _text: string, fetchedTable)  => {
