@@ -1,11 +1,12 @@
 import {FULL_CLASS_BUTTON_ID, isButtonHighlighted, TRIM_DIV_ID} from "../def";
-import {db3, filterTable, getPageSettings, savePageSettings, stripStudentName} from "../globals";
+import {db3, getPageSettings, savePageSettings, stripStudentName} from "../globals";
 import {BlockInfo, mergeBlockStudents, sortStudents, TableData} from "./convert";
 import {StudentInfo} from "./scrape";
 import * as html from "../../libs/Emmeter/html";
 import {emmet} from "../../libs/Emmeter/html";
 import {NBSP} from "../../libs/Emmeter/tokenizer";
 import {PageName} from "../gotoState";
+import {getTrimPageElements} from "./observer";
 
 export enum NameSorting {
     FirstName, LastName
@@ -56,14 +57,15 @@ export function getSavedNameSorting() {
     return pageState.nameSorting;
 }
 
-export function buildTrimesterTable(tableData: TableData) {
+export function buildTrimesterTable(tableData: TableData, trimElements: TrimElements) {
     pageState = getPageSettings(PageName.Lessen, pageState) as LessenPageState;
     tableData.blocks.sort((block1, block2) => block1.instrumentName.localeCompare(block2.instrumentName));
-    let trimDiv = html.emmet.create(`#${TRIM_DIV_ID}>table#trimesterTable[border="2" style.width="100%"]>colgroup>col*3`).root;
+    trimElements.trimTableDiv = html.emmet.create(`#${TRIM_DIV_ID}>table#trimesterTable[border="2" style.width="100%"]>colgroup>col*3`).root as HTMLDivElement;
 
-    trimDiv.dataset.showFullClass= isButtonHighlighted(FULL_CLASS_BUTTON_ID) ? "true" : "false";
+    trimElements.trimTableDiv.dataset.showFullClass= isButtonHighlighted(FULL_CLASS_BUTTON_ID) ? "true" : "false";
 
     let { root: newTable, last: trHeader } = html.emmet.create("#trimesterTable>tbody+thead.table-secondary>tr");
+    Object.assign(trimElements, getTrimPageElements()); //update trimElements
 
     let newTableBody = newTable.querySelector("tbody");
 
@@ -465,4 +467,11 @@ function findStudentId(studentName: string, text: string) {
     if(found?.length)
         return parseInt(found[0]);
     throw `No id found for student ${studentName}.`;
+}
+
+export interface TrimElements {
+    trimTable: HTMLTableElement;
+    trimTableDiv: HTMLDivElement;
+    lessenTable: HTMLTableElement;
+    trimButton: HTMLButtonElement;
 }

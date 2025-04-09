@@ -1074,12 +1074,13 @@
     pageState = getPageSettings("Lessen" /* Lessen */, pageState);
     return pageState.nameSorting;
   }
-  function buildTrimesterTable(tableData) {
+  function buildTrimesterTable(tableData, trimElements) {
     pageState = getPageSettings("Lessen" /* Lessen */, pageState);
     tableData.blocks.sort((block1, block2) => block1.instrumentName.localeCompare(block2.instrumentName));
-    let trimDiv = emmet.create(`#${TRIM_DIV_ID}>table#trimesterTable[border="2" style.width="100%"]>colgroup>col*3`).root;
-    trimDiv.dataset.showFullClass = isButtonHighlighted(FULL_CLASS_BUTTON_ID) ? "true" : "false";
+    trimElements.trimTableDiv = emmet.create(`#${TRIM_DIV_ID}>table#trimesterTable[border="2" style.width="100%"]>colgroup>col*3`).root;
+    trimElements.trimTableDiv.dataset.showFullClass = isButtonHighlighted(FULL_CLASS_BUTTON_ID) ? "true" : "false";
     let { root: newTable, last: trHeader } = emmet.create("#trimesterTable>tbody+thead.table-secondary>tr");
+    Object.assign(trimElements, getTrimPageElements());
     let newTableBody = newTable.querySelector("tbody");
     let totTrim = [0, 0, 0];
     for (let block of tableData.blocks) {
@@ -1797,16 +1798,14 @@
         saveGotoState(pageState2);
         return true;
     }
-    return decorateTable();
+    return decorateTable() !== void 0;
   }
   function onClickShowTrimesters() {
     document.getElementById("lessen_overzicht").innerHTML = '<span class="text-muted">\n                <i class="fa fa-cog fa-spin"></i> <i>Bezig met laden...</i>\n            </span>';
     setTrimesterFilterAndFetch().then((text) => {
       console.log("Filter been set: show trims after reload...");
       document.getElementById("lessen_overzicht").innerHTML = text;
-      let table = document.getElementById(LESSEN_TABLE_ID);
-      decorateTable();
-      showTrimesterTable(table, true);
+      showTrimesterTable(decorateTable(), true);
     });
   }
   async function setTrimesterFilterAndFetch() {
@@ -1833,17 +1832,19 @@
     return res.text();
   }
   function createTrimTableDiv() {
-    if (!document.getElementById(TRIM_DIV_ID)) {
-      let trimDiv = document.createElement("div");
+    let trimDiv = document.getElementById(TRIM_DIV_ID);
+    if (!trimDiv) {
+      trimDiv = document.createElement("div");
       let originalTable = document.getElementById(LESSEN_TABLE_ID);
       originalTable.insertAdjacentElement("afterend", trimDiv);
       trimDiv.id = TRIM_DIV_ID;
     }
+    return trimDiv;
   }
   function decorateTable() {
     let printButton = document.getElementById("btn_print_overzicht_lessen");
     if (!printButton) {
-      return false;
+      return void 0;
     }
     let copyLessonButton = printButton.parentElement.querySelector("button:has(i.fa-reply-all)");
     if (copyLessonButton?.title === "") {
@@ -1866,7 +1867,7 @@
     let hasWarnings = warnings.length !== 0;
     let hasFullClasses = Array.from(warnings).map((item) => item.textContent).some((txt) => txt.includes("leerlingen"));
     if (!hasModules && !hasAlc && !hasWarnings && !hasFullClasses) {
-      return true;
+      return getTrimPageElements();
     }
     if (hasModules) {
       addButton2(printButton, TRIM_BUTTON_ID, "Toon trimesters", onClickToggleTrimesters, "fa-sitemap");
@@ -1878,7 +1879,7 @@
       addButton2(printButton, FULL_CLASS_BUTTON_ID, "Filter volle klassen", onClickFullClasses, "fa-weight-hanging");
     }
     addFilterFields();
-    return true;
+    return getTrimPageElements();
   }
   var TXT_FILTER_ID = "txtFilter";
   function addFilterFields() {
@@ -2032,21 +2033,27 @@
     showOnlyFullTrimesters(displayState === "none");
   }
   function onClickToggleTrimesters() {
-    let table = document.getElementById(LESSEN_TABLE_ID);
-    showTrimesterTable(table, !isTrimesterTableVisible());
+    showTrimesterTable(getTrimPageElements(), !isTrimesterTableVisible());
   }
   function isTrimesterTableVisible() {
     return document.getElementById(LESSEN_TABLE_ID).style.display === "none";
   }
-  function showTrimesterTable(originalTable, show) {
-    document.getElementById(TRIM_TABLE_ID)?.remove();
-    let inputModules = scrapeModules(originalTable);
+  function getTrimPageElements() {
+    return {
+      trimTable: document.getElementById(TRIM_TABLE_ID),
+      trimTableDiv: createTrimTableDiv(),
+      lessenTable: document.getElementById(LESSEN_TABLE_ID),
+      trimButton: document.getElementById(TRIM_BUTTON_ID)
+    };
+  }
+  function showTrimesterTable(trimElements, show) {
+    trimElements.trimTable?.remove();
+    let inputModules = scrapeModules(trimElements.lessenTable);
     let tableData = buildTableData(inputModules.trimesterModules.concat(inputModules.jaarModules));
-    createTrimTableDiv();
-    buildTrimesterTable(tableData);
-    document.getElementById(LESSEN_TABLE_ID).style.display = show ? "none" : "table";
-    document.getElementById(TRIM_TABLE_ID).style.display = show ? "table" : "none";
-    document.getElementById(TRIM_BUTTON_ID).title = show ? "Toon normaal" : "Toon trimesters";
+    buildTrimesterTable(tableData, trimElements);
+    trimElements.lessenTable.style.display = show ? "none" : "table";
+    trimElements.trimTable.style.display = show ? "table" : "none";
+    trimElements.trimButton.title = show ? "Toon normaal" : "Toon trimesters";
     setButtonHighlighted(TRIM_BUTTON_ID, show);
     setSorteerLine(show);
     applyFilters();
@@ -2065,8 +2072,7 @@
           setSavedNameSorting(1 /* LastName */);
         else
           setSavedNameSorting(0 /* FirstName */);
-        let table = document.getElementById(LESSEN_TABLE_ID);
-        showTrimesterTable(table, true);
+        showTrimesterTable(getTrimPageElements(), true);
         addSortingAnchorOrText();
         return false;
       };
@@ -2131,11 +2137,10 @@
       anchor.innerText = sortingText;
       anchor.href = "#";
       anchor.onclick = () => {
-        let table = document.getElementById(LESSEN_TABLE_ID);
         let pageState2 = getPageSettings("Lessen" /* Lessen */, getDefaultPageSettings());
         pageState2.grouping = grouping;
         savePageSettings(pageState2);
-        showTrimesterTable(table, true);
+        showTrimesterTable(getTrimPageElements(), true);
         return false;
       };
       return anchor;

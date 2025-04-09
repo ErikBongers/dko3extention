@@ -1,9 +1,9 @@
 import {scrapeLessenOverzicht, scrapeModules} from "./scrape";
 import {buildTableData} from "./convert";
-import {buildTrimesterTable, getDefaultPageSettings, getSavedNameSorting, LessenPageState, NameSorting, setSavedNameSorting, TrimesterGrouping} from "./build";
+import {buildTrimesterTable, getDefaultPageSettings, getSavedNameSorting, LessenPageState, NameSorting, setSavedNameSorting, TrimElements, TrimesterGrouping} from "./build";
 import * as def from "../def";
 import {LESSEN_TABLE_ID} from "../def";
-import {combineFilters, createSearchField, createTextRowFilter, filterTable, filterTableRows, findSchooljaar, getPageSettings, getSchooljaarSelectElement, RowFilter, savePageSettings, setButtonHighlighted} from "../globals";
+import {combineFilters, createSearchField, createTextRowFilter, filterTable, filterTableRows, findSchooljaar, getPageSettings, RowFilter, savePageSettings, setButtonHighlighted} from "../globals";
 import {HashObserver} from "../pageObserver";
 import * as html from "../../libs/Emmeter/html";
 import {emmet} from "../../libs/Emmeter/html";
@@ -39,7 +39,7 @@ function onMutation (mutation: MutationRecord) {
             return true;
     }
 
-    return decorateTable();
+    return decorateTable() !== undefined;
 }
 
 
@@ -50,9 +50,7 @@ function onClickShowTrimesters() {
     setTrimesterFilterAndFetch().then((text) => {
         console.log("Filter been set: show trims after reload...");
         document.getElementById("lessen_overzicht").innerHTML = text;
-        let table = document.getElementById(LESSEN_TABLE_ID) as HTMLTableElement;
-        decorateTable();//todo: this call is needed for call below. Inject it.
-        showTrimesterTable(table, true);
+        showTrimesterTable(decorateTable(), true);
     });
 }
 
@@ -80,18 +78,20 @@ async function setTrimesterFilterAndFetch() {
 
 
 function createTrimTableDiv() {
-    if (!document.getElementById(def.TRIM_DIV_ID)) {
-        let trimDiv = document.createElement("div");
+    let trimDiv = document.getElementById(def.TRIM_DIV_ID);
+    if (!trimDiv) {
+        trimDiv = document.createElement("div");
         let originalTable = document.getElementById(LESSEN_TABLE_ID);
         originalTable.insertAdjacentElement("afterend", trimDiv);
         trimDiv.id = def.TRIM_DIV_ID;
     }
+    return trimDiv;
 }
 
 function decorateTable() {
     let printButton = document.getElementById("btn_print_overzicht_lessen") as HTMLButtonElement;
     if (!printButton) {
-        return false;
+        return undefined;
     }
     let copyLessonButton = printButton.parentElement.querySelector("button:has(i.fa-reply-all)") as HTMLButtonElement;
     if(copyLessonButton?.title === "") {
@@ -119,7 +119,7 @@ function decorateTable() {
     let hasFullClasses = Array.from(warnings).map((item) => item.textContent).some((txt) => txt.includes("leerlingen"));
 
     if (!hasModules && !hasAlc && !hasWarnings && !hasFullClasses) {
-        return true;
+        return getTrimPageElements();
     }
     if (hasModules) {
         addButton(printButton, def.TRIM_BUTTON_ID, "Toon trimesters", onClickToggleTrimesters, "fa-sitemap");
@@ -132,7 +132,8 @@ function decorateTable() {
     }
 
     addFilterFields();
-    return true;
+
+    return getTrimPageElements();
 }
 
 const TXT_FILTER_ID = "txtFilter";
@@ -320,24 +321,31 @@ function onClickFullClasses() {
 }
 
 function onClickToggleTrimesters() {
-    let table = document.getElementById(LESSEN_TABLE_ID) as HTMLTableElement;
-    showTrimesterTable(table, !isTrimesterTableVisible());
+    showTrimesterTable(getTrimPageElements(), !isTrimesterTableVisible());
 }
 
 export function isTrimesterTableVisible() {
     return document.getElementById(LESSEN_TABLE_ID).style.display === "none";
 }
 
-export function showTrimesterTable(originalTable: HTMLTableElement, show: boolean) {
-    document.getElementById(def.TRIM_TABLE_ID)?.remove();
-    let inputModules = scrapeModules(originalTable);
-    let tableData = buildTableData(inputModules.trimesterModules.concat(inputModules.jaarModules));
-    createTrimTableDiv();//todo: since required for next function, inject it.
-    buildTrimesterTable(tableData);
+export function getTrimPageElements(){
+    return <TrimElements>{
+        trimTable: document.getElementById(def.TRIM_TABLE_ID),
+        trimTableDiv: createTrimTableDiv(),
+        lessenTable: document.getElementById(LESSEN_TABLE_ID),
+        trimButton: document.getElementById(def.TRIM_BUTTON_ID)
+    }
+}
 
-    document.getElementById(LESSEN_TABLE_ID).style.display = show ? "none" : "table";
-    document.getElementById(def.TRIM_TABLE_ID).style.display = show ? "table" : "none";
-    document.getElementById(def.TRIM_BUTTON_ID).title = show ? "Toon normaal" : "Toon trimesters";
+export function showTrimesterTable(trimElements: TrimElements, show: boolean) {
+    trimElements.trimTable?.remove();
+    let inputModules = scrapeModules(trimElements.lessenTable);
+    let tableData = buildTableData(inputModules.trimesterModules.concat(inputModules.jaarModules));
+    buildTrimesterTable(tableData, trimElements);
+
+    trimElements.lessenTable.style.display = show ? "none" : "table";
+    trimElements.trimTable.style.display = show ? "table" : "none";
+    trimElements.trimButton.title = show ? "Toon normaal" : "Toon trimesters";
     setButtonHighlighted(def.TRIM_BUTTON_ID, show);
     setSorteerLine(show);
     applyFilters();
@@ -357,8 +365,7 @@ function addSortingAnchorOrText() {
                 setSavedNameSorting(NameSorting.LastName);
             else
                 setSavedNameSorting(NameSorting.FirstName);
-            let table = document.getElementById(LESSEN_TABLE_ID) as HTMLTableElement;
-            showTrimesterTable(table, true);
+            showTrimesterTable(getTrimPageElements(), true);
             addSortingAnchorOrText();
             return false;
         };
@@ -415,11 +422,10 @@ function createGroupingAnchorOrText(grouping: TrimesterGrouping, activeSorting: 
         anchor.innerText = sortingText;
         anchor.href = "#";
         anchor.onclick = () => {
-            let table = document.getElementById(LESSEN_TABLE_ID) as HTMLTableElement;
             let pageState = getPageSettings(PageName.Lessen, getDefaultPageSettings()) as LessenPageState;
             pageState.grouping = grouping;
             savePageSettings(pageState);
-            showTrimesterTable(table, true);
+            showTrimesterTable(getTrimPageElements(), true);
             return false;
         };
         return anchor;
