@@ -5,6 +5,7 @@ import {SimpleTableHandler} from "../pageHandlers";
 import {findTableRefInCode, TableDef} from "../table/tableDef";
 import {getTableFromHash} from "../table/loadAnyTable";
 import {getChecksumHandler} from "../table/observer";
+import {InfoBar} from "../info_bar";
 
 export default new HashObserver("#leerlingen-lijsten-awi-percentages_leerling_vak", onMutationAanwezgheden);
 
@@ -71,22 +72,23 @@ async function copyTable() {
     let prebuildPageHandler = new SimpleTableHandler(undefined, undefined);
 
     let tableRef = findTableRefInCode();
+
+    //todo: below replaces tableDef.setupInfoBar():
+    let divInfoContainer = tableRef.createElementAboveTable("div");
+    let msgDiv = divInfoContainer.appendChild(document.createElement("div"));
+    msgDiv.classList.add("infoMessage");
+    msgDiv.id = def.INFO_MSG_ID;
+
     let tableDef = new TableDef(
         tableRef,
         prebuildPageHandler,
-        getChecksumHandler(tableRef.htmlTableId)
+        getChecksumHandler(tableRef.htmlTableId),
+        new InfoBar(divInfoContainer.appendChild(document.createElement("div")))
     );
-
-    // tableDef.setupInfoBar();
-    let div = tableRef.createElementAboveTable("div");
-    let msgDiv = div.appendChild(document.createElement("div"));
-    msgDiv.classList.add("infoMessage");
-    msgDiv.id = def.INFO_MSG_ID;
-    tableDef.divInfoContainer = div.appendChild(document.createElement("div"));
 
     showInfoMessage("Fetching 3-weken data...");
 
-    let wekenLijst = await getTableFromHash("leerlingen-lijsten-awi-3weken", tableDef.divInfoContainer, true).then(bckTableDef => {
+    let wekenLijst = await getTableFromHash("leerlingen-lijsten-awi-3weken", tableDef.infoBar.divInfoContainer, true).then(bckTableDef => {
 ``        // convert table to text
         let rowsArray = bckTableDef.getRowsAsArray();
         return rowsArray
@@ -99,7 +101,7 @@ async function copyTable() {
 
     showInfoMessage("Fetching attesten...");
 
-    let attestenLijst = await getTableFromHash("leerlingen-lijsten-awi-ontbrekende_attesten", tableDef.divInfoContainer, true).then(bckTableDef => {
+    let attestenLijst = await getTableFromHash("leerlingen-lijsten-awi-ontbrekende_attesten", tableDef.infoBar.divInfoContainer, true).then(bckTableDef => {
         return bckTableDef.getRowsAsArray().map(tr => {
                 return {
                     datum: tr.cells[0].textContent,
@@ -115,7 +117,7 @@ async function copyTable() {
 
     showInfoMessage("Fetching afwezigheidscodes...");
 
-    let pList = await getTableFromHash("leerlingen-lijsten-awi-afwezigheidsregistraties", tableDef.divInfoContainer, true).then(bckTableDef => {
+    let pList = await getTableFromHash("leerlingen-lijsten-awi-afwezigheidsregistraties", tableDef.infoBar.divInfoContainer, true).then(bckTableDef => {
         let rowsArray = bckTableDef.getRowsAsArray();
 
         return rowsArray

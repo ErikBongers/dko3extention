@@ -3,6 +3,7 @@ import {findFirstNavigation, TableNavigation} from "./tableNavigation";
 import {insertProgressBar, ProgressBar} from "../progressBar";
 import * as def from "../def";
 import {db3, millisToString} from "../globals";
+import {InfoBar} from "../info_bar";
 
 export class TableRef {
     htmlTableId: string;
@@ -72,13 +73,12 @@ export class TableDef {
     pageHandler: PageHandler;
     calculateTableCheckSum: CalculateTableCheckSumHandler;
     isUsingCached = false;
-    divInfoContainer: HTMLDivElement;
+    infoBar: InfoBar;
     shadowTableDate: Date;
-    private tempMessage = "";
     fetchedTable?: FetchedTable;
     tableHandler?: TableHandler;
 
-    constructor(tableRef: TableRef, pageHandler: PageHandler, calculateTableCheckSum: CalculateTableCheckSumHandler, tableHandler?: TableHandler) {
+    constructor(tableRef: TableRef, pageHandler: PageHandler, calculateTableCheckSum: CalculateTableCheckSumHandler, infoBar: InfoBar, tableHandler?: TableHandler) {
         this.tableRef = tableRef;
         this.pageHandler = pageHandler;
         if(!calculateTableCheckSum)
@@ -86,6 +86,7 @@ export class TableDef {
         this.calculateTableCheckSum = calculateTableCheckSum;
         this.fetchedTable = undefined;
         this.tableHandler = tableHandler;
+        this.infoBar = infoBar;
     }
 
     reset() {
@@ -123,86 +124,11 @@ export class TableDef {
         return id.replaceAll(/\s/g, "");
     }
 
-
-    setupInfoBar() {
-        if(!this.divInfoContainer) {
-            this.divInfoContainer = this.tableRef.createElementAboveTable("div") as HTMLDivElement;
-        }
-        this.divInfoContainer.classList.add("infoLine");
-    }
-
-    clearInfoBar() {
-        this.divInfoContainer.innerHTML = "";
-    }
-
-    updateInfoBar() {
-        this.updateCacheInfo();
-        this.#updateTempMessage();
-        //...update other info...
-    }
-
-    setTempMessage(msg: string) {
-        this.tempMessage = msg;
-        this.#updateTempMessage();
-        setTimeout(this.clearTempMessage.bind(this), 4000);
-    }
-
-    clearTempMessage() {
-        this.tempMessage = "";
-        this.#updateTempMessage();
-    }
-
-    #updateTempMessage() {
-        let p = document.getElementById(def.TEMP_MSG_ID);
-        if(this.tempMessage === "") {
-            if(p) p.remove();
-            return;
-        }
-        if(!p) {
-            p = document.createElement("p");
-            this.divInfoContainer.appendChild(p);
-            p.classList.add("tempMessage");
-            p.id = def.TEMP_MSG_ID;
-        }
-        p.innerHTML = this.tempMessage;
-    }
-
-    clearCacheInfo() {
-        document.getElementById(def.CACHE_INFO_ID)?.remove();
-    }
-
-    updateCacheInfo() {
-        let p = document.getElementById(def.CACHE_INFO_ID);
-        if(!this.isUsingCached) {
-            if(p) p.remove();
-            return;
-        }
-
-        if(!p) {
-            p = document.createElement("p");
-            this.divInfoContainer.appendChild(p);
-            p.classList.add("cacheInfo");
-            p.id = def.CACHE_INFO_ID;
-        }
-        p.innerHTML = `Gegevens uit cache, ${millisToString((new Date()).getTime()-this.shadowTableDate.getTime())} oud. `;
-        let a = document.createElement("a");
-        p.appendChild(a);
-        a.innerHTML = "refresh";
-        a.href="#";
-        a.onclick = (e ) => {
-            e.preventDefault();
-            this.reset();
-            // noinspection JSIgnoredPromiseFromCall
-            this.getTableData();
-            return true;
-        }
-    }
     async getTableData() {
         if(this.fetchedTable) {
             return this.fetchedTable;
         }
-        this.setupInfoBar();
-        this.clearCacheInfo();
+        this.infoBar.clearCacheInfo();
         let cachedData = this.loadFromCache();
 
         this.fetchedTable = new FetchedTable(this);
@@ -220,7 +146,14 @@ export class TableDef {
             this.fetchedTable.saveToCache();
             this.pageHandler.onLoaded?.(this.fetchedTable);
         }
-        this.updateInfoBar();
+        let reset_onclick = (e: MouseEvent ) => {
+            e.preventDefault();
+            this.reset();
+            // noinspection JSIgnoredPromiseFromCall
+            this.getTableData();
+            return true;
+        }
+        this.infoBar.updateInfoBar(`Gegevens uit cache, ${millisToString((new Date()).getTime()-this.shadowTableDate.getTime())} oud. `, reset_onclick);
         return this.fetchedTable;
     }
 
@@ -229,7 +162,7 @@ export class TableDef {
             if(!this.pageHandler.onBeforeLoading(this))
                 return false;
         }
-        let progressBar = insertProgressBar(this.divInfoContainer, this.tableRef.navigationData.steps(), "loading pages... ");
+        let progressBar = insertProgressBar(this.infoBar.divInfoContainer, this.tableRef.navigationData.steps(), "loading pages... ");
         progressBar.start();
         await this.#doFetchAllPages(fetchedTable, progressBar);
         return true;
@@ -254,7 +187,7 @@ export class TableDef {
 }
 
 export class FetchedTable {
-    private shadowTableTemplate: HTMLTemplateElement;
+    private readonly shadowTableTemplate: HTMLTemplateElement;
     tableDef: TableDef;
     lastPageNumber: number;
     lastPageStartRow: number;

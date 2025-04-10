@@ -3,6 +3,7 @@ import {FetchedTable, findTableRefInCode, TableDef, TableRef} from "./tableDef";
 import {SimpleTableHandler} from "../pageHandlers";
 import {getChecksumHandler} from "./observer";
 import {setViewFromCurrentUrl} from "../globals";
+import {InfoBar} from "../info_bar";
 
 export async function getTableFromHash(hash: string, divInfoContainer: HTMLDivElement, clearCache: boolean) {
     let page = await fetch("https://administratie.dko3.cloud/#"+hash).then(res => res.text());
@@ -60,9 +61,9 @@ export async function getTableFromHash(hash: string, divInfoContainer: HTMLDivEl
     let tableDef = new TableDef(
         tableRef,
         prebuildPageHandler,
-        getChecksumHandler(tableRef.htmlTableId)
+        getChecksumHandler(tableRef.htmlTableId),
+        new InfoBar(tableRef.createElementAboveTable("div") as HTMLDivElement)
     );
-    tableDef.divInfoContainer = divInfoContainer;
     if(clearCache)
         tableDef.clearCache();
     let fetchedTable = await tableDef.getTableData();
@@ -347,7 +348,8 @@ function setCurrentTableDef() {
         tableDef = new TableDef(
             tableRef,
             undefined, //set handler later!!!
-            getChecksumHandler(tableRef.htmlTableId)
+            getChecksumHandler(tableRef.htmlTableId),
+            new InfoBar(tableRef.createElementAboveTable("div") as HTMLDivElement)
         );
     }
     return tableDef;

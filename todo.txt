@@ -1,7 +1,14 @@
-* TableDef has "paralelData". This doesn't belong there.
-  > Also, the info bar should not be here.
+* Infobar: check the different layouts:
+  - Normal table load : tempMessage + progressBar
+  - Afwezigheden: infoMessage + progressBar (and also tempMessage???)
+
+* TableDef: the info bar should not be here.
     > create a separate infoBar class and have both paralelData and TableDef interact with it.
       > perhaps via an infoListener that starts and listens for both paralelData and table fetch.
+      > 2 concurrent tasks setting messages is problematic!!!
+        > perhaps only have one set the messages and have the 2nd task only set a messages when the 1st task is complete?
+          > MessageHandler should have listerers registered and unregistered.
+            > When a task completes, the listener is unregistered and the last message from the 2nd handler is shown (which is still cached!)
 
 * Lessen filters: show a label for the extra filter.
   > add a bullet/highlight for the selected extra filter in the menu.

@@ -50,6 +50,7 @@ export class BaseObserver {
     }
 
     observerCallback(mutationList: MutationRecord[] , _observer: MutationObserver) {
+        console.log("Observer triggered...");
         for (const mutation of mutationList) {
             if (mutation.type !== "childList") {
                 continue;
@@ -61,6 +62,7 @@ export class BaseObserver {
     }
 
     onPageChanged() {
+        console.log("BaseObserver: onPageChanged()");
         if (!this.pageFilter.match()) {
             this.disconnect();
             return;
@@ -70,6 +72,7 @@ export class BaseObserver {
         }
         if (!this.onMutation)
             return;
+        console.log("BaseObserver: onPageChanged() -> observing...");
         this.observeElement(document.querySelector("main"));
         if(this.trackModal)
             this.observeElement(document.getElementById("dko3_modal"));
@@ -87,6 +90,7 @@ export class BaseObserver {
             subtree: true
         };
         this.observer.observe(element, config);
+        console.log("Observer attached.");
     }
 
     disconnect() {

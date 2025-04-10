@@ -3,7 +3,7 @@ import * as def from "../def";
 import {buildTable, getUrenVakLeraarFileName} from "./buildUren";
 import {scrapeStudent, VakLeraar} from "./scrapeUren";
 import {cloud} from "../cloud";
-import {FetchedTable, findTableRefInCode, TableDef} from "../table/tableDef";
+import {findTableRefInCode, TableDef} from "../table/tableDef";
 import {prefillInstruments} from "./prefillInstruments";
 import {HashObserver} from "../pageObserver";
 import {NamedCellTablePageHandler} from "../pageHandlers";
@@ -11,6 +11,7 @@ import {decorateTableHeader} from "../table/tableHeaders";
 import {getGotoStateOrDefault, Goto, PageName, saveGotoState, WerklijstGotoState} from "../gotoState";
 import {getChecksumHandler, registerChecksumHandler} from "../table/observer";
 import {CloudData, JsonCloudData, UrenData} from "./urenData";
+import {InfoBar} from "../info_bar";
 
 const tableId = "table_leerlingen_werklijst_table";
 
@@ -93,10 +94,12 @@ function onClickCopyEmails() {
         });
     });
 
+    let tableRef = findTableRefInCode()
     let tableDef = new TableDef(
-        findTableRefInCode(),
+        tableRef,
         pageHandler,
-        getChecksumHandler(tableId)
+        getChecksumHandler(tableId),
+        new InfoBar(tableRef.createElementAboveTable("div") as HTMLDivElement)
     );
 
     tableDef.getTableData( )
@@ -110,7 +113,7 @@ function onClickCopyEmails() {
                 .filter((email: string) => !email.includes("@academiestudent.be"))
                 .filter((email: string) => email !== "");
             navigator.clipboard.writeText(flattened.join(";\n")).then(() =>
-                tableDef.setTempMessage("Alle emails zijn naar het clipboard gekopieerd. Je kan ze plakken in Outlook.")
+                tableDef.infoBar.setTempMessage("Alle emails zijn naar het clipboard gekopieerd. Je kan ze plakken in Outlook.")
             );
         });
 }
@@ -133,7 +136,8 @@ function onClickShowCounts() {
         let tableDef = new TableDef(
             tableRef,
             pageHandler,
-            getChecksumHandler(tableRef.htmlTableId)
+            getChecksumHandler(tableRef.htmlTableId),
+            new InfoBar(tableRef.createElementAboveTable("div") as HTMLDivElement)
         );
 
         Promise.all([tableDef.getTableData(), getUrenFromCloud(fileName)]).then(results => {

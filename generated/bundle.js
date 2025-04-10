@@ -713,6 +713,7 @@
       }
     }
     observerCallback(mutationList, _observer) {
+      console.log("Observer triggered...");
       for (const mutation of mutationList) {
         if (mutation.type !== "childList") {
           continue;
@@ -723,6 +724,7 @@
       }
     }
     onPageChanged() {
+      console.log("BaseObserver: onPageChanged()");
       if (!this.pageFilter.match()) {
         this.disconnect();
         return;
@@ -732,6 +734,7 @@
       }
       if (!this.onMutation)
         return;
+      console.log("BaseObserver: onPageChanged() -> observing...");
       this.observeElement(document.querySelector("main"));
       if (this.trackModal)
         this.observeElement(document.getElementById("dko3_modal"));
@@ -747,6 +750,7 @@
         subtree: true
       };
       this.observer.observe(element, config);
+      console.log("Observer attached.");
     }
     disconnect() {
       this.observer?.disconnect();
@@ -2752,9 +2756,8 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
     };
   }
   var TableDef = class {
-    constructor(tableRef, pageHandler, calculateTableCheckSum, tableHandler) {
+    constructor(tableRef, pageHandler, calculateTableCheckSum, infoBar, tableHandler) {
       this.isUsingCached = false;
-      this.tempMessage = "";
       this.tableRef = tableRef;
       this.pageHandler = pageHandler;
       if (!calculateTableCheckSum)
@@ -2762,6 +2765,7 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
       this.calculateTableCheckSum = calculateTableCheckSum;
       this.fetchedTable = void 0;
       this.tableHandler = tableHandler;
+      this.infoBar = infoBar;
     }
     reset() {
       this.clearCache();
@@ -2793,75 +2797,11 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
       let id = this.tableRef.htmlTableId + checksum;
       return id.replaceAll(/\s/g, "");
     }
-    setupInfoBar() {
-      if (!this.divInfoContainer) {
-        this.divInfoContainer = this.tableRef.createElementAboveTable("div");
-      }
-      this.divInfoContainer.classList.add("infoLine");
-    }
-    clearInfoBar() {
-      this.divInfoContainer.innerHTML = "";
-    }
-    updateInfoBar() {
-      this.updateCacheInfo();
-      this.#updateTempMessage();
-    }
-    setTempMessage(msg) {
-      this.tempMessage = msg;
-      this.#updateTempMessage();
-      setTimeout(this.clearTempMessage.bind(this), 4e3);
-    }
-    clearTempMessage() {
-      this.tempMessage = "";
-      this.#updateTempMessage();
-    }
-    #updateTempMessage() {
-      let p = document.getElementById(TEMP_MSG_ID);
-      if (this.tempMessage === "") {
-        if (p) p.remove();
-        return;
-      }
-      if (!p) {
-        p = document.createElement("p");
-        this.divInfoContainer.appendChild(p);
-        p.classList.add("tempMessage");
-        p.id = TEMP_MSG_ID;
-      }
-      p.innerHTML = this.tempMessage;
-    }
-    clearCacheInfo() {
-      document.getElementById(CACHE_INFO_ID)?.remove();
-    }
-    updateCacheInfo() {
-      let p = document.getElementById(CACHE_INFO_ID);
-      if (!this.isUsingCached) {
-        if (p) p.remove();
-        return;
-      }
-      if (!p) {
-        p = document.createElement("p");
-        this.divInfoContainer.appendChild(p);
-        p.classList.add("cacheInfo");
-        p.id = CACHE_INFO_ID;
-      }
-      p.innerHTML = `Gegevens uit cache, ${millisToString((/* @__PURE__ */ new Date()).getTime() - this.shadowTableDate.getTime())} oud. `;
-      let a = document.createElement("a");
-      p.appendChild(a);
-      a.innerHTML = "refresh";
-      a.href = "#";
-      a.onclick = (e) => {
-        e.preventDefault();
-        this.reset();
-        this.getTableData();
-        return true;
-      };
-    }
     async getTableData() {
       if (this.fetchedTable) {
         return this.fetchedTable;
       }
-      this.setupInfoBar();
-      this.clearCacheInfo();
+      this.infoBar.clearCacheInfo();
       let cachedData = this.loadFromCache();
       this.fetchedTable = new FetchedTable(this);
       if (cachedData) {
@@ -2878,7 +2818,13 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
         this.fetchedTable.saveToCache();
         this.pageHandler.onLoaded?.(this.fetchedTable);
       }
-      this.updateInfoBar();
+      let reset_onclick = (e) => {
+        e.preventDefault();
+        this.reset();
+        this.getTableData();
+        return true;
+      };
+      this.infoBar.updateInfoBar(`Gegevens uit cache, ${millisToString((/* @__PURE__ */ new Date()).getTime() - this.shadowTableDate.getTime())} oud. `, reset_onclick);
       return this.fetchedTable;
     }
     async #fetchPages(fetchedTable) {
@@ -2886,7 +2832,7 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
         if (!this.pageHandler.onBeforeLoading(this))
           return false;
       }
-      let progressBar = insertProgressBar(this.divInfoContainer, this.tableRef.navigationData.steps(), "loading pages... ");
+      let progressBar = insertProgressBar(this.infoBar.divInfoContainer, this.tableRef.navigationData.steps(), "loading pages... ");
       progressBar.start();
       await this.#doFetchAllPages(fetchedTable, progressBar);
       return true;
@@ -3208,6 +3154,66 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
     tableCriteriaBuilders.set(tableId2, checksumHandler);
   }
 
+  // typescript/info_bar.ts
+  var InfoBar = class {
+    constructor(divInfoContainer) {
+      this.divInfoContainer = divInfoContainer;
+      this.divInfoContainer.classList.add("infoLine");
+    }
+    clearInfoBar() {
+      this.divInfoContainer.innerHTML = "";
+    }
+    updateInfoBar(cacheInfo, reset_onclick) {
+      this.updateCacheInfo(cacheInfo, reset_onclick);
+      this.#updateTempMessage();
+    }
+    setTempMessage(msg) {
+      this.tempMessage = msg;
+      this.#updateTempMessage();
+      setTimeout(this.clearTempMessage.bind(this), 4e3);
+    }
+    clearTempMessage() {
+      this.tempMessage = "";
+      this.#updateTempMessage();
+    }
+    #updateTempMessage() {
+      let p = document.getElementById(TEMP_MSG_ID);
+      if (this.tempMessage === "") {
+        if (p) p.remove();
+        return;
+      }
+      if (!p) {
+        p = document.createElement("p");
+        this.divInfoContainer.appendChild(p);
+        p.classList.add("tempMessage");
+        p.id = TEMP_MSG_ID;
+      }
+      p.innerHTML = this.tempMessage;
+    }
+    clearCacheInfo() {
+      document.getElementById(CACHE_INFO_ID)?.remove();
+    }
+    updateCacheInfo(info, reset_onclick) {
+      let p = document.getElementById(CACHE_INFO_ID);
+      if (!this.isUsingCached) {
+        if (p) p.remove();
+        return;
+      }
+      if (!p) {
+        p = document.createElement("p");
+        this.divInfoContainer.appendChild(p);
+        p.classList.add("cacheInfo");
+        p.id = CACHE_INFO_ID;
+      }
+      p.innerHTML = info;
+      let a = document.createElement("a");
+      p.appendChild(a);
+      a.innerHTML = "refresh";
+      a.href = "#";
+      a.onclick = reset_onclick;
+    }
+  };
+
   // typescript/table/loadAnyTable.ts
   async function getTableFromHash(hash, divInfoContainer, clearCache) {
     let page = await fetch("https://administratie.dko3.cloud/#" + hash).then((res) => res.text());
@@ -3245,9 +3251,9 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
     let tableDef2 = new TableDef(
       tableRef,
       prebuildPageHandler,
-      getChecksumHandler(tableRef.htmlTableId)
+      getChecksumHandler(tableRef.htmlTableId),
+      new InfoBar(tableRef.createElementAboveTable("div"))
     );
-    tableDef2.divInfoContainer = divInfoContainer;
     if (clearCache)
       tableDef2.clearCache();
     let fetchedTable = await tableDef2.getTableData();
@@ -3400,7 +3406,8 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
         tableRef,
         void 0,
         //set handler later!!!
-        getChecksumHandler(tableRef.htmlTableId)
+        getChecksumHandler(tableRef.htmlTableId),
+        new InfoBar(tableRef.createElementAboveTable("div"))
       );
     }
     return tableDef;
@@ -3801,16 +3808,18 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
         console.log("Clipboard cleared.");
       });
     });
+    let tableRef = findTableRefInCode();
     let tableDef2 = new TableDef(
-      findTableRefInCode(),
+      tableRef,
       pageHandler,
-      getChecksumHandler(tableId)
+      getChecksumHandler(tableId),
+      new InfoBar(tableRef.createElementAboveTable("div"))
     );
     tableDef2.getTableData().then((fetchedTable) => {
       let allEmails = this.rows = fetchedTable.getRowsAsArray().map((tr) => tableDef2.pageHandler.getColumnText(tr, "e-mailadressen"));
       let flattened = allEmails.map((emails) => emails.split(/[,;]/)).flat().filter((email) => !email.includes("@academiestudent.be")).filter((email) => email !== "");
       navigator.clipboard.writeText(flattened.join(";\n")).then(
-        () => tableDef2.setTempMessage("Alle emails zijn naar het clipboard gekopieerd. Je kan ze plakken in Outlook.")
+        () => tableDef2.infoBar.setTempMessage("Alle emails zijn naar het clipboard gekopieerd. Je kan ze plakken in Outlook.")
       );
     });
   }
@@ -3830,7 +3839,8 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
       let tableDef2 = new TableDef(
         tableRef,
         pageHandler,
-        getChecksumHandler(tableRef.htmlTableId)
+        getChecksumHandler(tableRef.htmlTableId),
+        new InfoBar(tableRef.createElementAboveTable("div"))
       );
       Promise.all([tableDef2.getTableData(), getUrenFromCloud(fileName)]).then((results) => {
         let [fetchedTable, jsonCloudData] = results;
@@ -3955,18 +3965,18 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
   async function copyTable() {
     let prebuildPageHandler = new SimpleTableHandler(void 0, void 0);
     let tableRef = findTableRefInCode();
+    let divInfoContainer = tableRef.createElementAboveTable("div");
+    let msgDiv = divInfoContainer.appendChild(document.createElement("div"));
+    msgDiv.classList.add("infoMessage");
+    msgDiv.id = INFO_MSG_ID;
     let tableDef2 = new TableDef(
       tableRef,
       prebuildPageHandler,
-      getChecksumHandler(tableRef.htmlTableId)
+      getChecksumHandler(tableRef.htmlTableId),
+      new InfoBar(divInfoContainer.appendChild(document.createElement("div")))
     );
-    let div = tableRef.createElementAboveTable("div");
-    let msgDiv = div.appendChild(document.createElement("div"));
-    msgDiv.classList.add("infoMessage");
-    msgDiv.id = INFO_MSG_ID;
-    tableDef2.divInfoContainer = div.appendChild(document.createElement("div"));
     showInfoMessage("Fetching 3-weken data...");
-    let wekenLijst = await getTableFromHash("leerlingen-lijsten-awi-3weken", tableDef2.divInfoContainer, true).then((bckTableDef) => {
+    let wekenLijst = await getTableFromHash("leerlingen-lijsten-awi-3weken", tableDef2.infoBar.divInfoContainer, true).then((bckTableDef) => {
       ``;
       let rowsArray = bckTableDef.getRowsAsArray();
       return rowsArray.map((row) => {
@@ -3976,7 +3986,7 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
     });
     console.log(wekenLijst);
     showInfoMessage("Fetching attesten...");
-    let attestenLijst = await getTableFromHash("leerlingen-lijsten-awi-ontbrekende_attesten", tableDef2.divInfoContainer, true).then((bckTableDef) => {
+    let attestenLijst = await getTableFromHash("leerlingen-lijsten-awi-ontbrekende_attesten", tableDef2.infoBar.divInfoContainer, true).then((bckTableDef) => {
       return bckTableDef.getRowsAsArray().map(
         (tr) => {
           return {
@@ -3991,7 +4001,7 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
     });
     console.log(attestenLijst);
     showInfoMessage("Fetching afwezigheidscodes...");
-    let pList = await getTableFromHash("leerlingen-lijsten-awi-afwezigheidsregistraties", tableDef2.divInfoContainer, true).then((bckTableDef) => {
+    let pList = await getTableFromHash("leerlingen-lijsten-awi-afwezigheidsregistraties", tableDef2.infoBar.divInfoContainer, true).then((bckTableDef) => {
       let rowsArray = bckTableDef.getRowsAsArray();
       return rowsArray.map((row) => {
         let namen = row.cells[1].querySelector("strong").textContent.split(", ");
