@@ -138,6 +138,14 @@ export class TableDef {
             this.isUsingCached = true;
             this.pageHandler.onPage?.(this, cachedData.text, this.fetchedTable);
             this.pageHandler.onLoaded?.(this.fetchedTable);
+            let reset_onclick = (e: MouseEvent ) => {
+                e.preventDefault();
+                this.reset();
+                // noinspection JSIgnoredPromiseFromCall
+                this.getTableData();
+                return true;
+            }
+            this.infoBar.setCacheInfo(`Gegevens uit cache, ${millisToString((new Date()).getTime()-this.shadowTableDate.getTime())} oud. `, reset_onclick);
         } else {
             this.isUsingCached = false;
             let success = await this.#fetchPages(this.fetchedTable);
@@ -146,14 +154,6 @@ export class TableDef {
             this.fetchedTable.saveToCache();
             this.pageHandler.onLoaded?.(this.fetchedTable);
         }
-        let reset_onclick = (e: MouseEvent ) => {
-            e.preventDefault();
-            this.reset();
-            // noinspection JSIgnoredPromiseFromCall
-            this.getTableData();
-            return true;
-        }
-        this.infoBar.updateInfoBar(`Gegevens uit cache, ${millisToString((new Date()).getTime()-this.shadowTableDate.getTime())} oud. `, reset_onclick);
         return this.fetchedTable;
     }
 
@@ -162,7 +162,7 @@ export class TableDef {
             if(!this.pageHandler.onBeforeLoading(this))
                 return false;
         }
-        let progressBar = insertProgressBar(this.infoBar.divInfoContainer, this.tableRef.navigationData.steps(), "loading pages... ");
+        let progressBar = insertProgressBar(this.infoBar.divInfoLine, this.tableRef.navigationData.steps(), "loading pages... ");
         progressBar.start();
         await this.#doFetchAllPages(fetchedTable, progressBar);
         return true;
@@ -180,7 +180,7 @@ export class TableDef {
                     break;
             }
         } finally {
-            progressBar.stop();
+            this.infoBar.setInfoLine("");//implicitely removes the progressBar.
         }
     }
 

@@ -55,40 +55,25 @@ interface Attest {
     leraar: string,
     reden: string
 }
-
-function showInfoMessage(message: string, click_element_id?: string, callback?: () => void) {
-    let div = document.querySelector("#"+def.INFO_MSG_ID);
-    if(!div)
-        return; //meh...
-
-    div.innerHTML = message;
-    if(click_element_id) {
-        document.getElementById(click_element_id).onclick = callback;
-    }
-}
-
+let tableDef: TableDef = undefined;
 
 async function copyTable() {
     let prebuildPageHandler = new SimpleTableHandler(undefined, undefined);
 
     let tableRef = findTableRefInCode();
 
-    //todo: below replaces tableDef.setupInfoBar():
     let divInfoContainer = tableRef.createElementAboveTable("div");
-    let msgDiv = divInfoContainer.appendChild(document.createElement("div"));
-    msgDiv.classList.add("infoMessage");
-    msgDiv.id = def.INFO_MSG_ID;
-
-    let tableDef = new TableDef(
+    let infoBar = new InfoBar(divInfoContainer.appendChild(document.createElement("div")));
+    tableDef = new TableDef(
         tableRef,
         prebuildPageHandler,
         getChecksumHandler(tableRef.htmlTableId),
-        new InfoBar(divInfoContainer.appendChild(document.createElement("div")))
+        infoBar
     );
 
-    showInfoMessage("Fetching 3-weken data...");
+    tableDef.infoBar.setExtraInfo("Fetching 3-weken data...");
 
-    let wekenLijst = await getTableFromHash("leerlingen-lijsten-awi-3weken", tableDef.infoBar.divInfoContainer, true).then(bckTableDef => {
+    let wekenLijst = await getTableFromHash("leerlingen-lijsten-awi-3weken", tableDef.infoBar.divInfoContainer, true, infoBar).then(bckTableDef => {
 ``        // convert table to text
         let rowsArray = bckTableDef.getRowsAsArray();
         return rowsArray
@@ -99,9 +84,9 @@ async function copyTable() {
     });
     console.log(wekenLijst);
 
-    showInfoMessage("Fetching attesten...");
+    tableDef.infoBar.setExtraInfo("Fetching attesten...");
 
-    let attestenLijst = await getTableFromHash("leerlingen-lijsten-awi-ontbrekende_attesten", tableDef.infoBar.divInfoContainer, true).then(bckTableDef => {
+    let attestenLijst = await getTableFromHash("leerlingen-lijsten-awi-ontbrekende_attesten", tableDef.infoBar.divInfoContainer, true, infoBar).then(bckTableDef => {
         return bckTableDef.getRowsAsArray().map(tr => {
                 return {
                     datum: tr.cells[0].textContent,
@@ -115,9 +100,9 @@ async function copyTable() {
     });
     console.log(attestenLijst);
 
-    showInfoMessage("Fetching afwezigheidscodes...");
+    tableDef.infoBar.setExtraInfo("Fetching afwezigheidscodes...");
 
-    let pList = await getTableFromHash("leerlingen-lijsten-awi-afwezigheidsregistraties", tableDef.infoBar.divInfoContainer, true).then(bckTableDef => {
+    let pList = await getTableFromHash("leerlingen-lijsten-awi-afwezigheidsregistraties", tableDef.infoBar.divInfoContainer, true, infoBar).then(bckTableDef => {
         let rowsArray = bckTableDef.getRowsAsArray();
 
         return rowsArray
@@ -216,12 +201,12 @@ function aanwezighedenToClipboard() {
     let text = window.sessionStorage.getItem(def.AANW_LIST);
     navigator.clipboard.writeText(text)
         .then(r => {
-            showInfoMessage("Data copied to clipboard. <a id="+def.COPY_AGAIN+" href='javascript:void(0);'>Copy again</a>", def.COPY_AGAIN, () => {
+            tableDef.infoBar.setExtraInfo("Data copied to clipboard. <a id="+def.COPY_AGAIN+" href='javascript:void(0);'>Copy again</a>", def.COPY_AGAIN, () => {
                 aanwezighedenToClipboard();
             });
         })
         .catch(reason => {
-            showInfoMessage("Could not copy to clipboard!!! <a id="+def.COPY_AGAIN+" href='javascript:void(0);'>Copy again</a>", def.COPY_AGAIN, () => {
+            tableDef.infoBar.setExtraInfo("Could not copy to clipboard!!! <a id="+def.COPY_AGAIN+" href='javascript:void(0);'>Copy again</a>", def.COPY_AGAIN, () => {
                 aanwezighedenToClipboard();
             });
         });

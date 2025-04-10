@@ -127,6 +127,7 @@ body.otherSchool {
 }
 
 .cacheInfo {
+    text-align: center;
     font-size: .7em;
     color: darkslateblue;
     opacity: .5;

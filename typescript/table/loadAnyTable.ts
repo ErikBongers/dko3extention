@@ -5,7 +5,7 @@ import {getChecksumHandler} from "./observer";
 import {setViewFromCurrentUrl} from "../globals";
 import {InfoBar} from "../infoBar";
 
-export async function getTableFromHash(hash: string, divInfoContainer: HTMLDivElement, clearCache: boolean) {
+export async function getTableFromHash(hash: string, divInfoContainer: HTMLDivElement, clearCache: boolean, infoBar: InfoBar) {
     let page = await fetch("https://administratie.dko3.cloud/#"+hash).then(res => res.text());
 
     // call to changeView() - assuming this is always the same, so no parsing here.
@@ -62,7 +62,7 @@ export async function getTableFromHash(hash: string, divInfoContainer: HTMLDivEl
         tableRef,
         prebuildPageHandler,
         getChecksumHandler(tableRef.htmlTableId),
-        new InfoBar(tableRef.createElementAboveTable("div") as HTMLDivElement)
+        infoBar
     );
     if(clearCache)
         tableDef.clearCache();

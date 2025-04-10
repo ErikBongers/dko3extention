@@ -2,8 +2,10 @@ import {createTable, distinct, openTab, rangeGenerator} from "../globals";
 import {emmet} from "../../libs/Emmeter/html";
 import {downloadTable, getCurrentTableDef} from "./loadAnyTable";
 import {addMenuItem, addMenuSeparator, setupMenu} from "../menus";
-import {FetchedTable, TableDef, TableHandler} from "./tableDef";
+import {FetchedTable, findTableRefInCode, TableDef, TableHandler} from "./tableDef";
 import {CAN_HAVE_MENU} from "../def";
+import {InfoBar} from "../infoBar";
+import {insertProgressBar} from "../progressBar";
 
 
 function sortRows(cmpFunction: (a: HTMLTableCellElement, b: HTMLTableCellElement) => number, header: Element, rows: HTMLTableRowElement[], index: number, descending: boolean) {
@@ -119,6 +121,7 @@ export function decorateTableHeader(table: HTMLTableElement) {
     if (table.tHead.classList.contains("clickHandler"))
         return;
     table.tHead.classList.add("clickHandler");
+
     Array.from(table.tHead.children[0].children)
         .forEach((colHeader: HTMLElement, index) => {
             colHeader.onclick = (ev) => {
