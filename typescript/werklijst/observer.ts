@@ -11,7 +11,7 @@ import {decorateTableHeader} from "../table/tableHeaders";
 import {getGotoStateOrDefault, Goto, PageName, saveGotoState, WerklijstGotoState} from "../gotoState";
 import {getChecksumHandler, registerChecksumHandler} from "../table/observer";
 import {CloudData, JsonCloudData, UrenData} from "./urenData";
-import {InfoBar} from "../info_bar";
+import {InfoBar} from "../infoBar";
 
 const tableId = "table_leerlingen_werklijst_table";
 

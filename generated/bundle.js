@@ -713,7 +713,6 @@
       }
     }
     observerCallback(mutationList, _observer) {
-      console.log("Observer triggered...");
       for (const mutation of mutationList) {
         if (mutation.type !== "childList") {
           continue;
@@ -724,7 +723,6 @@
       }
     }
     onPageChanged() {
-      console.log("BaseObserver: onPageChanged()");
       if (!this.pageFilter.match()) {
         this.disconnect();
         return;
@@ -734,7 +732,6 @@
       }
       if (!this.onMutation)
         return;
-      console.log("BaseObserver: onPageChanged() -> observing...");
       this.observeElement(document.querySelector("main"));
       if (this.trackModal)
         this.observeElement(document.getElementById("dko3_modal"));
@@ -750,7 +747,6 @@
         subtree: true
       };
       this.observer.observe(element, config);
-      console.log("Observer attached.");
     }
     disconnect() {
       this.observer?.disconnect();
@@ -3154,7 +3150,7 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
     tableCriteriaBuilders.set(tableId2, checksumHandler);
   }
 
-  // typescript/info_bar.ts
+  // typescript/infoBar.ts
   var InfoBar = class {
     constructor(divInfoContainer) {
       this.divInfoContainer = divInfoContainer;

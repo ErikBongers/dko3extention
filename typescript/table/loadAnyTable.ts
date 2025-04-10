@@ -3,7 +3,7 @@ import {FetchedTable, findTableRefInCode, TableDef, TableRef} from "./tableDef";
 import {SimpleTableHandler} from "../pageHandlers";
 import {getChecksumHandler} from "./observer";
 import {setViewFromCurrentUrl} from "../globals";
-import {InfoBar} from "../info_bar";
+import {InfoBar} from "../infoBar";
 
 export async function getTableFromHash(hash: string, divInfoContainer: HTMLDivElement, clearCache: boolean) {
     let page = await fetch("https://administratie.dko3.cloud/#"+hash).then(res => res.text());

@@ -5,7 +5,7 @@ import {SimpleTableHandler} from "../pageHandlers";
 import {findTableRefInCode, TableDef} from "../table/tableDef";
 import {getTableFromHash} from "../table/loadAnyTable";
 import {getChecksumHandler} from "../table/observer";
-import {InfoBar} from "../info_bar";
+import {InfoBar} from "../infoBar";
 
 export default new HashObserver("#leerlingen-lijsten-awi-percentages_leerling_vak", onMutationAanwezgheden);
 
