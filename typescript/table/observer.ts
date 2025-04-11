@@ -2,7 +2,7 @@ import {addTableNavigationButton, getBothToolbars} from "../globals";
 import * as def from "../def";
 import {CAN_HAVE_MENU, CAN_SORT} from "../def";
 import {AllPageFilter, BaseObserver} from "../pageObserver";
-import {CalculateTableCheckSumHandler, findTableRefInCode, TableFetcher} from "./tableFetcher";
+import {CheckSumBuilder, findTableRefInCode, TableFetcher} from "./tableFetcher";
 import {decorateTableHeader} from "./tableHeaders";
 import {downloadTable} from "./loadAnyTable";
 
@@ -27,15 +27,15 @@ function onMutation (_mutation: MutationRecord) {
     return true;
 }
 
-let tableCriteriaBuilders = new Map<string, CalculateTableCheckSumHandler>();
+let tableCriteriaBuilders = new Map<string, CheckSumBuilder>();
 
-export function getChecksumHandler(tableId: string): CalculateTableCheckSumHandler { //todo: rename getChecksumBuilder?
-    let handler = tableCriteriaBuilders.get(tableId);
-    if(handler)
-        return handler;
-    return (tableDef: TableFetcher) => "";
+export function getChecksumBuilder(tableId: string): CheckSumBuilder {
+    let builder = tableCriteriaBuilders.get(tableId);
+    if(builder)
+        return builder;
+    return (tableFetcher: TableFetcher) => "";
 }
 
-export function registerChecksumHandler(tableId: string, checksumHandler: CalculateTableCheckSumHandler) {
+export function registerChecksumHandler(tableId: string, checksumHandler: CheckSumBuilder) {
     tableCriteriaBuilders.set(tableId, checksumHandler);
 }

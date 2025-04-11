@@ -1,6 +1,6 @@
 import {findFirstNavigation} from "./tableNavigation";
 import {findTableRefInCode, TableFetcher, TableFetchListener, TableRef} from "./tableFetcher";
-import {getChecksumHandler} from "./observer";
+import {getChecksumBuilder} from "./observer";
 import {millisToString, setViewFromCurrentUrl} from "../globals";
 import {InfoBar} from "../infoBar";
 import {insertProgressBar, ProgressBar} from "../progressBar";
@@ -71,7 +71,7 @@ export async function getTableFromHash(hash: string, clearCache: boolean, infoBa
 
     let tableFetcher = new TableFetcher(
         tableRef,
-        getChecksumHandler(tableRef.htmlTableId)
+        getChecksumBuilder(tableRef.htmlTableId)
     );
 
     tableFetcher.addListener(infoBarListener);
@@ -413,7 +413,7 @@ export function createDefaultTableFetcher() {
 
     let tableFetcher = new TableFetcher(
         tableRef,
-        getChecksumHandler(tableRef.htmlTableId)
+        getChecksumBuilder(tableRef.htmlTableId)
     );
     tableFetcher.addListener(new InfoBarTableFetchListener(infoBar, progressBar))
     return {tableFetcher, infoBar, progressBar};

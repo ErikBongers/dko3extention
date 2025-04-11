@@ -1748,7 +1748,6 @@
     }
   }
   function onWindowClick(event) {
-    console.log("window clicked!!!");
     if (event.target.matches(".dropDownIgnoreHide"))
       return;
     closeMenus();
@@ -3090,11 +3089,11 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
     return true;
   }
   var tableCriteriaBuilders = /* @__PURE__ */ new Map();
-  function getChecksumHandler(tableId2) {
-    let handler = tableCriteriaBuilders.get(tableId2);
-    if (handler)
-      return handler;
-    return (tableDef) => "";
+  function getChecksumBuilder(tableId2) {
+    let builder = tableCriteriaBuilders.get(tableId2);
+    if (builder)
+      return builder;
+    return (tableFetcher) => "";
   }
   function registerChecksumHandler(tableId2, checksumHandler) {
     tableCriteriaBuilders.set(tableId2, checksumHandler);
@@ -3242,7 +3241,7 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
     let infoBarListener = new InfoBarTableFetchListener(infoBar, progressBar);
     let tableFetcher = new TableFetcher(
       tableRef,
-      getChecksumHandler(tableRef.htmlTableId)
+      getChecksumBuilder(tableRef.htmlTableId)
     );
     tableFetcher.addListener(infoBarListener);
     if (clearCache)
@@ -3436,7 +3435,7 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
     let { tableRef, infoBar, progressBar } = createDefaultTableRefAndInfoBar();
     let tableFetcher = new TableFetcher(
       tableRef,
-      getChecksumHandler(tableRef.htmlTableId)
+      getChecksumBuilder(tableRef.htmlTableId)
     );
     tableFetcher.addListener(new InfoBarTableFetchListener(infoBar, progressBar));
     return { tableFetcher, infoBar, progressBar };

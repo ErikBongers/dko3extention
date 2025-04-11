@@ -63,7 +63,7 @@ function findTable() {
     };
 }
 
-export type CalculateTableCheckSumHandler = (tableDef: TableFetcher) => string;
+export type CheckSumBuilder = (tableDef: TableFetcher) => string;
 
 export interface TableHandler {
     onReset: (tableDef: TableFetcher) => void;
@@ -78,14 +78,14 @@ export interface TableFetchListener {
 
 export class TableFetcher {
     tableRef: TableRef;
-    calculateTableCheckSum: CalculateTableCheckSumHandler;
+    calculateTableCheckSum: CheckSumBuilder;
     isUsingCached = false;
     shadowTableDate: Date;
     fetchedTable?: FetchedTable;
     tableHandler?: TableHandler;
     listeners: TableFetchListener[];
 
-    constructor(tableRef: TableRef, calculateTableCheckSum: CalculateTableCheckSumHandler, tableHandler?: TableHandler) {
+    constructor(tableRef: TableRef, calculateTableCheckSum: CheckSumBuilder, tableHandler?: TableHandler) {
         this.tableRef = tableRef;
         if(!calculateTableCheckSum)
             throw ("Tablechecksum required.");

@@ -9,7 +9,7 @@ import {HashObserver} from "../pageObserver";
 import {NamedCellTableFetchListener} from "../pageHandlers";
 import {decorateTableHeader} from "../table/tableHeaders";
 import {getGotoStateOrDefault, Goto, PageName, saveGotoState, WerklijstGotoState} from "../gotoState";
-import {getChecksumHandler, registerChecksumHandler} from "../table/observer";
+import {getChecksumBuilder, registerChecksumHandler} from "../table/observer";
 import {CloudData, JsonCloudData, UrenData} from "./urenData";
 import {InfoBar} from "../infoBar";
 import {createDefaultTableFetcher} from "../table/loadAnyTable";
