@@ -1,27 +1,30 @@
 import * as def from "./def";
 import {emmet} from "../libs/Emmeter/html";
-import hide = chrome.pageAction.hide;
 
 export class ProgressBar {
     private barElement: HTMLElement;
     private containerElement: HTMLElement;
-    private readonly maxCount: number;
+    private maxCount: number;
     private count: number;
 
-    constructor(containerElement: HTMLElement, barElement: HTMLElement, maxCount: number) {
+    constructor(containerElement: HTMLElement, barElement: HTMLElement) {
         this.barElement = barElement;
         this.containerElement = containerElement;
         this.hide();
+    }
+
+    reset(maxCount: number) {
         this.maxCount = maxCount;
         this.count = 0;
+        this.barElement.innerHTML = "";
         for (let i = 0; i < maxCount; i++) {
             let block = document.createElement("div");
-            barElement.appendChild(block);
+            this.barElement.appendChild(block);
             block.classList.add("progressBlock");
         }
     }
-
-    start() {
+    start(maxCount: number) {
+        this.reset(maxCount);
         this.containerElement.style.display = "block";
         this.next();
     }
@@ -54,5 +57,5 @@ export class ProgressBar {
 export function insertProgressBar(container: HTMLElement, steps: number, text: string = "") {
     container.innerHTML = "";
     let {first: divProgressLine, last: divProgressBar} = emmet.appendChild(container, `div.infoLine${def.PROGRESS_BAR_ID}>div.progressText{${text}}+div.progressBar`);
-    return new ProgressBar(divProgressLine as HTMLDivElement, divProgressBar as HTMLDivElement, steps);
+    return new ProgressBar(divProgressLine as HTMLDivElement, divProgressBar as HTMLDivElement);
 }

@@ -53,7 +53,6 @@ interface Attest {
     leraar: string,
     reden: string
 }
-let globalTableFetcher: TableFetcher = undefined; //todo: try to get rid of global.
 
 async function copyTable() {
     let result = createDefaultTableFetcher();
@@ -61,13 +60,12 @@ async function copyTable() {
         console.error(result.error);
         return;
     }
-    let {tableFetcher, infoBar} = result.result;
+    let {tableFetcher, infoBar, infoBarListener} = result.result;
 
-    globalTableFetcher = tableFetcher;
     infoBar.setExtraInfo("Fetching 3-weken data...");
 
-    let wekenLijst = await getTableFromHash("leerlingen-lijsten-awi-3weken", true, infoBar).then(bckTableDef => {
-``        // convert table to text
+    let wekenLijst = await getTableFromHash("leerlingen-lijsten-awi-3weken", true, infoBarListener).then(bckTableDef => {
+        // convert table to text
         let rowsArray = bckTableDef.getRowsAsArray();
         return rowsArray
             .map(row => {
@@ -79,7 +77,7 @@ async function copyTable() {
 
     infoBar.setExtraInfo("Fetching attesten...");
 
-    let attestenLijst = await getTableFromHash("leerlingen-lijsten-awi-ontbrekende_attesten", true, infoBar).then(bckTableDef => {
+    let attestenLijst = await getTableFromHash("leerlingen-lijsten-awi-ontbrekende_attesten", true, infoBarListener).then(bckTableDef => {
         return bckTableDef.getRowsAsArray().map(tr => {
                 return {
                     datum: tr.cells[0].textContent,
@@ -95,7 +93,7 @@ async function copyTable() {
 
     infoBar.setExtraInfo("Fetching afwezigheidscodes...");
 
-    let pList = await getTableFromHash("leerlingen-lijsten-awi-afwezigheidsregistraties", true, infoBar).then(bckTableDef => {
+    let pList = await getTableFromHash("leerlingen-lijsten-awi-afwezigheidsregistraties", true, infoBarListener).then(bckTableDef => {
         let rowsArray = bckTableDef.getRowsAsArray();
 
         return rowsArray
@@ -109,8 +107,8 @@ async function copyTable() {
     });
     console.log(pList);
 
-    globalTableFetcher.clearCache();
-    globalTableFetcher.fetch().then((fetchedTable) => {
+    tableFetcher.clearCache();
+    tableFetcher.fetch().then((fetchedTable) => {
 
         let wekenMap: Map<string, Weken> = new Map();
 
@@ -184,7 +182,7 @@ async function copyTable() {
         aanwezighedenToClipboard(infoBar);
 
         //replace the visible table
-        globalTableFetcher.tableRef.getOrgTableContainer()
+        tableFetcher.tableRef.getOrgTableContainer()
             .querySelector("tbody")
             .replaceChildren(...fetchedTable.getRows());
     });

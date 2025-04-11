@@ -2615,6 +2615,232 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
     return "K " + renameInstrument(vak);
   }
 
+  // typescript/werklijst/criteria.ts
+  async function fetchVakken(clear, schooljaar) {
+    if (clear) {
+      await sendClearWerklijst();
+    }
+    await sendAddCriterium(schooljaar, "Vak");
+    let text = await fetchCritera(schooljaar);
+    const template = document.createElement("template");
+    template.innerHTML = text;
+    let vakken = template.content.querySelectorAll("#form_field_leerling_werklijst_criterium_vak option");
+    return Array.from(vakken).map((vak) => [vak.label, vak.value]);
+  }
+  async function fetchCritera(schoolYear) {
+    return (await fetch("https://administratie.dko3.cloud/views/leerlingen/werklijst/index.criteria.php?schooljaar=" + schoolYear, {
+      method: "GET"
+    })).text();
+  }
+  async function sendAddCriterium(schoolYear, criterium) {
+    const formData = new FormData();
+    formData.append(`criterium`, criterium);
+    formData.append(`schooljaar`, schoolYear);
+    await fetch("https://administratie.dko3.cloud/views/leerlingen/werklijst/index.criteria.session_add.php", {
+      method: "POST",
+      body: formData
+    });
+  }
+  async function sendClearWerklijst() {
+    const formData = new FormData();
+    formData.append("session", "leerlingen_werklijst");
+    await fetch("/views/util/clear_session.php", {
+      method: "POST",
+      body: formData
+    });
+    await fetch("views/leerlingen/werklijst/index.velden.php", {
+      method: "GET"
+    });
+  }
+  async function sendCriteria(criteria) {
+    const formData = new FormData();
+    formData.append("criteria", JSON.stringify(criteria));
+    await fetch("/views/leerlingen/werklijst/index.criteria.session_reload.php", {
+      method: "POST",
+      body: formData
+    });
+  }
+  async function sendGrouping(grouping) {
+    const formData = new FormData();
+    formData.append("groepering", grouping);
+    await fetch("/views/leerlingen/werklijst/index.groeperen.session_add.php", {
+      method: "POST",
+      body: formData
+    });
+  }
+  async function sendFields(fields) {
+    const formData = new FormData();
+    let fieldCnt = 0;
+    for (let field of fields) {
+      formData.append(`velden[${fieldCnt}][value]`, field.value);
+      formData.append(`velden[${fieldCnt}][text]`, field.text);
+      fieldCnt++;
+    }
+    await fetch("/views/leerlingen/werklijst/index.velden.session_add.php", {
+      method: "POST",
+      body: formData
+    });
+  }
+
+  // typescript/werklijst/prefillInstruments.ts
+  var instrumentSet = /* @__PURE__ */ new Set([
+    "Accordeon",
+    "Altfluit",
+    "Althoorn",
+    "Altklarinet",
+    "Altsaxofoon",
+    "Altsaxofoon (jazz pop rock)",
+    "Altviool",
+    "Baglama/saz (wereldmuziek)",
+    "Bariton",
+    "Baritonsaxofoon",
+    "Baritonsaxofoon (jazz pop rock)",
+    "Basfluit",
+    "Basgitaar (jazz pop rock)",
+    "Basklarinet",
+    "Bastrombone",
+    "Bastuba",
+    "Bugel",
+    "Cello",
+    "Contrabas (jazz pop rock)",
+    "Contrabas (klassiek)",
+    "Dwarsfluit",
+    "Engelse hoorn",
+    "Eufonium",
+    "Fagot",
+    "Gitaar",
+    "Gitaar (jazz pop rock)",
+    "Harp",
+    "Hobo",
+    "Hoorn",
+    "Keyboard (jazz pop rock)",
+    "Klarinet",
+    "Kornet",
+    "Orgel",
+    "Piano",
+    "Piano (jazz pop rock)",
+    "Pianolab",
+    "Piccolo",
+    "Slagwerk",
+    "Slagwerk (jazz pop rock)",
+    "Sopraansaxofoon",
+    "Sopraansaxofoon (jazz pop rock)",
+    "Tenorsaxofoon",
+    "Tenorsaxofoon (jazz pop rock)",
+    "Trombone",
+    "Trompet",
+    "Trompet (jazz pop rock)",
+    "Ud (wereldmuziek)",
+    "Viool",
+    "Zang",
+    "Zang (jazz pop rock)",
+    "Zang (musical 2e graad)",
+    "Zang (musical)"
+  ]);
+  async function prefillInstruments(schooljaar) {
+    await sendClearWerklijst();
+    let vakken = await fetchVakken(false, schooljaar);
+    let instruments = vakken.filter((vak) => isInstrument2(vak[0]));
+    let values = instruments.map((vak) => parseInt(vak[1]));
+    let valueString = values.join();
+    let criteria = [
+      { "criteria": "Schooljaar", "operator": "=", "values": schooljaar },
+      { "criteria": "Status", "operator": "=", "values": "12" },
+      { "criteria": "Uitschrijvingen", "operator": "=", "values": "0" },
+      { "criteria": "Domein", "operator": "=", "values": "3" },
+      {
+        "criteria": "Vak",
+        "operator": "=",
+        "values": valueString
+      }
+    ];
+    await sendCriteria(criteria);
+    await sendFields(
+      [
+        { value: "vak_naam", text: "vak" },
+        { value: "graad_leerjaar", text: "graad + leerjaar" },
+        { value: "klasleerkracht", text: "klasleerkracht" }
+      ]
+    );
+    await sendGrouping("vak_id");
+    let pageState2 = getGotoStateOrDefault("Werklijst" /* Werklijst */);
+    pageState2.werklijstTableName = UREN_TABLE_STATE_NAME;
+    saveGotoState(pageState2);
+    document.querySelector("#btn_werklijst_maken").click();
+  }
+  function isInstrument2(text) {
+    return instrumentSet.has(text);
+  }
+
+  // typescript/pageHandlers.ts
+  var NamedCellTableFetchListener = class _NamedCellTableFetchListener {
+    constructor(requiredHeaderLabels, onRequiredColumnsMissing) {
+      this.requiredHeaderLabels = requiredHeaderLabels;
+      this.onColumnsMissing = onRequiredColumnsMissing;
+      this.headerIndices = void 0;
+      this.isValidPage = false;
+    }
+    onPageLoaded(tableFetcher, _pageCnt, _text) {
+      if (tableFetcher.fetchedTable.getLastPageNumber() === 0) {
+        if (!this.setTemplateAndCheck(tableFetcher.fetchedTable.getTemplate())) {
+          this.isValidPage = false;
+          if (this.onColumnsMissing) {
+            this.onColumnsMissing(tableFetcher);
+          } else {
+            throw "Cannot build table object - required columns missing";
+          }
+        } else {
+          this.isValidPage = true;
+        }
+      }
+    }
+    onBeforeLoadingPage(_tableFetcher) {
+      this.headerIndices = _NamedCellTableFetchListener.getHeaderIndicesFromDocument(document.body);
+      return this.hasAllHeadersAndAlert();
+    }
+    hasAllHeadersAndAlert() {
+      if (!this.hasAllHeaders()) {
+        let labelString = this.requiredHeaderLabels.map((label) => '"' + label.toUpperCase() + '"').join(", ");
+        alert(`Voeg velden ${labelString} toe.`);
+        return false;
+      }
+      return true;
+    }
+    setTemplateAndCheck(template) {
+      this.headerIndices = _NamedCellTableFetchListener.getHeaderIndicesFromTemplate(template);
+      return this.hasAllHeadersAndAlert();
+    }
+    static getHeaderIndicesFromTemplate(template) {
+      let headers = template.content.querySelectorAll("thead th");
+      return this.getHeaderIndicesFromHeaderCells(headers);
+    }
+    static getHeaderIndicesFromDocument(element) {
+      let headers = element.querySelectorAll("thead th");
+      return this.getHeaderIndicesFromHeaderCells(headers);
+    }
+    static getHeaderIndicesFromHeaderCells(headers) {
+      let headerIndices = /* @__PURE__ */ new Map();
+      Array.from(headers).forEach((header, index) => {
+        let label = header.innerText;
+        if (label.startsWith("e-mailadressen")) {
+          headerIndices.set("e-mailadressen", index);
+        } else {
+          headerIndices.set(label, index);
+        }
+      });
+      return headerIndices;
+    }
+    hasAllHeaders() {
+      return this.requiredHeaderLabels.every((label) => this.hasHeader(label));
+    }
+    hasHeader(label) {
+      return this.headerIndices.has(label);
+    }
+    getColumnText(tr, label) {
+      return tr.children[this.headerIndices.get(label)].textContent;
+    }
+  };
+
   // typescript/table/tableNavigation.ts
   var TableNavigation = class {
     constructor(step, maxCount, div) {
@@ -2847,232 +3073,6 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
     }
   };
 
-  // typescript/werklijst/criteria.ts
-  async function fetchVakken(clear, schooljaar) {
-    if (clear) {
-      await sendClearWerklijst();
-    }
-    await sendAddCriterium(schooljaar, "Vak");
-    let text = await fetchCritera(schooljaar);
-    const template = document.createElement("template");
-    template.innerHTML = text;
-    let vakken = template.content.querySelectorAll("#form_field_leerling_werklijst_criterium_vak option");
-    return Array.from(vakken).map((vak) => [vak.label, vak.value]);
-  }
-  async function fetchCritera(schoolYear) {
-    return (await fetch("https://administratie.dko3.cloud/views/leerlingen/werklijst/index.criteria.php?schooljaar=" + schoolYear, {
-      method: "GET"
-    })).text();
-  }
-  async function sendAddCriterium(schoolYear, criterium) {
-    const formData = new FormData();
-    formData.append(`criterium`, criterium);
-    formData.append(`schooljaar`, schoolYear);
-    await fetch("https://administratie.dko3.cloud/views/leerlingen/werklijst/index.criteria.session_add.php", {
-      method: "POST",
-      body: formData
-    });
-  }
-  async function sendClearWerklijst() {
-    const formData = new FormData();
-    formData.append("session", "leerlingen_werklijst");
-    await fetch("/views/util/clear_session.php", {
-      method: "POST",
-      body: formData
-    });
-    await fetch("views/leerlingen/werklijst/index.velden.php", {
-      method: "GET"
-    });
-  }
-  async function sendCriteria(criteria) {
-    const formData = new FormData();
-    formData.append("criteria", JSON.stringify(criteria));
-    await fetch("/views/leerlingen/werklijst/index.criteria.session_reload.php", {
-      method: "POST",
-      body: formData
-    });
-  }
-  async function sendGrouping(grouping) {
-    const formData = new FormData();
-    formData.append("groepering", grouping);
-    await fetch("/views/leerlingen/werklijst/index.groeperen.session_add.php", {
-      method: "POST",
-      body: formData
-    });
-  }
-  async function sendFields(fields) {
-    const formData = new FormData();
-    let fieldCnt = 0;
-    for (let field of fields) {
-      formData.append(`velden[${fieldCnt}][value]`, field.value);
-      formData.append(`velden[${fieldCnt}][text]`, field.text);
-      fieldCnt++;
-    }
-    await fetch("/views/leerlingen/werklijst/index.velden.session_add.php", {
-      method: "POST",
-      body: formData
-    });
-  }
-
-  // typescript/werklijst/prefillInstruments.ts
-  var instrumentSet = /* @__PURE__ */ new Set([
-    "Accordeon",
-    "Altfluit",
-    "Althoorn",
-    "Altklarinet",
-    "Altsaxofoon",
-    "Altsaxofoon (jazz pop rock)",
-    "Altviool",
-    "Baglama/saz (wereldmuziek)",
-    "Bariton",
-    "Baritonsaxofoon",
-    "Baritonsaxofoon (jazz pop rock)",
-    "Basfluit",
-    "Basgitaar (jazz pop rock)",
-    "Basklarinet",
-    "Bastrombone",
-    "Bastuba",
-    "Bugel",
-    "Cello",
-    "Contrabas (jazz pop rock)",
-    "Contrabas (klassiek)",
-    "Dwarsfluit",
-    "Engelse hoorn",
-    "Eufonium",
-    "Fagot",
-    "Gitaar",
-    "Gitaar (jazz pop rock)",
-    "Harp",
-    "Hobo",
-    "Hoorn",
-    "Keyboard (jazz pop rock)",
-    "Klarinet",
-    "Kornet",
-    "Orgel",
-    "Piano",
-    "Piano (jazz pop rock)",
-    "Pianolab",
-    "Piccolo",
-    "Slagwerk",
-    "Slagwerk (jazz pop rock)",
-    "Sopraansaxofoon",
-    "Sopraansaxofoon (jazz pop rock)",
-    "Tenorsaxofoon",
-    "Tenorsaxofoon (jazz pop rock)",
-    "Trombone",
-    "Trompet",
-    "Trompet (jazz pop rock)",
-    "Ud (wereldmuziek)",
-    "Viool",
-    "Zang",
-    "Zang (jazz pop rock)",
-    "Zang (musical 2e graad)",
-    "Zang (musical)"
-  ]);
-  async function prefillInstruments(schooljaar) {
-    await sendClearWerklijst();
-    let vakken = await fetchVakken(false, schooljaar);
-    let instruments = vakken.filter((vak) => isInstrument2(vak[0]));
-    let values = instruments.map((vak) => parseInt(vak[1]));
-    let valueString = values.join();
-    let criteria = [
-      { "criteria": "Schooljaar", "operator": "=", "values": schooljaar },
-      { "criteria": "Status", "operator": "=", "values": "12" },
-      { "criteria": "Uitschrijvingen", "operator": "=", "values": "0" },
-      { "criteria": "Domein", "operator": "=", "values": "3" },
-      {
-        "criteria": "Vak",
-        "operator": "=",
-        "values": valueString
-      }
-    ];
-    await sendCriteria(criteria);
-    await sendFields(
-      [
-        { value: "vak_naam", text: "vak" },
-        { value: "graad_leerjaar", text: "graad + leerjaar" },
-        { value: "klasleerkracht", text: "klasleerkracht" }
-      ]
-    );
-    await sendGrouping("vak_id");
-    let pageState2 = getGotoStateOrDefault("Werklijst" /* Werklijst */);
-    pageState2.werklijstTableName = UREN_TABLE_STATE_NAME;
-    saveGotoState(pageState2);
-    document.querySelector("#btn_werklijst_maken").click();
-  }
-  function isInstrument2(text) {
-    return instrumentSet.has(text);
-  }
-
-  // typescript/pageHandlers.ts
-  var NamedCellTableFetchListener = class _NamedCellTableFetchListener {
-    constructor(requiredHeaderLabels, onRequiredColumnsMissing) {
-      this.requiredHeaderLabels = requiredHeaderLabels;
-      this.onColumnsMissing = onRequiredColumnsMissing;
-      this.headerIndices = void 0;
-      this.isValidPage = false;
-    }
-    onPageLoaded(tableFetcher, _pageCnt, _text) {
-      if (tableFetcher.fetchedTable.getLastPageNumber() === 0) {
-        if (!this.setTemplateAndCheck(tableFetcher.fetchedTable.getTemplate())) {
-          this.isValidPage = false;
-          if (this.onColumnsMissing) {
-            this.onColumnsMissing(tableFetcher);
-          } else {
-            throw "Cannot build table object - required columns missing";
-          }
-        } else {
-          this.isValidPage = true;
-        }
-      }
-    }
-    onBeforeLoadingPage(_tableFetcher) {
-      this.headerIndices = _NamedCellTableFetchListener.getHeaderIndicesFromDocument(document.body);
-      return this.hasAllHeadersAndAlert();
-    }
-    hasAllHeadersAndAlert() {
-      if (!this.hasAllHeaders()) {
-        let labelString = this.requiredHeaderLabels.map((label) => '"' + label.toUpperCase() + '"').join(", ");
-        alert(`Voeg velden ${labelString} toe.`);
-        return false;
-      }
-      return true;
-    }
-    setTemplateAndCheck(template) {
-      this.headerIndices = _NamedCellTableFetchListener.getHeaderIndicesFromTemplate(template);
-      return this.hasAllHeadersAndAlert();
-    }
-    static getHeaderIndicesFromTemplate(template) {
-      let headers = template.content.querySelectorAll("thead th");
-      return this.getHeaderIndicesFromHeaderCells(headers);
-    }
-    static getHeaderIndicesFromDocument(element) {
-      let headers = element.querySelectorAll("thead th");
-      return this.getHeaderIndicesFromHeaderCells(headers);
-    }
-    static getHeaderIndicesFromHeaderCells(headers) {
-      let headerIndices = /* @__PURE__ */ new Map();
-      Array.from(headers).forEach((header, index) => {
-        let label = header.innerText;
-        if (label.startsWith("e-mailadressen")) {
-          headerIndices.set("e-mailadressen", index);
-        } else {
-          headerIndices.set(label, index);
-        }
-      });
-      return headerIndices;
-    }
-    hasAllHeaders() {
-      return this.requiredHeaderLabels.every((label) => this.hasHeader(label));
-    }
-    hasHeader(label) {
-      return this.headerIndices.has(label);
-    }
-    getColumnText(tr, label) {
-      return tr.children[this.headerIndices.get(label)].textContent;
-    }
-  };
-
   // typescript/table/observer.ts
   var observer_default5 = new BaseObserver(void 0, new AllPageFilter(), onMutation4);
   function onMutation4(_mutation) {
@@ -3153,19 +3153,23 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
 
   // typescript/progressBar.ts
   var ProgressBar = class {
-    constructor(containerElement, barElement, maxCount) {
+    constructor(containerElement, barElement) {
       this.barElement = barElement;
       this.containerElement = containerElement;
       this.hide();
+    }
+    reset(maxCount) {
       this.maxCount = maxCount;
       this.count = 0;
+      this.barElement.innerHTML = "";
       for (let i = 0; i < maxCount; i++) {
         let block = document.createElement("div");
-        barElement.appendChild(block);
+        this.barElement.appendChild(block);
         block.classList.add("progressBlock");
       }
     }
-    start() {
+    start(maxCount) {
+      this.reset(maxCount);
       this.containerElement.style.display = "block";
       this.next();
     }
@@ -3195,7 +3199,7 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
   function insertProgressBar(container, steps, text = "") {
     container.innerHTML = "";
     let { first: divProgressLine, last: divProgressBar } = emmet.appendChild(container, `div.infoLine${PROGRESS_BAR_ID}>div.progressText{${text}}+div.progressBar`);
-    return new ProgressBar(divProgressLine, divProgressBar, steps);
+    return new ProgressBar(divProgressLine, divProgressBar);
   }
 
   // typescript/table/loadAnyTable.ts
@@ -3231,11 +3235,9 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
     let buildFetchUrl = (offset) => `/views/ui/datatable.php?id=${datatable_id}&start=${offset}&aantal=0`;
     return new TableRef(htmlTableId, tableNav, buildFetchUrl);
   }
-  async function getTableFromHash(hash, clearCache, infoBar) {
+  async function getTableFromHash(hash, clearCache, infoBarListener) {
     let tableRef = await getTableRefFromHash(hash);
     console.log(tableRef);
-    let progressBar = insertProgressBar(this.infoBar.divInfoLine, this.tableRef.navigationData.steps(), "loading pages... ");
-    let infoBarListener = new InfoBarTableFetchListener(infoBar, progressBar);
     let tableFetcher = new TableFetcher(
       tableRef,
       getChecksumBuilder(tableRef.htmlTableId)
@@ -3402,8 +3404,8 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
       this.infoBar = infoBar;
       this.progressBar = progressBar;
     }
-    onStart(_tableFetcher) {
-      this.progressBar.start();
+    onStart(tableFetcher) {
+      this.progressBar.start(tableFetcher.tableRef.navigationData.steps());
     }
     onLoaded(tableFetcher) {
       if (tableFetcher.isUsingCached) {
@@ -3420,8 +3422,7 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
       return true;
     }
     onFinished(_tableFetcher) {
-      this.infoBar.setInfoLine("");
-      this.progressBar = void 0;
+      this.progressBar.stop();
     }
     onPageLoaded(_tableFetcher, _pageCnt, _text) {
       this.progressBar.next();
@@ -3447,8 +3448,9 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
       tableRef,
       getChecksumBuilder(tableRef.htmlTableId)
     );
-    tableFetcher.addListener(new InfoBarTableFetchListener(infoBar, progressBar));
-    return { result: { tableFetcher, infoBar, progressBar } };
+    let infoBarListener = new InfoBarTableFetchListener(infoBar, progressBar);
+    tableFetcher.addListener(infoBarListener);
+    return { result: { tableFetcher, infoBar, progressBar, infoBarListener } };
   }
 
   // typescript/table/tableHeaders.ts
@@ -3841,13 +3843,10 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
   }
   function onClickShowCounts() {
     if (!document.getElementById(COUNT_TABLE_ID)) {
-      let tableRef = findTableRefInCode();
-      if (!tableRef)
-        return false;
       let result = createDefaultTableFetcher();
       if ("error" in result) {
         console.error(result.error);
-        return;
+        return false;
       }
       let { tableFetcher } = result.result;
       let fileName = getUrenVakLeraarFileName();
@@ -3966,18 +3965,15 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
     addTableNavigationButton(navigationBars, COPY_TABLE_BTN_ID, "copy table to clipboard", copyTable, "fa-clipboard");
     return true;
   }
-  var globalTableFetcher = void 0;
   async function copyTable() {
     let result = createDefaultTableFetcher();
     if ("error" in result) {
       console.error(result.error);
       return;
     }
-    let { tableFetcher, infoBar } = result.result;
-    globalTableFetcher = tableFetcher;
+    let { tableFetcher, infoBar, infoBarListener } = result.result;
     infoBar.setExtraInfo("Fetching 3-weken data...");
-    let wekenLijst = await getTableFromHash("leerlingen-lijsten-awi-3weken", true, infoBar).then((bckTableDef) => {
-      ``;
+    let wekenLijst = await getTableFromHash("leerlingen-lijsten-awi-3weken", true, infoBarListener).then((bckTableDef) => {
       let rowsArray = bckTableDef.getRowsAsArray();
       return rowsArray.map((row) => {
         let namen = row.cells[0].textContent.split(", ");
@@ -3986,7 +3982,7 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
     });
     console.log(wekenLijst);
     infoBar.setExtraInfo("Fetching attesten...");
-    let attestenLijst = await getTableFromHash("leerlingen-lijsten-awi-ontbrekende_attesten", true, infoBar).then((bckTableDef) => {
+    let attestenLijst = await getTableFromHash("leerlingen-lijsten-awi-ontbrekende_attesten", true, infoBarListener).then((bckTableDef) => {
       return bckTableDef.getRowsAsArray().map(
         (tr) => {
           return {
@@ -4001,7 +3997,7 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
     });
     console.log(attestenLijst);
     infoBar.setExtraInfo("Fetching afwezigheidscodes...");
-    let pList = await getTableFromHash("leerlingen-lijsten-awi-afwezigheidsregistraties", true, infoBar).then((bckTableDef) => {
+    let pList = await getTableFromHash("leerlingen-lijsten-awi-afwezigheidsregistraties", true, infoBarListener).then((bckTableDef) => {
       let rowsArray = bckTableDef.getRowsAsArray();
       return rowsArray.map((row) => {
         let namen = row.cells[1].querySelector("strong").textContent.split(", ");
@@ -4012,8 +4008,8 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
       });
     });
     console.log(pList);
-    globalTableFetcher.clearCache();
-    globalTableFetcher.fetch().then((fetchedTable) => {
+    tableFetcher.clearCache();
+    tableFetcher.fetch().then((fetchedTable) => {
       let wekenMap = /* @__PURE__ */ new Map();
       for (let week of wekenLijst) {
         wekenMap.set(week.naam + "," + week.voornaam, week);
@@ -4073,7 +4069,7 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
       console.log(text);
       window.sessionStorage.setItem(AANW_LIST, text);
       aanwezighedenToClipboard(infoBar);
-      globalTableFetcher.tableRef.getOrgTableContainer().querySelector("tbody").replaceChildren(...fetchedTable.getRows());
+      tableFetcher.tableRef.getOrgTableContainer().querySelector("tbody").replaceChildren(...fetchedTable.getRows());
     });
   }
   function aanwezighedenToClipboard(infoBar) {

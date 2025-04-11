@@ -60,13 +60,9 @@ async function getTableRefFromHash(hash: string) {
     return new TableRef(htmlTableId, tableNav, buildFetchUrl);
 }
 
-export async function getTableFromHash(hash: string, clearCache: boolean, infoBar: InfoBar) {
+export async function getTableFromHash(hash: string, clearCache: boolean, infoBarListener: InfoBarTableFetchListener) {
     let tableRef = await getTableRefFromHash(hash);
     console.log(tableRef);
-
-    let progressBar = insertProgressBar(this.infoBar.divInfoLine, this.tableRef.navigationData.steps(), "loading pages... ");
-
-    let infoBarListener = new InfoBarTableFetchListener(infoBar, progressBar);
 
     let tableFetcher = new TableFetcher(
         tableRef,
@@ -377,8 +373,8 @@ export class InfoBarTableFetchListener implements TableFetchListener {
         this.progressBar = progressBar;
     }
 
-    onStart(_tableFetcher: TableFetcher): void {
-        this.progressBar.start();
+    onStart(tableFetcher: TableFetcher): void {
+        this.progressBar.start(tableFetcher.tableRef.navigationData.steps());
     }
     onLoaded (tableFetcher: TableFetcher): void {
         if(tableFetcher.isUsingCached) {
@@ -397,8 +393,7 @@ export class InfoBarTableFetchListener implements TableFetchListener {
     }
 
     onFinished(_tableFetcher: TableFetcher): void {
-        this.infoBar.setInfoLine("");//implicitely removes the progressBar.
-        this.progressBar = undefined;
+        this.progressBar.stop();
     }
 
     onPageLoaded(_tableFetcher: TableFetcher, _pageCnt: number, _text: string): void {
@@ -426,7 +421,8 @@ export function createDefaultTableRefAndInfoBar(): Result<DefaultTableRef> {
 interface DefaultTableFetcher {
     tableFetcher: TableFetcher,
     infoBar: InfoBar,
-    progressBar: ProgressBar
+    progressBar: ProgressBar,
+    infoBarListener: InfoBarTableFetchListener
 }
 export function createDefaultTableFetcher(): Result<DefaultTableFetcher> {
     let result = createDefaultTableRefAndInfoBar();
@@ -439,6 +435,7 @@ export function createDefaultTableFetcher(): Result<DefaultTableFetcher> {
         tableRef,
         getChecksumBuilder(tableRef.htmlTableId)
     );
-    tableFetcher.addListener(new InfoBarTableFetchListener(infoBar, progressBar))
-    return { result: {tableFetcher, infoBar, progressBar} };
+    let infoBarListener = new InfoBarTableFetchListener(infoBar, progressBar);
+    tableFetcher.addListener(infoBarListener);
+    return { result: {tableFetcher, infoBar, progressBar, infoBarListener} };
 }
