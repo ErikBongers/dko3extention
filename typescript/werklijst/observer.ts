@@ -127,13 +127,10 @@ function tryUntil(func: () => boolean) {
 function onClickShowCounts() {
     //Build lazily and only once. Table will automatically be erased when filters are changed.
     if (!document.getElementById(def.COUNT_TABLE_ID)) {
-        let tableRef = findTableRefInCode();
-        if(!tableRef) //todo: should this check be in function below? Perhaps via some unwrap() or Result<data, error> pattern?
-            return false;
         let result = createDefaultTableFetcher();
         if("error" in result) {
             console.error(result.error);
-            return;
+            return false;
         }
 
         let {tableFetcher} = result.result;
