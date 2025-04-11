@@ -1734,7 +1734,7 @@
   // typescript/menus.ts
   function addMenuItem(menu, title, indentLevel, onClick) {
     let indentClass = indentLevel ? ".menuIndent" + indentLevel : "";
-    let { first } = emmet.appendChild(menu, `button.naked.dropDownItem.dropDownIgnoreHide${indentClass}{${title}}`);
+    let { first } = emmet.appendChild(menu, `button.naked.dropDownItem${indentClass}{${title}}`);
     let item = first;
     item.onclick = (ev) => {
       closeMenus();
