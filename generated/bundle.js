@@ -2781,8 +2781,9 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
       this.isValidPage = false;
     }
     onPageLoaded(tableFetcher, _pageCnt, _text) {
-      if (tableFetcher.fetchedTable.getLastPageNumber() === 0) {
-        if (!this.setTemplateAndCheck(tableFetcher.fetchedTable.getTemplate())) {
+      if (!this.headerIndices) {
+        this.headerIndices = _NamedCellTableFetchListener.getHeaderIndices(tableFetcher.fetchedTable.getTemplate().content);
+        if (!this.hasAllHeadersAndAlert()) {
           this.isValidPage = false;
           if (this.onColumnsMissing) {
             this.onColumnsMissing(tableFetcher);
@@ -2794,8 +2795,11 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
         }
       }
     }
-    onBeforeLoadingPage(_tableFetcher) {
-      this.headerIndices = _NamedCellTableFetchListener.getHeaderIndicesFromDocument(document.body);
+    onBeforeLoadingPage(tableFetcher) {
+      let orgTableContainer = tableFetcher.tableRef.getOrgTableContainer();
+      if (!orgTableContainer)
+        return true;
+      this.headerIndices = _NamedCellTableFetchListener.getHeaderIndices(orgTableContainer);
       return this.hasAllHeadersAndAlert();
     }
     hasAllHeadersAndAlert() {
@@ -2806,15 +2810,7 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
       }
       return true;
     }
-    setTemplateAndCheck(template) {
-      this.headerIndices = _NamedCellTableFetchListener.getHeaderIndicesFromTemplate(template);
-      return this.hasAllHeadersAndAlert();
-    }
-    static getHeaderIndicesFromTemplate(template) {
-      let headers = template.content.querySelectorAll("thead th");
-      return this.getHeaderIndicesFromHeaderCells(headers);
-    }
-    static getHeaderIndicesFromDocument(element) {
+    static getHeaderIndices(element) {
       let headers = element.querySelectorAll("thead th");
       return this.getHeaderIndicesFromHeaderCells(headers);
     }
@@ -3161,6 +3157,8 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
       this.barElement = barElement;
       this.containerElement = containerElement;
       this.hide();
+      this.maxCount = 0;
+      this.count = 0;
     }
     reset(maxCount) {
       this.maxCount = maxCount;
@@ -3841,6 +3839,7 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
       );
     }).catch((reason) => {
       console.log("Loading failed (gracefully.");
+      console.log(reason);
     });
   }
   function tryUntil(func) {

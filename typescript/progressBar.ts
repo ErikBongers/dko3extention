@@ -11,6 +11,8 @@ export class ProgressBar {
         this.barElement = barElement;
         this.containerElement = containerElement;
         this.hide();
+        this.maxCount = 0;
+        this.count = 0;
     }
 
     reset(maxCount: number) {

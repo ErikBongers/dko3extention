@@ -65,6 +65,8 @@ export class SimpleTableHandler implements TableFetchListener {
     }
 }
 
+type NotHTMLTemplate = HTMLDivElement | DocumentFragment; //HTMLDiv element is arbitrarily chosen. Any subclass from HTMLElement will do.
+
 /**
  * PageHandler with named column labels.\
  * Params are:
@@ -73,6 +75,7 @@ export class SimpleTableHandler implements TableFetchListener {
  *      * onRow: function(rowObject, collection): a row handler that mainly provides a param `rowObject`, which has a member getColumnText(columnLabel)
  * @implements PageHandler: which requires member `onPage()`
  */
+
 export class NamedCellTableFetchListener implements TableFetchListener {
     onStartFetching: (tableFetcher: TableFetcher) => void;
     onLoaded: (tableFetcher: TableFetcher) => void;
@@ -92,8 +95,9 @@ export class NamedCellTableFetchListener implements TableFetchListener {
     }
 
     onPageLoaded(tableFetcher: TableFetcher, _pageCnt: number, _text: string) {
-        if(tableFetcher.fetchedTable.getLastPageNumber() === 0) {
-            if (!this.setTemplateAndCheck(tableFetcher.fetchedTable.getTemplate())) {
+        if(!this.headerIndices) {
+            this.headerIndices = NamedCellTableFetchListener.getHeaderIndices(tableFetcher.fetchedTable.getTemplate().content as NotHTMLTemplate);
+            if (!this.hasAllHeadersAndAlert()) {
                 this.isValidPage = false;
                 if (this.onColumnsMissing) {
                     this.onColumnsMissing(tableFetcher);
@@ -106,8 +110,11 @@ export class NamedCellTableFetchListener implements TableFetchListener {
         }
     }
 
-    onBeforeLoadingPage(_tableFetcher: TableFetcher): boolean {
-        this.headerIndices = NamedCellTableFetchListener.getHeaderIndicesFromDocument(document.body); //TODO: it's up to the tableDef to determine if a table has the valid columns.
+    onBeforeLoadingPage(tableFetcher: TableFetcher): boolean {
+        let orgTableContainer = tableFetcher.tableRef.getOrgTableContainer();
+        if(!orgTableContainer)
+            return true;//postpone field checks to first page load.
+        this.headerIndices = NamedCellTableFetchListener.getHeaderIndices(orgTableContainer as NotHTMLTemplate);
         return this.hasAllHeadersAndAlert();
     }
 
@@ -122,17 +129,7 @@ export class NamedCellTableFetchListener implements TableFetchListener {
         return true;
     }
 
-    setTemplateAndCheck(template: HTMLTemplateElement) {
-        this.headerIndices = NamedCellTableFetchListener.getHeaderIndicesFromTemplate(template);
-        return this.hasAllHeadersAndAlert();
-    }
-
-    static getHeaderIndicesFromTemplate(template: HTMLTemplateElement){
-        let headers = template.content.querySelectorAll("thead th") as NodeListOf<HTMLTableCellElement>;
-        return this.getHeaderIndicesFromHeaderCells(headers);
-    }
-
-    static getHeaderIndicesFromDocument(element: HTMLElement){
+    static getHeaderIndices(element: NotHTMLTemplate){
         let headers = element.querySelectorAll("thead th") as NodeListOf<HTMLTableCellElement>;
         return this.getHeaderIndicesFromHeaderCells(headers);
     }

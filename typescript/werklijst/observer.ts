@@ -118,6 +118,7 @@ function onClickCopyEmails() {
             );
         }).catch(reason => {
             console.log("Loading failed (gracefully.");
+            console.log(reason);
     });
 }
 
