@@ -70,10 +70,10 @@ export interface TableHandler {
 }
 
 export interface TableFetchListener {
-    onStart: (tableFetcher: TableFetcher) => void,
+    onStartFetching: (tableFetcher: TableFetcher) => void,
     onLoaded: (tableFetcher: TableFetcher) => void,
     onBeforeLoadingPage: (tableFetcher: TableFetcher) => boolean,
-    onFinished: (tableFetcher: TableFetcher) => void,
+    onFinished: (tableFetcher: TableFetcher, succes: boolean) => void,
     onPageLoaded: (tableFetcher: TableFetcher, pageCnt: number, text: string) => void
 }
 
@@ -132,13 +132,12 @@ export class TableFetcher {
     }
 
     async fetch() {
-        this.onStart();
         if(this.fetchedTable) {
-            this.onFinished();
+            this.onFinished(true);
             return this.fetchedTable;
         }
         let cachedData = this.loadFromCache();
-
+        let succes = false;
         this.fetchedTable = new FetchedTable(this);
         if(cachedData) {
             this.fetchedTable.addPage(cachedData.text);
@@ -146,25 +145,28 @@ export class TableFetcher {
             this.isUsingCached = true;
             this.onPageLoaded(1, cachedData.text); //fake one page load.
             this.onLoaded();
+            succes = true;
         } else {
             this.isUsingCached = false;
-            let success = await this.#fetchPages(this.fetchedTable);
-            if(!success)
-                return this.fetchedTable;
+            succes = await this.#fetchPages(this.fetchedTable);
+            if(!succes) {
+                this.onFinished(succes);
+                throw("Failed to fetch the pages."); //returns a reject Promise.
+            }
             this.fetchedTable.saveToCache();
             this.onLoaded();
         }
-        this.onFinished();
+        this.onFinished(succes);
         return this.fetchedTable;
     }
 
-    onStart() {
+    onStartFetching() {
         for(let lst of this.listeners)
-            lst.onStart?.(this);
+            lst.onStartFetching?.(this);
     }
-    onFinished() {
+    onFinished(succes: boolean) {
         for(let lst of this.listeners)
-            lst.onFinished?.(this);
+            lst.onFinished?.(this, succes);
     }
     onPageLoaded(pageCnt: number, text: string) {
         for(let lst of this.listeners)
@@ -193,6 +195,7 @@ export class TableFetcher {
 
     async #doFetchAllPages(fetchedTable: FetchedTable) {
         try {
+            this.onStartFetching();
             let pageCnt = 0;
             while (true) {
                 console.log("fetching page " + fetchedTable.getNextPageNumber());

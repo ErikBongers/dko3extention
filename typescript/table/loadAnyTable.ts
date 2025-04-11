@@ -373,7 +373,7 @@ export class InfoBarTableFetchListener implements TableFetchListener {
         this.progressBar = progressBar;
     }
 
-    onStart(tableFetcher: TableFetcher): void {
+    onStartFetching(tableFetcher: TableFetcher): void {
         this.progressBar.start(tableFetcher.tableRef.navigationData.steps());
     }
     onLoaded (tableFetcher: TableFetcher): void {

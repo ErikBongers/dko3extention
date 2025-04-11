@@ -2962,12 +2962,12 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
       return id.replaceAll(/\s/g, "");
     }
     async fetch() {
-      this.onStart();
       if (this.fetchedTable) {
-        this.onFinished();
+        this.onFinished(true);
         return this.fetchedTable;
       }
       let cachedData = this.loadFromCache();
+      let succes = false;
       this.fetchedTable = new FetchedTable(this);
       if (cachedData) {
         this.fetchedTable.addPage(cachedData.text);
@@ -2975,24 +2975,27 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
         this.isUsingCached = true;
         this.onPageLoaded(1, cachedData.text);
         this.onLoaded();
+        succes = true;
       } else {
         this.isUsingCached = false;
-        let success = await this.#fetchPages(this.fetchedTable);
-        if (!success)
-          return this.fetchedTable;
+        succes = await this.#fetchPages(this.fetchedTable);
+        if (!succes) {
+          this.onFinished(succes);
+          throw "Failed to fetch the pages.";
+        }
         this.fetchedTable.saveToCache();
         this.onLoaded();
       }
-      this.onFinished();
+      this.onFinished(succes);
       return this.fetchedTable;
     }
-    onStart() {
+    onStartFetching() {
       for (let lst of this.listeners)
-        lst.onStart?.(this);
+        lst.onStartFetching?.(this);
     }
-    onFinished() {
+    onFinished(succes) {
       for (let lst of this.listeners)
-        lst.onFinished?.(this);
+        lst.onFinished?.(this, succes);
     }
     onPageLoaded(pageCnt, text) {
       for (let lst of this.listeners)
@@ -3019,6 +3022,7 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
     }
     async #doFetchAllPages(fetchedTable) {
       try {
+        this.onStartFetching();
         let pageCnt = 0;
         while (true) {
           console.log("fetching page " + fetchedTable.getNextPageNumber());
@@ -3404,7 +3408,7 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
       this.infoBar = infoBar;
       this.progressBar = progressBar;
     }
-    onStart(tableFetcher) {
+    onStartFetching(tableFetcher) {
       this.progressBar.start(tableFetcher.tableRef.navigationData.steps());
     }
     onLoaded(tableFetcher) {
@@ -3835,6 +3839,8 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
       navigator.clipboard.writeText(flattened.join(";\n")).then(
         () => infoBar.setTempMessage("Alle emails zijn naar het clipboard gekopieerd. Je kan ze plakken in Outlook.")
       );
+    }).catch((reason) => {
+      console.log("Loading failed (gracefully.");
     });
   }
   function tryUntil(func) {

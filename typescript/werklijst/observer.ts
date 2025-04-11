@@ -116,7 +116,9 @@ function onClickCopyEmails() {
             navigator.clipboard.writeText(flattened.join(";\n")).then(() =>
                 infoBar.setTempMessage("Alle emails zijn naar het clipboard gekopieerd. Je kan ze plakken in Outlook.")
             );
-        });
+        }).catch(reason => {
+            console.log("Loading failed (gracefully.");
+    });
 }
 
 function tryUntil(func: () => boolean) {

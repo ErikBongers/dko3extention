@@ -51,7 +51,7 @@ export class RowPageHandler implements PageHandler {
 }
 
 export class SimpleTableHandler implements TableFetchListener {
-    onStart: (tableFetcher: TableFetcher) => void;
+    onStartFetching: (tableFetcher: TableFetcher) => void;
     onLoaded: (tableFetcher: TableFetcher) => void;
     onBeforeLoadingPage: (tableFetcher: TableFetcher) => boolean;
     onFinished: (tableFetcher: TableFetcher) => void;
@@ -74,7 +74,7 @@ export class SimpleTableHandler implements TableFetchListener {
  * @implements PageHandler: which requires member `onPage()`
  */
 export class NamedCellTableFetchListener implements TableFetchListener {
-    onStart: (tableFetcher: TableFetcher) => void;
+    onStartFetching: (tableFetcher: TableFetcher) => void;
     onLoaded: (tableFetcher: TableFetcher) => void;
     onFinished: (tableFetcher: TableFetcher) => void;
 
