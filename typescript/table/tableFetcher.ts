@@ -4,6 +4,7 @@ import {insertProgressBar, ProgressBar} from "../progressBar";
 import * as def from "../def";
 import {db3, millisToString} from "../globals";
 import {InfoBar} from "../infoBar";
+import Tab = chrome.tabs.Tab;
 
 export class TableRef {
     htmlTableId: string;
@@ -68,25 +69,30 @@ export interface TableHandler {
     onReset: (tableDef: TableFetcher) => void;
 }
 
+export interface TableFetchListener {
+    onLoaded: (tableFetcher: TableFetcher) => void,
+    onBeforeLoadingPage: (tableFetcher: TableFetcher) => boolean,
+    onFinished: (tableFetcher: TableFetcher) => void,
+    onPageLoaded: (tableFetcher: TableFetcher, pageCnt: number, text: string) => void
+}
+
 export class TableFetcher {
     tableRef: TableRef;
-    pageHandler: PageHandler;
     calculateTableCheckSum: CalculateTableCheckSumHandler;
     isUsingCached = false;
-    infoBar: InfoBar;
     shadowTableDate: Date;
     fetchedTable?: FetchedTable;
     tableHandler?: TableHandler;
+    listeners: TableFetchListener[];
 
-    constructor(tableRef: TableRef, pageHandler: PageHandler, calculateTableCheckSum: CalculateTableCheckSumHandler, infoBar: InfoBar, tableHandler?: TableHandler) {
+    constructor(tableRef: TableRef, calculateTableCheckSum: CalculateTableCheckSumHandler, tableHandler?: TableHandler) {
         this.tableRef = tableRef;
-        this.pageHandler = pageHandler;
         if(!calculateTableCheckSum)
             throw ("Tablechecksum required.");
         this.calculateTableCheckSum = calculateTableCheckSum;
         this.fetchedTable = undefined;
         this.tableHandler = tableHandler;
-        this.infoBar = infoBar;
+        this.listeners = [];
     }
 
     reset() {
@@ -124,11 +130,11 @@ export class TableFetcher {
         return id.replaceAll(/\s/g, "");
     }
 
-    async getTableData() {
+    async fetch() {
         if(this.fetchedTable) {
+            this.onFinished();
             return this.fetchedTable;
         }
-        this.infoBar.clearCacheInfo();
         let cachedData = this.loadFromCache();
 
         this.fetchedTable = new FetchedTable(this);
@@ -136,64 +142,80 @@ export class TableFetcher {
             this.fetchedTable.addPage(cachedData.text);
             this.shadowTableDate = cachedData.date;
             this.isUsingCached = true;
-            this.pageHandler.onPage?.(this, cachedData.text, this.fetchedTable);
-            this.pageHandler.onLoaded?.(this.fetchedTable);
-            let reset_onclick = (e: MouseEvent ) => {
-                e.preventDefault();
-                this.reset();
-                // noinspection JSIgnoredPromiseFromCall
-                this.getTableData();
-                return true;
-            }
-            this.infoBar.setCacheInfo(`Gegevens uit cache, ${millisToString((new Date()).getTime()-this.shadowTableDate.getTime())} oud. `, reset_onclick);
+            this.onPageLoaded(1, cachedData.text); //fake one page load.
+            this.onLoaded();
         } else {
             this.isUsingCached = false;
             let success = await this.#fetchPages(this.fetchedTable);
             if(!success)
                 return this.fetchedTable;
             this.fetchedTable.saveToCache();
-            this.pageHandler.onLoaded?.(this.fetchedTable);
+            this.onLoaded();
         }
+        this.onFinished();
         return this.fetchedTable;
     }
 
-    async #fetchPages(fetchedTable: FetchedTable) {
-        if (this.pageHandler.onBeforeLoading) {
-            if(!this.pageHandler.onBeforeLoading(this))
-                return false;
+    onFinished() {
+        for(let lst of this.listeners)
+            lst.onFinished?.(this);
+    }
+    onPageLoaded(pageCnt: number, text: string) {
+        for(let lst of this.listeners)
+            lst.onPageLoaded?.(this, pageCnt, text);
+    }
+    onLoaded() {
+        for(let lst of this.listeners)
+            lst.onLoaded?.(this);
+    }
+    onBeforeLoadingPage() {
+        for(let lst of this.listeners){
+            if (lst.onBeforeLoadingPage) {
+                if(!lst.onBeforeLoadingPage(this))
+                    return false;
+            }
         }
-        let progressBar = insertProgressBar(this.infoBar.divInfoLine, this.tableRef.navigationData.steps(), "loading pages... ");
-        progressBar.start();
-        await this.#doFetchAllPages(fetchedTable, progressBar);
         return true;
     }
 
-    async #doFetchAllPages(fetchedTable: FetchedTable, progressBar: ProgressBar) {
+    async #fetchPages(fetchedTable: FetchedTable) {
+        if(!this.onBeforeLoadingPage())
+            return false;
+        await this.#doFetchAllPages(fetchedTable);
+        return true;
+    }
+
+    async #doFetchAllPages(fetchedTable: FetchedTable) {
         try {
+            let pageCnt = 0;
             while (true) {
                 console.log("fetching page " + fetchedTable.getNextPageNumber());
                 let response = await fetch(this.tableRef.buildFetchUrl(fetchedTable.getNextOffset()));
                 let text = await response.text();
                 fetchedTable.addPage(text);
-                this.pageHandler.onPage?.(this, text, fetchedTable);
-                if (!progressBar.next())
+                pageCnt++;
+                this.onPageLoaded(pageCnt, text);
+                if(pageCnt >= this.tableRef.navigationData.steps())
                     break;
             }
         } finally {
-            this.infoBar.setInfoLine("");//implicitely removes the progressBar.
         }
+    }
+
+    addListener(listener: TableFetchListener) {
+        this.listeners.push(listener);
     }
 
 }
 
 export class FetchedTable {
     private readonly shadowTableTemplate: HTMLTemplateElement;
-    tableDef: TableFetcher;
+    tableFetchere: TableFetcher;
     lastPageNumber: number;
     lastPageStartRow: number;
 
     constructor(tableDef: TableFetcher) {
-        this.tableDef = tableDef;
+        this.tableFetchere = tableDef;
         this.lastPageNumber = -1;
         this.lastPageStartRow = 0;
         this.shadowTableTemplate = document.createElement("template");
@@ -208,13 +230,13 @@ export class FetchedTable {
     getLastPageRows = () => this.getRowsAsArray().slice(this.lastPageStartRow);
     getLastPageNumber = () => this.lastPageNumber;
     getNextPageNumber = () => this.lastPageNumber+1;
-    getNextOffset = () => this.getNextPageNumber()*this.tableDef.tableRef.navigationData.step;
+    getNextOffset = () => this.getNextPageNumber()*this.tableFetchere.tableRef.navigationData.step;
     getTemplate = () => this.shadowTableTemplate;
 
     saveToCache() {
-        db3(`Caching ${this.tableDef.getCacheId()}.`);
-        window.sessionStorage.setItem(this.tableDef.getCacheId(), this.shadowTableTemplate.innerHTML);
-        window.sessionStorage.setItem(this.tableDef.getCacheId()+ def.CACHE_DATE_SUFFIX, (new Date()).toJSON());
+        db3(`Caching ${this.tableFetchere.getCacheId()}.`);
+        window.sessionStorage.setItem(this.tableFetchere.getCacheId(), this.shadowTableTemplate.innerHTML);
+        window.sessionStorage.setItem(this.tableFetchere.getCacheId()+ def.CACHE_DATE_SUFFIX, (new Date()).toJSON());
     }
 
     addPage(text: string) {

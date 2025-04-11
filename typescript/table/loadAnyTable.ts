@@ -1,25 +1,26 @@
 import {findFirstNavigation} from "./tableNavigation";
-import {FetchedTable, findTableRefInCode, TableFetcher, TableRef} from "./tableFetcher";
-import {SimpleTableHandler} from "../pageHandlers";
+import {findTableRefInCode, TableFetcher, TableFetchListener, TableRef} from "./tableFetcher";
 import {getChecksumHandler} from "./observer";
-import {setViewFromCurrentUrl} from "../globals";
+import {millisToString, setViewFromCurrentUrl} from "../globals";
 import {InfoBar} from "../infoBar";
+import {insertProgressBar, ProgressBar} from "../progressBar";
+import * as def from "../def";
 
-export async function getTableFromHash(hash: string, divInfoContainer: HTMLDivElement, clearCache: boolean, infoBar: InfoBar) {
-    let page = await fetch("https://administratie.dko3.cloud/#"+hash).then(res => res.text());
+async function getTableRefFromHash(hash: string) {
+    let page = await fetch("https://administratie.dko3.cloud/#" + hash).then(res => res.text());
 
     // call to changeView() - assuming this is always the same, so no parsing here.
-    let view = await fetch("view.php?args="+hash).then(res => res.text());
+    let view = await fetch("view.php?args=" + hash).then(res => res.text());
     let index_viewUrl = getDocReadyLoadUrl(view);
 
     //get the htmlTableId (from index.view.php
     let index_view = await fetch(index_viewUrl).then(res => res.text());
     let scanner = new TokenScanner(index_view);
-    let htmlTableId =  getDocReadyLoadScript(index_view)
+    let htmlTableId = getDocReadyLoadScript(index_view)
         .find("$", "(", "'#")
         .clipTo("'")
         .result();
-    if(!htmlTableId) {
+    if (!htmlTableId) {
         htmlTableId = getDocReadyLoadScript(index_view)
             .find("$", "(", "\"#")
             .clipTo("\"")
@@ -40,7 +41,9 @@ export async function getTableFromHash(hash: string, divInfoContainer: HTMLDivEl
     let tableNavUrl = "";
     scanner
         .find("var", "datatable_id", "=")
-        .getString(res => { datatable_id = res; })
+        .getString(res => {
+            datatable_id = res;
+        })
         .clipTo("</script>")
         .find(".", "load", "(")
         .getString(res => tableNavUrl = res)
@@ -54,19 +57,29 @@ export async function getTableFromHash(hash: string, divInfoContainer: HTMLDivEl
     console.log(tableNav);
     let buildFetchUrl = (offset: number) => `/views/ui/datatable.php?id=${datatable_id}&start=${offset}&aantal=0`;
 
-    let tableRef = new TableRef(htmlTableId, tableNav, buildFetchUrl);
-    console.log(tableRef);
-    let prebuildPageHandler = new SimpleTableHandler(undefined, undefined);
+    return new TableRef(htmlTableId, tableNav, buildFetchUrl);
+}
 
-    let tableDef = new TableFetcher(
+export async function getTableFromHash(hash: string, clearCache: boolean, infoBar: InfoBar) {
+    let tableRef = await getTableRefFromHash(hash);
+    console.log(tableRef);
+
+    let progressBar = insertProgressBar(this.infoBar.divInfoLine, this.tableRef.navigationData.steps(), "loading pages... ");
+    progressBar.start();
+
+    let infoBarListener = new InfoBarTableFetchListener(infoBar, progressBar);
+
+    let tableFetcher = new TableFetcher(
         tableRef,
-        prebuildPageHandler,
-        getChecksumHandler(tableRef.htmlTableId),
-        infoBar
+        getChecksumHandler(tableRef.htmlTableId)
     );
+
+    tableFetcher.addListener(infoBarListener);
+
     if(clearCache)
-        tableDef.clearCache();
-    let fetchedTable = await tableDef.getTableData();
+        tableFetcher.clearCache();
+
+    let fetchedTable = await tableFetcher.fetch();
     await setViewFromCurrentUrl();
     return fetchedTable;
 }
@@ -340,36 +353,68 @@ export function testScanner() {
         .result();
 }
 
-let tableDef: TableFetcher = undefined; //keep until page refresh or other table needed. This prevents table manipulations from being overwritten.
+export async function downloadTable() {
+    let {tableFetcher} = createDefaultTableFetcher();
 
-function setCurrentTableDef() {
+    let fetchedTable = await tableFetcher.fetch();
+    let fetchedRows = fetchedTable.getRows();
+    fetchedTable.tableFetchere.tableRef.getOrgTableContainer()
+        .querySelector("tbody")
+        .replaceChildren(...fetchedRows);
+    return fetchedTable;
+}
+
+export class InfoBarTableFetchListener implements TableFetchListener {
+    infoBar: InfoBar;
+    progressBar: ProgressBar;
+
+    constructor(infoBar: InfoBar, progressBar: ProgressBar) {
+        this.infoBar = infoBar;
+        this.progressBar = progressBar;
+    }
+    onLoaded (tableFetcher: TableFetcher): void {
+        if(tableFetcher.isUsingCached) {
+            let reset_onclick = (e: MouseEvent ) => {
+                e.preventDefault();
+                tableFetcher.reset();
+                downloadTable();
+                return true;
+            }
+            this.infoBar.setCacheInfo(`Gegevens uit cache, ${millisToString((new Date()).getTime()-tableFetcher.shadowTableDate.getTime())} oud. `, reset_onclick);
+        }
+    }
+
+    onBeforeLoadingPage(_tableFetcher: TableFetcher): boolean {
+        return true;
+    }
+
+    onFinished(_tableFetcher: TableFetcher): void {
+        this.infoBar.setInfoLine("");//implicitely removes the progressBar.
+        this.progressBar = undefined;
+    }
+
+    onPageLoaded(_tableFetcher: TableFetcher, _pageCnt: number, _text: string): void {
+        this.progressBar.next();
+    }
+}
+
+export function createDefaultTableRefAndInfoBar() {
     let tableRef = findTableRefInCode();
-    if (tableDef?.tableRef.htmlTableId !== tableRef.htmlTableId) {
-        tableDef = new TableFetcher(
-            tableRef,
-            undefined, //set handler later!!!
-            getChecksumHandler(tableRef.htmlTableId),
-            new InfoBar(tableRef.createElementAboveTable("div") as HTMLDivElement)
-        );
-    }
-    return tableDef;
+    document.getElementById(def.INFO_CONTAINER_ID)?.remove();
+    let divInfoContainer = tableRef.createElementAboveTable("div");
+    let infoBar = new InfoBar(divInfoContainer.appendChild(document.createElement("div")));
+    let progressBar = insertProgressBar(infoBar.divInfoLine, tableRef.navigationData.steps(), "loading pages... ");
+    progressBar.start();
+    return {tableRef, infoBar, progressBar};
 }
 
-export function getCurrentTableDef() {
-    return setCurrentTableDef();
-}
+export function createDefaultTableFetcher() {
+    let {tableRef, infoBar, progressBar} = createDefaultTableRefAndInfoBar();
 
-export function downloadTable() {
-    function onLoaded(fetchedTable: FetchedTable) {
-        let fetchedRows = fetchedTable.getRows();
-        tableDef.tableRef.getOrgTableContainer()
-            .querySelector("tbody")
-            .replaceChildren(...fetchedRows);
-    }
-
-    if(!getCurrentTableDef().pageHandler) {
-        tableDef.pageHandler = new SimpleTableHandler(onLoaded, undefined);
-    }
-
-    return tableDef.getTableData();
+    let tableFetcher = new TableFetcher(
+        tableRef,
+        getChecksumHandler(tableRef.htmlTableId)
+    );
+    tableFetcher.addListener(new InfoBarTableFetchListener(infoBar, progressBar))
+    return {tableFetcher, infoBar, progressBar};
 }

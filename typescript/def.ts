@@ -14,6 +14,7 @@ export const TRIM_TABLE_ID = "trimesterTable";
 export const COUNT_TABLE_ID = "werklijst_uren";
 export const TRIM_DIV_ID = "trimesterDiv";
 export const JSON_URL = "https://europe-west1-ebo-tain.cloudfunctions.net/json";
+export const INFO_CONTAINER_ID =  "dp3p_infoContainer";
 export const INFO_CACHE_ID =  "dp3p_cacheInfo";
 export const INFO_TEMP_ID =  "dp3_tempInfo";
 export const INFO_EXTRA_ID =  "dp3_extraInfo";

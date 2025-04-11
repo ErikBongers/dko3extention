@@ -16,6 +16,7 @@
   var COUNT_TABLE_ID = "werklijst_uren";
   var TRIM_DIV_ID = "trimesterDiv";
   var JSON_URL = "https://europe-west1-ebo-tain.cloudfunctions.net/json";
+  var INFO_CONTAINER_ID = "dp3p_infoContainer";
   var INFO_CACHE_ID = "dp3p_cacheInfo";
   var INFO_TEMP_ID = "dp3_tempInfo";
   var INFO_EXTRA_ID = "dp3_extraInfo";
@@ -2418,11 +2419,11 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
     isUpdatePaused = false;
     observeTable(true);
   }
-  function buildTable(urenData, tableDef3) {
+  function buildTable(urenData, tableDef) {
     isUpdatePaused = true;
     globalUrenData = urenData;
     let table = document.createElement("table");
-    tableDef3.tableRef.getOrgTableContainer().insertAdjacentElement("afterend", table);
+    tableDef.tableRef.getOrgTableContainer().insertAdjacentElement("afterend", table);
     table.id = COUNT_TABLE_ID;
     table.classList.add(CAN_SORT);
     updateColDefs(urenData.year);
@@ -2536,14 +2537,14 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
   }
 
   // typescript/werklijst/scrapeUren.ts
-  function scrapeStudent(tableDef3, tr, collection) {
+  function scrapeStudent(tableDef, fetchListener, tr, collection) {
     let student = new StudentInfo();
-    student.naam = tableDef3.pageHandler.getColumnText(tr, "naam");
-    student.voornaam = tableDef3.pageHandler.getColumnText(tr, "voornaam");
+    student.naam = fetchListener.getColumnText(tr, "naam");
+    student.voornaam = fetchListener.getColumnText(tr, "voornaam");
     student.id = parseInt(tr.attributes["onclick"].value.replace("showView('leerlingen-leerling', '', 'id=", ""));
-    let leraar = tableDef3.pageHandler.getColumnText(tr, "klasleerkracht");
-    let vak = tableDef3.pageHandler.getColumnText(tr, "vak");
-    let graadLeerjaar = tableDef3.pageHandler.getColumnText(tr, "graad + leerjaar");
+    let leraar = fetchListener.getColumnText(tr, "klasleerkracht");
+    let vak = fetchListener.getColumnText(tr, "vak");
+    let graadLeerjaar = fetchListener.getColumnText(tr, "graad + leerjaar");
     if (leraar === "") leraar = "{nieuw}";
     if (!isInstrument(vak)) {
       console.error("vak is geen instrument!!!");
@@ -2653,63 +2654,6 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
     return parseInt(functionCall.substring(functionCall.indexOf("goto(") + 5));
   }
 
-  // typescript/progressBar.ts
-  var ProgressBar = class {
-    constructor(containerElement, barElement, maxCount) {
-      this.barElement = barElement;
-      this.containerElement = containerElement;
-      this.maxCount = maxCount;
-      this.count = 0;
-      for (let i = 0; i < maxCount; i++) {
-        let block = document.createElement("div");
-        barElement.appendChild(block);
-        block.classList.add("progressBlock");
-      }
-    }
-    start() {
-      this.containerElement.style.visibility = "visible";
-      this.next();
-    }
-    stop() {
-      this.containerElement.style.visibility = "hidden";
-    }
-    next() {
-      if (this.count >= this.maxCount)
-        return false;
-      this.barElement.children[this.count].classList.remove("iddle", "loaded");
-      this.barElement.children[this.count].classList.add("loading");
-      for (let i = 0; i < this.count; i++) {
-        this.barElement.children[i].classList.remove("iddle", "loading");
-        this.barElement.children[i].classList.add("loaded");
-      }
-      for (let i = this.count + 1; i < this.maxCount; i++) {
-        this.barElement.children[i].classList.remove("loaded", "loading");
-        this.barElement.children[i].classList.add("iddle");
-      }
-      this.count++;
-      return true;
-    }
-  };
-  function insertProgressBar(container, steps, text = "") {
-    let divProgressLine = document.getElementById(PROGRESS_BAR_ID);
-    if (divProgressLine) {
-      divProgressLine.innerText = "";
-    } else {
-      divProgressLine = document.createElement("div");
-      container.append(divProgressLine);
-      divProgressLine.classList.add("infoLine");
-      divProgressLine.id = PROGRESS_BAR_ID;
-    }
-    let divProgressText = document.createElement("div");
-    divProgressLine.appendChild(divProgressText);
-    divProgressText.classList.add("progressText");
-    divProgressText.innerText = text;
-    let divProgressBar = document.createElement("div");
-    divProgressLine.appendChild(divProgressBar);
-    divProgressBar.classList.add("progressBar");
-    return new ProgressBar(divProgressLine, divProgressBar, steps);
-  }
-
   // typescript/table/tableFetcher.ts
   var TableRef = class {
     constructor(htmlTableId, navigationData, buildFetchUrl) {
@@ -2752,16 +2696,15 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
     };
   }
   var TableFetcher = class {
-    constructor(tableRef, pageHandler, calculateTableCheckSum, infoBar, tableHandler) {
+    constructor(tableRef, calculateTableCheckSum, tableHandler) {
       this.isUsingCached = false;
       this.tableRef = tableRef;
-      this.pageHandler = pageHandler;
       if (!calculateTableCheckSum)
         throw "Tablechecksum required.";
       this.calculateTableCheckSum = calculateTableCheckSum;
       this.fetchedTable = void 0;
       this.tableHandler = tableHandler;
-      this.infoBar = infoBar;
+      this.listeners = [];
     }
     reset() {
       this.clearCache();
@@ -2793,71 +2736,86 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
       let id = this.tableRef.htmlTableId + checksum;
       return id.replaceAll(/\s/g, "");
     }
-    async getTableData() {
+    async fetch() {
       if (this.fetchedTable) {
+        this.onFinished();
         return this.fetchedTable;
       }
-      this.infoBar.clearCacheInfo();
       let cachedData = this.loadFromCache();
       this.fetchedTable = new FetchedTable(this);
       if (cachedData) {
         this.fetchedTable.addPage(cachedData.text);
         this.shadowTableDate = cachedData.date;
         this.isUsingCached = true;
-        this.pageHandler.onPage?.(this, cachedData.text, this.fetchedTable);
-        this.pageHandler.onLoaded?.(this.fetchedTable);
-        let reset_onclick = (e) => {
-          e.preventDefault();
-          this.reset();
-          this.getTableData();
-          return true;
-        };
-        this.infoBar.setCacheInfo(`Gegevens uit cache, ${millisToString((/* @__PURE__ */ new Date()).getTime() - this.shadowTableDate.getTime())} oud. `, reset_onclick);
+        this.onPageLoaded(1, cachedData.text);
+        this.onLoaded();
       } else {
         this.isUsingCached = false;
         let success = await this.#fetchPages(this.fetchedTable);
         if (!success)
           return this.fetchedTable;
         this.fetchedTable.saveToCache();
-        this.pageHandler.onLoaded?.(this.fetchedTable);
+        this.onLoaded();
       }
+      this.onFinished();
       return this.fetchedTable;
     }
-    async #fetchPages(fetchedTable) {
-      if (this.pageHandler.onBeforeLoading) {
-        if (!this.pageHandler.onBeforeLoading(this))
-          return false;
+    onFinished() {
+      for (let lst of this.listeners)
+        lst.onFinished?.(this);
+    }
+    onPageLoaded(pageCnt, text) {
+      for (let lst of this.listeners)
+        lst.onPageLoaded?.(this, pageCnt, text);
+    }
+    onLoaded() {
+      for (let lst of this.listeners)
+        lst.onLoaded?.(this);
+    }
+    onBeforeLoadingPage() {
+      for (let lst of this.listeners) {
+        if (lst.onBeforeLoadingPage) {
+          if (!lst.onBeforeLoadingPage(this))
+            return false;
+        }
       }
-      let progressBar = insertProgressBar(this.infoBar.divInfoLine, this.tableRef.navigationData.steps(), "loading pages... ");
-      progressBar.start();
-      await this.#doFetchAllPages(fetchedTable, progressBar);
       return true;
     }
-    async #doFetchAllPages(fetchedTable, progressBar) {
+    async #fetchPages(fetchedTable) {
+      if (!this.onBeforeLoadingPage())
+        return false;
+      await this.#doFetchAllPages(fetchedTable);
+      return true;
+    }
+    async #doFetchAllPages(fetchedTable) {
       try {
+        let pageCnt = 0;
         while (true) {
           console.log("fetching page " + fetchedTable.getNextPageNumber());
           let response = await fetch(this.tableRef.buildFetchUrl(fetchedTable.getNextOffset()));
           let text = await response.text();
           fetchedTable.addPage(text);
-          this.pageHandler.onPage?.(this, text, fetchedTable);
-          if (!progressBar.next())
+          pageCnt++;
+          this.onPageLoaded(pageCnt, text);
+          if (pageCnt >= this.tableRef.navigationData.steps())
             break;
         }
       } finally {
-        this.infoBar.setInfoLine("");
       }
+    }
+    addListener(listener) {
+      this.listeners.push(listener);
     }
   };
   var FetchedTable = class {
-    constructor(tableDef3) {
+    constructor(tableDef) {
       this.getRowsAsArray = () => Array.from(this.getRows());
       this.getLastPageRows = () => this.getRowsAsArray().slice(this.lastPageStartRow);
       this.getLastPageNumber = () => this.lastPageNumber;
       this.getNextPageNumber = () => this.lastPageNumber + 1;
-      this.getNextOffset = () => this.getNextPageNumber() * this.tableDef.tableRef.navigationData.step;
+      this.getNextOffset = () => this.getNextPageNumber() * this.tableFetchere.tableRef.navigationData.step;
       this.getTemplate = () => this.shadowTableTemplate;
-      this.tableDef = tableDef3;
+      this.tableFetchere = tableDef;
       this.lastPageNumber = -1;
       this.lastPageStartRow = 0;
       this.shadowTableTemplate = document.createElement("template");
@@ -2867,9 +2825,9 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
       return template.content.querySelectorAll("tbody tr:not(:has(i.fa-meh))");
     }
     saveToCache() {
-      db3(`Caching ${this.tableDef.getCacheId()}.`);
-      window.sessionStorage.setItem(this.tableDef.getCacheId(), this.shadowTableTemplate.innerHTML);
-      window.sessionStorage.setItem(this.tableDef.getCacheId() + CACHE_DATE_SUFFIX, (/* @__PURE__ */ new Date()).toJSON());
+      db3(`Caching ${this.tableFetchere.getCacheId()}.`);
+      window.sessionStorage.setItem(this.tableFetchere.getCacheId(), this.shadowTableTemplate.innerHTML);
+      window.sessionStorage.setItem(this.tableFetchere.getCacheId() + CACHE_DATE_SUFFIX, (/* @__PURE__ */ new Date()).toJSON());
     }
     addPage(text) {
       let pageTemplate;
@@ -3043,37 +3001,29 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
   }
 
   // typescript/pageHandlers.ts
-  var SimpleTableHandler = class {
-    constructor(onLoaded, onBeforeLoading) {
-      this.onBeforeLoading = onBeforeLoading;
-      this.onLoaded = onLoaded;
-      this.onPage = void 0;
-    }
-  };
-  var NamedCellTablePageHandler = class _NamedCellTablePageHandler {
+  var NamedCellTableFetchListener = class _NamedCellTableFetchListener {
     constructor(requiredHeaderLabels, onRequiredColumnsMissing) {
-      this.onPage = (_tableDef, _text, fetchedTable) => {
-        if (fetchedTable.getLastPageNumber() === 0) {
-          if (!this.setTemplateAndCheck(fetchedTable.getTemplate())) {
-            this.isValidPage = false;
-            if (this.onColumnsMissing) {
-              this.onColumnsMissing(_tableDef);
-            } else {
-              throw "Cannot build table object - required columns missing";
-            }
-          } else {
-            this.isValidPage = true;
-          }
-        }
-      };
       this.requiredHeaderLabels = requiredHeaderLabels;
       this.onColumnsMissing = onRequiredColumnsMissing;
       this.headerIndices = void 0;
       this.isValidPage = false;
-      this.onBeforeLoading = this.onBeforeLoadingHandler;
     }
-    onBeforeLoadingHandler() {
-      this.headerIndices = _NamedCellTablePageHandler.getHeaderIndicesFromDocument(document.body);
+    onPageLoaded(tableFetcher, _pageCnt, _text) {
+      if (tableFetcher.fetchedTable.getLastPageNumber() === 0) {
+        if (!this.setTemplateAndCheck(tableFetcher.fetchedTable.getTemplate())) {
+          this.isValidPage = false;
+          if (this.onColumnsMissing) {
+            this.onColumnsMissing(tableFetcher);
+          } else {
+            throw "Cannot build table object - required columns missing";
+          }
+        } else {
+          this.isValidPage = true;
+        }
+      }
+    }
+    onBeforeLoadingPage(_tableFetcher) {
+      this.headerIndices = _NamedCellTableFetchListener.getHeaderIndicesFromDocument(document.body);
       return this.hasAllHeadersAndAlert();
     }
     hasAllHeadersAndAlert() {
@@ -3085,7 +3035,7 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
       return true;
     }
     setTemplateAndCheck(template) {
-      this.headerIndices = _NamedCellTablePageHandler.getHeaderIndicesFromTemplate(template);
+      this.headerIndices = _NamedCellTableFetchListener.getHeaderIndicesFromTemplate(template);
       return this.hasAllHeadersAndAlert();
     }
     static getHeaderIndicesFromTemplate(template) {
@@ -3144,7 +3094,7 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
     let handler = tableCriteriaBuilders.get(tableId2);
     if (handler)
       return handler;
-    return (tableDef3) => "";
+    return (tableDef) => "";
   }
   function registerChecksumHandler(tableId2, checksumHandler) {
     tableCriteriaBuilders.set(tableId2, checksumHandler);
@@ -3154,7 +3104,8 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
   var InfoBar = class {
     constructor(divInfoContainer) {
       this.divInfoContainer = divInfoContainer;
-      this.divInfoContainer.id = "infoContainer";
+      this.divInfoContainer.id = INFO_CONTAINER_ID;
+      this.divInfoContainer.innerHTML = "";
       this.divExtraLine = emmet.appendChild(divInfoContainer, `div#${INFO_EXTRA_ID}.infoMessage`).last;
       this.divInfoLine = emmet.appendChild(divInfoContainer, "div.infoLine").last;
       this.divTempLine = emmet.appendChild(divInfoContainer, `div#${INFO_TEMP_ID}.infoMessage.tempLine`).last;
@@ -3197,8 +3148,61 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
     }
   };
 
+  // typescript/progressBar.ts
+  var ProgressBar = class {
+    constructor(containerElement, barElement, maxCount) {
+      this.barElement = barElement;
+      this.containerElement = containerElement;
+      this.maxCount = maxCount;
+      this.count = 0;
+      for (let i = 0; i < maxCount; i++) {
+        let block = document.createElement("div");
+        barElement.appendChild(block);
+        block.classList.add("progressBlock");
+      }
+    }
+    start() {
+      this.containerElement.style.visibility = "visible";
+      this.next();
+    }
+    stop() {
+      this.containerElement.style.visibility = "hidden";
+    }
+    next() {
+      if (this.count >= this.maxCount)
+        return false;
+      this.barElement.children[this.count].classList.remove("iddle", "loaded");
+      this.barElement.children[this.count].classList.add("loading");
+      for (let i = 0; i < this.count; i++) {
+        this.barElement.children[i].classList.remove("iddle", "loading");
+        this.barElement.children[i].classList.add("loaded");
+      }
+      for (let i = this.count + 1; i < this.maxCount; i++) {
+        this.barElement.children[i].classList.remove("loaded", "loading");
+        this.barElement.children[i].classList.add("iddle");
+      }
+      this.count++;
+      return true;
+    }
+  };
+  function insertProgressBar(container, steps, text = "") {
+    container.innerHTML = "";
+    let divProgressLine = document.createElement("div");
+    container.append(divProgressLine);
+    divProgressLine.classList.add("infoLine");
+    divProgressLine.id = PROGRESS_BAR_ID;
+    let divProgressText = document.createElement("div");
+    divProgressLine.appendChild(divProgressText);
+    divProgressText.classList.add("progressText");
+    divProgressText.innerText = text;
+    let divProgressBar = document.createElement("div");
+    divProgressLine.appendChild(divProgressBar);
+    divProgressBar.classList.add("progressBar");
+    return new ProgressBar(divProgressLine, divProgressBar, steps);
+  }
+
   // typescript/table/loadAnyTable.ts
-  async function getTableFromHash(hash, divInfoContainer, clearCache, infoBar) {
+  async function getTableRefFromHash(hash) {
     let page = await fetch("https://administratie.dko3.cloud/#" + hash).then((res) => res.text());
     let view = await fetch("view.php?args=" + hash).then((res) => res.text());
     let index_viewUrl = getDocReadyLoadUrl(view);
@@ -3228,18 +3232,22 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
     let tableNav = findFirstNavigation(div);
     console.log(tableNav);
     let buildFetchUrl = (offset) => `/views/ui/datatable.php?id=${datatable_id}&start=${offset}&aantal=0`;
-    let tableRef = new TableRef(htmlTableId, tableNav, buildFetchUrl);
+    return new TableRef(htmlTableId, tableNav, buildFetchUrl);
+  }
+  async function getTableFromHash(hash, clearCache, infoBar) {
+    let tableRef = await getTableRefFromHash(hash);
     console.log(tableRef);
-    let prebuildPageHandler = new SimpleTableHandler(void 0, void 0);
-    let tableDef3 = new TableFetcher(
+    let progressBar = insertProgressBar(this.infoBar.divInfoLine, this.tableRef.navigationData.steps(), "loading pages... ");
+    progressBar.start();
+    let infoBarListener = new InfoBarTableFetchListener(infoBar, progressBar);
+    let tableFetcher = new TableFetcher(
       tableRef,
-      prebuildPageHandler,
-      getChecksumHandler(tableRef.htmlTableId),
-      infoBar
+      getChecksumHandler(tableRef.htmlTableId)
     );
+    tableFetcher.addListener(infoBarListener);
     if (clearCache)
-      tableDef3.clearCache();
-    let fetchedTable = await tableDef3.getTableData();
+      tableFetcher.clearCache();
+    let fetchedTable = await tableFetcher.fetch();
     await setViewFromCurrentUrl();
     return fetchedTable;
   }
@@ -3381,32 +3389,57 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
       return this;
     }
   };
-  var tableDef = void 0;
-  function setCurrentTableDef() {
+  async function downloadTable() {
+    let { tableFetcher } = createDefaultTableFetcher();
+    let fetchedTable = await tableFetcher.fetch();
+    let fetchedRows = fetchedTable.getRows();
+    fetchedTable.tableFetchere.tableRef.getOrgTableContainer().querySelector("tbody").replaceChildren(...fetchedRows);
+    return fetchedTable;
+  }
+  var InfoBarTableFetchListener = class {
+    constructor(infoBar, progressBar) {
+      this.infoBar = infoBar;
+      this.progressBar = progressBar;
+    }
+    onLoaded(tableFetcher) {
+      if (tableFetcher.isUsingCached) {
+        let reset_onclick = (e) => {
+          e.preventDefault();
+          tableFetcher.reset();
+          downloadTable();
+          return true;
+        };
+        this.infoBar.setCacheInfo(`Gegevens uit cache, ${millisToString((/* @__PURE__ */ new Date()).getTime() - tableFetcher.shadowTableDate.getTime())} oud. `, reset_onclick);
+      }
+    }
+    onBeforeLoadingPage(_tableFetcher) {
+      return true;
+    }
+    onFinished(_tableFetcher) {
+      this.infoBar.setInfoLine("");
+      this.progressBar = void 0;
+    }
+    onPageLoaded(_tableFetcher, _pageCnt, _text) {
+      this.progressBar.next();
+    }
+  };
+  function createDefaultTableRefAndInfoBar() {
     let tableRef = findTableRefInCode();
-    if (tableDef?.tableRef.htmlTableId !== tableRef.htmlTableId) {
-      tableDef = new TableFetcher(
-        tableRef,
-        void 0,
-        //set handler later!!!
-        getChecksumHandler(tableRef.htmlTableId),
-        new InfoBar(tableRef.createElementAboveTable("div"))
-      );
-    }
-    return tableDef;
+    document.getElementById(INFO_CONTAINER_ID)?.remove();
+    let divInfoContainer = tableRef.createElementAboveTable("div");
+    let infoBar = new InfoBar(divInfoContainer.appendChild(document.createElement("div")));
+    let progressBar = insertProgressBar(infoBar.divInfoLine, tableRef.navigationData.steps(), "loading pages... ");
+    progressBar.start();
+    return { tableRef, infoBar, progressBar };
   }
-  function getCurrentTableDef() {
-    return setCurrentTableDef();
-  }
-  function downloadTable() {
-    function onLoaded(fetchedTable) {
-      let fetchedRows = fetchedTable.getRows();
-      tableDef.tableRef.getOrgTableContainer().querySelector("tbody").replaceChildren(...fetchedRows);
-    }
-    if (!getCurrentTableDef().pageHandler) {
-      tableDef.pageHandler = new SimpleTableHandler(onLoaded, void 0);
-    }
-    return tableDef.getTableData();
+  function createDefaultTableFetcher() {
+    let { tableRef, infoBar, progressBar } = createDefaultTableRefAndInfoBar();
+    let tableFetcher = new TableFetcher(
+      tableRef,
+      getChecksumHandler(tableRef.htmlTableId)
+    );
+    tableFetcher.addListener(new InfoBarTableFetchListener(infoBar, progressBar));
+    return { tableFetcher, infoBar, progressBar };
   }
 
   // typescript/table/tableHeaders.ts
@@ -3562,16 +3595,6 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
     let rows = Array.from(tableContainer.querySelector("tbody").rows);
     return distinct(rows.map((row) => row.children[index].textContent)).sort();
   }
-  var TableHandlerForHeaders = class {
-    onReset(tableDef3) {
-      let headerRows = Array.from(tableDef3.tableRef.getOrgTableContainer().querySelector("thead").rows);
-      for (let row of headerRows) {
-        for (let cell of row.cells) {
-          cell.style.display = "";
-        }
-      }
-    }
-  };
   function getColumnIndex(ev) {
     let td = ev.target;
     if (td.tagName !== "TD") {
@@ -3582,29 +3605,26 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
   function forTableColumnDo(ev, doIt) {
     ev.preventDefault();
     ev.stopPropagation();
-    if (!getCurrentTableDef().tableHandler) {
-      getCurrentTableDef().tableHandler = new TableHandlerForHeaders();
-    }
     downloadTable().then((fetchedTable) => {
       let index = getColumnIndex(ev);
       doIt(fetchedTable, index);
     });
   }
   var showDistinctColumn = function(fetchedTable, index) {
-    let cols = getDistinctColumn(fetchedTable.tableDef.tableRef.getOrgTableContainer(), index);
+    let cols = getDistinctColumn(fetchedTable.tableFetchere.tableRef.getOrgTableContainer(), index);
     let tmpDiv = document.createElement("div");
     let tbody = emmet.appendChild(tmpDiv, "table>tbody").last;
     for (let col of cols) {
       emmet.appendChild(tbody, `tr>td>{${col}}`);
     }
-    let headerRow = fetchedTable.tableDef.tableRef.getOrgTableContainer().querySelector("thead>tr");
+    let headerRow = fetchedTable.tableFetchere.tableRef.getOrgTableContainer().querySelector("thead>tr");
     let headerNodes = [...headerRow.querySelectorAll("th")[index].childNodes];
     let headerText = headerNodes.filter((node) => node.nodeType === Node.TEXT_NODE).map((node) => node.textContent).join(" ");
     openTab(tmpDiv.innerHTML, headerText + " (uniek)");
   };
   var hideColumn = function(fetchedTable, index) {
-    let headerRows = Array.from(fetchedTable.tableDef.tableRef.getOrgTableContainer().querySelector("thead").rows);
-    let rows = Array.from(fetchedTable.tableDef.tableRef.getOrgTableContainer().querySelector("tbody").rows);
+    let headerRows = Array.from(fetchedTable.tableFetchere.tableRef.getOrgTableContainer().querySelector("thead").rows);
+    let rows = Array.from(fetchedTable.tableFetchere.tableRef.getOrgTableContainer().querySelector("tbody").rows);
     for (let row of rows) {
       row.cells[index].style.display = "none";
     }
@@ -3613,7 +3633,7 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
     }
   };
   var showColumns = function(fetchedTable, index) {
-    let rows = fetchedTable.tableDef.tableRef.getOrgTableContainer().querySelectorAll("tr");
+    let rows = fetchedTable.tableFetchere.tableRef.getOrgTableContainer().querySelectorAll("tr");
     for (let row of rows) {
       for (let cell of row.cells)
         cell.style.display = "";
@@ -3628,8 +3648,8 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
   function mergeColumnToLeft(fetchedTable, index, separator) {
     if (index === 0)
       return;
-    let headerRows = Array.from(fetchedTable.tableDef.tableRef.getOrgTableContainer().querySelector("thead").rows);
-    let rows = Array.from(fetchedTable.tableDef.tableRef.getOrgTableContainer().querySelector("tbody").rows);
+    let headerRows = Array.from(fetchedTable.tableFetchere.tableRef.getOrgTableContainer().querySelector("thead").rows);
+    let rows = Array.from(fetchedTable.tableFetchere.tableRef.getOrgTableContainer().querySelector("tbody").rows);
     for (let row of rows) {
       row.cells[index].style.display = "none";
       row.cells[index - 1].innerText += separator + row.cells[index].innerText;
@@ -3646,7 +3666,7 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
   var swapColumnsToLeft = function(fetchedTable, index) {
     if (index === 0)
       return;
-    let headerRow = fetchedTable.tableDef.tableRef.getOrgTableContainer().querySelector("thead>tr");
+    let headerRow = fetchedTable.tableFetchere.tableRef.getOrgTableContainer().querySelector("thead>tr");
     let prevIndex = void 0;
     for (let i = index - 1; i >= 0; i--) {
       if (headerRow.children[i].style.display !== "none") {
@@ -3659,7 +3679,7 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
     }
   };
   function swapColumns(fetchedTable, index1, index2) {
-    let rows = Array.from(fetchedTable.tableDef.tableRef.getOrgTableContainer().querySelectorAll("tr"));
+    let rows = Array.from(fetchedTable.tableFetchere.tableRef.getOrgTableContainer().querySelectorAll("tr"));
     for (let row of rows) {
       row.children[index1].parentElement.insertBefore(row.children[index2], row.children[index1]);
     }
@@ -3786,23 +3806,18 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
   }
   function onClickCopyEmails() {
     let requiredHeaderLabels = ["e-mailadressen"];
-    let pageHandler = new NamedCellTablePageHandler(requiredHeaderLabels, (tableDef1) => {
+    let namedCellListener = new NamedCellTableFetchListener(requiredHeaderLabels, (tableDef1) => {
       navigator.clipboard.writeText("").then((value) => {
         console.log("Clipboard cleared.");
       });
     });
-    let tableRef = findTableRefInCode();
-    let tableDef3 = new TableFetcher(
-      tableRef,
-      pageHandler,
-      getChecksumHandler(tableId),
-      new InfoBar(tableRef.createElementAboveTable("div"))
-    );
-    tableDef3.getTableData().then((fetchedTable) => {
-      let allEmails = this.rows = fetchedTable.getRowsAsArray().map((tr) => tableDef3.pageHandler.getColumnText(tr, "e-mailadressen"));
+    let { tableFetcher, infoBar } = createDefaultTableFetcher();
+    tableFetcher.addListener(namedCellListener);
+    tableFetcher.fetch().then((fetchedTable) => {
+      let allEmails = this.rows = fetchedTable.getRowsAsArray().map((tr) => namedCellListener.getColumnText(tr, "e-mailadressen"));
       let flattened = allEmails.map((emails) => emails.split(/[,;]/)).flat().filter((email) => !email.includes("@academiestudent.be")).filter((email) => email !== "");
       navigator.clipboard.writeText(flattened.join(";\n")).then(
-        () => tableDef3.infoBar.setTempMessage("Alle emails zijn naar het clipboard gekopieerd. Je kan ze plakken in Outlook.")
+        () => infoBar.setTempMessage("Alle emails zijn naar het clipboard gekopieerd. Je kan ze plakken in Outlook.")
       );
     });
   }
@@ -3815,23 +3830,19 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
       let tableRef = findTableRefInCode();
       if (!tableRef)
         return false;
+      let { tableFetcher } = createDefaultTableFetcher();
       let fileName = getUrenVakLeraarFileName();
       let requiredHeaderLabels = ["naam", "voornaam", "vak", "klasleerkracht", "graad + leerjaar"];
-      let pageHandler = new NamedCellTablePageHandler(requiredHeaderLabels, () => {
+      let tableFetchListener = new NamedCellTableFetchListener(requiredHeaderLabels, () => {
       });
-      let tableDef3 = new TableFetcher(
-        tableRef,
-        pageHandler,
-        getChecksumHandler(tableRef.htmlTableId),
-        new InfoBar(tableRef.createElementAboveTable("div"))
-      );
-      Promise.all([tableDef3.getTableData(), getUrenFromCloud(fileName)]).then((results) => {
+      tableFetcher.addListener(tableFetchListener);
+      Promise.all([tableFetcher.fetch(), getUrenFromCloud(fileName)]).then((results) => {
         let [fetchedTable, jsonCloudData] = results;
         let vakLeraars = /* @__PURE__ */ new Map();
         let rows = this.rows = fetchedTable.getRows();
         let errors = [];
         for (let tr of rows) {
-          let error = scrapeStudent(tableDef3, tr, vakLeraars);
+          let error = scrapeStudent(tableFetcher, tableFetchListener, tr, vakLeraars);
           if (error)
             errors.push(error);
         }
@@ -3842,7 +3853,7 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
         document.getElementById(COUNT_TABLE_ID)?.remove();
         let schoolYear = findSchooljaar();
         let year = parseInt(schoolYear);
-        buildTable(new UrenData(year, new CloudData(fromCloud), vakLeraars), tableDef3);
+        buildTable(new UrenData(year, new CloudData(fromCloud), vakLeraars), tableFetcher);
         document.getElementById(COUNT_TABLE_ID).style.display = "none";
         showOrHideNewTable();
       });
@@ -3936,20 +3947,12 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
     addTableNavigationButton(navigationBars, COPY_TABLE_BTN_ID, "copy table to clipboard", copyTable, "fa-clipboard");
     return true;
   }
-  var tableDef2 = void 0;
+  var globalTableFetcher = void 0;
   async function copyTable() {
-    let prebuildPageHandler = new SimpleTableHandler(void 0, void 0);
-    let tableRef = findTableRefInCode();
-    let divInfoContainer = tableRef.createElementAboveTable("div");
-    let infoBar = new InfoBar(divInfoContainer.appendChild(document.createElement("div")));
-    tableDef2 = new TableFetcher(
-      tableRef,
-      prebuildPageHandler,
-      getChecksumHandler(tableRef.htmlTableId),
-      infoBar
-    );
-    tableDef2.infoBar.setExtraInfo("Fetching 3-weken data...");
-    let wekenLijst = await getTableFromHash("leerlingen-lijsten-awi-3weken", tableDef2.infoBar.divInfoContainer, true, infoBar).then((bckTableDef) => {
+    let { infoBar, tableFetcher } = createDefaultTableFetcher();
+    globalTableFetcher = tableFetcher;
+    infoBar.setExtraInfo("Fetching 3-weken data...");
+    let wekenLijst = await getTableFromHash("leerlingen-lijsten-awi-3weken", true, infoBar).then((bckTableDef) => {
       ``;
       let rowsArray = bckTableDef.getRowsAsArray();
       return rowsArray.map((row) => {
@@ -3958,8 +3961,8 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
       });
     });
     console.log(wekenLijst);
-    tableDef2.infoBar.setExtraInfo("Fetching attesten...");
-    let attestenLijst = await getTableFromHash("leerlingen-lijsten-awi-ontbrekende_attesten", tableDef2.infoBar.divInfoContainer, true, infoBar).then((bckTableDef) => {
+    infoBar.setExtraInfo("Fetching attesten...");
+    let attestenLijst = await getTableFromHash("leerlingen-lijsten-awi-ontbrekende_attesten", true, infoBar).then((bckTableDef) => {
       return bckTableDef.getRowsAsArray().map(
         (tr) => {
           return {
@@ -3973,8 +3976,8 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
       );
     });
     console.log(attestenLijst);
-    tableDef2.infoBar.setExtraInfo("Fetching afwezigheidscodes...");
-    let pList = await getTableFromHash("leerlingen-lijsten-awi-afwezigheidsregistraties", tableDef2.infoBar.divInfoContainer, true, infoBar).then((bckTableDef) => {
+    infoBar.setExtraInfo("Fetching afwezigheidscodes...");
+    let pList = await getTableFromHash("leerlingen-lijsten-awi-afwezigheidsregistraties", true, infoBar).then((bckTableDef) => {
       let rowsArray = bckTableDef.getRowsAsArray();
       return rowsArray.map((row) => {
         let namen = row.cells[1].querySelector("strong").textContent.split(", ");
@@ -3985,8 +3988,8 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
       });
     });
     console.log(pList);
-    tableDef2.clearCache();
-    tableDef2.getTableData().then((fetchedTable) => {
+    globalTableFetcher.clearCache();
+    globalTableFetcher.fetch().then((fetchedTable) => {
       let wekenMap = /* @__PURE__ */ new Map();
       for (let week of wekenLijst) {
         wekenMap.set(week.naam + "," + week.voornaam, week);
@@ -4045,19 +4048,19 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
       });
       console.log(text);
       window.sessionStorage.setItem(AANW_LIST, text);
-      aanwezighedenToClipboard();
-      tableDef2.tableRef.getOrgTableContainer().querySelector("tbody").replaceChildren(...fetchedTable.getRows());
+      aanwezighedenToClipboard(infoBar);
+      globalTableFetcher.tableRef.getOrgTableContainer().querySelector("tbody").replaceChildren(...fetchedTable.getRows());
     });
   }
-  function aanwezighedenToClipboard() {
+  function aanwezighedenToClipboard(infoBar) {
     let text = window.sessionStorage.getItem(AANW_LIST);
     navigator.clipboard.writeText(text).then((r) => {
-      tableDef2.infoBar.setExtraInfo("Data copied to clipboard. <a id=" + COPY_AGAIN + " href='javascript:void(0);'>Copy again</a>", COPY_AGAIN, () => {
-        aanwezighedenToClipboard();
+      infoBar.setExtraInfo("Data copied to clipboard. <a id=" + COPY_AGAIN + " href='javascript:void(0);'>Copy again</a>", COPY_AGAIN, () => {
+        aanwezighedenToClipboard(infoBar);
       });
     }).catch((reason) => {
-      tableDef2.infoBar.setExtraInfo("Could not copy to clipboard!!! <a id=" + COPY_AGAIN + " href='javascript:void(0);'>Copy again</a>", COPY_AGAIN, () => {
-        aanwezighedenToClipboard();
+      infoBar.setExtraInfo("Could not copy to clipboard!!! <a id=" + COPY_AGAIN + " href='javascript:void(0);'>Copy again</a>", COPY_AGAIN, () => {
+        aanwezighedenToClipboard(infoBar);
       });
     });
   }

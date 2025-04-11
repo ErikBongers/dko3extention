@@ -6,12 +6,13 @@ import {cloud} from "../cloud";
 import {findTableRefInCode, TableFetcher} from "../table/tableFetcher";
 import {prefillInstruments} from "./prefillInstruments";
 import {HashObserver} from "../pageObserver";
-import {NamedCellTablePageHandler} from "../pageHandlers";
+import {NamedCellTableFetchListener} from "../pageHandlers";
 import {decorateTableHeader} from "../table/tableHeaders";
 import {getGotoStateOrDefault, Goto, PageName, saveGotoState, WerklijstGotoState} from "../gotoState";
 import {getChecksumHandler, registerChecksumHandler} from "../table/observer";
 import {CloudData, JsonCloudData, UrenData} from "./urenData";
 import {InfoBar} from "../infoBar";
+import {createDefaultTableFetcher} from "../table/loadAnyTable";
 
 const tableId = "table_leerlingen_werklijst_table";
 
@@ -88,24 +89,19 @@ function onButtonBarChanged() {
 function onClickCopyEmails() {
     let requiredHeaderLabels = ["e-mailadressen"];
 
-    let pageHandler = new NamedCellTablePageHandler(requiredHeaderLabels, tableDef1 => {
+    let namedCellListener = new NamedCellTableFetchListener(requiredHeaderLabels, tableDef1 => {
         navigator.clipboard.writeText("").then(value => {
             console.log("Clipboard cleared.")
         });
     });
 
-    let tableRef = findTableRefInCode()
-    let tableDef = new TableFetcher(
-        tableRef,
-        pageHandler,
-        getChecksumHandler(tableId),
-        new InfoBar(tableRef.createElementAboveTable("div") as HTMLDivElement)
-    );
+    let {tableFetcher, infoBar} = createDefaultTableFetcher();
+    tableFetcher.addListener(namedCellListener);
 
-    tableDef.getTableData( )
+    tableFetcher.fetch( )
         .then((fetchedTable) => {
             let allEmails = this.rows = fetchedTable.getRowsAsArray()
-                .map(tr=> (tableDef.pageHandler as NamedCellTablePageHandler).getColumnText(tr, "e-mailadressen"));
+                .map(tr=> namedCellListener.getColumnText(tr, "e-mailadressen"));
 
             let flattened = allEmails
                 .map((emails: string) => emails.split(/[,;]/))
@@ -113,7 +109,7 @@ function onClickCopyEmails() {
                 .filter((email: string) => !email.includes("@academiestudent.be"))
                 .filter((email: string) => email !== "");
             navigator.clipboard.writeText(flattened.join(";\n")).then(() =>
-                tableDef.infoBar.setTempMessage("Alle emails zijn naar het clipboard gekopieerd. Je kan ze plakken in Outlook.")
+                infoBar.setTempMessage("Alle emails zijn naar het clipboard gekopieerd. Je kan ze plakken in Outlook.")
             );
         });
 }
@@ -127,26 +123,22 @@ function onClickShowCounts() {
     //Build lazily and only once. Table will automatically be erased when filters are changed.
     if (!document.getElementById(def.COUNT_TABLE_ID)) {
         let tableRef = findTableRefInCode();
-        if(!tableRef)
+        if(!tableRef) //todo: should this check be in function below? Perhaps via some unwrap() or Result<data, error> pattern?
             return false;
+        let {tableFetcher} = createDefaultTableFetcher();
 
         let fileName = getUrenVakLeraarFileName();
         let requiredHeaderLabels = ["naam", "voornaam", "vak", "klasleerkracht", "graad + leerjaar"];
-        let pageHandler = new NamedCellTablePageHandler(requiredHeaderLabels, () => {});
-        let tableDef = new TableFetcher(
-            tableRef,
-            pageHandler,
-            getChecksumHandler(tableRef.htmlTableId),
-            new InfoBar(tableRef.createElementAboveTable("div") as HTMLDivElement)
-        );
+        let tableFetchListener = new NamedCellTableFetchListener(requiredHeaderLabels, () => {});
+        tableFetcher.addListener(tableFetchListener);
 
-        Promise.all([tableDef.getTableData(), getUrenFromCloud(fileName)]).then(results => {
+        Promise.all([tableFetcher.fetch(), getUrenFromCloud(fileName)]).then(results => {
             let [fetchedTable, jsonCloudData] = results;
             let vakLeraars = new Map();
             let rows = this.rows = fetchedTable.getRows();
             let errors = [];
             for(let tr of rows) {
-                let error = scrapeStudent(tableDef, tr, vakLeraars);
+                let error = scrapeStudent(tableFetcher, tableFetchListener, tr, vakLeraars);
                 if(error)
                     errors.push(error);
             }
@@ -157,7 +149,7 @@ function onClickShowCounts() {
             document.getElementById(def.COUNT_TABLE_ID)?.remove();
             let schoolYear = findSchooljaar();
             let year = parseInt(schoolYear);
-            buildTable(new UrenData(year, new CloudData(fromCloud), vakLeraars), tableDef);
+            buildTable(new UrenData(year, new CloudData(fromCloud), vakLeraars), tableFetcher);
             document.getElementById(def.COUNT_TABLE_ID).style.display = "none";
             showOrHideNewTable();
         });

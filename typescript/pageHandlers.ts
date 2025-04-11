@@ -1,4 +1,4 @@
-import {FetchedTable, TableFetcher} from "./table/tableFetcher";
+import {FetchedTable, TableFetcher, TableFetchListener} from "./table/tableFetcher";
 
 /**
  * @returns `true` to continue, `false` to cancel further handling.
@@ -50,15 +50,17 @@ export class RowPageHandler implements PageHandler {
     }
 }
 
-export class SimpleTableHandler implements PageHandler {
-    onBeforeLoading?: OnBeforeLoadingHandler;
-    onLoaded: OnLoadedHandler;
-    onPage: OnPageHandler;
+export class SimpleTableHandler implements TableFetchListener {
+    onLoaded: (tableFetcher: TableFetcher) => void;
+    onBeforeLoadingPage: (tableFetcher: TableFetcher) => boolean;
+    onFinished: (tableFetcher: TableFetcher) => void;
+    onPageLoaded: (tableFetcher: TableFetcher, pageCnt: number, text: string) => void;
 
-    constructor(onLoaded: OnLoadedHandler, onBeforeLoading: OnBeforeLoadingHandler) {
-        this.onBeforeLoading = onBeforeLoading;
+    constructor(onLoaded: (tableFetcher: TableFetcher) => void, onBeforeLoading: (tableFetcher: TableFetcher) => boolean) {
+        this.onBeforeLoadingPage = onBeforeLoading;
         this.onLoaded = onLoaded;
-        this.onPage = undefined;
+        this.onPageLoaded = undefined;
+        this.onFinished = undefined;
     }
 }
 
@@ -70,12 +72,13 @@ export class SimpleTableHandler implements PageHandler {
  *      * onRow: function(rowObject, collection): a row handler that mainly provides a param `rowObject`, which has a member getColumnText(columnLabel)
  * @implements PageHandler: which requires member `onPage()`
  */
-export class NamedCellTablePageHandler implements PageHandler {
+export class NamedCellTableFetchListener implements TableFetchListener {
+    onLoaded: (tableFetcher: TableFetcher) => void;
+    onFinished: (tableFetcher: TableFetcher) => void;
+
     private requiredHeaderLabels: string[];
     onBeforeLoading?: OnBeforeLoadingHandler;
     private headerIndices: Map<string, number>;
-    onLoaded: OnLoadedHandler;
-    onLoadedExternal: OnLoadedHandler;
     onColumnsMissing: OnRequiredColumnsMissingHandler;
     isValidPage: boolean;
 
@@ -84,15 +87,14 @@ export class NamedCellTablePageHandler implements PageHandler {
         this.onColumnsMissing = onRequiredColumnsMissing;
         this.headerIndices = undefined;
         this.isValidPage = false;
-        this.onBeforeLoading = this.onBeforeLoadingHandler;
     }
 
-    onPage: OnPageHandler = (_tableDef: TableFetcher, _text: string, fetchedTable)  => {
-        if(fetchedTable.getLastPageNumber() === 0) {
-            if (!this.setTemplateAndCheck(fetchedTable.getTemplate())) {
+    onPageLoaded(tableFetcher: TableFetcher, _pageCnt: number, _text: string) {
+        if(tableFetcher.fetchedTable.getLastPageNumber() === 0) {
+            if (!this.setTemplateAndCheck(tableFetcher.fetchedTable.getTemplate())) {
                 this.isValidPage = false;
                 if (this.onColumnsMissing) {
-                    this.onColumnsMissing(_tableDef);
+                    this.onColumnsMissing(tableFetcher);
                 } else {
                     throw ("Cannot build table object - required columns missing");
                 }
@@ -102,8 +104,8 @@ export class NamedCellTablePageHandler implements PageHandler {
         }
     }
 
-    onBeforeLoadingHandler() {
-        this.headerIndices = NamedCellTablePageHandler.getHeaderIndicesFromDocument(document.body); //TODO: it's up to the tableDef to determine if a table has the valid columns.
+    onBeforeLoadingPage(_tableFetcher: TableFetcher): boolean {
+        this.headerIndices = NamedCellTableFetchListener.getHeaderIndicesFromDocument(document.body); //TODO: it's up to the tableDef to determine if a table has the valid columns.
         return this.hasAllHeadersAndAlert();
     }
 
@@ -119,7 +121,7 @@ export class NamedCellTablePageHandler implements PageHandler {
     }
 
     setTemplateAndCheck(template: HTMLTemplateElement) {
-        this.headerIndices = NamedCellTablePageHandler.getHeaderIndicesFromTemplate(template);
+        this.headerIndices = NamedCellTableFetchListener.getHeaderIndicesFromTemplate(template);
         return this.hasAllHeadersAndAlert();
     }
 

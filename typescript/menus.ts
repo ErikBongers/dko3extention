@@ -33,7 +33,6 @@ export function closeMenus() {
 }
 
 function onWindowClick(event) {
-    console.log("window clicked!!!");
     if (event.target.matches('.dropDownIgnoreHide'))
         return;
     closeMenus();

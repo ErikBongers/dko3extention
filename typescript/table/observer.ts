@@ -29,7 +29,7 @@ function onMutation (_mutation: MutationRecord) {
 
 let tableCriteriaBuilders = new Map<string, CalculateTableCheckSumHandler>();
 
-export function getChecksumHandler(tableId: string): CalculateTableCheckSumHandler {
+export function getChecksumHandler(tableId: string): CalculateTableCheckSumHandler { //todo: rename getChecksumBuilder?
     let handler = tableCriteriaBuilders.get(tableId);
     if(handler)
         return handler;

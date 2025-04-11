@@ -11,7 +11,8 @@ export class InfoBar{
 
     constructor(divInfoContainer: HTMLDivElement) {
         this.divInfoContainer = divInfoContainer;
-        this.divInfoContainer.id = "infoContainer";
+        this.divInfoContainer.id = def.INFO_CONTAINER_ID;
+        this.divInfoContainer.innerHTML = "";
         this.divExtraLine = emmet.appendChild(divInfoContainer, `div#${def.INFO_EXTRA_ID}.infoMessage`).last as HTMLDivElement;
         this.divInfoLine = emmet.appendChild(divInfoContainer, "div.infoLine").last as HTMLDivElement;
         this.divTempLine = emmet.appendChild(divInfoContainer, `div#${def.INFO_TEMP_ID}.infoMessage.tempLine`).last as HTMLDivElement;

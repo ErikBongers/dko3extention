@@ -1,6 +1,6 @@
 import {createTable, distinct, openTab, rangeGenerator} from "../globals";
 import {emmet} from "../../libs/Emmeter/html";
-import {downloadTable, getCurrentTableDef} from "./loadAnyTable";
+import {downloadTable} from "./loadAnyTable";
 import {addMenuItem, addMenuSeparator, setupMenu} from "../menus";
 import {FetchedTable, findTableRefInCode, TableFetcher, TableHandler} from "./tableFetcher";
 import {CAN_HAVE_MENU} from "../def";
@@ -183,9 +183,6 @@ function getColumnIndex(ev: MouseEvent) {
 function forTableColumnDo(ev: MouseEvent, doIt: TableColumnDo) {
     ev.preventDefault();
     ev.stopPropagation();
-    if(!getCurrentTableDef().tableHandler) {
-        getCurrentTableDef().tableHandler = new TableHandlerForHeaders();
-    }
     downloadTable()
         .then(fetchedTable => {
             let index = getColumnIndex(ev);
@@ -194,21 +191,21 @@ function forTableColumnDo(ev: MouseEvent, doIt: TableColumnDo) {
 }
 
 let showDistinctColumn: TableColumnDo = function (fetchedTable, index) {
-    let cols = getDistinctColumn(fetchedTable.tableDef.tableRef.getOrgTableContainer(), index);
+    let cols = getDistinctColumn(fetchedTable.tableFetchere.tableRef.getOrgTableContainer(), index);
     let tmpDiv = document.createElement("div");
     let tbody = emmet.appendChild(tmpDiv, "table>tbody").last as HTMLTableSectionElement;
     for(let col of cols) {
         emmet.appendChild(tbody, `tr>td>{${col}}`);
     }
-    let headerRow = fetchedTable.tableDef.tableRef.getOrgTableContainer().querySelector("thead>tr");
+    let headerRow = fetchedTable.tableFetchere.tableRef.getOrgTableContainer().querySelector("thead>tr");
     let headerNodes = [...headerRow.querySelectorAll("th")[index].childNodes];
     let headerText = headerNodes.filter(node => node.nodeType === Node.TEXT_NODE).map(node => node.textContent).join(" ");
     openTab(tmpDiv.innerHTML, headerText + " (uniek)");
 }
 
 let hideColumn: TableColumnDo = function (fetchedTable, index) {
-    let headerRows = Array.from(fetchedTable.tableDef.tableRef.getOrgTableContainer().querySelector("thead").rows);
-    let rows = Array.from(fetchedTable.tableDef.tableRef.getOrgTableContainer().querySelector("tbody").rows);
+    let headerRows = Array.from(fetchedTable.tableFetchere.tableRef.getOrgTableContainer().querySelector("thead").rows);
+    let rows = Array.from(fetchedTable.tableFetchere.tableRef.getOrgTableContainer().querySelector("tbody").rows);
     for(let row of rows) {
         row.cells[index].style.display = "none";
     }
@@ -218,7 +215,7 @@ let hideColumn: TableColumnDo = function (fetchedTable, index) {
 }
 
 let showColumns: TableColumnDo = function (fetchedTable, index) {
-    let rows = fetchedTable.tableDef.tableRef.getOrgTableContainer().querySelectorAll("tr");
+    let rows = fetchedTable.tableFetchere.tableRef.getOrgTableContainer().querySelectorAll("tr");
     for(let row of rows) {
         for(let cell of row.cells)
             cell.style.display = "";
@@ -235,8 +232,8 @@ let mergeColumnWithSpace: TableColumnDo = function (fetchedTable, index) {
 function mergeColumnToLeft(fetchedTable: FetchedTable, index: number, separator: string) {
     if(index === 0)
         return; //just to be sure.
-    let headerRows = Array.from(fetchedTable.tableDef.tableRef.getOrgTableContainer().querySelector("thead").rows);
-    let rows = Array.from(fetchedTable.tableDef.tableRef.getOrgTableContainer().querySelector("tbody").rows);
+    let headerRows = Array.from(fetchedTable.tableFetchere.tableRef.getOrgTableContainer().querySelector("thead").rows);
+    let rows = Array.from(fetchedTable.tableFetchere.tableRef.getOrgTableContainer().querySelector("tbody").rows);
     for(let row of rows) {
         row.cells[index].style.display = "none";
         row.cells[index-1].innerText += separator + row.cells[index].innerText;
@@ -255,7 +252,7 @@ let swapColumnsToLeft: TableColumnDo = function (fetchedTable, index) {
     if(index ===  0)
         return; //just to be sure.
     //look for previous VISIBLE column
-    let headerRow = fetchedTable.tableDef.tableRef.getOrgTableContainer().querySelector("thead>tr") as HTMLTableRowElement;
+    let headerRow = fetchedTable.tableFetchere.tableRef.getOrgTableContainer().querySelector("thead>tr") as HTMLTableRowElement;
     let prevIndex: number = undefined;
     for(let i = index-1; i >=0 ; i--) {
         if((headerRow.children[i] as HTMLElement).style.display !== "none") {
@@ -269,7 +266,7 @@ let swapColumnsToLeft: TableColumnDo = function (fetchedTable, index) {
 }
 
 function swapColumns(fetchedTable:  FetchedTable, index1: number,  index2: number) {
-    let rows = Array.from(fetchedTable.tableDef.tableRef.getOrgTableContainer().querySelectorAll("tr"));
+    let rows = Array.from(fetchedTable.tableFetchere.tableRef.getOrgTableContainer().querySelectorAll("tr"));
     for(let row of rows) {
         row.children[index1].parentElement.insertBefore(row.children[index2], row.children[index1]);
     }

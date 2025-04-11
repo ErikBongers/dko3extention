@@ -1,10 +1,8 @@
 import * as def from "../def.js";
 import {HashObserver} from "../pageObserver";
 import {addTableNavigationButton, getBothToolbars} from "../globals";
-import {SimpleTableHandler} from "../pageHandlers";
-import {findTableRefInCode, TableFetcher} from "../table/tableFetcher";
-import {getTableFromHash} from "../table/loadAnyTable";
-import {getChecksumHandler} from "../table/observer";
+import {TableFetcher} from "../table/tableFetcher";
+import {createDefaultTableFetcher, getTableFromHash} from "../table/loadAnyTable";
 import {InfoBar} from "../infoBar";
 
 export default new HashObserver("#leerlingen-lijsten-awi-percentages_leerling_vak", onMutationAanwezgheden);
@@ -55,25 +53,15 @@ interface Attest {
     leraar: string,
     reden: string
 }
-let tableDef: TableFetcher = undefined;
+let globalTableFetcher: TableFetcher = undefined;
 
 async function copyTable() {
-    let prebuildPageHandler = new SimpleTableHandler(undefined, undefined);
+    let {infoBar, tableFetcher} = createDefaultTableFetcher();
 
-    let tableRef = findTableRefInCode();
+    globalTableFetcher = tableFetcher;
+    infoBar.setExtraInfo("Fetching 3-weken data...");
 
-    let divInfoContainer = tableRef.createElementAboveTable("div");
-    let infoBar = new InfoBar(divInfoContainer.appendChild(document.createElement("div")));
-    tableDef = new TableFetcher(
-        tableRef,
-        prebuildPageHandler,
-        getChecksumHandler(tableRef.htmlTableId),
-        infoBar
-    );
-
-    tableDef.infoBar.setExtraInfo("Fetching 3-weken data...");
-
-    let wekenLijst = await getTableFromHash("leerlingen-lijsten-awi-3weken", tableDef.infoBar.divInfoContainer, true, infoBar).then(bckTableDef => {
+    let wekenLijst = await getTableFromHash("leerlingen-lijsten-awi-3weken", true, infoBar).then(bckTableDef => {
 ``        // convert table to text
         let rowsArray = bckTableDef.getRowsAsArray();
         return rowsArray
@@ -84,9 +72,9 @@ async function copyTable() {
     });
     console.log(wekenLijst);
 
-    tableDef.infoBar.setExtraInfo("Fetching attesten...");
+    infoBar.setExtraInfo("Fetching attesten...");
 
-    let attestenLijst = await getTableFromHash("leerlingen-lijsten-awi-ontbrekende_attesten", tableDef.infoBar.divInfoContainer, true, infoBar).then(bckTableDef => {
+    let attestenLijst = await getTableFromHash("leerlingen-lijsten-awi-ontbrekende_attesten", true, infoBar).then(bckTableDef => {
         return bckTableDef.getRowsAsArray().map(tr => {
                 return {
                     datum: tr.cells[0].textContent,
@@ -100,9 +88,9 @@ async function copyTable() {
     });
     console.log(attestenLijst);
 
-    tableDef.infoBar.setExtraInfo("Fetching afwezigheidscodes...");
+    infoBar.setExtraInfo("Fetching afwezigheidscodes...");
 
-    let pList = await getTableFromHash("leerlingen-lijsten-awi-afwezigheidsregistraties", tableDef.infoBar.divInfoContainer, true, infoBar).then(bckTableDef => {
+    let pList = await getTableFromHash("leerlingen-lijsten-awi-afwezigheidsregistraties", true, infoBar).then(bckTableDef => {
         let rowsArray = bckTableDef.getRowsAsArray();
 
         return rowsArray
@@ -116,8 +104,8 @@ async function copyTable() {
     });
     console.log(pList);
 
-    tableDef.clearCache();
-    tableDef.getTableData().then((fetchedTable) => {
+    globalTableFetcher.clearCache();
+    globalTableFetcher.fetch().then((fetchedTable) => {
 
         let wekenMap: Map<string, Weken> = new Map();
 
@@ -188,26 +176,26 @@ async function copyTable() {
         });
         console.log(text);
         window.sessionStorage.setItem(def.AANW_LIST, text);
-        aanwezighedenToClipboard();
+        aanwezighedenToClipboard(infoBar);
 
         //replace the visible table
-        tableDef.tableRef.getOrgTableContainer()
+        globalTableFetcher.tableRef.getOrgTableContainer()
             .querySelector("tbody")
             .replaceChildren(...fetchedTable.getRows());
     });
 }
 
-function aanwezighedenToClipboard() {
+function aanwezighedenToClipboard(infoBar: InfoBar) {
     let text = window.sessionStorage.getItem(def.AANW_LIST);
     navigator.clipboard.writeText(text)
         .then(r => {
-            tableDef.infoBar.setExtraInfo("Data copied to clipboard. <a id="+def.COPY_AGAIN+" href='javascript:void(0);'>Copy again</a>", def.COPY_AGAIN, () => {
-                aanwezighedenToClipboard();
+            infoBar.setExtraInfo("Data copied to clipboard. <a id="+def.COPY_AGAIN+" href='javascript:void(0);'>Copy again</a>", def.COPY_AGAIN, () => {
+                aanwezighedenToClipboard(infoBar);
             });
         })
         .catch(reason => {
-            tableDef.infoBar.setExtraInfo("Could not copy to clipboard!!! <a id="+def.COPY_AGAIN+" href='javascript:void(0);'>Copy again</a>", def.COPY_AGAIN, () => {
-                aanwezighedenToClipboard();
+            infoBar.setExtraInfo("Could not copy to clipboard!!! <a id="+def.COPY_AGAIN+" href='javascript:void(0);'>Copy again</a>", def.COPY_AGAIN, () => {
+                aanwezighedenToClipboard(infoBar);
             });
         });
 }
