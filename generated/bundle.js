@@ -3186,17 +3186,7 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
   };
   function insertProgressBar(container, steps, text = "") {
     container.innerHTML = "";
-    let divProgressLine = document.createElement("div");
-    container.append(divProgressLine);
-    divProgressLine.classList.add("infoLine");
-    divProgressLine.id = PROGRESS_BAR_ID;
-    let divProgressText = document.createElement("div");
-    divProgressLine.appendChild(divProgressText);
-    divProgressText.classList.add("progressText");
-    divProgressText.innerText = text;
-    let divProgressBar = document.createElement("div");
-    divProgressLine.appendChild(divProgressBar);
-    divProgressBar.classList.add("progressBar");
+    let { first: divProgressLine, last: divProgressBar } = emmet.appendChild(container, `div.infoLine${PROGRESS_BAR_ID}>div.progressText{${text}}+div.progressBar`);
     return new ProgressBar(divProgressLine, divProgressBar, steps);
   }
 
