@@ -2710,7 +2710,7 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
     return new ProgressBar(divProgressLine, divProgressBar, steps);
   }
 
-  // typescript/table/tableDef.ts
+  // typescript/table/tableFetcher.ts
   var TableRef = class {
     constructor(htmlTableId, navigationData, buildFetchUrl) {
       this.htmlTableId = htmlTableId;
@@ -2751,7 +2751,7 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
       url
     };
   }
-  var TableDef = class {
+  var TableFetcher = class {
     constructor(tableRef, pageHandler, calculateTableCheckSum, infoBar, tableHandler) {
       this.isUsingCached = false;
       this.tableRef = tableRef;
@@ -3231,7 +3231,7 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
     let tableRef = new TableRef(htmlTableId, tableNav, buildFetchUrl);
     console.log(tableRef);
     let prebuildPageHandler = new SimpleTableHandler(void 0, void 0);
-    let tableDef3 = new TableDef(
+    let tableDef3 = new TableFetcher(
       tableRef,
       prebuildPageHandler,
       getChecksumHandler(tableRef.htmlTableId),
@@ -3385,7 +3385,7 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
   function setCurrentTableDef() {
     let tableRef = findTableRefInCode();
     if (tableDef?.tableRef.htmlTableId !== tableRef.htmlTableId) {
-      tableDef = new TableDef(
+      tableDef = new TableFetcher(
         tableRef,
         void 0,
         //set handler later!!!
@@ -3792,7 +3792,7 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
       });
     });
     let tableRef = findTableRefInCode();
-    let tableDef3 = new TableDef(
+    let tableDef3 = new TableFetcher(
       tableRef,
       pageHandler,
       getChecksumHandler(tableId),
@@ -3819,7 +3819,7 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
       let requiredHeaderLabels = ["naam", "voornaam", "vak", "klasleerkracht", "graad + leerjaar"];
       let pageHandler = new NamedCellTablePageHandler(requiredHeaderLabels, () => {
       });
-      let tableDef3 = new TableDef(
+      let tableDef3 = new TableFetcher(
         tableRef,
         pageHandler,
         getChecksumHandler(tableRef.htmlTableId),
@@ -3942,7 +3942,7 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
     let tableRef = findTableRefInCode();
     let divInfoContainer = tableRef.createElementAboveTable("div");
     let infoBar = new InfoBar(divInfoContainer.appendChild(document.createElement("div")));
-    tableDef2 = new TableDef(
+    tableDef2 = new TableFetcher(
       tableRef,
       prebuildPageHandler,
       getChecksumHandler(tableRef.htmlTableId),

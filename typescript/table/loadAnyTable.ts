@@ -1,5 +1,5 @@
 import {findFirstNavigation} from "./tableNavigation";
-import {FetchedTable, findTableRefInCode, TableDef, TableRef} from "./tableDef";
+import {FetchedTable, findTableRefInCode, TableFetcher, TableRef} from "./tableFetcher";
 import {SimpleTableHandler} from "../pageHandlers";
 import {getChecksumHandler} from "./observer";
 import {setViewFromCurrentUrl} from "../globals";
@@ -58,7 +58,7 @@ export async function getTableFromHash(hash: string, divInfoContainer: HTMLDivEl
     console.log(tableRef);
     let prebuildPageHandler = new SimpleTableHandler(undefined, undefined);
 
-    let tableDef = new TableDef(
+    let tableDef = new TableFetcher(
         tableRef,
         prebuildPageHandler,
         getChecksumHandler(tableRef.htmlTableId),
@@ -340,12 +340,12 @@ export function testScanner() {
         .result();
 }
 
-let tableDef: TableDef = undefined; //keep until page refresh or other table needed. This prevents table manipulations from being overwritten.
+let tableDef: TableFetcher = undefined; //keep until page refresh or other table needed. This prevents table manipulations from being overwritten.
 
 function setCurrentTableDef() {
     let tableRef = findTableRefInCode();
     if (tableDef?.tableRef.htmlTableId !== tableRef.htmlTableId) {
-        tableDef = new TableDef(
+        tableDef = new TableFetcher(
             tableRef,
             undefined, //set handler later!!!
             getChecksumHandler(tableRef.htmlTableId),

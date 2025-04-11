@@ -3,7 +3,7 @@ import * as def from "../def";
 import {buildTable, getUrenVakLeraarFileName} from "./buildUren";
 import {scrapeStudent, VakLeraar} from "./scrapeUren";
 import {cloud} from "../cloud";
-import {findTableRefInCode, TableDef} from "../table/tableDef";
+import {findTableRefInCode, TableFetcher} from "../table/tableFetcher";
 import {prefillInstruments} from "./prefillInstruments";
 import {HashObserver} from "../pageObserver";
 import {NamedCellTablePageHandler} from "../pageHandlers";
@@ -15,7 +15,7 @@ import {InfoBar} from "../infoBar";
 
 const tableId = "table_leerlingen_werklijst_table";
 
-registerChecksumHandler(tableId,  (_tableDef: TableDef) => {
+registerChecksumHandler(tableId,  (_tableDef: TableFetcher) => {
     return document.querySelector("#view_contents > div.alert.alert-primary")?.textContent.replace("Criteria aanpassen", "")?.replace("Criteria:", "") ?? ""
     }
     );
@@ -95,7 +95,7 @@ function onClickCopyEmails() {
     });
 
     let tableRef = findTableRefInCode()
-    let tableDef = new TableDef(
+    let tableDef = new TableFetcher(
         tableRef,
         pageHandler,
         getChecksumHandler(tableId),
@@ -133,7 +133,7 @@ function onClickShowCounts() {
         let fileName = getUrenVakLeraarFileName();
         let requiredHeaderLabels = ["naam", "voornaam", "vak", "klasleerkracht", "graad + leerjaar"];
         let pageHandler = new NamedCellTablePageHandler(requiredHeaderLabels, () => {});
-        let tableDef = new TableDef(
+        let tableDef = new TableFetcher(
             tableRef,
             pageHandler,
             getChecksumHandler(tableRef.htmlTableId),

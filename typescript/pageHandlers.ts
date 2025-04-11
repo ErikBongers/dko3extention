@@ -1,14 +1,14 @@
-import {FetchedTable, TableDef} from "./table/tableDef";
+import {FetchedTable, TableFetcher} from "./table/tableFetcher";
 
 /**
  * @returns `true` to continue, `false` to cancel further handling.
  */
-type OnRowHandler = (tableDef: TableDef, rowObject: RowObject) => boolean;
+type OnRowHandler = (tableDef: TableFetcher, rowObject: RowObject) => boolean;
 
-type OnBeforeLoadingHandler = (tableDef: TableDef) => boolean;
+type OnBeforeLoadingHandler = (tableDef: TableFetcher) => boolean;
 type OnLoadedHandler = (fetchedTable: FetchedTable) => void;
-type OnRequiredColumnsMissingHandler = (tableDef: TableDef) => void;
-type OnPageHandler = (tableDef: TableDef, text: string, fetchedTable: FetchedTable) => void;
+type OnRequiredColumnsMissingHandler = (tableDef: TableFetcher) => void;
+type OnPageHandler = (tableDef: TableFetcher, text: string, fetchedTable: FetchedTable) => void;
 
 export interface PageHandler {
     onPage: OnPageHandler;
@@ -33,7 +33,7 @@ export class RowPageHandler implements PageHandler {
         this.onLoaded = onLoaded;
     }
 
-    onPage: OnPageHandler = (tableDef: TableDef, _text: string, fetchedTable) => {
+    onPage: OnPageHandler = (tableDef: TableFetcher, _text: string, fetchedTable) => {
         if(!this.onRow)
             return;
         let index = 0;
@@ -87,7 +87,7 @@ export class NamedCellTablePageHandler implements PageHandler {
         this.onBeforeLoading = this.onBeforeLoadingHandler;
     }
 
-    onPage: OnPageHandler = (_tableDef: TableDef, _text: string, fetchedTable)  => {
+    onPage: OnPageHandler = (_tableDef: TableFetcher, _text: string, fetchedTable)  => {
         if(fetchedTable.getLastPageNumber() === 0) {
             if (!this.setTemplateAndCheck(fetchedTable.getTemplate())) {
                 this.isValidPage = false;

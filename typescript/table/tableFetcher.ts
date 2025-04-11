@@ -62,13 +62,13 @@ function findTable() {
     };
 }
 
-export type CalculateTableCheckSumHandler = (tableDef: TableDef) => string;
+export type CalculateTableCheckSumHandler = (tableDef: TableFetcher) => string;
 
 export interface TableHandler {
-    onReset: (tableDef: TableDef) => void;
+    onReset: (tableDef: TableFetcher) => void;
 }
 
-export class TableDef {
+export class TableFetcher {
     tableRef: TableRef;
     pageHandler: PageHandler;
     calculateTableCheckSum: CalculateTableCheckSumHandler;
@@ -188,11 +188,11 @@ export class TableDef {
 
 export class FetchedTable {
     private readonly shadowTableTemplate: HTMLTemplateElement;
-    tableDef: TableDef;
+    tableDef: TableFetcher;
     lastPageNumber: number;
     lastPageStartRow: number;
 
-    constructor(tableDef: TableDef) {
+    constructor(tableDef: TableFetcher) {
         this.tableDef = tableDef;
         this.lastPageNumber = -1;
         this.lastPageStartRow = 0;

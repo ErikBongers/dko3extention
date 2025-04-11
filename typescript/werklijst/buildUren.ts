@@ -2,7 +2,7 @@ import * as def from "../def";
 import {CAN_SORT} from "../def";
 import {createValidId, findSchooljaar, getSchoolIdString} from "../globals";
 import {VakLeraar} from "./scrapeUren";
-import {TableDef} from "../table/tableDef";
+import {TableFetcher} from "../table/tableFetcher";
 import {cloud} from "../cloud";
 import {UrenData} from "./urenData";
 
@@ -236,7 +236,7 @@ function recalculate(urenData: UrenData) {
     observeTable(true);
 }
 
-export function buildTable(urenData: UrenData, tableDef: TableDef) {
+export function buildTable(urenData: UrenData, tableDef: TableFetcher) {
     isUpdatePaused = true;
     globalUrenData = urenData;
     let table = document.createElement("table");

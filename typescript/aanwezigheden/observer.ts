@@ -2,7 +2,7 @@ import * as def from "../def.js";
 import {HashObserver} from "../pageObserver";
 import {addTableNavigationButton, getBothToolbars} from "../globals";
 import {SimpleTableHandler} from "../pageHandlers";
-import {findTableRefInCode, TableDef} from "../table/tableDef";
+import {findTableRefInCode, TableFetcher} from "../table/tableFetcher";
 import {getTableFromHash} from "../table/loadAnyTable";
 import {getChecksumHandler} from "../table/observer";
 import {InfoBar} from "../infoBar";
@@ -55,7 +55,7 @@ interface Attest {
     leraar: string,
     reden: string
 }
-let tableDef: TableDef = undefined;
+let tableDef: TableFetcher = undefined;
 
 async function copyTable() {
     let prebuildPageHandler = new SimpleTableHandler(undefined, undefined);
@@ -64,7 +64,7 @@ async function copyTable() {
 
     let divInfoContainer = tableRef.createElementAboveTable("div");
     let infoBar = new InfoBar(divInfoContainer.appendChild(document.createElement("div")));
-    tableDef = new TableDef(
+    tableDef = new TableFetcher(
         tableRef,
         prebuildPageHandler,
         getChecksumHandler(tableRef.htmlTableId),

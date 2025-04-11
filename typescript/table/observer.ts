@@ -2,7 +2,7 @@ import {addTableNavigationButton, getBothToolbars} from "../globals";
 import * as def from "../def";
 import {CAN_HAVE_MENU, CAN_SORT} from "../def";
 import {AllPageFilter, BaseObserver} from "../pageObserver";
-import {CalculateTableCheckSumHandler, findTableRefInCode, TableDef} from "./tableDef";
+import {CalculateTableCheckSumHandler, findTableRefInCode, TableFetcher} from "./tableFetcher";
 import {decorateTableHeader} from "./tableHeaders";
 import {downloadTable} from "./loadAnyTable";
 
@@ -33,7 +33,7 @@ export function getChecksumHandler(tableId: string): CalculateTableCheckSumHandl
     let handler = tableCriteriaBuilders.get(tableId);
     if(handler)
         return handler;
-    return (tableDef: TableDef) => "";
+    return (tableDef: TableFetcher) => "";
 }
 
 export function registerChecksumHandler(tableId: string, checksumHandler: CalculateTableCheckSumHandler) {

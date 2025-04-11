@@ -1,5 +1,5 @@
 import {createValidId} from "../globals";
-import {TableDef} from "../table/tableDef";
+import {TableFetcher} from "../table/tableFetcher";
 import {NamedCellTablePageHandler} from "../pageHandlers";
 import {StudentInfo} from "../lessen/scrape";
 
@@ -14,7 +14,7 @@ export interface VakLeraar {
     countMap: Map<string, CountStudentsPerJaar>
 }
 
-export function scrapeStudent(tableDef: TableDef, tr: HTMLTableRowElement, collection: any) {
+export function scrapeStudent(tableDef: TableFetcher, tr: HTMLTableRowElement, collection: any) {
     let student: StudentInfo = new StudentInfo();
     student.naam = (tableDef.pageHandler as NamedCellTablePageHandler).getColumnText(tr, "naam");
     student.voornaam = (tableDef.pageHandler as NamedCellTablePageHandler).getColumnText(tr,"voornaam");

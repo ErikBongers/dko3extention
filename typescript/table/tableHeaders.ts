@@ -2,7 +2,7 @@ import {createTable, distinct, openTab, rangeGenerator} from "../globals";
 import {emmet} from "../../libs/Emmeter/html";
 import {downloadTable, getCurrentTableDef} from "./loadAnyTable";
 import {addMenuItem, addMenuSeparator, setupMenu} from "../menus";
-import {FetchedTable, findTableRefInCode, TableDef, TableHandler} from "./tableDef";
+import {FetchedTable, findTableRefInCode, TableFetcher, TableHandler} from "./tableFetcher";
 import {CAN_HAVE_MENU} from "../def";
 import {InfoBar} from "../infoBar";
 import {insertProgressBar} from "../progressBar";
@@ -162,7 +162,7 @@ function getDistinctColumn(tableContainer: HTMLElement, index: number) {
 type TableColumnDo = (fetchedTable: FetchedTable, index: number) => void;
 
 class TableHandlerForHeaders implements TableHandler {
-    onReset(tableDef: TableDef){
+    onReset(tableDef: TableFetcher){
         let headerRows = Array.from(tableDef.tableRef.getOrgTableContainer().querySelector("thead").rows);
         for(let row of headerRows) {
             for(let cell of row.cells) {
