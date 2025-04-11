@@ -33,3 +33,4 @@ export const UREN_TABLE_STATE_NAME = "__uren__";
 export const CAN_HAVE_MENU = "canHaveMenu";
 export const CAN_SORT = "canSort";
 export const LESSEN_TABLE_ID = "table_lessen_resultaat_tabel";
+export const FILTER_INFO_ID = "filterInfo";

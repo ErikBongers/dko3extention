@@ -1,6 +1,3 @@
-* Extract infoBar from TableFetcher
-  > the TableFetcher events should allow to pass messages to the infoBar.
-
 * Lessen filters: show a label for the extra filter.
   > add a bullet/highlight for the selected extra filter in the menu.
 

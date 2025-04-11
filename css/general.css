@@ -320,3 +320,7 @@ button.likeLink {
         text-decoration: underline;
     }
 }
+
+span.filterInfo {
+    margin-left: 1ch;
+}

@@ -33,6 +33,7 @@
   var CAN_HAVE_MENU = "canHaveMenu";
   var CAN_SORT = "canSort";
   var LESSEN_TABLE_ID = "table_lessen_resultaat_tabel";
+  var FILTER_INFO_ID = "filterInfo";
 
   // typescript/cloud.ts
   var cloud = {
@@ -1911,8 +1912,12 @@
       addMenuItem(menu, "Show all", 0, (_) => filterAll());
       addMenuItem(menu, "Filter online lessen", 0, (_) => filterOnline());
       addMenuItem(menu, "Filter offline lessen", 0, (_) => filterOffline());
+      emmet.insertAfter(idiom.parentElement, `span#${FILTER_INFO_ID}.filterInfo{sdfsdf}`);
     }
     applyFilters();
+  }
+  function setFilterInfo(text) {
+    document.getElementById(FILTER_INFO_ID).innerText = text;
   }
   function filterAll() {
     let pageState2 = getPageSettings("Lessen" /* Lessen */, getDefaultPageSettings());
@@ -1984,6 +1989,13 @@
       if (extraFilter)
         filter = combineFilters(textFilter, extraFilter);
       filterTable(LESSEN_TABLE_ID, filter);
+    }
+    if (pageState2.filterOnline) {
+      setFilterInfo("Online lessen");
+    } else if (pageState2.filterOffline) {
+      setFilterInfo("Offline lessen");
+    } else {
+      setFilterInfo("");
     }
   }
   function buildAncestorFilter(rowPreFilter) {

@@ -2,7 +2,7 @@ import {scrapeLessenOverzicht, scrapeModules} from "./scrape";
 import {buildTableData} from "./convert";
 import {buildTrimesterTable, getDefaultPageSettings, getSavedNameSorting, LessenPageState, NameSorting, setSavedNameSorting, TrimElements, TrimesterGrouping} from "./build";
 import * as def from "../def";
-import {LESSEN_TABLE_ID} from "../def";
+import {FILTER_INFO_ID, LESSEN_TABLE_ID} from "../def";
 import {combineFilters, createSearchField, createTextRowFilter, filterTable, filterTableRows, findSchooljaar, getPageSettings, RowFilter, savePageSettings, setButtonHighlighted} from "../globals";
 import {HashObserver} from "../pageObserver";
 import * as html from "../../libs/Emmeter/html";
@@ -150,9 +150,14 @@ function addFilterFields() {
         addMenuItem(menu, "Show all", 0, _ => filterAll());
         addMenuItem(menu, "Filter online lessen", 0, _ => filterOnline());
         addMenuItem(menu, "Filter offline lessen", 0, _ => filterOffline());
+        emmet.insertAfter(idiom.parentElement, `span#${def.FILTER_INFO_ID}.filterInfo{sdfsdf}`);
     }
 
     applyFilters();
+}
+
+function setFilterInfo(text: string) {
+    document.getElementById(FILTER_INFO_ID).innerText = text;
 }
 
 function filterAll() {
@@ -162,6 +167,7 @@ function filterAll() {
     savePageSettings(pageState);
     applyFilters();
 }
+
 
 function filterOffline() {
     let pageState = getPageSettings(PageName.Lessen, getDefaultPageSettings()) as LessenPageState;
@@ -232,6 +238,13 @@ function applyFilters() {
         if(extraFilter)
             filter = combineFilters(textFilter, extraFilter);
         filterTable(LESSEN_TABLE_ID, filter);
+    }
+    if(pageState.filterOnline) {
+        setFilterInfo("Online lessen");
+    } else if(pageState.filterOffline) {
+        setFilterInfo("Offline lessen");
+    } else {
+        setFilterInfo("");
     }
 }
 
