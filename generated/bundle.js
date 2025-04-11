@@ -3134,10 +3134,9 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
     }
     updateCacheInfo(info, reset_onclick) {
       this.divCacheInfo.innerHTML = info;
-      let a = this.divCacheInfo.appendChild(document.createElement("a"));
-      a.innerHTML = "refresh";
-      a.href = "#";
-      a.onclick = reset_onclick;
+      let button = emmet.appendChild(this.divCacheInfo, "button.likeLink").first;
+      button.innerHTML = "refresh";
+      button.onclick = reset_onclick;
     }
     setExtraInfo(message, click_element_id, callback) {
       this.divExtraLine.innerHTML = message;

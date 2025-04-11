@@ -49,10 +49,9 @@ export class InfoBar{
 
     updateCacheInfo(info: string, reset_onclick: (ev: MouseEvent) => any) {
         this.divCacheInfo.innerHTML = info;
-        let a = this.divCacheInfo.appendChild(document.createElement("a"));
-        a.innerHTML = "refresh"; //todo: replace with button.
-        a.href="#";
-        a.onclick = reset_onclick;
+        let button = emmet.appendChild(this.divCacheInfo, "button.likeLink").first as HTMLButtonElement;
+        button.innerHTML = "refresh";
+        button.onclick = reset_onclick;
     }
 
     setExtraInfo(message: string, click_element_id?: string, callback?: () => void) {
