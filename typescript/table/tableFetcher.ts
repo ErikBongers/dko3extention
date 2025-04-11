@@ -70,6 +70,7 @@ export interface TableHandler {
 }
 
 export interface TableFetchListener {
+    onStart: (tableFetcher: TableFetcher) => void,
     onLoaded: (tableFetcher: TableFetcher) => void,
     onBeforeLoadingPage: (tableFetcher: TableFetcher) => boolean,
     onFinished: (tableFetcher: TableFetcher) => void,
@@ -131,6 +132,7 @@ export class TableFetcher {
     }
 
     async fetch() {
+        this.onStart();
         if(this.fetchedTable) {
             this.onFinished();
             return this.fetchedTable;
@@ -156,6 +158,10 @@ export class TableFetcher {
         return this.fetchedTable;
     }
 
+    onStart() {
+        for(let lst of this.listeners)
+            lst.onStart?.(this);
+    }
     onFinished() {
         for(let lst of this.listeners)
             lst.onFinished?.(this);

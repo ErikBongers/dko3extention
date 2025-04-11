@@ -9,9 +9,8 @@ import {HashObserver} from "../pageObserver";
 import {NamedCellTableFetchListener} from "../pageHandlers";
 import {decorateTableHeader} from "../table/tableHeaders";
 import {getGotoStateOrDefault, Goto, PageName, saveGotoState, WerklijstGotoState} from "../gotoState";
-import {getChecksumBuilder, registerChecksumHandler} from "../table/observer";
+import {registerChecksumHandler} from "../table/observer";
 import {CloudData, JsonCloudData, UrenData} from "./urenData";
-import {InfoBar} from "../infoBar";
 import {createDefaultTableFetcher} from "../table/loadAnyTable";
 
 const tableId = "table_leerlingen_werklijst_table";
@@ -89,13 +88,19 @@ function onButtonBarChanged() {
 function onClickCopyEmails() {
     let requiredHeaderLabels = ["e-mailadressen"];
 
-    let namedCellListener = new NamedCellTableFetchListener(requiredHeaderLabels, tableDef1 => {
-        navigator.clipboard.writeText("").then(value => {
+    let namedCellListener = new NamedCellTableFetchListener(requiredHeaderLabels, _tableDef1 => {
+        navigator.clipboard.writeText("").then(_value => {
             console.log("Clipboard cleared.")
         });
     });
 
-    let {tableFetcher, infoBar} = createDefaultTableFetcher();
+    let result = createDefaultTableFetcher();
+    if("error" in result) {
+        console.error(result.error);
+        return;
+    }
+
+    let {tableFetcher, infoBar} = result.result;
     tableFetcher.addListener(namedCellListener);
 
     tableFetcher.fetch( )
@@ -125,8 +130,13 @@ function onClickShowCounts() {
         let tableRef = findTableRefInCode();
         if(!tableRef) //todo: should this check be in function below? Perhaps via some unwrap() or Result<data, error> pattern?
             return false;
-        let {tableFetcher} = createDefaultTableFetcher();
+        let result = createDefaultTableFetcher();
+        if("error" in result) {
+            console.error(result.error);
+            return;
+        }
 
+        let {tableFetcher} = result.result;
         let fileName = getUrenVakLeraarFileName();
         let requiredHeaderLabels = ["naam", "voornaam", "vak", "klasleerkracht", "graad + leerjaar"];
         let tableFetchListener = new NamedCellTableFetchListener(requiredHeaderLabels, () => {});

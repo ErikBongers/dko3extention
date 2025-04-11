@@ -1,5 +1,6 @@
 import * as def from "./def";
 import {emmet} from "../libs/Emmeter/html";
+import hide = chrome.pageAction.hide;
 
 export class ProgressBar {
     private barElement: HTMLElement;
@@ -10,6 +11,7 @@ export class ProgressBar {
     constructor(containerElement: HTMLElement, barElement: HTMLElement, maxCount: number) {
         this.barElement = barElement;
         this.containerElement = containerElement;
+        this.hide();
         this.maxCount = maxCount;
         this.count = 0;
         for (let i = 0; i < maxCount; i++) {
@@ -20,12 +22,15 @@ export class ProgressBar {
     }
 
     start() {
-        this.containerElement.style.visibility = "visible";
+        this.containerElement.style.display = "block";
         this.next();
     }
 
+    hide() {
+        this.containerElement.style.display = "none";
+    }
     stop() {
-        this.containerElement.style.visibility = "hidden";
+        this.hide();
     }
 
     next() {

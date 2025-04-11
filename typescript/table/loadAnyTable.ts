@@ -1,7 +1,7 @@
 import {findFirstNavigation} from "./tableNavigation";
 import {findTableRefInCode, TableFetcher, TableFetchListener, TableRef} from "./tableFetcher";
 import {getChecksumBuilder} from "./observer";
-import {millisToString, setViewFromCurrentUrl} from "../globals";
+import {millisToString, Result, ResultFail, ResultOk, setViewFromCurrentUrl} from "../globals";
 import {InfoBar} from "../infoBar";
 import {insertProgressBar, ProgressBar} from "../progressBar";
 import * as def from "../def";
@@ -65,7 +65,6 @@ export async function getTableFromHash(hash: string, clearCache: boolean, infoBa
     console.log(tableRef);
 
     let progressBar = insertProgressBar(this.infoBar.divInfoLine, this.tableRef.navigationData.steps(), "loading pages... ");
-    progressBar.start();
 
     let infoBarListener = new InfoBarTableFetchListener(infoBar, progressBar);
 
@@ -354,7 +353,12 @@ export function testScanner() {
 }
 
 export async function downloadTable() {
-    let {tableFetcher} = createDefaultTableFetcher();
+    let result = createDefaultTableFetcher();
+    if("error" in result) {
+        console.error(result.error);
+        return;
+    }
+    let {tableFetcher} = result.result;
 
     let fetchedTable = await tableFetcher.fetch();
     let fetchedRows = fetchedTable.getRows();
@@ -371,6 +375,10 @@ export class InfoBarTableFetchListener implements TableFetchListener {
     constructor(infoBar: InfoBar, progressBar: ProgressBar) {
         this.infoBar = infoBar;
         this.progressBar = progressBar;
+    }
+
+    onStart(_tableFetcher: TableFetcher): void {
+        this.progressBar.start();
     }
     onLoaded (tableFetcher: TableFetcher): void {
         if(tableFetcher.isUsingCached) {
@@ -398,23 +406,39 @@ export class InfoBarTableFetchListener implements TableFetchListener {
     }
 }
 
-export function createDefaultTableRefAndInfoBar() {
+interface DefaultTableRef {
+    tableRef: TableRef,
+    infoBar: InfoBar,
+    progressBar: ProgressBar
+}
+export function createDefaultTableRefAndInfoBar(): Result<DefaultTableRef> {
     let tableRef = findTableRefInCode();
+    if(!tableRef) {
+        return { error: "Cannot find table." };
+    }
     document.getElementById(def.INFO_CONTAINER_ID)?.remove();
     let divInfoContainer = tableRef.createElementAboveTable("div");
     let infoBar = new InfoBar(divInfoContainer.appendChild(document.createElement("div")));
     let progressBar = insertProgressBar(infoBar.divInfoLine, tableRef.navigationData.steps(), "loading pages... ");
-    progressBar.start();
-    return {tableRef, infoBar, progressBar};
+    return { result: {tableRef, infoBar, progressBar} };
 }
 
-export function createDefaultTableFetcher() {
-    let {tableRef, infoBar, progressBar} = createDefaultTableRefAndInfoBar();
+interface DefaultTableFetcher {
+    tableFetcher: TableFetcher,
+    infoBar: InfoBar,
+    progressBar: ProgressBar
+}
+export function createDefaultTableFetcher(): Result<DefaultTableFetcher> {
+    let result = createDefaultTableRefAndInfoBar();
+    if("error" in result)
+        return { error: result.error };
+
+    let {tableRef, infoBar, progressBar} = result.result;
 
     let tableFetcher = new TableFetcher(
         tableRef,
         getChecksumBuilder(tableRef.htmlTableId)
     );
     tableFetcher.addListener(new InfoBarTableFetchListener(infoBar, progressBar))
-    return {tableFetcher, infoBar, progressBar};
+    return { result: {tableFetcher, infoBar, progressBar} };
 }

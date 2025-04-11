@@ -2736,6 +2736,7 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
       return id.replaceAll(/\s/g, "");
     }
     async fetch() {
+      this.onStart();
       if (this.fetchedTable) {
         this.onFinished();
         return this.fetchedTable;
@@ -2758,6 +2759,10 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
       }
       this.onFinished();
       return this.fetchedTable;
+    }
+    onStart() {
+      for (let lst of this.listeners)
+        lst.onStart?.(this);
     }
     onFinished() {
       for (let lst of this.listeners)
@@ -3151,6 +3156,7 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
     constructor(containerElement, barElement, maxCount) {
       this.barElement = barElement;
       this.containerElement = containerElement;
+      this.hide();
       this.maxCount = maxCount;
       this.count = 0;
       for (let i = 0; i < maxCount; i++) {
@@ -3160,11 +3166,14 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
       }
     }
     start() {
-      this.containerElement.style.visibility = "visible";
+      this.containerElement.style.display = "block";
       this.next();
     }
+    hide() {
+      this.containerElement.style.display = "none";
+    }
     stop() {
-      this.containerElement.style.visibility = "hidden";
+      this.hide();
     }
     next() {
       if (this.count >= this.maxCount)
@@ -3226,7 +3235,6 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
     let tableRef = await getTableRefFromHash(hash);
     console.log(tableRef);
     let progressBar = insertProgressBar(this.infoBar.divInfoLine, this.tableRef.navigationData.steps(), "loading pages... ");
-    progressBar.start();
     let infoBarListener = new InfoBarTableFetchListener(infoBar, progressBar);
     let tableFetcher = new TableFetcher(
       tableRef,
@@ -3378,7 +3386,12 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
     }
   };
   async function downloadTable() {
-    let { tableFetcher } = createDefaultTableFetcher();
+    let result = createDefaultTableFetcher();
+    if ("error" in result) {
+      console.error(result.error);
+      return;
+    }
+    let { tableFetcher } = result.result;
     let fetchedTable = await tableFetcher.fetch();
     let fetchedRows = fetchedTable.getRows();
     fetchedTable.tableFetchere.tableRef.getOrgTableContainer().querySelector("tbody").replaceChildren(...fetchedRows);
@@ -3388,6 +3401,9 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
     constructor(infoBar, progressBar) {
       this.infoBar = infoBar;
       this.progressBar = progressBar;
+    }
+    onStart(_tableFetcher) {
+      this.progressBar.start();
     }
     onLoaded(tableFetcher) {
       if (tableFetcher.isUsingCached) {
@@ -3413,21 +3429,26 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
   };
   function createDefaultTableRefAndInfoBar() {
     let tableRef = findTableRefInCode();
+    if (!tableRef) {
+      return { error: "Cannot find table." };
+    }
     document.getElementById(INFO_CONTAINER_ID)?.remove();
     let divInfoContainer = tableRef.createElementAboveTable("div");
     let infoBar = new InfoBar(divInfoContainer.appendChild(document.createElement("div")));
     let progressBar = insertProgressBar(infoBar.divInfoLine, tableRef.navigationData.steps(), "loading pages... ");
-    progressBar.start();
-    return { tableRef, infoBar, progressBar };
+    return { result: { tableRef, infoBar, progressBar } };
   }
   function createDefaultTableFetcher() {
-    let { tableRef, infoBar, progressBar } = createDefaultTableRefAndInfoBar();
+    let result = createDefaultTableRefAndInfoBar();
+    if ("error" in result)
+      return { error: result.error };
+    let { tableRef, infoBar, progressBar } = result.result;
     let tableFetcher = new TableFetcher(
       tableRef,
       getChecksumBuilder(tableRef.htmlTableId)
     );
     tableFetcher.addListener(new InfoBarTableFetchListener(infoBar, progressBar));
-    return { tableFetcher, infoBar, progressBar };
+    return { result: { tableFetcher, infoBar, progressBar } };
   }
 
   // typescript/table/tableHeaders.ts
@@ -3794,12 +3815,17 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
   }
   function onClickCopyEmails() {
     let requiredHeaderLabels = ["e-mailadressen"];
-    let namedCellListener = new NamedCellTableFetchListener(requiredHeaderLabels, (tableDef1) => {
-      navigator.clipboard.writeText("").then((value) => {
+    let namedCellListener = new NamedCellTableFetchListener(requiredHeaderLabels, (_tableDef1) => {
+      navigator.clipboard.writeText("").then((_value) => {
         console.log("Clipboard cleared.");
       });
     });
-    let { tableFetcher, infoBar } = createDefaultTableFetcher();
+    let result = createDefaultTableFetcher();
+    if ("error" in result) {
+      console.error(result.error);
+      return;
+    }
+    let { tableFetcher, infoBar } = result.result;
     tableFetcher.addListener(namedCellListener);
     tableFetcher.fetch().then((fetchedTable) => {
       let allEmails = this.rows = fetchedTable.getRowsAsArray().map((tr) => namedCellListener.getColumnText(tr, "e-mailadressen"));
@@ -3818,7 +3844,12 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
       let tableRef = findTableRefInCode();
       if (!tableRef)
         return false;
-      let { tableFetcher } = createDefaultTableFetcher();
+      let result = createDefaultTableFetcher();
+      if ("error" in result) {
+        console.error(result.error);
+        return;
+      }
+      let { tableFetcher } = result.result;
       let fileName = getUrenVakLeraarFileName();
       let requiredHeaderLabels = ["naam", "voornaam", "vak", "klasleerkracht", "graad + leerjaar"];
       let tableFetchListener = new NamedCellTableFetchListener(requiredHeaderLabels, () => {
@@ -3937,7 +3968,12 @@ ${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1, getValue: (ctx) 
   }
   var globalTableFetcher = void 0;
   async function copyTable() {
-    let { infoBar, tableFetcher } = createDefaultTableFetcher();
+    let result = createDefaultTableFetcher();
+    if ("error" in result) {
+      console.error(result.error);
+      return;
+    }
+    let { tableFetcher, infoBar } = result.result;
     globalTableFetcher = tableFetcher;
     infoBar.setExtraInfo("Fetching 3-weken data...");
     let wekenLijst = await getTableFromHash("leerlingen-lijsten-awi-3weken", true, infoBar).then((bckTableDef) => {

@@ -53,10 +53,15 @@ interface Attest {
     leraar: string,
     reden: string
 }
-let globalTableFetcher: TableFetcher = undefined;
+let globalTableFetcher: TableFetcher = undefined; //todo: try to get rid of global.
 
 async function copyTable() {
-    let {infoBar, tableFetcher} = createDefaultTableFetcher();
+    let result = createDefaultTableFetcher();
+    if("error" in result) {
+        console.error(result.error);
+        return;
+    }
+    let {tableFetcher, infoBar} = result.result;
 
     globalTableFetcher = tableFetcher;
     infoBar.setExtraInfo("Fetching 3-weken data...");
