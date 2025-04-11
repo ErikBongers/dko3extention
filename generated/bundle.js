@@ -246,7 +246,10 @@
     let text = void 0;
     while (nested.length) {
       if (match(".")) {
-        classList.push(nested.shift());
+        let className = nested.shift();
+        if (!className)
+          throw "Unexpected end of stream. Class name expected.";
+        classList.push(className);
       } else if (match("[")) {
         atts = getAttributes();
       } else {
