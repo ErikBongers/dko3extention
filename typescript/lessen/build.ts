@@ -1,5 +1,5 @@
-import {FULL_CLASS_BUTTON_ID, isButtonHighlighted, TRIM_DIV_ID} from "../def";
-import {db3, getPageSettings, savePageSettings, stripStudentName} from "../globals";
+import {FULL_CLASS_BUTTON_ID, TRIM_DIV_ID} from "../def";
+import {db3, getPageSettings, isButtonHighlighted, savePageSettings, stripStudentName} from "../globals";
 import {BlockInfo, mergeBlockStudents, sortStudents, TableData} from "./convert";
 import {StudentInfo} from "./scrape";
 import * as html from "../../libs/Emmeter/html";

@@ -1,10 +1,10 @@
-export let COPY_AGAIN = "copy_again";
-export let PROGRESS_BAR_ID = "progressBarFetch";
-export let UREN_PREV_BTN_ID = "prefillInstrButton";
-export let UREN_NEXT_BTN_ID = "prefillInstrButtonNext";
-export let MAIL_BTN_ID = "mailButton";
-export let DOWNLOAD_TABLE_BTN_ID = "downloadTableButton";
-export let COPY_TABLE_BTN_ID = "copyTableButton";
+export const COPY_AGAIN = "copy_again";
+export const PROGRESS_BAR_ID = "progressBarFetch";
+export const UREN_PREV_BTN_ID = "prefillInstrButton";
+export const UREN_NEXT_BTN_ID = "prefillInstrButtonNext";
+export const MAIL_BTN_ID = "mailButton";
+export const DOWNLOAD_TABLE_BTN_ID = "downloadTableButton";
+export const COPY_TABLE_BTN_ID = "copyTableButton";
 export const LESSEN_OVERZICHT_ID = "lessen_overzicht";
 export const TRIM_BUTTON_ID = "moduleButton";
 export const CHECKS_BUTTON_ID = "checksButton";
@@ -20,11 +20,6 @@ export const INFO_TEMP_ID =  "dp3_tempInfo";
 export const INFO_EXTRA_ID =  "dp3_extraInfo";
 export const AANW_LIST =  "aanwezighedenList";
 export const GLOBAL_SETTINGS_FILENAME =  "global_settings.json";
-
-export function isButtonHighlighted(buttonId: string) {
-    return document.getElementById(buttonId)?.classList.contains("toggled");
-}
-
 export const CACHE_DATE_SUFFIX = "__date";
 export const POWER_QUERY_ID = "savedPowerQuery";
 export const STORAGE_GOTO_STATE_KEY = "gotoState";

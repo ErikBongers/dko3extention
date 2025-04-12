@@ -22,9 +22,6 @@
   var INFO_EXTRA_ID = "dp3_extraInfo";
   var AANW_LIST = "aanwezighedenList";
   var GLOBAL_SETTINGS_FILENAME = "global_settings.json";
-  function isButtonHighlighted(buttonId) {
-    return document.getElementById(buttonId)?.classList.contains("toggled");
-  }
   var CACHE_DATE_SUFFIX = "__date";
   var POWER_QUERY_ID = "savedPowerQuery";
   var STORAGE_GOTO_STATE_KEY = "gotoState";
@@ -681,6 +678,9 @@
       }
     }
     return tmpTable;
+  }
+  function isButtonHighlighted(buttonId) {
+    return document.getElementById(buttonId)?.classList.contains("toggled");
   }
 
   // typescript/pageObserver.ts
