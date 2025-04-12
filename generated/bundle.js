@@ -3730,7 +3730,7 @@ function decorateTableHeader(table) {
 		addMenuItem(menu, "Hoog naar laag (z > a)", 1, (ev) => {
 			forTableColumnDo(ev, (fetchedTable, index$1) => sortTableByColumn(table, index$1, true));
 		});
-		addMenuSeparator(menu, "Sorteer als", 1);
+		addMenuSeparator(menu, "Sorteer als:", 1);
 		addMenuItem(menu, "Tekst", 2, (ev) => {});
 		addMenuItem(menu, "Getallen", 2, (ev) => {});
 		addMenuSeparator(menu, "Kopieer nr klipbord", 0);
