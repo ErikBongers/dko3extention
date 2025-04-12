@@ -4,7 +4,7 @@ import {CAN_HAVE_MENU, CAN_SORT} from "../def";
 import {AllPageFilter, BaseObserver} from "../pageObserver";
 import {CheckSumBuilder, findTableRefInCode, TableFetcher} from "./tableFetcher";
 import {decorateTableHeader} from "./tableHeaders";
-import {downloadTable} from "./loadAnyTable";
+import {downloadTableRows} from "./loadAnyTable";
 
 export default new BaseObserver(undefined, new AllPageFilter(), onMutation);
 
@@ -13,7 +13,9 @@ function onMutation (_mutation: MutationRecord) {
     if(!navigationBars)
         return; //wait for top and bottom bars.
     if(!findTableRefInCode()?.navigationData.isOnePage()) {
-        addTableNavigationButton(navigationBars, def.DOWNLOAD_TABLE_BTN_ID, "download full table", downloadTable, "fa-arrow-down");
+        addTableNavigationButton(navigationBars, def.DOWNLOAD_TABLE_BTN_ID, "download full table", () => {
+            downloadTableRows();
+        }, "fa-arrow-down");
     }
     if(document.querySelector("main div.table-responsive table thead")) {
         let table = document.querySelector("main div.table-responsive table");

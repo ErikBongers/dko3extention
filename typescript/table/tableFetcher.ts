@@ -215,12 +215,12 @@ export class TableFetcher {
 
 export class FetchedTable {
     private readonly shadowTableTemplate: HTMLTemplateElement;
-    tableFetchere: TableFetcher;
+    tableFetcher: TableFetcher;
     lastPageNumber: number;
     lastPageStartRow: number;
 
     constructor(tableDef: TableFetcher) {
-        this.tableFetchere = tableDef;
+        this.tableFetcher = tableDef;
         this.lastPageNumber = -1;
         this.lastPageStartRow = 0;
         this.shadowTableTemplate = document.createElement("template");
@@ -235,13 +235,13 @@ export class FetchedTable {
     getLastPageRows = () => this.getRowsAsArray().slice(this.lastPageStartRow);
     getLastPageNumber = () => this.lastPageNumber;
     getNextPageNumber = () => this.lastPageNumber+1;
-    getNextOffset = () => this.getNextPageNumber()*this.tableFetchere.tableRef.navigationData.step;
+    getNextOffset = () => this.getNextPageNumber()*this.tableFetcher.tableRef.navigationData.step;
     getTemplate = () => this.shadowTableTemplate;
 
     saveToCache() {
-        db3(`Caching ${this.tableFetchere.getCacheId()}.`);
-        window.sessionStorage.setItem(this.tableFetchere.getCacheId(), this.shadowTableTemplate.innerHTML);
-        window.sessionStorage.setItem(this.tableFetchere.getCacheId()+ def.CACHE_DATE_SUFFIX, (new Date()).toJSON());
+        db3(`Caching ${this.tableFetcher.getCacheId()}.`);
+        window.sessionStorage.setItem(this.tableFetcher.getCacheId(), this.shadowTableTemplate.innerHTML);
+        window.sessionStorage.setItem(this.tableFetcher.getCacheId()+ def.CACHE_DATE_SUFFIX, (new Date()).toJSON());
     }
 
     addPage(text: string) {

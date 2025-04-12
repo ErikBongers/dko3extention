@@ -5,6 +5,7 @@ import {millisToString, Result, ResultFail, ResultOk, setViewFromCurrentUrl} fro
 import {InfoBar} from "../infoBar";
 import {insertProgressBar, ProgressBar} from "../progressBar";
 import * as def from "../def";
+import {executeTableCommands, TableHandlerForHeaders} from "./tableHeaders";
 
 async function getTableRefFromHash(hash: string) {
     let page = await fetch("https://administratie.dko3.cloud/#" + hash).then(res => res.text());
@@ -348,20 +349,32 @@ export function testScanner() {
         .result();
 }
 
-export async function downloadTable() {
+export async function downloadTableRows() {
     let result = createDefaultTableFetcher();
     if("error" in result) {
         console.error(result.error);
         return;
     }
     let {tableFetcher} = result.result;
+    tableFetcher.tableHandler = new TableHandlerForHeaders();
 
     let fetchedTable = await tableFetcher.fetch();
     let fetchedRows = fetchedTable.getRows();
-    fetchedTable.tableFetchere.tableRef.getOrgTableContainer()
+    let tableContainer = fetchedTable.tableFetcher.tableRef.getOrgTableContainer();
+    tableContainer
         .querySelector("tbody")
         .replaceChildren(...fetchedRows);
+    tableContainer.querySelector("table").classList.add("fullyFetched");
+    executeTableCommands(fetchedTable.tableFetcher.tableRef);
     return fetchedTable;
+}
+
+export async function checkAndDownloadTableRows() {
+    let tableRef = findTableRefInCode();
+    if(tableRef.getOrgTableContainer().querySelector("table").classList.contains("fullyFetched"))
+        return tableRef;
+    await downloadTableRows();
+    return tableRef;
 }
 
 export class InfoBarTableFetchListener implements TableFetchListener {
@@ -381,7 +394,7 @@ export class InfoBarTableFetchListener implements TableFetchListener {
             let reset_onclick = (e: MouseEvent ) => {
                 e.preventDefault();
                 tableFetcher.reset();
-                downloadTable();
+                downloadTableRows().then(_fetchedTable => {});
                 return true;
             }
             this.infoBar.setCacheInfo(`Gegevens uit cache, ${millisToString((new Date()).getTime()-tableFetcher.shadowTableDate.getTime())} oud. `, reset_onclick);
