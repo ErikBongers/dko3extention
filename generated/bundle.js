@@ -1,4 +1,4 @@
-var dp3 = (function(exports) {
+(function() {
 
 "use strict";
 
@@ -4644,7 +4644,5 @@ async function getOptions() {
 }
 
 //#endregion
-exports.onPageChanged = onPageChanged
-return exports;
-})({});
+})();
 //# sourceMappingURL=bundle.js.map

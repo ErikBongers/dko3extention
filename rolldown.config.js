@@ -7,6 +7,5 @@ export default defineConfig({
         file: "generated/bundle.js",
         format: "iife",
         sourcemap: true,
-        name: "dp3"
     }
 })

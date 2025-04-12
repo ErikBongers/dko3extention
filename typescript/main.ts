@@ -81,7 +81,7 @@ function onSettingsChanged() {
     }
 }
 
-export function onPageChanged() {
+function onPageChanged() {
     if(getGlobalSettings().globalHide) {
         return;
     }
