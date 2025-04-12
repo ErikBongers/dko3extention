@@ -2,10 +2,8 @@ import {createTable, distinct, openTab, rangeGenerator} from "../globals";
 import {emmet} from "../../libs/Emmeter/html";
 import {downloadTable} from "./loadAnyTable";
 import {addMenuItem, addMenuSeparator, setupMenu} from "../menus";
-import {FetchedTable, findTableRefInCode, TableFetcher, TableHandler} from "./tableFetcher";
+import {FetchedTable, TableFetcher, TableHandler} from "./tableFetcher";
 import {CAN_HAVE_MENU} from "../def";
-import {InfoBar} from "../infoBar";
-import {insertProgressBar} from "../progressBar";
 
 
 function sortRows(cmpFunction: (a: HTMLTableCellElement, b: HTMLTableCellElement) => number, header: Element, rows: HTMLTableRowElement[], index: number, descending: boolean) {
@@ -82,7 +80,7 @@ function copyOneColumn(table: HTMLTableElement, index: number) {
 }
 
 function createAndCopyTable(headers: Iterable<string>, cols: Iterable<Iterable<string>>) {
-    navigator.clipboard.writeText(createTable(headers, cols).outerHTML).then(r => {});
+    navigator.clipboard.writeText(createTable(headers, cols).outerHTML).then(_r => {});
 }
 
 function reSortTableByColumn(ev: MouseEvent, table: HTMLTableElement) {
@@ -139,8 +137,8 @@ export function decorateTableHeader(table: HTMLTableElement) {
             addMenuItem(menu, "Laag naar hoog (a > z)", 1, (ev) => { forTableColumnDo(ev, (fetchedTable, index) => sortTableByColumn(table, index, false))});
             addMenuItem(menu, "Hoog naar laag (z > a)", 1, (ev) => { forTableColumnDo(ev, (fetchedTable, index) => sortTableByColumn(table, index, true))});
             addMenuSeparator(menu, "Sorteer als:", 1);
-            addMenuItem(menu, "Tekst", 2, (ev) => { });
-            addMenuItem(menu, "Getallen", 2, (ev) => { });
+            addMenuItem(menu, "Tekst", 2, (_ev) => { });
+            addMenuItem(menu, "Getallen", 2, (_ev) => { });
             addMenuSeparator(menu, "Kopieer nr klipbord", 0);
             addMenuItem(menu, "Kolom", 1, (ev) => { forTableColumnDo(ev, (fetchedTable, index) => copyOneColumn(table, index))});
             addMenuItem(menu, "Hele tabel", 1, (ev) => { forTableColumnDo(ev, (fetchedTable, index) => copyFullTable(table))});
@@ -149,7 +147,7 @@ export function decorateTableHeader(table: HTMLTableElement) {
             addMenuItem(menu, "met comma", 1, (ev) => { forTableColumnDo(ev, mergeColumnWithComma)});
             addMenuSeparator(menu, "Verplaatsen", 0);
             addMenuItem(menu, "<=", 1, (ev) => { forTableColumnDo(ev, swapColumnsToLeft)});
-            addMenuItem(menu, "=>", 1, (ev) => { });
+            addMenuItem(menu, "=>", 1, (ev) => { forTableColumnDo(ev, swapColumnsToRight)});
         });
 }
 
@@ -248,26 +246,45 @@ function mergeColumnToLeft(fetchedTable: FetchedTable, index: number, separator:
     }
 }
 
-let swapColumnsToLeft: TableColumnDo = function (fetchedTable, index) {
-    if(index ===  0)
-        return; //just to be sure.
-    //look for previous VISIBLE column
-    let headerRow = fetchedTable.tableFetchere.tableRef.getOrgTableContainer().querySelector("thead>tr") as HTMLTableRowElement;
-    let prevIndex: number = undefined;
-    for(let i = index-1; i >=0 ; i--) {
-        if((headerRow.children[i] as HTMLElement).style.display !== "none") {
-            prevIndex = i;
+function findNextVisibleCell(headerRow: HTMLTableRowElement, indexes: number[]) {
+    let index = undefined;
+    for (let i of indexes) {
+        if ((headerRow.children[i] as HTMLElement).style.display !== "none") {
+            index = i;
             break;
         }
     }
-    if(prevIndex !== undefined) {
-        swapColumns(fetchedTable, prevIndex, index);
-    }
+    return index;
+}
+
+let swapColumnsToRight: TableColumnDo = function (fetchedTable, index) {
+    let headerRow = fetchedTable.tableFetchere.tableRef.getOrgTableContainer().querySelector("thead>tr") as HTMLTableRowElement;
+    let index2 = findNextVisibleCell(headerRow, range(index+1, headerRow.cells.length));
+    swapColumns(fetchedTable, index, index2);
+}
+
+let swapColumnsToLeft: TableColumnDo = function (fetchedTable, index) {
+    let headerRow = fetchedTable.tableFetchere.tableRef.getOrgTableContainer().querySelector("thead>tr") as HTMLTableRowElement;
+    let index2 = findNextVisibleCell(headerRow, range(index-1, -1));
+    swapColumns(fetchedTable, index, index2);
 }
 
 function swapColumns(fetchedTable:  FetchedTable, index1: number,  index2: number) {
+    if(index1 == undefined || index2 == undefined)
+        return;
+    if(index1 > index2) {
+        [index1, index2] = [index2, index1];
+    }
+
     let rows = Array.from(fetchedTable.tableFetchere.tableRef.getOrgTableContainer().querySelectorAll("tr"));
     for(let row of rows) {
         row.children[index1].parentElement.insertBefore(row.children[index2], row.children[index1]);
     }
+}
+
+function range(startAt: number, upTo: number) {
+    if(upTo > startAt)
+        return [...Array(upTo-startAt).keys()].map(n => n+startAt);
+    else
+        return [...Array(startAt-upTo).keys()].reverse().map(n => n+upTo+1);
 }

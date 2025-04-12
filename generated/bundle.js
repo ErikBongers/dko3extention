@@ -3676,7 +3676,7 @@ function copyOneColumn(table, index) {
 	createAndCopyTable([table.tHead.children[0].children[index].innerText], [...table.tBodies[0].rows].map((row) => [row.cells[index].innerText]));
 }
 function createAndCopyTable(headers, cols) {
-	navigator.clipboard.writeText(createTable(headers, cols).outerHTML).then((r) => {});
+	navigator.clipboard.writeText(createTable(headers, cols).outerHTML).then((_r) => {});
 }
 function reSortTableByColumn(ev, table) {
 	let header = table.tHead.children[0].children[getColumnIndex(ev)];
@@ -3731,8 +3731,8 @@ function decorateTableHeader(table) {
 			forTableColumnDo(ev, (fetchedTable, index$1) => sortTableByColumn(table, index$1, true));
 		});
 		addMenuSeparator(menu, "Sorteer als:", 1);
-		addMenuItem(menu, "Tekst", 2, (ev) => {});
-		addMenuItem(menu, "Getallen", 2, (ev) => {});
+		addMenuItem(menu, "Tekst", 2, (_ev) => {});
+		addMenuItem(menu, "Getallen", 2, (_ev) => {});
 		addMenuSeparator(menu, "Kopieer nr klipbord", 0);
 		addMenuItem(menu, "Kolom", 1, (ev) => {
 			forTableColumnDo(ev, (fetchedTable, index$1) => copyOneColumn(table, index$1));
@@ -3751,7 +3751,9 @@ function decorateTableHeader(table) {
 		addMenuItem(menu, "<=", 1, (ev) => {
 			forTableColumnDo(ev, swapColumnsToLeft);
 		});
-		addMenuItem(menu, "=>", 1, (ev) => {});
+		addMenuItem(menu, "=>", 1, (ev) => {
+			forTableColumnDo(ev, swapColumnsToRight);
+		});
 	});
 }
 function getDistinctColumn(tableContainer, index) {
@@ -3812,19 +3814,33 @@ function mergeColumnToLeft(fetchedTable, index, separator) {
 		if (firstTextNode && secondTextNode) firstTextNode.textContent += separator + secondTextNode.textContent;
 	}
 }
-let swapColumnsToLeft = function(fetchedTable, index) {
-	if (index === 0) return;
-	let headerRow = fetchedTable.tableFetchere.tableRef.getOrgTableContainer().querySelector("thead>tr");
-	let prevIndex = void 0;
-	for (let i = index - 1; i >= 0; i--) if (headerRow.children[i].style.display !== "none") {
-		prevIndex = i;
+function findNextVisibleCell(headerRow, indexes) {
+	let index = void 0;
+	for (let i of indexes) if (headerRow.children[i].style.display !== "none") {
+		index = i;
 		break;
 	}
-	if (prevIndex !== void 0) swapColumns(fetchedTable, prevIndex, index);
+	return index;
+}
+let swapColumnsToRight = function(fetchedTable, index) {
+	let headerRow = fetchedTable.tableFetchere.tableRef.getOrgTableContainer().querySelector("thead>tr");
+	let index2 = findNextVisibleCell(headerRow, range(index + 1, headerRow.cells.length));
+	swapColumns(fetchedTable, index, index2);
+};
+let swapColumnsToLeft = function(fetchedTable, index) {
+	let headerRow = fetchedTable.tableFetchere.tableRef.getOrgTableContainer().querySelector("thead>tr");
+	let index2 = findNextVisibleCell(headerRow, range(index - 1, -1));
+	swapColumns(fetchedTable, index, index2);
 };
 function swapColumns(fetchedTable, index1, index2) {
+	if (index1 == void 0 || index2 == void 0) return;
+	if (index1 > index2) [index1, index2] = [index2, index1];
 	let rows = Array.from(fetchedTable.tableFetchere.tableRef.getOrgTableContainer().querySelectorAll("tr"));
 	for (let row of rows) row.children[index1].parentElement.insertBefore(row.children[index2], row.children[index1]);
+}
+function range(startAt, upTo) {
+	if (upTo > startAt) return [...Array(upTo - startAt).keys()].map((n) => n + startAt);
+	else return [...Array(startAt - upTo).keys()].reverse().map((n) => n + upTo + 1);
 }
 
 //#endregion
