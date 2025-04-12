@@ -1,10 +1,6 @@
-import {PageHandler} from "../pageHandlers";
 import {findFirstNavigation, TableNavigation} from "./tableNavigation";
-import {insertProgressBar, ProgressBar} from "../progressBar";
 import * as def from "../def";
 import {db3, millisToString} from "../globals";
-import {InfoBar} from "../infoBar";
-import Tab = chrome.tabs.Tab;
 
 export class TableRef {
     htmlTableId: string;

@@ -7,6 +7,7 @@
     "test": "echo \"Note that the build command does a TSC first for stricter compilation.\" && exit 1",
     "build_all": "npm run build_content && npm run build_options && npm run build_serviceworker && npm run build_blank",
     "build_content": "tsc --build && node esbuild.config.mjs",
+    "build_content_rolldown": "rolldown -c",
     "build_options": "tsc --project ./tsconfig_options.json && node esbuild_options.config.mjs",
     "build_serviceworker": "tsc --project ./tsconfig_service.json && node esbuild_service.config.mjs",
     "build_blank": "tsc --project ./tsconfig_blank.json && node esbuild_blank.config.mjs",
@@ -14,8 +15,10 @@
   },
   "author": "",
   "license": "ISC",
+  "type": "module",
   "devDependencies": {
     "@types/chrome": "^0.0.313",
-    "esbuild": ">=0.25.0"
+    "esbuild": ">=0.25.0",
+    "rolldown": "^1.0.0-beta.1"
   }
 }

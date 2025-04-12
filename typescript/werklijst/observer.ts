@@ -74,14 +74,14 @@ function onCriteriaShown() {
 function onWerklijstChanged() {
     let werklijstPageState = getGotoStateOrDefault(PageName.Werklijst) as WerklijstGotoState;
     if(werklijstPageState.werklijstTableName === def.UREN_TABLE_STATE_NAME) {
-        tryUntil(onClickShowCounts);
+        tryUntil(onShowLerarenUren);
     }
     decorateTableHeader(document.querySelector("table#table_leerlingen_werklijst_table") as HTMLTableElement);
 }
 
 function onButtonBarChanged() {
     let targetButton = document.querySelector("#tablenav_leerlingen_werklijst_top > div > div.btn-group.btn-group-sm.datatable-buttons > button:nth-child(1)") as HTMLButtonElement;
-    addButton(targetButton, def.COUNT_BUTTON_ID, "Toon telling", onClickShowCounts, "fa-guitar", ["btn-outline-info"]);
+    addButton(targetButton, def.COUNT_BUTTON_ID, "Toon telling", onShowLerarenUren, "fa-guitar", ["btn-outline-info"]);
     addButton(targetButton, def.MAIL_BTN_ID, "Email to clipboard", onClickCopyEmails, "fa-envelope", ["btn", "btn-outline-info"]);
 }
 
@@ -105,7 +105,7 @@ function onClickCopyEmails() {
 
     tableFetcher.fetch( )
         .then((fetchedTable) => {
-            let allEmails = this.rows = fetchedTable.getRowsAsArray()
+            let allEmails = fetchedTable.getRowsAsArray()
                 .map(tr=> namedCellListener.getColumnText(tr, "e-mailadressen"));
 
             let flattened = allEmails
@@ -127,12 +127,12 @@ function tryUntil(func: () => boolean) {
         setTimeout(() => tryUntil(func), 100);
 }
 
-function onClickShowCounts() {
+function onShowLerarenUren() {
     //Build lazily and only once. Table will automatically be erased when filters are changed.
     if (!document.getElementById(def.COUNT_TABLE_ID)) {
         let result = createDefaultTableFetcher();
         if("error" in result) {
-            console.error(result.error);
+            console.log(result.error); //don't report as log.error.
             return false;
         }
 
@@ -145,7 +145,7 @@ function onClickShowCounts() {
         Promise.all([tableFetcher.fetch(), getUrenFromCloud(fileName)]).then(results => {
             let [fetchedTable, jsonCloudData] = results;
             let vakLeraars = new Map();
-            let rows = this.rows = fetchedTable.getRows();
+            let rows = fetchedTable.getRows();
             let errors = [];
             for(let tr of rows) {
                 let error = scrapeStudent(tableFetcher, tableFetchListener, tr, vakLeraars);
