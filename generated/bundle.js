@@ -628,6 +628,10 @@ function createTable(headers, cols) {
 function isButtonHighlighted(buttonId) {
 	return document.getElementById(buttonId)?.classList.contains("toggled");
 }
+function range(startAt, upTo) {
+	if (upTo > startAt) return [...Array(upTo - startAt).keys()].map((n) => n + startAt);
+	else return [...Array(startAt - upTo).keys()].reverse().map((n) => n + upTo + 1);
+}
 
 //#endregion
 //#region typescript/pageObserver.ts
@@ -1682,13 +1686,12 @@ function addMenuSeparator(menu, title, indentLevel) {
 		ev.stopPropagation();
 	};
 }
-function setupMenu(container, button, shiftLeft) {
+function setupMenu(container, button) {
 	initMenuEvents();
 	container.classList.add("dropDownContainer");
 	button.classList.add("dropDownIgnoreHide", "dropDownButton");
 	let { first } = emmet.appendChild(container, "div.dropDownMenu");
 	let menu = first;
-	if (shiftLeft) menu.classList.add("shiftLeft");
 	button.onclick = (ev) => {
 		ev.preventDefault();
 		ev.stopPropagation();
@@ -3710,8 +3713,7 @@ function decorateTableHeader(table) {
 		};
 		if (!table.classList.contains(CAN_HAVE_MENU)) return;
 		let { first: span, last: idiom } = emmet.appendChild(colHeader, "span>button.miniButton.naked>i.fas.fa-list");
-		let shiftLeft = index + 1 >= table.tHead.children[0].children.length;
-		let menu = setupMenu(span, idiom.parentElement, shiftLeft);
+		let menu = setupMenu(span, idiom.parentElement);
 		addMenuItem(menu, "Toon unieke waarden", 0, (ev) => {
 			forTableColumnDo(ev, showDistinctColumn);
 		});
@@ -3755,6 +3757,7 @@ function decorateTableHeader(table) {
 			forTableColumnDo(ev, swapColumnsToRight);
 		});
 	});
+	relabelHeaders(table.tHead.children[0]);
 }
 function getDistinctColumn(tableContainer, index) {
 	let rows = Array.from(tableContainer.querySelector("tbody").rows);
@@ -3813,6 +3816,11 @@ function mergeColumnToLeft(fetchedTable, index, separator) {
 		let secondTextNode = [...row.cells[index].childNodes].filter((node) => node.nodeType === Node.TEXT_NODE)[0];
 		if (firstTextNode && secondTextNode) firstTextNode.textContent += separator + secondTextNode.textContent;
 	}
+	relabelHeaders(headerRows[0]);
+}
+function relabelHeaders(headerRow) {
+	for (let cell of headerRow.cells) cell.classList.remove("shiftMenuLeft");
+	headerRow.cells[headerRow.cells.length - 1].classList.add("shiftMenuLeft");
 }
 function findNextVisibleCell(headerRow, indexes) {
 	let index = void 0;
@@ -3837,10 +3845,7 @@ function swapColumns(fetchedTable, index1, index2) {
 	if (index1 > index2) [index1, index2] = [index2, index1];
 	let rows = Array.from(fetchedTable.tableFetchere.tableRef.getOrgTableContainer().querySelectorAll("tr"));
 	for (let row of rows) row.children[index1].parentElement.insertBefore(row.children[index2], row.children[index1]);
-}
-function range(startAt, upTo) {
-	if (upTo > startAt) return [...Array(upTo - startAt).keys()].map((n) => n + startAt);
-	else return [...Array(startAt - upTo).keys()].reverse().map((n) => n + upTo + 1);
+	relabelHeaders(fetchedTable.tableFetchere.tableRef.getOrgTableContainer().querySelector("thead>tr"));
 }
 
 //#endregion

@@ -246,9 +246,6 @@ button.miniButton {
     width: var(--menu-width);
     box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
     z-index: 1;
-    &.shiftLeft {
-        left: calc(2ch - var(--menu-width)); /*subtract estimated widto of buttonn from offset*/
-    }
     & .menuIndent1
     {
         padding-left: 26px;
@@ -269,6 +266,9 @@ button.miniButton {
         background-color: transparent;
     }
 
+}
+.shiftMenuLeft .dropDownMenu {
+    left: calc(2ch - var(--menu-width)); /*subtract estimated widto of buttonn from offset*/
 }
 
 

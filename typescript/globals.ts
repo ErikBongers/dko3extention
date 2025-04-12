@@ -463,3 +463,10 @@ export type Result<T> = XOR<ResultOk<T>,ResultFail>
 export function isButtonHighlighted(buttonId: string) {
     return document.getElementById(buttonId)?.classList.contains("toggled");
 }
+
+export function range(startAt: number, upTo: number) {
+    if (upTo > startAt)
+        return [...Array(upTo - startAt).keys()].map(n => n + startAt);
+    else
+        return [...Array(startAt - upTo).keys()].reverse().map(n => n + upTo + 1);
+}

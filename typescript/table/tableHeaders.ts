@@ -1,4 +1,4 @@
-import {createTable, distinct, openTab, rangeGenerator} from "../globals";
+import {createTable, distinct, openTab, range, rangeGenerator} from "../globals";
 import {emmet} from "../../libs/Emmeter/html";
 import {downloadTable} from "./loadAnyTable";
 import {addMenuItem, addMenuSeparator, setupMenu} from "../menus";
@@ -128,8 +128,7 @@ export function decorateTableHeader(table: HTMLTableElement) {
             if(!table.classList.contains(CAN_HAVE_MENU))
                 return;
             let {first: span, last: idiom} = emmet.appendChild(colHeader, 'span>button.miniButton.naked>i.fas.fa-list');
-            let shiftLeft = (index+1) >= table.tHead.children[0].children.length;
-            let menu = setupMenu(span as HTMLElement, idiom.parentElement, shiftLeft);
+            let menu = setupMenu(span as HTMLElement, idiom.parentElement);
             addMenuItem(menu, "Toon unieke waarden", 0, (ev) => { forTableColumnDo(ev, showDistinctColumn); });
             addMenuItem(menu, "Verberg kolom", 0, (ev) => { console.log("verberg kolom"); forTableColumnDo(ev, hideColumn)});
             addMenuItem(menu, "Toon alle kolommen", 0, (ev) => { console.log("verberg kolom"); forTableColumnDo(ev, showColumns)});
@@ -149,6 +148,7 @@ export function decorateTableHeader(table: HTMLTableElement) {
             addMenuItem(menu, "<=", 1, (ev) => { forTableColumnDo(ev, swapColumnsToLeft)});
             addMenuItem(menu, "=>", 1, (ev) => { forTableColumnDo(ev, swapColumnsToRight)});
         });
+    relabelHeaders(table.tHead.children[0] as HTMLTableRowElement);
 }
 
 function getDistinctColumn(tableContainer: HTMLElement, index: number) {
@@ -244,6 +244,14 @@ function mergeColumnToLeft(fetchedTable: FetchedTable, index: number, separator:
             firstTextNode.textContent += separator + secondTextNode.textContent;
         }
     }
+    relabelHeaders(headerRows[0]);
+}
+
+function relabelHeaders(headerRow: HTMLTableRowElement) {
+    for(let cell of headerRow.cells) {
+        cell.classList.remove("shiftMenuLeft");
+    }
+    headerRow.cells[headerRow.cells.length-1].classList.add("shiftMenuLeft");
 }
 
 function findNextVisibleCell(headerRow: HTMLTableRowElement, indexes: number[]) {
@@ -280,11 +288,5 @@ function swapColumns(fetchedTable:  FetchedTable, index1: number,  index2: numbe
     for(let row of rows) {
         row.children[index1].parentElement.insertBefore(row.children[index2], row.children[index1]);
     }
-}
-
-function range(startAt: number, upTo: number) {
-    if(upTo > startAt)
-        return [...Array(upTo-startAt).keys()].map(n => n+startAt);
-    else
-        return [...Array(startAt-upTo).keys()].reverse().map(n => n+upTo+1);
+    relabelHeaders(fetchedTable.tableFetchere.tableRef.getOrgTableContainer().querySelector("thead>tr") as HTMLTableRowElement);
 }
