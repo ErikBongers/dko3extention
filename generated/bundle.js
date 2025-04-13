@@ -3744,11 +3744,11 @@ function decorateTableHeader(table) {
 		});
 		addMenuItem(menu, "Verberg kolom", 0, (ev) => {
 			console.log("verberg kolom");
-			forTableColumnDo(ev, hideColumn, false);
+			forTableColumnDo(ev, hideColumn);
 		});
 		addMenuItem(menu, "Toon alle kolommen", 0, (ev) => {
 			console.log("verberg kolom");
-			forTableColumnDo(ev, showColumns, false);
+			forTableColumnDo(ev, showColumns);
 		});
 		addMenuSeparator(menu, "Sorteer", 0);
 		addMenuItem(menu, "Laag naar hoog (a > z)", 1, (ev) => {
@@ -3769,17 +3769,17 @@ function decorateTableHeader(table) {
 		});
 		addMenuSeparator(menu, "<= Samenvoegen", 0);
 		addMenuItem(menu, "met spatie", 1, (ev) => {
-			forTableColumnDo(ev, mergeColumnWithSpace, false);
+			forTableColumnDo(ev, mergeColumnWithSpace);
 		});
 		addMenuItem(menu, "met comma", 1, (ev) => {
-			forTableColumnDo(ev, mergeColumnWithComma, false);
+			forTableColumnDo(ev, mergeColumnWithComma);
 		});
 		addMenuSeparator(menu, "Verplaatsen", 0);
 		addMenuItem(menu, "<=", 1, (ev) => {
-			forTableColumnDo(ev, swapColumnsToLeft, false);
+			forTableColumnDo(ev, swapColumnsToLeft);
 		});
 		addMenuItem(menu, "=>", 1, (ev) => {
-			forTableColumnDo(ev, swapColumnsToRight, false);
+			forTableColumnDo(ev, swapColumnsToRight);
 		});
 	});
 	relabelHeaders(table.tHead.children[0]);
@@ -3811,7 +3811,7 @@ function forTableDo(ev, doIt) {
 		doIt(tableRef, getColumnIndex(ev));
 	});
 }
-function forTableColumnDo(ev, cmdDef, onlyBody) {
+function forTableColumnDo(ev, cmdDef) {
 	ev.preventDefault();
 	ev.stopPropagation();
 	checkAndDownloadTableRows().then((tableRef) => {
@@ -3820,7 +3820,7 @@ function forTableColumnDo(ev, cmdDef, onlyBody) {
 			cmdDef,
 			index
 		};
-		executeCmd(cmd, tableRef, onlyBody);
+		executeCmd(cmd, tableRef, false);
 		let cmds = getPageTransientStateValue(GLOBAL_COMMAND_BUFFER_KEY, []);
 		cmds.push(cmd);
 		relabelHeaders(tableRef.getOrgTableContainer().querySelector("thead>tr"));

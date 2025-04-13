@@ -130,8 +130,8 @@ export function decorateTableHeader(table: HTMLTableElement) {
             let {first: span, last: idiom} = emmet.appendChild(colHeader, 'span>button.miniButton.naked>i.fas.fa-list');
             let menu = setupMenu(span as HTMLElement, idiom.parentElement);
             addMenuItem(menu, "Toon unieke waarden", 0, (ev) => { forTableDo(ev, showDistinctColumn); });
-            addMenuItem(menu, "Verberg kolom", 0, (ev) => { console.log("verberg kolom"); forTableColumnDo(ev, hideColumn, false)});
-            addMenuItem(menu, "Toon alle kolommen", 0, (ev) => { console.log("verberg kolom"); forTableColumnDo(ev, showColumns, false)});
+            addMenuItem(menu, "Verberg kolom", 0, (ev) => { console.log("verberg kolom"); forTableColumnDo(ev, hideColumn)});
+            addMenuItem(menu, "Toon alle kolommen", 0, (ev) => { console.log("verberg kolom"); forTableColumnDo(ev, showColumns)});
             addMenuSeparator(menu, "Sorteer", 0);
             addMenuItem(menu, "Laag naar hoog (a > z)", 1, (ev) => { forTableDo(ev, (fetchedTable, index) => sortTableByColumn(table, index, false))});
             addMenuItem(menu, "Hoog naar laag (z > a)", 1, (ev) => { forTableDo(ev, (fetchedTable, index) => sortTableByColumn(table, index, true))});
@@ -142,11 +142,11 @@ export function decorateTableHeader(table: HTMLTableElement) {
             addMenuItem(menu, "Kolom", 1, (ev) => { forTableDo(ev, (fetchedTable, index) => copyOneColumn(table, index))});
             addMenuItem(menu, "Hele tabel", 1, (ev) => { forTableDo(ev, (fetchedTable, index) => copyFullTable(table))});
             addMenuSeparator(menu, "<= Samenvoegen", 0);
-            addMenuItem(menu, "met spatie", 1, (ev) => { forTableColumnDo(ev, mergeColumnWithSpace, false)});
-            addMenuItem(menu, "met comma", 1, (ev) => { forTableColumnDo(ev, mergeColumnWithComma, false)});
+            addMenuItem(menu, "met spatie", 1, (ev) => { forTableColumnDo(ev, mergeColumnWithSpace)});
+            addMenuItem(menu, "met comma", 1, (ev) => { forTableColumnDo(ev, mergeColumnWithComma)});
             addMenuSeparator(menu, "Verplaatsen", 0);
-            addMenuItem(menu, "<=", 1, (ev) => { forTableColumnDo(ev, swapColumnsToLeft, false)});
-            addMenuItem(menu, "=>", 1, (ev) => { forTableColumnDo(ev, swapColumnsToRight, false)});
+            addMenuItem(menu, "<=", 1, (ev) => { forTableColumnDo(ev, swapColumnsToLeft)});
+            addMenuItem(menu, "=>", 1, (ev) => { forTableColumnDo(ev, swapColumnsToRight)});
         });
     relabelHeaders(table.tHead.children[0] as HTMLTableRowElement);
 }
@@ -202,7 +202,7 @@ function forTableDo(ev: MouseEvent, doIt: (tableRef: TableRef, index: number) =>
         });
 }
 
-function forTableColumnDo(ev: MouseEvent, cmdDef: TableColumnCmdDef, onlyBody: boolean) {
+function forTableColumnDo(ev: MouseEvent, cmdDef: TableColumnCmdDef) {
     ev.preventDefault();
     ev.stopPropagation();
     checkAndDownloadTableRows()
@@ -212,7 +212,7 @@ function forTableColumnDo(ev: MouseEvent, cmdDef: TableColumnCmdDef, onlyBody: b
                 cmdDef,
                 index
             }
-            executeCmd(cmd, tableRef, onlyBody);
+            executeCmd(cmd, tableRef, false);
             let cmds = getPageTransientStateValue(GLOBAL_COMMAND_BUFFER_KEY, []) as TableColumnCmd[];
             cmds.push(cmd);
             relabelHeaders(tableRef.getOrgTableContainer().querySelector("thead>tr"))
