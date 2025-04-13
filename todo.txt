@@ -1,7 +1,3 @@
-* Lessen filter menu: test it again: setupMenu had a boolean arg that is gone. Ok?
-
-* Lessen filters: add a bullet/highlight for the selected extra filter in the menu.
-
 * Checks:
       >>>> only actual errors to avoid fatigue!
   > 999 for certain classes
