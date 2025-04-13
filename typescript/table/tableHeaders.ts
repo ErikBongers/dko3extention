@@ -139,8 +139,8 @@ export function decorateTableHeader(table: HTMLTableElement) {
             addMenuItem(menu, "Tekst", 2, (_ev) => { });
             addMenuItem(menu, "Getallen", 2, (_ev) => { });
             addMenuSeparator(menu, "Kopieer nr klipbord", 0);
-            // addMenuItem(menu, "Kolom", 1, (ev) => { forTableColumnDo(ev, (fetchedTable, index) => copyOneColumn(table, index), false)});
-            // addMenuItem(menu, "Hele tabel", 1, (ev) => { forTableColumnDo(ev, (fetchedTable, index) => copyFullTable(table), false)});
+            addMenuItem(menu, "Kolom", 1, (ev) => { forTableDo(ev, (fetchedTable, index) => copyOneColumn(table, index))});
+            addMenuItem(menu, "Hele tabel", 1, (ev) => { forTableDo(ev, (fetchedTable, index) => copyFullTable(table))});
             addMenuSeparator(menu, "<= Samenvoegen", 0);
             addMenuItem(menu, "met spatie", 1, (ev) => { forTableColumnDo(ev, mergeColumnWithSpace, false)});
             addMenuItem(menu, "met comma", 1, (ev) => { forTableColumnDo(ev, mergeColumnWithComma, false)});

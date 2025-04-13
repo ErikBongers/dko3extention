@@ -3693,6 +3693,19 @@ function sortTableByColumn(table, index, descending) {
 	}
 	rows.forEach((row) => table.tBodies[0].appendChild(row));
 }
+function copyFullTable(table) {
+	let headerCells = table.tHead.children[0].children;
+	let headers = [...headerCells].filter((cell) => cell.style.display !== "none").map((cell) => cell.innerText);
+	let rows = table.tBodies[0].children;
+	let cells = [...rows].map((row) => [...row.cells].filter((cell) => cell.style.display !== "none").map((cell) => cell.innerText));
+	createAndCopyTable(headers, cells);
+}
+function copyOneColumn(table, index) {
+	createAndCopyTable([table.tHead.children[0].children[index].innerText], [...table.tBodies[0].rows].map((row) => [row.cells[index].innerText]));
+}
+function createAndCopyTable(headers, cols) {
+	navigator.clipboard.writeText(createTable(headers, cols).outerHTML).then((_r) => {});
+}
 function reSortTableByColumn(ev, table) {
 	let header = table.tHead.children[0].children[getColumnIndex(ev)];
 	let wasAscending = header.classList.contains("sortAscending");
@@ -3748,6 +3761,12 @@ function decorateTableHeader(table) {
 		addMenuItem(menu, "Tekst", 2, (_ev) => {});
 		addMenuItem(menu, "Getallen", 2, (_ev) => {});
 		addMenuSeparator(menu, "Kopieer nr klipbord", 0);
+		addMenuItem(menu, "Kolom", 1, (ev) => {
+			forTableDo(ev, (fetchedTable, index$1) => copyOneColumn(table, index$1));
+		});
+		addMenuItem(menu, "Hele tabel", 1, (ev) => {
+			forTableDo(ev, (fetchedTable, index$1) => copyFullTable(table));
+		});
 		addMenuSeparator(menu, "<= Samenvoegen", 0);
 		addMenuItem(menu, "met spatie", 1, (ev) => {
 			forTableColumnDo(ev, mergeColumnWithSpace, false);
