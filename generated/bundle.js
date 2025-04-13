@@ -3808,7 +3808,7 @@ function forTableColumnDo(ev, cmdDef, onlyBody) {
 	});
 }
 function executeCmd(cmd, tableRef, onlyBody) {
-	let context = cmd.cmdDef.getContext(tableRef, cmd.index);
+	let context = cmd.cmdDef.getContext?.(tableRef, cmd.index);
 	let rows;
 	if (onlyBody) rows = tableRef.getOrgTableContainer().querySelector("tbody").rows;
 	else rows = tableRef.getOrgTableContainer().querySelectorAll("tr");
@@ -3832,28 +3832,30 @@ let showColumns = { doForRow: function(row, index, context) {
 } };
 let mergeColumnWithComma = {
 	getContext: function(tableRef, index) {
-		return void 0;
+		let row = tableRef.getOrgTableContainer().querySelector("thead>tr");
+		return findNextVisibleCell(row, range(index - 1, -1));
 	},
 	doForRow: function(row, index, context) {
-		mergeColumnToLeft(row, index, ", ");
+		mergeColumnToLeft(row, index, context, ", ");
 	}
 };
 let mergeColumnWithSpace = {
 	getContext: function(tableRef, index) {
-		return void 0;
+		let row = tableRef.getOrgTableContainer().querySelector("thead>tr");
+		return findNextVisibleCell(row, range(index - 1, -1));
 	},
 	doForRow: function(row, index, context) {
-		mergeColumnToLeft(row, index, " ");
+		mergeColumnToLeft(row, index, context, " ");
 	}
 };
-function mergeColumnToLeft(row, index, separator) {
+function mergeColumnToLeft(row, index, leftIndex, separator) {
 	if (index === 0) return;
 	if (row.parentElement.tagName == "TBODY") {
 		row.cells[index].style.display = "none";
-		row.cells[index - 1].innerText += separator + row.cells[index].innerText;
+		row.cells[leftIndex].innerText += separator + row.cells[index].innerText;
 	} else {
 		row.cells[index].style.display = "none";
-		let firstTextNode = [...row.cells[index - 1].childNodes].filter((node) => node.nodeType === Node.TEXT_NODE)[0];
+		let firstTextNode = [...row.cells[leftIndex].childNodes].filter((node) => node.nodeType === Node.TEXT_NODE)[0];
 		let secondTextNode = [...row.cells[index].childNodes].filter((node) => node.nodeType === Node.TEXT_NODE)[0];
 		if (firstTextNode && secondTextNode) firstTextNode.textContent += separator + secondTextNode.textContent;
 	}
@@ -3881,11 +3883,11 @@ let swapColumnsToRight = {
 };
 let swapColumnsToLeft = {
 	getContext: function(tableRef, index) {
-		return void 0;
+		let row = tableRef.getOrgTableContainer().querySelector("thead>tr");
+		return findNextVisibleCell(row, range(index - 1, -1));
 	},
 	doForRow: function(row, index, context) {
-		let index2 = findNextVisibleCell(row, range(index - 1, -1));
-		swapColumns(row, index, index2);
+		swapColumns(row, index, context);
 	}
 };
 function swapColumns(row, index1, index2) {

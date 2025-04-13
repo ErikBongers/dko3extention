@@ -1,5 +1,3 @@
-* Table headers: loop for VISIBLE next column in all the affected commands.
-
 * Lessen filter menu: test it again: setupMenu had a boolean arg that is gone. Ok?
 
 * Lessen filters: add a bullet/highlight for the selected extra filter in the menu.

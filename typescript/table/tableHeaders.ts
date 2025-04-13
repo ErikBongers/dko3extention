@@ -220,7 +220,7 @@ function forTableColumnDo(ev: MouseEvent, cmdDef: TableColumnCmdDef, onlyBody: b
 }
 
 function executeCmd(cmd: TableColumnCmd, tableRef: TableRef, onlyBody: boolean) {
-    let context = cmd.cmdDef.getContext(tableRef, cmd.index);
+    let context = cmd.cmdDef.getContext?.(tableRef, cmd.index);
 
     let rows: Iterable<HTMLTableRowElement>;
     if(onlyBody)
@@ -261,31 +261,33 @@ let showColumns: TableColumnCmdDef = {
 
 let mergeColumnWithComma: TableColumnCmdDef = {
     getContext: function (tableRef, index: number): unknown {
-        return undefined;
+        let row = tableRef.getOrgTableContainer().querySelector("thead>tr") as HTMLTableRowElement;
+        return findNextVisibleCell(row, range(index-1, -1));
     },
     doForRow: function (row, index, context) {
-        mergeColumnToLeft(row, index, ", ");
+        mergeColumnToLeft(row, index, context as number, ", ");
     }
 }
 
 let mergeColumnWithSpace: TableColumnCmdDef = {
     getContext: function (tableRef, index: number): unknown {
-        return undefined;
+        let row = tableRef.getOrgTableContainer().querySelector("thead>tr") as HTMLTableRowElement;
+        return findNextVisibleCell(row, range(index-1, -1));
     },
     doForRow: function (row, index, context) {
-        mergeColumnToLeft(row, index, " ");
+        mergeColumnToLeft(row, index, context as number, " ");
     }
 }
 
-function mergeColumnToLeft(row: HTMLTableRowElement, index: number, separator: string) {
+function mergeColumnToLeft(row: HTMLTableRowElement, index: number, leftIndex: number, separator: string) {
     if(index === 0)
         return; //just to be sure.
     if(row.parentElement.tagName == "TBODY") {
         row.cells[index].style.display = "none";
-        row.cells[index - 1].innerText += separator + row.cells[index].innerText; //todo: merge to the VISIBLE column!!! -> set in context.
+        row.cells[leftIndex].innerText += separator + row.cells[index].innerText;
     } else { //THEAD
         row.cells[index].style.display = "none";
-        let firstTextNode = [...row.cells[index - 1].childNodes].filter(node => node.nodeType === Node.TEXT_NODE)[0];
+        let firstTextNode = [...row.cells[leftIndex].childNodes].filter(node => node.nodeType === Node.TEXT_NODE)[0];
         let secondTextNode = [...row.cells[index].childNodes].filter(node => node.nodeType === Node.TEXT_NODE)[0];
         if (firstTextNode && secondTextNode) {
             firstTextNode.textContent += separator + secondTextNode.textContent;
