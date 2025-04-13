@@ -1,14 +1,14 @@
 import {findFirstNavigation} from "./tableNavigation";
 import {findTableRefInCode, TableFetcher, TableFetchListener, TableRef} from "./tableFetcher";
 import {getChecksumBuilder} from "./observer";
-import {millisToString, Result, ResultFail, ResultOk, setViewFromCurrentUrl} from "../globals";
+import {millisToString, Result, setViewFromCurrentUrl} from "../globals";
 import {InfoBar} from "../infoBar";
 import {insertProgressBar, ProgressBar} from "../progressBar";
 import * as def from "../def";
 import {executeTableCommands, TableHandlerForHeaders} from "./tableHeaders";
 
 async function getTableRefFromHash(hash: string) {
-    let page = await fetch("https://administratie.dko3.cloud/#" + hash).then(res => res.text());
+    await fetch("https://administratie.dko3.cloud/#" + hash).then(res => res.text());
 
     // call to changeView() - assuming this is always the same, so no parsing here.
     let view = await fetch("view.php?args=" + hash).then(res => res.text());
@@ -16,7 +16,6 @@ async function getTableRefFromHash(hash: string) {
 
     //get the htmlTableId (from index.view.php
     let index_view = await fetch(index_viewUrl).then(res => res.text());
-    let scanner = new TokenScanner(index_view);
     let htmlTableId = getDocReadyLoadScript(index_view)
         .find("$", "(", "'#")
         .clipTo("'")
@@ -37,7 +36,7 @@ async function getTableRefFromHash(hash: string) {
     let datatableUrl = someUrl; //hope and pray...
     //get datatable id an url from datatable.php
     let datatable = await fetch(datatableUrl).then(result => result.text());
-    scanner = new TokenScanner(datatable);
+    let scanner = new TokenScanner(datatable);
     let datatable_id = "";
     let tableNavUrl = "";
     scanner
@@ -100,14 +99,6 @@ function getDocReadyLoadUrl(text: string) {
             return url;
         scanner = docReady;
     }
-}
-
-function getLoadUrl(text: string) {
-    let scanner = new TokenScanner(text);
-    return scanner
-        .find(".", "load", "(")
-        .clipString()
-        .result();
 }
 
 function getDocReadyLoadScript(text: string) {
@@ -294,61 +285,6 @@ class TokenScanner {
     }
 }
 
-
-let x = "<script type=\"text/javascript\">\n" +
-    "    $(document).ready(function() {\n" +
-    "\n" +
-    "        load_datatable_lijst_awi_leerlingen_inschrijvingen_3weken();\n" +
-    "    });\n" +
-    "\n" +
-    "    function load_datatable_lijst_awi_leerlingen_inschrijvingen_3weken() {\n" +
-    "        $('#table_lijst_awi_leerlingen_inschrijvingen_3weken_table').load('views/ui/datatable.php?id=lijst_awi_leerlingen_inschrijvingen_3weken');\n" +
-    "    }\n" +
-    "</script>";
-
-export function testScanner() {
-
-    let text = "$(document).ready(function() {\n" +
-        "        $('[data-toggle=\"tooltip\"]').tooltip();\n" +
-        "\n" +
-        "        var datatable_id = 'lijst_awi_leerlingen_inschrijvingen_3weken';\n" +
-        "\n" +
-        "        var nanobar = new Nanobar({\n" +
-        "            target: document.getElementById('table_' + datatable_id + '_nanobar')\n" +
-        "        });\n" +
-        "\n" +
-        "        nanobar.go(50);\n" +
-        "\n" +
-        "        $('#tablenav_' + datatable_id + '_top').load('views/ui/datatablenav.php?id=' + datatable_id + '&pos=top');\n" +
-        "        $('#tablenav_' + datatable_id + '_bottom').load('views/ui/datatablenav.php?id=' + datatable_id + '&pos=bottom');\n" +
-        "\n" +
-        "        nanobar.go(100);\n" +
-        "\n" +
-        "        $(\"input[data-type='date']\").off('blur').on('change', function() {\n" +
-        "            datatable_lijst_awi_leerlingen_inschrijvingen_3weken_settablefilter($(this).data('col_id'), $(this).val())\n" +
-        "        });\n" +
-        "        jQuery(function($) {\n" +
-        "            $(\"input[data-type='date']\").datepicker({\n" +
-        "                altFormat: \"yy-mm-dd\",\n" +
-        "                dateFormat: \"yy-mm-dd\"\n" +
-        "            });\n" +
-        "        });\n" +
-        "\n" +
-        "    });\n" +
-        "    ...\n" +
-        "    </script>";
-
-    let scanner = new TokenScanner(text);
-    let datatable_id = "";
-    let tableNavUrl =  scanner
-        .find("var", "datatable_id", "=")
-        .getString(res => { datatable_id = res; })
-        .clipTo("</script>")
-        .find(".", "load", "(")
-        .clipString()
-        .result();
-}
-
 export async function downloadTableRows() {
     let result = createDefaultTableFetcher();
     if("error" in result) {
@@ -427,7 +363,7 @@ export function createDefaultTableRefAndInfoBar(): Result<DefaultTableRef> {
     document.getElementById(def.INFO_CONTAINER_ID)?.remove();
     let divInfoContainer = tableRef.createElementAboveTable("div");
     let infoBar = new InfoBar(divInfoContainer.appendChild(document.createElement("div")));
-    let progressBar = insertProgressBar(infoBar.divInfoLine, tableRef.navigationData.steps(), "loading pages... ");
+    let progressBar = insertProgressBar(infoBar.divInfoLine, "loading pages... ");
     return { result: {tableRef, infoBar, progressBar} };
 }
 

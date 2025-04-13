@@ -6,7 +6,7 @@ export default new PageObserver(setSchoolBackground);
 registerSettingsObserver(setSchoolBackground);
 
 function setSchoolBackground () {
-    let {userName, schoolName} = getUserAndSchoolName();
+    let {schoolName} = getUserAndSchoolName();
     let isMyAcademy = options.myAcademies
         .split("\n")
         .filter((needle) => needle !== "")

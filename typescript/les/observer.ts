@@ -61,7 +61,7 @@ function sortVoornaam(event: MouseEvent) {
     (event.target as HTMLElement).classList.remove("text-muted");
 }
 
-function switchNaamVoornaam(event: MouseEvent) {
+function switchNaamVoornaam(_event: MouseEvent) {
     let rows: HTMLTableRowElement[] = Array.from(document.querySelectorAll("#les_leerlingen_leerlingen > table > tbody > tr"));
 
     rows.forEach((tr) => {

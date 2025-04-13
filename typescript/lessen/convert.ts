@@ -1,5 +1,5 @@
 import {Les, LesType, StudentInfo} from "./scrape";
-import {db3, distinct} from "../globals";
+import {distinct} from "../globals";
 import {getSavedNameSorting, NameSorting} from "./build";
 
 interface TagInfo {

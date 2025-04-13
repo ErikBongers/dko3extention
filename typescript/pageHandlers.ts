@@ -1,79 +1,14 @@
-import {FetchedTable, TableFetcher, TableFetchListener} from "./table/tableFetcher";
-
-/**
- * @returns `true` to continue, `false` to cancel further handling.
- */
-type OnRowHandler = (tableDef: TableFetcher, rowObject: RowObject) => boolean;
-
+import {TableFetcher, TableFetchListener} from "./table/tableFetcher";
 type OnBeforeLoadingHandler = (tableDef: TableFetcher) => boolean;
-type OnLoadedHandler = (fetchedTable: FetchedTable) => void;
 type OnRequiredColumnsMissingHandler = (tableDef: TableFetcher) => void;
-type OnPageHandler = (tableDef: TableFetcher, text: string, fetchedTable: FetchedTable) => void;
-
-export interface PageHandler {
-    onPage: OnPageHandler;
-    onLoaded: OnLoadedHandler;
-    onBeforeLoading?: OnBeforeLoadingHandler; //if defined, must return TRUE for loading to proceed.
-}
-
-export class RowObject {
-    tr: HTMLTableRowElement;
-    offset: number;
-    index: number;
-}
-
-export class RowPageHandler implements PageHandler {
-    private readonly onRow: OnRowHandler;
-    onBeforeLoading?: OnBeforeLoadingHandler;
-    onLoaded: OnLoadedHandler;
-
-    constructor(onRow: OnRowHandler, onLoaded: OnLoadedHandler, onBeforeLoading: OnBeforeLoadingHandler) {
-        this.onRow = onRow;
-        this.onBeforeLoading = onBeforeLoading;
-        this.onLoaded = onLoaded;
-    }
-
-    onPage: OnPageHandler = (tableDef: TableFetcher, _text: string, fetchedTable) => {
-        if(!this.onRow)
-            return;
-        let index = 0;
-        let rows = fetchedTable.getLastPageRows();
-        for (let row of rows) {
-            let rowObject = new RowObject();
-            rowObject.tr = row;
-            rowObject.offset = fetchedTable.getLastPageNumber();
-            rowObject.index = index;
-            if (!this.onRow(tableDef, rowObject))
-                return;
-            index++;
-        }
-    }
-}
-
-export class SimpleTableHandler implements TableFetchListener {
-    onStartFetching: (tableFetcher: TableFetcher) => void;
-    onLoaded: (tableFetcher: TableFetcher) => void;
-    onBeforeLoadingPage: (tableFetcher: TableFetcher) => boolean;
-    onFinished: (tableFetcher: TableFetcher) => void;
-    onPageLoaded: (tableFetcher: TableFetcher, pageCnt: number, text: string) => void;
-
-    constructor(onLoaded: (tableFetcher: TableFetcher) => void, onBeforeLoading: (tableFetcher: TableFetcher) => boolean) {
-        this.onBeforeLoadingPage = onBeforeLoading;
-        this.onLoaded = onLoaded;
-        this.onPageLoaded = undefined;
-        this.onFinished = undefined;
-    }
-}
-
 type NotHTMLTemplate = HTMLDivElement | DocumentFragment; //HTMLDiv element is arbitrarily chosen. Any subclass from HTMLElement will do.
 
 /**
- * PageHandler with named column labels.\
+ * NamedCellTableFetchListener with named column labels.\
  * Params are:
  * @description
  *      * requiredHeaderLabels: array with labels of required columns.
- *      * onRow: function(rowObject, collection): a row handler that mainly provides a param `rowObject`, which has a member getColumnText(columnLabel)
- * @implements PageHandler: which requires member `onPage()`
+ *      * onRequiredColumnsMissing: OnRequiredColumnsMissingHandler, which will be called when labels are missing.
  */
 
 export class NamedCellTableFetchListener implements TableFetchListener {

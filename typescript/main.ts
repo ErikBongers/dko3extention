@@ -1,5 +1,5 @@
 //to avoid "unused function" errors in linters, this file is called as a module.
-import {clearPageTransientState, equals, fetchGlobalSettings, getGlobalSettings, observers, options, registerObserver, setGlobalSetting, setPageTransientStateValue, settingsObservers} from "./globals";
+import {clearPageTransientState, equals, fetchGlobalSettings, getGlobalSettings, observers, options, registerObserver, setGlobalSetting, settingsObservers} from "./globals";
 import leerlingObserver from "./leerling/observer";
 import lessenObserver from "./lessen/observer";
 import lesObserver from "./les/observer";
@@ -22,7 +22,7 @@ function init() {
         // @ts-ignore
         chrome.storage.onChanged.addListener((_changes: any, area: string) => {
             if (area === 'sync') {
-                getOptions().then(r => {
+                getOptions().then(_r => {
                     onSettingsChanged();
                 });
             }

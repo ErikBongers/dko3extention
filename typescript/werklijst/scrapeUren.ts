@@ -14,7 +14,7 @@ export interface VakLeraar {
     countMap: Map<string, CountStudentsPerJaar>
 }
 
-export function scrapeStudent(tableDef: TableFetcher, fetchListener: NamedCellTableFetchListener, tr: HTMLTableRowElement, collection: any) {
+export function scrapeStudent(_tableDef: TableFetcher, fetchListener: NamedCellTableFetchListener, tr: HTMLTableRowElement, collection: any) {
     let student: StudentInfo = new StudentInfo();
     student.naam = fetchListener.getColumnText(tr, "naam");
     student.voornaam = fetchListener.getColumnText(tr,"voornaam");

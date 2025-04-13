@@ -327,7 +327,7 @@ enum DisplayOptions {
     Location = 0x08
 }
 
-function buildInfoRow(newTableBody: HTMLTableSectionElement, text: string, show: boolean, groupId: string) {
+function buildInfoRow(newTableBody: HTMLTableSectionElement, _text: string, show: boolean, groupId: string) {
     const trBlockInfo = newTableBody.appendChild(createLesRow(groupId));
     trBlockInfo.classList.add("blockRow");
     if(show===false)

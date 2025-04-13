@@ -32,8 +32,8 @@ export function closeMenus() {
     }
 }
 
-function onWindowClick(event) {
-    if (event.target.matches('.dropDownIgnoreHide'))
+function onWindowClick(event: MouseEvent) {
+    if ((event.target as Element).matches('.dropDownIgnoreHide'))
         return;
     closeMenus();
 }

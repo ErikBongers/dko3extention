@@ -198,14 +198,14 @@ function applyFilters() {
         if(pageState.filterOffline) {
             extraFilter = {
                 context: undefined,
-                rowFilter: function (tr: HTMLTableRowElement, context: any): boolean {
+                rowFilter: function (tr: HTMLTableRowElement, _context: any): boolean {
                     return tr.dataset.visibility === "offline";
                 }
             };
         } else if(pageState.filterOnline) {
             extraFilter = {
                 context: undefined,
-                rowFilter: function (tr: HTMLTableRowElement, context: any): boolean {
+                rowFilter: function (tr: HTMLTableRowElement, _context: any): boolean {
                     return tr.dataset.visibility === "online";
                 }
             };
@@ -222,14 +222,14 @@ function applyFilters() {
         if(pageState.filterOffline) {
             extraFilter = {
                 context: undefined,
-                rowFilter: function (tr: HTMLTableRowElement, context: any): boolean {
+                rowFilter: function (tr: HTMLTableRowElement, _context: any): boolean {
                     return tr.querySelector("td>i.fa-eye-slash") != undefined;
                 }
             };
         } else if(pageState.filterOnline) {
             extraFilter = {
                 context: undefined,
-                rowFilter: function (tr: HTMLTableRowElement, context: any): boolean {
+                rowFilter: function (tr: HTMLTableRowElement, _context: any): boolean {
                     return tr.querySelector("td>i.fa-eye-slash") == undefined;
                 }
             };

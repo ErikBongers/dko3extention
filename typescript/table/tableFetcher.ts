@@ -1,6 +1,6 @@
 import {findFirstNavigation, TableNavigation} from "./tableNavigation";
 import * as def from "../def";
-import {db3, millisToString} from "../globals";
+import {db3} from "../globals";
 
 export class TableRef {
     htmlTableId: string;
@@ -133,7 +133,7 @@ export class TableFetcher {
             return this.fetchedTable;
         }
         let cachedData = this.loadFromCache();
-        let succes = false;
+        let succes: boolean;
         this.fetchedTable = new FetchedTable(this);
         if(cachedData) {
             this.fetchedTable.addPage(cachedData.text);

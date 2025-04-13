@@ -1,12 +1,10 @@
 export class TableNavigation {
     readonly step: number;
     private readonly maxCount: number;
-    private div: HTMLDivElement;
 
-    constructor(step: number, maxCount: number, div: HTMLDivElement/*, navigationData: any*/) {
+    constructor(step: number, maxCount: number) {
         this.step = step;
         this.maxCount = maxCount;
-        this.div = div;
     }
 
     steps() {
@@ -42,7 +40,7 @@ export function findFirstNavigation(element?: HTMLElement) {
     numbers = numbers.concat(offsets);
     numbers.sort((a, b) => a - b);
     numbers = [...new Set(numbers)];
-    return new TableNavigation(numbers[1] - numbers[0], numbers.pop(), buttonContainer);
+    return new TableNavigation(numbers[1] - numbers[0], numbers.pop());
 }
 
 function getGotoNumber(functionCall: string) {

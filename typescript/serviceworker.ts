@@ -26,14 +26,14 @@ chrome.runtime.onInstalled.addListener(() => {
 let global_request = {};
 
 chrome.runtime.onMessage.addListener(
-    function(request: ExtensionRequest, sender, sendResponse) {
+    function(request: ExtensionRequest, _sender, sendResponse) {
         console.log("received ");
         console.log(request);
         switch (request.action) {
             case Actions.OpenTab:
                 let url = chrome.runtime.getURL("resources/blank.html");
                 global_request = request;
-                chrome.tabs.create({url}).then(tab => {
+                chrome.tabs.create({url}).then(_tab => {
                     console.log("tab created.");
                 });
                 break;

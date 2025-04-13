@@ -14,7 +14,7 @@ function onMutation (_mutation: MutationRecord) {
         return; //wait for top and bottom bars.
     if(!findTableRefInCode()?.navigationData.isOnePage()) {
         addTableNavigationButton(navigationBars, def.DOWNLOAD_TABLE_BTN_ID, "download full table", () => {
-            downloadTableRows();
+            downloadTableRows().then(_r => {});
         }, "fa-arrow-down");
     }
     if(document.querySelector("main div.table-responsive table thead")) {
@@ -35,7 +35,7 @@ export function getChecksumBuilder(tableId: string): CheckSumBuilder {
     let builder = tableCriteriaBuilders.get(tableId);
     if(builder)
         return builder;
-    return (tableFetcher: TableFetcher) => "";
+    return (_tableFetcher: TableFetcher) => "";
 }
 
 export function registerChecksumHandler(tableId: string, checksumHandler: CheckSumBuilder) {

@@ -1,13 +1,12 @@
 import * as def from "../def.js";
 import {HashObserver} from "../pageObserver";
 import {addTableNavigationButton, getBothToolbars} from "../globals";
-import {TableFetcher} from "../table/tableFetcher";
 import {createDefaultTableFetcher, getTableFromHash} from "../table/loadAnyTable";
 import {InfoBar} from "../infoBar";
 
 export default new HashObserver("#leerlingen-lijsten-awi-percentages_leerling_vak", onMutationAanwezgheden);
 
-function onMutationAanwezgheden(mutation: MutationRecord) {
+function onMutationAanwezgheden(_mutation: MutationRecord) {
     let tableId = document.getElementById("table_lijst_awi_percentages_leerling_vak_table") as HTMLTableElement;
     if (!tableId) {
         return false;
@@ -191,12 +190,12 @@ async function copyTable() {
 function aanwezighedenToClipboard(infoBar: InfoBar) {
     let text = window.sessionStorage.getItem(def.AANW_LIST);
     navigator.clipboard.writeText(text)
-        .then(r => {
+        .then(_r => {
             infoBar.setExtraInfo("Data copied to clipboard. <a id="+def.COPY_AGAIN+" href='javascript:void(0);'>Copy again</a>", def.COPY_AGAIN, () => {
                 aanwezighedenToClipboard(infoBar);
             });
         })
-        .catch(reason => {
+        .catch(_reason => {
             infoBar.setExtraInfo("Could not copy to clipboard!!! <a id="+def.COPY_AGAIN+" href='javascript:void(0);'>Copy again</a>", def.COPY_AGAIN, () => {
                 aanwezighedenToClipboard(infoBar);
             });

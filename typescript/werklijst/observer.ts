@@ -3,7 +3,7 @@ import * as def from "../def";
 import {buildTable, getUrenVakLeraarFileName} from "./buildUren";
 import {scrapeStudent, VakLeraar} from "./scrapeUren";
 import {cloud} from "../cloud";
-import {findTableRefInCode, TableFetcher} from "../table/tableFetcher";
+import {TableFetcher} from "../table/tableFetcher";
 import {prefillInstruments} from "./prefillInstruments";
 import {HashObserver} from "../pageObserver";
 import {NamedCellTableFetchListener} from "../pageHandlers";

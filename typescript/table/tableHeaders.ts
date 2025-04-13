@@ -1,4 +1,4 @@
-import {createTable, distinct, getPageTransientStateValue, openTab, range, rangeGenerator, setPageTransientStateValue} from "../globals";
+import {createTable, distinct, getPageTransientStateValue, openTab, range, rangeGenerator} from "../globals";
 import {emmet} from "../../libs/Emmeter/html";
 import {checkAndDownloadTableRows} from "./loadAnyTable";
 import {addMenuItem, addMenuSeparator, setupMenu} from "../menus";
@@ -86,7 +86,7 @@ function createAndCopyTable(headers: Iterable<string>, cols: Iterable<Iterable<s
 function reSortTableByColumn(ev: MouseEvent, table: HTMLTableElement) {
     let header = table.tHead.children[0].children[getColumnIndex(ev)];
     let wasAscending = header.classList.contains("sortAscending");
-    forTableDo(ev, (fetchedTable, index) => sortTableByColumn(table, index, wasAscending));
+    forTableDo(ev, (_fetchedTable, index) => sortTableByColumn(table, index, wasAscending));
 }
 
 function isColumnProbablyDate(table: HTMLTableElement, index: number) {
@@ -121,7 +121,7 @@ export function decorateTableHeader(table: HTMLTableElement) {
     table.tHead.classList.add("clickHandler");
 
     Array.from(table.tHead.children[0].children)
-        .forEach((colHeader: HTMLElement, index) => {
+        .forEach((colHeader: HTMLElement) => {
             colHeader.onclick = (ev) => {
                 reSortTableByColumn(ev, table);
             };
@@ -133,14 +133,14 @@ export function decorateTableHeader(table: HTMLTableElement) {
             addMenuItem(menu, "Verberg kolom", 0, (ev) => { console.log("verberg kolom"); forTableColumnDo(ev, hideColumn)});
             addMenuItem(menu, "Toon alle kolommen", 0, (ev) => { console.log("verberg kolom"); forTableColumnDo(ev, showColumns)});
             addMenuSeparator(menu, "Sorteer", 0);
-            addMenuItem(menu, "Laag naar hoog (a > z)", 1, (ev) => { forTableDo(ev, (fetchedTable, index) => sortTableByColumn(table, index, false))});
-            addMenuItem(menu, "Hoog naar laag (z > a)", 1, (ev) => { forTableDo(ev, (fetchedTable, index) => sortTableByColumn(table, index, true))});
+            addMenuItem(menu, "Laag naar hoog (a > z)", 1, (ev) => { forTableDo(ev, (_fetchedTable, index) => sortTableByColumn(table, index, false))});
+            addMenuItem(menu, "Hoog naar laag (z > a)", 1, (ev) => { forTableDo(ev, (_fetchedTable, index) => sortTableByColumn(table, index, true))});
             addMenuSeparator(menu, "Sorteer als:", 1);
             addMenuItem(menu, "Tekst", 2, (_ev) => { });
             addMenuItem(menu, "Getallen", 2, (_ev) => { });
             addMenuSeparator(menu, "Kopieer nr klipbord", 0);
-            addMenuItem(menu, "Kolom", 1, (ev) => { forTableDo(ev, (fetchedTable, index) => copyOneColumn(table, index))});
-            addMenuItem(menu, "Hele tabel", 1, (ev) => { forTableDo(ev, (fetchedTable, index) => copyFullTable(table))});
+            addMenuItem(menu, "Kolom", 1, (ev) => { forTableDo(ev, (_fetchedTable, index) => copyOneColumn(table, index))});
+            addMenuItem(menu, "Hele tabel", 1, (ev) => { forTableDo(ev, (_fetchedTable, _index) => copyFullTable(table))});
             addMenuSeparator(menu, "<= Samenvoegen", 0);
             addMenuItem(menu, "met spatie", 1, (ev) => { forTableColumnDo(ev, mergeColumnWithSpace)});
             addMenuItem(menu, "met comma", 1, (ev) => { forTableColumnDo(ev, mergeColumnWithComma)});
@@ -158,7 +158,7 @@ function getDistinctColumn(tableContainer: HTMLElement, index: number) {
 }
 
 export class TableHandlerForHeaders implements TableHandler {
-    onReset(tableDef: TableFetcher){
+    onReset(_tableDef: TableFetcher){
         console.log("RESET");
     }
 }
@@ -247,13 +247,13 @@ function showDistinctColumn(tableRef: TableRef, index: number) {
 }
 
 let hideColumn: TableColumnCmdDef = {
-    doForRow: function (row, index, context) {
+    doForRow: function (row, index, _context) {
         row.cells[index].style.display = "none";
     }
 }
 
 let showColumns: TableColumnCmdDef = {
-    doForRow: function (row, index, context) {
+    doForRow: function (row, _index, _context) {
         for(let cell of row.cells)
             cell.style.display = "";
     }

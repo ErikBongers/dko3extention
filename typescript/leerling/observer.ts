@@ -157,7 +157,7 @@ function setStripedLessons() {
     }
 }
 
-async function getModules(size,modal,file,args) {
+async function getModules(_size: string, _modal: string, _file: string, args: string) {
     // let folder = modal.split("-").join("/");
 
     // This call is being skipped: (probably ok)

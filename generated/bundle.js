@@ -534,7 +534,7 @@ function combineFilters(f1, f2) {
 			f1,
 			f2
 		},
-		rowFilter: function(tr, context) {
+		rowFilter: function(tr, _context) {
 			if (!f1.rowFilter(tr, f1.context)) return false;
 			return f2.rowFilter(tr, f2.context);
 		}
@@ -560,8 +560,8 @@ async function fetchStudentsSearch(search) {
 }
 async function setViewFromCurrentUrl() {
 	let hash = window.location.hash.replace("#", "");
-	let page = await fetch("https://administratie.dko3.cloud/#" + hash).then((res) => res.text());
-	let view = await fetch("view.php?args=" + hash).then((res) => res.text());
+	await fetch("https://administratie.dko3.cloud/#" + hash).then((res) => res.text());
+	await fetch("view.php?args=" + hash).then((res) => res.text());
 }
 function equals(g1, g2) {
 	return g1.globalHide === g2.globalHide;
@@ -854,7 +854,7 @@ function setStripedLessons() {
 		for (let tdd of td.parentElement.children) if (tdd.classList.contains("table-info")) tdd.classList.add("runningStripes");
 	}
 }
-async function getModules(size, modal, file, args) {
+async function getModules(_size, _modal, _file, args) {
 	let res2 = await fetch("/views/leerlingen/leerling/inschrijvingen/modules_kiezen.modules.div.php?" + args);
 	let text2 = await res2.text();
 	const template = document.createElement("template");
@@ -1275,7 +1275,7 @@ var DisplayOptions = /* @__PURE__ */ function(DisplayOptions$1) {
 	DisplayOptions$1[DisplayOptions$1["Location"] = 8] = "Location";
 	return DisplayOptions$1;
 }(DisplayOptions || {});
-function buildInfoRow(newTableBody, text, show, groupId) {
+function buildInfoRow(newTableBody, _text, show, groupId) {
 	const trBlockInfo = newTableBody.appendChild(createLesRow(groupId));
 	trBlockInfo.classList.add("blockRow");
 	if (show === false) trBlockInfo.dataset.keepHidden = "true";
@@ -1862,13 +1862,13 @@ function applyFilters() {
 		let extraFilter = void 0;
 		if (pageState$1.filterOffline) extraFilter = {
 			context: void 0,
-			rowFilter: function(tr, context) {
+			rowFilter: function(tr, _context) {
 				return tr.dataset.visibility === "offline";
 			}
 		};
 		else if (pageState$1.filterOnline) extraFilter = {
 			context: void 0,
-			rowFilter: function(tr, context) {
+			rowFilter: function(tr, _context) {
 				return tr.dataset.visibility === "online";
 			}
 		};
@@ -1881,13 +1881,13 @@ function applyFilters() {
 		let extraFilter = void 0;
 		if (pageState$1.filterOffline) extraFilter = {
 			context: void 0,
-			rowFilter: function(tr, context) {
+			rowFilter: function(tr, _context) {
 				return tr.querySelector("td>i.fa-eye-slash") != void 0;
 			}
 		};
 		else if (pageState$1.filterOnline) extraFilter = {
 			context: void 0,
-			rowFilter: function(tr, context) {
+			rowFilter: function(tr, _context) {
 				return tr.querySelector("td>i.fa-eye-slash") == void 0;
 			}
 		};
@@ -2118,7 +2118,7 @@ function sortVoornaam(event) {
 	Array.from(document.querySelectorAll("#les_leerlingen_leerlingen > span > a")).forEach((a) => a.classList.add("text-muted"));
 	event.target.classList.remove("text-muted");
 }
-function switchNaamVoornaam(event) {
+function switchNaamVoornaam(_event) {
 	let rows = Array.from(document.querySelectorAll("#les_leerlingen_leerlingen > table > tbody > tr"));
 	rows.forEach((tr) => {
 		let strong = tr.querySelector("td > strong");
@@ -2135,7 +2135,7 @@ function switchNaamVoornaam(event) {
 var observer_default$6 = new PageObserver(setSchoolBackground);
 registerSettingsObserver(setSchoolBackground);
 function setSchoolBackground() {
-	let { userName, schoolName } = getUserAndSchoolName();
+	let { schoolName } = getUserAndSchoolName();
 	let isMyAcademy = options.myAcademies.split("\n").filter((needle) => needle !== "").find((needle) => schoolName.includes(needle)) != void 0;
 	if (options.myAcademies === "") isMyAcademy = true;
 	if (isMyAcademy || getGlobalSettings().globalHide === true || options.markOtherAcademies === false) document.body.classList.remove("otherSchool");
@@ -2474,7 +2474,7 @@ function checkAndUpdate(urenData) {
 	let colKeys = getYearKeys(urenData.year);
 	updateCloudColumnMapFromScreen(urenData, colKeys.keyPrev);
 	updateCloudColumnMapFromScreen(urenData, colKeys.keyNext);
-	cloud.json.upload(getUrenVakLeraarFileName(), urenData.fromCloud.toJson(colKeys.keyPrev, colKeys.keyNext)).then((r) => {
+	cloud.json.upload(getUrenVakLeraarFileName(), urenData.fromCloud.toJson(colKeys.keyPrev, colKeys.keyNext)).then((_r) => {
 		console.log("Uploaded uren.");
 	});
 	recalculate(urenData);
@@ -2677,7 +2677,7 @@ function fillGraadCell(ctx) {
 
 //#endregion
 //#region typescript/werklijst/scrapeUren.ts
-function scrapeStudent(tableDef, fetchListener, tr, collection) {
+function scrapeStudent(_tableDef, fetchListener, tr, collection) {
 	let student = new StudentInfo();
 	student.naam = fetchListener.getColumnText(tr, "naam");
 	student.voornaam = fetchListener.getColumnText(tr, "voornaam");
@@ -3032,11 +3032,9 @@ var NamedCellTableFetchListener = class NamedCellTableFetchListener {
 var TableNavigation = class {
 	step;
 	maxCount;
-	div;
-	constructor(step, maxCount, div) {
+	constructor(step, maxCount) {
 		this.step = step;
 		this.maxCount = maxCount;
-		this.div = div;
 	}
 	steps() {
 		return Math.ceil(this.maxCount / this.step);
@@ -3060,7 +3058,7 @@ function findFirstNavigation(element) {
 	numbers = numbers.concat(offsets);
 	numbers.sort((a, b) => a - b);
 	numbers = [...new Set(numbers)];
-	return new TableNavigation(numbers[1] - numbers[0], numbers.pop(), buttonContainer);
+	return new TableNavigation(numbers[1] - numbers[0], numbers.pop());
 }
 function getGotoNumber(functionCall) {
 	return parseInt(functionCall.substring(functionCall.indexOf("goto(") + 5));
@@ -3158,7 +3156,7 @@ var TableFetcher = class {
 			return this.fetchedTable;
 		}
 		let cachedData = this.loadFromCache();
-		let succes = false;
+		let succes;
 		this.fetchedTable = new FetchedTable(this);
 		if (cachedData) {
 			this.fetchedTable.addPage(cachedData.text);
@@ -3267,7 +3265,7 @@ function onMutation$4(_mutation) {
 	let navigationBars = getBothToolbars();
 	if (!navigationBars) return;
 	if (!findTableRefInCode()?.navigationData.isOnePage()) addTableNavigationButton(navigationBars, DOWNLOAD_TABLE_BTN_ID, "download full table", () => {
-		downloadTableRows();
+		downloadTableRows().then((_r) => {});
 	}, "fa-arrow-down");
 	if (document.querySelector("main div.table-responsive table thead")) {
 		let table = document.querySelector("main div.table-responsive table");
@@ -3282,7 +3280,7 @@ let tableCriteriaBuilders = new Map();
 function getChecksumBuilder(tableId$1) {
 	let builder = tableCriteriaBuilders.get(tableId$1);
 	if (builder) return builder;
-	return (tableFetcher) => "";
+	return (_tableFetcher) => "";
 }
 function registerChecksumHandler(tableId$1, checksumHandler) {
 	tableCriteriaBuilders.set(tableId$1, checksumHandler);
@@ -3391,7 +3389,7 @@ var ProgressBar = class {
 		return true;
 	}
 };
-function insertProgressBar(container, steps, text = "") {
+function insertProgressBar(container, text = "") {
 	container.innerHTML = "";
 	let { first: divProgressLine, last: divProgressBar } = emmet.appendChild(container, `div.infoLine${PROGRESS_BAR_ID}>div.progressText{${text}}+div.progressBar`);
 	return new ProgressBar(divProgressLine, divProgressBar);
@@ -3400,11 +3398,10 @@ function insertProgressBar(container, steps, text = "") {
 //#endregion
 //#region typescript/table/loadAnyTable.ts
 async function getTableRefFromHash(hash) {
-	let page = await fetch("https://administratie.dko3.cloud/#" + hash).then((res) => res.text());
+	await fetch("https://administratie.dko3.cloud/#" + hash).then((res) => res.text());
 	let view = await fetch("view.php?args=" + hash).then((res) => res.text());
 	let index_viewUrl = getDocReadyLoadUrl(view);
 	let index_view = await fetch(index_viewUrl).then((res) => res.text());
-	let scanner = new TokenScanner(index_view);
 	let htmlTableId = getDocReadyLoadScript(index_view).find("$", "(", "'#").clipTo("'").result();
 	if (!htmlTableId) htmlTableId = getDocReadyLoadScript(index_view).find("$", "(", "\"#").clipTo("\"").result();
 	let someUrl = getDocReadyLoadUrl(index_view);
@@ -3414,7 +3411,7 @@ async function getTableRefFromHash(hash) {
 	}
 	let datatableUrl = someUrl;
 	let datatable = await fetch(datatableUrl).then((result) => result.text());
-	scanner = new TokenScanner(datatable);
+	let scanner = new TokenScanner(datatable);
 	let datatable_id = "";
 	let tableNavUrl = "";
 	scanner.find("var", "datatable_id", "=").getString((res) => {
@@ -3628,7 +3625,7 @@ function createDefaultTableRefAndInfoBar() {
 	document.getElementById(INFO_CONTAINER_ID)?.remove();
 	let divInfoContainer = tableRef.createElementAboveTable("div");
 	let infoBar = new InfoBar(divInfoContainer.appendChild(document.createElement("div")));
-	let progressBar = insertProgressBar(infoBar.divInfoLine, tableRef.navigationData.steps(), "loading pages... ");
+	let progressBar = insertProgressBar(infoBar.divInfoLine, "loading pages... ");
 	return { result: {
 		tableRef,
 		infoBar,
@@ -3709,7 +3706,7 @@ function createAndCopyTable(headers, cols) {
 function reSortTableByColumn(ev, table) {
 	let header = table.tHead.children[0].children[getColumnIndex(ev)];
 	let wasAscending = header.classList.contains("sortAscending");
-	forTableDo(ev, (fetchedTable, index) => sortTableByColumn(table, index, wasAscending));
+	forTableDo(ev, (_fetchedTable, index) => sortTableByColumn(table, index, wasAscending));
 }
 function isColumnProbablyDate(table, index) {
 	let rows = Array.from(table.tBodies[0].rows);
@@ -3732,7 +3729,7 @@ function isColumnProbablyNumeric(table, index) {
 function decorateTableHeader(table) {
 	if (table.tHead.classList.contains("clickHandler")) return;
 	table.tHead.classList.add("clickHandler");
-	Array.from(table.tHead.children[0].children).forEach((colHeader, index) => {
+	Array.from(table.tHead.children[0].children).forEach((colHeader) => {
 		colHeader.onclick = (ev) => {
 			reSortTableByColumn(ev, table);
 		};
@@ -3752,20 +3749,20 @@ function decorateTableHeader(table) {
 		});
 		addMenuSeparator(menu, "Sorteer", 0);
 		addMenuItem(menu, "Laag naar hoog (a > z)", 1, (ev) => {
-			forTableDo(ev, (fetchedTable, index$1) => sortTableByColumn(table, index$1, false));
+			forTableDo(ev, (_fetchedTable, index) => sortTableByColumn(table, index, false));
 		});
 		addMenuItem(menu, "Hoog naar laag (z > a)", 1, (ev) => {
-			forTableDo(ev, (fetchedTable, index$1) => sortTableByColumn(table, index$1, true));
+			forTableDo(ev, (_fetchedTable, index) => sortTableByColumn(table, index, true));
 		});
 		addMenuSeparator(menu, "Sorteer als:", 1);
 		addMenuItem(menu, "Tekst", 2, (_ev) => {});
 		addMenuItem(menu, "Getallen", 2, (_ev) => {});
 		addMenuSeparator(menu, "Kopieer nr klipbord", 0);
 		addMenuItem(menu, "Kolom", 1, (ev) => {
-			forTableDo(ev, (fetchedTable, index$1) => copyOneColumn(table, index$1));
+			forTableDo(ev, (_fetchedTable, index) => copyOneColumn(table, index));
 		});
 		addMenuItem(menu, "Hele tabel", 1, (ev) => {
-			forTableDo(ev, (fetchedTable, index$1) => copyFullTable(table));
+			forTableDo(ev, (_fetchedTable, _index) => copyFullTable(table));
 		});
 		addMenuSeparator(menu, "<= Samenvoegen", 0);
 		addMenuItem(menu, "met spatie", 1, (ev) => {
@@ -3789,7 +3786,7 @@ function getDistinctColumn(tableContainer, index) {
 	return distinct(rows.map((row) => row.children[index].textContent)).sort();
 }
 var TableHandlerForHeaders = class {
-	onReset(tableDef) {
+	onReset(_tableDef) {
 		console.log("RESET");
 	}
 };
@@ -3843,10 +3840,10 @@ function showDistinctColumn(tableRef, index) {
 	let headerText = headerNodes.filter((node) => node.nodeType === Node.TEXT_NODE).map((node) => node.textContent).join(" ");
 	openTab(tmpDiv.innerHTML, headerText + " (uniek)");
 }
-let hideColumn = { doForRow: function(row, index, context) {
+let hideColumn = { doForRow: function(row, index, _context) {
 	row.cells[index].style.display = "none";
 } };
-let showColumns = { doForRow: function(row, index, context) {
+let showColumns = { doForRow: function(row, _index, _context) {
 	for (let cell of row.cells) cell.style.display = "";
 } };
 let mergeColumnWithComma = {
@@ -4157,7 +4154,7 @@ function onSearchInput() {
 var observer_default$2 = new HashObserver("#leerlingen-verwittigen", onMutation$1);
 const CHAR_COUNTER = "charCounterClass";
 const COUNTER_ID = "charCounter";
-function onMutation$1(mutation) {
+function onMutation$1(_mutation) {
 	let txtSms = document.getElementById("leerlingen_verwittigen_bericht_sjabloon");
 	if (txtSms && !txtSms?.classList.contains(CHAR_COUNTER)) {
 		txtSms.classList.add(CHAR_COUNTER);
@@ -4169,7 +4166,7 @@ function onMutation$1(mutation) {
 	}
 	return true;
 }
-function onSmsChanged(event) {
+function onSmsChanged(_event) {
 	let txtSms = document.getElementById("leerlingen_verwittigen_bericht_sjabloon");
 	let spanCounter = document.getElementById(COUNTER_ID);
 	spanCounter.textContent = txtSms.value.length.toString();
@@ -4178,7 +4175,7 @@ function onSmsChanged(event) {
 //#endregion
 //#region typescript/aanwezigheden/observer.ts
 var observer_default$1 = new HashObserver("#leerlingen-lijsten-awi-percentages_leerling_vak", onMutationAanwezgheden);
-function onMutationAanwezgheden(mutation) {
+function onMutationAanwezgheden(_mutation) {
 	let tableId$1 = document.getElementById("table_lijst_awi_percentages_leerling_vak_table");
 	if (!tableId$1) return false;
 	let navigationBars = getBothToolbars();
@@ -4295,11 +4292,11 @@ async function copyTable() {
 }
 function aanwezighedenToClipboard(infoBar) {
 	let text = window.sessionStorage.getItem(AANW_LIST);
-	navigator.clipboard.writeText(text).then((r) => {
+	navigator.clipboard.writeText(text).then((_r) => {
 		infoBar.setExtraInfo("Data copied to clipboard. <a id=" + COPY_AGAIN + " href='javascript:void(0);'>Copy again</a>", COPY_AGAIN, () => {
 			aanwezighedenToClipboard(infoBar);
 		});
-	}).catch((reason) => {
+	}).catch((_reason) => {
 		infoBar.setExtraInfo("Could not copy to clipboard!!! <a id=" + COPY_AGAIN + " href='javascript:void(0);'>Copy again</a>", COPY_AGAIN, () => {
 			aanwezighedenToClipboard(infoBar);
 		});
@@ -4673,7 +4670,7 @@ init();
 function init() {
 	getOptions().then(() => {
 		chrome.storage.onChanged.addListener((_changes, area) => {
-			if (area === "sync") getOptions().then((r) => {
+			if (area === "sync") getOptions().then((_r) => {
 				onSettingsChanged();
 			});
 		});

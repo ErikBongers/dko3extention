@@ -1,3 +1,5 @@
+* replace all refs to skynet with outlook.
+
 * Checks:
       >>>> only actual errors to avoid fatigue!
   > 999 for certain classes

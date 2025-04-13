@@ -4,7 +4,7 @@ import * as def from "./def";
 import {GLOBAL_SETTINGS_FILENAME} from "./def";
 import {emmet} from "../libs/Emmeter/html";
 import {PageName} from "./gotoState";
-import {LessenPageState, PageSettings} from "./lessen/build";
+import {PageSettings} from "./lessen/build";
 
 type Options = {
   showDebug: boolean;
@@ -53,7 +53,7 @@ export function registerSettingsObserver(observer: () => void) {
 export function searchText(text: string) {
     let input: HTMLInputElement = document.querySelector("#snel_zoeken_veld_zoektermen");
     input.value = text;
-    let evUp = new KeyboardEvent("keyup", {key: "Enter", keyCode: 13, bubbles: true});
+    let evUp = new KeyboardEvent("keyup", {key: "Enter", keyCode: 13, bubbles: true}); //doesn't seem to be working other than with this deprecated property.
     input.dispatchEvent(evUp);
 }
 
@@ -284,7 +284,7 @@ export interface RowFilter {
 export function combineFilters (f1: RowFilter, f2: RowFilter) {
     return <RowFilter> {
         context: {f1, f2},
-        rowFilter: function (tr: HTMLTableRowElement, context: any): boolean {
+        rowFilter: function (tr: HTMLTableRowElement, _context: any): boolean {
             if(!f1.rowFilter(tr, f1.context))
                 return false;
             return f2.rowFilter(tr, f2.context);
@@ -321,15 +321,9 @@ export async function fetchStudentsSearch(search: string) {
 
 export async function setViewFromCurrentUrl() {
     let hash = window.location.hash.replace("#", "");
-    let page = await fetch("https://administratie.dko3.cloud/#" + hash).then(res => res.text());
+    await fetch("https://administratie.dko3.cloud/#" + hash).then(res => res.text());
     // call to changeView() - assuming this is always the same, so no parsing here.
-    let view = await fetch("view.php?args=" + hash).then(res => res.text());
-}
-
-export async function setView(hash: string) {
-    let page = await fetch("https://administratie.dko3.cloud/#" + hash).then(res => res.text());
-    // call to changeView() - assuming this is always the same, so no parsing here.
-    return fetch("view.php?args=" + hash).then(res => res.text());
+    await fetch("view.php?args=" + hash).then(res => res.text());
 }
 
 export interface GlobalSettings {

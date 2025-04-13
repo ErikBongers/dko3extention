@@ -4,7 +4,7 @@ export default new HashObserver("#leerlingen-verwittigen", onMutation);
 
 const CHAR_COUNTER = "charCounterClass";
 const COUNTER_ID = "charCounter"
-function onMutation (mutation: MutationRecord) {
+function onMutation (_mutation: MutationRecord) {
     // console.log(mutation)
     let txtSms = document.getElementById("leerlingen_verwittigen_bericht_sjabloon");
     if(txtSms && !txtSms?.classList.contains(CHAR_COUNTER)) {
@@ -18,7 +18,7 @@ function onMutation (mutation: MutationRecord) {
     return true;
 }
 
-function onSmsChanged(event: Event) {
+function onSmsChanged(_event: Event) {
     let txtSms = document.getElementById("leerlingen_verwittigen_bericht_sjabloon") as HTMLTextAreaElement;
     let spanCounter: HTMLSpanElement =  document.getElementById(COUNTER_ID);
     spanCounter.textContent = txtSms.value.length.toString();

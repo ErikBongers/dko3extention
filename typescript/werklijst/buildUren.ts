@@ -77,8 +77,8 @@ function getYearKeys(year: number) {
 function updateColDefs(year: number) {
     let {yrPrev, yrNow, yrNext, keyPrev, keyNext} = getYearKeys(year);
     let yearColDefs = new Map();
-    yearColDefs.set(keyPrev, { label:`Uren\n${yrPrev}-${yrNow}`, classList: ["editable_number"], factor: 1.0, getValue: (ctx) => parseInt(ctx.data.fromCloud.columnMap.get(`uren_${yrPrev}_${yrNow}`)?.get(ctx.vakLeraar.id)), totals:true});
-    yearColDefs.set(keyNext, { label:`Uren\n${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1.0, getValue: (ctx) => parseInt(ctx.data.fromCloud.columnMap.get(`uren_${yrNow}_${yrNext}`)?.get(ctx.vakLeraar.id)), totals:true});
+    yearColDefs.set(keyPrev, { label:`Uren\n${yrPrev}-${yrNow}`, classList: ["editable_number"], factor: 1.0, getValue: (ctx: Context) => parseInt(ctx.data.fromCloud.columnMap.get(`uren_${yrPrev}_${yrNow}`)?.get(ctx.vakLeraar.id)), totals:true});
+    yearColDefs.set(keyNext, { label:`Uren\n${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1.0, getValue: (ctx: Context) => parseInt(ctx.data.fromCloud.columnMap.get(`uren_${yrNow}_${yrNext}`)?.get(ctx.vakLeraar.id)), totals:true});
     colDefs = new Map([...yearColDefs, ...new Map(colDefsArray.map((def) => [def.key, def.def]))]);
     let idx = 0;
     colDefs.forEach(colDef => {
@@ -146,7 +146,7 @@ function checkAndUpdate(urenData: UrenData) {
     cloud.json.upload(
         getUrenVakLeraarFileName(),
         urenData.fromCloud.toJson(colKeys.keyPrev, colKeys.keyNext))
-        .then(r => { console.log("Uploaded uren.")});
+        .then(_r => { console.log("Uploaded uren.")});
 
     recalculate(urenData);
 }
