@@ -1,5 +1,5 @@
 //to avoid "unused function" errors in linters, this file is called as a module.
-import {equals, fetchGlobalSettings, getGlobalSettings, observers, options, registerObserver, setGlobalSetting, settingsObservers} from "./globals";
+import {clearPageTransientState, equals, fetchGlobalSettings, getGlobalSettings, observers, options, registerObserver, setGlobalSetting, setPageTransientStateValue, settingsObservers} from "./globals";
 import leerlingObserver from "./leerling/observer";
 import lessenObserver from "./lessen/observer";
 import lesObserver from "./les/observer";
@@ -85,6 +85,7 @@ function onPageChanged() {
     if(getGlobalSettings().globalHide) {
         return;
     }
+    clearPageTransientState();
     for(let observer of observers) {
         observer.onPageChanged();
     }

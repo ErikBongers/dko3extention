@@ -4,7 +4,7 @@ import * as def from "./def";
 import {GLOBAL_SETTINGS_FILENAME} from "./def";
 import {emmet} from "../libs/Emmeter/html";
 import {PageName} from "./gotoState";
-import {LessenPageState, PageState} from "./lessen/build";
+import {LessenPageState, PageSettings} from "./lessen/build";
 
 type Options = {
   showDebug: boolean;
@@ -380,28 +380,6 @@ export function stripStudentName(name: string): string {
     return name.replaceAll(/[,()'-]/g, " ").replaceAll("  ", " ");
 }
 
-export function getPageState(pageName: PageName, defaultState: LessenPageState): PageState {
-    let storedState = sessionStorage.getItem(def.STORAGE_PAGE_STATE_KEY_PREFIX + pageName);
-    if (storedState)
-        return JSON.parse(storedState);
-    return defaultState;
-}
-
-export function savePageState(state: PageState) {
-    sessionStorage.setItem(def.STORAGE_PAGE_STATE_KEY_PREFIX + state.pageName, JSON.stringify(state));
-}
-
-export function getPageSettings(pageName: PageName, defaultState: LessenPageState): PageState {
-    let storedState = localStorage.getItem(def.STORAGE_PAGE_STATE_KEY_PREFIX + pageName);
-    if (storedState)
-        return JSON.parse(storedState);
-    return defaultState;
-}
-
-export function savePageSettings(state: PageState) {
-    localStorage.setItem(def.STORAGE_PAGE_STATE_KEY_PREFIX + state.pageName, JSON.stringify(state));
-}
-
 export enum Actions {
     OpenTab = "open_tab",
     GetTabData = "get_tab_data",
@@ -470,3 +448,30 @@ export function range(startAt: number, upTo: number) {
     else
         return [...Array(startAt - upTo).keys()].reverse().map(n => n + upTo + 1);
 }
+
+export function getPageSettings(pageName: PageName, defaultSettings: PageSettings): PageSettings {
+    let storedState = localStorage.getItem(def.STORAGE_PAGE_SETTINGS_KEY_PREFIX + pageName);
+    if (storedState)
+        return JSON.parse(storedState);
+    return defaultSettings;
+}
+
+export function savePageSettings(state: PageSettings) {
+    localStorage.setItem(def.STORAGE_PAGE_SETTINGS_KEY_PREFIX + state.pageName, JSON.stringify(state));
+}
+
+let globalTransientPageState: Map<string, any> = new Map();
+
+export function getPageTransientStateValue(key: string, defaultValue: any) {
+    let value =  globalTransientPageState.get(key);
+    return value ? value : setPageTransientStateValue(key, defaultValue);
+}
+
+export function setPageTransientStateValue(key:string, transientState: object){
+    globalTransientPageState.set(key, transientState);
+    return transientState;
+}
+export function clearPageTransientState() {
+    globalTransientPageState.clear();
+}
+

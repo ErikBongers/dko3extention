@@ -28,12 +28,13 @@ const GLOBAL_SETTINGS_FILENAME = "global_settings.json";
 const CACHE_DATE_SUFFIX = "__date";
 const POWER_QUERY_ID = "savedPowerQuery";
 const STORAGE_GOTO_STATE_KEY = "gotoState";
-const STORAGE_PAGE_STATE_KEY_PREFIX = "pageState_";
+const STORAGE_PAGE_SETTINGS_KEY_PREFIX = "pageSettings_";
 const UREN_TABLE_STATE_NAME = "__uren__";
 const CAN_HAVE_MENU = "canHaveMenu";
 const CAN_SORT = "canSort";
 const LESSEN_TABLE_ID = "table_lessen_resultaat_tabel";
 const FILTER_INFO_ID = "filterInfo";
+const GLOBAL_COMMAND_BUFFER_KEY = "globalCmdBuffer";
 
 //#endregion
 //#region typescript/cloud.ts
@@ -593,14 +594,6 @@ function whoAmI() {
 function stripStudentName(name) {
 	return name.replaceAll(/[,()'-]/g, " ").replaceAll("  ", " ");
 }
-function getPageSettings(pageName, defaultState) {
-	let storedState = localStorage.getItem(STORAGE_PAGE_STATE_KEY_PREFIX + pageName);
-	if (storedState) return JSON.parse(storedState);
-	return defaultState;
-}
-function savePageSettings(state) {
-	localStorage.setItem(STORAGE_PAGE_STATE_KEY_PREFIX + state.pageName, JSON.stringify(state));
-}
 let Actions = /* @__PURE__ */ function(Actions$1) {
 	Actions$1["OpenTab"] = "open_tab";
 	Actions$1["GetTabData"] = "get_tab_data";
@@ -631,6 +624,26 @@ function isButtonHighlighted(buttonId) {
 function range(startAt, upTo) {
 	if (upTo > startAt) return [...Array(upTo - startAt).keys()].map((n) => n + startAt);
 	else return [...Array(startAt - upTo).keys()].reverse().map((n) => n + upTo + 1);
+}
+function getPageSettings(pageName, defaultSettings) {
+	let storedState = localStorage.getItem(STORAGE_PAGE_SETTINGS_KEY_PREFIX + pageName);
+	if (storedState) return JSON.parse(storedState);
+	return defaultSettings;
+}
+function savePageSettings(state) {
+	localStorage.setItem(STORAGE_PAGE_SETTINGS_KEY_PREFIX + state.pageName, JSON.stringify(state));
+}
+let globalTransientPageState = new Map();
+function getPageTransientStateValue(key, defaultValue) {
+	let value = globalTransientPageState.get(key);
+	return value ? value : setPageTransientStateValue(key, defaultValue);
+}
+function setPageTransientStateValue(key, transientState) {
+	globalTransientPageState.set(key, transientState);
+	return transientState;
+}
+function clearPageTransientState() {
+	globalTransientPageState.clear();
 }
 
 //#endregion
@@ -3785,9 +3798,11 @@ function getColumnIndex(ev) {
 	if (td.tagName !== "TD") td = td.closest("TH");
 	return Array.prototype.indexOf.call(td.parentElement.children, td);
 }
-let globalCommandBuffer = [];
 function executeTableCommands(tableRef) {
-	for (let cmd of globalCommandBuffer) executeCmd(cmd, tableRef, true);
+	let cmds = getPageTransientStateValue(GLOBAL_COMMAND_BUFFER_KEY, []);
+	console.log("Executing:");
+	console.log(cmds);
+	for (let cmd of cmds) executeCmd(cmd, tableRef, true);
 }
 function forTableDo(ev, doIt) {
 	ev.preventDefault();
@@ -3806,7 +3821,8 @@ function forTableColumnDo(ev, doIt, onlyBody) {
 			index
 		};
 		executeCmd(cmd, tableRef, onlyBody);
-		globalCommandBuffer.push(cmd);
+		let cmds = getPageTransientStateValue(GLOBAL_COMMAND_BUFFER_KEY, []);
+		cmds.push(cmd);
 		relabelHeaders(tableRef.getOrgTableContainer().querySelector("thead>tr"));
 	});
 }
@@ -4684,6 +4700,7 @@ function onSettingsChanged() {
 }
 function onPageChanged() {
 	if (getGlobalSettings().globalHide) return;
+	clearPageTransientState();
 	for (let observer of observers) observer.onPageChanged();
 }
 async function getOptions() {

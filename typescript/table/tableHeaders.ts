@@ -1,9 +1,9 @@
-import {createTable, distinct, openTab, range, rangeGenerator} from "../globals";
+import {createTable, distinct, getPageTransientStateValue, openTab, range, rangeGenerator, setPageTransientStateValue} from "../globals";
 import {emmet} from "../../libs/Emmeter/html";
-import {checkAndDownloadTableRows, downloadTableRows} from "./loadAnyTable";
+import {checkAndDownloadTableRows} from "./loadAnyTable";
 import {addMenuItem, addMenuSeparator, setupMenu} from "../menus";
-import {FetchedTable, findTableRefInCode, TableFetcher, TableFetchListener, TableHandler, TableRef} from "./tableFetcher";
-import {CAN_HAVE_MENU} from "../def";
+import {TableFetcher, TableHandler, TableRef} from "./tableFetcher";
+import {CAN_HAVE_MENU, GLOBAL_COMMAND_BUFFER_KEY} from "../def";
 
 
 function sortRows(cmpFunction: (a: HTMLTableCellElement, b: HTMLTableCellElement) => number, header: Element, rows: HTMLTableRowElement[], index: number, descending: boolean) {
@@ -178,10 +178,11 @@ type TableColumnCmd = {
     index: number
 }
 
-let globalCommandBuffer: TableColumnCmd[] = [];
-
 export function executeTableCommands(tableRef: TableRef) {
-    for(let cmd of globalCommandBuffer) {
+    let cmds = getPageTransientStateValue(GLOBAL_COMMAND_BUFFER_KEY, []) as TableColumnCmd[];
+    console.log("Executing:");
+    console.log(cmds);
+    for(let cmd of cmds) {
         executeCmd(cmd, tableRef, true);
     }
 }
@@ -206,7 +207,8 @@ function forTableColumnDo(ev: MouseEvent, doIt: TableColumnDo, onlyBody: boolean
                index
             };
             executeCmd(cmd, tableRef, onlyBody);
-            globalCommandBuffer.push(cmd);
+            let cmds = getPageTransientStateValue(GLOBAL_COMMAND_BUFFER_KEY, []) as TableColumnCmd[];
+            cmds.push(cmd);
             relabelHeaders(tableRef.getOrgTableContainer().querySelector("thead>tr"))
         });
 }

@@ -21,11 +21,11 @@ export enum TrimesterGrouping {
     Teacher
 }
 
-export interface PageState {
+export interface PageSettings {
     pageName: PageName
 }
 
-export interface LessenPageState extends PageState {
+export interface LessenPageState extends PageSettings {
     pageName: PageName
     nameSorting: NameSorting,
     grouping: TrimesterGrouping,

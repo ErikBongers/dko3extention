@@ -1,11 +1,3 @@
-* Tableheaders:
-  > on refresh, the order, merging, hiding and sorting are no longer applied.
-    > easy fix...there is no easy fix: a full refresh doesn't reload the headers.
-      > look at TableFetcher.getRows(): it gets the rows from the stored template.
-      > create a TableFetcher.getHeaderRows() or, getFullTable().
-  > records all table manipulations in a cmdBuffer, and replay that buffer after a full table reload.
-    > or don't do a full reload and replay them only on the actual rows, not the headers.
-
 * Lessen filters: add a bullet/highlight for the selected extra filter in the menu.
 
 * Checks:
