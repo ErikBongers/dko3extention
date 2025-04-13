@@ -64,7 +64,7 @@ function tokenize(textToTokenize) {
 	let pos = 0;
 	let start = pos;
 	function pushToken() {
-		if (start != pos) tokens.push(unescape(txt.substring(start, pos)));
+		if (start != pos) tokens.push(txt.substring(start, pos));
 		start = pos;
 	}
 	function getTo(to) {
