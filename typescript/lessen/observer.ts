@@ -146,7 +146,7 @@ function addFilterFields() {
         divButtonNieuweLes.insertAdjacentElement("afterend", searchField);
         //menu
         let {first: span, last: idiom} = emmet.insertAfter(searchField, 'span.btn-group-sm>button.btn.btn-sm.btn-outline-secondary.ml-2>i.fas.fa-list');
-        let menu = setupMenu(span as HTMLElement, idiom.parentElement, false);
+        let menu = setupMenu(span as HTMLElement, idiom.parentElement);
         addMenuItem(menu, "Show all", 0, _ => filterAll());
         addMenuItem(menu, "Filter online lessen", 0, _ => filterOnline());
         addMenuItem(menu, "Filter offline lessen", 0, _ => filterOffline());

@@ -139,8 +139,8 @@ export function decorateTableHeader(table: HTMLTableElement) {
             addMenuItem(menu, "Tekst", 2, (_ev) => { });
             addMenuItem(menu, "Getallen", 2, (_ev) => { });
             addMenuSeparator(menu, "Kopieer nr klipbord", 0);
-            addMenuItem(menu, "Kolom", 1, (ev) => { forTableColumnDo(ev, (fetchedTable, index) => copyOneColumn(table, index), false)});
-            addMenuItem(menu, "Hele tabel", 1, (ev) => { forTableColumnDo(ev, (fetchedTable, index) => copyFullTable(table), false)});
+            // addMenuItem(menu, "Kolom", 1, (ev) => { forTableColumnDo(ev, (fetchedTable, index) => copyOneColumn(table, index), false)});
+            // addMenuItem(menu, "Hele tabel", 1, (ev) => { forTableColumnDo(ev, (fetchedTable, index) => copyFullTable(table), false)});
             addMenuSeparator(menu, "<= Samenvoegen", 0);
             addMenuItem(menu, "met spatie", 1, (ev) => { forTableColumnDo(ev, mergeColumnWithSpace, false)});
             addMenuItem(menu, "met comma", 1, (ev) => { forTableColumnDo(ev, mergeColumnWithComma, false)});
@@ -157,8 +157,6 @@ function getDistinctColumn(tableContainer: HTMLElement, index: number) {
     return distinct(rows.map(row => row.children[index].textContent)).sort();
 }
 
-type TableColumnDo = (row: HTMLTableRowElement, index: number) => void;
-
 export class TableHandlerForHeaders implements TableHandler {
     onReset(tableDef: TableFetcher){
         console.log("RESET");
@@ -173,8 +171,16 @@ function getColumnIndex(ev: MouseEvent) {
     return Array.prototype.indexOf.call(td.parentElement.children, td);
 }
 
+type DoForRow = (row: HTMLTableRowElement, index: number, context: unknown) => void;
+type GetContext = (tableRef: TableRef, index: number) => unknown;
+
+type TableColumnCmdDef = {
+    getContext?: GetContext
+    doForRow: DoForRow,
+}
+
 type TableColumnCmd = {
-    cmd: (row: HTMLTableRowElement, index: number) => void,
+    cmdDef: TableColumnCmdDef,
     index: number
 }
 
@@ -196,16 +202,16 @@ function forTableDo(ev: MouseEvent, doIt: (tableRef: TableRef, index: number) =>
         });
 }
 
-function forTableColumnDo(ev: MouseEvent, doIt: TableColumnDo, onlyBody: boolean) {
+function forTableColumnDo(ev: MouseEvent, cmdDef: TableColumnCmdDef, onlyBody: boolean) {
     ev.preventDefault();
     ev.stopPropagation();
     checkAndDownloadTableRows()
         .then(tableRef => {
             let index = getColumnIndex(ev);
             let cmd: TableColumnCmd = {
-               cmd: doIt,
-               index
-            };
+                cmdDef,
+                index
+            }
             executeCmd(cmd, tableRef, onlyBody);
             let cmds = getPageTransientStateValue(GLOBAL_COMMAND_BUFFER_KEY, []) as TableColumnCmd[];
             cmds.push(cmd);
@@ -214,6 +220,8 @@ function forTableColumnDo(ev: MouseEvent, doIt: TableColumnDo, onlyBody: boolean
 }
 
 function executeCmd(cmd: TableColumnCmd, tableRef: TableRef, onlyBody: boolean) {
+    let context = cmd.cmdDef.getContext(tableRef, cmd.index);
+
     let rows: Iterable<HTMLTableRowElement>;
     if(onlyBody)
         rows = tableRef.getOrgTableContainer().querySelector("tbody").rows;
@@ -221,7 +229,7 @@ function executeCmd(cmd: TableColumnCmd, tableRef: TableRef, onlyBody: boolean) 
         rows = tableRef.getOrgTableContainer().querySelectorAll("tr");
 
     for(let row of rows) {
-        cmd.cmd(row, cmd.index);
+        cmd.cmdDef.doForRow(row, cmd.index, context);
     }
 }
 
@@ -238,20 +246,35 @@ function showDistinctColumn(tableRef: TableRef, index: number) {
     openTab(tmpDiv.innerHTML, headerText + " (uniek)");
 }
 
-let hideColumn: TableColumnDo = function (row, index) {
-    row.cells[index].style.display = "none";
+let hideColumn: TableColumnCmdDef = {
+    doForRow: function (row, index, context) {
+        row.cells[index].style.display = "none";
+    }
 }
 
-let showColumns: TableColumnDo = function (row, index) {
-    for(let cell of row.cells)
-        cell.style.display = "";
+let showColumns: TableColumnCmdDef = {
+    doForRow: function (row, index, context) {
+        for(let cell of row.cells)
+            cell.style.display = "";
+    }
 }
 
-let mergeColumnWithComma: TableColumnDo = function (row, index) {
-    mergeColumnToLeft(row, index, ", ");
+let mergeColumnWithComma: TableColumnCmdDef = {
+    getContext: function (tableRef, index: number): unknown {
+        return undefined;
+    },
+    doForRow: function (row, index, context) {
+        mergeColumnToLeft(row, index, ", ");
+    }
 }
-let mergeColumnWithSpace: TableColumnDo = function (row, index) {
-    mergeColumnToLeft(row, index, " ");
+
+let mergeColumnWithSpace: TableColumnCmdDef = {
+    getContext: function (tableRef, index: number): unknown {
+        return undefined;
+    },
+    doForRow: function (row, index, context) {
+        mergeColumnToLeft(row, index, " ");
+    }
 }
 
 function mergeColumnToLeft(row: HTMLTableRowElement, index: number, separator: string) {
@@ -259,7 +282,7 @@ function mergeColumnToLeft(row: HTMLTableRowElement, index: number, separator: s
         return; //just to be sure.
     if(row.parentElement.tagName == "TBODY") {
         row.cells[index].style.display = "none";
-        row.cells[index - 1].innerText += separator + row.cells[index].innerText;
+        row.cells[index - 1].innerText += separator + row.cells[index].innerText; //todo: merge to the VISIBLE column!!! -> set in context.
     } else { //THEAD
         row.cells[index].style.display = "none";
         let firstTextNode = [...row.cells[index - 1].childNodes].filter(node => node.nodeType === Node.TEXT_NODE)[0];
@@ -288,14 +311,24 @@ function findNextVisibleCell(headerRow: HTMLTableRowElement, indexes: number[]) 
     return index;
 }
 
-let swapColumnsToRight: TableColumnDo = function (row, index) {
-    let index2 = findNextVisibleCell(row, range(index+1, row.cells.length)); //TODO: called for every row!
-    swapColumns(row, index, index2);
+let swapColumnsToRight: TableColumnCmdDef = {
+    getContext: function (tableRef, index: number): unknown {
+        let row = tableRef.getOrgTableContainer().querySelector("thead>tr") as HTMLTableRowElement;
+        return findNextVisibleCell(row, range(index+1, row.cells.length));
+    },
+    doForRow: function (row, index, context) {
+        swapColumns(row, index, context as number);
+    }
 }
 
-let swapColumnsToLeft: TableColumnDo = function (row, index) {
-    let index2 = findNextVisibleCell(row, range(index-1, -1));
-    swapColumns(row, index, index2);
+let swapColumnsToLeft: TableColumnCmdDef = {
+    getContext: function (tableRef, index: number): unknown {
+        let row = tableRef.getOrgTableContainer().querySelector("thead>tr") as HTMLTableRowElement;
+        return findNextVisibleCell(row, range(index-1, -1));
+    },
+    doForRow: function (row, index, context) {
+        swapColumns(row, index, context as number);
+    }
 }
 
 function swapColumns(row: HTMLTableRowElement, index1: number,  index2: number) {

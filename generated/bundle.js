@@ -1820,7 +1820,7 @@ function addFilterFields() {
 		let searchField$1 = createSearchField(TXT_FILTER_ID$1, applyFilters, pageState$1.searchText);
 		divButtonNieuweLes.insertAdjacentElement("afterend", searchField$1);
 		let { first: span, last: idiom } = emmet.insertAfter(searchField$1, "span.btn-group-sm>button.btn.btn-sm.btn-outline-secondary.ml-2>i.fas.fa-list");
-		let menu = setupMenu(span, idiom.parentElement, false);
+		let menu = setupMenu(span, idiom.parentElement);
 		addMenuItem(menu, "Show all", 0, (_) => filterAll());
 		addMenuItem(menu, "Filter online lessen", 0, (_) => filterOnline());
 		addMenuItem(menu, "Filter offline lessen", 0, (_) => filterOffline());
@@ -3693,19 +3693,6 @@ function sortTableByColumn(table, index, descending) {
 	}
 	rows.forEach((row) => table.tBodies[0].appendChild(row));
 }
-function copyFullTable(table) {
-	let headerCells = table.tHead.children[0].children;
-	let headers = [...headerCells].filter((cell) => cell.style.display !== "none").map((cell) => cell.innerText);
-	let rows = table.tBodies[0].children;
-	let cells = [...rows].map((row) => [...row.cells].filter((cell) => cell.style.display !== "none").map((cell) => cell.innerText));
-	createAndCopyTable(headers, cells);
-}
-function copyOneColumn(table, index) {
-	createAndCopyTable([table.tHead.children[0].children[index].innerText], [...table.tBodies[0].rows].map((row) => [row.cells[index].innerText]));
-}
-function createAndCopyTable(headers, cols) {
-	navigator.clipboard.writeText(createTable(headers, cols).outerHTML).then((_r) => {});
-}
 function reSortTableByColumn(ev, table) {
 	let header = table.tHead.children[0].children[getColumnIndex(ev)];
 	let wasAscending = header.classList.contains("sortAscending");
@@ -3761,12 +3748,6 @@ function decorateTableHeader(table) {
 		addMenuItem(menu, "Tekst", 2, (_ev) => {});
 		addMenuItem(menu, "Getallen", 2, (_ev) => {});
 		addMenuSeparator(menu, "Kopieer nr klipbord", 0);
-		addMenuItem(menu, "Kolom", 1, (ev) => {
-			forTableColumnDo(ev, (fetchedTable, index$1) => copyOneColumn(table, index$1), false);
-		});
-		addMenuItem(menu, "Hele tabel", 1, (ev) => {
-			forTableColumnDo(ev, (fetchedTable, index$1) => copyFullTable(table), false);
-		});
 		addMenuSeparator(menu, "<= Samenvoegen", 0);
 		addMenuItem(menu, "met spatie", 1, (ev) => {
 			forTableColumnDo(ev, mergeColumnWithSpace, false);
@@ -3811,13 +3792,13 @@ function forTableDo(ev, doIt) {
 		doIt(tableRef, getColumnIndex(ev));
 	});
 }
-function forTableColumnDo(ev, doIt, onlyBody) {
+function forTableColumnDo(ev, cmdDef, onlyBody) {
 	ev.preventDefault();
 	ev.stopPropagation();
 	checkAndDownloadTableRows().then((tableRef) => {
 		let index = getColumnIndex(ev);
 		let cmd = {
-			cmd: doIt,
+			cmdDef,
 			index
 		};
 		executeCmd(cmd, tableRef, onlyBody);
@@ -3827,10 +3808,11 @@ function forTableColumnDo(ev, doIt, onlyBody) {
 	});
 }
 function executeCmd(cmd, tableRef, onlyBody) {
+	let context = cmd.cmdDef.getContext(tableRef, cmd.index);
 	let rows;
 	if (onlyBody) rows = tableRef.getOrgTableContainer().querySelector("tbody").rows;
 	else rows = tableRef.getOrgTableContainer().querySelectorAll("tr");
-	for (let row of rows) cmd.cmd(row, cmd.index);
+	for (let row of rows) cmd.cmdDef.doForRow(row, cmd.index, context);
 }
 function showDistinctColumn(tableRef, index) {
 	let cols = getDistinctColumn(tableRef.getOrgTableContainer(), index);
@@ -3842,17 +3824,27 @@ function showDistinctColumn(tableRef, index) {
 	let headerText = headerNodes.filter((node) => node.nodeType === Node.TEXT_NODE).map((node) => node.textContent).join(" ");
 	openTab(tmpDiv.innerHTML, headerText + " (uniek)");
 }
-let hideColumn = function(row, index) {
+let hideColumn = { doForRow: function(row, index, context) {
 	row.cells[index].style.display = "none";
-};
-let showColumns = function(row, index) {
+} };
+let showColumns = { doForRow: function(row, index, context) {
 	for (let cell of row.cells) cell.style.display = "";
+} };
+let mergeColumnWithComma = {
+	getContext: function(tableRef, index) {
+		return void 0;
+	},
+	doForRow: function(row, index, context) {
+		mergeColumnToLeft(row, index, ", ");
+	}
 };
-let mergeColumnWithComma = function(row, index) {
-	mergeColumnToLeft(row, index, ", ");
-};
-let mergeColumnWithSpace = function(row, index) {
-	mergeColumnToLeft(row, index, " ");
+let mergeColumnWithSpace = {
+	getContext: function(tableRef, index) {
+		return void 0;
+	},
+	doForRow: function(row, index, context) {
+		mergeColumnToLeft(row, index, " ");
+	}
 };
 function mergeColumnToLeft(row, index, separator) {
 	if (index === 0) return;
@@ -3878,13 +3870,23 @@ function findNextVisibleCell(headerRow, indexes) {
 	}
 	return index;
 }
-let swapColumnsToRight = function(row, index) {
-	let index2 = findNextVisibleCell(row, range(index + 1, row.cells.length));
-	swapColumns(row, index, index2);
+let swapColumnsToRight = {
+	getContext: function(tableRef, index) {
+		let row = tableRef.getOrgTableContainer().querySelector("thead>tr");
+		return findNextVisibleCell(row, range(index + 1, row.cells.length));
+	},
+	doForRow: function(row, index, context) {
+		swapColumns(row, index, context);
+	}
 };
-let swapColumnsToLeft = function(row, index) {
-	let index2 = findNextVisibleCell(row, range(index - 1, -1));
-	swapColumns(row, index, index2);
+let swapColumnsToLeft = {
+	getContext: function(tableRef, index) {
+		return void 0;
+	},
+	doForRow: function(row, index, context) {
+		let index2 = findNextVisibleCell(row, range(index - 1, -1));
+		swapColumns(row, index, index2);
+	}
 };
 function swapColumns(row, index1, index2) {
 	if (index1 == void 0 || index2 == void 0) return;
