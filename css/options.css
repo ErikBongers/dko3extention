@@ -8,6 +8,18 @@ body {
     vertical-align: middle;
 }
 
+label {
+    display: block;
+    margin: 5px 0;
+    .wrap {
+        white-space: pre-wrap;
+    }
+    span.remark {
+        font-style: italic;
+        opacity: .5;
+    }
+}
+
 button
 {
     border: 0;
@@ -16,17 +28,9 @@ button
     box-shadow: none;
     border-radius: 5px;
     padding: 5px 10px;
-    margin: 5px;
+    margin: 5px 0;
 }
 
-label {
-    display: block;
-    margin: 5px;
-    .wrap {
-        white-space: pre-wrap;
-    }
-    span.remark {
-        font-style: italic;
-        opacity: .5;
-    }
+input[type="checkbox" i]  {
+    margin-left: 0;
 }

@@ -1,25 +1,9 @@
 import {Observer} from "./pageObserver";
-import {cloud} from "./cloud";
 import * as def from "./def";
-import {GLOBAL_SETTINGS_FILENAME} from "./def";
 import {emmet} from "../libs/Emmeter/html";
 import {PageName} from "./gotoState";
 import {PageSettings} from "./lessen/build";
-
-type Options = {
-  showDebug: boolean;
-    myAcademies: string;
-    showNotAssignedClasses: boolean;
-    showTableHeaders: boolean;
-    markOtherAcademies: boolean;
-};
-export const options: Options = {
-    showDebug: false,
-    myAcademies: "",
-    showNotAssignedClasses: true,
-    showTableHeaders: true,
-    markOtherAcademies: true
-};
+import {fetchGlobalSettings, getGlobalSettings, GlobalSettings, options, setGlobalSetting} from "./plugin_options/options";
 
 export let observers = [];
 export let settingsObservers: (() => void)[] = [];
@@ -328,37 +312,10 @@ export async function setViewFromCurrentUrl() {
     await fetch("view.php?args=" + hash).then(res => res.text());
 }
 
-export interface GlobalSettings {
-    globalHide: boolean
-}
-
 export function equals(g1: GlobalSettings, g2: GlobalSettings){
     return (
         g1.globalHide === g2.globalHide
     );
-}
-
-export async function saveGlobalSettings(globalSettings: GlobalSettings) {
-    return cloud.json.upload(GLOBAL_SETTINGS_FILENAME, globalSettings);
-}
-
-export async function fetchGlobalSettings(defaultSettings: GlobalSettings) {
-    return await cloud.json.fetch(GLOBAL_SETTINGS_FILENAME)
-        .catch(err => {
-            console.log(err);
-            return defaultSettings;
-        }) as GlobalSettings;
-}
-
-let globalSettings: GlobalSettings = {
-    globalHide: false,
-}
-
-export function getGlobalSettings() {
-    return globalSettings;
-}
-export function  setGlobalSetting(settings: GlobalSettings) {
-    globalSettings = settings;
 }
 
 export let rxEmail = /\w[\w.\-]*\@\w+\.\w+/gm;

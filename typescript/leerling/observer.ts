@@ -1,5 +1,6 @@
-import {db3, getSchooljaarSelectElement, options} from "../globals";
+import {db3, getSchooljaarSelectElement} from "../globals";
 import {HashObserver} from "../pageObserver";
+import {options} from "../plugin_options/options";
 
 export default new HashObserver("#leerlingen-leerling", onMutation);
 

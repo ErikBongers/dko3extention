@@ -1,9 +1,10 @@
-import {createTable, distinct, getPageTransientStateValue, openTab, options, range, rangeGenerator} from "../globals";
+import {createTable, distinct, getPageTransientStateValue, openTab, range, rangeGenerator} from "../globals";
 import {emmet} from "../../libs/Emmeter/html";
 import {checkAndDownloadTableRows} from "./loadAnyTable";
 import {addMenuItem, addMenuSeparator, setupMenu} from "../menus";
 import {TableFetcher, TableHandler, TableRef} from "./tableFetcher";
 import {CAN_HAVE_MENU, GLOBAL_COMMAND_BUFFER_KEY} from "../def";
+import {options} from "../plugin_options/options";
 
 
 function sortRows(cmpFunction: (a: HTMLTableCellElement, b: HTMLTableCellElement) => number, header: Element, rows: HTMLTableRowElement[], index: number, descending: boolean) {

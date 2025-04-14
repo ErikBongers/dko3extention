@@ -1,26 +1,4 @@
 (() => {
-  // typescript/def.ts
-  var JSON_URL = "https://europe-west1-ebo-tain.cloudfunctions.net/json";
-  var GLOBAL_SETTINGS_FILENAME = "global_settings.json";
-
-  // typescript/cloud.ts
-  var cloud = {
-    json: {
-      fetch: fetchJson,
-      upload: uploadJson
-    }
-  };
-  async function fetchJson(fileName) {
-    return fetch(JSON_URL + "?fileName=" + fileName, { method: "GET" }).then((res) => res.json());
-  }
-  async function uploadJson(fileName, data) {
-    let res = await fetch(JSON_URL + "?fileName=" + fileName, {
-      method: "POST",
-      body: JSON.stringify(data)
-    });
-    return await res.text();
-  }
-
   // libs/Emmeter/tokenizer.ts
   var CLOSING_BRACE = "__CLOSINGBRACE__";
   var DOUBLE_QUOTE = "__DOUBLEQUOTE__";
@@ -347,14 +325,53 @@
     return text.replace("$", (index + 1).toString());
   }
 
-  // typescript/globals.ts
+  // typescript/def.ts
+  var JSON_URL = "https://europe-west1-ebo-tain.cloudfunctions.net/json";
+  var GLOBAL_SETTINGS_FILENAME = "global_settings.json";
+
+  // typescript/cloud.ts
+  var cloud = {
+    json: {
+      fetch: fetchJson,
+      upload: uploadJson
+    }
+  };
+  async function fetchJson(fileName) {
+    return fetch(JSON_URL + "?fileName=" + fileName, { method: "GET" }).then((res) => res.json());
+  }
+  async function uploadJson(fileName, data) {
+    let res = await fetch(JSON_URL + "?fileName=" + fileName, {
+      method: "POST",
+      body: JSON.stringify(data)
+    });
+    return await res.text();
+  }
+
+  // typescript/plugin_options/options.ts
   var options = {
-    showDebug: false,
     myAcademies: "",
     showNotAssignedClasses: true,
     showTableHeaders: true,
-    markOtherAcademies: true
+    markOtherAcademies: true,
+    showDebug: false
   };
+  function defineHtmlOptions() {
+    defineHtmlOption("showNotAssignedClasses", "checked", "Toon arcering voor niet toegewezen klassikale lessen.", "block1");
+    defineHtmlOption("showTableHeaders", "checked", "Toon keuzemenus in tabelhoofding.", "block1");
+    defineHtmlOption("markOtherAcademies", "checked", "Toon arcering voor 'andere' academies.", "block1");
+    defineHtmlOption("myAcademies", "value", void 0, void 0);
+    defineHtmlOption("showDebug", "checked", "Show debug info in console.", "block3");
+  }
+  var htmlOptionDefs = /* @__PURE__ */ new Map();
+  function defineHtmlOption(id, property, label, blockId) {
+    htmlOptionDefs.set(id, { id, property, label, blockId });
+  }
+  var globalSettings = {
+    globalHide: false
+  };
+  function getGlobalSettings() {
+    return globalSettings;
+  }
   async function saveGlobalSettings(globalSettings2) {
     return cloud.json.upload(GLOBAL_SETTINGS_FILENAME, globalSettings2);
   }
@@ -366,16 +383,8 @@
   }
 
   // typescript/plugin_options/options_page.ts
-  var htmlOptionDefs = /* @__PURE__ */ new Map();
-  defineHtmlOption("showDebug", "checked", "Show debug info in console.", "block1");
-  defineHtmlOption("showNotAssignedClasses", "checked", "Toon arcering voor niet toegewezen klassikale lessen.", "block1");
-  defineHtmlOption("showTableHeaders", "checked", "Toon keuzemenus in tabelhoofding.", "block1");
-  defineHtmlOption("markOtherAcademies", "checked", "Toon arcering voor 'andere' academies.", "block1");
-  defineHtmlOption("myAcademies", "value", void 0, void 0);
+  defineHtmlOptions();
   document.body.addEventListener("keydown", onKeyDown);
-  var globalSettings = {
-    globalHide: false
-  };
   function onKeyDown(ev) {
     if (ev.key === "h" && ev.altKey && !ev.shiftKey && !ev.ctrlKey) {
       ev.preventDefault();
@@ -384,9 +393,9 @@
     }
   }
   async function saveHide(hide) {
-    globalSettings = await fetchGlobalSettings(globalSettings);
-    globalSettings.globalHide = hide;
-    await saveGlobalSettings(globalSettings);
+    let globalSettings2 = await fetchGlobalSettings(getGlobalSettings());
+    globalSettings2.globalHide = hide;
+    await saveGlobalSettings(globalSettings2);
     console.log("Global settings saved.");
   }
   var saveOptionsFromGui = () => {
@@ -408,9 +417,6 @@
       }
     );
   };
-  function defineHtmlOption(id, property, label, blockId) {
-    htmlOptionDefs.set(id, { id, property, label, blockId });
-  }
   async function restoreOptionsToGui() {
     let items = await chrome.storage.sync.get(null);
     Object.assign(options, items);

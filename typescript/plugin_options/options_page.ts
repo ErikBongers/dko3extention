@@ -1,26 +1,8 @@
-import {fetchGlobalSettings, GlobalSettings, options, saveGlobalSettings} from "../globals";
 import {emmet} from "../../libs/Emmeter/html";
+import {defineHtmlOptions, fetchGlobalSettings, getGlobalSettings, htmlOptionDefs, options, saveGlobalSettings} from "./options";
 
-type OptionDef = {
-    id: string,
-    property: string,
-    label: string,
-    blockId: string
-}
-
-let htmlOptionDefs = new Map<string,  OptionDef>();
-
-defineHtmlOption("showDebug", 'checked', "Show debug info in console.",  "block1");
-defineHtmlOption("showNotAssignedClasses", 'checked', "Toon arcering voor niet toegewezen klassikale lessen.",  "block1");
-defineHtmlOption("showTableHeaders", 'checked', "Toon keuzemenus in tabelhoofding.",  "block1");
-defineHtmlOption("markOtherAcademies", 'checked', "Toon arcering voor 'andere' academies.",  "block1");
-defineHtmlOption("myAcademies", 'value', undefined, undefined);
-
+defineHtmlOptions();
 document.body.addEventListener("keydown", onKeyDown);
-
-let globalSettings: GlobalSettings = {
-    globalHide: false
-}
 
 function onKeyDown(ev: KeyboardEvent) {
     if (ev.key === "h" && ev.altKey && !ev.shiftKey && !ev.ctrlKey) {
@@ -32,7 +14,7 @@ function onKeyDown(ev: KeyboardEvent) {
 }
 
 async function saveHide(hide: boolean) {
-    globalSettings = await fetchGlobalSettings(globalSettings);
+    let globalSettings = await fetchGlobalSettings(getGlobalSettings());
     globalSettings.globalHide = hide;
     await saveGlobalSettings(globalSettings);
     console.log("Global settings saved.");
@@ -59,10 +41,6 @@ const saveOptionsFromGui = () => {
     );
 
 };
-
-function defineHtmlOption(id: string, property: string, label: string,  blockId: string) {
-    htmlOptionDefs.set(id, {id, property,  label, blockId});
-}
 
 async function restoreOptionsToGui(){
     let items = await chrome.storage.sync.get(null); //get all

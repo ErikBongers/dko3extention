@@ -33,24 +33,6 @@
   var FILTER_INFO_ID = "filterInfo";
   var GLOBAL_COMMAND_BUFFER_KEY = "globalCmdBuffer";
 
-  // typescript/cloud.ts
-  var cloud = {
-    json: {
-      fetch: fetchJson,
-      upload: uploadJson
-    }
-  };
-  async function fetchJson(fileName) {
-    return fetch(JSON_URL + "?fileName=" + fileName, { method: "GET" }).then((res) => res.json());
-  }
-  async function uploadJson(fileName, data) {
-    let res = await fetch(JSON_URL + "?fileName=" + fileName, {
-      method: "POST",
-      body: JSON.stringify(data)
-    });
-    return await res.text();
-  }
-
   // libs/Emmeter/tokenizer.ts
   var CLOSING_BRACE = "__CLOSINGBRACE__";
   var DOUBLE_QUOTE = "__DOUBLEQUOTE__";
@@ -378,6 +360,41 @@
     return text.replace("$", (index + 1).toString());
   }
 
+  // typescript/cloud.ts
+  var cloud = {
+    json: {
+      fetch: fetchJson,
+      upload: uploadJson
+    }
+  };
+  async function fetchJson(fileName) {
+    return fetch(JSON_URL + "?fileName=" + fileName, { method: "GET" }).then((res) => res.json());
+  }
+  async function uploadJson(fileName, data) {
+    let res = await fetch(JSON_URL + "?fileName=" + fileName, {
+      method: "POST",
+      body: JSON.stringify(data)
+    });
+    return await res.text();
+  }
+
+  // typescript/plugin_options/options.ts
+  var globalSettings = {
+    globalHide: false
+  };
+  function getGlobalSettings() {
+    return globalSettings;
+  }
+  function setGlobalSetting(settings) {
+    globalSettings = settings;
+  }
+  async function fetchGlobalSettings(defaultSettings) {
+    return await cloud.json.fetch(GLOBAL_SETTINGS_FILENAME).catch((err) => {
+      console.log(err);
+      return defaultSettings;
+    });
+  }
+
   // typescript/globals.ts
   var options = {
     showDebug: false,
@@ -621,21 +638,6 @@
   }
   function equals(g1, g2) {
     return g1.globalHide === g2.globalHide;
-  }
-  async function fetchGlobalSettings(defaultSettings) {
-    return await cloud.json.fetch(GLOBAL_SETTINGS_FILENAME).catch((err) => {
-      console.log(err);
-      return defaultSettings;
-    });
-  }
-  var globalSettings = {
-    globalHide: false
-  };
-  function getGlobalSettings() {
-    return globalSettings;
-  }
-  function setGlobalSetting(settings) {
-    globalSettings = settings;
   }
   var rxEmail = /\w[\w.\-]*\@\w+\.\w+/gm;
   function whoAmI() {

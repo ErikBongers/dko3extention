@@ -1,5 +1,6 @@
-import {getGlobalSettings, getUserAndSchoolName, options, registerSettingsObserver} from "../globals";
+import {getUserAndSchoolName, registerSettingsObserver} from "../globals";
 import {PageObserver} from "../pageObserver";
+import {getGlobalSettings, options} from "../plugin_options/options";
 
 export default new PageObserver(setSchoolBackground);
 
