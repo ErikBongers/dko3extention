@@ -1,4 +1,4 @@
-import {fetchGlobalSettings, GlobalSettings, saveGlobalSettings} from "../globals";
+import {fetchGlobalSettings, GlobalSettings, options, saveGlobalSettings} from "../globals";
 
 let htmlOptionDefs = new Map();
 
@@ -19,7 +19,7 @@ function onKeyDown(ev: KeyboardEvent) {
         ev.preventDefault();
         let answer = prompt("Verberg plugin bij iedereen?");
         saveHide(answer === "hide")
-            .then(() => saveOptions());
+            .then(() => saveOptionsFromGui());
     }
 }
 
@@ -30,7 +30,7 @@ async function saveHide(hide: boolean) {
     console.log("Global settings saved.");
 }
 
-const saveOptions = () => {
+const saveOptionsFromGui = () => {
     let newOptions = {
         touched: Date.now() // needed to trigger the storage changed event.
     };
@@ -52,24 +52,20 @@ const saveOptions = () => {
 
 };
 
-function defineHtmlOption(id, property) {
+function defineHtmlOption(id: string, property: string) {
     htmlOptionDefs.set(id, {id: id, property: property});
 }
 
-const restoreOptions = () => {
-    // @ts-ignore
-    chrome.storage.sync.get(
-        null, //get all
-        (items) => {
-            for (const [key, value] of Object.entries(items)) {
-                let optionDef = htmlOptionDefs.get(key);
-                if(!optionDef)
-                    continue; //no GUI for this option.
-                document.getElementById(optionDef.id)[optionDef.property] = value;
-            }
-        }
-    );
-};
+async function restoreOptionsToGui(){
+    let items = await chrome.storage.sync.get(null); //get all
+    Object.assign(options, items);
+    for (const [key, value] of Object.entries(options)) {
+        let optionDef = htmlOptionDefs.get(key);
+        if(!optionDef)
+            continue; //no GUI for this option.
+        document.getElementById(optionDef.id)[optionDef.property] = value;
+    }
+}
 
-document.addEventListener('DOMContentLoaded', restoreOptions);
-document.getElementById('save').addEventListener('click', saveOptions);
+document.addEventListener('DOMContentLoaded', restoreOptionsToGui);
+document.getElementById('save').addEventListener('click', saveOptionsFromGui);

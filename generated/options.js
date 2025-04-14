@@ -22,6 +22,13 @@
   }
 
   // typescript/globals.ts
+  var options = {
+    showDebug: false,
+    myAcademies: "",
+    showNotAssignedClasses: true,
+    showTableHeaders: true,
+    markOtherAcademies: true
+  };
   async function saveGlobalSettings(globalSettings2) {
     return cloud.json.upload(GLOBAL_SETTINGS_FILENAME, globalSettings2);
   }
@@ -47,7 +54,7 @@
     if (ev.key === "h" && ev.altKey && !ev.shiftKey && !ev.ctrlKey) {
       ev.preventDefault();
       let answer = prompt("Verberg plugin bij iedereen?");
-      saveHide(answer === "hide").then(() => saveOptions());
+      saveHide(answer === "hide").then(() => saveOptionsFromGui());
     }
   }
   async function saveHide(hide) {
@@ -56,7 +63,7 @@
     await saveGlobalSettings(globalSettings);
     console.log("Global settings saved.");
   }
-  var saveOptions = () => {
+  var saveOptionsFromGui = () => {
     let newOptions = {
       touched: Date.now()
       // needed to trigger the storage changed event.
@@ -78,21 +85,17 @@
   function defineHtmlOption(id, property) {
     htmlOptionDefs.set(id, { id, property });
   }
-  var restoreOptions = () => {
-    chrome.storage.sync.get(
-      null,
-      //get all
-      (items) => {
-        for (const [key, value] of Object.entries(items)) {
-          let optionDef = htmlOptionDefs.get(key);
-          if (!optionDef)
-            continue;
-          document.getElementById(optionDef.id)[optionDef.property] = value;
-        }
-      }
-    );
-  };
-  document.addEventListener("DOMContentLoaded", restoreOptions);
-  document.getElementById("save").addEventListener("click", saveOptions);
+  async function restoreOptionsToGui() {
+    let items = await chrome.storage.sync.get(null);
+    Object.assign(options, items);
+    for (const [key, value] of Object.entries(options)) {
+      let optionDef = htmlOptionDefs.get(key);
+      if (!optionDef)
+        continue;
+      document.getElementById(optionDef.id)[optionDef.property] = value;
+    }
+  }
+  document.addEventListener("DOMContentLoaded", restoreOptionsToGui);
+  document.getElementById("save").addEventListener("click", saveOptionsFromGui);
 })();
 //# sourceMappingURL=options.js.map

@@ -22,15 +22,14 @@
   });
   var global_request = {};
   chrome.runtime.onMessage.addListener(
-    function(request, sender, sendResponse) {
+    function(request, _sender, sendResponse) {
       console.log("received ");
       console.log(request);
       switch (request.action) {
-        //todo: make a shared type with content generated.
         case "open_tab" /* OpenTab */:
           let url = chrome.runtime.getURL("resources/blank.html");
           global_request = request;
-          chrome.tabs.create({ url }).then((tab) => {
+          chrome.tabs.create({ url }).then((_tab) => {
             console.log("tab created.");
           });
           break;

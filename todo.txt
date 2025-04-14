@@ -1,3 +1,6 @@
+* options: new options default to false.
+  > how to default to true?
+
 * replace all refs to skynet with outlook.
 
 * Make header settings saveable by user.

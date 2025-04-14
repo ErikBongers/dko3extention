@@ -1,7 +1,7 @@
 (() => {
   // typescript/blank.ts
   chrome.runtime.onMessage.addListener(
-    function(request, sender, sendResponse) {
+    function(request, _sender, _sendResponse) {
       console.log("blank received: ");
       console.log(request);
     }

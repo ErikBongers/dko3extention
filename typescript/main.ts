@@ -1,5 +1,5 @@
 //to avoid "unused function" errors in linters, this file is called as a module.
-import {clearPageTransientState, equals, fetchGlobalSettings, getGlobalSettings, observers, options, registerObserver, setGlobalSetting, settingsObservers} from "./globals";
+import {clearPageTransientState, equals, fetchGlobalSettings, getGlobalSettings, getOptions, observers, registerObserver, setGlobalSetting, settingsObservers} from "./globals";
 import leerlingObserver from "./leerling/observer";
 import lessenObserver from "./lessen/observer";
 import lesObserver from "./les/observer";
@@ -89,13 +89,5 @@ function onPageChanged() {
     for(let observer of observers) {
         observer.onPageChanged();
     }
-}
-
-async function getOptions() {
-    // @ts-ignore
-    let items = await chrome.storage.sync.get(null); //get all
-    // @ts-ignore
-    Object.assign(options, items);
-    setGlobalSetting(await fetchGlobalSettings(getGlobalSettings()));
 }
 

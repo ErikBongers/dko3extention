@@ -471,3 +471,10 @@ export function clearPageTransientState() {
     globalTransientPageState.clear();
 }
 
+export async function getOptions() {
+    // xxx @ts-ignore
+    let items = await chrome.storage.sync.get(null); //get all
+    // xxx @ts-ignore
+    Object.assign(options, items);
+    setGlobalSetting(await fetchGlobalSettings(getGlobalSettings()));
+}
