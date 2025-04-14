@@ -1,38 +1,24 @@
 <!DOCTYPE html>
 <html lang="nl">
-  <head>
+<head>
     <title>DKO3 extension options</title>
     <link rel="stylesheet" href="css/options.css">
-  </head>
-  <body>
-  <h1>DKO3 extension opties</h1>
-    <label>
-      <input type="checkbox" id="showDebug" />
-      Show debug info in console
-    </label>
-    <label>
-      <input type="checkbox" id="showNotAssignedClasses" />
-      Toon arcering voor niet toegewezen klassikale lessen.
-    </label>
-    <label>
-      <input type="checkbox" id="showTableHeaders" />
-      Toon keuzemenus in tabelhoofding.
-    </label>
-    <label>
-      <input type="checkbox" id="markOtherAcademies" />
-      Toon arcering voor 'andere' academies.
-    </label>
-    <div>
-      <label class="wrap">Deze academies zijn je 'eigen' academies en hebben een neutrale achtergrond:<br>
+</head>
+<body>
+<h1>DKO3 extension opties</h1>
+<div id="block1">
+</div>
+<div>
+    <label class="wrap">Deze academies zijn je 'eigen' academies en hebben een neutrale achtergrond:<br>
         <textarea id="myAcademies" cols="50" rows="4"></textarea><br>
         <span class="remark">Elke academie op een aparte lijn.</span><br>
         <span class="remark">Een fragment van een naam is voldoende: vb. <b>beeld</b></span><br>
-      </label>
-    </div>
+    </label>
+</div>
 
-    <div id="status"></div>
-    <button id="save">Bewaren</button>
+<div id="status"></div>
+<button id="save">Bewaren</button>
 
-    <script src="generated/options.js"></script>
-  </body>
+<script src="generated/options_page.js"></script>
+</body>
 </html>

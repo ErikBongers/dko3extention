@@ -2,7 +2,7 @@
   "name": "dko3extention",
   "version": "1.0.0",
   "description": "This extension only works with the Belgian DKO3 public art school software.",
-  "main": "typescript/plugin_options/options.ts",
+  "main": "typescript/plugin_options/options_page.ts",
   "scripts": {
     "test": "echo \"Note that the build command does a TSC first for stricter compilation.\" && exit 1",
     "build_all": "npm run build_content && npm run build_options && npm run build_serviceworker && npm run build_blank",

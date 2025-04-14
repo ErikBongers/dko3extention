@@ -1,11 +1,11 @@
 {
   "include": ["typescript/**/*"],
   "compilerOptions": {
-    "outDir": "./generated/options",
+    "outDir": "./generated/options_page",
     "target": "es2021",
     "sourceMap": true,
     "noEmit": true,
     "incremental": false
   },
-  "files": ["./typescript/plugin_options/options.ts"]
+  "files": ["./typescript/plugin_options/options_page.ts"]
 }

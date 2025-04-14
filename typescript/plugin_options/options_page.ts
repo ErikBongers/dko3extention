@@ -1,12 +1,20 @@
 import {fetchGlobalSettings, GlobalSettings, options, saveGlobalSettings} from "../globals";
+import {emmet} from "../../libs/Emmeter/html";
 
-let htmlOptionDefs = new Map();
+type OptionDef = {
+    id: string,
+    property: string,
+    label: string,
+    blockId: string
+}
 
-defineHtmlOption("showDebug", 'checked');
-defineHtmlOption("showNotAssignedClasses", 'checked');
-defineHtmlOption("showTableHeaders", 'checked');
-defineHtmlOption("markOtherAcademies", 'checked');
-defineHtmlOption("myAcademies", 'value');
+let htmlOptionDefs = new Map<string,  OptionDef>();
+
+defineHtmlOption("showDebug", 'checked', "Show debug info in console.",  "block1");
+defineHtmlOption("showNotAssignedClasses", 'checked', "Toon arcering voor niet toegewezen klassikale lessen.",  "block1");
+defineHtmlOption("showTableHeaders", 'checked', "Toon keuzemenus in tabelhoofding.",  "block1");
+defineHtmlOption("markOtherAcademies", 'checked', "Toon arcering voor 'andere' academies.",  "block1");
+defineHtmlOption("myAcademies", 'value', undefined, undefined);
 
 document.body.addEventListener("keydown", onKeyDown);
 
@@ -52,8 +60,8 @@ const saveOptionsFromGui = () => {
 
 };
 
-function defineHtmlOption(id: string, property: string) {
-    htmlOptionDefs.set(id, {id: id, property: property});
+function defineHtmlOption(id: string, property: string, label: string,  blockId: string) {
+    htmlOptionDefs.set(id, {id, property,  label, blockId});
 }
 
 async function restoreOptionsToGui(){
@@ -67,5 +75,15 @@ async function restoreOptionsToGui(){
     }
 }
 
-document.addEventListener('DOMContentLoaded', restoreOptionsToGui);
+async function fillOptionsInGui() {
+    for(let optiondDef of htmlOptionDefs.values()){
+        if(!optiondDef.blockId)
+            continue;
+        let block = document.getElementById(optiondDef.blockId);
+        emmet.appendChild(block, `label>input#${optiondDef.id}[type="checkbox"]+{${optiondDef.label}}`);
+    }
+    await restoreOptionsToGui();
+}
+
+document.addEventListener('DOMContentLoaded', fillOptionsInGui);
 document.getElementById('save').addEventListener('click', saveOptionsFromGui);
