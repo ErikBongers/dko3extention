@@ -1,4 +1,4 @@
-import {createTable, distinct, getPageTransientStateValue, openTab, range, rangeGenerator} from "../globals";
+import {createTable, distinct, getPageTransientStateValue, openTab, options, range, rangeGenerator} from "../globals";
 import {emmet} from "../../libs/Emmeter/html";
 import {checkAndDownloadTableRows} from "./loadAnyTable";
 import {addMenuItem, addMenuSeparator, setupMenu} from "../menus";
@@ -119,6 +119,8 @@ export function decorateTableHeader(table: HTMLTableElement) {
     if (table.tHead.classList.contains("clickHandler"))
         return;
     table.tHead.classList.add("clickHandler");
+    if(!options.showTableHeaders)
+        return;
 
     Array.from(table.tHead.children[0].children)
         .forEach((colHeader: HTMLElement) => {

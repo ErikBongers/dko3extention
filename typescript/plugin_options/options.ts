@@ -4,6 +4,7 @@ let htmlOptionDefs = new Map();
 
 defineHtmlOption("showDebug", 'checked');
 defineHtmlOption("showNotAssignedClasses", 'checked');
+defineHtmlOption("showTableHeaders", 'checked');
 defineHtmlOption("markOtherAcademies", 'checked');
 defineHtmlOption("myAcademies", 'value');
 

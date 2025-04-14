@@ -1,5 +1,9 @@
 * replace all refs to skynet with outlook.
 
+* Make header settings saveable by user.
+
+* globals.ts: use of deprecated keyCode: test with .code="Enter".
+
 * Checks:
       >>>> only actual errors to avoid fatigue!
   > 999 for certain classes

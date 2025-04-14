@@ -338,6 +338,7 @@ const options = {
 	showDebug: false,
 	myAcademies: "",
 	showNotAssignedClasses: true,
+	showTableHeaders: true,
 	markOtherAcademies: true
 };
 let observers = [];
@@ -3729,6 +3730,7 @@ function isColumnProbablyNumeric(table, index) {
 function decorateTableHeader(table) {
 	if (table.tHead.classList.contains("clickHandler")) return;
 	table.tHead.classList.add("clickHandler");
+	if (!options.showTableHeaders) return;
 	Array.from(table.tHead.children[0].children).forEach((colHeader) => {
 		colHeader.onclick = (ev) => {
 			reSortTableByColumn(ev, table);

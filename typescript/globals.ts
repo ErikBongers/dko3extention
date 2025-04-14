@@ -10,12 +10,14 @@ type Options = {
   showDebug: boolean;
     myAcademies: string;
     showNotAssignedClasses: boolean;
+    showTableHeaders: boolean;
     markOtherAcademies: boolean;
 };
 export const options: Options = {
     showDebug: false,
     myAcademies: "",
     showNotAssignedClasses: true,
+    showTableHeaders: true,
     markOtherAcademies: true
 };
 
