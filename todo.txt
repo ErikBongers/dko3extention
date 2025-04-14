@@ -1,9 +1,9 @@
-* options: new options default to false.
-  > how to default to true?
-
 * replace all refs to skynet with outlook.
 
-* Make header settings saveable by user.
+* Extra filters
+ - Offline
+ - No teacher
+ - No max
 
 * globals.ts: use of deprecated keyCode: test with .code="Enter".
 
@@ -57,21 +57,11 @@ Nav history
 
 Features
 -----------
-* use onRow() to find first row that matches given criteria.
-
 * add table buttons to top AND bottom navigation.
 
 * Uitleningen: verlengdatum moet 1/9 zijn of in verkeerde jaar!
 
 * link uitlening -> asset.
-
-* Use popover for the student.info popup.
-  > make trimesters links to the classes.
-
-* Extra filters
- - Offline
- - No teacher
- - No max
 
 * Add an option to specify the les_naam format?
   : "Initiatie [instrument] trim [trim_num]" ?

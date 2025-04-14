@@ -10,7 +10,7 @@ import vakgroepObserver from "./vakgroep/observer";
 import smsObserver from "./verwittigen/observer";
 import aanwezighedenObserver from "./aanwezigheden/observer";
 import afwezighedenObserver from "./afwezigheden/observer";
-import {setupPowerQuery} from "./setupPowerQuery";
+import {setupPowerQuery} from "./powerQuery/setupPowerQuery";
 import {academieMenuObserver, allLijstenObserver, assetsObserver, evaluatieObserver, extraInschrijvingenObserver, financialObserver} from "./pages/observer";
 import {fetchGlobalSettings, getGlobalSettings, setGlobalSetting} from "./plugin_options/options";
 

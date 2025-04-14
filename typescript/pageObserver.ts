@@ -1,3 +1,5 @@
+import {createQueryItem, saveQueryItems, scrapeMenuPage} from "./powerQuery/setupPowerQuery";
+
 interface PageFilter {
     match: () => boolean;
 }
@@ -33,7 +35,7 @@ export class AllPageFilter implements PageFilter{
     }
 }
 
-export class BaseObserver {
+export class BaseObserver implements Observer{
     private readonly onPageChangedCallback: () => void;
     private pageFilter: PageFilter;
     private readonly onMutation: (mutation: MutationRecord) => boolean;
@@ -59,6 +61,8 @@ export class BaseObserver {
             }
         }
     }
+
+    isPageMatching = () => this.pageFilter.match();
 
     onPageChanged() {
         if (!this.pageFilter.match()) {
@@ -96,6 +100,7 @@ export class BaseObserver {
 
 export interface Observer {
     onPageChanged: () => void;
+    isPageMatching: () => boolean;
 }
 
 export class HashObserver implements Observer {
@@ -108,6 +113,8 @@ export class HashObserver implements Observer {
     onPageChanged() {
         this.baseObserver.onPageChanged();
     }
+
+    isPageMatching = () => this.baseObserver.isPageMatching();
 }
 export class ExactHashObserver implements Observer {
     private baseObserver: BaseObserver;
@@ -115,6 +122,8 @@ export class ExactHashObserver implements Observer {
     constructor(urlHash: string, onMutationCallback: (mutation: MutationRecord) => boolean, trackModal: boolean = false) {
         this.baseObserver = new BaseObserver(undefined, new ExactHashPageFilter(urlHash), onMutationCallback, trackModal);
     }
+
+    isPageMatching = () => this.baseObserver.isPageMatching();
 
     onPageChanged() {
         this.baseObserver.onPageChanged();
@@ -127,7 +136,44 @@ export class PageObserver implements Observer {
         this.baseObserver = new BaseObserver(onPageChangedCallback, new AllPageFilter(), undefined, false);
     }
 
+    isPageMatching = () => this.baseObserver.isPageMatching();
+
     onPageChanged() {
+
         this.baseObserver.onPageChanged();
     }
+}
+
+export class MenuScrapingObserver implements Observer {
+    private hashObserver: ExactHashObserver;
+    private readonly page: string;
+    private readonly longLabelPrefix: string;
+
+    constructor(urlHash: string, page: string, longLabelPrefix: string) {
+        let self = this;
+        this.hashObserver = new ExactHashObserver(urlHash, (_) => {
+            return self.onMutationPageWithMenu();
+        });
+        this.page = page;
+        this.longLabelPrefix = longLabelPrefix;
+    }
+
+    isPageMatching = () => this.hashObserver.isPageMatching();
+
+    onPageChanged() {
+        this.hashObserver.onPageChanged();
+        if(this.isPageMatching())
+            this.onMutationPageWithMenu(); //calling this here, because a menu page is often a single load, and MutationObserver is then too late to
+    }
+
+    onMutationPageWithMenu() {
+        saveQueryItems(this.page, scrapeMenuPage(this.longLabelPrefix, MenuScrapingObserver.defaultLinkToQueryItem));
+        return true;
+    }
+
+    static defaultLinkToQueryItem(headerLabel: string, link: HTMLAnchorElement, longLabelPrefix: string) {
+        let label = link.textContent.trim();
+        return createQueryItem(headerLabel, label, link.href, undefined, longLabelPrefix + label);
+    }
+
 }

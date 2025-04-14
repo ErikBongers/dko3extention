@@ -1,8 +1,13 @@
-import {calculateSchooljaar, clamp, createShortSchoolyearString, isAlphaNumeric, openTab} from "./globals";
-import * as def from "./def";
-import {getGotoStateOrDefault, Goto, PageName, saveGotoState} from "./gotoState";
+import {calculateSchooljaar, clamp, createShortSchoolyearString, isAlphaNumeric, openTab} from "../globals";
+import * as def from "../def";
+import {getGotoStateOrDefault, Goto, PageName, saveGotoState} from "../gotoState";
+import {defaultQueryItems} from "./default_items";
+export function setupPowerQuery() {
+    //dummy function to force this module to be loaded.
+}
 
 let powerQueryItems: QueryItem[] = [];
+
 let popoverVisible = false;
 let selectedItem = 0;
 type GotoFunc = (queryItem: QueryItem) => void;
@@ -44,15 +49,20 @@ export function saveQueryItems(page: string, queryItems: QueryItem[]) {
     localStorage.setItem(def.POWER_QUERY_ID, JSON.stringify(savedPowerQuery));
 }
 
-function getSavedQueryItems(): QueryItem[] {
-    let savedPowerQueryString = localStorage.getItem(def.POWER_QUERY_ID);
-    if(!savedPowerQueryString) {
-        return [];
-    }
+function getSavedAndDefaultQueryItems(): QueryItem[] {
+    let savedPowerQuery = {};
     let allItems = [];
-    let savedPowerQuery = JSON.parse(savedPowerQueryString);
+    let savedPowerQueryString = localStorage.getItem(def.POWER_QUERY_ID);
+    if(savedPowerQueryString) {
+        savedPowerQuery = JSON.parse(savedPowerQueryString);
+    }
+    //merge saved pages into default pages.
     for(let page in savedPowerQuery) {
-        allItems.push(...savedPowerQuery[page]);
+        defaultQueryItems[page] = savedPowerQuery[page];
+    }
+
+    for(let page in defaultQueryItems) {
+        allItems.push(...defaultQueryItems[page]);
     }
     return allItems;
 }
@@ -78,10 +88,6 @@ function scrapeMainMenu() {
     for(let headerMenu of headerMenus.values()) {
         screpeDropDownMenu(headerMenu);
     }
-}
-
-export function setupPowerQuery() {
-    //don' do nottin' - just initialize this module, below.
 }
 
 function gotoWerklijstUrenNextYear(_queryItem: QueryItem) {
@@ -120,7 +126,7 @@ function addOpenTabQueryItem() {
 function showPowerQuery(ev: KeyboardEvent) {
     if (ev.key === "q" && ev.ctrlKey && !ev.shiftKey && !ev.altKey) {
         scrapeMainMenu();
-        powerQueryItems.push(...getSavedQueryItems());
+        powerQueryItems.push(...getSavedAndDefaultQueryItems());
         getHardCodedQueryItems();
         addOpenTabQueryItem();
         popover.showPopover();
@@ -227,3 +233,25 @@ function isSorted(arr: number[]) {
     }
     return true;
 }
+
+export function scrapeMenuPage(longLabelPrefix: string, linkConverter: LinkToQueryConverter) {
+    let queryItems: QueryItem[] = [];
+    let blocks = document.querySelectorAll("div.card-body");
+    for (let block of blocks) {
+        let header = block.querySelector('h5');
+        if (!header) {
+            continue;
+        }
+        let headerLabel = header.textContent.trim();
+        let links = block.querySelectorAll("a");
+        for (let link of links) {
+            if (!link.href)
+                continue;
+            let item = linkConverter(headerLabel, link, longLabelPrefix);
+            queryItems.push(item);
+        }
+    }
+    return queryItems;
+}
+
+type LinkToQueryConverter = (headerLabel: string, link: HTMLAnchorElement, longLabelPrefix: string) => QueryItem;
