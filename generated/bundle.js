@@ -104,8 +104,10 @@ let emmet = {
 	insertBefore,
 	insertAfter,
 	appendChild,
-	testEmmet,
-	tokenize
+	test: {
+		testEmmet,
+		tokenize
+	}
 };
 let nested = void 0;
 let lastCreated = void 0;
