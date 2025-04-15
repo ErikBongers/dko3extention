@@ -69,10 +69,10 @@
     insertBefore,
     insertAfter,
     appendChild,
-    testEmmet,
-    //todo: this should only be exported to test.ts
-    tokenize
-    //todo: this should only be exported to test.ts
+    test: {
+      testEmmet,
+      tokenize
+    }
   };
   var nested = void 0;
   var lastCreated = void 0;
