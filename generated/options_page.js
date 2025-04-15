@@ -364,7 +364,7 @@
   }
   var htmlOptionDefs = /* @__PURE__ */ new Map();
   function defineHtmlOption(id, property, label, blockId) {
-    htmlOptionDefs.set(id, { id, property, label, blockId });
+    htmlOptionDefs.set(id, { id, property, label, blockId: id });
   }
   var globalSettings = {
     globalHide: false

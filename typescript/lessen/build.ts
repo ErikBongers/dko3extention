@@ -26,6 +26,7 @@ export interface PageSettings {
 }
 
 export interface LessenPageState extends PageSettings {
+    filterNoTeacher: boolean;
     pageName: PageName
     nameSorting: NameSorting,
     grouping: TrimesterGrouping,
@@ -41,7 +42,8 @@ export function getDefaultPageSettings() {
         grouping: TrimesterGrouping.InstrumentTeacherHour,
         searchText: "",
         filterOffline: false,
-        filterOnline: false
+        filterOnline: false,
+        filterNoTeacher: false,
     } as LessenPageState;
 }
 
@@ -131,8 +133,8 @@ function buildGroup(newTableBody: HTMLTableSectionElement, blocks: BlockInfo[], 
     }
 }
 
-function createStudentRow(tableBody: HTMLTableSectionElement, rowClass: string, groupId: string) {
-    let row = createLesRow(groupId);
+function createStudentRow(tableBody: HTMLTableSectionElement, rowClass: string, groupId: string, blockId: number) {
+    let row = createLesRow(groupId, blockId);
     tableBody.appendChild(row);
     row.classList.add(rowClass);
     row.dataset.hasFullClass = "false";
@@ -163,8 +165,6 @@ First draw the 2 jaarmodule students.
  */
 
 function buildBlock(newTableBody: HTMLTableSectionElement, block: BlockInfo, groupId: string, getBlockTitle: (undefined | ((block: BlockInfo) => string)), displayOptions: DisplayOptions) {
-    blockCounter++;
-
     let mergedBlock = mergeBlockStudents(block);
 
     let trimesterHeaders = [0,1,2] .map(trimNo => {
@@ -197,7 +197,7 @@ function buildBlock(newTableBody: HTMLTableSectionElement, block: BlockInfo, gro
     let filledRowCount = 0;
         sortStudents(mergedBlock.jaarStudents);
         for(let student of mergedBlock.jaarStudents) {
-            let row = createStudentRow(newTableBody, "jaarRow", groupId);
+            let row = createStudentRow(newTableBody, "jaarRow", groupId, block.id);
             for (let trimNo = 0; trimNo < 3; trimNo++) {
                 let cell = buildStudentCell(student);
                 row.appendChild(cell);
@@ -211,7 +211,7 @@ function buildBlock(newTableBody: HTMLTableSectionElement, block: BlockInfo, gro
 
     //Fill trimester rows
     for (let rowNo = 0; rowNo < (mergedBlock.blockNeededRows - filledRowCount); rowNo++) {
-        let row = createStudentRow(newTableBody,"trimesterRow", groupId);
+        let row = createStudentRow(newTableBody,"trimesterRow", groupId, block.id);
 
         for (let trimNo = 0; trimNo < 3; trimNo++) {
             let trimester = mergedBlock.trimesterStudents[trimNo];
@@ -268,18 +268,18 @@ function buildBlock(newTableBody: HTMLTableSectionElement, block: BlockInfo, gro
     }
 }
 
-let blockCounter = 0;
-
-function createLesRow(groupId: string) {
+function createLesRow(groupId: string, blockId: number) {
     let tr = document.createElement("tr");
-    tr.dataset.blockId = "block"+blockCounter;
-    tr.dataset.groupId = groupId;
+    tr.dataset.blockId = ""+blockId;
+    if(blockId)
+        tr.dataset.groupId = groupId;
+    else
+        tr.dataset.blockId = "groupTitle";// a title row does not belong to a block.
     return tr;
 }
 
 function buildTitleRow(newTableBody: HTMLTableSectionElement, title: string) {
-    const trTitle = createLesRow(title);
-    trTitle.dataset.blockId = "groupTitle";// a title row does not belong to a block.
+    const trTitle = createLesRow(title, undefined);
     newTableBody.appendChild(trTitle);
     trTitle.classList.add("blockRow", "groupHeader");
     trTitle.dataset.groupId = title;
@@ -299,7 +299,7 @@ function buildTitleRow(newTableBody: HTMLTableSectionElement, title: string) {
 function buildBlockTitle(newTableBody: HTMLTableSectionElement, block: BlockInfo, getBlockTitle: (undefined | ((block: BlockInfo) => string)), groupId: string) {
     if(!getBlockTitle && !block.errors)
         return undefined;
-    const trBlockTitle = newTableBody.appendChild(createLesRow(groupId));
+    const trBlockTitle = newTableBody.appendChild(createLesRow(groupId, block.id));
     trBlockTitle.classList.add("blockRow");
 
     let {last: divBlockTitle} = html.emmet.append(trBlockTitle, "td.infoCell[colspan=3]>div.text-muted");
@@ -327,8 +327,8 @@ enum DisplayOptions {
     Location = 0x08
 }
 
-function buildInfoRow(newTableBody: HTMLTableSectionElement, _text: string, show: boolean, groupId: string) {
-    const trBlockInfo = newTableBody.appendChild(createLesRow(groupId));
+function buildInfoRow(newTableBody: HTMLTableSectionElement, _text: string, show: boolean, groupId: string, blockId: number) {
+    const trBlockInfo = newTableBody.appendChild(createLesRow(groupId, blockId));
     trBlockInfo.classList.add("blockRow");
     if(show===false)
         trBlockInfo.dataset.keepHidden = "true";
@@ -337,7 +337,7 @@ function buildInfoRow(newTableBody: HTMLTableSectionElement, _text: string, show
 }
 
 function buildInfoRowWithText(newTableBody: HTMLTableSectionElement, show: boolean, groupId: string, text: string)  {
-    let {last: divMuted} = buildInfoRow(newTableBody, "", show, groupId);
+    let {last: divMuted} = buildInfoRow(newTableBody, "", show, groupId, undefined);
     divMuted.appendChild(document.createTextNode(text));
 }
 
@@ -348,7 +348,7 @@ function buildBlockHeader(newTableBody: HTMLTableSectionElement, block: BlockInf
     buildInfoRowWithText(newTableBody, Boolean((DisplayOptions.Hour & displayOptions)), groupId, block.lesmoment);
     buildInfoRowWithText(newTableBody, Boolean((DisplayOptions.Location & displayOptions)), groupId, block.vestiging);
     if(block.tags.length > 0) {
-        let {last: divMuted} = buildInfoRow(newTableBody, block.tags.join(), true, groupId);
+        let {last: divMuted} = buildInfoRow(newTableBody, block.tags.join(), true, groupId, block.id);
         emmet.appendChild(divMuted as HTMLDivElement, block.tags.map(tag => {
             let mutedClass = tag.partial ? ".muted" : "";
             return `span.badge.badge-ill.badge-warning${mutedClass}{${tag.name}}`;
@@ -356,7 +356,7 @@ function buildBlockHeader(newTableBody: HTMLTableSectionElement, block: BlockInf
     }
 
     //build row for module links(the tiny numbered buttons)
-    const trModuleLinks = createLesRow(groupId);
+    const trModuleLinks = createLesRow(groupId, block.id);
     newTableBody.appendChild(trModuleLinks);
     trModuleLinks.classList.add("blockRow");
     const tdLink1 = document.createElement("td");
@@ -378,8 +378,7 @@ function buildBlockHeader(newTableBody: HTMLTableSectionElement, block: BlockInf
         tdLink3.appendChild(buildModuleButton("3", block.trimesters[2][0].id, true));
     }
     return {
-        trModuleLinks: trModuleLinks,
-        blockId: blockCounter
+        trModuleLinks: trModuleLinks
     };
 }
 

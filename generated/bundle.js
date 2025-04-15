@@ -2758,7 +2758,8 @@ function getDefaultPageSettings() {
 		grouping: TrimesterGrouping.InstrumentTeacherHour,
 		searchText: "",
 		filterOffline: false,
-		filterOnline: false
+		filterOnline: false,
+		filterNoTeacher: false
 	};
 }
 let pageState = getDefaultPageSettings();
@@ -2829,15 +2830,14 @@ function buildGroup(newTableBody, blocks, groupId, getBlockTitle, displayOptions
 	buildTitleRow(newTableBody, groupId);
 	for (let block of blocks) buildBlock(newTableBody, block, groupId, getBlockTitle, displayOptions);
 }
-function createStudentRow(tableBody, rowClass, groupId) {
-	let row = createLesRow(groupId);
+function createStudentRow(tableBody, rowClass, groupId, blockId) {
+	let row = createLesRow(groupId, blockId);
 	tableBody.appendChild(row);
 	row.classList.add(rowClass);
 	row.dataset.hasFullClass = "false";
 	return row;
 }
 function buildBlock(newTableBody, block, groupId, getBlockTitle, displayOptions) {
-	blockCounter++;
 	let mergedBlock = mergeBlockStudents(block);
 	let trimesterHeaders = [
 		0,
@@ -2857,7 +2857,7 @@ function buildBlock(newTableBody, block, groupId, getBlockTitle, displayOptions)
 	let filledRowCount = 0;
 	sortStudents(mergedBlock.jaarStudents);
 	for (let student of mergedBlock.jaarStudents) {
-		let row = createStudentRow(newTableBody, "jaarRow", groupId);
+		let row = createStudentRow(newTableBody, "jaarRow", groupId, block.id);
 		for (let trimNo = 0; trimNo < 3; trimNo++) {
 			let cell = buildStudentCell(student);
 			row.appendChild(cell);
@@ -2867,7 +2867,7 @@ function buildBlock(newTableBody, block, groupId, getBlockTitle, displayOptions)
 		filledRowCount++;
 	}
 	for (let rowNo = 0; rowNo < mergedBlock.blockNeededRows - filledRowCount; rowNo++) {
-		let row = createStudentRow(newTableBody, "trimesterRow", groupId);
+		let row = createStudentRow(newTableBody, "trimesterRow", groupId, block.id);
 		for (let trimNo = 0; trimNo < 3; trimNo++) {
 			let trimester = mergedBlock.trimesterStudents[trimNo];
 			sortStudents(trimester);
@@ -2913,16 +2913,15 @@ function buildBlock(newTableBody, block, groupId, getBlockTitle, displayOptions)
 		}
 	}
 }
-let blockCounter = 0;
-function createLesRow(groupId) {
+function createLesRow(groupId, blockId) {
 	let tr = document.createElement("tr");
-	tr.dataset.blockId = "block" + blockCounter;
-	tr.dataset.groupId = groupId;
+	tr.dataset.blockId = "" + blockId;
+	if (blockId) tr.dataset.groupId = groupId;
+	else tr.dataset.blockId = "groupTitle";
 	return tr;
 }
 function buildTitleRow(newTableBody, title) {
-	const trTitle = createLesRow(title);
-	trTitle.dataset.blockId = "groupTitle";
+	const trTitle = createLesRow(title, void 0);
 	newTableBody.appendChild(trTitle);
 	trTitle.classList.add("blockRow", "groupHeader");
 	trTitle.dataset.groupId = title;
@@ -2941,7 +2940,7 @@ function buildTitleRow(newTableBody, title) {
 }
 function buildBlockTitle(newTableBody, block, getBlockTitle, groupId) {
 	if (!getBlockTitle && !block.errors) return void 0;
-	const trBlockTitle = newTableBody.appendChild(createLesRow(groupId));
+	const trBlockTitle = newTableBody.appendChild(createLesRow(groupId, block.id));
 	trBlockTitle.classList.add("blockRow");
 	let { last: divBlockTitle } = emmet.append(trBlockTitle, "td.infoCell[colspan=3]>div.text-muted");
 	if (getBlockTitle) emmet.appendChild(divBlockTitle, `span.blockTitle{${getBlockTitle(block)}}`);
@@ -2961,14 +2960,14 @@ var DisplayOptions = /* @__PURE__ */ function(DisplayOptions$1) {
 	DisplayOptions$1[DisplayOptions$1["Location"] = 8] = "Location";
 	return DisplayOptions$1;
 }(DisplayOptions || {});
-function buildInfoRow(newTableBody, _text, show, groupId) {
-	const trBlockInfo = newTableBody.appendChild(createLesRow(groupId));
+function buildInfoRow(newTableBody, _text, show, groupId, blockId) {
+	const trBlockInfo = newTableBody.appendChild(createLesRow(groupId, blockId));
 	trBlockInfo.classList.add("blockRow");
 	if (show === false) trBlockInfo.dataset.keepHidden = "true";
 	return emmet.append(trBlockInfo, "td.infoCell[colspan=3]>div.text-muted");
 }
 function buildInfoRowWithText(newTableBody, show, groupId, text) {
-	let { last: divMuted } = buildInfoRow(newTableBody, "", show, groupId);
+	let { last: divMuted } = buildInfoRow(newTableBody, "", show, groupId, void 0);
 	divMuted.appendChild(document.createTextNode(text));
 }
 function buildBlockHeader(newTableBody, block, groupId, trimesterHeaders, displayOptions) {
@@ -2977,13 +2976,13 @@ function buildBlockHeader(newTableBody, block, groupId, trimesterHeaders, displa
 	buildInfoRowWithText(newTableBody, Boolean(DisplayOptions.Hour & displayOptions), groupId, block.lesmoment);
 	buildInfoRowWithText(newTableBody, Boolean(DisplayOptions.Location & displayOptions), groupId, block.vestiging);
 	if (block.tags.length > 0) {
-		let { last: divMuted } = buildInfoRow(newTableBody, block.tags.join(), true, groupId);
+		let { last: divMuted } = buildInfoRow(newTableBody, block.tags.join(), true, groupId, block.id);
 		emmet.appendChild(divMuted, block.tags.map((tag) => {
 			let mutedClass = tag.partial ? ".muted" : "";
 			return `span.badge.badge-ill.badge-warning${mutedClass}{${tag.name}}`;
 		}).join("+"));
 	}
-	const trModuleLinks = createLesRow(groupId);
+	const trModuleLinks = createLesRow(groupId, block.id);
 	newTableBody.appendChild(trModuleLinks);
 	trModuleLinks.classList.add("blockRow");
 	const tdLink1 = document.createElement("td");
@@ -2998,10 +2997,7 @@ function buildBlockHeader(newTableBody, block, groupId, trimesterHeaders, displa
 	trModuleLinks.appendChild(tdLink3);
 	tdLink3.appendChild(document.createTextNode(trimesterHeaders[2]));
 	if (block.trimesters[2][0]) tdLink3.appendChild(buildModuleButton("3", block.trimesters[2][0].id, true));
-	return {
-		trModuleLinks,
-		blockId: blockCounter
-	};
+	return { trModuleLinks };
 }
 function buildModuleButton(buttonText, id, floatRight) {
 	const button = document.createElement("a");
@@ -3060,7 +3056,10 @@ function findStudentId(studentName, text) {
 
 //#endregion
 //#region typescript/lessen/convert.ts
-var BlockInfo = class {
+var BlockInfo = class BlockInfo {
+	static blockCounter = 0;
+	static allBlocks = [];
+	id;
 	teacher;
 	instrumentName;
 	maxAantal;
@@ -3071,23 +3070,81 @@ var BlockInfo = class {
 	tags;
 	errors;
 	offline;
-	static emptyBlock() {
-		return {
-			teacher: void 0,
-			instrumentName: void 0,
-			maxAantal: -1,
-			lesmoment: void 0,
-			vestiging: void 0,
-			trimesters: [
+	mergedBlocks;
+	static clearAllBlocks() {
+		BlockInfo.allBlocks = [];
+		BlockInfo.blockCounter = 0;
+	}
+	static getBlock(id) {
+		return BlockInfo.allBlocks[id];
+	}
+	static getAllBlocks() {
+		return BlockInfo.allBlocks;
+	}
+	constructor() {
+		{
+			this.id = BlockInfo.blockCounter++;
+			BlockInfo.allBlocks.push(this);
+			this.teacher = void 0;
+			this.instrumentName = void 0;
+			this.maxAantal = -1;
+			this.lesmoment = void 0;
+			this.vestiging = void 0;
+			this.trimesters = [
 				[],
 				[],
 				[]
-			],
-			jaarModules: [],
-			tags: [],
-			errors: "",
-			offline: false
-		};
+			];
+			this.jaarModules = [];
+			this.tags = [];
+			this.errors = "";
+			this.offline = false;
+			this.mergedBlocks = [];
+		}
+	}
+	hasMissingTeachers() {
+		return this.alleLessen().some((les) => les.teacher === "(geen klasleerkracht)");
+	}
+	alleLessen() {
+		return this.trimesters.flat().concat(this.jaarModules);
+	}
+	mergeBlock(block) {
+		this.mergedBlocks.push(block);
+		this.jaarModules.push(...block.jaarModules);
+		for (let trimNo of [
+			0,
+			1,
+			2
+		]) this.trimesters[trimNo].push(...block.trimesters[trimNo]);
+		this.errors += block.errors;
+		return this;
+	}
+	containsId(id) {
+		if (this.id === id) return true;
+		return this.mergedBlocks.some((b) => b.containsId(id));
+	}
+	getIds() {
+		return this.mergedBlocks.map((b) => b.id).concat(this.id);
+	}
+	updateMergedBlock() {
+		let allLessen = this.alleLessen();
+		this.lesmoment = [...new Set(allLessen.filter((les) => les).map((les) => les.lesmoment))].join(", ");
+		this.teacher = [...new Set(allLessen.filter((les) => les).map((les) => les.teacher))].join(", ");
+		this.vestiging = [...new Set(allLessen.filter((les) => les).map((les) => les.vestiging))].join(", ");
+		this.instrumentName = [...new Set(allLessen.filter((les) => les).map((les) => les.instrumentName))].join(", ");
+		this.tags = distinct(allLessen.filter((les) => les).map((les) => les.tags).flat()).map((tagName) => {
+			return {
+				name: tagName,
+				partial: false
+			};
+		});
+		for (let tag of this.tags) tag.partial = !allLessen.every((les) => les.tags.includes(tag.name));
+		this.offline = allLessen.some((les) => !les.online);
+	}
+	checkBlockForErrors() {
+		let maxMoreThan100 = this.jaarModules.map((module) => module.maxAantal > TOO_LARGE_MAX).includes(true);
+		if (!maxMoreThan100) maxMoreThan100 = this.trimesters.flat().map((module) => module?.maxAantal > TOO_LARGE_MAX).includes(true);
+		if (maxMoreThan100) this.errors += "Max aantal lln > " + TOO_LARGE_MAX;
 	}
 };
 function buildTrimesters(instrumentTeacherMomentModules) {
@@ -3158,6 +3215,7 @@ function buildTableData(inputModules) {
 		teachers: new Map(),
 		blocks: []
 	};
+	BlockInfo.clearAllBlocks();
 	let instruments = distinct(inputModules.map((module) => module.instrumentName));
 	for (let instrumentName of instruments) {
 		let instrumentModules = inputModules.filter((module) => module.instrumentName === instrumentName);
@@ -3167,7 +3225,7 @@ function buildTableData(inputModules) {
 			let lesmomenten = distinct(getLesmomenten(instrumentTeacherModules));
 			for (let lesmoment of lesmomenten) {
 				let instrumentTeacherMomentModules = instrumentTeacherModules.filter((module) => module.formattedLesmoment === lesmoment);
-				let block = BlockInfo.emptyBlock();
+				let block = new BlockInfo();
 				block.instrumentName = instrumentName;
 				block.teacher = teacher;
 				block.lesmoment = lesmoment;
@@ -3182,7 +3240,7 @@ function buildTableData(inputModules) {
 				block.trimesters = buildTrimesters(instrumentTeacherMomentModules);
 				block.jaarModules = instrumentTeacherMomentModules.filter((module) => module.lesType === LesType.JaarModule);
 				block.offline = instrumentTeacherMomentModules.some((module) => !module.online);
-				checkBlockForErrors(block);
+				block.checkBlockForErrors();
 				tableData.blocks.push(block);
 				for (let trim of block.trimesters) addTrimesterStudentsToMapAndCount(tableData.students, trim);
 				for (let jaarModule of block.jaarModules) addJaarStudentsToMapAndCount(tableData.students, jaarModule);
@@ -3228,10 +3286,10 @@ function groupBlocksTwoLevels(primaryGroups, getSecondaryKey, setSecondaryGroup)
 	for (let primary of primaryGroups) {
 		let blocks = primary.blocks;
 		let secondaryKeys = distinct(blocks.map(getSecondaryKey));
-		let secondaryGroup = new Map(secondaryKeys.map((key) => [key, BlockInfo.emptyBlock()]));
-		for (let block of blocks) mergeBlock(secondaryGroup.get(getSecondaryKey(block)), block);
+		let secondaryGroup = new Map(secondaryKeys.map((key) => [key, new BlockInfo()]));
+		for (let block of blocks) secondaryGroup.get(getSecondaryKey(block)).mergeBlock(block);
 		secondaryGroup.forEach((block) => {
-			updateMergedBlock(block);
+			block.updateMergedBlock();
 		});
 		setSecondaryGroup(primary, secondaryGroup);
 	}
@@ -3240,44 +3298,12 @@ function groupBlocks(primaryGroups, getPrimaryKey) {
 	for (let primary of primaryGroups) {
 		let blocks = primary.blocks;
 		let keys = distinct(blocks.map(getPrimaryKey));
-		primary.mergedBlocks = new Map(keys.map((key) => [key, BlockInfo.emptyBlock()]));
-		for (let block of blocks) mergeBlock(primary.mergedBlocks.get(getPrimaryKey(block)), block);
+		primary.mergedBlocks = new Map(keys.map((key) => [key, new BlockInfo()]));
+		for (let block of blocks) primary.mergedBlocks.get(getPrimaryKey(block)).mergeBlock(block);
 		primary.mergedBlocks.forEach((block) => {
-			updateMergedBlock(block);
+			block.updateMergedBlock();
 		});
 	}
-}
-function mergeBlock(blockToMergeTo, block2) {
-	{
-		blockToMergeTo.jaarModules.push(...block2.jaarModules);
-		for (let trimNo of [
-			0,
-			1,
-			2
-		]) blockToMergeTo.trimesters[trimNo].push(...block2.trimesters[trimNo]);
-		blockToMergeTo.errors += block2.errors;
-		return blockToMergeTo;
-	}
-}
-function updateMergedBlock(block) {
-	let allLessen = block.trimesters.flat().concat(block.jaarModules);
-	block.lesmoment = [...new Set(allLessen.filter((les) => les).map((les) => les.lesmoment))].join(", ");
-	block.teacher = [...new Set(allLessen.filter((les) => les).map((les) => les.teacher))].join(", ");
-	block.vestiging = [...new Set(allLessen.filter((les) => les).map((les) => les.vestiging))].join(", ");
-	block.instrumentName = [...new Set(allLessen.filter((les) => les).map((les) => les.instrumentName))].join(", ");
-	block.tags = distinct(allLessen.filter((les) => les).map((les) => les.tags).flat()).map((tagName) => {
-		return {
-			name: tagName,
-			partial: false
-		};
-	});
-	for (let tag of block.tags) tag.partial = !allLessen.every((les) => les.tags.includes(tag.name));
-	block.offline = allLessen.some((les) => !les.online);
-}
-function checkBlockForErrors(block) {
-	let maxMoreThan100 = block.jaarModules.map((module) => module.maxAantal > TOO_LARGE_MAX).includes(true);
-	if (!maxMoreThan100) maxMoreThan100 = block.trimesters.flat().map((module) => module?.maxAantal > TOO_LARGE_MAX).includes(true);
-	if (maxMoreThan100) block.errors += "Max aantal lln > " + TOO_LARGE_MAX;
 }
 function addTrimesterStudentsToMapAndCount(allStudents, blockTrimModules) {
 	for (let blockTrimModule of blockTrimModules) {
@@ -3510,6 +3536,8 @@ function addFilterFields() {
 		addMenuItem(menu, "Show all", 0, (_) => filterAll());
 		addMenuItem(menu, "Filter online lessen", 0, (_) => filterOnline());
 		addMenuItem(menu, "Filter offline lessen", 0, (_) => filterOffline());
+		addMenuItem(menu, "Lessen zonder leraar", 0, (_) => filterNoTeacher());
+		addMenuItem(menu, "Lessen zonder maximum", 0, (_) => filterOffline());
 		emmet.insertAfter(idiom.parentElement, `span#${FILTER_INFO_ID}.filterInfo{sdfsdf}`);
 	}
 	applyFilters();
@@ -3521,6 +3549,15 @@ function filterAll() {
 	let pageState$1 = getPageSettings(PageName.Lessen, getDefaultPageSettings());
 	pageState$1.filterOffline = false;
 	pageState$1.filterOnline = false;
+	pageState$1.filterNoTeacher = false;
+	savePageSettings(pageState$1);
+	applyFilters();
+}
+function filterNoTeacher() {
+	let pageState$1 = getPageSettings(PageName.Lessen, getDefaultPageSettings());
+	pageState$1.filterOffline = false;
+	pageState$1.filterOnline = false;
+	pageState$1.filterNoTeacher = true;
 	savePageSettings(pageState$1);
 	applyFilters();
 }
@@ -3528,6 +3565,7 @@ function filterOffline() {
 	let pageState$1 = getPageSettings(PageName.Lessen, getDefaultPageSettings());
 	pageState$1.filterOffline = true;
 	pageState$1.filterOnline = false;
+	pageState$1.filterNoTeacher = false;
 	savePageSettings(pageState$1);
 	applyFilters();
 }
@@ -3558,6 +3596,15 @@ function applyFilters() {
 				return tr.dataset.visibility === "online";
 			}
 		};
+		else if (pageState$1.filterNoTeacher) {
+			let ids = distinct(BlockInfo.getAllBlocks().filter((b) => b.hasMissingTeachers()).map((b) => b.getIds()).flat());
+			extraFilter = {
+				context: { ids },
+				rowFilter: function(tr, context) {
+					return context.ids.includes(parseInt(tr.dataset.blockId));
+				}
+			};
+		}
 		if (extraFilter) preFilter = combineFilters(buildAncestorFilter(textPreFilter), extraFilter);
 		let filter = buildAncestorFilter(preFilter);
 		filterTable(TRIM_TABLE_ID, filter);
@@ -3577,11 +3624,13 @@ function applyFilters() {
 				return tr.querySelector("td>i.fa-eye-slash") == void 0;
 			}
 		};
+		else if (pageState$1.filterNoTeacher) {}
 		if (extraFilter) filter = combineFilters(textFilter, extraFilter);
 		filterTable(LESSEN_TABLE_ID, filter);
 	}
 	if (pageState$1.filterOnline) setFilterInfo("Online lessen");
 	else if (pageState$1.filterOffline) setFilterInfo("Offline lessen");
+	else if (pageState$1.filterNoTeacher) setFilterInfo("Zonder leraar");
 	else setFilterInfo("");
 }
 function buildAncestorFilter(rowPreFilter) {
@@ -3659,11 +3708,12 @@ function getTrimPageElements() {
 		trimButton: document.getElementById(TRIM_BUTTON_ID)
 	};
 }
+let globalTableData;
 function showTrimesterTable(trimElements, show) {
 	trimElements.trimTable?.remove();
 	let inputModules = scrapeModules(trimElements.lessenTable);
-	let tableData = buildTableData(inputModules.trimesterModules.concat(inputModules.jaarModules));
-	buildTrimesterTable(tableData, trimElements);
+	globalTableData = buildTableData(inputModules.trimesterModules.concat(inputModules.jaarModules));
+	buildTrimesterTable(globalTableData, trimElements);
 	trimElements.lessenTable.style.display = show ? "none" : "table";
 	trimElements.trimTable.style.display = show ? "table" : "none";
 	trimElements.trimButton.title = show ? "Toon normaal" : "Toon trimesters";

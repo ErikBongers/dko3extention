@@ -1,9 +1,9 @@
 import {scrapeLessenOverzicht, scrapeModules} from "./scrape";
-import {buildTableData} from "./convert";
+import {BlockInfo, buildTableData, TableData} from "./convert";
 import {buildTrimesterTable, getDefaultPageSettings, getSavedNameSorting, LessenPageState, NameSorting, setSavedNameSorting, TrimElements, TrimesterGrouping} from "./build";
 import * as def from "../def";
 import {FILTER_INFO_ID, LESSEN_TABLE_ID} from "../def";
-import {combineFilters, createSearchField, createTextRowFilter, filterTable, filterTableRows, findSchooljaar, getPageSettings, RowFilter, savePageSettings, setButtonHighlighted} from "../globals";
+import {combineFilters, createSearchField, createTextRowFilter, distinct, filterTable, filterTableRows, findSchooljaar, getPageSettings, RowFilter, savePageSettings, setButtonHighlighted} from "../globals";
 import {HashObserver} from "../pageObserver";
 import * as html from "../../libs/Emmeter/html";
 import {emmet} from "../../libs/Emmeter/html";
@@ -150,6 +150,8 @@ function addFilterFields() {
         addMenuItem(menu, "Show all", 0, _ => filterAll());
         addMenuItem(menu, "Filter online lessen", 0, _ => filterOnline());
         addMenuItem(menu, "Filter offline lessen", 0, _ => filterOffline());
+        addMenuItem(menu, "Lessen zonder leraar", 0, _ => filterNoTeacher());
+        addMenuItem(menu, "Lessen zonder maximum", 0, _ => filterOffline());
         emmet.insertAfter(idiom.parentElement, `span#${def.FILTER_INFO_ID}.filterInfo{sdfsdf}`);
     }
 
@@ -164,15 +166,26 @@ function filterAll() {
     let pageState = getPageSettings(PageName.Lessen, getDefaultPageSettings()) as LessenPageState;
     pageState.filterOffline = false;
     pageState.filterOnline = false;
+    pageState.filterNoTeacher = false;
     savePageSettings(pageState);
     applyFilters();
 }
 
 
+function filterNoTeacher() {
+    let pageState = getPageSettings(PageName.Lessen, getDefaultPageSettings()) as LessenPageState;
+    pageState.filterOffline = false;
+    pageState.filterOnline = false;
+    pageState.filterNoTeacher = true;
+    savePageSettings(pageState);
+    applyFilters();
+}
+
 function filterOffline() {
     let pageState = getPageSettings(PageName.Lessen, getDefaultPageSettings()) as LessenPageState;
     pageState.filterOffline = true;
     pageState.filterOnline = false;
+    pageState.filterNoTeacher = false;
     savePageSettings(pageState);
     applyFilters();
 }
@@ -209,13 +222,21 @@ function applyFilters() {
                     return tr.dataset.visibility === "online";
                 }
             };
+        } else if(pageState.filterNoTeacher) {
+            let ids = distinct(BlockInfo.getAllBlocks().filter(b => b.hasMissingTeachers()).map(b => b.getIds()).flat());
+            extraFilter = {
+                context: {ids},
+                rowFilter: function (tr: HTMLTableRowElement, context: any): boolean {
+                    return context.ids.includes(parseInt(tr.dataset.blockId));
+                }
+            };
         }
         if(extraFilter)
             preFilter = combineFilters(buildAncestorFilter(textPreFilter), extraFilter);
 
         let filter = buildAncestorFilter(preFilter);
         filterTable(def.TRIM_TABLE_ID, filter);
-    } else {
+    } else { // Filter original table:
         let textFilter = createTextRowFilter(pageState.searchText, (tr) => tr.cells[0].textContent);
         let filter = textFilter;
         let extraFilter: RowFilter = undefined;
@@ -233,6 +254,8 @@ function applyFilters() {
                     return tr.querySelector("td>i.fa-eye-slash") == undefined;
                 }
             };
+        } else if(pageState.filterNoTeacher) {
+            //TODO: implement.
         }
 
         if(extraFilter)
@@ -243,6 +266,8 @@ function applyFilters() {
         setFilterInfo("Online lessen");
     } else if(pageState.filterOffline) {
         setFilterInfo("Offline lessen");
+    } else if(pageState.filterNoTeacher) {
+        setFilterInfo("Zonder leraar");
     } else {
         setFilterInfo("");
     }
@@ -350,11 +375,13 @@ export function getTrimPageElements(){
     }
 }
 
+let globalTableData: TableData;
+
 export function showTrimesterTable(trimElements: TrimElements, show: boolean) {
     trimElements.trimTable?.remove();
     let inputModules = scrapeModules(trimElements.lessenTable);
-    let tableData = buildTableData(inputModules.trimesterModules.concat(inputModules.jaarModules));
-    buildTrimesterTable(tableData, trimElements);
+    globalTableData = buildTableData(inputModules.trimesterModules.concat(inputModules.jaarModules));
+    buildTrimesterTable(globalTableData, trimElements);
 
     trimElements.lessenTable.style.display = show ? "none" : "table";
     trimElements.trimTable.style.display = show ? "table" : "none";

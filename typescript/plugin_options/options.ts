@@ -35,7 +35,7 @@ type OptionDef = {
 export let htmlOptionDefs = new Map<string, OptionDef>();
 
 export function defineHtmlOption(id: string, property: string, label: string, blockId: string) {
-    htmlOptionDefs.set(id, {id, property, label, blockId});
+    htmlOptionDefs.set(id, {id, property, label, blockId: id});
 
 }
 

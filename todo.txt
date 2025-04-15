@@ -1,8 +1,6 @@
 * replace all refs to skynet with outlook.
 
 * Extra filters
- - Offline
- - No teacher
  - No max
 
 * globals.ts: use of deprecated keyCode: test with .code="Enter".
