@@ -3624,7 +3624,7 @@ function applyFilters() {
 				return tr.querySelector("td>i.fa-eye-slash") == void 0;
 			}
 		};
-		else if (pageState$1.filterNoTeacher) {}
+		else if (pageState$1.filterNoTeacher) extraFilter = createTextRowFilter("(geen klasleerkracht)", (tr) => tr.cells[0].textContent);
 		if (extraFilter) filter = combineFilters(textFilter, extraFilter);
 		filterTable(LESSEN_TABLE_ID, filter);
 	}

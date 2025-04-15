@@ -255,7 +255,7 @@ function applyFilters() {
                 }
             };
         } else if(pageState.filterNoTeacher) {
-            //TODO: implement.
+            extraFilter = createTextRowFilter("(geen klasleerkracht)", (tr) => tr.cells[0].textContent);
         }
 
         if(extraFilter)
