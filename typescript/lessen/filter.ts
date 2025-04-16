@@ -163,7 +163,7 @@ export function addFilterFields() {
         //menu
         let {first: span, last: idiom} = emmet.insertAfter(searchField, 'span.btn-group-sm>button.btn.btn-sm.btn-outline-secondary.ml-2>i.fas.fa-list');
         let menu = setupMenu(span as HTMLElement, idiom.parentElement);
-        addMenuItem(menu, "Show all", 0, _ => setExtraFilter(pageState => {}));
+        addMenuItem(menu, "Show all", 0, _ => setExtraFilter(_ => {}));
         addMenuItem(menu, "Filter online lessen", 0, _ => setExtraFilter(pageState => pageState.filterOnline = true));
         addMenuItem(menu, "Filter offline lessen", 0, _ => setExtraFilter(pageState => pageState.filterOffline = true));
         addMenuItem(menu, "Lessen zonder leraar", 0, _ => setExtraFilter(pageState => pageState.filterNoTeacher = true));
