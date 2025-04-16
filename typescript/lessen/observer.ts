@@ -151,7 +151,7 @@ function addFilterFields() {
         addMenuItem(menu, "Filter online lessen", 0, _ => filterOnline());
         addMenuItem(menu, "Filter offline lessen", 0, _ => filterOffline());
         addMenuItem(menu, "Lessen zonder leraar", 0, _ => filterNoTeacher());
-        addMenuItem(menu, "Lessen zonder maximum", 0, _ => filterOffline());
+        addMenuItem(menu, "Lessen zonder maximum", 0, _ => filterNoMax());
         emmet.insertAfter(idiom.parentElement, `span#${def.FILTER_INFO_ID}.filterInfo{sdfsdf}`);
     }
 
@@ -162,11 +162,16 @@ function setFilterInfo(text: string) {
     document.getElementById(FILTER_INFO_ID).innerText = text;
 }
 
-function filterAll() {
-    let pageState = getPageSettings(PageName.Lessen, getDefaultPageSettings()) as LessenPageState;
+function clearFilters(pageState: LessenPageState) {
     pageState.filterOffline = false;
     pageState.filterOnline = false;
     pageState.filterNoTeacher = false;
+    pageState.filterNoMax = false;
+}
+
+function filterAll() {
+    let pageState = getPageSettings(PageName.Lessen, getDefaultPageSettings()) as LessenPageState;
+    clearFilters(pageState);
     savePageSettings(pageState);
     applyFilters();
 }
@@ -174,25 +179,31 @@ function filterAll() {
 
 function filterNoTeacher() {
     let pageState = getPageSettings(PageName.Lessen, getDefaultPageSettings()) as LessenPageState;
-    pageState.filterOffline = false;
-    pageState.filterOnline = false;
+    clearFilters(pageState);
     pageState.filterNoTeacher = true;
+    savePageSettings(pageState);
+    applyFilters();
+}
+
+function filterNoMax() {
+    let pageState = getPageSettings(PageName.Lessen, getDefaultPageSettings()) as LessenPageState;
+    clearFilters(pageState);
+    pageState.filterNoMax = true;
     savePageSettings(pageState);
     applyFilters();
 }
 
 function filterOffline() {
     let pageState = getPageSettings(PageName.Lessen, getDefaultPageSettings()) as LessenPageState;
+    clearFilters(pageState);
     pageState.filterOffline = true;
-    pageState.filterOnline = false;
-    pageState.filterNoTeacher = false;
     savePageSettings(pageState);
     applyFilters();
 }
 
 function filterOnline() {
     let pageState = getPageSettings(PageName.Lessen, getDefaultPageSettings()) as LessenPageState;
-    pageState.filterOffline = false;
+    clearFilters(pageState);
     pageState.filterOnline = true;
     savePageSettings(pageState);
     applyFilters();
@@ -230,6 +241,14 @@ function applyFilters() {
                     return context.ids.includes(parseInt(tr.dataset.blockId));
                 }
             };
+        } else if(pageState.filterNoMax) {
+            let ids = distinct(BlockInfo.getAllBlocks().filter(b => b.hasMissingMax()).map(b => b.getIds()).flat());
+            extraFilter = {
+                context: {ids},
+                rowFilter: function (tr: HTMLTableRowElement, context: any): boolean {
+                    return context.ids.includes(parseInt(tr.dataset.blockId));
+                }
+            };
         }
         if(extraFilter)
             preFilter = combineFilters(buildAncestorFilter(textPreFilter), extraFilter);
@@ -256,6 +275,8 @@ function applyFilters() {
             };
         } else if(pageState.filterNoTeacher) {
             extraFilter = createTextRowFilter("(geen klasleerkracht)", (tr) => tr.cells[0].textContent);
+        } else if(pageState.filterNoMax) {
+            extraFilter = createTextRowFilter("999", (tr) => tr.cells[1].textContent);
         }
 
         if(extraFilter)
@@ -268,6 +289,8 @@ function applyFilters() {
         setFilterInfo("Offline lessen");
     } else if(pageState.filterNoTeacher) {
         setFilterInfo("Zonder leraar");
+    } else if(pageState.filterNoMax) {
+        setFilterInfo("Zonder maximum");
     } else {
         setFilterInfo("");
     }

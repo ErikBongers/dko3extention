@@ -2759,7 +2759,8 @@ function getDefaultPageSettings() {
 		searchText: "",
 		filterOffline: false,
 		filterOnline: false,
-		filterNoTeacher: false
+		filterNoTeacher: false,
+		filterNoMax: false
 	};
 }
 let pageState = getDefaultPageSettings();
@@ -3104,6 +3105,9 @@ var BlockInfo = class BlockInfo {
 	}
 	hasMissingTeachers() {
 		return this.alleLessen().some((les) => les.teacher === "(geen klasleerkracht)");
+	}
+	hasMissingMax() {
+		return this.alleLessen().some((les) => les.maxAantal > TOO_LARGE_MAX);
 	}
 	alleLessen() {
 		return this.trimesters.flat().concat(this.jaarModules);
@@ -3537,7 +3541,7 @@ function addFilterFields() {
 		addMenuItem(menu, "Filter online lessen", 0, (_) => filterOnline());
 		addMenuItem(menu, "Filter offline lessen", 0, (_) => filterOffline());
 		addMenuItem(menu, "Lessen zonder leraar", 0, (_) => filterNoTeacher());
-		addMenuItem(menu, "Lessen zonder maximum", 0, (_) => filterOffline());
+		addMenuItem(menu, "Lessen zonder maximum", 0, (_) => filterNoMax());
 		emmet.insertAfter(idiom.parentElement, `span#${FILTER_INFO_ID}.filterInfo{sdfsdf}`);
 	}
 	applyFilters();
@@ -3545,33 +3549,42 @@ function addFilterFields() {
 function setFilterInfo(text) {
 	document.getElementById(FILTER_INFO_ID).innerText = text;
 }
-function filterAll() {
-	let pageState$1 = getPageSettings(PageName.Lessen, getDefaultPageSettings());
+function clearFilters(pageState$1) {
 	pageState$1.filterOffline = false;
 	pageState$1.filterOnline = false;
 	pageState$1.filterNoTeacher = false;
+	pageState$1.filterNoMax = false;
+}
+function filterAll() {
+	let pageState$1 = getPageSettings(PageName.Lessen, getDefaultPageSettings());
+	clearFilters(pageState$1);
 	savePageSettings(pageState$1);
 	applyFilters();
 }
 function filterNoTeacher() {
 	let pageState$1 = getPageSettings(PageName.Lessen, getDefaultPageSettings());
-	pageState$1.filterOffline = false;
-	pageState$1.filterOnline = false;
+	clearFilters(pageState$1);
 	pageState$1.filterNoTeacher = true;
+	savePageSettings(pageState$1);
+	applyFilters();
+}
+function filterNoMax() {
+	let pageState$1 = getPageSettings(PageName.Lessen, getDefaultPageSettings());
+	clearFilters(pageState$1);
+	pageState$1.filterNoMax = true;
 	savePageSettings(pageState$1);
 	applyFilters();
 }
 function filterOffline() {
 	let pageState$1 = getPageSettings(PageName.Lessen, getDefaultPageSettings());
+	clearFilters(pageState$1);
 	pageState$1.filterOffline = true;
-	pageState$1.filterOnline = false;
-	pageState$1.filterNoTeacher = false;
 	savePageSettings(pageState$1);
 	applyFilters();
 }
 function filterOnline() {
 	let pageState$1 = getPageSettings(PageName.Lessen, getDefaultPageSettings());
-	pageState$1.filterOffline = false;
+	clearFilters(pageState$1);
 	pageState$1.filterOnline = true;
 	savePageSettings(pageState$1);
 	applyFilters();
@@ -3604,6 +3617,14 @@ function applyFilters() {
 					return context.ids.includes(parseInt(tr.dataset.blockId));
 				}
 			};
+		} else if (pageState$1.filterNoMax) {
+			let ids = distinct(BlockInfo.getAllBlocks().filter((b) => b.hasMissingMax()).map((b) => b.getIds()).flat());
+			extraFilter = {
+				context: { ids },
+				rowFilter: function(tr, context) {
+					return context.ids.includes(parseInt(tr.dataset.blockId));
+				}
+			};
 		}
 		if (extraFilter) preFilter = combineFilters(buildAncestorFilter(textPreFilter), extraFilter);
 		let filter = buildAncestorFilter(preFilter);
@@ -3625,12 +3646,14 @@ function applyFilters() {
 			}
 		};
 		else if (pageState$1.filterNoTeacher) extraFilter = createTextRowFilter("(geen klasleerkracht)", (tr) => tr.cells[0].textContent);
+		else if (pageState$1.filterNoMax) extraFilter = createTextRowFilter("999", (tr) => tr.cells[1].textContent);
 		if (extraFilter) filter = combineFilters(textFilter, extraFilter);
 		filterTable(LESSEN_TABLE_ID, filter);
 	}
 	if (pageState$1.filterOnline) setFilterInfo("Online lessen");
 	else if (pageState$1.filterOffline) setFilterInfo("Offline lessen");
 	else if (pageState$1.filterNoTeacher) setFilterInfo("Zonder leraar");
+	else if (pageState$1.filterNoMax) setFilterInfo("Zonder maximum");
 	else setFilterInfo("");
 }
 function buildAncestorFilter(rowPreFilter) {

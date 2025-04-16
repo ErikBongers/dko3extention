@@ -58,6 +58,10 @@ export class BlockInfo {
         return this.alleLessen().some(les => les.teacher === "(geen klasleerkracht)");
     }
 
+    hasMissingMax() {
+        return this.alleLessen().some(les => les.maxAantal > TOO_LARGE_MAX);
+    }
+
     alleLessen() {
         return this.trimesters.flat().concat(this.jaarModules);
     }

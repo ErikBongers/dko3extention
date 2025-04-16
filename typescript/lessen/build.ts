@@ -26,13 +26,14 @@ export interface PageSettings {
 }
 
 export interface LessenPageState extends PageSettings {
-    filterNoTeacher: boolean;
     pageName: PageName
     nameSorting: NameSorting,
     grouping: TrimesterGrouping,
     searchText: string,
     filterOffline: boolean
     filterOnline: boolean
+    filterNoTeacher: boolean;
+    filterNoMax: boolean;
 }
 
 export function getDefaultPageSettings() {
@@ -44,6 +45,7 @@ export function getDefaultPageSettings() {
         filterOffline: false,
         filterOnline: false,
         filterNoTeacher: false,
+        filterNoMax: false,
     } as LessenPageState;
 }
 
