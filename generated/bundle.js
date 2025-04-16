@@ -150,14 +150,24 @@ function insertAt(position, target, text, onIndex, hook) {
 	let result = parseAndBuild(tempRoot, onIndex, hook);
 	let first = void 0;
 	let insertPos = target;
-	let children = [...tempRoot.children];
-	for (let child of children) if (!first) first = insertPos = insertPos.insertAdjacentElement(position, child);
-	else insertPos = insertPos.insertAdjacentElement("afterend", child);
+	let children = [...tempRoot.childNodes];
+	for (let child of children) if (!first) if (child.nodeType === Node.TEXT_NODE) first = insertPos = insertAdjacentText(target, position, child.wholeText);
+	else first = insertPos = target.insertAdjacentElement(position, child);
+	else if (child.nodeType === Node.TEXT_NODE) insertPos = insertPos.parentElement.insertBefore(document.createTextNode(child.wholeText), insertPos.nextSibling);
+	else insertPos = insertPos.parentElement.insertBefore(child, insertPos.nextSibling);
 	return {
 		target,
 		first,
 		last: result.last
 	};
+}
+function insertAdjacentText(target, position, text) {
+	switch (position) {
+		case "beforebegin": return target.parentElement.insertBefore(document.createTextNode(text), target);
+		case "afterbegin": return target.insertBefore(document.createTextNode(text), target.firstChild);
+		case "beforeend": return target.appendChild(document.createTextNode(text));
+		case "afterend": return target.parentElement.appendChild(document.createTextNode(text));
+	}
 }
 function parseAndBuild(root, onIndex, hook) {
 	buildElement(root, parse(), 1, onIndex, hook);
@@ -3750,17 +3760,13 @@ function setSorteerLine(showTrimTable) {
 	newGroupingDiv.innerText = "Groepeer: ";
 	oldSorteerSpan.style.display = showTrimTable ? "none" : "";
 	newGroupingDiv.style.display = showTrimTable ? "" : "none";
-	newGroupingDiv.appendChild(createGroupingAnchorOrText(TrimesterGrouping.InstrumentTeacherHour, pageState$1.grouping));
-	newGroupingDiv.appendChild(document.createTextNode(" | "));
-	newGroupingDiv.appendChild(createGroupingAnchorOrText(TrimesterGrouping.TeacherInstrumentHour, pageState$1.grouping));
-	newGroupingDiv.appendChild(document.createTextNode(" | "));
-	newGroupingDiv.appendChild(createGroupingAnchorOrText(TrimesterGrouping.TeacherHour, pageState$1.grouping));
-	newGroupingDiv.appendChild(document.createTextNode(" | "));
-	newGroupingDiv.appendChild(createGroupingAnchorOrText(TrimesterGrouping.Instrument, pageState$1.grouping));
-	newGroupingDiv.appendChild(document.createTextNode(" | "));
-	newGroupingDiv.appendChild(createGroupingAnchorOrText(TrimesterGrouping.Teacher, pageState$1.grouping));
+	appendGroupingAnchorOrText(newGroupingDiv, TrimesterGrouping.InstrumentTeacherHour, pageState$1.grouping, "");
+	appendGroupingAnchorOrText(newGroupingDiv, TrimesterGrouping.TeacherInstrumentHour, pageState$1.grouping, " | ");
+	appendGroupingAnchorOrText(newGroupingDiv, TrimesterGrouping.TeacherHour, pageState$1.grouping, " | ");
+	appendGroupingAnchorOrText(newGroupingDiv, TrimesterGrouping.Instrument, pageState$1.grouping, " | ");
+	appendGroupingAnchorOrText(newGroupingDiv, TrimesterGrouping.Teacher, pageState$1.grouping, " | ");
 }
-function createGroupingAnchorOrText(grouping, activeSorting) {
+function appendGroupingAnchorOrText(target, grouping, activeSorting, separator) {
 	let sortingText = "";
 	switch (grouping) {
 		case TrimesterGrouping.InstrumentTeacherHour:
@@ -3782,14 +3788,10 @@ function createGroupingAnchorOrText(grouping, activeSorting) {
 			sortingText = "leraar";
 			break;
 	}
-	if (activeSorting === grouping) {
-		let strong = document.createElement("strong");
-		strong.appendChild(document.createTextNode(sortingText));
-		return strong;
-	} else {
-		let button = document.createElement("button");
-		button.innerText = sortingText;
-		button.classList.add("likeLink");
+	if (separator) separator = "{" + separator + "}+";
+	if (activeSorting === grouping) emmet.appendChild(target, separator + "strong{" + sortingText + "}");
+	else {
+		let button = emmet.appendChild(target, separator + "button.likeLink{" + sortingText + "}").last;
 		button.onclick = () => {
 			let pageState$1 = getPageSettings(PageName.Lessen, getDefaultPageSettings());
 			pageState$1.grouping = grouping;
@@ -3797,7 +3799,6 @@ function createGroupingAnchorOrText(grouping, activeSorting) {
 			showTrimesterTable(getTrimPageElements(), true);
 			return false;
 		};
-		return button;
 	}
 }
 

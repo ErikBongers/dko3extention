@@ -1,5 +1,5 @@
 import {scrapeLessenOverzicht, scrapeModules} from "./scrape";
-import {buildTableData, TableData} from "./convert";
+import {buildTableData} from "./convert";
 import {buildTrimesterTable, getDefaultPageSettings, getSavedNameSorting, LessenPageState, NameSorting, setSavedNameSorting, TrimElements, TrimesterGrouping} from "./build";
 import * as def from "../def";
 import {LESSEN_TABLE_ID} from "../def";
@@ -255,18 +255,14 @@ function setSorteerLine(showTrimTable: boolean) {
     oldSorteerSpan.style.display = showTrimTable ? "none" : "";
     newGroupingDiv.style.display = showTrimTable ? "" : "none";
 
-    newGroupingDiv.appendChild(createGroupingAnchorOrText(TrimesterGrouping.InstrumentTeacherHour, pageState.grouping));
-    newGroupingDiv.appendChild(document.createTextNode(" | "));
-    newGroupingDiv.appendChild(createGroupingAnchorOrText(TrimesterGrouping.TeacherInstrumentHour, pageState.grouping));
-    newGroupingDiv.appendChild(document.createTextNode(" | "));
-    newGroupingDiv.appendChild(createGroupingAnchorOrText(TrimesterGrouping.TeacherHour, pageState.grouping));
-    newGroupingDiv.appendChild(document.createTextNode(" | "));
-    newGroupingDiv.appendChild(createGroupingAnchorOrText(TrimesterGrouping.Instrument, pageState.grouping));
-    newGroupingDiv.appendChild(document.createTextNode(" | "));
-    newGroupingDiv.appendChild(createGroupingAnchorOrText(TrimesterGrouping.Teacher, pageState.grouping));
+    appendGroupingAnchorOrText(newGroupingDiv, TrimesterGrouping.InstrumentTeacherHour, pageState.grouping, "");
+    appendGroupingAnchorOrText(newGroupingDiv, TrimesterGrouping.TeacherInstrumentHour, pageState.grouping, " | ");
+    appendGroupingAnchorOrText(newGroupingDiv, TrimesterGrouping.TeacherHour, pageState.grouping, " | ");
+    appendGroupingAnchorOrText(newGroupingDiv, TrimesterGrouping.Instrument, pageState.grouping, " | ");
+    appendGroupingAnchorOrText(newGroupingDiv, TrimesterGrouping.Teacher, pageState.grouping, " | ");
 }
 
-function createGroupingAnchorOrText(grouping: TrimesterGrouping, activeSorting: TrimesterGrouping) {
+function appendGroupingAnchorOrText(target: HTMLElement, grouping: TrimesterGrouping, activeSorting: TrimesterGrouping, separator: string) {
     let sortingText = "";
     switch (grouping) {
         case TrimesterGrouping.InstrumentTeacherHour: sortingText = "instrument+leraar+lesuur"; break;
@@ -277,14 +273,13 @@ function createGroupingAnchorOrText(grouping: TrimesterGrouping, activeSorting: 
         case TrimesterGrouping.Teacher: sortingText = "leraar"; break;
     }
 
+    if(separator)
+        separator = "{"+separator+"}+";
+
     if (activeSorting === grouping) {
-        let strong = document.createElement("strong");
-        strong.appendChild(document.createTextNode(sortingText));
-        return strong;
+        emmet.appendChild(target,  separator + "strong{" + sortingText + "}");
     } else {
-        let button = document.createElement('button');
-        button.innerText = sortingText;
-        button.classList.add("likeLink");
+        let button = emmet.appendChild(target, separator + "button.likeLink{" + sortingText + "}").last as HTMLButtonElement;
         button.onclick = () => {
             let pageState = getPageSettings(PageName.Lessen, getDefaultPageSettings()) as LessenPageState;
             pageState.grouping = grouping;
@@ -292,6 +287,5 @@ function createGroupingAnchorOrText(grouping: TrimesterGrouping, activeSorting: 
             showTrimesterTable(getTrimPageElements(), true);
             return false;
         };
-        return button;
     }
 }
