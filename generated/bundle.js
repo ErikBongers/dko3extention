@@ -494,71 +494,6 @@ function createSearchField(id, onSearchInput$1, value) {
 	};
 	return span;
 }
-/**
-
-* Try to match a filter expression of type "string1+string2", where both strings need to be present.
-
-* @param searchText
-
-* @param rowText
-
-* @return true if all strings match
-
-*/
-function match_AND_expression(searchText, rowText) {
-	let search_AND_list = searchText.split("+").map((txt) => txt.trim());
-	for (let search of search_AND_list) {
-		let caseText = rowText;
-		if (search === search.toLowerCase()) caseText = rowText.toLowerCase();
-		if (!caseText.includes(search)) return false;
-	}
-	return true;
-}
-function filterTableRows(table, rowFilter) {
-	if (typeof table === "string") table = document.getElementById(table);
-	return Array.from(table.tBodies[0].rows).filter((tr) => rowFilter.rowFilter(tr, rowFilter.context));
-}
-function filterTable(table, rowFilter) {
-	if (typeof table === "string") table = document.getElementById(table);
-	for (let tr of table.tBodies[0].rows) {
-		tr.style.visibility = "collapse";
-		tr.style.borderColor = "transparent";
-	}
-	for (let tr of filterTableRows(table, rowFilter)) if (!tr.dataset.keepHidden) {
-		tr.style.visibility = "visible";
-		tr.style.borderColor = "";
-	}
-}
-function createTextRowFilter(searchText, getRowSearchText) {
-	let search_OR_list = searchText.split(",").map((txt) => txt.trim());
-	let context = {
-		search_OR_list,
-		getRowSearchText
-	};
-	let rowFilter = function(tr, context$1) {
-		for (let search of context$1.search_OR_list) {
-			let rowText = context$1.getRowSearchText(tr);
-			if (match_AND_expression(search, rowText)) return true;
-		}
-		return false;
-	};
-	return {
-		context,
-		rowFilter
-	};
-}
-function combineFilters(f1, f2) {
-	return {
-		context: {
-			f1,
-			f2
-		},
-		rowFilter: function(tr, _context) {
-			if (!f1.rowFilter(tr, f1.context)) return false;
-			return f2.rowFilter(tr, f2.context);
-		}
-	};
-}
 function getBothToolbars() {
 	let navigationBars = document.querySelectorAll("div.datatable-navigation-toolbar");
 	if (navigationBars.length < 2) return void 0;
@@ -2839,14 +2774,14 @@ function createStudentRow(tableBody, rowClass, groupId, blockId) {
 	return row;
 }
 function buildBlock(newTableBody, block, groupId, getBlockTitle, displayOptions) {
-	let mergedBlock = mergeBlockStudents(block);
+	let mergedBlockStudents = mergeBlockStudents(block);
 	let trimesterHeaders = [
 		0,
 		1,
 		2
 	].map((trimNo) => {
-		if (mergedBlock.trimesterStudents[trimNo].length < 5 && mergedBlock.maxAantallen[trimNo] < 5) return "";
-		return `${mergedBlock.trimesterStudents[trimNo].length} van ${mergedBlock.maxAantallen[trimNo]} lln`;
+		if (mergedBlockStudents.trimesterStudents[trimNo].length < 5 && mergedBlockStudents.maxAantallen[trimNo] < 5) return "";
+		return `${mergedBlockStudents.trimesterStudents[trimNo].length} van ${mergedBlockStudents.maxAantallen[trimNo]} lln`;
 	});
 	let trTitle = buildBlockTitle(newTableBody, block, getBlockTitle, groupId);
 	let headerRows = buildBlockHeader(newTableBody, block, groupId, trimesterHeaders, displayOptions);
@@ -2856,26 +2791,26 @@ function buildBlock(newTableBody, block, groupId, getBlockTitle, displayOptions)
 	let hasFullClass = false;
 	headerRows.trModuleLinks.dataset.visibility = block.offline ? "offline" : "online";
 	let filledRowCount = 0;
-	sortStudents(mergedBlock.jaarStudents);
-	for (let student of mergedBlock.jaarStudents) {
+	sortStudents(mergedBlockStudents.jaarStudents);
+	for (let student of mergedBlockStudents.jaarStudents) {
 		let row = createStudentRow(newTableBody, "jaarRow", groupId, block.id);
 		for (let trimNo = 0; trimNo < 3; trimNo++) {
 			let cell = buildStudentCell(student);
 			row.appendChild(cell);
 			cell.classList.add("jaarStudent");
-			if (mergedBlock.maxAantallen[trimNo] <= filledRowCount) cell.classList.add("gray");
+			if (mergedBlockStudents.maxAantallen[trimNo] <= filledRowCount) cell.classList.add("gray");
 		}
 		filledRowCount++;
 	}
-	for (let rowNo = 0; rowNo < mergedBlock.blockNeededRows - filledRowCount; rowNo++) {
+	for (let rowNo = 0; rowNo < mergedBlockStudents.blockNeededRows - filledRowCount; rowNo++) {
 		let row = createStudentRow(newTableBody, "trimesterRow", groupId, block.id);
 		for (let trimNo = 0; trimNo < 3; trimNo++) {
-			let trimester = mergedBlock.trimesterStudents[trimNo];
+			let trimester = mergedBlockStudents.trimesterStudents[trimNo];
 			sortStudents(trimester);
 			let student = void 0;
 			if (trimester) {
 				student = trimester[rowNo];
-				let maxTrimStudentCount = Math.max(mergedBlock.maxAantallen[trimNo], mergedBlock.maxJaarStudentCount);
+				let maxTrimStudentCount = Math.max(mergedBlockStudents.maxAantallen[trimNo], mergedBlockStudents.maxJaarStudentCount);
 				if (trimester.length > 0 && trimester.length >= maxTrimStudentCount) {
 					row.dataset.hasFullClass = "true";
 					hasFullClass = true;
@@ -2884,7 +2819,7 @@ function buildBlock(newTableBody, block, groupId, getBlockTitle, displayOptions)
 			let cell = buildStudentCell(student);
 			row.appendChild(cell);
 			cell.classList.add("trimesterStudent");
-			if (mergedBlock.maxAantallen[trimNo] <= rowNo) cell.classList.add("gray");
+			if (mergedBlockStudents.maxAantallen[trimNo] <= rowNo) cell.classList.add("gray");
 			if (student?.trimesterInstruments) {
 				if (student?.trimesterInstruments[trimNo].length > 1) cell.classList.add("yellowMarker");
 			}
@@ -2894,7 +2829,7 @@ function buildBlock(newTableBody, block, groupId, getBlockTitle, displayOptions)
 		if (trTitle) trTitle.dataset.hasFullClass = "true";
 		headerRows.trModuleLinks.dataset.hasFullClass = "true";
 	}
-	if (!mergedBlock.hasWachtlijst) return;
+	if (!mergedBlockStudents.hasWachtlijst) return;
 	for (let trimNo of [
 		0,
 		1,
@@ -2903,14 +2838,14 @@ function buildBlock(newTableBody, block, groupId, getBlockTitle, displayOptions)
 		let row = newTableBody.children[newTableBody.children.length - 1];
 		row.classList.add("wachtlijst");
 		let cell = row.children[trimNo];
-		if (mergedBlock.wachtlijsten[trimNo] === 0) continue;
+		if (mergedBlockStudents.wachtlijsten[trimNo] === 0) continue;
 		const small = document.createElement("small");
 		cell.appendChild(small);
-		small.appendChild(document.createTextNode(`(${mergedBlock.wachtlijsten[trimNo]} op wachtlijst)`));
+		small.appendChild(document.createTextNode(`(${mergedBlockStudents.wachtlijsten[trimNo]} op wachtlijst)`));
 		small.classList.add("text-danger");
-		if (mergedBlock.wachtlijsten[trimNo] > 0 && mergedBlock.trimesterStudents[trimNo].length < mergedBlock.maxAantallen[trimNo]) {
+		if (mergedBlockStudents.wachtlijsten[trimNo] > 0 && mergedBlockStudents.trimesterStudents[trimNo].length < mergedBlockStudents.maxAantallen[trimNo]) {
 			cell.querySelector("small").classList.add("yellowMarker");
-			newTableBody.children[studentTopRowNo + mergedBlock.trimesterStudents[trimNo].length].children[trimNo].classList.add("yellowMarker");
+			newTableBody.children[studentTopRowNo + mergedBlockStudents.trimesterStudents[trimNo].length].children[trimNo].classList.add("yellowMarker");
 		}
 	}
 }
@@ -2965,17 +2900,18 @@ function buildInfoRow(newTableBody, _text, show, groupId, blockId) {
 	const trBlockInfo = newTableBody.appendChild(createLesRow(groupId, blockId));
 	trBlockInfo.classList.add("blockRow");
 	if (show === false) trBlockInfo.dataset.keepHidden = "true";
+	trBlockInfo.dataset.groupId = groupId;
 	return emmet.append(trBlockInfo, "td.infoCell[colspan=3]>div.text-muted");
 }
-function buildInfoRowWithText(newTableBody, show, groupId, text) {
-	let { last: divMuted } = buildInfoRow(newTableBody, "", show, groupId, void 0);
+function buildInfoRowWithText(newTableBody, show, blockId, groupId, text) {
+	let { last: divMuted } = buildInfoRow(newTableBody, "", show, groupId, blockId);
 	divMuted.appendChild(document.createTextNode(text));
 }
 function buildBlockHeader(newTableBody, block, groupId, trimesterHeaders, displayOptions) {
-	buildInfoRowWithText(newTableBody, Boolean(DisplayOptions.Teacher & displayOptions), groupId, block.teacher);
-	buildInfoRowWithText(newTableBody, Boolean(DisplayOptions.Instrument & displayOptions), groupId, block.instrumentName);
-	buildInfoRowWithText(newTableBody, Boolean(DisplayOptions.Hour & displayOptions), groupId, block.lesmoment);
-	buildInfoRowWithText(newTableBody, Boolean(DisplayOptions.Location & displayOptions), groupId, block.vestiging);
+	buildInfoRowWithText(newTableBody, Boolean(DisplayOptions.Teacher & displayOptions), block.id, groupId, block.teacher);
+	buildInfoRowWithText(newTableBody, Boolean(DisplayOptions.Instrument & displayOptions), block.id, groupId, block.instrumentName);
+	buildInfoRowWithText(newTableBody, Boolean(DisplayOptions.Hour & displayOptions), block.id, groupId, block.lesmoment);
+	buildInfoRowWithText(newTableBody, Boolean(DisplayOptions.Location & displayOptions), block.id, groupId, block.vestiging);
 	if (block.tags.length > 0) {
 		let { last: divMuted } = buildInfoRow(newTableBody, block.tags.join(), true, groupId, block.id);
 		emmet.appendChild(divMuted, block.tags.map((tag) => {
@@ -3386,6 +3322,74 @@ function mergeBlockStudents(block) {
 }
 
 //#endregion
+//#region typescript/filter.ts
+function combineFilters(f1, f2) {
+	return {
+		context: {
+			f1,
+			f2
+		},
+		rowFilter: function(tr, _context) {
+			if (!f1.rowFilter(tr, f1.context)) return false;
+			return f2.rowFilter(tr, f2.context);
+		}
+	};
+}
+function createTextRowFilter(searchText, getRowSearchText) {
+	let search_OR_list = searchText.split(",").map((txt) => txt.trim());
+	let context = {
+		search_OR_list,
+		getRowSearchText
+	};
+	let rowFilter = function(tr, context$1) {
+		for (let search of context$1.search_OR_list) {
+			let rowText = context$1.getRowSearchText(tr);
+			if (match_AND_expression(search, rowText)) return true;
+		}
+		return false;
+	};
+	return {
+		context,
+		rowFilter
+	};
+}
+/**
+
+* Try to match a filter expression of type "string1+string2", where both strings need to be present.
+
+* @param searchText
+
+* @param rowText
+
+* @return true if all strings match
+
+*/
+function match_AND_expression(searchText, rowText) {
+	let search_AND_list = searchText.split("+").map((txt) => txt.trim());
+	for (let search of search_AND_list) {
+		let caseText = rowText;
+		if (search === search.toLowerCase()) caseText = rowText.toLowerCase();
+		if (!caseText.includes(search)) return false;
+	}
+	return true;
+}
+function filterTableRows(table, rowFilter) {
+	if (typeof table === "string") table = document.getElementById(table);
+	return Array.from(table.tBodies[0].rows).filter((tr) => rowFilter.rowFilter(tr, rowFilter.context));
+}
+function filterTable(table, rowFilter) {
+	if (typeof table === "string") table = document.getElementById(table);
+	for (let tr of table.tBodies[0].rows) {
+		tr.style.visibility = "collapse";
+		tr.style.borderColor = "transparent";
+	}
+	for (let tr of filterTableRows(table, rowFilter)) if (!tr.dataset.keepHidden) {
+		tr.style.visibility = "visible";
+		tr.style.borderColor = "";
+	}
+}
+
+//#endregion
 //#region typescript/menus.ts
 function addMenuItem(menu, title, indentLevel, onClick) {
 	let indentClass = indentLevel ? ".menuIndent" + indentLevel : "";
@@ -3436,6 +3440,133 @@ function setupMenu(container, button) {
 }
 
 //#endregion
+//#region typescript/lessen/filter.ts
+function createBlockFilter(filter) {
+	return BlockInfo.getAllBlocks().filter(filter);
+}
+function createRowFilterFromBlockFilter(blocks) {
+	let ids = distinct(blocks.map((b) => b.getIds()).flat());
+	return {
+		context: { ids },
+		rowFilter: function(tr, context) {
+			return context.ids.includes(parseInt(tr.dataset.blockId));
+		}
+	};
+}
+function createQuerySelectorFilter(selector) {
+	return {
+		context: void 0,
+		rowFilter: function(tr, _context) {
+			return tr.querySelector(selector) != void 0;
+		}
+	};
+}
+function createInverseFilter(filter) {
+	return {
+		context: filter.context,
+		rowFilter: function(tr, context) {
+			return !filter.rowFilter(tr, context);
+		}
+	};
+}
+function createAncestorFilter(rowPreFilter) {
+	let filteredRows = filterTableRows(
+		// Filter original table:
+		TRIM_TABLE_ID,
+		rowPreFilter
+);
+	let blockIds = [...new Set(filteredRows.filter((tr) => tr.dataset.blockId !== "groupTitle").map((tr) => tr.dataset.blockId))];
+	let groupIds = [...new Set(filteredRows.map((tr) => tr.dataset.groupId))];
+	let headerGroupIds = [...new Set(filteredRows.filter((tr) => tr.dataset.blockId === "groupTitle").map((tr) => tr.dataset.groupId))];
+	function siblingsAndAncestorsFilter(tr, context) {
+		if (context.headerGroupIds.includes(tr.dataset.groupId)) return true;
+		if (context.blockIds.includes(tr.dataset.blockId)) return true;
+		return context.groupIds.includes(tr.dataset.groupId) && tr.classList.contains("groupHeader");
+	}
+	return {
+		context: {
+			blockIds,
+			groupIds,
+			headerGroupIds
+		},
+		rowFilter: siblingsAndAncestorsFilter
+	};
+}
+const TXT_FILTER_ID$1 = "txtFilter";
+function setFilterInfo(text) {
+	document.getElementById(FILTER_INFO_ID).innerText = text;
+}
+function applyFilters() {
+	let pageState$1 = getPageSettings(PageName.Lessen, getDefaultPageSettings());
+	pageState$1.searchText = document.getElementById(TXT_FILTER_ID$1).value;
+	savePageSettings(pageState$1);
+	if (isTrimesterTableVisible()) {
+		let textPreFilter = createTextRowFilter(pageState$1.searchText, (tr) => tr.textContent);
+		let preFilter = textPreFilter;
+		let extraFilter = void 0;
+		if (pageState$1.filterOffline) extraFilter = {
+			context: void 0,
+			rowFilter: function(tr, _context) {
+				return tr.dataset.visibility === "offline";
+			}
+		};
+		else if (pageState$1.filterOnline) extraFilter = {
+			context: void 0,
+			rowFilter: function(tr, _context) {
+				return tr.dataset.visibility === "online";
+			}
+		};
+		else if (pageState$1.filterNoTeacher) extraFilter = createRowFilterFromBlockFilter(createBlockFilter((b) => b.hasMissingTeachers()));
+		else if (pageState$1.filterNoMax) extraFilter = createRowFilterFromBlockFilter(createBlockFilter((b) => b.hasMissingMax()));
+		if (extraFilter) preFilter = combineFilters(createAncestorFilter(textPreFilter), extraFilter);
+		let filter = createAncestorFilter(preFilter);
+		filterTable(TRIM_TABLE_ID, filter);
+	} else {
+		let textFilter = createTextRowFilter(pageState$1.searchText, (tr) => tr.cells[0].textContent);
+		let filter = textFilter;
+		let extraFilter = void 0;
+		if (pageState$1.filterOffline) extraFilter = createQuerySelectorFilter("td>i.fa-eye-slash");
+		else if (pageState$1.filterOnline) extraFilter = createInverseFilter(createQuerySelectorFilter("td>i.fa-eye-slash"));
+		else if (pageState$1.filterNoTeacher) extraFilter = createTextRowFilter("(geen klasleerkracht)", (tr) => tr.cells[0].textContent);
+		else if (pageState$1.filterNoMax) extraFilter = createTextRowFilter("999", (tr) => tr.cells[1].textContent);
+		if (extraFilter) filter = combineFilters(textFilter, extraFilter);
+		filterTable(LESSEN_TABLE_ID, filter);
+	}
+	if (pageState$1.filterOnline) setFilterInfo("Online lessen");
+	else if (pageState$1.filterOffline) setFilterInfo("Offline lessen");
+	else if (pageState$1.filterNoTeacher) setFilterInfo("Zonder leraar");
+	else if (pageState$1.filterNoMax) setFilterInfo("Zonder maximum");
+	else setFilterInfo("");
+}
+function setExtraFilter(set) {
+	let pageState$1 = getPageSettings(PageName.Lessen, getDefaultPageSettings());
+	pageState$1.filterOffline = false;
+	pageState$1.filterOnline = false;
+	pageState$1.filterNoTeacher = false;
+	pageState$1.filterNoMax = false;
+	set(pageState$1);
+	savePageSettings(pageState$1);
+	applyFilters();
+}
+function addFilterFields() {
+	let divButtonNieuweLes = document.querySelector("#lessen_overzicht > div > button");
+	if (!document.getElementById(TXT_FILTER_ID$1)) {
+		let pageState$1 = getPageSettings(PageName.Lessen, getDefaultPageSettings());
+		let searchField$1 = createSearchField(TXT_FILTER_ID$1, applyFilters, pageState$1.searchText);
+		divButtonNieuweLes.insertAdjacentElement("afterend", searchField$1);
+		let { first: span, last: idiom } = emmet.insertAfter(searchField$1, "span.btn-group-sm>button.btn.btn-sm.btn-outline-secondary.ml-2>i.fas.fa-list");
+		let menu = setupMenu(span, idiom.parentElement);
+		addMenuItem(menu, "Show all", 0, (_) => setExtraFilter((pageState$2) => {}));
+		addMenuItem(menu, "Filter online lessen", 0, (_) => setExtraFilter((pageState$2) => pageState$2.filterOnline = true));
+		addMenuItem(menu, "Filter offline lessen", 0, (_) => setExtraFilter((pageState$2) => pageState$2.filterOffline = true));
+		addMenuItem(menu, "Lessen zonder leraar", 0, (_) => setExtraFilter((pageState$2) => pageState$2.filterNoTeacher = true));
+		addMenuItem(menu, "Lessen zonder maximum", 0, (_) => setExtraFilter((pageState$2) => pageState$2.filterNoMax = true));
+		emmet.insertAfter(idiom.parentElement, `span#${FILTER_INFO_ID}.filterInfo{sdfsdf}`);
+	}
+	applyFilters();
+}
+
+//#endregion
 //#region typescript/lessen/observer.ts
 var observer_default$8 = new HashObserver("#lessen-overzicht", onMutation$6);
 function onMutation$6(mutation) {
@@ -3445,7 +3576,6 @@ function onMutation$6(mutation) {
 		let { first } = emmet.insertAfter(document.getElementById("btn_lessen_overzicht_zoeken"), "button.btn.btn-sm.btn-primary.w-100.mt-1#btn_show_trimesters>i.fas.fa-sitemap+{ Toon trimesters}");
 		first.onclick = onClickShowTrimesters;
 	}
-	console.log(mutation);
 	let pageState$1 = getGotoStateOrDefault(PageName.Lessen);
 	switch (pageState$1.goto) {
 		case Goto.Lessen_trimesters_set_filter:
@@ -3454,7 +3584,6 @@ function onMutation$6(mutation) {
 			onClickShowTrimesters();
 			return true;
 		case Goto.Lessen_trimesters_show:
-			console.log("TODO: show trims");
 			pageState$1.goto = Goto.None;
 			saveGotoState(pageState$1);
 			return true;
@@ -3464,7 +3593,6 @@ function onMutation$6(mutation) {
 function onClickShowTrimesters() {
 	document.getElementById("lessen_overzicht").innerHTML = "<span class=\"text-muted\">\n                <i class=\"fa fa-cog fa-spin\"></i> <i>Bezig met laden...</i>\n            </span>";
 	setTrimesterFilterAndFetch().then((text) => {
-		console.log("Filter been set: show trims after reload...");
 		document.getElementById("lessen_overzicht").innerHTML = text;
 		showTrimesterTable(decorateTable(), true);
 	});
@@ -3528,153 +3656,6 @@ function decorateTable() {
 	addFilterFields();
 	return getTrimPageElements();
 }
-const TXT_FILTER_ID$1 = "txtFilter";
-function addFilterFields() {
-	let divButtonNieuweLes = document.querySelector("#lessen_overzicht > div > button");
-	if (!document.getElementById(TXT_FILTER_ID$1)) {
-		let pageState$1 = getPageSettings(PageName.Lessen, getDefaultPageSettings());
-		let searchField$1 = createSearchField(TXT_FILTER_ID$1, applyFilters, pageState$1.searchText);
-		divButtonNieuweLes.insertAdjacentElement("afterend", searchField$1);
-		let { first: span, last: idiom } = emmet.insertAfter(searchField$1, "span.btn-group-sm>button.btn.btn-sm.btn-outline-secondary.ml-2>i.fas.fa-list");
-		let menu = setupMenu(span, idiom.parentElement);
-		addMenuItem(menu, "Show all", 0, (_) => filterAll());
-		addMenuItem(menu, "Filter online lessen", 0, (_) => filterOnline());
-		addMenuItem(menu, "Filter offline lessen", 0, (_) => filterOffline());
-		addMenuItem(menu, "Lessen zonder leraar", 0, (_) => filterNoTeacher());
-		addMenuItem(menu, "Lessen zonder maximum", 0, (_) => filterNoMax());
-		emmet.insertAfter(idiom.parentElement, `span#${FILTER_INFO_ID}.filterInfo{sdfsdf}`);
-	}
-	applyFilters();
-}
-function setFilterInfo(text) {
-	document.getElementById(FILTER_INFO_ID).innerText = text;
-}
-function clearFilters(pageState$1) {
-	pageState$1.filterOffline = false;
-	pageState$1.filterOnline = false;
-	pageState$1.filterNoTeacher = false;
-	pageState$1.filterNoMax = false;
-}
-function filterAll() {
-	let pageState$1 = getPageSettings(PageName.Lessen, getDefaultPageSettings());
-	clearFilters(pageState$1);
-	savePageSettings(pageState$1);
-	applyFilters();
-}
-function filterNoTeacher() {
-	let pageState$1 = getPageSettings(PageName.Lessen, getDefaultPageSettings());
-	clearFilters(pageState$1);
-	pageState$1.filterNoTeacher = true;
-	savePageSettings(pageState$1);
-	applyFilters();
-}
-function filterNoMax() {
-	let pageState$1 = getPageSettings(PageName.Lessen, getDefaultPageSettings());
-	clearFilters(pageState$1);
-	pageState$1.filterNoMax = true;
-	savePageSettings(pageState$1);
-	applyFilters();
-}
-function filterOffline() {
-	let pageState$1 = getPageSettings(PageName.Lessen, getDefaultPageSettings());
-	clearFilters(pageState$1);
-	pageState$1.filterOffline = true;
-	savePageSettings(pageState$1);
-	applyFilters();
-}
-function filterOnline() {
-	let pageState$1 = getPageSettings(PageName.Lessen, getDefaultPageSettings());
-	clearFilters(pageState$1);
-	pageState$1.filterOnline = true;
-	savePageSettings(pageState$1);
-	applyFilters();
-}
-function applyFilters() {
-	let pageState$1 = getPageSettings(PageName.Lessen, getDefaultPageSettings());
-	pageState$1.searchText = document.getElementById(TXT_FILTER_ID$1).value;
-	savePageSettings(pageState$1);
-	if (isTrimesterTableVisible()) {
-		let textPreFilter = createTextRowFilter(pageState$1.searchText, (tr) => tr.textContent);
-		let preFilter = textPreFilter;
-		let extraFilter = void 0;
-		if (pageState$1.filterOffline) extraFilter = {
-			context: void 0,
-			rowFilter: function(tr, _context) {
-				return tr.dataset.visibility === "offline";
-			}
-		};
-		else if (pageState$1.filterOnline) extraFilter = {
-			context: void 0,
-			rowFilter: function(tr, _context) {
-				return tr.dataset.visibility === "online";
-			}
-		};
-		else if (pageState$1.filterNoTeacher) {
-			let ids = distinct(BlockInfo.getAllBlocks().filter((b) => b.hasMissingTeachers()).map((b) => b.getIds()).flat());
-			extraFilter = {
-				context: { ids },
-				rowFilter: function(tr, context) {
-					return context.ids.includes(parseInt(tr.dataset.blockId));
-				}
-			};
-		} else if (pageState$1.filterNoMax) {
-			let ids = distinct(BlockInfo.getAllBlocks().filter((b) => b.hasMissingMax()).map((b) => b.getIds()).flat());
-			extraFilter = {
-				context: { ids },
-				rowFilter: function(tr, context) {
-					return context.ids.includes(parseInt(tr.dataset.blockId));
-				}
-			};
-		}
-		if (extraFilter) preFilter = combineFilters(buildAncestorFilter(textPreFilter), extraFilter);
-		let filter = buildAncestorFilter(preFilter);
-		filterTable(TRIM_TABLE_ID, filter);
-	} else {
-		let textFilter = createTextRowFilter(pageState$1.searchText, (tr) => tr.cells[0].textContent);
-		let filter = textFilter;
-		let extraFilter = void 0;
-		if (pageState$1.filterOffline) extraFilter = {
-			context: void 0,
-			rowFilter: function(tr, _context) {
-				return tr.querySelector("td>i.fa-eye-slash") != void 0;
-			}
-		};
-		else if (pageState$1.filterOnline) extraFilter = {
-			context: void 0,
-			rowFilter: function(tr, _context) {
-				return tr.querySelector("td>i.fa-eye-slash") == void 0;
-			}
-		};
-		else if (pageState$1.filterNoTeacher) extraFilter = createTextRowFilter("(geen klasleerkracht)", (tr) => tr.cells[0].textContent);
-		else if (pageState$1.filterNoMax) extraFilter = createTextRowFilter("999", (tr) => tr.cells[1].textContent);
-		if (extraFilter) filter = combineFilters(textFilter, extraFilter);
-		filterTable(LESSEN_TABLE_ID, filter);
-	}
-	if (pageState$1.filterOnline) setFilterInfo("Online lessen");
-	else if (pageState$1.filterOffline) setFilterInfo("Offline lessen");
-	else if (pageState$1.filterNoTeacher) setFilterInfo("Zonder leraar");
-	else if (pageState$1.filterNoMax) setFilterInfo("Zonder maximum");
-	else setFilterInfo("");
-}
-function buildAncestorFilter(rowPreFilter) {
-	let filteredRows = filterTableRows(TRIM_TABLE_ID, rowPreFilter);
-	let blockIds = [...new Set(filteredRows.filter((tr) => tr.dataset.blockId !== "groupTitle").map((tr) => tr.dataset.blockId))];
-	let groupIds = [...new Set(filteredRows.map((tr) => tr.dataset.groupId))];
-	let headerGroupIds = [...new Set(filteredRows.filter((tr) => tr.dataset.blockId === "groupTitle").map((tr) => tr.dataset.groupId))];
-	function siblingsAndAncestorsFilter(tr, context) {
-		if (context.headerGroupIds.includes(tr.dataset.groupId)) return true;
-		if (context.blockIds.includes(tr.dataset.blockId)) return true;
-		return context.groupIds.includes(tr.dataset.groupId) && tr.classList.contains("groupHeader");
-	}
-	return {
-		context: {
-			blockIds,
-			groupIds,
-			headerGroupIds
-		},
-		rowFilter: siblingsAndAncestorsFilter
-	};
-}
 function addButton(printButton, buttonId, title, clickFunction, imageId) {
 	let button = document.getElementById(buttonId);
 	if (button === null) {
@@ -3731,12 +3712,11 @@ function getTrimPageElements() {
 		trimButton: document.getElementById(TRIM_BUTTON_ID)
 	};
 }
-let globalTableData;
 function showTrimesterTable(trimElements, show) {
 	trimElements.trimTable?.remove();
 	let inputModules = scrapeModules(trimElements.lessenTable);
-	globalTableData = buildTableData(inputModules.trimesterModules.concat(inputModules.jaarModules));
-	buildTrimesterTable(globalTableData, trimElements);
+	let tableData = buildTableData(inputModules.trimesterModules.concat(inputModules.jaarModules));
+	buildTrimesterTable(tableData, trimElements);
 	trimElements.lessenTable.style.display = show ? "none" : "table";
 	trimElements.trimTable.style.display = show ? "table" : "none";
 	trimElements.trimButton.title = show ? "Toon normaal" : "Toon trimesters";

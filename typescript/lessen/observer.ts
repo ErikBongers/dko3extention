@@ -1,14 +1,14 @@
 import {scrapeLessenOverzicht, scrapeModules} from "./scrape";
-import {BlockInfo, buildTableData, TableData} from "./convert";
+import {buildTableData, TableData} from "./convert";
 import {buildTrimesterTable, getDefaultPageSettings, getSavedNameSorting, LessenPageState, NameSorting, setSavedNameSorting, TrimElements, TrimesterGrouping} from "./build";
 import * as def from "../def";
-import {FILTER_INFO_ID, LESSEN_TABLE_ID} from "../def";
-import {combineFilters, createSearchField, createTextRowFilter, distinct, filterTable, filterTableRows, findSchooljaar, getPageSettings, RowFilter, savePageSettings, setButtonHighlighted} from "../globals";
+import {LESSEN_TABLE_ID} from "../def";
+import {findSchooljaar, getPageSettings, savePageSettings, setButtonHighlighted} from "../globals";
 import {HashObserver} from "../pageObserver";
 import * as html from "../../libs/Emmeter/html";
 import {emmet} from "../../libs/Emmeter/html";
 import {getGotoStateOrDefault, Goto, PageName, saveGotoState} from "../gotoState";
-import {addMenuItem, setupMenu} from "../menus";
+import {addFilterFields, applyFilters} from "./filter";
 
 export default new HashObserver("#lessen-overzicht", onMutation);
 
@@ -24,7 +24,6 @@ function onMutation (mutation: MutationRecord) {
         (first as HTMLElement).onclick = onClickShowTrimesters;
     }
 
-    console.log(mutation)
     let pageState = getGotoStateOrDefault(PageName.Lessen);
     switch (pageState.goto) {
         case Goto.Lessen_trimesters_set_filter:
@@ -33,7 +32,6 @@ function onMutation (mutation: MutationRecord) {
             onClickShowTrimesters();
             return true;
         case Goto.Lessen_trimesters_show:
-            console.log("TODO: show trims");
             pageState.goto = Goto.None;
             saveGotoState(pageState);
             return true;
@@ -42,13 +40,11 @@ function onMutation (mutation: MutationRecord) {
     return decorateTable() !== undefined;
 }
 
-
 function onClickShowTrimesters() {
     document.getElementById("lessen_overzicht").innerHTML = "<span class=\"text-muted\">\n" +
         "                <i class=\"fa fa-cog fa-spin\"></i> <i>Bezig met laden...</i>\n" +
         "            </span>";
     setTrimesterFilterAndFetch().then((text) => {
-        console.log("Filter been set: show trims after reload...");
         document.getElementById("lessen_overzicht").innerHTML = text;
         showTrimesterTable(decorateTable(), true);
     });
@@ -75,7 +71,6 @@ async function setTrimesterFilterAndFetch() {
     let res = await fetch(url+"?" + params);
     return res.text();
 }
-
 
 function createTrimTableDiv() {
     let trimDiv = document.getElementById(def.TRIM_DIV_ID);
@@ -134,195 +129,6 @@ function decorateTable() {
     addFilterFields();
 
     return getTrimPageElements();
-}
-
-const TXT_FILTER_ID = "txtFilter";
-
-function addFilterFields() {
-    let divButtonNieuweLes = document.querySelector("#lessen_overzicht > div > button");
-    if(!document.getElementById(TXT_FILTER_ID)) {
-        let pageState = getPageSettings(PageName.Lessen, getDefaultPageSettings()) as LessenPageState;
-        let searchField = createSearchField(TXT_FILTER_ID, applyFilters, pageState.searchText);
-        divButtonNieuweLes.insertAdjacentElement("afterend", searchField);
-        //menu
-        let {first: span, last: idiom} = emmet.insertAfter(searchField, 'span.btn-group-sm>button.btn.btn-sm.btn-outline-secondary.ml-2>i.fas.fa-list');
-        let menu = setupMenu(span as HTMLElement, idiom.parentElement);
-        addMenuItem(menu, "Show all", 0, _ => filterAll());
-        addMenuItem(menu, "Filter online lessen", 0, _ => filterOnline());
-        addMenuItem(menu, "Filter offline lessen", 0, _ => filterOffline());
-        addMenuItem(menu, "Lessen zonder leraar", 0, _ => filterNoTeacher());
-        addMenuItem(menu, "Lessen zonder maximum", 0, _ => filterNoMax());
-        emmet.insertAfter(idiom.parentElement, `span#${def.FILTER_INFO_ID}.filterInfo{sdfsdf}`);
-    }
-
-    applyFilters();
-}
-
-function setFilterInfo(text: string) {
-    document.getElementById(FILTER_INFO_ID).innerText = text;
-}
-
-function clearFilters(pageState: LessenPageState) {
-    pageState.filterOffline = false;
-    pageState.filterOnline = false;
-    pageState.filterNoTeacher = false;
-    pageState.filterNoMax = false;
-}
-
-function filterAll() {
-    let pageState = getPageSettings(PageName.Lessen, getDefaultPageSettings()) as LessenPageState;
-    clearFilters(pageState);
-    savePageSettings(pageState);
-    applyFilters();
-}
-
-
-function filterNoTeacher() {
-    let pageState = getPageSettings(PageName.Lessen, getDefaultPageSettings()) as LessenPageState;
-    clearFilters(pageState);
-    pageState.filterNoTeacher = true;
-    savePageSettings(pageState);
-    applyFilters();
-}
-
-function filterNoMax() {
-    let pageState = getPageSettings(PageName.Lessen, getDefaultPageSettings()) as LessenPageState;
-    clearFilters(pageState);
-    pageState.filterNoMax = true;
-    savePageSettings(pageState);
-    applyFilters();
-}
-
-function filterOffline() {
-    let pageState = getPageSettings(PageName.Lessen, getDefaultPageSettings()) as LessenPageState;
-    clearFilters(pageState);
-    pageState.filterOffline = true;
-    savePageSettings(pageState);
-    applyFilters();
-}
-
-function filterOnline() {
-    let pageState = getPageSettings(PageName.Lessen, getDefaultPageSettings()) as LessenPageState;
-    clearFilters(pageState);
-    pageState.filterOnline = true;
-    savePageSettings(pageState);
-    applyFilters();
-}
-
-function applyFilters() {
-    let pageState = getPageSettings(PageName.Lessen, getDefaultPageSettings()) as LessenPageState;
-    pageState.searchText = (document.getElementById(TXT_FILTER_ID) as HTMLInputElement).value;
-    savePageSettings(pageState);
-
-    if(isTrimesterTableVisible()) {
-        let textPreFilter = createTextRowFilter(pageState.searchText, (tr) => tr.textContent);
-
-        let preFilter = textPreFilter;
-        let extraFilter: RowFilter = undefined;
-        if(pageState.filterOffline) {
-            extraFilter = {
-                context: undefined,
-                rowFilter: function (tr: HTMLTableRowElement, _context: any): boolean {
-                    return tr.dataset.visibility === "offline";
-                }
-            };
-        } else if(pageState.filterOnline) {
-            extraFilter = {
-                context: undefined,
-                rowFilter: function (tr: HTMLTableRowElement, _context: any): boolean {
-                    return tr.dataset.visibility === "online";
-                }
-            };
-        } else if(pageState.filterNoTeacher) {
-            let ids = distinct(BlockInfo.getAllBlocks().filter(b => b.hasMissingTeachers()).map(b => b.getIds()).flat());
-            extraFilter = {
-                context: {ids},
-                rowFilter: function (tr: HTMLTableRowElement, context: any): boolean {
-                    return context.ids.includes(parseInt(tr.dataset.blockId));
-                }
-            };
-        } else if(pageState.filterNoMax) {
-            let ids = distinct(BlockInfo.getAllBlocks().filter(b => b.hasMissingMax()).map(b => b.getIds()).flat());
-            extraFilter = {
-                context: {ids},
-                rowFilter: function (tr: HTMLTableRowElement, context: any): boolean {
-                    return context.ids.includes(parseInt(tr.dataset.blockId));
-                }
-            };
-        }
-        if(extraFilter)
-            preFilter = combineFilters(buildAncestorFilter(textPreFilter), extraFilter);
-
-        let filter = buildAncestorFilter(preFilter);
-        filterTable(def.TRIM_TABLE_ID, filter);
-    } else { // Filter original table:
-        let textFilter = createTextRowFilter(pageState.searchText, (tr) => tr.cells[0].textContent);
-        let filter = textFilter;
-        let extraFilter: RowFilter = undefined;
-        if(pageState.filterOffline) {
-            extraFilter = {
-                context: undefined,
-                rowFilter: function (tr: HTMLTableRowElement, _context: any): boolean {
-                    return tr.querySelector("td>i.fa-eye-slash") != undefined;
-                }
-            };
-        } else if(pageState.filterOnline) {
-            extraFilter = {
-                context: undefined,
-                rowFilter: function (tr: HTMLTableRowElement, _context: any): boolean {
-                    return tr.querySelector("td>i.fa-eye-slash") == undefined;
-                }
-            };
-        } else if(pageState.filterNoTeacher) {
-            extraFilter = createTextRowFilter("(geen klasleerkracht)", (tr) => tr.cells[0].textContent);
-        } else if(pageState.filterNoMax) {
-            extraFilter = createTextRowFilter("999", (tr) => tr.cells[1].textContent);
-        }
-
-        if(extraFilter)
-            filter = combineFilters(textFilter, extraFilter);
-        filterTable(LESSEN_TABLE_ID, filter);
-    }
-    if(pageState.filterOnline) {
-        setFilterInfo("Online lessen");
-    } else if(pageState.filterOffline) {
-        setFilterInfo("Offline lessen");
-    } else if(pageState.filterNoTeacher) {
-        setFilterInfo("Zonder leraar");
-    } else if(pageState.filterNoMax) {
-        setFilterInfo("Zonder maximum");
-    } else {
-        setFilterInfo("");
-    }
-}
-
-function buildAncestorFilter(rowPreFilter: RowFilter) {
-    let filteredRows = filterTableRows(def.TRIM_TABLE_ID, rowPreFilter);
-
-    //gather the blockIds and groupIds of the matching rows and show ALL of the rows in those blocks. (not just the matching rows).
-    let blockIds = [...new Set(filteredRows.filter(tr => tr.dataset.blockId !== "groupTitle").map(tr => tr.dataset.blockId))];
-    let groupIds = [...new Set(filteredRows.map(tr => tr.dataset.groupId))];
-    //also show all rows of headers that match the text filter.
-    let headerGroupIds = [...new Set(filteredRows.filter(tr => tr.dataset.blockId === "groupTitle").map(tr => tr.dataset.groupId))];
-
-    function siblingsAndAncestorsFilter(tr: HTMLTableRowElement, context: TrimFilterContext) {
-        //display all child rows for the headers that match
-        if(context.headerGroupIds.includes(tr.dataset.groupId))
-            return true;
-        //display all siblings of non-header rows, thus the full block
-        if(context.blockIds.includes(tr.dataset.blockId))
-            return true;
-        //display the ancestor (header) rows of matching non-header rows
-        return context.groupIds.includes(tr.dataset.groupId) && tr.classList.contains("groupHeader");
-    }
-
-    return {context: {blockIds, groupIds, headerGroupIds}, rowFilter: siblingsAndAncestorsFilter};
-}
-
-interface TrimFilterContext {
-    blockIds: string[],
-    groupIds: string[],
-    headerGroupIds: string[],
 }
 
 function addButton(printButton: HTMLButtonElement, buttonId: string, title: string, clickFunction: (this: GlobalEventHandlers, ev: MouseEvent) => any, imageId: string) {
@@ -398,13 +204,11 @@ export function getTrimPageElements(){
     }
 }
 
-let globalTableData: TableData;
-
 export function showTrimesterTable(trimElements: TrimElements, show: boolean) {
     trimElements.trimTable?.remove();
     let inputModules = scrapeModules(trimElements.lessenTable);
-    globalTableData = buildTableData(inputModules.trimesterModules.concat(inputModules.jaarModules));
-    buildTrimesterTable(globalTableData, trimElements);
+    let tableData = buildTableData(inputModules.trimesterModules.concat(inputModules.jaarModules));
+    buildTrimesterTable(tableData, trimElements);
 
     trimElements.lessenTable.style.display = show ? "none" : "table";
     trimElements.trimTable.style.display = show ? "table" : "none";

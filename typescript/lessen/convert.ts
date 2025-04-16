@@ -7,10 +7,12 @@ interface TagInfo {
     partial: boolean
 }
 
+type  BlockId = number;
+
 export class BlockInfo {
     private static blockCounter: number = 0;
     private static allBlocks: BlockInfo[] = [];
-    id: number;
+    id: BlockId;
     teacher: string;
     instrumentName: string;
     maxAantal: number;

@@ -167,12 +167,12 @@ First draw the 2 jaarmodule students.
  */
 
 function buildBlock(newTableBody: HTMLTableSectionElement, block: BlockInfo, groupId: string, getBlockTitle: (undefined | ((block: BlockInfo) => string)), displayOptions: DisplayOptions) {
-    let mergedBlock = mergeBlockStudents(block);
+    let mergedBlockStudents = mergeBlockStudents(block);
 
     let trimesterHeaders = [0,1,2] .map(trimNo => {
-        if(mergedBlock.trimesterStudents[trimNo].length < 5 && mergedBlock.maxAantallen[trimNo] < 5)
+        if(mergedBlockStudents.trimesterStudents[trimNo].length < 5 && mergedBlockStudents.maxAantallen[trimNo] < 5)
             return "";
-        return `${mergedBlock.trimesterStudents[trimNo].length} van ${mergedBlock.maxAantallen[trimNo]} lln`;
+        return `${mergedBlockStudents.trimesterStudents[trimNo].length} van ${mergedBlockStudents.maxAantallen[trimNo]} lln`;
     });
 
     let trTitle = buildBlockTitle(newTableBody, block, getBlockTitle, groupId);
@@ -197,14 +197,14 @@ function buildBlock(newTableBody: HTMLTableSectionElement, block: BlockInfo, gro
      */
     //Fill jaar rows
     let filledRowCount = 0;
-        sortStudents(mergedBlock.jaarStudents);
-        for(let student of mergedBlock.jaarStudents) {
+        sortStudents(mergedBlockStudents.jaarStudents);
+        for(let student of mergedBlockStudents.jaarStudents) {
             let row = createStudentRow(newTableBody, "jaarRow", groupId, block.id);
             for (let trimNo = 0; trimNo < 3; trimNo++) {
                 let cell = buildStudentCell(student);
                 row.appendChild(cell);
                 cell.classList.add("jaarStudent");
-                if (mergedBlock.maxAantallen[trimNo] <= filledRowCount) {
+                if (mergedBlockStudents.maxAantallen[trimNo] <= filledRowCount) {
                     cell.classList.add("gray");
                 }
             }
@@ -212,16 +212,16 @@ function buildBlock(newTableBody: HTMLTableSectionElement, block: BlockInfo, gro
         }
 
     //Fill trimester rows
-    for (let rowNo = 0; rowNo < (mergedBlock.blockNeededRows - filledRowCount); rowNo++) {
+    for (let rowNo = 0; rowNo < (mergedBlockStudents.blockNeededRows - filledRowCount); rowNo++) {
         let row = createStudentRow(newTableBody,"trimesterRow", groupId, block.id);
 
         for (let trimNo = 0; trimNo < 3; trimNo++) {
-            let trimester = mergedBlock.trimesterStudents[trimNo];
+            let trimester = mergedBlockStudents.trimesterStudents[trimNo];
             sortStudents(trimester);
             let student: StudentInfo = undefined;
             if (trimester) {
                 student = trimester[rowNo];
-                let maxTrimStudentCount = Math.max(mergedBlock.maxAantallen[trimNo], mergedBlock.maxJaarStudentCount);
+                let maxTrimStudentCount = Math.max(mergedBlockStudents.maxAantallen[trimNo], mergedBlockStudents.maxJaarStudentCount);
                 if (trimester.length > 0 && trimester.length >= maxTrimStudentCount) {
                     row.dataset.hasFullClass = "true";
                     hasFullClass = true;
@@ -230,7 +230,7 @@ function buildBlock(newTableBody: HTMLTableSectionElement, block: BlockInfo, gro
             let cell = buildStudentCell(student);
             row.appendChild(cell);
             cell.classList.add("trimesterStudent");
-            if (mergedBlock.maxAantallen[trimNo] <= rowNo) {
+            if (mergedBlockStudents.maxAantallen[trimNo] <= rowNo) {
                 cell.classList.add("gray");
             }
             if(student?.trimesterInstruments) {
@@ -245,7 +245,7 @@ function buildBlock(newTableBody: HTMLTableSectionElement, block: BlockInfo, gro
             trTitle.dataset.hasFullClass = "true";
         headerRows.trModuleLinks.dataset.hasFullClass = "true";
     }
-    if (!mergedBlock.hasWachtlijst) {
+    if (!mergedBlockStudents.hasWachtlijst) {
         return;
     }
 
@@ -254,18 +254,18 @@ function buildBlock(newTableBody: HTMLTableSectionElement, block: BlockInfo, gro
         let row = newTableBody.children[newTableBody.children.length-1];
         row.classList.add("wachtlijst");
         let cell = row.children[trimNo];
-        if (mergedBlock.wachtlijsten[trimNo] === 0) {
+        if (mergedBlockStudents.wachtlijsten[trimNo] === 0) {
             continue;
         }
         const small = document.createElement("small");
         cell.appendChild(small);
-        small.appendChild(document.createTextNode(`(${mergedBlock.wachtlijsten[trimNo]} op wachtlijst)`));
+        small.appendChild(document.createTextNode(`(${mergedBlockStudents.wachtlijsten[trimNo]} op wachtlijst)`));
         small.classList.add("text-danger");
 
         //studens on wachtlijst and there is still room available?
-        if (mergedBlock.wachtlijsten[trimNo] > 0 && mergedBlock.trimesterStudents[trimNo].length < mergedBlock.maxAantallen[trimNo]) {
+        if (mergedBlockStudents.wachtlijsten[trimNo] > 0 && mergedBlockStudents.trimesterStudents[trimNo].length < mergedBlockStudents.maxAantallen[trimNo]) {
             cell.querySelector("small").classList.add("yellowMarker");
-            newTableBody.children[studentTopRowNo + mergedBlock.trimesterStudents[trimNo].length].children[trimNo].classList.add("yellowMarker");
+            newTableBody.children[studentTopRowNo + mergedBlockStudents.trimesterStudents[trimNo].length].children[trimNo].classList.add("yellowMarker");
         }
     }
 }
@@ -334,21 +334,22 @@ function buildInfoRow(newTableBody: HTMLTableSectionElement, _text: string, show
     trBlockInfo.classList.add("blockRow");
     if(show===false)
         trBlockInfo.dataset.keepHidden = "true";
+    trBlockInfo.dataset.groupId = groupId;
 
     return html.emmet.append(trBlockInfo, "td.infoCell[colspan=3]>div.text-muted");
 }
 
-function buildInfoRowWithText(newTableBody: HTMLTableSectionElement, show: boolean, groupId: string, text: string)  {
-    let {last: divMuted} = buildInfoRow(newTableBody, "", show, groupId, undefined);
+function buildInfoRowWithText(newTableBody: HTMLTableSectionElement, show: boolean, blockId: number, groupId: string, text: string)  {
+    let {last: divMuted} = buildInfoRow(newTableBody, "", show, groupId, blockId);
     divMuted.appendChild(document.createTextNode(text));
 }
 
 function buildBlockHeader(newTableBody: HTMLTableSectionElement, block: BlockInfo, groupId: string, trimesterHeaders: string[], displayOptions: DisplayOptions) {
     //INFO
-    buildInfoRowWithText(newTableBody, Boolean((DisplayOptions.Teacher & displayOptions)), groupId, block.teacher);
-    buildInfoRowWithText(newTableBody, Boolean((DisplayOptions.Instrument & displayOptions)), groupId, block.instrumentName);
-    buildInfoRowWithText(newTableBody, Boolean((DisplayOptions.Hour & displayOptions)), groupId, block.lesmoment);
-    buildInfoRowWithText(newTableBody, Boolean((DisplayOptions.Location & displayOptions)), groupId, block.vestiging);
+    buildInfoRowWithText(newTableBody, Boolean((DisplayOptions.Teacher & displayOptions)), block.id, groupId, block.teacher);
+    buildInfoRowWithText(newTableBody, Boolean((DisplayOptions.Instrument & displayOptions)), block.id, groupId, block.instrumentName);
+    buildInfoRowWithText(newTableBody, Boolean((DisplayOptions.Hour & displayOptions)), block.id, groupId, block.lesmoment);
+    buildInfoRowWithText(newTableBody, Boolean((DisplayOptions.Location & displayOptions)), block.id, groupId, block.vestiging);
     if(block.tags.length > 0) {
         let {last: divMuted} = buildInfoRow(newTableBody, block.tags.join(), true, groupId, block.id);
         emmet.appendChild(divMuted as HTMLDivElement, block.tags.map(tag => {

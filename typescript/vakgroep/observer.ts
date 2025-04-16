@@ -1,5 +1,6 @@
 import {HashObserver} from "../pageObserver";
-import {createSearchField, createTextRowFilter, filterTable} from "../globals";
+import {createSearchField} from "../globals";
+import {createTextRowFilter, filterTable} from "../filter";
 
 export default new HashObserver("#extra-inschrijvingen-vakgroepen-vakgroep", onMutation);
 
