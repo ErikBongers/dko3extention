@@ -3566,7 +3566,7 @@ function addFilterFields() {
 		divButtonNieuweLes.insertAdjacentElement("afterend", searchField$1);
 		let { first: span, last: idiom } = emmet.insertAfter(searchField$1, "span.btn-group-sm>button.btn.btn-sm.btn-outline-secondary.ml-2>i.fas.fa-list");
 		let menu = setupMenu(span, idiom.parentElement);
-		addMenuItem(menu, "Show all", 0, (_) => setExtraFilter((pageState$2) => {}));
+		addMenuItem(menu, "Show all", 0, (_) => setExtraFilter((_$1) => {}));
 		addMenuItem(menu, "Filter online lessen", 0, (_) => setExtraFilter((pageState$2) => pageState$2.filterOnline = true));
 		addMenuItem(menu, "Filter offline lessen", 0, (_) => setExtraFilter((pageState$2) => pageState$2.filterOffline = true));
 		addMenuItem(menu, "Lessen zonder leraar", 0, (_) => setExtraFilter((pageState$2) => pageState$2.filterNoTeacher = true));
@@ -3580,12 +3580,15 @@ function addFilterFields() {
 //#region typescript/lessen/observer.ts
 var observer_default$8 = new HashObserver("#lessen-overzicht", onMutation$6);
 function onMutation$6(mutation) {
+	let btnZoek = document.getElementById("btn_lessen_overzicht_zoeken");
+	if (btnZoek) {
+		if (!document.getElementById("btn_show_trimesters")) {
+			let { first } = emmet.insertAfter(btnZoek, "button.btn.btn-sm.btn-primary.w-100.mt-1#btn_show_trimesters>i.fas.fa-sitemap+{ Toon trimesters}");
+			first.onclick = onClickShowTrimesters;
+		}
+	}
 	let lessenOverzicht = document.getElementById(LESSEN_OVERZICHT_ID);
 	if (mutation.target !== lessenOverzicht) return false;
-	if (!document.getElementById("btn_show_trimesters")) {
-		let { first } = emmet.insertAfter(document.getElementById("btn_lessen_overzicht_zoeken"), "button.btn.btn-sm.btn-primary.w-100.mt-1#btn_show_trimesters>i.fas.fa-sitemap+{ Toon trimesters}");
-		first.onclick = onClickShowTrimesters;
-	}
 	let pageState$1 = getGotoStateOrDefault(PageName.Lessen);
 	switch (pageState$1.goto) {
 		case Goto.Lessen_trimesters_set_filter:

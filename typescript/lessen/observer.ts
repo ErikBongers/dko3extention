@@ -13,15 +13,18 @@ import {addFilterFields, applyFilters} from "./filter";
 export default new HashObserver("#lessen-overzicht", onMutation);
 
 function onMutation (mutation: MutationRecord) {
+    let btnZoek = document.getElementById("btn_lessen_overzicht_zoeken");
+    if(btnZoek) {
+        if (!document.getElementById("btn_show_trimesters")) {
+            let {first} = emmet.insertAfter(btnZoek,
+                "button.btn.btn-sm.btn-primary.w-100.mt-1#btn_show_trimesters>i.fas.fa-sitemap+{ Toon trimesters}");
+            (first as HTMLElement).onclick = onClickShowTrimesters;
+        }
+    }
+
     let lessenOverzicht = document.getElementById(def.LESSEN_OVERZICHT_ID);
     if (mutation.target !== lessenOverzicht) {
         return false;
-    }
-
-    if(!document.getElementById("btn_show_trimesters")) {
-        let {first} = emmet.insertAfter(document.getElementById("btn_lessen_overzicht_zoeken"),
-            "button.btn.btn-sm.btn-primary.w-100.mt-1#btn_show_trimesters>i.fas.fa-sitemap+{ Toon trimesters}");
-        (first as HTMLElement).onclick = onClickShowTrimesters;
     }
 
     let pageState = getGotoStateOrDefault(PageName.Lessen);
