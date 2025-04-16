@@ -3787,17 +3787,17 @@ function createGroupingAnchorOrText(grouping, activeSorting) {
 		strong.appendChild(document.createTextNode(sortingText));
 		return strong;
 	} else {
-		let anchor = document.createElement("a");
-		anchor.innerText = sortingText;
-		anchor.href = "#";
-		anchor.onclick = () => {
+		let button = document.createElement("button");
+		button.innerText = sortingText;
+		button.classList.add("likeLink");
+		button.onclick = () => {
 			let pageState$1 = getPageSettings(PageName.Lessen, getDefaultPageSettings());
 			pageState$1.grouping = grouping;
 			savePageSettings(pageState$1);
 			showTrimesterTable(getTrimPageElements(), true);
 			return false;
 		};
-		return anchor;
+		return button;
 	}
 }
 

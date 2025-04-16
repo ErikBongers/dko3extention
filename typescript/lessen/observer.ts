@@ -282,16 +282,16 @@ function createGroupingAnchorOrText(grouping: TrimesterGrouping, activeSorting: 
         strong.appendChild(document.createTextNode(sortingText));
         return strong;
     } else {
-        let anchor = document.createElement('a');
-        anchor.innerText = sortingText;
-        anchor.href = "#";
-        anchor.onclick = () => {
+        let button = document.createElement('button');
+        button.innerText = sortingText;
+        button.classList.add("likeLink");
+        button.onclick = () => {
             let pageState = getPageSettings(PageName.Lessen, getDefaultPageSettings()) as LessenPageState;
             pageState.grouping = grouping;
             savePageSettings(pageState);
             showTrimesterTable(getTrimPageElements(), true);
             return false;
         };
-        return anchor;
+        return button;
     }
 }
