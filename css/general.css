@@ -321,9 +321,6 @@ button.likeLink {
     background: none!important;
     border: none;
     padding: 0!important;
-    /*optional*/
-    font-family: arial, sans-serif;
-    /*input has OS specific font-family*/
     color: var(--dko3-blue);
     cursor: pointer;
     &:hover {
