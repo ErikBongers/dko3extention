@@ -3475,19 +3475,19 @@ function createAncestorFilter(rowPreFilter) {
 		TRIM_TABLE_ID,
 		rowPreFilter
 );
-	let blockIds = [...new Set(filteredRows.filter((tr) => tr.dataset.blockId !== "groupTitle").map((tr) => tr.dataset.blockId))];
-	let groupIds = [...new Set(filteredRows.map((tr) => tr.dataset.groupId))];
-	let headerGroupIds = [...new Set(filteredRows.filter((tr) => tr.dataset.blockId === "groupTitle").map((tr) => tr.dataset.groupId))];
+	let filteredBlockIds = [...new Set(filteredRows.filter((tr) => tr.dataset.blockId !== "groupTitle").map((tr) => tr.dataset.blockId))];
+	let filteredGroupIds = [...new Set(filteredRows.map((tr) => tr.dataset.groupId))];
+	let filteredHeaderGroupIds = [...new Set(filteredRows.filter((tr) => tr.dataset.blockId === "groupTitle").map((tr) => tr.dataset.groupId))];
 	function siblingsAndAncestorsFilter(tr, context) {
-		if (context.headerGroupIds.includes(tr.dataset.groupId)) return true;
-		if (context.blockIds.includes(tr.dataset.blockId)) return true;
-		return context.groupIds.includes(tr.dataset.groupId) && tr.classList.contains("groupHeader");
+		if (context.filteredHeaderGroupIds.includes(tr.dataset.groupId)) return true;
+		if (context.filteredBlockIds.includes(tr.dataset.blockId)) return true;
+		return context.filteredGroupIds.includes(tr.dataset.groupId) && tr.classList.contains("groupHeader");
 	}
 	return {
 		context: {
-			blockIds,
-			groupIds,
-			headerGroupIds
+			filteredBlockIds,
+			filteredGroupIds,
+			filteredHeaderGroupIds
 		},
 		rowFilter: siblingsAndAncestorsFilter
 	};
@@ -3741,12 +3741,7 @@ function setSorteerLine(showTrimTable) {
 	let pageState$1 = getPageSettings(PageName.Lessen, getDefaultPageSettings());
 	let oldSorteerSpan = document.querySelector("#lessen_overzicht > span");
 	let newGroupingDiv = document.getElementById("trimGroepeerDiv");
-	if (!newGroupingDiv) {
-		newGroupingDiv = document.createElement("div");
-		newGroupingDiv.id = "trimGroepeerDiv";
-		newGroupingDiv.classList.add("text-muted");
-		oldSorteerSpan.parentNode.insertBefore(newGroupingDiv, oldSorteerSpan.nextSibling);
-	}
+	if (!newGroupingDiv) newGroupingDiv = emmet.insertAfter(oldSorteerSpan, "div#trimGroepeerDiv.text-muted").first;
 	let newSortingDiv = document.getElementById("trimSorteerDiv");
 	if (!newSortingDiv) {
 		emmet.insertBefore(newGroupingDiv, "div#trimSorteerDiv.text-muted");

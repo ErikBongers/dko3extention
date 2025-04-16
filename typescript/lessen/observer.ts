@@ -244,10 +244,7 @@ function setSorteerLine(showTrimTable: boolean) {
     let oldSorteerSpan = document.querySelector("#lessen_overzicht > span") as HTMLElement;
     let newGroupingDiv = document.getElementById("trimGroepeerDiv");
     if(!newGroupingDiv) {
-        newGroupingDiv = document.createElement("div");
-        newGroupingDiv.id = "trimGroepeerDiv";
-        newGroupingDiv.classList.add("text-muted");
-        oldSorteerSpan.parentNode.insertBefore(newGroupingDiv, oldSorteerSpan.nextSibling);
+        newGroupingDiv = emmet.insertAfter(oldSorteerSpan, "div#trimGroepeerDiv.text-muted").first as HTMLElement;
     }
     let newSortingDiv = document.getElementById("trimSorteerDiv");
     if(!newSortingDiv) {
