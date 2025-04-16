@@ -42,32 +42,34 @@ export function createInverseFilter(filter: RowFilter): RowFilter {
 }
 
 export interface TrimFilterContext {
-    blockIds: string[],
-    groupIds: string[],
-    headerGroupIds: string[],
+    filteredBlockIds: string[],
+    filteredGroupIds: string[],
+    filteredHeaderGroupIds: string[],
 }
 
+/*
+Bubble up the filter to the group level and then include all the sibling blocks of those groups.
+ */
 export function createAncestorFilter(rowPreFilter: RowFilter): RowFilter {
     let filteredRows = filterTableRows(def.TRIM_TABLE_ID, rowPreFilter);
 
-    //gather the blockIds and groupIds of the matching rows and show ALL of the rows in those blocks. (not just the matching rows).
-    let blockIds = [...new Set(filteredRows.filter(tr => tr.dataset.blockId !== "groupTitle").map(tr => tr.dataset.blockId))];
-    let groupIds = [...new Set(filteredRows.map(tr => tr.dataset.groupId))];
+    let filteredBlockIds = [...new Set(filteredRows.filter(tr => tr.dataset.blockId !== "groupTitle").map(tr => tr.dataset.blockId))];
+    let filteredGroupIds = [...new Set(filteredRows.map(tr => tr.dataset.groupId))];
     //also show all rows of headers that match the text filter.
-    let headerGroupIds = [...new Set(filteredRows.filter(tr => tr.dataset.blockId === "groupTitle").map(tr => tr.dataset.groupId))];
+    let filteredHeaderGroupIds = [...new Set(filteredRows.filter(tr => tr.dataset.blockId === "groupTitle").map(tr => tr.dataset.groupId))];
 
     function siblingsAndAncestorsFilter(tr: HTMLTableRowElement, context: TrimFilterContext) {
         //display all child rows for the headers that match
-        if (context.headerGroupIds.includes(tr.dataset.groupId))
+        if (context.filteredHeaderGroupIds.includes(tr.dataset.groupId))
             return true;
         //display all siblings of non-header rows, thus the full block
-        if (context.blockIds.includes(tr.dataset.blockId))
+        if (context.filteredBlockIds.includes(tr.dataset.blockId))
             return true;
         //display the ancestor (header) rows of matching non-header rows
-        return context.groupIds.includes(tr.dataset.groupId) && tr.classList.contains("groupHeader");
+        return context.filteredGroupIds.includes(tr.dataset.groupId) && tr.classList.contains("groupHeader");
     }
 
-    return {context: {blockIds, groupIds, headerGroupIds}, rowFilter: siblingsAndAncestorsFilter};
+    return {context: {filteredBlockIds, filteredGroupIds, filteredHeaderGroupIds} as TrimFilterContext, rowFilter: siblingsAndAncestorsFilter};
 }
 
 export const TXT_FILTER_ID = "txtFilter";
@@ -161,8 +163,7 @@ export function addFilterFields() {
         //menu
         let {first: span, last: idiom} = emmet.insertAfter(searchField, 'span.btn-group-sm>button.btn.btn-sm.btn-outline-secondary.ml-2>i.fas.fa-list');
         let menu = setupMenu(span as HTMLElement, idiom.parentElement);
-        addMenuItem(menu, "Show all", 0, _ => setExtraFilter(pageState => {
-        }));
+        addMenuItem(menu, "Show all", 0, _ => setExtraFilter(pageState => {}));
         addMenuItem(menu, "Filter online lessen", 0, _ => setExtraFilter(pageState => pageState.filterOnline = true));
         addMenuItem(menu, "Filter offline lessen", 0, _ => setExtraFilter(pageState => pageState.filterOffline = true));
         addMenuItem(menu, "Lessen zonder leraar", 0, _ => setExtraFilter(pageState => pageState.filterNoTeacher = true));
