@@ -83,25 +83,15 @@ export function applyFilters() {
     pageState.searchText = (document.getElementById(TXT_FILTER_ID) as HTMLInputElement).value;
     savePageSettings(pageState);
 
+    let extraFilter: RowFilter = undefined;
     if (isTrimesterTableVisible()) {
-        let textPreFilter = createTextRowFilter(pageState.searchText, (tr) => tr.textContent);
 
+        let textPreFilter = createTextRowFilter(pageState.searchText, (tr) => tr.textContent);
         let preFilter = textPreFilter;
-        let extraFilter: RowFilter = undefined;
         if (pageState.filterOffline) {
-            extraFilter = {
-                context: undefined,
-                rowFilter: function (tr: HTMLTableRowElement, _context: any): boolean {
-                    return tr.dataset.visibility === "offline";
-                }
-            };
+            extraFilter = createRowFilterFromBlockFilter(createBlockFilter(b => b.hasSomeOfflineLessen()));
         } else if (pageState.filterOnline) {
-            extraFilter = {
-                context: undefined,
-                rowFilter: function (tr: HTMLTableRowElement, _context: any): boolean {
-                    return tr.dataset.visibility === "online";
-                }
-            };
+            extraFilter = createRowFilterFromBlockFilter(createBlockFilter(b => !b.hasSomeOfflineLessen()))
         } else if (pageState.filterNoTeacher) {
             extraFilter = createRowFilterFromBlockFilter(createBlockFilter(b => b.hasMissingTeachers()));
         } else if (pageState.filterNoMax) {
@@ -115,7 +105,6 @@ export function applyFilters() {
     } else { // Filter original table:
         let textFilter = createTextRowFilter(pageState.searchText, (tr) => tr.cells[0].textContent);
         let filter = textFilter;
-        let extraFilter: RowFilter = undefined;
         if (pageState.filterOffline) {
             extraFilter = createQuerySelectorFilter("td>i.fa-eye-slash");
         } else if (pageState.filterOnline) {
@@ -163,7 +152,7 @@ export function addFilterFields() {
         //menu
         let {first: span, last: idiom} = emmet.insertAfter(searchField, 'span.btn-group-sm>button.btn.btn-sm.btn-outline-secondary.ml-2>i.fas.fa-list');
         let menu = setupMenu(span as HTMLElement, idiom.parentElement);
-        addMenuItem(menu, "Show all", 0, _ => setExtraFilter(_ => {}));
+        addMenuItem(menu, "Toon alles", 0, _ => setExtraFilter(_ => {}));
         addMenuItem(menu, "Filter online lessen", 0, _ => setExtraFilter(pageState => pageState.filterOnline = true));
         addMenuItem(menu, "Filter offline lessen", 0, _ => setExtraFilter(pageState => pageState.filterOffline = true));
         addMenuItem(menu, "Lessen zonder leraar", 0, _ => setExtraFilter(pageState => pageState.filterNoTeacher = true));

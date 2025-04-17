@@ -179,11 +179,6 @@ function buildBlock(newTableBody: HTMLTableSectionElement, block: BlockInfo, gro
     let headerRows = buildBlockHeader(newTableBody, block, groupId, trimesterHeaders, displayOptions);
     let studentTopRowNo = newTableBody.children.length;
 
-    if(trTitle)
-        trTitle.dataset.hasFullClass = "false";
-    headerRows.trModuleLinks.dataset.hasFullClass = "false";
-    let hasFullClass = false;
-    headerRows.trModuleLinks.dataset.visibility = block.offline ? "offline" : "online";
 
     /*
 
@@ -212,6 +207,7 @@ function buildBlock(newTableBody: HTMLTableSectionElement, block: BlockInfo, gro
         }
 
     //Fill trimester rows
+    let hasFullClass = false;
     for (let rowNo = 0; rowNo < (mergedBlockStudents.blockNeededRows - filledRowCount); rowNo++) {
         let row = createStudentRow(newTableBody,"trimesterRow", groupId, block.id);
 

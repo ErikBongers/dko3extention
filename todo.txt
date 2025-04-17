@@ -1,10 +1,6 @@
 * replace all refs to skynet with outlook.
 
-* mutation observer is sometimes too late.
-  > Change main?
-    > always have an observer present?
-      > at what level -> performance!
-    > currently, an observer is activated when a page url matches and all descendants of the main view are observed.
+* lessen: add filters, replacing hasWarnings, hasALC  and hasFullClasses.
 
 * globals.ts: use of deprecated keyCode: test with .code="Enter".
 

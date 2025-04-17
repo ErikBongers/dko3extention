@@ -56,6 +56,10 @@ export class BlockInfo {
         }
     }
 
+    hasSomeOfflineLessen() {
+        return this.alleLessen().some(les => les.online === false);
+    }
+
     hasMissingTeachers() {
         return this.alleLessen().some(les => les.teacher === "(geen klasleerkracht)");
     }

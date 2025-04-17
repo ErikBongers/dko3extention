@@ -2796,10 +2796,6 @@ function buildBlock(newTableBody, block, groupId, getBlockTitle, displayOptions)
 	let trTitle = buildBlockTitle(newTableBody, block, getBlockTitle, groupId);
 	let headerRows = buildBlockHeader(newTableBody, block, groupId, trimesterHeaders, displayOptions);
 	let studentTopRowNo = newTableBody.children.length;
-	if (trTitle) trTitle.dataset.hasFullClass = "false";
-	headerRows.trModuleLinks.dataset.hasFullClass = "false";
-	let hasFullClass = false;
-	headerRows.trModuleLinks.dataset.visibility = block.offline ? "offline" : "online";
 	let filledRowCount = 0;
 	sortStudents(mergedBlockStudents.jaarStudents);
 	for (let student of mergedBlockStudents.jaarStudents) {
@@ -2812,6 +2808,7 @@ function buildBlock(newTableBody, block, groupId, getBlockTitle, displayOptions)
 		}
 		filledRowCount++;
 	}
+	let hasFullClass = false;
 	for (let rowNo = 0; rowNo < mergedBlockStudents.blockNeededRows - filledRowCount; rowNo++) {
 		let row = createStudentRow(newTableBody, "trimesterRow", groupId, block.id);
 		for (let trimNo = 0; trimNo < 3; trimNo++) {
@@ -3048,6 +3045,9 @@ var BlockInfo = class BlockInfo {
 			this.offline = false;
 			this.mergedBlocks = [];
 		}
+	}
+	hasSomeOfflineLessen() {
+		return this.alleLessen().some((les) => les.online === false);
 	}
 	hasMissingTeachers() {
 		return this.alleLessen().some((les) => les.teacher === "(geen klasleerkracht)");
@@ -3510,22 +3510,12 @@ function applyFilters() {
 	let pageState$1 = getPageSettings(PageName.Lessen, getDefaultPageSettings());
 	pageState$1.searchText = document.getElementById(TXT_FILTER_ID$1).value;
 	savePageSettings(pageState$1);
+	let extraFilter = void 0;
 	if (isTrimesterTableVisible()) {
 		let textPreFilter = createTextRowFilter(pageState$1.searchText, (tr) => tr.textContent);
 		let preFilter = textPreFilter;
-		let extraFilter = void 0;
-		if (pageState$1.filterOffline) extraFilter = {
-			context: void 0,
-			rowFilter: function(tr, _context) {
-				return tr.dataset.visibility === "offline";
-			}
-		};
-		else if (pageState$1.filterOnline) extraFilter = {
-			context: void 0,
-			rowFilter: function(tr, _context) {
-				return tr.dataset.visibility === "online";
-			}
-		};
+		if (pageState$1.filterOffline) extraFilter = createRowFilterFromBlockFilter(createBlockFilter((b) => b.hasSomeOfflineLessen()));
+		else if (pageState$1.filterOnline) extraFilter = createRowFilterFromBlockFilter(createBlockFilter((b) => !b.hasSomeOfflineLessen()));
 		else if (pageState$1.filterNoTeacher) extraFilter = createRowFilterFromBlockFilter(createBlockFilter((b) => b.hasMissingTeachers()));
 		else if (pageState$1.filterNoMax) extraFilter = createRowFilterFromBlockFilter(createBlockFilter((b) => b.hasMissingMax()));
 		if (extraFilter) preFilter = combineFilters(createAncestorFilter(textPreFilter), extraFilter);
@@ -3534,7 +3524,6 @@ function applyFilters() {
 	} else {
 		let textFilter = createTextRowFilter(pageState$1.searchText, (tr) => tr.cells[0].textContent);
 		let filter = textFilter;
-		let extraFilter = void 0;
 		if (pageState$1.filterOffline) extraFilter = createQuerySelectorFilter("td>i.fa-eye-slash");
 		else if (pageState$1.filterOnline) extraFilter = createInverseFilter(createQuerySelectorFilter("td>i.fa-eye-slash"));
 		else if (pageState$1.filterNoTeacher) extraFilter = createTextRowFilter("(geen klasleerkracht)", (tr) => tr.cells[0].textContent);
@@ -3566,7 +3555,7 @@ function addFilterFields() {
 		divButtonNieuweLes.insertAdjacentElement("afterend", searchField$1);
 		let { first: span, last: idiom } = emmet.insertAfter(searchField$1, "span.btn-group-sm>button.btn.btn-sm.btn-outline-secondary.ml-2>i.fas.fa-list");
 		let menu = setupMenu(span, idiom.parentElement);
-		addMenuItem(menu, "Show all", 0, (_) => setExtraFilter((_$1) => {}));
+		addMenuItem(menu, "Toon alles", 0, (_) => setExtraFilter((_$1) => {}));
 		addMenuItem(menu, "Filter online lessen", 0, (_) => setExtraFilter((pageState$2) => pageState$2.filterOnline = true));
 		addMenuItem(menu, "Filter offline lessen", 0, (_) => setExtraFilter((pageState$2) => pageState$2.filterOffline = true));
 		addMenuItem(menu, "Lessen zonder leraar", 0, (_) => setExtraFilter((pageState$2) => pageState$2.filterNoTeacher = true));
