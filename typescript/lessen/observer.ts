@@ -114,9 +114,7 @@ function decorateTable() {
     let warnings = document.getElementsByClassName("text-warning");
     let hasWarnings = warnings.length !==0;
 
-    let hasFullClasses = Array.from(warnings).map((item) => item.textContent).some((txt) => txt.includes("leerlingen"));
-
-    if (!hasModules && !hasAlc && !hasWarnings && !hasFullClasses) {
+    if (!hasModules && !hasAlc && !hasWarnings) {
         return getTrimPageElements();
     }
     if (hasModules) {
@@ -125,10 +123,6 @@ function decorateTable() {
     if(hasAlc || hasWarnings) {
         addButton(printButton, def.CHECKS_BUTTON_ID, "Controleer lessen op fouten", onClickCheckResults, "fa-stethoscope");
     }
-    if(hasFullClasses) {
-        addButton(printButton, def.FULL_CLASS_BUTTON_ID, "Filter volle klassen", onClickFullClasses, "fa-weight-hanging");
-    }
-
     addFilterFields();
 
     return getTrimPageElements();

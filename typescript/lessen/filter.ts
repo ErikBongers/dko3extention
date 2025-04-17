@@ -8,6 +8,7 @@ import {getDefaultPageSettings, LessenPageState} from "./build";
 import {isTrimesterTableVisible} from "./observer";
 import {emmet} from "../../libs/Emmeter/html";
 import {addMenuItem, setupMenu} from "../menus";
+import {scrapeStudentsCellMeta} from "./scrape";
 
 export function createBlockFilter(filter: (block: BlockInfo) => boolean): BlockInfo[] {
     return BlockInfo.getAllBlocks().filter(filter);
@@ -96,6 +97,8 @@ export function applyFilters() {
             extraFilter = createRowFilterFromBlockFilter(createBlockFilter(b => b.hasMissingTeachers()));
         } else if (pageState.filterNoMax) {
             extraFilter = createRowFilterFromBlockFilter(createBlockFilter(b => b.hasMissingMax()));
+        } else if (pageState.filterFullClass) {
+            extraFilter = createRowFilterFromBlockFilter(createBlockFilter(b => b.hasFullClasses()));
         }
         if (extraFilter)
             preFilter = combineFilters(createAncestorFilter(textPreFilter), extraFilter);
@@ -113,6 +116,14 @@ export function applyFilters() {
             extraFilter = createTextRowFilter("(geen klasleerkracht)", (tr) => tr.cells[0].textContent);
         } else if (pageState.filterNoMax) {
             extraFilter = createTextRowFilter("999", (tr) => tr.cells[1].textContent);
+        } else if (pageState.filterFullClass) {
+            extraFilter = {
+                context: undefined,
+                rowFilter(tr: HTMLTableRowElement, context: any): boolean {
+                    let scrapeResult = scrapeStudentsCellMeta(tr.cells[1]);
+                    return scrapeResult.aantal >= scrapeResult.maxAantal;
+                }
+            };
         }
 
         if (extraFilter)
@@ -127,6 +138,8 @@ export function applyFilters() {
         setFilterInfo("Zonder leraar");
     } else if (pageState.filterNoMax) {
         setFilterInfo("Zonder maximum");
+    } else if (pageState.filterFullClass) {
+        setFilterInfo("Volle lessen");
     } else {
         setFilterInfo("");
     }
@@ -138,6 +151,7 @@ export function setExtraFilter(set: (pageState: LessenPageState) => void) {
     pageState.filterOnline = false;
     pageState.filterNoTeacher = false;
     pageState.filterNoMax = false;
+    pageState.filterFullClass = false;
     set(pageState);
     savePageSettings(pageState);
     applyFilters();
@@ -157,7 +171,8 @@ export function addFilterFields() {
         addMenuItem(menu, "Filter offline lessen", 0, _ => setExtraFilter(pageState => pageState.filterOffline = true));
         addMenuItem(menu, "Lessen zonder leraar", 0, _ => setExtraFilter(pageState => pageState.filterNoTeacher = true));
         addMenuItem(menu, "Lessen zonder maximum", 0, _ => setExtraFilter(pageState => pageState.filterNoMax = true));
-        emmet.insertAfter(idiom.parentElement, `span#${def.FILTER_INFO_ID}.filterInfo{sdfsdf}`);
+        addMenuItem(menu, "Volle lessen", 0, _ => setExtraFilter(pageState => pageState.filterFullClass = true));
+        emmet.insertAfter(idiom.parentElement, `span#${def.FILTER_INFO_ID}.filterInfo`);
     }
 
     applyFilters();

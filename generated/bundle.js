@@ -2535,31 +2535,46 @@ function scrapeLessenOverzicht(table) {
 	let body = table.tBodies[0];
 	let lessen = [];
 	for (const row of body.rows) {
-		let lesInfo = row.cells[0];
+		let lesCell = row.cells[0];
 		let studentsCell = row.cells[1];
-		let les = scrapeLesInfo(lesInfo);
+		let les = scrapeLesInfo(lesCell);
 		les.tableRow = row;
 		les.studentsTable = studentsCell.querySelectorAll("table")[0];
-		let smallTags = studentsCell.querySelectorAll("small");
-		let arrayLeerlingenAantal = Array.from(smallTags).map((item) => item.textContent).filter((txt) => txt.includes("leerlingen"));
-		if (arrayLeerlingenAantal.length > 0) {
-			let reAantallen = /(\d+).\D+(\d+)/;
-			let matches = arrayLeerlingenAantal[0].match(reAantallen);
-			les.aantal = parseInt(matches[1]);
-			les.maxAantal = parseInt(matches[2]);
-		}
-		let idTag = Array.from(smallTags).find((item) => item.classList.contains("float-right"));
-		les.id = idTag.textContent;
-		les.wachtlijst = 0;
-		let arrayWachtlijst = Array.from(smallTags).map((item) => item.textContent).filter((txt) => txt.includes("wachtlijst"));
-		if (arrayWachtlijst.length > 0) {
-			let reWachtlijst = /(\d+)/;
-			let matches = arrayWachtlijst[0].match(reWachtlijst);
-			les.wachtlijst = parseInt(matches[1]);
-		}
+		let meta = scrapeStudentsCellMeta(studentsCell);
+		les.aantal = meta.aantal;
+		les.maxAantal = meta.maxAantal;
+		les.id = meta.id;
+		les.wachtlijst = meta.wachtlijst;
 		lessen.push(les);
 	}
 	return lessen;
+}
+function scrapeStudentsCellMeta(studentsCell) {
+	let smallTags = studentsCell.querySelectorAll("small");
+	let aantal = 0;
+	let maxAantal = 0;
+	let arrayLeerlingenAantal = Array.from(smallTags).map((item) => item.textContent).filter((txt) => txt.includes("leerlingen"));
+	if (arrayLeerlingenAantal.length > 0) {
+		const reAantallen = /(\d+).\D+(\d+)/;
+		let matches = arrayLeerlingenAantal[0].match(reAantallen);
+		aantal = parseInt(matches[1]);
+		maxAantal = parseInt(matches[2]);
+	}
+	let idTag = Array.from(smallTags).find((item) => item.classList.contains("float-right"));
+	let id = idTag.textContent;
+	let wachtlijst = 0;
+	let arrayWachtlijst = Array.from(smallTags).map((item) => item.textContent).filter((txt) => txt.includes("wachtlijst"));
+	if (arrayWachtlijst.length > 0) {
+		let reWachtlijst = /(\d+)/;
+		let matches = arrayWachtlijst[0].match(reWachtlijst);
+		wachtlijst = parseInt(matches[1]);
+	}
+	return {
+		aantal,
+		maxAantal,
+		id,
+		wachtlijst
+	};
 }
 function scrapeModules(table) {
 	let lessen = scrapeLessenOverzicht(table);
@@ -2705,7 +2720,8 @@ function getDefaultPageSettings() {
 		filterOffline: false,
 		filterOnline: false,
 		filterNoTeacher: false,
-		filterNoMax: false
+		filterNoMax: false,
+		filterFullClass: false
 	};
 }
 let pageState = getDefaultPageSettings();
@@ -3054,6 +3070,9 @@ var BlockInfo = class BlockInfo {
 	}
 	hasMissingMax() {
 		return this.alleLessen().some((les) => les.maxAantal > TOO_LARGE_MAX);
+	}
+	hasFullClasses() {
+		return this.alleLessen().some((les) => les.aantal >= les.maxAantal);
 	}
 	alleLessen() {
 		return this.trimesters.flat().concat(this.jaarModules);
@@ -3518,6 +3537,7 @@ function applyFilters() {
 		else if (pageState$1.filterOnline) extraFilter = createRowFilterFromBlockFilter(createBlockFilter((b) => !b.hasSomeOfflineLessen()));
 		else if (pageState$1.filterNoTeacher) extraFilter = createRowFilterFromBlockFilter(createBlockFilter((b) => b.hasMissingTeachers()));
 		else if (pageState$1.filterNoMax) extraFilter = createRowFilterFromBlockFilter(createBlockFilter((b) => b.hasMissingMax()));
+		else if (pageState$1.filterFullClass) extraFilter = createRowFilterFromBlockFilter(createBlockFilter((b) => b.hasFullClasses()));
 		if (extraFilter) preFilter = combineFilters(createAncestorFilter(textPreFilter), extraFilter);
 		let filter = createAncestorFilter(preFilter);
 		filterTable(TRIM_TABLE_ID, filter);
@@ -3528,6 +3548,13 @@ function applyFilters() {
 		else if (pageState$1.filterOnline) extraFilter = createInverseFilter(createQuerySelectorFilter("td>i.fa-eye-slash"));
 		else if (pageState$1.filterNoTeacher) extraFilter = createTextRowFilter("(geen klasleerkracht)", (tr) => tr.cells[0].textContent);
 		else if (pageState$1.filterNoMax) extraFilter = createTextRowFilter("999", (tr) => tr.cells[1].textContent);
+		else if (pageState$1.filterFullClass) extraFilter = {
+			context: void 0,
+			rowFilter(tr, context) {
+				let scrapeResult = scrapeStudentsCellMeta(tr.cells[1]);
+				return scrapeResult.aantal >= scrapeResult.maxAantal;
+			}
+		};
 		if (extraFilter) filter = combineFilters(textFilter, extraFilter);
 		filterTable(LESSEN_TABLE_ID, filter);
 	}
@@ -3535,6 +3562,7 @@ function applyFilters() {
 	else if (pageState$1.filterOffline) setFilterInfo("Offline lessen");
 	else if (pageState$1.filterNoTeacher) setFilterInfo("Zonder leraar");
 	else if (pageState$1.filterNoMax) setFilterInfo("Zonder maximum");
+	else if (pageState$1.filterFullClass) setFilterInfo("Volle lessen");
 	else setFilterInfo("");
 }
 function setExtraFilter(set) {
@@ -3543,6 +3571,7 @@ function setExtraFilter(set) {
 	pageState$1.filterOnline = false;
 	pageState$1.filterNoTeacher = false;
 	pageState$1.filterNoMax = false;
+	pageState$1.filterFullClass = false;
 	set(pageState$1);
 	savePageSettings(pageState$1);
 	applyFilters();
@@ -3560,7 +3589,8 @@ function addFilterFields() {
 		addMenuItem(menu, "Filter offline lessen", 0, (_) => setExtraFilter((pageState$2) => pageState$2.filterOffline = true));
 		addMenuItem(menu, "Lessen zonder leraar", 0, (_) => setExtraFilter((pageState$2) => pageState$2.filterNoTeacher = true));
 		addMenuItem(menu, "Lessen zonder maximum", 0, (_) => setExtraFilter((pageState$2) => pageState$2.filterNoMax = true));
-		emmet.insertAfter(idiom.parentElement, `span#${FILTER_INFO_ID}.filterInfo{sdfsdf}`);
+		addMenuItem(menu, "Volle lessen", 0, (_) => setExtraFilter((pageState$2) => pageState$2.filterFullClass = true));
+		emmet.insertAfter(idiom.parentElement, `span#${FILTER_INFO_ID}.filterInfo`);
 	}
 	applyFilters();
 }
@@ -3650,11 +3680,9 @@ function decorateTable() {
 	let hasAlc = Array.from(badges).some((el) => el.textContent === "ALC");
 	let warnings = document.getElementsByClassName("text-warning");
 	let hasWarnings = warnings.length !== 0;
-	let hasFullClasses = Array.from(warnings).map((item) => item.textContent).some((txt) => txt.includes("leerlingen"));
-	if (!hasModules && !hasAlc && !hasWarnings && !hasFullClasses) return getTrimPageElements();
+	if (!hasModules && !hasAlc && !hasWarnings) return getTrimPageElements();
 	if (hasModules) addButton(printButton, TRIM_BUTTON_ID, "Toon trimesters", onClickToggleTrimesters, "fa-sitemap");
 	if (hasAlc || hasWarnings) addButton(printButton, CHECKS_BUTTON_ID, "Controleer lessen op fouten", onClickCheckResults, "fa-stethoscope");
-	if (hasFullClasses) addButton(printButton, FULL_CLASS_BUTTON_ID, "Filter volle klassen", onClickFullClasses, "fa-weight-hanging");
 	addFilterFields();
 	return getTrimPageElements();
 }
@@ -3685,20 +3713,6 @@ function onClickCheckResults() {
 		if (les.online) checksText += `<div>ALC les <b>${les.naam}</b> is online zichtbaar.</div>`;
 	}
 	checksDiv.innerHTML = checksText;
-}
-function showOnlyFullTrimesters(onlyFull) {
-	let trimDiv = document.getElementById(TRIM_DIV_ID);
-	trimDiv.dataset.showFullClass = onlyFull ? "true" : "false";
-}
-function onClickFullClasses() {
-	let table = document.getElementById(LESSEN_TABLE_ID);
-	let lessen = scrapeLessenOverzicht(table);
-	let overzichtDiv = document.getElementById(LESSEN_OVERZICHT_ID);
-	overzichtDiv.dataset.filterFullClasses = (overzichtDiv.dataset.filterFullClasses ?? "false") === "false" ? "true" : "false";
-	let displayState = overzichtDiv.dataset.filterFullClasses === "true" ? "none" : "table-row";
-	for (let les of lessen) if (les.aantal < les.maxAantal) les.tableRow.style.display = displayState;
-	setButtonHighlighted(FULL_CLASS_BUTTON_ID, overzichtDiv.dataset.filterFullClasses === "true");
-	showOnlyFullTrimesters(displayState === "none");
 }
 function onClickToggleTrimesters() {
 	showTrimesterTable(getTrimPageElements(), !isTrimesterTableVisible());

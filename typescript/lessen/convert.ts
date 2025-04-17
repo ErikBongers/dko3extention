@@ -68,6 +68,10 @@ export class BlockInfo {
         return this.alleLessen().some(les => les.maxAantal > TOO_LARGE_MAX);
     }
 
+    hasFullClasses() {
+        return this.alleLessen().some(les => les.aantal >= les.maxAantal);
+    }
+
     alleLessen() {
         return this.trimesters.flat().concat(this.jaarModules);
     }

@@ -34,6 +34,7 @@ export interface LessenPageState extends PageSettings {
     filterOnline: boolean
     filterNoTeacher: boolean;
     filterNoMax: boolean;
+    filterFullClass: boolean;
 }
 
 export function getDefaultPageSettings() {
@@ -46,6 +47,7 @@ export function getDefaultPageSettings() {
         filterOnline: false,
         filterNoTeacher: false,
         filterNoMax: false,
+        filterFullClass: false,
     } as LessenPageState;
 }
 
