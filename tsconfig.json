@@ -1,5 +1,6 @@
 {
   "include": ["typescript/**/*"],
+  "exclude": ["typescript/powerQuery/default_items.ts"],
   "compilerOptions": {
     "outDir": "./generated",
     "target": "es2021",

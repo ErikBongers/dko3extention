@@ -1,6 +1,6 @@
 * replace all refs to skynet with outlook.
 
-* lessen: add filters, replacing hasWarnings, hasOnlineALC.
+* lessen: add hasWarnings filter.
 
 * globals.ts: use of deprecated keyCode: test with .code="Enter".
 

@@ -639,7 +639,7 @@ let Goto = /* @__PURE__ */ function(Goto$1) {
 
 //#endregion
 //#region typescript/powerQuery/default_items.ts
-let defaultQueryItems = {
+var default_items_default = {
 	"Lijsten": [
 		{
 			"headerLabel": "Algemeen",
@@ -2146,8 +2146,8 @@ function getSavedAndDefaultQueryItems() {
 	let allItems = [];
 	let savedPowerQueryString = localStorage.getItem(POWER_QUERY_ID);
 	if (savedPowerQueryString) savedPowerQuery = JSON.parse(savedPowerQueryString);
-	for (let page in savedPowerQuery) defaultQueryItems[page] = savedPowerQuery[page];
-	for (let page in defaultQueryItems) allItems.push(...defaultQueryItems[page]);
+	for (let page in savedPowerQuery) default_items_default[page] = savedPowerQuery[page];
+	for (let page in default_items_default) allItems.push(...default_items_default[page]);
 	return allItems;
 }
 function screpeDropDownMenu(headerMenu) {
