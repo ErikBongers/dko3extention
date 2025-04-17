@@ -152,7 +152,7 @@ export class Les {
     tags: string[];
 }
 
-function scrapeLesInfo(lesInfo: HTMLElement) {
+export function scrapeLesInfo(lesInfo: HTMLTableCellElement) {
     let les = new Les();
     let [first] = lesInfo.getElementsByTagName("strong");
     les.vakNaam = first.textContent;

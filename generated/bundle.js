@@ -2721,7 +2721,8 @@ function getDefaultPageSettings() {
 		filterOnline: false,
 		filterNoTeacher: false,
 		filterNoMax: false,
-		filterFullClass: false
+		filterFullClass: false,
+		filterOnlineAlc: false
 	};
 }
 let pageState = getDefaultPageSettings();
@@ -3073,6 +3074,9 @@ var BlockInfo = class BlockInfo {
 	}
 	hasFullClasses() {
 		return this.alleLessen().some((les) => les.aantal >= les.maxAantal);
+	}
+	hasOnlineAlcClasses() {
+		return this.alleLessen().some((les) => les.online && les.alc);
 	}
 	alleLessen() {
 		return this.trimesters.flat().concat(this.jaarModules);
@@ -3500,6 +3504,7 @@ function createInverseFilter(filter) {
 }
 function createAncestorFilter(rowPreFilter) {
 	let filteredRows = filterTableRows(
+		//doesn't really make sense for trimesters, but whatever.
 		// Filter original table:
 		TRIM_TABLE_ID,
 		rowPreFilter
@@ -3538,6 +3543,7 @@ function applyFilters() {
 		else if (pageState$1.filterNoTeacher) extraFilter = createRowFilterFromBlockFilter(createBlockFilter((b) => b.hasMissingTeachers()));
 		else if (pageState$1.filterNoMax) extraFilter = createRowFilterFromBlockFilter(createBlockFilter((b) => b.hasMissingMax()));
 		else if (pageState$1.filterFullClass) extraFilter = createRowFilterFromBlockFilter(createBlockFilter((b) => b.hasFullClasses()));
+		else if (pageState$1.filterOnlineAlc) extraFilter = createRowFilterFromBlockFilter(createBlockFilter((b) => b.hasOnlineAlcClasses()));
 		if (extraFilter) preFilter = combineFilters(createAncestorFilter(textPreFilter), extraFilter);
 		let filter = createAncestorFilter(preFilter);
 		filterTable(TRIM_TABLE_ID, filter);
@@ -3555,6 +3561,13 @@ function applyFilters() {
 				return scrapeResult.aantal >= scrapeResult.maxAantal;
 			}
 		};
+		else if (pageState$1.filterOnlineAlc) extraFilter = {
+			context: void 0,
+			rowFilter(tr, context) {
+				let scrapeResult = scrapeLesInfo(tr.cells[0]);
+				return scrapeResult.online && scrapeResult.alc;
+			}
+		};
 		if (extraFilter) filter = combineFilters(textFilter, extraFilter);
 		filterTable(LESSEN_TABLE_ID, filter);
 	}
@@ -3563,6 +3576,7 @@ function applyFilters() {
 	else if (pageState$1.filterNoTeacher) setFilterInfo("Zonder leraar");
 	else if (pageState$1.filterNoMax) setFilterInfo("Zonder maximum");
 	else if (pageState$1.filterFullClass) setFilterInfo("Volle lessen");
+	else if (pageState$1.filterOnlineAlc) setFilterInfo("Online ALC lessen");
 	else setFilterInfo("");
 }
 function setExtraFilter(set) {
@@ -3590,6 +3604,7 @@ function addFilterFields() {
 		addMenuItem(menu, "Lessen zonder leraar", 0, (_) => setExtraFilter((pageState$2) => pageState$2.filterNoTeacher = true));
 		addMenuItem(menu, "Lessen zonder maximum", 0, (_) => setExtraFilter((pageState$2) => pageState$2.filterNoMax = true));
 		addMenuItem(menu, "Volle lessen", 0, (_) => setExtraFilter((pageState$2) => pageState$2.filterFullClass = true));
+		addMenuItem(menu, "Online ALC lessen", 0, (_) => setExtraFilter((pageState$2) => pageState$2.filterOnlineAlc = true));
 		emmet.insertAfter(idiom.parentElement, `span#${FILTER_INFO_ID}.filterInfo`);
 	}
 	applyFilters();

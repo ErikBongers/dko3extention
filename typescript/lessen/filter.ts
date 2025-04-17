@@ -8,7 +8,7 @@ import {getDefaultPageSettings, LessenPageState} from "./build";
 import {isTrimesterTableVisible} from "./observer";
 import {emmet} from "../../libs/Emmeter/html";
 import {addMenuItem, setupMenu} from "../menus";
-import {scrapeStudentsCellMeta} from "./scrape";
+import {scrapeLesInfo, scrapeStudentsCellMeta} from "./scrape";
 
 export function createBlockFilter(filter: (block: BlockInfo) => boolean): BlockInfo[] {
     return BlockInfo.getAllBlocks().filter(filter);
@@ -99,6 +99,8 @@ export function applyFilters() {
             extraFilter = createRowFilterFromBlockFilter(createBlockFilter(b => b.hasMissingMax()));
         } else if (pageState.filterFullClass) {
             extraFilter = createRowFilterFromBlockFilter(createBlockFilter(b => b.hasFullClasses()));
+        } else if (pageState.filterOnlineAlc) {
+            extraFilter = createRowFilterFromBlockFilter(createBlockFilter(b => b.hasOnlineAlcClasses())); //doesn't really make sense for trimesters, but whatever.
         }
         if (extraFilter)
             preFilter = combineFilters(createAncestorFilter(textPreFilter), extraFilter);
@@ -124,6 +126,14 @@ export function applyFilters() {
                     return scrapeResult.aantal >= scrapeResult.maxAantal;
                 }
             };
+        } else if (pageState.filterOnlineAlc) {
+             extraFilter = {
+                 context: undefined,
+                 rowFilter(tr: HTMLTableRowElement, context: any): boolean {
+                     let scrapeResult = scrapeLesInfo(tr.cells[0]);
+                     return scrapeResult.online && scrapeResult.alc;
+                 }
+             }
         }
 
         if (extraFilter)
@@ -140,7 +150,11 @@ export function applyFilters() {
         setFilterInfo("Zonder maximum");
     } else if (pageState.filterFullClass) {
         setFilterInfo("Volle lessen");
-    } else {
+    } else if (pageState.filterOnlineAlc) {
+        setFilterInfo("Online ALC lessen");
+    }
+
+    else {
         setFilterInfo("");
     }
 }
@@ -172,6 +186,7 @@ export function addFilterFields() {
         addMenuItem(menu, "Lessen zonder leraar", 0, _ => setExtraFilter(pageState => pageState.filterNoTeacher = true));
         addMenuItem(menu, "Lessen zonder maximum", 0, _ => setExtraFilter(pageState => pageState.filterNoMax = true));
         addMenuItem(menu, "Volle lessen", 0, _ => setExtraFilter(pageState => pageState.filterFullClass = true));
+        addMenuItem(menu, "Online ALC lessen", 0, _ => setExtraFilter(pageState => pageState.filterOnlineAlc = true));
         emmet.insertAfter(idiom.parentElement, `span#${def.FILTER_INFO_ID}.filterInfo`);
     }
 

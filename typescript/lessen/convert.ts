@@ -72,6 +72,10 @@ export class BlockInfo {
         return this.alleLessen().some(les => les.aantal >= les.maxAantal);
     }
 
+    hasOnlineAlcClasses() {
+        return this.alleLessen().some(les => les.online && les.alc);
+    }
+
     alleLessen() {
         return this.trimesters.flat().concat(this.jaarModules);
     }
