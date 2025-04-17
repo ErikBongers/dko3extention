@@ -2,35 +2,46 @@ export function scrapeLessenOverzicht(table: HTMLTableElement) {
     let body = table.tBodies[0];
     let lessen: Les[] = [];
     for (const row of body.rows) {
-        let lesInfo = row.cells[0];
+        let lesCell = row.cells[0];
         let studentsCell = row.cells[1];
-        let les = scrapeLesInfo(lesInfo);
+        let les = scrapeLesInfo(lesCell);
         les.tableRow = row;
         les.studentsTable = studentsCell.querySelectorAll("table")[0]; //for delayed student scraping.
-        let smallTags = studentsCell.querySelectorAll("small");
-        //aantallen
-        let arrayLeerlingenAantal = Array.from(smallTags).map((item) => item.textContent).filter((txt) => txt.includes("leerlingen"));
-        if (arrayLeerlingenAantal.length > 0) {
-            let reAantallen = /(\d+).\D+(\d+)/;
-            let matches = arrayLeerlingenAantal[0].match(reAantallen);
-            les.aantal = parseInt(matches[1]);
-            les.maxAantal = parseInt(matches[2]);
-        }
-        //id
-        let idTag = Array.from(smallTags).find((item) => item.classList.contains("float-right"));
-        les.id = idTag.textContent;
-        //wachtlijst
-        les.wachtlijst = 0;
-        let arrayWachtlijst = Array.from(smallTags).map((item) => item.textContent).filter((txt) => txt.includes("wachtlijst"));
-        if (arrayWachtlijst.length > 0) {
-            let reWachtlijst = /(\d+)/;
-            let matches = arrayWachtlijst[0].match(reWachtlijst);
-            les.wachtlijst = parseInt(matches[1]);
-        }
+        let meta = scrapeStudentsCellMeta(studentsCell);
+        les.aantal = meta.aantal;
+        les.maxAantal = meta.maxAantal;
+        les.id = meta.id;
+        les.wachtlijst = meta.wachtlijst;
 
         lessen.push(les);
     }
     return lessen;
+}
+
+export function scrapeStudentsCellMeta(studentsCell: HTMLTableCellElement) {
+    let smallTags = studentsCell.querySelectorAll("small");
+    //aantallen
+    let aantal = 0;
+    let maxAantal =  0;
+    let arrayLeerlingenAantal = Array.from(smallTags).map((item) => item.textContent).filter((txt) => txt.includes("leerlingen"));
+    if (arrayLeerlingenAantal.length > 0) {
+        const reAantallen = /(\d+).\D+(\d+)/;
+        let matches = arrayLeerlingenAantal[0].match(reAantallen);
+        aantal = parseInt(matches[1]);
+        maxAantal = parseInt(matches[2]);
+    }
+    //id
+    let idTag = Array.from(smallTags).find((item) => item.classList.contains("float-right"));
+    let id = idTag.textContent;
+    //wachtlijst
+    let wachtlijst = 0;
+    let arrayWachtlijst = Array.from(smallTags).map((item) => item.textContent).filter((txt) => txt.includes("wachtlijst"));
+    if (arrayWachtlijst.length > 0) {
+        let reWachtlijst = /(\d+)/;
+        let matches = arrayWachtlijst[0].match(reWachtlijst);
+        wachtlijst = parseInt(matches[1]);
+    }
+    return { aantal, maxAantal, id, wachtlijst };
 }
 
 export function scrapeModules(table: HTMLTableElement) {
