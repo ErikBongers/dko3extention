@@ -697,8 +697,8 @@ function getSavedAndDefaultQueryItems() {
 	let allItems = [];
 	let savedPowerQueryString = localStorage.getItem(POWER_QUERY_ID);
 	if (savedPowerQueryString) savedPowerQuery = JSON.parse(savedPowerQueryString);
-	for (let page in savedPowerQuery) default_items.default[page] = savedPowerQuery[page];
-	for (let page in default_items.default) allItems.push(...default_items.default[page]);
+	for (let page in savedPowerQuery) default_items.default_items[page] = savedPowerQuery[page];
+	for (let page in default_items.default_items) allItems.push(...default_items.default_items[page]);
 	return allItems;
 }
 function screpeDropDownMenu(headerMenu) {
