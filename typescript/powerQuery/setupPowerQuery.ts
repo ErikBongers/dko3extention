@@ -57,13 +57,14 @@ function getSavedAndDefaultQueryItems(): QueryItem[] {
         savedPowerQuery = JSON.parse(savedPowerQueryString);
     }
 
-    //merge saved pages into default pages.
+    //merge saved pages and default pages.
+    let mergedPages = {...defaultQueryItems};
     for(let page in savedPowerQuery) {
-        defaultQueryItems[page] = savedPowerQuery[page];
+        mergedPages[page] = savedPowerQuery[page];
     }
 
-    for(let page in defaultQueryItems) {
-        allItems.push(...defaultQueryItems[page]);
+    for(let page in mergedPages) {
+        allItems.push(...mergedPages[page]);
     }
     return allItems;
 }
