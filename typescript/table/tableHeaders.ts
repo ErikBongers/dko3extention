@@ -148,8 +148,8 @@ export function decorateTableHeader(table: HTMLTableElement) {
             addMenuItem(menu, "met spatie", 1, (ev) => { forTableColumnDo(ev, mergeColumnWithSpace)});
             addMenuItem(menu, "met comma", 1, (ev) => { forTableColumnDo(ev, mergeColumnWithComma)});
             addMenuSeparator(menu, "Verplaatsen", 0);
-            addMenuItem(menu, "<=", 1, (ev) => { forTableColumnDo(ev, swapColumnsToLeft)});
-            addMenuItem(menu, "=>", 1, (ev) => { forTableColumnDo(ev, swapColumnsToRight)});
+            addMenuItem(menu, "<=", 1, (ev) => { forTableColumnDo(ev, createTwoColumnsCmd(Direction.LEFT, swapColumns))});
+            addMenuItem(menu, "=>", 1, (ev) => { forTableColumnDo(ev, createTwoColumnsCmd(Direction.RIGHT, swapColumns))});
         });
     relabelHeaders(table.tHead.children[0] as HTMLTableRowElement);
 }
@@ -316,23 +316,17 @@ function findNextVisibleCell(headerRow: HTMLTableRowElement, indexes: number[]) 
     return index;
 }
 
-let swapColumnsToRight: TableColumnCmdDef = {
-    getContext: function (tableRef, index: number): unknown {
-        let row = tableRef.getOrgTableContainer().querySelector("thead>tr") as HTMLTableRowElement;
-        return findNextVisibleCell(row, range(index+1, row.cells.length));
-    },
-    doForRow: function (row, index, context) {
-        swapColumns(row, index, context as number);
-    }
-}
-
-let swapColumnsToLeft: TableColumnCmdDef = {
-    getContext: function (tableRef, index: number): unknown {
-        let row = tableRef.getOrgTableContainer().querySelector("thead>tr") as HTMLTableRowElement;
-        return findNextVisibleCell(row, range(index-1, -1));
-    },
-    doForRow: function (row, index, context) {
-        swapColumns(row, index, context as number);
+enum Direction {  LEFT, RIGHT}
+function createTwoColumnsCmd(direction: Direction, twoColumnFunc: (row: HTMLTableRowElement, index1: number, index2: number) => void) : TableColumnCmdDef  {
+    return {
+        getContext: function (tableRef, index: number): unknown {
+            let row = tableRef.getOrgTableContainer().querySelector("thead>tr") as HTMLTableRowElement;
+            let cellRange = direction === Direction.LEFT ? range(index-1, -1) :  range(index+1, row.cells.length);
+            return findNextVisibleCell(row, cellRange);
+        },
+        doForRow: function (row, index, context) {
+            twoColumnFunc(row, index, context as number);
+        }
     }
 }
 

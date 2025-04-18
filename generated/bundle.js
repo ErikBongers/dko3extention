@@ -697,8 +697,9 @@ function getSavedAndDefaultQueryItems() {
 	let allItems = [];
 	let savedPowerQueryString = localStorage.getItem(POWER_QUERY_ID);
 	if (savedPowerQueryString) savedPowerQuery = JSON.parse(savedPowerQueryString);
-	for (let page in savedPowerQuery) default_items.default_items[page] = savedPowerQuery[page];
-	for (let page in default_items.default_items) allItems.push(...default_items.default_items[page]);
+	let mergedPages = { ...default_items.default_items };
+	for (let page in savedPowerQuery) mergedPages[page] = savedPowerQuery[page];
+	for (let page in mergedPages) allItems.push(...mergedPages[page]);
 	return allItems;
 }
 function screpeDropDownMenu(headerMenu) {
@@ -4082,10 +4083,10 @@ function decorateTableHeader(table) {
 		});
 		addMenuSeparator(menu, "Verplaatsen", 0);
 		addMenuItem(menu, "<=", 1, (ev) => {
-			forTableColumnDo(ev, swapColumnsToLeft);
+			forTableColumnDo(ev, createTwoColumnsCmd(Direction.LEFT, swapColumns));
 		});
 		addMenuItem(menu, "=>", 1, (ev) => {
-			forTableColumnDo(ev, swapColumnsToRight);
+			forTableColumnDo(ev, createTwoColumnsCmd(Direction.RIGHT, swapColumns));
 		});
 	});
 	relabelHeaders(table.tHead.children[0]);
@@ -4197,24 +4198,23 @@ function findNextVisibleCell(headerRow, indexes) {
 	}
 	return index;
 }
-let swapColumnsToRight = {
-	getContext: function(tableRef, index) {
-		let row = tableRef.getOrgTableContainer().querySelector("thead>tr");
-		return findNextVisibleCell(row, range(index + 1, row.cells.length));
-	},
-	doForRow: function(row, index, context) {
-		swapColumns(row, index, context);
-	}
-};
-let swapColumnsToLeft = {
-	getContext: function(tableRef, index) {
-		let row = tableRef.getOrgTableContainer().querySelector("thead>tr");
-		return findNextVisibleCell(row, range(index - 1, -1));
-	},
-	doForRow: function(row, index, context) {
-		swapColumns(row, index, context);
-	}
-};
+var Direction = /* @__PURE__ */ function(Direction$1) {
+	Direction$1[Direction$1["LEFT"] = 0] = "LEFT";
+	Direction$1[Direction$1["RIGHT"] = 1] = "RIGHT";
+	return Direction$1;
+}(Direction || {});
+function createTwoColumnsCmd(direction, twoColumnFunc) {
+	return {
+		getContext: function(tableRef, index) {
+			let row = tableRef.getOrgTableContainer().querySelector("thead>tr");
+			let cellRange = direction === Direction.LEFT ? range(index - 1, -1) : range(index + 1, row.cells.length);
+			return findNextVisibleCell(row, cellRange);
+		},
+		doForRow: function(row, index, context) {
+			twoColumnFunc(row, index, context);
+		}
+	};
+}
 function swapColumns(row, index1, index2) {
 	if (index1 == void 0 || index2 == void 0) return;
 	if (index1 > index2) [index1, index2] = [index2, index1];
