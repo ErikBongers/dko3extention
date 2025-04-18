@@ -166,6 +166,7 @@ export function setExtraFilter(set: (pageState: LessenPageState) => void) {
     pageState.filterNoTeacher = false;
     pageState.filterNoMax = false;
     pageState.filterFullClass = false;
+    pageState.filterOnlineAlc = false;
     set(pageState);
     savePageSettings(pageState);
     applyFilters();

@@ -2137,6 +2137,7 @@ function setExtraFilter(set) {
 	pageState$1.filterNoTeacher = false;
 	pageState$1.filterNoMax = false;
 	pageState$1.filterFullClass = false;
+	pageState$1.filterOnlineAlc = false;
 	set(pageState$1);
 	savePageSettings(pageState$1);
 	applyFilters();
