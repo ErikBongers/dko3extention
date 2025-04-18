@@ -145,8 +145,8 @@ export function decorateTableHeader(table: HTMLTableElement) {
             addMenuItem(menu, "Kolom", 1, (ev) => { forTableDo(ev, (_fetchedTable, index) => copyOneColumn(table, index))});
             addMenuItem(menu, "Hele tabel", 1, (ev) => { forTableDo(ev, (_fetchedTable, _index) => copyFullTable(table))});
             addMenuSeparator(menu, "<= Samenvoegen", 0);
-            addMenuItem(menu, "met spatie", 1, (ev) => { forTableColumnDo(ev, mergeColumnWithSpace)});
-            addMenuItem(menu, "met comma", 1, (ev) => { forTableColumnDo(ev, mergeColumnWithComma)});
+            addMenuItem(menu, "met spatie", 1, (ev) => { forTableColumnDo(ev, createTwoColumnsCmd(Direction.LEFT, mergeColumnWithSpace))});
+            addMenuItem(menu, "met comma", 1, (ev) => { forTableColumnDo(ev, createTwoColumnsCmd(Direction.LEFT, mergeColumnWithComma))});
             addMenuSeparator(menu, "Verplaatsen", 0);
             addMenuItem(menu, "<=", 1, (ev) => { forTableColumnDo(ev, createTwoColumnsCmd(Direction.LEFT, swapColumns))});
             addMenuItem(menu, "=>", 1, (ev) => { forTableColumnDo(ev, createTwoColumnsCmd(Direction.RIGHT, swapColumns))});
@@ -262,24 +262,12 @@ let showColumns: TableColumnCmdDef = {
     }
 }
 
-let mergeColumnWithComma: TableColumnCmdDef = {
-    getContext: function (tableRef, index: number): unknown {
-        let row = tableRef.getOrgTableContainer().querySelector("thead>tr") as HTMLTableRowElement;
-        return findNextVisibleCell(row, range(index-1, -1));
-    },
-    doForRow: function (row, index, context) {
-        mergeColumnToLeft(row, index, context as number, ", ");
-    }
+function  mergeColumnWithSpace(row: HTMLTableRowElement, index: number, leftIndex: number) {
+    mergeColumnToLeft(row, index, leftIndex, " ");
 }
 
-let mergeColumnWithSpace: TableColumnCmdDef = {
-    getContext: function (tableRef, index: number): unknown {
-        let row = tableRef.getOrgTableContainer().querySelector("thead>tr") as HTMLTableRowElement;
-        return findNextVisibleCell(row, range(index-1, -1));
-    },
-    doForRow: function (row, index, context) {
-        mergeColumnToLeft(row, index, context as number, " ");
-    }
+function  mergeColumnWithComma(row: HTMLTableRowElement, index: number, leftIndex: number) {
+    mergeColumnToLeft(row, index, leftIndex, ", ");
 }
 
 function mergeColumnToLeft(row: HTMLTableRowElement, index: number, leftIndex: number, separator: string) {

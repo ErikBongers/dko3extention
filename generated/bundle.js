@@ -4076,10 +4076,10 @@ function decorateTableHeader(table) {
 		});
 		addMenuSeparator(menu, "<= Samenvoegen", 0);
 		addMenuItem(menu, "met spatie", 1, (ev) => {
-			forTableColumnDo(ev, mergeColumnWithSpace);
+			forTableColumnDo(ev, createTwoColumnsCmd(Direction.LEFT, mergeColumnWithSpace));
 		});
 		addMenuItem(menu, "met comma", 1, (ev) => {
-			forTableColumnDo(ev, mergeColumnWithComma);
+			forTableColumnDo(ev, createTwoColumnsCmd(Direction.LEFT, mergeColumnWithComma));
 		});
 		addMenuSeparator(menu, "Verplaatsen", 0);
 		addMenuItem(menu, "<=", 1, (ev) => {
@@ -4156,24 +4156,12 @@ let hideColumn = { doForRow: function(row, index, _context) {
 let showColumns = { doForRow: function(row, _index, _context) {
 	for (let cell of row.cells) cell.style.display = "";
 } };
-let mergeColumnWithComma = {
-	getContext: function(tableRef, index) {
-		let row = tableRef.getOrgTableContainer().querySelector("thead>tr");
-		return findNextVisibleCell(row, range(index - 1, -1));
-	},
-	doForRow: function(row, index, context) {
-		mergeColumnToLeft(row, index, context, ", ");
-	}
-};
-let mergeColumnWithSpace = {
-	getContext: function(tableRef, index) {
-		let row = tableRef.getOrgTableContainer().querySelector("thead>tr");
-		return findNextVisibleCell(row, range(index - 1, -1));
-	},
-	doForRow: function(row, index, context) {
-		mergeColumnToLeft(row, index, context, " ");
-	}
-};
+function mergeColumnWithSpace(row, index, leftIndex) {
+	mergeColumnToLeft(row, index, leftIndex, " ");
+}
+function mergeColumnWithComma(row, index, leftIndex) {
+	mergeColumnToLeft(row, index, leftIndex, ", ");
+}
 function mergeColumnToLeft(row, index, leftIndex, separator) {
 	if (index === 0) return;
 	if (row.parentElement.tagName == "TBODY") {
