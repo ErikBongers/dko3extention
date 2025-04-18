@@ -1,3 +1,6 @@
+* default query items have been made external to bundle>
+  > add type def?
+
 * replace all refs to skynet with outlook.
 
 * lessen: add hasWarnings filter.

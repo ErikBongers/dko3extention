@@ -1,7 +1,7 @@
 import {calculateSchooljaar, clamp, createShortSchoolyearString, isAlphaNumeric, openTab} from "../globals";
 import * as def from "../def";
 import {getGotoStateOrDefault, Goto, PageName, saveGotoState} from "../gotoState";
-import defaultQueryItems from "./default_items";
+import defaultQueryItems from "default_items";
 export function setupPowerQuery() {
     //dummy function to force this module to be loaded.
 }

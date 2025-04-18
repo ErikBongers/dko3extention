@@ -6,7 +6,11 @@
     "target": "es2021",
     "sourceMap": true,
     "noEmit": true,
-    "incremental": false
+    "incremental": false,
+    "moduleResolution": "bundler",
+    "paths": {
+      "default_items": ["./javascript/default_items.js"]
+    }
   },
   "types": [
     "chrome"

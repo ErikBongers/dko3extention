@@ -10,6 +10,7 @@
   "content_scripts": [
     {
       "js": [
+        "javascript/default_items.js",
         "generated/bundle.js"
       ],
       "css": [
