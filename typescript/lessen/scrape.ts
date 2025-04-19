@@ -12,6 +12,7 @@ export function scrapeLessenOverzicht(table: HTMLTableElement) {
         les.maxAantal = meta.maxAantal;
         les.id = meta.id;
         les.wachtlijst = meta.wachtlijst;
+        les.warnings = [...row.getElementsByClassName("text-warning")].map((el) => el.textContent);
 
         lessen.push(les);
     }
@@ -150,6 +151,7 @@ export class Les {
     instrumentName: string;
     trimesterNo: number;
     tags: string[];
+    warnings: string[];
 }
 
 export function scrapeLesInfo(lesInfo: HTMLTableCellElement) {

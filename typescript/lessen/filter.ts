@@ -101,6 +101,8 @@ export function applyFilters() {
             extraFilter = createRowFilterFromBlockFilter(createBlockFilter(b => b.hasFullClasses()));
         } else if (pageState.filterOnlineAlc) {
             extraFilter = createRowFilterFromBlockFilter(createBlockFilter(b => b.hasOnlineAlcClasses())); //doesn't really make sense for trimesters, but whatever.
+        } else if (pageState.filterWarnings) {
+            extraFilter =  createRowFilterFromBlockFilter(createBlockFilter(b => b.hasWarningLessons()));
         }
         if (extraFilter)
             preFilter = combineFilters(createAncestorFilter(textPreFilter), extraFilter);
@@ -134,6 +136,8 @@ export function applyFilters() {
                      return scrapeResult.online && scrapeResult.alc;
                  }
              }
+        } else if (pageState.filterWarnings) {
+            extraFilter = createQuerySelectorFilter(".text-warning");
         }
 
         if (extraFilter)
@@ -152,6 +156,8 @@ export function applyFilters() {
         setFilterInfo("Volle lessen");
     } else if (pageState.filterOnlineAlc) {
         setFilterInfo("Online ALC lessen");
+    } else if (pageState.filterWarnings) {
+        setFilterInfo("Opmerkingen");
     }
 
     else {
@@ -167,6 +173,7 @@ export function setExtraFilter(set: (pageState: LessenPageState) => void) {
     pageState.filterNoMax = false;
     pageState.filterFullClass = false;
     pageState.filterOnlineAlc = false;
+    pageState.filterWarnings = false;
     set(pageState);
     savePageSettings(pageState);
     applyFilters();
@@ -188,6 +195,7 @@ export function addFilterFields() {
         addMenuItem(menu, "Lessen zonder maximum", 0, _ => setExtraFilter(pageState => pageState.filterNoMax = true));
         addMenuItem(menu, "Volle lessen", 0, _ => setExtraFilter(pageState => pageState.filterFullClass = true));
         addMenuItem(menu, "Online ALC lessen", 0, _ => setExtraFilter(pageState => pageState.filterOnlineAlc = true));
+        addMenuItem(menu, "Opmerkingen", 0, _ => setExtraFilter(pageState => pageState.filterWarnings = true));
         emmet.insertAfter(idiom.parentElement, `span#${def.FILTER_INFO_ID}.filterInfo`);
     }
 

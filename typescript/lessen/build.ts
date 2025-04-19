@@ -36,6 +36,7 @@ export interface LessenPageState extends PageSettings {
     filterNoMax: boolean;
     filterFullClass: boolean;
     filterOnlineAlc: boolean;
+    filterWarnings: boolean;
 }
 
 export function getDefaultPageSettings() {
@@ -50,6 +51,7 @@ export function getDefaultPageSettings() {
         filterNoMax: false,
         filterFullClass: false,
         filterOnlineAlc: false,
+        filterWarnings: false,
     } as LessenPageState;
 }
 
@@ -242,7 +244,7 @@ function buildBlock(newTableBody: HTMLTableSectionElement, block: BlockInfo, gro
     }
     if(hasFullClass) {
         if(trTitle)
-            trTitle.dataset.hasFullClass = "true";
+            trTitle.dataset.hasFullClass = "true"; //todo:  replace with class as it's display only.
         headerRows.trModuleLinks.dataset.hasFullClass = "true";
     }
     if (!mergedBlockStudents.hasWachtlijst) {

@@ -110,18 +110,9 @@ function decorateTable() {
 
     let badges = document.getElementsByClassName("badge");
     let hasModules = Array.from(badges).some((el) => el.textContent === "module");
-    let hasAlc = Array.from(badges).some((el) => el.textContent === "ALC")
-    let warnings = document.getElementsByClassName("text-warning");
-    let hasWarnings = warnings.length !==0;
 
-    if (!hasModules && !hasAlc && !hasWarnings) {
-        return getTrimPageElements();
-    }
     if (hasModules) {
         addButton(printButton, def.TRIM_BUTTON_ID, "Toon trimesters", onClickToggleTrimesters, "fa-sitemap");
-    }
-    if(hasAlc || hasWarnings) {
-        addButton(printButton, def.CHECKS_BUTTON_ID, "Controleer lessen op fouten", onClickCheckResults, "fa-stethoscope");
     }
     addFilterFields();
 
@@ -142,46 +133,6 @@ function addButton(printButton: HTMLButtonElement, buttonId: string, title: stri
         buttonContent.classList.add("fas", imageId);
         printButton.insertAdjacentElement("beforebegin", button);
     }
-}
-
-function onClickCheckResults() {
-    let table = document.getElementById(LESSEN_TABLE_ID) as HTMLTableElement;
-    let lessen = scrapeLessenOverzicht(table);
-
-    let checksDiv = document.createElement("div");
-    checksDiv.id = "checksDiv";
-    checksDiv.classList.add("badge-warning");
-
-    let checksText = "";
-    table.parentNode.insertBefore(checksDiv, table.previousSibling);
-    for(let les of lessen) {
-        if (les.alc) {
-            if(les.online) {
-                checksText += `<div>ALC les <b>${les.naam}</b> is online zichtbaar.</div>`;
-            }
-        }
-    }
-    checksDiv.innerHTML = checksText;
-}
-
-function showOnlyFullTrimesters(onlyFull: boolean) {
-    let trimDiv = document.getElementById(def.TRIM_DIV_ID);
-    trimDiv.dataset.showFullClass = onlyFull ? "true" : "false";
-}
-
-function onClickFullClasses() {
-    let table = document.getElementById(LESSEN_TABLE_ID) as HTMLTableElement;
-    let lessen = scrapeLessenOverzicht(table);
-    let overzichtDiv = document.getElementById(def.LESSEN_OVERZICHT_ID);
-    overzichtDiv.dataset.filterFullClasses = (overzichtDiv.dataset.filterFullClasses?? "false") === "false" ? "true" : "false";
-    let displayState = overzichtDiv.dataset.filterFullClasses === "true" ? "none" : "table-row";
-    for(let les of lessen) {
-        if (les.aantal < les.maxAantal) {
-            les.tableRow.style.display = displayState;
-        }
-    }
-    setButtonHighlighted(def.FULL_CLASS_BUTTON_ID, overzichtDiv.dataset.filterFullClasses === "true");
-    showOnlyFullTrimesters(displayState === "none");
 }
 
 function onClickToggleTrimesters() {

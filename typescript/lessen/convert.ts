@@ -76,6 +76,10 @@ export class BlockInfo {
         return this.alleLessen().some(les => les.online && les.alc);
     }
 
+    hasWarningLessons() {
+        return this.alleLessen().some(les => les.warnings.length > 0);
+    }
+
     alleLessen() {
         return this.trimesters.flat().concat(this.jaarModules);
     }
