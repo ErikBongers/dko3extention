@@ -1,6 +1,6 @@
 import {FULL_CLASS_BUTTON_ID, TRIM_DIV_ID} from "../def";
 import {db3, getPageSettings, isButtonHighlighted, savePageSettings, stripStudentName} from "../globals";
-import {BlockInfo, mergeBlockStudents, sortStudents, TableData} from "./convert";
+import {BlockInfo, mergeBlockStudents, TableData} from "./convert";
 import {StudentInfo} from "./scrape";
 import * as html from "../../libs/Emmeter/html";
 import {emmet} from "../../libs/Emmeter/html";
@@ -474,4 +474,23 @@ export interface TrimElements {
     trimTableDiv: HTMLDivElement;
     lessenTable: HTMLTableElement;
     trimButton: HTMLButtonElement;
+}
+
+export function sortStudents(students: StudentInfo[]) {
+    if (!students) return;
+    let comparator = new Intl.Collator();
+    let sorting = getSavedNameSorting();
+    students
+        //sort full year students on top.
+        .sort((a, b) => {
+            if (a.allYearSame && (!b.allYearSame)) {
+                return -1;
+            } else if ((!a.allYearSame) && b.allYearSame) {
+                return 1;
+            } else {
+                let aName = sorting === NameSorting.LastName ? a.naam + a.voornaam : a.voornaam + a.naam;
+                let bName = sorting === NameSorting.LastName ? b.naam + b.voornaam : b.voornaam + b.naam;
+                return comparator.compare(aName, bName);
+            }
+        });
 }

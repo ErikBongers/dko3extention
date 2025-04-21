@@ -1,6 +1,5 @@
 import {Les, LesType, StudentInfo} from "./scrape";
 import {distinct} from "../globals";
-import {getSavedNameSorting, NameSorting} from "./build";
 
 interface TagInfo {
     name: string,
@@ -424,25 +423,6 @@ function addJaarStudentsToMapAndCount(students: Map<string, StudentInfo>, jaarMo
         .map((student) => students.get(student.name));
 }
 
-export function sortStudents(students: StudentInfo[]) {
-    if(!students) return;
-    let comparator = new Intl.Collator();
-    let sorting = getSavedNameSorting();
-    students
-        //sort full year students on top.
-        .sort((a,b) => {
-            if (a.allYearSame && (!b.allYearSame)) {
-                return -1;
-            } else if ((!a.allYearSame) && b.allYearSame) {
-                return 1;
-            } else {
-                let aName = sorting === NameSorting.LastName ? a.naam + a.voornaam : a.voornaam + a.naam;
-                let bName = sorting === NameSorting.LastName ? b.naam + b.voornaam : b.voornaam + b.naam;
-                return comparator.compare(aName, bName);
-            }
-        });
-}
-
 interface MergedBlockStudents {
     jaarStudents: StudentInfo[],
     trimesterStudents: StudentInfo[][],
@@ -462,8 +442,6 @@ export function mergeBlockStudents(block: BlockInfo) {
         block.trimesters[1].map(les => les?.students ?? []).flat(),
         block.trimesters[2].map(les => les?.students ?? []).flat(),
     ];
-
-    trimesterStudents.forEach( trim => sortStudents(trim));
 
     let maxAantallen = block.trimesters
         .map((trimLessen) => {

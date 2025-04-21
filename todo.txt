@@ -2,15 +2,16 @@
 
 * globals.ts: use of deprecated keyCode: test with .code="Enter".
 
-* Checks:
-      >>>> only actual errors to avoid fatigue!
-  > 999 for certain classes
+* Filters:
+    >>>> only actual errors to avoid fatigue!
+  > Les has no name.
   > no alias for Woord classes
-  > no teacher?
-  > ALC: should be assigned to Kristel
-  > offline/online
-    - ALC: offline
-    - Woord with alias: offline
+  > ALC: should be assigned to Kristel -> custom combine!
+  > Woord with alias: offline
+  > overrule filters with tags: list possible tags in tag screen.
+
+  > text filter starting with  a !
+    > document.
 
 * Trims: summing hours per block
   > for Lievenka: fine: just add the hours of all the blooks
@@ -35,8 +36,6 @@
 * afw: zoek ook op naam
 
 * If table page size is changed: clear cache and update infobar!
-
-* Volle klas?: add a quick check.
 
 * Werklijst: save criteria.
 
