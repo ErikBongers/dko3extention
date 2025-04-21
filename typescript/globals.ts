@@ -39,7 +39,12 @@ export function registerSettingsObserver(observer: () => void) {
 export function searchText(text: string) {
     let input: HTMLInputElement = document.querySelector("#snel_zoeken_veld_zoektermen");
     input.value = text;
-    let evUp = new KeyboardEvent("keyup", {key: "Enter", keyCode: 13, bubbles: true}); //doesn't seem to be working other than with this deprecated property.
+    // noinspection JSDeprecatedSymbols
+    let evUp = new KeyboardEvent("keyup", {
+        key: "Enter",
+        code: "Enter",
+        keyCode: 13, //deprecated, but DKO3 still checks for this!
+        bubbles: true});
     input.dispatchEvent(evUp);
 }
 
