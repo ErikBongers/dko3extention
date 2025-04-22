@@ -57,7 +57,7 @@ export let instrumentSet = new Set([
     "Zang (musical)",
 ]);
 
-export async function prefillInstruments(schooljaar: string) {
+export async function setCriteriaForTeacherHours(schooljaar: string) {
     await sendClearWerklijst();
     let vakken = await fetchVakken(false, schooljaar);
     let instruments = vakken.filter((vak) => isInstrument(vak[0]));

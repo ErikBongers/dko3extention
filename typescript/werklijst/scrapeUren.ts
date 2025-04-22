@@ -82,23 +82,30 @@ function isInstrument(vak: string) {
     return true;
 }
 
+type SubjectAlias = {
+    name: string,
+    alias: string
+}
+
+let subjectAliases: SubjectAlias[] = [
+    {name: "Basklarinet", alias: "Klarinet"},
+    {name: "Altfluit", alias: "Dwarsfluit"},
+    {name: "Piccolo", alias: "Dwarsfluit"},
+
+    {name: "Trompet", alias: "Koper"},
+    {name: "Hoorn", alias: "Koper"},
+    {name: "Trombone", alias: "Koper"},
+    {name: "Bugel", alias: "Koper"},
+    {name: "Eufonium", alias: "Koper"},
+
+    {name: "Altsaxofoon", alias: "Saxofoon"},
+    {name: "Sopraansaxofoon", alias: "Saxofoon"},
+    {name: "Tenorsaxofoon", alias: "Saxofoon"},
+];
+
 function translateVak(vak: string) {
     function renameInstrument(instrument: string) {
-        return instrument
-            .replace("Basklarinet", "Klarinet")
-            .replace("Altfluit", "Dwarsfluit")
-            .replace("Piccolo", "Dwarsfluit")
-
-            .replace("Trompet", "Koper") //keept this one on top because of the next line!
-            .replace("Koper (jazz pop rock)", "Trompet (jazz pop rock)")
-            .replace("Hoorn", "Koper")
-            .replace("Trombone", "Koper")
-            .replace("Bugel", "Koper")
-            .replace("Eufonium", "Koper")
-
-            .replace("Altsaxofoon", "Saxofoon")
-            .replace("Sopraansaxofoon", "Saxofoon")
-            .replace("Tenorsaxofoon", "Saxofoon");
+        return subjectAliases.find(alias => alias.name === instrument)?.alias ?? instrument;
     }
 
     if(vak.includes("(jazz pop rock)")) {
@@ -111,6 +118,20 @@ function translateVak(vak: string) {
         return "WM " + renameInstrument(vak).replace("(wereldmuziek)", "");
     }
 
-
     return "K " + renameInstrument(vak);
 }
+
+type TranslationDef = {
+    find: string,
+    replace: string,
+    prefix: string,
+    suffix: string,
+}
+
+/*
+fragment "(jazz pop rock)"  ==> vervang door "" ==>  nieuwe naam: prefix "JPR " + naam van instrument
+fragment "(musical)"  ==> vervang door "" ==> nieuwe naam: prefix "M " + naam van instrument
+fragment "(wereldmuziek)"  ==> vervang door "" ==> nieuwe naam: prefix "WM " + naam van instrument.
+fragment "instrumentinitiatie" ==> vervang door "init" ==>
+
+ */

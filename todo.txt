@@ -1,6 +1,8 @@
+* setup leraren uren.
+  > separate tab
+    > all instruments (vakken0 have checkboxes.
+    >
 * replace all refs to skynet with outlook.
-
-* globals.ts: use of deprecated keyCode: test with .code="Enter".
 
 * Filters:
     >>>> only actual errors to avoid fatigue!

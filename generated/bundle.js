@@ -30,6 +30,7 @@ default_items = __toESM(default_items);
 const COPY_AGAIN = "copy_again";
 const PROGRESS_BAR_ID = "progressBarFetch";
 const UREN_PREV_BTN_ID = "prefillInstrButton";
+const UREN_PREV_SETUP_BTN_ID = "prefillInstrSetupButton";
 const UREN_NEXT_BTN_ID = "prefillInstrButtonNext";
 const MAIL_BTN_ID = "mailButton";
 const DOWNLOAD_TABLE_BTN_ID = "downloadTableButton";
@@ -3076,9 +3077,55 @@ function isInstrument$1(vak) {
 	}
 	return true;
 }
+let subjectAliases = [
+	{
+		name: "Basklarinet",
+		alias: "Klarinet"
+	},
+	{
+		name: "Altfluit",
+		alias: "Dwarsfluit"
+	},
+	{
+		name: "Piccolo",
+		alias: "Dwarsfluit"
+	},
+	{
+		name: "Trompet",
+		alias: "Koper"
+	},
+	{
+		name: "Hoorn",
+		alias: "Koper"
+	},
+	{
+		name: "Trombone",
+		alias: "Koper"
+	},
+	{
+		name: "Bugel",
+		alias: "Koper"
+	},
+	{
+		name: "Eufonium",
+		alias: "Koper"
+	},
+	{
+		name: "Altsaxofoon",
+		alias: "Saxofoon"
+	},
+	{
+		name: "Sopraansaxofoon",
+		alias: "Saxofoon"
+	},
+	{
+		name: "Tenorsaxofoon",
+		alias: "Saxofoon"
+	}
+];
 function translateVak(vak) {
 	function renameInstrument(instrument) {
-		return instrument.replace("Basklarinet", "Klarinet").replace("Altfluit", "Dwarsfluit").replace("Piccolo", "Dwarsfluit").replace("Trompet", "Koper").replace("Koper (jazz pop rock)", "Trompet (jazz pop rock)").replace("Hoorn", "Koper").replace("Trombone", "Koper").replace("Bugel", "Koper").replace("Eufonium", "Koper").replace("Altsaxofoon", "Saxofoon").replace("Sopraansaxofoon", "Saxofoon").replace("Tenorsaxofoon", "Saxofoon");
+		return subjectAliases.find((alias) => alias.name === instrument)?.alias ?? instrument;
 	}
 	if (vak.includes("(jazz pop rock)")) return "JPR " + renameInstrument(vak).replace("(jazz pop rock)", "");
 	if (vak.includes("musical")) return "M " + renameInstrument(vak).replace("(musical)", "");
@@ -3204,7 +3251,7 @@ let instrumentSet = new Set([
 	"Zang (musical 2e graad)",
 	"Zang (musical)"
 ]);
-async function prefillInstruments(schooljaar) {
+async function setCriteriaForTeacherHours(schooljaar) {
 	await sendClearWerklijst();
 	let vakken = await fetchVakken(false, schooljaar);
 	let instruments = vakken.filter((vak) => isInstrument(vak[0]));
@@ -4285,13 +4332,13 @@ function onCriteriaShown() {
 	if (pageState$1.goto == Goto.Werklijst_uren_prevYear) {
 		pageState$1.goto = Goto.None;
 		saveGotoState(pageState$1);
-		prefillInstruments(createSchoolyearString(calculateSchooljaar())).then(() => {});
+		setCriteriaForTeacherHours(createSchoolyearString(calculateSchooljaar())).then(() => {});
 		return;
 	}
 	if (pageState$1.goto == Goto.Werklijst_uren_nextYear) {
 		pageState$1.goto = Goto.None;
 		saveGotoState(pageState$1);
-		prefillInstruments(createSchoolyearString(calculateSchooljaar() + 1)).then(() => {});
+		setCriteriaForTeacherHours(createSchoolyearString(calculateSchooljaar() + 1)).then(() => {});
 		return;
 	}
 	pageState$1.werklijstTableName = "";
@@ -4304,12 +4351,25 @@ function onCriteriaShown() {
 	let prevSchoolyearShort = createShortSchoolyearString(year - 1);
 	let nextSchoolyearShort = createShortSchoolyearString(year);
 	addButton$1(btnWerklijstMaken, UREN_PREV_BTN_ID, "Toon lerarenuren voor " + prevSchoolyear, async () => {
-		await prefillInstruments(prevSchoolyear);
+		await setCriteriaForTeacherHours(prevSchoolyear);
 	}, "", ["btn", "btn-outline-dark"], "Uren " + prevSchoolyearShort);
+	addButton$1(btnWerklijstMaken, UREN_PREV_SETUP_BTN_ID, "Setup voor " + prevSchoolyear, async () => {
+		await showUrenSetup(prevSchoolyear);
+	}, "fas-certificate", ["btn", "btn-outline-dark"], "");
 	addButton$1(btnWerklijstMaken, UREN_NEXT_BTN_ID, "Toon lerarenuren voor " + nextSchoolyear, async () => {
-		await prefillInstruments(nextSchoolyear);
+		await setCriteriaForTeacherHours(nextSchoolyear);
 	}, "", ["btn", "btn-outline-dark"], "Uren " + nextSchoolyearShort);
 	getSchoolIdString();
+}
+async function showUrenSetup(schoolyear) {
+	let instrumentList = document.getElementById("leerling_werklijst_criterium_vak");
+	let options$1 = [...instrumentList.options].map((option) => {
+		return {
+			text: option.text,
+			value: option.value
+		};
+	});
+	console.log(options$1);
 }
 function onWerklijstChanged() {
 	let werklijstPageState = getGotoStateOrDefault(PageName.Werklijst);

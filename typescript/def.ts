@@ -1,7 +1,9 @@
 export const COPY_AGAIN = "copy_again";
 export const PROGRESS_BAR_ID = "progressBarFetch";
 export const UREN_PREV_BTN_ID = "prefillInstrButton";
+export const UREN_PREV_SETUP_BTN_ID = "prefillInstrSetupButton";
 export const UREN_NEXT_BTN_ID = "prefillInstrButtonNext";
+export const UREN_NEXT_SETUP_BTN_ID = "prefillInstrSetupButtonNext";
 export const MAIL_BTN_ID = "mailButton";
 export const DOWNLOAD_TABLE_BTN_ID = "downloadTableButton";
 export const COPY_TABLE_BTN_ID = "copyTableButton";
