@@ -3,7 +3,7 @@ import {emmet} from "../../libs/Emmeter/html";
 import {checkAndDownloadTableRows} from "./loadAnyTable";
 import {addMenuItem, addMenuSeparator, setupMenu} from "../menus";
 import {TableFetcher, TableHandler, TableRef} from "./tableFetcher";
-import {CAN_HAVE_MENU, GLOBAL_COMMAND_BUFFER_KEY} from "../def";
+import * as def from "../def";
 import {options} from "../plugin_options/options";
 
 
@@ -128,7 +128,7 @@ export function decorateTableHeader(table: HTMLTableElement) {
             colHeader.onclick = (ev) => {
                 reSortTableByColumn(ev, table);
             };
-            if(!table.classList.contains(CAN_HAVE_MENU))
+            if(table.classList.contains(def.NO_MENU))
                 return;
             let {first: span, last: idiom} = emmet.appendChild(colHeader, 'span>button.miniButton.naked>i.fas.fa-list');
             let menu = setupMenu(span as HTMLElement, idiom.parentElement);
@@ -188,7 +188,7 @@ type TableColumnCmd = {
 }
 
 export function executeTableCommands(tableRef: TableRef) {
-    let cmds = getPageTransientStateValue(GLOBAL_COMMAND_BUFFER_KEY, []) as TableColumnCmd[];
+    let cmds = getPageTransientStateValue(def.GLOBAL_COMMAND_BUFFER_KEY, []) as TableColumnCmd[];
     console.log("Executing:");
     console.log(cmds);
     for(let cmd of cmds) {
@@ -216,7 +216,7 @@ function forTableColumnDo(ev: MouseEvent, cmdDef: TableColumnCmdDef) {
                 index
             }
             executeCmd(cmd, tableRef, false);
-            let cmds = getPageTransientStateValue(GLOBAL_COMMAND_BUFFER_KEY, []) as TableColumnCmd[];
+            let cmds = getPageTransientStateValue(def.GLOBAL_COMMAND_BUFFER_KEY, []) as TableColumnCmd[];
             cmds.push(cmd);
             relabelHeaders(tableRef.getOrgTableContainer().querySelector("thead>tr"))
         });

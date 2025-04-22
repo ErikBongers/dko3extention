@@ -4,6 +4,11 @@
     >
 * replace all refs to skynet with outlook.
 
+* table menu
+  > add copy to clipboard
+    - as text
+    - as table (excel)
+
 * Filters:
     >>>> only actual errors to avoid fatigue!
   > Les has no name.

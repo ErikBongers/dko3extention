@@ -54,8 +54,8 @@ const POWER_QUERY_ID = "savedPowerQuery";
 const STORAGE_GOTO_STATE_KEY = "gotoState";
 const STORAGE_PAGE_SETTINGS_KEY_PREFIX = "pageSettings_";
 const UREN_TABLE_STATE_NAME = "__uren__";
-const CAN_HAVE_MENU = "canHaveMenu";
 const CAN_SORT = "canSort";
+const NO_MENU = "noMenu";
 const LESSEN_TABLE_ID = "table_lessen_resultaat_tabel";
 const FILTER_INFO_ID = "filterInfo";
 const GLOBAL_COMMAND_BUFFER_KEY = "globalCmdBuffer";
@@ -2863,7 +2863,7 @@ function buildTable(urenData, tableDef) {
 	let table = document.createElement("table");
 	tableDef.tableRef.getOrgTableContainer().insertAdjacentElement("afterend", table);
 	table.id = COUNT_TABLE_ID;
-	table.classList.add(CAN_SORT);
+	table.classList.add(CAN_SORT, NO_MENU);
 	updateColDefs(urenData.year);
 	fillTableHeader(table, urenData.vakLeraars);
 	let tbody = document.createElement("tbody");
@@ -3683,7 +3683,6 @@ function onMutation$4(_mutation) {
 	}, "fa-arrow-down");
 	if (document.querySelector("main div.table-responsive table thead")) {
 		let table = document.querySelector("main div.table-responsive table");
-		table.classList.add(CAN_HAVE_MENU);
 		decorateTableHeader(document.querySelector("main div.table-responsive table"));
 	}
 	let canSort = document.querySelector("table." + CAN_SORT);
@@ -4148,7 +4147,11 @@ function decorateTableHeader(table) {
 		colHeader.onclick = (ev) => {
 			reSortTableByColumn(ev, table);
 		};
-		if (!table.classList.contains(CAN_HAVE_MENU)) return;
+		if (table.classList.contains(
+			//just to be sure.
+			//THEAD
+			NO_MENU
+)) return;
 		let { first: span, last: idiom } = emmet.appendChild(colHeader, "span>button.miniButton.naked>i.fas.fa-list");
 		let menu = setupMenu(span, idiom.parentElement);
 		addMenuItem(menu, "Toon unieke waarden", 0, (ev) => {

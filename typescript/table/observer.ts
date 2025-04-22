@@ -1,6 +1,5 @@
 import {addTableNavigationButton, getBothToolbars} from "../globals";
 import * as def from "../def";
-import {CAN_HAVE_MENU, CAN_SORT} from "../def";
 import {AllPageFilter, BaseObserver} from "../pageObserver";
 import {CheckSumBuilder, findTableRefInCode, TableFetcher} from "./tableFetcher";
 import {decorateTableHeader} from "./tableHeaders";
@@ -19,10 +18,9 @@ function onMutation (_mutation: MutationRecord) {
     }
     if(document.querySelector("main div.table-responsive table thead")) {
         let table = document.querySelector("main div.table-responsive table");
-        table.classList.add(CAN_HAVE_MENU);
         decorateTableHeader(document.querySelector("main div.table-responsive table"));
     }
-    let canSort = document.querySelector("table."+CAN_SORT) as HTMLTableElement;
+    let canSort = document.querySelector("table."+def.CAN_SORT) as HTMLTableElement;
     if(canSort) {
         decorateTableHeader(canSort);
     }

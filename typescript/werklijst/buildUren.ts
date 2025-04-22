@@ -1,5 +1,4 @@
 import * as def from "../def";
-import {CAN_SORT} from "../def";
 import {createValidId, findSchooljaar, getSchoolIdString} from "../globals";
 import {VakLeraar} from "./scrapeUren";
 import {TableFetcher} from "../table/tableFetcher";
@@ -242,7 +241,7 @@ export function buildTable(urenData: UrenData, tableDef: TableFetcher) {
     let table = document.createElement("table");
     tableDef.tableRef.getOrgTableContainer().insertAdjacentElement("afterend", table);
     table.id = def.COUNT_TABLE_ID;
-    table.classList.add(CAN_SORT);
+    table.classList.add(def.CAN_SORT, def.NO_MENU);
     updateColDefs(urenData.year);
     fillTableHeader(table, urenData.vakLeraars);
     let tbody = document.createElement("tbody");
