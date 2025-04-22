@@ -121,15 +121,33 @@
     let result = parseAndBuild(tempRoot, onIndex, hook);
     let first = void 0;
     let insertPos = target;
-    let children = [...tempRoot.children];
+    let children = [...tempRoot.childNodes];
     for (let child of children) {
       if (!first) {
-        first = insertPos = insertPos.insertAdjacentElement(position, child);
+        if (child.nodeType === Node.TEXT_NODE)
+          first = insertPos = insertAdjacentText(target, position, child.wholeText);
+        else
+          first = insertPos = target.insertAdjacentElement(position, child);
       } else {
-        insertPos = insertPos.insertAdjacentElement("afterend", child);
+        if (child.nodeType === Node.TEXT_NODE)
+          insertPos = insertPos.parentElement.insertBefore(document.createTextNode(child.wholeText), insertPos.nextSibling);
+        else
+          insertPos = insertPos.parentElement.insertBefore(child, insertPos.nextSibling);
       }
     }
     return { target, first, last: result.last };
+  }
+  function insertAdjacentText(target, position, text) {
+    switch (position) {
+      case "beforebegin":
+        return target.parentElement.insertBefore(document.createTextNode(text), target);
+      case "afterbegin":
+        return target.insertBefore(document.createTextNode(text), target.firstChild);
+      case "beforeend":
+        return target.appendChild(document.createTextNode(text));
+      case "afterend":
+        return target.parentElement.appendChild(document.createTextNode(text));
+    }
   }
   function parseAndBuild(root, onIndex, hook) {
     buildElement(root, parse(), 1, onIndex, hook);
@@ -364,7 +382,7 @@
   }
   var htmlOptionDefs = /* @__PURE__ */ new Map();
   function defineHtmlOption(id, property, label, blockId) {
-    htmlOptionDefs.set(id, { id, property, label, blockId: id });
+    htmlOptionDefs.set(id, { id, property, label, blockId });
   }
   var globalSettings = {
     globalHide: false
