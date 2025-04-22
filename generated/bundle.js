@@ -3124,14 +3124,81 @@ let subjectAliases = [
 	}
 ];
 function translateVak(vak) {
-	function renameInstrument(instrument) {
-		return subjectAliases.find((alias) => alias.name === instrument)?.alias ?? instrument;
-	}
-	if (vak.includes("(jazz pop rock)")) return "JPR " + renameInstrument(vak).replace("(jazz pop rock)", "");
-	if (vak.includes("musical")) return "M " + renameInstrument(vak).replace("(musical)", "");
-	if (vak.includes("wereldmuziek")) return "WM " + renameInstrument(vak).replace("(wereldmuziek)", "");
-	return "K " + renameInstrument(vak);
+	vak = subjectAliases.find((alias) => alias.name === vak)?.alias ?? vak;
+	let foundTranslation = false;
+	translationDefs.filter((translation) => translation.find !== "").forEach((translation) => {
+		if (vak.includes(translation.find)) {
+			foundTranslation = true;
+			vak = translation.prefix + vak.replace(translation.find, translation.replace) + translation.suffix;
+		}
+	});
+	if (foundTranslation) return vak;
+	let defaultTranslation = translationDefs.find((defaultTranslation$1) => defaultTranslation$1.find === "");
+	if (defaultTranslation) return defaultTranslation.prefix + vak.replace(defaultTranslation.find, defaultTranslation.replace) + defaultTranslation.suffix;
+	return vak;
 }
+let translationDefs = [
+	{
+		find: "Altsaxofoon",
+		replace: "Saxofoon",
+		prefix: "",
+		suffix: ""
+	},
+	{
+		find: "Sopraansaxofoon",
+		replace: "Saxofoon",
+		prefix: "",
+		suffix: ""
+	},
+	{
+		find: "Tenorsaxofoon",
+		replace: "Saxofoon",
+		prefix: "",
+		suffix: ""
+	},
+	{
+		find: "(klassiek)",
+		replace: "",
+		prefix: "K ",
+		suffix: ""
+	},
+	{
+		find: "(jazz pop rock)",
+		replace: "",
+		prefix: "JPR ",
+		suffix: ""
+	},
+	{
+		find: "(musical)",
+		replace: "",
+		prefix: "M ",
+		suffix: ""
+	},
+	{
+		find: "(musical 2e graad)",
+		replace: "(2e graad)",
+		prefix: "M ",
+		suffix: ""
+	},
+	{
+		find: "(wereldmuziek)",
+		replace: "",
+		prefix: "WM ",
+		suffix: ""
+	},
+	{
+		find: "instrumentinitiatie",
+		replace: "init",
+		prefix: "",
+		suffix: ""
+	},
+	{
+		find: "",
+		replace: "",
+		prefix: "K ",
+		suffix: ""
+	}
+];
 
 //#endregion
 //#region typescript/werklijst/criteria.ts

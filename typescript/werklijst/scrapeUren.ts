@@ -101,24 +101,33 @@ let subjectAliases: SubjectAlias[] = [
     {name: "Altsaxofoon", alias: "Saxofoon"},
     {name: "Sopraansaxofoon", alias: "Saxofoon"},
     {name: "Tenorsaxofoon", alias: "Saxofoon"},
+
 ];
 
 function translateVak(vak: string) {
-    function renameInstrument(instrument: string) {
-        return subjectAliases.find(alias => alias.name === instrument)?.alias ?? instrument;
-    }
+    // simple alias replacements
+    vak =  subjectAliases.find(alias => alias.name === vak)?.alias ?? vak;
 
-    if(vak.includes("(jazz pop rock)")) {
-        return "JPR " + renameInstrument(vak).replace("(jazz pop rock)", "");
-    }
-    if(vak.includes("musical")) {
-        return "M " + renameInstrument(vak).replace("(musical)", "");
-    }
-    if(vak.includes("wereldmuziek")) {
-        return "WM " + renameInstrument(vak).replace("(wereldmuziek)", "");
-    }
+    let foundTranslation = false;
+    // fragment replacements
+    translationDefs
+        .filter(translation => translation.find !== "")
+        .forEach(translation => {
+            if(vak.includes(translation.find)) {
+                foundTranslation = true;
+               vak = translation.prefix + vak.replace(translation.find, translation.replace) + translation.suffix;
+            }
+        });
+    if(foundTranslation)
+        return vak;
 
-    return "K " + renameInstrument(vak);
+    // default replacements
+    let defaultTranslation = translationDefs
+        .find(defaultTranslation => defaultTranslation.find === "");
+    if(defaultTranslation)
+        return defaultTranslation.prefix + vak.replace(defaultTranslation.find, defaultTranslation.replace) + defaultTranslation.suffix;
+
+    return vak;
 }
 
 type TranslationDef = {
@@ -128,10 +137,16 @@ type TranslationDef = {
     suffix: string,
 }
 
-/*
-fragment "(jazz pop rock)"  ==> vervang door "" ==>  nieuwe naam: prefix "JPR " + naam van instrument
-fragment "(musical)"  ==> vervang door "" ==> nieuwe naam: prefix "M " + naam van instrument
-fragment "(wereldmuziek)"  ==> vervang door "" ==> nieuwe naam: prefix "WM " + naam van instrument.
-fragment "instrumentinitiatie" ==> vervang door "init" ==>
+let translationDefs: TranslationDef[] = [
+    {find: "Altsaxofoon", replace: "Saxofoon", prefix: "", suffix: ""},
+    {find: "Sopraansaxofoon", replace: "Saxofoon", prefix: "", suffix: ""},
+    {find: "Tenorsaxofoon", replace: "Saxofoon", prefix: "", suffix: ""},
 
- */
+    {find: "(klassiek)", replace: "", prefix: "K ", suffix: ""},
+    {find: "(jazz pop rock)", replace: "", prefix: "JPR ", suffix: ""},
+    {find: "(musical)", replace: "", prefix: "M ", suffix: ""},
+    {find: "(musical 2e graad)", replace: "(2e graad)", prefix: "M ", suffix: ""},
+    {find: "(wereldmuziek)", replace: "", prefix: "WM ", suffix: ""},
+    {find: "instrumentinitiatie", replace: "init", prefix: "", suffix: ""},
+    {find: "", replace: "", prefix: "K ", suffix: ""},
+];
