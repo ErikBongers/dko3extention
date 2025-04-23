@@ -5,7 +5,7 @@
   "main": "typescript/plugin_options/options_page.ts",
   "scripts": {
     "test": "echo \"Note that the build command does a TSC first for stricter compilation.\" && exit 1",
-    "build_all": "npm run build_content && npm run build_options && npm run build_serviceworker && npm run build_blank",
+    "build_all": "npm run build_content_rolldown && npm run build_options && npm run build_serviceworker && npm run build_blank",
     "build_content": "tsc --build && node esbuild.config.mjs",
     "build_content_rolldown": "tsc --build &&  rolldown -c",
     "build_options": "tsc --project ./tsconfig_options.json && node esbuild_options.config.mjs",
