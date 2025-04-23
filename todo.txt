@@ -1,7 +1,28 @@
+* Open tab:
+  > figure out the message sending system.
+     > is data sent with the open_tab action or not?
+       ...oh....
+       - plugin sends open_tab mesage to service
+       - service opens tab
+       - tab sends get_data to service
+       > plugin currently as no message listener to receive events/data from other tabs or service.
+
+
 * setup leraren uren.
   > separate tab
-    > all instruments (vakken0 have checkboxes.
-    >
+    > all instruments with following columns:
+       - checkbox
+       - name
+       - alias
+    > list of translations "Tekstvervangingen"
+        - vind:
+        - vervang door:
+        - prefix:
+        - suffix:
+    > default translation: "Standaarvervanging (als de vervangingen hierboven niet van toepassing zijn)"
+      - prefix
+      - suffix
+
 * replace all refs to skynet with outlook.
 
 * table menu

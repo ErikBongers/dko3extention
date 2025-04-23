@@ -189,7 +189,7 @@ export function scrapeLesInfo(lesInfo: HTMLTableCellElement) {
     if (mutedSpans.length > 0) {
         les.teacher = Array.from(mutedSpans).pop().textContent;
     }
-    let textNodes = Array.from(lesInfo.childNodes).filter((node) => node.nodeType === Node.TEXT_NODE);
+    let textNodes = Array.from(lesInfo.childNodes).filter((node) => node.nodeType === Node.TEXT_NODE && node.textContent.trim() !== "");
     if (!textNodes) return les;
 
     les.lesmoment = textNodes[0].nodeValue;
