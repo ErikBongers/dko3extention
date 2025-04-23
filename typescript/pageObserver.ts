@@ -37,12 +37,14 @@ export class AllPageFilter implements PageFilter{
 
 export class BaseObserver implements Observer{
     private readonly onPageChangedCallback: () => void;
+    private readonly onPageLoadedCallback: () => void;
     private pageFilter: PageFilter;
     private readonly onMutation: (mutation: MutationRecord) => boolean;
     private observer: MutationObserver;
     private readonly trackModal: boolean;
-    constructor(onPageChangedCallback: () => void, pageFilter: PageFilter, onMutationCallback: (mutation: MutationRecord) => boolean, trackModal: boolean = false) {
+    constructor(onPageChangedCallback: () => void, pageFilter: PageFilter, onMutationCallback: (mutation: MutationRecord) => boolean, trackModal: boolean = false, onPageLoadedCallback: () => void = undefined) {
         this.onPageChangedCallback = onPageChangedCallback;
+        this.onPageLoadedCallback = onPageLoadedCallback;
         this.pageFilter = pageFilter;
         this.onMutation = onMutationCallback;
         this.trackModal = trackModal;
@@ -63,6 +65,10 @@ export class BaseObserver implements Observer{
     }
 
     isPageMatching = () => this.pageFilter.match();
+
+    onPageLoaded() {
+        this.onPageLoadedCallback?.();
+    }
 
     onPageChanged() {
         if (!this.pageFilter.match()) {
@@ -100,18 +106,23 @@ export class BaseObserver implements Observer{
 
 export interface Observer {
     onPageChanged: () => void;
+    onPageLoaded: () => void;
     isPageMatching: () => boolean;
 }
 
 export class HashObserver implements Observer {
     private baseObserver: BaseObserver;
     //onMutationCallback should return true if handled definitively.
-    constructor(urlHash: string, onMutationCallback: (mutation: MutationRecord) => boolean, trackModal: boolean = false) {
-        this.baseObserver = new BaseObserver(undefined, new HashPageFilter(urlHash), onMutationCallback, trackModal);
+    constructor(urlHash: string, onMutationCallback: (mutation: MutationRecord) => boolean, trackModal: boolean = false, onPageLoadedCallback: () => void = undefined) {
+        this.baseObserver = new BaseObserver(undefined, new HashPageFilter(urlHash), onMutationCallback, trackModal, onPageLoadedCallback);
     }
 
     onPageChanged() {
         this.baseObserver.onPageChanged();
+    }
+
+    onPageLoaded() {
+        this.baseObserver.onPageLoaded();
     }
 
     isPageMatching = () => this.baseObserver.isPageMatching();
@@ -119,28 +130,33 @@ export class HashObserver implements Observer {
 export class ExactHashObserver implements Observer {
     private baseObserver: BaseObserver;
     //onMutationCallback should return true if handled definitively.
-    constructor(urlHash: string, onMutationCallback: (mutation: MutationRecord) => boolean, trackModal: boolean = false) {
-        this.baseObserver = new BaseObserver(undefined, new ExactHashPageFilter(urlHash), onMutationCallback, trackModal);
+    constructor(urlHash: string, onMutationCallback: (mutation: MutationRecord) => boolean, trackModal: boolean = false, onPageLoadedCallback: () => void = undefined) {
+        this.baseObserver = new BaseObserver(undefined, new ExactHashPageFilter(urlHash), onMutationCallback, trackModal, onPageLoadedCallback);
     }
 
     isPageMatching = () => this.baseObserver.isPageMatching();
 
     onPageChanged() {
         this.baseObserver.onPageChanged();
+    }
+    onPageLoaded() {
+        this.baseObserver.onPageLoaded();
     }
 }
 
 export class PageObserver implements Observer {
     private baseObserver: BaseObserver;
-    constructor(onPageChangedCallback: () => void) {
-        this.baseObserver = new BaseObserver(onPageChangedCallback, new AllPageFilter(), undefined, false);
+    constructor(onPageChangedCallback: () => void, onPageLoadedCallback: () => void = undefined) {
+        this.baseObserver = new BaseObserver(onPageChangedCallback, new AllPageFilter(), undefined, false, onPageLoadedCallback);
     }
 
     isPageMatching = () => this.baseObserver.isPageMatching();
 
     onPageChanged() {
-
         this.baseObserver.onPageChanged();
+    }
+    onPageLoaded() {
+        this.baseObserver.onPageLoaded();
     }
 }
 
@@ -164,6 +180,10 @@ export class MenuScrapingObserver implements Observer {
         this.hashObserver.onPageChanged();
         if(this.isPageMatching())
             this.onMutationPageWithMenu(); //calling this here, because a menu page is often a single load, and MutationObserver is then too late to
+    }
+
+    onPageLoaded() {
+        this.onPageChanged();
     }
 
     onMutationPageWithMenu() {

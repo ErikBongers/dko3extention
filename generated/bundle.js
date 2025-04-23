@@ -572,15 +572,26 @@ function stripStudentName(name) {
 let Actions = /* @__PURE__ */ function(Actions$1) {
 	Actions$1["OpenTab"] = "open_tab";
 	Actions$1["GetTabData"] = "get_tab_data";
+	Actions$1["GetParentTabId"] = "get_parent_tab_id";
+	Actions$1["OpenHoursSettings"] = "open_hours_settings";
+	Actions$1["GreetingsFromParent"] = "greetings";
 	return Actions$1;
 }({});
-function openTab(html, pageTitle) {
+let TabId = /* @__PURE__ */ function(TabId$1) {
+	TabId$1[TabId$1["Undefined"] = 0] = "Undefined";
+	TabId$1[TabId$1["Main"] = 1] = "Main";
+	TabId$1[TabId$1["HoursSettings"] = 2] = "HoursSettings";
+	return TabId$1;
+}({});
+async function openTab(action, data, pageTitle) {
 	let message = {
-		action: Actions.OpenTab,
-		data: html,
-		pageTitle
+		action,
+		data,
+		pageTitle,
+		senderTab: TabId.Main,
+		targetTab: TabId.Undefined
 	};
-	chrome.runtime.sendMessage(message).then(() => console.log("message sent."));
+	return await chrome.runtime.sendMessage(message);
 }
 function createTable(headers, cols) {
 	let tmpDiv = document.createElement("div");
@@ -742,7 +753,7 @@ function getHardCodedQueryItems() {
 }
 document.body.addEventListener("keydown", showPowerQuery);
 function addOpenTabQueryItem() {
-	addQueryItem("Test", "Open tab", void 0, () => openTab("Important TYPESCRIPT data for this tab!!!", "Test 123"));
+	addQueryItem("Test", "Open tab", void 0, () => openTab(Actions.OpenTab, "Important TYPESCRIPT data for this tab!!!", "Test 123"));
 }
 function showPowerQuery(ev) {
 	if (ev.key === "q" && ev.ctrlKey && !ev.shiftKey && !ev.altKey) {
@@ -862,12 +873,14 @@ var AllPageFilter = class {
 };
 var BaseObserver = class {
 	onPageChangedCallback;
+	onPageLoadedCallback;
 	pageFilter;
 	onMutation;
 	observer;
 	trackModal;
-	constructor(onPageChangedCallback, pageFilter, onMutationCallback, trackModal = false) {
+	constructor(onPageChangedCallback, pageFilter, onMutationCallback, trackModal = false, onPageLoadedCallback = void 0) {
 		this.onPageChangedCallback = onPageChangedCallback;
+		this.onPageLoadedCallback = onPageLoadedCallback;
 		this.pageFilter = pageFilter;
 		this.onMutation = onMutationCallback;
 		this.trackModal = trackModal;
@@ -880,6 +893,9 @@ var BaseObserver = class {
 		}
 	}
 	isPageMatching = () => this.pageFilter.match();
+	onPageLoaded() {
+		this.onPageLoadedCallback?.();
+	}
 	onPageChanged() {
 		if (!this.pageFilter.match()) {
 			this.disconnect();
@@ -908,32 +924,41 @@ var BaseObserver = class {
 };
 var HashObserver = class {
 	baseObserver;
-	constructor(urlHash, onMutationCallback, trackModal = false) {
-		this.baseObserver = new BaseObserver(void 0, new HashPageFilter(urlHash), onMutationCallback, trackModal);
+	constructor(urlHash, onMutationCallback, trackModal = false, onPageLoadedCallback = void 0) {
+		this.baseObserver = new BaseObserver(void 0, new HashPageFilter(urlHash), onMutationCallback, trackModal, onPageLoadedCallback);
 	}
 	onPageChanged() {
 		this.baseObserver.onPageChanged();
+	}
+	onPageLoaded() {
+		this.baseObserver.onPageLoaded();
 	}
 	isPageMatching = () => this.baseObserver.isPageMatching();
 };
 var ExactHashObserver = class {
 	baseObserver;
-	constructor(urlHash, onMutationCallback, trackModal = false) {
-		this.baseObserver = new BaseObserver(void 0, new ExactHashPageFilter(urlHash), onMutationCallback, trackModal);
+	constructor(urlHash, onMutationCallback, trackModal = false, onPageLoadedCallback = void 0) {
+		this.baseObserver = new BaseObserver(void 0, new ExactHashPageFilter(urlHash), onMutationCallback, trackModal, onPageLoadedCallback);
 	}
 	isPageMatching = () => this.baseObserver.isPageMatching();
 	onPageChanged() {
 		this.baseObserver.onPageChanged();
+	}
+	onPageLoaded() {
+		this.baseObserver.onPageLoaded();
 	}
 };
 var PageObserver = class {
 	baseObserver;
-	constructor(onPageChangedCallback) {
-		this.baseObserver = new BaseObserver(onPageChangedCallback, new AllPageFilter(), void 0, false);
+	constructor(onPageChangedCallback, onPageLoadedCallback = void 0) {
+		this.baseObserver = new BaseObserver(onPageChangedCallback, new AllPageFilter(), void 0, false, onPageLoadedCallback);
 	}
 	isPageMatching = () => this.baseObserver.isPageMatching();
 	onPageChanged() {
 		this.baseObserver.onPageChanged();
+	}
+	onPageLoaded() {
+		this.baseObserver.onPageLoaded();
 	}
 };
 var MenuScrapingObserver = class MenuScrapingObserver {
@@ -952,6 +977,9 @@ var MenuScrapingObserver = class MenuScrapingObserver {
 	onPageChanged() {
 		this.hashObserver.onPageChanged();
 		if (this.isPageMatching()) this.onMutationPageWithMenu();
+	}
+	onPageLoaded() {
+		this.onPageChanged();
 	}
 	onMutationPageWithMenu() {
 		saveQueryItems(this.page, scrapeMenuPage(this.longLabelPrefix, MenuScrapingObserver.defaultLinkToQueryItem));
@@ -1242,7 +1270,7 @@ function scrapeLesInfo(lesInfo) {
 	else les.lesType = LesType.UnknownModule;
 	else les.lesType = LesType.Les;
 	if (mutedSpans.length > 0) les.teacher = Array.from(mutedSpans).pop().textContent;
-	let textNodes = Array.from(lesInfo.childNodes).filter((node) => node.nodeType === Node.TEXT_NODE);
+	let textNodes = Array.from(lesInfo.childNodes).filter((node) => node.nodeType === Node.TEXT_NODE && node.textContent.trim() !== "");
 	if (!textNodes) return les;
 	les.lesmoment = textNodes[0].nodeValue;
 	les.vestiging = textNodes[1].nodeValue;
@@ -4256,7 +4284,7 @@ function showDistinctColumn(tableRef, index) {
 	let headerRow = tableRef.getOrgTableContainer().querySelector("thead>tr");
 	let headerNodes = [...headerRow.querySelectorAll("th")[index].childNodes];
 	let headerText = headerNodes.filter((node) => node.nodeType === Node.TEXT_NODE).map((node) => node.textContent).join(" ");
-	openTab(tmpDiv.innerHTML, headerText + " (uniek)");
+	openTab(Actions.OpenTab, tmpDiv.innerHTML, headerText + " (uniek)");
 }
 let hideColumn = { doForRow: function(row, index, _context) {
 	row.cells[index].style.display = "none";
@@ -4380,8 +4408,13 @@ const tableId = "table_leerlingen_werklijst_table";
 registerChecksumHandler(tableId, (_tableDef) => {
 	return document.querySelector("#view_contents > div.alert.alert-primary")?.textContent.replace("Criteria aanpassen", "")?.replace("Criteria:", "") ?? "";
 });
-var observer_default$4 = new HashObserver("#leerlingen-werklijst", onMutation$3);
+var observer_default$4 = new HashObserver("#leerlingen-werklijst", onMutation$3, false, onPageLoaded$1);
+function onPageLoaded$1() {
+	console.log("Werklijst onPageLoaded");
+	if (document.querySelector("#btn_werklijst_maken")) onCriteriaShown();
+}
 function onMutation$3(mutation) {
+	console.log("Werklijst onMutation");
 	if (mutation.target.id === "table_leerlingen_werklijst_table") {
 		onWerklijstChanged();
 		return true;
@@ -4426,11 +4459,15 @@ function onCriteriaShown() {
 	addButton$1(btnWerklijstMaken, UREN_PREV_SETUP_BTN_ID, "Setup voor " + prevSchoolyear, async () => {
 		await showUrenSetup(prevSchoolyear);
 	}, "fas-certificate", ["btn", "btn-outline-dark"], "");
+	addButton$1(btnWerklijstMaken, UREN_PREV_SETUP_BTN_ID + "sdf", "test ", async () => {
+		await sendMessageToTab();
+	}, "fas-certificate", ["btn", "btn-outline-dark"], "");
 	addButton$1(btnWerklijstMaken, UREN_NEXT_BTN_ID, "Toon lerarenuren voor " + nextSchoolyear, async () => {
 		await setCriteriaForTeacherHours(nextSchoolyear);
 	}, "", ["btn", "btn-outline-dark"], "Uren " + nextSchoolyearShort);
 	getSchoolIdString();
 }
+let globalTabId = -1;
 async function showUrenSetup(schoolyear) {
 	let instrumentList = document.getElementById("leerling_werklijst_criterium_vak");
 	let options$1 = [...instrumentList.options].map((option) => {
@@ -4440,6 +4477,18 @@ async function showUrenSetup(schoolyear) {
 		};
 	});
 	console.log(options$1);
+	let res = await openTab(Actions.OpenHoursSettings, options$1, "Lerarenuren setup");
+	globalTabId = res.tabId;
+}
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+	console.log("Received message from service worker: ", request);
+});
+async function sendMessageToTab() {
+	await chrome.runtime.sendMessage({
+		action: Actions.GreetingsFromParent,
+		tabId: globalTabId,
+		message: "Hello the main content script."
+	});
 }
 function onWerklijstChanged() {
 	let werklijstPageState = getGotoStateOrDefault(PageName.Werklijst);
@@ -4504,7 +4553,7 @@ function onShowLerarenUren() {
 				let error = scrapeStudent(tableFetcher, tableFetchListener, tr, vakLeraars);
 				if (error) errors.push(error);
 			}
-			if (errors.length) openTab(createTable(["Error"], errors.map((error) => [error])).outerHTML, "Errors");
+			if (errors.length) openTab(Actions.OpenTab, createTable(["Error"], errors.map((error) => [error])).outerHTML, "Errors");
 			let fromCloud = upgradeCloudData(jsonCloudData);
 			vakLeraars = new Map([...vakLeraars.entries()].sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
 			document.getElementById(COUNT_TABLE_ID)?.remove();
@@ -4901,9 +4950,6 @@ function init() {
 			checkGlobalSettings();
 			onPageChanged();
 		});
-		window.addEventListener("load", () => {
-			onPageChanged();
-		});
 		registerObserver(observer_default$9);
 		registerObserver(observer_default$8);
 		registerObserver(observer_default$7);
@@ -4922,6 +4968,13 @@ function init() {
 		registerObserver(observer_default);
 		onPageChanged();
 		setupPowerQuery();
+		if (document.readyState == "complete") {
+			console.log("document ready. firing onPageLoaded.");
+			onPageLoaded();
+		} else window.addEventListener("load", () => {
+			console.log("load event fired.");
+			onPageLoaded();
+		});
 	});
 }
 let lastCheckTime = Date.now();
@@ -4945,6 +4998,11 @@ function onPageChanged() {
 	if (getGlobalSettings().globalHide) return;
 	clearPageTransientState();
 	for (let observer of observers) observer.onPageChanged();
+}
+function onPageLoaded() {
+	if (getGlobalSettings().globalHide) return;
+	clearPageTransientState();
+	for (let observer of observers) observer.onPageLoaded();
 }
 
 //#endregion

@@ -1,4 +1,4 @@
-import {calculateSchooljaar, clamp, createShortSchoolyearString, isAlphaNumeric, openTab} from "../globals";
+import {Actions, calculateSchooljaar, clamp, createShortSchoolyearString, isAlphaNumeric, openTab} from "../globals";
 import * as def from "../def";
 import {getGotoStateOrDefault, Goto, PageName, saveGotoState} from "../gotoState";
 import {default_items as defaultQueryItems } from "default_items";
@@ -122,7 +122,7 @@ function getHardCodedQueryItems() {
 document.body.addEventListener("keydown", showPowerQuery);
 
 function addOpenTabQueryItem() {
-    addQueryItem('Test', "Open tab", undefined, () => openTab("Important TYPESCRIPT data for this tab!!!", "Test 123"));
+    addQueryItem('Test', "Open tab", undefined, () => openTab(Actions.OpenTab, "Important TYPESCRIPT data for this tab!!!", "Test 123"));
 }
 
 function showPowerQuery(ev: KeyboardEvent) {

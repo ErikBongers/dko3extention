@@ -5,7 +5,7 @@ import {PageName} from "./gotoState";
 import {PageSettings} from "./lessen/build";
 import {fetchGlobalSettings, getGlobalSettings, GlobalSettings, options, setGlobalSetting} from "./plugin_options/options";
 
-export let observers = [];
+export let observers: Observer[] = [];
 export let settingsObservers: (() => void)[] = [];
 
 export function db3(message: any) {
@@ -264,23 +264,31 @@ export function stripStudentName(name: string): string {
 export enum Actions {
     OpenTab = "open_tab",
     GetTabData = "get_tab_data",
+    GetParentTabId = "get_parent_tab_id",
+    OpenHoursSettings = "open_hours_settings",
+    GreetingsFromParent = "greetings",
 }
 
-export interface ExtensionRequest {
+export enum TabId {Undefined, Main, HoursSettings}
+
+export interface ServiceRequest {
     action: Actions,
     data: any,
-    pageTitle: string
+    pageTitle: string,
+    senderTab: TabId,
+    targetTab: TabId,
 }
 
-export function openTab(html: string, pageTitle: string) {
-    let message: ExtensionRequest = {
-        action: Actions.OpenTab,
-        data: html,
-        pageTitle
+export async function openTab(action: Actions, data: any, pageTitle: string) {
+    let message: ServiceRequest = {
+        action,
+        data,
+        pageTitle,
+        senderTab: TabId.Main,
+        targetTab: TabId.Undefined,
     };
 
-    chrome.runtime.sendMessage(message)
-        .then(() => console.log("message sent."));
+    return await chrome.runtime.sendMessage(message);
 }
 
 export function writeTableToClipboardForExcel(table: HTMLTableElement) {

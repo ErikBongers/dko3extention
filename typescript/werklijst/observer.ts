@@ -1,4 +1,4 @@
-import {addButton, calculateSchooljaar, createSchoolyearString, createShortSchoolyearString, createTable, findSchooljaar, getHighestSchooljaarAvailable, getSchoolIdString, openTab, setButtonHighlighted} from "../globals";
+import {Actions, addButton, calculateSchooljaar, createSchoolyearString, createShortSchoolyearString, createTable, findSchooljaar, getHighestSchooljaarAvailable, getSchoolIdString, openTab, setButtonHighlighted} from "../globals";
 import * as def from "../def";
 import {buildTable, getUrenVakLeraarFileName} from "./buildUren";
 import {scrapeStudent, VakLeraar} from "./scrapeUren";
@@ -20,9 +20,17 @@ registerChecksumHandler(tableId,  (_tableDef: TableFetcher) => {
     }
     );
 
-export default new HashObserver("#leerlingen-werklijst", onMutation);
+export default new HashObserver("#leerlingen-werklijst", onMutation, false, onPageLoaded);
+
+function onPageLoaded() {
+    console.log("Werklijst onPageLoaded");
+    if (document.querySelector("#btn_werklijst_maken")) {
+        onCriteriaShown();
+    }
+}
 
 function onMutation(mutation: MutationRecord) {
+    console.log("Werklijst onMutation");
     if ((mutation.target as HTMLElement).id === "table_leerlingen_werklijst_table") {
         onWerklijstChanged();
         return true;
@@ -66,15 +74,28 @@ function onCriteriaShown() {
     let nextSchoolyearShort = createShortSchoolyearString(year);
     addButton(btnWerklijstMaken, def.UREN_PREV_BTN_ID, "Toon lerarenuren voor "+ prevSchoolyear, async () => { await setCriteriaForTeacherHours(prevSchoolyear); }, "", ["btn", "btn-outline-dark"], "Uren "+ prevSchoolyearShort);
     addButton(btnWerklijstMaken, def.UREN_PREV_SETUP_BTN_ID, "Setup voor "+ prevSchoolyear, async () => { await showUrenSetup(prevSchoolyear); }, "fas-certificate", ["btn", "btn-outline-dark"], "");
+    addButton(btnWerklijstMaken, def.UREN_PREV_SETUP_BTN_ID+"sdf", "test ", async () => { await sendMessageToTab(); }, "fas-certificate", ["btn", "btn-outline-dark"], "");
     addButton(btnWerklijstMaken, def.UREN_NEXT_BTN_ID, "Toon lerarenuren voor "+ nextSchoolyear, async () => { await setCriteriaForTeacherHours(nextSchoolyear); }, "", ["btn", "btn-outline-dark"], "Uren "+ nextSchoolyearShort);
     getSchoolIdString();
 }
 
+let globalTabId = -1;
 async function showUrenSetup(schoolyear: string) {
     //todo: switch to schoolyear first
+    //todo: criterium_vak may not be present! (fetch it in background?)
     let instrumentList = document.getElementById("leerling_werklijst_criterium_vak") as HTMLSelectElement;
     let options = [...instrumentList.options].map(option => { return { text: option.text, value: option.value }});
     console.log(options);
+    let res = await openTab(Actions.OpenHoursSettings, options, "Lerarenuren setup");
+    globalTabId = res.tabId;
+}
+
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    console.log("Received message from service worker: ", request);
+})
+
+async function sendMessageToTab() {
+    await chrome.runtime.sendMessage({action: Actions.GreetingsFromParent, tabId: globalTabId, message: "Hello the main content script."});
 }
 
 function onWerklijstChanged() {
@@ -159,7 +180,7 @@ function onShowLerarenUren() {
                     errors.push(error);
             }
             if(errors.length)
-                openTab(createTable(["Error"], errors.map(error => [error])).outerHTML, "Errors");
+                openTab(Actions.OpenTab, createTable(["Error"], errors.map(error => [error])).outerHTML, "Errors");
             let fromCloud = upgradeCloudData(jsonCloudData);
             vakLeraars = new Map([...vakLeraars.entries()].sort((a, b) => a[0] < b[0] ? -1 : ((a[0] > b[0])? 1 : 0))) as Map<string, VakLeraar>;
             document.getElementById(def.COUNT_TABLE_ID)?.remove();

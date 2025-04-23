@@ -35,10 +35,6 @@ function init() {
             onPageChanged();
         });
 
-        window.addEventListener("load", () => {
-            onPageChanged();
-        });
-
         //do registrations here to get all these observers/pages into the same compilation unit.
         registerObserver(leerlingObserver);
         registerObserver(lessenObserver);
@@ -58,6 +54,16 @@ function init() {
         registerObserver(afwezighedenObserver);
         onPageChanged();
         setupPowerQuery();
+        if(document.readyState == "complete") {
+            console.log("document ready. firing onPageLoaded.");
+            onPageLoaded();
+        }
+        else {
+            window.addEventListener("load", () => {
+                console.log("load event fired.");
+                onPageLoaded();
+            });
+        }
     });
 }
 
@@ -89,6 +95,16 @@ function onPageChanged() {
     clearPageTransientState();
     for(let observer of observers) {
         observer.onPageChanged();
+    }
+}
+
+function onPageLoaded() {
+    if(getGlobalSettings().globalHide) {
+        return;
+    }
+    clearPageTransientState();
+    for(let observer of observers) {
+        observer.onPageLoaded();
     }
 }
 

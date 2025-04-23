@@ -1,4 +1,4 @@
-import {createTable, distinct, getPageTransientStateValue, openTab, range, rangeGenerator} from "../globals";
+import {Actions, createTable, distinct, getPageTransientStateValue, openTab, range, rangeGenerator} from "../globals";
 import {emmet} from "../../libs/Emmeter/html";
 import {checkAndDownloadTableRows} from "./loadAnyTable";
 import {addMenuItem, addMenuSeparator, setupMenu} from "../menus";
@@ -246,7 +246,7 @@ function showDistinctColumn(tableRef: TableRef, index: number) {
     let headerRow = tableRef.getOrgTableContainer().querySelector("thead>tr");
     let headerNodes = [...headerRow.querySelectorAll("th")[index].childNodes];
     let headerText = headerNodes.filter(node => node.nodeType === Node.TEXT_NODE).map(node => node.textContent).join(" ");
-    openTab(tmpDiv.innerHTML, headerText + " (uniek)");
+    openTab(Actions.OpenTab, tmpDiv.innerHTML, headerText + " (uniek)");
 }
 
 let hideColumn: TableColumnCmdDef = {
