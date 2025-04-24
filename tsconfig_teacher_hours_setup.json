@@ -1,0 +1,11 @@
+{
+  "include": ["typescript/**/*"],
+  "compilerOptions": {
+    "outDir": "./generated",
+    "target": "es2021",
+    "sourceMap": true,
+    "noEmit": true,
+    "incremental": false
+  },
+  "files": ["./typescript/teacherHoursSetup.ts"]
+}

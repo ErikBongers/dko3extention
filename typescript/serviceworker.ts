@@ -36,7 +36,6 @@ let global_request = {};
 chrome.runtime.onMessage.addListener( onMessage);
 
 let mainTabId = -1;
-let hoursSetupTabId = -1;
 
 function onMessage(message: ServiceRequest, sender: MessageSender, sendResponse: (response?: any) => void) {
     switch (message.action) {
@@ -54,33 +53,17 @@ function onMessage(message: ServiceRequest, sender: MessageSender, sendResponse:
             global_request = message;
             mainTabId = sender.tab.id;
             //todo: if already exists: activate?
-            chrome.tabs.create({url: chrome.runtime.getURL("resources/blank.html")}).then(tab => {
-                hoursSetupTabId = tab.id;
-                console.log("hours setup tab created: ");
-                console.log(tab.id);
+            chrome.tabs.create({url: chrome.runtime.getURL("resources/teacherHoursSetup.html")}).then(tab => {
                 sendResponse({tabId: tab.id}); //todo: make a Response type.
             });
             return true; //needed because sendResponse is called asynchronously.
         case Actions.GetTabData: //todo: move to sender instead of worker?
-            console.log("getTabData:", message);
-            // if(message.senderTab === TabId.HoursSettings)
-            //     hoursSetupTabId = message.data.tabId;
             sendResponse(global_request);
             break;
         case Actions.GetParentTabId:
             sendResponse(mainTabId);
             break;
-        // case Actions.GreetingsFromParent: {
-        //     console.log("passing greetings from parent to tab");
-        //     let targetTabId: number;
-        //     if (message.targetTabType === TabType.HoursSettings)
-        //         targetTabId = hoursSetupTabId;
-        //     //todo: else?
-        //     chrome.tabs.sendMessage(targetTabId, message).then(r => {
-        //     });
-        // }            break;
         case Actions.GreetingsFromChild: {
-            console.log("passing greetings from child to main");
             let targetTabId: number;
             if (message.targetTabType === TabType.Main)
                 targetTabId = mainTabId;

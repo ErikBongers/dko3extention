@@ -16,7 +16,7 @@
     return await sendRequest("get_tab_data" /* GetTabData */, sender, 0 /* Undefined */, void 0, { tabId: tab.id });
   }
   function createMessageHandler(tabType) {
-    return {
+    let handler2 = {
       getListener: function() {
         let self = this;
         return async function onMessage(request, _sender, _sendResponse) {
@@ -38,13 +38,23 @@
         this._onMessageForMe = callback;
         return this;
       },
+      onData: function(callback) {
+        this._onData = callback;
+        return this;
+      },
       _onMessageForMyTabType: void 0,
-      _onMessageForMe: void 0
+      _onMessageForMe: void 0,
+      _onData: void 0
     };
+    document.addEventListener("DOMContentLoaded", async () => {
+      let res = await sendGetDataRequest(tabType);
+      handler2._onData?.(res);
+    });
+    return handler2;
   }
 
   // typescript/blank.ts
-  var handler = createMessageHandler(2 /* HoursSettings */);
+  var handler = createMessageHandler(3 /* Html */);
   chrome.runtime.onMessage.addListener(handler.getListener());
   handler.onMessageForMyTabType((msg) => {
     console.log("message for my tab type: ", msg);
@@ -52,16 +62,14 @@
   }).onMessageForMe((msg) => {
     console.log("message for me: ", msg);
     document.getElementById("container").innerHTML = "DATA:" + msg.data;
-  });
-  document.addEventListener("DOMContentLoaded", async () => {
+  }).onData((data) => {
     document.querySelector("button").addEventListener("click", async () => {
       await sendRequest("greetingsFromChild" /* GreetingsFromChild */, 0 /* Undefined */, 1 /* Main */, void 0, "Hullo! Fly safe!");
     });
-    let res = await sendGetDataRequest(2 /* HoursSettings */);
     console.log("tab opened: request data message sent and received: ");
-    console.log(res);
-    document.getElementById("container").innerHTML = "Data:" + res.data;
-    document.title = res.pageTitle;
+    console.log(data);
+    document.getElementById("container").innerHTML = "Dataxxxx:" + data.data;
+    document.title = data.pageTitle;
   });
 })();
 //# sourceMappingURL=blank.js.map

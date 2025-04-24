@@ -7,7 +7,7 @@ export enum Actions {
     GreetingsFromChild = "greetingsFromChild",
 }
 
-export enum TabType {Undefined, Main, HoursSettings}
+export enum TabType {Undefined, Main, HoursSettings, Html}
 
 export interface ServiceRequest {
     action: Actions,
@@ -45,16 +45,17 @@ export type MessageHandler = {
     getListener: () => (request: ServiceRequest, _sender, _sendResponse) => void;
     onMessageForMyTabType: (callback: (msg: ServiceRequest) => void) => MessageHandler;
     onMessageForMe: (callback: (msg: ServiceRequest) => void) => MessageHandler;
+    onData: (callback: (data: any) => void) => MessageHandler;
 }
 
 export interface InternalMessageHandler extends MessageHandler {
     _onMessageForMyTabType(request: ServiceRequest): void;
-
     _onMessageForMe(request: ServiceRequest): void;
+    _onData(data: any): void;
 }
 
 export function createMessageHandler(tabType: TabType): MessageHandler {
-    return {
+    let handler:InternalMessageHandler = {
         getListener: function () {
             let self: InternalMessageHandler = this;
             return async function onMessage(request: ServiceRequest, _sender, _sendResponse) {
@@ -76,7 +77,17 @@ export function createMessageHandler(tabType: TabType): MessageHandler {
             this._onMessageForMe = callback;
             return this;
         },
+        onData: function (callback: (data: any) => void): MessageHandler {
+            this._onData = callback;
+            return this;
+        },
         _onMessageForMyTabType: undefined,
-        _onMessageForMe: undefined
-    } as InternalMessageHandler;
+        _onMessageForMe: undefined,
+        _onData: undefined
+    };
+    document.addEventListener("DOMContentLoaded", async () => {
+        let res = await sendGetDataRequest(tabType);
+        handler._onData?.(res);
+    });
+    return handler;
 }

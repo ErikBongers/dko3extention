@@ -406,6 +406,7 @@ let TabType = /* @__PURE__ */ function(TabType$1) {
 	TabType$1[TabType$1["Undefined"] = 0] = "Undefined";
 	TabType$1[TabType$1["Main"] = 1] = "Main";
 	TabType$1[TabType$1["HoursSettings"] = 2] = "HoursSettings";
+	TabType$1[TabType$1["Html"] = 3] = "Html";
 	return TabType$1;
 }({});
 function sendRequest(action, from, to, toId, data, pageTitle) {
@@ -599,7 +600,7 @@ function stripStudentName(name) {
 	return name.replaceAll(/[,()'-]/g, " ").replaceAll("  ", " ");
 }
 async function openHtmlTab(innerHtml, pageTitle) {
-	return sendRequest(Actions.OpenHtmlTab, TabType.Main, TabType.Undefined, void 0, innerHtml, pageTitle);
+	return sendRequest(Actions.OpenHtmlTab, TabType.Main, TabType.Html, void 0, innerHtml, pageTitle);
 }
 async function openHoursSettings(data) {
 	return sendRequest(Actions.OpenHoursSettings, TabType.Main, TabType.Undefined, void 0, data, "Lerarenuren setup");

@@ -263,7 +263,7 @@ export function stripStudentName(name: string): string {
 }
 
 export async function openHtmlTab(innerHtml: string, pageTitle: string) {
-    return sendRequest(Actions.OpenHtmlTab, TabType.Main, TabType.Undefined, undefined, innerHtml, pageTitle);
+    return sendRequest(Actions.OpenHtmlTab, TabType.Main, TabType.Html, undefined, innerHtml, pageTitle);
 }
 
 export async function openHoursSettings(data: any) {

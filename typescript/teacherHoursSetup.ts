@@ -1,6 +1,6 @@
 import {Actions, createMessageHandler, sendRequest, TabType} from "./messaging";
 
-let handler  = createMessageHandler(TabType.Html);
+let handler  = createMessageHandler(TabType.HoursSettings);
 
 chrome.runtime.onMessage.addListener(handler.getListener());
 
