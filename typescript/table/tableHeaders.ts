@@ -1,10 +1,11 @@
-import {Actions, createTable, distinct, getPageTransientStateValue, openTab, range, rangeGenerator} from "../globals";
+import {createTable, distinct, getPageTransientStateValue, openHtmlTab, range, rangeGenerator} from "../globals";
 import {emmet} from "../../libs/Emmeter/html";
 import {checkAndDownloadTableRows} from "./loadAnyTable";
 import {addMenuItem, addMenuSeparator, setupMenu} from "../menus";
 import {TableFetcher, TableHandler, TableRef} from "./tableFetcher";
 import * as def from "../def";
 import {options} from "../plugin_options/options";
+import {Actions} from "../messaging";
 
 
 function sortRows(cmpFunction: (a: HTMLTableCellElement, b: HTMLTableCellElement) => number, header: Element, rows: HTMLTableRowElement[], index: number, descending: boolean) {
@@ -246,7 +247,7 @@ function showDistinctColumn(tableRef: TableRef, index: number) {
     let headerRow = tableRef.getOrgTableContainer().querySelector("thead>tr");
     let headerNodes = [...headerRow.querySelectorAll("th")[index].childNodes];
     let headerText = headerNodes.filter(node => node.nodeType === Node.TEXT_NODE).map(node => node.textContent).join(" ");
-    openTab(Actions.OpenTab, tmpDiv.innerHTML, headerText + " (uniek)");
+    openHtmlTab(tmpDiv.innerHTML, headerText + " (uniek)");
 }
 
 let hideColumn: TableColumnCmdDef = {

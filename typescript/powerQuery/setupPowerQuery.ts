@@ -1,7 +1,8 @@
-import {Actions, calculateSchooljaar, clamp, createShortSchoolyearString, isAlphaNumeric, openTab} from "../globals";
+import {calculateSchooljaar, clamp, createShortSchoolyearString, isAlphaNumeric, openHtmlTab} from "../globals";
 import * as def from "../def";
 import {getGotoStateOrDefault, Goto, PageName, saveGotoState} from "../gotoState";
 import {default_items as defaultQueryItems } from "default_items";
+import {Actions} from "../messaging";
 export function setupPowerQuery() {
     //dummy function to force this module to be loaded.
 }
@@ -121,16 +122,11 @@ function getHardCodedQueryItems() {
 
 document.body.addEventListener("keydown", showPowerQuery);
 
-function addOpenTabQueryItem() {
-    addQueryItem('Test', "Open tab", undefined, () => openTab(Actions.OpenTab, "Important TYPESCRIPT data for this tab!!!", "Test 123"));
-}
-
 function showPowerQuery(ev: KeyboardEvent) {
     if (ev.key === "q" && ev.ctrlKey && !ev.shiftKey && !ev.altKey) {
         scrapeMainMenu();
         powerQueryItems.push(...getSavedAndDefaultQueryItems());
         getHardCodedQueryItems();
-        addOpenTabQueryItem();
         popover.showPopover();
     } else {
         if (popoverVisible === false)

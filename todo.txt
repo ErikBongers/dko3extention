@@ -1,12 +1,10 @@
-* Open tab:
-  > figure out the message sending system.
-     > is data sent with the open_tab action or not?
-       ...oh....
-       - plugin sends open_tab mesage to service
-       - service opens tab
-       - tab sends get_data to service
-       > plugin currently as no message listener to receive events/data from other tabs or service.
-
+* Messaging:
+  > service worker and open tabs all get the SAME messages???
+  > So...
+    > sender should always specify the receiver.
+    > receiver should always check who the messages is for.
+      > tabs should listen via a filter function.
+    > service worker only handles messages that require special tasks like opening a tab.
 
 * setup leraren uren.
   > separate tab

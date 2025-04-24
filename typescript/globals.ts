@@ -4,6 +4,7 @@ import {emmet} from "../libs/Emmeter/html";
 import {PageName} from "./gotoState";
 import {PageSettings} from "./lessen/build";
 import {fetchGlobalSettings, getGlobalSettings, GlobalSettings, options, setGlobalSetting} from "./plugin_options/options";
+import {Actions, sendRequest, ServiceRequest, TabType} from "./messaging";
 
 export let observers: Observer[] = [];
 export let settingsObservers: (() => void)[] = [];
@@ -261,34 +262,12 @@ export function stripStudentName(name: string): string {
     return name.replaceAll(/[,()'-]/g, " ").replaceAll("  ", " ");
 }
 
-export enum Actions {
-    OpenTab = "open_tab",
-    GetTabData = "get_tab_data",
-    GetParentTabId = "get_parent_tab_id",
-    OpenHoursSettings = "open_hours_settings",
-    GreetingsFromParent = "greetings",
+export async function openHtmlTab(innerHtml: string, pageTitle: string) {
+    return sendRequest(Actions.OpenHtmlTab, TabType.Main, TabType.Undefined, undefined, innerHtml, pageTitle);
 }
 
-export enum TabId {Undefined, Main, HoursSettings}
-
-export interface ServiceRequest {
-    action: Actions,
-    data: any,
-    pageTitle: string,
-    senderTab: TabId,
-    targetTab: TabId,
-}
-
-export async function openTab(action: Actions, data: any, pageTitle: string) {
-    let message: ServiceRequest = {
-        action,
-        data,
-        pageTitle,
-        senderTab: TabId.Main,
-        targetTab: TabId.Undefined,
-    };
-
-    return await chrome.runtime.sendMessage(message);
+export async function openHoursSettings(data: any) {
+    return sendRequest(Actions.OpenHoursSettings, TabType.Main, TabType.Undefined, undefined, data, "Lerarenuren setup");
 }
 
 export function writeTableToClipboardForExcel(table: HTMLTableElement) {

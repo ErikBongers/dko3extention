@@ -1,6 +1,7 @@
 (() => {
   // typescript/serviceworker.ts
   var defaultOptions = {
+    //todo: integrate in options.ts.
     showDebug: true,
     showNotAssignedClasses: true,
     markOtherAcademies: true,
@@ -31,13 +32,11 @@
   var mainTabId = -1;
   var hoursSetupTabId = -1;
   function onMessage(message, sender, sendResponse) {
-    console.log("serviceWorker received message from tab:", sender.tab?.id ?? "<no tab>");
-    console.log(message);
     switch (message.action) {
-      case "open_tab" /* OpenTab */:
+      case "open_tab" /* OpenHtmlTab */:
         let url = chrome.runtime.getURL("resources/blank.html");
         global_request = message;
-        if (message.senderTab === 1 /* Main */)
+        if (message.senderTabType === 1 /* Main */)
           mainTabId = sender.tab.id;
         chrome.tabs.create({ url }).then((_tab) => {
           sendResponse({ tabId: _tab.id });
@@ -48,25 +47,37 @@
         mainTabId = sender.tab.id;
         chrome.tabs.create({ url: chrome.runtime.getURL("resources/blank.html") }).then((tab) => {
           hoursSetupTabId = tab.id;
+          console.log("hours setup tab created: ");
+          console.log(tab.id);
           sendResponse({ tabId: tab.id });
         });
         return true;
       //needed because sendResponse is called asynchronously.
       case "get_tab_data" /* GetTabData */:
-        console.log("getTabData:");
+        console.log("getTabData:", message);
         sendResponse(global_request);
         break;
       case "get_parent_tab_id" /* GetParentTabId */:
         sendResponse(mainTabId);
         break;
-      case "greetings" /* GreetingsFromParent */:
-        console.log("passing greetings from parent to tab");
+      // case Actions.GreetingsFromParent: {
+      //     console.log("passing greetings from parent to tab");
+      //     let targetTabId: number;
+      //     if (message.targetTabType === TabType.HoursSettings)
+      //         targetTabId = hoursSetupTabId;
+      //     //todo: else?
+      //     chrome.tabs.sendMessage(targetTabId, message).then(r => {
+      //     });
+      // }            break;
+      case "greetingsFromChild" /* GreetingsFromChild */: {
+        console.log("passing greetings from child to main");
         let targetTabId;
-        if (message.targetTab === 2 /* HoursSettings */)
-          targetTabId = hoursSetupTabId;
-        chrome.tabs.sendMessage(hoursSetupTabId, message).then((r) => {
+        if (message.targetTabType === 1 /* Main */)
+          targetTabId = mainTabId;
+        chrome.tabs.sendMessage(targetTabId, message).then((r) => {
         });
         break;
+      }
     }
   }
 })();

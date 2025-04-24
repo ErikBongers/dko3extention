@@ -392,6 +392,35 @@ async function fetchGlobalSettings(defaultSettings) {
 }
 
 //#endregion
+//#region typescript/messaging.ts
+let Actions = /* @__PURE__ */ function(Actions$1) {
+	Actions$1["OpenHtmlTab"] = "open_tab";
+	Actions$1["GetTabData"] = "get_tab_data";
+	Actions$1["GetParentTabId"] = "get_parent_tab_id";
+	Actions$1["OpenHoursSettings"] = "open_hours_settings";
+	Actions$1["GreetingsFromParent"] = "greetingsFromParent";
+	Actions$1["GreetingsFromChild"] = "greetingsFromChild";
+	return Actions$1;
+}({});
+let TabType = /* @__PURE__ */ function(TabType$1) {
+	TabType$1[TabType$1["Undefined"] = 0] = "Undefined";
+	TabType$1[TabType$1["Main"] = 1] = "Main";
+	TabType$1[TabType$1["HoursSettings"] = 2] = "HoursSettings";
+	return TabType$1;
+}({});
+function sendRequest(action, from, to, toId, data, pageTitle) {
+	let req = {
+		action,
+		data,
+		pageTitle,
+		senderTabType: from,
+		targetTabType: to,
+		targetTabId: toId
+	};
+	return chrome.runtime.sendMessage(req);
+}
+
+//#endregion
 //#region typescript/globals.ts
 let observers = [];
 let settingsObservers = [];
@@ -569,29 +598,11 @@ function whoAmI() {
 function stripStudentName(name) {
 	return name.replaceAll(/[,()'-]/g, " ").replaceAll("  ", " ");
 }
-let Actions = /* @__PURE__ */ function(Actions$1) {
-	Actions$1["OpenTab"] = "open_tab";
-	Actions$1["GetTabData"] = "get_tab_data";
-	Actions$1["GetParentTabId"] = "get_parent_tab_id";
-	Actions$1["OpenHoursSettings"] = "open_hours_settings";
-	Actions$1["GreetingsFromParent"] = "greetings";
-	return Actions$1;
-}({});
-let TabId = /* @__PURE__ */ function(TabId$1) {
-	TabId$1[TabId$1["Undefined"] = 0] = "Undefined";
-	TabId$1[TabId$1["Main"] = 1] = "Main";
-	TabId$1[TabId$1["HoursSettings"] = 2] = "HoursSettings";
-	return TabId$1;
-}({});
-async function openTab(action, data, pageTitle) {
-	let message = {
-		action,
-		data,
-		pageTitle,
-		senderTab: TabId.Main,
-		targetTab: TabId.Undefined
-	};
-	return await chrome.runtime.sendMessage(message);
+async function openHtmlTab(innerHtml, pageTitle) {
+	return sendRequest(Actions.OpenHtmlTab, TabType.Main, TabType.Undefined, void 0, innerHtml, pageTitle);
+}
+async function openHoursSettings(data) {
+	return sendRequest(Actions.OpenHoursSettings, TabType.Main, TabType.Undefined, void 0, data, "Lerarenuren setup");
 }
 function createTable(headers, cols) {
 	let tmpDiv = document.createElement("div");
@@ -752,15 +763,11 @@ function getHardCodedQueryItems() {
 	addQueryItem("Lessen", "Trimester modules", "", gotoTrimesterModules);
 }
 document.body.addEventListener("keydown", showPowerQuery);
-function addOpenTabQueryItem() {
-	addQueryItem("Test", "Open tab", void 0, () => openTab(Actions.OpenTab, "Important TYPESCRIPT data for this tab!!!", "Test 123"));
-}
 function showPowerQuery(ev) {
 	if (ev.key === "q" && ev.ctrlKey && !ev.shiftKey && !ev.altKey) {
 		scrapeMainMenu();
 		powerQueryItems.push(...getSavedAndDefaultQueryItems());
 		getHardCodedQueryItems();
-		addOpenTabQueryItem();
 		popover.showPopover();
 	} else {
 		if (popoverVisible === false) return;
@@ -4284,7 +4291,7 @@ function showDistinctColumn(tableRef, index) {
 	let headerRow = tableRef.getOrgTableContainer().querySelector("thead>tr");
 	let headerNodes = [...headerRow.querySelectorAll("th")[index].childNodes];
 	let headerText = headerNodes.filter((node) => node.nodeType === Node.TEXT_NODE).map((node) => node.textContent).join(" ");
-	openTab(Actions.OpenTab, tmpDiv.innerHTML, headerText + " (uniek)");
+	openHtmlTab(tmpDiv.innerHTML, headerText + " (uniek)");
 }
 let hideColumn = { doForRow: function(row, index, _context) {
 	row.cells[index].style.display = "none";
@@ -4460,14 +4467,16 @@ function onCriteriaShown() {
 		await showUrenSetup(prevSchoolyear);
 	}, "fas-certificate", ["btn", "btn-outline-dark"], "");
 	addButton$1(btnWerklijstMaken, UREN_PREV_SETUP_BTN_ID + "sdf", "test ", async () => {
-		await sendMessageToTab();
+		await sendMessageToHoursSettings();
 	}, "fas-certificate", ["btn", "btn-outline-dark"], "");
 	addButton$1(btnWerklijstMaken, UREN_NEXT_BTN_ID, "Toon lerarenuren voor " + nextSchoolyear, async () => {
 		await setCriteriaForTeacherHours(nextSchoolyear);
 	}, "", ["btn", "btn-outline-dark"], "Uren " + nextSchoolyearShort);
 	getSchoolIdString();
 }
-let globalTabId = -1;
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+	console.log("Received message from service worker: ", request);
+});
 async function showUrenSetup(schoolyear) {
 	let instrumentList = document.getElementById("leerling_werklijst_criterium_vak");
 	let options$1 = [...instrumentList.options].map((option) => {
@@ -4476,19 +4485,12 @@ async function showUrenSetup(schoolyear) {
 			value: option.value
 		};
 	});
-	console.log(options$1);
-	let res = await openTab(Actions.OpenHoursSettings, options$1, "Lerarenuren setup");
-	globalTabId = res.tabId;
+	let res = await openHoursSettings(options$1);
+	globalHoursSettingsTabId = res.tabId;
 }
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-	console.log("Received message from service worker: ", request);
-});
-async function sendMessageToTab() {
-	await chrome.runtime.sendMessage({
-		action: Actions.GreetingsFromParent,
-		tabId: globalTabId,
-		message: "Hello the main content script."
-	});
+let globalHoursSettingsTabId;
+async function sendMessageToHoursSettings() {
+	sendRequest(Actions.GreetingsFromParent, TabType.Main, TabType.HoursSettings, globalHoursSettingsTabId, "Hello the main content script.");
 }
 function onWerklijstChanged() {
 	let werklijstPageState = getGotoStateOrDefault(PageName.Werklijst);
@@ -4553,7 +4555,7 @@ function onShowLerarenUren() {
 				let error = scrapeStudent(tableFetcher, tableFetchListener, tr, vakLeraars);
 				if (error) errors.push(error);
 			}
-			if (errors.length) openTab(Actions.OpenTab, createTable(["Error"], errors.map((error) => [error])).outerHTML, "Errors");
+			if (errors.length) openHtmlTab(createTable(["Error"], errors.map((error) => [error])).outerHTML, "Errors");
 			let fromCloud = upgradeCloudData(jsonCloudData);
 			vakLeraars = new Map([...vakLeraars.entries()].sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
 			document.getElementById(COUNT_TABLE_ID)?.remove();
