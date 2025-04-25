@@ -7,7 +7,7 @@ export async function fetchVakken(clear: boolean, schooljaar: string) {
     const template = document.createElement('template');
     template.innerHTML = text;
     let vakken = template.content.querySelectorAll("#form_field_leerling_werklijst_criterium_vak option");
-    return Array.from(vakken).map((vak: HTMLOptionElement) => [vak.label, vak.value]);
+    return Array.from(vakken).map((vak: HTMLOptionElement) => {  return {name: vak.label, value: vak.value}; });
 }
 
 export async function fetchCritera(schoolYear: string) {

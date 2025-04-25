@@ -1,8 +1,8 @@
 import {Actions, createMessageHandler, sendRequest, ServiceRequest, TabType} from "./messaging";
-import {TeacherHoursSetup} from "./werklijst/observer";
 import {emmet} from "../libs/Emmeter/html";
 import {cloud} from "./cloud";
-import {SubjectDef} from "./werklijst/scrapeUren";
+
+import {SubjectDef, TeacherHoursSetup} from "./werklijst/hoursSettings";
 
 let handler  = createMessageHandler(TabType.HoursSettings);
 
@@ -76,9 +76,11 @@ function onCheckTableChanged() {
                 alias: row.cells[2].querySelector("input").value,
             }
         });
+    let translations = [];
     let setupData: TeacherHoursSetup = {
         schoolyear: globalSetup.schoolyear,
-        subjects
+        subjects,
+        translations,
     };
     hasTableChanged = false;
     let fileName = createTeacherHoursFileName(globalSetup.schoolyear);

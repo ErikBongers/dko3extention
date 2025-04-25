@@ -1,7 +1,7 @@
 import {addButton, calculateSchooljaar, createSchoolyearString, createShortSchoolyearString, createTable, findSchooljaar, getHighestSchooljaarAvailable, getSchoolIdString, openHoursSettings, openHtmlTab, setButtonHighlighted} from "../globals";
 import * as def from "../def";
 import {buildTable, getUrenVakLeraarFileName} from "./buildUren";
-import {scrapeStudent, SubjectDef, VakLeraar} from "./scrapeUren";
+import {scrapeStudent, VakLeraar} from "./scrapeUren";
 import {cloud} from "../cloud";
 import {TableFetcher} from "../table/tableFetcher";
 import {setCriteriaForTeacherHours} from "./prefillInstruments";
@@ -13,6 +13,7 @@ import {registerChecksumHandler} from "../table/observer";
 import {CloudData, JsonCloudData, UrenData} from "./urenData";
 import {createDefaultTableFetcher} from "../table/loadAnyTable";
 import {Actions, sendRequest, TabType} from "../messaging";
+import {SubjectDef, TeacherHoursSetup} from "./hoursSettings";
 
 const tableId = "table_leerlingen_werklijst_table";
 
@@ -84,11 +85,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     console.log("Received message from service worker: ", request);
 })
 
-export type TeacherHoursSetup = {
-    schoolyear: string,
-    subjects: SubjectDef[];
-}
-
 
 async function showUrenSetup(schoolyear: string) {
     //todo: switch to schoolyear first
@@ -97,7 +93,8 @@ async function showUrenSetup(schoolyear: string) {
     let subjects: SubjectDef[] = [...instrumentList.options].map(option => { return { checked: false, name: option.text, alias: "" }});
     let setup: TeacherHoursSetup = {
         schoolyear: schoolyear,
-        subjects
+        subjects,
+        translations: []
     }
     let res = await openHoursSettings(setup);
     globalHoursSettingsTabId = res.tabId;

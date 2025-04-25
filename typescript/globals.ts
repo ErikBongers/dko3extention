@@ -5,7 +5,8 @@ import {PageName} from "./gotoState";
 import {PageSettings} from "./lessen/build";
 import {fetchGlobalSettings, getGlobalSettings, GlobalSettings, options, setGlobalSetting} from "./plugin_options/options";
 import {Actions, sendRequest, ServiceRequest, TabType} from "./messaging";
-import {TeacherHoursSetup} from "./werklijst/observer";
+
+import {TeacherHoursSetup} from "./werklijst/hoursSettings";
 
 export let observers: Observer[] = [];
 export let settingsObservers: (() => void)[] = [];

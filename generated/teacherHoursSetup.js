@@ -464,7 +464,7 @@
   });
   var globalSetup = void 0;
   var hasTableChanged = false;
-  setInterval(onCheckTableChanged, 1e4);
+  setInterval(onCheckTableChanged, 2e3);
   function createTeacherHoursFileName(schoolyear) {
     return "teacherHoursSetup_" + schoolyear + ".json";
   }
@@ -479,9 +479,11 @@
         alias: row.cells[2].querySelector("input").value
       };
     });
+    let translations = [];
     let setupData = {
       schoolyear: globalSetup.schoolyear,
-      subjects
+      subjects,
+      translations
     };
     hasTableChanged = false;
     let fileName = createTeacherHoursFileName(globalSetup.schoolyear);

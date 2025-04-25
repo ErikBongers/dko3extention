@@ -1,67 +1,14 @@
 import {fetchVakken, sendClearWerklijst, sendCriteria, sendFields, sendGrouping} from "./criteria";
 import * as def from "../def";
 import {getGotoStateOrDefault, PageName, saveGotoState, WerklijstGotoState} from "../gotoState";
-
-export let instrumentSet = new Set([
-    "Accordeon",
-    "Altfluit",
-    "Althoorn",
-    "Altklarinet",
-    "Altsaxofoon",
-    "Altsaxofoon (jazz pop rock)",
-    "Altviool",
-    "Baglama/saz (wereldmuziek)",
-    "Bariton",
-    "Baritonsaxofoon",
-    "Baritonsaxofoon (jazz pop rock)",
-    "Basfluit",
-    "Basgitaar (jazz pop rock)",
-    "Basklarinet",
-    "Bastrombone",
-    "Bastuba",
-    "Bugel",
-    "Cello",
-    "Contrabas (jazz pop rock)",
-    "Contrabas (klassiek)",
-    "Dwarsfluit",
-    "Engelse hoorn",
-    "Eufonium",
-    "Fagot",
-    "Gitaar",
-    "Gitaar (jazz pop rock)",
-    "Harp",
-    "Hobo",
-    "Hoorn",
-    "Keyboard (jazz pop rock)",
-    "Klarinet",
-    "Kornet",
-    "Orgel",
-    "Piano",
-    "Piano (jazz pop rock)",
-    "Pianolab",
-    "Piccolo",
-    "Slagwerk",
-    "Slagwerk (jazz pop rock)",
-    "Sopraansaxofoon",
-    "Sopraansaxofoon (jazz pop rock)",
-    "Tenorsaxofoon",
-    "Tenorsaxofoon (jazz pop rock)",
-    "Trombone",
-    "Trompet",
-    "Trompet (jazz pop rock)",
-    "Ud (wereldmuziek)",
-    "Viool",
-    "Zang",
-    "Zang (jazz pop rock)",
-    "Zang (musical 2e graad)",
-    "Zang (musical)",
-]);
+import {defaultInstruments} from "./hoursSettings";
 
 export async function setCriteriaForTeacherHours(schooljaar: string) {
     await sendClearWerklijst();
-    let vakken = await fetchVakken(false, schooljaar);
-    let instruments = vakken.filter((vak) => isInstrument(vak[0]));
-    let values = instruments.map(vak => parseInt(vak[1]));
+    let dko3_vakken = await fetchVakken(false, schooljaar);
+    let selectedInstrumentNames  =  new Set(defaultInstruments.map(i => i.name));
+    let instruments = dko3_vakken.filter((vak) => selectedInstrumentNames.has(vak.name));
+    let values = instruments.map(vak => parseInt(vak.value));
     let valueString = values.join();
 
     let criteria = [
@@ -86,8 +33,4 @@ export async function setCriteriaForTeacherHours(schooljaar: string) {
     pageState.werklijstTableName = def.UREN_TABLE_STATE_NAME;
     saveGotoState(pageState);
     (document.querySelector("#btn_werklijst_maken") as HTMLButtonElement).click();
-}
-
-function isInstrument(text: string) {
-    return instrumentSet.has(text);
 }

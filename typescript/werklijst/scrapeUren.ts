@@ -2,6 +2,7 @@ import {createValidId} from "../globals";
 import {TableFetcher} from "../table/tableFetcher";
 import {NamedCellTableFetchListener} from "../pageHandlers";
 import {StudentInfo} from "../lessen/scrape";
+import {defaultInstruments, defaultInstrumentsMap, translationDefs} from "./hoursSettings";
 
 export interface CountStudentsPerJaar {
     count: number,
@@ -82,32 +83,11 @@ function isInstrument(vak: string) {
     return true;
 }
 
-export type SubjectDef = {
-    checked: boolean,
-    name: string,
-    alias: string
-}
-
-let subjectAliases: SubjectDef[] = [
-    {checked: false, name: "Basklarinet", alias: "Klarinet"},
-    {checked: false, name: "Altfluit", alias: "Dwarsfluit"},
-    {checked: false, name: "Piccolo", alias: "Dwarsfluit"},
-
-    {checked: false, name: "Trompet", alias: "Koper"},
-    {checked: false, name: "Hoorn", alias: "Koper"},
-    {checked: false, name: "Trombone", alias: "Koper"},
-    {checked: false, name: "Bugel", alias: "Koper"},
-    {checked: false, name: "Eufonium", alias: "Koper"},
-
-    {checked: false, name: "Altsaxofoon", alias: "Saxofoon"},
-    {checked: false, name: "Sopraansaxofoon", alias: "Saxofoon"},
-    {checked: false, name: "Tenorsaxofoon", alias: "Saxofoon"},
-
-];
-
 function translateVak(vak: string) {
     // simple alias replacements
-    vak =  subjectAliases.find(alias => alias.name === vak)?.alias ?? vak;
+    let alias  =  defaultInstrumentsMap.get(vak)?.alias;
+    if(alias)
+        vak =  alias;
 
     let foundTranslation = false;
     // fragment replacements
@@ -131,23 +111,3 @@ function translateVak(vak: string) {
     return vak;
 }
 
-type TranslationDef = {
-    find: string,
-    replace: string,
-    prefix: string,
-    suffix: string,
-}
-
-let translationDefs: TranslationDef[] = [
-    {find: "Altsaxofoon", replace: "Saxofoon", prefix: "", suffix: ""},
-    {find: "Sopraansaxofoon", replace: "Saxofoon", prefix: "", suffix: ""},
-    {find: "Tenorsaxofoon", replace: "Saxofoon", prefix: "", suffix: ""},
-
-    {find: "(klassiek)", replace: "", prefix: "K ", suffix: ""},
-    {find: "(jazz pop rock)", replace: "", prefix: "JPR ", suffix: ""},
-    {find: "(musical)", replace: "", prefix: "M ", suffix: ""},
-    {find: "(musical 2e graad)", replace: "(2e graad)", prefix: "M ", suffix: ""},
-    {find: "(wereldmuziek)", replace: "", prefix: "WM ", suffix: ""},
-    {find: "instrumentinitiatie", replace: "init", prefix: "", suffix: ""},
-    {find: "", replace: "", prefix: "K ", suffix: ""},
-];
