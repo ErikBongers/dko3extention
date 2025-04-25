@@ -3116,46 +3116,57 @@ function isInstrument$1(vak) {
 }
 let subjectAliases = [
 	{
+		checked: false,
 		name: "Basklarinet",
 		alias: "Klarinet"
 	},
 	{
+		checked: false,
 		name: "Altfluit",
 		alias: "Dwarsfluit"
 	},
 	{
+		checked: false,
 		name: "Piccolo",
 		alias: "Dwarsfluit"
 	},
 	{
+		checked: false,
 		name: "Trompet",
 		alias: "Koper"
 	},
 	{
+		checked: false,
 		name: "Hoorn",
 		alias: "Koper"
 	},
 	{
+		checked: false,
 		name: "Trombone",
 		alias: "Koper"
 	},
 	{
+		checked: false,
 		name: "Bugel",
 		alias: "Koper"
 	},
 	{
+		checked: false,
 		name: "Eufonium",
 		alias: "Koper"
 	},
 	{
+		checked: false,
 		name: "Altsaxofoon",
 		alias: "Saxofoon"
 	},
 	{
+		checked: false,
 		name: "Sopraansaxofoon",
 		alias: "Saxofoon"
 	},
 	{
+		checked: false,
 		name: "Tenorsaxofoon",
 		alias: "Saxofoon"
 	}
@@ -4483,12 +4494,13 @@ async function showUrenSetup(schoolyear) {
 	let instrumentList = document.getElementById("leerling_werklijst_criterium_vak");
 	let subjects = [...instrumentList.options].map((option) => {
 		return {
+			checked: false,
 			name: option.text,
 			alias: ""
 		};
 	});
 	let setup = {
-		schoolyear: findSchooljaar(),
+		schoolyear,
 		subjects
 	};
 	let res = await openHoursSettings(setup);

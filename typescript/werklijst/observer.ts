@@ -1,7 +1,7 @@
 import {addButton, calculateSchooljaar, createSchoolyearString, createShortSchoolyearString, createTable, findSchooljaar, getHighestSchooljaarAvailable, getSchoolIdString, openHoursSettings, openHtmlTab, setButtonHighlighted} from "../globals";
 import * as def from "../def";
 import {buildTable, getUrenVakLeraarFileName} from "./buildUren";
-import {scrapeStudent, SubjectAlias, VakLeraar} from "./scrapeUren";
+import {scrapeStudent, SubjectDef, VakLeraar} from "./scrapeUren";
 import {cloud} from "../cloud";
 import {TableFetcher} from "../table/tableFetcher";
 import {setCriteriaForTeacherHours} from "./prefillInstruments";
@@ -86,7 +86,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 export type TeacherHoursSetup = {
     schoolyear: string,
-    subjects: SubjectAlias[];
+    subjects: SubjectDef[];
 }
 
 
@@ -94,9 +94,9 @@ async function showUrenSetup(schoolyear: string) {
     //todo: switch to schoolyear first
     //todo: criterium_vak may not be present! (fetch it in background?)
     let instrumentList = document.getElementById("leerling_werklijst_criterium_vak") as HTMLSelectElement;
-    let subjects: SubjectAlias[] = [...instrumentList.options].map(option => { return { name: option.text, alias: "" }});
+    let subjects: SubjectDef[] = [...instrumentList.options].map(option => { return { checked: false, name: option.text, alias: "" }});
     let setup: TeacherHoursSetup = {
-        schoolyear: findSchooljaar(),
+        schoolyear: schoolyear,
         subjects
     }
     let res = await openHoursSettings(setup);

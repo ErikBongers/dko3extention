@@ -7,15 +7,16 @@ export let cloud = {
     }
 };
 
-export async function fetchJson(fileName: string) {
+async function fetchJson(fileName: string) {
     return fetch(def.JSON_URL + "?fileName="+fileName, {method: "GET"})
         .then((res) => res.json());
 }
 
-export async function uploadJson(fileName: string, data: any) {
+async function uploadJson(fileName: string, data: any) {
     let res = await fetch(def.JSON_URL + "?fileName=" + fileName, {
         method: "POST",
-        body: JSON.stringify(data)
+        body: JSON.stringify(data),
+        keepalive: true, //keeps the data valid even if window is closing.
     });
     return await res.text();
 }

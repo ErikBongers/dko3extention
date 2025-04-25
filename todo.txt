@@ -1,3 +1,9 @@
+* emmet: specific error when comma used in attribute list: should be space
+
+* powerQuery initial sort order
+  > based on most recently used.
+  > based on most frequently used.
+
 * setup leraren uren.
   > save settings
     > and load settings

@@ -82,25 +82,26 @@ function isInstrument(vak: string) {
     return true;
 }
 
-export type SubjectAlias = {
+export type SubjectDef = {
+    checked: boolean,
     name: string,
     alias: string
 }
 
-let subjectAliases: SubjectAlias[] = [
-    {name: "Basklarinet", alias: "Klarinet"},
-    {name: "Altfluit", alias: "Dwarsfluit"},
-    {name: "Piccolo", alias: "Dwarsfluit"},
+let subjectAliases: SubjectDef[] = [
+    {checked: false, name: "Basklarinet", alias: "Klarinet"},
+    {checked: false, name: "Altfluit", alias: "Dwarsfluit"},
+    {checked: false, name: "Piccolo", alias: "Dwarsfluit"},
 
-    {name: "Trompet", alias: "Koper"},
-    {name: "Hoorn", alias: "Koper"},
-    {name: "Trombone", alias: "Koper"},
-    {name: "Bugel", alias: "Koper"},
-    {name: "Eufonium", alias: "Koper"},
+    {checked: false, name: "Trompet", alias: "Koper"},
+    {checked: false, name: "Hoorn", alias: "Koper"},
+    {checked: false, name: "Trombone", alias: "Koper"},
+    {checked: false, name: "Bugel", alias: "Koper"},
+    {checked: false, name: "Eufonium", alias: "Koper"},
 
-    {name: "Altsaxofoon", alias: "Saxofoon"},
-    {name: "Sopraansaxofoon", alias: "Saxofoon"},
-    {name: "Tenorsaxofoon", alias: "Saxofoon"},
+    {checked: false, name: "Altsaxofoon", alias: "Saxofoon"},
+    {checked: false, name: "Sopraansaxofoon", alias: "Saxofoon"},
+    {checked: false, name: "Tenorsaxofoon", alias: "Saxofoon"},
 
 ];
 

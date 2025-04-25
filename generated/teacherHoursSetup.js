@@ -401,10 +401,21 @@
   var JSON_URL = "https://europe-west1-ebo-tain.cloudfunctions.net/json";
 
   // typescript/cloud.ts
+  var cloud = {
+    json: {
+      fetch: fetchJson,
+      upload: uploadJson
+    }
+  };
+  async function fetchJson(fileName) {
+    return fetch(JSON_URL + "?fileName=" + fileName, { method: "GET" }).then((res) => res.json());
+  }
   async function uploadJson(fileName, data) {
     let res = await fetch(JSON_URL + "?fileName=" + fileName, {
       method: "POST",
-      body: JSON.stringify(data)
+      body: JSON.stringify(data),
+      keepalive: true
+      //keeps the data valid even if window is closing.
     });
     return await res.text();
   }
@@ -418,8 +429,19 @@
   }).onMessageForMe((msg) => {
     console.log("message for me: ", msg);
     document.getElementById("container").innerHTML = "DATA:" + msg.data;
-  }).onData((data) => {
+  }).onData(async (data) => {
     globalSetup = data.data;
+    let cloudData = await cloud.json.fetch(createTeacherHoursFileName(globalSetup.schoolyear)).catch((e) => {
+    });
+    console.log("cloud data: ", cloudData);
+    if (cloudData) {
+      let globalSubjectMap = new Map(globalSetup.subjects.map((s) => [s.name, s]));
+      let cloudSubjectMap = new Map(cloudData.subjects.map((s) => [s.name, s]));
+      for (let [key, value] of cloudSubjectMap) {
+        globalSubjectMap.set(key, value);
+      }
+      globalSetup.subjects = [...globalSubjectMap.values()];
+    }
     document.querySelector("button").addEventListener("click", async () => {
       await sendRequest("greetingsFromChild" /* GreetingsFromChild */, 0 /* Undefined */, 1 /* Main */, void 0, "Hullo! Fly safe!");
     });
@@ -427,7 +449,13 @@
     let tbody = container.querySelector("table>tbody");
     tbody.innerHTML = "";
     for (let vak of globalSetup.subjects) {
-      emmet.appendChild(tbody, `tr>(td>input[type="checkbox"])+td{${vak.name}}+td>input[type="text"]{${vak.alias}}`);
+      let valueAttribute = "";
+      if (vak.alias)
+        valueAttribute = ` value="${vak.alias}"`;
+      let checkedAttribute = "";
+      if (vak.checked)
+        checkedAttribute = ` checked="checked"`;
+      emmet.appendChild(tbody, `tr>(td>input[type="checkbox" ${checkedAttribute}])+td{${vak.name}}+td>input[type="text" ${valueAttribute}]`);
     }
     tbody.onchange = (e) => {
       hasTableChanged = true;
@@ -436,13 +464,17 @@
   });
   var globalSetup = void 0;
   var hasTableChanged = false;
-  setInterval(onTableChanged, 5e3);
-  function onTableChanged() {
+  setInterval(onCheckTableChanged, 1e4);
+  function createTeacherHoursFileName(schoolyear) {
+    return "teacherHoursSetup_" + schoolyear + ".json";
+  }
+  function onCheckTableChanged() {
     if (!hasTableChanged)
       return;
     let rows = document.querySelectorAll("table>tbody>tr");
-    let subjects = [...rows].filter((row) => row.querySelector("input:checked")).map((row) => {
+    let subjects = [...rows].filter((row) => row.cells[0].querySelector("input:checked") !== null || row.cells[2].querySelector("input").value).map((row) => {
       return {
+        checked: row.cells[0].querySelector("input:checked") !== null,
         name: row.cells[1].textContent,
         alias: row.cells[2].querySelector("input").value
       };
@@ -452,9 +484,13 @@
       subjects
     };
     hasTableChanged = false;
-    uploadJson("teacherHoursSetup_" + globalSetup.schoolyear, setupData).then((res) => {
+    let fileName = createTeacherHoursFileName(globalSetup.schoolyear);
+    cloud.json.upload(fileName, setupData).then((res) => {
       sendRequest("open_hours_settings_changed" /* HoursSettingsChanged */, 2 /* HoursSettings */, 1 /* Main */, void 0, setupData);
     });
   }
+  window.onbeforeunload = () => {
+    onCheckTableChanged();
+  };
 })();
 //# sourceMappingURL=teacherHoursSetup.js.map
