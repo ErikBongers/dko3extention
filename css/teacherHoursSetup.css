@@ -6,14 +6,26 @@ main {
     margin-right: auto;
     margin-left: auto;
 }
-
 h1 {
     margin-bottom: .5ch;
+}
+div.tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    div.tab {
+        padding: 1ch;
+        background-color: #eff4ff;
+        border-radius: 1ch 1ch 0 0;
+        font-weight: bold;
+        &.notSelected {
+            opacity: 0.5;
+        }
+    }
 }
 div.info {
     background-color: #eff4ff;
     padding: 2ch;
-    border-radius: 2ch;
+    border-radius: 0 0 2ch 2ch;
     color: gray;
     margin-bottom: 1ch;
     ul {
