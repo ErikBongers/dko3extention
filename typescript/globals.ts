@@ -5,6 +5,7 @@ import {PageName} from "./gotoState";
 import {PageSettings} from "./lessen/build";
 import {fetchGlobalSettings, getGlobalSettings, GlobalSettings, options, setGlobalSetting} from "./plugin_options/options";
 import {Actions, sendRequest, ServiceRequest, TabType} from "./messaging";
+import {TeacherHoursSetup} from "./werklijst/observer";
 
 export let observers: Observer[] = [];
 export let settingsObservers: (() => void)[] = [];
@@ -266,7 +267,7 @@ export async function openHtmlTab(innerHtml: string, pageTitle: string) {
     return sendRequest(Actions.OpenHtmlTab, TabType.Main, TabType.Html, undefined, innerHtml, pageTitle);
 }
 
-export async function openHoursSettings(data: any) {
+export async function openHoursSettings(data: TeacherHoursSetup) {
     return sendRequest(Actions.OpenHoursSettings, TabType.Main, TabType.Undefined, undefined, data, "Lerarenuren setup");
 }
 

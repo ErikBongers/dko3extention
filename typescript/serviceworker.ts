@@ -63,7 +63,8 @@ function onMessage(message: ServiceRequest, sender: MessageSender, sendResponse:
         case Actions.GetParentTabId:
             sendResponse(mainTabId);
             break;
-        case Actions.GreetingsFromChild: {
+        case Actions.GreetingsFromChild:
+        default: {
             let targetTabId: number;
             if (message.targetTabType === TabType.Main)
                 targetTabId = mainTabId;

@@ -3,6 +3,7 @@ export enum Actions {
     GetTabData = "get_tab_data",
     GetParentTabId = "get_parent_tab_id",
     OpenHoursSettings = "open_hours_settings",
+    HoursSettingsChanged = "open_hours_settings_changed",
     GreetingsFromParent = "greetingsFromParent",
     GreetingsFromChild = "greetingsFromChild",
 }

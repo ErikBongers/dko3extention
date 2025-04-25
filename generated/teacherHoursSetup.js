@@ -397,6 +397,18 @@
     return text.replace("$", (index + 1).toString());
   }
 
+  // typescript/def.ts
+  var JSON_URL = "https://europe-west1-ebo-tain.cloudfunctions.net/json";
+
+  // typescript/cloud.ts
+  async function uploadJson(fileName, data) {
+    let res = await fetch(JSON_URL + "?fileName=" + fileName, {
+      method: "POST",
+      body: JSON.stringify(data)
+    });
+    return await res.text();
+  }
+
   // typescript/teacherHoursSetup.ts
   var handler = createMessageHandler(2 /* HoursSettings */);
   chrome.runtime.onMessage.addListener(handler.getListener());
@@ -407,18 +419,42 @@
     console.log("message for me: ", msg);
     document.getElementById("container").innerHTML = "DATA:" + msg.data;
   }).onData((data) => {
+    globalSetup = data.data;
     document.querySelector("button").addEventListener("click", async () => {
       await sendRequest("greetingsFromChild" /* GreetingsFromChild */, 0 /* Undefined */, 1 /* Main */, void 0, "Hullo! Fly safe!");
     });
-    console.log("tab opened: request data message sent and received: ");
-    console.log(data);
     let container = document.getElementById("container");
     let tbody = container.querySelector("table>tbody");
     tbody.innerHTML = "";
-    for (let vak of data.data) {
-      emmet.appendChild(tbody, `tr>(td>input[type="checkbox"])+td{${vak.text}}+td>input[type="text"]`);
+    for (let vak of globalSetup.subjects) {
+      emmet.appendChild(tbody, `tr>(td>input[type="checkbox"])+td{${vak.name}}+td>input[type="text"]{${vak.alias}}`);
     }
+    tbody.onchange = (e) => {
+      hasTableChanged = true;
+    };
     document.title = data.pageTitle;
   });
+  var globalSetup = void 0;
+  var hasTableChanged = false;
+  setInterval(onTableChanged, 5e3);
+  function onTableChanged() {
+    if (!hasTableChanged)
+      return;
+    let rows = document.querySelectorAll("table>tbody>tr");
+    let subjects = [...rows].filter((row) => row.querySelector("input:checked")).map((row) => {
+      return {
+        name: row.cells[1].textContent,
+        alias: row.cells[2].querySelector("input").value
+      };
+    });
+    let setupData = {
+      schoolyear: globalSetup.schoolyear,
+      subjects
+    };
+    hasTableChanged = false;
+    uploadJson("teacherHoursSetup_" + globalSetup.schoolyear, setupData).then((res) => {
+      sendRequest("open_hours_settings_changed" /* HoursSettingsChanged */, 2 /* HoursSettings */, 1 /* Main */, void 0, setupData);
+    });
+  }
 })();
 //# sourceMappingURL=teacherHoursSetup.js.map

@@ -82,7 +82,7 @@ function isInstrument(vak: string) {
     return true;
 }
 
-type SubjectAlias = {
+export type SubjectAlias = {
     name: string,
     alias: string
 }

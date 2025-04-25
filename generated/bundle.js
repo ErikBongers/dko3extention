@@ -398,6 +398,7 @@ let Actions = /* @__PURE__ */ function(Actions$1) {
 	Actions$1["GetTabData"] = "get_tab_data";
 	Actions$1["GetParentTabId"] = "get_parent_tab_id";
 	Actions$1["OpenHoursSettings"] = "open_hours_settings";
+	Actions$1["HoursSettingsChanged"] = "open_hours_settings_changed";
 	Actions$1["GreetingsFromParent"] = "greetingsFromParent";
 	Actions$1["GreetingsFromChild"] = "greetingsFromChild";
 	return Actions$1;
@@ -4480,13 +4481,17 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 });
 async function showUrenSetup(schoolyear) {
 	let instrumentList = document.getElementById("leerling_werklijst_criterium_vak");
-	let options$1 = [...instrumentList.options].map((option) => {
+	let subjects = [...instrumentList.options].map((option) => {
 		return {
-			text: option.text,
-			value: option.value
+			name: option.text,
+			alias: ""
 		};
 	});
-	let res = await openHoursSettings(options$1);
+	let setup = {
+		schoolyear: findSchooljaar(),
+		subjects
+	};
+	let res = await openHoursSettings(setup);
 	globalHoursSettingsTabId = res.tabId;
 }
 let globalHoursSettingsTabId;

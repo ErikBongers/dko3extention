@@ -55,7 +55,8 @@
       case "get_parent_tab_id" /* GetParentTabId */:
         sendResponse(mainTabId);
         break;
-      case "greetingsFromChild" /* GreetingsFromChild */: {
+      case "greetingsFromChild" /* GreetingsFromChild */:
+      default: {
         let targetTabId;
         if (message.targetTabType === 1 /* Main */)
           targetTabId = mainTabId;

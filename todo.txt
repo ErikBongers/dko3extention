@@ -1,12 +1,9 @@
-* Messaging:
-  > service worker and open tabs all get the SAME messages???
-  > So...
-    > sender should always specify the receiver.
-    > receiver should always check who the messages is for.
-      > tabs should listen via a filter function.
-    > service worker only handles messages that require special tasks like opening a tab.
-
 * setup leraren uren.
+  > save settings
+    > and load settings
+      > if no settings yet, prefill list from getTabData.
+        > what if vakken change?
+          > always merge vakken of getTabData with cloud data.
   > separate tab
     > all instruments with following columns:
        - checkbox
