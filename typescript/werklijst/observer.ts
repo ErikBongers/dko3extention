@@ -84,11 +84,16 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     console.log("Received message from service worker: ", request);
 })
 
+export type TeacherHoursSubjectDef = {
+    text: string,
+    value: string
+}
+
 async function showUrenSetup(schoolyear: string) {
     //todo: switch to schoolyear first
     //todo: criterium_vak may not be present! (fetch it in background?)
     let instrumentList = document.getElementById("leerling_werklijst_criterium_vak") as HTMLSelectElement;
-    let options = [...instrumentList.options].map(option => { return { text: option.text, value: option.value }});
+    let options: TeacherHoursSubjectDef[] = [...instrumentList.options].map(option => { return { text: option.text, value: option.value }});
     let res = await openHoursSettings(options);
     globalHoursSettingsTabId = res.tabId;
 }

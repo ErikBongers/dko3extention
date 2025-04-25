@@ -1,0 +1,32 @@
+h1 {
+    margin-bottom: .5ch;
+}
+div.info {
+    opacity: .5;
+    ul {
+        margin: 0;
+        li {
+            margin-top: .9ch;
+        }
+    }
+}
+var {
+    font-style: normal;
+    background-color: #e8f1fd;
+    padding: .0ch .7ch .3ch .7ch;
+    border-radius: 1ch;
+}
+
+th {
+    text-align: left;
+    &.center {
+        text-align: center;
+    }
+}
+
+tbody>tr {
+    opacity: 0.5;
+    &:has(input[type='checkbox']:checked){
+        opacity: 1;
+    }
+}
