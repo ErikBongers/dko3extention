@@ -18,14 +18,29 @@ var {
 }
 
 th {
+    background-color: #123456;
+    color: white;
     text-align: left;
     &.center {
         text-align: center;
     }
 }
 
-tbody>tr {
+table {
+     border-collapse: collapse;
+
+     input {
+        background-color: rgba(100, 150, 255, 0.1);
+        border-style: none;
+        border-width: 1px;
+        color: rgba(50, 50, 65, 1);
+        padding-left: .5ch;
+     }
+}
+
+tr {
     opacity: 0.5;
+    border-bottom: 1px solid #bbb;
     &:has(input[type='checkbox']:checked){
         opacity: 1;
     }
