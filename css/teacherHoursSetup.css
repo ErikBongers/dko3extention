@@ -1,8 +1,21 @@
+main {
+    max-width: 1000px;
+    width: 100%;
+    padding-right: 15px;
+    padding-left: 15px;
+    margin-right: auto;
+    margin-left: auto;
+}
+
 h1 {
     margin-bottom: .5ch;
 }
 div.info {
-    opacity: .5;
+    background-color: #eff4ff;
+    padding: 2ch;
+    border-radius: 2ch;
+    color: gray;
+    margin-bottom: 1ch;
     ul {
         margin: 0;
         li {
@@ -12,7 +25,7 @@ div.info {
 }
 var {
     font-style: normal;
-    background-color: #e8f1fd;
+    background-color: #a7c5ed87;
     padding: .0ch .7ch .3ch .7ch;
     border-radius: 1ch;
 }
@@ -35,6 +48,8 @@ table {
         border-width: 1px;
         color: rgba(50, 50, 65, 1);
         padding-left: .5ch;
+        width: 100%;
+        box-sizing: border-box;
      }
 }
 
