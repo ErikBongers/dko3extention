@@ -1,30 +1,14 @@
+* setup leraren uren
+  > what if list of available subjects changes?
+  > subjects that no longer exist should be striped out in settings window.
+
+* replace all refs to skynet with outlook.
+
 * emmet: specific error when comma used in attribute list: should be space
 
 * powerQuery initial sort order
   > based on most recently used.
   > based on most frequently used.
-
-* setup leraren uren.
-  > save settings
-    > and load settings
-      > if no settings yet, prefill list from getTabData.
-        > what if vakken change?
-          > always merge vakken of getTabData with cloud data.
-  > separate tab
-    > all instruments with following columns:
-       - checkbox
-       - name
-       - alias
-    > list of translations "Tekstvervangingen"
-        - vind:
-        - vervang door:
-        - prefix:
-        - suffix:
-    > default translation: "Standaarvervanging (als de vervangingen hierboven niet van toepassing zijn)"
-      - prefix
-      - suffix
-
-* replace all refs to skynet with outlook.
 
 * table menu
   > add copy to clipboard

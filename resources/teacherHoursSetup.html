@@ -10,32 +10,254 @@
     <main>
         <h1>Instellingen voor overzicht van lerarenuren</h1>
         <div class="tabs">
-            <div class="tab">Geselecteerde vakken</div>
-            <div class="tab notSelected">Bewerkingen</div>
+            <button id="btnTabSubjects" class="naked hand tab" data-tab-id="tabSubjects">Geselecteerde vakken</button>
+            <button id="btnTabTranslations" class="naked hand tab notSelected" data-tab-id="tabTranslations">Bewerkingen</button>
         </div>
-        <div class="info">
-            Selecteer de vakken die in het urenoverzicht moeten worden opgenomen.<br>
-            Gebruik de alias om:
-        <ul>
-            <li> De naam korter of duidelijker te maken: <var>Groepsmusiceren klassiek strijkers</var> => <var>Orkest</var></li>
-            <li> Vakken te groeperen: <var>Altsax</var> => <var>Sax</var>, <var>TenorSax</var> => <var>Sax</var></li>
-        </ul>
-        </div>
-        <div id="container">
-            <table>
-                <thead>
-                <tr>
-                    <th width="3ch">&nbsp;</th>
-                    <th width="50%">Vak</th>
-                    <th width="50%" class="center">Alias</th>
-                </tr>
-                </thead>
-                <tbody>
+        <div id="tabSubjects">
+            <div class="info">
+                Selecteer de vakken die in het urenoverzicht moeten worden opgenomen.<br>
+                Gebruik de alias om:
+                <ul>
+                    <li> De naam korter of duidelijker te maken: <var>Groepsmusiceren klassiek strijkers</var> => <var>Orkest</var></li>
+                    <li> Vakken te groeperen: <var>Altsax</var> => <var>Sax</var>, <var>TenorSax</var> => <var>Sax</var></li>
+                </ul>
+            </div>
+            <div id="subjectsContainer">
+                <table>
+                    <thead>
+                    <tr>
+                        <th width="3ch">&nbsp;</th>
+                        <th width="50%">Vak</th>
+                        <th width="50%" class="center">Alias</th>
+                    </tr>
+                    </thead>
+                    <tbody>
                     <tr>
                         <td colspan="3">Loading...</td>
                     </tr>
-                </tbody>
-            </table>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div id="tabTranslations">
+            <div class="info">
+                Bewerk namen van vakken op basis van een tekst fragment.<br>
+                <ul>
+                    <li>Je kan dit fragment vervangen door een ander stuk tekst (of niets).</li>
+                    <li>Je kan de vaknaam ook een prefix of suffix geven. Vooral de prefix laat toe om de vaknamen te sorteren per soort.</li>
+                </ul>
+                <br>
+                Let op, de vervanging gebeuren in de opgegeven volgorde. De volgende vervanging vertrekt van het resultaat van de vorige.
+            </div>
+            <div id="translationsContainer">
+                <table>
+                    <thead>
+                    <tr>
+                        <th colspan="8">Vervangingen</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td>Vind</td>
+                        <td>
+                            <input type="text"></input>
+                        </td>
+                        <td>vervang dit door</td>
+                        <td>
+                            <input type="text"></input>
+                        </td>
+                        <td>prefix</td>
+                        <td>
+                            <input type="text"></input>
+                        </td>
+                        <td>suffix</td>
+                        <td>
+                            <input type="text"></input>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Vind</td>
+                        <td>
+                            <input type="text"></input>
+                        </td>
+                        <td>vervang dit door</td>
+                        <td>
+                            <input type="text"></input>
+                        </td>
+                        <td>prefix</td>
+                        <td>
+                            <input type="text"></input>
+                        </td>
+                        <td>suffix</td>
+                        <td>
+                            <input type="text"></input>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Vind</td>
+                        <td>
+                            <input type="text"></input>
+                        </td>
+                        <td>vervang dit door</td>
+                        <td>
+                            <input type="text"></input>
+                        </td>
+                        <td>prefix</td>
+                        <td>
+                            <input type="text"></input>
+                        </td>
+                        <td>suffix</td>
+                        <td>
+                            <input type="text"></input>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Vind</td>
+                        <td>
+                            <input type="text"></input>
+                        </td>
+                        <td>vervang dit door</td>
+                        <td>
+                            <input type="text"></input>
+                        </td>
+                        <td>prefix</td>
+                        <td>
+                            <input type="text"></input>
+                        </td>
+                        <td>suffix</td>
+                        <td>
+                            <input type="text"></input>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Vind</td>
+                        <td>
+                            <input type="text"></input>
+                        </td>
+                        <td>vervang dit door</td>
+                        <td>
+                            <input type="text"></input>
+                        </td>
+                        <td>prefix</td>
+                        <td>
+                            <input type="text"></input>
+                        </td>
+                        <td>suffix</td>
+                        <td>
+                            <input type="text"></input>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Vind</td>
+                        <td>
+                            <input type="text"></input>
+                        </td>
+                        <td>vervang dit door</td>
+                        <td>
+                            <input type="text"></input>
+                        </td>
+                        <td>prefix</td>
+                        <td>
+                            <input type="text"></input>
+                        </td>
+                        <td>suffix</td>
+                        <td>
+                            <input type="text"></input>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Vind</td>
+                        <td>
+                            <input type="text"></input>
+                        </td>
+                        <td>vervang dit door</td>
+                        <td>
+                            <input type="text"></input>
+                        </td>
+                        <td>prefix</td>
+                        <td>
+                            <input type="text"></input>
+                        </td>
+                        <td>suffix</td>
+                        <td>
+                            <input type="text"></input>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Vind</td>
+                        <td>
+                            <input type="text"></input>
+                        </td>
+                        <td>vervang dit door</td>
+                        <td>
+                            <input type="text"></input>
+                        </td>
+                        <td>prefix</td>
+                        <td>
+                            <input type="text"></input>
+                        </td>
+                        <td>suffix</td>
+                        <td>
+                            <input type="text"></input>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Vind</td>
+                        <td>
+                            <input type="text"></input>
+                        </td>
+                        <td>vervang dit door</td>
+                        <td>
+                            <input type="text"></input>
+                        </td>
+                        <td>prefix</td>
+                        <td>
+                            <input type="text"></input>
+                        </td>
+                        <td>suffix</td>
+                        <td>
+                            <input type="text"></input>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Vind</td>
+                        <td>
+                            <input type="text"></input>
+                        </td>
+                        <td>vervang dit door</td>
+                        <td>
+                            <input type="text"></input>
+                        </td>
+                        <td>prefix</td>
+                        <td>
+                            <input type="text"></input>
+                        </td>
+                        <td>suffix</td>
+                        <td>
+                            <input type="text"></input>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Vind</td>
+                        <td>
+                            <input type="text"></input>
+                        </td>
+                        <td>vervang dit door</td>
+                        <td>
+                            <input type="text"></input>
+                        </td>
+                        <td>prefix</td>
+                        <td>
+                            <input type="text"></input>
+                        </td>
+                        <td>suffix</td>
+                        <td>
+                            <input type="text"></input>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </main>
     <button></button>

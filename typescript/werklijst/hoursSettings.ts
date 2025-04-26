@@ -1,7 +1,11 @@
+import {cloud} from "../cloud";
+import {fetchAvailableSubjects} from "./criteria";
+
 export type SubjectDef = {
     checked: boolean,
     name: string,
-    alias: string
+    alias: string,
+    stillValid: boolean
 }
 
 export type TranslationDef = {
@@ -17,65 +21,76 @@ export type TeacherHoursSetup = {
     translations: TranslationDef[];
 }
 
-export let defaultInstruments = [
-    {checked:  true, name:  "Accordeon", alias: ""},
-    {checked:  true, name:  "Altfluit", alias: "Dwarsfluit"},
-    {checked:  true, name:  "Althoorn", alias: ""},
-    {checked:  true, name:  "Altklarinet", alias: ""},
-    {checked:  true, name:  "Altsaxofoon", alias: "Saxofoon"},
-    {checked:  true, name:  "Altsaxofoon (jazz pop rock)", alias: ""},
-    {checked:  true, name:  "Altviool", alias: ""},
-    {checked:  true, name:  "Baglama/saz (wereldmuziek)", alias: ""},
-    {checked:  true, name:  "Bariton", alias: ""},
-    {checked:  true, name:  "Baritonsaxofoon", alias: ""},
-    {checked:  true, name:  "Baritonsaxofoon (jazz pop rock)", alias: ""},
-    {checked:  true, name:  "Basfluit", alias: ""},
-    {checked:  true, name:  "Basgitaar (jazz pop rock)", alias: ""},
-    {checked:  true, name:  "Basklarinet", alias: "Klarinet"},
-    {checked:  true, name:  "Bastrombone", alias: ""},
-    {checked:  true, name:  "Bastuba", alias: "Koper"},
-    {checked:  true, name:  "Bugel", alias: "Koper"},
-    {checked:  true, name:  "Cello", alias: ""},
-    {checked:  true, name:  "Contrabas (jazz pop rock)", alias: ""},
-    {checked:  true, name:  "Contrabas (klassiek)", alias: ""},
-    {checked:  true, name:  "Dwarsfluit", alias: ""},
-    {checked:  true, name:  "Engelse hoorn", alias: ""},
-    {checked:  true, name:  "Eufonium", alias: "Koper"},
-    {checked:  true, name:  "Fagot", alias: ""},
-    {checked:  true, name:  "Gitaar", alias: ""},
-    {checked:  true, name:  "Gitaar (jazz pop rock)", alias: ""},
-    {checked:  true, name:  "Harp", alias: ""},
-    {checked:  true, name:  "Hobo", alias: ""},
-    {checked:  true, name:  "Hoorn", alias: "Koper"},
-    {checked:  true, name:  "Keyboard (jazz pop rock)", alias: ""},
-    {checked:  true, name:  "Klarinet", alias: ""},
-    {checked:  true, name:  "Kornet", alias: ""},
-    {checked:  true, name:  "Orgel", alias: ""},
-    {checked:  true, name:  "Piano", alias: ""},
-    {checked:  true, name:  "Piano (jazz pop rock)", alias: ""},
-    {checked:  true, name:  "Pianolab", alias: ""},
-    {checked:  true, name:  "Piccolo", alias: "Dwarsfluit"},
-    {checked:  true, name:  "Slagwerk", alias: ""},
-    {checked:  true, name:  "Slagwerk (jazz pop rock)", alias: ""},
-    {checked:  true, name:  "Sopraansaxofoon", alias: "Saxofoon"},
-    {checked:  true, name:  "Sopraansaxofoon (jazz pop rock)", alias: ""},
-    {checked:  true, name:  "Tenorsaxofoon", alias: "Saxofoon"},
-    {checked:  true, name:  "Tenorsaxofoon (jazz pop rock)", alias: ""},
-    {checked:  true, name:  "Trombone", alias: "Koper"},
-    {checked:  true, name:  "Trompet", alias: "Koper"},
-    {checked:  true, name:  "Trompet (jazz pop rock)", alias: ""},
-    {checked:  true, name:  "Ud (wereldmuziek)", alias: ""},
-    {checked:  true, name:  "Viool", alias: ""},
-    {checked:  true, name:  "Zang", alias: ""},
-    {checked:  true, name:  "Zang (jazz pop rock)", alias: ""},
-    {checked:  true, name:  "Zang (musical 2e graad)", alias: ""},
-    {checked:  true, name:  "Zang (musical)", alias: ""},
+export type TeacherHoursSetupMapped = TeacherHoursSetup & {
+    subjectsMap: Map<string, SubjectDef>,
+}
+
+export function mapHourSettings(hourSettings: TeacherHoursSetup) {
+    let mapped = {...hourSettings} as TeacherHoursSetupMapped;
+    mapped.subjectsMap = new Map(hourSettings.subjects.map(s => [s.name, s]));
+    return mapped;
+}
+
+let defaultInstruments = [
+    {checked:  true, name:  "Aaaaa", alias: "bbb", stillValid: true},
+    {checked:  true, name:  "Accordeon", alias: "", stillValid: false},
+    {checked:  true, name:  "Altfluit", alias: "Dwarsfluit", stillValid: false},
+    {checked:  true, name:  "Althoorn", alias: "", stillValid: false},
+    {checked:  true, name:  "Altklarinet", alias: "", stillValid: false},
+    {checked:  true, name:  "Altsaxofoon", alias: "Saxofoon", stillValid: false},
+    {checked:  true, name:  "Altsaxofoon (jazz pop rock)", alias: "", stillValid: false},
+    {checked:  true, name:  "Altviool", alias: "", stillValid: false},
+    {checked:  true, name:  "Baglama/saz (wereldmuziek)", alias: "", stillValid: false},
+    {checked:  true, name:  "Bariton", alias: "", stillValid: false},
+    {checked:  true, name:  "Baritonsaxofoon", alias: "", stillValid: false},
+    {checked:  true, name:  "Baritonsaxofoon (jazz pop rock)", alias: "", stillValid: false},
+    {checked:  true, name:  "Basfluit", alias: "", stillValid: false},
+    {checked:  true, name:  "Basgitaar (jazz pop rock)", alias: "", stillValid: false},
+    {checked:  true, name:  "Basklarinet", alias: "Klarinet", stillValid: false},
+    {checked:  true, name:  "Bastrombone", alias: "", stillValid: false},
+    {checked:  true, name:  "Bastuba", alias: "Koper", stillValid: false},
+    {checked:  true, name:  "Bugel", alias: "Koper", stillValid: false},
+    {checked:  true, name:  "Cello", alias: "", stillValid: false},
+    {checked:  true, name:  "Contrabas (jazz pop rock)", alias: "", stillValid: false},
+    {checked:  true, name:  "Contrabas (klassiek)", alias: "", stillValid: false},
+    {checked:  true, name:  "Dwarsfluit", alias: "", stillValid: false},
+    {checked:  true, name:  "Engelse hoorn", alias: "", stillValid: false},
+    {checked:  true, name:  "Eufonium", alias: "Koper", stillValid: false},
+    {checked:  true, name:  "Fagot", alias: "", stillValid: false},
+    {checked:  true, name:  "Gitaar", alias: "", stillValid: false},
+    {checked:  true, name:  "Gitaar (jazz pop rock)", alias: "", stillValid: false},
+    {checked:  true, name:  "Harp", alias: "", stillValid: false},
+    {checked:  true, name:  "Hobo", alias: "", stillValid: false},
+    {checked:  true, name:  "Hoorn", alias: "Koper", stillValid: false},
+    {checked:  true, name:  "Keyboard (jazz pop rock)", alias: "", stillValid: false},
+    {checked:  true, name:  "Klarinet", alias: "", stillValid: false},
+    {checked:  true, name:  "Kornet", alias: "", stillValid: false},
+    {checked:  true, name:  "Orgel", alias: "", stillValid: false},
+    {checked:  true, name:  "Piano", alias: "", stillValid: false},
+    {checked:  true, name:  "Piano (jazz pop rock)", alias: "", stillValid: false},
+    {checked:  true, name:  "Pianolab", alias: "", stillValid: false},
+    {checked:  true, name:  "Piccolo", alias: "Dwarsfluit", stillValid: false},
+    {checked:  true, name:  "Slagwerk", alias: "", stillValid: false},
+    {checked:  true, name:  "Slagwerk (jazz pop rock)", alias: "", stillValid: false},
+    {checked:  true, name:  "Sopraansaxofoon", alias: "Saxofoon", stillValid: false},
+    {checked:  true, name:  "Sopraansaxofoon (jazz pop rock)", alias: "", stillValid: false},
+    {checked:  true, name:  "Tenorsaxofoon", alias: "Saxofoon", stillValid: false},
+    {checked:  true, name:  "Tenorsaxofoon (jazz pop rock)", alias: "", stillValid: false},
+    {checked:  true, name:  "Trombone", alias: "Koper", stillValid: false},
+    {checked:  true, name:  "Trompet", alias: "Koper", stillValid: false},
+    {checked:  true, name:  "Trompet (jazz pop rock)", alias: "", stillValid: false},
+    {checked:  true, name:  "Ud (wereldmuziek)", alias: "", stillValid: false},
+    {checked:  true, name:  "Viool", alias: "", stillValid: false},
+    {checked:  true, name:  "Zang", alias: "", stillValid: false},
+    {checked:  true, name:  "Zang (jazz pop rock)", alias: "", stillValid: false},
+    {checked:  true, name:  "Zang (musical 2e graad)", alias: "", stillValid: false},
+    {checked:  true, name:  "Zang (musical)", alias: "", stillValid: false},
 ];
 
-export let defaultInstrumentsMap = new Map<string, SubjectDef>();
+let defaultInstrumentsMap = new Map<string, SubjectDef>();
 defaultInstruments.forEach(i => defaultInstrumentsMap.set(i.name, i));
 
-export let translationDefs: TranslationDef[] = [
+let defaultTranslationDefs: TranslationDef[] = [
     {find: "Altsaxofoon", replace: "Saxofoon", prefix: "", suffix: ""},
     {find: "Sopraansaxofoon", replace: "Saxofoon", prefix: "", suffix: ""},
     {find: "Tenorsaxofoon", replace: "Saxofoon", prefix: "", suffix: ""},
@@ -88,3 +103,24 @@ export let translationDefs: TranslationDef[] = [
     {find: "instrumentinitiatie", replace: "init", prefix: "", suffix: ""},
     {find: "", replace: "", prefix: "K ", suffix: ""},
 ];
+
+export async function fetchHoursSettingsOrDefault(schoolyear: string) {
+    let dko3_subjects = await fetchAvailableSubjects(schoolyear);
+    let availableSubjects = dko3_subjects.map(vak => vak.name);
+    let cloudSettings = await cloud.json.fetch(createTeacherHoursFileName(schoolyear)).catch(e => {}) as TeacherHoursSetup;
+    if(!cloudSettings) {
+        cloudSettings = {
+            schoolyear: schoolyear,
+            subjects: defaultInstruments,
+            translations: defaultTranslationDefs
+        }
+    }
+    let availableSubjectSet = new Set(availableSubjects);
+    cloudSettings.subjects.forEach(s => s.stillValid = availableSubjectSet.has(s.name));
+
+    return cloudSettings;
+}
+
+export function createTeacherHoursFileName(schoolyear: string) {
+    return "teacherHoursSetup_" + schoolyear + ".json";
+}

@@ -13,8 +13,7 @@ import {registerChecksumHandler} from "../table/observer";
 import {CloudData, JsonCloudData, UrenData} from "./urenData";
 import {createDefaultTableFetcher} from "../table/loadAnyTable";
 import {Actions, sendRequest, TabType} from "../messaging";
-import {SubjectDef, TeacherHoursSetup} from "./hoursSettings";
-import {fetchVakken} from "./criteria";
+import {fetchHoursSettingsOrDefault, mapHourSettings} from "./hoursSettings";
 
 const tableId = "table_leerlingen_werklijst_table";
 
@@ -82,19 +81,13 @@ function onCriteriaShown() {
     getSchoolIdString();
 }
 
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((request, _sender, _sendResponse) => {
     console.log("Received message from service worker: ", request);
 })
 
 
 async function showUrenSetup(schoolyear: string) {
-    let dko3_vakken = await fetchVakken(schoolyear);
-    let subjects: SubjectDef[] = dko3_vakken.map(vak => { return { checked: false, name: vak.name, alias: "" }});
-    let setup: TeacherHoursSetup = {
-        schoolyear: schoolyear,
-        subjects,
-        translations: []
-    }
+    let setup = await fetchHoursSettingsOrDefault(schoolyear);
     let res = await openHoursSettings(setup);
     globalHoursSettingsTabId = res.tabId;
 }
@@ -102,7 +95,7 @@ async function showUrenSetup(schoolyear: string) {
 let globalHoursSettingsTabId: number;
 
 async function sendMessageToHoursSettings() {
-    sendRequest(Actions.GreetingsFromParent, TabType.Main, TabType.HoursSettings, globalHoursSettingsTabId, "Hello the main content script.")
+    sendRequest(Actions.GreetingsFromParent, TabType.Main, TabType.HoursSettings, globalHoursSettingsTabId, "Hello the main content script.").then(_ => {});
 }
 
 function onWerklijstChanged() {
@@ -176,22 +169,24 @@ function onShowLerarenUren() {
         let tableFetchListener = new NamedCellTableFetchListener(requiredHeaderLabels, () => {});
         tableFetcher.addListener(tableFetchListener);
 
-        Promise.all([tableFetcher.fetch(), getUrenFromCloud(fileName)]).then(results => {
+        Promise.all([tableFetcher.fetch(), getUrenFromCloud(fileName)]).then(async results => {
+            let schoolYear = findSchooljaar();
             let [fetchedTable, jsonCloudData] = results;
             let vakLeraars = new Map();
             let rows = fetchedTable.getRows();
             let errors = [];
+            let hourSettings = await fetchHoursSettingsOrDefault(schoolYear);
+            let hourSettingsMapped = mapHourSettings(hourSettings);
             for(let tr of rows) {
-                let error = scrapeStudent(tableFetcher, tableFetchListener, tr, vakLeraars);
+                let error = scrapeStudent(tableFetcher, tableFetchListener, tr, vakLeraars, hourSettingsMapped);
                 if(error)
                     errors.push(error);
             }
             if(errors.length)
-                openHtmlTab(createTable(["Error"], errors.map(error => [error])).outerHTML, "Errors");
+                openHtmlTab(createTable(["Error"], errors.map(error => [error])).outerHTML, "Errors").then(_ => {});
             let fromCloud = upgradeCloudData(jsonCloudData);
             vakLeraars = new Map([...vakLeraars.entries()].sort((a, b) => a[0] < b[0] ? -1 : ((a[0] > b[0])? 1 : 0))) as Map<string, VakLeraar>;
             document.getElementById(def.COUNT_TABLE_ID)?.remove();
-            let schoolYear = findSchooljaar();
             let year = parseInt(schoolYear);
             buildTable(new UrenData(year, new CloudData(fromCloud), vakLeraars), tableFetcher);
             document.getElementById(def.COUNT_TABLE_ID).style.display = "none";

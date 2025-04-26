@@ -1,3 +1,15 @@
+/*todo: create a globals.css file?*/
+button.naked {
+    background: none;
+    border: none;
+    color: inherit;
+    padding: 0;
+}
+
+.hand {
+    cursor: pointer;
+}
+
 main {
     max-width: 1000px;
     width: 100%;
@@ -12,7 +24,7 @@ h1 {
 div.tabs {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    div.tab {
+    button.tab {
         padding: 1ch;
         background-color: #eff4ff;
         border-radius: 1ch 1ch 0 0;
@@ -53,6 +65,7 @@ th {
 
 table {
      border-collapse: collapse;
+    width: 100%;
 
      input {
         background-color: rgba(100, 150, 255, 0.1);
@@ -70,5 +83,22 @@ tr {
     border-bottom: 1px solid #bbb;
     &:has(input[type='checkbox']:checked){
         opacity: 1;
+    }
+}
+
+td.invalid {
+    text-decoration: line-through;
+    background: rgba(255, 0, 0, 0.1);
+}
+td button {
+    margin-left: 1ch;
+    opacity: 0.7;
+    &:hover {
+        opacity: 1;
+        background-color: rgba(255,0,0, .1);
+        cursor: pointer;
+    }
+    img {
+        height: 1em;
     }
 }

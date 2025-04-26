@@ -2,11 +2,13 @@ import {Actions, createMessageHandler, sendRequest, ServiceRequest, TabType} fro
 import {emmet} from "../libs/Emmeter/html";
 import {cloud} from "./cloud";
 
-import {SubjectDef, TeacherHoursSetup} from "./werklijst/hoursSettings";
+import {createTeacherHoursFileName, mapHourSettings, SubjectDef, TeacherHoursSetup, TeacherHoursSetupMapped, TranslationDef} from "./werklijst/hoursSettings";
 
 let handler  = createMessageHandler(TabType.HoursSettings);
 
 chrome.runtime.onMessage.addListener(handler.getListener());
+
+document.addEventListener("DOMContentLoaded", onDocumentLoaded)
 
 handler
     .onMessageForMyTabType(msg => {
@@ -17,70 +19,118 @@ handler
         console.log("message for me: ", msg);
         document.getElementById("container").innerHTML = "DATA:" + msg.data;
     })
-    .onData(async (data: ServiceRequest) => {
-        globalSetup = data.data as TeacherHoursSetup;
-        let cloudData: TeacherHoursSetup = await cloud.json.fetch(createTeacherHoursFileName(globalSetup.schoolyear)).catch(e => {});
-        console.log("cloud data: ", cloudData);
-        if (cloudData) {
-            let globalSubjectMap = new Map<string, SubjectDef>(globalSetup.subjects.map(s => [s.name, s]));
-            let cloudSubjectMap = new Map<string, SubjectDef>(cloudData.subjects.map(s => [s.name, s]));
-            //merge:globalData has more recent and valud subjects but cloud data has priority
-            //for now, ignore the old subjects from cloud data.
-            for(let [key, value] of cloudSubjectMap) {
-                globalSubjectMap.set(key, value);
-            }
-            globalSetup.subjects = [...globalSubjectMap.values()];
+    .onData(onData);
+
+function fillSubjectsTable(cloudData: TeacherHoursSetup) {
+    if (cloudData) {
+        let globalSubjectMap = new Map<string, SubjectDef>(globalSetup.subjects.map(s => [s.name, s]));
+        let cloudSubjectMap = new Map<string, SubjectDef>(cloudData.subjects.map(s => [s.name, s]));
+        //merge:globalData has more recent and valud subjects but cloud data has priority
+        //for now, ignore the old subjects from cloud data.
+        for (let [key, value] of cloudSubjectMap) {
+            globalSubjectMap.set(key, value);
         }
-        document.querySelector("button").addEventListener("click", async () => {
-            await sendRequest(Actions.GreetingsFromChild, TabType.Undefined, TabType.Main, undefined, "Hullo! Fly safe!");
-        });
-        let container = document.getElementById("container");
-        let tbody = container.querySelector("table>tbody") as HTMLTableSectionElement;
-        tbody.innerHTML = "";
-        for(let vak of globalSetup.subjects) {
-            let valueAttribute = "";
-            if(vak.alias)
-                valueAttribute = ` value="${vak.alias}"`;
-            let checkedAttribute = "";
-            if(vak.checked)
-                checkedAttribute = ` checked="checked"`;
-            emmet.appendChild(tbody, `tr>(td>input[type="checkbox" ${checkedAttribute}])+td{${vak.name}}+td>input[type="text" ${valueAttribute}]`)
+        globalSetup.subjects = [...globalSubjectMap.values()];
+    }
+    let container = document.getElementById("subjectsContainer");
+    let tbody = container.querySelector("table>tbody") as HTMLTableSectionElement;
+    tbody.innerHTML = "";
+    for (let vak of globalSetup.subjects) {
+        let validClass = "";
+        let bucket = "";
+        if(!vak.stillValid) {
+            validClass = ".invalid";
+            bucket = `+button.naked>img[src="${chrome.runtime.getURL("images/trash-can.svg")}"]`;
         }
-        tbody.onchange = (e) => {
-            hasTableChanged = true;
-        }
-        document.title = data.pageTitle;
+        let valueAttribute = "";
+        if (vak.alias)
+            valueAttribute = ` value="${vak.alias}"`;
+        let checkedAttribute = "";
+        if (vak.checked)
+            checkedAttribute = ` checked="checked"`;
+        emmet.appendChild(tbody, `tr>(td>input[type="checkbox" ${checkedAttribute}])+(td${validClass}>({${vak.name}}${bucket}))+td>input[type="text" ${valueAttribute}]`)
+    }
+}
+
+function fillTranslationsTable(cloudData: TeacherHoursSetup) {
+    let container = document.getElementById("translationsContainer");
+    let tbody = container.querySelector("table>tbody") as HTMLTableSectionElement;
+    tbody.innerHTML = "";
+    for (let trns of globalSetup.translations) {
+        let text =`tr>`
+            +buildField("Vind", trns.find, "trnsFind")
+            +"+"
+            +buildField("vervang door", trns.replace, "trnsReplace")
+            +"+"
+            +buildField("prefix", trns.prefix, "trnsPrefix")
+            +"+"
+            +buildField("suffix", trns.suffix, "trnsSuffix");
+        emmet.appendChild(tbody, text);
+    }
+
+    function buildField(label: string, value: string, id: string){
+        let attrValue = value ? ` value="${value}"` : "";
+        return `(td>{${label}})+(td>input#${id}[type="text"${attrValue}])`;
+    }
+}
+
+async function onData(data: ServiceRequest) {
+    document.title = data.pageTitle;
+    //test...
+    document.querySelector("button").addEventListener("click", async () => {
+        await sendRequest(Actions.GreetingsFromChild, TabType.Undefined, TabType.Main, undefined, "Hullo! Fly safe!");
     });
 
-let globalSetup: TeacherHoursSetup = undefined;
+    globalSetup = mapHourSettings(data.data as TeacherHoursSetup);
+    let cloudData: TeacherHoursSetup = await cloud.json.fetch(createTeacherHoursFileName(globalSetup.schoolyear)).catch(e => {});
+    fillSubjectsTable(cloudData);
+    fillTranslationsTable(cloudData);
+    //set change even AFTER filling the tables:
+    document.querySelectorAll("tbody").forEach(tbody => tbody.addEventListener("change", (e) => {
+        hasTableChanged = true;
+    }));
+}
+
+let globalSetup: TeacherHoursSetupMapped = undefined;
 
 let hasTableChanged = false;
 
 setInterval(onCheckTableChanged, 2000);
 
-function createTeacherHoursFileName(schoolyear: string) {
-    return "teacherHoursSetup_" + schoolyear+".json"; //todo: assumes globalSetup is filled.
-}
-
-function onCheckTableChanged() {
-    if (!hasTableChanged)
-        return;
-
-    let rows = document.querySelectorAll("table>tbody>tr") as NodeListOf<HTMLTableRowElement>;
-    let subjects = [...rows]
-        .filter(row => row.cells[0].querySelector("input:checked")!== null || row.cells[2].querySelector("input").value)
+function scrapeSubjects() {
+    let rows = document.querySelectorAll("#subjectsContainer>table>tbody>tr") as NodeListOf<HTMLTableRowElement>;
+    return [...rows]
+        .filter(row => row.cells[0].querySelector("input:checked") !== null || row.cells[2].querySelector("input").value)
         .map(row => {
             return {
                 checked: row.cells[0].querySelector("input:checked") !== null,
                 name: row.cells[1].textContent,
                 alias: row.cells[2].querySelector("input").value,
+                stillValid: false
             }
         });
-    let translations = [];
+}
+
+function scrapeTranslations(): TranslationDef[] {
+    let rows = document.querySelectorAll("#translationsContainer>table>tbody>tr") as NodeListOf<HTMLTableRowElement>;
+    return [...rows]
+        .map(row => {
+            return {
+                find: (row.querySelector("#trnsFind") as HTMLInputElement).value,
+                replace: (row.querySelector("#trnsReplace") as HTMLInputElement).value,
+                prefix: (row.querySelector("#trnsPrefix") as HTMLInputElement).value,
+                suffix: (row.querySelector("#trnsSuffix") as HTMLInputElement).value,
+            }
+        });
+}
+
+function onCheckTableChanged() {
+    if (!hasTableChanged)
+        return;
     let setupData: TeacherHoursSetup = {
         schoolyear: globalSetup.schoolyear,
-        subjects,
-        translations,
+        subjects: scrapeSubjects(),
+        translations: scrapeTranslations(),
     };
     hasTableChanged = false;
     let fileName = createTeacherHoursFileName(globalSetup.schoolyear);
@@ -92,4 +142,32 @@ function onCheckTableChanged() {
 
 window.onbeforeunload = () => {
     onCheckTableChanged();
+}
+
+function switchTab(btn: HTMLButtonElement) {
+    let tabId = btn.dataset.tabId;
+    let tabs = btn.parentElement;
+    tabs.querySelectorAll(".tab").forEach((tab: HTMLElement) => {
+        tab.classList.add("notSelected");
+        document.getElementById(tab.dataset.tabId).style.display = "none";
+    });
+    btn.classList.remove("notSelected");
+    document.getElementById(tabId).style.display = "block";
+}
+
+function onDocumentLoaded(this: Document, ev: Event) {
+    let tabs = document.querySelector(".tabs");
+    switchTab(tabs.querySelector(".tab"));
+    document.querySelectorAll(".tabs > button.tab")
+        .forEach(btn => btn
+            .addEventListener("click", (ev) => {
+                switch ((ev.target as HTMLElement).id) {
+                    case "btnTabSubjects":
+                        switchTab(ev.target as HTMLButtonElement);
+                        break;
+                    case "btnTabTranslations":
+                        switchTab(ev.target as HTMLButtonElement);
+                        break;
+                }
+            }));
 }

@@ -1,4 +1,4 @@
-export async function fetchVakken(schoolyear: string) {
+export async function fetchAvailableSubjects(schoolyear: string) {
     await sendAddCriterium(schoolyear, "Vak");
     let text = await fetchCritera(schoolyear);
     const template = document.createElement('template');

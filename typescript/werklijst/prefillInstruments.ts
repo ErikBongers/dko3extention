@@ -1,14 +1,15 @@
-import {fetchVakken, sendClearWerklijst, sendCriteria, sendFields, sendGrouping} from "./criteria";
+import {fetchAvailableSubjects, sendClearWerklijst, sendCriteria, sendFields, sendGrouping} from "./criteria";
 import * as def from "../def";
 import {getGotoStateOrDefault, PageName, saveGotoState, WerklijstGotoState} from "../gotoState";
-import {defaultInstruments} from "./hoursSettings";
+import {fetchHoursSettingsOrDefault} from "./hoursSettings";
 
 export async function setCriteriaForTeacherHours(schooljaar: string) {
     await sendClearWerklijst();
-    let dko3_vakken = await fetchVakken(schooljaar);
-    let selectedInstrumentNames  =  new Set(defaultInstruments.map(i => i.name));
-    let instruments = dko3_vakken.filter((vak) => selectedInstrumentNames.has(vak.name));
-    let values = instruments.map(vak => parseInt(vak.value));
+    let dko3_vakken = await fetchAvailableSubjects(schooljaar);
+    let hourSettings = await fetchHoursSettingsOrDefault(schooljaar);
+    let selectedInstrumentNames  =  new Set(hourSettings.subjects.map(i => i.name));
+    let validInstruments = dko3_vakken.filter((vak) => selectedInstrumentNames.has(vak.name));
+    let values = validInstruments.map(vak => parseInt(vak.value));
     let valueString = values.join();
 
     let criteria = [

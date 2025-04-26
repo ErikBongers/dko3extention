@@ -2,7 +2,7 @@ import {createValidId} from "../globals";
 import {TableFetcher} from "../table/tableFetcher";
 import {NamedCellTableFetchListener} from "../pageHandlers";
 import {StudentInfo} from "../lessen/scrape";
-import {defaultInstruments, defaultInstrumentsMap, translationDefs} from "./hoursSettings";
+import {TeacherHoursSetup, TeacherHoursSetupMapped} from "./hoursSettings";
 
 export interface CountStudentsPerJaar {
     count: number,
@@ -15,7 +15,7 @@ export interface VakLeraar {
     countMap: Map<string, CountStudentsPerJaar>
 }
 
-export function scrapeStudent(_tableDef: TableFetcher, fetchListener: NamedCellTableFetchListener, tr: HTMLTableRowElement, collection: any) {
+export function scrapeStudent(_tableDef: TableFetcher, fetchListener: NamedCellTableFetchListener, tr: HTMLTableRowElement, collection: any, hourSettings: TeacherHoursSetupMapped) {
     let student: StudentInfo = new StudentInfo();
     student.naam = fetchListener.getColumnText(tr, "naam");
     student.voornaam = fetchListener.getColumnText(tr,"voornaam");
@@ -30,7 +30,7 @@ export function scrapeStudent(_tableDef: TableFetcher, fetchListener: NamedCellT
         console.error("vak is geen instrument!!!");
         return `Vak "${vak}" is geen instrument.`;
     }
-    let vakLeraarKey = translateVak(vak) + "_" + leraar;
+    let vakLeraarKey = translateVak(vak, hourSettings) + "_" + leraar;
 
     if (!collection.has(vakLeraarKey)) {
         let countMap: Map<string, CountStudentsPerJaar> = new Map();
@@ -47,7 +47,7 @@ export function scrapeStudent(_tableDef: TableFetcher, fetchListener: NamedCellT
         countMap.set("S.1", {count: 0, students: []});
         countMap.set("S.2", {count: 0, students: []});
         let vakLeraarObject = {
-            vak: translateVak(vak),
+            vak: translateVak(vak, hourSettings),
             leraar: leraar,
             id: createValidId(vakLeraarKey),
             countMap: countMap
@@ -83,15 +83,15 @@ function isInstrument(vak: string) {
     return true;
 }
 
-function translateVak(vak: string) {
+function translateVak(vak: string, settings: TeacherHoursSetupMapped) {
     // simple alias replacements
-    let alias  =  defaultInstrumentsMap.get(vak)?.alias;
+    let alias  =  settings.subjectsMap.get(vak)?.alias;
     if(alias)
         vak =  alias;
 
     let foundTranslation = false;
     // fragment replacements
-    translationDefs
+    settings.translations
         .filter(translation => translation.find !== "")
         .forEach(translation => {
             if(vak.includes(translation.find)) {
@@ -103,7 +103,7 @@ function translateVak(vak: string) {
         return vak;
 
     // default replacements
-    let defaultTranslation = translationDefs
+    let defaultTranslation = settings.translations
         .find(defaultTranslation => defaultTranslation.find === "");
     if(defaultTranslation)
         return defaultTranslation.prefix + vak.replace(defaultTranslation.find, defaultTranslation.replace) + defaultTranslation.suffix;

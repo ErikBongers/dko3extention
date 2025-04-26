@@ -3015,337 +3015,8 @@ function fillGraadCell(ctx) {
 }
 
 //#endregion
-//#region typescript/werklijst/hoursSettings.ts
-let defaultInstruments = [
-	{
-		checked: true,
-		name: "Accordeon",
-		alias: ""
-	},
-	{
-		checked: true,
-		name: "Altfluit",
-		alias: "Dwarsfluit"
-	},
-	{
-		checked: true,
-		name: "Althoorn",
-		alias: ""
-	},
-	{
-		checked: true,
-		name: "Altklarinet",
-		alias: ""
-	},
-	{
-		checked: true,
-		name: "Altsaxofoon",
-		alias: "Saxofoon"
-	},
-	{
-		checked: true,
-		name: "Altsaxofoon (jazz pop rock)",
-		alias: ""
-	},
-	{
-		checked: true,
-		name: "Altviool",
-		alias: ""
-	},
-	{
-		checked: true,
-		name: "Baglama/saz (wereldmuziek)",
-		alias: ""
-	},
-	{
-		checked: true,
-		name: "Bariton",
-		alias: ""
-	},
-	{
-		checked: true,
-		name: "Baritonsaxofoon",
-		alias: ""
-	},
-	{
-		checked: true,
-		name: "Baritonsaxofoon (jazz pop rock)",
-		alias: ""
-	},
-	{
-		checked: true,
-		name: "Basfluit",
-		alias: ""
-	},
-	{
-		checked: true,
-		name: "Basgitaar (jazz pop rock)",
-		alias: ""
-	},
-	{
-		checked: true,
-		name: "Basklarinet",
-		alias: "Klarinet"
-	},
-	{
-		checked: true,
-		name: "Bastrombone",
-		alias: ""
-	},
-	{
-		checked: true,
-		name: "Bastuba",
-		alias: "Koper"
-	},
-	{
-		checked: true,
-		name: "Bugel",
-		alias: "Koper"
-	},
-	{
-		checked: true,
-		name: "Cello",
-		alias: ""
-	},
-	{
-		checked: true,
-		name: "Contrabas (jazz pop rock)",
-		alias: ""
-	},
-	{
-		checked: true,
-		name: "Contrabas (klassiek)",
-		alias: ""
-	},
-	{
-		checked: true,
-		name: "Dwarsfluit",
-		alias: ""
-	},
-	{
-		checked: true,
-		name: "Engelse hoorn",
-		alias: ""
-	},
-	{
-		checked: true,
-		name: "Eufonium",
-		alias: "Koper"
-	},
-	{
-		checked: true,
-		name: "Fagot",
-		alias: ""
-	},
-	{
-		checked: true,
-		name: "Gitaar",
-		alias: ""
-	},
-	{
-		checked: true,
-		name: "Gitaar (jazz pop rock)",
-		alias: ""
-	},
-	{
-		checked: true,
-		name: "Harp",
-		alias: ""
-	},
-	{
-		checked: true,
-		name: "Hobo",
-		alias: ""
-	},
-	{
-		checked: true,
-		name: "Hoorn",
-		alias: "Koper"
-	},
-	{
-		checked: true,
-		name: "Keyboard (jazz pop rock)",
-		alias: ""
-	},
-	{
-		checked: true,
-		name: "Klarinet",
-		alias: ""
-	},
-	{
-		checked: true,
-		name: "Kornet",
-		alias: ""
-	},
-	{
-		checked: true,
-		name: "Orgel",
-		alias: ""
-	},
-	{
-		checked: true,
-		name: "Piano",
-		alias: ""
-	},
-	{
-		checked: true,
-		name: "Piano (jazz pop rock)",
-		alias: ""
-	},
-	{
-		checked: true,
-		name: "Pianolab",
-		alias: ""
-	},
-	{
-		checked: true,
-		name: "Piccolo",
-		alias: "Dwarsfluit"
-	},
-	{
-		checked: true,
-		name: "Slagwerk",
-		alias: ""
-	},
-	{
-		checked: true,
-		name: "Slagwerk (jazz pop rock)",
-		alias: ""
-	},
-	{
-		checked: true,
-		name: "Sopraansaxofoon",
-		alias: "Saxofoon"
-	},
-	{
-		checked: true,
-		name: "Sopraansaxofoon (jazz pop rock)",
-		alias: ""
-	},
-	{
-		checked: true,
-		name: "Tenorsaxofoon",
-		alias: "Saxofoon"
-	},
-	{
-		checked: true,
-		name: "Tenorsaxofoon (jazz pop rock)",
-		alias: ""
-	},
-	{
-		checked: true,
-		name: "Trombone",
-		alias: "Koper"
-	},
-	{
-		checked: true,
-		name: "Trompet",
-		alias: "Koper"
-	},
-	{
-		checked: true,
-		name: "Trompet (jazz pop rock)",
-		alias: ""
-	},
-	{
-		checked: true,
-		name: "Ud (wereldmuziek)",
-		alias: ""
-	},
-	{
-		checked: true,
-		name: "Viool",
-		alias: ""
-	},
-	{
-		checked: true,
-		name: "Zang",
-		alias: ""
-	},
-	{
-		checked: true,
-		name: "Zang (jazz pop rock)",
-		alias: ""
-	},
-	{
-		checked: true,
-		name: "Zang (musical 2e graad)",
-		alias: ""
-	},
-	{
-		checked: true,
-		name: "Zang (musical)",
-		alias: ""
-	}
-];
-let defaultInstrumentsMap = new Map();
-defaultInstruments.forEach((i) => defaultInstrumentsMap.set(i.name, i));
-let translationDefs = [
-	{
-		find: "Altsaxofoon",
-		replace: "Saxofoon",
-		prefix: "",
-		suffix: ""
-	},
-	{
-		find: "Sopraansaxofoon",
-		replace: "Saxofoon",
-		prefix: "",
-		suffix: ""
-	},
-	{
-		find: "Tenorsaxofoon",
-		replace: "Saxofoon",
-		prefix: "",
-		suffix: ""
-	},
-	{
-		find: "(klassiek)",
-		replace: "",
-		prefix: "K ",
-		suffix: ""
-	},
-	{
-		find: "(jazz pop rock)",
-		replace: "",
-		prefix: "JPR ",
-		suffix: ""
-	},
-	{
-		find: "(musical)",
-		replace: "",
-		prefix: "M ",
-		suffix: ""
-	},
-	{
-		find: "(musical 2e graad)",
-		replace: "(2e graad)",
-		prefix: "M ",
-		suffix: ""
-	},
-	{
-		find: "(wereldmuziek)",
-		replace: "",
-		prefix: "WM ",
-		suffix: ""
-	},
-	{
-		find: "instrumentinitiatie",
-		replace: "init",
-		prefix: "",
-		suffix: ""
-	},
-	{
-		find: "",
-		replace: "",
-		prefix: "K ",
-		suffix: ""
-	}
-];
-
-//#endregion
 //#region typescript/werklijst/scrapeUren.ts
-function scrapeStudent(_tableDef, fetchListener, tr, collection) {
+function scrapeStudent(_tableDef, fetchListener, tr, collection, hourSettings) {
 	let student = new StudentInfo();
 	student.naam = fetchListener.getColumnText(tr, "naam");
 	student.voornaam = fetchListener.getColumnText(tr, "voornaam");
@@ -3358,7 +3029,7 @@ function scrapeStudent(_tableDef, fetchListener, tr, collection) {
 		console.error("vak is geen instrument!!!");
 		return `Vak "${vak}" is geen instrument.`;
 	}
-	let vakLeraarKey = translateVak(vak) + "_" + leraar;
+	let vakLeraarKey = translateVak(vak, hourSettings) + "_" + leraar;
 	if (!collection.has(vakLeraarKey)) {
 		let countMap = new Map();
 		countMap.set("2.1", {
@@ -3410,7 +3081,7 @@ function scrapeStudent(_tableDef, fetchListener, tr, collection) {
 			students: []
 		});
 		let vakLeraarObject = {
-			vak: translateVak(vak),
+			vak: translateVak(vak, hourSettings),
 			leraar,
 			id: createValidId(vakLeraarKey),
 			countMap
@@ -3444,25 +3115,25 @@ function isInstrument(vak) {
 	}
 	return true;
 }
-function translateVak(vak) {
-	let alias = defaultInstrumentsMap.get(vak)?.alias;
+function translateVak(vak, settings) {
+	let alias = settings.subjectsMap.get(vak)?.alias;
 	if (alias) vak = alias;
 	let foundTranslation = false;
-	translationDefs.filter((translation) => translation.find !== "").forEach((translation) => {
+	settings.translations.filter((translation) => translation.find !== "").forEach((translation) => {
 		if (vak.includes(translation.find)) {
 			foundTranslation = true;
 			vak = translation.prefix + vak.replace(translation.find, translation.replace) + translation.suffix;
 		}
 	});
 	if (foundTranslation) return vak;
-	let defaultTranslation = translationDefs.find((defaultTranslation$1) => defaultTranslation$1.find === "");
+	let defaultTranslation = settings.translations.find((defaultTranslation$1) => defaultTranslation$1.find === "");
 	if (defaultTranslation) return defaultTranslation.prefix + vak.replace(defaultTranslation.find, defaultTranslation.replace) + defaultTranslation.suffix;
 	return vak;
 }
 
 //#endregion
 //#region typescript/werklijst/criteria.ts
-async function fetchVakken(schoolyear) {
+async function fetchAvailableSubjects(schoolyear) {
 	await sendAddCriterium(schoolyear, "Vak");
 	let text = await fetchCritera(schoolyear);
 	const template = document.createElement("template");
@@ -3527,13 +3198,422 @@ async function sendFields(fields) {
 }
 
 //#endregion
+//#region typescript/werklijst/hoursSettings.ts
+function mapHourSettings(hourSettings) {
+	let mapped = { ...hourSettings };
+	mapped.subjectsMap = new Map(hourSettings.subjects.map((s) => [s.name, s]));
+	return mapped;
+}
+let defaultInstruments = [
+	{
+		checked: true,
+		name: "Aaaaa",
+		alias: "bbb",
+		stillValid: true
+	},
+	{
+		checked: true,
+		name: "Accordeon",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Altfluit",
+		alias: "Dwarsfluit",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Althoorn",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Altklarinet",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Altsaxofoon",
+		alias: "Saxofoon",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Altsaxofoon (jazz pop rock)",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Altviool",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Baglama/saz (wereldmuziek)",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Bariton",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Baritonsaxofoon",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Baritonsaxofoon (jazz pop rock)",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Basfluit",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Basgitaar (jazz pop rock)",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Basklarinet",
+		alias: "Klarinet",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Bastrombone",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Bastuba",
+		alias: "Koper",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Bugel",
+		alias: "Koper",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Cello",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Contrabas (jazz pop rock)",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Contrabas (klassiek)",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Dwarsfluit",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Engelse hoorn",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Eufonium",
+		alias: "Koper",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Fagot",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Gitaar",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Gitaar (jazz pop rock)",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Harp",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Hobo",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Hoorn",
+		alias: "Koper",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Keyboard (jazz pop rock)",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Klarinet",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Kornet",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Orgel",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Piano",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Piano (jazz pop rock)",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Pianolab",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Piccolo",
+		alias: "Dwarsfluit",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Slagwerk",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Slagwerk (jazz pop rock)",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Sopraansaxofoon",
+		alias: "Saxofoon",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Sopraansaxofoon (jazz pop rock)",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Tenorsaxofoon",
+		alias: "Saxofoon",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Tenorsaxofoon (jazz pop rock)",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Trombone",
+		alias: "Koper",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Trompet",
+		alias: "Koper",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Trompet (jazz pop rock)",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Ud (wereldmuziek)",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Viool",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Zang",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Zang (jazz pop rock)",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Zang (musical 2e graad)",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Zang (musical)",
+		alias: "",
+		stillValid: false
+	}
+];
+let defaultInstrumentsMap = new Map();
+defaultInstruments.forEach((i) => defaultInstrumentsMap.set(i.name, i));
+let defaultTranslationDefs = [
+	{
+		find: "Altsaxofoon",
+		replace: "Saxofoon",
+		prefix: "",
+		suffix: ""
+	},
+	{
+		find: "Sopraansaxofoon",
+		replace: "Saxofoon",
+		prefix: "",
+		suffix: ""
+	},
+	{
+		find: "Tenorsaxofoon",
+		replace: "Saxofoon",
+		prefix: "",
+		suffix: ""
+	},
+	{
+		find: "(klassiek)",
+		replace: "",
+		prefix: "K ",
+		suffix: ""
+	},
+	{
+		find: "(jazz pop rock)",
+		replace: "",
+		prefix: "JPR ",
+		suffix: ""
+	},
+	{
+		find: "(musical)",
+		replace: "",
+		prefix: "M ",
+		suffix: ""
+	},
+	{
+		find: "(musical 2e graad)",
+		replace: "(2e graad)",
+		prefix: "M ",
+		suffix: ""
+	},
+	{
+		find: "(wereldmuziek)",
+		replace: "",
+		prefix: "WM ",
+		suffix: ""
+	},
+	{
+		find: "instrumentinitiatie",
+		replace: "init",
+		prefix: "",
+		suffix: ""
+	},
+	{
+		find: "",
+		replace: "",
+		prefix: "K ",
+		suffix: ""
+	}
+];
+async function fetchHoursSettingsOrDefault(schoolyear) {
+	let dko3_subjects = await fetchAvailableSubjects(schoolyear);
+	let availableSubjects = dko3_subjects.map((vak) => vak.name);
+	let cloudSettings = await cloud.json.fetch(createTeacherHoursFileName(schoolyear)).catch((e) => {});
+	if (!cloudSettings) cloudSettings = {
+		schoolyear,
+		subjects: defaultInstruments,
+		translations: defaultTranslationDefs
+	};
+	let availableSubjectSet = new Set(availableSubjects);
+	cloudSettings.subjects.forEach((s) => s.stillValid = availableSubjectSet.has(s.name));
+	return cloudSettings;
+}
+function createTeacherHoursFileName(schoolyear) {
+	return "teacherHoursSetup_" + schoolyear + ".json";
+}
+
+//#endregion
 //#region typescript/werklijst/prefillInstruments.ts
 async function setCriteriaForTeacherHours(schooljaar) {
 	await sendClearWerklijst();
-	let dko3_vakken = await fetchVakken(schooljaar);
-	let selectedInstrumentNames = new Set(defaultInstruments.map((i) => i.name));
-	let instruments = dko3_vakken.filter((vak) => selectedInstrumentNames.has(vak.name));
-	let values = instruments.map((vak) => parseInt(vak.value));
+	let dko3_vakken = await fetchAvailableSubjects(schooljaar);
+	let hourSettings = await fetchHoursSettingsOrDefault(schooljaar);
+	let selectedInstrumentNames = new Set(hourSettings.subjects.map((i) => i.name));
+	let validInstruments = dko3_vakken.filter((vak) => selectedInstrumentNames.has(vak.name));
+	let values = validInstruments.map((vak) => parseInt(vak.value));
 	let valueString = values.join();
 	let criteria = [
 		{
@@ -4647,29 +4727,17 @@ function onCriteriaShown() {
 	}, "", ["btn", "btn-outline-dark"], "Uren " + nextSchoolyearShort);
 	getSchoolIdString();
 }
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((request, _sender, _sendResponse) => {
 	console.log("Received message from service worker: ", request);
 });
 async function showUrenSetup(schoolyear) {
-	let dko3_vakken = await fetchVakken(schoolyear);
-	let subjects = dko3_vakken.map((vak) => {
-		return {
-			checked: false,
-			name: vak.name,
-			alias: ""
-		};
-	});
-	let setup = {
-		schoolyear,
-		subjects,
-		translations: []
-	};
+	let setup = await fetchHoursSettingsOrDefault(schoolyear);
 	let res = await openHoursSettings(setup);
 	globalHoursSettingsTabId = res.tabId;
 }
 let globalHoursSettingsTabId;
 async function sendMessageToHoursSettings() {
-	sendRequest(Actions.GreetingsFromParent, TabType.Main, TabType.HoursSettings, globalHoursSettingsTabId, "Hello the main content script.");
+	sendRequest(Actions.GreetingsFromParent, TabType.Main, TabType.HoursSettings, globalHoursSettingsTabId, "Hello the main content script.").then((_) => {});
 }
 function onWerklijstChanged() {
 	let werklijstPageState = getGotoStateOrDefault(PageName.Werklijst);
@@ -4725,20 +4793,22 @@ function onShowLerarenUren() {
 		];
 		let tableFetchListener = new NamedCellTableFetchListener(requiredHeaderLabels, () => {});
 		tableFetcher.addListener(tableFetchListener);
-		Promise.all([tableFetcher.fetch(), getUrenFromCloud(fileName)]).then((results) => {
+		Promise.all([tableFetcher.fetch(), getUrenFromCloud(fileName)]).then(async (results) => {
+			let schoolYear = findSchooljaar();
 			let [fetchedTable, jsonCloudData] = results;
 			let vakLeraars = new Map();
 			let rows = fetchedTable.getRows();
 			let errors = [];
+			let hourSettings = await fetchHoursSettingsOrDefault(schoolYear);
+			let hourSettingsMapped = mapHourSettings(hourSettings);
 			for (let tr of rows) {
-				let error = scrapeStudent(tableFetcher, tableFetchListener, tr, vakLeraars);
+				let error = scrapeStudent(tableFetcher, tableFetchListener, tr, vakLeraars, hourSettingsMapped);
 				if (error) errors.push(error);
 			}
-			if (errors.length) openHtmlTab(createTable(["Error"], errors.map((error) => [error])).outerHTML, "Errors");
+			if (errors.length) openHtmlTab(createTable(["Error"], errors.map((error) => [error])).outerHTML, "Errors").then((_) => {});
 			let fromCloud = upgradeCloudData(jsonCloudData);
 			vakLeraars = new Map([...vakLeraars.entries()].sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
 			document.getElementById(COUNT_TABLE_ID)?.remove();
-			let schoolYear = findSchooljaar();
 			let year = parseInt(schoolYear);
 			buildTable(new UrenData(year, new CloudData(fromCloud), vakLeraars), tableFetcher);
 			document.getElementById(COUNT_TABLE_ID).style.display = "none";

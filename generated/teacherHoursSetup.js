@@ -420,20 +420,85 @@
     return await res.text();
   }
 
+  // typescript/werklijst/hoursSettings.ts
+  function mapHourSettings(hourSettings) {
+    let mapped = { ...hourSettings };
+    mapped.subjectsMap = new Map(hourSettings.subjects.map((s) => [s.name, s]));
+    return mapped;
+  }
+  var defaultInstruments = [
+    { checked: true, name: "Aaaaa", alias: "bbb", stillValid: true },
+    { checked: true, name: "Accordeon", alias: "", stillValid: false },
+    { checked: true, name: "Altfluit", alias: "Dwarsfluit", stillValid: false },
+    { checked: true, name: "Althoorn", alias: "", stillValid: false },
+    { checked: true, name: "Altklarinet", alias: "", stillValid: false },
+    { checked: true, name: "Altsaxofoon", alias: "Saxofoon", stillValid: false },
+    { checked: true, name: "Altsaxofoon (jazz pop rock)", alias: "", stillValid: false },
+    { checked: true, name: "Altviool", alias: "", stillValid: false },
+    { checked: true, name: "Baglama/saz (wereldmuziek)", alias: "", stillValid: false },
+    { checked: true, name: "Bariton", alias: "", stillValid: false },
+    { checked: true, name: "Baritonsaxofoon", alias: "", stillValid: false },
+    { checked: true, name: "Baritonsaxofoon (jazz pop rock)", alias: "", stillValid: false },
+    { checked: true, name: "Basfluit", alias: "", stillValid: false },
+    { checked: true, name: "Basgitaar (jazz pop rock)", alias: "", stillValid: false },
+    { checked: true, name: "Basklarinet", alias: "Klarinet", stillValid: false },
+    { checked: true, name: "Bastrombone", alias: "", stillValid: false },
+    { checked: true, name: "Bastuba", alias: "Koper", stillValid: false },
+    { checked: true, name: "Bugel", alias: "Koper", stillValid: false },
+    { checked: true, name: "Cello", alias: "", stillValid: false },
+    { checked: true, name: "Contrabas (jazz pop rock)", alias: "", stillValid: false },
+    { checked: true, name: "Contrabas (klassiek)", alias: "", stillValid: false },
+    { checked: true, name: "Dwarsfluit", alias: "", stillValid: false },
+    { checked: true, name: "Engelse hoorn", alias: "", stillValid: false },
+    { checked: true, name: "Eufonium", alias: "Koper", stillValid: false },
+    { checked: true, name: "Fagot", alias: "", stillValid: false },
+    { checked: true, name: "Gitaar", alias: "", stillValid: false },
+    { checked: true, name: "Gitaar (jazz pop rock)", alias: "", stillValid: false },
+    { checked: true, name: "Harp", alias: "", stillValid: false },
+    { checked: true, name: "Hobo", alias: "", stillValid: false },
+    { checked: true, name: "Hoorn", alias: "Koper", stillValid: false },
+    { checked: true, name: "Keyboard (jazz pop rock)", alias: "", stillValid: false },
+    { checked: true, name: "Klarinet", alias: "", stillValid: false },
+    { checked: true, name: "Kornet", alias: "", stillValid: false },
+    { checked: true, name: "Orgel", alias: "", stillValid: false },
+    { checked: true, name: "Piano", alias: "", stillValid: false },
+    { checked: true, name: "Piano (jazz pop rock)", alias: "", stillValid: false },
+    { checked: true, name: "Pianolab", alias: "", stillValid: false },
+    { checked: true, name: "Piccolo", alias: "Dwarsfluit", stillValid: false },
+    { checked: true, name: "Slagwerk", alias: "", stillValid: false },
+    { checked: true, name: "Slagwerk (jazz pop rock)", alias: "", stillValid: false },
+    { checked: true, name: "Sopraansaxofoon", alias: "Saxofoon", stillValid: false },
+    { checked: true, name: "Sopraansaxofoon (jazz pop rock)", alias: "", stillValid: false },
+    { checked: true, name: "Tenorsaxofoon", alias: "Saxofoon", stillValid: false },
+    { checked: true, name: "Tenorsaxofoon (jazz pop rock)", alias: "", stillValid: false },
+    { checked: true, name: "Trombone", alias: "Koper", stillValid: false },
+    { checked: true, name: "Trompet", alias: "Koper", stillValid: false },
+    { checked: true, name: "Trompet (jazz pop rock)", alias: "", stillValid: false },
+    { checked: true, name: "Ud (wereldmuziek)", alias: "", stillValid: false },
+    { checked: true, name: "Viool", alias: "", stillValid: false },
+    { checked: true, name: "Zang", alias: "", stillValid: false },
+    { checked: true, name: "Zang (jazz pop rock)", alias: "", stillValid: false },
+    { checked: true, name: "Zang (musical 2e graad)", alias: "", stillValid: false },
+    { checked: true, name: "Zang (musical)", alias: "", stillValid: false }
+  ];
+  var defaultInstrumentsMap = /* @__PURE__ */ new Map();
+  defaultInstruments.forEach((i) => defaultInstrumentsMap.set(i.name, i));
+  function createTeacherHoursFileName(schoolyear) {
+    return "teacherHoursSetup_" + schoolyear + ".json";
+  }
+
   // typescript/teacherHoursSetup.ts
   var handler = createMessageHandler(2 /* HoursSettings */);
   chrome.runtime.onMessage.addListener(handler.getListener());
+  document.addEventListener("DOMContentLoaded", onDocumentLoaded);
   handler.onMessageForMyTabType((msg) => {
     console.log("message for my tab type: ", msg);
     document.getElementById("container").innerHTML = "Message was for my tab type" + msg.data;
   }).onMessageForMe((msg) => {
     console.log("message for me: ", msg);
     document.getElementById("container").innerHTML = "DATA:" + msg.data;
-  }).onData(async (data) => {
-    globalSetup = data.data;
-    let cloudData = await cloud.json.fetch(createTeacherHoursFileName(globalSetup.schoolyear)).catch((e) => {
-    });
-    console.log("cloud data: ", cloudData);
+  }).onData(onData);
+  function fillSubjectsTable(cloudData) {
     if (cloudData) {
       let globalSubjectMap = new Map(globalSetup.subjects.map((s) => [s.name, s]));
       let cloudSubjectMap = new Map(cloudData.subjects.map((s) => [s.name, s]));
@@ -442,48 +507,84 @@
       }
       globalSetup.subjects = [...globalSubjectMap.values()];
     }
-    document.querySelector("button").addEventListener("click", async () => {
-      await sendRequest("greetingsFromChild" /* GreetingsFromChild */, 0 /* Undefined */, 1 /* Main */, void 0, "Hullo! Fly safe!");
-    });
-    let container = document.getElementById("container");
+    let container = document.getElementById("subjectsContainer");
     let tbody = container.querySelector("table>tbody");
     tbody.innerHTML = "";
     for (let vak of globalSetup.subjects) {
+      let validClass = "";
+      let bucket = "";
+      if (!vak.stillValid) {
+        validClass = ".invalid";
+        bucket = `+button.naked>img[src="${chrome.runtime.getURL("images/trash-can.svg")}"]`;
+      }
       let valueAttribute = "";
       if (vak.alias)
         valueAttribute = ` value="${vak.alias}"`;
       let checkedAttribute = "";
       if (vak.checked)
         checkedAttribute = ` checked="checked"`;
-      emmet.appendChild(tbody, `tr>(td>input[type="checkbox" ${checkedAttribute}])+td{${vak.name}}+td>input[type="text" ${valueAttribute}]`);
+      emmet.appendChild(tbody, `tr>(td>input[type="checkbox" ${checkedAttribute}])+(td${validClass}>({${vak.name}}${bucket}))+td>input[type="text" ${valueAttribute}]`);
     }
-    tbody.onchange = (e) => {
-      hasTableChanged = true;
-    };
+  }
+  function fillTranslationsTable(cloudData) {
+    let container = document.getElementById("translationsContainer");
+    let tbody = container.querySelector("table>tbody");
+    tbody.innerHTML = "";
+    for (let trns of globalSetup.translations) {
+      let text = `tr>` + buildField("Vind", trns.find, "trnsFind") + "+" + buildField("vervang door", trns.replace, "trnsReplace") + "+" + buildField("prefix", trns.prefix, "trnsPrefix") + "+" + buildField("suffix", trns.suffix, "trnsSuffix");
+      emmet.appendChild(tbody, text);
+    }
+    function buildField(label, value, id) {
+      let attrValue = value ? ` value="${value}"` : "";
+      return `(td>{${label}})+(td>input#${id}[type="text"${attrValue}])`;
+    }
+  }
+  async function onData(data) {
     document.title = data.pageTitle;
-  });
+    document.querySelector("button").addEventListener("click", async () => {
+      await sendRequest("greetingsFromChild" /* GreetingsFromChild */, 0 /* Undefined */, 1 /* Main */, void 0, "Hullo! Fly safe!");
+    });
+    globalSetup = mapHourSettings(data.data);
+    let cloudData = await cloud.json.fetch(createTeacherHoursFileName(globalSetup.schoolyear)).catch((e) => {
+    });
+    fillSubjectsTable(cloudData);
+    fillTranslationsTable(cloudData);
+    document.querySelectorAll("tbody").forEach((tbody) => tbody.addEventListener("change", (e) => {
+      hasTableChanged = true;
+    }));
+  }
   var globalSetup = void 0;
   var hasTableChanged = false;
   setInterval(onCheckTableChanged, 2e3);
-  function createTeacherHoursFileName(schoolyear) {
-    return "teacherHoursSetup_" + schoolyear + ".json";
+  function scrapeSubjects() {
+    let rows = document.querySelectorAll("#subjectsContainer>table>tbody>tr");
+    return [...rows].filter((row) => row.cells[0].querySelector("input:checked") !== null || row.cells[2].querySelector("input").value).map((row) => {
+      return {
+        checked: row.cells[0].querySelector("input:checked") !== null,
+        name: row.cells[1].textContent,
+        alias: row.cells[2].querySelector("input").value,
+        stillValid: false
+      };
+    });
+  }
+  function scrapeTranslations() {
+    let rows = document.querySelectorAll("#translationsContainer>table>tbody>tr");
+    return [...rows].map((row) => {
+      return {
+        find: row.querySelector("#trnsFind").value,
+        replace: row.querySelector("#trnsReplace").value,
+        prefix: row.querySelector("#trnsPrefix").value,
+        suffix: row.querySelector("#trnsSuffix").value
+      };
+    });
   }
   function onCheckTableChanged() {
     if (!hasTableChanged)
       return;
-    let rows = document.querySelectorAll("table>tbody>tr");
-    let subjects = [...rows].filter((row) => row.cells[0].querySelector("input:checked") !== null || row.cells[2].querySelector("input").value).map((row) => {
-      return {
-        checked: row.cells[0].querySelector("input:checked") !== null,
-        name: row.cells[1].textContent,
-        alias: row.cells[2].querySelector("input").value
-      };
-    });
-    let translations = [];
     let setupData = {
       schoolyear: globalSetup.schoolyear,
-      subjects,
-      translations
+      subjects: scrapeSubjects(),
+      translations: scrapeTranslations()
     };
     hasTableChanged = false;
     let fileName = createTeacherHoursFileName(globalSetup.schoolyear);
@@ -494,5 +595,29 @@
   window.onbeforeunload = () => {
     onCheckTableChanged();
   };
+  function switchTab(btn) {
+    let tabId = btn.dataset.tabId;
+    let tabs = btn.parentElement;
+    tabs.querySelectorAll(".tab").forEach((tab) => {
+      tab.classList.add("notSelected");
+      document.getElementById(tab.dataset.tabId).style.display = "none";
+    });
+    btn.classList.remove("notSelected");
+    document.getElementById(tabId).style.display = "block";
+  }
+  function onDocumentLoaded(ev) {
+    let tabs = document.querySelector(".tabs");
+    switchTab(tabs.querySelector(".tab"));
+    document.querySelectorAll(".tabs > button.tab").forEach((btn) => btn.addEventListener("click", (ev2) => {
+      switch (ev2.target.id) {
+        case "btnTabSubjects":
+          switchTab(ev2.target);
+          break;
+        case "btnTabTranslations":
+          switchTab(ev2.target);
+          break;
+      }
+    }));
+  }
 })();
 //# sourceMappingURL=teacherHoursSetup.js.map
