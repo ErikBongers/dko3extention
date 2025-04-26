@@ -50,13 +50,33 @@ function fillSubjectsTable(cloudData: TeacherHoursSetup) {
             checkedAttribute = ` checked="checked"`;
         emmet.appendChild(tbody, `tr>(td>input[type="checkbox" ${checkedAttribute}])+(td${validClass}>({${vak.name}}${bucket}))+td>input[type="text" ${valueAttribute}]`)
     }
-    document.querySelectorAll("button.deleteRow")
+    document.querySelectorAll("#subjectsContainer button.deleteRow")
         .forEach(btn => btn
-            .addEventListener("click", (ev) => {
-                let btn = ev.target as HTMLButtonElement;
-                btn.closest("tr").remove();
-                hasTableChanged = true;
-            }));
+            .addEventListener("click", deleteTableRow));
+}
+
+function addTranslationRow(trns: TranslationDef, tbody: HTMLTableSectionElement) {
+    let text = `tr>`
+        + buildField("Vind", trns.find, "trnsFind")
+        + "+"
+        + buildField("vervang door", trns.replace, "trnsReplace")
+        + "+"
+        + buildField("prefix", trns.prefix, "trnsPrefix")
+        + "+"
+        + buildField("suffix", trns.suffix, "trnsSuffix");
+    let tr = emmet.appendChild(tbody, text).first as HTMLTableRowElement;
+    let up = `button.moveUp.naked>img[src="${chrome.runtime.getURL("images/up-arrow.svg")}"]`;
+    let down = `button.moveDown.naked>img.upSideDown[src="${chrome.runtime.getURL("images/up-arrow.svg")}"]`;
+    let bucket = `button.deleteRow.naked>img[src="${chrome.runtime.getURL("images/trash-can.svg")}"]`;
+    emmet.appendChild(tr, `(td>${up})+(td>${down})+(td>${bucket})`);
+
+    tbody.querySelectorAll("button.deleteRow")
+        .forEach(btn => btn.addEventListener("click", deleteTableRow));
+
+    function buildField(label: string, value: string, id: string){
+        let attrValue = value ? ` value="${value}"` : "";
+        return `(td>{${label}})+(td>input#${id}[type="text"${attrValue}])`;
+    }
 }
 
 function fillTranslationsTable(cloudData: TeacherHoursSetup) {
@@ -64,21 +84,35 @@ function fillTranslationsTable(cloudData: TeacherHoursSetup) {
     let tbody = container.querySelector("table>tbody") as HTMLTableSectionElement;
     tbody.innerHTML = "";
     for (let trns of globalSetup.translations) {
-        let text =`tr>`
-            +buildField("Vind", trns.find, "trnsFind")
-            +"+"
-            +buildField("vervang door", trns.replace, "trnsReplace")
-            +"+"
-            +buildField("prefix", trns.prefix, "trnsPrefix")
-            +"+"
-            +buildField("suffix", trns.suffix, "trnsSuffix");
-        emmet.appendChild(tbody, text);
+        addTranslationRow(trns, tbody);
     }
 
-    function buildField(label: string, value: string, id: string){
-        let attrValue = value ? ` value="${value}"` : "";
-        return `(td>{${label}})+(td>input#${id}[type="text"${attrValue}])`;
-    }
+    document.querySelectorAll("button.moveUp")
+        .forEach(btn => btn
+            .addEventListener("click", (ev) => {
+                let btn = ev.target as HTMLButtonElement;
+                let row = btn.closest("tr") as HTMLTableRowElement;
+                let prevRow =row.previousElementSibling;
+                row.parentElement.insertBefore(row, prevRow);
+                hasTableChanged = true;
+            }));
+    document.querySelectorAll("button.moveDown")
+        .forEach(btn => btn
+            .addEventListener("click", (ev) => {
+                let btn = ev.target as HTMLButtonElement;
+                let row = btn.closest("tr") as HTMLTableRowElement;
+                let nextRow =row.nextElementSibling;
+                row.parentElement.insertBefore(nextRow, row);
+                hasTableChanged = true;
+            }));
+    document.querySelectorAll("#translationsContainer button.deleteRow")
+        .forEach(btn => btn.addEventListener("click", deleteTableRow));
+}
+
+function deleteTableRow(ev: Event) {
+    let btn = ev.target as HTMLButtonElement;
+    btn.closest("tr").remove();
+    hasTableChanged = true;
 }
 
 async function onData(data: ServiceRequest) {
@@ -99,6 +133,18 @@ async function onData(data: ServiceRequest) {
     document.querySelector('tbody').addEventListener('input', function (e) {
         hasTableChanged = true;
     });
+    document.getElementById('btnNewTranslationRow').addEventListener('click', function (e) {
+        let def: TranslationDef = {
+            find: "",
+            replace: "",
+            prefix: "",
+            suffix: ""
+        }
+        addTranslationRow(def, document.querySelector("#translationsContainer tbody"));
+        hasTableChanged = true;
+    });
+
+
 }
 
 let globalSetup: TeacherHoursSetupMapped = undefined;

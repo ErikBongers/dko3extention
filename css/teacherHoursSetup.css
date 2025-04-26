@@ -102,3 +102,6 @@ td button {
         height: 1em;
     }
 }
+img.upSideDown {
+    transform: rotate(180deg);
+}
