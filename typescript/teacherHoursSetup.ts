@@ -40,7 +40,7 @@ function fillSubjectsTable(cloudData: TeacherHoursSetup) {
         let bucket = "";
         if(!vak.stillValid) {
             validClass = ".invalid";
-            bucket = `+button.naked>img[src="${chrome.runtime.getURL("images/trash-can.svg")}"]`;
+            bucket = `+button.deleteRow.naked>img[src="${chrome.runtime.getURL("images/trash-can.svg")}"]`;
         }
         let valueAttribute = "";
         if (vak.alias)
@@ -50,6 +50,13 @@ function fillSubjectsTable(cloudData: TeacherHoursSetup) {
             checkedAttribute = ` checked="checked"`;
         emmet.appendChild(tbody, `tr>(td>input[type="checkbox" ${checkedAttribute}])+(td${validClass}>({${vak.name}}${bucket}))+td>input[type="text" ${valueAttribute}]`)
     }
+    document.querySelectorAll("button.deleteRow")
+        .forEach(btn => btn
+            .addEventListener("click", (ev) => {
+                let btn = ev.target as HTMLButtonElement;
+                btn.closest("tr").remove();
+                hasTableChanged = true;
+            }));
 }
 
 function fillTranslationsTable(cloudData: TeacherHoursSetup) {
@@ -89,6 +96,9 @@ async function onData(data: ServiceRequest) {
     document.querySelectorAll("tbody").forEach(tbody => tbody.addEventListener("change", (e) => {
         hasTableChanged = true;
     }));
+    document.querySelector('tbody').addEventListener('input', function (e) {
+        hasTableChanged = true;
+    });
 }
 
 let globalSetup: TeacherHoursSetupMapped = undefined;
@@ -106,7 +116,7 @@ function scrapeSubjects() {
                 checked: row.cells[0].querySelector("input:checked") !== null,
                 name: row.cells[1].textContent,
                 alias: row.cells[2].querySelector("input").value,
-                stillValid: false
+                stillValid: row.cells[1].classList.contains("invalid") == false
             }
         });
 }

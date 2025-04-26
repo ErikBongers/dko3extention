@@ -1,6 +1,5 @@
 * setup leraren uren
-  > what if list of available subjects changes?
-  > subjects that no longer exist should be striped out in settings window.
+  > page refresh: gets data from service worker, but may be outdated.
 
 * replace all refs to skynet with outlook.
 

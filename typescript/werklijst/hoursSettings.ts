@@ -117,6 +117,19 @@ export async function fetchHoursSettingsOrDefault(schoolyear: string) {
     }
     let availableSubjectSet = new Set(availableSubjects);
     cloudSettings.subjects.forEach(s => s.stillValid = availableSubjectSet.has(s.name));
+    let cloudSubjectMap = new Map(cloudSettings.subjects.map(s => [s.name, s]));
+    //add new subjects
+    for(let name of availableSubjectSet) {
+        if(!cloudSubjectMap.has(name)) {
+            cloudSubjectMap.set(name, {
+                checked: false,
+                name,
+                alias: "",
+                stillValid: true
+            });
+        }
+    }
+    cloudSettings.subjects = [...cloudSubjectMap.values()].sort((a, b) => a.name.localeCompare(b.name));
 
     return cloudSettings;
 }
