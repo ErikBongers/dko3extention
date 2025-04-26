@@ -5,7 +5,7 @@ import {defaultInstruments} from "./hoursSettings";
 
 export async function setCriteriaForTeacherHours(schooljaar: string) {
     await sendClearWerklijst();
-    let dko3_vakken = await fetchVakken(false, schooljaar);
+    let dko3_vakken = await fetchVakken(schooljaar);
     let selectedInstrumentNames  =  new Set(defaultInstruments.map(i => i.name));
     let instruments = dko3_vakken.filter((vak) => selectedInstrumentNames.has(vak.name));
     let values = instruments.map(vak => parseInt(vak.value));

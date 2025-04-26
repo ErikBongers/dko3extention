@@ -14,6 +14,7 @@ import {CloudData, JsonCloudData, UrenData} from "./urenData";
 import {createDefaultTableFetcher} from "../table/loadAnyTable";
 import {Actions, sendRequest, TabType} from "../messaging";
 import {SubjectDef, TeacherHoursSetup} from "./hoursSettings";
+import {fetchVakken} from "./criteria";
 
 const tableId = "table_leerlingen_werklijst_table";
 
@@ -87,10 +88,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 
 async function showUrenSetup(schoolyear: string) {
-    //todo: switch to schoolyear first
-    //todo: criterium_vak may not be present! (fetch it in background?)
-    let instrumentList = document.getElementById("leerling_werklijst_criterium_vak") as HTMLSelectElement;
-    let subjects: SubjectDef[] = [...instrumentList.options].map(option => { return { checked: false, name: option.text, alias: "" }});
+    let dko3_vakken = await fetchVakken(schoolyear);
+    let subjects: SubjectDef[] = dko3_vakken.map(vak => { return { checked: false, name: vak.name, alias: "" }});
     let setup: TeacherHoursSetup = {
         schoolyear: schoolyear,
         subjects,

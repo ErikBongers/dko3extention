@@ -3462,10 +3462,9 @@ function translateVak(vak) {
 
 //#endregion
 //#region typescript/werklijst/criteria.ts
-async function fetchVakken(clear, schooljaar) {
-	if (clear) await sendClearWerklijst();
-	await sendAddCriterium(schooljaar, "Vak");
-	let text = await fetchCritera(schooljaar);
+async function fetchVakken(schoolyear) {
+	await sendAddCriterium(schoolyear, "Vak");
+	let text = await fetchCritera(schoolyear);
 	const template = document.createElement("template");
 	template.innerHTML = text;
 	let vakken = template.content.querySelectorAll("#form_field_leerling_werklijst_criterium_vak option");
@@ -3531,7 +3530,7 @@ async function sendFields(fields) {
 //#region typescript/werklijst/prefillInstruments.ts
 async function setCriteriaForTeacherHours(schooljaar) {
 	await sendClearWerklijst();
-	let dko3_vakken = await fetchVakken(false, schooljaar);
+	let dko3_vakken = await fetchVakken(schooljaar);
 	let selectedInstrumentNames = new Set(defaultInstruments.map((i) => i.name));
 	let instruments = dko3_vakken.filter((vak) => selectedInstrumentNames.has(vak.name));
 	let values = instruments.map((vak) => parseInt(vak.value));
@@ -4652,11 +4651,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 	console.log("Received message from service worker: ", request);
 });
 async function showUrenSetup(schoolyear) {
-	let instrumentList = document.getElementById("leerling_werklijst_criterium_vak");
-	let subjects = [...instrumentList.options].map((option) => {
+	let dko3_vakken = await fetchVakken(schoolyear);
+	let subjects = dko3_vakken.map((vak) => {
 		return {
 			checked: false,
-			name: option.text,
+			name: vak.name,
 			alias: ""
 		};
 	});

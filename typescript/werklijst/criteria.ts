@@ -1,9 +1,6 @@
-export async function fetchVakken(clear: boolean, schooljaar: string) {
-    if (clear) {
-        await sendClearWerklijst();
-    }
-    await sendAddCriterium(schooljaar, "Vak");
-    let text = await fetchCritera(schooljaar);
+export async function fetchVakken(schoolyear: string) {
+    await sendAddCriterium(schoolyear, "Vak");
+    let text = await fetchCritera(schoolyear);
     const template = document.createElement('template');
     template.innerHTML = text;
     let vakken = template.content.querySelectorAll("#form_field_leerling_werklijst_criterium_vak option");
