@@ -3619,7 +3619,7 @@ async function setCriteriaForTeacherHours(schooljaar) {
 	await sendClearWerklijst();
 	let dko3_vakken = await fetchAvailableSubjects(schooljaar);
 	let hourSettings = await fetchHoursSettingsOrDefault(schooljaar);
-	let selectedInstrumentNames = new Set(hourSettings.subjects.map((i) => i.name));
+	let selectedInstrumentNames = new Set(hourSettings.subjects.filter((i) => i.checked).map((i) => i.name));
 	let validInstruments = dko3_vakken.filter((vak) => selectedInstrumentNames.has(vak.name));
 	let values = validInstruments.map((vak) => parseInt(vak.value));
 	let valueString = values.join();
