@@ -37,7 +37,7 @@ let defaultInstruments = [
     {checked:  true, name:  "Altfluit", alias: "Dwarsfluit", stillValid: false},
     {checked:  true, name:  "Althoorn", alias: "", stillValid: false},
     {checked:  true, name:  "Altklarinet", alias: "", stillValid: false},
-    {checked:  true, name:  "Altsaxofoon", alias: "Saxofoon", stillValid: false},
+    {checked:  true, name:  "Altsaxofoon", alias: "", stillValid: false},
     {checked:  true, name:  "Altsaxofoon (jazz pop rock)", alias: "", stillValid: false},
     {checked:  true, name:  "Altviool", alias: "", stillValid: false},
     {checked:  true, name:  "Baglama/saz (wereldmuziek)", alias: "", stillValid: false},
@@ -72,9 +72,9 @@ let defaultInstruments = [
     {checked:  true, name:  "Piccolo", alias: "Dwarsfluit", stillValid: false},
     {checked:  true, name:  "Slagwerk", alias: "", stillValid: false},
     {checked:  true, name:  "Slagwerk (jazz pop rock)", alias: "", stillValid: false},
-    {checked:  true, name:  "Sopraansaxofoon", alias: "Saxofoon", stillValid: false},
+    {checked:  true, name:  "Sopraansaxofoon", alias: "", stillValid: false},
     {checked:  true, name:  "Sopraansaxofoon (jazz pop rock)", alias: "", stillValid: false},
-    {checked:  true, name:  "Tenorsaxofoon", alias: "Saxofoon", stillValid: false},
+    {checked:  true, name:  "Tenorsaxofoon", alias: "", stillValid: false},
     {checked:  true, name:  "Tenorsaxofoon (jazz pop rock)", alias: "", stillValid: false},
     {checked:  true, name:  "Trombone", alias: "Koper", stillValid: false},
     {checked:  true, name:  "Trompet", alias: "Koper", stillValid: false},
@@ -102,6 +102,10 @@ let defaultTranslationDefs: TranslationDef[] = [
     {find: "(wereldmuziek)", replace: "", prefix: "WM ", suffix: ""},
     {find: "instrumentinitiatie", replace: "init", prefix: "", suffix: ""},
     {find: "", replace: "", prefix: "K ", suffix: ""},
+    {find: "K JPR ", replace: "JPR ", prefix: " ", suffix: ""},
+    {find: "K M ", replace: "M ", prefix: " ", suffix: ""},
+    {find: "K WM ", replace: "WM ", prefix: " ", suffix: ""},
+    {find: "K K ", replace: "K ", prefix: " ", suffix: ""},
 ];
 
 export async function fetchHoursSettingsOrDefault(schoolyear: string) {

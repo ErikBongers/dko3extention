@@ -3237,7 +3237,7 @@ let defaultInstruments = [
 	{
 		checked: true,
 		name: "Altsaxofoon",
-		alias: "Saxofoon",
+		alias: "",
 		stillValid: false
 	},
 	{
@@ -3447,7 +3447,7 @@ let defaultInstruments = [
 	{
 		checked: true,
 		name: "Sopraansaxofoon",
-		alias: "Saxofoon",
+		alias: "",
 		stillValid: false
 	},
 	{
@@ -3459,7 +3459,7 @@ let defaultInstruments = [
 	{
 		checked: true,
 		name: "Tenorsaxofoon",
-		alias: "Saxofoon",
+		alias: "",
 		stillValid: false
 	},
 	{
@@ -3584,6 +3584,30 @@ let defaultTranslationDefs = [
 		find: "",
 		replace: "",
 		prefix: "K ",
+		suffix: ""
+	},
+	{
+		find: "K JPR ",
+		replace: "JPR ",
+		prefix: " ",
+		suffix: ""
+	},
+	{
+		find: "K M ",
+		replace: "M ",
+		prefix: " ",
+		suffix: ""
+	},
+	{
+		find: "K WM ",
+		replace: "WM ",
+		prefix: " ",
+		suffix: ""
+	},
+	{
+		find: "K K ",
+		replace: "K ",
+		prefix: " ",
 		suffix: ""
 	}
 ];
