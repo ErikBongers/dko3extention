@@ -448,7 +448,7 @@ function setButtonHighlighted(buttonId, show) {
 	if (show) document.getElementById(buttonId).classList.add("toggled");
 	else document.getElementById(buttonId).classList.remove("toggled");
 }
-function addButton$1(targetElement, buttonId, title, clickFunction, imageId, classList, text = "", where = "beforebegin") {
+function addButton$1(targetElement, buttonId, title, clickFunction, imageId, classList, text = "", where = "beforebegin", imageFileName) {
 	let button = document.getElementById(buttonId);
 	if (button === null) {
 		const button$1 = document.createElement("button");
@@ -461,6 +461,10 @@ function addButton$1(targetElement, buttonId, title, clickFunction, imageId, cla
 			let span = document.createElement("span");
 			button$1.appendChild(span);
 			span.innerText = text;
+		}
+		if (imageFileName) {
+			button$1.classList.add("svg");
+			emmet.appendChild(button$1, `img[src="${chrome.runtime.getURL("images/" + imageFileName)}"]`);
 		}
 		const buttonContent = document.createElement("i");
 		button$1.appendChild(buttonContent);
@@ -4749,10 +4753,10 @@ function onCriteriaShown() {
 	}, "", ["btn", "btn-outline-dark"], "Uren " + prevSchoolyearShort);
 	addButton$1(btnWerklijstMaken, UREN_PREV_SETUP_BTN_ID, "Setup voor " + prevSchoolyear, async () => {
 		await showUrenSetup(prevSchoolyear);
-	}, "fas-certificate", ["btn", "btn-outline-dark"], "");
-	addButton$1(btnWerklijstMaken, UREN_PREV_SETUP_BTN_ID + "sdf", "test ", async () => {
+	}, "fas-certificate", ["btn", "btn-outline-dark"], "", "beforebegin", "gear.svg");
+	addButton$1(btnWerklijstMaken, UREN_PREV_SETUP_BTN_ID + "sdf", "test", async () => {
 		await sendMessageToHoursSettings();
-	}, "fas-certificate", ["btn", "btn-outline-dark"], "");
+	}, "", ["btn", "btn-outline-dark"], "send");
 	addButton$1(btnWerklijstMaken, UREN_NEXT_BTN_ID, "Toon lerarenuren voor " + nextSchoolyear, async () => {
 		await setCriteriaForTeacherHours(nextSchoolyear);
 	}, "", ["btn", "btn-outline-dark"], "Uren " + nextSchoolyearShort);

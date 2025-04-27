@@ -228,11 +228,18 @@ span.searchButton {
         }
     }
 }
+
 button.naked {
     background: none;
     border: none;
     color: inherit;
     padding: 0;
+}
+
+button.btn.svg img {
+    width: 1em;
+    position: relative;
+    top: -.15em;
 }
 
 button.miniButton {

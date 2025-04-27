@@ -59,11 +59,12 @@ export function setButtonHighlighted(buttonId: string, show: boolean) {
     }
 }
 
-export function addButton(targetElement: HTMLElement, buttonId: string, title: string, clickFunction: (ev:PointerEvent) => void, imageId: string, classList: string[], text = "", where: InsertPosition = "beforebegin") {
+export function addButton(targetElement: HTMLElement, buttonId: string, title: string, clickFunction: (ev:PointerEvent) => void, imageId: string, classList: string[], text = "", where: InsertPosition = "beforebegin", imageFileName?: string) {
     let button = document.getElementById(buttonId);
     if (button === null) {
         const button = document.createElement("button");
-        button.classList.add("btn"/*, "btn-sm", "btn-outline-secondary", "w-100"*/, ...classList);
+        button.classList.add("btn", ...classList);
+        /*, "btn-sm", "btn-outline-secondary", "w-100"*/
         button.id = buttonId;
         button.style.marginTop = "0";
         button.onclick = clickFunction;
@@ -72,6 +73,10 @@ export function addButton(targetElement: HTMLElement, buttonId: string, title: s
             let span = document.createElement("span");
             button.appendChild(span);
             span.innerText = text;
+        }
+        if(imageFileName) {
+            button.classList.add("svg");
+            emmet.appendChild(button, `img[src="${chrome.runtime.getURL("images/" + imageFileName)}"]`);
         }
         const buttonContent = document.createElement("i");
         button.appendChild(buttonContent);
