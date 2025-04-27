@@ -1,5 +1,7 @@
-* setup leraren uren
-  > page refresh: gets data from service worker, but may be outdated.
+* setup leraren uren: messaging between settings and table.
+  > refresh table on every update.
+  > add a settings button to the table view (in addition to criteria view)
+
 
 * replace all refs to skynet with outlook.
 

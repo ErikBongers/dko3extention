@@ -3119,15 +3119,14 @@ function translateVak(vak, settings) {
 	let alias = settings.subjectsMap.get(vak)?.alias;
 	if (alias) vak = alias;
 	let foundTranslation = false;
-	settings.translations.filter((translation) => translation.find !== "").forEach((translation) => {
-		if (vak.includes(translation.find)) {
-			foundTranslation = true;
-			vak = translation.prefix + vak.replace(translation.find, translation.replace) + translation.suffix;
-		}
+	settings.translations.forEach((translation) => {
+		if (translation.find) {
+			if (vak.includes(translation.find)) {
+				foundTranslation = true;
+				vak = translation.prefix + vak.replace(translation.find, translation.replace) + translation.suffix;
+			}
+		} else vak = translation.prefix + vak + translation.suffix;
 	});
-	if (foundTranslation) return vak;
-	let defaultTranslation = settings.translations.find((defaultTranslation$1) => defaultTranslation$1.find === "");
-	if (defaultTranslation) return defaultTranslation.prefix + vak.replace(defaultTranslation.find, defaultTranslation.replace) + defaultTranslation.suffix;
 	return vak;
 }
 

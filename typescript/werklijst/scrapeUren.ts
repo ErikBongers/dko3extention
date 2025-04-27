@@ -92,21 +92,25 @@ function translateVak(vak: string, settings: TeacherHoursSetupMapped) {
     let foundTranslation = false;
     // fragment replacements
     settings.translations
-        .filter(translation => translation.find !== "")
+        // .filter(translation => translation.find !== "")
         .forEach(translation => {
-            if(vak.includes(translation.find)) {
-                foundTranslation = true;
-               vak = translation.prefix + vak.replace(translation.find, translation.replace) + translation.suffix;
+            if(translation.find) {
+                if (vak.includes(translation.find)) {
+                    foundTranslation = true;
+                    vak = translation.prefix + vak.replace(translation.find, translation.replace) + translation.suffix;
+                }
             }
+            else
+                vak = translation.prefix + vak + translation.suffix;
         });
-    if(foundTranslation)
-        return vak;
+    // if(foundTranslation)
+    //     return vak;
 
     // default replacements
-    let defaultTranslation = settings.translations
-        .find(defaultTranslation => defaultTranslation.find === "");
-    if(defaultTranslation)
-        return defaultTranslation.prefix + vak.replace(defaultTranslation.find, defaultTranslation.replace) + defaultTranslation.suffix;
+    // let defaultTranslation = settings.translations
+    //     .find(defaultTranslation => defaultTranslation.find === "");
+    // if(defaultTranslation)
+    //     return defaultTranslation.prefix + vak.replace(defaultTranslation.find, defaultTranslation.replace) + defaultTranslation.suffix;
 
     return vak;
 }
