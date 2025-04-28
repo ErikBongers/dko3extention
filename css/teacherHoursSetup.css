@@ -79,10 +79,12 @@ table {
 }
 
 tr {
-    opacity: 0.5;
     border-bottom: 1px solid #bbb;
-    &:has(input[type='checkbox']:checked){
-        opacity: 1;
+    &:has(input[type='checkbox']){
+        opacity: 0.5;
+        &:has(input[type='checkbox']:checked){
+            opacity: 1;
+        }
     }
 }
 

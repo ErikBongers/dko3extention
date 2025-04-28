@@ -75,7 +75,7 @@ function addTranslationRow(trns: TranslationDef, tbody: HTMLTableSectionElement)
 
     function buildField(label: string, value: string, id: string){
         let attrValue = value ? ` value="${value}"` : "";
-        return `(td>{${label}})+(td>input#${id}[type="text"${attrValue}])`;
+        return `(td>{${label}})+(td>input-with-spaces#${id}[type="text"${attrValue}])`;
     }
 }
 
@@ -130,9 +130,12 @@ async function onData(data: ServiceRequest) {
     document.querySelectorAll("tbody").forEach(tbody => tbody.addEventListener("change", (e) => {
         hasTableChanged = true;
     }));
-    document.querySelector('tbody').addEventListener('input', function (e) {
+    document.querySelectorAll('tbody').forEach(el => el.addEventListener('input', function (e) {
         hasTableChanged = true;
-    });
+    }));
+    document.querySelectorAll('input-with-spaces').forEach(el => el.addEventListener('input-with-spaces', function (e) {
+        hasTableChanged = true;
+    }));
     document.getElementById('btnNewTranslationRow').addEventListener('click', function (e) {
         let def: TranslationDef = {
             find: "",
@@ -172,10 +175,10 @@ function scrapeTranslations(): TranslationDef[] {
     return [...rows]
         .map(row => {
             return {
-                find: (row.querySelector("#trnsFind") as HTMLInputElement).value,
-                replace: (row.querySelector("#trnsReplace") as HTMLInputElement).value,
-                prefix: (row.querySelector("#trnsPrefix") as HTMLInputElement).value,
-                suffix: (row.querySelector("#trnsSuffix") as HTMLInputElement).value,
+                find: row.querySelector("#trnsFind").getAttribute("value") ?? "",
+                replace: row.querySelector("#trnsReplace").getAttribute("value") ?? "",
+                prefix: row.querySelector("#trnsPrefix").getAttribute("value") ?? "",
+                suffix: row.querySelector("#trnsSuffix").getAttribute("value") ?? "",
             }
         });
 }
