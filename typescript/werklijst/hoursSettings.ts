@@ -102,10 +102,10 @@ let defaultTranslationDefs: TranslationDef[] = [
     {find: "(wereldmuziek)", replace: "", prefix: "WM ", suffix: ""},
     {find: "instrumentinitiatie", replace: "init", prefix: "", suffix: ""},
     {find: "", replace: "", prefix: "K ", suffix: ""},
-    {find: "K JPR ", replace: "JPR ", prefix: " ", suffix: ""},
-    {find: "K M ", replace: "M ", prefix: " ", suffix: ""},
-    {find: "K WM ", replace: "WM ", prefix: " ", suffix: ""},
-    {find: "K K ", replace: "K ", prefix: " ", suffix: ""},
+    {find: "K JPR ", replace: "JPR ", prefix: "", suffix: ""},
+    {find: "K M ", replace: "M ", prefix: "", suffix: ""},
+    {find: "K WM ", replace: "WM ", prefix: "", suffix: ""},
+    {find: "K K ", replace: "K ", prefix: "", suffix: ""},
 ];
 
 export async function fetchHoursSettingsOrDefault(schoolyear: string) {
