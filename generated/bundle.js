@@ -3617,6 +3617,7 @@ let defaultTranslationDefs = [
 ];
 function getDefaultHourSettings(schoolyear) {
 	return {
+		version: 1,
 		schoolyear,
 		subjects: [...defaultInstruments],
 		translations: [...defaultTranslationDefs]

@@ -16,6 +16,7 @@ export type TranslationDef = {
 }
 
 export type TeacherHoursSetup = {
+    version: 1,
     schoolyear: string,
     subjects: SubjectDef[];
     translations: TranslationDef[];
@@ -108,8 +109,9 @@ let defaultTranslationDefs: TranslationDef[] = [
     {find: "K K ", replace: "K ", prefix: "", suffix: ""},
 ];
 
-function getDefaultHourSettings(schoolyear: string) {
+function getDefaultHourSettings(schoolyear: string): TeacherHoursSetup {
     return {
+        version: 1,
         schoolyear,
         subjects: [...defaultInstruments],
         translations: [...defaultTranslationDefs]

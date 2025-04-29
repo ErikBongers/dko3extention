@@ -178,9 +178,10 @@ function onCheckTableChanged(dko3Setup: TeacherHoursSetupMapped) {
     if (!hasTableChanged)
         return;
     let setupData: TeacherHoursSetup = {
+        version: 1,
         schoolyear: dko3Setup.schoolyear,
         subjects: scrapeSubjects(),
-        translations: scrapeTranslations(),
+        translations: scrapeTranslations()
     };
     hasTableChanged = false;
     saveHourSettings(setupData)

@@ -740,6 +740,7 @@
     if (!hasTableChanged)
       return;
     let setupData = {
+      version: 1,
       schoolyear: dko3Setup.schoolyear,
       subjects: scrapeSubjects(),
       translations: scrapeTranslations()
