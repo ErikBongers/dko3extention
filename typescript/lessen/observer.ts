@@ -3,7 +3,7 @@ import {buildTableData} from "./convert";
 import {buildTrimesterTable, getDefaultPageSettings, getSavedNameSorting, LessenPageState, NameSorting, setSavedNameSorting, TrimElements, TrimesterGrouping} from "./build";
 import * as def from "../def";
 import {LESSEN_TABLE_ID} from "../def";
-import {findSchooljaar, getPageSettings, savePageSettings, setButtonHighlighted} from "../globals";
+import {getPageSettings, savePageSettings, Schoolyear, setButtonHighlighted} from "../globals";
 import {HashObserver} from "../pageObserver";
 import * as html from "../../libs/Emmeter/html";
 import {emmet} from "../../libs/Emmeter/html";
@@ -55,7 +55,7 @@ function onClickShowTrimesters() {
 
 async function setTrimesterFilterAndFetch() {
     let params = new URLSearchParams({
-        schooljaar: findSchooljaar(),
+        schooljaar: Schoolyear.findInPage(),
         domein:"3", //muziek
         vestigingsplaats: "",
         vak: "",

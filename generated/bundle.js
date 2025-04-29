@@ -472,34 +472,51 @@ function addButton$1(targetElement, buttonId, title, clickFunction, imageId, cla
 		targetElement.insertAdjacentElement(where, button$1);
 	}
 }
-function getSchooljaarSelectElement() {
-	let selects = document.querySelectorAll("select");
-	return Array.from(selects).filter((element) => element.id.includes("schooljaar")).pop();
-}
-function getHighestSchooljaarAvailable() {
-	let el = getSchooljaarSelectElement();
-	if (!el) return void 0;
-	return Array.from(el.querySelectorAll("option")).map((option) => option.value).sort().pop();
-}
-function findSchooljaar() {
-	let el = getSchooljaarSelectElement();
-	if (el) return el.value;
-	el = document.querySelector("div.alert-primary");
-	return el.textContent.match(/schooljaar *= (\d{4}-\d{4})*/)[1];
-}
-function calculateSchooljaar() {
-	let now = new Date();
-	let year = now.getFullYear();
-	let month = now.getMonth();
-	if (month < 8) return year - 1;
-	return year;
-}
-function createSchoolyearString(startYear) {
-	return `${startYear}-${startYear + 1}`;
-}
-function createShortSchoolyearString(startYear) {
-	return `${startYear % 1e3}-${startYear % 1e3 + 1}`;
-}
+let Schoolyear;
+(function(_Schoolyear) {
+	function getSelectElement() {
+		let selects = document.querySelectorAll("select");
+		return Array.from(selects).filter((element) => element.id.includes("schooljaar")).pop();
+	}
+	_Schoolyear.getSelectElement = getSelectElement;
+	function getHighestAvailable() {
+		let el = getSelectElement();
+		if (!el) return void 0;
+		return Array.from(el.querySelectorAll("option")).map((option) => option.value).sort().pop();
+	}
+	_Schoolyear.getHighestAvailable = getHighestAvailable;
+	function findInPage() {
+		let el = getSelectElement();
+		if (el) return el.value;
+		el = document.querySelector("div.alert-primary");
+		return el.textContent.match(/schooljaar *= (\d{4}-\d{4})*/)[1];
+	}
+	_Schoolyear.findInPage = findInPage;
+	function calculateCurrent() {
+		let now = new Date();
+		let year = now.getFullYear();
+		let month = now.getMonth();
+		if (month < 8) return year - 1;
+		return year;
+	}
+	_Schoolyear.calculateCurrent = calculateCurrent;
+	function toFullString(startYear) {
+		return `${startYear}-${startYear + 1}`;
+	}
+	_Schoolyear.toFullString = toFullString;
+	function toShortString(startYear) {
+		return `${startYear % 1e3}-${startYear % 1e3 + 1}`;
+	}
+	_Schoolyear.toShortString = toShortString;
+	function toNumbers(schoolyearString) {
+		let parts = schoolyearString.split("-").map((s) => parseInt(s));
+		return {
+			startYear: parts[0],
+			endYear: parts[1]
+		};
+	}
+	_Schoolyear.toNumbers = toNumbers;
+})(Schoolyear || (Schoolyear = {}));
 function getUserAndSchoolName() {
 	let footer = document.querySelector("body > main > div.row > div.col-auto.mr-auto > small");
 	const reInstrument = /.*Je bent aangemeld als (.*)\s@\s(.*)\./;
@@ -765,8 +782,8 @@ function gotoTrimesterModules(_queryItem) {
 	location.href = "/#lessen-overzicht";
 }
 function getHardCodedQueryItems() {
-	addQueryItem("Werklijst", "Lerarenuren " + createShortSchoolyearString(calculateSchooljaar()), "", gotoWerklijstUrenPrevYear);
-	addQueryItem("Werklijst", "Lerarenuren " + createShortSchoolyearString(calculateSchooljaar() + 1), "", gotoWerklijstUrenNextYear);
+	addQueryItem("Werklijst", "Lerarenuren " + Schoolyear.toShortString(Schoolyear.calculateCurrent()), "", gotoWerklijstUrenPrevYear);
+	addQueryItem("Werklijst", "Lerarenuren " + Schoolyear.toShortString(Schoolyear.calculateCurrent() + 1), "", gotoWerklijstUrenNextYear);
 	addQueryItem("Lessen", "Trimester modules", "", gotoTrimesterModules);
 }
 document.body.addEventListener("keydown", showPowerQuery);
@@ -1040,7 +1057,7 @@ function onUitleningenChanged(tableUitleningen) {
 	}
 }
 function getSchooljaarElementAndListen() {
-	let schooljaar = getSchooljaarSelectElement();
+	let schooljaar = Schoolyear.getSelectElement();
 	let listening = "changeListerenAdded";
 	if (!schooljaar?.classList.contains(listening)) {
 		schooljaar?.classList.add(listening);
@@ -2251,7 +2268,7 @@ function onClickShowTrimesters() {
 }
 async function setTrimesterFilterAndFetch() {
 	let params = new URLSearchParams({
-		schooljaar: findSchooljaar(),
+		schooljaar: Schoolyear.findInPage(),
 		domein: "3",
 		vestigingsplaats: "",
 		vak: "",
@@ -2808,7 +2825,7 @@ function editableObserverCallback(mutationList, _observer) {
 	cellChanged = true;
 }
 function getUrenVakLeraarFileName() {
-	return getSchoolIdString() + "_uren_vak_lk_" + findSchooljaar().replace("-", "_") + ".json";
+	return getSchoolIdString() + "_uren_vak_lk_" + Schoolyear.findInPage().replace("-", "_") + ".json";
 }
 function checkAndUpdate(urenData) {
 	if (isUpdatePaused) return;
@@ -3623,11 +3640,14 @@ function getDefaultHourSettings(schoolyear) {
 		translations: [...defaultTranslationDefs]
 	};
 }
-async function fetchHoursSettingsOrSaveDefault(schoolyear) {
-	let dko3_subjects = (await fetchAvailableSubjects(schoolyear)).map((vak) => vak.name);
-	let cloudSettings = await cloud.json.fetch(createTeacherHoursFileName(schoolyear)).catch((e) => {});
+async function fetchHoursSettingsOrSaveDefault(schoolyearString) {
+	let dko3_subjects = (await fetchAvailableSubjects(schoolyearString)).map((vak) => vak.name);
+	let cloudSettings = await cloud.json.fetch(createTeacherHoursFileName(schoolyearString)).catch((_) => {});
 	if (!cloudSettings) {
-		cloudSettings = getDefaultHourSettings(schoolyear);
+		let prevYearString = Schoolyear.toFullString(Schoolyear.toNumbers(schoolyearString).startYear - 1);
+		cloudSettings = await cloud.json.fetch(createTeacherHoursFileName(prevYearString)).catch((_) => {});
+		if (!cloudSettings) cloudSettings = getDefaultHourSettings(schoolyearString);
+		else cloudSettings.schoolyear = schoolyearString;
 		await saveHourSettings(cloudSettings);
 	}
 	let availableSubjectSet = new Set(dko3_subjects);
@@ -4740,24 +4760,24 @@ function onCriteriaShown() {
 	if (pageState$1.goto == Goto.Werklijst_uren_prevYear) {
 		pageState$1.goto = Goto.None;
 		saveGotoState(pageState$1);
-		setCriteriaForTeacherHours(createSchoolyearString(calculateSchooljaar())).then(() => {});
+		setCriteriaForTeacherHours(Schoolyear.toFullString(Schoolyear.calculateCurrent())).then(() => {});
 		return;
 	}
 	if (pageState$1.goto == Goto.Werklijst_uren_nextYear) {
 		pageState$1.goto = Goto.None;
 		saveGotoState(pageState$1);
-		setCriteriaForTeacherHours(createSchoolyearString(calculateSchooljaar() + 1)).then(() => {});
+		setCriteriaForTeacherHours(Schoolyear.toFullString(Schoolyear.calculateCurrent() + 1)).then(() => {});
 		return;
 	}
 	pageState$1.werklijstTableName = "";
 	saveGotoState(pageState$1);
 	let btnWerklijstMaken = document.querySelector("#btn_werklijst_maken");
 	if (document.getElementById(UREN_PREV_BTN_ID)) return;
-	let year = parseInt(getHighestSchooljaarAvailable());
-	let prevSchoolyear = createSchoolyearString(year - 1);
-	let nextSchoolyear = createSchoolyearString(year);
-	let prevSchoolyearShort = createShortSchoolyearString(year - 1);
-	let nextSchoolyearShort = createShortSchoolyearString(year);
+	let year = parseInt(Schoolyear.getHighestAvailable());
+	let prevSchoolyear = Schoolyear.toFullString(year - 1);
+	let nextSchoolyear = Schoolyear.toFullString(year);
+	let prevSchoolyearShort = Schoolyear.toShortString(year - 1);
+	let nextSchoolyearShort = Schoolyear.toShortString(year);
 	addButton$1(btnWerklijstMaken, UREN_PREV_BTN_ID, "Toon lerarenuren voor " + prevSchoolyear, async () => {
 		await setCriteriaForTeacherHours(prevSchoolyear);
 	}, "", ["btn", "btn-outline-dark"], "Uren " + prevSchoolyearShort);
@@ -4839,7 +4859,7 @@ function onShowLerarenUren() {
 		let tableFetchListener = new NamedCellTableFetchListener(requiredHeaderLabels, () => {});
 		tableFetcher.addListener(tableFetchListener);
 		Promise.all([tableFetcher.fetch(), getUrenFromCloud(fileName)]).then(async (results) => {
-			let schoolYear = findSchooljaar();
+			let schoolYear = Schoolyear.findInPage();
 			let [fetchedTable, jsonCloudData] = results;
 			let vakLeraars = new Map();
 			let rows = fetchedTable.getRows();

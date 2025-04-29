@@ -86,47 +86,57 @@ export function addButton(targetElement: HTMLElement, buttonId: string, title: s
     }
 }
 
-export function getSchooljaarSelectElement() {
-    let selects = document.querySelectorAll("select");
-    return Array.from(selects)
-        .filter((element) => element.id.includes("schooljaar"))
-        .pop();
-}
+export namespace Schoolyear {
+    export function getSelectElement() {
+        let selects = document.querySelectorAll("select");
+        return Array.from(selects)
+            .filter((element) => element.id.includes("schooljaar"))
+            .pop();
+    }
 
-export function getHighestSchooljaarAvailable() {
-    let el = getSchooljaarSelectElement();
-    if(!el)
-        return undefined;
-    return Array.from(el.querySelectorAll("option"))
-        .map(option => option.value)
-        .sort()
-        .pop();
-}
+    export function getHighestAvailable() {
+        let el = getSelectElement();
+        if (!el)
+            return undefined;
+        return Array.from(el.querySelectorAll("option"))
+            .map(option => option.value)
+            .sort()
+            .pop();
+    }
 
 //Tries to return "202x-202y".
-export function findSchooljaar() {
-    let el = getSchooljaarSelectElement();
-    if(el)
-        return el.value;
-    el = document.querySelector("div.alert-primary");
-    return el.textContent.match(/schooljaar *= (\d{4}-\d{4})*/)[1];
-}
+    export function findInPage() {
+        let el = getSelectElement();
+        if (el)
+            return el.value;
+        el = document.querySelector("div.alert-primary");
+        return el.textContent.match(/schooljaar *= (\d{4}-\d{4})*/)[1];
+    }
 
-export function calculateSchooljaar() {
-    let now = new Date();
-    let year = now.getFullYear();
-    let month = now.getMonth();
-    if(month < 8) //zero-based juli !
-        return year-1; //schoolyear started last year.
-    return year;
-}
+    export function calculateCurrent() {
+        let now = new Date();
+        let year = now.getFullYear();
+        let month = now.getMonth();
+        if (month < 8) //zero-based juli !
+            return year - 1; //schoolyear started last year.
+        return year;
+    }
 
-export function createSchoolyearString(startYear: number) {
-    return `${startYear}-${startYear+1}`;
-}
+//E.g. "2024-2025"
+    export function toFullString(startYear: number) {
+        return `${startYear}-${startYear + 1}`;
+    }
 
-export function createShortSchoolyearString(startYear: number) {
-    return `${startYear%1000}-${(startYear%1000)+1}`;
+//E.g. "24-25'
+    export function toShortString(startYear: number) {
+        return `${startYear % 1000}-${(startYear % 1000) + 1}`;
+    }
+
+    export function toNumbers(schoolyearString: string) {
+        let parts = schoolyearString.split("-").map(s => parseInt(s));
+        return {startYear: parts[0], endYear: parts[1]};
+    }
+
 }
 
 export function getUserAndSchoolName() {

@@ -1,4 +1,5 @@
 import {cloud} from "../cloud";
+import { Schoolyear } from "../globals";
 import {fetchAvailableSubjects} from "./criteria";
 
 export type SubjectDef = {
@@ -118,12 +119,18 @@ function getDefaultHourSettings(schoolyear: string): TeacherHoursSetup {
     };
 }
 
-export async function fetchHoursSettingsOrSaveDefault(schoolyear: string) {
-    let dko3_subjects = (await fetchAvailableSubjects(schoolyear))
+export async function fetchHoursSettingsOrSaveDefault(schoolyearString: string) {
+    let dko3_subjects = (await fetchAvailableSubjects(schoolyearString))
         .map(vak => vak.name);
-    let cloudSettings = await cloud.json.fetch(createTeacherHoursFileName(schoolyear)).catch(e => {}) as TeacherHoursSetup;
+    let cloudSettings = await cloud.json.fetch(createTeacherHoursFileName(schoolyearString)).catch(_ => {}) as TeacherHoursSetup;
     if(!cloudSettings) {
-        cloudSettings = getDefaultHourSettings(schoolyear);
+        let prevYearString = Schoolyear.toFullString(Schoolyear.toNumbers(schoolyearString).startYear-1);
+        cloudSettings = await cloud.json.fetch(createTeacherHoursFileName(prevYearString)).catch(_ => {}) as TeacherHoursSetup;
+        if (!cloudSettings) {
+            cloudSettings = getDefaultHourSettings(schoolyearString);
+        } else {
+            cloudSettings.schoolyear = schoolyearString;
+        }
         await saveHourSettings(cloudSettings); //save unmerged settings. It's up to the user to review and change these defaults.
     }
 

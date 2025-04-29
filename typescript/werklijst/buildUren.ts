@@ -1,5 +1,5 @@
 import * as def from "../def";
-import {createValidId, findSchooljaar, getSchoolIdString} from "../globals";
+import {createValidId, getSchoolIdString, Schoolyear} from "../globals";
 import {VakLeraar} from "./scrapeUren";
 import {TableFetcher} from "../table/tableFetcher";
 import {cloud} from "../cloud";
@@ -127,7 +127,7 @@ function editableObserverCallback(mutationList: MutationRecord[], _observer: Mut
 }
 
 export function getUrenVakLeraarFileName() {
-    return getSchoolIdString() + "_" + "uren_vak_lk_" + findSchooljaar().replace("-", "_") + ".json";
+    return getSchoolIdString() + "_" + "uren_vak_lk_" + Schoolyear.findInPage().replace("-", "_") + ".json";
 }
 
 function checkAndUpdate(urenData: UrenData) {

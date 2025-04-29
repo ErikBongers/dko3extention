@@ -1,4 +1,4 @@
-import {addButton, calculateSchooljaar, createSchoolyearString, createShortSchoolyearString, createTable, findSchooljaar, getHighestSchooljaarAvailable, getSchoolIdString, openHoursSettings, openHtmlTab, setButtonHighlighted} from "../globals";
+import {addButton, createTable, getSchoolIdString, openHoursSettings, openHtmlTab, Schoolyear, setButtonHighlighted} from "../globals";
 import * as def from "../def";
 import {buildTable, getUrenVakLeraarFileName} from "./buildUren";
 import {scrapeStudent, VakLeraar} from "./scrapeUren";
@@ -54,13 +54,13 @@ function onCriteriaShown() {
     if(pageState.goto == Goto.Werklijst_uren_prevYear) {
         pageState.goto = Goto.None;
         saveGotoState(pageState);
-        setCriteriaForTeacherHours(createSchoolyearString(calculateSchooljaar())).then(() => {});
+        setCriteriaForTeacherHours(Schoolyear.toFullString(Schoolyear.calculateCurrent())).then(() => {});
         return;
     }
     if(pageState.goto == Goto.Werklijst_uren_nextYear) {
         pageState.goto = Goto.None;
         saveGotoState(pageState);
-        setCriteriaForTeacherHours(createSchoolyearString(calculateSchooljaar()+1)).then(() => {});
+        setCriteriaForTeacherHours(Schoolyear.toFullString(Schoolyear.calculateCurrent()+1)).then(() => {});
         return;
     }
     pageState.werklijstTableName = "";
@@ -69,11 +69,11 @@ function onCriteriaShown() {
     if(document.getElementById(def.UREN_PREV_BTN_ID))
         return;
 
-    let year = parseInt(getHighestSchooljaarAvailable());
-    let prevSchoolyear = createSchoolyearString(year-1);
-    let nextSchoolyear = createSchoolyearString(year);
-    let prevSchoolyearShort = createShortSchoolyearString(year-1);
-    let nextSchoolyearShort = createShortSchoolyearString(year);
+    let year = parseInt(Schoolyear.getHighestAvailable());
+    let prevSchoolyear = Schoolyear.toFullString(year-1);
+    let nextSchoolyear = Schoolyear.toFullString(year);
+    let prevSchoolyearShort = Schoolyear.toShortString(year-1);
+    let nextSchoolyearShort = Schoolyear.toShortString(year);
     addButton(btnWerklijstMaken, def.UREN_PREV_BTN_ID, "Toon lerarenuren voor "+ prevSchoolyear, async () => { await setCriteriaForTeacherHours(prevSchoolyear); }, "", ["btn", "btn-outline-dark"], "Uren "+ prevSchoolyearShort);
     addButton(btnWerklijstMaken, def.UREN_PREV_SETUP_BTN_ID, "Setup voor "+ prevSchoolyear, async () => { await showUrenSetup(prevSchoolyear); }, "fas-certificate", ["btn", "btn-outline-dark"], "", "beforebegin", "gear.svg");
     addButton(btnWerklijstMaken, def.UREN_PREV_SETUP_BTN_ID+"sdf", "test", async () => { await sendMessageToHoursSettings(); }, "", ["btn", "btn-outline-dark"], "send");
@@ -170,7 +170,7 @@ function onShowLerarenUren() {
         tableFetcher.addListener(tableFetchListener);
 
         Promise.all([tableFetcher.fetch(), getUrenFromCloud(fileName)]).then(async results => {
-            let schoolYear = findSchooljaar();
+            let schoolYear = Schoolyear.findInPage();
             let [fetchedTable, jsonCloudData] = results;
             let vakLeraars = new Map();
             let rows = fetchedTable.getRows();

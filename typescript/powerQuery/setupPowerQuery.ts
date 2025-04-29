@@ -1,8 +1,8 @@
-import {calculateSchooljaar, clamp, createShortSchoolyearString, isAlphaNumeric, openHtmlTab} from "../globals";
+import {clamp, isAlphaNumeric, Schoolyear} from "../globals";
 import * as def from "../def";
 import {getGotoStateOrDefault, Goto, PageName, saveGotoState} from "../gotoState";
 import {default_items as defaultQueryItems } from "default_items";
-import {Actions} from "../messaging";
+
 export function setupPowerQuery() {
     //dummy function to force this module to be loaded.
 }
@@ -115,8 +115,8 @@ function gotoTrimesterModules(_queryItem: QueryItem) {
 }
 
 function getHardCodedQueryItems() {
-    addQueryItem("Werklijst", "Lerarenuren " +createShortSchoolyearString(calculateSchooljaar()), "", gotoWerklijstUrenPrevYear);
-    addQueryItem("Werklijst", "Lerarenuren " +createShortSchoolyearString(calculateSchooljaar()+1), "", gotoWerklijstUrenNextYear);
+    addQueryItem("Werklijst", "Lerarenuren " + Schoolyear.toShortString(Schoolyear.calculateCurrent()), "", gotoWerklijstUrenPrevYear);
+    addQueryItem("Werklijst", "Lerarenuren " +Schoolyear.toShortString(Schoolyear.calculateCurrent()+1), "", gotoWerklijstUrenNextYear);
     addQueryItem("Lessen", "Trimester modules", "", gotoTrimesterModules);
 }
 

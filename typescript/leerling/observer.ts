@@ -1,4 +1,4 @@
-import {db3, getSchooljaarSelectElement} from "../globals";
+import {db3, Schoolyear} from "../globals";
 import {HashObserver} from "../pageObserver";
 import {options} from "../plugin_options/options";
 
@@ -41,7 +41,7 @@ function onUitleningenChanged(tableUitleningen: HTMLElement) {
 }
 
 function getSchooljaarElementAndListen() {
-    let schooljaar = getSchooljaarSelectElement();
+    let schooljaar = Schoolyear.getSelectElement();
     let listening = "changeListerenAdded";
     if(!schooljaar?.classList.contains(listening)){
         schooljaar?.classList.add(listening);

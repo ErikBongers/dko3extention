@@ -420,6 +420,53 @@
     return await res.text();
   }
 
+  // typescript/globals.ts
+  var Schoolyear;
+  ((Schoolyear2) => {
+    function getSelectElement() {
+      let selects = document.querySelectorAll("select");
+      return Array.from(selects).filter((element) => element.id.includes("schooljaar")).pop();
+    }
+    Schoolyear2.getSelectElement = getSelectElement;
+    function getHighestAvailable() {
+      let el = getSelectElement();
+      if (!el)
+        return void 0;
+      return Array.from(el.querySelectorAll("option")).map((option) => option.value).sort().pop();
+    }
+    Schoolyear2.getHighestAvailable = getHighestAvailable;
+    function findInPage() {
+      let el = getSelectElement();
+      if (el)
+        return el.value;
+      el = document.querySelector("div.alert-primary");
+      return el.textContent.match(/schooljaar *= (\d{4}-\d{4})*/)[1];
+    }
+    Schoolyear2.findInPage = findInPage;
+    function calculateCurrent() {
+      let now = /* @__PURE__ */ new Date();
+      let year = now.getFullYear();
+      let month = now.getMonth();
+      if (month < 8)
+        return year - 1;
+      return year;
+    }
+    Schoolyear2.calculateCurrent = calculateCurrent;
+    function toFullString(startYear) {
+      return `${startYear}-${startYear + 1}`;
+    }
+    Schoolyear2.toFullString = toFullString;
+    function toShortString(startYear) {
+      return `${startYear % 1e3}-${startYear % 1e3 + 1}`;
+    }
+    Schoolyear2.toShortString = toShortString;
+    function toNumbers(schoolyearString) {
+      let parts = schoolyearString.split("-").map((s) => parseInt(s));
+      return { startYear: parts[0], endYear: parts[1] };
+    }
+    Schoolyear2.toNumbers = toNumbers;
+  })(Schoolyear || (Schoolyear = {}));
+
   // typescript/werklijst/hoursSettings.ts
   function mapHourSettings(hourSettings) {
     let mapped = { ...hourSettings };
