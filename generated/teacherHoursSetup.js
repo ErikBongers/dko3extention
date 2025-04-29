@@ -503,6 +503,7 @@
     </div>
     `;
   var css = `
+    /* noinspection CssUnusedSymbol*/
     .container {
         background-color: rgba(100, 150, 255, 0.1);
         position: relative;
@@ -518,9 +519,11 @@
             width: 100%;
             box-sizing: border-box;
         }
+        /* noinspection CssUnusedSymbol*/
         .foreground {
             padding: 0;
         }
+        /* noinspection CssUnusedSymbol*/
         .background {
             position: absolute;
             inset-inline-start: 0;
@@ -531,12 +534,14 @@
             padding: 0;
 
         }
+        /* noinspection CssUnusedSymbol*/
         span.spaces {
             /*
             background-color: red; // can be set with ::part(space) selector.
         
             */
         }
+        /* noinspection CssUnusedSymbol*/
         span.text {
             color: transparent;
         }
@@ -562,15 +567,19 @@
         return ["value"];
       }
       #shadow;
+      // noinspection JSUnusedGlobalSymbols
       connectedCallback() {
         this.onContentComplete();
       }
-      attributeChangedCallback(name, oldValue, newValue) {
-        this.input.value = newValue;
-        this.onInput();
+      // noinspection JSUnusedGlobalSymbols
+      attributeChangedCallback(name, _oldValue, newValue) {
+        if (name === "value") {
+          this.input.value = newValue;
+          this.onInput();
+        }
       }
       onContentComplete() {
-        this.input.addEventListener("input", (e) => {
+        this.input.addEventListener("input", (_) => {
           this.onInput();
           this.setAttribute("value", this.input.value);
         });

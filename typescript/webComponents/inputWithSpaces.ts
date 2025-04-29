@@ -10,6 +10,7 @@ template.innerHTML = `
     `;
 // language=CSS
 const css = `
+    /* noinspection CssUnusedSymbol*/
     .container {
         background-color: rgba(100, 150, 255, 0.1);
         position: relative;
@@ -25,9 +26,11 @@ const css = `
             width: 100%;
             box-sizing: border-box;
         }
+        /* noinspection CssUnusedSymbol*/
         .foreground {
             padding: 0;
         }
+        /* noinspection CssUnusedSymbol*/
         .background {
             position: absolute;
             inset-inline-start: 0;
@@ -38,12 +41,14 @@ const css = `
             padding: 0;
 
         }
+        /* noinspection CssUnusedSymbol*/
         span.spaces {
             /*
             background-color: red; // can be set with ::part(space) selector.
         
             */
         }
+        /* noinspection CssUnusedSymbol*/
         span.text {
             color: transparent;
         }
@@ -54,9 +59,9 @@ function loadWebComponent() {
         static get observedAttributes() {
             return ['value'];
         }
-        input = undefined;
+        input: HTMLInputElement = undefined;
         #shadow = undefined;
-        background = undefined;
+        background: HTMLDivElement = undefined;
         value = "";
         constructor() {
             super();
@@ -69,17 +74,20 @@ function loadWebComponent() {
             this.background = this.#shadow.querySelector('div.background');
         }
 
+        // noinspection JSUnusedGlobalSymbols
         connectedCallback() {
             this.onContentComplete(); //note: if class is constructed before the full dom is parsed: use setTimeout() here. Or put the whole class in a DOMContentLoaded listerer.
         }
-        attributeChangedCallback(name, oldValue, newValue) {
-            //todo check name
-            this.input.value = newValue;
-            this.onInput();
+        // noinspection JSUnusedGlobalSymbols
+        attributeChangedCallback(name: string, _oldValue: string, newValue: string) {
+            if (name === 'value') {
+                this.input.value = newValue;
+                this.onInput();
+            }
         }
 
         onContentComplete() {
-            this.input.addEventListener('input', (e) => {
+            this.input.addEventListener('input', (_: Event) => {
                 this.onInput();
                 this.setAttribute('value', this.input.value);//don't put this is onInput to avoid a dead-loop.
             });
