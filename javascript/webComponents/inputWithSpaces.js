@@ -11,6 +11,7 @@ template.innerHTML = `
 // language=CSS
 const css = `
     .container {
+        background-color: rgba(100, 150, 255, 0.1);
         position: relative;
         font-family: inherit; /* font of container MUST be the same as the input*/
         font-size: 1em;
@@ -18,14 +19,13 @@ const css = `
             background: transparent;
             font-family: inherit; /* font of container MUST be the same as the input*/
             font-size: 1em;
-            border: 1px solid rgba(0,0,255,  0.2);
+            border: none;
             padding: 0;
             margin: 0;
             width: 100%;
             box-sizing: border-box;
         }
         .foreground {
-            background: rgba(0,0,255,   0.1);
             padding: 0;
         }
         .background {
@@ -33,7 +33,7 @@ const css = `
             inset-inline-start: 0;
             inset-block-start: 0;
             z-index: -1;
-            background: rgba(0,0,255,   0.1);
+            background: rgba(100, 150, 255, 0.1); /* this is the text background color. Should be set by user.*/
             border: 1px solid transparent;
             padding: 0;
 
