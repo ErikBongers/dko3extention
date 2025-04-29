@@ -2,7 +2,7 @@ import {Actions, createMessageHandler, sendRequest, ServiceRequest, TabType} fro
 import {emmet} from "../libs/Emmeter/html";
 import {cloud} from "./cloud";
 
-import {createTeacherHoursFileName, mapHourSettings, SubjectDef, TeacherHoursSetup, TeacherHoursSetupMapped, TranslationDef} from "./werklijst/hoursSettings";
+import {createTeacherHoursFileName, mapHourSettings, saveHourSettings, SubjectDef, TeacherHoursSetup, TeacherHoursSetupMapped, TranslationDef} from "./werklijst/hoursSettings";
 
 let handler  = createMessageHandler(TabType.HoursSettings);
 
@@ -21,21 +21,11 @@ handler
     })
     .onData(onData);
 
-function fillSubjectsTable(cloudData: TeacherHoursSetup) {
-    if (cloudData) {
-        let globalSubjectMap = new Map<string, SubjectDef>(globalSetup.subjects.map(s => [s.name, s]));
-        let cloudSubjectMap = new Map<string, SubjectDef>(cloudData.subjects.map(s => [s.name, s]));
-        //merge:globalData has more recent and valud subjects but cloud data has priority
-        //for now, ignore the old subjects from cloud data.
-        for (let [key, value] of cloudSubjectMap) {
-            globalSubjectMap.set(key, value);
-        }
-        globalSetup.subjects = [...globalSubjectMap.values()];
-    }
+function fillSubjectsTable(dko3Setup: TeacherHoursSetupMapped) {
     let container = document.getElementById("subjectsContainer");
     let tbody = container.querySelector("table>tbody") as HTMLTableSectionElement;
     tbody.innerHTML = "";
-    for (let vak of globalSetup.subjects) {
+    for (let vak of dko3Setup.subjects) {
         let validClass = "";
         let bucket = "";
         if(!vak.stillValid) {
@@ -83,7 +73,7 @@ function fillTranslationsTable(cloudData: TeacherHoursSetup) {
     let container = document.getElementById("translationsContainer");
     let tbody = container.querySelector("table>tbody") as HTMLTableSectionElement;
     tbody.innerHTML = "";
-    for (let trns of globalSetup.translations) {
+    for (let trns of cloudData.translations) {
         addTranslationRow(trns, tbody);
     }
 
@@ -122,21 +112,18 @@ async function onData(data: ServiceRequest) {
         await sendRequest(Actions.GreetingsFromChild, TabType.Undefined, TabType.Main, undefined, "Hullo! Fly safe!");
     });
 
-    globalSetup = mapHourSettings(data.data as TeacherHoursSetup);
-    let cloudData: TeacherHoursSetup = await cloud.json.fetch(createTeacherHoursFileName(globalSetup.schoolyear)).catch(e => {});
-    fillSubjectsTable(cloudData);
-    fillTranslationsTable(cloudData);
+    let dko3Setup = mapHourSettings(data.data as TeacherHoursSetup);
+    globalSetup = dko3Setup;
+    fillSubjectsTable(dko3Setup);
+    fillTranslationsTable(dko3Setup);
     //set change even AFTER filling the tables:
-    document.querySelectorAll("tbody").forEach(tbody => tbody.addEventListener("change", (e) => {
+    document.querySelectorAll("tbody").forEach(tbody => tbody.addEventListener("change", (_) => {
         hasTableChanged = true;
     }));
-    document.querySelectorAll('tbody').forEach(el => el.addEventListener('input', function (e) {
+    document.querySelectorAll('tbody').forEach(el => el.addEventListener('input', function (_) {
         hasTableChanged = true;
     }));
-    document.querySelectorAll('input-with-spaces').forEach(el => el.addEventListener('input-with-spaces', function (e) {
-        hasTableChanged = true;
-    }));
-    document.getElementById('btnNewTranslationRow').addEventListener('click', function (e) {
+    document.getElementById('btnNewTranslationRow').addEventListener('click', function (_) {
         let def: TranslationDef = {
             find: "",
             replace: "",
@@ -154,7 +141,9 @@ let globalSetup: TeacherHoursSetupMapped = undefined;
 
 let hasTableChanged = false;
 
-setInterval(onCheckTableChanged, 2000);
+setInterval(() => {
+    onCheckTableChanged(globalSetup);
+}, 2000);
 
 function scrapeSubjects() {
     let rows = document.querySelectorAll("#subjectsContainer>table>tbody>tr") as NodeListOf<HTMLTableRowElement>;
@@ -183,24 +172,23 @@ function scrapeTranslations(): TranslationDef[] {
         });
 }
 
-function onCheckTableChanged() {
+function onCheckTableChanged(dko3Setup: TeacherHoursSetupMapped) {
     if (!hasTableChanged)
         return;
     let setupData: TeacherHoursSetup = {
-        schoolyear: globalSetup.schoolyear,
+        schoolyear: dko3Setup.schoolyear,
         subjects: scrapeSubjects(),
         translations: scrapeTranslations(),
     };
     hasTableChanged = false;
-    let fileName = createTeacherHoursFileName(globalSetup.schoolyear);
-    cloud.json.upload(fileName, setupData) //todo: make function to generate file name.
-    .then(res => {
-        sendRequest(Actions.HoursSettingsChanged, TabType.HoursSettings, TabType.Main, undefined, setupData);
-    });
+    saveHourSettings(setupData)
+        .then(_ => {
+            sendRequest(Actions.HoursSettingsChanged, TabType.HoursSettings, TabType.Main, undefined, setupData).then(_ => {});
+        });
 }
 
 window.onbeforeunload = () => {
-    onCheckTableChanged();
+    onCheckTableChanged(globalSetup);
 }
 
 function switchTab(btn: HTMLButtonElement) {
@@ -214,7 +202,7 @@ function switchTab(btn: HTMLButtonElement) {
     document.getElementById(tabId).style.display = "block";
 }
 
-function onDocumentLoaded(this: Document, ev: Event) {
+function onDocumentLoaded(this: Document, _: Event) {
     let tabs = document.querySelector(".tabs");
     switchTab(tabs.querySelector(".tab"));
     document.querySelectorAll(".tabs > button.tab")

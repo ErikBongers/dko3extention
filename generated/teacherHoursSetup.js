@@ -486,6 +486,10 @@
   function createTeacherHoursFileName(schoolyear) {
     return "teacherHoursSetup_" + schoolyear + ".json";
   }
+  async function saveHourSettings(hoursSetup) {
+    let fileName = createTeacherHoursFileName(hoursSetup.schoolyear);
+    return cloud.json.upload(fileName, hoursSetup);
+  }
 
   // typescript/teacherHoursSetup.ts
   var handler = createMessageHandler(2 /* HoursSettings */);
@@ -498,19 +502,11 @@
     console.log("message for me: ", msg);
     document.getElementById("container").innerHTML = "DATA:" + msg.data;
   }).onData(onData);
-  function fillSubjectsTable(cloudData) {
-    if (cloudData) {
-      let globalSubjectMap = new Map(globalSetup.subjects.map((s) => [s.name, s]));
-      let cloudSubjectMap = new Map(cloudData.subjects.map((s) => [s.name, s]));
-      for (let [key, value] of cloudSubjectMap) {
-        globalSubjectMap.set(key, value);
-      }
-      globalSetup.subjects = [...globalSubjectMap.values()];
-    }
+  function fillSubjectsTable(dko3Setup) {
     let container = document.getElementById("subjectsContainer");
     let tbody = container.querySelector("table>tbody");
     tbody.innerHTML = "";
-    for (let vak of globalSetup.subjects) {
+    for (let vak of dko3Setup.subjects) {
       let validClass = "";
       let bucket = "";
       if (!vak.stillValid) {
@@ -544,7 +540,7 @@
     let container = document.getElementById("translationsContainer");
     let tbody = container.querySelector("table>tbody");
     tbody.innerHTML = "";
-    for (let trns of globalSetup.translations) {
+    for (let trns of cloudData.translations) {
       addTranslationRow(trns, tbody);
     }
     document.querySelectorAll("button.moveUp").forEach((btn) => btn.addEventListener("click", (ev) => {
@@ -573,21 +569,17 @@
     document.querySelector("button").addEventListener("click", async () => {
       await sendRequest("greetingsFromChild" /* GreetingsFromChild */, 0 /* Undefined */, 1 /* Main */, void 0, "Hullo! Fly safe!");
     });
-    globalSetup = mapHourSettings(data.data);
-    let cloudData = await cloud.json.fetch(createTeacherHoursFileName(globalSetup.schoolyear)).catch((e) => {
-    });
-    fillSubjectsTable(cloudData);
-    fillTranslationsTable(cloudData);
-    document.querySelectorAll("tbody").forEach((tbody) => tbody.addEventListener("change", (e) => {
+    let dko3Setup = mapHourSettings(data.data);
+    globalSetup = dko3Setup;
+    fillSubjectsTable(dko3Setup);
+    fillTranslationsTable(dko3Setup);
+    document.querySelectorAll("tbody").forEach((tbody) => tbody.addEventListener("change", (_) => {
       hasTableChanged = true;
     }));
-    document.querySelectorAll("tbody").forEach((el) => el.addEventListener("input", function(e) {
+    document.querySelectorAll("tbody").forEach((el) => el.addEventListener("input", function(_) {
       hasTableChanged = true;
     }));
-    document.querySelectorAll("input-with-spaces").forEach((el) => el.addEventListener("input-with-spaces", function(e) {
-      hasTableChanged = true;
-    }));
-    document.getElementById("btnNewTranslationRow").addEventListener("click", function(e) {
+    document.getElementById("btnNewTranslationRow").addEventListener("click", function(_) {
       let def = {
         find: "",
         replace: "",
@@ -600,7 +592,9 @@
   }
   var globalSetup = void 0;
   var hasTableChanged = false;
-  setInterval(onCheckTableChanged, 2e3);
+  setInterval(() => {
+    onCheckTableChanged(globalSetup);
+  }, 2e3);
   function scrapeSubjects() {
     let rows = document.querySelectorAll("#subjectsContainer>table>tbody>tr");
     return [...rows].filter((row) => row.cells[0].querySelector("input:checked") !== null || row.cells[2].querySelector("input").value).map((row) => {
@@ -623,22 +617,22 @@
       };
     });
   }
-  function onCheckTableChanged() {
+  function onCheckTableChanged(dko3Setup) {
     if (!hasTableChanged)
       return;
     let setupData = {
-      schoolyear: globalSetup.schoolyear,
+      schoolyear: dko3Setup.schoolyear,
       subjects: scrapeSubjects(),
       translations: scrapeTranslations()
     };
     hasTableChanged = false;
-    let fileName = createTeacherHoursFileName(globalSetup.schoolyear);
-    cloud.json.upload(fileName, setupData).then((res) => {
-      sendRequest("open_hours_settings_changed" /* HoursSettingsChanged */, 2 /* HoursSettings */, 1 /* Main */, void 0, setupData);
+    saveHourSettings(setupData).then((_) => {
+      sendRequest("open_hours_settings_changed" /* HoursSettingsChanged */, 2 /* HoursSettings */, 1 /* Main */, void 0, setupData).then((_2) => {
+      });
     });
   }
   window.onbeforeunload = () => {
-    onCheckTableChanged();
+    onCheckTableChanged(globalSetup);
   };
   function switchTab(btn) {
     let tabId = btn.dataset.tabId;
@@ -650,16 +644,16 @@
     btn.classList.remove("notSelected");
     document.getElementById(tabId).style.display = "block";
   }
-  function onDocumentLoaded(ev) {
+  function onDocumentLoaded(_) {
     let tabs = document.querySelector(".tabs");
     switchTab(tabs.querySelector(".tab"));
-    document.querySelectorAll(".tabs > button.tab").forEach((btn) => btn.addEventListener("click", (ev2) => {
-      switch (ev2.target.id) {
+    document.querySelectorAll(".tabs > button.tab").forEach((btn) => btn.addEventListener("click", (ev) => {
+      switch (ev.target.id) {
         case "btnTabSubjects":
-          switchTab(ev2.target);
+          switchTab(ev.target);
           break;
         case "btnTabTranslations":
-          switchTab(ev2.target);
+          switchTab(ev.target);
           break;
       }
     }));

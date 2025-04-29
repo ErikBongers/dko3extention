@@ -108,18 +108,25 @@ let defaultTranslationDefs: TranslationDef[] = [
     {find: "K K ", replace: "K ", prefix: "", suffix: ""},
 ];
 
-export async function fetchHoursSettingsOrDefault(schoolyear: string) {
-    let dko3_subjects = await fetchAvailableSubjects(schoolyear);
-    let availableSubjects = dko3_subjects.map(vak => vak.name);
+function getDefaultHourSettings(schoolyear: string) {
+    return {
+        schoolyear,
+        subjects: [...defaultInstruments],
+        translations: [...defaultTranslationDefs]
+    };
+}
+
+export async function fetchHoursSettingsOrSaveDefault(schoolyear: string) {
+    let dko3_subjects = (await fetchAvailableSubjects(schoolyear))
+        .map(vak => vak.name);
     let cloudSettings = await cloud.json.fetch(createTeacherHoursFileName(schoolyear)).catch(e => {}) as TeacherHoursSetup;
     if(!cloudSettings) {
-        cloudSettings = {
-            schoolyear: schoolyear,
-            subjects: defaultInstruments,
-            translations: defaultTranslationDefs
-        }
+        cloudSettings = getDefaultHourSettings(schoolyear);
+        await saveHourSettings(cloudSettings); //save unmerged settings. It's up to the user to review and change these defaults.
     }
-    let availableSubjectSet = new Set(availableSubjects);
+
+    let availableSubjectSet = new Set(dko3_subjects);
+    //invalidate obsolete subjects
     cloudSettings.subjects.forEach(s => s.stillValid = availableSubjectSet.has(s.name));
     let cloudSubjectMap = new Map(cloudSettings.subjects.map(s => [s.name, s]));
     //add new subjects
@@ -140,4 +147,9 @@ export async function fetchHoursSettingsOrDefault(schoolyear: string) {
 
 export function createTeacherHoursFileName(schoolyear: string) {
     return "teacherHoursSetup_" + schoolyear + ".json";
+}
+
+export async function saveHourSettings(hoursSetup: TeacherHoursSetup) {
+    let fileName = createTeacherHoursFileName(hoursSetup.schoolyear);
+    return cloud.json.upload(fileName, hoursSetup);
 }

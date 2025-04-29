@@ -13,7 +13,7 @@ import {registerChecksumHandler} from "../table/observer";
 import {CloudData, JsonCloudData, UrenData} from "./urenData";
 import {createDefaultTableFetcher} from "../table/loadAnyTable";
 import {Actions, sendRequest, TabType} from "../messaging";
-import {fetchHoursSettingsOrDefault, mapHourSettings} from "./hoursSettings";
+import {fetchHoursSettingsOrSaveDefault, mapHourSettings} from "./hoursSettings";
 
 const tableId = "table_leerlingen_werklijst_table";
 
@@ -87,7 +87,7 @@ chrome.runtime.onMessage.addListener((request, _sender, _sendResponse) => {
 
 
 async function showUrenSetup(schoolyear: string) {
-    let setup = await fetchHoursSettingsOrDefault(schoolyear);
+    let setup = await fetchHoursSettingsOrSaveDefault(schoolyear);
     let res = await openHoursSettings(setup);
     globalHoursSettingsTabId = res.tabId;
 }
@@ -175,7 +175,7 @@ function onShowLerarenUren() {
             let vakLeraars = new Map();
             let rows = fetchedTable.getRows();
             let errors = [];
-            let hourSettings = await fetchHoursSettingsOrDefault(schoolYear);
+            let hourSettings = await fetchHoursSettingsOrSaveDefault(schoolYear);
             let hourSettingsMapped = mapHourSettings(hourSettings);
             for(let tr of rows) {
                 let error = scrapeStudent(tableFetcher, tableFetchListener, tr, vakLeraars, hourSettingsMapped);

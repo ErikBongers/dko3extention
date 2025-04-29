@@ -3593,38 +3593,43 @@ let defaultTranslationDefs = [
 	{
 		find: "K JPR ",
 		replace: "JPR ",
-		prefix: " ",
+		prefix: "",
 		suffix: ""
 	},
 	{
 		find: "K M ",
 		replace: "M ",
-		prefix: " ",
+		prefix: "",
 		suffix: ""
 	},
 	{
 		find: "K WM ",
 		replace: "WM ",
-		prefix: " ",
+		prefix: "",
 		suffix: ""
 	},
 	{
 		find: "K K ",
 		replace: "K ",
-		prefix: " ",
+		prefix: "",
 		suffix: ""
 	}
 ];
-async function fetchHoursSettingsOrDefault(schoolyear) {
-	let dko3_subjects = await fetchAvailableSubjects(schoolyear);
-	let availableSubjects = dko3_subjects.map((vak) => vak.name);
-	let cloudSettings = await cloud.json.fetch(createTeacherHoursFileName(schoolyear)).catch((e) => {});
-	if (!cloudSettings) cloudSettings = {
+function getDefaultHourSettings(schoolyear) {
+	return {
 		schoolyear,
-		subjects: defaultInstruments,
-		translations: defaultTranslationDefs
+		subjects: [...defaultInstruments],
+		translations: [...defaultTranslationDefs]
 	};
-	let availableSubjectSet = new Set(availableSubjects);
+}
+async function fetchHoursSettingsOrSaveDefault(schoolyear) {
+	let dko3_subjects = (await fetchAvailableSubjects(schoolyear)).map((vak) => vak.name);
+	let cloudSettings = await cloud.json.fetch(createTeacherHoursFileName(schoolyear)).catch((e) => {});
+	if (!cloudSettings) {
+		cloudSettings = getDefaultHourSettings(schoolyear);
+		await saveHourSettings(cloudSettings);
+	}
+	let availableSubjectSet = new Set(dko3_subjects);
 	cloudSettings.subjects.forEach((s) => s.stillValid = availableSubjectSet.has(s.name));
 	let cloudSubjectMap = new Map(cloudSettings.subjects.map((s) => [s.name, s]));
 	for (let name of availableSubjectSet) if (!cloudSubjectMap.has(name)) cloudSubjectMap.set(name, {
@@ -3639,13 +3644,17 @@ async function fetchHoursSettingsOrDefault(schoolyear) {
 function createTeacherHoursFileName(schoolyear) {
 	return "teacherHoursSetup_" + schoolyear + ".json";
 }
+async function saveHourSettings(hoursSetup) {
+	let fileName = createTeacherHoursFileName(hoursSetup.schoolyear);
+	return cloud.json.upload(fileName, hoursSetup);
+}
 
 //#endregion
 //#region typescript/werklijst/prefillInstruments.ts
 async function setCriteriaForTeacherHours(schooljaar) {
 	await sendClearWerklijst();
 	let dko3_vakken = await fetchAvailableSubjects(schooljaar);
-	let hourSettings = await fetchHoursSettingsOrDefault(schooljaar);
+	let hourSettings = await fetchHoursSettingsOrSaveDefault(schooljaar);
 	let selectedInstrumentNames = new Set(hourSettings.subjects.filter((i) => i.checked).map((i) => i.name));
 	let validInstruments = dko3_vakken.filter((vak) => selectedInstrumentNames.has(vak.name));
 	let values = validInstruments.map((vak) => parseInt(vak.value));
@@ -4766,7 +4775,7 @@ chrome.runtime.onMessage.addListener((request, _sender, _sendResponse) => {
 	console.log("Received message from service worker: ", request);
 });
 async function showUrenSetup(schoolyear) {
-	let setup = await fetchHoursSettingsOrDefault(schoolyear);
+	let setup = await fetchHoursSettingsOrSaveDefault(schoolyear);
 	let res = await openHoursSettings(setup);
 	globalHoursSettingsTabId = res.tabId;
 }
@@ -4834,7 +4843,7 @@ function onShowLerarenUren() {
 			let vakLeraars = new Map();
 			let rows = fetchedTable.getRows();
 			let errors = [];
-			let hourSettings = await fetchHoursSettingsOrDefault(schoolYear);
+			let hourSettings = await fetchHoursSettingsOrSaveDefault(schoolYear);
 			let hourSettingsMapped = mapHourSettings(hourSettings);
 			for (let tr of rows) {
 				let error = scrapeStudent(tableFetcher, tableFetchListener, tr, vakLeraars, hourSettingsMapped);

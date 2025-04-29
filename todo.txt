@@ -3,6 +3,8 @@
   > add a settings button to the table view (in addition to criteria view) (optional!)
   > no setup file? Try to copy from prev year. (prio!)
 
+* create a dko3.api, that contains all the dko3 fetches?
+  > would allow for a faster update when dko3 updates?
 
 * replace all refs to skynet with outlook.
 

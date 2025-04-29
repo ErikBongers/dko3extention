@@ -103,15 +103,6 @@ function translateVak(vak: string, settings: TeacherHoursSetupMapped) {
             else
                 vak = translation.prefix + vak + translation.suffix;
         });
-    // if(foundTranslation)
-    //     return vak;
-
-    // default replacements
-    // let defaultTranslation = settings.translations
-    //     .find(defaultTranslation => defaultTranslation.find === "");
-    // if(defaultTranslation)
-    //     return defaultTranslation.prefix + vak.replace(defaultTranslation.find, defaultTranslation.replace) + defaultTranslation.suffix;
-
     return vak;
 }
 

@@ -82,17 +82,7 @@ function loadCustomElements() {
             this.input.addEventListener('input', (e) => {
                 this.onInput();
                 this.setAttribute('value', this.input.value);//don't put this is onInput to avoid a dead-loop.
-                this.emit('input-with-spaces', 'Bhah...');
             });
-        }
-
-        emit(eventName, detail) {
-            let event = new CustomEvent(eventName, {
-                bubbles: true,
-                cancelable: false,
-                detail: detail
-            });
-            this.dispatchEvent(event);
         }
 
         onInput() {
