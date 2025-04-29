@@ -1,10 +1,12 @@
 import {Actions, createMessageHandler, sendRequest, ServiceRequest, TabType} from "./messaging";
 import {emmet} from "../libs/Emmeter/html";
-import {cloud} from "./cloud";
 
-import {createTeacherHoursFileName, mapHourSettings, saveHourSettings, SubjectDef, TeacherHoursSetup, TeacherHoursSetupMapped, TranslationDef} from "./werklijst/hoursSettings";
+import {mapHourSettings, saveHourSettings, TeacherHoursSetup, TeacherHoursSetupMapped, TranslationDef} from "./werklijst/hoursSettings";
+import * as InputWithSpaces from "./webComponents/inputWithSpaces";
 
 let handler  = createMessageHandler(TabType.HoursSettings);
+
+InputWithSpaces.registerWebComponent();
 
 chrome.runtime.onMessage.addListener(handler.getListener());
 
@@ -164,10 +166,10 @@ function scrapeTranslations(): TranslationDef[] {
     return [...rows]
         .map(row => {
             return {
-                find: row.querySelector("#trnsFind").getAttribute("value") ?? "",
-                replace: row.querySelector("#trnsReplace").getAttribute("value") ?? "",
-                prefix: row.querySelector("#trnsPrefix").getAttribute("value") ?? "",
-                suffix: row.querySelector("#trnsSuffix").getAttribute("value") ?? "",
+                find: (row.querySelector("#trnsFind") as InputWithSpaces.Type).value,
+                replace: (row.querySelector("#trnsReplace") as InputWithSpaces.Type).value,
+                prefix: (row.querySelector("#trnsPrefix") as InputWithSpaces.Type).value,
+                suffix: (row.querySelector("#trnsSuffix") as InputWithSpaces.Type).value,
             }
         });
 }

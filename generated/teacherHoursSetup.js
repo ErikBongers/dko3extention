@@ -491,8 +491,118 @@
     return cloud.json.upload(fileName, hoursSetup);
   }
 
+  // typescript/webComponents/inputWithSpaces.ts
+  var template = document.createElement("template");
+  template.innerHTML = `
+    <div class="container">
+        <div class="foreground">
+            <input type="text"/>
+        </div>
+        <div id="background" class="background">
+        </div>
+    </div>
+    `;
+  var css = `
+    .container {
+        background-color: rgba(100, 150, 255, 0.1);
+        position: relative;
+        font-family: inherit; /* font of container MUST be the same as the input*/
+        font-size: 1em;
+        input {
+            background: transparent;
+            font-family: inherit; /* font of container MUST be the same as the input*/
+            font-size: 1em;
+            border: none;
+            padding: 0;
+            margin: 0;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .foreground {
+            padding: 0;
+        }
+        .background {
+            position: absolute;
+            inset-inline-start: 0;
+            inset-block-start: 0;
+            z-index: -1;
+            background: rgba(100, 150, 255, 0.1); /* this is the text background color. Should be set by user.*/
+            border: 1px solid transparent;
+            padding: 0;
+
+        }
+        span.spaces {
+            /*
+            background-color: red; // can be set with ::part(space) selector.
+        
+            */
+        }
+        span.text {
+            color: transparent;
+        }
+    }
+    `;
+  function loadWebComponent() {
+    class InputWithSpaces extends HTMLElement {
+      constructor() {
+        super();
+        this.input = void 0;
+        this.#shadow = void 0;
+        this.background = void 0;
+        this.value = "";
+        this.#shadow = this.attachShadow({ mode: "closed" });
+        let cssStyleSheet = new CSSStyleSheet();
+        cssStyleSheet.replaceSync(css);
+        this.#shadow.adoptedStyleSheets = [cssStyleSheet];
+        this.#shadow.append(template.content.cloneNode(true));
+        this.input = this.#shadow.querySelector("input");
+        this.background = this.#shadow.querySelector("div.background");
+      }
+      static get observedAttributes() {
+        return ["value"];
+      }
+      #shadow;
+      connectedCallback() {
+        this.onContentComplete();
+      }
+      attributeChangedCallback(name, oldValue, newValue) {
+        this.input.value = newValue;
+        this.onInput();
+      }
+      onContentComplete() {
+        this.input.addEventListener("input", (e) => {
+          this.onInput();
+          this.setAttribute("value", this.input.value);
+        });
+      }
+      onInput() {
+        this.value = this.input.value;
+        let stringArray = this.input.value.split(/(\s+)/);
+        let stringArray2 = stringArray.filter((slice) => slice);
+        this.background.innerHTML = "";
+        for (let slice of stringArray2) {
+          let span = this.background.appendChild(document.createElement("span"));
+          if (slice.trim() === "") {
+            span.classList.add("spaces");
+            span.part.add("space");
+          } else {
+            span.classList.add("text");
+          }
+          span.innerHTML = slice.replaceAll(" ", "&nbsp;");
+        }
+      }
+    }
+    customElements.define("input-with-spaces", InputWithSpaces);
+  }
+  function registerWebComponent() {
+    document.addEventListener("DOMContentLoaded", () => {
+      loadWebComponent();
+    });
+  }
+
   // typescript/teacherHoursSetup.ts
   var handler = createMessageHandler(2 /* HoursSettings */);
+  registerWebComponent();
   chrome.runtime.onMessage.addListener(handler.getListener());
   document.addEventListener("DOMContentLoaded", onDocumentLoaded);
   handler.onMessageForMyTabType((msg) => {
@@ -610,10 +720,10 @@
     let rows = document.querySelectorAll("#translationsContainer>table>tbody>tr");
     return [...rows].map((row) => {
       return {
-        find: row.querySelector("#trnsFind").getAttribute("value") ?? "",
-        replace: row.querySelector("#trnsReplace").getAttribute("value") ?? "",
-        prefix: row.querySelector("#trnsPrefix").getAttribute("value") ?? "",
-        suffix: row.querySelector("#trnsSuffix").getAttribute("value") ?? ""
+        find: row.querySelector("#trnsFind").value,
+        replace: row.querySelector("#trnsReplace").value,
+        prefix: row.querySelector("#trnsPrefix").value,
+        suffix: row.querySelector("#trnsSuffix").value
       };
     });
   }

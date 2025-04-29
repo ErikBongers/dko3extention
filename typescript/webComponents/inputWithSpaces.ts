@@ -49,8 +49,7 @@ const css = `
         }
     }
     `;
-document.addEventListener('DOMContentLoaded', () => {loadCustomElements();}); //assures the page is fully parsed, including the custom element's content.
-function loadCustomElements() {
+function loadWebComponent() {
     class InputWithSpaces extends HTMLElement {
         static get observedAttributes() {
             return ['value'];
@@ -58,6 +57,7 @@ function loadCustomElements() {
         input = undefined;
         #shadow = undefined;
         background = undefined;
+        value = "";
         constructor() {
             super();
             this.#shadow = this.attachShadow({mode: 'closed'});
@@ -86,6 +86,7 @@ function loadCustomElements() {
         }
 
         onInput() {
+            this.value = this.input.value;
             let stringArray = this.input.value.split(/(\s+)/);
             let stringArray2 = stringArray.filter(slice => slice);
             this.background.innerHTML = '';
@@ -104,4 +105,14 @@ function loadCustomElements() {
 
     }
     customElements.define('input-with-spaces', InputWithSpaces);
+}
+
+type InputWithSpaces = HTMLElement & {
+    value: string;
+}
+
+export type Type = InputWithSpaces;
+
+export function registerWebComponent()  {
+    document.addEventListener('DOMContentLoaded', () => {loadWebComponent();}); //assures the page is fully parsed, including the custom element's content.
 }
