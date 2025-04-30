@@ -2939,12 +2939,16 @@ function recalculate(urenData) {
 	observeTable(true);
 }
 function buildTable(urenData, tableDef) {
-	isUpdatePaused = true;
-	globalUrenData = urenData;
+	document.getElementById(COUNT_TABLE_ID)?.remove();
 	let table = document.createElement("table");
 	tableDef.tableRef.getOrgTableContainer().insertAdjacentElement("afterend", table);
 	table.id = COUNT_TABLE_ID;
 	table.classList.add(CAN_SORT, NO_MENU);
+	refillTable(table, urenData);
+}
+function refillTable(table, urenData) {
+	isUpdatePaused = true;
+	globalUrenData = urenData;
 	updateColDefs(urenData.year);
 	fillTableHeader(table, urenData.vakLeraars);
 	let tbody = document.createElement("tbody");
@@ -3059,7 +3063,7 @@ function fillGraadCell(ctx) {
 
 //#endregion
 //#region typescript/werklijst/scrapeUren.ts
-function scrapeStudent(_tableDef, fetchListener, tr, collection, hourSettings) {
+function scrapeStudent(fetchListener, tr, vakLeraars, hourSettings) {
 	let student = new StudentInfo();
 	student.naam = fetchListener.getColumnText(tr, "naam");
 	student.voornaam = fetchListener.getColumnText(tr, "voornaam");
@@ -3073,7 +3077,7 @@ function scrapeStudent(_tableDef, fetchListener, tr, collection, hourSettings) {
 		return `Vak "${vak}" is geen instrument.`;
 	}
 	let vakLeraarKey = translateVak(vak, hourSettings) + "_" + leraar;
-	if (!collection.has(vakLeraarKey)) {
+	if (!vakLeraars.has(vakLeraarKey)) {
 		let countMap = new Map();
 		countMap.set("2.1", {
 			count: 0,
@@ -3129,14 +3133,14 @@ function scrapeStudent(_tableDef, fetchListener, tr, collection, hourSettings) {
 			id: createValidId(vakLeraarKey),
 			countMap
 		};
-		collection.set(vakLeraarKey, vakLeraarObject);
+		vakLeraars.set(vakLeraarKey, vakLeraarObject);
 	}
-	let vakLeraar = collection.get(vakLeraarKey);
+	let vakLeraar = vakLeraars.get(vakLeraarKey);
 	if (!vakLeraar.countMap.has(graadLeerjaar)) vakLeraar.countMap.set(graadLeerjaar, {
 		count: 0,
 		students: []
 	});
-	let graadLeraarObject = collection.get(vakLeraarKey).countMap.get(graadLeerjaar);
+	let graadLeraarObject = vakLeraars.get(vakLeraarKey).countMap.get(graadLeerjaar);
 	graadLeraarObject.count += 1;
 	graadLeraarObject.students.push(student);
 	return null;
@@ -4869,6 +4873,20 @@ function onClickCopyEmails() {
 function tryUntil(func) {
 	if (!func()) setTimeout(() => tryUntil(func), 100);
 }
+function prepareAndScrapeUrenData(fetchedTable, hourSettings, tableFetchListener, jsonCloudData) {
+	let vakLeraars = new Map();
+	let rows = fetchedTable.getRows();
+	let errors = [];
+	let hourSettingsMapped = mapHourSettings(hourSettings);
+	for (let tr of rows) {
+		let error = scrapeStudent(tableFetchListener, tr, vakLeraars, hourSettingsMapped);
+		if (error) errors.push(error);
+	}
+	if (errors.length) openHtmlTab(createTable(["Error"], errors.map((error) => [error])).outerHTML, "Errors").then((_) => {});
+	let fromCloud = new CloudData(upgradeCloudData(jsonCloudData));
+	vakLeraars = new Map([...vakLeraars.entries()].sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
+	return new UrenData(parseInt(hourSettings.schoolyear), fromCloud, vakLeraars);
+}
 function onShowLerarenUren(hourSettings) {
 	if (!document.getElementById(COUNT_TABLE_ID)) {
 		let result = createDefaultTableFetcher();
@@ -4888,24 +4906,11 @@ function onShowLerarenUren(hourSettings) {
 		let tableFetchListener = new NamedCellTableFetchListener(requiredHeaderLabels, () => {});
 		tableFetcher.addListener(tableFetchListener);
 		Promise.all([tableFetcher.fetch(), getUrenFromCloud(fileName)]).then(async (results) => {
-			let schoolYear = Schoolyear.findInPage();
 			let [fetchedTable, jsonCloudData] = results;
-			let vakLeraars = new Map();
-			let rows = fetchedTable.getRows();
-			let errors = [];
-			if (!hourSettings) hourSettings = await fetchHoursSettingsOrSaveDefault(schoolYear);
-			let hourSettingsMapped = mapHourSettings(hourSettings);
-			for (let tr of rows) {
-				let error = scrapeStudent(tableFetcher, tableFetchListener, tr, vakLeraars, hourSettingsMapped);
-				if (error) errors.push(error);
-			}
-			if (errors.length) openHtmlTab(createTable(["Error"], errors.map((error) => [error])).outerHTML, "Errors").then((_) => {});
-			let fromCloud = upgradeCloudData(jsonCloudData);
-			vakLeraars = new Map([...vakLeraars.entries()].sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
-			document.getElementById(COUNT_TABLE_ID)?.remove();
-			let year = parseInt(schoolYear);
+			if (!hourSettings) hourSettings = await fetchHoursSettingsOrSaveDefault(Schoolyear.findInPage());
+			let urenData = prepareAndScrapeUrenData(fetchedTable, hourSettings, tableFetchListener, jsonCloudData);
 			observer.disconnect();
-			buildTable(new UrenData(year, new CloudData(fromCloud), vakLeraars), tableFetcher);
+			buildTable(urenData, tableFetcher);
 			observer.observeElement(document.querySelector("main"));
 			document.getElementById(COUNT_TABLE_ID).style.display = "none";
 			showOrHideNewTable();

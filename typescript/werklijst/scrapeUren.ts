@@ -15,7 +15,7 @@ export interface VakLeraar {
     countMap: Map<string, CountStudentsPerJaar>
 }
 
-export function scrapeStudent(_tableDef: TableFetcher, fetchListener: NamedCellTableFetchListener, tr: HTMLTableRowElement, collection: any, hourSettings: TeacherHoursSetupMapped) {
+export function scrapeStudent(fetchListener: NamedCellTableFetchListener, tr: HTMLTableRowElement, vakLeraars: Map<string, VakLeraar>, hourSettings: TeacherHoursSetupMapped) {
     let student: StudentInfo = new StudentInfo();
     student.naam = fetchListener.getColumnText(tr, "naam");
     student.voornaam = fetchListener.getColumnText(tr,"voornaam");
@@ -32,7 +32,7 @@ export function scrapeStudent(_tableDef: TableFetcher, fetchListener: NamedCellT
     }
     let vakLeraarKey = translateVak(vak, hourSettings) + "_" + leraar;
 
-    if (!collection.has(vakLeraarKey)) {
+    if (!vakLeraars.has(vakLeraarKey)) {
         let countMap: Map<string, CountStudentsPerJaar> = new Map();
         countMap.set("2.1", {count: 0, students: []});
         countMap.set("2.2", {count: 0, students: []});
@@ -46,19 +46,19 @@ export function scrapeStudent(_tableDef: TableFetcher, fetchListener: NamedCellT
         countMap.set("4.3", {count: 0, students: []});
         countMap.set("S.1", {count: 0, students: []});
         countMap.set("S.2", {count: 0, students: []});
-        let vakLeraarObject = {
+        let vakLeraarObject: VakLeraar = {
             vak: translateVak(vak, hourSettings),
             leraar: leraar,
             id: createValidId(vakLeraarKey),
             countMap: countMap
         };
-        collection.set(vakLeraarKey, vakLeraarObject);
+        vakLeraars.set(vakLeraarKey, vakLeraarObject);
     }
-    let vakLeraar = collection.get(vakLeraarKey);
+    let vakLeraar = vakLeraars.get(vakLeraarKey);
     if (!vakLeraar.countMap.has(graadLeerjaar)) {
         vakLeraar.countMap.set(graadLeerjaar, {count: 0, students: []});
     }
-    let graadLeraarObject = collection.get(vakLeraarKey).countMap.get(graadLeerjaar);
+    let graadLeraarObject = vakLeraars.get(vakLeraarKey).countMap.get(graadLeerjaar);
     graadLeraarObject.count += 1;
     graadLeraarObject.students.push(student);
     return null;

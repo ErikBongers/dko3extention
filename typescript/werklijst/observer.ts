@@ -3,7 +3,7 @@ import * as def from "../def";
 import {buildTable, getUrenVakLeraarFileName} from "./buildUren";
 import {scrapeStudent, VakLeraar} from "./scrapeUren";
 import {cloud} from "../cloud";
-import {TableFetcher} from "../table/tableFetcher";
+import {FetchedTable, TableFetcher} from "../table/tableFetcher";
 import {setCriteriaForTeacherHoursAndClick} from "./prefillInstruments";
 import {HashObserver} from "../pageObserver";
 import {NamedCellTableFetchListener} from "../pageHandlers";
@@ -159,6 +159,24 @@ function tryUntil(func: () => boolean) {
         setTimeout(() => tryUntil(func), 100);
 }
 
+function prepareAndScrapeUrenData(fetchedTable: FetchedTable, hourSettings: TeacherHoursSetup, tableFetchListener: NamedCellTableFetchListener, jsonCloudData: JsonCloudData) {
+    let vakLeraars = new Map<string, VakLeraar>();
+    let rows = fetchedTable.getRows();
+    let errors = [];
+    let hourSettingsMapped = mapHourSettings(hourSettings);
+    for (let tr of rows) {
+        let error = scrapeStudent(tableFetchListener, tr, vakLeraars, hourSettingsMapped);
+        if (error)
+            errors.push(error);
+    }
+    if (errors.length)
+        openHtmlTab(createTable(["Error"], errors.map(error => [error])).outerHTML, "Errors").then(_ => {
+        });
+    let fromCloud = new CloudData(upgradeCloudData(jsonCloudData));
+    vakLeraars = new Map([...vakLeraars.entries()].sort((a, b) => a[0] < b[0] ? -1 : ((a[0] > b[0]) ? 1 : 0))) as Map<string, VakLeraar>;
+    return new UrenData(parseInt(hourSettings.schoolyear), fromCloud, vakLeraars);
+}
+
 function onShowLerarenUren(hourSettings?: TeacherHoursSetup) {
     //Build lazily and only once. Table will automatically be erased when filters are changed.
     if (!document.getElementById(def.COUNT_TABLE_ID)) {
@@ -175,27 +193,16 @@ function onShowLerarenUren(hourSettings?: TeacherHoursSetup) {
         tableFetcher.addListener(tableFetchListener);
 
         Promise.all([tableFetcher.fetch(), getUrenFromCloud(fileName)]).then(async results => {
-            let schoolYear = Schoolyear.findInPage();
             let [fetchedTable, jsonCloudData] = results;
-            let vakLeraars = new Map();
-            let rows = fetchedTable.getRows();
-            let errors = [];
+
             if(!hourSettings)
-                hourSettings = await fetchHoursSettingsOrSaveDefault(schoolYear);
-            let hourSettingsMapped = mapHourSettings(hourSettings);
-            for(let tr of rows) {
-                let error = scrapeStudent(tableFetcher, tableFetchListener, tr, vakLeraars, hourSettingsMapped);
-                if(error)
-                    errors.push(error);
-            }
-            if(errors.length)
-                openHtmlTab(createTable(["Error"], errors.map(error => [error])).outerHTML, "Errors").then(_ => {});
-            let fromCloud = upgradeCloudData(jsonCloudData);
-            vakLeraars = new Map([...vakLeraars.entries()].sort((a, b) => a[0] < b[0] ? -1 : ((a[0] > b[0])? 1 : 0))) as Map<string, VakLeraar>;
-            document.getElementById(def.COUNT_TABLE_ID)?.remove();
-            let year = parseInt(schoolYear);
+                hourSettings = await fetchHoursSettingsOrSaveDefault(Schoolyear.findInPage());
+
+            //-- All data is fetched.
+
+            let urenData = prepareAndScrapeUrenData(fetchedTable, hourSettings, tableFetchListener, jsonCloudData);
             observer.disconnect();
-            buildTable(new UrenData(year, new CloudData(fromCloud), vakLeraars), tableFetcher);
+            buildTable(urenData, tableFetcher);
             observer.observeElement(document.querySelector("main"));
             document.getElementById(def.COUNT_TABLE_ID).style.display = "none";
             showOrHideNewTable();

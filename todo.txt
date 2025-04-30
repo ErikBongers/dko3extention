@@ -1,3 +1,6 @@
+* teacher hours: rebuild table without reloading page.
+  > only if selected subjects hasn't changed, as this requires a complete reload.
+
 * teacher hours: does NOT recreate the table on a "refresh"
   > it only reloads the underlying table, but does not the hours table.
 
