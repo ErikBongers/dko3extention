@@ -3063,20 +3063,26 @@ function fillGraadCell(ctx) {
 
 //#endregion
 //#region typescript/werklijst/scrapeUren.ts
-function scrapeStudent(fetchListener, tr, vakLeraars, hourSettings) {
-	let student = new StudentInfo();
-	student.naam = fetchListener.getColumnText(tr, "naam");
-	student.voornaam = fetchListener.getColumnText(tr, "voornaam");
-	student.id = parseInt(tr.attributes["onclick"].value.replace("showView('leerlingen-leerling', '', 'id=", ""));
+function scrapeStudentX(fetchListener, tr) {
+	let naam = fetchListener.getColumnText(tr, "naam");
+	let voornaam = fetchListener.getColumnText(tr, "voornaam");
+	let id = parseInt(tr.attributes["onclick"].value.replace("showView('leerlingen-leerling', '', 'id=", ""));
 	let leraar = fetchListener.getColumnText(tr, "klasleerkracht");
 	let vak = fetchListener.getColumnText(tr, "vak");
 	let graadLeerjaar = fetchListener.getColumnText(tr, "graad + leerjaar");
 	if (leraar === "") leraar = "{nieuw}";
-	if (!isInstrument(vak)) {
-		console.error("vak is geen instrument!!!");
-		return `Vak "${vak}" is geen instrument.`;
-	}
-	let vakLeraarKey = translateVak(vak, hourSettings) + "_" + leraar;
+	return {
+		naam,
+		voornaam,
+		id,
+		leraar,
+		vak,
+		graadLeerjaar
+	};
+}
+function scrapeStudent(fetchListener, tr, vakLeraars, hourSettings) {
+	let studentRow = scrapeStudentX(fetchListener, tr);
+	let vakLeraarKey = translateVak(studentRow.vak, hourSettings) + "_" + studentRow.leraar;
 	if (!vakLeraars.has(vakLeraarKey)) {
 		let countMap = new Map();
 		countMap.set("2.1", {
@@ -3128,39 +3134,21 @@ function scrapeStudent(fetchListener, tr, vakLeraars, hourSettings) {
 			students: []
 		});
 		let vakLeraarObject = {
-			vak: translateVak(vak, hourSettings),
-			leraar,
+			vak: translateVak(studentRow.vak, hourSettings),
+			leraar: studentRow.leraar,
 			id: createValidId(vakLeraarKey),
 			countMap
 		};
 		vakLeraars.set(vakLeraarKey, vakLeraarObject);
 	}
 	let vakLeraar = vakLeraars.get(vakLeraarKey);
-	if (!vakLeraar.countMap.has(graadLeerjaar)) vakLeraar.countMap.set(graadLeerjaar, {
+	if (!vakLeraar.countMap.has(studentRow.graadLeerjaar)) vakLeraar.countMap.set(studentRow.graadLeerjaar, {
 		count: 0,
 		students: []
 	});
-	let graadLeraarObject = vakLeraars.get(vakLeraarKey).countMap.get(graadLeerjaar);
+	let graadLeraarObject = vakLeraars.get(vakLeraarKey).countMap.get(studentRow.graadLeerjaar);
 	graadLeraarObject.count += 1;
-	graadLeraarObject.students.push(student);
-	return null;
-}
-function isInstrument(vak) {
-	switch (vak) {
-		case "Muziekatelier":
-		case "Groepsmusiceren (jazz pop rock)":
-		case "Groepsmusiceren (klassiek)":
-		case "Harmonielab":
-		case "Instrumentinitiatie - elke trimester een ander instrument":
-		case "instrumentinitiatie – piano het hele jaar":
-		case "Klanklab elektronische muziek":
-		case "Muziektheorie":
-		case "Koor (jazz pop rock)":
-		case "Koor (musical)":
-		case "Arrangeren":
-		case "Groepsmusiceren (opera)": return false;
-	}
-	return true;
+	graadLeraarObject.students.push(studentRow);
 }
 function translateVak(vak, settings) {
 	let alias = settings.subjectsMap.get(vak)?.alias;
@@ -4876,13 +4864,8 @@ function tryUntil(func) {
 function prepareAndScrapeUrenData(fetchedTable, hourSettings, tableFetchListener, jsonCloudData) {
 	let vakLeraars = new Map();
 	let rows = fetchedTable.getRows();
-	let errors = [];
 	let hourSettingsMapped = mapHourSettings(hourSettings);
-	for (let tr of rows) {
-		let error = scrapeStudent(tableFetchListener, tr, vakLeraars, hourSettingsMapped);
-		if (error) errors.push(error);
-	}
-	if (errors.length) openHtmlTab(createTable(["Error"], errors.map((error) => [error])).outerHTML, "Errors").then((_) => {});
+	for (let tr of rows) scrapeStudent(tableFetchListener, tr, vakLeraars, hourSettingsMapped);
 	let fromCloud = new CloudData(upgradeCloudData(jsonCloudData));
 	vakLeraars = new Map([...vakLeraars.entries()].sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
 	return new UrenData(parseInt(hourSettings.schoolyear), fromCloud, vakLeraars);

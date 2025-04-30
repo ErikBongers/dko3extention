@@ -162,16 +162,10 @@ function tryUntil(func: () => boolean) {
 function prepareAndScrapeUrenData(fetchedTable: FetchedTable, hourSettings: TeacherHoursSetup, tableFetchListener: NamedCellTableFetchListener, jsonCloudData: JsonCloudData) {
     let vakLeraars = new Map<string, VakLeraar>();
     let rows = fetchedTable.getRows();
-    let errors = [];
     let hourSettingsMapped = mapHourSettings(hourSettings);
     for (let tr of rows) {
-        let error = scrapeStudent(tableFetchListener, tr, vakLeraars, hourSettingsMapped);
-        if (error)
-            errors.push(error);
+        scrapeStudent(tableFetchListener, tr, vakLeraars, hourSettingsMapped);
     }
-    if (errors.length)
-        openHtmlTab(createTable(["Error"], errors.map(error => [error])).outerHTML, "Errors").then(_ => {
-        });
     let fromCloud = new CloudData(upgradeCloudData(jsonCloudData));
     vakLeraars = new Map([...vakLeraars.entries()].sort((a, b) => a[0] < b[0] ? -1 : ((a[0] > b[0]) ? 1 : 0))) as Map<string, VakLeraar>;
     return new UrenData(parseInt(hourSettings.schoolyear), fromCloud, vakLeraars);
