@@ -1,7 +1,14 @@
+* teacher hours: 5000 mutation calls !!!
+
+* teacher hours: refresh on message doesn't work because the url+hash doesn't change: call refresh.
+
+* teacher hours: does NOT recreate the table on a "refresh"
+  > it only reloads the underlying table, but not the generated table.
+
+
 * setup leraren uren: messaging between settings and table.
   > refresh table on every update. (optional!)
   > add a settings button to the table view (in addition to criteria view) (optional!)
-  > no setup file? Try to copy from prev year. (prio!)
 
 * create a dko3.api, that contains all the dko3 fetches?
   > would allow for a faster update when dko3 updates?

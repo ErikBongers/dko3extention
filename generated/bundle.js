@@ -3672,10 +3672,10 @@ async function saveHourSettings(hoursSetup) {
 
 //#endregion
 //#region typescript/werklijst/prefillInstruments.ts
-async function setCriteriaForTeacherHours(schooljaar) {
+async function setCriteriaForTeacherHoursAndClick(schooljaar, hourSettings) {
 	await sendClearWerklijst();
 	let dko3_vakken = await fetchAvailableSubjects(schooljaar);
-	let hourSettings = await fetchHoursSettingsOrSaveDefault(schooljaar);
+	if (!hourSettings) hourSettings = await fetchHoursSettingsOrSaveDefault(schooljaar);
 	let selectedInstrumentNames = new Set(hourSettings.subjects.filter((i) => i.checked).map((i) => i.name));
 	let validInstruments = dko3_vakken.filter((vak) => selectedInstrumentNames.has(vak.name));
 	let values = validInstruments.map((vak) => parseInt(vak.value));
@@ -3726,7 +3726,8 @@ async function setCriteriaForTeacherHours(schooljaar) {
 	let pageState$1 = getGotoStateOrDefault(PageName.Werklijst);
 	pageState$1.werklijstTableName = UREN_TABLE_STATE_NAME;
 	saveGotoState(pageState$1);
-	document.querySelector("#btn_werklijst_maken").click();
+	if (window.location.hash === "#leerlingen-werklijst$werklijst") location.reload();
+	else location.hash = "#leerlingen-werklijst$werklijst";
 }
 
 //#endregion
@@ -4760,13 +4761,13 @@ function onCriteriaShown() {
 	if (pageState$1.goto == Goto.Werklijst_uren_prevYear) {
 		pageState$1.goto = Goto.None;
 		saveGotoState(pageState$1);
-		setCriteriaForTeacherHours(Schoolyear.toFullString(Schoolyear.calculateCurrent())).then(() => {});
+		setCriteriaForTeacherHoursAndClick(Schoolyear.toFullString(Schoolyear.calculateCurrent())).then(() => {});
 		return;
 	}
 	if (pageState$1.goto == Goto.Werklijst_uren_nextYear) {
 		pageState$1.goto = Goto.None;
 		saveGotoState(pageState$1);
-		setCriteriaForTeacherHours(Schoolyear.toFullString(Schoolyear.calculateCurrent() + 1)).then(() => {});
+		setCriteriaForTeacherHoursAndClick(Schoolyear.toFullString(Schoolyear.calculateCurrent() + 1)).then(() => {});
 		return;
 	}
 	pageState$1.werklijstTableName = "";
@@ -4779,7 +4780,7 @@ function onCriteriaShown() {
 	let prevSchoolyearShort = Schoolyear.toShortString(year - 1);
 	let nextSchoolyearShort = Schoolyear.toShortString(year);
 	addButton$1(btnWerklijstMaken, UREN_PREV_BTN_ID, "Toon lerarenuren voor " + prevSchoolyear, async () => {
-		await setCriteriaForTeacherHours(prevSchoolyear);
+		await setCriteriaForTeacherHoursAndClick(prevSchoolyear);
 	}, "", ["btn", "btn-outline-dark"], "Uren " + prevSchoolyearShort);
 	addButton$1(btnWerklijstMaken, UREN_PREV_SETUP_BTN_ID, "Setup voor " + prevSchoolyear, async () => {
 		await showUrenSetup(prevSchoolyear);
@@ -4788,13 +4789,16 @@ function onCriteriaShown() {
 		await sendMessageToHoursSettings();
 	}, "", ["btn", "btn-outline-dark"], "send");
 	addButton$1(btnWerklijstMaken, UREN_NEXT_BTN_ID, "Toon lerarenuren voor " + nextSchoolyear, async () => {
-		await setCriteriaForTeacherHours(nextSchoolyear);
+		await setCriteriaForTeacherHoursAndClick(nextSchoolyear);
 	}, "", ["btn", "btn-outline-dark"], "Uren " + nextSchoolyearShort);
 	getSchoolIdString();
 }
-chrome.runtime.onMessage.addListener((request, _sender, _sendResponse) => {
+chrome.runtime.onMessage.addListener(onMessage);
+async function onMessage(request, _sender, _sendResponse) {
 	console.log("Received message from service worker: ", request);
-});
+	let hourSettings = request.data;
+	await setCriteriaForTeacherHoursAndClick(hourSettings.schoolyear);
+}
 async function showUrenSetup(schoolyear) {
 	let setup = await fetchHoursSettingsOrSaveDefault(schoolyear);
 	let res = await openHoursSettings(setup);
@@ -4811,7 +4815,9 @@ function onWerklijstChanged() {
 }
 function onButtonBarChanged() {
 	let targetButton = document.querySelector("#tablenav_leerlingen_werklijst_top > div > div.btn-group.btn-group-sm.datatable-buttons > button:nth-child(1)");
-	addButton$1(targetButton, COUNT_BUTTON_ID, "Toon telling", onShowLerarenUren, "fa-guitar", ["btn-outline-info"]);
+	addButton$1(targetButton, COUNT_BUTTON_ID, "Toon telling", () => {
+		onShowLerarenUren();
+	}, "fa-guitar", ["btn-outline-info"]);
 	addButton$1(targetButton, MAIL_BTN_ID, "Email to clipboard", onClickCopyEmails, "fa-envelope", ["btn", "btn-outline-info"]);
 }
 function onClickCopyEmails() {
@@ -4840,7 +4846,7 @@ function onClickCopyEmails() {
 function tryUntil(func) {
 	if (!func()) setTimeout(() => tryUntil(func), 100);
 }
-function onShowLerarenUren() {
+function onShowLerarenUren(hourSettings) {
 	if (!document.getElementById(COUNT_TABLE_ID)) {
 		let result = createDefaultTableFetcher();
 		if ("error" in result) {
@@ -4864,7 +4870,7 @@ function onShowLerarenUren() {
 			let vakLeraars = new Map();
 			let rows = fetchedTable.getRows();
 			let errors = [];
-			let hourSettings = await fetchHoursSettingsOrSaveDefault(schoolYear);
+			if (!hourSettings) hourSettings = await fetchHoursSettingsOrSaveDefault(schoolYear);
 			let hourSettingsMapped = mapHourSettings(hourSettings);
 			for (let tr of rows) {
 				let error = scrapeStudent(tableFetcher, tableFetchListener, tr, vakLeraars, hourSettingsMapped);

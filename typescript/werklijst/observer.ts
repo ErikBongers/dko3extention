@@ -4,7 +4,7 @@ import {buildTable, getUrenVakLeraarFileName} from "./buildUren";
 import {scrapeStudent, VakLeraar} from "./scrapeUren";
 import {cloud} from "../cloud";
 import {TableFetcher} from "../table/tableFetcher";
-import {setCriteriaForTeacherHours} from "./prefillInstruments";
+import {setCriteriaForTeacherHoursAndClick} from "./prefillInstruments";
 import {HashObserver} from "../pageObserver";
 import {NamedCellTableFetchListener} from "../pageHandlers";
 import {decorateTableHeader} from "../table/tableHeaders";
@@ -12,8 +12,9 @@ import {getGotoStateOrDefault, Goto, PageName, saveGotoState, WerklijstGotoState
 import {registerChecksumHandler} from "../table/observer";
 import {CloudData, JsonCloudData, UrenData} from "./urenData";
 import {createDefaultTableFetcher} from "../table/loadAnyTable";
-import {Actions, sendRequest, TabType} from "../messaging";
-import {fetchHoursSettingsOrSaveDefault, mapHourSettings} from "./hoursSettings";
+import {Actions, sendRequest, ServiceRequest, TabType} from "../messaging";
+import {fetchHoursSettingsOrSaveDefault, mapHourSettings, TeacherHoursSetup} from "./hoursSettings";
+import MessageSender = chrome.runtime.MessageSender;
 
 const tableId = "table_leerlingen_werklijst_table";
 
@@ -54,13 +55,13 @@ function onCriteriaShown() {
     if(pageState.goto == Goto.Werklijst_uren_prevYear) {
         pageState.goto = Goto.None;
         saveGotoState(pageState);
-        setCriteriaForTeacherHours(Schoolyear.toFullString(Schoolyear.calculateCurrent())).then(() => {});
+        setCriteriaForTeacherHoursAndClick(Schoolyear.toFullString(Schoolyear.calculateCurrent())).then(() => {});
         return;
     }
     if(pageState.goto == Goto.Werklijst_uren_nextYear) {
         pageState.goto = Goto.None;
         saveGotoState(pageState);
-        setCriteriaForTeacherHours(Schoolyear.toFullString(Schoolyear.calculateCurrent()+1)).then(() => {});
+        setCriteriaForTeacherHoursAndClick(Schoolyear.toFullString(Schoolyear.calculateCurrent()+1)).then(() => {});
         return;
     }
     pageState.werklijstTableName = "";
@@ -74,17 +75,20 @@ function onCriteriaShown() {
     let nextSchoolyear = Schoolyear.toFullString(year);
     let prevSchoolyearShort = Schoolyear.toShortString(year-1);
     let nextSchoolyearShort = Schoolyear.toShortString(year);
-    addButton(btnWerklijstMaken, def.UREN_PREV_BTN_ID, "Toon lerarenuren voor "+ prevSchoolyear, async () => { await setCriteriaForTeacherHours(prevSchoolyear); }, "", ["btn", "btn-outline-dark"], "Uren "+ prevSchoolyearShort);
+    addButton(btnWerklijstMaken, def.UREN_PREV_BTN_ID, "Toon lerarenuren voor "+ prevSchoolyear, async () => { await setCriteriaForTeacherHoursAndClick(prevSchoolyear); }, "", ["btn", "btn-outline-dark"], "Uren "+ prevSchoolyearShort);
     addButton(btnWerklijstMaken, def.UREN_PREV_SETUP_BTN_ID, "Setup voor "+ prevSchoolyear, async () => { await showUrenSetup(prevSchoolyear); }, "fas-certificate", ["btn", "btn-outline-dark"], "", "beforebegin", "gear.svg");
     addButton(btnWerklijstMaken, def.UREN_PREV_SETUP_BTN_ID+"sdf", "test", async () => { await sendMessageToHoursSettings(); }, "", ["btn", "btn-outline-dark"], "send");
-    addButton(btnWerklijstMaken, def.UREN_NEXT_BTN_ID, "Toon lerarenuren voor "+ nextSchoolyear, async () => { await setCriteriaForTeacherHours(nextSchoolyear); }, "", ["btn", "btn-outline-dark"], "Uren "+ nextSchoolyearShort);
+    addButton(btnWerklijstMaken, def.UREN_NEXT_BTN_ID, "Toon lerarenuren voor "+ nextSchoolyear, async () => { await setCriteriaForTeacherHoursAndClick(nextSchoolyear); }, "", ["btn", "btn-outline-dark"], "Uren "+ nextSchoolyearShort);
     getSchoolIdString();
 }
 
-chrome.runtime.onMessage.addListener((request, _sender, _sendResponse) => {
-    console.log("Received message from service worker: ", request);
-})
+chrome.runtime.onMessage.addListener(onMessage)
 
+async function onMessage(request: ServiceRequest, _sender: MessageSender, _sendResponse: (response?: any) => void) {
+    console.log("Received message from service worker: ", request);
+    let hourSettings = request.data as TeacherHoursSetup;
+    await setCriteriaForTeacherHoursAndClick(hourSettings.schoolyear);
+}
 
 async function showUrenSetup(schoolyear: string) {
     let setup = await fetchHoursSettingsOrSaveDefault(schoolyear);
@@ -108,7 +112,7 @@ function onWerklijstChanged() {
 
 function onButtonBarChanged() {
     let targetButton = document.querySelector("#tablenav_leerlingen_werklijst_top > div > div.btn-group.btn-group-sm.datatable-buttons > button:nth-child(1)") as HTMLButtonElement;
-    addButton(targetButton, def.COUNT_BUTTON_ID, "Toon telling", onShowLerarenUren, "fa-guitar", ["btn-outline-info"]);
+    addButton(targetButton, def.COUNT_BUTTON_ID, "Toon telling", () => { onShowLerarenUren(); }, "fa-guitar", ["btn-outline-info"]);
     addButton(targetButton, def.MAIL_BTN_ID, "Email to clipboard", onClickCopyEmails, "fa-envelope", ["btn", "btn-outline-info"]);
 }
 
@@ -154,7 +158,7 @@ function tryUntil(func: () => boolean) {
         setTimeout(() => tryUntil(func), 100);
 }
 
-function onShowLerarenUren() {
+function onShowLerarenUren(hourSettings?: TeacherHoursSetup) {
     //Build lazily and only once. Table will automatically be erased when filters are changed.
     if (!document.getElementById(def.COUNT_TABLE_ID)) {
         let result = createDefaultTableFetcher();
@@ -175,7 +179,8 @@ function onShowLerarenUren() {
             let vakLeraars = new Map();
             let rows = fetchedTable.getRows();
             let errors = [];
-            let hourSettings = await fetchHoursSettingsOrSaveDefault(schoolYear);
+            if(!hourSettings)
+                hourSettings = await fetchHoursSettingsOrSaveDefault(schoolYear);
             let hourSettingsMapped = mapHourSettings(hourSettings);
             for(let tr of rows) {
                 let error = scrapeStudent(tableFetcher, tableFetchListener, tr, vakLeraars, hourSettingsMapped);

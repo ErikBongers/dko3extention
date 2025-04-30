@@ -1,12 +1,13 @@
 import {fetchAvailableSubjects, sendClearWerklijst, sendCriteria, sendFields, sendGrouping} from "./criteria";
 import * as def from "../def";
 import {getGotoStateOrDefault, PageName, saveGotoState, WerklijstGotoState} from "../gotoState";
-import {fetchHoursSettingsOrSaveDefault} from "./hoursSettings";
+import {fetchHoursSettingsOrSaveDefault, TeacherHoursSetup} from "./hoursSettings";
 
-export async function setCriteriaForTeacherHours(schooljaar: string) {
+export async function setCriteriaForTeacherHoursAndClick(schooljaar: string, hourSettings?: TeacherHoursSetup) {
     await sendClearWerklijst();
     let dko3_vakken = await fetchAvailableSubjects(schooljaar);
-    let hourSettings = await fetchHoursSettingsOrSaveDefault(schooljaar);
+    if(!hourSettings)
+        hourSettings = await fetchHoursSettingsOrSaveDefault(schooljaar);
     let selectedInstrumentNames  =  new Set(hourSettings.subjects.filter(i => i.checked).map(i => i.name));
     let validInstruments = dko3_vakken.filter((vak) => selectedInstrumentNames.has(vak.name));
     let values = validInstruments.map(vak => parseInt(vak.value));
@@ -33,5 +34,8 @@ export async function setCriteriaForTeacherHours(schooljaar: string) {
     let pageState = getGotoStateOrDefault(PageName.Werklijst) as WerklijstGotoState;
     pageState.werklijstTableName = def.UREN_TABLE_STATE_NAME;
     saveGotoState(pageState);
-    (document.querySelector("#btn_werklijst_maken") as HTMLButtonElement).click();
+    if(window.location.hash === "#leerlingen-werklijst$werklijst")
+        location.reload();
+    else
+        location.hash = "#leerlingen-werklijst$werklijst";
 }
