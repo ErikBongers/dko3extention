@@ -628,7 +628,7 @@ async function openHtmlTab(innerHtml, pageTitle) {
 async function openHoursSettings(data) {
 	return sendRequest(Actions.OpenHoursSettings, TabType.Main, TabType.Undefined, void 0, data, "Lerarenuren setup");
 }
-function createTable(headers, cols) {
+function createTable$1(headers, cols) {
 	let tmpDiv = document.createElement("div");
 	let { first: tmpTable, last: tmpThead } = emmet.appendChild(tmpDiv, "table>thead");
 	for (let th of headers) emmet.appendChild(tmpThead, `th{${th}}`);
@@ -2938,17 +2938,16 @@ function recalculate(urenData) {
 	isUpdatePaused = false;
 	observeTable(true);
 }
-function buildTable(urenData, tableDef) {
+function createTable(tableDef) {
 	document.getElementById(COUNT_TABLE_ID)?.remove();
 	let table = document.createElement("table");
 	tableDef.tableRef.getOrgTableContainer().insertAdjacentElement("afterend", table);
 	table.id = COUNT_TABLE_ID;
 	table.classList.add(CAN_SORT, NO_MENU);
-	refillTable(table, urenData);
+	return table;
 }
 function refillTable(table, urenData) {
 	isUpdatePaused = true;
-	globalUrenData = urenData;
 	updateColDefs(urenData.year);
 	fillTableHeader(table, urenData.vakLeraars);
 	let tbody = document.createElement("tbody");
@@ -3063,7 +3062,7 @@ function fillGraadCell(ctx) {
 
 //#endregion
 //#region typescript/werklijst/scrapeUren.ts
-function scrapeStudentX(fetchListener, tr) {
+function scrapeStudent(fetchListener, tr) {
 	let naam = fetchListener.getColumnText(tr, "naam");
 	let voornaam = fetchListener.getColumnText(tr, "voornaam");
 	let id = parseInt(tr.attributes["onclick"].value.replace("showView('leerlingen-leerling', '', 'id=", ""));
@@ -3080,8 +3079,7 @@ function scrapeStudentX(fetchListener, tr) {
 		graadLeerjaar
 	};
 }
-function scrapeStudent(fetchListener, tr, vakLeraars, hourSettings) {
-	let studentRow = scrapeStudentX(fetchListener, tr);
+function addStudentToVakLeraarsMap(studentRow, vakLeraars, hourSettings) {
 	let vakLeraarKey = translateVak(studentRow.vak, hourSettings) + "_" + studentRow.leraar;
 	if (!vakLeraars.has(vakLeraarKey)) {
 		let countMap = new Map();
@@ -3153,16 +3151,16 @@ function scrapeStudent(fetchListener, tr, vakLeraars, hourSettings) {
 function translateVak(vak, settings) {
 	let alias = settings.subjectsMap.get(vak)?.alias;
 	if (alias) vak = alias;
-	let foundTranslation = false;
 	settings.translations.forEach((translation) => {
 		if (translation.find) {
-			if (vak.includes(translation.find)) {
-				foundTranslation = true;
-				vak = translation.prefix + vak.replace(translation.find, translation.replace) + translation.suffix;
-			}
+			if (vak.includes(translation.find)) vak = translation.prefix + vak.replace(translation.find, translation.replace) + translation.suffix;
 		} else vak = translation.prefix + vak + translation.suffix;
 	});
 	return vak;
+}
+function scrapeUren(fetchedTable, tableFetchListener) {
+	let rows = fetchedTable.getRows();
+	return [...rows].map((tr) => scrapeStudent(tableFetchListener, tr));
 }
 
 //#endregion
@@ -4482,7 +4480,7 @@ function copyOneColumn(table, index) {
 	createAndCopyTable([table.tHead.children[0].children[index].innerText], [...table.tBodies[0].rows].map((row) => [row.cells[index].innerText]));
 }
 function createAndCopyTable(headers, cols) {
-	navigator.clipboard.writeText(createTable(headers, cols).outerHTML).then((_r) => {});
+	navigator.clipboard.writeText(createTable$1(headers, cols).outerHTML).then((_r) => {});
 }
 function reSortTableByColumn(ev, table) {
 	let header = table.tHead.children[0].children[getColumnIndex(ev)];
@@ -4687,16 +4685,6 @@ function swapColumns(row, index1, index2) {
 
 //#endregion
 //#region typescript/werklijst/urenData.ts
-var UrenData = class {
-	year;
-	fromCloud;
-	vakLeraars;
-	constructor(year, cloudData, vakLeraars) {
-		this.year = year;
-		this.fromCloud = cloudData;
-		this.vakLeraars = vakLeraars;
-	}
-};
 var JsonCloudData = class {
 	version;
 	columns;
@@ -4861,14 +4849,28 @@ function onClickCopyEmails() {
 function tryUntil(func) {
 	if (!func()) setTimeout(() => tryUntil(func), 100);
 }
-function prepareAndScrapeUrenData(fetchedTable, hourSettings, tableFetchListener, jsonCloudData) {
+function buildVakLeraarsMap(studentRowData, hourSettingsMapped) {
 	let vakLeraars = new Map();
-	let rows = fetchedTable.getRows();
-	let hourSettingsMapped = mapHourSettings(hourSettings);
-	for (let tr of rows) scrapeStudent(tableFetchListener, tr, vakLeraars, hourSettingsMapped);
-	let fromCloud = new CloudData(upgradeCloudData(jsonCloudData));
+	for (let studentRow of studentRowData) addStudentToVakLeraarsMap(studentRow, vakLeraars, hourSettingsMapped);
 	vakLeraars = new Map([...vakLeraars.entries()].sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
-	return new UrenData(parseInt(hourSettings.schoolyear), fromCloud, vakLeraars);
+	return vakLeraars;
+}
+let globals = {
+	studentRowData: [],
+	hourSettingsMapped: void 0,
+	fromCloud: void 0,
+	table: void 0
+};
+function rebuildHoursTable(table, studentRowData, hourSettingsMapped, fromCloud) {
+	let vakLeraars = buildVakLeraarsMap(studentRowData, hourSettingsMapped);
+	let urenData = {
+		year: parseInt(hourSettingsMapped.schoolyear),
+		fromCloud,
+		vakLeraars
+	};
+	observer.disconnect();
+	refillTable(table, urenData);
+	observer.observeElement(document.querySelector("main"));
 }
 function onShowLerarenUren(hourSettings) {
 	if (!document.getElementById(COUNT_TABLE_ID)) {
@@ -4891,10 +4893,11 @@ function onShowLerarenUren(hourSettings) {
 		Promise.all([tableFetcher.fetch(), getUrenFromCloud(fileName)]).then(async (results) => {
 			let [fetchedTable, jsonCloudData] = results;
 			if (!hourSettings) hourSettings = await fetchHoursSettingsOrSaveDefault(Schoolyear.findInPage());
-			let urenData = prepareAndScrapeUrenData(fetchedTable, hourSettings, tableFetchListener, jsonCloudData);
-			observer.disconnect();
-			buildTable(urenData, tableFetcher);
-			observer.observeElement(document.querySelector("main"));
+			globals.studentRowData = scrapeUren(fetchedTable, tableFetchListener);
+			globals.hourSettingsMapped = mapHourSettings(hourSettings);
+			globals.fromCloud = new CloudData(upgradeCloudData(jsonCloudData));
+			globals.table = createTable(tableFetcher);
+			rebuildHoursTable(globals.table, globals.studentRowData, globals.hourSettingsMapped, globals.fromCloud);
 			document.getElementById(COUNT_TABLE_ID).style.display = "none";
 			showOrHideNewTable();
 		});

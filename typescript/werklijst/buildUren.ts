@@ -235,18 +235,17 @@ function recalculate(urenData: UrenData) {
     observeTable(true);
 }
 
-export function buildTable(urenData: UrenData, tableDef: TableFetcher) {
+export function createTable(tableDef: TableFetcher) {
     document.getElementById(def.COUNT_TABLE_ID)?.remove();
     let table = document.createElement("table");
     tableDef.tableRef.getOrgTableContainer().insertAdjacentElement("afterend", table);
     table.id = def.COUNT_TABLE_ID;
     table.classList.add(def.CAN_SORT, def.NO_MENU);
-    refillTable(table, urenData);
+    return table;
 }
 
-export function refillTable(table: HTMLTableElement, urenData: UrenData) {
+export function refillTable(table: HTMLTableElement, urenData:  UrenData) {
     isUpdatePaused = true;
-    globalUrenData = urenData;
     updateColDefs(urenData.year);
     fillTableHeader(table, urenData.vakLeraars);
     let tbody = document.createElement("tbody");

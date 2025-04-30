@@ -1,9 +1,9 @@
-import {addButton, createTable, getSchoolIdString, openHoursSettings, openHtmlTab, Schoolyear, setButtonHighlighted} from "../globals";
+import {addButton, getSchoolIdString, openHoursSettings, Schoolyear, setButtonHighlighted} from "../globals";
 import * as def from "../def";
-import {buildTable, getUrenVakLeraarFileName} from "./buildUren";
-import {scrapeStudent, VakLeraar} from "./scrapeUren";
+import {createTable, refillTable, getUrenVakLeraarFileName} from "./buildUren";
+import {addStudentToVakLeraarsMap, scrapeUren, StudentUrenRow, VakLeraar} from "./scrapeUren";
 import {cloud} from "../cloud";
-import {FetchedTable, TableFetcher} from "../table/tableFetcher";
+import {TableFetcher} from "../table/tableFetcher";
 import {setCriteriaForTeacherHoursAndClick} from "./prefillInstruments";
 import {HashObserver} from "../pageObserver";
 import {NamedCellTableFetchListener} from "../pageHandlers";
@@ -13,7 +13,7 @@ import {registerChecksumHandler} from "../table/observer";
 import {CloudData, JsonCloudData, UrenData} from "./urenData";
 import {createDefaultTableFetcher} from "../table/loadAnyTable";
 import {Actions, sendRequest, ServiceRequest, TabType} from "../messaging";
-import {fetchHoursSettingsOrSaveDefault, mapHourSettings, TeacherHoursSetup} from "./hoursSettings";
+import {fetchHoursSettingsOrSaveDefault, mapHourSettings, TeacherHoursSetup, TeacherHoursSetupMapped} from "./hoursSettings";
 import MessageSender = chrome.runtime.MessageSender;
 
 const tableId = "table_leerlingen_werklijst_table";
@@ -159,16 +159,40 @@ function tryUntil(func: () => boolean) {
         setTimeout(() => tryUntil(func), 100);
 }
 
-function prepareAndScrapeUrenData(fetchedTable: FetchedTable, hourSettings: TeacherHoursSetup, tableFetchListener: NamedCellTableFetchListener, jsonCloudData: JsonCloudData) {
+function buildVakLeraarsMap(studentRowData: StudentUrenRow[], hourSettingsMapped: TeacherHoursSetupMapped) {
     let vakLeraars = new Map<string, VakLeraar>();
-    let rows = fetchedTable.getRows();
-    let hourSettingsMapped = mapHourSettings(hourSettings);
-    for (let tr of rows) {
-        scrapeStudent(tableFetchListener, tr, vakLeraars, hourSettingsMapped);
+    for (let studentRow of studentRowData) {
+        addStudentToVakLeraarsMap(studentRow, vakLeraars, hourSettingsMapped);
     }
-    let fromCloud = new CloudData(upgradeCloudData(jsonCloudData));
+
     vakLeraars = new Map([...vakLeraars.entries()].sort((a, b) => a[0] < b[0] ? -1 : ((a[0] > b[0]) ? 1 : 0))) as Map<string, VakLeraar>;
-    return new UrenData(parseInt(hourSettings.schoolyear), fromCloud, vakLeraars);
+    return vakLeraars;
+}
+
+type UrenGlobals = {
+    studentRowData: StudentUrenRow[],
+    hourSettingsMapped: TeacherHoursSetupMapped,
+    fromCloud: CloudData,
+    table: HTMLTableElement
+}
+
+let globals: UrenGlobals = {
+    studentRowData: [],
+    hourSettingsMapped: undefined,
+    fromCloud: undefined,
+    table: undefined
+};
+
+function rebuildHoursTable(table: HTMLTableElement, studentRowData: StudentUrenRow[], hourSettingsMapped: TeacherHoursSetupMapped, fromCloud: CloudData) {
+    let vakLeraars = buildVakLeraarsMap(studentRowData, hourSettingsMapped);
+    let urenData: UrenData  = {
+        year: parseInt(hourSettingsMapped.schoolyear),
+        fromCloud: fromCloud,
+        vakLeraars
+    };
+    observer.disconnect();
+    refillTable(table, urenData);
+    observer.observeElement(document.querySelector("main"));
 }
 
 function onShowLerarenUren(hourSettings?: TeacherHoursSetup) {
@@ -188,16 +212,17 @@ function onShowLerarenUren(hourSettings?: TeacherHoursSetup) {
 
         Promise.all([tableFetcher.fetch(), getUrenFromCloud(fileName)]).then(async results => {
             let [fetchedTable, jsonCloudData] = results;
-
-            if(!hourSettings)
+            if(!hourSettings) {
                 hourSettings = await fetchHoursSettingsOrSaveDefault(Schoolyear.findInPage());
-
+            }
             //-- All data is fetched.
 
-            let urenData = prepareAndScrapeUrenData(fetchedTable, hourSettings, tableFetchListener, jsonCloudData);
-            observer.disconnect();
-            buildTable(urenData, tableFetcher);
-            observer.observeElement(document.querySelector("main"));
+            globals.studentRowData = scrapeUren(fetchedTable, tableFetchListener);
+            globals.hourSettingsMapped = mapHourSettings(hourSettings);
+            globals.fromCloud = new CloudData(upgradeCloudData(jsonCloudData));
+            globals.table = createTable(tableFetcher);
+
+            rebuildHoursTable(globals.table, globals.studentRowData, globals.hourSettingsMapped, globals.fromCloud);
             document.getElementById(def.COUNT_TABLE_ID).style.display = "none";
             showOrHideNewTable();
         });

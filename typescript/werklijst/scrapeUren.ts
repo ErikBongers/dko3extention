@@ -1,6 +1,7 @@
 import {createValidId} from "../globals";
 import {NamedCellTableFetchListener} from "../pageHandlers";
 import {TeacherHoursSetupMapped} from "./hoursSettings";
+import {FetchedTable} from "../table/tableFetcher";
 
 export interface CountStudentsPerJaar {
     count: number,
@@ -13,7 +14,7 @@ export interface VakLeraar {
     countMap: Map<string, CountStudentsPerJaar>
 }
 
-interface StudentUrenRow {
+export interface StudentUrenRow {
     naam: string,
     voornaam: string,
     id: number,
@@ -22,7 +23,7 @@ interface StudentUrenRow {
     graadLeerjaar: string
 }
 
-function scrapeStudentX(fetchListener: NamedCellTableFetchListener, tr: HTMLTableRowElement): StudentUrenRow {
+export function scrapeStudent(fetchListener: NamedCellTableFetchListener, tr: HTMLTableRowElement): StudentUrenRow {
     let naam = fetchListener.getColumnText(tr, "naam");
     let voornaam = fetchListener.getColumnText(tr, "voornaam");
     let id = parseInt(tr.attributes['onclick'].value.replace("showView('leerlingen-leerling', '', 'id=", ""));
@@ -41,9 +42,7 @@ function scrapeStudentX(fetchListener: NamedCellTableFetchListener, tr: HTMLTabl
     };
 }
 
-export function scrapeStudent(fetchListener: NamedCellTableFetchListener, tr: HTMLTableRowElement, vakLeraars: Map<string, VakLeraar>, hourSettings: TeacherHoursSetupMapped) {
-    let studentRow = scrapeStudentX(fetchListener, tr);
-
+export function addStudentToVakLeraarsMap(studentRow: StudentUrenRow, vakLeraars: Map<string, VakLeraar>, hourSettings: TeacherHoursSetupMapped) {
     let vakLeraarKey = translateVak(studentRow.vak, hourSettings) + "_" + studentRow.leraar;
 
     if (!vakLeraars.has(vakLeraarKey)) {
@@ -83,14 +82,11 @@ function translateVak(vak: string, settings: TeacherHoursSetupMapped) {
     if(alias)
         vak =  alias;
 
-    let foundTranslation = false;
     // fragment replacements
     settings.translations
-        // .filter(translation => translation.find !== "")
         .forEach(translation => {
             if(translation.find) {
                 if (vak.includes(translation.find)) {
-                    foundTranslation = true;
                     vak = translation.prefix + vak.replace(translation.find, translation.replace) + translation.suffix;
                 }
             }
@@ -100,3 +96,7 @@ function translateVak(vak: string, settings: TeacherHoursSetupMapped) {
     return vak;
 }
 
+export function scrapeUren(fetchedTable: FetchedTable, tableFetchListener: NamedCellTableFetchListener) {
+    let rows = fetchedTable.getRows();
+    return [...rows].map(tr => scrapeStudent(tableFetchListener, tr));
+}
