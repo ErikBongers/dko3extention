@@ -29,21 +29,31 @@
   });
   var global_request = {};
   chrome.runtime.onMessage.addListener(onMessage);
-  var mainTabId = -1;
+  async function getTabId(tabType) {
+    let data = await chrome.storage.session.get(tabType);
+    console.log(data);
+    let tabId = data[tabType];
+    return parseInt(tabId);
+  }
+  async function setTabId(tabType, tabId) {
+    let data = {};
+    data[tabType] = tabId.toString();
+    await chrome.storage.session.set(data);
+  }
   function onMessage(message, sender, sendResponse) {
     switch (message.action) {
       case "open_tab" /* OpenHtmlTab */:
         let url = chrome.runtime.getURL("resources/blank.html");
         global_request = message;
-        if (message.senderTabType === 1 /* Main */)
-          mainTabId = sender.tab.id;
+        if (message.senderTabType === "Main" /* Main */)
+          setTabId("Main" /* Main */, sender.tab.id);
         chrome.tabs.create({ url }).then((_tab) => {
           sendResponse({ tabId: _tab.id });
         });
         return true;
       case "open_hours_settings" /* OpenHoursSettings */:
         global_request = message;
-        mainTabId = sender.tab.id;
+        setTabId("Main" /* Main */, sender.tab.id);
         chrome.tabs.create({ url: chrome.runtime.getURL("resources/teacherHoursSetup.html") }).then((tab) => {
           sendResponse({ tabId: tab.id });
         });
@@ -53,15 +63,19 @@
         sendResponse(global_request);
         break;
       case "get_parent_tab_id" /* GetParentTabId */:
-        sendResponse(mainTabId);
+        sendResponse(getTabId("Main" /* Main */));
         break;
       case "greetingsFromChild" /* GreetingsFromChild */:
       default: {
-        let targetTabId;
-        if (message.targetTabType === 1 /* Main */)
-          targetTabId = mainTabId;
-        chrome.tabs.sendMessage(targetTabId, message).then((r) => {
-        });
+        console.log("passing message to...");
+        if (message.targetTabType === "Main" /* Main */) {
+          getTabId("Main" /* Main */).then((id) => {
+            console.log("Tab: " + id);
+            chrome.tabs.sendMessage(id, message).then((r) => {
+            });
+          });
+        } else
+          console.log("TODO: send to other than main???");
         break;
       }
     }

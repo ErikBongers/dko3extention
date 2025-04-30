@@ -13,7 +13,7 @@
   }
   async function sendGetDataRequest(sender) {
     let tab = await chrome.tabs.getCurrent();
-    return await sendRequest("get_tab_data" /* GetTabData */, sender, 0 /* Undefined */, void 0, { tabId: tab.id });
+    return await sendRequest("get_tab_data" /* GetTabData */, sender, "Undefined" /* Undefined */, void 0, { tabId: tab.id });
   }
   function createMessageHandler(tabType) {
     let handler2 = {
@@ -657,7 +657,7 @@
   }
 
   // typescript/teacherHoursSetup.ts
-  var handler = createMessageHandler(2 /* HoursSettings */);
+  var handler = createMessageHandler("HoursSettings" /* HoursSettings */);
   registerWebComponent();
   chrome.runtime.onMessage.addListener(handler.getListener());
   document.addEventListener("DOMContentLoaded", onDocumentLoaded);
@@ -733,7 +733,7 @@
   async function onData(data) {
     document.title = data.pageTitle;
     document.querySelector("button").addEventListener("click", async () => {
-      await sendRequest("greetingsFromChild" /* GreetingsFromChild */, 0 /* Undefined */, 1 /* Main */, void 0, "Hullo! Fly safe!");
+      await sendRequest("greetingsFromChild" /* GreetingsFromChild */, "Undefined" /* Undefined */, "Main" /* Main */, void 0, "Hullo! Fly safe!");
     });
     let dko3Setup = mapHourSettings(data.data);
     globalSetup = dko3Setup;
@@ -794,7 +794,7 @@
     };
     hasTableChanged = false;
     saveHourSettings(setupData).then((_) => {
-      sendRequest("open_hours_settings_changed" /* HoursSettingsChanged */, 2 /* HoursSettings */, 1 /* Main */, void 0, setupData).then((_2) => {
+      sendRequest("open_hours_settings_changed" /* HoursSettingsChanged */, "HoursSettings" /* HoursSettings */, "Main" /* Main */, void 0, setupData).then((_2) => {
       });
     });
   }

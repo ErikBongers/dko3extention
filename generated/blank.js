@@ -13,7 +13,7 @@
   }
   async function sendGetDataRequest(sender) {
     let tab = await chrome.tabs.getCurrent();
-    return await sendRequest("get_tab_data" /* GetTabData */, sender, 0 /* Undefined */, void 0, { tabId: tab.id });
+    return await sendRequest("get_tab_data" /* GetTabData */, sender, "Undefined" /* Undefined */, void 0, { tabId: tab.id });
   }
   function createMessageHandler(tabType) {
     let handler2 = {
@@ -54,7 +54,7 @@
   }
 
   // typescript/blank.ts
-  var handler = createMessageHandler(3 /* Html */);
+  var handler = createMessageHandler("Html" /* Html */);
   chrome.runtime.onMessage.addListener(handler.getListener());
   handler.onMessageForMyTabType((msg) => {
     console.log("message for my tab type: ", msg);
@@ -64,7 +64,7 @@
     document.getElementById("container").innerHTML = "DATA:" + msg.data;
   }).onData((data) => {
     document.querySelector("button").addEventListener("click", async () => {
-      await sendRequest("greetingsFromChild" /* GreetingsFromChild */, 0 /* Undefined */, 1 /* Main */, void 0, "Hullo! Fly safe!");
+      await sendRequest("greetingsFromChild" /* GreetingsFromChild */, "Undefined" /* Undefined */, "Main" /* Main */, void 0, "Hullo! Fly safe!");
     });
     console.log("tab opened: request data message sent and received: ");
     console.log(data);

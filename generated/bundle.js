@@ -405,10 +405,10 @@ let Actions = /* @__PURE__ */ function(Actions$1) {
 	return Actions$1;
 }({});
 let TabType = /* @__PURE__ */ function(TabType$1) {
-	TabType$1[TabType$1["Undefined"] = 0] = "Undefined";
-	TabType$1[TabType$1["Main"] = 1] = "Main";
-	TabType$1[TabType$1["HoursSettings"] = 2] = "HoursSettings";
-	TabType$1[TabType$1["Html"] = 3] = "Html";
+	TabType$1["Undefined"] = "Undefined";
+	TabType$1["Main"] = "Main";
+	TabType$1["HoursSettings"] = "HoursSettings";
+	TabType$1["Html"] = "Html";
 	return TabType$1;
 }({});
 function sendRequest(action, from, to, toId, data, pageTitle) {

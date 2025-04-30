@@ -8,7 +8,12 @@ export enum Actions {
     GreetingsFromChild = "greetingsFromChild",
 }
 
-export enum TabType {Undefined, Main, HoursSettings, Html}
+export enum TabType {
+    Undefined= "Undefined",
+    Main = "Main",
+    HoursSettings = "HoursSettings",
+    Html = "Html"
+}
 
 export interface ServiceRequest {
     action: Actions,

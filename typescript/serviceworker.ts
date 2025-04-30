@@ -35,7 +35,18 @@ let global_request = {};
 
 chrome.runtime.onMessage.addListener( onMessage);
 
-let mainTabId = -1;
+async function getTabId(tabType: TabType) {
+    let data = await chrome.storage.session.get(tabType);
+    console.log(data);
+    let tabId = data[tabType];
+    return parseInt(tabId);
+}
+
+async function setTabId(tabType: TabType, tabId: number) {
+    let data = {};
+    data[tabType] = tabId.toString();
+    await chrome.storage.session.set(data);
+}
 
 function onMessage(message: ServiceRequest, sender: MessageSender, sendResponse: (response?: any) => void) {
     switch (message.action) {
@@ -43,15 +54,14 @@ function onMessage(message: ServiceRequest, sender: MessageSender, sendResponse:
             let url = chrome.runtime.getURL("resources/blank.html");
             global_request = message;
             if(message.senderTabType === TabType.Main)
-                mainTabId = sender.tab.id;
+                setTabId(TabType.Main, sender.tab.id);
             chrome.tabs.create({url}).then(_tab => {
-                //TODO: store tab id?
                 sendResponse({tabId: _tab.id});
             });
             return true;
         case Actions.OpenHoursSettings:
             global_request = message;
-            mainTabId = sender.tab.id;
+            setTabId(TabType.Main, sender.tab.id);
             //todo: if already exists: activate?
             chrome.tabs.create({url: chrome.runtime.getURL("resources/teacherHoursSetup.html")}).then(tab => {
                 sendResponse({tabId: tab.id}); //todo: make a Response type.
@@ -61,16 +71,18 @@ function onMessage(message: ServiceRequest, sender: MessageSender, sendResponse:
             sendResponse(global_request);
             break;
         case Actions.GetParentTabId:
-            sendResponse(mainTabId);
+            sendResponse(getTabId(TabType.Main));
             break;
         case Actions.GreetingsFromChild:
         default: {
-            let targetTabId: number;
-            if (message.targetTabType === TabType.Main)
-                targetTabId = mainTabId;
-            //todo: else?
-            chrome.tabs.sendMessage(targetTabId, message).then(r => {
-            });
+            if (message.targetTabType === TabType.Main) {
+                getTabId(TabType.Main).then(id => {
+                    chrome.tabs.sendMessage(id, message).then(r => {
+                    });
+                });
+            }
+            else
+                console.log("TODO: send to other than main???");
             break;
         }
     }
