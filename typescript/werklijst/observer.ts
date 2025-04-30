@@ -23,7 +23,8 @@ registerChecksumHandler(tableId,  (_tableDef: TableFetcher) => {
     }
     );
 
-export default new HashObserver("#leerlingen-werklijst", onMutation, false, onPageLoaded);
+let observer = new HashObserver("#leerlingen-werklijst", onMutation, false, onPageLoaded);
+export default observer;
 
 function onPageLoaded() {
     console.log("Werklijst onPageLoaded");
@@ -193,7 +194,9 @@ function onShowLerarenUren(hourSettings?: TeacherHoursSetup) {
             vakLeraars = new Map([...vakLeraars.entries()].sort((a, b) => a[0] < b[0] ? -1 : ((a[0] > b[0])? 1 : 0))) as Map<string, VakLeraar>;
             document.getElementById(def.COUNT_TABLE_ID)?.remove();
             let year = parseInt(schoolYear);
+            observer.disconnect();
             buildTable(new UrenData(year, new CloudData(fromCloud), vakLeraars), tableFetcher);
+            observer.observeElement(document.querySelector("main"));
             document.getElementById(def.COUNT_TABLE_ID).style.display = "none";
             showOrHideNewTable();
         });

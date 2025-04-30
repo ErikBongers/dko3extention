@@ -436,12 +436,12 @@ function db3(message) {
 function createValidId(id) {
 	return id.replaceAll(" ", "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\W/g, "");
 }
-function registerObserver(observer) {
-	observers.push(observer);
+function registerObserver(observer$1) {
+	observers.push(observer$1);
 	if (observers.length > 20) console.error("Too many observers!");
 }
-function registerSettingsObserver(observer) {
-	settingsObservers.push(observer);
+function registerSettingsObserver(observer$1) {
+	settingsObservers.push(observer$1);
 	if (settingsObservers.length > 20) console.error("Too many settingsObservers!");
 }
 function setButtonHighlighted(buttonId, show) {
@@ -915,7 +915,7 @@ var BaseObserver = class {
 		this.pageFilter = pageFilter;
 		this.onMutation = onMutationCallback;
 		this.trackModal = trackModal;
-		if (onMutationCallback) this.observer = new MutationObserver((mutationList, observer) => this.observerCallback(mutationList, observer));
+		if (onMutationCallback) this.observer = new MutationObserver((mutationList, observer$1) => this.observerCallback(mutationList, observer$1));
 	}
 	observerCallback(mutationList, _observer) {
 		for (const mutation of mutationList) {
@@ -958,6 +958,9 @@ var HashObserver = class {
 	constructor(urlHash, onMutationCallback, trackModal = false, onPageLoadedCallback = void 0) {
 		this.baseObserver = new BaseObserver(void 0, new HashPageFilter(urlHash), onMutationCallback, trackModal, onPageLoadedCallback);
 	}
+	disconnect() {
+		this.baseObserver.disconnect();
+	}
 	onPageChanged() {
 		this.baseObserver.onPageChanged();
 	}
@@ -965,18 +968,25 @@ var HashObserver = class {
 		this.baseObserver.onPageLoaded();
 	}
 	isPageMatching = () => this.baseObserver.isPageMatching();
+	observeElement(element) {
+		this.baseObserver.observeElement(element);
+	}
 };
 var ExactHashObserver = class {
 	baseObserver;
 	constructor(urlHash, onMutationCallback, trackModal = false, onPageLoadedCallback = void 0) {
 		this.baseObserver = new BaseObserver(void 0, new ExactHashPageFilter(urlHash), onMutationCallback, trackModal, onPageLoadedCallback);
 	}
+	disconnect;
 	isPageMatching = () => this.baseObserver.isPageMatching();
 	onPageChanged() {
 		this.baseObserver.onPageChanged();
 	}
 	onPageLoaded() {
 		this.baseObserver.onPageLoaded();
+	}
+	observeElement(element) {
+		this.baseObserver.observeElement(element);
 	}
 };
 var PageObserver = class {
@@ -990,6 +1000,12 @@ var PageObserver = class {
 	}
 	onPageLoaded() {
 		this.baseObserver.onPageLoaded();
+	}
+	disconnect() {
+		this.baseObserver.disconnect();
+	}
+	observeElement(element) {
+		this.baseObserver.observeElement(element);
 	}
 };
 var MenuScrapingObserver = class MenuScrapingObserver {
@@ -1019,6 +1035,12 @@ var MenuScrapingObserver = class MenuScrapingObserver {
 	static defaultLinkToQueryItem(headerLabel, link, longLabelPrefix) {
 		let label = link.textContent.trim();
 		return createQueryItem(headerLabel, label, link.href, void 0, longLabelPrefix + label);
+	}
+	disconnect() {
+		this.hashObserver.disconnect();
+	}
+	observeElement(element) {
+		this.hashObserver.observeElement(element);
 	}
 };
 
@@ -2507,7 +2529,7 @@ function setSchoolBackground() {
 let isUpdatePaused = true;
 let cellChanged = false;
 let popoverIndex = 1;
-let editableObserver = new MutationObserver((mutationList, observer) => editableObserverCallback(mutationList, observer));
+let editableObserver = new MutationObserver((mutationList, observer$1) => editableObserverCallback(mutationList, observer$1));
 setInterval(onTimer, 5e3);
 function onTimer() {
 	checkAndUpdate(globalUrenData);
@@ -4734,7 +4756,8 @@ const tableId = "table_leerlingen_werklijst_table";
 registerChecksumHandler(tableId, (_tableDef) => {
 	return document.querySelector("#view_contents > div.alert.alert-primary")?.textContent.replace("Criteria aanpassen", "")?.replace("Criteria:", "") ?? "";
 });
-var observer_default$4 = new HashObserver("#leerlingen-werklijst", onMutation$3, false, onPageLoaded$1);
+let observer = new HashObserver("#leerlingen-werklijst", onMutation$3, false, onPageLoaded$1);
+var observer_default$4 = observer;
 function onPageLoaded$1() {
 	console.log("Werklijst onPageLoaded");
 	if (document.querySelector("#btn_werklijst_maken")) onCriteriaShown();
@@ -4881,7 +4904,9 @@ function onShowLerarenUren(hourSettings) {
 			vakLeraars = new Map([...vakLeraars.entries()].sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
 			document.getElementById(COUNT_TABLE_ID)?.remove();
 			let year = parseInt(schoolYear);
+			observer.disconnect();
 			buildTable(new UrenData(year, new CloudData(fromCloud), vakLeraars), tableFetcher);
+			observer.observeElement(document.querySelector("main"));
 			document.getElementById(COUNT_TABLE_ID).style.display = "none";
 			showOrHideNewTable();
 		});
@@ -5314,17 +5339,17 @@ function checkGlobalSettings() {
 }
 function onSettingsChanged() {
 	console.log("on settings changed.");
-	for (let observer of settingsObservers) observer();
+	for (let observer$1 of settingsObservers) observer$1();
 }
 function onPageChanged() {
 	if (getGlobalSettings().globalHide) return;
 	clearPageTransientState();
-	for (let observer of observers) observer.onPageChanged();
+	for (let observer$1 of observers) observer$1.onPageChanged();
 }
 function onPageLoaded() {
 	if (getGlobalSettings().globalHide) return;
 	clearPageTransientState();
-	for (let observer of observers) observer.onPageLoaded();
+	for (let observer$1 of observers) observer$1.onPageLoaded();
 }
 
 //#endregion

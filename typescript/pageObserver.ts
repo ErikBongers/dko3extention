@@ -108,6 +108,8 @@ export interface Observer {
     onPageChanged: () => void;
     onPageLoaded: () => void;
     isPageMatching: () => boolean;
+    disconnect: () => void;
+    observeElement: (element: HTMLElement) => void;
 }
 
 export class HashObserver implements Observer {
@@ -117,6 +119,10 @@ export class HashObserver implements Observer {
         this.baseObserver = new BaseObserver(undefined, new HashPageFilter(urlHash), onMutationCallback, trackModal, onPageLoadedCallback);
     }
 
+    disconnect() {
+        this.baseObserver.disconnect();
+    }
+
     onPageChanged() {
         this.baseObserver.onPageChanged();
     }
@@ -126,6 +132,10 @@ export class HashObserver implements Observer {
     }
 
     isPageMatching = () => this.baseObserver.isPageMatching();
+
+    observeElement(element: HTMLElement): void {
+        this.baseObserver.observeElement(element);
+    }
 }
 export class ExactHashObserver implements Observer {
     private baseObserver: BaseObserver;
@@ -134,6 +144,8 @@ export class ExactHashObserver implements Observer {
         this.baseObserver = new BaseObserver(undefined, new ExactHashPageFilter(urlHash), onMutationCallback, trackModal, onPageLoadedCallback);
     }
 
+    disconnect: () => void;
+
     isPageMatching = () => this.baseObserver.isPageMatching();
 
     onPageChanged() {
@@ -141,6 +153,10 @@ export class ExactHashObserver implements Observer {
     }
     onPageLoaded() {
         this.baseObserver.onPageLoaded();
+    }
+
+    observeElement(element: HTMLElement): void {
+        this.baseObserver.observeElement(element);
     }
 }
 
@@ -157,6 +173,14 @@ export class PageObserver implements Observer {
     }
     onPageLoaded() {
         this.baseObserver.onPageLoaded();
+    }
+
+    disconnect(): void {
+        this.baseObserver.disconnect();
+    }
+
+    observeElement(element: HTMLElement): void {
+        this.baseObserver.observeElement(element);
     }
 }
 
@@ -194,6 +218,14 @@ export class MenuScrapingObserver implements Observer {
     static defaultLinkToQueryItem(headerLabel: string, link: HTMLAnchorElement, longLabelPrefix: string) {
         let label = link.textContent.trim();
         return createQueryItem(headerLabel, label, link.href, undefined, longLabelPrefix + label);
+    }
+
+    disconnect(): void {
+        this.hashObserver.disconnect();
+    }
+
+    observeElement(element: HTMLElement): void {
+        this.hashObserver.observeElement(element);
     }
 
 }

@@ -1,10 +1,5 @@
-* teacher hours: 5000 mutation calls !!!
-
-* teacher hours: refresh on message doesn't work because the url+hash doesn't change: call refresh.
-
 * teacher hours: does NOT recreate the table on a "refresh"
-  > it only reloads the underlying table, but not the generated table.
-
+  > it only reloads the underlying table, but does not the hours table.
 
 * setup leraren uren: messaging between settings and table.
   > refresh table on every update. (optional!)
