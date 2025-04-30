@@ -2947,6 +2947,7 @@ function createTable(tableDef) {
 	return table;
 }
 function refillTable(table, urenData) {
+	table.innerHTML = "";
 	isUpdatePaused = true;
 	updateColDefs(urenData.year);
 	fillTableHeader(table, urenData.vakLeraars);
@@ -4800,7 +4801,8 @@ chrome.runtime.onMessage.addListener(onMessage);
 async function onMessage(request, _sender, _sendResponse) {
 	console.log("Received message from service worker: ", request);
 	let hourSettings = request.data;
-	await setCriteriaForTeacherHoursAndClick(hourSettings.schoolyear);
+	globals.hourSettingsMapped = mapHourSettings(hourSettings);
+	rebuildHoursTable(globals.table, globals.studentRowData, globals.hourSettingsMapped, globals.fromCloud);
 }
 async function showUrenSetup(schoolyear) {
 	let setup = await fetchHoursSettingsOrSaveDefault(schoolyear);

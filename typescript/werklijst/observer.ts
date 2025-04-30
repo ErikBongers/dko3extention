@@ -88,7 +88,8 @@ chrome.runtime.onMessage.addListener(onMessage)
 async function onMessage(request: ServiceRequest, _sender: MessageSender, _sendResponse: (response?: any) => void) {
     console.log("Received message from service worker: ", request);
     let hourSettings = request.data as TeacherHoursSetup;
-    await setCriteriaForTeacherHoursAndClick(hourSettings.schoolyear);
+    globals.hourSettingsMapped = mapHourSettings(hourSettings);
+    rebuildHoursTable(globals.table, globals.studentRowData, globals.hourSettingsMapped, globals.fromCloud);
 }
 
 async function showUrenSetup(schoolyear: string) {

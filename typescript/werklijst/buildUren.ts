@@ -245,6 +245,7 @@ export function createTable(tableDef: TableFetcher) {
 }
 
 export function refillTable(table: HTMLTableElement, urenData:  UrenData) {
+    table.innerHTML = "";
     isUpdatePaused = true;
     updateColDefs(urenData.year);
     fillTableHeader(table, urenData.vakLeraars);
