@@ -2265,7 +2265,11 @@ function onMutation$6(mutation) {
 			first.onclick = onClickShowTrimesters;
 		}
 	}
-	let lessenOverzicht = document.getElementById(LESSEN_OVERZICHT_ID);
+	let lessenOverzicht = document.getElementById(
+		//muziek
+		//modules!
+		LESSEN_OVERZICHT_ID
+);
 	if (mutation.target !== lessenOverzicht) return false;
 	let pageState$1 = getGotoStateOrDefault(PageName.Lessen);
 	switch (pageState$1.goto) {
@@ -3745,6 +3749,19 @@ async function setCriteriaForTeacherHoursAndClick(schooljaar, hourSettings) {
 
 //#endregion
 //#region typescript/pageHandlers.ts
+/**
+
+* NamedCellTableFetchListener with named column labels.\
+
+* Params are:
+
+* @description
+
+*      * requiredHeaderLabels: array with labels of required columns.
+
+*      * onRequiredColumnsMissing: OnRequiredColumnsMissingHandler, which will be called when labels are missing.
+
+*/
 var NamedCellTableFetchListener = class NamedCellTableFetchListener {
 	onStartFetching;
 	onLoaded;
@@ -4045,9 +4062,16 @@ var observer_default$5 = new BaseObserver(void 0, new AllPageFilter(), onMutatio
 function onMutation$4(_mutation) {
 	let navigationBars = getBothToolbars();
 	if (!navigationBars) return;
-	if (!findTableRefInCode()?.navigationData.isOnePage()) addTableNavigationButton(navigationBars, DOWNLOAD_TABLE_BTN_ID, "download full table", () => {
-		downloadTableRows().then((_r) => {});
-	}, "fa-arrow-down");
+	if (!findTableRefInCode()?.navigationData.isOnePage()) addTableNavigationButton(
+		navigationBars,
+		//wait for top and bottom bars.
+		DOWNLOAD_TABLE_BTN_ID,
+		"download full table",
+		() => {
+			downloadTableRows().then((_r) => {});
+		},
+		"fa-arrow-down"
+);
 	if (document.querySelector("main div.table-responsive table thead")) {
 		let table = document.querySelector("main div.table-responsive table");
 		decorateTableHeader(document.querySelector("main div.table-responsive table"));
@@ -4402,7 +4426,13 @@ var InfoBarTableFetchListener = class {
 function createDefaultTableRefAndInfoBar() {
 	let tableRef = findTableRefInCode();
 	if (!tableRef) return { error: "Cannot find table." };
-	document.getElementById(INFO_CONTAINER_ID)?.remove();
+	document.getElementById(
+		//NOT SURE THIS IS datatable.php !!!
+		//NOT SURE THIS IS datatable.php !!!
+		//hope and pray...
+		//never mind the yes: the scanner is invalid.
+		INFO_CONTAINER_ID
+)?.remove();
 	let divInfoContainer = tableRef.createElementAboveTable("div");
 	let infoBar = new InfoBar(divInfoContainer.appendChild(document.createElement("div")));
 	let progressBar = insertProgressBar(infoBar.divInfoLine, "loading pages... ");
@@ -4777,7 +4807,11 @@ function onCriteriaShown() {
 	pageState$1.werklijstTableName = "";
 	saveGotoState(pageState$1);
 	let btnWerklijstMaken = document.querySelector("#btn_werklijst_maken");
-	if (document.getElementById(UREN_PREV_BTN_ID)) return;
+	if (document.getElementById(
+		//don't report as log.error.
+		//re-create, just to be sure we have all the fields.
+		UREN_PREV_BTN_ID
+)) return;
 	let year = parseInt(Schoolyear.getHighestAvailable());
 	let prevSchoolyear = Schoolyear.toFullString(year - 1);
 	let nextSchoolyear = Schoolyear.toFullString(year);
@@ -4993,7 +5027,15 @@ function onMutationAanwezgheden(_mutation) {
 	if (!tableId$1) return false;
 	let navigationBars = getBothToolbars();
 	if (!navigationBars) return;
-	addTableNavigationButton(navigationBars, COPY_TABLE_BTN_ID, "copy table to clipboard", copyTable, "fa-clipboard");
+	addTableNavigationButton(
+		navigationBars,
+		//wait for top and bottom bars.
+		//remove "Klasleerkracht: "
+		COPY_TABLE_BTN_ID,
+		"copy table to clipboard",
+		copyTable,
+		"fa-clipboard"
+);
 	return true;
 }
 async function copyTable() {
