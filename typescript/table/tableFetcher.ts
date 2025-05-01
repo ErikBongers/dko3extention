@@ -82,7 +82,7 @@ export class TableFetcher {
     tableHandler?: TableHandler;
     listeners: TableFetchListener[];
     private cancelRequested: boolean;
-    private fetchFinished: boolean;
+    private isFetchFinished: boolean;
 
     constructor(tableRef: TableRef, calculateTableCheckSum: CheckSumBuilder, tableHandler?: TableHandler) {
         this.tableRef = tableRef;
@@ -93,7 +93,7 @@ export class TableFetcher {
         this.tableHandler = tableHandler;
         this.listeners = [];
         this.cancelRequested = false;
-        this.fetchFinished = false;
+        this.isFetchFinished = false;
     }
 
     reset() {
@@ -103,7 +103,7 @@ export class TableFetcher {
 
     async cancel() {
         this.cancelRequested = true;
-        while(!this.fetchFinished) {
+        while(!this.isFetchFinished) {
             await new Promise(resolve => setTimeout(resolve));
         }
         this.clearCache(); // only a partial table has been fetched.
@@ -144,7 +144,7 @@ export class TableFetcher {
             this.onFinished(true);
             return this.fetchedTable;
         }
-        this.fetchFinished = false;
+        this.isFetchFinished = false;
         let cachedData = this.loadFromCache();
         let succes: boolean;
         this.fetchedTable = new FetchedTable(this);
@@ -174,7 +174,7 @@ export class TableFetcher {
             lst.onStartFetching?.(this);
     }
     onFinished(succes: boolean) {
-        this.fetchFinished = true;
+        this.isFetchFinished = true;
         for(let lst of this.listeners)
             lst.onFinished?.(this, succes);
     }
