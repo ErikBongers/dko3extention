@@ -87,7 +87,7 @@ handler.onMessageForMyTabType((msg) => {
 	});
 	console.log("tab opened: request data message sent and received: ");
 	console.log(data);
-	document.getElementById("container").innerHTML = "Dataxxxx:" + data.data;
+	document.getElementById("container").innerHTML = data.data;
 	document.title = data.pageTitle;
 });
 
