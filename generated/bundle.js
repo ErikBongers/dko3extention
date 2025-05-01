@@ -3689,7 +3689,7 @@ async function saveHourSettings(hoursSetup) {
 
 //#endregion
 //#region typescript/werklijst/prefillInstruments.ts
-async function setCriteriaForTeacherHoursAndClick(schooljaar, hourSettings) {
+async function setCriteriaForTeacherHoursAndClickFetchButton(schooljaar, hourSettings) {
 	await sendClearWerklijst();
 	let dko3_vakken = await fetchAvailableSubjects(schooljaar);
 	if (!hourSettings) hourSettings = await fetchHoursSettingsOrSaveDefault(schooljaar);
@@ -3913,6 +3913,8 @@ var TableFetcher = class {
 	fetchedTable;
 	tableHandler;
 	listeners;
+	cancelRequested;
+	fetchFinished;
 	constructor(tableRef, calculateTableCheckSum, tableHandler) {
 		this.tableRef = tableRef;
 		if (!calculateTableCheckSum) throw "Tablechecksum required.";
@@ -3920,10 +3922,17 @@ var TableFetcher = class {
 		this.fetchedTable = void 0;
 		this.tableHandler = tableHandler;
 		this.listeners = [];
+		this.cancelRequested = false;
+		this.fetchFinished = false;
 	}
 	reset() {
 		this.clearCache();
 		this.tableHandler?.onReset?.(this);
+	}
+	async cancel() {
+		this.cancelRequested = true;
+		while (!this.fetchFinished) await new Promise((resolve) => setTimeout(resolve));
+		this.clearCache();
 	}
 	clearCache() {
 		db3(`Clear cache for ${this.tableRef.htmlTableId}.`);
@@ -3953,6 +3962,7 @@ var TableFetcher = class {
 			this.onFinished(true);
 			return this.fetchedTable;
 		}
+		this.fetchFinished = false;
 		let cachedData = this.loadFromCache();
 		let succes;
 		this.fetchedTable = new FetchedTable(this);
@@ -3980,6 +3990,7 @@ var TableFetcher = class {
 		for (let lst of this.listeners) lst.onStartFetching?.(this);
 	}
 	onFinished(succes) {
+		this.fetchFinished = true;
 		for (let lst of this.listeners) lst.onFinished?.(this, succes);
 	}
 	onPageLoaded(pageCnt, text) {
@@ -4003,6 +4014,7 @@ var TableFetcher = class {
 		try {
 			this.onStartFetching();
 			let pageCnt = 0;
+			this.cancelRequested = false;
 			while (true) {
 				console.log("fetching page " + fetchedTable.getNextPageNumber());
 				let response = await fetch(this.tableRef.buildFetchUrl(fetchedTable.getNextOffset()));
@@ -4011,6 +4023,7 @@ var TableFetcher = class {
 				pageCnt++;
 				this.onPageLoaded(pageCnt, text);
 				if (pageCnt >= this.tableRef.navigationData.steps()) break;
+				if (this.cancelRequested) break;
 			}
 		} finally {}
 	}
@@ -4795,13 +4808,13 @@ function onCriteriaShown() {
 	if (pageState$1.goto == Goto.Werklijst_uren_prevYear) {
 		pageState$1.goto = Goto.None;
 		saveGotoState(pageState$1);
-		setCriteriaForTeacherHoursAndClick(Schoolyear.toFullString(Schoolyear.calculateCurrent())).then(() => {});
+		setCriteriaForTeacherHoursAndClickFetchButton(Schoolyear.toFullString(Schoolyear.calculateCurrent())).then(() => {});
 		return;
 	}
 	if (pageState$1.goto == Goto.Werklijst_uren_nextYear) {
 		pageState$1.goto = Goto.None;
 		saveGotoState(pageState$1);
-		setCriteriaForTeacherHoursAndClick(Schoolyear.toFullString(Schoolyear.calculateCurrent() + 1)).then(() => {});
+		setCriteriaForTeacherHoursAndClickFetchButton(Schoolyear.toFullString(Schoolyear.calculateCurrent() + 1)).then(() => {});
 		return;
 	}
 	pageState$1.werklijstTableName = "";
@@ -4818,7 +4831,7 @@ function onCriteriaShown() {
 	let prevSchoolyearShort = Schoolyear.toShortString(year - 1);
 	let nextSchoolyearShort = Schoolyear.toShortString(year);
 	addButton$1(btnWerklijstMaken, UREN_PREV_BTN_ID, "Toon lerarenuren voor " + prevSchoolyear, async () => {
-		await setCriteriaForTeacherHoursAndClick(prevSchoolyear);
+		await setCriteriaForTeacherHoursAndClickFetchButton(prevSchoolyear);
 	}, "", ["btn", "btn-outline-dark"], "Uren " + prevSchoolyearShort);
 	addButton$1(btnWerklijstMaken, UREN_PREV_SETUP_BTN_ID, "Setup voor " + prevSchoolyear, async () => {
 		await showUrenSetup(prevSchoolyear);
@@ -4827,16 +4840,40 @@ function onCriteriaShown() {
 		await sendMessageToHoursSettings();
 	}, "", ["btn", "btn-outline-dark"], "send");
 	addButton$1(btnWerklijstMaken, UREN_NEXT_BTN_ID, "Toon lerarenuren voor " + nextSchoolyear, async () => {
-		await setCriteriaForTeacherHoursAndClick(nextSchoolyear);
+		await setCriteriaForTeacherHoursAndClickFetchButton(nextSchoolyear);
 	}, "", ["btn", "btn-outline-dark"], "Uren " + nextSchoolyearShort);
 	getSchoolIdString();
 }
 chrome.runtime.onMessage.addListener(onMessage);
+let pauseRefresh = false;
+setInterval(() => {
+	pauseRefresh = false;
+}, 2e3);
 async function onMessage(request, _sender, _sendResponse) {
+	if (globals.activeFetcher) {
+		await globals.activeFetcher.cancel();
+		pauseRefresh = false;
+	}
+	if (pauseRefresh) return;
+	pauseRefresh = true;
 	console.log("Received message from service worker: ", request);
+	if (!globals.hourSettingsMapped) {
+		console.log("It seems the page hasn't been fully built yet. Start all over again.");
+		await setCriteriaForTeacherHoursAndClickFetchButton(Schoolyear.findInPage());
+		return;
+	}
 	let hourSettings = request.data;
-	globals.hourSettingsMapped = mapHourSettings(hourSettings);
-	rebuildHoursTable(globals.table, globals.studentRowData, globals.hourSettingsMapped, globals.fromCloud);
+	let newSelectedSubjects = new Map(hourSettings.subjects.filter((s) => s.checked).map((s) => [s.name, s]));
+	let oldSelectedSubjects = globals.hourSettingsMapped.subjects.filter((s) => s.checked);
+	let equalSelectedSubjects = newSelectedSubjects.size == oldSelectedSubjects.length && oldSelectedSubjects.every((s, i) => newSelectedSubjects.has(s.name));
+	if (!equalSelectedSubjects) setCriteriaForTeacherHoursAndClickFetchButton(hourSettings.schoolyear).then((value) => {
+		pauseRefresh = false;
+	});
+	else {
+		globals.hourSettingsMapped = mapHourSettings(hourSettings);
+		rebuildHoursTable(globals.table, globals.studentRowData, globals.hourSettingsMapped, globals.fromCloud);
+		pauseRefresh = false;
+	}
 }
 async function showUrenSetup(schoolyear) {
 	let setup = await fetchHoursSettingsOrSaveDefault(schoolyear);
@@ -4895,7 +4932,8 @@ let globals = {
 	studentRowData: [],
 	hourSettingsMapped: void 0,
 	fromCloud: void 0,
-	table: void 0
+	table: void 0,
+	activeFetcher: void 0
 };
 function rebuildHoursTable(table, studentRowData, hourSettingsMapped, fromCloud) {
 	let vakLeraars = buildVakLeraarsMap(studentRowData, hourSettingsMapped);
@@ -4926,7 +4964,9 @@ function onShowLerarenUren(hourSettings) {
 		];
 		let tableFetchListener = new NamedCellTableFetchListener(requiredHeaderLabels, () => {});
 		tableFetcher.addListener(tableFetchListener);
+		globals.activeFetcher = tableFetcher;
 		Promise.all([tableFetcher.fetch(), getUrenFromCloud(fileName)]).then(async (results) => {
+			globals.activeFetcher = void 0;
 			let [fetchedTable, jsonCloudData] = results;
 			if (!hourSettings) hourSettings = await fetchHoursSettingsOrSaveDefault(Schoolyear.findInPage());
 			globals.studentRowData = scrapeUren(fetchedTable, tableFetchListener);

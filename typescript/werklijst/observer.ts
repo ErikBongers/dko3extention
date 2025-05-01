@@ -4,7 +4,7 @@ import {createTable, refillTable, getUrenVakLeraarFileName} from "./buildUren";
 import {addStudentToVakLeraarsMap, scrapeUren, StudentUrenRow, VakLeraar} from "./scrapeUren";
 import {cloud} from "../cloud";
 import {TableFetcher} from "../table/tableFetcher";
-import {setCriteriaForTeacherHoursAndClick} from "./prefillInstruments";
+import {setCriteriaForTeacherHoursAndClickFetchButton} from "./prefillInstruments";
 import {HashObserver} from "../pageObserver";
 import {NamedCellTableFetchListener} from "../pageHandlers";
 import {decorateTableHeader} from "../table/tableHeaders";
@@ -56,13 +56,13 @@ function onCriteriaShown() {
     if(pageState.goto == Goto.Werklijst_uren_prevYear) {
         pageState.goto = Goto.None;
         saveGotoState(pageState);
-        setCriteriaForTeacherHoursAndClick(Schoolyear.toFullString(Schoolyear.calculateCurrent())).then(() => {});
+        setCriteriaForTeacherHoursAndClickFetchButton(Schoolyear.toFullString(Schoolyear.calculateCurrent())).then(() => {});
         return;
     }
     if(pageState.goto == Goto.Werklijst_uren_nextYear) {
         pageState.goto = Goto.None;
         saveGotoState(pageState);
-        setCriteriaForTeacherHoursAndClick(Schoolyear.toFullString(Schoolyear.calculateCurrent()+1)).then(() => {});
+        setCriteriaForTeacherHoursAndClickFetchButton(Schoolyear.toFullString(Schoolyear.calculateCurrent()+1)).then(() => {});
         return;
     }
     pageState.werklijstTableName = "";
@@ -76,20 +76,51 @@ function onCriteriaShown() {
     let nextSchoolyear = Schoolyear.toFullString(year);
     let prevSchoolyearShort = Schoolyear.toShortString(year-1);
     let nextSchoolyearShort = Schoolyear.toShortString(year);
-    addButton(btnWerklijstMaken, def.UREN_PREV_BTN_ID, "Toon lerarenuren voor "+ prevSchoolyear, async () => { await setCriteriaForTeacherHoursAndClick(prevSchoolyear); }, "", ["btn", "btn-outline-dark"], "Uren "+ prevSchoolyearShort);
+    addButton(btnWerklijstMaken, def.UREN_PREV_BTN_ID, "Toon lerarenuren voor "+ prevSchoolyear, async () => { await setCriteriaForTeacherHoursAndClickFetchButton(prevSchoolyear); }, "", ["btn", "btn-outline-dark"], "Uren "+ prevSchoolyearShort);
     addButton(btnWerklijstMaken, def.UREN_PREV_SETUP_BTN_ID, "Setup voor "+ prevSchoolyear, async () => { await showUrenSetup(prevSchoolyear); }, "fas-certificate", ["btn", "btn-outline-dark"], "", "beforebegin", "gear.svg");
     addButton(btnWerklijstMaken, def.UREN_PREV_SETUP_BTN_ID+"sdf", "test", async () => { await sendMessageToHoursSettings(); }, "", ["btn", "btn-outline-dark"], "send");
-    addButton(btnWerklijstMaken, def.UREN_NEXT_BTN_ID, "Toon lerarenuren voor "+ nextSchoolyear, async () => { await setCriteriaForTeacherHoursAndClick(nextSchoolyear); }, "", ["btn", "btn-outline-dark"], "Uren "+ nextSchoolyearShort);
+    addButton(btnWerklijstMaken, def.UREN_NEXT_BTN_ID, "Toon lerarenuren voor "+ nextSchoolyear, async () => { await setCriteriaForTeacherHoursAndClickFetchButton(nextSchoolyear); }, "", ["btn", "btn-outline-dark"], "Uren "+ nextSchoolyearShort);
     getSchoolIdString();
 }
 
 chrome.runtime.onMessage.addListener(onMessage)
+let pauseRefresh = false;
+
+//reset the pause after some time, because otherwise, in case of an error, the page will no longer be refreshed.
+setInterval(() => {
+    pauseRefresh = false;
+}, 2000);
 
 async function onMessage(request: ServiceRequest, _sender: MessageSender, _sendResponse: (response?: any) => void) {
+    if(globals.activeFetcher) {
+        await globals.activeFetcher.cancel();
+        pauseRefresh = false;
+    }
+    if(pauseRefresh)
+        return;
+    pauseRefresh = true;
     console.log("Received message from service worker: ", request);
+    if(!globals.hourSettingsMapped)  {
+        console.log("It seems the page hasn't been fully built yet. Start all over again.");
+        await setCriteriaForTeacherHoursAndClickFetchButton(Schoolyear.findInPage());
+        return;
+    }
     let hourSettings = request.data as TeacherHoursSetup;
-    globals.hourSettingsMapped = mapHourSettings(hourSettings);
-    rebuildHoursTable(globals.table, globals.studentRowData, globals.hourSettingsMapped, globals.fromCloud);
+    let newSelectedSubjects  = new Map(hourSettings.subjects.filter(s => s.checked).map(s => [s.name, s]));
+    let oldSelectedSubjects = globals.hourSettingsMapped.subjects.filter(s => s.checked);
+    let equalSelectedSubjects =
+        newSelectedSubjects.size == oldSelectedSubjects.length
+        && oldSelectedSubjects
+            .every((s, i) => newSelectedSubjects.has(s.name));
+    if(!equalSelectedSubjects) {
+        setCriteriaForTeacherHoursAndClickFetchButton(hourSettings.schoolyear).then(value => {
+            pauseRefresh = false;
+        });
+    } else {
+        globals.hourSettingsMapped = mapHourSettings(hourSettings);
+        rebuildHoursTable(globals.table, globals.studentRowData, globals.hourSettingsMapped, globals.fromCloud);
+        pauseRefresh = false;
+    }
 }
 
 async function showUrenSetup(schoolyear: string) {
@@ -171,6 +202,7 @@ function buildVakLeraarsMap(studentRowData: StudentUrenRow[], hourSettingsMapped
 }
 
 type UrenGlobals = {
+    activeFetcher: TableFetcher;
     studentRowData: StudentUrenRow[],
     hourSettingsMapped: TeacherHoursSetupMapped,
     fromCloud: CloudData,
@@ -181,7 +213,8 @@ let globals: UrenGlobals = {
     studentRowData: [],
     hourSettingsMapped: undefined,
     fromCloud: undefined,
-    table: undefined
+    table: undefined,
+    activeFetcher: undefined
 };
 
 function rebuildHoursTable(table: HTMLTableElement, studentRowData: StudentUrenRow[], hourSettingsMapped: TeacherHoursSetupMapped, fromCloud: CloudData) {
@@ -211,7 +244,9 @@ function onShowLerarenUren(hourSettings?: TeacherHoursSetup) {
         let tableFetchListener = new NamedCellTableFetchListener(requiredHeaderLabels, () => {});
         tableFetcher.addListener(tableFetchListener);
 
+        globals.activeFetcher  = tableFetcher;
         Promise.all([tableFetcher.fetch(), getUrenFromCloud(fileName)]).then(async results => {
+            globals.activeFetcher = undefined;
             let [fetchedTable, jsonCloudData] = results;
             if(!hourSettings) {
                 hourSettings = await fetchHoursSettingsOrSaveDefault(Schoolyear.findInPage());

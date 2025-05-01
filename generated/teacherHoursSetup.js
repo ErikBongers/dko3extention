@@ -986,7 +986,7 @@ setInterval(() => {
 }, 1e3);
 function scrapeSubjects() {
 	let rows = document.querySelectorAll("#subjectsContainer>table>tbody>tr");
-	return [...rows].filter((row) => row.cells[0].querySelector("input:checked") !== null || row.cells[2].querySelector("input").value).map((row) => {
+	return [...rows].map((row) => {
 		return {
 			checked: row.cells[0].querySelector("input:checked") !== null,
 			name: row.cells[1].textContent,

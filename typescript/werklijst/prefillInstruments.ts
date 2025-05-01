@@ -3,7 +3,7 @@ import * as def from "../def";
 import {getGotoStateOrDefault, PageName, saveGotoState, WerklijstGotoState} from "../gotoState";
 import {fetchHoursSettingsOrSaveDefault, TeacherHoursSetup} from "./hoursSettings";
 
-export async function setCriteriaForTeacherHoursAndClick(schooljaar: string, hourSettings?: TeacherHoursSetup) {
+export async function setCriteriaForTeacherHoursAndClickFetchButton(schooljaar: string, hourSettings?: TeacherHoursSetup) {
     await sendClearWerklijst();
     let dko3_vakken = await fetchAvailableSubjects(schooljaar);
     if(!hourSettings)
