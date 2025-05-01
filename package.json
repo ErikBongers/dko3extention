@@ -6,6 +6,7 @@
   "scripts": {
     "test": "echo \"Note that the build command does a TSC first for stricter compilation.\" && exit 1",
     "build_all": "npm run build_content && npm run build_options && npm run build_serviceworker && npm run build_blank && npm run build_hours_setup",
+    "build_all_quick": "rolldown -c rolldown_all.config.js",
     "build_content": "tsc --build &&  rolldown -c",
     "build_serviceworker": "tsc --build &&  rolldown -c rolldown_service.config.js",
     "build_options": "tsc --project ./tsconfig_options.json && rolldown -c rolldown_options.config.js",
