@@ -81,6 +81,8 @@ export class TableFetcher {
     fetchedTable?: FetchedTable;
     tableHandler?: TableHandler;
     listeners: TableFetchListener[];
+    private cancelRequested: boolean;
+    private fetchFinished: boolean;
 
     constructor(tableRef: TableRef, calculateTableCheckSum: CheckSumBuilder, tableHandler?: TableHandler) {
         this.tableRef = tableRef;
@@ -90,11 +92,21 @@ export class TableFetcher {
         this.fetchedTable = undefined;
         this.tableHandler = tableHandler;
         this.listeners = [];
+        this.cancelRequested = false;
+        this.fetchFinished = false;
     }
 
     reset() {
         this.clearCache();
         this.tableHandler?.onReset?.(this);
+    }
+
+    async cancel() {
+        this.cancelRequested = true;
+        while(!this.fetchFinished) {
+            await new Promise(resolve => setTimeout(resolve));
+        }
+        this.clearCache(); // only a partial table has been fetched.
     }
 
     clearCache() {
@@ -132,6 +144,7 @@ export class TableFetcher {
             this.onFinished(true);
             return this.fetchedTable;
         }
+        this.fetchFinished = false;
         let cachedData = this.loadFromCache();
         let succes: boolean;
         this.fetchedTable = new FetchedTable(this);
@@ -161,6 +174,7 @@ export class TableFetcher {
             lst.onStartFetching?.(this);
     }
     onFinished(succes: boolean) {
+        this.fetchFinished = true;
         for(let lst of this.listeners)
             lst.onFinished?.(this, succes);
     }
@@ -193,6 +207,7 @@ export class TableFetcher {
         try {
             this.onStartFetching();
             let pageCnt = 0;
+            this.cancelRequested = false;
             while (true) {
                 console.log("fetching page " + fetchedTable.getNextPageNumber());
                 let response = await fetch(this.tableRef.buildFetchUrl(fetchedTable.getNextOffset()));
@@ -201,6 +216,8 @@ export class TableFetcher {
                 pageCnt++;
                 this.onPageLoaded(pageCnt, text);
                 if(pageCnt >= this.tableRef.navigationData.steps())
+                    break;
+                if(this.cancelRequested)
                     break;
             }
         } finally {
