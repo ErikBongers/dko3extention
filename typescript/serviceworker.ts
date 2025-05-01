@@ -74,16 +74,10 @@ function onMessage(message: ServiceRequest, sender: MessageSender, sendResponse:
             sendResponse(getTabId(TabType.Main));
             break;
         case Actions.GreetingsFromChild:
-        default: {
-            if (message.targetTabType === TabType.Main) {
-                getTabId(TabType.Main).then(id => {
-                    chrome.tabs.sendMessage(id, message).then(r => {
-                    });
-                });
-            }
-            else
-                console.log("TODO: send to other than main???");
+        default:
+            getTabId(message.targetTabType).then(id => {
+                chrome.tabs.sendMessage(id, message).then(r => {});
+            });
             break;
-        }
     }
 }
