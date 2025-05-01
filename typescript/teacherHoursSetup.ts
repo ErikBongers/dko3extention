@@ -150,7 +150,6 @@ setInterval(() => {
 function scrapeSubjects() {
     let rows = document.querySelectorAll("#subjectsContainer>table>tbody>tr") as NodeListOf<HTMLTableRowElement>;
     return [...rows]
-        .filter(row => row.cells[0].querySelector("input:checked") !== null || row.cells[2].querySelector("input").value)
         .map(row => {
             return {
                 checked: row.cells[0].querySelector("input:checked") !== null,
