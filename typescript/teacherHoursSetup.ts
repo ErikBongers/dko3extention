@@ -145,7 +145,7 @@ let hasTableChanged = false;
 
 setInterval(() => {
     onCheckTableChanged(globalSetup);
-}, 2000);
+}, 1000);
 
 function scrapeSubjects() {
     let rows = document.querySelectorAll("#subjectsContainer>table>tbody>tr") as NodeListOf<HTMLTableRowElement>;

@@ -1,5 +1,10 @@
+* tableFetcher.fetch(): should not try to fetch if beforeXXX returns false!
+  >see onShowLerarenUren with wrong search fields.
+
 * teacher hours: rebuild table without reloading page.
   > only if selected subjects hasn't changed, as this requires a complete reload.
+    > this takes time: don't trigger this every second.
+      > if a update msg appears while loading: set a reloadRequested flag.
 
 * teacher hours: does NOT recreate the table on a "refresh"
   > it only reloads the underlying table, but does not the hours table.

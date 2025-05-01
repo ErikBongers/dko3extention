@@ -983,7 +983,7 @@ let globalSetup = void 0;
 let hasTableChanged = false;
 setInterval(() => {
 	onCheckTableChanged(globalSetup);
-}, 2e3);
+}, 1e3);
 function scrapeSubjects() {
 	let rows = document.querySelectorAll("#subjectsContainer>table>tbody>tr");
 	return [...rows].filter((row) => row.cells[0].querySelector("input:checked") !== null || row.cells[2].querySelector("input").value).map((row) => {

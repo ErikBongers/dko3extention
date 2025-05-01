@@ -4921,6 +4921,12 @@ function showOrHideNewTable() {
 	document.getElementById(COUNT_TABLE_ID).style.display = showNewTable ? "table" : "none";
 	document.getElementById(COUNT_BUTTON_ID).title = showNewTable ? "Toon normaal" : "Toon telling";
 	setButtonHighlighted(COUNT_BUTTON_ID, showNewTable);
+	if (document.getElementById(COUNT_TABLE_ID)) {
+		let targetButton = document.querySelector("#tablenav_leerlingen_werklijst_top > div > div.btn-group.btn-group-sm.datatable-buttons > button:nth-child(1)");
+		addButton$1(targetButton, UREN_PREV_SETUP_BTN_ID, "Setup ", async () => {
+			await showUrenSetup(Schoolyear.findInPage());
+		}, "fas-certificate", ["btn", "btn-outline-dark"], "", "beforebegin", "gear.svg");
+	}
 	let pageState$1 = getGotoStateOrDefault(PageName.Werklijst);
 	pageState$1.werklijstTableName = showNewTable ? UREN_TABLE_STATE_NAME : "";
 	saveGotoState(pageState$1);
