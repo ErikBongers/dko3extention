@@ -660,6 +660,9 @@ function arrayIsEqual(a, b) {
 	let aSet = new Set(a);
 	return b.every((value, _) => aSet.has(value));
 }
+function escapeRegexChars(text) {
+	return text.replaceAll("\\", "\\\\").replaceAll("^", "\\^").replaceAll("$", "\\$").replaceAll(".", "\\.").replaceAll("|", "\\|").replaceAll("?", "\\?").replaceAll("*", "\\*").replaceAll("+", "\\+").replaceAll("(", "\\(").replaceAll(")", "\\)").replaceAll("[", "\\[").replaceAll("]", "\\]").replaceAll("{", "\\{").replaceAll("}", "\\}");
+}
 
 //#endregion
 //#region typescript/gotoState.ts
@@ -3475,73 +3478,7 @@ function insertProgressBar(container, text = "") {
 }
 
 //#endregion
-//#region typescript/table/loadAnyTable.ts
-async function getTableRefFromHash(hash) {
-	await fetch("https://administratie.dko3.cloud/#" + hash).then((res) => res.text());
-	let view = await fetch("view.php?args=" + hash).then((res) => res.text());
-	let index_viewUrl = getDocReadyLoadUrl(view);
-	let index_view = await fetch(index_viewUrl).then((res) => res.text());
-	let htmlTableId = getDocReadyLoadScript(index_view).find("$", "(", "'#").clipTo("'").result();
-	if (!htmlTableId) htmlTableId = getDocReadyLoadScript(index_view).find("$", "(", "\"#").clipTo("\"").result();
-	let someUrl = getDocReadyLoadUrl(index_view);
-	if (!someUrl.includes("ui/datatable.php")) {
-		let someCode = await fetch(someUrl).then((res) => res.text());
-		someUrl = getDocReadyLoadUrl(someCode);
-	}
-	let datatableUrl = someUrl;
-	let datatable = await fetch(datatableUrl).then((result) => result.text());
-	let scanner = new TokenScanner(datatable);
-	let datatable_id = "";
-	let tableNavUrl = "";
-	scanner.find("var", "datatable_id", "=").getString((res) => {
-		datatable_id = res;
-	}).clipTo("</script>").find(".", "load", "(").getString((res) => tableNavUrl = res).result();
-	tableNavUrl += datatable_id + "&pos=top";
-	let tableNavText = await fetch(tableNavUrl).then((res) => res.text().then());
-	let div = document.createElement("div");
-	div.innerHTML = tableNavText;
-	let tableNav = findFirstNavigation(div);
-	console.log(tableNav);
-	let buildFetchUrl = (offset) => `/views/ui/datatable.php?id=${datatable_id}&start=${offset}&aantal=0`;
-	return new TableRef(htmlTableId, tableNav, buildFetchUrl);
-}
-async function getTableFromHash(hash, clearCache, infoBarListener) {
-	let tableRef = await getTableRefFromHash(hash);
-	console.log(tableRef);
-	let tableFetcher = new TableFetcher(tableRef, getChecksumBuilder(tableRef.htmlTableId));
-	tableFetcher.addListener(infoBarListener);
-	if (clearCache) tableFetcher.clearCache();
-	let fetchedTable = await tableFetcher.fetch();
-	await setViewFromCurrentUrl();
-	return fetchedTable;
-}
-function findDocReady(scanner) {
-	return scanner.find("$", "(", "document", ")", ".", "ready", "(");
-}
-function getDocReadyLoadUrl(text) {
-	let scanner = new TokenScanner(text);
-	while (true) {
-		let docReady = findDocReady(scanner);
-		if (!docReady.valid) return void 0;
-		let url = docReady.clone().clipTo("</script>").find(".", "load", "(").clipString().result();
-		if (url) return url;
-		scanner = docReady;
-	}
-}
-function getDocReadyLoadScript(text) {
-	let scanner = new TokenScanner(text);
-	while (true) {
-		let docReady = findDocReady(scanner);
-		if (!docReady.valid) return void 0;
-		let script = docReady.clone().clipTo("</script>");
-		let load = script.clone().find(".", "load", "(");
-		if (load.valid) return script;
-		scanner = docReady;
-	}
-}
-function escapeRegexChars(text) {
-	return text.replaceAll("\\", "\\\\").replaceAll("^", "\\^").replaceAll("$", "\\$").replaceAll(".", "\\.").replaceAll("|", "\\|").replaceAll("?", "\\?").replaceAll("*", "\\*").replaceAll("+", "\\+").replaceAll("(", "\\(").replaceAll(")", "\\)").replaceAll("[", "\\[").replaceAll("]", "\\]").replaceAll("{", "\\{").replaceAll("}", "\\}");
-}
+//#region typescript/tokenScanner.ts
 var ScannerElse = class {
 	scannerIf;
 	constructor(scannerIf) {
@@ -3645,6 +3582,72 @@ var TokenScanner = class TokenScanner {
 		return this;
 	}
 };
+
+//#endregion
+//#region typescript/table/loadAnyTable.ts
+async function getTableRefFromHash(hash) {
+	await fetch("https://administratie.dko3.cloud/#" + hash).then((res) => res.text());
+	let view = await fetch("view.php?args=" + hash).then((res) => res.text());
+	let index_viewUrl = getDocReadyLoadUrl(view);
+	let index_view = await fetch(index_viewUrl).then((res) => res.text());
+	let htmlTableId = getDocReadyLoadScript(index_view).find("$", "(", "'#").clipTo("'").result();
+	if (!htmlTableId) htmlTableId = getDocReadyLoadScript(index_view).find("$", "(", "\"#").clipTo("\"").result();
+	let someUrl = getDocReadyLoadUrl(index_view);
+	if (!someUrl.includes("ui/datatable.php")) {
+		let someCode = await fetch(someUrl).then((res) => res.text());
+		someUrl = getDocReadyLoadUrl(someCode);
+	}
+	let datatableUrl = someUrl;
+	let datatable = await fetch(datatableUrl).then((result) => result.text());
+	let scanner = new TokenScanner(datatable);
+	let datatable_id = "";
+	let tableNavUrl = "";
+	scanner.find("var", "datatable_id", "=").getString((res) => {
+		datatable_id = res;
+	}).clipTo("</script>").find(".", "load", "(").getString((res) => tableNavUrl = res).result();
+	tableNavUrl += datatable_id + "&pos=top";
+	let tableNavText = await fetch(tableNavUrl).then((res) => res.text().then());
+	let div = document.createElement("div");
+	div.innerHTML = tableNavText;
+	let tableNav = findFirstNavigation(div);
+	console.log(tableNav);
+	let buildFetchUrl = (offset) => `/views/ui/datatable.php?id=${datatable_id}&start=${offset}&aantal=0`;
+	return new TableRef(htmlTableId, tableNav, buildFetchUrl);
+}
+async function getTableFromHash(hash, clearCache, infoBarListener) {
+	let tableRef = await getTableRefFromHash(hash);
+	console.log(tableRef);
+	let tableFetcher = new TableFetcher(tableRef, getChecksumBuilder(tableRef.htmlTableId));
+	tableFetcher.addListener(infoBarListener);
+	if (clearCache) tableFetcher.clearCache();
+	let fetchedTable = await tableFetcher.fetch();
+	await setViewFromCurrentUrl();
+	return fetchedTable;
+}
+function findDocReady(scanner) {
+	return scanner.find("$", "(", "document", ")", ".", "ready", "(");
+}
+function getDocReadyLoadUrl(text) {
+	let scanner = new TokenScanner(text);
+	while (true) {
+		let docReady = findDocReady(scanner);
+		if (!docReady.valid) return void 0;
+		let url = docReady.clone().clipTo("</script>").find(".", "load", "(").clipString().result();
+		if (url) return url;
+		scanner = docReady;
+	}
+}
+function getDocReadyLoadScript(text) {
+	let scanner = new TokenScanner(text);
+	while (true) {
+		let docReady = findDocReady(scanner);
+		if (!docReady.valid) return void 0;
+		let script = docReady.clone().clipTo("</script>");
+		let load = script.clone().find(".", "load", "(");
+		if (load.valid) return script;
+		scanner = docReady;
+	}
+}
 async function downloadTableRows() {
 	let result = createDefaultTableFetcher();
 	if ("error" in result) {
@@ -3704,7 +3707,6 @@ function createDefaultTableRefAndInfoBar() {
 		//NOT SURE THIS IS datatable.php !!!
 		//NOT SURE THIS IS datatable.php !!!
 		//hope and pray...
-		//never mind the yes: the scanner is invalid.
 		INFO_CONTAINER_ID
 )?.remove();
 	let divInfoContainer = tableRef.createElementAboveTable("div");
@@ -4972,25 +4974,25 @@ function rebuildHoursTable(table, studentRowData, hourSettingsMapped, fromCloud)
 	showUrenTable(true);
 }
 function onShowLerarenUren() {
-	if (!document.getElementById(HOURS_TABLE_ID)) {
-		let result = createDefaultTableFetcher();
-		if ("error" in result) {
-			console.log(result.error);
-			return false;
-		}
-		globals.activeFetcher = result.result.tableFetcher;
-		globals.activeFetcher.addListener(createUrenFetchListener());
-		setAfterDownloadTableAction(void 0);
-		Promise.all([globals.activeFetcher.fetch(), getUrenFromCloud(getUrenVakLeraarFileName())]).then(async (results) => {
-			let [fetchedTable, jsonCloudData] = results;
-			globals.activeFetcher = void 0;
-			globals.hourSettingsMapped = mapHourSettings(await fetchHoursSettingsOrSaveDefault(Schoolyear.findInPage()));
-			globals.fromCloud = new CloudData(upgradeCloudData(jsonCloudData));
-			rebuildHoursTableAfterDownloadFullTable(fetchedTable.getRows(), fetchedTable.tableFetcher.tableRef);
-		});
+	if (document.getElementById(HOURS_TABLE_ID)) {
+		showUrenTable(true);
 		return true;
 	}
-	showUrenTable(true);
+	let result = createDefaultTableFetcher();
+	if ("error" in result) {
+		console.log(result.error);
+		return false;
+	}
+	globals.activeFetcher = result.result.tableFetcher;
+	globals.activeFetcher.addListener(createUrenFetchListener());
+	setAfterDownloadTableAction(void 0);
+	Promise.all([globals.activeFetcher.fetch(), getUrenFromCloud(getUrenVakLeraarFileName())]).then(async (results) => {
+		let [fetchedTable, jsonCloudData] = results;
+		globals.activeFetcher = void 0;
+		globals.hourSettingsMapped = mapHourSettings(await fetchHoursSettingsOrSaveDefault(Schoolyear.findInPage()));
+		globals.fromCloud = new CloudData(upgradeCloudData(jsonCloudData));
+		rebuildHoursTableAfterDownloadFullTable(fetchedTable.getRows(), fetchedTable.tableFetcher.tableRef);
+	});
 	return true;
 }
 function createUrenFetchListener() {

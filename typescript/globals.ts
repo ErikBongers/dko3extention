@@ -346,3 +346,21 @@ export function arrayIsEqual(a: string[], b: string[]) {
     let aSet = new Set(a);
     return b.every((value, _) => aSet.has(value));
 }
+
+export function escapeRegexChars(text: string): string {
+    return text
+        .replaceAll("\\", "\\\\")
+        .replaceAll("^", "\\^")
+        .replaceAll("$", "\\$")
+        .replaceAll(".", "\\.")
+        .replaceAll("|", "\\|")
+        .replaceAll("?", "\\?")
+        .replaceAll("*", "\\*")
+        .replaceAll("+", "\\+")
+        .replaceAll("(", "\\(")
+        .replaceAll(")", "\\)")
+        .replaceAll("[", "\\[")
+        .replaceAll("]", "\\]")
+        .replaceAll("{", "\\{")
+        .replaceAll("}", "\\}")
+}
