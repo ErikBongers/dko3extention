@@ -114,7 +114,7 @@ export interface Observer {
 
 export class HashObserver implements Observer {
     private baseObserver: BaseObserver;
-    //onMutationCallback should return true if handled definitively.
+    //onMutationCallback should return true if handled definitively, and no further mutation records from the mutationList should be handled.
     constructor(urlHash: string, onMutationCallback: (mutation: MutationRecord) => boolean, trackModal: boolean = false, onPageLoadedCallback: () => void = undefined) {
         this.baseObserver = new BaseObserver(undefined, new HashPageFilter(urlHash), onMutationCallback, trackModal, onPageLoadedCallback);
     }
@@ -139,7 +139,7 @@ export class HashObserver implements Observer {
 }
 export class ExactHashObserver implements Observer {
     private baseObserver: BaseObserver;
-    //onMutationCallback should return true if handled definitively.
+    //onMutationCallback should return true if handled definitively, and no further mutation records from the mutationList should be handled.
     constructor(urlHash: string, onMutationCallback: (mutation: MutationRecord) => boolean, trackModal: boolean = false, onPageLoadedCallback: () => void = undefined) {
         this.baseObserver = new BaseObserver(undefined, new ExactHashPageFilter(urlHash), onMutationCallback, trackModal, onPageLoadedCallback);
     }
