@@ -8,17 +8,27 @@ import * as def from "../def";
 import {executeTableCommands, TableHandlerForHeaders} from "./tableHeaders";
 import {TokenScanner} from "../tokenScanner";
 
+async function fetchText(url: string) {
+    let res = await fetch(url);
+    return res.text();
+}
+
+async function getDocReadyLoadUrlFrom(url: string) {
+    let text = await fetchText(url);
+    return getDocReadyLoadUrl(text);
+}
+
 async function getTableRefFromHash(hash: string) {
-    await fetch("https://administratie.dko3.cloud/#" + hash).then(res => res.text());
+    await fetchText("https://administratie.dko3.cloud/#" + hash);
 
     // call to changeView() - assuming this is always the same, so no parsing here.
-    let view = await fetch("view.php?args=" + hash).then(res => res.text());
-    let index_viewUrl = getDocReadyLoadUrl(view);
+    let index_viewUrl = await getDocReadyLoadUrlFrom("view.php?args=" + hash);
 
     //get the htmlTableId (from index.view.php
-    let index_view = await fetch(index_viewUrl).then(res => res.text());
+    let index_view = await fetchText(index_viewUrl);
     let htmlTableId = getDocReadyLoadScript(index_view)
         .find("$", "(", "'#")
+        //todo: find("$", "(") then .getString() then check and strip the "#".
         .clipTo("'")
         .result();
     if (!htmlTableId) {
@@ -27,16 +37,13 @@ async function getTableRefFromHash(hash: string) {
             .clipTo("\"")
             .result();
     }
-    let someUrl = getDocReadyLoadUrl(index_view); //NOT SURE THIS IS datatable.php !!!
-    //>> keep going unti we get to datatable.php...
-    if (!someUrl.includes("ui/datatable.php")) {
+    let datatableUrl = getDocReadyLoadUrl(index_view); //NOT SURE THIS IS datatable.php !!!
+    if (!datatableUrl.includes("ui/datatable.php")) {
         //fetch again. Don't loop to avoid dead loop.
-        let someCode = await fetch(someUrl).then(res => res.text());
-        someUrl = getDocReadyLoadUrl(someCode); //NOT SURE THIS IS datatable.php !!!
+        datatableUrl = await getDocReadyLoadUrlFrom(datatableUrl); //NOT SURE THIS IS datatable.php !!!
     }
-    let datatableUrl = someUrl; //hope and pray...
     //get datatable id an url from datatable.php
-    let datatable = await fetch(datatableUrl).then(result => result.text());
+    let datatable = await fetchText(datatableUrl);
     let scanner = new TokenScanner(datatable);
     let datatable_id = "";
     let tableNavUrl = "";
@@ -48,9 +55,9 @@ async function getTableRefFromHash(hash: string) {
         .clipTo("</script>")
         .find(".", "load", "(")
         .getString(res => tableNavUrl = res)
-        .result();
+        .result();//todo  result() call needed?
     tableNavUrl += datatable_id + '&pos=top';
-    let tableNavText = await fetch(tableNavUrl).then(res => res.text().then());
+    let tableNavText = await fetchText(tableNavUrl);
 
     let div = document.createElement("div");
     div.innerHTML = tableNavText;

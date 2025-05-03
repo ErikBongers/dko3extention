@@ -3585,20 +3585,23 @@ var TokenScanner = class TokenScanner {
 
 //#endregion
 //#region typescript/table/loadAnyTable.ts
+async function fetchText(url) {
+	let res = await fetch(url);
+	return res.text();
+}
+async function getDocReadyLoadUrlFrom(url) {
+	let text = await fetchText(url);
+	return getDocReadyLoadUrl(text);
+}
 async function getTableRefFromHash(hash) {
-	await fetch("https://administratie.dko3.cloud/#" + hash).then((res) => res.text());
-	let view = await fetch("view.php?args=" + hash).then((res) => res.text());
-	let index_viewUrl = getDocReadyLoadUrl(view);
-	let index_view = await fetch(index_viewUrl).then((res) => res.text());
+	await fetchText("https://administratie.dko3.cloud/#" + hash);
+	let index_viewUrl = await getDocReadyLoadUrlFrom("view.php?args=" + hash);
+	let index_view = await fetchText(index_viewUrl);
 	let htmlTableId = getDocReadyLoadScript(index_view).find("$", "(", "'#").clipTo("'").result();
 	if (!htmlTableId) htmlTableId = getDocReadyLoadScript(index_view).find("$", "(", "\"#").clipTo("\"").result();
-	let someUrl = getDocReadyLoadUrl(index_view);
-	if (!someUrl.includes("ui/datatable.php")) {
-		let someCode = await fetch(someUrl).then((res) => res.text());
-		someUrl = getDocReadyLoadUrl(someCode);
-	}
-	let datatableUrl = someUrl;
-	let datatable = await fetch(datatableUrl).then((result) => result.text());
+	let datatableUrl = getDocReadyLoadUrl(index_view);
+	if (!datatableUrl.includes("ui/datatable.php")) datatableUrl = await getDocReadyLoadUrlFrom(datatableUrl);
+	let datatable = await fetchText(datatableUrl);
 	let scanner = new TokenScanner(datatable);
 	let datatable_id = "";
 	let tableNavUrl = "";
@@ -3606,7 +3609,7 @@ async function getTableRefFromHash(hash) {
 		datatable_id = res;
 	}).clipTo("</script>").find(".", "load", "(").getString((res) => tableNavUrl = res).result();
 	tableNavUrl += datatable_id + "&pos=top";
-	let tableNavText = await fetch(tableNavUrl).then((res) => res.text().then());
+	let tableNavText = await fetchText(tableNavUrl);
 	let div = document.createElement("div");
 	div.innerHTML = tableNavText;
 	let tableNav = findFirstNavigation(div);
@@ -3706,7 +3709,7 @@ function createDefaultTableRefAndInfoBar() {
 	document.getElementById(
 		//NOT SURE THIS IS datatable.php !!!
 		//NOT SURE THIS IS datatable.php !!!
-		//hope and pray...
+		//todo  result() call needed?
 		INFO_CONTAINER_ID
 )?.remove();
 	let divInfoContainer = tableRef.createElementAboveTable("div");
