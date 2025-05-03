@@ -608,7 +608,7 @@ async function setViewFromCurrentUrl() {
 function equals(g1, g2) {
 	return g1.globalHide === g2.globalHide;
 }
-let rxEmail = /\w[\w.\-]*\@\w+\.\w+/gm;
+let rxEmail = /\w[\w.\-]*@\w+\.\w+/gm;
 function whoAmI() {
 	let allScripts = document.querySelectorAll("script");
 	let scriptTexts = [...allScripts].map((s) => s.textContent).join();
@@ -2201,14 +2201,14 @@ function applyFilters() {
 		else if (pageState$2.filterNoMax) extraFilter = createTextRowFilter("999", (tr) => tr.cells[1].textContent);
 		else if (pageState$2.filterFullClass) extraFilter = {
 			context: void 0,
-			rowFilter(tr, context) {
+			rowFilter(tr, _context) {
 				let scrapeResult = scrapeStudentsCellMeta(tr.cells[1]);
 				return scrapeResult.aantal >= scrapeResult.maxAantal;
 			}
 		};
 		else if (pageState$2.filterOnlineAlc) extraFilter = {
 			context: void 0,
-			rowFilter(tr, context) {
+			rowFilter(tr, _context) {
 				let scrapeResult = scrapeLesInfo(tr.cells[0]);
 				return scrapeResult.online && scrapeResult.alc;
 			}
@@ -3332,12 +3332,9 @@ function onMutation$4(_mutation) {
 		createDownloadTableWithExtraAction(),
 		"fa-arrow-down"
 );
-	if (document.querySelector("main div.table-responsive table thead")) {
-		let table = document.querySelector("main div.table-responsive table");
-		decorateTableHeader(document.querySelector("main div.table-responsive table"));
-	}
-	let canSort = document.querySelector("table." + CAN_SORT);
-	if (canSort) decorateTableHeader(canSort);
+	if (document.querySelector("main div.table-responsive table thead")) decorateTableHeader(document.querySelector("main div.table-responsive table"));
+	let sortableTable = document.querySelector("table." + CAN_SORT);
+	if (sortableTable) decorateTableHeader(sortableTable);
 	return true;
 }
 let tableCriteriaBuilders = new Map();
@@ -3921,7 +3918,7 @@ function showDistinctColumn(tableRef, index) {
 	for (let col of cols) emmet.appendChild(tbody, `tr>td>{${col}}`);
 	let headerRow = tableRef.getOrgTableContainer().querySelector("thead>tr");
 	let headerText = getColumnHeaderText(headerRow.querySelectorAll("th")[index]);
-	openHtmlTab(tmpDiv.innerHTML, headerText + " (uniek)").then((r) => {});
+	openHtmlTab(tmpDiv.innerHTML, headerText + " (uniek)").then((_) => {});
 }
 function getColumnHeaderText(cell) {
 	return [...cell.childNodes].filter((node) => node.nodeType === Node.TEXT_NODE).map((node) => node.textContent).join(" ");

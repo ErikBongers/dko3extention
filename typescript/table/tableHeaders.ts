@@ -244,7 +244,7 @@ function showDistinctColumn(tableRef: TableRef, index: number) {
     }
     let headerRow = tableRef.getOrgTableContainer().querySelector("thead>tr");
     let headerText = getColumnHeaderText(headerRow.querySelectorAll("th")[index]);
-    openHtmlTab(tmpDiv.innerHTML, headerText + " (uniek)").then(r => {});
+    openHtmlTab(tmpDiv.innerHTML, headerText + " (uniek)").then(_ => {});
 }
 
 //Get the undecorated column header text.

@@ -9,7 +9,6 @@ export const DOWNLOAD_TABLE_BTN_ID = "downloadTableButton";
 export const COPY_TABLE_BTN_ID = "copyTableButton";
 export const LESSEN_OVERZICHT_ID = "lessen_overzicht";
 export const TRIM_BUTTON_ID = "moduleButton";
-export const CHECKS_BUTTON_ID = "checksButton";
 export const SHOW_HOURS_BUTTON_ID = "fetchAllButton";
 export const FULL_CLASS_BUTTON_ID = "fullClassButton";
 export const TRIM_TABLE_ID = "trimesterTable";

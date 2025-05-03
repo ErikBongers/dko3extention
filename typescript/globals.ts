@@ -4,7 +4,7 @@ import {emmet} from "../libs/Emmeter/html";
 import {PageName} from "./gotoState";
 import {PageSettings} from "./lessen/build";
 import {fetchGlobalSettings, getGlobalSettings, GlobalSettings, options, setGlobalSetting} from "./plugin_options/options";
-import {Actions, sendRequest, ServiceRequest, TabType} from "./messaging";
+import {Actions, sendRequest, TabType} from "./messaging";
 
 import {TeacherHoursSetup} from "./werklijst/hoursSettings";
 
@@ -264,7 +264,7 @@ export function equals(g1: GlobalSettings, g2: GlobalSettings){
     );
 }
 
-export let rxEmail = /\w[\w.\-]*\@\w+\.\w+/gm;
+export let rxEmail = /\w[\w.\-]*@\w+\.\w+/gm;
 
 export function whoAmI() {
     let allScripts = document.querySelectorAll("script");

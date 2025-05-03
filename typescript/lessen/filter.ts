@@ -123,7 +123,7 @@ export function applyFilters() {
         } else if (pageState.filterFullClass) {
             extraFilter = {
                 context: undefined,
-                rowFilter(tr: HTMLTableRowElement, context: any): boolean {
+                rowFilter(tr: HTMLTableRowElement, _context: any): boolean {
                     let scrapeResult = scrapeStudentsCellMeta(tr.cells[1]);
                     return scrapeResult.aantal >= scrapeResult.maxAantal;
                 }
@@ -131,7 +131,7 @@ export function applyFilters() {
         } else if (pageState.filterOnlineAlc) {
              extraFilter = {
                  context: undefined,
-                 rowFilter(tr: HTMLTableRowElement, context: any): boolean {
+                 rowFilter(tr: HTMLTableRowElement, _context: any): boolean {
                      let scrapeResult = scrapeLesInfo(tr.cells[0]);
                      return scrapeResult.online && scrapeResult.alc;
                  }

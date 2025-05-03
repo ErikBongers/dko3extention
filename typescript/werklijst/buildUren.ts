@@ -1,7 +1,7 @@
 import * as def from "../def";
 import {createValidId, getSchoolIdString, Schoolyear} from "../globals";
 import {VakLeraar} from "./scrapeUren";
-import {TableFetcher, TableRef} from "../table/tableFetcher";
+import {TableRef} from "../table/tableFetcher";
 import {cloud} from "../cloud";
 import {UrenData} from "./urenData";
 

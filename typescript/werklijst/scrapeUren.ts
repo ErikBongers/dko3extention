@@ -1,7 +1,6 @@
 import {createValidId} from "../globals";
-import {getColumnText, NamedCellTableFetchListener} from "../pageHandlers";
+import {getColumnText} from "../pageHandlers";
 import {TeacherHoursSetupMapped} from "./hoursSettings";
-import {FetchedTable} from "../table/tableFetcher";
 
 export interface CountStudentsPerJaar {
     count: number,

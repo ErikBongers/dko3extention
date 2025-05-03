@@ -23,11 +23,11 @@ chrome.runtime.onInstalled.addListener(() => {
     );
 });
 
-chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
+chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, _tab) {
     console.log("service worker: tab updated: ", tabId, changeInfo.status);
 });
 
-chrome.tabs.onRemoved.addListener(function(tabId, removeInfo) {
+chrome.tabs.onRemoved.addListener(function(tabId, _removeInfo) {
     console.log("service worker: tab removed: ", tabId);
 });
 
@@ -54,14 +54,14 @@ function onMessage(message: ServiceRequest, sender: MessageSender, sendResponse:
             let url = chrome.runtime.getURL("resources/blank.html");
             global_request = message;
             if(message.senderTabType === TabType.Main)
-                setTabId(TabType.Main, sender.tab.id);
+                setTabId(TabType.Main, sender.tab.id).then(() => {});
             chrome.tabs.create({url}).then(_tab => {
                 sendResponse({tabId: _tab.id});
             });
             return true;
         case Actions.OpenHoursSettings:
             global_request = message;
-            setTabId(TabType.Main, sender.tab.id);
+            setTabId(TabType.Main, sender.tab.id).then(() => {});
             //todo: if already exists: activate?
             chrome.tabs.create({url: chrome.runtime.getURL("resources/teacherHoursSetup.html")}).then(tab => {
                 sendResponse({tabId: tab.id}); //todo: make a Response type.
@@ -76,7 +76,7 @@ function onMessage(message: ServiceRequest, sender: MessageSender, sendResponse:
         case Actions.GreetingsFromChild:
         default:
             getTabId(message.targetTabType).then(id => {
-                chrome.tabs.sendMessage(id, message).then(r => {});
+                chrome.tabs.sendMessage(id, message).then(() => {});
             });
             break;
     }

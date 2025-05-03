@@ -3,7 +3,7 @@ import * as def from "../def";
 import {createTable, getUrenVakLeraarFileName, refillTable} from "./buildUren";
 import {addStudentToVakLeraarsMap, scrapeUren, StudentUrenRow, VakLeraar} from "./scrapeUren";
 import {cloud} from "../cloud";
-import {FetchedTable, TableFetcher, TableRef} from "../table/tableFetcher";
+import {TableFetcher, TableRef} from "../table/tableFetcher";
 import {setCriteriaForTeacherHoursAndClickFetchButton} from "./prefillInstruments";
 import {HashObserver} from "../pageObserver";
 import {NamedCellTableFetchListener} from "../pageHandlers";

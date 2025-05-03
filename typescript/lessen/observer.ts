@@ -1,4 +1,4 @@
-import {scrapeLessenOverzicht, scrapeModules} from "./scrape";
+import {scrapeModules} from "./scrape";
 import {buildTableData} from "./convert";
 import {buildTrimesterTable, getDefaultPageSettings, getSavedNameSorting, LessenPageState, NameSorting, setSavedNameSorting, TrimElements, TrimesterGrouping} from "./build";
 import * as def from "../def";

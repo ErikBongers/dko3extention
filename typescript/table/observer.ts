@@ -15,12 +15,11 @@ function onMutation (_mutation: MutationRecord) {
         addTableNavigationButton(navigationBars, def.DOWNLOAD_TABLE_BTN_ID, "download full table", createDownloadTableWithExtraAction(), "fa-arrow-down");
     }
     if(document.querySelector("main div.table-responsive table thead")) {
-        let table = document.querySelector("main div.table-responsive table");
         decorateTableHeader(document.querySelector("main div.table-responsive table"));
     }
-    let canSort = document.querySelector("table."+def.CAN_SORT) as HTMLTableElement;
-    if(canSort) {
-        decorateTableHeader(canSort);
+    let sortableTable = document.querySelector("table."+def.CAN_SORT) as HTMLTableElement;
+    if(sortableTable) {
+        decorateTableHeader(sortableTable);
     }
     return true;
 }
