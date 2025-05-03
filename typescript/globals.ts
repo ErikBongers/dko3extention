@@ -355,12 +355,12 @@ export let pageState = { //todo: put in separate file?
     }
 }
 
-function getPageTransientStateValue(key: string, defaultValue: any) {  //todo: any or object? See set() function
+function getPageTransientStateValue(key: string, defaultValue: any) {
     let value =  globalTransientPageState.get(key);
     return value ? value : setPageTransientStateValue(key, defaultValue);
 }
 
-function setPageTransientStateValue(key:string, transientState: object){
+function setPageTransientStateValue(key:string, transientState: any){
     globalTransientPageState.set(key, transientState);
     return transientState;
 }
