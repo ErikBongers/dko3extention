@@ -37,7 +37,7 @@ const DOWNLOAD_TABLE_BTN_ID = "downloadTableButton";
 const COPY_TABLE_BTN_ID = "copyTableButton";
 const LESSEN_OVERZICHT_ID = "lessen_overzicht";
 const TRIM_BUTTON_ID = "moduleButton";
-const COUNT_BUTTON_ID = "fetchAllButton";
+const SHOW_HOURS_BUTTON_ID = "fetchAllButton";
 const FULL_CLASS_BUTTON_ID = "fullClassButton";
 const TRIM_TABLE_ID = "trimesterTable";
 const COUNT_TABLE_ID = "werklijst_uren";
@@ -2942,10 +2942,10 @@ function recalculate(urenData) {
 	isUpdatePaused = false;
 	observeTable(true);
 }
-function createTable(tableDef) {
+function createTable(tableRef) {
 	document.getElementById(COUNT_TABLE_ID)?.remove();
 	let table = document.createElement("table");
-	tableDef.tableRef.getOrgTableContainer().insertAdjacentElement("afterend", table);
+	tableRef.getOrgTableContainer().insertAdjacentElement("afterend", table);
 	table.id = COUNT_TABLE_ID;
 	table.classList.add(CAN_SORT, NO_MENU);
 	return table;
@@ -3066,14 +3066,1010 @@ function fillGraadCell(ctx) {
 }
 
 //#endregion
+//#region typescript/table/tableNavigation.ts
+var TableNavigation = class {
+	step;
+	maxCount;
+	constructor(step, maxCount) {
+		this.step = step;
+		this.maxCount = maxCount;
+	}
+	steps() {
+		return Math.ceil(this.maxCount / this.step);
+	}
+	isOnePage() {
+		return this.step >= this.maxCount;
+	}
+};
+function findFirstNavigation(element) {
+	element = element ?? document.body;
+	let buttonPagination = element.querySelector("button.datatable-paging-numbers");
+	if (!buttonPagination) return void 0;
+	let buttonContainer = buttonPagination.closest("div");
+	if (!buttonContainer) return void 0;
+	let rx = /(\d*) tot (\d*) van (\d*)/;
+	let matches = buttonPagination.innerText.match(rx);
+	let buttons = buttonContainer.querySelectorAll("button.btn-secondary");
+	let offsets = Array.from(buttons).filter((btn) => btn.attributes["onclick"]?.value.includes("goto(")).filter((btn) => !btn.querySelector("i.fa-fast-backward")).map((btn) => getGotoNumber(btn.attributes["onclick"].value));
+	let numbers = matches.slice(1).map((txt) => parseInt(txt));
+	numbers[0] = numbers[0] - 1;
+	numbers = numbers.concat(offsets);
+	numbers.sort((a, b) => a - b);
+	numbers = [...new Set(numbers)];
+	return new TableNavigation(numbers[1] - numbers[0], numbers.pop());
+}
+function getGotoNumber(functionCall) {
+	return parseInt(functionCall.substring(functionCall.indexOf("goto(") + 5));
+}
+
+//#endregion
+//#region typescript/table/tableFetcher.ts
+var TableRef = class {
+	htmlTableId;
+	buildFetchUrl;
+	navigationData;
+	constructor(htmlTableId, navigationData, buildFetchUrl) {
+		this.htmlTableId = htmlTableId;
+		this.buildFetchUrl = buildFetchUrl;
+		this.navigationData = navigationData;
+	}
+	getOrgTableContainer() {
+		return document.getElementById(this.htmlTableId);
+	}
+	getOrgTableRows() {
+		return this.getOrgTableContainer().querySelectorAll("tbody > tr");
+	}
+	createElementAboveTable(element) {
+		let el = document.createElement(element);
+		this.getOrgTableContainer().insertAdjacentElement("beforebegin", el);
+		return el;
+	}
+};
+function findTableRefInCode() {
+	let foundTableRef = findTable();
+	if (!foundTableRef) return void 0;
+	let buildFetchUrl = (offset) => `/views/ui/datatable.php?id=${foundTableRef.viewId}&start=${offset}&aantal=0`;
+	let navigation = findFirstNavigation();
+	if (!navigation) return void 0;
+	return new TableRef(foundTableRef.tableId, navigation, buildFetchUrl);
+}
+function findTable() {
+	let table = document.querySelector("div.table-responsive > table");
+	let tableId$1 = table.id.replace("table_", "").replace("_table", "");
+	let parentDiv = document.querySelector("div#table_" + tableId$1);
+	let scripts = Array.from(parentDiv.querySelectorAll("script")).map((script) => script.text).join("\n");
+	let goto = scripts.split("_goto(")[1];
+	let func = goto.split(/ function *\w/)[0];
+	let viewId = / *datatable_id *= *'(.*)'/.exec(func)[1];
+	let url = /_table'\).load\('(.*?)\?id='\s*\+\s*datatable_id\s*\+\s*'&start='\s*\+\s*start/.exec(func)[1];
+	return {
+		tableId: table.id,
+		viewId,
+		url
+	};
+}
+var TableFetcher = class {
+	tableRef;
+	calculateTableCheckSum;
+	isUsingCached = false;
+	shadowTableDate;
+	fetchedTable;
+	tableHandler;
+	listeners;
+	cancelRequested;
+	isFetchFinished;
+	constructor(tableRef, calculateTableCheckSum, tableHandler) {
+		this.tableRef = tableRef;
+		if (!calculateTableCheckSum) throw "Tablechecksum required.";
+		this.calculateTableCheckSum = calculateTableCheckSum;
+		this.fetchedTable = void 0;
+		this.tableHandler = tableHandler;
+		this.listeners = [];
+		this.cancelRequested = false;
+		this.isFetchFinished = false;
+	}
+	reset() {
+		this.clearCache();
+		this.tableHandler?.onReset?.(this);
+	}
+	async cancel() {
+		this.cancelRequested = true;
+		while (!this.isFetchFinished) await new Promise((resolve) => setTimeout(resolve));
+		this.clearCache();
+	}
+	clearCache() {
+		db3(`Clear cache for ${this.tableRef.htmlTableId}.`);
+		window.sessionStorage.removeItem(this.getCacheId());
+		window.sessionStorage.removeItem(this.getCacheId() + CACHE_DATE_SUFFIX);
+		this.fetchedTable = void 0;
+	}
+	loadFromCache() {
+		if (this.tableRef.navigationData.isOnePage()) return null;
+		db3(`Loading from cache: ${this.getCacheId()}.`);
+		let text = window.sessionStorage.getItem(this.getCacheId());
+		let dateString = window.sessionStorage.getItem(this.getCacheId() + CACHE_DATE_SUFFIX);
+		if (!text) return void 0;
+		return {
+			text,
+			date: new Date(dateString)
+		};
+	}
+	getCacheId() {
+		let checksum = "";
+		if (this.calculateTableCheckSum) checksum = "__" + this.calculateTableCheckSum(this);
+		let id = this.tableRef.htmlTableId + checksum;
+		return id.replaceAll(/\s/g, "");
+	}
+	async fetch() {
+		if (this.fetchedTable) {
+			this.onFinished(true);
+			return this.fetchedTable;
+		}
+		this.isFetchFinished = false;
+		let cachedData = this.loadFromCache();
+		let succes;
+		this.fetchedTable = new FetchedTable(this);
+		if (cachedData) {
+			this.fetchedTable.addPage(cachedData.text);
+			this.shadowTableDate = cachedData.date;
+			this.isUsingCached = true;
+			this.onPageLoaded(1, cachedData.text);
+			this.onLoaded();
+			succes = true;
+		} else {
+			this.isUsingCached = false;
+			succes = await this.#fetchPages(this.fetchedTable);
+			if (!succes) {
+				this.onFinished(succes);
+				throw "Failed to fetch the pages.";
+			}
+			this.fetchedTable.saveToCache();
+			this.onLoaded();
+		}
+		this.onFinished(succes);
+		return this.fetchedTable;
+	}
+	onStartFetching() {
+		for (let lst of this.listeners) lst.onStartFetching?.(this);
+	}
+	onFinished(succes) {
+		this.isFetchFinished = true;
+		for (let lst of this.listeners) lst.onFinished?.(this, succes);
+	}
+	onPageLoaded(pageCnt, text) {
+		for (let lst of this.listeners) lst.onPageLoaded?.(this, pageCnt, text);
+	}
+	onLoaded() {
+		for (let lst of this.listeners) lst.onLoaded?.(this);
+	}
+	onBeforeLoadingPage() {
+		for (let lst of this.listeners) if (lst.onBeforeLoadingPage) {
+			if (!lst.onBeforeLoadingPage(this)) return false;
+		}
+		return true;
+	}
+	async #fetchPages(fetchedTable) {
+		if (!this.onBeforeLoadingPage()) return false;
+		await this.#doFetchAllPages(fetchedTable);
+		return true;
+	}
+	async #doFetchAllPages(fetchedTable) {
+		try {
+			this.onStartFetching();
+			let pageCnt = 0;
+			this.cancelRequested = false;
+			while (true) {
+				console.log("fetching page " + fetchedTable.getNextPageNumber());
+				let response = await fetch(this.tableRef.buildFetchUrl(fetchedTable.getNextOffset()));
+				let text = await response.text();
+				fetchedTable.addPage(text);
+				pageCnt++;
+				this.onPageLoaded(pageCnt, text);
+				if (pageCnt >= this.tableRef.navigationData.steps()) break;
+				if (this.cancelRequested) break;
+			}
+		} finally {}
+	}
+	addListener(listener) {
+		this.listeners.push(listener);
+	}
+};
+var FetchedTable = class {
+	shadowTableTemplate;
+	tableFetcher;
+	lastPageNumber;
+	lastPageStartRow;
+	constructor(tableDef) {
+		this.tableFetcher = tableDef;
+		this.lastPageNumber = -1;
+		this.lastPageStartRow = 0;
+		this.shadowTableTemplate = document.createElement("template");
+	}
+	getRows() {
+		let template = this.shadowTableTemplate;
+		return template.content.querySelectorAll("tbody tr:not(:has(i.fa-meh))");
+	}
+	getRowsAsArray = () => Array.from(this.getRows());
+	getLastPageRows = () => this.getRowsAsArray().slice(this.lastPageStartRow);
+	getLastPageNumber = () => this.lastPageNumber;
+	getNextPageNumber = () => this.lastPageNumber + 1;
+	getNextOffset = () => this.getNextPageNumber() * this.tableFetcher.tableRef.navigationData.step;
+	getTemplate = () => this.shadowTableTemplate;
+	saveToCache() {
+		db3(`Caching ${this.tableFetcher.getCacheId()}.`);
+		window.sessionStorage.setItem(this.tableFetcher.getCacheId(), this.shadowTableTemplate.innerHTML);
+		window.sessionStorage.setItem(this.tableFetcher.getCacheId() + CACHE_DATE_SUFFIX, new Date().toJSON());
+	}
+	addPage(text) {
+		let pageTemplate;
+		pageTemplate = document.createElement("template");
+		pageTemplate.innerHTML = text;
+		let rows = pageTemplate.content.querySelectorAll("tbody > tr");
+		this.lastPageStartRow = this.getRows().length;
+		if (this.lastPageNumber === -1) this.shadowTableTemplate.innerHTML = text;
+		else this.shadowTableTemplate.content.querySelector("tbody").append(...rows);
+		this.lastPageNumber++;
+	}
+};
+
+//#endregion
+//#region typescript/table/observer.ts
+var observer_default$5 = new BaseObserver(void 0, new AllPageFilter(), onMutation$4);
+function onMutation$4(_mutation) {
+	let navigationBars = getBothToolbars();
+	if (!navigationBars) return;
+	if (!findTableRefInCode()?.navigationData.isOnePage()) addTableNavigationButton(
+		navigationBars,
+		//wait for top and bottom bars.
+		DOWNLOAD_TABLE_BTN_ID,
+		"download full table",
+		createDownloadTableWithExtraAction(),
+		"fa-arrow-down"
+);
+	if (document.querySelector("main div.table-responsive table thead")) {
+		let table = document.querySelector("main div.table-responsive table");
+		decorateTableHeader(document.querySelector("main div.table-responsive table"));
+	}
+	let canSort = document.querySelector("table." + CAN_SORT);
+	if (canSort) decorateTableHeader(canSort);
+	return true;
+}
+let tableCriteriaBuilders = new Map();
+function getChecksumBuilder(tableId$1) {
+	let builder = tableCriteriaBuilders.get(tableId$1);
+	if (builder) return builder;
+	return (_tableFetcher) => "";
+}
+function registerChecksumHandler(tableId$1, checksumHandler) {
+	tableCriteriaBuilders.set(tableId$1, checksumHandler);
+}
+function createDownloadTableWithExtraAction() {
+	return (_) => {
+		downloadTableRows().then((fetchedTable) => {
+			globalAfterDownloadTableAction?.(fetchedTable);
+		});
+	};
+}
+function setAfterDownloadTableAction(action) {
+	globalAfterDownloadTableAction = action;
+}
+let globalAfterDownloadTableAction = () => {};
+
+//#endregion
+//#region typescript/infoBar.ts
+var InfoBar = class {
+	divInfoContainer;
+	divInfoLine;
+	divTempLine;
+	divExtraLine;
+	tempMessage;
+	divCacheInfo;
+	constructor(divInfoContainer) {
+		this.divInfoContainer = divInfoContainer;
+		this.divInfoContainer.id = INFO_CONTAINER_ID;
+		this.divInfoContainer.innerHTML = "";
+		this.divExtraLine = emmet.appendChild(divInfoContainer, `div#${INFO_EXTRA_ID}.infoMessage`).last;
+		this.divInfoLine = emmet.appendChild(divInfoContainer, "div.infoLine").last;
+		this.divTempLine = emmet.appendChild(divInfoContainer, `div#${INFO_TEMP_ID}.infoMessage.tempLine`).last;
+		this.divCacheInfo = emmet.appendChild(this.divInfoContainer, `div#${INFO_CACHE_ID}.cacheInfo`).last;
+		this.tempMessage = "";
+	}
+	setCacheInfo(cacheInfo, reset_onclick) {
+		this.updateCacheInfo(cacheInfo, reset_onclick);
+	}
+	setTempMessage(msg) {
+		this.tempMessage = msg;
+		this.#updateTempMessage();
+		setTimeout(this.clearTempMessage.bind(this), 4e3);
+	}
+	clearTempMessage() {
+		this.tempMessage = "";
+		this.#updateTempMessage();
+	}
+	#updateTempMessage() {
+		this.divTempLine.innerHTML = this.tempMessage;
+	}
+	setInfoLine(message) {
+		this.divInfoLine.innerHTML = message;
+	}
+	clearCacheInfo() {
+		this.divCacheInfo.innerHTML = "";
+	}
+	updateCacheInfo(info, reset_onclick) {
+		this.divCacheInfo.innerHTML = info;
+		let button = emmet.appendChild(this.divCacheInfo, "button.likeLink").first;
+		button.innerHTML = "refresh";
+		button.onclick = reset_onclick;
+	}
+	setExtraInfo(message, click_element_id, callback) {
+		this.divExtraLine.innerHTML = message;
+		if (click_element_id) document.getElementById(click_element_id).onclick = callback;
+	}
+};
+
+//#endregion
+//#region typescript/progressBar.ts
+var ProgressBar = class {
+	barElement;
+	containerElement;
+	maxCount;
+	count;
+	constructor(containerElement, barElement) {
+		this.barElement = barElement;
+		this.containerElement = containerElement;
+		this.hide();
+		this.maxCount = 0;
+		this.count = 0;
+	}
+	reset(maxCount) {
+		this.maxCount = maxCount;
+		this.count = 0;
+		this.barElement.innerHTML = "";
+		for (let i = 0; i < maxCount; i++) {
+			let block = document.createElement("div");
+			this.barElement.appendChild(block);
+			block.classList.add("progressBlock");
+		}
+	}
+	start(maxCount) {
+		this.reset(maxCount);
+		this.containerElement.style.display = "block";
+		this.next();
+	}
+	hide() {
+		this.containerElement.style.display = "none";
+	}
+	stop() {
+		this.hide();
+	}
+	next() {
+		if (this.count >= this.maxCount) return false;
+		this.barElement.children[this.count].classList.remove("iddle", "loaded");
+		this.barElement.children[this.count].classList.add("loading");
+		for (let i = 0; i < this.count; i++) {
+			this.barElement.children[i].classList.remove("iddle", "loading");
+			this.barElement.children[i].classList.add("loaded");
+		}
+		for (let i = this.count + 1; i < this.maxCount; i++) {
+			this.barElement.children[i].classList.remove("loaded", "loading");
+			this.barElement.children[i].classList.add("iddle");
+		}
+		this.count++;
+		return true;
+	}
+};
+function insertProgressBar(container, text = "") {
+	container.innerHTML = "";
+	let { first: divProgressLine, last: divProgressBar } = emmet.appendChild(container, `div.infoLine${PROGRESS_BAR_ID}>div.progressText{${text}}+div.progressBar`);
+	return new ProgressBar(divProgressLine, divProgressBar);
+}
+
+//#endregion
+//#region typescript/table/loadAnyTable.ts
+async function getTableRefFromHash(hash) {
+	await fetch("https://administratie.dko3.cloud/#" + hash).then((res) => res.text());
+	let view = await fetch("view.php?args=" + hash).then((res) => res.text());
+	let index_viewUrl = getDocReadyLoadUrl(view);
+	let index_view = await fetch(index_viewUrl).then((res) => res.text());
+	let htmlTableId = getDocReadyLoadScript(index_view).find("$", "(", "'#").clipTo("'").result();
+	if (!htmlTableId) htmlTableId = getDocReadyLoadScript(index_view).find("$", "(", "\"#").clipTo("\"").result();
+	let someUrl = getDocReadyLoadUrl(index_view);
+	if (!someUrl.includes("ui/datatable.php")) {
+		let someCode = await fetch(someUrl).then((res) => res.text());
+		someUrl = getDocReadyLoadUrl(someCode);
+	}
+	let datatableUrl = someUrl;
+	let datatable = await fetch(datatableUrl).then((result) => result.text());
+	let scanner = new TokenScanner(datatable);
+	let datatable_id = "";
+	let tableNavUrl = "";
+	scanner.find("var", "datatable_id", "=").getString((res) => {
+		datatable_id = res;
+	}).clipTo("</script>").find(".", "load", "(").getString((res) => tableNavUrl = res).result();
+	tableNavUrl += datatable_id + "&pos=top";
+	let tableNavText = await fetch(tableNavUrl).then((res) => res.text().then());
+	let div = document.createElement("div");
+	div.innerHTML = tableNavText;
+	let tableNav = findFirstNavigation(div);
+	console.log(tableNav);
+	let buildFetchUrl = (offset) => `/views/ui/datatable.php?id=${datatable_id}&start=${offset}&aantal=0`;
+	return new TableRef(htmlTableId, tableNav, buildFetchUrl);
+}
+async function getTableFromHash(hash, clearCache, infoBarListener) {
+	let tableRef = await getTableRefFromHash(hash);
+	console.log(tableRef);
+	let tableFetcher = new TableFetcher(tableRef, getChecksumBuilder(tableRef.htmlTableId));
+	tableFetcher.addListener(infoBarListener);
+	if (clearCache) tableFetcher.clearCache();
+	let fetchedTable = await tableFetcher.fetch();
+	await setViewFromCurrentUrl();
+	return fetchedTable;
+}
+function findDocReady(scanner) {
+	return scanner.find("$", "(", "document", ")", ".", "ready", "(");
+}
+function getDocReadyLoadUrl(text) {
+	let scanner = new TokenScanner(text);
+	while (true) {
+		let docReady = findDocReady(scanner);
+		if (!docReady.valid) return void 0;
+		let url = docReady.clone().clipTo("</script>").find(".", "load", "(").clipString().result();
+		if (url) return url;
+		scanner = docReady;
+	}
+}
+function getDocReadyLoadScript(text) {
+	let scanner = new TokenScanner(text);
+	while (true) {
+		let docReady = findDocReady(scanner);
+		if (!docReady.valid) return void 0;
+		let script = docReady.clone().clipTo("</script>");
+		let load = script.clone().find(".", "load", "(");
+		if (load.valid) return script;
+		scanner = docReady;
+	}
+}
+function escapeRegexChars(text) {
+	return text.replaceAll("\\", "\\\\").replaceAll("^", "\\^").replaceAll("$", "\\$").replaceAll(".", "\\.").replaceAll("|", "\\|").replaceAll("?", "\\?").replaceAll("*", "\\*").replaceAll("+", "\\+").replaceAll("(", "\\(").replaceAll(")", "\\)").replaceAll("[", "\\[").replaceAll("]", "\\]").replaceAll("{", "\\{").replaceAll("}", "\\}");
+}
+var ScannerElse = class {
+	scannerIf;
+	constructor(scannerIf) {
+		this.scannerIf = scannerIf;
+	}
+	not(callback) {
+		if (!this.scannerIf.yes) callback?.(this.scannerIf.scanner);
+		return this.scannerIf.scanner;
+	}
+};
+var ScannerIf = class {
+	yes;
+	scanner;
+	constructor(yes, scanner) {
+		this.yes = yes;
+		this.scanner = scanner;
+	}
+	then(callback) {
+		if (this.yes) callback(this.scanner);
+		return new ScannerElse(this);
+	}
+};
+var TokenScanner = class TokenScanner {
+	valid;
+	source;
+	cursor;
+	constructor(text) {
+		this.valid = true;
+		this.source = text;
+		this.cursor = text;
+	}
+	result() {
+		if (this.valid) return this.cursor;
+		return void 0;
+	}
+	find(...tokens) {
+		return this.#find("", tokens);
+	}
+	match(...tokens) {
+		return this.#find("^\\s*", tokens);
+	}
+	#find(prefix, tokens) {
+		if (!this.valid) return this;
+		let rxString = prefix + tokens.map((token) => escapeRegexChars(token) + "\\s*").join("");
+		let match$1 = RegExp(rxString).exec(this.cursor);
+		if (match$1) {
+			this.cursor = this.cursor.substring(match$1.index + match$1[0].length);
+			return this;
+		}
+		this.valid = false;
+		return this;
+	}
+	ifMatch(...tokens) {
+		if (!this.valid) return new ScannerIf(true, this);
+		this.match(...tokens);
+		if (this.valid) return new ScannerIf(true, this);
+		else {
+			this.valid = true;
+			return new ScannerIf(false, this);
+		}
+	}
+	clip(len) {
+		if (!this.valid) return this;
+		this.cursor = this.cursor.substring(0, len);
+		return this;
+	}
+	clipTo(end) {
+		if (!this.valid) return this;
+		let found = this.cursor.indexOf(end);
+		if (found < 0) {
+			this.valid = false;
+			return this;
+		}
+		this.cursor = this.cursor.substring(0, found);
+		return this;
+	}
+	clone() {
+		let newScanner = new TokenScanner(this.cursor);
+		newScanner.valid = this.valid;
+		return newScanner;
+	}
+	clipString() {
+		let isString = false;
+		this.ifMatch("'").then((result) => {
+			isString = true;
+			return result.clipTo("'");
+		}).not().ifMatch("\"").then((result) => {
+			isString = true;
+			return result.clipTo("\"");
+		}).not();
+		this.valid = this.valid && isString;
+		return this;
+	}
+	getString(callback) {
+		let subScanner = this.clone();
+		let result = subScanner.clipString().result();
+		if (result) {
+			callback(result);
+			this.ifMatch("'").then((result$1) => result$1.find("'")).not().ifMatch("\"").then((result$1) => result$1.find("\"")).not();
+		}
+		return this;
+	}
+};
+async function downloadTableRows() {
+	let result = createDefaultTableFetcher();
+	if ("error" in result) {
+		console.error(result.error);
+		return;
+	}
+	let { tableFetcher } = result.result;
+	tableFetcher.tableHandler = new TableHandlerForHeaders();
+	let fetchedTable = await tableFetcher.fetch();
+	let fetchedRows = fetchedTable.getRows();
+	let tableContainer = fetchedTable.tableFetcher.tableRef.getOrgTableContainer();
+	tableContainer.querySelector("tbody").replaceChildren(...fetchedRows);
+	tableContainer.querySelector("table").classList.add("fullyFetched");
+	executeTableCommands(fetchedTable.tableFetcher.tableRef);
+	return fetchedTable;
+}
+async function checkAndDownloadTableRows() {
+	let tableRef = findTableRefInCode();
+	if (tableRef.getOrgTableContainer().querySelector("table").classList.contains("fullyFetched")) return tableRef;
+	await downloadTableRows();
+	return tableRef;
+}
+var InfoBarTableFetchListener = class {
+	infoBar;
+	progressBar;
+	constructor(infoBar, progressBar) {
+		this.infoBar = infoBar;
+		this.progressBar = progressBar;
+	}
+	onStartFetching(tableFetcher) {
+		this.progressBar.start(tableFetcher.tableRef.navigationData.steps());
+	}
+	onLoaded(tableFetcher) {
+		if (tableFetcher.isUsingCached) {
+			let defaultAction = createDownloadTableWithExtraAction();
+			let resetAndLoadAction = (ev) => {
+				tableFetcher.reset();
+				defaultAction(ev);
+			};
+			this.infoBar.setCacheInfo(`Gegevens uit cache, ${millisToString(new Date().getTime() - tableFetcher.shadowTableDate.getTime())} oud. `, resetAndLoadAction);
+		}
+	}
+	onBeforeLoadingPage(_tableFetcher) {
+		return true;
+	}
+	onFinished(_tableFetcher) {
+		this.progressBar.stop();
+	}
+	onPageLoaded(_tableFetcher, _pageCnt, _text) {
+		this.progressBar.next();
+	}
+};
+function createDefaultTableRefAndInfoBar() {
+	let tableRef = findTableRefInCode();
+	if (!tableRef) return { error: "Cannot find table." };
+	document.getElementById(
+		//NOT SURE THIS IS datatable.php !!!
+		//NOT SURE THIS IS datatable.php !!!
+		//hope and pray...
+		//never mind the yes: the scanner is invalid.
+		INFO_CONTAINER_ID
+)?.remove();
+	let divInfoContainer = tableRef.createElementAboveTable("div");
+	let infoBar = new InfoBar(divInfoContainer.appendChild(document.createElement("div")));
+	let progressBar = insertProgressBar(infoBar.divInfoLine, "loading pages... ");
+	return { result: {
+		tableRef,
+		infoBar,
+		progressBar
+	} };
+}
+function createDefaultTableFetcher() {
+	let result = createDefaultTableRefAndInfoBar();
+	if ("error" in result) return { error: result.error };
+	let { tableRef, infoBar, progressBar } = result.result;
+	let tableFetcher = new TableFetcher(tableRef, getChecksumBuilder(tableRef.htmlTableId));
+	let infoBarListener = new InfoBarTableFetchListener(infoBar, progressBar);
+	tableFetcher.addListener(infoBarListener);
+	return { result: {
+		tableFetcher,
+		infoBar,
+		progressBar,
+		infoBarListener
+	} };
+}
+
+//#endregion
+//#region typescript/table/tableHeaders.ts
+function sortRows(cmpFunction, header, rows, index, descending) {
+	let cmpDirectionalFunction;
+	if (descending) {
+		cmpDirectionalFunction = (a, b) => cmpFunction(b.cells[index], a.cells[index]);
+		header.classList.add("sortDescending");
+	} else {
+		cmpDirectionalFunction = (a, b) => cmpFunction(a.cells[index], b.cells[index]);
+		header.classList.add("sortAscending");
+	}
+	rows.sort((a, b) => cmpDirectionalFunction(a, b));
+}
+function cmpAlpha(a, b) {
+	return a.innerText.localeCompare(b.innerText);
+}
+function cmpDate(a, b) {
+	return normalizeDate(a.innerText).localeCompare(normalizeDate(b.innerText));
+}
+function normalizeDate(date) {
+	let dateParts = date.split("-");
+	return dateParts[2] + dateParts[1] + dateParts[0];
+}
+function cmpNumber(a, b) {
+	let res = Number(a.innerText) - Number(b.innerText);
+	if (isNaN(res)) throw new Error();
+	return res;
+}
+function sortTableByColumn(table, index, descending) {
+	let header = table.tHead.children[0].children[index];
+	let rows = Array.from(table.tBodies[0].rows);
+	for (let thead of table.tHead.children[0].children) thead.classList.remove("sortAscending", "sortDescending");
+	let cmpFunc = cmpAlpha;
+	if (isColumnProbablyNumeric(table, index)) cmpFunc = cmpNumber;
+	else if (isColumnProbablyDate(table, index)) cmpFunc = cmpDate;
+	try {
+		sortRows(cmpFunc, header, rows, index, descending);
+	} catch (e) {
+		console.error(e);
+		if (cmpFunc !== cmpAlpha) sortRows(cmpAlpha, header, rows, index, descending);
+	}
+	rows.forEach((row) => table.tBodies[0].appendChild(row));
+}
+function copyFullTable(table) {
+	let headerCells = table.tHead.children[0].children;
+	let headers = [...headerCells].filter((cell) => cell.style.display !== "none").map((cell) => cell.innerText);
+	let rows = table.tBodies[0].children;
+	let cells = [...rows].map((row) => [...row.cells].filter((cell) => cell.style.display !== "none").map((cell) => cell.innerText));
+	createAndCopyTable(headers, cells);
+}
+function copyOneColumn(table, index) {
+	createAndCopyTable([table.tHead.children[0].children[index].innerText], [...table.tBodies[0].rows].map((row) => [row.cells[index].innerText]));
+}
+function createAndCopyTable(headers, cols) {
+	navigator.clipboard.writeText(createTable$1(headers, cols).outerHTML).then((_r) => {});
+}
+function reSortTableByColumn(ev, table) {
+	let header = table.tHead.children[0].children[getColumnIndex(ev)];
+	let wasAscending = header.classList.contains("sortAscending");
+	forTableDo(ev, (_fetchedTable, index) => sortTableByColumn(table, index, wasAscending));
+}
+function isColumnProbablyDate(table, index) {
+	let rows = Array.from(table.tBodies[0].rows);
+	return stringToDate(rows[0].cells[index].textContent);
+}
+function stringToDate(text) {
+	let reDate = /^(\d\d)[-\/](\d\d)[-\/](\d\d\d\d)/;
+	let matches = text.match(reDate);
+	if (!matches) return void 0;
+	return new Date(matches[3] + "-" + matches[2] + "/" + matches[1]);
+}
+function isColumnProbablyNumeric(table, index) {
+	let rows = Array.from(table.tBodies[0].rows);
+	const MAX_SAMPLES = 100;
+	let samples = rangeGenerator(0, rows.length, rows.length > MAX_SAMPLES ? rows.length / MAX_SAMPLES : 1).map((float) => Math.floor(float));
+	return !samples.map((rowIndex) => rows[rowIndex]).some((row) => {
+		return isNaN(Number(row.children[index].innerText));
+	});
+}
+function decorateTableHeader(table) {
+	if (table.tHead.classList.contains("clickHandler")) return;
+	table.tHead.classList.add("clickHandler");
+	if (!options.showTableHeaders) return;
+	Array.from(table.tHead.children[0].children).forEach((colHeader) => {
+		colHeader.onclick = (ev) => {
+			reSortTableByColumn(ev, table);
+		};
+		if (table.classList.contains(
+			//just to be sure.
+			//THEAD
+			NO_MENU
+)) return;
+		let { first: span, last: idiom } = emmet.appendChild(colHeader, "span>button.miniButton.naked>i.fas.fa-list");
+		let menu = setupMenu(span, idiom.parentElement);
+		addMenuItem(menu, "Toon unieke waarden", 0, (ev) => {
+			forTableDo(ev, showDistinctColumn);
+		});
+		addMenuItem(menu, "Verberg kolom", 0, (ev) => {
+			console.log("verberg kolom");
+			forTableColumnDo(ev, hideColumn);
+		});
+		addMenuItem(menu, "Toon alle kolommen", 0, (ev) => {
+			console.log("verberg kolom");
+			forTableColumnDo(ev, showColumns);
+		});
+		addMenuSeparator(menu, "Sorteer", 0);
+		addMenuItem(menu, "Laag naar hoog (a > z)", 1, (ev) => {
+			forTableDo(ev, (_fetchedTable, index) => sortTableByColumn(table, index, false));
+		});
+		addMenuItem(menu, "Hoog naar laag (z > a)", 1, (ev) => {
+			forTableDo(ev, (_fetchedTable, index) => sortTableByColumn(table, index, true));
+		});
+		addMenuSeparator(menu, "Sorteer als:", 1);
+		addMenuItem(menu, "Tekst", 2, (_ev) => {});
+		addMenuItem(menu, "Getallen", 2, (_ev) => {});
+		addMenuSeparator(menu, "Kopieer nr klipbord", 0);
+		addMenuItem(menu, "Kolom", 1, (ev) => {
+			forTableDo(ev, (_fetchedTable, index) => copyOneColumn(table, index));
+		});
+		addMenuItem(menu, "Hele tabel", 1, (ev) => {
+			forTableDo(ev, (_fetchedTable, _index) => copyFullTable(table));
+		});
+		addMenuSeparator(menu, "<= Samenvoegen", 0);
+		addMenuItem(menu, "met spatie", 1, (ev) => {
+			forTableColumnDo(ev, createTwoColumnsCmd(Direction.LEFT, mergeColumnWithSpace));
+		});
+		addMenuItem(menu, "met comma", 1, (ev) => {
+			forTableColumnDo(ev, createTwoColumnsCmd(Direction.LEFT, mergeColumnWithComma));
+		});
+		addMenuSeparator(menu, "Verplaatsen", 0);
+		addMenuItem(menu, "<=", 1, (ev) => {
+			forTableColumnDo(ev, createTwoColumnsCmd(Direction.LEFT, swapColumns));
+		});
+		addMenuItem(menu, "=>", 1, (ev) => {
+			forTableColumnDo(ev, createTwoColumnsCmd(Direction.RIGHT, swapColumns));
+		});
+	});
+	relabelHeaders(table.tHead.children[0]);
+}
+function getDistinctColumn(tableContainer, index) {
+	let rows = Array.from(tableContainer.querySelector("tbody").rows);
+	return distinct(rows.map((row) => row.children[index].textContent)).sort();
+}
+var TableHandlerForHeaders = class {
+	onReset(_tableDef) {
+		console.log("RESET");
+	}
+};
+function getColumnIndex(ev) {
+	let td = ev.target;
+	if (td.tagName !== "TD") td = td.closest("TH");
+	return Array.prototype.indexOf.call(td.parentElement.children, td);
+}
+function executeTableCommands(tableRef) {
+	let cmds = getPageTransientStateValue(GLOBAL_COMMAND_BUFFER_KEY, []);
+	console.log("Executing:");
+	console.log(cmds);
+	for (let cmd of cmds) executeCmd(cmd, tableRef, true);
+}
+function forTableDo(ev, doIt) {
+	ev.preventDefault();
+	ev.stopPropagation();
+	checkAndDownloadTableRows().then((tableRef) => {
+		doIt(tableRef, getColumnIndex(ev));
+	});
+}
+function forTableColumnDo(ev, cmdDef) {
+	ev.preventDefault();
+	ev.stopPropagation();
+	checkAndDownloadTableRows().then((tableRef) => {
+		let index = getColumnIndex(ev);
+		let cmd = {
+			cmdDef,
+			index
+		};
+		executeCmd(cmd, tableRef, false);
+		let cmds = getPageTransientStateValue(GLOBAL_COMMAND_BUFFER_KEY, []);
+		cmds.push(cmd);
+		relabelHeaders(tableRef.getOrgTableContainer().querySelector("thead>tr"));
+	});
+}
+function executeCmd(cmd, tableRef, onlyBody) {
+	let context = cmd.cmdDef.getContext?.(tableRef, cmd.index);
+	let rows;
+	if (onlyBody) rows = tableRef.getOrgTableContainer().querySelector("tbody").rows;
+	else rows = tableRef.getOrgTableContainer().querySelectorAll("tr");
+	for (let row of rows) cmd.cmdDef.doForRow(row, cmd.index, context);
+}
+function showDistinctColumn(tableRef, index) {
+	let cols = getDistinctColumn(tableRef.getOrgTableContainer(), index);
+	let tmpDiv = document.createElement("div");
+	let tbody = emmet.appendChild(tmpDiv, "table>tbody").last;
+	for (let col of cols) emmet.appendChild(tbody, `tr>td>{${col}}`);
+	let headerRow = tableRef.getOrgTableContainer().querySelector("thead>tr");
+	let headerText = getColumnHeaderText(headerRow.querySelectorAll("th")[index]);
+	openHtmlTab(tmpDiv.innerHTML, headerText + " (uniek)").then((r) => {});
+}
+function getColumnHeaderText(cell) {
+	return [...cell.childNodes].filter((node) => node.nodeType === Node.TEXT_NODE).map((node) => node.textContent).join(" ");
+}
+let hideColumn = { doForRow: function(row, index, _context) {
+	row.cells[index].style.display = "none";
+} };
+let showColumns = { doForRow: function(row, _index, _context) {
+	for (let cell of row.cells) cell.style.display = "";
+} };
+function mergeColumnWithSpace(row, index, leftIndex) {
+	mergeColumnToLeft(row, index, leftIndex, " ");
+}
+function mergeColumnWithComma(row, index, leftIndex) {
+	mergeColumnToLeft(row, index, leftIndex, ", ");
+}
+function mergeColumnToLeft(row, index, leftIndex, separator) {
+	if (index === 0) return;
+	if (row.parentElement.tagName == "TBODY") {
+		row.cells[index].style.display = "none";
+		row.cells[leftIndex].innerText += separator + row.cells[index].innerText;
+	} else {
+		row.cells[index].style.display = "none";
+		let firstTextNode = [...row.cells[leftIndex].childNodes].filter((node) => node.nodeType === Node.TEXT_NODE)[0];
+		let secondTextNode = [...row.cells[index].childNodes].filter((node) => node.nodeType === Node.TEXT_NODE)[0];
+		if (firstTextNode && secondTextNode) firstTextNode.textContent += separator + secondTextNode.textContent;
+	}
+}
+function relabelHeaders(headerRow) {
+	for (let cell of headerRow.cells) cell.classList.remove("shiftMenuLeft");
+	headerRow.cells[headerRow.cells.length - 1].classList.add("shiftMenuLeft");
+}
+function findNextVisibleCell(headerRow, indexes) {
+	let index = void 0;
+	for (let i of indexes) if (headerRow.children[i].style.display !== "none") {
+		index = i;
+		break;
+	}
+	return index;
+}
+var Direction = /* @__PURE__ */ function(Direction$1) {
+	Direction$1[Direction$1["LEFT"] = 0] = "LEFT";
+	Direction$1[Direction$1["RIGHT"] = 1] = "RIGHT";
+	return Direction$1;
+}(Direction || {});
+function createTwoColumnsCmd(direction, twoColumnFunc) {
+	return {
+		getContext: function(tableRef, index) {
+			let row = tableRef.getOrgTableContainer().querySelector("thead>tr");
+			let cellRange = direction === Direction.LEFT ? range(index - 1, -1) : range(index + 1, row.cells.length);
+			return findNextVisibleCell(row, cellRange);
+		},
+		doForRow: function(row, index, context) {
+			twoColumnFunc(row, index, context);
+		}
+	};
+}
+function swapColumns(row, index1, index2) {
+	if (index1 == void 0 || index2 == void 0) return;
+	if (index1 > index2) [index1, index2] = [index2, index1];
+	row.children[index1].parentElement.insertBefore(row.children[index2], row.children[index1]);
+}
+
+//#endregion
+//#region typescript/pageHandlers.ts
+/**
+
+* NamedCellTableFetchListener with named column labels.\
+
+* Params are:
+
+* @description
+
+*      * requiredHeaderLabels: array with labels of required columns.
+
+*      * onRequiredColumnsMissing: OnRequiredColumnsMissingHandler, which will be called when labels are missing.
+
+*/
+var NamedCellTableFetchListener = class NamedCellTableFetchListener {
+	onStartFetching;
+	onLoaded;
+	onFinished;
+	requiredHeaderLabels;
+	onBeforeLoading;
+	headerIndices;
+	onColumnsMissing;
+	isValidPage;
+	constructor(requiredHeaderLabels, onRequiredColumnsMissing) {
+		this.requiredHeaderLabels = requiredHeaderLabels;
+		this.onColumnsMissing = onRequiredColumnsMissing;
+		this.headerIndices = void 0;
+		this.isValidPage = false;
+	}
+	onPageLoaded(tableFetcher, _pageCnt, _text) {
+		if (!this.headerIndices) {
+			this.headerIndices = NamedCellTableFetchListener.getHeaderIndices(tableFetcher.fetchedTable.getTemplate().content);
+			if (!this.hasAllHeadersAndAlert()) {
+				this.isValidPage = false;
+				if (this.onColumnsMissing) this.onColumnsMissing(tableFetcher);
+				else throw "Cannot build table object - required columns missing";
+			} else this.isValidPage = true;
+		}
+	}
+	onBeforeLoadingPage(tableFetcher) {
+		let orgTableContainer = tableFetcher.tableRef.getOrgTableContainer();
+		if (!orgTableContainer) return true;
+		this.headerIndices = NamedCellTableFetchListener.getHeaderIndices(orgTableContainer);
+		return this.hasAllHeadersAndAlert();
+	}
+	hasAllHeadersAndAlert() {
+		if (!this.hasAllHeaders()) {
+			let labelString = this.requiredHeaderLabels.map((label) => "\"" + label.toUpperCase() + "\"").join(", ");
+			alert(`Voeg velden ${labelString} toe.`);
+			return false;
+		}
+		return true;
+	}
+	static getHeaderIndices(tableOrParent) {
+		let headers = tableOrParent.querySelectorAll("thead th");
+		return this.getHeaderIndicesFromHeaderCells(headers);
+	}
+	static getHeaderIndicesFromHeaderCells(headers) {
+		let headerIndices = new Map();
+		Array.from(headers).forEach((header, index) => {
+			let label = getColumnHeaderText(header);
+			if (label.startsWith("e-mailadressen")) headerIndices.set("e-mailadressen", index);
+			else headerIndices.set(label, index);
+		});
+		return headerIndices;
+	}
+	hasAllHeaders() {
+		return this.requiredHeaderLabels.every((label) => this.hasHeader(label));
+	}
+	hasHeader(label) {
+		return this.headerIndices.has(label);
+	}
+	getColumnText(tr, label) {
+		return getColumnText(tr, this.headerIndices, label);
+	}
+};
+function getColumnText(tr, headerIndices, label) {
+	return tr.children[headerIndices.get(label)].textContent;
+}
+
+//#endregion
 //#region typescript/werklijst/scrapeUren.ts
-function scrapeStudent(fetchListener, tr) {
-	let naam = fetchListener.getColumnText(tr, "naam");
-	let voornaam = fetchListener.getColumnText(tr, "voornaam");
+function scrapeStudent(headerIndices, tr) {
+	let naam = getColumnText(tr, headerIndices, "naam");
+	let voornaam = getColumnText(tr, headerIndices, "voornaam");
 	let id = parseInt(tr.attributes["onclick"].value.replace("showView('leerlingen-leerling', '', 'id=", ""));
-	let leraar = fetchListener.getColumnText(tr, "klasleerkracht");
-	let vak = fetchListener.getColumnText(tr, "vak");
-	let graadLeerjaar = fetchListener.getColumnText(tr, "graad + leerjaar");
+	let leraar = getColumnText(tr, headerIndices, "klasleerkracht");
+	let vak = getColumnText(tr, headerIndices, "vak");
+	let graadLeerjaar = getColumnText(tr, headerIndices, "graad + leerjaar");
 	if (leraar === "") leraar = "{nieuw}";
 	return {
 		naam,
@@ -3163,9 +4159,8 @@ function translateVak(vak, settings) {
 	});
 	return vak;
 }
-function scrapeUren(fetchedTable, tableFetchListener) {
-	let rows = fetchedTable.getRows();
-	return [...rows].map((tr) => scrapeStudent(tableFetchListener, tr));
+function scrapeUren(rows, headerIndices) {
+	return [...rows].map((tr) => scrapeStudent(headerIndices, tr));
 }
 
 //#endregion
@@ -3748,986 +4743,6 @@ async function setCriteriaForTeacherHoursAndClickFetchButton(schooljaar, hourSet
 }
 
 //#endregion
-//#region typescript/pageHandlers.ts
-/**
-
-* NamedCellTableFetchListener with named column labels.\
-
-* Params are:
-
-* @description
-
-*      * requiredHeaderLabels: array with labels of required columns.
-
-*      * onRequiredColumnsMissing: OnRequiredColumnsMissingHandler, which will be called when labels are missing.
-
-*/
-var NamedCellTableFetchListener = class NamedCellTableFetchListener {
-	onStartFetching;
-	onLoaded;
-	onFinished;
-	requiredHeaderLabels;
-	onBeforeLoading;
-	headerIndices;
-	onColumnsMissing;
-	isValidPage;
-	constructor(requiredHeaderLabels, onRequiredColumnsMissing) {
-		this.requiredHeaderLabels = requiredHeaderLabels;
-		this.onColumnsMissing = onRequiredColumnsMissing;
-		this.headerIndices = void 0;
-		this.isValidPage = false;
-	}
-	onPageLoaded(tableFetcher, _pageCnt, _text) {
-		if (!this.headerIndices) {
-			this.headerIndices = NamedCellTableFetchListener.getHeaderIndices(tableFetcher.fetchedTable.getTemplate().content);
-			if (!this.hasAllHeadersAndAlert()) {
-				this.isValidPage = false;
-				if (this.onColumnsMissing) this.onColumnsMissing(tableFetcher);
-				else throw "Cannot build table object - required columns missing";
-			} else this.isValidPage = true;
-		}
-	}
-	onBeforeLoadingPage(tableFetcher) {
-		let orgTableContainer = tableFetcher.tableRef.getOrgTableContainer();
-		if (!orgTableContainer) return true;
-		this.headerIndices = NamedCellTableFetchListener.getHeaderIndices(orgTableContainer);
-		return this.hasAllHeadersAndAlert();
-	}
-	hasAllHeadersAndAlert() {
-		if (!this.hasAllHeaders()) {
-			let labelString = this.requiredHeaderLabels.map((label) => "\"" + label.toUpperCase() + "\"").join(", ");
-			alert(`Voeg velden ${labelString} toe.`);
-			return false;
-		}
-		return true;
-	}
-	static getHeaderIndices(element) {
-		let headers = element.querySelectorAll("thead th");
-		return this.getHeaderIndicesFromHeaderCells(headers);
-	}
-	static getHeaderIndicesFromHeaderCells(headers) {
-		let headerIndices = new Map();
-		Array.from(headers).forEach((header, index) => {
-			let label = header.innerText;
-			if (label.startsWith("e-mailadressen")) headerIndices.set("e-mailadressen", index);
-			else headerIndices.set(label, index);
-		});
-		return headerIndices;
-	}
-	hasAllHeaders() {
-		return this.requiredHeaderLabels.every((label) => this.hasHeader(label));
-	}
-	hasHeader(label) {
-		return this.headerIndices.has(label);
-	}
-	getColumnText(tr, label) {
-		return tr.children[this.headerIndices.get(label)].textContent;
-	}
-};
-
-//#endregion
-//#region typescript/table/tableNavigation.ts
-var TableNavigation = class {
-	step;
-	maxCount;
-	constructor(step, maxCount) {
-		this.step = step;
-		this.maxCount = maxCount;
-	}
-	steps() {
-		return Math.ceil(this.maxCount / this.step);
-	}
-	isOnePage() {
-		return this.step >= this.maxCount;
-	}
-};
-function findFirstNavigation(element) {
-	element = element ?? document.body;
-	let buttonPagination = element.querySelector("button.datatable-paging-numbers");
-	if (!buttonPagination) return void 0;
-	let buttonContainer = buttonPagination.closest("div");
-	if (!buttonContainer) return void 0;
-	let rx = /(\d*) tot (\d*) van (\d*)/;
-	let matches = buttonPagination.innerText.match(rx);
-	let buttons = buttonContainer.querySelectorAll("button.btn-secondary");
-	let offsets = Array.from(buttons).filter((btn) => btn.attributes["onclick"]?.value.includes("goto(")).filter((btn) => !btn.querySelector("i.fa-fast-backward")).map((btn) => getGotoNumber(btn.attributes["onclick"].value));
-	let numbers = matches.slice(1).map((txt) => parseInt(txt));
-	numbers[0] = numbers[0] - 1;
-	numbers = numbers.concat(offsets);
-	numbers.sort((a, b) => a - b);
-	numbers = [...new Set(numbers)];
-	return new TableNavigation(numbers[1] - numbers[0], numbers.pop());
-}
-function getGotoNumber(functionCall) {
-	return parseInt(functionCall.substring(functionCall.indexOf("goto(") + 5));
-}
-
-//#endregion
-//#region typescript/table/tableFetcher.ts
-var TableRef = class {
-	htmlTableId;
-	buildFetchUrl;
-	navigationData;
-	constructor(htmlTableId, navigationData, buildFetchUrl) {
-		this.htmlTableId = htmlTableId;
-		this.buildFetchUrl = buildFetchUrl;
-		this.navigationData = navigationData;
-	}
-	getOrgTableContainer() {
-		return document.getElementById(this.htmlTableId);
-	}
-	createElementAboveTable(element) {
-		let el = document.createElement(element);
-		this.getOrgTableContainer().insertAdjacentElement("beforebegin", el);
-		return el;
-	}
-};
-function findTableRefInCode() {
-	let foundTableRef = findTable();
-	if (!foundTableRef) return void 0;
-	let buildFetchUrl = (offset) => `/views/ui/datatable.php?id=${foundTableRef.viewId}&start=${offset}&aantal=0`;
-	let navigation = findFirstNavigation();
-	if (!navigation) return void 0;
-	return new TableRef(foundTableRef.tableId, navigation, buildFetchUrl);
-}
-function findTable() {
-	let table = document.querySelector("div.table-responsive > table");
-	let tableId$1 = table.id.replace("table_", "").replace("_table", "");
-	let parentDiv = document.querySelector("div#table_" + tableId$1);
-	let scripts = Array.from(parentDiv.querySelectorAll("script")).map((script) => script.text).join("\n");
-	let goto = scripts.split("_goto(")[1];
-	let func = goto.split(/ function *\w/)[0];
-	let viewId = / *datatable_id *= *'(.*)'/.exec(func)[1];
-	let url = /_table'\).load\('(.*?)\?id='\s*\+\s*datatable_id\s*\+\s*'&start='\s*\+\s*start/.exec(func)[1];
-	return {
-		tableId: table.id,
-		viewId,
-		url
-	};
-}
-var TableFetcher = class {
-	tableRef;
-	calculateTableCheckSum;
-	isUsingCached = false;
-	shadowTableDate;
-	fetchedTable;
-	tableHandler;
-	listeners;
-	cancelRequested;
-	fetchFinished;
-	constructor(tableRef, calculateTableCheckSum, tableHandler) {
-		this.tableRef = tableRef;
-		if (!calculateTableCheckSum) throw "Tablechecksum required.";
-		this.calculateTableCheckSum = calculateTableCheckSum;
-		this.fetchedTable = void 0;
-		this.tableHandler = tableHandler;
-		this.listeners = [];
-		this.cancelRequested = false;
-		this.fetchFinished = false;
-	}
-	reset() {
-		this.clearCache();
-		this.tableHandler?.onReset?.(this);
-	}
-	async cancel() {
-		this.cancelRequested = true;
-		while (!this.fetchFinished) await new Promise((resolve) => setTimeout(resolve));
-		this.clearCache();
-	}
-	clearCache() {
-		db3(`Clear cache for ${this.tableRef.htmlTableId}.`);
-		window.sessionStorage.removeItem(this.getCacheId());
-		window.sessionStorage.removeItem(this.getCacheId() + CACHE_DATE_SUFFIX);
-		this.fetchedTable = void 0;
-	}
-	loadFromCache() {
-		if (this.tableRef.navigationData.isOnePage()) return null;
-		db3(`Loading from cache: ${this.getCacheId()}.`);
-		let text = window.sessionStorage.getItem(this.getCacheId());
-		let dateString = window.sessionStorage.getItem(this.getCacheId() + CACHE_DATE_SUFFIX);
-		if (!text) return void 0;
-		return {
-			text,
-			date: new Date(dateString)
-		};
-	}
-	getCacheId() {
-		let checksum = "";
-		if (this.calculateTableCheckSum) checksum = "__" + this.calculateTableCheckSum(this);
-		let id = this.tableRef.htmlTableId + checksum;
-		return id.replaceAll(/\s/g, "");
-	}
-	async fetch() {
-		if (this.fetchedTable) {
-			this.onFinished(true);
-			return this.fetchedTable;
-		}
-		this.fetchFinished = false;
-		let cachedData = this.loadFromCache();
-		let succes;
-		this.fetchedTable = new FetchedTable(this);
-		if (cachedData) {
-			this.fetchedTable.addPage(cachedData.text);
-			this.shadowTableDate = cachedData.date;
-			this.isUsingCached = true;
-			this.onPageLoaded(1, cachedData.text);
-			this.onLoaded();
-			succes = true;
-		} else {
-			this.isUsingCached = false;
-			succes = await this.#fetchPages(this.fetchedTable);
-			if (!succes) {
-				this.onFinished(succes);
-				throw "Failed to fetch the pages.";
-			}
-			this.fetchedTable.saveToCache();
-			this.onLoaded();
-		}
-		this.onFinished(succes);
-		return this.fetchedTable;
-	}
-	onStartFetching() {
-		for (let lst of this.listeners) lst.onStartFetching?.(this);
-	}
-	onFinished(succes) {
-		this.fetchFinished = true;
-		for (let lst of this.listeners) lst.onFinished?.(this, succes);
-	}
-	onPageLoaded(pageCnt, text) {
-		for (let lst of this.listeners) lst.onPageLoaded?.(this, pageCnt, text);
-	}
-	onLoaded() {
-		for (let lst of this.listeners) lst.onLoaded?.(this);
-	}
-	onBeforeLoadingPage() {
-		for (let lst of this.listeners) if (lst.onBeforeLoadingPage) {
-			if (!lst.onBeforeLoadingPage(this)) return false;
-		}
-		return true;
-	}
-	async #fetchPages(fetchedTable) {
-		if (!this.onBeforeLoadingPage()) return false;
-		await this.#doFetchAllPages(fetchedTable);
-		return true;
-	}
-	async #doFetchAllPages(fetchedTable) {
-		try {
-			this.onStartFetching();
-			let pageCnt = 0;
-			this.cancelRequested = false;
-			while (true) {
-				console.log("fetching page " + fetchedTable.getNextPageNumber());
-				let response = await fetch(this.tableRef.buildFetchUrl(fetchedTable.getNextOffset()));
-				let text = await response.text();
-				fetchedTable.addPage(text);
-				pageCnt++;
-				this.onPageLoaded(pageCnt, text);
-				if (pageCnt >= this.tableRef.navigationData.steps()) break;
-				if (this.cancelRequested) break;
-			}
-		} finally {}
-	}
-	addListener(listener) {
-		this.listeners.push(listener);
-	}
-};
-var FetchedTable = class {
-	shadowTableTemplate;
-	tableFetcher;
-	lastPageNumber;
-	lastPageStartRow;
-	constructor(tableDef) {
-		this.tableFetcher = tableDef;
-		this.lastPageNumber = -1;
-		this.lastPageStartRow = 0;
-		this.shadowTableTemplate = document.createElement("template");
-	}
-	getRows() {
-		let template = this.shadowTableTemplate;
-		return template.content.querySelectorAll("tbody tr:not(:has(i.fa-meh))");
-	}
-	getRowsAsArray = () => Array.from(this.getRows());
-	getLastPageRows = () => this.getRowsAsArray().slice(this.lastPageStartRow);
-	getLastPageNumber = () => this.lastPageNumber;
-	getNextPageNumber = () => this.lastPageNumber + 1;
-	getNextOffset = () => this.getNextPageNumber() * this.tableFetcher.tableRef.navigationData.step;
-	getTemplate = () => this.shadowTableTemplate;
-	saveToCache() {
-		db3(`Caching ${this.tableFetcher.getCacheId()}.`);
-		window.sessionStorage.setItem(this.tableFetcher.getCacheId(), this.shadowTableTemplate.innerHTML);
-		window.sessionStorage.setItem(this.tableFetcher.getCacheId() + CACHE_DATE_SUFFIX, new Date().toJSON());
-	}
-	addPage(text) {
-		let pageTemplate;
-		pageTemplate = document.createElement("template");
-		pageTemplate.innerHTML = text;
-		let rows = pageTemplate.content.querySelectorAll("tbody > tr");
-		this.lastPageStartRow = this.getRows().length;
-		if (this.lastPageNumber === -1) this.shadowTableTemplate.innerHTML = text;
-		else this.shadowTableTemplate.content.querySelector("tbody").append(...rows);
-		this.lastPageNumber++;
-	}
-};
-
-//#endregion
-//#region typescript/table/observer.ts
-var observer_default$5 = new BaseObserver(void 0, new AllPageFilter(), onMutation$4);
-function onMutation$4(_mutation) {
-	let navigationBars = getBothToolbars();
-	if (!navigationBars) return;
-	if (!findTableRefInCode()?.navigationData.isOnePage()) addTableNavigationButton(
-		navigationBars,
-		//wait for top and bottom bars.
-		DOWNLOAD_TABLE_BTN_ID,
-		"download full table",
-		() => {
-			downloadTableRows().then((_r) => {});
-		},
-		"fa-arrow-down"
-);
-	if (document.querySelector("main div.table-responsive table thead")) {
-		let table = document.querySelector("main div.table-responsive table");
-		decorateTableHeader(document.querySelector("main div.table-responsive table"));
-	}
-	let canSort = document.querySelector("table." + CAN_SORT);
-	if (canSort) decorateTableHeader(canSort);
-	return true;
-}
-let tableCriteriaBuilders = new Map();
-function getChecksumBuilder(tableId$1) {
-	let builder = tableCriteriaBuilders.get(tableId$1);
-	if (builder) return builder;
-	return (_tableFetcher) => "";
-}
-function registerChecksumHandler(tableId$1, checksumHandler) {
-	tableCriteriaBuilders.set(tableId$1, checksumHandler);
-}
-
-//#endregion
-//#region typescript/infoBar.ts
-var InfoBar = class {
-	divInfoContainer;
-	divInfoLine;
-	divTempLine;
-	divExtraLine;
-	tempMessage;
-	divCacheInfo;
-	constructor(divInfoContainer) {
-		this.divInfoContainer = divInfoContainer;
-		this.divInfoContainer.id = INFO_CONTAINER_ID;
-		this.divInfoContainer.innerHTML = "";
-		this.divExtraLine = emmet.appendChild(divInfoContainer, `div#${INFO_EXTRA_ID}.infoMessage`).last;
-		this.divInfoLine = emmet.appendChild(divInfoContainer, "div.infoLine").last;
-		this.divTempLine = emmet.appendChild(divInfoContainer, `div#${INFO_TEMP_ID}.infoMessage.tempLine`).last;
-		this.divCacheInfo = emmet.appendChild(this.divInfoContainer, `div#${INFO_CACHE_ID}.cacheInfo`).last;
-		this.tempMessage = "";
-	}
-	setCacheInfo(cacheInfo, reset_onclick) {
-		this.updateCacheInfo(cacheInfo, reset_onclick);
-	}
-	setTempMessage(msg) {
-		this.tempMessage = msg;
-		this.#updateTempMessage();
-		setTimeout(this.clearTempMessage.bind(this), 4e3);
-	}
-	clearTempMessage() {
-		this.tempMessage = "";
-		this.#updateTempMessage();
-	}
-	#updateTempMessage() {
-		this.divTempLine.innerHTML = this.tempMessage;
-	}
-	setInfoLine(message) {
-		this.divInfoLine.innerHTML = message;
-	}
-	clearCacheInfo() {
-		this.divCacheInfo.innerHTML = "";
-	}
-	updateCacheInfo(info, reset_onclick) {
-		this.divCacheInfo.innerHTML = info;
-		let button = emmet.appendChild(this.divCacheInfo, "button.likeLink").first;
-		button.innerHTML = "refresh";
-		button.onclick = reset_onclick;
-	}
-	setExtraInfo(message, click_element_id, callback) {
-		this.divExtraLine.innerHTML = message;
-		if (click_element_id) document.getElementById(click_element_id).onclick = callback;
-	}
-};
-
-//#endregion
-//#region typescript/progressBar.ts
-var ProgressBar = class {
-	barElement;
-	containerElement;
-	maxCount;
-	count;
-	constructor(containerElement, barElement) {
-		this.barElement = barElement;
-		this.containerElement = containerElement;
-		this.hide();
-		this.maxCount = 0;
-		this.count = 0;
-	}
-	reset(maxCount) {
-		this.maxCount = maxCount;
-		this.count = 0;
-		this.barElement.innerHTML = "";
-		for (let i = 0; i < maxCount; i++) {
-			let block = document.createElement("div");
-			this.barElement.appendChild(block);
-			block.classList.add("progressBlock");
-		}
-	}
-	start(maxCount) {
-		this.reset(maxCount);
-		this.containerElement.style.display = "block";
-		this.next();
-	}
-	hide() {
-		this.containerElement.style.display = "none";
-	}
-	stop() {
-		this.hide();
-	}
-	next() {
-		if (this.count >= this.maxCount) return false;
-		this.barElement.children[this.count].classList.remove("iddle", "loaded");
-		this.barElement.children[this.count].classList.add("loading");
-		for (let i = 0; i < this.count; i++) {
-			this.barElement.children[i].classList.remove("iddle", "loading");
-			this.barElement.children[i].classList.add("loaded");
-		}
-		for (let i = this.count + 1; i < this.maxCount; i++) {
-			this.barElement.children[i].classList.remove("loaded", "loading");
-			this.barElement.children[i].classList.add("iddle");
-		}
-		this.count++;
-		return true;
-	}
-};
-function insertProgressBar(container, text = "") {
-	container.innerHTML = "";
-	let { first: divProgressLine, last: divProgressBar } = emmet.appendChild(container, `div.infoLine${PROGRESS_BAR_ID}>div.progressText{${text}}+div.progressBar`);
-	return new ProgressBar(divProgressLine, divProgressBar);
-}
-
-//#endregion
-//#region typescript/table/loadAnyTable.ts
-async function getTableRefFromHash(hash) {
-	await fetch("https://administratie.dko3.cloud/#" + hash).then((res) => res.text());
-	let view = await fetch("view.php?args=" + hash).then((res) => res.text());
-	let index_viewUrl = getDocReadyLoadUrl(view);
-	let index_view = await fetch(index_viewUrl).then((res) => res.text());
-	let htmlTableId = getDocReadyLoadScript(index_view).find("$", "(", "'#").clipTo("'").result();
-	if (!htmlTableId) htmlTableId = getDocReadyLoadScript(index_view).find("$", "(", "\"#").clipTo("\"").result();
-	let someUrl = getDocReadyLoadUrl(index_view);
-	if (!someUrl.includes("ui/datatable.php")) {
-		let someCode = await fetch(someUrl).then((res) => res.text());
-		someUrl = getDocReadyLoadUrl(someCode);
-	}
-	let datatableUrl = someUrl;
-	let datatable = await fetch(datatableUrl).then((result) => result.text());
-	let scanner = new TokenScanner(datatable);
-	let datatable_id = "";
-	let tableNavUrl = "";
-	scanner.find("var", "datatable_id", "=").getString((res) => {
-		datatable_id = res;
-	}).clipTo("</script>").find(".", "load", "(").getString((res) => tableNavUrl = res).result();
-	tableNavUrl += datatable_id + "&pos=top";
-	let tableNavText = await fetch(tableNavUrl).then((res) => res.text().then());
-	let div = document.createElement("div");
-	div.innerHTML = tableNavText;
-	let tableNav = findFirstNavigation(div);
-	console.log(tableNav);
-	let buildFetchUrl = (offset) => `/views/ui/datatable.php?id=${datatable_id}&start=${offset}&aantal=0`;
-	return new TableRef(htmlTableId, tableNav, buildFetchUrl);
-}
-async function getTableFromHash(hash, clearCache, infoBarListener) {
-	let tableRef = await getTableRefFromHash(hash);
-	console.log(tableRef);
-	let tableFetcher = new TableFetcher(tableRef, getChecksumBuilder(tableRef.htmlTableId));
-	tableFetcher.addListener(infoBarListener);
-	if (clearCache) tableFetcher.clearCache();
-	let fetchedTable = await tableFetcher.fetch();
-	await setViewFromCurrentUrl();
-	return fetchedTable;
-}
-function findDocReady(scanner) {
-	return scanner.find("$", "(", "document", ")", ".", "ready", "(");
-}
-function getDocReadyLoadUrl(text) {
-	let scanner = new TokenScanner(text);
-	while (true) {
-		let docReady = findDocReady(scanner);
-		if (!docReady.valid) return void 0;
-		let url = docReady.clone().clipTo("</script>").find(".", "load", "(").clipString().result();
-		if (url) return url;
-		scanner = docReady;
-	}
-}
-function getDocReadyLoadScript(text) {
-	let scanner = new TokenScanner(text);
-	while (true) {
-		let docReady = findDocReady(scanner);
-		if (!docReady.valid) return void 0;
-		let script = docReady.clone().clipTo("</script>");
-		let load = script.clone().find(".", "load", "(");
-		if (load.valid) return script;
-		scanner = docReady;
-	}
-}
-function escapeRegexChars(text) {
-	return text.replaceAll("\\", "\\\\").replaceAll("^", "\\^").replaceAll("$", "\\$").replaceAll(".", "\\.").replaceAll("|", "\\|").replaceAll("?", "\\?").replaceAll("*", "\\*").replaceAll("+", "\\+").replaceAll("(", "\\(").replaceAll(")", "\\)").replaceAll("[", "\\[").replaceAll("]", "\\]").replaceAll("{", "\\{").replaceAll("}", "\\}");
-}
-var ScannerElse = class {
-	scannerIf;
-	constructor(scannerIf) {
-		this.scannerIf = scannerIf;
-	}
-	not(callback) {
-		if (!this.scannerIf.yes) callback?.(this.scannerIf.scanner);
-		return this.scannerIf.scanner;
-	}
-};
-var ScannerIf = class {
-	yes;
-	scanner;
-	constructor(yes, scanner) {
-		this.yes = yes;
-		this.scanner = scanner;
-	}
-	then(callback) {
-		if (this.yes) callback(this.scanner);
-		return new ScannerElse(this);
-	}
-};
-var TokenScanner = class TokenScanner {
-	valid;
-	source;
-	cursor;
-	constructor(text) {
-		this.valid = true;
-		this.source = text;
-		this.cursor = text;
-	}
-	result() {
-		if (this.valid) return this.cursor;
-		return void 0;
-	}
-	find(...tokens) {
-		return this.#find("", tokens);
-	}
-	match(...tokens) {
-		return this.#find("^\\s*", tokens);
-	}
-	#find(prefix, tokens) {
-		if (!this.valid) return this;
-		let rxString = prefix + tokens.map((token) => escapeRegexChars(token) + "\\s*").join("");
-		let match$1 = RegExp(rxString).exec(this.cursor);
-		if (match$1) {
-			this.cursor = this.cursor.substring(match$1.index + match$1[0].length);
-			return this;
-		}
-		this.valid = false;
-		return this;
-	}
-	ifMatch(...tokens) {
-		if (!this.valid) return new ScannerIf(true, this);
-		this.match(...tokens);
-		if (this.valid) return new ScannerIf(true, this);
-		else {
-			this.valid = true;
-			return new ScannerIf(false, this);
-		}
-	}
-	clip(len) {
-		if (!this.valid) return this;
-		this.cursor = this.cursor.substring(0, len);
-		return this;
-	}
-	clipTo(end) {
-		if (!this.valid) return this;
-		let found = this.cursor.indexOf(end);
-		if (found < 0) {
-			this.valid = false;
-			return this;
-		}
-		this.cursor = this.cursor.substring(0, found);
-		return this;
-	}
-	clone() {
-		let newScanner = new TokenScanner(this.cursor);
-		newScanner.valid = this.valid;
-		return newScanner;
-	}
-	clipString() {
-		let isString = false;
-		this.ifMatch("'").then((result) => {
-			isString = true;
-			return result.clipTo("'");
-		}).not().ifMatch("\"").then((result) => {
-			isString = true;
-			return result.clipTo("\"");
-		}).not();
-		this.valid = this.valid && isString;
-		return this;
-	}
-	getString(callback) {
-		let subScanner = this.clone();
-		let result = subScanner.clipString().result();
-		if (result) {
-			callback(result);
-			this.ifMatch("'").then((result$1) => result$1.find("'")).not().ifMatch("\"").then((result$1) => result$1.find("\"")).not();
-		}
-		return this;
-	}
-};
-async function downloadTableRows() {
-	let result = createDefaultTableFetcher();
-	if ("error" in result) {
-		console.error(result.error);
-		return;
-	}
-	let { tableFetcher } = result.result;
-	tableFetcher.tableHandler = new TableHandlerForHeaders();
-	let fetchedTable = await tableFetcher.fetch();
-	let fetchedRows = fetchedTable.getRows();
-	let tableContainer = fetchedTable.tableFetcher.tableRef.getOrgTableContainer();
-	tableContainer.querySelector("tbody").replaceChildren(...fetchedRows);
-	tableContainer.querySelector("table").classList.add("fullyFetched");
-	executeTableCommands(fetchedTable.tableFetcher.tableRef);
-	return fetchedTable;
-}
-async function checkAndDownloadTableRows() {
-	let tableRef = findTableRefInCode();
-	if (tableRef.getOrgTableContainer().querySelector("table").classList.contains("fullyFetched")) return tableRef;
-	await downloadTableRows();
-	return tableRef;
-}
-var InfoBarTableFetchListener = class {
-	infoBar;
-	progressBar;
-	constructor(infoBar, progressBar) {
-		this.infoBar = infoBar;
-		this.progressBar = progressBar;
-	}
-	onStartFetching(tableFetcher) {
-		this.progressBar.start(tableFetcher.tableRef.navigationData.steps());
-	}
-	onLoaded(tableFetcher) {
-		if (tableFetcher.isUsingCached) {
-			let reset_onclick = (e) => {
-				e.preventDefault();
-				tableFetcher.reset();
-				downloadTableRows().then((_fetchedTable) => {});
-				return true;
-			};
-			this.infoBar.setCacheInfo(`Gegevens uit cache, ${millisToString(new Date().getTime() - tableFetcher.shadowTableDate.getTime())} oud. `, reset_onclick);
-		}
-	}
-	onBeforeLoadingPage(_tableFetcher) {
-		return true;
-	}
-	onFinished(_tableFetcher) {
-		this.progressBar.stop();
-	}
-	onPageLoaded(_tableFetcher, _pageCnt, _text) {
-		this.progressBar.next();
-	}
-};
-function createDefaultTableRefAndInfoBar() {
-	let tableRef = findTableRefInCode();
-	if (!tableRef) return { error: "Cannot find table." };
-	document.getElementById(
-		//NOT SURE THIS IS datatable.php !!!
-		//NOT SURE THIS IS datatable.php !!!
-		//hope and pray...
-		//never mind the yes: the scanner is invalid.
-		INFO_CONTAINER_ID
-)?.remove();
-	let divInfoContainer = tableRef.createElementAboveTable("div");
-	let infoBar = new InfoBar(divInfoContainer.appendChild(document.createElement("div")));
-	let progressBar = insertProgressBar(infoBar.divInfoLine, "loading pages... ");
-	return { result: {
-		tableRef,
-		infoBar,
-		progressBar
-	} };
-}
-function createDefaultTableFetcher() {
-	let result = createDefaultTableRefAndInfoBar();
-	if ("error" in result) return { error: result.error };
-	let { tableRef, infoBar, progressBar } = result.result;
-	let tableFetcher = new TableFetcher(tableRef, getChecksumBuilder(tableRef.htmlTableId));
-	let infoBarListener = new InfoBarTableFetchListener(infoBar, progressBar);
-	tableFetcher.addListener(infoBarListener);
-	return { result: {
-		tableFetcher,
-		infoBar,
-		progressBar,
-		infoBarListener
-	} };
-}
-
-//#endregion
-//#region typescript/table/tableHeaders.ts
-function sortRows(cmpFunction, header, rows, index, descending) {
-	let cmpDirectionalFunction;
-	if (descending) {
-		cmpDirectionalFunction = (a, b) => cmpFunction(b.cells[index], a.cells[index]);
-		header.classList.add("sortDescending");
-	} else {
-		cmpDirectionalFunction = (a, b) => cmpFunction(a.cells[index], b.cells[index]);
-		header.classList.add("sortAscending");
-	}
-	rows.sort((a, b) => cmpDirectionalFunction(a, b));
-}
-function cmpAlpha(a, b) {
-	return a.innerText.localeCompare(b.innerText);
-}
-function cmpDate(a, b) {
-	return normalizeDate(a.innerText).localeCompare(normalizeDate(b.innerText));
-}
-function normalizeDate(date) {
-	let dateParts = date.split("-");
-	return dateParts[2] + dateParts[1] + dateParts[0];
-}
-function cmpNumber(a, b) {
-	let res = Number(a.innerText) - Number(b.innerText);
-	if (isNaN(res)) throw new Error();
-	return res;
-}
-function sortTableByColumn(table, index, descending) {
-	let header = table.tHead.children[0].children[index];
-	let rows = Array.from(table.tBodies[0].rows);
-	for (let thead of table.tHead.children[0].children) thead.classList.remove("sortAscending", "sortDescending");
-	let cmpFunc = cmpAlpha;
-	if (isColumnProbablyNumeric(table, index)) cmpFunc = cmpNumber;
-	else if (isColumnProbablyDate(table, index)) cmpFunc = cmpDate;
-	try {
-		sortRows(cmpFunc, header, rows, index, descending);
-	} catch (e) {
-		console.error(e);
-		if (cmpFunc !== cmpAlpha) sortRows(cmpAlpha, header, rows, index, descending);
-	}
-	rows.forEach((row) => table.tBodies[0].appendChild(row));
-}
-function copyFullTable(table) {
-	let headerCells = table.tHead.children[0].children;
-	let headers = [...headerCells].filter((cell) => cell.style.display !== "none").map((cell) => cell.innerText);
-	let rows = table.tBodies[0].children;
-	let cells = [...rows].map((row) => [...row.cells].filter((cell) => cell.style.display !== "none").map((cell) => cell.innerText));
-	createAndCopyTable(headers, cells);
-}
-function copyOneColumn(table, index) {
-	createAndCopyTable([table.tHead.children[0].children[index].innerText], [...table.tBodies[0].rows].map((row) => [row.cells[index].innerText]));
-}
-function createAndCopyTable(headers, cols) {
-	navigator.clipboard.writeText(createTable$1(headers, cols).outerHTML).then((_r) => {});
-}
-function reSortTableByColumn(ev, table) {
-	let header = table.tHead.children[0].children[getColumnIndex(ev)];
-	let wasAscending = header.classList.contains("sortAscending");
-	forTableDo(ev, (_fetchedTable, index) => sortTableByColumn(table, index, wasAscending));
-}
-function isColumnProbablyDate(table, index) {
-	let rows = Array.from(table.tBodies[0].rows);
-	return stringToDate(rows[0].cells[index].textContent);
-}
-function stringToDate(text) {
-	let reDate = /^(\d\d)[-\/](\d\d)[-\/](\d\d\d\d)/;
-	let matches = text.match(reDate);
-	if (!matches) return void 0;
-	return new Date(matches[3] + "-" + matches[2] + "/" + matches[1]);
-}
-function isColumnProbablyNumeric(table, index) {
-	let rows = Array.from(table.tBodies[0].rows);
-	const MAX_SAMPLES = 100;
-	let samples = rangeGenerator(0, rows.length, rows.length > MAX_SAMPLES ? rows.length / MAX_SAMPLES : 1).map((float) => Math.floor(float));
-	return !samples.map((rowIndex) => rows[rowIndex]).some((row) => {
-		return isNaN(Number(row.children[index].innerText));
-	});
-}
-function decorateTableHeader(table) {
-	if (table.tHead.classList.contains("clickHandler")) return;
-	table.tHead.classList.add("clickHandler");
-	if (!options.showTableHeaders) return;
-	Array.from(table.tHead.children[0].children).forEach((colHeader) => {
-		colHeader.onclick = (ev) => {
-			reSortTableByColumn(ev, table);
-		};
-		if (table.classList.contains(
-			//just to be sure.
-			//THEAD
-			NO_MENU
-)) return;
-		let { first: span, last: idiom } = emmet.appendChild(colHeader, "span>button.miniButton.naked>i.fas.fa-list");
-		let menu = setupMenu(span, idiom.parentElement);
-		addMenuItem(menu, "Toon unieke waarden", 0, (ev) => {
-			forTableDo(ev, showDistinctColumn);
-		});
-		addMenuItem(menu, "Verberg kolom", 0, (ev) => {
-			console.log("verberg kolom");
-			forTableColumnDo(ev, hideColumn);
-		});
-		addMenuItem(menu, "Toon alle kolommen", 0, (ev) => {
-			console.log("verberg kolom");
-			forTableColumnDo(ev, showColumns);
-		});
-		addMenuSeparator(menu, "Sorteer", 0);
-		addMenuItem(menu, "Laag naar hoog (a > z)", 1, (ev) => {
-			forTableDo(ev, (_fetchedTable, index) => sortTableByColumn(table, index, false));
-		});
-		addMenuItem(menu, "Hoog naar laag (z > a)", 1, (ev) => {
-			forTableDo(ev, (_fetchedTable, index) => sortTableByColumn(table, index, true));
-		});
-		addMenuSeparator(menu, "Sorteer als:", 1);
-		addMenuItem(menu, "Tekst", 2, (_ev) => {});
-		addMenuItem(menu, "Getallen", 2, (_ev) => {});
-		addMenuSeparator(menu, "Kopieer nr klipbord", 0);
-		addMenuItem(menu, "Kolom", 1, (ev) => {
-			forTableDo(ev, (_fetchedTable, index) => copyOneColumn(table, index));
-		});
-		addMenuItem(menu, "Hele tabel", 1, (ev) => {
-			forTableDo(ev, (_fetchedTable, _index) => copyFullTable(table));
-		});
-		addMenuSeparator(menu, "<= Samenvoegen", 0);
-		addMenuItem(menu, "met spatie", 1, (ev) => {
-			forTableColumnDo(ev, createTwoColumnsCmd(Direction.LEFT, mergeColumnWithSpace));
-		});
-		addMenuItem(menu, "met comma", 1, (ev) => {
-			forTableColumnDo(ev, createTwoColumnsCmd(Direction.LEFT, mergeColumnWithComma));
-		});
-		addMenuSeparator(menu, "Verplaatsen", 0);
-		addMenuItem(menu, "<=", 1, (ev) => {
-			forTableColumnDo(ev, createTwoColumnsCmd(Direction.LEFT, swapColumns));
-		});
-		addMenuItem(menu, "=>", 1, (ev) => {
-			forTableColumnDo(ev, createTwoColumnsCmd(Direction.RIGHT, swapColumns));
-		});
-	});
-	relabelHeaders(table.tHead.children[0]);
-}
-function getDistinctColumn(tableContainer, index) {
-	let rows = Array.from(tableContainer.querySelector("tbody").rows);
-	return distinct(rows.map((row) => row.children[index].textContent)).sort();
-}
-var TableHandlerForHeaders = class {
-	onReset(_tableDef) {
-		console.log("RESET");
-	}
-};
-function getColumnIndex(ev) {
-	let td = ev.target;
-	if (td.tagName !== "TD") td = td.closest("TH");
-	return Array.prototype.indexOf.call(td.parentElement.children, td);
-}
-function executeTableCommands(tableRef) {
-	let cmds = getPageTransientStateValue(GLOBAL_COMMAND_BUFFER_KEY, []);
-	console.log("Executing:");
-	console.log(cmds);
-	for (let cmd of cmds) executeCmd(cmd, tableRef, true);
-}
-function forTableDo(ev, doIt) {
-	ev.preventDefault();
-	ev.stopPropagation();
-	checkAndDownloadTableRows().then((tableRef) => {
-		doIt(tableRef, getColumnIndex(ev));
-	});
-}
-function forTableColumnDo(ev, cmdDef) {
-	ev.preventDefault();
-	ev.stopPropagation();
-	checkAndDownloadTableRows().then((tableRef) => {
-		let index = getColumnIndex(ev);
-		let cmd = {
-			cmdDef,
-			index
-		};
-		executeCmd(cmd, tableRef, false);
-		let cmds = getPageTransientStateValue(GLOBAL_COMMAND_BUFFER_KEY, []);
-		cmds.push(cmd);
-		relabelHeaders(tableRef.getOrgTableContainer().querySelector("thead>tr"));
-	});
-}
-function executeCmd(cmd, tableRef, onlyBody) {
-	let context = cmd.cmdDef.getContext?.(tableRef, cmd.index);
-	let rows;
-	if (onlyBody) rows = tableRef.getOrgTableContainer().querySelector("tbody").rows;
-	else rows = tableRef.getOrgTableContainer().querySelectorAll("tr");
-	for (let row of rows) cmd.cmdDef.doForRow(row, cmd.index, context);
-}
-function showDistinctColumn(tableRef, index) {
-	let cols = getDistinctColumn(tableRef.getOrgTableContainer(), index);
-	let tmpDiv = document.createElement("div");
-	let tbody = emmet.appendChild(tmpDiv, "table>tbody").last;
-	for (let col of cols) emmet.appendChild(tbody, `tr>td>{${col}}`);
-	let headerRow = tableRef.getOrgTableContainer().querySelector("thead>tr");
-	let headerNodes = [...headerRow.querySelectorAll("th")[index].childNodes];
-	let headerText = headerNodes.filter((node) => node.nodeType === Node.TEXT_NODE).map((node) => node.textContent).join(" ");
-	openHtmlTab(tmpDiv.innerHTML, headerText + " (uniek)");
-}
-let hideColumn = { doForRow: function(row, index, _context) {
-	row.cells[index].style.display = "none";
-} };
-let showColumns = { doForRow: function(row, _index, _context) {
-	for (let cell of row.cells) cell.style.display = "";
-} };
-function mergeColumnWithSpace(row, index, leftIndex) {
-	mergeColumnToLeft(row, index, leftIndex, " ");
-}
-function mergeColumnWithComma(row, index, leftIndex) {
-	mergeColumnToLeft(row, index, leftIndex, ", ");
-}
-function mergeColumnToLeft(row, index, leftIndex, separator) {
-	if (index === 0) return;
-	if (row.parentElement.tagName == "TBODY") {
-		row.cells[index].style.display = "none";
-		row.cells[leftIndex].innerText += separator + row.cells[index].innerText;
-	} else {
-		row.cells[index].style.display = "none";
-		let firstTextNode = [...row.cells[leftIndex].childNodes].filter((node) => node.nodeType === Node.TEXT_NODE)[0];
-		let secondTextNode = [...row.cells[index].childNodes].filter((node) => node.nodeType === Node.TEXT_NODE)[0];
-		if (firstTextNode && secondTextNode) firstTextNode.textContent += separator + secondTextNode.textContent;
-	}
-}
-function relabelHeaders(headerRow) {
-	for (let cell of headerRow.cells) cell.classList.remove("shiftMenuLeft");
-	headerRow.cells[headerRow.cells.length - 1].classList.add("shiftMenuLeft");
-}
-function findNextVisibleCell(headerRow, indexes) {
-	let index = void 0;
-	for (let i of indexes) if (headerRow.children[i].style.display !== "none") {
-		index = i;
-		break;
-	}
-	return index;
-}
-var Direction = /* @__PURE__ */ function(Direction$1) {
-	Direction$1[Direction$1["LEFT"] = 0] = "LEFT";
-	Direction$1[Direction$1["RIGHT"] = 1] = "RIGHT";
-	return Direction$1;
-}(Direction || {});
-function createTwoColumnsCmd(direction, twoColumnFunc) {
-	return {
-		getContext: function(tableRef, index) {
-			let row = tableRef.getOrgTableContainer().querySelector("thead>tr");
-			let cellRange = direction === Direction.LEFT ? range(index - 1, -1) : range(index + 1, row.cells.length);
-			return findNextVisibleCell(row, cellRange);
-		},
-		doForRow: function(row, index, context) {
-			twoColumnFunc(row, index, context);
-		}
-	};
-}
-function swapColumns(row, index1, index2) {
-	if (index1 == void 0 || index2 == void 0) return;
-	if (index1 > index2) [index1, index2] = [index2, index1];
-	row.children[index1].parentElement.insertBefore(row.children[index2], row.children[index1]);
-}
-
-//#endregion
 //#region typescript/werklijst/urenData.ts
 var JsonCloudData = class {
 	version;
@@ -4822,6 +4837,7 @@ function onCriteriaShown() {
 	let btnWerklijstMaken = document.querySelector("#btn_werklijst_maken");
 	if (document.getElementById(
 		//don't report as log.error.
+		// Can't use this action to build the table as we're also fetching the cloud data.
 		//re-create, just to be sure we have all the fields.
 		UREN_PREV_BTN_ID
 )) return;
@@ -4865,8 +4881,8 @@ async function onMessage(request, _sender, _sendResponse) {
 	let hourSettings = request.data;
 	let newSelectedSubjects = new Map(hourSettings.subjects.filter((s) => s.checked).map((s) => [s.name, s]));
 	let oldSelectedSubjects = globals.hourSettingsMapped.subjects.filter((s) => s.checked);
-	let equalSelectedSubjects = newSelectedSubjects.size == oldSelectedSubjects.length && oldSelectedSubjects.every((s, i) => newSelectedSubjects.has(s.name));
-	if (!equalSelectedSubjects) setCriteriaForTeacherHoursAndClickFetchButton(hourSettings.schoolyear).then((value) => {
+	let equalSelectedSubjects = newSelectedSubjects.size == oldSelectedSubjects.length && oldSelectedSubjects.every((s, _) => newSelectedSubjects.has(s.name));
+	if (!equalSelectedSubjects) setCriteriaForTeacherHoursAndClickFetchButton(hourSettings.schoolyear).then((_) => {
 		pauseRefresh = false;
 	});
 	else {
@@ -4891,8 +4907,8 @@ function onWerklijstChanged() {
 }
 function onButtonBarChanged() {
 	let targetButton = document.querySelector("#tablenav_leerlingen_werklijst_top > div > div.btn-group.btn-group-sm.datatable-buttons > button:nth-child(1)");
-	addButton$1(targetButton, COUNT_BUTTON_ID, "Toon telling", () => {
-		onShowLerarenUren();
+	addButton$1(targetButton, SHOW_HOURS_BUTTON_ID, "Toon telling", () => {
+		toggleUrenTable();
 	}, "fa-guitar", ["btn-outline-info"]);
 	addButton$1(targetButton, MAIL_BTN_ID, "Email to clipboard", onClickCopyEmails, "fa-envelope", ["btn", "btn-outline-info"]);
 }
@@ -4945,42 +4961,46 @@ function rebuildHoursTable(table, studentRowData, hourSettingsMapped, fromCloud)
 	observer.disconnect();
 	refillTable(table, urenData);
 	observer.observeElement(document.querySelector("main"));
+	document.getElementById(COUNT_TABLE_ID).style.display = "none";
+	showUrenTable(true);
 }
-function onShowLerarenUren(hourSettings) {
+function onShowLerarenUren() {
 	if (!document.getElementById(COUNT_TABLE_ID)) {
 		let result = createDefaultTableFetcher();
 		if ("error" in result) {
 			console.log(result.error);
 			return false;
 		}
-		let { tableFetcher } = result.result;
-		let fileName = getUrenVakLeraarFileName();
-		let requiredHeaderLabels = [
-			"naam",
-			"voornaam",
-			"vak",
-			"klasleerkracht",
-			"graad + leerjaar"
-		];
-		let tableFetchListener = new NamedCellTableFetchListener(requiredHeaderLabels, () => {});
-		tableFetcher.addListener(tableFetchListener);
-		globals.activeFetcher = tableFetcher;
-		Promise.all([tableFetcher.fetch(), getUrenFromCloud(fileName)]).then(async (results) => {
-			globals.activeFetcher = void 0;
+		globals.activeFetcher = result.result.tableFetcher;
+		globals.activeFetcher.addListener(createUrenFetchListener());
+		setAfterDownloadTableAction(void 0);
+		Promise.all([globals.activeFetcher.fetch(), getUrenFromCloud(getUrenVakLeraarFileName())]).then(async (results) => {
 			let [fetchedTable, jsonCloudData] = results;
-			if (!hourSettings) hourSettings = await fetchHoursSettingsOrSaveDefault(Schoolyear.findInPage());
-			globals.studentRowData = scrapeUren(fetchedTable, tableFetchListener);
+			globals.activeFetcher = void 0;
+			let hourSettings = await fetchHoursSettingsOrSaveDefault(Schoolyear.findInPage());
 			globals.hourSettingsMapped = mapHourSettings(hourSettings);
 			globals.fromCloud = new CloudData(upgradeCloudData(jsonCloudData));
-			globals.table = createTable(tableFetcher);
-			rebuildHoursTable(globals.table, globals.studentRowData, globals.hourSettingsMapped, globals.fromCloud);
-			document.getElementById(COUNT_TABLE_ID).style.display = "none";
-			showOrHideNewTable();
+			rebuildHoursTableAfterDownloadFullTable(fetchedTable.getRows(), fetchedTable.tableFetcher.tableRef);
 		});
 		return true;
 	}
-	showOrHideNewTable();
+	showUrenTable(true);
 	return true;
+}
+function createUrenFetchListener() {
+	let requiredHeaderLabels = [
+		"naam",
+		"voornaam",
+		"vak",
+		"klasleerkracht",
+		"graad + leerjaar"
+	];
+	return new NamedCellTableFetchListener(requiredHeaderLabels, () => {});
+}
+function rebuildHoursTableAfterDownloadFullTable(rows, tableRef) {
+	globals.studentRowData = scrapeUren(rows, NamedCellTableFetchListener.getHeaderIndices(tableRef.getOrgTableContainer()));
+	globals.table = createTable(tableRef);
+	rebuildHoursTable(globals.table, globals.studentRowData, globals.hourSettingsMapped, globals.fromCloud);
 }
 async function getUrenFromCloud(fileName) {
 	try {
@@ -4989,12 +5009,19 @@ async function getUrenFromCloud(fileName) {
 		return new JsonCloudData();
 	}
 }
-function showOrHideNewTable() {
+function toggleUrenTable() {
 	let showNewTable = document.getElementById(COUNT_TABLE_ID).style.display === "none";
-	document.getElementById("table_leerlingen_werklijst_table").style.display = showNewTable ? "none" : "table";
-	document.getElementById(COUNT_TABLE_ID).style.display = showNewTable ? "table" : "none";
-	document.getElementById(COUNT_BUTTON_ID).title = showNewTable ? "Toon normaal" : "Toon telling";
-	setButtonHighlighted(COUNT_BUTTON_ID, showNewTable);
+	showUrenTable(showNewTable);
+}
+function showUrenTable(show) {
+	if (show) setAfterDownloadTableAction((fetchedTable) => {
+		rebuildHoursTableAfterDownloadFullTable(fetchedTable.tableFetcher.tableRef.getOrgTableRows(), fetchedTable.tableFetcher.tableRef);
+	});
+	else setAfterDownloadTableAction(void 0);
+	document.getElementById("table_leerlingen_werklijst_table").style.display = show ? "none" : "table";
+	document.getElementById(COUNT_TABLE_ID).style.display = show ? "table" : "none";
+	document.getElementById(SHOW_HOURS_BUTTON_ID).title = show ? "Toon normaal" : "Toon telling";
+	setButtonHighlighted(SHOW_HOURS_BUTTON_ID, show);
 	if (document.getElementById(COUNT_TABLE_ID)) {
 		let targetButton = document.querySelector("#tablenav_leerlingen_werklijst_top > div > div.btn-group.btn-group-sm.datatable-buttons > button:nth-child(1)");
 		addButton$1(targetButton, UREN_PREV_SETUP_BTN_ID, "Setup ", async () => {
@@ -5002,7 +5029,7 @@ function showOrHideNewTable() {
 		}, "fas-certificate", ["btn", "btn-outline-dark"], "", "beforebegin", "gear.svg");
 	}
 	let pageState$1 = getGotoStateOrDefault(PageName.Werklijst);
-	pageState$1.werklijstTableName = showNewTable ? UREN_TABLE_STATE_NAME : "";
+	pageState$1.werklijstTableName = show ? UREN_TABLE_STATE_NAME : "";
 	saveGotoState(pageState$1);
 }
 function upgradeCloudData(fromCloud) {

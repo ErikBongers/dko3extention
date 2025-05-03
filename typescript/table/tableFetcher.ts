@@ -17,6 +17,10 @@ export class TableRef {
         return document.getElementById(this.htmlTableId) as HTMLElement;
     }
 
+    getOrgTableRows() {
+        return this.getOrgTableContainer().querySelectorAll("tbody > tr") as NodeListOf<HTMLTableRowElement>;
+    }
+
     createElementAboveTable(element: string): HTMLElement {
         let el = document.createElement(element);
         this.getOrgTableContainer().insertAdjacentElement("beforebegin", el);

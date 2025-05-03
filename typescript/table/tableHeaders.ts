@@ -5,8 +5,6 @@ import {addMenuItem, addMenuSeparator, setupMenu} from "../menus";
 import {TableFetcher, TableHandler, TableRef} from "./tableFetcher";
 import * as def from "../def";
 import {options} from "../plugin_options/options";
-import {Actions} from "../messaging";
-
 
 function sortRows(cmpFunction: (a: HTMLTableCellElement, b: HTMLTableCellElement) => number, header: Element, rows: HTMLTableRowElement[], index: number, descending: boolean) {
     let cmpDirectionalFunction: (a: HTMLTableRowElement, b: HTMLTableRowElement) => number;
@@ -245,9 +243,13 @@ function showDistinctColumn(tableRef: TableRef, index: number) {
         emmet.appendChild(tbody, `tr>td>{${col}}`);
     }
     let headerRow = tableRef.getOrgTableContainer().querySelector("thead>tr");
-    let headerNodes = [...headerRow.querySelectorAll("th")[index].childNodes];
-    let headerText = headerNodes.filter(node => node.nodeType === Node.TEXT_NODE).map(node => node.textContent).join(" ");
-    openHtmlTab(tmpDiv.innerHTML, headerText + " (uniek)");
+    let headerText = getColumnHeaderText(headerRow.querySelectorAll("th")[index]);
+    openHtmlTab(tmpDiv.innerHTML, headerText + " (uniek)").then(r => {});
+}
+
+//Get the undecorated column header text.
+export function getColumnHeaderText(cell: HTMLTableCellElement) {
+    return [...cell.childNodes].filter(node => node.nodeType === Node.TEXT_NODE).map(node => node.textContent).join(" ");
 }
 
 let hideColumn: TableColumnCmdDef = {

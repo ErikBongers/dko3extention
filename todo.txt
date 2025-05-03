@@ -1,3 +1,10 @@
+-  "refreshh" calls  downloadTableRows()
+-  "download" calls
+
+* test hours >  downloadButton: should refresh the hours table.
+  > refreshbutton should do the same.
+  > make download and refresh buttons point to the same function.
+
 * teacher hours: does NOT recreate the table on a "refresh"
   > it only reloads the underlying table, but does not the hours table.
 

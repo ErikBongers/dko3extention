@@ -1,7 +1,8 @@
 import {TableFetcher, TableFetchListener} from "./table/tableFetcher";
+import {getColumnHeaderText} from "./table/tableHeaders";
 type OnBeforeLoadingHandler = (tableDef: TableFetcher) => boolean;
 type OnRequiredColumnsMissingHandler = (tableDef: TableFetcher) => void;
-type NotHTMLTemplate = HTMLDivElement | DocumentFragment; //HTMLDiv element is arbitrarily chosen. Any subclass from HTMLElement will do.
+export type NotHTMLTemplate = HTMLDivElement | DocumentFragment; //HTMLDiv element is arbitrarily chosen. Any subclass from HTMLElement will do.
 
 /**
  * NamedCellTableFetchListener with named column labels.\
@@ -64,8 +65,8 @@ export class NamedCellTableFetchListener implements TableFetchListener {
         return true;
     }
 
-    static getHeaderIndices(element: NotHTMLTemplate){
-        let headers = element.querySelectorAll("thead th") as NodeListOf<HTMLTableCellElement>;
+    static getHeaderIndices(tableOrParent: NotHTMLTemplate){
+        let headers = tableOrParent.querySelectorAll("thead th") as NodeListOf<HTMLTableCellElement>;
         return this.getHeaderIndicesFromHeaderCells(headers);
     }
 
@@ -73,7 +74,7 @@ export class NamedCellTableFetchListener implements TableFetchListener {
         let headerIndices: Map<string, number> = new Map();
         Array.from(headers)
             .forEach((header, index) => {
-                let label = header.innerText;
+                let label = getColumnHeaderText(header);
                 if (label.startsWith("e-mailadressen")) {
                     headerIndices.set("e-mailadressen", index);
                 } else {
@@ -92,6 +93,10 @@ export class NamedCellTableFetchListener implements TableFetchListener {
     }
 
     getColumnText(tr: HTMLTableRowElement, label: string) : string {
-        return tr.children[this.headerIndices.get(label)].textContent;
+        return getColumnText(tr, this.headerIndices, label);
     }
+}
+
+export function getColumnText(tr: HTMLTableRowElement, headerIndices: Map<string, number>, label: string) : string {
+    return tr.children[headerIndices.get(label)].textContent;
 }

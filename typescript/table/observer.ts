@@ -1,7 +1,7 @@
 import {addTableNavigationButton, getBothToolbars} from "../globals";
 import * as def from "../def";
 import {AllPageFilter, BaseObserver} from "../pageObserver";
-import {CheckSumBuilder, findTableRefInCode, TableFetcher} from "./tableFetcher";
+import {CheckSumBuilder, FetchedTable, findTableRefInCode, TableFetcher} from "./tableFetcher";
 import {decorateTableHeader} from "./tableHeaders";
 import {downloadTableRows} from "./loadAnyTable";
 
@@ -12,9 +12,7 @@ function onMutation (_mutation: MutationRecord) {
     if(!navigationBars)
         return; //wait for top and bottom bars.
     if(!findTableRefInCode()?.navigationData.isOnePage()) {
-        addTableNavigationButton(navigationBars, def.DOWNLOAD_TABLE_BTN_ID, "download full table", () => {
-            downloadTableRows().then(_r => {});
-        }, "fa-arrow-down");
+        addTableNavigationButton(navigationBars, def.DOWNLOAD_TABLE_BTN_ID, "download full table", createDownloadTableWithExtraAction(), "fa-arrow-down");
     }
     if(document.querySelector("main div.table-responsive table thead")) {
         let table = document.querySelector("main div.table-responsive table");
@@ -39,3 +37,17 @@ export function getChecksumBuilder(tableId: string): CheckSumBuilder {
 export function registerChecksumHandler(tableId: string, checksumHandler: CheckSumBuilder) {
     tableCriteriaBuilders.set(tableId, checksumHandler);
 }
+
+export function createDownloadTableWithExtraAction() {
+    return (_: Event) => {
+        downloadTableRows().then(fetchedTable => {
+            globalAfterDownloadTableAction?.(fetchedTable);
+        });
+    };
+}
+
+export function  setAfterDownloadTableAction(action:  (fetchedTable: FetchedTable) => void) {
+    globalAfterDownloadTableAction = action;
+}
+
+let globalAfterDownloadTableAction: (fetchedTable: FetchedTable) => void = () => {};

@@ -20,6 +20,7 @@ export class InfoBar{
         this.tempMessage = "";
     }
 
+    //todo: merge with updateCacheInfo
     setCacheInfo(cacheInfo: string, reset_onclick: (ev: MouseEvent) => any) {
         this.updateCacheInfo(cacheInfo, reset_onclick);
     }

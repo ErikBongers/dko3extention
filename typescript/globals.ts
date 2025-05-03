@@ -231,7 +231,7 @@ export function getBothToolbars() {
     return navigationBars;
 }
 
-export function addTableNavigationButton(navigationBars: NodeListOf<Element>, btnId: string, title: string, onClick: any, fontIconId: string) {
+export function addTableNavigationButton(navigationBars: NodeListOf<Element>, btnId: string, title: string, onClick: (ev: Event) => void, fontIconId: string) {
     addButton(navigationBars[0].lastElementChild as HTMLElement, btnId, title, onClick, fontIconId, ["btn-secondary"], "", "afterend");
     return true;
 }

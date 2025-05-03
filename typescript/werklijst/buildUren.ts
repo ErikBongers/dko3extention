@@ -1,7 +1,7 @@
 import * as def from "../def";
 import {createValidId, getSchoolIdString, Schoolyear} from "../globals";
 import {VakLeraar} from "./scrapeUren";
-import {TableFetcher} from "../table/tableFetcher";
+import {TableFetcher, TableRef} from "../table/tableFetcher";
 import {cloud} from "../cloud";
 import {UrenData} from "./urenData";
 
@@ -235,10 +235,10 @@ function recalculate(urenData: UrenData) {
     observeTable(true);
 }
 
-export function createTable(tableDef: TableFetcher) {
+export function createTable(tableRef: TableRef) {
     document.getElementById(def.COUNT_TABLE_ID)?.remove();
     let table = document.createElement("table");
-    tableDef.tableRef.getOrgTableContainer().insertAdjacentElement("afterend", table);
+    tableRef.getOrgTableContainer().insertAdjacentElement("afterend", table);
     table.id = def.COUNT_TABLE_ID;
     table.classList.add(def.CAN_SORT, def.NO_MENU);
     return table;

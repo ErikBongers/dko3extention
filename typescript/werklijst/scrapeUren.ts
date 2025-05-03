@@ -1,5 +1,5 @@
 import {createValidId} from "../globals";
-import {NamedCellTableFetchListener} from "../pageHandlers";
+import {getColumnText, NamedCellTableFetchListener} from "../pageHandlers";
 import {TeacherHoursSetupMapped} from "./hoursSettings";
 import {FetchedTable} from "../table/tableFetcher";
 
@@ -23,13 +23,13 @@ export interface StudentUrenRow {
     graadLeerjaar: string
 }
 
-export function scrapeStudent(fetchListener: NamedCellTableFetchListener, tr: HTMLTableRowElement): StudentUrenRow {
-    let naam = fetchListener.getColumnText(tr, "naam");
-    let voornaam = fetchListener.getColumnText(tr, "voornaam");
+export function scrapeStudent(headerIndices: Map<string, number>, tr: HTMLTableRowElement): StudentUrenRow {
+    let naam = getColumnText(tr, headerIndices, "naam");
+    let voornaam = getColumnText(tr, headerIndices, "voornaam");
     let id = parseInt(tr.attributes['onclick'].value.replace("showView('leerlingen-leerling', '', 'id=", ""));
-    let leraar = fetchListener.getColumnText(tr, "klasleerkracht");
-    let vak = fetchListener.getColumnText(tr, "vak");
-    let graadLeerjaar = fetchListener.getColumnText(tr, "graad + leerjaar");
+    let leraar = getColumnText(tr, headerIndices, "klasleerkracht");
+    let vak = getColumnText(tr, headerIndices, "vak");
+    let graadLeerjaar = getColumnText(tr, headerIndices, "graad + leerjaar");
 
     if (leraar === "") leraar = "{nieuw}";
     return {
@@ -96,7 +96,6 @@ function translateVak(vak: string, settings: TeacherHoursSetupMapped) {
     return vak;
 }
 
-export function scrapeUren(fetchedTable: FetchedTable, tableFetchListener: NamedCellTableFetchListener) {
-    let rows = fetchedTable.getRows();
-    return [...rows].map(tr => scrapeStudent(tableFetchListener, tr));
+export function scrapeUren(rows: NodeListOf<HTMLTableRowElement>, headerIndices: Map<string, number>) {
+    return [...rows].map(tr => scrapeStudent(headerIndices, tr));
 }

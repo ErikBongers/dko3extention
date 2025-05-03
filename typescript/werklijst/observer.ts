@@ -1,15 +1,15 @@
 import {addButton, getSchoolIdString, openHoursSettings, Schoolyear, setButtonHighlighted} from "../globals";
 import * as def from "../def";
-import {createTable, refillTable, getUrenVakLeraarFileName} from "./buildUren";
+import {createTable, getUrenVakLeraarFileName, refillTable} from "./buildUren";
 import {addStudentToVakLeraarsMap, scrapeUren, StudentUrenRow, VakLeraar} from "./scrapeUren";
 import {cloud} from "../cloud";
-import {TableFetcher} from "../table/tableFetcher";
+import {FetchedTable, TableFetcher, TableRef} from "../table/tableFetcher";
 import {setCriteriaForTeacherHoursAndClickFetchButton} from "./prefillInstruments";
 import {HashObserver} from "../pageObserver";
 import {NamedCellTableFetchListener} from "../pageHandlers";
 import {decorateTableHeader} from "../table/tableHeaders";
 import {getGotoStateOrDefault, Goto, PageName, saveGotoState, WerklijstGotoState} from "../gotoState";
-import {registerChecksumHandler} from "../table/observer";
+import {registerChecksumHandler, setAfterDownloadTableAction} from "../table/observer";
 import {CloudData, JsonCloudData, UrenData} from "./urenData";
 import {createDefaultTableFetcher} from "../table/loadAnyTable";
 import {Actions, sendRequest, ServiceRequest, TabType} from "../messaging";
@@ -111,9 +111,9 @@ async function onMessage(request: ServiceRequest, _sender: MessageSender, _sendR
     let equalSelectedSubjects =
         newSelectedSubjects.size == oldSelectedSubjects.length
         && oldSelectedSubjects
-            .every((s, i) => newSelectedSubjects.has(s.name));
+            .every((s, _) => newSelectedSubjects.has(s.name));
     if(!equalSelectedSubjects) {
-        setCriteriaForTeacherHoursAndClickFetchButton(hourSettings.schoolyear).then(value => {
+        setCriteriaForTeacherHoursAndClickFetchButton(hourSettings.schoolyear).then(_ => {
             pauseRefresh = false;
         });
     } else {
@@ -145,7 +145,7 @@ function onWerklijstChanged() {
 
 function onButtonBarChanged() {
     let targetButton = document.querySelector("#tablenav_leerlingen_werklijst_top > div > div.btn-group.btn-group-sm.datatable-buttons > button:nth-child(1)") as HTMLButtonElement;
-    addButton(targetButton, def.COUNT_BUTTON_ID, "Toon telling", () => { onShowLerarenUren(); }, "fa-guitar", ["btn-outline-info"]);
+    addButton(targetButton, def.SHOW_HOURS_BUTTON_ID, "Toon telling", () => { toggleUrenTable(); }, "fa-guitar", ["btn-outline-info"]);
     addButton(targetButton, def.MAIL_BTN_ID, "Email to clipboard", onClickCopyEmails, "fa-envelope", ["btn", "btn-outline-info"]);
 }
 
@@ -227,9 +227,11 @@ function rebuildHoursTable(table: HTMLTableElement, studentRowData: StudentUrenR
     observer.disconnect();
     refillTable(table, urenData);
     observer.observeElement(document.querySelector("main"));
+    document.getElementById(def.COUNT_TABLE_ID).style.display = "none";
+    showUrenTable(true);
 }
 
-function onShowLerarenUren(hourSettings?: TeacherHoursSetup) {
+function onShowLerarenUren() {
     //Build lazily and only once. Table will automatically be erased when filters are changed.
     if (!document.getElementById(def.COUNT_TABLE_ID)) {
         let result = createDefaultTableFetcher();
@@ -238,35 +240,41 @@ function onShowLerarenUren(hourSettings?: TeacherHoursSetup) {
             return false;
         }
 
-        let {tableFetcher} = result.result;
-        let fileName = getUrenVakLeraarFileName();
-        let requiredHeaderLabels = ["naam", "voornaam", "vak", "klasleerkracht", "graad + leerjaar"];
-        let tableFetchListener = new NamedCellTableFetchListener(requiredHeaderLabels, () => {});
-        tableFetcher.addListener(tableFetchListener);
+        globals.activeFetcher = result.result.tableFetcher;
+        globals.activeFetcher.addListener(createUrenFetchListener());
 
-        globals.activeFetcher  = tableFetcher;
-        Promise.all([tableFetcher.fetch(), getUrenFromCloud(fileName)]).then(async results => {
-            globals.activeFetcher = undefined;
-            let [fetchedTable, jsonCloudData] = results;
-            if(!hourSettings) {
-                hourSettings = await fetchHoursSettingsOrSaveDefault(Schoolyear.findInPage());
-            }
-            //-- All data is fetched.
+        setAfterDownloadTableAction(undefined); // Can't use this action to build the table as we're also fetching the cloud data.
+        Promise.all([
+            globals.activeFetcher.fetch(),
+            getUrenFromCloud(getUrenVakLeraarFileName())
+        ])
+            .then(async results => {
+                let [fetchedTable, jsonCloudData] = results;
+                globals.activeFetcher = undefined;
+                let hourSettings = await fetchHoursSettingsOrSaveDefault(Schoolyear.findInPage());
+                //-- All data is fetched.
 
-            globals.studentRowData = scrapeUren(fetchedTable, tableFetchListener);
-            globals.hourSettingsMapped = mapHourSettings(hourSettings);
-            globals.fromCloud = new CloudData(upgradeCloudData(jsonCloudData));
-            globals.table = createTable(tableFetcher);
-
-            rebuildHoursTable(globals.table, globals.studentRowData, globals.hourSettingsMapped, globals.fromCloud);
-            document.getElementById(def.COUNT_TABLE_ID).style.display = "none";
-            showOrHideNewTable();
-        });
+                globals.hourSettingsMapped = mapHourSettings(hourSettings);
+                globals.fromCloud = new CloudData(upgradeCloudData(jsonCloudData));
+                rebuildHoursTableAfterDownloadFullTable(fetchedTable.getRows(), fetchedTable.tableFetcher.tableRef);
+            });
 
         return true;
     }
-    showOrHideNewTable();
+    showUrenTable(true);
     return true;
+}
+
+function createUrenFetchListener(): NamedCellTableFetchListener {
+    let requiredHeaderLabels = ["naam", "voornaam", "vak", "klasleerkracht", "graad + leerjaar"];
+    return new NamedCellTableFetchListener(requiredHeaderLabels, () => {});
+}
+
+function rebuildHoursTableAfterDownloadFullTable(rows: NodeListOf<HTMLTableRowElement>, tableRef: TableRef) {
+    globals.studentRowData = scrapeUren(rows, NamedCellTableFetchListener.getHeaderIndices(tableRef.getOrgTableContainer() as HTMLDivElement));
+    globals.table = createTable(tableRef);
+
+    rebuildHoursTable(globals.table, globals.studentRowData, globals.hourSettingsMapped, globals.fromCloud);
 }
 
 async function getUrenFromCloud(fileName: string): Promise<JsonCloudData> {
@@ -277,19 +285,30 @@ async function getUrenFromCloud(fileName: string): Promise<JsonCloudData> {
     }
 }
 
-function showOrHideNewTable() {
+function toggleUrenTable() {
     let showNewTable = document.getElementById(def.COUNT_TABLE_ID).style.display === "none";
-    document.getElementById("table_leerlingen_werklijst_table").style.display = showNewTable ? "none" : "table";
-    document.getElementById(def.COUNT_TABLE_ID).style.display = showNewTable ? "table" : "none";
-    document.getElementById(def.COUNT_BUTTON_ID).title = showNewTable ? "Toon normaal" : "Toon telling";
-    setButtonHighlighted(def.COUNT_BUTTON_ID, showNewTable);
+    showUrenTable(showNewTable);
+}
+
+function showUrenTable(show: boolean) {
+    if(show) {
+        setAfterDownloadTableAction((fetchedTable) => {
+            rebuildHoursTableAfterDownloadFullTable(fetchedTable.tableFetcher.tableRef.getOrgTableRows(), fetchedTable.tableFetcher.tableRef);
+        });
+    } else {
+        setAfterDownloadTableAction(undefined);
+    }
+    document.getElementById("table_leerlingen_werklijst_table").style.display = show ? "none" : "table";
+    document.getElementById(def.COUNT_TABLE_ID).style.display = show ? "table" : "none";
+    document.getElementById(def.SHOW_HOURS_BUTTON_ID).title = show ? "Toon normaal" : "Toon telling";
+    setButtonHighlighted(def.SHOW_HOURS_BUTTON_ID, show);
     if (document.getElementById(def.COUNT_TABLE_ID)) {
         let targetButton = document.querySelector("#tablenav_leerlingen_werklijst_top > div > div.btn-group.btn-group-sm.datatable-buttons > button:nth-child(1)") as HTMLButtonElement;
         addButton(targetButton, def.UREN_PREV_SETUP_BTN_ID, "Setup ", async () => {  await showUrenSetup(Schoolyear.findInPage()); }, "fas-certificate", ["btn", "btn-outline-dark"], "", "beforebegin", "gear.svg");
     }
 
     let pageState = getGotoStateOrDefault(PageName.Werklijst) as WerklijstGotoState;
-    pageState.werklijstTableName = showNewTable ? def.UREN_TABLE_STATE_NAME : "";
+    pageState.werklijstTableName = show ? def.UREN_TABLE_STATE_NAME : "";
     saveGotoState(pageState);
 }
 
