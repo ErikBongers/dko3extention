@@ -3510,6 +3510,9 @@ var TokenScanner = class TokenScanner {
 		this.source = text;
 		this.cursor = text;
 	}
+	static create(text) {
+		return new TokenScanner(text);
+	}
 	result() {
 		if (this.valid) return this.cursor;
 		return void 0;
@@ -3597,17 +3600,16 @@ async function getTableRefFromHash(hash) {
 	await fetchText("https://administratie.dko3.cloud/#" + hash);
 	let index_viewUrl = await getDocReadyLoadUrlFrom("view.php?args=" + hash);
 	let index_view = await fetchText(index_viewUrl);
-	let htmlTableId = getDocReadyLoadScript(index_view).find("$", "(", "'#").clipTo("'").result();
-	if (!htmlTableId) htmlTableId = getDocReadyLoadScript(index_view).find("$", "(", "\"#").clipTo("\"").result();
+	let htmlTableId = "";
+	getDocReadyLoadScript(index_view).find("$", "(").getString((s) => htmlTableId = s.substring(1));
 	let datatableUrl = getDocReadyLoadUrl(index_view);
 	if (!datatableUrl.includes("ui/datatable.php")) datatableUrl = await getDocReadyLoadUrlFrom(datatableUrl);
 	let datatable = await fetchText(datatableUrl);
-	let scanner = new TokenScanner(datatable);
 	let datatable_id = "";
 	let tableNavUrl = "";
-	scanner.find("var", "datatable_id", "=").getString((res) => {
+	TokenScanner.create(datatable).find("var", "datatable_id", "=").getString((res) => {
 		datatable_id = res;
-	}).clipTo("</script>").find(".", "load", "(").getString((res) => tableNavUrl = res).result();
+	}).clipTo("</script>").find(".", "load", "(").getString((res) => tableNavUrl = res);
 	tableNavUrl += datatable_id + "&pos=top";
 	let tableNavText = await fetchText(tableNavUrl);
 	let div = document.createElement("div");
@@ -3709,7 +3711,6 @@ function createDefaultTableRefAndInfoBar() {
 	document.getElementById(
 		//NOT SURE THIS IS datatable.php !!!
 		//NOT SURE THIS IS datatable.php !!!
-		//todo  result() call needed?
 		INFO_CONTAINER_ID
 )?.remove();
 	let divInfoContainer = tableRef.createElementAboveTable("div");

@@ -18,44 +18,38 @@ async function getDocReadyLoadUrlFrom(url: string) {
     return getDocReadyLoadUrl(text);
 }
 
+async function getDocReadyLoadScriptFrom(url: string) {
+    let text = await fetchText(url);
+    return getDocReadyLoadScript(text);
+}
+
 async function getTableRefFromHash(hash: string) {
     await fetchText("https://administratie.dko3.cloud/#" + hash);
 
     // call to changeView() - assuming this is always the same, so no parsing here.
     let index_viewUrl = await getDocReadyLoadUrlFrom("view.php?args=" + hash);
 
-    //get the htmlTableId (from index.view.php
     let index_view = await fetchText(index_viewUrl);
-    let htmlTableId = getDocReadyLoadScript(index_view)
-        .find("$", "(", "'#")
-        //todo: find("$", "(") then .getString() then check and strip the "#".
-        .clipTo("'")
-        .result();
-    if (!htmlTableId) {
-        htmlTableId = getDocReadyLoadScript(index_view)
-            .find("$", "(", "\"#")
-            .clipTo("\"")
-            .result();
-    }
+    let htmlTableId = "";
+    getDocReadyLoadScript(index_view)
+        .find("$", "(")
+        .getString((s) => htmlTableId = s.substring(1));
     let datatableUrl = getDocReadyLoadUrl(index_view); //NOT SURE THIS IS datatable.php !!!
     if (!datatableUrl.includes("ui/datatable.php")) {
         //fetch again. Don't loop to avoid dead loop.
         datatableUrl = await getDocReadyLoadUrlFrom(datatableUrl); //NOT SURE THIS IS datatable.php !!!
     }
-    //get datatable id an url from datatable.php
     let datatable = await fetchText(datatableUrl);
-    let scanner = new TokenScanner(datatable);
     let datatable_id = "";
     let tableNavUrl = "";
-    scanner
+    TokenScanner.create(datatable)
         .find("var", "datatable_id", "=")
         .getString(res => {
             datatable_id = res;
         })
         .clipTo("</script>")
         .find(".", "load", "(")
-        .getString(res => tableNavUrl = res)
-        .result();//todo  result() call needed?
+        .getString(res => tableNavUrl = res);
     tableNavUrl += datatable_id + '&pos=top';
     let tableNavText = await fetchText(tableNavUrl);
 

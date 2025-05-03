@@ -42,6 +42,10 @@ export class TokenScanner {
         this.cursor = text;
     }
 
+    static create(text: string) : TokenScanner {
+        return new TokenScanner(text);
+    }
+
     result(): string | undefined {
         if(this.valid)
             return this.cursor;
