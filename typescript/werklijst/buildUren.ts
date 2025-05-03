@@ -152,7 +152,7 @@ function checkAndUpdate(urenData: UrenData) {
 
 function updateCloudColumnMapFromScreen(urenData: UrenData, colKey: string) {
     let colDef = colDefs.get(colKey);
-    for(let tr of document.querySelectorAll("#"+def.COUNT_TABLE_ID+" tbody tr")) {
+    for(let tr of document.querySelectorAll("#"+def.HOURS_TABLE_ID+" tbody tr")) {
         urenData.fromCloud.columnMap.get(colKey).set(tr.id, tr.children[colDef.colIndex].textContent);
     }
 }
@@ -164,7 +164,7 @@ function observeTable(observe: boolean) {
         subtree: true,
         characterData: true
     };
-    let table = document.getElementById(def.COUNT_TABLE_ID);
+    let table = document.getElementById(def.HOURS_TABLE_ID);
     if(observe) {
         editableObserver.takeRecords(); //clear
         editableObserver.observe(table, config);
@@ -236,10 +236,10 @@ function recalculate(urenData: UrenData) {
 }
 
 export function createTable(tableRef: TableRef) {
-    document.getElementById(def.COUNT_TABLE_ID)?.remove();
+    document.getElementById(def.HOURS_TABLE_ID)?.remove();
     let table = document.createElement("table");
     tableRef.getOrgTableContainer().insertAdjacentElement("afterend", table);
-    table.id = def.COUNT_TABLE_ID;
+    table.id = def.HOURS_TABLE_ID;
     table.classList.add(def.CAN_SORT, def.NO_MENU);
     return table;
 }

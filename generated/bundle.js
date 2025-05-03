@@ -331,7 +331,7 @@ const TRIM_BUTTON_ID = "moduleButton";
 const SHOW_HOURS_BUTTON_ID = "fetchAllButton";
 const FULL_CLASS_BUTTON_ID = "fullClassButton";
 const TRIM_TABLE_ID = "trimesterTable";
-const COUNT_TABLE_ID = "werklijst_uren";
+const HOURS_TABLE_ID = "werklijst_uren";
 const TRIM_DIV_ID = "trimesterDiv";
 const JSON_URL = "https://europe-west1-ebo-tain.cloudfunctions.net/json";
 const INFO_CONTAINER_ID = "dp3p_infoContainer";
@@ -2884,7 +2884,7 @@ function checkAndUpdate(urenData) {
 }
 function updateCloudColumnMapFromScreen(urenData, colKey) {
 	let colDef = colDefs.get(colKey);
-	for (let tr of document.querySelectorAll("#" + COUNT_TABLE_ID + " tbody tr")) urenData.fromCloud.columnMap.get(colKey).set(tr.id, tr.children[colDef.colIndex].textContent);
+	for (let tr of document.querySelectorAll("#" + HOURS_TABLE_ID + " tbody tr")) urenData.fromCloud.columnMap.get(colKey).set(tr.id, tr.children[colDef.colIndex].textContent);
 }
 function observeTable(observe) {
 	const config = {
@@ -2897,7 +2897,7 @@ function observeTable(observe) {
 		//ignore attrubute changes.
 		//clear
 		//get value when not a calculated value.
-		COUNT_TABLE_ID
+		HOURS_TABLE_ID
 );
 	if (observe) {
 		editableObserver.takeRecords();
@@ -2960,10 +2960,10 @@ function recalculate(urenData) {
 	observeTable(true);
 }
 function createTable(tableRef) {
-	document.getElementById(COUNT_TABLE_ID)?.remove();
+	document.getElementById(HOURS_TABLE_ID)?.remove();
 	let table = document.createElement("table");
 	tableRef.getOrgTableContainer().insertAdjacentElement("afterend", table);
-	table.id = COUNT_TABLE_ID;
+	table.id = HOURS_TABLE_ID;
 	table.classList.add(CAN_SORT, NO_MENU);
 	return table;
 }
@@ -4968,11 +4968,11 @@ function rebuildHoursTable(table, studentRowData, hourSettingsMapped, fromCloud)
 	observer.disconnect();
 	refillTable(table, urenData);
 	observer.observeElement(document.querySelector("main"));
-	document.getElementById(COUNT_TABLE_ID).style.display = "none";
+	document.getElementById(HOURS_TABLE_ID).style.display = "none";
 	showUrenTable(true);
 }
 function onShowLerarenUren() {
-	if (!document.getElementById(COUNT_TABLE_ID)) {
+	if (!document.getElementById(HOURS_TABLE_ID)) {
 		let result = createDefaultTableFetcher();
 		if ("error" in result) {
 			console.log(result.error);
@@ -4984,8 +4984,7 @@ function onShowLerarenUren() {
 		Promise.all([globals.activeFetcher.fetch(), getUrenFromCloud(getUrenVakLeraarFileName())]).then(async (results) => {
 			let [fetchedTable, jsonCloudData] = results;
 			globals.activeFetcher = void 0;
-			let hourSettings = await fetchHoursSettingsOrSaveDefault(Schoolyear.findInPage());
-			globals.hourSettingsMapped = mapHourSettings(hourSettings);
+			globals.hourSettingsMapped = mapHourSettings(await fetchHoursSettingsOrSaveDefault(Schoolyear.findInPage()));
 			globals.fromCloud = new CloudData(upgradeCloudData(jsonCloudData));
 			rebuildHoursTableAfterDownloadFullTable(fetchedTable.getRows(), fetchedTable.tableFetcher.tableRef);
 		});
@@ -5017,7 +5016,7 @@ async function getUrenFromCloud(fileName) {
 	}
 }
 function toggleUrenTable() {
-	let showNewTable = document.getElementById(COUNT_TABLE_ID).style.display === "none";
+	let showNewTable = document.getElementById(HOURS_TABLE_ID).style.display === "none";
 	showUrenTable(showNewTable);
 }
 function showUrenTable(show) {
@@ -5026,10 +5025,10 @@ function showUrenTable(show) {
 	});
 	else setAfterDownloadTableAction(void 0);
 	document.getElementById(WERKLIJST_TABLE_ID).style.display = show ? "none" : "table";
-	document.getElementById(COUNT_TABLE_ID).style.display = show ? "table" : "none";
+	document.getElementById(HOURS_TABLE_ID).style.display = show ? "table" : "none";
 	document.getElementById(SHOW_HOURS_BUTTON_ID).title = show ? "Toon normaal" : "Toon telling";
 	setButtonHighlighted(SHOW_HOURS_BUTTON_ID, show);
-	if (document.getElementById(COUNT_TABLE_ID)) {
+	if (document.getElementById(HOURS_TABLE_ID)) {
 		let targetButton = document.querySelector("#tablenav_leerlingen_werklijst_top > div > div.btn-group.btn-group-sm.datatable-buttons > button:nth-child(1)");
 		addButton$1(targetButton, UREN_PREV_SETUP_BTN_ID, "Setup ", async () => {
 			await showUrenSetup(Schoolyear.findInPage());

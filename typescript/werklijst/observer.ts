@@ -224,13 +224,13 @@ function rebuildHoursTable(table: HTMLTableElement, studentRowData: StudentUrenR
     observer.disconnect();
     refillTable(table, urenData);
     observer.observeElement(document.querySelector("main"));
-    document.getElementById(def.COUNT_TABLE_ID).style.display = "none";
+    document.getElementById(def.HOURS_TABLE_ID).style.display = "none";
     showUrenTable(true);
 }
 
 function onShowLerarenUren() {
     //Build lazily and only once. Table will automatically be erased when filters are changed.
-    if (!document.getElementById(def.COUNT_TABLE_ID)) {
+    if (!document.getElementById(def.HOURS_TABLE_ID)) {
         let result = createDefaultTableFetcher();
         if("error" in result) {
             console.log(result.error); //don't report as log.error.
@@ -248,10 +248,7 @@ function onShowLerarenUren() {
             .then(async results => {
                 let [fetchedTable, jsonCloudData] = results;
                 globals.activeFetcher = undefined;
-                let hourSettings = await fetchHoursSettingsOrSaveDefault(Schoolyear.findInPage());
-                //-- All data is fetched.
-
-                globals.hourSettingsMapped = mapHourSettings(hourSettings);
+                globals.hourSettingsMapped = mapHourSettings(await fetchHoursSettingsOrSaveDefault(Schoolyear.findInPage()));
                 globals.fromCloud = new CloudData(upgradeCloudData(jsonCloudData));
                 rebuildHoursTableAfterDownloadFullTable(fetchedTable.getRows(), fetchedTable.tableFetcher.tableRef);
             });
@@ -283,7 +280,7 @@ async function getUrenFromCloud(fileName: string): Promise<JsonCloudData> {
 }
 
 function toggleUrenTable() {
-    let showNewTable = document.getElementById(def.COUNT_TABLE_ID).style.display === "none";
+    let showNewTable = document.getElementById(def.HOURS_TABLE_ID).style.display === "none";
     showUrenTable(showNewTable);
 }
 
@@ -296,10 +293,10 @@ function showUrenTable(show: boolean) {
         setAfterDownloadTableAction(undefined);
     }
     document.getElementById(def.WERKLIJST_TABLE_ID).style.display = show ? "none" : "table";
-    document.getElementById(def.COUNT_TABLE_ID).style.display = show ? "table" : "none";
+    document.getElementById(def.HOURS_TABLE_ID).style.display = show ? "table" : "none";
     document.getElementById(def.SHOW_HOURS_BUTTON_ID).title = show ? "Toon normaal" : "Toon telling";
     setButtonHighlighted(def.SHOW_HOURS_BUTTON_ID, show);
-    if (document.getElementById(def.COUNT_TABLE_ID)) {
+    if (document.getElementById(def.HOURS_TABLE_ID)) {
         let targetButton = document.querySelector("#tablenav_leerlingen_werklijst_top > div > div.btn-group.btn-group-sm.datatable-buttons > button:nth-child(1)") as HTMLButtonElement;
         addButton(targetButton, def.UREN_PREV_SETUP_BTN_ID, "Setup ", async () => {  await showUrenSetup(Schoolyear.findInPage()); }, "fas-certificate", ["btn", "btn-outline-dark"], "", "beforebegin", "gear.svg");
     }
