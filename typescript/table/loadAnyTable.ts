@@ -33,11 +33,11 @@ async function getTableRefFromHash(hash: string) {
     let htmlTableId = getDocReadyLoadScript(index_view)
         .find("$", "(")
         .getString()
-        .substring(1);
-    let datatableUrl = getDocReadyLoadUrl(index_view); //NOT SURE THIS IS datatable.php !!!
+        .substring(1); //remove "#" from table id.
+    let datatableUrl = getDocReadyLoadUrl(index_view); //not sure this is datatable.php.
     if (!datatableUrl.includes("ui/datatable.php")) {
-        //fetch again. Don't loop to avoid dead loop.
-        datatableUrl = await getDocReadyLoadUrlFrom(datatableUrl); //NOT SURE THIS IS datatable.php !!!
+        //Try again
+        datatableUrl = await getDocReadyLoadUrlFrom(datatableUrl);
     }
     let datatable = await fetchText(datatableUrl);
     let datatable_id = "";
