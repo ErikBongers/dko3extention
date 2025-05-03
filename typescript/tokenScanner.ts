@@ -32,6 +32,10 @@ export class ScannerIf {
     }
 }
 
+/*
+When a full tokenizer/lexer is overkill, and you just want to jump to some text and tokenize some fragment, TokenScanner will allow you to do that.\
+Most members return `this`, allowing you to chain calls.
+* */
 export class TokenScanner {
     valid: boolean;
     source: string;
@@ -131,6 +135,7 @@ export class TokenScanner {
         return this;
     }
 
+    // In order to keep calls chainable, `captureString` allows you to assign the found string to a variable, without breaking the chain.
     captureString(callback: (res: string) => void) {
         let subScanner = this.clone();
         let result = subScanner
