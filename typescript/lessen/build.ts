@@ -1,5 +1,5 @@
 import {FULL_CLASS_BUTTON_ID, TRIM_DIV_ID} from "../def";
-import {db3, getPageSettings, isButtonHighlighted, savePageSettings, stripStudentName} from "../globals";
+import {db3, isButtonHighlighted, stripStudentName} from "../globals";
 import {BlockInfo, mergeBlockStudents, TableData} from "./convert";
 import {StudentInfo} from "./scrape";
 import * as html from "../../libs/Emmeter/html";
@@ -7,6 +7,7 @@ import {emmet} from "../../libs/Emmeter/html";
 import {NBSP} from "../../libs/Emmeter/tokenizer";
 import {PageName} from "../gotoState";
 import {getTrimPageElements} from "./observer";
+import {getPageSettings, PageSettings, savePageSettings} from "../pageState";
 
 export enum NameSorting {
     FirstName, LastName
@@ -19,10 +20,6 @@ export enum TrimesterGrouping {
     InstrumentHour,
     Instrument,
     Teacher
-}
-
-export interface PageSettings {
-    pageName: PageName
 }
 
 export interface LessenPageState extends PageSettings {

@@ -26,42 +26,6 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
 //#endregion
 default_items = __toESM(default_items);
 
-//#region typescript/def.ts
-const COPY_AGAIN = "copy_again";
-const PROGRESS_BAR_ID = "progressBarFetch";
-const UREN_PREV_BTN_ID = "prefillInstrButton";
-const UREN_PREV_SETUP_BTN_ID = "prefillInstrSetupButton";
-const UREN_NEXT_BTN_ID = "prefillInstrButtonNext";
-const MAIL_BTN_ID = "mailButton";
-const DOWNLOAD_TABLE_BTN_ID = "downloadTableButton";
-const COPY_TABLE_BTN_ID = "copyTableButton";
-const LESSEN_OVERZICHT_ID = "lessen_overzicht";
-const TRIM_BUTTON_ID = "moduleButton";
-const SHOW_HOURS_BUTTON_ID = "fetchAllButton";
-const FULL_CLASS_BUTTON_ID = "fullClassButton";
-const TRIM_TABLE_ID = "trimesterTable";
-const COUNT_TABLE_ID = "werklijst_uren";
-const TRIM_DIV_ID = "trimesterDiv";
-const JSON_URL = "https://europe-west1-ebo-tain.cloudfunctions.net/json";
-const INFO_CONTAINER_ID = "dp3p_infoContainer";
-const INFO_CACHE_ID = "dp3p_cacheInfo";
-const INFO_TEMP_ID = "dp3_tempInfo";
-const INFO_EXTRA_ID = "dp3_extraInfo";
-const AANW_LIST = "aanwezighedenList";
-const GLOBAL_SETTINGS_FILENAME = "global_settings.json";
-const CACHE_DATE_SUFFIX = "__date";
-const POWER_QUERY_ID = "savedPowerQuery";
-const STORAGE_GOTO_STATE_KEY = "gotoState";
-const STORAGE_PAGE_SETTINGS_KEY_PREFIX = "pageSettings_";
-const UREN_TABLE_STATE_NAME = "__uren__";
-const CAN_SORT = "canSort";
-const NO_MENU = "noMenu";
-const LESSEN_TABLE_ID = "table_lessen_resultaat_tabel";
-const FILTER_INFO_ID = "filterInfo";
-const GLOBAL_COMMAND_BUFFER_KEY = "globalCmdBuffer";
-const AFTER_DOWNLOAD_TABLE_ACTION = "afterDownloadTableAction";
-
-//#endregion
 //#region libs/Emmeter/tokenizer.ts
 const CLOSING_BRACE = "__CLOSINGBRACE__";
 const DOUBLE_QUOTE = "__DOUBLEQUOTE__";
@@ -351,6 +315,42 @@ function addIndex(text, index, onIndex) {
 	}
 	return text.replace("$", (index + 1).toString());
 }
+
+//#endregion
+//#region typescript/def.ts
+const COPY_AGAIN = "copy_again";
+const PROGRESS_BAR_ID = "progressBarFetch";
+const UREN_PREV_BTN_ID = "prefillInstrButton";
+const UREN_PREV_SETUP_BTN_ID = "prefillInstrSetupButton";
+const UREN_NEXT_BTN_ID = "prefillInstrButtonNext";
+const MAIL_BTN_ID = "mailButton";
+const DOWNLOAD_TABLE_BTN_ID = "downloadTableButton";
+const COPY_TABLE_BTN_ID = "copyTableButton";
+const LESSEN_OVERZICHT_ID = "lessen_overzicht";
+const TRIM_BUTTON_ID = "moduleButton";
+const SHOW_HOURS_BUTTON_ID = "fetchAllButton";
+const FULL_CLASS_BUTTON_ID = "fullClassButton";
+const TRIM_TABLE_ID = "trimesterTable";
+const COUNT_TABLE_ID = "werklijst_uren";
+const TRIM_DIV_ID = "trimesterDiv";
+const JSON_URL = "https://europe-west1-ebo-tain.cloudfunctions.net/json";
+const INFO_CONTAINER_ID = "dp3p_infoContainer";
+const INFO_CACHE_ID = "dp3p_cacheInfo";
+const INFO_TEMP_ID = "dp3_tempInfo";
+const INFO_EXTRA_ID = "dp3_extraInfo";
+const AANW_LIST = "aanwezighedenList";
+const GLOBAL_SETTINGS_FILENAME = "global_settings.json";
+const CACHE_DATE_SUFFIX = "__date";
+const POWER_QUERY_ID = "savedPowerQuery";
+const STORAGE_GOTO_STATE_KEY = "gotoState";
+const STORAGE_PAGE_SETTINGS_KEY_PREFIX = "pageSettings_";
+const UREN_TABLE_STATE_NAME = "__uren__";
+const CAN_SORT = "canSort";
+const NO_MENU = "noMenu";
+const LESSEN_TABLE_ID = "table_lessen_resultaat_tabel";
+const FILTER_INFO_ID = "filterInfo";
+const GLOBAL_COMMAND_BUFFER_KEY = "globalCmdBuffer";
+const AFTER_DOWNLOAD_TABLE_ACTION = "afterDownloadTableAction";
 
 //#endregion
 //#region typescript/cloud.ts
@@ -646,31 +646,6 @@ function isButtonHighlighted(buttonId) {
 function range(startAt, upTo) {
 	if (upTo > startAt) return [...Array(upTo - startAt).keys()].map((n) => n + startAt);
 	else return [...Array(startAt - upTo).keys()].reverse().map((n) => n + upTo + 1);
-}
-function getPageSettings(pageName, defaultSettings) {
-	let storedState = localStorage.getItem(STORAGE_PAGE_SETTINGS_KEY_PREFIX + pageName);
-	if (storedState) return JSON.parse(storedState);
-	return defaultSettings;
-}
-function savePageSettings(state) {
-	localStorage.setItem(STORAGE_PAGE_SETTINGS_KEY_PREFIX + state.pageName, JSON.stringify(state));
-}
-let globalTransientPageState = new Map();
-let pageState$1 = { transient: {
-	getValue: getPageTransientStateValue,
-	setValue: setPageTransientStateValue,
-	clear: clearPageTransientState
-} };
-function getPageTransientStateValue(key, defaultValue) {
-	let value = globalTransientPageState.get(key);
-	return value ? value : setPageTransientStateValue(key, defaultValue);
-}
-function setPageTransientStateValue(key, transientState) {
-	globalTransientPageState.set(key, transientState);
-	return transientState;
-}
-function clearPageTransientState() {
-	globalTransientPageState.clear();
 }
 async function getOptions() {
 	let items = await chrome.storage.sync.get(null);
@@ -1661,6 +1636,34 @@ function mergeBlockStudents(block) {
 		hasWachtlijst,
 		maxJaarStudentCount
 	};
+}
+
+//#endregion
+//#region typescript/pageState.ts
+function getPageSettings(pageName, defaultSettings) {
+	let storedState = localStorage.getItem(STORAGE_PAGE_SETTINGS_KEY_PREFIX + pageName);
+	if (storedState) return JSON.parse(storedState);
+	return defaultSettings;
+}
+function savePageSettings(state) {
+	localStorage.setItem(STORAGE_PAGE_SETTINGS_KEY_PREFIX + state.pageName, JSON.stringify(state));
+}
+let pageState$1 = { transient: {
+	getValue: getPageTransientStateValue,
+	setValue: setPageTransientStateValue,
+	clear: clearPageTransientState
+} };
+let globalTransientPageState = new Map();
+function clearPageTransientState() {
+	globalTransientPageState.clear();
+}
+function setPageTransientStateValue(key, transientState) {
+	globalTransientPageState.set(key, transientState);
+	return transientState;
+}
+function getPageTransientStateValue(key, defaultValue) {
+	let value = globalTransientPageState.get(key);
+	return value ? value : setPageTransientStateValue(key, defaultValue);
 }
 
 //#endregion

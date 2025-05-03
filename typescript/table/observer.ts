@@ -1,9 +1,10 @@
-import {addTableNavigationButton, getBothToolbars, pageState} from "../globals";
+import {addTableNavigationButton, getBothToolbars} from "../globals";
 import * as def from "../def";
 import {AllPageFilter, BaseObserver} from "../pageObserver";
 import {CheckSumBuilder, FetchedTable, findTableRefInCode, TableFetcher} from "./tableFetcher";
 import {decorateTableHeader} from "./tableHeaders";
 import {downloadTableRows} from "./loadAnyTable";
+import {pageState} from "../pageState";
 
 export default new BaseObserver(undefined, new AllPageFilter(), onMutation);
 

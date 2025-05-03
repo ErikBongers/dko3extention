@@ -1,8 +1,5 @@
 import {Observer} from "./pageObserver";
-import * as def from "./def";
 import {emmet} from "../libs/Emmeter/html";
-import {PageName} from "./gotoState";
-import {PageSettings} from "./lessen/build";
 import {fetchGlobalSettings, getGlobalSettings, GlobalSettings, options, setGlobalSetting} from "./plugin_options/options";
 import {Actions, sendRequest, TabType} from "./messaging";
 
@@ -332,40 +329,6 @@ export function range(startAt: number, upTo: number) {
         return [...Array(upTo - startAt).keys()].map(n => n + startAt);
     else
         return [...Array(startAt - upTo).keys()].reverse().map(n => n + upTo + 1);
-}
-
-export function getPageSettings(pageName: PageName, defaultSettings: PageSettings): PageSettings {
-    let storedState = localStorage.getItem(def.STORAGE_PAGE_SETTINGS_KEY_PREFIX + pageName);
-    if (storedState)
-        return JSON.parse(storedState);
-    return defaultSettings;
-}
-
-export function savePageSettings(state: PageSettings) {
-    localStorage.setItem(def.STORAGE_PAGE_SETTINGS_KEY_PREFIX + state.pageName, JSON.stringify(state));
-}
-
-let globalTransientPageState: Map<string, any> = new Map();
-
-export let pageState = { //todo: put in separate file?
-    transient: {
-        getValue: getPageTransientStateValue,
-        setValue: setPageTransientStateValue,
-        clear: clearPageTransientState,
-    }
-}
-
-function getPageTransientStateValue(key: string, defaultValue: any) {
-    let value =  globalTransientPageState.get(key);
-    return value ? value : setPageTransientStateValue(key, defaultValue);
-}
-
-function setPageTransientStateValue(key:string, transientState: any){
-    globalTransientPageState.set(key, transientState);
-    return transientState;
-}
-function clearPageTransientState() {
-    globalTransientPageState.clear();
 }
 
 export async function getOptions() {

@@ -1,5 +1,5 @@
 //to avoid "unused function" errors in linters, this file is called as a module.
-import {equals, getOptions, observers, pageState, registerObserver, settingsObservers} from "./globals";
+import {equals, getOptions, observers, registerObserver, settingsObservers} from "./globals";
 import leerlingObserver from "./leerling/observer";
 import lessenObserver from "./lessen/observer";
 import lesObserver from "./les/observer";
@@ -13,6 +13,7 @@ import afwezighedenObserver from "./afwezigheden/observer";
 import {setupPowerQuery} from "./powerQuery/setupPowerQuery";
 import {academieMenuObserver, allLijstenObserver, assetsObserver, evaluatieObserver, extraInschrijvingenObserver, financialObserver} from "./pages/observer";
 import {fetchGlobalSettings, getGlobalSettings, setGlobalSetting} from "./plugin_options/options";
+import {pageState} from "./pageState";
 
 init();
 

@@ -3,12 +3,13 @@ import {buildTableData} from "./convert";
 import {buildTrimesterTable, getDefaultPageSettings, getSavedNameSorting, LessenPageState, NameSorting, setSavedNameSorting, TrimElements, TrimesterGrouping} from "./build";
 import * as def from "../def";
 import {LESSEN_TABLE_ID} from "../def";
-import {getPageSettings, savePageSettings, Schoolyear, setButtonHighlighted} from "../globals";
+import {Schoolyear, setButtonHighlighted} from "../globals";
 import {HashObserver} from "../pageObserver";
 import * as html from "../../libs/Emmeter/html";
 import {emmet} from "../../libs/Emmeter/html";
 import {getGotoStateOrDefault, Goto, PageName, saveGotoState} from "../gotoState";
 import {addFilterFields, applyFilters} from "./filter";
+import {getPageSettings, savePageSettings} from "../pageState";
 
 export default new HashObserver("#lessen-overzicht", onMutation);
 
