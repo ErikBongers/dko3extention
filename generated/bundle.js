@@ -3595,26 +3595,69 @@ async function fetchText(url) {
 	let res = await fetch(url);
 	return res.text();
 }
-async function getDocReadyLoadUrlFrom(url) {
-	let text = await fetchText(url);
-	return getDocReadyLoadUrl(text);
-}
+var FetchChain = class {
+	lastText = "";
+	get() {
+		return this.lastText;
+	}
+	set(text) {
+		this.lastText = text;
+	}
+	async fetch(url) {
+		this.lastText = await fetchText(url ?? this.lastText);
+		return this.lastText;
+	}
+	getDocReadyLoadUrl() {
+		this.lastText = getDocReadyLoadUrl(this.lastText);
+		return this.lastText;
+	}
+	getDocReadyLoadScript() {
+		this.lastText = getDocReadyLoadScript(this.lastText).result();
+		return this.lastText;
+	}
+	find(...args) {
+		this.lastText = new TokenScanner(this.lastText).find(...args).result();
+		return this.lastText;
+	}
+	getQuotedString() {
+		this.lastText = new TokenScanner(this.lastText).getString();
+		return this.lastText;
+	}
+	clipTo(end) {
+		this.lastText = new TokenScanner(this.lastText).clipTo(end).result();
+	}
+	div() {
+		let el = document.createElement("div");
+		el.innerHTML = this.lastText;
+		return el;
+	}
+	includes(text) {
+		return this.lastText.includes(text);
+	}
+};
 async function getTableRefFromHash(hash) {
-	await fetchText("https://administratie.dko3.cloud/#" + hash);
-	let index_viewUrl = await getDocReadyLoadUrlFrom("view.php?args=" + hash);
-	let index_view = await fetchText(index_viewUrl);
-	let htmlTableId = getDocReadyLoadScript(index_view).find("$", "(").getString().substring(1);
-	let datatableUrl = getDocReadyLoadUrl(index_view);
-	if (!datatableUrl.includes("ui/datatable.php")) datatableUrl = await getDocReadyLoadUrlFrom(datatableUrl);
-	let datatable = await fetchText(datatableUrl);
-	let datatable_id = "";
-	let tableNavUrl = TokenScanner.create(datatable).find("var", "datatable_id", "=").captureString((s) => {
-		datatable_id = s;
-	}).clipTo("</script>").find(".", "load", "(").getString();
-	tableNavUrl += datatable_id + "&pos=top";
-	let tableNavText = await fetchText(tableNavUrl);
-	let div = document.createElement("div");
-	div.innerHTML = tableNavText;
+	let chain = new FetchChain();
+	await chain.fetch("https://administratie.dko3.cloud/#" + hash);
+	await chain.fetch("view.php?args=" + hash);
+	chain.getDocReadyLoadUrl();
+	let index_view = await chain.fetch();
+	chain.getDocReadyLoadScript();
+	chain.find("$", "(");
+	let htmlTableId = chain.getQuotedString().substring(1);
+	chain.set(index_view);
+	chain.getDocReadyLoadUrl();
+	if (!chain.includes("ui/datatable.php")) {
+		await chain.fetch();
+		chain.getDocReadyLoadUrl();
+	}
+	await chain.fetch();
+	chain.find("var", "datatable_id", "=");
+	let datatable_id = chain.getQuotedString();
+	chain.clipTo("</script>");
+	chain.find(".", "load", "(");
+	let tableNavUrl = chain.getQuotedString() + "&pos=top";
+	await chain.fetch(tableNavUrl);
+	let div = chain.div();
 	let tableNav = findFirstNavigation(div);
 	console.log(tableNav);
 	let buildFetchUrl = (offset) => `/views/ui/datatable.php?id=${datatable_id}&start=${offset}&aantal=0`;
@@ -3710,8 +3753,9 @@ function createDefaultTableRefAndInfoBar() {
 	let tableRef = findTableRefInCode();
 	if (!tableRef) return { error: "Cannot find table." };
 	document.getElementById(
-		//NOT SURE THIS IS datatable.php !!!
-		//NOT SURE THIS IS datatable.php !!!
+		// call to changeView() - assuming this is always the same, so no parsing here.
+		//remove "#" from table id.;
+		//Try again
 		INFO_CONTAINER_ID
 )?.remove();
 	let divInfoContainer = tableRef.createElementAboveTable("div");

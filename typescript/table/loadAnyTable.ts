@@ -6,53 +6,33 @@ import {InfoBar} from "../infoBar";
 import {insertProgressBar, ProgressBar} from "../progressBar";
 import * as def from "../def";
 import {executeTableCommands, TableHandlerForHeaders} from "./tableHeaders";
-import {TokenScanner} from "../tokenScanner";
-
-async function fetchText(url: string) {
-    let res = await fetch(url);
-    return res.text();
-}
-
-async function getDocReadyLoadUrlFrom(url: string) {
-    let text = await fetchText(url);
-    return getDocReadyLoadUrl(text);
-}
-
-async function getDocReadyLoadScriptFrom(url: string) {
-    let text = await fetchText(url);
-    return getDocReadyLoadScript(text);
-}
+import {FetchChain} from "./fetchChain";
 
 async function getTableRefFromHash(hash: string) {
-    await fetchText("https://administratie.dko3.cloud/#" + hash);
+    let chain = new FetchChain();
 
-    // call to changeView() - assuming this is always the same, so no parsing here.
-    let index_viewUrl = await getDocReadyLoadUrlFrom("view.php?args=" + hash);
+    await chain.fetch("https://administratie.dko3.cloud/#" + hash);
+    await chain.fetch("view.php?args=" + hash); // call to changeView() - assuming this is always the same, so no parsing here.
+    chain.findDocReadyLoadUrl();
+    let index_view = await chain.fetch();
+    chain.findDocReadyLoadScript();
+    chain.find("$", "(");
+    let htmlTableId = chain.getQuotedString().substring(1); //remove "#" from table id.;
 
-    let index_view = await fetchText(index_viewUrl);
-    let htmlTableId = getDocReadyLoadScript(index_view)
-        .find("$", "(")
-        .getString()
-        .substring(1); //remove "#" from table id.
-    let datatableUrl = getDocReadyLoadUrl(index_view); //not sure this is datatable.php.
-    if (!datatableUrl.includes("ui/datatable.php")) {
-        //Try again
-        datatableUrl = await getDocReadyLoadUrlFrom(datatableUrl);
+    chain.set(index_view);
+    chain.findDocReadyLoadUrl();
+    if (!chain.includes("ui/datatable.php")) {
+        await chain.fetch(); //Try again
+        chain.findDocReadyLoadUrl();
     }
-    let datatable = await fetchText(datatableUrl);
-    let datatable_id = "";
-    let tableNavUrl = TokenScanner.create(datatable)
-        .find("var", "datatable_id", "=")
-        .captureString(s => { datatable_id = s; })
-        .clipTo("</script>")
-        .find(".", "load", "(")
-        .getString();
-    tableNavUrl += datatable_id + '&pos=top';
-    let tableNavText = await fetchText(tableNavUrl);
-
-    let div = document.createElement("div");
-    div.innerHTML = tableNavText;
-    let tableNav = findFirstNavigation(div);
+    await chain.fetch();
+    chain.find("var", "datatable_id", "=");
+    let datatable_id = chain.getQuotedString();
+    chain.clipTo("</script>");
+    chain.find(".", "load", "(");
+    let tableNavUrl = chain.getQuotedString() + '&pos=top';
+    await chain.fetch(tableNavUrl);
+    let tableNav = findFirstNavigation(chain.div());
     console.log(tableNav);
     let buildFetchUrl = (offset: number) => `/views/ui/datatable.php?id=${datatable_id}&start=${offset}&aantal=0`;
 
@@ -76,46 +56,6 @@ export async function getTableFromHash(hash: string, clearCache: boolean, infoBa
     let fetchedTable = await tableFetcher.fetch();
     await setViewFromCurrentUrl();
     return fetchedTable;
-}
-
-function findDocReady(scanner: TokenScanner) {
-    return scanner.find("$", "(", "document", ")", ".", "ready", "(");
-}
-
-function getDocReadyLoadUrl(text: string) {
-    let scanner = new TokenScanner(text);
-    while(true) {
-        let docReady = findDocReady(scanner);
-        if(!docReady.valid)
-            return undefined;
-        let url = docReady
-            .clone()
-            .clipTo("</script>")
-            .find(".", "load", "(")
-            .clipString()
-            .result();
-        if(url)
-            return url;
-        scanner = docReady;
-    }
-}
-
-function getDocReadyLoadScript(text: string) {
-    let scanner = new TokenScanner(text);
-    while(true) {
-        let docReady = findDocReady(scanner);
-        if(!docReady.valid)
-            return undefined;
-        let script = docReady
-            .clone()
-            .clipTo("</script>");
-        let load = script
-            .clone()
-            .find(".", "load", "(");
-        if(load.valid)
-            return script;
-        scanner = docReady;
-    }
 }
 
 
