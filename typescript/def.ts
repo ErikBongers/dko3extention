@@ -32,3 +32,4 @@ export const LESSEN_TABLE_ID = "table_lessen_resultaat_tabel";
 export const FILTER_INFO_ID = "filterInfo";
 export const GLOBAL_COMMAND_BUFFER_KEY = "globalCmdBuffer";
 export const AFTER_DOWNLOAD_TABLE_ACTION = "afterDownloadTableAction";
+export const WERKLIJST_TABLE_ID = "table_leerlingen_werklijst_table";

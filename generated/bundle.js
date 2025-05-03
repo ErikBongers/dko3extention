@@ -351,6 +351,7 @@ const LESSEN_TABLE_ID = "table_lessen_resultaat_tabel";
 const FILTER_INFO_ID = "filterInfo";
 const GLOBAL_COMMAND_BUFFER_KEY = "globalCmdBuffer";
 const AFTER_DOWNLOAD_TABLE_ACTION = "afterDownloadTableAction";
+const WERKLIJST_TABLE_ID = "table_leerlingen_werklijst_table";
 
 //#endregion
 //#region typescript/cloud.ts
@@ -3144,8 +3145,8 @@ function findTableRefInCode() {
 }
 function findTable() {
 	let table = document.querySelector("div.table-responsive > table");
-	let tableId$1 = table.id.replace("table_", "").replace("_table", "");
-	let parentDiv = document.querySelector("div#table_" + tableId$1);
+	let tableId = table.id.replace("table_", "").replace("_table", "");
+	let parentDiv = document.querySelector("div#table_" + tableId);
 	let scripts = Array.from(parentDiv.querySelectorAll("script")).map((script) => script.text).join("\n");
 	let goto = scripts.split("_goto(")[1];
 	let func = goto.split(/ function *\w/)[0];
@@ -3341,13 +3342,13 @@ function onMutation$4(_mutation) {
 	return true;
 }
 let tableCriteriaBuilders = new Map();
-function getChecksumBuilder(tableId$1) {
-	let builder = tableCriteriaBuilders.get(tableId$1);
+function getChecksumBuilder(tableId) {
+	let builder = tableCriteriaBuilders.get(tableId);
 	if (builder) return builder;
 	return (_tableFetcher) => "";
 }
-function registerChecksumHandler(tableId$1, checksumHandler) {
-	tableCriteriaBuilders.set(tableId$1, checksumHandler);
+function registerChecksumHandler(tableId, checksumHandler) {
+	tableCriteriaBuilders.set(tableId, checksumHandler);
 }
 function createDownloadTableWithExtraAction() {
 	return (_) => {
@@ -4793,8 +4794,7 @@ var CloudData = class {
 
 //#endregion
 //#region typescript/werklijst/observer.ts
-const tableId = "table_leerlingen_werklijst_table";
-registerChecksumHandler(tableId, (_tableDef) => {
+registerChecksumHandler(WERKLIJST_TABLE_ID, (_tableDef) => {
 	return document.querySelector("#view_contents > div.alert.alert-primary")?.textContent.replace("Criteria aanpassen", "")?.replace("Criteria:", "") ?? "";
 });
 let observer = new HashObserver("#leerlingen-werklijst", onMutation$3, false, onPageLoaded$1);
@@ -4805,7 +4805,7 @@ function onPageLoaded$1() {
 }
 function onMutation$3(mutation) {
 	console.log("Werklijst onMutation");
-	if (mutation.target.id === "table_leerlingen_werklijst_table") {
+	if (mutation.target.id === WERKLIJST_TABLE_ID) {
 		onWerklijstChanged();
 		return true;
 	}
@@ -4905,7 +4905,7 @@ async function sendMessageToHoursSettings() {
 function onWerklijstChanged() {
 	let werklijstPageState = getGotoStateOrDefault(PageName.Werklijst);
 	if (werklijstPageState.werklijstTableName === UREN_TABLE_STATE_NAME) tryUntil(onShowLerarenUren);
-	decorateTableHeader(document.querySelector("table#table_leerlingen_werklijst_table"));
+	decorateTableHeader(document.querySelector("table#" + WERKLIJST_TABLE_ID));
 }
 function onButtonBarChanged() {
 	let targetButton = document.querySelector("#tablenav_leerlingen_werklijst_top > div > div.btn-group.btn-group-sm.datatable-buttons > button:nth-child(1)");
@@ -5020,7 +5020,7 @@ function showUrenTable(show) {
 		rebuildHoursTableAfterDownloadFullTable(fetchedTable.tableFetcher.tableRef.getOrgTableRows(), fetchedTable.tableFetcher.tableRef);
 	});
 	else setAfterDownloadTableAction(void 0);
-	document.getElementById("table_leerlingen_werklijst_table").style.display = show ? "none" : "table";
+	document.getElementById(WERKLIJST_TABLE_ID).style.display = show ? "none" : "table";
 	document.getElementById(COUNT_TABLE_ID).style.display = show ? "table" : "none";
 	document.getElementById(SHOW_HOURS_BUTTON_ID).title = show ? "Toon normaal" : "Toon telling";
 	setButtonHighlighted(SHOW_HOURS_BUTTON_ID, show);
@@ -5092,8 +5092,8 @@ function onSmsChanged(_event) {
 //#region typescript/aanwezigheden/observer.ts
 var observer_default$1 = new HashObserver("#leerlingen-lijsten-awi-percentages_leerling_vak", onMutationAanwezgheden);
 function onMutationAanwezgheden(_mutation) {
-	let tableId$1 = document.getElementById("table_lijst_awi_percentages_leerling_vak_table");
-	if (!tableId$1) return false;
+	let tableId = document.getElementById("table_lijst_awi_percentages_leerling_vak_table");
+	if (!tableId) return false;
 	let navigationBars = getBothToolbars();
 	if (!navigationBars) return;
 	addTableNavigationButton(

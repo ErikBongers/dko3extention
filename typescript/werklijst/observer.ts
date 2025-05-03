@@ -16,9 +16,7 @@ import {Actions, sendRequest, ServiceRequest, TabType} from "../messaging";
 import {fetchHoursSettingsOrSaveDefault, mapHourSettings, TeacherHoursSetup, TeacherHoursSetupMapped} from "./hoursSettings";
 import MessageSender = chrome.runtime.MessageSender;
 
-const tableId = "table_leerlingen_werklijst_table";
-
-registerChecksumHandler(tableId,  (_tableDef: TableFetcher) => {
+registerChecksumHandler(def.WERKLIJST_TABLE_ID,  (_tableDef: TableFetcher) => {
     return document.querySelector("#view_contents > div.alert.alert-primary")?.textContent.replace("Criteria aanpassen", "")?.replace("Criteria:", "") ?? ""
     }
     );
@@ -35,7 +33,7 @@ function onPageLoaded() {
 
 function onMutation(mutation: MutationRecord) {
     console.log("Werklijst onMutation");
-    if ((mutation.target as HTMLElement).id === "table_leerlingen_werklijst_table") {
+    if ((mutation.target as HTMLElement).id === def.WERKLIJST_TABLE_ID) {
         onWerklijstChanged();
         return true;
     }
@@ -140,7 +138,7 @@ function onWerklijstChanged() {
     if(werklijstPageState.werklijstTableName === def.UREN_TABLE_STATE_NAME) {
         tryUntil(onShowLerarenUren);
     }
-    decorateTableHeader(document.querySelector("table#table_leerlingen_werklijst_table") as HTMLTableElement);
+    decorateTableHeader(document.querySelector("table#"+def.WERKLIJST_TABLE_ID) as HTMLTableElement);
 }
 
 function onButtonBarChanged() {
@@ -298,7 +296,7 @@ function showUrenTable(show: boolean) {
     } else {
         setAfterDownloadTableAction(undefined);
     }
-    document.getElementById("table_leerlingen_werklijst_table").style.display = show ? "none" : "table";
+    document.getElementById(def.WERKLIJST_TABLE_ID).style.display = show ? "none" : "table";
     document.getElementById(def.COUNT_TABLE_ID).style.display = show ? "table" : "none";
     document.getElementById(def.SHOW_HOURS_BUTTON_ID).title = show ? "Toon normaal" : "Toon telling";
     setButtonHighlighted(def.SHOW_HOURS_BUTTON_ID, show);
