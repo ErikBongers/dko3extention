@@ -3379,9 +3379,6 @@ var InfoBar = class {
 		this.divCacheInfo = emmet.appendChild(this.divInfoContainer, `div#${INFO_CACHE_ID}.cacheInfo`).last;
 		this.tempMessage = "";
 	}
-	setCacheInfo(cacheInfo, reset_onclick) {
-		this.updateCacheInfo(cacheInfo, reset_onclick);
-	}
 	setTempMessage(msg) {
 		this.tempMessage = msg;
 		this.#updateTempMessage();
@@ -3400,7 +3397,7 @@ var InfoBar = class {
 	clearCacheInfo() {
 		this.divCacheInfo.innerHTML = "";
 	}
-	updateCacheInfo(info, reset_onclick) {
+	setCacheInfo(info, reset_onclick) {
 		this.divCacheInfo.innerHTML = info;
 		let button = emmet.appendChild(this.divCacheInfo, "button.likeLink").first;
 		button.innerHTML = "refresh";

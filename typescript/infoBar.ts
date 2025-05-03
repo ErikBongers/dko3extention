@@ -20,11 +20,6 @@ export class InfoBar{
         this.tempMessage = "";
     }
 
-    //todo: merge with updateCacheInfo
-    setCacheInfo(cacheInfo: string, reset_onclick: (ev: MouseEvent) => any) {
-        this.updateCacheInfo(cacheInfo, reset_onclick);
-    }
-
     setTempMessage(msg : string ) {
         this.tempMessage = msg;
         this.#updateTempMessage();
@@ -48,7 +43,7 @@ export class InfoBar{
         this.divCacheInfo.innerHTML = "";
     }
 
-    updateCacheInfo(info: string, reset_onclick: (ev: MouseEvent) => any) {
+    setCacheInfo(info: string, reset_onclick: (ev: MouseEvent) => any) {
         this.divCacheInfo.innerHTML = info;
         let button = emmet.appendChild(this.divCacheInfo, "button.likeLink").first as HTMLButtonElement;
         button.innerHTML = "refresh";
