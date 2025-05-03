@@ -1,4 +1,4 @@
-import {createTable, distinct, getPageTransientStateValue, openHtmlTab, range, rangeGenerator} from "../globals";
+import {createTable, distinct, openHtmlTab, pageState, range, rangeGenerator} from "../globals";
 import {emmet} from "../../libs/Emmeter/html";
 import {checkAndDownloadTableRows} from "./loadAnyTable";
 import {addMenuItem, addMenuSeparator, setupMenu} from "../menus";
@@ -187,7 +187,7 @@ type TableColumnCmd = {
 }
 
 export function executeTableCommands(tableRef: TableRef) {
-    let cmds = getPageTransientStateValue(def.GLOBAL_COMMAND_BUFFER_KEY, []) as TableColumnCmd[];
+    let cmds =  pageState.transient.getValue(def.GLOBAL_COMMAND_BUFFER_KEY, []) as TableColumnCmd[];
     console.log("Executing:");
     console.log(cmds);
     for(let cmd of cmds) {
@@ -215,7 +215,7 @@ function forTableColumnDo(ev: MouseEvent, cmdDef: TableColumnCmdDef) {
                 index
             }
             executeCmd(cmd, tableRef, false);
-            let cmds = getPageTransientStateValue(def.GLOBAL_COMMAND_BUFFER_KEY, []) as TableColumnCmd[];
+            let cmds =  pageState.transient.getValue(def.GLOBAL_COMMAND_BUFFER_KEY, []) as TableColumnCmd[];
             cmds.push(cmd);
             relabelHeaders(tableRef.getOrgTableContainer().querySelector("thead>tr"))
         });

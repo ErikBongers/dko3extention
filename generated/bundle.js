@@ -655,6 +655,11 @@ function savePageSettings(state) {
 	localStorage.setItem(STORAGE_PAGE_SETTINGS_KEY_PREFIX + state.pageName, JSON.stringify(state));
 }
 let globalTransientPageState = new Map();
+let pageState$1 = { transient: {
+	getValue: getPageTransientStateValue,
+	setValue: setPageTransientStateValue,
+	clear: clearPageTransientState
+} };
 function getPageTransientStateValue(key, defaultValue) {
 	let value = globalTransientPageState.get(key);
 	return value ? value : setPageTransientStateValue(key, defaultValue);
@@ -678,19 +683,19 @@ function saveGotoState(state) {
 	sessionStorage.setItem(STORAGE_GOTO_STATE_KEY, JSON.stringify(state));
 }
 function defaultGotoState(pageName) {
-	let pageState$1 = {
+	let pageState$2 = {
 		goto: Goto.None,
 		pageName
 	};
 	if (pageName === PageName.Werklijst) return {
 		werklijstTableName: "",
-		...pageState$1
+		...pageState$2
 	};
-	return pageState$1;
+	return pageState$2;
 }
 function getGotoStateOrDefault(pageName) {
-	let pageState$1 = JSON.parse(sessionStorage.getItem(STORAGE_GOTO_STATE_KEY));
-	if (pageState$1?.pageName === pageName) return pageState$1;
+	let pageState$2 = JSON.parse(sessionStorage.getItem(STORAGE_GOTO_STATE_KEY));
+	if (pageState$2?.pageName === pageName) return pageState$2;
 	else return defaultGotoState(pageName);
 }
 let PageName = /* @__PURE__ */ function(PageName$1) {
@@ -764,21 +769,21 @@ function scrapeMainMenu() {
 	for (let headerMenu of headerMenus.values()) screpeDropDownMenu(headerMenu);
 }
 function gotoWerklijstUrenNextYear(_queryItem) {
-	let pageState$1 = getGotoStateOrDefault(PageName.Werklijst);
-	pageState$1.goto = Goto.Werklijst_uren_nextYear;
-	saveGotoState(pageState$1);
+	let pageState$2 = getGotoStateOrDefault(PageName.Werklijst);
+	pageState$2.goto = Goto.Werklijst_uren_nextYear;
+	saveGotoState(pageState$2);
 	location.href = "/#leerlingen-werklijst";
 }
 function gotoWerklijstUrenPrevYear(_queryItem) {
-	let pageState$1 = getGotoStateOrDefault(PageName.Werklijst);
-	pageState$1.goto = Goto.Werklijst_uren_prevYear;
-	saveGotoState(pageState$1);
+	let pageState$2 = getGotoStateOrDefault(PageName.Werklijst);
+	pageState$2.goto = Goto.Werklijst_uren_prevYear;
+	saveGotoState(pageState$2);
 	location.href = "/#leerlingen-werklijst";
 }
 function gotoTrimesterModules(_queryItem) {
-	let pageState$1 = getGotoStateOrDefault(PageName.Lessen);
-	pageState$1.goto = Goto.Lessen_trimesters_set_filter;
-	saveGotoState(pageState$1);
+	let pageState$2 = getGotoStateOrDefault(PageName.Lessen);
+	pageState$2.goto = Goto.Lessen_trimesters_set_filter;
+	saveGotoState(pageState$2);
 	location.href = "/#lessen-overzicht";
 }
 function getHardCodedQueryItems() {
@@ -2169,86 +2174,86 @@ function setFilterInfo(text) {
 	document.getElementById(FILTER_INFO_ID).innerText = text;
 }
 function applyFilters() {
-	let pageState$1 = getPageSettings(PageName.Lessen, getDefaultPageSettings());
-	pageState$1.searchText = document.getElementById(TXT_FILTER_ID$1).value;
-	savePageSettings(pageState$1);
+	let pageState$2 = getPageSettings(PageName.Lessen, getDefaultPageSettings());
+	pageState$2.searchText = document.getElementById(TXT_FILTER_ID$1).value;
+	savePageSettings(pageState$2);
 	let extraFilter = void 0;
 	if (isTrimesterTableVisible()) {
-		let textPreFilter = createTextRowFilter(pageState$1.searchText, (tr) => tr.textContent);
+		let textPreFilter = createTextRowFilter(pageState$2.searchText, (tr) => tr.textContent);
 		let preFilter = textPreFilter;
-		if (pageState$1.filterOffline) extraFilter = createRowFilterFromBlockFilter(createBlockFilter((b) => b.hasSomeOfflineLessen()));
-		else if (pageState$1.filterOnline) extraFilter = createRowFilterFromBlockFilter(createBlockFilter((b) => !b.hasSomeOfflineLessen()));
-		else if (pageState$1.filterNoTeacher) extraFilter = createRowFilterFromBlockFilter(createBlockFilter((b) => b.hasMissingTeachers()));
-		else if (pageState$1.filterNoMax) extraFilter = createRowFilterFromBlockFilter(createBlockFilter((b) => b.hasMissingMax()));
-		else if (pageState$1.filterFullClass) extraFilter = createRowFilterFromBlockFilter(createBlockFilter((b) => b.hasFullClasses()));
-		else if (pageState$1.filterOnlineAlc) extraFilter = createRowFilterFromBlockFilter(createBlockFilter((b) => b.hasOnlineAlcClasses()));
-		else if (pageState$1.filterWarnings) extraFilter = createRowFilterFromBlockFilter(createBlockFilter((b) => b.hasWarningLessons()));
+		if (pageState$2.filterOffline) extraFilter = createRowFilterFromBlockFilter(createBlockFilter((b) => b.hasSomeOfflineLessen()));
+		else if (pageState$2.filterOnline) extraFilter = createRowFilterFromBlockFilter(createBlockFilter((b) => !b.hasSomeOfflineLessen()));
+		else if (pageState$2.filterNoTeacher) extraFilter = createRowFilterFromBlockFilter(createBlockFilter((b) => b.hasMissingTeachers()));
+		else if (pageState$2.filterNoMax) extraFilter = createRowFilterFromBlockFilter(createBlockFilter((b) => b.hasMissingMax()));
+		else if (pageState$2.filterFullClass) extraFilter = createRowFilterFromBlockFilter(createBlockFilter((b) => b.hasFullClasses()));
+		else if (pageState$2.filterOnlineAlc) extraFilter = createRowFilterFromBlockFilter(createBlockFilter((b) => b.hasOnlineAlcClasses()));
+		else if (pageState$2.filterWarnings) extraFilter = createRowFilterFromBlockFilter(createBlockFilter((b) => b.hasWarningLessons()));
 		if (extraFilter) preFilter = combineFilters(createAncestorFilter(textPreFilter), extraFilter);
 		let filter = createAncestorFilter(preFilter);
 		filterTable(TRIM_TABLE_ID, filter);
 	} else {
-		let textFilter = createTextRowFilter(pageState$1.searchText, (tr) => tr.cells[0].textContent);
+		let textFilter = createTextRowFilter(pageState$2.searchText, (tr) => tr.cells[0].textContent);
 		let filter = textFilter;
-		if (pageState$1.filterOffline) extraFilter = createQuerySelectorFilter("td>i.fa-eye-slash");
-		else if (pageState$1.filterOnline) extraFilter = createInverseFilter(createQuerySelectorFilter("td>i.fa-eye-slash"));
-		else if (pageState$1.filterNoTeacher) extraFilter = createTextRowFilter("(geen klasleerkracht)", (tr) => tr.cells[0].textContent);
-		else if (pageState$1.filterNoMax) extraFilter = createTextRowFilter("999", (tr) => tr.cells[1].textContent);
-		else if (pageState$1.filterFullClass) extraFilter = {
+		if (pageState$2.filterOffline) extraFilter = createQuerySelectorFilter("td>i.fa-eye-slash");
+		else if (pageState$2.filterOnline) extraFilter = createInverseFilter(createQuerySelectorFilter("td>i.fa-eye-slash"));
+		else if (pageState$2.filterNoTeacher) extraFilter = createTextRowFilter("(geen klasleerkracht)", (tr) => tr.cells[0].textContent);
+		else if (pageState$2.filterNoMax) extraFilter = createTextRowFilter("999", (tr) => tr.cells[1].textContent);
+		else if (pageState$2.filterFullClass) extraFilter = {
 			context: void 0,
 			rowFilter(tr, context) {
 				let scrapeResult = scrapeStudentsCellMeta(tr.cells[1]);
 				return scrapeResult.aantal >= scrapeResult.maxAantal;
 			}
 		};
-		else if (pageState$1.filterOnlineAlc) extraFilter = {
+		else if (pageState$2.filterOnlineAlc) extraFilter = {
 			context: void 0,
 			rowFilter(tr, context) {
 				let scrapeResult = scrapeLesInfo(tr.cells[0]);
 				return scrapeResult.online && scrapeResult.alc;
 			}
 		};
-		else if (pageState$1.filterWarnings) extraFilter = createQuerySelectorFilter(".text-warning");
+		else if (pageState$2.filterWarnings) extraFilter = createQuerySelectorFilter(".text-warning");
 		if (extraFilter) filter = combineFilters(textFilter, extraFilter);
 		filterTable(LESSEN_TABLE_ID, filter);
 	}
-	if (pageState$1.filterOnline) setFilterInfo("Online lessen");
-	else if (pageState$1.filterOffline) setFilterInfo("Offline lessen");
-	else if (pageState$1.filterNoTeacher) setFilterInfo("Zonder leraar");
-	else if (pageState$1.filterNoMax) setFilterInfo("Zonder maximum");
-	else if (pageState$1.filterFullClass) setFilterInfo("Volle lessen");
-	else if (pageState$1.filterOnlineAlc) setFilterInfo("Online ALC lessen");
-	else if (pageState$1.filterWarnings) setFilterInfo("Opmerkingen");
+	if (pageState$2.filterOnline) setFilterInfo("Online lessen");
+	else if (pageState$2.filterOffline) setFilterInfo("Offline lessen");
+	else if (pageState$2.filterNoTeacher) setFilterInfo("Zonder leraar");
+	else if (pageState$2.filterNoMax) setFilterInfo("Zonder maximum");
+	else if (pageState$2.filterFullClass) setFilterInfo("Volle lessen");
+	else if (pageState$2.filterOnlineAlc) setFilterInfo("Online ALC lessen");
+	else if (pageState$2.filterWarnings) setFilterInfo("Opmerkingen");
 	else setFilterInfo("");
 }
 function setExtraFilter(set) {
-	let pageState$1 = getPageSettings(PageName.Lessen, getDefaultPageSettings());
-	pageState$1.filterOffline = false;
-	pageState$1.filterOnline = false;
-	pageState$1.filterNoTeacher = false;
-	pageState$1.filterNoMax = false;
-	pageState$1.filterFullClass = false;
-	pageState$1.filterOnlineAlc = false;
-	pageState$1.filterWarnings = false;
-	set(pageState$1);
-	savePageSettings(pageState$1);
+	let pageState$2 = getPageSettings(PageName.Lessen, getDefaultPageSettings());
+	pageState$2.filterOffline = false;
+	pageState$2.filterOnline = false;
+	pageState$2.filterNoTeacher = false;
+	pageState$2.filterNoMax = false;
+	pageState$2.filterFullClass = false;
+	pageState$2.filterOnlineAlc = false;
+	pageState$2.filterWarnings = false;
+	set(pageState$2);
+	savePageSettings(pageState$2);
 	applyFilters();
 }
 function addFilterFields() {
 	let divButtonNieuweLes = document.querySelector("#lessen_overzicht > div > button");
 	if (!document.getElementById(TXT_FILTER_ID$1)) {
-		let pageState$1 = getPageSettings(PageName.Lessen, getDefaultPageSettings());
-		let searchField$1 = createSearchField(TXT_FILTER_ID$1, applyFilters, pageState$1.searchText);
+		let pageState$2 = getPageSettings(PageName.Lessen, getDefaultPageSettings());
+		let searchField$1 = createSearchField(TXT_FILTER_ID$1, applyFilters, pageState$2.searchText);
 		divButtonNieuweLes.insertAdjacentElement("afterend", searchField$1);
 		let { first: span, last: idiom } = emmet.insertAfter(searchField$1, "span.btn-group-sm>button.btn.btn-sm.btn-outline-secondary.ml-2>i.fas.fa-list");
 		let menu = setupMenu(span, idiom.parentElement);
 		addMenuItem(menu, "Toon alles", 0, (_) => setExtraFilter((_$1) => {}));
-		addMenuItem(menu, "Filter online lessen", 0, (_) => setExtraFilter((pageState$2) => pageState$2.filterOnline = true));
-		addMenuItem(menu, "Filter offline lessen", 0, (_) => setExtraFilter((pageState$2) => pageState$2.filterOffline = true));
-		addMenuItem(menu, "Lessen zonder leraar", 0, (_) => setExtraFilter((pageState$2) => pageState$2.filterNoTeacher = true));
-		addMenuItem(menu, "Lessen zonder maximum", 0, (_) => setExtraFilter((pageState$2) => pageState$2.filterNoMax = true));
-		addMenuItem(menu, "Volle lessen", 0, (_) => setExtraFilter((pageState$2) => pageState$2.filterFullClass = true));
-		addMenuItem(menu, "Online ALC lessen", 0, (_) => setExtraFilter((pageState$2) => pageState$2.filterOnlineAlc = true));
-		addMenuItem(menu, "Opmerkingen", 0, (_) => setExtraFilter((pageState$2) => pageState$2.filterWarnings = true));
+		addMenuItem(menu, "Filter online lessen", 0, (_) => setExtraFilter((pageState$3) => pageState$3.filterOnline = true));
+		addMenuItem(menu, "Filter offline lessen", 0, (_) => setExtraFilter((pageState$3) => pageState$3.filterOffline = true));
+		addMenuItem(menu, "Lessen zonder leraar", 0, (_) => setExtraFilter((pageState$3) => pageState$3.filterNoTeacher = true));
+		addMenuItem(menu, "Lessen zonder maximum", 0, (_) => setExtraFilter((pageState$3) => pageState$3.filterNoMax = true));
+		addMenuItem(menu, "Volle lessen", 0, (_) => setExtraFilter((pageState$3) => pageState$3.filterFullClass = true));
+		addMenuItem(menu, "Online ALC lessen", 0, (_) => setExtraFilter((pageState$3) => pageState$3.filterOnlineAlc = true));
+		addMenuItem(menu, "Opmerkingen", 0, (_) => setExtraFilter((pageState$3) => pageState$3.filterWarnings = true));
 		emmet.insertAfter(idiom.parentElement, `span#${FILTER_INFO_ID}.filterInfo`);
 	}
 	applyFilters();
@@ -2271,16 +2276,16 @@ function onMutation$6(mutation) {
 		LESSEN_OVERZICHT_ID
 );
 	if (mutation.target !== lessenOverzicht) return false;
-	let pageState$1 = getGotoStateOrDefault(PageName.Lessen);
-	switch (pageState$1.goto) {
+	let pageState$2 = getGotoStateOrDefault(PageName.Lessen);
+	switch (pageState$2.goto) {
 		case Goto.Lessen_trimesters_set_filter:
-			pageState$1.goto = Goto.None;
-			saveGotoState(pageState$1);
+			pageState$2.goto = Goto.None;
+			saveGotoState(pageState$2);
 			onClickShowTrimesters();
 			return true;
 		case Goto.Lessen_trimesters_show:
-			pageState$1.goto = Goto.None;
-			saveGotoState(pageState$1);
+			pageState$2.goto = Goto.None;
+			saveGotoState(pageState$2);
 			return true;
 	}
 	return decorateTable() !== void 0;
@@ -2399,7 +2404,7 @@ function addSortingAnchorOrText() {
 	};
 }
 function setSorteerLine(showTrimTable) {
-	let pageState$1 = getPageSettings(PageName.Lessen, getDefaultPageSettings());
+	let pageState$2 = getPageSettings(PageName.Lessen, getDefaultPageSettings());
 	let oldSorteerSpan = document.querySelector("#lessen_overzicht > span");
 	let newGroupingDiv = document.getElementById("trimGroepeerDiv");
 	if (!newGroupingDiv) newGroupingDiv = emmet.insertAfter(oldSorteerSpan, "div#trimGroepeerDiv.text-muted").first;
@@ -2411,11 +2416,11 @@ function setSorteerLine(showTrimTable) {
 	newGroupingDiv.innerText = "Groepeer: ";
 	oldSorteerSpan.style.display = showTrimTable ? "none" : "";
 	newGroupingDiv.style.display = showTrimTable ? "" : "none";
-	appendGroupingAnchorOrText(newGroupingDiv, TrimesterGrouping.InstrumentTeacherHour, pageState$1.grouping, "");
-	appendGroupingAnchorOrText(newGroupingDiv, TrimesterGrouping.TeacherInstrumentHour, pageState$1.grouping, " | ");
-	appendGroupingAnchorOrText(newGroupingDiv, TrimesterGrouping.TeacherHour, pageState$1.grouping, " | ");
-	appendGroupingAnchorOrText(newGroupingDiv, TrimesterGrouping.Instrument, pageState$1.grouping, " | ");
-	appendGroupingAnchorOrText(newGroupingDiv, TrimesterGrouping.Teacher, pageState$1.grouping, " | ");
+	appendGroupingAnchorOrText(newGroupingDiv, TrimesterGrouping.InstrumentTeacherHour, pageState$2.grouping, "");
+	appendGroupingAnchorOrText(newGroupingDiv, TrimesterGrouping.TeacherInstrumentHour, pageState$2.grouping, " | ");
+	appendGroupingAnchorOrText(newGroupingDiv, TrimesterGrouping.TeacherHour, pageState$2.grouping, " | ");
+	appendGroupingAnchorOrText(newGroupingDiv, TrimesterGrouping.Instrument, pageState$2.grouping, " | ");
+	appendGroupingAnchorOrText(newGroupingDiv, TrimesterGrouping.Teacher, pageState$2.grouping, " | ");
 }
 function appendGroupingAnchorOrText(target, grouping, activeSorting, separator) {
 	let sortingText = "";
@@ -2444,9 +2449,9 @@ function appendGroupingAnchorOrText(target, grouping, activeSorting, separator) 
 	else {
 		let button = emmet.appendChild(target, separator + "button.likeLink{" + sortingText + "}").last;
 		button.onclick = () => {
-			let pageState$1 = getPageSettings(PageName.Lessen, getDefaultPageSettings());
-			pageState$1.grouping = grouping;
-			savePageSettings(pageState$1);
+			let pageState$2 = getPageSettings(PageName.Lessen, getDefaultPageSettings());
+			pageState$2.grouping = grouping;
+			savePageSettings(pageState$2);
 			showTrimesterTable(getTrimPageElements(), true);
 			return false;
 		};
@@ -3875,7 +3880,7 @@ function getColumnIndex(ev) {
 	return Array.prototype.indexOf.call(td.parentElement.children, td);
 }
 function executeTableCommands(tableRef) {
-	let cmds = getPageTransientStateValue(GLOBAL_COMMAND_BUFFER_KEY, []);
+	let cmds = pageState$1.transient.getValue(GLOBAL_COMMAND_BUFFER_KEY, []);
 	console.log("Executing:");
 	console.log(cmds);
 	for (let cmd of cmds) executeCmd(cmd, tableRef, true);
@@ -3897,7 +3902,7 @@ function forTableColumnDo(ev, cmdDef) {
 			index
 		};
 		executeCmd(cmd, tableRef, false);
-		let cmds = getPageTransientStateValue(GLOBAL_COMMAND_BUFFER_KEY, []);
+		let cmds = pageState$1.transient.getValue(GLOBAL_COMMAND_BUFFER_KEY, []);
 		cmds.push(cmd);
 		relabelHeaders(tableRef.getOrgTableContainer().querySelector("thead>tr"));
 	});
@@ -4735,9 +4740,9 @@ async function setCriteriaForTeacherHoursAndClickFetchButton(schooljaar, hourSet
 		}
 	]);
 	await sendGrouping("vak_id");
-	let pageState$1 = getGotoStateOrDefault(PageName.Werklijst);
-	pageState$1.werklijstTableName = UREN_TABLE_STATE_NAME;
-	saveGotoState(pageState$1);
+	let pageState$2 = getGotoStateOrDefault(PageName.Werklijst);
+	pageState$2.werklijstTableName = UREN_TABLE_STATE_NAME;
+	saveGotoState(pageState$2);
 	if (window.location.hash === "#leerlingen-werklijst$werklijst") location.reload();
 	else location.hash = "#leerlingen-werklijst$werklijst";
 }
@@ -4819,21 +4824,21 @@ function onMutation$3(mutation) {
 	return false;
 }
 function onCriteriaShown() {
-	let pageState$1 = getGotoStateOrDefault(PageName.Werklijst);
-	if (pageState$1.goto == Goto.Werklijst_uren_prevYear) {
-		pageState$1.goto = Goto.None;
-		saveGotoState(pageState$1);
+	let pageState$2 = getGotoStateOrDefault(PageName.Werklijst);
+	if (pageState$2.goto == Goto.Werklijst_uren_prevYear) {
+		pageState$2.goto = Goto.None;
+		saveGotoState(pageState$2);
 		setCriteriaForTeacherHoursAndClickFetchButton(Schoolyear.toFullString(Schoolyear.calculateCurrent())).then(() => {});
 		return;
 	}
-	if (pageState$1.goto == Goto.Werklijst_uren_nextYear) {
-		pageState$1.goto = Goto.None;
-		saveGotoState(pageState$1);
+	if (pageState$2.goto == Goto.Werklijst_uren_nextYear) {
+		pageState$2.goto = Goto.None;
+		saveGotoState(pageState$2);
 		setCriteriaForTeacherHoursAndClickFetchButton(Schoolyear.toFullString(Schoolyear.calculateCurrent() + 1)).then(() => {});
 		return;
 	}
-	pageState$1.werklijstTableName = "";
-	saveGotoState(pageState$1);
+	pageState$2.werklijstTableName = "";
+	saveGotoState(pageState$2);
 	let btnWerklijstMaken = document.querySelector("#btn_werklijst_maken");
 	if (document.getElementById(
 		//don't report as log.error.
@@ -5028,9 +5033,9 @@ function showUrenTable(show) {
 			await showUrenSetup(Schoolyear.findInPage());
 		}, "fas-certificate", ["btn", "btn-outline-dark"], "", "beforebegin", "gear.svg");
 	}
-	let pageState$1 = getGotoStateOrDefault(PageName.Werklijst);
-	pageState$1.werklijstTableName = show ? UREN_TABLE_STATE_NAME : "";
-	saveGotoState(pageState$1);
+	let pageState$2 = getGotoStateOrDefault(PageName.Werklijst);
+	pageState$2.werklijstTableName = show ? UREN_TABLE_STATE_NAME : "";
+	saveGotoState(pageState$2);
 }
 function upgradeCloudData(fromCloud) {
 	return new JsonCloudData(fromCloud);
@@ -5451,12 +5456,12 @@ function onSettingsChanged() {
 }
 function onPageChanged() {
 	if (getGlobalSettings().globalHide) return;
-	clearPageTransientState();
+	pageState$1.transient.clear();
 	for (let observer$1 of observers) observer$1.onPageChanged();
 }
 function onPageLoaded() {
 	if (getGlobalSettings().globalHide) return;
-	clearPageTransientState();
+	pageState$1.transient.clear();
 	for (let observer$1 of observers) observer$1.onPageLoaded();
 }
 

@@ -347,16 +347,24 @@ export function savePageSettings(state: PageSettings) {
 
 let globalTransientPageState: Map<string, any> = new Map();
 
-export function getPageTransientStateValue(key: string, defaultValue: any) {
+export let pageState = {
+    transient: {
+        getValue: getPageTransientStateValue,
+        setValue: setPageTransientStateValue,
+        clear: clearPageTransientState,
+    }
+}
+
+function getPageTransientStateValue(key: string, defaultValue: any) {  //todo: any or object? See set() function
     let value =  globalTransientPageState.get(key);
     return value ? value : setPageTransientStateValue(key, defaultValue);
 }
 
-export function setPageTransientStateValue(key:string, transientState: object){
+function setPageTransientStateValue(key:string, transientState: object){
     globalTransientPageState.set(key, transientState);
     return transientState;
 }
-export function clearPageTransientState() {
+function clearPageTransientState() {
     globalTransientPageState.clear();
 }
 
