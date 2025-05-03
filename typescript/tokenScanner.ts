@@ -131,7 +131,7 @@ export class TokenScanner {
         return this;
     }
 
-    getString(callback: (res: string) => void) {
+    captureString(callback: (res: string) => void) {
         let subScanner = this.clone();
         let result = subScanner
             .clipString()
@@ -148,6 +148,11 @@ export class TokenScanner {
                 .not();
         }
         return this;
+    }
+
+    getString() {
+        return this.clipString()
+            .result();
     }
 }
 

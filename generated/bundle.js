@@ -3575,7 +3575,7 @@ var TokenScanner = class TokenScanner {
 		this.valid = this.valid && isString;
 		return this;
 	}
-	getString(callback) {
+	captureString(callback) {
 		let subScanner = this.clone();
 		let result = subScanner.clipString().result();
 		if (result) {
@@ -3583,6 +3583,9 @@ var TokenScanner = class TokenScanner {
 			this.ifMatch("'").then((result$1) => result$1.find("'")).not().ifMatch("\"").then((result$1) => result$1.find("\"")).not();
 		}
 		return this;
+	}
+	getString() {
+		return this.clipString().result();
 	}
 };
 
@@ -3600,16 +3603,14 @@ async function getTableRefFromHash(hash) {
 	await fetchText("https://administratie.dko3.cloud/#" + hash);
 	let index_viewUrl = await getDocReadyLoadUrlFrom("view.php?args=" + hash);
 	let index_view = await fetchText(index_viewUrl);
-	let htmlTableId = "";
-	getDocReadyLoadScript(index_view).find("$", "(").getString((s) => htmlTableId = s.substring(1));
+	let htmlTableId = getDocReadyLoadScript(index_view).find("$", "(").getString().substring(1);
 	let datatableUrl = getDocReadyLoadUrl(index_view);
 	if (!datatableUrl.includes("ui/datatable.php")) datatableUrl = await getDocReadyLoadUrlFrom(datatableUrl);
 	let datatable = await fetchText(datatableUrl);
 	let datatable_id = "";
-	let tableNavUrl = "";
-	TokenScanner.create(datatable).find("var", "datatable_id", "=").getString((res) => {
-		datatable_id = res;
-	}).clipTo("</script>").find(".", "load", "(").getString((res) => tableNavUrl = res);
+	let tableNavUrl = TokenScanner.create(datatable).find("var", "datatable_id", "=").captureString((s) => {
+		datatable_id = s;
+	}).clipTo("</script>").find(".", "load", "(").getString();
 	tableNavUrl += datatable_id + "&pos=top";
 	let tableNavText = await fetchText(tableNavUrl);
 	let div = document.createElement("div");

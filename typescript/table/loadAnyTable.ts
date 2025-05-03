@@ -30,10 +30,10 @@ async function getTableRefFromHash(hash: string) {
     let index_viewUrl = await getDocReadyLoadUrlFrom("view.php?args=" + hash);
 
     let index_view = await fetchText(index_viewUrl);
-    let htmlTableId = "";
-    getDocReadyLoadScript(index_view)
+    let htmlTableId = getDocReadyLoadScript(index_view)
         .find("$", "(")
-        .getString((s) => htmlTableId = s.substring(1));
+        .getString()
+        .substring(1);
     let datatableUrl = getDocReadyLoadUrl(index_view); //NOT SURE THIS IS datatable.php !!!
     if (!datatableUrl.includes("ui/datatable.php")) {
         //fetch again. Don't loop to avoid dead loop.
@@ -41,15 +41,12 @@ async function getTableRefFromHash(hash: string) {
     }
     let datatable = await fetchText(datatableUrl);
     let datatable_id = "";
-    let tableNavUrl = "";
-    TokenScanner.create(datatable)
+    let tableNavUrl = TokenScanner.create(datatable)
         .find("var", "datatable_id", "=")
-        .getString(res => {
-            datatable_id = res;
-        })
+        .captureString(s => { datatable_id = s; })
         .clipTo("</script>")
         .find(".", "load", "(")
-        .getString(res => tableNavUrl = res);
+        .getString();
     tableNavUrl += datatable_id + '&pos=top';
     let tableNavText = await fetchText(tableNavUrl);
 
