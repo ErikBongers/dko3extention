@@ -653,6 +653,13 @@ async function getOptions() {
 	Object.assign(options, items);
 	setGlobalSetting(await fetchGlobalSettings(getGlobalSettings()));
 }
+function arrayIsEqual(a, b) {
+	if (a === b) return true;
+	if (a == null || b == null) return false;
+	if (a.length != b.length) return false;
+	let aSet = new Set(a);
+	return b.every((value, _) => aSet.has(value));
+}
 
 //#endregion
 //#region typescript/gotoState.ts
@@ -4794,9 +4801,15 @@ var CloudData = class {
 
 //#endregion
 //#region typescript/werklijst/observer.ts
-registerChecksumHandler(WERKLIJST_TABLE_ID, (_tableDef) => {
-	return document.querySelector("#view_contents > div.alert.alert-primary")?.textContent.replace("Criteria aanpassen", "")?.replace("Criteria:", "") ?? "";
-});
+registerChecksumHandler(
+	//don't report as log.error.
+	// Can't use this action to build the table as we're also fetching the cloud data.
+	//re-create, just to be sure we have all the fields.
+	WERKLIJST_TABLE_ID,
+	(_tableDef) => {
+		return document.querySelector("#view_contents > div.alert.alert-primary")?.textContent.replace("Criteria aanpassen", "")?.replace("Criteria:", "") ?? "";
+	}
+);
 let observer = new HashObserver("#leerlingen-werklijst", onMutation$3, false, onPageLoaded$1);
 var observer_default$4 = observer;
 function onPageLoaded$1() {
@@ -4837,12 +4850,7 @@ function onCriteriaShown() {
 	pageState$2.werklijstTableName = "";
 	saveGotoState(pageState$2);
 	let btnWerklijstMaken = document.querySelector("#btn_werklijst_maken");
-	if (document.getElementById(
-		//don't report as log.error.
-		// Can't use this action to build the table as we're also fetching the cloud data.
-		//re-create, just to be sure we have all the fields.
-		UREN_PREV_BTN_ID
-)) return;
+	if (document.getElementById(UREN_PREV_BTN_ID)) return;
 	let year = parseInt(Schoolyear.getHighestAvailable());
 	let prevSchoolyear = Schoolyear.toFullString(year - 1);
 	let nextSchoolyear = Schoolyear.toFullString(year);
@@ -4874,16 +4882,13 @@ async function onMessage(request, _sender, _sendResponse) {
 	}
 	if (pauseRefresh) return;
 	pauseRefresh = true;
-	console.log("Received message from service worker: ", request);
 	if (!globals.hourSettingsMapped) {
 		console.log("It seems the page hasn't been fully built yet. Start all over again.");
 		await setCriteriaForTeacherHoursAndClickFetchButton(Schoolyear.findInPage());
 		return;
 	}
 	let hourSettings = request.data;
-	let newSelectedSubjects = new Map(hourSettings.subjects.filter((s) => s.checked).map((s) => [s.name, s]));
-	let oldSelectedSubjects = globals.hourSettingsMapped.subjects.filter((s) => s.checked);
-	let equalSelectedSubjects = newSelectedSubjects.size == oldSelectedSubjects.length && oldSelectedSubjects.every((s, _) => newSelectedSubjects.has(s.name));
+	let equalSelectedSubjects = arrayIsEqual(hourSettings.subjects.filter((s) => s.checked).map((s) => s.name), globals.hourSettingsMapped.subjects.filter((s) => s.checked).map((s) => s.name));
 	if (!equalSelectedSubjects) setCriteriaForTeacherHoursAndClickFetchButton(hourSettings.schoolyear).then((_) => {
 		pauseRefresh = false;
 	});

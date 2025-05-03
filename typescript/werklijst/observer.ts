@@ -1,4 +1,4 @@
-import {addButton, getSchoolIdString, openHoursSettings, Schoolyear, setButtonHighlighted} from "../globals";
+import {addButton, arrayIsEqual, getSchoolIdString, openHoursSettings, Schoolyear, setButtonHighlighted} from "../globals";
 import * as def from "../def";
 import {createTable, getUrenVakLeraarFileName, refillTable} from "./buildUren";
 import {addStudentToVakLeraarsMap, scrapeUren, StudentUrenRow, VakLeraar} from "./scrapeUren";
@@ -97,19 +97,18 @@ async function onMessage(request: ServiceRequest, _sender: MessageSender, _sendR
     if(pauseRefresh)
         return;
     pauseRefresh = true;
-    console.log("Received message from service worker: ", request);
     if(!globals.hourSettingsMapped)  {
         console.log("It seems the page hasn't been fully built yet. Start all over again.");
         await setCriteriaForTeacherHoursAndClickFetchButton(Schoolyear.findInPage());
         return;
     }
     let hourSettings = request.data as TeacherHoursSetup;
-    let newSelectedSubjects  = new Map(hourSettings.subjects.filter(s => s.checked).map(s => [s.name, s]));
-    let oldSelectedSubjects = globals.hourSettingsMapped.subjects.filter(s => s.checked);
-    let equalSelectedSubjects =
-        newSelectedSubjects.size == oldSelectedSubjects.length
-        && oldSelectedSubjects
-            .every((s, _) => newSelectedSubjects.has(s.name));
+
+    let equalSelectedSubjects = arrayIsEqual(
+        hourSettings.subjects.filter(s => s.checked).map(s => s.name),
+        globals.hourSettingsMapped.subjects.filter(s => s.checked).map(s => s.name)
+    );
+
     if(!equalSelectedSubjects) {
         setCriteriaForTeacherHoursAndClickFetchButton(hourSettings.schoolyear).then(_ => {
             pauseRefresh = false;

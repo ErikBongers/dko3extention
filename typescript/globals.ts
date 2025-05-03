@@ -338,3 +338,11 @@ export async function getOptions() {
     Object.assign(options, items);
     setGlobalSetting(await fetchGlobalSettings(getGlobalSettings()));
 }
+
+export function arrayIsEqual(a: string[], b: string[]) {
+    if (a === b) return true;
+    if (a == null || b == null) return false;
+    if (a.length != b.length) return false;
+    let aSet = new Set(a);
+    return b.every((value, _) => aSet.has(value));
+}
