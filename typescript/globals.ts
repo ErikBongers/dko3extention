@@ -347,7 +347,7 @@ export function savePageSettings(state: PageSettings) {
 
 let globalTransientPageState: Map<string, any> = new Map();
 
-export let pageState = {
+export let pageState = { //todo: put in separate file?
     transient: {
         getValue: getPageTransientStateValue,
         setValue: setPageTransientStateValue,

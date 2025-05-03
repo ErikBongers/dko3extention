@@ -59,6 +59,7 @@ const NO_MENU = "noMenu";
 const LESSEN_TABLE_ID = "table_lessen_resultaat_tabel";
 const FILTER_INFO_ID = "filterInfo";
 const GLOBAL_COMMAND_BUFFER_KEY = "globalCmdBuffer";
+const AFTER_DOWNLOAD_TABLE_ACTION = "afterDownloadTableAction";
 
 //#endregion
 //#region libs/Emmeter/tokenizer.ts
@@ -3351,14 +3352,13 @@ function registerChecksumHandler(tableId$1, checksumHandler) {
 function createDownloadTableWithExtraAction() {
 	return (_) => {
 		downloadTableRows().then((fetchedTable) => {
-			globalAfterDownloadTableAction?.(fetchedTable);
+			pageState$1.transient.getValue(AFTER_DOWNLOAD_TABLE_ACTION, void 0)?.(fetchedTable);
 		});
 	};
 }
 function setAfterDownloadTableAction(action) {
-	globalAfterDownloadTableAction = action;
+	pageState$1.transient.setValue(AFTER_DOWNLOAD_TABLE_ACTION, action);
 }
-let globalAfterDownloadTableAction = () => {};
 
 //#endregion
 //#region typescript/infoBar.ts

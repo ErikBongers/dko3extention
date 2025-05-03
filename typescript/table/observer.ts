@@ -1,4 +1,4 @@
-import {addTableNavigationButton, getBothToolbars} from "../globals";
+import {addTableNavigationButton, getBothToolbars, pageState} from "../globals";
 import * as def from "../def";
 import {AllPageFilter, BaseObserver} from "../pageObserver";
 import {CheckSumBuilder, FetchedTable, findTableRefInCode, TableFetcher} from "./tableFetcher";
@@ -41,13 +41,11 @@ export function registerChecksumHandler(tableId: string, checksumHandler: CheckS
 export function createDownloadTableWithExtraAction() {
     return (_: Event) => {
         downloadTableRows().then(fetchedTable => {
-            globalAfterDownloadTableAction?.(fetchedTable);
+            pageState.transient.getValue(def.AFTER_DOWNLOAD_TABLE_ACTION, undefined)?.(fetchedTable);
         });
     };
 }
 
 export function  setAfterDownloadTableAction(action:  (fetchedTable: FetchedTable) => void) {
-    globalAfterDownloadTableAction = action;
+    pageState.transient.setValue(def.AFTER_DOWNLOAD_TABLE_ACTION, action);
 }
-
-let globalAfterDownloadTableAction: (fetchedTable: FetchedTable) => void = () => {};
