@@ -229,33 +229,33 @@ function rebuildHoursTable(table: HTMLTableElement, studentRowData: StudentUrenR
 }
 
 function onShowLerarenUren() {
-    //Build lazily and only once. Table will automatically be erased when filters are changed.
-    if (!document.getElementById(def.HOURS_TABLE_ID)) {
-        let result = createDefaultTableFetcher();
-        if("error" in result) {
-            console.log(result.error); //don't report as log.error.
-            return false;
-        }
-
-        globals.activeFetcher = result.result.tableFetcher;
-        globals.activeFetcher.addListener(createUrenFetchListener());
-
-        setAfterDownloadTableAction(undefined); // Can't use this action to build the table as we're also fetching the cloud data.
-        Promise.all([
-            globals.activeFetcher.fetch(),
-            getUrenFromCloud(getUrenVakLeraarFileName())
-        ])
-            .then(async results => {
-                let [fetchedTable, jsonCloudData] = results;
-                globals.activeFetcher = undefined;
-                globals.hourSettingsMapped = mapHourSettings(await fetchHoursSettingsOrSaveDefault(Schoolyear.findInPage()));
-                globals.fromCloud = new CloudData(upgradeCloudData(jsonCloudData));
-                rebuildHoursTableAfterDownloadFullTable(fetchedTable.getRows(), fetchedTable.tableFetcher.tableRef);
-            });
-
+    if (document.getElementById(def.HOURS_TABLE_ID)) {
+        showUrenTable(true);
         return true;
     }
-    showUrenTable(true);
+
+    let result = createDefaultTableFetcher();
+    if ("error" in result) {
+        console.log(result.error); //don't report as log.error.
+        return false;
+    }
+
+    globals.activeFetcher = result.result.tableFetcher;
+    globals.activeFetcher.addListener(createUrenFetchListener());
+
+    setAfterDownloadTableAction(undefined); // Can't use this action to build the table as we're also fetching the cloud data.
+    Promise.all([
+        globals.activeFetcher.fetch(),
+        getUrenFromCloud(getUrenVakLeraarFileName())
+    ])
+        .then(async results => {
+            let [fetchedTable, jsonCloudData] = results;
+            globals.activeFetcher = undefined;
+            globals.hourSettingsMapped = mapHourSettings(await fetchHoursSettingsOrSaveDefault(Schoolyear.findInPage()));
+            globals.fromCloud = new CloudData(upgradeCloudData(jsonCloudData));
+            rebuildHoursTableAfterDownloadFullTable(fetchedTable.getRows(), fetchedTable.tableFetcher.tableRef);
+        });
+
     return true;
 }
 
