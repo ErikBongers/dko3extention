@@ -80,7 +80,7 @@ function screpeDropDownMenu(headerMenu: Element) {
                 href: item.href
             };
         })
-        .filter((item) => item.label != "" && item.href != "" && item.href != "https://administratie.dko3.cloud/#")
+        .filter((item) => item.label != "" && item.href != "" && item.href != def.DKO3_BASE_URL+"#")
         .forEach(item => addQueryItem(headerLabel, item.label, item.href, undefined));
 }
 

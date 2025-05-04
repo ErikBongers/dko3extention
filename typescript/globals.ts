@@ -2,6 +2,7 @@ import {Observer} from "./pageObserver";
 import {emmet} from "../libs/Emmeter/html";
 import {fetchGlobalSettings, getGlobalSettings, GlobalSettings, options, setGlobalSetting} from "./plugin_options/options";
 import {Actions, sendRequest, TabType} from "./messaging";
+import * as def from "./def"
 
 import {TeacherHoursSetup} from "./werklijst/hoursSettings";
 
@@ -250,7 +251,7 @@ export async function fetchStudentsSearch(search: string) {
 
 export async function setViewFromCurrentUrl() {
     let hash = window.location.hash.replace("#", "");
-    await fetch("https://administratie.dko3.cloud/#" + hash).then(res => res.text());
+    await fetch(def.DKO3_BASE_URL+"#" + hash).then(res => res.text());
     // call to changeView() - assuming this is always the same, so no parsing here.
     await fetch("view.php?args=" + hash).then(res => res.text());
 }

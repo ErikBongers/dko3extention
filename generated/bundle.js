@@ -352,6 +352,7 @@ const FILTER_INFO_ID = "filterInfo";
 const GLOBAL_COMMAND_BUFFER_KEY = "globalCmdBuffer";
 const AFTER_DOWNLOAD_TABLE_ACTION = "afterDownloadTableAction";
 const WERKLIJST_TABLE_ID = "table_leerlingen_werklijst_table";
+const DKO3_BASE_URL = "https://administratie.dko3.cloud/";
 
 //#endregion
 //#region typescript/cloud.ts
@@ -603,7 +604,7 @@ async function fetchStudentsSearch(search) {
 }
 async function setViewFromCurrentUrl() {
 	let hash = window.location.hash.replace("#", "");
-	await fetch("https://administratie.dko3.cloud/#" + hash).then((res) => res.text());
+	await fetch(DKO3_BASE_URL + "#" + hash).then((res) => res.text());
 	await fetch("view.php?args=" + hash).then((res) => res.text());
 }
 function equals(g1, g2) {
@@ -747,7 +748,7 @@ function screpeDropDownMenu(headerMenu) {
 			label: item.textContent.trim(),
 			href: item.href
 		};
-	}).filter((item) => item.label != "" && item.href != "" && item.href != "https://administratie.dko3.cloud/#").forEach((item) => addQueryItem(headerLabel, item.label, item.href, void 0));
+	}).filter((item) => item.label != "" && item.href != "" && item.href != DKO3_BASE_URL + "#").forEach((item) => addQueryItem(headerLabel, item.label, item.href, void 0));
 }
 function scrapeMainMenu() {
 	powerQueryItems = [];
@@ -2326,9 +2327,9 @@ async function setTrimesterFilterAndFetch() {
 		soorten_lessen: "3",
 		volzet: "-1"
 	});
-	let url = "https://administratie.dko3.cloud/views/lessen/overzicht/index.filters.php";
+	let url = DKO3_BASE_URL + "views/lessen/overzicht/index.filters.php";
 	await fetch(url + "?" + params);
-	url = "https://administratie.dko3.cloud/views/lessen/overzicht/index.lessen.php";
+	url = DKO3_BASE_URL + "views/lessen/overzicht/index.lessen.php";
 	let res = await fetch(url + "?" + params);
 	return res.text();
 }
@@ -3590,11 +3591,7 @@ var TokenScanner = class TokenScanner {
 };
 
 //#endregion
-//#region typescript/table/loadAnyTable.ts
-async function fetchText(url) {
-	let res = await fetch(url);
-	return res.text();
-}
+//#region typescript/table/fetchChain.ts
 var FetchChain = class {
 	lastText = "";
 	get() {
@@ -3607,11 +3604,11 @@ var FetchChain = class {
 		this.lastText = await fetchText(url ?? this.lastText);
 		return this.lastText;
 	}
-	getDocReadyLoadUrl() {
+	findDocReadyLoadUrl() {
 		this.lastText = getDocReadyLoadUrl(this.lastText);
 		return this.lastText;
 	}
-	getDocReadyLoadScript() {
+	findDocReadyLoadScript() {
 		this.lastText = getDocReadyLoadScript(this.lastText).result();
 		return this.lastText;
 	}
@@ -3635,44 +3632,6 @@ var FetchChain = class {
 		return this.lastText.includes(text);
 	}
 };
-async function getTableRefFromHash(hash) {
-	let chain = new FetchChain();
-	await chain.fetch("https://administratie.dko3.cloud/#" + hash);
-	await chain.fetch("view.php?args=" + hash);
-	chain.getDocReadyLoadUrl();
-	let index_view = await chain.fetch();
-	chain.getDocReadyLoadScript();
-	chain.find("$", "(");
-	let htmlTableId = chain.getQuotedString().substring(1);
-	chain.set(index_view);
-	chain.getDocReadyLoadUrl();
-	if (!chain.includes("ui/datatable.php")) {
-		await chain.fetch();
-		chain.getDocReadyLoadUrl();
-	}
-	await chain.fetch();
-	chain.find("var", "datatable_id", "=");
-	let datatable_id = chain.getQuotedString();
-	chain.clipTo("</script>");
-	chain.find(".", "load", "(");
-	let tableNavUrl = chain.getQuotedString() + "&pos=top";
-	await chain.fetch(tableNavUrl);
-	let div = chain.div();
-	let tableNav = findFirstNavigation(div);
-	console.log(tableNav);
-	let buildFetchUrl = (offset) => `/views/ui/datatable.php?id=${datatable_id}&start=${offset}&aantal=0`;
-	return new TableRef(htmlTableId, tableNav, buildFetchUrl);
-}
-async function getTableFromHash(hash, clearCache, infoBarListener) {
-	let tableRef = await getTableRefFromHash(hash);
-	console.log(tableRef);
-	let tableFetcher = new TableFetcher(tableRef, getChecksumBuilder(tableRef.htmlTableId));
-	tableFetcher.addListener(infoBarListener);
-	if (clearCache) tableFetcher.clearCache();
-	let fetchedTable = await tableFetcher.fetch();
-	await setViewFromCurrentUrl();
-	return fetchedTable;
-}
 function findDocReady(scanner) {
 	return scanner.find("$", "(", "document", ")", ".", "ready", "(");
 }
@@ -3696,6 +3655,50 @@ function getDocReadyLoadScript(text) {
 		if (load.valid) return script;
 		scanner = docReady;
 	}
+}
+async function fetchText(url) {
+	let res = await fetch(url);
+	return res.text();
+}
+
+//#endregion
+//#region typescript/table/loadAnyTable.ts
+async function getTableRefFromHash(hash) {
+	let chain = new FetchChain();
+	await chain.fetch(DKO3_BASE_URL + "#" + hash);
+	await chain.fetch("view.php?args=" + hash);
+	chain.findDocReadyLoadUrl();
+	let index_view = await chain.fetch();
+	chain.findDocReadyLoadScript();
+	chain.find("$", "(");
+	let htmlTableId = chain.getQuotedString().substring(1);
+	chain.set(index_view);
+	chain.findDocReadyLoadUrl();
+	if (!chain.includes("ui/datatable.php")) {
+		await chain.fetch();
+		chain.findDocReadyLoadUrl();
+	}
+	await chain.fetch();
+	chain.find("var", "datatable_id", "=");
+	let datatable_id = chain.getQuotedString();
+	chain.clipTo("</script>");
+	chain.find(".", "load", "(");
+	let tableNavUrl = chain.getQuotedString() + "&pos=top";
+	await chain.fetch(tableNavUrl);
+	let tableNav = findFirstNavigation(chain.div());
+	console.log(tableNav);
+	let buildFetchUrl = (offset) => `/views/ui/datatable.php?id=${datatable_id}&start=${offset}&aantal=0`;
+	return new TableRef(htmlTableId, tableNav, buildFetchUrl);
+}
+async function getTableFromHash(hash, clearCache, infoBarListener) {
+	let tableRef = await getTableRefFromHash(hash);
+	console.log(tableRef);
+	let tableFetcher = new TableFetcher(tableRef, getChecksumBuilder(tableRef.htmlTableId));
+	tableFetcher.addListener(infoBarListener);
+	if (clearCache) tableFetcher.clearCache();
+	let fetchedTable = await tableFetcher.fetch();
+	await setViewFromCurrentUrl();
+	return fetchedTable;
 }
 async function downloadTableRows() {
 	let result = createDefaultTableFetcher();
@@ -4240,13 +4243,13 @@ async function fetchAvailableSubjects(schoolyear) {
 	});
 }
 async function fetchCritera(schoolYear) {
-	return (await fetch("https://administratie.dko3.cloud/views/leerlingen/werklijst/index.criteria.php?schooljaar=" + schoolYear, { method: "GET" })).text();
+	return (await fetch(DKO3_BASE_URL + "views/leerlingen/werklijst/index.criteria.php?schooljaar=" + schoolYear, { method: "GET" })).text();
 }
 async function sendAddCriterium(schoolYear, criterium) {
 	const formData = new FormData();
 	formData.append(`criterium`, criterium);
 	formData.append(`schooljaar`, schoolYear);
-	await fetch("https://administratie.dko3.cloud/views/leerlingen/werklijst/index.criteria.session_add.php", {
+	await fetch(DKO3_BASE_URL + "views/leerlingen/werklijst/index.criteria.session_add.php", {
 		method: "POST",
 		body: formData
 	});

@@ -1,17 +1,3 @@
--  "refreshh" calls  downloadTableRows()
--  "download" calls
-
-* test hours >  downloadButton: should refresh the hours table.
-  > refreshbutton should do the same.
-  > make download and refresh buttons point to the same function.
-
-* teacher hours: does NOT recreate the table on a "refresh"
-  > it only reloads the underlying table, but does not the hours table.
-
-* setup leraren uren: messaging between settings and table.
-  > refresh table on every update. (optional!)
-  > add a settings button to the table view (in addition to criteria view) (optional!)
-
 * create a dko3.api, that contains all the dko3 fetches?
   > would allow for a faster update when dko3 updates?
 

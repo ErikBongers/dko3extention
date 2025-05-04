@@ -11,7 +11,7 @@ import {FetchChain} from "./fetchChain";
 async function getTableRefFromHash(hash: string) {
     let chain = new FetchChain();
 
-    await chain.fetch("https://administratie.dko3.cloud/#" + hash);
+    await chain.fetch(def.DKO3_BASE_URL+"#" + hash);
     await chain.fetch("view.php?args=" + hash); // call to changeView() - assuming this is always the same, so no parsing here.
     chain.findDocReadyLoadUrl();
     let index_view = await chain.fetch();

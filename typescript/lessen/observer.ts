@@ -69,9 +69,9 @@ async function setTrimesterFilterAndFetch() {
         volzet:"-1",
         // laad_tabel:"1"
     });
-    let url = "https://administratie.dko3.cloud/views/lessen/overzicht/index.filters.php";
+    let url = def.DKO3_BASE_URL+"views/lessen/overzicht/index.filters.php";
     await fetch(url+"?" + params);
-    url = "https://administratie.dko3.cloud/views/lessen/overzicht/index.lessen.php";
+    url = def.DKO3_BASE_URL+"views/lessen/overzicht/index.lessen.php";
     let res = await fetch(url+"?" + params);
     return res.text();
 }

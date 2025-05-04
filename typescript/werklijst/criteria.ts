@@ -1,3 +1,5 @@
+import * as def from "../def"
+
 export async function fetchAvailableSubjects(schoolyear: string) {
     await sendAddCriterium(schoolyear, "Vak");
     let text = await fetchCritera(schoolyear);
@@ -8,7 +10,7 @@ export async function fetchAvailableSubjects(schoolyear: string) {
 }
 
 export async function fetchCritera(schoolYear: string) {
-    return (await fetch("https://administratie.dko3.cloud/views/leerlingen/werklijst/index.criteria.php?schooljaar=" + schoolYear, {
+    return (await fetch(def.DKO3_BASE_URL+"views/leerlingen/werklijst/index.criteria.php?schooljaar=" + schoolYear, {
         method: "GET"
     })).text();
 }
@@ -17,7 +19,7 @@ async function sendAddCriterium(schoolYear: string, criterium: string) {
     const formData = new FormData();
     formData.append(`criterium`, criterium);
     formData.append(`schooljaar`, schoolYear);
-    await fetch("https://administratie.dko3.cloud/views/leerlingen/werklijst/index.criteria.session_add.php", {
+    await fetch(def.DKO3_BASE_URL+"views/leerlingen/werklijst/index.criteria.session_add.php", {
         method: "POST",
         body: formData,
     });
