@@ -352,7 +352,7 @@ const FILTER_INFO_ID = "filterInfo";
 const GLOBAL_COMMAND_BUFFER_KEY = "globalCmdBuffer";
 const AFTER_DOWNLOAD_TABLE_ACTION = "afterDownloadTableAction";
 const WERKLIJST_TABLE_ID = "table_leerlingen_werklijst_table";
-const DKO3_BASE_URL = "https://administratie.dko3.cloud/";
+const DKO3_BASE_URL = "/";
 
 //#endregion
 //#region typescript/cloud.ts
