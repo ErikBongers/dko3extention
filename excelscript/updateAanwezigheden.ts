@@ -1,3 +1,5 @@
+/// <reference path="./excelScript.d.ts" />
+//https://github.com/sumurthy/officescripts-projects/blob/main/misc/index.d.ts
 function main(workbook: ExcelScript.Workbook) {
     setHighlight(workbook, "Updating...");
     if(workbook.getWorksheets().length < 2) {

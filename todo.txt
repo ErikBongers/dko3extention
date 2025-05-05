@@ -1,6 +1,3 @@
-* create a dko3.api, that contains all the dko3 fetches?
-  > would allow for a faster update when dko3 updates?
-
 * replace all refs to skynet with outlook.
 
 * emmet: specific error when comma used in attribute list: should be space
@@ -21,9 +18,8 @@
   > ALC: should be assigned to Kristel -> custom combine!
   > Woord with alias: offline
   > overrule filters with tags: list possible tags in tag screen.
-
-  > text filter starting with  a !
-    > document.
+  > text filter starting with  a "!"  for "not"
+    > document filter syntax to users.
 
 * Trims: summing hours per block
   > for Lievenka: fine: just add the hours of all the blooks
