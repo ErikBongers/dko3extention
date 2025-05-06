@@ -10,26 +10,24 @@ function scrapeUurrooster(workbook: ExcelScript.Workbook, fullRange: ExcelScript
     if(!daysRow)  {
         setError(workbook, "Geen rij met dagnamen gevonden.");
         return;
-    } else {
-        console.log("Found days row:", daysRow.getAddress());
     }
     let periodColumn: ExcelScript.Range = findPeriodColumn(fullRange);
     if(!periodColumn)  {
         setError(workbook, "Geen kolom met lesmomenten gevonden.");
         return;
-    } else {
-        console.log("Found period column:", periodColumn.getAddress());
     }
 
-    let data = fullRange.getValues();
-    console.log(data);
+    let data: Value[][] = fullRange.getValues();
+    // let mergedRanges = collectMergedRanges(fullRange);
+    let mergedRanges = getMergedCellsCached();
+    console.log(getCellValue(data, { row: 0, column: 1 }));
+    console.log(getCellValue(data, { row: 0, column: 2 }));
+}
 
-    let dayBlocks =  collectDayRanges(workbook, fullRange, daysRow, "maandag");
-    console.log("Dayblocks: ");
-    for(let dayBlock of dayBlocks) {
-        let range = workbook.getActiveWorksheet().getRange(dayBlock.rangeAddress);
-        showRangeData(range);
-    }
+type Value = string | number | boolean;
+
+function getCellValue(data: Value[][], point: IdxPoint): string {
+    return data[point.row][point.column].toString();
 }
 
 function findDaysRow(fullRange: ExcelScript.Range) {
@@ -55,39 +53,15 @@ function isDaysRow(row: ExcelScript.Range) {
     return false;
 }
 
-type DayBlock = {
-    day: string,
-    rangeAddress: string
+function collectMergedRanges(fullRange: ExcelScript.Range) {
+    let mergedRanges: IdxRange [] = [];
+    for (let mergedRange of fullRange.getMergedAreas().getAreas()) {
+        mergedRanges.push(rangeToIndexes(mergedRange));
+    }
+    return mergedRanges;
 }
 
 function collectDayRanges(workbook: ExcelScript.Workbook, fullRange: ExcelScript.Range, daysRow: ExcelScript.Range, day: string) {
-    console.log(daysRow.getValues());
-    let daysRanges: DayBlock [] = [];
-    for (let mergedRange of daysRow.getMergedAreas().getAreas()) {
-        if(isDayName(mergedRange.getValue().toString())) {
-            //todo: rowcount is only correct id the dayRow is the FIRST row in fullRange!
-            let dayBlockRange = mergedRange.getResizedRange(fullRange.getRowCount(), 1).getResizedRange(0, -1);
-            daysRanges.push({day: mergedRange.getValue().toString(), rangeAddress: dayBlockRange.getAddress()});
-        }
-    }
-
-    for(let i = 0; i <= daysRow.getColumnCount(); i++) {
-        let cell = daysRow.getCell(0, i);
-        if(!isDayName(cell.getValue().toString()))
-            continue;
-        if (!isInMergedArea(cell)) {
-            let dayBlockRange = cell.getResizedRange(fullRange.getRowCount(), 1).getResizedRange(0, -1);
-            daysRanges.push({day: cell.getValue().toString(), rangeAddress: dayBlockRange.getAddress()});
-        }
-    }
-    return daysRanges;
-
-    function isInMergedArea(range: ExcelScript.Range) {
-        return daysRanges.some(d => {
-            let blockRange = workbook.getActiveWorksheet().getRange(d.rangeAddress);
-            return blockRange.getBoundingRect(range).getAddress() === blockRange.getAddress();
-        });
-    }
 }
 
 function findPeriodColumn(fullRange: ExcelScript.Range) {
@@ -144,11 +118,21 @@ function isDayName(text: string) {
         }
     }
 
-function showRangeData(range: ExcelScript.Range) {
-    console.log(range.getAddress() + ", " + range.getCellCount() + ", " + range.getValue() + ", [(" + range.getColumnIndex() + ", " + range.getRowIndex() + ")-(" + range.getLastCell().getRowIndex() + ", " + range.getLastCell().getColumnIndex() + ")]");
+type IdxRange = {
+    start: IdxPoint,
+    end: IdxPoint
+}
+type IdxPoint = {
+    row: number,
+    column: number
 }
 
-function rangeToIndexes(range: ExcelScript.Range) {
-    return { range.getColumnIndex() + ", " + range.getRowIndex() + ")-(" + range.getLastCell().getRowIndex() + ", " + range.getLastCell().getColumnIndex() + ")]");
+function rangeToIndexes(range: ExcelScript.Range): IdxRange {
+    let start: IdxPoint = { row: range.getRowIndex(), column: range.getColumnIndex() };
+    let end: IdxPoint = { row: start.row + range.getRowCount()-1, column: start.column + range.getColumnCount()-1};
+    return { start, end };
+}
 
+function getMergedCellsCached() {
+    return [{"start":{"row":21,"column":6},"end":{"row":24,"column":6}},{"start":{"row":16,"column":3},"end":{"row":19,"column":3}},{"start":{"row":17,"column":5},"end":{"row":18,"column":5}},{"start":{"row":21,"column":16},"end":{"row":24,"column":16}},{"start":{"row":17,"column":6},"end":{"row":20,"column":6}},{"start":{"row":23,"column":9},"end":{"row":26,"column":9}},{"start":{"row":21,"column":9},"end":{"row":22,"column":9}},{"start":{"row":19,"column":9},"end":{"row":20,"column":9}},{"start":{"row":21,"column":15},"end":{"row":26,"column":15}},{"start":{"row":21,"column":14},"end":{"row":26,"column":14}},{"start":{"row":17,"column":4},"end":{"row":18,"column":4}},{"start":{"row":21,"column":12},"end":{"row":24,"column":12}},{"start":{"row":14,"column":9},"end":{"row":15,"column":9}},{"start":{"row":15,"column":27},"end":{"row":16,"column":27}},{"start":{"row":15,"column":12},"end":{"row":16,"column":12}},{"start":{"row":17,"column":12},"end":{"row":18,"column":12}},{"start":{"row":15,"column":25},"end":{"row":16,"column":25}},{"start":{"row":15,"column":26},"end":{"row":16,"column":26}},{"start":{"row":17,"column":26},"end":{"row":18,"column":26}},{"start":{"row":16,"column":9},"end":{"row":17,"column":9}},{"start":{"row":17,"column":10},"end":{"row":18,"column":10}},{"start":{"row":15,"column":13},"end":{"row":16,"column":13}},{"start":{"row":15,"column":17},"end":{"row":16,"column":17}},{"start":{"row":17,"column":11},"end":{"row":18,"column":11}},{"start":{"row":16,"column":20},"end":{"row":19,"column":20}},{"start":{"row":21,"column":19},"end":{"row":26,"column":19}},{"start":{"row":15,"column":31},"end":{"row":16,"column":31}},{"start":{"row":15,"column":29},"end":{"row":16,"column":29}},{"start":{"row":16,"column":28},"end":{"row":17,"column":28}},{"start":{"row":15,"column":30},"end":{"row":16,"column":30}},{"start":{"row":17,"column":30},"end":{"row":18,"column":30}},{"start":{"row":16,"column":24},"end":{"row":19,"column":24}},{"start":{"row":21,"column":20},"end":{"row":23,"column":20}},{"start":{"row":20,"column":30},"end":{"row":23,"column":30}},{"start":{"row":20,"column":29},"end":{"row":23,"column":29}},{"start":{"row":17,"column":29},"end":{"row":18,"column":29}},{"start":{"row":21,"column":21},"end":{"row":24,"column":21}},{"start":{"row":24,"column":20},"end":{"row":26,"column":20}},{"start":{"row":20,"column":28},"end":{"row":23,"column":28}},{"start":{"row":21,"column":24},"end":{"row":24,"column":24}},{"start":{"row":0,"column":29},"end":{"row":0,"column":31}},{"start":{"row":10,"column":17},"end":{"row":12,"column":17}},{"start":{"row":4,"column":25},"end":{"row":13,"column":25}},{"start":{"row":0,"column":25},"end":{"row":0,"column":28}},{"start":{"row":0,"column":17},"end":{"row":0,"column":24}},{"start":{"row":10,"column":31},"end":{"row":13,"column":31}},{"start":{"row":2,"column":18},"end":{"row":4,"column":18}},{"start":{"row":10,"column":20},"end":{"row":11,"column":20}},{"start":{"row":2,"column":23},"end":{"row":5,"column":23}},{"start":{"row":2,"column":22},"end":{"row":5,"column":22}},{"start":{"row":0,"column":1},"end":{"row":0,"column":7}},{"start":{"row":23,"column":1},"end":{"row":26,"column":1}},{"start":{"row":19,"column":1},"end":{"row":22,"column":1}},{"start":{"row":20,"column":8},"end":{"row":23,"column":8}},{"start":{"row":15,"column":8},"end":{"row":16,"column":8}},{"start":{"row":21,"column":2},"end":{"row":26,"column":2}},{"start":{"row":21,"column":5},"end":{"row":24,"column":5}},{"start":{"row":17,"column":8},"end":{"row":18,"column":8}},{"start":{"row":21,"column":3},"end":{"row":26,"column":3}},{"start":{"row":15,"column":4},"end":{"row":16,"column":4}},{"start":{"row":15,"column":7},"end":{"row":16,"column":7}},{"start":{"row":0,"column":8},"end":{"row":0,"column":16}},{"start":{"row":17,"column":7},"end":{"row":18,"column":7}},{"start":{"row":10,"column":7},"end":{"row":13,"column":7}},{"start":{"row":21,"column":4},"end":{"row":24,"column":4}},{"start":{"row":19,"column":10},"end":{"row":22,"column":10}},{"start":{"row":10,"column":8},"end":{"row":13,"column":8}},{"start":{"row":7,"column":32},"end":{"row":10,"column":32}},{"start":{"row":3,"column":32},"end":{"row":4,"column":32}},{"start":{"row":5,"column":32},"end":{"row":6,"column":32}},{"start":{"row":18,"column":27},"end":{"row":21,"column":27}},{"start":{"row":14,"column":28},"end":{"row":15,"column":28}},{"start":{"row":17,"column":31},"end":{"row":18,"column":31}},{"start":{"row":15,"column":11},"end":{"row":16,"column":11}},{"start":{"row":15,"column":10},"end":{"row":16,"column":10}},{"start":{"row":4,"column":13},"end":{"row":13,"column":13}},{"start":{"row":9,"column":22},"end":{"row":10,"column":22}},{"start":{"row":11,"column":22},"end":{"row":12,"column":22}},{"start":{"row":13,"column":22},"end":{"row":14,"column":22}},{"start":{"row":12,"column":20},"end":{"row":15,"column":20}},{"start":{"row":20,"column":26},"end":{"row":23,"column":26}},{"start":{"row":22,"column":27},"end":{"row":25,"column":27}}];
 }
