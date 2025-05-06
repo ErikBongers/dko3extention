@@ -1,7 +1,6 @@
 /// <reference path="./excelScript.d.ts" />
 //https://github.com/sumurthy/officescripts-projects/blob/main/misc/index.d.ts
 function main(workbook: ExcelScript.Workbook) {
-    showRangeData(workbook.getSelectedRange());
     let fullRange = workbook.getActiveWorksheet().getUsedRange();
     scrapeUurrooster(workbook, fullRange);
 }
@@ -21,6 +20,9 @@ function scrapeUurrooster(workbook: ExcelScript.Workbook, fullRange: ExcelScript
     } else {
         console.log("Found period column:", periodColumn.getAddress());
     }
+
+    let data = fullRange.getValues();
+    console.log(data);
 
     let dayBlocks =  collectDayRanges(workbook, fullRange, daysRow, "maandag");
     console.log("Dayblocks: ");
@@ -143,6 +145,6 @@ function isDayName(text: string) {
     }
 
 function showRangeData(range: ExcelScript.Range) {
-    console.log(range.getAddress() + ", " + range.getCellCount() + ", " + range.getValue());
+    console.log(range.getAddress() + ", " + range.getCellCount() + ", " + range.getValue() + ", [(" + range.getColumnIndex() + ", " + range.getRowIndex() + ")-(" + range.getLastCell().getRowIndex() + ", " + range.getLastCell().getColumnIndex() + "]");
 }
 
