@@ -23,8 +23,9 @@ function scrapeUurrooster(workbook: ExcelScript.Workbook, fullRange: ExcelScript
     }
 
     let dayBlocks =  collectDayRanges(workbook, fullRange, daysRow, "maandag");
+    console.log("Dayblocks: ");
     for(let dayBlock of dayBlocks) {
-        let range = dayBlock.range;
+        let range = workbook.getActiveWorksheet().getRange(dayBlock.rangeAddress);
         showRangeData(range);
     }
 }
@@ -54,31 +55,36 @@ function isDaysRow(row: ExcelScript.Range) {
 
 type DayBlock = {
     day: string,
-    range: ExcelScript.Range
+    rangeAddress: string
 }
 
 function collectDayRanges(workbook: ExcelScript.Workbook, fullRange: ExcelScript.Range, daysRow: ExcelScript.Range, day: string) {
+    console.log(daysRow.getValues());
     let daysRanges: DayBlock [] = [];
     for (let mergedRange of daysRow.getMergedAreas().getAreas()) {
         if(isDayName(mergedRange.getValue().toString())) {
             //todo: rowcount is only correct id the dayRow is the FIRST row in fullRange!
             let dayBlockRange = mergedRange.getResizedRange(fullRange.getRowCount(), 1).getResizedRange(0, -1);
-            showRangeData(mergedRange);
-            showRangeData(dayBlockRange);
-            daysRanges.push({day: mergedRange.getValue().toString(), range: dayBlockRange});
+            daysRanges.push({day: mergedRange.getValue().toString(), rangeAddress: dayBlockRange.getAddress()});
         }
     }
 
     for(let i = 0; i <= daysRow.getColumnCount(); i++) {
-        if(isInMergedArea(daysRow.getCell(0, i)))
-            console.log("In mergedArea");
-        else
-            console.log("Not in mergedArea");
+        let cell = daysRow.getCell(0, i);
+        if(!isDayName(cell.getValue().toString()))
+            continue;
+        if (!isInMergedArea(cell)) {
+            let dayBlockRange = cell.getResizedRange(fullRange.getRowCount(), 1).getResizedRange(0, -1);
+            daysRanges.push({day: cell.getValue().toString(), rangeAddress: dayBlockRange.getAddress()});
+        }
     }
     return daysRanges;
 
     function isInMergedArea(range: ExcelScript.Range) {
-        return daysRanges.some(d => d.range.getBoundingRect(range).getAddress() === d.range.getAddress());
+        return daysRanges.some(d => {
+            let blockRange = workbook.getActiveWorksheet().getRange(d.rangeAddress);
+            return blockRange.getBoundingRect(range).getAddress() === blockRange.getAddress();
+        });
     }
 }
 
