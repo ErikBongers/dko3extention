@@ -6,18 +6,22 @@ function main(workbook: ExcelScript.Workbook) {
 }
 
 function scrapeUurrooster(workbook: ExcelScript.Workbook, fullRange: ExcelScript.Range) {
-    let daysRow: ExcelScript.Range = findDaysRow(fullRange);
-    if(!daysRow)  {
+    let data: Data = fullRange.getValues();
+    let daysRow = findDaysRow(data);
+    if(daysRow === undefined)  {
         setError(workbook, "Geen rij met dagnamen gevonden.");
         return;
+    } else {
+        console.log("daysRow: " + daysRow);
     }
-    let periodColumn: ExcelScript.Range = findPeriodColumn(fullRange);
-    if(!periodColumn)  {
+    let periodColumn = findPeriodColumn(data);
+    if(periodColumn === undefined)  {
         setError(workbook, "Geen kolom met lesmomenten gevonden.");
         return;
+    } else {
+        console.log("periodColumn: " + periodColumn);
     }
 
-    let data: Value[][] = fullRange.getValues();
     // let mergedRanges = collectMergedRanges(fullRange);
     let mergedRanges = getMergedCellsCached();
     console.log(getCellValue(data, { row: 0, column: 1 }));
@@ -25,28 +29,25 @@ function scrapeUurrooster(workbook: ExcelScript.Workbook, fullRange: ExcelScript
 }
 
 type Value = string | number | boolean;
+type Data = Value[][];
 
-function getCellValue(data: Value[][], point: IdxPoint): string {
+function getCellValue(data: Data, point: IdxPoint): string {
     return data[point.row][point.column].toString();
 }
 
-function findDaysRow(fullRange: ExcelScript.Range) {
-    let rowCount = fullRange.getRowCount();
-    for (let i = 0; i < rowCount; i++) {
-        if(isDaysRow(fullRange.getRow(i)))
-            return fullRange.getRow(i);
+function findDaysRow(data: Data) {
+    for (let [i, row] of data.entries()) {
+        if(isDaysRow(row))
+            return i;
     }
-    return null;
+    return undefined;
 }
 
-function isDaysRow(row: ExcelScript.Range) {
-    let columnCount  = row.getColumnCount();
+function isDaysRow(row: Value[]) {
     let matchCount = 0;
-    for (let i = 0; i < columnCount; i++) {
-        let cell = row.getCell(0, i);
-        let value = cell.getValue().toString().trim().toLowerCase();
-        if(isDayName(value))
-                matchCount++;
+    for (let value of row) {
+        if(isDayName(value.toString()))
+            matchCount++;
         if(matchCount >= 3) //meh...good enough
             return true;
     }
@@ -64,24 +65,22 @@ function collectMergedRanges(fullRange: ExcelScript.Range) {
 function collectDayRanges(workbook: ExcelScript.Workbook, fullRange: ExcelScript.Range, daysRow: ExcelScript.Range, day: string) {
 }
 
-function findPeriodColumn(fullRange: ExcelScript.Range) {
-    let columnCount = fullRange.getColumnCount();
-    for (let i = 0; i < columnCount; i++) {
-        if(isPeriodColumn(fullRange.getColumn(i)))
-            return fullRange.getColumn(i);
+function findPeriodColumn(data: Data) {
+    let columnCount = data[0].length;
+    for (let iCol = 0; iCol < columnCount; iCol++) {
+        for (let row of data) {
+            let value = row[iCol].toString();
+            if(isPeriod(value))
+                return iCol;
+        }
     }
-    return null;
+    return undefined;
 }
 
-function isPeriodColumn(column: ExcelScript.Range) {
+function isPeriod(text: string) {
     const periodRegex = /\d?\d[.:,]\d\d\s*-\s*\d?\d[.:,]\d\d/gm;  //hh:mm-hh:mm en variaties.
-    let rowCount  =  column.getRowCount();
-    for(let i = 0; i < rowCount; i++) {
-        if(column.getCell(i, 0).getValue().toString().match(periodRegex))
-            return true;
-    }
+    return !!text.match(periodRegex);
 
-    return false;
 }
 
 function _setMessage(workbook: ExcelScript.Workbook, msg: string, type: MessageType) {
