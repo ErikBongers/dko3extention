@@ -1,32 +1,39 @@
 /// <reference path="./excelScript.d.ts" />
 //https://github.com/sumurthy/officescripts-projects/blob/main/misc/index.d.ts
 function main(workbook: ExcelScript.Workbook) {
+    showRangeData(workbook.getSelectedRange());
     let fullRange = workbook.getActiveWorksheet().getUsedRange();
     scrapeUurrooster(workbook, fullRange);
 }
 
-function scrapeUurrooster(workbook: ExcelScript.Workbook, range: ExcelScript.Range) {
-    let daysRow: ExcelScript.Range = findDaysRow(range);
+function scrapeUurrooster(workbook: ExcelScript.Workbook, fullRange: ExcelScript.Range) {
+    let daysRow: ExcelScript.Range = findDaysRow(fullRange);
     if(!daysRow)  {
         setError(workbook, "Geen rij met dagnamen gevonden.");
         return;
     } else {
         console.log("Found days row:", daysRow.getAddress());
     }
-    let periodColumn: ExcelScript.Range = findPeriodColumn(range);
+    let periodColumn: ExcelScript.Range = findPeriodColumn(fullRange);
     if(!periodColumn)  {
         setError(workbook, "Geen kolom met lesmomenten gevonden.");
         return;
     } else {
         console.log("Found period column:", periodColumn.getAddress());
     }
+
+    let dayBlocks =  collectDayRanges(workbook, fullRange, daysRow, "maandag");
+    for(let dayBlock of dayBlocks) {
+        let range = dayBlock.range;
+        showRangeData(range);
+    }
 }
 
-function findDaysRow(range: ExcelScript.Range) {
-    let rowCount = range.getRowCount();
+function findDaysRow(fullRange: ExcelScript.Range) {
+    let rowCount = fullRange.getRowCount();
     for (let i = 0; i < rowCount; i++) {
-        if(isDaysRow(range.getRow(i)))
-            return range.getRow(i);
+        if(isDaysRow(fullRange.getRow(i)))
+            return fullRange.getRow(i);
     }
     return null;
 }
@@ -37,28 +44,49 @@ function isDaysRow(row: ExcelScript.Range) {
     for (let i = 0; i < columnCount; i++) {
         let cell = row.getCell(0, i);
         let value = cell.getValue().toString().trim().toLowerCase();
-        switch (value) {
-            case "maandag":
-            case "dinsdag":
-            case "woensdag":
-            case "donderdag":
-            case "vrijdag":
-            case "zaterdag":
-            case "zondag":
+        if(isDayName(value))
                 matchCount++;
-                break;
-        }
         if(matchCount >= 3) //meh...good enough
             return true;
     }
     return false;
 }
 
-function findPeriodColumn(range: ExcelScript.Range) {
-    let columnCount = range.getColumnCount();
+type DayBlock = {
+    day: string,
+    range: ExcelScript.Range
+}
+
+function collectDayRanges(workbook: ExcelScript.Workbook, fullRange: ExcelScript.Range, daysRow: ExcelScript.Range, day: string) {
+    let daysRanges: DayBlock [] = [];
+    for (let mergedRange of daysRow.getMergedAreas().getAreas()) {
+        if(isDayName(mergedRange.getValue().toString())) {
+            //todo: rowcount is only correct id the dayRow is the FIRST row in fullRange!
+            let dayBlockRange = mergedRange.getResizedRange(fullRange.getRowCount(), 1).getResizedRange(0, -1);
+            showRangeData(mergedRange);
+            showRangeData(dayBlockRange);
+            daysRanges.push({day: mergedRange.getValue().toString(), range: dayBlockRange});
+        }
+    }
+
+    for(let i = 0; i <= daysRow.getColumnCount(); i++) {
+        if(isInMergedArea(daysRow.getCell(0, i)))
+            console.log("In mergedArea");
+        else
+            console.log("Not in mergedArea");
+    }
+    return daysRanges;
+
+    function isInMergedArea(range: ExcelScript.Range) {
+        return daysRanges.some(d => d.range.getBoundingRect(range).getAddress() === d.range.getAddress());
+    }
+}
+
+function findPeriodColumn(fullRange: ExcelScript.Range) {
+    let columnCount = fullRange.getColumnCount();
     for (let i = 0; i < columnCount; i++) {
-        if(isPeriodColumn(range.getColumn(i)))
-            return range.getColumn(i);
+        if(isPeriodColumn(fullRange.getColumn(i)))
+            return fullRange.getColumn(i);
     }
     return null;
 }
@@ -90,5 +118,25 @@ function setInfo(workbook: ExcelScript.Workbook, msg: string) {
 
 function setHighlight(workbook: ExcelScript.Workbook, msg: string) {
     _setMessage(workbook, msg, MessageType.Highlight);
+}
+
+function isDayName(text: string) {
+        switch (text.toLowerCase()) {
+            case "maandag":
+            case "dinsdag":
+            case "woensdag":
+            case "donderdag":
+            case "vrijdag":
+            case "zaterdag":
+            case "zondag":
+                return true;
+            default:
+                return false;
+
+        }
+    }
+
+function showRangeData(range: ExcelScript.Range) {
+    console.log(range.getAddress() + ", " + range.getCellCount() + ", " + range.getValue());
 }
 
