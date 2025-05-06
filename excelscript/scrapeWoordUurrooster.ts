@@ -145,6 +145,10 @@ function isDayName(text: string) {
     }
 
 function showRangeData(range: ExcelScript.Range) {
-    console.log(range.getAddress() + ", " + range.getCellCount() + ", " + range.getValue() + ", [(" + range.getColumnIndex() + ", " + range.getRowIndex() + ")-(" + range.getLastCell().getRowIndex() + ", " + range.getLastCell().getColumnIndex() + "]");
+    console.log(range.getAddress() + ", " + range.getCellCount() + ", " + range.getValue() + ", [(" + range.getColumnIndex() + ", " + range.getRowIndex() + ")-(" + range.getLastCell().getRowIndex() + ", " + range.getLastCell().getColumnIndex() + ")]");
 }
 
+function rangeToIndexes(range: ExcelScript.Range) {
+    return { range.getColumnIndex() + ", " + range.getRowIndex() + ")-(" + range.getLastCell().getRowIndex() + ", " + range.getLastCell().getColumnIndex() + ")]");
+
+}
