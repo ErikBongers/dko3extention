@@ -62,7 +62,7 @@ function scrapeUurrooster(workbook: ExcelScript.Workbook, fullRange: ExcelScript
     mergedRanges = getMergedCellsCached();
 
     timeSlices = createTimeSlices();
-    scrapeColumn(11);
+    scrapeColumn(5);
 }
 
 function scrapeColumn(column: number) {
@@ -82,6 +82,14 @@ function scrapeColumn(column: number) {
                 timeSlice = timeSlices[row];
             }
             let times = findTimes(cellValue);
+            if(times.length ===2) {
+                timeSlice = {
+                    start: times[0],
+                    end: times[1]
+                };
+            } else if(times.length === 1) {
+                timeSlice = moveTimeSliceTo(timeSlice, times[0]);
+            }
             //todo: adjust timeSlice to the found times. If only one time, use that as a starting point and keep the length of the original slice. Create function moveTimeSliceTo().
             let classDef: ClassDef = {
                 teacher,
@@ -92,6 +100,18 @@ function scrapeColumn(column: number) {
             console.log(JSON.stringify(classDef));
         }
     }
+}
+
+function moveTimeSliceTo(timeSlice: TimeSlice, newStart: Time) {
+    let newSlice = timeSlice;
+    let startMinutes = timeSlice.start.hour * 60 + timeSlice.start.minutes;
+    let endMinutes = timeSlice.end.hour * 60 + timeSlice.end.minutes;
+    let duration = endMinutes - startMinutes;
+    timeSlice.start = newStart;
+    let newEndMinutes = newStart.hour * 60 + newStart.minutes + duration;
+    newSlice.end.hour = Math.trunc(newEndMinutes / 60);
+    newSlice.end.minutes = newEndMinutes % 60;
+    return newSlice;
 }
 
 function findTimes(text: string) {
