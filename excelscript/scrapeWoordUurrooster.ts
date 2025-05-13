@@ -26,8 +26,10 @@ type ClassDef = {
     day: string,
     teacher: string,
     timeSlice: TimeSlice,
+    gradeYear: string,
     description: string
 }
+
 
 function main(workbook: ExcelScript.Workbook) {
     let fullRange = workbook.getActiveWorksheet().getUsedRange();
@@ -50,6 +52,7 @@ function scrapeUurrooster(workbook: ExcelScript.Workbook, fullRange: ExcelScript
         console.log("daysRow: " + daysRow);
     }
     periodColumn = findPeriodColumn(data);
+    let lastPeriodRow = findLastPeriodRow();
     if(periodColumn === undefined)  {
         setError(workbook, "Geen kolom met lesmomenten gevonden.");
         return;
@@ -63,6 +66,13 @@ function scrapeUurrooster(workbook: ExcelScript.Workbook, fullRange: ExcelScript
 
     timeSlices = createTimeSlices();
     scrapeColumn(5);
+}
+
+function findLastPeriodRow() {
+    return data
+        .map((row, index) => isPeriod(row[periodColumn].toString()) ? index : -1)
+        .filter(n => n > 0)
+        .pop();
 }
 
 function scrapeColumn(column: number) {
@@ -95,11 +105,33 @@ function scrapeColumn(column: number) {
                 teacher,
                 day,
                 timeSlice,
+                gradeYear: "todo",
                 description: cellValue
             };
             console.log(JSON.stringify(classDef));
         }
     }
+}
+
+type GradeYear = {
+    grade: string,
+    year: number
+}
+
+function findGradeYears(cellValue: string) {
+    let gradeYears: GradeYear[] = [];
+    let rx = /\s+(?:(?:([\d])\.(\d))|(S)(\d))(?:\s?[,+\/]\s?(?:(?:([\d])\.(\d))|(S)(\d)))?(?:\s?[,+\/]\s?(?:(?:([\d])\.(\d))|(S)(\d)))?(?:\s?[,+\/]\s?(?:(?:([\d])\.(\d))|(S)(\d)))?(?:\s?[,+\/]\s?(?:(?:([\d])\.(\d))|(S)(\d)))?/gm;
+    let matches = rx.exec(text);
+    for(i=1; i > matches.length; i+=2) {
+        let gradeYear: GradeYear = {
+            grade: matches[i],
+            year: parseInt(matches[2])
+        };
+        gradeYears.push(time);
+        matches = rx.exec(text);
+    }
+    return gradeYears;
+
 }
 
 function moveTimeSliceTo(timeSlice: TimeSlice, newStart: Time) {
@@ -256,6 +288,73 @@ function rangeToIndexes(range: ExcelScript.Range): IdxRange {
     let start: IdxPoint = { row: range.getRowIndex(), column: range.getColumnIndex() };
     let end: IdxPoint = { row: start.row + range.getRowCount()-1, column: start.column + range.getColumnCount()-1};
     return { start, end };
+}
+
+function getMergedCellsCached(): IdxRange[] {
+    return [{"start":{"row":13,"column":9},"end":{"row":16,"column":9}},{"start":{"row":10,"column":33},"end":{"row":13,"column":33}},{"start":{"row":6,"column":33},"end":{"row":7,"column":33}},{"start":{"row":8,"column":33},"end":{"row":9,"column":33}},{"start":{"row":21,"column":28},"end":{"row":24,"column":28}},{"start":{"row":17,"column":29},"end":{"row":18,"column":29}},{"start":{"row":20,"column":32},"end":{"row":21,"column":32}},{"start":{"row":18,"column":12},"end":{"row":19,"column":12}},{"start":{"row":18,"column":11},"end":{"row":19,"column":11}},{"start":{"row":7,"column":14},"end":{"row":16,"column":14}},{"start":{"row":12,"column":23},"end":{"row":13,"column":23}},{"start":{"row":14,"column":23},"end":{"row":15,"column":23}},{"start":{"row":16,"column":23},"end":{"row":17,"column":23}},{"start":{"row":15,"column":21},"end":{"row":18,"column":21}},{"start":{"row":23,"column":27},"end":{"row":26,"column":27}},{"start":{"row":25,"column":28},"end":{"row":28,"column":28}},{"start":{"row":3,"column":2},"end":{"row":3,"column":8}},{"start":{"row":26,"column":2},"end":{"row":29,"column":2}},{"start":{"row":22,"column":2},"end":{"row":25,"column":2}},{"start":{"row":23,"column":9},"end":{"row":26,"column":9}},{"start":{"row":18,"column":9},"end":{"row":19,"column":9}},{"start":{"row":24,"column":3},"end":{"row":29,"column":3}},{"start":{"row":24,"column":6},"end":{"row":27,"column":6}},{"start":{"row":20,"column":9},"end":{"row":21,"column":9}},{"start":{"row":24,"column":4},"end":{"row":29,"column":4}},{"start":{"row":18,"column":5},"end":{"row":19,"column":5}},{"start":{"row":18,"column":8},"end":{"row":19,"column":8}},{"start":{"row":3,"column":9},"end":{"row":3,"column":17}},{"start":{"row":20,"column":8},"end":{"row":21,"column":8}},{"start":{"row":13,"column":8},"end":{"row":16,"column":8}},{"start":{"row":24,"column":5},"end":{"row":27,"column":5}},{"start":{"row":22,"column":11},"end":{"row":25,"column":11}},{"start":{"row":3,"column":30},"end":{"row":3,"column":32}},{"start":{"row":13,"column":18},"end":{"row":15,"column":18}},{"start":{"row":7,"column":26},"end":{"row":16,"column":26}},{"start":{"row":3,"column":26},"end":{"row":3,"column":29}},{"start":{"row":3,"column":18},"end":{"row":3,"column":25}},{"start":{"row":13,"column":32},"end":{"row":16,"column":32}},{"start":{"row":5,"column":19},"end":{"row":7,"column":19}},{"start":{"row":13,"column":21},"end":{"row":14,"column":21}},{"start":{"row":5,"column":24},"end":{"row":8,"column":24}},{"start":{"row":5,"column":23},"end":{"row":8,"column":23}},{"start":{"row":24,"column":20},"end":{"row":29,"column":20}},{"start":{"row":18,"column":32},"end":{"row":19,"column":32}},{"start":{"row":18,"column":30},"end":{"row":19,"column":30}},{"start":{"row":19,"column":29},"end":{"row":20,"column":29}},{"start":{"row":18,"column":31},"end":{"row":19,"column":31}},{"start":{"row":20,"column":31},"end":{"row":21,"column":31}},{"start":{"row":19,"column":25},"end":{"row":22,"column":25}},{"start":{"row":24,"column":21},"end":{"row":26,"column":21}},{"start":{"row":23,"column":31},"end":{"row":26,"column":31}},{"start":{"row":23,"column":30},"end":{"row":26,"column":30}},{"start":{"row":20,"column":30},"end":{"row":21,"column":30}},{"start":{"row":24,"column":22},"end":{"row":27,"column":22}},{"start":{"row":27,"column":21},"end":{"row":29,"column":21}},{"start":{"row":23,"column":29},"end":{"row":26,"column":29}},{"start":{"row":24,"column":25},"end":{"row":27,"column":25}},{"start":{"row":17,"column":10},"end":{"row":18,"column":10}},{"start":{"row":18,"column":28},"end":{"row":19,"column":28}},{"start":{"row":18,"column":13},"end":{"row":19,"column":13}},{"start":{"row":20,"column":13},"end":{"row":21,"column":13}},{"start":{"row":18,"column":26},"end":{"row":19,"column":26}},{"start":{"row":18,"column":27},"end":{"row":19,"column":27}},{"start":{"row":20,"column":27},"end":{"row":21,"column":27}},{"start":{"row":19,"column":10},"end":{"row":20,"column":10}},{"start":{"row":20,"column":11},"end":{"row":21,"column":11}},{"start":{"row":18,"column":14},"end":{"row":19,"column":14}},{"start":{"row":18,"column":18},"end":{"row":19,"column":18}},{"start":{"row":20,"column":12},"end":{"row":21,"column":12}},{"start":{"row":19,"column":21},"end":{"row":22,"column":21}},{"start":{"row":24,"column":7},"end":{"row":27,"column":7}},{"start":{"row":19,"column":4},"end":{"row":22,"column":4}},{"start":{"row":20,"column":6},"end":{"row":21,"column":6}},{"start":{"row":24,"column":17},"end":{"row":27,"column":17}},{"start":{"row":20,"column":7},"end":{"row":23,"column":7}},{"start":{"row":26,"column":10},"end":{"row":29,"column":10}},{"start":{"row":24,"column":10},"end":{"row":25,"column":10}},{"start":{"row":22,"column":10},"end":{"row":23,"column":10}},{"start":{"row":24,"column":16},"end":{"row":29,"column":16}},{"start":{"row":24,"column":15},"end":{"row":29,"column":15}},{"start":{"row":20,"column":5},"end":{"row":21,"column":5}},{"start":{"row":24,"column":13},"end":{"row":27,"column":13}}];
+}
+
+type Tag = {
+    tag: string,
+    searchString: string
+}
+
+let tagDefs: Tag[] = [
+    { tag: "Sterrenkijker", searchString: " ster"},
+    { tag: "Sterrenkijker", searchString: " durlet"},
+    { tag: "Kleine Stad", searchString: " stad"},
+    { tag: "Kleine Wereld", searchString: " wereld"},
+    { tag: "De Nieuwe Vrede", searchString: " vrede"},
+    { tag: "De Nieuwe Vrede", searchString: " dnv"},
+    { tag: "De Kosmos", searchString: " kosmos"},
+    { tag: "De Schatkist", searchString: " schat"},
+    { tag: "De Kolibrie", searchString: " kolibri"},
+    { tag: "Albereke", searchString: " albere"},
+];
+
+let locationDefs: string[] = [
+    "Sterrenkijker",
+    "Kleine Stad",
+    "Kleine Wereld",
+    "De Nieuwe Vrede",
+    "De Kosmos",
+    "De Schatkist",
+    "De Kolibrie",
+    "Albereke",
+];
+
+function findLocation(cellValue: string) {
+    return tagDefs.find(def => cellValue.toLowerCase().includes(def.searchString))?.tag;
+}
+
+function findTags(workbook: ExcelScript.Workbook) {
+    let tblTags = workbook.getActiveWorksheet().getTable("labels");
+    if(!tblTags)
+        tblTags = workbook.getActiveWorksheet().getTable("Labels");
+    if(tblTags)
+      return getTagDefsFromTable(tblTags);
+    return undefined;
+}
+
+function getTagDefsFromTable(table: ExcelScript.Table) {
+    let translations: Tag[] = [];
+
+    let idxTag: number = undefined;
+    let idxSearchString: number = undefined;
+
+    let headers: Value[][] = table.getHeaderRowRange().getValues();
+    headers[0].forEach((cell, i) => {
+        if(cell.toString() === "zoek")
+            idxSearchString = i;
+        if(cell.toString() === "label")
+            idxTag = i;
+    });
+    if(idxTag == undefined || idxSearchString == undefined) {
+        alert("Tabel met labels heeft niet de juiste kolommen: 'zoek' en 'label'");
+        return undefined;
+    }
+
+    return translations;
 }
 
 function getMergedCellsCached(): IdxRange[] {
