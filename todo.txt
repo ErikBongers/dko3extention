@@ -1,3 +1,16 @@
+* test reducing data to period rows.
+* test findLocation()  (= bij-afdeling)
+* test tags
+
+* scrape woord: limit rows to those with an actial time slice.
+
+* in uurroooster xls file, add a table "afkortingen"
+  > with fields
+    - Volledige term
+    - Afkorting
+  >
+
+
 * replace all refs to skynet with outlook.
 
 * emmet: specific error when comma used in attribute list: should be space
