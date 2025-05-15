@@ -26,6 +26,7 @@ type ClassDef = {
     day: string,
     teacher: string,
     timeSlice: TimeSlice,
+    subject: string,
     location: string,
     gradeYears: GradeYear[],
     description: string
@@ -41,6 +42,7 @@ let daysRow: number = undefined;
 let periodColumn: number = undefined;
 let mergedRanges: IdxRange[] = undefined;
 let timeSlices: TimeSlice[] = undefined;
+let lastDayColumn: number = undefined;
 
 function scrapeUurrooster(workbook: ExcelScript.Workbook, fullRange: ExcelScript.Range) {
     data = fullRange.getValues();
@@ -48,8 +50,6 @@ function scrapeUurrooster(workbook: ExcelScript.Workbook, fullRange: ExcelScript
     if(daysRow === undefined)  {
         setError(workbook, "Geen rij met dagnamen gevonden.");
         return;
-    } else {
-        console.log("daysRow: " + daysRow);
     }
     periodColumn = findPeriodColumn(data);
     let lastPeriodRow = findLastPeriodRow();
@@ -57,16 +57,26 @@ function scrapeUurrooster(workbook: ExcelScript.Workbook, fullRange: ExcelScript
     if(periodColumn === undefined)  {
         setError(workbook, "Geen kolom met lesmomenten gevonden.");
         return;
-    } else {
-        console.log("periodColumn: " + periodColumn);
     }
-
-    // let mergedRanges = collectMergedRanges(fullRange);
-    // console.log(JSON.stringify(mergedRanges));
     mergedRanges = getMergedCellsCached();
 
+    lastDayColumn = findLastDayColumn();
+
     timeSlices = createTimeSlices();
-    scrapeColumn(5);
+
+    let classDefs: ClassDef[] = [];
+    for(let c = periodColumn+1; c <= lastDayColumn; c++) {
+        classDefs = classDefs.concat(scrapeColumn(c));
+    }
+    console.log(classDefsToString(classDefs));
+}
+
+function findLastDayColumn() {
+    for(let c = periodColumn+1; c < data[0].length; c++) {
+        let cellValue = getCellValue({row: daysRow, column: c});
+        if(!isDayName(cellValue))
+            return c-1;
+    }
 }
 
 function findLastPeriodRow() {
@@ -77,6 +87,7 @@ function findLastPeriodRow() {
 }
 
 function scrapeColumn(column: number) {
+    let classDefs: ClassDef[] = [];
     let day = getCellValue({row: daysRow, column} as IdxPoint)
     let teacher = getCellValue({ row: daysRow+1, column});
     for(let row = daysRow+2; row < data.length; row++) {
@@ -93,7 +104,6 @@ function scrapeColumn(column: number) {
                 timeSlice = timeSlices[row];
             }
             let times = findTimes(cellValue);
-            console.log(times);
             if(times.length ===2) {
                 timeSlice = {
                     start: times[0],
@@ -104,17 +114,20 @@ function scrapeColumn(column: number) {
             }
             let tags = findTags(cellValue, defaultTagDefs); //todo: first try to find tagDefs in the sheet (table)
             let location = findLocation(tags);
+            let subject = findSubject(tags);
             let classDef: ClassDef = {
                 teacher,
                 day,
                 timeSlice,
                 location,
+                subject,
                 gradeYears: findGradeYears(cellValue),
                 description: cellValue
             };
-            console.log(JSON.stringify(classDef));
+            classDefs.push(classDef);
         }
     }
+    return classDefs;
 }
 
 type GradeYear = {
@@ -124,30 +137,27 @@ type GradeYear = {
 
 function findGradeYears(text: string) {
     let gradeYears: GradeYear[] = [];
-    let rx = /\s+(?:(\d)\.(\d)|(S)(\d))(?:\s?[,+\/]\s?(?:(\d)\.(\d)|(S)(\d)))?(?:\s?[,+\/]\s?(?:(\d)\.(\d)|(S)(\d)))?(?:\s?[,+\/]\s?(?:(\d)\.(\d)|(S)(\d)))?(?:\s?[,+\/]\s?(?:(\d)\.(\d)|(S)(\d)))?/gm;
-    console.log("trying first match...");
+    const rx = /\s+(?:(\d)\.(\d)|(S)(\d))(?:\s?[,+\/]\s?(?:(\d)\.(\d)|(S)(\d)))?(?:\s?[,+\/]\s?(?:(\d)\.(\d)|(S)(\d)))?(?:\s?[,+\/]\s?(?:(\d)\.(\d)|(S)(\d)))?(?:\s?[,+\/]\s?(?:(\d)\.(\d)|(S)(\d)))?/gm;
     let matches = rx.exec(text);
     if(matches) {
-        for (let i = 1; i < matches.length; i += 2) {
+        let strippedMatches = matches.filter(m => m);
+        for (let i = 1; i < strippedMatches.length; i += 2) {
             let gradeYear: GradeYear = {
-                grade: matches[i],
-                year: parseInt(matches[i+1])
+                grade: strippedMatches[i],
+                year: parseInt(strippedMatches[i+1])
             };
             gradeYears.push(gradeYear);
         }
         return gradeYears;
     }
-    console.log("trying 2nd match...");
-
-    rx = /\s+(\d)\s?[,+]\s?(\d)/gm;
-    matches = rx.exec(text);
+    const rx2 = /\s+(\d)\s?[,+]\s?(\d)/gm;
+    matches = rx2.exec(text);
     if(matches) {
-        console.log(matches);
-        console.log(matches.length);
-        for (let i = 1; i < matches.length; i++) {
+        let strippedMatches = matches.filter(m => m);
+        for (let i = 1; i < strippedMatches.length; i++) {
             let gradeYear: GradeYear = {
-                grade: "",
-                year: parseInt(matches[i])
+                grade: "2", //assumptionn!
+                year: parseInt(strippedMatches[i])
             };
             gradeYears.push(gradeYear);
         }
@@ -317,16 +327,23 @@ type TagDef = {
 }
 
 let defaultTagDefs: TagDef[] = [
-    { tag: "Sterrenkijker", searchString: " ster"},
-    { tag: "Sterrenkijker", searchString: " durlet"},
+    { tag: "Sterrenkijker", searchString: "sterr"},
+    { tag: "Sterrenkijker", searchString: "durlet"},
     { tag: "Kleine Stad", searchString: " stad"},
     { tag: "Kleine Wereld", searchString: " wereld"},
     { tag: "De Nieuwe Vrede", searchString: " vrede"},
-    { tag: "De Nieuwe Vrede", searchString: " dnv"},
+    { tag: "De Nieuwe Vrede", searchString: "dnv"},
     { tag: "De Kosmos", searchString: " kosmos"},
-    { tag: "De Schatkist", searchString: " schat"},
+    { tag: "De Schatkist", searchString: "schatk"},
     { tag: "De Kolibrie", searchString: " kolibri"},
-    { tag: "Albereke", searchString: " albere"},
+    { tag: "Albereke", searchString: "albere"},
+    { tag: "c o r s o", searchString: "corso"},
+    { tag: "Cabaret & Comedy", searchString: "cabaret"},
+    { tag: "Woordatelier", searchString: "woordatelier"},
+    { tag: "Woordatelier", searchString: "WA "}, //todo: searchString is assumed to be in lower case.
+    { tag: "Literair atelier", searchString: "literair atelier"},
+    { tag: "Literaire teksten", searchString: "literaire teksten"},
+    { tag: "Willem Van Laarstraat", searchString: "bib"},
 ];
 
 let locationDefs: string[] = [
@@ -338,10 +355,24 @@ let locationDefs: string[] = [
     "De Schatkist",
     "De Kolibrie",
     "Albereke",
+    "Albereke",
+    "c o r s o",
+    "Willem Van Laarstraat",
+];
+
+let subjectDefs: string[] = [
+    "Woordatelier",
+    "Cabaret & Comedy",
+    "Literair atelier",
+    "Literaire teksten",
 ];
 
 function findLocation(tags: string[]) {
     return locationDefs.find(location => tags.includes(location));
+}
+
+function findSubject(tags: string[]) {
+    return subjectDefs.find(subject => tags.includes(subject));
 }
 
 function findTags(text: string, tagDefs: TagDef[]) {
@@ -385,4 +416,16 @@ function getTagDefsFromTable(table: ExcelScript.Table) {
 
 function getMergedCellsCached(): IdxRange[] {
     return [{"start":{"row":13,"column":9},"end":{"row":16,"column":9}},{"start":{"row":10,"column":33},"end":{"row":13,"column":33}},{"start":{"row":6,"column":33},"end":{"row":7,"column":33}},{"start":{"row":8,"column":33},"end":{"row":9,"column":33}},{"start":{"row":21,"column":28},"end":{"row":24,"column":28}},{"start":{"row":17,"column":29},"end":{"row":18,"column":29}},{"start":{"row":20,"column":32},"end":{"row":21,"column":32}},{"start":{"row":18,"column":12},"end":{"row":19,"column":12}},{"start":{"row":18,"column":11},"end":{"row":19,"column":11}},{"start":{"row":7,"column":14},"end":{"row":16,"column":14}},{"start":{"row":12,"column":23},"end":{"row":13,"column":23}},{"start":{"row":14,"column":23},"end":{"row":15,"column":23}},{"start":{"row":16,"column":23},"end":{"row":17,"column":23}},{"start":{"row":15,"column":21},"end":{"row":18,"column":21}},{"start":{"row":23,"column":27},"end":{"row":26,"column":27}},{"start":{"row":25,"column":28},"end":{"row":28,"column":28}},{"start":{"row":3,"column":2},"end":{"row":3,"column":8}},{"start":{"row":26,"column":2},"end":{"row":29,"column":2}},{"start":{"row":22,"column":2},"end":{"row":25,"column":2}},{"start":{"row":23,"column":9},"end":{"row":26,"column":9}},{"start":{"row":18,"column":9},"end":{"row":19,"column":9}},{"start":{"row":24,"column":3},"end":{"row":29,"column":3}},{"start":{"row":24,"column":6},"end":{"row":27,"column":6}},{"start":{"row":20,"column":9},"end":{"row":21,"column":9}},{"start":{"row":24,"column":4},"end":{"row":29,"column":4}},{"start":{"row":18,"column":5},"end":{"row":19,"column":5}},{"start":{"row":18,"column":8},"end":{"row":19,"column":8}},{"start":{"row":3,"column":9},"end":{"row":3,"column":17}},{"start":{"row":20,"column":8},"end":{"row":21,"column":8}},{"start":{"row":13,"column":8},"end":{"row":16,"column":8}},{"start":{"row":24,"column":5},"end":{"row":27,"column":5}},{"start":{"row":22,"column":11},"end":{"row":25,"column":11}},{"start":{"row":3,"column":30},"end":{"row":3,"column":32}},{"start":{"row":13,"column":18},"end":{"row":15,"column":18}},{"start":{"row":7,"column":26},"end":{"row":16,"column":26}},{"start":{"row":3,"column":26},"end":{"row":3,"column":29}},{"start":{"row":3,"column":18},"end":{"row":3,"column":25}},{"start":{"row":13,"column":32},"end":{"row":16,"column":32}},{"start":{"row":5,"column":19},"end":{"row":7,"column":19}},{"start":{"row":13,"column":21},"end":{"row":14,"column":21}},{"start":{"row":5,"column":24},"end":{"row":8,"column":24}},{"start":{"row":5,"column":23},"end":{"row":8,"column":23}},{"start":{"row":24,"column":20},"end":{"row":29,"column":20}},{"start":{"row":18,"column":32},"end":{"row":19,"column":32}},{"start":{"row":18,"column":30},"end":{"row":19,"column":30}},{"start":{"row":19,"column":29},"end":{"row":20,"column":29}},{"start":{"row":18,"column":31},"end":{"row":19,"column":31}},{"start":{"row":20,"column":31},"end":{"row":21,"column":31}},{"start":{"row":19,"column":25},"end":{"row":22,"column":25}},{"start":{"row":24,"column":21},"end":{"row":26,"column":21}},{"start":{"row":23,"column":31},"end":{"row":26,"column":31}},{"start":{"row":23,"column":30},"end":{"row":26,"column":30}},{"start":{"row":20,"column":30},"end":{"row":21,"column":30}},{"start":{"row":24,"column":22},"end":{"row":27,"column":22}},{"start":{"row":27,"column":21},"end":{"row":29,"column":21}},{"start":{"row":23,"column":29},"end":{"row":26,"column":29}},{"start":{"row":24,"column":25},"end":{"row":27,"column":25}},{"start":{"row":17,"column":10},"end":{"row":18,"column":10}},{"start":{"row":18,"column":28},"end":{"row":19,"column":28}},{"start":{"row":18,"column":13},"end":{"row":19,"column":13}},{"start":{"row":20,"column":13},"end":{"row":21,"column":13}},{"start":{"row":18,"column":26},"end":{"row":19,"column":26}},{"start":{"row":18,"column":27},"end":{"row":19,"column":27}},{"start":{"row":20,"column":27},"end":{"row":21,"column":27}},{"start":{"row":19,"column":10},"end":{"row":20,"column":10}},{"start":{"row":20,"column":11},"end":{"row":21,"column":11}},{"start":{"row":18,"column":14},"end":{"row":19,"column":14}},{"start":{"row":18,"column":18},"end":{"row":19,"column":18}},{"start":{"row":20,"column":12},"end":{"row":21,"column":12}},{"start":{"row":19,"column":21},"end":{"row":22,"column":21}},{"start":{"row":24,"column":7},"end":{"row":27,"column":7}},{"start":{"row":19,"column":4},"end":{"row":22,"column":4}},{"start":{"row":20,"column":6},"end":{"row":21,"column":6}},{"start":{"row":24,"column":17},"end":{"row":27,"column":17}},{"start":{"row":20,"column":7},"end":{"row":23,"column":7}},{"start":{"row":26,"column":10},"end":{"row":29,"column":10}},{"start":{"row":24,"column":10},"end":{"row":25,"column":10}},{"start":{"row":22,"column":10},"end":{"row":23,"column":10}},{"start":{"row":24,"column":16},"end":{"row":29,"column":16}},{"start":{"row":24,"column":15},"end":{"row":29,"column":15}},{"start":{"row":20,"column":5},"end":{"row":21,"column":5}},{"start":{"row":24,"column":13},"end":{"row":27,"column":13}}];
+}
+
+function classDefToString(classDef: ClassDef) {
+    return `${classDef.day}, ${classDef.teacher}, ${classDef.subject}, ${classDef.location}, [${classDef.gradeYears?.map(gy => gradeYearToString(gy)).join(", ")}]`;
+}
+
+function gradeYearToString(gradeYear: GradeYear) {
+    return `${gradeYear.grade ? gradeYear.grade: "?"}.${gradeYear.year}`;
+}
+
+function classDefsToString(classDefs: ClassDef[]) {
+    return classDefs.map(classDef => classDefToString(classDef)).join("\n");
 }
