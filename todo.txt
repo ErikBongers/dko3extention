@@ -1,19 +1,11 @@
-* test reducing data to period rows.
-* test findLocation()  (= bij-afdeling)
-* test tags
+* Vakkenlijst: prefill from DKO3?
 
-* scrape woord: limit rows to those with an actial time slice.
-
-* in uurroooster xls file, add a table "afkortingen"
-  > with fields
-    - Volledige term
-    - Afkorting
-  >
-
+* Comm with DKO3: when Lessenoverzicht link with Excel open: two-way polling.
+  > can Excel fetch (write) a POST request???
+  > a request file and a response file? in both directions? 4 files in total?
+    > every request has an id.
 
 * replace all refs to skynet with outlook.
-
-* emmet: specific error when comma used in attribute list: should be space
 
 * powerQuery initial sort order
   > based on most recently used.
