@@ -152,6 +152,9 @@ function checkAndUpdate(urenData: UrenData) {
 
 function updateCloudColumnMapFromScreen(urenData: UrenData, colKey: string) {
     let colDef = colDefs.get(colKey);
+    if(!urenData.fromCloud.columnMap.has(colKey)) {
+        urenData.fromCloud.columnMap.set(colKey, new Map<string, string>());
+    }
     for(let tr of document.querySelectorAll("#"+def.HOURS_TABLE_ID+" tbody tr")) {
         urenData.fromCloud.columnMap.get(colKey).set(tr.id, tr.children[colDef.colIndex].textContent);
     }
@@ -245,6 +248,7 @@ export function createTable(tableRef: TableRef) {
 }
 
 export function refillTable(table: HTMLTableElement, urenData:  UrenData) {
+    globalUrenData = urenData;
     table.innerHTML = "";
     isUpdatePaused = true;
     updateColDefs(urenData.year);

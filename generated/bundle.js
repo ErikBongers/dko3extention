@@ -249,6 +249,7 @@ function getAttributes() {
 	let attDefs = [];
 	while (tokens.length) {
 		let name = tokens.shift();
+		if (name[0] === ",") throw "Unexpected ',' - don't separate attributes with ','.";
 		let eq = tokens.shift();
 		let sub = "";
 		if (eq === ".") {
@@ -2888,6 +2889,7 @@ function checkAndUpdate(urenData) {
 }
 function updateCloudColumnMapFromScreen(urenData, colKey) {
 	let colDef = colDefs.get(colKey);
+	if (!urenData.fromCloud.columnMap.has(colKey)) urenData.fromCloud.columnMap.set(colKey, new Map());
 	for (let tr of document.querySelectorAll("#" + HOURS_TABLE_ID + " tbody tr")) urenData.fromCloud.columnMap.get(colKey).set(tr.id, tr.children[colDef.colIndex].textContent);
 }
 function observeTable(observe) {
@@ -2972,6 +2974,7 @@ function createTable(tableRef) {
 	return table;
 }
 function refillTable(table, urenData) {
+	globalUrenData = urenData;
 	table.innerHTML = "";
 	isUpdatePaused = true;
 	updateColDefs(urenData.year);
