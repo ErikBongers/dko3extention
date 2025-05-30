@@ -94,6 +94,8 @@ function scrapeColumn(column: number) {
         let mergedRange = getMergedRangeForCell({row, column});
         let cellValue = getCellValue({row, column})
         if (cellValue) {
+            let rx = /\n/g;
+            let description = cellValue.replace(rx, " ");
             let timeSlice: TimeSlice = undefined;
             if (mergedRange) {
                 let sliceStart = timeSlices[mergedRange.start.row];
@@ -103,7 +105,7 @@ function scrapeColumn(column: number) {
             } else {
                 timeSlice = timeSlices[row];
             }
-            let times = findTimes(cellValue);
+            let times = findTimes(description);
             if(times.length ===2) {
                 timeSlice = {
                     start: times[0],
@@ -112,7 +114,7 @@ function scrapeColumn(column: number) {
             } else if(times.length === 1) {
                 timeSlice = moveTimeSliceTo(timeSlice, times[0]);
             }
-            let tags = findTags(cellValue, defaultTagDefs); //todo: first try to find tagDefs in the sheet (table)
+            let tags = findTags(description, defaultTagDefs); //todo: first try to find tagDefs in the sheet (table)
             let location = findLocation(tags);
             let subject = findSubject(tags);
             let classDef: ClassDef = {
@@ -121,8 +123,8 @@ function scrapeColumn(column: number) {
                 timeSlice,
                 location,
                 subject,
-                gradeYears: findGradeYears(cellValue),
-                description: cellValue
+                gradeYears: findGradeYears(description),
+                description 
             };
             classDefs.push(classDef);
         }
@@ -338,12 +340,22 @@ let defaultTagDefs: TagDef[] = [
     { tag: "De Kolibrie", searchString: " kolibri"},
     { tag: "Albereke", searchString: "albere"},
     { tag: "c o r s o", searchString: "corso"},
+    { tag: "c o r s o", searchString: "c o r s o"},
     { tag: "Cabaret & Comedy", searchString: "cabaret"},
     { tag: "Woordatelier", searchString: "woordatelier"},
     { tag: "Woordatelier", searchString: "WA "}, //todo: searchString is assumed to be in lower case.
+    { tag: "Woordlab", searchString: "woordlab"},
+    { tag: "Woordlab", searchString: "WL "},
     { tag: "Literair atelier", searchString: "literair atelier"},
     { tag: "Literaire teksten", searchString: "literaire teksten"},
     { tag: "Willem Van Laarstraat", searchString: "bib"},
+    { tag: "Spreken en presenteren", searchString: "presenteren"},
+    { tag: "Kunstenbad", searchString: "kunstenbad"},
+    { tag: "Musicalatelier", searchString: "musicalatelier"},
+    { tag: "Musical koor", searchString: "musical koor"},
+    { tag: "Musical zang", searchString: "musical zang"},
+    { tag: "De Nieuwe Vrede", searchString: " tegel"},
+    { tag: "De Nieuwe Vrede", searchString: " tango"},
 ];
 
 let locationDefs: string[] = [
@@ -362,9 +374,15 @@ let locationDefs: string[] = [
 
 let subjectDefs: string[] = [
     "Woordatelier",
+    "Woordlab",
     "Cabaret & Comedy",
     "Literair atelier",
     "Literaire teksten",
+    "Spreken en presenteren",
+    "Kunstenbad",
+    "Musicalatelier",
+    "Musical koor",
+    "Musical zang",
 ];
 
 function findLocation(tags: string[]) {
@@ -419,7 +437,7 @@ function getMergedCellsCached(): IdxRange[] {
 }
 
 function classDefToString(classDef: ClassDef) {
-    return `${classDef.day}, ${classDef.teacher}, ${classDef.subject}, ${classDef.location}, [${classDef.gradeYears?.map(gy => gradeYearToString(gy)).join(", ")}]`;
+    return `${classDef.day}, ${classDef.teacher}, ${classDef.subject}, ${classDef.location}, [${classDef.gradeYears?.map(gy => gradeYearToString(gy)).join(", ")}], ${classDef.description}`;
 }
 
 function gradeYearToString(gradeYear: GradeYear) {
