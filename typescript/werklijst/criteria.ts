@@ -1,5 +1,79 @@
 import * as def from "../def"
 
+// noinspection JSUnusedGlobalSymbols
+export enum Domein {
+    Muziek = 3,
+    Woord = 4,
+    Dans = 2,
+    Overschrijdend = 5
+}
+
+export interface Veld {
+    value: string;
+    text: string;
+}
+
+export const VELD = {
+    DOMEIN:  {value: "domein", text: "domein"},
+    VAK_NAAM: {value: "vak_naam", text: "vak"},
+    GRAAD_LEERJAAR: {value: "graad_leerjaar", text: "graad + leerjaar"},
+    KLAS_LEERKRACHT: {value: "klasleerkracht", text: "klasleerkracht"},
+}
+
+export enum Grouping {
+    LEERLING = "persoon_id",
+    VAK = "vak_id",
+    LES = "les_id",
+    INSCHRIJVING = "inschrijving_id",
+}
+
+export interface Criterium {
+    criteria: string
+    operator: string
+    values: string
+}
+
+export enum Operator {
+    PLUS = "="
+}
+
+type isSelectedVak = (vak: string) => boolean;
+export class WerklijstCriteria {
+    criteria: Criterium[] = [];
+
+    constructor(schoolYear: string) {
+        this.criteria = [
+            {"criteria": "Schooljaar", "operator": "=", "values": schoolYear},
+            {"criteria": "Status", "operator": "=", "values": "12"}, //inschrijvingen en toewijzingen
+            {"criteria": "Uitschrijvingen", "operator": "=", "values": "0"}, // Zonder uitgeschreven leerlingen
+        ];
+    }
+
+    toCriteriaString() {
+        return JSON.stringify(this.criteria);
+    }
+
+    #addCriterium(criteria: string, operator: Operator, values: string) {
+        this.criteria.push({criteria, operator, values});
+    }
+
+    addDomeinen(domeinen: Domein[])  {
+        this.#addCriterium("Domein", Operator.PLUS, domeinen.join());
+    }
+
+    addVakken(vakken: string) {
+        this.#addCriterium("Vak", Operator.PLUS, vakken);
+        //TODO:
+        // let vakken = await fetchVakken(false);
+        // if (typeof werklijstCriteria.vakken === 'function') {
+        //     let isVak = werklijstCriteria.vakken;
+        //     let instruments = vakken.filter((vak) => isVak(vak[0]));
+        //     let values = instruments.map(vak => parseInt(vak[1]));
+        //     criteria.push({ "criteria": "Vak", "operator": "=", "values": values.join()});
+        // }
+    }
+}
+
 export async function fetchAvailableSubjects(schoolyear: string) {
     await sendAddCriterium(schoolyear, "Vak");
     let text = await fetchCritera(schoolyear);
@@ -41,10 +115,11 @@ export async function sendClearWerklijst() {
     });
 }
 
-export async function sendCriteria(criteria: object) {
+export async function sendCriteria(criteria: WerklijstCriteria) {
     const formData = new FormData();
 
-    formData.append("criteria", JSON.stringify(criteria));
+    let critString = JSON.stringify(criteria.criteria);
+    formData.append("criteria", critString);
     await fetch("/views/leerlingen/werklijst/index.criteria.session_reload.php", {
         method: "POST",
         body: formData,

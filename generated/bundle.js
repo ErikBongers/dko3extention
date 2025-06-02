@@ -4232,6 +4232,55 @@ function scrapeUren(rows, headerIndices) {
 
 //#endregion
 //#region typescript/werklijst/criteria.ts
+let Domein = /* @__PURE__ */ function(Domein$1) {
+	Domein$1[Domein$1["Muziek"] = 3] = "Muziek";
+	Domein$1[Domein$1["Woord"] = 4] = "Woord";
+	Domein$1[Domein$1["Dans"] = 2] = "Dans";
+	Domein$1[Domein$1["Overschrijdend"] = 5] = "Overschrijdend";
+	return Domein$1;
+}({});
+let Operator = /* @__PURE__ */ function(Operator$1) {
+	Operator$1["PLUS"] = "=";
+	return Operator$1;
+}({});
+var WerklijstCriteria = class {
+	criteria = [];
+	constructor(schoolYear) {
+		this.criteria = [
+			{
+				"criteria": "Schooljaar",
+				"operator": "=",
+				"values": schoolYear
+			},
+			{
+				"criteria": "Status",
+				"operator": "=",
+				"values": "12"
+			},
+			{
+				"criteria": "Uitschrijvingen",
+				"operator": "=",
+				"values": "0"
+			}
+		];
+	}
+	toCriteriaString() {
+		return JSON.stringify(this.criteria);
+	}
+	#addCriterium(criteria, operator, values) {
+		this.criteria.push({
+			criteria,
+			operator,
+			values
+		});
+	}
+	addDomeinen(domeinen) {
+		this.#addCriterium("Domein", Operator.PLUS, domeinen.join());
+	}
+	addVakken(vakken) {
+		this.#addCriterium("Vak", Operator.PLUS, vakken);
+	}
+};
 async function fetchAvailableSubjects(schoolyear) {
 	await sendAddCriterium(schoolyear, "Vak");
 	let text = await fetchCritera(schoolyear);
@@ -4268,7 +4317,8 @@ async function sendClearWerklijst() {
 }
 async function sendCriteria(criteria) {
 	const formData = new FormData();
-	formData.append("criteria", JSON.stringify(criteria));
+	let critString = JSON.stringify(criteria.criteria);
+	formData.append("criteria", critString);
 	await fetch("/views/leerlingen/werklijst/index.criteria.session_reload.php", {
 		method: "POST",
 		body: formData
@@ -4759,33 +4809,9 @@ async function setCriteriaForTeacherHoursAndClickFetchButton(schooljaar, hourSet
 	let validInstruments = dko3_vakken.filter((vak) => selectedInstrumentNames.has(vak.name));
 	let values = validInstruments.map((vak) => parseInt(vak.value));
 	let valueString = values.join();
-	let criteria = [
-		{
-			"criteria": "Schooljaar",
-			"operator": "=",
-			"values": schooljaar
-		},
-		{
-			"criteria": "Status",
-			"operator": "=",
-			"values": "12"
-		},
-		{
-			"criteria": "Uitschrijvingen",
-			"operator": "=",
-			"values": "0"
-		},
-		{
-			"criteria": "Domein",
-			"operator": "=",
-			"values": "3"
-		},
-		{
-			"criteria": "Vak",
-			"operator": "=",
-			"values": valueString
-		}
-	];
+	let criteria = new WerklijstCriteria(schooljaar);
+	criteria.addDomeinen([Domein.Muziek]);
+	criteria.addVakken(valueString);
 	await sendCriteria(criteria);
 	await sendFields([
 		{

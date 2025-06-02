@@ -1,4 +1,4 @@
-import {fetchAvailableSubjects, sendClearWerklijst, sendCriteria, sendFields, sendGrouping} from "./criteria";
+import {Domein, fetchAvailableSubjects, sendClearWerklijst, sendCriteria, sendFields, sendGrouping, WerklijstCriteria} from "./criteria";
 import * as def from "../def";
 import {getGotoStateOrDefault, PageName, saveGotoState, WerklijstGotoState} from "../gotoState";
 import {fetchHoursSettingsOrSaveDefault, TeacherHoursSetup} from "./hoursSettings";
@@ -13,17 +13,9 @@ export async function setCriteriaForTeacherHoursAndClickFetchButton(schooljaar: 
     let values = validInstruments.map(vak => parseInt(vak.value));
     let valueString = values.join();
 
-    let criteria = [
-        {"criteria": "Schooljaar", "operator": "=", "values": schooljaar},
-        {"criteria": "Status", "operator": "=", "values": "12"},
-        {"criteria": "Uitschrijvingen", "operator": "=", "values": "0"},
-        {"criteria": "Domein", "operator": "=", "values": "3"},
-        {
-            "criteria": "Vak",
-            "operator": "=",
-            "values": valueString
-        }
-    ];
+    let criteria  =  new WerklijstCriteria(schooljaar);
+    criteria.addDomeinen([Domein.Muziek]);
+    criteria.addVakken( valueString);
     await sendCriteria(criteria);
     await sendFields([
         {value: "vak_naam", text: "vak"},
