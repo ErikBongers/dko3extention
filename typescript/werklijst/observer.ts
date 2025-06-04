@@ -15,6 +15,7 @@ import {createDefaultTableFetcher} from "../table/loadAnyTable";
 import {Actions, sendRequest, ServiceRequest, TabType} from "../messaging";
 import {fetchHoursSettingsOrSaveDefault, mapHourSettings, TeacherHoursSetup, TeacherHoursSetupMapped} from "./hoursSettings";
 import MessageSender = chrome.runtime.MessageSender;
+import {Domein, sendCriteria, WerklijstCriteria} from "./criteria";
 
 registerChecksumHandler(def.WERKLIJST_TABLE_ID,  (_tableDef: TableFetcher) => {
     return document.querySelector("#view_contents > div.alert.alert-primary")?.textContent.replace("Criteria aanpassen", "")?.replace("Criteria:", "") ?? ""
@@ -78,7 +79,17 @@ function onCriteriaShown() {
     addButton(btnWerklijstMaken, def.UREN_PREV_SETUP_BTN_ID, "Setup voor "+ prevSchoolyear, async () => { await showUrenSetup(prevSchoolyear); }, "fas-certificate", ["btn", "btn-outline-dark"], "", "beforebegin", "gear.svg");
     addButton(btnWerklijstMaken, def.UREN_PREV_SETUP_BTN_ID+"sdf", "test", async () => { await sendMessageToHoursSettings(); }, "", ["btn", "btn-outline-dark"], "send");
     addButton(btnWerklijstMaken, def.UREN_NEXT_BTN_ID, "Toon lerarenuren voor "+ nextSchoolyear, async () => { await setCriteriaForTeacherHoursAndClickFetchButton(nextSchoolyear); }, "", ["btn", "btn-outline-dark"], "Uren "+ nextSchoolyearShort);
+
+    addButton(btnWerklijstMaken, "test123", "Test 123", prefillAnything, "", ["btn", "btn-outline-dark"], "Test 123");
+
     getSchoolIdString();
+}
+
+function prefillAnything() {
+    let crit = new WerklijstCriteria("2025-2026");
+    crit.addDomeinen([Domein.Muziek]);
+    crit.addVakGroepen(["Instrument/zang klassiek"]);
+    sendCriteria(crit).then(r => {location.reload()});
 }
 
 chrome.runtime.onMessage.addListener(onMessage)

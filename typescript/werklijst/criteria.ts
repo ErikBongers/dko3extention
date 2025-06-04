@@ -20,6 +20,7 @@ export const VELD = {
     KLAS_LEERKRACHT: {value: "klasleerkracht", text: "klasleerkracht"},
 }
 
+// noinspection JSUnusedGlobalSymbols
 export enum Grouping {
     LEERLING = "persoon_id",
     VAK = "vak_id",
@@ -37,7 +38,8 @@ export enum Operator {
     PLUS = "="
 }
 
-type isSelectedVak = (vak: string) => boolean;
+export type IsSelectedItem = (vak: string) => boolean;
+
 export class WerklijstCriteria {
     criteria: Criterium[] = [];
 
@@ -61,17 +63,35 @@ export class WerklijstCriteria {
         this.#addCriterium("Domein", Operator.PLUS, domeinen.join());
     }
 
+    addVakGroepen(vakGroepen: string[]) {
+        this.#addCriterium("Vakgroep", Operator.PLUS, vakGroepen.join());
+    }
+
     addVakken(vakken: string) {
         this.#addCriterium("Vak", Operator.PLUS, vakken);
         //TODO:
-        // let vakken = await fetchVakken(false);
-        // if (typeof werklijstCriteria.vakken === 'function') {
-        //     let isVak = werklijstCriteria.vakken;
-        //     let instruments = vakken.filter((vak) => isVak(vak[0]));
-        //     let values = instruments.map(vak => parseInt(vak[1]));
-        //     criteria.push({ "criteria": "Vak", "operator": "=", "values": values.join()});
+        // let vakDefs = await fetchVakDefinitions(false);
+        // let filtered: string[][];
+        // if (typeof criteria.vakken === 'function') {
+        //     let isVak = criteria.vakken;
+        //     filtered = vakDefs.filter((vakDef) => isVak(vakDef[0]));
+        // } else {
+        //     filtered = vakDefs.filter((vakDef) => (criteria.vakken as string[]).includes(vakDef[0]));
         // }
+        // let codes = filtered.map(vakDefe => parseInt(vakDefe[1]));
+        // criteriaString.push({"criteria": "Vak", "operator": "=", "values": codes.join()});
     }
+
+    async addCodesForCriterium(criterium: string, items: (string[] | IsSelectedItem)) {
+        let defs = await fetchMultiSelectDefinitions(criterium, false);
+        let codes = textToCodes(items, defs);
+        if(codes.length)
+            this.criteria.push({"criteria": criterium, "operator": "=", "values": codes.join()}); //todo: replace with addCriterium()
+    }
+    //todo: usage af above function:
+    // await addCodesForCriterium("Vak", criteria.vakken);
+    // await addCodesForCriterium("Vakgroep", criteria.vakGroepen);
+
 }
 
 export async function fetchAvailableSubjects(schoolyear: string) {
@@ -149,4 +169,35 @@ export async function sendFields(fields: { value: string, text: string }[]) {
         method: "POST",
         body: formData,
     });
+}
+
+export async function fetchVakDefinitions(clear: boolean) {
+    return fetchMultiSelectDefinitions("Vak", clear);
+}
+
+export async function fetchVakGroepDefinitions(clear: boolean) {
+    return fetchMultiSelectDefinitions("Vakgroep", clear);
+}
+
+export async function fetchMultiSelectDefinitions(criterium: string, clear: boolean) {
+    if (clear) {
+        await sendClearWerklijst();
+    }
+    await sendAddCriterium("2024-2025", criterium);
+    let text = await fetchCritera("2024-2025");
+    const template = document.createElement('template');
+    template.innerHTML = text;
+    let defs = template.content.querySelectorAll("#form_field_leerling_werklijst_criterium_"+ criterium.toLowerCase() +" option");
+    return Array.from(defs).map((def: HTMLOptionElement) => [def.label, def.value]);
+}
+
+function textToCodes(items: (string[] | IsSelectedItem), vakDefs: string[][]) {
+    let filtered: string[][];
+    if (typeof items === 'function') {
+        let isIncluded = items;
+        filtered = vakDefs.filter((vakDef) => isIncluded(vakDef[0]));
+    } else {
+        filtered = vakDefs.filter((vakDef) => (items as string[]).includes(vakDef[0]));
+    }
+    return filtered.map(vakDefe => parseInt(vakDefe[1]));
 }

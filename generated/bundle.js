@@ -4277,8 +4277,20 @@ var WerklijstCriteria = class {
 	addDomeinen(domeinen) {
 		this.#addCriterium("Domein", Operator.PLUS, domeinen.join());
 	}
+	addVakGroepen(vakGroepen) {
+		this.#addCriterium("Vakgroep", Operator.PLUS, vakGroepen.join());
+	}
 	addVakken(vakken) {
 		this.#addCriterium("Vak", Operator.PLUS, vakken);
+	}
+	async addCodesForCriterium(criterium, items) {
+		let defs = await fetchMultiSelectDefinitions(criterium, false);
+		let codes = textToCodes(items, defs);
+		if (codes.length) this.criteria.push({
+			"criteria": criterium,
+			"operator": "=",
+			"values": codes.join()
+		});
 	}
 };
 async function fetchAvailableSubjects(schoolyear) {
@@ -4344,6 +4356,23 @@ async function sendFields(fields) {
 		method: "POST",
 		body: formData
 	});
+}
+async function fetchMultiSelectDefinitions(criterium, clear) {
+	if (clear) await sendClearWerklijst();
+	await sendAddCriterium("2024-2025", criterium);
+	let text = await fetchCritera("2024-2025");
+	const template = document.createElement("template");
+	template.innerHTML = text;
+	let defs = template.content.querySelectorAll("#form_field_leerling_werklijst_criterium_" + criterium.toLowerCase() + " option");
+	return Array.from(defs).map((def) => [def.label, def.value]);
+}
+function textToCodes(items, vakDefs) {
+	let filtered;
+	if (typeof items === "function") {
+		let isIncluded = items;
+		filtered = vakDefs.filter((vakDef) => isIncluded(vakDef[0]));
+	} else filtered = vakDefs.filter((vakDef) => items.includes(vakDef[0]));
+	return filtered.map((vakDefe) => parseInt(vakDefe[1]));
 }
 
 //#endregion
@@ -4951,7 +4980,16 @@ function onCriteriaShown() {
 	addButton$1(btnWerklijstMaken, UREN_NEXT_BTN_ID, "Toon lerarenuren voor " + nextSchoolyear, async () => {
 		await setCriteriaForTeacherHoursAndClickFetchButton(nextSchoolyear);
 	}, "", ["btn", "btn-outline-dark"], "Uren " + nextSchoolyearShort);
+	addButton$1(btnWerklijstMaken, "test123", "Test 123", prefillAnything, "", ["btn", "btn-outline-dark"], "Test 123");
 	getSchoolIdString();
+}
+function prefillAnything() {
+	let crit = new WerklijstCriteria("2025-2026");
+	crit.addDomeinen([Domein.Muziek]);
+	crit.addVakGroepen(["Instrument/zang klassiek"]);
+	sendCriteria(crit).then((r) => {
+		location.reload();
+	});
 }
 chrome.runtime.onMessage.addListener(onMessage);
 let pauseRefresh = false;
