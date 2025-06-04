@@ -15,7 +15,7 @@ import {createDefaultTableFetcher} from "../table/loadAnyTable";
 import {Actions, sendRequest, ServiceRequest, TabType} from "../messaging";
 import {fetchHoursSettingsOrSaveDefault, mapHourSettings, TeacherHoursSetup, TeacherHoursSetupMapped} from "./hoursSettings";
 import MessageSender = chrome.runtime.MessageSender;
-import {Domein, sendCriteria, WerklijstCriteria} from "./criteria";
+import {Domein, sendClearWerklijst, sendCriteria, WerklijstCriteria} from "./criteria";
 
 registerChecksumHandler(def.WERKLIJST_TABLE_ID,  (_tableDef: TableFetcher) => {
     return document.querySelector("#view_contents > div.alert.alert-primary")?.textContent.replace("Criteria aanpassen", "")?.replace("Criteria:", "") ?? ""
@@ -85,11 +85,14 @@ function onCriteriaShown() {
     getSchoolIdString();
 }
 
-function prefillAnything() {
+async function prefillAnything() {
+    await sendClearWerklijst();
     let crit = new WerklijstCriteria("2025-2026");
     crit.addDomeinen([Domein.Muziek]);
-    crit.addVakGroepen(["Instrument/zang klassiek"]);
-    sendCriteria(crit).then(r => {location.reload()});
+    // await crit.addVakGroep("Instrument/zang klassiek");
+    await crit.addVakken(["Altklarinet", "Bastuba"]);
+    await sendCriteria(crit);
+    location.reload();
 }
 
 chrome.runtime.onMessage.addListener(onMessage)

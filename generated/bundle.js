@@ -4247,7 +4247,9 @@ let Operator = /* @__PURE__ */ function(Operator$1) {
 }({});
 var WerklijstCriteria = class {
 	criteria = [];
+	schoolYear;
 	constructor(schoolYear) {
+		this.schoolYear = schoolYear;
 		this.criteria = [
 			{
 				"criteria": "Schooljaar",
@@ -4279,20 +4281,26 @@ var WerklijstCriteria = class {
 	addDomeinen(domeinen) {
 		this.#addCriterium("Domein", Operator.PLUS, domeinen.join());
 	}
-	addVakGroepen(vakGroepen) {
-		this.#addCriterium("Vakgroep", Operator.PLUS, vakGroepen.join());
+	async addVakken(vakken) {
+		await this.addCodesForCriterium("Vak", vakken);
 	}
-	addVakken(vakken) {
+	async addVakGroep(vakGroep) {
+		await this.addCodesForCriterium("Vakgroep", [vakGroep]);
+	}
+	addVakCodes(vakken) {
 		this.#addCriterium("Vak", Operator.PLUS, vakken);
 	}
 	async addCodesForCriterium(criterium, items) {
-		let defs = await fetchMultiSelectDefinitions(criterium, false);
+		let defs = await fetchMultiSelectDefinitions(this.schoolYear, criterium, false);
 		let codes = textToCodes(items, defs);
 		if (codes.length) this.criteria.push({
 			"criteria": criterium,
 			"operator": "=",
 			"values": codes.join()
 		});
+	}
+	async fetchVakGroepDefinitions(clear) {
+		return fetchMultiSelectDefinitions(this.schoolYear, "Vakgroep", clear);
 	}
 };
 async function fetchAvailableSubjects(schoolyear) {
@@ -4359,10 +4367,10 @@ async function sendFields(fields) {
 		body: formData
 	});
 }
-async function fetchMultiSelectDefinitions(criterium, clear) {
+async function fetchMultiSelectDefinitions(schoolYear, criterium, clear) {
 	if (clear) await sendClearWerklijst();
-	await sendAddCriterium("2024-2025", criterium);
-	let text = await fetchCritera("2024-2025");
+	await sendAddCriterium(schoolYear, criterium);
+	let text = await fetchCritera(schoolYear);
 	const template = document.createElement("template");
 	template.innerHTML = text;
 	let defs = template.content.querySelectorAll("#form_field_leerling_werklijst_criterium_" + criterium.toLowerCase() + " option");
@@ -4842,7 +4850,7 @@ async function setCriteriaForTeacherHoursAndClickFetchButton(schooljaar, hourSet
 	let valueString = values.join();
 	let criteria = new WerklijstCriteria(schooljaar);
 	criteria.addDomeinen([Domein.Muziek]);
-	criteria.addVakken(valueString);
+	criteria.addVakCodes(valueString);
 	await sendCriteria(criteria);
 	await sendFields([
 		{
@@ -4985,13 +4993,13 @@ function onCriteriaShown() {
 	addButton$1(btnWerklijstMaken, "test123", "Test 123", prefillAnything, "", ["btn", "btn-outline-dark"], "Test 123");
 	getSchoolIdString();
 }
-function prefillAnything() {
+async function prefillAnything() {
+	await sendClearWerklijst();
 	let crit = new WerklijstCriteria("2025-2026");
 	crit.addDomeinen([Domein.Muziek]);
-	crit.addVakGroepen(["Instrument/zang klassiek"]);
-	sendCriteria(crit).then((r) => {
-		location.reload();
-	});
+	await crit.addVakken(["Altklarinet", "Bastuba"]);
+	await sendCriteria(crit);
+	location.reload();
 }
 chrome.runtime.onMessage.addListener(onMessage);
 let pauseRefresh = false;

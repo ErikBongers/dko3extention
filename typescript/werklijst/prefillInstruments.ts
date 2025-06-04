@@ -15,7 +15,7 @@ export async function setCriteriaForTeacherHoursAndClickFetchButton(schooljaar: 
 
     let criteria  =  new WerklijstCriteria(schooljaar);
     criteria.addDomeinen([Domein.Muziek]);
-    criteria.addVakken( valueString);
+    criteria.addVakCodes( valueString);
     await sendCriteria(criteria);
     await sendFields([
         {value: "vak_naam", text: "vak"},
