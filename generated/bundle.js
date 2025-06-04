@@ -1458,12 +1458,14 @@ function getVestigingen(modules) {
 	return uniqueVestigingen.toString();
 }
 function prepareLesmomenten(inputModules) {
-	let reLesMoment = /.*(\w\w) (?:\d+\/\d+ )?(\d\d:\d\d)-(\d\d:\d\d).*/;
+	let reLesMoment;
 	for (let module of inputModules) {
 		if (module.lesmoment === "(geen volgende les)") {
 			module.formattedLesmoment = module.lesmoment;
 			continue;
 		}
+		if (module.lesmoment.startsWith("volgende les")) reLesMoment = /volgende les: (\w\w) (?:\d+\/\d+ )?(\d\d:\d\d)-(\d\d:\d\d).*/;
+		else reLesMoment = /.*(\w\w) (?:\d+\/\d+ )?(\d\d:\d\d)-(\d\d:\d\d).*/;
 		let matches = module.lesmoment.match(reLesMoment);
 		if (matches?.length !== 4) {
 			console.error(`Could not process lesmoment "${module.lesmoment}" for instrument "${module.instrumentName}".`);
