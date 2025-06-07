@@ -152,7 +152,10 @@ export async function sendGrouping(grouping: Grouping) {
     });
 }
 
-export async function sendFields(fields: { value: string, text: string }[]) {
+export async function sendFields(fields: Veld[]) {
+    if (fields.length  ===  0)
+        return;
+
     const formData = new FormData();
 
     let fieldCnt = 0;
@@ -197,3 +200,4 @@ function textToCodes(items: (string[] | IsSelectedItem), vakDefs: string[][]) {
     }
     return filtered.map(vakDefe => parseInt(vakDefe[1]));
 }
+

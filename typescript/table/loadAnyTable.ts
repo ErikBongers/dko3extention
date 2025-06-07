@@ -7,6 +7,7 @@ import {insertProgressBar, ProgressBar} from "../progressBar";
 import * as def from "../def";
 import {executeTableCommands, TableHandlerForHeaders} from "./tableHeaders";
 import {FetchChain} from "./fetchChain";
+import {Grouping, sendCriteria, sendFields, sendGrouping, Veld, WerklijstCriteria} from "../werklijst/criteria";
 
 export async function  getWerklijstTableRef() {
     let chain = new FetchChain();
@@ -67,6 +68,16 @@ export async function getTable(tableRef: TableRef, infoBarListener: InfoBarTable
     let fetchedTable = await tableFetcher.fetch();
     await setViewFromCurrentUrl();
     return fetchedTable;
+}
+
+export async function getWerklijst(criteria: WerklijstCriteria, grouping: Grouping, fields: Veld[]) {
+    await fetch(def.DKO3_BASE_URL+"#leerlingen-werklijst");
+
+    await sendCriteria(criteria);
+    await sendGrouping(grouping);
+    await sendFields(fields);
+    let tableRef = await getWerklijstTableRef();
+    return getTable(tableRef, undefined, true);
 }
 
 export async function getTableFromHash(hash: string, clearCache: boolean, infoBarListener: InfoBarTableFetchListener) {

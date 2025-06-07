@@ -11,10 +11,10 @@ import {decorateTableHeader} from "../table/tableHeaders";
 import {getGotoStateOrDefault, Goto, PageName, saveGotoState, WerklijstGotoState} from "../gotoState";
 import {registerChecksumHandler, setAfterDownloadTableAction} from "../table/observer";
 import {CloudData, JsonCloudData, UrenData} from "./urenData";
-import {createDefaultTableFetcher, getTable, getWerklijstTableRef} from "../table/loadAnyTable";
+import {createDefaultTableFetcher, getWerklijst} from "../table/loadAnyTable";
 import {Actions, sendRequest, ServiceRequest, TabType} from "../messaging";
 import {fetchHoursSettingsOrSaveDefault, mapHourSettings, TeacherHoursSetup, TeacherHoursSetupMapped} from "./hoursSettings";
-import {Domein, Grouping, sendClearWerklijst, sendCriteria, sendGrouping, WerklijstCriteria} from "./criteria";
+import {Domein, Grouping, sendClearWerklijst, WerklijstCriteria} from "./criteria";
 import MessageSender = chrome.runtime.MessageSender;
 
 registerChecksumHandler(def.WERKLIJST_TABLE_ID,  (_tableDef: TableFetcher) => {
@@ -92,10 +92,7 @@ async function test123() {
     // await crit.addVakGroep("Instrument/zang klassiek");
     // await crit.addVakken(["Altklarinet", "Bastuba"]);
     await crit.addVakken(["Piano"]);
-    await sendCriteria(crit);
-    await sendGrouping(Grouping.LEERLING);
-    let tableRef= await getWerklijstTableRef();
-    let tableData = await getTable(tableRef, undefined, true);
+    let tableData = await getWerklijst(crit, Grouping.LEERLING, []);
     console.log([...tableData.getRows().values()].map(tr => tr.textContent));
 }
 
