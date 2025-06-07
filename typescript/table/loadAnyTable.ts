@@ -8,6 +8,29 @@ import * as def from "../def";
 import {executeTableCommands, TableHandlerForHeaders} from "./tableHeaders";
 import {FetchChain} from "./fetchChain";
 
+export async function  getWerklijstTableRef() {
+    let chain = new FetchChain();
+    await chain.fetch("view.php?args=leerlingen-werklijst$werklijst");
+    await chain.fetch("views/leerlingen/werklijst/werklijst.view.php");
+    await chain.fetch("views/leerlingen/werklijst/werklijst.table.php");
+    await chain.fetch("views/ui/datatable.php?id=leerlingen_werklijst");
+    return parseDataTablePhp(chain, "leerlingen_werklijst");
+}
+
+async function parseDataTablePhp(chain: FetchChain, htmlTableId: string) {
+    chain.find("var", "datatable_id", "=");
+    let datatable_id = chain.getQuotedString();
+    chain.clipTo("</script>");
+    chain.find(".", "load", "(");
+    let tableNavUrl = chain.getQuotedString() + datatable_id + '&pos=top';
+    await chain.fetch(tableNavUrl);
+    let tableNav = findFirstNavigation(chain.div());
+    console.log(tableNav);
+    let buildFetchUrl = (offset: number) => `/views/ui/datatable.php?id=${datatable_id}&start=${offset}&aantal=0`;
+
+    return new TableRef(htmlTableId, tableNav, buildFetchUrl);
+}
+
 async function getTableRefFromHash(hash: string) {
     let chain = new FetchChain();
 
@@ -26,31 +49,19 @@ async function getTableRefFromHash(hash: string) {
         chain.findDocReadyLoadUrl();
     }
     await chain.fetch();
-    chain.find("var", "datatable_id", "=");
-    let datatable_id = chain.getQuotedString();
-    chain.clipTo("</script>");
-    chain.find(".", "load", "(");
-    let tableNavUrl = chain.getQuotedString() + '&pos=top';
-    await chain.fetch(tableNavUrl);
-    let tableNav = findFirstNavigation(chain.div());
-    console.log(tableNav);
-    let buildFetchUrl = (offset: number) => `/views/ui/datatable.php?id=${datatable_id}&start=${offset}&aantal=0`;
-
-    return new TableRef(htmlTableId, tableNav, buildFetchUrl);
+    return parseDataTablePhp(chain, htmlTableId);
 }
 
-export async function getTableFromHash(hash: string, clearCache: boolean, infoBarListener: InfoBarTableFetchListener) {
-    let tableRef = await getTableRefFromHash(hash);
-    console.log(tableRef);
-
+export async function getTable(tableRef: TableRef, infoBarListener: InfoBarTableFetchListener, clearCache: boolean) {
     let tableFetcher = new TableFetcher(
         tableRef,
         getChecksumBuilder(tableRef.htmlTableId)
     );
 
-    tableFetcher.addListener(infoBarListener);
+    if(infoBarListener)
+        tableFetcher.addListener(infoBarListener);
 
-    if(clearCache)
+    if (clearCache)
         tableFetcher.clearCache();
 
     let fetchedTable = await tableFetcher.fetch();
@@ -58,6 +69,11 @@ export async function getTableFromHash(hash: string, clearCache: boolean, infoBa
     return fetchedTable;
 }
 
+export async function getTableFromHash(hash: string, clearCache: boolean, infoBarListener: InfoBarTableFetchListener) {
+    let tableRef = await getTableRefFromHash(hash);
+    console.log(tableRef);
+    return await getTable(tableRef, infoBarListener, clearCache);
+}
 
 export async function downloadTableRows() {
     let result = createDefaultTableFetcher();

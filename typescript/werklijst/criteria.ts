@@ -142,7 +142,7 @@ export async function sendCriteria(criteria: WerklijstCriteria) {
     });
 }
 
-export async function sendGrouping(grouping: string) {
+export async function sendGrouping(grouping: Grouping) {
     const formData = new FormData();
 
     formData.append("groepering", grouping);

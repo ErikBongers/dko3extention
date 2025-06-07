@@ -11,11 +11,11 @@ import {decorateTableHeader} from "../table/tableHeaders";
 import {getGotoStateOrDefault, Goto, PageName, saveGotoState, WerklijstGotoState} from "../gotoState";
 import {registerChecksumHandler, setAfterDownloadTableAction} from "../table/observer";
 import {CloudData, JsonCloudData, UrenData} from "./urenData";
-import {createDefaultTableFetcher} from "../table/loadAnyTable";
+import {createDefaultTableFetcher, getTable, getWerklijstTableRef} from "../table/loadAnyTable";
 import {Actions, sendRequest, ServiceRequest, TabType} from "../messaging";
 import {fetchHoursSettingsOrSaveDefault, mapHourSettings, TeacherHoursSetup, TeacherHoursSetupMapped} from "./hoursSettings";
+import {Domein, Grouping, sendClearWerklijst, sendCriteria, sendGrouping, WerklijstCriteria} from "./criteria";
 import MessageSender = chrome.runtime.MessageSender;
-import {Domein, sendClearWerklijst, sendCriteria, WerklijstCriteria} from "./criteria";
 
 registerChecksumHandler(def.WERKLIJST_TABLE_ID,  (_tableDef: TableFetcher) => {
     return document.querySelector("#view_contents > div.alert.alert-primary")?.textContent.replace("Criteria aanpassen", "")?.replace("Criteria:", "") ?? ""
@@ -80,19 +80,23 @@ function onCriteriaShown() {
     addButton(btnWerklijstMaken, def.UREN_PREV_SETUP_BTN_ID+"sdf", "test", async () => { await sendMessageToHoursSettings(); }, "", ["btn", "btn-outline-dark"], "send");
     addButton(btnWerklijstMaken, def.UREN_NEXT_BTN_ID, "Toon lerarenuren voor "+ nextSchoolyear, async () => { await setCriteriaForTeacherHoursAndClickFetchButton(nextSchoolyear); }, "", ["btn", "btn-outline-dark"], "Uren "+ nextSchoolyearShort);
 
-    addButton(btnWerklijstMaken, "test123", "Test 123", prefillAnything, "", ["btn", "btn-outline-dark"], "Test 123");
+    addButton(btnWerklijstMaken, "test123", "Test 123", test123, "", ["btn", "btn-outline-dark"], "Test 123");
 
     getSchoolIdString();
 }
 
-async function prefillAnything() {
+async function test123() {
     await sendClearWerklijst();
     let crit = new WerklijstCriteria("2025-2026");
     crit.addDomeinen([Domein.Muziek]);
     // await crit.addVakGroep("Instrument/zang klassiek");
-    await crit.addVakken(["Altklarinet", "Bastuba"]);
+    // await crit.addVakken(["Altklarinet", "Bastuba"]);
+    await crit.addVakken(["Piano"]);
     await sendCriteria(crit);
-    location.reload();
+    await sendGrouping(Grouping.LEERLING);
+    let tableRef= await getWerklijstTableRef();
+    let tableData = await getTable(tableRef, undefined, true);
+    console.log([...tableData.getRows().values()].map(tr => tr.textContent));
 }
 
 chrome.runtime.onMessage.addListener(onMessage)

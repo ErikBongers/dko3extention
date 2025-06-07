@@ -3622,8 +3622,10 @@ var FetchChain = class {
 		return this.lastText;
 	}
 	getQuotedString() {
-		this.lastText = new TokenScanner(this.lastText).getString();
-		return this.lastText;
+		let daString = "";
+		let scanner = new TokenScanner(this.lastText).captureString((res) => daString = res);
+		this.lastText = scanner.result();
+		return daString;
 	}
 	clipTo(end) {
 		this.lastText = new TokenScanner(this.lastText).clipTo(end).result();
@@ -3668,6 +3670,26 @@ async function fetchText(url) {
 
 //#endregion
 //#region typescript/table/loadAnyTable.ts
+async function getWerklijstTableRef() {
+	let chain = new FetchChain();
+	await chain.fetch("view.php?args=leerlingen-werklijst$werklijst");
+	await chain.fetch("views/leerlingen/werklijst/werklijst.view.php");
+	await chain.fetch("views/leerlingen/werklijst/werklijst.table.php");
+	await chain.fetch("views/ui/datatable.php?id=leerlingen_werklijst");
+	return parseDataTablePhp(chain, "leerlingen_werklijst");
+}
+async function parseDataTablePhp(chain, htmlTableId) {
+	chain.find("var", "datatable_id", "=");
+	let datatable_id = chain.getQuotedString();
+	chain.clipTo("</script>");
+	chain.find(".", "load", "(");
+	let tableNavUrl = chain.getQuotedString() + datatable_id + "&pos=top";
+	await chain.fetch(tableNavUrl);
+	let tableNav = findFirstNavigation(chain.div());
+	console.log(tableNav);
+	let buildFetchUrl = (offset) => `/views/ui/datatable.php?id=${datatable_id}&start=${offset}&aantal=0`;
+	return new TableRef(htmlTableId, tableNav, buildFetchUrl);
+}
 async function getTableRefFromHash(hash) {
 	let chain = new FetchChain();
 	await chain.fetch(DKO3_BASE_URL + "#" + hash);
@@ -3684,26 +3706,20 @@ async function getTableRefFromHash(hash) {
 		chain.findDocReadyLoadUrl();
 	}
 	await chain.fetch();
-	chain.find("var", "datatable_id", "=");
-	let datatable_id = chain.getQuotedString();
-	chain.clipTo("</script>");
-	chain.find(".", "load", "(");
-	let tableNavUrl = chain.getQuotedString() + "&pos=top";
-	await chain.fetch(tableNavUrl);
-	let tableNav = findFirstNavigation(chain.div());
-	console.log(tableNav);
-	let buildFetchUrl = (offset) => `/views/ui/datatable.php?id=${datatable_id}&start=${offset}&aantal=0`;
-	return new TableRef(htmlTableId, tableNav, buildFetchUrl);
+	return parseDataTablePhp(chain, htmlTableId);
 }
-async function getTableFromHash(hash, clearCache, infoBarListener) {
-	let tableRef = await getTableRefFromHash(hash);
-	console.log(tableRef);
+async function getTable(tableRef, infoBarListener, clearCache) {
 	let tableFetcher = new TableFetcher(tableRef, getChecksumBuilder(tableRef.htmlTableId));
-	tableFetcher.addListener(infoBarListener);
+	if (infoBarListener) tableFetcher.addListener(infoBarListener);
 	if (clearCache) tableFetcher.clearCache();
 	let fetchedTable = await tableFetcher.fetch();
 	await setViewFromCurrentUrl();
 	return fetchedTable;
+}
+async function getTableFromHash(hash, clearCache, infoBarListener) {
+	let tableRef = await getTableRefFromHash(hash);
+	console.log(tableRef);
+	return await getTable(tableRef, infoBarListener, clearCache);
 }
 async function downloadTableRows() {
 	let result = createDefaultTableFetcher();
@@ -4240,6 +4256,13 @@ let Domein = /* @__PURE__ */ function(Domein$1) {
 	Domein$1[Domein$1["Dans"] = 2] = "Dans";
 	Domein$1[Domein$1["Overschrijdend"] = 5] = "Overschrijdend";
 	return Domein$1;
+}({});
+let Grouping = /* @__PURE__ */ function(Grouping$1) {
+	Grouping$1["LEERLING"] = "persoon_id";
+	Grouping$1["VAK"] = "vak_id";
+	Grouping$1["LES"] = "les_id";
+	Grouping$1["INSCHRIJVING"] = "inschrijving_id";
+	return Grouping$1;
 }({});
 let Operator = /* @__PURE__ */ function(Operator$1) {
 	Operator$1["PLUS"] = "=";
@@ -4866,7 +4889,7 @@ async function setCriteriaForTeacherHoursAndClickFetchButton(schooljaar, hourSet
 			text: "klasleerkracht"
 		}
 	]);
-	await sendGrouping("vak_id");
+	await sendGrouping(Grouping.VAK);
 	let pageState$2 = getGotoStateOrDefault(PageName.Werklijst);
 	pageState$2.werklijstTableName = UREN_TABLE_STATE_NAME;
 	saveGotoState(pageState$2);
@@ -4990,16 +5013,19 @@ function onCriteriaShown() {
 	addButton$1(btnWerklijstMaken, UREN_NEXT_BTN_ID, "Toon lerarenuren voor " + nextSchoolyear, async () => {
 		await setCriteriaForTeacherHoursAndClickFetchButton(nextSchoolyear);
 	}, "", ["btn", "btn-outline-dark"], "Uren " + nextSchoolyearShort);
-	addButton$1(btnWerklijstMaken, "test123", "Test 123", prefillAnything, "", ["btn", "btn-outline-dark"], "Test 123");
+	addButton$1(btnWerklijstMaken, "test123", "Test 123", test123, "", ["btn", "btn-outline-dark"], "Test 123");
 	getSchoolIdString();
 }
-async function prefillAnything() {
+async function test123() {
 	await sendClearWerklijst();
 	let crit = new WerklijstCriteria("2025-2026");
 	crit.addDomeinen([Domein.Muziek]);
-	await crit.addVakken(["Altklarinet", "Bastuba"]);
+	await crit.addVakken(["Piano"]);
 	await sendCriteria(crit);
-	location.reload();
+	await sendGrouping(Grouping.LEERLING);
+	let tableRef = await getWerklijstTableRef();
+	let tableData = await getTable(tableRef, void 0, true);
+	console.log([...tableData.getRows().values()].map((tr) => tr.textContent));
 }
 chrome.runtime.onMessage.addListener(onMessage);
 let pauseRefresh = false;

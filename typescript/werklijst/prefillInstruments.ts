@@ -1,4 +1,4 @@
-import {Domein, fetchAvailableSubjects, sendClearWerklijst, sendCriteria, sendFields, sendGrouping, WerklijstCriteria} from "./criteria";
+import {Domein, fetchAvailableSubjects, Grouping, sendClearWerklijst, sendCriteria, sendFields, sendGrouping, WerklijstCriteria} from "./criteria";
 import * as def from "../def";
 import {getGotoStateOrDefault, PageName, saveGotoState, WerklijstGotoState} from "../gotoState";
 import {fetchHoursSettingsOrSaveDefault, TeacherHoursSetup} from "./hoursSettings";
@@ -22,7 +22,7 @@ export async function setCriteriaForTeacherHoursAndClickFetchButton(schooljaar: 
         {value: "graad_leerjaar", text: "graad + leerjaar"},
         {value: "klasleerkracht", text: "klasleerkracht"}]
     );
-    await sendGrouping("vak_id");
+    await sendGrouping(Grouping.VAK);
     let pageState = getGotoStateOrDefault(PageName.Werklijst) as WerklijstGotoState;
     pageState.werklijstTableName = def.UREN_TABLE_STATE_NAME;
     saveGotoState(pageState);

@@ -32,8 +32,10 @@ export class FetchChain {
     }
 
     getQuotedString() {
-        this.lastText = new TokenScanner(this.lastText).getString();
-        return this.lastText;
+        let daString= "";
+        let scanner = new TokenScanner(this.lastText).captureString((res => daString = res));
+        this.lastText  = scanner.result();
+        return daString;
     }
 
     clipTo(end: string) {
