@@ -1,7 +1,8 @@
-import {Domein, fetchAvailableSubjects, Grouping, sendClearWerklijst, sendCriteria, sendFields, sendGrouping, WerklijstCriteria} from "./criteria";
+import {Domein, fetchAvailableSubjects, Grouping, sendClearWerklijst, sendCriteria, sendFields, sendGrouping} from "./criteria";
 import * as def from "../def";
 import {getGotoStateOrDefault, PageName, saveGotoState, WerklijstGotoState} from "../gotoState";
 import {fetchHoursSettingsOrSaveDefault, TeacherHoursSetup} from "./hoursSettings";
+import {FIELD, WerklijstBuilder} from "../table/werklijstBuilder";
 
 export async function setCriteriaForTeacherHoursAndClickFetchButton(schooljaar: string, hourSettings?: TeacherHoursSetup) {
     await sendClearWerklijst();
@@ -13,16 +14,11 @@ export async function setCriteriaForTeacherHoursAndClickFetchButton(schooljaar: 
     let values = validInstruments.map(vak => parseInt(vak.value));
     let valueString = values.join();
 
-    let criteria  =  new WerklijstCriteria(schooljaar);
-    criteria.addDomeinen([Domein.Muziek]);
-    criteria.addVakCodes( valueString);
-    await sendCriteria(criteria);
-    await sendFields([
-        {value: "vak_naam", text: "vak"},
-        {value: "graad_leerjaar", text: "graad + leerjaar"},
-        {value: "klasleerkracht", text: "klasleerkracht"}]
-    );
-    await sendGrouping(Grouping.VAK);
+    let builder  =  new WerklijstBuilder(schooljaar);
+    builder.addDomeinen([Domein.Muziek]);
+    builder.addVakCodes( valueString);
+    builder.addFields([FIELD.VAK_NAAM, FIELD.GRAAD_LEERJAAR, FIELD.KLAS_LEERKRACHT]);
+    await builder.sendSettings(Grouping.VAK);
     let pageState = getGotoStateOrDefault(PageName.Werklijst) as WerklijstGotoState;
     pageState.werklijstTableName = def.UREN_TABLE_STATE_NAME;
     saveGotoState(pageState);

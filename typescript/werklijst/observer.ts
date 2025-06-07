@@ -11,10 +11,11 @@ import {decorateTableHeader} from "../table/tableHeaders";
 import {getGotoStateOrDefault, Goto, PageName, saveGotoState, WerklijstGotoState} from "../gotoState";
 import {registerChecksumHandler, setAfterDownloadTableAction} from "../table/observer";
 import {CloudData, JsonCloudData, UrenData} from "./urenData";
-import {createDefaultTableFetcher, getWerklijst} from "../table/loadAnyTable";
+import {createDefaultTableFetcher} from "../table/loadAnyTable";
 import {Actions, sendRequest, ServiceRequest, TabType} from "../messaging";
 import {fetchHoursSettingsOrSaveDefault, mapHourSettings, TeacherHoursSetup, TeacherHoursSetupMapped} from "./hoursSettings";
-import {Domein, Grouping, sendClearWerklijst, WerklijstCriteria} from "./criteria";
+import {Domein, Grouping, sendClearWerklijst} from "./criteria";
+import {WerklijstBuilder} from "../table/werklijstBuilder";
 import MessageSender = chrome.runtime.MessageSender;
 
 registerChecksumHandler(def.WERKLIJST_TABLE_ID,  (_tableDef: TableFetcher) => {
@@ -86,14 +87,14 @@ function onCriteriaShown() {
 }
 
 async function test123() {
-    await sendClearWerklijst();
-    let crit = new WerklijstCriteria("2025-2026");
-    crit.addDomeinen([Domein.Muziek]);
-    // await crit.addVakGroep("Instrument/zang klassiek");
-    // await crit.addVakken(["Altklarinet", "Bastuba"]);
-    await crit.addVakken(["Piano"]);
-    let tableData = await getWerklijst(crit, Grouping.LEERLING, []);
-    console.log([...tableData.getRows().values()].map(tr => tr.textContent));
+    // let builder = new WerklijstBuilder("2025-2026");
+    // builder.addDomeinen([Domein.Muziek]);
+    // // await crit.addVakGroep("Instrument/zang klassiek");
+    // // await crit.addVakken(["Altklarinet", "Bastuba"]);
+    // builder.addVakken(["Piano"]);
+    // let tableData = await builder.getTable(Grouping.LEERLING);
+    // console.log([...tableData.getRows().values()].map(tr => tr.textContent));
+    sendClearWerklijst();
 }
 
 chrome.runtime.onMessage.addListener(onMessage)

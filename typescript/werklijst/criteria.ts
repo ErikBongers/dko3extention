@@ -13,13 +13,6 @@ export interface Veld {
     text: string;
 }
 
-export const VELD = {
-    DOMEIN:  {value: "domein", text: "domein"},
-    VAK_NAAM: {value: "vak_naam", text: "vak"},
-    GRAAD_LEERJAAR: {value: "graad_leerjaar", text: "graad + leerjaar"},
-    KLAS_LEERKRACHT: {value: "klasleerkracht", text: "klasleerkracht"},
-}
-
 // noinspection JSUnusedGlobalSymbols
 export enum Grouping {
     LEERLING = "persoon_id",
@@ -40,59 +33,10 @@ export enum Operator {
 
 export type IsSelectedItem = (vak: string) => boolean;
 
-export class WerklijstCriteria {
-    criteria: Criterium[] = [];
-    private schoolYear: string;
-
-    constructor(schoolYear: string) {
-        this.schoolYear = schoolYear;
-        this.criteria = [
-            {"criteria": "Schooljaar", "operator": "=", "values": schoolYear},
-            {"criteria": "Status", "operator": "=", "values": "12"}, //inschrijvingen en toewijzingen
-            {"criteria": "Uitschrijvingen", "operator": "=", "values": "0"}, // Zonder uitgeschreven leerlingen
-        ];
-    }
-
-    toCriteriaString() {
-        return JSON.stringify(this.criteria);
-    }
-
-    #addCriterium(criteria: string, operator: Operator, values: string) {
-        this.criteria.push({criteria, operator, values});
-    }
-
-    addDomeinen(domeinen: Domein[])  {
-        this.#addCriterium("Domein", Operator.PLUS, domeinen.join());
-    }
-
-    async addVakken(vakken: string[]) {
-        await this.addCodesForCriterium("Vak", vakken);
-    }
-
-    async addVakGroep(vakGroep: string) {
-        await this.addCodesForCriterium("Vakgroep", [vakGroep]);
-    }
-
-    addVakCodes(vakken: string) {
-        this.#addCriterium("Vak", Operator.PLUS, vakken);
-    }
-
-    async addCodesForCriterium(criterium: string, items: (string[] | IsSelectedItem)) {
-        let defs = await fetchMultiSelectDefinitions(this.schoolYear, criterium, false);
-        let codes = textToCodes(items, defs);
-        if(codes.length)
-            this.criteria.push({"criteria": criterium, "operator": "=", "values": codes.join()}); //todo: replace with addCriterium()
-    }
-
-    async fetchVakGroepDefinitions(clear: boolean) {
-        return fetchMultiSelectDefinitions(this.schoolYear, "Vakgroep", clear);
-    }
-
-}
-
 export async function fetchAvailableSubjects(schoolyear: string) {
     await sendAddCriterium(schoolyear, "Vak");
     let text = await fetchCritera(schoolyear);
+    await sendClearWerklijst();  //todo:  try to restore the previous werklijst criteria.
     const template = document.createElement('template');
     template.innerHTML = text;
     let vakken = template.content.querySelectorAll("#form_field_leerling_werklijst_criterium_vak option");
@@ -131,11 +75,10 @@ export async function sendClearWerklijst() {
     });
 }
 
-export async function sendCriteria(criteria: WerklijstCriteria) {
+export async function sendCriteria(criteria: string) {
     const formData = new FormData();
 
-    let critString = JSON.stringify(criteria.criteria);
-    formData.append("criteria", critString);
+    formData.append("criteria", criteria);
     await fetch("/views/leerlingen/werklijst/index.criteria.session_reload.php", {
         method: "POST",
         body: formData,
@@ -188,16 +131,5 @@ export async function fetchMultiSelectDefinitions(schoolYear: string, criterium:
     template.innerHTML = text;
     let defs = template.content.querySelectorAll("#form_field_leerling_werklijst_criterium_"+ criterium.toLowerCase() +" option");
     return Array.from(defs).map((def: HTMLOptionElement) => [def.label, def.value]);
-}
-
-function textToCodes(items: (string[] | IsSelectedItem), vakDefs: string[][]) {
-    let filtered: string[][];
-    if (typeof items === 'function') {
-        let isIncluded = items;
-        filtered = vakDefs.filter((vakDef) => isIncluded(vakDef[0]));
-    } else {
-        filtered = vakDefs.filter((vakDef) => (items as string[]).includes(vakDef[0]));
-    }
-    return filtered.map(vakDefe => parseInt(vakDefe[1]));
 }
 
