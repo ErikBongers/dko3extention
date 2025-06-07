@@ -347,7 +347,7 @@ function buildBlockHeader(newTableBody: HTMLTableSectionElement, block: BlockInf
     //INFO
     buildInfoRowWithText(newTableBody, Boolean((DisplayOptions.Teacher & displayOptions)), block.id, groupId, block.teacher);
     buildInfoRowWithText(newTableBody, Boolean((DisplayOptions.Instrument & displayOptions)), block.id, groupId, block.instrumentName);
-    buildInfoRowWithText(newTableBody, Boolean((DisplayOptions.Hour & displayOptions)), block.id, groupId, block.lesmoment);
+    buildInfoRowWithText(newTableBody, Boolean((DisplayOptions.Hour & displayOptions)), block.id, groupId, block.formattedLesmoment);
     buildInfoRowWithText(newTableBody, Boolean((DisplayOptions.Location & displayOptions)), block.id, groupId, block.vestiging);
     if(block.tags.length > 0) {
         let {last: divMuted} = buildInfoRow(newTableBody, block.tags.join(), true, groupId, block.id);

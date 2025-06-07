@@ -15,7 +15,7 @@ export class BlockInfo {
     teacher: string;
     instrumentName: string;
     maxAantal: number;
-    lesmoment: string;
+    formattedLesmoment: string;
     vestiging: string;
     trimesters: (Les| undefined)[][];
     jaarModules: Les[];
@@ -44,7 +44,7 @@ export class BlockInfo {
             this.teacher = undefined;
             this.instrumentName = undefined;
             this.maxAantal = -1;
-            this.lesmoment = undefined;
+            this.formattedLesmoment = undefined;
             this.vestiging = undefined;
             this.trimesters = [[], [], []];
             this.jaarModules = [];
@@ -105,7 +105,7 @@ export class BlockInfo {
 
     updateMergedBlock() {
         let allLessen = this.alleLessen();
-        this.lesmoment = [...new Set(allLessen.filter(les => les).map(les => les.lesmoment))].join(", ");
+        this.formattedLesmoment = [...new Set(allLessen.filter(les => les).map(les => les.formattedLesmoment))].join(", ");
         this.teacher = [...new Set(allLessen.filter(les => les).map(les => les.teacher))].join(", ");
         this.vestiging = [...new Set(allLessen.filter(les => les).map(les => les.vestiging))].join(", ");
         this.instrumentName =  [...new Set(allLessen.filter(les => les).map(les => les.instrumentName))].join(", ");
@@ -279,7 +279,7 @@ export function buildTableData(inputModules: Les[]) : TableData {
                 let block: BlockInfo = new BlockInfo();
                 block.instrumentName = instrumentName;
                 block.teacher = teacher;
-                block.lesmoment = lesmoment;
+                block.formattedLesmoment = lesmoment;
                 block.maxAantal = getMaxAantal(instrumentTeacherMomentModules);
                 block.vestiging = getVestigingen(instrumentTeacherMomentModules);
                 block.tags = distinct(instrumentTeacherMomentModules.map(les => les.tags).flat())
@@ -330,14 +330,14 @@ export function buildTableData(inputModules: Les[]) : TableData {
     //group by teacher/lesmoment
     groupBlocksTwoLevels(
         tableData.teachers.values(),
-        (block) => block.lesmoment,
+        (block) => block.formattedLesmoment,
         (primary: Teacher, secundary) => { primary.lesMomenten = secundary; }
     );
 
     //group by instrument/lesmoment
     groupBlocksTwoLevels(
         tableData.instruments.values(),
-        (block) => block.lesmoment,
+        (block) => block.formattedLesmoment,
         (primary: Teacher, secundary) => { primary.lesMomenten = secundary; }
     );
 

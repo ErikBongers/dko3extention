@@ -1333,7 +1333,7 @@ var BlockInfo = class BlockInfo {
 	teacher;
 	instrumentName;
 	maxAantal;
-	lesmoment;
+	formattedLesmoment;
 	vestiging;
 	trimesters;
 	jaarModules;
@@ -1358,7 +1358,7 @@ var BlockInfo = class BlockInfo {
 			this.teacher = void 0;
 			this.instrumentName = void 0;
 			this.maxAantal = -1;
-			this.lesmoment = void 0;
+			this.formattedLesmoment = void 0;
 			this.vestiging = void 0;
 			this.trimesters = [
 				[],
@@ -1413,7 +1413,7 @@ var BlockInfo = class BlockInfo {
 	}
 	updateMergedBlock() {
 		let allLessen = this.alleLessen();
-		this.lesmoment = [...new Set(allLessen.filter((les) => les).map((les) => les.lesmoment))].join(", ");
+		this.formattedLesmoment = [...new Set(allLessen.filter((les) => les).map((les) => les.formattedLesmoment))].join(", ");
 		this.teacher = [...new Set(allLessen.filter((les) => les).map((les) => les.teacher))].join(", ");
 		this.vestiging = [...new Set(allLessen.filter((les) => les).map((les) => les.vestiging))].join(", ");
 		this.instrumentName = [...new Set(allLessen.filter((les) => les).map((les) => les.instrumentName))].join(", ");
@@ -1515,7 +1515,7 @@ function buildTableData(inputModules) {
 				let block = new BlockInfo();
 				block.instrumentName = instrumentName;
 				block.teacher = teacher;
-				block.lesmoment = lesmoment;
+				block.formattedLesmoment = lesmoment;
 				block.maxAantal = getMaxAantal(instrumentTeacherMomentModules);
 				block.vestiging = getVestigingen(instrumentTeacherMomentModules);
 				block.tags = distinct(instrumentTeacherMomentModules.map((les) => les.tags).flat()).map((tagName) => {
@@ -1555,10 +1555,10 @@ function buildTableData(inputModules) {
 		blocks: []
 	});
 	for (let block of tableData.blocks) tableData.teachers.get(block.teacher).blocks.push(block);
-	groupBlocksTwoLevels(tableData.teachers.values(), (block) => block.lesmoment, (primary, secundary) => {
+	groupBlocksTwoLevels(tableData.teachers.values(), (block) => block.formattedLesmoment, (primary, secundary) => {
 		primary.lesMomenten = secundary;
 	});
-	groupBlocksTwoLevels(tableData.instruments.values(), (block) => block.lesmoment, (primary, secundary) => {
+	groupBlocksTwoLevels(tableData.instruments.values(), (block) => block.formattedLesmoment, (primary, secundary) => {
 		primary.lesMomenten = secundary;
 	});
 	groupBlocks(tableData.teachers.values(), (block) => block.teacher);
@@ -1921,7 +1921,7 @@ function buildInfoRowWithText(newTableBody, show, blockId, groupId, text) {
 function buildBlockHeader(newTableBody, block, groupId, trimesterHeaders, displayOptions) {
 	buildInfoRowWithText(newTableBody, Boolean(DisplayOptions.Teacher & displayOptions), block.id, groupId, block.teacher);
 	buildInfoRowWithText(newTableBody, Boolean(DisplayOptions.Instrument & displayOptions), block.id, groupId, block.instrumentName);
-	buildInfoRowWithText(newTableBody, Boolean(DisplayOptions.Hour & displayOptions), block.id, groupId, block.lesmoment);
+	buildInfoRowWithText(newTableBody, Boolean(DisplayOptions.Hour & displayOptions), block.id, groupId, block.formattedLesmoment);
 	buildInfoRowWithText(newTableBody, Boolean(DisplayOptions.Location & displayOptions), block.id, groupId, block.vestiging);
 	if (block.tags.length > 0) {
 		let { last: divMuted } = buildInfoRow(newTableBody, block.tags.join(), true, groupId, block.id);
