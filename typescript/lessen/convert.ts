@@ -498,7 +498,10 @@ function createLesFromToewijzing(instrument: string, toewijzing: JaarToewijzing)
     let les = new Les();
     les.lesType = LesType.JaarModule;
     les.instrumentName = instrument;
-    les.teacher = toewijzing.klasleerkracht;
+    if(toewijzing.klasleerkracht == "")
+        les.teacher = `toe te wijzen lk ${instrument}`;
+    else
+        les.teacher = toewijzing.klasleerkracht;
     les.formattedLesmoment = toewijzing.lesmoment;
     les.maxAantal = 999;
     les.aantal = 0;
