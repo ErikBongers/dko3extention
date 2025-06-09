@@ -1510,6 +1510,7 @@ function setStudentAllTrimsTheSameInstrument(student) {
 	student.allYearSame = instruments.every((instr) => instr.instrumentName === (student?.trimesterInstruments[0][0]?.instrumentName ?? "---"));
 }
 function setStudentNoInstrumentForAllTrims(student) {
+	if (student.jaarInstruments?.length > 0 && student.trimesterInstruments?.flat()?.length == 0) return;
 	if (!student.trimesterInstruments) return;
 	student.notAllTrimsHaveAnInstrument = false;
 	for (let trim of student.trimesterInstruments) if (trim.length == 0) student.notAllTrimsHaveAnInstrument = true;
@@ -1708,11 +1709,7 @@ function createStudentFromToewijzing(toewijzing) {
 	student.info = "";
 	student.graadJaar = toewijzing.graadJaar;
 	student.jaarInstruments = [];
-	student.trimesterInstruments = [
-		[],
-		[],
-		[]
-	];
+	student.trimesterInstruments = void 0;
 	return student;
 }
 function connvertToewijzingenToModules(jaarToewijzingen) {
@@ -1730,7 +1727,7 @@ function connvertToewijzingenToModules(jaarToewijzingen) {
 		let student = createStudentFromToewijzing(toewijzing);
 		les.students.push(student);
 	}
-	modules.forEach((les) => les.aantal = les.students.length);
+	modules.forEach((les) => les.aantal = les.maxAantal = les.students.length);
 	return modules;
 }
 

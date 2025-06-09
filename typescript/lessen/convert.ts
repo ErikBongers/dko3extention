@@ -239,6 +239,8 @@ function setStudentAllTrimsTheSameInstrument(student: StudentInfo) {
 }
 
 function setStudentNoInstrumentForAllTrims(student: StudentInfo) {
+    if(student.jaarInstruments?.length > 0 && student.trimesterInstruments?.flat()?.length == 0)
+        return;
     if(!student.trimesterInstruments)
         return;
     student.notAllTrimsHaveAnInstrument = false;
@@ -529,7 +531,7 @@ function createStudentFromToewijzing(toewijzing: JaarToewijzing) {
     student.info = "";
     student.graadJaar = toewijzing.graadJaar;
     student.jaarInstruments = [];
-    student.trimesterInstruments = [[], [], []];
+    student.trimesterInstruments = undefined;
     return student;
 }
 
@@ -552,6 +554,6 @@ export function connvertToewijzingenToModules(jaarToewijzingen:  JaarToewijzing[
         let student = createStudentFromToewijzing(toewijzing);
         les.students.push(student);
     }
-    modules.forEach(les => les.aantal = les.students.length);
+    modules.forEach(les => les.aantal = les.maxAantal = les.students.length);
     return modules;
 }
