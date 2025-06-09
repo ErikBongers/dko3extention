@@ -1674,6 +1674,49 @@ function mergeBlockStudents(block) {
 		maxJaarStudentCount
 	};
 }
+function createLesFromToewijzing(instrument, toewijzing) {
+	let les = new Les();
+	les.lesType = LesType.JaarModule;
+	les.instrumentName = instrument;
+	les.teacher = toewijzing.klasleerkracht;
+	les.formattedLesmoment = toewijzing.lesmoment;
+	les.maxAantal = 999;
+	les.aantal = 0;
+	les.vestiging = "";
+	les.tags = [];
+	les.online = true;
+	les.wachtlijst = 0;
+	les.alc = false;
+	les.id = "";
+	les.lesmoment = toewijzing.lesmoment;
+	les.naam = `Initiatie ${les.instrumentName} - jaartraject - ${les.teacher}`;
+	les.students = [];
+	les.vakNaam = toewijzing.vak;
+	les.warnings = [];
+	les.vestiging = "Willem van Laarstraat";
+	les.studentsTable = void 0;
+	return les;
+}
+function createStudentFromToewijzing(toewijzing) {
+	let student = new StudentInfo();
+	student.naam = toewijzing.naam;
+	student.voornaam = toewijzing.voornaam;
+	student.name = toewijzing.naam + ", " + toewijzing.voornaam;
+	let rxId = /\s*id\s*=\s*(\d+)/gm;
+	let matchesId = rxId.exec(toewijzing.vak);
+	student.id = parseInt(matchesId?.[1] ?? "0");
+	student.allYearSame = true;
+	student.notAllTrimsHaveAnInstrument = false;
+	student.info = "";
+	student.graadJaar = toewijzing.graadJaar;
+	student.jaarInstruments = [];
+	student.trimesterInstruments = [
+		[],
+		[],
+		[]
+	];
+	return student;
+}
 function connvertToewijzingenToModules(jaarToewijzingen) {
 	let modules = new Map();
 	for (let toewijzing of jaarToewijzingen) {
@@ -1683,47 +1726,13 @@ function connvertToewijzingenToModules(jaarToewijzingen) {
 		let les;
 		if (modules.has(instrument + "-" + toewijzing.klasleerkracht + "-" + toewijzing.lesmoment)) les = modules.get(instrument + "-" + toewijzing.klasleerkracht + "-" + toewijzing.lesmoment);
 		else {
-			les = new Les();
-			les.lesType = LesType.JaarModule;
-			les.instrumentName = instrument;
-			les.teacher = toewijzing.klasleerkracht;
-			les.formattedLesmoment = toewijzing.lesmoment;
-			les.maxAantal = 999;
-			les.aantal = 0;
-			les.vestiging = "";
-			les.tags = [];
-			les.online = true;
-			les.wachtlijst = 0;
-			les.alc = false;
-			les.id = "";
-			les.lesmoment = toewijzing.lesmoment;
-			les.naam = `Initiatie ${les.instrumentName} - jaartraject - ${les.teacher}`;
-			les.students = [];
-			les.vakNaam = toewijzing.vak;
-			les.warnings = [];
-			les.vestiging = "Willem van Laarstraat";
-			les.studentsTable = void 0;
+			les = createLesFromToewijzing(instrument, toewijzing);
 			modules.set(instrument + "-" + toewijzing.klasleerkracht + "-" + toewijzing.lesmoment, les);
 		}
-		let student = new StudentInfo();
-		student.naam = toewijzing.naam;
-		student.voornaam = toewijzing.voornaam;
-		student.name = toewijzing.naam + ", " + toewijzing.voornaam;
-		let rxId = /\s*id\s*=\s*(\d+)/gm;
-		let matchesId = rxId.exec(toewijzing.vak);
-		student.id = parseInt(matchesId?.[1] ?? "0");
-		student.allYearSame = true;
-		student.notAllTrimsHaveAnInstrument = false;
-		student.info = "";
-		student.graadJaar = toewijzing.graadJaar;
-		student.jaarInstruments = [];
-		student.trimesterInstruments = [
-			[],
-			[],
-			[]
-		];
+		let student = createStudentFromToewijzing(toewijzing);
 		les.students.push(student);
 	}
+	modules.forEach((les) => les.aantal = les.students.length);
 	return modules;
 }
 
