@@ -1480,7 +1480,7 @@ function getVestigingen(modules) {
 function prepareLesmomenten(inputModules) {
 	let reLesMoment;
 	for (let module of inputModules) {
-		if (module.lesmoment === "(geen volgende les)") {
+		if (module.lesmoment === "(geen volgende les)" || module.lesmoment === "(geen lesmomenten)") {
 			module.formattedLesmoment = module.lesmoment;
 			continue;
 		}
@@ -3696,6 +3696,7 @@ async function showTrimesterTable(trimElements, show) {
 	let inputModules = scrapeModules(trimElements.lessenTable, toewijzingTable);
 	let toewijzingModules = connvertToewijzingenToModules(inputModules.jaarToewijzingen);
 	console.log(toewijzingModules);
+	inputModules.jaarModules = inputModules.jaarModules.concat(...toewijzingModules.values());
 	let tableData = buildTableData(inputModules.trimesterModules.concat(inputModules.jaarModules));
 	buildTrimesterTable(tableData, trimElements);
 	trimElements.lessenTable.style.display = show ? "none" : "table";

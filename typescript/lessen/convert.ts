@@ -192,7 +192,7 @@ function getVestigingen(modules: Les[]) {
 export function prepareLesmomenten(inputModules: Les[]) {
     let reLesMoment: RegExp;
     for(let module of inputModules){
-        if(module.lesmoment === "(geen volgende les)") {
+        if(module.lesmoment === "(geen volgende les)" || module.lesmoment === "(geen lesmomenten)") {
             module.formattedLesmoment = module.lesmoment;
             continue;
         }

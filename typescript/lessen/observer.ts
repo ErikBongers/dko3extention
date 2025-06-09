@@ -191,6 +191,7 @@ export async function showTrimesterTable(trimElements: TrimElements, show: boole
     let inputModules = scrapeModules(trimElements.lessenTable, toewijzingTable);
     let toewijzingModules  =  connvertToewijzingenToModules(inputModules.jaarToewijzingen);
     console.log(toewijzingModules);
+    inputModules.jaarModules = inputModules.jaarModules.concat(...toewijzingModules.values());
     let tableData = buildTableData(inputModules.trimesterModules.concat(inputModules.jaarModules));
     buildTrimesterTable(tableData, trimElements);
 
