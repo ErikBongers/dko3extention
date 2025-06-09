@@ -1165,7 +1165,6 @@ function scrapeLessenOverzicht(table) {
 		let lesCell = row.cells[0];
 		let studentsCell = row.cells[1];
 		let les = scrapeLesInfo(lesCell);
-		les.tableRow = row;
 		les.studentsTable = studentsCell.querySelectorAll("table")[0];
 		let meta = scrapeStudentsCellMeta(studentsCell);
 		les.aantal = meta.aantal;
@@ -1301,7 +1300,6 @@ let LesType = /* @__PURE__ */ function(LesType$1) {
 	return LesType$1;
 }({});
 var Les = class {
-	tableRow;
 	vakNaam;
 	lesType;
 	alc;

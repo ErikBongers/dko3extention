@@ -8,7 +8,6 @@ export function scrapeLessenOverzicht(table: HTMLTableElement) {
         let lesCell = row.cells[0];
         let studentsCell = row.cells[1];
         let les = scrapeLesInfo(lesCell);
-        les.tableRow = row;
         les.studentsTable = studentsCell.querySelectorAll("table")[0]; //for delayed student scraping.
         let meta = scrapeStudentsCellMeta(studentsCell);
         les.aantal = meta.aantal;
@@ -160,7 +159,6 @@ function scrapeStudents(studentTable: HTMLTableElement) {
 export enum LesType { TrimesterModule, JaarModule, Les, UnknownModule}
 
 export class Les {
-    tableRow: HTMLTableRowElement;
     vakNaam: string;
     lesType: LesType;
     alc: boolean;
