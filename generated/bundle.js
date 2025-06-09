@@ -1655,7 +1655,7 @@ function mergeBlockStudents(block) {
 		if (trimLessen.length === 0) return 0;
 		return trimLessen.map((les) => les?.maxAantal ?? 0).map((maxAantal) => maxAantal > TOO_LARGE_MAX ? 4 : maxAantal).reduce((a, b) => a + b);
 	});
-	let blockNeededRows = Math.max(...maxAantallen, ...trimesterStudents.map((stud) => stud.length));
+	let blockNeededRows = Math.max(...maxAantallen, ...trimesterStudents.map((stud) => stud.length + jaarStudents.length));
 	let wachtlijsten = block.trimesters.map((trimLessen) => {
 		if (trimLessen.length === 0) return 0;
 		return trimLessen.map((les) => les?.wachtlijst ?? 0).reduce((a, b) => a + b);
@@ -1886,7 +1886,7 @@ function buildBlock(newTableBody, block, groupId, getBlockTitle, displayOptions)
 			let cell = buildStudentCell(student);
 			row.appendChild(cell);
 			cell.classList.add("jaarStudent");
-			if (mergedBlockStudents.maxAantallen[trimNo] <= filledRowCount) cell.classList.add("gray");
+			if (filledRowCount >= mergedBlockStudents.maxAantallen[trimNo]) cell.classList.add("gray");
 		}
 		filledRowCount++;
 	}
@@ -1908,11 +1908,12 @@ function buildBlock(newTableBody, block, groupId, getBlockTitle, displayOptions)
 			let cell = buildStudentCell(student);
 			row.appendChild(cell);
 			cell.classList.add("trimesterStudent");
-			if (mergedBlockStudents.maxAantallen[trimNo] <= rowNo) cell.classList.add("gray");
+			if (filledRowCount >= mergedBlockStudents.maxAantallen[trimNo]) cell.classList.add("gray");
 			if (student?.trimesterInstruments) {
 				if (student?.trimesterInstruments[trimNo].length > 1) cell.classList.add("yellowMarker");
 			}
 		}
+		filledRowCount++;
 	}
 	if (hasFullClass) {
 		if (trTitle) trTitle.dataset.hasFullClass = "true";

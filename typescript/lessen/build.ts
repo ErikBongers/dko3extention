@@ -202,7 +202,7 @@ function buildBlock(newTableBody: HTMLTableSectionElement, block: BlockInfo, gro
                 let cell = buildStudentCell(student);
                 row.appendChild(cell);
                 cell.classList.add("jaarStudent");
-                if (mergedBlockStudents.maxAantallen[trimNo] <= filledRowCount) {
+                if (filledRowCount >= mergedBlockStudents.maxAantallen[trimNo]) {
                     cell.classList.add("gray");
                 }
             }
@@ -229,7 +229,7 @@ function buildBlock(newTableBody: HTMLTableSectionElement, block: BlockInfo, gro
             let cell = buildStudentCell(student);
             row.appendChild(cell);
             cell.classList.add("trimesterStudent");
-            if (mergedBlockStudents.maxAantallen[trimNo] <= rowNo) {
+            if (filledRowCount >= mergedBlockStudents.maxAantallen[trimNo]) {
                 cell.classList.add("gray");
             }
             if(student?.trimesterInstruments) {
@@ -238,6 +238,7 @@ function buildBlock(newTableBody: HTMLTableSectionElement, block: BlockInfo, gro
                 }
             }
         }
+        filledRowCount++;
     }
     if(hasFullClass) {
         if(trTitle)

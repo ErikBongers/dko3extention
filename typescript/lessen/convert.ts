@@ -462,7 +462,7 @@ export function mergeBlockStudents(block: BlockInfo) {
 
     let blockNeededRows = Math.max(
         ...maxAantallen,
-        ...trimesterStudents.map(stud => stud.length)
+        ...trimesterStudents.map(stud => stud.length+jaarStudents.length) //the actual number of students, including yearStudents.
     );
     let wachtlijsten = block.trimesters
         .map((trimLessen) => {
