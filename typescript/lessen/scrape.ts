@@ -1,3 +1,6 @@
+import { FetchedTable } from "../table/tableFetcher";
+import {setViewFromCurrentUrl} from "../globals";
+
 export function scrapeLessenOverzicht(table: HTMLTableElement) {
     let body = table.tBodies[0];
     let lessen: Les[] = [];
@@ -23,7 +26,7 @@ export function scrapeStudentsCellMeta(studentsCell: HTMLTableCellElement) {
     let smallTags = studentsCell.querySelectorAll("small");
     //aantallen
     let aantal = 0;
-    let maxAantal =  0;
+    let maxAantal = 0;
     let arrayLeerlingenAantal = Array.from(smallTags).map((item) => item.textContent).filter((txt) => txt.includes("leerlingen"));
     if (arrayLeerlingenAantal.length > 0) {
         const reAantallen = /(\d+).\D+(\d+)/;
@@ -42,15 +45,40 @@ export function scrapeStudentsCellMeta(studentsCell: HTMLTableCellElement) {
         let matches = arrayWachtlijst[0].match(reWachtlijst);
         wachtlijst = parseInt(matches[1]);
     }
-    return { aantal, maxAantal, id, wachtlijst };
+    return {aantal, maxAantal, id, wachtlijst};
 }
 
-export function scrapeModules(table: HTMLTableElement) {
+export type JaarToewijzing = {
+    naam: string,
+    voornaam: string,
+    vak: string,
+    lesmoment: string,
+    klasleerkracht: string,
+    onclick: string,
+    graadJaar: string,
+};
+
+function scrapeJaarToewijzingen(jaarToewijzingTable: (FetchedTable | undefined)): JaarToewijzing[] {
+    if(jaarToewijzingTable === undefined)
+        return [];
+    return [...jaarToewijzingTable.getRows()].map((row) => {
+        let naam = row.cells[1].textContent;
+        let voornaam = row.cells[2].textContent;
+        let vak = row.cells[3].textContent;
+        let lesmoment = row.cells[4].textContent;
+        let klasleerkracht = row.cells[5].textContent;
+        let graadJaar = row.cells[6].textContent;
+        let onclick = row.attributes['onclick'].value;
+        return {naam, voornaam, vak, lesmoment, klasleerkracht, onclick, graadJaar};
+    })
+}
+
+export function scrapeModules(table: HTMLTableElement, jaarToewijzingTable: FetchedTable) {
     let lessen = scrapeLessenOverzicht(table);
     return {
         trimesterModules: scrapeTrimesterModules(lessen),
-        jaarModules: scrapeJaarModules(lessen)
-    };
+        jaarModules: scrapeJaarModules(lessen),
+        jaarToewijzingen: scrapeJaarToewijzingen(jaarToewijzingTable)};
 }
 
 function scrapeTrimesterModules(lessen: Les[] ) {

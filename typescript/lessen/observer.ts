@@ -1,15 +1,18 @@
 import {scrapeModules} from "./scrape";
-import {buildTableData} from "./convert";
+import {buildTableData, connvertToewijzingenToModules} from "./convert";
 import {buildTrimesterTable, getDefaultPageSettings, getSavedNameSorting, LessenPageState, NameSorting, setSavedNameSorting, TrimElements, TrimesterGrouping} from "./build";
 import * as def from "../def";
 import {LESSEN_TABLE_ID} from "../def";
-import {Schoolyear, setButtonHighlighted} from "../globals";
+import {Schoolyear, setButtonHighlighted, setViewFromCurrentUrl} from "../globals";
 import {HashObserver} from "../pageObserver";
 import * as html from "../../libs/Emmeter/html";
 import {emmet} from "../../libs/Emmeter/html";
 import {getGotoStateOrDefault, Goto, PageName, saveGotoState} from "../gotoState";
 import {addFilterFields, applyFilters} from "./filter";
 import {getPageSettings, savePageSettings} from "../pageState";
+import {FIELD, WerklijstBuilder} from "../table/werklijstBuilder";
+import {Domein, Grouping} from "../werklijst/criteria";
+import {FetchedTable} from "../table/tableFetcher";
 
 export default new HashObserver("#lessen-overzicht", onMutation);
 
@@ -153,9 +156,41 @@ export function getTrimPageElements(){
     }
 }
 
-export function showTrimesterTable(trimElements: TrimElements, show: boolean) {
+export async function getJaarToewijzigingWerklijst(schoolYear: string) {
+    let builder = new WerklijstBuilder(schoolYear);
+    builder.addDomeinen([Domein.Muziek]);
+    builder.addVakken([
+        "instrumentinitiatie – hele jaar zelfde instrument - accordeon",
+        "instrumentinitiatie – hele jaar zelfde instrument - bagglama (saz)",
+        "instrumentinitiatie – hele jaar zelfde instrument - cello",
+        "instrumentinitiatie – hele jaar zelfde instrument - dwarsfluit",
+        "instrumentinitiatie – hele jaar zelfde instrument - gitaar",
+        "instrumentinitiatie – hele jaar zelfde instrument - harp",
+        "instrumentinitiatie – hele jaar zelfde instrument - klarinet",
+        "instrumentinitiatie – hele jaar zelfde instrument - saxofoon",
+        "instrumentinitiatie – hele jaar zelfde instrument - slagwerk",
+        "instrumentinitiatie – hele jaar zelfde instrument - trombone",
+        "instrumentinitiatie – hele jaar zelfde instrument - trompet",
+        "instrumentinitiatie – hele jaar zelfde instrument - viool",
+        "instrumentinitiatie – hele jaar zelfde instrument - zang",
+    ]);
+    builder.addFields([FIELD.VAK_NAAM, FIELD.LESMOMENTEN, FIELD.KLAS_LEERKRACHT, FIELD.GRAAD_LEERJAAR]);
+    let table = await builder.getTable(Grouping.LEERLING);
+    await setViewFromCurrentUrl();
+    return table;
+}
+
+export async function showTrimesterTable(trimElements: TrimElements, show: boolean) {
     trimElements.trimTable?.remove();
-    let inputModules = scrapeModules(trimElements.lessenTable);
+    let toewijzingTable: FetchedTable;
+    let schoolYear = Schoolyear.findInPage();
+    if(schoolYear === "2024-2025")
+        toewijzingTable = undefined;
+    else
+        toewijzingTable = await getJaarToewijzigingWerklijst(schoolYear);
+    let inputModules = scrapeModules(trimElements.lessenTable, toewijzingTable);
+    let toewijzingModules  =  connvertToewijzingenToModules(inputModules.jaarToewijzingen);
+    console.log(toewijzingModules);
     let tableData = buildTableData(inputModules.trimesterModules.concat(inputModules.jaarModules));
     buildTrimesterTable(tableData, trimElements);
 

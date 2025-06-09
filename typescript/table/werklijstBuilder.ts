@@ -8,6 +8,7 @@ export const FIELD = {
     VAK_NAAM: {value: "vak_naam", text: "vak"},
     GRAAD_LEERJAAR: {value: "graad_leerjaar", text: "graad + leerjaar"},
     KLAS_LEERKRACHT: {value: "klasleerkracht", text: "klasleerkracht"},
+    LESMOMENTEN: {value: "lesmomenten", text: "lesmomenten"},
 }
 
 export class WerklijstBuilder {

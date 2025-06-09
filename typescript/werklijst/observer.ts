@@ -15,8 +15,9 @@ import {createDefaultTableFetcher} from "../table/loadAnyTable";
 import {Actions, sendRequest, ServiceRequest, TabType} from "../messaging";
 import {fetchHoursSettingsOrSaveDefault, mapHourSettings, TeacherHoursSetup, TeacherHoursSetupMapped} from "./hoursSettings";
 import {Domein, Grouping, sendClearWerklijst} from "./criteria";
-import {WerklijstBuilder} from "../table/werklijstBuilder";
+import {FIELD, WerklijstBuilder} from "../table/werklijstBuilder";
 import MessageSender = chrome.runtime.MessageSender;
+import {getJaarToewijzigingWerklijst} from "../lessen/observer";
 
 registerChecksumHandler(def.WERKLIJST_TABLE_ID,  (_tableDef: TableFetcher) => {
     return document.querySelector("#view_contents > div.alert.alert-primary")?.textContent.replace("Criteria aanpassen", "")?.replace("Criteria:", "") ?? ""
@@ -87,14 +88,8 @@ function onCriteriaShown() {
 }
 
 async function test123() {
-    // let builder = new WerklijstBuilder("2025-2026");
-    // builder.addDomeinen([Domein.Muziek]);
-    // // await crit.addVakGroep("Instrument/zang klassiek");
-    // // await crit.addVakken(["Altklarinet", "Bastuba"]);
-    // builder.addVakken(["Piano"]);
-    // let tableData = await builder.getTable(Grouping.LEERLING);
-    // console.log([...tableData.getRows().values()].map(tr => tr.textContent));
-    sendClearWerklijst();
+    let table = await getJaarToewijzigingWerklijst(Schoolyear.findInPage());
+    console.log([...table.getRows()].map(row => row.textContent));
 }
 
 chrome.runtime.onMessage.addListener(onMessage)
