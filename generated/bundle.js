@@ -1874,7 +1874,7 @@ function buildBlock(newTableBody, block, groupId, getBlockTitle, displayOptions)
 		2
 	].map((trimNo) => {
 		if (mergedBlockStudents.trimesterStudents[trimNo].length < 5 && mergedBlockStudents.maxAantallen[trimNo] < 5) return "";
-		return `${mergedBlockStudents.trimesterStudents[trimNo].length} van ${mergedBlockStudents.maxAantallen[trimNo]} lln`;
+		return `${mergedBlockStudents.trimesterStudents[trimNo].length + mergedBlockStudents.jaarStudents.length} van ${mergedBlockStudents.maxAantallen[trimNo]} lln`;
 	});
 	let trTitle = buildBlockTitle(newTableBody, block, getBlockTitle, groupId);
 	let headerRows = buildBlockHeader(newTableBody, block, groupId, trimesterHeaders, displayOptions);
