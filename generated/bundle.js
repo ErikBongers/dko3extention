@@ -1892,7 +1892,7 @@ function buildBlock(newTableBody, block, groupId, getBlockTitle, displayOptions)
 		filledRowCount++;
 	}
 	let hasFullClass = false;
-	for (let rowNo = 0; rowNo < mergedBlockStudents.blockNeededRows - filledRowCount; rowNo++) {
+	for (let rowNo = 0; filledRowCount < mergedBlockStudents.blockNeededRows; rowNo++) {
 		let row = createStudentRow(newTableBody, "trimesterRow", groupId, block.id);
 		for (let trimNo = 0; trimNo < 3; trimNo++) {
 			let trimester = mergedBlockStudents.trimesterStudents[trimNo];
