@@ -4398,7 +4398,7 @@ function fillGraadCell(ctx) {
 		studentDiv.innerText = student.voornaam + " " + student.naam;
 		const anchor = document.createElement("a");
 		studentDiv.appendChild(anchor);
-		anchor.href = "/?#leerlingen-leerling?id=" + student.id + ",tab=inschrijvingen";
+		anchor.href = "#leerlingen-leerling?id=" + student.id + ",tab=inschrijvingen";
 		anchor.classList.add("pl-1");
 		anchor.dataset.studentid = student.id.toString();
 		const iTag = document.createElement("i");
