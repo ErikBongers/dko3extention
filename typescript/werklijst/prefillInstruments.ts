@@ -1,11 +1,11 @@
-import {Domein, fetchAvailableSubjects, Grouping, sendClearWerklijst, sendCriteria, sendFields, sendGrouping} from "./criteria";
+import {Domein, fetchAvailableSubjects, Grouping, resetWerklijst} from "./criteria";
 import * as def from "../def";
 import {getGotoStateOrDefault, PageName, saveGotoState, WerklijstGotoState} from "../gotoState";
 import {fetchHoursSettingsOrSaveDefault, TeacherHoursSetup} from "./hoursSettings";
 import {FIELD, WerklijstBuilder} from "../table/werklijstBuilder";
 
 export async function setCriteriaForTeacherHoursAndClickFetchButton(schooljaar: string, hourSettings?: TeacherHoursSetup) {
-    await sendClearWerklijst();
+    await resetWerklijst(schooljaar);
     let dko3_vakken = await fetchAvailableSubjects(schooljaar);
     if(!hourSettings)
         hourSettings = await fetchHoursSettingsOrSaveDefault(schooljaar);

@@ -14,8 +14,6 @@ import {CloudData, JsonCloudData, UrenData} from "./urenData";
 import {createDefaultTableFetcher} from "../table/loadAnyTable";
 import {Actions, sendRequest, ServiceRequest, TabType} from "../messaging";
 import {fetchHoursSettingsOrSaveDefault, mapHourSettings, TeacherHoursSetup, TeacherHoursSetupMapped} from "./hoursSettings";
-import {Domein, Grouping, sendClearWerklijst} from "./criteria";
-import {FIELD, WerklijstBuilder} from "../table/werklijstBuilder";
 import MessageSender = chrome.runtime.MessageSender;
 import {getJaarToewijzigingWerklijst} from "../lessen/observer";
 

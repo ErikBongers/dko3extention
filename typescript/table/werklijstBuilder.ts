@@ -1,5 +1,5 @@
 import * as def from "../def";
-import {Criterium, Domein, fetchMultiSelectDefinitions, Grouping, IsSelectedItem, Operator, sendClearWerklijst, sendCriteria, sendFields, sendGrouping, Veld} from "../werklijst/criteria";
+import {Criterium, Domein, fetchMultiSelectDefinitions, getDefaultCriteria, Grouping, IsSelectedItem, Operator, resetWerklijst, sendCriteria, sendFields, sendGrouping, Veld} from "../werklijst/criteria";
 import {getTable, getWerklijstTableRef} from "./loadAnyTable";
 import {FetchedTable} from "./tableFetcher";
 
@@ -20,16 +20,12 @@ export class WerklijstBuilder {
 
     constructor(schoolYear: string) {
         this.schoolYear = schoolYear;
-        this.criteria = [
-            {"criteria": "Schooljaar", "operator": "=", "values": schoolYear},
-            {"criteria": "Status", "operator": "=", "values": "12"}, //inschrijvingen en toewijzingen
-            {"criteria": "Uitschrijvingen", "operator": "=", "values": "0"}, // Zonder uitgeschreven leerlingen
-        ];
+        this.criteria = getDefaultCriteria(schoolYear);
         this.fields = [];
     }
 
     async sendSettings(grouping: Grouping) {
-        await sendClearWerklijst();
+        await resetWerklijst(this.schoolYear);
         if(this.vakken.length)
             await this.addCodesForCriterium("Vak", this.vakken);
         if(this.vakGroep)

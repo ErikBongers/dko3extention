@@ -36,7 +36,7 @@ export type IsSelectedItem = (vak: string) => boolean;
 export async function fetchAvailableSubjects(schoolyear: string) {
     await sendAddCriterium(schoolyear, "Vak");
     let text = await fetchCritera(schoolyear);
-    await sendClearWerklijst();  //todo:  try to restore the previous werklijst criteria.
+    await resetWerklijst(schoolyear);  //todo:  try to restore the previous werklijst criteria.
     const template = document.createElement('template');
     template.innerHTML = text;
     let vakken = template.content.querySelectorAll("#form_field_leerling_werklijst_criterium_vak option");
@@ -59,7 +59,15 @@ async function sendAddCriterium(schoolYear: string, criterium: string) {
     });
 }
 
-export async function sendClearWerklijst() {
+export function getDefaultCriteria(schoolYear: string) {
+    return [
+        {"criteria": "Schooljaar", "operator": "=", "values": schoolYear},
+        {"criteria": "Status", "operator": "=", "values": "12"}, //inschrijvingen en toewijzingen
+        {"criteria": "Uitschrijvingen", "operator": "=", "values": "0"}, // Zonder uitgeschreven leerlingen
+    ];
+}
+
+export async function resetWerklijst(schoolYear: string) {
     const formData = new FormData();
 
     formData.append("session", "leerlingen_werklijst");
@@ -73,6 +81,9 @@ export async function sendClearWerklijst() {
     await fetch("views/leerlingen/werklijst/index.velden.php", {
         method: "GET"
     });
+
+    await sendCriteria(JSON.stringify(getDefaultCriteria(schoolYear)));
+    await sendGrouping(Grouping.LEERLING); //mandatory!!!
 }
 
 export async function sendCriteria(criteria: string) {
@@ -123,7 +134,7 @@ export async function fetchVakGroepDefinitions(schoolYear: string, clear: boolea
 
 export async function fetchMultiSelectDefinitions(schoolYear: string, criterium: string, clear: boolean) {
     if (clear) {
-        await sendClearWerklijst();
+        await resetWerklijst(schoolYear);
     }
     await sendAddCriterium(schoolYear, criterium);
     let text = await fetchCritera(schoolYear);

@@ -2381,7 +2381,7 @@ let Operator = /* @__PURE__ */ function(Operator$1) {
 async function fetchAvailableSubjects(schoolyear) {
 	await sendAddCriterium(schoolyear, "Vak");
 	let text = await fetchCritera(schoolyear);
-	await sendClearWerklijst();
+	await resetWerklijst(schoolyear);
 	const template = document.createElement("template");
 	template.innerHTML = text;
 	let vakken = template.content.querySelectorAll("#form_field_leerling_werklijst_criterium_vak option");
@@ -2404,7 +2404,26 @@ async function sendAddCriterium(schoolYear, criterium) {
 		body: formData
 	});
 }
-async function sendClearWerklijst() {
+function getDefaultCriteria(schoolYear) {
+	return [
+		{
+			"criteria": "Schooljaar",
+			"operator": "=",
+			"values": schoolYear
+		},
+		{
+			"criteria": "Status",
+			"operator": "=",
+			"values": "12"
+		},
+		{
+			"criteria": "Uitschrijvingen",
+			"operator": "=",
+			"values": "0"
+		}
+	];
+}
+async function resetWerklijst(schoolYear) {
 	const formData = new FormData();
 	formData.append("session", "leerlingen_werklijst");
 	await fetch("/views/util/clear_session.php", {
@@ -2412,6 +2431,8 @@ async function sendClearWerklijst() {
 		body: formData
 	});
 	await fetch("views/leerlingen/werklijst/index.velden.php", { method: "GET" });
+	await sendCriteria(JSON.stringify(getDefaultCriteria(schoolYear)));
+	await sendGrouping(Grouping.LEERLING);
 }
 async function sendCriteria(criteria) {
 	const formData = new FormData();
@@ -2444,7 +2465,7 @@ async function sendFields(fields) {
 	});
 }
 async function fetchMultiSelectDefinitions(schoolYear, criterium, clear) {
-	if (clear) await sendClearWerklijst();
+	if (clear) await resetWerklijst(schoolYear);
 	await sendAddCriterium(schoolYear, criterium);
 	let text = await fetchCritera(schoolYear);
 	const template = document.createElement("template");
@@ -3459,27 +3480,11 @@ var WerklijstBuilder = class {
 	vakGroep;
 	constructor(schoolYear) {
 		this.schoolYear = schoolYear;
-		this.criteria = [
-			{
-				"criteria": "Schooljaar",
-				"operator": "=",
-				"values": schoolYear
-			},
-			{
-				"criteria": "Status",
-				"operator": "=",
-				"values": "12"
-			},
-			{
-				"criteria": "Uitschrijvingen",
-				"operator": "=",
-				"values": "0"
-			}
-		];
+		this.criteria = getDefaultCriteria(schoolYear);
 		this.fields = [];
 	}
 	async sendSettings(grouping) {
-		await sendClearWerklijst();
+		await resetWerklijst(this.schoolYear);
 		if (this.vakken.length) await this.addCodesForCriterium("Vak", this.vakken);
 		if (this.vakGroep) await this.addCodesForCriterium("Vakgroep", [this.vakGroep]);
 		await sendCriteria(this.toCriteriaString());
@@ -5055,7 +5060,7 @@ async function saveHourSettings(hoursSetup) {
 //#endregion
 //#region typescript/werklijst/prefillInstruments.ts
 async function setCriteriaForTeacherHoursAndClickFetchButton(schooljaar, hourSettings) {
-	await sendClearWerklijst();
+	await resetWerklijst(schooljaar);
 	let dko3_vakken = await fetchAvailableSubjects(schooljaar);
 	if (!hourSettings) hourSettings = await fetchHoursSettingsOrSaveDefault(schooljaar);
 	let selectedInstrumentNames = new Set(hourSettings.subjects.filter((i) => i.checked).map((i) => i.name));
