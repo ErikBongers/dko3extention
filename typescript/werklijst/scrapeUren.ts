@@ -46,6 +46,8 @@ export function addStudentToVakLeraarsMap(studentRow: StudentUrenRow, vakLeraars
 
     if (!vakLeraars.has(vakLeraarKey)) {
         let countMap: Map<string, CountStudentsPerJaar> = new Map();
+        countMap.set("1.1", {count: 0, students: []});
+        countMap.set("1.2", {count: 0, students: []});
         countMap.set("2.1", {count: 0, students: []});
         countMap.set("2.2", {count: 0, students: []});
         countMap.set("2.3", {count: 0, students: []});

@@ -3859,6 +3859,22 @@ function onTimer() {
 	checkAndUpdate(globalUrenData);
 }
 let globalUrenData = void 0;
+const colKeysForTotals = [
+	"grjr1_1",
+	"grjr1_2",
+	"grjr2_1",
+	"grjr2_2",
+	"grjr2_3",
+	"grjr2_4",
+	"grjr3_1",
+	"grjr3_2",
+	"grjr3_3",
+	"grjr4_1",
+	"grjr4_2",
+	"grjr4_3",
+	"grjr_s_1",
+	"grjr_s_2"
+];
 let colDefsArray = [
 	{
 		key: "vak",
@@ -3876,6 +3892,37 @@ let colDefsArray = [
 			classList: [],
 			factor: 1,
 			getText: (ctx) => ctx.vakLeraar.leraar.replaceAll("{", "").replaceAll("}", "")
+		}
+	},
+	{
+		key: "grjr1_1",
+		def: {
+			label: "1.1",
+			classList: [],
+			factor: 1 / 4,
+			getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count,
+			fill: fillGraadCell
+		}
+	},
+	{
+		key: "grjr1_2",
+		def: {
+			label: "1.2",
+			classList: [],
+			factor: 1 / 4,
+			getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count,
+			fill: fillGraadCell
+		}
+	},
+	{
+		key: "uren_1e_gr",
+		def: {
+			label: "uren\n1e gr",
+			classList: ["yellow"],
+			factor: 1,
+			getValue: (ctx) => calcUrenFactored(ctx, ["grjr1_1", "grjr1_2"]),
+			totals: true,
+			calculated: true
 		}
 	},
 	{
@@ -4061,20 +4108,7 @@ let colDefsArray = [
 			label: "aantal\nlln",
 			classList: ["blueish"],
 			factor: 1,
-			getValue: (ctx) => calcUren(ctx, [
-				"grjr2_1",
-				"grjr2_2",
-				"grjr2_3",
-				"grjr2_4",
-				"grjr3_1",
-				"grjr3_2",
-				"grjr3_3",
-				"grjr4_1",
-				"grjr4_2",
-				"grjr4_3",
-				"grjr_s_1",
-				"grjr_s_2"
-			]),
+			getValue: (ctx) => calcUren(ctx, colKeysForTotals),
 			totals: true,
 			calculated: true
 		}
@@ -4085,20 +4119,7 @@ let colDefsArray = [
 			label: "tot\nuren",
 			classList: ["creme"],
 			factor: 1,
-			getValue: (ctx) => calcUrenFactored(ctx, [
-				"grjr2_1",
-				"grjr2_2",
-				"grjr2_3",
-				"grjr2_4",
-				"grjr3_1",
-				"grjr3_2",
-				"grjr3_3",
-				"grjr4_1",
-				"grjr4_2",
-				"grjr4_3",
-				"grjr_s_1",
-				"grjr_s_2"
-			]),
+			getValue: (ctx) => calcUrenFactored(ctx, colKeysForTotals),
 			totals: true,
 			calculated: true
 		}
@@ -4363,7 +4384,7 @@ function fillGraadCell(ctx) {
 	let graadJaar = ctx.vakLeraar.countMap.get(ctx.colDef.label);
 	let button = document.createElement("button");
 	ctx.td.appendChild(button);
-	if (graadJaar.count === 0) return graadJaar.count;
+	if ((graadJaar?.count ?? 0) === 0) return graadJaar.count;
 	button.innerText = graadJaar.count.toString();
 	popoverIndex++;
 	button.setAttribute("popovertarget", "students_" + popoverIndex);
@@ -4491,6 +4512,14 @@ function addStudentToVakLeraarsMap(studentRow, vakLeraars, hourSettings) {
 	let vakLeraarKey = translateVak(studentRow.vak, hourSettings) + "_" + studentRow.leraar;
 	if (!vakLeraars.has(vakLeraarKey)) {
 		let countMap = new Map();
+		countMap.set("1.1", {
+			count: 0,
+			students: []
+		});
+		countMap.set("1.2", {
+			count: 0,
+			students: []
+		});
 		countMap.set("2.1", {
 			count: 0,
 			students: []
