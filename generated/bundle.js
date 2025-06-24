@@ -3935,7 +3935,7 @@ let colDefsArray = [
 		def: {
 			label: "2.1",
 			classList: [],
-			factor: 1 / 4,
+			factor: 1 / 3,
 			getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count,
 			fill: fillGraadCell
 		}
@@ -3945,7 +3945,7 @@ let colDefsArray = [
 		def: {
 			label: "2.2",
 			classList: [],
-			factor: 1 / 4,
+			factor: 1 / 3,
 			getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count,
 			fill: fillGraadCell
 		}

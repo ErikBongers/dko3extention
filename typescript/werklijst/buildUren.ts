@@ -41,8 +41,8 @@ let colDefsArray: {key: string, def: ColDef}[] = [
 
     {key:"uren_1e_gr", def: { label:"uren\n1e gr", classList: ["yellow"], factor: 1.0, getValue: (ctx) => calcUrenFactored(ctx, ["grjr1_1", "grjr1_2"]), totals:true, calculated:true}},
 
-    {key:"grjr2_1", def: { label:"2.1", classList: [], factor: 1/4, getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count, fill: fillGraadCell }},
-    {key:"grjr2_2", def: { label:"2.2", classList: [], factor: 1/4, getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count, fill: fillGraadCell }},
+    {key:"grjr2_1", def: { label:"2.1", classList: [], factor: 1/3, getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count, fill: fillGraadCell }},
+    {key:"grjr2_2", def: { label:"2.2", classList: [], factor: 1/3, getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count, fill: fillGraadCell }},
     {key:"grjr2_3", def: { label:"2.3", classList: [], factor: 1/3, getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count, fill: fillGraadCell }},
     {key:"grjr2_4", def: { label:"2.4", classList: [], factor: 1/3, getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count, fill: fillGraadCell }},
 
