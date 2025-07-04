@@ -1,11 +1,10 @@
-* Vakkenlijst: prefill from DKO3?
+* Hours: Make grade.year optional (to exclude/include 1st grade)
+  > and make factors user-defined.
 
 * Comm with DKO3: when Lessenoverzicht link with Excel open: two-way polling.
   > can Excel fetch (write) a POST request???
   > a request file and a response file? in both directions? 4 files in total?
     > every request has an id.
-
-* replace all refs to skynet with outlook.
 
 * powerQuery initial sort order
   > based on most recently used.
