@@ -161,7 +161,7 @@ export async function getJaarToewijzigingWerklijst(schoolYear: string) {
     builder.addDomeinen([Domein.Muziek]);
     builder.addVakken([
         "instrumentinitiatie – hele jaar zelfde instrument - accordeon",
-        "instrumentinitiatie – hele jaar zelfde instrument - bagglama (saz)",
+        "instrumentinitiatie – hele jaar zelfde instrument - baglama (saz)",
         "instrumentinitiatie – hele jaar zelfde instrument - cello",
         "instrumentinitiatie – hele jaar zelfde instrument - dwarsfluit",
         "instrumentinitiatie – hele jaar zelfde instrument - gitaar",
