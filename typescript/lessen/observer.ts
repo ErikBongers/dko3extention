@@ -17,19 +17,23 @@ import {FetchedTable} from "../table/tableFetcher";
 export default new HashObserver("#lessen-overzicht", onMutation, false, onPageLoaded);
 
 function onPageLoaded() {
+    if(location.hash != "#lessen-overzicht" )
+        return;
      console.log("Lessen onPageLoaded");
-     addTrimesterButton()
+     if(!addTrimesterButton())
+         setTimeout(onPageLoaded, 500);
 }
 
 function addTrimesterButton() {
     let btnZoek = document.getElementById("btn_lessen_overzicht_zoeken");
-    if (btnZoek) {
-        if (!document.getElementById("btn_show_trimesters")) {
-            let {first} = emmet.insertAfter(btnZoek,
-                "button.btn.btn-sm.btn-primary.w-100.mt-1#btn_show_trimesters>i.fas.fa-sitemap+{ Toon trimesters}");
-            (first as HTMLElement).onclick = onClickShowTrimesters;
-        }
+    if(!btnZoek)
+        return false;
+    if (!document.getElementById("btn_show_trimesters")) {
+        let {first} = emmet.insertAfter(btnZoek,
+            "button.btn.btn-sm.btn-primary.w-100.mt-1#btn_show_trimesters>i.fas.fa-sitemap+{ Toon trimesters}");
+        (first as HTMLElement).onclick = onClickShowTrimesters;
     }
+    return true;
 }
 
 function onMutation (mutation: MutationRecord) {
