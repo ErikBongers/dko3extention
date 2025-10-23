@@ -127,7 +127,6 @@ export class WerklijstBuilder {
 
     async fetchAvailableSubjects() {
         let defs = await this.fetchMultiSelectDefinitions(CriteriumName.Vak);
-        debugger;
         return Array.from(defs.defs).map((vak) => {  return {name: vak[0], value: vak[1]}; });
     }
 

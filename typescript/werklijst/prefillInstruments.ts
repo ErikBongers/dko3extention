@@ -14,13 +14,15 @@ export async function setCriteriaForTeacherHoursAndClickFetchButton(schooljaar: 
     let vakNames = validInstruments.map(vak => vak.name);
     builder.addCriterium(CriteriumName.Domein, Operator.PLUS, [Domein.Muziek]);
     builder.addCriterium(CriteriumName.Vak, Operator.PLUS, vakNames); //todo: we already have the codes: Immediately add the codes?
-    builder.addFields([FIELD.VAK_NAAM, FIELD.GRAAD_LEERJAAR, FIELD.KLAS_LEERKRACHT]);
+    builder.addFields([FIELD.NAAM, FIELD.VOORNAAM, FIELD.VAK_NAAM, FIELD.GRAAD_LEERJAAR, FIELD.KLAS_LEERKRACHT]);
     let preparedWerklijst = await builder.sendSettings();
     let pageState = getGotoStateOrDefault(PageName.Werklijst) as WerklijstGotoState;
     pageState.werklijstTableName = def.UREN_TABLE_STATE_NAME;
     saveGotoState(pageState);
-    // if(window.location.hash === "#leerlingen-werklijst$werklijst")
-    //     location.reload();
-    // else
-    //     location.hash = "#leerlingen-werklijst$werklijst";
+
+    console.log("Werklijst prepared: reloading page (or changing hash). ");
+    if(window.location.hash === "#leerlingen-werklijst$werklijst")
+        location.reload();
+    else
+        location.hash = "#leerlingen-werklijst$werklijst";
 }

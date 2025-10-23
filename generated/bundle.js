@@ -353,6 +353,7 @@ const FILTER_INFO_ID = "filterInfo";
 const GLOBAL_COMMAND_BUFFER_KEY = "globalCmdBuffer";
 const AFTER_DOWNLOAD_TABLE_ACTION = "afterDownloadTableAction";
 const WERKLIJST_TABLE_ID = "table_leerlingen_werklijst_table";
+const BTN_WERKLIJST_MAKEN_ID = "#btn_leerling_werklijst_maken";
 const DKO3_BASE_URL = "/";
 
 //#endregion
@@ -492,8 +493,12 @@ let Schoolyear;
 	function findInPage() {
 		let el = getSelectElement();
 		if (el) return el.value;
-		el = document.querySelector("div.alert-primary");
-		return el.textContent.match(/schooljaar *= (\d{4}-\d{4})*/)[1];
+		el = document.querySelector("div.alert-info");
+		debugger;
+		let txt = el.textContent;
+		let rx = /[sS]chooljaar *[=:][\s\u00A0]*(\d{4}-\d{4})/gm;
+		let res = rx.exec(txt);
+		return res[1];
 	}
 	_Schoolyear.findInPage = findInPage;
 	function calculateCurrent() {
@@ -667,6 +672,13 @@ function escapeRegexChars(text) {
 }
 function getImmediateText(element) {
 	return [...element.childNodes].map((c) => c.nodeType === 3 ? c.textContent : "").join("");
+}
+function tryUntil(func) {
+	if (!func()) setTimeout(() => tryUntil(func), 100);
+}
+function tryUntilThen(func, then) {
+	if (func()) then();
+	else setTimeout(() => tryUntilThen(func, then), 100);
 }
 
 //#endregion
@@ -931,6 +943,8 @@ var BaseObserver = class {
 		}
 		if (this.onPageChangedCallback) this.onPageChangedCallback();
 		if (!this.onMutation) return;
+		console.log("Observing main element.");
+		if (!document.querySelector("main")) console.error("Can't attach observer to element.");
 		this.observeElement(document.querySelector("main"));
 		if (this.trackModal) this.observeElement(document.getElementById("dko3_modal"));
 	}
@@ -3282,7 +3296,6 @@ async function getWerklijstTableRef() {
 	return parseDataTablePhp(chain, "leerlingen_werklijst");
 }
 async function parseDataTablePhp(chain, htmlTableId) {
-	debugger;
 	chain.find("var", "datatable_id", "=");
 	let datatable_id = chain.getQuotedString();
 	chain.clipTo("</script>");
@@ -3527,7 +3540,6 @@ var WerklijstBuilder = class WerklijstBuilder {
 	}
 	async fetchAvailableSubjects() {
 		let defs = await this.fetchMultiSelectDefinitions(CriteriumName.Vak);
-		debugger;
 		return Array.from(defs.defs).map((vak) => {
 			return {
 				name: vak[0],
@@ -3731,7 +3743,6 @@ async function getJaarToewijzigingWerklijst(schoolYear) {
 		FIELD.KLAS_LEERKRACHT,
 		FIELD.GRAAD_LEERJAAR
 	]);
-	debugger;
 	let preparedBuilder = await builder.sendSettings();
 	let table = await preparedBuilder.fetchTable();
 	await setViewFromCurrentUrl();
@@ -4508,6 +4519,7 @@ var NamedCellTableFetchListener = class NamedCellTableFetchListener {
 	hasAllHeadersAndAlert() {
 		if (!this.hasAllHeaders()) {
 			let labelString = this.requiredHeaderLabels.map((label) => "\"" + label.toUpperCase() + "\"").join(", ");
+			debugger;
 			alert(`Voeg velden ${labelString} toe.`);
 			return false;
 		}
@@ -4547,7 +4559,7 @@ function scrapeStudent(headerIndices, tr) {
 	let voornaam = getColumnText(tr, headerIndices, "voornaam");
 	let id = parseInt(tr.attributes["onclick"].value.replace("showView('leerlingen-leerling', '', 'id=", ""));
 	let leraar = getColumnText(tr, headerIndices, "klasleerkracht");
-	let vak = getColumnText(tr, headerIndices, "vak");
+	let vak = getColumnText(tr, headerIndices, "vak: naam");
 	let graadLeerjaar = getColumnText(tr, headerIndices, "graad + leerjaar");
 	if (leraar === "") leraar = "{nieuw}";
 	return {
@@ -5116,6 +5128,8 @@ async function setCriteriaForTeacherHoursAndClickFetchButton(schooljaar, hourSet
 	builder.addCriterium(CriteriumName.Domein, Operator.PLUS, [Domein.Muziek]);
 	builder.addCriterium(CriteriumName.Vak, Operator.PLUS, vakNames);
 	builder.addFields([
+		FIELD.NAAM,
+		FIELD.VOORNAAM,
 		FIELD.VAK_NAAM,
 		FIELD.GRAAD_LEERJAAR,
 		FIELD.KLAS_LEERKRACHT
@@ -5124,6 +5138,9 @@ async function setCriteriaForTeacherHoursAndClickFetchButton(schooljaar, hourSet
 	let pageState$2 = getGotoStateOrDefault(PageName.Werklijst);
 	pageState$2.werklijstTableName = UREN_TABLE_STATE_NAME;
 	saveGotoState(pageState$2);
+	console.log("Werklijst prepared: reloading page (or changing hash). ");
+	if (window.location.hash === "#leerlingen-werklijst$werklijst") location.reload();
+	else location.hash = "#leerlingen-werklijst$werklijst";
 }
 
 //#endregion
@@ -5175,6 +5192,7 @@ var CloudData = class {
 
 //#endregion
 //#region typescript/werklijst/observer.ts
+const TARGET_BUTTON_ID = "#tablenav_leerlingen_werklijst_top > div > div.btn-group.btn-group-sm.datatable-buttons > button:nth-child(1)";
 registerChecksumHandler(
 	//don't report as log.error.
 	// Can't use this action to build the table as we're also fetching the cloud data.
@@ -5187,27 +5205,29 @@ registerChecksumHandler(
 let observer = new HashObserver("#leerlingen-werklijst", onMutation$3, false, onPageLoaded$1);
 var observer_default$4 = observer;
 function onPageLoaded$1() {
-	console.log("Werklijst onPageLoaded");
-	if (document.querySelector("#btn_leerling_werklijst_maken")) onCriteriaShown();
+	console.log("onPageLoaded");
+	tryUntilThen(checkPageReallyLoaded, onPage_REALLY_Loaded);
 }
-function onMutation$3(mutation) {
-	console.log("Werklijst onMutation");
-	if (mutation.target.id === WERKLIJST_TABLE_ID) {
-		onWerklijstChanged();
-		return true;
-	}
-	let buttonBar = document.getElementById("tablenav_leerlingen_werklijst_top");
-	if (mutation.target === buttonBar) {
-		onButtonBarChanged();
-		return true;
-	}
-	if (document.querySelector("#btn_werklijst_maken")) {
-		onCriteriaShown();
-		return true;
-	}
+function checkPageReallyLoaded() {
+	if (document.querySelector(BTN_WERKLIJST_MAKEN_ID)) return true;
+	if (document.getElementById("tablenav_leerlingen_werklijst_bottom") && document.querySelector(TARGET_BUTTON_ID)) return true;
 	return false;
 }
+function onPage_REALLY_Loaded() {
+	console.log("onPage_REALLY_Loaded");
+	if (document.querySelector(BTN_WERKLIJST_MAKEN_ID)) onCriteriaShown();
+	else if (document.getElementById("tablenav_leerlingen_werklijst_bottom")) {
+		addButtons();
+		onWerklijstChanged();
+	}
+}
+function onMutation$3(mutation) {
+	console.log("onMutation");
+	tryUntilThen(checkPageReallyLoaded, onPage_REALLY_Loaded);
+	return true;
+}
 function onCriteriaShown() {
+	console.log("onCriteriaShown");
 	let pageState$2 = getGotoStateOrDefault(PageName.Werklijst);
 	if (pageState$2.goto == Goto.Werklijst_uren_prevYear) {
 		pageState$2.goto = Goto.None;
@@ -5223,7 +5243,7 @@ function onCriteriaShown() {
 	}
 	pageState$2.werklijstTableName = "";
 	saveGotoState(pageState$2);
-	let btnWerklijstMaken = document.querySelector("#btn_leerling_werklijst_maken");
+	let btnWerklijstMaken = document.querySelector(BTN_WERKLIJST_MAKEN_ID);
 	if (document.getElementById(UREN_PREV_BTN_ID)) return;
 	let year = parseInt(Schoolyear.getHighestAvailable());
 	let prevSchoolyear = Schoolyear.toFullString(year - 1);
@@ -5287,12 +5307,13 @@ async function sendMessageToHoursSettings() {
 	sendRequest(Actions.GreetingsFromParent, TabType.Main, TabType.HoursSettings, globalHoursSettingsTabId, "Hello the main content script.").then((_) => {});
 }
 function onWerklijstChanged() {
+	console.log("onWerklijstChanged");
 	let werklijstPageState = getGotoStateOrDefault(PageName.Werklijst);
 	if (werklijstPageState.werklijstTableName === UREN_TABLE_STATE_NAME) tryUntil(onShowLerarenUren);
 	decorateTableHeader(document.querySelector("table#" + WERKLIJST_TABLE_ID));
 }
-function onButtonBarChanged() {
-	let targetButton = document.querySelector("#tablenav_leerlingen_werklijst_top > div > div.btn-group.btn-group-sm.datatable-buttons > button:nth-child(1)");
+function addButtons() {
+	let targetButton = document.querySelector(TARGET_BUTTON_ID);
 	addButton$1(targetButton, SHOW_HOURS_BUTTON_ID, "Toon telling", () => {
 		toggleUrenTable();
 	}, "fa-guitar", ["btn-outline-info"]);
@@ -5320,9 +5341,6 @@ function onClickCopyEmails() {
 		console.log("Loading failed (gracefully.");
 		console.log(reason);
 	});
-}
-function tryUntil(func) {
-	if (!func()) setTimeout(() => tryUntil(func), 100);
 }
 function buildVakLeraarsMap(studentRowData, hourSettingsMapped) {
 	let vakLeraars = new Map();
@@ -5376,7 +5394,7 @@ function createUrenFetchListener() {
 	let requiredHeaderLabels = [
 		"naam",
 		"voornaam",
-		"vak",
+		"vak: naam",
 		"klasleerkracht",
 		"graad + leerjaar"
 	];
@@ -5408,7 +5426,7 @@ function showUrenTable(show) {
 	document.getElementById(SHOW_HOURS_BUTTON_ID).title = show ? "Toon normaal" : "Toon telling";
 	setButtonHighlighted(SHOW_HOURS_BUTTON_ID, show);
 	if (document.getElementById(HOURS_TABLE_ID)) {
-		let targetButton = document.querySelector("#tablenav_leerlingen_werklijst_top > div > div.btn-group.btn-group-sm.datatable-buttons > button:nth-child(1)");
+		let targetButton = document.querySelector(TARGET_BUTTON_ID);
 		addButton$1(targetButton, UREN_PREV_SETUP_BTN_ID, "Setup ", async () => {
 			await showUrenSetup(Schoolyear.findInPage());
 		}, "fas-certificate", ["btn", "btn-outline-dark"], "", "beforebegin", "gear.svg");

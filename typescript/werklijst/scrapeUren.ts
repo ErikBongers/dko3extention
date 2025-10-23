@@ -27,7 +27,7 @@ export function scrapeStudent(headerIndices: Map<string, number>, tr: HTMLTableR
     let voornaam = getColumnText(tr, headerIndices, "voornaam");
     let id = parseInt(tr.attributes['onclick'].value.replace("showView('leerlingen-leerling', '', 'id=", ""));
     let leraar = getColumnText(tr, headerIndices, "klasleerkracht");
-    let vak = getColumnText(tr, headerIndices, "vak");
+    let vak = getColumnText(tr, headerIndices, "vak: naam");
     let graadLeerjaar = getColumnText(tr, headerIndices, "graad + leerjaar");
 
     if (leraar === "") leraar = "{nieuw}";

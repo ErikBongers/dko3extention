@@ -59,6 +59,7 @@ export class NamedCellTableFetchListener implements TableFetchListener {
             let labelString = this.requiredHeaderLabels
                 .map((label) => "\"" + label.toUpperCase() + "\"")
                 .join(", ");
+            debugger;
             alert(`Voeg velden ${labelString} toe.`);
             return false;
         }

@@ -189,7 +189,6 @@ export async function getJaarToewijzigingWerklijst(schoolYear: string) {
         "instrumentinitiatie – hele jaar zelfde instrument - zang",
     ]);
     builder.addFields([FIELD.NAAM, FIELD.VOORNAAM, FIELD.VAK_NAAM, FIELD.LESMOMENTEN, FIELD.KLAS_LEERKRACHT, FIELD.GRAAD_LEERJAAR]);
-    debugger;
     let preparedBuilder = await builder.sendSettings();
     let table = await preparedBuilder.fetchTable();
     await setViewFromCurrentUrl();

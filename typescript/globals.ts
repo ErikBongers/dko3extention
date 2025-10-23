@@ -107,8 +107,12 @@ export namespace Schoolyear {
         let el = getSelectElement();
         if (el)
             return el.value;
-        el = document.querySelector("div.alert-primary");
-        return el.textContent.match(/schooljaar *= (\d{4}-\d{4})*/)[1];
+        el = document.querySelector("div.alert-info");
+        debugger;
+        let txt = el.textContent;
+        let rx = /[sS]chooljaar *[=:][\s\u00A0]*(\d{4}-\d{4})/gm;
+        let res = rx.exec(txt);
+        return res[1];
     }
 
     export function calculateCurrent() {
@@ -368,4 +372,17 @@ export function escapeRegexChars(text: string): string {
 
 export function getImmediateText(element: HTMLElement) {
     return [...element.childNodes].map(c => c.nodeType === 3 ? c.textContent : "").join("");
+}
+
+export function tryUntil(func: () => boolean) {
+    if (!func())
+        setTimeout(() => tryUntil(func), 100);
+}
+
+export function tryUntilThen(func: () => boolean, then: () => void) {
+    if (func()) {
+        then();
+    } else {
+        setTimeout(() => tryUntilThen(func, then), 100);
+    }
 }

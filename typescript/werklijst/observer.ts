@@ -1,4 +1,4 @@
-import {addButton, arrayIsEqual, getSchoolIdString, openHoursSettings, Schoolyear, setButtonHighlighted} from "../globals";
+import {addButton, arrayIsEqual, getSchoolIdString, openHoursSettings, Schoolyear, setButtonHighlighted, tryUntil, tryUntilThen} from "../globals";
 import * as def from "../def";
 import {createTable, getUrenVakLeraarFileName, refillTable} from "./buildUren";
 import {addStudentToVakLeraarsMap, scrapeUren, StudentUrenRow, VakLeraar} from "./scrapeUren";
@@ -14,8 +14,10 @@ import {CloudData, JsonCloudData, UrenData} from "./urenData";
 import {createDefaultTableFetcher} from "../table/loadAnyTable";
 import {Actions, sendRequest, ServiceRequest, TabType} from "../messaging";
 import {fetchHoursSettingsOrSaveDefault, mapHourSettings, TeacherHoursSetup, TeacherHoursSetupMapped} from "./hoursSettings";
-import MessageSender = chrome.runtime.MessageSender;
 import {getJaarToewijzigingWerklijst} from "../lessen/observer";
+import MessageSender = chrome.runtime.MessageSender;
+
+const TARGET_BUTTON_ID = "#tablenav_leerlingen_werklijst_top > div > div.btn-group.btn-group-sm.datatable-buttons > button:nth-child(1)";
 
 registerChecksumHandler(def.WERKLIJST_TABLE_ID,  (_tableDef: TableFetcher) => {
     return document.querySelector("#view_contents > div.alert.alert-primary")?.textContent.replace("Criteria aanpassen", "")?.replace("Criteria:", "") ?? ""
@@ -26,31 +28,37 @@ let observer = new HashObserver("#leerlingen-werklijst", onMutation, false, onPa
 export default observer;
 
 function onPageLoaded() {
-    console.log("Werklijst onPageLoaded");
-    if (document.querySelector("#btn_leerling_werklijst_maken")) {
+    console.log("onPageLoaded");
+    tryUntilThen(checkPageReallyLoaded, onPage_REALLY_Loaded);
+}
+
+function checkPageReallyLoaded() {
+    if (document.querySelector(def.BTN_WERKLIJST_MAKEN_ID))
+        return true;
+    if (document.getElementById("tablenav_leerlingen_werklijst_bottom")
+    && document.querySelector(TARGET_BUTTON_ID))
+        return true;
+    return false;
+}
+
+function onPage_REALLY_Loaded() {
+    console.log("onPage_REALLY_Loaded");
+    if (document.querySelector(def.BTN_WERKLIJST_MAKEN_ID)) {
         onCriteriaShown();
+    } else if (document.getElementById("tablenav_leerlingen_werklijst_bottom")) {
+        addButtons();
+        onWerklijstChanged();
     }
 }
 
 function onMutation(mutation: MutationRecord) {
-    console.log("Werklijst onMutation");
-    if ((mutation.target as HTMLElement).id === def.WERKLIJST_TABLE_ID) {
-        onWerklijstChanged();
-        return true;
-    }
-    let buttonBar = document.getElementById("tablenav_leerlingen_werklijst_top");
-    if (mutation.target === buttonBar) {
-        onButtonBarChanged();
-        return true;
-    }
-    if (document.querySelector("#btn_werklijst_maken")) {
-        onCriteriaShown();
-        return true;
-    }
-    return false;
+    console.log("onMutation");
+    tryUntilThen(checkPageReallyLoaded, onPage_REALLY_Loaded);
+    return true;
 }
 
 function onCriteriaShown() {
+    console.log("onCriteriaShown");
     let pageState = getGotoStateOrDefault(PageName.Werklijst) as WerklijstGotoState;
     if(pageState.goto == Goto.Werklijst_uren_prevYear) {
         pageState.goto = Goto.None;
@@ -66,7 +74,7 @@ function onCriteriaShown() {
     }
     pageState.werklijstTableName = "";
     saveGotoState(pageState);
-    let btnWerklijstMaken = document.querySelector("#btn_leerling_werklijst_maken") as HTMLButtonElement;
+    let btnWerklijstMaken = document.querySelector(def.BTN_WERKLIJST_MAKEN_ID) as HTMLButtonElement;
     if(document.getElementById(def.UREN_PREV_BTN_ID))
         return;
 
@@ -142,6 +150,7 @@ async function sendMessageToHoursSettings() {
 }
 
 function onWerklijstChanged() {
+    console.log("onWerklijstChanged");
     let werklijstPageState = getGotoStateOrDefault(PageName.Werklijst) as WerklijstGotoState;
     if(werklijstPageState.werklijstTableName === def.UREN_TABLE_STATE_NAME) {
         tryUntil(onShowLerarenUren);
@@ -149,8 +158,8 @@ function onWerklijstChanged() {
     decorateTableHeader(document.querySelector("table#"+def.WERKLIJST_TABLE_ID) as HTMLTableElement);
 }
 
-function onButtonBarChanged() {
-    let targetButton = document.querySelector("#tablenav_leerlingen_werklijst_top > div > div.btn-group.btn-group-sm.datatable-buttons > button:nth-child(1)") as HTMLButtonElement;
+function addButtons() {
+    let targetButton = document.querySelector(TARGET_BUTTON_ID) as HTMLButtonElement;
     addButton(targetButton, def.SHOW_HOURS_BUTTON_ID, "Toon telling", () => { toggleUrenTable(); }, "fa-guitar", ["btn-outline-info"]);
     addButton(targetButton, def.MAIL_BTN_ID, "Email to clipboard", onClickCopyEmails, "fa-envelope", ["btn", "btn-outline-info"]);
 }
@@ -190,11 +199,6 @@ function onClickCopyEmails() {
             console.log("Loading failed (gracefully.");
             console.log(reason);
     });
-}
-
-function tryUntil(func: () => boolean) {
-    if(!func())
-        setTimeout(() => tryUntil(func), 100);
 }
 
 function buildVakLeraarsMap(studentRowData: StudentUrenRow[], hourSettingsMapped: TeacherHoursSetupMapped) {
@@ -269,7 +273,7 @@ function onShowLerarenUren() {
 }
 
 function createUrenFetchListener(): NamedCellTableFetchListener {
-    let requiredHeaderLabels = ["naam", "voornaam", "vak", "klasleerkracht", "graad + leerjaar"];
+    let requiredHeaderLabels = ["naam", "voornaam", "vak: naam", "klasleerkracht", "graad + leerjaar"];
     return new NamedCellTableFetchListener(requiredHeaderLabels, () => {});
 }
 
@@ -306,7 +310,7 @@ function showUrenTable(show: boolean) {
     document.getElementById(def.SHOW_HOURS_BUTTON_ID).title = show ? "Toon normaal" : "Toon telling";
     setButtonHighlighted(def.SHOW_HOURS_BUTTON_ID, show);
     if (document.getElementById(def.HOURS_TABLE_ID)) {
-        let targetButton = document.querySelector("#tablenav_leerlingen_werklijst_top > div > div.btn-group.btn-group-sm.datatable-buttons > button:nth-child(1)") as HTMLButtonElement;
+        let targetButton = document.querySelector(TARGET_BUTTON_ID) as HTMLButtonElement;
         addButton(targetButton, def.UREN_PREV_SETUP_BTN_ID, "Setup ", async () => {  await showUrenSetup(Schoolyear.findInPage()); }, "fas-certificate", ["btn", "btn-outline-dark"], "", "beforebegin", "gear.svg");
     }
 

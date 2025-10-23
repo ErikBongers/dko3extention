@@ -18,7 +18,6 @@ export async function  getWerklijstTableRef() {
 }
 
 async function parseDataTablePhp(chain: FetchChain, htmlTableId: string) {
-    debugger;
     chain.find("var", "datatable_id", "=");
     let datatable_id = chain.getQuotedString();
     chain.clipTo("</script>");
