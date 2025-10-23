@@ -2411,24 +2411,6 @@ const FIELD = {
 		text: "lesmomenten"
 	}
 };
-async function fetchAvailableSubjects(schoolyear) {
-	await sendAddCriterium(schoolyear, "Vak");
-	return Array.from([]).map((vak) => {
-		return {
-			name: vak.label,
-			value: vak.value
-		};
-	});
-}
-async function sendAddCriterium(schoolYear, criterium) {
-	const formData = new FormData();
-	formData.append(`criterium`, criterium);
-	formData.append(`schooljaar`, schoolYear);
-	await fetch(DKO3_BASE_URL + "views/leerlingen/werklijst/index.criteria.session_add.php", {
-		method: "POST",
-		body: formData
-	});
-}
 async function postNameValueList(url, criteria) {
 	const formData = new FormData();
 	criteria.forEach((c) => {
@@ -3542,6 +3524,16 @@ var WerklijstBuilder = class WerklijstBuilder {
 			operator: "TDOO",
 			values: codes
 		};
+	}
+	async fetchAvailableSubjects() {
+		let defs = await this.fetchMultiSelectDefinitions(CriteriumName.Vak);
+		debugger;
+		return Array.from(defs.defs).map((vak) => {
+			return {
+				name: vak[0],
+				value: vak[1]
+			};
+		});
 	}
 	async fetchVakGroepDefinitions() {
 		return this.fetchMultiSelectDefinitions(CriteriumName.Vakgroep);
@@ -4659,57 +4651,6 @@ function scrapeUren(rows, headerIndices) {
 }
 
 //#endregion
-//#region typescript/werklijst/prefillInstruments.ts
-async function setCriteriaForTeacherHoursAndClickFetchButton(schooljaar, hourSettings) {}
-
-//#endregion
-//#region typescript/werklijst/urenData.ts
-var JsonCloudData = class {
-	version;
-	columns;
-	constructor(object) {
-		this.version = "1.0";
-		this.columns = [];
-		if (object) Object.assign(this, object);
-	}
-};
-var CloudData = class {
-	columnMap;
-	constructor(jsonCloudData) {
-		this.#buildMapFromJsonData(jsonCloudData);
-	}
-	#buildMapFromJsonData(jsonCloudData) {
-		for (let column of jsonCloudData.columns) column.rowMap = new Map(column.rows.map((row) => [row.key, row.value]));
-		this.columnMap = new Map(jsonCloudData.columns.map((col) => [col.key, col.rowMap]));
-	}
-	toJson(colKey1, colKey2) {
-		let data = new JsonCloudData();
-		let col1 = this.#columnToJson(colKey1);
-		let col2 = this.#columnToJson(colKey2);
-		data.columns.push({
-			key: colKey1,
-			rows: col1
-		});
-		data.columns.push({
-			key: colKey2,
-			rows: col2
-		});
-		return data;
-	}
-	#columnToJson(colKey) {
-		let cells = [];
-		for (let [key, value] of this.columnMap.get(colKey)) {
-			let row = {
-				key,
-				value
-			};
-			cells.push(row);
-		}
-		return cells;
-	}
-};
-
-//#endregion
 //#region typescript/werklijst/hoursSettings.ts
 function mapHourSettings(hourSettings) {
 	let mapped = { ...hourSettings };
@@ -5133,7 +5074,8 @@ function getDefaultHourSettings(schoolyear) {
 	};
 }
 async function fetchHoursSettingsOrSaveDefault(schoolyearString) {
-	let dko3_subjects = (await fetchAvailableSubjects(schoolyearString)).map((vak) => vak.name);
+	let builder = await WerklijstBuilder.fetch(schoolyearString, Grouping.LES);
+	let dko3_subjects = (await builder.fetchAvailableSubjects()).map((vak) => vak.name);
 	let cloudSettings = await cloud.json.fetch(createTeacherHoursFileName(schoolyearString)).catch((_) => {});
 	if (!cloudSettings) {
 		let prevYearString = Schoolyear.toFullString(Schoolyear.toNumbers(schoolyearString).startYear - 1);
@@ -5163,6 +5105,75 @@ async function saveHourSettings(hoursSetup) {
 }
 
 //#endregion
+//#region typescript/werklijst/prefillInstruments.ts
+async function setCriteriaForTeacherHoursAndClickFetchButton(schooljaar, hourSettings) {
+	let builder = await WerklijstBuilder.fetch(schooljaar, Grouping.LES);
+	let dko3_vakken = await builder.fetchAvailableSubjects();
+	if (!hourSettings) hourSettings = await fetchHoursSettingsOrSaveDefault(schooljaar);
+	let selectedInstrumentNames = new Set(hourSettings.subjects.filter((i) => i.checked).map((i) => i.name));
+	let validInstruments = dko3_vakken.filter((vak) => selectedInstrumentNames.has(vak.name));
+	let vakNames = validInstruments.map((vak) => vak.name);
+	builder.addCriterium(CriteriumName.Domein, Operator.PLUS, [Domein.Muziek]);
+	builder.addCriterium(CriteriumName.Vak, Operator.PLUS, vakNames);
+	builder.addFields([
+		FIELD.VAK_NAAM,
+		FIELD.GRAAD_LEERJAAR,
+		FIELD.KLAS_LEERKRACHT
+	]);
+	let preparedWerklijst = await builder.sendSettings();
+	let pageState$2 = getGotoStateOrDefault(PageName.Werklijst);
+	pageState$2.werklijstTableName = UREN_TABLE_STATE_NAME;
+	saveGotoState(pageState$2);
+}
+
+//#endregion
+//#region typescript/werklijst/urenData.ts
+var JsonCloudData = class {
+	version;
+	columns;
+	constructor(object) {
+		this.version = "1.0";
+		this.columns = [];
+		if (object) Object.assign(this, object);
+	}
+};
+var CloudData = class {
+	columnMap;
+	constructor(jsonCloudData) {
+		this.#buildMapFromJsonData(jsonCloudData);
+	}
+	#buildMapFromJsonData(jsonCloudData) {
+		for (let column of jsonCloudData.columns) column.rowMap = new Map(column.rows.map((row) => [row.key, row.value]));
+		this.columnMap = new Map(jsonCloudData.columns.map((col) => [col.key, col.rowMap]));
+	}
+	toJson(colKey1, colKey2) {
+		let data = new JsonCloudData();
+		let col1 = this.#columnToJson(colKey1);
+		let col2 = this.#columnToJson(colKey2);
+		data.columns.push({
+			key: colKey1,
+			rows: col1
+		});
+		data.columns.push({
+			key: colKey2,
+			rows: col2
+		});
+		return data;
+	}
+	#columnToJson(colKey) {
+		let cells = [];
+		for (let [key, value] of this.columnMap.get(colKey)) {
+			let row = {
+				key,
+				value
+			};
+			cells.push(row);
+		}
+		return cells;
+	}
+};
+
+//#endregion
 //#region typescript/werklijst/observer.ts
 registerChecksumHandler(
 	//don't report as log.error.
@@ -5177,7 +5188,7 @@ let observer = new HashObserver("#leerlingen-werklijst", onMutation$3, false, on
 var observer_default$4 = observer;
 function onPageLoaded$1() {
 	console.log("Werklijst onPageLoaded");
-	if (document.querySelector("#btn_werklijst_maken")) onCriteriaShown();
+	if (document.querySelector("#btn_leerling_werklijst_maken")) onCriteriaShown();
 }
 function onMutation$3(mutation) {
 	console.log("Werklijst onMutation");
@@ -5212,7 +5223,7 @@ function onCriteriaShown() {
 	}
 	pageState$2.werklijstTableName = "";
 	saveGotoState(pageState$2);
-	let btnWerklijstMaken = document.querySelector("#btn_werklijst_maken");
+	let btnWerklijstMaken = document.querySelector("#btn_leerling_werklijst_maken");
 	if (document.getElementById(UREN_PREV_BTN_ID)) return;
 	let year = parseInt(Schoolyear.getHighestAvailable());
 	let prevSchoolyear = Schoolyear.toFullString(year - 1);

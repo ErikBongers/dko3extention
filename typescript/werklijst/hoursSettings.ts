@@ -1,6 +1,7 @@
 import {cloud} from "../cloud";
-import { Schoolyear } from "../globals";
-import {fetchAvailableSubjects} from "./criteria";
+import {Schoolyear} from "../globals";
+import {WerklijstBuilder} from "../table/werklijstBuilder";
+import {Grouping} from "./criteria";
 
 export type SubjectDef = {
     checked: boolean,
@@ -120,7 +121,8 @@ function getDefaultHourSettings(schoolyear: string): TeacherHoursSetup {
 }
 
 export async function fetchHoursSettingsOrSaveDefault(schoolyearString: string) {
-    let dko3_subjects = (await fetchAvailableSubjects(schoolyearString))
+    let builder = await WerklijstBuilder.fetch(schoolyearString, Grouping.LES);
+    let dko3_subjects = (await builder.fetchAvailableSubjects())
         .map(vak => vak.name);
     let cloudSettings = await cloud.json.fetch(createTeacherHoursFileName(schoolyearString)).catch(_ => {}) as TeacherHoursSetup;
     if(!cloudSettings) {

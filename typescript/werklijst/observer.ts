@@ -27,7 +27,7 @@ export default observer;
 
 function onPageLoaded() {
     console.log("Werklijst onPageLoaded");
-    if (document.querySelector("#btn_werklijst_maken")) {
+    if (document.querySelector("#btn_leerling_werklijst_maken")) {
         onCriteriaShown();
     }
 }
@@ -66,7 +66,7 @@ function onCriteriaShown() {
     }
     pageState.werklijstTableName = "";
     saveGotoState(pageState);
-    let btnWerklijstMaken = document.querySelector("#btn_werklijst_maken") as HTMLButtonElement;
+    let btnWerklijstMaken = document.querySelector("#btn_leerling_werklijst_maken") as HTMLButtonElement;
     if(document.getElementById(def.UREN_PREV_BTN_ID))
         return;
 

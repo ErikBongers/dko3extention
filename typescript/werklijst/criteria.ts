@@ -43,17 +43,6 @@ export const FIELD = {
     LESMOMENTEN: {value: "lesmomenten", text: "lesmomenten"},
 }
 
-export async function fetchAvailableSubjects(schoolyear: string) {
-    await sendAddCriterium(schoolyear, "Vak");
-    // TODO
-    // let text = await fetchCritera(schoolyear);
-    // await resetWerklijst(schoolyear, Grouping.LEERLING);  //todo:  try to restore the previous werklijst criteria.
-    // const template = document.createElement('template');
-    // template.innerHTML = text;
-    // let vakken = template.content.querySelectorAll("#form_field_leerling_werklijst_criterium_vak option");
-    return Array.from([]).map((vak: HTMLOptionElement) => {  return {name: vak.label, value: vak.value}; });
-}
-
 async function sendAddCriterium(schoolYear: string, criterium: string) {
     const formData = new FormData();
     formData.append(`criterium`, criterium);

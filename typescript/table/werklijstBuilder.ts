@@ -17,6 +17,7 @@ export interface CriteriaBuilder {
     addCriterium(name: CriteriumName, operator: Operator, values: string[]): void;
     addFields(fields: Veld[]): void;
     sendSettings(): Promise<PreparedWerklijst>;
+    fetchAvailableSubjects(): Promise<{name: string, value: string}[]>;
 }
 
 export class WerklijstBuilder {
@@ -122,6 +123,12 @@ export class WerklijstBuilder {
         let defs = await this.fetchMultiSelectDefinitions(criterium);
         let codes = textToCodes(items, defs.defs);
         return {postId: defs.postId, operator: "TDOO", values: codes};
+    }
+
+    async fetchAvailableSubjects() {
+        let defs = await this.fetchMultiSelectDefinitions(CriteriumName.Vak);
+        debugger;
+        return Array.from(defs.defs).map((vak) => {  return {name: vak[0], value: vak[1]}; });
     }
 
     async fetchVakGroepDefinitions() {
