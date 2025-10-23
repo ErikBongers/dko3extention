@@ -14,17 +14,26 @@ import {FIELD, WerklijstBuilder} from "../table/werklijstBuilder";
 import {Domein, Grouping} from "../werklijst/criteria";
 import {FetchedTable} from "../table/tableFetcher";
 
-export default new HashObserver("#lessen-overzicht", onMutation);
+export default new HashObserver("#lessen-overzicht", onMutation, false, onPageLoaded);
 
-function onMutation (mutation: MutationRecord) {
+function onPageLoaded() {
+     console.log("Lessen onPageLoaded");
+     addTrimesterButton()
+}
+
+function addTrimesterButton() {
     let btnZoek = document.getElementById("btn_lessen_overzicht_zoeken");
-    if(btnZoek) {
+    if (btnZoek) {
         if (!document.getElementById("btn_show_trimesters")) {
             let {first} = emmet.insertAfter(btnZoek,
                 "button.btn.btn-sm.btn-primary.w-100.mt-1#btn_show_trimesters>i.fas.fa-sitemap+{ Toon trimesters}");
             (first as HTMLElement).onclick = onClickShowTrimesters;
         }
     }
+}
+
+function onMutation (mutation: MutationRecord) {
+    addTrimesterButton();
 
     let lessenOverzicht = document.getElementById(def.LESSEN_OVERZICHT_ID);
     if (mutation.target !== lessenOverzicht) {
