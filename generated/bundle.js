@@ -665,6 +665,9 @@ function arrayIsEqual(a, b) {
 function escapeRegexChars(text) {
 	return text.replaceAll("\\", "\\\\").replaceAll("^", "\\^").replaceAll("$", "\\$").replaceAll(".", "\\.").replaceAll("|", "\\|").replaceAll("?", "\\?").replaceAll("*", "\\*").replaceAll("+", "\\+").replaceAll("(", "\\(").replaceAll(")", "\\)").replaceAll("[", "\\[").replaceAll("]", "\\]").replaceAll("{", "\\{").replaceAll("}", "\\}");
 }
+function getImmediateText(element) {
+	return [...element.childNodes].map((c) => c.nodeType === 3 ? c.textContent : "").join("");
+}
 
 //#endregion
 //#region typescript/gotoState.ts
@@ -1206,12 +1209,12 @@ function scrapeStudentsCellMeta(studentsCell) {
 function scrapeJaarToewijzingen(jaarToewijzingTable) {
 	if (jaarToewijzingTable === void 0) return [];
 	return [...jaarToewijzingTable.getRows()].map((row) => {
-		let naam = row.cells[1].textContent;
-		let voornaam = row.cells[2].textContent;
-		let vak = row.cells[3].textContent;
-		let lesmoment = row.cells[4].textContent;
-		let klasleerkracht = row.cells[5].textContent;
-		let graadJaar = row.cells[6].textContent;
+		let naam = row.cells[0].textContent;
+		let voornaam = row.cells[1].textContent;
+		let vak = row.cells[2].textContent;
+		let lesmoment = row.cells[3].textContent;
+		let klasleerkracht = row.cells[4].textContent;
+		let graadJaar = row.cells[5].textContent;
 		let onclick = row.attributes["onclick"].value;
 		return {
 			naam,
@@ -2361,39 +2364,61 @@ function addFilterFields() {
 //#endregion
 //#region typescript/werklijst/criteria.ts
 let Domein = /* @__PURE__ */ function(Domein$1) {
-	Domein$1[Domein$1["Muziek"] = 3] = "Muziek";
-	Domein$1[Domein$1["Woord"] = 4] = "Woord";
-	Domein$1[Domein$1["Dans"] = 2] = "Dans";
-	Domein$1[Domein$1["Overschrijdend"] = 5] = "Overschrijdend";
+	Domein$1["Muziek"] = "Muziek (Mu)";
+	Domein$1["Woord"] = "Woord (Wo)";
+	Domein$1["Dans"] = "Dans (Da)";
+	Domein$1["Overschrijdend"] = "DomeinOv (Do)";
 	return Domein$1;
 }({});
 let Grouping = /* @__PURE__ */ function(Grouping$1) {
-	Grouping$1["LEERLING"] = "persoon_id";
-	Grouping$1["VAK"] = "vak_id";
-	Grouping$1["LES"] = "les_id";
-	Grouping$1["INSCHRIJVING"] = "inschrijving_id";
+	Grouping$1["LEERLING"] = "1";
+	Grouping$1["VAK"] = "2";
+	Grouping$1["LES"] = "3";
+	Grouping$1["INSCHRIJVING"] = "4";
 	return Grouping$1;
 }({});
 let Operator = /* @__PURE__ */ function(Operator$1) {
 	Operator$1["PLUS"] = "=";
 	return Operator$1;
 }({});
+const FIELD = {
+	DOMEIN: {
+		value: "domein",
+		text: "domein"
+	},
+	NAAM: {
+		value: "naam",
+		text: "naam"
+	},
+	VOORNAAM: {
+		value: "voornaam",
+		text: "voornaam"
+	},
+	VAK_NAAM: {
+		value: "vak_naam",
+		text: "vak: naam"
+	},
+	GRAAD_LEERJAAR: {
+		value: "graad_leerjaar",
+		text: "graad + leerjaar"
+	},
+	KLAS_LEERKRACHT: {
+		value: "klasleerkracht",
+		text: "klasleerkracht"
+	},
+	LESMOMENTEN: {
+		value: "lesmomenten",
+		text: "lesmomenten"
+	}
+};
 async function fetchAvailableSubjects(schoolyear) {
 	await sendAddCriterium(schoolyear, "Vak");
-	let text = await fetchCritera(schoolyear);
-	await resetWerklijst(schoolyear);
-	const template = document.createElement("template");
-	template.innerHTML = text;
-	let vakken = template.content.querySelectorAll("#form_field_leerling_werklijst_criterium_vak option");
-	return Array.from(vakken).map((vak) => {
+	return Array.from([]).map((vak) => {
 		return {
 			name: vak.label,
 			value: vak.value
 		};
 	});
-}
-async function fetchCritera(schoolYear) {
-	return (await fetch(DKO3_BASE_URL + "views/leerlingen/werklijst/index.criteria.php?schooljaar=" + schoolYear, { method: "GET" })).text();
 }
 async function sendAddCriterium(schoolYear, criterium) {
 	const formData = new FormData();
@@ -2404,74 +2429,28 @@ async function sendAddCriterium(schoolYear, criterium) {
 		body: formData
 	});
 }
-function getDefaultCriteria(schoolYear) {
-	return [
-		{
-			"criteria": "Schooljaar",
-			"operator": "=",
-			"values": schoolYear
-		},
-		{
-			"criteria": "Status",
-			"operator": "=",
-			"values": "12"
-		},
-		{
-			"criteria": "Uitschrijvingen",
-			"operator": "=",
-			"values": "0"
-		}
-	];
-}
-async function resetWerklijst(schoolYear) {
+async function postNameValueList(url, criteria) {
 	const formData = new FormData();
-	formData.append("session", "leerlingen_werklijst");
-	await fetch("/views/util/clear_session.php", {
-		method: "POST",
-		body: formData
+	criteria.forEach((c) => {
+		formData.append(c.name, c.value);
 	});
-	await fetch("views/leerlingen/werklijst/index.velden.php", { method: "GET" });
-	await sendCriteria(JSON.stringify(getDefaultCriteria(schoolYear)));
-	await sendGrouping(Grouping.LEERLING);
-}
-async function sendCriteria(criteria) {
-	const formData = new FormData();
-	formData.append("criteria", criteria);
-	await fetch("/views/leerlingen/werklijst/index.criteria.session_reload.php", {
+	return fetch(url, {
 		method: "POST",
 		body: formData
 	});
 }
-async function sendGrouping(grouping) {
-	const formData = new FormData();
-	formData.append("groepering", grouping);
-	await fetch("/views/leerlingen/werklijst/index.groeperen.session_add.php", {
-		method: "POST",
-		body: formData
-	});
-}
-async function sendFields(fields) {
-	if (fields.length === 0) return;
-	const formData = new FormData();
-	let fieldCnt = 0;
-	for (let field of fields) {
-		formData.append(`velden[${fieldCnt}][value]`, field.value);
-		formData.append(`velden[${fieldCnt}][text]`, field.text);
-		fieldCnt++;
-	}
-	await fetch("/views/leerlingen/werklijst/index.velden.session_add.php", {
-		method: "POST",
-		body: formData
-	});
-}
-async function fetchMultiSelectDefinitions(schoolYear, criterium, clear) {
-	if (clear) await resetWerklijst(schoolYear);
-	await sendAddCriterium(schoolYear, criterium);
-	let text = await fetchCritera(schoolYear);
-	const template = document.createElement("template");
-	template.innerHTML = text;
-	let defs = template.content.querySelectorAll("#form_field_leerling_werklijst_criterium_" + criterium.toLowerCase() + " option");
-	return Array.from(defs).map((def) => [def.label, def.value]);
+let CriteriumName = /* @__PURE__ */ function(CriteriumName$1) {
+	CriteriumName$1["Vak"] = "Vak";
+	CriteriumName$1["Vakgroep"] = "Vakgroep";
+	CriteriumName$1["Domein"] = "Domein";
+	return CriteriumName$1;
+}({});
+async function fetchTableRows(response) {
+	let tableHtml = await response.text();
+	let div = document.createElement("div");
+	div.innerHTML = tableHtml;
+	let table = div.querySelector("table");
+	return table.querySelectorAll("tr");
 }
 
 //#endregion
@@ -3314,13 +3293,14 @@ async function fetchText(url) {
 //#region typescript/table/loadAnyTable.ts
 async function getWerklijstTableRef() {
 	let chain = new FetchChain();
+	await fetch("views/leerlingen/werklijst/werklijst.maken.php", { method: "POST" });
 	await chain.fetch("view.php?args=leerlingen-werklijst$werklijst");
 	await chain.fetch("views/leerlingen/werklijst/werklijst.view.php");
-	await chain.fetch("views/leerlingen/werklijst/werklijst.table.php");
 	await chain.fetch("views/ui/datatable.php?id=leerlingen_werklijst");
 	return parseDataTablePhp(chain, "leerlingen_werklijst");
 }
 async function parseDataTablePhp(chain, htmlTableId) {
+	debugger;
 	chain.find("var", "datatable_id", "=");
 	let datatable_id = chain.getQuotedString();
 	chain.clipTo("</script>");
@@ -3419,6 +3399,7 @@ function createDefaultTableRefAndInfoBar() {
 	let tableRef = findTableRefInCode();
 	if (!tableRef) return { error: "Cannot find table." };
 	document.getElementById(
+		//todo: create a chain.post()
 		// call to changeView() - assuming this is always the same, so no parsing here.
 		//remove "#" from table id.;
 		//Try again
@@ -3450,59 +3431,102 @@ function createDefaultTableFetcher() {
 
 //#endregion
 //#region typescript/table/werklijstBuilder.ts
-const FIELD = {
-	DOMEIN: {
-		value: "domein",
-		text: "domein"
-	},
-	VAK_NAAM: {
-		value: "vak_naam",
-		text: "vak"
-	},
-	GRAAD_LEERJAAR: {
-		value: "graad_leerjaar",
-		text: "graad + leerjaar"
-	},
-	KLAS_LEERKRACHT: {
-		value: "klasleerkracht",
-		text: "klasleerkracht"
-	},
-	LESMOMENTEN: {
-		value: "lesmomenten",
-		text: "lesmomenten"
-	}
-};
-var WerklijstBuilder = class {
+var WerklijstBuilder = class WerklijstBuilder {
 	schoolYear;
+	grouping;
 	criteria = [];
 	fields;
-	vakken = [];
-	vakGroep;
-	constructor(schoolYear) {
+	criteriaDefs;
+	fieldDefs;
+	constructor(schoolYear, grouping, criteriaDefs, fieldDefs) {
 		this.schoolYear = schoolYear;
-		this.criteria = getDefaultCriteria(schoolYear);
+		this.grouping = grouping;
+		this.criteria = [];
 		this.fields = [];
+		this.criteriaDefs = criteriaDefs;
+		this.fieldDefs = fieldDefs;
 	}
-	async sendSettings(grouping) {
-		await resetWerklijst(this.schoolYear);
-		if (this.vakken.length) await this.addCodesForCriterium("Vak", this.vakken);
-		if (this.vakGroep) await this.addCodesForCriterium("Vakgroep", [this.vakGroep]);
-		await sendCriteria(this.toCriteriaString());
-		await sendGrouping(grouping);
-		await sendFields(this.fields);
+	static async fetch(schoolYear, grouping) {
+		await WerklijstBuilder.resetWerklijst(schoolYear, grouping);
+		let critDefs = await this.fetchCriteriumDefinitions();
+		let fieldDefs = await this.fetchFieldDefinitions();
+		return new WerklijstBuilder(schoolYear, grouping, critDefs, fieldDefs);
 	}
-	async getTable(grouping) {
-		await fetch(DKO3_BASE_URL + "#leerlingen-werklijst");
-		await this.sendSettings(grouping);
+	static async resetWerklijst(schoolYear, grouping) {
+		await fetch("view.php?args=leerlingen-werklijst");
+		await fetch("views/leerlingen/werklijst/index.view.php");
+		await postNameValueList("/views/leerlingen/werklijst/session.opslaan.php", [{
+			name: "reset",
+			value: "1"
+		}]);
+		await postNameValueList("/views/leerlingen/werklijst/session.opslaan.php", [{
+			name: "schooljaar",
+			value: schoolYear
+		}, {
+			name: "groepering",
+			value: grouping
+		}]);
+	}
+	static async fetchFieldDefinitions() {
+		let daFetch = await fetch("/views/leerlingen/werklijst/velden/toevoegen/velden.results.php");
+		let rows = await fetchTableRows(daFetch);
+		let defs = [];
+		for (let row of rows) {
+			let id = row.dataset.veld_id;
+			if (id) {
+				let col = row.querySelector("td:nth-child(2)");
+				let name = getImmediateText(col).trim();
+				defs.push({
+					id,
+					name
+				});
+			}
+		}
+		return defs;
+	}
+	static async fetchCriteriumDefinitions() {
+		let rows = await fetchTableRows(await fetch("/views/leerlingen/werklijst/criteria/toevoegen/criteria.results.php"));
+		let defs = [];
+		for (let row of rows) {
+			let id = row.dataset.criterium_id;
+			if (id) {
+				let col = row.querySelector("td");
+				let name = getImmediateText(col).trim();
+				defs.push({
+					id,
+					name
+				});
+			}
+		}
+		return defs;
+	}
+	async sendCriteria() {
+		for (const c of this.criteria) {
+			let codes = await this.addCodesForCriterium(c.name, c.values);
+			await postNameValueList("/views/leerlingen/werklijst/criteria/wijzigen.opslaan.php", [{
+				name: "criterium_id",
+				value: codes.postId
+			}, {
+				name: "value",
+				value: codes.values.join()
+			}]);
+		}
+	}
+	async sendSettings() {
+		await this.sendFields(this.fields);
+		await this.sendCriteria();
+		return this;
+	}
+	async fetchTable() {
 		let tableRef = await getWerklijstTableRef();
 		return getTable(tableRef, void 0, true);
 	}
 	toCriteriaString() {
 		return JSON.stringify(this.criteria);
 	}
-	addCriterium(criteria, operator, values) {
+	addCriterium(name, operator, values) {
 		this.criteria.push({
-			criteria,
+			name,
 			operator,
 			values
 		});
@@ -3510,29 +3534,46 @@ var WerklijstBuilder = class {
 	addFields(fields) {
 		this.fields.push(...fields);
 	}
-	addDomeinen(domeinen) {
-		this.addCriterium("Domein", Operator.PLUS, domeinen.join());
-	}
-	addVakken(vakken) {
-		this.vakken.push(...vakken);
-	}
-	async addVakGroep(vakGroep) {
-		await this.addCodesForCriterium("Vakgroep", [vakGroep]);
-	}
-	addVakCodes(vakken) {
-		this.addCriterium("Vak", Operator.PLUS, vakken);
-	}
 	async addCodesForCriterium(criterium, items) {
-		let defs = await fetchMultiSelectDefinitions(this.schoolYear, criterium, false);
-		let codes = textToCodes(items, defs);
-		if (codes.length) this.criteria.push({
-			"criteria": criterium,
-			"operator": "=",
-			"values": codes.join()
-		});
+		let defs = await this.fetchMultiSelectDefinitions(criterium);
+		let codes = textToCodes(items, defs.defs);
+		return {
+			postId: defs.postId,
+			operator: "TDOO",
+			values: codes
+		};
 	}
-	async fetchVakGroepDefinitions(clear) {
-		return fetchMultiSelectDefinitions(this.schoolYear, "Vakgroep", clear);
+	async fetchVakGroepDefinitions() {
+		return this.fetchMultiSelectDefinitions(CriteriumName.Vakgroep);
+	}
+	async fetchMultiSelectDefinitions(criterium) {
+		let critId = this.criteriaDefs.find((c) => c.name === criterium).id;
+		await postNameValueList("/views/leerlingen/werklijst/criteria/toevoegen/toevoegen.opslaan.php", [{
+			name: "criterium_id",
+			value: critId
+		}]);
+		let text = await fetch("/views/leerlingen/werklijst/criteria/criteria.div.php").then((res) => res.text());
+		const template = document.createElement("template");
+		template.innerHTML = text;
+		let tr = template.content.querySelector(`tr[data-criterium_id="${critId}"]`);
+		let select = tr.querySelector(`td:nth-child(3) select`);
+		let defs = select.querySelectorAll(`option`);
+		return {
+			postId: select.dataset.postId,
+			defs: Array.from(defs).map((def) => [def.label, def.value])
+		};
+	}
+	async sendFields(fields) {
+		for (let field of fields) {
+			let fieldDef = this.fieldDefs.find((f) => f.name === field.text);
+			if (fieldDef) await postNameValueList("/views/leerlingen/werklijst/velden/toevoegen/wijzigen.opslaan.php", [{
+				name: "veld_id",
+				value: fieldDef.id
+			}, {
+				name: "selected",
+				value: "1"
+			}]);
+		}
 	}
 };
 function textToCodes(items, vakDefs) {
@@ -3546,15 +3587,24 @@ function textToCodes(items, vakDefs) {
 
 //#endregion
 //#region typescript/lessen/observer.ts
-var observer_default$7 = new HashObserver("#lessen-overzicht", onMutation$5);
-function onMutation$5(mutation) {
+var observer_default$7 = new HashObserver("#lessen-overzicht", onMutation$5, false, onPageLoaded$2);
+function onPageLoaded$2() {
+	console.log(`Lessen.onPageLoaded: hash: ${location.hash}`);
+	if (location.hash != "#lessen-overzicht") return;
+	console.log("Lessen onPageLoaded");
+	if (!addTrimesterButton()) setTimeout(onPageLoaded$2, 500);
+}
+function addTrimesterButton() {
 	let btnZoek = document.getElementById("btn_lessen_overzicht_zoeken");
-	if (btnZoek) {
-		if (!document.getElementById("btn_show_trimesters")) {
-			let { first } = emmet.insertAfter(btnZoek, "button.btn.btn-sm.btn-primary.w-100.mt-1#btn_show_trimesters>i.fas.fa-sitemap+{ Toon trimesters}");
-			first.onclick = onClickShowTrimesters;
-		}
+	if (!btnZoek) return false;
+	if (!document.getElementById("btn_show_trimesters")) {
+		let { first } = emmet.insertAfter(btnZoek, "button.btn.btn-sm.btn-primary.w-100.mt-1#btn_show_trimesters>i.fas.fa-sitemap+{ Toon trimesters}");
+		first.onclick = onClickShowTrimesters;
 	}
+	return true;
+}
+function onMutation$5(mutation) {
+	addTrimesterButton();
 	let lessenOverzicht = document.getElementById(
 		//muziek
 		//modules!
@@ -3664,11 +3714,11 @@ function getTrimPageElements() {
 	};
 }
 async function getJaarToewijzigingWerklijst(schoolYear) {
-	let builder = new WerklijstBuilder(schoolYear);
-	builder.addDomeinen([Domein.Muziek]);
-	builder.addVakken([
+	let builder = await WerklijstBuilder.fetch(schoolYear, Grouping.LES);
+	builder.addCriterium(CriteriumName.Domein, Operator.PLUS, [Domein.Muziek]);
+	builder.addCriterium(CriteriumName.Vak, Operator.PLUS, [
 		"instrumentinitiatie – hele jaar zelfde instrument - accordeon",
-		"instrumentinitiatie – hele jaar zelfde instrument - bagglama (saz)",
+		"instrumentinitiatie – hele jaar zelfde instrument - baglama (saz)",
 		"instrumentinitiatie – hele jaar zelfde instrument - cello",
 		"instrumentinitiatie – hele jaar zelfde instrument - dwarsfluit",
 		"instrumentinitiatie – hele jaar zelfde instrument - gitaar",
@@ -3682,12 +3732,16 @@ async function getJaarToewijzigingWerklijst(schoolYear) {
 		"instrumentinitiatie – hele jaar zelfde instrument - zang"
 	]);
 	builder.addFields([
+		FIELD.NAAM,
+		FIELD.VOORNAAM,
 		FIELD.VAK_NAAM,
 		FIELD.LESMOMENTEN,
 		FIELD.KLAS_LEERKRACHT,
 		FIELD.GRAAD_LEERJAAR
 	]);
-	let table = await builder.getTable(Grouping.LEERLING);
+	debugger;
+	let preparedBuilder = await builder.sendSettings();
+	let table = await preparedBuilder.fetchTable();
 	await setViewFromCurrentUrl();
 	return table;
 }
@@ -4605,6 +4659,57 @@ function scrapeUren(rows, headerIndices) {
 }
 
 //#endregion
+//#region typescript/werklijst/prefillInstruments.ts
+async function setCriteriaForTeacherHoursAndClickFetchButton(schooljaar, hourSettings) {}
+
+//#endregion
+//#region typescript/werklijst/urenData.ts
+var JsonCloudData = class {
+	version;
+	columns;
+	constructor(object) {
+		this.version = "1.0";
+		this.columns = [];
+		if (object) Object.assign(this, object);
+	}
+};
+var CloudData = class {
+	columnMap;
+	constructor(jsonCloudData) {
+		this.#buildMapFromJsonData(jsonCloudData);
+	}
+	#buildMapFromJsonData(jsonCloudData) {
+		for (let column of jsonCloudData.columns) column.rowMap = new Map(column.rows.map((row) => [row.key, row.value]));
+		this.columnMap = new Map(jsonCloudData.columns.map((col) => [col.key, col.rowMap]));
+	}
+	toJson(colKey1, colKey2) {
+		let data = new JsonCloudData();
+		let col1 = this.#columnToJson(colKey1);
+		let col2 = this.#columnToJson(colKey2);
+		data.columns.push({
+			key: colKey1,
+			rows: col1
+		});
+		data.columns.push({
+			key: colKey2,
+			rows: col2
+		});
+		return data;
+	}
+	#columnToJson(colKey) {
+		let cells = [];
+		for (let [key, value] of this.columnMap.get(colKey)) {
+			let row = {
+				key,
+				value
+			};
+			cells.push(row);
+		}
+		return cells;
+	}
+};
+
+//#endregion
 //#region typescript/werklijst/hoursSettings.ts
 function mapHourSettings(hourSettings) {
 	let mapped = { ...hourSettings };
@@ -5056,79 +5161,6 @@ async function saveHourSettings(hoursSetup) {
 	let fileName = createTeacherHoursFileName(hoursSetup.schoolyear);
 	return cloud.json.upload(fileName, hoursSetup);
 }
-
-//#endregion
-//#region typescript/werklijst/prefillInstruments.ts
-async function setCriteriaForTeacherHoursAndClickFetchButton(schooljaar, hourSettings) {
-	await resetWerklijst(schooljaar);
-	let dko3_vakken = await fetchAvailableSubjects(schooljaar);
-	if (!hourSettings) hourSettings = await fetchHoursSettingsOrSaveDefault(schooljaar);
-	let selectedInstrumentNames = new Set(hourSettings.subjects.filter((i) => i.checked).map((i) => i.name));
-	let validInstruments = dko3_vakken.filter((vak) => selectedInstrumentNames.has(vak.name));
-	let values = validInstruments.map((vak) => parseInt(vak.value));
-	let valueString = values.join();
-	let builder = new WerklijstBuilder(schooljaar);
-	builder.addDomeinen([Domein.Muziek]);
-	builder.addVakCodes(valueString);
-	builder.addFields([
-		FIELD.VAK_NAAM,
-		FIELD.GRAAD_LEERJAAR,
-		FIELD.KLAS_LEERKRACHT
-	]);
-	await builder.sendSettings(Grouping.VAK);
-	let pageState$2 = getGotoStateOrDefault(PageName.Werklijst);
-	pageState$2.werklijstTableName = UREN_TABLE_STATE_NAME;
-	saveGotoState(pageState$2);
-	if (window.location.hash === "#leerlingen-werklijst$werklijst") location.reload();
-	else location.hash = "#leerlingen-werklijst$werklijst";
-}
-
-//#endregion
-//#region typescript/werklijst/urenData.ts
-var JsonCloudData = class {
-	version;
-	columns;
-	constructor(object) {
-		this.version = "1.0";
-		this.columns = [];
-		if (object) Object.assign(this, object);
-	}
-};
-var CloudData = class {
-	columnMap;
-	constructor(jsonCloudData) {
-		this.#buildMapFromJsonData(jsonCloudData);
-	}
-	#buildMapFromJsonData(jsonCloudData) {
-		for (let column of jsonCloudData.columns) column.rowMap = new Map(column.rows.map((row) => [row.key, row.value]));
-		this.columnMap = new Map(jsonCloudData.columns.map((col) => [col.key, col.rowMap]));
-	}
-	toJson(colKey1, colKey2) {
-		let data = new JsonCloudData();
-		let col1 = this.#columnToJson(colKey1);
-		let col2 = this.#columnToJson(colKey2);
-		data.columns.push({
-			key: colKey1,
-			rows: col1
-		});
-		data.columns.push({
-			key: colKey2,
-			rows: col2
-		});
-		return data;
-	}
-	#columnToJson(colKey) {
-		let cells = [];
-		for (let [key, value] of this.columnMap.get(colKey)) {
-			let row = {
-				key,
-				value
-			};
-			cells.push(row);
-		}
-		return cells;
-	}
-};
 
 //#endregion
 //#region typescript/werklijst/observer.ts

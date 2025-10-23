@@ -10,14 +10,15 @@ import {FetchChain} from "./fetchChain";
 
 export async function  getWerklijstTableRef() {
     let chain = new FetchChain();
+    await fetch("views/leerlingen/werklijst/werklijst.maken.php", {method: "POST"}); //todo: create a chain.post()
     await chain.fetch("view.php?args=leerlingen-werklijst$werklijst");
     await chain.fetch("views/leerlingen/werklijst/werklijst.view.php");
-    await chain.fetch("views/leerlingen/werklijst/werklijst.table.php");
     await chain.fetch("views/ui/datatable.php?id=leerlingen_werklijst");
     return parseDataTablePhp(chain, "leerlingen_werklijst");
 }
 
 async function parseDataTablePhp(chain: FetchChain, htmlTableId: string) {
+    debugger;
     chain.find("var", "datatable_id", "=");
     let datatable_id = chain.getQuotedString();
     chain.clipTo("</script>");

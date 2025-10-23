@@ -365,3 +365,7 @@ export function escapeRegexChars(text: string): string {
         .replaceAll("{", "\\{")
         .replaceAll("}", "\\}")
 }
+
+export function getImmediateText(element: HTMLElement) {
+    return [...element.childNodes].map(c => c.nodeType === 3 ? c.textContent : "").join("");
+}

@@ -1,3 +1,33 @@
+New werklijst:
+================
+Add criterium:
+----------------
+https://administratie.dko3.cloud/views/leerlingen/werklijst/criteria/toevoegen/toevoegen.modal.php?&_=1761214042736
+https://administratie.dko3.cloud/views/leerlingen/werklijst/criteria/toevoegen/criteria.results.php?zoekterm=&_=1761214042737
+  > table with criteria
+
+Set criterium (vak)
+--------------------
+https://administratie.dko3.cloud/views/leerlingen/werklijst/criteria/toevoegen/toevoegen.opslaan.php
+ payload: criterium_id=8
+https://administratie.dko3.cloud/views/leerlingen/werklijst/criteria/criteria.div.php?_=1761214042739
+ > html <select> with options.
+
+Select values
+---------------
+https://administratie.dko3.cloud/views/leerlingen/werklijst/criteria/wijzigen.opslaan.php
+ payload: criterium_id=8:1
+          value=898,901,871
+
+Fetch table
+--------------
+POST !!! views/leerlingen/werklijst/werklijst.maken.php
+ > no payload?
+view.php?args=leerlingen-werklijst$werklijst&_=1761214710875
+views/leerlingen/werklijst/werklijst.view.php?_=1761214710876
+views/ui/datatable.php?id=leerlingen_werklijst&_=1761214710877
+views/ui/datatablenav.php?id=leerlingen_werklijst&pos=top&_=1761214710878
+
 * Hours: Make grade.year optional (to exclude/include 1st grade)
   > and make factors user-defined.
 

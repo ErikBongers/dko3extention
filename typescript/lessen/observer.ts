@@ -10,13 +10,14 @@ import {emmet} from "../../libs/Emmeter/html";
 import {getGotoStateOrDefault, Goto, PageName, saveGotoState} from "../gotoState";
 import {addFilterFields, applyFilters} from "./filter";
 import {getPageSettings, savePageSettings} from "../pageState";
-import {FIELD, WerklijstBuilder} from "../table/werklijstBuilder";
-import {Domein, Grouping} from "../werklijst/criteria";
+import {WerklijstBuilder} from "../table/werklijstBuilder";
+import {CriteriumName, Domein, FIELD, Grouping, Operator} from "../werklijst/criteria";
 import {FetchedTable} from "../table/tableFetcher";
 
 export default new HashObserver("#lessen-overzicht", onMutation, false, onPageLoaded);
 
 function onPageLoaded() {
+    console.log(`Lessen.onPageLoaded: hash: ${location.hash}`);
     if(location.hash != "#lessen-overzicht" )
         return;
      console.log("Lessen onPageLoaded");
@@ -170,9 +171,9 @@ export function getTrimPageElements(){
 }
 
 export async function getJaarToewijzigingWerklijst(schoolYear: string) {
-    let builder = new WerklijstBuilder(schoolYear);
-    builder.addDomeinen([Domein.Muziek]);
-    builder.addVakken([
+    let builder = await WerklijstBuilder.fetch(schoolYear, Grouping.LES);
+    builder.addCriterium(CriteriumName.Domein, Operator.PLUS, [Domein.Muziek]);
+    builder.addCriterium(CriteriumName.Vak, Operator.PLUS, [
         "instrumentinitiatie – hele jaar zelfde instrument - accordeon",
         "instrumentinitiatie – hele jaar zelfde instrument - baglama (saz)",
         "instrumentinitiatie – hele jaar zelfde instrument - cello",
@@ -187,8 +188,10 @@ export async function getJaarToewijzigingWerklijst(schoolYear: string) {
         "instrumentinitiatie – hele jaar zelfde instrument - viool",
         "instrumentinitiatie – hele jaar zelfde instrument - zang",
     ]);
-    builder.addFields([FIELD.VAK_NAAM, FIELD.LESMOMENTEN, FIELD.KLAS_LEERKRACHT, FIELD.GRAAD_LEERJAAR]);
-    let table = await builder.getTable(Grouping.LEERLING);
+    builder.addFields([FIELD.NAAM, FIELD.VOORNAAM, FIELD.VAK_NAAM, FIELD.LESMOMENTEN, FIELD.KLAS_LEERKRACHT, FIELD.GRAAD_LEERJAAR]);
+    debugger;
+    let preparedBuilder = await builder.sendSettings();
+    let table = await preparedBuilder.fetchTable();
     await setViewFromCurrentUrl();
     return table;
 }
