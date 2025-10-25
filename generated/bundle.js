@@ -354,6 +354,7 @@ const GLOBAL_COMMAND_BUFFER_KEY = "globalCmdBuffer";
 const AFTER_DOWNLOAD_TABLE_ACTION = "afterDownloadTableAction";
 const WERKLIJST_TABLE_ID = "table_leerlingen_werklijst_table";
 const BTN_WERKLIJST_MAKEN_ID = "#btn_leerling_werklijst_maken";
+const BTN_WERKLIJST_MAKEN_WRAPPER_ID = "#btn_leerling_werklijst_maken_wrapper";
 const DKO3_BASE_URL = "/";
 
 //#endregion
@@ -5243,8 +5244,11 @@ function onCriteriaShown() {
 	}
 	pageState$2.werklijstTableName = "";
 	saveGotoState(pageState$2);
+	let btnWerklijstMakenWrapper = document.querySelector(BTN_WERKLIJST_MAKEN_WRAPPER_ID);
+	if (btnWerklijstMakenWrapper) return;
 	let btnWerklijstMaken = document.querySelector(BTN_WERKLIJST_MAKEN_ID);
-	if (document.getElementById(UREN_PREV_BTN_ID)) return;
+	btnWerklijstMakenWrapper = emmet.insertBefore(btnWerklijstMaken, `div#${BTN_WERKLIJST_MAKEN_WRAPPER_ID}.werklijstButtonWrapper`).first;
+	btnWerklijstMakenWrapper.appendChild(btnWerklijstMaken);
 	let year = parseInt(Schoolyear.getHighestAvailable());
 	let prevSchoolyear = Schoolyear.toFullString(year - 1);
 	let nextSchoolyear = Schoolyear.toFullString(year);

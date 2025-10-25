@@ -338,3 +338,8 @@ button.likeLink {
 span.filterInfo {
     margin-left: 1ch;
 }
+
+.werklijstButtonWrapper {
+    display: flex;
+    gap: .5em;
+}

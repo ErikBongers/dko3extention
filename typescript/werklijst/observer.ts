@@ -16,6 +16,7 @@ import {Actions, sendRequest, ServiceRequest, TabType} from "../messaging";
 import {fetchHoursSettingsOrSaveDefault, mapHourSettings, TeacherHoursSetup, TeacherHoursSetupMapped} from "./hoursSettings";
 import {getJaarToewijzigingWerklijst} from "../lessen/observer";
 import MessageSender = chrome.runtime.MessageSender;
+import {emmet} from "../../libs/Emmeter/html";
 
 const TARGET_BUTTON_ID = "#tablenav_leerlingen_werklijst_top > div > div.btn-group.btn-group-sm.datatable-buttons > button:nth-child(1)";
 
@@ -74,9 +75,14 @@ function onCriteriaShown() {
     }
     pageState.werklijstTableName = "";
     saveGotoState(pageState);
-    let btnWerklijstMaken = document.querySelector(def.BTN_WERKLIJST_MAKEN_ID) as HTMLButtonElement;
-    if(document.getElementById(def.UREN_PREV_BTN_ID))
+    let btnWerklijstMakenWrapper = document.querySelector(def.BTN_WERKLIJST_MAKEN_WRAPPER_ID) as HTMLDivElement;
+    if(btnWerklijstMakenWrapper) {
         return;
+    }
+
+    let btnWerklijstMaken = document.querySelector(def.BTN_WERKLIJST_MAKEN_ID) as HTMLButtonElement;
+    btnWerklijstMakenWrapper = emmet.insertBefore(btnWerklijstMaken, `div#${def.BTN_WERKLIJST_MAKEN_WRAPPER_ID}.werklijstButtonWrapper`).first as HTMLDivElement;
+    btnWerklijstMakenWrapper.appendChild(btnWerklijstMaken);
 
     let year = parseInt(Schoolyear.getHighestAvailable());
     let prevSchoolyear = Schoolyear.toFullString(year-1);

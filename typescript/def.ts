@@ -34,4 +34,5 @@ export const GLOBAL_COMMAND_BUFFER_KEY = "globalCmdBuffer";
 export const AFTER_DOWNLOAD_TABLE_ACTION = "afterDownloadTableAction";
 export const WERKLIJST_TABLE_ID = "table_leerlingen_werklijst_table";
 export const BTN_WERKLIJST_MAKEN_ID = "#btn_leerling_werklijst_maken";
+export const BTN_WERKLIJST_MAKEN_WRAPPER_ID = "#btn_leerling_werklijst_maken_wrapper";
 export const DKO3_BASE_URL = "/"; // root = https://administratie.dko3.cloud/
