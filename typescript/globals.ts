@@ -108,7 +108,6 @@ export namespace Schoolyear {
         if (el)
             return el.value;
         el = document.querySelector("div.alert-info");
-        debugger;
         let txt = el.textContent;
         let rx = /[sS]chooljaar *[=:][\s\u00A0]*(\d{4}-\d{4})/gm;
         let res = rx.exec(txt);
