@@ -1,5 +1,6 @@
 import {addButton, arrayIsEqual, getSchoolIdString, openHoursSettings, Schoolyear, setButtonHighlighted, tryUntil, tryUntilThen} from "../globals";
 import * as def from "../def";
+import {BTN_WERKLJST_NAV_BOTTOM} from "../def";
 import {createTable, getUrenVakLeraarFileName, refillTable} from "./buildUren";
 import {addStudentToVakLeraarsMap, scrapeUren, StudentUrenRow, VakLeraar} from "./scrapeUren";
 import {cloud} from "../cloud";
@@ -15,8 +16,8 @@ import {createDefaultTableFetcher} from "../table/loadAnyTable";
 import {Actions, sendRequest, ServiceRequest, TabType} from "../messaging";
 import {fetchHoursSettingsOrSaveDefault, mapHourSettings, TeacherHoursSetup, TeacherHoursSetupMapped} from "./hoursSettings";
 import {getJaarToewijzigingWerklijst} from "../lessen/observer";
-import MessageSender = chrome.runtime.MessageSender;
 import {emmet} from "../../libs/Emmeter/html";
+import MessageSender = chrome.runtime.MessageSender;
 
 const TARGET_BUTTON_ID = "#tablenav_leerlingen_werklijst_top > div > div.btn-group.btn-group-sm.datatable-buttons > button:nth-child(1)";
 
@@ -30,23 +31,23 @@ export default observer;
 
 function onPageLoaded() {
     console.log("onPageLoaded");
-    tryUntilThen(checkPageReallyLoaded, onPage_REALLY_Loaded);
+    tryUntilThen(isPageReallyLoaded, onAnyChangeEvent);
 }
 
-function checkPageReallyLoaded() {
+function isPageReallyLoaded() {
     if (document.querySelector(def.BTN_WERKLIJST_MAKEN_ID))
         return true;
-    if (document.getElementById("tablenav_leerlingen_werklijst_bottom")
+    if (document.getElementById(BTN_WERKLJST_NAV_BOTTOM)
     && document.querySelector(TARGET_BUTTON_ID))
         return true;
     return false;
 }
 
-function onPage_REALLY_Loaded() {
-    console.log("onPage_REALLY_Loaded");
+function onAnyChangeEvent() {
+    console.log("onAnyChangeEvent");
     if (document.querySelector(def.BTN_WERKLIJST_MAKEN_ID)) {
         onCriteriaShown();
-    } else if (document.getElementById("tablenav_leerlingen_werklijst_bottom")) {
+    } else if (document.getElementById(def.BTN_WERKLJST_NAV_BOTTOM)) {
         addButtons();
         onWerklijstChanged();
     }
@@ -54,7 +55,7 @@ function onPage_REALLY_Loaded() {
 
 function onMutation(mutation: MutationRecord) {
     console.log("onMutation");
-    tryUntilThen(checkPageReallyLoaded, onPage_REALLY_Loaded);
+    tryUntilThen(isPageReallyLoaded, onAnyChangeEvent);
     return true;
 }
 
