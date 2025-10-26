@@ -4,6 +4,9 @@
 
 * Settingsscreen: show school year!
 
+* Trims: list of "jaartraject ***" is hardcoded.
+  > retrieve if with a regex from WerklijstBuilder.fetchAvailableSubjects()? Or will this slow down the page?
+
 Paper on Dutch dataabase/model for NER:
 https://lt3.ugent.be/media/uploads/publications/2013/LRE2013.pdf
 

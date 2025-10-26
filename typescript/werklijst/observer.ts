@@ -18,7 +18,6 @@ import {fetchHoursSettingsOrSaveDefault, mapHourSettings, TeacherHoursSetup, Tea
 import {getJaarToewijzigingWerklijst} from "../lessen/observer";
 import {emmet} from "../../libs/Emmeter/html";
 import MessageSender = chrome.runtime.MessageSender;
-import {WerklijstBuilder} from "../table/werklijstBuilder";
 
 const TARGET_BUTTON_ID = "#tablenav_leerlingen_werklijst_top > div > div.btn-group.btn-group-sm.datatable-buttons > button:nth-child(1)";
 

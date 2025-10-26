@@ -10,9 +10,9 @@ import {emmet} from "../../libs/Emmeter/html";
 import {getGotoStateOrDefault, Goto, PageName, saveGotoState} from "../gotoState";
 import {addFilterFields, applyFilters} from "./filter";
 import {getPageSettings, savePageSettings} from "../pageState";
-import {WerklijstBuilder} from "../table/werklijstBuilder";
 import {CriteriumName, Domein, FIELD, Grouping, Operator} from "../werklijst/criteria";
 import {FetchedTable} from "../table/tableFetcher";
+import {createWerklijstBuilder} from "../table/werklijstBuilder";
 
 class LessenObserver extends HashObserver {
     constructor() {
@@ -179,7 +179,7 @@ export function getTrimPageElements(){
 }
 
 export async function getJaarToewijzigingWerklijst(schoolYear: string) {
-    let builder = await WerklijstBuilder.fetch(schoolYear, Grouping.LES);
+    let builder = await createWerklijstBuilder(schoolYear, Grouping.LES);
     builder.addCriterium(CriteriumName.Domein, Operator.PLUS, [Domein.Muziek]);
     builder.addCriterium(CriteriumName.Vak, Operator.PLUS, [
         "instrumentinitiatie – hele jaar zelfde instrument - accordeon",

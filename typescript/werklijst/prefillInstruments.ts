@@ -2,10 +2,10 @@ import {CriteriumName, Domein, FIELD, Grouping, Operator} from "./criteria";
 import * as def from "../def";
 import {getGotoStateOrDefault, PageName, saveGotoState, WerklijstGotoState} from "../gotoState";
 import {fetchHoursSettingsOrSaveDefault, TeacherHoursSetup} from "./hoursSettings";
-import {WerklijstBuilder} from "../table/werklijstBuilder";
+import {createWerklijstBuilder} from "../table/werklijstBuilder";
 
 export async function setCriteriaForTeacherHoursAndClickFetchButton(schooljaar: string, hourSettings?: TeacherHoursSetup) {
-    let builder = await WerklijstBuilder.fetch(schooljaar, Grouping.LES);
+    let builder = await createWerklijstBuilder(schooljaar, Grouping.LES);
     let dko3_vakken = await builder.fetchAvailableSubjects();
     await builder.reset();
     if(!hourSettings)

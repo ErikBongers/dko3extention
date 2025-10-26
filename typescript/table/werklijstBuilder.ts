@@ -20,7 +20,11 @@ export interface CriteriaBuilder {
     reset(): Promise<void>;
 }
 
-export class WerklijstBuilder implements CriteriaBuilder, PreparedWerklijst {
+export function createWerklijstBuilder(schoolYear: string, grouping: Grouping) {
+    return WerklijstBuilder.fetch(schoolYear, grouping);
+}
+
+class WerklijstBuilder implements CriteriaBuilder, PreparedWerklijst {
     private readonly schoolYear: string;
     private readonly grouping: Grouping;
     criteria: Criterium[] = [];
@@ -50,36 +54,27 @@ export class WerklijstBuilder implements CriteriaBuilder, PreparedWerklijst {
         await postNameValueList("/views/leerlingen/werklijst/session.opslaan.php", [{name:"schooljaar", value:this.schoolYear}, {name:"groepering", value:this.grouping}]);
     }
 
+    static async fetchDefinitions(url:string, idTagName: string, nameSelector: string) {
+        let rows = await fetchTableRows(await fetch(url));
+        let defs: { id: string; name: string }[] = [];
+        for (let row of rows) {
+            let id = row.dataset[idTagName];
+            if (id) {
+                let element = row.querySelector(nameSelector) as HTMLElement;
+                let name = getImmediateText(element).trim();
+                defs.push({id, name});
+            }
+        }
+        return defs;
+    }
+
+    static async fetchCriteriumDefinitions() {
+        return this.fetchDefinitions("/views/leerlingen/werklijst/criteria/toevoegen/criteria.results.php", "criterium_id", "td");
+    }
+
     static async fetchFieldDefinitions() {
-        let daFetch = await fetch("/views/leerlingen/werklijst/velden/toevoegen/velden.results.php");
-        let rows = await fetchTableRows(daFetch);
-        let defs: { id: string; name: string }[] = [];
-        for (let row of rows) {
-            let id = row.dataset.veld_id;
-            if(id) {
-                let col = row.querySelector("td:nth-child(2)") as HTMLElement;
-                let name = getImmediateText(col).trim();
-                defs.push({id, name});
-            }
-        }
-        return defs;
+        return this.fetchDefinitions("/views/leerlingen/werklijst/velden/toevoegen/velden.results.php", "veld_id", "td:nth-child(2)");
     }
-
-    private static async fetchCriteriumDefinitions() {
-        let rows = await fetchTableRows(await fetch("/views/leerlingen/werklijst/criteria/toevoegen/criteria.results.php"));
-        let defs: { id: string; name: string }[] = [];
-        for (let row of rows) {
-            let id = row.dataset.criterium_id;
-            if(id) {
-                let col = row.querySelector("td");
-                let name = getImmediateText(col).trim();
-                defs.push({id, name});
-            }
-        }
-        return defs;
-    }
-
-
 
     async sendCriteria() {
         for (const c of this.criteria) {
