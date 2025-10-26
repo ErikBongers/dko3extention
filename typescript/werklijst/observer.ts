@@ -124,7 +124,13 @@ function onCriteriaShown() {
 
     addButton(btnWerklijstMaken, "test123", "Test 123", test123, "", ["btn", "btn-outline-dark"], "Test 123");
 
+    document.getElementById("btn_leerling_werklijst_reset").addEventListener("click", resetPageIncarnationChangedFlag);
+
     getSchoolIdString();
+}
+
+function resetPageIncarnationChangedFlag() {
+    pageIncarnationChanged = true;
 }
 
 async function test123() {

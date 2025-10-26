@@ -3505,7 +3505,6 @@ var WerklijstBuilder = class WerklijstBuilder {
 		};
 	}
 	async fetchAvailableSubjects() {
-		debugger;
 		let defs = await this.fetchMultiSelectDefinitions(CriteriumName.Vak);
 		return Array.from(defs.defs).map((vak) => {
 			return {
@@ -5279,7 +5278,11 @@ function onCriteriaShown() {
 		await setCriteriaForTeacherHoursAndClickFetchButton(nextSchoolyear);
 	}, "", ["btn", "btn-outline-dark"], "Uren " + nextSchoolyearShort);
 	addButton$1(btnWerklijstMaken, "test123", "Test 123", test123, "", ["btn", "btn-outline-dark"], "Test 123");
+	document.getElementById("btn_leerling_werklijst_reset").addEventListener("click", resetPageIncarnationChangedFlag);
 	getSchoolIdString();
+}
+function resetPageIncarnationChangedFlag() {
+	pageIncarnationChanged = true;
 }
 async function test123() {
 	let table = await getJaarToewijzigingWerklijst(Schoolyear.findInPage());

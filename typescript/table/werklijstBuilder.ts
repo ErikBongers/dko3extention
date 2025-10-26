@@ -119,7 +119,6 @@ export class WerklijstBuilder implements CriteriaBuilder, PreparedWerklijst {
     }
 
     async fetchAvailableSubjects() {
-        debugger;
         let defs = await this.fetchMultiSelectDefinitions(CriteriumName.Vak);
         return Array.from(defs.defs).map((vak) => {  return {name: vak[0], value: vak[1]}; });
     }
