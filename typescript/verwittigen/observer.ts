@@ -1,6 +1,15 @@
 import {HashObserver} from "../pageObserver";
 
-export default new HashObserver("#leerlingen-verwittigen", onMutation);
+class VerwittigenObserver extends HashObserver {
+    constructor() {
+        super("#leerlingen-verwittigen", onMutation);
+    }
+    isPageReallyLoaded(): boolean {
+        return document.getElementById("leerlingen_verwittigen_bericht_sjabloon") != null;
+    }
+}
+
+export default new VerwittigenObserver();
 
 const CHAR_COUNTER = "charCounterClass";
 const COUNTER_ID = "charCounter"

@@ -356,7 +356,7 @@ const WERKLIJST_TABLE_ID = "table_leerlingen_werklijst_table";
 const BTN_WERKLIJST_MAKEN_ID = "#btn_leerling_werklijst_maken";
 const BTN_WERKLIJST_MAKEN_WRAPPER_ID = "#btn_leerling_werklijst_maken_wrapper";
 const DKO3_BASE_URL = "/";
-const BTN_WERKLJST_NAV_BOTTOM = "tablenav_leerlingen_werklijst_bottom";
+const BTN_WERKLIJST_NAV_BOTTOM = "tablenav_leerlingen_werklijst_bottom";
 
 //#endregion
 //#region typescript/cloud.ts
@@ -936,7 +936,7 @@ var BaseObserver = class {
 	}
 	isPageMatching = () => this.pageFilter.match();
 	onPageLoaded() {
-		this.onPageLoadedCallback?.();
+		if (this.onPageLoadedCallback) tryUntilThen(this.isPageReallyLoaded, this.onPageLoadedCallback);
 	}
 	onPageChanged() {
 		if (!this.pageFilter.match()) {
@@ -966,80 +966,39 @@ var BaseObserver = class {
 		this.observer?.disconnect();
 	}
 };
-var HashObserver = class {
-	baseObserver;
+var HashObserver = class extends BaseObserver {
 	constructor(urlHash, onMutationCallback, trackModal = false, onPageLoadedCallback = void 0) {
-		this.baseObserver = new BaseObserver(void 0, new HashPageFilter(urlHash), onMutationCallback, trackModal, onPageLoadedCallback);
-	}
-	disconnect() {
-		this.baseObserver.disconnect();
-	}
-	onPageChanged() {
-		this.baseObserver.onPageChanged();
-	}
-	onPageLoaded() {
-		this.baseObserver.onPageLoaded();
-	}
-	isPageMatching = () => this.baseObserver.isPageMatching();
-	observeElement(element) {
-		this.baseObserver.observeElement(element);
+		super(void 0, new HashPageFilter(urlHash), onMutationCallback, trackModal, onPageLoadedCallback);
 	}
 };
-var ExactHashObserver = class {
-	baseObserver;
+var ExactHashObserver = class extends BaseObserver {
 	constructor(urlHash, onMutationCallback, trackModal = false, onPageLoadedCallback = void 0) {
-		this.baseObserver = new BaseObserver(void 0, new ExactHashPageFilter(urlHash), onMutationCallback, trackModal, onPageLoadedCallback);
-	}
-	disconnect;
-	isPageMatching = () => this.baseObserver.isPageMatching();
-	onPageChanged() {
-		this.baseObserver.onPageChanged();
-	}
-	onPageLoaded() {
-		this.baseObserver.onPageLoaded();
-	}
-	observeElement(element) {
-		this.baseObserver.observeElement(element);
+		super(void 0, new ExactHashPageFilter(urlHash), onMutationCallback, trackModal, onPageLoadedCallback);
 	}
 };
-var PageObserver = class {
-	baseObserver;
+var PageObserver = class extends BaseObserver {
 	constructor(onPageChangedCallback, onPageLoadedCallback = void 0) {
-		this.baseObserver = new BaseObserver(onPageChangedCallback, new AllPageFilter(), void 0, false, onPageLoadedCallback);
-	}
-	isPageMatching = () => this.baseObserver.isPageMatching();
-	onPageChanged() {
-		this.baseObserver.onPageChanged();
-	}
-	onPageLoaded() {
-		this.baseObserver.onPageLoaded();
-	}
-	disconnect() {
-		this.baseObserver.disconnect();
-	}
-	observeElement(element) {
-		this.baseObserver.observeElement(element);
+		super(onPageChangedCallback, new AllPageFilter(), void 0, false, onPageLoadedCallback);
 	}
 };
-var MenuScrapingObserver = class MenuScrapingObserver {
-	hashObserver;
+var MenuScrapingObserver = class MenuScrapingObserver extends ExactHashObserver {
+	pageLoadedQuerySelector;
+	isPageReallyLoaded() {
+		return void 0 != document.querySelector(this.pageLoadedQuerySelector);
+	}
 	page;
 	longLabelPrefix;
-	constructor(urlHash, page, longLabelPrefix) {
-		let self = this;
-		this.hashObserver = new ExactHashObserver(urlHash, (_) => {
-			return self.onMutationPageWithMenu();
+	constructor(urlHash, page, longLabelPrefix, pageLoadedQuerySelector) {
+		super(urlHash, (_) => {
+			return this.onMutationPageWithMenu();
 		});
 		this.page = page;
 		this.longLabelPrefix = longLabelPrefix;
+		this.pageLoadedQuerySelector = pageLoadedQuerySelector;
 	}
-	isPageMatching = () => this.hashObserver.isPageMatching();
 	onPageChanged() {
-		this.hashObserver.onPageChanged();
+		super.onPageChanged.call(this);
 		if (this.isPageMatching()) this.onMutationPageWithMenu();
-	}
-	onPageLoaded() {
-		this.onPageChanged();
 	}
 	onMutationPageWithMenu() {
 		saveQueryItems(this.page, scrapeMenuPage(this.longLabelPrefix, MenuScrapingObserver.defaultLinkToQueryItem));
@@ -1049,17 +1008,19 @@ var MenuScrapingObserver = class MenuScrapingObserver {
 		let label = link.textContent.trim();
 		return createQueryItem(headerLabel, label, link.href, void 0, longLabelPrefix + label);
 	}
-	disconnect() {
-		this.hashObserver.disconnect();
-	}
-	observeElement(element) {
-		this.hashObserver.observeElement(element);
-	}
 };
 
 //#endregion
 //#region typescript/leerling/observer.ts
-var observer_default$9 = new HashObserver("#leerlingen-leerling", onMutation$7);
+var LeerlingObserver = class extends HashObserver {
+	constructor() {
+		super("#leerlingen-leerling", onMutation$7);
+	}
+	isPageReallyLoaded() {
+		throw new Error("Method not implemented.");
+	}
+};
+var observer_default$9 = new LeerlingObserver();
 function onMutation$7(mutation) {
 	let tabInschrijving = document.getElementById("leerling_inschrijvingen_weergave");
 	if (mutation.target === tabInschrijving) {
@@ -2959,7 +2920,15 @@ function swapColumns(row, index1, index2) {
 
 //#endregion
 //#region typescript/table/observer.ts
-var observer_default$8 = new BaseObserver(void 0, new AllPageFilter(), onMutation$6);
+var TableObserver = class extends BaseObserver {
+	constructor() {
+		super(void 0, new AllPageFilter(), onMutation$6);
+	}
+	isPageReallyLoaded() {
+		return getBothToolbars() != void 0;
+	}
+};
+var observer_default$8 = new TableObserver();
 function onMutation$6(_mutation) {
 	let navigationBars = getBothToolbars();
 	if (!navigationBars) return;
@@ -3593,12 +3562,20 @@ function textToCodes(items, vakDefs) {
 
 //#endregion
 //#region typescript/lessen/observer.ts
-var observer_default$7 = new HashObserver("#lessen-overzicht", onMutation$5, false, onPageLoaded$2);
-function onPageLoaded$2() {
+var LessenObserver = class extends HashObserver {
+	constructor() {
+		super("#lessen-overzicht", onMutation$5, false, onPageLoaded$1);
+	}
+	isPageReallyLoaded() {
+		return document.getElementById("btn_lessen_overzicht_zoeken") != null;
+	}
+};
+var observer_default$7 = new LessenObserver();
+function onPageLoaded$1() {
 	console.log(`Lessen.onPageLoaded: hash: ${location.hash}`);
 	if (location.hash != "#lessen-overzicht") return;
 	console.log("Lessen onPageLoaded");
-	if (!addTrimesterButton()) setTimeout(onPageLoaded$2, 500);
+	if (!addTrimesterButton()) setTimeout(onPageLoaded$1, 500);
 }
 function addTrimesterButton() {
 	let btnZoek = document.getElementById("btn_lessen_overzicht_zoeken");
@@ -3612,6 +3589,7 @@ function addTrimesterButton() {
 function onMutation$5(mutation) {
 	addTrimesterButton();
 	let lessenOverzicht = document.getElementById(
+		//todo: why is this check needed? If so, put it in BaseObserver?
 		//muziek
 		//modules!
 		LESSEN_OVERZICHT_ID
@@ -3839,7 +3817,15 @@ function appendGroupingAnchorOrText(target, grouping, activeSorting, separator) 
 
 //#endregion
 //#region typescript/les/observer.ts
-var observer_default$6 = new HashObserver("#lessen-les", onMutation$4);
+var LesObserver = class extends HashObserver {
+	constructor() {
+		super("#lessen-les", onMutation$4);
+	}
+	isPageReallyLoaded() {
+		return document.querySelectorAll("#les_leerlingen_leerlingen > span").length > 0;
+	}
+};
+var observer_default$6 = new LesObserver();
 function onMutation$4(mutation) {
 	let tabLeerlingen = document.getElementById("les_leerlingen_leerlingen");
 	if (mutation.target === tabLeerlingen) {
@@ -3902,7 +3888,20 @@ function switchNaamVoornaam(_event) {
 
 //#endregion
 //#region typescript/academie/observer.ts
-var observer_default$5 = new PageObserver(setSchoolBackground);
+var AcademieObserver = class extends PageObserver {
+	constructor() {
+		super(setSchoolBackground);
+	}
+	isPageReallyLoaded() {
+		try {
+			getUserAndSchoolName();
+			return true;
+		} catch (_) {
+			return false;
+		}
+	}
+};
+var observer_default$5 = new AcademieObserver();
 registerSettingsObserver(setSchoolBackground);
 function setSchoolBackground() {
 	let { schoolName } = getUserAndSchoolName();
@@ -5204,34 +5203,36 @@ registerChecksumHandler(
 		return document.querySelector("#view_contents > div.alert.alert-primary")?.textContent.replace("Criteria aanpassen", "")?.replace("Criteria:", "") ?? "";
 	}
 );
-let observer = new HashObserver("#leerlingen-werklijst", onMutation$3, false, onPageLoaded$1);
+var WerklijstObserver = class extends HashObserver {
+	constructor() {
+		super("#leerlingen-werklijst", onMutation$3, false, onPageReallyLoaded);
+	}
+	isPageReallyLoaded() {
+		if (document.querySelector(BTN_WERKLIJST_MAKEN_ID)) return true;
+		if (document.getElementById(BTN_WERKLIJST_NAV_BOTTOM) && document.querySelector(TARGET_BUTTON_ID)) return true;
+		return false;
+	}
+};
+let observer = new WerklijstObserver();
 var observer_default$4 = observer;
 let pageIncarnationChanged = true;
 window.addEventListener("hashchange", () => {
 	pageIncarnationChanged = true;
 });
-function onPageLoaded$1() {
-	console.log("onPageLoaded");
-	tryUntilThen(isPageReallyLoaded, onAnyChangeEvent);
-}
-function isPageReallyLoaded() {
-	if (document.querySelector(BTN_WERKLIJST_MAKEN_ID)) return true;
-	if (document.getElementById(BTN_WERKLJST_NAV_BOTTOM) && document.querySelector(TARGET_BUTTON_ID)) return true;
-	return false;
+function onPageReallyLoaded() {
+	onAnyChangeEvent();
 }
 function onAnyChangeEvent() {
 	if (!pageIncarnationChanged) return;
 	pageIncarnationChanged = false;
 	console.log("onAnyChangeEvent");
 	if (document.querySelector(BTN_WERKLIJST_MAKEN_ID)) onCriteriaShown();
-	else if (document.getElementById(BTN_WERKLJST_NAV_BOTTOM)) {
+	else if (document.getElementById(BTN_WERKLIJST_NAV_BOTTOM)) {
 		addButtons();
 		onResultsShown();
 	}
 }
 function onMutation$3(mutation) {
-	console.log("onMutation");
-	tryUntilThen(isPageReallyLoaded, onAnyChangeEvent);
 	return true;
 }
 function onCriteriaShown() {
@@ -5452,7 +5453,15 @@ function upgradeCloudData(fromCloud) {
 
 //#endregion
 //#region typescript/vakgroep/observer.ts
-var observer_default$3 = new HashObserver("#extra-inschrijvingen-vakgroepen-vakgroep", onMutation$2);
+var VakGroepObserver = class extends HashObserver {
+	constructor() {
+		super("#extra-inschrijvingen-vakgroepen-vakgroep", onMutation$2);
+	}
+	isPageReallyLoaded() {
+		return document.getElementById("div_table_vakgroepen_vakken") != null;
+	}
+};
+var observer_default$3 = new VakGroepObserver();
 function onMutation$2(mutation) {
 	let divVakken = document.getElementById("div_table_vakgroepen_vakken");
 	if (mutation.target !== divVakken) return false;
@@ -5479,7 +5488,15 @@ function onSearchInput() {
 
 //#endregion
 //#region typescript/verwittigen/observer.ts
-var observer_default$2 = new HashObserver("#leerlingen-verwittigen", onMutation$1);
+var VerwittigenObserver = class extends HashObserver {
+	constructor() {
+		super("#leerlingen-verwittigen", onMutation$1);
+	}
+	isPageReallyLoaded() {
+		return document.getElementById("leerlingen_verwittigen_bericht_sjabloon") != null;
+	}
+};
+var observer_default$2 = new VerwittigenObserver();
 const CHAR_COUNTER = "charCounterClass";
 const COUNTER_ID = "charCounter";
 function onMutation$1(_mutation) {
@@ -5502,7 +5519,15 @@ function onSmsChanged(_event) {
 
 //#endregion
 //#region typescript/aanwezigheden/observer.ts
-var observer_default$1 = new HashObserver("#leerlingen-lijsten-awi-percentages_leerling_vak", onMutationAanwezgheden);
+var AanwezighedenObserver = class extends HashObserver {
+	constructor() {
+		super("#leerlingen-lijsten-awi-percentages_leerling_vak", onMutationAanwezgheden);
+	}
+	isPageReallyLoaded() {
+		return document.getElementById("table_lijst_awi_percentages_leerling_vak_table") != null;
+	}
+};
+var observer_default$1 = new AanwezighedenObserver();
 function onMutationAanwezgheden(_mutation) {
 	let tableId = document.getElementById("table_lijst_awi_percentages_leerling_vak_table");
 	if (!tableId) return false;
@@ -5683,7 +5708,18 @@ function reduceVaknaamStep1(vaknaam) {
 
 //#endregion
 //#region typescript/afwezigheden/observer.ts
-var observer_default = new ExactHashObserver("#extra-tickets?h=afwezigheden", onMutation, true);
+var AfwezighedenObserver = class extends ExactHashObserver {
+	constructor() {
+		super("#extra-tickets?h=afwezigheden", onMutation, true);
+	}
+	isPageReallyLoaded() {
+		if (document.getElementById("ticket_payload")) return true;
+		if (document.getElementById("dko3_modal_contents")) return true;
+		if (document.getElementById("div_tickets_afwezigheid_toevoegen_leerling")) return true;
+		return false;
+	}
+};
+var observer_default = new AfwezighedenObserver();
 function onMutation(mutation) {
 	if (mutation.target === document.getElementById("ticket_payload")) {
 		onTicket();
@@ -5788,12 +5824,20 @@ function findUniqueMatch(emailText, matchingLeerlingen$1) {
 
 //#endregion
 //#region typescript/pages/observer.ts
-let extraInschrijvingenObserver = new ExactHashObserver("#extra-inschrijvingen", onMutationExtraInschrijvingen);
-let allLijstenObserver = new MenuScrapingObserver("#leerlingen-lijsten", "Lijsten", "Lijsten > ");
-let financialObserver = new MenuScrapingObserver("#extra-financieel", "Financieel", "Financieel > ");
-let assetsObserver = new MenuScrapingObserver("#extra-assets", "Assets", "Assets > ");
-let evaluatieObserver = new MenuScrapingObserver("#extra-evaluatie", "Evaluatie", "Evaluatie > ");
-let academieMenuObserver = new MenuScrapingObserver("#extra-academie", "Academie", "Academie > ");
+var ExtraInschrijvingenObserver = class extends ExactHashObserver {
+	constructor() {
+		super("#extra-inschrijvingen", onMutationExtraInschrijvingen);
+	}
+	isPageReallyLoaded() {
+		return document.querySelector("#view_contents > div:nth-child(3) > div:nth-child(3) > div.card.mb-2.shadow-sm > div > a:nth-child(11)") != null;
+	}
+};
+let extraInschrijvingenObserver = new ExtraInschrijvingenObserver();
+let allLijstenObserver = new MenuScrapingObserver("#leerlingen-lijsten", "Lijsten", "Lijsten > ", "#div_leerlingen_lijsten");
+let financialObserver = new MenuScrapingObserver("#extra-financieel", "Financieel", "Financieel > ", "#view_contents > div:nth-child(2) > div:nth-child(3) > div:nth-child(2) > div > a:nth-child(8)");
+let assetsObserver = new MenuScrapingObserver("#extra-assets", "Assets", "Assets > ", "#view_contents > div:nth-child(2) > div:nth-child(2) > div > div > a:nth-child(10)");
+let evaluatieObserver = new MenuScrapingObserver("#extra-evaluatie", "Evaluatie", "Evaluatie > ", "#view_contents > div:nth-child(3) > div:nth-child(3) > div:nth-child(3) > div > a:nth-child(10)");
+let academieMenuObserver = new MenuScrapingObserver("#extra-academie", "Academie", "Academie > ", "#view_contents > div:nth-child(2) > div:nth-child(3) > div:nth-child(2) > div > a:nth-child(12)");
 function onMutationExtraInschrijvingen(_mutation) {
 	saveQueryItems("ExtraInschrijvingen", scrapeMenuPage("Inschrijvingen > ", inschrijvingenLinkToQueryItem));
 	return true;

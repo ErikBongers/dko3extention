@@ -2,7 +2,22 @@ import {ExactHashObserver} from "../pageObserver";
 import {fetchStudentsSearch, rxEmail, setViewFromCurrentUrl, whoAmI} from "../globals";
 import {emmet} from "../../libs/Emmeter/html";
 
-export default new ExactHashObserver("#extra-tickets?h=afwezigheden", onMutation, true);
+class AfwezighedenObserver extends ExactHashObserver {
+    constructor() {
+        super("#extra-tickets?h=afwezigheden", onMutation, true);
+    }
+    isPageReallyLoaded(): boolean {
+        if (document.getElementById("ticket_payload"))
+            return true;
+        if (document.getElementById("dko3_modal_contents"))
+            return true;
+        if (document.getElementById("div_tickets_afwezigheid_toevoegen_leerling"))
+            return true;
+        return false;
+    }
+}
+
+export default new AfwezighedenObserver();
 
 function onMutation (mutation: MutationRecord) {
     if (mutation.target === document.getElementById("ticket_payload")){

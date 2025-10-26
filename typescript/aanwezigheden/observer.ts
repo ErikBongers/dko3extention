@@ -4,7 +4,16 @@ import {addTableNavigationButton, getBothToolbars} from "../globals";
 import {createDefaultTableFetcher, getTableFromHash} from "../table/loadAnyTable";
 import {InfoBar} from "../infoBar";
 
-export default new HashObserver("#leerlingen-lijsten-awi-percentages_leerling_vak", onMutationAanwezgheden);
+class AanwezighedenObserver extends HashObserver {
+    constructor() {
+        super("#leerlingen-lijsten-awi-percentages_leerling_vak", onMutationAanwezgheden);
+    }
+    isPageReallyLoaded(): boolean {
+        return document.getElementById("table_lijst_awi_percentages_leerling_vak_table") != null;
+    }
+}
+
+export default new AanwezighedenObserver();
 
 function onMutationAanwezgheden(_mutation: MutationRecord) {
     let tableId = document.getElementById("table_lijst_awi_percentages_leerling_vak_table") as HTMLTableElement;

@@ -2,7 +2,16 @@ import {db3, Schoolyear} from "../globals";
 import {HashObserver} from "../pageObserver";
 import {options} from "../plugin_options/options";
 
-export default new HashObserver("#leerlingen-leerling", onMutation);
+class LeerlingObserver extends HashObserver {
+    constructor() {
+        super("#leerlingen-leerling", onMutation);
+    }
+    isPageReallyLoaded(): boolean {
+        throw new Error("Method not implemented.");
+    }
+}
+
+export default new LeerlingObserver();
 
 function onMutation(mutation: MutationRecord) {
     let tabInschrijving = document.getElementById("leerling_inschrijvingen_weergave");

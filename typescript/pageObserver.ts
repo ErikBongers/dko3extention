@@ -1,4 +1,5 @@
 import {createQueryItem, saveQueryItems, scrapeMenuPage} from "./powerQuery/setupPowerQuery";
+import {tryUntilThen} from "./globals";
 
 interface PageFilter {
     match: () => boolean;
@@ -35,14 +36,23 @@ export class AllPageFilter implements PageFilter{
     }
 }
 
-export class BaseObserver implements Observer{
+export interface Observer {
+    onPageChanged: () => void;
+    onPageLoaded: () => void;
+    isPageMatching: () => boolean;
+    disconnect: () => void;
+    observeElement: (element: HTMLElement) => void;
+    isPageReallyLoaded: () => boolean;
+}
+
+export abstract class BaseObserver implements Observer {
     private readonly onPageChangedCallback: () => void;
     private readonly onPageLoadedCallback: () => void;
     private pageFilter: PageFilter;
     private readonly onMutation: (mutation: MutationRecord) => boolean;
     private observer: MutationObserver;
     private readonly trackModal: boolean;
-    constructor(onPageChangedCallback: () => void, pageFilter: PageFilter, onMutationCallback: (mutation: MutationRecord) => boolean, trackModal: boolean = false, onPageLoadedCallback: () => void = undefined) {
+    protected constructor(onPageChangedCallback: () => void, pageFilter: PageFilter, onMutationCallback: (mutation: MutationRecord) => boolean, trackModal: boolean = false, onPageLoadedCallback: () => void = undefined) {
         this.onPageChangedCallback = onPageChangedCallback;
         this.onPageLoadedCallback = onPageLoadedCallback;
         this.pageFilter = pageFilter;
@@ -67,7 +77,8 @@ export class BaseObserver implements Observer{
     isPageMatching = () => this.pageFilter.match();
 
     onPageLoaded() {
-        this.onPageLoadedCallback?.();
+        if(this.onPageLoadedCallback)
+            tryUntilThen(this.isPageReallyLoaded, this.onPageLoadedCallback);
     }
 
     onPageChanged() {
@@ -105,112 +116,50 @@ export class BaseObserver implements Observer{
     disconnect() {
         this.observer?.disconnect();
     }
+
+    abstract isPageReallyLoaded(): boolean;
 }
 
-export interface Observer {
-    onPageChanged: () => void;
-    onPageLoaded: () => void;
-    isPageMatching: () => boolean;
-    disconnect: () => void;
-    observeElement: (element: HTMLElement) => void;
-}
-
-export class HashObserver implements Observer {
-    private baseObserver: BaseObserver;
+export abstract class HashObserver extends BaseObserver {
     //onMutationCallback should return true if handled definitively, and no further mutation records from the mutationList should be handled.
-    constructor(urlHash: string, onMutationCallback: (mutation: MutationRecord) => boolean, trackModal: boolean = false, onPageLoadedCallback: () => void = undefined) {
-        this.baseObserver = new BaseObserver(undefined, new HashPageFilter(urlHash), onMutationCallback, trackModal, onPageLoadedCallback);
-    }
-
-    disconnect() {
-        this.baseObserver.disconnect();
-    }
-
-    onPageChanged() {
-        this.baseObserver.onPageChanged();
-    }
-
-    onPageLoaded() {
-        this.baseObserver.onPageLoaded();
-    }
-
-    isPageMatching = () => this.baseObserver.isPageMatching();
-
-    observeElement(element: HTMLElement): void {
-        this.baseObserver.observeElement(element);
-    }
-}
-export class ExactHashObserver implements Observer {
-    private baseObserver: BaseObserver;
-    //onMutationCallback should return true if handled definitively, and no further mutation records from the mutationList should be handled.
-    constructor(urlHash: string, onMutationCallback: (mutation: MutationRecord) => boolean, trackModal: boolean = false, onPageLoadedCallback: () => void = undefined) {
-        this.baseObserver = new BaseObserver(undefined, new ExactHashPageFilter(urlHash), onMutationCallback, trackModal, onPageLoadedCallback);
-    }
-
-    disconnect: () => void;
-
-    isPageMatching = () => this.baseObserver.isPageMatching();
-
-    onPageChanged() {
-        this.baseObserver.onPageChanged();
-    }
-    onPageLoaded() {
-        this.baseObserver.onPageLoaded();
-    }
-
-    observeElement(element: HTMLElement): void {
-        this.baseObserver.observeElement(element);
+    protected constructor(urlHash: string, onMutationCallback: (mutation: MutationRecord) => boolean, trackModal: boolean = false, onPageLoadedCallback: () => void = undefined) {
+        super(undefined, new HashPageFilter(urlHash), onMutationCallback, trackModal, onPageLoadedCallback);
     }
 }
 
-export class PageObserver implements Observer {
-    private baseObserver: BaseObserver;
-    constructor(onPageChangedCallback: () => void, onPageLoadedCallback: () => void = undefined) {
-        this.baseObserver = new BaseObserver(onPageChangedCallback, new AllPageFilter(), undefined, false, onPageLoadedCallback);
-    }
-
-    isPageMatching = () => this.baseObserver.isPageMatching();
-
-    onPageChanged() {
-        this.baseObserver.onPageChanged();
-    }
-    onPageLoaded() {
-        this.baseObserver.onPageLoaded();
-    }
-
-    disconnect(): void {
-        this.baseObserver.disconnect();
-    }
-
-    observeElement(element: HTMLElement): void {
-        this.baseObserver.observeElement(element);
+export abstract class ExactHashObserver extends BaseObserver {
+    protected constructor(urlHash: string, onMutationCallback: (mutation: MutationRecord) => boolean, trackModal: boolean = false, onPageLoadedCallback: () => void = undefined) {
+        super(undefined, new ExactHashPageFilter(urlHash), onMutationCallback, trackModal, onPageLoadedCallback);
     }
 }
 
-export class MenuScrapingObserver implements Observer {
-    private hashObserver: ExactHashObserver;
+export abstract class PageObserver extends BaseObserver {
+    protected constructor(onPageChangedCallback: () => void, onPageLoadedCallback: () => void = undefined) {
+        super(onPageChangedCallback, new AllPageFilter(), undefined, false, onPageLoadedCallback);
+    }
+}
+
+export class MenuScrapingObserver extends ExactHashObserver {
+    private readonly pageLoadedQuerySelector: string;
+    isPageReallyLoaded(): boolean {
+        return undefined != document.querySelector(this.pageLoadedQuerySelector);
+    }
     private readonly page: string;
     private readonly longLabelPrefix: string;
 
-    constructor(urlHash: string, page: string, longLabelPrefix: string) {
-        let self = this;
-        this.hashObserver = new ExactHashObserver(urlHash, (_) => {
-            return self.onMutationPageWithMenu();
+    constructor(urlHash: string, page: string, longLabelPrefix: string, pageLoadedQuerySelector: string) {
+        super(urlHash, (_) => {
+            return this.onMutationPageWithMenu();
         });
         this.page = page;
         this.longLabelPrefix = longLabelPrefix;
+        this.pageLoadedQuerySelector = pageLoadedQuerySelector;
     }
-
-    isPageMatching = () => this.hashObserver.isPageMatching();
 
     onPageChanged() {
-        this.hashObserver.onPageChanged();
+        super.onPageChanged.call(this);
         if(this.isPageMatching())
             this.onMutationPageWithMenu(); //calling this here, because a menu page is often a single load, and MutationObserver is then too late to
-    }
-
-    onPageLoaded() {
-        this.onPageChanged();
     }
 
     onMutationPageWithMenu() {
@@ -222,13 +171,4 @@ export class MenuScrapingObserver implements Observer {
         let label = link.textContent.trim();
         return createQueryItem(headerLabel, label, link.href, undefined, longLabelPrefix + label);
     }
-
-    disconnect(): void {
-        this.hashObserver.disconnect();
-    }
-
-    observeElement(element: HTMLElement): void {
-        this.hashObserver.observeElement(element);
-    }
-
 }

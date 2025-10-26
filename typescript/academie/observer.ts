@@ -2,7 +2,22 @@ import {getUserAndSchoolName, registerSettingsObserver} from "../globals";
 import {PageObserver} from "../pageObserver";
 import {getGlobalSettings, options} from "../plugin_options/options";
 
-export default new PageObserver(setSchoolBackground);
+class AcademieObserver extends PageObserver {
+    constructor() {
+        super(setSchoolBackground);
+    }
+    isPageReallyLoaded(): boolean {
+        try {
+            getUserAndSchoolName();
+            return true;
+        }
+        catch (_) {
+            return false;
+        }
+    }
+}
+
+export default new AcademieObserver();
 
 registerSettingsObserver(setSchoolBackground);
 

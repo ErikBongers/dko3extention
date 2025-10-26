@@ -6,7 +6,16 @@ import {decorateTableHeader} from "./tableHeaders";
 import {downloadTableRows} from "./loadAnyTable";
 import {pageState} from "../pageState";
 
-export default new BaseObserver(undefined, new AllPageFilter(), onMutation);
+class TableObserver  extends BaseObserver {
+    constructor() {
+        super(undefined, new AllPageFilter(), onMutation);
+    }
+    isPageReallyLoaded(): boolean {
+        return getBothToolbars() != undefined;
+    }
+
+}
+export default new TableObserver();
 
 function onMutation (_mutation: MutationRecord) {
     let navigationBars = getBothToolbars();

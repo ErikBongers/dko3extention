@@ -14,13 +14,21 @@ import {WerklijstBuilder} from "../table/werklijstBuilder";
 import {CriteriumName, Domein, FIELD, Grouping, Operator} from "../werklijst/criteria";
 import {FetchedTable} from "../table/tableFetcher";
 
-export default new HashObserver("#lessen-overzicht", onMutation, false, onPageLoaded);
+class LessenObserver extends HashObserver {
+    constructor() {
+        super("#lessen-overzicht", onMutation, false, onPageLoaded);
+    }
+    isPageReallyLoaded(): boolean {
+        return document.getElementById("btn_lessen_overzicht_zoeken") != null;
+    }
+}
+
+export default new LessenObserver();
 
 function onPageLoaded() {
     console.log(`Lessen.onPageLoaded: hash: ${location.hash}`);
-    if(location.hash != "#lessen-overzicht" )
+    if(location.hash != "#lessen-overzicht" ) //todo: why is this check needed? If so, put it in BaseObserver?
         return;
-     console.log("Lessen onPageLoaded");
      if(!addTrimesterButton())
          setTimeout(onPageLoaded, 500);
 }

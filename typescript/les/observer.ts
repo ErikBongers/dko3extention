@@ -1,6 +1,14 @@
 import {HashObserver} from "../pageObserver";
 
-export default new HashObserver("#lessen-les", onMutation);
+class LesObserver extends HashObserver {
+    constructor() {
+        super( "#lessen-les", onMutation );
+    }
+    isPageReallyLoaded(): boolean {
+        return document.querySelectorAll("#les_leerlingen_leerlingen > span").length > 0;
+    }
+}
+export default new LesObserver();
 
 function onMutation(mutation: MutationRecord) {
     let tabLeerlingen = document.getElementById("les_leerlingen_leerlingen");

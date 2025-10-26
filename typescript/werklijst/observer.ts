@@ -18,6 +18,7 @@ import {fetchHoursSettingsOrSaveDefault, mapHourSettings, TeacherHoursSetup, Tea
 import {getJaarToewijzigingWerklijst} from "../lessen/observer";
 import {emmet} from "../../libs/Emmeter/html";
 import MessageSender = chrome.runtime.MessageSender;
+import {WerklijstBuilder} from "../table/werklijstBuilder";
 
 const TARGET_BUTTON_ID = "#tablenav_leerlingen_werklijst_top > div > div.btn-group.btn-group-sm.datatable-buttons > button:nth-child(1)";
 
@@ -26,7 +27,21 @@ registerChecksumHandler(def.WERKLIJST_TABLE_ID,  (_tableDef: TableFetcher) => {
     }
     );
 
-let observer = new HashObserver("#leerlingen-werklijst", onMutation, false, onPageLoaded);
+class WerklijstObserver extends HashObserver {
+    constructor() {
+        super("#leerlingen-werklijst", onMutation, false, onPageReallyLoaded);
+    }
+    isPageReallyLoaded()  {
+        if (document.querySelector(def.BTN_WERKLIJST_MAKEN_ID))
+            return true;
+        if (document.getElementById(BTN_WERKLIJST_NAV_BOTTOM)
+            && document.querySelector(TARGET_BUTTON_ID))
+            return true;
+        return false;
+    }
+}
+
+let observer = new WerklijstObserver();
 export default observer;
 
 /*
@@ -41,19 +56,9 @@ Unforunatelly hash changes don't cause a page reload, therefore of limited use.
 let pageIncarnationChanged = true;
 window.addEventListener("hashchange", () => { pageIncarnationChanged = true;});
 
-function onPageLoaded() {
-    console.log("onPageLoaded");
-    tryUntilThen(isPageReallyLoaded, onAnyChangeEvent);
-}
 
-//todo: generalize this function: in the base-class it should be an abstract method.
-function isPageReallyLoaded() {
-    if (document.querySelector(def.BTN_WERKLIJST_MAKEN_ID))
-        return true;
-    if (document.getElementById(BTN_WERKLIJST_NAV_BOTTOM)
-    && document.querySelector(TARGET_BUTTON_ID))
-        return true;
-    return false;
+function onPageReallyLoaded() {
+    onAnyChangeEvent();
 }
 
 function onAnyChangeEvent() {
@@ -71,8 +76,8 @@ function onAnyChangeEvent() {
 }
 
 function onMutation(mutation: MutationRecord) {
-    console.log("onMutation");
-    tryUntilThen(isPageReallyLoaded, onAnyChangeEvent);
+    // console.log("onMutation");
+    // tryUntilThen(isPageReallyLoaded, onAnyChangeEvent);
     return true;
 }
 

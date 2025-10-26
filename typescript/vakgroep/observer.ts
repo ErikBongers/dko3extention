@@ -2,7 +2,16 @@ import {HashObserver} from "../pageObserver";
 import {createSearchField} from "../globals";
 import {createTextRowFilter, filterTable} from "../filter";
 
-export default new HashObserver("#extra-inschrijvingen-vakgroepen-vakgroep", onMutation);
+class VakGroepObserver extends HashObserver {
+    constructor() {
+        super("#extra-inschrijvingen-vakgroepen-vakgroep", onMutation);
+    }
+    isPageReallyLoaded(): boolean {
+        return document.getElementById("div_table_vakgroepen_vakken") != null;
+    }
+}
+
+export default new VakGroepObserver();
 
 function onMutation (mutation: MutationRecord) {
     let divVakken = document.getElementById("div_table_vakgroepen_vakken");
