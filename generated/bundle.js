@@ -3574,7 +3574,6 @@ var observer_default$7 = new LessenObserver();
 function onPageLoaded$1() {
 	console.log(`Lessen.onPageLoaded: hash: ${location.hash}`);
 	if (location.hash != "#lessen-overzicht") return;
-	console.log("Lessen onPageLoaded");
 	if (!addTrimesterButton()) setTimeout(onPageLoaded$1, 500);
 }
 function addTrimesterButton() {
@@ -5208,9 +5207,7 @@ var WerklijstObserver = class extends HashObserver {
 		super("#leerlingen-werklijst", onMutation$3, false, onPageReallyLoaded);
 	}
 	isPageReallyLoaded() {
-		if (document.querySelector(BTN_WERKLIJST_MAKEN_ID)) return true;
-		if (document.getElementById(BTN_WERKLIJST_NAV_BOTTOM) && document.querySelector(TARGET_BUTTON_ID)) return true;
-		return false;
+		return isPageReallyLoaded();
 	}
 };
 let observer = new WerklijstObserver();
@@ -5219,6 +5216,11 @@ let pageIncarnationChanged = true;
 window.addEventListener("hashchange", () => {
 	pageIncarnationChanged = true;
 });
+function isPageReallyLoaded() {
+	if (document.querySelector(BTN_WERKLIJST_MAKEN_ID)) return true;
+	if (document.getElementById(BTN_WERKLIJST_NAV_BOTTOM) && document.querySelector(TARGET_BUTTON_ID)) return true;
+	return false;
+}
 function onPageReallyLoaded() {
 	onAnyChangeEvent();
 }
@@ -5233,6 +5235,8 @@ function onAnyChangeEvent() {
 	}
 }
 function onMutation$3(mutation) {
+	console.log("onMutation");
+	tryUntilThen(isPageReallyLoaded, onAnyChangeEvent);
 	return true;
 }
 function onCriteriaShown() {

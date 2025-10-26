@@ -32,12 +32,7 @@ class WerklijstObserver extends HashObserver {
         super("#leerlingen-werklijst", onMutation, false, onPageReallyLoaded);
     }
     isPageReallyLoaded()  {
-        if (document.querySelector(def.BTN_WERKLIJST_MAKEN_ID))
-            return true;
-        if (document.getElementById(BTN_WERKLIJST_NAV_BOTTOM)
-            && document.querySelector(TARGET_BUTTON_ID))
-            return true;
-        return false;
+        return isPageReallyLoaded();
     }
 }
 
@@ -55,6 +50,16 @@ Unforunatelly hash changes don't cause a page reload, therefore of limited use.
 
 let pageIncarnationChanged = true;
 window.addEventListener("hashchange", () => { pageIncarnationChanged = true;});
+
+function isPageReallyLoaded()  {
+    if (document.querySelector(def.BTN_WERKLIJST_MAKEN_ID))
+        return true;
+    if (document.getElementById(BTN_WERKLIJST_NAV_BOTTOM)
+        && document.querySelector(TARGET_BUTTON_ID))
+        return true;
+    return false;
+}
+
 
 
 function onPageReallyLoaded() {
@@ -76,8 +81,8 @@ function onAnyChangeEvent() {
 }
 
 function onMutation(mutation: MutationRecord) {
-    // console.log("onMutation");
-    // tryUntilThen(isPageReallyLoaded, onAnyChangeEvent);
+    console.log("onMutation");
+    tryUntilThen(isPageReallyLoaded, onAnyChangeEvent);
     return true;
 }
 
