@@ -96,6 +96,7 @@ defaultInstruments.forEach(i => defaultInstrumentsMap.set(i.name, i));
 let defaultTranslationDefs: TranslationDef[] = [
     {find: "Altsaxofoon", replace: "Saxofoon", prefix: "", suffix: ""},
     {find: "Sopraansaxofoon", replace: "Saxofoon", prefix: "", suffix: ""},
+    {find: "Baritonsaxofoon", replace: "Saxofoon", prefix: "", suffix: ""},
     {find: "Tenorsaxofoon", replace: "Saxofoon", prefix: "", suffix: ""},
 
     {find: "(klassiek)", replace: "", prefix: "K ", suffix: ""},
