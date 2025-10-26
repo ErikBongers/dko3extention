@@ -1,5 +1,4 @@
-import * as def from "../def";
-import {Criterium, CriteriumName, Domein, fetchTableRows, Grouping, IsSelectedItem, Operator, postNameValueList, Veld} from "../werklijst/criteria";
+import {Criterium, CriteriumName, fetchTableRows, Grouping, IsSelectedItem, Operator, postNameValueList, Veld} from "../werklijst/criteria";
 import {getTable, getWerklijstTableRef} from "./loadAnyTable";
 import {getImmediateText} from "../globals";
 import {FetchedTable} from "./tableFetcher";
@@ -18,39 +17,37 @@ export interface CriteriaBuilder {
     addFields(fields: Veld[]): void;
     sendSettings(): Promise<PreparedWerklijst>;
     fetchAvailableSubjects(): Promise<{name: string, value: string}[]>;
+    reset(): Promise<void>;
 }
 
-export class WerklijstBuilder {
+export class WerklijstBuilder implements CriteriaBuilder, PreparedWerklijst {
     private readonly schoolYear: string;
-    private grouping: Grouping;
+    private readonly grouping: Grouping;
     criteria: Criterium[] = [];
     fields: Veld[];
     private criteriaDefs: WerklijstItemDefinition[];
     private fieldDefs: WerklijstItemDefinition[];
 
-    private constructor(schoolYear: string, grouping: Grouping, criteriaDefs: WerklijstItemDefinition[], fieldDefs: WerklijstItemDefinition[]) {
+    private constructor(schoolYear: string, grouping: Grouping) {
         this.schoolYear = schoolYear;
         this.grouping = grouping;
         this.criteria = [];
         this.fields = [];
-        this.criteriaDefs = criteriaDefs;
-        this.fieldDefs = fieldDefs;
     }
 
     static async fetch(schoolYear: string, grouping: Grouping) {
-        await WerklijstBuilder.resetWerklijst(schoolYear, grouping);
-        let critDefs = await this.fetchCriteriumDefinitions();
-        let fieldDefs = await this.fetchFieldDefinitions();
-        return new WerklijstBuilder(schoolYear, grouping, critDefs, fieldDefs) as CriteriaBuilder;
+        let builder = new WerklijstBuilder(schoolYear, grouping);
+        await builder.reset();
+        builder.criteriaDefs = await this.fetchCriteriumDefinitions();
+        builder.fieldDefs = await this.fetchFieldDefinitions();
+        return builder as CriteriaBuilder;
     }
 
-    static async resetWerklijst(schoolYear: string, grouping: Grouping) { //todo: make this the constructor or a static create method that returs the Builder.
+    async reset() {
         await fetch("view.php?args=leerlingen-werklijst");
         await fetch("views/leerlingen/werklijst/index.view.php"); //get header block (schooljaar, 1 lijn per..., criteria, velden)
-
         await postNameValueList("/views/leerlingen/werklijst/session.opslaan.php", [{name:"reset", value:"1"}]);
-
-        await postNameValueList("/views/leerlingen/werklijst/session.opslaan.php", [{name:"schooljaar", value:schoolYear}, {name:"groepering", value:grouping}]);
+        await postNameValueList("/views/leerlingen/werklijst/session.opslaan.php", [{name:"schooljaar", value:this.schoolYear}, {name:"groepering", value:this.grouping}]);
     }
 
     static async fetchFieldDefinitions() {
@@ -107,10 +104,6 @@ export class WerklijstBuilder {
         //todo: keep state of builder: table fetched.
     }
 
-    toCriteriaString() {
-        return JSON.stringify(this.criteria);
-    }
-
     addCriterium(name: CriteriumName, operator: Operator, values: string[]) {
         this.criteria.push({name, operator, values});
     }
@@ -126,12 +119,9 @@ export class WerklijstBuilder {
     }
 
     async fetchAvailableSubjects() {
+        debugger;
         let defs = await this.fetchMultiSelectDefinitions(CriteriumName.Vak);
         return Array.from(defs.defs).map((vak) => {  return {name: vak[0], value: vak[1]}; });
-    }
-
-    async fetchVakGroepDefinitions() {
-        return this.fetchMultiSelectDefinitions(CriteriumName.Vakgroep);
     }
 
     async fetchMultiSelectDefinitions(criterium: CriteriumName) {

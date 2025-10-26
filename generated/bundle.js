@@ -496,7 +496,6 @@ let Schoolyear;
 		let el = getSelectElement();
 		if (el) return el.value;
 		el = document.querySelector("div.alert-info");
-		debugger;
 		let txt = el.textContent;
 		let rx = /[sS]chooljaar *[=:][\s\u00A0]*(\d{4}-\d{4})/gm;
 		let res = rx.exec(txt);
@@ -3404,21 +3403,20 @@ var WerklijstBuilder = class WerklijstBuilder {
 	fields;
 	criteriaDefs;
 	fieldDefs;
-	constructor(schoolYear, grouping, criteriaDefs, fieldDefs) {
+	constructor(schoolYear, grouping) {
 		this.schoolYear = schoolYear;
 		this.grouping = grouping;
 		this.criteria = [];
 		this.fields = [];
-		this.criteriaDefs = criteriaDefs;
-		this.fieldDefs = fieldDefs;
 	}
 	static async fetch(schoolYear, grouping) {
-		await WerklijstBuilder.resetWerklijst(schoolYear, grouping);
-		let critDefs = await this.fetchCriteriumDefinitions();
-		let fieldDefs = await this.fetchFieldDefinitions();
-		return new WerklijstBuilder(schoolYear, grouping, critDefs, fieldDefs);
+		let builder = new WerklijstBuilder(schoolYear, grouping);
+		await builder.reset();
+		builder.criteriaDefs = await this.fetchCriteriumDefinitions();
+		builder.fieldDefs = await this.fetchFieldDefinitions();
+		return builder;
 	}
-	static async resetWerklijst(schoolYear, grouping) {
+	async reset() {
 		await fetch("view.php?args=leerlingen-werklijst");
 		await fetch("views/leerlingen/werklijst/index.view.php");
 		await postNameValueList("/views/leerlingen/werklijst/session.opslaan.php", [{
@@ -3427,10 +3425,10 @@ var WerklijstBuilder = class WerklijstBuilder {
 		}]);
 		await postNameValueList("/views/leerlingen/werklijst/session.opslaan.php", [{
 			name: "schooljaar",
-			value: schoolYear
+			value: this.schoolYear
 		}, {
 			name: "groepering",
-			value: grouping
+			value: this.grouping
 		}]);
 	}
 	static async fetchFieldDefinitions() {
@@ -3487,9 +3485,6 @@ var WerklijstBuilder = class WerklijstBuilder {
 		let tableRef = await getWerklijstTableRef();
 		return getTable(tableRef, void 0, true);
 	}
-	toCriteriaString() {
-		return JSON.stringify(this.criteria);
-	}
 	addCriterium(name, operator, values) {
 		this.criteria.push({
 			name,
@@ -3510,6 +3505,7 @@ var WerklijstBuilder = class WerklijstBuilder {
 		};
 	}
 	async fetchAvailableSubjects() {
+		debugger;
 		let defs = await this.fetchMultiSelectDefinitions(CriteriumName.Vak);
 		return Array.from(defs.defs).map((vak) => {
 			return {
@@ -3517,9 +3513,6 @@ var WerklijstBuilder = class WerklijstBuilder {
 				value: vak[1]
 			};
 		});
-	}
-	async fetchVakGroepDefinitions() {
-		return this.fetchMultiSelectDefinitions(CriteriumName.Vakgroep);
 	}
 	async fetchMultiSelectDefinitions(criterium) {
 		let critId = this.criteriaDefs.find((c) => c.name === criterium).id;
@@ -4519,7 +4512,6 @@ var NamedCellTableFetchListener = class NamedCellTableFetchListener {
 	hasAllHeadersAndAlert() {
 		if (!this.hasAllHeaders()) {
 			let labelString = this.requiredHeaderLabels.map((label) => "\"" + label.toUpperCase() + "\"").join(", ");
-			debugger;
 			alert(`Voeg velden ${labelString} toe.`);
 			return false;
 		}
@@ -5005,6 +4997,12 @@ let defaultTranslationDefs = [
 		suffix: ""
 	},
 	{
+		find: "Baritonsaxofoon",
+		replace: "Saxofoon",
+		prefix: "",
+		suffix: ""
+	},
+	{
 		find: "Tenorsaxofoon",
 		replace: "Saxofoon",
 		prefix: "",
@@ -5085,9 +5083,11 @@ function getDefaultHourSettings(schoolyear) {
 		translations: [...defaultTranslationDefs]
 	};
 }
-async function fetchHoursSettingsOrSaveDefault(schoolyearString) {
+async function fetchHoursSettingsOrSaveDefault(schoolyearString, dko3_subjects = void 0) {
 	let builder = await WerklijstBuilder.fetch(schoolyearString, Grouping.LES);
-	let dko3_subjects = (await builder.fetchAvailableSubjects()).map((vak) => vak.name);
+	if (!dko3_subjects) dko3_subjects = await builder.fetchAvailableSubjects();
+	let subjectNames = dko3_subjects.map((vak) => vak.name);
+	let availableSubjectSet = new Set(subjectNames);
 	let cloudSettings = await cloud.json.fetch(createTeacherHoursFileName(schoolyearString)).catch((_) => {});
 	if (!cloudSettings) {
 		let prevYearString = Schoolyear.toFullString(Schoolyear.toNumbers(schoolyearString).startYear - 1);
@@ -5096,7 +5096,6 @@ async function fetchHoursSettingsOrSaveDefault(schoolyearString) {
 		else cloudSettings.schoolyear = schoolyearString;
 		await saveHourSettings(cloudSettings);
 	}
-	let availableSubjectSet = new Set(dko3_subjects);
 	cloudSettings.subjects.forEach((s) => s.stillValid = availableSubjectSet.has(s.name));
 	let cloudSubjectMap = new Map(cloudSettings.subjects.map((s) => [s.name, s]));
 	for (let name of availableSubjectSet) if (!cloudSubjectMap.has(name)) cloudSubjectMap.set(name, {
@@ -5121,7 +5120,8 @@ async function saveHourSettings(hoursSetup) {
 async function setCriteriaForTeacherHoursAndClickFetchButton(schooljaar, hourSettings) {
 	let builder = await WerklijstBuilder.fetch(schooljaar, Grouping.LES);
 	let dko3_vakken = await builder.fetchAvailableSubjects();
-	if (!hourSettings) hourSettings = await fetchHoursSettingsOrSaveDefault(schooljaar);
+	await builder.reset();
+	if (!hourSettings) hourSettings = await fetchHoursSettingsOrSaveDefault(schooljaar, dko3_vakken);
 	let selectedInstrumentNames = new Set(hourSettings.subjects.filter((i) => i.checked).map((i) => i.name));
 	let validInstruments = dko3_vakken.filter((vak) => selectedInstrumentNames.has(vak.name));
 	let vakNames = validInstruments.map((vak) => vak.name);

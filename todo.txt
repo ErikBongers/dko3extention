@@ -1,3 +1,9 @@
+* Refresh of settings-screen crashes.
+  > make sure that at least nothing is lost.
+  > show message to user to close the screen (and open it again from within DKO3
+
+* Settingsscreen: show school year!
+
 Paper on Dutch dataabase/model for NER:
 https://lt3.ugent.be/media/uploads/publications/2013/LRE2013.pdf
 

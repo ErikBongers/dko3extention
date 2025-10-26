@@ -7,8 +7,9 @@ import {WerklijstBuilder} from "../table/werklijstBuilder";
 export async function setCriteriaForTeacherHoursAndClickFetchButton(schooljaar: string, hourSettings?: TeacherHoursSetup) {
     let builder = await WerklijstBuilder.fetch(schooljaar, Grouping.LES);
     let dko3_vakken = await builder.fetchAvailableSubjects();
+    await builder.reset();
     if(!hourSettings)
-        hourSettings = await fetchHoursSettingsOrSaveDefault(schooljaar);
+        hourSettings = await fetchHoursSettingsOrSaveDefault(schooljaar, dko3_vakken);
     let selectedInstrumentNames  =  new Set(hourSettings.subjects.filter(i => i.checked).map(i => i.name));
     let validInstruments = dko3_vakken.filter((vak) => selectedInstrumentNames.has(vak.name));
     let vakNames = validInstruments.map(vak => vak.name);

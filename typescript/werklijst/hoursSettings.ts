@@ -121,10 +121,13 @@ function getDefaultHourSettings(schoolyear: string): TeacherHoursSetup {
     };
 }
 
-export async function fetchHoursSettingsOrSaveDefault(schoolyearString: string) {
+export async function fetchHoursSettingsOrSaveDefault(schoolyearString: string, dko3_subjects: {name: string, value: string}[] = undefined) {
     let builder = await WerklijstBuilder.fetch(schoolyearString, Grouping.LES);
-    let dko3_subjects = (await builder.fetchAvailableSubjects())
-        .map(vak => vak.name);
+    if(!dko3_subjects)
+        dko3_subjects = await builder.fetchAvailableSubjects();
+    let subjectNames = dko3_subjects.map(vak => vak.name);
+    let availableSubjectSet = new Set(subjectNames);
+
     let cloudSettings = await cloud.json.fetch(createTeacherHoursFileName(schoolyearString)).catch(_ => {}) as TeacherHoursSetup;
     if(!cloudSettings) {
         let prevYearString = Schoolyear.toFullString(Schoolyear.toNumbers(schoolyearString).startYear-1);
@@ -137,7 +140,6 @@ export async function fetchHoursSettingsOrSaveDefault(schoolyearString: string) 
         await saveHourSettings(cloudSettings); //save unmerged settings. It's up to the user to review and change these defaults.
     }
 
-    let availableSubjectSet = new Set(dko3_subjects);
     //invalidate obsolete subjects
     cloudSettings.subjects.forEach(s => s.stillValid = availableSubjectSet.has(s.name));
     let cloudSubjectMap = new Map(cloudSettings.subjects.map(s => [s.name, s]));
