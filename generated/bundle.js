@@ -356,6 +356,7 @@ const WERKLIJST_TABLE_ID = "table_leerlingen_werklijst_table";
 const BTN_WERKLIJST_MAKEN_ID = "#btn_leerling_werklijst_maken";
 const BTN_WERKLIJST_MAKEN_WRAPPER_ID = "#btn_leerling_werklijst_maken_wrapper";
 const DKO3_BASE_URL = "/";
+const BTN_WERKLJST_NAV_BOTTOM = "tablenav_leerlingen_werklijst_bottom";
 
 //#endregion
 //#region typescript/cloud.ts
@@ -5205,26 +5206,32 @@ registerChecksumHandler(
 );
 let observer = new HashObserver("#leerlingen-werklijst", onMutation$3, false, onPageLoaded$1);
 var observer_default$4 = observer;
+let pageIncarnationChanged = true;
+window.addEventListener("hashchange", () => {
+	pageIncarnationChanged = true;
+});
 function onPageLoaded$1() {
 	console.log("onPageLoaded");
-	tryUntilThen(checkPageReallyLoaded, onPage_REALLY_Loaded);
+	tryUntilThen(isPageReallyLoaded, onAnyChangeEvent);
 }
-function checkPageReallyLoaded() {
+function isPageReallyLoaded() {
 	if (document.querySelector(BTN_WERKLIJST_MAKEN_ID)) return true;
-	if (document.getElementById("tablenav_leerlingen_werklijst_bottom") && document.querySelector(TARGET_BUTTON_ID)) return true;
+	if (document.getElementById(BTN_WERKLJST_NAV_BOTTOM) && document.querySelector(TARGET_BUTTON_ID)) return true;
 	return false;
 }
-function onPage_REALLY_Loaded() {
-	console.log("onPage_REALLY_Loaded");
+function onAnyChangeEvent() {
+	if (!pageIncarnationChanged) return;
+	pageIncarnationChanged = false;
+	console.log("onAnyChangeEvent");
 	if (document.querySelector(BTN_WERKLIJST_MAKEN_ID)) onCriteriaShown();
-	else if (document.getElementById("tablenav_leerlingen_werklijst_bottom")) {
+	else if (document.getElementById(BTN_WERKLJST_NAV_BOTTOM)) {
 		addButtons();
-		onWerklijstChanged();
+		onResultsShown();
 	}
 }
 function onMutation$3(mutation) {
 	console.log("onMutation");
-	tryUntilThen(checkPageReallyLoaded, onPage_REALLY_Loaded);
+	tryUntilThen(isPageReallyLoaded, onAnyChangeEvent);
 	return true;
 }
 function onCriteriaShown() {
@@ -5310,8 +5317,8 @@ let globalHoursSettingsTabId;
 async function sendMessageToHoursSettings() {
 	sendRequest(Actions.GreetingsFromParent, TabType.Main, TabType.HoursSettings, globalHoursSettingsTabId, "Hello the main content script.").then((_) => {});
 }
-function onWerklijstChanged() {
-	console.log("onWerklijstChanged");
+function onResultsShown() {
+	console.log("onResultsShown");
 	let werklijstPageState = getGotoStateOrDefault(PageName.Werklijst);
 	if (werklijstPageState.werklijstTableName === UREN_TABLE_STATE_NAME) tryUntil(onShowLerarenUren);
 	decorateTableHeader(document.querySelector("table#" + WERKLIJST_TABLE_ID));

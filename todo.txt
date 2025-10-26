@@ -1,3 +1,4 @@
+Paper on Dutch dataabase/model for NER:
 https://lt3.ugent.be/media/uploads/publications/2013/LRE2013.pdf
 
 New werklijst:

@@ -1,6 +1,6 @@
 import {addButton, arrayIsEqual, getSchoolIdString, openHoursSettings, Schoolyear, setButtonHighlighted, tryUntil, tryUntilThen} from "../globals";
 import * as def from "../def";
-import {BTN_WERKLJST_NAV_BOTTOM} from "../def";
+import {BTN_WERKLIJST_NAV_BOTTOM} from "../def";
 import {createTable, getUrenVakLeraarFileName, refillTable} from "./buildUren";
 import {addStudentToVakLeraarsMap, scrapeUren, StudentUrenRow, VakLeraar} from "./scrapeUren";
 import {cloud} from "../cloud";
@@ -29,27 +29,44 @@ registerChecksumHandler(def.WERKLIJST_TABLE_ID,  (_tableDef: TableFetcher) => {
 let observer = new HashObserver("#leerlingen-werklijst", onMutation, false, onPageLoaded);
 export default observer;
 
+/*
+Werklijst has 2 incarnations:
+  * Criteria selection (hash #leerlingen-werklijst)
+  * Result (hash #leerlingen-werklijst$werklijst)
+
+Unforunatelly hash changes don't cause a page reload, therefore of limited use.
+
+*/
+
+let pageIncarnationChanged = true;
+window.addEventListener("hashchange", () => { pageIncarnationChanged = true;});
+
 function onPageLoaded() {
     console.log("onPageLoaded");
     tryUntilThen(isPageReallyLoaded, onAnyChangeEvent);
 }
 
+//todo: generalize this function: in the base-class it should be an abstract method.
 function isPageReallyLoaded() {
     if (document.querySelector(def.BTN_WERKLIJST_MAKEN_ID))
         return true;
-    if (document.getElementById(BTN_WERKLJST_NAV_BOTTOM)
+    if (document.getElementById(BTN_WERKLIJST_NAV_BOTTOM)
     && document.querySelector(TARGET_BUTTON_ID))
         return true;
     return false;
 }
 
 function onAnyChangeEvent() {
+    if(!pageIncarnationChanged){
+        return;
+    }
+    pageIncarnationChanged = false;
     console.log("onAnyChangeEvent");
     if (document.querySelector(def.BTN_WERKLIJST_MAKEN_ID)) {
         onCriteriaShown();
-    } else if (document.getElementById(def.BTN_WERKLJST_NAV_BOTTOM)) {
+    } else if (document.getElementById(def.BTN_WERKLIJST_NAV_BOTTOM)) {
         addButtons();
-        onWerklijstChanged();
+        onResultsShown();
     }
 }
 
@@ -156,8 +173,8 @@ async function sendMessageToHoursSettings() {
     sendRequest(Actions.GreetingsFromParent, TabType.Main, TabType.HoursSettings, globalHoursSettingsTabId, "Hello the main content script.").then(_ => {});
 }
 
-function onWerklijstChanged() {
-    console.log("onWerklijstChanged");
+function onResultsShown() {
+    console.log("onResultsShown");
     let werklijstPageState = getGotoStateOrDefault(PageName.Werklijst) as WerklijstGotoState;
     if(werklijstPageState.werklijstTableName === def.UREN_TABLE_STATE_NAME) {
         tryUntil(onShowLerarenUren);
