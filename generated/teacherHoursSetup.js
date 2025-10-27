@@ -294,6 +294,7 @@ function getAttributes() {
 	let attDefs = [];
 	while (tokens.length) {
 		let name = tokens.shift();
+		if (name[0] === ",") throw "Unexpected ',' - don't separate attributes with ','.";
 		let eq = tokens.shift();
 		let sub = "";
 		if (eq === ".") {
@@ -364,6 +365,7 @@ function addIndex(text, index, onIndex) {
 //#endregion
 //#region typescript/def.ts
 const JSON_URL = "https://europe-west1-ebo-tain.cloudfunctions.net/json";
+const SETUP_HOURS_TITLE_ID = "setupTitle";
 
 //#endregion
 //#region typescript/cloud.ts
@@ -382,54 +384,6 @@ async function uploadJson(fileName, data) {
 	});
 	return await res.text();
 }
-
-//#endregion
-//#region typescript/globals.ts
-let Schoolyear;
-(function(_Schoolyear) {
-	function getSelectElement() {
-		let selects = document.querySelectorAll("select");
-		return Array.from(selects).filter((element) => element.id.includes("schooljaar")).pop();
-	}
-	_Schoolyear.getSelectElement = getSelectElement;
-	function getHighestAvailable() {
-		let el = getSelectElement();
-		if (!el) return void 0;
-		return Array.from(el.querySelectorAll("option")).map((option) => option.value).sort().pop();
-	}
-	_Schoolyear.getHighestAvailable = getHighestAvailable;
-	function findInPage() {
-		let el = getSelectElement();
-		if (el) return el.value;
-		el = document.querySelector("div.alert-primary");
-		return el.textContent.match(/schooljaar *= (\d{4}-\d{4})*/)[1];
-	}
-	_Schoolyear.findInPage = findInPage;
-	function calculateCurrent() {
-		let now = new Date();
-		let year = now.getFullYear();
-		let month = now.getMonth();
-		if (month < 8) return year - 1;
-		return year;
-	}
-	_Schoolyear.calculateCurrent = calculateCurrent;
-	function toFullString(startYear) {
-		return `${startYear}-${startYear + 1}`;
-	}
-	_Schoolyear.toFullString = toFullString;
-	function toShortString(startYear) {
-		return `${startYear % 1e3}-${startYear % 1e3 + 1}`;
-	}
-	_Schoolyear.toShortString = toShortString;
-	function toNumbers(schoolyearString) {
-		let parts = schoolyearString.split("-").map((s) => parseInt(s));
-		return {
-			startYear: parts[0],
-			endYear: parts[1]
-		};
-	}
-	_Schoolyear.toNumbers = toNumbers;
-})(Schoolyear || (Schoolyear = {}));
 
 //#endregion
 //#region typescript/werklijst/hoursSettings.ts
@@ -955,6 +909,7 @@ function deleteTableRow(ev) {
 }
 async function onData(data) {
 	document.title = data.pageTitle;
+	document.getElementById(SETUP_HOURS_TITLE_ID).innerHTML = data.pageTitle;
 	document.querySelector("button").addEventListener("click", async () => {
 		await sendRequest(Actions.GreetingsFromChild, TabType.Undefined, TabType.Main, void 0, "Hullo! Fly safe!");
 	});

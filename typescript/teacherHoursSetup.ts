@@ -1,5 +1,6 @@
 import {Actions, createMessageHandler, sendRequest, ServiceRequest, TabType} from "./messaging";
 import {emmet} from "../libs/Emmeter/html";
+import * as def from "./def";
 
 import {mapHourSettings, saveHourSettings, TeacherHoursSetup, TeacherHoursSetupMapped, TranslationDef} from "./werklijst/hoursSettings";
 import * as InputWithSpaces from "./webComponents/inputWithSpaces";
@@ -109,6 +110,7 @@ function deleteTableRow(ev: Event) {
 
 async function onData(data: ServiceRequest) {
     document.title = data.pageTitle;
+    document.getElementById(def.SETUP_HOURS_TITLE_ID).innerHTML = data.pageTitle;
     //test...
     document.querySelector("button").addEventListener("click", async () => {
         await sendRequest(Actions.GreetingsFromChild, TabType.Undefined, TabType.Main, undefined, "Hullo! Fly safe!");

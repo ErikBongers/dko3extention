@@ -636,7 +636,7 @@ async function openHtmlTab(innerHtml, pageTitle) {
 	return sendRequest(Actions.OpenHtmlTab, TabType.Main, TabType.Html, void 0, innerHtml, pageTitle);
 }
 async function openHoursSettings(data) {
-	return sendRequest(Actions.OpenHoursSettings, TabType.Main, TabType.Undefined, void 0, data, "Lerarenuren setup");
+	return sendRequest(Actions.OpenHoursSettings, TabType.Main, TabType.Undefined, void 0, data, "Lerarenuren setup voor schooljaar " + data.schoolyear);
 }
 function createTable$1(headers, cols) {
 	let tmpDiv = document.createElement("div");
@@ -5074,6 +5074,16 @@ function getDefaultHourSettings(schoolyear) {
 		translations: [...defaultTranslationDefs]
 	};
 }
+function createTeacherHoursFileName(schoolyear) {
+	return "teacherHoursSetup_" + schoolyear + ".json";
+}
+async function saveHourSettings(hoursSetup) {
+	let fileName = createTeacherHoursFileName(hoursSetup.schoolyear);
+	return cloud.json.upload(fileName, hoursSetup);
+}
+
+//#endregion
+//#region typescript/werklijst/prefillInstruments.ts
 async function fetchHoursSettingsOrSaveDefault(schoolyearString, dko3_subjects = void 0) {
 	let builder = await createWerklijstBuilder(schoolyearString, Grouping.LES);
 	if (!dko3_subjects) dko3_subjects = await builder.fetchAvailableSubjects();
@@ -5098,16 +5108,6 @@ async function fetchHoursSettingsOrSaveDefault(schoolyearString, dko3_subjects =
 	cloudSettings.subjects = [...cloudSubjectMap.values()].sort((a, b) => a.name.localeCompare(b.name));
 	return cloudSettings;
 }
-function createTeacherHoursFileName(schoolyear) {
-	return "teacherHoursSetup_" + schoolyear + ".json";
-}
-async function saveHourSettings(hoursSetup) {
-	let fileName = createTeacherHoursFileName(hoursSetup.schoolyear);
-	return cloud.json.upload(fileName, hoursSetup);
-}
-
-//#endregion
-//#region typescript/werklijst/prefillInstruments.ts
 async function setCriteriaForTeacherHoursAndClickFetchButton(schooljaar, hourSettings) {
 	let builder = await createWerklijstBuilder(schooljaar, Grouping.LES);
 	let dko3_vakken = await builder.fetchAvailableSubjects();
@@ -5260,8 +5260,8 @@ function onCriteriaShown() {
 	addButton$1(btnWerklijstMaken, UREN_PREV_BTN_ID, "Toon lerarenuren voor " + prevSchoolyear, async () => {
 		await setCriteriaForTeacherHoursAndClickFetchButton(prevSchoolyear);
 	}, "", ["btn", "btn-outline-dark"], "Uren " + prevSchoolyearShort);
-	addButton$1(btnWerklijstMaken, UREN_PREV_SETUP_BTN_ID, "Setup voor " + prevSchoolyear, async () => {
-		await showUrenSetup(prevSchoolyear);
+	addButton$1(btnWerklijstMaken, UREN_PREV_SETUP_BTN_ID, "Setup voor " + nextSchoolyear, async () => {
+		await showUrenSetup(nextSchoolyear);
 	}, "fas-certificate", ["btn", "btn-outline-dark"], "", "beforebegin", "gear.svg");
 	addButton$1(btnWerklijstMaken, UREN_PREV_SETUP_BTN_ID + "sdf", "test", async () => {
 		await sendMessageToHoursSettings();

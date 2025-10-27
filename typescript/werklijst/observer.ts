@@ -5,7 +5,7 @@ import {createTable, getUrenVakLeraarFileName, refillTable} from "./buildUren";
 import {addStudentToVakLeraarsMap, scrapeUren, StudentUrenRow, VakLeraar} from "./scrapeUren";
 import {cloud} from "../cloud";
 import {TableFetcher, TableRef} from "../table/tableFetcher";
-import {setCriteriaForTeacherHoursAndClickFetchButton} from "./prefillInstruments";
+import {fetchHoursSettingsOrSaveDefault, setCriteriaForTeacherHoursAndClickFetchButton} from "./prefillInstruments";
 import {HashObserver} from "../pageObserver";
 import {NamedCellTableFetchListener} from "../pageHandlers";
 import {decorateTableHeader} from "../table/tableHeaders";
@@ -14,7 +14,7 @@ import {registerChecksumHandler, setAfterDownloadTableAction} from "../table/obs
 import {CloudData, JsonCloudData, UrenData} from "./urenData";
 import {createDefaultTableFetcher} from "../table/loadAnyTable";
 import {Actions, sendRequest, ServiceRequest, TabType} from "../messaging";
-import {fetchHoursSettingsOrSaveDefault, mapHourSettings, TeacherHoursSetup, TeacherHoursSetupMapped} from "./hoursSettings";
+import {mapHourSettings, TeacherHoursSetup, TeacherHoursSetupMapped} from "./hoursSettings";
 import {getJaarToewijzigingWerklijst} from "../lessen/observer";
 import {emmet} from "../../libs/Emmeter/html";
 import MessageSender = chrome.runtime.MessageSender;
@@ -117,7 +117,7 @@ function onCriteriaShown() {
     let prevSchoolyearShort = Schoolyear.toShortString(year-1);
     let nextSchoolyearShort = Schoolyear.toShortString(year);
     addButton(btnWerklijstMaken, def.UREN_PREV_BTN_ID, "Toon lerarenuren voor "+ prevSchoolyear, async () => { await setCriteriaForTeacherHoursAndClickFetchButton(prevSchoolyear); }, "", ["btn", "btn-outline-dark"], "Uren "+ prevSchoolyearShort);
-    addButton(btnWerklijstMaken, def.UREN_PREV_SETUP_BTN_ID, "Setup voor "+ prevSchoolyear, async () => { await showUrenSetup(prevSchoolyear); }, "fas-certificate", ["btn", "btn-outline-dark"], "", "beforebegin", "gear.svg");
+    addButton(btnWerklijstMaken, def.UREN_PREV_SETUP_BTN_ID, "Setup voor "+ nextSchoolyear, async () => { await showUrenSetup(nextSchoolyear); }, "fas-certificate", ["btn", "btn-outline-dark"], "", "beforebegin", "gear.svg");
     addButton(btnWerklijstMaken, def.UREN_PREV_SETUP_BTN_ID+"sdf", "test", async () => { await sendMessageToHoursSettings(); }, "", ["btn", "btn-outline-dark"], "send");
     addButton(btnWerklijstMaken, def.UREN_NEXT_BTN_ID, "Toon lerarenuren voor "+ nextSchoolyear, async () => { await setCriteriaForTeacherHoursAndClickFetchButton(nextSchoolyear); }, "", ["btn", "btn-outline-dark"], "Uren "+ nextSchoolyearShort);
 
