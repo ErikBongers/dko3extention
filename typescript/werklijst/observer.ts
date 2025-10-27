@@ -118,7 +118,7 @@ function onCriteriaShown() {
     let nextSchoolyearShort = Schoolyear.toShortString(year);
     addButton(btnWerklijstMaken, def.UREN_PREV_BTN_ID, "Toon lerarenuren voor "+ prevSchoolyear, async () => { await setCriteriaForTeacherHoursAndClickFetchButton(prevSchoolyear); }, "", ["btn", "btn-outline-dark"], "Uren "+ prevSchoolyearShort);
     addButton(btnWerklijstMaken, def.UREN_PREV_SETUP_BTN_ID, "Setup voor "+ nextSchoolyear, async () => { await showUrenSetup(nextSchoolyear); }, "fas-certificate", ["btn", "btn-outline-dark"], "", "beforebegin", "gear.svg");
-    addButton(btnWerklijstMaken, def.UREN_PREV_SETUP_BTN_ID+"sdf", "test", async () => { await sendMessageToHoursSettings(); }, "", ["btn", "btn-outline-dark"], "send");
+    addButton(btnWerklijstMaken, def.UREN_PREV_SETUP_BTN_ID+"sdf", "test", async () => { await sendGreetingsToHoursSettings(); }, "", ["btn", "btn-outline-dark"], "send");
     addButton(btnWerklijstMaken, def.UREN_NEXT_BTN_ID, "Toon lerarenuren voor "+ nextSchoolyear, async () => { await setCriteriaForTeacherHoursAndClickFetchButton(nextSchoolyear); }, "", ["btn", "btn-outline-dark"], "Uren "+ nextSchoolyearShort);
 
     addButton(btnWerklijstMaken, "test123", "Test 123", test123, "", ["btn", "btn-outline-dark"], "Test 123");
@@ -145,7 +145,13 @@ setInterval(() => {
     pauseRefresh = false;
 }, 2000);
 
-async function onMessage(request: ServiceRequest, _sender: MessageSender, _sendResponse: (response?: any) => void) {
+async function onMessage(request: ServiceRequest, _sender: MessageSender, sendResponse: (response?: any) => void) {
+    if(request.action == Actions.RequestTabData) {
+        console.log("Requesting tab data", request.data);
+        let setup = await fetchHoursSettingsOrSaveDefault(request.data.params.schoolYear);
+        await sendMessageToHoursSettings(Actions.TabData, setup);
+        return;
+    }
     if(globals.activeFetcher) {
         await globals.activeFetcher.cancel();
         pauseRefresh = false;
@@ -177,14 +183,17 @@ async function onMessage(request: ServiceRequest, _sender: MessageSender, _sendR
 }
 
 async function showUrenSetup(schoolyear: string) {
-    let setup = await fetchHoursSettingsOrSaveDefault(schoolyear);
-    let res = await openHoursSettings(setup);
+    let res = await openHoursSettings(schoolyear);
     globalHoursSettingsTabId = res.tabId;
 }
 
 let globalHoursSettingsTabId: number;
 
-async function sendMessageToHoursSettings() {
+async function sendMessageToHoursSettings(action: Actions, data: any) {
+    return sendRequest(action, TabType.Main, TabType.HoursSettings, globalHoursSettingsTabId, data);
+}
+
+async function sendGreetingsToHoursSettings() {
     sendRequest(Actions.GreetingsFromParent, TabType.Main, TabType.HoursSettings, globalHoursSettingsTabId, "Hello the main content script.").then(_ => {});
 }
 

@@ -5,7 +5,8 @@
 //#region typescript/messaging.ts
 let Actions = /* @__PURE__ */ function(Actions$1) {
 	Actions$1["OpenHtmlTab"] = "open_tab";
-	Actions$1["GetTabData"] = "get_tab_data";
+	Actions$1["RequestTabData"] = "request_tab_data";
+	Actions$1["TabData"] = "tab_data";
 	Actions$1["GetParentTabId"] = "get_parent_tab_id";
 	Actions$1["OpenHoursSettings"] = "open_hours_settings";
 	Actions$1["HoursSettingsChanged"] = "open_hours_settings_changed";
@@ -31,20 +32,17 @@ function sendRequest(action, from, to, toId, data, pageTitle) {
 	};
 	return chrome.runtime.sendMessage(req);
 }
-async function sendGetDataRequest(sender) {
-	let tab = await chrome.tabs.getCurrent();
-	return await sendRequest(Actions.GetTabData, sender, TabType.Undefined, void 0, { tabId: tab.id });
-}
 function createMessageHandler(tabType) {
 	let handler$1 = {
 		getListener: function() {
 			let self = this;
 			return async function onMessage(request, _sender, _sendResponse) {
-				console.log(`blank received: `, request);
+				console.log(`tab received: `, request);
 				if (request.targetTabType === tabType) {
 					self._onMessageForMyTabType?.(request);
 					let tab = await chrome.tabs.getCurrent();
-					if (request.targetTabId === tab.id) self._onMessageForMe?.(request);
+					if (request.targetTabId === tab.id) if (request.action === Actions.TabData && self._onData) self._onData(request);
+					else self._onMessageForMe?.(request);
 				}
 			};
 		},
@@ -64,10 +62,6 @@ function createMessageHandler(tabType) {
 		_onMessageForMe: void 0,
 		_onData: void 0
 	};
-	document.addEventListener("DOMContentLoaded", async () => {
-		let res = await sendGetDataRequest(tabType);
-		handler$1._onData?.(res);
-	});
 	return handler$1;
 }
 

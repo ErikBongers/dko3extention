@@ -403,7 +403,8 @@ async function fetchGlobalSettings(defaultSettings) {
 //#region typescript/messaging.ts
 let Actions = /* @__PURE__ */ function(Actions$1) {
 	Actions$1["OpenHtmlTab"] = "open_tab";
-	Actions$1["GetTabData"] = "get_tab_data";
+	Actions$1["RequestTabData"] = "request_tab_data";
+	Actions$1["TabData"] = "tab_data";
 	Actions$1["GetParentTabId"] = "get_parent_tab_id";
 	Actions$1["OpenHoursSettings"] = "open_hours_settings";
 	Actions$1["HoursSettingsChanged"] = "open_hours_settings_changed";
@@ -635,8 +636,8 @@ function stripStudentName(name) {
 async function openHtmlTab(innerHtml, pageTitle) {
 	return sendRequest(Actions.OpenHtmlTab, TabType.Main, TabType.Html, void 0, innerHtml, pageTitle);
 }
-async function openHoursSettings(data) {
-	return sendRequest(Actions.OpenHoursSettings, TabType.Main, TabType.Undefined, void 0, data, "Lerarenuren setup voor schooljaar " + data.schoolyear);
+async function openHoursSettings(schoolyear) {
+	return sendRequest(Actions.OpenHoursSettings, TabType.Main, TabType.Undefined, void 0, schoolyear, "Lerarenuren setup voor schooljaar " + schoolyear);
 }
 function createTable$1(headers, cols) {
 	let tmpDiv = document.createElement("div");
@@ -5264,7 +5265,7 @@ function onCriteriaShown() {
 		await showUrenSetup(nextSchoolyear);
 	}, "fas-certificate", ["btn", "btn-outline-dark"], "", "beforebegin", "gear.svg");
 	addButton$1(btnWerklijstMaken, UREN_PREV_SETUP_BTN_ID + "sdf", "test", async () => {
-		await sendMessageToHoursSettings();
+		await sendGreetingsToHoursSettings();
 	}, "", ["btn", "btn-outline-dark"], "send");
 	addButton$1(btnWerklijstMaken, UREN_NEXT_BTN_ID, "Toon lerarenuren voor " + nextSchoolyear, async () => {
 		await setCriteriaForTeacherHoursAndClickFetchButton(nextSchoolyear);
@@ -5285,7 +5286,13 @@ let pauseRefresh = false;
 setInterval(() => {
 	pauseRefresh = false;
 }, 2e3);
-async function onMessage(request, _sender, _sendResponse) {
+async function onMessage(request, _sender, sendResponse) {
+	if (request.action == Actions.RequestTabData) {
+		console.log("Requesting tab data", request.data);
+		let setup = await fetchHoursSettingsOrSaveDefault(request.data.params.schoolYear);
+		await sendMessageToHoursSettings(Actions.TabData, setup);
+		return;
+	}
 	if (globals.activeFetcher) {
 		await globals.activeFetcher.cancel();
 		pauseRefresh = false;
@@ -5309,12 +5316,14 @@ async function onMessage(request, _sender, _sendResponse) {
 	}
 }
 async function showUrenSetup(schoolyear) {
-	let setup = await fetchHoursSettingsOrSaveDefault(schoolyear);
-	let res = await openHoursSettings(setup);
+	let res = await openHoursSettings(schoolyear);
 	globalHoursSettingsTabId = res.tabId;
 }
 let globalHoursSettingsTabId;
-async function sendMessageToHoursSettings() {
+async function sendMessageToHoursSettings(action, data) {
+	return sendRequest(action, TabType.Main, TabType.HoursSettings, globalHoursSettingsTabId, data);
+}
+async function sendGreetingsToHoursSettings() {
 	sendRequest(Actions.GreetingsFromParent, TabType.Main, TabType.HoursSettings, globalHoursSettingsTabId, "Hello the main content script.").then((_) => {});
 }
 function onResultsShown() {

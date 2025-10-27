@@ -5,7 +5,8 @@
 //#region typescript/messaging.ts
 let Actions = /* @__PURE__ */ function(Actions$1) {
 	Actions$1["OpenHtmlTab"] = "open_tab";
-	Actions$1["GetTabData"] = "get_tab_data";
+	Actions$1["RequestTabData"] = "request_tab_data";
+	Actions$1["TabData"] = "tab_data";
 	Actions$1["GetParentTabId"] = "get_parent_tab_id";
 	Actions$1["OpenHoursSettings"] = "open_hours_settings";
 	Actions$1["HoursSettingsChanged"] = "open_hours_settings_changed";
@@ -31,20 +32,31 @@ function sendRequest(action, from, to, toId, data, pageTitle) {
 	};
 	return chrome.runtime.sendMessage(req);
 }
-async function sendGetDataRequest(sender) {
+let DataRequestTypes = /* @__PURE__ */ function(DataRequestTypes$1) {
+	DataRequestTypes$1["HoursSettings"] = "HoursSettings";
+	DataRequestTypes$1["Html"] = "Html";
+	return DataRequestTypes$1;
+}({});
+async function sendDataRequest(sender, dataType, params) {
 	let tab = await chrome.tabs.getCurrent();
-	return await sendRequest(Actions.GetTabData, sender, TabType.Undefined, void 0, { tabId: tab.id });
+	let dataRequestInfo = {
+		tabId: tab.id,
+		dataType,
+		params
+	};
+	await sendRequest(Actions.RequestTabData, sender, TabType.Undefined, void 0, dataRequestInfo);
 }
 function createMessageHandler(tabType) {
 	let handler$1 = {
 		getListener: function() {
 			let self = this;
 			return async function onMessage(request, _sender, _sendResponse) {
-				console.log(`blank received: `, request);
+				console.log(`tab received: `, request);
 				if (request.targetTabType === tabType) {
 					self._onMessageForMyTabType?.(request);
 					let tab = await chrome.tabs.getCurrent();
-					if (request.targetTabId === tab.id) self._onMessageForMe?.(request);
+					if (request.targetTabId === tab.id) if (request.action === Actions.TabData && self._onData) self._onData(request);
+					else self._onMessageForMe?.(request);
 				}
 			};
 		},
@@ -64,10 +76,6 @@ function createMessageHandler(tabType) {
 		_onMessageForMe: void 0,
 		_onData: void 0
 	};
-	document.addEventListener("DOMContentLoaded", async () => {
-		let res = await sendGetDataRequest(tabType);
-		handler$1._onData?.(res);
-	});
 	return handler$1;
 }
 
@@ -844,10 +852,8 @@ chrome.runtime.onMessage.addListener(handler.getListener());
 document.addEventListener("DOMContentLoaded", onDocumentLoaded);
 handler.onMessageForMyTabType((msg) => {
 	console.log("message for my tab type: ", msg);
-	document.getElementById("container").innerHTML = "Message was for my tab type" + msg.data;
 }).onMessageForMe((msg) => {
 	console.log("message for me: ", msg);
-	document.getElementById("container").innerHTML = "DATA:" + msg.data;
 }).onData(onData);
 function fillSubjectsTable(dko3Setup) {
 	let container = document.getElementById("subjectsContainer");
@@ -907,13 +913,18 @@ function deleteTableRow(ev) {
 	btn.closest("tr").remove();
 	hasTableChanged = true;
 }
-async function onData(data) {
-	document.title = data.pageTitle;
-	document.getElementById(SETUP_HOURS_TITLE_ID).innerHTML = data.pageTitle;
+async function onData(request) {
+	console.log("onData: ", request);
+	let title = "Lerarenuren setup voor schooljaar " + request.data.schoolyear;
+	document.title = title;
+	document.getElementById(
+		//todo: make this a url param for this window?
+		SETUP_HOURS_TITLE_ID
+).innerHTML = title;
 	document.querySelector("button").addEventListener("click", async () => {
 		await sendRequest(Actions.GreetingsFromChild, TabType.Undefined, TabType.Main, void 0, "Hullo! Fly safe!");
 	});
-	let dko3Setup = mapHourSettings(data.data);
+	let dko3Setup = mapHourSettings(request.data);
 	globalSetup = dko3Setup;
 	fillSubjectsTable(dko3Setup);
 	fillTranslationsTable(dko3Setup);
@@ -987,7 +998,7 @@ function switchTab(btn) {
 	btn.classList.remove("notSelected");
 	document.getElementById(tabId).style.display = "block";
 }
-function onDocumentLoaded(_) {
+async function onDocumentLoaded(_) {
 	let tabs = document.querySelector(".tabs");
 	switchTab(tabs.querySelector(".tab"));
 	document.querySelectorAll(".tabs > button.tab").forEach((btn) => btn.addEventListener("click", (ev) => {
@@ -1000,6 +1011,7 @@ function onDocumentLoaded(_) {
 				break;
 		}
 	}));
+	await sendDataRequest(TabType.HoursSettings, DataRequestTypes.HoursSettings, { schoolYear: "2025-2026" });
 }
 
 //#endregion

@@ -1,4 +1,4 @@
-import {Actions, createMessageHandler, sendRequest, ServiceRequest, TabType} from "./messaging";
+import {Actions, createMessageHandler, DataRequestTypes, HourSettingsDataRequestParams, sendDataRequest, sendRequest, ServiceRequest, TabType} from "./messaging";
 import {emmet} from "../libs/Emmeter/html";
 import * as def from "./def";
 
@@ -16,11 +16,9 @@ document.addEventListener("DOMContentLoaded", onDocumentLoaded)
 handler
     .onMessageForMyTabType(msg => {
         console.log("message for my tab type: ", msg);
-        document.getElementById("container").innerHTML = "Message was for my tab type" + msg.data;
     })
     .onMessageForMe(msg => {
         console.log("message for me: ", msg);
-        document.getElementById("container").innerHTML = "DATA:" + msg.data;
     })
     .onData(onData);
 
@@ -108,15 +106,17 @@ function deleteTableRow(ev: Event) {
     hasTableChanged = true;
 }
 
-async function onData(data: ServiceRequest) {
-    document.title = data.pageTitle;
-    document.getElementById(def.SETUP_HOURS_TITLE_ID).innerHTML = data.pageTitle;
+async function onData(request: ServiceRequest) {
+    console.log("onData: ", request);
+    let title = "Lerarenuren setup voor schooljaar " + request.data.schoolyear;
+    document.title = title;
+    document.getElementById(def.SETUP_HOURS_TITLE_ID).innerHTML = title;
     //test...
     document.querySelector("button").addEventListener("click", async () => {
         await sendRequest(Actions.GreetingsFromChild, TabType.Undefined, TabType.Main, undefined, "Hullo! Fly safe!");
     });
 
-    let dko3Setup = mapHourSettings(data.data as TeacherHoursSetup);
+    let dko3Setup = mapHourSettings(request.data as TeacherHoursSetup);
     globalSetup = dko3Setup;
     fillSubjectsTable(dko3Setup);
     fillTranslationsTable(dko3Setup);
@@ -206,7 +206,7 @@ function switchTab(btn: HTMLButtonElement) {
     document.getElementById(tabId).style.display = "block";
 }
 
-function onDocumentLoaded(this: Document, _: Event) {
+async function onDocumentLoaded(this: Document, _: Event) {
     let tabs = document.querySelector(".tabs");
     switchTab(tabs.querySelector(".tab"));
     document.querySelectorAll(".tabs > button.tab")
@@ -221,4 +221,7 @@ function onDocumentLoaded(this: Document, _: Event) {
                         break;
                 }
             }));
+    await sendDataRequest<HourSettingsDataRequestParams>(TabType.HoursSettings, DataRequestTypes.HoursSettings, {
+        schoolYear: "2025-2026", //todo: make this a url param for this window?
+    });
 }

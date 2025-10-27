@@ -5,7 +5,8 @@
 //#region typescript/messaging.ts
 let Actions = /* @__PURE__ */ function(Actions$1) {
 	Actions$1["OpenHtmlTab"] = "open_tab";
-	Actions$1["GetTabData"] = "get_tab_data";
+	Actions$1["RequestTabData"] = "request_tab_data";
+	Actions$1["TabData"] = "tab_data";
 	Actions$1["GetParentTabId"] = "get_parent_tab_id";
 	Actions$1["OpenHoursSettings"] = "open_hours_settings";
 	Actions$1["HoursSettingsChanged"] = "open_hours_settings_changed";
@@ -40,13 +41,12 @@ chrome.runtime.onInstalled.addListener(() => {
 		});
 	});
 });
-chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
+chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, _tab) {
 	console.log("service worker: tab updated: ", tabId, changeInfo.status);
 });
-chrome.tabs.onRemoved.addListener(function(tabId, removeInfo) {
+chrome.tabs.onRemoved.addListener(function(tabId, _removeInfo) {
 	console.log("service worker: tab removed: ", tabId);
 });
-let global_request = {};
 chrome.runtime.onMessage.addListener(onMessage);
 async function getTabId(tabType) {
 	let data = await chrome.storage.session.get(tabType);
@@ -63,29 +63,31 @@ function onMessage(message, sender, sendResponse) {
 	switch (message.action) {
 		case Actions.OpenHtmlTab:
 			let url = chrome.runtime.getURL("resources/blank.html");
-			global_request = message;
-			if (message.senderTabType === TabType.Main) setTabId(TabType.Main, sender.tab.id);
+			if (message.senderTabType === TabType.Main) setTabId(TabType.Main, sender.tab.id).then(() => {});
 			chrome.tabs.create({ url }).then((_tab) => {
 				sendResponse({ tabId: _tab.id });
 			});
 			return true;
 		case Actions.OpenHoursSettings:
-			global_request = message;
-			setTabId(TabType.Main, sender.tab.id);
+			setTabId(TabType.Main, sender.tab.id).then(() => {});
 			chrome.tabs.create({ url: chrome.runtime.getURL("resources/teacherHoursSetup.html") }).then((tab) => {
 				sendResponse({ tabId: tab.id });
 			});
 			return true;
-		case Actions.GetTabData:
-			sendResponse(global_request);
+		case Actions.RequestTabData:
+			getTabId(TabType.Main).then((tabId) => {
+				chrome.tabs.sendMessage(tabId, message).then(() => {});
+			});
 			break;
+		case Actions.TabData: break;
 		case Actions.GetParentTabId:
 			sendResponse(getTabId(TabType.Main));
 			break;
 		case Actions.GreetingsFromChild:
 		default:
+			console.log("service worker: received message: ", message);
 			getTabId(message.targetTabType).then((id) => {
-				chrome.tabs.sendMessage(id, message).then((r) => {});
+				chrome.tabs.sendMessage(id, message).then(() => {});
 			});
 			break;
 	}

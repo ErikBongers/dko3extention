@@ -284,8 +284,8 @@ export async function openHtmlTab(innerHtml: string, pageTitle: string) {
     return sendRequest(Actions.OpenHtmlTab, TabType.Main, TabType.Html, undefined, innerHtml, pageTitle);
 }
 
-export async function openHoursSettings(data: TeacherHoursSetup) {
-    return sendRequest(Actions.OpenHoursSettings, TabType.Main, TabType.Undefined, undefined, data, "Lerarenuren setup voor schooljaar " + data.schoolyear);
+export async function openHoursSettings(schoolyear: string) {
+    return sendRequest(Actions.OpenHoursSettings, TabType.Main, TabType.Undefined, undefined, schoolyear, "Lerarenuren setup voor schooljaar " + schoolyear);//todo remove title as it is not used.
 }
 
 export function writeTableToClipboardForExcel(table: HTMLTableElement) {

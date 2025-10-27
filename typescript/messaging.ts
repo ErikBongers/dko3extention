@@ -1,6 +1,7 @@
 export enum Actions {
     OpenHtmlTab = "open_tab",
-    GetTabData = "get_tab_data",
+    RequestTabData = "request_tab_data",
+    TabData = "tab_data",
     GetParentTabId = "get_parent_tab_id",
     OpenHoursSettings = "open_hours_settings",
     HoursSettingsChanged = "open_hours_settings_changed",
@@ -42,9 +43,34 @@ export interface ServiceResponse {
     error: string,
 }
 
-export async function sendGetDataRequest(sender: TabType) {
+export enum DataRequestTypes {
+    HoursSettings = "HoursSettings",
+    Html = "Html" //todo: this is just for tests.
+}
+
+export type HourSettingsDataRequestParams = {
+    schoolYear: string,
+}
+
+export type HtmlDataRequestParams = {
+    todo: string,
+}
+
+export type RequestParams = HourSettingsDataRequestParams | HtmlDataRequestParams;
+export interface DataRequestInfo<Params extends RequestParams> {
+    tabId: number,
+    dataType: DataRequestTypes,
+    params: Params,
+}
+
+export async function sendDataRequest<T extends RequestParams>(sender: TabType, dataType: DataRequestTypes, params: T) {
     let tab = await chrome.tabs.getCurrent();
-    return await sendRequest(Actions.GetTabData, sender, TabType.Undefined, undefined, {tabId: tab.id});
+    let dataRequestInfo: DataRequestInfo<T> = {
+        tabId: tab.id,
+        dataType: dataType,
+        params
+    };
+    await sendRequest(Actions.RequestTabData, sender, TabType.Undefined, undefined, dataRequestInfo);
 }
 
 export type MessageHandler = {
@@ -65,12 +91,16 @@ export function createMessageHandler(tabType: TabType): MessageHandler {
         getListener: function () {
             let self: InternalMessageHandler = this;
             return async function onMessage(request: ServiceRequest, _sender, _sendResponse) {
-                console.log(`blank received: `, request);
+                console.log(`tab received: `, request);
                 if (request.targetTabType === tabType) {
                     self._onMessageForMyTabType?.(request);
                     let tab = await chrome.tabs.getCurrent();
                     if (request.targetTabId === tab.id) {
-                        self._onMessageForMe?.(request)
+                        if(request.action === Actions.TabData && self._onData) {
+                            self._onData(request);
+                        } else {
+                            self._onMessageForMe?.(request);
+                        }
                     }
                 }
             }
@@ -91,9 +121,5 @@ export function createMessageHandler(tabType: TabType): MessageHandler {
         _onMessageForMe: undefined,
         _onData: undefined
     };
-    document.addEventListener("DOMContentLoaded", async () => {
-        let res = await sendGetDataRequest(tabType);
-        handler._onData?.(res);
-    });
     return handler;
 }
