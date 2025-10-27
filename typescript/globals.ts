@@ -280,8 +280,11 @@ export function stripStudentName(name: string): string {
     return name.replaceAll(/[,()'-]/g, " ").replaceAll("  ", " ");
 }
 
-export async function openHtmlTab(innerHtml: string, pageTitle: string) {
-    return sendRequest(Actions.OpenHtmlTab, TabType.Main, TabType.Html, undefined, innerHtml, pageTitle);
+export type Nominal<T> = T & { readonly '': unique symbol };
+export type DataCacheId = Nominal<string>;
+
+export async function openHtmlTab(cacheId: DataCacheId, pageTitle: string) {
+    return sendRequest(Actions.OpenHtmlTab, TabType.Main, TabType.Html, undefined, {cacheId}, pageTitle);
 }
 
 export async function openHoursSettings(schoolyear: string) {

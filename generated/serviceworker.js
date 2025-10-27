@@ -62,7 +62,7 @@ async function setTabId(tabType, tabId) {
 function onMessage(message, sender, sendResponse) {
 	switch (message.action) {
 		case Actions.OpenHtmlTab:
-			let url = chrome.runtime.getURL("resources/blank.html");
+			let url = chrome.runtime.getURL(`resources/blank.html?cacheId=${message.data.cacheId}`);
 			if (message.senderTabType === TabType.Main) setTabId(TabType.Main, sender.tab.id).then(() => {});
 			chrome.tabs.create({ url }).then((_tab) => {
 				sendResponse({ tabId: _tab.id });
@@ -70,7 +70,6 @@ function onMessage(message, sender, sendResponse) {
 			return true;
 		case Actions.OpenHoursSettings:
 			setTabId(TabType.Main, sender.tab.id).then(() => {});
-			console.log("service worker: opening hours settings.", message.data);
 			chrome.tabs.create({ url: chrome.runtime.getURL(`resources/teacherHoursSetup.html?schoolyear=${message.data.schoolyear}`) }).then((tab) => {
 				sendResponse({ tabId: tab.id });
 			});

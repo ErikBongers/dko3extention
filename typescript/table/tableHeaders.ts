@@ -1,4 +1,4 @@
-import {createTable, distinct, openHtmlTab, range, rangeGenerator} from "../globals";
+import {createTable, DataCacheId, distinct, openHtmlTab, range, rangeGenerator} from "../globals";
 import {emmet} from "../../libs/Emmeter/html";
 import {checkAndDownloadTableRows} from "./loadAnyTable";
 import {addMenuItem, addMenuSeparator, setupMenu} from "../menus";
@@ -6,6 +6,16 @@ import {TableFetcher, TableHandler, TableRef} from "./tableFetcher";
 import * as def from "../def";
 import {options} from "../plugin_options/options";
 import {pageState} from "../pageState";
+import {Actions, HtmlDataRequestParams, sendRequest, ServiceRequest, TabType} from "../messaging";
+import MessageSender = chrome.runtime.MessageSender;
+
+let _otherTabsDataCache = new Map<string, string>();
+
+export function addToOtherTabsDataCache(data: string) {
+    let id = Date.now().toString();
+    _otherTabsDataCache.set(id, data);
+    return id as DataCacheId;
+}
 
 function sortRows(cmpFunction: (a: HTMLTableCellElement, b: HTMLTableCellElement) => number, header: Element, rows: HTMLTableRowElement[], index: number, descending: boolean) {
     let cmpDirectionalFunction: (a: HTMLTableRowElement, b: HTMLTableRowElement) => number;
@@ -189,8 +199,6 @@ type TableColumnCmd = {
 
 export function executeTableCommands(tableRef: TableRef) {
     let cmds =  pageState.transient.getValue(def.GLOBAL_COMMAND_BUFFER_KEY, []) as TableColumnCmd[];
-    console.log("Executing:");
-    console.log(cmds);
     for(let cmd of cmds) {
         executeCmd(cmd, tableRef, true);
     }
@@ -236,6 +244,11 @@ function executeCmd(cmd: TableColumnCmd, tableRef: TableRef, onlyBody: boolean) 
     }
 }
 
+export interface HtmlData {
+    title: string,
+    html: string,
+}
+
 function showDistinctColumn(tableRef: TableRef, index: number) {
     let cols = getDistinctColumn(tableRef.getOrgTableContainer(), index);
     let tmpDiv = document.createElement("div");
@@ -245,7 +258,26 @@ function showDistinctColumn(tableRef: TableRef, index: number) {
     }
     let headerRow = tableRef.getOrgTableContainer().querySelector("thead>tr");
     let headerText = getColumnHeaderText(headerRow.querySelectorAll("th")[index]);
-    openHtmlTab(tmpDiv.innerHTML, headerText + " (uniek)").then(_ => {});
+    let htmlData: HtmlData = {
+        title: headerText + " (uniek)",
+        html: tmpDiv.innerHTML,
+    }
+    let id = addToOtherTabsDataCache(tmpDiv.innerHTML);
+    openHtmlTab(id, headerText + " (uniek)").then(_ => {});
+}
+
+chrome.runtime.onMessage.addListener(onMessage)
+
+async function onMessage(request: ServiceRequest, _sender: MessageSender, sendResponse: (response?: any) => void) {
+    if (request.senderTabType != TabType.Html)
+        return;
+
+    if(request.action == Actions.RequestTabData) {
+        let params = request.data.params as HtmlDataRequestParams; //todo: do this cast in teacherHoursSetup.ts as well. Perhaps make onMessage generic.
+        let data = _otherTabsDataCache.get(params.cacheId as string);
+        await sendRequest(Actions.TabData, TabType.Main, TabType.Html, request.targetTabId, data);
+        return;
+    }
 }
 
 //Get the undecorated column header text.

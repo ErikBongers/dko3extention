@@ -1,3 +1,5 @@
+import {DataCacheId} from "./globals";
+
 export enum Actions {
     OpenHtmlTab = "open_tab",
     RequestTabData = "request_tab_data",
@@ -53,7 +55,7 @@ export type HourSettingsDataRequestParams = {
 }
 
 export type HtmlDataRequestParams = {
-    todo: string,
+    cacheId: DataCacheId,
 }
 
 export type RequestParams = HourSettingsDataRequestParams | HtmlDataRequestParams;

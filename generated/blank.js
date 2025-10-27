@@ -32,6 +32,20 @@ function sendRequest(action, from, to, toId, data, pageTitle) {
 	};
 	return chrome.runtime.sendMessage(req);
 }
+let DataRequestTypes = /* @__PURE__ */ function(DataRequestTypes$1) {
+	DataRequestTypes$1["HoursSettings"] = "HoursSettings";
+	DataRequestTypes$1["Html"] = "Html";
+	return DataRequestTypes$1;
+}({});
+async function sendDataRequest(sender, dataType, params) {
+	let tab = await chrome.tabs.getCurrent();
+	let dataRequestInfo = {
+		tabId: tab.id,
+		dataType,
+		params
+	};
+	await sendRequest(Actions.RequestTabData, sender, TabType.Undefined, void 0, dataRequestInfo);
+}
 function createMessageHandler(tabType) {
 	let handler$1 = {
 		getListener: function() {
@@ -76,14 +90,18 @@ handler.onMessageForMyTabType((msg) => {
 	console.log("message for me: ", msg);
 	document.getElementById("container").innerHTML = "DATA:" + msg.data;
 }).onData((data) => {
-	document.querySelector("button").addEventListener("click", async () => {
-		await sendRequest(Actions.GreetingsFromChild, TabType.Undefined, TabType.Main, void 0, "Hullo! Fly safe!");
-	});
-	console.log("tab opened: request data message sent and received: ");
+	console.log("requested data received: ");
 	console.log(data);
-	document.getElementById("container").innerHTML = data.data;
-	document.title = data.pageTitle;
+	document.getElementById("container").innerHTML = data.html;
+	document.title = data.title;
 });
+async function onDocumentLoaded(_) {
+	let params = new URLSearchParams(document.location.search);
+	let cacheId = params.get("cacheId");
+	console.log("requesting data for cacheId: ", cacheId);
+	await sendDataRequest(TabType.Html, DataRequestTypes.Html, { cacheId });
+}
+document.addEventListener("DOMContentLoaded", onDocumentLoaded);
 
 //#endregion
 })();

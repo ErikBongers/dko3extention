@@ -1,4 +1,6 @@
-import {Actions, createMessageHandler, sendRequest, TabType} from "./messaging";
+import {Actions, createMessageHandler, DataRequestTypes, HourSettingsDataRequestParams, HtmlDataRequestParams, sendDataRequest, sendRequest, TabType} from "./messaging";
+import {DataCacheId} from "./globals";
+import {HtmlData} from "./table/tableHeaders";
 
 let handler  = createMessageHandler(TabType.Html);
 
@@ -13,12 +15,18 @@ handler
         console.log("message for me: ", msg);
         document.getElementById("container").innerHTML = "DATA:" + msg.data;
     })
-    .onData(data => {
-        document.querySelector("button").addEventListener("click", async () => {
-            await sendRequest(Actions.GreetingsFromChild, TabType.Undefined, TabType.Main, undefined, "Hullo! Fly safe!");
-        });
-        console.log("tab opened: request data message sent and received: ");
+    .onData((data: HtmlData) => {
+        console.log("requested data received: ");
         console.log(data);
-        document.getElementById("container").innerHTML = data.data;
-        document.title = data.pageTitle;
+        document.getElementById("container").innerHTML = data.html;
+        document.title = data.title;
     });
+
+async function onDocumentLoaded(this: Document, _: Event) {
+    let params = new URLSearchParams(document.location.search);
+    let cacheId = params.get("cacheId") as DataCacheId;
+    console.log("requesting data for cacheId: ", cacheId);
+    await sendDataRequest<HtmlDataRequestParams>(TabType.Html, DataRequestTypes.Html, {cacheId});
+}
+
+document.addEventListener("DOMContentLoaded", onDocumentLoaded);

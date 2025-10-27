@@ -633,8 +633,8 @@ function whoAmI() {
 function stripStudentName(name) {
 	return name.replaceAll(/[,()'-]/g, " ").replaceAll("  ", " ");
 }
-async function openHtmlTab(innerHtml, pageTitle) {
-	return sendRequest(Actions.OpenHtmlTab, TabType.Main, TabType.Html, void 0, innerHtml, pageTitle);
+async function openHtmlTab(cacheId, pageTitle) {
+	return sendRequest(Actions.OpenHtmlTab, TabType.Main, TabType.Html, void 0, { cacheId }, pageTitle);
 }
 async function openHoursSettings(schoolyear) {
 	return sendRequest(Actions.OpenHoursSettings, TabType.Main, TabType.Undefined, void 0, { schoolyear }, "Lerarenuren setup voor schooljaar " + schoolyear);
@@ -2661,6 +2661,12 @@ var FetchedTable = class {
 
 //#endregion
 //#region typescript/table/tableHeaders.ts
+let _otherTabsDataCache = new Map();
+function addToOtherTabsDataCache(data) {
+	let id = Date.now().toString();
+	_otherTabsDataCache.set(id, data);
+	return id;
+}
 function sortRows(cmpFunction, header, rows, index, descending) {
 	let cmpDirectionalFunction;
 	if (descending) {
@@ -2747,6 +2753,7 @@ function decorateTableHeader(table) {
 			reSortTableByColumn(ev, table);
 		};
 		if (table.classList.contains(
+			//todo: do this cast in teacherHoursSetup.ts as well. Perhaps make onMessage generic.
 			//just to be sure.
 			//THEAD
 			NO_MENU
@@ -2814,8 +2821,6 @@ function getColumnIndex(ev) {
 }
 function executeTableCommands(tableRef) {
 	let cmds = pageState$1.transient.getValue(GLOBAL_COMMAND_BUFFER_KEY, []);
-	console.log("Executing:");
-	console.log(cmds);
 	for (let cmd of cmds) executeCmd(cmd, tableRef, true);
 }
 function forTableDo(ev, doIt) {
@@ -2854,7 +2859,22 @@ function showDistinctColumn(tableRef, index) {
 	for (let col of cols) emmet.appendChild(tbody, `tr>td>{${col}}`);
 	let headerRow = tableRef.getOrgTableContainer().querySelector("thead>tr");
 	let headerText = getColumnHeaderText(headerRow.querySelectorAll("th")[index]);
-	openHtmlTab(tmpDiv.innerHTML, headerText + " (uniek)").then((_) => {});
+	let htmlData = {
+		title: headerText + " (uniek)",
+		html: tmpDiv.innerHTML
+	};
+	let id = addToOtherTabsDataCache(tmpDiv.innerHTML);
+	openHtmlTab(id, headerText + " (uniek)").then((_) => {});
+}
+chrome.runtime.onMessage.addListener(onMessage$1);
+async function onMessage$1(request, _sender, sendResponse) {
+	if (request.senderTabType != TabType.Html) return;
+	if (request.action == Actions.RequestTabData) {
+		let params = request.data.params;
+		let data = _otherTabsDataCache.get(params.cacheId);
+		await sendRequest(Actions.TabData, TabType.Main, TabType.Html, request.targetTabId, data);
+		return;
+	}
 }
 function getColumnHeaderText(cell) {
 	return [...cell.childNodes].filter((node) => node.nodeType === Node.TEXT_NODE).map((node) => node.textContent).join(" ");
@@ -5287,6 +5307,7 @@ setInterval(() => {
 	pauseRefresh = false;
 }, 2e3);
 async function onMessage(request, _sender, sendResponse) {
+	if (request.senderTabType != TabType.HoursSettings) return;
 	if (request.action == Actions.RequestTabData) {
 		console.log("Requesting tab data", request.data);
 		let setup = await fetchHoursSettingsOrSaveDefault(request.data.params.schoolYear);

@@ -146,6 +146,8 @@ setInterval(() => {
 }, 2000);
 
 async function onMessage(request: ServiceRequest, _sender: MessageSender, sendResponse: (response?: any) => void) {
+    if(request.senderTabType != TabType.HoursSettings)
+        return;
     if(request.action == Actions.RequestTabData) {
         console.log("Requesting tab data", request.data);
         let setup = await fetchHoursSettingsOrSaveDefault(request.data.params.schoolYear);

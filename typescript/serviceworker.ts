@@ -49,7 +49,7 @@ async function setTabId(tabType: TabType, tabId: number) {
 function onMessage(message: ServiceRequest, sender: MessageSender, sendResponse: (response?: any) => void) {
     switch (message.action) {
         case Actions.OpenHtmlTab:
-            let url = chrome.runtime.getURL("resources/blank.html");
+            let url = chrome.runtime.getURL(`resources/blank.html?cacheId=${message.data.cacheId}`);
             if(message.senderTabType === TabType.Main)
                 setTabId(TabType.Main, sender.tab.id).then(() => {});
             chrome.tabs.create({url}).then(_tab => {
