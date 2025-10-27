@@ -221,7 +221,7 @@ async function onDocumentLoaded(this: Document, _: Event) {
                         break;
                 }
             }));
-    await sendDataRequest<HourSettingsDataRequestParams>(TabType.HoursSettings, DataRequestTypes.HoursSettings, {
-        schoolYear: "2025-2026", //todo: make this a url param for this window?
-    });
+    let params = new URLSearchParams(document.location.search);
+    let schoolYear = params.get("schoolyear");
+    await sendDataRequest<HourSettingsDataRequestParams>(TabType.HoursSettings, DataRequestTypes.HoursSettings, {schoolYear});
 }

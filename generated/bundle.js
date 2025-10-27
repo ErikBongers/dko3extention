@@ -637,7 +637,7 @@ async function openHtmlTab(innerHtml, pageTitle) {
 	return sendRequest(Actions.OpenHtmlTab, TabType.Main, TabType.Html, void 0, innerHtml, pageTitle);
 }
 async function openHoursSettings(schoolyear) {
-	return sendRequest(Actions.OpenHoursSettings, TabType.Main, TabType.Undefined, void 0, schoolyear, "Lerarenuren setup voor schooljaar " + schoolyear);
+	return sendRequest(Actions.OpenHoursSettings, TabType.Main, TabType.Undefined, void 0, { schoolyear }, "Lerarenuren setup voor schooljaar " + schoolyear);
 }
 function createTable$1(headers, cols) {
 	let tmpDiv = document.createElement("div");

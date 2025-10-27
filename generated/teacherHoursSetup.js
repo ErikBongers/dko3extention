@@ -917,10 +917,7 @@ async function onData(request) {
 	console.log("onData: ", request);
 	let title = "Lerarenuren setup voor schooljaar " + request.data.schoolyear;
 	document.title = title;
-	document.getElementById(
-		//todo: make this a url param for this window?
-		SETUP_HOURS_TITLE_ID
-).innerHTML = title;
+	document.getElementById(SETUP_HOURS_TITLE_ID).innerHTML = title;
 	document.querySelector("button").addEventListener("click", async () => {
 		await sendRequest(Actions.GreetingsFromChild, TabType.Undefined, TabType.Main, void 0, "Hullo! Fly safe!");
 	});
@@ -1011,7 +1008,9 @@ async function onDocumentLoaded(_) {
 				break;
 		}
 	}));
-	await sendDataRequest(TabType.HoursSettings, DataRequestTypes.HoursSettings, { schoolYear: "2025-2026" });
+	let params = new URLSearchParams(document.location.search);
+	let schoolYear = params.get("schoolyear");
+	await sendDataRequest(TabType.HoursSettings, DataRequestTypes.HoursSettings, { schoolYear });
 }
 
 //#endregion

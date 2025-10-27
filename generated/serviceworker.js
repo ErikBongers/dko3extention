@@ -70,7 +70,8 @@ function onMessage(message, sender, sendResponse) {
 			return true;
 		case Actions.OpenHoursSettings:
 			setTabId(TabType.Main, sender.tab.id).then(() => {});
-			chrome.tabs.create({ url: chrome.runtime.getURL("resources/teacherHoursSetup.html") }).then((tab) => {
+			console.log("service worker: opening hours settings.", message.data);
+			chrome.tabs.create({ url: chrome.runtime.getURL(`resources/teacherHoursSetup.html?schoolyear=${message.data.schoolyear}`) }).then((tab) => {
 				sendResponse({ tabId: tab.id });
 			});
 			return true;
