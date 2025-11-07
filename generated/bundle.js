@@ -5210,8 +5210,11 @@ registerChecksumHandler(
 	// Can't use this action to build the table as we're also fetching the cloud data.
 	//re-create, just to be sure we have all the fields.
 	WERKLIJST_TABLE_ID,
-	(_tableDef) => {
-		return document.querySelector("#view_contents > div.alert.alert-info")?.textContent.replace("Criteria aanpassen", "")?.replace("Criteria:", "") ?? "";
+	(tableDef) => {
+		let headers = NamedCellTableFetchListener.getHeaderIndices(tableDef.tableRef.getOrgTableContainer());
+		let fields = [...headers].map(([key, value]) => key);
+		let criteria = document.querySelector("#view_contents > div.alert.alert-info")?.textContent.replace("Criteria aanpassen", "")?.replace("Criteria:", "") ?? "";
+		return criteria + "__" + fields.join("_");
 	}
 );
 var WerklijstObserver = class extends HashObserver {

@@ -7,7 +7,7 @@ import {cloud} from "../cloud";
 import {TableFetcher, TableRef} from "../table/tableFetcher";
 import {fetchHoursSettingsOrSaveDefault, setCriteriaForTeacherHoursAndClickFetchButton} from "./prefillInstruments";
 import {HashObserver} from "../pageObserver";
-import {NamedCellTableFetchListener} from "../pageHandlers";
+import {NamedCellTableFetchListener, NotHTMLTemplate} from "../pageHandlers";
 import {decorateTableHeader} from "../table/tableHeaders";
 import {getGotoStateOrDefault, Goto, PageName, saveGotoState, WerklijstGotoState} from "../gotoState";
 import {registerChecksumHandler, setAfterDownloadTableAction} from "../table/observer";
@@ -21,10 +21,15 @@ import MessageSender = chrome.runtime.MessageSender;
 
 const TARGET_BUTTON_ID = "#tablenav_leerlingen_werklijst_top > div > div.btn-group.btn-group-sm.datatable-buttons > button:nth-child(1)";
 
-registerChecksumHandler(def.WERKLIJST_TABLE_ID,  (_tableDef: TableFetcher) => {
-    return document.querySelector("#view_contents > div.alert.alert-info")?.textContent.replace("Criteria aanpassen", "")?.replace("Criteria:", "") ?? ""
+registerChecksumHandler(def.WERKLIJST_TABLE_ID,  (tableDef: TableFetcher) => {
+    let headers = NamedCellTableFetchListener.getHeaderIndices(tableDef.tableRef.getOrgTableContainer() as NotHTMLTemplate);
+    let fields = [...headers].map(([key, value]) => key);
+    let criteria =  document.querySelector("#view_contents > div.alert.alert-info")
+        ?.textContent.replace("Criteria aanpassen", "")
+        ?.replace("Criteria:", "") ?? "";
+    return criteria + "__" + fields.join("_");
     }
-    );
+);
 
 class WerklijstObserver extends HashObserver {
     constructor() {
