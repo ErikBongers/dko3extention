@@ -2753,6 +2753,7 @@ function decorateTableHeader(table) {
 			reSortTableByColumn(ev, table);
 		};
 		if (table.classList.contains(
+			//todo: add this to openHtmlTab.
 			//todo: do this cast in teacherHoursSetup.ts as well. Perhaps make onMessage generic.
 			//just to be sure.
 			//THEAD
@@ -2863,7 +2864,7 @@ function showDistinctColumn(tableRef, index) {
 		title: headerText + " (uniek)",
 		html: tmpDiv.innerHTML
 	};
-	let id = addToOtherTabsDataCache(tmpDiv.innerHTML);
+	let id = addToOtherTabsDataCache(JSON.stringify(htmlData));
 	openHtmlTab(id, headerText + " (uniek)").then((_) => {});
 }
 chrome.runtime.onMessage.addListener(onMessage$1);

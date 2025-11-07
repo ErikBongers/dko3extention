@@ -84,8 +84,10 @@ function createMessageHandler(tabType) {
 let handler = createMessageHandler(TabType.Html);
 chrome.runtime.onMessage.addListener(handler.getListener());
 handler.onMessageForMyTabType((msg) => {
+	let data = JSON.parse(msg.data);
 	console.log("message for my tab type: ", msg);
-	document.getElementById("container").innerHTML = "Message was for my tab type" + msg.data;
+	document.getElementById("container").innerHTML = data.html;
+	document.title = data.title;
 }).onMessageForMe((msg) => {
 	console.log("message for me: ", msg);
 	document.getElementById("container").innerHTML = "DATA:" + msg.data;

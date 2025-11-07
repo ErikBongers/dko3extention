@@ -1,4 +1,4 @@
-import {createTable, DataCacheId, distinct, openHtmlTab, range, rangeGenerator} from "../globals";
+import {createTable, DataCacheId, distinct, HtmlData, openHtmlTab, range, rangeGenerator} from "../globals";
 import {emmet} from "../../libs/Emmeter/html";
 import {checkAndDownloadTableRows} from "./loadAnyTable";
 import {addMenuItem, addMenuSeparator, setupMenu} from "../menus";
@@ -244,11 +244,6 @@ function executeCmd(cmd: TableColumnCmd, tableRef: TableRef, onlyBody: boolean) 
     }
 }
 
-export interface HtmlData {
-    title: string,
-    html: string,
-}
-
 function showDistinctColumn(tableRef: TableRef, index: number) {
     let cols = getDistinctColumn(tableRef.getOrgTableContainer(), index);
     let tmpDiv = document.createElement("div");
@@ -262,7 +257,7 @@ function showDistinctColumn(tableRef: TableRef, index: number) {
         title: headerText + " (uniek)",
         html: tmpDiv.innerHTML,
     }
-    let id = addToOtherTabsDataCache(tmpDiv.innerHTML);
+    let id = addToOtherTabsDataCache(JSON.stringify(htmlData)); //todo: add this to openHtmlTab.
     openHtmlTab(id, headerText + " (uniek)").then(_ => {});
 }
 

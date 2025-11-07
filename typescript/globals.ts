@@ -287,6 +287,11 @@ export async function openHtmlTab(cacheId: DataCacheId, pageTitle: string) {
     return sendRequest(Actions.OpenHtmlTab, TabType.Main, TabType.Html, undefined, {cacheId}, pageTitle);
 }
 
+export interface HtmlData {
+    title: string,
+    html: string,
+}
+
 export async function openHoursSettings(schoolyear: string) {
     return sendRequest(Actions.OpenHoursSettings, TabType.Main, TabType.Undefined, undefined, {schoolyear}, "Lerarenuren setup voor schooljaar " + schoolyear);//todo remove title as it is not used.
 }
