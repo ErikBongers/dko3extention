@@ -5211,7 +5211,7 @@ registerChecksumHandler(
 	//re-create, just to be sure we have all the fields.
 	WERKLIJST_TABLE_ID,
 	(_tableDef) => {
-		return document.querySelector("#view_contents > div.alert.alert-primary")?.textContent.replace("Criteria aanpassen", "")?.replace("Criteria:", "") ?? "";
+		return document.querySelector("#view_contents > div.alert.alert-info")?.textContent.replace("Criteria aanpassen", "")?.replace("Criteria:", "") ?? "";
 	}
 );
 var WerklijstObserver = class extends HashObserver {
