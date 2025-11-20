@@ -23,6 +23,8 @@ export class ExactHashPageFilter implements PageFilter{
     }
 
     match() {
+        if(!this.urlHash)
+            return true; //no hash means always match.
         return window.location.hash === this.urlHash;
     }
 }

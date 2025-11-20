@@ -904,6 +904,7 @@ var ExactHashPageFilter = class {
 		this.urlHash = urlHash;
 	}
 	match() {
+		if (!this.urlHash) return true;
 		return window.location.hash === this.urlHash;
 	}
 };
