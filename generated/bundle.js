@@ -383,7 +383,8 @@ const options = {
 	showNotAssignedClasses: true,
 	showTableHeaders: true,
 	markOtherAcademies: true,
-	showDebug: false
+	showDebug: false,
+	stripCommasOnPaste: false
 };
 let globalSettings = { globalHide: false };
 function getGlobalSettings() {
@@ -5950,6 +5951,17 @@ function onPageLoaded() {
 	if (getGlobalSettings().globalHide) return;
 	pageState$1.transient.clear();
 	for (let observer$1 of observers) observer$1.onPageLoaded();
+	let searchField$1 = document.getElementById("snel_zoeken_veld_zoektermen");
+	if (searchField$1) searchField$1.addEventListener("paste", onPasteInGlobalSearchField);
+}
+function onPasteInGlobalSearchField(e) {
+	if (!options.stripCommasOnPaste) return;
+	let searchField$1 = document.getElementById("snel_zoeken_veld_zoektermen");
+	let text = e.clipboardData?.getData("text/plain") ?? "";
+	let newText = text.replace(",", "");
+	searchField$1.setRangeText(newText);
+	searchField$1.setSelectionRange(newText.length, newText.length);
+	e.preventDefault();
 }
 
 //#endregion

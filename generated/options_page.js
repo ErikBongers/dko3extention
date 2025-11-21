@@ -322,11 +322,13 @@ const options = {
 	showNotAssignedClasses: true,
 	showTableHeaders: true,
 	markOtherAcademies: true,
-	showDebug: false
+	showDebug: false,
+	stripCommasOnPaste: false
 };
 function defineHtmlOptions() {
 	defineHtmlOption("showNotAssignedClasses", "checked", "Toon arcering voor niet toegewezen klassikale lessen.", "block1");
 	defineHtmlOption("showTableHeaders", "checked", "Toon keuzemenus in tabelhoofding.", "block1");
+	defineHtmlOption("stripCommasOnPaste", "checked", "Strip commas when pasting in a search field.", "block1");
 	defineHtmlOption("markOtherAcademies", "checked", "Toon arcering voor 'andere' academies.", "block1");
 	defineHtmlOption("myAcademies", "value", void 0, void 0);
 	defineHtmlOption("showDebug", "checked", "Show debug info in console.", "block3");

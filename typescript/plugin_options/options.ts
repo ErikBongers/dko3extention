@@ -7,6 +7,7 @@ export type Options = {
     markOtherAcademies: boolean;
     myAcademies: string;
     showDebug: boolean;
+    stripCommasOnPaste: boolean;
 };
 
 export const options: Options = {
@@ -14,12 +15,14 @@ export const options: Options = {
     showNotAssignedClasses: true,
     showTableHeaders: true,
     markOtherAcademies: true,
-    showDebug: false
+    showDebug: false,
+    stripCommasOnPaste: false,
 };
 
 export function defineHtmlOptions() {
     defineHtmlOption("showNotAssignedClasses", 'checked', "Toon arcering voor niet toegewezen klassikale lessen.", "block1");
     defineHtmlOption("showTableHeaders", 'checked', "Toon keuzemenus in tabelhoofding.", "block1");
+    defineHtmlOption("stripCommasOnPaste", 'checked', "Strip commas when pasting in a search field.", "block1");
     defineHtmlOption("markOtherAcademies", 'checked', "Toon arcering voor 'andere' academies.", "block1");
     defineHtmlOption("myAcademies", 'value', undefined, undefined);
     defineHtmlOption("showDebug", 'checked', "Show debug info in console.", "block3");

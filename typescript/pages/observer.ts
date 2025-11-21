@@ -36,25 +36,3 @@ function defaultLinkToQueryItem(headerLabel: string, link: HTMLAnchorElement, lo
     let label = link.textContent.trim();
     return createQueryItem(headerLabel, label, link.href, undefined, longLabelPrefix + label);
 }
-
-class GGlobalSearchFieldObserver extends ExactHashObserver {
-    constructor() {
-        super("", onMutationAnyPage);
-    }
-    isPageReallyLoaded(): boolean {
-        return document.querySelector("#view_contents > div:nth-child(3) > div:nth-child(3) > div.card.mb-2.shadow-sm > div > a:nth-child(11)") != null;
-    }
-}
-
-function onPasteInGlobalSearchField() {
-    console.log("paste in global search field");
-}
-
-function onMutationAnyPage(): boolean {
-    let searchField = document.getElementById("snel_zoeken_veld_zoektermen") as HTMLInputElement;
-    if(searchField) {
-        searchField.addEventListener("paste", onPasteInGlobalSearchField);
-    }
-    return false;
-}
-

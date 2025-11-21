@@ -12,7 +12,7 @@ import aanwezighedenObserver from "./aanwezigheden/observer";
 import afwezighedenObserver from "./afwezigheden/observer";
 import {setupPowerQuery} from "./powerQuery/setupPowerQuery";
 import {academieMenuObserver, allLijstenObserver, assetsObserver, evaluatieObserver, extraInschrijvingenObserver, financialObserver} from "./pages/observer";
-import {fetchGlobalSettings, getGlobalSettings, setGlobalSetting} from "./plugin_options/options";
+import {fetchGlobalSettings, getGlobalSettings, options, setGlobalSetting} from "./plugin_options/options";
 import {pageState} from "./pageState";
 
 init();
@@ -107,5 +107,20 @@ function onPageLoaded() {
     for(let observer of observers) {
         observer.onPageLoaded();
     }
+    let searchField = document.getElementById("snel_zoeken_veld_zoektermen") as HTMLInputElement;
+    if(searchField) {
+        searchField.addEventListener("paste", onPasteInGlobalSearchField);
+    }
 }
 
+function onPasteInGlobalSearchField(e: ClipboardEvent) {
+    if(!options.stripCommasOnPaste)
+        return;
+
+    let searchField = document.getElementById("snel_zoeken_veld_zoektermen") as HTMLInputElement;
+    let text = e.clipboardData?.getData("text/plain") ?? "";
+    let newText = text.replace(",", "");
+    searchField.setRangeText(newText);
+    searchField.setSelectionRange(newText.length, newText.length);
+    e.preventDefault();
+}
