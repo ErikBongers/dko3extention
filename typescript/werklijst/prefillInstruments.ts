@@ -1,7 +1,7 @@
 import {CriteriumName, Domein, FIELD, Grouping, Operator} from "./criteria";
 import * as def from "../def";
 import {getGotoStateOrDefault, PageName, saveGotoState, WerklijstGotoState} from "../gotoState";
-import {createTeacherHoursFileName, getDefaultGradeYears, getDefaultHourSettings, saveHourSettings, TeacherHoursSetup} from "./hoursSettings";
+import {createTeacherHoursFileName, getDefaultHourSettings, saveHourSettings, TeacherHoursSetup} from "./hoursSettings";
 import {createWerklijstBuilder} from "../table/werklijstBuilder";
 import {cloud} from "../cloud";
 import {Schoolyear} from "../globals";
@@ -58,7 +58,7 @@ export async function setCriteriaForTeacherHoursAndClickFetchButton(schooljaar: 
     builder.addCriterium(CriteriumName.Domein, Operator.PLUS, [Domein.Muziek]);
     builder.addCriterium(CriteriumName.Vak, Operator.PLUS, vakNames); //todo: we already have the codes: Immediately add the codes?
     builder.addFields([FIELD.NAAM, FIELD.VOORNAAM, FIELD.VAK_NAAM, FIELD.GRAAD_LEERJAAR, FIELD.KLAS_LEERKRACHT]);
-    let preparedWerklijst = await builder.sendSettings();
+    await builder.sendSettings();
     let pageState = getGotoStateOrDefault(PageName.Werklijst) as WerklijstGotoState;
     pageState.werklijstTableName = def.UREN_TABLE_STATE_NAME;
     saveGotoState(pageState);
