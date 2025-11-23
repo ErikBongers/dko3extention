@@ -1,7 +1,7 @@
 import {CriteriumName, Domein, FIELD, Grouping, Operator} from "./criteria";
 import * as def from "../def";
 import {getGotoStateOrDefault, PageName, saveGotoState, WerklijstGotoState} from "../gotoState";
-import {createTeacherHoursFileName, getDefaultHourSettings, saveHourSettings, TeacherHoursSetup} from "./hoursSettings";
+import {createTeacherHoursFileName, getDefaultGradeYears, getDefaultHourSettings, saveHourSettings, TeacherHoursSetup} from "./hoursSettings";
 import {createWerklijstBuilder} from "../table/werklijstBuilder";
 import {cloud} from "../cloud";
 import {Schoolyear} from "../globals";
@@ -20,7 +20,7 @@ export async function fetchHoursSettingsOrSaveDefault(schoolyearString: string, 
         cloudSettings = await cloud.json.fetch(createTeacherHoursFileName(prevYearString)).catch(_ => {
         }) as TeacherHoursSetup;
         if (!cloudSettings) {
-            cloudSettings = getDefaultHourSettings(schoolyearString);
+            cloudSettings = await getDefaultHourSettings(schoolyearString);
         } else {
             cloudSettings.schoolyear = schoolyearString;
         }

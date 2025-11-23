@@ -23,7 +23,7 @@ h1 {
 }
 div.tabs {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr 1fr 1fr;
     button.tab {
         padding: 1ch;
         background-color: #eff4ff;
@@ -76,6 +76,13 @@ table {
         width: 100%;
         box-sizing: border-box;
      }
+}
+
+#gradeYearsContainer > table {
+    width: auto;
+    th {
+        padding-right: 1ch;
+    }
 }
 
 tr {

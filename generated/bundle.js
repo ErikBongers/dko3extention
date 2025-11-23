@@ -5090,12 +5090,14 @@ let defaultTranslationDefs = [
 		suffix: ""
 	}
 ];
-function getDefaultHourSettings(schoolyear) {
+async function getDefaultHourSettings(schoolyear) {
+	let grades = await getDefaultGradeYears(schoolyear);
 	return {
 		version: 1,
 		schoolyear,
 		subjects: [...defaultInstruments],
-		translations: [...defaultTranslationDefs]
+		translations: [...defaultTranslationDefs],
+		gradeYears: grades
 	};
 }
 function createTeacherHoursFileName(schoolyear) {
@@ -5104,6 +5106,82 @@ function createTeacherHoursFileName(schoolyear) {
 async function saveHourSettings(hoursSetup) {
 	let fileName = createTeacherHoursFileName(hoursSetup.schoolyear);
 	return cloud.json.upload(fileName, hoursSetup);
+}
+async function getDefaultGradeYears(_schoolYearString) {
+	return new Promise((resolve, _reject) => {
+		resolve([
+			{
+				checked: true,
+				gradeYear: "1.1",
+				studentCount: 4
+			},
+			{
+				checked: true,
+				gradeYear: "1.2",
+				studentCount: 4
+			},
+			{
+				checked: true,
+				gradeYear: "2.1",
+				studentCount: 3
+			},
+			{
+				checked: true,
+				gradeYear: "2.2",
+				studentCount: 3
+			},
+			{
+				checked: true,
+				gradeYear: "2.3",
+				studentCount: 3
+			},
+			{
+				checked: true,
+				gradeYear: "2.4",
+				studentCount: 3
+			},
+			{
+				checked: true,
+				gradeYear: "3.1",
+				studentCount: 3
+			},
+			{
+				checked: true,
+				gradeYear: "3.2",
+				studentCount: 3
+			},
+			{
+				checked: true,
+				gradeYear: "3.3",
+				studentCount: 2
+			},
+			{
+				checked: true,
+				gradeYear: "4.1",
+				studentCount: 2
+			},
+			{
+				checked: true,
+				gradeYear: "4.2",
+				studentCount: 2
+			},
+			{
+				checked: true,
+				gradeYear: "4.3",
+				studentCount: 2
+			},
+			{
+				checked: true,
+				gradeYear: "S.1",
+				studentCount: 2
+			},
+			{
+				checked: true,
+				gradeYear: "S.2",
+				studentCount: 2
+			}
+		]);
+	});
 }
 
 //#endregion
@@ -5117,7 +5195,7 @@ async function fetchHoursSettingsOrSaveDefault(schoolyearString, dko3_subjects =
 	if (!cloudSettings) {
 		let prevYearString = Schoolyear.toFullString(Schoolyear.toNumbers(schoolyearString).startYear - 1);
 		cloudSettings = await cloud.json.fetch(createTeacherHoursFileName(prevYearString)).catch((_) => {});
-		if (!cloudSettings) cloudSettings = getDefaultHourSettings(schoolyearString);
+		if (!cloudSettings) cloudSettings = await getDefaultHourSettings(schoolyearString);
 		else cloudSettings.schoolyear = schoolyearString;
 		await saveHourSettings(cloudSettings);
 	}

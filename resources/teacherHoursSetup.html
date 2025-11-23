@@ -12,6 +12,7 @@
         <div class="tabs">
             <button id="btnTabSubjects" class="naked hand tab" data-tab-id="tabSubjects">Geselecteerde vakken</button>
             <button id="btnTabTranslations" class="naked hand tab notSelected" data-tab-id="tabTranslations">Bewerkingen</button>
+            <button id="btnTabGradeYears" class="naked hand tab notSelected" data-tab-id="tabGradeYears">Leerlingen per les</button>
         </div>
         <div id="tabSubjects">
             <div class="info">
@@ -74,6 +75,29 @@
                     </tbody>
                 </table>
                 <button id="btnNewTranslationRow">Nieuwe rij</button>
+            </div>
+        </div>
+        <div id="tabGradeYears">
+            <div class="info">
+                Geef per graad+jaar aan hoeveel leerlingen per les als een volle les beschouwd worden.<br>
+            </div>
+            <div id="gradeYearsContainer">
+                <table>
+                    <colgroup>
+                        <col span="1" style="width: auto">
+                        <col span="1" style="width: auto">
+                        <col span="1" style="width: auto">
+                    </colgroup>
+                    <thead>
+                    <tr>
+                        <th></th>
+                        <th>Graad.jaar</th>
+                        <th>Aantal lln per les.</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
             </div>
         </div>
     </main>

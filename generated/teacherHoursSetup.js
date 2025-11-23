@@ -908,6 +908,16 @@ function fillTranslationsTable(cloudData) {
 	}));
 	document.querySelectorAll("#translationsContainer button.deleteRow").forEach((btn) => btn.addEventListener("click", deleteTableRow));
 }
+function fillGradeYearsTable(cloudData) {
+	let container = document.getElementById("gradeYearsContainer");
+	let tbody = container.querySelector("table>tbody");
+	tbody.innerHTML = "";
+	for (let gradeYear of cloudData.gradeYears) {
+		let checkedAttribute = "";
+		if (gradeYear.checked) checkedAttribute = ` checked="checked"`;
+		emmet.appendChild(tbody, `tr>(td>input[type="checkbox" ${checkedAttribute}])+(td>({${gradeYear.gradeYear}}))+td>input[type="text" value=${gradeYear.studentCount}]`);
+	}
+}
 function deleteTableRow(ev) {
 	let btn = ev.target;
 	btn.closest("tr").remove();
@@ -917,7 +927,10 @@ async function onData(request) {
 	console.log("onData: ", request);
 	let title = "Lerarenuren setup voor schooljaar " + request.data.schoolyear;
 	document.title = title;
-	document.getElementById(SETUP_HOURS_TITLE_ID).innerHTML = title;
+	document.getElementById(
+		//todo: validate input
+		SETUP_HOURS_TITLE_ID
+).innerHTML = title;
 	document.querySelector("button").addEventListener("click", async () => {
 		await sendRequest(Actions.GreetingsFromChild, TabType.Undefined, TabType.Main, void 0, "Hullo! Fly safe!");
 	});
@@ -925,6 +938,7 @@ async function onData(request) {
 	globalSetup = dko3Setup;
 	fillSubjectsTable(dko3Setup);
 	fillTranslationsTable(dko3Setup);
+	fillGradeYearsTable(dko3Setup);
 	document.querySelectorAll("tbody").forEach((tbody) => tbody.addEventListener("change", (_) => {
 		hasTableChanged = true;
 	}));
@@ -958,6 +972,16 @@ function scrapeSubjects() {
 		};
 	});
 }
+function scrapeGradeYears() {
+	let rows = document.querySelectorAll("#gradeYearsContainer>table>tbody>tr");
+	return [...rows].map((row) => {
+		return {
+			checked: row.cells[0].querySelector("input:checked") !== null,
+			gradeYear: row.cells[1].textContent,
+			studentCount: parseInt(row.cells[2].querySelector("input").value)
+		};
+	});
+}
 function scrapeTranslations() {
 	let rows = document.querySelectorAll("#translationsContainer>table>tbody>tr");
 	return [...rows].map((row) => {
@@ -975,7 +999,8 @@ function onCheckTableChanged(dko3Setup) {
 		version: 1,
 		schoolyear: dko3Setup.schoolyear,
 		subjects: scrapeSubjects(),
-		translations: scrapeTranslations()
+		translations: scrapeTranslations(),
+		gradeYears: scrapeGradeYears()
 	};
 	hasTableChanged = false;
 	saveHourSettings(setupData).then((_) => {
@@ -1004,6 +1029,9 @@ async function onDocumentLoaded(_) {
 				switchTab(ev.target);
 				break;
 			case "btnTabTranslations":
+				switchTab(ev.target);
+				break;
+			case "btnTabGradeYears":
 				switchTab(ev.target);
 				break;
 		}

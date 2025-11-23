@@ -2,7 +2,7 @@ import {Actions, createMessageHandler, DataRequestTypes, HourSettingsDataRequest
 import {emmet} from "../libs/Emmeter/html";
 import * as def from "./def";
 
-import {mapHourSettings, saveHourSettings, TeacherHoursSetup, TeacherHoursSetupMapped, TranslationDef} from "./werklijst/hoursSettings";
+import {GradeYearDef, mapHourSettings, saveHourSettings, TeacherHoursSetup, TeacherHoursSetupMapped, TranslationDef} from "./werklijst/hoursSettings";
 import * as InputWithSpaces from "./webComponents/inputWithSpaces";
 
 let handler  = createMessageHandler(TabType.HoursSettings);
@@ -100,6 +100,18 @@ function fillTranslationsTable(cloudData: TeacherHoursSetup) {
         .forEach(btn => btn.addEventListener("click", deleteTableRow));
 }
 
+function fillGradeYearsTable(cloudData: TeacherHoursSetup) {
+    let container = document.getElementById("gradeYearsContainer");
+    let tbody = container.querySelector("table>tbody") as HTMLTableSectionElement;
+    tbody.innerHTML = "";
+    for (let gradeYear of cloudData.gradeYears) {
+        let checkedAttribute = "";
+        if (gradeYear.checked)
+            checkedAttribute = ` checked="checked"`;
+        emmet.appendChild(tbody, `tr>(td>input[type="checkbox" ${checkedAttribute}])+(td>({${gradeYear.gradeYear}}))+td>input[type="text" value=${gradeYear.studentCount}]`)
+    }
+}
+
 function deleteTableRow(ev: Event) {
     let btn = ev.target as HTMLButtonElement;
     btn.closest("tr").remove();
@@ -120,6 +132,7 @@ async function onData(request: ServiceRequest) {
     globalSetup = dko3Setup;
     fillSubjectsTable(dko3Setup);
     fillTranslationsTable(dko3Setup);
+    fillGradeYearsTable(dko3Setup);
     //set change even AFTER filling the tables:
     document.querySelectorAll("tbody").forEach(tbody => tbody.addEventListener("change", (_) => {
         hasTableChanged = true;
@@ -162,6 +175,18 @@ function scrapeSubjects() {
         });
 }
 
+function scrapeGradeYears(): GradeYearDef[] {
+    let rows = document.querySelectorAll("#gradeYearsContainer>table>tbody>tr") as NodeListOf<HTMLTableRowElement>;
+    return [...rows]
+        .map(row => {
+            return {
+                checked: row.cells[0].querySelector("input:checked") !== null,
+                gradeYear: row.cells[1].textContent,
+                studentCount: parseInt(row.cells[2].querySelector("input").value), //todo: validate input
+            }
+        });
+}
+
 function scrapeTranslations(): TranslationDef[] {
     let rows = document.querySelectorAll("#translationsContainer>table>tbody>tr") as NodeListOf<HTMLTableRowElement>;
     return [...rows]
@@ -182,7 +207,8 @@ function onCheckTableChanged(dko3Setup: TeacherHoursSetupMapped) {
         version: 1,
         schoolyear: dko3Setup.schoolyear,
         subjects: scrapeSubjects(),
-        translations: scrapeTranslations()
+        translations: scrapeTranslations(),
+        gradeYears: scrapeGradeYears()
     };
     hasTableChanged = false;
     saveHourSettings(setupData)
@@ -217,6 +243,9 @@ async function onDocumentLoaded(this: Document, _: Event) {
                         switchTab(ev.target as HTMLButtonElement);
                         break;
                     case "btnTabTranslations":
+                        switchTab(ev.target as HTMLButtonElement);
+                        break;
+                    case "btnTabGradeYears":
                         switchTab(ev.target as HTMLButtonElement);
                         break;
                 }

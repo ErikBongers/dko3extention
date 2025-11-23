@@ -14,11 +14,18 @@ export type TranslationDef = {
     suffix: string,
 }
 
+export type GradeYearDef = {
+    checked: boolean,
+    gradeYear: string,
+    studentCount: number,
+}
+
 export type TeacherHoursSetup = {
     version: 1,
     schoolyear: string,
     subjects: SubjectDef[];
     translations: TranslationDef[];
+    gradeYears: GradeYearDef[];
 }
 
 export type TeacherHoursSetupMapped = TeacherHoursSetup & {
@@ -109,12 +116,14 @@ let defaultTranslationDefs: TranslationDef[] = [
     {find: "K K ", replace: "K ", prefix: "", suffix: ""},
 ];
 
-export function getDefaultHourSettings(schoolyear: string): TeacherHoursSetup {
+export async function getDefaultHourSettings(schoolyear: string): Promise<TeacherHoursSetup> {
+    let grades = await getDefaultGradeYears(schoolyear);
     return {
         version: 1,
         schoolyear,
         subjects: [...defaultInstruments],
-        translations: [...defaultTranslationDefs]
+        translations: [...defaultTranslationDefs],
+        gradeYears: grades
     };
 }
 
@@ -126,3 +135,27 @@ export async function saveHourSettings(hoursSetup: TeacherHoursSetup) {
     let fileName = createTeacherHoursFileName(hoursSetup.schoolyear);
     return cloud.json.upload(fileName, hoursSetup);
 }
+
+export async function getDefaultGradeYears(_schoolYearString: string): Promise<GradeYearDef[]> {
+    //todo: get these from werklijst criteria. -> per schoolyear!
+    return new Promise((resolve, _reject) => {
+       resolve([
+           { checked: true, gradeYear: "1.1", studentCount: 4},
+           { checked: true, gradeYear: "1.2", studentCount: 4},
+           { checked: true, gradeYear: "2.1", studentCount: 3},
+           { checked: true, gradeYear: "2.2", studentCount: 3},
+           { checked: true, gradeYear: "2.3", studentCount: 3},
+           { checked: true, gradeYear: "2.4", studentCount: 3},
+           { checked: true, gradeYear: "3.1", studentCount: 3},
+           { checked: true, gradeYear: "3.2", studentCount: 3},
+           { checked: true, gradeYear: "3.3", studentCount: 2},
+           { checked: true, gradeYear: "4.1", studentCount: 2},
+           { checked: true, gradeYear: "4.2", studentCount: 2},
+           { checked: true, gradeYear: "4.3", studentCount: 2},
+           { checked: true, gradeYear: "S.1", studentCount: 2},
+           { checked: true, gradeYear: "S.2", studentCount: 2},
+       ]);
+    });
+}
+
+
