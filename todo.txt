@@ -1,3 +1,10 @@
+* Dark mode: Q-popup still white background at Bahati's.
+* copy emails: unique! - test with instrument init.
+* filter op klassen met wachtlijst maar toch terug plaats.
+* trims: show lln op wachtlijst?
+* keuzelijstjes: enter = default button, zodat je volledig met keyboard kan werken.
+* trimmodules: lesmoment aan naam toevoegen voor lk - zij zien dat niet.
+
 * Trims: list of "jaartraject ***" is hardcoded.
   > retrieve if with a regex from WerklijstBuilder.fetchAvailableSubjects()? Or will this slow down the page?
 
