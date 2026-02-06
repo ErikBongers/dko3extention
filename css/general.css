@@ -136,8 +136,7 @@ body.otherSchool {
 }
 
 #powerQuery {
-
-    background-color: var(--power-query-background); /*;*/
+    background-color: var(--power-query-background) !important;
     margin-top: 200px;
     border: none;
     border-radius: 3px;
@@ -154,7 +153,7 @@ body.otherSchool {
     }
     div.list {
         padding: 0;
-        background-color: var(--power-query-list-color);
+        background-color: var(--power-query-list-color) !important;
         @media (prefers-color-scheme: dark) {
             background-color: darkgray;
         }
