@@ -5227,7 +5227,7 @@ async function setCriteriaForTeacherHoursAndClickFetchButton(schooljaar, hourSet
 		FIELD.GRAAD_LEERJAAR,
 		FIELD.KLAS_LEERKRACHT
 	]);
-	let preparedWerklijst = await builder.sendSettings();
+	await builder.sendSettings();
 	let pageState$2 = getGotoStateOrDefault(PageName.Werklijst);
 	pageState$2.werklijstTableName = UREN_TABLE_STATE_NAME;
 	saveGotoState(pageState$2);
@@ -5461,6 +5461,7 @@ function onClickCopyEmails() {
 	tableFetcher.fetch().then((fetchedTable) => {
 		let allEmails = fetchedTable.getRowsAsArray().map((tr) => namedCellListener.getColumnText(tr, "e-mailadressen"));
 		let flattened = allEmails.map((emails) => emails.split(/[,;]/)).flat().filter((email) => !email.includes("@academiestudent.be")).filter((email) => email !== "");
+		flattened = [...new Set(flattened)];
 		navigator.clipboard.writeText(flattened.join(";\n")).then(() => infoBar.setTempMessage("Alle emails zijn naar het clipboard gekopieerd. Je kan ze plakken in Outlook."));
 	}).catch((reason) => {
 		console.log("Loading failed (gracefully.");

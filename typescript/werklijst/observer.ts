@@ -247,6 +247,7 @@ function onClickCopyEmails() {
                 .flat()
                 .filter((email: string) => !email.includes("@academiestudent.be"))
                 .filter((email: string) => email !== "");
+            flattened = [...new Set(flattened)];
             navigator.clipboard.writeText(flattened.join(";\n")).then(() =>
                 infoBar.setTempMessage("Alle emails zijn naar het clipboard gekopieerd. Je kan ze plakken in Outlook.")
             );
