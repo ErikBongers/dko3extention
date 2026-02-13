@@ -1,4 +1,10 @@
-* Dark mode: Q-popup still white background at Bahati's.
+* Extra tabs for leerlingen
+  > Add nav item and copy the href from the drop down.
+    > selector to insert AFTER: #tab_leerling > div.card-header > ul > li:nth-child(4)
+    > selector for drop down: #tab_leerling > div.card-header > ul > li.nav-item.dropdown > div
+      > loop them to get the href
+    > move the href (with events) to the tabs
+
 * filter op klassen met wachtlijst maar toch terug plaats.
 * trims: show lln op wachtlijst?
 * keuzelijstjes: enter = default button, zodat je volledig met keyboard kan werken.
