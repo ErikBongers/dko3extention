@@ -104,7 +104,8 @@ function expandTabs(tabsLeerling: HTMLDivElement): void {
             let li = document.createElement("li");
             li.classList.add("nav-item");
             li.appendChild(anchor);
-            anchor.className = "nav-link";
+            anchor.classList.remove("dropdown-item");
+            anchor.classList.add("nav-link");
             tabBefore.insertAdjacentElement("afterend", li);
         }
     }
