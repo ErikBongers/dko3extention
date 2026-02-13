@@ -1024,6 +1024,7 @@ var LeerlingObserver = class extends HashObserver {
 };
 var observer_default$9 = new LeerlingObserver();
 function onMutation$7(mutation) {
+	checkAndExpandTabs();
 	let tabInschrijving = document.getElementById("leerling_inschrijvingen_weergave");
 	if (mutation.target === tabInschrijving) {
 		onInschrijvingChanged(tabInschrijving);
@@ -1039,6 +1040,30 @@ function onMutation$7(mutation) {
 		return true;
 	}
 	return false;
+}
+function checkAndExpandTabs() {
+	let tabsLeerling = document.querySelector("#tab_leerling");
+	if (!tabsLeerling) return;
+	if (tabsLeerling.dataset.expanded === "true") return;
+	expandTabs(tabsLeerling);
+	tabsLeerling.dataset.expanded = "true";
+	return;
+}
+function expandTabs(tabsLeerling) {
+	let tabBefore = tabsLeerling.querySelector("div.card-header > ul > li:nth-child(4)");
+	if (!tabBefore) return;
+	let anchors = tabsLeerling.querySelectorAll("a.dropdown-item");
+	for (let anchor of anchors) if ([
+		"#evaluatie2",
+		"#aanwezigheden",
+		"#uitleningen"
+	].includes(anchor.getAttribute("href") ?? "")) {
+		let li = document.createElement("li");
+		li.classList.add("nav-item");
+		li.appendChild(anchor);
+		anchor.className = "nav-link";
+		tabBefore.insertAdjacentElement("afterend", li);
+	}
 }
 function onAttestenChanged(_tabInschrijving) {
 	decorateSchooljaar();

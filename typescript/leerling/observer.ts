@@ -14,6 +14,7 @@ class LeerlingObserver extends HashObserver {
 export default new LeerlingObserver();
 
 function onMutation(mutation: MutationRecord) {
+    checkAndExpandTabs();
     let tabInschrijving = document.getElementById("leerling_inschrijvingen_weergave");
     if (mutation.target === tabInschrijving) {
         onInschrijvingChanged(tabInschrijving);
@@ -29,6 +30,35 @@ function onMutation(mutation: MutationRecord) {
         return true;
     }
     return false;
+}
+
+function checkAndExpandTabs(): void {
+    let tabsLeerling = document.querySelector("#tab_leerling") as HTMLDivElement;
+    if (!tabsLeerling)
+        return;
+    if (tabsLeerling.dataset.expanded === "true")
+        return;
+
+    expandTabs(tabsLeerling);
+    tabsLeerling.dataset.expanded = "true";
+    return;
+}
+
+function expandTabs(tabsLeerling: HTMLDivElement): void {
+    let tabBefore = tabsLeerling.querySelector("div.card-header > ul > li:nth-child(4)");
+    if (!tabBefore)
+        return;
+
+    let anchors = tabsLeerling.querySelectorAll("a.dropdown-item") as NodeListOf<HTMLAnchorElement>;
+    for (let anchor of anchors) {
+        if(["#evaluatie2", "#aanwezigheden", "#uitleningen"].includes(anchor.getAttribute("href") ?? "")) {
+            let li = document.createElement("li");
+            li.classList.add("nav-item");
+            li.appendChild(anchor);
+            anchor.className = "nav-link";
+            tabBefore.insertAdjacentElement("afterend", li);
+        }
+    }
 }
 
 function onAttestenChanged(_tabInschrijving: HTMLElement) {
