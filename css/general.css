@@ -342,3 +342,11 @@ span.filterInfo {
     display: flex;
     gap: .5em;
 }
+
+.lastName {
+    font-weight: 500;
+}
+.officialName {
+    font-weight: 500;
+    font-style: italic;
+}

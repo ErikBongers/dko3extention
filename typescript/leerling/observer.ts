@@ -1,4 +1,4 @@
-import {db3, Schoolyear} from "../globals";
+import {db3, getOptions, Schoolyear} from "../globals";
 import {HashObserver} from "../pageObserver";
 import {options} from "../plugin_options/options";
 
@@ -15,6 +15,7 @@ export default new LeerlingObserver();
 
 function onMutation(mutation: MutationRecord) {
     checkAndExpandTabs();
+    checkAndDecorateName();
     let tabInschrijving = document.getElementById("leerling_inschrijvingen_weergave");
     if (mutation.target === tabInschrijving) {
         onInschrijvingChanged(tabInschrijving);
@@ -30,6 +31,54 @@ function onMutation(mutation: MutationRecord) {
         return true;
     }
     return false;
+}
+
+function checkAndDecorateName(): void {
+    let header = document.getElementById("vh_header_leerlingen_leerling_left_title") as HTMLHeadingElement;
+    if (!header)
+        return;
+    if (header.dataset.nameDecorated === "true")
+        return;
+
+    decorateName(header);
+    header.dataset.nameDecorated = "true";
+    return;
+}
+
+function decorateName(header: HTMLHeadingElement): void {
+    if(!options.reorderStudentName)
+        return;
+    let name = header.textContent;
+    let split = name.split(",");
+    let firstName = split.pop() ?? "";
+    let lastName = split.pop() ?? "";
+    let officialFirstName = "";
+    if(firstName.includes("(")) {
+        let matches = firstName.match(/(\S*) *\((.*)\)/);
+        if(matches?.length === 3) {
+            firstName = matches[2];
+            officialFirstName = matches[1];
+        }
+    }
+
+    header.textContent = "";
+    let spanFirstName = document.createElement("span");
+    spanFirstName.classList.add("firstName");
+    spanFirstName.innerText = firstName;
+    header.appendChild(spanFirstName);
+    header.appendChild(document.createTextNode(" "));
+    let spanLastName = document.createElement("span");
+    spanLastName.classList.add("lastName");
+    spanLastName.innerText = lastName;
+    header.appendChild(spanLastName);
+    if(officialFirstName) {
+        header.appendChild(document.createTextNode(" ("));
+        let spanCallName = document.createElement("span");
+        spanCallName.classList.add("officialName");
+        spanCallName.innerText = officialFirstName;
+        header.appendChild(spanCallName);
+        header.appendChild(document.createTextNode(")"));
+    }
 }
 
 function checkAndExpandTabs(): void {
