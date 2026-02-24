@@ -1,5 +1,3 @@
-* Copy student name to clipboard as plain text, first name + last name.
-
 * filter op klassen met wachtlijst maar toch terug plaats.
 * trims: show lln op wachtlijst?
 * keuzelijstjes: enter = default button, zodat je volledig met keyboard kan werken.

@@ -83,6 +83,86 @@ function copyFullTable(table: HTMLTableElement) {
     createAndCopyTable(headers, cells);
 }
 
+interface StudentRowDef {
+    studentIndexes: number[];
+    inschrijvingenIndexes: number[];
+    lesIndexes: number[];
+}
+interface StudentRow {
+    seq: number;
+    cells: string[];
+    inschrijvingen: string[][];
+}
+async function copyForMailMerge(table: HTMLTableElement) {
+    let headerCells = table.tHead.children[0].children as HTMLCollectionOf<HTMLTableCellElement>;
+    let headers = [...headerCells].filter(cell => cell.style.display !== "none").map(cell => cell.innerText);
+    let rows = table.tBodies[0].children as HTMLCollectionOf<HTMLTableRowElement>;
+    let cells: string[][] = [...rows].map(row => [...row.cells].filter(cell => cell.style.display !== "none").map(cell => cell.innerText));
+    let emailIndex = headers.findIndex(header => header.toLowerCase().includes("e-mailadressen"));
+    if(emailIndex === -1) {
+        alert("Geen e-mailadressen gevonden'. Voed dit veld toe aan de lijst.");
+        return;
+    }
+
+    // // -- add seq to rows.
+    // let seqIndex = headers.length; //we'll be adding a seq column to each row later.
+    // cells.forEach((row: (string | number)[], seq) => {
+    //     row.push(seq);
+    // });
+    //
+    // -- aggregate at student level.
+    let studentRowDef: StudentRowDef = { studentIndexes: [], inschrijvingenIndexes: [], lesIndexes: []};
+    headers.forEach((header, index) => {
+        if(WerklijstFieldsStudent.includes(header)) {
+            studentRowDef.studentIndexes.push(index);
+        } else if(WerklijstFieldsInschrijving.includes(header)) {
+            studentRowDef.inschrijvingenIndexes.push(index);
+        } else if(WerklijstFieldsLes.includes(header)) {
+            studentRowDef.lesIndexes.push(index);
+        }
+    });
+
+    let groupedPerStudent: number[][] = []; //rowIndexes per student
+    cells.forEach((row, rowIndex) => {
+        if(groupedPerStudent.length == 0) {
+            groupedPerStudent.push([rowIndex]);
+            return;
+        }
+        // -- check if row is a new student.
+        let currentStudentRow = cells[groupedPerStudent[groupedPerStudent.length - 1][0]];
+        let isNewStudent = studentRowDef.studentIndexes.some(index => row[index] != currentStudentRow[index]);
+        if(isNewStudent) {
+            groupedPerStudent.push([rowIndex]);
+            return;
+        }
+        groupedPerStudent[groupedPerStudent.length - 1].push(rowIndex);
+    });
+    console.log(groupedPerStudent);
+
+    //
+    // // -- split rows per email
+    // let extraRows: (string | number)[][] = [];
+    // cells.forEach((row: (string | number)[], seq) => {
+    //     row.push(seq);
+    //     let emails = (row[emailIndex] as string).split(/[,;]/);
+    //     emails = emails.filter((email: string) => !email.includes("academiestudent.be"));
+    //     if(emails.length == 0)
+    //         return;
+    //     row[emailIndex] = emails.pop();
+    //     emails.forEach((email: string) => {
+    //         let copiedRow = [...row];
+    //         copiedRow[emailIndex] = email;
+    //         extraRows.push(copiedRow);
+    //     });
+    // });
+    // cells = cells.concat(extraRows);
+    //
+    // // -- sort rows per seq and remove seq.
+    // cells.sort((a, b) => (a[seqIndex] as number) - (b[seqIndex] as number));
+    // cells.forEach(row => row.pop());
+    // createAndCopyTable(headers, cells as string[][]);
+}
+
 function copyOneColumn(table: HTMLTableElement, index: number) {
     createAndCopyTable(
         [(table.tHead.children[0].children[index] as HTMLTableCellElement).innerText],
@@ -154,6 +234,7 @@ export function decorateTableHeader(table: HTMLTableElement) {
             addMenuSeparator(menu, "Kopieer nr klipbord", 0);
             addMenuItem(menu, "Kolom", 1, (ev) => { forTableDo(ev, (_fetchedTable, index) => copyOneColumn(table, index))});
             addMenuItem(menu, "Hele tabel", 1, (ev) => { forTableDo(ev, (_fetchedTable, _index) => copyFullTable(table))});
+            addMenuItem(menu, "Voor mailmerge (1 email/rij)", 1, (ev) => { forTableDo(ev, (_fetchedTable, _index) => copyForMailMerge(table))});
             addMenuSeparator(menu, "<= Samenvoegen", 0);
             addMenuItem(menu, "met spatie", 1, (ev) => { forTableColumnDo(ev, createTwoColumnsCmd(Direction.LEFT, mergeColumnWithSpace))});
             addMenuItem(menu, "met comma", 1, (ev) => { forTableColumnDo(ev, createTwoColumnsCmd(Direction.LEFT, mergeColumnWithComma))});
@@ -357,3 +438,91 @@ function swapColumns(row: HTMLTableRowElement, index1: number,  index2: number) 
     }
     row.children[index1].parentElement.insertBefore(row.children[index2], row.children[index1]);
 }
+
+
+let WerklijstFieldsInschrijving = [
+    "domein",
+    "vakken (binnen de criteria)",
+    "alle vakken",
+    "instrumenten (binnen de criteria)",
+    "alle instrumenten",
+    "vak: naam",
+    "vak: officiële naam",
+    "vak: code",
+    "graad",
+    "leerjaar",
+    "graad + leerjaar",
+    "graad + leerjaar + sectie",
+    "optie",
+    "sectie",
+    "administratieve groep: naam",
+    "administratieve groep: officiële naam",
+    "administratieve groep: code",
+    "volledig vrije leerling",
+    "volledig eigen leerling",
+    "volledig vrije en/of eigen leerling",
+    "inschrijving: datum",
+    "uitschrijving: datum",
+    "uitschrijving: reden",
+    "financierbaarheid",
+    "inschrijving: einde graad",
+    "leertraject",
+    "studierichting",
+    "geslaagd (vak)",
+    "resultaat (vak)",
+    "geslaagd (globaal)",
+    "resultaat (globaal)",
+    "alternatieve leercontext",
+    "akkoord en meer: ingevuld?",
+    "akkoord en meer:  toestemming beeldmateriaal?",
+    "akkoord en meer: ingevuld op",
+    "akkoord en meer: ingevuld door",
+    "status Discimus",
+    "cursussen",
+];
+
+let WerklijstFieldsLes = [
+    "les: id",
+    "vestigingsplaats",
+    "benaming les",
+    "lesmomenten",
+    "lokaal",
+    "klasleerkracht",
+    "alle leerkrachten (zonder interims)",
+    "alle leerkrachten (met interims)",
+];
+
+let WerklijstFieldsStudent = [
+    "stamnummer",
+    "naam",
+    "voornaam",
+    "roepnaam",
+    "persoon: id",
+    "geboortedatum",
+    "geboorteplaats",
+    "geslacht",
+    "gender",
+    "rijksregisternummer",
+    "nationaliteit",
+    "opmerking personalia",
+    "leeftijd op 31 december",
+    "leeftijd op vandaag",
+    "token",
+    "is zorgleerling?",
+    "huisnummer",
+    "busnummer",
+    "postcode",
+    "gemeente",
+    "land",
+    "leefeenheid: alle leden",
+    "leefeenheid: alle actieve leden in [schooljaar]",
+    "leefeenheid: te betalen",
+    "leefeenheid: betaald",
+    "leefeenheid: saldo",
+    "e-mailadressen (gescheiden door puntkomma)",
+    "e-mailadressen marketing (gescheiden door komma)",
+    "e-mailadressen marketing (gescheiden door puntkomma)",
+    "e-mailadres van de school",
+    "telefoonnummers",
+    "mobiele nummers voor verwittiging",
+];
