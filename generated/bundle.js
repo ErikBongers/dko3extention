@@ -2790,35 +2790,41 @@ async function copyForMailMerge(table) {
 	let headerCells = table.tHead.children[0].children;
 	let headers = [...headerCells].filter((cell) => cell.style.display !== "none").map((cell) => cell.innerText);
 	let rows = table.tBodies[0].children;
-	let cells = [...rows].map((row) => [...row.cells].filter((cell) => cell.style.display !== "none").map((cell) => cell.innerText));
+	let data = [...rows].map((row) => [...row.cells].filter((cell) => cell.style.display !== "none").map((cell) => cell.innerText));
 	let emailIndex = headers.findIndex((header) => header.toLowerCase().includes("e-mailadressen"));
 	if (emailIndex === -1) {
 		alert("Geen e-mailadressen gevonden'. Voed dit veld toe aan de lijst.");
 		return;
 	}
-	let studentRowDef = {
+	let dataDef = {
 		studentIndexes: [],
 		inschrijvingenIndexes: [],
 		lesIndexes: []
 	};
 	headers.forEach((header, index) => {
-		if (WerklijstFieldsStudent.includes(header)) studentRowDef.studentIndexes.push(index);
-		else if (WerklijstFieldsInschrijving.includes(header)) studentRowDef.inschrijvingenIndexes.push(index);
-		else if (WerklijstFieldsLes.includes(header)) studentRowDef.lesIndexes.push(index);
+		if (WerklijstFieldsStudent.includes(header)) dataDef.studentIndexes.push(index);
+		else if (WerklijstFieldsInschrijving.includes(header)) dataDef.inschrijvingenIndexes.push(index);
+		else if (WerklijstFieldsLes.includes(header)) dataDef.lesIndexes.push(index);
 	});
 	let groupedPerStudent = [];
-	cells.forEach((row, rowIndex) => {
+	data.forEach((row, rowIndex) => {
 		if (groupedPerStudent.length == 0) {
-			groupedPerStudent.push([rowIndex]);
+			groupedPerStudent.push({
+				allInschrijvingenRows: [rowIndex],
+				inschrijvingen: []
+			});
 			return;
 		}
-		let currentStudentRow = cells[groupedPerStudent[groupedPerStudent.length - 1][0]];
-		let isNewStudent = studentRowDef.studentIndexes.some((index) => row[index] != currentStudentRow[index]);
+		let baseStudentRow = data[groupedPerStudent[groupedPerStudent.length - 1].allInschrijvingenRows[0]];
+		let isNewStudent = dataDef.studentIndexes.some((index) => row[index] != baseStudentRow[index]);
 		if (isNewStudent) {
-			groupedPerStudent.push([rowIndex]);
+			groupedPerStudent.push({
+				allInschrijvingenRows: [rowIndex],
+				inschrijvingen: []
+			});
 			return;
 		}
-		groupedPerStudent[groupedPerStudent.length - 1].push(rowIndex);
+		groupedPerStudent[groupedPerStudent.length - 1].allInschrijvingenRows.push(rowIndex);
 	});
 	console.log(groupedPerStudent);
 }
@@ -2860,7 +2866,6 @@ function decorateTableHeader(table) {
 			reSortTableByColumn(ev, table);
 		};
 		if (table.classList.contains(
-			//rowIndexes per student
 			//todo: add this to openHtmlTab.
 			//todo: do this cast in teacherHoursSetup.ts as well. Perhaps make onMessage generic.
 			//just to be sure.

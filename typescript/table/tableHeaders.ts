@@ -83,21 +83,21 @@ function copyFullTable(table: HTMLTableElement) {
     createAndCopyTable(headers, cells);
 }
 
-interface StudentRowDef {
+interface DataIndexes {
     studentIndexes: number[];
     inschrijvingenIndexes: number[];
     lesIndexes: number[];
 }
 interface StudentRow {
-    seq: number;
-    cells: string[];
-    inschrijvingen: string[][];
+    allInschrijvingenRows: number[],
+    inschrijvingen: number[][]
 }
+
 async function copyForMailMerge(table: HTMLTableElement) {
     let headerCells = table.tHead.children[0].children as HTMLCollectionOf<HTMLTableCellElement>;
     let headers = [...headerCells].filter(cell => cell.style.display !== "none").map(cell => cell.innerText);
     let rows = table.tBodies[0].children as HTMLCollectionOf<HTMLTableRowElement>;
-    let cells: string[][] = [...rows].map(row => [...row.cells].filter(cell => cell.style.display !== "none").map(cell => cell.innerText));
+    let data: string[][] = [...rows].map(row => [...row.cells].filter(cell => cell.style.display !== "none").map(cell => cell.innerText));
     let emailIndex = headers.findIndex(header => header.toLowerCase().includes("e-mailadressen"));
     if(emailIndex === -1) {
         alert("Geen e-mailadressen gevonden'. Voed dit veld toe aan de lijst.");
@@ -111,31 +111,37 @@ async function copyForMailMerge(table: HTMLTableElement) {
     // });
     //
     // -- aggregate at student level.
-    let studentRowDef: StudentRowDef = { studentIndexes: [], inschrijvingenIndexes: [], lesIndexes: []};
+    let dataDef: DataIndexes = { studentIndexes: [], inschrijvingenIndexes: [], lesIndexes: []};
     headers.forEach((header, index) => {
         if(WerklijstFieldsStudent.includes(header)) {
-            studentRowDef.studentIndexes.push(index);
+            dataDef.studentIndexes.push(index);
         } else if(WerklijstFieldsInschrijving.includes(header)) {
-            studentRowDef.inschrijvingenIndexes.push(index);
+            dataDef.inschrijvingenIndexes.push(index);
         } else if(WerklijstFieldsLes.includes(header)) {
-            studentRowDef.lesIndexes.push(index);
+            dataDef.lesIndexes.push(index);
         }
     });
 
-    let groupedPerStudent: number[][] = []; //rowIndexes per student
-    cells.forEach((row, rowIndex) => {
+    let groupedPerStudent: StudentRow[] = [];
+    data.forEach((row, rowIndex) => {
         if(groupedPerStudent.length == 0) {
-            groupedPerStudent.push([rowIndex]);
+            groupedPerStudent.push({
+                allInschrijvingenRows: [rowIndex],
+                inschrijvingen: []
+            });
             return;
         }
         // -- check if row is a new student.
-        let currentStudentRow = cells[groupedPerStudent[groupedPerStudent.length - 1][0]];
-        let isNewStudent = studentRowDef.studentIndexes.some(index => row[index] != currentStudentRow[index]);
+        let baseStudentRow = data[groupedPerStudent[groupedPerStudent.length - 1].allInschrijvingenRows[0]];
+        let isNewStudent = dataDef.studentIndexes.some(index => row[index] != baseStudentRow[index]);
         if(isNewStudent) {
-            groupedPerStudent.push([rowIndex]);
+            groupedPerStudent.push({
+                allInschrijvingenRows: [rowIndex],
+                inschrijvingen: []
+            });
             return;
         }
-        groupedPerStudent[groupedPerStudent.length - 1].push(rowIndex);
+        groupedPerStudent[groupedPerStudent.length - 1].allInschrijvingenRows.push(rowIndex);
     });
     console.log(groupedPerStudent);
 
