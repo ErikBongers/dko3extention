@@ -144,6 +144,23 @@ async function copyForMailMerge(table: HTMLTableElement) {
         groupedPerStudent[groupedPerStudent.length - 1].allInschrijvingenRows.push(rowIndex);
     });
     console.log(groupedPerStudent);
+    groupedPerStudent.forEach(student => {
+        student.allInschrijvingenRows.forEach(inschrijvingRow => {
+            if(student.inschrijvingen.length == 0) {
+                student.inschrijvingen.push([inschrijvingRow]);
+                return;
+            }
+            // -- check if row is a new student.
+            let baseStudentRow = data[student.inschrijvingen[student.inschrijvingen.length - 1][0]];
+            let currentRow = data[inschrijvingRow];
+            let isNewInschrijving = dataDef.inschrijvingenIndexes.some(index => currentRow[index] != baseStudentRow[index]);
+            if(isNewInschrijving) {
+                student.inschrijvingen.push([inschrijvingRow]);
+                return;
+            }
+            student.inschrijvingen[student.inschrijvingen.length - 1].push(inschrijvingRow);
+        });
+    })
 
     //
     // // -- split rows per email
@@ -452,9 +469,6 @@ let WerklijstFieldsInschrijving = [
     "alle vakken",
     "instrumenten (binnen de criteria)",
     "alle instrumenten",
-    "vak: naam",
-    "vak: officiële naam",
-    "vak: code",
     "graad",
     "leerjaar",
     "graad + leerjaar",
@@ -488,6 +502,10 @@ let WerklijstFieldsInschrijving = [
 ];
 
 let WerklijstFieldsLes = [
+    "vak: naam",
+    "vak: officiële naam",
+    "vak: code",
+    //todo: split Les from Vak level
     "les: id",
     "vestigingsplaats",
     "benaming les",

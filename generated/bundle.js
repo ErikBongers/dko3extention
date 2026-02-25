@@ -2827,6 +2827,22 @@ async function copyForMailMerge(table) {
 		groupedPerStudent[groupedPerStudent.length - 1].allInschrijvingenRows.push(rowIndex);
 	});
 	console.log(groupedPerStudent);
+	groupedPerStudent.forEach((student) => {
+		student.allInschrijvingenRows.forEach((inschrijvingRow) => {
+			if (student.inschrijvingen.length == 0) {
+				student.inschrijvingen.push([inschrijvingRow]);
+				return;
+			}
+			let baseStudentRow = data[student.inschrijvingen[student.inschrijvingen.length - 1][0]];
+			let currentRow = data[inschrijvingRow];
+			let isNewInschrijving = dataDef.inschrijvingenIndexes.some((index) => currentRow[index] != baseStudentRow[index]);
+			if (isNewInschrijving) {
+				student.inschrijvingen.push([inschrijvingRow]);
+				return;
+			}
+			student.inschrijvingen[student.inschrijvingen.length - 1].push(inschrijvingRow);
+		});
+	});
 }
 function copyOneColumn(table, index) {
 	createAndCopyTable([table.tHead.children[0].children[index].innerText], [...table.tBodies[0].rows].map((row) => [row.cells[index].innerText]));
@@ -3060,9 +3076,6 @@ let WerklijstFieldsInschrijving = [
 	"alle vakken",
 	"instrumenten (binnen de criteria)",
 	"alle instrumenten",
-	"vak: naam",
-	"vak: officiële naam",
-	"vak: code",
 	"graad",
 	"leerjaar",
 	"graad + leerjaar",
@@ -3095,6 +3108,9 @@ let WerklijstFieldsInschrijving = [
 	"cursussen"
 ];
 let WerklijstFieldsLes = [
+	"vak: naam",
+	"vak: officiële naam",
+	"vak: code",
 	"les: id",
 	"vestigingsplaats",
 	"benaming les",
