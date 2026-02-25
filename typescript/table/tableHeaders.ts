@@ -90,7 +90,7 @@ interface DataIndexes {
 }
 interface StudentRow {
     allInschrijvingenRows: number[],
-    inschrijvingen: number[][]
+    inschrijvingen: Map<string, number[]>
 }
 
 async function copyForMailMerge(table: HTMLTableElement) {
@@ -127,7 +127,7 @@ async function copyForMailMerge(table: HTMLTableElement) {
         if(groupedPerStudent.length == 0) {
             groupedPerStudent.push({
                 allInschrijvingenRows: [rowIndex],
-                inschrijvingen: []
+                inschrijvingen: new Map()
             });
             return;
         }
@@ -137,30 +137,23 @@ async function copyForMailMerge(table: HTMLTableElement) {
         if(isNewStudent) {
             groupedPerStudent.push({
                 allInschrijvingenRows: [rowIndex],
-                inschrijvingen: []
+                inschrijvingen: new Map()
             });
             return;
         }
         groupedPerStudent[groupedPerStudent.length - 1].allInschrijvingenRows.push(rowIndex);
     });
-    console.log(groupedPerStudent);
     groupedPerStudent.forEach(student => {
         student.allInschrijvingenRows.forEach(inschrijvingRow => {
-            if(student.inschrijvingen.length == 0) {
-                student.inschrijvingen.push([inschrijvingRow]);
-                return;
-            }
-            // -- check if row is a new student.
-            let baseStudentRow = data[student.inschrijvingen[student.inschrijvingen.length - 1][0]];
             let currentRow = data[inschrijvingRow];
-            let isNewInschrijving = dataDef.inschrijvingenIndexes.some(index => currentRow[index] != baseStudentRow[index]);
-            if(isNewInschrijving) {
-                student.inschrijvingen.push([inschrijvingRow]);
-                return;
-            }
-            student.inschrijvingen[student.inschrijvingen.length - 1].push(inschrijvingRow);
+            let key = dataDef.inschrijvingenIndexes.map(index => currentRow[index]).join("|");
+            if(!student.inschrijvingen.has(key))
+                student.inschrijvingen.set(key, []);
+            student.inschrijvingen.get(key).push(inschrijvingRow);
+            return;
         });
-    })
+    });
+    console.log(groupedPerStudent);
 
     //
     // // -- split rows per email
