@@ -2797,14 +2797,14 @@ async function copyForMailMerge(table) {
 		return;
 	}
 	let dataDef = {
-		studentIndexes: [],
-		inschrijvingenIndexes: [],
-		lesIndexes: []
+		studentColumnIndexes: [],
+		inschrijvingenColumnIndexes: [],
+		lesColumnIndexes: []
 	};
 	headers.forEach((header, index) => {
-		if (WerklijstFieldsStudent.includes(header)) dataDef.studentIndexes.push(index);
-		else if (WerklijstFieldsInschrijving.includes(header)) dataDef.inschrijvingenIndexes.push(index);
-		else if (WerklijstFieldsLes.includes(header)) dataDef.lesIndexes.push(index);
+		if (WerklijstFieldsStudent.includes(header)) dataDef.studentColumnIndexes.push(index);
+		else if (WerklijstFieldsInschrijving.includes(header)) dataDef.inschrijvingenColumnIndexes.push(index);
+		else if (WerklijstFieldsLes.includes(header)) dataDef.lesColumnIndexes.push(index);
 	});
 	let groupedPerStudent = [];
 	data.forEach((row, rowIndex) => {
@@ -2816,7 +2816,7 @@ async function copyForMailMerge(table) {
 			return;
 		}
 		let baseStudentRow = data[groupedPerStudent[groupedPerStudent.length - 1].allInschrijvingenRows[0]];
-		let isNewStudent = dataDef.studentIndexes.some((index) => row[index] != baseStudentRow[index]);
+		let isNewStudent = dataDef.studentColumnIndexes.some((index) => row[index] != baseStudentRow[index]);
 		if (isNewStudent) {
 			groupedPerStudent.push({
 				allInschrijvingenRows: [rowIndex],
@@ -2829,13 +2829,39 @@ async function copyForMailMerge(table) {
 	groupedPerStudent.forEach((student) => {
 		student.allInschrijvingenRows.forEach((inschrijvingRow) => {
 			let currentRow = data[inschrijvingRow];
-			let key = dataDef.inschrijvingenIndexes.map((index) => currentRow[index]).join("|");
+			let key = dataDef.inschrijvingenColumnIndexes.map((index) => currentRow[index]).join("|");
 			if (!student.inschrijvingen.has(key)) student.inschrijvingen.set(key, []);
 			student.inschrijvingen.get(key).push(inschrijvingRow);
 			return;
 		});
 	});
 	console.log(groupedPerStudent);
+	let maxInschrijvingen = Math.max(...groupedPerStudent.map((student) => student.inschrijvingen.size));
+	let lessen = groupedPerStudent.map((student) => [...student.inschrijvingen.values()]).map((inschrijving) => inschrijving.map((lessen$1) => lessen$1.length)).flat();
+	console.log(lessen);
+	let maxLessen = Math.max(...groupedPerStudent.map((student) => [...student.inschrijvingen.values()]).map((inschrijving) => inschrijving.map((lessen$1) => lessen$1.length)).flat());
+	let flattendToStudent = [];
+	groupedPerStudent.forEach((student) => {
+		let row = [];
+		dataDef.studentColumnIndexes.forEach((colIndex) => row.push(data[student.allInschrijvingenRows[0]][colIndex]));
+		[...new Array(maxInschrijvingen).keys()].forEach((inschrijvingCnt) => {
+			let inschrijvingen = [...student.inschrijvingen.values()];
+			if (inschrijvingCnt < inschrijvingen.length) {
+				let inschrijvingRows = inschrijvingen[inschrijvingCnt];
+				dataDef.inschrijvingenColumnIndexes.forEach((colIndex) => row.push(data[inschrijvingRows[0]][colIndex]));
+				[...new Array(maxLessen).keys()].forEach((lesCnt) => {
+					if (lesCnt < inschrijvingRows.length) {
+						let rowIndex = inschrijvingRows[lesCnt];
+						dataDef.lesColumnIndexes.forEach((colIndex) => row.push(data[rowIndex][colIndex]));
+					} else dataDef.lesColumnIndexes.forEach((colIndex) => row.push(""));
+				});
+			} else {
+				dataDef.inschrijvingenColumnIndexes.forEach((colIndex) => row.push(""));
+				dataDef.lesColumnIndexes.forEach((colIndex) => row.push(""));
+			}
+		});
+		flattendToStudent.push(row);
+	});
 }
 function copyOneColumn(table, index) {
 	createAndCopyTable([table.tHead.children[0].children[index].innerText], [...table.tBodies[0].rows].map((row) => [row.cells[index].innerText]));

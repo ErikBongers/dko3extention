@@ -303,7 +303,7 @@ export function writeTableToClipboardForExcel(table: HTMLTableElement) {
     return navigator.clipboard.writeText(html);
 }
 
-export function createTable(headers: Iterable<string>, cols: Iterable<Iterable<string>>) {
+export function createHtmlTable(headers: Iterable<string>, cols: Iterable<Iterable<string>>) {
     let tmpDiv = document.createElement("div");
     let {first: tmpTable, last: tmpThead} = emmet.appendChild(tmpDiv, "table>thead");
     for (let th of headers) {

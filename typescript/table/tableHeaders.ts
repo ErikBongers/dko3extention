@@ -1,4 +1,4 @@
-import {createTable, DataCacheId, distinct, HtmlData, openHtmlTab, range, rangeGenerator} from "../globals";
+import {createHtmlTable, DataCacheId, distinct, HtmlData, openHtmlTab, range, rangeGenerator} from "../globals";
 import {emmet} from "../../libs/Emmeter/html";
 import {checkAndDownloadTableRows} from "./loadAnyTable";
 import {addMenuItem, addMenuSeparator, setupMenu} from "../menus";
@@ -84,9 +84,9 @@ function copyFullTable(table: HTMLTableElement) {
 }
 
 interface DataIndexes {
-    studentIndexes: number[];
-    inschrijvingenIndexes: number[];
-    lesIndexes: number[];
+    studentColumnIndexes: number[];
+    inschrijvingenColumnIndexes: number[];
+    lesColumnIndexes: number[];
 }
 interface StudentRow {
     allInschrijvingenRows: number[],
@@ -111,14 +111,14 @@ async function copyForMailMerge(table: HTMLTableElement) {
     // });
     //
     // -- aggregate at student level.
-    let dataDef: DataIndexes = { studentIndexes: [], inschrijvingenIndexes: [], lesIndexes: []};
+    let dataDef: DataIndexes = { studentColumnIndexes: [], inschrijvingenColumnIndexes: [], lesColumnIndexes: []};
     headers.forEach((header, index) => {
         if(WerklijstFieldsStudent.includes(header)) {
-            dataDef.studentIndexes.push(index);
+            dataDef.studentColumnIndexes.push(index);
         } else if(WerklijstFieldsInschrijving.includes(header)) {
-            dataDef.inschrijvingenIndexes.push(index);
+            dataDef.inschrijvingenColumnIndexes.push(index);
         } else if(WerklijstFieldsLes.includes(header)) {
-            dataDef.lesIndexes.push(index);
+            dataDef.lesColumnIndexes.push(index);
         }
     });
 
@@ -133,7 +133,7 @@ async function copyForMailMerge(table: HTMLTableElement) {
         }
         // -- check if row is a new student.
         let baseStudentRow = data[groupedPerStudent[groupedPerStudent.length - 1].allInschrijvingenRows[0]];
-        let isNewStudent = dataDef.studentIndexes.some(index => row[index] != baseStudentRow[index]);
+        let isNewStudent = dataDef.studentColumnIndexes.some(index => row[index] != baseStudentRow[index]);
         if(isNewStudent) {
             groupedPerStudent.push({
                 allInschrijvingenRows: [rowIndex],
@@ -143,10 +143,11 @@ async function copyForMailMerge(table: HTMLTableElement) {
         }
         groupedPerStudent[groupedPerStudent.length - 1].allInschrijvingenRows.push(rowIndex);
     });
+    //group per student>inschrijving
     groupedPerStudent.forEach(student => {
         student.allInschrijvingenRows.forEach(inschrijvingRow => {
             let currentRow = data[inschrijvingRow];
-            let key = dataDef.inschrijvingenIndexes.map(index => currentRow[index]).join("|");
+            let key = dataDef.inschrijvingenColumnIndexes.map(index => currentRow[index]).join("|");
             if(!student.inschrijvingen.has(key))
                 student.inschrijvingen.set(key, []);
             student.inschrijvingen.get(key).push(inschrijvingRow);
@@ -154,6 +155,37 @@ async function copyForMailMerge(table: HTMLTableElement) {
         });
     });
     console.log(groupedPerStudent);
+
+    let maxInschrijvingen = Math.max(...groupedPerStudent.map(student => student.inschrijvingen.size));
+    let lessen = groupedPerStudent.map(student => [...student.inschrijvingen.values()]).map(inschrijving => inschrijving.map(lessen => lessen.length)).flat();
+    console.log(lessen);
+    let maxLessen = Math.max(...groupedPerStudent.map(student => [...student.inschrijvingen.values()]).map(inschrijving => inschrijving.map(lessen => lessen.length)).flat());
+
+    //Flatten table to 1 line per student
+    let flattendToStudent: string[][] = [];
+    groupedPerStudent.forEach(student => {
+        let row: string[] = [];
+        dataDef.studentColumnIndexes.forEach(colIndex => row.push(data[student.allInschrijvingenRows[0]][colIndex]));
+        let inschrijvingen = [...student.inschrijvingen.values()];
+        [...new Array(maxInschrijvingen).keys()].forEach(inschrijvingCnt => {
+            if(inschrijvingCnt < inschrijvingen.length) {
+                let inschrijvingRows = inschrijvingen[inschrijvingCnt];
+                dataDef.inschrijvingenColumnIndexes.forEach(colIndex => row.push(data[inschrijvingRows[0]][colIndex]));
+                [...new Array(maxLessen).keys()].forEach(lesCnt => {
+                    if(lesCnt < inschrijvingRows.length) {
+                        let rowIndex = inschrijvingRows[lesCnt];
+                        dataDef.lesColumnIndexes.forEach(colIndex => row.push(data[rowIndex][colIndex]));
+                    } else {
+                        dataDef.lesColumnIndexes.forEach(colIndex => row.push(""));
+                    }
+                });
+            } else {
+                dataDef.inschrijvingenColumnIndexes.forEach(colIndex => row.push(""));
+                dataDef.lesColumnIndexes.forEach(colIndex => row.push(""));
+            }
+        });
+        flattendToStudent.push(row);
+    });
 
     //
     // // -- split rows per email
@@ -187,7 +219,7 @@ function copyOneColumn(table: HTMLTableElement, index: number) {
 }
 
 function createAndCopyTable(headers: Iterable<string>, cols: Iterable<Iterable<string>>) {
-    navigator.clipboard.writeText(createTable(headers, cols).outerHTML).then(_r => {});
+    navigator.clipboard.writeText(createHtmlTable(headers, cols).outerHTML).then(_r => {});
 }
 
 function reSortTableByColumn(ev: MouseEvent, table: HTMLTableElement) {
