@@ -19,7 +19,7 @@ export interface TableWithHeader {
 
 export class MailMergeTable {
     private table: HTMLTableElement;
-    private readonly data: string[][];
+    private data: string[][];
     private readonly headers: string[];
     private tableMeta: TableMeta;
     private maxInschrijvingen: number;
@@ -32,6 +32,12 @@ export class MailMergeTable {
         this.headers = [...headerCells].filter(cell => cell.style.display !== "none").map(cell => cell.innerText);
         let rows = table.tBodies[0].children as HTMLCollectionOf<HTMLTableRowElement>;
         this.data = [...rows].map(row => [...row.cells].filter(cell => cell.style.display !== "none").map(cell => cell.innerText));
+        let indexVoornaam = this.headers.findIndex(header => header == "voornaam");
+        let indexFinancierbaarheid = this.headers.findIndex(header => header == "financierbaarheid");
+        if(indexVoornaam != -1) {
+            this.data.forEach(row => row[indexFinancierbaarheid] = row[indexFinancierbaarheid] == "" ? "Vrij" : "");
+        }
+        this.data = this.data.filter(row => row[indexVoornaam] != "Contactgegevens");
     }
 
     async build(): Promise<{ vestigingsPlaatsen: TableWithHeader, studentTable: TableWithHeader }> {

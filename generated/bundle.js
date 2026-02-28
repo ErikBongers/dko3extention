@@ -2713,10 +2713,19 @@ var FetchedTable = class {
 	getNextPageNumber = () => this.lastPageNumber + 1;
 	getNextOffset = () => this.getNextPageNumber() * this.tableFetcher.tableRef.navigationData.step;
 	getTemplate = () => this.shadowTableTemplate;
-	saveToCache() {
+	saveToCache(retry = true) {
 		db3(`Caching ${this.tableFetcher.getCacheId()}.`);
-		window.sessionStorage.setItem(this.tableFetcher.getCacheId(), this.shadowTableTemplate.innerHTML);
-		window.sessionStorage.setItem(this.tableFetcher.getCacheId() + CACHE_DATE_SUFFIX, new Date().toJSON());
+		try {
+			window.sessionStorage.setItem(this.tableFetcher.getCacheId(), this.shadowTableTemplate.innerHTML);
+			window.sessionStorage.setItem(this.tableFetcher.getCacheId() + CACHE_DATE_SUFFIX, new Date().toJSON());
+		} catch (e) {
+			console.error(e);
+			if (!retry) return;
+			console.log("Clearing session cache and trying again...");
+			let sessionKeys = Object.keys(window.sessionStorage);
+			for (let key of sessionKeys) if (key.startsWith("table_leerlingen_werklijst")) window.sessionStorage.removeItem(key);
+			this.saveToCache(false);
+		}
 	}
 	addPage(text) {
 		let pageTemplate;
@@ -2746,6 +2755,10 @@ var MailMergeTable = class {
 		this.headers = [...headerCells].filter((cell) => cell.style.display !== "none").map((cell) => cell.innerText);
 		let rows = table.tBodies[0].children;
 		this.data = [...rows].map((row) => [...row.cells].filter((cell) => cell.style.display !== "none").map((cell) => cell.innerText));
+		let indexVoornaam = this.headers.findIndex((header) => header == "voornaam");
+		let indexFinancierbaarheid = this.headers.findIndex((header) => header == "financierbaarheid");
+		if (indexVoornaam != -1) this.data.forEach((row) => row[indexFinancierbaarheid] = row[indexFinancierbaarheid] == "" ? "Vrij" : "");
+		this.data = this.data.filter((row) => row[indexVoornaam] != "Contactgegevens");
 	}
 	async build() {
 		let fetchedTable = await getTableFromHash("extra-academie-vestigingsplaatsen", false, new InfoBarTableFetchListener(this.tableMeta.infoBlock));
