@@ -75,13 +75,31 @@ export async function getTableFromHash(hash: string, clearCache: boolean, infoBa
     return await getTable(tableRef, infoBarListener, clearCache);
 }
 
+export function createDefaultTableRefAndInfoBlock() {
+    let result = createDefaultTableRef();
+    if("error" in result)
+        return { error: result.error };
+
+    let {tableRef} = result.result;
+
+    let infoBlock = createInfoBlockForTable(tableRef);
+    return {result: {tableRef, infoBlock}};
+}
+
 export async function downloadTableRows() {
-    let result = createDefaultTableFetcher();
+    let result = createDefaultTableRefAndInfoBlock();
     if("error" in result) {
         console.error(result.error);
         return;
     }
-    let {tableFetcher} = result.result;
+    let {tableRef, infoBlock} = result.result;
+
+    let result2 = createDefaultTableFetcher(tableRef, infoBlock);
+    if("error" in result2) {
+        console.error(result2.error);
+        return;
+    }
+    let {tableFetcher} = result2.result;
     tableFetcher.tableHandler = new TableHandlerForHeaders();
 
     let fetchedTable = await tableFetcher.fetch();
@@ -92,24 +110,29 @@ export async function downloadTableRows() {
         .replaceChildren(...fetchedRows);
     tableContainer.querySelector("table").classList.add("fullyFetched");
     executeTableCommands(fetchedTable.tableFetcher.tableRef);
-    return fetchedTable;
+    return {fetchedTable, infoBlock: infoBlock, listener: new InfoBarTableFetchListener(infoBlock)};
 }
 
 export async function checkAndDownloadTableRows() {
     let tableRef = findTableRefInCode();
-    if(tableRef.getOrgTableContainer().querySelector("table").classList.contains("fullyFetched"))
-        return tableRef;
-    await downloadTableRows();
-    return tableRef;
+    if(tableRef.getOrgTableContainer().querySelector("table").classList.contains("fullyFetched")) {
+        let result = createDefaultTableRefAndInfoBlock();
+        if("error" in result) {
+            throw result.error; //screw it. I'm panicking intead of bubbling results.
+        }
+        return {tableRef: result.result.tableRef, infoBlock: result.result.infoBlock, listener: new InfoBarTableFetchListener(result.result.infoBlock)};
+    }
+    let res = await downloadTableRows();
+    return {tableRef, infoBlock: res.infoBlock, listener: res.listener};
 }
 
 export class InfoBarTableFetchListener implements TableFetchListener {
     infoBar: InfoBar;
     progressBar: ProgressBar;
 
-    constructor(infoBar: InfoBar, progressBar: ProgressBar) {
-        this.infoBar = infoBar;
-        this.progressBar = progressBar;
+    constructor(infoBlock: InfoBlock) {
+        this.infoBar = infoBlock.infoBar;
+        this.progressBar = infoBlock.progressBar;
     }
 
     onStartFetching(tableFetcher: TableFetcher): void {
@@ -139,41 +162,42 @@ export class InfoBarTableFetchListener implements TableFetchListener {
     }
 }
 
-interface DefaultTableRef {
-    tableRef: TableRef,
+export interface InfoBlock {
     infoBar: InfoBar,
     progressBar: ProgressBar
 }
-export function createDefaultTableRefAndInfoBar(): Result<DefaultTableRef> {
+
+interface DefaultTableRef {
+    tableRef: TableRef
+}
+
+export function createDefaultTableRef(): Result<DefaultTableRef> {
     let tableRef = findTableRefInCode();
     if(!tableRef) {
         return { error: "Cannot find table." };
     }
+    return { result: {tableRef} };
+}
+
+export function createInfoBlockForTable(tableRef: TableRef): InfoBlock {
     document.getElementById(def.INFO_CONTAINER_ID)?.remove();
     let divInfoContainer = tableRef.createElementAboveTable("div");
     let infoBar = new InfoBar(divInfoContainer.appendChild(document.createElement("div")));
     let progressBar = insertProgressBar(infoBar.divInfoLine, "loading pages... ");
-    return { result: {tableRef, infoBar, progressBar} };
+    return {infoBar, progressBar};
 }
 
 interface DefaultTableFetcher {
     tableFetcher: TableFetcher,
-    infoBar: InfoBar,
-    progressBar: ProgressBar,
+    infoBlock: InfoBlock,
     infoBarListener: InfoBarTableFetchListener
 }
-export function createDefaultTableFetcher(): Result<DefaultTableFetcher> {
-    let result = createDefaultTableRefAndInfoBar();
-    if("error" in result)
-        return { error: result.error };
-
-    let {tableRef, infoBar, progressBar} = result.result;
-
+export function createDefaultTableFetcher(tableRef: TableRef, infoBlock: InfoBlock): Result<DefaultTableFetcher> {
     let tableFetcher = new TableFetcher(
         tableRef,
         getChecksumBuilder(tableRef.htmlTableId)
     );
-    let infoBarListener = new InfoBarTableFetchListener(infoBar, progressBar);
+    let infoBarListener = new InfoBarTableFetchListener(infoBlock);
     tableFetcher.addListener(infoBarListener);
-    return { result: {tableFetcher, infoBar, progressBar, infoBarListener} };
+    return { result: {tableFetcher, infoBlock, infoBarListener} };
 }

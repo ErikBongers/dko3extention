@@ -1,7 +1,7 @@
 import * as def from "../def.js";
 import {HashObserver} from "../pageObserver";
 import {addTableNavigationButton, getBothToolbars} from "../globals";
-import {createDefaultTableFetcher, getTableFromHash} from "../table/loadAnyTable";
+import {createDefaultTableFetcher, createDefaultTableRef, createDefaultTableRefAndInfoBlock, createInfoBlockForTable, getTableFromHash} from "../table/loadAnyTable";
 import {InfoBar} from "../infoBar";
 
 class AanwezighedenObserver extends HashObserver {
@@ -63,14 +63,21 @@ interface Attest {
 }
 
 async function copyTable() {
-    let result = createDefaultTableFetcher();
+    let result = createDefaultTableRefAndInfoBlock();
     if("error" in result) {
         console.error(result.error);
         return;
     }
-    let {tableFetcher, infoBar, infoBarListener} = result.result;
+    let {tableRef, infoBlock} = result.result;
 
-    infoBar.setExtraInfo("Fetching 3-weken data...");
+    let result2 = createDefaultTableFetcher(tableRef, infoBlock);
+    if("error" in result2) {
+        console.error(result2.error);
+        return;
+    }
+    let {tableFetcher, infoBarListener} = result2.result;
+
+    infoBlock.infoBar.setExtraInfo("Fetching 3-weken data...");
 
     let wekenLijst = await getTableFromHash("leerlingen-lijsten-awi-3weken", true, infoBarListener).then(bckTableDef => {
         // convert table to text
@@ -83,7 +90,7 @@ async function copyTable() {
     });
     console.log(wekenLijst);
 
-    infoBar.setExtraInfo("Fetching attesten...");
+    infoBlock.infoBar.setExtraInfo("Fetching attesten...");
 
     let attestenLijst = await getTableFromHash("leerlingen-lijsten-awi-ontbrekende_attesten", true, infoBarListener).then(bckTableDef => {
         return bckTableDef.getRowsAsArray().map(tr => {
@@ -99,7 +106,7 @@ async function copyTable() {
     });
     console.log(attestenLijst);
 
-    infoBar.setExtraInfo("Fetching afwezigheidscodes...");
+    infoBlock.infoBar.setExtraInfo("Fetching afwezigheidscodes...");
 
     let pList = await getTableFromHash("leerlingen-lijsten-awi-afwezigheidsregistraties", true, infoBarListener).then(bckTableDef => {
         let rowsArray = bckTableDef.getRowsAsArray();
@@ -187,7 +194,7 @@ async function copyTable() {
         });
         console.log(text);
         window.sessionStorage.setItem(def.AANW_LIST, text);
-        aanwezighedenToClipboard(infoBar);
+        aanwezighedenToClipboard(infoBlock.infoBar);
 
         //replace the visible table
         tableFetcher.tableRef.getOrgTableContainer()

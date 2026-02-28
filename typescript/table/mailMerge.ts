@@ -1,6 +1,4 @@
-import {createDefaultTableRefAndInfoBar, getTableFromHash, InfoBarTableFetchListener} from "./loadAnyTable";
-import {TableFetcher} from "./tableFetcher";
-import {getChecksumBuilder} from "./observer";
+import {TableMeta} from "./tableHeaders";
 
 interface DataIndexes {
     studentColumnIndexes: number[];
@@ -17,7 +15,7 @@ export class MailMergeTable {
     private readonly data: string[][];
     private readonly headers: string[];
 
-    constructor(table: HTMLTableElement) {
+    constructor(tableMeta: TableMeta, table: HTMLTableElement) {
         this.table = table;
         let headerCells = this.table.tHead.children[0].children as HTMLCollectionOf<HTMLTableCellElement>;
         this.headers = [...headerCells].filter(cell => cell.style.display !== "none").map(cell => cell.innerText);

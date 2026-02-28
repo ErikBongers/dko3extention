@@ -12,7 +12,7 @@ import {decorateTableHeader} from "../table/tableHeaders";
 import {getGotoStateOrDefault, Goto, PageName, saveGotoState, WerklijstGotoState} from "../gotoState";
 import {registerChecksumHandler, setAfterDownloadTableAction} from "../table/observer";
 import {CloudData, JsonCloudData, UrenData} from "./urenData";
-import {createDefaultTableFetcher} from "../table/loadAnyTable";
+import {createDefaultTableFetcher, createDefaultTableRefAndInfoBlock} from "../table/loadAnyTable";
 import {Actions, sendRequest, ServiceRequest, TabType} from "../messaging";
 import {mapHourSettings, TeacherHoursSetup, TeacherHoursSetupMapped} from "./hoursSettings";
 import {getJaarToewijzigingWerklijst} from "../lessen/observer";
@@ -228,13 +228,20 @@ function onClickCopyEmails() {
         });
     });
 
-    let result = createDefaultTableFetcher();
+    let result = createDefaultTableRefAndInfoBlock();
+    if("error" in result) {
+        console.error(result.error);
+        return;
+    }
+    let {tableRef, infoBlock} = result.result;
+
+    let result2 = createDefaultTableFetcher(tableRef, infoBlock);
     if("error" in result) {
         console.error(result.error);
         return;
     }
 
-    let {tableFetcher, infoBar} = result.result;
+    let {tableFetcher} = result2.result;
     tableFetcher.addListener(namedCellListener);
 
     tableFetcher.fetch( )
@@ -249,7 +256,7 @@ function onClickCopyEmails() {
                 .filter((email: string) => email !== "");
             flattened = [...new Set(flattened)];
             navigator.clipboard.writeText(flattened.join(";\n")).then(() =>
-                infoBar.setTempMessage("Alle emails zijn naar het clipboard gekopieerd. Je kan ze plakken in Outlook.")
+                infoBlock.infoBar.setTempMessage("Alle emails zijn naar het clipboard gekopieerd. Je kan ze plakken in Outlook.")
             );
         }).catch(reason => {
             console.log("Loading failed (gracefully.");
@@ -303,13 +310,21 @@ function onShowLerarenUren() {
         return true;
     }
 
-    let result = createDefaultTableFetcher();
-    if ("error" in result) {
-        console.log(result.error); //don't report as log.error.
+    //todo: create function to get tableRef, infoBlock and tableFetcher, as this reoccurs in multiple places.
+    let result = createDefaultTableRefAndInfoBlock();
+    if("error" in result) {
+        console.error(result.error);
+        return;
+    }
+    let {tableRef, infoBlock} = result.result;
+
+    let result2 = createDefaultTableFetcher(tableRef, infoBlock);
+    if ("error" in result2) {
+        console.log(result2.error); //don't report as log.error.
         return false;
     }
 
-    globals.activeFetcher = result.result.tableFetcher;
+    globals.activeFetcher = result2.result.tableFetcher;
     globals.activeFetcher.addListener(createUrenFetchListener());
 
     setAfterDownloadTableAction(undefined); // Can't use this action to build the table as we're also fetching the cloud data.

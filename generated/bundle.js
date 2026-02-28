@@ -2736,7 +2736,7 @@ var MailMergeTable = class {
 	table;
 	data;
 	headers;
-	constructor(table) {
+	constructor(tableMeta, table) {
 		this.table = table;
 		let headerCells = this.table.tHead.children[0].children;
 		this.headers = [...headerCells].filter((cell) => cell.style.display !== "none").map((cell) => cell.innerText);
@@ -2744,6 +2744,9 @@ var MailMergeTable = class {
 		this.data = [...rows].map((row) => [...row.cells].filter((cell) => cell.style.display !== "none").map((cell) => cell.innerText));
 	}
 	build() {
+		return this.buildStudentTable();
+	}
+	buildStudentTable() {
 		let emailIndex = this.headers.findIndex((header) => header.toLowerCase().includes("e-mailadressen"));
 		if (emailIndex === -1) {
 			alert("Geen e-mailadressen gevonden'. Voed dit veld toe aan de lijst.");
@@ -2985,8 +2988,8 @@ function copyFullTable(table) {
 	let cells = [...rows].map((row) => [...row.cells].filter((cell) => cell.style.display !== "none").map((cell) => cell.innerText));
 	createAndCopyTable(headers, cells);
 }
-async function copyForMailMerge(table) {
-	let mailMergeTable = new MailMergeTable(table);
+async function copyForMailMerge(tableMeta, table) {
+	let mailMergeTable = new MailMergeTable(tableMeta, table);
 	let { flattendHeaders, flattendToStudent } = mailMergeTable.build();
 	createAndCopyTable(flattendHeaders, flattendToStudent);
 }
@@ -3049,23 +3052,23 @@ function decorateTableHeader(table) {
 		});
 		addMenuSeparator(menu, "Sorteer", 0);
 		addMenuItem(menu, "Laag naar hoog (a > z)", 1, (ev) => {
-			forTableDo(ev, (_fetchedTable, index) => sortTableByColumn(table, index, false));
+			forTableDo(ev, (tableMeta, index) => sortTableByColumn(table, index, false));
 		});
 		addMenuItem(menu, "Hoog naar laag (z > a)", 1, (ev) => {
-			forTableDo(ev, (_fetchedTable, index) => sortTableByColumn(table, index, true));
+			forTableDo(ev, (tableMeta, index) => sortTableByColumn(table, index, true));
 		});
 		addMenuSeparator(menu, "Sorteer als:", 1);
 		addMenuItem(menu, "Tekst", 2, (_ev) => {});
 		addMenuItem(menu, "Getallen", 2, (_ev) => {});
 		addMenuSeparator(menu, "Kopieer nr klipbord", 0);
 		addMenuItem(menu, "Kolom", 1, (ev) => {
-			forTableDo(ev, (_fetchedTable, index) => copyOneColumn(table, index));
+			forTableDo(ev, (tableMeta, index) => copyOneColumn(table, index));
 		});
 		addMenuItem(menu, "Hele tabel", 1, (ev) => {
-			forTableDo(ev, (_fetchedTable, _index) => copyFullTable(table));
+			forTableDo(ev, (tableMeta, _index) => copyFullTable(table));
 		});
 		addMenuItem(menu, "Voor mailmerge (1 email/rij)", 1, (ev) => {
-			forTableDo(ev, (_fetchedTable, _index) => copyForMailMerge(table));
+			forTableDo(ev, (tableMeta, _index) => copyForMailMerge(tableMeta, table));
 		});
 		addMenuSeparator(menu, "<= Samenvoegen", 0);
 		addMenuItem(menu, "met spatie", 1, (ev) => {
@@ -3105,23 +3108,27 @@ function executeTableCommands(tableRef) {
 function forTableDo(ev, doIt) {
 	ev.preventDefault();
 	ev.stopPropagation();
-	checkAndDownloadTableRows().then((tableRef) => {
-		doIt(tableRef, getColumnIndex(ev));
+	checkAndDownloadTableRows().then((res) => {
+		doIt({
+			tableRef: res.tableRef,
+			infoBlock: res.infoBlock,
+			listener: res.listener
+		}, getColumnIndex(ev));
 	});
 }
 function forTableColumnDo(ev, cmdDef) {
 	ev.preventDefault();
 	ev.stopPropagation();
-	checkAndDownloadTableRows().then((tableRef) => {
+	checkAndDownloadTableRows().then((tableMeta) => {
 		let index = getColumnIndex(ev);
 		let cmd = {
 			cmdDef,
 			index
 		};
-		executeCmd(cmd, tableRef, false);
+		executeCmd(cmd, tableMeta.tableRef, false);
 		let cmds = pageState$1.transient.getValue(GLOBAL_COMMAND_BUFFER_KEY, []);
 		cmds.push(cmd);
-		relabelHeaders(tableRef.getOrgTableContainer().querySelector("thead>tr"));
+		relabelHeaders(tableMeta.tableRef.getOrgTableContainer().querySelector("thead>tr"));
 	});
 }
 function executeCmd(cmd, tableRef, onlyBody) {
@@ -3131,12 +3138,12 @@ function executeCmd(cmd, tableRef, onlyBody) {
 	else rows = tableRef.getOrgTableContainer().querySelectorAll("tr");
 	for (let row of rows) cmd.cmdDef.doForRow(row, cmd.index, context);
 }
-function showDistinctColumn(tableRef, index) {
-	let cols = getDistinctColumn(tableRef.getOrgTableContainer(), index);
+function showDistinctColumn(tableMeta, index) {
+	let cols = getDistinctColumn(tableMeta.tableRef.getOrgTableContainer(), index);
 	let tmpDiv = document.createElement("div");
 	let tbody = emmet.appendChild(tmpDiv, "table>tbody").last;
 	for (let col of cols) emmet.appendChild(tbody, `tr>td>{${col}}`);
-	let headerRow = tableRef.getOrgTableContainer().querySelector("thead>tr");
+	let headerRow = tableMeta.tableRef.getOrgTableContainer().querySelector("thead>tr");
 	let headerText = getColumnHeaderText(headerRow.querySelectorAll("th")[index]);
 	let htmlData = {
 		title: headerText + " (uniek)",
@@ -3608,13 +3615,29 @@ async function getTableFromHash(hash, clearCache, infoBarListener) {
 	console.log(tableRef);
 	return await getTable(tableRef, infoBarListener, clearCache);
 }
+function createDefaultTableRefAndInfoBlock() {
+	let result = createDefaultTableRef();
+	if ("error" in result) return { error: result.error };
+	let { tableRef } = result.result;
+	let infoBlock = createInfoBlockForTable(tableRef);
+	return { result: {
+		tableRef,
+		infoBlock
+	} };
+}
 async function downloadTableRows() {
-	let result = createDefaultTableFetcher();
+	let result = createDefaultTableRefAndInfoBlock();
 	if ("error" in result) {
 		console.error(result.error);
 		return;
 	}
-	let { tableFetcher } = result.result;
+	let { tableRef, infoBlock } = result.result;
+	let result2 = createDefaultTableFetcher(tableRef, infoBlock);
+	if ("error" in result2) {
+		console.error(result2.error);
+		return;
+	}
+	let { tableFetcher } = result2.result;
 	tableFetcher.tableHandler = new TableHandlerForHeaders();
 	let fetchedTable = await tableFetcher.fetch();
 	let fetchedRows = fetchedTable.getRows();
@@ -3622,20 +3645,36 @@ async function downloadTableRows() {
 	tableContainer.querySelector("tbody").replaceChildren(...fetchedRows);
 	tableContainer.querySelector("table").classList.add("fullyFetched");
 	executeTableCommands(fetchedTable.tableFetcher.tableRef);
-	return fetchedTable;
+	return {
+		fetchedTable,
+		infoBlock,
+		listener: new InfoBarTableFetchListener(infoBlock)
+	};
 }
 async function checkAndDownloadTableRows() {
 	let tableRef = findTableRefInCode();
-	if (tableRef.getOrgTableContainer().querySelector("table").classList.contains("fullyFetched")) return tableRef;
-	await downloadTableRows();
-	return tableRef;
+	if (tableRef.getOrgTableContainer().querySelector("table").classList.contains("fullyFetched")) {
+		let result = createDefaultTableRefAndInfoBlock();
+		if ("error" in result) throw result.error;
+		return {
+			tableRef: result.result.tableRef,
+			infoBlock: result.result.infoBlock,
+			listener: new InfoBarTableFetchListener(result.result.infoBlock)
+		};
+	}
+	let res = await downloadTableRows();
+	return {
+		tableRef,
+		infoBlock: res.infoBlock,
+		listener: res.listener
+	};
 }
 var InfoBarTableFetchListener = class {
 	infoBar;
 	progressBar;
-	constructor(infoBar, progressBar) {
-		this.infoBar = infoBar;
-		this.progressBar = progressBar;
+	constructor(infoBlock) {
+		this.infoBar = infoBlock.infoBar;
+		this.progressBar = infoBlock.progressBar;
 	}
 	onStartFetching(tableFetcher) {
 		this.progressBar.start(tableFetcher.tableRef.navigationData.steps());
@@ -3660,36 +3699,35 @@ var InfoBarTableFetchListener = class {
 		this.progressBar.next();
 	}
 };
-function createDefaultTableRefAndInfoBar() {
+function createDefaultTableRef() {
 	let tableRef = findTableRefInCode();
 	if (!tableRef) return { error: "Cannot find table." };
+	return { result: { tableRef } };
+}
+function createInfoBlockForTable(tableRef) {
 	document.getElementById(
 		//todo: create a chain.post()
 		// call to changeView() - assuming this is always the same, so no parsing here.
 		//remove "#" from table id.;
 		//Try again
+		//screw it. I'm panicking intead of bubbling results.
 		INFO_CONTAINER_ID
 )?.remove();
 	let divInfoContainer = tableRef.createElementAboveTable("div");
 	let infoBar = new InfoBar(divInfoContainer.appendChild(document.createElement("div")));
 	let progressBar = insertProgressBar(infoBar.divInfoLine, "loading pages... ");
-	return { result: {
-		tableRef,
+	return {
 		infoBar,
 		progressBar
-	} };
+	};
 }
-function createDefaultTableFetcher() {
-	let result = createDefaultTableRefAndInfoBar();
-	if ("error" in result) return { error: result.error };
-	let { tableRef, infoBar, progressBar } = result.result;
+function createDefaultTableFetcher(tableRef, infoBlock) {
 	let tableFetcher = new TableFetcher(tableRef, getChecksumBuilder(tableRef.htmlTableId));
-	let infoBarListener = new InfoBarTableFetchListener(infoBar, progressBar);
+	let infoBarListener = new InfoBarTableFetchListener(infoBlock);
 	tableFetcher.addListener(infoBarListener);
 	return { result: {
 		tableFetcher,
-		infoBar,
-		progressBar,
+		infoBlock,
 		infoBarListener
 	} };
 }
@@ -5727,18 +5765,24 @@ function onClickCopyEmails() {
 			console.log("Clipboard cleared.");
 		});
 	});
-	let result = createDefaultTableFetcher();
+	let result = createDefaultTableRefAndInfoBlock();
 	if ("error" in result) {
 		console.error(result.error);
 		return;
 	}
-	let { tableFetcher, infoBar } = result.result;
+	let { tableRef, infoBlock } = result.result;
+	let result2 = createDefaultTableFetcher(tableRef, infoBlock);
+	if ("error" in result) {
+		console.error(result.error);
+		return;
+	}
+	let { tableFetcher } = result2.result;
 	tableFetcher.addListener(namedCellListener);
 	tableFetcher.fetch().then((fetchedTable) => {
 		let allEmails = fetchedTable.getRowsAsArray().map((tr) => namedCellListener.getColumnText(tr, "e-mailadressen"));
 		let flattened = allEmails.map((emails) => emails.split(/[,;]/)).flat().filter((email) => !email.includes("@academiestudent.be")).filter((email) => email !== "");
 		flattened = [...new Set(flattened)];
-		navigator.clipboard.writeText(flattened.join(";\n")).then(() => infoBar.setTempMessage("Alle emails zijn naar het clipboard gekopieerd. Je kan ze plakken in Outlook."));
+		navigator.clipboard.writeText(flattened.join(";\n")).then(() => infoBlock.infoBar.setTempMessage("Alle emails zijn naar het clipboard gekopieerd. Je kan ze plakken in Outlook."));
 	}).catch((reason) => {
 		console.log("Loading failed (gracefully.");
 		console.log(reason);
@@ -5775,12 +5819,18 @@ function onShowLerarenUren() {
 		showUrenTable(true);
 		return true;
 	}
-	let result = createDefaultTableFetcher();
+	let result = createDefaultTableRefAndInfoBlock();
 	if ("error" in result) {
-		console.log(result.error);
+		console.error(result.error);
+		return;
+	}
+	let { tableRef, infoBlock } = result.result;
+	let result2 = createDefaultTableFetcher(tableRef, infoBlock);
+	if ("error" in result2) {
+		console.log(result2.error);
 		return false;
 	}
-	globals.activeFetcher = result.result.tableFetcher;
+	globals.activeFetcher = result2.result.tableFetcher;
 	globals.activeFetcher.addListener(createUrenFetchListener());
 	setAfterDownloadTableAction(void 0);
 	Promise.all([globals.activeFetcher.fetch(), getUrenFromCloud(getUrenVakLeraarFileName())]).then(async (results) => {
@@ -5935,13 +5985,19 @@ function onMutationAanwezgheden(_mutation) {
 	return true;
 }
 async function copyTable() {
-	let result = createDefaultTableFetcher();
+	let result = createDefaultTableRefAndInfoBlock();
 	if ("error" in result) {
 		console.error(result.error);
 		return;
 	}
-	let { tableFetcher, infoBar, infoBarListener } = result.result;
-	infoBar.setExtraInfo("Fetching 3-weken data...");
+	let { tableRef, infoBlock } = result.result;
+	let result2 = createDefaultTableFetcher(tableRef, infoBlock);
+	if ("error" in result2) {
+		console.error(result2.error);
+		return;
+	}
+	let { tableFetcher, infoBarListener } = result2.result;
+	infoBlock.infoBar.setExtraInfo("Fetching 3-weken data...");
 	let wekenLijst = await getTableFromHash("leerlingen-lijsten-awi-3weken", true, infoBarListener).then((bckTableDef) => {
 		let rowsArray = bckTableDef.getRowsAsArray();
 		return rowsArray.map((row) => {
@@ -5954,7 +6010,7 @@ async function copyTable() {
 		});
 	});
 	console.log(wekenLijst);
-	infoBar.setExtraInfo("Fetching attesten...");
+	infoBlock.infoBar.setExtraInfo("Fetching attesten...");
 	let attestenLijst = await getTableFromHash("leerlingen-lijsten-awi-ontbrekende_attesten", true, infoBarListener).then((bckTableDef) => {
 		return bckTableDef.getRowsAsArray().map((tr) => {
 			return {
@@ -5967,7 +6023,7 @@ async function copyTable() {
 		});
 	});
 	console.log(attestenLijst);
-	infoBar.setExtraInfo("Fetching afwezigheidscodes...");
+	infoBlock.infoBar.setExtraInfo("Fetching afwezigheidscodes...");
 	let pList = await getTableFromHash("leerlingen-lijsten-awi-afwezigheidsregistraties", true, infoBarListener).then((bckTableDef) => {
 		let rowsArray = bckTableDef.getRowsAsArray();
 		return rowsArray.map((row) => {
@@ -6037,7 +6093,7 @@ async function copyTable() {
 		});
 		console.log(text);
 		window.sessionStorage.setItem(AANW_LIST, text);
-		aanwezighedenToClipboard(infoBar);
+		aanwezighedenToClipboard(infoBlock.infoBar);
 		tableFetcher.tableRef.getOrgTableContainer().querySelector("tbody").replaceChildren(...fetchedTable.getRows());
 	});
 }

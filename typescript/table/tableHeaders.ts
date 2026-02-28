@@ -1,8 +1,8 @@
 import {createHtmlTable, DataCacheId, distinct, HtmlData, openHtmlTab, range, rangeGenerator} from "../globals";
 import {emmet} from "../../libs/Emmeter/html";
-import {checkAndDownloadTableRows} from "./loadAnyTable";
+import {checkAndDownloadTableRows, InfoBlock} from "./loadAnyTable";
 import {addMenuItem, addMenuSeparator, setupMenu} from "../menus";
-import {TableFetcher, TableHandler, TableRef} from "./tableFetcher";
+import {TableFetcher, TableFetchListener, TableHandler, TableRef} from "./tableFetcher";
 import * as def from "../def";
 import {options} from "../plugin_options/options";
 import {pageState} from "../pageState";
@@ -84,8 +84,8 @@ function copyFullTable(table: HTMLTableElement) {
     createAndCopyTable(headers, cells);
 }
 
-async function copyForMailMerge(table: HTMLTableElement) {
-    let mailMergeTable: MailMergeTable = new MailMergeTable(table);
+async function copyForMailMerge(tableMeta: TableMeta, table: HTMLTableElement) {
+    let mailMergeTable: MailMergeTable = new MailMergeTable(tableMeta, table);
     let {flattendHeaders, flattendToStudent} = mailMergeTable.build();
     createAndCopyTable(flattendHeaders, flattendToStudent);
 }
@@ -153,15 +153,15 @@ export function decorateTableHeader(table: HTMLTableElement) {
             addMenuItem(menu, "Verberg kolom", 0, (ev) => { console.log("verberg kolom"); forTableColumnDo(ev, hideColumn)});
             addMenuItem(menu, "Toon alle kolommen", 0, (ev) => { console.log("verberg kolom"); forTableColumnDo(ev, showColumns)});
             addMenuSeparator(menu, "Sorteer", 0);
-            addMenuItem(menu, "Laag naar hoog (a > z)", 1, (ev) => { forTableDo(ev, (_fetchedTable, index) => sortTableByColumn(table, index, false))});
-            addMenuItem(menu, "Hoog naar laag (z > a)", 1, (ev) => { forTableDo(ev, (_fetchedTable, index) => sortTableByColumn(table, index, true))});
+            addMenuItem(menu, "Laag naar hoog (a > z)", 1, (ev) => { forTableDo(ev, (tableMeta, index) => sortTableByColumn(table, index, false))});
+            addMenuItem(menu, "Hoog naar laag (z > a)", 1, (ev) => { forTableDo(ev, (tableMeta, index) => sortTableByColumn(table, index, true))});
             addMenuSeparator(menu, "Sorteer als:", 1);
             addMenuItem(menu, "Tekst", 2, (_ev) => { });
             addMenuItem(menu, "Getallen", 2, (_ev) => { });
             addMenuSeparator(menu, "Kopieer nr klipbord", 0);
-            addMenuItem(menu, "Kolom", 1, (ev) => { forTableDo(ev, (_fetchedTable, index) => copyOneColumn(table, index))});
-            addMenuItem(menu, "Hele tabel", 1, (ev) => { forTableDo(ev, (_fetchedTable, _index) => copyFullTable(table))});
-            addMenuItem(menu, "Voor mailmerge (1 email/rij)", 1, (ev) => { forTableDo(ev, (_fetchedTable, _index) => copyForMailMerge(table))});
+            addMenuItem(menu, "Kolom", 1, (ev) => { forTableDo(ev, (tableMeta, index) => copyOneColumn(table, index))});
+            addMenuItem(menu, "Hele tabel", 1, (ev) => { forTableDo(ev, (tableMeta, _index) => copyFullTable(table))});
+            addMenuItem(menu, "Voor mailmerge (1 email/rij)", 1, (ev) => { forTableDo(ev, (tableMeta, _index) => copyForMailMerge(tableMeta, table))});
             addMenuSeparator(menu, "<= Samenvoegen", 0);
             addMenuItem(menu, "met spatie", 1, (ev) => { forTableColumnDo(ev, createTwoColumnsCmd(Direction.LEFT, mergeColumnWithSpace))});
             addMenuItem(menu, "met comma", 1, (ev) => { forTableColumnDo(ev, createTwoColumnsCmd(Direction.LEFT, mergeColumnWithComma))});
@@ -212,12 +212,17 @@ export function executeTableCommands(tableRef: TableRef) {
     }
 }
 
-function forTableDo(ev: MouseEvent, doIt: (tableRef: TableRef, index: number) => void) {
+export interface TableMeta {
+    tableRef: TableRef,
+    infoBlock: InfoBlock,
+    listener: TableFetchListener,
+}
+function forTableDo(ev: MouseEvent, doIt: (tableMeta: TableMeta, index: number) => void) {
     ev.preventDefault();
     ev.stopPropagation();
     checkAndDownloadTableRows()
-        .then(tableRef => {
-            doIt(tableRef, getColumnIndex(ev));
+        .then(res => {
+            doIt({tableRef: res.tableRef, infoBlock: res.infoBlock, listener: res.listener}, getColumnIndex(ev));
         });
 }
 
@@ -225,16 +230,16 @@ function forTableColumnDo(ev: MouseEvent, cmdDef: TableColumnCmdDef) {
     ev.preventDefault();
     ev.stopPropagation();
     checkAndDownloadTableRows()
-        .then(tableRef => {
+        .then((tableMeta: TableMeta) => {
             let index = getColumnIndex(ev);
             let cmd: TableColumnCmd = {
                 cmdDef,
                 index
             }
-            executeCmd(cmd, tableRef, false);
+            executeCmd(cmd, tableMeta.tableRef, false);
             let cmds =  pageState.transient.getValue(def.GLOBAL_COMMAND_BUFFER_KEY, []) as TableColumnCmd[];
             cmds.push(cmd);
-            relabelHeaders(tableRef.getOrgTableContainer().querySelector("thead>tr"))
+            relabelHeaders(tableMeta.tableRef.getOrgTableContainer().querySelector("thead>tr"))
         });
 }
 
@@ -252,14 +257,14 @@ function executeCmd(cmd: TableColumnCmd, tableRef: TableRef, onlyBody: boolean) 
     }
 }
 
-function showDistinctColumn(tableRef: TableRef, index: number) {
-    let cols = getDistinctColumn(tableRef.getOrgTableContainer(), index);
+function showDistinctColumn(tableMeta: TableMeta, index: number) {
+    let cols = getDistinctColumn(tableMeta.tableRef.getOrgTableContainer(), index);
     let tmpDiv = document.createElement("div");
     let tbody = emmet.appendChild(tmpDiv, "table>tbody").last as HTMLTableSectionElement;
     for(let col of cols) {
         emmet.appendChild(tbody, `tr>td>{${col}}`);
     }
-    let headerRow = tableRef.getOrgTableContainer().querySelector("thead>tr");
+    let headerRow = tableMeta.tableRef.getOrgTableContainer().querySelector("thead>tr");
     let headerText = getColumnHeaderText(headerRow.querySelectorAll("th")[index]);
     let htmlData: HtmlData = {
         title: headerText + " (uniek)",
