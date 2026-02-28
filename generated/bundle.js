@@ -2839,11 +2839,8 @@ END Studenten<br>
 				return;
 			});
 		});
-		console.log(groupedPerStudent);
 		this.maxInschrijvingen = Math.max(...groupedPerStudent.map((student) => student.inschrijvingen.size));
-		let lessen = groupedPerStudent.map((student) => [...student.inschrijvingen.values()]).map((inschrijving) => inschrijving.map((lessen$1) => lessen$1.length)).flat();
-		console.log(lessen);
-		this.maxLessen = Math.max(...groupedPerStudent.map((student) => [...student.inschrijvingen.values()]).map((inschrijving) => inschrijving.map((lessen$1) => lessen$1.length)).flat());
+		this.maxLessen = Math.max(...groupedPerStudent.map((student) => [...student.inschrijvingen.values()]).map((inschrijving) => inschrijving.map((lessen) => lessen.length)).flat());
 		let flattendToStudent = [];
 		let flattendHeaders = [];
 		dataDef.studentColumnIndexes.forEach((colIndex) => flattendHeaders.push(this.headers[colIndex]));
@@ -2893,10 +2890,26 @@ END Studenten<br>
 			flattendToStudent.push(row);
 		});
 		flattendHeaders.push(...[...new Array(maxVestigingsplaatsen).keys()].map((index) => "vestigingsplaats" + (index + 1)));
+		flattendToStudent = this.duplicateRowsForEmail(flattendToStudent, emailIndex);
 		return {
 			headers: flattendHeaders,
 			data: flattendToStudent
 		};
+	}
+	duplicateRowsForEmail(data, emailIndex) {
+		let extraRows = [];
+		data.forEach((row, seq) => {
+			let emails = row[emailIndex].split(/[,;]/);
+			emails = emails.filter((email) => !email.includes("academiestudent.be"));
+			if (emails.length == 0) return;
+			row[emailIndex] = emails.pop();
+			emails.forEach((email) => {
+				let copiedRow = [...row];
+				copiedRow[emailIndex] = email;
+				extraRows.push(copiedRow);
+			});
+		});
+		return data.concat(extraRows);
 	}
 	translateMailMerge(rowIndex, colIndex) {
 		let row = this.data[rowIndex];

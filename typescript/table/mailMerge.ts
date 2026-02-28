@@ -125,11 +125,8 @@ END Studenten<br>
                 return;
             });
         });
-        console.log(groupedPerStudent);
 
         this.maxInschrijvingen = Math.max(...groupedPerStudent.map(student => student.inschrijvingen.size));
-        let lessen = groupedPerStudent.map(student => [...student.inschrijvingen.values()]).map(inschrijving => inschrijving.map(lessen => lessen.length)).flat();
-        console.log(lessen);
         this.maxLessen = Math.max(...groupedPerStudent.map(student => [...student.inschrijvingen.values()]).map(inschrijving => inschrijving.map(lessen => lessen.length)).flat());
 
         let flattendToStudent: string[][] = [];
@@ -199,30 +196,26 @@ END Studenten<br>
 
         flattendHeaders.push(...[...new Array(maxVestigingsplaatsen).keys()].map(index => "vestigingsplaats" + (index + 1)));
 
-
-
-        //
-        // // -- split rows per email
-        // let extraRows: (string | number)[][] = [];
-        // cells.forEach((row: (string | number)[], seq) => {
-        //     row.push(seq);
-        //     let emails = (row[emailIndex] as string).split(/[,;]/);
-        //     emails = emails.filter((email: string) => !email.includes("academiestudent.be"));
-        //     if(emails.length == 0)
-        //         return;
-        //     row[emailIndex] = emails.pop();
-        //     emails.forEach((email: string) => {
-        //         let copiedRow = [...row];
-        //         copiedRow[emailIndex] = email;
-        //         extraRows.push(copiedRow);
-        //     });
-        // });
-        // cells = cells.concat(extraRows);
-        //
-        // // -- sort rows per seq and remove seq.
-        // cells.sort((a, b) => (a[seqIndex] as number) - (b[seqIndex] as number));
-        // cells.forEach(row => row.pop());
+        flattendToStudent = this.duplicateRowsForEmail(flattendToStudent, emailIndex);
         return {headers: flattendHeaders, data: flattendToStudent};
+    }
+
+    //...and remove academiestudent.be from the email addresses.
+    duplicateRowsForEmail(data: string[][], emailIndex: number) {
+        let extraRows: string[][] = [];
+        data.forEach((row: string[], seq) => {
+            let emails = (row[emailIndex] as string).split(/[,;]/);
+            emails = emails.filter((email: string) => !email.includes("academiestudent.be"));
+            if(emails.length == 0)
+                return;
+            row[emailIndex] = emails.pop();
+            emails.forEach((email: string) => {
+                let copiedRow = [...row];
+                copiedRow[emailIndex] = email;
+                extraRows.push(copiedRow);
+            });
+        });
+        return data.concat(extraRows);
     }
 
 
