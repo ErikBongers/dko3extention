@@ -259,10 +259,24 @@ export class FetchedTable {
     getNextOffset = () => this.getNextPageNumber()*this.tableFetcher.tableRef.navigationData.step;
     getTemplate = () => this.shadowTableTemplate;
 
-    saveToCache() {
+    saveToCache(retry: boolean = true) {
         db3(`Caching ${this.tableFetcher.getCacheId()}.`);
-        window.sessionStorage.setItem(this.tableFetcher.getCacheId(), this.shadowTableTemplate.innerHTML);
-        window.sessionStorage.setItem(this.tableFetcher.getCacheId()+ def.CACHE_DATE_SUFFIX, (new Date()).toJSON());
+        try {
+            window.sessionStorage.setItem(this.tableFetcher.getCacheId(), this.shadowTableTemplate.innerHTML);
+            window.sessionStorage.setItem(this.tableFetcher.getCacheId() + def.CACHE_DATE_SUFFIX, (new Date()).toJSON());
+        } catch (e) {
+            console.error(e);
+            if(!retry)
+                return;
+            console.log("Clearing session cache and trying again...");
+            let sessionKeys = Object.keys(window.sessionStorage);
+            for(let key of sessionKeys) {
+                if(key.startsWith("table_leerlingen_werklijst")) {
+                    window.sessionStorage.removeItem(key);
+                }
+            }
+            this.saveToCache(false);
+        }
     }
 
     addPage(text: string) {
