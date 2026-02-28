@@ -86,8 +86,18 @@ function copyFullTable(table: HTMLTableElement) {
 
 async function copyForMailMerge(tableMeta: TableMeta, table: HTMLTableElement) {
     let mailMergeTable: MailMergeTable = new MailMergeTable(tableMeta, table);
-    let {flattendHeaders, flattendToStudent} = mailMergeTable.build();
-    createAndCopyTable(flattendHeaders, flattendToStudent);
+    let {vestigingsPlaatsen, studentTable} = await mailMergeTable.build();
+    let vestTable = createHtmlTable(vestigingsPlaatsen.headers, vestigingsPlaatsen.data);
+    let studTable = createHtmlTable(studentTable.headers, studentTable.data);
+    let clipboardText = `
+<table><tr><td>BEGIN Vestigingsplaatsen</td><td>Rows:</td></td><td>${vestigingsPlaatsen.data.length+1}</td><td>Columns:</td><td>1</td></tr></table>
+${vestTable.outerHTML}
+END Vestigingsplaatsen<br>
+<table><tr><td>BEGIN Studenten</td><td>Rows:</td></td><td>${studentTable.data.length+1}</td><td>Columns:</td><td>${studentTable.headers.length}</td></tr></table>
+${studTable.outerHTML}
+END Studenten<br>
+    `;
+    navigator.clipboard.writeText(clipboardText).then(_r => {});
 }
 
 function copyOneColumn(table: HTMLTableElement, index: number) {
@@ -215,14 +225,13 @@ export function executeTableCommands(tableRef: TableRef) {
 export interface TableMeta {
     tableRef: TableRef,
     infoBlock: InfoBlock,
-    listener: TableFetchListener,
 }
 function forTableDo(ev: MouseEvent, doIt: (tableMeta: TableMeta, index: number) => void) {
     ev.preventDefault();
     ev.stopPropagation();
     checkAndDownloadTableRows()
         .then(res => {
-            doIt({tableRef: res.tableRef, infoBlock: res.infoBlock, listener: res.listener}, getColumnIndex(ev));
+            doIt({tableRef: res.tableRef, infoBlock: res.infoBlock}, getColumnIndex(ev));
         });
 }
 

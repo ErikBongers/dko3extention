@@ -1,4 +1,5 @@
 import {TableMeta} from "./tableHeaders";
+import {getTableFromHash, InfoBarTableFetchListener} from "./loadAnyTable";
 
 interface DataIndexes {
     studentColumnIndexes: number[];
@@ -10,26 +11,38 @@ interface StudentRow {
     inschrijvingen: Map<string, number[]>
 }
 
+export interface TableWithHeader {
+    headers: string[];
+    data: string[][];
+}
+
 export class MailMergeTable {
     private table: HTMLTableElement;
     private readonly data: string[][];
     private readonly headers: string[];
+    private tableMeta: TableMeta;
 
     constructor(tableMeta: TableMeta, table: HTMLTableElement) {
         this.table = table;
+        this.tableMeta = tableMeta;
         let headerCells = this.table.tHead.children[0].children as HTMLCollectionOf<HTMLTableCellElement>;
         this.headers = [...headerCells].filter(cell => cell.style.display !== "none").map(cell => cell.innerText);
         let rows = table.tBodies[0].children as HTMLCollectionOf<HTMLTableRowElement>;
         this.data = [...rows].map(row => [...row.cells].filter(cell => cell.style.display !== "none").map(cell => cell.innerText));
     }
 
-    build() {
-        // getTableFromHash("extra-academie-vestigingsplaatsen")
-
-
-        return this.buildStudentTable();
+    async build(): Promise<{ vestigingsPlaatsen: TableWithHeader, studentTable: TableWithHeader }> {
+        let fetchedTable = await getTableFromHash("extra-academie-vestigingsplaatsen", false, new InfoBarTableFetchListener(this.tableMeta.infoBlock));
+        let rows = fetchedTable.getRows();
+        let vestigingsPlaatsen = [...rows].map(row => row.cells[1].innerText);
+        let vestigingsTable: TableWithHeader = {headers: ["Vestigingsplaats"], data: vestigingsPlaatsen.map(vestiging => [vestiging])};
+        let studentTable = this.buildStudentTable();
+        return {
+            vestigingsPlaatsen: vestigingsTable,
+            studentTable};
     }
-    buildStudentTable() {
+
+    buildStudentTable(): TableWithHeader {
         let emailIndex = this.headers.findIndex(header => header.toLowerCase().includes("e-mailadressen"));
         if(emailIndex === -1) {
             alert("Geen e-mailadressen gevonden'. Voed dit veld toe aan de lijst.");
@@ -158,7 +171,7 @@ export class MailMergeTable {
         // // -- sort rows per seq and remove seq.
         // cells.sort((a, b) => (a[seqIndex] as number) - (b[seqIndex] as number));
         // cells.forEach(row => row.pop());
-        return {flattendHeaders, flattendToStudent};
+        return {headers: flattendHeaders, data: flattendToStudent};
     }
 
 
