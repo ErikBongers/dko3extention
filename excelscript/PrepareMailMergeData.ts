@@ -2,13 +2,18 @@
 //https://github.com/sumurthy/officescripts-projects/blob/main/misc/index.d.ts
 
 function main(workbook: ExcelScript.Workbook) {
-    // defineTable(workbook, "Dko3Data", "Studenten");
-    // defineTable(workbook, "Dko3Data", "Vestigingsplaatsen");
-    setDataValidation(workbook);
+    workbook.getTable("tableStudenten")?.delete();
+    workbook.getTable("tableVestigingsplaatsen")?.delete();
+    defineTable(workbook, "Dko3Data", "Studenten");
+    defineTable(workbook, "Dko3Data", "Vestigingsplaatsen");
+    ["tableStudenten", "tableVestigingsplaatsen"].forEach(tableName => {
+        workbook.getTable(tableName).setPredefinedTableStyle("TableStyleLight8");
+    });
+    setDataValidation(workbook, "tableVestigingExtraInfo", "Vestigingsplaats", "tableVestigingsplaatsen", "Vestigingsplaats");
 }
 
-function defineTable(workbook: ExcelScript.Workbook, dataSheeetName: string, tableName: string) {
-    let dataSheet = workbook.getWorksheet(dataSheeetName);
+function defineTable(workbook: ExcelScript.Workbook, dataSheetName: string, tableName: string) {
+    let dataSheet = workbook.getWorksheet(dataSheetName);
     let beginDataBlock = dataSheet.getRange()
         .find("BEGIN " + tableName, {
             completeMatch: false,
@@ -30,17 +35,14 @@ function defineTable(workbook: ExcelScript.Workbook, dataSheeetName: string, tab
     newTable.setName("table" + tableName);
 }
 
-function setDataValidation(workbook: ExcelScript.Workbook) {
+function setDataValidation(workbook: ExcelScript.Workbook, tableName: string, columnName: string, validationTable: string, validationColumn: string) {
     let dataValidation: ExcelScript.DataValidation;
-    let locationsSheet = workbook.getWorksheet("Info Vestigingsplaatsen");
-    // Data validation changed on range D7 on selectedSheet
-    dataValidation = locationsSheet.getRange("D7").getDataValidation();
+    let range = workbook.getTable(tableName).getColumnByName(columnName).getRange();
+    dataValidation = range.getDataValidation();
     dataValidation.clear();
     dataValidation.setIgnoreBlanks(true);
     dataValidation.setPrompt({ showPrompt: true, title: "", message: "" });
     dataValidation.setErrorAlert({ showAlert: true, title: "", message: "", style: ExcelScript.DataValidationAlertStyle.stop });
-    let dataSheet = workbook.getWorksheet("Dko3data");
-    let rangeStr: string = dataSheet.getRange("tableVestigingsplaatsen").getAddress();
-    console.log(rangeStr);
+    let rangeStr: string = workbook.getTable(validationTable).getColumnByName(validationColumn).getRange().getAddress();
     dataValidation.setRule({ list: { inCellDropDown: true, source: "=" + rangeStr } });
 }
