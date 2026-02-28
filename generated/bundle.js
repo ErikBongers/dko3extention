@@ -2737,6 +2737,8 @@ var MailMergeTable = class {
 	data;
 	headers;
 	tableMeta;
+	maxInschrijvingen;
+	maxLessen;
 	constructor(tableMeta, table) {
 		this.table = table;
 		this.tableMeta = tableMeta;
@@ -2758,6 +2760,24 @@ var MailMergeTable = class {
 			vestigingsPlaatsen: vestigingsTable,
 			studentTable
 		};
+	}
+	async toHtml() {
+		let { vestigingsPlaatsen, studentTable } = await this.build();
+		let vestTable = createHtmlTable(vestigingsPlaatsen.headers, vestigingsPlaatsen.data);
+		let studTable = createHtmlTable(studentTable.headers, studentTable.data);
+		let clipboardText = `
+${this.createSingleRowTable("BEGIN Vestigingsplaatsen", "Rows:", (vestigingsPlaatsen.data.length + 1).toString(), "Columns:", "1")}
+${vestTable.outerHTML}
+END Vestigingsplaatsen<br>
+${this.createSingleRowTable("maxInschrijvingen:", this.maxInschrijvingen.toString(), "maxLessen:", this.maxLessen.toString())}
+${this.createSingleRowTable("BEGIN Studenten", "Rows:", (studentTable.data.length + 1).toString(), "Columns:", studentTable.headers.length.toString())}
+${studTable.outerHTML}
+END Studenten<br>
+    `;
+		return clipboardText;
+	}
+	createSingleRowTable(...values) {
+		return `<table><tr>${values.map((value) => `<td>${value}</td>`).join("")}</tr></table>`;
 	}
 	buildStudentTable() {
 		let emailIndex = this.headers.findIndex((header) => header.toLowerCase().includes("e-mailadressen"));
@@ -2805,19 +2825,19 @@ var MailMergeTable = class {
 			});
 		});
 		console.log(groupedPerStudent);
-		let maxInschrijvingen = Math.max(...groupedPerStudent.map((student) => student.inschrijvingen.size));
+		this.maxInschrijvingen = Math.max(...groupedPerStudent.map((student) => student.inschrijvingen.size));
 		let lessen = groupedPerStudent.map((student) => [...student.inschrijvingen.values()]).map((inschrijving) => inschrijving.map((lessen$1) => lessen$1.length)).flat();
 		console.log(lessen);
-		let maxLessen = Math.max(...groupedPerStudent.map((student) => [...student.inschrijvingen.values()]).map((inschrijving) => inschrijving.map((lessen$1) => lessen$1.length)).flat());
+		this.maxLessen = Math.max(...groupedPerStudent.map((student) => [...student.inschrijvingen.values()]).map((inschrijving) => inschrijving.map((lessen$1) => lessen$1.length)).flat());
 		let flattendToStudent = [];
 		let flattendHeaders = [];
 		dataDef.studentColumnIndexes.forEach((colIndex) => flattendHeaders.push(this.headers[colIndex]));
-		[...new Array(maxInschrijvingen).keys()].forEach((inschrijvingCnt) => {
+		[...new Array(this.maxInschrijvingen).keys()].forEach((inschrijvingCnt) => {
 			dataDef.inschrijvingenColumnIndexes.forEach((colIndex) => {
 				let label = `${this.headers[colIndex]}${inschrijvingCnt + 1}`;
 				flattendHeaders.push(label);
 			});
-			[...new Array(maxLessen).keys()].forEach((lesCnt) => {
+			[...new Array(this.maxLessen).keys()].forEach((lesCnt) => {
 				dataDef.lesColumnIndexes.forEach((colIndex) => {
 					let label = `${this.headers[colIndex]}${inschrijvingCnt + 1}.${lesCnt + 1}`;
 					flattendHeaders.push(label);
@@ -2828,11 +2848,11 @@ var MailMergeTable = class {
 			let row = [];
 			dataDef.studentColumnIndexes.forEach((colIndex) => row.push(this.data[student.allInschrijvingenRows[0]][colIndex]));
 			let inschrijvingen = [...student.inschrijvingen.values()];
-			[...new Array(maxInschrijvingen).keys()].forEach((inschrijvingCnt) => {
+			[...new Array(this.maxInschrijvingen).keys()].forEach((inschrijvingCnt) => {
 				if (inschrijvingCnt < inschrijvingen.length) {
 					let inschrijvingRows = inschrijvingen[inschrijvingCnt];
 					dataDef.inschrijvingenColumnIndexes.forEach((colIndex) => row.push(this.translateMailMerge(inschrijvingRows[0], colIndex)));
-					[...new Array(maxLessen).keys()].forEach((lesCnt) => {
+					[...new Array(this.maxLessen).keys()].forEach((lesCnt) => {
 						if (lesCnt < inschrijvingRows.length) {
 							let rowIndex = inschrijvingRows[lesCnt];
 							dataDef.lesColumnIndexes.forEach((colIndex) => row.push(this.translateMailMerge(rowIndex, colIndex)));
@@ -2840,7 +2860,7 @@ var MailMergeTable = class {
 					});
 				} else {
 					dataDef.inschrijvingenColumnIndexes.forEach((_) => row.push(""));
-					[...new Array(maxLessen).keys()].forEach((_) => {
+					[...new Array(this.maxLessen).keys()].forEach((_) => {
 						dataDef.lesColumnIndexes.forEach((_$1) => row.push(""));
 					});
 				}
@@ -3003,18 +3023,8 @@ function copyFullTable(table) {
 }
 async function copyForMailMerge(tableMeta, table) {
 	let mailMergeTable = new MailMergeTable(tableMeta, table);
-	let { vestigingsPlaatsen, studentTable } = await mailMergeTable.build();
-	let vestTable = createHtmlTable(vestigingsPlaatsen.headers, vestigingsPlaatsen.data);
-	let studTable = createHtmlTable(studentTable.headers, studentTable.data);
-	let clipboardText = `
-<table><tr><td>BEGIN Vestigingsplaatsen</td><td>Rows:</td></td><td>${vestigingsPlaatsen.data.length + 1}</td><td>Columns:</td><td>1</td></tr></table>
-${vestTable.outerHTML}
-END Vestigingsplaatsen<br>
-<table><tr><td>BEGIN Studenten</td><td>Rows:</td></td><td>${studentTable.data.length + 1}</td><td>Columns:</td><td>${studentTable.headers.length}</td></tr></table>
-${studTable.outerHTML}
-END Studenten<br>
-    `;
-	navigator.clipboard.writeText(clipboardText).then((_r) => {});
+	let text = await mailMergeTable.toHtml();
+	navigator.clipboard.writeText(text).then((_r) => {});
 }
 function copyOneColumn(table, index) {
 	createAndCopyTable([table.tHead.children[0].children[index].innerText], [...table.tBodies[0].rows].map((row) => [row.cells[index].innerText]));
