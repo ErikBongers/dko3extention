@@ -1,3 +1,7 @@
+import {createDefaultTableRefAndInfoBar, getTableFromHash, InfoBarTableFetchListener} from "./loadAnyTable";
+import {TableFetcher} from "./tableFetcher";
+import {getChecksumBuilder} from "./observer";
+
 interface DataIndexes {
     studentColumnIndexes: number[];
     inschrijvingenColumnIndexes: number[];
@@ -22,6 +26,12 @@ export class MailMergeTable {
     }
 
     build() {
+        // getTableFromHash("extra-academie-vestigingsplaatsen")
+
+
+        return this.buildStudentTable();
+    }
+    buildStudentTable() {
         let emailIndex = this.headers.findIndex(header => header.toLowerCase().includes("e-mailadressen"));
         if(emailIndex === -1) {
             alert("Geen e-mailadressen gevonden'. Voed dit veld toe aan de lijst.");
