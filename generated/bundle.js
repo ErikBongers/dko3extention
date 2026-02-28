@@ -2731,6 +2731,205 @@ var FetchedTable = class {
 };
 
 //#endregion
+//#region typescript/table/mailMerge.ts
+var MailMergeTable = class {
+	table;
+	data;
+	headers;
+	constructor(table) {
+		this.table = table;
+		let headerCells = this.table.tHead.children[0].children;
+		this.headers = [...headerCells].filter((cell) => cell.style.display !== "none").map((cell) => cell.innerText);
+		let rows = table.tBodies[0].children;
+		this.data = [...rows].map((row) => [...row.cells].filter((cell) => cell.style.display !== "none").map((cell) => cell.innerText));
+	}
+	build() {
+		let emailIndex = this.headers.findIndex((header) => header.toLowerCase().includes("e-mailadressen"));
+		if (emailIndex === -1) {
+			alert("Geen e-mailadressen gevonden'. Voed dit veld toe aan de lijst.");
+			return;
+		}
+		let dataDef = {
+			studentColumnIndexes: [],
+			inschrijvingenColumnIndexes: [],
+			lesColumnIndexes: []
+		};
+		this.headers.forEach((header, index) => {
+			if (WerklijstFieldsStudent.includes(header)) dataDef.studentColumnIndexes.push(index);
+			else if (WerklijstFieldsInschrijving.includes(header)) dataDef.inschrijvingenColumnIndexes.push(index);
+			else if (WerklijstFieldsLes.includes(header)) dataDef.lesColumnIndexes.push(index);
+		});
+		let groupedPerStudent = [];
+		this.data.forEach((row, rowIndex) => {
+			if (groupedPerStudent.length == 0) {
+				groupedPerStudent.push({
+					allInschrijvingenRows: [rowIndex],
+					inschrijvingen: new Map()
+				});
+				return;
+			}
+			let baseStudentRow = this.data[groupedPerStudent[groupedPerStudent.length - 1].allInschrijvingenRows[0]];
+			let isNewStudent = dataDef.studentColumnIndexes.some((index) => row[index] != baseStudentRow[index]);
+			if (isNewStudent) {
+				groupedPerStudent.push({
+					allInschrijvingenRows: [rowIndex],
+					inschrijvingen: new Map()
+				});
+				return;
+			}
+			groupedPerStudent[groupedPerStudent.length - 1].allInschrijvingenRows.push(rowIndex);
+		});
+		groupedPerStudent.forEach((student) => {
+			student.allInschrijvingenRows.forEach((inschrijvingRow) => {
+				let currentRow = this.data[inschrijvingRow];
+				let key = dataDef.inschrijvingenColumnIndexes.map((index) => currentRow[index]).join("|");
+				if (!student.inschrijvingen.has(key)) student.inschrijvingen.set(key, []);
+				student.inschrijvingen.get(key).push(inschrijvingRow);
+				return;
+			});
+		});
+		console.log(groupedPerStudent);
+		let maxInschrijvingen = Math.max(...groupedPerStudent.map((student) => student.inschrijvingen.size));
+		let lessen = groupedPerStudent.map((student) => [...student.inschrijvingen.values()]).map((inschrijving) => inschrijving.map((lessen$1) => lessen$1.length)).flat();
+		console.log(lessen);
+		let maxLessen = Math.max(...groupedPerStudent.map((student) => [...student.inschrijvingen.values()]).map((inschrijving) => inschrijving.map((lessen$1) => lessen$1.length)).flat());
+		let flattendToStudent = [];
+		let flattendHeaders = [];
+		dataDef.studentColumnIndexes.forEach((colIndex) => flattendHeaders.push(this.headers[colIndex]));
+		[...new Array(maxInschrijvingen).keys()].forEach((inschrijvingCnt) => {
+			dataDef.inschrijvingenColumnIndexes.forEach((colIndex) => {
+				let label = `${this.headers[colIndex]}${inschrijvingCnt + 1}`;
+				flattendHeaders.push(label);
+			});
+			[...new Array(maxLessen).keys()].forEach((lesCnt) => {
+				dataDef.lesColumnIndexes.forEach((colIndex) => {
+					let label = `${this.headers[colIndex]}${inschrijvingCnt + 1}.${lesCnt + 1}`;
+					flattendHeaders.push(label);
+				});
+			});
+		});
+		groupedPerStudent.forEach((student) => {
+			let row = [];
+			dataDef.studentColumnIndexes.forEach((colIndex) => row.push(this.data[student.allInschrijvingenRows[0]][colIndex]));
+			let inschrijvingen = [...student.inschrijvingen.values()];
+			[...new Array(maxInschrijvingen).keys()].forEach((inschrijvingCnt) => {
+				if (inschrijvingCnt < inschrijvingen.length) {
+					let inschrijvingRows = inschrijvingen[inschrijvingCnt];
+					dataDef.inschrijvingenColumnIndexes.forEach((colIndex) => row.push(this.translateMailMerge(inschrijvingRows[0], colIndex)));
+					[...new Array(maxLessen).keys()].forEach((lesCnt) => {
+						if (lesCnt < inschrijvingRows.length) {
+							let rowIndex = inschrijvingRows[lesCnt];
+							dataDef.lesColumnIndexes.forEach((colIndex) => row.push(this.translateMailMerge(rowIndex, colIndex)));
+						} else dataDef.lesColumnIndexes.forEach((_) => row.push(""));
+					});
+				} else {
+					dataDef.inschrijvingenColumnIndexes.forEach((_) => row.push(""));
+					[...new Array(maxLessen).keys()].forEach((_) => {
+						dataDef.lesColumnIndexes.forEach((_$1) => row.push(""));
+					});
+				}
+			});
+			flattendToStudent.push(row);
+		});
+		return {
+			flattendHeaders,
+			flattendToStudent
+		};
+	}
+	translateMailMerge(rowIndex, colIndex) {
+		let row = this.data[rowIndex];
+		let col = this.headers[colIndex];
+		let value = row[colIndex];
+		if (this.headers[colIndex].includes("lesmoment")) value = value.replace("(wekelijks)", "").trim();
+		return value;
+	}
+};
+let WerklijstFieldsInschrijving = [
+	"domein",
+	"vakken (binnen de criteria)",
+	"alle vakken",
+	"instrumenten (binnen de criteria)",
+	"alle instrumenten",
+	"graad",
+	"leerjaar",
+	"graad + leerjaar",
+	"graad + leerjaar + sectie",
+	"optie",
+	"sectie",
+	"administratieve groep: naam",
+	"administratieve groep: officiële naam",
+	"administratieve groep: code",
+	"volledig vrije leerling",
+	"volledig eigen leerling",
+	"volledig vrije en/of eigen leerling",
+	"inschrijving: datum",
+	"uitschrijving: datum",
+	"uitschrijving: reden",
+	"financierbaarheid",
+	"inschrijving: einde graad",
+	"leertraject",
+	"studierichting",
+	"geslaagd (vak)",
+	"resultaat (vak)",
+	"geslaagd (globaal)",
+	"resultaat (globaal)",
+	"alternatieve leercontext",
+	"akkoord en meer: ingevuld?",
+	"akkoord en meer:  toestemming beeldmateriaal?",
+	"akkoord en meer: ingevuld op",
+	"akkoord en meer: ingevuld door",
+	"status Discimus",
+	"cursussen"
+];
+let WerklijstFieldsLes = [
+	"vak: naam",
+	"vak: officiële naam",
+	"vak: code",
+	"les: id",
+	"vestigingsplaats",
+	"benaming les",
+	"lesmomenten",
+	"lokaal",
+	"klasleerkracht",
+	"alle leerkrachten (zonder interims)",
+	"alle leerkrachten (met interims)"
+];
+let WerklijstFieldsStudent = [
+	"stamnummer",
+	"naam",
+	"voornaam",
+	"roepnaam",
+	"persoon: id",
+	"geboortedatum",
+	"geboorteplaats",
+	"geslacht",
+	"gender",
+	"rijksregisternummer",
+	"nationaliteit",
+	"opmerking personalia",
+	"leeftijd op 31 december",
+	"leeftijd op vandaag",
+	"token",
+	"is zorgleerling?",
+	"huisnummer",
+	"busnummer",
+	"postcode",
+	"gemeente",
+	"land",
+	"leefeenheid: alle leden",
+	"leefeenheid: alle actieve leden in [schooljaar]",
+	"leefeenheid: te betalen",
+	"leefeenheid: betaald",
+	"leefeenheid: saldo",
+	"e-mailadressen (gescheiden door puntkomma)",
+	"e-mailadressen marketing (gescheiden door komma)",
+	"e-mailadressen marketing (gescheiden door puntkomma)",
+	"e-mailadres van de school",
+	"telefoonnummers",
+	"mobiele nummers voor verwittiging"
+];
+
+//#endregion
 //#region typescript/table/tableHeaders.ts
 let _otherTabsDataCache = new Map();
 function addToOtherTabsDataCache(data) {
@@ -2787,105 +2986,9 @@ function copyFullTable(table) {
 	createAndCopyTable(headers, cells);
 }
 async function copyForMailMerge(table) {
-	let headerCells = table.tHead.children[0].children;
-	let headers = [...headerCells].filter((cell) => cell.style.display !== "none").map((cell) => cell.innerText);
-	let rows = table.tBodies[0].children;
-	let data = [...rows].map((row) => [...row.cells].filter((cell) => cell.style.display !== "none").map((cell) => cell.innerText));
-	let emailIndex = headers.findIndex((header) => header.toLowerCase().includes("e-mailadressen"));
-	if (emailIndex === -1) {
-		alert("Geen e-mailadressen gevonden'. Voed dit veld toe aan de lijst.");
-		return;
-	}
-	let dataDef = {
-		studentColumnIndexes: [],
-		inschrijvingenColumnIndexes: [],
-		lesColumnIndexes: []
-	};
-	headers.forEach((header, index) => {
-		if (WerklijstFieldsStudent.includes(header)) dataDef.studentColumnIndexes.push(index);
-		else if (WerklijstFieldsInschrijving.includes(header)) dataDef.inschrijvingenColumnIndexes.push(index);
-		else if (WerklijstFieldsLes.includes(header)) dataDef.lesColumnIndexes.push(index);
-	});
-	let groupedPerStudent = [];
-	data.forEach((row, rowIndex) => {
-		if (groupedPerStudent.length == 0) {
-			groupedPerStudent.push({
-				allInschrijvingenRows: [rowIndex],
-				inschrijvingen: new Map()
-			});
-			return;
-		}
-		let baseStudentRow = data[groupedPerStudent[groupedPerStudent.length - 1].allInschrijvingenRows[0]];
-		let isNewStudent = dataDef.studentColumnIndexes.some((index) => row[index] != baseStudentRow[index]);
-		if (isNewStudent) {
-			groupedPerStudent.push({
-				allInschrijvingenRows: [rowIndex],
-				inschrijvingen: new Map()
-			});
-			return;
-		}
-		groupedPerStudent[groupedPerStudent.length - 1].allInschrijvingenRows.push(rowIndex);
-	});
-	groupedPerStudent.forEach((student) => {
-		student.allInschrijvingenRows.forEach((inschrijvingRow) => {
-			let currentRow = data[inschrijvingRow];
-			let key = dataDef.inschrijvingenColumnIndexes.map((index) => currentRow[index]).join("|");
-			if (!student.inschrijvingen.has(key)) student.inschrijvingen.set(key, []);
-			student.inschrijvingen.get(key).push(inschrijvingRow);
-			return;
-		});
-	});
-	console.log(groupedPerStudent);
-	let maxInschrijvingen = Math.max(...groupedPerStudent.map((student) => student.inschrijvingen.size));
-	let lessen = groupedPerStudent.map((student) => [...student.inschrijvingen.values()]).map((inschrijving) => inschrijving.map((lessen$1) => lessen$1.length)).flat();
-	console.log(lessen);
-	let maxLessen = Math.max(...groupedPerStudent.map((student) => [...student.inschrijvingen.values()]).map((inschrijving) => inschrijving.map((lessen$1) => lessen$1.length)).flat());
-	let flattendToStudent = [];
-	let flattendHeaders = [];
-	dataDef.studentColumnIndexes.forEach((colIndex) => flattendHeaders.push(headers[colIndex]));
-	[...new Array(maxInschrijvingen).keys()].forEach((inschrijvingCnt) => {
-		dataDef.inschrijvingenColumnIndexes.forEach((colIndex) => {
-			let label = `${headers[colIndex]}${inschrijvingCnt + 1}`;
-			flattendHeaders.push(label);
-		});
-		[...new Array(maxLessen).keys()].forEach((lesCnt) => {
-			dataDef.lesColumnIndexes.forEach((colIndex) => {
-				let label = `${headers[colIndex]}${inschrijvingCnt + 1}.${lesCnt + 1}`;
-				flattendHeaders.push(label);
-			});
-		});
-	});
-	groupedPerStudent.forEach((student) => {
-		let row = [];
-		dataDef.studentColumnIndexes.forEach((colIndex) => row.push(data[student.allInschrijvingenRows[0]][colIndex]));
-		let inschrijvingen = [...student.inschrijvingen.values()];
-		[...new Array(maxInschrijvingen).keys()].forEach((inschrijvingCnt) => {
-			if (inschrijvingCnt < inschrijvingen.length) {
-				let inschrijvingRows = inschrijvingen[inschrijvingCnt];
-				dataDef.inschrijvingenColumnIndexes.forEach((colIndex) => row.push(translateMailMerge(data, headers, inschrijvingRows[0], colIndex)));
-				[...new Array(maxLessen).keys()].forEach((lesCnt) => {
-					if (lesCnt < inschrijvingRows.length) {
-						let rowIndex = inschrijvingRows[lesCnt];
-						dataDef.lesColumnIndexes.forEach((colIndex) => row.push(translateMailMerge(data, headers, rowIndex, colIndex)));
-					} else dataDef.lesColumnIndexes.forEach((_) => row.push(""));
-				});
-			} else {
-				dataDef.inschrijvingenColumnIndexes.forEach((_) => row.push(""));
-				[...new Array(maxLessen).keys()].forEach((_) => {
-					dataDef.lesColumnIndexes.forEach((_$1) => row.push(""));
-				});
-			}
-		});
-		flattendToStudent.push(row);
-	});
+	let mailMergeTable = new MailMergeTable(table);
+	let { flattendHeaders, flattendToStudent } = mailMergeTable.build();
 	createAndCopyTable(flattendHeaders, flattendToStudent);
-}
-function translateMailMerge(data, headers, rowIndex, colIndex) {
-	let row = data[rowIndex];
-	let col = headers[colIndex];
-	let value = row[colIndex];
-	if (headers[colIndex].includes("lesmoment")) value = value.replace("(wekelijks)", "").trim();
-	return value;
 }
 function copyOneColumn(table, index) {
 	createAndCopyTable([table.tHead.children[0].children[index].innerText], [...table.tBodies[0].rows].map((row) => [row.cells[index].innerText]));
@@ -3113,90 +3216,6 @@ function swapColumns(row, index1, index2) {
 	if (index1 > index2) [index1, index2] = [index2, index1];
 	row.children[index1].parentElement.insertBefore(row.children[index2], row.children[index1]);
 }
-let WerklijstFieldsInschrijving = [
-	"domein",
-	"vakken (binnen de criteria)",
-	"alle vakken",
-	"instrumenten (binnen de criteria)",
-	"alle instrumenten",
-	"graad",
-	"leerjaar",
-	"graad + leerjaar",
-	"graad + leerjaar + sectie",
-	"optie",
-	"sectie",
-	"administratieve groep: naam",
-	"administratieve groep: officiële naam",
-	"administratieve groep: code",
-	"volledig vrije leerling",
-	"volledig eigen leerling",
-	"volledig vrije en/of eigen leerling",
-	"inschrijving: datum",
-	"uitschrijving: datum",
-	"uitschrijving: reden",
-	"financierbaarheid",
-	"inschrijving: einde graad",
-	"leertraject",
-	"studierichting",
-	"geslaagd (vak)",
-	"resultaat (vak)",
-	"geslaagd (globaal)",
-	"resultaat (globaal)",
-	"alternatieve leercontext",
-	"akkoord en meer: ingevuld?",
-	"akkoord en meer:  toestemming beeldmateriaal?",
-	"akkoord en meer: ingevuld op",
-	"akkoord en meer: ingevuld door",
-	"status Discimus",
-	"cursussen"
-];
-let WerklijstFieldsLes = [
-	"vak: naam",
-	"vak: officiële naam",
-	"vak: code",
-	"les: id",
-	"vestigingsplaats",
-	"benaming les",
-	"lesmomenten",
-	"lokaal",
-	"klasleerkracht",
-	"alle leerkrachten (zonder interims)",
-	"alle leerkrachten (met interims)"
-];
-let WerklijstFieldsStudent = [
-	"stamnummer",
-	"naam",
-	"voornaam",
-	"roepnaam",
-	"persoon: id",
-	"geboortedatum",
-	"geboorteplaats",
-	"geslacht",
-	"gender",
-	"rijksregisternummer",
-	"nationaliteit",
-	"opmerking personalia",
-	"leeftijd op 31 december",
-	"leeftijd op vandaag",
-	"token",
-	"is zorgleerling?",
-	"huisnummer",
-	"busnummer",
-	"postcode",
-	"gemeente",
-	"land",
-	"leefeenheid: alle leden",
-	"leefeenheid: alle actieve leden in [schooljaar]",
-	"leefeenheid: te betalen",
-	"leefeenheid: betaald",
-	"leefeenheid: saldo",
-	"e-mailadressen (gescheiden door puntkomma)",
-	"e-mailadressen marketing (gescheiden door komma)",
-	"e-mailadressen marketing (gescheiden door puntkomma)",
-	"e-mailadres van de school",
-	"telefoonnummers",
-	"mobiele nummers voor verwittiging"
-];
 
 //#endregion
 //#region typescript/table/observer.ts
