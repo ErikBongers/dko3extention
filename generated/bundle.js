@@ -641,7 +641,7 @@ async function openHtmlTab(cacheId, pageTitle) {
 async function openHoursSettings(schoolyear) {
 	return sendRequest(Actions.OpenHoursSettings, TabType.Main, TabType.Undefined, void 0, { schoolyear }, "Lerarenuren setup voor schooljaar " + schoolyear);
 }
-function createTable$1(headers, cols) {
+function createHtmlTable(headers, cols) {
 	let tmpDiv = document.createElement("div");
 	let { first: tmpTable, last: tmpThead } = emmet.appendChild(tmpDiv, "table>thead");
 	for (let th of headers) emmet.appendChild(tmpThead, `th{${th}}`);
@@ -2841,33 +2841,57 @@ async function copyForMailMerge(table) {
 	console.log(lessen);
 	let maxLessen = Math.max(...groupedPerStudent.map((student) => [...student.inschrijvingen.values()]).map((inschrijving) => inschrijving.map((lessen$1) => lessen$1.length)).flat());
 	let flattendToStudent = [];
+	let flattendHeaders = [];
+	dataDef.studentColumnIndexes.forEach((colIndex) => flattendHeaders.push(headers[colIndex]));
+	[...new Array(maxInschrijvingen).keys()].forEach((inschrijvingCnt) => {
+		dataDef.inschrijvingenColumnIndexes.forEach((colIndex) => {
+			let label = `${headers[colIndex]}${inschrijvingCnt + 1}`;
+			flattendHeaders.push(label);
+		});
+		[...new Array(maxLessen).keys()].forEach((lesCnt) => {
+			dataDef.lesColumnIndexes.forEach((colIndex) => {
+				let label = `${headers[colIndex]}${inschrijvingCnt + 1}.${lesCnt + 1}`;
+				flattendHeaders.push(label);
+			});
+		});
+	});
 	groupedPerStudent.forEach((student) => {
 		let row = [];
 		dataDef.studentColumnIndexes.forEach((colIndex) => row.push(data[student.allInschrijvingenRows[0]][colIndex]));
+		let inschrijvingen = [...student.inschrijvingen.values()];
 		[...new Array(maxInschrijvingen).keys()].forEach((inschrijvingCnt) => {
-			let inschrijvingen = [...student.inschrijvingen.values()];
 			if (inschrijvingCnt < inschrijvingen.length) {
 				let inschrijvingRows = inschrijvingen[inschrijvingCnt];
-				dataDef.inschrijvingenColumnIndexes.forEach((colIndex) => row.push(data[inschrijvingRows[0]][colIndex]));
+				dataDef.inschrijvingenColumnIndexes.forEach((colIndex) => row.push(translateMailMerge(data, headers, inschrijvingRows[0], colIndex)));
 				[...new Array(maxLessen).keys()].forEach((lesCnt) => {
 					if (lesCnt < inschrijvingRows.length) {
 						let rowIndex = inschrijvingRows[lesCnt];
-						dataDef.lesColumnIndexes.forEach((colIndex) => row.push(data[rowIndex][colIndex]));
-					} else dataDef.lesColumnIndexes.forEach((colIndex) => row.push(""));
+						dataDef.lesColumnIndexes.forEach((colIndex) => row.push(translateMailMerge(data, headers, rowIndex, colIndex)));
+					} else dataDef.lesColumnIndexes.forEach((_) => row.push(""));
 				});
 			} else {
-				dataDef.inschrijvingenColumnIndexes.forEach((colIndex) => row.push(""));
-				dataDef.lesColumnIndexes.forEach((colIndex) => row.push(""));
+				dataDef.inschrijvingenColumnIndexes.forEach((_) => row.push(""));
+				[...new Array(maxLessen).keys()].forEach((_) => {
+					dataDef.lesColumnIndexes.forEach((_$1) => row.push(""));
+				});
 			}
 		});
 		flattendToStudent.push(row);
 	});
+	createAndCopyTable(flattendHeaders, flattendToStudent);
+}
+function translateMailMerge(data, headers, rowIndex, colIndex) {
+	let row = data[rowIndex];
+	let col = headers[colIndex];
+	let value = row[colIndex];
+	if (headers[colIndex].includes("lesmoment")) value = value.replace("(wekelijks)", "").trim();
+	return value;
 }
 function copyOneColumn(table, index) {
 	createAndCopyTable([table.tHead.children[0].children[index].innerText], [...table.tBodies[0].rows].map((row) => [row.cells[index].innerText]));
 }
 function createAndCopyTable(headers, cols) {
-	navigator.clipboard.writeText(createTable$1(headers, cols).outerHTML).then((_r) => {});
+	navigator.clipboard.writeText(createHtmlTable(headers, cols).outerHTML).then((_r) => {});
 }
 function reSortTableByColumn(ev, table) {
 	let header = table.tHead.children[0].children[getColumnIndex(ev)];
