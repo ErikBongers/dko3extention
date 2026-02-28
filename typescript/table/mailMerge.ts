@@ -8,6 +8,7 @@ interface DataIndexes {
     lesColumnIndexes: number[];
 }
 interface StudentRow {
+    vestigingsPlaatsen: string[];
     allInschrijvingenRows: number[],
     inschrijvingen: Map<string, number[]>
 }
@@ -20,7 +21,7 @@ export interface TableWithHeader {
 export class MailMergeTable {
     private table: HTMLTableElement;
     private data: string[][];
-    private readonly headers: string[];
+    private headers: string[];
     private tableMeta: TableMeta;
     private maxInschrijvingen: number;
     private maxLessen: number;
@@ -78,12 +79,6 @@ END Studenten<br>
             return;
         }
 
-        // // -- add seq to rows.
-        // let seqIndex = headers.length; //we'll be adding a seq column to each row later.
-        // cells.forEach((row: (string | number)[], seq) => {
-        //     row.push(seq);
-        // });
-        //
         // -- aggregate at student level.
         let dataDef: DataIndexes = { studentColumnIndexes: [], inschrijvingenColumnIndexes: [], lesColumnIndexes: []};
         this.headers.forEach((header, index) => {
@@ -100,6 +95,7 @@ END Studenten<br>
         this.data.forEach((row, rowIndex) => {
             if(groupedPerStudent.length == 0) {
                 groupedPerStudent.push({
+                    vestigingsPlaatsen: [],
                     allInschrijvingenRows: [rowIndex],
                     inschrijvingen: new Map()
                 });
@@ -110,6 +106,7 @@ END Studenten<br>
             let isNewStudent = dataDef.studentColumnIndexes.some(index => row[index] != baseStudentRow[index]);
             if(isNewStudent) {
                 groupedPerStudent.push({
+                    vestigingsPlaatsen: [],
                     allInschrijvingenRows: [rowIndex],
                     inschrijvingen: new Map()
                 });
@@ -152,6 +149,23 @@ END Studenten<br>
             });
         });
 
+        // -- Add unique vestigingsplaatsen to each row.
+        let vestigingsPlaatsIndex = this.headers.findIndex(header => header == "vestigingsplaats");
+        groupedPerStudent.forEach(student => {
+            student.vestigingsPlaatsen = student.allInschrijvingenRows
+                .map(row => this.data[row][vestigingsPlaatsIndex])
+                .filter(vestiging => vestiging != "")
+                //make unique per student.
+                .reduce((acc, vestiging) => {
+                    if (!acc.includes(vestiging))
+                        acc.push(vestiging);
+                    return acc;
+                }, [] as string[]);
+        });
+        let maxVestigingsplaatsen = Math.max(...groupedPerStudent
+            .map(student => student.vestigingsPlaatsen.length)
+        );
+
         //Flatten table to 1 line per student
         groupedPerStudent.forEach(student => {
             let row: string[] = [];
@@ -176,8 +190,16 @@ END Studenten<br>
                     });
                 }
             });
+            student.vestigingsPlaatsen.forEach(vestiging => row.push(vestiging));
+            // fill student.vestigingsPlaatsen with empty strings to match maxVestigingsplaatsen
+            [...new Array(maxVestigingsplaatsen - student.vestigingsPlaatsen.length).keys()].forEach(_ => row.push(""));
+
             flattendToStudent.push(row);
         });
+
+        flattendHeaders.push(...[...new Array(maxVestigingsplaatsen).keys()].map(index => "vestigingsplaats" + (index + 1)));
+
+
 
         //
         // // -- split rows per email

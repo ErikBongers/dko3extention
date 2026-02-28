@@ -2812,6 +2812,7 @@ END Studenten<br>
 		this.data.forEach((row, rowIndex) => {
 			if (groupedPerStudent.length == 0) {
 				groupedPerStudent.push({
+					vestigingsPlaatsen: [],
 					allInschrijvingenRows: [rowIndex],
 					inschrijvingen: new Map()
 				});
@@ -2821,6 +2822,7 @@ END Studenten<br>
 			let isNewStudent = dataDef.studentColumnIndexes.some((index) => row[index] != baseStudentRow[index]);
 			if (isNewStudent) {
 				groupedPerStudent.push({
+					vestigingsPlaatsen: [],
 					allInschrijvingenRows: [rowIndex],
 					inschrijvingen: new Map()
 				});
@@ -2857,6 +2859,14 @@ END Studenten<br>
 				});
 			});
 		});
+		let vestigingsPlaatsIndex = this.headers.findIndex((header) => header == "vestigingsplaats");
+		groupedPerStudent.forEach((student) => {
+			student.vestigingsPlaatsen = student.allInschrijvingenRows.map((row) => this.data[row][vestigingsPlaatsIndex]).filter((vestiging) => vestiging != "").reduce((acc, vestiging) => {
+				if (!acc.includes(vestiging)) acc.push(vestiging);
+				return acc;
+			}, []);
+		});
+		let maxVestigingsplaatsen = Math.max(...groupedPerStudent.map((student) => student.vestigingsPlaatsen.length));
 		groupedPerStudent.forEach((student) => {
 			let row = [];
 			dataDef.studentColumnIndexes.forEach((colIndex) => row.push(this.data[student.allInschrijvingenRows[0]][colIndex]));
@@ -2878,8 +2888,11 @@ END Studenten<br>
 					});
 				}
 			});
+			student.vestigingsPlaatsen.forEach((vestiging) => row.push(vestiging));
+			[...new Array(maxVestigingsplaatsen - student.vestigingsPlaatsen.length).keys()].forEach((_) => row.push(""));
 			flattendToStudent.push(row);
 		});
+		flattendHeaders.push(...[...new Array(maxVestigingsplaatsen).keys()].map((index) => "vestigingsplaats" + (index + 1)));
 		return {
 			headers: flattendHeaders,
 			data: flattendToStudent
