@@ -5,8 +5,6 @@
 * Use range(n) instead of Array(n).keys()
   >> https://www.30secondsofcode.org/js/s/range-generator/
 
-* mail merge: copy fails if no focus: catch error and allow to copy again via infoBar.
-
 * filter op klassen met wachtlijst maar toch terug plaats.
 * trims: show lln op wachtlijst?
 * keuzelijstjes: enter = default button, zodat je volledig met keyboard kan werken.

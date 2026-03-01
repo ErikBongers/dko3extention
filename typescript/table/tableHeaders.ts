@@ -1,15 +1,14 @@
-import {createHtmlTable, DataCacheId, distinct, HtmlData, openHtmlTab, range, rangeGenerator} from "../globals";
+import {copyToClipboardOrRequestRetry, createHtmlTable, DataCacheId, distinct, HtmlData, openHtmlTab, range, rangeGenerator} from "../globals";
 import {emmet} from "../../libs/Emmeter/html";
 import {checkAndDownloadTableRows, InfoBlock} from "./loadAnyTable";
 import {addMenuItem, addMenuSeparator, setupMenu} from "../menus";
-import {TableFetcher, TableFetchListener, TableHandler, TableRef} from "./tableFetcher";
+import {TableFetcher, TableHandler, TableRef} from "./tableFetcher";
 import * as def from "../def";
 import {options} from "../plugin_options/options";
 import {pageState} from "../pageState";
 import {Actions, HtmlDataRequestParams, sendRequest, ServiceRequest, TabType} from "../messaging";
-import MessageSender = chrome.runtime.MessageSender;
 import {MailMergeTable} from "./mailMerge";
-import {InfoBar} from "../infoBar";
+import MessageSender = chrome.runtime.MessageSender;
 
 let _otherTabsDataCache = new Map<string, string>();
 
@@ -89,20 +88,6 @@ async function copyForMailMerge(tableMeta: TableMeta, table: HTMLTableElement) {
     let mailMergeTable: MailMergeTable = new MailMergeTable(tableMeta, table);
     let text = await mailMergeTable.toHtml();
     copyToClipboardOrRequestRetry(tableMeta.infoBlock.infoBar, text);
-}
-
-function copyToClipboardOrRequestRetry(infoBar: InfoBar, text: string) {
-    navigator.clipboard.writeText(text)
-        .then(_r => {
-            infoBar.setExtraInfo("Data copied to clipboard. <a id="+def.COPY_AGAIN+" href='javascript:void(0);'>Copy again</a>", def.COPY_AGAIN, () => {
-                copyToClipboardOrRequestRetry(infoBar, text);
-            });
-        })
-        .catch(_reason => {
-            infoBar.setExtraInfo("Could not copy to clipboard!!! <a id="+def.COPY_AGAIN+" href='javascript:void(0);'>Copy again</a>", def.COPY_AGAIN, () => {
-                copyToClipboardOrRequestRetry(infoBar, text);
-            });
-        });
 }
 
 function copyOneColumn(table: HTMLTableElement, index: number) {

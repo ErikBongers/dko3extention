@@ -3,8 +3,7 @@ import {emmet} from "../libs/Emmeter/html";
 import {fetchGlobalSettings, getGlobalSettings, GlobalSettings, options, setGlobalSetting} from "./plugin_options/options";
 import {Actions, sendRequest, TabType} from "./messaging";
 import * as def from "./def"
-
-import {TeacherHoursSetup} from "./werklijst/hoursSettings";
+import {InfoBar} from "./infoBar";
 
 export let observers: Observer[] = [];
 export let settingsObservers: (() => void)[] = [];
@@ -392,4 +391,18 @@ export function tryUntilThen(func: () => boolean, then: () => void) {
     } else {
         setTimeout(() => tryUntilThen(func, then), 100);
     }
+}
+
+export function copyToClipboardOrRequestRetry(infoBar: InfoBar, text: string) {
+    navigator.clipboard.writeText(text)
+        .then(_r => {
+            infoBar.setExtraInfo("Data copied to clipboard. <a id=" + def.COPY_AGAIN + " href='javascript:void(0);'>Copy again</a>", def.COPY_AGAIN, () => {
+                copyToClipboardOrRequestRetry(infoBar, text);
+            });
+        })
+        .catch(_reason => {
+            infoBar.setExtraInfo("Could not copy to clipboard!!! <a id=" + def.COPY_AGAIN + " href='javascript:void(0);'>Copy again</a>", def.COPY_AGAIN, () => {
+                copyToClipboardOrRequestRetry(infoBar, text);
+            });
+        });
 }
