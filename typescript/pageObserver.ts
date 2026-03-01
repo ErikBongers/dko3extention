@@ -80,7 +80,8 @@ export abstract class BaseObserver implements Observer {
 
     onPageLoaded() {
         if(this.onPageLoadedCallback)
-            tryUntilThen(this.isPageReallyLoaded, this.onPageLoadedCallback);
+            if(this.isPageMatching())
+                tryUntilThen(this.isPageReallyLoaded, this.onPageLoadedCallback);
     }
 
     onPageChanged() {
