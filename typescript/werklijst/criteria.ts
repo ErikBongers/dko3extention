@@ -27,7 +27,7 @@ export interface Criterium {
 }
 
 export enum Operator {
-    PLUS = "="
+    PLUS = "=" //todo: rename to EQUALS
 }
 
 export type IsSelectedItem = (vak: string) => boolean;
