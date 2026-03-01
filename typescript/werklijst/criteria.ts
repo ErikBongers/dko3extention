@@ -41,6 +41,7 @@ export const FIELD = {
     GRAAD_LEERJAAR: {value: "graad_leerjaar", text: "graad + leerjaar"},
     KLAS_LEERKRACHT: {value: "klasleerkracht", text: "klasleerkracht"},
     LESMOMENTEN: {value: "lesmomenten", text: "lesmomenten"},
+    LEEFTIJD_31_DEC: {value: "leeftijd_31_dec", text: "leeftijd op 31 dec"},
 }
 
 async function sendAddCriterium(schoolYear: string, criterium: string) {

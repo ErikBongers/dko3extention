@@ -1,3 +1,4 @@
+* Mailmerge: remove initiatie?
 * Mail merge: post merge formatting possible? https://learn.microsoft.com/en-us/office/vba/api/word.application.mailmergeafterrecordmerge
   > before merging, find bold text and decorate it and after merge, make it bold again?
   >>> https://learn.microsoft.com/en-us/office/vba/api/word.find.clearformatting

@@ -1,4 +1,4 @@
-import {addButton, arrayIsEqual, getSchoolIdString, openHoursSettings, Schoolyear, setButtonHighlighted, tryUntil, tryUntilThen} from "../globals";
+import {addButton, arrayIsEqual, copyToClipboardOrRequestRetry, getSchoolIdString, openHoursSettings, Schoolyear, setButtonHighlighted, tryUntil, tryUntilThen} from "../globals";
 import * as def from "../def";
 import {BTN_WERKLIJST_NAV_BOTTOM} from "../def";
 import {createTable, getUrenVakLeraarFileName, refillTable} from "./buildUren";
@@ -18,6 +18,9 @@ import {mapHourSettings, TeacherHoursSetup, TeacherHoursSetupMapped} from "./hou
 import {getJaarToewijzigingWerklijst} from "../lessen/observer";
 import {emmet} from "../../libs/Emmeter/html";
 import MessageSender = chrome.runtime.MessageSender;
+import {MailMergeTable} from "../table/mailMerge";
+import {createWerklijstBuilder} from "../table/werklijstBuilder";
+import {CriteriumName, Domein, FIELD, Grouping, Operator} from "./criteria";
 
 const TARGET_BUTTON_ID = "#tablenav_leerlingen_werklijst_top > div > div.btn-group.btn-group-sm.datatable-buttons > button:nth-child(1)";
 
@@ -399,5 +402,26 @@ function upgradeCloudData(fromCloud: JsonCloudData) {
 }
 
 async function mailMergeStartSchoolyear() {
-    alert("Mailmerge is niet geconfigureerd.");
+    let schoolyear = Schoolyear.getHighestAvailable(); //todo: add to text top line!
+    let builder = await createWerklijstBuilder(schoolyear, Grouping.LES);
+    let dko3_vakken = await builder.fetchAvailableSubjects();
+    await builder.reset();
+    //todo: remove initiatie????
+    // builder.addCriterium(CriteriumName.Domein, Operator.PLUS, [Domein.Muziek]);
+    builder.addFields([FIELD.NAAM, FIELD.VOORNAAM, FIELD.VAK_NAAM, FIELD.GRAAD_LEERJAAR, FIELD.KLAS_LEERKRACHT]);
+    await builder.sendSettings();
+    let pageState = getGotoStateOrDefault(PageName.Werklijst) as WerklijstGotoState;
+    pageState.werklijstTableName = def.UREN_TABLE_STATE_NAME;
+    saveGotoState(pageState);
+
+    console.log("Werklijst prepared: reloading page (or changing hash). ");
+    if(window.location.hash === "#leerlingen-werklijst$werklijst")
+        location.reload();
+    else
+        location.hash = "#leerlingen-werklijst$werklijst";
+
+
+    // let mailMergeTable: MailMergeTable = new MailMergeTable(tableMeta, table);
+    // let text = await mailMergeTable.toHtml();
+    // copyToClipboardOrRequestRetry(tableMeta.infoBlock.infoBar, text);
 }
