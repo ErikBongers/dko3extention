@@ -203,6 +203,7 @@ async function copyTable() {
     });
 }
 
+//todo: user generalized function.
 function aanwezighedenToClipboard(infoBar: InfoBar) {
     let text = window.sessionStorage.getItem(def.AANW_LIST);
     navigator.clipboard.writeText(text)
