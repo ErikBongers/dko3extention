@@ -121,6 +121,7 @@ function onCriteriaShown() {
     let nextSchoolyear = Schoolyear.toFullString(year);
     let prevSchoolyearShort = Schoolyear.toShortString(year-1);
     let nextSchoolyearShort = Schoolyear.toShortString(year);
+    addButton(btnWerklijstMaken, def.WERKLIJST_MAILMERGE_BTN_ID, "Mail merge", async () => { await mailMergeStartSchoolyear(); }, "", ["btn", "btn-outline-dark"], "Mailmerge");
     addButton(btnWerklijstMaken, def.UREN_PREV_BTN_ID, "Toon lerarenuren voor "+ prevSchoolyear, async () => { await setCriteriaForTeacherHoursAndClickFetchButton(prevSchoolyear); }, "", ["btn", "btn-outline-dark"], "Uren "+ prevSchoolyearShort);
     addButton(btnWerklijstMaken, def.UREN_PREV_SETUP_BTN_ID, "Setup voor "+ nextSchoolyear, async () => { await showUrenSetup(nextSchoolyear); }, "fas-certificate", ["btn", "btn-outline-dark"], "", "beforebegin", "gear.svg");
     addButton(btnWerklijstMaken, def.UREN_PREV_SETUP_BTN_ID+"sdf", "test", async () => { await sendGreetingsToHoursSettings(); }, "", ["btn", "btn-outline-dark"], "send");
@@ -395,4 +396,8 @@ function upgradeCloudData(fromCloud: JsonCloudData) {
     return new JsonCloudData(fromCloud); //re-create, just to be sure we have all the fields.
 
 
+}
+
+async function mailMergeStartSchoolyear() {
+    alert("Mailmerge is niet geconfigureerd.");
 }

@@ -322,6 +322,7 @@ function addIndex(text, index, onIndex) {
 const COPY_AGAIN = "copy_again";
 const PROGRESS_BAR_ID = "progressBarFetch";
 const UREN_PREV_BTN_ID = "prefillInstrButton";
+const WERKLIJST_MAILMERGE_BTN_ID = "mailMergeButton";
 const UREN_PREV_SETUP_BTN_ID = "prefillInstrSetupButton";
 const UREN_NEXT_BTN_ID = "prefillInstrButtonNext";
 const MAIL_BTN_ID = "mailButton";
@@ -683,6 +684,17 @@ function tryUntil(func) {
 function tryUntilThen(func, then) {
 	if (func()) then();
 	else setTimeout(() => tryUntilThen(func, then), 100);
+}
+function copyToClipboardOrRequestRetry(infoBar, text) {
+	navigator.clipboard.writeText(text).then((_r) => {
+		infoBar.setExtraInfo("Data copied to clipboard. <a id=" + COPY_AGAIN + " href='javascript:void(0);'>Copy again</a>", COPY_AGAIN, () => {
+			copyToClipboardOrRequestRetry(infoBar, text);
+		});
+	}).catch((_reason) => {
+		infoBar.setExtraInfo("Could not copy to clipboard!!! <a id=" + COPY_AGAIN + " href='javascript:void(0);'>Copy again</a>", COPY_AGAIN, () => {
+			copyToClipboardOrRequestRetry(infoBar, text);
+		});
+	});
 }
 
 //#endregion
@@ -3065,25 +3077,6 @@ async function copyForMailMerge(tableMeta, table) {
 	let text = await mailMergeTable.toHtml();
 	copyToClipboardOrRequestRetry(tableMeta.infoBlock.infoBar, text);
 }
-function copyToClipboardOrRequestRetry(infoBar, text) {
-	navigator.clipboard.writeText(text).then((_r) => {
-		infoBar.setExtraInfo(
-			"Data copied to clipboard. <a id=" + COPY_AGAIN + " href='javascript:void(0);'>Copy again</a>",
-			//todo: add this to openHtmlTab.
-			//todo: do this cast in teacherHoursSetup.ts as well. Perhaps make onMessage generic.
-			//just to be sure.
-			//THEAD
-			COPY_AGAIN,
-			() => {
-				copyToClipboardOrRequestRetry(infoBar, text);
-			}
-);
-	}).catch((_reason) => {
-		infoBar.setExtraInfo("Could not copy to clipboard!!! <a id=" + COPY_AGAIN + " href='javascript:void(0);'>Copy again</a>", COPY_AGAIN, () => {
-			copyToClipboardOrRequestRetry(infoBar, text);
-		});
-	});
-}
 function copyOneColumn(table, index) {
 	createAndCopyTable([table.tHead.children[0].children[index].innerText], [...table.tBodies[0].rows].map((row) => [row.cells[index].innerText]));
 }
@@ -3121,7 +3114,13 @@ function decorateTableHeader(table) {
 		colHeader.onclick = (ev) => {
 			reSortTableByColumn(ev, table);
 		};
-		if (table.classList.contains(NO_MENU)) return;
+		if (table.classList.contains(
+			//todo: add this to openHtmlTab.
+			//todo: do this cast in teacherHoursSetup.ts as well. Perhaps make onMessage generic.
+			//just to be sure.
+			//THEAD
+			NO_MENU
+)) return;
 		let { first: span, last: idiom } = emmet.appendChild(colHeader, "span>button.miniButton.naked>i.fas.fa-list");
 		let menu = setupMenu(span, idiom.parentElement);
 		addMenuItem(menu, "Toon unieke waarden", 0, (ev) => {
@@ -5760,6 +5759,9 @@ function onCriteriaShown() {
 	let nextSchoolyear = Schoolyear.toFullString(year);
 	let prevSchoolyearShort = Schoolyear.toShortString(year - 1);
 	let nextSchoolyearShort = Schoolyear.toShortString(year);
+	addButton$1(btnWerklijstMaken, WERKLIJST_MAILMERGE_BTN_ID, "Mail merge", async () => {
+		await mailMergeStartSchoolyear();
+	}, "", ["btn", "btn-outline-dark"], "Mailmerge");
 	addButton$1(btnWerklijstMaken, UREN_PREV_BTN_ID, "Toon lerarenuren voor " + prevSchoolyear, async () => {
 		await setCriteriaForTeacherHoursAndClickFetchButton(prevSchoolyear);
 	}, "", ["btn", "btn-outline-dark"], "Uren " + prevSchoolyearShort);
@@ -5973,6 +5975,9 @@ function showUrenTable(show) {
 }
 function upgradeCloudData(fromCloud) {
 	return new JsonCloudData(fromCloud);
+}
+async function mailMergeStartSchoolyear() {
+	alert("Mailmerge is niet geconfigureerd.");
 }
 
 //#endregion
