@@ -2442,34 +2442,14 @@ let Operator = /* @__PURE__ */ function(Operator$1) {
 	return Operator$1;
 }({});
 const FIELD = {
-	DOMEIN: {
-		value: "domein",
-		text: "domein"
-	},
-	NAAM: {
-		value: "naam",
-		text: "naam"
-	},
-	VOORNAAM: {
-		value: "voornaam",
-		text: "voornaam"
-	},
-	VAK_NAAM: {
-		value: "vak_naam",
-		text: "vak: naam"
-	},
-	GRAAD_LEERJAAR: {
-		value: "graad_leerjaar",
-		text: "graad + leerjaar"
-	},
-	KLAS_LEERKRACHT: {
-		value: "klasleerkracht",
-		text: "klasleerkracht"
-	},
-	LESMOMENTEN: {
-		value: "lesmomenten",
-		text: "lesmomenten"
-	}
+	DOMEIN: { text: "domein" },
+	NAAM: { text: "naam" },
+	VOORNAAM: { text: "voornaam" },
+	VAK_NAAM: { text: "vak: naam" },
+	GRAAD_LEERJAAR: { text: "graad + leerjaar" },
+	KLAS_LEERKRACHT: { text: "klasleerkracht" },
+	LESMOMENTEN: { text: "lesmomenten" },
+	LEEFTIJD_31_DEC: { text: "leeftijd op 31 dec" }
 };
 async function postNameValueList(url, criteria) {
 	const formData = new FormData();
@@ -5687,6 +5667,7 @@ registerChecksumHandler(
 	//don't report as log.error.
 	// Can't use this action to build the table as we're also fetching the cloud data.
 	//re-create, just to be sure we have all the fields.
+	//todo: add to text top line!
 	WERKLIJST_TABLE_ID,
 	(tableDef) => {
 		let headers = NamedCellTableFetchListener.getHeaderIndices(tableDef.tableRef.getOrgTableContainer());
@@ -5977,7 +5958,24 @@ function upgradeCloudData(fromCloud) {
 	return new JsonCloudData(fromCloud);
 }
 async function mailMergeStartSchoolyear() {
-	alert("Mailmerge is niet geconfigureerd.");
+	let schoolyear = Schoolyear.getHighestAvailable();
+	let builder = await createWerklijstBuilder(schoolyear, Grouping.LES);
+	let dko3_vakken = await builder.fetchAvailableSubjects();
+	await builder.reset();
+	builder.addFields([
+		FIELD.NAAM,
+		FIELD.VOORNAAM,
+		FIELD.VAK_NAAM,
+		FIELD.GRAAD_LEERJAAR,
+		FIELD.KLAS_LEERKRACHT
+	]);
+	await builder.sendSettings();
+	let pageState$2 = getGotoStateOrDefault(PageName.Werklijst);
+	pageState$2.werklijstTableName = UREN_TABLE_STATE_NAME;
+	saveGotoState(pageState$2);
+	console.log("Werklijst prepared: reloading page (or changing hash). ");
+	if (window.location.hash === "#leerlingen-werklijst$werklijst") location.reload();
+	else location.hash = "#leerlingen-werklijst$werklijst";
 }
 
 //#endregion

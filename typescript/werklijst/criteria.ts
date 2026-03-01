@@ -9,7 +9,6 @@ export enum Domein {
 }
 
 export interface Veld {
-    value: string;
     text: string;
 }
 
@@ -33,15 +32,19 @@ export enum Operator {
 
 export type IsSelectedItem = (vak: string) => boolean;
 
-export const FIELD = {
-    DOMEIN: {value: "domein", text: "domein"},
-    NAAM: {value: "naam", text: "naam"},
-    VOORNAAM: {value: "voornaam", text: "voornaam"},
-    VAK_NAAM: {value: "vak_naam", text: "vak: naam"},
-    GRAAD_LEERJAAR: {value: "graad_leerjaar", text: "graad + leerjaar"},
-    KLAS_LEERKRACHT: {value: "klasleerkracht", text: "klasleerkracht"},
-    LESMOMENTEN: {value: "lesmomenten", text: "lesmomenten"},
-    LEEFTIJD_31_DEC: {value: "leeftijd_31_dec", text: "leeftijd op 31 dec"},
+type FieldTypes = {
+    [key: string]: Veld
+}
+
+export const FIELD: FieldTypes = {
+    DOMEIN: {text: "domein"},
+    NAAM: {text: "naam"},
+    VOORNAAM: {text: "voornaam"},
+    VAK_NAAM: {text: "vak: naam"},
+    GRAAD_LEERJAAR: {text: "graad + leerjaar"},
+    KLAS_LEERKRACHT: {text: "klasleerkracht"},
+    LESMOMENTEN: {text: "lesmomenten"},
+    LEEFTIJD_31_DEC: {text: "leeftijd op 31 dec"},
 }
 
 async function sendAddCriterium(schoolYear: string, criterium: string) {
