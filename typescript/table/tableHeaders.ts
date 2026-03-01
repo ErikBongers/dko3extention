@@ -9,6 +9,7 @@ import {pageState} from "../pageState";
 import {Actions, HtmlDataRequestParams, sendRequest, ServiceRequest, TabType} from "../messaging";
 import MessageSender = chrome.runtime.MessageSender;
 import {MailMergeTable} from "./mailMerge";
+import {InfoBar} from "../infoBar";
 
 let _otherTabsDataCache = new Map<string, string>();
 
@@ -87,7 +88,21 @@ function copyFullTable(table: HTMLTableElement) {
 async function copyForMailMerge(tableMeta: TableMeta, table: HTMLTableElement) {
     let mailMergeTable: MailMergeTable = new MailMergeTable(tableMeta, table);
     let text = await mailMergeTable.toHtml();
-    navigator.clipboard.writeText(text).then(_r => {});
+    copyToClipboardOrRequestRetry(tableMeta.infoBlock.infoBar, text);
+}
+
+function copyToClipboardOrRequestRetry(infoBar: InfoBar, text: string) {
+    navigator.clipboard.writeText(text)
+        .then(_r => {
+            infoBar.setExtraInfo("Data copied to clipboard. <a id="+def.COPY_AGAIN+" href='javascript:void(0);'>Copy again</a>", def.COPY_AGAIN, () => {
+                copyToClipboardOrRequestRetry(infoBar, text);
+            });
+        })
+        .catch(_reason => {
+            infoBar.setExtraInfo("Could not copy to clipboard!!! <a id="+def.COPY_AGAIN+" href='javascript:void(0);'>Copy again</a>", def.COPY_AGAIN, () => {
+                copyToClipboardOrRequestRetry(infoBar, text);
+            });
+        });
 }
 
 function copyOneColumn(table: HTMLTableElement, index: number) {

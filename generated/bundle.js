@@ -3063,7 +3063,26 @@ function copyFullTable(table) {
 async function copyForMailMerge(tableMeta, table) {
 	let mailMergeTable = new MailMergeTable(tableMeta, table);
 	let text = await mailMergeTable.toHtml();
-	navigator.clipboard.writeText(text).then((_r) => {});
+	copyToClipboardOrRequestRetry(tableMeta.infoBlock.infoBar, text);
+}
+function copyToClipboardOrRequestRetry(infoBar, text) {
+	navigator.clipboard.writeText(text).then((_r) => {
+		infoBar.setExtraInfo(
+			"Data copied to clipboard. <a id=" + COPY_AGAIN + " href='javascript:void(0);'>Copy again</a>",
+			//todo: add this to openHtmlTab.
+			//todo: do this cast in teacherHoursSetup.ts as well. Perhaps make onMessage generic.
+			//just to be sure.
+			//THEAD
+			COPY_AGAIN,
+			() => {
+				copyToClipboardOrRequestRetry(infoBar, text);
+			}
+);
+	}).catch((_reason) => {
+		infoBar.setExtraInfo("Could not copy to clipboard!!! <a id=" + COPY_AGAIN + " href='javascript:void(0);'>Copy again</a>", COPY_AGAIN, () => {
+			copyToClipboardOrRequestRetry(infoBar, text);
+		});
+	});
 }
 function copyOneColumn(table, index) {
 	createAndCopyTable([table.tHead.children[0].children[index].innerText], [...table.tBodies[0].rows].map((row) => [row.cells[index].innerText]));
@@ -3102,13 +3121,7 @@ function decorateTableHeader(table) {
 		colHeader.onclick = (ev) => {
 			reSortTableByColumn(ev, table);
 		};
-		if (table.classList.contains(
-			//todo: add this to openHtmlTab.
-			//todo: do this cast in teacherHoursSetup.ts as well. Perhaps make onMessage generic.
-			//just to be sure.
-			//THEAD
-			NO_MENU
-)) return;
+		if (table.classList.contains(NO_MENU)) return;
 		let { first: span, last: idiom } = emmet.appendChild(colHeader, "span>button.miniButton.naked>i.fas.fa-list");
 		let menu = setupMenu(span, idiom.parentElement);
 		addMenuItem(menu, "Toon unieke waarden", 0, (ev) => {
