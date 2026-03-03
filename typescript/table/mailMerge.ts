@@ -1,6 +1,7 @@
 import {TableMeta} from "./tableHeaders";
 import {getTableFromHash, InfoBarTableFetchListener} from "./loadAnyTable";
 import {createHtmlTable} from "../globals";
+import {InfoBlock} from "../infoBlock";
 
 interface DataIndexes {
     studentColumnIndexes: number[];
@@ -22,13 +23,13 @@ export class MailMergeTable {
     private table: HTMLTableElement;
     private data: string[][];
     private headers: string[];
-    private tableMeta: TableMeta;
+    private infoBlock: InfoBlock;
     private maxInschrijvingen: number;
     private maxLessen: number;
 
-    constructor(tableMeta: TableMeta, table: HTMLTableElement) {
+    constructor(infoBlock: InfoBlock, table: HTMLTableElement) {
         this.table = table;
-        this.tableMeta = tableMeta;
+        this.infoBlock = infoBlock;
         let headerCells = this.table.tHead.children[0].children as HTMLCollectionOf<HTMLTableCellElement>;
         this.headers = [...headerCells].filter(cell => cell.style.display !== "none").map(cell => cell.innerText);
         let rows = table.tBodies[0].children as HTMLCollectionOf<HTMLTableRowElement>;
@@ -42,7 +43,7 @@ export class MailMergeTable {
     }
 
     async build(): Promise<{ vestigingsPlaatsen: TableWithHeader, studentTable: TableWithHeader }> {
-        let fetchedTable = await getTableFromHash("extra-academie-vestigingsplaatsen", false, new InfoBarTableFetchListener(this.tableMeta.infoBlock));
+        let fetchedTable = await getTableFromHash("extra-academie-vestigingsplaatsen", false, new InfoBarTableFetchListener(this.infoBlock));
         let rows = fetchedTable.getRows();
         let vestigingsPlaatsen = [...rows].map(row => row.cells[1].innerText);
         let vestigingsTable: TableWithHeader = {headers: ["Vestigingsplaats"], data: vestigingsPlaatsen.map(vestiging => [vestiging])};

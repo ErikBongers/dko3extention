@@ -36,15 +36,20 @@ type FieldTypes = {
     [key: string]: Veld
 }
 
-export const FIELD: FieldTypes = {
-    DOMEIN: {text: "domein"},
-    NAAM: {text: "naam"},
-    VOORNAAM: {text: "voornaam"},
-    VAK_NAAM: {text: "vak: naam"},
-    GRAAD_LEERJAAR: {text: "graad + leerjaar"},
-    KLAS_LEERKRACHT: {text: "klasleerkracht"},
-    LESMOMENTEN: {text: "lesmomenten"},
-    LEEFTIJD_31_DEC: {text: "leeftijd op 31 dec"},
+export namespace FIELD {
+ export const DOMEIN: Veld = {text: "domein"} as const;
+ export const GRAAD: Veld = {text: "graad"} as const;
+ export const LEERJAAR: Veld = {text: "leerjaar"} as const;
+ export const BENAMING_LES: Veld = {text: "benaming les"} as const;
+ export const VESTIGINGSPLAATS: Veld = {text: "vestigingsplaats"} as const;
+ export const NAAM: Veld = {text: "naam"} as const;
+ export const VOORNAAM: Veld = {text: "voornaam"} as const;
+ export const VAK_NAAM: Veld = {text: "vak: naam"} as const;
+ export const GRAAD_LEERJAAR: Veld = {text: "graad + leerjaar"} as const;
+ export const KLAS_LEERKRACHT: Veld = {text: "klasleerkracht"} as const;
+ export const LESMOMENTEN: Veld = {text: "lesmomenten"} as const;
+ export const LEEFTIJD_31_DEC: Veld = {text: "leeftijd op 31 dec"} as const;
+ export const EMAIL_PUNTCOMMA: Veld = {text: "e-mailadressen (gescheiden door puntkomma)"} as const;
 }
 
 async function sendAddCriterium(schoolYear: string, criterium: string) {
@@ -93,6 +98,7 @@ export enum CriteriumName {
     Vak = "Vak",
     Vakgroep = "Vakgroep",
     Domein = "Domein",
+    Graad = "Graad",
 }
 
 export async function fetchTableRows(response:  Response) {

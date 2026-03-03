@@ -198,7 +198,7 @@ export async function getJaarToewijzigingWerklijst(schoolYear: string) {
     ]);
     builder.addFields([FIELD.NAAM, FIELD.VOORNAAM, FIELD.VAK_NAAM, FIELD.LESMOMENTEN, FIELD.KLAS_LEERKRACHT, FIELD.GRAAD_LEERJAAR]);
     let preparedBuilder = await builder.sendSettings();
-    let table = await preparedBuilder.fetchTable();
+    let table = await preparedBuilder.fetchTable(undefined);
     await setViewFromCurrentUrl();
     return table;
 }

@@ -1,4 +1,4 @@
-import {addButton, arrayIsEqual, copyToClipboardOrRequestRetry, getSchoolIdString, openHoursSettings, Schoolyear, setButtonHighlighted, tryUntil, tryUntilThen} from "../globals";
+import {addButton, arrayIsEqual, getSchoolIdString, openHoursSettings, Schoolyear, setButtonHighlighted, tryUntil, tryUntilThen} from "../globals";
 import * as def from "../def";
 import {BTN_WERKLIJST_NAV_BOTTOM} from "../def";
 import {createTable, getUrenVakLeraarFileName, refillTable} from "./buildUren";
@@ -12,15 +12,16 @@ import {decorateTableHeader} from "../table/tableHeaders";
 import {getGotoStateOrDefault, Goto, PageName, saveGotoState, WerklijstGotoState} from "../gotoState";
 import {registerChecksumHandler, setAfterDownloadTableAction} from "../table/observer";
 import {CloudData, JsonCloudData, UrenData} from "./urenData";
-import {createDefaultTableFetcher, createDefaultTableRefAndInfoBlock} from "../table/loadAnyTable";
+import {createDefaultTableFetcher, createDefaultTableRefAndInfoBlock, InfoBarTableFetchListener} from "../table/loadAnyTable";
 import {Actions, sendRequest, ServiceRequest, TabType} from "../messaging";
 import {mapHourSettings, TeacherHoursSetup, TeacherHoursSetupMapped} from "./hoursSettings";
 import {getJaarToewijzigingWerklijst} from "../lessen/observer";
 import {emmet} from "../../libs/Emmeter/html";
-import MessageSender = chrome.runtime.MessageSender;
-import {MailMergeTable} from "../table/mailMerge";
 import {createWerklijstBuilder} from "../table/werklijstBuilder";
-import {CriteriumName, Domein, FIELD, Grouping, Operator} from "./criteria";
+import {CriteriumName, FIELD, Grouping, Operator} from "./criteria";
+import {createInfoBlock} from "../infoBlock";
+import {MailMergeTable} from "../table/mailMerge";
+import MessageSender = chrome.runtime.MessageSender;
 
 const TARGET_BUTTON_ID = "#tablenav_leerlingen_werklijst_top > div > div.btn-group.btn-group-sm.datatable-buttons > button:nth-child(1)";
 
@@ -397,31 +398,40 @@ function showUrenTable(show: boolean) {
 function upgradeCloudData(fromCloud: JsonCloudData) {
     //if fromCloud.version === "...." --> convert.
     return new JsonCloudData(fromCloud); //re-create, just to be sure we have all the fields.
-
-
 }
 
 async function mailMergeStartSchoolyear() {
     let schoolyear = Schoolyear.getHighestAvailable(); //todo: add to text top line!
     let builder = await createWerklijstBuilder(schoolyear, Grouping.LES);
-    let dko3_vakken = await builder.fetchAvailableSubjects();
     await builder.reset();
     //todo: remove initiatie????
-    // builder.addCriterium(CriteriumName.Domein, Operator.PLUS, [Domein.Muziek]);
-    builder.addFields([FIELD.NAAM, FIELD.VOORNAAM, FIELD.VAK_NAAM, FIELD.GRAAD_LEERJAAR, FIELD.KLAS_LEERKRACHT]);
-    await builder.sendSettings();
-    let pageState = getGotoStateOrDefault(PageName.Werklijst) as WerklijstGotoState;
-    pageState.werklijstTableName = def.UREN_TABLE_STATE_NAME;
-    saveGotoState(pageState);
+    builder.addFields([
+        FIELD.NAAM,
+        FIELD.VOORNAAM,
+        FIELD.LEEFTIJD_31_DEC,
+        FIELD.EMAIL_PUNTCOMMA,
+        FIELD.DOMEIN,
+        FIELD.VAK_NAAM,
+        FIELD.GRAAD,
+        FIELD.LEERJAAR,
+        FIELD.BENAMING_LES,
+        FIELD.LESMOMENTEN,
+        FIELD.KLAS_LEERKRACHT,
+        FIELD.VESTIGINGSPLAATS,
+    ]);
+    //todo: test only:
+    builder.addCriterium(CriteriumName.Graad, Operator.PLUS, ["4e graad", "specialisatie"]);
+    let preparedWerklijst = await builder.sendSettings();
 
-    console.log("Werklijst prepared: reloading page (or changing hash). ");
-    if(window.location.hash === "#leerlingen-werklijst$werklijst")
-        location.reload();
-    else
-        location.hash = "#leerlingen-werklijst$werklijst";
+    let divFooter = document.getElementById("div_leerling_werklijst_footer") as HTMLDivElement;
+    let divInfo = divFooter.insertAdjacentElement("afterend", document.createElement("div")) as HTMLDivElement;
+    let infoBlock = createInfoBlock(divInfo, "Loading dada data tata...");
+    infoBlock.infoBar.setExtraInfo("Fetching student data...");
 
+    let fetchedTable = await preparedWerklijst.fetchTable(new InfoBarTableFetchListener(infoBlock));
+    let table = fetchedTable.getTable();
 
-    // let mailMergeTable: MailMergeTable = new MailMergeTable(tableMeta, table);
+    let mailMergeTable: MailMergeTable = new MailMergeTable(infoBlock, table);
     // let text = await mailMergeTable.toHtml();
     // copyToClipboardOrRequestRetry(tableMeta.infoBlock.infoBar, text);
 }

@@ -1,7 +1,7 @@
 import {Criterium, CriteriumName, fetchTableRows, Grouping, IsSelectedItem, Operator, postNameValueList, Veld} from "../werklijst/criteria";
 import {getTable, getWerklijstTableRef} from "./loadAnyTable";
 import {getImmediateText} from "../globals";
-import {FetchedTable} from "./tableFetcher";
+import {FetchedTable, TableFetchListener} from "./tableFetcher";
 
 interface WerklijstItemDefinition {
     id: string;
@@ -9,7 +9,7 @@ interface WerklijstItemDefinition {
 }
 
 export interface PreparedWerklijst {
-    fetchTable(): Promise<FetchedTable>;
+    fetchTable(listener: TableFetchListener | undefined): Promise<FetchedTable>;
 }
 
 export interface CriteriaBuilder {
@@ -93,7 +93,7 @@ class WerklijstBuilder implements CriteriaBuilder, PreparedWerklijst {
         return this as PreparedWerklijst;
     }
 
-    async fetchTable() {
+    async fetchTable(listener: TableFetchListener | undefined) {
         let tableRef = await getWerklijstTableRef();
         return getTable(tableRef, undefined, true);
         //todo: keep state of builder: table fetched.

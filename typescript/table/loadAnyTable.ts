@@ -3,10 +3,11 @@ import {findTableRefInCode, TableFetcher, TableFetchListener, TableRef} from "./
 import {createDownloadTableWithExtraAction, getChecksumBuilder} from "./observer";
 import {millisToString, Result, setViewFromCurrentUrl} from "../globals";
 import {InfoBar} from "../infoBar";
-import {insertProgressBar, ProgressBar} from "../progressBar";
+import {ProgressBar} from "../progressBar";
 import * as def from "../def";
 import {executeTableCommands, TableHandlerForHeaders} from "./tableHeaders";
 import {FetchChain} from "./fetchChain";
+import {createInfoBlockForTable, InfoBlock} from "../infoBlock";
 
 export async function  getWerklijstTableRef() {
     let chain = new FetchChain();
@@ -162,11 +163,6 @@ export class InfoBarTableFetchListener implements TableFetchListener {
     }
 }
 
-export interface InfoBlock {
-    infoBar: InfoBar,
-    progressBar: ProgressBar
-}
-
 interface DefaultTableRef {
     tableRef: TableRef
 }
@@ -177,14 +173,6 @@ export function createDefaultTableRef(): Result<DefaultTableRef> {
         return { error: "Cannot find table." };
     }
     return { result: {tableRef} };
-}
-
-export function createInfoBlockForTable(tableRef: TableRef): InfoBlock {
-    document.getElementById(def.INFO_CONTAINER_ID)?.remove();
-    let divInfoContainer = tableRef.createElementAboveTable("div");
-    let infoBar = new InfoBar(divInfoContainer.appendChild(document.createElement("div")));
-    let progressBar = insertProgressBar(infoBar.divInfoLine, "loading pages... ");
-    return {infoBar, progressBar};
 }
 
 interface DefaultTableFetcher {

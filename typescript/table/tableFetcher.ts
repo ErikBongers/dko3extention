@@ -252,6 +252,10 @@ export class FetchedTable {
         return template.content.querySelectorAll("tbody tr:not(:has(i.fa-meh))") as NodeListOf<HTMLTableRowElement>;
     }
 
+    getTable() {
+        return this.shadowTableTemplate.content.querySelector("table");
+    }
+
     getRowsAsArray = () => Array.from(this.getRows());
     getLastPageRows = () => this.getRowsAsArray().slice(this.lastPageStartRow);
     getLastPageNumber = () => this.lastPageNumber;

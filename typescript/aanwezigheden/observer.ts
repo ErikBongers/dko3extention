@@ -1,8 +1,9 @@
 import * as def from "../def.js";
 import {HashObserver} from "../pageObserver";
 import {addTableNavigationButton, getBothToolbars} from "../globals";
-import {createDefaultTableFetcher, createDefaultTableRef, createDefaultTableRefAndInfoBlock, createInfoBlockForTable, getTableFromHash} from "../table/loadAnyTable";
+import {createDefaultTableFetcher, createDefaultTableRef, createDefaultTableRefAndInfoBlock, getTableFromHash} from "../table/loadAnyTable";
 import {InfoBar} from "../infoBar";
+import {createInfoBlockForTable} from "../infoBlock";
 
 class AanwezighedenObserver extends HashObserver {
     constructor() {

@@ -1,6 +1,6 @@
 import {copyToClipboardOrRequestRetry, createHtmlTable, DataCacheId, distinct, HtmlData, openHtmlTab, range, rangeGenerator} from "../globals";
 import {emmet} from "../../libs/Emmeter/html";
-import {checkAndDownloadTableRows, InfoBlock} from "./loadAnyTable";
+import {checkAndDownloadTableRows} from "./loadAnyTable";
 import {addMenuItem, addMenuSeparator, setupMenu} from "../menus";
 import {TableFetcher, TableHandler, TableRef} from "./tableFetcher";
 import * as def from "../def";
@@ -9,6 +9,7 @@ import {pageState} from "../pageState";
 import {Actions, HtmlDataRequestParams, sendRequest, ServiceRequest, TabType} from "../messaging";
 import {MailMergeTable} from "./mailMerge";
 import MessageSender = chrome.runtime.MessageSender;
+import {InfoBlock} from "../infoBlock";
 
 let _otherTabsDataCache = new Map<string, string>();
 
@@ -85,7 +86,7 @@ function copyFullTable(table: HTMLTableElement) {
 }
 
 async function copyForMailMerge(tableMeta: TableMeta, table: HTMLTableElement) {
-    let mailMergeTable: MailMergeTable = new MailMergeTable(tableMeta, table);
+    let mailMergeTable: MailMergeTable = new MailMergeTable(tableMeta.infoBlock, table);
     let text = await mailMergeTable.toHtml();
     copyToClipboardOrRequestRetry(tableMeta.infoBlock.infoBar, text);
 }

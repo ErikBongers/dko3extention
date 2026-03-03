@@ -951,7 +951,9 @@ var BaseObserver = class {
 	}
 	isPageMatching = () => this.pageFilter.match();
 	onPageLoaded() {
-		if (this.onPageLoadedCallback) tryUntilThen(this.isPageReallyLoaded, this.onPageLoadedCallback);
+		if (this.onPageLoadedCallback) {
+			if (this.isPageMatching()) tryUntilThen(this.isPageReallyLoaded, this.onPageLoadedCallback);
+		}
 	}
 	onPageChanged() {
 		if (!this.pageFilter.match()) {
@@ -2441,16 +2443,22 @@ let Operator = /* @__PURE__ */ function(Operator$1) {
 	Operator$1["PLUS"] = "=";
 	return Operator$1;
 }({});
-const FIELD = {
-	DOMEIN: { text: "domein" },
-	NAAM: { text: "naam" },
-	VOORNAAM: { text: "voornaam" },
-	VAK_NAAM: { text: "vak: naam" },
-	GRAAD_LEERJAAR: { text: "graad + leerjaar" },
-	KLAS_LEERKRACHT: { text: "klasleerkracht" },
-	LESMOMENTEN: { text: "lesmomenten" },
-	LEEFTIJD_31_DEC: { text: "leeftijd op 31 dec" }
-};
+let FIELD;
+(function(_FIELD) {
+	const DOMEIN = _FIELD.DOMEIN = { text: "domein" };
+	const GRAAD = _FIELD.GRAAD = { text: "graad" };
+	const LEERJAAR = _FIELD.LEERJAAR = { text: "leerjaar" };
+	const BENAMING_LES = _FIELD.BENAMING_LES = { text: "benaming les" };
+	const VESTIGINGSPLAATS = _FIELD.VESTIGINGSPLAATS = { text: "vestigingsplaats" };
+	const NAAM = _FIELD.NAAM = { text: "naam" };
+	const VOORNAAM = _FIELD.VOORNAAM = { text: "voornaam" };
+	const VAK_NAAM = _FIELD.VAK_NAAM = { text: "vak: naam" };
+	const GRAAD_LEERJAAR = _FIELD.GRAAD_LEERJAAR = { text: "graad + leerjaar" };
+	const KLAS_LEERKRACHT = _FIELD.KLAS_LEERKRACHT = { text: "klasleerkracht" };
+	const LESMOMENTEN = _FIELD.LESMOMENTEN = { text: "lesmomenten" };
+	const LEEFTIJD_31_DEC = _FIELD.LEEFTIJD_31_DEC = { text: "leeftijd op 31 dec" };
+	const EMAIL_PUNTCOMMA = _FIELD.EMAIL_PUNTCOMMA = { text: "e-mailadressen (gescheiden door puntkomma)" };
+})(FIELD || (FIELD = {}));
 async function postNameValueList(url, criteria) {
 	const formData = new FormData();
 	criteria.forEach((c) => {
@@ -2465,6 +2473,7 @@ let CriteriumName = /* @__PURE__ */ function(CriteriumName$1) {
 	CriteriumName$1["Vak"] = "Vak";
 	CriteriumName$1["Vakgroep"] = "Vakgroep";
 	CriteriumName$1["Domein"] = "Domein";
+	CriteriumName$1["Graad"] = "Graad";
 	return CriteriumName$1;
 }({});
 async function fetchTableRows(response) {
@@ -2699,6 +2708,9 @@ var FetchedTable = class {
 		let template = this.shadowTableTemplate;
 		return template.content.querySelectorAll("tbody tr:not(:has(i.fa-meh))");
 	}
+	getTable() {
+		return this.shadowTableTemplate.content.querySelector("table");
+	}
 	getRowsAsArray = () => Array.from(this.getRows());
 	getLastPageRows = () => this.getRowsAsArray().slice(this.lastPageStartRow);
 	getLastPageNumber = () => this.lastPageNumber;
@@ -2737,12 +2749,12 @@ var MailMergeTable = class {
 	table;
 	data;
 	headers;
-	tableMeta;
+	infoBlock;
 	maxInschrijvingen;
 	maxLessen;
-	constructor(tableMeta, table) {
+	constructor(infoBlock, table) {
 		this.table = table;
-		this.tableMeta = tableMeta;
+		this.infoBlock = infoBlock;
 		let headerCells = this.table.tHead.children[0].children;
 		this.headers = [...headerCells].filter((cell) => cell.style.display !== "none").map((cell) => cell.innerText);
 		let rows = table.tBodies[0].children;
@@ -2753,7 +2765,7 @@ var MailMergeTable = class {
 		this.data = this.data.filter((row) => row[indexVoornaam] != "Contactgegevens");
 	}
 	async build() {
-		let fetchedTable = await getTableFromHash("extra-academie-vestigingsplaatsen", false, new InfoBarTableFetchListener(this.tableMeta.infoBlock));
+		let fetchedTable = await getTableFromHash("extra-academie-vestigingsplaatsen", false, new InfoBarTableFetchListener(this.infoBlock));
 		let rows = fetchedTable.getRows();
 		let vestigingsPlaatsen = [...rows].map((row) => row.cells[1].innerText);
 		let vestigingsTable = {
@@ -3053,7 +3065,7 @@ function copyFullTable(table) {
 	createAndCopyTable(headers, cells);
 }
 async function copyForMailMerge(tableMeta, table) {
-	let mailMergeTable = new MailMergeTable(tableMeta, table);
+	let mailMergeTable = new MailMergeTable(tableMeta.infoBlock, table);
 	let text = await mailMergeTable.toHtml();
 	copyToClipboardOrRequestRetry(tableMeta.infoBlock.infoBar, text);
 }
@@ -3335,112 +3347,6 @@ function setAfterDownloadTableAction(action) {
 }
 
 //#endregion
-//#region typescript/infoBar.ts
-var InfoBar = class {
-	divInfoContainer;
-	divInfoLine;
-	divTempLine;
-	divExtraLine;
-	tempMessage;
-	divCacheInfo;
-	constructor(divInfoContainer) {
-		this.divInfoContainer = divInfoContainer;
-		this.divInfoContainer.id = INFO_CONTAINER_ID;
-		this.divInfoContainer.innerHTML = "";
-		this.divExtraLine = emmet.appendChild(divInfoContainer, `div#${INFO_EXTRA_ID}.infoMessage`).last;
-		this.divInfoLine = emmet.appendChild(divInfoContainer, "div.infoLine").last;
-		this.divTempLine = emmet.appendChild(divInfoContainer, `div#${INFO_TEMP_ID}.infoMessage.tempLine`).last;
-		this.divCacheInfo = emmet.appendChild(this.divInfoContainer, `div#${INFO_CACHE_ID}.cacheInfo`).last;
-		this.tempMessage = "";
-	}
-	setTempMessage(msg) {
-		this.tempMessage = msg;
-		this.#updateTempMessage();
-		setTimeout(this.clearTempMessage.bind(this), 4e3);
-	}
-	clearTempMessage() {
-		this.tempMessage = "";
-		this.#updateTempMessage();
-	}
-	#updateTempMessage() {
-		this.divTempLine.innerHTML = this.tempMessage;
-	}
-	setInfoLine(message) {
-		this.divInfoLine.innerHTML = message;
-	}
-	clearCacheInfo() {
-		this.divCacheInfo.innerHTML = "";
-	}
-	setCacheInfo(info, reset_onclick) {
-		this.divCacheInfo.innerHTML = info;
-		let button = emmet.appendChild(this.divCacheInfo, "button.likeLink").first;
-		button.innerHTML = "refresh";
-		button.onclick = reset_onclick;
-	}
-	setExtraInfo(message, click_element_id, callback) {
-		this.divExtraLine.innerHTML = message;
-		if (click_element_id) document.getElementById(click_element_id).onclick = callback;
-	}
-};
-
-//#endregion
-//#region typescript/progressBar.ts
-var ProgressBar = class {
-	barElement;
-	containerElement;
-	maxCount;
-	count;
-	constructor(containerElement, barElement) {
-		this.barElement = barElement;
-		this.containerElement = containerElement;
-		this.hide();
-		this.maxCount = 0;
-		this.count = 0;
-	}
-	reset(maxCount) {
-		this.maxCount = maxCount;
-		this.count = 0;
-		this.barElement.innerHTML = "";
-		for (let i = 0; i < maxCount; i++) {
-			let block = document.createElement("div");
-			this.barElement.appendChild(block);
-			block.classList.add("progressBlock");
-		}
-	}
-	start(maxCount) {
-		this.reset(maxCount);
-		this.containerElement.style.display = "block";
-		this.next();
-	}
-	hide() {
-		this.containerElement.style.display = "none";
-	}
-	stop() {
-		this.hide();
-	}
-	next() {
-		if (this.count >= this.maxCount) return false;
-		this.barElement.children[this.count].classList.remove("iddle", "loaded");
-		this.barElement.children[this.count].classList.add("loading");
-		for (let i = 0; i < this.count; i++) {
-			this.barElement.children[i].classList.remove("iddle", "loading");
-			this.barElement.children[i].classList.add("loaded");
-		}
-		for (let i = this.count + 1; i < this.maxCount; i++) {
-			this.barElement.children[i].classList.remove("loaded", "loading");
-			this.barElement.children[i].classList.add("iddle");
-		}
-		this.count++;
-		return true;
-	}
-};
-function insertProgressBar(container, text = "") {
-	container.innerHTML = "";
-	let { first: divProgressLine, last: divProgressBar } = emmet.appendChild(container, `div.infoLine${PROGRESS_BAR_ID}>div.progressText{${text}}+div.progressBar`);
-	return new ProgressBar(divProgressLine, divProgressBar);
-}
-
-//#endregion
 //#region typescript/tokenScanner.ts
 var ScannerElse = class {
 	scannerIf;
@@ -3626,6 +3532,128 @@ async function fetchText(url) {
 }
 
 //#endregion
+//#region typescript/infoBar.ts
+var InfoBar = class {
+	divInfoContainer;
+	divInfoLine;
+	divTempLine;
+	divExtraLine;
+	tempMessage;
+	divCacheInfo;
+	constructor(divInfoContainer) {
+		this.divInfoContainer = divInfoContainer;
+		this.divInfoContainer.id = INFO_CONTAINER_ID;
+		this.divInfoContainer.innerHTML = "";
+		this.divExtraLine = emmet.appendChild(divInfoContainer, `div#${INFO_EXTRA_ID}.infoMessage`).last;
+		this.divInfoLine = emmet.appendChild(divInfoContainer, "div.infoLine").last;
+		this.divTempLine = emmet.appendChild(divInfoContainer, `div#${INFO_TEMP_ID}.infoMessage.tempLine`).last;
+		this.divCacheInfo = emmet.appendChild(this.divInfoContainer, `div#${INFO_CACHE_ID}.cacheInfo`).last;
+		this.tempMessage = "";
+	}
+	setTempMessage(msg) {
+		this.tempMessage = msg;
+		this.#updateTempMessage();
+		setTimeout(this.clearTempMessage.bind(this), 4e3);
+	}
+	clearTempMessage() {
+		this.tempMessage = "";
+		this.#updateTempMessage();
+	}
+	#updateTempMessage() {
+		this.divTempLine.innerHTML = this.tempMessage;
+	}
+	setInfoLine(message) {
+		this.divInfoLine.innerHTML = message;
+	}
+	clearCacheInfo() {
+		this.divCacheInfo.innerHTML = "";
+	}
+	setCacheInfo(info, reset_onclick) {
+		this.divCacheInfo.innerHTML = info;
+		let button = emmet.appendChild(this.divCacheInfo, "button.likeLink").first;
+		button.innerHTML = "refresh";
+		button.onclick = reset_onclick;
+	}
+	setExtraInfo(message, click_element_id, callback) {
+		this.divExtraLine.innerHTML = message;
+		if (click_element_id) document.getElementById(click_element_id).onclick = callback;
+	}
+};
+
+//#endregion
+//#region typescript/progressBar.ts
+var ProgressBar = class {
+	barElement;
+	containerElement;
+	maxCount;
+	count;
+	constructor(containerElement, barElement) {
+		this.barElement = barElement;
+		this.containerElement = containerElement;
+		this.hide();
+		this.maxCount = 0;
+		this.count = 0;
+	}
+	reset(maxCount) {
+		this.maxCount = maxCount;
+		this.count = 0;
+		this.barElement.innerHTML = "";
+		for (let i = 0; i < maxCount; i++) {
+			let block = document.createElement("div");
+			this.barElement.appendChild(block);
+			block.classList.add("progressBlock");
+		}
+	}
+	start(maxCount) {
+		this.reset(maxCount);
+		this.containerElement.style.display = "block";
+		this.next();
+	}
+	hide() {
+		this.containerElement.style.display = "none";
+	}
+	stop() {
+		this.hide();
+	}
+	next() {
+		if (this.count >= this.maxCount) return false;
+		this.barElement.children[this.count].classList.remove("iddle", "loaded");
+		this.barElement.children[this.count].classList.add("loading");
+		for (let i = 0; i < this.count; i++) {
+			this.barElement.children[i].classList.remove("iddle", "loading");
+			this.barElement.children[i].classList.add("loaded");
+		}
+		for (let i = this.count + 1; i < this.maxCount; i++) {
+			this.barElement.children[i].classList.remove("loaded", "loading");
+			this.barElement.children[i].classList.add("iddle");
+		}
+		this.count++;
+		return true;
+	}
+};
+function insertProgressBar(container, text = "") {
+	container.innerHTML = "";
+	let { first: divProgressLine, last: divProgressBar } = emmet.appendChild(container, `div.infoLine${PROGRESS_BAR_ID}>div.progressText{${text}}+div.progressBar`);
+	return new ProgressBar(divProgressLine, divProgressBar);
+}
+
+//#endregion
+//#region typescript/infoBlock.ts
+function createInfoBlockForTable(tableRef) {
+	document.getElementById(INFO_CONTAINER_ID)?.remove();
+	let divInfoContainer = tableRef.createElementAboveTable("div");
+	return createInfoBlock(divInfoContainer, "loading pages... ");
+}
+function createInfoBlock(infoContainer, initialMessage) {
+	let infoBar = new InfoBar(infoContainer.appendChild(document.createElement("div")));
+	let progressBar = insertProgressBar(infoBar.divInfoLine, initialMessage);
+	return {
+		infoBar,
+		progressBar
+	};
+}
+
+//#endregion
 //#region typescript/table/loadAnyTable.ts
 async function getWerklijstTableRef() {
 	let chain = new FetchChain();
@@ -3767,23 +3795,6 @@ function createDefaultTableRef() {
 	if (!tableRef) return { error: "Cannot find table." };
 	return { result: { tableRef } };
 }
-function createInfoBlockForTable(tableRef) {
-	document.getElementById(
-		//todo: create a chain.post()
-		// call to changeView() - assuming this is always the same, so no parsing here.
-		//remove "#" from table id.;
-		//Try again
-		//screw it. I'm panicking intead of bubbling results.
-		INFO_CONTAINER_ID
-)?.remove();
-	let divInfoContainer = tableRef.createElementAboveTable("div");
-	let infoBar = new InfoBar(divInfoContainer.appendChild(document.createElement("div")));
-	let progressBar = insertProgressBar(infoBar.divInfoLine, "loading pages... ");
-	return {
-		infoBar,
-		progressBar
-	};
-}
 function createDefaultTableFetcher(tableRef, infoBlock) {
 	let tableFetcher = new TableFetcher(tableRef, getChecksumBuilder(tableRef.htmlTableId));
 	let infoBarListener = new InfoBarTableFetchListener(infoBlock);
@@ -3874,7 +3885,7 @@ var WerklijstBuilder = class WerklijstBuilder {
 		await this.sendCriteria();
 		return this;
 	}
-	async fetchTable() {
+	async fetchTable(listener) {
 		let tableRef = await getWerklijstTableRef();
 		return getTable(tableRef, void 0, true);
 	}
@@ -4108,7 +4119,7 @@ async function getJaarToewijzigingWerklijst(schoolYear) {
 		FIELD.GRAAD_LEERJAAR
 	]);
 	let preparedBuilder = await builder.sendSettings();
-	let table = await preparedBuilder.fetchTable();
+	let table = await preparedBuilder.fetchTable(void 0);
 	await setViewFromCurrentUrl();
 	return table;
 }
@@ -5960,22 +5971,30 @@ function upgradeCloudData(fromCloud) {
 async function mailMergeStartSchoolyear() {
 	let schoolyear = Schoolyear.getHighestAvailable();
 	let builder = await createWerklijstBuilder(schoolyear, Grouping.LES);
-	let dko3_vakken = await builder.fetchAvailableSubjects();
 	await builder.reset();
 	builder.addFields([
 		FIELD.NAAM,
 		FIELD.VOORNAAM,
+		FIELD.LEEFTIJD_31_DEC,
+		FIELD.EMAIL_PUNTCOMMA,
+		FIELD.DOMEIN,
 		FIELD.VAK_NAAM,
-		FIELD.GRAAD_LEERJAAR,
-		FIELD.KLAS_LEERKRACHT
+		FIELD.GRAAD,
+		FIELD.LEERJAAR,
+		FIELD.BENAMING_LES,
+		FIELD.LESMOMENTEN,
+		FIELD.KLAS_LEERKRACHT,
+		FIELD.VESTIGINGSPLAATS
 	]);
-	await builder.sendSettings();
-	let pageState$2 = getGotoStateOrDefault(PageName.Werklijst);
-	pageState$2.werklijstTableName = UREN_TABLE_STATE_NAME;
-	saveGotoState(pageState$2);
-	console.log("Werklijst prepared: reloading page (or changing hash). ");
-	if (window.location.hash === "#leerlingen-werklijst$werklijst") location.reload();
-	else location.hash = "#leerlingen-werklijst$werklijst";
+	builder.addCriterium(CriteriumName.Graad, Operator.PLUS, ["4e graad", "specialisatie"]);
+	let preparedWerklijst = await builder.sendSettings();
+	let divFooter = document.getElementById("div_leerling_werklijst_footer");
+	let divInfo = divFooter.insertAdjacentElement("afterend", document.createElement("div"));
+	let infoBlock = createInfoBlock(divInfo, "Loading dada data tata...");
+	infoBlock.infoBar.setExtraInfo("Fetching student data...");
+	let fetchedTable = await preparedWerklijst.fetchTable(new InfoBarTableFetchListener(infoBlock));
+	let table = fetchedTable.getTable();
+	let mailMergeTable = new MailMergeTable(infoBlock, table);
 }
 
 //#endregion
