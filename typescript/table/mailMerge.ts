@@ -1,7 +1,8 @@
-import {TableMeta} from "./tableHeaders";
 import {getTableFromHash, InfoBarTableFetchListener} from "./loadAnyTable";
 import {createHtmlTable} from "../globals";
 import {InfoBlock} from "../infoBlock";
+import {createWerklijstBuilder} from "./werklijstBuilder";
+import {CriteriumName, FIELD, Grouping, Operator} from "../werklijst/criteria";
 
 interface DataIndexes {
     studentColumnIndexes: number[];
@@ -43,11 +44,13 @@ export class MailMergeTable {
     }
 
     async build(): Promise<{ vestigingsPlaatsen: TableWithHeader, studentTable: TableWithHeader }> {
+        this.infoBlock.infoBar.setExtraInfo("Fetching vestigingsplaatsen...");
         let fetchedTable = await getTableFromHash("extra-academie-vestigingsplaatsen", false, new InfoBarTableFetchListener(this.infoBlock));
         let rows = fetchedTable.getRows();
         let vestigingsPlaatsen = [...rows].map(row => row.cells[1].innerText);
         let vestigingsTable: TableWithHeader = {headers: ["Vestigingsplaats"], data: vestigingsPlaatsen.map(vestiging => [vestiging])};
         let studentTable = this.buildStudentTable();
+        this.infoBlock.infoBar.setExtraInfo("");
         return {
             vestigingsPlaatsen: vestigingsTable,
             studentTable};
@@ -198,6 +201,9 @@ END Studenten<br>
         flattendHeaders.push(...[...new Array(maxVestigingsplaatsen).keys()].map(index => "vestigingsplaats" + (index + 1)));
 
         flattendToStudent = this.duplicateRowsForEmail(flattendToStudent, emailIndex);
+        //todo: test only
+        flattendToStudent.sort((a, b) => (a[0]+a[1]).localeCompare(b[0]+b[1]));
+
         return {headers: flattendHeaders, data: flattendToStudent};
     }
 
@@ -320,3 +326,34 @@ let WerklijstFieldsStudent = [
     "telefoonnummers",
     "mobiele nummers voor verwittiging",
 ];
+
+export async function fetchMailMergeData(schoolyear: string, infoBlock: InfoBlock) {
+    infoBlock.infoBar.setExtraInfo("Fetching student data...");
+    let builder = await createWerklijstBuilder(schoolyear, Grouping.LES);
+    await builder.reset();
+    //todo: remove initiatie????
+    builder.addFields([
+        FIELD.NAAM,
+        FIELD.VOORNAAM,
+        FIELD.LEEFTIJD_31_DEC,
+        FIELD.EMAIL_PUNTCOMMA,
+        FIELD.DOMEIN,
+        FIELD.VAK_NAAM,
+        FIELD.GRAAD,
+        FIELD.LEERJAAR,
+        FIELD.BENAMING_LES,
+        FIELD.LESMOMENTEN,
+        FIELD.KLAS_LEERKRACHT,
+        FIELD.VESTIGINGSPLAATS,
+    ]);
+    //test only:
+    //builder.addCriterium(CriteriumName.Graad, Operator.PLUS, ["4e graad", "specialisatie"]);
+    let preparedWerklijst = await builder.sendSettings();
+
+    let fetchedTable = await preparedWerklijst.fetchTable(new InfoBarTableFetchListener(infoBlock));
+    let table = fetchedTable.getTable();
+
+    let mailMergeTable: MailMergeTable = new MailMergeTable(infoBlock, table);
+    let text = await mailMergeTable.toHtml();
+    return text;
+}

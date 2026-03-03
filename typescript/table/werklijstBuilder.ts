@@ -1,5 +1,5 @@
 import {Criterium, CriteriumName, fetchTableRows, Grouping, IsSelectedItem, Operator, postNameValueList, Veld} from "../werklijst/criteria";
-import {getTable, getWerklijstTableRef} from "./loadAnyTable";
+import {getTable, getWerklijstTableRef, InfoBarTableFetchListener} from "./loadAnyTable";
 import {getImmediateText} from "../globals";
 import {FetchedTable, TableFetchListener} from "./tableFetcher";
 
@@ -93,9 +93,9 @@ class WerklijstBuilder implements CriteriaBuilder, PreparedWerklijst {
         return this as PreparedWerklijst;
     }
 
-    async fetchTable(listener: TableFetchListener | undefined) {
+    async fetchTable(listener: InfoBarTableFetchListener | undefined) {
         let tableRef = await getWerklijstTableRef();
-        return getTable(tableRef, undefined, true);
+        return getTable(tableRef, listener, true);
         //todo: keep state of builder: table fetched.
     }
 
@@ -151,6 +151,6 @@ function textToCodes(items: (string[] | IsSelectedItem), vakDefs: string[][]) {
     } else {
         filtered = vakDefs.filter((vakDef) => (items as string[]).includes(vakDef[0]));
     }
-    return filtered.map(vakDefe => parseInt(vakDefe[1]));
+    return filtered.map(vakDef => vakDef[1]);
 }
 

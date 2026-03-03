@@ -930,14 +930,14 @@ var AllPageFilter = class {
 };
 var BaseObserver = class {
 	onPageChangedCallback;
-	onPageLoadedCallback;
+	onPageRefreshedCallback;
 	pageFilter;
 	onMutation;
 	observer;
 	trackModal;
 	constructor(onPageChangedCallback, pageFilter, onMutationCallback, trackModal = false, onPageLoadedCallback = void 0) {
 		this.onPageChangedCallback = onPageChangedCallback;
-		this.onPageLoadedCallback = onPageLoadedCallback;
+		this.onPageRefreshedCallback = onPageLoadedCallback;
 		this.pageFilter = pageFilter;
 		this.onMutation = onMutationCallback;
 		this.trackModal = trackModal;
@@ -950,9 +950,9 @@ var BaseObserver = class {
 		}
 	}
 	isPageMatching = () => this.pageFilter.match();
-	onPageLoaded() {
-		if (this.onPageLoadedCallback) {
-			if (this.isPageMatching()) tryUntilThen(this.isPageReallyLoaded, this.onPageLoadedCallback);
+	onPageRefreshed() {
+		if (this.onPageRefreshedCallback) {
+			if (this.isPageMatching()) tryUntilThen(this.isPageReallyLoaded, this.onPageRefreshedCallback);
 		}
 	}
 	onPageChanged() {
@@ -984,18 +984,18 @@ var BaseObserver = class {
 	}
 };
 var HashObserver = class extends BaseObserver {
-	constructor(urlHash, onMutationCallback, trackModal = false, onPageLoadedCallback = void 0) {
-		super(void 0, new HashPageFilter(urlHash), onMutationCallback, trackModal, onPageLoadedCallback);
+	constructor(urlHash, onMutationCallback, trackModal = false, onPageRefreshedCallback = void 0) {
+		super(void 0, new HashPageFilter(urlHash), onMutationCallback, trackModal, onPageRefreshedCallback);
 	}
 };
 var ExactHashObserver = class extends BaseObserver {
-	constructor(urlHash, onMutationCallback, trackModal = false, onPageLoadedCallback = void 0) {
-		super(void 0, new ExactHashPageFilter(urlHash), onMutationCallback, trackModal, onPageLoadedCallback);
+	constructor(urlHash, onMutationCallback, trackModal = false, onPageRefreshedCallback = void 0) {
+		super(void 0, new ExactHashPageFilter(urlHash), onMutationCallback, trackModal, onPageRefreshedCallback);
 	}
 };
 var PageObserver = class extends BaseObserver {
-	constructor(onPageChangedCallback, onPageLoadedCallback = void 0) {
-		super(onPageChangedCallback, new AllPageFilter(), void 0, false, onPageLoadedCallback);
+	constructor(onPageChangedCallback, onPageRefreshedCallback = void 0) {
+		super(onPageChangedCallback, new AllPageFilter(), void 0, false, onPageRefreshedCallback);
 	}
 };
 var MenuScrapingObserver = class MenuScrapingObserver extends ExactHashObserver {
@@ -2765,6 +2765,7 @@ var MailMergeTable = class {
 		this.data = this.data.filter((row) => row[indexVoornaam] != "Contactgegevens");
 	}
 	async build() {
+		this.infoBlock.infoBar.setExtraInfo("Fetching vestigingsplaatsen...");
 		let fetchedTable = await getTableFromHash("extra-academie-vestigingsplaatsen", false, new InfoBarTableFetchListener(this.infoBlock));
 		let rows = fetchedTable.getRows();
 		let vestigingsPlaatsen = [...rows].map((row) => row.cells[1].innerText);
@@ -2773,6 +2774,7 @@ var MailMergeTable = class {
 			data: vestigingsPlaatsen.map((vestiging) => [vestiging])
 		};
 		let studentTable = this.buildStudentTable();
+		this.infoBlock.infoBar.setExtraInfo("");
 		return {
 			vestigingsPlaatsen: vestigingsTable,
 			studentTable
@@ -2895,6 +2897,7 @@ END Studenten<br>
 		});
 		flattendHeaders.push(...[...new Array(maxVestigingsplaatsen).keys()].map((index) => "vestigingsplaats" + (index + 1)));
 		flattendToStudent = this.duplicateRowsForEmail(flattendToStudent, emailIndex);
+		flattendToStudent.sort((a, b) => (a[0] + a[1]).localeCompare(b[0] + b[1]));
 		return {
 			headers: flattendHeaders,
 			data: flattendToStudent
@@ -3007,6 +3010,31 @@ let WerklijstFieldsStudent = [
 	"telefoonnummers",
 	"mobiele nummers voor verwittiging"
 ];
+async function fetchMailMergeData(schoolyear, infoBlock) {
+	infoBlock.infoBar.setExtraInfo("Fetching student data...");
+	let builder = await createWerklijstBuilder(schoolyear, Grouping.LES);
+	await builder.reset();
+	builder.addFields([
+		FIELD.NAAM,
+		FIELD.VOORNAAM,
+		FIELD.LEEFTIJD_31_DEC,
+		FIELD.EMAIL_PUNTCOMMA,
+		FIELD.DOMEIN,
+		FIELD.VAK_NAAM,
+		FIELD.GRAAD,
+		FIELD.LEERJAAR,
+		FIELD.BENAMING_LES,
+		FIELD.LESMOMENTEN,
+		FIELD.KLAS_LEERKRACHT,
+		FIELD.VESTIGINGSPLAATS
+	]);
+	let preparedWerklijst = await builder.sendSettings();
+	let fetchedTable = await preparedWerklijst.fetchTable(new InfoBarTableFetchListener(infoBlock));
+	let table = fetchedTable.getTable();
+	let mailMergeTable = new MailMergeTable(infoBlock, table);
+	let text = await mailMergeTable.toHtml();
+	return text;
+}
 
 //#endregion
 //#region typescript/table/tableHeaders.ts
@@ -3887,7 +3915,7 @@ var WerklijstBuilder = class WerklijstBuilder {
 	}
 	async fetchTable(listener) {
 		let tableRef = await getWerklijstTableRef();
-		return getTable(tableRef, void 0, true);
+		return getTable(tableRef, listener, true);
 	}
 	addCriterium(name, operator, values) {
 		this.criteria.push({
@@ -3953,24 +3981,24 @@ function textToCodes(items, vakDefs) {
 		let isIncluded = items;
 		filtered = vakDefs.filter((vakDef) => isIncluded(vakDef[0]));
 	} else filtered = vakDefs.filter((vakDef) => items.includes(vakDef[0]));
-	return filtered.map((vakDefe) => parseInt(vakDefe[1]));
+	return filtered.map((vakDef) => vakDef[1]);
 }
 
 //#endregion
 //#region typescript/lessen/observer.ts
 var LessenObserver = class extends HashObserver {
 	constructor() {
-		super("#lessen-overzicht", onMutation$5, false, onPageLoaded$1);
+		super("#lessen-overzicht", onMutation$5, false, onPageRefreshed$1);
 	}
 	isPageReallyLoaded() {
 		return document.getElementById("btn_lessen_overzicht_zoeken") != null;
 	}
 };
 var observer_default$7 = new LessenObserver();
-function onPageLoaded$1() {
-	console.log(`Lessen.onPageLoaded: hash: ${location.hash}`);
+function onPageRefreshed$1() {
+	console.log(`Lessen.onPageRefreshed: hash: ${location.hash}`);
 	if (location.hash != "#lessen-overzicht") return;
-	if (!addTrimesterButton()) setTimeout(onPageLoaded$1, 500);
+	if (!addTrimesterButton()) setTimeout(onPageRefreshed$1, 500);
 }
 function addTrimesterButton() {
 	let btnZoek = document.getElementById("btn_lessen_overzicht_zoeken");
@@ -5970,31 +5998,11 @@ function upgradeCloudData(fromCloud) {
 }
 async function mailMergeStartSchoolyear() {
 	let schoolyear = Schoolyear.getHighestAvailable();
-	let builder = await createWerklijstBuilder(schoolyear, Grouping.LES);
-	await builder.reset();
-	builder.addFields([
-		FIELD.NAAM,
-		FIELD.VOORNAAM,
-		FIELD.LEEFTIJD_31_DEC,
-		FIELD.EMAIL_PUNTCOMMA,
-		FIELD.DOMEIN,
-		FIELD.VAK_NAAM,
-		FIELD.GRAAD,
-		FIELD.LEERJAAR,
-		FIELD.BENAMING_LES,
-		FIELD.LESMOMENTEN,
-		FIELD.KLAS_LEERKRACHT,
-		FIELD.VESTIGINGSPLAATS
-	]);
-	builder.addCriterium(CriteriumName.Graad, Operator.PLUS, ["4e graad", "specialisatie"]);
-	let preparedWerklijst = await builder.sendSettings();
 	let divFooter = document.getElementById("div_leerling_werklijst_footer");
 	let divInfo = divFooter.insertAdjacentElement("afterend", document.createElement("div"));
-	let infoBlock = createInfoBlock(divInfo, "Loading dada data tata...");
-	infoBlock.infoBar.setExtraInfo("Fetching student data...");
-	let fetchedTable = await preparedWerklijst.fetchTable(new InfoBarTableFetchListener(infoBlock));
-	let table = fetchedTable.getTable();
-	let mailMergeTable = new MailMergeTable(infoBlock, table);
+	let infoBlock = createInfoBlock(divInfo, "");
+	let text = await fetchMailMergeData(schoolyear, infoBlock);
+	copyToClipboardOrRequestRetry(infoBlock.infoBar, text);
 }
 
 //#endregion
@@ -6434,11 +6442,11 @@ function init() {
 		onPageChanged();
 		setupPowerQuery();
 		if (document.readyState == "complete") {
-			console.log("document ready. firing onPageLoaded.");
-			onPageLoaded();
+			console.log("document ready. firing onPageRefreshed.");
+			onPageRefreshed();
 		} else window.addEventListener("load", () => {
 			console.log("load event fired.");
-			onPageLoaded();
+			onPageRefreshed();
 		});
 	});
 }
@@ -6464,10 +6472,10 @@ function onPageChanged() {
 	pageState$1.transient.clear();
 	for (let observer$1 of observers) observer$1.onPageChanged();
 }
-function onPageLoaded() {
+function onPageRefreshed() {
 	if (getGlobalSettings().globalHide) return;
 	pageState$1.transient.clear();
-	for (let observer$1 of observers) observer$1.onPageLoaded();
+	for (let observer$1 of observers) observer$1.onPageRefreshed();
 	let searchField$1 = document.getElementById("snel_zoeken_veld_zoektermen");
 	if (searchField$1) searchField$1.addEventListener("paste", onPasteInGlobalSearchField);
 }
