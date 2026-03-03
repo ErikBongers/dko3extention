@@ -40,7 +40,7 @@ export class AllPageFilter implements PageFilter{
 
 export interface Observer {
     onPageChanged: () => void;
-    onPageLoaded: () => void;
+    onPageRefreshed: () => void;
     isPageMatching: () => boolean;
     disconnect: () => void;
     observeElement: (element: HTMLElement) => void;
@@ -49,14 +49,14 @@ export interface Observer {
 
 export abstract class BaseObserver implements Observer {
     private readonly onPageChangedCallback: () => void;
-    private readonly onPageLoadedCallback: () => void;
+    private readonly onPageRefreshedCallback: () => void;
     private pageFilter: PageFilter;
     private readonly onMutation: (mutation: MutationRecord) => boolean;
     private observer: MutationObserver;
     private readonly trackModal: boolean;
     protected constructor(onPageChangedCallback: () => void, pageFilter: PageFilter, onMutationCallback: (mutation: MutationRecord) => boolean, trackModal: boolean = false, onPageLoadedCallback: () => void = undefined) {
         this.onPageChangedCallback = onPageChangedCallback;
-        this.onPageLoadedCallback = onPageLoadedCallback;
+        this.onPageRefreshedCallback = onPageLoadedCallback;
         this.pageFilter = pageFilter;
         this.onMutation = onMutationCallback;
         this.trackModal = trackModal;
@@ -78,10 +78,10 @@ export abstract class BaseObserver implements Observer {
 
     isPageMatching = () => this.pageFilter.match();
 
-    onPageLoaded() {
-        if(this.onPageLoadedCallback)
+    onPageRefreshed() {
+        if(this.onPageRefreshedCallback)
             if(this.isPageMatching())
-                tryUntilThen(this.isPageReallyLoaded, this.onPageLoadedCallback);
+                tryUntilThen(this.isPageReallyLoaded, this.onPageRefreshedCallback);
     }
 
     onPageChanged() {
@@ -125,20 +125,20 @@ export abstract class BaseObserver implements Observer {
 
 export abstract class HashObserver extends BaseObserver {
     //onMutationCallback should return true if handled definitively, and no further mutation records from the mutationList should be handled.
-    protected constructor(urlHash: string, onMutationCallback: (mutation: MutationRecord) => boolean, trackModal: boolean = false, onPageLoadedCallback: () => void = undefined) {
-        super(undefined, new HashPageFilter(urlHash), onMutationCallback, trackModal, onPageLoadedCallback);
+    protected constructor(urlHash: string, onMutationCallback: (mutation: MutationRecord) => boolean, trackModal: boolean = false, onPageRefreshedCallback: () => void = undefined) {
+        super(undefined, new HashPageFilter(urlHash), onMutationCallback, trackModal, onPageRefreshedCallback);
     }
 }
 
 export abstract class ExactHashObserver extends BaseObserver {
-    protected constructor(urlHash: string, onMutationCallback: (mutation: MutationRecord) => boolean, trackModal: boolean = false, onPageLoadedCallback: () => void = undefined) {
-        super(undefined, new ExactHashPageFilter(urlHash), onMutationCallback, trackModal, onPageLoadedCallback);
+    protected constructor(urlHash: string, onMutationCallback: (mutation: MutationRecord) => boolean, trackModal: boolean = false, onPageRefreshedCallback: () => void = undefined) {
+        super(undefined, new ExactHashPageFilter(urlHash), onMutationCallback, trackModal, onPageRefreshedCallback);
     }
 }
 
 export abstract class PageObserver extends BaseObserver {
-    protected constructor(onPageChangedCallback: () => void, onPageLoadedCallback: () => void = undefined) {
-        super(onPageChangedCallback, new AllPageFilter(), undefined, false, onPageLoadedCallback);
+    protected constructor(onPageChangedCallback: () => void, onPageRefreshedCallback: () => void = undefined) {
+        super(onPageChangedCallback, new AllPageFilter(), undefined, false, onPageRefreshedCallback);
     }
 }
 

@@ -16,7 +16,7 @@ import {createWerklijstBuilder} from "../table/werklijstBuilder";
 
 class LessenObserver extends HashObserver {
     constructor() {
-        super("#lessen-overzicht", onMutation, false, onPageLoaded);
+        super("#lessen-overzicht", onMutation, false, onPageRefreshed);
     }
     isPageReallyLoaded(): boolean {
         return document.getElementById("btn_lessen_overzicht_zoeken") != null;
@@ -25,12 +25,12 @@ class LessenObserver extends HashObserver {
 
 export default new LessenObserver();
 
-function onPageLoaded() {
-    console.log(`Lessen.onPageLoaded: hash: ${location.hash}`);
+function onPageRefreshed() {
+    console.log(`Lessen.onPageRefreshed: hash: ${location.hash}`);
     if(location.hash != "#lessen-overzicht" ) //todo: why is this check needed? If so, put it in BaseObserver?
         return;
      if(!addTrimesterButton())
-         setTimeout(onPageLoaded, 500);
+         setTimeout(onPageRefreshed, 500);
 }
 
 function addTrimesterButton() {

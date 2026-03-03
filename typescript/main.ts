@@ -56,13 +56,13 @@ function init() {
         onPageChanged();
         setupPowerQuery();
         if(document.readyState == "complete") {
-            console.log("document ready. firing onPageLoaded.");
-            onPageLoaded();
+            console.log("document ready. firing onPageRefreshed.");
+            onPageRefreshed();
         }
         else {
             window.addEventListener("load", () => {
                 console.log("load event fired.");
-                onPageLoaded();
+                onPageRefreshed();
             });
         }
     });
@@ -99,13 +99,14 @@ function onPageChanged() {
     }
 }
 
-function onPageLoaded() {
+//only fires on a page refresh, NOT on an initial page load, NOR on menu navigation.
+function onPageRefreshed() {
     if(getGlobalSettings().globalHide) {
         return;
     }
     pageState.transient.clear();
     for(let observer of observers) {
-        observer.onPageLoaded();
+        observer.onPageRefreshed();
     }
     let searchField = document.getElementById("snel_zoeken_veld_zoektermen") as HTMLInputElement;
     if(searchField) {
