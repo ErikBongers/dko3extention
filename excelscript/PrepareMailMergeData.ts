@@ -10,6 +10,16 @@ function main(workbook: ExcelScript.Workbook) {
         workbook.getTable(tableName).setPredefinedTableStyle("TableStyleLight8");
     });
     setDataValidation(workbook, "tableVestigingExtraInfo", "Vestigingsplaats", "tableVestigingsplaatsen", "Vestigingsplaats");
+    let tableStudenten = workbook.getTable("tableStudenten");
+    let maxInfo = findLargestCellValue(workbook, "tableVestigingExtraInfo", "ExtraInfo");
+    let firstRow = tableStudenten.getRange().getRow(0);
+    let lastCellRange = firstRow.getLastCell();
+    lastCellRange.setValue(maxInfo);
+    //todo: use loop over the last n cells.
+    let previousCell = lastCellRange.getOffsetRange(0, -1);
+    previousCell.setValue(maxInfo);
+    previousCell = lastCellRange.getOffsetRange(0, -1);
+    previousCell.setValue(maxInfo);
 }
 
 function defineTable(workbook: ExcelScript.Workbook, dataSheetName: string, tableName: string) {
@@ -45,4 +55,18 @@ function setDataValidation(workbook: ExcelScript.Workbook, tableName: string, co
     dataValidation.setErrorAlert({ showAlert: true, title: "", message: "", style: ExcelScript.DataValidationAlertStyle.stop });
     let rangeStr: string = workbook.getTable(validationTable).getColumnByName(validationColumn).getRange().getAddress();
     dataValidation.setRule({ list: { inCellDropDown: true, source: "=" + rangeStr } });
+}
+
+function findLargestCellValue(workbook: ExcelScript.Workbook, tableName: string, columnName: string) {
+    let range = workbook.getTable(tableName).getColumnByName(columnName).getRange();
+    let row = range.getRow(0);
+    let max = "";
+    for (let rowIndex = 1; rowIndex <= range.getRowCount(); rowIndex++) {
+        let cell = row.getCell(rowIndex, 0);
+        let value = cell.getValue();
+        if (value > max) {
+            max = value as string;
+        }
+    }
+    return max;
 }
