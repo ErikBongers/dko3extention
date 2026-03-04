@@ -1,4 +1,4 @@
-import {copyToClipboardOrRequestRetry, createHtmlTable, DataCacheId, distinct, HtmlData, openHtmlTab, range, rangeGenerator} from "../globals";
+import {createHtmlTable, DataCacheId, distinct, HtmlData, openHtmlTab, range, rangeGenerator} from "../globals";
 import {emmet} from "../../libs/Emmeter/html";
 import {checkAndDownloadTableRows} from "./loadAnyTable";
 import {addMenuItem, addMenuSeparator, setupMenu} from "../menus";
@@ -7,9 +7,8 @@ import * as def from "../def";
 import {options} from "../plugin_options/options";
 import {pageState} from "../pageState";
 import {Actions, HtmlDataRequestParams, sendRequest, ServiceRequest, TabType} from "../messaging";
-import {MailMergeTable} from "./mailMerge";
-import MessageSender = chrome.runtime.MessageSender;
 import {InfoBlock} from "../infoBlock";
+import MessageSender = chrome.runtime.MessageSender;
 
 let _otherTabsDataCache = new Map<string, string>();
 
@@ -85,12 +84,6 @@ function copyFullTable(table: HTMLTableElement) {
     createAndCopyTable(headers, cells);
 }
 
-async function copyForMailMerge(tableMeta: TableMeta, table: HTMLTableElement) {
-    let mailMergeTable: MailMergeTable = new MailMergeTable(tableMeta.infoBlock, table);
-    let text = await mailMergeTable.toHtml();
-    copyToClipboardOrRequestRetry(tableMeta.infoBlock.infoBar, text);
-}
-
 function copyOneColumn(table: HTMLTableElement, index: number) {
     createAndCopyTable(
         [(table.tHead.children[0].children[index] as HTMLTableCellElement).innerText],
@@ -162,7 +155,6 @@ export function decorateTableHeader(table: HTMLTableElement) {
             addMenuSeparator(menu, "Kopieer nr klipbord", 0);
             addMenuItem(menu, "Kolom", 1, (ev) => { forTableDo(ev, (tableMeta, index) => copyOneColumn(table, index))});
             addMenuItem(menu, "Hele tabel", 1, (ev) => { forTableDo(ev, (tableMeta, _index) => copyFullTable(table))});
-            addMenuItem(menu, "Voor mailmerge (1 email/rij)", 1, (ev) => { forTableDo(ev, (tableMeta, _index) => copyForMailMerge(tableMeta, table))});
             addMenuSeparator(menu, "<= Samenvoegen", 0);
             addMenuItem(menu, "met spatie", 1, (ev) => { forTableColumnDo(ev, createTwoColumnsCmd(Direction.LEFT, mergeColumnWithSpace))});
             addMenuItem(menu, "met comma", 1, (ev) => { forTableColumnDo(ev, createTwoColumnsCmd(Direction.LEFT, mergeColumnWithComma))});
