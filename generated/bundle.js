@@ -2765,7 +2765,7 @@ var MailMergeTable = class {
 		this.data = this.data.filter((row) => row[indexVoornaam] != "Contactgegevens");
 	}
 	async build() {
-		this.infoBlock.infoBar.setExtraInfo("Fetching vestigingsplaatsen...");
+		this.infoBlock.infoBar.setExtraInfo("Vestigingsplaatsen ophalen...");
 		let fetchedTable = await getTableFromHash("extra-academie-vestigingsplaatsen", false, new InfoBarTableFetchListener(this.infoBlock));
 		let rows = fetchedTable.getRows();
 		let vestigingsPlaatsen = [...rows].map((row) => row.cells[1].innerText);
@@ -2908,7 +2908,7 @@ END Studenten<br>
 		let largestVestigingsPlaats = "";
 		for (let i = 0; i < maxVestigingsplaatsen; i++) if (maxRow[cellCount - i - 1].length > largestVestigingsPlaats.length) largestVestigingsPlaats = maxRow[cellCount - i - 1];
 		for (let i = 0; i < maxVestigingsplaatsen; i++) maxRow[cellCount - i - 1] = largestVestigingsPlaats;
-		maxRow[emailIndex] = "erik.bongers@so.antwerpen.be";
+		maxRow[emailIndex] = "LANGSTE_TEKSTEN_PER_VELD@example.com";
 		flattendToStudent.unshift(maxRow);
 		return {
 			headers: flattendHeaders,
@@ -3023,7 +3023,7 @@ let WerklijstFieldsStudent = [
 	"mobiele nummers voor verwittiging"
 ];
 async function fetchMailMergeData(schoolyear, infoBlock) {
-	infoBlock.infoBar.setExtraInfo("Fetching student data...");
+	infoBlock.infoBar.setExtraInfo("Lesgegevens ophalen...");
 	let builder = await createWerklijstBuilder(schoolyear, Grouping.LES);
 	await builder.reset();
 	builder.addFields([
