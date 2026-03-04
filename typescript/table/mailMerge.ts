@@ -204,6 +204,25 @@ END Studenten<br>
         //todo: test only
         flattendToStudent.sort((a, b) => (a[0]+a[1]).localeCompare(b[0]+b[1]));
 
+        //create max ro
+        let maxRow = [...flattendToStudent[0]];
+        let cellCount = flattendHeaders.length;
+        flattendToStudent.forEach(row => {
+            row.forEach((cell, index) => {
+                if(cell.length > maxRow[index].length)
+                    maxRow[index] = cell;
+            })
+        });
+        let largestVestigingsPlaats: string = "";
+        for(let i = 0; i < maxVestigingsplaatsen; i++) {
+            if(maxRow[cellCount-i-1].length > largestVestigingsPlaats.length)
+                largestVestigingsPlaats = maxRow[cellCount-i-1];
+        }
+        for(let i = 0; i < maxVestigingsplaatsen; i++) {
+            maxRow[cellCount-i-1] = largestVestigingsPlaats;
+        }
+        maxRow[emailIndex] = "erik.bongers@so.antwerpen.be";
+        flattendToStudent.unshift(maxRow);
         return {headers: flattendHeaders, data: flattendToStudent};
     }
 
