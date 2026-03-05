@@ -1,3 +1,64 @@
+* Rename email adress to "email" in data source.
+* Mail merge with post editinc:
+Sub MergeModifySend()
+
+    Dim i As Long
+    Dim recCount As Long
+    Dim mergedDoc As Document
+    Dim email As String
+
+    recCount = ActiveDocument.MailMerge.DataSource.RecordCount
+
+    For i = 1 To recCount
+
+        With ActiveDocument.MailMerge
+            .DataSource.FirstRecord = i
+            .DataSource.LastRecord = i
+            .Destination = wdSendToNewDocument
+            .Execute Pause:=False
+        End With
+
+        Set mergedDoc = ActiveDocument
+
+        'Example modification
+        mergedDoc.Content.Find.Execute _
+            FindText:="PLACEHOLDER", _
+            ReplaceWith:="Custom text for record " & i, _
+            Replace:=wdReplaceAll
+
+        'Get email from data source
+        email = ActiveDocument.MailMerge.DataSource.DataFields("Email").Value
+
+        'Send email via Outlook
+        SendDocByEmail mergedDoc, email
+
+        mergedDoc.Close SaveChanges:=False
+
+    Next i
+
+End Sub
+
+
+Sub SendDocByEmail(doc As Document, recipient As String)
+
+    Dim olApp As Object
+    Dim olMail As Object
+
+    Set olApp = CreateObject("Outlook.Application")
+    Set olMail = olApp.CreateItem(0)
+
+    doc.ExportAsFixedFormat Environ("TEMP") & "\temp.pdf", wdExportFormatPDF
+
+    With olMail
+        .To = recipient
+        .Subject = "Your document"
+        .Body = "Please see attached."
+        .Attachments.Add Environ("TEMP") & "\temp.pdf"
+        .Send
+    End With
+
+End Sub
+
 * Mailmerge: remove initiatie?
 * Mail merge: post merge formatting possible? https://learn.microsoft.com/en-us/office/vba/api/word.application.mailmergeafterrecordmerge
   > before merging, find bold text and decorate it and after merge, make it bold again?
