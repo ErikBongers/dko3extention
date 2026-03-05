@@ -1,14 +1,14 @@
 /// <reference path="./excelScript.d.ts" />
 //https://github.com/sumurthy/officescripts-projects/blob/main/misc/index.d.ts
 
-const TABLE_VESTING_EXTRA_INFO_ID = "tableVestigingExtraInfo";
-const STUDENTEN_BASE_NAME = "Studenten";
+const TABLE_VESTING_EXTRA_INFO_ID = "tableVestigingExtraInfo" as const;
+const STUDENTEN_BASE_NAME = "Studenten" as const;
 const TABLE_STUDENTEN_ID = "table"+STUDENTEN_BASE_NAME;
-const VESTIGINGSPLAATSEN_BASE_NAME = "Vestigingsplaatsen";
+const VESTIGINGSPLAATSEN_BASE_NAME = "Vestigingsplaatsen" as const;
 const TABLE_VESTIGINGSPLAATSEN_ID = "table"+VESTIGINGSPLAATSEN_BASE_NAME;
-const EXTRA_INFO_COLUMN_ID = "ExtraInfo";
-const VESTIGINGSPLAATS_COLUMN_ID = "Vestigingsplaats";
-const DKO3DATA_SHEET_ID = "Dko3Data";
+const EXTRA_INFO_COLUMN_ID = "ExtraInfo" as const;
+const VESTIGINGSPLAATS_COLUMN_ID = "Vestigingsplaats" as const;
+const DKO3DATA_SHEET_ID = "Dko3Data" as const;
 
 function setKeyForLongestVestigingInfoInMaxRow(workbook: ExcelScript.Workbook) {
     let tableStudenten = workbook.getTable(TABLE_STUDENTEN_ID);
