@@ -8,6 +8,7 @@ const VESTIGINGSPLAATSEN_BASE_NAME = "Vestigingsplaatsen";
 const TABLE_VESTIGINGSPLAATSEN_ID = "table"+VESTIGINGSPLAATSEN_BASE_NAME;
 const EXTRA_INFO_COLUMN_ID = "ExtraInfo";
 const VESTIGINGSPLAATS_COLUMN_ID = "Vestigingsplaats";
+const DKO3DATA_SHEET_ID = "Dko3Data";
 
 function setKeyForLongestVestigingInfoInMaxRow(workbook: ExcelScript.Workbook) {
     let tableStudenten = workbook.getTable(TABLE_STUDENTEN_ID);
@@ -26,8 +27,8 @@ function setKeyForLongestVestigingInfoInMaxRow(workbook: ExcelScript.Workbook) {
 function main(workbook: ExcelScript.Workbook) {
     workbook.getTable(TABLE_STUDENTEN_ID)?.delete();
     workbook.getTable(TABLE_VESTIGINGSPLAATSEN_ID)?.delete();
-    defineTable(workbook, "Dko3Data", STUDENTEN_BASE_NAME);
-    defineTable(workbook, "Dko3Data", VESTIGINGSPLAATSEN_BASE_NAME);
+    defineTable(workbook, DKO3DATA_SHEET_ID, STUDENTEN_BASE_NAME);
+    defineTable(workbook, DKO3DATA_SHEET_ID, VESTIGINGSPLAATSEN_BASE_NAME);
     [TABLE_STUDENTEN_ID, TABLE_VESTIGINGSPLAATSEN_ID].forEach(tableName => {
         workbook.getTable(tableName).setPredefinedTableStyle("TableStyleLight8");
     });
