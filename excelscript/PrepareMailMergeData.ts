@@ -9,31 +9,21 @@ const TABLE_VESTIGINGSPLAATSEN_ID = "table"+VESTIGINGSPLAATSEN_BASE_NAME;
 const EXTRA_INFO_COLUMN_ID = "ExtraInfo" as const;
 const VESTIGINGSPLAATS_COLUMN_ID = "Vestigingsplaats" as const;
 const DKO3DATA_SHEET_ID = "Dko3Data" as const;
-
-function setKeyForLongestVestigingInfoInMaxRow(workbook: ExcelScript.Workbook) {
-    let tableStudenten = workbook.getTable(TABLE_STUDENTEN_ID);
-    let firstRow = tableStudenten.getRange().getRow(0);
-    let lastCellRange = firstRow.getLastCell();
-    let maxInfoRowIndex = findRowIndexLargestCellValue(workbook, TABLE_VESTING_EXTRA_INFO_ID, EXTRA_INFO_COLUMN_ID);
-    let maxInfoKey = lastCellRange.getOffsetRange(maxInfoRowIndex, 0).getValue() as string;
-    lastCellRange.setValue(maxInfoKey);
-    //todo: use loop over the last n cells.
-    let previousCell = lastCellRange.getOffsetRange(0, -1);
-    previousCell.setValue(maxInfoKey);
-    previousCell = lastCellRange.getOffsetRange(0, -1);
-    previousCell.setValue(maxInfoKey);
-}
+const MAX_VESTIGINGEN_PER_STUDENT_ID = "maxVestigingenPerStudent:" as const;
+const META_ID = "META" as const;
 
 function main(workbook: ExcelScript.Workbook) {
-    workbook.getTable(TABLE_STUDENTEN_ID)?.delete();
-    workbook.getTable(TABLE_VESTIGINGSPLAATSEN_ID)?.delete();
+    workbook.getTable(TABLE_STUDENTEN_ID)?.convertToRange()
+    workbook.getTable(TABLE_VESTIGINGSPLAATSEN_ID)?.convertToRange()
     defineTable(workbook, DKO3DATA_SHEET_ID, STUDENTEN_BASE_NAME);
     defineTable(workbook, DKO3DATA_SHEET_ID, VESTIGINGSPLAATSEN_BASE_NAME);
+
     [TABLE_STUDENTEN_ID, TABLE_VESTIGINGSPLAATSEN_ID].forEach(tableName => {
         workbook.getTable(tableName).setPredefinedTableStyle("TableStyleLight8");
     });
     setDataValidation(workbook, TABLE_VESTING_EXTRA_INFO_ID, VESTIGINGSPLAATS_COLUMN_ID, TABLE_VESTIGINGSPLAATSEN_ID, VESTIGINGSPLAATS_COLUMN_ID);
     setKeyForLongestVestigingInfoInMaxRow(workbook);
+    workbook.refreshAllDataConnections();
 }
 
 function defineTable(workbook: ExcelScript.Workbook, dataSheetName: string, tableName: string) {
@@ -85,4 +75,34 @@ function findRowIndexLargestCellValue(workbook: ExcelScript.Workbook, tableName:
         }
     }
     return maxIndex;
+}
+
+function getLargestCellValueKey(workbook: ExcelScript.Workbook, tableName: string, columnName: string, keyColumnName: string) {
+    let rowIndex = findRowIndexLargestCellValue(workbook, tableName, columnName);
+    return workbook
+        .getTable(tableName)
+        .getColumnByName(keyColumnName).getRange()
+        .getOffsetRange(rowIndex, 0).getValue() as string;
+}
+
+function getMetaData(workbook: ExcelScript.Workbook) {
+    let dataSheet = workbook.getWorksheet(DKO3DATA_SHEET_ID);
+    let ranges = dataSheet.findAll(META_ID, {
+        completeMatch: true,
+        matchCase: true,
+    });
+    let metaLine = ranges.getAreas()[0];
+    let found = metaLine.find(MAX_VESTIGINGEN_PER_STUDENT_ID, {matchCase: true, completeMatch: true});
+    let maxVestigingenPerStudent = found.getOffsetRange(0, 1).getValue() as number;
+    return {maxVestigingenPerStudent};
+}
+
+function setKeyForLongestVestigingInfoInMaxRow(workbook: ExcelScript.Workbook) {
+    let tableStudenten = workbook.getTable(TABLE_STUDENTEN_ID);
+    let firstRow = tableStudenten.getRange().getRow(1);
+    let maxInfoKey = getLargestCellValueKey(workbook, TABLE_VESTING_EXTRA_INFO_ID, EXTRA_INFO_COLUMN_ID, VESTIGINGSPLAATS_COLUMN_ID);
+    let metaData = getMetaData(workbook);
+    let vestiginCells = firstRow.getLastCell().getResizedRange(0, -(metaData.maxVestigingenPerStudent-1));
+    vestiginCells.setValue(maxInfoKey);
+    vestiginCells.select();
 }

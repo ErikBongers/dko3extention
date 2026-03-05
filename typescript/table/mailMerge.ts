@@ -20,6 +20,10 @@ export interface TableWithHeader {
     data: string[][];
 }
 
+export interface StudentTableWithHeader extends TableWithHeader {
+    maxVestigingsplaatsen: number;
+}
+
 export class MailMergeTable {
     private table: HTMLTableElement;
     private data: string[][];
@@ -43,7 +47,7 @@ export class MailMergeTable {
         this.data = this.data.filter(row => row[indexVoornaam] != "Contactgegevens");
     }
 
-    async build(): Promise<{ vestigingsPlaatsen: TableWithHeader, studentTable: TableWithHeader }> {
+    async build(): Promise<{ vestigingsPlaatsen: TableWithHeader, studentTable: StudentTableWithHeader }> {
         this.infoBlock.infoBar.setExtraInfo("Vestigingsplaatsen ophalen...");
         let fetchedTable = await getTableFromHash("extra-academie-vestigingsplaatsen", false, new InfoBarTableFetchListener(this.infoBlock));
         let rows = fetchedTable.getRows();
@@ -64,7 +68,7 @@ export class MailMergeTable {
 ${this.createSingleRowTable("BEGIN Vestigingsplaatsen", "Rows:", (vestigingsPlaatsen.data.length+1).toString(), "Columns:", "1")}
 ${vestTable.outerHTML}
 END Vestigingsplaatsen<br>
-${this.createSingleRowTable("maxInschrijvingen:", this.maxInschrijvingen.toString(), "maxLessen:", this.maxLessen.toString())}
+${this.createSingleRowTable("META", "maxInschrijvingen:", this.maxInschrijvingen.toString(), "maxLessen:", this.maxLessen.toString(), "maxVestigingenPerStudent:", studentTable.maxVestigingsplaatsen.toString())}
 ${this.createSingleRowTable("BEGIN Studenten", "Rows:", (studentTable.data.length+1).toString(), "Columns:", (studentTable.headers.length).toString())}
 ${studTable.outerHTML}
 END Studenten<br>
@@ -76,7 +80,7 @@ END Studenten<br>
         return `<table><tr>${values.map(value => `<td>${value}</td>`).join("")}</tr></table>`;
     }
 
-    buildStudentTable(): TableWithHeader {
+    buildStudentTable(): StudentTableWithHeader {
         let emailIndex = this.headers.findIndex(header => header.toLowerCase().includes("e-mailadressen"));
         if(emailIndex === -1) {
             alert("Geen e-mailadressen gevonden'. Voed dit veld toe aan de lijst.");
@@ -204,7 +208,7 @@ END Studenten<br>
         //todo: test only
         flattendToStudent.sort((a, b) => (a[0]+a[1]).localeCompare(b[0]+b[1]));
 
-        //create max ro
+        //create max row
         let maxRow = [...flattendToStudent[0]];
         let cellCount = flattendHeaders.length;
         flattendToStudent.forEach(row => {
@@ -223,7 +227,7 @@ END Studenten<br>
         }
         maxRow[emailIndex] = "LANGSTE_TEKSTEN_PER_VELD@example.com";
         flattendToStudent.unshift(maxRow);
-        return {headers: flattendHeaders, data: flattendToStudent};
+        return {headers: flattendHeaders, data: flattendToStudent, maxVestigingsplaatsen};
     }
 
     //...and remove academiestudent.be from the email addresses.
