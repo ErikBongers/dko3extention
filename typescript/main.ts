@@ -120,7 +120,9 @@ function onPasteInGlobalSearchField(e: ClipboardEvent) {
 
     let searchField = document.getElementById("snel_zoeken_veld_zoektermen") as HTMLInputElement;
     let text = e.clipboardData?.getData("text/plain") ?? "";
-    let newText = text.replace(",", "");
+    let newText = text
+        .replaceAll(",", "")
+        .replaceAll("-", " ");
     searchField.setRangeText(newText);
     searchField.setSelectionRange(newText.length, newText.length);
     e.preventDefault();

@@ -6488,7 +6488,7 @@ function onPasteInGlobalSearchField(e) {
 	if (!options.stripCommasOnPaste) return;
 	let searchField$1 = document.getElementById("snel_zoeken_veld_zoektermen");
 	let text = e.clipboardData?.getData("text/plain") ?? "";
-	let newText = text.replace(",", "");
+	let newText = text.replaceAll(",", "").replaceAll("-", " ");
 	searchField$1.setRangeText(newText);
 	searchField$1.setSelectionRange(newText.length, newText.length);
 	e.preventDefault();
