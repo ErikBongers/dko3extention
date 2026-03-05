@@ -1,25 +1,38 @@
 /// <reference path="./excelScript.d.ts" />
 //https://github.com/sumurthy/officescripts-projects/blob/main/misc/index.d.ts
 
-function main(workbook: ExcelScript.Workbook) {
-    workbook.getTable("tableStudenten")?.delete();
-    workbook.getTable("tableVestigingsplaatsen")?.delete();
-    defineTable(workbook, "Dko3Data", "Studenten");
-    defineTable(workbook, "Dko3Data", "Vestigingsplaatsen");
-    ["tableStudenten", "tableVestigingsplaatsen"].forEach(tableName => {
-        workbook.getTable(tableName).setPredefinedTableStyle("TableStyleLight8");
-    });
-    setDataValidation(workbook, "tableVestigingExtraInfo", "Vestigingsplaats", "tableVestigingsplaatsen", "Vestigingsplaats");
-    let tableStudenten = workbook.getTable("tableStudenten");
-    let maxInfo = findLargestCellValue(workbook, "tableVestigingExtraInfo", "ExtraInfo");
+const TABLE_VESTING_EXTRA_INFO_ID = "tableVestigingExtraInfo";
+const STUDENTEN_BASE_NAME = "Studenten";
+const TABLE_STUDENTEN_ID = "table"+STUDENTEN_BASE_NAME;
+const VESTIGINGSPLAATSEN_BASE_NAME = "Vestigingsplaatsen";
+const TABLE_VESTIGINGSPLAATSEN_ID = "table"+VESTIGINGSPLAATSEN_BASE_NAME;
+const EXTRA_INFO_COLUMN_ID = "ExtraInfo";
+const VESTIGINGSPLAATS_COLUMN_ID = "Vestigingsplaats";
+
+function setKeyForLongestVestigingInfoInMaxRow(workbook: ExcelScript.Workbook) {
+    let tableStudenten = workbook.getTable(TABLE_STUDENTEN_ID);
     let firstRow = tableStudenten.getRange().getRow(0);
     let lastCellRange = firstRow.getLastCell();
-    lastCellRange.setValue(maxInfo);
+    let maxInfoRowIndex = findRowIndexLargestCellValue(workbook, TABLE_VESTING_EXTRA_INFO_ID, EXTRA_INFO_COLUMN_ID);
+    let maxInfoKey = lastCellRange.getOffsetRange(maxInfoRowIndex, 0).getValue() as string;
+    lastCellRange.setValue(maxInfoKey);
     //todo: use loop over the last n cells.
     let previousCell = lastCellRange.getOffsetRange(0, -1);
-    previousCell.setValue(maxInfo);
+    previousCell.setValue(maxInfoKey);
     previousCell = lastCellRange.getOffsetRange(0, -1);
-    previousCell.setValue(maxInfo);
+    previousCell.setValue(maxInfoKey);
+}
+
+function main(workbook: ExcelScript.Workbook) {
+    workbook.getTable(TABLE_STUDENTEN_ID)?.delete();
+    workbook.getTable(TABLE_VESTIGINGSPLAATSEN_ID)?.delete();
+    defineTable(workbook, "Dko3Data", STUDENTEN_BASE_NAME);
+    defineTable(workbook, "Dko3Data", VESTIGINGSPLAATSEN_BASE_NAME);
+    [TABLE_STUDENTEN_ID, TABLE_VESTIGINGSPLAATSEN_ID].forEach(tableName => {
+        workbook.getTable(tableName).setPredefinedTableStyle("TableStyleLight8");
+    });
+    setDataValidation(workbook, TABLE_VESTING_EXTRA_INFO_ID, VESTIGINGSPLAATS_COLUMN_ID, TABLE_VESTIGINGSPLAATSEN_ID, VESTIGINGSPLAATS_COLUMN_ID);
+    setKeyForLongestVestigingInfoInMaxRow(workbook);
 }
 
 function defineTable(workbook: ExcelScript.Workbook, dataSheetName: string, tableName: string) {
@@ -57,16 +70,18 @@ function setDataValidation(workbook: ExcelScript.Workbook, tableName: string, co
     dataValidation.setRule({ list: { inCellDropDown: true, source: "=" + rangeStr } });
 }
 
-function findLargestCellValue(workbook: ExcelScript.Workbook, tableName: string, columnName: string) {
+function findRowIndexLargestCellValue(workbook: ExcelScript.Workbook, tableName: string, columnName: string) {
     let range = workbook.getTable(tableName).getColumnByName(columnName).getRange();
     let row = range.getRow(0);
     let max = "";
+    let maxIndex = -1;
     for (let rowIndex = 1; rowIndex <= range.getRowCount(); rowIndex++) {
         let cell = row.getCell(rowIndex, 0);
         let value = cell.getValue();
         if (value > max) {
             max = value as string;
+            maxIndex = rowIndex;
         }
     }
-    return max;
+    return maxIndex;
 }
