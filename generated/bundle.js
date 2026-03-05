@@ -5551,6 +5551,7 @@ END Studenten<br>
 			flattendToStudent.push(row);
 		});
 		flattendHeaders.push(...[...new Array(maxVestigingsplaatsen).keys()].map((index) => "vestigingsplaats" + (index + 1)));
+		flattendHeaders[emailIndex] = "email";
 		flattendToStudent = this.duplicateRowsForEmail(flattendToStudent, emailIndex);
 		flattendToStudent.sort((a, b) => (a[0] + a[1]).localeCompare(b[0] + b[1]));
 		let maxRow = [...flattendToStudent[0]];
