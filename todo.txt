@@ -1,82 +1,9 @@
-* Mail merge with post editing:
-Sub MergeModifySend()
-
-    Dim i As Long
-    Dim recCount As Long
-    Dim mergedDoc As Document
-    Dim email As String
-
-    recCount = ActiveDocument.MailMerge.DataSource.RecordCount
-
-    For i = 1 To recCount
-
-        With ActiveDocument.MailMerge
-            .DataSource.FirstRecord = i
-            .DataSource.LastRecord = i
-            .Destination = wdSendToNewDocument
-            .Execute Pause:=False
-        End With
-
-        Set mergedDoc = ActiveDocument
-
-        'Example modification
-        mergedDoc.Content.Find.Execute _
-            FindText:="PLACEHOLDER", _
-            ReplaceWith:="Custom text for record " & i, _
-            Replace:=wdReplaceAll
-
-        'Get email from data source
-        email = ActiveDocument.MailMerge.DataSource.DataFields("Email").Value
-
-        'Send email via Outlook
-        SendDocByEmail mergedDoc, email
-
-        mergedDoc.Close SaveChanges:=False
-
-    Next i
-
-End Sub
-
-
-Sub SendDocByEmail(doc As Document, recipient As String)
-
-    Dim olApp As Object
-    Dim olMail As Object
-
-    Set olApp = CreateObject("Outlook.Application")
-    Set olMail = olApp.CreateItem(0)
-
-    doc.ExportAsFixedFormat Environ("TEMP") & "\temp.pdf", wdExportFormatPDF
-
-    With olMail
-        .To = recipient
-        .Subject = "Your document"
-        .Body = "Please see attached."
-        .Attachments.Add Environ("TEMP") & "\temp.pdf"
-        .Send
-    End With
-
-End Sub
-
-Sub Email_Template1()
-Dim oMailItem As Object, oOLapp As Object
-Dim Word As Object, doc As Object, MsgTxt$
-Set oOLapp = CreateObject("Outlook.Application")
-Set oMailItem = oOLapp.CreateItem(0)
-Set Word = CreateObject("word.application")
-Set doc = Word.Documents.Open(Filename:="c:\pub\first2.docm", ReadOnly:=True)
-MsgTxt = doc.Range(Start:=doc.Paragraphs(1).Range.Start, _
-End:=doc.Paragraphs(doc.Paragraphs.Count).Range.End)
-With oMailItem
-    .To = "Email"
-    .cc = "Email"
-    .Subject = "Needed Confirmation"
-    .HTMLBody = MsgTxt
-    .Display
-End With
-Set oOLapp = Nothing
-Set oMailItem = Nothing
-End Sub
+* Custom mail merge.
+  0. Convert excel cells to html.
+  1. Mail merge to temp doc, one by one
+    > becomes active document?
+  2. Convert doc to html.
+  3. Send mail with html body.
 
 * Mailmerge: remove initiatie?
 * Mail merge: post merge formatting possible? https://learn.microsoft.com/en-us/office/vba/api/word.application.mailmergeafterrecordmerge
