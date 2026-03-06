@@ -352,7 +352,7 @@ let WerklijstFieldsStudent = [
 ];
 
 export async function fetchMailMergeData(schoolyear: string, infoBlock: InfoBlock) {
-    infoBlock.infoBar.setExtraInfo("Lesgegevens ophalen...");
+    infoBlock.infoBar.setExtraInfo("Filter voorbereiden...");
     let builder = await createWerklijstBuilder(schoolyear, Grouping.LES);
     await builder.reset();
     //todo: remove initiatie????
@@ -374,6 +374,7 @@ export async function fetchMailMergeData(schoolyear: string, infoBlock: InfoBloc
     //builder.addCriterium(CriteriumName.Graad, Operator.PLUS, ["4e graad", "specialisatie"]);
     let preparedWerklijst = await builder.sendSettings();
 
+    infoBlock.infoBar.setExtraInfo("Lesgegevens ophalen...");
     let fetchedTable = await preparedWerklijst.fetchTable(new InfoBarTableFetchListener(infoBlock));
     let table = fetchedTable.getTable();
 

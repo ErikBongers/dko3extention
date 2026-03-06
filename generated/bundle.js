@@ -935,9 +935,9 @@ var BaseObserver = class {
 	onMutation;
 	observer;
 	trackModal;
-	constructor(onPageChangedCallback, pageFilter, onMutationCallback, trackModal = false, onPageLoadedCallback = void 0) {
+	constructor(onPageChangedCallback, pageFilter, onMutationCallback, trackModal = false, onPageRefreshedCallback = void 0) {
 		this.onPageChangedCallback = onPageChangedCallback;
-		this.onPageRefreshedCallback = onPageLoadedCallback;
+		this.onPageRefreshedCallback = onPageRefreshedCallback;
 		this.pageFilter = pageFilter;
 		this.onMutation = onMutationCallback;
 		this.trackModal = trackModal;
@@ -5680,7 +5680,7 @@ let WerklijstFieldsStudent = [
 	"mobiele nummers voor verwittiging"
 ];
 async function fetchMailMergeData(schoolyear, infoBlock) {
-	infoBlock.infoBar.setExtraInfo("Lesgegevens ophalen...");
+	infoBlock.infoBar.setExtraInfo("Filter voorbereiden...");
 	let builder = await createWerklijstBuilder(schoolyear, Grouping.LES);
 	await builder.reset();
 	builder.addFields([
@@ -5698,6 +5698,7 @@ async function fetchMailMergeData(schoolyear, infoBlock) {
 		FIELD.VESTIGINGSPLAATS
 	]);
 	let preparedWerklijst = await builder.sendSettings();
+	infoBlock.infoBar.setExtraInfo("Lesgegevens ophalen...");
 	let fetchedTable = await preparedWerklijst.fetchTable(new InfoBarTableFetchListener(infoBlock));
 	let table = fetchedTable.getTable();
 	let mailMergeTable = new MailMergeTable(infoBlock, table);
