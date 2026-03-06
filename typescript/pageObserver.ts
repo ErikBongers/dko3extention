@@ -54,9 +54,9 @@ export abstract class BaseObserver implements Observer {
     private readonly onMutation: (mutation: MutationRecord) => boolean;
     private observer: MutationObserver;
     private readonly trackModal: boolean;
-    protected constructor(onPageChangedCallback: () => void, pageFilter: PageFilter, onMutationCallback: (mutation: MutationRecord) => boolean, trackModal: boolean = false, onPageLoadedCallback: () => void = undefined) {
+    protected constructor(onPageChangedCallback: () => void, pageFilter: PageFilter, onMutationCallback: (mutation: MutationRecord) => boolean, trackModal: boolean = false, onPageRefreshedCallback: () => void = undefined) {
         this.onPageChangedCallback = onPageChangedCallback;
-        this.onPageRefreshedCallback = onPageLoadedCallback;
+        this.onPageRefreshedCallback = onPageRefreshedCallback;
         this.pageFilter = pageFilter;
         this.onMutation = onMutationCallback;
         this.trackModal = trackModal;
