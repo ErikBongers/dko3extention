@@ -1,5 +1,4 @@
-* Rename email adress to "email" in data source.
-* Mail merge with post editinc:
+* Mail merge with post editing:
 Sub MergeModifySend()
 
     Dim i As Long
@@ -57,6 +56,26 @@ Sub SendDocByEmail(doc As Document, recipient As String)
         .Send
     End With
 
+End Sub
+
+Sub Email_Template1()
+Dim oMailItem As Object, oOLapp As Object
+Dim Word As Object, doc As Object, MsgTxt$
+Set oOLapp = CreateObject("Outlook.Application")
+Set oMailItem = oOLapp.CreateItem(0)
+Set Word = CreateObject("word.application")
+Set doc = Word.Documents.Open(Filename:="c:\pub\first2.docm", ReadOnly:=True)
+MsgTxt = doc.Range(Start:=doc.Paragraphs(1).Range.Start, _
+End:=doc.Paragraphs(doc.Paragraphs.Count).Range.End)
+With oMailItem
+    .To = "Email"
+    .cc = "Email"
+    .Subject = "Needed Confirmation"
+    .HTMLBody = MsgTxt
+    .Display
+End With
+Set oOLapp = Nothing
+Set oMailItem = Nothing
 End Sub
 
 * Mailmerge: remove initiatie?
