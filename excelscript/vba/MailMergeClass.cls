@@ -74,16 +74,22 @@ Private Sub MergeModifySendAll()
 End Sub
 
 
-Private Sub EmailThisDoc(doc As Document, recipient As String, subject As String)
+Private Sub EmailThisDoc(doc As Document, recipients As String, subject As String)
     Dim MailItem As Object, Outlook As Object
     Dim Word As Object
     Dim MsgTxt As String
     Set Outlook = CreateObject("Outlook.Application")
     Set MailItem = Outlook.CreateItem(0)
+    Dim arrRecipients() As String
+    
+    arrRecipients = Split(recipients, ";")
+    
     MsgTxt = doc.Range()
     doc.Content.Copy
     With MailItem
-        .To = recipient
+        For Each recipient In arrRecipients
+            .recipients.Add recipient
+        Next recipient
         .subject = subject
         .ReplyRecipients.Add "Academie Berchem <academie.berchem.muziek.woord@stedelijkonderwijs.be>"
         Set inspector = .GetInspector

@@ -1,15 +1,5 @@
-* Custom mail merge
-  > test basic concept first:
-     > loop over data source
-     > send mail for each record.
-
-
-* Custom mail merge.
-  0. Convert excel cells to html.
-  1. Mail merge to temp doc, one by one
-    > becomes active document?
-  2. Convert doc to html.
-  3. Send mail with html body.
+* Custom mail merge:  xls: add file paths to doc.
+* Custom mail merge:  also add attachments.
 
 * Mailmerge: remove initiatie?
 * Mail merge: post merge formatting possible? https://learn.microsoft.com/en-us/office/vba/api/word.application.mailmergeafterrecordmerge
