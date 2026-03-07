@@ -1,5 +1,7 @@
 * Custom mail merge:  xls: add file paths to doc.
 * Custom mail merge:  also add attachments.
+* Custom mail merge: set sender:
+  >>> https://jkp-ads.com/rdb/win/s1/outlook/account.htm
 
 * Mailmerge: remove initiatie?
 * Mail merge: post merge formatting possible? https://learn.microsoft.com/en-us/office/vba/api/word.application.mailmergeafterrecordmerge
