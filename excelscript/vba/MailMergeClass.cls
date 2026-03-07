@@ -54,9 +54,10 @@ Private Sub MergeModifySendAll()
         With ActiveDocument.mailMerge
             .DataSource.FirstRecord = i
             .DataSource.LastRecord = i
+            .DataSource.ActiveRecord = i
             .Destination = wdSendToNewDocument
-            .Execute Pause:=False
             email = .DataSource.DataFields("email").value
+            .Execute Pause:=False
         End With
 
         Set mergedDoc = ActiveDocument
