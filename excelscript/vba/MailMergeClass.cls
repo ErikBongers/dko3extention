@@ -33,7 +33,7 @@ Private Sub MergeModifySendAll()
 
     recCount = ActiveDocument.mailMerge.DataSource.RecordCount
     If recCount = -1 Then
-        MsgBox "No records found. Please reset the mail merge source"
+        MsgBox "No records found. Make sure the mail merge document is the active document or reset the mail merge source."
         Exit Sub
     End If
     
