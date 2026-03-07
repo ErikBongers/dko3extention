@@ -15,6 +15,14 @@ End Sub
 
 Sub Start()
     progressForm.Show False
+    progressForm.StopRequested = True
+    Do
+        Application.Wait Now + TimeValue("00:00:01")
+        DoEvents
+        If progressForm.StopRequested = False Then
+            Break
+        End If
+    Loop
     MergeModifySendAll
 End Sub
 
@@ -32,6 +40,7 @@ Private Sub MergeModifySendAll()
     Set insertMeDoc = Documents.Open(FileName:="C:\Users\erikb\Desktop\InsertMe.docx", ReadOnly:=True, Visible:=False)
 
     For i = 1 To recCount
+        DoEvents
         If progressForm.StopRequested = True Then
             progressForm.SetInfo "Stopped by user"
             Return
