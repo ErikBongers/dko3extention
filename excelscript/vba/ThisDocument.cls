@@ -1,6 +1,42 @@
+VERSION 1.0 CLASS
+BEGIN
+  MultiUse = -1  'True
+END
+Attribute VB_Name = "ThisDocument"
+Attribute VB_GlobalNameSpace = False
+Attribute VB_Creatable = False
+Attribute VB_PredeclaredId = True
+Attribute VB_Exposed = True
 Dim X As New MyEventClass
 Sub InitializeApp()
     Set X.App = Word.Application
+End Sub
+
+Sub AMergeWithForm()
+    Dim mailMerge As New MailMergeClass
+    
+    mailMerge.Start
+End Sub
+
+
+Private Sub SendDocByEmail(doc As Document, recipient As String)
+
+    Dim olApp As Object
+    Dim olMail As Object
+
+    Set olApp = CreateObject("Outlook.Application")
+    Set olMail = olApp.CreateItem(0)
+
+    doc.ExportAsFixedFormat Environ("TEMP") & "\temp.pdf", wdExportFormatPDF
+
+    With olMail
+        .To = recipient
+        .subject = "Your document"
+        .Body = "Please see attached."
+        .Attachments.Add Environ("TEMP") & "\temp.pdf"
+        .Send
+    End With
+
 End Sub
 
 ' Inspector works!!!
@@ -15,9 +51,8 @@ Private Sub TESTEmailThisDoc(doc As Document, recipient As String)
     With MailItem
         .To = recipient
         ' .cc = recipient
-        .Subject = "Test Erik "
+        .subject = "Test Erik "
         .ReplyRecipients.Add "De muziekschool <erik.bongers@so.antwerpen.be>"
-'        .HTMLBody = Convert2HTML(doc.Range())
         Set inspector = .GetInspector
         Set mailDoc = inspector.wordeditor
         mailDoc.Content.Paste
@@ -26,73 +61,6 @@ Private Sub TESTEmailThisDoc(doc As Document, recipient As String)
     End With
 End Sub
 
-Sub MergeModifySendAll()
-    Dim i As Long
-    Dim recCount As Long
-    Dim mergedDoc As Document
-    Dim email As String
-
-    recCount = ActiveDocument.MailMerge.DataSource.RecordCount
-
-    For i = 1 To recCount
-        DoEvents
-
-        With ActiveDocument.MailMerge
-            .DataSource.FirstRecord = i
-            .DataSource.LastRecord = i
-            .Destination = wdSendToNewDocument
-            .Execute Pause:=False
-        End With
-
-        Set mergedDoc = ActiveDocument
-
-        'Example modification
-        mergedDoc.Content.Find.Execute _
-            FindText:="PLACEHOLDER", _
-            ReplaceWith:="Custom text for record " & i, _
-            Replace:=wdReplaceAll
-
-        email = ActiveDocument.MailMerge.DataSource.DataFields("email").Value
-
-        TESTEmailThisDoc mergedDoc, email
-
-        mergedDoc.Close SaveChanges:=False
-
-    Next i
-
-End Sub
-
-Private Sub TESTSendDocByEmail(doc As Document, recipient As String)
-
-    Dim olApp As Object
-    Dim olMail As Object
-
-    Set olApp = CreateObject("Outlook.Application")
-    Set olMail = olApp.CreateItem(0)
-
-    Set isIt = olMail.Inspector.IsWordMail
-
-End Sub
-
-Private Sub SendDocByEmail(doc As Document, recipient As String)
-
-    Dim olApp As Object
-    Dim olMail As Object
-
-    Set olApp = CreateObject("Outlook.Application")
-    Set olMail = olApp.CreateItem(0)
-
-    doc.ExportAsFixedFormat Environ("TEMP") & "\temp.pdf", wdExportFormatPDF
-
-    With olMail
-        .To = recipient
-        .Subject = "Your document"
-        .Body = "Please see attached."
-        .Attachments.Add Environ("TEMP") & "\temp.pdf"
-        .Send
-    End With
-
-End Sub
 
 Private Sub EmailThisDoc(doc As Document, recipient As String)
 Dim oMailItem As Object, oOLapp As Object
@@ -106,17 +74,17 @@ MsgTxt = doc.Range()
 With oMailItem
     .To = recipient
     .cc = recipient
-    .Subject = "Test Erik"
-    .HTMLBody = Convert2HTML MsgTxt
-'    .Display
-    .Send
+    .subject = "Test Erik"
+    .HTMLBody = Convert2HTML(doc.Range())
+    .Display
+'    .Send
 End With
 Set oOLapp = Nothing
 Set oMailItem = Nothing
 End Sub
 
-Sub SendTestMail()
-  EmailThisDoc ActiveDocument, "erikbongers@outlook.com"
+Sub TESTSendTestMail()
+  TESTEmailThisDoc ActiveDocument, "erikbongers@outlook.com"
 End Sub
 
 ' Source - https://stackoverflow.com/a/63470622
@@ -244,34 +212,5 @@ Function GetCol(strCol As String) As String
     GetCol = rVal & gVal & bVal
 End Function
 
-Sub ApplyHTMLToCurrentDoc()
-Application.ScreenUpdating = False
-With ActiveDocument.Range
-  '.ListFormat.ConvertNumbersToText
-  With .Find
-    .ClearFormatting
-    .Replacement.ClearFormatting
-    .Format = True
-    .Forward = True
-    .MatchWildcards = True
-    .Wrap = wdFindContinue
-    .Font.Underline = True
-    .Text = ""
-    .Replacement.Text = "<u>^&</u>"
-    .Execute Replace:=wdReplaceAll
-    .ClearFormatting
-    .Font.Bold = True
-    .Replacement.Text = "<b>^&</b>"
-    .Execute Replace:=wdReplaceAll
-    .ClearFormatting
-    .Font.Italic = True
-    .Replacement.Text = "<i>^&</i>"
-    .Execute Replace:=wdReplaceAll
-    .ClearFormatting
-    .Highlight = True
-    .Replacement.Text = "<h>^&</h>"
-    .Execute Replace:=wdReplaceAll
-  End With
-End With
-Application.ScreenUpdating = True
-End Sub
+
+
