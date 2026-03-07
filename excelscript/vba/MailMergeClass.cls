@@ -84,7 +84,7 @@ Private Sub EmailThisDoc(doc As Document, recipient As String, subject As String
     With MailItem
         .To = recipient
         .subject = subject
-        .ReplyRecipients.Add "De muziekschool <erik.bongers@so.antwerpen.be>"
+        .ReplyRecipients.Add "Academie Berchem <academie.berchem.muziek.woord@stedelijkonderwijs.be>"
         Set inspector = .GetInspector
         Set mailDoc = inspector.wordeditor
         mailDoc.Content.Paste
