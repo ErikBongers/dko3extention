@@ -1,3 +1,9 @@
+* Custom mail merge
+  > test basic concept first:
+     > loop over data source
+     > send mail for each record.
+
+
 * Custom mail merge.
   0. Convert excel cells to html.
   1. Mail merge to temp doc, one by one

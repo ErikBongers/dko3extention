@@ -3,6 +3,26 @@ Sub InitializeApp()
     Set X.App = Word.Application
 End Sub
 
+' Inspector works!!!
+Private Sub TESTEmailThisDoc(doc As Document, recipient As String)
+    Dim MailItem As Object, Outlook As Object
+    Dim Word As Object
+    Dim MsgTxt As String
+    Set Outlook = CreateObject("Outlook.Application")
+    Set MailItem = Outlook.CreateItem(0)
+    MsgTxt = doc.Range()
+    With MailItem
+        .To = recipient
+        .cc = recipient
+        .Subject = "Test Erik"
+'        .HTMLBody = Convert2HTML(doc.Range())
+        Set Inspector = .GetInspector
+        Set MailDoc = Inspector.wordeditor
+        MailDoc.Content.Paste    '
+        .Display
+    End With
+End Sub
+
 Sub MergeModifySendAll()
     Dim i As Long
     Dim recCount As Long
@@ -40,6 +60,17 @@ Sub MergeModifySendAll()
 
 End Sub
 
+Private Sub TESTSendDocByEmail(doc As Document, recipient As String)
+
+    Dim olApp As Object
+    Dim olMail As Object
+
+    Set olApp = CreateObject("Outlook.Application")
+    Set olMail = olApp.CreateItem(0)
+
+    Set isIt = olMail.Inspector.IsWordMail
+
+End Sub
 
 Private Sub SendDocByEmail(doc As Document, recipient As String)
 
