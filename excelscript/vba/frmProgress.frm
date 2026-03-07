@@ -17,6 +17,11 @@ Public StopRequested As Boolean
 Public MaxProgressValue As Integer
 Public WorkerCallbackName As String
 Private progressValue As Integer
+Public SenderAccount As String
+
+Private Sub cmbSender_Change()
+    SenderAccount = cmbSender.value
+End Sub
 
 Private Sub cmdStart_Click()
     StopRequested = False
@@ -29,6 +34,7 @@ End Sub
 Private Sub UserForm_Initialize()
     StopRequested = False
     MaxProgressValue = 5
+    SenderAccount = ""
     progressValue = 0
     UpdateProgressWidth
 End Sub
@@ -54,3 +60,9 @@ Private Sub UpdateProgressWidth()
     lblProgBar.Width = newWidth
     DoEvents
 End Sub
+
+Public Sub AddSender(ByVal emailAddress As String, ByVal index As Integer)
+    cmbSender.AddItem emailAddress
+End Sub
+
+
