@@ -11,15 +11,18 @@ Private Sub TESTEmailThisDoc(doc As Document, recipient As String)
     Set Outlook = CreateObject("Outlook.Application")
     Set MailItem = Outlook.CreateItem(0)
     MsgTxt = doc.Range()
+    doc.Content.Copy
     With MailItem
         .To = recipient
-        .cc = recipient
-        .Subject = "Test Erik"
+        ' .cc = recipient
+        .Subject = "Test Erik "
+        .ReplyRecipients.Add "De muziekschool <erik.bongers@so.antwerpen.be>"
 '        .HTMLBody = Convert2HTML(doc.Range())
-        Set Inspector = .GetInspector
-        Set MailDoc = Inspector.wordeditor
-        MailDoc.Content.Paste    '
+        Set inspector = .GetInspector
+        Set mailDoc = inspector.wordeditor
+        mailDoc.Content.Paste
         .Display
+        .Send
     End With
 End Sub
 
@@ -48,11 +51,9 @@ Sub MergeModifySendAll()
             ReplaceWith:="Custom text for record " & i, _
             Replace:=wdReplaceAll
 
-        'Get email from data source
-        email = ActiveDocument.MailMerge.DataSource.DataFields("Email").Value
+        email = ActiveDocument.MailMerge.DataSource.DataFields("email").Value
 
-        'Send email via Outlook
-        SendDocByEmail mergedDoc, email
+        TESTEmailThisDoc mergedDoc, email
 
         mergedDoc.Close SaveChanges:=False
 
