@@ -17,10 +17,9 @@ Sub Start()
     progressForm.Show False
     progressForm.StopRequested = True
     Do
-        Application.Wait Now + TimeValue("00:00:01")
         DoEvents
         If progressForm.StopRequested = False Then
-            Break
+            Exit Do
         End If
     Loop
     MergeModifySendAll
@@ -33,9 +32,13 @@ Private Sub MergeModifySendAll()
     Dim email As String
 
     recCount = ActiveDocument.mailMerge.DataSource.RecordCount
-    'todo: test if RecordCount !=  -1
+    If recCount = -1 Then
+        MsgBox "No records found. Please reset the mail merge source"
+        Exit Sub
+    End If
     
     progressForm.SetInfo "Starting mail merge..."
+    progressForm.MaxProgressValue = recCount
     
     Set insertMeDoc = Documents.Open(FileName:="C:\Users\erikb\Desktop\InsertMe.docx", ReadOnly:=True, Visible:=False)
 
@@ -43,8 +46,10 @@ Private Sub MergeModifySendAll()
         DoEvents
         If progressForm.StopRequested = True Then
             progressForm.SetInfo "Stopped by user"
-            Return
+            Exit Sub
         End If
+        
+        progressForm.SetProgress i
 
         With ActiveDocument.mailMerge
             .DataSource.FirstRecord = i

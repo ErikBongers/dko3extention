@@ -19,7 +19,7 @@ Public WorkerCallbackName As String
 Private progressValue As Integer
 
 Private Sub cmdStart_Click()
-    Application.Run WorkerCallbackName
+    StopRequested = False
 End Sub
 
 Private Sub cmdStop_Click()
@@ -37,7 +37,7 @@ Public Sub SetInfo(info As String)
     lblInfo.Caption = info
 End Sub
 
-Public Sub SetProgress(value As Integer)
+Public Sub SetProgress(ByVal value As Integer)
     progressValue = value
     UpdateProgressWidth
 End Sub
@@ -48,8 +48,9 @@ Private Sub UpdateProgressWidth()
     If progressValue = 0 Then
         newWidth = 1
     Else
-        newWidth = (value / MaxProgressValue) * lblProgBack.Width
+        newWidth = (progressValue / MaxProgressValue) * lblProgBack.Width
     End If
     
     lblProgBar.Width = newWidth
+    DoEvents
 End Sub
