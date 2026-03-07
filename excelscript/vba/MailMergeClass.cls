@@ -57,6 +57,8 @@ Private Sub MergeModifySendAll()
             .DataSource.ActiveRecord = i
             .Destination = wdSendToNewDocument
             email = .DataSource.DataFields("email").value
+            naam = .DataSource.DataFields("naam").value
+            voornaam = .DataSource.DataFields("voornaam").value
             .Execute Pause:=False
         End With
 
@@ -67,10 +69,12 @@ Private Sub MergeModifySendAll()
         docRange.Collapse Direction:=wdCollapseEnd
         docRange.FormattedText = insertMeDoc.Content
 
-        EmailThisDoc mergedDoc, email, "Test Erik..."
+        EmailThisDoc mergedDoc, email, "Start schooljaar voor " & voornaam
 
         mergedDoc.Close SaveChanges:=False
     Next i
+    
+    progressForm.SetInfo "Finished!"
 End Sub
 
 
