@@ -83,6 +83,10 @@ Private Function MergeModifySendAll()
     progressForm.SetInfo "Starting mail merge..."
     progressForm.MaxProgressValue = recCount
     
+    lastFieldName = ActiveDocument.mailMerge.DataSource.DataFields(ActiveDocument.mailMerge.DataSource.DataFields.Count).Name
+    lastFieldName = Replace(lastFieldName, "vestiging", "")
+    numberOfVestigingen = GetNumbers(lastFieldName, 0)
+    
     For I = StartIndex To recCount
         StartIndex = I
         DoEvents
@@ -102,14 +106,12 @@ Private Function MergeModifySendAll()
             email = .DataSource.DataFields("email").value
             naam = .DataSource.DataFields("naam").value
             voornaam = .DataSource.DataFields("voornaam").value
-            ' todo: loop to...maxVestigingsplaatsen. Where to get that number?
-            wordDoc1 = .DataSource.DataFields("vestiging1_wordDoc").value
-            wordDoc2 = .DataSource.DataFields("vestiging2_wordDoc").value
-            wordDoc3 = .DataSource.DataFields("vestiging3_wordDoc").value
-            Dim wordDocs(3) As String
-            wordDocs(0) = wordDoc1
-            wordDocs(1) = wordDoc2
-            wordDocs(2) = wordDoc3
+            Dim wordDocs() As String
+            ReDim wordDocs(numberOfVestigingen - 1)
+            For idxDoc = 1 To numberOfVestigingen
+                wordDoc = .DataSource.DataFields("vestiging" & idxDoc & "_wordDoc").value
+                wordDocs(idxDoc - 1) = wordDoc
+            Next idxDoc
             voornaam = .DataSource.DataFields("voornaam").value
             .Execute Pause:=False
         End With
@@ -163,4 +165,10 @@ Private Sub EmailThisDoc(doc As Document, recipients As String, subject As Strin
     End With
 End Sub
 
-
+Function GetNumbers(ByVal str As String, Occur As Long) As Long
+    Dim regex As Object: Set regex = CreateObject("vbscript.RegExp")
+    regex.Pattern = "(\d+)"
+    regex.Global = True
+    Set matches = regex.Execute(str)
+    GetNumbers = matches(Occur)
+End Function
