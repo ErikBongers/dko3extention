@@ -68,7 +68,7 @@ Private Function MergeModifySendAll()
     recCount = ActiveDocument.mailMerge.DataSource.RecordCount
     If recCount = -1 Then
         MsgBox "No records found. Make sure the mail merge document is the active document or reset the mail merge source."
-        MergeModifySendAll = False
+        MergeModifySendAll = True ' returning True to end the loop
         Exit Function
     End If
     
@@ -83,8 +83,6 @@ Private Function MergeModifySendAll()
     progressForm.SetInfo "Starting mail merge..."
     progressForm.MaxProgressValue = recCount
     
-    Set insertMeDoc = Documents.Open(FileName:="C:\Users\erikb\Desktop\InsertMe.docx", ReadOnly:=True, Visible:=False)
-
     For I = StartIndex To recCount
         StartIndex = I
         DoEvents
@@ -104,17 +102,21 @@ Private Function MergeModifySendAll()
             email = .DataSource.DataFields("email").value
             naam = .DataSource.DataFields("naam").value
             voornaam = .DataSource.DataFields("voornaam").value
+            ' todo: loop to...maxVestigingsplaatsen. Where to get that number?
+            wordDoc1 = .DataSource.DataFields("vestiging1_wordDoc").value
+            wordDoc2 = .DataSource.DataFields("vestiging2_wordDoc").value
+            wordDoc3 = .DataSource.DataFields("vestiging3_wordDoc").value
+            Dim wordDocs(3) As String
+            wordDocs(0) = wordDoc1
+            wordDocs(1) = wordDoc2
+            wordDocs(2) = wordDoc3
+            voornaam = .DataSource.DataFields("voornaam").value
             .Execute Pause:=False
         End With
 
         Set mergedDoc = ActiveDocument
 
-        ' Stick it to the end of the mail merge doc
-        Set docRange = mergedDoc.Content
-        docRange.Collapse Direction:=wdCollapseEnd
-        docRange.FormattedText = insertMeDoc.Content
-
-        EmailThisDoc mergedDoc, email, "Start schooljaar voor " & voornaam, SenderIndex
+        EmailThisDoc mergedDoc, email, "Start schooljaar voor " & voornaam, SenderIndex, wordDocs
 
         mergedDoc.Close SaveChanges:=False
     Next I
@@ -124,10 +126,9 @@ Private Function MergeModifySendAll()
 End Function
 
 
-Private Sub EmailThisDoc(doc As Document, recipients As String, subject As String, senderAccountNo As Integer)
+Private Sub EmailThisDoc(doc As Document, recipients As String, subject As String, senderAccountNo As Integer, wordDocs() As String)
     Dim MailItem As Object, Outlook As Object
     Dim Word As Object
-    Dim MsgTxt As String
     Dim OutAccount As Outlook.Account
     Dim arrRecipients() As String
     
@@ -136,7 +137,16 @@ Private Sub EmailThisDoc(doc As Document, recipients As String, subject As Strin
     Set OutAccount = Outlook.Session.Accounts.Item(senderAccountNo)
     arrRecipients = Split(recipients, ";")
     
-    MsgTxt = doc.Range()
+    For Each wordDoc In wordDocs
+        If wordDoc <> "" Then
+            Set insertMeDoc = Documents.Open(FileName:=wordDoc, ReadOnly:=True, Visible:=False)
+            ' Stick it to the end of the mail merge doc
+            Set docRange = doc.Content
+            docRange.Collapse Direction:=wdCollapseEnd
+            docRange.FormattedText = insertMeDoc.Content
+        End If
+    Next wordDoc
+
     doc.Content.Copy
     With MailItem
         Set .SendUsingAccount = OutAccount
