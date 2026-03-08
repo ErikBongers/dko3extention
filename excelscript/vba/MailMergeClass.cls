@@ -116,7 +116,6 @@ Private Function MergeModifySendAll()
                 Attachment = .DataSource.DataFields("vestiging" & idxDoc & "_bijlage").value
                 attachments(idxDoc - 1) = Attachment
             Next idxDoc
-            voornaam = .DataSource.DataFields("voornaam").value
             .Execute Pause:=False
         End With
 

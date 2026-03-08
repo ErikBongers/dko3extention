@@ -1,9 +1,12 @@
+* Set start point to resume (after crash).
+Error: Valerie Bruynseels
 * Add mailmerge xls to git?
-* Custom mail merge:  xls: add file paths to doc.
-* Custom mail merge:  also add attachments.
-* Custom mail merge: set sender:
-  >>> https://jkp-ads.com/rdb/win/s1/outlook/account.htm
-
+* Mail merge: add "Merge" button to...toolbar?
+* Mail merge: add progres info
+  > timing
+  > current record
+* Mail merge: select datasource via form?
+  > select table/tab MAILMERGE.
 * Check data before mail merging:
   > do all files exists?
   > do all fields exist?

@@ -36,7 +36,7 @@ Private Sub UserForm_Initialize()
     MaxProgressValue = 5
     SenderAccount = ""
     progressValue = 0
-    UpdateProgressWidth
+    UpdateProgress
 End Sub
 
 Public Sub SetInfo(info As String)
@@ -45,10 +45,10 @@ End Sub
 
 Public Sub SetProgress(ByVal value As Integer)
     progressValue = value
-    UpdateProgressWidth
+    UpdateProgress
 End Sub
 
-Private Sub UpdateProgressWidth()
+Private Sub UpdateProgress()
     Dim newWidth As Double
     
     If progressValue = 0 Then
@@ -58,6 +58,10 @@ Private Sub UpdateProgressWidth()
     End If
     
     lblProgBar.Width = newWidth
+    
+    Percentage = CInt((progressValue / MaxProgressValue) * 100)
+    
+    lblProgText.Caption = CStr(progressValue) & " (" & CStr(Percentage) & "%) of " & CStr(MaxProgressValue)
     DoEvents
 End Sub
 
