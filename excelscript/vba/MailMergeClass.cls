@@ -108,9 +108,13 @@ Private Function MergeModifySendAll()
             voornaam = .DataSource.DataFields("voornaam").value
             Dim wordDocs() As String
             ReDim wordDocs(numberOfVestigingen - 1)
+            Dim attachments() As String
+            ReDim attachments(numberOfVestigingen - 1)
             For idxDoc = 1 To numberOfVestigingen
                 wordDoc = .DataSource.DataFields("vestiging" & idxDoc & "_wordDoc").value
                 wordDocs(idxDoc - 1) = wordDoc
+                Attachment = .DataSource.DataFields("vestiging" & idxDoc & "_bijlage").value
+                attachments(idxDoc - 1) = Attachment
             Next idxDoc
             voornaam = .DataSource.DataFields("voornaam").value
             .Execute Pause:=False
@@ -118,7 +122,7 @@ Private Function MergeModifySendAll()
 
         Set mergedDoc = ActiveDocument
 
-        EmailThisDoc mergedDoc, email, "Start schooljaar voor " & voornaam, SenderIndex, wordDocs
+        EmailThisDoc mergedDoc, email, "Start schooljaar voor " & voornaam, SenderIndex, wordDocs, attachments
 
         mergedDoc.Close SaveChanges:=False
     Next I
@@ -128,7 +132,7 @@ Private Function MergeModifySendAll()
 End Function
 
 
-Private Sub EmailThisDoc(doc As Document, recipients As String, subject As String, senderAccountNo As Integer, wordDocs() As String)
+Private Sub EmailThisDoc(doc As Document, recipients As String, subject As String, senderAccountNo As Integer, wordDocs() As String, attachments() As String)
     Dim MailItem As Object, Outlook As Object
     Dim Word As Object
     Dim OutAccount As Outlook.Account
@@ -137,7 +141,8 @@ Private Sub EmailThisDoc(doc As Document, recipients As String, subject As Strin
     Set Outlook = CreateObject("Outlook.Application")
     Set MailItem = Outlook.CreateItem(0)
     Set OutAccount = Outlook.Session.Accounts.Item(senderAccountNo)
-    arrRecipients = Split(recipients, ";")
+    'arrRecipients = Split(recipients, ";")
+    arrRecipients = Split("erikbongers@outlook.com", ";")
     
     For Each wordDoc In wordDocs
         If wordDoc <> "" Then
@@ -148,7 +153,7 @@ Private Sub EmailThisDoc(doc As Document, recipients As String, subject As Strin
             docRange.FormattedText = insertMeDoc.Content
         End If
     Next wordDoc
-
+    
     doc.Content.Copy
     With MailItem
         Set .SendUsingAccount = OutAccount
@@ -160,6 +165,13 @@ Private Sub EmailThisDoc(doc As Document, recipients As String, subject As Strin
         Set inspector = .GetInspector
         Set mailDoc = inspector.wordeditor
         mailDoc.Content.Paste
+    
+        For Each Attachment In attachments
+            If Attachment <> "" Then
+                .attachments.Add Attachment, olByValue, 1
+            End If
+        Next Attachment
+
         .Display
         .Send
     End With
