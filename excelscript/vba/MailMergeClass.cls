@@ -8,23 +8,21 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
 Private progressForm As frmProgress
-Private StartIndex As Integer
-Private insertMeDoc As Document
+Private startIndex As Integer
+Private Outlook As Object
 
 Private Sub Class_Initialize()
     Set progressForm = New frmProgress
+    Set Outlook = CreateObject("Outlook.Application")
     AddSenders
-    StartIndex = 1
+    startIndex = 1
 End Sub
 
 Private Sub AddSenders()
-    Dim OutApp As Outlook.Application
     Dim I As Long
 
-    Set OutApp = CreateObject("Outlook.Application")
-
-    For I = 1 To OutApp.Session.Accounts.Count
-        AddSender OutApp.Session.Accounts.Item(I).DisplayName, I
+    For I = 1 To Outlook.Session.Accounts.Count
+        AddSender Outlook.Session.Accounts.Item(I).DisplayName, I
     Next I
 End Sub
 
@@ -38,7 +36,7 @@ Sub Start()
                 Exit Do
             End If
         Loop
-    Loop Until SendAllDocs()
+    Loop Until MergeModifySendAll(CInt(progressForm.txtStart.value))
 End Sub
 
 Public Sub AddSender(ByVal emailAddress As String, ByVal index As Integer)
@@ -46,25 +44,23 @@ Public Sub AddSender(ByVal emailAddress As String, ByVal index As Integer)
 End Sub
 
 Private Function GetAccountIndex(ByVal emailAddress As String)
-        Dim OutApp As Outlook.Application
     Dim I As Long
 
-    Set OutApp = CreateObject("Outlook.Application")
-
-    For I = 1 To OutApp.Session.Accounts.Count
-        If OutApp.Session.Accounts.Item(I).DisplayName = emailAddress Then
+    For I = 1 To Outlook.Session.Accounts.Count
+        If Outlook.Session.Accounts.Item(I).DisplayName = emailAddress Then
             GetAccountIndex = I
             Exit For
         End If
     Next I
 End Function
 
-Private Function MergeModifySendAll()
+Private Function MergeModifySendAll(startIndex As Integer)
     Dim I As Long
     Dim recCount As Long
     Dim mergedDoc As Document
     Dim email As String
     Dim SenderIndex As Integer
+    Dim OutAccount As Outlook.Account
 
     recCount = ActiveDocument.mailMerge.DataSource.RecordCount
     If recCount = -1 Then
@@ -88,8 +84,9 @@ Private Function MergeModifySendAll()
     lastFieldName = Replace(lastFieldName, "vestiging", "")
     numberOfVestigingen = GetNumbers(lastFieldName, 0)
     
-    For I = StartIndex To recCount
-        StartIndex = I
+    Set OutAccount = Outlook.Session.Accounts.Item(SenderIndex)
+    For I = startIndex To recCount
+        startIndex = I
         DoEvents
         If progressForm.StopRequested = True Then
             progressForm.SetInfo "Stopped by user"
@@ -109,18 +106,21 @@ Private Function MergeModifySendAll()
             voornaam = .DataSource.DataFields("voornaam").value
             Dim wordDocs() As String
             ReDim wordDocs(numberOfVestigingen - 1)
+            Dim attachments() As String
+            ReDim attachments(numberOfVestigingen - 1)
             For idxDoc = 1 To numberOfVestigingen
                 wordDoc = .DataSource.DataFields("vestiging" & idxDoc & "_wordDoc").value
                 wordDocs(idxDoc - 1) = wordDoc
+                Attachment = .DataSource.DataFields("vestiging" & idxDoc & "_bijlage").value
+                attachments(idxDoc - 1) = Attachment
             Next idxDoc
             .Execute Pause:=False
         End With
 
         Set mergedDoc = ActiveDocument
 
-        EmailThisDoc mergedDoc, email, "Start schooljaar voor " & voornaam, SenderIndex, wordDocs
+        EmailThisDoc Outlook, OutAccount, mergedDoc, email, "Start schooljaar voor " & voornaam, SenderIndex, wordDocs, attachments
 
-        mergedDoc.SaveAs2 "C:\Users\erikb\Desktop\Merged\File" & CStr(I) & ".docx"
         mergedDoc.Close SaveChanges:=False
     Next I
     
@@ -129,15 +129,12 @@ Private Function MergeModifySendAll()
 End Function
 
 
-Private Sub EmailThisDoc(doc As Document, recipients As String, subject As String, senderAccountNo As Integer, wordDocs() As String)
-    Dim MailItem As Object, Outlook As Object
+Private Sub EmailThisDoc(Outlook As Object, OutAccount As Outlook.Account, doc As Document, recipients As String, subject As String, senderAccountNo As Integer, wordDocs() As String, attachments() As String)
+    Dim MailItem As Object
     Dim Word As Object
-    Dim OutAccount As Outlook.Account
     Dim arrRecipients() As String
     
-    Set Outlook = CreateObject("Outlook.Application")
     Set MailItem = Outlook.CreateItem(0)
-    Set OutAccount = Outlook.Session.Accounts.Item(senderAccountNo)
     'arrRecipients = Split(recipients, ";")
     arrRecipients = Split("erikbongers@outlook.com", ";")
     
@@ -152,6 +149,26 @@ Private Sub EmailThisDoc(doc As Document, recipients As String, subject As Strin
     Next wordDoc
     
     doc.Content.Copy
+    With MailItem
+        Set .SendUsingAccount = OutAccount
+        For Each recipient In arrRecipients
+            .recipients.Add recipient
+        Next recipient
+        .subject = subject
+        .ReplyRecipients.Add "Academie Berchem <academie.berchem.muziek.woord@stedelijkonderwijs.be>"
+        Set inspector = .GetInspector
+        Set mailDoc = inspector.wordeditor
+        mailDoc.Content.Paste
+    
+        For Each Attachment In attachments
+            If Attachment <> "" Then
+                .attachments.Add Attachment, olByValue, 1
+            End If
+        Next Attachment
+
+        .Display
+        .Send
+    End With
 End Sub
 
 Function GetNumbers(ByVal str As String, Occur As Long) As Long
@@ -160,49 +177,5 @@ Function GetNumbers(ByVal str As String, Occur As Long) As Long
     regex.Global = True
     Set matches = regex.Execute(str)
     GetNumbers = matches(Occur)
-End Function
-
-Function SendAllDocs()
-    Dim MailItem As Object, Outlook As Object
-    Dim Word As Object
-    Dim OutAccount As Outlook.Account
-    Dim arrRecipients() As String
-    Dim doc As Document
-    
-    Set Outlook = CreateObject("Outlook.Application")
-    SenderIndex = GetAccountIndex(progressForm.SenderAccount)
-    Set OutAccount = Outlook.Session.Accounts.Item(SenderIndex)
-    progressForm.MaxProgressValue = 250
-
-    For I = 1 To 250
-        DoEvents
-        If progressForm.StopRequested = True Then
-            progressForm.SetInfo "Stopped by user"
-            SendAllDocs = False
-            Exit Function
-        End If
-        progressForm.SetProgress I
-        Set MailItem = Outlook.CreateItem(0)
-        'arrRecipients = Split(recipients, ";")
-        arrRecipients = Split("erikbongers@outlook.com", ";")
-        
-        Set doc = Documents.Open(FileName:="C:\Users\erikb\Desktop\Merged\File" & CStr(I) & ".docx", ReadOnly:=True, Visible:=False)
-        doc.Content.Copy
-        doc.Close False
-        With MailItem
-            Set .SendUsingAccount = OutAccount
-            For Each recipient In arrRecipients
-                .recipients.Add recipient
-            Next recipient
-            .subject = "subject"
-            .ReplyRecipients.Add "Academie Berchem <academie.berchem.muziek.woord@stedelijkonderwijs.be>"
-            Set inspector = .GetInspector
-            Set mailDoc = inspector.wordeditor
-            mailDoc.Content.Paste
-            .Display
-            .Send
-        End With
-    Next I
-    SendAllDocs = True
 End Function
 
