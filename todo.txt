@@ -1,4 +1,4 @@
-* Set start point to resume (after crash).
+* Set start point to resume (after crash).x
 Error: Valerie Bruynseels
 * Add mailmerge xls to git?
 * Mail merge: add "Merge" button to...toolbar?
