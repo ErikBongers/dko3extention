@@ -80,12 +80,14 @@ Private Function MergeModifySaveAll(startIndex As Integer)
     
     currentBatchIdx = startIndex
     
-    While currentBatchIdx < recCount
+    While currentBatchIdx < recCount And progressForm.StopRequested = False
         MergeModifySaveAll = MergeModifySaveRange(currentBatchIdx, batchLen)
         currentBatchIdx = currentBatchIdx + batchLen
     Wend
     
-    progressForm.SetInfo "Finished!"
+    If progressForm.StopRequested = False Then
+        progressForm.SetInfo "Finished!"
+    End If
 End Function
 
 Private Function MergeModifySaveRange(startIndex As Integer, rangeLen As Integer)
