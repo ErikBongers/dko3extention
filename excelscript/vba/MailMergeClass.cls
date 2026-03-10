@@ -55,17 +55,11 @@ End Function
 Private Function MergeModifySaveAll(startIndex As Integer)
     Dim I As Long
     Dim recCount As Long
-    Dim mergedDoc As Document
-    Dim email As String
     Dim SenderIndex As Integer
-    Dim OutAccount As Outlook.Account
     Dim dataSourceFileName As String
-    Dim fileIdxStr As String
 
     dataSourceFileName = "C:\Users\erikb\Desktop\TestDataMailMergeV2.xlsm"
-    OpenDataSource dataSourceFileName, 666, 100
-    
-    recCount = ActiveDocument.mailMerge.DataSource.RecordCount
+    recCount = GetRecordCount(dataSourceFileName)
     If recCount = -1 Then
         MsgBox "No records found. Make sure the mail merge document is the active document or reset the mail merge source."
         MergeModifySaveAll = True ' returning True to end the loop
@@ -77,26 +71,44 @@ Private Function MergeModifySaveAll(startIndex As Integer)
         MergeModifySaveAll = False
         Exit Function
     End If
-    
+        
     progressForm.SetInfo "Starting mail merge..."
     progressForm.MaxProgressValue = recCount
     
+    'todo: loop
+    MergeModifySaveAll = MergeModifySaveRange(startIndex, 100)
     
+    progressForm.SetInfo "Finished!"
+End Function
+
+Private Function MergeModifySaveRange(startIndex As Integer, rangeLen As Integer)
+    Dim I As Long
+    Dim mergedDoc As Document
+    Dim email As String
+    Dim naam As String
+    Dim voornaam As String
+    Dim SenderIndex As Integer
+    Dim dataSourceFileName As String
+    Dim fileIdxStr As String
+    Dim recCount As Integer
+
+    dataSourceFileName = "C:\Users\erikb\Desktop\TestDataMailMergeV2.xlsm"
+    OpenDataSource dataSourceFileName, startIndex, 9999
+    recCount = ActiveDocument.mailMerge.DataSource.RecordCount
+    
+    'todo: this need not be repeated.
     lastFieldName = ActiveDocument.mailMerge.DataSource.DataFields(ActiveDocument.mailMerge.DataSource.DataFields.Count).Name
     lastFieldName = Replace(lastFieldName, "vestiging", "")
     numberOfVestigingen = GetNumbers(lastFieldName, 0)
     
-    For I = startIndex To recCount
-        startIndex = I
+    For I = 1 To recCount
         DoEvents
         If progressForm.StopRequested = True Then
             progressForm.SetInfo "Stopped by user"
-            MergeModifySaveAll = False
+            MergeModifySaveRange = False
             Exit Function
         End If
         
-        progressForm.SetProgress I
-
         With ActiveDocument.mailMerge
             .DataSource.FirstRecord = I
             .DataSource.LastRecord = I
@@ -106,6 +118,7 @@ Private Function MergeModifySaveAll(startIndex As Integer)
             naam = .DataSource.DataFields("naam").value
             voornaam = .DataSource.DataFields("voornaam").value
             fileIdxStr = .DataSource.DataFields("Idx").value
+            progressForm.SetProgress fileIdxStr
             Dim wordDocs() As String
             ReDim wordDocs(numberOfVestigingen - 1)
             Dim attachments() As String
@@ -126,8 +139,7 @@ Private Function MergeModifySaveAll(startIndex As Integer)
         mergedDoc.Close SaveChanges:=False
     Next I
     
-    progressForm.SetInfo "Finished!"
-    MergeModifySaveAll = True
+    MergeModifySaveRange = True
 End Function
 
 
@@ -242,5 +254,33 @@ Sub OpenDataSource(fileName As String, startIdx As Integer, idxCnt As Integer)
         SQLStatement1:="", _
         SubType:=wdMergeSubTypeAccess
 End Sub
+
+
+Function GetRecordCount(fileName As String) As Integer
+    Dim maxIdx As Integer
+    
+    maxIdx = startIdx + idxCnt
+    ActiveDocument.mailMerge.OpenDataSource Name:=fileName, _
+        ConfirmConversions:=False, _
+        ReadOnly:=False, _
+        LinkToSource:=True, _
+        AddToRecentFiles:=False, _
+        PasswordDocument:="", _
+        PasswordTemplate:="", _
+        WritePasswordDocument:="", _
+        WritePasswordTemplate:="", _
+        Revert:=False, _
+        Format:=wdOpenFormatAuto, _
+        Connection:= _
+        "Provider=Microsoft.ACE.OLEDB.12.0;User ID=Admin;Data Source=" & fileName & ";Mode=Read;Extended Properties=""HDR=YES;IMEX=1;"";Jet OLEDB:System database="""";Jet OLEDB:Registry Path="""";Jet OLEDB:Engine Type=37;Jet OLEDB:Database" _
+        , _
+        SQLStatement:="SELECT * FROM `MAILMERGE$`", _
+        SQLStatement1:="", _
+        SubType:=wdMergeSubTypeAccess
+        
+    GetRecordCount = ActiveDocument.mailMerge.DataSource.RecordCount
+End Function
+
+
 
 
