@@ -57,7 +57,10 @@ Private Function MergeModifySaveAll(startIndex As Integer)
     Dim recCount As Long
     Dim SenderIndex As Integer
     Dim dataSourceFileName As String
+    Dim currentBatchIdx As Integer
+    Dim batchLen As Integer
 
+    batchLen = 10
     dataSourceFileName = "C:\Users\erikb\Desktop\TestDataMailMergeV2.xlsm"
     recCount = GetRecordCount(dataSourceFileName)
     If recCount = -1 Then
@@ -75,8 +78,12 @@ Private Function MergeModifySaveAll(startIndex As Integer)
     progressForm.SetInfo "Starting mail merge..."
     progressForm.MaxProgressValue = recCount
     
-    'todo: loop
-    MergeModifySaveAll = MergeModifySaveRange(startIndex, 100)
+    currentBatchIdx = startIndex
+    
+    While currentBatchIdx < recCount
+        MergeModifySaveAll = MergeModifySaveRange(currentBatchIdx, batchLen)
+        currentBatchIdx = currentBatchIdx + batchLen
+    Wend
     
     progressForm.SetInfo "Finished!"
 End Function
@@ -93,7 +100,7 @@ Private Function MergeModifySaveRange(startIndex As Integer, rangeLen As Integer
     Dim recCount As Integer
 
     dataSourceFileName = "C:\Users\erikb\Desktop\TestDataMailMergeV2.xlsm"
-    OpenDataSource dataSourceFileName, startIndex, 9999
+    OpenDataSource dataSourceFileName, startIndex, rangeLen
     recCount = ActiveDocument.mailMerge.DataSource.RecordCount
     
     'todo: this need not be repeated.
