@@ -17,11 +17,13 @@ Private Sub Class_Initialize()
 End Sub
 
 Private Sub AddSenders()
-    Dim I As Long
+    Dim i As Long
 
     For I = 1 To Outlook.Session.Accounts.Count
         AddSender Outlook.Session.Accounts.Item(I).DisplayName, I
     Next I
+    For i = 1 To Outlook.Session.Accounts.Count
+        AddSender Outlook.Session.Accounts.Item(i).DisplayName, i
 End Sub
 
 Sub start()
@@ -42,18 +44,18 @@ Public Sub AddSender(ByVal emailAddress As String, ByVal index As Integer)
 End Sub
 
 Private Function GetAccountIndex(ByVal emailAddress As String)
-    Dim I As Long
+    Dim i As Long
 
-    For I = 1 To Outlook.Session.Accounts.Count
-        If Outlook.Session.Accounts.Item(I).DisplayName = emailAddress Then
-            GetAccountIndex = I
+    For i = 1 To Outlook.Session.Accounts.Count
+        If Outlook.Session.Accounts.Item(i).DisplayName = emailAddress Then
+            GetAccountIndex = i
             Exit For
         End If
-    Next I
+    Next i
 End Function
 
 Private Function MergeModifySaveAll(startIndex As Integer)
-    Dim I As Long
+    Dim i As Long
     Dim recCount As Long
     Dim SenderIndex As Integer
     Dim dataSourceFileName As String
@@ -91,7 +93,7 @@ Private Function MergeModifySaveAll(startIndex As Integer)
 End Function
 
 Private Function MergeModifySaveRange(startIndex As Integer, rangeLen As Integer)
-    Dim I As Long
+    Dim i As Long
     Dim mergedDoc As Document
     Dim email As String
     Dim naam As String
@@ -110,7 +112,7 @@ Private Function MergeModifySaveRange(startIndex As Integer, rangeLen As Integer
     lastFieldName = Replace(lastFieldName, "vestiging", "")
     numberOfVestigingen = GetNumbers(lastFieldName, 0)
     
-    For I = 1 To recCount
+    For i = 1 To recCount
         DoEvents
         If progressForm.StopRequested = True Then
             progressForm.SetInfo "Stopped by user"
@@ -119,9 +121,9 @@ Private Function MergeModifySaveRange(startIndex As Integer, rangeLen As Integer
         End If
         
         With ActiveDocument.mailMerge
-            .DataSource.FirstRecord = I
-            .DataSource.LastRecord = I
-            .DataSource.ActiveRecord = I
+            .DataSource.FirstRecord = i
+            .DataSource.LastRecord = i
+            .DataSource.ActiveRecord = i
             .Destination = wdSendToNewDocument
             email = .DataSource.DataFields("email").value
             naam = .DataSource.DataFields("naam").value
@@ -146,7 +148,7 @@ Private Function MergeModifySaveRange(startIndex As Integer, rangeLen As Integer
         ExpandMailDoc mergedDoc, email, "Start schooljaar voor " & voornaam, wordDocs, attachments
         mergedDoc.SaveAs2 "C:\Users\erikb\Desktop\Merged\File" & fileIdxStr & ".docx"
         mergedDoc.Close SaveChanges:=False
-    Next I
+    Next i
     
     MergeModifySaveRange = True
 End Function
