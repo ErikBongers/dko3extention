@@ -19,11 +19,9 @@ End Sub
 Private Sub AddSenders()
     Dim i As Long
 
-    For I = 1 To Outlook.Session.Accounts.Count
-        AddSender Outlook.Session.Accounts.Item(I).DisplayName, I
-    Next I
     For i = 1 To Outlook.Session.Accounts.Count
         AddSender Outlook.Session.Accounts.Item(i).DisplayName, i
+    Next i
 End Sub
 
 Sub start()
