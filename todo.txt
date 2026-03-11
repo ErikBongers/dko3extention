@@ -1,5 +1,5 @@
-* Set start point to resume (after crash).x
-Error: Valerie Bruynseels
+* DKO mail merge: allow to pre-select fields, and manually filter.
+
 * Add mailmerge xls to git?
 * Mail merge: add "Merge" button to...toolbar?
 * Mail merge: add progres info

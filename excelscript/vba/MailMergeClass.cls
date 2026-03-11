@@ -9,10 +9,14 @@ Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
 Private progressForm As frmProgress
 Private Outlook As Object
+Private VAR_RECIPIENTS As String
+Private VAR_ATTACHMENTS As String
 
 Private Sub Class_Initialize()
     Set progressForm = New frmProgress
     Set Outlook = CreateObject("Outlook.Application")
+    VAR_RECIPIENTS = "Dko3Recepient"
+    VAR_ATTACHMENTS = "Dko3Attachments"
     AddSenders
 End Sub
 
@@ -34,7 +38,8 @@ Sub start()
                 Exit Do
             End If
         Loop
-    Loop Until MergeModifySaveAll(CInt(progressForm.txtStart.value))
+'    Loop Until MergeModifySaveAll(CInt(progressForm.txtStart.value))
+    Loop Until SendAllDocs
 End Sub
 
 Public Sub AddSender(ByVal emailAddress As String, ByVal index As Integer)
@@ -176,7 +181,7 @@ Private Sub ExpandMailDoc(doc As Document, recipients As String, subject As Stri
     For Each recipient In arrRecipients
         strRecipients = strRecipients & ";" & recipient
     Next recipient
-    doc.Variables.Add "Dko3Recepient", strRecipients
+    doc.Variables.Add VAR_RECIPIENTS, strRecipients
 
     Dim strAtt As String
     strAtt = ""
@@ -185,7 +190,7 @@ Private Sub ExpandMailDoc(doc As Document, recipients As String, subject As Stri
             strAtt = strAtt & ";" & Attachment
         End If
     Next Attachment
-    doc.Variables.Add "Dko3Attachments", strAtt
+    doc.Variables.Add VAR_ATTACHMENTS, strAtt
 End Sub
 
 Function GetNumbers(ByVal str As String, Occur As Long) As Long
@@ -195,51 +200,6 @@ Function GetNumbers(ByVal str As String, Occur As Long) As Long
     Set matches = regex.Execute(str)
     GetNumbers = matches(Occur)
 End Function
-
-Private Sub SendMailDocs()
-' TODO: loop
-    Dim MailItem As Object
-    Dim Word As Object
-    Dim arrRecipients() As String
-    
-    Set MailItem = Outlook.CreateItem(0)
-    'arrRecipients = Split(recipients, ";")
-    arrRecipients = Split("erikbongers@outlook.com", ";")
-    
-    For Each wordDoc In wordDocs
-        If wordDoc <> "" Then
-            Set insertMeDoc = Documents.Open(fileName:=wordDoc, ReadOnly:=True, Visible:=False)
-            ' Stick it to the end of the mail merge doc
-            Set docRange = doc.Content
-            docRange.Collapse Direction:=wdCollapseEnd
-            docRange.FormattedText = insertMeDoc.Content
-        End If
-    Next wordDoc
-    
-    doc.Content.Copy
-    doc.Close SaveChanges:=False
-
-    With MailItem
-        Set .SendUsingAccount = OutAccount
-        For Each recipient In arrRecipients
-            .recipients.Add recipient
-        Next recipient
-        .subject = subject
-        .ReplyRecipients.Add "Academie Berchem <academie.berchem.muziek.woord@stedelijkonderwijs.be>"
-        Set inspector = .GetInspector
-        Set mailDoc = inspector.wordeditor
-        mailDoc.Content.Paste
-    
-        For Each Attachment In attachments
-            If Attachment <> "" Then
-                .attachments.Add Attachment, olByValue, 1
-            End If
-        Next Attachment
-
-        .Display
-        .Send
-    End With
-End Sub
 
 Sub OpenDataSource(fileName As String, startIdx As Integer, idxCnt As Integer)
     Dim maxIdx As Integer
@@ -290,6 +250,82 @@ Function GetRecordCount(fileName As String) As Integer
     GetRecordCount = ActiveDocument.mailMerge.DataSource.RecordCount
 End Function
 
+Function SendAllDocs()
+    Dim MailItem As Object
+    Dim OutAccount As Outlook.Account
+    Dim arrRecipients() As String
+    Dim arrAttachments() As String
+    Dim doc As Document
+    Dim fileName As String
+    Dim fileCount As Integer
+    Dim i As Integer
+    Dim dirName As String
+    
+    SenderIndex = GetAccountIndex(progressForm.SenderAccount)
+    Set OutAccount = Outlook.Session.Accounts.Item(SenderIndex)
+    dirName = "C:\Users\erikb\Desktop\Merged\"
 
+    fileName = Dir(dirName & "*")
+    Let fileCount = 0
+    Do While Len(fileName)
+        fileCount = fileCount + 1
+        fileName = Dir
+    Loop
+    progressForm.MaxProgressValue = fileCount
+    Let i = 1
+    fileName = Dir("C:\Users\erikb\Desktop\Merged\*")
+    Do While Len(fileName)
+        DoEvents
+        If progressForm.StopRequested = True Then
+            progressForm.SetInfo "Stopped by user"
+            SendAllDocs = False
+            Exit Function
+        End If
+        progressForm.SetProgress i
+        Set doc = Documents.Open(dirName & fileName, ReadOnly:=True, Visible:=False)
+        arrRecipients = Split(doc.Variables(VAR_RECIPIENTS).value, ";")
+        'arrRecipients = Split("erikbongers@outlook.com", ";")
+        Erase arrAttachments
+        On Error Resume Next
+        arrAttachments = Split(doc.Variables(VAR_ATTACHMENTS).value, ";")
+        On Error GoTo 0
+        
+        doc.Content.Copy
+        doc.Close False
+        Set MailItem = Outlook.CreateItem(0)
+        With MailItem
+            Set .SendUsingAccount = OutAccount
+            For Each recipient In arrRecipients
+                If Len(recipient) Then
+                    .recipients.Add recipient
+                End If
+            Next recipient
+            If Not isArrayEmpty(arrAttachments) Then
+                For Each Attachment In arrAttachments
+                    If Len(Attachment) Then
+                        .attachments.Add Attachment, olByValue, 1
+                    End If
+                Next Attachment
+            End If
+            .subject = "subject"
+            .ReplyRecipients.Add "Academie Berchem <academie.berchem.muziek.woord@stedelijkonderwijs.be>"
+            Set inspector = .GetInspector
+            Set mailDoc = inspector.wordeditor
+            mailDoc.Content.Paste
+            .Display
+            .Send
+        End With
+        fileName = Dir
+        i = i + 1
+    Loop
+    SendAllDocs = True
+End Function
 
+Public Function isArrayEmpty(parArray As Variant) As Boolean
+'Returns false if not an array or dynamic array that has not been initialised (ReDim) or has been erased (Erase)
 
+    If IsArray(parArray) = False Then isArrayEmpty = True
+    On Error Resume Next
+    If UBound(parArray) < LBound(parArray) Then isArrayEmpty = True: Exit Function Else: isArrayEmpty = False
+
+End Function
