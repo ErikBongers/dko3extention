@@ -43,6 +43,7 @@ export namespace FIELD {
  export const BENAMING_LES: Veld = {text: "benaming les"} as const;
  export const VESTIGINGSPLAATS: Veld = {text: "vestigingsplaats"} as const;
  export const NAAM: Veld = {text: "naam"} as const;
+ export const STAMNUMMER: Veld = {text: "stamnummer"} as const;
  export const VOORNAAM: Veld = {text: "voornaam"} as const;
  export const VAK_NAAM: Veld = {text: "vak: naam"} as const;
  export const GRAAD_LEERJAAR: Veld = {text: "graad + leerjaar"} as const;

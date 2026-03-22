@@ -20,7 +20,7 @@ export interface CriteriaBuilder {
     initialize(reset: boolean): Promise<void>;
 }
 
-export function createWerklijstBuilderWithoutReset(schoolYear: string, grouping: Grouping, preselectedFields: string[] = []) {
+export function createWerklijstBuilderWithoutReset(schoolYear: string, grouping: Grouping, preselectedFields: string[]) {
     return WerklijstBuilder.fetch(schoolYear, grouping, false, preselectedFields);
 }
 

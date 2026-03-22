@@ -404,7 +404,7 @@ async function mailMergeStartSchoolyear() {
     let divInfo = divFooter.insertAdjacentElement("afterend", document.createElement("div")) as HTMLDivElement;
     let infoBlock = createInfoBlock(divInfo, "");
     let selectedFields = scrapeSelectedFields();
-    let text = await fetchMailMergeData(schoolyear, infoBlock, selectedFields);
+    let text = await fetchMailMergeData(schoolyear, infoBlock, selectedFields, hasWerklijstNoCriteria());
     copyToClipboardOrRequestRetry(infoBlock.infoBar, text);
 }
 
@@ -414,4 +414,10 @@ function scrapeSelectedFields() {
         let cells = row.querySelectorAll("td");
         return cells[1].textContent.trim();
     });
+}
+
+function hasWerklijstNoCriteria() {
+    let rows = document.querySelectorAll("#tbody_leerlingen_werklijst_criteria > tr") as NodeListOf<HTMLTableRowElement>;
+    let ids = [...rows].map(tr =>  tr.dataset.criterium_id);
+    return ids.length === 2 && ["1", "2"].every(value => ids.includes(value));
 }

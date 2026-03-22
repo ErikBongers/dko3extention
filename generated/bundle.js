@@ -2451,6 +2451,7 @@ let FIELD;
 	const BENAMING_LES = _FIELD.BENAMING_LES = { text: "benaming les" };
 	const VESTIGINGSPLAATS = _FIELD.VESTIGINGSPLAATS = { text: "vestigingsplaats" };
 	const NAAM = _FIELD.NAAM = { text: "naam" };
+	const STAMNUMMER = _FIELD.STAMNUMMER = { text: "stamnummer" };
 	const VOORNAAM = _FIELD.VOORNAAM = { text: "voornaam" };
 	const VAK_NAAM = _FIELD.VAK_NAAM = { text: "vak: naam" };
 	const GRAAD_LEERJAAR = _FIELD.GRAAD_LEERJAAR = { text: "graad + leerjaar" };
@@ -3535,7 +3536,7 @@ function createDefaultTableFetcher(tableRef, infoBlock) {
 
 //#endregion
 //#region typescript/table/werklijstBuilder.ts
-function createWerklijstBuilderWithoutReset(schoolYear, grouping, preselectedFields = []) {
+function createWerklijstBuilderWithoutReset(schoolYear, grouping, preselectedFields) {
 	return WerklijstBuilder.fetch(schoolYear, grouping, false, preselectedFields);
 }
 function createWerklijstBuilderWithReset(schoolYear, grouping) {
@@ -5698,10 +5699,38 @@ let WerklijstFieldsStudent = [
 	"telefoonnummers",
 	"mobiele nummers voor verwittiging"
 ];
-async function fetchMailMergeData(schoolyear, infoBlock, selectedFields) {
+async function fetchMailMergeData(schoolyear, infoBlock, selectedFields, fullTable) {
+	let stamnummers = await fetchMailMergeStudents(schoolyear, infoBlock, selectedFields);
+	let stamnummerSet = new Set(stamnummers);
+	let fullDataTable = await fetchMailMergeFullData(schoolyear, infoBlock);
+	let tBody = fullDataTable.tBodies[0];
+	let rowCount = tBody.rows.length;
+	for (let i = rowCount - 1; i >= 0; i--) if (!stamnummerSet.has(tBody.rows[i].cells[0].textContent)) tBody.deleteRow(i);
+	let mailMergeTable = new MailMergeTable(infoBlock, fullDataTable);
+	let text = await mailMergeTable.toHtml();
+	return text;
+}
+async function fetchMailMergeStudents(schoolyear, infoBlock, selectedFields) {
 	infoBlock.infoBar.setExtraInfo("Filter voorbereiden...");
 	let builder = await createWerklijstBuilderWithoutReset(schoolyear, Grouping.LES, selectedFields);
 	builder.addFields([
+		FIELD.STAMNUMMER,
+		FIELD.NAAM,
+		FIELD.VOORNAAM
+	]);
+	let preparedWerklijst = await builder.sendSettings();
+	infoBlock.infoBar.setExtraInfo("Lesgegevens ophalen...");
+	let fetchedTable = await preparedWerklijst.fetchTable(new InfoBarTableFetchListener(infoBlock));
+	let table = fetchedTable.getTable();
+	let headers = [...table.tHead.rows[0].cells].map((td) => td.textContent);
+	let stamnummerIndex = headers.findIndex((header) => header.toLowerCase().includes("stamnummer"));
+	return [...table.tBodies[0].rows].map((tr) => tr.cells[stamnummerIndex].textContent);
+}
+async function fetchMailMergeFullData(schoolyear, infoBlock) {
+	infoBlock.infoBar.setExtraInfo("Filter voorbereiden...");
+	let builder = await createWerklijstBuilderWithReset(schoolyear, Grouping.LES);
+	builder.addFields([
+		FIELD.STAMNUMMER,
 		FIELD.NAAM,
 		FIELD.VOORNAAM,
 		FIELD.LEEFTIJD_31_DEC,
@@ -5718,10 +5747,7 @@ async function fetchMailMergeData(schoolyear, infoBlock, selectedFields) {
 	let preparedWerklijst = await builder.sendSettings();
 	infoBlock.infoBar.setExtraInfo("Lesgegevens ophalen...");
 	let fetchedTable = await preparedWerklijst.fetchTable(new InfoBarTableFetchListener(infoBlock));
-	let table = fetchedTable.getTable();
-	let mailMergeTable = new MailMergeTable(infoBlock, table);
-	let text = await mailMergeTable.toHtml();
-	return text;
+	return fetchedTable.getTable();
 }
 
 //#endregion
@@ -6027,7 +6053,7 @@ async function mailMergeStartSchoolyear() {
 	let divInfo = divFooter.insertAdjacentElement("afterend", document.createElement("div"));
 	let infoBlock = createInfoBlock(divInfo, "");
 	let selectedFields = scrapeSelectedFields();
-	let text = await fetchMailMergeData(schoolyear, infoBlock, selectedFields);
+	let text = await fetchMailMergeData(schoolyear, infoBlock, selectedFields, hasWerklijstNoCriteria());
 	copyToClipboardOrRequestRetry(infoBlock.infoBar, text);
 }
 function scrapeSelectedFields() {
@@ -6036,6 +6062,11 @@ function scrapeSelectedFields() {
 		let cells = row.querySelectorAll("td");
 		return cells[1].textContent.trim();
 	});
+}
+function hasWerklijstNoCriteria() {
+	let rows = document.querySelectorAll("#tbody_leerlingen_werklijst_criteria > tr");
+	let ids = [...rows].map((tr) => tr.dataset.criterium_id);
+	return ids.length === 2 && ["1", "2"].every((value) => ids.includes(value));
 }
 
 //#endregion
