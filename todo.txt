@@ -1,7 +1,6 @@
 * Test with initiatie!
 
 * Mail merge with filters: double fetch needed: first students, then all their classes.
-  > Detect if there are any filters present, other than Status and Uitschrijvingen.
   > We could cache the full DB, but user needs to be able to refresh it.
     > How can user refresh full db?
     > Already DURING the first fetch, already show a message: using data from cache...clear cache and reload?

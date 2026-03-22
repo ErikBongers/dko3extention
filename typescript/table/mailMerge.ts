@@ -3,6 +3,7 @@ import {createHtmlTable} from "../globals";
 import {InfoBlock} from "../infoBlock";
 import {FIELD, Grouping} from "../werklijst/criteria";
 import {createWerklijstBuilderWithoutReset, createWerklijstBuilderWithReset} from "./werklijstBuilder";
+import {CheckSumBuilder, TableFetcher} from "./tableFetcher";
 
 interface DataIndexes {
     studentColumnIndexes: number[];
@@ -366,8 +367,8 @@ let WerklijstFieldsStudent = [
     "mobiele nummers voor verwittiging",
 ];
 
-export async function fetchMailMergeData(schoolyear: string, infoBlock: InfoBlock, selectedFields: string[], fullTable: boolean) {
-    let stamnummers = await fetchMailMergeStudents(schoolyear, infoBlock, selectedFields);
+export async function fetchMailMergeData(schoolyear: string, infoBlock: InfoBlock, selectedFields: string[], fullTable: boolean, criteriaString: string) {
+    let stamnummers = await fetchMailMergeStudents(schoolyear, infoBlock, selectedFields, criteriaString);
     let stamnummerSet = new Set(stamnummers);
 
     let fullDataTable = await fetchMailMergeFullData(schoolyear, infoBlock);
@@ -384,9 +385,9 @@ export async function fetchMailMergeData(schoolyear: string, infoBlock: InfoBloc
     return text;
 }
 
-export async function fetchMailMergeStudents(schoolyear: string, infoBlock: InfoBlock, selectedFields: string[]) {
+export async function fetchMailMergeStudents(schoolyear: string, infoBlock: InfoBlock, selectedFields: string[], criteriaString: string) {
     infoBlock.infoBar.setExtraInfo("Filter voorbereiden...");
-    let builder = await createWerklijstBuilderWithoutReset(schoolyear, Grouping.LES, selectedFields);
+    let builder = await createWerklijstBuilderWithoutReset(schoolyear, Grouping.LES, selectedFields, criteriaString);
     builder.addFields([
         FIELD.STAMNUMMER,
         FIELD.NAAM,
@@ -396,8 +397,8 @@ export async function fetchMailMergeStudents(schoolyear: string, infoBlock: Info
     //builder.addCriterium(CriteriumName.Graad, Operator.PLUS, ["4e graad", "specialisatie"]);
     let preparedWerklijst = await builder.sendSettings();
 
-    infoBlock.infoBar.setExtraInfo("Lesgegevens ophalen...");
-    let fetchedTable = await preparedWerklijst.fetchTable(new InfoBarTableFetchListener(infoBlock));
+    infoBlock.infoBar.setExtraInfo("Studentengegevens ophalen...");
+    let fetchedTable = await preparedWerklijst.fetchTable(new InfoBarTableFetchListener(infoBlock), false);
     let table = fetchedTable.getTable();
     let headers = [...table.tHead.rows[0].cells].map(td => td.textContent);
     let stamnummerIndex = headers.findIndex(header => header.toLowerCase().includes("stamnummer"));
@@ -425,7 +426,7 @@ export async function fetchMailMergeFullData(schoolyear: string, infoBlock: Info
     ]);
     let preparedWerklijst = await builder.sendSettings();
 
-    infoBlock.infoBar.setExtraInfo("Lesgegevens ophalen...");
-    let fetchedTable = await preparedWerklijst.fetchTable(new InfoBarTableFetchListener(infoBlock));
+    infoBlock.infoBar.setExtraInfo("Alle lesgegevens ophalen...");
+    let fetchedTable = await preparedWerklijst.fetchTable(new InfoBarTableFetchListener(infoBlock), false);
     return fetchedTable.getTable();
 }

@@ -1,7 +1,7 @@
 import {Criterium, CriteriumName, fetchTableRows, Grouping, IsSelectedItem, Operator, postNameValueList, Veld} from "../werklijst/criteria";
 import {getTable, getWerklijstTableRef, InfoBarTableFetchListener} from "./loadAnyTable";
 import {getImmediateText} from "../globals";
-import {FetchedTable, TableFetchListener} from "./tableFetcher";
+import {CheckSumBuilder, FetchedTable, TableFetcher, TableFetchListener} from "./tableFetcher";
 
 interface WerklijstItemDefinition {
     id: string;
@@ -9,7 +9,7 @@ interface WerklijstItemDefinition {
 }
 
 export interface PreparedWerklijst {
-    fetchTable(listener: TableFetchListener | undefined): Promise<FetchedTable>;
+    fetchTable(listener: TableFetchListener | undefined, clearCache: boolean): Promise<FetchedTable>;
 }
 
 export interface CriteriaBuilder {
@@ -20,12 +20,12 @@ export interface CriteriaBuilder {
     initialize(reset: boolean): Promise<void>;
 }
 
-export function createWerklijstBuilderWithoutReset(schoolYear: string, grouping: Grouping, preselectedFields: string[]) {
-    return WerklijstBuilder.fetch(schoolYear, grouping, false, preselectedFields);
+export function createWerklijstBuilderWithoutReset(schoolYear: string, grouping: Grouping, preselectedFields: string[], criteriaString: string) {
+    return WerklijstBuilder.fetch(schoolYear, grouping, false, preselectedFields, criteriaString);
 }
 
 export function createWerklijstBuilderWithReset(schoolYear: string, grouping: Grouping) {
-    return WerklijstBuilder.fetch(schoolYear, grouping, true, []);
+    return WerklijstBuilder.fetch(schoolYear, grouping, true, [], "");
 }
 
 class WerklijstBuilder implements CriteriaBuilder, PreparedWerklijst {
@@ -36,6 +36,7 @@ class WerklijstBuilder implements CriteriaBuilder, PreparedWerklijst {
     private criteriaDefs: WerklijstItemDefinition[];
     private fieldDefs: WerklijstItemDefinition[];
     private preselectedFields: string[] = [];
+    private criteriaString: string = "";
 
     private constructor(schoolYear: string, grouping: Grouping) {
         this.schoolYear = schoolYear;
@@ -44,11 +45,18 @@ class WerklijstBuilder implements CriteriaBuilder, PreparedWerklijst {
         this.fields = [];
     }
 
-    static async fetch(schoolYear: string, grouping: Grouping, reset: boolean, preselectedFields: string[]) {
+    private getCheckSum() {
+        return this.criteria.map(c => c.name + c.operator + c.values.join()).join()
+            + this.fields.map(f => f.text).join()
+            + this.criteriaString;
+    }
+
+    static async fetch(schoolYear: string, grouping: Grouping, reset: boolean, preselectedFields: string[], criteriaString: string) {
         let builder = new WerklijstBuilder(schoolYear, grouping);
         await builder.initialize(reset);
         builder.criteriaDefs = await this.fetchCriteriumDefinitions();
         builder.fieldDefs = await this.fetchFieldDefinitions();
+        builder.criteriaString = criteriaString;
         if(!reset)
             builder.setPreselectedFields(preselectedFields);
         return builder as CriteriaBuilder;
@@ -104,10 +112,10 @@ class WerklijstBuilder implements CriteriaBuilder, PreparedWerklijst {
         return this as PreparedWerklijst;
     }
 
-    async fetchTable(listener: InfoBarTableFetchListener | undefined) {
+    async fetchTable(listener: InfoBarTableFetchListener | undefined, clearCache: boolean) {
         let tableRef = await getWerklijstTableRef();
-        return getTable(tableRef, listener, true);
-        //todo: keep state of builder: table fetched.
+        return getTable(tableRef, listener, clearCache, (_: TableFetcher) => this.getCheckSum());
+        //todo: keep state of builder: TABLE_FETCHED.
     }
 
     addCriterium(name: CriteriumName, operator: Operator, values: string[]) {

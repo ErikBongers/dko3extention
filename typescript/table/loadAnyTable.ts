@@ -1,5 +1,5 @@
 import {findFirstNavigation} from "./tableNavigation";
-import {findTableRefInCode, TableFetcher, TableFetchListener, TableRef} from "./tableFetcher";
+import {CheckSumBuilder, findTableRefInCode, TableFetcher, TableFetchListener, TableRef} from "./tableFetcher";
 import {createDownloadTableWithExtraAction, getChecksumBuilder} from "./observer";
 import {millisToString, Result, setViewFromCurrentUrl} from "../globals";
 import {InfoBar} from "../infoBar";
@@ -53,10 +53,10 @@ async function getTableRefFromHash(hash: string) {
     return parseDataTablePhp(chain, htmlTableId);
 }
 
-export async function getTable(tableRef: TableRef, infoBarListener: InfoBarTableFetchListener, clearCache: boolean) {
+export async function getTable(tableRef: TableRef, infoBarListener: InfoBarTableFetchListener, clearCache: boolean, checksumBuilder: CheckSumBuilder | null = null) {
     let tableFetcher = new TableFetcher(
         tableRef,
-        getChecksumBuilder(tableRef.htmlTableId)
+        checksumBuilder ?? getChecksumBuilder(tableRef.htmlTableId)
     );
 
     if(infoBarListener)

@@ -403,17 +403,39 @@ async function mailMergeStartSchoolyear() {
     let divFooter = document.getElementById("div_leerling_werklijst_footer") as HTMLDivElement;
     let divInfo = divFooter.insertAdjacentElement("afterend", document.createElement("div")) as HTMLDivElement;
     let infoBlock = createInfoBlock(divInfo, "");
-    let selectedFields = scrapeSelectedFields();
-    let text = await fetchMailMergeData(schoolyear, infoBlock, selectedFields, hasWerklijstNoCriteria());
+    let selectedFields = scrapeSelectedFieldIndexes();
+    let text = await fetchMailMergeData(schoolyear, infoBlock, selectedFields, hasWerklijstNoCriteria(), scrapeCriteria());
     copyToClipboardOrRequestRetry(infoBlock.infoBar, text);
 }
 
-function scrapeSelectedFields() {
+function scrapeSelectedFieldIndexes() {
     let rows = document.querySelectorAll("#tbody_leerlingen_werklijst_velden > tr");
     return [...rows].map(row => {
         let cells = row.querySelectorAll("td");
         return cells[1].textContent.trim();
     });
+}
+
+function scrapeCriteria() {
+    let rows = document.querySelectorAll("#tbody_leerlingen_werklijst_criteria > tr") as NodeListOf<HTMLTableRowElement>;
+    let criteria: string[] = [...rows].map(tr => {
+        let id = tr.dataset.criterium_id;
+        let select = tr.cells[1].querySelector("select") as HTMLSelectElement;
+        let operator = select?.value ?? "";
+        let value = "-null-";
+        let selectionRenderedSpan = tr.cells[2].querySelector("span.select2-selection__rendered") as HTMLSpanElement;
+        if(selectionRenderedSpan) {
+            value = selectionRenderedSpan.getAttribute("title") ?? "-null-";
+            let options = tr.cells[2].querySelectorAll(".select2 option") as NodeListOf<HTMLOptionElement>;
+            let selectedOption = [...options].find(option => option.textContent === value);
+            value = selectedOption?.getAttribute("value") ?? "-null-";
+        } else {
+            let selectionRenderedUl = tr.cells[2].querySelector("ul.select2-selection__rendered") as HTMLUListElement;
+            value = [...selectionRenderedUl.querySelectorAll("li.select2-selection__choice") as NodeListOf<HTMLLIElement>].map(li => li.title).join(",");
+        }
+        return id + "_" + operator + "_" + value;
+    });
+    return criteria.join("_");
 }
 
 function hasWerklijstNoCriteria() {
