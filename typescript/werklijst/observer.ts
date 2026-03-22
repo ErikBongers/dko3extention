@@ -406,6 +406,8 @@ async function mailMergeStartSchoolyear() {
     let selectedFields = scrapeSelectedFieldIndexes();
     let text = await fetchMailMergeData(schoolyear, infoBlock, selectedFields, hasWerklijstNoCriteria(), scrapeCriteria());
     copyToClipboardOrRequestRetry(infoBlock.infoBar, text);
+    //todo: rebuild criteria.
+    infoBlock.infoBar.setInfoLine("REFRESH PAGE BEFORE USING THE MAIL MERGE AGAIN.");
 }
 
 function scrapeSelectedFieldIndexes() {
