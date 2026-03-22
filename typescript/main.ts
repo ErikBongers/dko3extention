@@ -99,6 +99,32 @@ function onPageChanged() {
     }
 }
 
+function onClipboardChange(event: ClipboardEvent) {
+    let localMachineName = localStorage.getItem("machinename");
+    if(localMachineName)
+        return;
+
+    console.log("clipboard changed.");
+    navigator.clipboard.read().then(items => {
+        for(let item of items) {
+            console.log("clipboard item types: ", item.types);
+            if(item.types.includes("text/plain")) {
+                item.getType("text/plain").then(async blob => {
+                    let text = await blob.text();
+                    console.log("clipboard text: ", text);
+                    if(text.startsWith("DKO3PLUGIN:")){
+                        let machinename = text.split(":")[1];
+                        console.log("machinename: ", machinename);
+                        localStorage.setItem("machinename", machinename);
+                        await navigator.clipboard.writeText("");
+                    }
+                });
+            }
+        }
+    }
+    )
+}
+
 //only fires on a page refresh, NOT on an initial page load, NOR on menu navigation.
 function onPageRefreshed() {
     if(getGlobalSettings().globalHide) {
@@ -112,6 +138,8 @@ function onPageRefreshed() {
     if(searchField) {
         searchField.addEventListener("paste", onPasteInGlobalSearchField);
     }
+
+    navigator.clipboard.addEventListener("clipboardchange", onClipboardChange);
 }
 
 function onPasteInGlobalSearchField(e: ClipboardEvent) {

@@ -1,4 +1,13 @@
 * DKO mail merge: allow to pre-select fields, and manually filter.
+  > Make Mail merge button a dropdown with:
+    - Zet velden klaar.
+    - Kopieer gegevens naar klipbord.
+
+* DKo automatic data transfer
+  > how to 'chat' with correct user?
+    > do an initial clipboard exchange?
+     > yes. only way to ensure it's the same machine (and browser session/tab!)
+     > plugin stores an ID once in localstorage. This ID can persist forever and identifies the browser and browser-account.
 
 * Add mailmerge xls to git?
 * Mail merge: add "Merge" button to...toolbar?

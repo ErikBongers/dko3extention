@@ -76,6 +76,21 @@ END Studenten<br>
     return clipboardText;
     }
 
+//     async toCsv() {
+//         let {vestigingsPlaatsen, studentTable} = await this.build();
+//         let studTable = createHtmlTable(studentTable.headers, studentTable.data);
+//         let clipboardText = `
+// ${this.createSingleRowTable("BEGIN Vestigingsplaatsen", "Rows:", (vestigingsPlaatsen.data.length+1).toString(), "Columns:", "1")}
+// ${vestTable.outerHTML}
+// END Vestigingsplaatsen<br>
+// ${this.createSingleRowTable("META", "maxInschrijvingen:", this.maxInschrijvingen.toString(), "maxLessen:", this.maxLessen.toString(), "maxVestigingenPerStudent:", studentTable.maxVestigingsplaatsen.toString())}
+// ${this.createSingleRowTable("BEGIN Studenten", "Rows:", (studentTable.data.length+1).toString(), "Columns:", (studentTable.headers.length).toString())}
+// ${studTable.outerHTML}
+// END Studenten<br>
+//     `;
+//     return clipboardText;
+//     }
+
     private createSingleRowTable(...values: string[]) {
         return `<table><tr>${values.map(value => `<td>${value}</td>`).join("")}</tr></table>`;
     }

@@ -6479,12 +6479,33 @@ function onPageChanged() {
 	pageState$1.transient.clear();
 	for (let observer$1 of observers) observer$1.onPageChanged();
 }
+function onClipboardChange(event) {
+	let localMachineName = localStorage.getItem("machinename");
+	if (localMachineName) return;
+	console.log("clipboard changed.");
+	navigator.clipboard.read().then((items) => {
+		for (let item of items) {
+			console.log("clipboard item types: ", item.types);
+			if (item.types.includes("text/plain")) item.getType("text/plain").then(async (blob) => {
+				let text = await blob.text();
+				console.log("clipboard text: ", text);
+				if (text.startsWith("DKO3PLUGIN:")) {
+					let machinename = text.split(":")[1];
+					console.log("machinename: ", machinename);
+					localStorage.setItem("machinename", machinename);
+					await navigator.clipboard.writeText("");
+				}
+			});
+		}
+	});
+}
 function onPageRefreshed() {
 	if (getGlobalSettings().globalHide) return;
 	pageState$1.transient.clear();
 	for (let observer$1 of observers) observer$1.onPageRefreshed();
 	let searchField$1 = document.getElementById("snel_zoeken_veld_zoektermen");
 	if (searchField$1) searchField$1.addEventListener("paste", onPasteInGlobalSearchField);
+	navigator.clipboard.addEventListener("clipboardchange", onClipboardChange);
 }
 function onPasteInGlobalSearchField(e) {
 	if (!options.stripCommasOnPaste) return;
