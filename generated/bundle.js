@@ -5526,7 +5526,9 @@ END Studenten<br>
 			});
 		});
 		this.maxInschrijvingen = Math.max(...groupedPerStudent.map((student) => student.inschrijvingen.size));
+		this.maxInschrijvingen = Math.max(this.maxInschrijvingen, 3);
 		this.maxLessen = Math.max(...groupedPerStudent.map((student) => [...student.inschrijvingen.values()]).map((inschrijving) => inschrijving.map((lessen) => lessen.length)).flat());
+		this.maxLessen = Math.max(this.maxLessen, 5);
 		let flattendToStudent = [];
 		let flattendHeaders = [];
 		dataDef.studentColumnIndexes.forEach((colIndex) => flattendHeaders.push(this.headers[colIndex]));
@@ -5550,6 +5552,7 @@ END Studenten<br>
 			}, []);
 		});
 		let maxVestigingsplaatsen = Math.max(...groupedPerStudent.map((student) => student.vestigingsPlaatsen.length));
+		maxVestigingsplaatsen = Math.max(maxVestigingsplaatsen, 3);
 		groupedPerStudent.forEach((student) => {
 			let row = [];
 			dataDef.studentColumnIndexes.forEach((colIndex) => row.push(this.data[student.allInschrijvingenRows[0]][colIndex]));
