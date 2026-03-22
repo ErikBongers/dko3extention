@@ -1,8 +1,8 @@
 import {getTableFromHash, InfoBarTableFetchListener} from "./loadAnyTable";
 import {createHtmlTable} from "../globals";
 import {InfoBlock} from "../infoBlock";
-import {createWerklijstBuilder} from "./werklijstBuilder";
 import {CriteriumName, FIELD, Grouping, Operator} from "../werklijst/criteria";
+import {createWerklijstBuilderWithoutReset} from "./werklijstBuilder";
 
 interface DataIndexes {
     studentColumnIndexes: number[];
@@ -366,10 +366,9 @@ let WerklijstFieldsStudent = [
     "mobiele nummers voor verwittiging",
 ];
 
-export async function fetchMailMergeData(schoolyear: string, infoBlock: InfoBlock) {
+export async function fetchMailMergeData(schoolyear: string, infoBlock: InfoBlock, selectedFields: string[]) {
     infoBlock.infoBar.setExtraInfo("Filter voorbereiden...");
-    let builder = await createWerklijstBuilder(schoolyear, Grouping.LES);
-    await builder.reset();
+    let builder = await createWerklijstBuilderWithoutReset(schoolyear, Grouping.LES, selectedFields);
     //todo: remove initiatie????
     builder.addFields([
         FIELD.NAAM,

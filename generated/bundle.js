@@ -3535,8 +3535,11 @@ function createDefaultTableFetcher(tableRef, infoBlock) {
 
 //#endregion
 //#region typescript/table/werklijstBuilder.ts
-function createWerklijstBuilder(schoolYear, grouping) {
-	return WerklijstBuilder.fetch(schoolYear, grouping);
+function createWerklijstBuilderWithoutReset(schoolYear, grouping, preselectedFields = []) {
+	return WerklijstBuilder.fetch(schoolYear, grouping, false, preselectedFields);
+}
+function createWerklijstBuilderWithReset(schoolYear, grouping) {
+	return WerklijstBuilder.fetch(schoolYear, grouping, true, []);
 }
 var WerklijstBuilder = class WerklijstBuilder {
 	schoolYear;
@@ -3545,22 +3548,34 @@ var WerklijstBuilder = class WerklijstBuilder {
 	fields;
 	criteriaDefs;
 	fieldDefs;
+	preselectedFields = [];
 	constructor(schoolYear, grouping) {
 		this.schoolYear = schoolYear;
 		this.grouping = grouping;
 		this.criteria = [];
 		this.fields = [];
 	}
-	static async fetch(schoolYear, grouping) {
+	static async fetch(schoolYear, grouping, reset, preselectedFields) {
 		let builder = new WerklijstBuilder(schoolYear, grouping);
-		await builder.reset();
+		await builder.initialize(reset);
 		builder.criteriaDefs = await this.fetchCriteriumDefinitions();
 		builder.fieldDefs = await this.fetchFieldDefinitions();
+		if (!reset) builder.setPreselectedFields(preselectedFields);
 		return builder;
 	}
-	async reset() {
+	async initialize(reset) {
 		await fetch("view.php?args=leerlingen-werklijst");
 		await fetch("views/leerlingen/werklijst/index.view.php");
+		if (!reset) {
+			await postNameValueList("/views/leerlingen/werklijst/session.opslaan.php", [{
+				name: "schooljaar",
+				value: this.schoolYear
+			}, {
+				name: "groepering",
+				value: this.grouping
+			}]);
+			return;
+		}
 		await postNameValueList("/views/leerlingen/werklijst/session.opslaan.php", [{
 			name: "reset",
 			value: "1"
@@ -3662,7 +3677,8 @@ var WerklijstBuilder = class WerklijstBuilder {
 		};
 	}
 	async sendFields(fields) {
-		for (let field of fields) {
+		let fieldsToActuallySend = fields.filter((f) => !this.preselectedFields.includes(f.text));
+		for (let field of fieldsToActuallySend) {
 			let fieldDef = this.fieldDefs.find((f) => f.name === field.text);
 			if (fieldDef) await postNameValueList("/views/leerlingen/werklijst/velden/toevoegen/wijzigen.opslaan.php", [{
 				name: "veld_id",
@@ -3672,6 +3688,9 @@ var WerklijstBuilder = class WerklijstBuilder {
 				value: "1"
 			}]);
 		}
+	}
+	setPreselectedFields(preselectedFields) {
+		this.preselectedFields = preselectedFields;
 	}
 };
 function textToCodes(items, vakDefs) {
@@ -3820,7 +3839,7 @@ function getTrimPageElements() {
 	};
 }
 async function getJaarToewijzigingWerklijst(schoolYear) {
-	let builder = await createWerklijstBuilder(schoolYear, Grouping.LES);
+	let builder = await createWerklijstBuilderWithReset(schoolYear, Grouping.LES);
 	builder.addCriterium(CriteriumName.Domein, Operator.PLUS, [Domein.Muziek]);
 	builder.addCriterium(CriteriumName.Vak, Operator.PLUS, [
 		"instrumentinitiatie – hele jaar zelfde instrument - accordeon",
@@ -5302,7 +5321,7 @@ async function getDefaultGradeYears(_schoolYearString) {
 //#endregion
 //#region typescript/werklijst/prefillInstruments.ts
 async function fetchHoursSettingsOrSaveDefault(schoolyearString, dko3_subjects = void 0) {
-	let builder = await createWerklijstBuilder(schoolyearString, Grouping.LES);
+	let builder = await createWerklijstBuilderWithReset(schoolyearString, Grouping.LES);
 	if (!dko3_subjects) dko3_subjects = await builder.fetchAvailableSubjects();
 	let subjectNames = dko3_subjects.map((vak) => vak.name);
 	let availableSubjectSet = new Set(subjectNames);
@@ -5326,9 +5345,9 @@ async function fetchHoursSettingsOrSaveDefault(schoolyearString, dko3_subjects =
 	return cloudSettings;
 }
 async function setCriteriaForTeacherHoursAndClickFetchButton(schooljaar, hourSettings) {
-	let builder = await createWerklijstBuilder(schooljaar, Grouping.LES);
+	let builder = await createWerklijstBuilderWithReset(schooljaar, Grouping.LES);
 	let dko3_vakken = await builder.fetchAvailableSubjects();
-	await builder.reset();
+	await builder.initialize(true);
 	if (!hourSettings) hourSettings = await fetchHoursSettingsOrSaveDefault(schooljaar, dko3_vakken);
 	let selectedInstrumentNames = new Set(hourSettings.subjects.filter((i) => i.checked).map((i) => i.name));
 	let validInstruments = dko3_vakken.filter((vak) => selectedInstrumentNames.has(vak.name));
@@ -5679,10 +5698,9 @@ let WerklijstFieldsStudent = [
 	"telefoonnummers",
 	"mobiele nummers voor verwittiging"
 ];
-async function fetchMailMergeData(schoolyear, infoBlock) {
+async function fetchMailMergeData(schoolyear, infoBlock, selectedFields) {
 	infoBlock.infoBar.setExtraInfo("Filter voorbereiden...");
-	let builder = await createWerklijstBuilder(schoolyear, Grouping.LES);
-	await builder.reset();
+	let builder = await createWerklijstBuilderWithoutReset(schoolyear, Grouping.LES, selectedFields);
 	builder.addFields([
 		FIELD.NAAM,
 		FIELD.VOORNAAM,
@@ -6008,8 +6026,16 @@ async function mailMergeStartSchoolyear() {
 	let divFooter = document.getElementById("div_leerling_werklijst_footer");
 	let divInfo = divFooter.insertAdjacentElement("afterend", document.createElement("div"));
 	let infoBlock = createInfoBlock(divInfo, "");
-	let text = await fetchMailMergeData(schoolyear, infoBlock);
+	let selectedFields = scrapeSelectedFields();
+	let text = await fetchMailMergeData(schoolyear, infoBlock, selectedFields);
 	copyToClipboardOrRequestRetry(infoBlock.infoBar, text);
+}
+function scrapeSelectedFields() {
+	let rows = document.querySelectorAll("#tbody_leerlingen_werklijst_velden > tr");
+	return [...rows].map((row) => {
+		let cells = row.querySelectorAll("td");
+		return cells[1].textContent.trim();
+	});
 }
 
 //#endregion

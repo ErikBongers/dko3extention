@@ -2,12 +2,12 @@ import {CriteriumName, Domein, FIELD, Grouping, Operator} from "./criteria";
 import * as def from "../def";
 import {getGotoStateOrDefault, PageName, saveGotoState, WerklijstGotoState} from "../gotoState";
 import {createTeacherHoursFileName, getDefaultHourSettings, saveHourSettings, TeacherHoursSetup} from "./hoursSettings";
-import {createWerklijstBuilder} from "../table/werklijstBuilder";
 import {cloud} from "../cloud";
 import {Schoolyear} from "../globals";
+import {createWerklijstBuilderWithReset} from "../table/werklijstBuilder";
 
 export async function fetchHoursSettingsOrSaveDefault(schoolyearString: string, dko3_subjects: { name: string, value: string }[] = undefined) {
-    let builder = await createWerklijstBuilder(schoolyearString, Grouping.LES);
+    let builder = await createWerklijstBuilderWithReset(schoolyearString, Grouping.LES);
     if (!dko3_subjects)
         dko3_subjects = await builder.fetchAvailableSubjects();
     let subjectNames = dko3_subjects.map(vak => vak.name);
@@ -47,9 +47,9 @@ export async function fetchHoursSettingsOrSaveDefault(schoolyearString: string, 
 }
 
 export async function setCriteriaForTeacherHoursAndClickFetchButton(schooljaar: string, hourSettings?: TeacherHoursSetup) {
-    let builder = await createWerklijstBuilder(schooljaar, Grouping.LES);
+    let builder = await createWerklijstBuilderWithReset(schooljaar, Grouping.LES);
     let dko3_vakken = await builder.fetchAvailableSubjects();
-    await builder.reset();
+    await builder.initialize(true);
     if(!hourSettings)
         hourSettings = await fetchHoursSettingsOrSaveDefault(schooljaar, dko3_vakken);
     let selectedInstrumentNames  =  new Set(hourSettings.subjects.filter(i => i.checked).map(i => i.name));

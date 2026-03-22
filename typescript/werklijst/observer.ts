@@ -403,6 +403,15 @@ async function mailMergeStartSchoolyear() {
     let divFooter = document.getElementById("div_leerling_werklijst_footer") as HTMLDivElement;
     let divInfo = divFooter.insertAdjacentElement("afterend", document.createElement("div")) as HTMLDivElement;
     let infoBlock = createInfoBlock(divInfo, "");
-    let text = await fetchMailMergeData(schoolyear, infoBlock);
+    let selectedFields = scrapeSelectedFields();
+    let text = await fetchMailMergeData(schoolyear, infoBlock, selectedFields);
     copyToClipboardOrRequestRetry(infoBlock.infoBar, text);
+}
+
+function scrapeSelectedFields() {
+    let rows = document.querySelectorAll("#tbody_leerlingen_werklijst_velden > tr");
+    return [...rows].map(row => {
+        let cells = row.querySelectorAll("td");
+        return cells[1].textContent.trim();
+    });
 }

@@ -17,11 +17,15 @@ export interface CriteriaBuilder {
     addFields(fields: Veld[]): void;
     sendSettings(): Promise<PreparedWerklijst>;
     fetchAvailableSubjects(): Promise<{name: string, value: string}[]>;
-    reset(): Promise<void>;
+    initialize(reset: boolean): Promise<void>;
 }
 
-export function createWerklijstBuilder(schoolYear: string, grouping: Grouping) {
-    return WerklijstBuilder.fetch(schoolYear, grouping);
+export function createWerklijstBuilderWithoutReset(schoolYear: string, grouping: Grouping, preselectedFields: string[] = []) {
+    return WerklijstBuilder.fetch(schoolYear, grouping, false, preselectedFields);
+}
+
+export function createWerklijstBuilderWithReset(schoolYear: string, grouping: Grouping) {
+    return WerklijstBuilder.fetch(schoolYear, grouping, true, []);
 }
 
 class WerklijstBuilder implements CriteriaBuilder, PreparedWerklijst {
@@ -31,6 +35,7 @@ class WerklijstBuilder implements CriteriaBuilder, PreparedWerklijst {
     fields: Veld[];
     private criteriaDefs: WerklijstItemDefinition[];
     private fieldDefs: WerklijstItemDefinition[];
+    private preselectedFields: string[] = [];
 
     private constructor(schoolYear: string, grouping: Grouping) {
         this.schoolYear = schoolYear;
@@ -39,19 +44,25 @@ class WerklijstBuilder implements CriteriaBuilder, PreparedWerklijst {
         this.fields = [];
     }
 
-    static async fetch(schoolYear: string, grouping: Grouping) {
+    static async fetch(schoolYear: string, grouping: Grouping, reset: boolean, preselectedFields: string[]) {
         let builder = new WerklijstBuilder(schoolYear, grouping);
-        await builder.reset();
+        await builder.initialize(reset);
         builder.criteriaDefs = await this.fetchCriteriumDefinitions();
         builder.fieldDefs = await this.fetchFieldDefinitions();
+        if(!reset)
+            builder.setPreselectedFields(preselectedFields);
         return builder as CriteriaBuilder;
     }
 
-    async reset() {
+    async initialize(reset: boolean) {
         await fetch("view.php?args=leerlingen-werklijst");
         await fetch("views/leerlingen/werklijst/index.view.php"); //get header block (schooljaar, 1 lijn per..., criteria, velden)
+        if(!reset) {
+            await postNameValueList("/views/leerlingen/werklijst/session.opslaan.php", [{name: "schooljaar", value: this.schoolYear}, {name: "groepering", value: this.grouping}]);
+            return; //todo: schoolyear and grouping may not match!
+        }
         await postNameValueList("/views/leerlingen/werklijst/session.opslaan.php", [{name:"reset", value:"1"}]);
-        await postNameValueList("/views/leerlingen/werklijst/session.opslaan.php", [{name:"schooljaar", value:this.schoolYear}, {name:"groepering", value:this.grouping}]);
+        await postNameValueList("/views/leerlingen/werklijst/session.opslaan.php", [{name: "schooljaar", value: this.schoolYear}, {name: "groepering", value: this.grouping}]);
     }
 
     static async fetchDefinitions(url:string, idTagName: string, nameSelector: string) {
@@ -134,12 +145,17 @@ class WerklijstBuilder implements CriteriaBuilder, PreparedWerklijst {
     }
 
     async sendFields(fields: Veld[]) {
-        for (let field of fields) {
+        let fieldsToActuallySend = fields.filter(f => !this.preselectedFields.includes(f.text));
+        for (let field of fieldsToActuallySend) {
             let fieldDef = this.fieldDefs.find(f => f.name === field.text);
             if (fieldDef) {
                 await postNameValueList("/views/leerlingen/werklijst/velden/toevoegen/wijzigen.opslaan.php", [{name:"veld_id", value:fieldDef.id}, {name:"selected", value:"1"}]);
             }
         }
+    }
+
+    private setPreselectedFields(preselectedFields: string[]) {
+        this.preselectedFields = preselectedFields;
     }
 }
 

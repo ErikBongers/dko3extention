@@ -1,7 +1,11 @@
-* DKO mail merge: allow to pre-select fields, and manually filter.
-  > Make Mail merge button a dropdown with:
-    - Zet velden klaar.
-    - Kopieer gegevens naar klipbord.
+* Werklijstbuilder without reset requires fieldnames!
+  > also, check the risk of having the wrong schoolyear
+    > and grouping.
+
+
+* HIGH PRIO !!!!
+  > DKO mail merge: allow to pre-select fields, and manually filter.
+    > User filters students
 
 * DKo automatic data transfer
   > how to 'chat' with correct user?
