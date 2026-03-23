@@ -5464,7 +5464,7 @@ var MailMergeTable = class {
 		let { vestigingsPlaatsen, studentTable } = await this.build();
 		let vestTable = createHtmlTable(vestigingsPlaatsen.headers, vestigingsPlaatsen.data);
 		let studTable = createHtmlTable(studentTable.headers, studentTable.data);
-		let formatter = new Intl.DateTimeFormat("en", {
+		let formatter = new Intl.DateTimeFormat(void 0, {
 			day: "numeric",
 			month: "short",
 			year: "numeric",

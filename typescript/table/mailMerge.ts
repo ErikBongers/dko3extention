@@ -65,7 +65,7 @@ export class MailMergeTable {
         let {vestigingsPlaatsen, studentTable} = await this.build();
         let vestTable = createHtmlTable(vestigingsPlaatsen.headers, vestigingsPlaatsen.data);
         let studTable = createHtmlTable(studentTable.headers, studentTable.data);
-        let formatter = new Intl.DateTimeFormat('en', {day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: false, timeZone: 'Europe/Brussels'});
+        let formatter = new Intl.DateTimeFormat(undefined, {day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: false, timeZone: 'Europe/Brussels'});
         let nowString = formatter.format(new Date);
         let clipboardText = `
 ${this.createSingleRowTable("DKO3PLUGIN:MAILMERGEDATA", nowString)}
