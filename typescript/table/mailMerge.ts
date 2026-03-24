@@ -224,7 +224,7 @@ END Studenten<br>
             flattendToStudent.push(row);
         });
 
-        flattendHeaders.push(...[...new Array(maxVestigingsplaatsen).keys()].map(index => "vestigingsplaats" + (index + 1)));
+        flattendHeaders.push(...[...new Array(maxVestigingsplaatsen).keys()].map(index => `vestigingsplaats[${index + 1}]`));
         flattendHeaders[emailIndex] = "email";
 
         // flattendToStudent = this.duplicateRowsForEmail(flattendToStudent, emailIndex);
