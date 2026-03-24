@@ -5590,7 +5590,7 @@ END Studenten<br>
 			[...new Array(maxVestigingsplaatsen - student.vestigingsPlaatsen.length).keys()].forEach((_) => row.push(""));
 			flattendToStudent.push(row);
 		});
-		flattendHeaders.push(...[...new Array(maxVestigingsplaatsen).keys()].map((index) => "vestigingsplaats" + (index + 1)));
+		flattendHeaders.push(...[...new Array(maxVestigingsplaatsen).keys()].map((index) => `vestigingsplaats[${index + 1}]`));
 		flattendHeaders[emailIndex] = "email";
 		flattendToStudent.sort((a, b) => (a[1] + a[2]).localeCompare(b[1] + b[2]));
 		let maxRow = [...flattendToStudent[0]];
