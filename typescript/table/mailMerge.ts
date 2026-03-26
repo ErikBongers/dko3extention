@@ -227,7 +227,6 @@ END Studenten<br>
         flattendHeaders.push(...[...new Array(maxVestigingsplaatsen).keys()].map(index => `vestigingsplaats[${index + 1}]`));
         flattendHeaders[emailIndex] = "email";
 
-        // flattendToStudent = this.duplicateRowsForEmail(flattendToStudent, emailIndex);
         //todo: test only
         flattendToStudent.sort((a, b) => (a[1]+a[2]).localeCompare(b[1]+b[2]));
 
@@ -252,25 +251,6 @@ END Studenten<br>
         flattendToStudent.unshift(maxRow);
         return {headers: flattendHeaders, data: flattendToStudent, maxVestigingsplaatsen};
     }
-
-    //...and remove academiestudent.be from the email addresses.
-    duplicateRowsForEmail(data: string[][], emailIndex: number) {
-        let extraRows: string[][] = [];
-        data.forEach((row: string[], seq) => {
-            let emails = (row[emailIndex] as string).split(/[,;]/);
-            emails = emails.filter((email: string) => !email.includes("academiestudent.be"));
-            if(emails.length == 0)
-                return;
-            row[emailIndex] = emails.pop();
-            emails.forEach((email: string) => {
-                let copiedRow = [...row];
-                copiedRow[emailIndex] = email;
-                extraRows.push(copiedRow);
-            });
-        });
-        return data.concat(extraRows);
-    }
-
 
     translateMailMerge(rowIndex: number, colIndex: number) {
         let row = this.data[rowIndex];
