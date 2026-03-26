@@ -5445,50 +5445,15 @@ var MailMergeTable = class {
 		this.data = this.data.filter((row) => row[indexVoornaam] != "Contactgegevens");
 	}
 	async build() {
-		this.infoBlock.infoBar.setExtraInfo("Vestigingsplaatsen ophalen...");
-		let fetchedTable = await getTableFromHash("extra-academie-vestigingsplaatsen", false, new InfoBarTableFetchListener(this.infoBlock));
-		let rows = fetchedTable.getRows();
-		let vestigingsPlaatsen = [...rows].map((row) => row.cells[1].innerText);
-		let vestigingsTable = {
-			headers: ["Vestigingsplaats"],
-			data: vestigingsPlaatsen.map((vestiging) => [vestiging])
-		};
+		this.infoBlock.infoBar.setExtraInfo("Studentengegevens ophalen...");
 		let studentTable = this.buildStudentTable();
 		this.infoBlock.infoBar.setExtraInfo("");
-		return {
-			vestigingsPlaatsen: vestigingsTable,
-			studentTable
-		};
+		return studentTable;
 	}
 	async toHtml() {
-		let { vestigingsPlaatsen, studentTable } = await this.build();
-		let vestTable = createHtmlTable(vestigingsPlaatsen.headers, vestigingsPlaatsen.data);
+		let studentTable = await this.build();
 		let studTable = createHtmlTable(studentTable.headers, studentTable.data);
-		let formatter = new Intl.DateTimeFormat(void 0, {
-			day: "numeric",
-			month: "short",
-			year: "numeric",
-			hour: "numeric",
-			minute: "numeric",
-			second: "numeric",
-			hour12: false,
-			timeZone: "Europe/Brussels"
-		});
-		let nowString = formatter.format(new Date());
-		let clipboardText = `
-${this.createSingleRowTable("DKO3PLUGIN:MAILMERGEDATA", nowString)}
-${this.createSingleRowTable("BEGIN Vestigingsplaatsen", "Rows:", (vestigingsPlaatsen.data.length + 1).toString(), "Columns:", "1")}
-${vestTable.outerHTML}
-END Vestigingsplaatsen<br>
-${this.createSingleRowTable("META", "maxInschrijvingen:", this.maxInschrijvingen.toString(), "maxLessen:", this.maxLessen.toString(), "maxVestigingenPerStudent:", studentTable.maxVestigingsplaatsen.toString())}
-${this.createSingleRowTable("BEGIN Studenten", "Rows:", (studentTable.data.length + 1).toString(), "Columns:", studentTable.headers.length.toString())}
-${studTable.outerHTML}
-END Studenten<br>
-    `;
-		return clipboardText;
-	}
-	createSingleRowTable(...values) {
-		return `<table><tr>${values.map((value) => `<td>${value}</td>`).join("")}</tr></table>`;
+		return studTable.outerHTML;
 	}
 	buildStudentTable() {
 		let emailIndex = this.headers.findIndex((header) => header.toLowerCase().includes("e-mailadressen"));
@@ -5610,21 +5575,6 @@ END Studenten<br>
 			data: flattendToStudent,
 			maxVestigingsplaatsen
 		};
-	}
-	duplicateRowsForEmail(data, emailIndex) {
-		let extraRows = [];
-		data.forEach((row, seq) => {
-			let emails = row[emailIndex].split(/[,;]/);
-			emails = emails.filter((email) => !email.includes("academiestudent.be"));
-			if (emails.length == 0) return;
-			row[emailIndex] = emails.pop();
-			emails.forEach((email) => {
-				let copiedRow = [...row];
-				copiedRow[emailIndex] = email;
-				extraRows.push(copiedRow);
-			});
-		});
-		return data.concat(extraRows);
 	}
 	translateMailMerge(rowIndex, colIndex) {
 		let row = this.data[rowIndex];
