@@ -214,14 +214,6 @@ export class MailMergeTable {
                     maxRow[index] = cell;
             })
         });
-        let largestVestigingsPlaats: string = "";
-        for(let i = 0; i < maxVestigingsplaatsen; i++) {
-            if(maxRow[cellCount-i-1].length > largestVestigingsPlaats.length)
-                largestVestigingsPlaats = maxRow[cellCount-i-1];
-        }
-        for(let i = 0; i < maxVestigingsplaatsen; i++) {
-            maxRow[cellCount-i-1] = largestVestigingsPlaats;
-        }
         maxRow[emailIndex] = "LANGSTE_TEKSTEN_PER_VELD@example.com";
         flattendToStudent.unshift(maxRow);
         return {headers: flattendHeaders, data: flattendToStudent, maxVestigingsplaatsen};

@@ -5477,7 +5477,8 @@ var MailMergeTable = class {
 				groupedPerStudent.push({
 					vestigingsPlaatsen: [],
 					allInschrijvingenRows: [rowIndex],
-					inschrijvingen: new Map()
+					inschrijvingen: new Map(),
+					lessen: ""
 				});
 				return;
 			}
@@ -5487,7 +5488,8 @@ var MailMergeTable = class {
 				groupedPerStudent.push({
 					vestigingsPlaatsen: [],
 					allInschrijvingenRows: [rowIndex],
-					inschrijvingen: new Map()
+					inschrijvingen: new Map(),
+					lessen: ""
 				});
 				return;
 			}
@@ -5530,6 +5532,12 @@ var MailMergeTable = class {
 		});
 		let maxVestigingsplaatsen = Math.max(...groupedPerStudent.map((student) => student.vestigingsPlaatsen.length));
 		maxVestigingsplaatsen = Math.max(maxVestigingsplaatsen, 3);
+		let lesNaamIndex = this.headers.findIndex((header) => header == "benaming les");
+		groupedPerStudent.forEach((student) => {
+			let lessenRows = [...student.inschrijvingen.values()].map((inschrijving) => inschrijving.map((lessen) => lessen)).flat();
+			let lesNames = lessenRows.map((rowIndex) => this.data[rowIndex][lesNaamIndex]);
+			student.lessen = lesNames.filter((les) => les != "").join(";");
+		});
 		groupedPerStudent.forEach((student) => {
 			let row = [];
 			dataDef.studentColumnIndexes.forEach((colIndex) => row.push(this.data[student.allInschrijvingenRows[0]][colIndex]));
@@ -5553,10 +5561,12 @@ var MailMergeTable = class {
 			});
 			student.vestigingsPlaatsen.forEach((vestiging) => row.push(vestiging));
 			[...new Array(maxVestigingsplaatsen - student.vestigingsPlaatsen.length).keys()].forEach((_) => row.push(""));
+			row.push(student.lessen);
 			flattendToStudent.push(row);
 		});
 		flattendHeaders.push(...[...new Array(maxVestigingsplaatsen).keys()].map((index) => `vestigingsplaats[${index + 1}]`));
 		flattendHeaders[emailIndex] = "email";
+		flattendHeaders.push("lessen");
 		flattendToStudent.sort((a, b) => (a[1] + a[2]).localeCompare(b[1] + b[2]));
 		let maxRow = [...flattendToStudent[0]];
 		let cellCount = flattendHeaders.length;
@@ -5565,9 +5575,6 @@ var MailMergeTable = class {
 				if (cell.length > maxRow[index].length) maxRow[index] = cell;
 			});
 		});
-		let largestVestigingsPlaats = "";
-		for (let i = 0; i < maxVestigingsplaatsen; i++) if (maxRow[cellCount - i - 1].length > largestVestigingsPlaats.length) largestVestigingsPlaats = maxRow[cellCount - i - 1];
-		for (let i = 0; i < maxVestigingsplaatsen; i++) maxRow[cellCount - i - 1] = largestVestigingsPlaats;
 		maxRow[emailIndex] = "LANGSTE_TEKSTEN_PER_VELD@example.com";
 		flattendToStudent.unshift(maxRow);
 		return {
