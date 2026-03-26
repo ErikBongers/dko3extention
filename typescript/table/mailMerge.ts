@@ -11,6 +11,7 @@ interface DataIndexes {
     lesColumnIndexes: number[];
 }
 interface StudentRow {
+    lessen: string;
     vestigingsPlaatsen: string[];
     allInschrijvingenRows: number[],
     inschrijvingen: Map<string, number[]>
@@ -86,7 +87,8 @@ export class MailMergeTable {
                 groupedPerStudent.push({
                     vestigingsPlaatsen: [],
                     allInschrijvingenRows: [rowIndex],
-                    inschrijvingen: new Map()
+                    inschrijvingen: new Map(),
+                    lessen: ""
                 });
                 return;
             }
@@ -97,7 +99,8 @@ export class MailMergeTable {
                 groupedPerStudent.push({
                     vestigingsPlaatsen: [],
                     allInschrijvingenRows: [rowIndex],
-                    inschrijvingen: new Map()
+                    inschrijvingen: new Map(),
+                    lessen: ""
                 });
                 return;
             }
@@ -155,6 +158,14 @@ export class MailMergeTable {
         );
         maxVestigingsplaatsen = Math.max(maxVestigingsplaatsen, 3); //todo: remove this hard coded value when mail template can handle optional fields.
 
+        //Add lessen per student
+        let lesNaamIndex = this.headers.findIndex(header => header == "benaming les");
+        groupedPerStudent.forEach(student => {
+            let lessenRows = [...student.inschrijvingen.values()].map(inschrijving => inschrijving.map(lessen => lessen)).flat();
+            let lesNames = lessenRows.map(rowIndex => this.data[rowIndex][lesNaamIndex]);
+            student.lessen = lesNames.filter(les => les != "").join(";");
+        });
+
         //Flatten table to 1 line per student
         groupedPerStudent.forEach(student => {
             let row: string[] = [];
@@ -182,12 +193,14 @@ export class MailMergeTable {
             student.vestigingsPlaatsen.forEach(vestiging => row.push(vestiging));
             // fill student.vestigingsPlaatsen with empty strings to match maxVestigingsplaatsen
             [...new Array(maxVestigingsplaatsen - student.vestigingsPlaatsen.length).keys()].forEach(_ => row.push(""));
+            row.push(student.lessen);
 
             flattendToStudent.push(row);
         });
 
         flattendHeaders.push(...[...new Array(maxVestigingsplaatsen).keys()].map(index => `vestigingsplaats[${index + 1}]`));
         flattendHeaders[emailIndex] = "email";
+        flattendHeaders.push("lessen");
 
         //todo: test only
         flattendToStudent.sort((a, b) => (a[1]+a[2]).localeCompare(b[1]+b[2]));
