@@ -1,9 +1,8 @@
-import {getTableFromHash, InfoBarTableFetchListener} from "./loadAnyTable";
+import {InfoBarTableFetchListener} from "./loadAnyTable";
 import {createHtmlTable} from "../globals";
 import {InfoBlock} from "../infoBlock";
 import {FIELD, Grouping} from "../werklijst/criteria";
 import {createWerklijstBuilderWithoutReset, createWerklijstBuilderWithReset} from "./werklijstBuilder";
-import {CheckSumBuilder, TableFetcher} from "./tableFetcher";
 
 interface DataIndexes {
     studentColumnIndexes: number[];
@@ -12,6 +11,7 @@ interface DataIndexes {
 }
 interface StudentRow {
     lessen: string;
+    vakken: string;
     vestigingsPlaatsen: string[];
     allInschrijvingenRows: number[],
     inschrijvingen: Map<string, number[]>
@@ -88,7 +88,8 @@ export class MailMergeTable {
                     vestigingsPlaatsen: [],
                     allInschrijvingenRows: [rowIndex],
                     inschrijvingen: new Map(),
-                    lessen: ""
+                    lessen: "",
+                    vakken: ""
                 });
                 return;
             }
@@ -100,7 +101,8 @@ export class MailMergeTable {
                     vestigingsPlaatsen: [],
                     allInschrijvingenRows: [rowIndex],
                     inschrijvingen: new Map(),
-                    lessen: ""
+                    lessen: "",
+                    vakken: ""
                 });
                 return;
             }
@@ -166,6 +168,14 @@ export class MailMergeTable {
             student.lessen = lesNames.filter(les => les != "").join(";");
         });
 
+        //Add vakken per student
+        let vakNaamIndex = this.headers.findIndex(header => header == "vak: naam");
+        groupedPerStudent.forEach(student => {
+            let vakkenRows = [...student.inschrijvingen.values()].map(inschrijving => inschrijving.map(vakken => vakken)).flat();
+            let lesNames = vakkenRows.map(rowIndex => this.data[rowIndex][vakNaamIndex]);
+            student.vakken = lesNames.filter(vak => vak != "").join(";");
+        });
+
         //Flatten table to 1 line per student
         groupedPerStudent.forEach(student => {
             let row: string[] = [];
@@ -194,6 +204,7 @@ export class MailMergeTable {
             // fill student.vestigingsPlaatsen with empty strings to match maxVestigingsplaatsen
             [...new Array(maxVestigingsplaatsen - student.vestigingsPlaatsen.length).keys()].forEach(_ => row.push(""));
             row.push(student.lessen);
+            row.push(student.vakken);
 
             flattendToStudent.push(row);
         });
@@ -201,6 +212,7 @@ export class MailMergeTable {
         flattendHeaders.push(...[...new Array(maxVestigingsplaatsen).keys()].map(index => `vestigingsplaats[${index + 1}]`));
         flattendHeaders[emailIndex] = "email";
         flattendHeaders.push("lessen");
+        flattendHeaders.push("vakken");
 
         //todo: test only
         flattendToStudent.sort((a, b) => (a[1]+a[2]).localeCompare(b[1]+b[2]));
