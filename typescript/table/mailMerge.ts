@@ -172,8 +172,9 @@ export class MailMergeTable {
         let vakNaamIndex = this.headers.findIndex(header => header == "vak: naam");
         groupedPerStudent.forEach(student => {
             let vakkenRows = [...student.inschrijvingen.values()].map(inschrijving => inschrijving.map(vakken => vakken)).flat();
-            let lesNames = vakkenRows.map(rowIndex => this.data[rowIndex][vakNaamIndex]);
-            student.vakken = lesNames.filter(vak => vak != "").join(";");
+            let vakNames = vakkenRows.map(rowIndex => this.data[rowIndex][vakNaamIndex]);
+            let uniqueVakNames = [...new Set<string>(vakNames)];
+            student.vakken = uniqueVakNames.filter(vak => vak != "").join(";");
         });
 
         //Flatten table to 1 line per student

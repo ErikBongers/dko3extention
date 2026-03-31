@@ -5478,7 +5478,8 @@ var MailMergeTable = class {
 					vestigingsPlaatsen: [],
 					allInschrijvingenRows: [rowIndex],
 					inschrijvingen: new Map(),
-					lessen: ""
+					lessen: "",
+					vakken: ""
 				});
 				return;
 			}
@@ -5489,7 +5490,8 @@ var MailMergeTable = class {
 					vestigingsPlaatsen: [],
 					allInschrijvingenRows: [rowIndex],
 					inschrijvingen: new Map(),
-					lessen: ""
+					lessen: "",
+					vakken: ""
 				});
 				return;
 			}
@@ -5538,6 +5540,13 @@ var MailMergeTable = class {
 			let lesNames = lessenRows.map((rowIndex) => this.data[rowIndex][lesNaamIndex]);
 			student.lessen = lesNames.filter((les) => les != "").join(";");
 		});
+		let vakNaamIndex = this.headers.findIndex((header) => header == "vak: naam");
+		groupedPerStudent.forEach((student) => {
+			let vakkenRows = [...student.inschrijvingen.values()].map((inschrijving) => inschrijving.map((vakken) => vakken)).flat();
+			let vakNames = vakkenRows.map((rowIndex) => this.data[rowIndex][vakNaamIndex]);
+			let uniqueVakNames = [...new Set(vakNames)];
+			student.vakken = uniqueVakNames.filter((vak) => vak != "").join(";");
+		});
 		groupedPerStudent.forEach((student) => {
 			let row = [];
 			dataDef.studentColumnIndexes.forEach((colIndex) => row.push(this.data[student.allInschrijvingenRows[0]][colIndex]));
@@ -5562,11 +5571,13 @@ var MailMergeTable = class {
 			student.vestigingsPlaatsen.forEach((vestiging) => row.push(vestiging));
 			[...new Array(maxVestigingsplaatsen - student.vestigingsPlaatsen.length).keys()].forEach((_) => row.push(""));
 			row.push(student.lessen);
+			row.push(student.vakken);
 			flattendToStudent.push(row);
 		});
 		flattendHeaders.push(...[...new Array(maxVestigingsplaatsen).keys()].map((index) => `vestigingsplaats[${index + 1}]`));
 		flattendHeaders[emailIndex] = "email";
 		flattendHeaders.push("lessen");
+		flattendHeaders.push("vakken");
 		flattendToStudent.sort((a, b) => (a[1] + a[2]).localeCompare(b[1] + b[2]));
 		let maxRow = [...flattendToStudent[0]];
 		let cellCount = flattendHeaders.length;
