@@ -1,3 +1,15 @@
+Rosters
+---------
+- have a button in excel online to "Compare with DKO3".
+  > Will initiate GETs and POSTs. with DKO3
+    > Have a polling in DKO3.
+      > Manually activate or default each second?
+        > Requires handshake!
+  > Data is sent as CSV from string[][]?
+    - data matrix
+    - merged cell ranges
+    - otehr meta data (table headers, named ranges,...)
+
 * Mailmerge: Test with initiatie!
 
 * Mail merge with filters: double fetch needed: first students, then all their classes.
@@ -8,11 +20,6 @@
 * Werklijstbuilder without reset requires fieldnames!
   > also, check the risk of having the wrong schoolyear
     > and grouping.
-
-
-* HIGH PRIO !!!!
-  > DKO mail merge: allow to pre-select fields, and manually filter.
-    > User filters students
 
 * DKo automatic data transfer
   > how to 'chat' with correct user?
