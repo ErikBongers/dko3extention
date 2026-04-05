@@ -1,6 +1,24 @@
+Create a separate Dko3Interface project
+
 Rosters
----------
-- rosters are spread over different workbooks and sheets... but only if they have an hours column do they matter.
+===========
+User Workflow
+--------------
+- Manually run ExcelSend(): currently only manual and the active worksheet.
+- In Dko3:
+  > poll if a file has been updated since 'last checked'.
+    > this happens by any user session that logs on.
+      > this user session 'locks' the update and runs the checks.
+      > 'last checked' is uploaded.
+        > to ebo_json: Dko3/Uurroosters/meta.json
+          - lastChecked: data: UTC unix time stamp.
+          - checkStatus:
+            - INITIAL: never checked before: needs manual initial check
+            - CHECK_IN_PROGRESS
+            - IDDLE
+      > no delay needed since ExcelSend() is triggered manually.
+      > a Dko3/Uurroosters/results.json file may exists with all issues (or none).
+
 - sheet may have extra tables: max per class (vak/location).
 - plugin should know what the relevant data is and the upload date.
 - a manual Flow may be able to push them all together.
