@@ -13,6 +13,9 @@ type IdxPoint = {
 }
 
 async function main(workbook: ExcelScript.Workbook) {
+    let FolderName: string = "Dko3/Uurroosters";
+    let workbookName = workbook.getName()
+    console.log("Sending exel file: " + workbookName);
     let fullRange = workbook.getActiveWorksheet().getUsedRange();
     let data: Data = fullRange.getValues();
     console.log("data");
@@ -22,7 +25,8 @@ async function main(workbook: ExcelScript.Workbook) {
     console.log("to string");
     console.log(JSON.stringify(json));
     console.log("sending...");
-    let res = await fetch("https://europe-west1-ebo-tain.cloudfunctions.net/json?fileName=testExcel.json", {
+    let fileName = FolderName + "/" + workbookName + ".json";
+    let res = await fetch("https://europe-west1-ebo-tain.cloudfunctions.net/json?fileName="+fileName, {
         method: "POST",
         body: JSON.stringify(json),
     });
