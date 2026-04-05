@@ -12,17 +12,30 @@ type IdxPoint = {
     column: number
 }
 
-function main(workbook: ExcelScript.Workbook) {
+async function main(workbook: ExcelScript.Workbook) {
     let fullRange = workbook.getActiveWorksheet().getUsedRange();
     let data: Data = fullRange.getValues();
+    console.log("data");
     let mergedRanges: IdxRange[] = collectMergedRanges(fullRange);
-    console.log(data);
-    console.log(mergedRanges);
+    console.log("json");
+    let json = {data, mergedRanges};
+    console.log("to string");
+    console.log(JSON.stringify(json));
+    console.log("sending...");
+    let res = await fetch("https://europe-west1-ebo-tain.cloudfunctions.net/json?fileName=testExcel.json", {
+        method: "POST",
+        body: JSON.stringify(json),
+    });
+
+    let txt: string = await res.json();
+    console.log(txt);
 }
 
 function collectMergedRanges(fullRange: ExcelScript.Range) {
-    let mergedRanges: IdxRange [] = [];
-    for (let mergedRange of fullRange.getMergedAreas().getAreas()) {
+    let mergedRanges: IdxRange[] = [];
+    let areas = fullRange.getMergedAreas().getAreas();
+    console.log("areas");
+    for (let mergedRange of areas) {
         mergedRanges.push(rangeToIndexes(mergedRange));
     }
     return mergedRanges;
@@ -30,7 +43,7 @@ function collectMergedRanges(fullRange: ExcelScript.Range) {
 
 function rangeToIndexes(range: ExcelScript.Range): IdxRange {
     let start: IdxPoint = { row: range.getRowIndex(), column: range.getColumnIndex() };
-    let end: IdxPoint = { row: start.row + range.getRowCount()-1, column: start.column + range.getColumnCount()-1};
+    let end: IdxPoint = { row: start.row + range.getRowCount() - 1, column: start.column + range.getColumnCount() - 1 };
     return { start, end };
 }
 
@@ -38,7 +51,7 @@ function _setMessage(workbook: ExcelScript.Workbook, msg: string, type: MessageT
     console.log(msg);
 }
 
-enum MessageType { Info, Error, Highlight}
+enum MessageType { Info, Error, Highlight }
 
 function setError(workbook: ExcelScript.Workbook, msg: string) {
     _setMessage(workbook, msg, MessageType.Error);

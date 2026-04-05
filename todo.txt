@@ -1,6 +1,17 @@
 Rosters
 ---------
-- have a button in excel online to "Compare with DKO3".
+- rosters are spread over different workbooks and sheets... but only if they have an hours column do they matter.
+- sheet may have extra tables: max per class (vak/location).
+- plugin should know what the relevant data is and the upload date.
+- a manual Flow may be able to push them all together.
+  > and send a "done" message to dko3.
+  > since excel is initiator...perhaps let plugin send a status report back to the excel when done.
+- user will be switching between excel and dko3.
+  > perhaps have a notification banner at the top of dko3: 'new roster data available: n discrepancies found. Click here...'
+> Perhas have a rosters.json file with an overview of all the uploaded rosters and their dates?
+  > this file simply gets filled with all uploads from the roster script.
+
+- have a button in excel online to "Send to DKO3 plugin".
   > Will initiate GETs and POSTs. with DKO3
     > Have a polling in DKO3.
       > Manually activate or default each second?
