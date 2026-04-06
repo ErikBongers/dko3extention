@@ -380,7 +380,18 @@ async function uploadJson(fileName, data) {
 }
 async function fetchCheckStatus(checkName) {
 	let res = await fetch(CHECK_STATUS_URL + "?name=" + checkName);
-	return res.json();
+	return await res.json();
+}
+async function fetchNotifications() {
+	let res = await fetch("https://europe-west1-ebo-tain.cloudfunctions.net/get-notifications");
+	return await res.json();
+}
+async function postNotification(notification) {
+	await fetch(`https://europe-west1-ebo-tain.cloudfunctions.net/notification`, {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify(notification)
+	});
 }
 
 //#endregion
@@ -4063,32 +4074,40 @@ function onMutation$4(mutation) {
 	return false;
 }
 async function doStartupStuff() {
-	await displayNotifications();
+	await fetchAndDisplayNotifications();
 	await checkChecks();
 }
-async function displayNotifications() {
+async function fetchAndDisplayNotifications() {
+	let notifications = await fetchNotifications();
 	let notificationsDiv = document.querySelector("#dko3_plugin_notifications > div");
-	let notifications = await getNotifications();
 	let html = "";
-	notifications.notifications.forEach((notif) => {
+	let propNames = Object.getOwnPropertyNames(notifications.notifications);
+	for (let propName of propNames) {
+		let notif = notifications.notifications[propName];
 		let waitingGifUrl = chrome.runtime.getURL("images/waiting.gif");
 		html += `
-<div class="notif notif-${notif.level}">
-<div class="notif-img">
-    <img src="${waitingGifUrl}" class="notifWaiting" alt="running...">
-</div>
-<div>${notif.message}</div>
-</div>`;
-	});
+            <div class="notif notif-${notif.level}">
+            <div class="notif-img">
+                <img src="${waitingGifUrl}" class="notifWaiting" alt="running...">
+            </div>
+            <div>${notif.message}</div>
+            </div>
+            `;
+	}
 	notificationsDiv.innerHTML = html;
 }
-async function getNotifications() {
-	let res = await fetch("https://europe-west1-ebo-tain.cloudfunctions.net/get-notifications");
-	return await res.json();
-}
 async function checkChecks() {
-	let status = await fetchCheckStatus("WOORD_ROSTERS");
-	console.log("checkChecks: ", status);
+	let woordCheckstatus = await fetchCheckStatus("WOORD_ROSTERS");
+	console.log("checkChecks: ", woordCheckstatus);
+	if (woordCheckstatus.status === "INITIAL") {
+		let notif = {
+			id: "MUZIEK_ROSTERS_IS_DIFF",
+			level: "warning",
+			message: "De muzieklessen zijn niet vergeleken met het uurrooser op Sharepoint. Klik op de knop om de lessen te vergelijken."
+		};
+		await postNotification(notif);
+		await fetchAndDisplayNotifications();
+	}
 }
 
 //#endregion
