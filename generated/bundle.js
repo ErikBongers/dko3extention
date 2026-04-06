@@ -4060,7 +4060,14 @@ async function addNotifications(startContentDiv) {
 		let notifications = await getNotifications();
 		let html = "";
 		notifications.forEach((notif) => {
-			html += `<div class="plugin-notiflevel-${notif.level}">${notif.message}</div>`;
+			let waitingGifUrl = chrome.runtime.getURL("images/waiting.gif");
+			html += `
+<div class="notif notif-${notif.level}">
+    <div class="notif-img">
+        <img src="${waitingGifUrl}" class="notifWaiting" alt="running...">
+    </div>
+    <div>${notif.message}</div>
+</div>`;
 		});
 		divNotifs.innerHTML = html;
 	} else console.error("startContentDiv has no children");

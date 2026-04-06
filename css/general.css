@@ -350,3 +350,28 @@ span.filterInfo {
     font-weight: 500;
     font-style: italic;
 }
+
+.notif
+{
+    display: flex;
+    flex-direction: row;
+    & .notif-img {
+        width: 15px;
+        align-content: center;
+        & img {
+            display: none;
+        }
+    }
+    &.notif-running {
+        .notif-img img {
+            display: block;
+        }
+    }
+}
+
+
+.notifWaiting {
+    width: 10px;
+    height: 10px;
+    margin-inline-end: 1ch;
+}

@@ -1,3 +1,50 @@
+* format the notifications.
+
+* client immediately gets the notifications.
+  > some may not be meant for the user like:
+    - rosters-need-to-be-checked.
+      > this will start the check immediately (expiration=0)
+        > running tasks are shown as a notification as well
+          > but we already the notification file...
+          > so, we upload a new notification and get the full list again.
+            > we'll have a notificatin that indicates that a task is running. (status = "running" instead of eg. "error")
+              : { "level": "running", "id"="ROSTER_CHECKS", "message": "Comparing roster files against Dko3..."}
+
+* create a check_rosters function
+  > check_xxx functions return true if they are ok
+* How are checks run?
+  > from client obviously.
+    > every check has a name
+      > call it in cloud (if it's a cloud check)
+        : gcp:check_rosters() -> just checks the last run date of this check to the folder change date.
+* do Uurrooster checks have an expiration period?
+  > no! they become invalid based on changed date.
+    > set expiration times to 0.
+* in cloud:Dko3/ folder have a checks.json file
+  - last date that each check has run.
+    : {
+        "uurroosters":  {
+           "config": { "function": "check_rosters", "expiration": "<seconds>", "fastExpiration"; "<seconds>"},
+           "run": {"status": "INITIAL | RUNNING | FINISHED | FAILED", "date": "<iso Z date>", "errors": ["some error message..."]}
+          }
+      }
+  > api:
+    - add-check(id, longName, expiration, fastExpiration) -> long name is ""
+    - report-check(name, date, errors)
+    - get-expired-checks
+    - get-check-report(name) -> returns "run" info.
+
+* user enters start page:
+  - notifications are loaded.
+  - verify that checks are up-to-date.
+    > if not, run checks
+      > mark status as CHECKS_RUNNING.
+* create function to get uurroosters last check date (stored in meta.json)
+  > if no meta file: return epoch date.
+    > report to user that uurroosters have changed more than x days/hours/...
+      > in case of epoch: report uurroosters need to be checked/have never been checked.
+  > a genaral run-checks function is called when user logs on to the start page and notices that checks haven't been run for...x time. (1 hour?)
+
 * In DKO3 start page, check if checks need to be run
   > if relevant cloud files have changed.
     > uurrooster files need to be checked against last check date
