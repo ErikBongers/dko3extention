@@ -4066,7 +4066,7 @@ function onMutation$4(mutation) {
 	let startContentDiv = document.querySelector("#dko3_start_content");
 	if (startContentDiv) {
 		if (startContentDiv.textContent.includes("welkom")) {
-			emmet.insertAfter(startContentDiv.children[0], "div#dko3_plugin_notifications>div.alert.alert-info.shadow-sm");
+			emmet.insertAfter(startContentDiv.children[0], "div#dko3_plugin_notifications>div.alert.alert-info.shadow-sm>(h5>strong{Plugin berichten})+div");
 			doStartupStuff().then(() => {});
 		}
 		return true;
@@ -4079,16 +4079,30 @@ async function doStartupStuff() {
 }
 async function fetchAndDisplayNotifications() {
 	let notifications = await fetchNotifications();
-	let notificationsDiv = document.querySelector("#dko3_plugin_notifications > div");
+	let notificationsDiv = document.querySelector("#dko3_plugin_notifications > div > div");
 	let html = "";
 	let propNames = Object.getOwnPropertyNames(notifications.notifications);
 	for (let propName of propNames) {
 		let notif = notifications.notifications[propName];
-		let waitingGifUrl = chrome.runtime.getURL("images/waiting.gif");
+		let imgUrl = chrome.runtime.getURL("images/waiting.gif");
+		switch (notif.level) {
+			case "warning":
+				imgUrl = chrome.runtime.getURL("images/warning.png");
+				break;
+			case "error":
+				imgUrl = chrome.runtime.getURL("images/error.png");
+				break;
+			case "running":
+				imgUrl = chrome.runtime.getURL("images/waiting.gif");
+				break;
+			case "info":
+				imgUrl = chrome.runtime.getURL("images/info.png");
+				break;
+		}
 		html += `
             <div class="notif notif-${notif.level}">
             <div class="notif-img">
-                <img src="${waitingGifUrl}" class="notifWaiting" alt="running...">
+                <img src="${imgUrl}" alt="todo">
             </div>
             <div>${notif.message}</div>
             </div>

@@ -358,20 +358,12 @@ span.filterInfo {
     & .notif-img {
         width: 15px;
         align-content: center;
+        margin-inline-end: 1ch;
         & img {
-            display: none;
-        }
-    }
-    &.notif-running {
-        .notif-img img {
-            display: block;
+            width: 14px;
+            height: 14px;
         }
     }
 }
 
 
-.notifWaiting {
-    width: 10px;
-    height: 10px;
-    margin-inline-end: 1ch;
-}
