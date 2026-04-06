@@ -335,7 +335,9 @@ const FULL_CLASS_BUTTON_ID = "fullClassButton";
 const TRIM_TABLE_ID = "trimesterTable";
 const HOURS_TABLE_ID = "werklijst_uren";
 const TRIM_DIV_ID = "trimesterDiv";
-const JSON_URL = "https://europe-west1-ebo-tain.cloudfunctions.net/json";
+const CLOUD_BASE_URL = "https://europe-west1-ebo-tain.cloudfunctions.net/";
+const JSON_URL = CLOUD_BASE_URL + "json";
+const CHECK_STATUS_URL = CLOUD_BASE_URL + "check-status";
 const INFO_CONTAINER_ID = "dp3p_infoContainer";
 const INFO_CACHE_ID = "dp3p_cacheInfo";
 const INFO_TEMP_ID = "dp3_tempInfo";
@@ -375,6 +377,10 @@ async function uploadJson(fileName, data) {
 		keepalive: true
 	});
 	return await res.text();
+}
+async function fetchCheckStatus(checkName) {
+	let res = await fetch(CHECK_STATUS_URL + "?name=" + checkName);
+	return res.json();
 }
 
 //#endregion
@@ -4045,36 +4051,44 @@ var StartPageObserver = class extends ExactHashObserver {
 };
 var observer_default$6 = new StartPageObserver();
 function onMutation$4(mutation) {
-	let notificationsDiv = document.querySelector("#dko3_plugin_notifications");
-	if (notificationsDiv) return true;
-	let startContent = document.querySelector("#dko3_start_content");
-	if (startContent) {
-		addNotifications(startContent).then((r) => {});
+	if (document.querySelector("#dko3_plugin_notifications")) return true;
+	let startContentDiv = document.querySelector("#dko3_start_content");
+	if (startContentDiv) {
+		if (startContentDiv.textContent.includes("welkom")) {
+			emmet.insertAfter(startContentDiv.children[0], "div#dko3_plugin_notifications>div.alert.alert-info.shadow-sm");
+			doStartupStuff().then(() => {});
+		}
 		return true;
 	}
 	return false;
 }
-async function addNotifications(startContentDiv) {
-	if (startContentDiv.children.length > 0) {
-		let divNotifs = emmet.insertAfter(startContentDiv.children[0], "div#dko3_plugin_notifications>div.alert.alert-info.shadow-sm").last;
-		let notifications = await getNotifications();
-		let html = "";
-		notifications.notifications.forEach((notif) => {
-			let waitingGifUrl = chrome.runtime.getURL("images/waiting.gif");
-			html += `
+async function doStartupStuff() {
+	await displayNotifications();
+	await checkChecks();
+}
+async function displayNotifications() {
+	let notificationsDiv = document.querySelector("#dko3_plugin_notifications > div");
+	let notifications = await getNotifications();
+	let html = "";
+	notifications.notifications.forEach((notif) => {
+		let waitingGifUrl = chrome.runtime.getURL("images/waiting.gif");
+		html += `
 <div class="notif notif-${notif.level}">
-    <div class="notif-img">
-        <img src="${waitingGifUrl}" class="notifWaiting" alt="running...">
-    </div>
-    <div>${notif.message}</div>
+<div class="notif-img">
+    <img src="${waitingGifUrl}" class="notifWaiting" alt="running...">
+</div>
+<div>${notif.message}</div>
 </div>`;
-		});
-		divNotifs.innerHTML = html;
-	} else console.error("startContentDiv has no children");
+	});
+	notificationsDiv.innerHTML = html;
 }
 async function getNotifications() {
 	let res = await fetch("https://europe-west1-ebo-tain.cloudfunctions.net/get-notifications");
 	return await res.json();
+}
+async function checkChecks() {
+	let status = await fetchCheckStatus("WOORD_ROSTERS");
+	console.log("checkChecks: ", status);
 }
 
 //#endregion

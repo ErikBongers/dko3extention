@@ -1,4 +1,31 @@
-*
+* Checks are stored locally!
+  > but checks status is stored online -> shared info in Dko3/checks_status.json
+    : {
+      "uurroosters":  {"status": "INITIAL | RUNNING | FINISHED | FAILED", "date": "<iso Z date>", "errors": ["some tech error message (not notifications!)..."]}
+      }
+    > api
+      - GET check_status
+      - POST check_status(json: {status, date, [errors]}
+* Rosters can be partially compared: only woord,...
+
+* In start screen, start the check_rosters check.
+  - call folder_changed to see if a diff is needed.
+    > always do this, without delay, unless ROSTER_RUN is set.
+  - call the diff function, if needed.
+  - add notifications during the process.
+    - when doing the diff, add ROSTER_RUN
+    - when finished, delete ROSTER_RUN and set ROSTER_IS_DIFF if needed.
+      > don't add a message if the checks are just fine. No information overload.
+
+
+* after loading notifications, the curernt user checks if checks need to be run
+  ! most code should be run locally!!! Not on my (expensive) cloud!
+  > this happens in the start screen every second. (user won't stay here too long)
+  > this happens where needed: e.g.: in lessen page, check if rosters have changed (also every second or slower but with a button to start manually?)
+  > calls folder_changed("Dko3/Uurroosters/", ...changed date since???)
+    > changed date???
+      > retrieved from get-expired_checks
+        >
 
 * client immediately gets the notifications.
   > some may not be meant for the user like:
@@ -20,12 +47,11 @@
 * do Uurrooster checks have an expiration period?
   > no! they become invalid based on changed date.
     > set expiration times to 0.
-* in cloud:Dko3/ folder have a checks.json file
+* in cloud:Dko3/ folder have a checks_status.json file
   - last date that each check has run.
     : {
         "uurroosters":  {
-           "config": { "function": "check_rosters", "expiration": "<seconds>", "fastExpiration"; "<seconds>"},
-           "run": {"status": "INITIAL | RUNNING | FINISHED | FAILED", "date": "<iso Z date>", "errors": ["some error message..."]}
+           "run": {"status": "INITIAL | RUNNING | FINISHED | FAILED", "date": "<iso Z date>", "errors": ["some tech error message (not notifications!)..."]}
           }
       }
   > api:

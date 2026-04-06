@@ -20,3 +20,11 @@ async function uploadJson(fileName: string, data: any) {
     });
     return await res.text();
 }
+
+export type CheckName  = "WOORD_ROSTERS";
+
+export async function fetchCheckStatus(checkName: CheckName) {
+    let res = await fetch(def.CHECK_STATUS_URL + "?name="+checkName);
+    return res.json();
+}
+
