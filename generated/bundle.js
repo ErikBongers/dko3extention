@@ -393,6 +393,13 @@ async function postNotification(notification) {
 		body: JSON.stringify(notification)
 	});
 }
+async function fetchFolderChanged(folderName) {
+	let res = await fetch(encodeURI(CLOUD_BASE_URL + "folder-changed?folderName=" + folderName));
+	return await res.json();
+}
+async function fetchExcelData(filePath) {
+	return await fetchJson(filePath);
+}
 
 //#endregion
 //#region typescript/plugin_options/options.ts
@@ -4121,6 +4128,12 @@ async function checkChecks() {
 		};
 		await postNotification(notif);
 		await fetchAndDisplayNotifications();
+		let folderChanged = await fetchFolderChanged("Dko3/Uurroosters/");
+		console.log(folderChanged);
+		for (let file of folderChanged.files) {
+			let excelData = await fetchExcelData(file.name);
+			console.log(excelData);
+		}
 	}
 }
 

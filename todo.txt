@@ -1,3 +1,14 @@
+* get the data.
+  > which files:
+    > ideally, the changed files since last check.
+    > we don't have a file list yet!
+
+* run the woord checks
+ > get the data.
+   > how do I know it's woord uurroosters?
+     > not for sure...if the file contains "woord"...but it may also contain kunstenbad, ...
+     > parser can check the vak-names: this can determine which domeins are applicable.
+
 * Checks are stored locally!
   > but checks status is stored online -> shared info in Dko3/checks_status.json
     : {

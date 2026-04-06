@@ -1,6 +1,6 @@
 import {ExactHashObserver} from "../pageObserver";
 import {emmet} from "../../libs/Emmeter/html";
-import {fetchCheckStatus, Notifications, Notification, NotificationId, fetchNotifications, postNotification} from "../cloud";
+import {fetchCheckStatus, Notifications, Notification, NotificationId, fetchNotifications, postNotification, fetchFolderChanged, fetchExcelData} from "../cloud";
 
 class StartPageObserver extends ExactHashObserver {
     constructor() {
@@ -67,5 +67,11 @@ async function checkChecks() {
         let notif: Notification = {id: "MUZIEK_ROSTERS_IS_DIFF", level:"warning", message: "De muzieklessen zijn niet vergeleken met het uurrooser op Sharepoint. Klik op de knop om de lessen te vergelijken."};
         await postNotification(notif);
         await fetchAndDisplayNotifications();
+        let folderChanged = await fetchFolderChanged("Dko3/Uurroosters/");
+        console.log(folderChanged);
+        for(let file of folderChanged.files) {
+            let excelData = await fetchExcelData(file.name);
+            console.log(excelData);
+        }
     }
 }

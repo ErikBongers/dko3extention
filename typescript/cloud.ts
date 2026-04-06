@@ -64,3 +64,33 @@ export async function postNotification(notification: Notification) {
         body: JSON.stringify(notification),
     });
 }
+
+export interface FileChangedInfo {
+    name: string,
+    changed: string
+}
+export interface FolderChangedInfo {
+    changed: boolean;
+    newestChange: string;
+    oldestChange: string;
+    files: FileChangedInfo[]
+}
+
+export async function fetchFolderChanged(folderName: string) {
+    let res = await fetch(encodeURI(def.CLOUD_BASE_URL + "folder-changed?folderName="+folderName));
+    return await res.json() as FolderChangedInfo;
+}
+
+export interface MergedRange {
+    start: { row: number, column: number},
+    end: { row: number, column: number}
+}
+
+export interface ExcelData {
+    data: string[][];
+    mergedRanges: MergedRange[];
+}
+
+export async function fetchExcelData(filePath: string) {
+    return await fetchJson(filePath) as ExcelData;
+}
