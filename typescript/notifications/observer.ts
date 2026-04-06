@@ -28,7 +28,7 @@ async function addNotifications(startContentDiv: HTMLDivElement) {
         let divNotifs = emmet.insertAfter(startContentDiv.children[0], "div#dko3_plugin_notifications>div.alert.alert-info.shadow-sm").last as HTMLDivElement;
         let notifications = await getNotifications();
         let html: string = "";
-        notifications.forEach(notif => {
+        notifications.notifications.forEach(notif => {
             let waitingGifUrl = chrome.runtime.getURL("images/waiting.gif");
             html += `
 <div class="notif notif-${notif.level}">
@@ -51,7 +51,12 @@ export interface Notification {
     id: NotificationId;
     message: string;
 }
+
+export interface Notifications {
+    instance: number;
+    notifications: Notification[]
+}
 async function getNotifications() {
     let res = await fetch("https://europe-west1-ebo-tain.cloudfunctions.net/get-notifications");
-    return await res.json() as Notification[];
+    return await res.json() as Notifications;
 }

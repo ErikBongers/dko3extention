@@ -1,4 +1,4 @@
-* format the notifications.
+*
 
 * client immediately gets the notifications.
   > some may not be meant for the user like:

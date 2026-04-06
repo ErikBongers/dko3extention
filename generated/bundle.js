@@ -4059,7 +4059,7 @@ async function addNotifications(startContentDiv) {
 		let divNotifs = emmet.insertAfter(startContentDiv.children[0], "div#dko3_plugin_notifications>div.alert.alert-info.shadow-sm").last;
 		let notifications = await getNotifications();
 		let html = "";
-		notifications.forEach((notif) => {
+		notifications.notifications.forEach((notif) => {
 			let waitingGifUrl = chrome.runtime.getURL("images/waiting.gif");
 			html += `
 <div class="notif notif-${notif.level}">
