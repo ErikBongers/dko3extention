@@ -1,11 +1,19 @@
-Create a separate Dko3Interface project
-
+* In DKO3 start page, check if checks need to be run
+  > if relevant cloud files have changed.
+    > uurrooster files need to be checked against last check date
+      > last checked is stored in uurroosters/meta.json
+        > plugin calls folder_changed("folder_name", date)
+          > wrap it in a uurroosters_changed(date)
 Rosters
 ===========
 User Workflow
 --------------
 - Manually run ExcelSend(): currently only manual and the active worksheet.
 - In Dko3:
+  > start screen IMMEDIATELY shows if there are errors in the rosters.
+    > Do an instant fetch
+      > show a wait cursor if it's taking some time.
+
   > poll if a file has been updated since 'last checked'.
     > this happens by any user session that logs on.
       > this user session 'locks' the update and runs the checks.

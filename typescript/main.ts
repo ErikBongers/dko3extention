@@ -3,6 +3,7 @@ import {equals, getOptions, observers, registerObserver, settingsObservers} from
 import leerlingObserver from "./leerling/observer";
 import lessenObserver from "./lessen/observer";
 import lesObserver from "./les/observer";
+import startPageObserver from "./notifications/observer";
 import academieObserver from "./academie/observer";
 import werklijstObserver from "./werklijst/observer";
 import tableObserver from "./table/observer";
@@ -53,6 +54,8 @@ function init() {
         registerObserver(academieMenuObserver);
         registerObserver(aanwezighedenObserver);
         registerObserver(afwezighedenObserver);
+        registerObserver(afwezighedenObserver);
+        registerObserver(startPageObserver);
         onPageChanged();
         setupPowerQuery();
         if(document.readyState == "complete") {

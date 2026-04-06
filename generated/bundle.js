@@ -1031,14 +1031,14 @@ var MenuScrapingObserver = class MenuScrapingObserver extends ExactHashObserver 
 //#region typescript/leerling/observer.ts
 var LeerlingObserver = class extends HashObserver {
 	constructor() {
-		super("#leerlingen-leerling", onMutation$7);
+		super("#leerlingen-leerling", onMutation$8);
 	}
 	isPageReallyLoaded() {
 		throw new Error("Method not implemented.");
 	}
 };
-var observer_default$9 = new LeerlingObserver();
-function onMutation$7(mutation) {
+var observer_default$10 = new LeerlingObserver();
+function onMutation$8(mutation) {
 	checkAndExpandTabs();
 	checkAndDecorateName();
 	let tabInschrijving = document.getElementById("leerling_inschrijvingen_weergave");
@@ -3031,14 +3031,14 @@ function swapColumns(row, index1, index2) {
 //#region typescript/table/observer.ts
 var TableObserver = class extends BaseObserver {
 	constructor() {
-		super(void 0, new AllPageFilter(), onMutation$6);
+		super(void 0, new AllPageFilter(), onMutation$7);
 	}
 	isPageReallyLoaded() {
 		return getBothToolbars() != void 0;
 	}
 };
-var observer_default$8 = new TableObserver();
-function onMutation$6(_mutation) {
+var observer_default$9 = new TableObserver();
+function onMutation$7(_mutation) {
 	let navigationBars = getBothToolbars();
 	if (!navigationBars) return;
 	if (!findTableRefInCode()?.navigationData.isOnePage()) addTableNavigationButton(
@@ -3712,13 +3712,13 @@ function textToCodes(items, vakDefs) {
 //#region typescript/lessen/observer.ts
 var LessenObserver = class extends HashObserver {
 	constructor() {
-		super("#lessen-overzicht", onMutation$5, false, onPageRefreshed$1);
+		super("#lessen-overzicht", onMutation$6, false, onPageRefreshed$1);
 	}
 	isPageReallyLoaded() {
 		return document.getElementById("btn_lessen_overzicht_zoeken") != null;
 	}
 };
-var observer_default$7 = new LessenObserver();
+var observer_default$8 = new LessenObserver();
 function onPageRefreshed$1() {
 	console.log(`Lessen.onPageRefreshed: hash: ${location.hash}`);
 	if (location.hash != "#lessen-overzicht") return;
@@ -3733,7 +3733,7 @@ function addTrimesterButton() {
 	}
 	return true;
 }
-function onMutation$5(mutation) {
+function onMutation$6(mutation) {
 	addTrimesterButton();
 	let lessenOverzicht = document.getElementById(
 		//todo: why is this check needed? If so, put it in BaseObserver?
@@ -3966,14 +3966,14 @@ function appendGroupingAnchorOrText(target, grouping, activeSorting, separator) 
 //#region typescript/les/observer.ts
 var LesObserver = class extends HashObserver {
 	constructor() {
-		super("#lessen-les", onMutation$4);
+		super("#lessen-les", onMutation$5);
 	}
 	isPageReallyLoaded() {
 		return document.querySelectorAll("#les_leerlingen_leerlingen > span").length > 0;
 	}
 };
-var observer_default$6 = new LesObserver();
-function onMutation$4(mutation) {
+var observer_default$7 = new LesObserver();
+function onMutation$5(mutation) {
 	let tabLeerlingen = document.getElementById("les_leerlingen_leerlingen");
 	if (mutation.target === tabLeerlingen) {
 		onLeerlingenChanged();
@@ -4031,6 +4031,43 @@ function switchNaamVoornaam(_event) {
 		let naam = split.pop() ?? "";
 		strong.textContent = voornaam + " " + naam;
 	});
+}
+
+//#endregion
+//#region typescript/notifications/observer.ts
+var StartPageObserver = class extends ExactHashObserver {
+	constructor() {
+		super("#start-mijn_tijdslijn", onMutation$4);
+	}
+	isPageReallyLoaded() {
+		return document.querySelectorAll("#dko3_start_content").length > 0;
+	}
+};
+var observer_default$6 = new StartPageObserver();
+function onMutation$4(mutation) {
+	let notificationsDiv = document.querySelector("#dko3_plugin_notifications");
+	if (notificationsDiv) return true;
+	let startContent = document.querySelector("#dko3_start_content");
+	if (startContent) {
+		addNotifications(startContent).then((r) => {});
+		return true;
+	}
+	return false;
+}
+async function addNotifications(startContentDiv) {
+	if (startContentDiv.children.length > 0) {
+		let divNotifs = emmet.insertAfter(startContentDiv.children[0], "div#dko3_plugin_notifications>div.alert.alert-info.shadow-sm").last;
+		let notifications = await getNotifications();
+		let html = "";
+		notifications.forEach((notif) => {
+			html += `<div class="plugin-notiflevel-${notif.level}">${notif.message}</div>`;
+		});
+		divNotifs.innerHTML = html;
+	} else console.error("startContentDiv has no children");
+}
+async function getNotifications() {
+	let res = await fetch("https://europe-west1-ebo-tain.cloudfunctions.net/get-notifications");
+	return await res.json();
 }
 
 //#endregion
@@ -6496,12 +6533,12 @@ function init() {
 			checkGlobalSettings();
 			onPageChanged();
 		});
-		registerObserver(observer_default$9);
+		registerObserver(observer_default$10);
+		registerObserver(observer_default$8);
 		registerObserver(observer_default$7);
-		registerObserver(observer_default$6);
 		registerObserver(observer_default$5);
 		registerObserver(observer_default$4);
-		registerObserver(observer_default$8);
+		registerObserver(observer_default$9);
 		registerObserver(extraInschrijvingenObserver);
 		registerObserver(allLijstenObserver);
 		registerObserver(financialObserver);
@@ -6512,6 +6549,8 @@ function init() {
 		registerObserver(academieMenuObserver);
 		registerObserver(observer_default$1);
 		registerObserver(observer_default);
+		registerObserver(observer_default);
+		registerObserver(observer_default$6);
 		onPageChanged();
 		setupPowerQuery();
 		if (document.readyState == "complete") {
