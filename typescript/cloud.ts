@@ -57,7 +57,8 @@ export async function fetchNotifications() {
     return await res.json() as Notifications;
 }
 
-export async function postNotification(notification: Notification) {
+export async function postNotification(id: NotificationId, level: NotificationLevel, message: string) {
+    let notification: Notification = {id, level, message};
     await fetch(`https://europe-west1-ebo-tain.cloudfunctions.net/notification`, {
         method: "POST",
         headers: { "Content-Type": "application/json"},
@@ -79,16 +80,6 @@ export interface FolderChangedInfo {
 export async function fetchFolderChanged(folderName: string) {
     let res = await fetch(encodeURI(def.CLOUD_BASE_URL + "folder-changed?folderName="+folderName));
     return await res.json() as FolderChangedInfo;
-}
-
-export interface MergedRange {
-    start: { row: number, column: number},
-    end: { row: number, column: number}
-}
-
-export interface ExcelData {
-    data: string[][];
-    mergedRanges: MergedRange[];
 }
 
 export async function fetchExcelData(filePath: string) {
