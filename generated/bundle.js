@@ -4337,6 +4337,7 @@ var Roster = class {
 					description
 				};
 				classDefs.push(classDef);
+				row = mergedRange.End.row + 1;
 			}
 		}
 		return classDefs;

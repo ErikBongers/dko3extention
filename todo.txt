@@ -1,5 +1,14 @@
-* which schoolyear???
-  > is not on start page.
+ Diff
+ ====
+ What matters
+ ------------
+ We want to find lessons with wrong day/hours! That's the main thing.
+ Wrong teacher...meh...
+ Wrong location: also important!
+ Try to check for max students allowed.
+
+
+
 * check for outdated checks.
   > ...and update the notifications.
 
