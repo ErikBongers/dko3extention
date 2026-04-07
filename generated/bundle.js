@@ -543,6 +543,14 @@ let Schoolyear;
 		return year;
 	}
 	_Schoolyear.calculateCurrent = calculateCurrent;
+	function calculateSetupYear() {
+		let now = new Date();
+		let year = now.getFullYear();
+		let month = now.getMonth();
+		if (month < 3) return year - 1;
+		return year;
+	}
+	_Schoolyear.calculateSetupYear = calculateSetupYear;
 	function toFullString(startYear) {
 		return `${startYear}-${startYear + 1}`;
 	}
@@ -3766,8 +3774,8 @@ function onMutation$6(mutation) {
 	addTrimesterButton();
 	let lessenOverzicht = document.getElementById(
 		//todo: why is this check needed? If so, put it in BaseObserver?
-		//muziek
-		//modules!
+		//muziek=3, woord=4, DomeinOV=5, Dans=2
+		//modules =3, gewone lessen=1
 		LESSEN_OVERZICHT_ID
 );
 	if (mutation.target !== lessenOverzicht) return false;
@@ -3806,6 +3814,9 @@ async function setTrimesterFilterAndFetch() {
 		soorten_lessen: "3",
 		volzet: "-1"
 	});
+	return fetchLessen(params);
+}
+async function fetchLessen(params) {
 	let url = DKO3_BASE_URL + "views/lessen/overzicht/index.filters.php";
 	await fetch(url + "?" + params);
 	url = DKO3_BASE_URL + "views/lessen/overzicht/index.lessen.php";
@@ -4283,7 +4294,7 @@ var Roster = class {
 		if (this.errors.length > 0) return;
 		let classDefs = [];
 		for (let c = 0; c <= this.table.ColumnCount; c++) classDefs = classDefs.concat(this.scrapeColumn(c, timeSlices));
-		console.log(this.classDefsToString(classDefs));
+		return classDefs;
 	}
 	scrapeColumn(column, timeSlices) {
 		let classDefs = [];
@@ -4663,7 +4674,35 @@ async function runRosterCheck(excelData) {
 	let factory = new RosterFactory(excelData);
 	let table = factory.getTable();
 	let roster = new Roster(table);
-	roster.scrapeUurrooster();
+	let excelLessen = roster.scrapeUurrooster();
+	console.log(excelLessen);
+	let dko3Lessen = await scrapeLessen();
+	console.log(dko3Lessen);
+}
+async function scrapeLessen() {
+	let chain = new FetchChain();
+	let hash = "lessen-overzicht";
+	await chain.fetch(DKO3_BASE_URL + "#lessen-overzicht" + hash);
+	await chain.fetch("view.php?args=" + hash);
+	let schoolYear = Schoolyear.toFullString(Schoolyear.calculateSetupYear() - 1);
+	let params = new URLSearchParams({
+		schooljaar: schoolYear,
+		domein: "4",
+		vestigingsplaats: "",
+		vak: "",
+		graad: "",
+		leerkracht: "",
+		ag: "",
+		lesdag: "",
+		verberg_online: "-1",
+		soorten_lessen: "1",
+		volzet: "-1"
+	});
+	let tableText = await fetchLessen(params);
+	let div = document.createElement("div");
+	div.innerHTML = tableText;
+	let table = div.querySelector("#" + LESSEN_TABLE_ID);
+	return scrapeLessenOverzicht(table);
 }
 
 //#endregion

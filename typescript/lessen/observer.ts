@@ -82,7 +82,7 @@ function onClickShowTrimesters() {
 async function setTrimesterFilterAndFetch() {
     let params = new URLSearchParams({
         schooljaar: Schoolyear.findInPage(),
-        domein:"3", //muziek
+        domein:"3", //muziek=3, woord=4, DomeinOV=5, Dans=2
         vestigingsplaats: "",
         vak: "",
         graad: "",
@@ -90,10 +90,14 @@ async function setTrimesterFilterAndFetch() {
         ag: "",
         lesdag: "",
         verberg_online:"-1",
-        soorten_lessen:"3", //modules!
+        soorten_lessen:"3", //modules =3, gewone lessen=1
         volzet:"-1",
         // laad_tabel:"1"
     });
+    return fetchLessen(params);
+}
+
+export async function fetchLessen(params: URLSearchParams) {
     let url = def.DKO3_BASE_URL+"views/lessen/overzicht/index.filters.php";
     await fetch(url+"?" + params);
     url = def.DKO3_BASE_URL+"views/lessen/overzicht/index.lessen.php";

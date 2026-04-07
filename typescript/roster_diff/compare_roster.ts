@@ -46,7 +46,8 @@ export class Roster{
         for(let c = 0; c <= this.table.ColumnCount; c++) {
             classDefs = classDefs.concat(this.scrapeColumn(c, timeSlices));
         }
-        console.log(this.classDefsToString(classDefs));
+        // console.log(this.classDefsToString(classDefs));
+        return classDefs;
     }
 
     private scrapeColumn(column: number, timeSlices: Map<string, TimeSlice>) {

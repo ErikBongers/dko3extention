@@ -1,4 +1,7 @@
-* notificatons
+* which schoolyear???
+  > is not on start page.
+* check for outdated checks.
+  > ...and update the notifications.
 
 * Checks are stored locally!
   > but checks status is stored online -> shared info in Dko3/checks_status.json

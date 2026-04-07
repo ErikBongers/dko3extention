@@ -122,6 +122,15 @@ export namespace Schoolyear {
         return year;
     }
 
+    export function calculateSetupYear() {
+        let now = new Date();
+        let year = now.getFullYear();
+        let month = now.getMonth();
+        if (month < 3) //zero-based april !
+            return year - 1; //schoolyear started last year.
+        return year;
+    }
+
 //E.g. "2024-2025"
     export function toFullString(startYear: number) {
         return `${startYear}-${startYear + 1}`;

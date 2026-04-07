@@ -5,6 +5,12 @@ import {RosterFactory} from "../roster_diff/rosterFactory";
 import {JsonExcelData} from "../roster_diff/excel";
 import {Roster} from "../roster_diff/compare_roster";
 import {updateNotificationsInNavBar} from "./notifications";
+import {FetchChain} from "../table/fetchChain";
+import * as def from "../def";
+import {Schoolyear} from "../globals";
+import {fetchLessen} from "../lessen/observer";
+import {LESSEN_TABLE_ID} from "../def";
+import {scrapeLessenOverzicht} from "../lessen/scrape";
 
 class StartPageObserver extends ExactHashObserver {
     constructor() {
@@ -89,5 +95,58 @@ async function runRosterCheck(excelData: JsonExcelData) {
     let factory = new RosterFactory(excelData);
     let table = factory.getTable();
     let roster = new Roster(table);
-    roster.scrapeUurrooster();
+    let excelLessen = roster.scrapeUurrooster();
+    console.log(excelLessen);
+    let dko3Lessen = await scrapeLessen();
+    console.log(dko3Lessen);
 }
+
+async function scrapeLessen() {
+    let chain = new FetchChain();
+    let hash = "lessen-overzicht";
+    await chain.fetch(def.DKO3_BASE_URL+"#lessen-overzicht" + hash);
+    await chain.fetch("view.php?args=" + hash); // call to changeView() - assuming this is always the same, so no parsing here.
+    let schoolYear = Schoolyear.toFullString(Schoolyear.calculateSetupYear()-1); //todo: TEST TEST TEST, wrong year!!!!
+    let params = new URLSearchParams({
+        schooljaar: schoolYear,
+        domein:"4", //muziek=3, woord=4, DomeinOV=5, Dans=2
+        vestigingsplaats: "",
+        vak: "",
+        graad: "",
+        leerkracht: "",
+        ag: "",
+        lesdag: "",
+        verberg_online:"-1",
+        soorten_lessen:"1", //modules =3, gewone lessen=1
+        volzet:"-1"
+    });
+    let tableText = await fetchLessen(params);
+    let div = document.createElement("div");
+    div.innerHTML = tableText;
+    let table = div.querySelector("#"+LESSEN_TABLE_ID) as HTMLTableElement;
+    return scrapeLessenOverzicht(table);
+}
+
+/*
+export class Les {
+    vakNaam: string;
+    lesType: LesType;
+    alc: boolean;
+    online: boolean;
+    naam: string;
+    teacher: string;
+    lesmoment: string;
+    formattedLesmoment: string;
+    vestiging: string;
+    studentsTable: HTMLTableElement;
+    aantal: number;
+    maxAantal: number;
+    id: string;
+    wachtlijst: number;
+    students: StudentInfo[];
+    instrumentName: string;
+    trimesterNo: number;
+    tags: string[];
+    warnings: string[];
+}
+*/

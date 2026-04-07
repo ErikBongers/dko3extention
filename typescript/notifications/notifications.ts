@@ -29,7 +29,6 @@ export function setPollTimer(speed: PollSpeed) {
        case "normal": pollSpeedInSeconds = NORMAL_SPEED_IN_SECONDS; break;
        default: unreachable(speed);
    }
-
    setTimeout(backToNormalSpeed, 1000*60);
 }
 setInterval(updateNotificationsInNavBar, 1000*10);
