@@ -10,10 +10,15 @@ class StartPageObserver extends ExactHashObserver {
         super( "#start-mijn_tijdslijn", onMutation );
     }
     isPageReallyLoaded(): boolean {
-        return document.querySelectorAll("#dko3_start_content").length > 0;
+        return isLoaded();
     }
 }
 export default new StartPageObserver();
+
+function isLoaded() {
+    let startContentDiv = document.querySelector("#dko3_start_content") as HTMLDivElement;
+    return startContentDiv?.textContent.includes("welkom")??false;
+}
 
 function onMutation(mutation: MutationRecord) {
     if(document.querySelector("#dko3_plugin_notifications"))

@@ -4570,10 +4570,14 @@ var StartPageObserver = class extends ExactHashObserver {
 		super("#start-mijn_tijdslijn", onMutation$4);
 	}
 	isPageReallyLoaded() {
-		return document.querySelectorAll("#dko3_start_content").length > 0;
+		return isLoaded();
 	}
 };
 var observer_default$6 = new StartPageObserver();
+function isLoaded() {
+	let startContentDiv = document.querySelector("#dko3_start_content");
+	return startContentDiv?.textContent.includes("welkom") ?? false;
+}
 function onMutation$4(mutation) {
 	if (document.querySelector("#dko3_plugin_notifications")) return true;
 	let startContentDiv = document.querySelector("#dko3_start_content");
