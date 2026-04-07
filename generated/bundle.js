@@ -4564,6 +4564,24 @@ var Roster = class {
 };
 
 //#endregion
+//#region typescript/notifications/notifications.ts
+function setupNotifications() {
+	let navBar = document.getElementById("dko3_navbar");
+	let secondUl = navBar.querySelectorAll("ul").item(1);
+	emmet.insertBefore(secondUl, "div#navBarNotifDiv>button#notifButton.noBorder{5}");
+}
+async function updateNotificationsInNavBar(notifications) {
+	console.log("checking...");
+	if (!notifications) notifications = await fetchNotifications();
+	let notifButton = document.getElementById("notifButton");
+	let count = Object.keys(notifications.notifications).length;
+	notifButton.innerHTML = count.toString();
+	notifButton.style.display = count > 0 ? "block" : "none";
+}
+const NORMAL_SPEED_IN_SECONDS = 5 * 60;
+setInterval(updateNotificationsInNavBar, 1e3 * 10);
+
+//#endregion
 //#region typescript/notifications/observer.ts
 var StartPageObserver = class extends ExactHashObserver {
 	constructor() {
@@ -4596,6 +4614,7 @@ async function doStartupStuff() {
 }
 async function fetchAndDisplayNotifications() {
 	let notifications = await fetchNotifications();
+	await updateNotificationsInNavBar(notifications);
 	let notificationsDiv = document.querySelector("#dko3_plugin_notifications > div > div");
 	let html = "";
 	let propNames = Object.getOwnPropertyNames(notifications.notifications);
@@ -7095,19 +7114,6 @@ function inschrijvingenLinkToQueryItem(headerLabel, link, longLabelPrefix) {
 	if (label.toLowerCase().includes("inschrijving")) longLabel = headerLabel + " > " + label;
 	return createQueryItem(headerLabel, label, link.href, void 0, longLabel);
 }
-
-//#endregion
-//#region typescript/notifications/notifications.ts
-function setupNotifications() {
-	let navBar = document.getElementById("dko3_navbar");
-	let secondUl = navBar.querySelectorAll("ul").item(1);
-	emmet.insertBefore(secondUl, "div#navBarNotifDiv>button.noBorder{2}");
-}
-function checkNotifications() {
-	console.log("checking...");
-}
-const NORMAL_SPEED_IN_SECONDS = 5 * 60;
-setInterval(checkNotifications, 1e3 * 10);
 
 //#endregion
 //#region typescript/main.ts

@@ -368,15 +368,17 @@ span.filterInfo {
 
 
 #navBarNotifDiv {
-    width: 3ch;
-    height: 3ch;
-    background-color: red;
-    opacity: 0.8;
-    border-radius: 2ch;
-    &:hover {
-        opacity: 1;
-    }
     & button {
+        display: none;
+        width: 3ch;
+        height: 3ch;
+        background-color: red;
+        opacity: 0.8;
+        border-radius: 2ch;
+        padding: 0;
+        &:hover {
+            opacity: 1;
+        }
         color: white;
         position: relative;
         left: .25ch;

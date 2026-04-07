@@ -4,6 +4,7 @@ import {fetchCheckStatus, fetchExcelData, fetchFolderChanged, fetchNotifications
 import {RosterFactory} from "../roster_diff/rosterFactory";
 import {JsonExcelData} from "../roster_diff/excel";
 import {Roster} from "../roster_diff/compare_roster";
+import {updateNotificationsInNavBar} from "./notifications";
 
 class StartPageObserver extends ExactHashObserver {
     constructor() {
@@ -42,6 +43,7 @@ async function doStartupStuff() {
 
 async function fetchAndDisplayNotifications() {
     let notifications = await fetchNotifications();
+    await updateNotificationsInNavBar(notifications);
     let notificationsDiv = document.querySelector("#dko3_plugin_notifications > div > div") as HTMLDivElement;
     let html: string = "";
     let propNames = Object.getOwnPropertyNames(notifications.notifications) as NotificationId[];

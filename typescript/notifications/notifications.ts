@@ -1,14 +1,21 @@
 import { unreachable } from "../globals";
 import {emmet} from "../../libs/Emmeter/html";
+import {fetchNotifications, Notifications} from "../cloud";
 
 export function setupNotifications() {
     let navBar = document.getElementById("dko3_navbar") as HTMLDivElement;
     let secondUl = navBar.querySelectorAll("ul").item(1);
-    emmet.insertBefore(secondUl, "div#navBarNotifDiv>button.noBorder{2}");
+    emmet.insertBefore(secondUl, "div#navBarNotifDiv>button#notifButton.noBorder{5}");
 }
 
-function checkNotifications() {
+export async function updateNotificationsInNavBar(notifications?: Notifications) {
     console.log("checking...");
+    if(!notifications)
+        notifications = await fetchNotifications();
+    let notifButton = document.getElementById("notifButton") as HTMLButtonElement;
+    let count = Object.keys(notifications.notifications).length;
+    notifButton.innerHTML = count.toString();
+    notifButton.style.display = count > 0 ? "block" : "none";
 }
 
 const FAST_SPEED_IN_SECONDS = 5;
@@ -25,7 +32,7 @@ export function setPollTimer(speed: PollSpeed) {
 
    setTimeout(backToNormalSpeed, 1000*60);
 }
-setInterval(checkNotifications, 1000*10);
+setInterval(updateNotificationsInNavBar, 1000*10);
 
 function backToNormalSpeed() {
     setPollTimer('normal');
