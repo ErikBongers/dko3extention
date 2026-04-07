@@ -1421,29 +1421,53 @@ var Les = class {
 	trimesterNo;
 	tags;
 	warnings;
+	gredeYears = [];
 };
-function scrapeLesInfo(lesInfo) {
+function scrapeLesInfo(tdLesInfo) {
 	let les = new Les();
-	let [first] = lesInfo.getElementsByTagName("strong");
+	let [first] = tdLesInfo.getElementsByTagName("strong");
 	les.vakNaam = first.textContent;
-	let allBadges = lesInfo.getElementsByClassName("badge");
-	let warningBadges = lesInfo.getElementsByClassName("badge-warning");
+	let allBadges = tdLesInfo.getElementsByClassName("badge");
+	let warningBadges = tdLesInfo.getElementsByClassName("badge-warning");
 	les.alc = Array.from(allBadges).some((el) => el.textContent === "ALC");
-	les.online = lesInfo.getElementsByClassName("fa-eye-slash").length === 0;
+	les.online = tdLesInfo.getElementsByClassName("fa-eye-slash").length === 0;
 	les.tags = Array.from(warningBadges).map((el) => el.textContent).filter((txt) => txt !== "ALC").filter((txt) => txt);
-	let mutedSpans = lesInfo.querySelectorAll("span.text-muted");
+	let mutedSpans = tdLesInfo.querySelectorAll("span.text-muted");
 	if (mutedSpans.length > 1) les.naam = mutedSpans.item(0).textContent;
-	else les.naam = lesInfo.children[1].textContent;
+	else les.naam = tdLesInfo.children[1].textContent;
 	if (Array.from(allBadges).some((el) => el.textContent === "module")) if (les.naam.includes("jaar")) les.lesType = LesType.JaarModule;
 	else if (les.naam.includes("rimester")) les.lesType = LesType.TrimesterModule;
 	else les.lesType = LesType.UnknownModule;
 	else les.lesType = LesType.Les;
 	if (mutedSpans.length > 0) les.teacher = Array.from(mutedSpans).pop().textContent;
-	let textNodes = Array.from(lesInfo.childNodes).filter((node) => node.nodeType === Node.TEXT_NODE && node.textContent.trim() !== "");
+	let textNodes = Array.from(tdLesInfo.childNodes).filter((node) => node.nodeType === Node.TEXT_NODE && node.textContent.trim() !== "");
 	if (!textNodes) return les;
 	les.lesmoment = textNodes[0].nodeValue;
 	les.vestiging = textNodes[1].nodeValue;
+	let infoSpansText = [...tdLesInfo.querySelectorAll("span.text-info")].map((e) => e.textContent);
+	les.gredeYears = textsToYearGrades(infoSpansText);
 	return les;
+}
+function textsToYearGrades(texts) {
+	let yearGrades = [];
+	texts.forEach((text) => {
+		let rxNumbersCommasDots = /^[\s\d,.]+$/gm;
+		if (rxNumbersCommasDots.test(text)) {
+			let commaSeparatedTexts = text.split(",");
+			let rxDigitDotDigit = /(\d).(\d)/g;
+			for (let candidate of commaSeparatedTexts) {
+				let matches = [...candidate.matchAll(rxDigitDotDigit)];
+				if (matches.length < 1) continue;
+				let grade = matches[0][1];
+				let year = parseInt(matches[0][2]);
+				yearGrades.push({
+					grade,
+					year
+				});
+			}
+		}
+	});
+	return yearGrades;
 }
 
 //#endregion
@@ -4304,7 +4328,8 @@ var Roster = class {
 			let cellValue = this.table.Cell(row, column);
 			if (cellValue) {
 				let rx = /\n/g;
-				let description = cellValue.replace(rx, " ");
+				let description = cellValue.replaceAll(rx, " ");
+				let parseText = description.replaceAll("(", " ( ").replaceAll(")", " ) ");
 				let timeSlice = void 0;
 				let mergedRange = this.table.RangeOfCell({
 					row,
@@ -4318,13 +4343,13 @@ var Roster = class {
 					start: sliceStart.start,
 					end: sliceEnd.end
 				};
-				let times = this.findTimes(description);
+				let times = this.findTimes(parseText);
 				if (times.length === 2) timeSlice = {
 					start: times[0],
 					end: times[1]
 				};
 				else if (times.length === 1) timeSlice = this.moveTimeSliceTo(timeSlice, times[0]);
-				let tags = this.findTags(description, this.defaultTagDefs);
+				let tags = this.findTags(parseText, this.defaultTagDefs);
 				let location$1 = this.findLocation(tags);
 				let subject = this.findSubject(tags);
 				let classDef = {
@@ -4333,7 +4358,7 @@ var Roster = class {
 					timeSlice,
 					location: location$1,
 					subject,
-					gradeYears: this.findGradeYears(description),
+					gradeYears: this.findGradeYears(parseText),
 					description
 				};
 				classDefs.push(classDef);

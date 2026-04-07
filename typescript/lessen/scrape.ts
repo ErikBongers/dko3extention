@@ -1,5 +1,6 @@
 import { FetchedTable } from "../table/tableFetcher";
 import {setViewFromCurrentUrl} from "../globals";
+import {GradeYear} from "../roster_diff/compare_roster";
 
 export function scrapeLessenOverzicht(table: HTMLTableElement) {
     let body = table.tBodies[0];
@@ -178,28 +179,29 @@ export class Les {
     trimesterNo: number;
     tags: string[];
     warnings: string[];
+    gradeYears: GradeYear[] = [];
 }
 
-export function scrapeLesInfo(lesInfo: HTMLTableCellElement) {
+export function scrapeLesInfo(tdLesInfo: HTMLTableCellElement) {
     let les = new Les();
-    let [first] = lesInfo.getElementsByTagName("strong");
+    let [first] = tdLesInfo.getElementsByTagName("strong");
     les.vakNaam = first.textContent;
-    let allBadges = lesInfo.getElementsByClassName("badge");
-    let warningBadges = lesInfo.getElementsByClassName("badge-warning");
+    let allBadges = tdLesInfo.getElementsByClassName("badge");
+    let warningBadges = tdLesInfo.getElementsByClassName("badge-warning");
     les.alc = Array.from(allBadges).some((el) => el.textContent === "ALC");
-    les.online = lesInfo.getElementsByClassName("fa-eye-slash").length === 0;
+    les.online = tdLesInfo.getElementsByClassName("fa-eye-slash").length === 0;
     les.tags = Array.from(warningBadges)
         .map((el) => el.textContent)
         .filter((txt) => txt !== "ALC")
         .filter((txt) => txt);
-    let mutedSpans = lesInfo.querySelectorAll("span.text-muted");
+    let mutedSpans = tdLesInfo.querySelectorAll("span.text-muted");
     //muted spans contain:
     //  - class name (optional)
     //  - teacher name (always)
     if(mutedSpans.length > 1) {
         les.naam = mutedSpans.item(0).textContent;
     } else {
-        les.naam = lesInfo.children[1].textContent;
+        les.naam = tdLesInfo.children[1].textContent;
     }
     if(Array.from(allBadges).some((el) => el.textContent === "module")) {
         if(les.naam.includes("jaar"))
@@ -215,10 +217,32 @@ export function scrapeLesInfo(lesInfo: HTMLTableCellElement) {
     if (mutedSpans.length > 0) {
         les.teacher = Array.from(mutedSpans).pop().textContent;
     }
-    let textNodes = Array.from(lesInfo.childNodes).filter((node) => node.nodeType === Node.TEXT_NODE && node.textContent.trim() !== "");
+    let textNodes = Array.from(tdLesInfo.childNodes).filter((node) => node.nodeType === Node.TEXT_NODE && node.textContent.trim() !== "");
     if (!textNodes) return les;
 
     les.lesmoment = textNodes[0].nodeValue;
     les.vestiging = textNodes[1].nodeValue;
+    let infoSpansText = [...tdLesInfo.querySelectorAll("span.text-info")].map(e => e.textContent);
+    les.gradeYears = textsToYearGrades(infoSpansText);
     return les;
+}
+
+function textsToYearGrades(texts: string[]){
+    let yearGrades: GradeYear[] = [];
+    texts.forEach(text => {
+        let rxNumbersCommasDots = /^[\s\d,.]+$/gm;
+        if(rxNumbersCommasDots.test(text)) {
+            let commaSeparatedTexts = text.split(",");
+            let rxDigitDotDigit = /(\d).(\d)/g;
+            for(let candidate of commaSeparatedTexts) {
+                let matches = [...candidate.matchAll(rxDigitDotDigit)];
+                if(matches.length < 1)
+                    continue;//meh...
+                let grade = matches[0][1];
+                let year =parseInt(matches[0][2]);
+                yearGrades.push({grade, year});
+            }
+        }
+    });
+    return yearGrades;
 }

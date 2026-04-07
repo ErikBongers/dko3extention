@@ -5,7 +5,7 @@ type TagDef = {
     searchString: string
 }
 
-type GradeYear = {
+export type GradeYear = {
     grade: string,
     year: number
 }
@@ -57,8 +57,12 @@ export class Roster{
         for(let row = 0; row < this.table.RowCount; row++) {
             let cellValue = this.table.Cell(row, column)
             if (cellValue) {
-                let rx = /\n/g; //todo: \n may be significant, not sure if it's a good idea to remove it. Beter to split text in lines and parse each line.
-                let description = cellValue.replace(rx, " ");
+                let rx = /\n/g;
+                let description = cellValue
+                    .replaceAll(rx, " ");
+                let parseText = description
+                    .replaceAll("(", " ( ") //force spaces around words or numbers
+                    .replaceAll(")", " ) ");
                 let timeSlice: TimeSlice = undefined;
                 let mergedRange = this.table.RangeOfCell({row, column});
                 let sliceStartText = this.table.HeaderColumnValue(mergedRange.Start.row, 0);
@@ -66,7 +70,7 @@ export class Roster{
                 let sliceStart = timeSlices.get(sliceStartText);
                 let sliceEnd = timeSlices.get(sliceEndText);
                 timeSlice = {start: sliceStart.start, end: sliceEnd.end};
-                let times = this.findTimes(description);
+                let times = this.findTimes(parseText);
                 if(times.length ===2) {
                     timeSlice = {
                         start: times[0],
@@ -75,7 +79,7 @@ export class Roster{
                 } else if(times.length === 1) {
                     timeSlice = this.moveTimeSliceTo(timeSlice, times[0]);
                 }
-                let tags = this.findTags(description, this.defaultTagDefs); //todo: first try to find tagDefs in the sheet (table)
+                let tags = this.findTags(parseText, this.defaultTagDefs); //todo: first try to find tagDefs in the sheet (table)
                 let location = this.findLocation(tags);
                 let subject = this.findSubject(tags);
                 let classDef: ClassDef = {
@@ -84,7 +88,7 @@ export class Roster{
                     timeSlice,
                     location,
                     subject,
-                    gradeYears: this.findGradeYears(description),
+                    gradeYears: this.findGradeYears(parseText),
                     description
                 };
                 classDefs.push(classDef);

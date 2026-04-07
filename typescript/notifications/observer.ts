@@ -129,18 +129,21 @@ async function scrapeLessen() {
 
 /*
 export class Les {
-    vakNaam: string;
+    vakNaam: string; //"Woordatelier"
+    lesmoment: string; //"di 15:40-16:40 (wekelijks)"
+    formattedLesmoment: string;
+    vestiging: string;
+
+    //todo: gradeYears[]
+    teacher: string;
+    naam: string; //" (Woordatelier 8+9j)" --> parse to 2.1 and 2.2
+    maxAantal: number;
+
     lesType: LesType;
     alc: boolean;
     online: boolean;
-    naam: string;
-    teacher: string;
-    lesmoment: string;
-    formattedLesmoment: string;
-    vestiging: string;
     studentsTable: HTMLTableElement;
     aantal: number;
-    maxAantal: number;
     id: string;
     wachtlijst: number;
     students: StudentInfo[];
@@ -149,4 +152,18 @@ export class Les {
     tags: string[];
     warnings: string[];
 }
+
+type ClassDef = {
+    subject: string,
+    timeSlice: TimeSlice,
+    day: string, //MAANDAG,...
+    location: string, //variations
+
+    gradeYears: GradeYear[],
+    teacher: string, // only first name
+    //todo: maxStudents
+
+    description: string
+}
+
 */

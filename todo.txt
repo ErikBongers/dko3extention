@@ -1,13 +1,23 @@
- Diff
- ====
- What matters
- ------------
- We want to find lessons with wrong day/hours! That's the main thing.
- Wrong teacher...meh...
- Wrong location: also important!
- Try to check for max students allowed.
+* Loop dko lessen and try to find a matching les in excel.
+  > Report missing ones and altered ones.
+  > Match on les+day/hour+location
+    > phase 2: try to find a possible match on other fields.
+    > suggest those as "Could it be this lesson?"
 
+Diff
+====
+What matters
+------------
+Students matter: they see what's in DKO3: this is the starting point.
+We want to find lessons with wrong day/hours! That's the main thing.
+Wrong teacher...meh...
+Wrong location: also important!
+Try to check for max students allowed.
 
+* Add dates to notifications: this allows users to mark them as read per notif ID...until the date changes.
+  > perhaps also include a notif hash that is an MD5 of internal data that may have changed, yet results in the same message (like roster checks)
+  > actually...only use an MD5...the reporter can decide to include a date in the hash or not.
+    > for example: wrong lessons: use the date of the most recent diff. If a diff is removed...the hash should NOT change, only when a new diff is added (or changed)
 
 * check for outdated checks.
   > ...and update the notifications.
