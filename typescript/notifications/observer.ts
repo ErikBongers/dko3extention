@@ -81,7 +81,6 @@ async function runRosterCheck(excelData: JsonExcelData) {
 
     let factory = new RosterFactory(excelData);
     let table = factory.getTable();
-    debugger;
     let roster = new Roster(table);
     roster.scrapeUurrooster();
 }

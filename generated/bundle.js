@@ -4639,7 +4639,6 @@ async function runRosterCheck(excelData) {
 	await postNotification("WOORD_ROSTER_RUN", "running", "Uurrooster worden vergeleken... (gestart door <todo:username>");
 	let factory = new RosterFactory(excelData);
 	let table = factory.getTable();
-	debugger;
 	let roster = new Roster(table);
 	roster.scrapeUurrooster();
 }
