@@ -367,3 +367,26 @@ span.filterInfo {
 }
 
 
+#navBarNotifDiv {
+    width: 3ch;
+    height: 3ch;
+    background-color: red;
+    opacity: 0.8;
+    border-radius: 2ch;
+    &:hover {
+        opacity: 1;
+    }
+    & button {
+        color: white;
+        position: relative;
+        left: .25ch;
+        &:focus {
+            outline: 0 !important;
+        }
+    }
+}
+
+.noBorder {
+    background: transparent;
+    border: none;
+}

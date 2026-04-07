@@ -406,3 +406,7 @@ export function copyToClipboardOrRequestRetry(infoBar: InfoBar, text: string) {
             });
         });
 }
+
+export function unreachable(x: never): never {
+    throw new Error("This error will never be thrown. It is used for type safety.");
+}

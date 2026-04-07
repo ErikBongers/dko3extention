@@ -1,4 +1,4 @@
-* run the woord checks
+* notificatons
 
 * Checks are stored locally!
   > but checks status is stored online -> shared info in Dko3/checks_status.json

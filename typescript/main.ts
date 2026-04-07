@@ -15,6 +15,7 @@ import {setupPowerQuery} from "./powerQuery/setupPowerQuery";
 import {academieMenuObserver, allLijstenObserver, assetsObserver, evaluatieObserver, extraInschrijvingenObserver, financialObserver} from "./pages/observer";
 import {fetchGlobalSettings, getGlobalSettings, options, setGlobalSetting} from "./plugin_options/options";
 import {pageState} from "./pageState";
+import {setupNotifications} from "./notifications/notifications";
 
 init();
 
@@ -58,6 +59,7 @@ function init() {
         registerObserver(startPageObserver);
         onPageChanged();
         setupPowerQuery();
+        setupNotifications();
         if(document.readyState == "complete") {
             console.log("document ready. firing onPageRefreshed.");
             onPageRefreshed();

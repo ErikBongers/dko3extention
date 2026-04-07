@@ -7097,6 +7097,19 @@ function inschrijvingenLinkToQueryItem(headerLabel, link, longLabelPrefix) {
 }
 
 //#endregion
+//#region typescript/notifications/notifications.ts
+function setupNotifications() {
+	let navBar = document.getElementById("dko3_navbar");
+	let secondUl = navBar.querySelectorAll("ul").item(1);
+	emmet.insertBefore(secondUl, "div#navBarNotifDiv>button.noBorder{2}");
+}
+function checkNotifications() {
+	console.log("checking...");
+}
+const NORMAL_SPEED_IN_SECONDS = 5 * 60;
+setInterval(checkNotifications, 1e3 * 10);
+
+//#endregion
 //#region typescript/main.ts
 init();
 function init() {
@@ -7130,6 +7143,7 @@ function init() {
 		registerObserver(observer_default$6);
 		onPageChanged();
 		setupPowerQuery();
+		setupNotifications();
 		if (document.readyState == "complete") {
 			console.log("document ready. firing onPageRefreshed.");
 			onPageRefreshed();
