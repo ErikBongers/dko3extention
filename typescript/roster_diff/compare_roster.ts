@@ -20,12 +20,12 @@ type ClassDef = {
     description: string
 }
 
-type TimeSlice = {
+export type TimeSlice = {
     start: Time,
     end: Time
 }
 
-type Time = {
+export type Time = {
     hour: number,
     minutes: number
 }

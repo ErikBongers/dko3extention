@@ -1421,7 +1421,10 @@ var Les = class {
 	trimesterNo;
 	tags;
 	warnings;
-	gredeYears = [];
+	gradeYears = [];
+	day;
+	repeat;
+	timeSlice;
 };
 function scrapeLesInfo(tdLesInfo) {
 	let les = new Les();
@@ -1435,6 +1438,7 @@ function scrapeLesInfo(tdLesInfo) {
 	let mutedSpans = tdLesInfo.querySelectorAll("span.text-muted");
 	if (mutedSpans.length > 1) les.naam = mutedSpans.item(0).textContent;
 	else les.naam = tdLesInfo.children[1].textContent;
+	les.naam = les.naam.replaceAll("(", "").replaceAll(")", "").trim();
 	if (Array.from(allBadges).some((el) => el.textContent === "module")) if (les.naam.includes("jaar")) les.lesType = LesType.JaarModule;
 	else if (les.naam.includes("rimester")) les.lesType = LesType.TrimesterModule;
 	else les.lesType = LesType.UnknownModule;
@@ -1445,8 +1449,66 @@ function scrapeLesInfo(tdLesInfo) {
 	les.lesmoment = textNodes[0].nodeValue;
 	les.vestiging = textNodes[1].nodeValue;
 	let infoSpansText = [...tdLesInfo.querySelectorAll("span.text-info")].map((e) => e.textContent);
-	les.gredeYears = textsToYearGrades(infoSpansText);
+	les.gradeYears = textsToYearGrades(infoSpansText);
+	splitLesMoment(les);
 	return les;
+}
+function splitLesMoment(les) {
+	let first3 = les.lesmoment.substring(0, 3);
+	switch (first3) {
+		case "ma":
+			les.day = "MAANDAG";
+			break;
+		case "di":
+			les.day = "DINSDAG";
+			break;
+		case "wo":
+			les.day = "WOENSDAG";
+			break;
+		case "do":
+			les.day = "DONDERDAG";
+			break;
+		case "vr":
+			les.day = "VRIJDAG";
+			break;
+		case "za":
+			les.day = "ZATERDAG";
+			break;
+		case "zo":
+			les.day = "ZONDAG";
+			break;
+		default:
+			les.day = "";
+			break;
+	}
+	let remaining = les.lesmoment.substring(3);
+	if (remaining.includes("wekelijks")) les.repeat = "wekelijks";
+	remaining = remaining.replaceAll("wekelijks", "").replaceAll("(", "").replaceAll(")", "").trim();
+	if (remaining.length < 11) return;
+	let startAndEnd = remaining.split("-");
+	if (startAndEnd.length < 2) return;
+	let hourMinutes = startAndEnd[0].split(":");
+	if (hourMinutes.length < 2) return;
+	let hour = parseInt(hourMinutes[0]);
+	let minutes = parseInt(hourMinutes[1]);
+	if (isNaN(hour) || isNaN(minutes)) return;
+	let startTime = {
+		hour,
+		minutes
+	};
+	hourMinutes = startAndEnd[1].split(":");
+	if (hourMinutes.length < 2) return;
+	hour = parseInt(hourMinutes[0]);
+	minutes = parseInt(hourMinutes[1]);
+	if (isNaN(hour) || isNaN(minutes)) return;
+	let endTime = {
+		hour,
+		minutes
+	};
+	les.timeSlice = {
+		start: startTime,
+		end: endTime
+	};
 }
 function textsToYearGrades(texts) {
 	let yearGrades = [];

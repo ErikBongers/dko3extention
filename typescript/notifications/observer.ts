@@ -130,15 +130,17 @@ async function scrapeLessen() {
 /*
 export class Les {
     vakNaam: string; //"Woordatelier"
-    lesmoment: string; //"di 15:40-16:40 (wekelijks)"
-    formattedLesmoment: string;
+    naam: string; //"1B"
+    day: string;
+    timeSlice: TimeSlice;
     vestiging: string;
 
-    //todo: gradeYears[]
+    gradeYears[]
     teacher: string;
-    naam: string; //" (Woordatelier 8+9j)" --> parse to 2.1 and 2.2
     maxAantal: number;
 
+    lesmoment: string; //"di 15:40-16:40 (wekelijks)"
+    formattedLesmoment: string;
     lesType: LesType;
     alc: boolean;
     online: boolean;
@@ -154,9 +156,9 @@ export class Les {
 }
 
 type ClassDef = {
-    subject: string,
-    timeSlice: TimeSlice,
+    subject: string, //or lesnaam or both:" (Woordatelier 8+9j)" --> parse to 2.1 and 2.2
     day: string, //MAANDAG,...
+    timeSlice: TimeSlice,
     location: string, //variations
 
     gradeYears: GradeYear[],

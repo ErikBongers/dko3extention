@@ -1,3 +1,17 @@
+* dko3 lessen: normaize day and time: "di 15:40-16:40 (wekelijks)"
+  - ma, di, wo -> MAANDAG,...
+* Diff matching
+  > start with 2 sets to search for easy removal.
+  > have an array of matches, filled based on:
+    1. class name is the same: 1A = 1A
+      > only if these names are unique. IMPORTANT: many doubles.
+    2. subject+day+time+location+teacher
+    with warnings:
+      3. drop teacher
+      4. drop minutes
+      5. drop both teacher and minutes
+
+
 * Loop dko lessen and try to find a matching les in excel.
   > Report missing ones and altered ones.
   > Match on les+day/hour+location

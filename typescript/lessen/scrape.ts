@@ -1,6 +1,5 @@
-import { FetchedTable } from "../table/tableFetcher";
-import {setViewFromCurrentUrl} from "../globals";
-import {GradeYear} from "../roster_diff/compare_roster";
+import {FetchedTable} from "../table/tableFetcher";
+import {GradeYear, Time, TimeSlice} from "../roster_diff/compare_roster";
 
 export function scrapeLessenOverzicht(table: HTMLTableElement) {
     let body = table.tBodies[0];
@@ -159,6 +158,7 @@ function scrapeStudents(studentTable: HTMLTableElement) {
 
 export enum LesType { TrimesterModule, JaarModule, Les, UnknownModule}
 
+export type DagUppercase = "MAANDAG" | "DINSDAG" | "WOENSDAG" | "DONDERDAG" | "VRIJDAG" | "ZATERDAG" | "ZONDAG" | "";
 export class Les {
     vakNaam: string;
     lesType: LesType;
@@ -180,6 +180,9 @@ export class Les {
     tags: string[];
     warnings: string[];
     gradeYears: GradeYear[] = [];
+    day: DagUppercase;
+    repeat: string; //wekelijks
+    timeSlice: TimeSlice;
 }
 
 export function scrapeLesInfo(tdLesInfo: HTMLTableCellElement) {
@@ -203,6 +206,10 @@ export function scrapeLesInfo(tdLesInfo: HTMLTableCellElement) {
     } else {
         les.naam = tdLesInfo.children[1].textContent;
     }
+    les.naam = les.naam
+        .replaceAll("(", "")
+        .replaceAll(")", "")
+        .trim();
     if(Array.from(allBadges).some((el) => el.textContent === "module")) {
         if(les.naam.includes("jaar"))
             les.lesType = LesType.JaarModule;
@@ -224,7 +231,53 @@ export function scrapeLesInfo(tdLesInfo: HTMLTableCellElement) {
     les.vestiging = textNodes[1].nodeValue;
     let infoSpansText = [...tdLesInfo.querySelectorAll("span.text-info")].map(e => e.textContent);
     les.gradeYears = textsToYearGrades(infoSpansText);
+    splitLesMoment(les);
     return les;
+}
+
+function splitLesMoment(les: Les) {
+    //"di 15:40-16:40 (wekelijks)"
+    let first3 = les.lesmoment.substring(0,3);
+    switch (first3) {
+        case "ma": les.day = "MAANDAG"; break;
+        case "di": les.day = "DINSDAG"; break;
+        case "wo": les.day = "WOENSDAG"; break;
+        case "do": les.day = "DONDERDAG"; break;
+        case "vr": les.day = "VRIJDAG"; break;
+        case "za": les.day = "ZATERDAG"; break;
+        case "zo": les.day = "ZONDAG"; break;
+        default: les.day = ""; break;
+    }
+    let remaining = les.lesmoment.substring(3);
+    if(remaining.includes("wekelijks"))
+        les.repeat = "wekelijks";
+    remaining = remaining
+        .replaceAll("wekelijks", "")
+        .replaceAll("(", "")
+        .replaceAll(")", "")
+        .trim();
+    if(remaining.length < 11)
+        return;
+    let startAndEnd = remaining.split("-");
+    if(startAndEnd.length < 2)
+        return;
+    let hourMinutes = startAndEnd[0].split(":");
+    if(hourMinutes.length < 2)
+        return;
+    let hour = parseInt(hourMinutes[0]);
+    let minutes = parseInt(hourMinutes[1]);
+    if(isNaN(hour) || isNaN(minutes))
+        return;
+    let startTime: Time = {hour, minutes};
+    hourMinutes = startAndEnd[1].split(":");
+    if(hourMinutes.length < 2)
+        return;
+    hour = parseInt(hourMinutes[0]);
+    minutes = parseInt(hourMinutes[1]);
+    if(isNaN(hour) || isNaN(minutes))
+        return;
+    let endTime: Time = {hour, minutes};
+    les.timeSlice = {start: startTime, end: endTime};
 }
 
 function textsToYearGrades(texts: string[]){
