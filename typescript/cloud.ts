@@ -1,4 +1,5 @@
 import * as def from "./def";
+import {JsonExcelData} from "./roster_diff/excel";
 
 export let cloud = {
     json: {
@@ -83,5 +84,5 @@ export async function fetchFolderChanged(folderName: string) {
 }
 
 export async function fetchExcelData(filePath: string) {
-    return await fetchJson(filePath) as ExcelData;
+    return await fetchJson(filePath) as JsonExcelData;
 }

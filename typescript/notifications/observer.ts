@@ -1,6 +1,9 @@
 import {ExactHashObserver} from "../pageObserver";
 import {emmet} from "../../libs/Emmeter/html";
-import {fetchCheckStatus, Notifications, Notification, NotificationId, fetchNotifications, postNotification, fetchFolderChanged, fetchExcelData, ExcelData} from "../cloud";
+import {fetchCheckStatus, fetchExcelData, fetchFolderChanged, fetchNotifications, NotificationId, postNotification} from "../cloud";
+import {RosterFactory} from "../roster_diff/rosterFactory";
+import {JsonExcelData} from "../roster_diff/excel";
+import {Roster} from "../roster_diff/compare_roster";
 
 class StartPageObserver extends ExactHashObserver {
     constructor() {
@@ -61,23 +64,24 @@ async function fetchAndDisplayNotifications() {
 
 async function checkChecks() {
     let woordCheckstatus = await fetchCheckStatus("WOORD_ROSTERS");
-    console.log("checkChecks: ", woordCheckstatus);
     if(woordCheckstatus.status === "INITIAL") {
         //todo: add message that this check needs to be run.
         await postNotification("MUZIEK_ROSTERS_IS_DIFF", "warning", "De muzieklessen zijn niet vergeleken met het uurrooser op Sharepoint. Klik op de knop om de lessen te vergelijken.");
         await fetchAndDisplayNotifications();
         let folderChanged = await fetchFolderChanged("Dko3/Uurroosters/");
-        console.log(folderChanged);
         for(let file of folderChanged.files) {
             let excelData = await fetchExcelData(file.name);
-            console.log(excelData);
-            runRosterCheck(excelData);
+            await runRosterCheck(excelData);
         }
     }
 }
 
-async function runRosterCheck(excelData: ExcelData) {
+async function runRosterCheck(excelData: JsonExcelData) {
     await postNotification("WOORD_ROSTER_RUN", "running", "Uurrooster worden vergeleken... (gestart door <todo:username>");
 
-
+    let factory = new RosterFactory(excelData);
+    let table = factory.getTable();
+    debugger;
+    let roster = new Roster(table);
+    roster.scrapeUurrooster();
 }

@@ -386,7 +386,12 @@ async function fetchNotifications() {
 	let res = await fetch("https://europe-west1-ebo-tain.cloudfunctions.net/get-notifications");
 	return await res.json();
 }
-async function postNotification(notification) {
+async function postNotification(id, level, message) {
+	let notification = {
+		id,
+		level,
+		message
+	};
 	await fetch(`https://europe-west1-ebo-tain.cloudfunctions.net/notification`, {
 		method: "POST",
 		headers: { "Content-Type": "application/json" },
@@ -4058,6 +4063,507 @@ function switchNaamVoornaam(_event) {
 }
 
 //#endregion
+//#region typescript/roster_diff/excel.ts
+var Range = class {
+	start;
+	end;
+	RowCount() {
+		return this.end.row - this.start.row + 1;
+	}
+	ColumnCount() {
+		return this.end.column - this.start.column + 1;
+	}
+	constructor(start, end) {
+		this.start = start;
+		this.end = end;
+	}
+};
+var ExcelRange = class extends Range {
+	constructor(start, end) {
+		super(start, end);
+	}
+	get Start() {
+		return this.start;
+	}
+	get End() {
+		return this.end;
+	}
+};
+var TableRange = class TableRange {
+	start;
+	end;
+	constructor(start, end) {
+		this.start = start;
+		this.end = end;
+	}
+	static FromExcel(excelRange, table) {
+		let startRow = excelRange.Start.row - table.tableRange.Start.row - table.rowHeaderCount;
+		let endRow = excelRange.End.row - table.tableRange.Start.row - table.rowHeaderCount;
+		let startColumn = excelRange.Start.column - table.tableRange.Start.column - table.columnHeaderCount;
+		let endColumn = excelRange.End.column - table.tableRange.Start.column - table.columnHeaderCount;
+		return new TableRange({
+			row: startRow,
+			column: startColumn
+		}, {
+			row: endRow,
+			column: endColumn
+		});
+	}
+	get Start() {
+		return this.start;
+	}
+	get End() {
+		return this.end;
+	}
+};
+var ExcelData = class {
+	data;
+	mergedRanges;
+	constructor(data, mergedRanges) {
+		this.data = data;
+		this.mergedRanges = mergedRanges.map((r) => new ExcelRange(r.start, r.end));
+	}
+	getMergedCellValue(excelPos) {
+		let mergedRange = this.getMergedRangeForCell(excelPos);
+		return this.data[mergedRange.Start.row][mergedRange.Start.column];
+	}
+	getMergedRangeForCell(excelPos) {
+		return this.mergedRanges.find((range$1) => {
+			return excelPos.row >= range$1.Start.row && excelPos.row <= range$1.End.row && excelPos.column >= range$1.Start.column && excelPos.column <= range$1.End.column;
+		}) ?? new ExcelRange(excelPos, excelPos);
+	}
+};
+var Table = class {
+	excelData;
+	tableRange;
+	rowHeaderCount;
+	columnHeaderCount;
+	excelToTableRange(excelRange) {
+		return TableRange.FromExcel(excelRange, this);
+	}
+	get ColumnCount() {
+		return this.tableRange.ColumnCount() - this.columnHeaderCount;
+	}
+	get RowCount() {
+		return this.tableRange.RowCount() - this.rowHeaderCount;
+	}
+	constructor(excelData, tableRange, rowHeaderCount, columnHeaderCount) {
+		this.excelData = excelData;
+		this.tableRange = tableRange;
+		this.rowHeaderCount = rowHeaderCount;
+		this.columnHeaderCount = columnHeaderCount;
+	}
+	Cell(row, column) {
+		let excelPos = {
+			row: this.tableRange.Start.row + this.rowHeaderCount + row,
+			column: this.tableRange.Start.column + this.columnHeaderCount + column
+		};
+		return this.excelData.getMergedCellValue(excelPos);
+	}
+	RangeOfCell(pos) {
+		let excelPos = {
+			row: this.tableRange.Start.row + this.rowHeaderCount + pos.row,
+			column: this.tableRange.Start.column + this.columnHeaderCount + pos.column
+		};
+		let exelRange = this.excelData.getMergedRangeForCell(excelPos) ?? new ExcelRange(excelPos, excelPos);
+		return TableRange.FromExcel(exelRange, this);
+	}
+	HeaderRowValue(headerRow, column) {
+		let excelPos = {
+			row: this.tableRange.Start.row + headerRow,
+			column: this.tableRange.Start.column + this.columnHeaderCount + column
+		};
+		return this.excelData.getMergedCellValue(excelPos);
+	}
+	HeaderColumnValue(row, headerColumn) {
+		let excelPos = {
+			row: this.tableRange.Start.row + this.rowHeaderCount + row,
+			column: this.tableRange.Start.column + headerColumn
+		};
+		return this.excelData.getMergedCellValue(excelPos);
+	}
+};
+
+//#endregion
+//#region typescript/roster_diff/rosterFactory.ts
+var RosterFactory = class {
+	excelData;
+	errors = [];
+	daysRow = void 0;
+	periodColumn = void 0;
+	tableRange = void 0;
+	constructor(jsonExcelData) {
+		this.excelData = new ExcelData(jsonExcelData.data, jsonExcelData.mergedRanges);
+		this.daysRow = this.findDaysRow();
+		if (this.daysRow === void 0) {
+			this.errors.push("Geen rij met dagnamen gevonden.");
+			return;
+		}
+		this.periodColumn = this.findPeriodColumn(this.daysRow);
+		if (this.periodColumn === void 0) {
+			this.errors.push("Geen kolom met lesmomenten gevonden.");
+			return;
+		}
+		let lastPeriodRow = this.findLastPeriodRow(this.periodColumn);
+		let lastDayColumn = this.findLastDayColumn(this.periodColumn, this.daysRow);
+		this.tableRange = new ExcelRange({
+			row: this.daysRow,
+			column: this.periodColumn
+		}, {
+			row: lastPeriodRow,
+			column: lastDayColumn
+		});
+	}
+	getErrors() {
+		return this.errors;
+	}
+	getTable() {
+		return new Table(this.excelData, this.tableRange, 2, 1);
+	}
+	findDaysRow() {
+		for (let [i, row] of this.excelData.data.entries()) if (this.isDaysRow(row)) return i;
+		return void 0;
+	}
+	isDaysRow(row) {
+		let matchCount = 0;
+		for (let value of row) {
+			if (this.isDayName(value.toString())) matchCount++;
+			if (matchCount >= 3) return true;
+		}
+		return false;
+	}
+	isDayName(text) {
+		switch (text.toLowerCase()) {
+			case "maandag":
+			case "dinsdag":
+			case "woensdag":
+			case "donderdag":
+			case "vrijdag":
+			case "zaterdag":
+			case "zondag": return true;
+			default: return false;
+		}
+	}
+	findPeriodColumn(daysRow) {
+		let columnCount = this.excelData.data[0].length;
+		for (let iCol = 0; iCol < columnCount; iCol++) for (let row of this.excelData.data.slice(daysRow)) {
+			let value = row[iCol].toString();
+			if (this.isPeriod(value)) return iCol;
+		}
+		return void 0;
+	}
+	isPeriod(text) {
+		const periodRegex = /\d?\d[.:,]\d\d\s*-\s*\d?\d[.:,]\d\d/gm;
+		return !!text.match(periodRegex);
+	}
+	findLastPeriodRow(periodColumn) {
+		return this.excelData.data.map((row, index) => this.isPeriod(row[periodColumn].toString()) ? index : -1).filter((n) => n > 0).pop();
+	}
+	findLastDayColumn(periodColumn, daysRow) {
+		for (let c = periodColumn + 1; c < this.excelData.data[0].length; c++) {
+			let cellValue = this.excelData.getMergedCellValue({
+				row: daysRow,
+				column: c
+			});
+			if (!this.isDayName(cellValue)) return c - 1;
+		}
+	}
+};
+
+//#endregion
+//#region typescript/roster_diff/compare_roster.ts
+var Roster = class {
+	table;
+	errors = [];
+	constructor(table) {
+		this.table = table;
+	}
+	scrapeUurrooster() {
+		let timeSlices = this.createTimeSlices();
+		if (this.errors.length > 0) return;
+		let classDefs = [];
+		for (let c = 0; c <= this.table.ColumnCount; c++) classDefs = classDefs.concat(this.scrapeColumn(c, timeSlices));
+		console.log(this.classDefsToString(classDefs));
+	}
+	scrapeColumn(column, timeSlices) {
+		let classDefs = [];
+		let day = this.table.HeaderRowValue(0, column);
+		let teacher = this.table.HeaderRowValue(1, column);
+		for (let row = 0; row < this.table.RowCount; row++) {
+			let cellValue = this.table.Cell(row, column);
+			if (cellValue) {
+				let rx = /\n/g;
+				let description = cellValue.replace(rx, " ");
+				let timeSlice = void 0;
+				let mergedRange = this.table.RangeOfCell({
+					row,
+					column
+				});
+				let sliceStartText = this.table.HeaderColumnValue(mergedRange.Start.row, 0);
+				let sliceEndText = this.table.HeaderColumnValue(mergedRange.End.row, 0);
+				let sliceStart = timeSlices.get(sliceStartText);
+				let sliceEnd = timeSlices.get(sliceEndText);
+				timeSlice = {
+					start: sliceStart.start,
+					end: sliceEnd.end
+				};
+				let times = this.findTimes(description);
+				if (times.length === 2) timeSlice = {
+					start: times[0],
+					end: times[1]
+				};
+				else if (times.length === 1) timeSlice = this.moveTimeSliceTo(timeSlice, times[0]);
+				let tags = this.findTags(description, this.defaultTagDefs);
+				let location$1 = this.findLocation(tags);
+				let subject = this.findSubject(tags);
+				let classDef = {
+					teacher,
+					day,
+					timeSlice,
+					location: location$1,
+					subject,
+					gradeYears: this.findGradeYears(description),
+					description
+				};
+				classDefs.push(classDef);
+			}
+		}
+		return classDefs;
+	}
+	classDefToString(classDef) {
+		return `${classDef.day}, ${classDef.teacher}, ${classDef.subject}, ${classDef.location}, [${classDef.gradeYears?.map((gy) => this.gradeYearToString(gy)).join(", ")}], ${classDef.description}`;
+	}
+	gradeYearToString(gradeYear) {
+		return `${gradeYear.grade ? gradeYear.grade : "?"}.${gradeYear.year}`;
+	}
+	classDefsToString(classDefs) {
+		return classDefs.map((classDef) => this.classDefToString(classDef)).join("\n");
+	}
+	createTimeSlices() {
+		let timeSlices = new Map();
+		for (let row = 0; row < this.table.RowCount; row++) {
+			let rx = /(\d?\d)[.:,](\d\d)\s*-\s*(\d?\d)[.:,](\d\d)/gm;
+			let value = this.table.HeaderColumnValue(row, 0);
+			let matches = rx.exec(value);
+			if (matches) {
+				let timeSlice = {
+					start: {
+						hour: parseInt(matches[1]),
+						minutes: parseInt(matches[2])
+					},
+					end: {
+						hour: parseInt(matches[3]),
+						minutes: parseInt(matches[4])
+					}
+				};
+				timeSlices.set(value, timeSlice);
+			} else this.errors.push(`Could not parse time slice: ${value}`);
+		}
+		return timeSlices;
+	}
+	findTimes(text) {
+		let times = [];
+		let rx = /\s+(\d?\d)[.:,](\d\d)/gm;
+		let matches = rx.exec(text);
+		while (matches) {
+			let time = {
+				hour: parseInt(matches[1]),
+				minutes: parseInt(matches[2])
+			};
+			times.push(time);
+			matches = rx.exec(text);
+		}
+		return times;
+	}
+	moveTimeSliceTo(timeSlice, newStart) {
+		let newSlice = timeSlice;
+		let startMinutes = timeSlice.start.hour * 60 + timeSlice.start.minutes;
+		let endMinutes = timeSlice.end.hour * 60 + timeSlice.end.minutes;
+		let duration = endMinutes - startMinutes;
+		timeSlice.start = newStart;
+		let newEndMinutes = newStart.hour * 60 + newStart.minutes + duration;
+		newSlice.end.hour = Math.trunc(newEndMinutes / 60);
+		newSlice.end.minutes = newEndMinutes % 60;
+		return newSlice;
+	}
+	defaultTagDefs = [
+		{
+			tag: "Sterrenkijker",
+			searchString: "sterr"
+		},
+		{
+			tag: "Sterrenkijker",
+			searchString: "durlet"
+		},
+		{
+			tag: "Kleine Stad",
+			searchString: " stad"
+		},
+		{
+			tag: "Kleine Wereld",
+			searchString: " wereld"
+		},
+		{
+			tag: "De Nieuwe Vrede",
+			searchString: " vrede"
+		},
+		{
+			tag: "De Nieuwe Vrede",
+			searchString: "dnv"
+		},
+		{
+			tag: "De Kosmos",
+			searchString: " kosmos"
+		},
+		{
+			tag: "De Schatkist",
+			searchString: "schatk"
+		},
+		{
+			tag: "De Kolibrie",
+			searchString: " kolibri"
+		},
+		{
+			tag: "Albereke",
+			searchString: "albere"
+		},
+		{
+			tag: "c o r s o",
+			searchString: "corso"
+		},
+		{
+			tag: "c o r s o",
+			searchString: "c o r s o"
+		},
+		{
+			tag: "Cabaret & Comedy",
+			searchString: "cabaret"
+		},
+		{
+			tag: "Woordatelier",
+			searchString: "woordatelier"
+		},
+		{
+			tag: "Woordatelier",
+			searchString: "WA "
+		},
+		{
+			tag: "Woordlab",
+			searchString: "woordlab"
+		},
+		{
+			tag: "Woordlab",
+			searchString: "WL "
+		},
+		{
+			tag: "Literair atelier",
+			searchString: "literair atelier"
+		},
+		{
+			tag: "Literaire teksten",
+			searchString: "literaire teksten"
+		},
+		{
+			tag: "Willem Van Laarstraat",
+			searchString: "bib"
+		},
+		{
+			tag: "Spreken en presenteren",
+			searchString: "presenteren"
+		},
+		{
+			tag: "Kunstenbad",
+			searchString: "kunstenbad"
+		},
+		{
+			tag: "Musicalatelier",
+			searchString: "musicalatelier"
+		},
+		{
+			tag: "Musical koor",
+			searchString: "musical koor"
+		},
+		{
+			tag: "Musical zang",
+			searchString: "musical zang"
+		},
+		{
+			tag: "De Nieuwe Vrede",
+			searchString: " tegel"
+		},
+		{
+			tag: "De Nieuwe Vrede",
+			searchString: " tango"
+		}
+	];
+	locationDefs = [
+		"Sterrenkijker",
+		"Kleine Stad",
+		"Kleine Wereld",
+		"De Nieuwe Vrede",
+		"De Kosmos",
+		"De Schatkist",
+		"De Kolibrie",
+		"Albereke",
+		"Albereke",
+		"c o r s o",
+		"Willem Van Laarstraat"
+	];
+	subjectDefs = [
+		"Woordatelier",
+		"Woordlab",
+		"Cabaret & Comedy",
+		"Literair atelier",
+		"Literaire teksten",
+		"Spreken en presenteren",
+		"Kunstenbad",
+		"Musicalatelier",
+		"Musical koor",
+		"Musical zang"
+	];
+	findLocation(tags) {
+		return this.locationDefs.find((location$1) => tags.includes(location$1));
+	}
+	findSubject(tags) {
+		return this.subjectDefs.find((subject) => tags.includes(subject));
+	}
+	findTags(text, tagDefs) {
+		let tags = [];
+		for (let def of tagDefs) if (text.toLowerCase().includes(def.searchString)) tags.push(def.tag);
+		return tags;
+	}
+	findGradeYears(text) {
+		let gradeYears = [];
+		const rx = /\s+(?:(\d)\.(\d)|(S)(\d))(?:\s?[,+\/]\s?(?:(\d)\.(\d)|(S)(\d)))?(?:\s?[,+\/]\s?(?:(\d)\.(\d)|(S)(\d)))?(?:\s?[,+\/]\s?(?:(\d)\.(\d)|(S)(\d)))?(?:\s?[,+\/]\s?(?:(\d)\.(\d)|(S)(\d)))?/gm;
+		let matches = rx.exec(text);
+		if (matches) {
+			let strippedMatches = matches.filter((m) => m);
+			for (let i = 1; i < strippedMatches.length; i += 2) {
+				let gradeYear = {
+					grade: strippedMatches[i],
+					year: parseInt(strippedMatches[i + 1])
+				};
+				gradeYears.push(gradeYear);
+			}
+			return gradeYears;
+		}
+		const rx2 = /\s+(\d)\s?[,+]\s?(\d)/gm;
+		matches = rx2.exec(text);
+		if (matches) {
+			let strippedMatches = matches.filter((m) => m);
+			for (let i = 1; i < strippedMatches.length; i++) {
+				let gradeYear = {
+					grade: "2",
+					year: parseInt(strippedMatches[i])
+				};
+				gradeYears.push(gradeYear);
+			}
+			return gradeYears;
+		}
+	}
+};
+
+//#endregion
 //#region typescript/notifications/observer.ts
 var StartPageObserver = class extends ExactHashObserver {
 	constructor() {
@@ -4119,22 +4625,23 @@ async function fetchAndDisplayNotifications() {
 }
 async function checkChecks() {
 	let woordCheckstatus = await fetchCheckStatus("WOORD_ROSTERS");
-	console.log("checkChecks: ", woordCheckstatus);
 	if (woordCheckstatus.status === "INITIAL") {
-		let notif = {
-			id: "MUZIEK_ROSTERS_IS_DIFF",
-			level: "warning",
-			message: "De muzieklessen zijn niet vergeleken met het uurrooser op Sharepoint. Klik op de knop om de lessen te vergelijken."
-		};
-		await postNotification(notif);
+		await postNotification("MUZIEK_ROSTERS_IS_DIFF", "warning", "De muzieklessen zijn niet vergeleken met het uurrooser op Sharepoint. Klik op de knop om de lessen te vergelijken.");
 		await fetchAndDisplayNotifications();
 		let folderChanged = await fetchFolderChanged("Dko3/Uurroosters/");
-		console.log(folderChanged);
 		for (let file of folderChanged.files) {
 			let excelData = await fetchExcelData(file.name);
-			console.log(excelData);
+			await runRosterCheck(excelData);
 		}
 	}
+}
+async function runRosterCheck(excelData) {
+	await postNotification("WOORD_ROSTER_RUN", "running", "Uurrooster worden vergeleken... (gestart door <todo:username>");
+	let factory = new RosterFactory(excelData);
+	let table = factory.getTable();
+	debugger;
+	let roster = new Roster(table);
+	roster.scrapeUurrooster();
 }
 
 //#endregion
