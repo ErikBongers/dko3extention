@@ -108,7 +108,7 @@ export class Roster{
         let timeSlices: Map<string, TimeSlice> = new Map<string, TimeSlice>();
 
         for(let row = 0; row < this.table.RowCount; row++) {
-            let rx = /(\d?\d)[.:,](\d\d)\s*-\s*(\d?\d)[.:,](\d\d)/gm; //todo: move out of loop?
+            let rx = /(\d?\d)[.:,](\d\d)\s*-\s*(\d?\d)[.:,](\d\d)/gm;
             let value = this.table.HeaderColumnValue(row, 0);
             let matches = rx.exec(value);
             if(matches) {
