@@ -1506,8 +1506,8 @@ var Roster = class {
 			searchString: " literaire teksten "
 		},
 		{
-			tag: "Spreken en presenteren",
-			searchString: " presenteren "
+			tag: "Spreken en vertellen",
+			searchString: " spreken "
 		},
 		{
 			tag: "Kunstenbad",
@@ -1562,13 +1562,14 @@ var Roster = class {
 		"Schrijflab",
 		"Literair atelier",
 		"Literaire teksten",
-		"Spreken en presenteren",
+		"Spreken en vertellen",
 		"Kunstenbad",
 		"Musicalatelier",
 		"Musical koor",
 		"Musical zang",
 		"Theater",
 		"Speltheater",
+		"Theater maken",
 		"Storytelling",
 		"Woordstudio",
 		"Dramastudio"
