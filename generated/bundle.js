@@ -1430,7 +1430,55 @@ var Roster = class {
 			searchString: "c o r s o"
 		},
 		{
-			tag: "Cabaret & Comedy",
+			tag: "Vestiging Prins Dries",
+			searchString: " prins "
+		},
+		{
+			tag: "Vestiging Prins Dries",
+			searchString: " dries "
+		},
+		{
+			tag: "Vestiging Groenhout Kasteelstraat",
+			searchString: " groenhout "
+		},
+		{
+			tag: "Vestiging Groenhout Kasteelstraat",
+			searchString: " kasteel"
+		},
+		{
+			tag: "Vestiging Het Fonkelpad",
+			searchString: " fonkel "
+		},
+		{
+			tag: "Vestiging OLV Pulhof",
+			searchString: " pulhof "
+		},
+		{
+			tag: "Vestiging Via Louiza",
+			searchString: " louiza "
+		},
+		{
+			tag: "Vestiging Frans Van Hombeeck",
+			searchString: " hombee"
+		},
+		{
+			tag: "Vestiging Klavertje Vier",
+			searchString: " klaver"
+		},
+		{
+			tag: "Academie Willem Van Laarstraat, Berchem",
+			searchString: " bib "
+		},
+		{
+			tag: "Academie Willem Van Laarstraat, Berchem",
+			searchString: "laarstr"
+		},
+		{
+			tag: "Vestiging Frans Van Hombeeck",
+			searchString: " beeld "
+		},
+		{
+			tag: "Cabaret en comedy",
 			searchString: " cabaret "
 		},
 		{
@@ -1456,10 +1504,6 @@ var Roster = class {
 		{
 			tag: "Literaire teksten",
 			searchString: " literaire teksten "
-		},
-		{
-			tag: "Willem Van Laarstraat",
-			searchString: " bib "
 		},
 		{
 			tag: "Spreken en presenteren",
@@ -1510,7 +1554,7 @@ var Roster = class {
 	subjectDefs = [
 		"Woordatelier",
 		"Woordlab",
-		"Cabaret & Comedy",
+		"Cabaret en comedy",
 		"Literair atelier",
 		"Literaire teksten",
 		"Spreken en presenteren",
