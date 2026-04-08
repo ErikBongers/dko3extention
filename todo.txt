@@ -1,3 +1,18 @@
+* Implement double teacher names
+  > one match is enough.
+  > when teacher contains " (en nog x)"
+    > fetch lespage.
+* When file is removed from folder: also remove it in cloud.
+
+* display the diff.
+  > only the problem lessons.
+  > 2 rows matched:
+   : xlsx....
+   : dko3....
+   > highlight the different columns.
+   > goto button to the actual lesson.
+     > show the excel data at the top of the lesson.
+
 * set TS settings gradually to strict.
 
 * Translation tables

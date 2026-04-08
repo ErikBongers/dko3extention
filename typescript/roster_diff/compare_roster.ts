@@ -239,6 +239,7 @@ export class Roster{
         "Woordatelier",
         "Woordlab",
         "Cabaret en comedy",
+        "Schrijflab",
         "Literair atelier",
         "Literaire teksten",
         "Spreken en presenteren",

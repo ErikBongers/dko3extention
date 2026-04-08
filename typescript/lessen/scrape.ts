@@ -224,6 +224,11 @@ export function scrapeLesInfo(tdLesInfo: HTMLTableCellElement) {
     if (mutedSpans.length > 0) {
         les.teacher = Array.from(mutedSpans).pop().textContent;
     }
+    les.teacher = les.teacher
+        .replaceAll("  ", " ")
+        .replaceAll(" ,", ",")
+        .trim(); //clean up of names with additional spaces
+
     let textNodes = Array.from(tdLesInfo.childNodes).filter((node) => node.nodeType === Node.TEXT_NODE && node.textContent.trim() !== "");
     if (!textNodes) return les;
 

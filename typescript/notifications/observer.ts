@@ -139,49 +139,6 @@ async function scrapeLessen() {
     return scrapeLessenOverzicht(table);
 }
 
-/*
-export class Les {
-    vakNaam: string; //"Woordatelier"
-    naam: string; //"1B"
-    day: string;
-    timeSlice: TimeSlice;
-    vestiging: string;
-
-    gradeYears[]
-    teacher: string;
-    maxAantal: number;
-
-    lesmoment: string; //"di 15:40-16:40 (wekelijks)"
-    formattedLesmoment: string;
-    lesType: LesType;
-    alc: boolean;
-    online: boolean;
-    studentsTable: HTMLTableElement;
-    aantal: number;
-    id: string;
-    wachtlijst: number;
-    students: StudentInfo[];
-    instrumentName: string;
-    trimesterNo: number;
-    tags: string[];
-    warnings: string[];
-}
-
-type ClassDef = {
-    subject: string, //or lesnaam or both:" (Woordatelier 8+9j)" --> parse to 2.1 and 2.2
-    day: string, //MAANDAG,...
-    timeSlice: TimeSlice,
-    location: string, //variations
-
-    gradeYears: GradeYear[],
-    teacher: string, // only first name
-    //todo: maxStudents
-
-    description: string
-}
-
-*/
-
 export interface Diff {
     excelLes?: ClassDef;
     dko3Les?: Les;
@@ -193,7 +150,7 @@ abstract class TaggedLes<T extends ClassDef | Les> {
     tags:string[] = [];
     searchText: string;
     location?: string;
-    teacher?: string;
+    teachers: string[];
 
     protected constructor(les: T, tags: string[], searchText: string) {
         this.les = les;
@@ -208,8 +165,8 @@ class TaggedDko3Les extends TaggedLes<Les> {
         let tags: string[] = [];
         super(les, tags, searchText);
         this.location = this.les.vestiging;
-        this.teacher = this.les.teacher
-            .replaceAll("  (en nog 1)", "");
+        this.teachers = [this.les.teacher
+            .replaceAll(/ \(en nog \d\)/g, "")];
     }
 }
 
@@ -219,14 +176,20 @@ class TaggedExcelLes extends TaggedLes<ClassDef> {
         let tags: string[] = [];
         super(les, tags, searchText);
         this.location = this.les.location;//translate probably already done.
-        this.teacher = Roster.findTeacher(this.les.teacher);
+        this.teachers = this.les.teacher.split(/[]\/,/g).map(t => Roster.findTeacher(t));
     }
 }
 
-function buildDiff(excelLessen: ClassDef[], dko3Lessen: Les[]) {
+async function buildDiff(excelLessen: ClassDef[], dko3Lessen: Les[]) {
     let diffs: Diff[] = [];
     let excelLesSet: Set<TaggedExcelLes> = new Set<TaggedExcelLes>(excelLessen.map(les => new TaggedExcelLes(les)));
     let dko3LesSet: Set<TaggedDko3Les> = new Set<TaggedDko3Les>(dko3Lessen.map(les => new TaggedDko3Les(les)));
+    //get extra teaches
+    for (const les1 of [...dko3LesSet.values()]
+        .filter(les => les.les.teacher.includes("(en nog"))) {
+            les1.teachers = await getExtraTeachers(les1.les.id);
+        }
+
     matchIt(dko3LesSet, excelLesSet, diffs, "perfect match", perfectMatch);
     matchIt(dko3LesSet, excelLesSet, diffs, "match without teacher", matchWithoutTeacher);
     matchIt(dko3LesSet, excelLesSet, diffs, "match without location", matchWithoutLocation);
@@ -236,6 +199,23 @@ function buildDiff(excelLessen: ClassDef[], dko3Lessen: Les[]) {
     console.log(diffs);
     console.log(dko3LesSet.values());
     console.log(excelLesSet.values());
+}
+
+async function getExtraTeachers(lesId: string) {
+    await fetch("https://administratie.dko3.cloud/view.php?args=lessen-les?id="+lesId);
+    await fetch("https://administratie.dko3.cloud/views/lessen/les/index.view.php");
+    await fetch("https://administratie.dko3.cloud/views/lessen/les/index.details.tab.php");
+    let res = await fetch("https://administratie.dko3.cloud/views/lessen/les/details/index.details.leerkrachten.card.php");
+    let htmlTeachers = await res.text();
+    let div = document.createElement("div") as HTMLDivElement;
+    div.innerHTML = htmlTeachers;
+    let strongs = div.querySelectorAll("td > strong");
+    return [...strongs].map(s => {
+        return s.textContent
+            .replaceAll("  ", " ")
+            .replaceAll(" ,", ",")
+            .trim(); //clean up of names with additional spaces
+    });
 }
 
 function matchIt(dko3LesSet: Set<TaggedDko3Les>, excelLesSet: Set<TaggedExcelLes>, diffs: Diff[], comment: string, matchFunction: (dko3Les: TaggedDko3Les, excelLesSet: Set<TaggedExcelLes>) => (TaggedExcelLes | null)) {
@@ -261,7 +241,7 @@ function perfectMatch(dko3Les: TaggedDko3Les, excelLesSet: Set<TaggedExcelLes>):
             continue;
         if(dko3Les.location != excelLes.location)
             continue;
-        if(dko3Les.teacher != excelLes.teacher)
+        if(!dko3Les.teachers.some(t => excelLes.teachers.includes(t)))
             continue;
         return excelLes;
     }
@@ -277,7 +257,7 @@ function matchWithoutLocation(dko3Les: TaggedDko3Les, excelLesSet: Set<TaggedExc
             continue;
         if(!dko3Les.les.timeSlice.equal(excelLes.les.timeSlice))
             continue;
-        if(dko3Les.teacher != excelLes.teacher)
+        if(!dko3Les.teachers.some(t => excelLes.teachers.includes(t)))
             continue;
         return excelLes;
     }
@@ -293,7 +273,7 @@ function matchWithoutTime(dko3Les: TaggedDko3Les, excelLesSet: Set<TaggedExcelLe
             continue;
         if(dko3Les.location != excelLes.location)
             continue;
-        if(dko3Les.teacher != excelLes.teacher)
+        if(!dko3Les.teachers.some(t => excelLes.teachers.includes(t)))
             continue;
         return excelLes;
     }
@@ -307,7 +287,7 @@ function matchWithoutTimeAndDay(dko3Les: TaggedDko3Les, excelLesSet: Set<TaggedE
             continue;
         if(dko3Les.location != excelLes.location)
             continue;
-        if(dko3Les.teacher != excelLes.teacher)
+        if(!dko3Les.teachers.some(t => excelLes.teachers.includes(t)))
             continue;
         return excelLes;
     }

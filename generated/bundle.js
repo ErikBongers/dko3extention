@@ -1555,6 +1555,7 @@ var Roster = class {
 		"Woordatelier",
 		"Woordlab",
 		"Cabaret en comedy",
+		"Schrijflab",
 		"Literair atelier",
 		"Literaire teksten",
 		"Spreken en presenteren",
@@ -2130,6 +2131,7 @@ function scrapeLesInfo(tdLesInfo) {
 	else les.lesType = LesType.UnknownModule;
 	else les.lesType = LesType.Les;
 	if (mutedSpans.length > 0) les.teacher = Array.from(mutedSpans).pop().textContent;
+	les.teacher = les.teacher.replaceAll("  ", " ").replaceAll(" ,", ",").trim();
 	let textNodes = Array.from(tdLesInfo.childNodes).filter((node) => node.nodeType === Node.TEXT_NODE && node.textContent.trim() !== "");
 	if (!textNodes) return les;
 	les.lesmoment = textNodes[0].nodeValue;
@@ -5186,7 +5188,7 @@ var TaggedLes = class {
 	tags = [];
 	searchText;
 	location;
-	teacher;
+	teachers;
 	constructor(les, tags, searchText) {
 		this.les = les;
 		this.tags = tags;
@@ -5199,7 +5201,7 @@ var TaggedDko3Les = class extends TaggedLes {
 		let tags = [];
 		super(les, tags, searchText);
 		this.location = this.les.vestiging;
-		this.teacher = this.les.teacher.replaceAll("  (en nog 1)", "");
+		this.teachers = [this.les.teacher.replaceAll(/ \(en nog \d\)/g, "")];
 	}
 };
 var TaggedExcelLes = class extends TaggedLes {
@@ -5208,13 +5210,14 @@ var TaggedExcelLes = class extends TaggedLes {
 		let tags = [];
 		super(les, tags, searchText);
 		this.location = this.les.location;
-		this.teacher = Roster.findTeacher(this.les.teacher);
+		this.teachers = this.les.teacher.split(/[]\/,/g).map((t) => Roster.findTeacher(t));
 	}
 };
-function buildDiff(excelLessen, dko3Lessen) {
+async function buildDiff(excelLessen, dko3Lessen) {
 	let diffs = [];
 	let excelLesSet = new Set(excelLessen.map((les) => new TaggedExcelLes(les)));
 	let dko3LesSet = new Set(dko3Lessen.map((les) => new TaggedDko3Les(les)));
+	for (const les1 of [...dko3LesSet.values()].filter((les) => les.les.teacher.includes("(en nog"))) les1.teachers = await getExtraTeachers(les1.les.id);
 	matchIt(dko3LesSet, excelLesSet, diffs, "perfect match", perfectMatch);
 	matchIt(dko3LesSet, excelLesSet, diffs, "match without teacher", matchWithoutTeacher);
 	matchIt(dko3LesSet, excelLesSet, diffs, "match without location", matchWithoutLocation);
@@ -5224,6 +5227,19 @@ function buildDiff(excelLessen, dko3Lessen) {
 	console.log(diffs);
 	console.log(dko3LesSet.values());
 	console.log(excelLesSet.values());
+}
+async function getExtraTeachers(lesId) {
+	await fetch("https://administratie.dko3.cloud/view.php?args=lessen-les?id=" + lesId);
+	await fetch("https://administratie.dko3.cloud/views/lessen/les/index.view.php");
+	await fetch("https://administratie.dko3.cloud/views/lessen/les/index.details.tab.php");
+	let res = await fetch("https://administratie.dko3.cloud/views/lessen/les/details/index.details.leerkrachten.card.php");
+	let htmlTeachers = await res.text();
+	let div = document.createElement("div");
+	div.innerHTML = htmlTeachers;
+	let strongs = div.querySelectorAll("td > strong");
+	return [...strongs].map((s) => {
+		return s.textContent.replaceAll("  ", " ").replaceAll(" ,", ",").trim();
+	});
 }
 function matchIt(dko3LesSet, excelLesSet, diffs, comment, matchFunction) {
 	for (let dko3Les of dko3LesSet) {
@@ -5245,7 +5261,7 @@ function perfectMatch(dko3Les, excelLesSet) {
 		if (dko3Les.les.day != excelLes.les.day) continue;
 		if (!dko3Les.les.timeSlice.equal(excelLes.les.timeSlice)) continue;
 		if (dko3Les.location != excelLes.location) continue;
-		if (dko3Les.teacher != excelLes.teacher) continue;
+		if (!dko3Les.teachers.some((t) => excelLes.teachers.includes(t))) continue;
 		return excelLes;
 	}
 	return null;
@@ -5255,7 +5271,7 @@ function matchWithoutLocation(dko3Les, excelLesSet) {
 		if (dko3Les.les.vakNaam != excelLes.les.subject && dko3Les.les.naam != excelLes.les.subject) continue;
 		if (dko3Les.les.day != excelLes.les.day) continue;
 		if (!dko3Les.les.timeSlice.equal(excelLes.les.timeSlice)) continue;
-		if (dko3Les.teacher != excelLes.teacher) continue;
+		if (!dko3Les.teachers.some((t) => excelLes.teachers.includes(t))) continue;
 		return excelLes;
 	}
 	return null;
@@ -5265,7 +5281,7 @@ function matchWithoutTime(dko3Les, excelLesSet) {
 		if (dko3Les.les.vakNaam != excelLes.les.subject && dko3Les.les.naam != excelLes.les.subject) continue;
 		if (dko3Les.les.day != excelLes.les.day) continue;
 		if (dko3Les.location != excelLes.location) continue;
-		if (dko3Les.teacher != excelLes.teacher) continue;
+		if (!dko3Les.teachers.some((t) => excelLes.teachers.includes(t))) continue;
 		return excelLes;
 	}
 	return null;
@@ -5274,7 +5290,7 @@ function matchWithoutTimeAndDay(dko3Les, excelLesSet) {
 	for (let excelLes of excelLesSet) {
 		if (dko3Les.les.vakNaam != excelLes.les.subject && dko3Les.les.naam != excelLes.les.subject) continue;
 		if (dko3Les.location != excelLes.location) continue;
-		if (dko3Les.teacher != excelLes.teacher) continue;
+		if (!dko3Les.teachers.some((t) => excelLes.teachers.includes(t))) continue;
 		return excelLes;
 	}
 	return null;
