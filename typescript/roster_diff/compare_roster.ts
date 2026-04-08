@@ -14,7 +14,7 @@ export type ClassDef = {
     day: string,
     teacher: string,
     timeSlice: TimeSlice,
-    subject: string,
+    subjects: string[],
     location: string,
     gradeYears: GradeYear[],
     description: string
@@ -93,13 +93,13 @@ export class Roster{
                 }
                 let tags = this.findTags(parseText, this.defaultTagDefs); //todo: first try to find tagDefs in the sheet (table)
                 let location = this.findLocation(tags);
-                let subject = this.findSubject(tags);
+                let subjects = this.findSubjects(tags);
                 let classDef: ClassDef = {
                     teacher,
                     day,
                     timeSlice,
                     location,
-                    subject,
+                    subjects,
                     gradeYears: this.findGradeYears(parseText),
                     description
                 };
@@ -249,14 +249,18 @@ export class Roster{
         "Musical koor",
         "Musical zang",
         "Theater",
+        "Speltheater",
+        "Storytelling",
+        "Woordstudio",
+        "Dramastudio",
     ];
 
     private findLocation(tags: string[]) {
         return this.locationDefs.find(location => tags.includes(location));
     }
 
-    private findSubject(tags: string[]) {
-        return this.subjectDefs.find(subject => tags.includes(subject));
+    private findSubjects(tags: string[]) {
+        return this.subjectDefs.filter(subject => tags.includes(subject));
     }
 
     public static findTeacher(searchString: string) {
@@ -270,9 +274,14 @@ export class Roster{
 
     private findTags(text: string, tagDefs: TagDef[]) {
         let tags: string[] = [];
+        let lowerCase = text.toLowerCase();
         for (let def of tagDefs) {
-            if(text.toLowerCase().includes(def.searchString))
+            if(lowerCase.includes(def.searchString))
                 tags.push(def.tag);
+        }
+        for (let subject of this.subjectDefs) {
+            if(lowerCase.includes(subject.toLowerCase()))
+                tags.push(subject);
         }
         return tags;
     }

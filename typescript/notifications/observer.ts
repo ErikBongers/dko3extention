@@ -193,7 +193,7 @@ class TaggedExcelLes extends TaggedLes<ClassDef> {
         super(les, tags, searchText);
         this.location = this.les.location;//translate probably already done.
         this.teachers = this.les.teacher.split(/[]\/,/g).map(t => Roster.findTeacher(t));
-        this.subjects = [les.subject];
+        this.subjects = les.subjects;
     }
 }
 

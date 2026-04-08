@@ -1309,13 +1309,13 @@ var Roster = class {
 				else if (times.length === 1) timeSlice = this.moveTimeSliceTo(timeSlice, times[0]);
 				let tags = this.findTags(parseText, this.defaultTagDefs);
 				let location$1 = this.findLocation(tags);
-				let subject = this.findSubject(tags);
+				let subjects = this.findSubjects(tags);
 				let classDef = {
 					teacher,
 					day,
 					timeSlice,
 					location: location$1,
-					subject,
+					subjects,
 					gradeYears: this.findGradeYears(parseText),
 					description
 				};
@@ -1567,13 +1567,17 @@ var Roster = class {
 		"Musicalatelier",
 		"Musical koor",
 		"Musical zang",
-		"Theater"
+		"Theater",
+		"Speltheater",
+		"Storytelling",
+		"Woordstudio",
+		"Dramastudio"
 	];
 	findLocation(tags) {
 		return this.locationDefs.find((location$1) => tags.includes(location$1));
 	}
-	findSubject(tags) {
-		return this.subjectDefs.find((subject) => tags.includes(subject));
+	findSubjects(tags) {
+		return this.subjectDefs.filter((subject) => tags.includes(subject));
 	}
 	static findTeacher(searchString) {
 		let lowerCase = searchString.toLowerCase();
@@ -1582,7 +1586,9 @@ var Roster = class {
 	}
 	findTags(text, tagDefs) {
 		let tags = [];
-		for (let def of tagDefs) if (text.toLowerCase().includes(def.searchString)) tags.push(def.tag);
+		let lowerCase = text.toLowerCase();
+		for (let def of tagDefs) if (lowerCase.includes(def.searchString)) tags.push(def.tag);
+		for (let subject of this.subjectDefs) if (lowerCase.includes(subject.toLowerCase())) tags.push(subject);
 		return tags;
 	}
 	findGradeYears(text) {
@@ -5231,7 +5237,7 @@ var TaggedExcelLes = class extends TaggedLes {
 		super(les, tags, searchText);
 		this.location = this.les.location;
 		this.teachers = this.les.teacher.split(/[]\/,/g).map((t) => Roster.findTeacher(t));
-		this.subjects = [les.subject];
+		this.subjects = les.subjects;
 	}
 };
 async function buildDiff(excelLessen, dko3Lessen, dko3AliasLessen) {
