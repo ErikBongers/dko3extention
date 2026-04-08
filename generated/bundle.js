@@ -1524,6 +1524,10 @@ var Roster = class {
 		{
 			tag: "Musical zang",
 			searchString: " musical zang "
+		},
+		{
+			tag: "Theater",
+			searchString: " acteren "
 		}
 	];
 	locationDefs = [
@@ -1562,7 +1566,8 @@ var Roster = class {
 		"Kunstenbad",
 		"Musicalatelier",
 		"Musical koor",
-		"Musical zang"
+		"Musical zang",
+		"Theater"
 	];
 	findLocation(tags) {
 		return this.locationDefs.find((location$1) => tags.includes(location$1));
@@ -5200,6 +5205,7 @@ var TaggedLes = class {
 	searchText;
 	location;
 	teachers;
+	subjects;
 	linkedLessen = [];
 	constructor(les, tags, searchText) {
 		this.les = les;
@@ -5214,6 +5220,8 @@ var TaggedDko3Les = class extends TaggedLes {
 		super(les, tags, searchText);
 		this.location = this.les.vestiging;
 		this.teachers = [this.les.teacher.replaceAll(/ \(en nog \d\)/g, "")];
+		this.subjects = this.les.vakNaam.split("+").map((txt) => txt.trim());
+		this.subjects.push(les.naam);
 	}
 };
 var TaggedExcelLes = class extends TaggedLes {
@@ -5223,6 +5231,7 @@ var TaggedExcelLes = class extends TaggedLes {
 		super(les, tags, searchText);
 		this.location = this.les.location;
 		this.teachers = this.les.teacher.split(/[]\/,/g).map((t) => Roster.findTeacher(t));
+		this.subjects = [les.subject];
 	}
 };
 async function buildDiff(excelLessen, dko3Lessen, dko3AliasLessen) {
@@ -5289,7 +5298,7 @@ function matchIt(dko3LesSet, excelLesSet, diffs, comment, matchFunction) {
 }
 function perfectMatch(dko3Les, excelLesSet) {
 	for (let excelLes of excelLesSet) {
-		if (dko3Les.les.vakNaam != excelLes.les.subject && dko3Les.les.naam != excelLes.les.subject) continue;
+		if (!dko3Les.subjects.some((t) => excelLes.subjects.includes(t))) continue;
 		if (dko3Les.les.day != excelLes.les.day) continue;
 		if (!dko3Les.les.timeSlice.equal(excelLes.les.timeSlice)) continue;
 		if (dko3Les.location != excelLes.location) continue;
@@ -5300,7 +5309,7 @@ function perfectMatch(dko3Les, excelLesSet) {
 }
 function matchWithoutLocation(dko3Les, excelLesSet) {
 	for (let excelLes of excelLesSet) {
-		if (dko3Les.les.vakNaam != excelLes.les.subject && dko3Les.les.naam != excelLes.les.subject) continue;
+		if (!dko3Les.subjects.some((t) => excelLes.subjects.includes(t))) continue;
 		if (dko3Les.les.day != excelLes.les.day) continue;
 		if (!dko3Les.les.timeSlice.equal(excelLes.les.timeSlice)) continue;
 		if (!dko3Les.teachers.some((t) => excelLes.teachers.includes(t))) continue;
@@ -5310,7 +5319,7 @@ function matchWithoutLocation(dko3Les, excelLesSet) {
 }
 function matchWithoutTime(dko3Les, excelLesSet) {
 	for (let excelLes of excelLesSet) {
-		if (dko3Les.les.vakNaam != excelLes.les.subject && dko3Les.les.naam != excelLes.les.subject) continue;
+		if (!dko3Les.subjects.some((t) => excelLes.subjects.includes(t))) continue;
 		if (dko3Les.les.day != excelLes.les.day) continue;
 		if (dko3Les.location != excelLes.location) continue;
 		if (!dko3Les.teachers.some((t) => excelLes.teachers.includes(t))) continue;
@@ -5320,7 +5329,7 @@ function matchWithoutTime(dko3Les, excelLesSet) {
 }
 function matchWithoutTimeAndDay(dko3Les, excelLesSet) {
 	for (let excelLes of excelLesSet) {
-		if (dko3Les.les.vakNaam != excelLes.les.subject && dko3Les.les.naam != excelLes.les.subject) continue;
+		if (!dko3Les.subjects.some((t) => excelLes.subjects.includes(t))) continue;
 		if (dko3Les.location != excelLes.location) continue;
 		if (!dko3Les.teachers.some((t) => excelLes.teachers.includes(t))) continue;
 		return excelLes;
@@ -5329,7 +5338,7 @@ function matchWithoutTimeAndDay(dko3Les, excelLesSet) {
 }
 function matchWithoutTeacherTimeAndDay(dko3Les, excelLesSet) {
 	for (let excelLes of excelLesSet) {
-		if (dko3Les.les.vakNaam != excelLes.les.subject && dko3Les.les.naam != excelLes.les.subject) continue;
+		if (!dko3Les.subjects.some((t) => excelLes.subjects.includes(t))) continue;
 		if (dko3Les.location != excelLes.location) continue;
 		return excelLes;
 	}
@@ -5337,7 +5346,7 @@ function matchWithoutTeacherTimeAndDay(dko3Les, excelLesSet) {
 }
 function matchWithoutTeacher(dko3Les, excelLesSet) {
 	for (let excelLes of excelLesSet) {
-		if (dko3Les.les.vakNaam != excelLes.les.subject && dko3Les.les.naam != excelLes.les.subject) continue;
+		if (!dko3Les.subjects.some((t) => excelLes.subjects.includes(t))) continue;
 		if (dko3Les.les.day != excelLes.les.day) continue;
 		if (!dko3Les.les.timeSlice.equal(excelLes.les.timeSlice)) continue;
 		if (dko3Les.location != excelLes.location) continue;

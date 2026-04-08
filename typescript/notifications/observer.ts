@@ -160,6 +160,7 @@ abstract class TaggedLes<T extends ClassDef | Les> {
     searchText: string;
     location?: string;
     teachers: string[];
+    subjects: string[];
     linkedLessen: TaggedLes<T>[] = [];
 
     protected constructor(les: T, tags: string[], searchText: string) {
@@ -178,6 +179,10 @@ class TaggedDko3Les extends TaggedLes<Les> {
         this.location = this.les.vestiging;
         this.teachers = [this.les.teacher
             .replaceAll(/ \(en nog \d\)/g, "")];
+        this.subjects = this.les.vakNaam
+            .split('+')
+            .map(txt => txt.trim());
+        this.subjects.push(les.naam);
     }
 }
 
@@ -188,6 +193,7 @@ class TaggedExcelLes extends TaggedLes<ClassDef> {
         super(les, tags, searchText);
         this.location = this.les.location;//translate probably already done.
         this.teachers = this.les.teacher.split(/[]\/,/g).map(t => Roster.findTeacher(t));
+        this.subjects = [les.subject];
     }
 }
 
@@ -268,8 +274,7 @@ function matchIt(dko3LesSet: Set<TaggedDko3Les>, excelLesSet: Set<TaggedExcelLes
 
 function perfectMatch(dko3Les: TaggedDko3Les, excelLesSet: Set<TaggedExcelLes>): TaggedExcelLes | null {
     for(let excelLes of excelLesSet) {
-        if(dko3Les.les.vakNaam != excelLes.les.subject
-            && dko3Les.les.naam != excelLes.les.subject)
+        if(!dko3Les.subjects.some(t => excelLes.subjects.includes(t)))
             continue;
         if(dko3Les.les.day != excelLes.les.day)
             continue;
@@ -286,8 +291,7 @@ function perfectMatch(dko3Les: TaggedDko3Les, excelLesSet: Set<TaggedExcelLes>):
 
 function matchWithoutLocation(dko3Les: TaggedDko3Les, excelLesSet: Set<TaggedExcelLes>): TaggedExcelLes | null {
     for(let excelLes of excelLesSet) {
-        if(dko3Les.les.vakNaam != excelLes.les.subject
-            && dko3Les.les.naam != excelLes.les.subject)
+        if(!dko3Les.subjects.some(t => excelLes.subjects.includes(t)))
             continue;
         if(dko3Les.les.day != excelLes.les.day)
             continue;
@@ -302,8 +306,7 @@ function matchWithoutLocation(dko3Les: TaggedDko3Les, excelLesSet: Set<TaggedExc
 
 function matchWithoutTime(dko3Les: TaggedDko3Les, excelLesSet: Set<TaggedExcelLes>): TaggedExcelLes | null {
     for(let excelLes of excelLesSet) {
-        if(dko3Les.les.vakNaam != excelLes.les.subject
-            && dko3Les.les.naam != excelLes.les.subject)
+        if(!dko3Les.subjects.some(t => excelLes.subjects.includes(t)))
             continue;
         if(dko3Les.les.day != excelLes.les.day)
             continue;
@@ -318,8 +321,7 @@ function matchWithoutTime(dko3Les: TaggedDko3Les, excelLesSet: Set<TaggedExcelLe
 
 function matchWithoutTimeAndDay(dko3Les: TaggedDko3Les, excelLesSet: Set<TaggedExcelLes>): TaggedExcelLes | null {
     for(let excelLes of excelLesSet) {
-        if(dko3Les.les.vakNaam != excelLes.les.subject
-            && dko3Les.les.naam != excelLes.les.subject)
+        if(!dko3Les.subjects.some(t => excelLes.subjects.includes(t)))
             continue;
         if(dko3Les.location != excelLes.location)
             continue;
@@ -332,8 +334,7 @@ function matchWithoutTimeAndDay(dko3Les: TaggedDko3Les, excelLesSet: Set<TaggedE
 
 function matchWithoutTeacherTimeAndDay(dko3Les: TaggedDko3Les, excelLesSet: Set<TaggedExcelLes>): TaggedExcelLes | null {
     for(let excelLes of excelLesSet) {
-        if(dko3Les.les.vakNaam != excelLes.les.subject
-            && dko3Les.les.naam != excelLes.les.subject)
+        if(!dko3Les.subjects.some(t => excelLes.subjects.includes(t)))
             continue;
         if(dko3Les.location != excelLes.location)
             continue;
@@ -344,8 +345,7 @@ function matchWithoutTeacherTimeAndDay(dko3Les: TaggedDko3Les, excelLesSet: Set<
 
 function matchWithoutTeacher(dko3Les: TaggedDko3Les, excelLesSet: Set<TaggedExcelLes>): TaggedExcelLes | null {
     for(let excelLes of excelLesSet) {
-        if(dko3Les.les.vakNaam != excelLes.les.subject
-            && dko3Les.les.naam != excelLes.les.subject)
+        if(!dko3Les.subjects.some(t => excelLes.subjects.includes(t)))
             continue;
         if(dko3Les.les.day != excelLes.les.day)
             continue;

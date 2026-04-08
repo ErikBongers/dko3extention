@@ -1,4 +1,7 @@
-* Group lessen by alias.
+* What does "Acteren" not match?
+  > check this before the task below...
+* alias lessen: split vakNaam into array, based on "+" and trim()
+  > use that for matches.
 
 * When file is removed from folder: also remove it in cloud.
 

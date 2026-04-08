@@ -207,6 +207,7 @@ export class Roster{
         { tag: "Musicalatelier", searchString: " musicalatelier "},
         { tag: "Musical koor", searchString: " musical koor "},
         { tag: "Musical zang", searchString: " musical zang "},
+        { tag: "Theater", searchString: " acteren "},
     ];
 
     private locationDefs: string[] = [
@@ -247,6 +248,7 @@ export class Roster{
         "Musicalatelier",
         "Musical koor",
         "Musical zang",
+        "Theater",
     ];
 
     private findLocation(tags: string[]) {
