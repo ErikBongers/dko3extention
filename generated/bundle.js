@@ -1366,7 +1366,7 @@ var Roster = class {
 		let startMinutes = timeSlice.start.hour * 60 + timeSlice.start.minutes;
 		let endMinutes = timeSlice.end.hour * 60 + timeSlice.end.minutes;
 		let duration = endMinutes - startMinutes;
-		timeSlice.start = structuredClone(newStart);
+		newSlice.start = structuredClone(newStart);
 		let newEndMinutes = newStart.hour * 60 + newStart.minutes + duration;
 		newSlice.end.hour = Math.trunc(newEndMinutes / 60);
 		newSlice.end.minutes = newEndMinutes % 60;
@@ -5184,6 +5184,8 @@ function buildDiff(excelLessen, dko3Lessen) {
 		}
 	}
 	console.log(diffs);
+	console.log(dko3LesSet.values());
+	console.log(excelLesSet.values());
 }
 function perfectMatch(dko3Les, excelLesSet) {
 	for (let excelLes of excelLesSet) {

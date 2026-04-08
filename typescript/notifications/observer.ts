@@ -236,6 +236,8 @@ function buildDiff(excelLessen: ClassDef[], dko3Lessen: Les[]) {
         }
     }
     console.log(diffs);
+    console.log(dko3LesSet.values());
+    console.log(excelLesSet.values());
 }
 
 function perfectMatch(dko3Les: TaggedDko3Les, excelLesSet: Set<TaggedExcelLes>): TaggedExcelLes | null {

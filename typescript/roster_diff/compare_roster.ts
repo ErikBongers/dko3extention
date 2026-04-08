@@ -160,7 +160,7 @@ export class Roster{
         let startMinutes = timeSlice.start.hour * 60 + timeSlice.start.minutes;
         let endMinutes = timeSlice.end.hour * 60 + timeSlice.end.minutes;
         let duration = endMinutes - startMinutes;
-        timeSlice.start = structuredClone(newStart);
+        newSlice.start = structuredClone(newStart);
         let newEndMinutes = newStart.hour * 60 + newStart.minutes + duration;
         newSlice.end.hour = Math.trunc(newEndMinutes / 60);
         newSlice.end.minutes = newEndMinutes % 60;
