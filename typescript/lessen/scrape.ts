@@ -183,6 +183,7 @@ export class Les {
     day: DagUppercase;
     repeat: string; //wekelijks
     timeSlice: TimeSlice;
+    linkedLessen: string[] = [];
 }
 
 export function scrapeLesInfo(tdLesInfo: HTMLTableCellElement) {

@@ -1,7 +1,5 @@
-* Implement double teacher names
-  > one match is enough.
-  > when teacher contains " (en nog x)"
-    > fetch lespage.
+* Group lessen by alias.
+
 * When file is removed from folder: also remove it in cloud.
 
 * display the diff.

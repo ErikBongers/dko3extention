@@ -2022,7 +2022,7 @@ function scrapeModules(table, jaarToewijzingTable) {
 	};
 }
 function scrapeTrimesterModules(lessen) {
-	let modules = lessen.filter((les) => les.lesType === LesType.TrimesterModule);
+	let modules = lessen.filter((les) => les.lesType === LesType$1.TrimesterModule);
 	let trimesterModules = [];
 	for (let module of modules) {
 		module.students = scrapeStudents(module.studentsTable);
@@ -2039,7 +2039,7 @@ function scrapeTrimesterModules(lessen) {
 	return trimesterModules;
 }
 function scrapeJaarModules(lessen) {
-	let modules = lessen.filter((les) => les.lesType === LesType.JaarModule);
+	let modules = lessen.filter((les) => les.lesType === LesType$1.JaarModule);
 	let jaarModules = [];
 	for (let module of modules) {
 		module.students = scrapeStudents(module.studentsTable);
@@ -2081,12 +2081,12 @@ function scrapeStudents(studentTable) {
 	}
 	return students;
 }
-let LesType = /* @__PURE__ */ function(LesType$1) {
-	LesType$1[LesType$1["TrimesterModule"] = 0] = "TrimesterModule";
-	LesType$1[LesType$1["JaarModule"] = 1] = "JaarModule";
-	LesType$1[LesType$1["Les"] = 2] = "Les";
-	LesType$1[LesType$1["UnknownModule"] = 3] = "UnknownModule";
-	return LesType$1;
+let LesType$1 = /* @__PURE__ */ function(LesType$2) {
+	LesType$2[LesType$2["TrimesterModule"] = 0] = "TrimesterModule";
+	LesType$2[LesType$2["JaarModule"] = 1] = "JaarModule";
+	LesType$2[LesType$2["Les"] = 2] = "Les";
+	LesType$2[LesType$2["UnknownModule"] = 3] = "UnknownModule";
+	return LesType$2;
 }({});
 var Les = class {
 	vakNaam;
@@ -2112,6 +2112,7 @@ var Les = class {
 	day;
 	repeat;
 	timeSlice;
+	linkedLessen = [];
 };
 function scrapeLesInfo(tdLesInfo) {
 	let les = new Les();
@@ -2126,10 +2127,10 @@ function scrapeLesInfo(tdLesInfo) {
 	if (mutedSpans.length > 1) les.naam = mutedSpans.item(0).textContent;
 	else les.naam = tdLesInfo.children[1].textContent;
 	les.naam = les.naam.replaceAll("(", "").replaceAll(")", "").trim();
-	if (Array.from(allBadges).some((el) => el.textContent === "module")) if (les.naam.includes("jaar")) les.lesType = LesType.JaarModule;
-	else if (les.naam.includes("rimester")) les.lesType = LesType.TrimesterModule;
-	else les.lesType = LesType.UnknownModule;
-	else les.lesType = LesType.Les;
+	if (Array.from(allBadges).some((el) => el.textContent === "module")) if (les.naam.includes("jaar")) les.lesType = LesType$1.JaarModule;
+	else if (les.naam.includes("rimester")) les.lesType = LesType$1.TrimesterModule;
+	else les.lesType = LesType$1.UnknownModule;
+	else les.lesType = LesType$1.Les;
 	if (mutedSpans.length > 0) les.teacher = Array.from(mutedSpans).pop().textContent;
 	les.teacher = les.teacher.replaceAll("  ", " ").replaceAll(" ,", ",").trim();
 	let textNodes = Array.from(tdLesInfo.childNodes).filter((node) => node.nodeType === Node.TEXT_NODE && node.textContent.trim() !== "");
@@ -2331,7 +2332,7 @@ function buildTrimesters(instrumentTeacherMomentModules) {
 		[],
 		[]
 	];
-	instrumentTeacherMomentModules.filter((module) => module.lesType === LesType.TrimesterModule).forEach((module) => {
+	instrumentTeacherMomentModules.filter((module) => module.lesType === LesType$1.TrimesterModule).forEach((module) => {
 		mergedInstrument[module.trimesterNo - 1].push(module);
 	});
 	return mergedInstrument;
@@ -2419,7 +2420,7 @@ function buildTableData(inputModules) {
 					};
 				});
 				block.trimesters = buildTrimesters(instrumentTeacherMomentModules);
-				block.jaarModules = instrumentTeacherMomentModules.filter((module) => module.lesType === LesType.JaarModule);
+				block.jaarModules = instrumentTeacherMomentModules.filter((module) => module.lesType === LesType$1.JaarModule);
 				block.offline = instrumentTeacherMomentModules.some((module) => !module.online);
 				block.checkBlockForErrors();
 				tableData.blocks.push(block);
@@ -2548,7 +2549,7 @@ function mergeBlockStudents(block) {
 }
 function createLesFromToewijzing(instrument, toewijzing) {
 	let les = new Les();
-	les.lesType = LesType.JaarModule;
+	les.lesType = LesType$1.JaarModule;
 	les.instrumentName = instrument;
 	if (toewijzing.klasleerkracht == "") les.teacher = `toe te wijzen lk ${instrument}`;
 	else les.teacher = toewijzing.klasleerkracht;
@@ -5154,11 +5155,21 @@ async function runRosterCheck(excelData) {
 	let roster = new Roster(table);
 	let excelLessen = roster.scrapeUurrooster();
 	console.log(excelLessen);
-	let dko3Lessen = await scrapeLessen();
+	let dko3Lessen = await scrapeLessen(LesType.gewone);
+	let dko3AliasLessen = await scrapeLessen(LesType.alias);
+	for (let les of dko3AliasLessen) les.linkedLessen = await getAliassesForLes(les.id);
+	dko3AliasLessen = dko3AliasLessen.filter((l) => l.linkedLessen.length > 1);
 	console.log(dko3Lessen);
-	buildDiff(excelLessen, dko3Lessen);
+	console.log(dko3AliasLessen);
+	await buildDiff(excelLessen, dko3Lessen, dko3AliasLessen);
 }
-async function scrapeLessen() {
+var LesType = /* @__PURE__ */ function(LesType$2) {
+	LesType$2["modules"] = "3";
+	LesType$2["gewone"] = "1";
+	LesType$2["alias"] = "4";
+	return LesType$2;
+}(LesType || {});
+async function scrapeLessen(type) {
 	let chain = new FetchChain();
 	let hash = "lessen-overzicht";
 	await chain.fetch(DKO3_BASE_URL + "#lessen-overzicht" + hash);
@@ -5174,7 +5185,7 @@ async function scrapeLessen() {
 		ag: "",
 		lesdag: "",
 		verberg_online: "-1",
-		soorten_lessen: "1",
+		soorten_lessen: type,
 		volzet: "-1"
 	});
 	let tableText = await fetchLessen(params);
@@ -5189,6 +5200,7 @@ var TaggedLes = class {
 	searchText;
 	location;
 	teachers;
+	linkedLessen = [];
 	constructor(les, tags, searchText) {
 		this.les = les;
 		this.tags = tags;
@@ -5213,10 +5225,18 @@ var TaggedExcelLes = class extends TaggedLes {
 		this.teachers = this.les.teacher.split(/[]\/,/g).map((t) => Roster.findTeacher(t));
 	}
 };
-async function buildDiff(excelLessen, dko3Lessen) {
+async function buildDiff(excelLessen, dko3Lessen, dko3AliasLessen) {
 	let diffs = [];
 	let excelLesSet = new Set(excelLessen.map((les) => new TaggedExcelLes(les)));
 	let dko3LesSet = new Set(dko3Lessen.map((les) => new TaggedDko3Les(les)));
+	let lessenMap = new Map();
+	for (let les of dko3LesSet.values()) lessenMap.set(les.les.id, les);
+	for (let aliasLes of dko3AliasLessen) {
+		let taggedAliasLes = new TaggedDko3Les(aliasLes);
+		taggedAliasLes.linkedLessen = taggedAliasLes.les.linkedLessen.map((id) => lessenMap.get(id));
+		dko3LesSet.add(taggedAliasLes);
+		for (let linkedLes of taggedAliasLes.linkedLessen) dko3LesSet.delete(linkedLes);
+	}
 	for (const les1 of [...dko3LesSet.values()].filter((les) => les.les.teacher.includes("(en nog"))) les1.teachers = await getExtraTeachers(les1.les.id);
 	matchIt(dko3LesSet, excelLesSet, diffs, "perfect match", perfectMatch);
 	matchIt(dko3LesSet, excelLesSet, diffs, "match without teacher", matchWithoutTeacher);
@@ -5240,6 +5260,18 @@ async function getExtraTeachers(lesId) {
 	return [...strongs].map((s) => {
 		return s.textContent.replaceAll("  ", " ").replaceAll(" ,", ",").trim();
 	});
+}
+async function getAliassesForLes(lesId) {
+	await fetch("https://administratie.dko3.cloud/view.php?args=lessen-les?id=" + lesId);
+	await fetch("https://administratie.dko3.cloud/views/lessen/les/index.view.php");
+	await fetch("https://administratie.dko3.cloud/views/lessen/les/index.details.tab.php");
+	await fetch("https://administratie.dko3.cloud/views/lessen/les/index.meta.tab.php");
+	let res = await fetch("https://administratie.dko3.cloud/views/lessen/les/meta/alias_gekoppelde_lessen.card.php");
+	let htmlAliases = await res.text();
+	let div = document.createElement("div");
+	div.innerHTML = htmlAliases;
+	let anchors = div.querySelectorAll("td > a");
+	return [...anchors].map((a) => a.textContent.trim());
 }
 function matchIt(dko3LesSet, excelLesSet, diffs, comment, matchFunction) {
 	for (let dko3Les of dko3LesSet) {

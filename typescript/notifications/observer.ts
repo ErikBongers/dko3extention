@@ -108,12 +108,21 @@ async function runRosterCheck(excelData: JsonExcelData) {
     let roster = new Roster(table);
     let excelLessen = roster.scrapeUurrooster();
     console.log(excelLessen);
-    let dko3Lessen = await scrapeLessen();
+    let dko3Lessen = await scrapeLessen(LesType.gewone);
+    let dko3AliasLessen = await scrapeLessen(LesType.alias);
+    for (let les of dko3AliasLessen) {
+        les.linkedLessen = await getAliassesForLes(les.id);
+    }
+    //remove aliaslessen with only one linked les. We're don't care about those.
+    dko3AliasLessen = dko3AliasLessen.filter(l => l.linkedLessen.length > 1);
     console.log(dko3Lessen);
-    buildDiff(excelLessen, dko3Lessen);
+    console.log(dko3AliasLessen);
+
+    await buildDiff(excelLessen, dko3Lessen, dko3AliasLessen);
 }
 
-async function scrapeLessen() {
+enum LesType {modules="3", gewone="1", alias="4"}
+async function scrapeLessen(type: LesType ) {
     let chain = new FetchChain();
     let hash = "lessen-overzicht";
     await chain.fetch(def.DKO3_BASE_URL + "#lessen-overzicht" + hash);
@@ -129,7 +138,7 @@ async function scrapeLessen() {
         ag: "",
         lesdag: "",
         verberg_online: "-1",
-        soorten_lessen: "1", //modules =3, gewone lessen=1
+        soorten_lessen: type,
         volzet: "-1"
     });
     let tableText = await fetchLessen(params);
@@ -151,6 +160,7 @@ abstract class TaggedLes<T extends ClassDef | Les> {
     searchText: string;
     location?: string;
     teachers: string[];
+    linkedLessen: TaggedLes<T>[] = [];
 
     protected constructor(les: T, tags: string[], searchText: string) {
         this.les = les;
@@ -163,6 +173,7 @@ class TaggedDko3Les extends TaggedLes<Les> {
     constructor(les: Les) {
         let searchText = "";
         let tags: string[] = [];
+
         super(les, tags, searchText);
         this.location = this.les.vestiging;
         this.teachers = [this.les.teacher
@@ -180,10 +191,22 @@ class TaggedExcelLes extends TaggedLes<ClassDef> {
     }
 }
 
-async function buildDiff(excelLessen: ClassDef[], dko3Lessen: Les[]) {
+async function buildDiff(excelLessen: ClassDef[], dko3Lessen: Les[], dko3AliasLessen: Les[]) {
     let diffs: Diff[] = [];
     let excelLesSet: Set<TaggedExcelLes> = new Set<TaggedExcelLes>(excelLessen.map(les => new TaggedExcelLes(les)));
     let dko3LesSet: Set<TaggedDko3Les> = new Set<TaggedDko3Les>(dko3Lessen.map(les => new TaggedDko3Les(les)));
+    //move linked lessen inside the alias les.
+    let lessenMap: Map<string, TaggedDko3Les> = new Map<string, TaggedDko3Les>();
+    for(let les of dko3LesSet.values())
+        lessenMap.set(les.les.id, les);
+    for(let aliasLes of dko3AliasLessen) {
+        let taggedAliasLes = new TaggedDko3Les(aliasLes);
+        taggedAliasLes.linkedLessen = taggedAliasLes.les.linkedLessen.map(id => lessenMap.get(id));
+        dko3LesSet.add(taggedAliasLes);
+        for(let linkedLes of taggedAliasLes.linkedLessen)
+            dko3LesSet.delete(linkedLes);
+    }
+    //todo: split dko3Les.vaknaam into array. Split on "+" and trim.
     //get extra teaches
     for (const les1 of [...dko3LesSet.values()]
         .filter(les => les.les.teacher.includes("(en nog"))) {
@@ -216,6 +239,19 @@ async function getExtraTeachers(lesId: string) {
             .replaceAll(" ,", ",")
             .trim(); //clean up of names with additional spaces
     });
+}
+
+async function getAliassesForLes(lesId: string) {
+    await fetch("https://administratie.dko3.cloud/view.php?args=lessen-les?id="+lesId);
+    await fetch("https://administratie.dko3.cloud/views/lessen/les/index.view.php");
+    await fetch("https://administratie.dko3.cloud/views/lessen/les/index.details.tab.php");
+    await fetch("https://administratie.dko3.cloud/views/lessen/les/index.meta.tab.php");
+    let res = await fetch("https://administratie.dko3.cloud/views/lessen/les/meta/alias_gekoppelde_lessen.card.php");
+    let htmlAliases = await res.text();
+    let div = document.createElement("div") as HTMLDivElement;
+    div.innerHTML = htmlAliases;
+    let anchors = div.querySelectorAll("td > a");
+    return [...anchors].map(a => a.textContent.trim());
 }
 
 function matchIt(dko3LesSet: Set<TaggedDko3Les>, excelLesSet: Set<TaggedExcelLes>, diffs: Diff[], comment: string, matchFunction: (dko3Les: TaggedDko3Les, excelLesSet: Set<TaggedExcelLes>) => (TaggedExcelLes | null)) {
