@@ -10,7 +10,7 @@ export type GradeYear = {
     year: number
 }
 
-type ClassDef = {
+export type ClassDef = {
     day: string,
     teacher: string,
     timeSlice: TimeSlice,
@@ -20,9 +20,21 @@ type ClassDef = {
     description: string
 }
 
-export type TimeSlice = {
-    start: Time,
-    end: Time
+export class TimeSlice {
+    start: Time;
+    end: Time;
+
+    public constructor(start: Time, end: Time) {
+        this.start = start;
+        this.end = end;
+    }
+
+    public equal(timeslice2: TimeSlice): boolean {
+        return this.start.hour == timeslice2.start.hour
+            && this.start.minutes == timeslice2.start.minutes
+            && this.end.hour == timeslice2.end.hour
+            && this.end.minutes == timeslice2.end.minutes;
+    }
 }
 
 export type Time = {
@@ -60,22 +72,22 @@ export class Roster{
                 let rx = /\n/g;
                 let description = cellValue
                     .replaceAll(rx, " ");
-                let parseText = description
+                let parseText = " "+description
                     .replaceAll("(", " ( ") //force spaces around words or numbers
-                    .replaceAll(")", " ) ");
+                    .replaceAll(")", " ) ")
+                    .replaceAll(",", " , ")
+                    .replaceAll("+", " + ")
+                    + " ";
                 let timeSlice: TimeSlice = undefined;
                 let mergedRange = this.table.RangeOfCell({row, column});
                 let sliceStartText = this.table.HeaderColumnValue(mergedRange.Start.row, 0);
                 let sliceEndText = this.table.HeaderColumnValue(mergedRange.End.row, 0);
                 let sliceStart = timeSlices.get(sliceStartText);
                 let sliceEnd = timeSlices.get(sliceEndText);
-                timeSlice = {start: sliceStart.start, end: sliceEnd.end};
+                timeSlice = new TimeSlice(sliceStart.start, sliceEnd.end);
                 let times = this.findTimes(parseText);
                 if(times.length ===2) {
-                    timeSlice = {
-                        start: times[0],
-                        end: times[1]
-                    };
+                    timeSlice = new TimeSlice(times[0], times[1]);
                 } else if(times.length === 1) {
                     timeSlice = this.moveTimeSliceTo(timeSlice, times[0]);
                 }
@@ -98,16 +110,8 @@ export class Roster{
         return classDefs;
     }
 
-    private classDefToString(classDef: ClassDef) {
-        return `${classDef.day}, ${classDef.teacher}, ${classDef.subject}, ${classDef.location}, [${classDef.gradeYears?.map(gy => this.gradeYearToString(gy)).join(", ")}], ${classDef.description}`;
-    }
-
     private gradeYearToString(gradeYear: GradeYear) {
         return `${gradeYear.grade ? gradeYear.grade: "?"}.${gradeYear.year}`;
-    }
-
-    private classDefsToString(classDefs: ClassDef[]) {
-        return classDefs.map(classDef => this.classDefToString(classDef)).join("\n");
     }
 
     private createTimeSlices(): Map<string, TimeSlice> {
@@ -118,16 +122,16 @@ export class Roster{
             let value = this.table.HeaderColumnValue(row, 0);
             let matches = rx.exec(value);
             if(matches) {
-                let timeSlice: TimeSlice = {
-                    start: {
+                let timeSlice= new TimeSlice(
+                    {
                         hour: parseInt(matches[1]),
                         minutes: parseInt(matches[2])
                     },
-                    end: {
+                    {
                         hour: parseInt(matches[3]),
                         minutes: parseInt(matches[4])
                     }
-                };
+                );
                 timeSlices.set(value, timeSlice);
             } else {
                 this.errors.push(`Could not parse time slice: ${value}`);
@@ -152,59 +156,72 @@ export class Roster{
     }
 
     private moveTimeSliceTo(timeSlice: TimeSlice, newStart: Time) {
-        let newSlice = timeSlice;
+        let newSlice = structuredClone(timeSlice);
         let startMinutes = timeSlice.start.hour * 60 + timeSlice.start.minutes;
         let endMinutes = timeSlice.end.hour * 60 + timeSlice.end.minutes;
         let duration = endMinutes - startMinutes;
-        timeSlice.start = newStart;
+        timeSlice.start = structuredClone(newStart);
         let newEndMinutes = newStart.hour * 60 + newStart.minutes + duration;
         newSlice.end.hour = Math.trunc(newEndMinutes / 60);
         newSlice.end.minutes = newEndMinutes % 60;
         return newSlice;
     }
 
-    private defaultTagDefs: TagDef[] = [
-        { tag: "Sterrenkijker", searchString: "sterr"},
-        { tag: "Sterrenkijker", searchString: "durlet"},
-        { tag: "Kleine Stad", searchString: " stad"},
-        { tag: "Kleine Wereld", searchString: " wereld"},
-        { tag: "De Nieuwe Vrede", searchString: " vrede"},
-        { tag: "De Nieuwe Vrede", searchString: "dnv"},
-        { tag: "De Kosmos", searchString: " kosmos"},
-        { tag: "De Schatkist", searchString: "schatk"},
-        { tag: "De Kolibrie", searchString: " kolibri"},
-        { tag: "Albereke", searchString: "albere"},
-        { tag: "c o r s o", searchString: "corso"},
-        { tag: "c o r s o", searchString: "c o r s o"},
-        { tag: "Cabaret & Comedy", searchString: "cabaret"},
-        { tag: "Woordatelier", searchString: "woordatelier"},
-        { tag: "Woordatelier", searchString: "WA "}, //todo: searchString is assumed to be in lower case.
-        { tag: "Woordlab", searchString: "woordlab"},
-        { tag: "Woordlab", searchString: "WL "},
-        { tag: "Literair atelier", searchString: "literair atelier"},
-        { tag: "Literaire teksten", searchString: "literaire teksten"},
-        { tag: "Willem Van Laarstraat", searchString: "bib"},
-        { tag: "Spreken en presenteren", searchString: "presenteren"},
-        { tag: "Kunstenbad", searchString: "kunstenbad"},
-        { tag: "Musicalatelier", searchString: "musicalatelier"},
-        { tag: "Musical koor", searchString: "musical koor"},
-        { tag: "Musical zang", searchString: "musical zang"},
-        { tag: "De Nieuwe Vrede", searchString: " tegel"},
-        { tag: "De Nieuwe Vrede", searchString: " tango"},
+    public defaultTagDefs: TagDef[] = [
+        { tag: "Vestiging Sterrenkijker/SL Durlet", searchString: " sterr"},
+        { tag: "Vestiging Sterrenkijker/SL Durlet", searchString: " durlet"},
+        { tag: "Vestiging De Kleine Stad", searchString: " kleine stad "}, //"stad" could be a word in a different context.
+        { tag: "Vestiging De Kleine Wereld", searchString: " wereld "},
+        { tag: "Vestiging De Nieuwe Vrede", searchString: " vrede "},
+        { tag: "Vestiging De Nieuwe Vrede", searchString: " dnv "},
+        { tag: "Vestiging De Nieuwe Vrede", searchString: " tegel"},
+        { tag: "Vestiging De Nieuwe Vrede", searchString: " tango "},
+        { tag: "Vestiging De Kosmos", searchString: " kosmos "},
+        { tag: "Vestiging De Schatkist", searchString: " schatk"},
+        { tag: "Vestiging De Kolibrie", searchString: " kolibri "},
+        { tag: "Vestiging Alberreke", searchString: " alber"},
+        { tag: "Vestiging c o r s o", searchString: " corso "},
+        { tag: "Vestiging c o r s o", searchString: "c o r s o"},
+
+        { tag: "Cabaret & Comedy", searchString: " cabaret "},
+        { tag: "Woordatelier", searchString: " woordatelier "},
+        { tag: "Woordatelier", searchString: " wa "}, //todo: searchString is assumed to be in lower case.
+        { tag: "Woordlab", searchString: " woordlab "},
+        { tag: "Woordlab", searchString: " wl "},
+        { tag: "Literair atelier", searchString: " literair atelier "},
+        { tag: "Literaire teksten", searchString: " literaire teksten "},
+        { tag: "Willem Van Laarstraat", searchString: " bib "},
+        { tag: "Spreken en presenteren", searchString: " presenteren "},
+        { tag: "Kunstenbad", searchString: " kunstenbad "},
+        { tag: "Musicalatelier", searchString: " musicalatelier "},
+        { tag: "Musical koor", searchString: " musical koor "},
+        { tag: "Musical zang", searchString: " musical zang "},
     ];
 
     private locationDefs: string[] = [
-        "Sterrenkijker",
-        "Kleine Stad",
-        "Kleine Wereld",
-        "De Nieuwe Vrede",
-        "De Kosmos",
-        "De Schatkist",
-        "De Kolibrie",
-        "Albereke",
-        "Albereke",
-        "c o r s o",
-        "Willem Van Laarstraat",
+        "Academie Willem Van Laarstraat, Berchem",
+        "Vestiging c o r s o",
+        "Vestiging De Kleine Wereld",
+        "Vestiging De Kolibrie",
+        "Vestiging De Schatkist",
+        "Vestiging Groenhout Kasteelstraat",
+        "Vestiging Het Fonkelpad",
+        "Vestiging OLV Pulhof",
+        "Vestiging Via Louiza",
+        "Vestiging Alberreke",
+        "Vestiging De Kleine Stad",
+        "Vestiging De Kosmos",
+        "Vestiging De Nieuwe Vrede",
+        "Vestiging Frans Van Hombeeck",
+        "Vestiging Klavertje Vier",
+        "Vestiging Prins Dries",
+        "Vestiging Sterrenkijker/SL Durlet",
+        "Wijkafdeling Lageweg, Hoboken",
+        "Wijkafdeling Louizastraat, Antwerpen",
+        "Wijkafdeling Mechelseplein, Antwerpen",
+        "Wijkafdeling Sint Hubertusstraat, Berchem",
+        "Wijkafdeling Sint-Hubertusstraat",
+        "Wijkafdeling Walburgis, Volkstraat",
     ];
 
     private subjectDefs: string[] = [
@@ -226,6 +243,15 @@ export class Roster{
 
     private findSubject(tags: string[]) {
         return this.subjectDefs.find(subject => tags.includes(subject));
+    }
+
+    public static findTeacher(searchString: string) {
+        let lowerCase = searchString.toLowerCase();
+        for(let teacherDef of leraren){
+            if(lowerCase.includes(teacherDef.firstName.toLowerCase()))
+                return teacherDef.name;
+        }
+        return searchString;
     }
 
     private findTags(text: string, tagDefs: TagDef[]) {
@@ -267,3 +293,89 @@ export class Roster{
         }
     }
 }
+
+export const leraren = [
+        {name: "Bavin, Jeroen", firstName: "Jeroen"},
+        {name: "Benoot, Joke", firstName: "Joke"},
+        {name: "De Moudt, Runa", firstName: "Runa"},
+        {name: "Beurghs, Lieve", firstName: "Lieve"},
+        {name: "Boonen, Tim", firstName: "Tim"},
+        {name: "Verpoten, Kristel", firstName: "Kristel"},
+        {name: "Boot, Cornelia", firstName: "Cornelia"},
+        {name: "Braem, Veerle", firstName: "Veerle"},
+        {name: "Bruneel, Janos", firstName: "Janos"},
+        {name: "Buyl, Lotte", firstName: "Lotte"},
+        {name: "Cardoen, Edwige", firstName: "Edwige"},
+        {name: "Celis, Naomi", firstName: "Naomi"},
+        {name: "Cuypers, Joost", firstName: "Joost"},
+        {name: "D'Haese, Sofie", firstName: "Sofie"},
+        {name: "Daans, Tom", firstName: "Tom"},
+        {name: "De Cock, Winter", firstName: "Winter"},
+        {name: "Derijcke, Sophie", firstName: "Sophie"},
+        {name: "De Feyter, Moya", firstName: "Moya"},
+        {name: "Demirbas, Serdar", firstName: "Serdar"},
+        {name: "Denys, Stijn", firstName: "Stijn"},
+        {name: "Wijckmans, Thierry", firstName: "Thierry"},
+        {name: "Dergent, Danielle", firstName: "Danielle"},
+        {name: "Desmet, Robbe", firstName: "Robbe"},
+        {name: "Dias, Lindsy", firstName: "Lindsy"},
+        {name: "Spee, Marlijn", firstName: "Marlijn"},
+        {name: "Dyck, Sebastiaan", firstName: "Sebastiaan"},
+        {name: "Erbstösser, Christoph", firstName: "Christoph"},
+        {name: "Geris, Maartje", firstName: "Maartje"},
+        {name: "Giron, Rudi", firstName: "Rudi"},
+        {name: "Gratchev, Serguei", firstName: "Serguei"},
+        {name: "Gys, Jasmien", firstName: "Jasmien"},
+        {name: "Haché, Govaart", firstName: "Govaart"},
+        {name: "Segers, Mieke", firstName: "Mieke"},
+        {name: "Haesebeyt, Joram", firstName: "Joram"},
+        {name: "Hinnekens, Sam", firstName: "Sam"},
+        {name: "Vitacolonna, Toni", firstName: "Toni"},
+        {name: "Hubrechts, Tine", firstName: "Tine"},
+        {name: "Vanhellemont, Rhea", firstName: "Rhea"},
+        {name: "Ip, Daisy", firstName: "Daisy"},
+        {name: "Maerevoet, Tina", firstName: "Tina"},
+        {name: "Janssens, Luna", firstName: "Luna"},
+        {name: "Janssens, Rani", firstName: "Rani"},
+        {name: "Praet, Tahnee", firstName: "Tahnee"},
+        {name: "Janssens, Veerle", firstName: "Veerle"},
+        {name: "Joris, Sam", firstName: "Sam"},
+        {name: "Lauwers, Anke", firstName: "Anke"},
+        {name: "Leiva Sepulveda, Maria", firstName: "Maria"},
+        {name: "Van de Meirssche, Lieve", firstName: "Lieve"},
+        {name: "Storms, Isabelle", firstName: "Isabelle"},
+        {name: "Van Goethem, Robert", firstName: "Robert"},
+        {name: "Lejeune, Joris", firstName: "Joris"},
+        {name: "Westra Hoekzema, Maarten", firstName: "Maarten"},
+        {name: "Meerbergen, Johan", firstName: "Johan"},
+        {name: "Meermans, Sander", firstName: "Sander"},
+        {name: "Melaerts, Jan", firstName: "Jan"},
+        {name: "Pauwels, Kim", firstName: "Kim"},
+        {name: "Pavlidi, Ntiana", firstName: "Ntiana"},
+        {name: "Pecnik, Ivan", firstName: "Ivan"},
+        {name: "Quintens, Yanate", firstName: "Yanate"},
+        {name: "Reekmans, Stan", firstName: "Stan"},
+        {name: "Reusens, Oliver", firstName: "Oliver"},
+        {name: "Rosquete Márquez, Juan Carlos", firstName: "Juan Carlos"},
+        {name: "Scheir, Katleen", firstName: "Katleen"},
+        {name: "Schoonis, Lien", firstName: "Lien"},
+        {name: "Shütte, Katrin", firstName: "Katrin"},
+        {name: "Tiest, Tom", firstName: "Tom"},
+        {name: "Truyman, Evy", firstName: "Evy"},
+        {name: "Vaerendonck, Joeri", firstName: "Joeri"},
+        {name: "Van Abbenyen, Emma", firstName: "Emma"},
+        {name: "Van Acker, Andrea", firstName: "Andrea"},
+        {name: "Wynants, Femke", firstName: "Femke"},
+        {name: "Van Assche, Jurgen", firstName: "Jurgen"},
+        {name: "Van Casteren, Bart", firstName: "Bart"},
+        {name: "Van Kerckhoven, Katelijn", firstName: "Katelijn"},
+        {name: "Van Laere, Hannah", firstName: "Hannah"},
+        {name: "Van Reeth, Peter", firstName: "Peter"},
+        {name: "Van de Velde, Samuel", firstName: "Samuel"},
+        {name: "Vandekerckhove, Elvira", firstName: "Elvira"},
+        {name: "Vandenbussche, Christina", firstName: "Christina"},
+        {name: "Verhaegen, Dieter", firstName: "Dieter"},
+        {name: "Verhelst, Peter", firstName: "Peter"},
+        {name: "Wellens, Florian", firstName: "Florian"},
+        {name: "Wong, Maureen", firstName: "Maureen"}
+    ];

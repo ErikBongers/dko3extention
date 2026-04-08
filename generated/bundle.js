@@ -1259,6 +1259,648 @@ async function getModules(_size, _modal, _file, args) {
 }
 
 //#endregion
+//#region typescript/roster_diff/compare_roster.ts
+var TimeSlice = class {
+	start;
+	end;
+	constructor(start, end) {
+		this.start = start;
+		this.end = end;
+	}
+	equal(timeslice2) {
+		return this.start.hour == timeslice2.start.hour && this.start.minutes == timeslice2.start.minutes && this.end.hour == timeslice2.end.hour && this.end.minutes == timeslice2.end.minutes;
+	}
+};
+var Roster = class {
+	table;
+	errors = [];
+	constructor(table) {
+		this.table = table;
+	}
+	scrapeUurrooster() {
+		let timeSlices = this.createTimeSlices();
+		if (this.errors.length > 0) return;
+		let classDefs = [];
+		for (let c = 0; c <= this.table.ColumnCount; c++) classDefs = classDefs.concat(this.scrapeColumn(c, timeSlices));
+		return classDefs;
+	}
+	scrapeColumn(column, timeSlices) {
+		let classDefs = [];
+		let day = this.table.HeaderRowValue(0, column);
+		let teacher = this.table.HeaderRowValue(1, column);
+		for (let row = 0; row < this.table.RowCount; row++) {
+			let cellValue = this.table.Cell(row, column);
+			if (cellValue) {
+				let rx = /\n/g;
+				let description = cellValue.replaceAll(rx, " ");
+				let parseText = " " + description.replaceAll("(", " ( ").replaceAll(")", " ) ").replaceAll(",", " , ").replaceAll("+", " + ") + " ";
+				let timeSlice = void 0;
+				let mergedRange = this.table.RangeOfCell({
+					row,
+					column
+				});
+				let sliceStartText = this.table.HeaderColumnValue(mergedRange.Start.row, 0);
+				let sliceEndText = this.table.HeaderColumnValue(mergedRange.End.row, 0);
+				let sliceStart = timeSlices.get(sliceStartText);
+				let sliceEnd = timeSlices.get(sliceEndText);
+				timeSlice = new TimeSlice(sliceStart.start, sliceEnd.end);
+				let times = this.findTimes(parseText);
+				if (times.length === 2) timeSlice = new TimeSlice(times[0], times[1]);
+				else if (times.length === 1) timeSlice = this.moveTimeSliceTo(timeSlice, times[0]);
+				let tags = this.findTags(parseText, this.defaultTagDefs);
+				let location$1 = this.findLocation(tags);
+				let subject = this.findSubject(tags);
+				let classDef = {
+					teacher,
+					day,
+					timeSlice,
+					location: location$1,
+					subject,
+					gradeYears: this.findGradeYears(parseText),
+					description
+				};
+				classDefs.push(classDef);
+				row = mergedRange.End.row + 1;
+			}
+		}
+		return classDefs;
+	}
+	gradeYearToString(gradeYear) {
+		return `${gradeYear.grade ? gradeYear.grade : "?"}.${gradeYear.year}`;
+	}
+	createTimeSlices() {
+		let timeSlices = new Map();
+		for (let row = 0; row < this.table.RowCount; row++) {
+			let rx = /(\d?\d)[.:,](\d\d)\s*-\s*(\d?\d)[.:,](\d\d)/gm;
+			let value = this.table.HeaderColumnValue(row, 0);
+			let matches = rx.exec(value);
+			if (matches) {
+				let timeSlice = new TimeSlice({
+					hour: parseInt(matches[1]),
+					minutes: parseInt(matches[2])
+				}, {
+					hour: parseInt(matches[3]),
+					minutes: parseInt(matches[4])
+				});
+				timeSlices.set(value, timeSlice);
+			} else this.errors.push(`Could not parse time slice: ${value}`);
+		}
+		return timeSlices;
+	}
+	findTimes(text) {
+		let times = [];
+		let rx = /\s+(\d?\d)[.:,](\d\d)/gm;
+		let matches = rx.exec(text);
+		while (matches) {
+			let time = {
+				hour: parseInt(matches[1]),
+				minutes: parseInt(matches[2])
+			};
+			times.push(time);
+			matches = rx.exec(text);
+		}
+		return times;
+	}
+	moveTimeSliceTo(timeSlice, newStart) {
+		let newSlice = structuredClone(timeSlice);
+		let startMinutes = timeSlice.start.hour * 60 + timeSlice.start.minutes;
+		let endMinutes = timeSlice.end.hour * 60 + timeSlice.end.minutes;
+		let duration = endMinutes - startMinutes;
+		timeSlice.start = structuredClone(newStart);
+		let newEndMinutes = newStart.hour * 60 + newStart.minutes + duration;
+		newSlice.end.hour = Math.trunc(newEndMinutes / 60);
+		newSlice.end.minutes = newEndMinutes % 60;
+		return newSlice;
+	}
+	defaultTagDefs = [
+		{
+			tag: "Vestiging Sterrenkijker/SL Durlet",
+			searchString: " sterr"
+		},
+		{
+			tag: "Vestiging Sterrenkijker/SL Durlet",
+			searchString: " durlet"
+		},
+		{
+			tag: "Vestiging De Kleine Stad",
+			searchString: " kleine stad "
+		},
+		{
+			tag: "Vestiging De Kleine Wereld",
+			searchString: " wereld "
+		},
+		{
+			tag: "Vestiging De Nieuwe Vrede",
+			searchString: " vrede "
+		},
+		{
+			tag: "Vestiging De Nieuwe Vrede",
+			searchString: " dnv "
+		},
+		{
+			tag: "Vestiging De Nieuwe Vrede",
+			searchString: " tegel"
+		},
+		{
+			tag: "Vestiging De Nieuwe Vrede",
+			searchString: " tango "
+		},
+		{
+			tag: "Vestiging De Kosmos",
+			searchString: " kosmos "
+		},
+		{
+			tag: "Vestiging De Schatkist",
+			searchString: " schatk"
+		},
+		{
+			tag: "Vestiging De Kolibrie",
+			searchString: " kolibri "
+		},
+		{
+			tag: "Vestiging Alberreke",
+			searchString: " alber"
+		},
+		{
+			tag: "Vestiging c o r s o",
+			searchString: " corso "
+		},
+		{
+			tag: "Vestiging c o r s o",
+			searchString: "c o r s o"
+		},
+		{
+			tag: "Cabaret & Comedy",
+			searchString: " cabaret "
+		},
+		{
+			tag: "Woordatelier",
+			searchString: " woordatelier "
+		},
+		{
+			tag: "Woordatelier",
+			searchString: " wa "
+		},
+		{
+			tag: "Woordlab",
+			searchString: " woordlab "
+		},
+		{
+			tag: "Woordlab",
+			searchString: " wl "
+		},
+		{
+			tag: "Literair atelier",
+			searchString: " literair atelier "
+		},
+		{
+			tag: "Literaire teksten",
+			searchString: " literaire teksten "
+		},
+		{
+			tag: "Willem Van Laarstraat",
+			searchString: " bib "
+		},
+		{
+			tag: "Spreken en presenteren",
+			searchString: " presenteren "
+		},
+		{
+			tag: "Kunstenbad",
+			searchString: " kunstenbad "
+		},
+		{
+			tag: "Musicalatelier",
+			searchString: " musicalatelier "
+		},
+		{
+			tag: "Musical koor",
+			searchString: " musical koor "
+		},
+		{
+			tag: "Musical zang",
+			searchString: " musical zang "
+		}
+	];
+	locationDefs = [
+		"Academie Willem Van Laarstraat, Berchem",
+		"Vestiging c o r s o",
+		"Vestiging De Kleine Wereld",
+		"Vestiging De Kolibrie",
+		"Vestiging De Schatkist",
+		"Vestiging Groenhout Kasteelstraat",
+		"Vestiging Het Fonkelpad",
+		"Vestiging OLV Pulhof",
+		"Vestiging Via Louiza",
+		"Vestiging Alberreke",
+		"Vestiging De Kleine Stad",
+		"Vestiging De Kosmos",
+		"Vestiging De Nieuwe Vrede",
+		"Vestiging Frans Van Hombeeck",
+		"Vestiging Klavertje Vier",
+		"Vestiging Prins Dries",
+		"Vestiging Sterrenkijker/SL Durlet",
+		"Wijkafdeling Lageweg, Hoboken",
+		"Wijkafdeling Louizastraat, Antwerpen",
+		"Wijkafdeling Mechelseplein, Antwerpen",
+		"Wijkafdeling Sint Hubertusstraat, Berchem",
+		"Wijkafdeling Sint-Hubertusstraat",
+		"Wijkafdeling Walburgis, Volkstraat"
+	];
+	subjectDefs = [
+		"Woordatelier",
+		"Woordlab",
+		"Cabaret & Comedy",
+		"Literair atelier",
+		"Literaire teksten",
+		"Spreken en presenteren",
+		"Kunstenbad",
+		"Musicalatelier",
+		"Musical koor",
+		"Musical zang"
+	];
+	findLocation(tags) {
+		return this.locationDefs.find((location$1) => tags.includes(location$1));
+	}
+	findSubject(tags) {
+		return this.subjectDefs.find((subject) => tags.includes(subject));
+	}
+	static findTeacher(searchString) {
+		let lowerCase = searchString.toLowerCase();
+		for (let teacherDef of leraren) if (lowerCase.includes(teacherDef.firstName.toLowerCase())) return teacherDef.name;
+		return searchString;
+	}
+	findTags(text, tagDefs) {
+		let tags = [];
+		for (let def of tagDefs) if (text.toLowerCase().includes(def.searchString)) tags.push(def.tag);
+		return tags;
+	}
+	findGradeYears(text) {
+		let gradeYears = [];
+		const rx = /\s+(?:(\d)\.(\d)|(S)(\d))(?:\s?[,+\/]\s?(?:(\d)\.(\d)|(S)(\d)))?(?:\s?[,+\/]\s?(?:(\d)\.(\d)|(S)(\d)))?(?:\s?[,+\/]\s?(?:(\d)\.(\d)|(S)(\d)))?(?:\s?[,+\/]\s?(?:(\d)\.(\d)|(S)(\d)))?/gm;
+		let matches = rx.exec(text);
+		if (matches) {
+			let strippedMatches = matches.filter((m) => m);
+			for (let i = 1; i < strippedMatches.length; i += 2) {
+				let gradeYear = {
+					grade: strippedMatches[i],
+					year: parseInt(strippedMatches[i + 1])
+				};
+				gradeYears.push(gradeYear);
+			}
+			return gradeYears;
+		}
+		const rx2 = /\s+(\d)\s?[,+]\s?(\d)/gm;
+		matches = rx2.exec(text);
+		if (matches) {
+			let strippedMatches = matches.filter((m) => m);
+			for (let i = 1; i < strippedMatches.length; i++) {
+				let gradeYear = {
+					grade: "2",
+					year: parseInt(strippedMatches[i])
+				};
+				gradeYears.push(gradeYear);
+			}
+			return gradeYears;
+		}
+	}
+};
+const leraren = [
+	{
+		name: "Bavin, Jeroen",
+		firstName: "Jeroen"
+	},
+	{
+		name: "Benoot, Joke",
+		firstName: "Joke"
+	},
+	{
+		name: "De Moudt, Runa",
+		firstName: "Runa"
+	},
+	{
+		name: "Beurghs, Lieve",
+		firstName: "Lieve"
+	},
+	{
+		name: "Boonen, Tim",
+		firstName: "Tim"
+	},
+	{
+		name: "Verpoten, Kristel",
+		firstName: "Kristel"
+	},
+	{
+		name: "Boot, Cornelia",
+		firstName: "Cornelia"
+	},
+	{
+		name: "Braem, Veerle",
+		firstName: "Veerle"
+	},
+	{
+		name: "Bruneel, Janos",
+		firstName: "Janos"
+	},
+	{
+		name: "Buyl, Lotte",
+		firstName: "Lotte"
+	},
+	{
+		name: "Cardoen, Edwige",
+		firstName: "Edwige"
+	},
+	{
+		name: "Celis, Naomi",
+		firstName: "Naomi"
+	},
+	{
+		name: "Cuypers, Joost",
+		firstName: "Joost"
+	},
+	{
+		name: "D'Haese, Sofie",
+		firstName: "Sofie"
+	},
+	{
+		name: "Daans, Tom",
+		firstName: "Tom"
+	},
+	{
+		name: "De Cock, Winter",
+		firstName: "Winter"
+	},
+	{
+		name: "Derijcke, Sophie",
+		firstName: "Sophie"
+	},
+	{
+		name: "De Feyter, Moya",
+		firstName: "Moya"
+	},
+	{
+		name: "Demirbas, Serdar",
+		firstName: "Serdar"
+	},
+	{
+		name: "Denys, Stijn",
+		firstName: "Stijn"
+	},
+	{
+		name: "Wijckmans, Thierry",
+		firstName: "Thierry"
+	},
+	{
+		name: "Dergent, Danielle",
+		firstName: "Danielle"
+	},
+	{
+		name: "Desmet, Robbe",
+		firstName: "Robbe"
+	},
+	{
+		name: "Dias, Lindsy",
+		firstName: "Lindsy"
+	},
+	{
+		name: "Spee, Marlijn",
+		firstName: "Marlijn"
+	},
+	{
+		name: "Dyck, Sebastiaan",
+		firstName: "Sebastiaan"
+	},
+	{
+		name: "Erbstösser, Christoph",
+		firstName: "Christoph"
+	},
+	{
+		name: "Geris, Maartje",
+		firstName: "Maartje"
+	},
+	{
+		name: "Giron, Rudi",
+		firstName: "Rudi"
+	},
+	{
+		name: "Gratchev, Serguei",
+		firstName: "Serguei"
+	},
+	{
+		name: "Gys, Jasmien",
+		firstName: "Jasmien"
+	},
+	{
+		name: "Haché, Govaart",
+		firstName: "Govaart"
+	},
+	{
+		name: "Segers, Mieke",
+		firstName: "Mieke"
+	},
+	{
+		name: "Haesebeyt, Joram",
+		firstName: "Joram"
+	},
+	{
+		name: "Hinnekens, Sam",
+		firstName: "Sam"
+	},
+	{
+		name: "Vitacolonna, Toni",
+		firstName: "Toni"
+	},
+	{
+		name: "Hubrechts, Tine",
+		firstName: "Tine"
+	},
+	{
+		name: "Vanhellemont, Rhea",
+		firstName: "Rhea"
+	},
+	{
+		name: "Ip, Daisy",
+		firstName: "Daisy"
+	},
+	{
+		name: "Maerevoet, Tina",
+		firstName: "Tina"
+	},
+	{
+		name: "Janssens, Luna",
+		firstName: "Luna"
+	},
+	{
+		name: "Janssens, Rani",
+		firstName: "Rani"
+	},
+	{
+		name: "Praet, Tahnee",
+		firstName: "Tahnee"
+	},
+	{
+		name: "Janssens, Veerle",
+		firstName: "Veerle"
+	},
+	{
+		name: "Joris, Sam",
+		firstName: "Sam"
+	},
+	{
+		name: "Lauwers, Anke",
+		firstName: "Anke"
+	},
+	{
+		name: "Leiva Sepulveda, Maria",
+		firstName: "Maria"
+	},
+	{
+		name: "Van de Meirssche, Lieve",
+		firstName: "Lieve"
+	},
+	{
+		name: "Storms, Isabelle",
+		firstName: "Isabelle"
+	},
+	{
+		name: "Van Goethem, Robert",
+		firstName: "Robert"
+	},
+	{
+		name: "Lejeune, Joris",
+		firstName: "Joris"
+	},
+	{
+		name: "Westra Hoekzema, Maarten",
+		firstName: "Maarten"
+	},
+	{
+		name: "Meerbergen, Johan",
+		firstName: "Johan"
+	},
+	{
+		name: "Meermans, Sander",
+		firstName: "Sander"
+	},
+	{
+		name: "Melaerts, Jan",
+		firstName: "Jan"
+	},
+	{
+		name: "Pauwels, Kim",
+		firstName: "Kim"
+	},
+	{
+		name: "Pavlidi, Ntiana",
+		firstName: "Ntiana"
+	},
+	{
+		name: "Pecnik, Ivan",
+		firstName: "Ivan"
+	},
+	{
+		name: "Quintens, Yanate",
+		firstName: "Yanate"
+	},
+	{
+		name: "Reekmans, Stan",
+		firstName: "Stan"
+	},
+	{
+		name: "Reusens, Oliver",
+		firstName: "Oliver"
+	},
+	{
+		name: "Rosquete Márquez, Juan Carlos",
+		firstName: "Juan Carlos"
+	},
+	{
+		name: "Scheir, Katleen",
+		firstName: "Katleen"
+	},
+	{
+		name: "Schoonis, Lien",
+		firstName: "Lien"
+	},
+	{
+		name: "Shütte, Katrin",
+		firstName: "Katrin"
+	},
+	{
+		name: "Tiest, Tom",
+		firstName: "Tom"
+	},
+	{
+		name: "Truyman, Evy",
+		firstName: "Evy"
+	},
+	{
+		name: "Vaerendonck, Joeri",
+		firstName: "Joeri"
+	},
+	{
+		name: "Van Abbenyen, Emma",
+		firstName: "Emma"
+	},
+	{
+		name: "Van Acker, Andrea",
+		firstName: "Andrea"
+	},
+	{
+		name: "Wynants, Femke",
+		firstName: "Femke"
+	},
+	{
+		name: "Van Assche, Jurgen",
+		firstName: "Jurgen"
+	},
+	{
+		name: "Van Casteren, Bart",
+		firstName: "Bart"
+	},
+	{
+		name: "Van Kerckhoven, Katelijn",
+		firstName: "Katelijn"
+	},
+	{
+		name: "Van Laere, Hannah",
+		firstName: "Hannah"
+	},
+	{
+		name: "Van Reeth, Peter",
+		firstName: "Peter"
+	},
+	{
+		name: "Van de Velde, Samuel",
+		firstName: "Samuel"
+	},
+	{
+		name: "Vandekerckhove, Elvira",
+		firstName: "Elvira"
+	},
+	{
+		name: "Vandenbussche, Christina",
+		firstName: "Christina"
+	},
+	{
+		name: "Verhaegen, Dieter",
+		firstName: "Dieter"
+	},
+	{
+		name: "Verhelst, Peter",
+		firstName: "Peter"
+	},
+	{
+		name: "Wellens, Florian",
+		firstName: "Florian"
+	},
+	{
+		name: "Wong, Maureen",
+		firstName: "Maureen"
+	}
+];
+
+//#endregion
 //#region typescript/lessen/scrape.ts
 function scrapeLessenOverzicht(table) {
 	let body = table.tBodies[0];
@@ -1456,25 +2098,25 @@ function scrapeLesInfo(tdLesInfo) {
 function splitLesMoment(les) {
 	let first3 = les.lesmoment.substring(0, 3);
 	switch (first3) {
-		case "ma":
+		case "ma ":
 			les.day = "MAANDAG";
 			break;
-		case "di":
+		case "di ":
 			les.day = "DINSDAG";
 			break;
-		case "wo":
+		case "wo ":
 			les.day = "WOENSDAG";
 			break;
-		case "do":
+		case "do ":
 			les.day = "DONDERDAG";
 			break;
-		case "vr":
+		case "vr ":
 			les.day = "VRIJDAG";
 			break;
-		case "za":
+		case "za ":
 			les.day = "ZATERDAG";
 			break;
-		case "zo":
+		case "zo ":
 			les.day = "ZONDAG";
 			break;
 		default:
@@ -1505,10 +2147,7 @@ function splitLesMoment(les) {
 		hour,
 		minutes
 	};
-	les.timeSlice = {
-		start: startTime,
-		end: endTime
-	};
+	les.timeSlice = new TimeSlice(startTime, endTime);
 }
 function textsToYearGrades(texts) {
 	let yearGrades = [];
@@ -4368,301 +5007,6 @@ var RosterFactory = class {
 };
 
 //#endregion
-//#region typescript/roster_diff/compare_roster.ts
-var Roster = class {
-	table;
-	errors = [];
-	constructor(table) {
-		this.table = table;
-	}
-	scrapeUurrooster() {
-		let timeSlices = this.createTimeSlices();
-		if (this.errors.length > 0) return;
-		let classDefs = [];
-		for (let c = 0; c <= this.table.ColumnCount; c++) classDefs = classDefs.concat(this.scrapeColumn(c, timeSlices));
-		return classDefs;
-	}
-	scrapeColumn(column, timeSlices) {
-		let classDefs = [];
-		let day = this.table.HeaderRowValue(0, column);
-		let teacher = this.table.HeaderRowValue(1, column);
-		for (let row = 0; row < this.table.RowCount; row++) {
-			let cellValue = this.table.Cell(row, column);
-			if (cellValue) {
-				let rx = /\n/g;
-				let description = cellValue.replaceAll(rx, " ");
-				let parseText = description.replaceAll("(", " ( ").replaceAll(")", " ) ");
-				let timeSlice = void 0;
-				let mergedRange = this.table.RangeOfCell({
-					row,
-					column
-				});
-				let sliceStartText = this.table.HeaderColumnValue(mergedRange.Start.row, 0);
-				let sliceEndText = this.table.HeaderColumnValue(mergedRange.End.row, 0);
-				let sliceStart = timeSlices.get(sliceStartText);
-				let sliceEnd = timeSlices.get(sliceEndText);
-				timeSlice = {
-					start: sliceStart.start,
-					end: sliceEnd.end
-				};
-				let times = this.findTimes(parseText);
-				if (times.length === 2) timeSlice = {
-					start: times[0],
-					end: times[1]
-				};
-				else if (times.length === 1) timeSlice = this.moveTimeSliceTo(timeSlice, times[0]);
-				let tags = this.findTags(parseText, this.defaultTagDefs);
-				let location$1 = this.findLocation(tags);
-				let subject = this.findSubject(tags);
-				let classDef = {
-					teacher,
-					day,
-					timeSlice,
-					location: location$1,
-					subject,
-					gradeYears: this.findGradeYears(parseText),
-					description
-				};
-				classDefs.push(classDef);
-				row = mergedRange.End.row + 1;
-			}
-		}
-		return classDefs;
-	}
-	classDefToString(classDef) {
-		return `${classDef.day}, ${classDef.teacher}, ${classDef.subject}, ${classDef.location}, [${classDef.gradeYears?.map((gy) => this.gradeYearToString(gy)).join(", ")}], ${classDef.description}`;
-	}
-	gradeYearToString(gradeYear) {
-		return `${gradeYear.grade ? gradeYear.grade : "?"}.${gradeYear.year}`;
-	}
-	classDefsToString(classDefs) {
-		return classDefs.map((classDef) => this.classDefToString(classDef)).join("\n");
-	}
-	createTimeSlices() {
-		let timeSlices = new Map();
-		for (let row = 0; row < this.table.RowCount; row++) {
-			let rx = /(\d?\d)[.:,](\d\d)\s*-\s*(\d?\d)[.:,](\d\d)/gm;
-			let value = this.table.HeaderColumnValue(row, 0);
-			let matches = rx.exec(value);
-			if (matches) {
-				let timeSlice = {
-					start: {
-						hour: parseInt(matches[1]),
-						minutes: parseInt(matches[2])
-					},
-					end: {
-						hour: parseInt(matches[3]),
-						minutes: parseInt(matches[4])
-					}
-				};
-				timeSlices.set(value, timeSlice);
-			} else this.errors.push(`Could not parse time slice: ${value}`);
-		}
-		return timeSlices;
-	}
-	findTimes(text) {
-		let times = [];
-		let rx = /\s+(\d?\d)[.:,](\d\d)/gm;
-		let matches = rx.exec(text);
-		while (matches) {
-			let time = {
-				hour: parseInt(matches[1]),
-				minutes: parseInt(matches[2])
-			};
-			times.push(time);
-			matches = rx.exec(text);
-		}
-		return times;
-	}
-	moveTimeSliceTo(timeSlice, newStart) {
-		let newSlice = timeSlice;
-		let startMinutes = timeSlice.start.hour * 60 + timeSlice.start.minutes;
-		let endMinutes = timeSlice.end.hour * 60 + timeSlice.end.minutes;
-		let duration = endMinutes - startMinutes;
-		timeSlice.start = newStart;
-		let newEndMinutes = newStart.hour * 60 + newStart.minutes + duration;
-		newSlice.end.hour = Math.trunc(newEndMinutes / 60);
-		newSlice.end.minutes = newEndMinutes % 60;
-		return newSlice;
-	}
-	defaultTagDefs = [
-		{
-			tag: "Sterrenkijker",
-			searchString: "sterr"
-		},
-		{
-			tag: "Sterrenkijker",
-			searchString: "durlet"
-		},
-		{
-			tag: "Kleine Stad",
-			searchString: " stad"
-		},
-		{
-			tag: "Kleine Wereld",
-			searchString: " wereld"
-		},
-		{
-			tag: "De Nieuwe Vrede",
-			searchString: " vrede"
-		},
-		{
-			tag: "De Nieuwe Vrede",
-			searchString: "dnv"
-		},
-		{
-			tag: "De Kosmos",
-			searchString: " kosmos"
-		},
-		{
-			tag: "De Schatkist",
-			searchString: "schatk"
-		},
-		{
-			tag: "De Kolibrie",
-			searchString: " kolibri"
-		},
-		{
-			tag: "Albereke",
-			searchString: "albere"
-		},
-		{
-			tag: "c o r s o",
-			searchString: "corso"
-		},
-		{
-			tag: "c o r s o",
-			searchString: "c o r s o"
-		},
-		{
-			tag: "Cabaret & Comedy",
-			searchString: "cabaret"
-		},
-		{
-			tag: "Woordatelier",
-			searchString: "woordatelier"
-		},
-		{
-			tag: "Woordatelier",
-			searchString: "WA "
-		},
-		{
-			tag: "Woordlab",
-			searchString: "woordlab"
-		},
-		{
-			tag: "Woordlab",
-			searchString: "WL "
-		},
-		{
-			tag: "Literair atelier",
-			searchString: "literair atelier"
-		},
-		{
-			tag: "Literaire teksten",
-			searchString: "literaire teksten"
-		},
-		{
-			tag: "Willem Van Laarstraat",
-			searchString: "bib"
-		},
-		{
-			tag: "Spreken en presenteren",
-			searchString: "presenteren"
-		},
-		{
-			tag: "Kunstenbad",
-			searchString: "kunstenbad"
-		},
-		{
-			tag: "Musicalatelier",
-			searchString: "musicalatelier"
-		},
-		{
-			tag: "Musical koor",
-			searchString: "musical koor"
-		},
-		{
-			tag: "Musical zang",
-			searchString: "musical zang"
-		},
-		{
-			tag: "De Nieuwe Vrede",
-			searchString: " tegel"
-		},
-		{
-			tag: "De Nieuwe Vrede",
-			searchString: " tango"
-		}
-	];
-	locationDefs = [
-		"Sterrenkijker",
-		"Kleine Stad",
-		"Kleine Wereld",
-		"De Nieuwe Vrede",
-		"De Kosmos",
-		"De Schatkist",
-		"De Kolibrie",
-		"Albereke",
-		"Albereke",
-		"c o r s o",
-		"Willem Van Laarstraat"
-	];
-	subjectDefs = [
-		"Woordatelier",
-		"Woordlab",
-		"Cabaret & Comedy",
-		"Literair atelier",
-		"Literaire teksten",
-		"Spreken en presenteren",
-		"Kunstenbad",
-		"Musicalatelier",
-		"Musical koor",
-		"Musical zang"
-	];
-	findLocation(tags) {
-		return this.locationDefs.find((location$1) => tags.includes(location$1));
-	}
-	findSubject(tags) {
-		return this.subjectDefs.find((subject) => tags.includes(subject));
-	}
-	findTags(text, tagDefs) {
-		let tags = [];
-		for (let def of tagDefs) if (text.toLowerCase().includes(def.searchString)) tags.push(def.tag);
-		return tags;
-	}
-	findGradeYears(text) {
-		let gradeYears = [];
-		const rx = /\s+(?:(\d)\.(\d)|(S)(\d))(?:\s?[,+\/]\s?(?:(\d)\.(\d)|(S)(\d)))?(?:\s?[,+\/]\s?(?:(\d)\.(\d)|(S)(\d)))?(?:\s?[,+\/]\s?(?:(\d)\.(\d)|(S)(\d)))?(?:\s?[,+\/]\s?(?:(\d)\.(\d)|(S)(\d)))?/gm;
-		let matches = rx.exec(text);
-		if (matches) {
-			let strippedMatches = matches.filter((m) => m);
-			for (let i = 1; i < strippedMatches.length; i += 2) {
-				let gradeYear = {
-					grade: strippedMatches[i],
-					year: parseInt(strippedMatches[i + 1])
-				};
-				gradeYears.push(gradeYear);
-			}
-			return gradeYears;
-		}
-		const rx2 = /\s+(\d)\s?[,+]\s?(\d)/gm;
-		matches = rx2.exec(text);
-		if (matches) {
-			let strippedMatches = matches.filter((m) => m);
-			for (let i = 1; i < strippedMatches.length; i++) {
-				let gradeYear = {
-					grade: "2",
-					year: parseInt(strippedMatches[i])
-				};
-				gradeYears.push(gradeYear);
-			}
-			return gradeYears;
-		}
-	}
-};
-
-//#endregion
 //#region typescript/notifications/notifications.ts
 function setupNotifications() {
 	let navBar = document.getElementById("dko3_navbar");
@@ -4766,6 +5110,7 @@ async function runRosterCheck(excelData) {
 	console.log(excelLessen);
 	let dko3Lessen = await scrapeLessen();
 	console.log(dko3Lessen);
+	buildDiff(excelLessen, dko3Lessen);
 }
 async function scrapeLessen() {
 	let chain = new FetchChain();
@@ -4791,6 +5136,65 @@ async function scrapeLessen() {
 	div.innerHTML = tableText;
 	let table = div.querySelector("#" + LESSEN_TABLE_ID);
 	return scrapeLessenOverzicht(table);
+}
+var TaggedLes = class {
+	les;
+	tags = [];
+	searchText;
+	location;
+	teacher;
+	constructor(les, tags, searchText) {
+		this.les = les;
+		this.tags = tags;
+		this.searchText = searchText;
+	}
+};
+var TaggedDko3Les = class extends TaggedLes {
+	constructor(les) {
+		let searchText = "";
+		let tags = [];
+		super(les, tags, searchText);
+		this.location = this.les.vestiging;
+		this.teacher = this.les.teacher.replaceAll("  (en nog 1)", "");
+	}
+};
+var TaggedExcelLes = class extends TaggedLes {
+	constructor(les) {
+		let searchText = "";
+		let tags = [];
+		super(les, tags, searchText);
+		this.location = this.les.location;
+		this.teacher = Roster.findTeacher(this.les.teacher);
+	}
+};
+function buildDiff(excelLessen, dko3Lessen) {
+	let diffs = [];
+	let excelLesSet = new Set(excelLessen.map((les) => new TaggedExcelLes(les)));
+	let dko3LesSet = new Set(dko3Lessen.map((les) => new TaggedDko3Les(les)));
+	for (let dko3Les of dko3LesSet) {
+		let excelLes = perfectMatch(dko3Les, excelLesSet);
+		if (excelLes) {
+			diffs.push({
+				excelLes: excelLes.les,
+				dko3Les: dko3Les.les,
+				comment: "perfect match"
+			});
+			dko3LesSet.delete(dko3Les);
+			excelLesSet.delete(excelLes);
+		}
+	}
+	console.log(diffs);
+}
+function perfectMatch(dko3Les, excelLesSet) {
+	for (let excelLes of excelLesSet) {
+		if (dko3Les.les.vakNaam != excelLes.les.subject && dko3Les.les.naam != excelLes.les.subject) continue;
+		if (dko3Les.les.day != excelLes.les.day) continue;
+		if (!dko3Les.les.timeSlice.equal(excelLes.les.timeSlice)) continue;
+		if (dko3Les.location != excelLes.location) continue;
+		if (dko3Les.teacher != excelLes.teacher) continue;
+		return excelLes;
+	}
+	return null;
 }
 
 //#endregion

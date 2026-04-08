@@ -3,39 +3,42 @@ import {emmet} from "../../libs/Emmeter/html";
 import {fetchCheckStatus, fetchExcelData, fetchFolderChanged, fetchNotifications, NotificationId, postNotification} from "../cloud";
 import {RosterFactory} from "../roster_diff/rosterFactory";
 import {JsonExcelData} from "../roster_diff/excel";
-import {Roster} from "../roster_diff/compare_roster";
+import {ClassDef, GradeYear, Roster, TimeSlice} from "../roster_diff/compare_roster";
 import {updateNotificationsInNavBar} from "./notifications";
 import {FetchChain} from "../table/fetchChain";
 import * as def from "../def";
 import {Schoolyear} from "../globals";
 import {fetchLessen} from "../lessen/observer";
 import {LESSEN_TABLE_ID} from "../def";
-import {scrapeLessenOverzicht} from "../lessen/scrape";
+import {Les, scrapeLessenOverzicht} from "../lessen/scrape";
 
 class StartPageObserver extends ExactHashObserver {
     constructor() {
-        super( "#start-mijn_tijdslijn", onMutation );
+        super("#start-mijn_tijdslijn", onMutation);
     }
+
     isPageReallyLoaded(): boolean {
         return isLoaded();
     }
 }
+
 export default new StartPageObserver();
 
 function isLoaded() {
     let startContentDiv = document.querySelector("#dko3_start_content") as HTMLDivElement;
-    return startContentDiv?.textContent.includes("welkom")??false;
+    return startContentDiv?.textContent.includes("welkom") ?? false;
 }
 
 function onMutation(mutation: MutationRecord) {
-    if(document.querySelector("#dko3_plugin_notifications"))
+    if (document.querySelector("#dko3_plugin_notifications"))
         return true;
 
     let startContentDiv = document.querySelector("#dko3_start_content") as HTMLDivElement;
     if (startContentDiv) {
-        if(startContentDiv.textContent.includes("welkom")) {
+        if (startContentDiv.textContent.includes("welkom")) {
             emmet.insertAfter(startContentDiv.children[0], "div#dko3_plugin_notifications>div.alert.alert-info.shadow-sm>(h5>strong{Plugin berichten})+div");
-            doStartupStuff().then(() => {}); //no wait needed.
+            doStartupStuff().then(() => {
+            }); //no wait needed.
         }
         return true;
     }
@@ -54,14 +57,22 @@ async function fetchAndDisplayNotifications() {
     let html: string = "";
     let propNames = Object.getOwnPropertyNames(notifications.notifications) as NotificationId[];
 
-    for(let propName of propNames){
+    for (let propName of propNames) {
         let notif = notifications.notifications[propName];
         let imgUrl = chrome.runtime.getURL("images/waiting.gif");
         switch (notif.level) {
-            case "warning": imgUrl = chrome.runtime.getURL("images/warning.png"); break;
-            case "error": imgUrl = chrome.runtime.getURL("images/error.png"); break;
-            case "running": imgUrl = chrome.runtime.getURL("images/waiting.gif"); break;
-            case "info": imgUrl = chrome.runtime.getURL("images/info.png"); break;
+            case "warning":
+                imgUrl = chrome.runtime.getURL("images/warning.png");
+                break;
+            case "error":
+                imgUrl = chrome.runtime.getURL("images/error.png");
+                break;
+            case "running":
+                imgUrl = chrome.runtime.getURL("images/waiting.gif");
+                break;
+            case "info":
+                imgUrl = chrome.runtime.getURL("images/info.png");
+                break;
         }
         html += `
             <div class="notif notif-${notif.level}">
@@ -77,12 +88,12 @@ async function fetchAndDisplayNotifications() {
 
 async function checkChecks() {
     let woordCheckstatus = await fetchCheckStatus("WOORD_ROSTERS");
-    if(woordCheckstatus.status === "INITIAL") {
+    if (woordCheckstatus.status === "INITIAL") {
         //todo: add message that this check needs to be run.
         await postNotification("MUZIEK_ROSTERS_IS_DIFF", "warning", "De muzieklessen zijn niet vergeleken met het uurrooser op Sharepoint. Klik op de knop om de lessen te vergelijken.");
         await fetchAndDisplayNotifications();
         let folderChanged = await fetchFolderChanged("Dko3/Uurroosters/");
-        for(let file of folderChanged.files) {
+        for (let file of folderChanged.files) {
             let excelData = await fetchExcelData(file.name);
             await runRosterCheck(excelData);
         }
@@ -99,31 +110,32 @@ async function runRosterCheck(excelData: JsonExcelData) {
     console.log(excelLessen);
     let dko3Lessen = await scrapeLessen();
     console.log(dko3Lessen);
+    buildDiff(excelLessen, dko3Lessen);
 }
 
 async function scrapeLessen() {
     let chain = new FetchChain();
     let hash = "lessen-overzicht";
-    await chain.fetch(def.DKO3_BASE_URL+"#lessen-overzicht" + hash);
+    await chain.fetch(def.DKO3_BASE_URL + "#lessen-overzicht" + hash);
     await chain.fetch("view.php?args=" + hash); // call to changeView() - assuming this is always the same, so no parsing here.
-    let schoolYear = Schoolyear.toFullString(Schoolyear.calculateSetupYear()-1); //todo: TEST TEST TEST, wrong year!!!!
+    let schoolYear = Schoolyear.toFullString(Schoolyear.calculateSetupYear() - 1); //todo: TEST TEST TEST, wrong year!!!!
     let params = new URLSearchParams({
         schooljaar: schoolYear,
-        domein:"4", //muziek=3, woord=4, DomeinOV=5, Dans=2
+        domein: "4", //muziek=3, woord=4, DomeinOV=5, Dans=2
         vestigingsplaats: "",
         vak: "",
         graad: "",
         leerkracht: "",
         ag: "",
         lesdag: "",
-        verberg_online:"-1",
-        soorten_lessen:"1", //modules =3, gewone lessen=1
-        volzet:"-1"
+        verberg_online: "-1",
+        soorten_lessen: "1", //modules =3, gewone lessen=1
+        volzet: "-1"
     });
     let tableText = await fetchLessen(params);
     let div = document.createElement("div");
     div.innerHTML = tableText;
-    let table = div.querySelector("#"+LESSEN_TABLE_ID) as HTMLTableElement;
+    let table = div.querySelector("#" + LESSEN_TABLE_ID) as HTMLTableElement;
     return scrapeLessenOverzicht(table);
 }
 
@@ -169,3 +181,77 @@ type ClassDef = {
 }
 
 */
+
+export interface Diff {
+    excelLes?: ClassDef;
+    dko3Les?: Les;
+    comment: string;
+}
+
+abstract class TaggedLes<T extends ClassDef | Les> {
+    les: T;
+    tags:string[] = [];
+    searchText: string;
+    location?: string;
+    teacher?: string;
+
+    protected constructor(les: T, tags: string[], searchText: string) {
+        this.les = les;
+        this.tags = tags;
+        this.searchText = searchText;
+    }
+}
+
+class TaggedDko3Les extends TaggedLes<Les> {
+    constructor(les: Les) {
+        let searchText = "";
+        let tags: string[] = [];
+        super(les, tags, searchText);
+        this.location = this.les.vestiging;
+        this.teacher = this.les.teacher
+            .replaceAll("  (en nog 1)", "");
+    }
+}
+
+class TaggedExcelLes extends TaggedLes<ClassDef> {
+    constructor(les: ClassDef) {
+        let searchText = "";
+        let tags: string[] = [];
+        super(les, tags, searchText);
+        this.location = this.les.location;//translate probably already done.
+        this.teacher = Roster.findTeacher(this.les.teacher);
+    }
+}
+
+function buildDiff(excelLessen: ClassDef[], dko3Lessen: Les[]) {
+    let diffs: Diff[] = [];
+    let excelLesSet: Set<TaggedExcelLes> = new Set<TaggedExcelLes>(excelLessen.map(les => new TaggedExcelLes(les)));
+    let dko3LesSet: Set<TaggedDko3Les> = new Set<TaggedDko3Les>(dko3Lessen.map(les => new TaggedDko3Les(les)));
+    for(let dko3Les of dko3LesSet) {
+        let excelLes = perfectMatch(dko3Les, excelLesSet);
+        if(excelLes) {
+            diffs.push({excelLes: excelLes.les, dko3Les: dko3Les.les, comment: "perfect match"});
+            dko3LesSet.delete(dko3Les);
+            excelLesSet.delete(excelLes);
+        }
+    }
+    console.log(diffs);
+}
+
+function perfectMatch(dko3Les: TaggedDko3Les, excelLesSet: Set<TaggedExcelLes>): TaggedExcelLes | null {
+    for(let excelLes of excelLesSet) {
+        if(dko3Les.les.vakNaam != excelLes.les.subject
+            && dko3Les.les.naam != excelLes.les.subject)
+            continue;
+        if(dko3Les.les.day != excelLes.les.day)
+            continue;
+        if(!dko3Les.les.timeSlice.equal(excelLes.les.timeSlice))
+            continue;
+        if(dko3Les.location != excelLes.location)
+            continue;
+        if(dko3Les.teacher != excelLes.teacher)
+            continue;
+        return excelLes;
+    }
+    return null;
+}

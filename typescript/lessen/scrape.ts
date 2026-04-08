@@ -239,13 +239,13 @@ function splitLesMoment(les: Les) {
     //"di 15:40-16:40 (wekelijks)"
     let first3 = les.lesmoment.substring(0,3);
     switch (first3) {
-        case "ma": les.day = "MAANDAG"; break;
-        case "di": les.day = "DINSDAG"; break;
-        case "wo": les.day = "WOENSDAG"; break;
-        case "do": les.day = "DONDERDAG"; break;
-        case "vr": les.day = "VRIJDAG"; break;
-        case "za": les.day = "ZATERDAG"; break;
-        case "zo": les.day = "ZONDAG"; break;
+        case "ma ": les.day = "MAANDAG"; break;
+        case "di ": les.day = "DINSDAG"; break;
+        case "wo ": les.day = "WOENSDAG"; break;
+        case "do ": les.day = "DONDERDAG"; break;
+        case "vr ": les.day = "VRIJDAG"; break;
+        case "za ": les.day = "ZATERDAG"; break;
+        case "zo ": les.day = "ZONDAG"; break;
         default: les.day = ""; break;
     }
     let remaining = les.lesmoment.substring(3);
@@ -277,7 +277,7 @@ function splitLesMoment(les: Les) {
     if(isNaN(hour) || isNaN(minutes))
         return;
     let endTime: Time = {hour, minutes};
-    les.timeSlice = {start: startTime, end: endTime};
+    les.timeSlice = new TimeSlice(startTime,endTime);
 }
 
 function textsToYearGrades(texts: string[]){

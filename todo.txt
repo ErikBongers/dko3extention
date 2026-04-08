@@ -1,15 +1,18 @@
-* dko3 lessen: normaize day and time: "di 15:40-16:40 (wekelijks)"
-  - ma, di, wo -> MAANDAG,...
+* set TS settings gradually to strict.
+
+* Translation tables
+  > Not hard coded, but user defined in the excel files.
+
 * Diff matching
   > start with 2 sets to search for easy removal.
-  > have an array of matches, filled based on:
-    1. class name is the same: 1A = 1A
-      > only if these names are unique. IMPORTANT: many doubles.
-    2. subject+day+time+location+teacher
+  > extract matches in array, based on:
+    1. subject+day+time+location+teacher
     with warnings:
-      3. drop teacher
-      4. drop minutes
-      5. drop both teacher and minutes
+      2. drop teacher
+      3. drop minutes
+      4. drop both teacher and minutes
+    > class name is unreliable, so don't use it for matches.
+      > however, after stripping all the data in the excel cell, the remainder could be a separate field that can be showed next to the dko3 les naam for visual comparison.
 
 
 * Loop dko lessen and try to find a matching les in excel.
