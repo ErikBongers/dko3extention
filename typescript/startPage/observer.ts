@@ -4,7 +4,7 @@ import {fetchAndDisplayNotifications} from "../notifications/notifications";
 import {checkChecks} from "../notifications/checks";
 import {getGotoStateOrDefault, Goto, PageName, saveGotoState, StartPageGotoState} from "../gotoState";
 import {fetchExcelData, fetchFolderChanged} from "../cloud";
-import {Diff, runRosterCheck, TaggedDko3Les, TaggedExcelLes} from "../roster_diff/build";
+import {Diff, DiffType, runRosterCheck, TaggedDko3Les, TaggedExcelLes} from "../roster_diff/build";
 import {DayUppercase} from "../lessen/scrape";
 import {TimeSlice} from "../roster_diff/compare_roster";
 import {pad, unreachable} from "../globals";
@@ -122,28 +122,43 @@ function showDiffs(diffs: Diff[], dko3LesSet: Set<TaggedDko3Les>, excelLesSet: S
 function displayDiff(diff: Diff, divResults: HTMLDivElement) {
     let tbody = emmet.appendChild(divResults, "table>tbody").last as HTMLTableSectionElement;
     let tr = emmet.appendChild(tbody, "tr").last as HTMLTableRowElement;
-    fillDiffRow(tr, diff.excelLes.subjects, diff.excelLes.teachers, diff.excelLes.les.day as DayUppercase, diff.excelLes.les.timeSlice, diff.excelLes.location);
+    fillDiffRow(tr, diff.excelLes.subjects, diff.excelLes.teachers, diff.excelLes.les.day as DayUppercase, diff.excelLes.les.timeSlice, diff.excelLes.location, diff.diffType);
     tr.classList.add("excelRow");
     let tr2 = emmet.appendChild(tbody, "tr").last as HTMLTableRowElement;
-    fillDiffRow(tr2, diff.dko3Les.subjects, diff.dko3Les.teachers, diff.dko3Les.les.day as DayUppercase, diff.dko3Les.les.timeSlice, diff.dko3Les.location);
+    fillDiffRow(tr2, diff.dko3Les.subjects, diff.dko3Les.teachers, diff.dko3Les.les.day as DayUppercase, diff.dko3Les.les.timeSlice, diff.dko3Les.location, diff.diffType);
 }
 
-function fillDiffRow(tr: HTMLTableRowElement, subjects: string[], teachers: string[], day: DayUppercase, timeSlice: TimeSlice, location: string) {
-    emmet.appendChild(tr, `td{${subjects.join(",")}}+td{${teachers.join(",")}}+td{${toCompactDateString(day as DayUppercase, timeSlice)}}+td{${location}}`)
+function fillDiffRow(tr: HTMLTableRowElement, subjects: string[], teachers: string[], day: DayUppercase, timeSlice: TimeSlice, location: string, diffType: DiffType) {
+    let diffTeacherClass: string = "";
+    let diffLocationClass: string = "";
+    let diffTimeClass: string = "";
+    let diffDayClass: string = "";
+    let diffSubjectClass: string = "";
+    switch (diffType) {
+        case "match without location": diffLocationClass = ".diff"; break;
+        case "match without teacher": diffTeacherClass = ".diff"; break;
+        case "match without time": diffTimeClass = ".diff"; break;
+        case "match without time and day": diffTimeClass = ".diff"; diffDayClass = ".diff"; break;
+        case "match without teacher, time and day": diffTeacherClass= ".diff"; diffTimeClass = ".diff"; diffDayClass = ".diff"; break;
+        case "perfect match": break;
+        default: unreachable(diffType);
+    }
+    emmet.appendChild(tr, `td${diffSubjectClass}{${subjects.join(",")}}+td${diffTeacherClass}{${teachers.join(",")}}+td${diffDayClass}{${toCompactDayString(day as DayUppercase)}}+td${diffTimeClass}{${toCompactTimeSliceString(timeSlice)}}+td${diffLocationClass}{${location}}`)
 }
-function toCompactDateString(day: DayUppercase, timeSlice: TimeSlice) {
-    let text: string = "";
+function toCompactTimeSliceString(timeSlice: TimeSlice) {
+    return `${pad(timeSlice.start.hour, 2)}:${pad(timeSlice.start.minutes, 2)} - ${pad(timeSlice.end.hour, 2)}:${pad(timeSlice.end.minutes, 2)}`;
+}
+
+function toCompactDayString(day: DayUppercase): string {
     switch (day) {
-        case "MAANDAG": text += "ma "; break;
-        case "DINSDAG": text += "di "; break;
-        case "WOENSDAG": text += "wo "; break;
-        case "DONDERDAG": text += "do "; break;
-        case "VRIJDAG": text += "vr "; break;
-        case "ZATERDAG": text += "za "; break;
-        case "ZONDAG": text += "zo "; break;
-        case "": text += "?? "; break;
+        case "MAANDAG": return "ma ";
+        case "DINSDAG": return "di ";
+        case "WOENSDAG": return "wo ";
+        case "DONDERDAG": return "do ";
+        case "VRIJDAG": return "vr ";
+        case "ZATERDAG": return "za ";
+        case "ZONDAG": return "zo ";
+        case "": return "?? ";
         default: unreachable(day);
     }
-    text += `${pad(timeSlice.start.hour, 2)}:${pad(timeSlice.start.minutes, 2)} - ${pad(timeSlice.end.hour, 2)}:${pad(timeSlice.end.minutes, 2)}`;
-    return text;
 }

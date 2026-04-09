@@ -5498,45 +5498,56 @@ function showDiffs(diffs, dko3LesSet, excelLesSet) {
 function displayDiff(diff, divResults) {
 	let tbody = emmet.appendChild(divResults, "table>tbody").last;
 	let tr = emmet.appendChild(tbody, "tr").last;
-	fillDiffRow(tr, diff.excelLes.subjects, diff.excelLes.teachers, diff.excelLes.les.day, diff.excelLes.les.timeSlice, diff.excelLes.location);
+	fillDiffRow(tr, diff.excelLes.subjects, diff.excelLes.teachers, diff.excelLes.les.day, diff.excelLes.les.timeSlice, diff.excelLes.location, diff.diffType);
 	tr.classList.add("excelRow");
 	let tr2 = emmet.appendChild(tbody, "tr").last;
-	fillDiffRow(tr2, diff.dko3Les.subjects, diff.dko3Les.teachers, diff.dko3Les.les.day, diff.dko3Les.les.timeSlice, diff.dko3Les.location);
+	fillDiffRow(tr2, diff.dko3Les.subjects, diff.dko3Les.teachers, diff.dko3Les.les.day, diff.dko3Les.les.timeSlice, diff.dko3Les.location, diff.diffType);
 }
-function fillDiffRow(tr, subjects, teachers, day, timeSlice, location$1) {
-	emmet.appendChild(tr, `td{${subjects.join(",")}}+td{${teachers.join(",")}}+td{${toCompactDateString(day, timeSlice)}}+td{${location$1}}`);
+function fillDiffRow(tr, subjects, teachers, day, timeSlice, location$1, diffType) {
+	let diffTeacherClass = "";
+	let diffLocationClass = "";
+	let diffTimeClass = "";
+	let diffDayClass = "";
+	let diffSubjectClass = "";
+	switch (diffType) {
+		case "match without location":
+			diffLocationClass = ".diff";
+			break;
+		case "match without teacher":
+			diffTeacherClass = ".diff";
+			break;
+		case "match without time":
+			diffTimeClass = ".diff";
+			break;
+		case "match without time and day":
+			diffTimeClass = ".diff";
+			diffDayClass = ".diff";
+			break;
+		case "match without teacher, time and day":
+			diffTeacherClass = ".diff";
+			diffTimeClass = ".diff";
+			diffDayClass = ".diff";
+			break;
+		case "perfect match": break;
+		default: unreachable(diffType);
+	}
+	emmet.appendChild(tr, `td${diffSubjectClass}{${subjects.join(",")}}+td${diffTeacherClass}{${teachers.join(",")}}+td${diffDayClass}{${toCompactDayString(day)}}+td${diffTimeClass}{${toCompactTimeSliceString(timeSlice)}}+td${diffLocationClass}{${location$1}}`);
 }
-function toCompactDateString(day, timeSlice) {
-	let text = "";
+function toCompactTimeSliceString(timeSlice) {
+	return `${pad(timeSlice.start.hour, 2)}:${pad(timeSlice.start.minutes, 2)} - ${pad(timeSlice.end.hour, 2)}:${pad(timeSlice.end.minutes, 2)}`;
+}
+function toCompactDayString(day) {
 	switch (day) {
-		case "MAANDAG":
-			text += "ma ";
-			break;
-		case "DINSDAG":
-			text += "di ";
-			break;
-		case "WOENSDAG":
-			text += "wo ";
-			break;
-		case "DONDERDAG":
-			text += "do ";
-			break;
-		case "VRIJDAG":
-			text += "vr ";
-			break;
-		case "ZATERDAG":
-			text += "za ";
-			break;
-		case "ZONDAG":
-			text += "zo ";
-			break;
-		case "":
-			text += "?? ";
-			break;
+		case "MAANDAG": return "ma ";
+		case "DINSDAG": return "di ";
+		case "WOENSDAG": return "wo ";
+		case "DONDERDAG": return "do ";
+		case "VRIJDAG": return "vr ";
+		case "ZATERDAG": return "za ";
+		case "ZONDAG": return "zo ";
+		case "": return "?? ";
 		default: unreachable(day);
 	}
-	text += `${pad(timeSlice.start.hour, 2)}:${pad(timeSlice.start.minutes, 2)} - ${pad(timeSlice.end.hour, 2)}:${pad(timeSlice.end.minutes, 2)}`;
-	return text;
 }
 
 //#endregion

@@ -410,6 +410,9 @@ tr.excelRow td {
         margin-top: 1ch;
         & td {
             padding: 0 1ch;
+            &.diff {
+                background-color: rgb(255 160 122 / 0.5);
+            }
         }
     }
 }
