@@ -5,6 +5,9 @@ import {checkChecks} from "../notifications/checks";
 import {getGotoStateOrDefault, Goto, PageName, saveGotoState, StartPageGotoState} from "../gotoState";
 import {fetchExcelData, fetchFolderChanged} from "../cloud";
 import {Diff, runRosterCheck, TaggedDko3Les, TaggedExcelLes} from "../roster_diff/build";
+import {DayUppercase} from "../lessen/scrape";
+import {TimeSlice} from "../roster_diff/compare_roster";
+import {pad, unreachable} from "../globals";
 
 class StartPageObserver extends ExactHashObserver {
     constructor() {
@@ -96,12 +99,13 @@ async function runDiff(reportStatus: StatusCallback) {
 
 function setupDiffPage() {
     let pluginContainer = document.getElementById("plugin_container");
-    let button = emmet.appendChild(pluginContainer, "div.row.mb-1>div.col-7>(h4{Verschillen tussen Excel uurroosters en DKO3 lessen.}+button{Run the diffs!})").last as HTMLButtonElement;
-    let results = emmet.insertAfter(button, "div").first as HTMLDivElement;
+    let button = emmet.appendChild(pluginContainer, "div.mb-1>div>(h4{Verschillen tussen Excel uurroosters en DKO3 lessen.}+button{Run the diffs!})").last as HTMLButtonElement;
+    let runStatus = emmet.insertAfter(button, "div#runStatus").first as HTMLDivElement;
+    let results = emmet.insertAfter(runStatus, "div#diffResults").first as HTMLDivElement;
     let messages: string[] = [];
     function reportStatus(message: string) {
         messages.push(message);
-        results.innerHTML = messages.join("<br>");
+        runStatus.innerHTML = messages.join("<br>");
     }
     button.onclick = async () => {
         await runDiff(reportStatus);
@@ -109,5 +113,37 @@ function setupDiffPage() {
 }
 
 function showDiffs(diffs: Diff[], dko3LesSet: Set<TaggedDko3Les>, excelLesSet: Set<TaggedExcelLes>) {
+    let actualDiffs = diffs.filter(diff => diff.diffType != "perfect match");
+    let divResults = document.getElementById("diffResults") as HTMLDivElement;
+    for(let diff of actualDiffs)
+        displayDiff(diff, divResults);
+}
 
+function displayDiff(diff: Diff, divResults: HTMLDivElement) {
+    let tbody = emmet.appendChild(divResults, "table>tbody").last as HTMLTableSectionElement;
+    let tr = emmet.appendChild(tbody, "tr").last as HTMLTableRowElement;
+    fillDiffRow(tr, diff.excelLes.subjects, diff.excelLes.teachers, diff.excelLes.les.day as DayUppercase, diff.excelLes.les.timeSlice, diff.excelLes.location);
+    tr.classList.add("excelRow");
+    let tr2 = emmet.appendChild(tbody, "tr").last as HTMLTableRowElement;
+    fillDiffRow(tr2, diff.dko3Les.subjects, diff.dko3Les.teachers, diff.dko3Les.les.day as DayUppercase, diff.dko3Les.les.timeSlice, diff.dko3Les.location);
+}
+
+function fillDiffRow(tr: HTMLTableRowElement, subjects: string[], teachers: string[], day: DayUppercase, timeSlice: TimeSlice, location: string) {
+    emmet.appendChild(tr, `td{${subjects.join(",")}}+td{${teachers.join(",")}}+td{${toCompactDateString(day as DayUppercase, timeSlice)}}+td{${location}}`)
+}
+function toCompactDateString(day: DayUppercase, timeSlice: TimeSlice) {
+    let text: string = "";
+    switch (day) {
+        case "MAANDAG": text += "ma "; break;
+        case "DINSDAG": text += "di "; break;
+        case "WOENSDAG": text += "wo "; break;
+        case "DONDERDAG": text += "do "; break;
+        case "VRIJDAG": text += "vr "; break;
+        case "ZATERDAG": text += "za "; break;
+        case "ZONDAG": text += "zo "; break;
+        case "": text += "?? "; break;
+        default: unreachable(day);
+    }
+    text += `${pad(timeSlice.start.hour, 2)}:${pad(timeSlice.start.minutes, 2)} - ${pad(timeSlice.end.hour, 2)}:${pad(timeSlice.end.minutes, 2)}`;
+    return text;
 }

@@ -158,7 +158,7 @@ function scrapeStudents(studentTable: HTMLTableElement) {
 
 export enum LesType { TrimesterModule, JaarModule, Les, UnknownModule}
 
-export type DagUppercase = "MAANDAG" | "DINSDAG" | "WOENSDAG" | "DONDERDAG" | "VRIJDAG" | "ZATERDAG" | "ZONDAG" | "";
+export type DayUppercase = "MAANDAG" | "DINSDAG" | "WOENSDAG" | "DONDERDAG" | "VRIJDAG" | "ZATERDAG" | "ZONDAG" | "";
 export class Les {
     vakNaam: string;
     lesType: LesType;
@@ -180,7 +180,7 @@ export class Les {
     tags: string[];
     warnings: string[];
     gradeYears: GradeYear[] = [];
-    day: DagUppercase;
+    day: DayUppercase;
     repeat: string; //wekelijks
     timeSlice: TimeSlice;
     linkedLessen: string[] = [];

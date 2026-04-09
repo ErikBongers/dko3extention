@@ -56,10 +56,18 @@ async function scrapeLessen(type: LesType ) {
     return scrapeLessenOverzicht(table);
 }
 
+export type DiffType =
+    "perfect match"
+    | "match without teacher"
+    | "match without location"
+    | "match without time"
+    | "match without time and day"
+    | "match without teacher, time and day";
+
 export interface Diff {
-    excelLes?: ClassDef;
-    dko3Les?: Les;
-    comment: string;
+    excelLes?: TaggedExcelLes;
+    dko3Les?: TaggedDko3Les;
+    diffType: DiffType;
 }
 
 export abstract class TaggedLes<T extends ClassDef | Les> {
@@ -169,11 +177,11 @@ async function getAliassesForLes(lesId: string) {
     return [...anchors].map(a => a.textContent.trim());
 }
 
-function matchIt(dko3LesSet: Set<TaggedDko3Les>, excelLesSet: Set<TaggedExcelLes>, diffs: Diff[], comment: string, matchFunction: (dko3Les: TaggedDko3Les, excelLesSet: Set<TaggedExcelLes>) => (TaggedExcelLes | null)) {
+function matchIt(dko3LesSet: Set<TaggedDko3Les>, excelLesSet: Set<TaggedExcelLes>, diffs: Diff[], diffType: DiffType, matchFunction: (dko3Les: TaggedDko3Les, excelLesSet: Set<TaggedExcelLes>) => (TaggedExcelLes | null)) {
     for(let dko3Les of dko3LesSet) {
         let excelLes = matchFunction(dko3Les, excelLesSet);
         if(excelLes) {
-            diffs.push({excelLes: excelLes.les, dko3Les: dko3Les.les, comment});
+            diffs.push({excelLes: excelLes, dko3Les: dko3Les, diffType});
             dko3LesSet.delete(dko3Les);
             excelLesSet.delete(excelLes);
         }

@@ -398,3 +398,18 @@ span.filterInfo {
         display: none;
     }
 }
+
+tr.excelRow td {
+    color: dodgerblue;
+}
+#diffResults {
+    & table {
+        padding: 1ch;
+        background-color: #eee;
+        border-radius: 1ch;
+        margin-top: 1ch;
+        & td {
+            padding: 0 1ch;
+        }
+    }
+}

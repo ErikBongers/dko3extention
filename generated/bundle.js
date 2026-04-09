@@ -733,6 +733,14 @@ function copyToClipboardOrRequestRetry(infoBar, text) {
 		});
 	});
 }
+function unreachable(x) {
+	throw new Error("This error will never be thrown. It is used for type safety.");
+}
+function pad(num, size) {
+	num = num.toString();
+	while (num.length < size) num = "0" + num;
+	return num;
+}
 
 //#endregion
 //#region typescript/gotoState.ts
@@ -1417,6 +1425,10 @@ var Roster = class {
 			searchString: " tango "
 		},
 		{
+			tag: "Vestiging De Nieuwe Vrede",
+			searchString: " vergaderzaal "
+		},
+		{
 			tag: "Vestiging De Kosmos",
 			searchString: " kosmos "
 		},
@@ -1426,7 +1438,11 @@ var Roster = class {
 		},
 		{
 			tag: "Vestiging De Kolibrie",
-			searchString: " kolibri "
+			searchString: " kolibri"
+		},
+		{
+			tag: "Vestiging Het Fonkelpad",
+			searchString: " fonkel"
 		},
 		{
 			tag: "Vestiging Alberreke",
@@ -1483,6 +1499,10 @@ var Roster = class {
 		{
 			tag: "Academie Willem Van Laarstraat, Berchem",
 			searchString: "laarstr"
+		},
+		{
+			tag: "Academie Willem Van Laarstraat, Berchem",
+			searchString: " wvl "
 		},
 		{
 			tag: "Vestiging Frans Van Hombeeck",
@@ -5312,14 +5332,14 @@ async function getAliassesForLes(lesId) {
 	let anchors = div.querySelectorAll("td > a");
 	return [...anchors].map((a) => a.textContent.trim());
 }
-function matchIt(dko3LesSet, excelLesSet, diffs, comment, matchFunction) {
+function matchIt(dko3LesSet, excelLesSet, diffs, diffType, matchFunction) {
 	for (let dko3Les of dko3LesSet) {
 		let excelLes = matchFunction(dko3Les, excelLesSet);
 		if (excelLes) {
 			diffs.push({
-				excelLes: excelLes.les,
-				dko3Les: dko3Les.les,
-				comment
+				excelLes,
+				dko3Les,
+				diffType
 			});
 			dko3LesSet.delete(dko3Les);
 			excelLesSet.delete(excelLes);
@@ -5458,18 +5478,66 @@ async function runDiff(reportStatus) {
 }
 function setupDiffPage() {
 	let pluginContainer = document.getElementById("plugin_container");
-	let button = emmet.appendChild(pluginContainer, "div.row.mb-1>div.col-7>(h4{Verschillen tussen Excel uurroosters en DKO3 lessen.}+button{Run the diffs!})").last;
-	let results = emmet.insertAfter(button, "div").first;
+	let button = emmet.appendChild(pluginContainer, "div.mb-1>div>(h4{Verschillen tussen Excel uurroosters en DKO3 lessen.}+button{Run the diffs!})").last;
+	let runStatus = emmet.insertAfter(button, "div#runStatus").first;
+	let results = emmet.insertAfter(runStatus, "div#diffResults").first;
 	let messages = [];
 	function reportStatus(message) {
 		messages.push(message);
-		results.innerHTML = messages.join("<br>");
+		runStatus.innerHTML = messages.join("<br>");
 	}
 	button.onclick = async () => {
 		await runDiff(reportStatus);
 	};
 }
-function showDiffs(diffs, dko3LesSet, excelLesSet) {}
+function showDiffs(diffs, dko3LesSet, excelLesSet) {
+	let actualDiffs = diffs.filter((diff) => diff.diffType != "perfect match");
+	let divResults = document.getElementById("diffResults");
+	for (let diff of actualDiffs) displayDiff(diff, divResults);
+}
+function displayDiff(diff, divResults) {
+	let tbody = emmet.appendChild(divResults, "table>tbody").last;
+	let tr = emmet.appendChild(tbody, "tr").last;
+	fillDiffRow(tr, diff.excelLes.subjects, diff.excelLes.teachers, diff.excelLes.les.day, diff.excelLes.les.timeSlice, diff.excelLes.location);
+	tr.classList.add("excelRow");
+	let tr2 = emmet.appendChild(tbody, "tr").last;
+	fillDiffRow(tr2, diff.dko3Les.subjects, diff.dko3Les.teachers, diff.dko3Les.les.day, diff.dko3Les.les.timeSlice, diff.dko3Les.location);
+}
+function fillDiffRow(tr, subjects, teachers, day, timeSlice, location$1) {
+	emmet.appendChild(tr, `td{${subjects.join(",")}}+td{${teachers.join(",")}}+td{${toCompactDateString(day, timeSlice)}}+td{${location$1}}`);
+}
+function toCompactDateString(day, timeSlice) {
+	let text = "";
+	switch (day) {
+		case "MAANDAG":
+			text += "ma ";
+			break;
+		case "DINSDAG":
+			text += "di ";
+			break;
+		case "WOENSDAG":
+			text += "wo ";
+			break;
+		case "DONDERDAG":
+			text += "do ";
+			break;
+		case "VRIJDAG":
+			text += "vr ";
+			break;
+		case "ZATERDAG":
+			text += "za ";
+			break;
+		case "ZONDAG":
+			text += "zo ";
+			break;
+		case "":
+			text += "?? ";
+			break;
+		default: unreachable(day);
+	}
+	text += `${pad(timeSlice.start.hour, 2)}:${pad(timeSlice.start.minutes, 2)} - ${pad(timeSlice.end.hour, 2)}:${pad(timeSlice.end.minutes, 2)}`;
+	return text;
+}
 
 //#endregion
 //#region typescript/academie/observer.ts
