@@ -3,7 +3,7 @@ import {equals, getOptions, observers, registerObserver, settingsObservers} from
 import leerlingObserver from "./leerling/observer";
 import lessenObserver from "./lessen/observer";
 import lesObserver from "./les/observer";
-import startPageObserver from "./notifications/observer";
+import startPageObserver from "./startPage/observer";
 import academieObserver from "./academie/observer";
 import werklijstObserver from "./werklijst/observer";
 import tableObserver from "./table/observer";

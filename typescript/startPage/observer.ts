@@ -1,9 +1,7 @@
 import {ExactHashObserver} from "../pageObserver";
 import {emmet} from "../../libs/Emmeter/html";
-import {fetchCheckStatus, fetchExcelData, fetchFolderChanged, fetchNotifications, NotificationId, postNotification} from "../cloud";
-import {fetchAndDisplayNotifications, updateNotificationsInNavBar} from "./notifications";
-import {runRosterCheck} from "../roster_diff/build";
-import {checkChecks} from "./checks";
+import {fetchAndDisplayNotifications} from "../notifications/notifications";
+import {checkChecks} from "../notifications/checks";
 
 class StartPageObserver extends ExactHashObserver {
     constructor() {

@@ -4858,6 +4858,58 @@ function switchNaamVoornaam(_event) {
 }
 
 //#endregion
+//#region typescript/notifications/notifications.ts
+function setupNotifications() {
+	let navBar = document.getElementById("dko3_navbar");
+	let secondUl = navBar.querySelectorAll("ul").item(1);
+	emmet.insertBefore(secondUl, "div#navBarNotifDiv>button#notifButton.noBorder{5}");
+}
+async function updateNotificationsInNavBar(notifications) {
+	console.log("checking...");
+	if (!notifications) notifications = await fetchNotifications();
+	let notifButton = document.getElementById("notifButton");
+	let count = Object.keys(notifications.notifications).length;
+	notifButton.innerHTML = count.toString();
+	notifButton.style.display = count > 0 ? "block" : "none";
+}
+const NORMAL_SPEED_IN_SECONDS = 5 * 60;
+setInterval(updateNotificationsInNavBar, 1e3 * 10);
+async function fetchAndDisplayNotifications() {
+	let notifications = await fetchNotifications();
+	await updateNotificationsInNavBar(notifications);
+	let notificationsDiv = document.querySelector("#dko3_plugin_notifications > div > div");
+	let html = "";
+	let propNames = Object.getOwnPropertyNames(notifications.notifications);
+	for (let propName of propNames) {
+		let notif = notifications.notifications[propName];
+		let imgUrl = chrome.runtime.getURL("images/waiting.gif");
+		switch (notif.level) {
+			case "warning":
+				imgUrl = chrome.runtime.getURL("images/warning.png");
+				break;
+			case "error":
+				imgUrl = chrome.runtime.getURL("images/error.png");
+				break;
+			case "running":
+				imgUrl = chrome.runtime.getURL("images/waiting.gif");
+				break;
+			case "info":
+				imgUrl = chrome.runtime.getURL("images/info.png");
+				break;
+		}
+		html += `
+            <div class="notif notif-${notif.level}">
+            <div class="notif-img">
+                <img src="${imgUrl}" alt="todo">
+            </div>
+            <div>${notif.message}</div>
+            </div>
+            `;
+	}
+	notificationsDiv.innerHTML = html;
+}
+
+//#endregion
 //#region typescript/roster_diff/excel.ts
 var Range = class {
 	start;
@@ -5066,100 +5118,7 @@ var RosterFactory = class {
 };
 
 //#endregion
-//#region typescript/notifications/notifications.ts
-function setupNotifications() {
-	let navBar = document.getElementById("dko3_navbar");
-	let secondUl = navBar.querySelectorAll("ul").item(1);
-	emmet.insertBefore(secondUl, "div#navBarNotifDiv>button#notifButton.noBorder{5}");
-}
-async function updateNotificationsInNavBar(notifications) {
-	console.log("checking...");
-	if (!notifications) notifications = await fetchNotifications();
-	let notifButton = document.getElementById("notifButton");
-	let count = Object.keys(notifications.notifications).length;
-	notifButton.innerHTML = count.toString();
-	notifButton.style.display = count > 0 ? "block" : "none";
-}
-const NORMAL_SPEED_IN_SECONDS = 5 * 60;
-setInterval(updateNotificationsInNavBar, 1e3 * 10);
-
-//#endregion
-//#region typescript/notifications/observer.ts
-var StartPageObserver = class extends ExactHashObserver {
-	constructor() {
-		super("#start-mijn_tijdslijn", onMutation$4);
-	}
-	isPageReallyLoaded() {
-		return isLoaded();
-	}
-};
-var observer_default$6 = new StartPageObserver();
-function isLoaded() {
-	let startContentDiv = document.querySelector("#dko3_start_content");
-	return startContentDiv?.textContent.includes("welkom") ?? false;
-}
-function onMutation$4(mutation) {
-	if (document.querySelector("#dko3_plugin_notifications")) return true;
-	let startContentDiv = document.querySelector("#dko3_start_content");
-	if (startContentDiv) {
-		if (startContentDiv.textContent.includes("welkom")) {
-			emmet.insertAfter(startContentDiv.children[0], "div#dko3_plugin_notifications>div.alert.alert-info.shadow-sm>(h5>strong{Plugin berichten})+div");
-			doStartupStuff().then(() => {});
-		}
-		return true;
-	}
-	return false;
-}
-async function doStartupStuff() {
-	await fetchAndDisplayNotifications();
-	await checkChecks();
-}
-async function fetchAndDisplayNotifications() {
-	let notifications = await fetchNotifications();
-	await updateNotificationsInNavBar(notifications);
-	let notificationsDiv = document.querySelector("#dko3_plugin_notifications > div > div");
-	let html = "";
-	let propNames = Object.getOwnPropertyNames(notifications.notifications);
-	for (let propName of propNames) {
-		let notif = notifications.notifications[propName];
-		let imgUrl = chrome.runtime.getURL("images/waiting.gif");
-		switch (notif.level) {
-			case "warning":
-				imgUrl = chrome.runtime.getURL("images/warning.png");
-				break;
-			case "error":
-				imgUrl = chrome.runtime.getURL("images/error.png");
-				break;
-			case "running":
-				imgUrl = chrome.runtime.getURL("images/waiting.gif");
-				break;
-			case "info":
-				imgUrl = chrome.runtime.getURL("images/info.png");
-				break;
-		}
-		html += `
-            <div class="notif notif-${notif.level}">
-            <div class="notif-img">
-                <img src="${imgUrl}" alt="todo">
-            </div>
-            <div>${notif.message}</div>
-            </div>
-            `;
-	}
-	notificationsDiv.innerHTML = html;
-}
-async function checkChecks() {
-	let woordCheckstatus = await fetchCheckStatus("WOORD_ROSTERS");
-	if (woordCheckstatus.status === "INITIAL") {
-		await postNotification("MUZIEK_ROSTERS_IS_DIFF", "warning", "De muzieklessen zijn niet vergeleken met het uurrooser op Sharepoint. Klik op de knop om de lessen te vergelijken.");
-		await fetchAndDisplayNotifications();
-		let folderChanged = await fetchFolderChanged("Dko3/Uurroosters/");
-		for (let file of folderChanged.files) {
-			let excelData = await fetchExcelData(file.name);
-			await runRosterCheck(excelData);
-		}
-	}
-}
+//#region typescript/roster_diff/build.ts
 async function runRosterCheck(excelData) {
 	await postNotification("WOORD_ROSTER_RUN", "running", "Uurrooster worden vergeleken... (gestart door <todo:username>");
 	let factory = new RosterFactory(excelData);
@@ -5360,6 +5319,53 @@ function matchWithoutTeacher(dko3Les, excelLesSet) {
 		return excelLes;
 	}
 	return null;
+}
+
+//#endregion
+//#region typescript/notifications/checks.ts
+async function checkChecks() {
+	let woordCheckstatus = await fetchCheckStatus("WOORD_ROSTERS");
+	if (woordCheckstatus.status === "INITIAL") {
+		await postNotification("MUZIEK_ROSTERS_IS_DIFF", "warning", "De muzieklessen zijn niet vergeleken met het uurrooser op Sharepoint. Klik op de knop om de lessen te vergelijken.");
+		await fetchAndDisplayNotifications();
+		let folderChanged = await fetchFolderChanged("Dko3/Uurroosters/");
+		for (let file of folderChanged.files) {
+			let excelData = await fetchExcelData(file.name);
+			await runRosterCheck(excelData);
+		}
+	}
+}
+
+//#endregion
+//#region typescript/startPage/observer.ts
+var StartPageObserver = class extends ExactHashObserver {
+	constructor() {
+		super("#start-mijn_tijdslijn", onMutation$4);
+	}
+	isPageReallyLoaded() {
+		return isLoaded();
+	}
+};
+var observer_default$6 = new StartPageObserver();
+function isLoaded() {
+	let startContentDiv = document.querySelector("#dko3_start_content");
+	return startContentDiv?.textContent.includes("welkom") ?? false;
+}
+function onMutation$4(mutation) {
+	if (document.querySelector("#dko3_plugin_notifications")) return true;
+	let startContentDiv = document.querySelector("#dko3_start_content");
+	if (startContentDiv) {
+		if (startContentDiv.textContent.includes("welkom")) {
+			emmet.insertAfter(startContentDiv.children[0], "div#dko3_plugin_notifications>div.alert.alert-info.shadow-sm>(h5>strong{Plugin berichten})+div");
+			doStartupStuff().then(() => {});
+		}
+		return true;
+	}
+	return false;
+}
+async function doStartupStuff() {
+	await fetchAndDisplayNotifications();
+	await checkChecks();
 }
 
 //#endregion

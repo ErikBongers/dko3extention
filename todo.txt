@@ -1,5 +1,7 @@
 * Add extra menu
 
+* Show notification when refreshing any page.
+
 * Show diffs in start page.
   > add a replacement content pane.
     > triggered by what?
