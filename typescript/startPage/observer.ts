@@ -27,7 +27,9 @@ function onMutation(mutation: MutationRecord) {
     if (document.querySelector("#dko3_plugin_notifications"))
         return true;
 
-    setupPluginPage();
+    if(document.querySelector("#view_contents>div.row"))
+        setupPluginPage();
+
     let startContentDiv = document.querySelector("#dko3_start_content") as HTMLDivElement;
     if (startContentDiv) {
         if (startContentDiv.textContent.includes("welkom")) {
@@ -46,24 +48,26 @@ async function doStartupStuff() {
 
 function setupPluginPage() {
     let pluginContainer = document.getElementById("plugin_container");
-    if(!pluginContainer) {
-        let viewContent = document.getElementById("view_contents");
-        if(!viewContent)
-            return;
-        emmet.appendChild(viewContent, "div#plugin_container");
-    }
+    if (pluginContainer)
+        return;
+    let viewContent = document.getElementById("view_contents");
+    if (!viewContent)
+        return;
+
+    emmet.appendChild(viewContent, "div#plugin_container");
+
     let pageState = getGotoStateOrDefault(PageName.StartPage) as StartPageGotoState;
     if(pageState.goto == Goto.Start_page) {
         if (pageState.showPage == "start") {
             pageState.goto = Goto.None;
             saveGotoState(pageState);
-            document.body.classList.toggle("showPluginPage", false);
             return;
         }
         if (pageState.showPage == "diff") {
             pageState.goto = Goto.None;
             saveGotoState(pageState);
-            document.body.classList.toggle("showPluginPage", true);
+            let viewContent = document.getElementById("view_contents");
+            emmet.insertBefore(viewContent.firstElementChild, "div.hide_view_contents");
             setupDiffPage();
             return;
         }

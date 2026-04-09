@@ -4885,7 +4885,8 @@ function gotoDiffPage() {
 	pageState$2.goto = Goto.Start_page;
 	pageState$2.showPage = "diff";
 	saveGotoState(pageState$2);
-	location.href = "/#start-mijn_tijdslijn";
+	if (location.hash == "#start-mijn_tijdslijn") location.reload();
+	else location.href = "/#start-mijn_tijdslijn";
 }
 
 //#endregion
@@ -5190,7 +5191,7 @@ async function runRosterCheck(excelData) {
 	dko3AliasLessen = dko3AliasLessen.filter((l) => l.linkedLessen.length > 1);
 	console.log(dko3Lessen);
 	console.log(dko3AliasLessen);
-	await buildDiff(excelLessen, dko3Lessen, dko3AliasLessen);
+	return await buildDiff(excelLessen, dko3Lessen, dko3AliasLessen);
 }
 var LesType = /* @__PURE__ */ function(LesType$2) {
 	LesType$2["modules"] = "3";
@@ -5280,6 +5281,11 @@ async function buildDiff(excelLessen, dko3Lessen, dko3AliasLessen) {
 	console.log(diffs);
 	console.log(dko3LesSet.values());
 	console.log(excelLesSet.values());
+	return {
+		diffs,
+		dko3LesSet,
+		excelLesSet
+	};
 }
 async function getExtraTeachers(lesId) {
 	await fetch("https://administratie.dko3.cloud/view.php?args=lessen-les?id=" + lesId);
@@ -5396,7 +5402,7 @@ function isLoaded() {
 }
 function onMutation$4(mutation) {
 	if (document.querySelector("#dko3_plugin_notifications")) return true;
-	setupPluginPage();
+	if (document.querySelector("#view_contents>div.row")) setupPluginPage();
 	let startContentDiv = document.querySelector("#dko3_start_content");
 	if (startContentDiv) {
 		if (startContentDiv.textContent.includes("welkom")) {
@@ -5413,23 +5419,22 @@ async function doStartupStuff() {
 }
 function setupPluginPage() {
 	let pluginContainer = document.getElementById("plugin_container");
-	if (!pluginContainer) {
-		let viewContent = document.getElementById("view_contents");
-		if (!viewContent) return;
-		emmet.appendChild(viewContent, "div#plugin_container");
-	}
+	if (pluginContainer) return;
+	let viewContent = document.getElementById("view_contents");
+	if (!viewContent) return;
+	emmet.appendChild(viewContent, "div#plugin_container");
 	let pageState$2 = getGotoStateOrDefault(PageName.StartPage);
 	if (pageState$2.goto == Goto.Start_page) {
 		if (pageState$2.showPage == "start") {
 			pageState$2.goto = Goto.None;
 			saveGotoState(pageState$2);
-			document.body.classList.toggle("showPluginPage", false);
 			return;
 		}
 		if (pageState$2.showPage == "diff") {
 			pageState$2.goto = Goto.None;
 			saveGotoState(pageState$2);
-			document.body.classList.toggle("showPluginPage", true);
+			let viewContent$1 = document.getElementById("view_contents");
+			emmet.insertBefore(viewContent$1.firstElementChild, "div.hide_view_contents");
 			setupDiffPage();
 			return;
 		}
@@ -5446,7 +5451,8 @@ async function runDiff(reportStatus) {
 		reportStatus(`Inlezen van ${fileShortName}...`);
 		let excelData = await fetchExcelData(file.name);
 		reportStatus(`Vergelijken van ${fileShortName} met DKO3 lessen...`);
-		await runRosterCheck(excelData);
+		let res = await runRosterCheck(excelData);
+		showDiffs(res.diffs, res.dko3LesSet, res.excelLesSet);
 	}
 	reportStatus(`Vergelijking beeindigd.`);
 }
@@ -5463,6 +5469,7 @@ function setupDiffPage() {
 		await runDiff(reportStatus);
 	};
 }
+function showDiffs(diffs, dko3LesSet, excelLesSet) {}
 
 //#endregion
 //#region typescript/academie/observer.ts

@@ -393,15 +393,8 @@ span.filterInfo {
     border: none;
 }
 
-#plugin_container {
-    display: none;
-}
-
-body.showPluginPage {
-    & #plugin_container {
-        display: block;
-    }
-    & #view_contents > div.row {
+#view_contents {
+    & div.hide_view_contents ~ div.row {
         display: none;
     }
 }
