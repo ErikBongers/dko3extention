@@ -50,7 +50,7 @@ function setupPluginPage() {
         let viewContent = document.getElementById("view_contents");
         if(!viewContent)
             return;
-        emmet.appendChild(viewContent, "div#plugin_container>div.row.mb-1>div.col-7>h4{Verschillen tussen Excel uurroosters en DKO3 lessen.}");
+        emmet.appendChild(viewContent, "div#plugin_container");
     }
     let pageState = getGotoStateOrDefault(PageName.StartPage) as StartPageGotoState;
     if(pageState.goto == Goto.Start_page) {
@@ -64,6 +64,7 @@ function setupPluginPage() {
             pageState.goto = Goto.None;
             saveGotoState(pageState);
             document.body.classList.toggle("showPluginPage", true);
+            setupDiffPage();
             return;
         }
     }
@@ -78,5 +79,13 @@ async function runDiff() {
         let excelData = await fetchExcelData(file.name);
         await runRosterCheck(excelData);
     }
-
 }
+
+function setupDiffPage() {
+    let pluginContainer = document.getElementById("plugin_container");
+    let button = emmet.appendChild(pluginContainer, "div.row.mb-1>div.col-7>h4{Verschillen tussen Excel uurroosters en DKO3 lessen.}>button{Run the diffs!}").last as HTMLButtonElement;
+    button.onclick = async () => {
+        await runDiff();
+    };
+}
+
