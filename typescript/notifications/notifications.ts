@@ -1,6 +1,6 @@
 import { unreachable } from "../globals";
 import {emmet} from "../../libs/Emmeter/html";
-import {fetchNotifications, Notifications} from "../cloud";
+import {fetchNotifications, NotificationId, Notifications} from "../cloud";
 
 export function setupNotifications() {
     let navBar = document.getElementById("dko3_navbar") as HTMLDivElement;
@@ -37,3 +37,38 @@ function backToNormalSpeed() {
     setPollTimer('normal');
 }
 
+export async function fetchAndDisplayNotifications() {
+    let notifications = await fetchNotifications();
+    await updateNotificationsInNavBar(notifications);
+    let notificationsDiv = document.querySelector("#dko3_plugin_notifications > div > div") as HTMLDivElement;
+    let html: string = "";
+    let propNames = Object.getOwnPropertyNames(notifications.notifications) as NotificationId[];
+
+    for (let propName of propNames) {
+        let notif = notifications.notifications[propName];
+        let imgUrl = chrome.runtime.getURL("images/waiting.gif");
+        switch (notif.level) {
+            case "warning":
+                imgUrl = chrome.runtime.getURL("images/warning.png");
+                break;
+            case "error":
+                imgUrl = chrome.runtime.getURL("images/error.png");
+                break;
+            case "running":
+                imgUrl = chrome.runtime.getURL("images/waiting.gif");
+                break;
+            case "info":
+                imgUrl = chrome.runtime.getURL("images/info.png");
+                break;
+        }
+        html += `
+            <div class="notif notif-${notif.level}">
+            <div class="notif-img">
+                <img src="${imgUrl}" alt="todo">
+            </div>
+            <div>${notif.message}</div>
+            </div>
+            `;
+    }
+    notificationsDiv.innerHTML = html;
+}
