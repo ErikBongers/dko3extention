@@ -1,7 +1,17 @@
-* What does "Acteren" not match?
-  > check this before the task below...
-* alias lessen: split vakNaam into array, based on "+" and trim()
-  > use that for matches.
+* Add extra menu
+
+* Show diffs in start page.
+  > add a replacement content pane.
+    > triggered by what?
+    > have extra menu items.
+
+* get subjectDefs from dko3.
+* same with vestigingsplaatsen.
+
+* store diffs online
+  > load them when viewing lessen and display some info
+    > in overview: a diff warning icon
+    > in details: the 2 diff lines.
 
 * When file is removed from folder: also remove it in cloud.
 
@@ -13,6 +23,7 @@
    > highlight the different columns.
    > goto button to the actual lesson.
      > show the excel data at the top of the lesson.
+   > allow to ignore diffs, but keep those in a separate list (collapsed)
 
 * set TS settings gradually to strict.
 

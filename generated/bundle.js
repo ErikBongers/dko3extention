@@ -3080,7 +3080,7 @@ function addMenuSeparator(menu, title, indentLevel) {
 		ev.stopPropagation();
 	};
 }
-function setupMenu(container, button) {
+function setupMenu$1(container, button) {
 	initMenuEvents();
 	container.classList.add("dropDownContainer");
 	button.classList.add("dropDownIgnoreHide", "dropDownButton");
@@ -3230,7 +3230,7 @@ function addFilterFields() {
 		let searchField$1 = createSearchField(TXT_FILTER_ID$1, applyFilters, pageState$2.searchText);
 		divButtonNieuweLes.insertAdjacentElement("afterend", searchField$1);
 		let { first: span, last: idiom } = emmet.insertAfter(searchField$1, "span.btn-group-sm>button.btn.btn-sm.btn-outline-secondary.ml-2>i.fas.fa-list");
-		let menu = setupMenu(span, idiom.parentElement);
+		let menu = setupMenu$1(span, idiom.parentElement);
 		addMenuItem(menu, "Toon alles", 0, (_) => setExtraFilter((_$1) => {}));
 		addMenuItem(menu, "Filter online lessen", 0, (_) => setExtraFilter((pageState$3) => pageState$3.filterOnline = true));
 		addMenuItem(menu, "Filter offline lessen", 0, (_) => setExtraFilter((pageState$3) => pageState$3.filterOffline = true));
@@ -3666,7 +3666,7 @@ function decorateTableHeader(table) {
 			NO_MENU
 )) return;
 		let { first: span, last: idiom } = emmet.appendChild(colHeader, "span>button.miniButton.naked>i.fas.fa-list");
-		let menu = setupMenu(span, idiom.parentElement);
+		let menu = setupMenu$1(span, idiom.parentElement);
 		addMenuItem(menu, "Toon unieke waarden", 0, (ev) => {
 			forTableDo(ev, showDistinctColumn);
 		});
@@ -7812,6 +7812,19 @@ function inschrijvingenLinkToQueryItem(headerLabel, link, longLabelPrefix) {
 }
 
 //#endregion
+//#region typescript/menu.ts
+function setupMenu() {
+	let mainMenuUl = document.querySelector("#dko3_navbar > ul");
+	let listItems = mainMenuUl.querySelectorAll("li");
+	let lastItem = listItems[listItems.length - 1];
+	let { last: dropdown } = emmet.insertBefore(lastItem, `li.nav-item.dropdown>a{ Plugin }.nav-link.dropdown-toggle[href="#" role="button" data-toggle="dropdown" aria-expanded="false"]>div.dropdown-menu`);
+	let menu1 = emmet.appendChild(dropdown, `a.dropdown-item.pointer[href=\"#"]{Tadaaa....?}`).first;
+	menu1.onclick = () => {
+		console.log("clicked");
+	};
+}
+
+//#endregion
 //#region typescript/main.ts
 init();
 function init() {
@@ -7846,6 +7859,7 @@ function init() {
 		onPageChanged();
 		setupPowerQuery();
 		setupNotifications();
+		setupMenu();
 		if (document.readyState == "complete") {
 			console.log("document ready. firing onPageRefreshed.");
 			onPageRefreshed();

@@ -16,6 +16,7 @@ import {academieMenuObserver, allLijstenObserver, assetsObserver, evaluatieObser
 import {fetchGlobalSettings, getGlobalSettings, options, setGlobalSetting} from "./plugin_options/options";
 import {pageState} from "./pageState";
 import {setupNotifications} from "./notifications/notifications";
+import {setupMenu} from "./menu";
 
 init();
 
@@ -60,6 +61,7 @@ function init() {
         onPageChanged();
         setupPowerQuery();
         setupNotifications();
+        setupMenu();
         if(document.readyState == "complete") {
             console.log("document ready. firing onPageRefreshed.");
             onPageRefreshed();
@@ -159,4 +161,8 @@ function onPasteInGlobalSearchField(e: ClipboardEvent) {
     searchField.setRangeText(newText);
     searchField.setSelectionRange(newText.length, newText.length);
     e.preventDefault();
+}
+
+function whatever() {
+    console.log("duh...");
 }
