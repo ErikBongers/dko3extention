@@ -20,5 +20,5 @@ export function gotoDiffPage() {
     pageState.showPage = "diff";
     saveGotoState(pageState);
     location.href = "/#start-mijn_tijdslijn";
-    location.reload();
+    // location.reload();
 }

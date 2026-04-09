@@ -4,7 +4,7 @@ import {fetchAndDisplayNotifications} from "../notifications/notifications";
 import {checkChecks} from "../notifications/checks";
 import {getGotoStateOrDefault, Goto, PageName, saveGotoState, StartPageGotoState} from "../gotoState";
 import {fetchExcelData, fetchFolderChanged} from "../cloud";
-import {runRosterCheck} from "../roster_diff/build";
+import {Diff, runRosterCheck, TaggedDko3Les, TaggedExcelLes} from "../roster_diff/build";
 
 class StartPageObserver extends ExactHashObserver {
     constructor() {
@@ -73,19 +73,37 @@ function setupPluginPage() {
 
 }
 
-async function runDiff() {
+type StatusCallback = (message: string) => void;
+
+async function runDiff(reportStatus: StatusCallback) {
+    reportStatus("Excel bestanden ophalen...");
     let folderChanged = await fetchFolderChanged("Dko3/Uurroosters/");
+    reportStatus(`${folderChanged.files.length} Excel bestanden gevonden.`);
     for (let file of folderChanged.files) {
+        let fileShortName = file.name.replaceAll("Dko3/Uurroosters/", "");
+        reportStatus(`Inlezen van ${fileShortName}...`);
         let excelData = await fetchExcelData(file.name);
-        await runRosterCheck(excelData);
+        reportStatus(`Vergelijken van ${fileShortName} met DKO3 lessen...`);
+        let res = await runRosterCheck(excelData);
+        showDiffs(res.diffs, res.dko3LesSet, res.excelLesSet);
     }
+    reportStatus(`Vergelijking beeindigd.`);
 }
 
 function setupDiffPage() {
     let pluginContainer = document.getElementById("plugin_container");
-    let button = emmet.appendChild(pluginContainer, "div.row.mb-1>div.col-7>h4{Verschillen tussen Excel uurroosters en DKO3 lessen.}>button{Run the diffs!}").last as HTMLButtonElement;
+    let button = emmet.appendChild(pluginContainer, "div.row.mb-1>div.col-7>(h4{Verschillen tussen Excel uurroosters en DKO3 lessen.}+button{Run the diffs!})").last as HTMLButtonElement;
+    let results = emmet.insertAfter(button, "div").first as HTMLDivElement;
+    let messages: string[] = [];
+    function reportStatus(message: string) {
+        messages.push(message);
+        results.innerHTML = messages.join("<br>");
+    }
     button.onclick = async () => {
-        await runDiff();
+        await runDiff(reportStatus);
     };
 }
 
+function showDiffs(diffs: Diff[], dko3LesSet: Set<TaggedDko3Les>, excelLesSet: Set<TaggedExcelLes>) {
+
+}

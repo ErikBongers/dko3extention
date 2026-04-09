@@ -26,7 +26,7 @@ export async function runRosterCheck(excelData: JsonExcelData) {
     console.log(dko3Lessen);
     console.log(dko3AliasLessen);
 
-    await buildDiff(excelLessen, dko3Lessen, dko3AliasLessen);
+    return await buildDiff(excelLessen, dko3Lessen, dko3AliasLessen);
 }
 
 enum LesType {modules="3", gewone="1", alias="4"}
@@ -62,7 +62,7 @@ export interface Diff {
     comment: string;
 }
 
-abstract class TaggedLes<T extends ClassDef | Les> {
+export abstract class TaggedLes<T extends ClassDef | Les> {
     les: T;
     tags:string[] = [];
     searchText: string;
@@ -78,7 +78,7 @@ abstract class TaggedLes<T extends ClassDef | Les> {
     }
 }
 
-class TaggedDko3Les extends TaggedLes<Les> {
+export class TaggedDko3Les extends TaggedLes<Les> {
     constructor(les: Les) {
         let searchText = "";
         let tags: string[] = [];
@@ -94,7 +94,7 @@ class TaggedDko3Les extends TaggedLes<Les> {
     }
 }
 
-class TaggedExcelLes extends TaggedLes<ClassDef> {
+export class TaggedExcelLes extends TaggedLes<ClassDef> {
     constructor(les: ClassDef) {
         let searchText = "";
         let tags: string[] = [];
@@ -136,6 +136,7 @@ async function buildDiff(excelLessen: ClassDef[], dko3Lessen: Les[], dko3AliasLe
     console.log(diffs);
     console.log(dko3LesSet.values());
     console.log(excelLesSet.values());
+    return {diffs, dko3LesSet, excelLesSet};
 }
 
 async function getExtraTeachers(lesId: string) {

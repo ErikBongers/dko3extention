@@ -1,8 +1,6 @@
-* Notifications: add an action.
-  >
-
 * Show diffs in plugin page.
-
+  > remove perfect matches.
+  > display diffs without message but with the diff columns highlighted.
 
 * Show notification when refreshing any page.
 

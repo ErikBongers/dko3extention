@@ -4886,7 +4886,6 @@ function gotoDiffPage() {
 	pageState$2.showPage = "diff";
 	saveGotoState(pageState$2);
 	location.href = "/#start-mijn_tijdslijn";
-	location.reload();
 }
 
 //#endregion
@@ -5438,18 +5437,30 @@ function setupPluginPage() {
 	pageState$2.goto = Goto.None;
 	saveGotoState(pageState$2);
 }
-async function runDiff() {
+async function runDiff(reportStatus) {
+	reportStatus("Excel bestanden ophalen...");
 	let folderChanged = await fetchFolderChanged("Dko3/Uurroosters/");
+	reportStatus(`${folderChanged.files.length} Excel bestanden gevonden.`);
 	for (let file of folderChanged.files) {
+		let fileShortName = file.name.replaceAll("Dko3/Uurroosters/", "");
+		reportStatus(`Inlezen van ${fileShortName}...`);
 		let excelData = await fetchExcelData(file.name);
+		reportStatus(`Vergelijken van ${fileShortName} met DKO3 lessen...`);
 		await runRosterCheck(excelData);
 	}
+	reportStatus(`Vergelijking beeindigd.`);
 }
 function setupDiffPage() {
 	let pluginContainer = document.getElementById("plugin_container");
-	let button = emmet.appendChild(pluginContainer, "div.row.mb-1>div.col-7>h4{Verschillen tussen Excel uurroosters en DKO3 lessen.}>button{Run the diffs!}").last;
+	let button = emmet.appendChild(pluginContainer, "div.row.mb-1>div.col-7>(h4{Verschillen tussen Excel uurroosters en DKO3 lessen.}+button{Run the diffs!})").last;
+	let results = emmet.insertAfter(button, "div").first;
+	let messages = [];
+	function reportStatus(message) {
+		messages.push(message);
+		results.innerHTML = messages.join("<br>");
+	}
 	button.onclick = async () => {
-		await runDiff();
+		await runDiff(reportStatus);
 	};
 }
 
