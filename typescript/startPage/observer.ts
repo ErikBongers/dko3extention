@@ -50,7 +50,7 @@ function setupPluginPage() {
         let viewContent = document.getElementById("view_contents");
         if(!viewContent)
             return;
-        emmet.appendChild(viewContent, "div#plugin_container>div.row.mb-1>div.col-7>h4{Tadaaaa!}");
+        emmet.appendChild(viewContent, "div#plugin_container>div.row.mb-1>div.col-7>h4{Verschillen tussen Excel uurroosters en DKO3 lessen.}");
     }
     let pageState = getGotoStateOrDefault(PageName.StartPage) as StartPageGotoState;
     if(pageState.goto == Goto.Start_page) {

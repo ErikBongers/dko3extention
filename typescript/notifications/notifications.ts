@@ -1,6 +1,7 @@
 import { unreachable } from "../globals";
 import {emmet} from "../../libs/Emmeter/html";
 import {fetchNotifications, NotificationId, Notifications} from "../cloud";
+import {gotoDiffPage} from "../menu";
 
 export function setupNotifications() {
     let navBar = document.getElementById("dko3_navbar") as HTMLDivElement;
@@ -82,4 +83,10 @@ export async function fetchAndDisplayNotifications() {
 
 function doNotificationAction(id: NotificationId) {
     console.log("doing action for notification: " + id);
+    switch (id) {
+        case "WOORD_ROSTERS_IS_DIFF":
+            gotoDiffPage();
+            break;
+    }
+
 }

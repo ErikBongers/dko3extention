@@ -4181,6 +4181,27 @@ function switchNaamVoornaam(_event) {
 }
 
 //#endregion
+//#region typescript/menu.ts
+function setupMenu() {
+	let mainMenuUl = document.querySelector("#dko3_navbar > ul");
+	let listItems = mainMenuUl.querySelectorAll("li");
+	let lastItem = listItems[listItems.length - 1];
+	let { last: dropdown } = emmet.insertBefore(lastItem, `li.nav-item.dropdown>a{ Plugin }.nav-link.dropdown-toggle[href="#" role="button" data-toggle="dropdown" aria-expanded="false"]>div.dropdown-menu`);
+	let menu1 = emmet.appendChild(dropdown, `a.dropdown-item.pointer[href=\"#"]{Vergelijk lessen met Excel uurroosters}`).first;
+	menu1.onclick = () => {
+		gotoDiffPage();
+	};
+}
+function gotoDiffPage() {
+	let pageState$2 = getGotoStateOrDefault(PageName.StartPage);
+	pageState$2.goto = Goto.Start_page;
+	pageState$2.showPage = "diff";
+	saveGotoState(pageState$2);
+	location.href = "/#start-mijn_tijdslijn";
+	location.reload();
+}
+
+//#endregion
 //#region typescript/notifications/notifications.ts
 function setupNotifications() {
 	let navBar = document.getElementById("dko3_navbar");
@@ -4239,6 +4260,11 @@ async function fetchAndDisplayNotifications() {
 }
 function doNotificationAction(id) {
 	console.log("doing action for notification: " + id);
+	switch (id) {
+		case "WOORD_ROSTERS_IS_DIFF":
+			gotoDiffPage();
+			break;
+	}
 }
 
 //#endregion
@@ -4291,7 +4317,7 @@ function setupPluginPage() {
 	if (!pluginContainer) {
 		let viewContent = document.getElementById("view_contents");
 		if (!viewContent) return;
-		emmet.appendChild(viewContent, "div#plugin_container>div.row.mb-1>div.col-7>h4{Tadaaaa!}");
+		emmet.appendChild(viewContent, "div#plugin_container>div.row.mb-1>div.col-7>h4{Verschillen tussen Excel uurroosters en DKO3 lessen.}");
 	}
 	let pageState$2 = getGotoStateOrDefault(PageName.StartPage);
 	if (pageState$2.goto == Goto.Start_page) {
@@ -6759,24 +6785,6 @@ function inschrijvingenLinkToQueryItem(headerLabel, link, longLabelPrefix) {
 	let longLabel = longLabelPrefix + headerLabel + " > " + label;
 	if (label.toLowerCase().includes("inschrijving")) longLabel = headerLabel + " > " + label;
 	return createQueryItem(headerLabel, label, link.href, void 0, longLabel);
-}
-
-//#endregion
-//#region typescript/menu.ts
-function setupMenu() {
-	let mainMenuUl = document.querySelector("#dko3_navbar > ul");
-	let listItems = mainMenuUl.querySelectorAll("li");
-	let lastItem = listItems[listItems.length - 1];
-	let { last: dropdown } = emmet.insertBefore(lastItem, `li.nav-item.dropdown>a{ Plugin }.nav-link.dropdown-toggle[href="#" role="button" data-toggle="dropdown" aria-expanded="false"]>div.dropdown-menu`);
-	let menu1 = emmet.appendChild(dropdown, `a.dropdown-item.pointer[href=\"#"]{Tadaaa....?}`).first;
-	menu1.onclick = () => {
-		console.log("clicked");
-		let pageState$2 = getGotoStateOrDefault(PageName.StartPage);
-		pageState$2.goto = Goto.Start_page;
-		pageState$2.showPage = "diff";
-		saveGotoState(pageState$2);
-		location.href = "/#start-mijn_tijdslijn";
-	};
 }
 
 //#endregion
