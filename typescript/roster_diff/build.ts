@@ -265,27 +265,3 @@ function matchWithoutTeacher(dko3Les: TaggedDko3Les, excelLesSet: Set<TaggedExce
     }
     return null;
 }
-
-function onSetPluginPage() {
-    // let pageState = getGotoStateOrDefault(PageName.Werklijst) as WerklijstGotoState;
-    // if (pageState.goto == Goto.Werklijst_uren_prevYear) {
-    //     pageState.goto = Goto.None;
-    //     saveGotoState(pageState);
-    //     setCriteriaForTeacherHoursAndClickFetchButton(Schoolyear.toFullString(Schoolyear.calculateCurrent())).then(() => {
-    //     });
-    //     return;
-    // }
-    // if (pageState.goto == Goto.Werklijst_uren_nextYear) {
-    //     pageState.goto = Goto.None;
-    //     saveGotoState(pageState);
-    //     setCriteriaForTeacherHoursAndClickFetchButton(Schoolyear.toFullString(Schoolyear.calculateCurrent() + 1)).then(() => {
-    //     });
-    //     return;
-    // }
-    // pageState.werklijstTableName = "";
-    // saveGotoState(pageState);
-    // let btnWerklijstMakenWrapper = document.querySelector(def.BTN_WERKLIJST_MAKEN_WRAPPER_ID) as HTMLDivElement;
-    // if (btnWerklijstMakenWrapper) {
-    //     return;
-    // }
-}

@@ -737,7 +737,12 @@ function copyToClipboardOrRequestRetry(infoBar, text) {
 //#endregion
 //#region typescript/gotoState.ts
 function saveGotoState(state) {
-	sessionStorage.setItem(STORAGE_GOTO_STATE_KEY, JSON.stringify(state));
+	sessionStorage.setItem(
+		//todo: try to force a default state instead of these if statements.
+		//todo: separate the actual page (hash) from the sub-page details - see start page
+		STORAGE_GOTO_STATE_KEY,
+		JSON.stringify(state)
+);
 }
 function defaultGotoState(pageName) {
 	let pageState$2 = {
@@ -746,6 +751,10 @@ function defaultGotoState(pageName) {
 	};
 	if (pageName === PageName.Werklijst) return {
 		werklijstTableName: "",
+		...pageState$2
+	};
+	if (pageName === PageName.StartPage) return {
+		showPage: "start",
 		...pageState$2
 	};
 	return pageState$2;
@@ -758,6 +767,7 @@ function getGotoStateOrDefault(pageName) {
 let PageName = /* @__PURE__ */ function(PageName$1) {
 	PageName$1["Werklijst"] = "Werklijst";
 	PageName$1["Lessen"] = "Lessen";
+	PageName$1["StartPage"] = "Start";
 	return PageName$1;
 }({});
 let Goto = /* @__PURE__ */ function(Goto$1) {
@@ -766,6 +776,7 @@ let Goto = /* @__PURE__ */ function(Goto$1) {
 	Goto$1["Werklijst_uren_prevYear"] = "Werklijst_uren_prevYear";
 	Goto$1["Lessen_trimesters_set_filter"] = "Lessen_trimesters_set_filter";
 	Goto$1["Lessen_trimesters_show"] = "Lessen_trimesters_show";
+	Goto$1["Start_page"] = "Start_page";
 	return Goto$1;
 }({});
 
@@ -5353,6 +5364,7 @@ function isLoaded() {
 }
 function onMutation$4(mutation) {
 	if (document.querySelector("#dko3_plugin_notifications")) return true;
+	setupPluginPage();
 	let startContentDiv = document.querySelector("#dko3_start_content");
 	if (startContentDiv) {
 		if (startContentDiv.textContent.includes("welkom")) {
@@ -5366,6 +5378,24 @@ function onMutation$4(mutation) {
 async function doStartupStuff() {
 	await fetchAndDisplayNotifications();
 	await checkChecks();
+}
+function setupPluginPage() {
+	let pluginContainer = document.getElementById("plugin_container");
+	if (!pluginContainer) {
+		let viewContent = document.getElementById("view_contents");
+		if (!viewContent) return;
+		emmet.appendChild(viewContent, "div#plugin_container>div.row.mb-1>div.col-7>h4{Tadaaaa!}");
+	}
+	let pageState$2 = getGotoStateOrDefault(PageName.StartPage);
+	if (pageState$2.showPage == "start") {
+		document.body.classList.toggle("showPluginPage", false);
+		return;
+	}
+	if (pageState$2.showPage == "diff") {
+		document.body.classList.toggle("showPluginPage", true);
+		return;
+	}
+	saveGotoState(pageState$2);
 }
 
 //#endregion
@@ -7827,6 +7857,11 @@ function setupMenu() {
 	let menu1 = emmet.appendChild(dropdown, `a.dropdown-item.pointer[href=\"#"]{Tadaaa....?}`).first;
 	menu1.onclick = () => {
 		console.log("clicked");
+		let pageState$2 = getGotoStateOrDefault(PageName.StartPage);
+		pageState$2.goto = Goto.Start_page;
+		pageState$2.showPage = "diff";
+		saveGotoState(pageState$2);
+		location.href = "/#start-mijn_tijdslijn";
 	};
 }
 

@@ -1,4 +1,5 @@
 import {emmet} from "../libs/Emmeter/html";
+import {getGotoStateOrDefault, Goto, PageName, saveGotoState, StartPageGotoState} from "./gotoState";
 
 export function setupMenu() {
     let mainMenuUl = document.querySelector("#dko3_navbar > ul") as HTMLUListElement;
@@ -9,6 +10,11 @@ export function setupMenu() {
     let menu1 = emmet.appendChild(dropdown as HTMLElement, `a.dropdown-item.pointer[href=\"#"]{Tadaaa....?}`).first as HTMLAnchorElement;
     menu1.onclick = () => {
         console.log("clicked");
+        let pageState = getGotoStateOrDefault(PageName.StartPage) as StartPageGotoState;
+        pageState.goto = Goto.Start_page;
+        pageState.showPage = "diff";
+        saveGotoState(pageState);
+        location.href = "/#start-mijn_tijdslijn";
     }
 
 }
