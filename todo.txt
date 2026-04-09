@@ -1,4 +1,8 @@
-* Add extra menu
+* Notifications: add an action.
+  >
+
+* Show diffs in plugin page.
+
 
 * Show notification when refreshing any page.
 

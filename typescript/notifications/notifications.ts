@@ -41,9 +41,9 @@ export async function fetchAndDisplayNotifications() {
     let notifications = await fetchNotifications();
     await updateNotificationsInNavBar(notifications);
     let notificationsDiv = document.querySelector("#dko3_plugin_notifications > div > div") as HTMLDivElement;
-    let html: string = "";
     let propNames = Object.getOwnPropertyNames(notifications.notifications) as NotificationId[];
 
+    notificationsDiv.innerHTML = "";
     for (let propName of propNames) {
         let notif = notifications.notifications[propName];
         let imgUrl = chrome.runtime.getURL("images/waiting.gif");
@@ -61,7 +61,7 @@ export async function fetchAndDisplayNotifications() {
                 imgUrl = chrome.runtime.getURL("images/info.png");
                 break;
         }
-        html += `
+        let html: string = `
             <div class="notif notif-${notif.level}">
             <div class="notif-img">
                 <img src="${imgUrl}" alt="todo">
@@ -69,6 +69,17 @@ export async function fetchAndDisplayNotifications() {
             <div>${notif.message}</div>
             </div>
             `;
+        let notifDiv = emmet.appendChild(notificationsDiv, "div").first as HTMLDivElement;
+        notifDiv.innerHTML = html;
+        let button = notifDiv.querySelector("button") as HTMLButtonElement;
+        if(!button)
+            continue;
+        button.onclick = () => {
+            doNotificationAction(notif.id);
+        }
     }
-    notificationsDiv.innerHTML = html;
+}
+
+function doNotificationAction(id: NotificationId) {
+    console.log("doing action for notification: " + id);
 }

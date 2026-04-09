@@ -6,12 +6,12 @@ export async function checkChecks() {
     let woordCheckstatus = await fetchCheckStatus("WOORD_ROSTERS");
     if (woordCheckstatus.status === "INITIAL") {
         //todo: add message that this check needs to be run.
-        await postNotification("MUZIEK_ROSTERS_IS_DIFF", "warning", "De muzieklessen zijn niet vergeleken met het uurrooser op Sharepoint. Klik op de knop om de lessen te vergelijken.");
+        await postNotification("WOORD_ROSTERS_IS_DIFF", "warning", "De woordlessen zijn niet vergeleken met het uurrooser op Sharepoint. <button>Vergelijk lessen</button>");
         await fetchAndDisplayNotifications();
+    } else { //woord checks are not INITIAL, so see if they are changed since last check.
         let folderChanged = await fetchFolderChanged("Dko3/Uurroosters/");
-        for (let file of folderChanged.files) {
-            let excelData = await fetchExcelData(file.name);
-            await runRosterCheck(excelData);
+        if (folderChanged.changed) {
+            await postNotification("WOORD_ROSTER_CHANGED", "warning", "Het uurrooster voor woord is gewijzigd op Sharepoint. <button>Vergelijk lessen</button>");
         }
     }
 }

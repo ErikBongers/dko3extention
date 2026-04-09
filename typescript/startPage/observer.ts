@@ -2,8 +2,9 @@ import {ExactHashObserver} from "../pageObserver";
 import {emmet} from "../../libs/Emmeter/html";
 import {fetchAndDisplayNotifications} from "../notifications/notifications";
 import {checkChecks} from "../notifications/checks";
-import {getGotoStateOrDefault, Goto, PageName, saveGotoState, StartPageGotoState, WerklijstGotoState} from "../gotoState";
-import {pageState} from "../pageState";
+import {getGotoStateOrDefault, Goto, PageName, saveGotoState, StartPageGotoState} from "../gotoState";
+import {fetchExcelData, fetchFolderChanged} from "../cloud";
+import {runRosterCheck} from "../roster_diff/build";
 
 class StartPageObserver extends ExactHashObserver {
     constructor() {
@@ -52,19 +53,30 @@ function setupPluginPage() {
         emmet.appendChild(viewContent, "div#plugin_container>div.row.mb-1>div.col-7>h4{Tadaaaa!}");
     }
     let pageState = getGotoStateOrDefault(PageName.StartPage) as StartPageGotoState;
-    if (pageState.showPage == "start") {
-        // pageState.goto = Goto.None;
-        // saveGotoState(pageState);
-        document.body.classList.toggle("showPluginPage", false);
-        return;
+    if(pageState.goto == Goto.Start_page) {
+        if (pageState.showPage == "start") {
+            pageState.goto = Goto.None;
+            saveGotoState(pageState);
+            document.body.classList.toggle("showPluginPage", false);
+            return;
+        }
+        if (pageState.showPage == "diff") {
+            pageState.goto = Goto.None;
+            saveGotoState(pageState);
+            document.body.classList.toggle("showPluginPage", true);
+            return;
+        }
     }
-    if (pageState.showPage == "diff") {
-        // pageState.goto = Goto.None;
-        // saveGotoState(pageState);
-        document.body.classList.toggle("showPluginPage", true);
-        return;
-    }
-    // pageState.goto = Goto.None;
+    pageState.goto = Goto.None;
     saveGotoState(pageState);
+
+}
+
+async function runDiff() {
+    let folderChanged = await fetchFolderChanged("Dko3/Uurroosters/");
+    for (let file of folderChanged.files) {
+        let excelData = await fetchExcelData(file.name);
+        await runRosterCheck(excelData);
+    }
 
 }
