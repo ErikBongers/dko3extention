@@ -25,11 +25,11 @@ function onMutation (_mutation: MutationRecord) {
         addTableNavigationButton(navigationBars, def.DOWNLOAD_TABLE_BTN_ID, "download full table", createDownloadTableWithExtraAction(), "fa-arrow-down");
     }
     if(document.querySelector("main div.table-responsive table thead")) {
-        decorateTableHeader(document.querySelector("main div.table-responsive table"));
+        decorateTableHeader(document.querySelector("main div.table-responsive table"), true);
     }
     let sortableTable = document.querySelector("table."+def.CAN_SORT) as HTMLTableElement;
     if(sortableTable) {
-        decorateTableHeader(sortableTable);
+        decorateTableHeader(sortableTable, true);
     }
     return true;
 }

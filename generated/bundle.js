@@ -3658,10 +3658,11 @@ function copyOneColumn(table, index) {
 function createAndCopyTable(headers, cols) {
 	navigator.clipboard.writeText(createHtmlTable(headers, cols).outerHTML).then((_r) => {});
 }
-function reSortTableByColumn(ev, table) {
+function reSortTableByColumn(ev, table, fetchFirst) {
 	let header = table.tHead.children[0].children[getColumnIndex(ev)];
 	let wasAscending = header.classList.contains("sortAscending");
-	forTableDo(ev, (_fetchedTable, index) => sortTableByColumn(table, index, wasAscending));
+	if (fetchFirst) forTableDo(ev, (_fetchedTable, index) => sortTableByColumn(table, index, wasAscending));
+	else sortTableByColumn(table, getColumnIndex(ev), wasAscending);
 }
 function isColumnProbablyDate(table, index) {
 	let rows = Array.from(table.tBodies[0].rows);
@@ -3681,13 +3682,13 @@ function isColumnProbablyNumeric(table, index) {
 		return isNaN(Number(row.children[index].innerText));
 	});
 }
-function decorateTableHeader(table) {
+function decorateTableHeader(table, fetchFullTable) {
 	if (table.tHead.classList.contains("clickHandler")) return;
 	table.tHead.classList.add("clickHandler");
 	if (!options.showTableHeaders) return;
 	Array.from(table.tHead.children[0].children).forEach((colHeader) => {
 		colHeader.onclick = (ev) => {
-			reSortTableByColumn(ev, table);
+			reSortTableByColumn(ev, table, fetchFullTable);
 		};
 		if (table.classList.contains(
 			//todo: add this to openHtmlTab.
@@ -3901,9 +3902,9 @@ function onMutation$7(_mutation) {
 		createDownloadTableWithExtraAction(),
 		"fa-arrow-down"
 );
-	if (document.querySelector("main div.table-responsive table thead")) decorateTableHeader(document.querySelector("main div.table-responsive table"));
+	if (document.querySelector("main div.table-responsive table thead")) decorateTableHeader(document.querySelector("main div.table-responsive table"), true);
 	let sortableTable = document.querySelector("table." + CAN_SORT);
-	if (sortableTable) decorateTableHeader(sortableTable);
+	if (sortableTable) decorateTableHeader(sortableTable, true);
 	return true;
 }
 let tableCriteriaBuilders = new Map();
@@ -5495,7 +5496,8 @@ function showDiffs(diffs, dko3LesSet, excelLesSet) {
 	let divResults = document.getElementById("diffResults");
 	for (let diff of actualDiffs) displayDiff(diff, divResults);
 	emmet.appendChild(divResults, "h4{Lessen zonder overeenkomsten}");
-	let tbody = emmet.appendChild(divResults, "table#orphans>(thead>tr>(td{Vak/Lesnaam}+td{Leraar}+td{Dag}+td{Uur}+td{Vestiging}))+tbody").last;
+	let { first: table, last: tbody } = emmet.appendChild(divResults, "table#orphans>(thead>tr>(td{Vak/Lesnaam}+td{Leraar}+td{Dag}+td{Uur}+td{Vestiging}))+tbody");
+	decorateTableHeader(table, false);
 	for (let les of dko3LesSet) {
 		let tr = emmet.appendChild(tbody, "tr").last;
 		fillDiffRow(tr, les.subjects, les.teachers, les.les.day, les.les.timeSlice, les.location, "perfect match");
@@ -7422,7 +7424,7 @@ function onResultsShown() {
 	console.log("onResultsShown");
 	let werklijstPageState = getGotoStateOrDefault(PageName.Werklijst);
 	if (werklijstPageState.werklijstTableName === UREN_TABLE_STATE_NAME) tryUntil(onShowLerarenUren);
-	decorateTableHeader(document.querySelector("table#" + WERKLIJST_TABLE_ID));
+	decorateTableHeader(document.querySelector("table#" + WERKLIJST_TABLE_ID), true);
 }
 function addButtons() {
 	let targetButton = document.querySelector(TARGET_BUTTON_ID);

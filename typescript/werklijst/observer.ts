@@ -213,7 +213,7 @@ function onResultsShown() {
     if(werklijstPageState.werklijstTableName === def.UREN_TABLE_STATE_NAME) {
         tryUntil(onShowLerarenUren);
     }
-    decorateTableHeader(document.querySelector("table#"+def.WERKLIJST_TABLE_ID) as HTMLTableElement);
+    decorateTableHeader(document.querySelector("table#"+def.WERKLIJST_TABLE_ID) as HTMLTableElement, true);
 }
 
 function addButtons() {

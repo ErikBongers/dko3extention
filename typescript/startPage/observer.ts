@@ -8,6 +8,7 @@ import {Diff, DiffType, runRosterCheck, TaggedDko3Les, TaggedExcelLes} from "../
 import {DayUppercase} from "../lessen/scrape";
 import {TimeSlice} from "../roster_diff/compare_roster";
 import {pad, unreachable} from "../globals";
+import {decorateTableHeader} from "../table/tableHeaders";
 
 class StartPageObserver extends ExactHashObserver {
     constructor() {
@@ -119,7 +120,8 @@ function showDiffs(diffs: Diff[], dko3LesSet: Set<TaggedDko3Les>, excelLesSet: S
         displayDiff(diff, divResults);
 
     emmet.appendChild(divResults, "h4{Lessen zonder overeenkomsten}");
-    let tbody = emmet.appendChild(divResults, "table#orphans>(thead>tr>(td{Vak/Lesnaam}+td{Leraar}+td{Dag}+td{Uur}+td{Vestiging}))+tbody").last as HTMLTableSectionElement;
+    let {first: table, last: tbody} = emmet.appendChild(divResults, "table#orphans>(thead>tr>(td{Vak/Lesnaam}+td{Leraar}+td{Dag}+td{Uur}+td{Vestiging}))+tbody") as {target: HTMLDivElement, first: HTMLTableElement, last: HTMLTableSectionElement};
+    decorateTableHeader(table, false);
     for(let les of dko3LesSet) {
         let tr = emmet.appendChild(tbody, "tr").last as HTMLTableRowElement;
         fillDiffRow(tr, les.subjects, les.teachers, les.les.day, les.les.timeSlice, les.location, "perfect match");

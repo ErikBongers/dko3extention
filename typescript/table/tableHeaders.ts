@@ -95,10 +95,13 @@ function createAndCopyTable(headers: Iterable<string>, cols: Iterable<Iterable<s
     navigator.clipboard.writeText(createHtmlTable(headers, cols).outerHTML).then(_r => {});
 }
 
-function reSortTableByColumn(ev: MouseEvent, table: HTMLTableElement) {
+function reSortTableByColumn(ev: MouseEvent, table: HTMLTableElement, fetchFirst: boolean) {
     let header = table.tHead.children[0].children[getColumnIndex(ev)];
     let wasAscending = header.classList.contains("sortAscending");
-    forTableDo(ev, (_fetchedTable, index) => sortTableByColumn(table, index, wasAscending));
+    if(fetchFirst)
+        forTableDo(ev, (_fetchedTable, index) => sortTableByColumn(table, index, wasAscending));
+    else
+        sortTableByColumn(table, getColumnIndex(ev), wasAscending)
 }
 
 function isColumnProbablyDate(table: HTMLTableElement, index: number) {
@@ -127,7 +130,7 @@ function isColumnProbablyNumeric(table: HTMLTableElement, index: number) {
         });
 }
 
-export function decorateTableHeader(table: HTMLTableElement) {
+export function decorateTableHeader(table: HTMLTableElement, fetchFullTable: boolean) {
     if (table.tHead.classList.contains("clickHandler"))
         return;
     table.tHead.classList.add("clickHandler");
@@ -137,7 +140,7 @@ export function decorateTableHeader(table: HTMLTableElement) {
     Array.from(table.tHead.children[0].children)
         .forEach((colHeader: HTMLElement) => {
             colHeader.onclick = (ev) => {
-                reSortTableByColumn(ev, table);
+                reSortTableByColumn(ev, table, fetchFullTable);
             };
             if(table.classList.contains(def.NO_MENU))
                 return;
