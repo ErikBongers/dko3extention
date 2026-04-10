@@ -189,6 +189,10 @@ export function millisToString(duration: number) {
     else return "";
 }
 
+export function dateDiffToString(oldestDate: Date, newestDate: Date) {
+    return millisToString(newestDate.getTime() - oldestDate.getTime());
+}
+
 export function clamp(value: number, min: number, max: number) {
     return Math.min(Math.max(value, min), max);
 }
@@ -427,3 +431,4 @@ export function pad(num, size) {
     while (num.length < size) num = "0" + num;
     return num;
 }
+

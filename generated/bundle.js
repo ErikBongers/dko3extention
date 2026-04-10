@@ -596,6 +596,9 @@ function millisToString(duration) {
 	else if (seconds > 0) return seconds + " seconden";
 	else return "";
 }
+function dateDiffToString(oldestDate, newestDate) {
+	return millisToString(newestDate.getTime() - oldestDate.getTime());
+}
 function clamp(value, min, max) {
 	return Math.min(Math.max(value, min), max);
 }
@@ -4505,7 +4508,7 @@ var InfoBarTableFetchListener = class {
 				tableFetcher.reset();
 				defaultAction(ev);
 			};
-			this.infoBar.setCacheInfo(`Gegevens uit cache, ${millisToString(new Date().getTime() - tableFetcher.shadowTableDate.getTime())} oud. `, resetAndLoadAction);
+			this.infoBar.setCacheInfo(`Gegevens uit cache, ${dateDiffToString(tableFetcher.shadowTableDate, new Date())} oud. `, resetAndLoadAction);
 		}
 	}
 	onBeforeLoadingPage(_tableFetcher) {
@@ -5541,7 +5544,8 @@ function createJsonDiffs(diffList, dko3LesSet, excelLesSet) {
 	return {
 		diffs,
 		orphanedDko3Lessen,
-		orphanedExcelLessen
+		orphanedExcelLessen,
+		isoDate: new Date().toISOString()
 	};
 }
 function dko3LesToJson(dko3Les) {
@@ -5567,6 +5571,9 @@ function excelLesToJson(excelLes) {
 }
 function showDiffs(diffs) {
 	let divResults = document.getElementById("diffResults");
+	divResults.innerHTML = "";
+	let elapsedTimeString = dateDiffToString(new Date(diffs.isoDate), new Date());
+	if (elapsedTimeString != "") emmet.appendChild(divResults, `p{Laatste vergelijking: ${elapsedTimeString}}}`);
 	for (let diff of diffs.diffs) displayDiff(diff, divResults);
 	emmet.appendChild(divResults, "h4{Lessen zonder overeenkomsten}");
 	let { first: table, last: tbody } = emmet.appendChild(divResults, "table#orphans>(thead>tr>(th.subject{Vak/Lesnaam}+th.teacher{Leraar}+th.day{Dag}+th.{Uur}+th.location{Vestiging}))+tbody");

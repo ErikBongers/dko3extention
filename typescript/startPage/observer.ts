@@ -7,7 +7,7 @@ import {cloud, fetchExcelData, fetchFolderChanged} from "../cloud";
 import {Diff, DiffType, runRosterCheck, TaggedDko3Les, TaggedExcelLes} from "../roster_diff/build";
 import {DayUppercase} from "../lessen/scrape";
 import {TimeSlice} from "../roster_diff/compare_roster";
-import {getSchoolIdString, pad, Schoolyear, unreachable} from "../globals";
+import {dateDiffToString, getSchoolIdString, pad, Schoolyear, unreachable} from "../globals";
 import {decorateTableHeader} from "../table/tableHeaders";
 
 class StartPageObserver extends ExactHashObserver {
@@ -156,6 +156,7 @@ export interface JsonDiffs {
     diffs: JsonDiff[];
     orphanedDko3Lessen: JsonDko3Les[];
     orphanedExcelLessen: JsonExcelLes[];
+    isoDate: string
 }
 
 function createJsonDiffs(diffList: Diff[], dko3LesSet: Set<TaggedDko3Les>, excelLesSet: Set<TaggedExcelLes>) {
@@ -173,7 +174,8 @@ function createJsonDiffs(diffList: Diff[], dko3LesSet: Set<TaggedDko3Les>, excel
     return {
         diffs,
         orphanedDko3Lessen,
-        orphanedExcelLessen
+        orphanedExcelLessen,
+        isoDate: (new Date()).toISOString()
     } satisfies JsonDiffs;
 }
 
@@ -202,6 +204,11 @@ function excelLesToJson(excelLes: TaggedExcelLes): JsonExcelLes {
 
 function showDiffs(diffs: JsonDiffs) {
     let divResults = document.getElementById("diffResults") as HTMLDivElement;
+    divResults.innerHTML = "";
+
+    let elapsedTimeString = dateDiffToString(new Date(diffs.isoDate), new Date());
+    if(elapsedTimeString != "")
+        emmet.appendChild(divResults, `p{Laatste vergelijking: ${elapsedTimeString}}}`)
     for(let diff of diffs.diffs)
         displayDiff(diff, divResults);
 

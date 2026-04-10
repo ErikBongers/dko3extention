@@ -1,7 +1,7 @@
 import {findFirstNavigation} from "./tableNavigation";
 import {CheckSumBuilder, findTableRefInCode, TableFetcher, TableFetchListener, TableRef} from "./tableFetcher";
 import {createDownloadTableWithExtraAction, getChecksumBuilder} from "./observer";
-import {millisToString, Result, setViewFromCurrentUrl} from "../globals";
+import {dateDiffToString, millisToString, Result, setViewFromCurrentUrl} from "../globals";
 import {InfoBar} from "../infoBar";
 import {ProgressBar} from "../progressBar";
 import * as def from "../def";
@@ -146,7 +146,7 @@ export class InfoBarTableFetchListener implements TableFetchListener {
                 tableFetcher.reset();
                 defaultAction(ev);
             };
-            this.infoBar.setCacheInfo(`Gegevens uit cache, ${millisToString((new Date()).getTime()-tableFetcher.shadowTableDate.getTime())} oud. `, resetAndLoadAction);
+            this.infoBar.setCacheInfo(`Gegevens uit cache, ${dateDiffToString(tableFetcher.shadowTableDate, new Date())} oud. `, resetAndLoadAction);
         }
     }
 
