@@ -3,11 +3,11 @@ import {emmet} from "../../libs/Emmeter/html";
 import {fetchAndDisplayNotifications} from "../notifications/notifications";
 import {checkChecks} from "../notifications/checks";
 import {getGotoStateOrDefault, Goto, PageName, saveGotoState, StartPageGotoState} from "../gotoState";
-import {fetchExcelData, fetchFolderChanged} from "../cloud";
+import {cloud, fetchExcelData, fetchFolderChanged} from "../cloud";
 import {Diff, DiffType, runRosterCheck, TaggedDko3Les, TaggedExcelLes} from "../roster_diff/build";
 import {DayUppercase} from "../lessen/scrape";
 import {TimeSlice} from "../roster_diff/compare_roster";
-import {pad, unreachable} from "../globals";
+import {getSchoolIdString, pad, Schoolyear, unreachable} from "../globals";
 import {decorateTableHeader} from "../table/tableHeaders";
 
 class StartPageObserver extends ExactHashObserver {
@@ -83,6 +83,12 @@ function setupPluginPage() {
 
 type StatusCallback = (message: string) => void;
 
+function getDiffsCloudFileName() {
+    let schoolYear = Schoolyear.calculateSetupYear(); //assuming viewing for the year being setup.
+    let schoolName = getSchoolIdString();
+    return `Dko3/${schoolName}_${schoolYear}_diffs.json`;
+}
+
 async function runDiff(reportStatus: StatusCallback) {
     reportStatus("Excel bestanden ophalen...");
     let folderChanged = await fetchFolderChanged("Dko3/Uurroosters/");
@@ -94,12 +100,14 @@ async function runDiff(reportStatus: StatusCallback) {
         reportStatus(`Vergelijken van ${fileShortName} met DKO3 lessen...`);
         let res = await runRosterCheck(excelData);
         let jsonDiffs = createJsonDiffs(res.diffs, res.dko3LesSet, res.excelLesSet);
+        let fileName = getDiffsCloudFileName();
+        await cloud.json.upload(fileName, jsonDiffs);
         showDiffs(jsonDiffs);
     }
     reportStatus(`Vergelijking beeindigd.`);
 }
 
-function setupDiffPage() {
+async function setupDiffPage() {
     let pluginContainer = document.getElementById("plugin_container");
     let button = emmet.appendChild(pluginContainer, "div.mb-1>div>(h4{Verschillen tussen Excel uurroosters en DKO3 lessen.}+button{Run the diffs!})").last as HTMLButtonElement;
     let runStatus = emmet.insertAfter(button, "div#runStatus").first as HTMLDivElement;
@@ -112,6 +120,11 @@ function setupDiffPage() {
     button.onclick = async () => {
         await runDiff(reportStatus);
     };
+    try {
+        let jsonDiffs = await cloud.json.fetch(getDiffsCloudFileName()) as JsonDiffs;
+        showDiffs(jsonDiffs);
+    }
+    catch (e) {}
 }
 
 export interface JsonExcelLes {

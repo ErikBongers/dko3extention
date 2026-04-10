@@ -166,6 +166,8 @@ export function getSchoolIdString() {
         .replace("Academie ", "")
         .replace("Muziek", "M")
         .replace("Woord", "W")
+        .replace("Dans", "D")
+        .replace("Beeld", "B")
         .toLowerCase();
     return createValidId(schoolName);
 }

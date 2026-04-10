@@ -1,10 +1,3 @@
-* Persist diffs
-  > not as html because of metadata and button triggers.
-    > create intermediate representation.
-  > for quick recall
-  > tooltip on les page
-  > ignore/mark as ok
-
 * Diffs: goto buttons
   - to the dko3 les
   - to the excel file (and exact cell?)

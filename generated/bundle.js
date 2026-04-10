@@ -582,7 +582,7 @@ function getUserAndSchoolName() {
 }
 function getSchoolIdString() {
 	let { schoolName } = getUserAndSchoolName();
-	schoolName = schoolName.replace("Academie ", "").replace("Muziek", "M").replace("Woord", "W").toLowerCase();
+	schoolName = schoolName.replace("Academie ", "").replace("Muziek", "M").replace("Woord", "W").replace("Dans", "D").replace("Beeld", "B").toLowerCase();
 	return createValidId(schoolName);
 }
 function millisToString(duration) {
@@ -5488,6 +5488,11 @@ function setupPluginPage() {
 	pageState$2.goto = Goto.None;
 	saveGotoState(pageState$2);
 }
+function getDiffsCloudFileName() {
+	let schoolYear = Schoolyear.calculateSetupYear();
+	let schoolName = getSchoolIdString();
+	return `Dko3/${schoolName}_${schoolYear}_diffs.json`;
+}
 async function runDiff(reportStatus) {
 	reportStatus("Excel bestanden ophalen...");
 	let folderChanged = await fetchFolderChanged("Dko3/Uurroosters/");
@@ -5499,11 +5504,13 @@ async function runDiff(reportStatus) {
 		reportStatus(`Vergelijken van ${fileShortName} met DKO3 lessen...`);
 		let res = await runRosterCheck(excelData);
 		let jsonDiffs = createJsonDiffs(res.diffs, res.dko3LesSet, res.excelLesSet);
+		let fileName = getDiffsCloudFileName();
+		await cloud.json.upload(fileName, jsonDiffs);
 		showDiffs(jsonDiffs);
 	}
 	reportStatus(`Vergelijking beeindigd.`);
 }
-function setupDiffPage() {
+async function setupDiffPage() {
 	let pluginContainer = document.getElementById("plugin_container");
 	let button = emmet.appendChild(pluginContainer, "div.mb-1>div>(h4{Verschillen tussen Excel uurroosters en DKO3 lessen.}+button{Run the diffs!})").last;
 	let runStatus = emmet.insertAfter(button, "div#runStatus").first;
@@ -5516,6 +5523,10 @@ function setupDiffPage() {
 	button.onclick = async () => {
 		await runDiff(reportStatus);
 	};
+	try {
+		let jsonDiffs = await cloud.json.fetch(getDiffsCloudFileName());
+		showDiffs(jsonDiffs);
+	} catch (e) {}
 }
 function createJsonDiffs(diffList, dko3LesSet, excelLesSet) {
 	let diffs = diffList.filter((diff) => diff.diffType != "perfect match").map((diff) => {
