@@ -1433,6 +1433,9 @@ var TimeSlice = class {
 		return this.start.hour == timeslice2.start.hour && this.start.minutes == timeslice2.start.minutes && this.end.hour == timeslice2.end.hour && this.end.minutes == timeslice2.end.minutes;
 	}
 };
+function timeToMinutes(time) {
+	return time.hour * 60 + time.minutes;
+}
 var Roster = class {
 	table;
 	locationDefs;
@@ -5139,7 +5142,7 @@ async function runRosterCheck(excelData, reportStatus, fetchListener) {
 		...kbLessen
 	];
 	let dko3AliasLessen = await scrapeLessen(Domein.Woord, LesType.alias);
-	for (let les of dko3AliasLessen) les.linkedLessen = await getAliassesForLes(les.id);
+	for (let les of dko3AliasLessen) les.linkedLessen = await getAliassesForLes(les.id, reportStatus);
 	dko3AliasLessen = dko3AliasLessen.filter((l) => l.linkedLessen.length > 1);
 	console.log(dko3Lessen);
 	console.log(dko3AliasLessen);
@@ -5150,7 +5153,7 @@ async function runRosterCheck(excelData, reportStatus, fetchListener) {
 	let roster = new Roster(table, locations, subjects);
 	let excelLessen = roster.scrapeUurrooster();
 	console.log(excelLessen);
-	return await buildDiff(excelLessen, dko3Lessen, dko3AliasLessen);
+	return await buildDiff(excelLessen, dko3Lessen, dko3AliasLessen, reportStatus);
 }
 var build_default = runRosterCheck;
 var LesType = /* @__PURE__ */ function(LesType$2) {
@@ -5214,6 +5217,7 @@ var TaggedDko3Les = class extends TaggedLes {
 		this.teachers = [this.les.teacher.replaceAll(/ \(en nog \d\)/g, "")];
 		this.subjects = this.les.vakNaam.split("+").map((txt) => txt.trim());
 		this.subjects.push(les.naam);
+		this.subjects = this.subjects.filter((s) => s);
 	}
 };
 var TaggedExcelLes = class extends TaggedLes {
@@ -5224,9 +5228,10 @@ var TaggedExcelLes = class extends TaggedLes {
 		this.location = this.les.location;
 		this.teachers = this.les.teacher.split(/[]\/,/g).map((t) => Roster.findTeacher(t));
 		this.subjects = les.subjects;
+		this.subjects = this.subjects.filter((s) => s);
 	}
 };
-async function buildDiff(excelLessen, dko3Lessen, dko3AliasLessen) {
+async function buildDiff(excelLessen, dko3Lessen, dko3AliasLessen, reportStatus) {
 	let diffs = [];
 	let excelLesSet = new Set(excelLessen.map((les) => new TaggedExcelLes(les)));
 	let dko3LesSet = new Set(dko3Lessen.map((les) => new TaggedDko3Les(les)));
@@ -5234,7 +5239,16 @@ async function buildDiff(excelLessen, dko3Lessen, dko3AliasLessen) {
 	for (let les of dko3LesSet.values()) lessenMap.set(les.les.id, les);
 	for (let aliasLes of dko3AliasLessen) {
 		let taggedAliasLes = new TaggedDko3Les(aliasLes);
-		taggedAliasLes.linkedLessen = taggedAliasLes.les.linkedLessen.map((id) => lessenMap.get(id));
+		taggedAliasLes.linkedLessen = taggedAliasLes.les.linkedLessen.map((id) => lessenMap.get(id)).filter((id) => id);
+		if (taggedAliasLes.linkedLessen.length < 2) {
+			reportStatus(`Error: alias les ${aliasLes.id} heeft geen 2 geldige gekoppelde lessen.`);
+			continue;
+		}
+		let timeSlice1 = taggedAliasLes.linkedLessen[0].les.timeSlice;
+		let timeSlice2 = taggedAliasLes.linkedLessen[1].les.timeSlice;
+		let startTime = structuredClone(timeToMinutes(timeSlice1.start) > timeToMinutes(timeSlice2.start) ? timeSlice2.start : timeSlice1.start);
+		let endTime = structuredClone(timeToMinutes(timeSlice1.end) > timeToMinutes(timeSlice2.end) ? timeSlice1.end : timeSlice2.end);
+		aliasLes.timeSlice = new TimeSlice(startTime, endTime);
 		dko3LesSet.add(taggedAliasLes);
 		for (let linkedLes of taggedAliasLes.linkedLessen) dko3LesSet.delete(linkedLes);
 	}
@@ -5267,7 +5281,7 @@ async function getExtraTeachers(lesId) {
 		return s.textContent.replaceAll("  ", " ").replaceAll(" ,", ",").trim();
 	});
 }
-async function getAliassesForLes(lesId) {
+async function getAliassesForLes(lesId, reportStatus) {
 	await fetch("https://administratie.dko3.cloud/view.php?args=lessen-les?id=" + lesId);
 	await fetch("https://administratie.dko3.cloud/views/lessen/les/index.view.php");
 	await fetch("https://administratie.dko3.cloud/views/lessen/les/index.details.tab.php");
@@ -5277,6 +5291,7 @@ async function getAliassesForLes(lesId) {
 	let div = document.createElement("div");
 	div.innerHTML = htmlAliases;
 	let anchors = div.querySelectorAll("td > a");
+	if (anchors.length == 0) reportStatus(`ERROR: alias les ${lesId} heeft geen (geldige) gekoppelde lessen.`);
 	return [...anchors].map((a) => a.textContent.trim());
 }
 function matchIt(dko3LesSet, excelLesSet, diffs, diffType, matchFunction) {

@@ -1,6 +1,6 @@
 import {JsonExcelData} from "./excel";
 import {RosterFactory} from "./rosterFactory";
-import {ClassDef, Roster} from "./compare_roster";
+import {ClassDef, Roster, TimeSlice, timeToMinutes} from "./compare_roster";
 import {postNotification} from "../cloud";
 import {FetchChain} from "../table/fetchChain";
 import {Schoolyear} from "../globals";
@@ -24,7 +24,7 @@ async function runRosterCheck(excelData: JsonExcelData, reportStatus: StatusCall
     dko3Lessen = [...dko3Lessen, ...muziekLessen, ...kbLessen];
     let dko3AliasLessen = await scrapeLessen(Domein.Woord, LesType.alias);
     for (let les of dko3AliasLessen) {
-        les.linkedLessen = await getAliassesForLes(les.id);
+        les.linkedLessen = await getAliassesForLes(les.id, reportStatus);
     }
     //remove aliaslessen with only one linked les. We're don't care about those.
     dko3AliasLessen = dko3AliasLessen.filter(l => l.linkedLessen.length > 1);
@@ -40,7 +40,7 @@ async function runRosterCheck(excelData: JsonExcelData, reportStatus: StatusCall
     let excelLessen = roster.scrapeUurrooster();
     console.log(excelLessen);
 
-    return await buildDiff(excelLessen, dko3Lessen, dko3AliasLessen);
+    return await buildDiff(excelLessen, dko3Lessen, dko3AliasLessen, reportStatus);
 }
 
 export default runRosterCheck
@@ -116,6 +116,7 @@ export class TaggedDko3Les extends TaggedLes<Les> {
             .split('+')
             .map(txt => txt.trim());
         this.subjects.push(les.naam);
+        this.subjects = this.subjects.filter(s => s!!);
     }
 }
 
@@ -127,10 +128,11 @@ export class TaggedExcelLes extends TaggedLes<ClassDef> {
         this.location = this.les.location;//translate probably already done.
         this.teachers = this.les.teacher.split(/[]\/,/g).map(t => Roster.findTeacher(t));
         this.subjects = les.subjects;
+        this.subjects = this.subjects.filter(s => s!!);
     }
 }
 
-async function buildDiff(excelLessen: ClassDef[], dko3Lessen: Les[], dko3AliasLessen: Les[]) {
+async function buildDiff(excelLessen: ClassDef[], dko3Lessen: Les[], dko3AliasLessen: Les[], reportStatus: StatusCallback) {
     let diffs: Diff[] = [];
     let excelLesSet: Set<TaggedExcelLes> = new Set<TaggedExcelLes>(excelLessen.map(les => new TaggedExcelLes(les)));
     let dko3LesSet: Set<TaggedDko3Les> = new Set<TaggedDko3Les>(dko3Lessen.map(les => new TaggedDko3Les(les)));
@@ -140,7 +142,18 @@ async function buildDiff(excelLessen: ClassDef[], dko3Lessen: Les[], dko3AliasLe
         lessenMap.set(les.les.id, les);
     for(let aliasLes of dko3AliasLessen) {
         let taggedAliasLes = new TaggedDko3Les(aliasLes);
-        taggedAliasLes.linkedLessen = taggedAliasLes.les.linkedLessen.map(id => lessenMap.get(id));
+        taggedAliasLes.linkedLessen = taggedAliasLes.les.linkedLessen
+            .map(id => lessenMap.get(id))
+            .filter(id => id!!);
+        if(taggedAliasLes.linkedLessen.length < 2) {
+            reportStatus(`Error: alias les ${aliasLes.id} heeft geen 2 geldige gekoppelde lessen.`);
+            continue;
+            }
+        let timeSlice1 = taggedAliasLes.linkedLessen[0].les.timeSlice;
+        let timeSlice2 = taggedAliasLes.linkedLessen[1].les.timeSlice;
+        let startTime = structuredClone(timeToMinutes(timeSlice1.start) > timeToMinutes(timeSlice2.start) ? timeSlice2.start : timeSlice1.start);
+        let endTime = structuredClone(timeToMinutes(timeSlice1.end) > timeToMinutes(timeSlice2.end) ? timeSlice1.end : timeSlice2.end);
+        aliasLes.timeSlice = new TimeSlice(startTime, endTime);
         dko3LesSet.add(taggedAliasLes);
         for(let linkedLes of taggedAliasLes.linkedLessen)
             dko3LesSet.delete(linkedLes);
@@ -181,7 +194,7 @@ async function getExtraTeachers(lesId: string) {
     });
 }
 
-async function getAliassesForLes(lesId: string) {
+async function getAliassesForLes(lesId: string, reportStatus: StatusCallback) {
     await fetch("https://administratie.dko3.cloud/view.php?args=lessen-les?id="+lesId);
     await fetch("https://administratie.dko3.cloud/views/lessen/les/index.view.php");
     await fetch("https://administratie.dko3.cloud/views/lessen/les/index.details.tab.php");
@@ -191,6 +204,8 @@ async function getAliassesForLes(lesId: string) {
     let div = document.createElement("div") as HTMLDivElement;
     div.innerHTML = htmlAliases;
     let anchors = div.querySelectorAll("td > a");
+    if(anchors.length == 0)
+        reportStatus(`ERROR: alias les ${lesId} heeft geen (geldige) gekoppelde lessen.`);
     return [...anchors].map(a => a.textContent.trim());
 }
 

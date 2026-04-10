@@ -44,6 +44,10 @@ export type Time = {
     minutes: number
 }
 
+export function timeToMinutes(time: Time) {
+    return time.hour*60+time.minutes;
+}
+
 export class Roster{
     private readonly table: Table;
     private locationDefs: string[];
