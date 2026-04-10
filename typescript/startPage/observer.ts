@@ -93,7 +93,8 @@ async function runDiff(reportStatus: StatusCallback) {
         let excelData = await fetchExcelData(file.name);
         reportStatus(`Vergelijken van ${fileShortName} met DKO3 lessen...`);
         let res = await runRosterCheck(excelData);
-        showDiffs(res.diffs, res.dko3LesSet, res.excelLesSet);
+        let jsonDiffs = createJsonDiffs(res.diffs, res.dko3LesSet, res.excelLesSet);
+        showDiffs(jsonDiffs);
     }
     reportStatus(`Vergelijking beeindigd.`);
 }
@@ -113,37 +114,109 @@ function setupDiffPage() {
     };
 }
 
-function showDiffs(diffs: Diff[], dko3LesSet: Set<TaggedDko3Les>, excelLesSet: Set<TaggedExcelLes>) {
-    let actualDiffs = diffs.filter(diff => diff.diffType != "perfect match");
+export interface JsonExcelLes {
+    subject: string;
+    teacher: string;
+    day: DayUppercase;
+    timeSlice: string;
+    location: string;
+    excelRow: number;
+    excelColumn: number;
+}
+
+export interface JsonDko3Les {
+    subject: string;
+    teacher: string;
+    day: DayUppercase;
+    timeSlice: string;
+    location: string;
+    lesId: string;
+}
+
+export interface JsonDiff {
+    excelLes: JsonExcelLes;
+    dko3Les: JsonDko3Les;
+    diffType: DiffType;
+}
+
+export interface JsonDiffs {
+    diffs: JsonDiff[];
+    orphanedDko3Lessen: JsonDko3Les[];
+    orphanedExcelLessen: JsonExcelLes[];
+}
+
+function createJsonDiffs(diffList: Diff[], dko3LesSet: Set<TaggedDko3Les>, excelLesSet: Set<TaggedExcelLes>) {
+    let diffs: JsonDiff[] = diffList
+        .filter(diff => diff.diffType != "perfect match")
+        .map(diff => {
+            return {
+                excelLes: excelLesToJson(diff.excelLes),
+                dko3Les: dko3LesToJson(diff.dko3Les),
+                diffType: diff.diffType
+            } satisfies JsonDiff;
+        });
+    let orphanedDko3Lessen = [...dko3LesSet.values()].map(les => dko3LesToJson(les));
+    let orphanedExcelLessen = [...excelLesSet.values()].map(les => excelLesToJson(les));
+    return {
+        diffs,
+        orphanedDko3Lessen,
+        orphanedExcelLessen
+    } satisfies JsonDiffs;
+}
+
+function dko3LesToJson(dko3Les: TaggedDko3Les): JsonDko3Les {
+    return {
+        lesId: dko3Les.les.id,
+            day: dko3Les.les.day,
+        timeSlice: toCompactTimeSliceString(dko3Les.les.timeSlice),
+        subject: dko3Les.subjects.join(","),
+        teacher: dko3Les.teachers.join(","),
+        location: dko3Les.location
+    };
+}
+
+function excelLesToJson(excelLes: TaggedExcelLes): JsonExcelLes {
+    return {
+        excelColumn: excelLes.les.excelColumn,
+            excelRow: excelLes.les.excelRow,
+        day: excelLes.les.day as DayUppercase,
+        timeSlice: toCompactTimeSliceString(excelLes.les.timeSlice),
+        subject: excelLes.subjects.join(","),
+        teacher: excelLes.teachers.join(","),
+        location: excelLes.location
+    };
+}
+
+function showDiffs(diffs: JsonDiffs) {
     let divResults = document.getElementById("diffResults") as HTMLDivElement;
-    for(let diff of actualDiffs)
+    for(let diff of diffs.diffs)
         displayDiff(diff, divResults);
 
     emmet.appendChild(divResults, "h4{Lessen zonder overeenkomsten}");
     let {first: table, last: tbody} = emmet.appendChild(divResults, "table#orphans>(thead>tr>(th.subject{Vak/Lesnaam}+th.teacher{Leraar}+th.day{Dag}+th.{Uur}+th.location{Vestiging}))+tbody") as {target: HTMLDivElement, first: HTMLTableElement, last: HTMLTableSectionElement};
 
     decorateTableHeader(table, false);
-    for(let les of dko3LesSet) {
+    for(let les of diffs.orphanedDko3Lessen) {
         let tr = emmet.appendChild(tbody, "tr").last as HTMLTableRowElement;
-        fillDiffRow(tr, les.subjects, les.teachers, les.les.day, les.les.timeSlice, les.location, "perfect match");
+        fillDiffRow(tr, les.subject, les.teacher, les.day, les.timeSlice, les.location, "perfect match");
     }
-    for(let les of excelLesSet) {
+    for(let les of diffs.orphanedExcelLessen) {
         let tr = emmet.appendChild(tbody, "tr").last as HTMLTableRowElement;
-        fillDiffRow(tr, les.subjects, les.teachers, les.les.day as DayUppercase, les.les.timeSlice, les.location, "perfect match");
+        fillDiffRow(tr, les.subject, les.teacher, les.day as DayUppercase, les.timeSlice, les.location, "perfect match");
         tr.classList.add("excelRow");
     }
 }
 
-function displayDiff(diff: Diff, divResults: HTMLDivElement) {
+function displayDiff(diff: JsonDiff, divResults: HTMLDivElement) {
     let tbody = emmet.appendChild(divResults, "table>tbody").last as HTMLTableSectionElement;
     let tr = emmet.appendChild(tbody, "tr").last as HTMLTableRowElement;
-    fillDiffRow(tr, diff.excelLes.subjects, diff.excelLes.teachers, diff.excelLes.les.day as DayUppercase, diff.excelLes.les.timeSlice, diff.excelLes.location, diff.diffType);
+    fillDiffRow(tr, diff.excelLes.subject, diff.excelLes.teacher, diff.excelLes.day as DayUppercase, diff.excelLes.timeSlice, diff.excelLes.location, diff.diffType);
     tr.classList.add("excelRow");
     let tr2 = emmet.appendChild(tbody, "tr").last as HTMLTableRowElement;
-    fillDiffRow(tr2, diff.dko3Les.subjects, diff.dko3Les.teachers, diff.dko3Les.les.day as DayUppercase, diff.dko3Les.les.timeSlice, diff.dko3Les.location, diff.diffType);
+    fillDiffRow(tr2, diff.dko3Les.subject, diff.dko3Les.teacher, diff.dko3Les.day as DayUppercase, diff.dko3Les.timeSlice, diff.dko3Les.location, diff.diffType);
 }
 
-function fillDiffRow(tr: HTMLTableRowElement, subjects: string[], teachers: string[], day: DayUppercase, timeSlice: TimeSlice, location: string, diffType: DiffType) {
+function fillDiffRow(tr: HTMLTableRowElement, subjects: string, teachers: string, day: DayUppercase, timeSlice: string, location: string, diffType: DiffType) {
     let diffTeacherClass: string = "";
     let diffLocationClass: string = "";
     let diffTimeClass: string = "";
@@ -158,7 +231,7 @@ function fillDiffRow(tr: HTMLTableRowElement, subjects: string[], teachers: stri
         case "perfect match": break;
         default: unreachable(diffType);
     }
-    emmet.appendChild(tr, `td${diffSubjectClass}{${subjects.join(",")}}+td${diffTeacherClass}{${teachers.join(",")}}+td${diffDayClass}{${toCompactDayString(day as DayUppercase)}}+td${diffTimeClass}{${toCompactTimeSliceString(timeSlice)}}+td${diffLocationClass}{${location}}`)
+    emmet.appendChild(tr, `td${diffSubjectClass}{${subjects}}+td${diffTeacherClass}{${teachers}}+td${diffDayClass}{${toCompactDayString(day as DayUppercase)}}+td${diffTimeClass}{${timeSlice}}+td${diffLocationClass}{${location}}`)
 }
 function toCompactTimeSliceString(timeSlice: TimeSlice) {
     if(!timeSlice)
