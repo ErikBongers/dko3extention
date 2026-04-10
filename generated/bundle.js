@@ -5128,7 +5128,7 @@ async function runRosterCheck(excelData, reportStatus, fetchListener) {
 	dko3AliasLessen = dko3AliasLessen.filter((l) => l.linkedLessen.length > 1);
 	console.log(dko3Lessen);
 	console.log(dko3AliasLessen);
-	let subjects = dko3Lessen.map((les) => les.vakNaam);
+	let subjects = dko3Lessen.map((les) => [les.vakNaam, les.naam]).flat();
 	subjects = [...new Set(subjects)];
 	let factory = new RosterFactory(excelData);
 	let table = factory.getTable();
