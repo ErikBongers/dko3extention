@@ -418,8 +418,12 @@ tr.excelRow td {
 }
 
 table#orphans {
-    & thead td {
+    & thead th {
         background-color: #eee;
         font-weight: bold;
+        &.subject {
+            width: 100%; /* I don't understand why this is needed, but otherwise the max-width doesn't work*/
+            max-width: 30%;
+        }
     }
 }

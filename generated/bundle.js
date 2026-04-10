@@ -5496,7 +5496,7 @@ function showDiffs(diffs, dko3LesSet, excelLesSet) {
 	let divResults = document.getElementById("diffResults");
 	for (let diff of actualDiffs) displayDiff(diff, divResults);
 	emmet.appendChild(divResults, "h4{Lessen zonder overeenkomsten}");
-	let { first: table, last: tbody } = emmet.appendChild(divResults, "table#orphans>(thead>tr>(td{Vak/Lesnaam}+td{Leraar}+td{Dag}+td{Uur}+td{Vestiging}))+tbody");
+	let { first: table, last: tbody } = emmet.appendChild(divResults, "table#orphans>(thead>tr>(th.subject{Vak/Lesnaam}+th.teacher{Leraar}+th.day{Dag}+th.{Uur}+th.location{Vestiging}))+tbody");
 	decorateTableHeader(table, false);
 	for (let les of dko3LesSet) {
 		let tr = emmet.appendChild(tbody, "tr").last;

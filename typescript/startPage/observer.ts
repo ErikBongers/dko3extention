@@ -120,7 +120,8 @@ function showDiffs(diffs: Diff[], dko3LesSet: Set<TaggedDko3Les>, excelLesSet: S
         displayDiff(diff, divResults);
 
     emmet.appendChild(divResults, "h4{Lessen zonder overeenkomsten}");
-    let {first: table, last: tbody} = emmet.appendChild(divResults, "table#orphans>(thead>tr>(td{Vak/Lesnaam}+td{Leraar}+td{Dag}+td{Uur}+td{Vestiging}))+tbody") as {target: HTMLDivElement, first: HTMLTableElement, last: HTMLTableSectionElement};
+    let {first: table, last: tbody} = emmet.appendChild(divResults, "table#orphans>(thead>tr>(th.subject{Vak/Lesnaam}+th.teacher{Leraar}+th.day{Dag}+th.{Uur}+th.location{Vestiging}))+tbody") as {target: HTMLDivElement, first: HTMLTableElement, last: HTMLTableSectionElement};
+
     decorateTableHeader(table, false);
     for(let les of dko3LesSet) {
         let tr = emmet.appendChild(tbody, "tr").last as HTMLTableRowElement;
