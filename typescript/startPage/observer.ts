@@ -336,6 +336,6 @@ function indexToExcelColumn(index: number) {
     if (quotient <= 0)
         return chars[index];
 
-    return indexToExcelColumn(quotient) + chars[index % 26];
+    return indexToExcelColumn(quotient-1) + chars[index % 26];
 }
 const chars: string[] = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
