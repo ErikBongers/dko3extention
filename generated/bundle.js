@@ -1436,10 +1436,12 @@ var TimeSlice = class {
 var Roster = class {
 	table;
 	locationDefs;
+	subjectDefs;
 	errors = [];
-	constructor(table, locations) {
+	constructor(table, locations, subjects) {
 		this.table = table;
 		this.locationDefs = locations;
+		this.subjectDefs = subjects;
 	}
 	scrapeUurrooster() {
 		let timeSlices = this.createTimeSlices();
@@ -1712,25 +1714,6 @@ var Roster = class {
 			tag: "Theater",
 			searchString: " acteren "
 		}
-	];
-	subjectDefs = [
-		"Woordatelier",
-		"Woordlab",
-		"Cabaret en comedy",
-		"Schrijflab",
-		"Literair atelier",
-		"Literaire teksten",
-		"Spreken en vertellen",
-		"Kunstenbad",
-		"Musicalatelier",
-		"Musical koor",
-		"Musical zang",
-		"Theater",
-		"Speltheater",
-		"Theater maken",
-		"Storytelling",
-		"Woordstudio",
-		"Dramastudio"
 	];
 	findLocation(tags) {
 		return this.locationDefs.find((location$1) => tags.includes(location$1));
@@ -5138,11 +5121,6 @@ async function runRosterCheck(excelData, reportStatus, fetchListener) {
 	reportStatus("Vestigingsplaatsen ophalen...");
 	let locationsTable = await getTableFromHash("extra-academie-vestigingsplaatsen", true, fetchListener);
 	let locations = [...locationsTable.getRows()].map((tr) => tr.cells[1].textContent);
-	let factory = new RosterFactory(excelData);
-	let table = factory.getTable();
-	let roster = new Roster(table, locations);
-	let excelLessen = roster.scrapeUurrooster();
-	console.log(excelLessen);
 	reportStatus("DKO3 lessen ophalen...");
 	let dko3Lessen = await scrapeLessen(LesType.gewone);
 	let dko3AliasLessen = await scrapeLessen(LesType.alias);
@@ -5150,6 +5128,13 @@ async function runRosterCheck(excelData, reportStatus, fetchListener) {
 	dko3AliasLessen = dko3AliasLessen.filter((l) => l.linkedLessen.length > 1);
 	console.log(dko3Lessen);
 	console.log(dko3AliasLessen);
+	let subjects = dko3Lessen.map((les) => les.vakNaam);
+	subjects = [...new Set(subjects)];
+	let factory = new RosterFactory(excelData);
+	let table = factory.getTable();
+	let roster = new Roster(table, locations, subjects);
+	let excelLessen = roster.scrapeUurrooster();
+	console.log(excelLessen);
 	return await buildDiff(excelLessen, dko3Lessen, dko3AliasLessen);
 }
 var build_default = runRosterCheck;
@@ -5720,8 +5705,6 @@ async function addDiff(titleHeader) {
 	if (!diffs) return;
 	let rxId = /id=(\d+)/g;
 	let matches = rxId.exec(document.location.href);
-	console.log(matches);
-	debugger;
 	let lesId = matches[1];
 	let diff = diffs.diffs.find((diff$1) => diff$1.dko3Les.lesId == lesId);
 	if (diff) {

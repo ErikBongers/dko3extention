@@ -106,8 +106,6 @@ async function addDiff(titleHeader: HTMLElement) {
         return;
     let rxId = /id=(\d+)/g;
     let matches = rxId.exec(document.location.href);
-    console.log(matches);
-    debugger;
     let lesId = matches[1];
     let diff = diffs.diffs.find(diff => diff.dko3Les.lesId == lesId);
     if(diff) {

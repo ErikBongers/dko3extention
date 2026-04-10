@@ -17,11 +17,6 @@ async function runRosterCheck(excelData: JsonExcelData, reportStatus: StatusCall
     let locationsTable = await getTableFromHash("extra-academie-vestigingsplaatsen", true, fetchListener);
     let locations = [...locationsTable.getRows()].map(tr => tr.cells[1].textContent);
 
-    let factory = new RosterFactory(excelData);
-    let table = factory.getTable();
-    let roster = new Roster(table, locations);
-    let excelLessen = roster.scrapeUurrooster();
-    console.log(excelLessen);
     reportStatus("DKO3 lessen ophalen...");
     let dko3Lessen = await scrapeLessen(LesType.gewone);
     let dko3AliasLessen = await scrapeLessen(LesType.alias);
@@ -32,6 +27,15 @@ async function runRosterCheck(excelData: JsonExcelData, reportStatus: StatusCall
     dko3AliasLessen = dko3AliasLessen.filter(l => l.linkedLessen.length > 1);
     console.log(dko3Lessen);
     console.log(dko3AliasLessen);
+
+
+    let subjects: string[] = dko3Lessen.map(les => les.vakNaam);
+    subjects = [...new Set(subjects)];
+    let factory = new RosterFactory(excelData);
+    let table = factory.getTable();
+    let roster = new Roster(table, locations, subjects);
+    let excelLessen = roster.scrapeUurrooster();
+    console.log(excelLessen);
 
     return await buildDiff(excelLessen, dko3Lessen, dko3AliasLessen);
 }

@@ -47,10 +47,12 @@ export type Time = {
 export class Roster{
     private readonly table: Table;
     private locationDefs: string[];
+    private readonly subjectDefs: string[];
     private errors: string[] = [];
-    public constructor(table: Table, locations: string[]) {
+    public constructor(table: Table, locations: string[], subjects: string[]) {
         this.table = table;
         this.locationDefs = locations;
+        this.subjectDefs = subjects;
     }
 
     public scrapeUurrooster() {
@@ -219,52 +221,6 @@ export class Roster{
         { tag: "Musical koor", searchString: " musical koor "},
         { tag: "Musical zang", searchString: " musical zang "},
         { tag: "Theater", searchString: " acteren "},
-    ];
-
-    // private locationDefs: string[] = [
-    //     "Academie Willem Van Laarstraat, Berchem",
-    //     "Vestiging c o r s o",
-    //     "Vestiging De Kleine Wereld",
-    //     "Vestiging De Kolibrie",
-    //     "Vestiging De Schatkist",
-    //     "Vestiging Groenhout Kasteelstraat",
-    //     "Vestiging Het Fonkelpad",
-    //     "Vestiging OLV Pulhof",
-    //     "Vestiging Via Louiza",
-    //     "Vestiging Alberreke",
-    //     "Vestiging De Kleine Stad",
-    //     "Vestiging De Kosmos",
-    //     "Vestiging De Nieuwe Vrede",
-    //     "Vestiging Frans Van Hombeeck",
-    //     "Vestiging Klavertje Vier",
-    //     "Vestiging Prins Dries",
-    //     "Vestiging Sterrenkijker/SL Durlet",
-    //     "Wijkafdeling Lageweg, Hoboken",
-    //     "Wijkafdeling Louizastraat, Antwerpen",
-    //     "Wijkafdeling Mechelseplein, Antwerpen",
-    //     "Wijkafdeling Sint Hubertusstraat, Berchem",
-    //     "Wijkafdeling Sint-Hubertusstraat",
-    //     "Wijkafdeling Walburgis, Volkstraat",
-    // ];
-
-    private subjectDefs: string[] = [
-        "Woordatelier",
-        "Woordlab",
-        "Cabaret en comedy",
-        "Schrijflab",
-        "Literair atelier",
-        "Literaire teksten",
-        "Spreken en vertellen",
-        "Kunstenbad",
-        "Musicalatelier",
-        "Musical koor",
-        "Musical zang",
-        "Theater",
-        "Speltheater",
-        "Theater maken",
-        "Storytelling",
-        "Woordstudio",
-        "Dramastudio",
     ];
 
     private findLocation(tags: string[]) {
