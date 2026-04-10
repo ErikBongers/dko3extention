@@ -5624,6 +5624,14 @@ function fillDiffRow(tr, subjects, teachers, day, timeSlice, location$1, diffTyp
 		case "perfect match": break;
 		default: unreachable(diffType);
 	}
+	if (!location$1) {
+		location$1 = "-onbekend-";
+		diffLocationClass = ".diff";
+	}
+	if (subjects == "") {
+		subjects = "-onbekend-";
+		diffSubjectClass = ".diff";
+	}
 	emmet.appendChild(tr, `td${diffSubjectClass}{${subjects}}+td${diffTeacherClass}{${teachers}}+td${diffDayClass}{${toCompactDayString(day)}}+td${diffTimeClass}{${timeSlice}}+td${diffLocationClass}{${location$1}}`);
 }
 function toCompactTimeSliceString(timeSlice) {

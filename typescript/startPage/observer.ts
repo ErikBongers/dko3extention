@@ -251,6 +251,14 @@ function fillDiffRow(tr: HTMLTableRowElement, subjects: string, teachers: string
         case "perfect match": break;
         default: unreachable(diffType);
     }
+    if(!location) {
+        location = "-onbekend-";
+        diffLocationClass = ".diff";
+    }
+    if(subjects == "") {
+        subjects = "-onbekend-";
+        diffSubjectClass = ".diff";
+    }
     emmet.appendChild(tr, `td${diffSubjectClass}{${subjects}}+td${diffTeacherClass}{${teachers}}+td${diffDayClass}{${toCompactDayString(day as DayUppercase)}}+td${diffTimeClass}{${timeSlice}}+td${diffLocationClass}{${location}}`)
 }
 function toCompactTimeSliceString(timeSlice: TimeSlice) {
