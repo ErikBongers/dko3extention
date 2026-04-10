@@ -5135,6 +5135,7 @@ var RosterFactory = class {
 //#region typescript/roster_diff/build.ts
 async function runRosterCheck(excelData, reportStatus, fetchListener) {
 	await postNotification("WOORD_ROSTER_RUN", "running", "Uurrooster worden vergeleken... (gestart door <todo:username>");
+	reportStatus("Vestigingsplaatsen ophalen...");
 	let locationsTable = await getTableFromHash("extra-academie-vestigingsplaatsen", true, fetchListener);
 	let locations = [...locationsTable.getRows()].map((tr) => tr.cells[1].textContent);
 	let factory = new RosterFactory(excelData);
@@ -5142,6 +5143,7 @@ async function runRosterCheck(excelData, reportStatus, fetchListener) {
 	let roster = new Roster(table, locations);
 	let excelLessen = roster.scrapeUurrooster();
 	console.log(excelLessen);
+	reportStatus("DKO3 lessen ophalen...");
 	let dko3Lessen = await scrapeLessen(LesType.gewone);
 	let dko3AliasLessen = await scrapeLessen(LesType.alias);
 	for (let les of dko3AliasLessen) les.linkedLessen = await getAliassesForLes(les.id);
@@ -5406,6 +5408,8 @@ function getDiffsCloudFileName() {
 	return `Dko3/${schoolName}_${schoolYear}_diffs.json`;
 }
 async function runDiff(reportStatus, fetchListener) {
+	let divResults = document.getElementById("diffResults");
+	divResults.innerHTML = "";
 	reportStatus("Excel bestanden ophalen...");
 	let folderChanged = await fetchFolderChanged("Dko3/Uurroosters/");
 	reportStatus(`${folderChanged.files.length} Excel bestanden gevonden.`);

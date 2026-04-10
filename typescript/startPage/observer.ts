@@ -93,6 +93,9 @@ export function getDiffsCloudFileName() {
 }
 
 async function runDiff(reportStatus: StatusCallback, fetchListener: InfoBarTableFetchListener) {
+    let divResults = document.getElementById("diffResults") as HTMLDivElement;
+    divResults.innerHTML = "";
+
     reportStatus("Excel bestanden ophalen...");
     let folderChanged = await fetchFolderChanged("Dko3/Uurroosters/");
     reportStatus(`${folderChanged.files.length} Excel bestanden gevonden.`);

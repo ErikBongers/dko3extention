@@ -13,6 +13,7 @@ import {getTableFromHash, InfoBarTableFetchListener} from "../table/loadAnyTable
 async function runRosterCheck(excelData: JsonExcelData, reportStatus: StatusCallback, fetchListener: InfoBarTableFetchListener) {
     await postNotification("WOORD_ROSTER_RUN", "running", "Uurrooster worden vergeleken... (gestart door <todo:username>");
 
+    reportStatus("Vestigingsplaatsen ophalen...");
     let locationsTable = await getTableFromHash("extra-academie-vestigingsplaatsen", true, fetchListener);
     let locations = [...locationsTable.getRows()].map(tr => tr.cells[1].textContent);
 
@@ -21,6 +22,7 @@ async function runRosterCheck(excelData: JsonExcelData, reportStatus: StatusCall
     let roster = new Roster(table, locations);
     let excelLessen = roster.scrapeUurrooster();
     console.log(excelLessen);
+    reportStatus("DKO3 lessen ophalen...");
     let dko3Lessen = await scrapeLessen(LesType.gewone);
     let dko3AliasLessen = await scrapeLessen(LesType.alias);
     for (let les of dko3AliasLessen) {
