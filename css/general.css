@@ -402,26 +402,25 @@ span.filterInfo {
 tr.excelRow td {
     color: dodgerblue;
 }
-#diffResults {
-    & table {
-        padding: 1ch;
-        background-color: #eee;
-        border-radius: 1ch;
-        margin-top: 1ch;
-        & td {
-            padding: 0 1ch;
-            &.diff {
-                background-color: rgb(255 160 122 / 0.5);
-            }
-            & button {
-                color: inherit;
-                opacity: 0.5;
-                border: none;
-                background-color: transparent;
-                outline: none;
-                &:hover {
-                    opacity: 1;
-                }
+
+table.diff {
+    padding: 1ch;
+    background-color: #eee;
+    border-radius: 1ch;
+    margin-top: 1ch;
+    & td {
+        padding: 0 1ch;
+        &.diff {
+            background-color: rgb(255 160 122 / 0.5);
+        }
+        & button {
+            color: inherit;
+            opacity: 0.5;
+            border: none;
+            background-color: transparent;
+            outline: none;
+            &:hover {
+                opacity: 1;
             }
         }
     }
@@ -435,5 +434,8 @@ table#orphans {
             width: 100%; /* I don't understand why this is needed, but otherwise the max-width doesn't work*/
             max-width: 30%;
         }
+    }
+    & tr:hover {
+        background-color: #0000ff09;
     }
 }

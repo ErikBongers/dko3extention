@@ -4969,77 +4969,6 @@ function appendGroupingAnchorOrText(target, grouping, activeSorting, separator) 
 }
 
 //#endregion
-//#region typescript/les/observer.ts
-var LesObserver = class extends HashObserver {
-	constructor() {
-		super("#lessen-les", onMutation$5);
-	}
-	isPageReallyLoaded() {
-		return document.querySelectorAll("#les_leerlingen_leerlingen > span").length > 0;
-	}
-};
-var observer_default$7 = new LesObserver();
-function onMutation$5(mutation) {
-	let tabLeerlingen = document.getElementById("les_leerlingen_leerlingen");
-	if (mutation.target === tabLeerlingen) {
-		onLeerlingenChanged();
-		return true;
-	}
-	return false;
-}
-function onLeerlingenChanged() {
-	console.log("Les-Leerlingen changed.");
-	addSortVoornaamLink();
-}
-function addSortVoornaamLink() {
-	try {
-		let headerSpans = document.querySelectorAll("#les_leerlingen_leerlingen > span");
-		let sortSpan = Array.from(headerSpans).find((value) => value.textContent.includes("gesorteerd op:"));
-		let graadEnNaam = Array.from(sortSpan.querySelectorAll("a")).find((anchor) => anchor.textContent === "graad en naam");
-		const SORT_VOORNAAM_ID = "dko_plugin_sortVoornaam";
-		if (document.getElementById(SORT_VOORNAAM_ID)) return;
-		let anchorSortVoornaam = document.createElement("a");
-		anchorSortVoornaam.id = SORT_VOORNAAM_ID;
-		anchorSortVoornaam.href = "#";
-		anchorSortVoornaam.innerText = "voornaam";
-		anchorSortVoornaam.classList.add("text-muted");
-		anchorSortVoornaam.onclick = onSortVoornaam;
-		sortSpan.insertBefore(anchorSortVoornaam, graadEnNaam);
-		sortSpan.insertBefore(document.createTextNode(" | "), graadEnNaam);
-	} catch (e) {}
-}
-function onSortVoornaam(event) {
-	sortVoornaam(event);
-	switchNaamVoornaam(event);
-	return false;
-}
-function sortVoornaam(event) {
-	let rows = Array.from(document.querySelectorAll("#les_leerlingen_leerlingen > table > tbody > tr"));
-	rows.sort((tr1, tr2) => {
-		let name1 = tr1.querySelector("td > strong").textContent;
-		let name2 = tr2.querySelector("td > strong").textContent;
-		let voornaam1 = name1.split(",").pop();
-		let voornaam2 = name2.split(",").pop();
-		return voornaam1.localeCompare(voornaam2);
-	});
-	let table = document.querySelector("#les_leerlingen_leerlingen > table");
-	rows.forEach((row) => table.tBodies[0].appendChild(row));
-	Array.from(document.querySelectorAll("#les_leerlingen_leerlingen > span > a")).forEach((a) => a.classList.add("text-muted"));
-	event.target.classList.remove("text-muted");
-}
-function switchNaamVoornaam(_event) {
-	let rows = Array.from(document.querySelectorAll("#les_leerlingen_leerlingen > table > tbody > tr"));
-	rows.forEach((tr) => {
-		let strong = tr.querySelector("td > strong");
-		let name = strong.textContent;
-		let split = name.split(",");
-		let voornaam = split.pop() ?? "";
-		let naam = split.pop() ?? "";
-		strong.textContent = voornaam + " " + naam;
-	});
-}
-
-//#endregion
 //#region typescript/menu.ts
 function setupMenu() {
 	let mainMenuUl = document.querySelector("#dko3_navbar > ul");
@@ -5438,18 +5367,18 @@ function matchWithoutTeacher(dko3Les, excelLesSet) {
 //#region typescript/startPage/observer.ts
 var StartPageObserver = class extends ExactHashObserver {
 	constructor() {
-		super("#start-mijn_tijdslijn", onMutation$4);
+		super("#start-mijn_tijdslijn", onMutation$5);
 	}
 	isPageReallyLoaded() {
 		return isLoaded();
 	}
 };
-var observer_default$6 = new StartPageObserver();
+var observer_default$7 = new StartPageObserver();
 function isLoaded() {
 	let startContentDiv = document.querySelector("#dko3_start_content");
 	return startContentDiv?.textContent.includes("welkom") ?? false;
 }
-function onMutation$4(mutation) {
+function onMutation$5(mutation) {
 	if (document.querySelector("#dko3_plugin_notifications")) return true;
 	if (document.querySelector("#view_contents>div.row")) setupPluginPage();
 	let startContentDiv = document.querySelector("#dko3_start_content");
@@ -5509,9 +5438,13 @@ async function runDiff(reportStatus) {
 		let jsonDiffs = createJsonDiffs(res.diffs, res.dko3LesSet, res.excelLesSet);
 		let fileName = getDiffsCloudFileName();
 		await cloud.json.upload(fileName, jsonDiffs);
+		sessionStorage.setItem(fileName, JSON.stringify(jsonDiffs));
 		showDiffs(jsonDiffs);
 	}
 	reportStatus(`Vergelijking beeindigd.`);
+}
+async function getDiffsFromCloud() {
+	return await cloud.json.fetch(getDiffsCloudFileName());
 }
 async function setupDiffPage() {
 	let pluginContainer = document.getElementById("plugin_container");
@@ -5527,7 +5460,7 @@ async function setupDiffPage() {
 		await runDiff(reportStatus);
 	};
 	try {
-		let jsonDiffs = await cloud.json.fetch(getDiffsCloudFileName());
+		let jsonDiffs = await getDiffsFromCloud();
 		showDiffs(jsonDiffs);
 	} catch (e) {}
 }
@@ -5569,6 +5502,13 @@ function excelLesToJson(excelLes) {
 		location: excelLes.location
 	};
 }
+function createDiffTable(divResults) {
+	let { first: table, last: tbody } = emmet.appendChild(divResults, "table#orphans.diff>(thead>tr>(th.subject{Vak/Lesnaam}+th.teacher{Leraar}+th.day{Dag}+th.{Uur}+th.location{Vestiging}+th))+tbody");
+	return {
+		table,
+		tbody
+	};
+}
 function showDiffs(diffs) {
 	let divResults = document.getElementById("diffResults");
 	divResults.innerHTML = "";
@@ -5576,7 +5516,7 @@ function showDiffs(diffs) {
 	if (elapsedTimeString != "") emmet.appendChild(divResults, `p{Laatste vergelijking: ${elapsedTimeString}}}`);
 	for (let diff of diffs.diffs) displayDiff(diff, divResults);
 	emmet.appendChild(divResults, "h4{Lessen zonder overeenkomsten}");
-	let { first: table, last: tbody } = emmet.appendChild(divResults, "table#orphans>(thead>tr>(th.subject{Vak/Lesnaam}+th.teacher{Leraar}+th.day{Dag}+th.{Uur}+th.location{Vestiging}+th))+tbody");
+	let { table, tbody } = createDiffTable(divResults);
 	decorateTableHeader(table, false);
 	for (let les of diffs.orphanedDko3Lessen) {
 		let tr = emmet.appendChild(tbody, "tr").last;
@@ -5588,10 +5528,13 @@ function showDiffs(diffs) {
 		tr.classList.add("excelRow");
 	}
 }
-function displayDiff(diff, divResults) {
-	let tbody = emmet.appendChild(divResults, "table>tbody").last;
-	let tr = emmet.appendChild(tbody, "tr").last;
+function fillExcelDiffRow(tr, diff) {
 	fillDiffRow(tr, diff.excelLes.subject, diff.excelLes.teacher, diff.excelLes.day, diff.excelLes.timeSlice, diff.excelLes.location, diff.diffType, "excel", excelPostoExcelAddress(diff.excelLes.excelRow, diff.excelLes.excelColumn));
+}
+function displayDiff(diff, divResults) {
+	let tbody = emmet.appendChild(divResults, "table.diff>tbody").last;
+	let tr = emmet.appendChild(tbody, "tr").last;
+	fillExcelDiffRow(tr, diff);
 	tr.classList.add("excelRow");
 	let tr2 = emmet.appendChild(tbody, "tr").last;
 	fillDiffRow(tr2, diff.dko3Les.subject, diff.dko3Les.teacher, diff.dko3Les.day, diff.dko3Les.timeSlice, diff.dko3Les.location, diff.diffType, "dko3", diff.dko3Les.lesId);
@@ -5703,6 +5646,104 @@ const chars = [
 	"Y",
 	"Z"
 ];
+
+//#endregion
+//#region typescript/les/observer.ts
+var LesObserver = class extends HashObserver {
+	constructor() {
+		super("#lessen-les", onMutation$4);
+	}
+	isPageReallyLoaded() {
+		return document.querySelectorAll("#les_leerlingen_leerlingen > span").length > 0;
+	}
+};
+var observer_default$6 = new LesObserver();
+function onMutation$4(mutation) {
+	let tabLeerlingen = document.getElementById("les_leerlingen_leerlingen");
+	if (mutation.target === tabLeerlingen) {
+		onLeerlingenChanged();
+		return true;
+	}
+	let titleHeader = document.getElementById("vh_header_lessen_les_left_title");
+	if (titleHeader) addDiff(titleHeader).then(() => {});
+	return false;
+}
+function onLeerlingenChanged() {
+	console.log("Les-Leerlingen changed.");
+	addSortVoornaamLink();
+}
+function addSortVoornaamLink() {
+	try {
+		let headerSpans = document.querySelectorAll("#les_leerlingen_leerlingen > span");
+		let sortSpan = Array.from(headerSpans).find((value) => value.textContent.includes("gesorteerd op:"));
+		let graadEnNaam = Array.from(sortSpan.querySelectorAll("a")).find((anchor) => anchor.textContent === "graad en naam");
+		const SORT_VOORNAAM_ID = "dko_plugin_sortVoornaam";
+		if (document.getElementById(SORT_VOORNAAM_ID)) return;
+		let anchorSortVoornaam = document.createElement("a");
+		anchorSortVoornaam.id = SORT_VOORNAAM_ID;
+		anchorSortVoornaam.href = "#";
+		anchorSortVoornaam.innerText = "voornaam";
+		anchorSortVoornaam.classList.add("text-muted");
+		anchorSortVoornaam.onclick = onSortVoornaam;
+		sortSpan.insertBefore(anchorSortVoornaam, graadEnNaam);
+		sortSpan.insertBefore(document.createTextNode(" | "), graadEnNaam);
+	} catch (e) {}
+}
+function onSortVoornaam(event) {
+	sortVoornaam(event);
+	switchNaamVoornaam(event);
+	return false;
+}
+function sortVoornaam(event) {
+	let rows = Array.from(document.querySelectorAll("#les_leerlingen_leerlingen > table > tbody > tr"));
+	rows.sort((tr1, tr2) => {
+		let name1 = tr1.querySelector("td > strong").textContent;
+		let name2 = tr2.querySelector("td > strong").textContent;
+		let voornaam1 = name1.split(",").pop();
+		let voornaam2 = name2.split(",").pop();
+		return voornaam1.localeCompare(voornaam2);
+	});
+	let table = document.querySelector("#les_leerlingen_leerlingen > table");
+	rows.forEach((row) => table.tBodies[0].appendChild(row));
+	Array.from(document.querySelectorAll("#les_leerlingen_leerlingen > span > a")).forEach((a) => a.classList.add("text-muted"));
+	event.target.classList.remove("text-muted");
+}
+function switchNaamVoornaam(_event) {
+	let rows = Array.from(document.querySelectorAll("#les_leerlingen_leerlingen > table > tbody > tr"));
+	rows.forEach((tr) => {
+		let strong = tr.querySelector("td > strong");
+		let name = strong.textContent;
+		let split = name.split(",");
+		let voornaam = split.pop() ?? "";
+		let naam = split.pop() ?? "";
+		strong.textContent = voornaam + " " + naam;
+	});
+}
+function getDiffsLocalFirst() {
+	let fileName = getDiffsCloudFileName();
+	let jsonDiff = sessionStorage.getItem(fileName);
+	if (jsonDiff) return JSON.parse(jsonDiff);
+	return getDiffsFromCloud();
+}
+async function addDiff(titleHeader) {
+	let divDiff = document.querySelector("div.diff");
+	if (divDiff) return;
+	divDiff = emmet.insertAfter(titleHeader, "div.diff").first;
+	let diffs = await getDiffsLocalFirst();
+	if (!diffs) return;
+	let rxId = /id=(\d+)/g;
+	let matches = rxId.exec(document.location.href);
+	console.log(matches);
+	debugger;
+	let lesId = matches[1];
+	let diff = diffs.diffs.find((diff$1) => diff$1.dko3Les.lesId == lesId);
+	if (diff) {
+		let tbody = emmet.appendChild(divDiff, "table.diff>tbody").last;
+		let tr = emmet.appendChild(tbody, "tr").last;
+		fillExcelDiffRow(tr, diff);
+		return;
+	}
+}
 
 //#endregion
 //#region typescript/academie/observer.ts
@@ -8169,7 +8210,7 @@ function init() {
 		});
 		registerObserver(observer_default$10);
 		registerObserver(observer_default$8);
-		registerObserver(observer_default$7);
+		registerObserver(observer_default$6);
 		registerObserver(observer_default$5);
 		registerObserver(observer_default$4);
 		registerObserver(observer_default$9);
@@ -8184,7 +8225,7 @@ function init() {
 		registerObserver(observer_default$1);
 		registerObserver(observer_default);
 		registerObserver(observer_default);
-		registerObserver(observer_default$6);
+		registerObserver(observer_default$7);
 		onPageChanged();
 		setupPowerQuery();
 		setupNotifications();

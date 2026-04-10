@@ -1,4 +1,6 @@
 import {HashObserver} from "../pageObserver";
+import {emmet} from "../../libs/Emmeter/html";
+import {createDiffTable, fillExcelDiffRow, getDiffsCloudFileName, getDiffsFromCloud, JsonDiffs} from "../startPage/observer";
 
 class LesObserver extends HashObserver {
     constructor() {
@@ -16,6 +18,9 @@ function onMutation(mutation: MutationRecord) {
         onLeerlingenChanged();
         return true;
     }
+    let titleHeader = document.getElementById("vh_header_lessen_les_left_title") as HTMLElement;
+    if(titleHeader)
+        addDiff(titleHeader).then(() => {});
     return false;
 }
 
@@ -80,4 +85,37 @@ function switchNaamVoornaam(_event: MouseEvent) {
         let naam = split.pop() ?? "";
         strong.textContent = voornaam + " " + naam;
     });
+}
+
+function getDiffsLocalFirst() {
+    let fileName = getDiffsCloudFileName();
+    let jsonDiff = sessionStorage.getItem(fileName);
+    if(jsonDiff)
+        return JSON.parse(jsonDiff) as JsonDiffs;
+    return getDiffsFromCloud();
+}
+
+async function addDiff(titleHeader: HTMLElement) {
+    let divDiff = document.querySelector("div.diff") as HTMLDivElement;
+    if(divDiff)
+        return;
+
+    divDiff = emmet.insertAfter(titleHeader, "div.diff").first as HTMLDivElement;
+    let diffs = await getDiffsLocalFirst();
+    if(!diffs)
+        return;
+    let rxId = /id=(\d+)/g;
+    let matches = rxId.exec(document.location.href);
+    console.log(matches);
+    debugger;
+    let lesId = matches[1];
+    let diff = diffs.diffs.find(diff => diff.dko3Les.lesId == lesId);
+    if(diff) {
+        let tbody = emmet.appendChild(divDiff, "table.diff>tbody").last as HTMLTableSectionElement;
+        let tr = emmet.appendChild(tbody, "tr").last as HTMLTableRowElement;
+        fillExcelDiffRow(tr, diff);
+        return;
+    }
+
+    //todo: orphans.
 }

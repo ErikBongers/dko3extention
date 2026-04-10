@@ -84,7 +84,7 @@ function setupPluginPage() {
 
 type StatusCallback = (message: string) => void;
 
-function getDiffsCloudFileName() {
+export function getDiffsCloudFileName() {
     let schoolYear = Schoolyear.calculateSetupYear(); //assuming viewing for the year being setup.
     let schoolName = getSchoolIdString();
     return `Dko3/${schoolName}_${schoolYear}_diffs.json`;
@@ -103,9 +103,14 @@ async function runDiff(reportStatus: StatusCallback) {
         let jsonDiffs = createJsonDiffs(res.diffs, res.dko3LesSet, res.excelLesSet);
         let fileName = getDiffsCloudFileName();
         await cloud.json.upload(fileName, jsonDiffs);
+        sessionStorage.setItem(fileName, JSON.stringify(jsonDiffs));
         showDiffs(jsonDiffs);
     }
     reportStatus(`Vergelijking beeindigd.`);
+}
+
+export async function getDiffsFromCloud() {
+    return await cloud.json.fetch(getDiffsCloudFileName()) as JsonDiffs;
 }
 
 async function setupDiffPage() {
@@ -122,7 +127,7 @@ async function setupDiffPage() {
         await runDiff(reportStatus);
     };
     try {
-        let jsonDiffs = await cloud.json.fetch(getDiffsCloudFileName()) as JsonDiffs;
+        let jsonDiffs = await getDiffsFromCloud();
         showDiffs(jsonDiffs);
     }
     catch (e) {}
@@ -203,6 +208,11 @@ function excelLesToJson(excelLes: TaggedExcelLes): JsonExcelLes {
     };
 }
 
+export function createDiffTable(divResults: HTMLDivElement) {
+    let {first: table, last: tbody} = emmet.appendChild(divResults, "table#orphans.diff>(thead>tr>(th.subject{Vak/Lesnaam}+th.teacher{Leraar}+th.day{Dag}+th.{Uur}+th.location{Vestiging}+th))+tbody") as { target: HTMLDivElement, first: HTMLTableElement, last: HTMLTableSectionElement };
+    return {table, tbody};
+}
+
 function showDiffs(diffs: JsonDiffs) {
     let divResults = document.getElementById("diffResults") as HTMLDivElement;
     divResults.innerHTML = "";
@@ -214,7 +224,7 @@ function showDiffs(diffs: JsonDiffs) {
         displayDiff(diff, divResults); //<i class="fa-solid fa-arrow-up-right-from-square"></i>
 
     emmet.appendChild(divResults, "h4{Lessen zonder overeenkomsten}");
-    let {first: table, last: tbody} = emmet.appendChild(divResults, "table#orphans>(thead>tr>(th.subject{Vak/Lesnaam}+th.teacher{Leraar}+th.day{Dag}+th.{Uur}+th.location{Vestiging}+th))+tbody") as {target: HTMLDivElement, first: HTMLTableElement, last: HTMLTableSectionElement};
+    let {table, tbody} = createDiffTable(divResults);
 
     decorateTableHeader(table, false);
     for(let les of diffs.orphanedDko3Lessen) {
@@ -228,16 +238,20 @@ function showDiffs(diffs: JsonDiffs) {
     }
 }
 
-function displayDiff(diff: JsonDiff, divResults: HTMLDivElement) {
-    let tbody = emmet.appendChild(divResults, "table>tbody").last as HTMLTableSectionElement;
-    let tr = emmet.appendChild(tbody, "tr").last as HTMLTableRowElement;
+export function fillExcelDiffRow(tr: HTMLTableRowElement, diff: JsonDiff) {
     fillDiffRow(tr, diff.excelLes.subject, diff.excelLes.teacher, diff.excelLes.day as DayUppercase, diff.excelLes.timeSlice, diff.excelLes.location, diff.diffType, "excel", excelPostoExcelAddress(diff.excelLes.excelRow, diff.excelLes.excelColumn));
+}
+
+function displayDiff(diff: JsonDiff, divResults: HTMLDivElement) {
+    let tbody = emmet.appendChild(divResults, "table.diff>tbody").last as HTMLTableSectionElement;
+    let tr = emmet.appendChild(tbody, "tr").last as HTMLTableRowElement;
+    fillExcelDiffRow(tr, diff);
     tr.classList.add("excelRow");
     let tr2 = emmet.appendChild(tbody, "tr").last as HTMLTableRowElement;
     fillDiffRow(tr2, diff.dko3Les.subject, diff.dko3Les.teacher, diff.dko3Les.day as DayUppercase, diff.dko3Les.timeSlice, diff.dko3Les.location, diff.diffType, "dko3", diff.dko3Les.lesId);
 }
 
-function fillDiffRow(tr: HTMLTableRowElement, subjects: string, teachers: string, day: DayUppercase, timeSlice: string, location: string, diffType: DiffType, rowType: ("excel" | "dko3"), rowId: string) {
+export function fillDiffRow(tr: HTMLTableRowElement, subjects: string, teachers: string, day: DayUppercase, timeSlice: string, location: string, diffType: DiffType, rowType: ("excel" | "dko3"), rowId: string) {
     let diffTeacherClass: string = "";
     let diffLocationClass: string = "";
     let diffTimeClass: string = "";
@@ -304,7 +318,7 @@ function toCompactDayString(day: DayUppercase): string {
 }
 
 // zero based position!
-function excelPostoExcelAddress(row: number, column: number) {
+export function excelPostoExcelAddress(row: number, column: number) {
     return indexToExcelColumn(column) + (row + 1).toString();
 }
 
