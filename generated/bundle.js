@@ -1611,6 +1611,10 @@ var Roster = class {
 			searchString: "c o r s o"
 		},
 		{
+			tag: "Vestiging c o r s o",
+			searchString: " studio 3 "
+		},
+		{
 			tag: "Vestiging Prins Dries",
 			searchString: " prins "
 		},
@@ -1691,11 +1695,15 @@ var Roster = class {
 			searchString: " literaire teksten "
 		},
 		{
+			tag: "Schrijven",
+			searchString: " basiscursus "
+		},
+		{
 			tag: "Spreken en vertellen",
 			searchString: " spreken "
 		},
 		{
-			tag: "Kunstenbad",
+			tag: "Kunstenbad muziek/woord",
 			searchString: " kunstenbad "
 		},
 		{
@@ -3387,12 +3395,12 @@ function addFilterFields() {
 
 //#endregion
 //#region typescript/werklijst/criteria.ts
-let Domein = /* @__PURE__ */ function(Domein$1) {
-	Domein$1["Muziek"] = "Muziek (Mu)";
-	Domein$1["Woord"] = "Woord (Wo)";
-	Domein$1["Dans"] = "Dans (Da)";
-	Domein$1["Overschrijdend"] = "DomeinOv (Do)";
-	return Domein$1;
+let Domein$1 = /* @__PURE__ */ function(Domein$2) {
+	Domein$2["Muziek"] = "Muziek (Mu)";
+	Domein$2["Woord"] = "Woord (Wo)";
+	Domein$2["Dans"] = "Dans (Da)";
+	Domein$2["Overschrijdend"] = "DomeinOv (Do)";
+	return Domein$2;
 }({});
 let Grouping = /* @__PURE__ */ function(Grouping$1) {
 	Grouping$1["LEERLING"] = "1";
@@ -4812,7 +4820,7 @@ function getTrimPageElements() {
 }
 async function getJaarToewijzigingWerklijst(schoolYear) {
 	let builder = await createWerklijstBuilderWithReset(schoolYear, Grouping.LES);
-	builder.addCriterium(CriteriumName.Domein, Operator.PLUS, [Domein.Muziek]);
+	builder.addCriterium(CriteriumName.Domein, Operator.PLUS, [Domein$1.Muziek]);
 	builder.addCriterium(CriteriumName.Vak, Operator.PLUS, [
 		"instrumentinitiatie – hele jaar zelfde instrument - accordeon",
 		"instrumentinitiatie – hele jaar zelfde instrument - baglama (saz)",
@@ -5122,8 +5130,15 @@ async function runRosterCheck(excelData, reportStatus, fetchListener) {
 	let locationsTable = await getTableFromHash("extra-academie-vestigingsplaatsen", true, fetchListener);
 	let locations = [...locationsTable.getRows()].map((tr) => tr.cells[1].textContent);
 	reportStatus("DKO3 lessen ophalen...");
-	let dko3Lessen = await scrapeLessen(LesType.gewone);
-	let dko3AliasLessen = await scrapeLessen(LesType.alias);
+	let dko3Lessen = await scrapeLessen(Domein.Woord, LesType.gewone);
+	let muziekLessen = await scrapeLessen(Domein.Muziek, LesType.gewone);
+	let kbLessen = await scrapeLessen(Domein.DomeinOV, LesType.gewone);
+	dko3Lessen = [
+		...dko3Lessen,
+		...muziekLessen,
+		...kbLessen
+	];
+	let dko3AliasLessen = await scrapeLessen(Domein.Woord, LesType.alias);
 	for (let les of dko3AliasLessen) les.linkedLessen = await getAliassesForLes(les.id);
 	dko3AliasLessen = dko3AliasLessen.filter((l) => l.linkedLessen.length > 1);
 	console.log(dko3Lessen);
@@ -5144,7 +5159,14 @@ var LesType = /* @__PURE__ */ function(LesType$2) {
 	LesType$2["alias"] = "4";
 	return LesType$2;
 }(LesType || {});
-async function scrapeLessen(type) {
+var Domein = /* @__PURE__ */ function(Domein$2) {
+	Domein$2["Muziek"] = "3";
+	Domein$2["Woord"] = "4";
+	Domein$2["DomeinOV"] = "5";
+	Domein$2["Dans"] = "2";
+	return Domein$2;
+}(Domein || {});
+async function scrapeLessen(domein, type) {
 	let chain = new FetchChain();
 	let hash = "lessen-overzicht";
 	await chain.fetch(DKO3_BASE_URL + "#lessen-overzicht" + hash);
@@ -5152,7 +5174,7 @@ async function scrapeLessen(type) {
 	let schoolYear = Schoolyear.toFullString(Schoolyear.calculateSetupYear() - 1);
 	let params = new URLSearchParams({
 		schooljaar: schoolYear,
-		domein: "4",
+		domein,
 		vestigingsplaats: "",
 		vak: "",
 		graad: "",
@@ -7040,7 +7062,7 @@ async function setCriteriaForTeacherHoursAndClickFetchButton(schooljaar, hourSet
 	let selectedInstrumentNames = new Set(hourSettings.subjects.filter((i) => i.checked).map((i) => i.name));
 	let validInstruments = dko3_vakken.filter((vak) => selectedInstrumentNames.has(vak.name));
 	let vakNames = validInstruments.map((vak) => vak.name);
-	builder.addCriterium(CriteriumName.Domein, Operator.PLUS, [Domein.Muziek]);
+	builder.addCriterium(CriteriumName.Domein, Operator.PLUS, [Domein$1.Muziek]);
 	builder.addCriterium(CriteriumName.Vak, Operator.PLUS, vakNames);
 	builder.addFields([
 		FIELD.NAAM,

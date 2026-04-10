@@ -18,8 +18,11 @@ async function runRosterCheck(excelData: JsonExcelData, reportStatus: StatusCall
     let locations = [...locationsTable.getRows()].map(tr => tr.cells[1].textContent);
 
     reportStatus("DKO3 lessen ophalen...");
-    let dko3Lessen = await scrapeLessen(LesType.gewone);
-    let dko3AliasLessen = await scrapeLessen(LesType.alias);
+    let dko3Lessen = await scrapeLessen(Domein.Woord, LesType.gewone);
+    let muziekLessen = await scrapeLessen(Domein.Muziek, LesType.gewone);
+    let kbLessen = await scrapeLessen(Domein.DomeinOV, LesType.gewone);
+    dko3Lessen = [...dko3Lessen, ...muziekLessen, ...kbLessen];
+    let dko3AliasLessen = await scrapeLessen(Domein.Woord, LesType.alias);
     for (let les of dko3AliasLessen) {
         les.linkedLessen = await getAliassesForLes(les.id);
     }
@@ -43,7 +46,8 @@ async function runRosterCheck(excelData: JsonExcelData, reportStatus: StatusCall
 export default runRosterCheck
 
 enum LesType {modules="3", gewone="1", alias="4"}
-async function scrapeLessen(type: LesType ) {
+enum Domein {Muziek="3", Woord="4", DomeinOV="5", Dans="2"}
+async function scrapeLessen(domein: Domein, type: LesType ) {
     let chain = new FetchChain();
     let hash = "lessen-overzicht";
     await chain.fetch(DKO3_BASE_URL + "#lessen-overzicht" + hash);
@@ -51,7 +55,7 @@ async function scrapeLessen(type: LesType ) {
     let schoolYear = Schoolyear.toFullString(Schoolyear.calculateSetupYear() - 1); //todo: TEST TEST TEST, wrong year!!!!
     let params = new URLSearchParams({
         schooljaar: schoolYear,
-        domein: "4", //muziek=3, woord=4, DomeinOV=5, Dans=2
+        domein,
         vestigingsplaats: "",
         vak: "",
         graad: "",

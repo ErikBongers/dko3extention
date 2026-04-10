@@ -1,7 +1,4 @@
-* get subjectDefs from dko3.
-  > scrape them from filters in lessen page to get only the group lessons.
-    > always do this live, as only vakken for which lessen exists are shown!
-    > don't forget to scrape the lesNamen.
+* How to switch from Sharepoint test folder to production?
 
 * Show notification when refreshing any page.
 * When file is removed from folder: also remove it in cloud.
