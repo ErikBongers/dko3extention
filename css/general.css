@@ -413,6 +413,16 @@ tr.excelRow td {
             &.diff {
                 background-color: rgb(255 160 122 / 0.5);
             }
+            & button {
+                color: inherit;
+                opacity: 0.5;
+                border: none;
+                background-color: transparent;
+                outline: none;
+                &:hover {
+                    opacity: 1;
+                }
+            }
         }
     }
 }

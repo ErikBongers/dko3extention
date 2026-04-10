@@ -5576,27 +5576,27 @@ function showDiffs(diffs) {
 	if (elapsedTimeString != "") emmet.appendChild(divResults, `p{Laatste vergelijking: ${elapsedTimeString}}}`);
 	for (let diff of diffs.diffs) displayDiff(diff, divResults);
 	emmet.appendChild(divResults, "h4{Lessen zonder overeenkomsten}");
-	let { first: table, last: tbody } = emmet.appendChild(divResults, "table#orphans>(thead>tr>(th.subject{Vak/Lesnaam}+th.teacher{Leraar}+th.day{Dag}+th.{Uur}+th.location{Vestiging}))+tbody");
+	let { first: table, last: tbody } = emmet.appendChild(divResults, "table#orphans>(thead>tr>(th.subject{Vak/Lesnaam}+th.teacher{Leraar}+th.day{Dag}+th.{Uur}+th.location{Vestiging}+th))+tbody");
 	decorateTableHeader(table, false);
 	for (let les of diffs.orphanedDko3Lessen) {
 		let tr = emmet.appendChild(tbody, "tr").last;
-		fillDiffRow(tr, les.subject, les.teacher, les.day, les.timeSlice, les.location, "perfect match");
+		fillDiffRow(tr, les.subject, les.teacher, les.day, les.timeSlice, les.location, "perfect match", "dko3", les.lesId);
 	}
 	for (let les of diffs.orphanedExcelLessen) {
 		let tr = emmet.appendChild(tbody, "tr").last;
-		fillDiffRow(tr, les.subject, les.teacher, les.day, les.timeSlice, les.location, "perfect match");
+		fillDiffRow(tr, les.subject, les.teacher, les.day, les.timeSlice, les.location, "perfect match", "excel", excelPostoExcelAddress(les.excelRow, les.excelColumn));
 		tr.classList.add("excelRow");
 	}
 }
 function displayDiff(diff, divResults) {
 	let tbody = emmet.appendChild(divResults, "table>tbody").last;
 	let tr = emmet.appendChild(tbody, "tr").last;
-	fillDiffRow(tr, diff.excelLes.subject, diff.excelLes.teacher, diff.excelLes.day, diff.excelLes.timeSlice, diff.excelLes.location, diff.diffType);
+	fillDiffRow(tr, diff.excelLes.subject, diff.excelLes.teacher, diff.excelLes.day, diff.excelLes.timeSlice, diff.excelLes.location, diff.diffType, "excel", excelPostoExcelAddress(diff.excelLes.excelRow, diff.excelLes.excelColumn));
 	tr.classList.add("excelRow");
 	let tr2 = emmet.appendChild(tbody, "tr").last;
-	fillDiffRow(tr2, diff.dko3Les.subject, diff.dko3Les.teacher, diff.dko3Les.day, diff.dko3Les.timeSlice, diff.dko3Les.location, diff.diffType);
+	fillDiffRow(tr2, diff.dko3Les.subject, diff.dko3Les.teacher, diff.dko3Les.day, diff.dko3Les.timeSlice, diff.dko3Les.location, diff.diffType, "dko3", diff.dko3Les.lesId);
 }
-function fillDiffRow(tr, subjects, teachers, day, timeSlice, location$1, diffType) {
+function fillDiffRow(tr, subjects, teachers, day, timeSlice, location$1, diffType, rowType, rowId) {
 	let diffTeacherClass = "";
 	let diffLocationClass = "";
 	let diffTimeClass = "";
@@ -5632,7 +5632,23 @@ function fillDiffRow(tr, subjects, teachers, day, timeSlice, location$1, diffTyp
 		subjects = "-onbekend-";
 		diffSubjectClass = ".diff";
 	}
-	emmet.appendChild(tr, `td${diffSubjectClass}{${subjects}}+td${diffTeacherClass}{${teachers}}+td${diffDayClass}{${toCompactDayString(day)}}+td${diffTimeClass}{${timeSlice}}+td${diffLocationClass}{${location$1}}`);
+	let iconClass = rowType == "excel" ? "fa-grid" : "fa-chalkboard-user";
+	tr.dataset.rowId = rowId;
+	tr.dataset.rowType = rowType;
+	emmet.appendChild(tr, `td${diffSubjectClass}{${subjects}}+td${diffTeacherClass}{${teachers}}+td${diffDayClass}{${toCompactDayString(day)}}+td${diffTimeClass}{${timeSlice}}+td${diffLocationClass}{${location$1}}+td>button.goto>i.fas.${iconClass}`);
+	let button = tr.querySelector("button.goto");
+	button.onclick = gotoData;
+}
+const EXCEL_URL_TEST = "https://edusoantwerpen.sharepoint.com/:x:/s/dko/berchem/IQCujO4HZ0tVQ5PoV8RrEdoTAdDM_aDWVT2Pb5of8tPWKrY?activeCell=Definitief!";
+function gotoData(ev) {
+	let button = ev.currentTarget;
+	let tr = button.closest("tr");
+	let rowType = tr.dataset.rowType;
+	let rowId = tr.dataset.rowId;
+	if (rowType == "excel") {
+		let url = EXCEL_URL_TEST + rowId;
+		window.open(url, "_blank");
+	} else if (rowType == "dko3") location.href = DKO3_BASE_URL + "#lessen-les?id=" + rowId;
 }
 function toCompactTimeSliceString(timeSlice) {
 	if (!timeSlice) return "-geen uur-";
@@ -5651,6 +5667,42 @@ function toCompactDayString(day) {
 		default: unreachable(day);
 	}
 }
+function excelPostoExcelAddress(row, column) {
+	return indexToExcelColumn(column) + (row + 1).toString();
+}
+function indexToExcelColumn(index) {
+	let quotient = Math.floor(index / 26);
+	if (quotient <= 0) return chars[index];
+	return indexToExcelColumn(quotient) + chars[index % 26];
+}
+const chars = [
+	"A",
+	"B",
+	"C",
+	"D",
+	"E",
+	"F",
+	"G",
+	"H",
+	"I",
+	"J",
+	"K",
+	"L",
+	"M",
+	"N",
+	"O",
+	"P",
+	"Q",
+	"R",
+	"S",
+	"T",
+	"U",
+	"V",
+	"W",
+	"X",
+	"Y",
+	"Z"
+];
 
 //#endregion
 //#region typescript/academie/observer.ts

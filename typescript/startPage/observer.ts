@@ -9,6 +9,7 @@ import {DayUppercase} from "../lessen/scrape";
 import {TimeSlice} from "../roster_diff/compare_roster";
 import {dateDiffToString, getSchoolIdString, pad, Schoolyear, unreachable} from "../globals";
 import {decorateTableHeader} from "../table/tableHeaders";
+import {DKO3_BASE_URL} from "../def";
 
 class StartPageObserver extends ExactHashObserver {
     constructor() {
@@ -210,19 +211,19 @@ function showDiffs(diffs: JsonDiffs) {
     if(elapsedTimeString != "")
         emmet.appendChild(divResults, `p{Laatste vergelijking: ${elapsedTimeString}}}`)
     for(let diff of diffs.diffs)
-        displayDiff(diff, divResults);
+        displayDiff(diff, divResults); //<i class="fa-solid fa-arrow-up-right-from-square"></i>
 
     emmet.appendChild(divResults, "h4{Lessen zonder overeenkomsten}");
-    let {first: table, last: tbody} = emmet.appendChild(divResults, "table#orphans>(thead>tr>(th.subject{Vak/Lesnaam}+th.teacher{Leraar}+th.day{Dag}+th.{Uur}+th.location{Vestiging}))+tbody") as {target: HTMLDivElement, first: HTMLTableElement, last: HTMLTableSectionElement};
+    let {first: table, last: tbody} = emmet.appendChild(divResults, "table#orphans>(thead>tr>(th.subject{Vak/Lesnaam}+th.teacher{Leraar}+th.day{Dag}+th.{Uur}+th.location{Vestiging}+th))+tbody") as {target: HTMLDivElement, first: HTMLTableElement, last: HTMLTableSectionElement};
 
     decorateTableHeader(table, false);
     for(let les of diffs.orphanedDko3Lessen) {
         let tr = emmet.appendChild(tbody, "tr").last as HTMLTableRowElement;
-        fillDiffRow(tr, les.subject, les.teacher, les.day, les.timeSlice, les.location, "perfect match");
+        fillDiffRow(tr, les.subject, les.teacher, les.day, les.timeSlice, les.location, "perfect match", "dko3", les.lesId);
     }
     for(let les of diffs.orphanedExcelLessen) {
         let tr = emmet.appendChild(tbody, "tr").last as HTMLTableRowElement;
-        fillDiffRow(tr, les.subject, les.teacher, les.day as DayUppercase, les.timeSlice, les.location, "perfect match");
+        fillDiffRow(tr, les.subject, les.teacher, les.day as DayUppercase, les.timeSlice, les.location, "perfect match", "excel", excelPostoExcelAddress(les.excelRow, les.excelColumn));
         tr.classList.add("excelRow");
     }
 }
@@ -230,13 +231,13 @@ function showDiffs(diffs: JsonDiffs) {
 function displayDiff(diff: JsonDiff, divResults: HTMLDivElement) {
     let tbody = emmet.appendChild(divResults, "table>tbody").last as HTMLTableSectionElement;
     let tr = emmet.appendChild(tbody, "tr").last as HTMLTableRowElement;
-    fillDiffRow(tr, diff.excelLes.subject, diff.excelLes.teacher, diff.excelLes.day as DayUppercase, diff.excelLes.timeSlice, diff.excelLes.location, diff.diffType);
+    fillDiffRow(tr, diff.excelLes.subject, diff.excelLes.teacher, diff.excelLes.day as DayUppercase, diff.excelLes.timeSlice, diff.excelLes.location, diff.diffType, "excel", excelPostoExcelAddress(diff.excelLes.excelRow, diff.excelLes.excelColumn));
     tr.classList.add("excelRow");
     let tr2 = emmet.appendChild(tbody, "tr").last as HTMLTableRowElement;
-    fillDiffRow(tr2, diff.dko3Les.subject, diff.dko3Les.teacher, diff.dko3Les.day as DayUppercase, diff.dko3Les.timeSlice, diff.dko3Les.location, diff.diffType);
+    fillDiffRow(tr2, diff.dko3Les.subject, diff.dko3Les.teacher, diff.dko3Les.day as DayUppercase, diff.dko3Les.timeSlice, diff.dko3Les.location, diff.diffType, "dko3", diff.dko3Les.lesId);
 }
 
-function fillDiffRow(tr: HTMLTableRowElement, subjects: string, teachers: string, day: DayUppercase, timeSlice: string, location: string, diffType: DiffType) {
+function fillDiffRow(tr: HTMLTableRowElement, subjects: string, teachers: string, day: DayUppercase, timeSlice: string, location: string, diffType: DiffType, rowType: ("excel" | "dko3"), rowId: string) {
     let diffTeacherClass: string = "";
     let diffLocationClass: string = "";
     let diffTimeClass: string = "";
@@ -259,8 +260,29 @@ function fillDiffRow(tr: HTMLTableRowElement, subjects: string, teachers: string
         subjects = "-onbekend-";
         diffSubjectClass = ".diff";
     }
-    emmet.appendChild(tr, `td${diffSubjectClass}{${subjects}}+td${diffTeacherClass}{${teachers}}+td${diffDayClass}{${toCompactDayString(day as DayUppercase)}}+td${diffTimeClass}{${timeSlice}}+td${diffLocationClass}{${location}}`)
+    let iconClass = rowType == "excel" ? "fa-grid" : "fa-chalkboard-user";
+    tr.dataset.rowId = rowId;
+    tr.dataset.rowType = rowType;
+    emmet.appendChild(tr, `td${diffSubjectClass}{${subjects}}+td${diffTeacherClass}{${teachers}}+td${diffDayClass}{${toCompactDayString(day as DayUppercase)}}+td${diffTimeClass}{${timeSlice}}+td${diffLocationClass}{${location}}+td>button.goto>i.fas.${iconClass}`)
+    let button = tr.querySelector("button.goto") as HTMLButtonElement;
+    button.onclick = gotoData;
 }
+const EXCEL_URL_TEST= "https://edusoantwerpen.sharepoint.com/:x:/s/dko/berchem/IQCujO4HZ0tVQ5PoV8RrEdoTAdDM_aDWVT2Pb5of8tPWKrY?activeCell=Definitief!";
+function gotoData(ev: MouseEvent) {
+    let button = ev.currentTarget as HTMLButtonElement;
+    let tr = button.closest("tr") as HTMLTableRowElement;
+    let rowType = tr.dataset.rowType as ("excel" | "dko3");
+    let rowId = tr.dataset.rowId;
+
+    if(rowType == "excel") {
+        let url = EXCEL_URL_TEST + rowId;
+        window.open(url, "_blank");
+    }
+    else if(rowType == "dko3") {
+        location.href =  DKO3_BASE_URL + "#lessen-les?id="+rowId;
+    }
+}
+
 function toCompactTimeSliceString(timeSlice: TimeSlice) {
     if(!timeSlice)
         return "-geen uur-";
@@ -280,3 +302,17 @@ function toCompactDayString(day: DayUppercase): string {
         default: unreachable(day);
     }
 }
+
+// zero based position!
+function excelPostoExcelAddress(row: number, column: number) {
+    return indexToExcelColumn(column) + (row + 1).toString();
+}
+
+function indexToExcelColumn(index: number) {
+    let quotient = Math.floor(index / 26);
+    if (quotient <= 0)
+        return chars[index];
+
+    return indexToExcelColumn(quotient) + chars[index % 26];
+}
+const chars: string[] = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
