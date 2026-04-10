@@ -117,6 +117,18 @@ function showDiffs(diffs: Diff[], dko3LesSet: Set<TaggedDko3Les>, excelLesSet: S
     let divResults = document.getElementById("diffResults") as HTMLDivElement;
     for(let diff of actualDiffs)
         displayDiff(diff, divResults);
+
+    emmet.appendChild(divResults, "h4{Lessen zonder overeenkomsten}");
+    let tbody = emmet.appendChild(divResults, "table#orphans>(thead>tr>(td{Vak/Lesnaam}+td{Leraar}+td{Dag}+td{Uur}+td{Vestiging}))+tbody").last as HTMLTableSectionElement;
+    for(let les of dko3LesSet) {
+        let tr = emmet.appendChild(tbody, "tr").last as HTMLTableRowElement;
+        fillDiffRow(tr, les.subjects, les.teachers, les.les.day, les.les.timeSlice, les.location, "perfect match");
+    }
+    for(let les of excelLesSet) {
+        let tr = emmet.appendChild(tbody, "tr").last as HTMLTableRowElement;
+        fillDiffRow(tr, les.subjects, les.teachers, les.les.day as DayUppercase, les.les.timeSlice, les.location, "perfect match");
+        tr.classList.add("excelRow");
+    }
 }
 
 function displayDiff(diff: Diff, divResults: HTMLDivElement) {
@@ -146,6 +158,8 @@ function fillDiffRow(tr: HTMLTableRowElement, subjects: string[], teachers: stri
     emmet.appendChild(tr, `td${diffSubjectClass}{${subjects.join(",")}}+td${diffTeacherClass}{${teachers.join(",")}}+td${diffDayClass}{${toCompactDayString(day as DayUppercase)}}+td${diffTimeClass}{${toCompactTimeSliceString(timeSlice)}}+td${diffLocationClass}{${location}}`)
 }
 function toCompactTimeSliceString(timeSlice: TimeSlice) {
+    if(!timeSlice)
+        return "-geen uur-";
     return `${pad(timeSlice.start.hour, 2)}:${pad(timeSlice.start.minutes, 2)} - ${pad(timeSlice.end.hour, 2)}:${pad(timeSlice.end.minutes, 2)}`;
 }
 

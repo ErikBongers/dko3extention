@@ -416,3 +416,10 @@ tr.excelRow td {
         }
     }
 }
+
+table#orphans {
+    & thead > td {
+        background-color: #eee;
+        font-weight: bold;
+    }
+}

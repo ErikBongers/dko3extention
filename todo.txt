@@ -1,5 +1,19 @@
 * Show diffs in plugin page.
-  > display diffs without message but with the diff columns highlighted.
+  > add orphaned excel and dko3 lessen
+    > allow to sort them to try and find matches.
+
+* Cache diffs (html) in cloud
+
+* Diffs: goto buttons
+  - to the dko3 les
+  - to the excel file (and exact cell?)
+   >>>  To link to a specific Excel cell in SharePoint,
+          - right-click the target cell in the Excel web app,
+          - select Copy Link > To Range.
+        Alternatively, use the syntax
+          ='https://company.sharepoint.com/sites/site/[Workbook.xlsx]SheetName'!$A$1
+        to create a live, updating formula reference.
+        For a clickable link, select the cell, press Ctrl+K
 
 * Show notification when refreshing any page.
 
