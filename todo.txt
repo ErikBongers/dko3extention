@@ -1,4 +1,33 @@
-* Show undefined values in red : "-ongekend-"
+* get subjectDefs from dko3.
+  > scrape them from filters in lessen page to get only the group lessons.
+    > always do this live, as only vakken for which lessen exists are shown!
+    > don't forget to scrape the lesNamen.
+
+* Show notification when refreshing any page.
+* When file is removed from folder: also remove it in cloud.
+* display the diff.
+   > allow to ignore diffs, but keep those in a separate list (collapsed)
+* set TS settings gradually to strict.
+
+* Translation tables
+  > Not hard coded, but user defined in the excel files.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 * Diffs: goto buttons
   - to the dko3 les
   - to the excel file (and exact cell?)
@@ -28,56 +57,6 @@
   - Get url from a sharepoint file:
     >>> https://stackoverflow.com/questions/73153220/get-workbook-url-from-office-scripts-api
      > maybe this can be used to set the path of the excelfile.
-
-* Show notification when refreshing any page.
-
-* Show diffs in start page.
-  > add a replacement content pane.
-    > triggered by what?
-    > have extra menu items.
-
-* get subjectDefs from dko3.
-* same with vestigingsplaatsen.
-
-* store diffs online
-  > load them when viewing lessen and display some info
-    > in overview: a diff warning icon
-    > in details: the 2 diff lines.
-
-* When file is removed from folder: also remove it in cloud.
-
-* display the diff.
-  > only the problem lessons.
-  > 2 rows matched:
-   : xlsx....
-   : dko3....
-   > highlight the different columns.
-   > goto button to the actual lesson.
-     > show the excel data at the top of the lesson.
-   > allow to ignore diffs, but keep those in a separate list (collapsed)
-
-* set TS settings gradually to strict.
-
-* Translation tables
-  > Not hard coded, but user defined in the excel files.
-
-* Diff matching
-  > start with 2 sets to search for easy removal.
-  > extract matches in array, based on:
-    1. subject+day+time+location+teacher
-    with warnings:
-      2. drop teacher
-      3. drop minutes
-      4. drop both teacher and minutes
-    > class name is unreliable, so don't use it for matches.
-      > however, after stripping all the data in the excel cell, the remainder could be a separate field that can be showed next to the dko3 les naam for visual comparison.
-
-
-* Loop dko lessen and try to find a matching les in excel.
-  > Report missing ones and altered ones.
-  > Match on les+day/hour+location
-    > phase 2: try to find a possible match on other fields.
-    > suggest those as "Could it be this lesson?"
 
 Diff
 ====

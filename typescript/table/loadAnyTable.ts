@@ -70,6 +70,7 @@ export async function getTable(tableRef: TableRef, infoBarListener: InfoBarTable
     return fetchedTable;
 }
 
+//don't include the pound sign "#"
 export async function getTableFromHash(hash: string, clearCache: boolean, infoBarListener: InfoBarTableFetchListener) {
     let tableRef = await getTableRefFromHash(hash);
     console.log(tableRef);

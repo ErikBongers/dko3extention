@@ -4,12 +4,14 @@ import {fetchAndDisplayNotifications} from "../notifications/notifications";
 import {checkChecks} from "../notifications/checks";
 import {getGotoStateOrDefault, Goto, PageName, saveGotoState, StartPageGotoState} from "../gotoState";
 import {cloud, fetchExcelData, fetchFolderChanged} from "../cloud";
-import {Diff, DiffType, runRosterCheck, TaggedDko3Les, TaggedExcelLes} from "../roster_diff/build";
+import runRosterCheck, {Diff, DiffType, TaggedDko3Les, TaggedExcelLes} from "../roster_diff/build";
 import {DayUppercase} from "../lessen/scrape";
 import {TimeSlice} from "../roster_diff/compare_roster";
 import {dateDiffToString, getSchoolIdString, pad, Schoolyear, unreachable} from "../globals";
 import {decorateTableHeader} from "../table/tableHeaders";
 import {DKO3_BASE_URL} from "../def";
+import {createInfoBlock} from "../infoBlock";
+import {InfoBarTableFetchListener} from "../table/loadAnyTable";
 
 class StartPageObserver extends ExactHashObserver {
     constructor() {
@@ -82,7 +84,7 @@ function setupPluginPage() {
 
 }
 
-type StatusCallback = (message: string) => void;
+export type StatusCallback = (message: string) => void;
 
 export function getDiffsCloudFileName() {
     let schoolYear = Schoolyear.calculateSetupYear(); //assuming viewing for the year being setup.
@@ -90,7 +92,7 @@ export function getDiffsCloudFileName() {
     return `Dko3/${schoolName}_${schoolYear}_diffs.json`;
 }
 
-async function runDiff(reportStatus: StatusCallback) {
+async function runDiff(reportStatus: StatusCallback, fetchListener: InfoBarTableFetchListener) {
     reportStatus("Excel bestanden ophalen...");
     let folderChanged = await fetchFolderChanged("Dko3/Uurroosters/");
     reportStatus(`${folderChanged.files.length} Excel bestanden gevonden.`);
@@ -99,7 +101,7 @@ async function runDiff(reportStatus: StatusCallback) {
         reportStatus(`Inlezen van ${fileShortName}...`);
         let excelData = await fetchExcelData(file.name);
         reportStatus(`Vergelijken van ${fileShortName} met DKO3 lessen...`);
-        let res = await runRosterCheck(excelData);
+        let res = await runRosterCheck(excelData, reportStatus, fetchListener);
         let jsonDiffs = createJsonDiffs(res.diffs, res.dko3LesSet, res.excelLesSet);
         let fileName = getDiffsCloudFileName();
         await cloud.json.upload(fileName, jsonDiffs);
@@ -118,13 +120,17 @@ async function setupDiffPage() {
     let button = emmet.appendChild(pluginContainer, "div.mb-1>div>(h4{Verschillen tussen Excel uurroosters en DKO3 lessen.}+button{Run the diffs!})").last as HTMLButtonElement;
     let runStatus = emmet.insertAfter(button, "div#runStatus").first as HTMLDivElement;
     let results = emmet.insertAfter(runStatus, "div#diffResults").first as HTMLDivElement;
+
+    let divInfo = emmet.insertAfter(runStatus, 'dinv').last as HTMLDivElement;
+    let infoBlock = createInfoBlock(divInfo, "");
+    let fetchListener = new InfoBarTableFetchListener(infoBlock);
     let messages: string[] = [];
     function reportStatus(message: string) {
         messages.push(message);
         runStatus.innerHTML = messages.join("<br>");
     }
     button.onclick = async () => {
-        await runDiff(reportStatus);
+        await runDiff(reportStatus, fetchListener);
     };
     try {
         let jsonDiffs = await getDiffsFromCloud();

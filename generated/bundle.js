@@ -1435,9 +1435,11 @@ var TimeSlice = class {
 };
 var Roster = class {
 	table;
+	locationDefs;
 	errors = [];
-	constructor(table) {
+	constructor(table, locations) {
 		this.table = table;
+		this.locationDefs = locations;
 	}
 	scrapeUurrooster() {
 		let timeSlices = this.createTimeSlices();
@@ -1710,31 +1712,6 @@ var Roster = class {
 			tag: "Theater",
 			searchString: " acteren "
 		}
-	];
-	locationDefs = [
-		"Academie Willem Van Laarstraat, Berchem",
-		"Vestiging c o r s o",
-		"Vestiging De Kleine Wereld",
-		"Vestiging De Kolibrie",
-		"Vestiging De Schatkist",
-		"Vestiging Groenhout Kasteelstraat",
-		"Vestiging Het Fonkelpad",
-		"Vestiging OLV Pulhof",
-		"Vestiging Via Louiza",
-		"Vestiging Alberreke",
-		"Vestiging De Kleine Stad",
-		"Vestiging De Kosmos",
-		"Vestiging De Nieuwe Vrede",
-		"Vestiging Frans Van Hombeeck",
-		"Vestiging Klavertje Vier",
-		"Vestiging Prins Dries",
-		"Vestiging Sterrenkijker/SL Durlet",
-		"Wijkafdeling Lageweg, Hoboken",
-		"Wijkafdeling Louizastraat, Antwerpen",
-		"Wijkafdeling Mechelseplein, Antwerpen",
-		"Wijkafdeling Sint Hubertusstraat, Berchem",
-		"Wijkafdeling Sint-Hubertusstraat",
-		"Wijkafdeling Walburgis, Volkstraat"
 	];
 	subjectDefs = [
 		"Woordatelier",
@@ -5156,11 +5133,13 @@ var RosterFactory = class {
 
 //#endregion
 //#region typescript/roster_diff/build.ts
-async function runRosterCheck(excelData) {
+async function runRosterCheck(excelData, reportStatus, fetchListener) {
 	await postNotification("WOORD_ROSTER_RUN", "running", "Uurrooster worden vergeleken... (gestart door <todo:username>");
+	let locationsTable = await getTableFromHash("extra-academie-vestigingsplaatsen", true, fetchListener);
+	let locations = [...locationsTable.getRows()].map((tr) => tr.cells[1].textContent);
 	let factory = new RosterFactory(excelData);
 	let table = factory.getTable();
-	let roster = new Roster(table);
+	let roster = new Roster(table, locations);
 	let excelLessen = roster.scrapeUurrooster();
 	console.log(excelLessen);
 	let dko3Lessen = await scrapeLessen(LesType.gewone);
@@ -5171,6 +5150,7 @@ async function runRosterCheck(excelData) {
 	console.log(dko3AliasLessen);
 	return await buildDiff(excelLessen, dko3Lessen, dko3AliasLessen);
 }
+var build_default = runRosterCheck;
 var LesType = /* @__PURE__ */ function(LesType$2) {
 	LesType$2["modules"] = "3";
 	LesType$2["gewone"] = "1";
@@ -5425,7 +5405,7 @@ function getDiffsCloudFileName() {
 	let schoolName = getSchoolIdString();
 	return `Dko3/${schoolName}_${schoolYear}_diffs.json`;
 }
-async function runDiff(reportStatus) {
+async function runDiff(reportStatus, fetchListener) {
 	reportStatus("Excel bestanden ophalen...");
 	let folderChanged = await fetchFolderChanged("Dko3/Uurroosters/");
 	reportStatus(`${folderChanged.files.length} Excel bestanden gevonden.`);
@@ -5434,7 +5414,7 @@ async function runDiff(reportStatus) {
 		reportStatus(`Inlezen van ${fileShortName}...`);
 		let excelData = await fetchExcelData(file.name);
 		reportStatus(`Vergelijken van ${fileShortName} met DKO3 lessen...`);
-		let res = await runRosterCheck(excelData);
+		let res = await build_default(excelData, reportStatus, fetchListener);
 		let jsonDiffs = createJsonDiffs(res.diffs, res.dko3LesSet, res.excelLesSet);
 		let fileName = getDiffsCloudFileName();
 		await cloud.json.upload(fileName, jsonDiffs);
@@ -5451,13 +5431,16 @@ async function setupDiffPage() {
 	let button = emmet.appendChild(pluginContainer, "div.mb-1>div>(h4{Verschillen tussen Excel uurroosters en DKO3 lessen.}+button{Run the diffs!})").last;
 	let runStatus = emmet.insertAfter(button, "div#runStatus").first;
 	let results = emmet.insertAfter(runStatus, "div#diffResults").first;
+	let divInfo = emmet.insertAfter(runStatus, "dinv").last;
+	let infoBlock = createInfoBlock(divInfo, "");
+	let fetchListener = new InfoBarTableFetchListener(infoBlock);
 	let messages = [];
 	function reportStatus(message) {
 		messages.push(message);
 		runStatus.innerHTML = messages.join("<br>");
 	}
 	button.onclick = async () => {
-		await runDiff(reportStatus);
+		await runDiff(reportStatus, fetchListener);
 	};
 	try {
 		let jsonDiffs = await getDiffsFromCloud();

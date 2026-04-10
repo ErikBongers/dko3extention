@@ -7,13 +7,18 @@ import {Schoolyear} from "../globals";
 import {fetchLessen} from "../lessen/observer";
 import {Les, scrapeLessenOverzicht} from "../lessen/scrape";
 import {DKO3_BASE_URL, LESSEN_TABLE_ID} from "../def";
+import { StatusCallback } from "../startPage/observer";
+import {getTableFromHash, InfoBarTableFetchListener} from "../table/loadAnyTable";
 
-export async function runRosterCheck(excelData: JsonExcelData) {
+async function runRosterCheck(excelData: JsonExcelData, reportStatus: StatusCallback, fetchListener: InfoBarTableFetchListener) {
     await postNotification("WOORD_ROSTER_RUN", "running", "Uurrooster worden vergeleken... (gestart door <todo:username>");
+
+    let locationsTable = await getTableFromHash("extra-academie-vestigingsplaatsen", true, fetchListener);
+    let locations = [...locationsTable.getRows()].map(tr => tr.cells[1].textContent);
 
     let factory = new RosterFactory(excelData);
     let table = factory.getTable();
-    let roster = new Roster(table);
+    let roster = new Roster(table, locations);
     let excelLessen = roster.scrapeUurrooster();
     console.log(excelLessen);
     let dko3Lessen = await scrapeLessen(LesType.gewone);
@@ -28,6 +33,8 @@ export async function runRosterCheck(excelData: JsonExcelData) {
 
     return await buildDiff(excelLessen, dko3Lessen, dko3AliasLessen);
 }
+
+export default runRosterCheck
 
 enum LesType {modules="3", gewone="1", alias="4"}
 async function scrapeLessen(type: LesType ) {
