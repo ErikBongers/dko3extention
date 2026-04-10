@@ -1,6 +1,8 @@
-* Show diffs in plugin page.
-  > add orphaned excel and dko3 lessen
-    > allow to sort them to try and find matches.
+* Store cell row/col in excel diff row object.
+* Persist diffs
+  > for quick recall
+  > tooltip on les page
+  > ignore/mark as ok
 
 * Cache diffs (html) in cloud
 
@@ -12,8 +14,27 @@
           - select Copy Link > To Range.
         Alternatively, use the syntax
           ='https://company.sharepoint.com/sites/site/[Workbook.xlsx]SheetName'!$A$1
+          >>> https://edusoantwerpen.sharepoint.com/:x:/s/dko/berchem/IQCujO4HZ0tVQ5PoV8RrEdoTAdDM_aDWVT2Pb5of8tPWKrY?e=oz9iKz&nav=MTJfTTIwX3s1N0UxOTk5OS1FQkYyLTRCNEEtQkUwOS1DRUJBNUI3RDhDMjd9
+          >>> https://edusoantwerpen.sharepoint.com/:x:/s/dko/berchem/IQCujO4HZ0tVQ5PoV8RrEdoTAdDM_aDWVT2Pb5of8tPWKrY?e=oz9iKz&activeCell=Definitief!Y24
+          >>> https://edusoantwerpen.sharepoint.com/sites/dko/berchem/Gedeelde%20%20documenten/Werkplek_Beleid_Secretariaat/Onderwijskundig_zorg/Onderwijsorganisatie/MW_Kalenders%20en%20uurroosters/MW%20uurroosters/OUD/Automatisering/Woord_uurrooster_25-26.xlsx
+          >>> https://edusoantwerpen.sharepoint.com/sites/dko/berchem/Gedeelde%20%20documenten/Werkplek_Beleid_Secretariaat/Onderwijskundig_zorg/Onderwijsorganisatie/MW_Kalenders%20en%20uurroosters/MW%20uurroosters/OUD/Automatisering/Woord_uurrooster_25-26.xlsx?web=1
+          >>> https://edusoantwerpen.sharepoint.com/sites/dko/berchem/Gedeelde%20%20documenten/Werkplek_Beleid_Secretariaat/Onderwijskundig_zorg/Onderwijsorganisatie/MW_Kalenders%20en%20uurroosters/MW%20uurroosters/OUD/Automatisering/Woord_uurrooster_25-26.xlsx?web=1&activeCell=Definitief!Y24
+          >>> https://edusoantwerpen.sharepoint.com/sites/dko/berchem/Gedeelde%20%20documenten/Werkplek_Beleid_Secretariaat/Onderwijskundig_zorg/Onderwijsorganisatie/MW_Kalenders%20en%20uurroosters/MW%20uurroosters/OUD/Automatisering/Woord_uurrooster_25-26.xlsx?web=1&activeCell=Definitief!Y24
+            > this downloads the file!!!
         to create a live, updating formula reference.
         For a clickable link, select the cell, press Ctrl+K
+
+        THIS WORKS WITH CELL LOCATION:
+        >>> https://edusoantwerpen.sharepoint.com/:x:/s/dko/berchem/IQCujO4HZ0tVQ5PoV8RrEdoTAdDM_aDWVT2Pb5of8tPWKrY?activeCell=Definitief!X20
+          where the mid part is the base64 guid.
+        THIS WORKS WITHOUT CELL LOCATION, but readable path:
+        >>> https://edusoantwerpen.sharepoint.com/sites/dko/berchem/Gedeelde%20%20documenten/Werkplek_Beleid_Secretariaat/Onderwijskundig_zorg/Onderwijsorganisatie/MW_Kalenders%20en%20uurroosters/MW%20uurroosters/OUD/Automatisering/Woord_uurrooster_25-26.xlsx?web=1
+         > but cell doensn't work...
+        >>> https://edusoantwerpen.sharepoint.com/sites/dko/berchem/Gedeelde%20%20documenten/Werkplek_Beleid_Secretariaat/Onderwijskundig_zorg/Onderwijsorganisatie/MW_Kalenders%20en%20uurroosters/MW%20uurroosters/OUD/Automatisering/Woord_uurrooster_25-26.xlsx?web=1&activeCell=Definitief!A12
+
+  - Get url from a sharepoint file:
+    >>> https://stackoverflow.com/questions/73153220/get-workbook-url-from-office-scripts-api
+     > maybe this can be used to set the path of the excelfile.
 
 * Show notification when refreshing any page.
 

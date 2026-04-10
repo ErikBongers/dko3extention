@@ -1278,6 +1278,146 @@ async function getModules(_size, _modal, _file, args) {
 }
 
 //#endregion
+//#region typescript/roster_diff/excel.ts
+var ExcelPos = class {
+	row;
+	column;
+	constructor(row, column) {
+		this.row = row;
+		this.column = column;
+	}
+};
+var TablePos = class {
+	row;
+	column;
+	static toExcel(tablePos, table) {
+		return new ExcelPos(tablePos.row + table.tableRange.Start.row + table.rowHeaderCount, tablePos.column + table.tableRange.Start.column + table.columnHeaderCount);
+	}
+};
+var Range = class {
+	start;
+	end;
+	RowCount() {
+		return this.end.row - this.start.row + 1;
+	}
+	ColumnCount() {
+		return this.end.column - this.start.column + 1;
+	}
+	constructor(start, end) {
+		this.start = start;
+		this.end = end;
+	}
+};
+var ExcelRange = class extends Range {
+	constructor(start, end) {
+		super(start, end);
+	}
+	get Start() {
+		return this.start;
+	}
+	get End() {
+		return this.end;
+	}
+};
+var TableRange = class TableRange {
+	start;
+	end;
+	constructor(start, end) {
+		this.start = start;
+		this.end = end;
+	}
+	static FromExcel(excelRange, table) {
+		let startRow = excelRange.Start.row - table.tableRange.Start.row - table.rowHeaderCount;
+		let endRow = excelRange.End.row - table.tableRange.Start.row - table.rowHeaderCount;
+		let startColumn = excelRange.Start.column - table.tableRange.Start.column - table.columnHeaderCount;
+		let endColumn = excelRange.End.column - table.tableRange.Start.column - table.columnHeaderCount;
+		return new TableRange({
+			row: startRow,
+			column: startColumn
+		}, {
+			row: endRow,
+			column: endColumn
+		});
+	}
+	static ToExcel(tableRange, table) {
+		return new ExcelRange(TablePos.toExcel(tableRange.Start, table), TablePos.toExcel(tableRange.End, table));
+	}
+	get Start() {
+		return this.start;
+	}
+	get End() {
+		return this.end;
+	}
+};
+var ExcelData = class {
+	data;
+	mergedRanges;
+	constructor(data, mergedRanges) {
+		this.data = data;
+		this.mergedRanges = mergedRanges.map((r) => new ExcelRange(r.start, r.end));
+	}
+	getMergedCellValue(excelPos) {
+		let mergedRange = this.getMergedRangeForCell(excelPos);
+		return this.data[mergedRange.Start.row][mergedRange.Start.column];
+	}
+	getMergedRangeForCell(excelPos) {
+		return this.mergedRanges.find((range$1) => {
+			return excelPos.row >= range$1.Start.row && excelPos.row <= range$1.End.row && excelPos.column >= range$1.Start.column && excelPos.column <= range$1.End.column;
+		}) ?? new ExcelRange(excelPos, excelPos);
+	}
+};
+var Table = class {
+	excelData;
+	tableRange;
+	rowHeaderCount;
+	columnHeaderCount;
+	excelToTableRange(excelRange) {
+		return TableRange.FromExcel(excelRange, this);
+	}
+	get ColumnCount() {
+		return this.tableRange.ColumnCount() - this.columnHeaderCount;
+	}
+	get RowCount() {
+		return this.tableRange.RowCount() - this.rowHeaderCount;
+	}
+	constructor(excelData, tableRange, rowHeaderCount, columnHeaderCount) {
+		this.excelData = excelData;
+		this.tableRange = tableRange;
+		this.rowHeaderCount = rowHeaderCount;
+		this.columnHeaderCount = columnHeaderCount;
+	}
+	Cell(row, column) {
+		let excelPos = {
+			row: this.tableRange.Start.row + this.rowHeaderCount + row,
+			column: this.tableRange.Start.column + this.columnHeaderCount + column
+		};
+		return this.excelData.getMergedCellValue(excelPos);
+	}
+	RangeOfCell(pos) {
+		let excelPos = {
+			row: this.tableRange.Start.row + this.rowHeaderCount + pos.row,
+			column: this.tableRange.Start.column + this.columnHeaderCount + pos.column
+		};
+		let exelRange = this.excelData.getMergedRangeForCell(excelPos) ?? new ExcelRange(excelPos, excelPos);
+		return TableRange.FromExcel(exelRange, this);
+	}
+	HeaderRowValue(headerRow, column) {
+		let excelPos = {
+			row: this.tableRange.Start.row + headerRow,
+			column: this.tableRange.Start.column + this.columnHeaderCount + column
+		};
+		return this.excelData.getMergedCellValue(excelPos);
+	}
+	HeaderColumnValue(row, headerColumn) {
+		let excelPos = {
+			row: this.tableRange.Start.row + this.rowHeaderCount + row,
+			column: this.tableRange.Start.column + headerColumn
+		};
+		return this.excelData.getMergedCellValue(excelPos);
+	}
+};
+
+//#endregion
 //#region typescript/roster_diff/compare_roster.ts
 var TimeSlice = class {
 	start;
@@ -1329,6 +1469,11 @@ var Roster = class {
 				let tags = this.findTags(parseText, this.defaultTagDefs);
 				let location$1 = this.findLocation(tags);
 				let subjects = this.findSubjects(tags);
+				let tablePos = {
+					row,
+					column
+				};
+				let excelPos = TablePos.toExcel(tablePos, this.table);
 				let classDef = {
 					teacher,
 					day,
@@ -1336,7 +1481,9 @@ var Roster = class {
 					location: location$1,
 					subjects,
 					gradeYears: this.findGradeYears(parseText),
-					description
+					description,
+					excelRow: excelPos.row,
+					excelColumn: excelPos.column
 				};
 				classDefs.push(classDef);
 				row = mergedRange.End.row + 1;
@@ -4988,128 +5135,6 @@ async function checkChecks() {
 		if (folderChanged.changed) await postNotification("WOORD_ROSTER_CHANGED", "warning", "Het uurrooster voor woord is gewijzigd op Sharepoint. <button>Vergelijk lessen</button>");
 	}
 }
-
-//#endregion
-//#region typescript/roster_diff/excel.ts
-var Range = class {
-	start;
-	end;
-	RowCount() {
-		return this.end.row - this.start.row + 1;
-	}
-	ColumnCount() {
-		return this.end.column - this.start.column + 1;
-	}
-	constructor(start, end) {
-		this.start = start;
-		this.end = end;
-	}
-};
-var ExcelRange = class extends Range {
-	constructor(start, end) {
-		super(start, end);
-	}
-	get Start() {
-		return this.start;
-	}
-	get End() {
-		return this.end;
-	}
-};
-var TableRange = class TableRange {
-	start;
-	end;
-	constructor(start, end) {
-		this.start = start;
-		this.end = end;
-	}
-	static FromExcel(excelRange, table) {
-		let startRow = excelRange.Start.row - table.tableRange.Start.row - table.rowHeaderCount;
-		let endRow = excelRange.End.row - table.tableRange.Start.row - table.rowHeaderCount;
-		let startColumn = excelRange.Start.column - table.tableRange.Start.column - table.columnHeaderCount;
-		let endColumn = excelRange.End.column - table.tableRange.Start.column - table.columnHeaderCount;
-		return new TableRange({
-			row: startRow,
-			column: startColumn
-		}, {
-			row: endRow,
-			column: endColumn
-		});
-	}
-	get Start() {
-		return this.start;
-	}
-	get End() {
-		return this.end;
-	}
-};
-var ExcelData = class {
-	data;
-	mergedRanges;
-	constructor(data, mergedRanges) {
-		this.data = data;
-		this.mergedRanges = mergedRanges.map((r) => new ExcelRange(r.start, r.end));
-	}
-	getMergedCellValue(excelPos) {
-		let mergedRange = this.getMergedRangeForCell(excelPos);
-		return this.data[mergedRange.Start.row][mergedRange.Start.column];
-	}
-	getMergedRangeForCell(excelPos) {
-		return this.mergedRanges.find((range$1) => {
-			return excelPos.row >= range$1.Start.row && excelPos.row <= range$1.End.row && excelPos.column >= range$1.Start.column && excelPos.column <= range$1.End.column;
-		}) ?? new ExcelRange(excelPos, excelPos);
-	}
-};
-var Table = class {
-	excelData;
-	tableRange;
-	rowHeaderCount;
-	columnHeaderCount;
-	excelToTableRange(excelRange) {
-		return TableRange.FromExcel(excelRange, this);
-	}
-	get ColumnCount() {
-		return this.tableRange.ColumnCount() - this.columnHeaderCount;
-	}
-	get RowCount() {
-		return this.tableRange.RowCount() - this.rowHeaderCount;
-	}
-	constructor(excelData, tableRange, rowHeaderCount, columnHeaderCount) {
-		this.excelData = excelData;
-		this.tableRange = tableRange;
-		this.rowHeaderCount = rowHeaderCount;
-		this.columnHeaderCount = columnHeaderCount;
-	}
-	Cell(row, column) {
-		let excelPos = {
-			row: this.tableRange.Start.row + this.rowHeaderCount + row,
-			column: this.tableRange.Start.column + this.columnHeaderCount + column
-		};
-		return this.excelData.getMergedCellValue(excelPos);
-	}
-	RangeOfCell(pos) {
-		let excelPos = {
-			row: this.tableRange.Start.row + this.rowHeaderCount + pos.row,
-			column: this.tableRange.Start.column + this.columnHeaderCount + pos.column
-		};
-		let exelRange = this.excelData.getMergedRangeForCell(excelPos) ?? new ExcelRange(excelPos, excelPos);
-		return TableRange.FromExcel(exelRange, this);
-	}
-	HeaderRowValue(headerRow, column) {
-		let excelPos = {
-			row: this.tableRange.Start.row + headerRow,
-			column: this.tableRange.Start.column + this.columnHeaderCount + column
-		};
-		return this.excelData.getMergedCellValue(excelPos);
-	}
-	HeaderColumnValue(row, headerColumn) {
-		let excelPos = {
-			row: this.tableRange.Start.row + this.rowHeaderCount + row,
-			column: this.tableRange.Start.column + headerColumn
-		};
-		return this.excelData.getMergedCellValue(excelPos);
-	}
-};
 
 //#endregion
 //#region typescript/roster_diff/rosterFactory.ts

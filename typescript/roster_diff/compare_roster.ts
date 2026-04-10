@@ -1,4 +1,4 @@
-import {Table} from "./excel";
+import {ExcelPos, Table, TablePos} from "./excel";
 
 type TagDef = {
     tag: string,
@@ -17,7 +17,9 @@ export type ClassDef = {
     subjects: string[],
     location: string,
     gradeYears: GradeYear[],
-    description: string
+    description: string,
+    excelRow: number;
+    excelColumn: number;
 }
 
 export class TimeSlice {
@@ -94,6 +96,8 @@ export class Roster{
                 let tags = this.findTags(parseText, this.defaultTagDefs); //todo: first try to find tagDefs in the sheet (table)
                 let location = this.findLocation(tags);
                 let subjects = this.findSubjects(tags);
+                let tablePos: TablePos = {row, column};
+                let excelPos: ExcelPos = TablePos.toExcel(tablePos, this.table);
                 let classDef: ClassDef = {
                     teacher,
                     day,
@@ -101,7 +105,9 @@ export class Roster{
                     location,
                     subjects,
                     gradeYears: this.findGradeYears(parseText),
-                    description
+                    description,
+                    excelRow: excelPos.row,
+                    excelColumn: excelPos.column,
                 };
                 classDefs.push(classDef);
                 row = mergedRange.End.row+1;

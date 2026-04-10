@@ -3,14 +3,23 @@ export interface CellPos{
     column: number;
 }
 
-export interface ExcelPos {
+export class ExcelPos {
     row: number;
     column: number;
+
+    constructor(row: number, column: number) {
+        this.row = row;
+        this.column = column;
+    }
 }
 
-export interface TablePos {
+export class TablePos {
     row: number;
     column: number;
+
+    static toExcel(tablePos: TablePos, table: Table) {
+        return new ExcelPos(tablePos.row+table.tableRange.Start.row+table.rowHeaderCount, tablePos.column+table.tableRange.Start.column+table.columnHeaderCount);
+    }
 }
 
 export abstract class JsonRange {
@@ -66,6 +75,13 @@ export class TableRange {
         return new TableRange({row: startRow, column: startColumn}, {row: endRow, column: endColumn});
     }
 
+    public static ToExcel(tableRange: TableRange, table: Table) {
+        return new ExcelRange(
+            TablePos.toExcel(tableRange.Start, table),
+            TablePos.toExcel(tableRange.End, table)
+        );
+    }
+
     public get Start (): ExcelPos {
         return this.start;
     }
@@ -115,6 +131,8 @@ export class Table {
     public excelToTableRange(excelRange: ExcelRange): TableRange {
         return TableRange.FromExcel(excelRange, this);
     }
+
+
 
     public get ColumnCount (): number {
         return this.tableRange.ColumnCount() - this.columnHeaderCount;
