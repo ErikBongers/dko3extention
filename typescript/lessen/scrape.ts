@@ -1,5 +1,5 @@
 import {FetchedTable} from "../table/tableFetcher";
-import {GradeYear, Time, TimeSlice} from "../roster_diff/compare_roster";
+import {GradeYear, Time, TimeSlice} from "../roster_diff/excelRoster";
 
 export function scrapeLessenOverzicht(table: HTMLTableElement) {
     let body = table.tBodies[0];

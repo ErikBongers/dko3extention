@@ -1,6 +1,6 @@
 import {JsonExcelData} from "./excel";
 import {RosterFactory} from "./rosterFactory";
-import {ClassDef, fetchTeachers, findTeacher, Roster, TeacherDef, TimeSlice, timeToMinutes} from "./compare_roster";
+import {ClassDef, ExcelRoster, TeacherDef, TimeSlice, timeToMinutes} from "./excelRoster";
 import {postNotification} from "../cloud";
 import {FetchChain} from "../table/fetchChain";
 import {Schoolyear} from "../globals";
@@ -37,7 +37,7 @@ async function runRosterCheck(excelData: JsonExcelData, reportStatus: StatusCall
     let factory = new RosterFactory(excelData);
     let table = factory.getTable();
     let teachers = await fetchTeachers("2025-2026");
-    let roster = new Roster(table, locations, subjects, teachers);
+    let roster = new ExcelRoster(table, locations, subjects, teachers);
     let excelLessen = roster.scrapeUurrooster();
     console.log(excelLessen);
 
@@ -307,3 +307,40 @@ function matchWithoutTeacher(dko3Les: TaggedDko3Les, excelLesSet: Set<TaggedExce
     }
     return null;
 }
+
+export async function fetchTeachers(schoolYear: string): Promise<TeacherDef[]> {
+    await fetch(DKO3_BASE_URL+ "#personeel-personeelsleden");
+    await fetch(DKO3_BASE_URL+ "view.php?args=personeel-personeelsleden");
+    await fetch(DKO3_BASE_URL+ "views/personeel/personeelsleden/index.view.php");
+    await fetch(DKO3_BASE_URL+ "views/personeel/personeelsleden/vestigingsplaats_schooljaar_filter.php?schooljaar=2025-2026");  //option list: can probably be skipped
+    let formData = new FormData();
+    formData.append("filters[naam]", "");
+    formData.append("filters[status_personeelsleden]", "1");
+    formData.append("filters[leerkracht]", "1");
+    formData.append("filters[interim]", "1");
+    formData.append("filters[alc]", "false");
+    formData.append("filters[administratie]", "false");
+    formData.append("filters[overig]", "false");
+    formData.append("filters[schooljaar]", schoolYear);
+    await fetch("https://administratie.dko3.cloud/views/personeel/personeelsleden/save_filters.php", {method: "POST", body: formData});
+    let res = await fetch(DKO3_BASE_URL+ "views/personeel/personeelsleden/personeelsleden.table.php");
+    let html = await res.text();
+    let div = document.createElement("div");
+    div.innerHTML = html;
+    return [...div.querySelectorAll(`td[data-label="Naam"] strong`)]
+        .map((strong: HTMLElement) => strong.textContent)
+        .map(name => {
+            let split = name.split(",");
+            return {name, firstName: split[1].trim()};
+        });
+}
+
+export function findTeacher(searchString: string, teachers: TeacherDef[]) {
+    let lowerCase = searchString.toLowerCase();
+    for(let teacherDef of teachers){
+        if(lowerCase.includes(teacherDef.firstName.toLowerCase()))
+            return teacherDef.name;
+    }
+    return searchString;
+}
+
