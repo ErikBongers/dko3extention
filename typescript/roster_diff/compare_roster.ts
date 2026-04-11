@@ -1,4 +1,5 @@
 import {ExcelPos, Table, TablePos} from "./excel";
+import {DKO3_BASE_URL} from "../def";
 
 type TagDef = {
     tag: string,
@@ -53,10 +54,12 @@ export class Roster{
     private locationDefs: string[];
     private readonly subjectDefs: string[];
     private errors: string[] = [];
-    public constructor(table: Table, locations: string[], subjects: string[]) {
+    private teachers: TeacherDef[];
+    public constructor(table: Table, locations: string[], subjects: string[], teachers: TeacherDef[] ) {
         this.table = table;
         this.locationDefs = locations;
         this.subjectDefs = subjects;
+        this.teachers = teachers;
     }
 
     public scrapeUurrooster() {
@@ -237,15 +240,6 @@ export class Roster{
         return this.subjectDefs.filter(subject => tags.includes(subject));
     }
 
-    public static findTeacher(searchString: string) {
-        let lowerCase = searchString.toLowerCase();
-        for(let teacherDef of leraren){
-            if(lowerCase.includes(teacherDef.firstName.toLowerCase()))
-                return teacherDef.name;
-        }
-        return searchString;
-    }
-
     private findTags(text: string, tagDefs: TagDef[]) {
         let tags: string[] = [];
         let lowerCase = text.toLowerCase();
@@ -291,88 +285,44 @@ export class Roster{
     }
 }
 
-export const leraren = [
-        {name: "Bavin, Jeroen", firstName: "Jeroen"},
-        {name: "Benoot, Joke", firstName: "Joke"},
-        {name: "De Moudt, Runa", firstName: "Runa"},
-        {name: "Beurghs, Lieve", firstName: "Lieve"},
-        {name: "Boonen, Tim", firstName: "Tim"},
-        {name: "Verpoten, Kristel", firstName: "Kristel"},
-        {name: "Boot, Cornelia", firstName: "Cornelia"},
-        {name: "Braem, Veerle", firstName: "Veerle"},
-        {name: "Bruneel, Janos", firstName: "Janos"},
-        {name: "Buyl, Lotte", firstName: "Lotte"},
-        {name: "Cardoen, Edwige", firstName: "Edwige"},
-        {name: "Celis, Naomi", firstName: "Naomi"},
-        {name: "Cuypers, Joost", firstName: "Joost"},
-        {name: "D'Haese, Sofie", firstName: "Sofie"},
-        {name: "Daans, Tom", firstName: "Tom"},
-        {name: "De Cock, Winter", firstName: "Winter"},
-        {name: "Derijcke, Sophie", firstName: "Sophie"},
-        {name: "De Feyter, Moya", firstName: "Moya"},
-        {name: "Demirbas, Serdar", firstName: "Serdar"},
-        {name: "Denys, Stijn", firstName: "Stijn"},
-        {name: "Wijckmans, Thierry", firstName: "Thierry"},
-        {name: "Dergent, Danielle", firstName: "Danielle"},
-        {name: "Desmet, Robbe", firstName: "Robbe"},
-        {name: "Dias, Lindsy", firstName: "Lindsy"},
-        {name: "Spee, Marlijn", firstName: "Marlijn"},
-        {name: "Dyck, Sebastiaan", firstName: "Sebastiaan"},
-        {name: "Erbstösser, Christoph", firstName: "Christoph"},
-        {name: "Geris, Maartje", firstName: "Maartje"},
-        {name: "Giron, Rudi", firstName: "Rudi"},
-        {name: "Gratchev, Serguei", firstName: "Serguei"},
-        {name: "Gys, Jasmien", firstName: "Jasmien"},
-        {name: "Haché, Govaart", firstName: "Govaart"},
-        {name: "Segers, Mieke", firstName: "Mieke"},
-        {name: "Haesebeyt, Joram", firstName: "Joram"},
-        {name: "Hinnekens, Sam", firstName: "Sam"},
-        {name: "Vitacolonna, Toni", firstName: "Toni"},
-        {name: "Hubrechts, Tine", firstName: "Tine"},
-        {name: "Vanhellemont, Rhea", firstName: "Rhea"},
-        {name: "Ip, Daisy", firstName: "Daisy"},
-        {name: "Maerevoet, Tina", firstName: "Tina"},
-        {name: "Janssens, Luna", firstName: "Luna"},
-        {name: "Janssens, Rani", firstName: "Rani"},
-        {name: "Praet, Tahnee", firstName: "Tahnee"},
-        {name: "Janssens, Veerle", firstName: "Veerle"},
-        {name: "Joris, Sam", firstName: "Sam"},
-        {name: "Lauwers, Anke", firstName: "Anke"},
-        {name: "Leiva Sepulveda, Maria", firstName: "Maria"},
-        {name: "Van de Meirssche, Lieve", firstName: "Lieve"},
-        {name: "Storms, Isabelle", firstName: "Isabelle"},
-        {name: "Van Goethem, Robert", firstName: "Robert"},
-        {name: "Lejeune, Joris", firstName: "Joris"},
-        {name: "Westra Hoekzema, Maarten", firstName: "Maarten"},
-        {name: "Meerbergen, Johan", firstName: "Johan"},
-        {name: "Meermans, Sander", firstName: "Sander"},
-        {name: "Melaerts, Jan", firstName: "Jan"},
-        {name: "Pauwels, Kim", firstName: "Kim"},
-        {name: "Pavlidi, Ntiana", firstName: "Ntiana"},
-        {name: "Pecnik, Ivan", firstName: "Ivan"},
-        {name: "Quintens, Yanate", firstName: "Yanate"},
-        {name: "Reekmans, Stan", firstName: "Stan"},
-        {name: "Reusens, Oliver", firstName: "Oliver"},
-        {name: "Rosquete Márquez, Juan Carlos", firstName: "Juan Carlos"},
-        {name: "Scheir, Katleen", firstName: "Katleen"},
-        {name: "Schoonis, Lien", firstName: "Lien"},
-        {name: "Shütte, Katrin", firstName: "Katrin"},
-        {name: "Tiest, Tom", firstName: "Tom"},
-        {name: "Truyman, Evy", firstName: "Evy"},
-        {name: "Vaerendonck, Joeri", firstName: "Joeri"},
-        {name: "Van Abbenyen, Emma", firstName: "Emma"},
-        {name: "Van Acker, Andrea", firstName: "Andrea"},
-        {name: "Wynants, Femke", firstName: "Femke"},
-        {name: "Van Assche, Jurgen", firstName: "Jurgen"},
-        {name: "Van Casteren, Bart", firstName: "Bart"},
-        {name: "Van Kerckhoven, Katelijn", firstName: "Katelijn"},
-        {name: "Van Laere, Hannah", firstName: "Hannah"},
-        {name: "Van Reeth, Peter", firstName: "Peter"},
-        {name: "Van de Velde, Samuel", firstName: "Samuel"},
-        {name: "Vandekerckhove, Elvira", firstName: "Elvira"},
-        {name: "Vandenbussche, Christina", firstName: "Christina"},
-        {name: "Verhaegen, Dieter", firstName: "Dieter"},
-        {name: "Verhelst, Peter", firstName: "Peter"},
-        {name: "Wellens, Florian", firstName: "Florian"},
-        {name: "Wong, Maureen", firstName: "Maureen"}
-    ];
+
+export interface TeacherDef {
+    name: string;
+    firstName: string;
+}
+export async function fetchTeachers(schoolYear: string): Promise<TeacherDef[]> {
+    await fetch(DKO3_BASE_URL+ "#personeel-personeelsleden");
+    await fetch(DKO3_BASE_URL+ "view.php?args=personeel-personeelsleden");
+    await fetch(DKO3_BASE_URL+ "views/personeel/personeelsleden/index.view.php");
+    await fetch(DKO3_BASE_URL+ "views/personeel/personeelsleden/vestigingsplaats_schooljaar_filter.php?schooljaar=2025-2026");  //option list: can probably be skipped
+    let formData = new FormData();
+    formData.append("filters[naam]", "");
+    formData.append("filters[status_personeelsleden]", "1");
+    formData.append("filters[leerkracht]", "1");
+    formData.append("filters[interim]", "1");
+    formData.append("filters[alc]", "false");
+    formData.append("filters[administratie]", "false");
+    formData.append("filters[overig]", "false");
+    formData.append("filters[schooljaar]", schoolYear);
+    await fetch("https://administratie.dko3.cloud/views/personeel/personeelsleden/save_filters.php", {method: "POST", body: formData});
+    let res = await fetch(DKO3_BASE_URL+ "views/personeel/personeelsleden/personeelsleden.table.php");
+    let html = await res.text();
+    let div = document.createElement("div");
+    div.innerHTML = html;
+    return [...div.querySelectorAll(`td[data-label="Naam"] strong`)]
+        .map((strong: HTMLElement) => strong.textContent)
+        .map(name => {
+            let split = name.split(",");
+            return {name, firstName: split[1].trim()};
+        });
+}
+
+export function findTeacher(searchString: string, teachers: TeacherDef[]) {
+    let lowerCase = searchString.toLowerCase();
+    for(let teacherDef of teachers){
+        if(lowerCase.includes(teacherDef.firstName.toLowerCase()))
+            return teacherDef.name;
+    }
+    return searchString;
+}
+

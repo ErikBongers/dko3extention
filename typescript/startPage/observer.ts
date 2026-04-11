@@ -6,7 +6,7 @@ import {getGotoStateOrDefault, Goto, PageName, saveGotoState, StartPageGotoState
 import {cloud, fetchExcelData, fetchFolderChanged} from "../cloud";
 import runRosterCheck, {Diff, DiffType, TaggedDko3Les, TaggedExcelLes} from "../roster_diff/build";
 import {DayUppercase, Les} from "../lessen/scrape";
-import {ClassDef, TimeSlice} from "../roster_diff/compare_roster";
+import {ClassDef, fetchTeachers, TimeSlice} from "../roster_diff/compare_roster";
 import {dateDiffToString, getSchoolIdString, pad, Schoolyear, unreachable} from "../globals";
 import {decorateTableHeader} from "../table/tableHeaders";
 import {DKO3_BASE_URL} from "../def";

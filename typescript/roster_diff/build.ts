@@ -1,6 +1,6 @@
 import {JsonExcelData} from "./excel";
 import {RosterFactory} from "./rosterFactory";
-import {ClassDef, Roster, TimeSlice, timeToMinutes} from "./compare_roster";
+import {ClassDef, fetchTeachers, findTeacher, Roster, TeacherDef, TimeSlice, timeToMinutes} from "./compare_roster";
 import {postNotification} from "../cloud";
 import {FetchChain} from "../table/fetchChain";
 import {Schoolyear} from "../globals";
@@ -36,11 +36,12 @@ async function runRosterCheck(excelData: JsonExcelData, reportStatus: StatusCall
     subjects = [...new Set(subjects)];
     let factory = new RosterFactory(excelData);
     let table = factory.getTable();
-    let roster = new Roster(table, locations, subjects);
+    let teachers = await fetchTeachers("2025-2026");
+    let roster = new Roster(table, locations, subjects, teachers);
     let excelLessen = roster.scrapeUurrooster();
     console.log(excelLessen);
 
-    return await buildDiff(excelLessen, dko3Lessen, dko3AliasLessen, reportStatus);
+    return await buildDiff(excelLessen, dko3Lessen, dko3AliasLessen, reportStatus, teachers);
 }
 
 export default runRosterCheck
@@ -121,20 +122,20 @@ export class TaggedDko3Les extends TaggedLes<Les> {
 }
 
 export class TaggedExcelLes extends TaggedLes<ClassDef> {
-    constructor(les: ClassDef) {
+    constructor(les: ClassDef, teachers: TeacherDef[]) {
         let searchText = "";
         let tags: string[] = [];
         super(les, tags, searchText);
         this.location = this.les.location;//translate probably already done.
-        this.teachers = this.les.teacher.split(/[]\/,/g).map(t => Roster.findTeacher(t));
+        this.teachers = this.les.teacher.split(/[]\/,/g).map(t => findTeacher(t, teachers));
         this.subjects = les.subjects;
         this.subjects = this.subjects.filter(s => s!!);
     }
 }
 
-async function buildDiff(excelLessen: ClassDef[], dko3Lessen: Les[], dko3AliasLessen: Les[], reportStatus: StatusCallback) {
+async function buildDiff(excelLessen: ClassDef[], dko3Lessen: Les[], dko3AliasLessen: Les[], reportStatus: StatusCallback, teachers: TeacherDef[]) {
     let diffs: Diff[] = [];
-    let excelLesSet: Set<TaggedExcelLes> = new Set<TaggedExcelLes>(excelLessen.map(les => new TaggedExcelLes(les)));
+    let excelLesSet: Set<TaggedExcelLes> = new Set<TaggedExcelLes>(excelLessen.map(les => new TaggedExcelLes(les, teachers)));
     let dko3LesSet: Set<TaggedDko3Les> = new Set<TaggedDko3Les>(dko3Lessen.map(les => new TaggedDko3Les(les)));
     //move linked lessen inside the alias les.
     let lessenMap: Map<string, TaggedDko3Les> = new Map<string, TaggedDko3Les>();

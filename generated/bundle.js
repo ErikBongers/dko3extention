@@ -1441,10 +1441,12 @@ var Roster = class {
 	locationDefs;
 	subjectDefs;
 	errors = [];
-	constructor(table, locations, subjects) {
+	teachers;
+	constructor(table, locations, subjects, teachers) {
 		this.table = table;
 		this.locationDefs = locations;
 		this.subjectDefs = subjects;
+		this.teachers = teachers;
 	}
 	scrapeUurrooster() {
 		let timeSlices = this.createTimeSlices();
@@ -1732,11 +1734,6 @@ var Roster = class {
 	findSubjects(tags) {
 		return this.subjectDefs.filter((subject) => tags.includes(subject));
 	}
-	static findTeacher(searchString) {
-		let lowerCase = searchString.toLowerCase();
-		for (let teacherDef of leraren) if (lowerCase.includes(teacherDef.firstName.toLowerCase())) return teacherDef.name;
-		return searchString;
-	}
 	findTags(text, tagDefs) {
 		let tags = [];
 		let lowerCase = text.toLowerCase();
@@ -1774,340 +1771,41 @@ var Roster = class {
 		}
 	}
 };
-const leraren = [
-	{
-		name: "Bavin, Jeroen",
-		firstName: "Jeroen"
-	},
-	{
-		name: "Benoot, Joke",
-		firstName: "Joke"
-	},
-	{
-		name: "De Moudt, Runa",
-		firstName: "Runa"
-	},
-	{
-		name: "Beurghs, Lieve",
-		firstName: "Lieve"
-	},
-	{
-		name: "Boonen, Tim",
-		firstName: "Tim"
-	},
-	{
-		name: "Verpoten, Kristel",
-		firstName: "Kristel"
-	},
-	{
-		name: "Boot, Cornelia",
-		firstName: "Cornelia"
-	},
-	{
-		name: "Braem, Veerle",
-		firstName: "Veerle"
-	},
-	{
-		name: "Bruneel, Janos",
-		firstName: "Janos"
-	},
-	{
-		name: "Buyl, Lotte",
-		firstName: "Lotte"
-	},
-	{
-		name: "Cardoen, Edwige",
-		firstName: "Edwige"
-	},
-	{
-		name: "Celis, Naomi",
-		firstName: "Naomi"
-	},
-	{
-		name: "Cuypers, Joost",
-		firstName: "Joost"
-	},
-	{
-		name: "D'Haese, Sofie",
-		firstName: "Sofie"
-	},
-	{
-		name: "Daans, Tom",
-		firstName: "Tom"
-	},
-	{
-		name: "De Cock, Winter",
-		firstName: "Winter"
-	},
-	{
-		name: "Derijcke, Sophie",
-		firstName: "Sophie"
-	},
-	{
-		name: "De Feyter, Moya",
-		firstName: "Moya"
-	},
-	{
-		name: "Demirbas, Serdar",
-		firstName: "Serdar"
-	},
-	{
-		name: "Denys, Stijn",
-		firstName: "Stijn"
-	},
-	{
-		name: "Wijckmans, Thierry",
-		firstName: "Thierry"
-	},
-	{
-		name: "Dergent, Danielle",
-		firstName: "Danielle"
-	},
-	{
-		name: "Desmet, Robbe",
-		firstName: "Robbe"
-	},
-	{
-		name: "Dias, Lindsy",
-		firstName: "Lindsy"
-	},
-	{
-		name: "Spee, Marlijn",
-		firstName: "Marlijn"
-	},
-	{
-		name: "Dyck, Sebastiaan",
-		firstName: "Sebastiaan"
-	},
-	{
-		name: "Erbstösser, Christoph",
-		firstName: "Christoph"
-	},
-	{
-		name: "Geris, Maartje",
-		firstName: "Maartje"
-	},
-	{
-		name: "Giron, Rudi",
-		firstName: "Rudi"
-	},
-	{
-		name: "Gratchev, Serguei",
-		firstName: "Serguei"
-	},
-	{
-		name: "Gys, Jasmien",
-		firstName: "Jasmien"
-	},
-	{
-		name: "Haché, Govaart",
-		firstName: "Govaart"
-	},
-	{
-		name: "Segers, Mieke",
-		firstName: "Mieke"
-	},
-	{
-		name: "Haesebeyt, Joram",
-		firstName: "Joram"
-	},
-	{
-		name: "Hinnekens, Sam",
-		firstName: "Sam"
-	},
-	{
-		name: "Vitacolonna, Toni",
-		firstName: "Toni"
-	},
-	{
-		name: "Hubrechts, Tine",
-		firstName: "Tine"
-	},
-	{
-		name: "Vanhellemont, Rhea",
-		firstName: "Rhea"
-	},
-	{
-		name: "Ip, Daisy",
-		firstName: "Daisy"
-	},
-	{
-		name: "Maerevoet, Tina",
-		firstName: "Tina"
-	},
-	{
-		name: "Janssens, Luna",
-		firstName: "Luna"
-	},
-	{
-		name: "Janssens, Rani",
-		firstName: "Rani"
-	},
-	{
-		name: "Praet, Tahnee",
-		firstName: "Tahnee"
-	},
-	{
-		name: "Janssens, Veerle",
-		firstName: "Veerle"
-	},
-	{
-		name: "Joris, Sam",
-		firstName: "Sam"
-	},
-	{
-		name: "Lauwers, Anke",
-		firstName: "Anke"
-	},
-	{
-		name: "Leiva Sepulveda, Maria",
-		firstName: "Maria"
-	},
-	{
-		name: "Van de Meirssche, Lieve",
-		firstName: "Lieve"
-	},
-	{
-		name: "Storms, Isabelle",
-		firstName: "Isabelle"
-	},
-	{
-		name: "Van Goethem, Robert",
-		firstName: "Robert"
-	},
-	{
-		name: "Lejeune, Joris",
-		firstName: "Joris"
-	},
-	{
-		name: "Westra Hoekzema, Maarten",
-		firstName: "Maarten"
-	},
-	{
-		name: "Meerbergen, Johan",
-		firstName: "Johan"
-	},
-	{
-		name: "Meermans, Sander",
-		firstName: "Sander"
-	},
-	{
-		name: "Melaerts, Jan",
-		firstName: "Jan"
-	},
-	{
-		name: "Pauwels, Kim",
-		firstName: "Kim"
-	},
-	{
-		name: "Pavlidi, Ntiana",
-		firstName: "Ntiana"
-	},
-	{
-		name: "Pecnik, Ivan",
-		firstName: "Ivan"
-	},
-	{
-		name: "Quintens, Yanate",
-		firstName: "Yanate"
-	},
-	{
-		name: "Reekmans, Stan",
-		firstName: "Stan"
-	},
-	{
-		name: "Reusens, Oliver",
-		firstName: "Oliver"
-	},
-	{
-		name: "Rosquete Márquez, Juan Carlos",
-		firstName: "Juan Carlos"
-	},
-	{
-		name: "Scheir, Katleen",
-		firstName: "Katleen"
-	},
-	{
-		name: "Schoonis, Lien",
-		firstName: "Lien"
-	},
-	{
-		name: "Shütte, Katrin",
-		firstName: "Katrin"
-	},
-	{
-		name: "Tiest, Tom",
-		firstName: "Tom"
-	},
-	{
-		name: "Truyman, Evy",
-		firstName: "Evy"
-	},
-	{
-		name: "Vaerendonck, Joeri",
-		firstName: "Joeri"
-	},
-	{
-		name: "Van Abbenyen, Emma",
-		firstName: "Emma"
-	},
-	{
-		name: "Van Acker, Andrea",
-		firstName: "Andrea"
-	},
-	{
-		name: "Wynants, Femke",
-		firstName: "Femke"
-	},
-	{
-		name: "Van Assche, Jurgen",
-		firstName: "Jurgen"
-	},
-	{
-		name: "Van Casteren, Bart",
-		firstName: "Bart"
-	},
-	{
-		name: "Van Kerckhoven, Katelijn",
-		firstName: "Katelijn"
-	},
-	{
-		name: "Van Laere, Hannah",
-		firstName: "Hannah"
-	},
-	{
-		name: "Van Reeth, Peter",
-		firstName: "Peter"
-	},
-	{
-		name: "Van de Velde, Samuel",
-		firstName: "Samuel"
-	},
-	{
-		name: "Vandekerckhove, Elvira",
-		firstName: "Elvira"
-	},
-	{
-		name: "Vandenbussche, Christina",
-		firstName: "Christina"
-	},
-	{
-		name: "Verhaegen, Dieter",
-		firstName: "Dieter"
-	},
-	{
-		name: "Verhelst, Peter",
-		firstName: "Peter"
-	},
-	{
-		name: "Wellens, Florian",
-		firstName: "Florian"
-	},
-	{
-		name: "Wong, Maureen",
-		firstName: "Maureen"
-	}
-];
+async function fetchTeachers(schoolYear) {
+	await fetch(DKO3_BASE_URL + "#personeel-personeelsleden");
+	await fetch(DKO3_BASE_URL + "view.php?args=personeel-personeelsleden");
+	await fetch(DKO3_BASE_URL + "views/personeel/personeelsleden/index.view.php");
+	await fetch(DKO3_BASE_URL + "views/personeel/personeelsleden/vestigingsplaats_schooljaar_filter.php?schooljaar=2025-2026");
+	let formData = new FormData();
+	formData.append("filters[naam]", "");
+	formData.append("filters[status_personeelsleden]", "1");
+	formData.append("filters[leerkracht]", "1");
+	formData.append("filters[interim]", "1");
+	formData.append("filters[alc]", "false");
+	formData.append("filters[administratie]", "false");
+	formData.append("filters[overig]", "false");
+	formData.append("filters[schooljaar]", schoolYear);
+	await fetch("https://administratie.dko3.cloud/views/personeel/personeelsleden/save_filters.php", {
+		method: "POST",
+		body: formData
+	});
+	let res = await fetch(DKO3_BASE_URL + "views/personeel/personeelsleden/personeelsleden.table.php");
+	let html = await res.text();
+	let div = document.createElement("div");
+	div.innerHTML = html;
+	return [...div.querySelectorAll(`td[data-label="Naam"] strong`)].map((strong) => strong.textContent).map((name) => {
+		let split = name.split(",");
+		return {
+			name,
+			firstName: split[1].trim()
+		};
+	});
+}
+function findTeacher(searchString, teachers) {
+	let lowerCase = searchString.toLowerCase();
+	for (let teacherDef of teachers) if (lowerCase.includes(teacherDef.firstName.toLowerCase())) return teacherDef.name;
+	return searchString;
+}
 
 //#endregion
 //#region typescript/lessen/scrape.ts
@@ -5150,10 +4848,11 @@ async function runRosterCheck(excelData, reportStatus, fetchListener) {
 	subjects = [...new Set(subjects)];
 	let factory = new RosterFactory(excelData);
 	let table = factory.getTable();
-	let roster = new Roster(table, locations, subjects);
+	let teachers = await fetchTeachers("2025-2026");
+	let roster = new Roster(table, locations, subjects, teachers);
 	let excelLessen = roster.scrapeUurrooster();
 	console.log(excelLessen);
-	return await buildDiff(excelLessen, dko3Lessen, dko3AliasLessen, reportStatus);
+	return await buildDiff(excelLessen, dko3Lessen, dko3AliasLessen, reportStatus, teachers);
 }
 var build_default = runRosterCheck;
 var LesType = /* @__PURE__ */ function(LesType$2) {
@@ -5221,19 +4920,19 @@ var TaggedDko3Les = class extends TaggedLes {
 	}
 };
 var TaggedExcelLes = class extends TaggedLes {
-	constructor(les) {
+	constructor(les, teachers) {
 		let searchText = "";
 		let tags = [];
 		super(les, tags, searchText);
 		this.location = this.les.location;
-		this.teachers = this.les.teacher.split(/[]\/,/g).map((t) => Roster.findTeacher(t));
+		this.teachers = this.les.teacher.split(/[]\/,/g).map((t) => findTeacher(t, teachers));
 		this.subjects = les.subjects;
 		this.subjects = this.subjects.filter((s) => s);
 	}
 };
-async function buildDiff(excelLessen, dko3Lessen, dko3AliasLessen, reportStatus) {
+async function buildDiff(excelLessen, dko3Lessen, dko3AliasLessen, reportStatus, teachers) {
 	let diffs = [];
-	let excelLesSet = new Set(excelLessen.map((les) => new TaggedExcelLes(les)));
+	let excelLesSet = new Set(excelLessen.map((les) => new TaggedExcelLes(les, teachers)));
 	let dko3LesSet = new Set(dko3Lessen.map((les) => new TaggedDko3Les(les)));
 	let lessenMap = new Map();
 	for (let les of dko3LesSet.values()) lessenMap.set(les.les.id, les);
