@@ -1749,6 +1749,22 @@ var ExcelRoster = class {
 			searchString: " pulhof "
 		},
 		{
+			tag: "Vestiging OLV Pulhof",
+			searchString: " 1p "
+		},
+		{
+			tag: "Vestiging OLV Pulhof",
+			searchString: " 2p "
+		},
+		{
+			tag: "Vestiging Sterrenkijker/SL Durlet",
+			searchString: " 1d "
+		},
+		{
+			tag: "Vestiging Sterrenkijker/SL Durlet",
+			searchString: " 2d "
+		},
+		{
 			tag: "Vestiging Via Louiza",
 			searchString: " louiza "
 		},
@@ -1831,6 +1847,66 @@ var ExcelRoster = class {
 		{
 			tag: "Theater",
 			searchString: " acteren "
+		},
+		{
+			tag: "Muziekatelier",
+			searchString: " 1p "
+		},
+		{
+			tag: "Muziekatelier",
+			searchString: " 2p "
+		},
+		{
+			tag: "Muziekatelier",
+			searchString: " 1d "
+		},
+		{
+			tag: "Muziekatelier",
+			searchString: " 2d "
+		},
+		{
+			tag: "Muziekatelier",
+			searchString: " 1va "
+		},
+		{
+			tag: "Muziekatelier",
+			searchString: " 1vb "
+		},
+		{
+			tag: "Muziekatelier",
+			searchString: " 1vc "
+		},
+		{
+			tag: "Muziekatelier",
+			searchString: " 2va "
+		},
+		{
+			tag: "Muziekatelier",
+			searchString: " 2vb "
+		},
+		{
+			tag: "Muziekatelier",
+			searchString: " 3v "
+		},
+		{
+			tag: "Muziekatelier",
+			searchString: " 1t "
+		},
+		{
+			tag: "Muziekatelier",
+			searchString: " 2t "
+		},
+		{
+			tag: "Robert",
+			searchString: " bert "
+		},
+		{
+			tag: "Groepsmusiceren (klassiek)",
+			searchString: " gm "
+		},
+		{
+			tag: "Atelier (musical)",
+			searchString: " musicalatelier "
 		}
 	];
 	findLocation(tags) {
