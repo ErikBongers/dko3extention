@@ -1532,9 +1532,24 @@ var TimeSlice = class {
 	equal(timeslice2) {
 		return this.start.hour == timeslice2.start.hour && this.start.minutes == timeslice2.start.minutes && this.end.hour == timeslice2.end.hour && this.end.minutes == timeslice2.end.minutes;
 	}
+	toString() {
+		return `${this.start.hour}:${this.start.minutes}-${this.end.hour}:${this.end.minutes}`;
+	}
 };
 function timeToMinutes(time) {
 	return time.hour * 60 + time.minutes;
+}
+function dayToMinutes(day) {
+	switch (day) {
+		case "MAANDAG": return 0;
+		case "DINSDAG": return 1440;
+		case "WOENSDAG": return 2880;
+		case "DONDERDAG": return 4320;
+		case "VRIJDAG": return 5760;
+		case "ZATERDAG": return 7200;
+		case "ZONDAG": return 8640;
+		default: return -1;
+	}
 }
 var ExcelRoster = class {
 	table;
@@ -2050,8 +2065,8 @@ var Les = class {
 	gradeYears = [];
 	day;
 	repeat;
-	timeSlice;
-	linkedLessen = [];
+	dayTimeSlices = [];
+	linkedLessenIds = [];
 };
 function scrapeLesInfo(tdLesInfo) {
 	let les = new Les();
@@ -2082,58 +2097,102 @@ function scrapeLesInfo(tdLesInfo) {
 	return les;
 }
 function splitLesMoment(les) {
-	let first3 = les.lesmoment.substring(0, 3);
-	switch (first3) {
-		case "ma ":
-			les.day = "MAANDAG";
-			break;
-		case "di ":
-			les.day = "DINSDAG";
-			break;
-		case "wo ":
-			les.day = "WOENSDAG";
-			break;
-		case "do ":
-			les.day = "DONDERDAG";
-			break;
-		case "vr ":
-			les.day = "VRIJDAG";
-			break;
-		case "za ":
-			les.day = "ZATERDAG";
-			break;
-		case "zo ":
-			les.day = "ZONDAG";
-			break;
-		default:
-			les.day = "";
-			break;
-	}
-	let remaining = les.lesmoment.substring(3);
+	if (les.lesmoment == "(geen volgende les)") return [];
+	if (les.lesmoment == "(geen lesmomenten)") return [];
+	let remaining = les.lesmoment;
+	if (remaining.startsWith("volgende les: ")) remaining = remaining.substring(14, 17) + remaining.substring(22);
 	if (remaining.includes("wekelijks")) les.repeat = "wekelijks";
 	remaining = remaining.replaceAll("wekelijks", "").replaceAll("(", "").replaceAll(")", "").trim();
 	if (remaining.length < 11) return;
-	let startAndEnd = remaining.split("-");
-	if (startAndEnd.length < 2) return;
+	les.dayTimeSlices = parseLesMomenten(remaining);
+}
+function parseLesMomenten(text) {
+	let dayTimeSliceTexts = text.split(" en ");
+	let dayTimeSlices = dayTimeSliceTexts.map((text$1) => parseLesMoment(text$1));
+	if (dayTimeSlices.some((slice) => slice.timeSlice == null)) {
+		let firstTime = dayTimeSlices.find((lesMoment) => lesMoment.timeSlice !== null).timeSlice;
+		dayTimeSlices.forEach((lesMoment) => lesMoment.timeSlice = firstTime);
+	} else if (dayTimeSlices.some((slice) => slice.day == "")) {
+		let firstDay = dayTimeSlices.find((lesMoment) => lesMoment.day != "").day;
+		dayTimeSlices.forEach((lesMoment) => lesMoment.day = firstDay);
+	}
+	return dayTimeSlices;
+}
+var DayTimeSlice = class {
+	day;
+	timeSlice;
+	constructor(day, timeSlice) {
+		this.day = day;
+		this.timeSlice = timeSlice;
+	}
+	toString() {
+		if (this.timeSlice === null) return "null";
+		return `${this.day} ${this.timeSlice.toString()}`;
+	}
+	startToNumber() {
+		if (this.timeSlice === null) return -1;
+		return dayToMinutes(this.day) + timeToMinutes(this.timeSlice.start);
+	}
+	endToNumber() {
+		if (this.timeSlice === null) return -1;
+		return dayToMinutes(this.day) + timeToMinutes(this.timeSlice.end);
+	}
+	equal(dayTimeSlice) {
+		if (this.day != dayTimeSlice.day) return false;
+		return this.timeSlice.equal(dayTimeSlice.timeSlice);
+	}
+};
+function parseLesMoment(text) {
+	let first2 = text.substring(0, 2);
+	let day = "";
+	switch (first2) {
+		case "ma":
+			day = "MAANDAG";
+			break;
+		case "di":
+			day = "DINSDAG";
+			break;
+		case "wo":
+			day = "WOENSDAG";
+			break;
+		case "do":
+			day = "DONDERDAG";
+			break;
+		case "vr":
+			day = "VRIJDAG";
+			break;
+		case "za":
+			day = "ZATERDAG";
+			break;
+		case "zo":
+			day = "ZONDAG";
+			break;
+		default:
+			day = "";
+			break;
+	}
+	if (day != "") text = text.substring(3);
+	let startAndEnd = text.split("-");
+	if (startAndEnd.length < 2) return new DayTimeSlice(day, null);
 	let hourMinutes = startAndEnd[0].split(":");
-	if (hourMinutes.length < 2) return;
+	if (hourMinutes.length < 2) return new DayTimeSlice(day, null);
 	let hour = parseInt(hourMinutes[0]);
 	let minutes = parseInt(hourMinutes[1]);
-	if (isNaN(hour) || isNaN(minutes)) return;
+	if (isNaN(hour) || isNaN(minutes)) return new DayTimeSlice(day, null);
 	let startTime = {
 		hour,
 		minutes
 	};
 	hourMinutes = startAndEnd[1].split(":");
-	if (hourMinutes.length < 2) return;
+	if (hourMinutes.length < 2) return new DayTimeSlice(day, null);
 	hour = parseInt(hourMinutes[0]);
 	minutes = parseInt(hourMinutes[1]);
-	if (isNaN(hour) || isNaN(minutes)) return;
+	if (isNaN(hour) || isNaN(minutes)) return new DayTimeSlice(day, null);
 	let endTime = {
 		hour,
 		minutes
 	};
-	les.timeSlice = new TimeSlice(startTime, endTime);
+	return new DayTimeSlice(day, new TimeSlice(startTime, endTime));
 }
 function textsToYearGrades(texts) {
 	let yearGrades = [];
@@ -4732,8 +4791,8 @@ async function runRosterCheck(excelDatas, reportStatus, fetchListener) {
 		...kbLessen
 	];
 	let dko3AliasLessen = await scrapeLessen(Domein.Woord, LesType.alias);
-	for (let les of dko3AliasLessen) les.linkedLessen = await getAliassesForLes(les.id, reportStatus);
-	dko3AliasLessen = dko3AliasLessen.filter((l) => l.linkedLessen.length > 1);
+	for (let les of dko3AliasLessen) les.linkedLessenIds = await getAliassesForLes(les.id, reportStatus);
+	dko3AliasLessen = dko3AliasLessen.filter((l) => l.linkedLessenIds.length > 1);
 	console.log(dko3Lessen);
 	console.log(dko3AliasLessen);
 	let subjects = dko3Lessen.map((les) => [les.vakNaam, les.naam]).flat();
@@ -4787,65 +4846,101 @@ async function scrapeLessen(domein, type) {
 	let table = div.querySelector("#" + LESSEN_TABLE_ID);
 	return scrapeLessenOverzicht(table);
 }
-var TaggedLes = class {
+var Dko3LesMoment = class Dko3LesMoment {
 	les;
+	dayTimeSlice;
+	momentId;
+	constructor(les, dayTimeSlice) {
+		this.les = les;
+		this.dayTimeSlice = dayTimeSlice;
+		this.momentId = Dko3LesMoment.createLesMomentId(les, dayTimeSlice);
+	}
+	static createLesMomentId(les, dayTimeSlice) {
+		return les.id + "_" + dayTimeSlice.toString();
+	}
+};
+var TaggedLes = class {
+	lesMoment;
 	tags = [];
 	searchText;
 	location;
 	teachers;
 	subjects;
-	linkedLessen = [];
+	linkedLesMomenten = [];
 	constructor(les, tags, searchText) {
-		this.les = les;
+		this.lesMoment = les;
 		this.tags = tags;
 		this.searchText = searchText;
 	}
 };
-var TaggedDko3Les = class extends TaggedLes {
-	constructor(les) {
+var TaggedDko3LesMoment = class extends TaggedLes {
+	constructor(lesMoment) {
 		let searchText = "";
 		let tags = [];
-		super(les, tags, searchText);
-		this.location = this.les.vestiging;
-		this.teachers = [this.les.teacher.replaceAll(/ \(en nog \d\)/g, "")];
-		this.subjects = this.les.vakNaam.split("+").map((txt) => txt.trim());
-		this.subjects.push(les.naam);
+		super(lesMoment, tags, searchText);
+		this.location = this.lesMoment.les.vestiging;
+		this.teachers = [this.lesMoment.les.teacher.replaceAll(/ \(en nog \d\)/g, "")];
+		this.subjects = this.lesMoment.les.vakNaam.split("+").map((txt) => txt.trim());
+		this.subjects.push(lesMoment.les.naam);
 		this.subjects = this.subjects.filter((s) => s);
 	}
 };
 var TaggedExcelLes = class extends TaggedLes {
+	dayTimeSlice;
 	constructor(les, teachers) {
 		let searchText = "";
 		let tags = [];
 		super(les, tags, searchText);
-		this.location = this.les.location;
-		this.teachers = this.les.teacher.split(/[\/,]/g).map((t) => findTeacher(t, teachers));
+		this.location = this.lesMoment.location;
+		this.teachers = this.lesMoment.teacher.split(/[\/,]/g).map((t) => findTeacher(t, teachers));
 		this.subjects = les.subjects;
 		this.subjects = this.subjects.filter((s) => s);
+		this.dayTimeSlice = new DayTimeSlice(les.day, les.timeSlice);
 	}
 };
 async function buildDiff(excelLessen, dko3Lessen, dko3AliasLessen, reportStatus, teachers) {
 	let diffs = [];
 	let excelLesSet = new Set(excelLessen.map((les) => new TaggedExcelLes(les, teachers)));
-	let dko3LesSet = new Set(dko3Lessen.map((les) => new TaggedDko3Les(les)));
-	let lessenMap = new Map();
-	for (let les of dko3LesSet.values()) lessenMap.set(les.les.id, les);
+	let lesMomenten = dko3Lessen.map((les) => les.dayTimeSlices.map((slice) => {
+		return new Dko3LesMoment(les, slice);
+	})).flat().map((lesMoment) => new TaggedDko3LesMoment(lesMoment));
+	let dko3LesSet = new Set(lesMomenten);
+	let dko3LesMap = new Map();
+	for (let les of dko3Lessen) dko3LesMap.set(les.id, les);
+	let lesMomentenMap = new Map();
+	for (let les of dko3LesSet.values()) lesMomentenMap.set(les.lesMoment.momentId, les);
 	for (let aliasLes of dko3AliasLessen) {
-		let taggedAliasLes = new TaggedDko3Les(aliasLes);
-		taggedAliasLes.linkedLessen = taggedAliasLes.les.linkedLessen.map((id) => lessenMap.get(id)).filter((id) => id);
-		if (taggedAliasLes.linkedLessen.length < 2) {
+		if (aliasLes.linkedLessenIds.length < 2) {
 			reportStatus(`Error: alias les ${aliasLes.id} heeft geen 2 geldige gekoppelde lessen.`);
 			continue;
 		}
-		let timeSlice1 = taggedAliasLes.linkedLessen[0].les.timeSlice;
-		let timeSlice2 = taggedAliasLes.linkedLessen[1].les.timeSlice;
-		let startTime = structuredClone(timeToMinutes(timeSlice1.start) > timeToMinutes(timeSlice2.start) ? timeSlice2.start : timeSlice1.start);
-		let endTime = structuredClone(timeToMinutes(timeSlice1.end) > timeToMinutes(timeSlice2.end) ? timeSlice1.end : timeSlice2.end);
-		aliasLes.timeSlice = new TimeSlice(startTime, endTime);
-		dko3LesSet.add(taggedAliasLes);
-		for (let linkedLes of taggedAliasLes.linkedLessen) dko3LesSet.delete(linkedLes);
+		let linkedLessen = aliasLes.linkedLessenIds.map((lesId) => dko3LesMap.get(lesId));
+		if (linkedLessen.includes(void 0)) {
+			reportStatus(`Voor aliasles ${aliasLes.id} zijn er ontbrekende gekoppelde lessen.`);
+			continue;
+		}
+		let linkedLesMomentIds = linkedLessen.map((les) => les.dayTimeSlices.map((slice) => Dko3LesMoment.createLesMomentId(les, slice))).flat();
+		let linkedLesMomenten = linkedLesMomentIds.map((momentId) => lesMomentenMap.get(momentId));
+		linkedLesMomenten.sort((a, b) => a.lesMoment.dayTimeSlice.startToNumber() - b.lesMoment.dayTimeSlice.startToNumber());
+		let previousLesMoment = linkedLesMomenten[0];
+		for (let i = 1; i < linkedLesMomenten.length; i++) {
+			let currentLesMoment = linkedLesMomenten[i];
+			if (previousLesMoment.lesMoment.dayTimeSlice.endToNumber() == currentLesMoment.lesMoment.dayTimeSlice.startToNumber()) {
+				let newTimeSlice = new TimeSlice(structuredClone(previousLesMoment.lesMoment.dayTimeSlice.timeSlice.start), structuredClone(currentLesMoment.lesMoment.dayTimeSlice.timeSlice.end));
+				let newDayTimeSlice = new DayTimeSlice(previousLesMoment.lesMoment.dayTimeSlice.day, newTimeSlice);
+				let newAliasLesMoment = new TaggedDko3LesMoment(new Dko3LesMoment(aliasLes, newDayTimeSlice));
+				dko3LesSet.add(newAliasLesMoment);
+				dko3LesSet.delete(previousLesMoment);
+				dko3LesSet.delete(currentLesMoment);
+				previousLesMoment = newAliasLesMoment;
+			} else previousLesMoment = currentLesMoment;
+		}
 	}
-	for (const les1 of [...dko3LesSet.values()].filter((les) => les.les.teacher.includes("(en nog"))) les1.teachers = await getExtraTeachers(les1.les.id);
+	let extraTeacherCache = new ExtraTeacherCache();
+	for (const les1 of [...dko3LesSet.values()].filter((les) => les.lesMoment.les.teacher.includes("(en nog"))) {
+		les1.teachers = await extraTeacherCache.getExtraTeachers(les1.lesMoment.les.id);
+		if (les1.teachers == void 0) throw "WTF???";
+	}
 	matchIt(dko3LesSet, excelLesSet, diffs, "perfect match", perfectMatch);
 	matchIt(dko3LesSet, excelLesSet, diffs, "match without teacher", matchWithoutTeacher);
 	matchIt(dko3LesSet, excelLesSet, diffs, "match without location", matchWithoutLocation);
@@ -4861,6 +4956,15 @@ async function buildDiff(excelLessen, dko3Lessen, dko3AliasLessen, reportStatus,
 		excelLesSet
 	};
 }
+var ExtraTeacherCache = class {
+	teacherMap = new Map();
+	async getExtraTeachers(lesId) {
+		if (this.teacherMap.has(lesId)) return this.teacherMap.get(lesId);
+		let newEntry = await getExtraTeachers(lesId);
+		this.teacherMap.set(lesId, newEntry);
+		return newEntry;
+	}
+};
 async function getExtraTeachers(lesId) {
 	await fetch("https://administratie.dko3.cloud/view.php?args=lessen-les?id=" + lesId);
 	await fetch("https://administratie.dko3.cloud/views/lessen/les/index.view.php");
@@ -4904,9 +5008,7 @@ function matchIt(dko3LesSet, excelLesSet, diffs, diffType, matchFunction) {
 function perfectMatch(dko3Les, excelLesSet) {
 	for (let excelLes of excelLesSet) {
 		if (!dko3Les.subjects.some((t) => excelLes.subjects.includes(t))) continue;
-		if (dko3Les.les.day != excelLes.les.day) continue;
-		if (!dko3Les.les.timeSlice) continue;
-		if (!dko3Les.les.timeSlice.equal(excelLes.les.timeSlice)) continue;
+		if (!dko3Les.lesMoment.dayTimeSlice.equal(excelLes.dayTimeSlice)) continue;
 		if (dko3Les.location != excelLes.location) continue;
 		if (!dko3Les.teachers.some((t) => excelLes.teachers.includes(t))) continue;
 		return excelLes;
@@ -4916,9 +5018,7 @@ function perfectMatch(dko3Les, excelLesSet) {
 function matchWithoutLocation(dko3Les, excelLesSet) {
 	for (let excelLes of excelLesSet) {
 		if (!dko3Les.subjects.some((t) => excelLes.subjects.includes(t))) continue;
-		if (dko3Les.les.day != excelLes.les.day) continue;
-		if (!dko3Les.les.timeSlice) continue;
-		if (!dko3Les.les.timeSlice.equal(excelLes.les.timeSlice)) continue;
+		if (!dko3Les.lesMoment.dayTimeSlice.equal(excelLes.dayTimeSlice)) continue;
 		if (!dko3Les.teachers.some((t) => excelLes.teachers.includes(t))) continue;
 		return excelLes;
 	}
@@ -4927,7 +5027,7 @@ function matchWithoutLocation(dko3Les, excelLesSet) {
 function matchWithoutTime(dko3Les, excelLesSet) {
 	for (let excelLes of excelLesSet) {
 		if (!dko3Les.subjects.some((t) => excelLes.subjects.includes(t))) continue;
-		if (dko3Les.les.day != excelLes.les.day) continue;
+		if (dko3Les.lesMoment.dayTimeSlice.day != excelLes.dayTimeSlice.day) continue;
 		if (dko3Les.location != excelLes.location) continue;
 		if (!dko3Les.teachers.some((t) => excelLes.teachers.includes(t))) continue;
 		return excelLes;
@@ -4954,9 +5054,7 @@ function matchWithoutTeacherTimeAndDay(dko3Les, excelLesSet) {
 function matchWithoutTeacher(dko3Les, excelLesSet) {
 	for (let excelLes of excelLesSet) {
 		if (!dko3Les.subjects.some((t) => excelLes.subjects.includes(t))) continue;
-		if (dko3Les.les.day != excelLes.les.day) continue;
-		if (!dko3Les.les.timeSlice) continue;
-		if (!dko3Les.les.timeSlice.equal(excelLes.les.timeSlice)) continue;
+		if (!dko3Les.lesMoment.dayTimeSlice.equal(excelLes.dayTimeSlice)) continue;
 		if (dko3Les.location != excelLes.location) continue;
 		return excelLes;
 	}
@@ -5024,9 +5122,9 @@ function createJsonDiffs(diffList, dko3LesSet, excelLesSet) {
 }
 function dko3LesToJson(dko3Les) {
 	return {
-		lesId: dko3Les.les.id,
-		day: dko3Les.les.day,
-		timeSlice: toCompactTimeSliceString(dko3Les.les.timeSlice),
+		lesId: dko3Les.lesMoment.momentId,
+		day: dko3Les.lesMoment.dayTimeSlice.day,
+		timeSlice: toCompactTimeSliceString(dko3Les.lesMoment.dayTimeSlice.timeSlice),
 		subject: dko3Les.subjects.join(","),
 		teacher: dko3Les.teachers.join(","),
 		location: dko3Les.location
@@ -5034,14 +5132,14 @@ function dko3LesToJson(dko3Les) {
 }
 function excelLesToJson(excelLes) {
 	return {
-		excelColumn: excelLes.les.excelColumn,
-		excelRow: excelLes.les.excelRow,
-		day: excelLes.les.day,
-		timeSlice: toCompactTimeSliceString(excelLes.les.timeSlice),
+		excelColumn: excelLes.lesMoment.excelColumn,
+		excelRow: excelLes.lesMoment.excelRow,
+		day: excelLes.lesMoment.day,
+		timeSlice: toCompactTimeSliceString(excelLes.lesMoment.timeSlice),
 		subject: excelLes.subjects.join(","),
 		teacher: excelLes.teachers.join(","),
 		location: excelLes.location,
-		cellValue: excelLes.les.cellValue
+		cellValue: excelLes.lesMoment.cellValue
 	};
 }
 function createDiffTable(divResults) {

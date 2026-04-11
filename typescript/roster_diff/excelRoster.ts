@@ -40,6 +40,10 @@ export class TimeSlice {
             && this.end.hour == timeslice2.end.hour
             && this.end.minutes == timeslice2.end.minutes;
     }
+
+    public toString() {
+        return `${this.start.hour}:${this.start.minutes}-${this.end.hour}:${this.end.minutes}`;
+    }
 }
 
 export type Time = {
@@ -49,6 +53,19 @@ export type Time = {
 
 export function timeToMinutes(time: Time) {
     return time.hour*60+time.minutes;
+}
+
+export function dayToMinutes(day: DayUppercase): number {
+    switch (day) {
+        case "MAANDAG": return 0;
+        case "DINSDAG": return 1440;
+        case "WOENSDAG": return 2880;
+        case "DONDERDAG": return 4320;
+        case "VRIJDAG": return 5760;
+        case "ZATERDAG": return 7200;
+        case "ZONDAG": return 8640;
+        default: return -1;
+    }
 }
 
 export class ExcelRoster {

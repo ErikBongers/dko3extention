@@ -1,5 +1,5 @@
 import {FetchedTable} from "../table/tableFetcher";
-import {GradeYear, Time, TimeSlice} from "../roster_diff/excelRoster";
+import {dayToMinutes, GradeYear, Time, TimeSlice, timeToMinutes} from "../roster_diff/excelRoster";
 
 export function scrapeLessenOverzicht(table: HTMLTableElement) {
     let body = table.tBodies[0];
@@ -182,8 +182,8 @@ export class Les {
     gradeYears: GradeYear[] = [];
     day: DayUppercase;
     repeat: string; //wekelijks
-    timeSlice: TimeSlice;
-    linkedLessen: string[] = [];
+    dayTimeSlices: DayTimeSlice[] = [];
+    linkedLessenIds: string[] = [];
 }
 
 export function scrapeLesInfo(tdLesInfo: HTMLTableCellElement) {
@@ -242,19 +242,20 @@ export function scrapeLesInfo(tdLesInfo: HTMLTableCellElement) {
 }
 
 function splitLesMoment(les: Les) {
-    //"di 15:40-16:40 (wekelijks)"
-    let first3 = les.lesmoment.substring(0,3);
-    switch (first3) {
-        case "ma ": les.day = "MAANDAG"; break;
-        case "di ": les.day = "DINSDAG"; break;
-        case "wo ": les.day = "WOENSDAG"; break;
-        case "do ": les.day = "DONDERDAG"; break;
-        case "vr ": les.day = "VRIJDAG"; break;
-        case "za ": les.day = "ZATERDAG"; break;
-        case "zo ": les.day = "ZONDAG"; break;
-        default: les.day = ""; break;
+    //di 15:40-16:40 (wekelijks)
+    //di en vr 16:00-17:00 (wekelijks)
+    //wo 13:00-14:00 en za 09:00-10:00 (wekelijks)
+    //"(geen volgende les)"
+    //"(geen lesmomenten)"
+    //"volgende les: di 21/4 19:00-20:00"
+    if(les.lesmoment == "(geen volgende les)")
+        return [];
+    if(les.lesmoment == "(geen lesmomenten)")
+        return [];
+    let remaining = les.lesmoment;
+    if(remaining.startsWith("volgende les: ")) {
+        remaining = remaining.substring(14, 17) + remaining.substring(22);
     }
-    let remaining = les.lesmoment.substring(3);
     if(remaining.includes("wekelijks"))
         les.repeat = "wekelijks";
     remaining = remaining
@@ -264,26 +265,98 @@ function splitLesMoment(les: Les) {
         .trim();
     if(remaining.length < 11)
         return;
-    let startAndEnd = remaining.split("-");
+    les.dayTimeSlices = parseLesMomenten(remaining);
+}
+
+function parseLesMomenten(text: string) {
+    //di 15:40-16:40
+    //di en vr 16:00-17:00
+    //wo 13:00-14:00 en za 09:00-10:00
+    //ma  19:00-20:00 en 20:00-21:00
+    let dayTimeSliceTexts = text.split(" en ");
+    let dayTimeSlices = dayTimeSliceTexts.map(text => parseLesMoment(text));
+    //if the day or the hour is the same, these are not repeated in the string, so copy them to the other slices.
+    if(dayTimeSlices.some(slice => slice.timeSlice == null)) {
+        let firstTime = dayTimeSlices.find(lesMoment => lesMoment.timeSlice !== null).timeSlice;
+        dayTimeSlices.forEach(lesMoment => lesMoment.timeSlice = firstTime);
+    } else if(dayTimeSlices.some(slice => slice.day == "")) {
+        let firstDay = dayTimeSlices.find(lesMoment => lesMoment.day != "").day;
+        dayTimeSlices.forEach(lesMoment => lesMoment.day = firstDay);
+    }
+    return dayTimeSlices;
+}
+
+export class DayTimeSlice {
+    day: DayUppercase;
+    timeSlice: TimeSlice | null;
+
+    constructor(day: DayUppercase, timeSlice: TimeSlice | null) {
+        this.day = day;
+        this.timeSlice = timeSlice;
+    }
+
+    public toString() {
+        if(this.timeSlice === null)
+            return "null";
+        return `${this.day} ${this.timeSlice.toString()}`;
+    }
+
+    public startToNumber() {
+        if(this.timeSlice === null)
+            return -1;
+        return dayToMinutes(this.day) + timeToMinutes(this.timeSlice.start);
+    }
+
+    public endToNumber() {
+        if(this.timeSlice === null)
+            return -1;
+        return dayToMinutes(this.day) + timeToMinutes(this.timeSlice.end);
+    }
+
+    equal(dayTimeSlice: DayTimeSlice) {
+        if(this.day != dayTimeSlice.day)
+            return false;
+        return this.timeSlice.equal(dayTimeSlice.timeSlice);
+    }
+}
+
+function parseLesMoment(text: string): DayTimeSlice {
+    //di 15:40-16:40
+    //15:40-16:40
+    let first2 = text.substring(0,2);
+    let day: DayUppercase = "";
+    switch (first2) {
+        case "ma": day = "MAANDAG"; break;
+        case "di": day = "DINSDAG"; break;
+        case "wo": day = "WOENSDAG"; break;
+        case "do": day = "DONDERDAG"; break;
+        case "vr": day = "VRIJDAG"; break;
+        case "za": day = "ZATERDAG"; break;
+        case "zo": day = "ZONDAG"; break;
+        default: day = ""; break;
+    }
+    if(day != "")
+        text = text.substring(3);
+    let startAndEnd = text.split("-");
     if(startAndEnd.length < 2)
-        return;
+        return new DayTimeSlice(day, null);
     let hourMinutes = startAndEnd[0].split(":");
     if(hourMinutes.length < 2)
-        return;
+        return new DayTimeSlice(day, null);
     let hour = parseInt(hourMinutes[0]);
     let minutes = parseInt(hourMinutes[1]);
     if(isNaN(hour) || isNaN(minutes))
-        return;
+        return new DayTimeSlice(day, null);
     let startTime: Time = {hour, minutes};
     hourMinutes = startAndEnd[1].split(":");
     if(hourMinutes.length < 2)
-        return;
+        return new DayTimeSlice(day, null);
     hour = parseInt(hourMinutes[0]);
     minutes = parseInt(hourMinutes[1]);
     if(isNaN(hour) || isNaN(minutes))
-        return;
+        return new DayTimeSlice(day, null);
     let endTime: Time = {hour, minutes};
-    les.timeSlice = new TimeSlice(startTime,endTime);
+    return new DayTimeSlice(day, new TimeSlice(startTime,endTime));
 }
 
 function textsToYearGrades(texts: string[]){

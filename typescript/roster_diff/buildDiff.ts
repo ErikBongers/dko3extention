@@ -5,7 +5,7 @@ import {cloud, postNotification} from "../cloud";
 import {FetchChain} from "../table/fetchChain";
 import {getSchoolIdString, pad, Schoolyear} from "../globals";
 import {fetchLessen} from "../lessen/observer";
-import {DayUppercase, Les, scrapeLessenOverzicht} from "../lessen/scrape";
+import {DayTimeSlice, DayUppercase, Les, scrapeLessenOverzicht} from "../lessen/scrape";
 import {DKO3_BASE_URL, LESSEN_TABLE_ID} from "../def";
 import {StatusCallback} from "../startPage/observer";
 import {getTableFromHash, InfoBarTableFetchListener} from "../table/loadAnyTable";
@@ -26,10 +26,10 @@ async function runRosterCheck(excelDatas: JsonExcelData[], reportStatus: StatusC
     dko3Lessen = [...dko3Lessen, ...muziekLessen, ...kbLessen];
     let dko3AliasLessen = await scrapeLessen(Domein.Woord, LesType.alias);
     for (let les of dko3AliasLessen) {
-        les.linkedLessen = await getAliassesForLes(les.id, reportStatus);
+        les.linkedLessenIds = await getAliassesForLes(les.id, reportStatus);
     }
     //remove aliaslessen with only one linked les. We're don't care about those.
-    dko3AliasLessen = dko3AliasLessen.filter(l => l.linkedLessen.length > 1);
+    dko3AliasLessen = dko3AliasLessen.filter(l => l.linkedLessenIds.length > 1);
     console.log(dko3Lessen);
     console.log(dko3AliasLessen);
 
@@ -88,86 +88,133 @@ export type DiffType =
 
 export interface Diff {
     excelLes?: TaggedExcelLes;
-    dko3Les?: TaggedDko3Les;
+    dko3Les?: TaggedDko3LesMoment;
     diffType: DiffType;
 }
 
-export abstract class TaggedLes<T extends ClassDef | Les> {
-    les: T;
+export class Dko3LesMoment {
+    les: Les;
+    dayTimeSlice: DayTimeSlice;
+    momentId: string;
+
+    constructor(les: Les, dayTimeSlice: DayTimeSlice) {
+        this.les = les;
+        this.dayTimeSlice = dayTimeSlice;
+        this.momentId = Dko3LesMoment.createLesMomentId(les, dayTimeSlice);
+    }
+
+    public static createLesMomentId(les: Les, dayTimeSlice: DayTimeSlice) {
+        return les.id + "_" + dayTimeSlice.toString();
+    }
+}
+
+export abstract class TaggedLes<T extends ClassDef | Dko3LesMoment> {
+    lesMoment: T;
     tags:string[] = [];
     searchText: string;
     location?: string;
     teachers: string[];
     subjects: string[];
-    linkedLessen: TaggedLes<T>[] = [];
+    linkedLesMomenten: TaggedLes<T>[] = [];
 
     protected constructor(les: T, tags: string[], searchText: string) {
-        this.les = les;
+        this.lesMoment = les;
         this.tags = tags;
         this.searchText = searchText;
     }
 }
 
-export class TaggedDko3Les extends TaggedLes<Les> {
-    constructor(les: Les) {
+export class TaggedDko3LesMoment extends TaggedLes<Dko3LesMoment> {
+    constructor(lesMoment: Dko3LesMoment) {
         let searchText = "";
         let tags: string[] = [];
 
-        super(les, tags, searchText);
-        this.location = this.les.vestiging;
-        this.teachers = [this.les.teacher
+        super(lesMoment, tags, searchText);
+        this.location = this.lesMoment.les.vestiging;
+        this.teachers = [this.lesMoment.les.teacher
             .replaceAll(/ \(en nog \d\)/g, "")];
-        this.subjects = this.les.vakNaam
+        this.subjects = this.lesMoment.les.vakNaam
             .split('+')
             .map(txt => txt.trim());
-        this.subjects.push(les.naam);
+        this.subjects.push(lesMoment.les.naam);
         this.subjects = this.subjects.filter(s => s!!);
     }
 }
 
 export class TaggedExcelLes extends TaggedLes<ClassDef> {
+    public dayTimeSlice: DayTimeSlice;
     constructor(les: ClassDef, teachers: TeacherDef[]) {
         let searchText = "";
         let tags: string[] = [];
         super(les, tags, searchText);
-        this.location = this.les.location;//translate probably already done.
-        this.teachers = this.les.teacher.split(/[\/,]/g).map(t => findTeacher(t, teachers));
+        this.location = this.lesMoment.location;//translate probably already done.
+        this.teachers = this.lesMoment.teacher.split(/[\/,]/g).map(t => findTeacher(t, teachers));
         this.subjects = les.subjects;
         this.subjects = this.subjects.filter(s => s!!);
+        this.dayTimeSlice = new DayTimeSlice(les.day, les.timeSlice);
     }
 }
 
 async function buildDiff(excelLessen: ClassDef[], dko3Lessen: Les[], dko3AliasLessen: Les[], reportStatus: StatusCallback, teachers: TeacherDef[]) {
     let diffs: Diff[] = [];
     let excelLesSet: Set<TaggedExcelLes> = new Set<TaggedExcelLes>(excelLessen.map(les => new TaggedExcelLes(les, teachers)));
-    let dko3LesSet: Set<TaggedDko3Les> = new Set<TaggedDko3Les>(dko3Lessen.map(les => new TaggedDko3Les(les)));
+    //split each Dko3 les into multiple lesMoments
+    let lesMomenten = dko3Lessen
+        .map(les => les.dayTimeSlices
+            .map(slice => {
+                return new Dko3LesMoment(les, slice);
+            }))
+        .flat()
+        .map(lesMoment => new TaggedDko3LesMoment(lesMoment));
+    let dko3LesSet: Set<TaggedDko3LesMoment> = new Set<TaggedDko3LesMoment>(lesMomenten);
+    let dko3LesMap: Map<string, Les> = new Map();
+    for(let les of dko3Lessen)
+        dko3LesMap.set(les.id, les);
+
     //move linked lessen inside the alias les.
-    let lessenMap: Map<string, TaggedDko3Les> = new Map<string, TaggedDko3Les>();
+    let lesMomentenMap: Map<string, TaggedDko3LesMoment> = new Map<string, TaggedDko3LesMoment>();
     for(let les of dko3LesSet.values())
-        lessenMap.set(les.les.id, les);
+        lesMomentenMap.set(les.lesMoment.momentId, les);
     for(let aliasLes of dko3AliasLessen) {
-        let taggedAliasLes = new TaggedDko3Les(aliasLes);
-        taggedAliasLes.linkedLessen = taggedAliasLes.les.linkedLessen
-            .map(id => lessenMap.get(id))
-            .filter(id => id!!);
-        if(taggedAliasLes.linkedLessen.length < 2) {
+        if (aliasLes.linkedLessenIds.length < 2) {
             reportStatus(`Error: alias les ${aliasLes.id} heeft geen 2 geldige gekoppelde lessen.`);
             continue;
+        }
+        let linkedLessen = aliasLes.linkedLessenIds.map(lesId => dko3LesMap.get(lesId));
+        if(linkedLessen.includes(undefined)) {
+            reportStatus(`Voor aliasles ${aliasLes.id} zijn er ontbrekende gekoppelde lessen.`);
+            continue;
+        }
+        let linkedLesMomentIds = linkedLessen.map(les => les.dayTimeSlices.map(slice => Dko3LesMoment.createLesMomentId(les, slice))).flat();
+        let linkedLesMomenten = linkedLesMomentIds.map(momentId => lesMomentenMap.get(momentId));
+        //sort the moments so we can merge them
+        linkedLesMomenten.sort((a, b) => a.lesMoment.dayTimeSlice.startToNumber() - b.lesMoment.dayTimeSlice.startToNumber());
+        let previousLesMoment = linkedLesMomenten[0];
+        for(let i = 1; i < linkedLesMomenten.length; i++) {
+            let currentLesMoment = linkedLesMomenten[i];
+            if(previousLesMoment.lesMoment.dayTimeSlice.endToNumber() == currentLesMoment.lesMoment.dayTimeSlice.startToNumber()) {
+                //yeah ! we can merge them!!!
+                let newTimeSlice = new TimeSlice(structuredClone(previousLesMoment.lesMoment.dayTimeSlice.timeSlice.start), structuredClone(currentLesMoment.lesMoment.dayTimeSlice.timeSlice.end));
+                let newDayTimeSlice = new DayTimeSlice(previousLesMoment.lesMoment.dayTimeSlice.day, newTimeSlice);
+                let newAliasLesMoment = new TaggedDko3LesMoment(new Dko3LesMoment(aliasLes, newDayTimeSlice));
+                dko3LesSet.add(newAliasLesMoment);
+                dko3LesSet.delete(previousLesMoment);
+                dko3LesSet.delete(currentLesMoment);
+                previousLesMoment = newAliasLesMoment;
+            } else {
+                //No merge. Nothing to add or delete.
+                previousLesMoment = currentLesMoment;
             }
-        let timeSlice1 = taggedAliasLes.linkedLessen[0].les.timeSlice;
-        let timeSlice2 = taggedAliasLes.linkedLessen[1].les.timeSlice;
-        let startTime = structuredClone(timeToMinutes(timeSlice1.start) > timeToMinutes(timeSlice2.start) ? timeSlice2.start : timeSlice1.start);
-        let endTime = structuredClone(timeToMinutes(timeSlice1.end) > timeToMinutes(timeSlice2.end) ? timeSlice1.end : timeSlice2.end);
-        aliasLes.timeSlice = new TimeSlice(startTime, endTime);
-        dko3LesSet.add(taggedAliasLes);
-        for(let linkedLes of taggedAliasLes.linkedLessen)
-            dko3LesSet.delete(linkedLes);
+        }
     }
     //todo: split dko3Les.vaknaam into array. Split on "+" and trim.
     //get extra teaches
+    let extraTeacherCache = new ExtraTeacherCache()
     for (const les1 of [...dko3LesSet.values()]
-        .filter(les => les.les.teacher.includes("(en nog"))) {
-        les1.teachers = await getExtraTeachers(les1.les.id);
+        .filter(les => les.lesMoment.les.teacher.includes("(en nog"))) {
+        les1.teachers = await extraTeacherCache.getExtraTeachers(les1.lesMoment.les.id);
+        if(les1.teachers == undefined)
+            throw "WTF???";
     }
 
     matchIt(dko3LesSet, excelLesSet, diffs, "perfect match", perfectMatch);
@@ -180,6 +227,19 @@ async function buildDiff(excelLessen: ClassDef[], dko3Lessen: Les[], dko3AliasLe
     console.log(dko3LesSet.values());
     console.log(excelLesSet.values());
     return {diffs, dko3LesSet, excelLesSet};
+}
+
+class ExtraTeacherCache {
+    teacherMap: Map<string, string[]> = new Map();
+
+    async getExtraTeachers(lesId: string) {
+        if(this.teacherMap.has(lesId))
+            return this.teacherMap.get(lesId);
+
+        let newEntry = await getExtraTeachers(lesId);
+        this.teacherMap.set(lesId, newEntry);
+        return newEntry;
+    }
 }
 
 async function getExtraTeachers(lesId: string) {
@@ -214,7 +274,7 @@ async function getAliassesForLes(lesId: string, reportStatus: StatusCallback) {
     return [...anchors].map(a => a.textContent.trim());
 }
 
-function matchIt(dko3LesSet: Set<TaggedDko3Les>, excelLesSet: Set<TaggedExcelLes>, diffs: Diff[], diffType: DiffType, matchFunction: (dko3Les: TaggedDko3Les, excelLesSet: Set<TaggedExcelLes>) => (TaggedExcelLes | null)) {
+function matchIt(dko3LesSet: Set<TaggedDko3LesMoment>, excelLesSet: Set<TaggedExcelLes>, diffs: Diff[], diffType: DiffType, matchFunction: (dko3Les: TaggedDko3LesMoment, excelLesSet: Set<TaggedExcelLes>) => (TaggedExcelLes | null)) {
     for(let dko3Les of dko3LesSet) {
         let excelLes = matchFunction(dko3Les, excelLesSet);
         if(excelLes) {
@@ -226,15 +286,11 @@ function matchIt(dko3LesSet: Set<TaggedDko3Les>, excelLesSet: Set<TaggedExcelLes
 
 }
 
-function perfectMatch(dko3Les: TaggedDko3Les, excelLesSet: Set<TaggedExcelLes>): TaggedExcelLes | null {
+function perfectMatch(dko3Les: TaggedDko3LesMoment, excelLesSet: Set<TaggedExcelLes>): TaggedExcelLes | null {
     for(let excelLes of excelLesSet) {
         if(!dko3Les.subjects.some(t => excelLes.subjects.includes(t)))
             continue;
-        if(dko3Les.les.day != excelLes.les.day)
-            continue;
-        if(!dko3Les.les.timeSlice)
-            continue;
-        if(!dko3Les.les.timeSlice.equal(excelLes.les.timeSlice))
+        if(!dko3Les.lesMoment.dayTimeSlice.equal(excelLes.dayTimeSlice))
             continue;
         if(dko3Les.location != excelLes.location)
             continue;
@@ -245,15 +301,11 @@ function perfectMatch(dko3Les: TaggedDko3Les, excelLesSet: Set<TaggedExcelLes>):
     return null;
 }
 
-function matchWithoutLocation(dko3Les: TaggedDko3Les, excelLesSet: Set<TaggedExcelLes>): TaggedExcelLes | null {
+function matchWithoutLocation(dko3Les: TaggedDko3LesMoment, excelLesSet: Set<TaggedExcelLes>): TaggedExcelLes | null {
     for(let excelLes of excelLesSet) {
         if(!dko3Les.subjects.some(t => excelLes.subjects.includes(t)))
             continue;
-        if(dko3Les.les.day != excelLes.les.day)
-            continue;
-        if(!dko3Les.les.timeSlice)
-            continue;
-        if(!dko3Les.les.timeSlice.equal(excelLes.les.timeSlice))
+        if(!dko3Les.lesMoment.dayTimeSlice.equal(excelLes.dayTimeSlice))
             continue;
         if(!dko3Les.teachers.some(t => excelLes.teachers.includes(t)))
             continue;
@@ -262,11 +314,11 @@ function matchWithoutLocation(dko3Les: TaggedDko3Les, excelLesSet: Set<TaggedExc
     return null;
 }
 
-function matchWithoutTime(dko3Les: TaggedDko3Les, excelLesSet: Set<TaggedExcelLes>): TaggedExcelLes | null {
+function matchWithoutTime(dko3Les: TaggedDko3LesMoment, excelLesSet: Set<TaggedExcelLes>): TaggedExcelLes | null {
     for(let excelLes of excelLesSet) {
         if(!dko3Les.subjects.some(t => excelLes.subjects.includes(t)))
             continue;
-        if(dko3Les.les.day != excelLes.les.day)
+        if(dko3Les.lesMoment.dayTimeSlice.day != excelLes.dayTimeSlice.day)
             continue;
         if(dko3Les.location != excelLes.location)
             continue;
@@ -277,7 +329,7 @@ function matchWithoutTime(dko3Les: TaggedDko3Les, excelLesSet: Set<TaggedExcelLe
     return null;
 }
 
-function matchWithoutTimeAndDay(dko3Les: TaggedDko3Les, excelLesSet: Set<TaggedExcelLes>): TaggedExcelLes | null {
+function matchWithoutTimeAndDay(dko3Les: TaggedDko3LesMoment, excelLesSet: Set<TaggedExcelLes>): TaggedExcelLes | null {
     for(let excelLes of excelLesSet) {
         if(!dko3Les.subjects.some(t => excelLes.subjects.includes(t)))
             continue;
@@ -290,7 +342,7 @@ function matchWithoutTimeAndDay(dko3Les: TaggedDko3Les, excelLesSet: Set<TaggedE
     return null;
 }
 
-function matchWithoutTeacherTimeAndDay(dko3Les: TaggedDko3Les, excelLesSet: Set<TaggedExcelLes>): TaggedExcelLes | null {
+function matchWithoutTeacherTimeAndDay(dko3Les: TaggedDko3LesMoment, excelLesSet: Set<TaggedExcelLes>): TaggedExcelLes | null {
     for(let excelLes of excelLesSet) {
         if(!dko3Les.subjects.some(t => excelLes.subjects.includes(t)))
             continue;
@@ -301,15 +353,11 @@ function matchWithoutTeacherTimeAndDay(dko3Les: TaggedDko3Les, excelLesSet: Set<
     return null;
 }
 
-function matchWithoutTeacher(dko3Les: TaggedDko3Les, excelLesSet: Set<TaggedExcelLes>): TaggedExcelLes | null {
+function matchWithoutTeacher(dko3Les: TaggedDko3LesMoment, excelLesSet: Set<TaggedExcelLes>): TaggedExcelLes | null {
     for(let excelLes of excelLesSet) {
         if(!dko3Les.subjects.some(t => excelLes.subjects.includes(t)))
             continue;
-        if(dko3Les.les.day != excelLes.les.day)
-            continue;
-        if(!dko3Les.les.timeSlice)
-            continue;
-        if(!dko3Les.les.timeSlice.equal(excelLes.les.timeSlice))
+        if(!dko3Les.lesMoment.dayTimeSlice.equal(excelLes.dayTimeSlice))
             continue;
         if(dko3Les.location != excelLes.location)
             continue;
@@ -397,7 +445,7 @@ export interface JsonDiffs {
     isoDate: string
 }
 
-export function createJsonDiffs(diffList: Diff[], dko3LesSet: Set<TaggedDko3Les>, excelLesSet: Set<TaggedExcelLes>) {
+export function createJsonDiffs(diffList: Diff[], dko3LesSet: Set<TaggedDko3LesMoment>, excelLesSet: Set<TaggedExcelLes>) {
     let diffs: JsonDiff[] = diffList
         .filter(diff => diff.diffType != "perfect match")
         .map(diff => {
@@ -417,11 +465,11 @@ export function createJsonDiffs(diffList: Diff[], dko3LesSet: Set<TaggedDko3Les>
     } satisfies JsonDiffs;
 }
 
-function dko3LesToJson(dko3Les: TaggedDko3Les): JsonDko3Les {
+function dko3LesToJson(dko3Les: TaggedDko3LesMoment): JsonDko3Les {
     return {
-        lesId: dko3Les.les.id,
-        day: dko3Les.les.day,
-        timeSlice: toCompactTimeSliceString(dko3Les.les.timeSlice),
+        lesId: dko3Les.lesMoment.momentId,
+        day: dko3Les.lesMoment.dayTimeSlice.day,
+        timeSlice: toCompactTimeSliceString(dko3Les.lesMoment.dayTimeSlice.timeSlice),
         subject: dko3Les.subjects.join(","),
         teacher: dko3Les.teachers.join(","),
         location: dko3Les.location
@@ -430,14 +478,14 @@ function dko3LesToJson(dko3Les: TaggedDko3Les): JsonDko3Les {
 
 function excelLesToJson(excelLes: TaggedExcelLes): JsonExcelLes {
     return {
-        excelColumn: excelLes.les.excelColumn,
-        excelRow: excelLes.les.excelRow,
-        day: excelLes.les.day as DayUppercase,
-        timeSlice: toCompactTimeSliceString(excelLes.les.timeSlice),
+        excelColumn: excelLes.lesMoment.excelColumn,
+        excelRow: excelLes.lesMoment.excelRow,
+        day: excelLes.lesMoment.day as DayUppercase,
+        timeSlice: toCompactTimeSliceString(excelLes.lesMoment.timeSlice),
         subject: excelLes.subjects.join(","),
         teacher: excelLes.teachers.join(","),
         location: excelLes.location,
-        cellValue: excelLes.les.cellValue
+        cellValue: excelLes.lesMoment.cellValue
     };
 }
 
