@@ -1,15 +1,9 @@
-* fetch teachers.
-  > complex filter.
-
-* Add schoolyear to everything
-
-* Add tooltip to excel subject with the whole cell content.
-  > especially if it says "-onbekend-"
-  > on hover?
 * Add muziek roster.
 * Make flow that informs some users (via mail?) that a roster has changed.
   > too much spam?
   > have a diff with previous uploaded version?
+
+* Add schoolyear to everything
 
 * How to switch from Sharepoint test folder to production?
   > SendExcel() could have a test version with a diffent cloud folder...

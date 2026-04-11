@@ -134,20 +134,9 @@ export class ExcelRoster {
         let timeSlices: Map<string, TimeSlice> = new Map<string, TimeSlice>();
 
         for(let row = 0; row < this.table.RowCount; row++) {
-            let rx = /(\d?\d)[.:,](\d\d)\s*-\s*(\d?\d)[.:,](\d\d)/gm;
             let value = this.table.HeaderColumnValue(row, 0);
-            let matches = rx.exec(value);
-            if(matches) {
-                let timeSlice= new TimeSlice(
-                    {
-                        hour: parseInt(matches[1]),
-                        minutes: parseInt(matches[2])
-                    },
-                    {
-                        hour: parseInt(matches[3]),
-                        minutes: parseInt(matches[4])
-                    }
-                );
+            let timeSlice = parseTimeSlice(value);
+            if(timeSlice) {
                 timeSlices.set(value, timeSlice);
             } else {
                 this.errors.push(`Could not parse time slice: ${value}`);
@@ -289,3 +278,24 @@ export interface TeacherDef {
     name: string;
     firstName: string;
 }
+
+export function parseTime(timeString: string): Time | null {
+    let timeParts = timeString.split(/[:;,.]/gm);
+    if(timeParts.length == 2) {
+        return {hour: parseInt(timeParts[0]), minutes: parseInt(timeParts[1])};
+    }
+    if(timeParts.length == 1) {
+        return { hour: parseInt(timeParts[0]), minutes: 0};
+    }
+    return null;
+}
+
+export function parseTimeSlice(text: string): TimeSlice | null {
+    let [start, end] = text.split("-");
+    let startTime = parseTime(start);
+    let endTime = parseTime(end);
+    if(!startTime || !endTime)
+        return null;
+    return new TimeSlice(startTime, endTime);
+}
+
