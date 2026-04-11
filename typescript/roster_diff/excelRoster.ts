@@ -1,4 +1,6 @@
 import {ExcelPos, Table, TablePos} from "./excel";
+import {RosterFactory} from "./rosterFactory";
+import {DayUppercase} from "../lessen/scrape";
 
 type TagDef = {
     tag: string,
@@ -11,7 +13,7 @@ export type GradeYear = {
 }
 
 export type ClassDef = {
-    day: string,
+    day: DayUppercase,
     teacher: string,
     timeSlice: TimeSlice,
     subjects: string[],
@@ -75,7 +77,7 @@ export class ExcelRoster {
 
     private scrapeColumn(column: number, timeSlices: Map<string, TimeSlice>) {
         let classDefs: ClassDef[] = [];
-        let day = this.table.HeaderRowValue(0, column);
+        let day = RosterFactory.toDayName(this.table.HeaderRowValue(0, column));
         let teacher = this.table.HeaderRowValue(1, column);
         for(let row = 0; row < this.table.RowCount; row++) {
             let cellValue = this.table.Cell(row, column)
@@ -221,7 +223,11 @@ export class ExcelRoster {
     ];
 
     private findLocation(tags: string[]) {
-        return this.locationDefs.find(location => tags.includes(location));
+        let location = this.locationDefs.find(location => tags.includes(location));
+        if(location)
+            return location;
+        else
+            return "Academie Willem Van Laarstraat, Berchem";
     }
 
     private findSubjects(tags: string[]) {
@@ -292,10 +298,11 @@ export function parseTime(timeString: string): Time | null {
 
 export function parseTimeSlice(text: string): TimeSlice | null {
     let [start, end] = text.split("-");
+    if(!start || !end)
+        return null;
     let startTime = parseTime(start);
     let endTime = parseTime(end);
     if(!startTime || !endTime)
         return null;
     return new TimeSlice(startTime, endTime);
 }
-

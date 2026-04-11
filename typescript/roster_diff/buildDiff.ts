@@ -232,6 +232,8 @@ function perfectMatch(dko3Les: TaggedDko3Les, excelLesSet: Set<TaggedExcelLes>):
             continue;
         if(dko3Les.les.day != excelLes.les.day)
             continue;
+        if(!dko3Les.les.timeSlice)
+            continue;
         if(!dko3Les.les.timeSlice.equal(excelLes.les.timeSlice))
             continue;
         if(dko3Les.location != excelLes.location)
@@ -248,6 +250,8 @@ function matchWithoutLocation(dko3Les: TaggedDko3Les, excelLesSet: Set<TaggedExc
         if(!dko3Les.subjects.some(t => excelLes.subjects.includes(t)))
             continue;
         if(dko3Les.les.day != excelLes.les.day)
+            continue;
+        if(!dko3Les.les.timeSlice)
             continue;
         if(!dko3Les.les.timeSlice.equal(excelLes.les.timeSlice))
             continue;
@@ -302,6 +306,8 @@ function matchWithoutTeacher(dko3Les: TaggedDko3Les, excelLesSet: Set<TaggedExce
         if(!dko3Les.subjects.some(t => excelLes.subjects.includes(t)))
             continue;
         if(dko3Les.les.day != excelLes.les.day)
+            continue;
+        if(!dko3Les.les.timeSlice)
             continue;
         if(!dko3Les.les.timeSlice.equal(excelLes.les.timeSlice))
             continue;

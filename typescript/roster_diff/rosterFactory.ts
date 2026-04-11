@@ -1,4 +1,6 @@
 import {ExcelData, JsonExcelData, Table, Range, ExcelRange} from "./excel";
+import {parseTimeSlice} from "./excelRoster";
+import {DayUppercase} from "../lessen/scrape";
 
 export class RosterFactory {
     private excelData: ExcelData;
@@ -43,7 +45,7 @@ export class RosterFactory {
     private isDaysRow(row: string[]) {
         let matchCount = 0;
         for (let value of row) {
-            if(this.isDayName(value.toString()))
+            if(RosterFactory.isDayName(value.toString()))
                 matchCount++;
             if(matchCount >= 3) //meh...good enough
                 return true;
@@ -51,18 +53,32 @@ export class RosterFactory {
         return false;
     }
 
-    private isDayName(text: string) {
+    public static isDayName(text: string) {
+        return this.toDayName(text) != "";
+    }
+
+    public static toDayName(text: string): DayUppercase {
         switch (text.toLowerCase()) {
-            case "maandag":
-            case "dinsdag":
-            case "woensdag":
-            case "donderdag":
-            case "vrijdag":
-            case "zaterdag":
-            case "zondag":
-                return true;
-            default:
-                return false;
+            case "maandag": return "MAANDAG";
+            case "dinsdag": return "DINSDAG";
+            case "woensdag": return "WOENSDAG";
+            case "donderdag": return "DONDERDAG";
+            case "vrijdag": return "VRIJDAG";
+            case "zaterdag": return "ZATERDAG";
+            case "zondag": return "ZONDAG";
+            case "ma": return "MAANDAG";
+            case "di": return "DINSDAG";
+            case "din": return "DINSDAG";
+            case "wo": return "WOENSDAG";
+            case "woe": return "WOENSDAG";
+            case "do": return "DONDERDAG";
+            case "don": return "DONDERDAG";
+            case "vr": return "VRIJDAG";
+            case "za": return "ZATERDAG";
+            case "zat": return "ZATERDAG";
+            case "zo": return "ZONDAG";
+            case "zon": return "ZONDAG";
+            default:return "";
         }
     }
 
@@ -79,8 +95,7 @@ export class RosterFactory {
     }
 
     private isPeriod(text: string) {
-        const periodRegex = /\d?\d[.:,]\d\d\s*-\s*\d?\d[.:,]\d\d/gm;  //hh:mm-hh:mm en variaties.
-        return !!text.match(periodRegex);
+        return parseTimeSlice(text)!!;
     }
 
     private findLastPeriodRow(periodColumn: number) {
@@ -93,7 +108,7 @@ export class RosterFactory {
     private findLastDayColumn(periodColumn: number, daysRow: number) {
         for(let c = periodColumn+1; c < this.excelData.data[0].length; c++) {
             let cellValue = this.excelData.getMergedCellValue({row: daysRow, column: c});
-            if(!this.isDayName(cellValue))
+            if(!RosterFactory.isDayName(cellValue))
                 return c-1;
         }
     }

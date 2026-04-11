@@ -1421,6 +1421,106 @@ var Table = class {
 };
 
 //#endregion
+//#region typescript/roster_diff/rosterFactory.ts
+var RosterFactory = class RosterFactory {
+	excelData;
+	errors = [];
+	daysRow = void 0;
+	periodColumn = void 0;
+	tableRange = void 0;
+	constructor(jsonExcelData) {
+		this.excelData = new ExcelData(jsonExcelData.data, jsonExcelData.mergedRanges);
+		this.daysRow = this.findDaysRow();
+		if (this.daysRow === void 0) {
+			this.errors.push("Geen rij met dagnamen gevonden.");
+			return;
+		}
+		this.periodColumn = this.findPeriodColumn(this.daysRow);
+		if (this.periodColumn === void 0) {
+			this.errors.push("Geen kolom met lesmomenten gevonden.");
+			return;
+		}
+		let lastPeriodRow = this.findLastPeriodRow(this.periodColumn);
+		let lastDayColumn = this.findLastDayColumn(this.periodColumn, this.daysRow);
+		this.tableRange = new ExcelRange({
+			row: this.daysRow,
+			column: this.periodColumn
+		}, {
+			row: lastPeriodRow,
+			column: lastDayColumn
+		});
+	}
+	getErrors() {
+		return this.errors;
+	}
+	getTable() {
+		return new Table(this.excelData, this.tableRange, 2, 1);
+	}
+	findDaysRow() {
+		for (let [i, row] of this.excelData.data.entries()) if (this.isDaysRow(row)) return i;
+		return void 0;
+	}
+	isDaysRow(row) {
+		let matchCount = 0;
+		for (let value of row) {
+			if (RosterFactory.isDayName(value.toString())) matchCount++;
+			if (matchCount >= 3) return true;
+		}
+		return false;
+	}
+	static isDayName(text) {
+		return this.toDayName(text) != "";
+	}
+	static toDayName(text) {
+		switch (text.toLowerCase()) {
+			case "maandag": return "MAANDAG";
+			case "dinsdag": return "DINSDAG";
+			case "woensdag": return "WOENSDAG";
+			case "donderdag": return "DONDERDAG";
+			case "vrijdag": return "VRIJDAG";
+			case "zaterdag": return "ZATERDAG";
+			case "zondag": return "ZONDAG";
+			case "ma": return "MAANDAG";
+			case "di": return "DINSDAG";
+			case "din": return "DINSDAG";
+			case "wo": return "WOENSDAG";
+			case "woe": return "WOENSDAG";
+			case "do": return "DONDERDAG";
+			case "don": return "DONDERDAG";
+			case "vr": return "VRIJDAG";
+			case "za": return "ZATERDAG";
+			case "zat": return "ZATERDAG";
+			case "zo": return "ZONDAG";
+			case "zon": return "ZONDAG";
+			default: return "";
+		}
+	}
+	findPeriodColumn(daysRow) {
+		let columnCount = this.excelData.data[0].length;
+		for (let iCol = 0; iCol < columnCount; iCol++) for (let row of this.excelData.data.slice(daysRow)) {
+			let value = row[iCol].toString();
+			if (this.isPeriod(value)) return iCol;
+		}
+		return void 0;
+	}
+	isPeriod(text) {
+		return parseTimeSlice(text);
+	}
+	findLastPeriodRow(periodColumn) {
+		return this.excelData.data.map((row, index) => this.isPeriod(row[periodColumn].toString()) ? index : -1).filter((n) => n > 0).pop();
+	}
+	findLastDayColumn(periodColumn, daysRow) {
+		for (let c = periodColumn + 1; c < this.excelData.data[0].length; c++) {
+			let cellValue = this.excelData.getMergedCellValue({
+				row: daysRow,
+				column: c
+			});
+			if (!RosterFactory.isDayName(cellValue)) return c - 1;
+		}
+	}
+};
+
+//#endregion
 //#region typescript/roster_diff/excelRoster.ts
 var TimeSlice = class {
 	start;
@@ -1455,7 +1555,7 @@ var ExcelRoster = class {
 	}
 	scrapeColumn(column, timeSlices) {
 		let classDefs = [];
-		let day = this.table.HeaderRowValue(0, column);
+		let day = RosterFactory.toDayName(this.table.HeaderRowValue(0, column));
 		let teacher = this.table.HeaderRowValue(1, column);
 		for (let row = 0; row < this.table.RowCount; row++) {
 			let cellValue = this.table.Cell(row, column);
@@ -1719,7 +1819,9 @@ var ExcelRoster = class {
 		}
 	];
 	findLocation(tags) {
-		return this.locationDefs.find((location$1) => tags.includes(location$1));
+		let location$1 = this.locationDefs.find((location$2) => tags.includes(location$2));
+		if (location$1) return location$1;
+		else return "Academie Willem Van Laarstraat, Berchem";
 	}
 	findSubjects(tags) {
 		return this.subjectDefs.filter((subject) => tags.includes(subject));
@@ -1775,6 +1877,7 @@ function parseTime(timeString) {
 }
 function parseTimeSlice(text) {
 	let [start, end] = text.split("-");
+	if (!start || !end) return null;
 	let startTime = parseTime(start);
 	let endTime = parseTime(end);
 	if (!startTime || !endTime) return null;
@@ -4612,92 +4715,6 @@ function appendGroupingAnchorOrText(target, grouping, activeSorting, separator) 
 }
 
 //#endregion
-//#region typescript/roster_diff/rosterFactory.ts
-var RosterFactory = class {
-	excelData;
-	errors = [];
-	daysRow = void 0;
-	periodColumn = void 0;
-	tableRange = void 0;
-	constructor(jsonExcelData) {
-		this.excelData = new ExcelData(jsonExcelData.data, jsonExcelData.mergedRanges);
-		this.daysRow = this.findDaysRow();
-		if (this.daysRow === void 0) {
-			this.errors.push("Geen rij met dagnamen gevonden.");
-			return;
-		}
-		this.periodColumn = this.findPeriodColumn(this.daysRow);
-		if (this.periodColumn === void 0) {
-			this.errors.push("Geen kolom met lesmomenten gevonden.");
-			return;
-		}
-		let lastPeriodRow = this.findLastPeriodRow(this.periodColumn);
-		let lastDayColumn = this.findLastDayColumn(this.periodColumn, this.daysRow);
-		this.tableRange = new ExcelRange({
-			row: this.daysRow,
-			column: this.periodColumn
-		}, {
-			row: lastPeriodRow,
-			column: lastDayColumn
-		});
-	}
-	getErrors() {
-		return this.errors;
-	}
-	getTable() {
-		return new Table(this.excelData, this.tableRange, 2, 1);
-	}
-	findDaysRow() {
-		for (let [i, row] of this.excelData.data.entries()) if (this.isDaysRow(row)) return i;
-		return void 0;
-	}
-	isDaysRow(row) {
-		let matchCount = 0;
-		for (let value of row) {
-			if (this.isDayName(value.toString())) matchCount++;
-			if (matchCount >= 3) return true;
-		}
-		return false;
-	}
-	isDayName(text) {
-		switch (text.toLowerCase()) {
-			case "maandag":
-			case "dinsdag":
-			case "woensdag":
-			case "donderdag":
-			case "vrijdag":
-			case "zaterdag":
-			case "zondag": return true;
-			default: return false;
-		}
-	}
-	findPeriodColumn(daysRow) {
-		let columnCount = this.excelData.data[0].length;
-		for (let iCol = 0; iCol < columnCount; iCol++) for (let row of this.excelData.data.slice(daysRow)) {
-			let value = row[iCol].toString();
-			if (this.isPeriod(value)) return iCol;
-		}
-		return void 0;
-	}
-	isPeriod(text) {
-		const periodRegex = /\d?\d[.:,]\d\d\s*-\s*\d?\d[.:,]\d\d/gm;
-		return !!text.match(periodRegex);
-	}
-	findLastPeriodRow(periodColumn) {
-		return this.excelData.data.map((row, index) => this.isPeriod(row[periodColumn].toString()) ? index : -1).filter((n) => n > 0).pop();
-	}
-	findLastDayColumn(periodColumn, daysRow) {
-		for (let c = periodColumn + 1; c < this.excelData.data[0].length; c++) {
-			let cellValue = this.excelData.getMergedCellValue({
-				row: daysRow,
-				column: c
-			});
-			if (!this.isDayName(cellValue)) return c - 1;
-		}
-	}
-};
-
-//#endregion
 //#region typescript/roster_diff/buildDiff.ts
 async function runRosterCheck(excelDatas, reportStatus, fetchListener) {
 	await postNotification("WOORD_ROSTER_RUN", "running", "Uurrooster worden vergeleken... (gestart door <todo:username>");
@@ -4888,6 +4905,7 @@ function perfectMatch(dko3Les, excelLesSet) {
 	for (let excelLes of excelLesSet) {
 		if (!dko3Les.subjects.some((t) => excelLes.subjects.includes(t))) continue;
 		if (dko3Les.les.day != excelLes.les.day) continue;
+		if (!dko3Les.les.timeSlice) continue;
 		if (!dko3Les.les.timeSlice.equal(excelLes.les.timeSlice)) continue;
 		if (dko3Les.location != excelLes.location) continue;
 		if (!dko3Les.teachers.some((t) => excelLes.teachers.includes(t))) continue;
@@ -4899,6 +4917,7 @@ function matchWithoutLocation(dko3Les, excelLesSet) {
 	for (let excelLes of excelLesSet) {
 		if (!dko3Les.subjects.some((t) => excelLes.subjects.includes(t))) continue;
 		if (dko3Les.les.day != excelLes.les.day) continue;
+		if (!dko3Les.les.timeSlice) continue;
 		if (!dko3Les.les.timeSlice.equal(excelLes.les.timeSlice)) continue;
 		if (!dko3Les.teachers.some((t) => excelLes.teachers.includes(t))) continue;
 		return excelLes;
@@ -4936,6 +4955,7 @@ function matchWithoutTeacher(dko3Les, excelLesSet) {
 	for (let excelLes of excelLesSet) {
 		if (!dko3Les.subjects.some((t) => excelLes.subjects.includes(t))) continue;
 		if (dko3Les.les.day != excelLes.les.day) continue;
+		if (!dko3Les.les.timeSlice) continue;
 		if (!dko3Les.les.timeSlice.equal(excelLes.les.timeSlice)) continue;
 		if (dko3Les.location != excelLes.location) continue;
 		return excelLes;
