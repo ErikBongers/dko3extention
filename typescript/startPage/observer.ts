@@ -94,7 +94,7 @@ async function runDiff(reportStatus: StatusCallback, fetchListener: InfoBarTable
         reportStatus(`Inlezen van ${fileShortName}...`);
         let excelData = await fetchExcelData(file.name);
         reportStatus(`Vergelijken van ${fileShortName} met DKO3 lessen...`);
-        let res = await runRosterCheck(excelData, reportStatus, fetchListener);
+        let res = await runRosterCheck([excelData], reportStatus, fetchListener);
         let jsonDiffs = createJsonDiffs(res.diffs, res.dko3LesSet, res.excelLesSet);
         let fileName = getDiffsCloudFileName();
         await cloud.json.upload(fileName, jsonDiffs);

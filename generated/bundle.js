@@ -1508,19 +1508,10 @@ var ExcelRoster = class {
 	createTimeSlices() {
 		let timeSlices = new Map();
 		for (let row = 0; row < this.table.RowCount; row++) {
-			let rx = /(\d?\d)[.:,](\d\d)\s*-\s*(\d?\d)[.:,](\d\d)/gm;
 			let value = this.table.HeaderColumnValue(row, 0);
-			let matches = rx.exec(value);
-			if (matches) {
-				let timeSlice = new TimeSlice({
-					hour: parseInt(matches[1]),
-					minutes: parseInt(matches[2])
-				}, {
-					hour: parseInt(matches[3]),
-					minutes: parseInt(matches[4])
-				});
-				timeSlices.set(value, timeSlice);
-			} else this.errors.push(`Could not parse time slice: ${value}`);
+			let timeSlice = parseTimeSlice(value);
+			if (timeSlice) timeSlices.set(value, timeSlice);
+			else this.errors.push(`Could not parse time slice: ${value}`);
 		}
 		return timeSlices;
 	}
@@ -1770,6 +1761,25 @@ var ExcelRoster = class {
 		}
 	}
 };
+function parseTime(timeString) {
+	let timeParts = timeString.split(/[:;,.]/gm);
+	if (timeParts.length == 2) return {
+		hour: parseInt(timeParts[0]),
+		minutes: parseInt(timeParts[1])
+	};
+	if (timeParts.length == 1) return {
+		hour: parseInt(timeParts[0]),
+		minutes: 0
+	};
+	return null;
+}
+function parseTimeSlice(text) {
+	let [start, end] = text.split("-");
+	let startTime = parseTime(start);
+	let endTime = parseTime(end);
+	if (!startTime || !endTime) return null;
+	return new TimeSlice(startTime, endTime);
+}
 
 //#endregion
 //#region typescript/lessen/scrape.ts
@@ -4689,12 +4699,13 @@ var RosterFactory = class {
 
 //#endregion
 //#region typescript/roster_diff/buildDiff.ts
-async function runRosterCheck(excelData, reportStatus, fetchListener) {
+async function runRosterCheck(excelDatas, reportStatus, fetchListener) {
 	await postNotification("WOORD_ROSTER_RUN", "running", "Uurrooster worden vergeleken... (gestart door <todo:username>");
 	reportStatus("Vestigingsplaatsen ophalen...");
 	let locationsTable = await getTableFromHash("extra-academie-vestigingsplaatsen", true, fetchListener);
 	let locations = [...locationsTable.getRows()].map((tr) => tr.cells[1].textContent);
-	reportStatus("DKO3 lessen ophalen...");
+	reportStatus("DKO3 gevevens ophalen...");
+	let teachers = await fetchTeachers("2025-2026");
 	let dko3Lessen = await scrapeLessen(Domein.Woord, LesType.gewone);
 	let muziekLessen = await scrapeLessen(Domein.Muziek, LesType.gewone);
 	let kbLessen = await scrapeLessen(Domein.DomeinOV, LesType.gewone);
@@ -4710,13 +4721,15 @@ async function runRosterCheck(excelData, reportStatus, fetchListener) {
 	console.log(dko3AliasLessen);
 	let subjects = dko3Lessen.map((les) => [les.vakNaam, les.naam]).flat();
 	subjects = [...new Set(subjects)];
-	let factory = new RosterFactory(excelData);
-	let table = factory.getTable();
-	let teachers = await fetchTeachers("2025-2026");
-	let roster = new ExcelRoster(table, locations, subjects);
-	let excelLessen = roster.scrapeUurrooster();
-	console.log(excelLessen);
-	return await buildDiff(excelLessen, dko3Lessen, dko3AliasLessen, reportStatus, teachers);
+	let excelLessenArray = [];
+	for (let excelData of excelDatas) {
+		let factory = new RosterFactory(excelData);
+		let table = factory.getTable();
+		let roster = new ExcelRoster(table, locations, subjects);
+		excelLessenArray.push(roster.scrapeUurrooster());
+		console.log(excelLessenArray);
+	}
+	return await buildDiff(excelLessenArray.flat(), dko3Lessen, dko3AliasLessen, reportStatus, teachers);
 }
 var buildDiff_default = runRosterCheck;
 var LesType = /* @__PURE__ */ function(LesType$2) {
@@ -5424,7 +5437,7 @@ async function runDiff(reportStatus, fetchListener) {
 		reportStatus(`Inlezen van ${fileShortName}...`);
 		let excelData = await fetchExcelData(file.name);
 		reportStatus(`Vergelijken van ${fileShortName} met DKO3 lessen...`);
-		let res = await buildDiff_default(excelData, reportStatus, fetchListener);
+		let res = await buildDiff_default([excelData], reportStatus, fetchListener);
 		let jsonDiffs = createJsonDiffs(res.diffs, res.dko3LesSet, res.excelLesSet);
 		let fileName = getDiffsCloudFileName();
 		await cloud.json.upload(fileName, jsonDiffs);

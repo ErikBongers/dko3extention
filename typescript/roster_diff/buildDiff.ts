@@ -11,14 +11,15 @@ import {StatusCallback} from "../startPage/observer";
 import {getTableFromHash, InfoBarTableFetchListener} from "../table/loadAnyTable";
 import {emmet} from "../../libs/Emmeter/html";
 
-async function runRosterCheck(excelData: JsonExcelData, reportStatus: StatusCallback, fetchListener: InfoBarTableFetchListener) {
+async function runRosterCheck(excelDatas: JsonExcelData[], reportStatus: StatusCallback, fetchListener: InfoBarTableFetchListener) {
     await postNotification("WOORD_ROSTER_RUN", "running", "Uurrooster worden vergeleken... (gestart door <todo:username>");
 
     reportStatus("Vestigingsplaatsen ophalen...");
     let locationsTable = await getTableFromHash("extra-academie-vestigingsplaatsen", true, fetchListener);
     let locations = [...locationsTable.getRows()].map(tr => tr.cells[1].textContent);
 
-    reportStatus("DKO3 lessen ophalen...");
+    reportStatus("DKO3 gevevens ophalen...");
+    let teachers = await fetchTeachers("2025-2026");
     let dko3Lessen = await scrapeLessen(Domein.Woord, LesType.gewone);
     let muziekLessen = await scrapeLessen(Domein.Muziek, LesType.gewone);
     let kbLessen = await scrapeLessen(Domein.DomeinOV, LesType.gewone);
@@ -35,14 +36,16 @@ async function runRosterCheck(excelData: JsonExcelData, reportStatus: StatusCall
 
     let subjects: string[] = dko3Lessen.map(les => [les.vakNaam, les.naam]).flat();
     subjects = [...new Set(subjects)];
-    let factory = new RosterFactory(excelData);
-    let table = factory.getTable();
-    let teachers = await fetchTeachers("2025-2026");
-    let roster = new ExcelRoster(table, locations, subjects);
-    let excelLessen = roster.scrapeUurrooster();
-    console.log(excelLessen);
 
-    return await buildDiff(excelLessen, dko3Lessen, dko3AliasLessen, reportStatus, teachers);
+    let excelLessenArray: ClassDef[][] = [];
+    for(let excelData of excelDatas) {
+        let factory = new RosterFactory(excelData);
+        let table = factory.getTable();
+        let roster = new ExcelRoster(table, locations, subjects);
+        excelLessenArray.push(roster.scrapeUurrooster());
+        console.log(excelLessenArray);
+    }
+    return await buildDiff(excelLessenArray.flat(), dko3Lessen, dko3AliasLessen, reportStatus, teachers);
 }
 
 export default runRosterCheck
