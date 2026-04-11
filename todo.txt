@@ -1,4 +1,21 @@
+* Add muziek roster.
+
 * How to switch from Sharepoint test folder to production?
+  > SendExcel() could have a test version with a diffent cloud folder...
+    > and plugin can have a test setting or the name of the folder as a setting...
+  > removal of files is probably manual
+    > the cloud doesn't know and can't check if a file is removed in SP.
+      > not a big issue if I do the maintenace.
+      > otherwise...have a form that lists the cloud files and the option to delete them.
+        > version 37...
+
+* url to sharepoint file is hard-coded.
+  > add a list of filenames+urls
+    > don't make this too fancy: just a multiline json text field
+    : [
+        {"fileName": "url"},
+        ...
+      ]
 
 * Show notification when refreshing any page.
 * When file is removed from folder: also remove it in cloud.

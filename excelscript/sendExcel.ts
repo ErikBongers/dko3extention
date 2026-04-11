@@ -13,6 +13,11 @@ type IdxPoint = {
 }
 
 async function main(workbook: ExcelScript.Workbook) {
+    let statusField = workbook.getNamedItem("SendStatus").getRange();
+    statusField.setValue("Gegevens worden doorgestuurd...even geduld...");
+    statusField.getFormat().getFill().setColor("FFAA00");
+    statusField.getFormat().getFont().setColor("000000");
+
     let FolderName: string = "Dko3/Uurroosters";
     let workbookName = workbook.getName()
     console.log("Sending exel file: " + workbookName);
@@ -21,18 +26,65 @@ async function main(workbook: ExcelScript.Workbook) {
     console.log("data");
     let mergedRanges: IdxRange[] = collectMergedRanges(fullRange);
     console.log("json");
-    let json = {data, mergedRanges};
+    let json = { data, mergedRanges };
     console.log("to string");
     console.log(JSON.stringify(json));
     console.log("sending...");
     let fileName = FolderName + "/" + workbookName + ".json";
-    let res = await fetch("https://europe-west1-ebo-tain.cloudfunctions.net/json?fileName="+fileName, {
+    let res = await fetch("https://europe-west1-ebo-tain.cloudfunctions.net/json?fileName=" + fileName, {
         method: "POST",
         body: JSON.stringify(json),
     });
 
     let txt: string = await res.json();
     console.log(txt);
+    statusField.setValue("Alle gegevens zijn doorgestuurd en kunnen gebruikt worden in DKO3.");
+    statusField.getFormat().getFill().setColor("AAFFAA");
+    await workbook.getActiveWorksheet().calculate(true);
+    let bckStartColor: RrGgBb = { r: 170, g: 255, b: 170 };
+    let txtStartColor: RrGgBb = { r: 0, g: 0, b: 0 };
+    let bckEndColor: RrGgBb = { r: 255, g: 255, b: 255 };
+    let txtEndColor: RrGgBb = { r: 255, g: 255, b: 255 };
+    let steps = 20;
+    for(let step = 0; step < steps; step++){
+        statusField.getFormat().getFill().setColor(fadeColor(bckStartColor, bckEndColor, steps, step));
+        statusField.getFormat().getFont().setColor(fadeColor(txtStartColor, txtEndColor, steps, step));
+        await workbook.getActiveWorksheet().calculate(true);
+        sleep(50);
+    }
+    statusField.setValue("");
+    statusField.getFormat().getFill().setColor("FFFFFF");
+    statusField.getFormat().getFont().setColor("000000");
+}
+
+type RrGgBb = {
+    r: number,
+    g: number,
+    b: number;
+}
+function fadeColor(start :RrGgBb, end: RrGgBb, steps: number, step: number): string {
+    let r = Math.floor(start.r + (end.r - start.r) * (step/steps));
+    let g = Math.floor(start.g + (end.g - start.g) * (step / steps));
+    let b = Math.floor(start.b + (end.b - start.b) * (step / steps));
+    let res = r.toString(16).padStart(2, "0")
+        + g.toString(16).padStart(2, "0")
+        + b.toString(16).padStart(2, "0");
+    console.log(res);
+    return res;
+}
+
+function sleep(millis: number) {
+
+    const millisecondDelay = millis;
+    const start = Date.now();
+    let now = Date.now();
+
+    while ((now - start) < millisecondDelay) {
+        now = Date.now();
+        // busy wait
+        for (let i = 0; i < 1000; i++) { }
+    }
+
 }
 
 function collectMergedRanges(fullRange: ExcelScript.Range) {
