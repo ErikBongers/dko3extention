@@ -126,7 +126,7 @@ export class ExcelRoster {
         return classDefs;
     }
 
-    private gradeYearToString(gradeYear: GradeYear) {
+    private gradeYearToString(gradeYear: GradeYear) { //todo: parse and check this as well.
         return `${gradeYear.grade ? gradeYear.grade: "?"}.${gradeYear.year}`;
     }
 
