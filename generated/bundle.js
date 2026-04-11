@@ -5432,19 +5432,21 @@ async function runDiff(reportStatus, fetchListener) {
 	reportStatus("Excel bestanden ophalen...");
 	let folderChanged = await fetchFolderChanged("Dko3/Uurroosters/");
 	reportStatus(`${folderChanged.files.length} Excel bestanden gevonden.`);
+	let excelDatas = [];
 	for (let file of folderChanged.files) {
 		let fileShortName = file.name.replaceAll("Dko3/Uurroosters/", "");
 		reportStatus(`Inlezen van ${fileShortName}...`);
 		let excelData = await fetchExcelData(file.name);
-		reportStatus(`Vergelijken van ${fileShortName} met DKO3 lessen...`);
-		let res = await buildDiff_default([excelData], reportStatus, fetchListener);
-		let jsonDiffs = createJsonDiffs(res.diffs, res.dko3LesSet, res.excelLesSet);
-		let fileName = getDiffsCloudFileName();
-		await cloud.json.upload(fileName, jsonDiffs);
-		sessionStorage.setItem(fileName, JSON.stringify(jsonDiffs));
-		showDiffs(jsonDiffs);
+		excelDatas.push(excelData);
 	}
+	reportStatus(`Vergelijken met DKO3 lessen...`);
+	let res = await buildDiff_default(excelDatas, reportStatus, fetchListener);
+	let jsonDiffs = createJsonDiffs(res.diffs, res.dko3LesSet, res.excelLesSet);
+	let fileName = getDiffsCloudFileName();
+	await cloud.json.upload(fileName, jsonDiffs);
+	sessionStorage.setItem(fileName, JSON.stringify(jsonDiffs));
 	reportStatus(`Vergelijking beeindigd.`);
+	return jsonDiffs;
 }
 async function setupDiffPage() {
 	let pluginContainer = document.getElementById("plugin_container");
@@ -5460,7 +5462,8 @@ async function setupDiffPage() {
 		runStatus.innerHTML = messages.join("<br>");
 	}
 	button.onclick = async () => {
-		await runDiff(reportStatus, fetchListener);
+		let jsonDiffs = await runDiff(reportStatus, fetchListener);
+		showDiffs(jsonDiffs);
 	};
 	try {
 		let jsonDiffs = await getDiffsFromCloud();
