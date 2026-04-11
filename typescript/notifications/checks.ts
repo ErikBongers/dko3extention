@@ -1,5 +1,5 @@
 import {fetchCheckStatus, fetchExcelData, fetchFolderChanged, postNotification} from "../cloud";
-import runRosterCheck from "../roster_diff/build";
+import runRosterCheck from "../roster_diff/buildDiff";
 import {fetchAndDisplayNotifications} from "./notifications";
 
 export async function checkChecks() {

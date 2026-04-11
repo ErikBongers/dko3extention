@@ -1441,12 +1441,10 @@ var ExcelRoster = class {
 	locationDefs;
 	subjectDefs;
 	errors = [];
-	teachers;
-	constructor(table, locations, subjects, teachers) {
+	constructor(table, locations, subjects) {
 		this.table = table;
 		this.locationDefs = locations;
 		this.subjectDefs = subjects;
-		this.teachers = teachers;
 	}
 	scrapeUurrooster() {
 		let timeSlices = this.createTimeSlices();
@@ -4814,7 +4812,7 @@ async function runRosterCheck(excelData, reportStatus, fetchListener) {
 	let factory = new RosterFactory(excelData);
 	let table = factory.getTable();
 	let teachers = await fetchTeachers("2025-2026");
-	let roster = new ExcelRoster(table, locations, subjects, teachers);
+	let roster = new ExcelRoster(table, locations, subjects);
 	let excelLessen = roster.scrapeUurrooster();
 	console.log(excelLessen);
 	return await buildDiff(excelLessen, dko3Lessen, dko3AliasLessen, reportStatus, teachers);
@@ -4890,7 +4888,7 @@ var TaggedExcelLes = class extends TaggedLes {
 		let tags = [];
 		super(les, tags, searchText);
 		this.location = this.les.location;
-		this.teachers = this.les.teacher.split(/[]\/,/g).map((t) => findTeacher(t, teachers));
+		this.teachers = this.les.teacher.split(/[\/,]/g).map((t) => findTeacher(t, teachers));
 		this.subjects = les.subjects;
 		this.subjects = this.subjects.filter((s) => s);
 	}

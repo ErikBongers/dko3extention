@@ -1,5 +1,4 @@
 import {ExcelPos, Table, TablePos} from "./excel";
-import {DKO3_BASE_URL} from "../def";
 
 type TagDef = {
     tag: string,
@@ -21,6 +20,7 @@ export type ClassDef = {
     description: string,
     excelRow: number;
     excelColumn: number;
+    cellValue: string,
 }
 
 export class TimeSlice {
@@ -117,6 +117,7 @@ export class ExcelRoster {
                     description,
                     excelRow: excelPos.row,
                     excelColumn: excelPos.column,
+                    cellValue,
                 };
                 classDefs.push(classDef);
                 row = mergedRange.End.row+1;

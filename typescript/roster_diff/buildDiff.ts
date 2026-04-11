@@ -1,14 +1,15 @@
 import {JsonExcelData} from "./excel";
 import {RosterFactory} from "./rosterFactory";
 import {ClassDef, ExcelRoster, TeacherDef, TimeSlice, timeToMinutes} from "./excelRoster";
-import {postNotification} from "../cloud";
+import {cloud, postNotification} from "../cloud";
 import {FetchChain} from "../table/fetchChain";
-import {Schoolyear} from "../globals";
+import {getSchoolIdString, pad, Schoolyear} from "../globals";
 import {fetchLessen} from "../lessen/observer";
-import {Les, scrapeLessenOverzicht} from "../lessen/scrape";
+import {DayUppercase, Les, scrapeLessenOverzicht} from "../lessen/scrape";
 import {DKO3_BASE_URL, LESSEN_TABLE_ID} from "../def";
-import { StatusCallback } from "../startPage/observer";
+import {StatusCallback} from "../startPage/observer";
 import {getTableFromHash, InfoBarTableFetchListener} from "../table/loadAnyTable";
+import {emmet} from "../../libs/Emmeter/html";
 
 async function runRosterCheck(excelData: JsonExcelData, reportStatus: StatusCallback, fetchListener: InfoBarTableFetchListener) {
     await postNotification("WOORD_ROSTER_RUN", "running", "Uurrooster worden vergeleken... (gestart door <todo:username>");
@@ -37,7 +38,7 @@ async function runRosterCheck(excelData: JsonExcelData, reportStatus: StatusCall
     let factory = new RosterFactory(excelData);
     let table = factory.getTable();
     let teachers = await fetchTeachers("2025-2026");
-    let roster = new ExcelRoster(table, locations, subjects, teachers);
+    let roster = new ExcelRoster(table, locations, subjects);
     let excelLessen = roster.scrapeUurrooster();
     console.log(excelLessen);
 
@@ -127,7 +128,7 @@ export class TaggedExcelLes extends TaggedLes<ClassDef> {
         let tags: string[] = [];
         super(les, tags, searchText);
         this.location = this.les.location;//translate probably already done.
-        this.teachers = this.les.teacher.split(/[]\/,/g).map(t => findTeacher(t, teachers));
+        this.teachers = this.les.teacher.split(/[\/,]/g).map(t => findTeacher(t, teachers));
         this.subjects = les.subjects;
         this.subjects = this.subjects.filter(s => s!!);
     }
@@ -342,5 +343,101 @@ export function findTeacher(searchString: string, teachers: TeacherDef[]) {
             return teacherDef.name;
     }
     return searchString;
+}
+
+export function getDiffsCloudFileName() {
+    let schoolYear = Schoolyear.calculateSetupYear(); //assuming viewing for the year being setup.
+    let schoolName = getSchoolIdString();
+    return `Dko3/${schoolName}_${schoolYear}_diffs.json`;
+}
+
+export async function getDiffsFromCloud() {
+    return await cloud.json.fetch(getDiffsCloudFileName()) as JsonDiffs;
+}
+
+export interface JsonExcelLes {
+    subject: string;
+    teacher: string;
+    day: DayUppercase;
+    timeSlice: string;
+    location: string;
+    excelRow: number;
+    excelColumn: number;
+}
+
+export interface JsonDko3Les {
+    subject: string;
+    teacher: string;
+    day: DayUppercase;
+    timeSlice: string;
+    location: string;
+    lesId: string;
+}
+
+export interface JsonDiff {
+    excelLes: JsonExcelLes;
+    dko3Les: JsonDko3Les;
+    diffType: DiffType;
+}
+
+export interface JsonDiffs {
+    diffs: JsonDiff[];
+    orphanedDko3Lessen: JsonDko3Les[];
+    orphanedExcelLessen: JsonExcelLes[];
+    isoDate: string
+}
+
+export function createJsonDiffs(diffList: Diff[], dko3LesSet: Set<TaggedDko3Les>, excelLesSet: Set<TaggedExcelLes>) {
+    let diffs: JsonDiff[] = diffList
+        .filter(diff => diff.diffType != "perfect match")
+        .map(diff => {
+            return {
+                excelLes: excelLesToJson(diff.excelLes),
+                dko3Les: dko3LesToJson(diff.dko3Les),
+                diffType: diff.diffType
+            } satisfies JsonDiff;
+        });
+    let orphanedDko3Lessen = [...dko3LesSet.values()].map(les => dko3LesToJson(les));
+    let orphanedExcelLessen = [...excelLesSet.values()].map(les => excelLesToJson(les));
+    return {
+        diffs,
+        orphanedDko3Lessen,
+        orphanedExcelLessen,
+        isoDate: (new Date()).toISOString()
+    } satisfies JsonDiffs;
+}
+
+function dko3LesToJson(dko3Les: TaggedDko3Les): JsonDko3Les {
+    return {
+        lesId: dko3Les.les.id,
+        day: dko3Les.les.day,
+        timeSlice: toCompactTimeSliceString(dko3Les.les.timeSlice),
+        subject: dko3Les.subjects.join(","),
+        teacher: dko3Les.teachers.join(","),
+        location: dko3Les.location
+    };
+}
+
+function excelLesToJson(excelLes: TaggedExcelLes): JsonExcelLes {
+    return {
+        excelColumn: excelLes.les.excelColumn,
+        excelRow: excelLes.les.excelRow,
+        day: excelLes.les.day as DayUppercase,
+        timeSlice: toCompactTimeSliceString(excelLes.les.timeSlice),
+        subject: excelLes.subjects.join(","),
+        teacher: excelLes.teachers.join(","),
+        location: excelLes.location
+    };
+}
+
+export function createDiffTable(divResults: HTMLDivElement) {
+    let {first: table, last: tbody} = emmet.appendChild(divResults, "table#orphans.diff>(thead>tr>(th.subject{Vak/Lesnaam}+th.teacher{Leraar}+th.day{Dag}+th.{Uur}+th.location{Vestiging}+th))+tbody") as { target: HTMLDivElement, first: HTMLTableElement, last: HTMLTableSectionElement };
+    return {table, tbody};
+}
+
+function toCompactTimeSliceString(timeSlice: TimeSlice) {
+    if(!timeSlice)
+        return "-geen uur-";
+    return `${pad(timeSlice.start.hour, 2)}:${pad(timeSlice.start.minutes, 2)} - ${pad(timeSlice.end.hour, 2)}:${pad(timeSlice.end.minutes, 2)}`;
 }
 
