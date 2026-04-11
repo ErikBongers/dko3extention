@@ -1493,7 +1493,8 @@ var ExcelRoster = class {
 					gradeYears: this.findGradeYears(parseText),
 					description,
 					excelRow: excelPos.row,
-					excelColumn: excelPos.column
+					excelColumn: excelPos.column,
+					cellValue
 				};
 				classDefs.push(classDef);
 				row = mergedRange.End.row + 1;
@@ -4601,106 +4602,6 @@ function appendGroupingAnchorOrText(target, grouping, activeSorting, separator) 
 }
 
 //#endregion
-//#region typescript/menu.ts
-function setupMenu() {
-	let mainMenuUl = document.querySelector("#dko3_navbar > ul");
-	let listItems = mainMenuUl.querySelectorAll("li");
-	let lastItem = listItems[listItems.length - 1];
-	let { last: dropdown } = emmet.insertBefore(lastItem, `li.nav-item.dropdown>a{ Plugin }.nav-link.dropdown-toggle[href="#" role="button" data-toggle="dropdown" aria-expanded="false"]>div.dropdown-menu`);
-	let menu1 = emmet.appendChild(dropdown, `a.dropdown-item.pointer[href=\"#"]{Vergelijk lessen met Excel uurroosters}`).first;
-	menu1.onclick = () => {
-		gotoDiffPage();
-	};
-}
-function gotoDiffPage() {
-	let pageState$2 = getGotoStateOrDefault(PageName.StartPage);
-	pageState$2.goto = Goto.Start_page;
-	pageState$2.showPage = "diff";
-	saveGotoState(pageState$2);
-	if (location.hash == "#start-mijn_tijdslijn") location.reload();
-	else location.href = "/#start-mijn_tijdslijn";
-}
-
-//#endregion
-//#region typescript/notifications/notifications.ts
-function setupNotifications() {
-	let navBar = document.getElementById("dko3_navbar");
-	let secondUl = navBar.querySelectorAll("ul").item(1);
-	emmet.insertBefore(secondUl, "div#navBarNotifDiv>button#notifButton.noBorder{5}");
-}
-async function updateNotificationsInNavBar(notifications) {
-	console.log("checking...");
-	if (!notifications) notifications = await fetchNotifications();
-	let notifButton = document.getElementById("notifButton");
-	let count = Object.keys(notifications.notifications).length;
-	notifButton.innerHTML = count.toString();
-	notifButton.style.display = count > 0 ? "block" : "none";
-}
-const NORMAL_SPEED_IN_SECONDS = 5 * 60;
-setInterval(updateNotificationsInNavBar, 1e3 * 10);
-async function fetchAndDisplayNotifications() {
-	let notifications = await fetchNotifications();
-	await updateNotificationsInNavBar(notifications);
-	let notificationsDiv = document.querySelector("#dko3_plugin_notifications > div > div");
-	let propNames = Object.getOwnPropertyNames(notifications.notifications);
-	notificationsDiv.innerHTML = "";
-	for (let propName of propNames) {
-		let notif = notifications.notifications[propName];
-		let imgUrl = chrome.runtime.getURL("images/waiting.gif");
-		switch (notif.level) {
-			case "warning":
-				imgUrl = chrome.runtime.getURL("images/warning.png");
-				break;
-			case "error":
-				imgUrl = chrome.runtime.getURL("images/error.png");
-				break;
-			case "running":
-				imgUrl = chrome.runtime.getURL("images/waiting.gif");
-				break;
-			case "info":
-				imgUrl = chrome.runtime.getURL("images/info.png");
-				break;
-		}
-		let html = `
-            <div class="notif notif-${notif.level}">
-            <div class="notif-img">
-                <img src="${imgUrl}" alt="todo">
-            </div>
-            <div>${notif.message}</div>
-            </div>
-            `;
-		let notifDiv = emmet.appendChild(notificationsDiv, "div").first;
-		notifDiv.innerHTML = html;
-		let button = notifDiv.querySelector("button");
-		if (!button) continue;
-		button.onclick = () => {
-			doNotificationAction(notif.id);
-		};
-	}
-}
-function doNotificationAction(id) {
-	console.log("doing action for notification: " + id);
-	switch (id) {
-		case "WOORD_ROSTERS_IS_DIFF":
-			gotoDiffPage();
-			break;
-	}
-}
-
-//#endregion
-//#region typescript/notifications/checks.ts
-async function checkChecks() {
-	let woordCheckstatus = await fetchCheckStatus("WOORD_ROSTERS");
-	if (woordCheckstatus.status === "INITIAL") {
-		await postNotification("WOORD_ROSTERS_IS_DIFF", "warning", "De woordlessen zijn niet vergeleken met het uurrooser op Sharepoint. <button>Vergelijk lessen</button>");
-		await fetchAndDisplayNotifications();
-	} else {
-		let folderChanged = await fetchFolderChanged("Dko3/Uurroosters/");
-		if (folderChanged.changed) await postNotification("WOORD_ROSTER_CHANGED", "warning", "Het uurrooster voor woord is gewijzigd op Sharepoint. <button>Vergelijk lessen</button>");
-	}
-}
-
-//#endregion
 //#region typescript/roster_diff/rosterFactory.ts
 var RosterFactory = class {
 	excelData;
@@ -4787,7 +4688,7 @@ var RosterFactory = class {
 };
 
 //#endregion
-//#region typescript/roster_diff/build.ts
+//#region typescript/roster_diff/buildDiff.ts
 async function runRosterCheck(excelData, reportStatus, fetchListener) {
 	await postNotification("WOORD_ROSTER_RUN", "running", "Uurrooster worden vergeleken... (gestart door <todo:username>");
 	reportStatus("Vestigingsplaatsen ophalen...");
@@ -4817,7 +4718,7 @@ async function runRosterCheck(excelData, reportStatus, fetchListener) {
 	console.log(excelLessen);
 	return await buildDiff(excelLessen, dko3Lessen, dko3AliasLessen, reportStatus, teachers);
 }
-var build_default = runRosterCheck;
+var buildDiff_default = runRosterCheck;
 var LesType = /* @__PURE__ */ function(LesType$2) {
 	LesType$2["modules"] = "3";
 	LesType$2["gewone"] = "1";
@@ -5063,112 +4964,13 @@ function findTeacher(searchString, teachers) {
 	for (let teacherDef of teachers) if (lowerCase.includes(teacherDef.firstName.toLowerCase())) return teacherDef.name;
 	return searchString;
 }
-
-//#endregion
-//#region typescript/startPage/observer.ts
-var StartPageObserver = class extends ExactHashObserver {
-	constructor() {
-		super("#start-mijn_tijdslijn", onMutation$5);
-	}
-	isPageReallyLoaded() {
-		return isLoaded();
-	}
-};
-var observer_default$7 = new StartPageObserver();
-function isLoaded() {
-	let startContentDiv = document.querySelector("#dko3_start_content");
-	return startContentDiv?.textContent.includes("welkom") ?? false;
-}
-function onMutation$5(mutation) {
-	if (document.querySelector("#dko3_plugin_notifications")) return true;
-	if (document.querySelector("#view_contents>div.row")) setupPluginPage();
-	let startContentDiv = document.querySelector("#dko3_start_content");
-	if (startContentDiv) {
-		if (startContentDiv.textContent.includes("welkom")) {
-			emmet.insertAfter(startContentDiv.children[0], "div#dko3_plugin_notifications>div.alert.alert-info.shadow-sm>(h5>strong{Plugin berichten})+div");
-			doStartupStuff().then(() => {});
-		}
-		return true;
-	}
-	return false;
-}
-async function doStartupStuff() {
-	await fetchAndDisplayNotifications();
-	await checkChecks();
-}
-function setupPluginPage() {
-	let pluginContainer = document.getElementById("plugin_container");
-	if (pluginContainer) return;
-	let viewContent = document.getElementById("view_contents");
-	if (!viewContent) return;
-	emmet.appendChild(viewContent, "div#plugin_container");
-	let pageState$2 = getGotoStateOrDefault(PageName.StartPage);
-	if (pageState$2.goto == Goto.Start_page) {
-		if (pageState$2.showPage == "start") {
-			pageState$2.goto = Goto.None;
-			saveGotoState(pageState$2);
-			return;
-		}
-		if (pageState$2.showPage == "diff") {
-			pageState$2.goto = Goto.None;
-			saveGotoState(pageState$2);
-			let viewContent$1 = document.getElementById("view_contents");
-			emmet.insertBefore(viewContent$1.firstElementChild, "div.hide_view_contents");
-			setupDiffPage();
-			return;
-		}
-	}
-	pageState$2.goto = Goto.None;
-	saveGotoState(pageState$2);
-}
 function getDiffsCloudFileName() {
 	let schoolYear = Schoolyear.calculateSetupYear();
 	let schoolName = getSchoolIdString();
 	return `Dko3/${schoolName}_${schoolYear}_diffs.json`;
 }
-async function runDiff(reportStatus, fetchListener) {
-	let divResults = document.getElementById("diffResults");
-	divResults.innerHTML = "";
-	reportStatus("Excel bestanden ophalen...");
-	let folderChanged = await fetchFolderChanged("Dko3/Uurroosters/");
-	reportStatus(`${folderChanged.files.length} Excel bestanden gevonden.`);
-	for (let file of folderChanged.files) {
-		let fileShortName = file.name.replaceAll("Dko3/Uurroosters/", "");
-		reportStatus(`Inlezen van ${fileShortName}...`);
-		let excelData = await fetchExcelData(file.name);
-		reportStatus(`Vergelijken van ${fileShortName} met DKO3 lessen...`);
-		let res = await build_default(excelData, reportStatus, fetchListener);
-		let jsonDiffs = createJsonDiffs(res.diffs, res.dko3LesSet, res.excelLesSet);
-		let fileName = getDiffsCloudFileName();
-		await cloud.json.upload(fileName, jsonDiffs);
-		sessionStorage.setItem(fileName, JSON.stringify(jsonDiffs));
-		showDiffs(jsonDiffs);
-	}
-	reportStatus(`Vergelijking beeindigd.`);
-}
 async function getDiffsFromCloud() {
 	return await cloud.json.fetch(getDiffsCloudFileName());
-}
-async function setupDiffPage() {
-	let pluginContainer = document.getElementById("plugin_container");
-	let button = emmet.appendChild(pluginContainer, "div.mb-1>div>(h4{Verschillen tussen Excel uurroosters en DKO3 lessen.}+button{Run the diffs!})").last;
-	let runStatus = emmet.insertAfter(button, "div#runStatus").first;
-	let results = emmet.insertAfter(runStatus, "div#diffResults").first;
-	let divInfo = emmet.insertAfter(runStatus, "dinv").last;
-	let infoBlock = createInfoBlock(divInfo, "");
-	let fetchListener = new InfoBarTableFetchListener(infoBlock);
-	let messages = [];
-	function reportStatus(message) {
-		messages.push(message);
-		runStatus.innerHTML = messages.join("<br>");
-	}
-	button.onclick = async () => {
-		await runDiff(reportStatus, fetchListener);
-	};
-	try {
-		let jsonDiffs = await getDiffsFromCloud();
-		showDiffs(jsonDiffs);
-	} catch (e) {}
 }
 function createJsonDiffs(diffList, dko3LesSet, excelLesSet) {
 	let diffs = diffList.filter((diff) => diff.diffType != "perfect match").map((diff) => {
@@ -5205,7 +5007,8 @@ function excelLesToJson(excelLes) {
 		timeSlice: toCompactTimeSliceString(excelLes.les.timeSlice),
 		subject: excelLes.subjects.join(","),
 		teacher: excelLes.teachers.join(","),
-		location: excelLes.location
+		location: excelLes.location,
+		cellValue: excelLes.les.cellValue
 	};
 }
 function createDiffTable(divResults) {
@@ -5215,6 +5018,13 @@ function createDiffTable(divResults) {
 		tbody
 	};
 }
+function toCompactTimeSliceString(timeSlice) {
+	if (!timeSlice) return "-geen uur-";
+	return `${pad(timeSlice.start.hour, 2)}:${pad(timeSlice.start.minutes, 2)} - ${pad(timeSlice.end.hour, 2)}:${pad(timeSlice.end.minutes, 2)}`;
+}
+
+//#endregion
+//#region typescript/roster_diff/showDiff.ts
 function showDiffs(diffs) {
 	let divResults = document.getElementById("diffResults");
 	divResults.innerHTML = "";
@@ -5226,16 +5036,16 @@ function showDiffs(diffs) {
 	decorateTableHeader(table, false);
 	for (let les of diffs.orphanedDko3Lessen) {
 		let tr = emmet.appendChild(tbody, "tr").last;
-		fillDiffRow(tr, les.subject, les.teacher, les.day, les.timeSlice, les.location, "perfect match", "dko3", les.lesId);
+		fillDiffRow(tr, les.subject, les.teacher, les.day, les.timeSlice, les.location, "perfect match", "dko3", les.lesId, "");
 	}
 	for (let les of diffs.orphanedExcelLessen) {
 		let tr = emmet.appendChild(tbody, "tr").last;
-		fillDiffRow(tr, les.subject, les.teacher, les.day, les.timeSlice, les.location, "perfect match", "excel", excelPostoExcelAddress(les.excelRow, les.excelColumn));
+		fillDiffRow(tr, les.subject, les.teacher, les.day, les.timeSlice, les.location, "perfect match", "excel", excelPostoExcelAddress(les.excelRow, les.excelColumn), les.cellValue);
 		tr.classList.add("excelRow");
 	}
 }
 function fillExcelDiffRow(tr, diff) {
-	fillDiffRow(tr, diff.excelLes.subject, diff.excelLes.teacher, diff.excelLes.day, diff.excelLes.timeSlice, diff.excelLes.location, diff.diffType, "excel", excelPostoExcelAddress(diff.excelLes.excelRow, diff.excelLes.excelColumn));
+	fillDiffRow(tr, diff.excelLes.subject, diff.excelLes.teacher, diff.excelLes.day, diff.excelLes.timeSlice, diff.excelLes.location, diff.diffType, "excel", excelPostoExcelAddress(diff.excelLes.excelRow, diff.excelLes.excelColumn), diff.excelLes.cellValue);
 }
 function displayDiff(diff, divResults) {
 	let tbody = emmet.appendChild(divResults, "table.diff>tbody").last;
@@ -5243,9 +5053,9 @@ function displayDiff(diff, divResults) {
 	fillExcelDiffRow(tr, diff);
 	tr.classList.add("excelRow");
 	let tr2 = emmet.appendChild(tbody, "tr").last;
-	fillDiffRow(tr2, diff.dko3Les.subject, diff.dko3Les.teacher, diff.dko3Les.day, diff.dko3Les.timeSlice, diff.dko3Les.location, diff.diffType, "dko3", diff.dko3Les.lesId);
+	fillDiffRow(tr2, diff.dko3Les.subject, diff.dko3Les.teacher, diff.dko3Les.day, diff.dko3Les.timeSlice, diff.dko3Les.location, diff.diffType, "dko3", diff.dko3Les.lesId, "");
 }
-function fillDiffRow(tr, subjects, teachers, day, timeSlice, location$1, diffType, rowType, rowId) {
+function fillDiffRow(tr, subjects, teachers, day, timeSlice, location$1, diffType, rowType, rowId, cellValue) {
 	let diffTeacherClass = "";
 	let diffLocationClass = "";
 	let diffTimeClass = "";
@@ -5277,14 +5087,15 @@ function fillDiffRow(tr, subjects, teachers, day, timeSlice, location$1, diffTyp
 		location$1 = "-onbekend-";
 		diffLocationClass = ".diff";
 	}
+	let tdSubjects;
 	if (subjects == "") {
-		subjects = "-onbekend-";
 		diffSubjectClass = ".diff";
-	}
+		tdSubjects = `(td${diffSubjectClass}>div.diffTooltip{-onbekend-}>span.diffTooltiptext{${cellValue}})`;
+	} else tdSubjects = `td${diffSubjectClass}{${subjects}}`;
 	let iconClass = rowType == "excel" ? "fa-grid" : "fa-chalkboard-user";
 	tr.dataset.rowId = rowId;
 	tr.dataset.rowType = rowType;
-	emmet.appendChild(tr, `td${diffSubjectClass}{${subjects}}+td${diffTeacherClass}{${teachers}}+td${diffDayClass}{${toCompactDayString(day)}}+td${diffTimeClass}{${timeSlice}}+td${diffLocationClass}{${location$1}}+td>button.goto>i.fas.${iconClass}`);
+	emmet.appendChild(tr, `${tdSubjects}+td${diffTeacherClass}{${teachers}}+td${diffDayClass}{${toCompactDayString(day)}}+td${diffTimeClass}{${timeSlice}}+td${diffLocationClass}{${location$1}}+td>button.goto>i.fas.${iconClass}`);
 	let button = tr.querySelector("button.goto");
 	button.onclick = gotoData;
 }
@@ -5298,10 +5109,6 @@ function gotoData(ev) {
 		let url = EXCEL_URL_TEST + rowId;
 		window.open(url, "_blank");
 	} else if (rowType == "dko3") location.href = DKO3_BASE_URL + "#lessen-les?id=" + rowId;
-}
-function toCompactTimeSliceString(timeSlice) {
-	if (!timeSlice) return "-geen uur-";
-	return `${pad(timeSlice.start.hour, 2)}:${pad(timeSlice.start.minutes, 2)} - ${pad(timeSlice.end.hour, 2)}:${pad(timeSlice.end.minutes, 2)}`;
 }
 function toCompactDayString(day) {
 	switch (day) {
@@ -5357,14 +5164,14 @@ const chars = [
 //#region typescript/les/observer.ts
 var LesObserver = class extends HashObserver {
 	constructor() {
-		super("#lessen-les", onMutation$4);
+		super("#lessen-les", onMutation$5);
 	}
 	isPageReallyLoaded() {
 		return document.querySelectorAll("#les_leerlingen_leerlingen > span").length > 0;
 	}
 };
-var observer_default$6 = new LesObserver();
-function onMutation$4(mutation) {
+var observer_default$7 = new LesObserver();
+function onMutation$5(mutation) {
 	let tabLeerlingen = document.getElementById("les_leerlingen_leerlingen");
 	if (mutation.target === tabLeerlingen) {
 		onLeerlingenChanged();
@@ -5447,6 +5254,205 @@ async function addDiff(titleHeader) {
 		fillExcelDiffRow(tr, diff);
 		return;
 	}
+}
+
+//#endregion
+//#region typescript/menu.ts
+function setupMenu() {
+	let mainMenuUl = document.querySelector("#dko3_navbar > ul");
+	let listItems = mainMenuUl.querySelectorAll("li");
+	let lastItem = listItems[listItems.length - 1];
+	let { last: dropdown } = emmet.insertBefore(lastItem, `li.nav-item.dropdown>a{ Plugin }.nav-link.dropdown-toggle[href="#" role="button" data-toggle="dropdown" aria-expanded="false"]>div.dropdown-menu`);
+	let menu1 = emmet.appendChild(dropdown, `a.dropdown-item.pointer[href=\"#"]{Vergelijk lessen met Excel uurroosters}`).first;
+	menu1.onclick = () => {
+		gotoDiffPage();
+	};
+}
+function gotoDiffPage() {
+	let pageState$2 = getGotoStateOrDefault(PageName.StartPage);
+	pageState$2.goto = Goto.Start_page;
+	pageState$2.showPage = "diff";
+	saveGotoState(pageState$2);
+	if (location.hash == "#start-mijn_tijdslijn") location.reload();
+	else location.href = "/#start-mijn_tijdslijn";
+}
+
+//#endregion
+//#region typescript/notifications/notifications.ts
+function setupNotifications() {
+	let navBar = document.getElementById("dko3_navbar");
+	let secondUl = navBar.querySelectorAll("ul").item(1);
+	emmet.insertBefore(secondUl, "div#navBarNotifDiv>button#notifButton.noBorder{5}");
+}
+async function updateNotificationsInNavBar(notifications) {
+	console.log("checking...");
+	if (!notifications) notifications = await fetchNotifications();
+	let notifButton = document.getElementById("notifButton");
+	let count = Object.keys(notifications.notifications).length;
+	notifButton.innerHTML = count.toString();
+	notifButton.style.display = count > 0 ? "block" : "none";
+}
+const NORMAL_SPEED_IN_SECONDS = 5 * 60;
+setInterval(updateNotificationsInNavBar, 1e3 * 10);
+async function fetchAndDisplayNotifications() {
+	let notifications = await fetchNotifications();
+	await updateNotificationsInNavBar(notifications);
+	let notificationsDiv = document.querySelector("#dko3_plugin_notifications > div > div");
+	let propNames = Object.getOwnPropertyNames(notifications.notifications);
+	notificationsDiv.innerHTML = "";
+	for (let propName of propNames) {
+		let notif = notifications.notifications[propName];
+		let imgUrl = chrome.runtime.getURL("images/waiting.gif");
+		switch (notif.level) {
+			case "warning":
+				imgUrl = chrome.runtime.getURL("images/warning.png");
+				break;
+			case "error":
+				imgUrl = chrome.runtime.getURL("images/error.png");
+				break;
+			case "running":
+				imgUrl = chrome.runtime.getURL("images/waiting.gif");
+				break;
+			case "info":
+				imgUrl = chrome.runtime.getURL("images/info.png");
+				break;
+		}
+		let html = `
+            <div class="notif notif-${notif.level}">
+            <div class="notif-img">
+                <img src="${imgUrl}" alt="todo">
+            </div>
+            <div>${notif.message}</div>
+            </div>
+            `;
+		let notifDiv = emmet.appendChild(notificationsDiv, "div").first;
+		notifDiv.innerHTML = html;
+		let button = notifDiv.querySelector("button");
+		if (!button) continue;
+		button.onclick = () => {
+			doNotificationAction(notif.id);
+		};
+	}
+}
+function doNotificationAction(id) {
+	console.log("doing action for notification: " + id);
+	switch (id) {
+		case "WOORD_ROSTERS_IS_DIFF":
+			gotoDiffPage();
+			break;
+	}
+}
+
+//#endregion
+//#region typescript/notifications/checks.ts
+async function checkChecks() {
+	let woordCheckstatus = await fetchCheckStatus("WOORD_ROSTERS");
+	if (woordCheckstatus.status === "INITIAL") {
+		await postNotification("WOORD_ROSTERS_IS_DIFF", "warning", "De woordlessen zijn niet vergeleken met het uurrooser op Sharepoint. <button>Vergelijk lessen</button>");
+		await fetchAndDisplayNotifications();
+	} else {
+		let folderChanged = await fetchFolderChanged("Dko3/Uurroosters/");
+		if (folderChanged.changed) await postNotification("WOORD_ROSTER_CHANGED", "warning", "Het uurrooster voor woord is gewijzigd op Sharepoint. <button>Vergelijk lessen</button>");
+	}
+}
+
+//#endregion
+//#region typescript/startPage/observer.ts
+var StartPageObserver = class extends ExactHashObserver {
+	constructor() {
+		super("#start-mijn_tijdslijn", onMutation$4);
+	}
+	isPageReallyLoaded() {
+		return isLoaded();
+	}
+};
+var observer_default$6 = new StartPageObserver();
+function isLoaded() {
+	let startContentDiv = document.querySelector("#dko3_start_content");
+	return startContentDiv?.textContent.includes("welkom") ?? false;
+}
+function onMutation$4(mutation) {
+	if (document.querySelector("#dko3_plugin_notifications")) return true;
+	if (document.querySelector("#view_contents>div.row")) setupPluginPage();
+	let startContentDiv = document.querySelector("#dko3_start_content");
+	if (startContentDiv) {
+		if (startContentDiv.textContent.includes("welkom")) {
+			emmet.insertAfter(startContentDiv.children[0], "div#dko3_plugin_notifications>div.alert.alert-info.shadow-sm>(h5>strong{Plugin berichten})+div");
+			doStartupStuff().then(() => {});
+		}
+		return true;
+	}
+	return false;
+}
+async function doStartupStuff() {
+	await fetchAndDisplayNotifications();
+	await checkChecks();
+}
+function setupPluginPage() {
+	let pluginContainer = document.getElementById("plugin_container");
+	if (pluginContainer) return;
+	let viewContent = document.getElementById("view_contents");
+	if (!viewContent) return;
+	emmet.appendChild(viewContent, "div#plugin_container");
+	let pageState$2 = getGotoStateOrDefault(PageName.StartPage);
+	if (pageState$2.goto == Goto.Start_page) {
+		if (pageState$2.showPage == "start") {
+			pageState$2.goto = Goto.None;
+			saveGotoState(pageState$2);
+			return;
+		}
+		if (pageState$2.showPage == "diff") {
+			pageState$2.goto = Goto.None;
+			saveGotoState(pageState$2);
+			let viewContent$1 = document.getElementById("view_contents");
+			emmet.insertBefore(viewContent$1.firstElementChild, "div.hide_view_contents");
+			setupDiffPage();
+			return;
+		}
+	}
+	pageState$2.goto = Goto.None;
+	saveGotoState(pageState$2);
+}
+async function runDiff(reportStatus, fetchListener) {
+	let divResults = document.getElementById("diffResults");
+	divResults.innerHTML = "";
+	reportStatus("Excel bestanden ophalen...");
+	let folderChanged = await fetchFolderChanged("Dko3/Uurroosters/");
+	reportStatus(`${folderChanged.files.length} Excel bestanden gevonden.`);
+	for (let file of folderChanged.files) {
+		let fileShortName = file.name.replaceAll("Dko3/Uurroosters/", "");
+		reportStatus(`Inlezen van ${fileShortName}...`);
+		let excelData = await fetchExcelData(file.name);
+		reportStatus(`Vergelijken van ${fileShortName} met DKO3 lessen...`);
+		let res = await buildDiff_default(excelData, reportStatus, fetchListener);
+		let jsonDiffs = createJsonDiffs(res.diffs, res.dko3LesSet, res.excelLesSet);
+		let fileName = getDiffsCloudFileName();
+		await cloud.json.upload(fileName, jsonDiffs);
+		sessionStorage.setItem(fileName, JSON.stringify(jsonDiffs));
+		showDiffs(jsonDiffs);
+	}
+	reportStatus(`Vergelijking beeindigd.`);
+}
+async function setupDiffPage() {
+	let pluginContainer = document.getElementById("plugin_container");
+	let button = emmet.appendChild(pluginContainer, "div.mb-1>div>(h4{Verschillen tussen Excel uurroosters en DKO3 lessen.}+button{Run the diffs!})").last;
+	let runStatus = emmet.insertAfter(button, "div#runStatus").first;
+	let results = emmet.insertAfter(runStatus, "div#diffResults").first;
+	let divInfo = emmet.insertAfter(runStatus, "dinv").last;
+	let infoBlock = createInfoBlock(divInfo, "");
+	let fetchListener = new InfoBarTableFetchListener(infoBlock);
+	let messages = [];
+	function reportStatus(message) {
+		messages.push(message);
+		runStatus.innerHTML = messages.join("<br>");
+	}
+	button.onclick = async () => {
+		await runDiff(reportStatus, fetchListener);
+	};
+	try {
+		let jsonDiffs = await getDiffsFromCloud();
+		showDiffs(jsonDiffs);
+	} catch (e) {}
 }
 
 //#endregion
@@ -7914,7 +7920,7 @@ function init() {
 		});
 		registerObserver(observer_default$10);
 		registerObserver(observer_default$8);
-		registerObserver(observer_default$6);
+		registerObserver(observer_default$7);
 		registerObserver(observer_default$5);
 		registerObserver(observer_default$4);
 		registerObserver(observer_default$9);
@@ -7929,7 +7935,7 @@ function init() {
 		registerObserver(observer_default$1);
 		registerObserver(observer_default);
 		registerObserver(observer_default);
-		registerObserver(observer_default$7);
+		registerObserver(observer_default$6);
 		onPageChanged();
 		setupPowerQuery();
 		setupNotifications();

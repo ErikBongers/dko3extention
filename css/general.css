@@ -440,14 +440,14 @@ table#orphans {
     }
 }
 
-.tooltip {
+.diffTooltip {
     position: relative;
     display: inline-block;
     border-bottom: 1px dotted black;
     cursor: pointer;
 }
 
-.tooltiptext {
+.diffTooltiptext {
     visibility: hidden;
     width: 130px;
     background-color: black;
@@ -459,6 +459,6 @@ table#orphans {
     z-index: 1;
 }
 
-.tooltip:hover .tooltiptext {
+.diffTooltip:hover .diffTooltiptext {
     visibility: visible;
 }

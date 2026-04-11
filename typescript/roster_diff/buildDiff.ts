@@ -363,6 +363,7 @@ export interface JsonExcelLes {
     location: string;
     excelRow: number;
     excelColumn: number;
+    cellValue: string;
 }
 
 export interface JsonDko3Les {
@@ -426,7 +427,8 @@ function excelLesToJson(excelLes: TaggedExcelLes): JsonExcelLes {
         timeSlice: toCompactTimeSliceString(excelLes.les.timeSlice),
         subject: excelLes.subjects.join(","),
         teacher: excelLes.teachers.join(","),
-        location: excelLes.location
+        location: excelLes.location,
+        cellValue: excelLes.les.cellValue
     };
 }
 
