@@ -4,7 +4,7 @@ import {fetchAndDisplayNotifications} from "../notifications/notifications";
 import {checkChecks} from "../notifications/checks";
 import {getGotoStateOrDefault, Goto, PageName, saveGotoState, StartPageGotoState} from "../gotoState";
 import {cloud, fetchExcelData, fetchFolderChanged} from "../cloud";
-import runRosterCheck, {createJsonDiffs, getDiffsCloudFileName, getDiffsFromCloud} from "../roster_diff/buildDiff";
+import runRosterCheck, {buildAndSaveDiff, createJsonDiffs, getDiffsCloudFileName, getDiffsFromCloud} from "../roster_diff/buildDiff";
 import {createInfoBlock} from "../infoBlock";
 import {InfoBarTableFetchListener} from "../table/loadAnyTable";
 import {showDiffs} from "../roster_diff/showDiff";
@@ -87,24 +87,7 @@ async function runDiff(reportStatus: StatusCallback, fetchListener: InfoBarTable
     let divResults = document.getElementById("diffResults") as HTMLDivElement;
     divResults.innerHTML = "";
 
-    reportStatus("Excel bestanden ophalen...");
-    let folderChanged = await fetchFolderChanged("Dko3/Uurroosters/");
-    reportStatus(`${folderChanged.files.length} Excel bestanden gevonden.`);
-    let excelDatas: JsonExcelData[] = [];
-    for (let file of folderChanged.files) {
-        let fileShortName = file.name.replaceAll("Dko3/Uurroosters/", "");
-        reportStatus(`Inlezen van ${fileShortName}...`);
-        let excelData = await fetchExcelData(file.name);
-        excelDatas.push(excelData);
-    }
-    reportStatus(`Vergelijken met DKO3 lessen...`);
-    let res = await runRosterCheck(excelDatas, reportStatus, fetchListener);
-    let jsonDiffs = createJsonDiffs(res.diffs, res.dko3LesSet, res.excelLesSet);
-    let fileName = getDiffsCloudFileName();
-    await cloud.json.upload(fileName, jsonDiffs);
-    sessionStorage.setItem(fileName, JSON.stringify(jsonDiffs));
-    reportStatus(`Vergelijking beeindigd.`);
-    return jsonDiffs;
+    return buildAndSaveDiff(reportStatus, fetchListener);
 }
 
 async function setupDiffPage() {

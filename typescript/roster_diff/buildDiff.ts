@@ -1,7 +1,7 @@
-import {JsonExcelData} from "./excel";
+import {ExcelData, JsonExcelData} from "./excel";
 import {RosterFactory} from "./rosterFactory";
 import {ClassDef, ExcelRoster, TeacherDef, TimeSlice, timeToMinutes} from "./excelRoster";
-import {cloud, postNotification} from "../cloud";
+import {cloud, fetchExcelData, fetchFolderChanged, postNotification} from "../cloud";
 import {FetchChain} from "../table/fetchChain";
 import {getSchoolIdString, pad, Schoolyear} from "../globals";
 import {fetchLessen} from "../lessen/observer";
@@ -10,6 +10,35 @@ import {DKO3_BASE_URL, LESSEN_TABLE_ID} from "../def";
 import {StatusCallback} from "../startPage/observer";
 import {getTableFromHash, InfoBarTableFetchListener} from "../table/loadAnyTable";
 import {emmet} from "../../libs/Emmeter/html";
+
+let cachedDiffs: JsonDiffs = undefined;
+export async function getJsonDiffsCached() {
+    if(cachedDiffs)
+        return cachedDiffs;
+    return getDiffsFromCloud();
+}
+
+export async function buildAndSaveDiff(reportStatus: StatusCallback, fetchListener: InfoBarTableFetchListener) {
+    reportStatus("Excel bestanden ophalen...");
+    let folderChanged = await fetchFolderChanged("Dko3/Uurroosters/");
+    reportStatus(`${folderChanged.files.length} Excel bestanden gevonden.`);
+    let jsonExcelDatas: JsonExcelData[] = [];
+    for (let file of folderChanged.files) {
+        let fileShortName = file.name.replaceAll("Dko3/Uurroosters/", "");
+        reportStatus(`Inlezen van ${fileShortName}...`);
+        let excelData = await fetchExcelData(file.name);
+        jsonExcelDatas.push(excelData);
+    }
+    reportStatus(`Vergelijken met DKO3 lessen...`);
+    let res = await runRosterCheck(jsonExcelDatas, reportStatus, fetchListener);
+    let jsonDiffs = createJsonDiffs(res.diffs, res.dko3LesSet, res.excelLesSet, res.excelRosters);
+    let fileName = getDiffsCloudFileName();
+    await cloud.json.upload(fileName, jsonDiffs);
+    sessionStorage.setItem(fileName, JSON.stringify(jsonDiffs));
+    reportStatus(`Vergelijking beeindigd.`);
+    cachedDiffs = jsonDiffs;
+    return jsonDiffs;
+}
 
 async function runRosterCheck(excelDatas: JsonExcelData[], reportStatus: StatusCallback, fetchListener: InfoBarTableFetchListener) {
     await postNotification("WOORD_ROSTER_RUN", "running", "Uurrooster worden vergeleken... (gestart door <todo:username>");
@@ -38,14 +67,16 @@ async function runRosterCheck(excelDatas: JsonExcelData[], reportStatus: StatusC
     subjects = [...new Set(subjects)];
 
     let excelLessenArray: ClassDef[][] = [];
+    let excelRosters: ExcelRoster[] = [];
     for(let excelData of excelDatas) {
         let factory = new RosterFactory(excelData);
         let table = factory.getTable();
         let roster = new ExcelRoster(table, locations, subjects);
+        excelRosters.push(roster);
         excelLessenArray.push(roster.scrapeUurrooster());
         console.log(excelLessenArray);
     }
-    return await buildDiff(excelLessenArray.flat(), dko3Lessen, dko3AliasLessen, reportStatus, teachers);
+    return {excelRosters, ...await buildDiff(excelLessenArray.flat(), dko3Lessen, dko3AliasLessen, reportStatus, teachers)};
 }
 
 export default runRosterCheck
@@ -421,6 +452,8 @@ export interface JsonExcelLesMoment {
     excelRow: number;
     excelColumn: number;
     cellValue: string;
+    workBook: string;
+    workSheet: string;
 }
 
 export interface JsonDko3LesMoment {
@@ -439,14 +472,23 @@ export interface JsonDiff {
     diffType: DiffType;
 }
 
+export interface JsonWorkSheet {
+    name: string,
+    url: string,
+}
+export interface JsonWorkBook {
+    name: string;
+    worksheets: JsonWorkSheet[]
+}
 export interface JsonDiffs {
     diffs: JsonDiff[];
     orphanedDko3Lessen: JsonDko3LesMoment[];
     orphanedExcelLessen: JsonExcelLesMoment[];
-    isoDate: string
+    isoDate: string,
+    workBooks: JsonWorkBook[],
 }
 
-export function createJsonDiffs(diffList: Diff[], dko3LesSet: Set<TaggedDko3LesMoment>, excelLesSet: Set<TaggedExcelLes>) {
+export function createJsonDiffs(diffList: Diff[], dko3LesSet: Set<TaggedDko3LesMoment>, excelLesSet: Set<TaggedExcelLes>, excelRosters: ExcelRoster[]) {
     let diffs: JsonDiff[] = diffList
         .filter(diff => diff.diffType != "perfect match")
         .map(diff => {
@@ -458,11 +500,27 @@ export function createJsonDiffs(diffList: Diff[], dko3LesSet: Set<TaggedDko3LesM
         });
     let orphanedDko3Lessen = [...dko3LesSet.values()].map(les => dko3LesToJson(les));
     let orphanedExcelLessen = [...excelLesSet.values()].map(les => excelLesToJson(les));
+    let workBooks: Map<string, JsonWorkBook> = new Map<string, JsonWorkBook>();
+    for(let excelData of excelRosters.map(r => r.table.excelData)) {
+        if(!workBooks.has(excelData.workbookName)) {
+            workBooks.set(excelData.workbookName, {
+                name: excelData.workbookName,
+                worksheets: []
+            });
+        }
+        let workBook = workBooks.get(excelData.workbookName);
+        let workSheet: JsonWorkSheet = {
+            name: excelData.worksheetName,
+            url: excelData.url
+        };
+        workBook.worksheets.push(workSheet);
+    }
     return {
         diffs,
         orphanedDko3Lessen,
         orphanedExcelLessen,
-        isoDate: (new Date()).toISOString()
+        isoDate: (new Date()).toISOString(),
+        workBooks: [...workBooks.values()]
     } satisfies JsonDiffs;
 }
 
@@ -487,7 +545,9 @@ function excelLesToJson(excelLes: TaggedExcelLes): JsonExcelLesMoment {
         subject: excelLes.subjects.join(","),
         teacher: excelLes.teachers.join(","),
         location: excelLes.location,
-        cellValue: excelLes.lesMoment.cellValue
+        cellValue: excelLes.lesMoment.cellValue,
+        workBook: excelLes.lesMoment.table.excelData.workbookName,
+        workSheet: excelLes.lesMoment.table.excelData.worksheetName,
     };
 }
 
@@ -502,3 +562,19 @@ function toCompactTimeSliceString(timeSlice: TimeSlice) {
     return `${pad(timeSlice.start.hour, 2)}:${pad(timeSlice.start.minutes, 2)} - ${pad(timeSlice.end.hour, 2)}:${pad(timeSlice.end.minutes, 2)}`;
 }
 
+export async function getDiffForLes(lesId: string) {
+    let jsonDiffs = await getJsonDiffsCached();
+    return jsonDiffs.diffs.find(diff => diff.dko3Les.lesId == lesId);
+}
+
+export async function getUrlForWorksheet(workBook: string, workSheet: string, cellAddress: string) {
+    let jsonDiffs = await getJsonDiffsCached();
+    let url =  jsonDiffs
+        .workBooks.find(wb => wb.name == workBook)
+        ?.worksheets.find(ws => ws.name == workSheet)
+        ?.url;
+    if(cellAddress) {
+        url = url + `&activeCell=${workSheet}!${cellAddress}`; //assuming activeCell is not the only param in the url.
+    }
+    return url;
+}

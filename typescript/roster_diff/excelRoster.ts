@@ -23,6 +23,7 @@ export type ClassDef = {
     excelRow: number;
     excelColumn: number;
     cellValue: string,
+    table: Table,
 }
 
 export class TimeSlice {
@@ -69,7 +70,7 @@ export function dayToMinutes(day: DayUppercase): number {
 }
 
 export class ExcelRoster {
-    private readonly table: Table;
+    public readonly table: Table;
     private locationDefs: string[];
     private readonly subjectDefs: string[];
     private errors: string[] = [];
@@ -137,6 +138,7 @@ export class ExcelRoster {
                     excelRow: excelPos.row,
                     excelColumn: excelPos.column,
                     cellValue,
+                    table: this.table
                 };
                 classDefs.push(classDef);
                 row = mergedRange.End.row+1;

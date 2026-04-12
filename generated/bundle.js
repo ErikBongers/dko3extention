@@ -1620,7 +1620,8 @@ var ExcelRoster = class {
 					description,
 					excelRow: excelPos.row,
 					excelColumn: excelPos.column,
-					cellValue
+					cellValue,
+					table: this.table
 				};
 				classDefs.push(classDef);
 				row = mergedRange.End.row + 1;
@@ -4862,6 +4863,32 @@ function appendGroupingAnchorOrText(target, grouping, activeSorting, separator) 
 
 //#endregion
 //#region typescript/roster_diff/buildDiff.ts
+let cachedDiffs = void 0;
+async function getJsonDiffsCached() {
+	if (cachedDiffs) return cachedDiffs;
+	return getDiffsFromCloud();
+}
+async function buildAndSaveDiff(reportStatus, fetchListener) {
+	reportStatus("Excel bestanden ophalen...");
+	let folderChanged = await fetchFolderChanged("Dko3/Uurroosters/");
+	reportStatus(`${folderChanged.files.length} Excel bestanden gevonden.`);
+	let jsonExcelDatas = [];
+	for (let file of folderChanged.files) {
+		let fileShortName = file.name.replaceAll("Dko3/Uurroosters/", "");
+		reportStatus(`Inlezen van ${fileShortName}...`);
+		let excelData = await fetchExcelData(file.name);
+		jsonExcelDatas.push(excelData);
+	}
+	reportStatus(`Vergelijken met DKO3 lessen...`);
+	let res = await runRosterCheck(jsonExcelDatas, reportStatus, fetchListener);
+	let jsonDiffs = createJsonDiffs(res.diffs, res.dko3LesSet, res.excelLesSet, res.excelRosters);
+	let fileName = getDiffsCloudFileName();
+	await cloud.json.upload(fileName, jsonDiffs);
+	sessionStorage.setItem(fileName, JSON.stringify(jsonDiffs));
+	reportStatus(`Vergelijking beeindigd.`);
+	cachedDiffs = jsonDiffs;
+	return jsonDiffs;
+}
 async function runRosterCheck(excelDatas, reportStatus, fetchListener) {
 	await postNotification("WOORD_ROSTER_RUN", "running", "Uurrooster worden vergeleken... (gestart door <todo:username>");
 	reportStatus("Vestigingsplaatsen ophalen...");
@@ -4885,16 +4912,20 @@ async function runRosterCheck(excelDatas, reportStatus, fetchListener) {
 	let subjects = dko3Lessen.map((les) => [les.vakNaam, les.naam]).flat();
 	subjects = [...new Set(subjects)];
 	let excelLessenArray = [];
+	let excelRosters = [];
 	for (let excelData of excelDatas) {
 		let factory = new RosterFactory(excelData);
 		let table = factory.getTable();
 		let roster = new ExcelRoster(table, locations, subjects);
+		excelRosters.push(roster);
 		excelLessenArray.push(roster.scrapeUurrooster());
 		console.log(excelLessenArray);
 	}
-	return await buildDiff(excelLessenArray.flat(), dko3Lessen, dko3AliasLessen, reportStatus, teachers);
+	return {
+		excelRosters,
+		...await buildDiff(excelLessenArray.flat(), dko3Lessen, dko3AliasLessen, reportStatus, teachers)
+	};
 }
-var buildDiff_default = runRosterCheck;
 var LesType = /* @__PURE__ */ function(LesType$2) {
 	LesType$2["modules"] = "3";
 	LesType$2["gewone"] = "1";
@@ -5190,7 +5221,7 @@ function getDiffsCloudFileName() {
 async function getDiffsFromCloud() {
 	return await cloud.json.fetch(getDiffsCloudFileName());
 }
-function createJsonDiffs(diffList, dko3LesSet, excelLesSet) {
+function createJsonDiffs(diffList, dko3LesSet, excelLesSet, excelRosters) {
 	let diffs = diffList.filter((diff) => diff.diffType != "perfect match").map((diff) => {
 		return {
 			excelLes: excelLesToJson(diff.excelLes),
@@ -5200,11 +5231,25 @@ function createJsonDiffs(diffList, dko3LesSet, excelLesSet) {
 	});
 	let orphanedDko3Lessen = [...dko3LesSet.values()].map((les) => dko3LesToJson(les));
 	let orphanedExcelLessen = [...excelLesSet.values()].map((les) => excelLesToJson(les));
+	let workBooks = new Map();
+	for (let excelData of excelRosters.map((r) => r.table.excelData)) {
+		if (!workBooks.has(excelData.workbookName)) workBooks.set(excelData.workbookName, {
+			name: excelData.workbookName,
+			worksheets: []
+		});
+		let workBook = workBooks.get(excelData.workbookName);
+		let workSheet = {
+			name: excelData.worksheetName,
+			url: excelData.url
+		};
+		workBook.worksheets.push(workSheet);
+	}
 	return {
 		diffs,
 		orphanedDko3Lessen,
 		orphanedExcelLessen,
-		isoDate: new Date().toISOString()
+		isoDate: new Date().toISOString(),
+		workBooks: [...workBooks.values()]
 	};
 }
 function dko3LesToJson(dko3Les) {
@@ -5227,7 +5272,9 @@ function excelLesToJson(excelLes) {
 		subject: excelLes.subjects.join(","),
 		teacher: excelLes.teachers.join(","),
 		location: excelLes.location,
-		cellValue: excelLes.lesMoment.cellValue
+		cellValue: excelLes.lesMoment.cellValue,
+		workBook: excelLes.lesMoment.table.excelData.workbookName,
+		workSheet: excelLes.lesMoment.table.excelData.worksheetName
 	};
 }
 function createDiffTable(divResults) {
@@ -5240,6 +5287,12 @@ function createDiffTable(divResults) {
 function toCompactTimeSliceString(timeSlice) {
 	if (!timeSlice) return "-geen uur-";
 	return `${pad(timeSlice.start.hour, 2)}:${pad(timeSlice.start.minutes, 2)} - ${pad(timeSlice.end.hour, 2)}:${pad(timeSlice.end.minutes, 2)}`;
+}
+async function getUrlForWorksheet(workBook, workSheet, cellAddress) {
+	let jsonDiffs = await getJsonDiffsCached();
+	let url = jsonDiffs.workBooks.find((wb) => wb.name == workBook)?.worksheets.find((ws) => ws.name == workSheet)?.url;
+	if (cellAddress) url = url + `&activeCell=${workSheet}!${cellAddress}`;
+	return url;
 }
 
 //#endregion
@@ -5255,16 +5308,16 @@ function showDiffs(diffs) {
 	decorateTableHeader(table, false);
 	for (let les of diffs.orphanedDko3Lessen) {
 		let tr = emmet.appendChild(tbody, "tr").last;
-		fillDiffRow(tr, les.subject, les.teacher, les.day, les.timeSlice, les.location, "perfect match", "dko3", les.momentId, "", les.lesId);
+		fillDiffRow(tr, les.subject, les.teacher, les.day, les.timeSlice, les.location, "perfect match", "dko3", les.momentId, "", les.lesId, "", "");
 	}
 	for (let les of diffs.orphanedExcelLessen) {
 		let tr = emmet.appendChild(tbody, "tr").last;
-		fillDiffRow(tr, les.subject, les.teacher, les.day, les.timeSlice, les.location, "perfect match", "excel", excelPostoExcelAddress(les.excelRow, les.excelColumn), les.cellValue, "");
+		fillDiffRow(tr, les.subject, les.teacher, les.day, les.timeSlice, les.location, "perfect match", "excel", excelPostoExcelAddress(les.excelRow, les.excelColumn), les.cellValue, "", les.workBook, les.workSheet);
 		tr.classList.add("excelRow");
 	}
 }
 function fillExcelDiffRow(tr, diff) {
-	fillDiffRow(tr, diff.excelLes.subject, diff.excelLes.teacher, diff.excelLes.day, diff.excelLes.timeSlice, diff.excelLes.location, diff.diffType, "excel", excelPostoExcelAddress(diff.excelLes.excelRow, diff.excelLes.excelColumn), diff.excelLes.cellValue, "");
+	fillDiffRow(tr, diff.excelLes.subject, diff.excelLes.teacher, diff.excelLes.day, diff.excelLes.timeSlice, diff.excelLes.location, diff.diffType, "excel", excelPostoExcelAddress(diff.excelLes.excelRow, diff.excelLes.excelColumn), diff.excelLes.cellValue, "", diff.excelLes.workBook, diff.excelLes.workSheet);
 }
 function displayDiff(diff, divResults) {
 	let tbody = emmet.appendChild(divResults, "table.diff>tbody").last;
@@ -5272,9 +5325,9 @@ function displayDiff(diff, divResults) {
 	fillExcelDiffRow(tr, diff);
 	tr.classList.add("excelRow");
 	let tr2 = emmet.appendChild(tbody, "tr").last;
-	fillDiffRow(tr2, diff.dko3Les.subject, diff.dko3Les.teacher, diff.dko3Les.day, diff.dko3Les.timeSlice, diff.dko3Les.location, diff.diffType, "dko3", diff.dko3Les.momentId, "", diff.dko3Les.lesId);
+	fillDiffRow(tr2, diff.dko3Les.subject, diff.dko3Les.teacher, diff.dko3Les.day, diff.dko3Les.timeSlice, diff.dko3Les.location, diff.diffType, "dko3", diff.dko3Les.momentId, "", diff.dko3Les.lesId, "", "");
 }
-function fillDiffRow(tr, subjects, teachers, day, timeSlice, location$1, diffType, rowType, rowId, cellValue, lesId) {
+function fillDiffRow(tr, subjects, teachers, day, timeSlice, location$1, diffType, rowType, rowId, cellValue, lesId, workBook, worksheet) {
 	let diffTeacherClass = "";
 	let diffLocationClass = "";
 	let diffTimeClass = "";
@@ -5313,21 +5366,25 @@ function fillDiffRow(tr, subjects, teachers, day, timeSlice, location$1, diffTyp
 	} else tdSubjects = `td${diffSubjectClass}{${subjects}}`;
 	let iconClass = rowType == "excel" ? "fa-grid" : "fa-chalkboard-user";
 	tr.dataset.lesId = lesId;
-	tr.dataset.rowId = rowId;
+	tr.dataset.cellAddress = rowId;
+	tr.dataset.workbook = workBook;
+	tr.dataset.worksheet = worksheet;
 	tr.dataset.rowType = rowType;
 	emmet.appendChild(tr, `${tdSubjects}+td${diffTeacherClass}{${teachers}}+td${diffDayClass}{${toCompactDayString(day)}}+td${diffTimeClass}{${timeSlice}}+td${diffLocationClass}{${location$1}}+td>button.goto>i.fas.${iconClass}`);
 	let button = tr.querySelector("button.goto");
 	button.onclick = gotoData;
 }
-const EXCEL_URL_TEST = "https://edusoantwerpen.sharepoint.com/:x:/s/dko/berchem/IQCujO4HZ0tVQ5PoV8RrEdoTAdDM_aDWVT2Pb5of8tPWKrY?activeCell=Definitief!";
-function gotoData(ev) {
+async function gotoData(ev) {
 	let button = ev.currentTarget;
 	let tr = button.closest("tr");
 	let rowType = tr.dataset.rowType;
-	let rowId = tr.dataset.rowId;
+	let cellAddress = tr.dataset.cellAddress;
+	let workBook = tr.dataset.workbook;
+	let workSheet = tr.dataset.worksheet;
 	let lesId = tr.dataset.lesId;
 	if (rowType == "excel") {
-		let url = EXCEL_URL_TEST + rowId;
+		let url = await getUrlForWorksheet(workBook, workSheet, cellAddress);
+		if (url == "") return;
 		window.open(url, "_blank");
 	} else if (rowType == "dko3") location.href = DKO3_BASE_URL + "#lessen-les?id=" + lesId;
 }
@@ -5637,24 +5694,7 @@ function setupPluginPage() {
 async function runDiff(reportStatus, fetchListener) {
 	let divResults = document.getElementById("diffResults");
 	divResults.innerHTML = "";
-	reportStatus("Excel bestanden ophalen...");
-	let folderChanged = await fetchFolderChanged("Dko3/Uurroosters/");
-	reportStatus(`${folderChanged.files.length} Excel bestanden gevonden.`);
-	let excelDatas = [];
-	for (let file of folderChanged.files) {
-		let fileShortName = file.name.replaceAll("Dko3/Uurroosters/", "");
-		reportStatus(`Inlezen van ${fileShortName}...`);
-		let excelData = await fetchExcelData(file.name);
-		excelDatas.push(excelData);
-	}
-	reportStatus(`Vergelijken met DKO3 lessen...`);
-	let res = await buildDiff_default(excelDatas, reportStatus, fetchListener);
-	let jsonDiffs = createJsonDiffs(res.diffs, res.dko3LesSet, res.excelLesSet);
-	let fileName = getDiffsCloudFileName();
-	await cloud.json.upload(fileName, jsonDiffs);
-	sessionStorage.setItem(fileName, JSON.stringify(jsonDiffs));
-	reportStatus(`Vergelijking beeindigd.`);
-	return jsonDiffs;
+	return buildAndSaveDiff(reportStatus, fetchListener);
 }
 async function setupDiffPage() {
 	let pluginContainer = document.getElementById("plugin_container");

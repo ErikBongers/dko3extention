@@ -138,7 +138,7 @@ export class ExcelData {
 
 
 export class Table {
-    private excelData: ExcelData;
+    public excelData: ExcelData;
     public tableRange: ExcelRange;
     rowHeaderCount: number;
     readonly columnHeaderCount: number;
