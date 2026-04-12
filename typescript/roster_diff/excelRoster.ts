@@ -260,6 +260,23 @@ export class ExcelRoster {
         { tag: "Atelier (musical)", searchString: " musicalatelier "},
     ];
 
+    public static ignoreList: string[] = [
+        " kunstkuren ",
+        " arrangeren",
+        " combo ",
+        " harmonielab ",
+        " klanklab ",
+        " muzieklab ",
+        " electronics ",
+        " big band ",
+        " blazersensemble ",
+        " groepsmusiceren (jass pop rock) ",
+        " geluidsleer ",
+        " koor (jazz pop rock) ",
+        " koor (musical) ",
+        " slagwerkensemble ",
+    ];
+
     private findLocation(tags: string[]) {
         let location = this.locationDefs.find(location => tags.includes(location));
         if(location)

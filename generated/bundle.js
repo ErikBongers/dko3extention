@@ -1921,6 +1921,22 @@ var ExcelRoster = class {
 			searchString: " musicalatelier "
 		}
 	];
+	static ignoreList = [
+		" kunstkuren ",
+		" arrangeren",
+		" combo ",
+		" harmonielab ",
+		" klanklab ",
+		" muzieklab ",
+		" electronics ",
+		" big band ",
+		" blazersensemble ",
+		" groepsmusiceren (jass pop rock) ",
+		" geluidsleer ",
+		" koor (jazz pop rock) ",
+		" koor (musical) ",
+		" slagwerkensemble "
+	];
 	findLocation(tags) {
 		let location$1 = this.locationDefs.find((location$2) => tags.includes(location$2));
 		if (location$1) return location$1;
@@ -5006,7 +5022,7 @@ var TaggedDko3LesMoment = class extends TaggedLes {
 var TaggedExcelLes = class extends TaggedLes {
 	dayTimeSlice;
 	constructor(les, teachers) {
-		let searchText = "";
+		let searchText = " " + les.cellValue.toLowerCase().replaceAll("\n", " \n ").replaceAll("(", " ( ").replaceAll(")", " ) ").replaceAll(".", " . ").replaceAll(",", " , ").replaceAll("-", " - ") + " ";
 		let tags = [];
 		super(les, tags, searchText);
 		this.location = this.lesMoment.location;
@@ -5016,13 +5032,25 @@ var TaggedExcelLes = class extends TaggedLes {
 		this.dayTimeSlice = new DayTimeSlice(les.day, les.timeSlice);
 	}
 };
+function isDko3LesToIgnore(les) {
+	return ExcelRoster.ignoreList.some((ignore) => (" " + les.lesMoment.les.naam.toLowerCase() + " ").includes(ignore) || (" " + les.lesMoment.les.vakNaam.toLowerCase() + " ").includes(ignore));
+}
+function isExcelLesToIgnore(les) {
+	return ExcelRoster.ignoreList.some((ignore) => les.searchText.includes(ignore));
+}
 async function buildDiff(excelLessen, dko3Lessen, dko3AliasLessen, reportStatus, teachers) {
 	let diffs = [];
 	let excelLesSet = new Set(excelLessen.map((les) => new TaggedExcelLes(les, teachers)));
+	excelLesSet.forEach((les) => {
+		if (isExcelLesToIgnore(les)) excelLesSet.delete(les);
+	});
 	let lesMomenten = dko3Lessen.map((les) => les.dayTimeSlices.map((slice) => {
 		return new Dko3LesMoment(les, slice);
 	})).flat().map((lesMoment) => new TaggedDko3LesMoment(lesMoment));
 	let dko3LesSet = new Set(lesMomenten);
+	dko3LesSet.forEach((les) => {
+		if (isDko3LesToIgnore(les)) dko3LesSet.delete(les);
+	});
 	let dko3LesMap = new Map();
 	for (let les of dko3Lessen) dko3LesMap.set(les.id, les);
 	let lesMomentenMap = new Map();

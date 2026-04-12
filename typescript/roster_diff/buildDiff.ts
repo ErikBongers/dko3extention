@@ -1,6 +1,6 @@
-import {ExcelData, JsonExcelData} from "./excel";
+import {JsonExcelData} from "./excel";
 import {RosterFactory} from "./rosterFactory";
-import {ClassDef, ExcelRoster, TeacherDef, TimeSlice, timeToMinutes} from "./excelRoster";
+import {ClassDef, ExcelRoster, TeacherDef, TimeSlice} from "./excelRoster";
 import {cloud, fetchExcelData, fetchFolderChanged, postNotification} from "../cloud";
 import {FetchChain} from "../table/fetchChain";
 import {getSchoolIdString, pad, Schoolyear} from "../globals";
@@ -40,6 +40,9 @@ export async function buildAndSaveDiff(reportStatus: StatusCallback, fetchListen
     return jsonDiffs;
 }
 
+function removeIgnoreLessen(lessen: Les[]) {
+
+}
 async function runRosterCheck(excelDatas: JsonExcelData[], reportStatus: StatusCallback, fetchListener: InfoBarTableFetchListener) {
     await postNotification("WOORD_ROSTER_RUN", "running", "Uurrooster worden vergeleken... (gestart door <todo:username>");
 
@@ -175,7 +178,15 @@ export class TaggedDko3LesMoment extends TaggedLes<Dko3LesMoment> {
 export class TaggedExcelLes extends TaggedLes<ClassDef> {
     public dayTimeSlice: DayTimeSlice;
     constructor(les: ClassDef, teachers: TeacherDef[]) {
-        let searchText = "";
+        let searchText = " " + les.cellValue
+            .toLowerCase()
+            .replaceAll('\n', " \n ")
+            .replaceAll("(", " ( ")
+            .replaceAll(")", " ) ")
+            .replaceAll(".", " . ")
+            .replaceAll(",", " , ")
+            .replaceAll("-", " - ")
+            + " ";
         let tags: string[] = [];
         super(les, tags, searchText);
         this.location = this.lesMoment.location;//translate probably already done.
@@ -186,9 +197,24 @@ export class TaggedExcelLes extends TaggedLes<ClassDef> {
     }
 }
 
+function isDko3LesToIgnore(les: TaggedDko3LesMoment) {
+    return ExcelRoster.ignoreList.some(ignore =>
+        (" "+les.lesMoment.les.naam.toLowerCase()+" ").includes(ignore) //todo: use subjects array instead of naam and vakNaam
+        || (" "+les.lesMoment.les.vakNaam.toLowerCase()+" ").includes(ignore)
+    )
+}
+
+function isExcelLesToIgnore(les: TaggedExcelLes) {
+    return ExcelRoster.ignoreList.some(ignore => les.searchText.includes(ignore))
+}
+
 async function buildDiff(excelLessen: ClassDef[], dko3Lessen: Les[], dko3AliasLessen: Les[], reportStatus: StatusCallback, teachers: TeacherDef[]) {
     let diffs: Diff[] = [];
     let excelLesSet: Set<TaggedExcelLes> = new Set<TaggedExcelLes>(excelLessen.map(les => new TaggedExcelLes(les, teachers)));
+    excelLesSet.forEach(les=> {
+        if(isExcelLesToIgnore(les))
+            excelLesSet.delete(les);
+    })
     //split each Dko3 les into multiple lesMoments
     let lesMomenten = dko3Lessen
         .map(les => les.dayTimeSlices
@@ -198,6 +224,12 @@ async function buildDiff(excelLessen: ClassDef[], dko3Lessen: Les[], dko3AliasLe
         .flat()
         .map(lesMoment => new TaggedDko3LesMoment(lesMoment));
     let dko3LesSet: Set<TaggedDko3LesMoment> = new Set<TaggedDko3LesMoment>(lesMomenten);
+
+    dko3LesSet.forEach(les=> {
+        if(isDko3LesToIgnore(les))
+            dko3LesSet.delete(les);
+    })
+
     let dko3LesMap: Map<string, Les> = new Map();
     for(let les of dko3Lessen)
         dko3LesMap.set(les.id, les);

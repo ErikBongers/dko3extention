@@ -1,6 +1,7 @@
-* add url to excel?
-  > or just the GUID?
-  > hidden under button?
+* Create ignore list.
+  > just a list of (tagged?)jsonLes JSON strings.
+    > if anything changes, the line pops back up.
+      > delete lines that are no longer existing, just to be safe.
 * Make flow that informs some users (via mail?) that a roster has changed.
   > too much spam?
   > have a diff with previous uploaded version?
@@ -15,14 +16,6 @@
       > not a big issue if I do the maintenace.
       > otherwise...have a form that lists the cloud files and the option to delete them.
         > version 37...
-
-* url to sharepoint file is hard-coded.
-  > add a list of filenames+urls
-    > don't make this too fancy: just a multiline json text field
-    : [
-        {"fileName": "url"},
-        ...
-      ]
 
 * Show notification when refreshing any page.
 * When file is removed from folder: also remove it in cloud.
