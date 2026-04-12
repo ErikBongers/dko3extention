@@ -52,6 +52,12 @@ async function runRosterCheck(excelDatas: JsonExcelData[], reportStatus: StatusC
 
     reportStatus("DKO3 gevevens ophalen...");
     let teachers = await fetchTeachers("2025-2026");
+    for(let teacher of teachers) {
+        for(let callDef of ExcelRoster.callNames) {
+            if(teacher.name == callDef.tag)
+                teacher.callName = callDef.searchString;
+        }
+    }
     let dko3Lessen = await scrapeLessen(Domein.Woord, LesType.gewone);
     let muziekLessen = await scrapeLessen(Domein.Muziek, LesType.gewone);
     let kbLessen = await scrapeLessen(Domein.DomeinOV, LesType.gewone);
@@ -461,6 +467,9 @@ export function findTeacher(searchString: string, teachers: TeacherDef[]) {
     for(let teacherDef of teachers){
         if(lowerCase.includes(teacherDef.firstName.toLowerCase()))
             return teacherDef.name;
+        if(teacherDef.callName)
+            if(lowerCase.includes(teacherDef.callName.toLowerCase()))
+                return teacherDef.name;
     }
     return searchString;
 }

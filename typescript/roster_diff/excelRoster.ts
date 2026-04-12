@@ -255,7 +255,6 @@ export class ExcelRoster {
         { tag: "Muziekatelier", searchString: " 3v "},
         { tag: "Muziekatelier", searchString: " 1t "},
         { tag: "Muziekatelier", searchString: " 2t "},
-        { tag: "Robert", searchString: " bert "},
         { tag: "Groepsmusiceren (klassiek)", searchString: " gm "},
         { tag: "Atelier (musical)", searchString: " musicalatelier "},
     ];
@@ -275,6 +274,10 @@ export class ExcelRoster {
         " koor (jazz pop rock) ",
         " koor (musical) ",
         " slagwerkensemble ",
+    ];
+
+    public static callNames: TagDef[] = [
+        {tag: "Van Goethem, Robert", searchString: "bert"},
     ];
 
     private findLocation(tags: string[]) {
@@ -338,6 +341,7 @@ export class ExcelRoster {
 export interface TeacherDef {
     name: string;
     firstName: string;
+    callName?: string;
 }
 
 export function parseTime(timeString: string): Time | null {

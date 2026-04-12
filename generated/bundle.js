@@ -1909,10 +1909,6 @@ var ExcelRoster = class {
 			searchString: " 2t "
 		},
 		{
-			tag: "Robert",
-			searchString: " bert "
-		},
-		{
 			tag: "Groepsmusiceren (klassiek)",
 			searchString: " gm "
 		},
@@ -1937,6 +1933,10 @@ var ExcelRoster = class {
 		" koor (musical) ",
 		" slagwerkensemble "
 	];
+	static callNames = [{
+		tag: "Van Goethem, Robert",
+		searchString: "bert"
+	}];
 	findLocation(tags) {
 		let location$1 = this.locationDefs.find((location$2) => tags.includes(location$2));
 		if (location$1) return location$1;
@@ -4912,6 +4912,7 @@ async function runRosterCheck(excelDatas, reportStatus, fetchListener) {
 	let locations = [...locationsTable.getRows()].map((tr) => tr.cells[1].textContent);
 	reportStatus("DKO3 gevevens ophalen...");
 	let teachers = await fetchTeachers("2025-2026");
+	for (let teacher of teachers) for (let callDef of ExcelRoster.callNames) if (teacher.name == callDef.tag) teacher.callName = callDef.searchString;
 	let dko3Lessen = await scrapeLessen(Domein.Woord, LesType.gewone);
 	let muziekLessen = await scrapeLessen(Domein.Muziek, LesType.gewone);
 	let kbLessen = await scrapeLessen(Domein.DomeinOV, LesType.gewone);
@@ -5238,7 +5239,12 @@ async function fetchTeachers(schoolYear) {
 }
 function findTeacher(searchString, teachers) {
 	let lowerCase = searchString.toLowerCase();
-	for (let teacherDef of teachers) if (lowerCase.includes(teacherDef.firstName.toLowerCase())) return teacherDef.name;
+	for (let teacherDef of teachers) {
+		if (lowerCase.includes(teacherDef.firstName.toLowerCase())) return teacherDef.name;
+		if (teacherDef.callName) {
+			if (lowerCase.includes(teacherDef.callName.toLowerCase())) return teacherDef.name;
+		}
+	}
 	return searchString;
 }
 function getDiffsCloudFileName() {
