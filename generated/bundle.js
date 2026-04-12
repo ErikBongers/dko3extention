@@ -5335,7 +5335,7 @@ function showDiffs(diffs) {
 	let divResults = document.getElementById("diffResults");
 	divResults.innerHTML = "";
 	let elapsedTimeString = dateDiffToString(new Date(diffs.isoDate), new Date());
-	if (elapsedTimeString != "") emmet.appendChild(divResults, `p{Laatste vergelijking: ${elapsedTimeString}}} geleden.`);
+	if (elapsedTimeString != "") emmet.appendChild(divResults, `p{Laatste vergelijking: ${elapsedTimeString}} geleden.}`);
 	for (let diff of diffs.diffs) displayDiff(diff, divResults);
 	emmet.appendChild(divResults, "h4{Lessen zonder overeenkomsten}");
 	let { table, tbody } = createDiffTable(divResults);
