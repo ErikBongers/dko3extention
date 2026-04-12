@@ -74,7 +74,7 @@ export function fillDiffRow(tr: HTMLTableRowElement, subjects: string, teachers:
     tr.dataset.workbook = workBook;
     tr.dataset.worksheet = worksheet;
     tr.dataset.rowType = rowType;
-    emmet.appendChild(tr, `${tdSubjects}+td${diffTeacherClass}{${teachers}}+td${diffDayClass}{${toCompactDayString(day as DayUppercase)}}+td${diffTimeClass}{${timeSlice}}+td${diffLocationClass}{${location}}+td>button.goto>i.fas.${iconClass}`)
+    emmet.appendChild(tr, `${tdSubjects}+td${diffTeacherClass}{${teachers}}+td${diffDayClass}{${toCompactDayString(day as DayUppercase)}}+td${diffTimeClass}{${timeSlice}}+td${diffLocationClass}{${location}}+(td.button>button.goto>i.fas.${iconClass})+(td.button>button.goto>i.fas.fa-check)`)
     let button = tr.querySelector("button.goto") as HTMLButtonElement;
     button.onclick = gotoData;
 }

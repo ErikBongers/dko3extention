@@ -413,7 +413,11 @@ table.diff {
         &.diff {
             background-color: rgb(255 160 122 / 0.5);
         }
+        &.button {
+            padding: 0;
+        }
         & button {
+            padding: 0 .3ch;
             color: inherit;
             opacity: 0.5;
             border: none;

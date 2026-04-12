@@ -5312,7 +5312,7 @@ function excelLesToJson(excelLes) {
 	};
 }
 function createDiffTable(divResults) {
-	let { first: table, last: tbody } = emmet.appendChild(divResults, "table#orphans.diff>(thead>tr>(th.subject{Vak/Lesnaam}+th.teacher{Leraar}+th.day{Dag}+th.{Uur}+th.location{Vestiging}+th))+tbody");
+	let { first: table, last: tbody } = emmet.appendChild(divResults, "table#orphans.diff>(thead>tr>(th.subject{Vak/Lesnaam}+th.teacher{Leraar}+th.day{Dag}+th.{Uur}+th.location{Vestiging}+th+th))+tbody");
 	return {
 		table,
 		tbody
@@ -5404,7 +5404,7 @@ function fillDiffRow(tr, subjects, teachers, day, timeSlice, location$1, diffTyp
 	tr.dataset.workbook = workBook;
 	tr.dataset.worksheet = worksheet;
 	tr.dataset.rowType = rowType;
-	emmet.appendChild(tr, `${tdSubjects}+td${diffTeacherClass}{${teachers}}+td${diffDayClass}{${toCompactDayString(day)}}+td${diffTimeClass}{${timeSlice}}+td${diffLocationClass}{${location$1}}+td>button.goto>i.fas.${iconClass}`);
+	emmet.appendChild(tr, `${tdSubjects}+td${diffTeacherClass}{${teachers}}+td${diffDayClass}{${toCompactDayString(day)}}+td${diffTimeClass}{${timeSlice}}+td${diffLocationClass}{${location$1}}+(td.button>button.goto>i.fas.${iconClass})+(td.button>button.goto>i.fas.fa-check)`);
 	let button = tr.querySelector("button.goto");
 	button.onclick = gotoData;
 }
