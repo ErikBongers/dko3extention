@@ -11,7 +11,7 @@ export function showDiffs(diffs: JsonDiffs) {
 
     let elapsedTimeString = dateDiffToString(new Date(diffs.isoDate), new Date());
     if(elapsedTimeString != "")
-        emmet.appendChild(divResults, `p{Laatste vergelijking: ${elapsedTimeString}}} geleden.`)
+        emmet.appendChild(divResults, `p{Laatste vergelijking: ${elapsedTimeString}} geleden.}`)
     for(let diff of diffs.diffs)
         displayDiff(diff, divResults); //<i class="fa-solid fa-arrow-up-right-from-square"></i>
 
