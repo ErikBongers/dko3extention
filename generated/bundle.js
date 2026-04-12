@@ -1362,19 +1362,10 @@ var ExcelData = class {
 		this.data = data;
 		this.mergedRanges = mergedRanges.map((r) => new ExcelRange(r.start, r.end));
 		this.url = url;
-		debugger;
-		this.url = "https://edusoantwerpen.sharepoint.com/:x:/r/sites/dko/berchem/_layouts/15/Doc.aspx?sourcedoc=%7B07EE8CAE-4B67-4355-93E8-57C46B11DA13%7D&file=Woord_uurrooster_25-26.xlsx&action=default&mobileredirect=true&activeCell=Blad%201!C5&whatever=sdfsdf";
-		this.url = "https://edusoantwerpen.sharepoint.com/:x:/r/sites/dko/berchem/_layouts/15/Doc.aspx?activeCell=Blad%201!C5&sourcedoc=%7B07EE8CAE-4B67-4355-93E8-57C46B11DA13%7D&file=Woord_uurrooster_25-26.xlsx&action=default&mobileredirect=true";
 		if (this.url) {
-			let rxActiveCell = /[&?]activeCell=[A-Za-z0-9_]+![A-Za-z0-9_]+\d+/g;
-			let urlDecodeSpace = this.url.replaceAll(/%20/g, "__SPACE__");
-			let match$1 = rxActiveCell.exec(urlDecodeSpace);
-			if (match$1) if (match$1[0].indexOf("?") >= 0) {
-				let urlParams = new URLSearchParams(urlDecodeSpace.substring(urlDecodeSpace.indexOf("?") + 1));
-				urlParams.delete("activeCell");
-				urlDecodeSpace = urlDecodeSpace.substring(0, urlDecodeSpace.indexOf("?")) + "?" + urlParams.toString();
-			} else urlDecodeSpace = urlDecodeSpace.replace(match$1[0], "");
-			this.url = urlDecodeSpace.replaceAll("__SPACE__", "%20");
+			let urlParams = new URLSearchParams(this.url.substring(this.url.indexOf("?") + 1));
+			urlParams.delete("activeCell");
+			this.url = this.url.substring(0, this.url.indexOf("?")) + "?" + urlParams.toString();
 		}
 		this.workbookName = workbookName;
 		this.worksheetName = worksheetName;

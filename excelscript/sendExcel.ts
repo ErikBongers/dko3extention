@@ -32,7 +32,7 @@ async function main(workbook: ExcelScript.Workbook) {
     let worksheetName = activeWorksheet.getName();
     console.log(`Sending exel file: ${workbookName} - sheet: ${worksheetName}`);
     let fullRange = activeWorksheet.getUsedRange();
-    let url = workbook.getNamedItem("Url")?.getName();
+    let url = workbook.getNamedItem("Url")?.getRange().getValue() as string;
     if(!url) {
         setError(workbook, "Warning: Er is geen URL gevonden in het document.");
     }
