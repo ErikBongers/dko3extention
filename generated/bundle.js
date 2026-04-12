@@ -5198,7 +5198,8 @@ function createJsonDiffs(diffList, dko3LesSet, excelLesSet) {
 }
 function dko3LesToJson(dko3Les) {
 	return {
-		lesId: dko3Les.lesMoment.momentId,
+		momentId: dko3Les.lesMoment.momentId,
+		lesId: dko3Les.lesMoment.les.id,
 		day: dko3Les.lesMoment.dayTimeSlice.day,
 		timeSlice: toCompactTimeSliceString(dko3Les.lesMoment.dayTimeSlice.timeSlice),
 		subject: dko3Les.subjects.join(","),
@@ -5243,16 +5244,16 @@ function showDiffs(diffs) {
 	decorateTableHeader(table, false);
 	for (let les of diffs.orphanedDko3Lessen) {
 		let tr = emmet.appendChild(tbody, "tr").last;
-		fillDiffRow(tr, les.subject, les.teacher, les.day, les.timeSlice, les.location, "perfect match", "dko3", les.lesId, "");
+		fillDiffRow(tr, les.subject, les.teacher, les.day, les.timeSlice, les.location, "perfect match", "dko3", les.momentId, "", les.lesId);
 	}
 	for (let les of diffs.orphanedExcelLessen) {
 		let tr = emmet.appendChild(tbody, "tr").last;
-		fillDiffRow(tr, les.subject, les.teacher, les.day, les.timeSlice, les.location, "perfect match", "excel", excelPostoExcelAddress(les.excelRow, les.excelColumn), les.cellValue);
+		fillDiffRow(tr, les.subject, les.teacher, les.day, les.timeSlice, les.location, "perfect match", "excel", excelPostoExcelAddress(les.excelRow, les.excelColumn), les.cellValue, "");
 		tr.classList.add("excelRow");
 	}
 }
 function fillExcelDiffRow(tr, diff) {
-	fillDiffRow(tr, diff.excelLes.subject, diff.excelLes.teacher, diff.excelLes.day, diff.excelLes.timeSlice, diff.excelLes.location, diff.diffType, "excel", excelPostoExcelAddress(diff.excelLes.excelRow, diff.excelLes.excelColumn), diff.excelLes.cellValue);
+	fillDiffRow(tr, diff.excelLes.subject, diff.excelLes.teacher, diff.excelLes.day, diff.excelLes.timeSlice, diff.excelLes.location, diff.diffType, "excel", excelPostoExcelAddress(diff.excelLes.excelRow, diff.excelLes.excelColumn), diff.excelLes.cellValue, "");
 }
 function displayDiff(diff, divResults) {
 	let tbody = emmet.appendChild(divResults, "table.diff>tbody").last;
@@ -5260,9 +5261,9 @@ function displayDiff(diff, divResults) {
 	fillExcelDiffRow(tr, diff);
 	tr.classList.add("excelRow");
 	let tr2 = emmet.appendChild(tbody, "tr").last;
-	fillDiffRow(tr2, diff.dko3Les.subject, diff.dko3Les.teacher, diff.dko3Les.day, diff.dko3Les.timeSlice, diff.dko3Les.location, diff.diffType, "dko3", diff.dko3Les.lesId, "");
+	fillDiffRow(tr2, diff.dko3Les.subject, diff.dko3Les.teacher, diff.dko3Les.day, diff.dko3Les.timeSlice, diff.dko3Les.location, diff.diffType, "dko3", diff.dko3Les.momentId, "", diff.dko3Les.lesId);
 }
-function fillDiffRow(tr, subjects, teachers, day, timeSlice, location$1, diffType, rowType, rowId, cellValue) {
+function fillDiffRow(tr, subjects, teachers, day, timeSlice, location$1, diffType, rowType, rowId, cellValue, lesId) {
 	let diffTeacherClass = "";
 	let diffLocationClass = "";
 	let diffTimeClass = "";
@@ -5300,6 +5301,7 @@ function fillDiffRow(tr, subjects, teachers, day, timeSlice, location$1, diffTyp
 		tdSubjects = `(td${diffSubjectClass}>div.diffTooltip{-onbekend-}>span.diffTooltiptext{${cellValue}})`;
 	} else tdSubjects = `td${diffSubjectClass}{${subjects}}`;
 	let iconClass = rowType == "excel" ? "fa-grid" : "fa-chalkboard-user";
+	tr.dataset.lesId = lesId;
 	tr.dataset.rowId = rowId;
 	tr.dataset.rowType = rowType;
 	emmet.appendChild(tr, `${tdSubjects}+td${diffTeacherClass}{${teachers}}+td${diffDayClass}{${toCompactDayString(day)}}+td${diffTimeClass}{${timeSlice}}+td${diffLocationClass}{${location$1}}+td>button.goto>i.fas.${iconClass}`);
@@ -5312,10 +5314,11 @@ function gotoData(ev) {
 	let tr = button.closest("tr");
 	let rowType = tr.dataset.rowType;
 	let rowId = tr.dataset.rowId;
+	let lesId = tr.dataset.lesId;
 	if (rowType == "excel") {
 		let url = EXCEL_URL_TEST + rowId;
 		window.open(url, "_blank");
-	} else if (rowType == "dko3") location.href = DKO3_BASE_URL + "#lessen-les?id=" + rowId;
+	} else if (rowType == "dko3") location.href = DKO3_BASE_URL + "#lessen-les?id=" + lesId;
 }
 function toCompactDayString(day) {
 	switch (day) {

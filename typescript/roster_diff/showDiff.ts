@@ -21,17 +21,17 @@ export function showDiffs(diffs: JsonDiffs) {
     decorateTableHeader(table, false);
     for(let les of diffs.orphanedDko3Lessen) {
         let tr = emmet.appendChild(tbody, "tr").last as HTMLTableRowElement;
-        fillDiffRow(tr, les.subject, les.teacher, les.day, les.timeSlice, les.location, "perfect match", "dko3", les.lesId, "");
+        fillDiffRow(tr, les.subject, les.teacher, les.day, les.timeSlice, les.location, "perfect match", "dko3", les.momentId, "", les.lesId);
     }
     for(let les of diffs.orphanedExcelLessen) {
         let tr = emmet.appendChild(tbody, "tr").last as HTMLTableRowElement;
-        fillDiffRow(tr, les.subject, les.teacher, les.day as DayUppercase, les.timeSlice, les.location, "perfect match", "excel", excelPostoExcelAddress(les.excelRow, les.excelColumn), les.cellValue);
+        fillDiffRow(tr, les.subject, les.teacher, les.day as DayUppercase, les.timeSlice, les.location, "perfect match", "excel", excelPostoExcelAddress(les.excelRow, les.excelColumn), les.cellValue, "");
         tr.classList.add("excelRow");
     }
 }
 
 export function fillExcelDiffRow(tr: HTMLTableRowElement, diff: JsonDiff) {
-    fillDiffRow(tr, diff.excelLes.subject, diff.excelLes.teacher, diff.excelLes.day as DayUppercase, diff.excelLes.timeSlice, diff.excelLes.location, diff.diffType, "excel", excelPostoExcelAddress(diff.excelLes.excelRow, diff.excelLes.excelColumn), diff.excelLes.cellValue);
+    fillDiffRow(tr, diff.excelLes.subject, diff.excelLes.teacher, diff.excelLes.day as DayUppercase, diff.excelLes.timeSlice, diff.excelLes.location, diff.diffType, "excel", excelPostoExcelAddress(diff.excelLes.excelRow, diff.excelLes.excelColumn), diff.excelLes.cellValue, "");
 }
 
 function displayDiff(diff: JsonDiff, divResults: HTMLDivElement) {
@@ -40,10 +40,10 @@ function displayDiff(diff: JsonDiff, divResults: HTMLDivElement) {
     fillExcelDiffRow(tr, diff);
     tr.classList.add("excelRow");
     let tr2 = emmet.appendChild(tbody, "tr").last as HTMLTableRowElement;
-    fillDiffRow(tr2, diff.dko3Les.subject, diff.dko3Les.teacher, diff.dko3Les.day as DayUppercase, diff.dko3Les.timeSlice, diff.dko3Les.location, diff.diffType, "dko3", diff.dko3Les.lesId, "");
+    fillDiffRow(tr2, diff.dko3Les.subject, diff.dko3Les.teacher, diff.dko3Les.day as DayUppercase, diff.dko3Les.timeSlice, diff.dko3Les.location, diff.diffType, "dko3", diff.dko3Les.momentId, "", diff.dko3Les.lesId);
 }
 
-export function fillDiffRow(tr: HTMLTableRowElement, subjects: string, teachers: string, day: DayUppercase, timeSlice: string, location: string, diffType: DiffType, rowType: ("excel" | "dko3"), rowId: string, cellValue: string) {
+export function fillDiffRow(tr: HTMLTableRowElement, subjects: string, teachers: string, day: DayUppercase, timeSlice: string, location: string, diffType: DiffType, rowType: ("excel" | "dko3"), rowId: string, cellValue: string, lesId: string) {
     let diffTeacherClass: string = "";
     let diffLocationClass: string = "";
     let diffTimeClass: string = "";
@@ -69,6 +69,7 @@ export function fillDiffRow(tr: HTMLTableRowElement, subjects: string, teachers:
     } else
         tdSubjects = `td${diffSubjectClass}{${subjects}}`;
     let iconClass = rowType == "excel" ? "fa-grid" : "fa-chalkboard-user";
+    tr.dataset.lesId = lesId;
     tr.dataset.rowId = rowId;
     tr.dataset.rowType = rowType;
     emmet.appendChild(tr, `${tdSubjects}+td${diffTeacherClass}{${teachers}}+td${diffDayClass}{${toCompactDayString(day as DayUppercase)}}+td${diffTimeClass}{${timeSlice}}+td${diffLocationClass}{${location}}+td>button.goto>i.fas.${iconClass}`)
@@ -82,13 +83,14 @@ function gotoData(ev: MouseEvent) {
     let tr = button.closest("tr") as HTMLTableRowElement;
     let rowType = tr.dataset.rowType as ("excel" | "dko3");
     let rowId = tr.dataset.rowId;
+    let lesId = tr.dataset.lesId;
 
     if(rowType == "excel") {
         let url = EXCEL_URL_TEST + rowId;
         window.open(url, "_blank");
     }
     else if(rowType == "dko3") {
-        location.href =  DKO3_BASE_URL + "#lessen-les?id="+rowId;
+        location.href =  DKO3_BASE_URL + "#lessen-les?id="+lesId;
     }
 }
 

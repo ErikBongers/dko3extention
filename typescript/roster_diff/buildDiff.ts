@@ -412,7 +412,7 @@ export async function getDiffsFromCloud() {
     return await cloud.json.fetch(getDiffsCloudFileName()) as JsonDiffs;
 }
 
-export interface JsonExcelLes {
+export interface JsonExcelLesMoment {
     subject: string;
     teacher: string;
     day: DayUppercase;
@@ -423,25 +423,26 @@ export interface JsonExcelLes {
     cellValue: string;
 }
 
-export interface JsonDko3Les {
+export interface JsonDko3LesMoment {
     subject: string;
     teacher: string;
     day: DayUppercase;
     timeSlice: string;
     location: string;
     lesId: string;
+    momentId: string;
 }
 
 export interface JsonDiff {
-    excelLes: JsonExcelLes;
-    dko3Les: JsonDko3Les;
+    excelLes: JsonExcelLesMoment;
+    dko3Les: JsonDko3LesMoment;
     diffType: DiffType;
 }
 
 export interface JsonDiffs {
     diffs: JsonDiff[];
-    orphanedDko3Lessen: JsonDko3Les[];
-    orphanedExcelLessen: JsonExcelLes[];
+    orphanedDko3Lessen: JsonDko3LesMoment[];
+    orphanedExcelLessen: JsonExcelLesMoment[];
     isoDate: string
 }
 
@@ -465,9 +466,10 @@ export function createJsonDiffs(diffList: Diff[], dko3LesSet: Set<TaggedDko3LesM
     } satisfies JsonDiffs;
 }
 
-function dko3LesToJson(dko3Les: TaggedDko3LesMoment): JsonDko3Les {
+function dko3LesToJson(dko3Les: TaggedDko3LesMoment): JsonDko3LesMoment {
     return {
-        lesId: dko3Les.lesMoment.momentId,
+        momentId: dko3Les.lesMoment.momentId,
+        lesId: dko3Les.lesMoment.les.id,
         day: dko3Les.lesMoment.dayTimeSlice.day,
         timeSlice: toCompactTimeSliceString(dko3Les.lesMoment.dayTimeSlice.timeSlice),
         subject: dko3Les.subjects.join(","),
@@ -476,7 +478,7 @@ function dko3LesToJson(dko3Les: TaggedDko3LesMoment): JsonDko3Les {
     };
 }
 
-function excelLesToJson(excelLes: TaggedExcelLes): JsonExcelLes {
+function excelLesToJson(excelLes: TaggedExcelLes): JsonExcelLesMoment {
     return {
         excelColumn: excelLes.lesMoment.excelColumn,
         excelRow: excelLes.lesMoment.excelRow,

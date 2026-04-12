@@ -1,4 +1,5 @@
-* Add muziek roster.
+* Click to open les no longer works: lesId vs momentId.
+
 * Make flow that informs some users (via mail?) that a roster has changed.
   > too much spam?
   > have a diff with previous uploaded version?
