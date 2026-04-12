@@ -12,6 +12,14 @@ type IdxPoint = {
     column: number
 }
 
+type JsonData = {
+    data: Data,
+    mergedRanges: IdxRange[],
+    url: string | undefined,
+    workbookName: string,
+    worksheetName: string,
+}
+
 async function main(workbook: ExcelScript.Workbook) {
     let statusField = workbook.getNamedItem("SendStatus").getRange();
     statusField.setValue("Gegevens worden doorgestuurd...even geduld...");
@@ -20,13 +28,25 @@ async function main(workbook: ExcelScript.Workbook) {
 
     let FolderName: string = "Dko3/Uurroosters";
     let workbookName = workbook.getName()
-    console.log("Sending exel file: " + workbookName);
-    let fullRange = workbook.getActiveWorksheet().getUsedRange();
+    let activeWorksheet = workbook.getActiveWorksheet()
+    let worksheetName = activeWorksheet.getName();
+    console.log(`Sending exel file: ${workbookName} - sheet: ${worksheetName}`);
+    let fullRange = activeWorksheet.getUsedRange();
+    let url = workbook.getNamedItem("Url")?.getName();
+    if(!url) {
+        setError(workbook, "Warning: Er is geen URL gevonden in het document.");
+    }
     let data: Data = fullRange.getValues();
     console.log("data");
     let mergedRanges: IdxRange[] = collectMergedRanges(fullRange);
     console.log("json");
-    let json = { data, mergedRanges };
+    let json: JsonData = {
+        data,
+        mergedRanges,
+        worksheetName: activeWorksheet.getName(),
+        workbookName,
+        url
+    };
     console.log("to string");
     console.log(JSON.stringify(json));
     console.log("sending...");

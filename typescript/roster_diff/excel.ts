@@ -90,18 +90,52 @@ export class TableRange {
     }
 }
 
-export interface JsonExcelData {
+export type JsonExcelData = {
     data: string[][];
     mergedRanges: JsonRange[];
+    url: string | undefined,
+    workbookName: string,
+    worksheetName: string,
 }
+
 
 export class ExcelData {
     data: string[][];
     mergedRanges: ExcelRange[];
+    url: string | undefined;
+    workbookName: string;
+    worksheetName: string;
 
-    public constructor(data: string[][], mergedRanges: JsonRange[]) {
+    public constructor(data: string[][], mergedRanges: JsonRange[], url: string | undefined, workbookName: string, worksheetName: string) {
         this.data = data;
         this.mergedRanges = mergedRanges.map(r => new ExcelRange(r.start, r.end));
+        this.url = url;
+        //TEST
+        debugger;
+        this.url = "https://edusoantwerpen.sharepoint.com/:x:/r/sites/dko/berchem/_layouts/15/Doc.aspx?sourcedoc=%7B07EE8CAE-4B67-4355-93E8-57C46B11DA13%7D&file=Woord_uurrooster_25-26.xlsx&action=default&mobileredirect=true&activeCell=Blad%201!C5&whatever=sdfsdf";
+        this.url = "https://edusoantwerpen.sharepoint.com/:x:/r/sites/dko/berchem/_layouts/15/Doc.aspx?activeCell=Blad%201!C5&sourcedoc=%7B07EE8CAE-4B67-4355-93E8-57C46B11DA13%7D&file=Woord_uurrooster_25-26.xlsx&action=default&mobileredirect=true";
+        //TEST
+        if(this.url) {
+            //https://edusoantwerpen.sharepoint.com/:x:/s/dko/berchem/IQCujO4HZ0tVQ5PoV8RrEdoTAdDM_aDWVT2Pb5of8tPWKrY?activeCell=Definitief!B19
+            // or:
+            //https://edusoantwerpen.sharepoint.com/:x:/r/sites/dko/berchem/_layouts/15/Doc.aspx?sourcedoc=%7B07EE8CAE-4B67-4355-93E8-57C46B11DA13%7D&file=Woord_uurrooster_25-26.xlsx&action=default&mobileredirect=true&activeCell=Blad1!C5
+            let rxActiveCell = /[&?]activeCell=[A-Za-z0-9_]+![A-Za-z0-9_]+\d+/g;
+            let urlDecodeSpace = this.url.replaceAll(/%20/g, "__SPACE__"); //just to make the regex simpler.
+            //if match, remove the match from the string.
+            let match = rxActiveCell.exec(urlDecodeSpace);
+            if(match) {
+                //start of url params?
+                if(match[0].indexOf("?") >=0) {
+                    let urlParams = new URLSearchParams(urlDecodeSpace.substring(urlDecodeSpace.indexOf("?")+1));
+                    urlParams.delete("activeCell");
+                    urlDecodeSpace = urlDecodeSpace.substring(0, urlDecodeSpace.indexOf("?")) + "?" + urlParams.toString();
+                } else
+                    urlDecodeSpace = urlDecodeSpace.replace(match[0], "");
+            }
+            this.url = urlDecodeSpace.replaceAll("__SPACE__", "%20");
+        }
+        this.workbookName = workbookName;
+        this.worksheetName = worksheetName;
     }
 
     public getMergedCellValue(excelPos: ExcelPos): string {

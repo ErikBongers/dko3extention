@@ -1,5 +1,6 @@
-* Click to open les no longer works: lesId vs momentId.
-
+* add url to excel?
+  > or just the GUID?
+  > hidden under button?
 * Make flow that informs some users (via mail?) that a roster has changed.
   > too much spam?
   > have a diff with previous uploaded version?

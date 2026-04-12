@@ -10,7 +10,7 @@ export class RosterFactory {
     private tableRange: ExcelRange = undefined;
 
     public constructor(jsonExcelData: JsonExcelData) {
-        this.excelData = new ExcelData(jsonExcelData.data, jsonExcelData.mergedRanges);
+        this.excelData = new ExcelData(jsonExcelData.data, jsonExcelData.mergedRanges, jsonExcelData.url, jsonExcelData.workbookName, jsonExcelData.worksheetName);
         this.daysRow = this.findDaysRow();
         if(this.daysRow === undefined)  {
             this.errors.push( "Geen rij met dagnamen gevonden.");
