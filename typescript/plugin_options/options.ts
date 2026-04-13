@@ -9,6 +9,7 @@ export type Options = {
     showDebug: boolean;
     stripCommasOnPaste: boolean;
     reorderStudentName: boolean;
+    allowDeleteNotif: boolean;
 };
 
 export const options: Options = {
@@ -18,7 +19,8 @@ export const options: Options = {
     markOtherAcademies: true,
     showDebug: false,
     stripCommasOnPaste: false,
-    reorderStudentName: false
+    reorderStudentName: false,
+    allowDeleteNotif: false,
 };
 
 export function defineHtmlOptions() {
@@ -28,7 +30,8 @@ export function defineHtmlOptions() {
     defineHtmlOption("reorderStudentName", 'checked', "Toon naam leerling als voornaam + achternaam", "block1");
     defineHtmlOption("markOtherAcademies", 'checked', "Toon arcering voor 'andere' academies.", "block1");
     defineHtmlOption("myAcademies", 'value', undefined, undefined);
-    defineHtmlOption("showDebug", 'checked', "Show debug info in console.", "block3");
+    defineHtmlOption("showDebug", 'checked', "Toon debug info in console.", "block3");
+    defineHtmlOption("allowDeleteNotif", 'checked', "Laat verwijderen van berichten toe...", "block3");
 }
 
 type OptionDef = {

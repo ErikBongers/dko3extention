@@ -1,4 +1,7 @@
-* SendExcel: post a notification that a file has changed.
+* FILE_POSTED notification allows for only one file!!!
+  > ok for now.
+  > make cloud handle this notification by merging the data into a comma separated list.
+    > same for deleting a notification?
 * Make flow that informs some users (via mail?) that a roster has changed.
   > too much spam?
   > have a diff with previous uploaded version?

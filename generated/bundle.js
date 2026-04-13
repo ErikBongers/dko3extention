@@ -424,7 +424,8 @@ const options = {
 	markOtherAcademies: true,
 	showDebug: false,
 	stripCommasOnPaste: false,
-	reorderStudentName: false
+	reorderStudentName: false,
+	allowDeleteNotif: false
 };
 let globalSettings = { globalHide: false };
 function getGlobalSettings() {
