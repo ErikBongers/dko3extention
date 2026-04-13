@@ -427,7 +427,10 @@ table.diff {
                 opacity: 1;
             }
             &.chkHide {
-                opacity: 0.2;
+                opacity: 0.1;
+                &:hover {
+                    opacity: 1;
+                }
             }
         }
     }
@@ -441,6 +444,8 @@ table.diff {
 }
 
 table#orphans {
+    border-radius: 1ch;
+    border-collapse: separate;
     &.hideChecked tr.ignore {
         display: none;
     }
@@ -478,4 +483,10 @@ table#orphans {
 
 .diffTooltip:hover .diffTooltiptext {
     visibility: visible;
+}
+
+#plugin_container {
+    input[type="checkbox"] {
+        margin-inline-end: 1ch;
+    }
 }
