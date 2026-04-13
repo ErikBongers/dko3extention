@@ -273,6 +273,7 @@ export class ExcelRoster {
         { tag: "Muziekatelier", searchString: " 2t "},
         { tag: "Groepsmusiceren (klassiek)", searchString: " gm "},
         { tag: "Atelier (musical)", searchString: " musicalatelier "},
+        { tag: "Musicalatelier 2e graad", searchString: " musical for kids "},
     ];
 
     public static ignoreList: string[] = [

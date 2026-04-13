@@ -1940,6 +1940,10 @@ var ExcelRoster = class {
 		{
 			tag: "Atelier (musical)",
 			searchString: " musicalatelier "
+		},
+		{
+			tag: "Musicalatelier 2e graad",
+			searchString: " musical for kids "
 		}
 	];
 	static ignoreList = [
