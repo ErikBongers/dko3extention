@@ -55,6 +55,16 @@ type JsonData = {
 
 async function main(workbook: ExcelScript.Workbook) {
     let statusField = workbook.getNamedItem("SendStatus").getRange();
+    let academie = workbook.getNamedItem("Academie")?.getRange()?.getValue() as string;
+    let schoolYear = workbook.getNamedItem("Schooljaar")?.getRange()?.getValue() as string;
+    if(academie === undefined) {
+        setError(workbook, `Veld "Academie" niet gevonden. Vul de academie naam in een cel en geeft dit de naam "Academie".`);
+        return;
+    }
+    if(schoolYear === undefined) {
+        setError(workbook, `Veld "Schooljaar" niet gevonden. Vul het schoojaar in een cel en geeft dit de naam "Schooljaar".`);
+        return;
+    }
     statusField.setValue("Gegevens worden doorgestuurd...even geduld...");
     statusField.getFormat().getFill().setColor("FFAA00");
     statusField.getFormat().getFont().setColor("000000");
@@ -83,7 +93,7 @@ async function main(workbook: ExcelScript.Workbook) {
     console.log("to string");
     console.log(JSON.stringify(json));
     console.log("sending...");
-    let fileName = FolderName + "/" + workbookName + ".json";
+    let fileName = `${FolderName}/${academie}/${schoolYear}/${workbookName}.json`;
     let res = await fetch("https://europe-west1-ebo-tain.cloudfunctions.net/json?fileName=" + fileName, {
         method: "POST",
         body: JSON.stringify(json),
@@ -159,11 +169,16 @@ function rangeToIndexes(range: ExcelScript.Range): IdxRange {
 
 function _setMessage(workbook: ExcelScript.Workbook, msg: string, type: MessageType) {
     console.log(msg);
+    let statusField = workbook.getNamedItem("SendStatus").getRange();
+    statusField.setValue(msg);
 }
 
 enum MessageType { Info, Error, Highlight }
 
 function setError(workbook: ExcelScript.Workbook, msg: string) {
+    let statusField = workbook.getNamedItem("SendStatus").getRange();
+    statusField.getFormat().getFill().setColor("FF8888");
+    statusField.getFormat().getFont().setColor("000000");
     _setMessage(workbook, msg, MessageType.Error);
 }
 

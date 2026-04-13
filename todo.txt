@@ -1,29 +1,9 @@
-Toward website
-===============
-Bahati wants to know if the classes (in DKO3!) have changed.
-> Allow to keep a snapshot, manually triggered.
-> Show the diff of the snapshot.
-
-Notif-checks cycle
-=====================
-- user changes SP excel file and sends it.
-- DKO3 receives notif FILE-SENT ofsowiet
-  > DKO3 start/notif page prompts with button to re-run the diff.
-- Diff is run
-  > delete the FILE-SENT notif.
-  > the runner of the diff is responsible for handling the diff problems.
-
-
-* FILE_POSTED notification allows for only one file!!!
-  > ok for now.
-  > make cloud handle this notification by merging the data into a comma separated list.
-    > same for deleting a notification?
-* Make flow that informs some users (via mail?) that a roster has changed.
-  > too much spam?
-  > have a diff with previous uploaded version?
-
 * Add schoolyear to everything
   > name cloud files properly to avoid conflicts with other schoolyears and academies.
+  > have a different folder per academie/schoolYear
+  > How does SendExcel know this????
+    > add fields to first row.
+      > make first row reserved for send.
 
 * How to switch from Sharepoint test folder to production?
   > SendExcel() could have a test version with a diffent cloud folder...
@@ -34,6 +14,19 @@ Notif-checks cycle
       > otherwise...have a form that lists the cloud files and the option to delete them.
         > version 37...
 
+Toward website
+===============
+Bahati wants to know if the classes (in DKO3!) have changed.
+> Allow to keep a snapshot, manually triggered.
+> Show the diff of the snapshot.
+
+
+
+
+* Make flow that informs some users (via mail?) that a roster has changed.
+  > too much spam?
+  > have a diff with previous uploaded version?
+
 * Show notification when refreshing any page.
 * When file is removed from folder: also remove it in cloud.
 * display the diff.
@@ -42,18 +35,6 @@ Notif-checks cycle
 
 * Translation tables
   > Not hard coded, but user defined in the excel files.
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
