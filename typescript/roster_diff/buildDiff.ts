@@ -501,6 +501,7 @@ export interface JsonExcelLesMoment {
     cellValue: string;
     workBook: string;
     workSheet: string;
+    hash: string;
 }
 
 export interface JsonDko3LesMoment {
@@ -511,6 +512,7 @@ export interface JsonDko3LesMoment {
     location: string;
     lesId: string;
     momentId: string;
+    hash: string;
 }
 
 export interface JsonDiff {
@@ -579,7 +581,8 @@ function dko3LesToJson(dko3Les: TaggedDko3LesMoment): JsonDko3LesMoment {
         timeSlice: toCompactTimeSliceString(dko3Les.lesMoment.dayTimeSlice.timeSlice),
         subject: dko3Les.subjects.join(","),
         teacher: dko3Les.teachers.join(","),
-        location: dko3Les.location
+        location: dko3Les.location,
+        hash: dko3Les.getHash()
     };
 }
 
@@ -595,6 +598,7 @@ function excelLesToJson(excelLes: TaggedExcelLes): JsonExcelLesMoment {
         cellValue: excelLes.lesMoment.cellValue,
         workBook: excelLes.lesMoment.table.excelData.workbookName,
         workSheet: excelLes.lesMoment.table.excelData.worksheetName,
+        hash: excelLes.getHash()
     };
 }
 
