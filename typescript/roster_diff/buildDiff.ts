@@ -255,12 +255,12 @@ async function buildDiff(excelLessen: ClassDef[], dko3Lessen: Les[], dko3AliasLe
         lesMomentenMap.set(les.lesMoment.momentId, les);
     for(let aliasLes of dko3AliasLessen) {
         if (aliasLes.linkedLessenIds.length < 2) {
-            reportStatus(`Error: alias les ${aliasLes.id} heeft geen 2 geldige gekoppelde lessen.`);
+            reportStatus(`Error: alias les ${aliasLes.id} heeft geen 2 geldige gekoppelde lessen.`, "error");
             continue;
         }
         let linkedLessen = aliasLes.linkedLessenIds.map(lesId => dko3LesMap.get(lesId));
         if(linkedLessen.includes(undefined)) {
-            reportStatus(`Voor aliasles ${aliasLes.id} zijn er ontbrekende gekoppelde lessen.`);
+            reportStatus(`Voor aliasles <a href="https://administratie.dko3.cloud/#lessen-les?id=${aliasLes.id}">${aliasLes.id}</a> zijn er ontbrekende gekoppelde lessen.`, "error");
             continue;
         }
         let linkedLesMomentIds = linkedLessen.map(les => les.dayTimeSlices.map(slice => Dko3LesMoment.createLesMomentId(les, slice))).flat();

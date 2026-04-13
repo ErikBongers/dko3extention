@@ -3459,7 +3459,30 @@ function getGotoNumber(functionCall) {
 
 //#endregion
 //#region typescript/table/tableFetcher.ts
-var TableRef = class {
+var PlainTableRef = class {
+	htmlTableId;
+	constructor(htmlTableId) {
+		this.htmlTableId = htmlTableId;
+	}
+	getOrgTableContainer() {
+		return document.getElementById(this.htmlTableId).parentElement;
+	}
+	getOrgTableRows() {
+		return document.getElementById(this.htmlTableId).querySelectorAll("tbody > tr");
+	}
+	buildFetchUrl(offset) {
+		throw "Plain table cannot be fetched";
+	}
+	createElementAboveTable(element) {
+		let el = document.createElement(element);
+		document.getElementById(this.htmlTableId).insertAdjacentElement("beforebegin", el);
+		return el;
+	}
+	isFullyFetched() {
+		return true;
+	}
+};
+var DkoTableRef = class {
 	htmlTableId;
 	buildFetchUrl;
 	navigationData;
@@ -3479,6 +3502,9 @@ var TableRef = class {
 		this.getOrgTableContainer().insertAdjacentElement("beforebegin", el);
 		return el;
 	}
+	isFullyFetched() {
+		return this.getOrgTableContainer().querySelector("table").classList.contains("fullyFetched");
+	}
 };
 function findTableRefInCode() {
 	let foundTableRef = findTable();
@@ -3486,10 +3512,11 @@ function findTableRefInCode() {
 	let buildFetchUrl = (offset) => `/views/ui/datatable.php?id=${foundTableRef.viewId}&start=${offset}&aantal=0`;
 	let navigation = findFirstNavigation();
 	if (!navigation) return void 0;
-	return new TableRef(foundTableRef.tableId, navigation, buildFetchUrl);
+	return new DkoTableRef(foundTableRef.tableId, navigation, buildFetchUrl);
 }
 function findTable() {
 	let table = document.querySelector("div.table-responsive > table");
+	if (!table) return null;
 	let tableId = table.id.replace("table_", "").replace("_table", "");
 	let parentDiv = document.querySelector("div#table_" + tableId);
 	let scripts = Array.from(parentDiv.querySelectorAll("script")).map((script) => script.text).join("\n");
@@ -3848,7 +3875,7 @@ function executeTableCommands(tableRef) {
 function forTableDo(ev, doIt) {
 	ev.preventDefault();
 	ev.stopPropagation();
-	checkAndDownloadTableRows().then((res) => {
+	checkAndDownloadTableRows(ev).then((res) => {
 		doIt({
 			tableRef: res.tableRef,
 			infoBlock: res.infoBlock
@@ -3858,7 +3885,7 @@ function forTableDo(ev, doIt) {
 function forTableColumnDo(ev, cmdDef) {
 	ev.preventDefault();
 	ev.stopPropagation();
-	checkAndDownloadTableRows().then((tableMeta) => {
+	checkAndDownloadTableRows(ev).then((tableMeta) => {
 		let index = getColumnIndex(ev);
 		let cmd = {
 			cmdDef,
@@ -4337,7 +4364,7 @@ async function parseDataTablePhp(chain, htmlTableId) {
 	let tableNav = findFirstNavigation(chain.div());
 	console.log(tableNav);
 	let buildFetchUrl = (offset) => `/views/ui/datatable.php?id=${datatable_id}&start=${offset}&aantal=0`;
-	return new TableRef(htmlTableId, tableNav, buildFetchUrl);
+	return new DkoTableRef(htmlTableId, tableNav, buildFetchUrl);
 }
 async function getTableRefFromHash(hash) {
 	let chain = new FetchChain();
@@ -4406,15 +4433,18 @@ async function downloadTableRows() {
 		listener: new InfoBarTableFetchListener(infoBlock)
 	};
 }
-async function checkAndDownloadTableRows() {
+async function checkAndDownloadTableRows(ev) {
 	let tableRef = findTableRefInCode();
-	if (tableRef.getOrgTableContainer().querySelector("table").classList.contains("fullyFetched")) {
-		let result = createDefaultTableRefAndInfoBlock();
-		if ("error" in result) throw result.error;
+	if (!tableRef) {
+		let table = ev.target.closest("table");
+		tableRef = new PlainTableRef(table.id);
+	}
+	if (tableRef.isFullyFetched()) {
+		let infoBlock = createInfoBlockForTable(tableRef);
 		return {
-			tableRef: result.result.tableRef,
-			infoBlock: result.result.infoBlock,
-			listener: new InfoBarTableFetchListener(result.result.infoBlock)
+			tableRef,
+			infoBlock,
+			listener: new InfoBarTableFetchListener(infoBlock)
 		};
 	}
 	let res = await downloadTableRows();
@@ -5170,12 +5200,12 @@ async function buildDiff(excelLessen, dko3Lessen, dko3AliasLessen, reportStatus,
 	for (let les of dko3LesSet.values()) lesMomentenMap.set(les.lesMoment.momentId, les);
 	for (let aliasLes of dko3AliasLessen) {
 		if (aliasLes.linkedLessenIds.length < 2) {
-			reportStatus(`Error: alias les ${aliasLes.id} heeft geen 2 geldige gekoppelde lessen.`);
+			reportStatus(`Error: alias les ${aliasLes.id} heeft geen 2 geldige gekoppelde lessen.`, "error");
 			continue;
 		}
 		let linkedLessen = aliasLes.linkedLessenIds.map((lesId) => dko3LesMap.get(lesId));
 		if (linkedLessen.includes(void 0)) {
-			reportStatus(`Voor aliasles ${aliasLes.id} zijn er ontbrekende gekoppelde lessen.`);
+			reportStatus(`Voor aliasles <a href="https://administratie.dko3.cloud/#lessen-les?id=${aliasLes.id}">${aliasLes.id}</a> zijn er ontbrekende gekoppelde lessen.`, "error");
 			continue;
 		}
 		let linkedLesMomentIds = linkedLessen.map((les) => les.dayTimeSlices.map((slice) => Dko3LesMoment.createLesMomentId(les, slice))).flat();
@@ -5464,6 +5494,7 @@ async function showDiffs(diffs) {
 	chkHideChecked.onchange = (ev) => {
 		let input = ev.currentTarget;
 		let table$1 = document.getElementById("orphans");
+		table$1.id = "table_diffs";
 		table$1.classList.toggle("hideChecked", input.checked);
 		let ignore = table$1.classList.contains("hideChecked");
 		localStorage.setItem(OPTION_HIDE_IGNORED_DIFFS, ignore.toString());
@@ -5786,16 +5817,18 @@ async function runDiff(reportStatus, fetchListener) {
 }
 async function setupDiffPage() {
 	let pluginContainer = document.getElementById("plugin_container");
-	let button = emmet.appendChild(pluginContainer, "div.mb-1>div>(h4{Verschillen tussen Excel uurroosters en DKO3 lessen.}+button{Run the diffs!})").last;
+	let button = emmet.appendChild(pluginContainer, "div.mb-1>div>(h4{Verschillen tussen Excel uurroosters en DKO3 lessen.}+button.btn.btn-primary{Zoek verschillen})").last;
 	let runStatus = emmet.insertAfter(button, "div#runStatus").first;
 	let results = emmet.insertAfter(runStatus, "div#diffResults").first;
 	let divInfo = emmet.insertAfter(runStatus, "div").last;
+	let divError = emmet.insertAfter(divInfo, "div.errors").last;
 	let infoBlock = createInfoBlock(divInfo, "");
 	let fetchListener = new InfoBarTableFetchListener(infoBlock);
-	let messages = [];
-	function reportStatus(message) {
-		messages.push(message);
-		runStatus.innerHTML = messages.join("<br>");
+	let errors = [];
+	function reportStatus(message, isError) {
+		if (isError == "error") errors.push(message);
+		else runStatus.innerHTML = message;
+		divError.innerHTML = errors.join("<br>");
 	}
 	button.onclick = async () => {
 		let jsonDiffs = await runDiff(reportStatus, fetchListener);

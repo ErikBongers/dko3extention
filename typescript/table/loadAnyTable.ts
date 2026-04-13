@@ -1,5 +1,5 @@
 import {findFirstNavigation} from "./tableNavigation";
-import {CheckSumBuilder, findTableRefInCode, TableFetcher, TableFetchListener, TableRef} from "./tableFetcher";
+import {CheckSumBuilder, DkoTableRef, findTableRefInCode, PlainTableRef, TableFetcher, TableFetchListener, TableRef} from "./tableFetcher";
 import {createDownloadTableWithExtraAction, getChecksumBuilder} from "./observer";
 import {dateDiffToString, millisToString, Result, setViewFromCurrentUrl} from "../globals";
 import {InfoBar} from "../infoBar";
@@ -29,7 +29,7 @@ async function parseDataTablePhp(chain: FetchChain, htmlTableId: string) {
     console.log(tableNav);
     let buildFetchUrl = (offset: number) => `/views/ui/datatable.php?id=${datatable_id}&start=${offset}&aantal=0`;
 
-    return new TableRef(htmlTableId, tableNav, buildFetchUrl);
+    return new DkoTableRef(htmlTableId, tableNav, buildFetchUrl);
 }
 
 async function getTableRefFromHash(hash: string) {
@@ -53,7 +53,7 @@ async function getTableRefFromHash(hash: string) {
     return parseDataTablePhp(chain, htmlTableId);
 }
 
-export async function getTable(tableRef: TableRef, infoBarListener: InfoBarTableFetchListener, clearCache: boolean, checksumBuilder: CheckSumBuilder | null = null) {
+export async function getTable(tableRef: DkoTableRef, infoBarListener: InfoBarTableFetchListener, clearCache: boolean, checksumBuilder: CheckSumBuilder | null = null) {
     let tableFetcher = new TableFetcher(
         tableRef,
         checksumBuilder ?? getChecksumBuilder(tableRef.htmlTableId)
@@ -115,14 +115,15 @@ export async function downloadTableRows() {
     return {fetchedTable, infoBlock: infoBlock, listener: new InfoBarTableFetchListener(infoBlock)};
 }
 
-export async function checkAndDownloadTableRows() {
-    let tableRef = findTableRefInCode();
-    if(tableRef.getOrgTableContainer().querySelector("table").classList.contains("fullyFetched")) {
-        let result = createDefaultTableRefAndInfoBlock();
-        if("error" in result) {
-            throw result.error; //screw it. I'm panicking intead of bubbling results.
-        }
-        return {tableRef: result.result.tableRef, infoBlock: result.result.infoBlock, listener: new InfoBarTableFetchListener(result.result.infoBlock)};
+export async function checkAndDownloadTableRows(ev: UIEvent) {
+    let tableRef: TableRef = findTableRefInCode();
+    if(!tableRef) {
+        let table = (ev.target as HTMLElement).closest("table");
+        tableRef = new PlainTableRef(table.id);
+    }
+    if(tableRef.isFullyFetched()) {
+        let infoBlock = createInfoBlockForTable(tableRef);
+        return {tableRef, infoBlock, listener: new InfoBarTableFetchListener(infoBlock)};
     }
     let res = await downloadTableRows();
     return {tableRef, infoBlock: res.infoBlock, listener: res.listener};
@@ -165,7 +166,7 @@ export class InfoBarTableFetchListener implements TableFetchListener {
 }
 
 interface DefaultTableRef {
-    tableRef: TableRef
+    tableRef: DkoTableRef
 }
 
 export function createDefaultTableRef(): Result<DefaultTableRef> {
@@ -181,7 +182,7 @@ interface DefaultTableFetcher {
     infoBlock: InfoBlock,
     infoBarListener: InfoBarTableFetchListener
 }
-export function createDefaultTableFetcher(tableRef: TableRef, infoBlock: InfoBlock): Result<DefaultTableFetcher> {
+export function createDefaultTableFetcher(tableRef: DkoTableRef, infoBlock: InfoBlock): Result<DefaultTableFetcher> {
     let tableFetcher = new TableFetcher(
         tableRef,
         getChecksumBuilder(tableRef.htmlTableId)

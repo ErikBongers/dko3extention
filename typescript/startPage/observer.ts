@@ -3,12 +3,10 @@ import {emmet} from "../../libs/Emmeter/html";
 import {fetchAndDisplayNotifications} from "../notifications/notifications";
 import {checkChecks} from "../notifications/checks";
 import {getGotoStateOrDefault, Goto, PageName, saveGotoState, StartPageGotoState} from "../gotoState";
-import {cloud, fetchExcelData, fetchFolderChanged} from "../cloud";
-import runRosterCheck, {buildAndSaveDiff, createJsonDiffs, getDiffsCloudFileName, getDiffsFromCloud} from "../roster_diff/buildDiff";
+import {buildAndSaveDiff, getDiffsFromCloud} from "../roster_diff/buildDiff";
 import {createInfoBlock} from "../infoBlock";
 import {InfoBarTableFetchListener} from "../table/loadAnyTable";
 import {showDiffs} from "../roster_diff/showDiff";
-import {JsonExcelData} from "../roster_diff/excel";
 
 class StartPageObserver extends ExactHashObserver {
     constructor() {
@@ -81,7 +79,7 @@ async function setupPluginPage() {
 
 }
 
-export type StatusCallback = (message: string) => void;
+export type StatusCallback = (message: string, isError?: "error") => void;
 
 async function runDiff(reportStatus: StatusCallback, fetchListener: InfoBarTableFetchListener) {
     let divResults = document.getElementById("diffResults") as HTMLDivElement;
@@ -92,17 +90,21 @@ async function runDiff(reportStatus: StatusCallback, fetchListener: InfoBarTable
 
 async function setupDiffPage() {
     let pluginContainer = document.getElementById("plugin_container");
-    let button = emmet.appendChild(pluginContainer, "div.mb-1>div>(h4{Verschillen tussen Excel uurroosters en DKO3 lessen.}+button{Run the diffs!})").last as HTMLButtonElement;
+    let button = emmet.appendChild(pluginContainer, "div.mb-1>div>(h4{Verschillen tussen Excel uurroosters en DKO3 lessen.}+button.btn.btn-primary{Zoek verschillen})").last as HTMLButtonElement;
     let runStatus = emmet.insertAfter(button, "div#runStatus").first as HTMLDivElement;
     let results = emmet.insertAfter(runStatus, "div#diffResults").first as HTMLDivElement;
 
     let divInfo = emmet.insertAfter(runStatus, 'div').last as HTMLDivElement;
+    let divError = emmet.insertAfter(divInfo, 'div.errors').last as HTMLDivElement;
     let infoBlock = createInfoBlock(divInfo, "");
     let fetchListener = new InfoBarTableFetchListener(infoBlock);
-    let messages: string[] = [];
-    function reportStatus(message: string) {
-        messages.push(message);
-        runStatus.innerHTML = messages.join("<br>");
+    let errors: string[] = [];
+    function reportStatus(message: string, isError?: "error") {
+        if(isError == "error")
+            errors.push(message);
+        else
+            runStatus.innerHTML = message;
+        divError.innerHTML = errors.join("<br>");
     }
     button.onclick = async () => {
         let jsonDiffs = await runDiff(reportStatus, fetchListener);

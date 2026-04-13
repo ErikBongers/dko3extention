@@ -500,3 +500,7 @@ div.allowDelete {
         display: inline-block;
     }
 }
+
+div.errors {
+    color: red;
+}

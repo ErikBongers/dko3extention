@@ -215,7 +215,7 @@ export interface TableMeta {
 function forTableDo(ev: MouseEvent, doIt: (tableMeta: TableMeta, index: number) => void) {
     ev.preventDefault();
     ev.stopPropagation();
-    checkAndDownloadTableRows()
+    checkAndDownloadTableRows(ev)
         .then(res => {
             doIt({tableRef: res.tableRef, infoBlock: res.infoBlock}, getColumnIndex(ev));
         });
@@ -224,7 +224,7 @@ function forTableDo(ev: MouseEvent, doIt: (tableMeta: TableMeta, index: number) 
 function forTableColumnDo(ev: MouseEvent, cmdDef: TableColumnCmdDef) {
     ev.preventDefault();
     ev.stopPropagation();
-    checkAndDownloadTableRows()
+    checkAndDownloadTableRows(ev)
         .then((tableMeta: TableMeta) => {
             let index = getColumnIndex(ev);
             let cmd: TableColumnCmd = {

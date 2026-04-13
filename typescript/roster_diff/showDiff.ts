@@ -17,6 +17,7 @@ export async function showDiffs(diffs: JsonDiffs) {
     chkHideChecked.onchange = (ev) => {
         let input = ev.currentTarget as HTMLInputElement;
         let table = document.getElementById("orphans") as HTMLTableElement;
+        table.id = "table_diffs";
         table.classList.toggle("hideChecked", input.checked);
         let ignore = table.classList.contains("hideChecked");
         localStorage.setItem(OPTION_HIDE_IGNORED_DIFFS, ignore.toString());

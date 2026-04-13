@@ -2,7 +2,44 @@ import {findFirstNavigation, TableNavigation} from "./tableNavigation";
 import * as def from "../def";
 import {db3} from "../globals";
 
-export class TableRef {
+export interface TableRef {
+    htmlTableId: string;
+    getOrgTableContainer(): HTMLElement;
+    getOrgTableRows(): NodeListOf<HTMLTableRowElement>;
+    buildFetchUrl: (offset: number) => string;
+    createElementAboveTable(element: string): HTMLElement;
+    isFullyFetched(): boolean;
+}
+
+export class PlainTableRef implements TableRef {
+    htmlTableId: string;
+
+    constructor(htmlTableId: string) {
+        this.htmlTableId = htmlTableId;
+    }
+
+    getOrgTableContainer(): HTMLElement {
+        return document.getElementById(this.htmlTableId).parentElement;
+    }
+
+    getOrgTableRows(): NodeListOf<HTMLTableRowElement> {
+        return document.getElementById(this.htmlTableId).querySelectorAll("tbody > tr") as NodeListOf<HTMLTableRowElement>;
+    }
+
+    buildFetchUrl(offset: number): string { //todo: perhaps leave this function out of the TableRef interface?
+        throw "Plain table cannot be fetched";
+    }
+
+    createElementAboveTable(element: string): HTMLElement {
+        let el = document.createElement(element);
+        document.getElementById(this.htmlTableId).insertAdjacentElement("beforebegin", el);
+        return el;
+    }
+
+    isFullyFetched(): boolean { return true; }
+}
+
+export class DkoTableRef implements TableRef {
     htmlTableId: string;
     buildFetchUrl: (offset: number) => string;
     navigationData: TableNavigation;
@@ -26,6 +63,10 @@ export class TableRef {
         this.getOrgTableContainer().insertAdjacentElement("beforebegin", el);
         return el;
     }
+
+    isFullyFetched(): boolean {
+        return this.getOrgTableContainer().querySelector("table").classList.contains("fullyFetched");
+    }
 }
 
 export function findTableRefInCode() {
@@ -39,11 +80,13 @@ export function findTableRefInCode() {
     if(!navigation)
         return undefined;
 
-    return new TableRef( foundTableRef.tableId, navigation, buildFetchUrl)
+    return new DkoTableRef( foundTableRef.tableId, navigation, buildFetchUrl)
 }
 
 function findTable() {
     let table = document.querySelector("div.table-responsive > table");
+    if(!table)
+        return null;
     let tableId = table.id
         .replace("table_", "")
         .replace("_table", "");
@@ -78,7 +121,7 @@ export interface TableFetchListener {
 }
 
 export class TableFetcher {
-    tableRef: TableRef;
+    tableRef: DkoTableRef;
     calculateTableCheckSum: CheckSumBuilder;
     isUsingCached = false;
     shadowTableDate: Date;
@@ -88,7 +131,7 @@ export class TableFetcher {
     private cancelRequested: boolean;
     private isFetchFinished: boolean;
 
-    constructor(tableRef: TableRef, calculateTableCheckSum: CheckSumBuilder, tableHandler?: TableHandler) {
+    constructor(tableRef: DkoTableRef, calculateTableCheckSum: CheckSumBuilder, tableHandler?: TableHandler) {
         this.tableRef = tableRef;
         if(!calculateTableCheckSum)
             throw ("Tablechecksum required.");
