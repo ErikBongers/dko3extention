@@ -92,7 +92,7 @@ async function setupDiffPage() {
     let pluginContainer = document.getElementById("plugin_container");
     let button = emmet.appendChild(pluginContainer, "div.mb-1>div>(h4{Verschillen tussen Excel uurroosters en DKO3 lessen.}+button.btn.btn-primary{Zoek verschillen})").last as HTMLButtonElement;
     let runStatus = emmet.insertAfter(button, "div#runStatus").first as HTMLDivElement;
-    let results = emmet.insertAfter(runStatus, "div#diffResults").first as HTMLDivElement;
+    emmet.insertAfter(runStatus, "div#diffResults");
 
     let divInfo = emmet.insertAfter(runStatus, 'div').last as HTMLDivElement;
     let divError = emmet.insertAfter(divInfo, 'div.errors').last as HTMLDivElement;
@@ -107,6 +107,7 @@ async function setupDiffPage() {
         divError.innerHTML = errors.join("<br>");
     }
     button.onclick = async () => {
+        errors = [];
         let jsonDiffs = await runDiff(reportStatus, fetchListener);
         await  showDiffs(jsonDiffs);
     };
