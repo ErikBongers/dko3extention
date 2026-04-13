@@ -9,6 +9,7 @@
   > have a diff with previous uploaded version?
 
 * Add schoolyear to everything
+  > name cloud files properly to avoid conflicts with other schoolyears and academies.
 
 * How to switch from Sharepoint test folder to production?
   > SendExcel() could have a test version with a diffent cloud folder...

@@ -405,6 +405,13 @@ async function fetchFolderChanged(folderName) {
 async function fetchExcelData(filePath) {
 	return await fetchJson(filePath);
 }
+const temp_hash_ignore_filename = "Dko3/TODO-NAME-ignored-diff-hashes.json";
+async function uploadIgnoredDiffHashes(hashes) {
+	await uploadJson(temp_hash_ignore_filename, hashes);
+}
+async function fetchIgnoredDiffHashes() {
+	return await fetchJson(temp_hash_ignore_filename);
+}
 
 //#endregion
 //#region typescript/plugin_options/options.ts
@@ -1545,6 +1552,7 @@ var ClassDef = class {
 	cellValue;
 	table;
 	hash;
+	ignore;
 	constructor(day, teacher, timeSlice, subjects, location$1, gradeYears, excelRow, excelColumn, cellValue, table) {
 		this.day = day;
 		this.teacher = teacher;
@@ -4919,7 +4927,7 @@ async function buildAndSaveDiff(reportStatus, fetchListener) {
 	}
 	reportStatus(`Vergelijken met DKO3 lessen...`);
 	let res = await runRosterCheck(jsonExcelDatas, reportStatus, fetchListener);
-	let jsonDiffs = createJsonDiffs(res.diffs, res.dko3LesSet, res.excelLesSet, res.excelRosters);
+	let jsonDiffs = await createJsonDiffs(res.diffs, res.dko3LesSet, res.excelLesSet, res.excelRosters);
 	let fileName = getDiffsCloudFileName();
 	await cloud.json.upload(fileName, jsonDiffs);
 	sessionStorage.setItem(fileName, JSON.stringify(jsonDiffs));
@@ -5007,6 +5015,7 @@ var Dko3LesMoment = class Dko3LesMoment {
 	les;
 	dayTimeSlice;
 	momentId;
+	ignore;
 	constructor(les, dayTimeSlice) {
 		this.les = les;
 		this.dayTimeSlice = dayTimeSlice;
@@ -5027,6 +5036,7 @@ var TaggedLes = class {
 	teachers;
 	subjects;
 	linkedLesMomenten = [];
+	ignore;
 	constructor(les, tags, searchText) {
 		this.lesMoment = les;
 		this.tags = tags;
@@ -5283,7 +5293,13 @@ function getDiffsCloudFileName() {
 async function getDiffsFromCloud() {
 	return await cloud.json.fetch(getDiffsCloudFileName());
 }
-function createJsonDiffs(diffList, dko3LesSet, excelLesSet, excelRosters) {
+async function setIgnoredFlags(orphanedDko3Lessen, orphanedExcelLessen) {
+	let ignoreHashes = await fetchIgnoredDiffHashes();
+	let ignoreHashSet = new Set(ignoreHashes);
+	for (let les of orphanedDko3Lessen) les.ignore = ignoreHashSet.has(les.hash);
+	for (let les of orphanedExcelLessen) les.ignore = ignoreHashSet.has(les.hash);
+}
+async function createJsonDiffs(diffList, dko3LesSet, excelLesSet, excelRosters) {
 	let diffs = diffList.filter((diff) => diff.diffType != "perfect match").map((diff) => {
 		return {
 			excelLes: excelLesToJson(diff.excelLes),
@@ -5293,6 +5309,7 @@ function createJsonDiffs(diffList, dko3LesSet, excelLesSet, excelRosters) {
 	});
 	let orphanedDko3Lessen = [...dko3LesSet.values()].map((les) => dko3LesToJson(les));
 	let orphanedExcelLessen = [...excelLesSet.values()].map((les) => excelLesToJson(les));
+	await setIgnoredFlags(orphanedDko3Lessen, orphanedExcelLessen);
 	let workBooks = new Map();
 	for (let excelData of excelRosters.map((r) => r.table.excelData)) {
 		if (!workBooks.has(excelData.workbookName)) workBooks.set(excelData.workbookName, {
@@ -5323,7 +5340,8 @@ function dko3LesToJson(dko3Les) {
 		subject: dko3Les.subjects.join(","),
 		teacher: dko3Les.teachers.join(","),
 		location: dko3Les.location,
-		hash: dko3Les.getHash()
+		hash: dko3Les.getHash(),
+		ignore: dko3Les.ignore
 	};
 }
 function excelLesToJson(excelLes) {
@@ -5338,7 +5356,8 @@ function excelLesToJson(excelLes) {
 		cellValue: excelLes.lesMoment.cellValue,
 		workBook: excelLes.lesMoment.table.excelData.workbookName,
 		workSheet: excelLes.lesMoment.table.excelData.worksheetName,
-		hash: excelLes.getHash()
+		hash: excelLes.getHash(),
+		ignore: excelLes.ignore
 	};
 }
 function createDiffTable(divResults) {
@@ -5361,7 +5380,8 @@ async function getUrlForWorksheet(workBook, workSheet, cellAddress) {
 
 //#endregion
 //#region typescript/roster_diff/showDiff.ts
-function showDiffs(diffs) {
+async function showDiffs(diffs) {
+	await setIgnoredFlags(diffs.orphanedDko3Lessen, diffs.orphanedExcelLessen);
 	let divResults = document.getElementById("diffResults");
 	divResults.innerHTML = "";
 	let elapsedTimeString = dateDiffToString(new Date(diffs.isoDate), new Date());
@@ -5378,16 +5398,16 @@ function showDiffs(diffs) {
 	decorateTableHeader(table, false);
 	for (let les of diffs.orphanedDko3Lessen) {
 		let tr = emmet.appendChild(tbody, "tr").last;
-		fillDiffRow(tr, les.subject, les.teacher, les.day, les.timeSlice, les.location, "perfect match", "dko3", les.momentId, "", les.lesId, "", "", les.hash);
+		fillDiffRow(tr, les.subject, les.teacher, les.day, les.timeSlice, les.location, "perfect match", "dko3", les.momentId, "", les.lesId, "", "", les.hash, les.ignore);
 	}
 	for (let les of diffs.orphanedExcelLessen) {
 		let tr = emmet.appendChild(tbody, "tr").last;
-		fillDiffRow(tr, les.subject, les.teacher, les.day, les.timeSlice, les.location, "perfect match", "excel", excelPostoExcelAddress(les.excelRow, les.excelColumn), les.cellValue, "", les.workBook, les.workSheet, les.hash);
+		fillDiffRow(tr, les.subject, les.teacher, les.day, les.timeSlice, les.location, "perfect match", "excel", excelPostoExcelAddress(les.excelRow, les.excelColumn), les.cellValue, "", les.workBook, les.workSheet, les.hash, les.ignore);
 		tr.classList.add("excelRow");
 	}
 }
 function fillExcelDiffRow(tr, diff) {
-	fillDiffRow(tr, diff.excelLes.subject, diff.excelLes.teacher, diff.excelLes.day, diff.excelLes.timeSlice, diff.excelLes.location, diff.diffType, "excel", excelPostoExcelAddress(diff.excelLes.excelRow, diff.excelLes.excelColumn), diff.excelLes.cellValue, "", diff.excelLes.workBook, diff.excelLes.workSheet, diff.excelLes.hash);
+	fillDiffRow(tr, diff.excelLes.subject, diff.excelLes.teacher, diff.excelLes.day, diff.excelLes.timeSlice, diff.excelLes.location, diff.diffType, "excel", excelPostoExcelAddress(diff.excelLes.excelRow, diff.excelLes.excelColumn), diff.excelLes.cellValue, "", diff.excelLes.workBook, diff.excelLes.workSheet, diff.excelLes.hash, diff.excelLes.ignore);
 }
 function displayDiff(diff, divResults) {
 	let tbody = emmet.appendChild(divResults, "table.diff>tbody").last;
@@ -5395,9 +5415,10 @@ function displayDiff(diff, divResults) {
 	fillExcelDiffRow(tr, diff);
 	tr.classList.add("excelRow");
 	let tr2 = emmet.appendChild(tbody, "tr").last;
-	fillDiffRow(tr2, diff.dko3Les.subject, diff.dko3Les.teacher, diff.dko3Les.day, diff.dko3Les.timeSlice, diff.dko3Les.location, diff.diffType, "dko3", diff.dko3Les.momentId, "", diff.dko3Les.lesId, "", "", diff.dko3Les.hash);
+	fillDiffRow(tr2, diff.dko3Les.subject, diff.dko3Les.teacher, diff.dko3Les.day, diff.dko3Les.timeSlice, diff.dko3Les.location, diff.diffType, "dko3", diff.dko3Les.momentId, "", diff.dko3Les.lesId, "", "", diff.dko3Les.hash, diff.dko3Les.ignore);
 }
-function fillDiffRow(tr, subjects, teachers, day, timeSlice, location$1, diffType, rowType, rowId, cellValue, lesId, workBook, worksheet, hash) {
+function fillDiffRow(tr, subjects, teachers, day, timeSlice, location$1, diffType, rowType, rowId, cellValue, lesId, workBook, worksheet, hash, ignore) {
+	if (ignore) tr.classList.add("ignore");
 	let diffTeacherClass = "";
 	let diffLocationClass = "";
 	let diffTimeClass = "";
@@ -5451,6 +5472,12 @@ async function toggleIgnore(ev) {
 	let button = ev.currentTarget;
 	let tr = button.closest("tr");
 	tr.classList.toggle("ignore");
+	await saveIgnoredHashes();
+}
+async function saveIgnoredHashes() {
+	let table = document.getElementById("orphans");
+	let hashes = [...table.querySelectorAll("tr.ignore")].map((tr) => tr.dataset.hash);
+	await uploadIgnoredDiffHashes(hashes);
 }
 async function gotoData(ev) {
 	let button = ev.currentTarget;
@@ -5789,11 +5816,11 @@ async function setupDiffPage() {
 	}
 	button.onclick = async () => {
 		let jsonDiffs = await runDiff(reportStatus, fetchListener);
-		showDiffs(jsonDiffs);
+		await showDiffs(jsonDiffs);
 	};
 	try {
 		let jsonDiffs = await getDiffsFromCloud();
-		showDiffs(jsonDiffs);
+		await showDiffs(jsonDiffs);
 	} catch (e) {}
 }
 

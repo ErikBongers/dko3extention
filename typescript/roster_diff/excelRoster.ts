@@ -24,6 +24,7 @@ export class ClassDef {
     cellValue: string;
     table: Table;
     hash: string;
+    ignore: boolean;
 
     constructor(day: DayUppercase, teacher: string, timeSlice: TimeSlice, subjects: string[], location: string, gradeYears: GradeYear[], excelRow: number, excelColumn: number, cellValue: string, table: Table) {
         this.day = day;

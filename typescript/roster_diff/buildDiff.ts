@@ -1,7 +1,7 @@
 import {JsonExcelData} from "./excel";
 import {RosterFactory} from "./rosterFactory";
 import {ClassDef, ExcelRoster, TeacherDef, TimeSlice} from "./excelRoster";
-import {cloud, fetchExcelData, fetchFolderChanged, postNotification} from "../cloud";
+import {cloud, fetchExcelData, fetchFolderChanged, fetchIgnoredDiffHashes, postNotification} from "../cloud";
 import {FetchChain} from "../table/fetchChain";
 import {getSchoolIdString, pad, Schoolyear} from "../globals";
 import {fetchLessen} from "../lessen/observer";
@@ -31,7 +31,7 @@ export async function buildAndSaveDiff(reportStatus: StatusCallback, fetchListen
     }
     reportStatus(`Vergelijken met DKO3 lessen...`);
     let res = await runRosterCheck(jsonExcelDatas, reportStatus, fetchListener);
-    let jsonDiffs = createJsonDiffs(res.diffs, res.dko3LesSet, res.excelLesSet, res.excelRosters);
+    let jsonDiffs = await createJsonDiffs(res.diffs, res.dko3LesSet, res.excelLesSet, res.excelRosters);
     let fileName = getDiffsCloudFileName();
     await cloud.json.upload(fileName, jsonDiffs);
     sessionStorage.setItem(fileName, JSON.stringify(jsonDiffs));
@@ -136,6 +136,7 @@ export class Dko3LesMoment {
     les: Les;
     dayTimeSlice: DayTimeSlice;
     momentId: string;
+    ignore: boolean;
 
     constructor(les: Les, dayTimeSlice: DayTimeSlice) {
         this.les = les;
@@ -160,6 +161,7 @@ export abstract class TaggedLes<T extends ClassDef | Dko3LesMoment> {
     teachers: string[];
     subjects: string[];
     linkedLesMomenten: TaggedLes<T>[] = [];
+    ignore: boolean;
 
     protected constructor(les: T, tags: string[], searchText: string) {
         this.lesMoment = les;
@@ -502,6 +504,7 @@ export interface JsonExcelLesMoment {
     workBook: string;
     workSheet: string;
     hash: string;
+    ignore: boolean;
 }
 
 export interface JsonDko3LesMoment {
@@ -513,6 +516,7 @@ export interface JsonDko3LesMoment {
     lesId: string;
     momentId: string;
     hash: string;
+    ignore: boolean;
 }
 
 export interface JsonDiff {
@@ -537,7 +541,18 @@ export interface JsonDiffs {
     workBooks: JsonWorkBook[],
 }
 
-export function createJsonDiffs(diffList: Diff[], dko3LesSet: Set<TaggedDko3LesMoment>, excelLesSet: Set<TaggedExcelLes>, excelRosters: ExcelRoster[]) {
+export async function setIgnoredFlags(orphanedDko3Lessen: JsonDko3LesMoment[], orphanedExcelLessen: JsonExcelLesMoment[]) {
+    let ignoreHashes = await fetchIgnoredDiffHashes();
+    let ignoreHashSet = new Set(ignoreHashes);
+    for (let les of orphanedDko3Lessen) {
+        les.ignore = ignoreHashSet.has(les.hash);
+    }
+    for (let les of orphanedExcelLessen) {
+        les.ignore = ignoreHashSet.has(les.hash);
+    }
+}
+
+export async function createJsonDiffs(diffList: Diff[], dko3LesSet: Set<TaggedDko3LesMoment>, excelLesSet: Set<TaggedExcelLes>, excelRosters: ExcelRoster[]) {
     let diffs: JsonDiff[] = diffList
         .filter(diff => diff.diffType != "perfect match")
         .map(diff => {
@@ -549,6 +564,8 @@ export function createJsonDiffs(diffList: Diff[], dko3LesSet: Set<TaggedDko3LesM
         });
     let orphanedDko3Lessen = [...dko3LesSet.values()].map(les => dko3LesToJson(les));
     let orphanedExcelLessen = [...excelLesSet.values()].map(les => excelLesToJson(les));
+
+    await setIgnoredFlags(orphanedDko3Lessen, orphanedExcelLessen);
     let workBooks: Map<string, JsonWorkBook> = new Map<string, JsonWorkBook>();
     for(let excelData of excelRosters.map(r => r.table.excelData)) {
         if(!workBooks.has(excelData.workbookName)) {
@@ -582,7 +599,8 @@ function dko3LesToJson(dko3Les: TaggedDko3LesMoment): JsonDko3LesMoment {
         subject: dko3Les.subjects.join(","),
         teacher: dko3Les.teachers.join(","),
         location: dko3Les.location,
-        hash: dko3Les.getHash()
+        hash: dko3Les.getHash(),
+        ignore: dko3Les.ignore,
     };
 }
 
@@ -598,7 +616,8 @@ function excelLesToJson(excelLes: TaggedExcelLes): JsonExcelLesMoment {
         cellValue: excelLes.lesMoment.cellValue,
         workBook: excelLes.lesMoment.table.excelData.workbookName,
         workSheet: excelLes.lesMoment.table.excelData.worksheetName,
-        hash: excelLes.getHash()
+        hash: excelLes.getHash(),
+        ignore: excelLes.ignore
     };
 }
 

@@ -106,11 +106,11 @@ async function setupDiffPage() {
     }
     button.onclick = async () => {
         let jsonDiffs = await runDiff(reportStatus, fetchListener);
-        showDiffs(jsonDiffs);
+        await  showDiffs(jsonDiffs);
     };
     try {
         let jsonDiffs = await getDiffsFromCloud();
-        showDiffs(jsonDiffs);
+        await showDiffs(jsonDiffs);
     }
     catch (e) {}
 }

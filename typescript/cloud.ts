@@ -86,3 +86,12 @@ export async function fetchFolderChanged(folderName: string) {
 export async function fetchExcelData(filePath: string) {
     return await fetchJson(filePath) as JsonExcelData;
 }
+
+const temp_hash_ignore_filename = "Dko3/TODO-NAME-ignored-diff-hashes.json";
+export async function uploadIgnoredDiffHashes(hashes: string[]) {
+    await uploadJson(temp_hash_ignore_filename, hashes);
+}
+
+export async function fetchIgnoredDiffHashes() {
+    return await fetchJson(temp_hash_ignore_filename) as string[];
+}
