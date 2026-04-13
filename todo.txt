@@ -1,9 +1,4 @@
-* Impement ignore/ok checkboxes
-  > keep them in same list for sorting.
-  > checkbox on top: Verberg V lessen.
-  > just a list of (tagged?)jsonLes JSON strings.
-    > if anything changes, the line pops back up.
-      > delete lines that are no longer existing, just to be safe.
+* SendExcel: post a notification that a file has changed.
 * Make flow that informs some users (via mail?) that a roster has changed.
   > too much spam?
   > have a diff with previous uploaded version?

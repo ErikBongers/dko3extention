@@ -1,7 +1,8 @@
 import { unreachable } from "../globals";
 import {emmet} from "../../libs/Emmeter/html";
-import {fetchNotifications, NotificationId, Notifications} from "../cloud";
+import {fetchNotifications} from "../cloud";
 import {gotoDiffPage} from "../menu";
+import {NotificationId, Notifications} from "./types";
 
 export function setupNotifications() {
     let navBar = document.getElementById("dko3_navbar") as HTMLDivElement;

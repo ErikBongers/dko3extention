@@ -3,7 +3,7 @@ import {RosterFactory} from "./rosterFactory";
 import {ClassDef, ExcelRoster, TeacherDef, TimeSlice} from "./excelRoster";
 import {cloud, fetchExcelData, fetchFolderChanged, fetchIgnoredDiffHashes, postNotification} from "../cloud";
 import {FetchChain} from "../table/fetchChain";
-import {getSchoolIdString, pad, Schoolyear} from "../globals";
+import {getSchoolIdString, getUserAndSchoolName, pad, Schoolyear} from "../globals";
 import {fetchLessen} from "../lessen/observer";
 import {DayTimeSlice, DayUppercase, Les, scrapeLessenOverzicht} from "../lessen/scrape";
 import {DKO3_BASE_URL, LESSEN_TABLE_ID} from "../def";
@@ -44,7 +44,7 @@ function removeIgnoreLessen(lessen: Les[]) {
 
 }
 async function runRosterCheck(excelDatas: JsonExcelData[], reportStatus: StatusCallback, fetchListener: InfoBarTableFetchListener) {
-    await postNotification("WOORD_ROSTER_RUN", "running", "Uurrooster worden vergeleken... (gestart door <todo:username>");
+    await postNotification("WOORD_ROSTER_RUN", "running", `Uurrooster worden vergeleken... ${getUserAndSchoolName().userName}`, "");
 
     reportStatus("Vestigingsplaatsen ophalen...");
     let locationsTable = await getTableFromHash("extra-academie-vestigingsplaatsen", true, fetchListener);

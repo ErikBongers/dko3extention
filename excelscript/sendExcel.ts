@@ -1,6 +1,37 @@
 /// <reference path="./excelScript.d.ts" />
 //https://github.com/sumurthy/officescripts-projects/blob/main/misc/index.d.ts
 
+//copy from notifications/types.ts:
+export type NotificationLevel = "info" | "warning" | "error" | "running";
+
+export type NotificationId =
+    "FILE_POSTED" | "WOORD_ROSTERS_IS_DIFF" | "WOORD_ROSTER_CHANGED" | "WOORD_ROSTER_RUN"
+    | "MUZIEK_ROSTERS_IS_DIFF" | "MUZIEK_ROSTER_CHANGED" | "MUZIEK_ROSTER_RUN"
+    | "OTHER"; //todo: OTHER should eventually be removed, as we need to be able to indentify every notif in order to be able to remove it.
+
+export interface Notification {
+    level: NotificationLevel;
+    id: NotificationId;
+    message: string;
+    data: string;
+}
+
+export interface Notifications {
+    instance: number;
+    notifications: {
+        [key in NotificationId]?: Notification;
+    }
+}
+
+export async function postNotification(id: NotificationId, level: NotificationLevel, message: string, data: string) {
+    let notification: Notification = {id, level, message, data};
+    await fetch(`https://europe-west1-ebo-tain.cloudfunctions.net/notification`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json"},
+        body: JSON.stringify(notification),
+    });
+}
+
 type Value = string | number | boolean;
 type Data = Value[][];
 type IdxRange = {
@@ -55,6 +86,7 @@ async function main(workbook: ExcelScript.Workbook) {
         method: "POST",
         body: JSON.stringify(json),
     });
+    await postNotification("FILE_POSTED", "info", `Bestand verzonden vanuit sharepoint: ${fileName}.`, fileName);
 
     let txt: string = await res.json();
     console.log(txt);

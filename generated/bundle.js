@@ -387,11 +387,12 @@ async function fetchNotifications() {
 	let res = await fetch("https://europe-west1-ebo-tain.cloudfunctions.net/get-notifications");
 	return await res.json();
 }
-async function postNotification(id, level, message) {
+async function postNotification(id, level, message, data) {
 	let notification = {
 		id,
 		level,
-		message
+		message,
+		data
 	};
 	await fetch(`https://europe-west1-ebo-tain.cloudfunctions.net/notification`, {
 		method: "POST",
@@ -4941,7 +4942,7 @@ async function buildAndSaveDiff(reportStatus, fetchListener) {
 	return jsonDiffs;
 }
 async function runRosterCheck(excelDatas, reportStatus, fetchListener) {
-	await postNotification("WOORD_ROSTER_RUN", "running", "Uurrooster worden vergeleken... (gestart door <todo:username>");
+	await postNotification("WOORD_ROSTER_RUN", "running", `Uurrooster worden vergeleken... ${getUserAndSchoolName().userName}`, "");
 	reportStatus("Vestigingsplaatsen ophalen...");
 	let locationsTable = await getTableFromHash("extra-academie-vestigingsplaatsen", true, fetchListener);
 	let locations = [...locationsTable.getRows()].map((tr) => tr.cells[1].textContent);
@@ -5741,11 +5742,11 @@ function doNotificationAction(id) {
 async function checkChecks() {
 	let woordCheckstatus = await fetchCheckStatus("WOORD_ROSTERS");
 	if (woordCheckstatus.status === "INITIAL") {
-		await postNotification("WOORD_ROSTERS_IS_DIFF", "warning", "De woordlessen zijn niet vergeleken met het uurrooser op Sharepoint. <button>Vergelijk lessen</button>");
+		await postNotification("WOORD_ROSTERS_IS_DIFF", "warning", "De woordlessen zijn niet vergeleken met het uurrooser op Sharepoint. <button>Vergelijk lessen</button>", "");
 		await fetchAndDisplayNotifications();
 	} else {
 		let folderChanged = await fetchFolderChanged("Dko3/Uurroosters/");
-		if (folderChanged.changed) await postNotification("WOORD_ROSTER_CHANGED", "warning", "Het uurrooster voor woord is gewijzigd op Sharepoint. <button>Vergelijk lessen</button>");
+		if (folderChanged.changed) await postNotification("WOORD_ROSTER_CHANGED", "warning", "Het uurrooster voor woord is gewijzigd op Sharepoint. <button>Vergelijk lessen</button>", "");
 	}
 }
 
