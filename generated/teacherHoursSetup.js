@@ -372,7 +372,9 @@ function addIndex(text, index, onIndex) {
 
 //#endregion
 //#region typescript/def.ts
-const JSON_URL = "https://europe-west1-ebo-tain.cloudfunctions.net/json";
+const CLOUD_BASE_URL = "https://europe-west1-ebo-tain.cloudfunctions.net/";
+const JSON_URL = CLOUD_BASE_URL + "json";
+const CHECK_STATUS_URL = CLOUD_BASE_URL + "check-status";
 const SETUP_HOURS_TITLE_ID = "setupTitle";
 
 //#endregion

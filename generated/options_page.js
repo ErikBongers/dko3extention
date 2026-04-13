@@ -294,7 +294,9 @@ function addIndex(text, index, onIndex) {
 
 //#endregion
 //#region typescript/def.ts
-const JSON_URL = "https://europe-west1-ebo-tain.cloudfunctions.net/json";
+const CLOUD_BASE_URL = "https://europe-west1-ebo-tain.cloudfunctions.net/";
+const JSON_URL = CLOUD_BASE_URL + "json";
+const CHECK_STATUS_URL = CLOUD_BASE_URL + "check-status";
 const GLOBAL_SETTINGS_FILENAME = "global_settings.json";
 
 //#endregion
@@ -324,7 +326,8 @@ const options = {
 	markOtherAcademies: true,
 	showDebug: false,
 	stripCommasOnPaste: false,
-	reorderStudentName: false
+	reorderStudentName: false,
+	allowDeleteNotif: false
 };
 function defineHtmlOptions() {
 	defineHtmlOption("showNotAssignedClasses", "checked", "Toon arcering voor niet toegewezen klassikale lessen.", "block1");
@@ -333,7 +336,8 @@ function defineHtmlOptions() {
 	defineHtmlOption("reorderStudentName", "checked", "Toon naam leerling als voornaam + achternaam", "block1");
 	defineHtmlOption("markOtherAcademies", "checked", "Toon arcering voor 'andere' academies.", "block1");
 	defineHtmlOption("myAcademies", "value", void 0, void 0);
-	defineHtmlOption("showDebug", "checked", "Show debug info in console.", "block3");
+	defineHtmlOption("showDebug", "checked", "Toon debug info in console.", "block3");
+	defineHtmlOption("allowDeleteNotif", "checked", "Laat verwijderen van berichten toe...", "block3");
 }
 let htmlOptionDefs = new Map();
 function defineHtmlOption(id, property, label, blockId) {
