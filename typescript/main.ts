@@ -15,7 +15,7 @@ import {setupPowerQuery} from "./powerQuery/setupPowerQuery";
 import {academieMenuObserver, allLijstenObserver, assetsObserver, evaluatieObserver, extraInschrijvingenObserver, financialObserver} from "./pages/observer";
 import {fetchGlobalSettings, getGlobalSettings, options, setGlobalSetting} from "./plugin_options/options";
 import {pageState} from "./pageState";
-import {setupNotifications} from "./notifications/notifications";
+import {fetchAndDisplayNotifications, setupNotifications, updateNotificationsInNavBar} from "./notifications/notifications";
 import {setupMenu} from "./menu";
 
 init();
@@ -166,3 +166,6 @@ function onPasteInGlobalSearchField(e: ClipboardEvent) {
 function whatever() {
     console.log("duh...");
 }
+
+window.onfocus = () => fetchAndDisplayNotifications();
+document.onvisibilitychange = () => fetchAndDisplayNotifications();

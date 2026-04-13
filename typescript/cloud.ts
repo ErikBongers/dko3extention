@@ -29,6 +29,7 @@ export async function fetchCheckStatus(checkName: CheckName) {
 }
 
 export async function fetchNotifications() {
+    console.log("fetching notifications");
     let res = await fetch("https://europe-west1-ebo-tain.cloudfunctions.net/get-notifications");
     return await res.json() as Notifications;
 }

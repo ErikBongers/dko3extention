@@ -379,11 +379,8 @@ async function uploadJson(fileName, data) {
 	});
 	return await res.text();
 }
-async function fetchCheckStatus(checkName) {
-	let res = await fetch(CHECK_STATUS_URL + "?name=" + checkName);
-	return await res.json();
-}
 async function fetchNotifications() {
+	console.log("fetching notifications");
 	let res = await fetch("https://europe-west1-ebo-tain.cloudfunctions.net/get-notifications");
 	return await res.json();
 }
@@ -3181,7 +3178,7 @@ function filterTable(table, rowFilter) {
 }
 
 //#endregion
-//#region typescript/menus.ts
+//#region typescript/dropDownMenus.ts
 function addMenuItem(menu, title, indentLevel, onClick) {
 	let indentClass = indentLevel ? ".menuIndent" + indentLevel : "";
 	let { first } = emmet.appendChild(menu, `button.naked.dropDownItem${indentClass}{${title}}`);
@@ -5683,19 +5680,26 @@ function setupNotifications() {
 	emmet.insertBefore(secondUl, "div#navBarNotifDiv>button#notifButton.noBorder{5}");
 }
 async function updateNotificationsInNavBar(notifications) {
-	console.log("checking...");
 	if (!notifications) notifications = await fetchNotifications();
 	let notifButton = document.getElementById("notifButton");
 	let count = Object.keys(notifications.notifications).length;
 	notifButton.innerHTML = count.toString();
 	notifButton.style.display = count > 0 ? "block" : "none";
+	notifButton.onclick = () => {
+		location.href = "https://administratie.dko3.cloud/#start?page=mijn_tijdslijn";
+	};
 }
 const NORMAL_SPEED_IN_SECONDS = 5 * 60;
-setInterval(updateNotificationsInNavBar, 1e3 * 10);
+let pollSpeedInSeconds = 1e3 * NORMAL_SPEED_IN_SECONDS;
+setInterval(fetchAndDisplayNotifications, 1e3 * pollSpeedInSeconds);
 async function fetchAndDisplayNotifications() {
-	let notificationsDiv = document.querySelector("#dko3_plugin_notifications > div > div");
 	let notifications = await fetchNotifications();
 	await updateNotificationsInNavBar(notifications);
+	let notificationsWrapper = document.querySelector("#dko3_plugin_notifications");
+	let notificationsDiv = document.querySelector("#dko3_plugin_notifications > div > div");
+	if (!notificationsDiv) return;
+	let count = Object.keys(notifications.notifications).length;
+	notificationsWrapper.style.display = count > 0 ? "block" : "none";
 	let propNames = Object.getOwnPropertyNames(notifications.notifications);
 	notificationsDiv.innerHTML = "";
 	for (let propName of propNames) {
@@ -5754,16 +5758,7 @@ function doNotificationAction(id) {
 
 //#endregion
 //#region typescript/notifications/checks.ts
-async function checkChecks() {
-	let woordCheckstatus = await fetchCheckStatus("WOORD_ROSTERS");
-	if (woordCheckstatus.status === "INITIAL") {
-		await postNotification("WOORD_ROSTERS_IS_DIFF", "warning", `De woordlessen zijn niet vergeleken met het uurrooser op Sharepoint. <button class="action">Vergelijk lessen</button>`, "");
-		await fetchAndDisplayNotifications();
-	} else {
-		let folderChanged = await fetchFolderChanged("Dko3/Uurroosters/");
-		if (folderChanged.changed) await postNotification("WOORD_ROSTER_CHANGED", "warning", `Het uurrooster voor woord is gewijzigd op Sharepoint. <button class="action">Vergelijk lessen</button>`, "");
-	}
-}
+async function checkChecks() {}
 
 //#endregion
 //#region typescript/startPage/observer.ts
@@ -8403,6 +8398,8 @@ function onPasteInGlobalSearchField(e) {
 	searchField$1.setSelectionRange(newText.length, newText.length);
 	e.preventDefault();
 }
+window.onfocus = () => fetchAndDisplayNotifications();
+document.onvisibilitychange = () => fetchAndDisplayNotifications();
 
 //#endregion
 })(default_items);

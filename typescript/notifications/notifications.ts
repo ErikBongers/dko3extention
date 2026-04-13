@@ -12,38 +12,45 @@ export function setupNotifications() {
 }
 
 export async function updateNotificationsInNavBar(notifications?: Notifications) {
-    console.log("checking...");
     if(!notifications)
         notifications = await fetchNotifications();
     let notifButton = document.getElementById("notifButton") as HTMLButtonElement;
     let count = Object.keys(notifications.notifications).length;
     notifButton.innerHTML = count.toString();
     notifButton.style.display = count > 0 ? "block" : "none";
+    notifButton.onclick = () => {
+        location.href = "https://administratie.dko3.cloud/#start?page=mijn_tijdslijn";
+    };
 }
 
 const FAST_SPEED_IN_SECONDS = 5;
 const NORMAL_SPEED_IN_SECONDS = 5*60;
 
 export type PollSpeed = "fast" | "normal";
-let pollSpeedInSeconds = -1;
+let pollSpeedInSeconds = 1000*NORMAL_SPEED_IN_SECONDS;
 export function setPollTimer(speed: PollSpeed) {
    switch (speed) {
        case "fast": pollSpeedInSeconds = FAST_SPEED_IN_SECONDS; break;
        case "normal": pollSpeedInSeconds = NORMAL_SPEED_IN_SECONDS; break;
        default: unreachable(speed);
    }
-   setTimeout(backToNormalSpeed, 1000*60);
+   setTimeout(backToNormalSpeed, 1000*pollSpeedInSeconds);
 }
-setInterval(updateNotificationsInNavBar, 1000*10);
+setInterval(fetchAndDisplayNotifications, 1000*pollSpeedInSeconds);
 
 function backToNormalSpeed() {
     setPollTimer('normal');
 }
 
 export async function fetchAndDisplayNotifications() {
-    let notificationsDiv = document.querySelector("#dko3_plugin_notifications > div > div") as HTMLDivElement;
     let notifications = await fetchNotifications();
     await updateNotificationsInNavBar(notifications);
+    let notificationsWrapper = document.querySelector("#dko3_plugin_notifications") as HTMLDivElement;
+    let notificationsDiv = document.querySelector("#dko3_plugin_notifications > div > div") as HTMLDivElement;
+    if(!notificationsDiv)
+        return;
+    let count = Object.keys(notifications.notifications).length;
+    notificationsWrapper.style.display = count > 0 ? "block" : "none";
     let propNames = Object.getOwnPropertyNames(notifications.notifications) as NotificationId[];
 
     notificationsDiv.innerHTML = "";

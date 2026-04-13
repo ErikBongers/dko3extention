@@ -1,9 +1,19 @@
-* Remove notification that diff is running.
-  > only show this in the actual page.
-    >...how does the page know that these are running if it's not a notif?
-      > allow for hidden notifs?
-      > or separate this info out of notifs?
-        > where?
+Toward website
+===============
+Bahati wants to know if the classes (in DKO3!) have changed.
+> Allow to keep a snapshot, manually triggered.
+> Show the diff of the snapshot.
+
+Notif-checks cycle
+=====================
+- user changes SP excel file and sends it.
+- DKO3 receives notif FILE-SENT ofsowiet
+  > DKO3 start/notif page prompts with button to re-run the diff.
+- Diff is run
+  > delete the FILE-SENT notif.
+  > the runner of the diff is responsible for handling the diff problems.
+
+
 * FILE_POSTED notification allows for only one file!!!
   > ok for now.
   > make cloud handle this notification by merging the data into a comma separated list.

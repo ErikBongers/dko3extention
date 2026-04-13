@@ -1,7 +1,7 @@
 import {createHtmlTable, DataCacheId, distinct, HtmlData, openHtmlTab, range, rangeGenerator} from "../globals";
 import {emmet} from "../../libs/Emmeter/html";
 import {checkAndDownloadTableRows} from "./loadAnyTable";
-import {addMenuItem, addMenuSeparator, setupMenu} from "../menus";
+import {addMenuItem, addMenuSeparator, setupMenu} from "../dropDownMenus";
 import {TableFetcher, TableHandler, TableRef} from "./tableFetcher";
 import * as def from "../def";
 import {options} from "../plugin_options/options";
