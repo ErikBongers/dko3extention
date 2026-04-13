@@ -1533,6 +1533,32 @@ var RosterFactory = class RosterFactory {
 
 //#endregion
 //#region typescript/roster_diff/excelRoster.ts
+var ClassDef = class {
+	day;
+	teacher;
+	timeSlice;
+	subjects;
+	location;
+	gradeYears;
+	excelRow;
+	excelColumn;
+	cellValue;
+	table;
+	hash;
+	constructor(day, teacher, timeSlice, subjects, location$1, gradeYears, excelRow, excelColumn, cellValue, table) {
+		this.day = day;
+		this.teacher = teacher;
+		this.timeSlice = timeSlice;
+		this.subjects = subjects;
+		this.location = location$1;
+		this.gradeYears = gradeYears;
+		this.excelRow = excelRow;
+		this.excelColumn = excelColumn;
+		this.cellValue = cellValue;
+		this.table = table;
+		this.hash = cellValue + day + teacher + timeSlice.toString();
+	}
+};
 var TimeSlice = class {
 	start;
 	end;
@@ -1610,19 +1636,7 @@ var ExcelRoster = class {
 					column
 				};
 				let excelPos = TablePos.toExcel(tablePos, this.table);
-				let classDef = {
-					teacher,
-					day,
-					timeSlice,
-					location: location$1,
-					subjects,
-					gradeYears: this.findGradeYears(parseText),
-					description,
-					excelRow: excelPos.row,
-					excelColumn: excelPos.column,
-					cellValue,
-					table: this.table
-				};
+				let classDef = new ClassDef(day, teacher, timeSlice, subjects, location$1, this.findGradeYears(parseText), excelPos.row, excelPos.column, cellValue, this.table);
 				classDefs.push(classDef);
 				row = mergedRange.End.row + 1;
 			}

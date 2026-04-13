@@ -12,18 +12,32 @@ export type GradeYear = {
     year: number
 }
 
-export type ClassDef = {
-    day: DayUppercase,
-    teacher: string,
-    timeSlice: TimeSlice,
-    subjects: string[],
-    location: string,
-    gradeYears: GradeYear[],
-    description: string,
+export class ClassDef {
+    day: DayUppercase;
+    teacher: string;
+    timeSlice: TimeSlice;
+    subjects: string[];
+    location: string;
+    gradeYears: GradeYear[];
     excelRow: number;
     excelColumn: number;
-    cellValue: string,
-    table: Table,
+    cellValue: string;
+    table: Table;
+    hash: string;
+
+    constructor(day: DayUppercase, teacher: string, timeSlice: TimeSlice, subjects: string[], location: string, gradeYears: GradeYear[], excelRow: number, excelColumn: number, cellValue: string, table: Table) {
+        this.day = day;
+        this.teacher = teacher;
+        this.timeSlice = timeSlice;
+        this.subjects = subjects;
+        this.location = location;
+        this.gradeYears = gradeYears;
+        this.excelRow = excelRow;
+        this.excelColumn = excelColumn;
+        this.cellValue = cellValue;
+        this.table = table;
+        this.hash = cellValue + day + teacher + timeSlice.toString(); //cellvalue + table headers should be defining enough.
+    }
 }
 
 export class TimeSlice {
@@ -101,7 +115,7 @@ export class ExcelRoster {
             let cellValue = this.table.Cell(row, column)
             if (cellValue) {
                 let rx = /\n/g;
-                let description = cellValue
+                let description = cellValue //todo: merge description into the parseText below.
                     .replaceAll(rx, " ");
                 let parseText = " "+description
                     .replaceAll("(", " ( ") //force spaces around words or numbers
@@ -127,19 +141,18 @@ export class ExcelRoster {
                 let subjects = this.findSubjects(tags);
                 let tablePos: TablePos = {row, column};
                 let excelPos: ExcelPos = TablePos.toExcel(tablePos, this.table);
-                let classDef: ClassDef = {
-                    teacher,
+                let classDef= new ClassDef(
                     day,
+                    teacher,
                     timeSlice,
-                    location,
                     subjects,
-                    gradeYears: this.findGradeYears(parseText),
-                    description,
-                    excelRow: excelPos.row,
-                    excelColumn: excelPos.column,
+                    location,
+                    this.findGradeYears(parseText),
+                    excelPos.row,
+                    excelPos.column,
                     cellValue,
-                    table: this.table
-                };
+                    this.table
+                );
                 classDefs.push(classDef);
                 row = mergedRange.End.row+1;
             }
