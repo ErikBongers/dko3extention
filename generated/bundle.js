@@ -2023,16 +2023,7 @@ function scrapeLessenOverzicht(table) {
 	let body = table.tBodies[0];
 	let lessen = [];
 	for (const row of body.rows) {
-		let lesCell = row.cells[0];
-		let studentsCell = row.cells[1];
-		let les = scrapeLesInfo(lesCell);
-		les.studentsTable = studentsCell.querySelectorAll("table")[0];
-		let meta = scrapeStudentsCellMeta(studentsCell);
-		les.aantal = meta.aantal;
-		les.maxAantal = meta.maxAantal;
-		les.id = meta.id;
-		les.wachtlijst = meta.wachtlijst;
-		les.warnings = [...row.getElementsByClassName("text-warning")].map((el) => el.textContent);
+		let les = scrapeLesInfo(row);
 		lessen.push(les);
 	}
 	return lessen;
@@ -2185,19 +2176,34 @@ var Les = class {
 	repeat;
 	dayTimeSlices = [];
 	linkedLessenIds = [];
+	hash;
+	constructor(id) {
+		this.id = id;
+	}
+	getHash() {
+		return this.id + this.teacher + this.naam + this.vakNaam + this.lesmoment + this.vestiging + this.online;
+	}
 };
-function scrapeLesInfo(tdLesInfo) {
-	let les = new Les();
-	let [first] = tdLesInfo.getElementsByTagName("strong");
+function scrapeLesInfo(row) {
+	let lesCell = row.cells[0];
+	let studentsCell = row.cells[1];
+	let meta = scrapeStudentsCellMeta(studentsCell);
+	let les = new Les(meta.id);
+	les.studentsTable = studentsCell.querySelectorAll("table")[0];
+	les.aantal = meta.aantal;
+	les.maxAantal = meta.maxAantal;
+	les.wachtlijst = meta.wachtlijst;
+	les.warnings = [...row.getElementsByClassName("text-warning")].map((el) => el.textContent);
+	let [first] = lesCell.getElementsByTagName("strong");
 	les.vakNaam = first.textContent;
-	let allBadges = tdLesInfo.getElementsByClassName("badge");
-	let warningBadges = tdLesInfo.getElementsByClassName("badge-warning");
+	let allBadges = lesCell.getElementsByClassName("badge");
+	let warningBadges = lesCell.getElementsByClassName("badge-warning");
 	les.alc = Array.from(allBadges).some((el) => el.textContent === "ALC");
-	les.online = tdLesInfo.getElementsByClassName("fa-eye-slash").length === 0;
+	les.online = lesCell.getElementsByClassName("fa-eye-slash").length === 0;
 	les.tags = Array.from(warningBadges).map((el) => el.textContent).filter((txt) => txt !== "ALC").filter((txt) => txt);
-	let mutedSpans = tdLesInfo.querySelectorAll("span.text-muted");
+	let mutedSpans = lesCell.querySelectorAll("span.text-muted");
 	if (mutedSpans.length > 1) les.naam = mutedSpans.item(0).textContent;
-	else les.naam = tdLesInfo.children[1].textContent;
+	else les.naam = lesCell.children[1].textContent;
 	les.naam = les.naam.replaceAll("(", "").replaceAll(")", "").trim();
 	if (Array.from(allBadges).some((el) => el.textContent === "module")) if (les.naam.includes("jaar")) les.lesType = LesType$1.JaarModule;
 	else if (les.naam.includes("rimester")) les.lesType = LesType$1.TrimesterModule;
@@ -2205,11 +2211,11 @@ function scrapeLesInfo(tdLesInfo) {
 	else les.lesType = LesType$1.Les;
 	if (mutedSpans.length > 0) les.teacher = Array.from(mutedSpans).pop().textContent;
 	les.teacher = les.teacher.replaceAll("  ", " ").replaceAll(" ,", ",").trim();
-	let textNodes = Array.from(tdLesInfo.childNodes).filter((node) => node.nodeType === Node.TEXT_NODE && node.textContent.trim() !== "");
+	let textNodes = Array.from(lesCell.childNodes).filter((node) => node.nodeType === Node.TEXT_NODE && node.textContent.trim() !== "");
 	if (!textNodes) return les;
 	les.lesmoment = textNodes[0].nodeValue;
 	les.vestiging = textNodes[1].nodeValue;
-	let infoSpansText = [...tdLesInfo.querySelectorAll("span.text-info")].map((e) => e.textContent);
+	let infoSpansText = [...lesCell.querySelectorAll("span.text-info")].map((e) => e.textContent);
 	les.gradeYears = textsToYearGrades(infoSpansText);
 	splitLesMoment(les);
 	return les;
@@ -2664,7 +2670,7 @@ function mergeBlockStudents(block) {
 	};
 }
 function createLesFromToewijzing(instrument, toewijzing) {
-	let les = new Les();
+	let les = new Les("");
 	les.lesType = LesType$1.JaarModule;
 	les.instrumentName = instrument;
 	if (toewijzing.klasleerkracht == "") les.teacher = `toe te wijzen lk ${instrument}`;
@@ -2677,7 +2683,6 @@ function createLesFromToewijzing(instrument, toewijzing) {
 	les.online = true;
 	les.wachtlijst = 0;
 	les.alc = false;
-	les.id = "";
 	les.lesmoment = toewijzing.lesmoment;
 	les.naam = `Initiatie ${les.instrumentName} - jaartraject - ${les.teacher}`;
 	les.students = [];
@@ -3297,7 +3302,7 @@ function applyFilters() {
 		else if (pageState$2.filterOnlineAlc) extraFilter = {
 			context: void 0,
 			rowFilter(tr, _context) {
-				let scrapeResult = scrapeLesInfo(tr.cells[0]);
+				let scrapeResult = scrapeLesInfo(tr);
 				return scrapeResult.online && scrapeResult.alc;
 			}
 		};

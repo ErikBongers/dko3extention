@@ -133,7 +133,7 @@ export function applyFilters() {
              extraFilter = {
                  context: undefined,
                  rowFilter(tr: HTMLTableRowElement, _context: any): boolean {
-                     let scrapeResult = scrapeLesInfo(tr.cells[0]);
+                     let scrapeResult = scrapeLesInfo(tr);
                      return scrapeResult.online && scrapeResult.alc;
                  }
              }

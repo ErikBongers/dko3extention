@@ -5,17 +5,7 @@ export function scrapeLessenOverzicht(table: HTMLTableElement) {
     let body = table.tBodies[0];
     let lessen: Les[] = [];
     for (const row of body.rows) {
-        let lesCell = row.cells[0];
-        let studentsCell = row.cells[1];
-        let les = scrapeLesInfo(lesCell);
-        les.studentsTable = studentsCell.querySelectorAll("table")[0]; //for delayed student scraping.
-        let meta = scrapeStudentsCellMeta(studentsCell);
-        les.aantal = meta.aantal;
-        les.maxAantal = meta.maxAantal;
-        les.id = meta.id;
-        les.wachtlijst = meta.wachtlijst;
-        les.warnings = [...row.getElementsByClassName("text-warning")].map((el) => el.textContent);
-
+        let les = scrapeLesInfo(row);
         lessen.push(les);
     }
     return lessen;
@@ -184,28 +174,47 @@ export class Les {
     repeat: string; //wekelijks
     dayTimeSlices: DayTimeSlice[] = [];
     linkedLessenIds: string[] = [];
+    hash: string;
+
+    constructor(id: string) {
+        this.id = id;
+    }
+
+    public getHash() {
+        return this.id+ this.teacher + this.naam+this.vakNaam+this.lesmoment+this.vestiging+this.online;
+    }
 }
 
-export function scrapeLesInfo(tdLesInfo: HTMLTableCellElement) {
-    let les = new Les();
-    let [first] = tdLesInfo.getElementsByTagName("strong");
+export function scrapeLesInfo(row: HTMLTableRowElement) {
+    let lesCell = row.cells[0];
+    let studentsCell = row.cells[1];
+    let meta = scrapeStudentsCellMeta(studentsCell);
+
+    let les: Les = new Les(meta.id);
+    les.studentsTable = studentsCell.querySelectorAll("table")[0]; //for delayed student scraping.
+    les.aantal = meta.aantal;
+    les.maxAantal = meta.maxAantal;
+    les.wachtlijst = meta.wachtlijst;
+    les.warnings = [...row.getElementsByClassName("text-warning")].map((el) => el.textContent);
+
+    let [first] = lesCell.getElementsByTagName("strong");
     les.vakNaam = first.textContent;
-    let allBadges = tdLesInfo.getElementsByClassName("badge");
-    let warningBadges = tdLesInfo.getElementsByClassName("badge-warning");
+    let allBadges = lesCell.getElementsByClassName("badge");
+    let warningBadges = lesCell.getElementsByClassName("badge-warning");
     les.alc = Array.from(allBadges).some((el) => el.textContent === "ALC");
-    les.online = tdLesInfo.getElementsByClassName("fa-eye-slash").length === 0;
+    les.online = lesCell.getElementsByClassName("fa-eye-slash").length === 0;
     les.tags = Array.from(warningBadges)
         .map((el) => el.textContent)
         .filter((txt) => txt !== "ALC")
         .filter((txt) => txt);
-    let mutedSpans = tdLesInfo.querySelectorAll("span.text-muted");
+    let mutedSpans = lesCell.querySelectorAll("span.text-muted");
     //muted spans contain:
     //  - class name (optional)
     //  - teacher name (always)
     if(mutedSpans.length > 1) {
         les.naam = mutedSpans.item(0).textContent;
     } else {
-        les.naam = tdLesInfo.children[1].textContent;
+        les.naam = lesCell.children[1].textContent;
     }
     les.naam = les.naam
         .replaceAll("(", "")
@@ -230,12 +239,12 @@ export function scrapeLesInfo(tdLesInfo: HTMLTableCellElement) {
         .replaceAll(" ,", ",")
         .trim(); //clean up of names with additional spaces
 
-    let textNodes = Array.from(tdLesInfo.childNodes).filter((node) => node.nodeType === Node.TEXT_NODE && node.textContent.trim() !== "");
+    let textNodes = Array.from(lesCell.childNodes).filter((node) => node.nodeType === Node.TEXT_NODE && node.textContent.trim() !== "");
     if (!textNodes) return les;
 
     les.lesmoment = textNodes[0].nodeValue;
     les.vestiging = textNodes[1].nodeValue;
-    let infoSpansText = [...tdLesInfo.querySelectorAll("span.text-info")].map(e => e.textContent);
+    let infoSpansText = [...lesCell.querySelectorAll("span.text-info")].map(e => e.textContent);
     les.gradeYears = textsToYearGrades(infoSpansText);
     splitLesMoment(les);
     return les;

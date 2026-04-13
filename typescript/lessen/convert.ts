@@ -495,7 +495,7 @@ export function mergeBlockStudents(block: BlockInfo) {
 }
 
 function createLesFromToewijzing(instrument: string, toewijzing: JaarToewijzing) {
-    let les = new Les();
+    let les = new Les("");
     les.lesType = LesType.JaarModule;
     les.instrumentName = instrument;
     if(toewijzing.klasleerkracht == "")
@@ -510,7 +510,6 @@ function createLesFromToewijzing(instrument: string, toewijzing: JaarToewijzing)
     les.online = true;
     les.wachtlijst = 0;
     les.alc = false;
-    les.id = "";
     les.lesmoment = toewijzing.lesmoment;
     les.naam = `Initiatie ${les.instrumentName} - jaartraject - ${les.teacher}`;
     les.students = [];
