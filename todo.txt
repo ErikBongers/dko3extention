@@ -1,4 +1,6 @@
-* Create ignore list.
+* Impement ignore/ok checkboxes
+  > keep them in same list for sorting.
+  > checkbox on top: Verberg V lessen.
   > just a list of (tagged?)jsonLes JSON strings.
     > if anything changes, the line pops back up.
       > delete lines that are no longer existing, just to be safe.

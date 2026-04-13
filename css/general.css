@@ -426,6 +426,9 @@ table.diff {
             &:hover {
                 opacity: 1;
             }
+            &.chkHide {
+                opacity: 0.2;
+            }
         }
     }
 }

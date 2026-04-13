@@ -8,10 +8,10 @@ import {createDiffTable, DiffType, getUrlForWorksheet, JsonDiff, JsonDiffs} from
 export function showDiffs(diffs: JsonDiffs) {
     let divResults = document.getElementById("diffResults") as HTMLDivElement;
     divResults.innerHTML = "";
-
     let elapsedTimeString = dateDiffToString(new Date(diffs.isoDate), new Date());
     if(elapsedTimeString != "")
         emmet.appendChild(divResults, `p{Laatste vergelijking: ${elapsedTimeString} geleden.}`)
+    let chkHideChecked = emmet.appendChild(divResults, `input#chkHideChecked[type="checkbox"]+label[for="chkHideChecked"]{Verberg aangevinkte lijnen}`).first;
     for(let diff of diffs.diffs)
         displayDiff(diff, divResults); //<i class="fa-solid fa-arrow-up-right-from-square"></i>
 
@@ -74,7 +74,7 @@ export function fillDiffRow(tr: HTMLTableRowElement, subjects: string, teachers:
     tr.dataset.workbook = workBook;
     tr.dataset.worksheet = worksheet;
     tr.dataset.rowType = rowType;
-    emmet.appendChild(tr, `${tdSubjects}+td${diffTeacherClass}{${teachers}}+td${diffDayClass}{${toCompactDayString(day as DayUppercase)}}+td${diffTimeClass}{${timeSlice}}+td${diffLocationClass}{${location}}+(td.button>button.goto>i.fas.${iconClass})+(td.button>button.goto>i.fas.fa-check)`)
+    emmet.appendChild(tr, `${tdSubjects}+td${diffTeacherClass}{${teachers}}+td${diffDayClass}{${toCompactDayString(day as DayUppercase)}}+td${diffTimeClass}{${timeSlice}}+td${diffLocationClass}{${location}}+(td.buttonshow>button.goto>i.fas.${iconClass})+(td.button>button.goto.chkHide>i.fas.fa-check)`)
     let button = tr.querySelector("button.goto") as HTMLButtonElement;
     button.onclick = gotoData;
 }
