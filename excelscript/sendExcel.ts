@@ -88,7 +88,7 @@ async function main(workbook: ExcelScript.Workbook) {
         method: "POST",
         body: JSON.stringify(json),
     });
-    await postNotification("FILE_POSTED", "info", `Bestand verzonden vanuit sharepoint: ${fileName}.`, fileName);
+    await postNotification("FILE_POSTED", "info", `Bestand verzonden vanuit sharepoint: ${workbookName}.`, fileName);
 
     let txt: string = await res.json();
     console.log(txt);

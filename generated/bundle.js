@@ -5494,7 +5494,6 @@ async function showDiffs(diffs) {
 	chkHideChecked.onchange = (ev) => {
 		let input = ev.currentTarget;
 		let table$1 = document.getElementById("orphans");
-		table$1.id = "table_diffs";
 		table$1.classList.toggle("hideChecked", input.checked);
 		let ignore = table$1.classList.contains("hideChecked");
 		localStorage.setItem(OPTION_HIDE_IGNORED_DIFFS, ignore.toString());
