@@ -2,7 +2,7 @@ import {dateDiffToString, unreachable} from "../globals";
 import {emmet} from "../../libs/Emmeter/html";
 import {decorateTableHeader} from "../table/tableHeaders";
 import {DayUppercase} from "../lessen/scrape";
-import {DKO3_BASE_URL} from "../def";
+import {DKO3_BASE_URL, OPTION_HIDE_IGNORED_DIFFS} from "../def";
 import {createDiffTable, DiffType, getUrlForWorksheet, JsonDiff, JsonDiffs, setIgnoredFlags} from "./buildDiff";
 import {uploadIgnoredDiffHashes} from "../cloud";
 
@@ -17,7 +17,9 @@ export async function showDiffs(diffs: JsonDiffs) {
     chkHideChecked.onchange = (ev) => {
         let input = ev.currentTarget as HTMLInputElement;
         let table = document.getElementById("orphans") as HTMLTableElement;
-        table.classList.toggle("hideChecked");
+        table.classList.toggle("hideChecked", input.checked);
+        let ignore = table.classList.contains("hideChecked");
+        localStorage.setItem(OPTION_HIDE_IGNORED_DIFFS, ignore.toString());
     }
     for(let diff of diffs.diffs)
         displayDiff(diff, divResults); //<i class="fa-solid fa-arrow-up-right-from-square"></i>
@@ -35,6 +37,9 @@ export async function showDiffs(diffs: JsonDiffs) {
         fillDiffRow(tr, les.subject, les.teacher, les.day as DayUppercase, les.timeSlice, les.location, "perfect match", "excel", excelPostoExcelAddress(les.excelRow, les.excelColumn), les.cellValue, "", les.workBook, les.workSheet, les.hash, les.ignore);
         tr.classList.add("excelRow");
     }
+    let ingore = localStorage.getItem(OPTION_HIDE_IGNORED_DIFFS)?? "false";
+    chkHideChecked.checked = ingore == "true";
+    table.classList.toggle("hideChecked", chkHideChecked.checked);
 }
 
 export function fillExcelDiffRow(tr: HTMLTableRowElement, diff: JsonDiff) {

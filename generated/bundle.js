@@ -360,6 +360,7 @@ const BTN_WERKLIJST_MAKEN_ID = "#btn_leerling_werklijst_maken";
 const BTN_WERKLIJST_MAKEN_WRAPPER_ID = "#btn_leerling_werklijst_maken_wrapper";
 const DKO3_BASE_URL = "/";
 const BTN_WERKLIJST_NAV_BOTTOM = "tablenav_leerlingen_werklijst_bottom";
+const OPTION_HIDE_IGNORED_DIFFS = "dko3plugin.hideIgnoredDiffs";
 
 //#endregion
 //#region typescript/cloud.ts
@@ -5394,7 +5395,9 @@ async function showDiffs(diffs) {
 	chkHideChecked.onchange = (ev) => {
 		let input = ev.currentTarget;
 		let table$1 = document.getElementById("orphans");
-		table$1.classList.toggle("hideChecked");
+		table$1.classList.toggle("hideChecked", input.checked);
+		let ignore = table$1.classList.contains("hideChecked");
+		localStorage.setItem(OPTION_HIDE_IGNORED_DIFFS, ignore.toString());
 	};
 	for (let diff of diffs.diffs) displayDiff(diff, divResults);
 	emmet.appendChild(divResults, "h4{Lessen zonder overeenkomsten}");
@@ -5409,6 +5412,9 @@ async function showDiffs(diffs) {
 		fillDiffRow(tr, les.subject, les.teacher, les.day, les.timeSlice, les.location, "perfect match", "excel", excelPostoExcelAddress(les.excelRow, les.excelColumn), les.cellValue, "", les.workBook, les.workSheet, les.hash, les.ignore);
 		tr.classList.add("excelRow");
 	}
+	let ingore = localStorage.getItem(OPTION_HIDE_IGNORED_DIFFS) ?? "false";
+	chkHideChecked.checked = ingore == "true";
+	table.classList.toggle("hideChecked", chkHideChecked.checked);
 }
 function fillExcelDiffRow(tr, diff) {
 	fillDiffRow(tr, diff.excelLes.subject, diff.excelLes.teacher, diff.excelLes.day, diff.excelLes.timeSlice, diff.excelLes.location, diff.diffType, "excel", excelPostoExcelAddress(diff.excelLes.excelRow, diff.excelLes.excelColumn), diff.excelLes.cellValue, "", diff.excelLes.workBook, diff.excelLes.workSheet, diff.excelLes.hash, diff.excelLes.ignore);
