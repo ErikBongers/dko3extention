@@ -1,3 +1,9 @@
+* Remove notification that diff is running.
+  > only show this in the actual page.
+    >...how does the page know that these are running if it's not a notif?
+      > allow for hidden notifs?
+      > or separate this info out of notifs?
+        > where?
 * FILE_POSTED notification allows for only one file!!!
   > ok for now.
   > make cloud handle this notification by merging the data into a comma separated list.

@@ -400,6 +400,9 @@ async function postNotification(id, level, message, data) {
 		body: JSON.stringify(notification)
 	});
 }
+async function deleteNotification(id) {
+	await fetch(`https://europe-west1-ebo-tain.cloudfunctions.net/notification?id=${id}`, { method: "DELETE" });
+}
 async function fetchFolderChanged(folderName) {
 	let res = await fetch(encodeURI(CLOUD_BASE_URL + "folder-changed?folderName=" + folderName));
 	return await res.json();
@@ -5690,9 +5693,9 @@ async function updateNotificationsInNavBar(notifications) {
 const NORMAL_SPEED_IN_SECONDS = 5 * 60;
 setInterval(updateNotificationsInNavBar, 1e3 * 10);
 async function fetchAndDisplayNotifications() {
+	let notificationsDiv = document.querySelector("#dko3_plugin_notifications > div > div");
 	let notifications = await fetchNotifications();
 	await updateNotificationsInNavBar(notifications);
-	let notificationsDiv = document.querySelector("#dko3_plugin_notifications > div > div");
 	let propNames = Object.getOwnPropertyNames(notifications.notifications);
 	notificationsDiv.innerHTML = "";
 	for (let propName of propNames) {
@@ -5712,22 +5715,33 @@ async function fetchAndDisplayNotifications() {
 				imgUrl = chrome.runtime.getURL("images/info.png");
 				break;
 		}
+		let delButtonClass = "";
+		if (options.allowDeleteNotif) delButtonClass = "allowDelete";
 		let html = `
-            <div class="notif notif-${notif.level}">
-            <div class="notif-img">
-                <img src="${imgUrl}" alt="todo">
-            </div>
+            <div class="notif notif-${notif.level} ${delButtonClass}">
+                <button class="deleteNotif noBorder" data-id="${notif.id}"  ><i class="fas fa-trash"></i></button>
+                <div class="notif-img">
+                    <img src="${imgUrl}" alt="todo">
+                </div>
             <div>${notif.message}</div>
             </div>
             `;
 		let notifDiv = emmet.appendChild(notificationsDiv, "div").first;
 		notifDiv.innerHTML = html;
-		let button = notifDiv.querySelector("button");
+		let button = notifDiv.querySelector("button.action");
 		if (!button) continue;
 		button.onclick = () => {
 			doNotificationAction(notif.id);
 		};
 	}
+	notificationsDiv.querySelectorAll("button.deleteNotif").forEach((button) => {
+		button.onclick = async (ev) => {
+			let button$1 = ev.currentTarget;
+			let notifId = button$1.dataset.id;
+			await deleteNotification(notifId);
+			await fetchAndDisplayNotifications();
+		};
+	});
 }
 function doNotificationAction(id) {
 	console.log("doing action for notification: " + id);
@@ -5743,11 +5757,11 @@ function doNotificationAction(id) {
 async function checkChecks() {
 	let woordCheckstatus = await fetchCheckStatus("WOORD_ROSTERS");
 	if (woordCheckstatus.status === "INITIAL") {
-		await postNotification("WOORD_ROSTERS_IS_DIFF", "warning", "De woordlessen zijn niet vergeleken met het uurrooser op Sharepoint. <button>Vergelijk lessen</button>", "");
+		await postNotification("WOORD_ROSTERS_IS_DIFF", "warning", `De woordlessen zijn niet vergeleken met het uurrooser op Sharepoint. <button class="action">Vergelijk lessen</button>`, "");
 		await fetchAndDisplayNotifications();
 	} else {
 		let folderChanged = await fetchFolderChanged("Dko3/Uurroosters/");
-		if (folderChanged.changed) await postNotification("WOORD_ROSTER_CHANGED", "warning", "Het uurrooster voor woord is gewijzigd op Sharepoint. <button>Vergelijk lessen</button>", "");
+		if (folderChanged.changed) await postNotification("WOORD_ROSTER_CHANGED", "warning", `Het uurrooster voor woord is gewijzigd op Sharepoint. <button class="action">Vergelijk lessen</button>`, "");
 	}
 }
 
@@ -5783,7 +5797,7 @@ async function doStartupStuff() {
 	await fetchAndDisplayNotifications();
 	await checkChecks();
 }
-function setupPluginPage() {
+async function setupPluginPage() {
 	let pluginContainer = document.getElementById("plugin_container");
 	if (pluginContainer) return;
 	let viewContent = document.getElementById("view_contents");
@@ -5801,7 +5815,7 @@ function setupPluginPage() {
 			saveGotoState(pageState$2);
 			let viewContent$1 = document.getElementById("view_contents");
 			emmet.insertBefore(viewContent$1.firstElementChild, "div.hide_view_contents");
-			setupDiffPage();
+			await setupDiffPage();
 			return;
 		}
 	}

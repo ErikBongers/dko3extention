@@ -50,7 +50,7 @@ async function doStartupStuff() {
     await checkChecks();
 }
 
-function setupPluginPage() {
+async function setupPluginPage() {
     let pluginContainer = document.getElementById("plugin_container");
     if (pluginContainer)
         return;
@@ -72,7 +72,7 @@ function setupPluginPage() {
             saveGotoState(pageState);
             let viewContent = document.getElementById("view_contents");
             emmet.insertBefore(viewContent.firstElementChild, "div.hide_view_contents");
-            setupDiffPage();
+            await setupDiffPage();
             return;
         }
     }

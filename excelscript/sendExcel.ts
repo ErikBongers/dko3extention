@@ -2,29 +2,31 @@
 //https://github.com/sumurthy/officescripts-projects/blob/main/misc/index.d.ts
 
 //copy from notifications/types.ts:
-export type NotificationLevel = "info" | "warning" | "error" | "running";
+type NotificationLevel = "info" | "warning" | "error" | "running";
 
-export type NotificationId =
+type NotificationId =
     "FILE_POSTED" | "WOORD_ROSTERS_IS_DIFF" | "WOORD_ROSTER_CHANGED" | "WOORD_ROSTER_RUN"
     | "MUZIEK_ROSTERS_IS_DIFF" | "MUZIEK_ROSTER_CHANGED" | "MUZIEK_ROSTER_RUN"
     | "OTHER"; //todo: OTHER should eventually be removed, as we need to be able to indentify every notif in order to be able to remove it.
 
-export interface Notification {
-    level: NotificationLevel;
-    id: NotificationId;
-    message: string;
-    data: string;
+namespace Notif { //to avoid collision with excelScript.d.ts
+    export interface Notification {
+        level: NotificationLevel;
+        id: NotificationId;
+        message: string;
+        data: string;
+    }
 }
 
-export interface Notifications {
+interface Notifications {
     instance: number;
     notifications: {
         [key in NotificationId]?: Notification;
     }
 }
 
-export async function postNotification(id: NotificationId, level: NotificationLevel, message: string, data: string) {
-    let notification: Notification = {id, level, message, data};
+async function postNotification(id: NotificationId, level: NotificationLevel, message: string, data: string) {
+    let notification: Notif.Notification = {id, level, message, data};
     await fetch(`https://europe-west1-ebo-tain.cloudfunctions.net/notification`, {
         method: "POST",
         headers: { "Content-Type": "application/json"},

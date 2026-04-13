@@ -490,3 +490,13 @@ table#orphans {
         margin-inline-end: 1ch;
     }
 }
+
+button.deleteNotif {
+    display: none;
+}
+
+div.allowDelete {
+    button.deleteNotif {
+        display: inline-block;
+    }
+}

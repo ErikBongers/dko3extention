@@ -1,8 +1,9 @@
-import { unreachable } from "../globals";
+import {getOptions, unreachable} from "../globals";
 import {emmet} from "../../libs/Emmeter/html";
-import {fetchNotifications} from "../cloud";
+import {deleteNotification, fetchNotifications} from "../cloud";
 import {gotoDiffPage} from "../menu";
 import {NotificationId, Notifications} from "./types";
+import { options } from "../plugin_options/options";
 
 export function setupNotifications() {
     let navBar = document.getElementById("dko3_navbar") as HTMLDivElement;
@@ -40,9 +41,9 @@ function backToNormalSpeed() {
 }
 
 export async function fetchAndDisplayNotifications() {
+    let notificationsDiv = document.querySelector("#dko3_plugin_notifications > div > div") as HTMLDivElement;
     let notifications = await fetchNotifications();
     await updateNotificationsInNavBar(notifications);
-    let notificationsDiv = document.querySelector("#dko3_plugin_notifications > div > div") as HTMLDivElement;
     let propNames = Object.getOwnPropertyNames(notifications.notifications) as NotificationId[];
 
     notificationsDiv.innerHTML = "";
@@ -63,23 +64,36 @@ export async function fetchAndDisplayNotifications() {
                 imgUrl = chrome.runtime.getURL("images/info.png");
                 break;
         }
+        let delButtonClass = "";
+        if (options.allowDeleteNotif) {
+            delButtonClass = "allowDelete"
+        }
         let html: string = `
-            <div class="notif notif-${notif.level}">
-            <div class="notif-img">
-                <img src="${imgUrl}" alt="todo">
-            </div>
+            <div class="notif notif-${notif.level} ${delButtonClass}">
+                <button class="deleteNotif noBorder" data-id="${notif.id}"  ><i class="fas fa-trash"></i></button>
+                <div class="notif-img">
+                    <img src="${imgUrl}" alt="todo">
+                </div>
             <div>${notif.message}</div>
             </div>
             `;
         let notifDiv = emmet.appendChild(notificationsDiv, "div").first as HTMLDivElement;
         notifDiv.innerHTML = html;
-        let button = notifDiv.querySelector("button") as HTMLButtonElement;
+        let button = notifDiv.querySelector("button.action") as HTMLButtonElement;
         if(!button)
             continue;
         button.onclick = () => {
             doNotificationAction(notif.id);
         }
     }
+    notificationsDiv.querySelectorAll("button.deleteNotif").forEach((button:HTMLButtonElement) => {
+        button.onclick = async (ev) => {
+            let button = ev.currentTarget as HTMLButtonElement;
+            let notifId = button.dataset.id;
+            await deleteNotification(notifId as NotificationId);
+            await fetchAndDisplayNotifications();
+        }
+    })
 }
 
 function doNotificationAction(id: NotificationId) {

@@ -42,6 +42,12 @@ export async function postNotification(id: NotificationId, level: NotificationLe
     });
 }
 
+export async function deleteNotification(id: NotificationId) {
+    await fetch(`https://europe-west1-ebo-tain.cloudfunctions.net/notification?id=${id}`, {
+        method: "DELETE"
+    });
+}
+
 export interface FileChangedInfo {
     name: string,
     changed: string
