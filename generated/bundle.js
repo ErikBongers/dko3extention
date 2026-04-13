@@ -5367,6 +5367,11 @@ function showDiffs(diffs) {
 	let elapsedTimeString = dateDiffToString(new Date(diffs.isoDate), new Date());
 	if (elapsedTimeString != "") emmet.appendChild(divResults, `p{Laatste vergelijking: ${elapsedTimeString} geleden.}`);
 	let chkHideChecked = emmet.appendChild(divResults, `input#chkHideChecked[type="checkbox"]+label[for="chkHideChecked"]{Verberg aangevinkte lijnen}`).first;
+	chkHideChecked.onchange = (ev) => {
+		let input = ev.currentTarget;
+		let table$1 = document.getElementById("orphans");
+		table$1.classList.toggle("hideChecked");
+	};
 	for (let diff of diffs.diffs) displayDiff(diff, divResults);
 	emmet.appendChild(divResults, "h4{Lessen zonder overeenkomsten}");
 	let { table, tbody } = createDiffTable(divResults);
@@ -5437,8 +5442,15 @@ function fillDiffRow(tr, subjects, teachers, day, timeSlice, location$1, diffTyp
 	tr.dataset.worksheet = worksheet;
 	tr.dataset.rowType = rowType;
 	emmet.appendChild(tr, `${tdSubjects}+td${diffTeacherClass}{${teachers}}+td${diffDayClass}{${toCompactDayString(day)}}+td${diffTimeClass}{${timeSlice}}+td${diffLocationClass}{${location$1}}+(td.buttonshow>button.goto>i.fas.${iconClass})+(td.button>button.goto.chkHide>i.fas.fa-check)`);
-	let button = tr.querySelector("button.goto");
-	button.onclick = gotoData;
+	let btnGoto = tr.querySelector("button.goto");
+	btnGoto.onclick = gotoData;
+	let btnHide = tr.querySelector("button.chkHide");
+	btnHide.onclick = toggleIgnore;
+}
+async function toggleIgnore(ev) {
+	let button = ev.currentTarget;
+	let tr = button.closest("tr");
+	tr.classList.toggle("ignore");
 }
 async function gotoData(ev) {
 	let button = ev.currentTarget;
@@ -5767,7 +5779,7 @@ async function setupDiffPage() {
 	let button = emmet.appendChild(pluginContainer, "div.mb-1>div>(h4{Verschillen tussen Excel uurroosters en DKO3 lessen.}+button{Run the diffs!})").last;
 	let runStatus = emmet.insertAfter(button, "div#runStatus").first;
 	let results = emmet.insertAfter(runStatus, "div#diffResults").first;
-	let divInfo = emmet.insertAfter(runStatus, "dinv").last;
+	let divInfo = emmet.insertAfter(runStatus, "div").last;
 	let infoBlock = createInfoBlock(divInfo, "");
 	let fetchListener = new InfoBarTableFetchListener(infoBlock);
 	let messages = [];

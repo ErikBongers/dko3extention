@@ -431,9 +431,19 @@ table.diff {
             }
         }
     }
+    & tr.ignore {
+        opacity: .5;
+        & td button.chkHide {
+            opacity: 1;
+            color: green;
+        }
+    }
 }
 
 table#orphans {
+    &.hideChecked tr.ignore {
+        display: none;
+    }
     & thead th {
         background-color: #eee;
         font-weight: bold;

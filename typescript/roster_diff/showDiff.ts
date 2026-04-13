@@ -11,7 +11,12 @@ export function showDiffs(diffs: JsonDiffs) {
     let elapsedTimeString = dateDiffToString(new Date(diffs.isoDate), new Date());
     if(elapsedTimeString != "")
         emmet.appendChild(divResults, `p{Laatste vergelijking: ${elapsedTimeString} geleden.}`)
-    let chkHideChecked = emmet.appendChild(divResults, `input#chkHideChecked[type="checkbox"]+label[for="chkHideChecked"]{Verberg aangevinkte lijnen}`).first;
+    let chkHideChecked = emmet.appendChild(divResults, `input#chkHideChecked[type="checkbox"]+label[for="chkHideChecked"]{Verberg aangevinkte lijnen}`).first as HTMLInputElement;
+    chkHideChecked.onchange = (ev) => {
+        let input = ev.currentTarget as HTMLInputElement;
+        let table = document.getElementById("orphans") as HTMLTableElement;
+        table.classList.toggle("hideChecked");
+    }
     for(let diff of diffs.diffs)
         displayDiff(diff, divResults); //<i class="fa-solid fa-arrow-up-right-from-square"></i>
 
@@ -76,8 +81,16 @@ export function fillDiffRow(tr: HTMLTableRowElement, subjects: string, teachers:
     tr.dataset.worksheet = worksheet;
     tr.dataset.rowType = rowType;
     emmet.appendChild(tr, `${tdSubjects}+td${diffTeacherClass}{${teachers}}+td${diffDayClass}{${toCompactDayString(day as DayUppercase)}}+td${diffTimeClass}{${timeSlice}}+td${diffLocationClass}{${location}}+(td.buttonshow>button.goto>i.fas.${iconClass})+(td.button>button.goto.chkHide>i.fas.fa-check)`)
-    let button = tr.querySelector("button.goto") as HTMLButtonElement;
-    button.onclick = gotoData;
+    let btnGoto = tr.querySelector("button.goto") as HTMLButtonElement;
+    btnGoto.onclick = gotoData;
+    let btnHide = tr.querySelector("button.chkHide") as HTMLButtonElement;
+    btnHide.onclick = toggleIgnore;
+}
+
+async function toggleIgnore(ev: MouseEvent) {
+    let button = ev.currentTarget as HTMLButtonElement;
+    let tr = button.closest("tr") as HTMLTableRowElement;
+    tr.classList.toggle("ignore");
 }
 
 async function gotoData(ev: MouseEvent) {
