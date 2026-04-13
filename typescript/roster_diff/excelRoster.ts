@@ -38,6 +38,8 @@ export class ClassDef {
         this.table = table;
         this.hash = cellValue + day + teacher + timeSlice.toString(); //cellvalue + table headers should be defining enough.
     }
+
+    public getHash() { return this.hash; }
 }
 
 export class TimeSlice {

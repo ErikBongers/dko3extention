@@ -146,6 +146,10 @@ export class Dko3LesMoment {
     public static createLesMomentId(les: Les, dayTimeSlice: DayTimeSlice) {
         return les.id + "_" + dayTimeSlice.toString();
     }
+
+    public getHash() {
+        return this.les.getHash() + this.dayTimeSlice.toString();
+    }
 }
 
 export abstract class TaggedLes<T extends ClassDef | Dko3LesMoment> {
@@ -162,6 +166,8 @@ export abstract class TaggedLes<T extends ClassDef | Dko3LesMoment> {
         this.tags = tags;
         this.searchText = searchText;
     }
+
+    public getHash() { return this.lesMoment.getHash()};
 }
 
 export class TaggedDko3LesMoment extends TaggedLes<Dko3LesMoment> {
