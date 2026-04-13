@@ -96,7 +96,7 @@ async function setupDiffPage() {
     let runStatus = emmet.insertAfter(button, "div#runStatus").first as HTMLDivElement;
     let results = emmet.insertAfter(runStatus, "div#diffResults").first as HTMLDivElement;
 
-    let divInfo = emmet.insertAfter(runStatus, 'dinv').last as HTMLDivElement;
+    let divInfo = emmet.insertAfter(runStatus, 'div').last as HTMLDivElement;
     let infoBlock = createInfoBlock(divInfo, "");
     let fetchListener = new InfoBarTableFetchListener(infoBlock);
     let messages: string[] = [];
