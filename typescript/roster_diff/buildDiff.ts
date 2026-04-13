@@ -1,7 +1,7 @@
 import {JsonExcelData} from "./excel";
 import {RosterFactory} from "./rosterFactory";
 import {ClassDef, ExcelRoster, TeacherDef, TimeSlice} from "./excelRoster";
-import {cloud, fetchExcelData, fetchFolderChanged, fetchIgnoredDiffHashes, postNotification} from "../cloud";
+import {cloud, deleteNotification, fetchExcelData, fetchFolderChanged, fetchIgnoredDiffHashes, postNotification} from "../cloud";
 import {FetchChain} from "../table/fetchChain";
 import {getSchoolIdString, getUserAndSchoolName, pad, Schoolyear} from "../globals";
 import {fetchLessen} from "../lessen/observer";
@@ -10,6 +10,7 @@ import {DKO3_BASE_URL, LESSEN_TABLE_ID} from "../def";
 import {StatusCallback} from "../startPage/observer";
 import {getTableFromHash, InfoBarTableFetchListener} from "../table/loadAnyTable";
 import {emmet} from "../../libs/Emmeter/html";
+import {fetchAndDisplayNotifications} from "../notifications/notifications";
 
 let cachedDiffs: JsonDiffs = undefined;
 export async function getJsonDiffsCached() {
@@ -44,8 +45,6 @@ function removeIgnoreLessen(lessen: Les[]) {
 
 }
 async function runRosterCheck(excelDatas: JsonExcelData[], reportStatus: StatusCallback, fetchListener: InfoBarTableFetchListener) {
-    await postNotification("WOORD_ROSTER_RUN", "running", `Uurrooster worden vergeleken... ${getUserAndSchoolName().userName}`, "");
-
     reportStatus("Vestigingsplaatsen ophalen...");
     let locationsTable = await getTableFromHash("extra-academie-vestigingsplaatsen", true, fetchListener);
     let locations = [...locationsTable.getRows()].map(tr => tr.cells[1].textContent);
@@ -85,6 +84,8 @@ async function runRosterCheck(excelDatas: JsonExcelData[], reportStatus: StatusC
         excelLessenArray.push(roster.scrapeUurrooster());
         console.log(excelLessenArray);
     }
+    await deleteNotification("FILE_POSTED");
+    await fetchAndDisplayNotifications();
     return {excelRosters, ...await buildDiff(excelLessenArray.flat(), dko3Lessen, dko3AliasLessen, reportStatus, teachers)};
 }
 

@@ -15,7 +15,7 @@ import {setupPowerQuery} from "./powerQuery/setupPowerQuery";
 import {academieMenuObserver, allLijstenObserver, assetsObserver, evaluatieObserver, extraInschrijvingenObserver, financialObserver} from "./pages/observer";
 import {fetchGlobalSettings, getGlobalSettings, options, setGlobalSetting} from "./plugin_options/options";
 import {pageState} from "./pageState";
-import {fetchAndDisplayNotifications, setupNotifications, updateNotificationsInNavBar} from "./notifications/notifications";
+import {fetchAndDisplayNotifications, getNotifRedButton, updateNotificationsInNavBar} from "./notifications/notifications";
 import {setupMenu} from "./menu";
 
 init();
@@ -60,7 +60,7 @@ function init() {
         registerObserver(startPageObserver);
         onPageChanged();
         setupPowerQuery();
-        setupNotifications();
+        getNotifRedButton();
         setupMenu();
         if(document.readyState == "complete") {
             console.log("document ready. firing onPageRefreshed.");

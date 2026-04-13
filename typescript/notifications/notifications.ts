@@ -1,20 +1,22 @@
-import {getOptions, unreachable} from "../globals";
+import {unreachable} from "../globals";
 import {emmet} from "../../libs/Emmeter/html";
 import {deleteNotification, fetchNotifications} from "../cloud";
-import {gotoDiffPage} from "../menu";
 import {NotificationId, Notifications} from "./types";
-import { options } from "../plugin_options/options";
+import {options} from "../plugin_options/options";
 
-export function setupNotifications() {
+export function getNotifRedButton() {
+    let notifButton = document.getElementById("notifButton") as HTMLButtonElement;
+    if(notifButton)
+        return notifButton;
     let navBar = document.getElementById("dko3_navbar") as HTMLDivElement;
     let secondUl = navBar.querySelectorAll("ul").item(1);
-    emmet.insertBefore(secondUl, "div#navBarNotifDiv>button#notifButton.noBorder{5}");
+    return emmet.insertBefore(secondUl, "div#navBarNotifDiv>button#notifButton.noBorder{5}").last as HTMLButtonElement;
 }
 
 export async function updateNotificationsInNavBar(notifications?: Notifications) {
     if(!notifications)
         notifications = await fetchNotifications();
-    let notifButton = document.getElementById("notifButton") as HTMLButtonElement;
+    let notifButton = getNotifRedButton();
     let count = Object.keys(notifications.notifications).length;
     notifButton.innerHTML = count.toString();
     notifButton.style.display = count > 0 ? "block" : "none";
@@ -104,11 +106,10 @@ export async function fetchAndDisplayNotifications() {
 }
 
 function doNotificationAction(id: NotificationId) {
-    console.log("doing action for notification: " + id);
-    switch (id) {
-        case "WOORD_ROSTERS_IS_DIFF":
-            gotoDiffPage();
-            break;
-    }
-
+    // console.log("doing action for notification: " + id);
+    // switch (id) {
+    //     case "WOORD_ROSTERS_IS_DIFF":
+    //         gotoDiffPage();
+    //         break;
+    // }
 }

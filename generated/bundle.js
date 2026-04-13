@@ -384,19 +384,6 @@ async function fetchNotifications() {
 	let res = await fetch("https://europe-west1-ebo-tain.cloudfunctions.net/get-notifications");
 	return await res.json();
 }
-async function postNotification(id, level, message, data) {
-	let notification = {
-		id,
-		level,
-		message,
-		data
-	};
-	await fetch(`https://europe-west1-ebo-tain.cloudfunctions.net/notification`, {
-		method: "POST",
-		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify(notification)
-	});
-}
 async function deleteNotification(id) {
 	await fetch(`https://europe-west1-ebo-tain.cloudfunctions.net/notification?id=${id}`, { method: "DELETE" });
 }
@@ -4915,6 +4902,85 @@ function appendGroupingAnchorOrText(target, grouping, activeSorting, separator) 
 }
 
 //#endregion
+//#region typescript/notifications/notifications.ts
+function getNotifRedButton() {
+	let notifButton = document.getElementById("notifButton");
+	if (notifButton) return notifButton;
+	let navBar = document.getElementById("dko3_navbar");
+	let secondUl = navBar.querySelectorAll("ul").item(1);
+	return emmet.insertBefore(secondUl, "div#navBarNotifDiv>button#notifButton.noBorder{5}").last;
+}
+async function updateNotificationsInNavBar(notifications) {
+	if (!notifications) notifications = await fetchNotifications();
+	let notifButton = getNotifRedButton();
+	let count = Object.keys(notifications.notifications).length;
+	notifButton.innerHTML = count.toString();
+	notifButton.style.display = count > 0 ? "block" : "none";
+	notifButton.onclick = () => {
+		location.href = "https://administratie.dko3.cloud/#start?page=mijn_tijdslijn";
+	};
+}
+const NORMAL_SPEED_IN_SECONDS = 5 * 60;
+let pollSpeedInSeconds = 1e3 * NORMAL_SPEED_IN_SECONDS;
+setInterval(fetchAndDisplayNotifications, 1e3 * pollSpeedInSeconds);
+async function fetchAndDisplayNotifications() {
+	let notifications = await fetchNotifications();
+	await updateNotificationsInNavBar(notifications);
+	let notificationsWrapper = document.querySelector("#dko3_plugin_notifications");
+	let notificationsDiv = document.querySelector("#dko3_plugin_notifications > div > div");
+	if (!notificationsDiv) return;
+	let count = Object.keys(notifications.notifications).length;
+	notificationsWrapper.style.display = count > 0 ? "block" : "none";
+	let propNames = Object.getOwnPropertyNames(notifications.notifications);
+	notificationsDiv.innerHTML = "";
+	for (let propName of propNames) {
+		let notif = notifications.notifications[propName];
+		let imgUrl = chrome.runtime.getURL("images/waiting.gif");
+		switch (notif.level) {
+			case "warning":
+				imgUrl = chrome.runtime.getURL("images/warning.png");
+				break;
+			case "error":
+				imgUrl = chrome.runtime.getURL("images/error.png");
+				break;
+			case "running":
+				imgUrl = chrome.runtime.getURL("images/waiting.gif");
+				break;
+			case "info":
+				imgUrl = chrome.runtime.getURL("images/info.png");
+				break;
+		}
+		let delButtonClass = "";
+		if (options.allowDeleteNotif) delButtonClass = "allowDelete";
+		let html = `
+            <div class="notif notif-${notif.level} ${delButtonClass}">
+                <button class="deleteNotif noBorder" data-id="${notif.id}"  ><i class="fas fa-trash"></i></button>
+                <div class="notif-img">
+                    <img src="${imgUrl}" alt="todo">
+                </div>
+            <div>${notif.message}</div>
+            </div>
+            `;
+		let notifDiv = emmet.appendChild(notificationsDiv, "div").first;
+		notifDiv.innerHTML = html;
+		let button = notifDiv.querySelector("button.action");
+		if (!button) continue;
+		button.onclick = () => {
+			doNotificationAction(notif.id);
+		};
+	}
+	notificationsDiv.querySelectorAll("button.deleteNotif").forEach((button) => {
+		button.onclick = async (ev) => {
+			let button$1 = ev.currentTarget;
+			let notifId = button$1.dataset.id;
+			await deleteNotification(notifId);
+			await fetchAndDisplayNotifications();
+		};
+	});
+}
+function doNotificationAction(id) {}
+
+//#endregion
 //#region typescript/roster_diff/buildDiff.ts
 let cachedDiffs = void 0;
 async function getJsonDiffsCached() {
@@ -4943,7 +5009,6 @@ async function buildAndSaveDiff(reportStatus, fetchListener) {
 	return jsonDiffs;
 }
 async function runRosterCheck(excelDatas, reportStatus, fetchListener) {
-	await postNotification("WOORD_ROSTER_RUN", "running", `Uurrooster worden vergeleken... ${getUserAndSchoolName().userName}`, "");
 	reportStatus("Vestigingsplaatsen ophalen...");
 	let locationsTable = await getTableFromHash("extra-academie-vestigingsplaatsen", true, fetchListener);
 	let locations = [...locationsTable.getRows()].map((tr) => tr.cells[1].textContent);
@@ -4975,6 +5040,8 @@ async function runRosterCheck(excelDatas, reportStatus, fetchListener) {
 		excelLessenArray.push(roster.scrapeUurrooster());
 		console.log(excelLessenArray);
 	}
+	await deleteNotification("FILE_POSTED");
+	await fetchAndDisplayNotifications();
 	return {
 		excelRosters,
 		...await buildDiff(excelLessenArray.flat(), dko3Lessen, dko3AliasLessen, reportStatus, teachers)
@@ -5648,111 +5715,6 @@ async function addDiff(titleHeader) {
 		let tr = emmet.appendChild(tbody, "tr").last;
 		fillExcelDiffRow(tr, diff);
 		return;
-	}
-}
-
-//#endregion
-//#region typescript/menu.ts
-function setupMenu() {
-	let mainMenuUl = document.querySelector("#dko3_navbar > ul");
-	let listItems = mainMenuUl.querySelectorAll("li");
-	let lastItem = listItems[listItems.length - 1];
-	let { last: dropdown } = emmet.insertBefore(lastItem, `li.nav-item.dropdown>a{ Plugin }.nav-link.dropdown-toggle[href="#" role="button" data-toggle="dropdown" aria-expanded="false"]>div.dropdown-menu`);
-	let menu1 = emmet.appendChild(dropdown, `a.dropdown-item.pointer[href=\"#"]{Vergelijk lessen met Excel uurroosters}`).first;
-	menu1.onclick = () => {
-		gotoDiffPage();
-	};
-}
-function gotoDiffPage() {
-	let pageState$2 = getGotoStateOrDefault(PageName.StartPage);
-	pageState$2.goto = Goto.Start_page;
-	pageState$2.showPage = "diff";
-	saveGotoState(pageState$2);
-	if (location.hash == "#start-mijn_tijdslijn") location.reload();
-	else location.href = "/#start-mijn_tijdslijn";
-}
-
-//#endregion
-//#region typescript/notifications/notifications.ts
-function setupNotifications() {
-	let navBar = document.getElementById("dko3_navbar");
-	let secondUl = navBar.querySelectorAll("ul").item(1);
-	emmet.insertBefore(secondUl, "div#navBarNotifDiv>button#notifButton.noBorder{5}");
-}
-async function updateNotificationsInNavBar(notifications) {
-	if (!notifications) notifications = await fetchNotifications();
-	let notifButton = document.getElementById("notifButton");
-	let count = Object.keys(notifications.notifications).length;
-	notifButton.innerHTML = count.toString();
-	notifButton.style.display = count > 0 ? "block" : "none";
-	notifButton.onclick = () => {
-		location.href = "https://administratie.dko3.cloud/#start?page=mijn_tijdslijn";
-	};
-}
-const NORMAL_SPEED_IN_SECONDS = 5 * 60;
-let pollSpeedInSeconds = 1e3 * NORMAL_SPEED_IN_SECONDS;
-setInterval(fetchAndDisplayNotifications, 1e3 * pollSpeedInSeconds);
-async function fetchAndDisplayNotifications() {
-	let notifications = await fetchNotifications();
-	await updateNotificationsInNavBar(notifications);
-	let notificationsWrapper = document.querySelector("#dko3_plugin_notifications");
-	let notificationsDiv = document.querySelector("#dko3_plugin_notifications > div > div");
-	if (!notificationsDiv) return;
-	let count = Object.keys(notifications.notifications).length;
-	notificationsWrapper.style.display = count > 0 ? "block" : "none";
-	let propNames = Object.getOwnPropertyNames(notifications.notifications);
-	notificationsDiv.innerHTML = "";
-	for (let propName of propNames) {
-		let notif = notifications.notifications[propName];
-		let imgUrl = chrome.runtime.getURL("images/waiting.gif");
-		switch (notif.level) {
-			case "warning":
-				imgUrl = chrome.runtime.getURL("images/warning.png");
-				break;
-			case "error":
-				imgUrl = chrome.runtime.getURL("images/error.png");
-				break;
-			case "running":
-				imgUrl = chrome.runtime.getURL("images/waiting.gif");
-				break;
-			case "info":
-				imgUrl = chrome.runtime.getURL("images/info.png");
-				break;
-		}
-		let delButtonClass = "";
-		if (options.allowDeleteNotif) delButtonClass = "allowDelete";
-		let html = `
-            <div class="notif notif-${notif.level} ${delButtonClass}">
-                <button class="deleteNotif noBorder" data-id="${notif.id}"  ><i class="fas fa-trash"></i></button>
-                <div class="notif-img">
-                    <img src="${imgUrl}" alt="todo">
-                </div>
-            <div>${notif.message}</div>
-            </div>
-            `;
-		let notifDiv = emmet.appendChild(notificationsDiv, "div").first;
-		notifDiv.innerHTML = html;
-		let button = notifDiv.querySelector("button.action");
-		if (!button) continue;
-		button.onclick = () => {
-			doNotificationAction(notif.id);
-		};
-	}
-	notificationsDiv.querySelectorAll("button.deleteNotif").forEach((button) => {
-		button.onclick = async (ev) => {
-			let button$1 = ev.currentTarget;
-			let notifId = button$1.dataset.id;
-			await deleteNotification(notifId);
-			await fetchAndDisplayNotifications();
-		};
-	});
-}
-function doNotificationAction(id) {
-	console.log("doing action for notification: " + id);
-	switch (id) {
-		case "WOORD_ROSTERS_IS_DIFF":
-			gotoDiffPage();
-			break;
 	}
 }
 
@@ -8295,6 +8257,27 @@ function inschrijvingenLinkToQueryItem(headerLabel, link, longLabelPrefix) {
 }
 
 //#endregion
+//#region typescript/menu.ts
+function setupMenu() {
+	let mainMenuUl = document.querySelector("#dko3_navbar > ul");
+	let listItems = mainMenuUl.querySelectorAll("li");
+	let lastItem = listItems[listItems.length - 1];
+	let { last: dropdown } = emmet.insertBefore(lastItem, `li.nav-item.dropdown>a{ Plugin }.nav-link.dropdown-toggle[href="#" role="button" data-toggle="dropdown" aria-expanded="false"]>div.dropdown-menu`);
+	let menu1 = emmet.appendChild(dropdown, `a.dropdown-item.pointer[href=\"#"]{Vergelijk lessen met Excel uurroosters}`).first;
+	menu1.onclick = () => {
+		gotoDiffPage();
+	};
+}
+function gotoDiffPage() {
+	let pageState$2 = getGotoStateOrDefault(PageName.StartPage);
+	pageState$2.goto = Goto.Start_page;
+	pageState$2.showPage = "diff";
+	saveGotoState(pageState$2);
+	if (location.hash == "#start-mijn_tijdslijn") location.reload();
+	else location.href = "/#start-mijn_tijdslijn";
+}
+
+//#endregion
 //#region typescript/main.ts
 init();
 function init() {
@@ -8328,7 +8311,7 @@ function init() {
 		registerObserver(observer_default$6);
 		onPageChanged();
 		setupPowerQuery();
-		setupNotifications();
+		getNotifRedButton();
 		setupMenu();
 		if (document.readyState == "complete") {
 			console.log("document ready. firing onPageRefreshed.");
