@@ -8,6 +8,7 @@
     "noEmit": true,
     "incremental": false,
     "moduleResolution": "bundler",
+    "noImplicitOverride": true,
     "paths": {
       "default_items": ["./javascript/default_items.js"]
     },
