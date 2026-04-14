@@ -547,15 +547,17 @@ export interface JsonDiffs {
     workBooks: JsonWorkBook[],
 }
 
-export async function setIgnoredFlags(orphanedDko3Lessen: JsonDko3LesMoment[], orphanedExcelLessen: JsonExcelLesMoment[]) {
-    let ignoreHashes = await fetchIgnoredDiffHashes();
-    let ignoreHashSet = new Set(ignoreHashes);
-    for (let les of orphanedDko3Lessen) {
-        les.ignore = ignoreHashSet.has(les.hash);
-    }
-    for (let les of orphanedExcelLessen) {
-        les.ignore = ignoreHashSet.has(les.hash);
-    }
+export async function setIgnoredFlags(orphanedDko3Lessen: JsonDko3LesMoment[], orphanedExcelLessen: JsonExcelLesMoment[], academie: string, schoolYear: string) {
+    try {
+        let ignoreHashes = await fetchIgnoredDiffHashes(academie, schoolYear);
+        let ignoreHashSet = new Set(ignoreHashes);
+        for (let les of orphanedDko3Lessen) {
+            les.ignore = ignoreHashSet.has(les.hash);
+        }
+        for (let les of orphanedExcelLessen) {
+            les.ignore = ignoreHashSet.has(les.hash);
+        }
+    } catch {}
 }
 
 export async function createJsonDiffs(diffList: Diff[], dko3LesSet: Set<TaggedDko3LesMoment>, excelLesSet: Set<TaggedExcelLes>, excelRosters: ExcelRoster[], academie: string, schoolYear: string): Promise<JsonDiffs> {
@@ -571,7 +573,7 @@ export async function createJsonDiffs(diffList: Diff[], dko3LesSet: Set<TaggedDk
     let orphanedDko3Lessen = [...dko3LesSet.values()].map(les => dko3LesToJson(les));
     let orphanedExcelLessen = [...excelLesSet.values()].map(les => excelLesToJson(les));
 
-    await setIgnoredFlags(orphanedDko3Lessen, orphanedExcelLessen);
+    await setIgnoredFlags(orphanedDko3Lessen, orphanedExcelLessen, academie, schoolYear);
     let workBooks: Map<string, JsonWorkBook> = new Map<string, JsonWorkBook>();
     for(let excelData of excelRosters.map(r => r.table.excelData)) {
         if(!workBooks.has(excelData.workbookName)) {

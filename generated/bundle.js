@@ -398,12 +398,14 @@ async function fetchFolderContent(folderName) {
 async function fetchExcelData(filePath) {
 	return await fetchJson(filePath);
 }
-const temp_hash_ignore_filename = "Dko3/TODO-NAME-ignored-diff-hashes.json";
-async function uploadIgnoredDiffHashes(hashes) {
-	await uploadJson(temp_hash_ignore_filename, hashes);
+function getIgnoreHashesFileName(academie, schoolYear) {
+	return `Dko3/Uurroosters/${academie}/${academie}_${schoolYear}_ignored-diff-hashes.json`;
 }
-async function fetchIgnoredDiffHashes() {
-	return await fetchJson(temp_hash_ignore_filename);
+async function uploadIgnoredDiffHashes(academie, schoolYear, hashes) {
+	await uploadJson(getIgnoreHashesFileName(academie, schoolYear), hashes);
+}
+async function fetchIgnoredDiffHashes(academie, schoolYear) {
+	return await fetchJson(getIgnoreHashesFileName(academie, schoolYear));
 }
 
 //#endregion
@@ -5411,11 +5413,13 @@ async function getDiffsFromCloud(academie, schoolYear) {
 		return null;
 	});
 }
-async function setIgnoredFlags(orphanedDko3Lessen, orphanedExcelLessen) {
-	let ignoreHashes = await fetchIgnoredDiffHashes();
-	let ignoreHashSet = new Set(ignoreHashes);
-	for (let les of orphanedDko3Lessen) les.ignore = ignoreHashSet.has(les.hash);
-	for (let les of orphanedExcelLessen) les.ignore = ignoreHashSet.has(les.hash);
+async function setIgnoredFlags(orphanedDko3Lessen, orphanedExcelLessen, academie, schoolYear) {
+	try {
+		let ignoreHashes = await fetchIgnoredDiffHashes(academie, schoolYear);
+		let ignoreHashSet = new Set(ignoreHashes);
+		for (let les of orphanedDko3Lessen) les.ignore = ignoreHashSet.has(les.hash);
+		for (let les of orphanedExcelLessen) les.ignore = ignoreHashSet.has(les.hash);
+	} catch {}
 }
 async function createJsonDiffs(diffList, dko3LesSet, excelLesSet, excelRosters, academie, schoolYear) {
 	let diffs = diffList.filter((diff) => diff.diffType != "perfect match").map((diff) => {
@@ -5427,7 +5431,7 @@ async function createJsonDiffs(diffList, dko3LesSet, excelLesSet, excelRosters, 
 	});
 	let orphanedDko3Lessen = [...dko3LesSet.values()].map((les) => dko3LesToJson(les));
 	let orphanedExcelLessen = [...excelLesSet.values()].map((les) => excelLesToJson(les));
-	await setIgnoredFlags(orphanedDko3Lessen, orphanedExcelLessen);
+	await setIgnoredFlags(orphanedDko3Lessen, orphanedExcelLessen, academie, schoolYear);
 	let workBooks = new Map();
 	for (let excelData of excelRosters.map((r) => r.table.excelData)) {
 		if (!workBooks.has(excelData.workbookName)) workBooks.set(excelData.workbookName, {
@@ -5507,7 +5511,7 @@ async function showDiffs(diffs, academie, schoolYear) {
 		divResults.innerHTML = "";
 		return;
 	}
-	await setIgnoredFlags(diffs.orphanedDko3Lessen, diffs.orphanedExcelLessen);
+	await setIgnoredFlags(diffs.orphanedDko3Lessen, diffs.orphanedExcelLessen, academie, schoolYear);
 	divResults.innerHTML = "";
 	let elapsedTimeString = dateDiffToString(new Date(diffs.isoDate), new Date());
 	if (elapsedTimeString != "") emmet.appendChild(divResults, `p{Laatste vergelijking: ${elapsedTimeString} geleden.}`);
@@ -5596,18 +5600,18 @@ function fillDiffRow(tr, subjects, teachers, day, timeSlice, location$1, diffTyp
 	let btnGoto = tr.querySelector("button.goto");
 	btnGoto.onclick = (ev) => gotoData(ev, academie, schoolYear);
 	let btnHide = tr.querySelector("button.chkHide");
-	btnHide.onclick = toggleIgnore;
+	btnHide.onclick = (ev) => toggleIgnore(ev, academie, schoolYear);
 }
-async function toggleIgnore(ev) {
+async function toggleIgnore(ev, academie, schoolYear) {
 	let button = ev.currentTarget;
 	let tr = button.closest("tr");
 	tr.classList.toggle("ignore");
-	await saveIgnoredHashes();
+	await saveIgnoredHashes(academie, schoolYear);
 }
-async function saveIgnoredHashes() {
+async function saveIgnoredHashes(academie, schoolYear) {
 	let table = document.getElementById("orphans");
 	let hashes = [...table.querySelectorAll("tr.ignore")].map((tr) => tr.dataset.hash);
-	await uploadIgnoredDiffHashes(hashes);
+	await uploadIgnoredDiffHashes(academie, schoolYear, hashes);
 }
 async function gotoData(ev, academie, schoolYear) {
 	let button = ev.currentTarget;

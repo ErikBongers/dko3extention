@@ -13,7 +13,7 @@ export async function showDiffs(diffs: JsonDiffs, academie: string, schoolYear: 
         divResults.innerHTML = "";
         return;
     }
-    await setIgnoredFlags(diffs.orphanedDko3Lessen, diffs.orphanedExcelLessen);
+    await setIgnoredFlags(diffs.orphanedDko3Lessen, diffs.orphanedExcelLessen, academie, schoolYear);
     divResults.innerHTML = "";
     let elapsedTimeString = dateDiffToString(new Date(diffs.isoDate), new Date());
     if(elapsedTimeString != "")
@@ -98,21 +98,21 @@ export function fillDiffRow(tr: HTMLTableRowElement, subjects: string, teachers:
     let btnGoto = tr.querySelector("button.goto") as HTMLButtonElement;
     btnGoto.onclick = (ev) => gotoData(ev, academie, schoolYear);
     let btnHide = tr.querySelector("button.chkHide") as HTMLButtonElement;
-    btnHide.onclick = toggleIgnore;
+    btnHide.onclick = (ev) => toggleIgnore(ev, academie, schoolYear);
 }
 
-async function toggleIgnore(ev: MouseEvent) {
+async function toggleIgnore(ev: MouseEvent, academie: string, schoolYear: string) {
     let button = ev.currentTarget as HTMLButtonElement;
     let tr = button.closest("tr") as HTMLTableRowElement;
     tr.classList.toggle("ignore");
-    await saveIgnoredHashes();
+    await saveIgnoredHashes(academie, schoolYear);
 }
 
-async function saveIgnoredHashes() {
+async function saveIgnoredHashes(academie: string, schoolYear: string) {
     let table = document.getElementById("orphans") as HTMLTableElement;
     let hashes = [...table.querySelectorAll("tr.ignore") as NodeListOf<HTMLTableRowElement>]
         .map(tr => tr.dataset.hash as string);
-    await uploadIgnoredDiffHashes(hashes);
+    await uploadIgnoredDiffHashes(academie, schoolYear, hashes);
 }
 
 async function gotoData(ev: MouseEvent, academie: string, schoolYear: string) {

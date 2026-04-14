@@ -79,11 +79,14 @@ export async function fetchExcelData(filePath: string) {
     return await fetchJson(filePath) as JsonExcelData;
 }
 
-const temp_hash_ignore_filename = "Dko3/TODO-NAME-ignored-diff-hashes.json";
-export async function uploadIgnoredDiffHashes(hashes: string[]) {
-    await uploadJson(temp_hash_ignore_filename, hashes);
+function getIgnoreHashesFileName(academie: string, schoolYear: string) {
+    return `Dko3/Uurroosters/${academie}/${academie}_${schoolYear}_ignored-diff-hashes.json`;
 }
 
-export async function fetchIgnoredDiffHashes() {
-    return await fetchJson(temp_hash_ignore_filename) as string[];
+export async function uploadIgnoredDiffHashes(academie: string, schoolYear: string, hashes: string[]) {
+    await uploadJson(getIgnoreHashesFileName(academie, schoolYear), hashes);
+}
+
+export async function fetchIgnoredDiffHashes(academie: string, schoolYear: string) {
+    return await fetchJson(getIgnoreHashesFileName(academie, schoolYear)) as string[];
 }
