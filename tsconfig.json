@@ -9,6 +9,7 @@
     "incremental": false,
     "moduleResolution": "bundler",
     "noImplicitOverride": true,
+    "noImplicitThis": true,
     "paths": {
       "default_items": ["./javascript/default_items.js"]
     },
