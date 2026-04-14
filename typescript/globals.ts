@@ -107,10 +107,19 @@ export namespace Schoolyear {
         if (el)
             return el.value;
         el = document.querySelector("div.alert-info");
-        let txt = el.textContent;
-        let rx = /[sS]chooljaar *[=:][\s\u00A0]*(\d{4}-\d{4})/gm;
-        let res = rx.exec(txt);
-        return res[1];
+        if(el) {
+            let txt = el.textContent;
+            let rx = /[sS]chooljaar *[=:][\s\u00A0]*(\d{4}-\d{4})/gm;
+            let res = rx.exec(txt);
+            return res[1];
+        }
+        el = document.querySelector("div.btn-toolbar");
+        if(el) {
+            let txt = el.textContent;
+            let rx = /[sS]chooljaar *[=:]*[\s\u00A0]*(\d{4}-\d{4})/gm;
+            let res = rx.exec(txt);
+            return res[1];
+        }
     }
 
     export function calculateCurrent() {

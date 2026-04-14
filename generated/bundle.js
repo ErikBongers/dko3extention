@@ -530,10 +530,19 @@ let Schoolyear;
 		let el = getSelectElement();
 		if (el) return el.value;
 		el = document.querySelector("div.alert-info");
-		let txt = el.textContent;
-		let rx = /[sS]chooljaar *[=:][\s\u00A0]*(\d{4}-\d{4})/gm;
-		let res = rx.exec(txt);
-		return res[1];
+		if (el) {
+			let txt = el.textContent;
+			let rx = /[sS]chooljaar *[=:][\s\u00A0]*(\d{4}-\d{4})/gm;
+			let res = rx.exec(txt);
+			return res[1];
+		}
+		el = document.querySelector("div.btn-toolbar");
+		if (el) {
+			let txt = el.textContent;
+			let rx = /[sS]chooljaar *[=:]*[\s\u00A0]*(\d{4}-\d{4})/gm;
+			let res = rx.exec(txt);
+			return res[1];
+		}
 	}
 	_Schoolyear.findInPage = findInPage;
 	function calculateCurrent() {
@@ -5017,9 +5026,9 @@ function doNotificationAction(id) {}
 //#endregion
 //#region typescript/roster_diff/buildDiff.ts
 let cachedDiffs = void 0;
-async function getJsonDiffsCached() {
+async function getJsonDiffsCached(academie, schoolYear) {
 	if (cachedDiffs) return cachedDiffs;
-	return getDiffsFromCloud();
+	return getDiffsFromCloud(academie, schoolYear);
 }
 async function buildAndSaveDiff(reportStatus, fetchListener, academie, schoolYear) {
 	reportStatus("Excel bestanden ophalen...");
@@ -5034,8 +5043,8 @@ async function buildAndSaveDiff(reportStatus, fetchListener, academie, schoolYea
 	}
 	reportStatus(`Vergelijken met DKO3 lessen...`);
 	let res = await runRosterCheck(jsonExcelDatas, reportStatus, fetchListener);
-	let jsonDiffs = await createJsonDiffs(res.diffs, res.dko3LesSet, res.excelLesSet, res.excelRosters);
-	let fileName = getDiffsCloudFileName();
+	let jsonDiffs = await createJsonDiffs(res.diffs, res.dko3LesSet, res.excelLesSet, res.excelRosters, academie, schoolYear);
+	let fileName = getDiffsCloudFileName(academie, schoolYear);
 	await cloud.json.upload(fileName, jsonDiffs);
 	sessionStorage.setItem(fileName, JSON.stringify(jsonDiffs));
 	reportStatus(`Vergelijking beeindigd.`);
@@ -5393,13 +5402,14 @@ function findTeacher(searchString, teachers) {
 	}
 	return searchString;
 }
-function getDiffsCloudFileName() {
-	let schoolYear = Schoolyear.calculateSetupYear();
-	let schoolName = getSchoolIdString();
-	return `Dko3/${schoolName}_${schoolYear}_diffs.json`;
+function getDiffsCloudFileName(academie, schoolYear) {
+	return `Dko3/${academie}_${schoolYear}_diffs.json`;
 }
-async function getDiffsFromCloud() {
-	return await cloud.json.fetch(getDiffsCloudFileName());
+async function getDiffsFromCloud(academie, schoolYear) {
+	return await cloud.json.fetch(getDiffsCloudFileName(academie, schoolYear)).catch((err) => {
+		console.log(err);
+		return null;
+	});
 }
 async function setIgnoredFlags(orphanedDko3Lessen, orphanedExcelLessen) {
 	let ignoreHashes = await fetchIgnoredDiffHashes();
@@ -5407,7 +5417,7 @@ async function setIgnoredFlags(orphanedDko3Lessen, orphanedExcelLessen) {
 	for (let les of orphanedDko3Lessen) les.ignore = ignoreHashSet.has(les.hash);
 	for (let les of orphanedExcelLessen) les.ignore = ignoreHashSet.has(les.hash);
 }
-async function createJsonDiffs(diffList, dko3LesSet, excelLesSet, excelRosters) {
+async function createJsonDiffs(diffList, dko3LesSet, excelLesSet, excelRosters, academie, schoolYear) {
 	let diffs = diffList.filter((diff) => diff.diffType != "perfect match").map((diff) => {
 		return {
 			excelLes: excelLesToJson(diff.excelLes),
@@ -5432,6 +5442,8 @@ async function createJsonDiffs(diffList, dko3LesSet, excelLesSet, excelRosters) 
 		workBook.worksheets.push(workSheet);
 	}
 	return {
+		academie,
+		schoolYear,
 		diffs,
 		orphanedDko3Lessen,
 		orphanedExcelLessen,
@@ -5479,8 +5491,8 @@ function toCompactTimeSliceString(timeSlice) {
 	if (!timeSlice) return "-geen uur-";
 	return `${pad(timeSlice.start.hour, 2)}:${pad(timeSlice.start.minutes, 2)} - ${pad(timeSlice.end.hour, 2)}:${pad(timeSlice.end.minutes, 2)}`;
 }
-async function getUrlForWorksheet(workBook, workSheet, cellAddress) {
-	let jsonDiffs = await getJsonDiffsCached();
+async function getUrlForWorksheet(workBook, workSheet, cellAddress, academie, schoolYear) {
+	let jsonDiffs = await getJsonDiffsCached(academie, schoolYear);
 	let url = jsonDiffs.workBooks.find((wb) => wb.name == workBook)?.worksheets.find((ws) => ws.name == workSheet)?.url;
 	if (cellAddress) url = url + `&activeCell=${workSheet}!${cellAddress}`;
 	return url;
@@ -5488,7 +5500,8 @@ async function getUrlForWorksheet(workBook, workSheet, cellAddress) {
 
 //#endregion
 //#region typescript/roster_diff/showDiff.ts
-async function showDiffs(diffs) {
+async function showDiffs(diffs, academie, schoolYear) {
+	if (!diffs) return;
 	await setIgnoredFlags(diffs.orphanedDko3Lessen, diffs.orphanedExcelLessen);
 	let divResults = document.getElementById("diffResults");
 	divResults.innerHTML = "";
@@ -5502,35 +5515,35 @@ async function showDiffs(diffs) {
 		let ignore = table$1.classList.contains("hideChecked");
 		localStorage.setItem(OPTION_HIDE_IGNORED_DIFFS, ignore.toString());
 	};
-	for (let diff of diffs.diffs) displayDiff(diff, divResults);
+	for (let diff of diffs.diffs) displayDiff(diff, divResults, academie, schoolYear);
 	emmet.appendChild(divResults, "h4{Lessen zonder overeenkomsten}");
 	let { table, tbody } = createDiffTable(divResults);
 	decorateTableHeader(table, false);
 	for (let les of diffs.orphanedDko3Lessen) {
 		let tr = emmet.appendChild(tbody, "tr").last;
-		fillDiffRow(tr, les.subject, les.teacher, les.day, les.timeSlice, les.location, "perfect match", "dko3", les.momentId, "", les.lesId, "", "", les.hash, les.ignore);
+		fillDiffRow(tr, les.subject, les.teacher, les.day, les.timeSlice, les.location, "perfect match", "dko3", les.momentId, "", les.lesId, "", "", les.hash, les.ignore, academie, schoolYear);
 	}
 	for (let les of diffs.orphanedExcelLessen) {
 		let tr = emmet.appendChild(tbody, "tr").last;
-		fillDiffRow(tr, les.subject, les.teacher, les.day, les.timeSlice, les.location, "perfect match", "excel", excelPostoExcelAddress(les.excelRow, les.excelColumn), les.cellValue, "", les.workBook, les.workSheet, les.hash, les.ignore);
+		fillDiffRow(tr, les.subject, les.teacher, les.day, les.timeSlice, les.location, "perfect match", "excel", excelPostoExcelAddress(les.excelRow, les.excelColumn), les.cellValue, "", les.workBook, les.workSheet, les.hash, les.ignore, academie, schoolYear);
 		tr.classList.add("excelRow");
 	}
 	let ingore = localStorage.getItem(OPTION_HIDE_IGNORED_DIFFS) ?? "false";
 	chkHideChecked.checked = ingore == "true";
 	table.classList.toggle("hideChecked", chkHideChecked.checked);
 }
-function fillExcelDiffRow(tr, diff) {
-	fillDiffRow(tr, diff.excelLes.subject, diff.excelLes.teacher, diff.excelLes.day, diff.excelLes.timeSlice, diff.excelLes.location, diff.diffType, "excel", excelPostoExcelAddress(diff.excelLes.excelRow, diff.excelLes.excelColumn), diff.excelLes.cellValue, "", diff.excelLes.workBook, diff.excelLes.workSheet, diff.excelLes.hash, diff.excelLes.ignore);
+function fillExcelDiffRow(tr, diff, academie, schoolYear) {
+	fillDiffRow(tr, diff.excelLes.subject, diff.excelLes.teacher, diff.excelLes.day, diff.excelLes.timeSlice, diff.excelLes.location, diff.diffType, "excel", excelPostoExcelAddress(diff.excelLes.excelRow, diff.excelLes.excelColumn), diff.excelLes.cellValue, "", diff.excelLes.workBook, diff.excelLes.workSheet, diff.excelLes.hash, diff.excelLes.ignore, academie, schoolYear);
 }
-function displayDiff(diff, divResults) {
+function displayDiff(diff, divResults, academie, schoolYear) {
 	let tbody = emmet.appendChild(divResults, "table.diff>tbody").last;
 	let tr = emmet.appendChild(tbody, "tr").last;
-	fillExcelDiffRow(tr, diff);
+	fillExcelDiffRow(tr, diff, academie, schoolYear);
 	tr.classList.add("excelRow");
 	let tr2 = emmet.appendChild(tbody, "tr").last;
-	fillDiffRow(tr2, diff.dko3Les.subject, diff.dko3Les.teacher, diff.dko3Les.day, diff.dko3Les.timeSlice, diff.dko3Les.location, diff.diffType, "dko3", diff.dko3Les.momentId, "", diff.dko3Les.lesId, "", "", diff.dko3Les.hash, diff.dko3Les.ignore);
+	fillDiffRow(tr2, diff.dko3Les.subject, diff.dko3Les.teacher, diff.dko3Les.day, diff.dko3Les.timeSlice, diff.dko3Les.location, diff.diffType, "dko3", diff.dko3Les.momentId, "", diff.dko3Les.lesId, "", "", diff.dko3Les.hash, diff.dko3Les.ignore, academie, schoolYear);
 }
-function fillDiffRow(tr, subjects, teachers, day, timeSlice, location$1, diffType, rowType, rowId, cellValue, lesId, workBook, worksheet, hash, ignore) {
+function fillDiffRow(tr, subjects, teachers, day, timeSlice, location$1, diffType, rowType, rowId, cellValue, lesId, workBook, worksheet, hash, ignore, academie, schoolYear) {
 	if (ignore) tr.classList.add("ignore");
 	let diffTeacherClass = "";
 	let diffLocationClass = "";
@@ -5577,7 +5590,7 @@ function fillDiffRow(tr, subjects, teachers, day, timeSlice, location$1, diffTyp
 	tr.dataset.rowType = rowType;
 	emmet.appendChild(tr, `${tdSubjects}+td${diffTeacherClass}{${teachers}}+td${diffDayClass}{${toCompactDayString(day)}}+td${diffTimeClass}{${timeSlice}}+td${diffLocationClass}{${location$1}}+(td.buttonshow>button.goto>i.fas.${iconClass})+(td.button>button.goto.chkHide>i.fas.fa-check)`);
 	let btnGoto = tr.querySelector("button.goto");
-	btnGoto.onclick = gotoData;
+	btnGoto.onclick = (ev) => gotoData(ev, academie, schoolYear);
 	let btnHide = tr.querySelector("button.chkHide");
 	btnHide.onclick = toggleIgnore;
 }
@@ -5592,7 +5605,7 @@ async function saveIgnoredHashes() {
 	let hashes = [...table.querySelectorAll("tr.ignore")].map((tr) => tr.dataset.hash);
 	await uploadIgnoredDiffHashes(hashes);
 }
-async function gotoData(ev) {
+async function gotoData(ev, academie, schoolYear) {
 	let button = ev.currentTarget;
 	let tr = button.closest("tr");
 	let rowType = tr.dataset.rowType;
@@ -5601,7 +5614,7 @@ async function gotoData(ev) {
 	let workSheet = tr.dataset.worksheet;
 	let lesId = tr.dataset.lesId;
 	if (rowType == "excel") {
-		let url = await getUrlForWorksheet(workBook, workSheet, cellAddress);
+		let url = await getUrlForWorksheet(workBook, workSheet, cellAddress, academie, schoolYear);
 		if (url == "") return;
 		window.open(url, "_blank");
 	} else if (rowType == "dko3") location.href = DKO3_BASE_URL + "#lessen-les?id=" + lesId;
@@ -5657,25 +5670,182 @@ const chars = [
 ];
 
 //#endregion
+//#region typescript/notifications/checks.ts
+async function checkChecks() {}
+
+//#endregion
+//#region typescript/startPage/observer.ts
+var StartPageObserver = class extends ExactHashObserver {
+	constructor() {
+		super("#start-mijn_tijdslijn", onMutation$5);
+	}
+	isPageReallyLoaded() {
+		return isLoaded();
+	}
+};
+var observer_default$7 = new StartPageObserver();
+function isLoaded() {
+	let startContentDiv = document.querySelector("#dko3_start_content");
+	return startContentDiv?.textContent.includes("welkom") ?? false;
+}
+function onMutation$5(mutation) {
+	if (document.querySelector("#dko3_plugin_notifications")) return true;
+	if (document.querySelector("#view_contents>div.row")) setupPluginPage();
+	let startContentDiv = document.querySelector("#dko3_start_content");
+	if (startContentDiv) {
+		if (startContentDiv.textContent.includes("welkom")) {
+			emmet.insertAfter(startContentDiv.children[0], "div#dko3_plugin_notifications>div.alert.alert-info.shadow-sm>(h5>strong{Plugin berichten})+div");
+			doStartupStuff().then(() => {});
+		}
+		return true;
+	}
+	return false;
+}
+async function doStartupStuff() {
+	await fetchAndDisplayNotifications();
+	await checkChecks();
+}
+async function setupPluginPage() {
+	let pluginContainer = document.getElementById("plugin_container");
+	if (pluginContainer) return;
+	let viewContent = document.getElementById("view_contents");
+	if (!viewContent) return;
+	emmet.appendChild(viewContent, "div#plugin_container");
+	let pageState$2 = getGotoStateOrDefault(PageName.StartPage);
+	if (pageState$2.goto == Goto.Start_page) {
+		if (pageState$2.showPage == "start") {
+			pageState$2.goto = Goto.None;
+			saveGotoState(pageState$2);
+			return;
+		}
+		if (pageState$2.showPage == "diff") {
+			pageState$2.goto = Goto.None;
+			saveGotoState(pageState$2);
+			let viewContent$1 = document.getElementById("view_contents");
+			emmet.insertBefore(viewContent$1.firstElementChild, "div.hide_view_contents");
+			await setupDiffPage();
+			return;
+		}
+	}
+	pageState$2.goto = Goto.None;
+	saveGotoState(pageState$2);
+}
+async function runDiff(reportStatus, fetchListener, academie, schoolYear) {
+	let divResults = document.getElementById("diffResults");
+	divResults.innerHTML = "";
+	return buildAndSaveDiff(reportStatus, fetchListener, academie, schoolYear);
+}
+async function setupDiffPage() {
+	let pluginContainer = document.getElementById("plugin_container");
+	let button = emmet.appendChild(pluginContainer, "div.mb-1>div>(h4{Verschillen tussen Excel uurroosters en DKO3 lessen.}+(div#combosLoading{Gegevens laden...}+select#cmbDiffAcademie+select#cmbDiffSchoolYear+button.btn.btn-primary{Zoek verschillen}))").last;
+	let dirTree = await getDiffDirStructure();
+	let myAcadFolderName = getDiffMyAcademieFolder(dirTree);
+	let academies = getAcademies(dirTree);
+	let cmbDiffAcademie = pluginContainer.querySelector("#cmbDiffAcademie");
+	cmbDiffAcademie.innerHTML = academies.map((name) => `<option value="${name}">${name}</option>`).join("");
+	cmbDiffAcademie.value = myAcadFolderName;
+	let schoolYears = [...dirTree.nodes.get(myAcadFolderName).nodes.values()].map((n) => n.folderName);
+	let cmbDiffSchoolYear = pluginContainer.querySelector("#cmbDiffSchoolYear");
+	cmbDiffSchoolYear.innerHTML = schoolYears.map((schoolYear) => `<option value="${schoolYear}">${schoolYear}</option>`).join("");
+	if (schoolYears.length == 1) cmbDiffSchoolYear.value = schoolYears[0];
+	pluginContainer.classList.toggle("diffCombosLoaded", true);
+	let runStatus = emmet.insertAfter(button, "div#runStatus").first;
+	emmet.insertAfter(runStatus, "div#diffResults");
+	let divInfo = emmet.insertAfter(runStatus, "div").last;
+	let divError = emmet.insertAfter(divInfo, "div.errors").last;
+	let infoBlock = createInfoBlock(divInfo, "");
+	let fetchListener = new InfoBarTableFetchListener(infoBlock);
+	let errors = [];
+	function reportStatus(message, isError) {
+		if (isError == "error") errors.push(message);
+		else runStatus.innerHTML = message;
+		divError.innerHTML = errors.join("<br>");
+	}
+	button.onclick = async () => {
+		errors = [];
+		let jsonDiffs = await runDiff(reportStatus, fetchListener, cmbDiffAcademie.value, cmbDiffSchoolYear.value);
+		await showDiffs(jsonDiffs, cmbDiffAcademie.value, cmbDiffSchoolYear.value);
+	};
+	try {
+		let jsonDiffs = await getDiffsFromCloud(cmbDiffAcademie.value, cmbDiffSchoolYear.value);
+		await showDiffs(jsonDiffs, cmbDiffAcademie.value, cmbDiffSchoolYear.value);
+	} catch (e) {}
+}
+async function getDiffDirStructure() {
+	let folderContent = await fetchFolderContent("Dko3/Uurroosters/");
+	let folderTree = {
+		folderName: "",
+		nodes: new Map()
+	};
+	for (let file of folderContent.files) {
+		let dirs = file.name.split("/");
+		dirs.pop();
+		dirs.shift();
+		dirs.shift();
+		let currentNode = folderTree;
+		for (let dir of dirs) {
+			let node = currentNode.nodes.get(dir);
+			if (!node) {
+				node = {
+					folderName: dir,
+					nodes: new Map()
+				};
+				currentNode.nodes.set(dir, node);
+			}
+			currentNode = node;
+		}
+	}
+	return folderTree;
+}
+function getAcademies(folderTree) {
+	return [...folderTree.nodes.values()].map((n) => n.folderName);
+}
+function getDiffMyAcademieFolder(folderTree) {
+	let myAcademie = getUserAndSchoolName().schoolName;
+	let academies = getAcademies(folderTree);
+	if (academies.includes(myAcademie)) return myAcademie;
+	myAcademie = myAcademie.replace("(", "").replaceAll(")", "");
+	if (academies.includes(myAcademie)) return myAcademie;
+	myAcademie = myAcademie.replaceAll("Muziek", "M").replaceAll("Woord", "W").replaceAll("Dans", "D").replaceAll("Beeld", "B");
+	if (academies.includes(myAcademie)) return myAcademie;
+	myAcademie = myAcademie.replaceAll("-", "");
+	if (academies.includes(myAcademie)) return myAcademie;
+	let found = academies.find((name) => name.includes(myAcademie));
+	if (found) return found;
+	return null;
+}
+
+//#endregion
 //#region typescript/les/observer.ts
 var LesObserver = class extends HashObserver {
 	constructor() {
-		super("#lessen-les", onMutation$5);
+		super("#lessen-les", onMutation$4);
 	}
 	isPageReallyLoaded() {
 		return document.querySelectorAll("#les_leerlingen_leerlingen > span").length > 0;
 	}
 };
-var observer_default$7 = new LesObserver();
-function onMutation$5(mutation) {
+var observer_default$6 = new LesObserver();
+function onMutation$4(mutation) {
 	let tabLeerlingen = document.getElementById("les_leerlingen_leerlingen");
 	if (mutation.target === tabLeerlingen) {
 		onLeerlingenChanged();
 		return true;
 	}
 	let titleHeader = document.getElementById("vh_header_lessen_les_left_title");
-	if (titleHeader) addDiff(titleHeader).then(() => {});
+	if (titleHeader) scrapeDiffsAcademieAndSchoolYear().then(async (hereAndNow) => {
+		await addDiff(titleHeader, hereAndNow.academieFolder, hereAndNow.schoolYear);
+	});
 	return false;
+}
+async function scrapeDiffsAcademieAndSchoolYear() {
+	let dirs = await getDiffDirStructure();
+	let academieFolder = getDiffMyAcademieFolder(dirs);
+	let schoolYear = Schoolyear.findInPage();
+	return {
+		academieFolder,
+		schoolYear
+	};
 }
 function onLeerlingenChanged() {
 	console.log("Les-Leerlingen changed.");
@@ -5728,17 +5898,17 @@ function switchNaamVoornaam(_event) {
 		strong.textContent = voornaam + " " + naam;
 	});
 }
-function getDiffsLocalFirst() {
-	let fileName = getDiffsCloudFileName();
+function getDiffsLocalFirst(academie, schoolYear) {
+	let fileName = getDiffsCloudFileName(academie, schoolYear);
 	let jsonDiff = sessionStorage.getItem(fileName);
 	if (jsonDiff) return JSON.parse(jsonDiff);
-	return getDiffsFromCloud();
+	return getDiffsFromCloud(academie, schoolYear);
 }
-async function addDiff(titleHeader) {
+async function addDiff(titleHeader, academie, schoolYear) {
 	let divDiff = document.querySelector("div.diff");
 	if (divDiff) return;
 	divDiff = emmet.insertAfter(titleHeader, "div.diff").first;
-	let diffs = await getDiffsLocalFirst();
+	let diffs = await getDiffsLocalFirst(academie, schoolYear);
 	if (!diffs) return;
 	let rxId = /id=(\d+)/g;
 	let matches = rxId.exec(document.location.href);
@@ -5747,155 +5917,9 @@ async function addDiff(titleHeader) {
 	if (diff) {
 		let tbody = emmet.appendChild(divDiff, "table.diff>tbody").last;
 		let tr = emmet.appendChild(tbody, "tr").last;
-		fillExcelDiffRow(tr, diff);
+		fillExcelDiffRow(tr, diff, academie, schoolYear);
 		return;
 	}
-}
-
-//#endregion
-//#region typescript/notifications/checks.ts
-async function checkChecks() {}
-
-//#endregion
-//#region typescript/startPage/observer.ts
-var StartPageObserver = class extends ExactHashObserver {
-	constructor() {
-		super("#start-mijn_tijdslijn", onMutation$4);
-	}
-	isPageReallyLoaded() {
-		return isLoaded();
-	}
-};
-var observer_default$6 = new StartPageObserver();
-function isLoaded() {
-	let startContentDiv = document.querySelector("#dko3_start_content");
-	return startContentDiv?.textContent.includes("welkom") ?? false;
-}
-function onMutation$4(mutation) {
-	if (document.querySelector("#dko3_plugin_notifications")) return true;
-	if (document.querySelector("#view_contents>div.row")) setupPluginPage();
-	let startContentDiv = document.querySelector("#dko3_start_content");
-	if (startContentDiv) {
-		if (startContentDiv.textContent.includes("welkom")) {
-			emmet.insertAfter(startContentDiv.children[0], "div#dko3_plugin_notifications>div.alert.alert-info.shadow-sm>(h5>strong{Plugin berichten})+div");
-			doStartupStuff().then(() => {});
-		}
-		return true;
-	}
-	return false;
-}
-async function doStartupStuff() {
-	await fetchAndDisplayNotifications();
-	await checkChecks();
-}
-async function setupPluginPage() {
-	let pluginContainer = document.getElementById("plugin_container");
-	if (pluginContainer) return;
-	let viewContent = document.getElementById("view_contents");
-	if (!viewContent) return;
-	emmet.appendChild(viewContent, "div#plugin_container");
-	let pageState$2 = getGotoStateOrDefault(PageName.StartPage);
-	if (pageState$2.goto == Goto.Start_page) {
-		if (pageState$2.showPage == "start") {
-			pageState$2.goto = Goto.None;
-			saveGotoState(pageState$2);
-			return;
-		}
-		if (pageState$2.showPage == "diff") {
-			pageState$2.goto = Goto.None;
-			saveGotoState(pageState$2);
-			let viewContent$1 = document.getElementById("view_contents");
-			emmet.insertBefore(viewContent$1.firstElementChild, "div.hide_view_contents");
-			await setupDiffPage();
-			return;
-		}
-	}
-	pageState$2.goto = Goto.None;
-	saveGotoState(pageState$2);
-}
-async function runDiff(reportStatus, fetchListener, academie, schoolYear) {
-	let divResults = document.getElementById("diffResults");
-	divResults.innerHTML = "";
-	return buildAndSaveDiff(reportStatus, fetchListener, academie, schoolYear);
-}
-async function setupDiffPage() {
-	let pluginContainer = document.getElementById("plugin_container");
-	let button = emmet.appendChild(pluginContainer, "div.mb-1>div>(h4{Verschillen tussen Excel uurroosters en DKO3 lessen.}+(div#combosLoading{Gegevens laden...}+select#cmbDiffAcademie+select#cmbDiffSchoolYear+button.btn.btn-primary{Zoek verschillen}))").last;
-	let dirTree = await getDirStructure();
-	let myAcadFolderName = getMyAcademieFolder(dirTree);
-	let academies = getAcademies(dirTree);
-	let cmbDiffAcademie = pluginContainer.querySelector("#cmbDiffAcademie");
-	cmbDiffAcademie.innerHTML = academies.map((name) => `<option value="${name}">${name}</option>`).join("");
-	cmbDiffAcademie.value = myAcadFolderName;
-	let schoolYears = [...dirTree.nodes.get(myAcadFolderName).nodes.values()].map((n) => n.folderName);
-	let cmbDiffSchoolYear = pluginContainer.querySelector("#cmbDiffSchoolYear");
-	cmbDiffSchoolYear.innerHTML = schoolYears.map((schoolYear) => `<option value="${schoolYear}">${schoolYear}</option>`).join("");
-	if (schoolYears.length == 1) cmbDiffSchoolYear.value = schoolYears[0];
-	pluginContainer.classList.toggle("diffCombosLoaded", true);
-	let runStatus = emmet.insertAfter(button, "div#runStatus").first;
-	emmet.insertAfter(runStatus, "div#diffResults");
-	let divInfo = emmet.insertAfter(runStatus, "div").last;
-	let divError = emmet.insertAfter(divInfo, "div.errors").last;
-	let infoBlock = createInfoBlock(divInfo, "");
-	let fetchListener = new InfoBarTableFetchListener(infoBlock);
-	let errors = [];
-	function reportStatus(message, isError) {
-		if (isError == "error") errors.push(message);
-		else runStatus.innerHTML = message;
-		divError.innerHTML = errors.join("<br>");
-	}
-	button.onclick = async () => {
-		errors = [];
-		let jsonDiffs = await runDiff(reportStatus, fetchListener, cmbDiffAcademie.value, cmbDiffSchoolYear.value);
-		await showDiffs(jsonDiffs);
-	};
-	try {
-		let jsonDiffs = await getDiffsFromCloud();
-		await showDiffs(jsonDiffs);
-	} catch (e) {}
-}
-async function getDirStructure() {
-	let folderContent = await fetchFolderContent("Dko3/Uurroosters/");
-	let folderTree = {
-		folderName: "",
-		nodes: new Map()
-	};
-	for (let file of folderContent.files) {
-		let dirs = file.name.split("/");
-		dirs.pop();
-		dirs.shift();
-		dirs.shift();
-		let currentNode = folderTree;
-		for (let dir of dirs) {
-			let node = currentNode.nodes.get(dir);
-			if (!node) {
-				node = {
-					folderName: dir,
-					nodes: new Map()
-				};
-				currentNode.nodes.set(dir, node);
-			}
-			currentNode = node;
-		}
-	}
-	return folderTree;
-}
-function getAcademies(folderTree) {
-	return [...folderTree.nodes.values()].map((n) => n.folderName);
-}
-function getMyAcademieFolder(folderTree) {
-	let myAcademie = getUserAndSchoolName().schoolName;
-	let academies = getAcademies(folderTree);
-	if (academies.includes(myAcademie)) return myAcademie;
-	myAcademie = myAcademie.replace("(", "").replaceAll(")", "");
-	if (academies.includes(myAcademie)) return myAcademie;
-	myAcademie = myAcademie.replaceAll("Muziek", "M").replaceAll("Woord", "W").replaceAll("Dans", "D").replaceAll("Beeld", "B");
-	if (academies.includes(myAcademie)) return myAcademie;
-	myAcademie = myAcademie.replaceAll("-", "");
-	if (academies.includes(myAcademie)) return myAcademie;
-	let found = academies.find((name) => name.includes(myAcademie));
-	if (found) return found;
-	return null;
 }
 
 //#endregion
@@ -8384,7 +8408,7 @@ function init() {
 		});
 		registerObserver(observer_default$10);
 		registerObserver(observer_default$8);
-		registerObserver(observer_default$7);
+		registerObserver(observer_default$6);
 		registerObserver(observer_default$5);
 		registerObserver(observer_default$4);
 		registerObserver(observer_default$9);
@@ -8399,7 +8423,7 @@ function init() {
 		registerObserver(observer_default$1);
 		registerObserver(observer_default);
 		registerObserver(observer_default);
-		registerObserver(observer_default$6);
+		registerObserver(observer_default$7);
 		onPageChanged();
 		setupPowerQuery();
 		getNotifRedButton();

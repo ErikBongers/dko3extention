@@ -93,8 +93,8 @@ async function runDiff(reportStatus: StatusCallback, fetchListener: InfoBarTable
 async function setupDiffPage() {
     let pluginContainer = document.getElementById("plugin_container");
     let button = emmet.appendChild(pluginContainer, "div.mb-1>div>(h4{Verschillen tussen Excel uurroosters en DKO3 lessen.}+(div#combosLoading{Gegevens laden...}+select#cmbDiffAcademie+select#cmbDiffSchoolYear+button.btn.btn-primary{Zoek verschillen}))").last as HTMLButtonElement;
-    let dirTree = await getDirStructure();
-    let myAcadFolderName = getMyAcademieFolder(dirTree);
+    let dirTree = await getDiffDirStructure();
+    let myAcadFolderName = getDiffMyAcademieFolder(dirTree);
     let academies = getAcademies(dirTree);
     let cmbDiffAcademie = pluginContainer.querySelector("#cmbDiffAcademie") as HTMLSelectElement;
     cmbDiffAcademie.innerHTML = academies.map(name => `<option value="${name}">${name}</option>`).join("");
@@ -123,11 +123,11 @@ async function setupDiffPage() {
     button.onclick = async () => {
         errors = [];
         let jsonDiffs = await runDiff(reportStatus, fetchListener, cmbDiffAcademie.value, cmbDiffSchoolYear.value);
-        await  showDiffs(jsonDiffs);
+        await  showDiffs(jsonDiffs, cmbDiffAcademie.value, cmbDiffSchoolYear.value);
     };
     try {
-        let jsonDiffs = await getDiffsFromCloud();
-        await showDiffs(jsonDiffs);
+        let jsonDiffs = await getDiffsFromCloud(cmbDiffAcademie.value, cmbDiffSchoolYear.value);
+        await showDiffs(jsonDiffs, cmbDiffAcademie.value, cmbDiffSchoolYear.value);
     }
     catch (e) {}
 }
@@ -137,7 +137,7 @@ interface TreeNode {
     nodes: Map<string, TreeNode>;
 }
 
-async function getDirStructure() {
+export async function getDiffDirStructure() {
     let folderContent = await fetchFolderContent("Dko3/Uurroosters/");
     let folderTree: TreeNode = {folderName: "", nodes: new Map()};
     for(let file of folderContent.files) {
@@ -161,7 +161,8 @@ async function getDirStructure() {
 function getAcademies(folderTree: TreeNode) {
     return [...folderTree.nodes.values()].map(n => n.folderName);
 }
-function getMyAcademieFolder(folderTree: TreeNode) {
+
+export function getDiffMyAcademieFolder(folderTree: TreeNode) {
     let myAcademie = getUserAndSchoolName().schoolName;
     let academies = getAcademies(folderTree);
     if(academies.includes(myAcademie))

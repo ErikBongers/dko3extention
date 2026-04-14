@@ -6,7 +6,9 @@ import {DKO3_BASE_URL, OPTION_HIDE_IGNORED_DIFFS} from "../def";
 import {createDiffTable, DiffType, getUrlForWorksheet, JsonDiff, JsonDiffs, setIgnoredFlags} from "./buildDiff";
 import {uploadIgnoredDiffHashes} from "../cloud";
 
-export async function showDiffs(diffs: JsonDiffs) {
+export async function showDiffs(diffs: JsonDiffs, academie: string, schoolYear: string) {
+    if(!diffs)
+        return;
     await setIgnoredFlags(diffs.orphanedDko3Lessen, diffs.orphanedExcelLessen);
     let divResults = document.getElementById("diffResults") as HTMLDivElement;
     divResults.innerHTML = "";
@@ -22,7 +24,7 @@ export async function showDiffs(diffs: JsonDiffs) {
         localStorage.setItem(OPTION_HIDE_IGNORED_DIFFS, ignore.toString());
     }
     for(let diff of diffs.diffs)
-        displayDiff(diff, divResults); //<i class="fa-solid fa-arrow-up-right-from-square"></i>
+        displayDiff(diff, divResults, academie, schoolYear); //<i class="fa-solid fa-arrow-up-right-from-square"></i>
 
     emmet.appendChild(divResults, "h4{Lessen zonder overeenkomsten}");
     let {table, tbody} = createDiffTable(divResults);
@@ -30,11 +32,11 @@ export async function showDiffs(diffs: JsonDiffs) {
     decorateTableHeader(table, false);
     for(let les of diffs.orphanedDko3Lessen) {
         let tr = emmet.appendChild(tbody, "tr").last as HTMLTableRowElement;
-        fillDiffRow(tr, les.subject, les.teacher, les.day, les.timeSlice, les.location, "perfect match", "dko3", les.momentId, "", les.lesId, "", "", les.hash, les.ignore);
+        fillDiffRow(tr, les.subject, les.teacher, les.day, les.timeSlice, les.location, "perfect match", "dko3", les.momentId, "", les.lesId, "", "", les.hash, les.ignore, academie, schoolYear);
     }
     for(let les of diffs.orphanedExcelLessen) {
         let tr = emmet.appendChild(tbody, "tr").last as HTMLTableRowElement;
-        fillDiffRow(tr, les.subject, les.teacher, les.day as DayUppercase, les.timeSlice, les.location, "perfect match", "excel", excelPostoExcelAddress(les.excelRow, les.excelColumn), les.cellValue, "", les.workBook, les.workSheet, les.hash, les.ignore);
+        fillDiffRow(tr, les.subject, les.teacher, les.day as DayUppercase, les.timeSlice, les.location, "perfect match", "excel", excelPostoExcelAddress(les.excelRow, les.excelColumn), les.cellValue, "", les.workBook, les.workSheet, les.hash, les.ignore, academie, schoolYear);
         tr.classList.add("excelRow");
     }
     let ingore = localStorage.getItem(OPTION_HIDE_IGNORED_DIFFS)?? "false";
@@ -42,20 +44,20 @@ export async function showDiffs(diffs: JsonDiffs) {
     table.classList.toggle("hideChecked", chkHideChecked.checked);
 }
 
-export function fillExcelDiffRow(tr: HTMLTableRowElement, diff: JsonDiff) {
-    fillDiffRow(tr, diff.excelLes.subject, diff.excelLes.teacher, diff.excelLes.day as DayUppercase, diff.excelLes.timeSlice, diff.excelLes.location, diff.diffType, "excel", excelPostoExcelAddress(diff.excelLes.excelRow, diff.excelLes.excelColumn), diff.excelLes.cellValue, "", diff.excelLes.workBook, diff.excelLes.workSheet, diff.excelLes.hash, diff.excelLes.ignore);
+export function fillExcelDiffRow(tr: HTMLTableRowElement, diff: JsonDiff, academie: string, schoolYear: string) {
+    fillDiffRow(tr, diff.excelLes.subject, diff.excelLes.teacher, diff.excelLes.day as DayUppercase, diff.excelLes.timeSlice, diff.excelLes.location, diff.diffType, "excel", excelPostoExcelAddress(diff.excelLes.excelRow, diff.excelLes.excelColumn), diff.excelLes.cellValue, "", diff.excelLes.workBook, diff.excelLes.workSheet, diff.excelLes.hash, diff.excelLes.ignore, academie, schoolYear);
 }
 
-function displayDiff(diff: JsonDiff, divResults: HTMLDivElement) {
+function displayDiff(diff: JsonDiff, divResults: HTMLDivElement, academie: string, schoolYear: string) {
     let tbody = emmet.appendChild(divResults, "table.diff>tbody").last as HTMLTableSectionElement;
     let tr = emmet.appendChild(tbody, "tr").last as HTMLTableRowElement;
-    fillExcelDiffRow(tr, diff);
+    fillExcelDiffRow(tr, diff, academie, schoolYear);
     tr.classList.add("excelRow");
     let tr2 = emmet.appendChild(tbody, "tr").last as HTMLTableRowElement;
-    fillDiffRow(tr2, diff.dko3Les.subject, diff.dko3Les.teacher, diff.dko3Les.day as DayUppercase, diff.dko3Les.timeSlice, diff.dko3Les.location, diff.diffType, "dko3", diff.dko3Les.momentId, "", diff.dko3Les.lesId, "", "", diff.dko3Les.hash, diff.dko3Les.ignore);
+    fillDiffRow(tr2, diff.dko3Les.subject, diff.dko3Les.teacher, diff.dko3Les.day as DayUppercase, diff.dko3Les.timeSlice, diff.dko3Les.location, diff.diffType, "dko3", diff.dko3Les.momentId, "", diff.dko3Les.lesId, "", "", diff.dko3Les.hash, diff.dko3Les.ignore, academie, schoolYear);
 }
 
-export function fillDiffRow(tr: HTMLTableRowElement, subjects: string, teachers: string, day: DayUppercase, timeSlice: string, location: string, diffType: DiffType, rowType: ("excel" | "dko3"), rowId: string, cellValue: string, lesId: string, workBook: string ,worksheet: string, hash: string, ignore: boolean) {
+export function fillDiffRow(tr: HTMLTableRowElement, subjects: string, teachers: string, day: DayUppercase, timeSlice: string, location: string, diffType: DiffType, rowType: ("excel" | "dko3"), rowId: string, cellValue: string, lesId: string, workBook: string ,worksheet: string, hash: string, ignore: boolean, academie: string, schoolYear: string) {
     if(ignore)
         tr.classList.add("ignore");
     let diffTeacherClass: string = "";
@@ -91,7 +93,7 @@ export function fillDiffRow(tr: HTMLTableRowElement, subjects: string, teachers:
     tr.dataset.rowType = rowType;
     emmet.appendChild(tr, `${tdSubjects}+td${diffTeacherClass}{${teachers}}+td${diffDayClass}{${toCompactDayString(day as DayUppercase)}}+td${diffTimeClass}{${timeSlice}}+td${diffLocationClass}{${location}}+(td.buttonshow>button.goto>i.fas.${iconClass})+(td.button>button.goto.chkHide>i.fas.fa-check)`)
     let btnGoto = tr.querySelector("button.goto") as HTMLButtonElement;
-    btnGoto.onclick = gotoData;
+    btnGoto.onclick = (ev) => gotoData(ev, academie, schoolYear);
     let btnHide = tr.querySelector("button.chkHide") as HTMLButtonElement;
     btnHide.onclick = toggleIgnore;
 }
@@ -110,7 +112,7 @@ async function saveIgnoredHashes() {
     await uploadIgnoredDiffHashes(hashes);
 }
 
-async function gotoData(ev: MouseEvent) {
+async function gotoData(ev: MouseEvent, academie: string, schoolYear: string) {
     let button = ev.currentTarget as HTMLButtonElement;
     let tr = button.closest("tr") as HTMLTableRowElement;
     let rowType = tr.dataset.rowType as ("excel" | "dko3");
@@ -120,7 +122,7 @@ async function gotoData(ev: MouseEvent) {
     let lesId = tr.dataset.lesId;
 
     if(rowType == "excel") {
-        let url = await getUrlForWorksheet(workBook, workSheet, cellAddress);
+        let url = await getUrlForWorksheet(workBook, workSheet, cellAddress, academie, schoolYear);
         if(url == "")
             return; //todo: inform user that no url exists for this les/worksheet.
         // https:/...&activeCell=Definitief!Y24
