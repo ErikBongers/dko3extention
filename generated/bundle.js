@@ -545,6 +545,7 @@ let Schoolyear;
 			let res = rx.exec(txt);
 			return res[1];
 		}
+		throw "Cannot find schoolyear in page.";
 	}
 	_Schoolyear.findInPage = findInPage;
 	function calculateCurrent() {
@@ -1540,6 +1541,7 @@ var RosterFactory = class RosterFactory {
 			});
 			if (!RosterFactory.isDayName(cellValue)) return c - 1;
 		}
+		return this.excelData.data[0].length - 1;
 	}
 };
 
@@ -1616,7 +1618,7 @@ var ExcelRoster = class {
 	}
 	scrapeUurrooster() {
 		let timeSlices = this.createTimeSlices();
-		if (this.errors.length > 0) return;
+		if (this.errors.length > 0) return null;
 		let classDefs = [];
 		for (let c = 0; c <= this.table.ColumnCount; c++) classDefs = classDefs.concat(this.scrapeColumn(c, timeSlices));
 		return classDefs;
@@ -2014,6 +2016,7 @@ var ExcelRoster = class {
 			}
 			return gradeYears;
 		}
+		return [];
 	}
 };
 function parseTime(timeString) {
@@ -2241,8 +2244,8 @@ function scrapeLesInfo(row) {
 	return les;
 }
 function splitLesMoment(les) {
-	if (les.lesmoment == "(geen volgende les)") return [];
-	if (les.lesmoment == "(geen lesmomenten)") return [];
+	if (les.lesmoment == "(geen volgende les)") return;
+	if (les.lesmoment == "(geen lesmomenten)") return;
 	let remaining = les.lesmoment;
 	if (remaining.startsWith("volgende les: ")) remaining = remaining.substring(14, 17) + remaining.substring(22);
 	if (remaining.includes("wekelijks")) les.repeat = "wekelijks";
@@ -4018,7 +4021,7 @@ var TableObserver = class extends BaseObserver {
 var observer_default$9 = new TableObserver();
 function onMutation$7(_mutation) {
 	let navigationBars = getBothToolbars();
-	if (!navigationBars) return;
+	if (!navigationBars) return false;
 	if (!findTableRefInCode()?.navigationData.isOnePage()) addTableNavigationButton(
 		navigationBars,
 		//wait for top and bottom bars.
@@ -4426,13 +4429,13 @@ async function downloadTableRows() {
 	let result = createDefaultTableRefAndInfoBlock();
 	if ("error" in result) {
 		console.error(result.error);
-		return;
+		return null;
 	}
 	let { tableRef, infoBlock } = result.result;
 	let result2 = createDefaultTableFetcher(tableRef, infoBlock);
 	if ("error" in result2) {
 		console.error(result2.error);
-		return;
+		return null;
 	}
 	let { tableFetcher } = result2.result;
 	tableFetcher.tableHandler = new TableHandlerForHeaders();
@@ -5088,7 +5091,8 @@ async function runRosterCheck(excelDatas, reportStatus, fetchListener, schoolYea
 		let table = factory.getTable();
 		let roster = new ExcelRoster(table, locations, subjects);
 		excelRosters.push(roster);
-		excelLessenArray.push(roster.scrapeUurrooster());
+		let classDefs = roster.scrapeUurrooster();
+		if (classDefs) excelLessenArray.push(classDefs);
 		console.log(excelLessenArray);
 	}
 	await deleteNotification("FILE_POSTED");
@@ -7481,7 +7485,7 @@ var MailMergeTable = class {
 		let emailIndex = this.headers.findIndex((header) => header.toLowerCase().includes("e-mailadressen"));
 		if (emailIndex === -1) {
 			alert("Geen e-mailadressen gevonden'. Voed dit veld toe aan de lijst.");
-			return;
+			return null;
 		}
 		let dataDef = {
 			studentColumnIndexes: [],
@@ -7988,7 +7992,7 @@ function onShowLerarenUren() {
 	let result = createDefaultTableRefAndInfoBlock();
 	if ("error" in result) {
 		console.error(result.error);
-		return;
+		return false;
 	}
 	let { tableRef, infoBlock } = result.result;
 	let result2 = createDefaultTableFetcher(tableRef, infoBlock);
@@ -8181,7 +8185,7 @@ function onMutationAanwezgheden(_mutation) {
 	let tableId = document.getElementById("table_lijst_awi_percentages_leerling_vak_table");
 	if (!tableId) return false;
 	let navigationBars = getBothToolbars();
-	if (!navigationBars) return;
+	if (!navigationBars) return false;
 	addTableNavigationButton(
 		navigationBars,
 		//wait for top and bottom bars.
@@ -8463,7 +8467,10 @@ async function onTicket() {
 	findUniqueMatch(emailText, matchingLeerlingen);
 }
 function findUniqueMatch(emailText, matchingLeerlingen$1) {
-	if (matchingLeerlingen$1.length === 1) return matchingLeerlingen$1[0];
+	if (matchingLeerlingen$1.length === 1) {
+		matchingLeerlingen$1[0].winner = true;
+		return;
+	}
 	let strippedText = emailText.replaceAll("\n", " ").replaceAll("\r", " ");
 	let mailLowerCase = strippedText.toLowerCase();
 	for (let lln of matchingLeerlingen$1) {

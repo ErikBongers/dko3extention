@@ -66,7 +66,7 @@ export class MailMergeTable {
         let emailIndex = this.headers.findIndex(header => header.toLowerCase().includes("e-mailadressen"));
         if(emailIndex === -1) {
             alert("Geen e-mailadressen gevonden'. Voed dit veld toe aan de lijst.");
-            return;
+            return null;
         }
 
         // -- aggregate at student level.

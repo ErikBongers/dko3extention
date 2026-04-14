@@ -10,6 +10,7 @@
     "moduleResolution": "bundler",
     "noImplicitOverride": true,
     "noImplicitThis": true,
+    "noImplicitReturns": true,
     "paths": {
       "default_items": ["./javascript/default_items.js"]
     },

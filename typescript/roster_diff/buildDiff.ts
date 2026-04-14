@@ -89,7 +89,9 @@ async function runRosterCheck(excelDatas: JsonExcelData[], reportStatus: StatusC
         let table = factory.getTable();
         let roster = new ExcelRoster(table, locations, subjects);
         excelRosters.push(roster);
-        excelLessenArray.push(roster.scrapeUurrooster());
+        let classDefs = roster.scrapeUurrooster();
+        if(classDefs)
+            excelLessenArray.push(classDefs);
         console.log(excelLessenArray);
     }
     await deleteNotification("FILE_POSTED");

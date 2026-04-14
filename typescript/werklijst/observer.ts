@@ -317,7 +317,7 @@ function onShowLerarenUren() {
     let result = createDefaultTableRefAndInfoBlock();
     if("error" in result) {
         console.error(result.error);
-        return;
+        return false;
     }
     let {tableRef, infoBlock} = result.result;
 

@@ -20,7 +20,7 @@ export default new TableObserver();
 function onMutation (_mutation: MutationRecord) {
     let navigationBars = getBothToolbars();
     if(!navigationBars)
-        return; //wait for top and bottom bars.
+        return false; //wait for top and bottom bars.
     if(!findTableRefInCode()?.navigationData.isOnePage()) {
         addTableNavigationButton(navigationBars, def.DOWNLOAD_TABLE_BTN_ID, "download full table", createDownloadTableWithExtraAction(), "fa-arrow-down");
     }

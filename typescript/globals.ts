@@ -102,7 +102,7 @@ export namespace Schoolyear {
     }
 
 //Tries to return "202x-202y".
-    export function findInPage() {
+    export function findInPage(): string {
         let el = getSelectElement();
         if (el)
             return el.value;
@@ -120,6 +120,7 @@ export namespace Schoolyear {
             let res = rx.exec(txt);
             return res[1];
         }
+        throw "Cannot find schoolyear in page.";
     }
 
     export function calculateCurrent() {

@@ -97,10 +97,10 @@ export class ExcelRoster {
         this.subjectDefs = subjects;
     }
 
-    public scrapeUurrooster() {
+    public scrapeUurrooster(): ClassDef[] | null {
         let timeSlices = this.createTimeSlices();
         if(this.errors.length > 0)
-            return;
+            return null;
 
         let classDefs: ClassDef[] = [];
         for(let c = 0; c <= this.table.ColumnCount; c++) {
@@ -351,6 +351,7 @@ export class ExcelRoster {
             }
             return gradeYears;
         }
+        return [];
     }
 }
 

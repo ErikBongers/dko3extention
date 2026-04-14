@@ -85,4 +85,5 @@ function onMessage(message: ServiceRequest, sender: MessageSender, sendResponse:
             });
             break;
     }
+    return false;
 }

@@ -250,7 +250,7 @@ export function scrapeLesInfo(row: HTMLTableRowElement) {
     return les;
 }
 
-function splitLesMoment(les: Les) {
+function splitLesMoment(les: Les): void {
     //di 15:40-16:40 (wekelijks)
     //di en vr 16:00-17:00 (wekelijks)
     //wo 13:00-14:00 en za 09:00-10:00 (wekelijks)
@@ -258,9 +258,9 @@ function splitLesMoment(les: Les) {
     //"(geen lesmomenten)"
     //"volgende les: di 21/4 19:00-20:00"
     if(les.lesmoment == "(geen volgende les)")
-        return [];
+        return;
     if(les.lesmoment == "(geen lesmomenten)")
-        return [];
+        return;
     let remaining = les.lesmoment;
     if(remaining.startsWith("volgende les: ")) {
         remaining = remaining.substring(14, 17) + remaining.substring(22);

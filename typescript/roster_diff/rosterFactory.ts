@@ -111,5 +111,6 @@ export class RosterFactory {
             if(!RosterFactory.isDayName(cellValue))
                 return c-1;
         }
+        return this.excelData.data[0].length-1;
     }
 }

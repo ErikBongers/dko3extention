@@ -92,14 +92,14 @@ export async function downloadTableRows() {
     let result = createDefaultTableRefAndInfoBlock();
     if("error" in result) {
         console.error(result.error);
-        return;
+        return null;
     }
     let {tableRef, infoBlock} = result.result;
 
     let result2 = createDefaultTableFetcher(tableRef, infoBlock);
     if("error" in result2) {
         console.error(result2.error);
-        return;
+        return null;
     }
     let {tableFetcher} = result2.result;
     tableFetcher.tableHandler = new TableHandlerForHeaders();

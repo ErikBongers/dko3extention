@@ -23,7 +23,7 @@ function onMutationAanwezgheden(_mutation: MutationRecord) {
     }
     let navigationBars = getBothToolbars();
     if(!navigationBars)
-        return; //wait for top and bottom bars.
+        return false; //wait for top and bottom bars.
     addTableNavigationButton(navigationBars, def.COPY_TABLE_BTN_ID, "copy table to clipboard", copyTable, "fa-clipboard");
     return true;
 }

@@ -129,8 +129,10 @@ async function onTicket() {
 }
 
 function findUniqueMatch(emailText: string, matchingLeerlingen: MatchingLeerling[]) {
-    if(matchingLeerlingen.length === 1)
-        return matchingLeerlingen[0];
+    if(matchingLeerlingen.length === 1) {
+        matchingLeerlingen[0].winner = true;
+        return;
+    }
 
     //lln: [Erik Pierre Bongers, Iris Marlies Bongers]
     // "Onzen Erik is ziek."
