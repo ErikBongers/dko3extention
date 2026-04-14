@@ -31,7 +31,7 @@ export async function buildAndSaveDiff(reportStatus: StatusCallback, fetchListen
         jsonExcelDatas.push(excelData);
     }
     reportStatus(`Vergelijken met DKO3 lessen...`);
-    let res = await runRosterCheck(jsonExcelDatas, reportStatus, fetchListener);
+    let res = await runRosterCheck(jsonExcelDatas, reportStatus, fetchListener, schoolYear);
     let jsonDiffs = await createJsonDiffs(res.diffs, res.dko3LesSet, res.excelLesSet, res.excelRosters, academie, schoolYear);
     let fileName = getDiffsCloudFileName(academie, schoolYear);
     await cloud.json.upload(fileName, jsonDiffs);
@@ -44,24 +44,29 @@ export async function buildAndSaveDiff(reportStatus: StatusCallback, fetchListen
 function removeIgnoreLessen(lessen: Les[]) {
 
 }
-async function runRosterCheck(excelDatas: JsonExcelData[], reportStatus: StatusCallback, fetchListener: InfoBarTableFetchListener) {
+
+export async function scrapeAllNormalLessen(schoolYear: string) {
+    let dko3Lessen = await scrapeLessen(Domein.Woord, LesType.gewone, schoolYear);
+    let muziekLessen = await scrapeLessen(Domein.Muziek, LesType.gewone, schoolYear);
+    let kbLessen = await scrapeLessen(Domein.DomeinOV, LesType.gewone, schoolYear);
+    return [...dko3Lessen, ...muziekLessen, ...kbLessen];
+}
+
+async function runRosterCheck(excelDatas: JsonExcelData[], reportStatus: StatusCallback, fetchListener: InfoBarTableFetchListener, schoolYear: string) {
     reportStatus("Vestigingsplaatsen ophalen...");
     let locationsTable = await getTableFromHash("extra-academie-vestigingsplaatsen", true, fetchListener);
     let locations = [...locationsTable.getRows()].map(tr => tr.cells[1].textContent);
 
     reportStatus("DKO3 gevevens ophalen...");
-    let teachers = await fetchTeachers("2025-2026");
+    let teachers = await fetchTeachers(schoolYear);
     for(let teacher of teachers) {
         for(let callDef of ExcelRoster.callNames) {
             if(teacher.name == callDef.tag)
                 teacher.callName = callDef.searchString;
         }
     }
-    let dko3Lessen = await scrapeLessen(Domein.Woord, LesType.gewone);
-    let muziekLessen = await scrapeLessen(Domein.Muziek, LesType.gewone);
-    let kbLessen = await scrapeLessen(Domein.DomeinOV, LesType.gewone);
-    dko3Lessen = [...dko3Lessen, ...muziekLessen, ...kbLessen];
-    let dko3AliasLessen = await scrapeLessen(Domein.Woord, LesType.alias);
+    let dko3Lessen = await scrapeAllNormalLessen(schoolYear);
+    let dko3AliasLessen = await scrapeLessen(Domein.Woord, LesType.alias, schoolYear);
     for (let les of dko3AliasLessen) {
         les.linkedLessenIds = await getAliassesForLes(les.id, reportStatus);
     }
@@ -93,12 +98,11 @@ export default runRosterCheck
 
 enum LesType {modules="3", gewone="1", alias="4"}
 enum Domein {Muziek="3", Woord="4", DomeinOV="5", Dans="2"}
-async function scrapeLessen(domein: Domein, type: LesType ) {
+async function scrapeLessen(domein: Domein, type: LesType, schoolYear: string ) {
     let chain = new FetchChain();
     let hash = "lessen-overzicht";
     await chain.fetch(DKO3_BASE_URL + "#lessen-overzicht" + hash);
     await chain.fetch("view.php?args=" + hash); // call to changeView() - assuming this is always the same, so no parsing here.
-    let schoolYear = Schoolyear.toFullString(Schoolyear.calculateSetupYear() - 1); //todo: TEST TEST TEST, wrong year!!!!
     let params = new URLSearchParams({
         schooljaar: schoolYear,
         domein,
