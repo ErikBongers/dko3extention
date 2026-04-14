@@ -79,34 +79,38 @@ async function showSnapshotsforCombobox() {
     let content = await fetchFolderContent(`Dko3/Snapshots/${academieName}/${cmbSnapshotSchoolYear.value}/`)
     console.log(content);
     let divResults = document.getElementById("snapshotResults") as HTMLDivElement;
-    let html = {html: ""};
     let previousSnapshot: SnapshotData = null;
     for(let file of content.files) {
         let snapshotData = await cloud.json.fetch(file.name) as SnapshotData;
-        html.html+= `<h4>${snapshotData.zDate}</h4>`;
+        let date = new Date(snapshotData.zDate);
+        divResults.innerHTML += `<h4>${date.toLocaleDateString()} ${date.toLocaleTimeString()}</h4>`;
         if(previousSnapshot) {
-            let diffs = compareSnapshots(previousSnapshot, snapshotData);
-            for(let diff of diffs) {
-                html.html += diff;
-            }
+            compareSnapshots(previousSnapshot, snapshotData, divResults);
         }
         previousSnapshot = snapshotData;
     }
-    divResults.innerHTML = html.html;
 }
 
-function compareSnapshots(previousSnapshot: SnapshotData, nextSnapshot: SnapshotData) {
-    let diffs: string[] = [];
+function compareSnapshots(previousSnapshot: SnapshotData, nextSnapshot: SnapshotData, divResults: HTMLDivElement) {
+    let diffs = [];
     for(let prev of previousSnapshot.lessen) {
         if (!nextSnapshot.lessen.find(les => les.hash == prev.hash)) {
-            diffs.push(`<p>${prev.hash}</p>`);
+            diffs.push( {what: "prev", les: prev});
         }
     }
     for(let next of nextSnapshot.lessen) {
         if (!previousSnapshot.lessen.find(les => les.hash == next.hash)) {
-            diffs.push(`<p>${next.hash}</p>`);
+            diffs.push( {what: "next", les: next});
         }
     }
-    return diffs;
+    let tbody = emmet.appendChild(divResults, `table.snapshotDiffs>tbody`).last as HTMLTableSectionElement;
+    diffs.sort((a, b) => {
+        if(a.les.id == b.les.id)
+            return b.what.localeCompare(a.what);
+        return a.les.id.localeCompare(b.les.id)
+    });
+    for(let les of diffs) {
+        emmet.appendChild(tbody, `tr.${les.what}>(td{${les.les.id}}+td{${les.les.vakNaam}}+td{${les.les.naam}}+td{${les.les.lesmoment}})`);
+    }
 }
 

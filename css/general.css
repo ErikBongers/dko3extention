@@ -518,3 +518,9 @@ div.allowDelete {
 div.errors {
     color: red;
 }
+
+table.snapshotDiffs {
+    tr.prev {
+        opacity: 0.5;
+    }
+}

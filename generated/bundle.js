@@ -5962,24 +5962,31 @@ async function showSnapshotsforCombobox() {
 	let content = await fetchFolderContent(`Dko3/Snapshots/${academieName}/${cmbSnapshotSchoolYear.value}/`);
 	console.log(content);
 	let divResults = document.getElementById("snapshotResults");
-	let html = { html: "" };
 	let previousSnapshot = null;
 	for (let file of content.files) {
 		let snapshotData = await cloud.json.fetch(file.name);
-		html.html += `<h4>${snapshotData.zDate}</h4>`;
-		if (previousSnapshot) {
-			let diffs = compareSnapshots(previousSnapshot, snapshotData);
-			for (let diff of diffs) html.html += diff;
-		}
+		let date = new Date(snapshotData.zDate);
+		divResults.innerHTML += `<h4>${date.toLocaleDateString()} ${date.toLocaleTimeString()}</h4>`;
+		if (previousSnapshot) compareSnapshots(previousSnapshot, snapshotData, divResults);
 		previousSnapshot = snapshotData;
 	}
-	divResults.innerHTML = html.html;
 }
-function compareSnapshots(previousSnapshot, nextSnapshot) {
+function compareSnapshots(previousSnapshot, nextSnapshot, divResults) {
 	let diffs = [];
-	for (let prev of previousSnapshot.lessen) if (!nextSnapshot.lessen.find((les) => les.hash == prev.hash)) diffs.push(`<p>${prev.hash}</p>`);
-	for (let next of nextSnapshot.lessen) if (!previousSnapshot.lessen.find((les) => les.hash == next.hash)) diffs.push(`<p>${next.hash}</p>`);
-	return diffs;
+	for (let prev of previousSnapshot.lessen) if (!nextSnapshot.lessen.find((les) => les.hash == prev.hash)) diffs.push({
+		what: "prev",
+		les: prev
+	});
+	for (let next of nextSnapshot.lessen) if (!previousSnapshot.lessen.find((les) => les.hash == next.hash)) diffs.push({
+		what: "next",
+		les: next
+	});
+	let tbody = emmet.appendChild(divResults, `table.snapshotDiffs>tbody`).last;
+	diffs.sort((a, b) => {
+		if (a.les.id == b.les.id) return b.what.localeCompare(a.what);
+		return a.les.id.localeCompare(b.les.id);
+	});
+	for (let les of diffs) emmet.appendChild(tbody, `tr.${les.what}>(td{${les.les.id}}+td{${les.les.vakNaam}}+td{${les.les.naam}}+td{${les.les.lesmoment}})`);
 }
 
 //#endregion
