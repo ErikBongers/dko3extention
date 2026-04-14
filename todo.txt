@@ -1,4 +1,9 @@
-* Create cloud function to send Uurroosters folder structure to 
+* When doing diffs: show the chosen academie folder and year folder and list the available files.
+  > this way, a typo in academie or schoolyear can be quickly spotted.
+  > Use a text field for academie (should be an automatic selection) and a combobox for year.
+    > if only one academie or one schoolyear: just show text.
+
+* Create cloud function to send Uurroosters folder structure to
 * Add schoolyear to everything
   > name cloud files properly to avoid conflicts with other schoolyears and academies.
   > have a different folder per academie/schoolYear

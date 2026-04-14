@@ -19,12 +19,12 @@ export async function getJsonDiffsCached() {
     return getDiffsFromCloud();
 }
 
-export async function buildAndSaveDiff(reportStatus: StatusCallback, fetchListener: InfoBarTableFetchListener) {
+export async function buildAndSaveDiff(reportStatus: StatusCallback, fetchListener: InfoBarTableFetchListener, academie: string, schoolYear: string) {
     reportStatus("Excel bestanden ophalen...");
-    let folderChanged = await fetchFolderChanged("Dko3/Uurroosters/");
-    reportStatus(`${folderChanged.files.length} Excel bestanden gevonden.`);
+    let folderPath = await fetchFolderChanged(`Dko3/Uurroosters/${academie}/${schoolYear}/`);
+    reportStatus(`${folderPath.files.length} Excel bestanden gevonden.`);
     let jsonExcelDatas: JsonExcelData[] = [];
-    for (let file of folderChanged.files) {
+    for (let file of folderPath.files) {
         let fileShortName = file.name.replaceAll("Dko3/Uurroosters/", "");
         reportStatus(`Inlezen van ${fileShortName}...`);
         let excelData = await fetchExcelData(file.name);

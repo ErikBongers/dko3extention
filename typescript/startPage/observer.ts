@@ -7,7 +7,7 @@ import {buildAndSaveDiff, getDiffsFromCloud} from "../roster_diff/buildDiff";
 import {createInfoBlock} from "../infoBlock";
 import {InfoBarTableFetchListener} from "../table/loadAnyTable";
 import {showDiffs} from "../roster_diff/showDiff";
-import {fetchFolderChanged, fetchFolderContent} from "../cloud";
+import {fetchFolderContent} from "../cloud";
 import {getUserAndSchoolName} from "../globals";
 
 class StartPageObserver extends ExactHashObserver {
@@ -83,16 +83,28 @@ async function setupPluginPage() {
 
 export type StatusCallback = (message: string, isError?: "error") => void;
 
-async function runDiff(reportStatus: StatusCallback, fetchListener: InfoBarTableFetchListener) {
+async function runDiff(reportStatus: StatusCallback, fetchListener: InfoBarTableFetchListener, academie: string, schoolYear: string) {
     let divResults = document.getElementById("diffResults") as HTMLDivElement;
     divResults.innerHTML = "";
 
-    return buildAndSaveDiff(reportStatus, fetchListener);
+    return buildAndSaveDiff(reportStatus, fetchListener, academie, schoolYear);
 }
 
 async function setupDiffPage() {
     let pluginContainer = document.getElementById("plugin_container");
-    let button = emmet.appendChild(pluginContainer, "div.mb-1>div>(h4{Verschillen tussen Excel uurroosters en DKO3 lessen.}+button.btn.btn-primary{Zoek verschillen})").last as HTMLButtonElement;
+    let button = emmet.appendChild(pluginContainer, "div.mb-1>div>(h4{Verschillen tussen Excel uurroosters en DKO3 lessen.}+(div#combosLoading{Gegevens laden...}+select#cmbDiffAcademie+select#cmbDiffSchoolYear+button.btn.btn-primary{Zoek verschillen}))").last as HTMLButtonElement;
+    let dirTree = await getDirStructure();
+    let myAcadFolderName = getMyAcademieFolder(dirTree);
+    let academies = getAcademies(dirTree);
+    let cmbDiffAcademie = pluginContainer.querySelector("#cmbDiffAcademie") as HTMLSelectElement;
+    cmbDiffAcademie.innerHTML = academies.map(name => `<option value="${name}">${name}</option>`).join("");
+    cmbDiffAcademie.value = myAcadFolderName;
+    let schoolYears = [...dirTree.nodes.get(myAcadFolderName).nodes.values()].map(n => n.folderName);
+    let cmbDiffSchoolYear = pluginContainer.querySelector("#cmbDiffSchoolYear") as HTMLSelectElement;
+    cmbDiffSchoolYear.innerHTML = schoolYears.map(schoolYear => `<option value="${schoolYear}">${schoolYear}</option>`).join("");
+    if(schoolYears.length == 1)
+        cmbDiffSchoolYear.value = schoolYears[0];
+    pluginContainer.classList.toggle("diffCombosLoaded", true);
     let runStatus = emmet.insertAfter(button, "div#runStatus").first as HTMLDivElement;
     emmet.insertAfter(runStatus, "div#diffResults");
 
@@ -110,11 +122,8 @@ async function setupDiffPage() {
     }
     button.onclick = async () => {
         errors = [];
-        // let jsonDiffs = await runDiff(reportStatus, fetchListener);
-        // await  showDiffs(jsonDiffs);
-        let treeStructure = await getDirStructure();
-        let myAcademieFolder = getMyAcademieFolder(treeStructure);
-        console.log(myAcademieFolder);
+        let jsonDiffs = await runDiff(reportStatus, fetchListener, cmbDiffAcademie.value, cmbDiffSchoolYear.value);
+        await  showDiffs(jsonDiffs);
     };
     try {
         let jsonDiffs = await getDiffsFromCloud();
@@ -149,9 +158,12 @@ async function getDirStructure() {
     return folderTree;
 }
 
+function getAcademies(folderTree: TreeNode) {
+    return [...folderTree.nodes.values()].map(n => n.folderName);
+}
 function getMyAcademieFolder(folderTree: TreeNode) {
     let myAcademie = getUserAndSchoolName().schoolName;
-    let academies = [...folderTree.nodes.values()].map(n => n.folderName);
+    let academies = getAcademies(folderTree);
     if(academies.includes(myAcademie))
         return myAcademie;
     myAcademie = myAcademie

@@ -489,6 +489,18 @@ table#orphans {
     input[type="checkbox"] {
         margin-inline-end: 1ch;
     }
+    select {
+        margin-inline-end: 1ch;
+        display: none;
+    }
+    &.diffCombosLoaded {
+        select {
+            display: inline-block;
+        }
+        #combosLoading {
+            display: none;
+        }
+    }
 }
 
 button.deleteNotif {

@@ -387,9 +387,16 @@ async function fetchNotifications() {
 async function deleteNotification(id) {
 	await fetch(`https://europe-west1-ebo-tain.cloudfunctions.net/notification?id=${id}`, { method: "DELETE" });
 }
+async function fetchFolderChanged(folderName) {
+	let res = await fetch(encodeURI(CLOUD_BASE_URL + "folder-changed?folderName=" + folderName));
+	return await res.json();
+}
 async function fetchFolderContent(folderName) {
 	let res = await fetch(encodeURI(CLOUD_BASE_URL + "folder-content?folderName=" + folderName));
 	return await res.json();
+}
+async function fetchExcelData(filePath) {
+	return await fetchJson(filePath);
 }
 const temp_hash_ignore_filename = "Dko3/TODO-NAME-ignored-diff-hashes.json";
 async function uploadIgnoredDiffHashes(hashes) {
@@ -732,6 +739,11 @@ function copyToClipboardOrRequestRetry(infoBar, text) {
 }
 function unreachable(x) {
 	throw new Error("This error will never be thrown. It is used for type safety.");
+}
+function pad(num, size) {
+	num = num.toString();
+	while (num.length < size) num = "0" + num;
+	return num;
 }
 
 //#endregion
@@ -1270,7 +1282,288 @@ async function getModules(_size, _modal, _file, args) {
 }
 
 //#endregion
+//#region typescript/roster_diff/excel.ts
+var ExcelPos = class {
+	row;
+	column;
+	constructor(row, column) {
+		this.row = row;
+		this.column = column;
+	}
+};
+var TablePos = class {
+	row;
+	column;
+	static toExcel(tablePos, table) {
+		return new ExcelPos(tablePos.row + table.tableRange.Start.row + table.rowHeaderCount, tablePos.column + table.tableRange.Start.column + table.columnHeaderCount);
+	}
+};
+var Range = class {
+	start;
+	end;
+	RowCount() {
+		return this.end.row - this.start.row + 1;
+	}
+	ColumnCount() {
+		return this.end.column - this.start.column + 1;
+	}
+	constructor(start, end) {
+		this.start = start;
+		this.end = end;
+	}
+};
+var ExcelRange = class extends Range {
+	constructor(start, end) {
+		super(start, end);
+	}
+	get Start() {
+		return this.start;
+	}
+	get End() {
+		return this.end;
+	}
+};
+var TableRange = class TableRange {
+	start;
+	end;
+	constructor(start, end) {
+		this.start = start;
+		this.end = end;
+	}
+	static FromExcel(excelRange, table) {
+		let startRow = excelRange.Start.row - table.tableRange.Start.row - table.rowHeaderCount;
+		let endRow = excelRange.End.row - table.tableRange.Start.row - table.rowHeaderCount;
+		let startColumn = excelRange.Start.column - table.tableRange.Start.column - table.columnHeaderCount;
+		let endColumn = excelRange.End.column - table.tableRange.Start.column - table.columnHeaderCount;
+		return new TableRange({
+			row: startRow,
+			column: startColumn
+		}, {
+			row: endRow,
+			column: endColumn
+		});
+	}
+	static ToExcel(tableRange, table) {
+		return new ExcelRange(TablePos.toExcel(tableRange.Start, table), TablePos.toExcel(tableRange.End, table));
+	}
+	get Start() {
+		return this.start;
+	}
+	get End() {
+		return this.end;
+	}
+};
+var ExcelData = class {
+	data;
+	mergedRanges;
+	url;
+	workbookName;
+	worksheetName;
+	constructor(data, mergedRanges, url, workbookName, worksheetName) {
+		this.data = data;
+		this.mergedRanges = mergedRanges.map((r) => new ExcelRange(r.start, r.end));
+		this.url = url;
+		if (this.url) {
+			let urlParams = new URLSearchParams(this.url.substring(this.url.indexOf("?") + 1));
+			urlParams.delete("activeCell");
+			this.url = this.url.substring(0, this.url.indexOf("?")) + "?" + urlParams.toString();
+		}
+		this.workbookName = workbookName;
+		this.worksheetName = worksheetName;
+	}
+	getMergedCellValue(excelPos) {
+		let mergedRange = this.getMergedRangeForCell(excelPos);
+		return this.data[mergedRange.Start.row][mergedRange.Start.column];
+	}
+	getMergedRangeForCell(excelPos) {
+		return this.mergedRanges.find((range$1) => {
+			return excelPos.row >= range$1.Start.row && excelPos.row <= range$1.End.row && excelPos.column >= range$1.Start.column && excelPos.column <= range$1.End.column;
+		}) ?? new ExcelRange(excelPos, excelPos);
+	}
+};
+var Table = class {
+	excelData;
+	tableRange;
+	rowHeaderCount;
+	columnHeaderCount;
+	excelToTableRange(excelRange) {
+		return TableRange.FromExcel(excelRange, this);
+	}
+	get ColumnCount() {
+		return this.tableRange.ColumnCount() - this.columnHeaderCount;
+	}
+	get RowCount() {
+		return this.tableRange.RowCount() - this.rowHeaderCount;
+	}
+	constructor(excelData, tableRange, rowHeaderCount, columnHeaderCount) {
+		this.excelData = excelData;
+		this.tableRange = tableRange;
+		this.rowHeaderCount = rowHeaderCount;
+		this.columnHeaderCount = columnHeaderCount;
+	}
+	Cell(row, column) {
+		let excelPos = {
+			row: this.tableRange.Start.row + this.rowHeaderCount + row,
+			column: this.tableRange.Start.column + this.columnHeaderCount + column
+		};
+		return this.excelData.getMergedCellValue(excelPos);
+	}
+	RangeOfCell(pos) {
+		let excelPos = {
+			row: this.tableRange.Start.row + this.rowHeaderCount + pos.row,
+			column: this.tableRange.Start.column + this.columnHeaderCount + pos.column
+		};
+		let exelRange = this.excelData.getMergedRangeForCell(excelPos) ?? new ExcelRange(excelPos, excelPos);
+		return TableRange.FromExcel(exelRange, this);
+	}
+	HeaderRowValue(headerRow, column) {
+		let excelPos = {
+			row: this.tableRange.Start.row + headerRow,
+			column: this.tableRange.Start.column + this.columnHeaderCount + column
+		};
+		return this.excelData.getMergedCellValue(excelPos);
+	}
+	HeaderColumnValue(row, headerColumn) {
+		let excelPos = {
+			row: this.tableRange.Start.row + this.rowHeaderCount + row,
+			column: this.tableRange.Start.column + headerColumn
+		};
+		return this.excelData.getMergedCellValue(excelPos);
+	}
+};
+
+//#endregion
+//#region typescript/roster_diff/rosterFactory.ts
+var RosterFactory = class RosterFactory {
+	excelData;
+	errors = [];
+	daysRow = void 0;
+	periodColumn = void 0;
+	tableRange = void 0;
+	constructor(jsonExcelData) {
+		this.excelData = new ExcelData(jsonExcelData.data, jsonExcelData.mergedRanges, jsonExcelData.url, jsonExcelData.workbookName, jsonExcelData.worksheetName);
+		this.daysRow = this.findDaysRow();
+		if (this.daysRow === void 0) {
+			this.errors.push("Geen rij met dagnamen gevonden.");
+			return;
+		}
+		this.periodColumn = this.findPeriodColumn(this.daysRow);
+		if (this.periodColumn === void 0) {
+			this.errors.push("Geen kolom met lesmomenten gevonden.");
+			return;
+		}
+		let lastPeriodRow = this.findLastPeriodRow(this.periodColumn);
+		let lastDayColumn = this.findLastDayColumn(this.periodColumn, this.daysRow);
+		this.tableRange = new ExcelRange({
+			row: this.daysRow,
+			column: this.periodColumn
+		}, {
+			row: lastPeriodRow,
+			column: lastDayColumn
+		});
+	}
+	getErrors() {
+		return this.errors;
+	}
+	getTable() {
+		return new Table(this.excelData, this.tableRange, 2, 1);
+	}
+	findDaysRow() {
+		for (let [i, row] of this.excelData.data.entries()) if (this.isDaysRow(row)) return i;
+		return void 0;
+	}
+	isDaysRow(row) {
+		let matchCount = 0;
+		for (let value of row) {
+			if (RosterFactory.isDayName(value.toString())) matchCount++;
+			if (matchCount >= 3) return true;
+		}
+		return false;
+	}
+	static isDayName(text) {
+		return this.toDayName(text) != "";
+	}
+	static toDayName(text) {
+		switch (text.toLowerCase()) {
+			case "maandag": return "MAANDAG";
+			case "dinsdag": return "DINSDAG";
+			case "woensdag": return "WOENSDAG";
+			case "donderdag": return "DONDERDAG";
+			case "vrijdag": return "VRIJDAG";
+			case "zaterdag": return "ZATERDAG";
+			case "zondag": return "ZONDAG";
+			case "ma": return "MAANDAG";
+			case "di": return "DINSDAG";
+			case "din": return "DINSDAG";
+			case "wo": return "WOENSDAG";
+			case "woe": return "WOENSDAG";
+			case "do": return "DONDERDAG";
+			case "don": return "DONDERDAG";
+			case "vr": return "VRIJDAG";
+			case "za": return "ZATERDAG";
+			case "zat": return "ZATERDAG";
+			case "zo": return "ZONDAG";
+			case "zon": return "ZONDAG";
+			default: return "";
+		}
+	}
+	findPeriodColumn(daysRow) {
+		let columnCount = this.excelData.data[0].length;
+		for (let iCol = 0; iCol < columnCount; iCol++) for (let row of this.excelData.data.slice(daysRow)) {
+			let value = row[iCol].toString();
+			if (this.isPeriod(value)) return iCol;
+		}
+		return void 0;
+	}
+	isPeriod(text) {
+		return parseTimeSlice(text);
+	}
+	findLastPeriodRow(periodColumn) {
+		return this.excelData.data.map((row, index) => this.isPeriod(row[periodColumn].toString()) ? index : -1).filter((n) => n > 0).pop();
+	}
+	findLastDayColumn(periodColumn, daysRow) {
+		for (let c = periodColumn + 1; c < this.excelData.data[0].length; c++) {
+			let cellValue = this.excelData.getMergedCellValue({
+				row: daysRow,
+				column: c
+			});
+			if (!RosterFactory.isDayName(cellValue)) return c - 1;
+		}
+	}
+};
+
+//#endregion
 //#region typescript/roster_diff/excelRoster.ts
+var ClassDef = class {
+	day;
+	teacher;
+	timeSlice;
+	subjects;
+	location;
+	gradeYears;
+	excelRow;
+	excelColumn;
+	cellValue;
+	table;
+	hash;
+	ignore;
+	constructor(day, teacher, timeSlice, subjects, location$1, gradeYears, excelRow, excelColumn, cellValue, table) {
+		this.day = day;
+		this.teacher = teacher;
+		this.timeSlice = timeSlice;
+		this.subjects = subjects;
+		this.location = location$1;
+		this.gradeYears = gradeYears;
+		this.excelRow = excelRow;
+		this.excelColumn = excelColumn;
+		this.cellValue = cellValue;
+		this.table = table;
+		this.hash = cellValue + day + teacher + timeSlice.toString();
+	}
+	getHash() {
+		return this.hash;
+	}
+};
 var TimeSlice = class {
 	start;
 	end;
@@ -1299,6 +1592,438 @@ function dayToMinutes(day) {
 		case "ZONDAG": return 8640;
 		default: return -1;
 	}
+}
+var ExcelRoster = class {
+	table;
+	locationDefs;
+	subjectDefs;
+	errors = [];
+	constructor(table, locations, subjects) {
+		this.table = table;
+		this.locationDefs = locations;
+		this.subjectDefs = subjects;
+	}
+	scrapeUurrooster() {
+		let timeSlices = this.createTimeSlices();
+		if (this.errors.length > 0) return;
+		let classDefs = [];
+		for (let c = 0; c <= this.table.ColumnCount; c++) classDefs = classDefs.concat(this.scrapeColumn(c, timeSlices));
+		return classDefs;
+	}
+	scrapeColumn(column, timeSlices) {
+		let classDefs = [];
+		let day = RosterFactory.toDayName(this.table.HeaderRowValue(0, column));
+		let teacher = this.table.HeaderRowValue(1, column);
+		for (let row = 0; row < this.table.RowCount; row++) {
+			let cellValue = this.table.Cell(row, column);
+			if (cellValue) {
+				let rx = /\n/g;
+				let description = cellValue.replaceAll(rx, " ");
+				let parseText = " " + description.replaceAll("(", " ( ").replaceAll(")", " ) ").replaceAll(",", " , ").replaceAll("+", " + ") + " ";
+				let timeSlice = void 0;
+				let mergedRange = this.table.RangeOfCell({
+					row,
+					column
+				});
+				let sliceStartText = this.table.HeaderColumnValue(mergedRange.Start.row, 0);
+				let sliceEndText = this.table.HeaderColumnValue(mergedRange.End.row, 0);
+				let sliceStart = timeSlices.get(sliceStartText);
+				let sliceEnd = timeSlices.get(sliceEndText);
+				timeSlice = new TimeSlice(sliceStart.start, sliceEnd.end);
+				let times = this.findTimes(parseText);
+				if (times.length === 2) timeSlice = new TimeSlice(times[0], times[1]);
+				else if (times.length === 1) timeSlice = this.moveTimeSliceTo(timeSlice, times[0]);
+				let tags = this.findTags(parseText, this.defaultTagDefs);
+				let location$1 = this.findLocation(tags);
+				let subjects = this.findSubjects(tags);
+				let tablePos = {
+					row,
+					column
+				};
+				let excelPos = TablePos.toExcel(tablePos, this.table);
+				let classDef = new ClassDef(day, teacher, timeSlice, subjects, location$1, this.findGradeYears(parseText), excelPos.row, excelPos.column, cellValue, this.table);
+				classDefs.push(classDef);
+				row = mergedRange.End.row + 1;
+			}
+		}
+		return classDefs;
+	}
+	gradeYearToString(gradeYear) {
+		return `${gradeYear.grade ? gradeYear.grade : "?"}.${gradeYear.year}`;
+	}
+	createTimeSlices() {
+		let timeSlices = new Map();
+		for (let row = 0; row < this.table.RowCount; row++) {
+			let value = this.table.HeaderColumnValue(row, 0);
+			let timeSlice = parseTimeSlice(value);
+			if (timeSlice) timeSlices.set(value, timeSlice);
+			else this.errors.push(`Could not parse time slice: ${value}`);
+		}
+		return timeSlices;
+	}
+	findTimes(text) {
+		let times = [];
+		let rx = /\s+(\d?\d)[.:,](\d\d)/gm;
+		let matches = rx.exec(text);
+		while (matches) {
+			let time = {
+				hour: parseInt(matches[1]),
+				minutes: parseInt(matches[2])
+			};
+			times.push(time);
+			matches = rx.exec(text);
+		}
+		return times;
+	}
+	moveTimeSliceTo(timeSlice, newStart) {
+		let newSlice = structuredClone(timeSlice);
+		let startMinutes = timeSlice.start.hour * 60 + timeSlice.start.minutes;
+		let endMinutes = timeSlice.end.hour * 60 + timeSlice.end.minutes;
+		let duration = endMinutes - startMinutes;
+		newSlice.start = structuredClone(newStart);
+		let newEndMinutes = newStart.hour * 60 + newStart.minutes + duration;
+		newSlice.end.hour = Math.trunc(newEndMinutes / 60);
+		newSlice.end.minutes = newEndMinutes % 60;
+		return newSlice;
+	}
+	defaultTagDefs = [
+		{
+			tag: "Vestiging Sterrenkijker/SL Durlet",
+			searchString: " sterr"
+		},
+		{
+			tag: "Vestiging Sterrenkijker/SL Durlet",
+			searchString: " durlet"
+		},
+		{
+			tag: "Vestiging De Kleine Stad",
+			searchString: " kleine stad "
+		},
+		{
+			tag: "Vestiging De Kleine Wereld",
+			searchString: " wereld "
+		},
+		{
+			tag: "Vestiging De Nieuwe Vrede",
+			searchString: " vrede "
+		},
+		{
+			tag: "Vestiging De Nieuwe Vrede",
+			searchString: " dnv "
+		},
+		{
+			tag: "Vestiging De Nieuwe Vrede",
+			searchString: " tegel"
+		},
+		{
+			tag: "Vestiging De Nieuwe Vrede",
+			searchString: " tango "
+		},
+		{
+			tag: "Vestiging De Nieuwe Vrede",
+			searchString: " vergaderzaal "
+		},
+		{
+			tag: "Vestiging De Kosmos",
+			searchString: " kosmos "
+		},
+		{
+			tag: "Vestiging De Schatkist",
+			searchString: " schatk"
+		},
+		{
+			tag: "Vestiging De Kolibrie",
+			searchString: " kolibri"
+		},
+		{
+			tag: "Vestiging Het Fonkelpad",
+			searchString: " fonkel"
+		},
+		{
+			tag: "Vestiging Alberreke",
+			searchString: " alber"
+		},
+		{
+			tag: "Vestiging c o r s o",
+			searchString: " corso "
+		},
+		{
+			tag: "Vestiging c o r s o",
+			searchString: "c o r s o"
+		},
+		{
+			tag: "Vestiging c o r s o",
+			searchString: " studio 3 "
+		},
+		{
+			tag: "Vestiging Prins Dries",
+			searchString: " prins "
+		},
+		{
+			tag: "Vestiging Prins Dries",
+			searchString: " dries "
+		},
+		{
+			tag: "Vestiging Groenhout Kasteelstraat",
+			searchString: " groenhout "
+		},
+		{
+			tag: "Vestiging Groenhout Kasteelstraat",
+			searchString: " kasteel"
+		},
+		{
+			tag: "Vestiging Het Fonkelpad",
+			searchString: " fonkel "
+		},
+		{
+			tag: "Vestiging OLV Pulhof",
+			searchString: " pulhof "
+		},
+		{
+			tag: "Vestiging OLV Pulhof",
+			searchString: " 1p "
+		},
+		{
+			tag: "Vestiging OLV Pulhof",
+			searchString: " 2p "
+		},
+		{
+			tag: "Vestiging Sterrenkijker/SL Durlet",
+			searchString: " 1d "
+		},
+		{
+			tag: "Vestiging Sterrenkijker/SL Durlet",
+			searchString: " 2d "
+		},
+		{
+			tag: "Vestiging Via Louiza",
+			searchString: " louiza "
+		},
+		{
+			tag: "Vestiging Frans Van Hombeeck",
+			searchString: " hombee"
+		},
+		{
+			tag: "Vestiging Klavertje Vier",
+			searchString: " klaver"
+		},
+		{
+			tag: "Academie Willem Van Laarstraat, Berchem",
+			searchString: " bib "
+		},
+		{
+			tag: "Academie Willem Van Laarstraat, Berchem",
+			searchString: "laarstr"
+		},
+		{
+			tag: "Academie Willem Van Laarstraat, Berchem",
+			searchString: " wvl "
+		},
+		{
+			tag: "Vestiging Frans Van Hombeeck",
+			searchString: " beeld "
+		},
+		{
+			tag: "Cabaret en comedy",
+			searchString: " cabaret "
+		},
+		{
+			tag: "Woordatelier",
+			searchString: " woordatelier "
+		},
+		{
+			tag: "Woordatelier",
+			searchString: " wa "
+		},
+		{
+			tag: "Woordlab",
+			searchString: " woordlab "
+		},
+		{
+			tag: "Woordlab",
+			searchString: " wl "
+		},
+		{
+			tag: "Literair atelier",
+			searchString: " literair atelier "
+		},
+		{
+			tag: "Literaire teksten",
+			searchString: " literaire teksten "
+		},
+		{
+			tag: "Schrijven",
+			searchString: " basiscursus "
+		},
+		{
+			tag: "Spreken en vertellen",
+			searchString: " spreken "
+		},
+		{
+			tag: "Kunstenbad muziek/woord",
+			searchString: " kunstenbad "
+		},
+		{
+			tag: "Musicalatelier",
+			searchString: " musicalatelier "
+		},
+		{
+			tag: "Musical koor",
+			searchString: " musical koor "
+		},
+		{
+			tag: "Musical zang",
+			searchString: " musical zang "
+		},
+		{
+			tag: "Theater",
+			searchString: " acteren "
+		},
+		{
+			tag: "Muziekatelier",
+			searchString: " 1p "
+		},
+		{
+			tag: "Muziekatelier",
+			searchString: " 2p "
+		},
+		{
+			tag: "Muziekatelier",
+			searchString: " 1d "
+		},
+		{
+			tag: "Muziekatelier",
+			searchString: " 2d "
+		},
+		{
+			tag: "Muziekatelier",
+			searchString: " 1va "
+		},
+		{
+			tag: "Muziekatelier",
+			searchString: " 1vb "
+		},
+		{
+			tag: "Muziekatelier",
+			searchString: " 1vc "
+		},
+		{
+			tag: "Muziekatelier",
+			searchString: " 2va "
+		},
+		{
+			tag: "Muziekatelier",
+			searchString: " 2vb "
+		},
+		{
+			tag: "Muziekatelier",
+			searchString: " 3v "
+		},
+		{
+			tag: "Muziekatelier",
+			searchString: " 1t "
+		},
+		{
+			tag: "Muziekatelier",
+			searchString: " 2t "
+		},
+		{
+			tag: "Groepsmusiceren (klassiek)",
+			searchString: " gm "
+		},
+		{
+			tag: "Atelier (musical)",
+			searchString: " musicalatelier "
+		},
+		{
+			tag: "Musicalatelier 2e graad",
+			searchString: " musical for kids "
+		}
+	];
+	static ignoreList = [
+		" kunstkuren ",
+		" arrangeren",
+		" combo ",
+		" harmonielab ",
+		" klanklab ",
+		" muzieklab ",
+		" electronics ",
+		" big band ",
+		" blazersensemble ",
+		" groepsmusiceren (jass pop rock) ",
+		" geluidsleer ",
+		" koor (jazz pop rock) ",
+		" koor (musical) ",
+		" slagwerkensemble "
+	];
+	static callNames = [{
+		tag: "Van Goethem, Robert",
+		searchString: "bert"
+	}];
+	findLocation(tags) {
+		let location$1 = this.locationDefs.find((location$2) => tags.includes(location$2));
+		if (location$1) return location$1;
+		else return "Academie Willem Van Laarstraat, Berchem";
+	}
+	findSubjects(tags) {
+		return this.subjectDefs.filter((subject) => tags.includes(subject));
+	}
+	findTags(text, tagDefs) {
+		let tags = [];
+		let lowerCase = text.toLowerCase();
+		for (let def of tagDefs) if (lowerCase.includes(def.searchString)) tags.push(def.tag);
+		for (let subject of this.subjectDefs) if (lowerCase.includes(subject.toLowerCase())) tags.push(subject);
+		return tags;
+	}
+	findGradeYears(text) {
+		let gradeYears = [];
+		const rx = /\s+(?:(\d)\.(\d)|(S)(\d))(?:\s?[,+\/]\s?(?:(\d)\.(\d)|(S)(\d)))?(?:\s?[,+\/]\s?(?:(\d)\.(\d)|(S)(\d)))?(?:\s?[,+\/]\s?(?:(\d)\.(\d)|(S)(\d)))?(?:\s?[,+\/]\s?(?:(\d)\.(\d)|(S)(\d)))?/gm;
+		let matches = rx.exec(text);
+		if (matches) {
+			let strippedMatches = matches.filter((m) => m);
+			for (let i = 1; i < strippedMatches.length; i += 2) {
+				let gradeYear = {
+					grade: strippedMatches[i],
+					year: parseInt(strippedMatches[i + 1])
+				};
+				gradeYears.push(gradeYear);
+			}
+			return gradeYears;
+		}
+		const rx2 = /\s+(\d)\s?[,+]\s?(\d)/gm;
+		matches = rx2.exec(text);
+		if (matches) {
+			let strippedMatches = matches.filter((m) => m);
+			for (let i = 1; i < strippedMatches.length; i++) {
+				let gradeYear = {
+					grade: "2",
+					year: parseInt(strippedMatches[i])
+				};
+				gradeYears.push(gradeYear);
+			}
+			return gradeYears;
+		}
+	}
+};
+function parseTime(timeString) {
+	let timeParts = timeString.split(/[:;,.]/gm);
+	if (timeParts.length == 2) return {
+		hour: parseInt(timeParts[0]),
+		minutes: parseInt(timeParts[1])
+	};
+	if (timeParts.length == 1) return {
+		hour: parseInt(timeParts[0]),
+		minutes: 0
+	};
+	return null;
+}
+function parseTimeSlice(text) {
+	let [start, end] = text.split("-");
+	if (!start || !end) return null;
+	let startTime = parseTime(start);
+	let endTime = parseTime(end);
+	if (!startTime || !endTime) return null;
+	return new TimeSlice(startTime, endTime);
 }
 
 //#endregion
@@ -1369,7 +2094,7 @@ function scrapeModules(table, jaarToewijzingTable) {
 	};
 }
 function scrapeTrimesterModules(lessen) {
-	let modules = lessen.filter((les) => les.lesType === LesType.TrimesterModule);
+	let modules = lessen.filter((les) => les.lesType === LesType$1.TrimesterModule);
 	let trimesterModules = [];
 	for (let module of modules) {
 		module.students = scrapeStudents(module.studentsTable);
@@ -1386,7 +2111,7 @@ function scrapeTrimesterModules(lessen) {
 	return trimesterModules;
 }
 function scrapeJaarModules(lessen) {
-	let modules = lessen.filter((les) => les.lesType === LesType.JaarModule);
+	let modules = lessen.filter((les) => les.lesType === LesType$1.JaarModule);
 	let jaarModules = [];
 	for (let module of modules) {
 		module.students = scrapeStudents(module.studentsTable);
@@ -1428,12 +2153,12 @@ function scrapeStudents(studentTable) {
 	}
 	return students;
 }
-let LesType = /* @__PURE__ */ function(LesType$1) {
-	LesType$1[LesType$1["TrimesterModule"] = 0] = "TrimesterModule";
-	LesType$1[LesType$1["JaarModule"] = 1] = "JaarModule";
-	LesType$1[LesType$1["Les"] = 2] = "Les";
-	LesType$1[LesType$1["UnknownModule"] = 3] = "UnknownModule";
-	return LesType$1;
+let LesType$1 = /* @__PURE__ */ function(LesType$2) {
+	LesType$2[LesType$2["TrimesterModule"] = 0] = "TrimesterModule";
+	LesType$2[LesType$2["JaarModule"] = 1] = "JaarModule";
+	LesType$2[LesType$2["Les"] = 2] = "Les";
+	LesType$2[LesType$2["UnknownModule"] = 3] = "UnknownModule";
+	return LesType$2;
 }({});
 var Les = class {
 	vakNaam;
@@ -1489,10 +2214,10 @@ function scrapeLesInfo(row) {
 	if (mutedSpans.length > 1) les.naam = mutedSpans.item(0).textContent;
 	else les.naam = lesCell.children[1].textContent;
 	les.naam = les.naam.replaceAll("(", "").replaceAll(")", "").trim();
-	if (Array.from(allBadges).some((el) => el.textContent === "module")) if (les.naam.includes("jaar")) les.lesType = LesType.JaarModule;
-	else if (les.naam.includes("rimester")) les.lesType = LesType.TrimesterModule;
-	else les.lesType = LesType.UnknownModule;
-	else les.lesType = LesType.Les;
+	if (Array.from(allBadges).some((el) => el.textContent === "module")) if (les.naam.includes("jaar")) les.lesType = LesType$1.JaarModule;
+	else if (les.naam.includes("rimester")) les.lesType = LesType$1.TrimesterModule;
+	else les.lesType = LesType$1.UnknownModule;
+	else les.lesType = LesType$1.Les;
 	if (mutedSpans.length > 0) les.teacher = Array.from(mutedSpans).pop().textContent;
 	les.teacher = les.teacher.replaceAll("  ", " ").replaceAll(" ,", ",").trim();
 	let textNodes = Array.from(lesCell.childNodes).filter((node) => node.nodeType === Node.TEXT_NODE && node.textContent.trim() !== "");
@@ -1738,7 +2463,7 @@ function buildTrimesters(instrumentTeacherMomentModules) {
 		[],
 		[]
 	];
-	instrumentTeacherMomentModules.filter((module) => module.lesType === LesType.TrimesterModule).forEach((module) => {
+	instrumentTeacherMomentModules.filter((module) => module.lesType === LesType$1.TrimesterModule).forEach((module) => {
 		mergedInstrument[module.trimesterNo - 1].push(module);
 	});
 	return mergedInstrument;
@@ -1826,7 +2551,7 @@ function buildTableData(inputModules) {
 					};
 				});
 				block.trimesters = buildTrimesters(instrumentTeacherMomentModules);
-				block.jaarModules = instrumentTeacherMomentModules.filter((module) => module.lesType === LesType.JaarModule);
+				block.jaarModules = instrumentTeacherMomentModules.filter((module) => module.lesType === LesType$1.JaarModule);
 				block.offline = instrumentTeacherMomentModules.some((module) => !module.online);
 				block.checkBlockForErrors();
 				tableData.blocks.push(block);
@@ -1955,7 +2680,7 @@ function mergeBlockStudents(block) {
 }
 function createLesFromToewijzing(instrument, toewijzing) {
 	let les = new Les("");
-	les.lesType = LesType.JaarModule;
+	les.lesType = LesType$1.JaarModule;
 	les.instrumentName = instrument;
 	if (toewijzing.klasleerkracht == "") les.teacher = `toe te wijzen lk ${instrument}`;
 	else les.teacher = toewijzing.klasleerkracht;
@@ -2639,12 +3364,12 @@ function addFilterFields() {
 
 //#endregion
 //#region typescript/werklijst/criteria.ts
-let Domein = /* @__PURE__ */ function(Domein$1) {
-	Domein$1["Muziek"] = "Muziek (Mu)";
-	Domein$1["Woord"] = "Woord (Wo)";
-	Domein$1["Dans"] = "Dans (Da)";
-	Domein$1["Overschrijdend"] = "DomeinOv (Do)";
-	return Domein$1;
+let Domein$1 = /* @__PURE__ */ function(Domein$2) {
+	Domein$2["Muziek"] = "Muziek (Mu)";
+	Domein$2["Woord"] = "Woord (Wo)";
+	Domein$2["Dans"] = "Dans (Da)";
+	Domein$2["Overschrijdend"] = "DomeinOv (Do)";
+	return Domein$2;
 }({});
 let Grouping = /* @__PURE__ */ function(Grouping$1) {
 	Grouping$1["LEERLING"] = "1";
@@ -4094,7 +4819,7 @@ function getTrimPageElements() {
 }
 async function getJaarToewijzigingWerklijst(schoolYear) {
 	let builder = await createWerklijstBuilderWithReset(schoolYear, Grouping.LES);
-	builder.addCriterium(CriteriumName.Domein, Operator.PLUS, [Domein.Muziek]);
+	builder.addCriterium(CriteriumName.Domein, Operator.PLUS, [Domein$1.Muziek]);
 	builder.addCriterium(CriteriumName.Vak, Operator.PLUS, [
 		"instrumentinitiatie – hele jaar zelfde instrument - accordeon",
 		"instrumentinitiatie – hele jaar zelfde instrument - baglama (saz)",
@@ -4296,6 +5021,378 @@ async function getJsonDiffsCached() {
 	if (cachedDiffs) return cachedDiffs;
 	return getDiffsFromCloud();
 }
+async function buildAndSaveDiff(reportStatus, fetchListener, academie, schoolYear) {
+	reportStatus("Excel bestanden ophalen...");
+	let folderPath = await fetchFolderChanged(`Dko3/Uurroosters/${academie}/${schoolYear}/`);
+	reportStatus(`${folderPath.files.length} Excel bestanden gevonden.`);
+	let jsonExcelDatas = [];
+	for (let file of folderPath.files) {
+		let fileShortName = file.name.replaceAll("Dko3/Uurroosters/", "");
+		reportStatus(`Inlezen van ${fileShortName}...`);
+		let excelData = await fetchExcelData(file.name);
+		jsonExcelDatas.push(excelData);
+	}
+	reportStatus(`Vergelijken met DKO3 lessen...`);
+	let res = await runRosterCheck(jsonExcelDatas, reportStatus, fetchListener);
+	let jsonDiffs = await createJsonDiffs(res.diffs, res.dko3LesSet, res.excelLesSet, res.excelRosters);
+	let fileName = getDiffsCloudFileName();
+	await cloud.json.upload(fileName, jsonDiffs);
+	sessionStorage.setItem(fileName, JSON.stringify(jsonDiffs));
+	reportStatus(`Vergelijking beeindigd.`);
+	cachedDiffs = jsonDiffs;
+	return jsonDiffs;
+}
+async function runRosterCheck(excelDatas, reportStatus, fetchListener) {
+	reportStatus("Vestigingsplaatsen ophalen...");
+	let locationsTable = await getTableFromHash("extra-academie-vestigingsplaatsen", true, fetchListener);
+	let locations = [...locationsTable.getRows()].map((tr) => tr.cells[1].textContent);
+	reportStatus("DKO3 gevevens ophalen...");
+	let teachers = await fetchTeachers("2025-2026");
+	for (let teacher of teachers) for (let callDef of ExcelRoster.callNames) if (teacher.name == callDef.tag) teacher.callName = callDef.searchString;
+	let dko3Lessen = await scrapeLessen(Domein.Woord, LesType.gewone);
+	let muziekLessen = await scrapeLessen(Domein.Muziek, LesType.gewone);
+	let kbLessen = await scrapeLessen(Domein.DomeinOV, LesType.gewone);
+	dko3Lessen = [
+		...dko3Lessen,
+		...muziekLessen,
+		...kbLessen
+	];
+	let dko3AliasLessen = await scrapeLessen(Domein.Woord, LesType.alias);
+	for (let les of dko3AliasLessen) les.linkedLessenIds = await getAliassesForLes(les.id, reportStatus);
+	dko3AliasLessen = dko3AliasLessen.filter((l) => l.linkedLessenIds.length > 1);
+	console.log(dko3Lessen);
+	console.log(dko3AliasLessen);
+	let subjects = dko3Lessen.map((les) => [les.vakNaam, les.naam]).flat();
+	subjects = [...new Set(subjects)];
+	let excelLessenArray = [];
+	let excelRosters = [];
+	for (let excelData of excelDatas) {
+		let factory = new RosterFactory(excelData);
+		let table = factory.getTable();
+		let roster = new ExcelRoster(table, locations, subjects);
+		excelRosters.push(roster);
+		excelLessenArray.push(roster.scrapeUurrooster());
+		console.log(excelLessenArray);
+	}
+	await deleteNotification("FILE_POSTED");
+	await fetchAndDisplayNotifications();
+	return {
+		excelRosters,
+		...await buildDiff(excelLessenArray.flat(), dko3Lessen, dko3AliasLessen, reportStatus, teachers)
+	};
+}
+var LesType = /* @__PURE__ */ function(LesType$2) {
+	LesType$2["modules"] = "3";
+	LesType$2["gewone"] = "1";
+	LesType$2["alias"] = "4";
+	return LesType$2;
+}(LesType || {});
+var Domein = /* @__PURE__ */ function(Domein$2) {
+	Domein$2["Muziek"] = "3";
+	Domein$2["Woord"] = "4";
+	Domein$2["DomeinOV"] = "5";
+	Domein$2["Dans"] = "2";
+	return Domein$2;
+}(Domein || {});
+async function scrapeLessen(domein, type) {
+	let chain = new FetchChain();
+	let hash = "lessen-overzicht";
+	await chain.fetch(DKO3_BASE_URL + "#lessen-overzicht" + hash);
+	await chain.fetch("view.php?args=" + hash);
+	let schoolYear = Schoolyear.toFullString(Schoolyear.calculateSetupYear() - 1);
+	let params = new URLSearchParams({
+		schooljaar: schoolYear,
+		domein,
+		vestigingsplaats: "",
+		vak: "",
+		graad: "",
+		leerkracht: "",
+		ag: "",
+		lesdag: "",
+		verberg_online: "-1",
+		soorten_lessen: type,
+		volzet: "-1"
+	});
+	let tableText = await fetchLessen(params);
+	let div = document.createElement("div");
+	div.innerHTML = tableText;
+	let table = div.querySelector("#" + LESSEN_TABLE_ID);
+	return scrapeLessenOverzicht(table);
+}
+var Dko3LesMoment = class Dko3LesMoment {
+	les;
+	dayTimeSlice;
+	momentId;
+	ignore;
+	constructor(les, dayTimeSlice) {
+		this.les = les;
+		this.dayTimeSlice = dayTimeSlice;
+		this.momentId = Dko3LesMoment.createLesMomentId(les, dayTimeSlice);
+	}
+	static createLesMomentId(les, dayTimeSlice) {
+		return les.id + "_" + dayTimeSlice.toString();
+	}
+	getHash() {
+		return this.les.getHash() + this.dayTimeSlice.toString();
+	}
+};
+var TaggedLes = class {
+	lesMoment;
+	tags = [];
+	searchText;
+	location;
+	teachers;
+	subjects;
+	linkedLesMomenten = [];
+	ignore;
+	constructor(les, tags, searchText) {
+		this.lesMoment = les;
+		this.tags = tags;
+		this.searchText = searchText;
+	}
+	getHash() {
+		return this.lesMoment.getHash();
+	}
+};
+var TaggedDko3LesMoment = class extends TaggedLes {
+	constructor(lesMoment) {
+		let searchText = "";
+		let tags = [];
+		super(lesMoment, tags, searchText);
+		this.location = this.lesMoment.les.vestiging;
+		this.teachers = [this.lesMoment.les.teacher.replaceAll(/ \(en nog \d\)/g, "")];
+		this.subjects = this.lesMoment.les.vakNaam.split("+").map((txt) => txt.trim());
+		this.subjects.push(lesMoment.les.naam);
+		this.subjects = this.subjects.filter((s) => s);
+	}
+};
+var TaggedExcelLes = class extends TaggedLes {
+	dayTimeSlice;
+	constructor(les, teachers) {
+		let searchText = " " + les.cellValue.toLowerCase().replaceAll("\n", " \n ").replaceAll("(", " ( ").replaceAll(")", " ) ").replaceAll(".", " . ").replaceAll(",", " , ").replaceAll("-", " - ") + " ";
+		let tags = [];
+		super(les, tags, searchText);
+		this.location = this.lesMoment.location;
+		this.teachers = this.lesMoment.teacher.split(/[\/,]/g).map((t) => findTeacher(t, teachers));
+		this.subjects = les.subjects;
+		this.subjects = this.subjects.filter((s) => s);
+		this.dayTimeSlice = new DayTimeSlice(les.day, les.timeSlice);
+	}
+};
+function isDko3LesToIgnore(les) {
+	return ExcelRoster.ignoreList.some((ignore) => (" " + les.lesMoment.les.naam.toLowerCase() + " ").includes(ignore) || (" " + les.lesMoment.les.vakNaam.toLowerCase() + " ").includes(ignore));
+}
+function isExcelLesToIgnore(les) {
+	return ExcelRoster.ignoreList.some((ignore) => les.searchText.includes(ignore));
+}
+async function buildDiff(excelLessen, dko3Lessen, dko3AliasLessen, reportStatus, teachers) {
+	let diffs = [];
+	let excelLesSet = new Set(excelLessen.map((les) => new TaggedExcelLes(les, teachers)));
+	excelLesSet.forEach((les) => {
+		if (isExcelLesToIgnore(les)) excelLesSet.delete(les);
+	});
+	let lesMomenten = dko3Lessen.map((les) => les.dayTimeSlices.map((slice) => {
+		return new Dko3LesMoment(les, slice);
+	})).flat().map((lesMoment) => new TaggedDko3LesMoment(lesMoment));
+	let dko3LesSet = new Set(lesMomenten);
+	dko3LesSet.forEach((les) => {
+		if (isDko3LesToIgnore(les)) dko3LesSet.delete(les);
+	});
+	let dko3LesMap = new Map();
+	for (let les of dko3Lessen) dko3LesMap.set(les.id, les);
+	let lesMomentenMap = new Map();
+	for (let les of dko3LesSet.values()) lesMomentenMap.set(les.lesMoment.momentId, les);
+	for (let aliasLes of dko3AliasLessen) {
+		if (aliasLes.linkedLessenIds.length < 2) {
+			reportStatus(`Error: alias les ${aliasLes.id} heeft geen 2 geldige gekoppelde lessen.`, "error");
+			continue;
+		}
+		let linkedLessen = aliasLes.linkedLessenIds.map((lesId) => dko3LesMap.get(lesId));
+		if (linkedLessen.includes(void 0)) {
+			reportStatus(`Voor aliasles <a href="https://administratie.dko3.cloud/#lessen-les?id=${aliasLes.id}">${aliasLes.id}</a> zijn er ontbrekende gekoppelde lessen.`, "error");
+			continue;
+		}
+		let linkedLesMomentIds = linkedLessen.map((les) => les.dayTimeSlices.map((slice) => Dko3LesMoment.createLesMomentId(les, slice))).flat();
+		let linkedLesMomenten = linkedLesMomentIds.map((momentId) => lesMomentenMap.get(momentId));
+		linkedLesMomenten.sort((a, b) => a.lesMoment.dayTimeSlice.startToNumber() - b.lesMoment.dayTimeSlice.startToNumber());
+		let previousLesMoment = linkedLesMomenten[0];
+		for (let i = 1; i < linkedLesMomenten.length; i++) {
+			let currentLesMoment = linkedLesMomenten[i];
+			if (previousLesMoment.lesMoment.dayTimeSlice.endToNumber() == currentLesMoment.lesMoment.dayTimeSlice.startToNumber()) {
+				let newTimeSlice = new TimeSlice(structuredClone(previousLesMoment.lesMoment.dayTimeSlice.timeSlice.start), structuredClone(currentLesMoment.lesMoment.dayTimeSlice.timeSlice.end));
+				let newDayTimeSlice = new DayTimeSlice(previousLesMoment.lesMoment.dayTimeSlice.day, newTimeSlice);
+				let newAliasLesMoment = new TaggedDko3LesMoment(new Dko3LesMoment(aliasLes, newDayTimeSlice));
+				dko3LesSet.add(newAliasLesMoment);
+				dko3LesSet.delete(previousLesMoment);
+				dko3LesSet.delete(currentLesMoment);
+				previousLesMoment = newAliasLesMoment;
+			} else previousLesMoment = currentLesMoment;
+		}
+	}
+	let extraTeacherCache = new ExtraTeacherCache();
+	for (const les1 of [...dko3LesSet.values()].filter((les) => les.lesMoment.les.teacher.includes("(en nog"))) {
+		les1.teachers = await extraTeacherCache.getExtraTeachers(les1.lesMoment.les.id);
+		if (les1.teachers == void 0) throw "WTF???";
+	}
+	matchIt(dko3LesSet, excelLesSet, diffs, "perfect match", perfectMatch);
+	matchIt(dko3LesSet, excelLesSet, diffs, "match without teacher", matchWithoutTeacher);
+	matchIt(dko3LesSet, excelLesSet, diffs, "match without location", matchWithoutLocation);
+	matchIt(dko3LesSet, excelLesSet, diffs, "match without time", matchWithoutTime);
+	matchIt(dko3LesSet, excelLesSet, diffs, "match without time and day", matchWithoutTimeAndDay);
+	matchIt(dko3LesSet, excelLesSet, diffs, "match without teacher, time and day", matchWithoutTeacherTimeAndDay);
+	console.log(diffs);
+	console.log(dko3LesSet.values());
+	console.log(excelLesSet.values());
+	return {
+		diffs,
+		dko3LesSet,
+		excelLesSet
+	};
+}
+var ExtraTeacherCache = class {
+	teacherMap = new Map();
+	async getExtraTeachers(lesId) {
+		if (this.teacherMap.has(lesId)) return this.teacherMap.get(lesId);
+		let newEntry = await getExtraTeachers(lesId);
+		this.teacherMap.set(lesId, newEntry);
+		return newEntry;
+	}
+};
+async function getExtraTeachers(lesId) {
+	await fetch("https://administratie.dko3.cloud/view.php?args=lessen-les?id=" + lesId);
+	await fetch("https://administratie.dko3.cloud/views/lessen/les/index.view.php");
+	await fetch("https://administratie.dko3.cloud/views/lessen/les/index.details.tab.php");
+	let res = await fetch("https://administratie.dko3.cloud/views/lessen/les/details/index.details.leerkrachten.card.php");
+	let htmlTeachers = await res.text();
+	let div = document.createElement("div");
+	div.innerHTML = htmlTeachers;
+	let strongs = div.querySelectorAll("td > strong");
+	return [...strongs].map((s) => {
+		return s.textContent.replaceAll("  ", " ").replaceAll(" ,", ",").trim();
+	});
+}
+async function getAliassesForLes(lesId, reportStatus) {
+	await fetch("https://administratie.dko3.cloud/view.php?args=lessen-les?id=" + lesId);
+	await fetch("https://administratie.dko3.cloud/views/lessen/les/index.view.php");
+	await fetch("https://administratie.dko3.cloud/views/lessen/les/index.details.tab.php");
+	await fetch("https://administratie.dko3.cloud/views/lessen/les/index.meta.tab.php");
+	let res = await fetch("https://administratie.dko3.cloud/views/lessen/les/meta/alias_gekoppelde_lessen.card.php");
+	let htmlAliases = await res.text();
+	let div = document.createElement("div");
+	div.innerHTML = htmlAliases;
+	let anchors = div.querySelectorAll("td > a");
+	if (anchors.length == 0) reportStatus(`ERROR: alias les ${lesId} heeft geen (geldige) gekoppelde lessen.`);
+	return [...anchors].map((a) => a.textContent.trim());
+}
+function matchIt(dko3LesSet, excelLesSet, diffs, diffType, matchFunction) {
+	for (let dko3Les of dko3LesSet) {
+		let excelLes = matchFunction(dko3Les, excelLesSet);
+		if (excelLes) {
+			diffs.push({
+				excelLes,
+				dko3Les,
+				diffType
+			});
+			dko3LesSet.delete(dko3Les);
+			excelLesSet.delete(excelLes);
+		}
+	}
+}
+function perfectMatch(dko3Les, excelLesSet) {
+	for (let excelLes of excelLesSet) {
+		if (!dko3Les.subjects.some((t) => excelLes.subjects.includes(t))) continue;
+		if (!dko3Les.lesMoment.dayTimeSlice.equal(excelLes.dayTimeSlice)) continue;
+		if (dko3Les.location != excelLes.location) continue;
+		if (!dko3Les.teachers.some((t) => excelLes.teachers.includes(t))) continue;
+		return excelLes;
+	}
+	return null;
+}
+function matchWithoutLocation(dko3Les, excelLesSet) {
+	for (let excelLes of excelLesSet) {
+		if (!dko3Les.subjects.some((t) => excelLes.subjects.includes(t))) continue;
+		if (!dko3Les.lesMoment.dayTimeSlice.equal(excelLes.dayTimeSlice)) continue;
+		if (!dko3Les.teachers.some((t) => excelLes.teachers.includes(t))) continue;
+		return excelLes;
+	}
+	return null;
+}
+function matchWithoutTime(dko3Les, excelLesSet) {
+	for (let excelLes of excelLesSet) {
+		if (!dko3Les.subjects.some((t) => excelLes.subjects.includes(t))) continue;
+		if (dko3Les.lesMoment.dayTimeSlice.day != excelLes.dayTimeSlice.day) continue;
+		if (dko3Les.location != excelLes.location) continue;
+		if (!dko3Les.teachers.some((t) => excelLes.teachers.includes(t))) continue;
+		return excelLes;
+	}
+	return null;
+}
+function matchWithoutTimeAndDay(dko3Les, excelLesSet) {
+	for (let excelLes of excelLesSet) {
+		if (!dko3Les.subjects.some((t) => excelLes.subjects.includes(t))) continue;
+		if (dko3Les.location != excelLes.location) continue;
+		if (!dko3Les.teachers.some((t) => excelLes.teachers.includes(t))) continue;
+		return excelLes;
+	}
+	return null;
+}
+function matchWithoutTeacherTimeAndDay(dko3Les, excelLesSet) {
+	for (let excelLes of excelLesSet) {
+		if (!dko3Les.subjects.some((t) => excelLes.subjects.includes(t))) continue;
+		if (dko3Les.location != excelLes.location) continue;
+		return excelLes;
+	}
+	return null;
+}
+function matchWithoutTeacher(dko3Les, excelLesSet) {
+	for (let excelLes of excelLesSet) {
+		if (!dko3Les.subjects.some((t) => excelLes.subjects.includes(t))) continue;
+		if (!dko3Les.lesMoment.dayTimeSlice.equal(excelLes.dayTimeSlice)) continue;
+		if (dko3Les.location != excelLes.location) continue;
+		return excelLes;
+	}
+	return null;
+}
+async function fetchTeachers(schoolYear) {
+	await fetch(DKO3_BASE_URL + "#personeel-personeelsleden");
+	await fetch(DKO3_BASE_URL + "view.php?args=personeel-personeelsleden");
+	await fetch(DKO3_BASE_URL + "views/personeel/personeelsleden/index.view.php");
+	await fetch(DKO3_BASE_URL + "views/personeel/personeelsleden/vestigingsplaats_schooljaar_filter.php?schooljaar=2025-2026");
+	let formData = new FormData();
+	formData.append("filters[naam]", "");
+	formData.append("filters[status_personeelsleden]", "1");
+	formData.append("filters[leerkracht]", "1");
+	formData.append("filters[interim]", "1");
+	formData.append("filters[alc]", "false");
+	formData.append("filters[administratie]", "false");
+	formData.append("filters[overig]", "false");
+	formData.append("filters[schooljaar]", schoolYear);
+	await fetch("https://administratie.dko3.cloud/views/personeel/personeelsleden/save_filters.php", {
+		method: "POST",
+		body: formData
+	});
+	let res = await fetch(DKO3_BASE_URL + "views/personeel/personeelsleden/personeelsleden.table.php");
+	let html = await res.text();
+	let div = document.createElement("div");
+	div.innerHTML = html;
+	return [...div.querySelectorAll(`td[data-label="Naam"] strong`)].map((strong) => strong.textContent).map((name) => {
+		let split = name.split(",");
+		return {
+			name,
+			firstName: split[1].trim()
+		};
+	});
+}
+function findTeacher(searchString, teachers) {
+	let lowerCase = searchString.toLowerCase();
+	for (let teacherDef of teachers) {
+		if (lowerCase.includes(teacherDef.firstName.toLowerCase())) return teacherDef.name;
+		if (teacherDef.callName) {
+			if (lowerCase.includes(teacherDef.callName.toLowerCase())) return teacherDef.name;
+		}
+	}
+	return searchString;
+}
 function getDiffsCloudFileName() {
 	let schoolYear = Schoolyear.calculateSetupYear();
 	let schoolName = getSchoolIdString();
@@ -4310,12 +5407,77 @@ async function setIgnoredFlags(orphanedDko3Lessen, orphanedExcelLessen) {
 	for (let les of orphanedDko3Lessen) les.ignore = ignoreHashSet.has(les.hash);
 	for (let les of orphanedExcelLessen) les.ignore = ignoreHashSet.has(les.hash);
 }
+async function createJsonDiffs(diffList, dko3LesSet, excelLesSet, excelRosters) {
+	let diffs = diffList.filter((diff) => diff.diffType != "perfect match").map((diff) => {
+		return {
+			excelLes: excelLesToJson(diff.excelLes),
+			dko3Les: dko3LesToJson(diff.dko3Les),
+			diffType: diff.diffType
+		};
+	});
+	let orphanedDko3Lessen = [...dko3LesSet.values()].map((les) => dko3LesToJson(les));
+	let orphanedExcelLessen = [...excelLesSet.values()].map((les) => excelLesToJson(les));
+	await setIgnoredFlags(orphanedDko3Lessen, orphanedExcelLessen);
+	let workBooks = new Map();
+	for (let excelData of excelRosters.map((r) => r.table.excelData)) {
+		if (!workBooks.has(excelData.workbookName)) workBooks.set(excelData.workbookName, {
+			name: excelData.workbookName,
+			worksheets: []
+		});
+		let workBook = workBooks.get(excelData.workbookName);
+		let workSheet = {
+			name: excelData.worksheetName,
+			url: excelData.url
+		};
+		workBook.worksheets.push(workSheet);
+	}
+	return {
+		diffs,
+		orphanedDko3Lessen,
+		orphanedExcelLessen,
+		isoDate: new Date().toISOString(),
+		workBooks: [...workBooks.values()]
+	};
+}
+function dko3LesToJson(dko3Les) {
+	return {
+		momentId: dko3Les.lesMoment.momentId,
+		lesId: dko3Les.lesMoment.les.id,
+		day: dko3Les.lesMoment.dayTimeSlice.day,
+		timeSlice: toCompactTimeSliceString(dko3Les.lesMoment.dayTimeSlice.timeSlice),
+		subject: dko3Les.subjects.join(","),
+		teacher: dko3Les.teachers.join(","),
+		location: dko3Les.location,
+		hash: dko3Les.getHash(),
+		ignore: dko3Les.ignore
+	};
+}
+function excelLesToJson(excelLes) {
+	return {
+		excelColumn: excelLes.lesMoment.excelColumn,
+		excelRow: excelLes.lesMoment.excelRow,
+		day: excelLes.lesMoment.day,
+		timeSlice: toCompactTimeSliceString(excelLes.lesMoment.timeSlice),
+		subject: excelLes.subjects.join(","),
+		teacher: excelLes.teachers.join(","),
+		location: excelLes.location,
+		cellValue: excelLes.lesMoment.cellValue,
+		workBook: excelLes.lesMoment.table.excelData.workbookName,
+		workSheet: excelLes.lesMoment.table.excelData.worksheetName,
+		hash: excelLes.getHash(),
+		ignore: excelLes.ignore
+	};
+}
 function createDiffTable(divResults) {
 	let { first: table, last: tbody } = emmet.appendChild(divResults, "table#orphans.diff>(thead>tr>(th.subject{Vak/Lesnaam}+th.teacher{Leraar}+th.day{Dag}+th.{Uur}+th.location{Vestiging}+th+th))+tbody");
 	return {
 		table,
 		tbody
 	};
+}
+function toCompactTimeSliceString(timeSlice) {
+	if (!timeSlice) return "-geen uur-";
+	return `${pad(timeSlice.start.hour, 2)}:${pad(timeSlice.start.minutes, 2)} - ${pad(timeSlice.end.hour, 2)}:${pad(timeSlice.end.minutes, 2)}`;
 }
 async function getUrlForWorksheet(workBook, workSheet, cellAddress) {
 	let jsonDiffs = await getJsonDiffsCached();
@@ -4651,9 +5813,25 @@ async function setupPluginPage() {
 	pageState$2.goto = Goto.None;
 	saveGotoState(pageState$2);
 }
+async function runDiff(reportStatus, fetchListener, academie, schoolYear) {
+	let divResults = document.getElementById("diffResults");
+	divResults.innerHTML = "";
+	return buildAndSaveDiff(reportStatus, fetchListener, academie, schoolYear);
+}
 async function setupDiffPage() {
 	let pluginContainer = document.getElementById("plugin_container");
-	let button = emmet.appendChild(pluginContainer, "div.mb-1>div>(h4{Verschillen tussen Excel uurroosters en DKO3 lessen.}+button.btn.btn-primary{Zoek verschillen})").last;
+	let button = emmet.appendChild(pluginContainer, "div.mb-1>div>(h4{Verschillen tussen Excel uurroosters en DKO3 lessen.}+(div#combosLoading{Gegevens laden...}+select#cmbDiffAcademie+select#cmbDiffSchoolYear+button.btn.btn-primary{Zoek verschillen}))").last;
+	let dirTree = await getDirStructure();
+	let myAcadFolderName = getMyAcademieFolder(dirTree);
+	let academies = getAcademies(dirTree);
+	let cmbDiffAcademie = pluginContainer.querySelector("#cmbDiffAcademie");
+	cmbDiffAcademie.innerHTML = academies.map((name) => `<option value="${name}">${name}</option>`).join("");
+	cmbDiffAcademie.value = myAcadFolderName;
+	let schoolYears = [...dirTree.nodes.get(myAcadFolderName).nodes.values()].map((n) => n.folderName);
+	let cmbDiffSchoolYear = pluginContainer.querySelector("#cmbDiffSchoolYear");
+	cmbDiffSchoolYear.innerHTML = schoolYears.map((schoolYear) => `<option value="${schoolYear}">${schoolYear}</option>`).join("");
+	if (schoolYears.length == 1) cmbDiffSchoolYear.value = schoolYears[0];
+	pluginContainer.classList.toggle("diffCombosLoaded", true);
 	let runStatus = emmet.insertAfter(button, "div#runStatus").first;
 	emmet.insertAfter(runStatus, "div#diffResults");
 	let divInfo = emmet.insertAfter(runStatus, "div").last;
@@ -4668,9 +5846,8 @@ async function setupDiffPage() {
 	}
 	button.onclick = async () => {
 		errors = [];
-		let treeStructure = await getDirStructure();
-		let myAcademieFolder = getMyAcademieFolder(treeStructure);
-		console.log(myAcademieFolder);
+		let jsonDiffs = await runDiff(reportStatus, fetchListener, cmbDiffAcademie.value, cmbDiffSchoolYear.value);
+		await showDiffs(jsonDiffs);
 	};
 	try {
 		let jsonDiffs = await getDiffsFromCloud();
@@ -4703,9 +5880,12 @@ async function getDirStructure() {
 	}
 	return folderTree;
 }
+function getAcademies(folderTree) {
+	return [...folderTree.nodes.values()].map((n) => n.folderName);
+}
 function getMyAcademieFolder(folderTree) {
 	let myAcademie = getUserAndSchoolName().schoolName;
-	let academies = [...folderTree.nodes.values()].map((n) => n.folderName);
+	let academies = getAcademies(folderTree);
 	if (academies.includes(myAcademie)) return myAcademie;
 	myAcademie = myAcademie.replace("(", "").replaceAll(")", "");
 	if (academies.includes(myAcademie)) return myAcademie;
@@ -6043,7 +7223,7 @@ async function setCriteriaForTeacherHoursAndClickFetchButton(schooljaar, hourSet
 	let selectedInstrumentNames = new Set(hourSettings.subjects.filter((i) => i.checked).map((i) => i.name));
 	let validInstruments = dko3_vakken.filter((vak) => selectedInstrumentNames.has(vak.name));
 	let vakNames = validInstruments.map((vak) => vak.name);
-	builder.addCriterium(CriteriumName.Domein, Operator.PLUS, [Domein.Muziek]);
+	builder.addCriterium(CriteriumName.Domein, Operator.PLUS, [Domein$1.Muziek]);
 	builder.addCriterium(CriteriumName.Vak, Operator.PLUS, vakNames);
 	builder.addFields([
 		FIELD.NAAM,
