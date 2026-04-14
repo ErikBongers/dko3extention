@@ -7,6 +7,8 @@ import {buildAndSaveDiff, getDiffsFromCloud} from "../roster_diff/buildDiff";
 import {createInfoBlock} from "../infoBlock";
 import {InfoBarTableFetchListener} from "../table/loadAnyTable";
 import {showDiffs} from "../roster_diff/showDiff";
+import {fetchFolderChanged, fetchFolderContent} from "../cloud";
+import {getUserAndSchoolName} from "../globals";
 
 class StartPageObserver extends ExactHashObserver {
     constructor() {
@@ -108,8 +110,11 @@ async function setupDiffPage() {
     }
     button.onclick = async () => {
         errors = [];
-        let jsonDiffs = await runDiff(reportStatus, fetchListener);
-        await  showDiffs(jsonDiffs);
+        // let jsonDiffs = await runDiff(reportStatus, fetchListener);
+        // await  showDiffs(jsonDiffs);
+        let treeStructure = await getDirStructure();
+        let myAcademieFolder = getMyAcademieFolder(treeStructure);
+        console.log(myAcademieFolder);
     };
     try {
         let jsonDiffs = await getDiffsFromCloud();
@@ -118,4 +123,56 @@ async function setupDiffPage() {
     catch (e) {}
 }
 
+interface TreeNode {
+    folderName: string;
+    nodes: Map<string, TreeNode>;
+}
+
+async function getDirStructure() {
+    let folderContent = await fetchFolderContent("Dko3/Uurroosters/");
+    let folderTree: TreeNode = {folderName: "", nodes: new Map()};
+    for(let file of folderContent.files) {
+        let dirs = file.name.split("/");
+        dirs.pop(); //remove file.
+        dirs.shift(); //remove Dko3/
+        dirs.shift(); //remove Uurroosters/
+        let currentNode = folderTree;
+        for(let dir of dirs) {
+            let node = currentNode.nodes.get(dir);
+            if(!node) {
+                node = {folderName: dir, nodes: new Map()};
+                currentNode.nodes.set(dir, node);
+            }
+            currentNode = node;
+        }
+    }
+    return folderTree;
+}
+
+function getMyAcademieFolder(folderTree: TreeNode) {
+    let myAcademie = getUserAndSchoolName().schoolName;
+    let academies = [...folderTree.nodes.values()].map(n => n.folderName);
+    if(academies.includes(myAcademie))
+        return myAcademie;
+    myAcademie = myAcademie
+        .replace("(", "")
+        .replaceAll(")", "");
+    if(academies.includes(myAcademie))
+        return myAcademie;
+    myAcademie = myAcademie
+        .replaceAll("Muziek", "M")
+        .replaceAll("Woord", "W")
+        .replaceAll("Dans", "D")
+        .replaceAll("Beeld", "B");
+    if(academies.includes(myAcademie))
+        return myAcademie;
+    myAcademie = myAcademie
+        .replaceAll("-", "");
+    if(academies.includes(myAcademie))
+        return myAcademie;
+    let found = academies.find(name => name.includes(myAcademie))
+    if(found)
+        return found;
+    return null;
+}
 

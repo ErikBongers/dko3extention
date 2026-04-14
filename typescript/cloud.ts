@@ -60,9 +60,19 @@ export interface FolderChangedInfo {
     files: FileChangedInfo[]
 }
 
+export interface FolderContentInfo {
+    files: FileChangedInfo[]
+    folder: string
+}
+
 export async function fetchFolderChanged(folderName: string) {
     let res = await fetch(encodeURI(def.CLOUD_BASE_URL + "folder-changed?folderName="+folderName));
     return await res.json() as FolderChangedInfo;
+}
+
+export async function fetchFolderContent(folderName: string) {
+    let res = await fetch(encodeURI(def.CLOUD_BASE_URL + "folder-content?folderName="+folderName));
+    return await res.json() as FolderContentInfo;
 }
 
 export async function fetchExcelData(filePath: string) {
