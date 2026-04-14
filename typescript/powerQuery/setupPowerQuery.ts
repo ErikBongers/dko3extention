@@ -61,6 +61,7 @@ function getSavedAndDefaultQueryItems(): QueryItem[] {
     //merge saved pages and default pages.
     let mergedPages = {...defaultQueryItems};
     for(let page in savedPowerQuery) {
+        // @ts-ignore
         mergedPages[page] = savedPowerQuery[page];
     }
 

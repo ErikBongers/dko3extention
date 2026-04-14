@@ -8,7 +8,8 @@
     "incremental": false,
     "noImplicitOverride": true,
     "noImplicitThis": true,
-    "noImplicitReturns": true
+    "noImplicitReturns": true,
+    "noImplicitAny": true
   },
   "files": ["./typescript/plugin_options/options_page.ts"]
 }

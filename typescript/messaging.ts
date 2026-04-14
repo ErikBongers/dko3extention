@@ -76,7 +76,7 @@ export async function sendDataRequest<T extends RequestParams>(sender: TabType, 
 }
 
 export type MessageHandler = {
-    getListener: () => (request: ServiceRequest, _sender, _sendResponse) => void;
+    getListener: () => (request: ServiceRequest, _sender: any, _sendResponse: any) => void;
     onMessageForMyTabType: (callback: (msg: ServiceRequest) => void) => MessageHandler;
     onMessageForMe: (callback: (msg: ServiceRequest) => void) => MessageHandler;
     onData: (callback: (data: any) => void) => MessageHandler;

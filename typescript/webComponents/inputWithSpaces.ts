@@ -60,7 +60,7 @@ function loadWebComponent() {
             return ['value'];
         }
         input: HTMLInputElement = undefined;
-        #shadow = undefined;
+        #shadow: ShadowRoot = undefined;
         background: HTMLDivElement = undefined;
         value = "";
         constructor() {

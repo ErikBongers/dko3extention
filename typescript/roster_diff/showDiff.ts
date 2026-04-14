@@ -155,7 +155,7 @@ export function excelPostoExcelAddress(row: number, column: number) {
     return indexToExcelColumn(column) + (row + 1).toString();
 }
 
-function indexToExcelColumn(index: number) {
+function indexToExcelColumn(index: number): string {
     let quotient = Math.floor(index / 26);
     if (quotient <= 0)
         return chars[index];

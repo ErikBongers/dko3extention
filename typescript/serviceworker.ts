@@ -42,6 +42,7 @@ async function getTabId(tabType: TabType) {
 
 async function setTabId(tabType: TabType, tabId: number) {
     let data = {};
+    // @ts-ignore
     data[tabType] = tabId.toString();
     await chrome.storage.session.set(data);
 }

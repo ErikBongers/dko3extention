@@ -32,8 +32,10 @@ export function findFirstNavigation(element?: HTMLElement) {
     let matches = buttonPagination.innerText.match(rx);
     let buttons = buttonContainer.querySelectorAll("button.btn-secondary");
     let offsets = Array.from(buttons)
+        // @ts-ignore
         .filter((btn) => btn.attributes["onclick"]?.value.includes("goto("))
         .filter((btn: HTMLElement) => !btn.querySelector("i.fa-fast-backward")) //ignore the value of the fast backward button, which is always 0
+        // @ts-ignore
         .map((btn: HTMLElement) => getGotoNumber(btn.attributes["onclick"].value));
     let numbers = matches.slice(1).map((txt) => parseInt(txt));
     numbers[0] = numbers[0]-1;//convert 1-based user index to 0-based offset.

@@ -436,9 +436,9 @@ export function unreachable(x: never): never {
     throw new Error("This error will never be thrown. It is used for type safety.");
 }
 
-export function pad(num, size) {
-    num = num.toString();
-    while (num.length < size) num = "0" + num;
-    return num;
+export function pad(num: number, size: number) {
+    let text = num.toString();
+    while (text.length < size) text = "0" + text;
+    return text;
 }
 

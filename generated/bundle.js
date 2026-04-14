@@ -753,9 +753,9 @@ function unreachable(x) {
 	throw new Error("This error will never be thrown. It is used for type safety.");
 }
 function pad(num, size) {
-	num = num.toString();
-	while (num.length < size) num = "0" + num;
-	return num;
+	let text = num.toString();
+	while (text.length < size) text = "0" + text;
+	return text;
 }
 
 //#endregion
@@ -5417,7 +5417,7 @@ function getDiffsCloudFileName(academie, schoolYear) {
 	return `Dko3/${academie}_${schoolYear}_diffs.json`;
 }
 async function getDiffsFromCloud(academie, schoolYear) {
-	return await cloud.json.fetch(getDiffsCloudFileName(academie, schoolYear)).catch((err) => {
+	return await cloud.json.fetch(getDiffsCloudFileName(academie, schoolYear)).catch(function(err) {
 		console.log(err);
 		return null;
 	});

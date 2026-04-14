@@ -498,7 +498,7 @@ export function getDiffsCloudFileName(academie: string, schoolYear: string) {
 
 export async function getDiffsFromCloud(academie: string, schoolYear: string): Promise<JsonDiffs | null> {
     return await cloud.json.fetch(getDiffsCloudFileName(academie, schoolYear))
-        .catch(err => {
+        .catch(function (err: any): null {
             console.log(err);
             return null;
         }) as JsonDiffs | null;

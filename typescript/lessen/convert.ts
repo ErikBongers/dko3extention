@@ -93,7 +93,7 @@ export class BlockInfo {
         return this;
     }
 
-    containsId(id: number) {
+    containsId(id: number): boolean {
         if(this.id === id)
             return true;
         return this.mergedBlocks.some(b => b.containsId(id));

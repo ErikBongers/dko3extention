@@ -25,6 +25,7 @@ const saveOptionsFromGui = () => {
         touched: Date.now() // needed to trigger the storage changed event.
     };
     for (let option of htmlOptionDefs.values()) {
+        // @ts-ignore
         newOptions[option.id] = document.getElementById(option.id)[option.property];
 
     }
@@ -49,6 +50,7 @@ async function restoreOptionsToGui(){
         let optionDef = htmlOptionDefs.get(key);
         if(!optionDef)
             continue; //no GUI for this option.
+        // @ts-ignore
         document.getElementById(optionDef.id)[optionDef.property] = value;
     }
 }

@@ -91,6 +91,7 @@ function onMessage(message, sender, sendResponse) {
 			});
 			break;
 	}
+	return false;
 }
 
 //#endregion

@@ -57,6 +57,7 @@ function scrapeJaarToewijzingen(jaarToewijzingTable: (FetchedTable | undefined))
         let lesmoment = row.cells[3].textContent;
         let klasleerkracht = row.cells[4].textContent;
         let graadJaar = row.cells[5].textContent;
+        // @ts-ignore
         let onclick = row.attributes['onclick'].value;
         return {naam, voornaam, vak, lesmoment, klasleerkracht, onclick, graadJaar};
     })

@@ -25,6 +25,7 @@ export interface StudentUrenRow {
 export function scrapeStudent(headerIndices: Map<string, number>, tr: HTMLTableRowElement): StudentUrenRow {
     let naam = getColumnText(tr, headerIndices, "naam");
     let voornaam = getColumnText(tr, headerIndices, "voornaam");
+    // @ts-ignore
     let id = parseInt(tr.attributes['onclick'].value.replace("showView('leerlingen-leerling', '', 'id=", ""));
     let leraar = getColumnText(tr, headerIndices, "klasleerkracht");
     let vak = getColumnText(tr, headerIndices, "vak: naam");
