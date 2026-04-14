@@ -5739,6 +5739,24 @@ async function runDiff(reportStatus, fetchListener, academie, schoolYear) {
 	divResults.innerHTML = "";
 	return buildAndSaveDiff(reportStatus, fetchListener, academie, schoolYear);
 }
+async function loadCombboxSchoolYearAndTrySelect(dirTree) {
+	if (!dirTree) dirTree = await getDiffDirStructure();
+	let pluginContainer = document.getElementById("plugin_container");
+	let cmbDiffAcademie = pluginContainer.querySelector("#cmbDiffAcademie");
+	let schoolYears = [...dirTree.nodes.get(cmbDiffAcademie.value).nodes.values()].map((n) => n.folderName);
+	let cmbDiffSchoolYear = document.querySelector("#cmbDiffSchoolYear");
+	let prevSelectedSchoolYear = cmbDiffSchoolYear.value;
+	cmbDiffSchoolYear.innerHTML = schoolYears.map((schoolYear) => `<option value="${schoolYear}">${schoolYear}</option>`).join("");
+	if (schoolYears.length == 1) {
+		cmbDiffSchoolYear.value = schoolYears[0];
+		return true;
+	}
+	if (schoolYears.includes(prevSelectedSchoolYear)) {
+		cmbDiffSchoolYear.value = prevSelectedSchoolYear;
+		return true;
+	}
+	return false;
+}
 async function setupDiffPage() {
 	let pluginContainer = document.getElementById("plugin_container");
 	let button = emmet.appendChild(pluginContainer, "div.mb-1>div>(h4{Verschillen tussen Excel uurroosters en DKO3 lessen.}+(div#combosLoading{Gegevens laden...}+select#cmbDiffAcademie+select#cmbDiffSchoolYear+button.btn.btn-primary{Zoek verschillen}))").last;
@@ -5748,11 +5766,8 @@ async function setupDiffPage() {
 	let cmbDiffAcademie = pluginContainer.querySelector("#cmbDiffAcademie");
 	cmbDiffAcademie.innerHTML = academies.map((name) => `<option value="${name}">${name}</option>`).join("");
 	cmbDiffAcademie.value = myAcadFolderName;
-	let schoolYears = [...dirTree.nodes.get(myAcadFolderName).nodes.values()].map((n) => n.folderName);
-	let cmbDiffSchoolYear = pluginContainer.querySelector("#cmbDiffSchoolYear");
-	cmbDiffSchoolYear.innerHTML = schoolYears.map((schoolYear) => `<option value="${schoolYear}">${schoolYear}</option>`).join("");
-	if (schoolYears.length == 1) cmbDiffSchoolYear.value = schoolYears[0];
-	pluginContainer.classList.toggle("diffCombosLoaded", true);
+	let cmbDiffSchoolYear = document.querySelector("#cmbDiffSchoolYear");
+	if (await loadCombboxSchoolYearAndTrySelect(dirTree)) pluginContainer.classList.toggle("diffCombosLoaded", true);
 	let runStatus = emmet.insertAfter(button, "div#runStatus").first;
 	emmet.insertAfter(runStatus, "div#diffResults");
 	let divInfo = emmet.insertAfter(runStatus, "div").last;
@@ -5771,6 +5786,10 @@ async function setupDiffPage() {
 		await showDiffs(jsonDiffs, cmbDiffAcademie.value, cmbDiffSchoolYear.value);
 	};
 	cmbDiffAcademie.onchange = async () => {
+		if (await loadCombboxSchoolYearAndTrySelect(dirTree)) pluginContainer.classList.toggle("diffCombosLoaded", true);
+		await showDiffsFromComboboxes();
+	};
+	cmbDiffSchoolYear.onchange = async () => {
 		await showDiffsFromComboboxes();
 	};
 	await showDiffsFromComboboxes();
