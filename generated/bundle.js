@@ -5911,11 +5911,12 @@ async function checkChecks() {}
 //#region typescript/startPage/snapshots.ts
 async function setupSnapshotPage() {
 	let pluginContainer = document.getElementById("plugin_container");
-	let button = emmet.appendChild(pluginContainer, "div.mb-1>div>(h4{Snapshots van lessen.}+(select#cmbSnapshotSchoolYear+button.btn.btn-primary{Snapshot maken}))").last;
+	let button = emmet.appendChild(pluginContainer, "div#snapshotPage.mb-1>div>(h4{Snapshots van lessen.}+(select#cmbSnapshotSchoolYear+button.btn.btn-primary{Snapshot maken}))").last;
 	let cmbSnapshotSchoolYear = pluginContainer.querySelector("#cmbSnapshotSchoolYear");
 	cmbSnapshotSchoolYear.innerHTML = ["2025-2026", "2026-2027HARD CODED!!!"].map((name) => `<option value="${name}">${name}</option>`).join("");
 	let runStatus = emmet.insertAfter(button, "div#runStatus").first;
 	let divError = emmet.insertAfter(runStatus, "div.errors").last;
+	emmet.insertAfter(divError, "div#snapshotResults");
 	let errors = [];
 	function reportStatus(message, isError) {
 		if (isError == "error") errors.push(message);
@@ -5925,6 +5926,10 @@ async function setupSnapshotPage() {
 	button.onclick = async () => {
 		await createSnapshot(cmbSnapshotSchoolYear.value, reportStatus);
 	};
+	cmbSnapshotSchoolYear.onchange = async () => {
+		await showSnapshotsforCombobox();
+	};
+	await showSnapshotsforCombobox();
 }
 async function createSnapshot(schoolYear, reportStatus) {
 	reportStatus("Snapshot wordt gemaakt...");
@@ -5950,6 +5955,31 @@ async function createSnapshot(schoolYear, reportStatus) {
 	};
 	await cloud.json.upload(`Dko3/Snapshots/${academieName}/${schoolYear}/${zDate}.json`, snapshotData);
 	reportStatus("Snapshot aangemaakt.");
+}
+async function showSnapshotsforCombobox() {
+	let cmbSnapshotSchoolYear = document.querySelector("#cmbSnapshotSchoolYear");
+	let academieName = getUserAndSchoolName().schoolName;
+	let content = await fetchFolderContent(`Dko3/Snapshots/${academieName}/${cmbSnapshotSchoolYear.value}/`);
+	console.log(content);
+	let divResults = document.getElementById("snapshotResults");
+	let html = { html: "" };
+	let previousSnapshot = null;
+	for (let file of content.files) {
+		let snapshotData = await cloud.json.fetch(file.name);
+		html.html += `<h4>${snapshotData.zDate}</h4>`;
+		if (previousSnapshot) {
+			let diffs = compareSnapshots(previousSnapshot, snapshotData);
+			for (let diff of diffs) html.html += diff;
+		}
+		previousSnapshot = snapshotData;
+	}
+	divResults.innerHTML = html.html;
+}
+function compareSnapshots(previousSnapshot, nextSnapshot) {
+	let diffs = [];
+	for (let prev of previousSnapshot.lessen) if (!nextSnapshot.lessen.find((les) => les.hash == prev.hash)) diffs.push(`<p>${prev.hash}</p>`);
+	for (let next of nextSnapshot.lessen) if (!previousSnapshot.lessen.find((les) => les.hash == next.hash)) diffs.push(`<p>${next.hash}</p>`);
+	return diffs;
 }
 
 //#endregion
