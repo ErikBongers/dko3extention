@@ -125,13 +125,22 @@ async function setupDiffPage() {
         let jsonDiffs = await runDiff(reportStatus, fetchListener, cmbDiffAcademie.value, cmbDiffSchoolYear.value);
         await  showDiffs(jsonDiffs, cmbDiffAcademie.value, cmbDiffSchoolYear.value);
     };
+    cmbDiffAcademie.onchange = async () => {
+        await showDiffsFromComboboxes();
+    }
+    await showDiffsFromComboboxes();
+}
+
+async function showDiffsFromComboboxes() {
+    let cmbDiffAcademie = document.querySelector("#cmbDiffAcademie") as HTMLSelectElement;
+    let cmbDiffSchoolYear = document.querySelector("#cmbDiffSchoolYear") as HTMLSelectElement;
     try {
         let jsonDiffs = await getDiffsFromCloud(cmbDiffAcademie.value, cmbDiffSchoolYear.value);
         await showDiffs(jsonDiffs, cmbDiffAcademie.value, cmbDiffSchoolYear.value);
     }
     catch (e) {}
-}
 
+}
 interface TreeNode {
     folderName: string;
     nodes: Map<string, TreeNode>;

@@ -5501,9 +5501,13 @@ async function getUrlForWorksheet(workBook, workSheet, cellAddress, academie, sc
 //#endregion
 //#region typescript/roster_diff/showDiff.ts
 async function showDiffs(diffs, academie, schoolYear) {
-	if (!diffs) return;
-	await setIgnoredFlags(diffs.orphanedDko3Lessen, diffs.orphanedExcelLessen);
 	let divResults = document.getElementById("diffResults");
+	divResults.innerHTML = "Ophalen...";
+	if (!diffs) {
+		divResults.innerHTML = "";
+		return;
+	}
+	await setIgnoredFlags(diffs.orphanedDko3Lessen, diffs.orphanedExcelLessen);
 	divResults.innerHTML = "";
 	let elapsedTimeString = dateDiffToString(new Date(diffs.isoDate), new Date());
 	if (elapsedTimeString != "") emmet.appendChild(divResults, `p{Laatste vergelijking: ${elapsedTimeString} geleden.}`);
@@ -5766,6 +5770,14 @@ async function setupDiffPage() {
 		let jsonDiffs = await runDiff(reportStatus, fetchListener, cmbDiffAcademie.value, cmbDiffSchoolYear.value);
 		await showDiffs(jsonDiffs, cmbDiffAcademie.value, cmbDiffSchoolYear.value);
 	};
+	cmbDiffAcademie.onchange = async () => {
+		await showDiffsFromComboboxes();
+	};
+	await showDiffsFromComboboxes();
+}
+async function showDiffsFromComboboxes() {
+	let cmbDiffAcademie = document.querySelector("#cmbDiffAcademie");
+	let cmbDiffSchoolYear = document.querySelector("#cmbDiffSchoolYear");
 	try {
 		let jsonDiffs = await getDiffsFromCloud(cmbDiffAcademie.value, cmbDiffSchoolYear.value);
 		await showDiffs(jsonDiffs, cmbDiffAcademie.value, cmbDiffSchoolYear.value);

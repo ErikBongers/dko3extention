@@ -7,10 +7,13 @@ import {createDiffTable, DiffType, getUrlForWorksheet, JsonDiff, JsonDiffs, setI
 import {uploadIgnoredDiffHashes} from "../cloud";
 
 export async function showDiffs(diffs: JsonDiffs, academie: string, schoolYear: string) {
-    if(!diffs)
-        return;
-    await setIgnoredFlags(diffs.orphanedDko3Lessen, diffs.orphanedExcelLessen);
     let divResults = document.getElementById("diffResults") as HTMLDivElement;
+    divResults.innerHTML = "Ophalen...";
+    if(!diffs) {
+        divResults.innerHTML = "";
+        return;
+    }
+    await setIgnoredFlags(diffs.orphanedDko3Lessen, diffs.orphanedExcelLessen);
     divResults.innerHTML = "";
     let elapsedTimeString = dateDiffToString(new Date(diffs.isoDate), new Date());
     if(elapsedTimeString != "")
