@@ -5044,7 +5044,7 @@ async function buildAndSaveDiff(reportStatus, fetchListener, academie, schoolYea
 		jsonExcelDatas.push(excelData);
 	}
 	reportStatus(`Vergelijken met DKO3 lessen...`);
-	let res = await runRosterCheck(jsonExcelDatas, reportStatus, fetchListener);
+	let res = await runRosterCheck(jsonExcelDatas, reportStatus, fetchListener, schoolYear);
 	let jsonDiffs = await createJsonDiffs(res.diffs, res.dko3LesSet, res.excelLesSet, res.excelRosters, academie, schoolYear);
 	let fileName = getDiffsCloudFileName(academie, schoolYear);
 	await cloud.json.upload(fileName, jsonDiffs);
@@ -5053,22 +5053,28 @@ async function buildAndSaveDiff(reportStatus, fetchListener, academie, schoolYea
 	cachedDiffs = jsonDiffs;
 	return jsonDiffs;
 }
-async function runRosterCheck(excelDatas, reportStatus, fetchListener) {
-	reportStatus("Vestigingsplaatsen ophalen...");
-	let locationsTable = await getTableFromHash("extra-academie-vestigingsplaatsen", true, fetchListener);
-	let locations = [...locationsTable.getRows()].map((tr) => tr.cells[1].textContent);
-	reportStatus("DKO3 gevevens ophalen...");
-	let teachers = await fetchTeachers("2025-2026");
-	for (let teacher of teachers) for (let callDef of ExcelRoster.callNames) if (teacher.name == callDef.tag) teacher.callName = callDef.searchString;
-	let dko3Lessen = await scrapeLessen(Domein.Woord, LesType.gewone);
-	let muziekLessen = await scrapeLessen(Domein.Muziek, LesType.gewone);
-	let kbLessen = await scrapeLessen(Domein.DomeinOV, LesType.gewone);
-	dko3Lessen = [
+async function scrapeAllNormalLessen(schoolYear, reportStatus) {
+	reportStatus("Ophalen woordlessen...");
+	let dko3Lessen = await scrapeLessen(Domein.Woord, LesType.gewone, schoolYear);
+	reportStatus("Ophalen muwieklessen...");
+	let muziekLessen = await scrapeLessen(Domein.Muziek, LesType.gewone, schoolYear);
+	reportStatus("Ophalen kunstenbad lessen...");
+	let kbLessen = await scrapeLessen(Domein.DomeinOV, LesType.gewone, schoolYear);
+	return [
 		...dko3Lessen,
 		...muziekLessen,
 		...kbLessen
 	];
-	let dko3AliasLessen = await scrapeLessen(Domein.Woord, LesType.alias);
+}
+async function runRosterCheck(excelDatas, reportStatus, fetchListener, schoolYear) {
+	reportStatus("Vestigingsplaatsen ophalen...");
+	let locationsTable = await getTableFromHash("extra-academie-vestigingsplaatsen", true, fetchListener);
+	let locations = [...locationsTable.getRows()].map((tr) => tr.cells[1].textContent);
+	reportStatus("DKO3 gevevens ophalen...");
+	let teachers = await fetchTeachers(schoolYear);
+	for (let teacher of teachers) for (let callDef of ExcelRoster.callNames) if (teacher.name == callDef.tag) teacher.callName = callDef.searchString;
+	let dko3Lessen = await scrapeAllNormalLessen(schoolYear, reportStatus);
+	let dko3AliasLessen = await scrapeLessen(Domein.Woord, LesType.alias, schoolYear);
 	for (let les of dko3AliasLessen) les.linkedLessenIds = await getAliassesForLes(les.id, reportStatus);
 	dko3AliasLessen = dko3AliasLessen.filter((l) => l.linkedLessenIds.length > 1);
 	console.log(dko3Lessen);
@@ -5105,12 +5111,11 @@ var Domein = /* @__PURE__ */ function(Domein$2) {
 	Domein$2["Dans"] = "2";
 	return Domein$2;
 }(Domein || {});
-async function scrapeLessen(domein, type) {
+async function scrapeLessen(domein, type, schoolYear) {
 	let chain = new FetchChain();
 	let hash = "lessen-overzicht";
 	await chain.fetch(DKO3_BASE_URL + "#lessen-overzicht" + hash);
 	await chain.fetch("view.php?args=" + hash);
-	let schoolYear = Schoolyear.toFullString(Schoolyear.calculateSetupYear() - 1);
 	let params = new URLSearchParams({
 		schooljaar: schoolYear,
 		domein,
@@ -5906,7 +5911,45 @@ async function checkChecks() {}
 //#region typescript/startPage/snapshots.ts
 async function setupSnapshotPage() {
 	let pluginContainer = document.getElementById("plugin_container");
-	emmet.appendChild(pluginContainer, "div.mb-1>div>(h4{Snapshots van lessen.})");
+	let button = emmet.appendChild(pluginContainer, "div.mb-1>div>(h4{Snapshots van lessen.}+(select#cmbDiffSchoolYear+button.btn.btn-primary{Snapshot maken}))").last;
+	let cmbDiffSchoolYear = pluginContainer.querySelector("#cmbDiffSchoolYear");
+	cmbDiffSchoolYear.innerHTML = ["2025-2026", "2026-2027HARD CODED!!!"].map((name) => `<option value="${name}">${name}</option>`).join("");
+	let runStatus = emmet.insertAfter(button, "div#runStatus").first;
+	let divError = emmet.insertAfter(runStatus, "div.errors").last;
+	let errors = [];
+	function reportStatus(message, isError) {
+		if (isError == "error") errors.push(message);
+		else runStatus.innerHTML = message;
+		divError.innerHTML = errors.join("<br>");
+	}
+	button.onclick = async () => {
+		await createSnapshot(cmbDiffSchoolYear.value, reportStatus);
+	};
+}
+async function createSnapshot(schoolYear, reportStatus) {
+	reportStatus("Snapshot wordt gemaakt...");
+	let lessen = await scrapeAllNormalLessen(schoolYear, reportStatus);
+	let snapshotList = lessen.map((les) => {
+		return {
+			id: les.id,
+			hash: les.getHash(),
+			naam: les.naam,
+			vakNaam: les.vakNaam,
+			lesmoment: les.lesmoment,
+			vestiging: les.vestiging,
+			online: les.online
+		};
+	});
+	let academieName = getUserAndSchoolName().schoolName;
+	let zDate = new Date().toISOString();
+	let snapshotData = {
+		lessen: snapshotList,
+		academie: academieName,
+		schoolYear,
+		zDate
+	};
+	await cloud.json.upload(`Dko3/Snapshots/${academieName}/${schoolYear}/${zDate}.json`, snapshotData);
+	reportStatus("Snapshot aangemaakt.");
 }
 
 //#endregion

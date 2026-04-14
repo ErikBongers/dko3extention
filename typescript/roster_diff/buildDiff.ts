@@ -45,9 +45,12 @@ function removeIgnoreLessen(lessen: Les[]) {
 
 }
 
-export async function scrapeAllNormalLessen(schoolYear: string) {
+export async function scrapeAllNormalLessen(schoolYear: string, reportStatus: StatusCallback) {
+    reportStatus("Ophalen woordlessen...");
     let dko3Lessen = await scrapeLessen(Domein.Woord, LesType.gewone, schoolYear);
+    reportStatus("Ophalen muwieklessen...");
     let muziekLessen = await scrapeLessen(Domein.Muziek, LesType.gewone, schoolYear);
+    reportStatus("Ophalen kunstenbad lessen...");
     let kbLessen = await scrapeLessen(Domein.DomeinOV, LesType.gewone, schoolYear);
     return [...dko3Lessen, ...muziekLessen, ...kbLessen];
 }
@@ -65,7 +68,7 @@ async function runRosterCheck(excelDatas: JsonExcelData[], reportStatus: StatusC
                 teacher.callName = callDef.searchString;
         }
     }
-    let dko3Lessen = await scrapeAllNormalLessen(schoolYear);
+    let dko3Lessen = await scrapeAllNormalLessen(schoolYear, reportStatus);
     let dko3AliasLessen = await scrapeLessen(Domein.Woord, LesType.alias, schoolYear);
     for (let les of dko3AliasLessen) {
         les.linkedLessenIds = await getAliassesForLes(les.id, reportStatus);
