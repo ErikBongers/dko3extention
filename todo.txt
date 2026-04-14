@@ -1,20 +1,7 @@
-Toward website
-===============
-Bahati wants to know if the classes (in DKO3!) have changed.
-> Allow to keep a snapshot, manually triggered.
-> Show the diff of the snapshot.
-
-
-
-
 * Make flow that informs some users (via mail?) that a roster has changed.
   > too much spam?
   > have a diff with previous uploaded version?
 
-* Show notification when refreshing any page.
-* When file is removed from folder: also remove it in cloud.
-* display the diff.
-   > allow to ignore diffs, but keep those in a separate list (collapsed)
 * set TS settings gradually to strict.
 
 * Translation tables

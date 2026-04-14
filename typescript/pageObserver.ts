@@ -159,7 +159,7 @@ export class MenuScrapingObserver extends ExactHashObserver {
         this.pageLoadedQuerySelector = pageLoadedQuerySelector;
     }
 
-    onPageChanged() {
+    override onPageChanged() {
         super.onPageChanged.call(this);
         if(this.isPageMatching())
             this.onMutationPageWithMenu(); //calling this here, because a menu page is often a single load, and MutationObserver is then too late to

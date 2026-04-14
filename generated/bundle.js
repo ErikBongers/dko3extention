@@ -5056,7 +5056,7 @@ async function buildAndSaveDiff(reportStatus, fetchListener, academie, schoolYea
 async function scrapeAllNormalLessen(schoolYear, reportStatus) {
 	reportStatus("Ophalen woordlessen...");
 	let dko3Lessen = await scrapeLessen(Domein.Woord, LesType.gewone, schoolYear);
-	reportStatus("Ophalen muwieklessen...");
+	reportStatus("Ophalen muzieklessen...");
 	let muziekLessen = await scrapeLessen(Domein.Muziek, LesType.gewone, schoolYear);
 	reportStatus("Ophalen kunstenbad lessen...");
 	let kbLessen = await scrapeLessen(Domein.DomeinOV, LesType.gewone, schoolYear);
