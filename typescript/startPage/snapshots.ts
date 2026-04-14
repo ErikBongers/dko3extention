@@ -6,9 +6,9 @@ import {StatusCallback} from "./diffPage";
 
 export async function setupSnapshotPage() {
     let pluginContainer = document.getElementById("plugin_container");
-    let button = emmet.appendChild(pluginContainer, "div.mb-1>div>(h4{Snapshots van lessen.}+(select#cmbDiffSchoolYear+button.btn.btn-primary{Snapshot maken}))").last as HTMLButtonElement;
-    let cmbDiffSchoolYear = pluginContainer.querySelector("#cmbDiffSchoolYear") as HTMLSelectElement;
-    cmbDiffSchoolYear.innerHTML = ["2025-2026", "2026-2027HARD CODED!!!"].map(name => `<option value="${name}">${name}</option>`).join("");
+    let button = emmet.appendChild(pluginContainer, "div.mb-1>div>(h4{Snapshots van lessen.}+(select#cmbSnapshotSchoolYear+button.btn.btn-primary{Snapshot maken}))").last as HTMLButtonElement;
+    let cmbSnapshotSchoolYear = pluginContainer.querySelector("#cmbSnapshotSchoolYear") as HTMLSelectElement;
+    cmbSnapshotSchoolYear.innerHTML = ["2025-2026", "2026-2027HARD CODED!!!"].map(name => `<option value="${name}">${name}</option>`).join("");
     let runStatus = emmet.insertAfter(button, "div#runStatus").first as HTMLDivElement;
     let divError = emmet.insertAfter(runStatus, 'div.errors').last as HTMLDivElement;
     let errors: string[] = [];
@@ -20,7 +20,7 @@ export async function setupSnapshotPage() {
         divError.innerHTML = errors.join("<br>");
     }
     button.onclick = async () => {
-        await createSnapshot(cmbDiffSchoolYear.value, reportStatus);
+        await createSnapshot(cmbSnapshotSchoolYear.value, reportStatus);
     }
 }
 

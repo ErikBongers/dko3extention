@@ -5709,7 +5709,7 @@ async function loadCombboxSchoolYearAndTrySelect(dirTree) {
 }
 async function setupDiffPage() {
 	let pluginContainer = document.getElementById("plugin_container");
-	let button = emmet.appendChild(pluginContainer, "div.mb-1>div>(h4{Verschillen tussen Excel uurroosters en DKO3 lessen.}+(div#combosLoading{Gegevens laden...}+select#cmbDiffAcademie+select#cmbDiffSchoolYear+button.btn.btn-primary{Zoek verschillen}))").last;
+	let button = emmet.appendChild(pluginContainer, "div#diffsPage.mb-1>div>(h4{Verschillen tussen Excel uurroosters en DKO3 lessen.}+(div#combosLoading{Gegevens laden...}+select#cmbDiffAcademie+select#cmbDiffSchoolYear+button.btn.btn-primary{Zoek verschillen}))").last;
 	let dirTree = await getDiffDirStructure();
 	let myAcadFolderName = getDiffMyAcademieFolder(dirTree);
 	let academies = getAcademies(dirTree);
@@ -5911,9 +5911,9 @@ async function checkChecks() {}
 //#region typescript/startPage/snapshots.ts
 async function setupSnapshotPage() {
 	let pluginContainer = document.getElementById("plugin_container");
-	let button = emmet.appendChild(pluginContainer, "div.mb-1>div>(h4{Snapshots van lessen.}+(select#cmbDiffSchoolYear+button.btn.btn-primary{Snapshot maken}))").last;
-	let cmbDiffSchoolYear = pluginContainer.querySelector("#cmbDiffSchoolYear");
-	cmbDiffSchoolYear.innerHTML = ["2025-2026", "2026-2027HARD CODED!!!"].map((name) => `<option value="${name}">${name}</option>`).join("");
+	let button = emmet.appendChild(pluginContainer, "div.mb-1>div>(h4{Snapshots van lessen.}+(select#cmbSnapshotSchoolYear+button.btn.btn-primary{Snapshot maken}))").last;
+	let cmbSnapshotSchoolYear = pluginContainer.querySelector("#cmbSnapshotSchoolYear");
+	cmbSnapshotSchoolYear.innerHTML = ["2025-2026", "2026-2027HARD CODED!!!"].map((name) => `<option value="${name}">${name}</option>`).join("");
 	let runStatus = emmet.insertAfter(button, "div#runStatus").first;
 	let divError = emmet.insertAfter(runStatus, "div.errors").last;
 	let errors = [];
@@ -5923,7 +5923,7 @@ async function setupSnapshotPage() {
 		divError.innerHTML = errors.join("<br>");
 	}
 	button.onclick = async () => {
-		await createSnapshot(cmbDiffSchoolYear.value, reportStatus);
+		await createSnapshot(cmbSnapshotSchoolYear.value, reportStatus);
 	};
 }
 async function createSnapshot(schoolYear, reportStatus) {

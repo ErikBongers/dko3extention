@@ -491,10 +491,12 @@ table#orphans {
     }
     select {
         margin-inline-end: 1ch;
+    }
+    #diffsPage select {
         display: none;
     }
     &.diffCombosLoaded {
-        select {
+        #diffsPage select {
             display: inline-block;
         }
         #combosLoading {

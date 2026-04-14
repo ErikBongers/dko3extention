@@ -38,7 +38,7 @@ async function loadCombboxSchoolYearAndTrySelect(dirTree?: TreeNode): Promise<bo
 
 export async function setupDiffPage() {
     let pluginContainer = document.getElementById("plugin_container");
-    let button = emmet.appendChild(pluginContainer, "div.mb-1>div>(h4{Verschillen tussen Excel uurroosters en DKO3 lessen.}+(div#combosLoading{Gegevens laden...}+select#cmbDiffAcademie+select#cmbDiffSchoolYear+button.btn.btn-primary{Zoek verschillen}))").last as HTMLButtonElement;
+    let button = emmet.appendChild(pluginContainer, "div#diffsPage.mb-1>div>(h4{Verschillen tussen Excel uurroosters en DKO3 lessen.}+(div#combosLoading{Gegevens laden...}+select#cmbDiffAcademie+select#cmbDiffSchoolYear+button.btn.btn-primary{Zoek verschillen}))").last as HTMLButtonElement;
     let dirTree = await getDiffDirStructure();
     let myAcadFolderName = getDiffMyAcademieFolder(dirTree);
     let academies = getAcademies(dirTree);
