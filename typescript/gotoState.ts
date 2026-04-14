@@ -58,7 +58,7 @@ export interface WerklijstGotoState extends GotoState {
     werklijstTableName: string;
 }
 
-export type StartPageName = "start" | "diff";
+export type StartPageName = "start" | "diff" | "snapshots";
 
 export interface StartPageGotoState extends GotoState {
     showPage: StartPageName;

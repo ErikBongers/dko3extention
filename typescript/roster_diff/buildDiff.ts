@@ -1,17 +1,16 @@
 import {JsonExcelData} from "./excel";
 import {RosterFactory} from "./rosterFactory";
 import {ClassDef, ExcelRoster, TeacherDef, TimeSlice} from "./excelRoster";
-import {cloud, deleteNotification, fetchExcelData, fetchFolderChanged, fetchIgnoredDiffHashes, postNotification} from "../cloud";
+import {cloud, deleteNotification, fetchExcelData, fetchFolderChanged, fetchIgnoredDiffHashes} from "../cloud";
 import {FetchChain} from "../table/fetchChain";
-import {getSchoolIdString, getUserAndSchoolName, pad, Schoolyear} from "../globals";
+import {pad, Schoolyear} from "../globals";
 import {fetchLessen} from "../lessen/observer";
 import {DayTimeSlice, DayUppercase, Les, scrapeLessenOverzicht} from "../lessen/scrape";
 import {DKO3_BASE_URL, LESSEN_TABLE_ID} from "../def";
-import {StatusCallback} from "../startPage/observer";
 import {getTableFromHash, InfoBarTableFetchListener} from "../table/loadAnyTable";
 import {emmet} from "../../libs/Emmeter/html";
 import {fetchAndDisplayNotifications} from "../notifications/notifications";
-import {GlobalSettings} from "../plugin_options/options";
+import {StatusCallback} from "../startPage/diffPage";
 
 let cachedDiffs: JsonDiffs = undefined;
 export async function getJsonDiffsCached(academie: string, schoolYear: string) {

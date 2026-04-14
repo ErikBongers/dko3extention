@@ -11,6 +11,10 @@ export function setupMenu() {
     menu1.onclick = () => {
         gotoDiffPage();
     }
+    let menu2 = emmet.appendChild(dropdown as HTMLElement, `a.dropdown-item.pointer[href=\"#"]{Lessen snapshots}`).first as HTMLAnchorElement;
+    menu2.onclick = () => {
+        gotoSnapshotPage();
+    }
 
 }
 
@@ -18,6 +22,17 @@ export function gotoDiffPage() {
     let pageState = getGotoStateOrDefault(PageName.StartPage) as StartPageGotoState;
     pageState.goto = Goto.Start_page;
     pageState.showPage = "diff";
+    saveGotoState(pageState);
+    if (location.hash == "#start-mijn_tijdslijn")
+        location.reload();
+    else
+        location.href = "/#start-mijn_tijdslijn";
+}
+
+export function gotoSnapshotPage() {
+    let pageState = getGotoStateOrDefault(PageName.StartPage) as StartPageGotoState;
+    pageState.goto = Goto.Start_page;
+    pageState.showPage = "snapshots";
     saveGotoState(pageState);
     if (location.hash == "#start-mijn_tijdslijn")
         location.reload();

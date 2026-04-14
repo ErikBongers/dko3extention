@@ -5678,66 +5678,7 @@ const chars = [
 ];
 
 //#endregion
-//#region typescript/notifications/checks.ts
-async function checkChecks() {}
-
-//#endregion
-//#region typescript/startPage/observer.ts
-var StartPageObserver = class extends ExactHashObserver {
-	constructor() {
-		super("#start-mijn_tijdslijn", onMutation$5);
-	}
-	isPageReallyLoaded() {
-		return isLoaded();
-	}
-};
-var observer_default$7 = new StartPageObserver();
-function isLoaded() {
-	let startContentDiv = document.querySelector("#dko3_start_content");
-	return startContentDiv?.textContent.includes("welkom") ?? false;
-}
-function onMutation$5(mutation) {
-	if (document.querySelector("#dko3_plugin_notifications")) return true;
-	if (document.querySelector("#view_contents>div.row")) setupPluginPage();
-	let startContentDiv = document.querySelector("#dko3_start_content");
-	if (startContentDiv) {
-		if (startContentDiv.textContent.includes("welkom")) {
-			emmet.insertAfter(startContentDiv.children[0], "div#dko3_plugin_notifications>div.alert.alert-info.shadow-sm>(h5>strong{Plugin berichten})+div");
-			doStartupStuff().then(() => {});
-		}
-		return true;
-	}
-	return false;
-}
-async function doStartupStuff() {
-	await fetchAndDisplayNotifications();
-	await checkChecks();
-}
-async function setupPluginPage() {
-	let pluginContainer = document.getElementById("plugin_container");
-	if (pluginContainer) return;
-	let viewContent = document.getElementById("view_contents");
-	if (!viewContent) return;
-	emmet.appendChild(viewContent, "div#plugin_container");
-	let pageState$2 = getGotoStateOrDefault(PageName.StartPage);
-	if (pageState$2.goto == Goto.Start_page) {
-		if (pageState$2.showPage == "start") {
-			pageState$2.goto = Goto.None;
-			saveGotoState(pageState$2);
-			return;
-		}
-		if (pageState$2.showPage == "diff") {
-			pageState$2.goto = Goto.None;
-			saveGotoState(pageState$2);
-			let viewContent$1 = document.getElementById("view_contents");
-			emmet.insertBefore(viewContent$1.firstElementChild, "div.hide_view_contents");
-			await setupDiffPage();
-			return;
-		}
-	}
-	pageState$2.goto = Goto.None;
-	saveGotoState(pageState$2);
-}
+//#region typescript/startPage/diffPage.ts
 async function runDiff(reportStatus, fetchListener, academie, schoolYear) {
 	let divResults = document.getElementById("diffResults");
 	divResults.innerHTML = "";
@@ -5854,14 +5795,14 @@ function getDiffMyAcademieFolder(folderTree) {
 //#region typescript/les/observer.ts
 var LesObserver = class extends HashObserver {
 	constructor() {
-		super("#lessen-les", onMutation$4);
+		super("#lessen-les", onMutation$5);
 	}
 	isPageReallyLoaded() {
 		return document.querySelectorAll("#les_leerlingen_leerlingen > span").length > 0;
 	}
 };
-var observer_default$6 = new LesObserver();
-function onMutation$4(mutation) {
+var observer_default$7 = new LesObserver();
+function onMutation$5(mutation) {
 	let tabLeerlingen = document.getElementById("les_leerlingen_leerlingen");
 	if (mutation.target === tabLeerlingen) {
 		onLeerlingenChanged();
@@ -5955,6 +5896,83 @@ async function addDiff(titleHeader, academie, schoolYear) {
 		fillExcelDiffRow(tr, diff, academie, schoolYear);
 		return;
 	}
+}
+
+//#endregion
+//#region typescript/notifications/checks.ts
+async function checkChecks() {}
+
+//#endregion
+//#region typescript/startPage/snapshots.ts
+async function setupSnapshotPage() {
+	let pluginContainer = document.getElementById("plugin_container");
+	emmet.appendChild(pluginContainer, "div.mb-1>div>(h4{Snapshots van lessen.})");
+}
+
+//#endregion
+//#region typescript/startPage/observer.ts
+var StartPageObserver = class extends ExactHashObserver {
+	constructor() {
+		super("#start-mijn_tijdslijn", onMutation$4);
+	}
+	isPageReallyLoaded() {
+		return isLoaded();
+	}
+};
+var observer_default$6 = new StartPageObserver();
+function isLoaded() {
+	let startContentDiv = document.querySelector("#dko3_start_content");
+	return startContentDiv?.textContent.includes("welkom") ?? false;
+}
+function onMutation$4(_mutation) {
+	if (document.querySelector("#dko3_plugin_notifications")) return true;
+	if (document.querySelector("#view_contents>div.row")) setupPluginPage().then(() => {});
+	let startContentDiv = document.querySelector("#dko3_start_content");
+	if (startContentDiv) {
+		if (startContentDiv.textContent.includes("welkom")) {
+			emmet.insertAfter(startContentDiv.children[0], "div#dko3_plugin_notifications>div.alert.alert-info.shadow-sm>(h5>strong{Plugin berichten})+div");
+			doStartupStuff().then(() => {});
+		}
+		return true;
+	}
+	return false;
+}
+async function doStartupStuff() {
+	await fetchAndDisplayNotifications();
+	await checkChecks();
+}
+async function setupPluginPage() {
+	let pluginContainer = document.getElementById("plugin_container");
+	if (pluginContainer) return;
+	let viewContent = document.getElementById("view_contents");
+	if (!viewContent) return;
+	emmet.appendChild(viewContent, "div#plugin_container");
+	let pageState$2 = getGotoStateOrDefault(PageName.StartPage);
+	if (pageState$2.goto == Goto.Start_page) {
+		if (pageState$2.showPage == "start") {
+			pageState$2.goto = Goto.None;
+			saveGotoState(pageState$2);
+			return;
+		}
+		if (pageState$2.showPage == "diff") {
+			pageState$2.goto = Goto.None;
+			saveGotoState(pageState$2);
+			let viewContent$1 = document.getElementById("view_contents");
+			emmet.insertBefore(viewContent$1.firstElementChild, "div.hide_view_contents");
+			await setupDiffPage();
+			return;
+		}
+		if (pageState$2.showPage == "snapshots") {
+			pageState$2.goto = Goto.None;
+			saveGotoState(pageState$2);
+			let viewContent$1 = document.getElementById("view_contents");
+			emmet.insertBefore(viewContent$1.firstElementChild, "div.hide_view_contents");
+			await setupSnapshotPage();
+			return;
+		}
+	}
+	pageState$2.goto = Goto.None;
+	saveGotoState(pageState$2);
 }
 
 //#endregion
@@ -8417,11 +8435,23 @@ function setupMenu() {
 	menu1.onclick = () => {
 		gotoDiffPage();
 	};
+	let menu2 = emmet.appendChild(dropdown, `a.dropdown-item.pointer[href=\"#"]{Lessen snapshots}`).first;
+	menu2.onclick = () => {
+		gotoSnapshotPage();
+	};
 }
 function gotoDiffPage() {
 	let pageState$2 = getGotoStateOrDefault(PageName.StartPage);
 	pageState$2.goto = Goto.Start_page;
 	pageState$2.showPage = "diff";
+	saveGotoState(pageState$2);
+	if (location.hash == "#start-mijn_tijdslijn") location.reload();
+	else location.href = "/#start-mijn_tijdslijn";
+}
+function gotoSnapshotPage() {
+	let pageState$2 = getGotoStateOrDefault(PageName.StartPage);
+	pageState$2.goto = Goto.Start_page;
+	pageState$2.showPage = "snapshots";
 	saveGotoState(pageState$2);
 	if (location.hash == "#start-mijn_tijdslijn") location.reload();
 	else location.href = "/#start-mijn_tijdslijn";
@@ -8443,7 +8473,7 @@ function init() {
 		});
 		registerObserver(observer_default$10);
 		registerObserver(observer_default$8);
-		registerObserver(observer_default$6);
+		registerObserver(observer_default$7);
 		registerObserver(observer_default$5);
 		registerObserver(observer_default$4);
 		registerObserver(observer_default$9);
@@ -8458,7 +8488,7 @@ function init() {
 		registerObserver(observer_default$1);
 		registerObserver(observer_default);
 		registerObserver(observer_default);
-		registerObserver(observer_default$7);
+		registerObserver(observer_default$6);
 		onPageChanged();
 		setupPowerQuery();
 		getNotifRedButton();
