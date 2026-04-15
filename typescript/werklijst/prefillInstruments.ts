@@ -6,7 +6,7 @@ import {cloud} from "../cloud";
 import {Schoolyear} from "../globals";
 import {createWerklijstBuilderWithReset} from "../table/werklijstBuilder";
 
-export async function fetchHoursSettingsOrSaveDefault(schoolyearString: string, dko3_subjects: { name: string, value: string }[] = undefined) {
+export async function fetchHoursSettingsOrSaveDefault(schoolyearString: string, dko3_subjects?: { name: string, value: string }[]) {
     let builder = await createWerklijstBuilderWithReset(schoolyearString, Grouping.LES);
     if (!dko3_subjects)
         dko3_subjects = await builder.fetchAvailableSubjects();

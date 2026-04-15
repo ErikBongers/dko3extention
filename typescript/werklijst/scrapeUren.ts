@@ -69,11 +69,11 @@ export function addStudentToVakLeraarsMap(studentRow: StudentUrenRow, vakLeraars
         };
         vakLeraars.set(vakLeraarKey, vakLeraarObject);
     }
-    let vakLeraar = vakLeraars.get(vakLeraarKey);
+    let vakLeraar = vakLeraars.get(vakLeraarKey)!;
     if (!vakLeraar.countMap.has(studentRow.graadLeerjaar)) {
         vakLeraar.countMap.set(studentRow.graadLeerjaar, {count: 0, students: []});
     }
-    let graadLeraarObject = vakLeraars.get(vakLeraarKey)!.countMap.get(studentRow.graadLeerjaar);
+    let graadLeraarObject = vakLeraars.get(vakLeraarKey)!.countMap.get(studentRow.graadLeerjaar)!;
     graadLeraarObject.count += 1;
     graadLeraarObject.students.push(studentRow);
 }

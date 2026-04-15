@@ -7356,7 +7356,7 @@ async function getDefaultGradeYears(_schoolYearString) {
 
 //#endregion
 //#region typescript/werklijst/prefillInstruments.ts
-async function fetchHoursSettingsOrSaveDefault(schoolyearString, dko3_subjects = void 0) {
+async function fetchHoursSettingsOrSaveDefault(schoolyearString, dko3_subjects) {
 	let builder = await createWerklijstBuilderWithReset(schoolyearString, Grouping.LES);
 	if (!dko3_subjects) dko3_subjects = await builder.fetchAvailableSubjects();
 	let subjectNames = dko3_subjects.map((vak) => vak.name);
@@ -7842,7 +7842,12 @@ function onCriteriaShown() {
 	let btnWerklijstMaken = document.querySelector(BTN_WERKLIJST_MAKEN_ID);
 	btnWerklijstMakenWrapper = emmet.insertBefore(btnWerklijstMaken, `div#${BTN_WERKLIJST_MAKEN_WRAPPER_ID}.werklijstButtonWrapper`).first;
 	btnWerklijstMakenWrapper.appendChild(btnWerklijstMaken);
-	let year = parseInt(Schoolyear.getHighestAvailable());
+	let schoolYear = Schoolyear.getHighestAvailable();
+	if (!schoolYear) {
+		alert("Geen schooljaar gevonden!");
+		return;
+	}
+	let year = parseInt(schoolYear);
 	let prevSchoolyear = Schoolyear.toFullString(year - 1);
 	let nextSchoolyear = Schoolyear.toFullString(year);
 	let prevSchoolyearShort = Schoolyear.toShortString(year - 1);
@@ -7946,8 +7951,8 @@ function onClickCopyEmails() {
 	}
 	let { tableRef, infoBlock } = result.result;
 	let result2 = createDefaultTableFetcher(tableRef, infoBlock);
-	if ("error" in result) {
-		console.error(result.error);
+	if ("error" in result2) {
+		console.error(result2.error);
 		return;
 	}
 	let { tableFetcher } = result2.result;
@@ -8066,6 +8071,10 @@ function upgradeCloudData(fromCloud) {
 }
 async function mailMergeStartSchoolyear() {
 	let schoolyear = Schoolyear.getHighestAvailable();
+	if (!schoolyear) {
+		alert("Geen schooljaar gevonden!");
+		return;
+	}
 	let divFooter = document.getElementById("div_leerling_werklijst_footer");
 	let divInfo = divFooter.insertAdjacentElement("afterend", document.createElement("div"));
 	let infoBlock = createInfoBlock(divInfo, "");

@@ -118,7 +118,12 @@ function onCriteriaShown() {
     btnWerklijstMakenWrapper = emmet.insertBefore(btnWerklijstMaken, `div#${def.BTN_WERKLIJST_MAKEN_WRAPPER_ID}.werklijstButtonWrapper`).first as HTMLDivElement;
     btnWerklijstMakenWrapper.appendChild(btnWerklijstMaken);
 
-    let year = parseInt(Schoolyear.getHighestAvailable());
+    let schoolYear = Schoolyear.getHighestAvailable();
+    if(!schoolYear) {
+        alert("Geen schooljaar gevonden!");
+        return;
+    }
+    let year = parseInt(schoolYear);
     let prevSchoolyear = Schoolyear.toFullString(year-1);
     let nextSchoolyear = Schoolyear.toFullString(year);
     let prevSchoolyearShort = Schoolyear.toShortString(year-1);
@@ -131,7 +136,7 @@ function onCriteriaShown() {
 
     addButton(btnWerklijstMaken, "test123", "Test 123", test123, "", ["btn", "btn-outline-dark"], "Test 123");
 
-    document.getElementById("btn_leerling_werklijst_reset").addEventListener("click", resetPageIncarnationChangedFlag);
+    document.getElementById("btn_leerling_werklijst_reset")!.addEventListener("click", resetPageIncarnationChangedFlag);
 
     getSchoolIdString();
 }
@@ -239,8 +244,8 @@ function onClickCopyEmails() {
     let {tableRef, infoBlock} = result.result;
 
     let result2 = createDefaultTableFetcher(tableRef, infoBlock);
-    if("error" in result) {
-        console.error(result.error);
+    if("error" in result2) {
+        console.error(result2.error);
         return;
     }
 
@@ -400,6 +405,10 @@ function upgradeCloudData(fromCloud: JsonCloudData) {
 
 async function mailMergeStartSchoolyear() {
     let schoolyear = Schoolyear.getHighestAvailable(); //todo: add to text top line!
+    if(!schoolyear) {
+        alert("Geen schooljaar gevonden!");
+        return;
+    }
     let divFooter = document.getElementById("div_leerling_werklijst_footer") as HTMLDivElement;
     let divInfo = divFooter.insertAdjacentElement("afterend", document.createElement("div")) as HTMLDivElement;
     let infoBlock = createInfoBlock(divInfo, "");
