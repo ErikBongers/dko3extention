@@ -961,7 +961,7 @@ async function onData(request) {
 let globalSetup = void 0;
 let hasTableChanged = false;
 setInterval(() => {
-	onCheckTableChanged(globalSetup);
+	if (globalSetup) onCheckTableChanged(globalSetup);
 }, 1e3);
 function scrapeSubjects() {
 	let rows = document.querySelectorAll("#subjectsContainer>table>tbody>tr");
@@ -970,7 +970,7 @@ function scrapeSubjects() {
 			checked: row.cells[0].querySelector("input:checked") !== null,
 			name: row.cells[1].textContent,
 			alias: row.cells[2].querySelector("input").value,
-			stillValid: row.cells[1].classList.contains("invalid") == false
+			stillValid: !row.cells[1].classList.contains("invalid")
 		};
 	});
 }
@@ -1010,7 +1010,7 @@ function onCheckTableChanged(dko3Setup) {
 	});
 }
 window.onbeforeunload = () => {
-	onCheckTableChanged(globalSetup);
+	if (globalSetup) onCheckTableChanged(globalSetup);
 };
 function switchTab(btn) {
 	let tabId = btn.dataset.tabId;

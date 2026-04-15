@@ -20,11 +20,13 @@ export function scrapeStudentsCellMeta(studentsCell: HTMLTableCellElement) {
     if (arrayLeerlingenAantal.length > 0) {
         const reAantallen = /(\d+).\D+(\d+)/;
         let matches = arrayLeerlingenAantal[0].match(reAantallen);
-        aantal = parseInt(matches[1]);
-        maxAantal = parseInt(matches[2]);
+        if(matches){
+            aantal = parseInt(matches[1]);
+            maxAantal = parseInt(matches[2]);
+        }
     }
     //id
-    let idTag = Array.from(smallTags).find((item) => item.classList.contains("float-right"));
+    let idTag = Array.from(smallTags).find((item) => item.classList.contains("float-right"))!;
     let id = idTag.textContent;
     //wachtlijst
     let wachtlijst = 0;
@@ -32,7 +34,8 @@ export function scrapeStudentsCellMeta(studentsCell: HTMLTableCellElement) {
     if (arrayWachtlijst.length > 0) {
         let reWachtlijst = /(\d+)/;
         let matches = arrayWachtlijst[0].match(reWachtlijst);
-        wachtlijst = parseInt(matches[1]);
+        if(matches)
+            wachtlijst = parseInt(matches[1]);
     }
     return {aantal, maxAantal, id, wachtlijst};
 }
@@ -138,7 +141,7 @@ function scrapeStudents(studentTable: HTMLTableElement) {
     for (const row of studentTable.tBodies[0].rows) {
         let studentInfo = new StudentInfo();
         studentInfo.graadJaar = row.cells[0].children[0].textContent;
-        studentInfo.name = row.cells[0].childNodes[1].textContent;
+        studentInfo.name = row.cells[0].childNodes[1].textContent!;
         let names = studentInfo.name.split(", ");
         studentInfo.naam = names[0];
         studentInfo.voornaam = names[1];
@@ -233,18 +236,18 @@ export function scrapeLesInfo(row: HTMLTableRowElement) {
         les.lesType = LesType.Les;
     }
     if (mutedSpans.length > 0) {
-        les.teacher = Array.from(mutedSpans).pop().textContent;
+        les.teacher = Array.from(mutedSpans).pop()!.textContent;
     }
     les.teacher = les.teacher
         .replaceAll("  ", " ")
         .replaceAll(" ,", ",")
         .trim(); //clean up of names with additional spaces
 
-    let textNodes = Array.from(lesCell.childNodes).filter((node) => node.nodeType === Node.TEXT_NODE && node.textContent.trim() !== "");
+    let textNodes = Array.from(lesCell.childNodes).filter((node) => node.nodeType === Node.TEXT_NODE && node.textContent!.trim() !== "");
     if (!textNodes) return les;
 
-    les.lesmoment = textNodes[0].nodeValue;
-    les.vestiging = textNodes[1].nodeValue;
+    les.lesmoment = textNodes[0].nodeValue!;
+    les.vestiging = textNodes[1].nodeValue!;
     let infoSpansText = [...lesCell.querySelectorAll("span.text-info")].map(e => e.textContent);
     les.gradeYears = textsToYearGrades(infoSpansText);
     splitLesMoment(les);
@@ -287,10 +290,10 @@ function parseLesMomenten(text: string) {
     let dayTimeSlices = dayTimeSliceTexts.map(text => parseLesMoment(text));
     //if the day or the hour is the same, these are not repeated in the string, so copy them to the other slices.
     if(dayTimeSlices.some(slice => slice.timeSlice == null)) {
-        let firstTime = dayTimeSlices.find(lesMoment => lesMoment.timeSlice !== null).timeSlice;
+        let firstTime = dayTimeSlices.find(lesMoment => lesMoment.timeSlice !== null)!.timeSlice;
         dayTimeSlices.forEach(lesMoment => lesMoment.timeSlice = firstTime);
     } else if(dayTimeSlices.some(slice => slice.day == "")) {
-        let firstDay = dayTimeSlices.find(lesMoment => lesMoment.day != "").day;
+        let firstDay = dayTimeSlices.find(lesMoment => lesMoment.day != "")!.day;
         dayTimeSlices.forEach(lesMoment => lesMoment.day = firstDay);
     }
     return dayTimeSlices;
@@ -325,6 +328,10 @@ export class DayTimeSlice {
 
     equal(dayTimeSlice: DayTimeSlice) {
         if(this.day != dayTimeSlice.day)
+            return false;
+        if(!this.timeSlice)
+            return false;
+        if(!dayTimeSlice.timeSlice)
             return false;
         return this.timeSlice.equal(dayTimeSlice.timeSlice);
     }

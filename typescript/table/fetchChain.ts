@@ -1,7 +1,7 @@
 import {TokenScanner} from "../tokenScanner";
 
 export class FetchChain {
-    private lastText = "";
+    private lastText: string | undefined = "";
 
     get() {
         return this.lastText;
@@ -12,44 +12,44 @@ export class FetchChain {
     }
 
     async fetch(url?: string) {
-        this.lastText = await fetchText(url ?? this.lastText);
+        this.lastText = await fetchText(url ?? this.lastText ?? "--null--");
         return this.lastText;
     }
 
     findDocReadyLoadUrl() {
-        this.lastText = getDocReadyLoadUrl(this.lastText);
+        this.lastText = getDocReadyLoadUrl(this.lastText ?? "--null--");
         return this.lastText;
     }
 
     findDocReadyLoadScript() {
-        this.lastText = getDocReadyLoadScript(this.lastText).result();
+        this.lastText = getDocReadyLoadScript(this.lastText ?? "--null--")?.result();
         return this.lastText;
     }
 
     find(...args: string[]) {
-        this.lastText = new TokenScanner(this.lastText).find(...args).result();
+        this.lastText = new TokenScanner(this.lastText ?? "--null--").find(...args).result();
         return this.lastText;
     }
 
     getQuotedString() {
         let daString= "";
-        let scanner = new TokenScanner(this.lastText).captureString((res => daString = res));
+        let scanner = new TokenScanner(this.lastText ?? "--null--").captureString((res => daString = res));
         this.lastText  = scanner.result();
         return daString;
     }
 
     clipTo(end: string) {
-        this.lastText = new TokenScanner(this.lastText).clipTo(end).result();
+        this.lastText = new TokenScanner(this.lastText ??  "--null--").clipTo(end).result();
     }
 
     div() {
         let el = document.createElement("div");
-        el.innerHTML = this.lastText;
+        el.innerHTML = this.lastText ?? "";
         return el;
     }
 
-    includes(text: string) {
-        return this.lastText.includes(text);
+    includes(text: string): boolean {
+        return this.lastText?.includes(text) ?? false;
     }
 }
 

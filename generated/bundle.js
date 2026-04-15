@@ -2060,8 +2060,10 @@ function scrapeStudentsCellMeta(studentsCell) {
 	if (arrayLeerlingenAantal.length > 0) {
 		const reAantallen = /(\d+).\D+(\d+)/;
 		let matches = arrayLeerlingenAantal[0].match(reAantallen);
-		aantal = parseInt(matches[1]);
-		maxAantal = parseInt(matches[2]);
+		if (matches) {
+			aantal = parseInt(matches[1]);
+			maxAantal = parseInt(matches[2]);
+		}
 	}
 	let idTag = Array.from(smallTags).find((item) => item.classList.contains("float-right"));
 	let id = idTag.textContent;
@@ -2070,7 +2072,7 @@ function scrapeStudentsCellMeta(studentsCell) {
 	if (arrayWachtlijst.length > 0) {
 		let reWachtlijst = /(\d+)/;
 		let matches = arrayWachtlijst[0].match(reWachtlijst);
-		wachtlijst = parseInt(matches[1]);
+		if (matches) wachtlijst = parseInt(matches[1]);
 	}
 	return {
 		aantal,
@@ -2287,6 +2289,8 @@ var DayTimeSlice = class {
 	}
 	equal(dayTimeSlice) {
 		if (this.day != dayTimeSlice.day) return false;
+		if (!this.timeSlice) return false;
+		if (!dayTimeSlice.timeSlice) return false;
 		return this.timeSlice.equal(dayTimeSlice.timeSlice);
 	}
 };
@@ -3463,9 +3467,11 @@ function findFirstNavigation(element) {
 	if (!buttonContainer) return void 0;
 	let rx = /(\d*) tot (\d*) van (\d*)/;
 	let matches = buttonPagination.innerText.match(rx);
+	if (!matches) return void 0;
 	let buttons = buttonContainer.querySelectorAll("button.btn-secondary");
 	let offsets = Array.from(buttons).filter((btn) => btn.attributes["onclick"]?.value.includes("goto(")).filter((btn) => !btn.querySelector("i.fa-fast-backward")).map((btn) => getGotoNumber(btn.attributes["onclick"].value));
 	let numbers = matches.slice(1).map((txt) => parseInt(txt));
+	if (numbers.length === 0) return void 0;
 	numbers[0] = numbers[0] - 1;
 	numbers = numbers.concat(offsets);
 	numbers.sort((a, b) => a - b);
@@ -3589,7 +3595,7 @@ var TableFetcher = class {
 		db3(`Loading from cache: ${this.getCacheId()}.`);
 		let text = window.sessionStorage.getItem(this.getCacheId());
 		let dateString = window.sessionStorage.getItem(this.getCacheId() + CACHE_DATE_SUFFIX);
-		if (!text) return void 0;
+		if (!text || !dateString) return void 0;
 		return {
 			text,
 			date: new Date(dateString)
@@ -4179,37 +4185,37 @@ var FetchChain = class {
 		this.lastText = text;
 	}
 	async fetch(url) {
-		this.lastText = await fetchText(url ?? this.lastText);
+		this.lastText = await fetchText(url ?? this.lastText ?? "--null--");
 		return this.lastText;
 	}
 	findDocReadyLoadUrl() {
-		this.lastText = getDocReadyLoadUrl(this.lastText);
+		this.lastText = getDocReadyLoadUrl(this.lastText ?? "--null--");
 		return this.lastText;
 	}
 	findDocReadyLoadScript() {
-		this.lastText = getDocReadyLoadScript(this.lastText).result();
+		this.lastText = getDocReadyLoadScript(this.lastText ?? "--null--")?.result();
 		return this.lastText;
 	}
 	find(...args) {
-		this.lastText = new TokenScanner(this.lastText).find(...args).result();
+		this.lastText = new TokenScanner(this.lastText ?? "--null--").find(...args).result();
 		return this.lastText;
 	}
 	getQuotedString() {
 		let daString = "";
-		let scanner = new TokenScanner(this.lastText).captureString((res) => daString = res);
+		let scanner = new TokenScanner(this.lastText ?? "--null--").captureString((res) => daString = res);
 		this.lastText = scanner.result();
 		return daString;
 	}
 	clipTo(end) {
-		this.lastText = new TokenScanner(this.lastText).clipTo(end).result();
+		this.lastText = new TokenScanner(this.lastText ?? "--null--").clipTo(end).result();
 	}
 	div() {
 		let el = document.createElement("div");
-		el.innerHTML = this.lastText;
+		el.innerHTML = this.lastText ?? "";
 		return el;
 	}
 	includes(text) {
-		return this.lastText.includes(text);
+		return this.lastText?.includes(text) ?? false;
 	}
 };
 function findDocReady(scanner) {
@@ -4381,7 +4387,7 @@ async function parseDataTablePhp(chain, htmlTableId) {
 	let tableNavUrl = chain.getQuotedString() + datatable_id + "&pos=top";
 	await chain.fetch(tableNavUrl);
 	let tableNav = findFirstNavigation(chain.div());
-	console.log(tableNav);
+	if (!tableNav) throw "Can't find table navigation.";
 	let buildFetchUrl = (offset) => `/views/ui/datatable.php?id=${datatable_id}&start=${offset}&aantal=0`;
 	return new DkoTableRef(htmlTableId, tableNav, buildFetchUrl);
 }
@@ -4467,6 +4473,7 @@ async function checkAndDownloadTableRows(ev) {
 		};
 	}
 	let res = await downloadTableRows();
+	if (!res) throw "Can't download table rows. See reason above.";
 	return {
 		tableRef,
 		infoBlock: res.infoBlock,
@@ -5223,7 +5230,7 @@ async function buildDiff(excelLessen, dko3Lessen, dko3AliasLessen, reportStatus,
 	for (let les of dko3Lessen) dko3LesMap.set(les.id, les);
 	let lesMomentenMap = new Map();
 	for (let les of dko3LesSet.values()) lesMomentenMap.set(les.lesMoment.momentId, les);
-	for (let aliasLes of dko3AliasLessen) {
+	loopAliasLessen: for (let aliasLes of dko3AliasLessen) {
 		if (aliasLes.linkedLessenIds.length < 2) {
 			reportStatus(`Error: alias les ${aliasLes.id} heeft geen 2 geldige gekoppelde lessen.`, "error");
 			continue;
@@ -5239,6 +5246,10 @@ async function buildDiff(excelLessen, dko3Lessen, dko3AliasLessen, reportStatus,
 		let previousLesMoment = linkedLesMomenten[0];
 		for (let i = 1; i < linkedLesMomenten.length; i++) {
 			let currentLesMoment = linkedLesMomenten[i];
+			if (!currentLesMoment.lesMoment.dayTimeSlice.timeSlice || !previousLesMoment.lesMoment.dayTimeSlice.timeSlice) {
+				reportStatus(`Voor aliasles <a href="https://administratie.dko3.cloud/#lessen-les?id=${aliasLes.id}">${aliasLes.id}</a> zijn er ontbrekende lestijden.`, "error");
+				continue loopAliasLessen;
+			}
 			if (previousLesMoment.lesMoment.dayTimeSlice.endToNumber() == currentLesMoment.lesMoment.dayTimeSlice.startToNumber()) {
 				let newTimeSlice = new TimeSlice(structuredClone(previousLesMoment.lesMoment.dayTimeSlice.timeSlice.start), structuredClone(currentLesMoment.lesMoment.dayTimeSlice.timeSlice.end));
 				let newDayTimeSlice = new DayTimeSlice(previousLesMoment.lesMoment.dayTimeSlice.day, newTimeSlice);
@@ -5251,10 +5262,7 @@ async function buildDiff(excelLessen, dko3Lessen, dko3AliasLessen, reportStatus,
 		}
 	}
 	let extraTeacherCache = new ExtraTeacherCache();
-	for (const les1 of [...dko3LesSet.values()].filter((les) => les.lesMoment.les.teacher.includes("(en nog"))) {
-		les1.teachers = await extraTeacherCache.getExtraTeachers(les1.lesMoment.les.id);
-		if (les1.teachers == void 0) throw "WTF???";
-	}
+	for (const les1 of [...dko3LesSet.values()].filter((les) => les.lesMoment.les.teacher.includes("(en nog"))) les1.teachers = await extraTeacherCache.getExtraTeachers(les1.lesMoment.les.id);
 	matchIt(dko3LesSet, excelLesSet, diffs, "perfect match", perfectMatch);
 	matchIt(dko3LesSet, excelLesSet, diffs, "match without teacher", matchWithoutTeacher);
 	matchIt(dko3LesSet, excelLesSet, diffs, "match without location", matchWithoutLocation);
@@ -5717,6 +5725,7 @@ async function setupDiffPage() {
 	let button = emmet.appendChild(pluginContainer, "div#diffsPage.mb-1>div>(h4{Verschillen tussen Excel uurroosters en DKO3 lessen.}+(div#combosLoading{Gegevens laden...}+select#cmbDiffAcademie+select#cmbDiffSchoolYear+button.btn.btn-primary{Zoek verschillen}))").last;
 	let dirTree = await getDiffDirStructure();
 	let myAcadFolderName = getDiffMyAcademieFolder(dirTree);
+	if (!myAcadFolderName) throw new Error("Could not find academie folder name.");
 	let academies = getAcademies(dirTree);
 	let cmbDiffAcademie = pluginContainer.querySelector("#cmbDiffAcademie");
 	cmbDiffAcademie.innerHTML = academies.map((name) => `<option value="${name}">${name}</option>`).join("");
@@ -5754,7 +5763,7 @@ async function showDiffsFromComboboxes() {
 	let cmbDiffSchoolYear = document.querySelector("#cmbDiffSchoolYear");
 	try {
 		let jsonDiffs = await getDiffsFromCloud(cmbDiffAcademie.value, cmbDiffSchoolYear.value);
-		await showDiffs(jsonDiffs, cmbDiffAcademie.value, cmbDiffSchoolYear.value);
+		if (jsonDiffs) await showDiffs(jsonDiffs, cmbDiffAcademie.value, cmbDiffSchoolYear.value);
 	} catch (e) {}
 }
 async function getDiffDirStructure() {
@@ -7510,6 +7519,7 @@ var MailMergeTable = class {
 	}
 	async toHtml() {
 		let studentTable = await this.build();
+		if (!studentTable) throw "Can't create html  = student table is null.";
 		let studTable = createHtmlTable(studentTable.headers, studentTable.data);
 		return studTable.outerHTML;
 	}

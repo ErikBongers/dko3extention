@@ -5,7 +5,7 @@ import {cloud, fetchFolderContent} from "../cloud";
 import {StatusCallback} from "./diffPage";
 
 export async function setupSnapshotPage() {
-    let pluginContainer = document.getElementById("plugin_container");
+    let pluginContainer = document.getElementById("plugin_container")!;
     let button = emmet.appendChild(pluginContainer, "div#snapshotPage.mb-1>div>(h4{Snapshots van lessen.}+(select#cmbSnapshotSchoolYear+button.btn.btn-primary{Snapshot maken}))").last as HTMLButtonElement;
     let cmbSnapshotSchoolYear = pluginContainer.querySelector("#cmbSnapshotSchoolYear") as HTMLSelectElement;
     let thisYear = Schoolyear.calculateCurrent();
@@ -82,7 +82,7 @@ async function showSnapshotsforCombobox() {
     let content = await fetchFolderContent(`Dko3/Snapshots/${academieName}/${cmbSnapshotSchoolYear.value}/`)
     console.log(content);
     let divResults = document.getElementById("snapshotResults") as HTMLDivElement;
-    let previousSnapshot: SnapshotData = null;
+    let previousSnapshot: SnapshotData | null = null;
     for(let file of content.files) {
         let snapshotData = await cloud.json.fetch(file.name) as SnapshotData;
         let date = new Date(snapshotData.zDate);

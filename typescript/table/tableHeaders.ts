@@ -54,9 +54,9 @@ function cmpNumber(a: HTMLTableCellElement, b: HTMLTableCellElement) {
 }
 
 function sortTableByColumn(table: HTMLTableElement, index: number, descending: boolean) {
-    let header = table.tHead.children[0].children[index];
+    let header = table.tHead!.children[0].children[index];
     let rows = Array.from(table.tBodies[0].rows);
-    for (let thead of table.tHead.children[0].children) {
+    for (let thead of table.tHead!.children[0].children) {
         thead.classList.remove("sortAscending", "sortDescending")
     }
     let cmpFunc = cmpAlpha;
@@ -77,7 +77,7 @@ function sortTableByColumn(table: HTMLTableElement, index: number, descending: b
 }
 
 function copyFullTable(table: HTMLTableElement) {
-    let headerCells = table.tHead.children[0].children as HTMLCollectionOf<HTMLTableCellElement>;
+    let headerCells = table.tHead!.children[0].children as HTMLCollectionOf<HTMLTableCellElement>;
     let headers = [...headerCells].filter(cell => cell.style.display !== "none").map(cell => cell.innerText);
     let rows = table.tBodies[0].children as HTMLCollectionOf<HTMLTableRowElement>;
     let cells = [...rows].map(row => [...row.cells].filter(cell => cell.style.display !== "none").map(cell => cell.innerText));
@@ -86,7 +86,7 @@ function copyFullTable(table: HTMLTableElement) {
 
 function copyOneColumn(table: HTMLTableElement, index: number) {
     createAndCopyTable(
-        [(table.tHead.children[0].children[index] as HTMLTableCellElement).innerText],
+        [(table.tHead!.children[0].children[index] as HTMLTableCellElement).innerText],
         [...table.tBodies[0].rows].map(row => [row.cells[index].innerText])
     );
 }
@@ -96,7 +96,7 @@ function createAndCopyTable(headers: Iterable<string>, cols: Iterable<Iterable<s
 }
 
 function reSortTableByColumn(ev: MouseEvent, table: HTMLTableElement, fetchFirst: boolean) {
-    let header = table.tHead.children[0].children[getColumnIndex(ev)];
+    let header = table.tHead!.children[0].children[getColumnIndex(ev)];
     let wasAscending = header.classList.contains("sortAscending");
     if(fetchFirst)
         forTableDo(ev, (_fetchedTable, index) => sortTableByColumn(table, index, wasAscending));
@@ -131,13 +131,13 @@ function isColumnProbablyNumeric(table: HTMLTableElement, index: number) {
 }
 
 export function decorateTableHeader(table: HTMLTableElement, fetchFullTable: boolean) {
-    if (table.tHead.classList.contains("clickHandler"))
+    if (table.tHead!.classList.contains("clickHandler"))
         return;
-    table.tHead.classList.add("clickHandler");
+    table.tHead!.classList.add("clickHandler");
     if(!options.showTableHeaders)
         return;
 
-    Array.from(table.tHead.children[0].children)
+    Array.from(table.tHead!.children[0].children)
         .forEach((colHeader: HTMLElement) => {
             colHeader.onclick = (ev) => {
                 reSortTableByColumn(ev, table, fetchFullTable);
@@ -145,7 +145,7 @@ export function decorateTableHeader(table: HTMLTableElement, fetchFullTable: boo
             if(table.classList.contains(def.NO_MENU))
                 return;
             let {first: span, last: idiom} = emmet.appendChild(colHeader, 'span>button.miniButton.naked>i.fas.fa-list');
-            let menu = setupMenu(span as HTMLElement, idiom.parentElement);
+            let menu = setupMenu(span as HTMLElement, idiom.parentElement!);
             addMenuItem(menu, "Toon unieke waarden", 0, (ev) => { forTableDo(ev, showDistinctColumn); });
             addMenuItem(menu, "Verberg kolom", 0, (ev) => { console.log("verberg kolom"); forTableColumnDo(ev, hideColumn)});
             addMenuItem(menu, "Toon alle kolommen", 0, (ev) => { console.log("verberg kolom"); forTableColumnDo(ev, showColumns)});
@@ -165,11 +165,11 @@ export function decorateTableHeader(table: HTMLTableElement, fetchFullTable: boo
             addMenuItem(menu, "<=", 1, (ev) => { forTableColumnDo(ev, createTwoColumnsCmd(Direction.LEFT, swapColumns))});
             addMenuItem(menu, "=>", 1, (ev) => { forTableColumnDo(ev, createTwoColumnsCmd(Direction.RIGHT, swapColumns))});
         });
-    relabelHeaders(table.tHead.children[0] as HTMLTableRowElement);
+    relabelHeaders(table.tHead!.children[0] as HTMLTableRowElement);
 }
 
 function getDistinctColumn(tableContainer: HTMLElement, index: number) {
-    let rows = Array.from(tableContainer.querySelector("tbody").rows);
+    let rows = Array.from(tableContainer.querySelector("tbody")!.rows);
 
     return distinct(rows.map(row => row.children[index].textContent)).sort();
 }
@@ -183,9 +183,9 @@ export class TableHandlerForHeaders implements TableHandler {
 function getColumnIndex(ev: MouseEvent) {
     let td = ev.target as HTMLElement;
     if (td.tagName !== "TD") {
-        td = td.closest("TH");
+        td = td.closest("TH")!;
     }
-    return Array.prototype.indexOf.call(td.parentElement.children, td);
+    return Array.prototype.indexOf.call(td.parentElement!.children, td);
 }
 
 type DoForRow = (row: HTMLTableRowElement, index: number, context: unknown) => void;
@@ -234,7 +234,7 @@ function forTableColumnDo(ev: MouseEvent, cmdDef: TableColumnCmdDef) {
             executeCmd(cmd, tableMeta.tableRef, false);
             let cmds =  pageState.transient.getValue(def.GLOBAL_COMMAND_BUFFER_KEY, []) as TableColumnCmd[];
             cmds.push(cmd);
-            relabelHeaders(tableMeta.tableRef.getOrgTableContainer().querySelector("thead>tr"))
+            relabelHeaders(tableMeta.tableRef.getOrgTableContainer().querySelector("thead>tr")!)
         });
 }
 
@@ -243,7 +243,7 @@ function executeCmd(cmd: TableColumnCmd, tableRef: TableRef, onlyBody: boolean) 
 
     let rows: Iterable<HTMLTableRowElement>;
     if(onlyBody)
-        rows = tableRef.getOrgTableContainer().querySelector("tbody").rows;
+        rows = tableRef.getOrgTableContainer().querySelector("tbody")!.rows;
     else
         rows = tableRef.getOrgTableContainer().querySelectorAll("tr");
 
@@ -259,7 +259,7 @@ function showDistinctColumn(tableMeta: TableMeta, index: number) {
     for(let col of cols) {
         emmet.appendChild(tbody, `tr>td>{${col}}`);
     }
-    let headerRow = tableMeta.tableRef.getOrgTableContainer().querySelector("thead>tr");
+    let headerRow = tableMeta.tableRef.getOrgTableContainer().querySelector("thead>tr")!;
     let headerText = getColumnHeaderText(headerRow.querySelectorAll("th")[index]);
     let htmlData: HtmlData = {
         title: headerText + " (uniek)",
@@ -312,7 +312,7 @@ function  mergeColumnWithComma(row: HTMLTableRowElement, index: number, leftInde
 function mergeColumnToLeft(row: HTMLTableRowElement, index: number, leftIndex: number, separator: string) {
     if(index === 0)
         return; //just to be sure.
-    if(row.parentElement.tagName == "TBODY") {
+    if(row.parentElement!.tagName == "TBODY") {
         row.cells[index].style.display = "none";
         row.cells[leftIndex].innerText += separator + row.cells[index].innerText;
     } else { //THEAD
@@ -363,5 +363,5 @@ function swapColumns(row: HTMLTableRowElement, index1: number,  index2: number) 
     if(index1 > index2) {
         [index1, index2] = [index2, index1];
     }
-    row.children[index1].parentElement.insertBefore(row.children[index2], row.children[index1]);
+    row.children[index1].parentElement!.insertBefore(row.children[index2], row.children[index1]);
 }

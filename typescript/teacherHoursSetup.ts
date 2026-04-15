@@ -23,7 +23,7 @@ handler
     .onData(onData);
 
 function fillSubjectsTable(dko3Setup: TeacherHoursSetupMapped) {
-    let container = document.getElementById("subjectsContainer");
+    let container = document.getElementById("subjectsContainer")!;
     let tbody = container.querySelector("table>tbody") as HTMLTableSectionElement;
     tbody.innerHTML = "";
     for (let vak of dko3Setup.subjects) {
@@ -71,7 +71,7 @@ function addTranslationRow(trns: TranslationDef, tbody: HTMLTableSectionElement)
 }
 
 function fillTranslationsTable(cloudData: TeacherHoursSetup) {
-    let container = document.getElementById("translationsContainer");
+    let container = document.getElementById("translationsContainer")!;
     let tbody = container.querySelector("table>tbody") as HTMLTableSectionElement;
     tbody.innerHTML = "";
     for (let trns of cloudData.translations) {
@@ -84,7 +84,7 @@ function fillTranslationsTable(cloudData: TeacherHoursSetup) {
                 let btn = ev.target as HTMLButtonElement;
                 let row = btn.closest("tr") as HTMLTableRowElement;
                 let prevRow =row.previousElementSibling;
-                row.parentElement.insertBefore(row, prevRow);
+                row.parentElement!.insertBefore(row, prevRow);
                 hasTableChanged = true;
             }));
     document.querySelectorAll("button.moveDown")
@@ -92,8 +92,8 @@ function fillTranslationsTable(cloudData: TeacherHoursSetup) {
             .addEventListener("click", (ev) => {
                 let btn = ev.target as HTMLButtonElement;
                 let row = btn.closest("tr") as HTMLTableRowElement;
-                let nextRow =row.nextElementSibling;
-                row.parentElement.insertBefore(nextRow, row);
+                let nextRow =row.nextElementSibling!;
+                row.parentElement!.insertBefore(nextRow, row);
                 hasTableChanged = true;
             }));
     document.querySelectorAll("#translationsContainer button.deleteRow")
@@ -101,7 +101,7 @@ function fillTranslationsTable(cloudData: TeacherHoursSetup) {
 }
 
 function fillGradeYearsTable(cloudData: TeacherHoursSetup) {
-    let container = document.getElementById("gradeYearsContainer");
+    let container = document.getElementById("gradeYearsContainer")!;
     let tbody = container.querySelector("table>tbody") as HTMLTableSectionElement;
     tbody.innerHTML = "";
     for (let gradeYear of cloudData.gradeYears) {
@@ -114,7 +114,7 @@ function fillGradeYearsTable(cloudData: TeacherHoursSetup) {
 
 function deleteTableRow(ev: Event) {
     let btn = ev.target as HTMLButtonElement;
-    btn.closest("tr").remove();
+    btn.closest("tr")!.remove();
     hasTableChanged = true;
 }
 
@@ -122,9 +122,9 @@ async function onData(request: ServiceRequest) {
     console.log("onData: ", request);
     let title = "Lerarenuren setup voor schooljaar " + request.data.schoolyear;
     document.title = title;
-    document.getElementById(def.SETUP_HOURS_TITLE_ID).innerHTML = title;
+    document.getElementById(def.SETUP_HOURS_TITLE_ID)!.innerHTML = title;
     //test...
-    document.querySelector("button").addEventListener("click", async () => {
+    document.querySelector("button")!.addEventListener("click", async () => {
         await sendRequest(Actions.GreetingsFromChild, TabType.Undefined, TabType.Main, undefined, "Hullo! Fly safe!");
     });
 
@@ -140,26 +140,27 @@ async function onData(request: ServiceRequest) {
     document.querySelectorAll('tbody').forEach(el => el.addEventListener('input', function (_) {
         hasTableChanged = true;
     }));
-    document.getElementById('btnNewTranslationRow').addEventListener('click', function (_) {
+    document.getElementById('btnNewTranslationRow')!.addEventListener('click', function (_) {
         let def: TranslationDef = {
             find: "",
             replace: "",
             prefix: "",
             suffix: ""
         }
-        addTranslationRow(def, document.querySelector("#translationsContainer tbody"));
+        addTranslationRow(def, document.querySelector("#translationsContainer tbody")!);
         hasTableChanged = true;
     });
 
 
 }
 
-let globalSetup: TeacherHoursSetupMapped = undefined;
+let globalSetup: TeacherHoursSetupMapped | undefined = undefined;
 
 let hasTableChanged = false;
 
 setInterval(() => {
-    onCheckTableChanged(globalSetup);
+    if(globalSetup)
+        onCheckTableChanged(globalSetup);
 }, 1000);
 
 function scrapeSubjects() {
@@ -169,8 +170,8 @@ function scrapeSubjects() {
             return {
                 checked: row.cells[0].querySelector("input:checked") !== null,
                 name: row.cells[1].textContent,
-                alias: row.cells[2].querySelector("input").value,
-                stillValid: row.cells[1].classList.contains("invalid") == false
+                alias: row.cells[2].querySelector("input")!.value,
+                stillValid: !row.cells[1].classList.contains("invalid")
             }
         });
 }
@@ -182,7 +183,7 @@ function scrapeGradeYears(): GradeYearDef[] {
             return {
                 checked: row.cells[0].querySelector("input:checked") !== null,
                 gradeYear: row.cells[1].textContent,
-                studentCount: parseInt(row.cells[2].querySelector("input").value), //todo: validate input
+                studentCount: parseInt(row.cells[2].querySelector("input")!.value), //todo: validate input
             }
         });
 }
@@ -218,23 +219,24 @@ function onCheckTableChanged(dko3Setup: TeacherHoursSetupMapped) {
 }
 
 window.onbeforeunload = () => {
-    onCheckTableChanged(globalSetup);
+    if(globalSetup)
+        onCheckTableChanged(globalSetup);
 }
 
 function switchTab(btn: HTMLButtonElement) {
-    let tabId = btn.dataset.tabId;
-    let tabs = btn.parentElement;
-    tabs.querySelectorAll(".tab").forEach((tab: HTMLElement) => {
+    let tabId = btn.dataset.tabId!;
+    let tabs = btn.parentElement!;
+    tabs.querySelectorAll(".tab")!.forEach((tab: HTMLElement) => {
         tab.classList.add("notSelected");
-        document.getElementById(tab.dataset.tabId).style.display = "none";
+        document.getElementById(tab.dataset.tabId!)!.style.display = "none";
     });
     btn.classList.remove("notSelected");
-    document.getElementById(tabId).style.display = "block";
+    document.getElementById(tabId)!.style.display = "block";
 }
 
 async function onDocumentLoaded(this: Document, _: Event) {
-    let tabs = document.querySelector(".tabs");
-    switchTab(tabs.querySelector(".tab"));
+    let tabs = document.querySelector(".tabs")!;
+    switchTab(tabs.querySelector(".tab")!);
     document.querySelectorAll(".tabs > button.tab")
         .forEach(btn => btn
             .addEventListener("click", (ev) => {

@@ -19,11 +19,11 @@ export class PlainTableRef implements TableRef {
     }
 
     getOrgTableContainer(): HTMLElement {
-        return document.getElementById(this.htmlTableId).parentElement;
+        return document.getElementById(this.htmlTableId)!.parentElement!;
     }
 
     getOrgTableRows(): NodeListOf<HTMLTableRowElement> {
-        return document.getElementById(this.htmlTableId).querySelectorAll("tbody > tr") as NodeListOf<HTMLTableRowElement>;
+        return document.getElementById(this.htmlTableId)!.querySelectorAll("tbody > tr") as NodeListOf<HTMLTableRowElement>;
     }
 
     buildFetchUrl(offset: number): string { //todo: perhaps leave this function out of the TableRef interface?
@@ -32,7 +32,7 @@ export class PlainTableRef implements TableRef {
 
     createElementAboveTable(element: string): HTMLElement {
         let el = document.createElement(element);
-        document.getElementById(this.htmlTableId).insertAdjacentElement("beforebegin", el);
+        document.getElementById(this.htmlTableId)!.insertAdjacentElement("beforebegin", el);
         return el;
     }
 
@@ -65,7 +65,7 @@ export class DkoTableRef implements TableRef {
     }
 
     isFullyFetched(): boolean {
-        return this.getOrgTableContainer().querySelector("table").classList.contains("fullyFetched");
+        return this.getOrgTableContainer().querySelector("table")!.classList.contains("fullyFetched");
     }
 }
 
@@ -91,13 +91,13 @@ function findTable() {
         .replace("table_", "")
         .replace("_table", "");
 
-    let parentDiv = document.querySelector("div#"+"table_"+tableId);
+    let parentDiv = document.querySelector("div#"+"table_"+tableId)!;
     let scripts = Array.from(parentDiv.querySelectorAll("script")).map((script) => script.text).join("\n");
     let goto = scripts.split("_goto(")[1];
     let func = goto.split(/ function *\w/)[0];
 
-    let viewId = / *datatable_id *= *'(.*)'/.exec(func)[1];
-    let url = /_table'\).load\('(.*?)\?id='\s*\+\s*datatable_id\s*\+\s*'&start='\s*\+\s*start/.exec(func)[1];
+    let viewId = / *datatable_id *= *'(.*)'/.exec(func)![1];
+    let url = /_table'\).load\('(.*?)\?id='\s*\+\s*datatable_id\s*\+\s*'&start='\s*\+\s*start/.exec(func)![1];
     //if we got so far, we can be sure this table is a standard one.
     return {
         tableId: table.id,
@@ -170,7 +170,7 @@ export class TableFetcher {
         db3(`Loading from cache: ${this.getCacheId()}.`);
         let text =  window.sessionStorage.getItem(this.getCacheId());
         let dateString = window.sessionStorage.getItem(this.getCacheId() + def.CACHE_DATE_SUFFIX);
-        if(!text)
+        if(!text || !dateString)
             return undefined;
         return {
             text,
@@ -296,7 +296,7 @@ export class FetchedTable {
     }
 
     getTable() {
-        return this.shadowTableTemplate.content.querySelector("table");
+        return this.shadowTableTemplate.content.querySelector("table")!;
     }
 
     getRowsAsArray = () => Array.from(this.getRows());
@@ -336,7 +336,7 @@ export class FetchedTable {
         if(this.lastPageNumber === -1)
             this.shadowTableTemplate.innerHTML = text; //to create the <table> and <tbody> and such.
         else
-            this.shadowTableTemplate.content.querySelector("tbody").append(...rows);
+            this.shadowTableTemplate.content.querySelector("tbody")!.append(...rows);
         this.lastPageNumber++;
     }
 

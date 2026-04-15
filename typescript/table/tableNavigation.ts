@@ -30,6 +30,8 @@ export function findFirstNavigation(element?: HTMLElement) {
     }
     let rx = /(\d*) tot (\d*) van (\d*)/;
     let matches = buttonPagination.innerText.match(rx);
+    if(!matches)
+        return undefined;
     let buttons = buttonContainer.querySelectorAll("button.btn-secondary");
     let offsets = Array.from(buttons)
         // @ts-ignore
@@ -38,11 +40,13 @@ export function findFirstNavigation(element?: HTMLElement) {
         // @ts-ignore
         .map((btn: HTMLElement) => getGotoNumber(btn.attributes["onclick"].value));
     let numbers = matches.slice(1).map((txt) => parseInt(txt));
+    if(numbers.length === 0)
+        return undefined;
     numbers[0] = numbers[0]-1;//convert 1-based user index to 0-based offset.
     numbers = numbers.concat(offsets);
     numbers.sort((a, b) => a - b);
     numbers = [...new Set(numbers)];
-    return new TableNavigation(numbers[1] - numbers[0], numbers.pop());
+    return new TableNavigation(numbers[1] - numbers[0], numbers.pop()!);
 }
 
 function getGotoNumber(functionCall: string) {

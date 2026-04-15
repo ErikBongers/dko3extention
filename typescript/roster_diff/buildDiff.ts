@@ -137,8 +137,8 @@ export type DiffType =
     | "match without teacher, time and day";
 
 export interface Diff {
-    excelLes?: TaggedExcelLes;
-    dko3Les?: TaggedDko3LesMoment;
+    excelLes: TaggedExcelLes;
+    dko3Les: TaggedDko3LesMoment;
     diffType: DiffType;
 }
 
@@ -262,7 +262,7 @@ async function buildDiff(excelLessen: ClassDef[], dko3Lessen: Les[], dko3AliasLe
     let lesMomentenMap: Map<string, TaggedDko3LesMoment> = new Map<string, TaggedDko3LesMoment>();
     for(let les of dko3LesSet.values())
         lesMomentenMap.set(les.lesMoment.momentId, les);
-    for(let aliasLes of dko3AliasLessen) {
+    loopAliasLessen: for(let aliasLes of dko3AliasLessen) {
         if (aliasLes.linkedLessenIds.length < 2) {
             reportStatus(`Error: alias les ${aliasLes.id} heeft geen 2 geldige gekoppelde lessen.`, "error");
             continue;
@@ -272,16 +272,20 @@ async function buildDiff(excelLessen: ClassDef[], dko3Lessen: Les[], dko3AliasLe
             reportStatus(`Voor aliasles <a href="https://administratie.dko3.cloud/#lessen-les?id=${aliasLes.id}">${aliasLes.id}</a> zijn er ontbrekende gekoppelde lessen.`, "error");
             continue;
         }
-        let linkedLesMomentIds = linkedLessen.map(les => les.dayTimeSlices.map(slice => Dko3LesMoment.createLesMomentId(les, slice))).flat();
+        let linkedLesMomentIds = linkedLessen.map((les: Les) => les.dayTimeSlices.map(slice => Dko3LesMoment.createLesMomentId(les, slice))).flat();
         let linkedLesMomenten = linkedLesMomentIds.map(momentId => lesMomentenMap.get(momentId));
         //sort the moments so we can merge them
-        linkedLesMomenten.sort((a, b) => a.lesMoment.dayTimeSlice.startToNumber() - b.lesMoment.dayTimeSlice.startToNumber());
-        let previousLesMoment = linkedLesMomenten[0];
+        linkedLesMomenten.sort((a: TaggedDko3LesMoment, b: TaggedDko3LesMoment) => a.lesMoment.dayTimeSlice.startToNumber() - b.lesMoment.dayTimeSlice.startToNumber());
+        let previousLesMoment = linkedLesMomenten[0]!;
         for(let i = 1; i < linkedLesMomenten.length; i++) {
-            let currentLesMoment = linkedLesMomenten[i];
+            let currentLesMoment = linkedLesMomenten[i]!;
+            if(!currentLesMoment.lesMoment.dayTimeSlice.timeSlice || !previousLesMoment.lesMoment.dayTimeSlice.timeSlice) {
+                reportStatus(`Voor aliasles <a href="https://administratie.dko3.cloud/#lessen-les?id=${aliasLes.id}">${aliasLes.id}</a> zijn er ontbrekende lestijden.`, "error");
+                continue loopAliasLessen;
+            }
             if(previousLesMoment.lesMoment.dayTimeSlice.endToNumber() == currentLesMoment.lesMoment.dayTimeSlice.startToNumber()) {
                 //yeah ! we can merge them!!!
-                let newTimeSlice = new TimeSlice(structuredClone(previousLesMoment.lesMoment.dayTimeSlice.timeSlice.start), structuredClone(currentLesMoment.lesMoment.dayTimeSlice.timeSlice.end));
+                let newTimeSlice = new TimeSlice(structuredClone(previousLesMoment.lesMoment.dayTimeSlice.timeSlice!.start), structuredClone(currentLesMoment.lesMoment.dayTimeSlice.timeSlice!.end));
                 let newDayTimeSlice = new DayTimeSlice(previousLesMoment.lesMoment.dayTimeSlice.day, newTimeSlice);
                 let newAliasLesMoment = new TaggedDko3LesMoment(new Dko3LesMoment(aliasLes, newDayTimeSlice));
                 dko3LesSet.add(newAliasLesMoment);
@@ -300,8 +304,6 @@ async function buildDiff(excelLessen: ClassDef[], dko3Lessen: Les[], dko3AliasLe
     for (const les1 of [...dko3LesSet.values()]
         .filter(les => les.lesMoment.les.teacher.includes("(en nog"))) {
         les1.teachers = await extraTeacherCache.getExtraTeachers(les1.lesMoment.les.id);
-        if(les1.teachers == undefined)
-            throw "WTF???";
     }
 
     matchIt(dko3LesSet, excelLesSet, diffs, "perfect match", perfectMatch);
@@ -321,7 +323,7 @@ class ExtraTeacherCache {
 
     async getExtraTeachers(lesId: string) {
         if(this.teacherMap.has(lesId))
-            return this.teacherMap.get(lesId);
+            return this.teacherMap.get(lesId)!;
 
         let newEntry = await getExtraTeachers(lesId);
         this.teacherMap.set(lesId, newEntry);
@@ -590,10 +592,10 @@ export async function createJsonDiffs(diffList: Diff[], dko3LesSet: Set<TaggedDk
                 worksheets: []
             });
         }
-        let workBook = workBooks.get(excelData.workbookName);
+        let workBook = workBooks.get(excelData.workbookName)!;
         let workSheet: JsonWorkSheet = {
             name: excelData.worksheetName,
-            url: excelData.url
+            url: excelData.url!
         };
         workBook.worksheets.push(workSheet);
     }

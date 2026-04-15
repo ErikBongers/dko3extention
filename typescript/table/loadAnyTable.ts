@@ -26,9 +26,9 @@ async function parseDataTablePhp(chain: FetchChain, htmlTableId: string) {
     let tableNavUrl = chain.getQuotedString() + datatable_id + '&pos=top';
     await chain.fetch(tableNavUrl);
     let tableNav = findFirstNavigation(chain.div());
-    console.log(tableNav);
+    if(!tableNav)
+        throw "Can't find table navigation.";
     let buildFetchUrl = (offset: number) => `/views/ui/datatable.php?id=${datatable_id}&start=${offset}&aantal=0`;
-
     return new DkoTableRef(htmlTableId, tableNav, buildFetchUrl);
 }
 
@@ -53,7 +53,7 @@ async function getTableRefFromHash(hash: string) {
     return parseDataTablePhp(chain, htmlTableId);
 }
 
-export async function getTable(tableRef: DkoTableRef, infoBarListener: InfoBarTableFetchListener, clearCache: boolean, checksumBuilder: CheckSumBuilder | null = null) {
+export async function getTable(tableRef: DkoTableRef, infoBarListener: InfoBarTableFetchListener | undefined, clearCache: boolean, checksumBuilder: CheckSumBuilder | null = null) {
     let tableFetcher = new TableFetcher(
         tableRef,
         checksumBuilder ?? getChecksumBuilder(tableRef.htmlTableId)
@@ -108,17 +108,17 @@ export async function downloadTableRows() {
     let fetchedRows = fetchedTable.getRows();
     let tableContainer = fetchedTable.tableFetcher.tableRef.getOrgTableContainer();
     tableContainer
-        .querySelector("tbody")
+        .querySelector("tbody")!
         .replaceChildren(...fetchedRows);
-    tableContainer.querySelector("table").classList.add("fullyFetched");
+    tableContainer.querySelector("table")!.classList.add("fullyFetched");
     executeTableCommands(fetchedTable.tableFetcher.tableRef);
     return {fetchedTable, infoBlock: infoBlock, listener: new InfoBarTableFetchListener(infoBlock)};
 }
 
 export async function checkAndDownloadTableRows(ev: UIEvent) {
-    let tableRef: TableRef = findTableRefInCode();
+    let tableRef: TableRef | undefined = findTableRefInCode();
     if(!tableRef) {
-        let table = (ev.target as HTMLElement).closest("table");
+        let table = (ev.target as HTMLElement).closest("table")!;
         tableRef = new PlainTableRef(table.id);
     }
     if(tableRef.isFullyFetched()) {
@@ -126,6 +126,8 @@ export async function checkAndDownloadTableRows(ev: UIEvent) {
         return {tableRef, infoBlock, listener: new InfoBarTableFetchListener(infoBlock)};
     }
     let res = await downloadTableRows();
+    if(!res)
+        throw "Can't download table rows. See reason above.";
     return {tableRef, infoBlock: res.infoBlock, listener: res.listener};
 }
 

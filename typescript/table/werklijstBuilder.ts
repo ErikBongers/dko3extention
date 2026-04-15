@@ -138,16 +138,16 @@ class WerklijstBuilder implements CriteriaBuilder, PreparedWerklijst {
     }
 
     async fetchMultiSelectDefinitions(criterium: CriteriumName) {
-        let critId = this.criteriaDefs.find(c => c.name === criterium).id;
+        let critId = this.criteriaDefs.find(c => c.name === criterium)!.id;
         await postNameValueList("/views/leerlingen/werklijst/criteria/toevoegen/toevoegen.opslaan.php", [{name:"criterium_id", value:critId}]);
         let text = await fetch("/views/leerlingen/werklijst/criteria/criteria.div.php").then(res => res.text());
         const template = document.createElement('template');
         template.innerHTML = text;
-        let tr = template.content.querySelector(`tr[data-criterium_id="${critId}"]`);
+        let tr = template.content.querySelector(`tr[data-criterium_id="${critId}"]`)!;
         let select = tr.querySelector(`td:nth-child(3) select`) as HTMLSelectElement;
         let defs = select.querySelectorAll(`option`);
         return {
-            postId: select.dataset.postId,
+            postId: select.dataset.postId!,
             defs: Array.from(defs).map((def: HTMLOptionElement) => [def.label, def.value]),
         };
     }

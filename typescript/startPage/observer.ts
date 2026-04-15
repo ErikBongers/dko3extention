@@ -66,16 +66,16 @@ async function setupPluginPage() {
         if (pageState.showPage == "diff") {
             pageState.goto = Goto.None;
             saveGotoState(pageState);
-            let viewContent = document.getElementById("view_contents");
-            emmet.insertBefore(viewContent.firstElementChild, "div.hide_view_contents");
+            let viewContent = document.getElementById("view_contents")!;
+            emmet.insertBefore(viewContent.firstElementChild!, "div.hide_view_contents");
             await setupDiffPage();
             return;
         }
         if (pageState.showPage == "snapshots") {
             pageState.goto = Goto.None;
             saveGotoState(pageState);
-            let viewContent = document.getElementById("view_contents");
-            emmet.insertBefore(viewContent.firstElementChild, "div.hide_view_contents");
+            let viewContent = document.getElementById("view_contents")!;
+            emmet.insertBefore(viewContent.firstElementChild!, "div.hide_view_contents");
             await setupSnapshotPage();
             return;
         }

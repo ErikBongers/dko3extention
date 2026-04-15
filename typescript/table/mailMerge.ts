@@ -37,7 +37,7 @@ export class MailMergeTable {
     constructor(infoBlock: InfoBlock, table: HTMLTableElement) {
         this.table = table;
         this.infoBlock = infoBlock;
-        let headerCells = this.table.tHead.children[0].children as HTMLCollectionOf<HTMLTableCellElement>;
+        let headerCells = this.table.tHead!.children[0].children as HTMLCollectionOf<HTMLTableCellElement>;
         this.headers = [...headerCells].filter(cell => cell.style.display !== "none").map(cell => cell.innerText);
         let rows = table.tBodies[0].children as HTMLCollectionOf<HTMLTableRowElement>;
         this.data = [...rows].map(row => [...row.cells].filter(cell => cell.style.display !== "none").map(cell => cell.innerText));
@@ -49,7 +49,7 @@ export class MailMergeTable {
         this.data = this.data.filter(row => row[indexVoornaam] != "Contactgegevens");
     }
 
-    async build(): Promise<StudentTableWithHeader> {
+    async build(): Promise<StudentTableWithHeader | null> {
         this.infoBlock.infoBar.setExtraInfo("Studentengegevens ophalen...");
         let studentTable = this.buildStudentTable();
         this.infoBlock.infoBar.setExtraInfo("");
@@ -58,11 +58,13 @@ export class MailMergeTable {
 
     async toHtml() {
         let studentTable = await this.build();
+        if(!studentTable)
+            throw "Can't create html  = student table is null.";
         let studTable = createHtmlTable(studentTable.headers, studentTable.data);
     return studTable.outerHTML;
     }
 
-    buildStudentTable(): StudentTableWithHeader {
+    buildStudentTable(): StudentTableWithHeader | null {
         let emailIndex = this.headers.findIndex(header => header.toLowerCase().includes("e-mailadressen"));
         if(emailIndex === -1) {
             alert("Geen e-mailadressen gevonden'. Voed dit veld toe aan de lijst.");
@@ -115,7 +117,7 @@ export class MailMergeTable {
                 let key = dataDef.inschrijvingenColumnIndexes.map(index => currentRow[index]).join("|");
                 if(!student.inschrijvingen.has(key))
                     student.inschrijvingen.set(key, []);
-                student.inschrijvingen.get(key).push(inschrijvingRow);
+                student.inschrijvingen.get(key)!.push(inschrijvingRow);
                 return;
             });
         });
@@ -366,7 +368,7 @@ export async function fetchMailMergeStudents(schoolyear: string, infoBlock: Info
     infoBlock.infoBar.setExtraInfo("Studentengegevens ophalen...");
     let fetchedTable = await preparedWerklijst.fetchTable(new InfoBarTableFetchListener(infoBlock), false);
     let table = fetchedTable.getTable();
-    let headers = [...table.tHead.rows[0].cells].map(td => td.textContent);
+    let headers = [...table.tHead!.rows[0].cells].map(td => td.textContent);
     let stamnummerIndex = headers.findIndex(header => header.toLowerCase().includes("stamnummer"));
     return [...table.tBodies[0].rows]
         .map(tr => tr.cells[stamnummerIndex].textContent);
