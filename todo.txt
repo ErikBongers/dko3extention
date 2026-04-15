@@ -1,3 +1,6 @@
+* When excel is copied...the invisible url is also copied, but points to the original file!
+  > try to make flows insert this into the excels or something...or get rid of this al together.
+
 * Make flow that informs some users (via mail?) that a roster has changed.
   > too much spam?
   > have a diff with previous uploaded version?
@@ -21,6 +24,7 @@
           ='https://company.sharepoint.com/sites/site/[Workbook.xlsx]SheetName'!$A$1
           >>> https://edusoantwerpen.sharepoint.com/:x:/s/dko/berchem/IQCujO4HZ0tVQ5PoV8RrEdoTAdDM_aDWVT2Pb5of8tPWKrY?e=oz9iKz&nav=MTJfTTIwX3s1N0UxOTk5OS1FQkYyLTRCNEEtQkUwOS1DRUJBNUI3RDhDMjd9
           >>> https://edusoantwerpen.sharepoint.com/:x:/s/dko/berchem/IQCujO4HZ0tVQ5PoV8RrEdoTAdDM_aDWVT2Pb5of8tPWKrY?e=oz9iKz&activeCell=Definitief!Y24
+          https://edusoantwerpen.sharepoint.com/sites/dko/berchem/Gedeelde%20%20documenten/Werkplek_Beleid_Secretariaat/Onderwijskundig_zorg/Onderwijsorganisatie/MW_Kalenders%20en%20uurroosters/MW%20uurroosters/OUD/Automatisering/brol.txt
           >>> https://edusoantwerpen.sharepoint.com/sites/dko/berchem/Gedeelde%20%20documenten/Werkplek_Beleid_Secretariaat/Onderwijskundig_zorg/Onderwijsorganisatie/MW_Kalenders%20en%20uurroosters/MW%20uurroosters/OUD/Automatisering/Woord_uurrooster_25-26.xlsx
           >>> https://edusoantwerpen.sharepoint.com/sites/dko/berchem/Gedeelde%20%20documenten/Werkplek_Beleid_Secretariaat/Onderwijskundig_zorg/Onderwijsorganisatie/MW_Kalenders%20en%20uurroosters/MW%20uurroosters/OUD/Automatisering/Woord_uurrooster_25-26.xlsx?web=1
           >>> https://edusoantwerpen.sharepoint.com/sites/dko/berchem/Gedeelde%20%20documenten/Werkplek_Beleid_Secretariaat/Onderwijskundig_zorg/Onderwijsorganisatie/MW_Kalenders%20en%20uurroosters/MW%20uurroosters/OUD/Automatisering/Woord_uurrooster_25-26.xlsx?web=1&activeCell=Definitief!Y24

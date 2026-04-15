@@ -8,7 +8,10 @@ export async function setupSnapshotPage() {
     let pluginContainer = document.getElementById("plugin_container");
     let button = emmet.appendChild(pluginContainer, "div#snapshotPage.mb-1>div>(h4{Snapshots van lessen.}+(select#cmbSnapshotSchoolYear+button.btn.btn-primary{Snapshot maken}))").last as HTMLButtonElement;
     let cmbSnapshotSchoolYear = pluginContainer.querySelector("#cmbSnapshotSchoolYear") as HTMLSelectElement;
-    cmbSnapshotSchoolYear.innerHTML = ["2025-2026", "2026-2027HARD CODED!!!"].map(name => `<option value="${name}">${name}</option>`).join("");
+    let thisYear = Schoolyear.calculateCurrent();
+    let schoolYear = Schoolyear.toFullString(thisYear);
+    let nextYear = Schoolyear.toFullString(thisYear + 1);
+    cmbSnapshotSchoolYear.innerHTML = [schoolYear, nextYear].map(name => `<option value="${name}">${name}</option>`).join("");
     let runStatus = emmet.insertAfter(button, "div#runStatus").first as HTMLDivElement;
     let divError = emmet.insertAfter(runStatus, 'div.errors').last as HTMLDivElement;
     emmet.insertAfter(divError, "div#snapshotResults");
