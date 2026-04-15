@@ -106,7 +106,7 @@ export async function fetchTableRows(response:  Response) {
     let tableHtml = await response.text();
     let div = document.createElement('div');
     div.innerHTML = tableHtml;
-    let table = div.querySelector("table");
+    let table = div.querySelector("table")!;
     return table.querySelectorAll("tr");
 }
 

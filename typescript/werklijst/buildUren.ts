@@ -13,9 +13,9 @@ let editableObserver = new MutationObserver((mutationList, observer) => editable
 
 setInterval(onTimer, 5000);
 function onTimer() {
-    checkAndUpdate(globalUrenData);
+    checkAndUpdate(globalUrenData!);
 }
-let globalUrenData: UrenData = undefined;
+let globalUrenData: UrenData | undefined = undefined;
 
 interface ColDef {
     label: string,
@@ -27,47 +27,47 @@ interface ColDef {
     calculated?: boolean,
     fill?:(ctx: Context) => (number|undefined),
     colIndex?: number,
-    total?: number
+    total: number
 }
 
 const colKeysForTotals = ["grjr1_1", "grjr1_2", "grjr2_1", "grjr2_2", "grjr2_3", "grjr2_4", "grjr3_1", "grjr3_2", "grjr3_3", "grjr4_1", "grjr4_2", "grjr4_3", "grjr_s_1", "grjr_s_2"];
 
 let colDefsArray: {key: string, def: ColDef}[] = [
-    {key:"vak", def: { label:"Vak", classList: [], factor: 1.0, getText: (ctx) => ctx.vakLeraar.vak}},
-    {key:"leraar", def: { label:"Leraar", classList: [], factor: 1.0, getText: (ctx) => ctx.vakLeraar.leraar.replaceAll("{", "").replaceAll("}", "")}},
+    {key:"vak", def: { label:"Vak", classList: [], total: 0, factor: 1.0, getText: (ctx) => ctx.vakLeraar.vak}},
+    {key:"leraar", def: { label:"Leraar", classList: [], total: 0, factor: 1.0, getText: (ctx) => ctx.vakLeraar.leraar.replaceAll("{", "").replaceAll("}", "")}},
 
-    {key:"grjr1_1", def: { label:"1.1", classList: [], factor: 1/4, getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count, fill: fillGraadCell }},
-    {key:"grjr1_2", def: { label:"1.2", classList: [], factor: 1/4, getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count, fill: fillGraadCell }},
+    {key:"grjr1_1", def: { label:"1.1", classList: [], total: 0, factor: 1/4, getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label)!.count, fill: fillGraadCell }},
+    {key:"grjr1_2", def: { label:"1.2", classList: [], total: 0, factor: 1/4, getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label)!.count, fill: fillGraadCell }},
 
-    {key:"uren_1e_gr", def: { label:"uren\n1e gr", classList: ["yellow"], factor: 1.0, getValue: (ctx) => calcUrenFactored(ctx, ["grjr1_1", "grjr1_2"]), totals:true, calculated:true}},
+    {key:"uren_1e_gr", def: { label:"uren\n1e gr", classList: ["yellow"], total: 0, factor: 1.0, getValue: (ctx) => calcUrenFactored(ctx, ["grjr1_1", "grjr1_2"]), totals:true, calculated:true}},
 
-    {key:"grjr2_1", def: { label:"2.1", classList: [], factor: 1/3, getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count, fill: fillGraadCell }},
-    {key:"grjr2_2", def: { label:"2.2", classList: [], factor: 1/3, getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count, fill: fillGraadCell }},
-    {key:"grjr2_3", def: { label:"2.3", classList: [], factor: 1/3, getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count, fill: fillGraadCell }},
-    {key:"grjr2_4", def: { label:"2.4", classList: [], factor: 1/3, getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count, fill: fillGraadCell }},
+    {key:"grjr2_1", def: { label:"2.1", classList: [], total: 0, factor: 1/3, getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label)!.count, fill: fillGraadCell }},
+    {key:"grjr2_2", def: { label:"2.2", classList: [], total: 0, factor: 1/3, getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label)!.count, fill: fillGraadCell }},
+    {key:"grjr2_3", def: { label:"2.3", classList: [], total: 0, factor: 1/3, getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label)!.count, fill: fillGraadCell }},
+    {key:"grjr2_4", def: { label:"2.4", classList: [], total: 0, factor: 1/3, getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label)!.count, fill: fillGraadCell }},
 
-    {key:"uren_2e_gr", def: { label:"uren\n2e gr", classList: ["yellow"], factor: 1.0, getValue: (ctx) => calcUrenFactored(ctx, ["grjr2_1", "grjr2_2", "grjr2_3", "grjr2_4"]), totals:true, calculated:true}},
+    {key:"uren_2e_gr", def: { label:"uren\n2e gr", classList: ["yellow"], total: 0, factor: 1.0, getValue: (ctx) => calcUrenFactored(ctx, ["grjr2_1", "grjr2_2", "grjr2_3", "grjr2_4"]), totals:true, calculated:true}},
 
-    {key:"grjr3_1", def: { label:"3.1", classList: [], factor: 1/3, getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count, fill: fillGraadCell }},
-    {key:"grjr3_2", def: { label:"3.2", classList: [], factor: 1/3, getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count, fill: fillGraadCell }},
-    {key:"grjr3_3", def: { label:"3.3", classList: [], factor: 1/2, getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count, fill: fillGraadCell }},
+    {key:"grjr3_1", def: { label:"3.1", classList: [], total: 0, factor: 1/3, getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label)!.count, fill: fillGraadCell }},
+    {key:"grjr3_2", def: { label:"3.2", classList: [], total: 0, factor: 1/3, getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label)!.count, fill: fillGraadCell }},
+    {key:"grjr3_3", def: { label:"3.3", classList: [], total: 0, factor: 1/2, getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label)!.count, fill: fillGraadCell }},
 
-    {key:"uren_3e_gr", def: { label:"uren\n3e gr", classList: ["yellow"], factor: 1.0, getValue: (ctx) => calcUrenFactored(ctx, ["grjr3_1", "grjr3_2", "grjr3_3"]), totals:true, calculated:true}},
+    {key:"uren_3e_gr", def: { label:"uren\n3e gr", classList: ["yellow"], total: 0, factor: 1.0, getValue: (ctx) => calcUrenFactored(ctx, ["grjr3_1", "grjr3_2", "grjr3_3"]), totals:true, calculated:true}},
 
-    {key:"grjr4_1", def: { label:"4.1", classList: [], factor: 1/2, getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count, fill: fillGraadCell }},
-    {key:"grjr4_2", def: { label:"4.2", classList: [], factor: 1/2, getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count, fill: fillGraadCell }},
-    {key:"grjr4_3", def: { label:"4.3", classList: [], factor: 1/2, getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count, fill: fillGraadCell }},
+    {key:"grjr4_1", def: { label:"4.1", classList: [], total: 0, factor: 1/2, getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label)!.count, fill: fillGraadCell }},
+    {key:"grjr4_2", def: { label:"4.2", classList: [], total: 0, factor: 1/2, getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label)!.count, fill: fillGraadCell }},
+    {key:"grjr4_3", def: { label:"4.3", classList: [], total: 0, factor: 1/2, getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label)!.count, fill: fillGraadCell }},
 
-    {key:"uren_4e_gr", def: { label:"uren\n4e gr", classList: ["yellow"], factor: 1.0, getValue: (ctx) => calcUrenFactored(ctx, ["grjr4_1", "grjr4_2", "grjr4_3"]), totals:true, calculated:true}},
+    {key:"uren_4e_gr", def: { label:"uren\n4e gr", classList: ["yellow"], total: 0, factor: 1.0, getValue: (ctx) => calcUrenFactored(ctx, ["grjr4_1", "grjr4_2", "grjr4_3"]), totals:true, calculated:true}},
 
-    {key:"grjr_s_1", def: { label:"S.1", classList: [], factor: 1/2, getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count, fill: fillGraadCell }},
-    {key:"grjr_s_2", def: { label:"S.2", classList: [], factor: 1/2, getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count, fill: fillGraadCell }},
+    {key:"grjr_s_1", def: { label:"S.1", classList: [], total: 0, factor: 1/2, getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label)!.count, fill: fillGraadCell }},
+    {key:"grjr_s_2", def: { label:"S.2", classList: [], total: 0, factor: 1/2, getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label)!.count, fill: fillGraadCell }},
 
-    {key:"uren_spec", def: { label:"uren\nspec", classList: ["yellow"], factor: 1.0, getValue: (ctx) => calcUrenFactored(ctx, ["grjr_s_1", "grjr_s_2"]), totals:true, calculated:true}},
+    {key:"uren_spec", def: { label:"uren\nspec", classList: ["yellow"], total: 0, factor: 1.0, getValue: (ctx) => calcUrenFactored(ctx, ["grjr_s_1", "grjr_s_2"]), totals:true, calculated:true}},
 
-    {key:"aantal_lln", def: { label:"aantal\nlln", classList: ["blueish"], factor: 1.0, getValue: (ctx) => calcUren(ctx, colKeysForTotals), totals:true, calculated:true}},
-    {key:"tot_uren", def: { label:"tot\nuren", classList: ["creme"], factor: 1.0, getValue: (ctx) => calcUrenFactored(ctx, colKeysForTotals), totals:true, calculated:true}},
-    {key:"over", def: { label:"Over", classList: [], factor: 1.0, getValue: (ctx) => calcOver(ctx), calculated:true}},
+    {key:"aantal_lln", def: { label:"aantal\nlln", classList: ["blueish"], total: 0, factor: 1.0, getValue: (ctx) => calcUren(ctx, colKeysForTotals), totals:true, calculated:true}},
+    {key:"tot_uren", def: { label:"tot\nuren", classList: ["creme"], total: 0, factor: 1.0, getValue: (ctx) => calcUrenFactored(ctx, colKeysForTotals), totals:true, calculated:true}},
+    {key:"over", def: { label:"Over", classList: [], total: 0, factor: 1.0, getValue: (ctx) => calcOver(ctx), calculated:true}},
 ];
 
 let colDefs = new Map(colDefsArray.map((def) => [def.key, def.def]));
@@ -84,8 +84,8 @@ function getYearKeys(year: number) {
 function updateColDefs(year: number) {
     let {yrPrev, yrNow, yrNext, keyPrev, keyNext} = getYearKeys(year);
     let yearColDefs = new Map();
-    yearColDefs.set(keyPrev, { label:`Uren\n${yrPrev}-${yrNow}`, classList: ["editable_number"], factor: 1.0, getValue: (ctx: Context) => parseInt(ctx.data.fromCloud.columnMap.get(`uren_${yrPrev}_${yrNow}`)?.get(ctx.vakLeraar.id)), totals:true});
-    yearColDefs.set(keyNext, { label:`Uren\n${yrNow}-${yrNext}`, classList: ["editable_number"], factor: 1.0, getValue: (ctx: Context) => parseInt(ctx.data.fromCloud.columnMap.get(`uren_${yrNow}_${yrNext}`)?.get(ctx.vakLeraar.id)), totals:true});
+    yearColDefs.set(keyPrev, { label:`Uren\n${yrPrev}-${yrNow}`, classList: ["editable_number"], total: 0, factor: 1.0, getValue: (ctx: Context) => parseInt(ctx.data.fromCloud.columnMap!.get(`uren_${yrPrev}_${yrNow}`)?.get(ctx.vakLeraar.id)!), totals:true});
+    yearColDefs.set(keyNext, { label:`Uren\n${yrNow}-${yrNext}`, classList: ["editable_number"], total: 0, factor: 1.0, getValue: (ctx: Context) => parseInt(ctx.data.fromCloud.columnMap!.get(`uren_${yrNow}_${yrNext}`)?.get(ctx.vakLeraar.id)!), totals:true});
     colDefs = new Map([...yearColDefs, ...new Map(colDefsArray.map((def) => [def.key, def.def]))]);
     let idx = 0;
     colDefs.forEach(colDef => {
@@ -124,8 +124,8 @@ function getColValue(ctx: Context, colKey: string) {
     let newCtx: Context = {...ctx};
     newCtx.colKey = colKey;
 
-    newCtx.colDef = newCtx.colDefs.get(colKey);
-    return newCtx.colDef.getValue(newCtx);
+    newCtx.colDef = newCtx.colDefs.get(colKey)!;
+    return newCtx.colDef.getValue!(newCtx);
 }
 
 function editableObserverCallback(mutationList: MutationRecord[], _observer: MutationObserver) {
@@ -160,11 +160,11 @@ function checkAndUpdate(urenData: UrenData) {
 
 function updateCloudColumnMapFromScreen(urenData: UrenData, colKey: string) {
     let colDef = colDefs.get(colKey);
-    if(!urenData.fromCloud.columnMap.has(colKey)) {
-        urenData.fromCloud.columnMap.set(colKey, new Map<string, string>());
+    if(!urenData.fromCloud.columnMap!.has(colKey)) {
+        urenData.fromCloud.columnMap!.set(colKey, new Map<string, string>());
     }
     for(let tr of document.querySelectorAll("#"+def.HOURS_TABLE_ID+" tbody tr")) {
-        urenData.fromCloud.columnMap.get(colKey).set(tr.id, tr.children[colDef.colIndex].textContent);
+        urenData.fromCloud.columnMap!.get(colKey)!.set(tr.id, tr.children[colDef!.colIndex as number].textContent);
     }
 }
 
@@ -175,7 +175,7 @@ function observeTable(observe: boolean) {
         subtree: true,
         characterData: true
     };
-    let table = document.getElementById(def.HOURS_TABLE_ID);
+    let table = document.getElementById(def.HOURS_TABLE_ID)!;
     if(observe) {
         editableObserver.takeRecords(); //clear
         editableObserver.observe(table, config);
@@ -193,7 +193,7 @@ function fillCell(ctx: Context): (number| undefined) {
         ctx.colDef.fill(ctx);
         return undefined;
     }
-    let theValue = ctx.colDef.getValue(ctx);
+    let theValue = ctx.colDef.getValue!(ctx);
     ctx.td.innerText = trimNumber(theValue);
     return theValue;
 }
@@ -204,7 +204,7 @@ function calculateAndSumCell(colDef: ColDef, ctx: Context, onlyRecalc: boolean) 
         theValue = fillCell(ctx);
     if (colDef.totals) {
         if (!theValue)
-            theValue = colDef.getValue(ctx); //get value when not a calculated value.
+            theValue = colDef.getValue!(ctx); //get value when not a calculated value.
         if (theValue)
             colDef.total += theValue;
     }
@@ -228,14 +228,14 @@ function recalculate(urenData: UrenData) {
     for (let [vakLeraarKey, vakLeraar] of urenData.vakLeraars) {
         let tr = document.getElementById(createValidId(vakLeraarKey)) as HTMLTableRowElement;
         for(let [colKey, colDef] of colDefs) {
-            let td = tr.children[colDef.colIndex] as HTMLTableCellElement;
+            let td = tr.children[colDef.colIndex!] as HTMLTableCellElement;
             let ctx: Context = {td, colKey, colDef, vakLeraar, tr, colDefs, data: urenData, yearKey };
             calculateAndSumCell(colDef, ctx, true);
         }
     }
-    let trTotal = document.getElementById("__totals__");
+    let trTotal = document.getElementById("__totals__")!;
     for(let [_colKey, colDef] of colDefs) {
-        let td = trTotal.children[colDef.colIndex] as HTMLTableCellElement;
+        let td = trTotal.children[colDef.colIndex!] as HTMLTableCellElement;
         if(colDef.totals) {
             td.innerText = trimNumber(colDef.total);
         }
@@ -265,7 +265,7 @@ export function refillTable(table: HTMLTableElement, urenData:  UrenData) {
     table.appendChild(tbody);
 
     let lastVak = "";
-    let rowClass = undefined;
+    let rowClass = "";
     clearTotals();
 
     let yearKey = getYearKeys(urenData.year).keyNext;
@@ -278,7 +278,7 @@ export function refillTable(table: HTMLTableElement, urenData:  UrenData) {
         if(vakLeraar.vak !== lastVak) {
             rowClass = (rowClass === ""? "darkRow" : "");
         }
-        if(rowClass !== "")
+        if(rowClass != "")
             tr.classList.add(rowClass);
         lastVak = vakLeraar.vak;
         for(let [colKey, colDef] of colDefs) {
@@ -314,7 +314,7 @@ function calcUren(ctx: Context, keys: string[]) {
     let tot = 0;
     for(let key of keys) {
         let colDef = ctx.colDefs.get(key);
-        let cnt = ctx.vakLeraar.countMap.get(colDef.label).students.length;
+        let cnt = ctx.vakLeraar.countMap.get(colDef!.label)!.students.length;
         tot += cnt;
     }
     return tot;
@@ -324,8 +324,8 @@ function calcUrenFactored(ctx: Context, keys: string[]) {
     let tot = 0;
     for(let key of keys) {
         let colDef = ctx.colDefs.get(key);
-        let cnt = ctx.vakLeraar.countMap.get(colDef.label).students.length;
-        let factor = colDefs.get(key).factor;
+        let cnt = ctx.vakLeraar.countMap.get(colDef!.label)!.students.length;
+        let factor = colDefs.get(key)!.factor;
         tot += cnt * factor;
     }
     return tot;
@@ -351,8 +351,10 @@ function fillTableHeader(table: HTMLTableElement, _vakLeraars: Map<string, VakLe
     }
 }
 
-function fillGraadCell(ctx: Context) {
+function fillGraadCell(ctx: Context): number {
     let graadJaar = ctx.vakLeraar.countMap.get(ctx.colDef.label);
+    if(!graadJaar)
+        return NaN;
     let button = document.createElement("button") as HTMLButtonElement;
     ctx.td.appendChild(button);
     if((graadJaar?.count ?? 0) === 0)

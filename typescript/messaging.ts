@@ -28,7 +28,7 @@ export interface ServiceRequest {
     targetTabId?: number,
 }
 
-export function sendRequest(action: Actions, from: TabType, to: TabType,  toId: number, data: any, pageTitle?: string) {
+export function sendRequest(action: Actions, from: TabType, to: TabType,  toId: number | undefined, data: any, pageTitle?: string) {
     let req: ServiceRequest = {
         action,
         data,
@@ -60,13 +60,13 @@ export type HtmlDataRequestParams = {
 
 export type RequestParams = HourSettingsDataRequestParams | HtmlDataRequestParams;
 export interface DataRequestInfo<Params extends RequestParams> {
-    tabId: number,
+    tabId: number | undefined,
     dataType: DataRequestTypes,
     params: Params,
 }
 
 export async function sendDataRequest<T extends RequestParams>(sender: TabType, dataType: DataRequestTypes, params: T) {
-    let tab = await chrome.tabs.getCurrent();
+    let tab = (await chrome.tabs.getCurrent())!;
     let dataRequestInfo: DataRequestInfo<T> = {
         tabId: tab.id,
         dataType: dataType,
@@ -83,9 +83,9 @@ export type MessageHandler = {
 }
 
 export interface InternalMessageHandler extends MessageHandler {
-    _onMessageForMyTabType(request: ServiceRequest): void;
-    _onMessageForMe(request: ServiceRequest): void;
-    _onData(data: any): void;
+    _onMessageForMyTabType?(request: ServiceRequest): void;
+    _onMessageForMe?(request: ServiceRequest): void;
+    _onData?(data: any): void;
 }
 
 export function createMessageHandler(tabType: TabType): MessageHandler {
@@ -96,7 +96,7 @@ export function createMessageHandler(tabType: TabType): MessageHandler {
                 console.log(`tab received: `, request);
                 if (request.targetTabType === tabType) {
                     self._onMessageForMyTabType?.(request);
-                    let tab = await chrome.tabs.getCurrent();
+                    let tab = (await chrome.tabs.getCurrent())!;
                     if (request.targetTabId === tab.id) {
                         if(request.action === Actions.TabData && self._onData) {
                             self._onData(request);

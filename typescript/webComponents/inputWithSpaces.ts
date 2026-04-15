@@ -59,9 +59,9 @@ function loadWebComponent() {
         static get observedAttributes() {
             return ['value'];
         }
-        input: HTMLInputElement = undefined;
-        #shadow: ShadowRoot = undefined;
-        background: HTMLDivElement = undefined;
+        input: HTMLInputElement;
+        #shadow: ShadowRoot;
+        background: HTMLDivElement;
         value = "";
         constructor() {
             super();
@@ -70,8 +70,8 @@ function loadWebComponent() {
             cssStyleSheet.replaceSync(css);
             this.#shadow.adoptedStyleSheets = [cssStyleSheet];
             this.#shadow.append(template.content.cloneNode(true));
-            this.input = this.#shadow.querySelector('input');
-            this.background = this.#shadow.querySelector('div.background');
+            this.input = this.#shadow.querySelector('input')!;
+            this.background = this.#shadow.querySelector('div.background')!;
         }
 
         // noinspection JSUnusedGlobalSymbols

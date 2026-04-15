@@ -251,6 +251,6 @@ async function onDocumentLoaded(this: Document, _: Event) {
                 }
             }));
     let params = new URLSearchParams(document.location.search);
-    let schoolYear = params.get("schoolyear");
+    let schoolYear = params.get("schoolyear")!;
     await sendDataRequest<HourSettingsDataRequestParams>(TabType.HoursSettings, DataRequestTypes.HoursSettings, {schoolYear});
 }

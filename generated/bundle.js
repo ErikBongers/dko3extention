@@ -1007,7 +1007,7 @@ var BaseObserver = class {
 	onMutation;
 	observer;
 	trackModal;
-	constructor(onPageChangedCallback, pageFilter, onMutationCallback, trackModal = false, onPageRefreshedCallback = void 0) {
+	constructor(onPageChangedCallback, pageFilter, onMutationCallback, trackModal = false, onPageRefreshedCallback) {
 		this.onPageChangedCallback = onPageChangedCallback;
 		this.onPageRefreshedCallback = onPageRefreshedCallback;
 		this.pageFilter = pageFilter;
@@ -1016,6 +1016,7 @@ var BaseObserver = class {
 		if (onMutationCallback) this.observer = new MutationObserver((mutationList, observer$1) => this.observerCallback(mutationList, observer$1));
 	}
 	observerCallback(mutationList, _observer) {
+		if (!this.onMutation) return;
 		for (const mutation of mutationList) {
 			if (mutation.type !== "childList") continue;
 			if (this.onMutation(mutation)) break;
@@ -1056,17 +1057,17 @@ var BaseObserver = class {
 	}
 };
 var HashObserver = class extends BaseObserver {
-	constructor(urlHash, onMutationCallback, trackModal = false, onPageRefreshedCallback = void 0) {
+	constructor(urlHash, onMutationCallback, trackModal = false, onPageRefreshedCallback) {
 		super(void 0, new HashPageFilter(urlHash), onMutationCallback, trackModal, onPageRefreshedCallback);
 	}
 };
 var ExactHashObserver = class extends BaseObserver {
-	constructor(urlHash, onMutationCallback, trackModal = false, onPageRefreshedCallback = void 0) {
+	constructor(urlHash, onMutationCallback, trackModal = false, onPageRefreshedCallback) {
 		super(void 0, new ExactHashPageFilter(urlHash), onMutationCallback, trackModal, onPageRefreshedCallback);
 	}
 };
 var PageObserver = class extends BaseObserver {
-	constructor(onPageChangedCallback, onPageRefreshedCallback = void 0) {
+	constructor(onPageChangedCallback, onPageRefreshedCallback) {
 		super(onPageChangedCallback, new AllPageFilter(), void 0, false, onPageRefreshedCallback);
 	}
 };
@@ -6121,6 +6122,7 @@ let colDefsArray = [
 		def: {
 			label: "Vak",
 			classList: [],
+			total: 0,
 			factor: 1,
 			getText: (ctx) => ctx.vakLeraar.vak
 		}
@@ -6130,6 +6132,7 @@ let colDefsArray = [
 		def: {
 			label: "Leraar",
 			classList: [],
+			total: 0,
 			factor: 1,
 			getText: (ctx) => ctx.vakLeraar.leraar.replaceAll("{", "").replaceAll("}", "")
 		}
@@ -6139,6 +6142,7 @@ let colDefsArray = [
 		def: {
 			label: "1.1",
 			classList: [],
+			total: 0,
 			factor: 1 / 4,
 			getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count,
 			fill: fillGraadCell
@@ -6149,6 +6153,7 @@ let colDefsArray = [
 		def: {
 			label: "1.2",
 			classList: [],
+			total: 0,
 			factor: 1 / 4,
 			getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count,
 			fill: fillGraadCell
@@ -6159,6 +6164,7 @@ let colDefsArray = [
 		def: {
 			label: "uren\n1e gr",
 			classList: ["yellow"],
+			total: 0,
 			factor: 1,
 			getValue: (ctx) => calcUrenFactored(ctx, ["grjr1_1", "grjr1_2"]),
 			totals: true,
@@ -6170,6 +6176,7 @@ let colDefsArray = [
 		def: {
 			label: "2.1",
 			classList: [],
+			total: 0,
 			factor: 1 / 3,
 			getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count,
 			fill: fillGraadCell
@@ -6180,6 +6187,7 @@ let colDefsArray = [
 		def: {
 			label: "2.2",
 			classList: [],
+			total: 0,
 			factor: 1 / 3,
 			getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count,
 			fill: fillGraadCell
@@ -6190,6 +6198,7 @@ let colDefsArray = [
 		def: {
 			label: "2.3",
 			classList: [],
+			total: 0,
 			factor: 1 / 3,
 			getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count,
 			fill: fillGraadCell
@@ -6200,6 +6209,7 @@ let colDefsArray = [
 		def: {
 			label: "2.4",
 			classList: [],
+			total: 0,
 			factor: 1 / 3,
 			getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count,
 			fill: fillGraadCell
@@ -6210,6 +6220,7 @@ let colDefsArray = [
 		def: {
 			label: "uren\n2e gr",
 			classList: ["yellow"],
+			total: 0,
 			factor: 1,
 			getValue: (ctx) => calcUrenFactored(ctx, [
 				"grjr2_1",
@@ -6226,6 +6237,7 @@ let colDefsArray = [
 		def: {
 			label: "3.1",
 			classList: [],
+			total: 0,
 			factor: 1 / 3,
 			getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count,
 			fill: fillGraadCell
@@ -6236,6 +6248,7 @@ let colDefsArray = [
 		def: {
 			label: "3.2",
 			classList: [],
+			total: 0,
 			factor: 1 / 3,
 			getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count,
 			fill: fillGraadCell
@@ -6246,6 +6259,7 @@ let colDefsArray = [
 		def: {
 			label: "3.3",
 			classList: [],
+			total: 0,
 			factor: 1 / 2,
 			getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count,
 			fill: fillGraadCell
@@ -6256,6 +6270,7 @@ let colDefsArray = [
 		def: {
 			label: "uren\n3e gr",
 			classList: ["yellow"],
+			total: 0,
 			factor: 1,
 			getValue: (ctx) => calcUrenFactored(ctx, [
 				"grjr3_1",
@@ -6271,6 +6286,7 @@ let colDefsArray = [
 		def: {
 			label: "4.1",
 			classList: [],
+			total: 0,
 			factor: 1 / 2,
 			getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count,
 			fill: fillGraadCell
@@ -6281,6 +6297,7 @@ let colDefsArray = [
 		def: {
 			label: "4.2",
 			classList: [],
+			total: 0,
 			factor: 1 / 2,
 			getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count,
 			fill: fillGraadCell
@@ -6291,6 +6308,7 @@ let colDefsArray = [
 		def: {
 			label: "4.3",
 			classList: [],
+			total: 0,
 			factor: 1 / 2,
 			getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count,
 			fill: fillGraadCell
@@ -6301,6 +6319,7 @@ let colDefsArray = [
 		def: {
 			label: "uren\n4e gr",
 			classList: ["yellow"],
+			total: 0,
 			factor: 1,
 			getValue: (ctx) => calcUrenFactored(ctx, [
 				"grjr4_1",
@@ -6316,6 +6335,7 @@ let colDefsArray = [
 		def: {
 			label: "S.1",
 			classList: [],
+			total: 0,
 			factor: 1 / 2,
 			getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count,
 			fill: fillGraadCell
@@ -6326,6 +6346,7 @@ let colDefsArray = [
 		def: {
 			label: "S.2",
 			classList: [],
+			total: 0,
 			factor: 1 / 2,
 			getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count,
 			fill: fillGraadCell
@@ -6336,6 +6357,7 @@ let colDefsArray = [
 		def: {
 			label: "uren\nspec",
 			classList: ["yellow"],
+			total: 0,
 			factor: 1,
 			getValue: (ctx) => calcUrenFactored(ctx, ["grjr_s_1", "grjr_s_2"]),
 			totals: true,
@@ -6347,6 +6369,7 @@ let colDefsArray = [
 		def: {
 			label: "aantal\nlln",
 			classList: ["blueish"],
+			total: 0,
 			factor: 1,
 			getValue: (ctx) => calcUren(ctx, colKeysForTotals),
 			totals: true,
@@ -6358,6 +6381,7 @@ let colDefsArray = [
 		def: {
 			label: "tot\nuren",
 			classList: ["creme"],
+			total: 0,
 			factor: 1,
 			getValue: (ctx) => calcUrenFactored(ctx, colKeysForTotals),
 			totals: true,
@@ -6369,6 +6393,7 @@ let colDefsArray = [
 		def: {
 			label: "Over",
 			classList: [],
+			total: 0,
 			factor: 1,
 			getValue: (ctx) => calcOver(ctx),
 			calculated: true
@@ -6396,6 +6421,7 @@ function updateColDefs(year) {
 	yearColDefs.set(keyPrev, {
 		label: `Uren\n${yrPrev}-${yrNow}`,
 		classList: ["editable_number"],
+		total: 0,
 		factor: 1,
 		getValue: (ctx) => parseInt(ctx.data.fromCloud.columnMap.get(`uren_${yrPrev}_${yrNow}`)?.get(ctx.vakLeraar.id)),
 		totals: true
@@ -6403,6 +6429,7 @@ function updateColDefs(year) {
 	yearColDefs.set(keyNext, {
 		label: `Uren\n${yrNow}-${yrNext}`,
 		classList: ["editable_number"],
+		total: 0,
 		factor: 1,
 		getValue: (ctx) => parseInt(ctx.data.fromCloud.columnMap.get(`uren_${yrNow}_${yrNext}`)?.get(ctx.vakLeraar.id)),
 		totals: true
@@ -6541,7 +6568,7 @@ function refillTable(table, urenData) {
 	let tbody = document.createElement("tbody");
 	table.appendChild(tbody);
 	let lastVak = "";
-	let rowClass = void 0;
+	let rowClass = "";
 	clearTotals();
 	let yearKey = getYearKeys(urenData.year).keyNext;
 	for (let [vakLeraarKey, vakLeraar] of urenData.vakLeraars) {
@@ -6550,7 +6577,7 @@ function refillTable(table, urenData) {
 		tr.dataset["vak_leraar"] = vakLeraarKey;
 		tr.id = createValidId(vakLeraarKey);
 		if (vakLeraar.vak !== lastVak) rowClass = rowClass === "" ? "darkRow" : "";
-		if (rowClass !== "") tr.classList.add(rowClass);
+		if (rowClass != "") tr.classList.add(rowClass);
 		lastVak = vakLeraar.vak;
 		for (let [colKey, colDef] of colDefs) {
 			let td = document.createElement("td");
@@ -6622,6 +6649,7 @@ function fillTableHeader(table, _vakLeraars) {
 }
 function fillGraadCell(ctx) {
 	let graadJaar = ctx.vakLeraar.countMap.get(ctx.colDef.label);
+	if (!graadJaar) return NaN;
 	let button = document.createElement("button");
 	ctx.td.appendChild(button);
 	if ((graadJaar?.count ?? 0) === 0) return graadJaar.count;
@@ -7771,6 +7799,7 @@ async function fetchMailMergeFullData(schoolyear, infoBlock) {
 //#region typescript/werklijst/observer.ts
 const TARGET_BUTTON_ID = "#tablenav_leerlingen_werklijst_top > div > div.btn-group.btn-group-sm.datatable-buttons > button:nth-child(1)";
 registerChecksumHandler(
+	//todo: this sucks: all functions in this module depend on this data being filled.
 	//don't report as log.error.
 	// Can't use this action to build the table as we're also fetching the cloud data.
 	//re-create, just to be sure we have all the fields.

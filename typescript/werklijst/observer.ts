@@ -192,7 +192,7 @@ async function onMessage(request: ServiceRequest, _sender: MessageSender, sendRe
         });
     } else {
         globals.hourSettingsMapped = mapHourSettings(hourSettings);
-        rebuildHoursTable(globals.table, globals.studentRowData, globals.hourSettingsMapped, globals.fromCloud);
+        rebuildHoursTable(globals.table!, globals.studentRowData, globals.hourSettingsMapped, globals.fromCloud!);
         pauseRefresh = false;
     }
 }
@@ -283,14 +283,14 @@ function buildVakLeraarsMap(studentRowData: StudentUrenRow[], hourSettingsMapped
 }
 
 type UrenGlobals = {
-    activeFetcher: TableFetcher;
     studentRowData: StudentUrenRow[],
-    hourSettingsMapped: TeacherHoursSetupMapped,
-    fromCloud: CloudData,
-    table: HTMLTableElement
+    activeFetcher?: TableFetcher;
+    hourSettingsMapped?: TeacherHoursSetupMapped,
+    fromCloud?: CloudData,
+    table?: HTMLTableElement
 }
 
-let globals: UrenGlobals = {
+let globals: UrenGlobals = { //todo: this sucks: all functions in this module depend on this data being filled.
     studentRowData: [],
     hourSettingsMapped: undefined,
     fromCloud: undefined,
@@ -307,8 +307,8 @@ function rebuildHoursTable(table: HTMLTableElement, studentRowData: StudentUrenR
     };
     observer.disconnect();
     refillTable(table, urenData);
-    observer.observeElement(document.querySelector("main"));
-    document.getElementById(def.HOURS_TABLE_ID).style.display = "none";
+    observer.observeElement(document.querySelector("main")!);
+    document.getElementById(def.HOURS_TABLE_ID)!.style.display = "none";
     showUrenTable(true);
 }
 
@@ -360,7 +360,7 @@ function rebuildHoursTableAfterDownloadFullTable(rows: NodeListOf<HTMLTableRowEl
     globals.studentRowData = scrapeUren(rows, NamedCellTableFetchListener.getHeaderIndices(tableRef.getOrgTableContainer() as HTMLDivElement));
     globals.table = createTable(tableRef);
 
-    rebuildHoursTable(globals.table, globals.studentRowData, globals.hourSettingsMapped, globals.fromCloud);
+    rebuildHoursTable(globals.table, globals.studentRowData, globals.hourSettingsMapped!, globals.fromCloud!);
 }
 
 async function getUrenFromCloud(fileName: string): Promise<JsonCloudData> {
@@ -372,7 +372,7 @@ async function getUrenFromCloud(fileName: string): Promise<JsonCloudData> {
 }
 
 function toggleUrenTable() {
-    let showNewTable = document.getElementById(def.HOURS_TABLE_ID).style.display === "none";
+    let showNewTable = document.getElementById(def.HOURS_TABLE_ID)!.style.display === "none";
     showUrenTable(showNewTable);
 }
 
@@ -384,9 +384,9 @@ function showUrenTable(show: boolean) {
     } else {
         setAfterDownloadTableAction(undefined);
     }
-    document.getElementById(def.WERKLIJST_TABLE_ID).style.display = show ? "none" : "table";
-    document.getElementById(def.HOURS_TABLE_ID).style.display = show ? "table" : "none";
-    document.getElementById(def.SHOW_HOURS_BUTTON_ID).title = show ? "Toon normaal" : "Toon telling";
+    document.getElementById(def.WERKLIJST_TABLE_ID)!.style.display = show ? "none" : "table";
+    document.getElementById(def.HOURS_TABLE_ID)!.style.display = show ? "table" : "none";
+    document.getElementById(def.SHOW_HOURS_BUTTON_ID)!.title = show ? "Toon normaal" : "Toon telling";
     setButtonHighlighted(def.SHOW_HOURS_BUTTON_ID, show);
     if (document.getElementById(def.HOURS_TABLE_ID)) {
         let targetButton = document.querySelector(TARGET_BUTTON_ID) as HTMLButtonElement;

@@ -26,9 +26,9 @@ const TXT_FILTER_ID = "txtFilter";
 let savedSearch = "";
 
 function onVakgroepChanged(divVakken: HTMLElement) {
-    let table = divVakken.querySelector("table");
+    let table = divVakken.querySelector("table")!;
     if(!document.getElementById(TXT_FILTER_ID))
-        table.parentElement.insertBefore(createSearchField(TXT_FILTER_ID, onSearchInput, savedSearch), table);
+        table.parentElement!.insertBefore(createSearchField(TXT_FILTER_ID, onSearchInput, savedSearch), table);
 
     onSearchInput();
 }
@@ -37,7 +37,7 @@ function onSearchInput() {
     savedSearch = (document.getElementById(TXT_FILTER_ID) as HTMLInputElement).value;
 
     function getRowText(tr: HTMLTableRowElement) {
-        let instrumentName = tr.cells[0].querySelector("label").textContent.trim();
+        let instrumentName = tr.cells[0].querySelector("label")!.textContent.trim();
         let strong = tr.cells[0].querySelector("strong")?.textContent.trim();
         return instrumentName + " " + strong;
     }

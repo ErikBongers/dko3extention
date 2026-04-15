@@ -48,13 +48,13 @@ export interface Observer {
 }
 
 export abstract class BaseObserver implements Observer {
-    private readonly onPageChangedCallback: () => void;
-    private readonly onPageRefreshedCallback: () => void;
+    private readonly onPageChangedCallback?: () => void;
+    private readonly onPageRefreshedCallback?: () => void;
     private pageFilter: PageFilter;
-    private readonly onMutation: (mutation: MutationRecord) => boolean;
+    private readonly onMutation?: (mutation: MutationRecord) => boolean;
     private observer: MutationObserver;
     private readonly trackModal: boolean;
-    protected constructor(onPageChangedCallback: () => void, pageFilter: PageFilter, onMutationCallback: (mutation: MutationRecord) => boolean, trackModal: boolean = false, onPageRefreshedCallback: () => void = undefined) {
+    protected constructor(onPageChangedCallback: (() => void) | undefined, pageFilter: PageFilter, onMutationCallback: ((mutation: MutationRecord) => boolean) | undefined, trackModal: boolean = false, onPageRefreshedCallback?: () => void) {
         this.onPageChangedCallback = onPageChangedCallback;
         this.onPageRefreshedCallback = onPageRefreshedCallback;
         this.pageFilter = pageFilter;
@@ -66,6 +66,8 @@ export abstract class BaseObserver implements Observer {
     }
 
     observerCallback(mutationList: MutationRecord[] , _observer: MutationObserver) {
+        if(!this.onMutation)
+            return;
         for (const mutation of mutationList) {
             if (mutation.type !== "childList") {
                 continue;
@@ -97,9 +99,9 @@ export abstract class BaseObserver implements Observer {
         console.log("Observing main element.");
         if(!document.querySelector("main"))
             console.error("Can't attach observer to element.");
-        this.observeElement(document.querySelector("main"));
+        this.observeElement(document.querySelector("main")!);
         if(this.trackModal)
-            this.observeElement(document.getElementById("dko3_modal"));
+            this.observeElement(document.getElementById("dko3_modal")!);
     }
 
     observeElement(element: HTMLElement) {
@@ -125,19 +127,19 @@ export abstract class BaseObserver implements Observer {
 
 export abstract class HashObserver extends BaseObserver {
     //onMutationCallback should return true if handled definitively, and no further mutation records from the mutationList should be handled.
-    protected constructor(urlHash: string, onMutationCallback: (mutation: MutationRecord) => boolean, trackModal: boolean = false, onPageRefreshedCallback: () => void = undefined) {
+    protected constructor(urlHash: string, onMutationCallback: (mutation: MutationRecord) => boolean, trackModal: boolean = false, onPageRefreshedCallback?: () => void ) {
         super(undefined, new HashPageFilter(urlHash), onMutationCallback, trackModal, onPageRefreshedCallback);
     }
 }
 
 export abstract class ExactHashObserver extends BaseObserver {
-    protected constructor(urlHash: string, onMutationCallback: (mutation: MutationRecord) => boolean, trackModal: boolean = false, onPageRefreshedCallback: () => void = undefined) {
+    protected constructor(urlHash: string, onMutationCallback: (mutation: MutationRecord) => boolean, trackModal: boolean = false, onPageRefreshedCallback?: () => void) {
         super(undefined, new ExactHashPageFilter(urlHash), onMutationCallback, trackModal, onPageRefreshedCallback);
     }
 }
 
 export abstract class PageObserver extends BaseObserver {
-    protected constructor(onPageChangedCallback: () => void, onPageRefreshedCallback: () => void = undefined) {
+    protected constructor(onPageChangedCallback: () => void, onPageRefreshedCallback?: () => void) {
         super(onPageChangedCallback, new AllPageFilter(), undefined, false, onPageRefreshedCallback);
     }
 }
