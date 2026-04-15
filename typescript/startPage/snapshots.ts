@@ -86,9 +86,9 @@ async function showSnapshotsforCombobox() {
     for(let file of content.files) {
         let snapshotData = await cloud.json.fetch(file.name) as SnapshotData;
         let date = new Date(snapshotData.zDate);
-        divResults.innerHTML += `<h4>${date.toLocaleDateString()} ${date.toLocaleTimeString()}</h4>`;
+        let divSnapshotContainer = emmet.appendChild(divResults, `div>h5{${date.toLocaleDateString()} ${date.toLocaleTimeString()}}`).first as HTMLDivElement;
         if(previousSnapshot) {
-            compareSnapshots(previousSnapshot, snapshotData, divResults);
+            compareSnapshots(previousSnapshot, snapshotData, divSnapshotContainer);
         }
         previousSnapshot = snapshotData;
     }
@@ -115,5 +115,7 @@ function compareSnapshots(previousSnapshot: SnapshotData, nextSnapshot: Snapshot
     for(let les of diffs) {
         emmet.appendChild(tbody, `tr.${les.what}>(td{${les.les.id}}+td{${les.les.vakNaam}}+td{${les.les.naam}}+td{${les.les.lesmoment}})`);
     }
+    if(diffs.length > 0)
+        divResults.classList.toggle("error", true);
 }
 

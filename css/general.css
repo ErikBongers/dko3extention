@@ -524,3 +524,18 @@ table.snapshotDiffs {
         opacity: 0.5;
     }
 }
+
+div#snapshotResults {
+    & h5 {
+        display: inline-block;
+        padding-inline: 1ch;
+        padding-block: .3ch;
+        font-size: 1.8ch;
+        border-radius: 2ch;
+        padding-block-start: .5ch;
+        background-color: #eee;
+        .error & {
+            background-color: #ffb290;
+        }
+    }
+}
