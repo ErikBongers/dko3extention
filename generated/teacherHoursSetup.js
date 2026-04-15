@@ -794,9 +794,9 @@ function loadWebComponent() {
 		static get observedAttributes() {
 			return ["value"];
 		}
-		input = void 0;
-		#shadow = void 0;
-		background = void 0;
+		input;
+		#shadow;
+		background;
 		value = "";
 		constructor() {
 			super();
