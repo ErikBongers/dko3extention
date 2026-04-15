@@ -36,7 +36,7 @@ export class CloudData {
         for (let column of jsonCloudData.columns) {
             column.rowMap = new Map(column.rows.map((row) => [row.key, row.value]));
         }
-        this.columnMap = new Map(jsonCloudData.columns.map((col) => [col.key, col.rowMap]));
+        this.columnMap = new Map(jsonCloudData.columns.map((col) => [col.key, col.rowMap!]));
     }
 
     toJson(colKey1: string, colKey2: string) {
@@ -50,7 +50,7 @@ export class CloudData {
 
     #columnToJson(colKey: string) {
         let cells: JsonCell[] = [];
-        for (let [key, value] of this.columnMap.get(colKey)) {
+        for (let [key, value] of this.columnMap!.get(colKey)!) {
             let row: JsonCell = {
                 key: key,
                 value: value
