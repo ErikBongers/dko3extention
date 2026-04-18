@@ -2112,36 +2112,36 @@ function scrapeModules(table, jaarToewijzingTable) {
 	};
 }
 function scrapeTrimesterModules(lessen) {
-	let modules = lessen.filter((les) => les.lesType === LesType$1.TrimesterModule);
+	let modules = lessen.filter((les) => les.les.lesType === LesType$1.TrimesterModule);
 	let trimesterModules = [];
 	for (let module of modules) {
-		module.students = scrapeStudents(module.studentsTable);
+		module.les.students = scrapeStudents(module.studentsTable);
 		const reInstrument = /.*\Snitiatie\s*(\S+).*(\d).*/;
-		const match$1 = module.naam.match(reInstrument);
+		const match$1 = module.les.naam.match(reInstrument);
 		if (match$1?.length !== 3) {
-			console.error(`Could not process trimester module "${module.naam}" (${module.id}).`);
+			console.error(`Could not process trimester module "${module.les.naam}" (${module.les.id}).`);
 			continue;
 		}
-		module.instrumentName = match$1[1];
-		module.trimesterNo = parseInt(match$1[2]);
-		trimesterModules.push(module);
+		module.les.instrumentName = match$1[1];
+		module.les.trimesterNo = parseInt(match$1[2]);
+		trimesterModules.push(module.les);
 	}
 	return trimesterModules;
 }
 function scrapeJaarModules(lessen) {
-	let modules = lessen.filter((les) => les.lesType === LesType$1.JaarModule);
+	let modules = lessen.filter((les) => les.les.lesType === LesType$1.JaarModule);
 	let jaarModules = [];
 	for (let module of modules) {
-		module.students = scrapeStudents(module.studentsTable);
+		module.les.students = scrapeStudents(module.studentsTable);
 		const reInstrument = /.*\Snitiatie\s*(\S+).*/;
-		const match$1 = module.naam.match(reInstrument);
+		const match$1 = module.les.naam.match(reInstrument);
 		if (match$1?.length !== 2) {
-			console.error(`Could not process jaar module "${module.naam}" (${module.id}).`);
+			console.error(`Could not process jaar module "${module.les.naam}" (${module.les.id}).`);
 			continue;
 		}
-		module.instrumentName = match$1[1];
-		module.trimesterNo = parseInt(match$1[2]);
-		jaarModules.push(module);
+		module.les.instrumentName = match$1[1];
+		module.les.trimesterNo = parseInt(match$1[2]);
+		jaarModules.push(module.les);
 	}
 	return jaarModules;
 }
@@ -2188,7 +2188,6 @@ var Les = class {
 	lesmoment;
 	formattedLesmoment;
 	vestiging;
-	studentsTable;
 	aantal;
 	maxAantal;
 	id;
@@ -2203,10 +2202,6 @@ var Les = class {
 	repeat;
 	dayTimeSlices = [];
 	linkedLessenIds = [];
-	hash;
-	constructor(id) {
-		this.id = id;
-	}
 	getHash() {
 		return this.id + this.teacher + this.naam + this.vakNaam + this.lesmoment + this.vestiging + this.online;
 	}
@@ -2215,8 +2210,12 @@ function scrapeLesInfo(row) {
 	let lesCell = row.cells[0];
 	let studentsCell = row.cells[1];
 	let meta = scrapeStudentsCellMeta(studentsCell);
-	let les = new Les(meta.id);
-	les.studentsTable = studentsCell.querySelectorAll("table")[0];
+	let les = new Les();
+	les.id = meta.id;
+	let htmlLes = {
+		les,
+		studentsTable: studentsCell.querySelectorAll("table")[0]
+	};
 	les.aantal = meta.aantal;
 	les.maxAantal = meta.maxAantal;
 	les.wachtlijst = meta.wachtlijst;
@@ -2239,13 +2238,13 @@ function scrapeLesInfo(row) {
 	if (mutedSpans.length > 0) les.teacher = Array.from(mutedSpans).pop().textContent;
 	les.teacher = les.teacher.replaceAll("  ", " ").replaceAll(" ,", ",").trim();
 	let textNodes = Array.from(lesCell.childNodes).filter((node) => node.nodeType === Node.TEXT_NODE && node.textContent.trim() !== "");
-	if (!textNodes) return les;
+	if (!textNodes) return htmlLes;
 	les.lesmoment = textNodes[0].nodeValue;
 	les.vestiging = textNodes[1].nodeValue;
 	let infoSpansText = [...lesCell.querySelectorAll("span.text-info")].map((e) => e.textContent);
 	les.gradeYears = textsToYearGrades(infoSpansText);
 	splitLesMoment(les);
-	return les;
+	return htmlLes;
 }
 function splitLesMoment(les) {
 	if (les.lesmoment == "(geen volgende les)") return;
@@ -2699,7 +2698,8 @@ function mergeBlockStudents(block) {
 	};
 }
 function createLesFromToewijzing(instrument, toewijzing) {
-	let les = new Les("");
+	let les = new Les();
+	les.id = "";
 	les.lesType = LesType$1.JaarModule;
 	les.instrumentName = instrument;
 	if (toewijzing.klasleerkracht == "") les.teacher = `toe te wijzen lk ${instrument}`;
@@ -2718,7 +2718,6 @@ function createLesFromToewijzing(instrument, toewijzing) {
 	les.vakNaam = toewijzing.vak;
 	les.warnings = [];
 	les.vestiging = "Willem van Laarstraat";
-	les.studentsTable = void 0;
 	return les;
 }
 function createStudentFromToewijzing(toewijzing) {
@@ -3332,7 +3331,7 @@ function applyFilters() {
 			context: void 0,
 			rowFilter(tr, _context) {
 				let scrapeResult = scrapeLesInfo(tr);
-				return scrapeResult.online && scrapeResult.alc;
+				return scrapeResult.les.online && scrapeResult.les.alc;
 			}
 		};
 		else if (pageState$2.filterWarnings) extraFilter = createQuerySelectorFilter(".text-warning");
@@ -5072,9 +5071,9 @@ async function getDko3Data(schoolYear, reportStatus, fetchListener) {
 	reportStatus("Leraren ophalen...");
 	let teachers = await fetchTeachers(schoolYear);
 	for (let teacher of teachers) for (let callDef of ExcelRoster.callNames) if (teacher.name == callDef.tag) teacher.callName = callDef.searchString;
-	let lessen = await scrapeAllNormalLessen(schoolYear, reportStatus);
+	let lessen = (await scrapeAllNormalLessen(schoolYear, reportStatus)).map((l) => l.les);
 	reportStatus("Ophalen aliaslessen...");
-	let dko3AliasLessen = await scrapeLessen(Domein.Woord, LesType.alias, schoolYear);
+	let dko3AliasLessen = (await scrapeLessen(Domein.Woord, LesType.alias, schoolYear)).map((l) => l.les);
 	for (let les of dko3AliasLessen) les.linkedLessenIds = await getAliassesForLes(les.id, reportStatus);
 	dko3AliasLessen = dko3AliasLessen.filter((l) => l.linkedLessenIds.length > 1);
 	let subjects = lessen.map((les) => [les.vakNaam, les.naam]).flat();
@@ -5963,7 +5962,7 @@ async function setupSnapshotPage() {
 }
 async function createSnapshot(schoolYear, reportStatus) {
 	reportStatus("Snapshot wordt gemaakt...");
-	let lessen = await scrapeAllNormalLessen(schoolYear, reportStatus);
+	let lessen = (await scrapeAllNormalLessen(schoolYear, reportStatus)).map((l) => l.les);
 	let snapshotList = lessen.map((les) => {
 		return {
 			id: les.id,

@@ -54,9 +54,9 @@ async function getDko3Data(schoolYear: string, reportStatus: StatusCallback, fet
                 teacher.callName = callDef.searchString;
         }
     }
-    let lessen = await scrapeAllNormalLessen(schoolYear, reportStatus);
+    let lessen = (await scrapeAllNormalLessen(schoolYear, reportStatus)).map(l => l.les);
     reportStatus("Ophalen aliaslessen...");
-    let dko3AliasLessen = await scrapeLessen(Domein.Woord, LesType.alias, schoolYear);
+    let dko3AliasLessen = (await scrapeLessen(Domein.Woord, LesType.alias, schoolYear)).map(l => l.les);
     for (let les of dko3AliasLessen) {
         les.linkedLessenIds = await getAliassesForLes(les.id, reportStatus);
     }

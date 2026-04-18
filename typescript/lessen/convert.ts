@@ -1,4 +1,4 @@
-import {JaarToewijzing, Les, LesType, StudentInfo} from "./scrape";
+import {HtmlLes, JaarToewijzing, Les, LesType, StudentInfo} from "./scrape";
 import {distinct} from "../globals";
 
 interface TagInfo {
@@ -495,7 +495,8 @@ export function mergeBlockStudents(block: BlockInfo) {
 }
 
 function createLesFromToewijzing(instrument: string, toewijzing: JaarToewijzing) {
-    let les = new Les("");
+    let les = new Les();
+    les.id = "";
     les.lesType = LesType.JaarModule;
     les.instrumentName = instrument;
     if(toewijzing.klasleerkracht == "")
@@ -516,7 +517,6 @@ function createLesFromToewijzing(instrument: string, toewijzing: JaarToewijzing)
     les.vakNaam = toewijzing.vak;
     les.warnings = [];
     les.vestiging = "Willem van Laarstraat";
-    les.studentsTable = undefined;
     return les;
 }
 

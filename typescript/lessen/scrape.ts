@@ -3,7 +3,7 @@ import {dayToMinutes, GradeYear, Time, TimeSlice, timeToMinutes} from "../roster
 
 export function scrapeLessenOverzicht(table: HTMLTableElement) {
     let body = table.tBodies[0];
-    let lessen: Les[] = [];
+    let lessen: HtmlLes[] = [];
     for (const row of body.rows) {
         let les = scrapeLesInfo(row);
         lessen.push(les);
@@ -74,47 +74,47 @@ export function scrapeModules(table: HTMLTableElement, jaarToewijzingTable: Fetc
         jaarToewijzingen: scrapeJaarToewijzingen(jaarToewijzingTable)};
 }
 
-function scrapeTrimesterModules(lessen: Les[] ) {
-    let modules = lessen.filter((les) => les.lesType === LesType.TrimesterModule);
+function scrapeTrimesterModules(lessen: HtmlLes[] ) {
+    let modules = lessen.filter((les) => les.les.lesType === LesType.TrimesterModule);
 
     let trimesterModules: Les[] = [];
 
     for (let module of modules) {
-        module.students = scrapeStudents(module.studentsTable);
+        module.les.students = scrapeStudents(module.studentsTable);
 
         //get name of instrument and trimester.
         const reInstrument = /.*\Snitiatie\s*(\S+).*(\d).*/;
-        const match = module.naam.match(reInstrument);
+        const match = module.les.naam.match(reInstrument);
         if (match?.length !== 3) {
-            console.error(`Could not process trimester module "${module.naam}" (${module.id}).`);
+            console.error(`Could not process trimester module "${module.les.naam}" (${module.les.id}).`);
             continue;
         }
-        module.instrumentName = match[1];
-        module.trimesterNo = parseInt(match[2]);
-        trimesterModules.push(module);
+        module.les.instrumentName = match[1];
+        module.les.trimesterNo = parseInt(match[2]);
+        trimesterModules.push(module.les);
     }
 
     return trimesterModules;
 }
 
-function scrapeJaarModules(lessen: Les[] ) {
-    let modules = lessen.filter((les) => les.lesType === LesType.JaarModule);
+function scrapeJaarModules(lessen: HtmlLes[] ) {
+    let modules = lessen.filter((les) => les.les.lesType === LesType.JaarModule);
 
     let jaarModules: Les[] = [];
 
     for (let module of modules) {
-        module.students = scrapeStudents(module.studentsTable);
+        module.les.students = scrapeStudents(module.studentsTable);
 
         //get name of instrument
         const reInstrument = /.*\Snitiatie\s*(\S+).*/;
-        const match = module.naam.match(reInstrument);
+        const match = module.les.naam.match(reInstrument);
         if (match?.length !== 2) {
-            console.error(`Could not process jaar module "${module.naam}" (${module.id}).`);
+            console.error(`Could not process jaar module "${module.les.naam}" (${module.les.id}).`);
             continue;
         }
-        module.instrumentName = match[1];
-        module.trimesterNo = parseInt(match[2]);
-        jaarModules.push(module);
+        module.les.instrumentName = match[1];
+        module.les.trimesterNo = parseInt(match[2]);
+        jaarModules.push(module.les);
     }
 
     return jaarModules;
@@ -153,6 +153,10 @@ function scrapeStudents(studentTable: HTMLTableElement) {
 export enum LesType { TrimesterModule, JaarModule, Les, UnknownModule}
 
 export type DayUppercase = "MAANDAG" | "DINSDAG" | "WOENSDAG" | "DONDERDAG" | "VRIJDAG" | "ZATERDAG" | "ZONDAG" | "";
+export class HtmlLes {
+    public les: Les;
+    studentsTable: HTMLTableElement;
+}
 export class Les {
     vakNaam: string;
     lesType: LesType;
@@ -163,7 +167,6 @@ export class Les {
     lesmoment: string;
     formattedLesmoment: string;
     vestiging: string;
-    studentsTable: HTMLTableElement;
     aantal: number;
     maxAantal: number;
     id: string;
@@ -178,24 +181,23 @@ export class Les {
     repeat: string; //wekelijks
     dayTimeSlices: DayTimeSlice[] = [];
     linkedLessenIds: string[] = [];
-    hash: string;
-
-    constructor(id: string) {
-        this.id = id;
-    }
 
     public getHash() {
         return this.id+ this.teacher + this.naam+this.vakNaam+this.lesmoment+this.vestiging+this.online;
     }
 }
 
-export function scrapeLesInfo(row: HTMLTableRowElement) {
+export function scrapeLesInfo(row: HTMLTableRowElement): HtmlLes {
     let lesCell = row.cells[0];
     let studentsCell = row.cells[1];
     let meta = scrapeStudentsCellMeta(studentsCell);
 
-    let les: Les = new Les(meta.id);
-    les.studentsTable = studentsCell.querySelectorAll("table")[0]; //for delayed student scraping.
+    let les: Les = new Les();
+    les.id = meta.id;
+    let htmlLes = {
+        les,
+        studentsTable: studentsCell.querySelectorAll("table")[0] //for delayed student scraping.
+    }
     les.aantal = meta.aantal;
     les.maxAantal = meta.maxAantal;
     les.wachtlijst = meta.wachtlijst;
@@ -244,14 +246,14 @@ export function scrapeLesInfo(row: HTMLTableRowElement) {
         .trim(); //clean up of names with additional spaces
 
     let textNodes = Array.from(lesCell.childNodes).filter((node) => node.nodeType === Node.TEXT_NODE && node.textContent!.trim() !== "");
-    if (!textNodes) return les;
+    if (!textNodes) return htmlLes;
 
     les.lesmoment = textNodes[0].nodeValue!;
     les.vestiging = textNodes[1].nodeValue!;
     let infoSpansText = [...lesCell.querySelectorAll("span.text-info")].map(e => e.textContent);
     les.gradeYears = textsToYearGrades(infoSpansText);
     splitLesMoment(les);
-    return les;
+    return htmlLes;
 }
 
 function splitLesMoment(les: Les): void {

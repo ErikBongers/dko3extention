@@ -134,7 +134,7 @@ export function applyFilters() {
                  context: undefined,
                  rowFilter(tr: HTMLTableRowElement, _context: any): boolean {
                      let scrapeResult = scrapeLesInfo(tr);
-                     return scrapeResult.online && scrapeResult.alc;
+                     return scrapeResult.les.online && scrapeResult.les.alc;
                  }
              }
         } else if (pageState.filterWarnings) {

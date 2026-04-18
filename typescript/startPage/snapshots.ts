@@ -51,7 +51,7 @@ export interface SnapshotData {
 
 async function createSnapshot(schoolYear: string, reportStatus: StatusCallback) {
     reportStatus("Snapshot wordt gemaakt...")
-    let lessen = await scrapeAllNormalLessen(schoolYear, reportStatus);
+    let lessen = (await scrapeAllNormalLessen(schoolYear, reportStatus)).map(l => l.les);
     let snapshotList: LesSnapshot[] = lessen
         .map(les => {
             return {
