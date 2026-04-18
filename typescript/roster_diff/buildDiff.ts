@@ -41,6 +41,30 @@ export async function buildAndSaveDiff(reportStatus: StatusCallback, fetchListen
     return jsonDiffs;
 }
 
+async function getDko3Data(schoolYear: string, reportStatus: StatusCallback, fetchListener: InfoBarTableFetchListener) {
+    reportStatus("Vestigingsplaatsen ophalen...");
+    let locationsTable = await getTableFromHash("extra-academie-vestigingsplaatsen", true, fetchListener);
+    let locations = [...locationsTable.getRows()].map(tr => tr.cells[1].textContent);
+
+    reportStatus("Leraren ophalen...");
+    let teachers = await fetchTeachers(schoolYear);
+    for(let teacher of teachers) {
+        for(let callDef of ExcelRoster.callNames) {
+            if(teacher.name == callDef.tag)
+                teacher.callName = callDef.searchString;
+        }
+    }
+    let lessen = await scrapeAllNormalLessen(schoolYear, reportStatus);
+    reportStatus("Ophalen aliaslessen...");
+    let dko3AliasLessen = await scrapeLessen(Domein.Woord, LesType.alias, schoolYear);
+    for (let les of dko3AliasLessen) {
+        les.linkedLessenIds = await getAliassesForLes(les.id, reportStatus);
+    }
+    //remove aliaslessen with only one linked les. We're don't care about those.
+    dko3AliasLessen = dko3AliasLessen.filter(l => l.linkedLessenIds.length > 1);
+    return {lessen, locations, teachers, dko3AliasLessen};
+}
+
 export async function scrapeAllNormalLessen(schoolYear: string, reportStatus: StatusCallback) {
     reportStatus("Ophalen woordlessen...");
     let dko3Lessen = await scrapeLessen(Domein.Woord, LesType.gewone, schoolYear);
@@ -52,27 +76,7 @@ export async function scrapeAllNormalLessen(schoolYear: string, reportStatus: St
 }
 
 async function runRosterCheck(excelDatas: JsonExcelData[], reportStatus: StatusCallback, fetchListener: InfoBarTableFetchListener, schoolYear: string) {
-    reportStatus("Vestigingsplaatsen ophalen...");
-    let locationsTable = await getTableFromHash("extra-academie-vestigingsplaatsen", true, fetchListener);
-    let locations = [...locationsTable.getRows()].map(tr => tr.cells[1].textContent);
-
-    reportStatus("DKO3 gevevens ophalen...");
-    let teachers = await fetchTeachers(schoolYear);
-    for(let teacher of teachers) {
-        for(let callDef of ExcelRoster.callNames) {
-            if(teacher.name == callDef.tag)
-                teacher.callName = callDef.searchString;
-        }
-    }
-    let dko3Lessen = await scrapeAllNormalLessen(schoolYear, reportStatus);
-    let dko3AliasLessen = await scrapeLessen(Domein.Woord, LesType.alias, schoolYear);
-    for (let les of dko3AliasLessen) {
-        les.linkedLessenIds = await getAliassesForLes(les.id, reportStatus);
-    }
-    //remove aliaslessen with only one linked les. We're don't care about those.
-    dko3AliasLessen = dko3AliasLessen.filter(l => l.linkedLessenIds.length > 1);
-    console.log(dko3Lessen);
-    console.log(dko3AliasLessen);
+    let {lessen: dko3Lessen, locations, teachers, dko3AliasLessen} = await getDko3Data(schoolYear, reportStatus, fetchListener);
 
 
     let subjects: string[] = dko3Lessen.map(les => [les.vakNaam, les.naam]).flat();
