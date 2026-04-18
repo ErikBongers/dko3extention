@@ -155,7 +155,7 @@ export class Dko3LesMoment {
     }
 
     public getHash() {
-        return this.les.getHash() + this.dayTimeSlice.toString();
+        return Les.getHash(this.les) + this.dayTimeSlice.toString();
     }
 }
 

@@ -2202,8 +2202,8 @@ var Les = class {
 	repeat;
 	dayTimeSlices = [];
 	linkedLessenIds = [];
-	getHash() {
-		return this.id + this.teacher + this.naam + this.vakNaam + this.lesmoment + this.vestiging + this.online;
+	static getHash(les) {
+		return les.id + les.teacher + les.naam + les.vakNaam + les.lesmoment + les.vestiging + les.online;
 	}
 };
 function scrapeLesInfo(row) {
@@ -5170,7 +5170,7 @@ var Dko3LesMoment = class Dko3LesMoment {
 		return les.id + "_" + dayTimeSlice.toString();
 	}
 	getHash() {
-		return this.les.getHash() + this.dayTimeSlice.toString();
+		return Les.getHash(this.les) + this.dayTimeSlice.toString();
 	}
 };
 var TaggedLes = class {
@@ -5966,7 +5966,7 @@ async function createSnapshot(schoolYear, reportStatus) {
 	let snapshotList = lessen.map((les) => {
 		return {
 			id: les.id,
-			hash: les.getHash(),
+			hash: Les.getHash(les),
 			naam: les.naam,
 			vakNaam: les.vakNaam,
 			lesmoment: les.lesmoment,

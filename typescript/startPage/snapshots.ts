@@ -3,6 +3,7 @@ import {scrapeAllNormalLessen} from "../roster_diff/buildDiff";
 import {getUserAndSchoolName, Schoolyear} from "../globals";
 import {cloud, fetchFolderContent} from "../cloud";
 import {StatusCallback} from "./diffPage";
+import { Les } from "../lessen/scrape";
 
 export async function setupSnapshotPage() {
     let pluginContainer = document.getElementById("plugin_container")!;
@@ -56,7 +57,7 @@ async function createSnapshot(schoolYear: string, reportStatus: StatusCallback) 
         .map(les => {
             return {
                 id: les.id,
-                hash: les.getHash(),
+                hash: Les.getHash(les),
                 naam: les.naam,
                 vakNaam: les.vakNaam,
                 lesmoment: les.lesmoment,

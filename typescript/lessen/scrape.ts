@@ -182,8 +182,8 @@ export class Les {
     dayTimeSlices: DayTimeSlice[] = [];
     linkedLessenIds: string[] = [];
 
-    public getHash() {
-        return this.id+ this.teacher + this.naam+this.vakNaam+this.lesmoment+this.vestiging+this.online;
+    public static getHash(les: Les) {
+        return les.id+ les.teacher + les.naam+les.vakNaam+les.lesmoment+les.vestiging+les.online;
     }
 }
 
