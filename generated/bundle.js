@@ -5057,8 +5057,12 @@ async function buildAndSaveDiff(reportStatus, fetchListener, academie, schoolYea
 	}
 	reportStatus(`Vergelijken met DKO3 lessen...`);
 	let json = localStorage.getItem("dko3plugin.TESTDIFF");
-	let fromJson = JSON.parse(json);
-	let res = await runRosterCheck(jsonExcelDatas, reportStatus, fetchListener, fromJson);
+	let dko3DiffData = JSON.parse(json);
+	json = JSON.stringify(dko3DiffData);
+	let res = await runRosterCheck(jsonExcelDatas, reportStatus, fetchListener, dko3DiffData);
+	dko3DiffData = JSON.parse(json);
+	dko3DiffData.extraTeachersCache = res.extraTeacherCache.toJSON();
+	localStorage.setItem("dko3plugin.TESTDIFF", JSON.stringify(dko3DiffData));
 	let jsonDiffs = await createJsonDiffs(res.diffs, res.dko3LesSet, res.excelLesSet, res.excelRosters, academie, schoolYear);
 	let fileName = getDiffsCloudFileName(academie, schoolYear);
 	await cloud.json.upload(fileName, jsonDiffs);
@@ -5095,7 +5099,7 @@ async function runRosterCheck(excelDatas, reportStatus, fetchListener, dko3DiffD
 	}
 	let res = {
 		excelRosters,
-		...await buildDiff(excelLessenArray.flat(), dko3DiffData.lessen, dko3DiffData.dko3AliasLessen, reportStatus, dko3DiffData.teachers)
+		...await buildDiff(excelLessenArray.flat(), dko3DiffData, reportStatus)
 	};
 	deleteNotification("FILE_POSTED").then(() => fetchAndDisplayNotifications());
 	return res;
@@ -5203,14 +5207,14 @@ function isDko3LesToIgnore(les) {
 function isExcelLesToIgnore(les) {
 	return ExcelRoster.ignoreList.some((ignore) => les.searchText.includes(ignore));
 }
-async function buildDiff(excelLessen, dko3Lessen, dko3AliasLessen, reportStatus, teachers) {
+async function buildDiff(excelLessen, dko3Data, reportStatus) {
 	reportStatus("Lessen vergelijken...");
 	let diffs = [];
-	let excelLesSet = new Set(excelLessen.map((les) => new TaggedExcelLes(les, teachers)));
+	let excelLesSet = new Set(excelLessen.map((les) => new TaggedExcelLes(les, dko3Data.teachers)));
 	excelLesSet.forEach((les) => {
 		if (isExcelLesToIgnore(les)) excelLesSet.delete(les);
 	});
-	let lesMomenten = dko3Lessen.map((les) => les.dayTimeSlices.map((slice) => {
+	let lesMomenten = dko3Data.lessen.map((les) => les.dayTimeSlices.map((slice) => {
 		return new Dko3LesMoment(les, slice);
 	})).flat().map((lesMoment) => new TaggedDko3LesMoment(lesMoment));
 	let dko3LesSet = new Set(lesMomenten);
@@ -5218,10 +5222,10 @@ async function buildDiff(excelLessen, dko3Lessen, dko3AliasLessen, reportStatus,
 		if (isDko3LesToIgnore(les)) dko3LesSet.delete(les);
 	});
 	let dko3LesMap = new Map();
-	for (let les of dko3Lessen) dko3LesMap.set(les.id, les);
+	for (let les of dko3Data.lessen) dko3LesMap.set(les.id, les);
 	let lesMomentenMap = new Map();
 	for (let les of dko3LesSet.values()) lesMomentenMap.set(les.lesMoment.momentId, les);
-	loopAliasLessen: for (let aliasLes of dko3AliasLessen) {
+	loopAliasLessen: for (let aliasLes of dko3Data.dko3AliasLessen) {
 		if (aliasLes.linkedLessenIds.length < 2) {
 			reportStatus(`Error: alias les ${aliasLes.id} heeft geen 2 geldige gekoppelde lessen.`, "error");
 			continue;
@@ -5252,7 +5256,7 @@ async function buildDiff(excelLessen, dko3Lessen, dko3AliasLessen, reportStatus,
 			} else previousLesMoment = currentLesMoment;
 		}
 	}
-	let extraTeacherCache = new ExtraTeacherCache();
+	let extraTeacherCache = ExtraTeacherCache.fromJSON(dko3Data.extraTeachersCache ?? []);
 	for (const les1 of [...dko3LesSet.values()].filter((les) => les.lesMoment.les.teacher.includes("(en nog"))) les1.teachers = await extraTeacherCache.getExtraTeachers(les1.lesMoment.les.id);
 	matchIt(dko3LesSet, excelLesSet, diffs, "perfect match", perfectMatch);
 	matchIt(dko3LesSet, excelLesSet, diffs, "match without teacher", matchWithoutTeacher);
@@ -5266,16 +5270,25 @@ async function buildDiff(excelLessen, dko3Lessen, dko3AliasLessen, reportStatus,
 	return {
 		diffs,
 		dko3LesSet,
-		excelLesSet
+		excelLesSet,
+		extraTeacherCache
 	};
 }
-var ExtraTeacherCache = class {
+var ExtraTeacherCache = class ExtraTeacherCache {
 	teacherMap = new Map();
 	async getExtraTeachers(lesId) {
 		if (this.teacherMap.has(lesId)) return this.teacherMap.get(lesId);
 		let newEntry = await getExtraTeachers(lesId);
 		this.teacherMap.set(lesId, newEntry);
 		return newEntry;
+	}
+	toJSON() {
+		return [...this.teacherMap.entries()];
+	}
+	static fromJSON(json) {
+		let cache = new ExtraTeacherCache();
+		cache.teacherMap = new Map(json);
+		return cache;
 	}
 };
 async function getExtraTeachers(lesId) {

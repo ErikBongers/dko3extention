@@ -31,12 +31,17 @@ export async function buildAndSaveDiff(reportStatus: StatusCallback, fetchListen
         jsonExcelDatas.push(excelData);
     }
     reportStatus(`Vergelijken met DKO3 lessen...`);
+    //todo: fetch data if no json available or user wants a refresh.
     // let dko3DiffData = await getDko3Data(schoolYear, reportStatus, fetchListener);
-    // let json = JSON.stringify(dko3DiffData);
-    // localStorage.setItem("dko3plugin.TESTDIFF", json);
     let json = localStorage.getItem("dko3plugin.TESTDIFF");
-    let fromJson = JSON.parse(json) as Dko3DiffData;
-    let res = await runRosterCheck(jsonExcelDatas, reportStatus, fetchListener, fromJson);
+    let dko3DiffData = JSON.parse(json) as Dko3DiffData;
+    json = JSON.stringify(dko3DiffData);
+    let res = await runRosterCheck(jsonExcelDatas, reportStatus, fetchListener, dko3DiffData);
+    //parse again, just in case previous function changed the dko3 data.
+    dko3DiffData = JSON.parse(json) as Dko3DiffData;
+    dko3DiffData.extraTeachersCache = res.extraTeacherCache.toJSON();
+    localStorage.setItem("dko3plugin.TESTDIFF", JSON.stringify(dko3DiffData));
+
     let jsonDiffs = await createJsonDiffs(res.diffs, res.dko3LesSet, res.excelLesSet, res.excelRosters, academie, schoolYear);
     let fileName = getDiffsCloudFileName(academie, schoolYear);
     await cloud.json.upload(fileName, jsonDiffs);
@@ -52,6 +57,7 @@ interface Dko3DiffData {
     teachers: TeacherDef[];
     dko3AliasLessen: Les[];
     subjects: string[];
+    extraTeachersCache?: [string, string[]][];
 }
 
 async function getDko3Data(schoolYear: string, reportStatus: StatusCallback, fetchListener: InfoBarTableFetchListener): Promise<Dko3DiffData> {
@@ -105,7 +111,7 @@ export async function runRosterCheck(excelDatas: JsonExcelData[], reportStatus: 
             excelLessenArray.push(classDefs);
         console.log(excelLessenArray);
     }
-    let res = {excelRosters, ...await buildDiff(excelLessenArray.flat(), dko3DiffData.lessen, dko3DiffData.dko3AliasLessen, reportStatus, dko3DiffData.teachers)};
+    let res = {excelRosters, ...await buildDiff(excelLessenArray.flat(), dko3DiffData, reportStatus)};
     //no await:
     deleteNotification("FILE_POSTED").then(() => fetchAndDisplayNotifications());
     return res;
@@ -242,16 +248,16 @@ function isExcelLesToIgnore(les: TaggedExcelLes) {
     return ExcelRoster.ignoreList.some(ignore => les.searchText.includes(ignore))
 }
 
-async function buildDiff(excelLessen: ClassDef[], dko3Lessen: Les[], dko3AliasLessen: Les[], reportStatus: StatusCallback, teachers: TeacherDef[]) {
+async function buildDiff(excelLessen: ClassDef[], dko3Data: Dko3DiffData, reportStatus: StatusCallback) {
     reportStatus("Lessen vergelijken...");
     let diffs: Diff[] = [];
-    let excelLesSet: Set<TaggedExcelLes> = new Set<TaggedExcelLes>(excelLessen.map(les => new TaggedExcelLes(les, teachers)));
+    let excelLesSet: Set<TaggedExcelLes> = new Set<TaggedExcelLes>(excelLessen.map(les => new TaggedExcelLes(les, dko3Data.teachers)));
     excelLesSet.forEach(les=> {
         if(isExcelLesToIgnore(les))
             excelLesSet.delete(les);
     })
     //split each Dko3 les into multiple lesMoments
-    let lesMomenten = dko3Lessen
+    let lesMomenten = dko3Data.lessen
         .map(les => les.dayTimeSlices
             .map(slice => {
                 return new Dko3LesMoment(les, slice);
@@ -266,14 +272,14 @@ async function buildDiff(excelLessen: ClassDef[], dko3Lessen: Les[], dko3AliasLe
     })
 
     let dko3LesMap: Map<string, Les> = new Map();
-    for(let les of dko3Lessen)
+    for(let les of dko3Data.lessen)
         dko3LesMap.set(les.id, les);
 
     //move linked lessen inside the alias les.
     let lesMomentenMap: Map<string, TaggedDko3LesMoment> = new Map<string, TaggedDko3LesMoment>();
     for(let les of dko3LesSet.values())
         lesMomentenMap.set(les.lesMoment.momentId, les);
-    loopAliasLessen: for(let aliasLes of dko3AliasLessen) {
+    loopAliasLessen: for(let aliasLes of dko3Data.dko3AliasLessen) {
         if (aliasLes.linkedLessenIds.length < 2) {
             reportStatus(`Error: alias les ${aliasLes.id} heeft geen 2 geldige gekoppelde lessen.`, "error");
             continue;
@@ -311,7 +317,7 @@ async function buildDiff(excelLessen: ClassDef[], dko3Lessen: Les[], dko3AliasLe
     }
     //todo: split dko3Les.vaknaam into array. Split on "+" and trim.
     //get extra teaches
-    let extraTeacherCache = new ExtraTeacherCache()
+    let extraTeacherCache = ExtraTeacherCache.fromJSON(dko3Data.extraTeachersCache ?? [])
     for (const les1 of [...dko3LesSet.values()]
         .filter(les => les.lesMoment.les.teacher.includes("(en nog"))) {
         les1.teachers = await extraTeacherCache.getExtraTeachers(les1.lesMoment.les.id);
@@ -326,7 +332,7 @@ async function buildDiff(excelLessen: ClassDef[], dko3Lessen: Les[], dko3AliasLe
     console.log(diffs);
     console.log(dko3LesSet.values());
     console.log(excelLesSet.values());
-    return {diffs, dko3LesSet, excelLesSet};
+    return {diffs, dko3LesSet, excelLesSet, extraTeacherCache};
 }
 
 class ExtraTeacherCache {
@@ -339,6 +345,16 @@ class ExtraTeacherCache {
         let newEntry = await getExtraTeachers(lesId);
         this.teacherMap.set(lesId, newEntry);
         return newEntry;
+    }
+
+    public toJSON() {
+        return [...this.teacherMap.entries()];
+    }
+
+    public static fromJSON(json: [string, string[]][]) {
+        let cache = new ExtraTeacherCache();
+        cache.teacherMap = new Map(json);
+        return cache;
     }
 }
 
