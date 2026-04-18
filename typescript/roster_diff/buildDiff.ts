@@ -31,7 +31,12 @@ export async function buildAndSaveDiff(reportStatus: StatusCallback, fetchListen
         jsonExcelDatas.push(excelData);
     }
     reportStatus(`Vergelijken met DKO3 lessen...`);
-    let res = await runRosterCheck(jsonExcelDatas, reportStatus, fetchListener, schoolYear);
+    // let dko3DiffData = await getDko3Data(schoolYear, reportStatus, fetchListener);
+    // let json = JSON.stringify(dko3DiffData);
+    // localStorage.setItem("dko3plugin.TESTDIFF", json);
+    let json = localStorage.getItem("dko3plugin.TESTDIFF");
+    let fromJson = JSON.parse(json) as Dko3DiffData;
+    let res = await runRosterCheck(jsonExcelDatas, reportStatus, fetchListener, fromJson);
     let jsonDiffs = await createJsonDiffs(res.diffs, res.dko3LesSet, res.excelLesSet, res.excelRosters, academie, schoolYear);
     let fileName = getDiffsCloudFileName(academie, schoolYear);
     await cloud.json.upload(fileName, jsonDiffs);
@@ -41,7 +46,15 @@ export async function buildAndSaveDiff(reportStatus: StatusCallback, fetchListen
     return jsonDiffs;
 }
 
-async function getDko3Data(schoolYear: string, reportStatus: StatusCallback, fetchListener: InfoBarTableFetchListener) {
+interface Dko3DiffData {
+    lessen: Les[];
+    locations: string[];
+    teachers: TeacherDef[];
+    dko3AliasLessen: Les[];
+    subjects: string[];
+}
+
+async function getDko3Data(schoolYear: string, reportStatus: StatusCallback, fetchListener: InfoBarTableFetchListener): Promise<Dko3DiffData> {
     reportStatus("Vestigingsplaatsen ophalen...");
     let locationsTable = await getTableFromHash("extra-academie-vestigingsplaatsen", true, fetchListener);
     let locations = [...locationsTable.getRows()].map(tr => tr.cells[1].textContent);
@@ -78,23 +91,24 @@ export async function scrapeAllNormalLessen(schoolYear: string, reportStatus: St
     return [...dko3Lessen, ...muziekLessen, ...kbLessen];
 }
 
-export async function runRosterCheck(excelDatas: JsonExcelData[], reportStatus: StatusCallback, fetchListener: InfoBarTableFetchListener, schoolYear: string) {
-    let {lessen: dko3Lessen, locations, teachers, dko3AliasLessen, subjects} = await getDko3Data(schoolYear, reportStatus, fetchListener);
+export async function runRosterCheck(excelDatas: JsonExcelData[], reportStatus: StatusCallback, fetchListener: InfoBarTableFetchListener, dko3DiffData: Dko3DiffData) {
     let excelLessenArray: ClassDef[][] = [];
     let excelRosters: ExcelRoster[] = [];
+    reportStatus("Excel tabellen bouwen...");
     for(let excelData of excelDatas) {
         let factory = new RosterFactory(excelData);
         let table = factory.getTable();
-        let roster = new ExcelRoster(table, locations, subjects);
+        let roster = new ExcelRoster(table, dko3DiffData.locations, dko3DiffData.subjects);
         excelRosters.push(roster);
         let classDefs = roster.scrapeUurrooster();
         if(classDefs)
             excelLessenArray.push(classDefs);
         console.log(excelLessenArray);
     }
-    await deleteNotification("FILE_POSTED");
-    await fetchAndDisplayNotifications();
-    return {excelRosters, ...await buildDiff(excelLessenArray.flat(), dko3Lessen, dko3AliasLessen, reportStatus, teachers)};
+    let res = {excelRosters, ...await buildDiff(excelLessenArray.flat(), dko3DiffData.lessen, dko3DiffData.dko3AliasLessen, reportStatus, dko3DiffData.teachers)};
+    //no await:
+    deleteNotification("FILE_POSTED").then(() => fetchAndDisplayNotifications());
+    return res;
 }
 
 enum LesType {modules="3", gewone="1", alias="4"}
@@ -151,11 +165,11 @@ export class Dko3LesMoment {
     }
 
     public static createLesMomentId(les: Les, dayTimeSlice: DayTimeSlice) {
-        return les.id + "_" + dayTimeSlice.toString();
+        return les.id + "_" + DayTimeSlice.toString(dayTimeSlice);
     }
 
     public getHash() {
-        return Les.getHash(this.les) + this.dayTimeSlice.toString();
+        return Les.getHash(this.les) + DayTimeSlice.toString(this.dayTimeSlice);
     }
 }
 
@@ -229,6 +243,7 @@ function isExcelLesToIgnore(les: TaggedExcelLes) {
 }
 
 async function buildDiff(excelLessen: ClassDef[], dko3Lessen: Les[], dko3AliasLessen: Les[], reportStatus: StatusCallback, teachers: TeacherDef[]) {
+    reportStatus("Lessen vergelijken...");
     let diffs: Diff[] = [];
     let excelLesSet: Set<TaggedExcelLes> = new Set<TaggedExcelLes>(excelLessen.map(les => new TaggedExcelLes(les, teachers)));
     excelLesSet.forEach(les=> {
@@ -271,7 +286,7 @@ async function buildDiff(excelLessen: ClassDef[], dko3Lessen: Les[], dko3AliasLe
         let linkedLesMomentIds = linkedLessen.map((les: Les) => les.dayTimeSlices.map(slice => Dko3LesMoment.createLesMomentId(les, slice))).flat();
         let linkedLesMomenten = linkedLesMomentIds.map(momentId => lesMomentenMap.get(momentId));
         //sort the moments so we can merge them
-        linkedLesMomenten.sort((a: TaggedDko3LesMoment, b: TaggedDko3LesMoment) => a.lesMoment.dayTimeSlice.startToNumber() - b.lesMoment.dayTimeSlice.startToNumber());
+        linkedLesMomenten.sort((a: TaggedDko3LesMoment, b: TaggedDko3LesMoment) => DayTimeSlice.startToNumber(a.lesMoment.dayTimeSlice) - DayTimeSlice.startToNumber(b.lesMoment.dayTimeSlice));
         let previousLesMoment = linkedLesMomenten[0]!;
         for(let i = 1; i < linkedLesMomenten.length; i++) {
             let currentLesMoment = linkedLesMomenten[i]!;
@@ -279,7 +294,7 @@ async function buildDiff(excelLessen: ClassDef[], dko3Lessen: Les[], dko3AliasLe
                 reportStatus(`Voor aliasles <a href="https://administratie.dko3.cloud/#lessen-les?id=${aliasLes.id}">${aliasLes.id}</a> zijn er ontbrekende lestijden.`, "error");
                 continue loopAliasLessen;
             }
-            if(previousLesMoment.lesMoment.dayTimeSlice.endToNumber() == currentLesMoment.lesMoment.dayTimeSlice.startToNumber()) {
+            if(DayTimeSlice.endToNumber(previousLesMoment.lesMoment.dayTimeSlice) == DayTimeSlice.startToNumber(currentLesMoment.lesMoment.dayTimeSlice)) {
                 //yeah ! we can merge them!!!
                 let newTimeSlice = new TimeSlice(structuredClone(previousLesMoment.lesMoment.dayTimeSlice.timeSlice!.start), structuredClone(currentLesMoment.lesMoment.dayTimeSlice.timeSlice!.end));
                 let newDayTimeSlice = new DayTimeSlice(previousLesMoment.lesMoment.dayTimeSlice.day, newTimeSlice);
@@ -375,7 +390,7 @@ function perfectMatch(dko3Les: TaggedDko3LesMoment, excelLesSet: Set<TaggedExcel
     for(let excelLes of excelLesSet) {
         if(!dko3Les.subjects.some(t => excelLes.subjects.includes(t)))
             continue;
-        if(!dko3Les.lesMoment.dayTimeSlice.equal(excelLes.dayTimeSlice))
+        if(!DayTimeSlice.equal(dko3Les.lesMoment.dayTimeSlice,excelLes.dayTimeSlice))
             continue;
         if(dko3Les.location != excelLes.location)
             continue;
@@ -390,7 +405,7 @@ function matchWithoutLocation(dko3Les: TaggedDko3LesMoment, excelLesSet: Set<Tag
     for(let excelLes of excelLesSet) {
         if(!dko3Les.subjects.some(t => excelLes.subjects.includes(t)))
             continue;
-        if(!dko3Les.lesMoment.dayTimeSlice.equal(excelLes.dayTimeSlice))
+        if(!DayTimeSlice.equal(dko3Les.lesMoment.dayTimeSlice, excelLes.dayTimeSlice))
             continue;
         if(!dko3Les.teachers.some(t => excelLes.teachers.includes(t)))
             continue;
@@ -442,7 +457,7 @@ function matchWithoutTeacher(dko3Les: TaggedDko3LesMoment, excelLesSet: Set<Tagg
     for(let excelLes of excelLesSet) {
         if(!dko3Les.subjects.some(t => excelLes.subjects.includes(t)))
             continue;
-        if(!dko3Les.lesMoment.dayTimeSlice.equal(excelLes.dayTimeSlice))
+        if(!DayTimeSlice.equal(dko3Les.lesMoment.dayTimeSlice, excelLes.dayTimeSlice))
             continue;
         if(dko3Les.location != excelLes.location)
             continue;

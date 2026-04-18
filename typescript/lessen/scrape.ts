@@ -310,32 +310,33 @@ export class DayTimeSlice {
         this.timeSlice = timeSlice;
     }
 
-    public toString() {
-        if(this.timeSlice === null)
+    private toString() {}
+    public static toString(dayTimeSlice: DayTimeSlice) {
+        if(dayTimeSlice.timeSlice === null)
             return "null";
-        return `${this.day} ${TimeSlice.toString(this.timeSlice)}`;
+        return `${dayTimeSlice.day} ${TimeSlice.toString(dayTimeSlice.timeSlice)}`;
     }
 
-    public startToNumber() {
-        if(this.timeSlice === null)
+    public static startToNumber(dayTimeSlice: DayTimeSlice) {
+        if(dayTimeSlice.timeSlice === null)
             return -1;
-        return dayToMinutes(this.day) + timeToMinutes(this.timeSlice.start);
+        return dayToMinutes(dayTimeSlice.day) + timeToMinutes(dayTimeSlice.timeSlice.start);
     }
 
-    public endToNumber() {
-        if(this.timeSlice === null)
+    public static endToNumber(dayTimeSlice: DayTimeSlice) {
+        if(dayTimeSlice.timeSlice === null)
             return -1;
-        return dayToMinutes(this.day) + timeToMinutes(this.timeSlice.end);
+        return dayToMinutes(dayTimeSlice.day) + timeToMinutes(dayTimeSlice.timeSlice.end);
     }
 
-    equal(dayTimeSlice: DayTimeSlice) {
-        if(this.day != dayTimeSlice.day)
+    public static equal(dayTimeSlice1: DayTimeSlice, dayTimeSlice2: DayTimeSlice) {
+        if(dayTimeSlice1.day != dayTimeSlice2.day)
             return false;
-        if(!this.timeSlice)
+        if(!dayTimeSlice1.timeSlice)
             return false;
-        if(!dayTimeSlice.timeSlice)
+        if(!dayTimeSlice2.timeSlice)
             return false;
-        return TimeSlice.equal(this.timeSlice, dayTimeSlice.timeSlice);
+        return TimeSlice.equal(dayTimeSlice1.timeSlice, dayTimeSlice2.timeSlice);
     }
 }
 
