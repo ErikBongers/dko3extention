@@ -62,7 +62,10 @@ async function getDko3Data(schoolYear: string, reportStatus: StatusCallback, fet
     }
     //remove aliaslessen with only one linked les. We're don't care about those.
     dko3AliasLessen = dko3AliasLessen.filter(l => l.linkedLessenIds.length > 1);
-    return {lessen, locations, teachers, dko3AliasLessen};
+    let subjects: string[] = lessen.map(les => [les.vakNaam, les.naam]).flat();
+    subjects = [...new Set(subjects)];
+
+    return {lessen, locations, teachers, dko3AliasLessen, subjects};
 }
 
 export async function scrapeAllNormalLessen(schoolYear: string, reportStatus: StatusCallback) {
@@ -75,13 +78,8 @@ export async function scrapeAllNormalLessen(schoolYear: string, reportStatus: St
     return [...dko3Lessen, ...muziekLessen, ...kbLessen];
 }
 
-async function runRosterCheck(excelDatas: JsonExcelData[], reportStatus: StatusCallback, fetchListener: InfoBarTableFetchListener, schoolYear: string) {
-    let {lessen: dko3Lessen, locations, teachers, dko3AliasLessen} = await getDko3Data(schoolYear, reportStatus, fetchListener);
-
-
-    let subjects: string[] = dko3Lessen.map(les => [les.vakNaam, les.naam]).flat();
-    subjects = [...new Set(subjects)];
-
+export async function runRosterCheck(excelDatas: JsonExcelData[], reportStatus: StatusCallback, fetchListener: InfoBarTableFetchListener, schoolYear: string) {
+    let {lessen: dko3Lessen, locations, teachers, dko3AliasLessen, subjects} = await getDko3Data(schoolYear, reportStatus, fetchListener);
     let excelLessenArray: ClassDef[][] = [];
     let excelRosters: ExcelRoster[] = [];
     for(let excelData of excelDatas) {
@@ -98,8 +96,6 @@ async function runRosterCheck(excelDatas: JsonExcelData[], reportStatus: StatusC
     await fetchAndDisplayNotifications();
     return {excelRosters, ...await buildDiff(excelLessenArray.flat(), dko3Lessen, dko3AliasLessen, reportStatus, teachers)};
 }
-
-export default runRosterCheck
 
 enum LesType {modules="3", gewone="1", alias="4"}
 enum Domein {Muziek="3", Woord="4", DomeinOV="5", Dans="2"}

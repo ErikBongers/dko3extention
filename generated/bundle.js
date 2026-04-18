@@ -5077,11 +5077,14 @@ async function getDko3Data(schoolYear, reportStatus, fetchListener) {
 	let dko3AliasLessen = await scrapeLessen(Domein.Woord, LesType.alias, schoolYear);
 	for (let les of dko3AliasLessen) les.linkedLessenIds = await getAliassesForLes(les.id, reportStatus);
 	dko3AliasLessen = dko3AliasLessen.filter((l) => l.linkedLessenIds.length > 1);
+	let subjects = lessen.map((les) => [les.vakNaam, les.naam]).flat();
+	subjects = [...new Set(subjects)];
 	return {
 		lessen,
 		locations,
 		teachers,
-		dko3AliasLessen
+		dko3AliasLessen,
+		subjects
 	};
 }
 async function scrapeAllNormalLessen(schoolYear, reportStatus) {
@@ -5098,9 +5101,7 @@ async function scrapeAllNormalLessen(schoolYear, reportStatus) {
 	];
 }
 async function runRosterCheck(excelDatas, reportStatus, fetchListener, schoolYear) {
-	let { lessen: dko3Lessen, locations, teachers, dko3AliasLessen } = await getDko3Data(schoolYear, reportStatus, fetchListener);
-	let subjects = dko3Lessen.map((les) => [les.vakNaam, les.naam]).flat();
-	subjects = [...new Set(subjects)];
+	let { lessen: dko3Lessen, locations, teachers, dko3AliasLessen, subjects } = await getDko3Data(schoolYear, reportStatus, fetchListener);
 	let excelLessenArray = [];
 	let excelRosters = [];
 	for (let excelData of excelDatas) {
