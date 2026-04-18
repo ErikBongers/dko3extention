@@ -1572,7 +1572,7 @@ var ClassDef = class {
 		this.excelColumn = excelColumn;
 		this.cellValue = cellValue;
 		this.table = table;
-		this.hash = cellValue + day + teacher + timeSlice.toString();
+		this.hash = cellValue + day + teacher + TimeSlice.toString(timeSlice);
 	}
 	getHash() {
 		return this.hash;
@@ -1585,11 +1585,12 @@ var TimeSlice = class {
 		this.start = start;
 		this.end = end;
 	}
-	equal(timeslice2) {
-		return this.start.hour == timeslice2.start.hour && this.start.minutes == timeslice2.start.minutes && this.end.hour == timeslice2.end.hour && this.end.minutes == timeslice2.end.minutes;
+	static equal(timeslice1, timeslice2) {
+		return timeslice1.start.hour == timeslice2.start.hour && timeslice1.start.minutes == timeslice2.start.minutes && timeslice1.end.hour == timeslice2.end.hour && timeslice1.end.minutes == timeslice2.end.minutes;
 	}
-	toString() {
-		return `${this.start.hour}:${this.start.minutes}-${this.end.hour}:${this.end.minutes}`;
+	toString() {}
+	static toString(timeSlice) {
+		return `${timeSlice.start.hour}:${timeSlice.start.minutes}-${timeSlice.end.hour}:${timeSlice.end.minutes}`;
 	}
 };
 function timeToMinutes(time) {
@@ -2277,7 +2278,7 @@ var DayTimeSlice = class {
 	}
 	toString() {
 		if (this.timeSlice === null) return "null";
-		return `${this.day} ${this.timeSlice.toString()}`;
+		return `${this.day} ${TimeSlice.toString(this.timeSlice)}`;
 	}
 	startToNumber() {
 		if (this.timeSlice === null) return -1;
@@ -2291,7 +2292,7 @@ var DayTimeSlice = class {
 		if (this.day != dayTimeSlice.day) return false;
 		if (!this.timeSlice) return false;
 		if (!dayTimeSlice.timeSlice) return false;
-		return this.timeSlice.equal(dayTimeSlice.timeSlice);
+		return TimeSlice.equal(this.timeSlice, dayTimeSlice.timeSlice);
 	}
 };
 function parseLesMoment(text) {

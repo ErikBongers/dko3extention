@@ -311,7 +311,7 @@ export class DayTimeSlice {
     public toString() {
         if(this.timeSlice === null)
             return "null";
-        return `${this.day} ${this.timeSlice.toString()}`;
+        return `${this.day} ${TimeSlice.toString(this.timeSlice)}`;
     }
 
     public startToNumber() {
@@ -333,7 +333,7 @@ export class DayTimeSlice {
             return false;
         if(!dayTimeSlice.timeSlice)
             return false;
-        return this.timeSlice.equal(dayTimeSlice.timeSlice);
+        return TimeSlice.equal(this.timeSlice, dayTimeSlice.timeSlice);
     }
 }
 

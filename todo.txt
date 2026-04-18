@@ -1,3 +1,4 @@
+* Diffs setup page: first separate dko data fetching -> cache.
 * strict mode: finalize.
   > Test EVERYTHING.
 

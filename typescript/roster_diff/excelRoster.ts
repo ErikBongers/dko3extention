@@ -37,7 +37,7 @@ export class ClassDef {
         this.excelColumn = excelColumn;
         this.cellValue = cellValue;
         this.table = table;
-        this.hash = cellValue + day + teacher + timeSlice.toString(); //cellvalue + table headers should be defining enough.
+        this.hash = cellValue + day + teacher + TimeSlice.toString(timeSlice); //cellvalue + table headers should be defining enough.
     }
 
     public getHash() { return this.hash; }
@@ -52,15 +52,17 @@ export class TimeSlice {
         this.end = end;
     }
 
-    public equal(timeslice2: TimeSlice): boolean {
-        return this.start.hour == timeslice2.start.hour
-            && this.start.minutes == timeslice2.start.minutes
-            && this.end.hour == timeslice2.end.hour
-            && this.end.minutes == timeslice2.end.minutes;
+    public static equal(timeslice1: TimeSlice, timeslice2: TimeSlice): boolean {
+        return timeslice1.start.hour == timeslice2.start.hour
+            && timeslice1.start.minutes == timeslice2.start.minutes
+            && timeslice1.end.hour == timeslice2.end.hour
+            && timeslice1.end.minutes == timeslice2.end.minutes;
     }
 
-    public toString() {
-        return `${this.start.hour}:${this.start.minutes}-${this.end.hour}:${this.end.minutes}`;
+    private toString() {} //avoid implicit call.
+
+    public static toString(timeSlice: TimeSlice) {
+        return `${timeSlice.start.hour}:${timeSlice.start.minutes}-${timeSlice.end.hour}:${timeSlice.end.minutes}`;
     }
 }
 

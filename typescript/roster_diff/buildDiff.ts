@@ -41,10 +41,6 @@ export async function buildAndSaveDiff(reportStatus: StatusCallback, fetchListen
     return jsonDiffs;
 }
 
-function removeIgnoreLessen(lessen: Les[]) {
-
-}
-
 export async function scrapeAllNormalLessen(schoolYear: string, reportStatus: StatusCallback) {
     reportStatus("Ophalen woordlessen...");
     let dko3Lessen = await scrapeLessen(Domein.Woord, LesType.gewone, schoolYear);
