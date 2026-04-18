@@ -22,7 +22,8 @@ function onMutation(mutation: MutationRecord) {
         return true;
     }
     let titleHeader = document.getElementById("vh_header_lessen_les_left_title") as HTMLElement;
-    if(titleHeader) {
+    if(titleHeader && !titleHeader.classList.contains("diffSearched")) {
+        titleHeader.classList.add("diffSearched");
         scrapeDiffsAcademieAndSchoolYear().then(async hereAndNow => {
             await addDiff(titleHeader, hereAndNow.academieFolder, hereAndNow.schoolYear);
         });
