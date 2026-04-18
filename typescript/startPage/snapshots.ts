@@ -2,8 +2,8 @@ import {emmet} from "../../libs/Emmeter/html";
 import {scrapeAllNormalLessen} from "../roster_diff/buildDiff";
 import {getUserAndSchoolName, Schoolyear} from "../globals";
 import {cloud, fetchFolderContent} from "../cloud";
-import {StatusCallback} from "./diffPage";
 import { Les } from "../lessen/scrape";
+import {StatusCallback} from "../roster_diff/showDiff";
 
 export async function setupSnapshotPage() {
     let pluginContainer = document.getElementById("plugin_container")!;

@@ -1,3 +1,8 @@
+* Test:
+  - mark klas "grapje" as OK -> invisible.
+  - change it back to Comedy and rerun the checks
+  > should show up again!
+
 * Diffs setup page: first separate dko data fetching -> cache.
 * strict mode: finalize.
   > Test EVERYTHING.

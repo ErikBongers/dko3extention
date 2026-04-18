@@ -1,19 +1,7 @@
-import {InfoBarTableFetchListener} from "../table/loadAnyTable";
-import {buildAndSaveDiff, getDiffsFromCloud} from "../roster_diff/buildDiff";
 import {emmet} from "../../libs/Emmeter/html";
-import {createInfoBlock} from "../infoBlock";
-import {showDiffs} from "../roster_diff/showDiff";
+import {getAndShowDiffs} from "../roster_diff/showDiff";
 import {fetchFolderContent} from "../cloud";
 import {getUserAndSchoolName} from "../globals";
-
-export type StatusCallback = (message: string, isError?: "error") => void;
-
-async function runDiff(reportStatus: StatusCallback, fetchListener: InfoBarTableFetchListener, academie: string, schoolYear: string) {
-    let divResults = document.getElementById("diffResults") as HTMLDivElement;
-    divResults.innerHTML = "";
-
-    return buildAndSaveDiff(reportStatus, fetchListener, academie, schoolYear);
-}
 
 async function loadCombboxSchoolYearAndTrySelect(dirTree?: TreeNode): Promise<boolean> {
     if(!dirTree)
@@ -53,23 +41,9 @@ export async function setupDiffPage() {
     let runStatus = emmet.insertAfter(button, "div#runStatus").first as HTMLDivElement;
     emmet.insertAfter(runStatus, "div#diffResults");
 
-    let divInfo = emmet.insertAfter(runStatus, 'div').last as HTMLDivElement;
-    let divError = emmet.insertAfter(divInfo, 'div.errors').last as HTMLDivElement;
-    let infoBlock = createInfoBlock(divInfo, "");
-    let fetchListener = new InfoBarTableFetchListener(infoBlock);
-    let errors: string[] = [];
-    function reportStatus(message: string, isError?: "error") {
-        if(isError == "error")
-            errors.push(message);
-        else
-            runStatus.innerHTML = message;
-        divError.innerHTML = errors.join("<br>");
-    }
-    button.onclick = async () => {
-        errors = [];
-        let jsonDiffs = await runDiff(reportStatus, fetchListener, cmbDiffAcademie.value, cmbDiffSchoolYear.value);
-        await  showDiffs(jsonDiffs, cmbDiffAcademie.value, cmbDiffSchoolYear.value);
-    };
+    let divInfo = emmet.insertAfter(runStatus, 'div#diffInfo').last as HTMLDivElement;
+    let divError = emmet.insertAfter(divInfo, 'div#diffErrors.errors').last as HTMLDivElement;
+    button.onclick = () => getAndShowDiffs(false);
     cmbDiffAcademie.onchange = async () => {
         if(await loadCombboxSchoolYearAndTrySelect(dirTree))
             pluginContainer.classList.toggle("diffCombosLoaded", true);
@@ -82,15 +56,7 @@ export async function setupDiffPage() {
 }
 
 async function showDiffsFromComboboxes() {
-    let cmbDiffAcademie = document.querySelector("#cmbDiffAcademie") as HTMLSelectElement;
-    let cmbDiffSchoolYear = document.querySelector("#cmbDiffSchoolYear") as HTMLSelectElement;
-    try {
-        let jsonDiffs = await getDiffsFromCloud(cmbDiffAcademie.value, cmbDiffSchoolYear.value);
-        if(jsonDiffs)
-            await showDiffs(jsonDiffs, cmbDiffAcademie.value, cmbDiffSchoolYear.value);
-    }
-    catch (e) {}
-
+    await getAndShowDiffs(true);
 }
 interface TreeNode {
     folderName: string;

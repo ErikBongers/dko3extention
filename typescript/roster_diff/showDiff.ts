@@ -3,10 +3,47 @@ import {emmet} from "../../libs/Emmeter/html";
 import {decorateTableHeader} from "../table/tableHeaders";
 import {DayUppercase} from "../lessen/scrape";
 import {DKO3_BASE_URL, OPTION_HIDE_IGNORED_DIFFS} from "../def";
-import {createDiffTable, DiffType, getUrlForWorksheet, JsonDiff, JsonDiffs, setIgnoredFlags} from "./buildDiff";
+import {buildAndSaveDiff, createDiffTable, DiffType, Dko3DiffData, getDiffsFromCloud, getUrlForWorksheet, JsonDiff, JsonDiffs, setIgnoredFlags} from "./buildDiff";
 import {uploadIgnoredDiffHashes} from "../cloud";
+import {InfoBarTableFetchListener} from "../table/loadAnyTable";
+import {createInfoBlock} from "../infoBlock";
 
-export async function showDiffs(diffs: JsonDiffs, academie: string, schoolYear: string) {
+export async function getAndShowDiffs(useDiffsFromCloud: boolean) {
+    let divResults = document.getElementById("diffResults") as HTMLDivElement;
+    divResults.innerHTML = "Ophalen...";
+
+    let divError = document.getElementById("diffErrors") as HTMLDivElement;
+    let runStatus = document.getElementById("runStatus") as HTMLDivElement;
+    let divInfo = document.getElementById("diffInfo") as HTMLDivElement;
+    let cmbDiffAcademie = document.querySelector("#cmbDiffAcademie") as HTMLSelectElement;
+    let cmbDiffSchoolYear = document.querySelector("#cmbDiffSchoolYear") as HTMLSelectElement;
+    let infoBlock = createInfoBlock(divInfo, "");
+    let fetchListener = new InfoBarTableFetchListener(infoBlock);
+    let errors: string[] = [];
+    function reportStatus(message: string, isError?: "error") {
+        if(isError == "error")
+            errors.push(message);
+        else
+            runStatus.innerHTML = message;
+        divError.innerHTML = errors.join("<br>");
+    }
+    errors = [];
+    let json = localStorage.getItem("dko3plugin.TESTDIFF");
+    let dko3DiffData = JSON.parse(json) as Dko3DiffData | null;
+    let jsonDiffs: JsonDiffs | null = null;
+    if(useDiffsFromCloud) {
+        try {
+            jsonDiffs = await getDiffsFromCloud(cmbDiffAcademie.value, cmbDiffSchoolYear.value);
+        }
+        catch (e) {}
+    } else {
+        jsonDiffs = await runDiff(reportStatus, fetchListener, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData);
+    }
+    if(jsonDiffs)
+        await showDiffs(jsonDiffs, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData);
+}
+
+export async function showDiffs(diffs: JsonDiffs, academie: string, schoolYear: string, dko3DiffData: Dko3DiffData | null) {
     let divResults = document.getElementById("diffResults") as HTMLDivElement;
     divResults.innerHTML = "Ophalen...";
     if(!diffs) {
@@ -18,6 +55,15 @@ export async function showDiffs(diffs: JsonDiffs, academie: string, schoolYear: 
     let elapsedTimeString = dateDiffToString(new Date(diffs.isoDate), new Date());
     if(elapsedTimeString != "")
         emmet.appendChild(divResults, `p{Laatste vergelijking: ${elapsedTimeString} geleden.}`)
+    if(dko3DiffData) {
+        let p = emmet.appendChild(divResults, `p{Dko3 gegevens uit cache. }`).first as HTMLParagraphElement;
+        let button = emmet.appendChild(p, "button.likeLink").first as HTMLButtonElement;
+        button.innerHTML = "refresh";
+        button.onclick = () => {
+            localStorage.removeItem("dko3plugin.TESTDIFF");
+            getAndShowDiffs(false);
+        };
+    }
     let chkHideChecked = emmet.appendChild(divResults, `input#chkHideChecked[type="checkbox"]+label[for="chkHideChecked"]{Verberg aangevinkte lijnen}`).first as HTMLInputElement;
     chkHideChecked.onchange = (ev) => {
         let input = ev.currentTarget as HTMLInputElement;
@@ -45,6 +91,15 @@ export async function showDiffs(diffs: JsonDiffs, academie: string, schoolYear: 
     let ingore = localStorage.getItem(OPTION_HIDE_IGNORED_DIFFS)?? "false";
     chkHideChecked.checked = ingore == "true";
     table.classList.toggle("hideChecked", chkHideChecked.checked);
+}
+
+export type StatusCallback = (message: string, isError?: "error") => void;
+
+async function runDiff(reportStatus: StatusCallback, fetchListener: InfoBarTableFetchListener, academie: string, schoolYear: string, dko3DiffData: Dko3DiffData | null) {
+    let divResults = document.getElementById("diffResults") as HTMLDivElement;
+    divResults.innerHTML = "";
+
+    return buildAndSaveDiff(reportStatus, fetchListener, academie, schoolYear, dko3DiffData);
 }
 
 export function fillExcelDiffRow(tr: HTMLTableRowElement, diff: JsonDiff, academie: string, schoolYear: string) {

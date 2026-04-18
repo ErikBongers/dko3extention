@@ -5044,7 +5044,7 @@ async function getJsonDiffsCached(academie, schoolYear) {
 	if (cachedDiffs) return cachedDiffs;
 	return getDiffsFromCloud(academie, schoolYear);
 }
-async function buildAndSaveDiff(reportStatus, fetchListener, academie, schoolYear) {
+async function buildAndSaveDiff(reportStatus, fetchListener, academie, schoolYear, dko3DiffData) {
 	reportStatus("Excel bestanden ophalen...");
 	let folderPath = await fetchFolderChanged(`Dko3/Uurroosters/${academie}/${schoolYear}/`);
 	reportStatus(`${folderPath.files.length} Excel bestanden gevonden.`);
@@ -5056,9 +5056,8 @@ async function buildAndSaveDiff(reportStatus, fetchListener, academie, schoolYea
 		jsonExcelDatas.push(excelData);
 	}
 	reportStatus(`Vergelijken met DKO3 lessen...`);
-	let json = localStorage.getItem("dko3plugin.TESTDIFF");
-	let dko3DiffData = JSON.parse(json);
-	json = JSON.stringify(dko3DiffData);
+	if (!dko3DiffData) dko3DiffData = await getDko3Data(schoolYear, reportStatus, fetchListener);
+	let json = JSON.stringify(dko3DiffData);
 	let res = await runRosterCheck(jsonExcelDatas, reportStatus, fetchListener, dko3DiffData);
 	dko3DiffData = JSON.parse(json);
 	dko3DiffData.extraTeachersCache = res.extraTeacherCache.toJSON();
@@ -5070,6 +5069,28 @@ async function buildAndSaveDiff(reportStatus, fetchListener, academie, schoolYea
 	reportStatus(`Vergelijking beeindigd.`);
 	cachedDiffs = jsonDiffs;
 	return jsonDiffs;
+}
+async function getDko3Data(schoolYear, reportStatus, fetchListener) {
+	reportStatus("Vestigingsplaatsen ophalen...");
+	let locationsTable = await getTableFromHash("extra-academie-vestigingsplaatsen", true, fetchListener);
+	let locations = [...locationsTable.getRows()].map((tr) => tr.cells[1].textContent);
+	reportStatus("Leraren ophalen...");
+	let teachers = await fetchTeachers(schoolYear);
+	for (let teacher of teachers) for (let callDef of ExcelRoster.callNames) if (teacher.name == callDef.tag) teacher.callName = callDef.searchString;
+	let lessen = (await scrapeAllNormalLessen(schoolYear, reportStatus)).map((l) => l.les);
+	reportStatus("Ophalen aliaslessen...");
+	let dko3AliasLessen = (await scrapeLessen(Domein.Woord, LesType.alias, schoolYear)).map((l) => l.les);
+	for (let les of dko3AliasLessen) les.linkedLessenIds = await getAliassesForLes(les.id, reportStatus);
+	dko3AliasLessen = dko3AliasLessen.filter((l) => l.linkedLessenIds.length > 1);
+	let subjects = lessen.map((les) => [les.vakNaam, les.naam]).flat();
+	subjects = [...new Set(subjects)];
+	return {
+		lessen,
+		locations,
+		teachers,
+		dko3AliasLessen,
+		subjects
+	};
 }
 async function scrapeAllNormalLessen(schoolYear, reportStatus) {
 	reportStatus("Ophalen woordlessen...");
@@ -5304,6 +5325,19 @@ async function getExtraTeachers(lesId) {
 		return s.textContent.replaceAll("  ", " ").replaceAll(" ,", ",").trim();
 	});
 }
+async function getAliassesForLes(lesId, reportStatus) {
+	await fetch("https://administratie.dko3.cloud/view.php?args=lessen-les?id=" + lesId);
+	await fetch("https://administratie.dko3.cloud/views/lessen/les/index.view.php");
+	await fetch("https://administratie.dko3.cloud/views/lessen/les/index.details.tab.php");
+	await fetch("https://administratie.dko3.cloud/views/lessen/les/index.meta.tab.php");
+	let res = await fetch("https://administratie.dko3.cloud/views/lessen/les/meta/alias_gekoppelde_lessen.card.php");
+	let htmlAliases = await res.text();
+	let div = document.createElement("div");
+	div.innerHTML = htmlAliases;
+	let anchors = div.querySelectorAll("td > a");
+	if (anchors.length == 0) reportStatus(`ERROR: alias les ${lesId} heeft geen (geldige) gekoppelde lessen.`);
+	return [...anchors].map((a) => a.textContent.trim());
+}
 function matchIt(dko3LesSet, excelLesSet, diffs, diffType, matchFunction) {
 	for (let dko3Les of dko3LesSet) {
 		let excelLes = matchFunction(dko3Les, excelLesSet);
@@ -5372,6 +5406,36 @@ function matchWithoutTeacher(dko3Les, excelLesSet) {
 		return excelLes;
 	}
 	return null;
+}
+async function fetchTeachers(schoolYear) {
+	await fetch(DKO3_BASE_URL + "#personeel-personeelsleden");
+	await fetch(DKO3_BASE_URL + "view.php?args=personeel-personeelsleden");
+	await fetch(DKO3_BASE_URL + "views/personeel/personeelsleden/index.view.php");
+	await fetch(DKO3_BASE_URL + "views/personeel/personeelsleden/vestigingsplaats_schooljaar_filter.php?schooljaar=2025-2026");
+	let formData = new FormData();
+	formData.append("filters[naam]", "");
+	formData.append("filters[status_personeelsleden]", "1");
+	formData.append("filters[leerkracht]", "1");
+	formData.append("filters[interim]", "1");
+	formData.append("filters[alc]", "false");
+	formData.append("filters[administratie]", "false");
+	formData.append("filters[overig]", "false");
+	formData.append("filters[schooljaar]", schoolYear);
+	await fetch("https://administratie.dko3.cloud/views/personeel/personeelsleden/save_filters.php", {
+		method: "POST",
+		body: formData
+	});
+	let res = await fetch(DKO3_BASE_URL + "views/personeel/personeelsleden/personeelsleden.table.php");
+	let html = await res.text();
+	let div = document.createElement("div");
+	div.innerHTML = html;
+	return [...div.querySelectorAll(`td[data-label="Naam"] strong`)].map((strong) => strong.textContent).map((name) => {
+		let split = name.split(",");
+		return {
+			name,
+			firstName: split[1].trim()
+		};
+	});
 }
 function findTeacher(searchString, teachers) {
 	let lowerCase = searchString.toLowerCase();
@@ -5483,7 +5547,33 @@ async function getUrlForWorksheet(workBook, workSheet, cellAddress, academie, sc
 
 //#endregion
 //#region typescript/roster_diff/showDiff.ts
-async function showDiffs(diffs, academie, schoolYear) {
+async function getAndShowDiffs(useDiffsFromCloud) {
+	let divResults = document.getElementById("diffResults");
+	divResults.innerHTML = "Ophalen...";
+	let divError = document.getElementById("diffErrors");
+	let runStatus = document.getElementById("runStatus");
+	let divInfo = document.getElementById("diffInfo");
+	let cmbDiffAcademie = document.querySelector("#cmbDiffAcademie");
+	let cmbDiffSchoolYear = document.querySelector("#cmbDiffSchoolYear");
+	let infoBlock = createInfoBlock(divInfo, "");
+	let fetchListener = new InfoBarTableFetchListener(infoBlock);
+	let errors = [];
+	function reportStatus(message, isError) {
+		if (isError == "error") errors.push(message);
+		else runStatus.innerHTML = message;
+		divError.innerHTML = errors.join("<br>");
+	}
+	errors = [];
+	let json = localStorage.getItem("dko3plugin.TESTDIFF");
+	let dko3DiffData = JSON.parse(json);
+	let jsonDiffs = null;
+	if (useDiffsFromCloud) try {
+		jsonDiffs = await getDiffsFromCloud(cmbDiffAcademie.value, cmbDiffSchoolYear.value);
+	} catch (e) {}
+	else jsonDiffs = await runDiff(reportStatus, fetchListener, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData);
+	if (jsonDiffs) await showDiffs(jsonDiffs, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData);
+}
+async function showDiffs(diffs, academie, schoolYear, dko3DiffData) {
 	let divResults = document.getElementById("diffResults");
 	divResults.innerHTML = "Ophalen...";
 	if (!diffs) {
@@ -5494,6 +5584,15 @@ async function showDiffs(diffs, academie, schoolYear) {
 	divResults.innerHTML = "";
 	let elapsedTimeString = dateDiffToString(new Date(diffs.isoDate), new Date());
 	if (elapsedTimeString != "") emmet.appendChild(divResults, `p{Laatste vergelijking: ${elapsedTimeString} geleden.}`);
+	if (dko3DiffData) {
+		let p = emmet.appendChild(divResults, `p{Dko3 gegevens uit cache. }`).first;
+		let button = emmet.appendChild(p, "button.likeLink").first;
+		button.innerHTML = "refresh";
+		button.onclick = () => {
+			localStorage.removeItem("dko3plugin.TESTDIFF");
+			getAndShowDiffs(false);
+		};
+	}
 	let chkHideChecked = emmet.appendChild(divResults, `input#chkHideChecked[type="checkbox"]+label[for="chkHideChecked"]{Verberg aangevinkte lijnen}`).first;
 	chkHideChecked.onchange = (ev) => {
 		let input = ev.currentTarget;
@@ -5518,6 +5617,11 @@ async function showDiffs(diffs, academie, schoolYear) {
 	let ingore = localStorage.getItem(OPTION_HIDE_IGNORED_DIFFS) ?? "false";
 	chkHideChecked.checked = ingore == "true";
 	table.classList.toggle("hideChecked", chkHideChecked.checked);
+}
+async function runDiff(reportStatus, fetchListener, academie, schoolYear, dko3DiffData) {
+	let divResults = document.getElementById("diffResults");
+	divResults.innerHTML = "";
+	return buildAndSaveDiff(reportStatus, fetchListener, academie, schoolYear, dko3DiffData);
 }
 function fillExcelDiffRow(tr, diff, academie, schoolYear) {
 	fillDiffRow(tr, diff.excelLes.subject, diff.excelLes.teacher, diff.excelLes.day, diff.excelLes.timeSlice, diff.excelLes.location, diff.diffType, "excel", excelPostoExcelAddress(diff.excelLes.excelRow, diff.excelLes.excelColumn), diff.excelLes.cellValue, "", diff.excelLes.workBook, diff.excelLes.workSheet, diff.excelLes.hash, diff.excelLes.ignore, academie, schoolYear);
@@ -5658,11 +5762,6 @@ const chars = [
 
 //#endregion
 //#region typescript/startPage/diffPage.ts
-async function runDiff(reportStatus, fetchListener, academie, schoolYear) {
-	let divResults = document.getElementById("diffResults");
-	divResults.innerHTML = "";
-	return buildAndSaveDiff(reportStatus, fetchListener, academie, schoolYear);
-}
 async function loadCombboxSchoolYearAndTrySelect(dirTree) {
 	if (!dirTree) dirTree = await getDiffDirStructure();
 	let pluginContainer = document.getElementById("plugin_container");
@@ -5695,21 +5794,9 @@ async function setupDiffPage() {
 	if (await loadCombboxSchoolYearAndTrySelect(dirTree)) pluginContainer.classList.toggle("diffCombosLoaded", true);
 	let runStatus = emmet.insertAfter(button, "div#runStatus").first;
 	emmet.insertAfter(runStatus, "div#diffResults");
-	let divInfo = emmet.insertAfter(runStatus, "div").last;
-	let divError = emmet.insertAfter(divInfo, "div.errors").last;
-	let infoBlock = createInfoBlock(divInfo, "");
-	let fetchListener = new InfoBarTableFetchListener(infoBlock);
-	let errors = [];
-	function reportStatus(message, isError) {
-		if (isError == "error") errors.push(message);
-		else runStatus.innerHTML = message;
-		divError.innerHTML = errors.join("<br>");
-	}
-	button.onclick = async () => {
-		errors = [];
-		let jsonDiffs = await runDiff(reportStatus, fetchListener, cmbDiffAcademie.value, cmbDiffSchoolYear.value);
-		await showDiffs(jsonDiffs, cmbDiffAcademie.value, cmbDiffSchoolYear.value);
-	};
+	let divInfo = emmet.insertAfter(runStatus, "div#diffInfo").last;
+	let divError = emmet.insertAfter(divInfo, "div#diffErrors.errors").last;
+	button.onclick = () => getAndShowDiffs(false);
 	cmbDiffAcademie.onchange = async () => {
 		if (await loadCombboxSchoolYearAndTrySelect(dirTree)) pluginContainer.classList.toggle("diffCombosLoaded", true);
 		await showDiffsFromComboboxes();
@@ -5720,12 +5807,7 @@ async function setupDiffPage() {
 	await showDiffsFromComboboxes();
 }
 async function showDiffsFromComboboxes() {
-	let cmbDiffAcademie = document.querySelector("#cmbDiffAcademie");
-	let cmbDiffSchoolYear = document.querySelector("#cmbDiffSchoolYear");
-	try {
-		let jsonDiffs = await getDiffsFromCloud(cmbDiffAcademie.value, cmbDiffSchoolYear.value);
-		if (jsonDiffs) await showDiffs(jsonDiffs, cmbDiffAcademie.value, cmbDiffSchoolYear.value);
-	} catch (e) {}
+	await getAndShowDiffs(true);
 }
 async function getDiffDirStructure() {
 	let folderContent = await fetchFolderContent("Dko3/Uurroosters/");

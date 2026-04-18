@@ -10,7 +10,7 @@ import {DKO3_BASE_URL, LESSEN_TABLE_ID} from "../def";
 import {getTableFromHash, InfoBarTableFetchListener} from "../table/loadAnyTable";
 import {emmet} from "../../libs/Emmeter/html";
 import {fetchAndDisplayNotifications} from "../notifications/notifications";
-import {StatusCallback} from "../startPage/diffPage";
+import {StatusCallback} from "./showDiff";
 
 let cachedDiffs: JsonDiffs = undefined;
 export async function getJsonDiffsCached(academie: string, schoolYear: string) {
@@ -19,7 +19,7 @@ export async function getJsonDiffsCached(academie: string, schoolYear: string) {
     return getDiffsFromCloud(academie, schoolYear);
 }
 
-export async function buildAndSaveDiff(reportStatus: StatusCallback, fetchListener: InfoBarTableFetchListener, academie: string, schoolYear: string) {
+export async function buildAndSaveDiff(reportStatus: StatusCallback, fetchListener: InfoBarTableFetchListener, academie: string, schoolYear: string, dko3DiffData: Dko3DiffData | null) {
     reportStatus("Excel bestanden ophalen...");
     let folderPath = await fetchFolderChanged(`Dko3/Uurroosters/${academie}/${schoolYear}/`);
     reportStatus(`${folderPath.files.length} Excel bestanden gevonden.`);
@@ -31,11 +31,9 @@ export async function buildAndSaveDiff(reportStatus: StatusCallback, fetchListen
         jsonExcelDatas.push(excelData);
     }
     reportStatus(`Vergelijken met DKO3 lessen...`);
-    //todo: fetch data if no json available or user wants a refresh.
-    // let dko3DiffData = await getDko3Data(schoolYear, reportStatus, fetchListener);
-    let json = localStorage.getItem("dko3plugin.TESTDIFF");
-    let dko3DiffData = JSON.parse(json) as Dko3DiffData;
-    json = JSON.stringify(dko3DiffData);
+    if(!dko3DiffData)
+        dko3DiffData = await getDko3Data(schoolYear, reportStatus, fetchListener);
+    let json = JSON.stringify(dko3DiffData);
     let res = await runRosterCheck(jsonExcelDatas, reportStatus, fetchListener, dko3DiffData);
     //parse again, just in case previous function changed the dko3 data.
     dko3DiffData = JSON.parse(json) as Dko3DiffData;
@@ -51,7 +49,7 @@ export async function buildAndSaveDiff(reportStatus: StatusCallback, fetchListen
     return jsonDiffs;
 }
 
-interface Dko3DiffData {
+export interface Dko3DiffData {
     lessen: Les[];
     locations: string[];
     teachers: TeacherDef[];
