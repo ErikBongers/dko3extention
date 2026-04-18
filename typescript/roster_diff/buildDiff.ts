@@ -44,7 +44,7 @@ export async function buildAndSaveDiff(reportStatus: StatusCallback, fetchListen
     let fileName = getDiffsCloudFileName(academie, schoolYear);
     await cloud.json.upload(fileName, jsonDiffs);
     sessionStorage.setItem(fileName, JSON.stringify(jsonDiffs));
-    reportStatus(`Vergelijking beeindigd.`);
+    reportStatus(``);
     cachedDiffs = jsonDiffs;
     return jsonDiffs;
 }

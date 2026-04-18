@@ -1,3 +1,7 @@
+* UX: "Zoek verschillen" and "refresh" - what's the difference?
+  
+* Cache of dko3DiffData does NOT yet check academie+schoolyear!
+
 * Test:
   - mark klas "grapje" as OK -> invisible.
   - change it back to Comedy and rerun the checks

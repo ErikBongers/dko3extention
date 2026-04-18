@@ -5066,7 +5066,7 @@ async function buildAndSaveDiff(reportStatus, fetchListener, academie, schoolYea
 	let fileName = getDiffsCloudFileName(academie, schoolYear);
 	await cloud.json.upload(fileName, jsonDiffs);
 	sessionStorage.setItem(fileName, JSON.stringify(jsonDiffs));
-	reportStatus(`Vergelijking beeindigd.`);
+	reportStatus(``);
 	cachedDiffs = jsonDiffs;
 	return jsonDiffs;
 }
@@ -5583,17 +5583,18 @@ async function showDiffs(diffs, academie, schoolYear, dko3DiffData) {
 	await setIgnoredFlags(diffs.orphanedDko3Lessen, diffs.orphanedExcelLessen, academie, schoolYear);
 	divResults.innerHTML = "";
 	let elapsedTimeString = dateDiffToString(new Date(diffs.isoDate), new Date());
-	if (elapsedTimeString != "") emmet.appendChild(divResults, `p{Laatste vergelijking: ${elapsedTimeString} geleden.}`);
+	if (elapsedTimeString != "") emmet.appendChild(divResults, `div.gray{Laatste vergelijking: ${elapsedTimeString} geleden.}`);
 	if (dko3DiffData) {
-		let p = emmet.appendChild(divResults, `p{Dko3 gegevens uit cache. }`).first;
-		let button = emmet.appendChild(p, "button.likeLink").first;
+		let div = emmet.appendChild(divResults, `div.gray{Dko3 gegevens uit cache. }`).first;
+		let button = emmet.appendChild(div, "button.likeLink").first;
 		button.innerHTML = "refresh";
 		button.onclick = () => {
 			localStorage.removeItem("dko3plugin.TESTDIFF");
 			getAndShowDiffs(false);
 		};
 	}
-	let chkHideChecked = emmet.appendChild(divResults, `input#chkHideChecked[type="checkbox"]+label[for="chkHideChecked"]{Verberg aangevinkte lijnen}`).first;
+	let divChk = emmet.appendChild(divResults, `div#divHideChecked>(input#chkHideChecked[type="checkbox"]+label[for="chkHideChecked"]{Verberg aangevinkte lijnen})`).first;
+	let chkHideChecked = divChk.querySelector("#chkHideChecked");
 	chkHideChecked.onchange = (ev) => {
 		let input = ev.currentTarget;
 		let table$1 = document.getElementById("orphans");

@@ -54,17 +54,18 @@ export async function showDiffs(diffs: JsonDiffs, academie: string, schoolYear: 
     divResults.innerHTML = "";
     let elapsedTimeString = dateDiffToString(new Date(diffs.isoDate), new Date());
     if(elapsedTimeString != "")
-        emmet.appendChild(divResults, `p{Laatste vergelijking: ${elapsedTimeString} geleden.}`)
+        emmet.appendChild(divResults, `div.gray{Laatste vergelijking: ${elapsedTimeString} geleden.}`)
     if(dko3DiffData) {
-        let p = emmet.appendChild(divResults, `p{Dko3 gegevens uit cache. }`).first as HTMLParagraphElement;
-        let button = emmet.appendChild(p, "button.likeLink").first as HTMLButtonElement;
+        let div = emmet.appendChild(divResults, `div.gray{Dko3 gegevens uit cache. }`).first as HTMLDivElement;
+        let button = emmet.appendChild(div, "button.likeLink").first as HTMLButtonElement;
         button.innerHTML = "refresh";
         button.onclick = () => {
             localStorage.removeItem("dko3plugin.TESTDIFF");
             getAndShowDiffs(false);
         };
     }
-    let chkHideChecked = emmet.appendChild(divResults, `input#chkHideChecked[type="checkbox"]+label[for="chkHideChecked"]{Verberg aangevinkte lijnen}`).first as HTMLInputElement;
+    let divChk = emmet.appendChild(divResults, `div#divHideChecked>(input#chkHideChecked[type="checkbox"]+label[for="chkHideChecked"]{Verberg aangevinkte lijnen})`).first as HTMLDivElement;
+    let chkHideChecked = divChk.querySelector("#chkHideChecked") as HTMLInputElement;
     chkHideChecked.onchange = (ev) => {
         let input = ev.currentTarget as HTMLInputElement;
         let table = document.getElementById("orphans") as HTMLTableElement;

@@ -539,3 +539,11 @@ div#snapshotResults {
         }
     }
 }
+
+.gray {
+    color: gray;
+}
+
+#divHideChecked {
+    margin-top: 1ch;
+}
