@@ -5793,7 +5793,7 @@ async function loadCombboxSchoolYearAndTrySelect(dirTree) {
 }
 async function setupDiffPage() {
 	let pluginContainer = document.getElementById("plugin_container");
-	emmet.appendChild(pluginContainer, "div#diffsPage.mb-1>div>(h4{Verschillen tussen Excel uurroosters en DKO3 lessen.}+(div#combosLoading{Gegevens laden...}+select#cmbDiffAcademie+select#cmbDiffSchoolYear+button#btnCalcDiff.btn.btn-primary{Zoek verschillen}+button#btnDiffSettings.btn.btn-primary{Setup}))");
+	emmet.appendChild(pluginContainer, "div#diffsPage.mb-1>div>(h4{Verschillen tussen Excel uurroosters en DKO3 lessen.}+(div#combosLoading{Gegevens laden...}+select#cmbDiffAcademie+select#cmbDiffSchoolYear+button#btnCalcDiff.btn.btn-primary{Zoek verschillen}+button#btnDiffSettings.btn.btn-outline-dark{Setup}))");
 	let btnCalcDiff = pluginContainer.querySelector("#btnCalcDiff");
 	let btnDiffSettings = pluginContainer.querySelector("#btnDiffSettings");
 	let dirTree = await getDiffDirStructure();
@@ -5805,7 +5805,7 @@ async function setupDiffPage() {
 	cmbDiffAcademie.value = myAcadFolderName;
 	let cmbDiffSchoolYear = document.querySelector("#cmbDiffSchoolYear");
 	if (await loadCombboxSchoolYearAndTrySelect(dirTree)) pluginContainer.classList.toggle("diffCombosLoaded", true);
-	let runStatus = emmet.insertAfter(btnCalcDiff, "div#runStatus").first;
+	let runStatus = emmet.insertAfter(btnDiffSettings, "div#runStatus").first;
 	emmet.insertAfter(runStatus, "div#diffResults");
 	let divInfo = emmet.insertAfter(runStatus, "div#diffInfo").last;
 	let divError = emmet.insertAfter(divInfo, "div#diffErrors.errors").last;
