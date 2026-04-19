@@ -4,6 +4,7 @@ import options_config from './rolldown_options.config.js';
 import serviceworker_config from './rolldown_service.config.js';
 import blank_config from './rolldown_blank.config.js';
 import hours_settings_config from './rolldown_hours_setup.config.js';
+import diff_settings_config from './rolldown_diff_settings.config.js';
 
 // noinspection JSUnusedGlobalSymbols
 export default defineConfig([
@@ -11,5 +12,6 @@ export default defineConfig([
     options_config,
     serviceworker_config,
     blank_config,
-    hours_settings_config
+    hours_settings_config,
+    diff_settings_config
 ])

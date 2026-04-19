@@ -11,6 +11,7 @@ import {getTableFromHash, InfoBarTableFetchListener} from "../table/loadAnyTable
 import {emmet} from "../../libs/Emmeter/html";
 import {fetchAndDisplayNotifications} from "../notifications/notifications";
 import {StatusCallback} from "./showDiff";
+import {defaultIgnoreList, defaultTagDefs, DiffSettings} from "./diffSettings";
 
 let cachedDiffs: JsonDiffs = undefined;
 export async function getJsonDiffsCached(academie: string, schoolYear: string) {
@@ -19,7 +20,7 @@ export async function getJsonDiffsCached(academie: string, schoolYear: string) {
     return getDiffsFromCloud(academie, schoolYear);
 }
 
-export async function buildAndSaveDiff(reportStatus: StatusCallback, fetchListener: InfoBarTableFetchListener, academie: string, schoolYear: string, dko3DiffData: Dko3DiffData | null) {
+export async function buildAndSaveDiff(reportStatus: StatusCallback, fetchListener: InfoBarTableFetchListener, academie: string, schoolYear: string, dko3DiffData: Dko3DiffData | null, diffSettings: DiffSettings) {
     reportStatus("Excel bestanden ophalen...");
     let folderPath = await fetchFolderChanged(`Dko3/Uurroosters/${academie}/${schoolYear}/`);
     reportStatus(`${folderPath.files.length} Excel bestanden gevonden.`);
@@ -34,7 +35,7 @@ export async function buildAndSaveDiff(reportStatus: StatusCallback, fetchListen
     if(!dko3DiffData)
         dko3DiffData = await getDko3Data(schoolYear, reportStatus, fetchListener);
     let json = JSON.stringify(dko3DiffData);
-    let res = await runRosterCheck(jsonExcelDatas, reportStatus, fetchListener, dko3DiffData);
+    let res = await runRosterCheck(jsonExcelDatas, reportStatus, fetchListener, dko3DiffData, diffSettings);
     //parse again, just in case previous function changed the dko3 data.
     dko3DiffData = JSON.parse(json) as Dko3DiffData;
     dko3DiffData.extraTeachersCache = res.extraTeacherCache.toJSON();
@@ -95,21 +96,21 @@ export async function scrapeAllNormalLessen(schoolYear: string, reportStatus: St
     return [...dko3Lessen, ...muziekLessen, ...kbLessen];
 }
 
-export async function runRosterCheck(excelDatas: JsonExcelData[], reportStatus: StatusCallback, fetchListener: InfoBarTableFetchListener, dko3DiffData: Dko3DiffData) {
+export async function runRosterCheck(excelDatas: JsonExcelData[], reportStatus: StatusCallback, fetchListener: InfoBarTableFetchListener, dko3DiffData: Dko3DiffData, diffSettings: DiffSettings) {
     let excelLessenArray: ClassDef[][] = [];
     let excelRosters: ExcelRoster[] = [];
     reportStatus("Excel tabellen bouwen...");
     for(let excelData of excelDatas) {
         let factory = new RosterFactory(excelData);
         let table = factory.getTable();
-        let roster = new ExcelRoster(table, dko3DiffData.locations, dko3DiffData.subjects);
+        let roster = new ExcelRoster(table, dko3DiffData.locations, dko3DiffData.subjects, diffSettings);
         excelRosters.push(roster);
         let classDefs = roster.scrapeUurrooster();
         if(classDefs)
             excelLessenArray.push(classDefs);
         console.log(excelLessenArray);
     }
-    let res = {excelRosters, ...await buildDiff(excelLessenArray.flat(), dko3DiffData, reportStatus)};
+    let res = {excelRosters, ...await buildDiff(excelLessenArray.flat(), dko3DiffData, reportStatus, diffSettings)};
     //no await:
     deleteNotification("FILE_POSTED").then(() => fetchAndDisplayNotifications());
     return res;
@@ -235,23 +236,23 @@ export class TaggedExcelLes extends TaggedLes<ClassDef> {
     }
 }
 
-function isDko3LesToIgnore(les: TaggedDko3LesMoment) {
-    return ExcelRoster.ignoreList.some(ignore =>
+function isDko3LesToIgnore(les: TaggedDko3LesMoment, ignoreList: string[]) {
+    return ignoreList.some(ignore =>
         (" "+les.lesMoment.les.naam.toLowerCase()+" ").includes(ignore) //todo: use subjects array instead of naam and vakNaam
         || (" "+les.lesMoment.les.vakNaam.toLowerCase()+" ").includes(ignore)
     )
 }
 
-function isExcelLesToIgnore(les: TaggedExcelLes) {
-    return ExcelRoster.ignoreList.some(ignore => les.searchText.includes(ignore))
+function isExcelLesToIgnore(les: TaggedExcelLes, ignoreList: string[]) {
+    return ignoreList.some(ignore => les.searchText.includes(ignore))
 }
 
-async function buildDiff(excelLessen: ClassDef[], dko3Data: Dko3DiffData, reportStatus: StatusCallback) {
+async function buildDiff(excelLessen: ClassDef[], dko3Data: Dko3DiffData, reportStatus: StatusCallback, diffSettings: DiffSettings) {
     reportStatus("Lessen vergelijken...");
     let diffs: Diff[] = [];
     let excelLesSet: Set<TaggedExcelLes> = new Set<TaggedExcelLes>(excelLessen.map(les => new TaggedExcelLes(les, dko3Data.teachers)));
     excelLesSet.forEach(les=> {
-        if(isExcelLesToIgnore(les))
+        if(isExcelLesToIgnore(les, diffSettings.ignoreList))
             excelLesSet.delete(les);
     })
     //split each Dko3 les into multiple lesMoments
@@ -265,7 +266,7 @@ async function buildDiff(excelLessen: ClassDef[], dko3Data: Dko3DiffData, report
     let dko3LesSet: Set<TaggedDko3LesMoment> = new Set<TaggedDko3LesMoment>(lesMomenten);
 
     dko3LesSet.forEach(les=> {
-        if(isDko3LesToIgnore(les))
+        if(isDko3LesToIgnore(les, diffSettings.ignoreList))
             dko3LesSet.delete(les);
     })
 

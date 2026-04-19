@@ -2,6 +2,11 @@ import {emmet} from "../../libs/Emmeter/html";
 import {getAndShowDiffs} from "../roster_diff/showDiff";
 import {fetchFolderContent} from "../cloud";
 import {getUserAndSchoolName} from "../globals";
+import {Diff} from "../roster_diff/buildDiff";
+import {defaultIgnoreList, defaultTagDefs, DiffSettings} from "../roster_diff/diffSettings";
+import {RosterFactory} from "../roster_diff/rosterFactory";
+import {Actions, sendRequest, ServiceRequest, TabType} from "../messaging";
+import MessageSender = chrome.runtime.MessageSender;
 
 async function loadCombboxSchoolYearAndTrySelect(dirTree?: TreeNode): Promise<boolean> {
     if(!dirTree)
@@ -26,7 +31,9 @@ async function loadCombboxSchoolYearAndTrySelect(dirTree?: TreeNode): Promise<bo
 
 export async function setupDiffPage() {
     let pluginContainer = document.getElementById("plugin_container")!;
-    let button = emmet.appendChild(pluginContainer, "div#diffsPage.mb-1>div>(h4{Verschillen tussen Excel uurroosters en DKO3 lessen.}+(div#combosLoading{Gegevens laden...}+select#cmbDiffAcademie+select#cmbDiffSchoolYear+button.btn.btn-primary{Zoek verschillen}))").last as HTMLButtonElement;
+    emmet.appendChild(pluginContainer, "div#diffsPage.mb-1>div>(h4{Verschillen tussen Excel uurroosters en DKO3 lessen.}+(div#combosLoading{Gegevens laden...}+select#cmbDiffAcademie+select#cmbDiffSchoolYear+button#btnCalcDiff.btn.btn-primary{Zoek verschillen}+button#btnDiffSettings.btn.btn-primary{Setup}))");
+    let btnCalcDiff = pluginContainer.querySelector("#btnCalcDiff")  as HTMLButtonElement;
+    let btnDiffSettings = pluginContainer.querySelector("#btnDiffSettings")  as HTMLButtonElement;
     let dirTree = await getDiffDirStructure();
     let myAcadFolderName = getDiffMyAcademieFolder(dirTree);
     if(!myAcadFolderName)
@@ -38,12 +45,13 @@ export async function setupDiffPage() {
     let cmbDiffSchoolYear = document.querySelector("#cmbDiffSchoolYear") as HTMLSelectElement;
     if(await loadCombboxSchoolYearAndTrySelect(dirTree))
         pluginContainer.classList.toggle("diffCombosLoaded", true);
-    let runStatus = emmet.insertAfter(button, "div#runStatus").first as HTMLDivElement;
+    let runStatus = emmet.insertAfter(btnDiffSettings, "div#runStatus").first as HTMLDivElement;
     emmet.insertAfter(runStatus, "div#diffResults");
 
     let divInfo = emmet.insertAfter(runStatus, 'div#diffInfo').last as HTMLDivElement;
     let divError = emmet.insertAfter(divInfo, 'div#diffErrors.errors').last as HTMLDivElement;
-    button.onclick = () => getAndShowDiffs(false);
+    btnCalcDiff.onclick = () => calcAndShowDiffsWithSettings(false);
+    btnDiffSettings.onclick = () => showDiffSetup("TODO") //todo!!!
     cmbDiffAcademie.onchange = async () => {
         if(await loadCombboxSchoolYearAndTrySelect(dirTree))
             pluginContainer.classList.toggle("diffCombosLoaded", true);
@@ -55,8 +63,20 @@ export async function setupDiffPage() {
     await showDiffsFromComboboxes();
 }
 
+async function calcAndShowDiffsWithSettings(useDiffsFromCloud: boolean) {
+    let ignoreList = [...defaultIgnoreList];
+    let tagDefs = [...defaultTagDefs];
+    let diffSettings: DiffSettings = {
+        version: 0,
+        schoolyear: "TODO", //todo: schoolYear and academie!!!
+        ignoreList,
+        tagDefs
+    }
+    await getAndShowDiffs(useDiffsFromCloud, diffSettings);
+}
+
 async function showDiffsFromComboboxes() {
-    await getAndShowDiffs(true);
+    await calcAndShowDiffsWithSettings(true);
 }
 interface TreeNode {
     folderName: string;
@@ -114,4 +134,56 @@ export function getDiffMyAcademieFolder(folderTree: TreeNode) {
         return found;
     return null;
 }
+
+async function showDiffSetup(schoolyear: string) {
+    let res = await openDiffSettings(schoolyear);
+    globalDiffSettingsTabId = res.tabId;
+}
+
+let globalDiffSettingsTabId: number;
+
+type DiffGlobals = {
+    diffSettings: DiffSettings,
+}
+
+let globals: DiffGlobals = {
+    diffSettings: undefined
+}
+
+export async function openDiffSettings(schoolyear: string) {
+    return sendRequest(Actions.OpenDiffSettings, TabType.Main, TabType.Undefined, undefined, {schoolyear}, "TODO: is this title used? Uurrooster setup voor schooljaar " + schoolyear);
+}
+
+chrome.runtime.onMessage.addListener(onMessage)
+let pauseRefresh = false;
+
+//reset the pause after some time, because otherwise, in case of an error, the page will no longer be refreshed.
+setInterval(() => {
+    pauseRefresh = false;
+}, 2000);
+
+async function onMessage(request: ServiceRequest, _sender: MessageSender, sendResponse: (response?: any) => void) {
+    if(request.senderTabType != TabType.DiffSettings)
+        return;
+    if(request.action == Actions.RequestTabData) {
+        console.log("Requesting tab data", request.data);
+        let schoolYear = request.data.params.schoolYear; //todo: use this to get the settings.
+        let setup = globals.diffSettings;//todo!
+        await sendMessageToDiffSettings(Actions.TabData, setup);
+        return;
+    }
+    if(pauseRefresh)
+        return;
+    pauseRefresh = true;
+    let diffSettings = request.data as DiffSettings;
+    globals.diffSettings = diffSettings;
+    //todo: rebuild diffs.
+    pauseRefresh = false;
+}
+
+async function sendMessageToDiffSettings(action: Actions, data: any) {
+    return sendRequest(action, TabType.Main, TabType.DiffSettings, globalDiffSettingsTabId, data);
+}
+
+
 

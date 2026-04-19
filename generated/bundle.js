@@ -442,7 +442,9 @@ let Actions = /* @__PURE__ */ function(Actions$1) {
 	Actions$1["TabData"] = "tab_data";
 	Actions$1["GetParentTabId"] = "get_parent_tab_id";
 	Actions$1["OpenHoursSettings"] = "open_hours_settings";
+	Actions$1["OpenDiffSettings"] = "open_diff_settings";
 	Actions$1["HoursSettingsChanged"] = "open_hours_settings_changed";
+	Actions$1["DiffSettingsChanged"] = "diff_settings_changed";
 	Actions$1["GreetingsFromParent"] = "greetingsFromParent";
 	Actions$1["GreetingsFromChild"] = "greetingsFromChild";
 	return Actions$1;
@@ -451,6 +453,7 @@ let TabType = /* @__PURE__ */ function(TabType$1) {
 	TabType$1["Undefined"] = "Undefined";
 	TabType$1["Main"] = "Main";
 	TabType$1["HoursSettings"] = "HoursSettings";
+	TabType$1["DiffSettings"] = "diffSettings";
 	TabType$1["Html"] = "Html";
 	return TabType$1;
 }({});
@@ -1613,10 +1616,14 @@ var ExcelRoster = class {
 	locationDefs;
 	subjectDefs;
 	errors = [];
-	constructor(table, locations, subjects) {
+	tagDefs;
+	ignoreList;
+	constructor(table, locations, subjects, diffSettings) {
 		this.table = table;
 		this.locationDefs = locations;
 		this.subjectDefs = subjects;
+		this.tagDefs = diffSettings.tagDefs;
+		this.ignoreList = diffSettings.ignoreList;
 	}
 	scrapeUurrooster() {
 		let timeSlices = this.createTimeSlices();
@@ -1648,7 +1655,7 @@ var ExcelRoster = class {
 				let times = this.findTimes(parseText);
 				if (times.length === 2) timeSlice = new TimeSlice(times[0], times[1]);
 				else if (times.length === 1) timeSlice = this.moveTimeSliceTo(timeSlice, times[0]);
-				let tags = this.findTags(parseText, this.defaultTagDefs);
+				let tags = this.findTags(parseText, this.tagDefs);
 				let location$1 = this.findLocation(tags);
 				let subjects = this.findSubjects(tags);
 				let tablePos = {
@@ -1701,276 +1708,6 @@ var ExcelRoster = class {
 		newSlice.end.minutes = newEndMinutes % 60;
 		return newSlice;
 	}
-	defaultTagDefs = [
-		{
-			tag: "Vestiging Sterrenkijker/SL Durlet",
-			searchString: " sterr"
-		},
-		{
-			tag: "Vestiging Sterrenkijker/SL Durlet",
-			searchString: " durlet"
-		},
-		{
-			tag: "Vestiging De Kleine Stad",
-			searchString: " kleine stad "
-		},
-		{
-			tag: "Vestiging De Kleine Wereld",
-			searchString: " wereld "
-		},
-		{
-			tag: "Vestiging De Nieuwe Vrede",
-			searchString: " vrede "
-		},
-		{
-			tag: "Vestiging De Nieuwe Vrede",
-			searchString: " dnv "
-		},
-		{
-			tag: "Vestiging De Nieuwe Vrede",
-			searchString: " tegel"
-		},
-		{
-			tag: "Vestiging De Nieuwe Vrede",
-			searchString: " tango "
-		},
-		{
-			tag: "Vestiging De Nieuwe Vrede",
-			searchString: " vergaderzaal "
-		},
-		{
-			tag: "Vestiging De Kosmos",
-			searchString: " kosmos "
-		},
-		{
-			tag: "Vestiging De Schatkist",
-			searchString: " schatk"
-		},
-		{
-			tag: "Vestiging De Kolibrie",
-			searchString: " kolibri"
-		},
-		{
-			tag: "Vestiging Het Fonkelpad",
-			searchString: " fonkel"
-		},
-		{
-			tag: "Vestiging Alberreke",
-			searchString: " alber"
-		},
-		{
-			tag: "Vestiging c o r s o",
-			searchString: " corso "
-		},
-		{
-			tag: "Vestiging c o r s o",
-			searchString: "c o r s o"
-		},
-		{
-			tag: "Vestiging c o r s o",
-			searchString: " studio 3 "
-		},
-		{
-			tag: "Vestiging Prins Dries",
-			searchString: " prins "
-		},
-		{
-			tag: "Vestiging Prins Dries",
-			searchString: " dries "
-		},
-		{
-			tag: "Vestiging Groenhout Kasteelstraat",
-			searchString: " groenhout "
-		},
-		{
-			tag: "Vestiging Groenhout Kasteelstraat",
-			searchString: " kasteel"
-		},
-		{
-			tag: "Vestiging Het Fonkelpad",
-			searchString: " fonkel "
-		},
-		{
-			tag: "Vestiging OLV Pulhof",
-			searchString: " pulhof "
-		},
-		{
-			tag: "Vestiging OLV Pulhof",
-			searchString: " 1p "
-		},
-		{
-			tag: "Vestiging OLV Pulhof",
-			searchString: " 2p "
-		},
-		{
-			tag: "Vestiging Sterrenkijker/SL Durlet",
-			searchString: " 1d "
-		},
-		{
-			tag: "Vestiging Sterrenkijker/SL Durlet",
-			searchString: " 2d "
-		},
-		{
-			tag: "Vestiging Via Louiza",
-			searchString: " louiza "
-		},
-		{
-			tag: "Vestiging Frans Van Hombeeck",
-			searchString: " hombee"
-		},
-		{
-			tag: "Vestiging Klavertje Vier",
-			searchString: " klaver"
-		},
-		{
-			tag: "Academie Willem Van Laarstraat, Berchem",
-			searchString: " bib "
-		},
-		{
-			tag: "Academie Willem Van Laarstraat, Berchem",
-			searchString: "laarstr"
-		},
-		{
-			tag: "Academie Willem Van Laarstraat, Berchem",
-			searchString: " wvl "
-		},
-		{
-			tag: "Vestiging Frans Van Hombeeck",
-			searchString: " beeld "
-		},
-		{
-			tag: "Cabaret en comedy",
-			searchString: " cabaret "
-		},
-		{
-			tag: "Woordatelier",
-			searchString: " woordatelier "
-		},
-		{
-			tag: "Woordatelier",
-			searchString: " wa "
-		},
-		{
-			tag: "Woordlab",
-			searchString: " woordlab "
-		},
-		{
-			tag: "Woordlab",
-			searchString: " wl "
-		},
-		{
-			tag: "Literair atelier",
-			searchString: " literair atelier "
-		},
-		{
-			tag: "Literaire teksten",
-			searchString: " literaire teksten "
-		},
-		{
-			tag: "Schrijven",
-			searchString: " basiscursus "
-		},
-		{
-			tag: "Spreken en vertellen",
-			searchString: " spreken "
-		},
-		{
-			tag: "Kunstenbad muziek/woord",
-			searchString: " kunstenbad "
-		},
-		{
-			tag: "Musicalatelier",
-			searchString: " musicalatelier "
-		},
-		{
-			tag: "Musical koor",
-			searchString: " musical koor "
-		},
-		{
-			tag: "Musical zang",
-			searchString: " musical zang "
-		},
-		{
-			tag: "Theater",
-			searchString: " acteren "
-		},
-		{
-			tag: "Muziekatelier",
-			searchString: " 1p "
-		},
-		{
-			tag: "Muziekatelier",
-			searchString: " 2p "
-		},
-		{
-			tag: "Muziekatelier",
-			searchString: " 1d "
-		},
-		{
-			tag: "Muziekatelier",
-			searchString: " 2d "
-		},
-		{
-			tag: "Muziekatelier",
-			searchString: " 1va "
-		},
-		{
-			tag: "Muziekatelier",
-			searchString: " 1vb "
-		},
-		{
-			tag: "Muziekatelier",
-			searchString: " 1vc "
-		},
-		{
-			tag: "Muziekatelier",
-			searchString: " 2va "
-		},
-		{
-			tag: "Muziekatelier",
-			searchString: " 2vb "
-		},
-		{
-			tag: "Muziekatelier",
-			searchString: " 3v "
-		},
-		{
-			tag: "Muziekatelier",
-			searchString: " 1t "
-		},
-		{
-			tag: "Muziekatelier",
-			searchString: " 2t "
-		},
-		{
-			tag: "Groepsmusiceren (klassiek)",
-			searchString: " gm "
-		},
-		{
-			tag: "Atelier (musical)",
-			searchString: " musicalatelier "
-		},
-		{
-			tag: "Musicalatelier 2e graad",
-			searchString: " musical for kids "
-		}
-	];
-	static ignoreList = [
-		" kunstkuren ",
-		" arrangeren",
-		" combo ",
-		" harmonielab ",
-		" klanklab ",
-		" muzieklab ",
-		" electronics ",
-		" big band ",
-		" blazersensemble ",
-		" groepsmusiceren (jass pop rock) ",
-		" geluidsleer ",
-		" koor (jazz pop rock) ",
-		" koor (musical) ",
-		" slagwerkensemble "
-	];
 	static callNames = [{
 		tag: "Van Goethem, Robert",
 		searchString: "bert"
@@ -3944,8 +3681,8 @@ function showDistinctColumn(tableMeta, index) {
 	let id = addToOtherTabsDataCache(JSON.stringify(htmlData));
 	openHtmlTab(id, headerText + " (uniek)").then((_) => {});
 }
-chrome.runtime.onMessage.addListener(onMessage$1);
-async function onMessage$1(request, _sender, sendResponse) {
+chrome.runtime.onMessage.addListener(onMessage$2);
+async function onMessage$2(request, _sender, sendResponse) {
 	if (request.senderTabType != TabType.Html) return;
 	if (request.action == Actions.RequestTabData) {
 		let params = request.data.params;
@@ -5044,7 +4781,7 @@ async function getJsonDiffsCached(academie, schoolYear) {
 	if (cachedDiffs) return cachedDiffs;
 	return getDiffsFromCloud(academie, schoolYear);
 }
-async function buildAndSaveDiff(reportStatus, fetchListener, academie, schoolYear, dko3DiffData) {
+async function buildAndSaveDiff(reportStatus, fetchListener, academie, schoolYear, dko3DiffData, diffSettings) {
 	reportStatus("Excel bestanden ophalen...");
 	let folderPath = await fetchFolderChanged(`Dko3/Uurroosters/${academie}/${schoolYear}/`);
 	reportStatus(`${folderPath.files.length} Excel bestanden gevonden.`);
@@ -5058,7 +4795,7 @@ async function buildAndSaveDiff(reportStatus, fetchListener, academie, schoolYea
 	reportStatus(`Vergelijken met DKO3 lessen...`);
 	if (!dko3DiffData) dko3DiffData = await getDko3Data(schoolYear, reportStatus, fetchListener);
 	let json = JSON.stringify(dko3DiffData);
-	let res = await runRosterCheck(jsonExcelDatas, reportStatus, fetchListener, dko3DiffData);
+	let res = await runRosterCheck(jsonExcelDatas, reportStatus, fetchListener, dko3DiffData, diffSettings);
 	dko3DiffData = JSON.parse(json);
 	dko3DiffData.extraTeachersCache = res.extraTeacherCache.toJSON();
 	localStorage.setItem("dko3plugin.TESTDIFF", JSON.stringify(dko3DiffData));
@@ -5105,14 +4842,14 @@ async function scrapeAllNormalLessen(schoolYear, reportStatus) {
 		...kbLessen
 	];
 }
-async function runRosterCheck(excelDatas, reportStatus, fetchListener, dko3DiffData) {
+async function runRosterCheck(excelDatas, reportStatus, fetchListener, dko3DiffData, diffSettings) {
 	let excelLessenArray = [];
 	let excelRosters = [];
 	reportStatus("Excel tabellen bouwen...");
 	for (let excelData of excelDatas) {
 		let factory = new RosterFactory(excelData);
 		let table = factory.getTable();
-		let roster = new ExcelRoster(table, dko3DiffData.locations, dko3DiffData.subjects);
+		let roster = new ExcelRoster(table, dko3DiffData.locations, dko3DiffData.subjects, diffSettings);
 		excelRosters.push(roster);
 		let classDefs = roster.scrapeUurrooster();
 		if (classDefs) excelLessenArray.push(classDefs);
@@ -5120,7 +4857,7 @@ async function runRosterCheck(excelDatas, reportStatus, fetchListener, dko3DiffD
 	}
 	let res = {
 		excelRosters,
-		...await buildDiff(excelLessenArray.flat(), dko3DiffData, reportStatus)
+		...await buildDiff(excelLessenArray.flat(), dko3DiffData, reportStatus, diffSettings)
 	};
 	deleteNotification("FILE_POSTED").then(() => fetchAndDisplayNotifications());
 	return res;
@@ -5222,25 +4959,25 @@ var TaggedExcelLes = class extends TaggedLes {
 		this.dayTimeSlice = new DayTimeSlice(les.day, les.timeSlice);
 	}
 };
-function isDko3LesToIgnore(les) {
-	return ExcelRoster.ignoreList.some((ignore) => (" " + les.lesMoment.les.naam.toLowerCase() + " ").includes(ignore) || (" " + les.lesMoment.les.vakNaam.toLowerCase() + " ").includes(ignore));
+function isDko3LesToIgnore(les, ignoreList) {
+	return ignoreList.some((ignore) => (" " + les.lesMoment.les.naam.toLowerCase() + " ").includes(ignore) || (" " + les.lesMoment.les.vakNaam.toLowerCase() + " ").includes(ignore));
 }
-function isExcelLesToIgnore(les) {
-	return ExcelRoster.ignoreList.some((ignore) => les.searchText.includes(ignore));
+function isExcelLesToIgnore(les, ignoreList) {
+	return ignoreList.some((ignore) => les.searchText.includes(ignore));
 }
-async function buildDiff(excelLessen, dko3Data, reportStatus) {
+async function buildDiff(excelLessen, dko3Data, reportStatus, diffSettings) {
 	reportStatus("Lessen vergelijken...");
 	let diffs = [];
 	let excelLesSet = new Set(excelLessen.map((les) => new TaggedExcelLes(les, dko3Data.teachers)));
 	excelLesSet.forEach((les) => {
-		if (isExcelLesToIgnore(les)) excelLesSet.delete(les);
+		if (isExcelLesToIgnore(les, diffSettings.ignoreList)) excelLesSet.delete(les);
 	});
 	let lesMomenten = dko3Data.lessen.map((les) => les.dayTimeSlices.map((slice) => {
 		return new Dko3LesMoment(les, slice);
 	})).flat().map((lesMoment) => new TaggedDko3LesMoment(lesMoment));
 	let dko3LesSet = new Set(lesMomenten);
 	dko3LesSet.forEach((les) => {
-		if (isDko3LesToIgnore(les)) dko3LesSet.delete(les);
+		if (isDko3LesToIgnore(les, diffSettings.ignoreList)) dko3LesSet.delete(les);
 	});
 	let dko3LesMap = new Map();
 	for (let les of dko3Data.lessen) dko3LesMap.set(les.id, les);
@@ -5547,7 +5284,7 @@ async function getUrlForWorksheet(workBook, workSheet, cellAddress, academie, sc
 
 //#endregion
 //#region typescript/roster_diff/showDiff.ts
-async function getAndShowDiffs(useDiffsFromCloud) {
+async function getAndShowDiffs(useDiffsFromCloud, diffSettings) {
 	let divResults = document.getElementById("diffResults");
 	divResults.innerHTML = "Ophalen...";
 	let divError = document.getElementById("diffErrors");
@@ -5570,10 +5307,10 @@ async function getAndShowDiffs(useDiffsFromCloud) {
 	if (useDiffsFromCloud) try {
 		jsonDiffs = await getDiffsFromCloud(cmbDiffAcademie.value, cmbDiffSchoolYear.value);
 	} catch (e) {}
-	else jsonDiffs = await runDiff(reportStatus, fetchListener, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData);
-	if (jsonDiffs) await showDiffs(jsonDiffs, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData);
+	else jsonDiffs = await runDiff(reportStatus, fetchListener, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData, diffSettings);
+	if (jsonDiffs) await showDiffs(jsonDiffs, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData, diffSettings);
 }
-async function showDiffs(diffs, academie, schoolYear, dko3DiffData) {
+async function showDiffs(diffs, academie, schoolYear, dko3DiffData, diffSettings) {
 	let divResults = document.getElementById("diffResults");
 	divResults.innerHTML = "Ophalen...";
 	if (!diffs) {
@@ -5590,7 +5327,7 @@ async function showDiffs(diffs, academie, schoolYear, dko3DiffData) {
 		button.innerHTML = "refresh";
 		button.onclick = () => {
 			localStorage.removeItem("dko3plugin.TESTDIFF");
-			getAndShowDiffs(false);
+			getAndShowDiffs(false, diffSettings);
 		};
 	}
 	let divChk = emmet.appendChild(divResults, `div#divHideChecked>(input#chkHideChecked[type="checkbox"]+label[for="chkHideChecked"]{Verberg aangevinkte lijnen})`).first;
@@ -5619,10 +5356,10 @@ async function showDiffs(diffs, academie, schoolYear, dko3DiffData) {
 	chkHideChecked.checked = ingore == "true";
 	table.classList.toggle("hideChecked", chkHideChecked.checked);
 }
-async function runDiff(reportStatus, fetchListener, academie, schoolYear, dko3DiffData) {
+async function runDiff(reportStatus, fetchListener, academie, schoolYear, dko3DiffData, diffSettings) {
 	let divResults = document.getElementById("diffResults");
 	divResults.innerHTML = "";
-	return buildAndSaveDiff(reportStatus, fetchListener, academie, schoolYear, dko3DiffData);
+	return buildAndSaveDiff(reportStatus, fetchListener, academie, schoolYear, dko3DiffData, diffSettings);
 }
 function fillExcelDiffRow(tr, diff, academie, schoolYear) {
 	fillDiffRow(tr, diff.excelLes.subject, diff.excelLes.teacher, diff.excelLes.day, diff.excelLes.timeSlice, diff.excelLes.location, diff.diffType, "excel", excelPostoExcelAddress(diff.excelLes.excelRow, diff.excelLes.excelColumn), diff.excelLes.cellValue, "", diff.excelLes.workBook, diff.excelLes.workSheet, diff.excelLes.hash, diff.excelLes.ignore, academie, schoolYear);
@@ -5762,6 +5499,279 @@ const chars = [
 ];
 
 //#endregion
+//#region typescript/roster_diff/diffSettings.ts
+const defaultTagDefs = [
+	{
+		tag: "Vestiging Sterrenkijker/SL Durlet",
+		searchString: " sterr"
+	},
+	{
+		tag: "Vestiging Sterrenkijker/SL Durlet",
+		searchString: " durlet"
+	},
+	{
+		tag: "Vestiging De Kleine Stad",
+		searchString: " kleine stad "
+	},
+	{
+		tag: "Vestiging De Kleine Wereld",
+		searchString: " wereld "
+	},
+	{
+		tag: "Vestiging De Nieuwe Vrede",
+		searchString: " vrede "
+	},
+	{
+		tag: "Vestiging De Nieuwe Vrede",
+		searchString: " dnv "
+	},
+	{
+		tag: "Vestiging De Nieuwe Vrede",
+		searchString: " tegel"
+	},
+	{
+		tag: "Vestiging De Nieuwe Vrede",
+		searchString: " tango "
+	},
+	{
+		tag: "Vestiging De Nieuwe Vrede",
+		searchString: " vergaderzaal "
+	},
+	{
+		tag: "Vestiging De Kosmos",
+		searchString: " kosmos "
+	},
+	{
+		tag: "Vestiging De Schatkist",
+		searchString: " schatk"
+	},
+	{
+		tag: "Vestiging De Kolibrie",
+		searchString: " kolibri"
+	},
+	{
+		tag: "Vestiging Het Fonkelpad",
+		searchString: " fonkel"
+	},
+	{
+		tag: "Vestiging Alberreke",
+		searchString: " alber"
+	},
+	{
+		tag: "Vestiging c o r s o",
+		searchString: " corso "
+	},
+	{
+		tag: "Vestiging c o r s o",
+		searchString: "c o r s o"
+	},
+	{
+		tag: "Vestiging c o r s o",
+		searchString: " studio 3 "
+	},
+	{
+		tag: "Vestiging Prins Dries",
+		searchString: " prins "
+	},
+	{
+		tag: "Vestiging Prins Dries",
+		searchString: " dries "
+	},
+	{
+		tag: "Vestiging Groenhout Kasteelstraat",
+		searchString: " groenhout "
+	},
+	{
+		tag: "Vestiging Groenhout Kasteelstraat",
+		searchString: " kasteel"
+	},
+	{
+		tag: "Vestiging Het Fonkelpad",
+		searchString: " fonkel "
+	},
+	{
+		tag: "Vestiging OLV Pulhof",
+		searchString: " pulhof "
+	},
+	{
+		tag: "Vestiging OLV Pulhof",
+		searchString: " 1p "
+	},
+	{
+		tag: "Vestiging OLV Pulhof",
+		searchString: " 2p "
+	},
+	{
+		tag: "Vestiging Sterrenkijker/SL Durlet",
+		searchString: " 1d "
+	},
+	{
+		tag: "Vestiging Sterrenkijker/SL Durlet",
+		searchString: " 2d "
+	},
+	{
+		tag: "Vestiging Via Louiza",
+		searchString: " louiza "
+	},
+	{
+		tag: "Vestiging Frans Van Hombeeck",
+		searchString: " hombee"
+	},
+	{
+		tag: "Vestiging Klavertje Vier",
+		searchString: " klaver"
+	},
+	{
+		tag: "Academie Willem Van Laarstraat, Berchem",
+		searchString: " bib "
+	},
+	{
+		tag: "Academie Willem Van Laarstraat, Berchem",
+		searchString: "laarstr"
+	},
+	{
+		tag: "Academie Willem Van Laarstraat, Berchem",
+		searchString: " wvl "
+	},
+	{
+		tag: "Vestiging Frans Van Hombeeck",
+		searchString: " beeld "
+	},
+	{
+		tag: "Cabaret en comedy",
+		searchString: " cabaret "
+	},
+	{
+		tag: "Woordatelier",
+		searchString: " woordatelier "
+	},
+	{
+		tag: "Woordatelier",
+		searchString: " wa "
+	},
+	{
+		tag: "Woordlab",
+		searchString: " woordlab "
+	},
+	{
+		tag: "Woordlab",
+		searchString: " wl "
+	},
+	{
+		tag: "Literair atelier",
+		searchString: " literair atelier "
+	},
+	{
+		tag: "Literaire teksten",
+		searchString: " literaire teksten "
+	},
+	{
+		tag: "Schrijven",
+		searchString: " basiscursus "
+	},
+	{
+		tag: "Spreken en vertellen",
+		searchString: " spreken "
+	},
+	{
+		tag: "Kunstenbad muziek/woord",
+		searchString: " kunstenbad "
+	},
+	{
+		tag: "Musicalatelier",
+		searchString: " musicalatelier "
+	},
+	{
+		tag: "Musical koor",
+		searchString: " musical koor "
+	},
+	{
+		tag: "Musical zang",
+		searchString: " musical zang "
+	},
+	{
+		tag: "Theater",
+		searchString: " acteren "
+	},
+	{
+		tag: "Muziekatelier",
+		searchString: " 1p "
+	},
+	{
+		tag: "Muziekatelier",
+		searchString: " 2p "
+	},
+	{
+		tag: "Muziekatelier",
+		searchString: " 1d "
+	},
+	{
+		tag: "Muziekatelier",
+		searchString: " 2d "
+	},
+	{
+		tag: "Muziekatelier",
+		searchString: " 1va "
+	},
+	{
+		tag: "Muziekatelier",
+		searchString: " 1vb "
+	},
+	{
+		tag: "Muziekatelier",
+		searchString: " 1vc "
+	},
+	{
+		tag: "Muziekatelier",
+		searchString: " 2va "
+	},
+	{
+		tag: "Muziekatelier",
+		searchString: " 2vb "
+	},
+	{
+		tag: "Muziekatelier",
+		searchString: " 3v "
+	},
+	{
+		tag: "Muziekatelier",
+		searchString: " 1t "
+	},
+	{
+		tag: "Muziekatelier",
+		searchString: " 2t "
+	},
+	{
+		tag: "Groepsmusiceren (klassiek)",
+		searchString: " gm "
+	},
+	{
+		tag: "Atelier (musical)",
+		searchString: " musicalatelier "
+	},
+	{
+		tag: "Musicalatelier 2e graad",
+		searchString: " musical for kids "
+	}
+];
+const defaultIgnoreList = [
+	" kunstkuren ",
+	" arrangeren",
+	" combo ",
+	" harmonielab ",
+	" klanklab ",
+	" muzieklab ",
+	" electronics ",
+	" big band ",
+	" blazersensemble ",
+	" groepsmusiceren (jass pop rock) ",
+	" geluidsleer ",
+	" koor (jazz pop rock) ",
+	" koor (musical) ",
+	" slagwerkensemble "
+];
+
+//#endregion
 //#region typescript/startPage/diffPage.ts
 async function loadCombboxSchoolYearAndTrySelect(dirTree) {
 	if (!dirTree) dirTree = await getDiffDirStructure();
@@ -5783,7 +5793,9 @@ async function loadCombboxSchoolYearAndTrySelect(dirTree) {
 }
 async function setupDiffPage() {
 	let pluginContainer = document.getElementById("plugin_container");
-	let button = emmet.appendChild(pluginContainer, "div#diffsPage.mb-1>div>(h4{Verschillen tussen Excel uurroosters en DKO3 lessen.}+(div#combosLoading{Gegevens laden...}+select#cmbDiffAcademie+select#cmbDiffSchoolYear+button.btn.btn-primary{Zoek verschillen}))").last;
+	emmet.appendChild(pluginContainer, "div#diffsPage.mb-1>div>(h4{Verschillen tussen Excel uurroosters en DKO3 lessen.}+(div#combosLoading{Gegevens laden...}+select#cmbDiffAcademie+select#cmbDiffSchoolYear+button#btnCalcDiff.btn.btn-primary{Zoek verschillen}+button#btnDiffSettings.btn.btn-primary{Setup}))");
+	let btnCalcDiff = pluginContainer.querySelector("#btnCalcDiff");
+	let btnDiffSettings = pluginContainer.querySelector("#btnDiffSettings");
 	let dirTree = await getDiffDirStructure();
 	let myAcadFolderName = getDiffMyAcademieFolder(dirTree);
 	if (!myAcadFolderName) throw new Error("Could not find academie folder name.");
@@ -5793,11 +5805,12 @@ async function setupDiffPage() {
 	cmbDiffAcademie.value = myAcadFolderName;
 	let cmbDiffSchoolYear = document.querySelector("#cmbDiffSchoolYear");
 	if (await loadCombboxSchoolYearAndTrySelect(dirTree)) pluginContainer.classList.toggle("diffCombosLoaded", true);
-	let runStatus = emmet.insertAfter(button, "div#runStatus").first;
+	let runStatus = emmet.insertAfter(btnCalcDiff, "div#runStatus").first;
 	emmet.insertAfter(runStatus, "div#diffResults");
 	let divInfo = emmet.insertAfter(runStatus, "div#diffInfo").last;
 	let divError = emmet.insertAfter(divInfo, "div#diffErrors.errors").last;
-	button.onclick = () => getAndShowDiffs(false);
+	btnCalcDiff.onclick = () => calcAndShowDiffsWithSettings(false);
+	btnDiffSettings.onclick = () => showDiffSetup("TODO");
 	cmbDiffAcademie.onchange = async () => {
 		if (await loadCombboxSchoolYearAndTrySelect(dirTree)) pluginContainer.classList.toggle("diffCombosLoaded", true);
 		await showDiffsFromComboboxes();
@@ -5807,8 +5820,19 @@ async function setupDiffPage() {
 	};
 	await showDiffsFromComboboxes();
 }
+async function calcAndShowDiffsWithSettings(useDiffsFromCloud) {
+	let ignoreList = [...defaultIgnoreList];
+	let tagDefs = [...defaultTagDefs];
+	let diffSettings = {
+		version: 0,
+		schoolyear: "TODO",
+		ignoreList,
+		tagDefs
+	};
+	await getAndShowDiffs(useDiffsFromCloud, diffSettings);
+}
 async function showDiffsFromComboboxes() {
-	await getAndShowDiffs(true);
+	await calcAndShowDiffsWithSettings(true);
 }
 async function getDiffDirStructure() {
 	let folderContent = await fetchFolderContent("Dko3/Uurroosters/");
@@ -5852,6 +5876,38 @@ function getDiffMyAcademieFolder(folderTree) {
 	let found = academies.find((name) => name.includes(myAcademie));
 	if (found) return found;
 	return null;
+}
+async function showDiffSetup(schoolyear) {
+	let res = await openDiffSettings(schoolyear);
+	globalDiffSettingsTabId = res.tabId;
+}
+let globalDiffSettingsTabId;
+let globals$1 = { diffSettings: void 0 };
+async function openDiffSettings(schoolyear) {
+	return sendRequest(Actions.OpenDiffSettings, TabType.Main, TabType.Undefined, void 0, { schoolyear }, "TODO: is this title used? Uurrooster setup voor schooljaar " + schoolyear);
+}
+chrome.runtime.onMessage.addListener(onMessage$1);
+let pauseRefresh$1 = false;
+setInterval(() => {
+	pauseRefresh$1 = false;
+}, 2e3);
+async function onMessage$1(request, _sender, sendResponse) {
+	if (request.senderTabType != TabType.DiffSettings) return;
+	if (request.action == Actions.RequestTabData) {
+		console.log("Requesting tab data", request.data);
+		let schoolYear = request.data.params.schoolYear;
+		let setup = globals$1.diffSettings;
+		await sendMessageToDiffSettings(Actions.TabData, setup);
+		return;
+	}
+	if (pauseRefresh$1) return;
+	pauseRefresh$1 = true;
+	let diffSettings = request.data;
+	globals$1.diffSettings = diffSettings;
+	pauseRefresh$1 = false;
+}
+async function sendMessageToDiffSettings(action, data) {
+	return sendRequest(action, TabType.Main, TabType.DiffSettings, globalDiffSettingsTabId, data);
 }
 
 //#endregion

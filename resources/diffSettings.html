@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Blank</title>
+    <script src="../generated/diffSettings.js"></script>
+    <link rel="stylesheet" href="../css/teacherHoursSetup.css">
+</head>
+<body>
+    <main>
+        <h1 id="setupTitle">Instellingen voor overzicht van lerarenuren</h1>
+        <div class="tabs">
+            <button id="btnTabTranslations" class="naked hand tab notSelected" data-tab-id="tabTranslations">Tags</button>
+            <button id="btnTabIgnores" class="naked hand tab notSelected" data-tab-id="tabGradeYears">Negeer</button>
+        </div>
+        <div id="tabTranslations">
+            <div class="info">
+                <div class="info">
+                    Vermeld woorden of stukken van woorden en een bijhorende tag - een naam van een vak, een leraar of een vestigingsplaats.<br>
+                    Herhaal een te zoeken woord als je er meerdere tags aan will koppelen.<br>
+                    Een voorbeeld:<br>
+                    Klas <var>1P</var> impliceert 2 tags: een vak <var>Muziekatelier</var> en een vestigingsplaats <var>Pulhof</var>
+                    Maak daarom 2 lijnen aan. De zoekterm <var>1P</var> is een volledig losstaand "woord". Zet daarom een spatie voor- en achteraan.
+                </div>
+            </div>
+            <div id="translationsContainer">
+                <table>
+                    <colgroup>
+                        <col span="1" style="width: auto">
+                        <col span="1" style="width: 30%">
+                        <col span="1" style="width: auto">
+                        <col span="1" style="width: 25%">
+                        <col span="1" style="width: auto">
+                        <col span="1" style="width: 10%">
+                        <col span="1" style="width: auto">
+                        <col span="1" style="width: 10%">
+                        <col span="1" style="width: auto">
+                        <col span="1" style="width: auto">
+                        <col span="1" style="width: auto">
+                    </colgroup>
+                    <thead>
+                    <tr>
+                        <th colspan="99">Vervangingen</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+                <button id="btnNewTranslationRow">Nieuwe rij</button>
+            </div>
+        </div>
+        <div id="tabIgnores">
+            <div class="info">
+                Geef de woorden van excel cellen die mogen genegeerd worden. Bijvoorbeeld <var>Kunstkuren</var><br>
+            </div>
+            <div id="ignoresContainer">
+                <table>
+                    <colgroup>
+                        <col span="1" style="width: auto">
+                    </colgroup>
+                    <thead>
+                    <tr>
+                        <th></th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+    <button></button>
+</body>
+</html>

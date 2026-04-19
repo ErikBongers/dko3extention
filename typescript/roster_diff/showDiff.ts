@@ -7,8 +7,9 @@ import {buildAndSaveDiff, createDiffTable, DiffType, Dko3DiffData, getDiffsFromC
 import {uploadIgnoredDiffHashes} from "../cloud";
 import {InfoBarTableFetchListener} from "../table/loadAnyTable";
 import {createInfoBlock} from "../infoBlock";
+import {DiffSettings} from "./diffSettings";
 
-export async function getAndShowDiffs(useDiffsFromCloud: boolean) {
+export async function getAndShowDiffs(useDiffsFromCloud: boolean, diffSettings: DiffSettings) {
     let divResults = document.getElementById("diffResults") as HTMLDivElement;
     divResults.innerHTML = "Ophalen...";
 
@@ -37,13 +38,13 @@ export async function getAndShowDiffs(useDiffsFromCloud: boolean) {
         }
         catch (e) {}
     } else {
-        jsonDiffs = await runDiff(reportStatus, fetchListener, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData);
+        jsonDiffs = await runDiff(reportStatus, fetchListener, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData, diffSettings);
     }
     if(jsonDiffs)
-        await showDiffs(jsonDiffs, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData);
+        await showDiffs(jsonDiffs, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData, diffSettings);
 }
 
-export async function showDiffs(diffs: JsonDiffs, academie: string, schoolYear: string, dko3DiffData: Dko3DiffData | null) {
+export async function showDiffs(diffs: JsonDiffs, academie: string, schoolYear: string, dko3DiffData: Dko3DiffData | null, diffSettings: DiffSettings) {
     let divResults = document.getElementById("diffResults") as HTMLDivElement;
     divResults.innerHTML = "Ophalen...";
     if(!diffs) {
@@ -61,7 +62,7 @@ export async function showDiffs(diffs: JsonDiffs, academie: string, schoolYear: 
         button.innerHTML = "refresh";
         button.onclick = () => {
             localStorage.removeItem("dko3plugin.TESTDIFF");
-            getAndShowDiffs(false);
+            getAndShowDiffs(false, diffSettings);
         };
     }
     let divChk = emmet.appendChild(divResults, `div#divHideChecked>(input#chkHideChecked[type="checkbox"]+label[for="chkHideChecked"]{Verberg aangevinkte lijnen})`).first as HTMLDivElement;
@@ -96,11 +97,11 @@ export async function showDiffs(diffs: JsonDiffs, academie: string, schoolYear: 
 
 export type StatusCallback = (message: string, isError?: "error") => void;
 
-async function runDiff(reportStatus: StatusCallback, fetchListener: InfoBarTableFetchListener, academie: string, schoolYear: string, dko3DiffData: Dko3DiffData | null) {
+async function runDiff(reportStatus: StatusCallback, fetchListener: InfoBarTableFetchListener, academie: string, schoolYear: string, dko3DiffData: Dko3DiffData | null, diffSettings: DiffSettings) {
     let divResults = document.getElementById("diffResults") as HTMLDivElement;
     divResults.innerHTML = "";
 
-    return buildAndSaveDiff(reportStatus, fetchListener, academie, schoolYear, dko3DiffData);
+    return buildAndSaveDiff(reportStatus, fetchListener, academie, schoolYear, dko3DiffData, diffSettings);
 }
 
 export function fillExcelDiffRow(tr: HTMLTableRowElement, diff: JsonDiff, academie: string, schoolYear: string) {

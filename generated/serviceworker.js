@@ -9,7 +9,9 @@ let Actions = /* @__PURE__ */ function(Actions$1) {
 	Actions$1["TabData"] = "tab_data";
 	Actions$1["GetParentTabId"] = "get_parent_tab_id";
 	Actions$1["OpenHoursSettings"] = "open_hours_settings";
+	Actions$1["OpenDiffSettings"] = "open_diff_settings";
 	Actions$1["HoursSettingsChanged"] = "open_hours_settings_changed";
+	Actions$1["DiffSettingsChanged"] = "diff_settings_changed";
 	Actions$1["GreetingsFromParent"] = "greetingsFromParent";
 	Actions$1["GreetingsFromChild"] = "greetingsFromChild";
 	return Actions$1;
@@ -18,6 +20,7 @@ let TabType = /* @__PURE__ */ function(TabType$1) {
 	TabType$1["Undefined"] = "Undefined";
 	TabType$1["Main"] = "Main";
 	TabType$1["HoursSettings"] = "HoursSettings";
+	TabType$1["DiffSettings"] = "diffSettings";
 	TabType$1["Html"] = "Html";
 	return TabType$1;
 }({});
@@ -71,6 +74,12 @@ function onMessage(message, sender, sendResponse) {
 		case Actions.OpenHoursSettings:
 			setTabId(TabType.Main, sender.tab.id).then(() => {});
 			chrome.tabs.create({ url: chrome.runtime.getURL(`resources/teacherHoursSetup.html?schoolyear=${message.data.schoolyear}`) }).then((tab) => {
+				sendResponse({ tabId: tab.id });
+			});
+			return true;
+		case Actions.OpenDiffSettings:
+			setTabId(TabType.Main, sender.tab.id).then(() => {});
+			chrome.tabs.create({ url: chrome.runtime.getURL(`resources/diffSettings.html?schoolyear=${message.data.schoolyear}`) }).then((tab) => {
 				sendResponse({ tabId: tab.id });
 			});
 			return true;

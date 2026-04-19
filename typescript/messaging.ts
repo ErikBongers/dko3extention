@@ -6,7 +6,9 @@ export enum Actions {
     TabData = "tab_data",
     GetParentTabId = "get_parent_tab_id",
     OpenHoursSettings = "open_hours_settings",
+    OpenDiffSettings = "open_diff_settings",
     HoursSettingsChanged = "open_hours_settings_changed",
+    DiffSettingsChanged = "diff_settings_changed",
     GreetingsFromParent = "greetingsFromParent",
     GreetingsFromChild = "greetingsFromChild",
 }
@@ -15,6 +17,7 @@ export enum TabType {
     Undefined= "Undefined",
     Main = "Main",
     HoursSettings = "HoursSettings",
+    DiffSettings = "diffSettings",
     Html = "Html"
 }
 
@@ -47,6 +50,7 @@ export interface ServiceResponse {
 
 export enum DataRequestTypes {
     HoursSettings = "HoursSettings",
+    DiffSettings = "DiffSettings",
     Html = "Html" //todo: this is just for tests.
 }
 
@@ -54,11 +58,15 @@ export type HourSettingsDataRequestParams = {
     schoolYear: string,
 }
 
+export type DiffSettingsDataRequestParams = {
+    schoolYear: string,
+}
+
 export type HtmlDataRequestParams = {
     cacheId: DataCacheId,
 }
 
-export type RequestParams = HourSettingsDataRequestParams | HtmlDataRequestParams;
+export type RequestParams = HourSettingsDataRequestParams | HtmlDataRequestParams | DiffSettingsDataRequestParams;
 export interface DataRequestInfo<Params extends RequestParams> {
     tabId: number | undefined,
     dataType: DataRequestTypes,

@@ -1,0 +1,15 @@
+{
+  "include": ["typescript/**/*"],
+  "compilerOptions": {
+    "outDir": "./generated",
+    "target": "es2021",
+    "sourceMap": true,
+    "noEmit": true,
+    "incremental": false,
+    "noImplicitOverride": true,
+    "noImplicitThis": true,
+    "noImplicitReturns": true,
+    "noImplicitAny": true
+  },
+  "files": ["./typescript/roster_diff/diffSettings.ts"]
+}
