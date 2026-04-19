@@ -67,7 +67,8 @@ function onMessage(message: ServiceRequest, sender: MessageSender, sendResponse:
         case Actions.OpenDiffSettings:
             setTabId(TabType.Main, sender.tab!.id!).then(() => {});
             //todo: if already exists: activate?
-            chrome.tabs.create({url: chrome.runtime.getURL(`resources/diffSettings.html?schoolyear=${message.data.schoolyear}`)}).then(tab => {
+            let params = new URLSearchParams({academie: message.data.academie, schoolyear: message.data.schoolyear});
+            chrome.tabs.create({url: chrome.runtime.getURL(`resources/diffSettings.html?${params.toString()}`)}).then(tab => {
                 sendResponse({tabId: tab.id}); //todo: make a Response type.
             });
             return true; //needed because sendResponse is called asynchronously.

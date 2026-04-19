@@ -407,6 +407,12 @@ async function uploadIgnoredDiffHashes(academie, schoolYear, hashes) {
 async function fetchIgnoredDiffHashes(academie, schoolYear) {
 	return await fetchJson(getIgnoreHashesFileName(academie, schoolYear));
 }
+function getDiffSettingsFileName(academie, schoolYear) {
+	return `Dko3/Uurroosters/${academie}/${academie}_${schoolYear}_diff_settings.json`;
+}
+async function fetchDiffSettings(academie, schoolYear) {
+	return await fetchJson(getDiffSettingsFileName(academie, schoolYear));
+}
 
 //#endregion
 //#region typescript/plugin_options/options.ts
@@ -5283,222 +5289,6 @@ async function getUrlForWorksheet(workBook, workSheet, cellAddress, academie, sc
 }
 
 //#endregion
-//#region typescript/roster_diff/showDiff.ts
-async function getAndShowDiffs(useDiffsFromCloud, diffSettings) {
-	let divResults = document.getElementById("diffResults");
-	divResults.innerHTML = "Ophalen...";
-	let divError = document.getElementById("diffErrors");
-	let runStatus = document.getElementById("runStatus");
-	let divInfo = document.getElementById("diffInfo");
-	let cmbDiffAcademie = document.querySelector("#cmbDiffAcademie");
-	let cmbDiffSchoolYear = document.querySelector("#cmbDiffSchoolYear");
-	let infoBlock = createInfoBlock(divInfo, "");
-	let fetchListener = new InfoBarTableFetchListener(infoBlock);
-	let errors = [];
-	function reportStatus(message, isError) {
-		if (isError == "error") errors.push(message);
-		else runStatus.innerHTML = message;
-		divError.innerHTML = errors.join("<br>");
-	}
-	errors = [];
-	let json = localStorage.getItem("dko3plugin.TESTDIFF");
-	let dko3DiffData = JSON.parse(json);
-	let jsonDiffs = null;
-	if (useDiffsFromCloud) try {
-		jsonDiffs = await getDiffsFromCloud(cmbDiffAcademie.value, cmbDiffSchoolYear.value);
-	} catch (e) {}
-	else jsonDiffs = await runDiff(reportStatus, fetchListener, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData, diffSettings);
-	if (jsonDiffs) await showDiffs(jsonDiffs, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData, diffSettings);
-}
-async function showDiffs(diffs, academie, schoolYear, dko3DiffData, diffSettings) {
-	let divResults = document.getElementById("diffResults");
-	divResults.innerHTML = "Ophalen...";
-	if (!diffs) {
-		divResults.innerHTML = "";
-		return;
-	}
-	await setIgnoredFlags(diffs.orphanedDko3Lessen, diffs.orphanedExcelLessen, academie, schoolYear);
-	divResults.innerHTML = "";
-	let elapsedTimeString = dateDiffToString(new Date(diffs.isoDate), new Date());
-	if (elapsedTimeString != "") emmet.appendChild(divResults, `div.gray{Laatste vergelijking: ${elapsedTimeString} geleden.}`);
-	if (dko3DiffData) {
-		let div = emmet.appendChild(divResults, `div.gray{Dko3 gegevens uit cache. }`).first;
-		let button = emmet.appendChild(div, "button.likeLink").first;
-		button.innerHTML = "refresh";
-		button.onclick = () => {
-			localStorage.removeItem("dko3plugin.TESTDIFF");
-			getAndShowDiffs(false, diffSettings);
-		};
-	}
-	let divChk = emmet.appendChild(divResults, `div#divHideChecked>(input#chkHideChecked[type="checkbox"]+label[for="chkHideChecked"]{Verberg aangevinkte lijnen})`).first;
-	let chkHideChecked = divChk.querySelector("#chkHideChecked");
-	chkHideChecked.onchange = (ev) => {
-		let input = ev.currentTarget;
-		let table$1 = document.getElementById("orphans");
-		table$1.classList.toggle("hideChecked", input.checked);
-		let ignore = table$1.classList.contains("hideChecked");
-		localStorage.setItem(OPTION_HIDE_IGNORED_DIFFS, ignore.toString());
-	};
-	for (let diff of diffs.diffs) displayDiff(diff, divResults, academie, schoolYear);
-	emmet.appendChild(divResults, "h4{Lessen zonder overeenkomsten}");
-	let { table, tbody } = createDiffTable(divResults);
-	decorateTableHeader(table, false);
-	for (let les of diffs.orphanedDko3Lessen) {
-		let tr = emmet.appendChild(tbody, "tr").last;
-		fillDiffRow(tr, les.subject, les.teacher, les.day, les.timeSlice, les.location, "perfect match", "dko3", les.momentId, "", les.lesId, "", "", les.hash, les.ignore, academie, schoolYear);
-	}
-	for (let les of diffs.orphanedExcelLessen) {
-		let tr = emmet.appendChild(tbody, "tr").last;
-		fillDiffRow(tr, les.subject, les.teacher, les.day, les.timeSlice, les.location, "perfect match", "excel", excelPostoExcelAddress(les.excelRow, les.excelColumn), les.cellValue, "", les.workBook, les.workSheet, les.hash, les.ignore, academie, schoolYear);
-		tr.classList.add("excelRow");
-	}
-	let ingore = localStorage.getItem(OPTION_HIDE_IGNORED_DIFFS) ?? "false";
-	chkHideChecked.checked = ingore == "true";
-	table.classList.toggle("hideChecked", chkHideChecked.checked);
-}
-async function runDiff(reportStatus, fetchListener, academie, schoolYear, dko3DiffData, diffSettings) {
-	let divResults = document.getElementById("diffResults");
-	divResults.innerHTML = "";
-	return buildAndSaveDiff(reportStatus, fetchListener, academie, schoolYear, dko3DiffData, diffSettings);
-}
-function fillExcelDiffRow(tr, diff, academie, schoolYear) {
-	fillDiffRow(tr, diff.excelLes.subject, diff.excelLes.teacher, diff.excelLes.day, diff.excelLes.timeSlice, diff.excelLes.location, diff.diffType, "excel", excelPostoExcelAddress(diff.excelLes.excelRow, diff.excelLes.excelColumn), diff.excelLes.cellValue, "", diff.excelLes.workBook, diff.excelLes.workSheet, diff.excelLes.hash, diff.excelLes.ignore, academie, schoolYear);
-}
-function displayDiff(diff, divResults, academie, schoolYear) {
-	let tbody = emmet.appendChild(divResults, "table.diff>tbody").last;
-	let tr = emmet.appendChild(tbody, "tr").last;
-	fillExcelDiffRow(tr, diff, academie, schoolYear);
-	tr.classList.add("excelRow");
-	let tr2 = emmet.appendChild(tbody, "tr").last;
-	fillDiffRow(tr2, diff.dko3Les.subject, diff.dko3Les.teacher, diff.dko3Les.day, diff.dko3Les.timeSlice, diff.dko3Les.location, diff.diffType, "dko3", diff.dko3Les.momentId, "", diff.dko3Les.lesId, "", "", diff.dko3Les.hash, diff.dko3Les.ignore, academie, schoolYear);
-}
-function fillDiffRow(tr, subjects, teachers, day, timeSlice, location$1, diffType, rowType, rowId, cellValue, lesId, workBook, worksheet, hash, ignore, academie, schoolYear) {
-	if (ignore) tr.classList.add("ignore");
-	let diffTeacherClass = "";
-	let diffLocationClass = "";
-	let diffTimeClass = "";
-	let diffDayClass = "";
-	let diffSubjectClass = "";
-	switch (diffType) {
-		case "match without location":
-			diffLocationClass = ".diff";
-			break;
-		case "match without teacher":
-			diffTeacherClass = ".diff";
-			break;
-		case "match without time":
-			diffTimeClass = ".diff";
-			break;
-		case "match without time and day":
-			diffTimeClass = ".diff";
-			diffDayClass = ".diff";
-			break;
-		case "match without teacher, time and day":
-			diffTeacherClass = ".diff";
-			diffTimeClass = ".diff";
-			diffDayClass = ".diff";
-			break;
-		case "perfect match": break;
-		default: unreachable(diffType);
-	}
-	if (!location$1) {
-		location$1 = "-onbekend-";
-		diffLocationClass = ".diff";
-	}
-	let tdSubjects;
-	if (subjects == "") {
-		diffSubjectClass = ".diff";
-		tdSubjects = `(td${diffSubjectClass}>div.diffTooltip{-onbekend-}>span.diffTooltiptext{${cellValue}})`;
-	} else tdSubjects = `td${diffSubjectClass}{${subjects}}`;
-	let iconClass = rowType == "excel" ? "fa-grid" : "fa-chalkboard-user";
-	tr.dataset.lesId = lesId;
-	tr.dataset.hash = hash;
-	tr.dataset.cellAddress = rowId;
-	tr.dataset.workbook = workBook;
-	tr.dataset.worksheet = worksheet;
-	tr.dataset.rowType = rowType;
-	emmet.appendChild(tr, `${tdSubjects}+td${diffTeacherClass}{${teachers}}+td${diffDayClass}{${toCompactDayString(day)}}+td${diffTimeClass}{${timeSlice}}+td${diffLocationClass}{${location$1}}+(td.buttonshow>button.goto>i.fas.${iconClass})+(td.button>button.goto.chkHide>i.fas.fa-check)`);
-	let btnGoto = tr.querySelector("button.goto");
-	btnGoto.onclick = (ev) => gotoData(ev, academie, schoolYear);
-	let btnHide = tr.querySelector("button.chkHide");
-	btnHide.onclick = (ev) => toggleIgnore(ev, academie, schoolYear);
-}
-async function toggleIgnore(ev, academie, schoolYear) {
-	let button = ev.currentTarget;
-	let tr = button.closest("tr");
-	tr.classList.toggle("ignore");
-	await saveIgnoredHashes(academie, schoolYear);
-}
-async function saveIgnoredHashes(academie, schoolYear) {
-	let table = document.getElementById("orphans");
-	let hashes = [...table.querySelectorAll("tr.ignore")].map((tr) => tr.dataset.hash);
-	await uploadIgnoredDiffHashes(academie, schoolYear, hashes);
-}
-async function gotoData(ev, academie, schoolYear) {
-	let button = ev.currentTarget;
-	let tr = button.closest("tr");
-	let rowType = tr.dataset.rowType;
-	let cellAddress = tr.dataset.cellAddress;
-	let workBook = tr.dataset.workbook;
-	let workSheet = tr.dataset.worksheet;
-	let lesId = tr.dataset.lesId;
-	if (rowType == "excel") {
-		let url = await getUrlForWorksheet(workBook, workSheet, cellAddress, academie, schoolYear);
-		if (url == "") return;
-		window.open(url, "_blank");
-	} else if (rowType == "dko3") location.href = DKO3_BASE_URL + "#lessen-les?id=" + lesId;
-}
-function toCompactDayString(day) {
-	switch (day) {
-		case "MAANDAG": return "ma ";
-		case "DINSDAG": return "di ";
-		case "WOENSDAG": return "wo ";
-		case "DONDERDAG": return "do ";
-		case "VRIJDAG": return "vr ";
-		case "ZATERDAG": return "za ";
-		case "ZONDAG": return "zo ";
-		case "": return "?? ";
-		default: unreachable(day);
-	}
-}
-function excelPostoExcelAddress(row, column) {
-	return indexToExcelColumn(column) + (row + 1).toString();
-}
-function indexToExcelColumn(index) {
-	let quotient = Math.floor(index / 26);
-	if (quotient <= 0) return chars[index];
-	return indexToExcelColumn(quotient - 1) + chars[index % 26];
-}
-const chars = [
-	"A",
-	"B",
-	"C",
-	"D",
-	"E",
-	"F",
-	"G",
-	"H",
-	"I",
-	"J",
-	"K",
-	"L",
-	"M",
-	"N",
-	"O",
-	"P",
-	"Q",
-	"R",
-	"S",
-	"T",
-	"U",
-	"V",
-	"W",
-	"X",
-	"Y",
-	"Z"
-];
-
-//#endregion
 //#region typescript/roster_diff/diffSettings.ts
 const defaultTagDefs = [
 	{
@@ -5772,6 +5562,237 @@ const defaultIgnoreList = [
 ];
 
 //#endregion
+//#region typescript/roster_diff/showDiff.ts
+async function fetchDiffSettingsOrDefault(academie, schoolYear) {
+	let settings;
+	try {
+		settings = await fetchDiffSettings(academie, schoolYear);
+	} catch {}
+	if (!settings) return {
+		version: 0,
+		academie,
+		schoolYear,
+		tagDefs: [...defaultTagDefs],
+		ignoreList: [...defaultIgnoreList]
+	};
+	return settings;
+}
+async function getAndShowDiffs(useDiffsFromCloud) {
+	let divResults = document.getElementById("diffResults");
+	divResults.innerHTML = "Ophalen...";
+	let divError = document.getElementById("diffErrors");
+	let runStatus = document.getElementById("runStatus");
+	let divInfo = document.getElementById("diffInfo");
+	let cmbDiffAcademie = document.querySelector("#cmbDiffAcademie");
+	let cmbDiffSchoolYear = document.querySelector("#cmbDiffSchoolYear");
+	let infoBlock = createInfoBlock(divInfo, "");
+	let fetchListener = new InfoBarTableFetchListener(infoBlock);
+	let errors = [];
+	function reportStatus(message, isError) {
+		if (isError == "error") errors.push(message);
+		else runStatus.innerHTML = message;
+		divError.innerHTML = errors.join("<br>");
+	}
+	errors = [];
+	let json = localStorage.getItem("dko3plugin.TESTDIFF");
+	let dko3DiffData = JSON.parse(json);
+	let jsonDiffs = null;
+	let diffSettings = await fetchDiffSettingsOrDefault(cmbDiffAcademie.value, cmbDiffSchoolYear.value);
+	if (useDiffsFromCloud) try {
+		jsonDiffs = await getDiffsFromCloud(cmbDiffAcademie.value, cmbDiffSchoolYear.value);
+	} catch (e) {}
+	else jsonDiffs = await runDiff(reportStatus, fetchListener, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData, diffSettings);
+	if (jsonDiffs) await showDiffs(jsonDiffs, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData, diffSettings);
+}
+async function showDiffs(diffs, academie, schoolYear, dko3DiffData, diffSettings) {
+	let divResults = document.getElementById("diffResults");
+	divResults.innerHTML = "Ophalen...";
+	if (!diffs) {
+		divResults.innerHTML = "";
+		return;
+	}
+	await setIgnoredFlags(diffs.orphanedDko3Lessen, diffs.orphanedExcelLessen, academie, schoolYear);
+	divResults.innerHTML = "";
+	let elapsedTimeString = dateDiffToString(new Date(diffs.isoDate), new Date());
+	if (elapsedTimeString != "") emmet.appendChild(divResults, `div.gray{Laatste vergelijking: ${elapsedTimeString} geleden.}`);
+	if (dko3DiffData) {
+		let div = emmet.appendChild(divResults, `div.gray{Dko3 gegevens uit cache. }`).first;
+		let button = emmet.appendChild(div, "button.likeLink").first;
+		button.innerHTML = "refresh";
+		button.onclick = () => {
+			localStorage.removeItem("dko3plugin.TESTDIFF");
+			getAndShowDiffs(false);
+		};
+	}
+	let divChk = emmet.appendChild(divResults, `div#divHideChecked>(input#chkHideChecked[type="checkbox"]+label[for="chkHideChecked"]{Verberg aangevinkte lijnen})`).first;
+	let chkHideChecked = divChk.querySelector("#chkHideChecked");
+	chkHideChecked.onchange = (ev) => {
+		let input = ev.currentTarget;
+		let table$1 = document.getElementById("orphans");
+		table$1.classList.toggle("hideChecked", input.checked);
+		let ignore = table$1.classList.contains("hideChecked");
+		localStorage.setItem(OPTION_HIDE_IGNORED_DIFFS, ignore.toString());
+	};
+	for (let diff of diffs.diffs) displayDiff(diff, divResults, academie, schoolYear);
+	emmet.appendChild(divResults, "h4{Lessen zonder overeenkomsten}");
+	let { table, tbody } = createDiffTable(divResults);
+	decorateTableHeader(table, false);
+	for (let les of diffs.orphanedDko3Lessen) {
+		let tr = emmet.appendChild(tbody, "tr").last;
+		fillDiffRow(tr, les.subject, les.teacher, les.day, les.timeSlice, les.location, "perfect match", "dko3", les.momentId, "", les.lesId, "", "", les.hash, les.ignore, academie, schoolYear);
+	}
+	for (let les of diffs.orphanedExcelLessen) {
+		let tr = emmet.appendChild(tbody, "tr").last;
+		fillDiffRow(tr, les.subject, les.teacher, les.day, les.timeSlice, les.location, "perfect match", "excel", excelPostoExcelAddress(les.excelRow, les.excelColumn), les.cellValue, "", les.workBook, les.workSheet, les.hash, les.ignore, academie, schoolYear);
+		tr.classList.add("excelRow");
+	}
+	let ingore = localStorage.getItem(OPTION_HIDE_IGNORED_DIFFS) ?? "false";
+	chkHideChecked.checked = ingore == "true";
+	table.classList.toggle("hideChecked", chkHideChecked.checked);
+}
+async function runDiff(reportStatus, fetchListener, academie, schoolYear, dko3DiffData, diffSettings) {
+	let divResults = document.getElementById("diffResults");
+	divResults.innerHTML = "";
+	return buildAndSaveDiff(reportStatus, fetchListener, academie, schoolYear, dko3DiffData, diffSettings);
+}
+function fillExcelDiffRow(tr, diff, academie, schoolYear) {
+	fillDiffRow(tr, diff.excelLes.subject, diff.excelLes.teacher, diff.excelLes.day, diff.excelLes.timeSlice, diff.excelLes.location, diff.diffType, "excel", excelPostoExcelAddress(diff.excelLes.excelRow, diff.excelLes.excelColumn), diff.excelLes.cellValue, "", diff.excelLes.workBook, diff.excelLes.workSheet, diff.excelLes.hash, diff.excelLes.ignore, academie, schoolYear);
+}
+function displayDiff(diff, divResults, academie, schoolYear) {
+	let tbody = emmet.appendChild(divResults, "table.diff>tbody").last;
+	let tr = emmet.appendChild(tbody, "tr").last;
+	fillExcelDiffRow(tr, diff, academie, schoolYear);
+	tr.classList.add("excelRow");
+	let tr2 = emmet.appendChild(tbody, "tr").last;
+	fillDiffRow(tr2, diff.dko3Les.subject, diff.dko3Les.teacher, diff.dko3Les.day, diff.dko3Les.timeSlice, diff.dko3Les.location, diff.diffType, "dko3", diff.dko3Les.momentId, "", diff.dko3Les.lesId, "", "", diff.dko3Les.hash, diff.dko3Les.ignore, academie, schoolYear);
+}
+function fillDiffRow(tr, subjects, teachers, day, timeSlice, location$1, diffType, rowType, rowId, cellValue, lesId, workBook, worksheet, hash, ignore, academie, schoolYear) {
+	if (ignore) tr.classList.add("ignore");
+	let diffTeacherClass = "";
+	let diffLocationClass = "";
+	let diffTimeClass = "";
+	let diffDayClass = "";
+	let diffSubjectClass = "";
+	switch (diffType) {
+		case "match without location":
+			diffLocationClass = ".diff";
+			break;
+		case "match without teacher":
+			diffTeacherClass = ".diff";
+			break;
+		case "match without time":
+			diffTimeClass = ".diff";
+			break;
+		case "match without time and day":
+			diffTimeClass = ".diff";
+			diffDayClass = ".diff";
+			break;
+		case "match without teacher, time and day":
+			diffTeacherClass = ".diff";
+			diffTimeClass = ".diff";
+			diffDayClass = ".diff";
+			break;
+		case "perfect match": break;
+		default: unreachable(diffType);
+	}
+	if (!location$1) {
+		location$1 = "-onbekend-";
+		diffLocationClass = ".diff";
+	}
+	let tdSubjects;
+	if (subjects == "") {
+		diffSubjectClass = ".diff";
+		tdSubjects = `(td${diffSubjectClass}>div.diffTooltip{-onbekend-}>span.diffTooltiptext{${cellValue}})`;
+	} else tdSubjects = `td${diffSubjectClass}{${subjects}}`;
+	let iconClass = rowType == "excel" ? "fa-grid" : "fa-chalkboard-user";
+	tr.dataset.lesId = lesId;
+	tr.dataset.hash = hash;
+	tr.dataset.cellAddress = rowId;
+	tr.dataset.workbook = workBook;
+	tr.dataset.worksheet = worksheet;
+	tr.dataset.rowType = rowType;
+	emmet.appendChild(tr, `${tdSubjects}+td${diffTeacherClass}{${teachers}}+td${diffDayClass}{${toCompactDayString(day)}}+td${diffTimeClass}{${timeSlice}}+td${diffLocationClass}{${location$1}}+(td.buttonshow>button.goto>i.fas.${iconClass})+(td.button>button.goto.chkHide>i.fas.fa-check)`);
+	let btnGoto = tr.querySelector("button.goto");
+	btnGoto.onclick = (ev) => gotoData(ev, academie, schoolYear);
+	let btnHide = tr.querySelector("button.chkHide");
+	btnHide.onclick = (ev) => toggleIgnore(ev, academie, schoolYear);
+}
+async function toggleIgnore(ev, academie, schoolYear) {
+	let button = ev.currentTarget;
+	let tr = button.closest("tr");
+	tr.classList.toggle("ignore");
+	await saveIgnoredHashes(academie, schoolYear);
+}
+async function saveIgnoredHashes(academie, schoolYear) {
+	let table = document.getElementById("orphans");
+	let hashes = [...table.querySelectorAll("tr.ignore")].map((tr) => tr.dataset.hash);
+	await uploadIgnoredDiffHashes(academie, schoolYear, hashes);
+}
+async function gotoData(ev, academie, schoolYear) {
+	let button = ev.currentTarget;
+	let tr = button.closest("tr");
+	let rowType = tr.dataset.rowType;
+	let cellAddress = tr.dataset.cellAddress;
+	let workBook = tr.dataset.workbook;
+	let workSheet = tr.dataset.worksheet;
+	let lesId = tr.dataset.lesId;
+	if (rowType == "excel") {
+		let url = await getUrlForWorksheet(workBook, workSheet, cellAddress, academie, schoolYear);
+		if (url == "") return;
+		window.open(url, "_blank");
+	} else if (rowType == "dko3") location.href = DKO3_BASE_URL + "#lessen-les?id=" + lesId;
+}
+function toCompactDayString(day) {
+	switch (day) {
+		case "MAANDAG": return "ma ";
+		case "DINSDAG": return "di ";
+		case "WOENSDAG": return "wo ";
+		case "DONDERDAG": return "do ";
+		case "VRIJDAG": return "vr ";
+		case "ZATERDAG": return "za ";
+		case "ZONDAG": return "zo ";
+		case "": return "?? ";
+		default: unreachable(day);
+	}
+}
+function excelPostoExcelAddress(row, column) {
+	return indexToExcelColumn(column) + (row + 1).toString();
+}
+function indexToExcelColumn(index) {
+	let quotient = Math.floor(index / 26);
+	if (quotient <= 0) return chars[index];
+	return indexToExcelColumn(quotient - 1) + chars[index % 26];
+}
+const chars = [
+	"A",
+	"B",
+	"C",
+	"D",
+	"E",
+	"F",
+	"G",
+	"H",
+	"I",
+	"J",
+	"K",
+	"L",
+	"M",
+	"N",
+	"O",
+	"P",
+	"Q",
+	"R",
+	"S",
+	"T",
+	"U",
+	"V",
+	"W",
+	"X",
+	"Y",
+	"Z"
+];
+
+//#endregion
 //#region typescript/startPage/diffPage.ts
 async function loadCombboxSchoolYearAndTrySelect(dirTree) {
 	if (!dirTree) dirTree = await getDiffDirStructure();
@@ -5810,7 +5831,7 @@ async function setupDiffPage() {
 	let divInfo = emmet.insertAfter(runStatus, "div#diffInfo").last;
 	let divError = emmet.insertAfter(divInfo, "div#diffErrors.errors").last;
 	btnCalcDiff.onclick = () => calcAndShowDiffsWithSettings(false);
-	btnDiffSettings.onclick = () => showDiffSetup("TODO");
+	btnDiffSettings.onclick = () => showDiffSetup(cmbDiffAcademie.value, cmbDiffSchoolYear.value);
 	cmbDiffAcademie.onchange = async () => {
 		if (await loadCombboxSchoolYearAndTrySelect(dirTree)) pluginContainer.classList.toggle("diffCombosLoaded", true);
 		await showDiffsFromComboboxes();
@@ -5821,15 +5842,7 @@ async function setupDiffPage() {
 	await showDiffsFromComboboxes();
 }
 async function calcAndShowDiffsWithSettings(useDiffsFromCloud) {
-	let ignoreList = [...defaultIgnoreList];
-	let tagDefs = [...defaultTagDefs];
-	let diffSettings = {
-		version: 0,
-		schoolyear: "TODO",
-		ignoreList,
-		tagDefs
-	};
-	await getAndShowDiffs(useDiffsFromCloud, diffSettings);
+	await getAndShowDiffs(useDiffsFromCloud);
 }
 async function showDiffsFromComboboxes() {
 	await calcAndShowDiffsWithSettings(true);
@@ -5877,14 +5890,17 @@ function getDiffMyAcademieFolder(folderTree) {
 	if (found) return found;
 	return null;
 }
-async function showDiffSetup(schoolyear) {
-	let res = await openDiffSettings(schoolyear);
+async function showDiffSetup(academie, schoolyear) {
+	let res = await openDiffSettings(academie, schoolyear);
 	globalDiffSettingsTabId = res.tabId;
 }
 let globalDiffSettingsTabId;
 let globals$1 = { diffSettings: void 0 };
-async function openDiffSettings(schoolyear) {
-	return sendRequest(Actions.OpenDiffSettings, TabType.Main, TabType.Undefined, void 0, { schoolyear }, "TODO: is this title used? Uurrooster setup voor schooljaar " + schoolyear);
+async function openDiffSettings(academie, schoolyear) {
+	return sendRequest(Actions.OpenDiffSettings, TabType.Main, TabType.Undefined, void 0, {
+		academie,
+		schoolyear
+	}, "TODO: is this title used? Uurrooster setup voor schooljaar " + schoolyear);
 }
 chrome.runtime.onMessage.addListener(onMessage$1);
 let pauseRefresh$1 = false;
@@ -5895,9 +5911,10 @@ async function onMessage$1(request, _sender, sendResponse) {
 	if (request.senderTabType != TabType.DiffSettings) return;
 	if (request.action == Actions.RequestTabData) {
 		console.log("Requesting tab data", request.data);
+		let academie = request.data.params.academie;
 		let schoolYear = request.data.params.schoolYear;
-		let setup = globals$1.diffSettings;
-		await sendMessageToDiffSettings(Actions.TabData, setup);
+		if (!globals$1.diffSettings) globals$1.diffSettings = await fetchDiffSettingsOrDefault(academie, schoolYear);
+		await sendMessageToDiffSettings(Actions.TabData, globals$1.diffSettings);
 		return;
 	}
 	if (pauseRefresh$1) return;

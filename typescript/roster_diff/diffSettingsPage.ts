@@ -2,7 +2,8 @@ import {Actions, createMessageHandler, DataRequestTypes, DiffSettingsDataRequest
 import {emmet} from "../../libs/Emmeter/html";
 import * as def from "../def";
 import * as InputWithSpaces from "../webComponents/inputWithSpaces";
-import {DiffSettings, saveDiffSettings, TagDef} from "./diffSettings";
+import {DiffSettings, TagDef} from "./diffSettings";
+import {uploadDiffSettings} from "../cloud";
 
 let handler  = createMessageHandler(TabType.DiffSettings);
 
@@ -25,7 +26,7 @@ function addTranslationRow(tagDef: TagDef, tbody: HTMLTableSectionElement) {
     let text = `tr>`
         + buildField("Vind", tagDef.searchString, "trnsFind")
         + "+"
-        + buildField("vervang door", tagDef.tag, "trnsTag");
+        + buildField("tag met", tagDef.tag, "trnsTag");
     let tr = emmet.appendChild(tbody, text).first as HTMLTableRowElement;
     let bucket = `button.deleteRow.naked>img[src="${chrome.runtime.getURL("images/trash-can.svg")}"]`;
     emmet.appendChild(tr, `td>${bucket}`);
@@ -58,7 +59,7 @@ function deleteTableRow(ev: Event) {
 }
 
 async function onData(request: ServiceRequest) {
-    let title = "Uurrooster tags voor schooljaar " + request.data.schoolyear;
+    let title = "Uurrooster tags voor schooljaar " + request.data.schoolYear;
     document.title = title;
     document.getElementById(def.SETUP_HOURS_TITLE_ID)!.innerHTML = title;
     //test...
@@ -111,12 +112,13 @@ function onCheckTableChanged(diffSettings: DiffSettings) {
         return;
     let setupData: DiffSettings = {
         version: 1,
-        schoolyear: diffSettings.schoolyear,
+        academie: diffSettings.academie,
+        schoolYear: diffSettings.schoolYear,
         tagDefs: scrapeTagDefs(),
         ignoreList: globalSetup.ignoreList //todo: scrape
     };
     hasTableChanged = false;
-    saveDiffSettings(setupData)
+    uploadDiffSettings(diffSettings.academie, diffSettings.schoolYear, setupData)
         .then(_ => {
             sendRequest(Actions.DiffSettingsChanged, TabType.DiffSettings, TabType.Main, undefined, setupData).then(_ => {});
         });
@@ -158,6 +160,7 @@ async function onDocumentLoaded(this: Document, _: Event) {
             }));
     let params = new URLSearchParams(document.location.search);
     let schoolYear = params.get("schoolyear")!;
-    await sendDataRequest<DiffSettingsDataRequestParams>(TabType.DiffSettings, DataRequestTypes.DiffSettings, {schoolYear});
+    let academie = params.get("academie")!;
+    await sendDataRequest<DiffSettingsDataRequestParams>(TabType.DiffSettings, DataRequestTypes.DiffSettings, {academie, schoolYear});
 }
 

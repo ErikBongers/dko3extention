@@ -92,17 +92,8 @@ export const defaultIgnoreList: string[] = [
 
 export interface DiffSettings {
     version: number,
-    schoolyear: string;
+    academie: string;
+    schoolYear: string;
     tagDefs: TagDef[],
     ignoreList: string[]
 }
-
-export async function saveDiffSettings(diffSettings: DiffSettings) {
-    let fileName = createDiffSettingsFileName(diffSettings.schoolyear);
-    return cloud.json.upload(fileName, diffSettings);
-}
-
-export function createDiffSettingsFileName(schoolyear: string) { //todo: add academie
-    return "diffSettings_" + schoolyear + ".json";
-}
-

@@ -497,13 +497,6 @@ function registerWebComponent() {
 
 //#endregion
 //#region typescript/cloud.ts
-let cloud = { json: {
-	fetch: fetchJson,
-	upload: uploadJson
-} };
-async function fetchJson(fileName) {
-	return fetch(JSON_URL + "?fileName=" + fileName, { method: "GET" }).then((res) => res.json());
-}
 async function uploadJson(fileName, data) {
 	let res = await fetch(JSON_URL + "?fileName=" + fileName, {
 		method: "POST",
@@ -512,15 +505,11 @@ async function uploadJson(fileName, data) {
 	});
 	return await res.text();
 }
-
-//#endregion
-//#region typescript/roster_diff/diffSettings.ts
-async function saveDiffSettings(diffSettings) {
-	let fileName = createDiffSettingsFileName(diffSettings.schoolyear);
-	return cloud.json.upload(fileName, diffSettings);
+function getDiffSettingsFileName(academie, schoolYear) {
+	return `Dko3/Uurroosters/${academie}/${academie}_${schoolYear}_diff_settings.json`;
 }
-function createDiffSettingsFileName(schoolyear) {
-	return "diffSettings_" + schoolyear + ".json";
+async function uploadDiffSettings(academie, schoolYear, diffSettings) {
+	await uploadJson(getDiffSettingsFileName(academie, schoolYear), diffSettings);
 }
 
 //#endregion
@@ -558,7 +547,7 @@ function deleteTableRow(ev) {
 	hasTableChanged = true;
 }
 async function onData(request) {
-	let title = "Uurrooster tags voor schooljaar " + request.data.schoolyear;
+	let title = "Uurrooster tags voor schooljaar " + request.data.schoolYear;
 	document.title = title;
 	document.getElementById(
 		//todo: scrape
@@ -602,12 +591,13 @@ function onCheckTableChanged(diffSettings) {
 	if (!hasTableChanged) return;
 	let setupData = {
 		version: 1,
-		schoolyear: diffSettings.schoolyear,
+		academie: diffSettings.academie,
+		schoolYear: diffSettings.schoolYear,
 		tagDefs: scrapeTagDefs(),
 		ignoreList: globalSetup.ignoreList
 	};
 	hasTableChanged = false;
-	saveDiffSettings(setupData).then((_) => {
+	uploadDiffSettings(diffSettings.academie, diffSettings.schoolYear, setupData).then((_) => {
 		sendRequest(Actions.DiffSettingsChanged, TabType.DiffSettings, TabType.Main, void 0, setupData).then((_$1) => {});
 	});
 }
@@ -642,7 +632,11 @@ async function onDocumentLoaded(_) {
 	}));
 	let params = new URLSearchParams(document.location.search);
 	let schoolYear = params.get("schoolyear");
-	await sendDataRequest(TabType.DiffSettings, DataRequestTypes.DiffSettings, { schoolYear });
+	let academie = params.get("academie");
+	await sendDataRequest(TabType.DiffSettings, DataRequestTypes.DiffSettings, {
+		academie,
+		schoolYear
+	});
 }
 
 //#endregion

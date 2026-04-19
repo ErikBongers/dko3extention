@@ -4,12 +4,28 @@ import {decorateTableHeader} from "../table/tableHeaders";
 import {DayUppercase} from "../lessen/scrape";
 import {DKO3_BASE_URL, OPTION_HIDE_IGNORED_DIFFS} from "../def";
 import {buildAndSaveDiff, createDiffTable, DiffType, Dko3DiffData, getDiffsFromCloud, getUrlForWorksheet, JsonDiff, JsonDiffs, setIgnoredFlags} from "./buildDiff";
-import {uploadIgnoredDiffHashes} from "../cloud";
+import {fetchDiffSettings, uploadIgnoredDiffHashes} from "../cloud";
 import {InfoBarTableFetchListener} from "../table/loadAnyTable";
 import {createInfoBlock} from "../infoBlock";
-import {DiffSettings} from "./diffSettings";
+import {defaultIgnoreList, defaultTagDefs, DiffSettings} from "./diffSettings";
 
-export async function getAndShowDiffs(useDiffsFromCloud: boolean, diffSettings: DiffSettings) {
+export async function fetchDiffSettingsOrDefault(academie: string, schoolYear: string) {
+    let settings: DiffSettings | undefined;
+    try {
+        settings = await fetchDiffSettings(academie, schoolYear);
+    } catch {}
+    if (!settings)
+        return {
+            version: 0,
+            academie,
+            schoolYear,
+            tagDefs: [...defaultTagDefs],
+            ignoreList: [...defaultIgnoreList]
+        } satisfies DiffSettings;
+    return settings;
+}
+
+export async function getAndShowDiffs(useDiffsFromCloud: boolean) {
     let divResults = document.getElementById("diffResults") as HTMLDivElement;
     divResults.innerHTML = "Ophalen...";
 
@@ -32,6 +48,7 @@ export async function getAndShowDiffs(useDiffsFromCloud: boolean, diffSettings: 
     let json = localStorage.getItem("dko3plugin.TESTDIFF");
     let dko3DiffData = JSON.parse(json) as Dko3DiffData | null;
     let jsonDiffs: JsonDiffs | null = null;
+    let diffSettings = await fetchDiffSettingsOrDefault(cmbDiffAcademie.value, cmbDiffSchoolYear.value);
     if(useDiffsFromCloud) {
         try {
             jsonDiffs = await getDiffsFromCloud(cmbDiffAcademie.value, cmbDiffSchoolYear.value);
@@ -62,7 +79,7 @@ export async function showDiffs(diffs: JsonDiffs, academie: string, schoolYear: 
         button.innerHTML = "refresh";
         button.onclick = () => {
             localStorage.removeItem("dko3plugin.TESTDIFF");
-            getAndShowDiffs(false, diffSettings);
+            getAndShowDiffs(false);
         };
     }
     let divChk = emmet.appendChild(divResults, `div#divHideChecked>(input#chkHideChecked[type="checkbox"]+label[for="chkHideChecked"]{Verberg aangevinkte lijnen})`).first as HTMLDivElement;

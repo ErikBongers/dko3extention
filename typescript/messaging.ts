@@ -59,6 +59,7 @@ export type HourSettingsDataRequestParams = {
 }
 
 export type DiffSettingsDataRequestParams = {
+    academie: string,
     schoolYear: string,
 }
 

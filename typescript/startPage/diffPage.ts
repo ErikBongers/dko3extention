@@ -1,5 +1,5 @@
 import {emmet} from "../../libs/Emmeter/html";
-import {getAndShowDiffs} from "../roster_diff/showDiff";
+import {fetchDiffSettingsOrDefault, getAndShowDiffs} from "../roster_diff/showDiff";
 import {fetchFolderContent} from "../cloud";
 import {getUserAndSchoolName} from "../globals";
 import {Diff} from "../roster_diff/buildDiff";
@@ -51,7 +51,7 @@ export async function setupDiffPage() {
     let divInfo = emmet.insertAfter(runStatus, 'div#diffInfo').last as HTMLDivElement;
     let divError = emmet.insertAfter(divInfo, 'div#diffErrors.errors').last as HTMLDivElement;
     btnCalcDiff.onclick = () => calcAndShowDiffsWithSettings(false);
-    btnDiffSettings.onclick = () => showDiffSetup("TODO") //todo!!!
+    btnDiffSettings.onclick = () => showDiffSetup(cmbDiffAcademie.value, cmbDiffSchoolYear.value);
     cmbDiffAcademie.onchange = async () => {
         if(await loadCombboxSchoolYearAndTrySelect(dirTree))
             pluginContainer.classList.toggle("diffCombosLoaded", true);
@@ -64,15 +64,7 @@ export async function setupDiffPage() {
 }
 
 async function calcAndShowDiffsWithSettings(useDiffsFromCloud: boolean) {
-    let ignoreList = [...defaultIgnoreList];
-    let tagDefs = [...defaultTagDefs];
-    let diffSettings: DiffSettings = {
-        version: 0,
-        schoolyear: "TODO", //todo: schoolYear and academie!!!
-        ignoreList,
-        tagDefs
-    }
-    await getAndShowDiffs(useDiffsFromCloud, diffSettings);
+    await getAndShowDiffs(useDiffsFromCloud);
 }
 
 async function showDiffsFromComboboxes() {
@@ -135,8 +127,8 @@ export function getDiffMyAcademieFolder(folderTree: TreeNode) {
     return null;
 }
 
-async function showDiffSetup(schoolyear: string) {
-    let res = await openDiffSettings(schoolyear);
+async function showDiffSetup(academie: string, schoolyear: string) {
+    let res = await openDiffSettings(academie, schoolyear);
     globalDiffSettingsTabId = res.tabId;
 }
 
@@ -150,8 +142,8 @@ let globals: DiffGlobals = {
     diffSettings: undefined
 }
 
-export async function openDiffSettings(schoolyear: string) {
-    return sendRequest(Actions.OpenDiffSettings, TabType.Main, TabType.Undefined, undefined, {schoolyear}, "TODO: is this title used? Uurrooster setup voor schooljaar " + schoolyear);
+export async function openDiffSettings(academie: string, schoolyear: string) {
+    return sendRequest(Actions.OpenDiffSettings, TabType.Main, TabType.Undefined, undefined, {academie, schoolyear}, "TODO: is this title used? Uurrooster setup voor schooljaar " + schoolyear);
 }
 
 chrome.runtime.onMessage.addListener(onMessage)
@@ -167,9 +159,12 @@ async function onMessage(request: ServiceRequest, _sender: MessageSender, sendRe
         return;
     if(request.action == Actions.RequestTabData) {
         console.log("Requesting tab data", request.data);
-        let schoolYear = request.data.params.schoolYear; //todo: use this to get the settings.
-        let setup = globals.diffSettings;//todo!
-        await sendMessageToDiffSettings(Actions.TabData, setup);
+        let academie = request.data.params.academie;
+        let schoolYear = request.data.params.schoolYear;
+        if(!globals.diffSettings) {
+            globals.diffSettings = await fetchDiffSettingsOrDefault(academie, schoolYear);
+        }
+        await sendMessageToDiffSettings(Actions.TabData, globals.diffSettings);
         return;
     }
     if(pauseRefresh)

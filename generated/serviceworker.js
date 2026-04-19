@@ -79,7 +79,11 @@ function onMessage(message, sender, sendResponse) {
 			return true;
 		case Actions.OpenDiffSettings:
 			setTabId(TabType.Main, sender.tab.id).then(() => {});
-			chrome.tabs.create({ url: chrome.runtime.getURL(`resources/diffSettings.html?schoolyear=${message.data.schoolyear}`) }).then((tab) => {
+			let params = new URLSearchParams({
+				academie: message.data.academie,
+				schoolyear: message.data.schoolyear
+			});
+			chrome.tabs.create({ url: chrome.runtime.getURL(`resources/diffSettings.html?${params.toString()}`) }).then((tab) => {
 				sendResponse({ tabId: tab.id });
 			});
 			return true;
