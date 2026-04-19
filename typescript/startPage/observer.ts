@@ -5,11 +5,6 @@ import {checkChecks} from "../notifications/checks";
 import {getGotoStateOrDefault, Goto, PageName, saveGotoState, StartPageGotoState} from "../gotoState";
 import {setupDiffPage} from "./diffPage";
 import {setupSnapshotPage} from "./snapshots";
-import {openHoursSettings} from "../globals";
-import {Actions, sendRequest, ServiceRequest, TabType} from "../messaging";
-import MessageSender = chrome.runtime.MessageSender;
-import {fetchHoursSettingsOrSaveDefault} from "../werklijst/prefillInstruments";
-import {DiffSettings} from "../roster_diff/diffSettings";
 
 class StartPageObserver extends ExactHashObserver {
     constructor() {

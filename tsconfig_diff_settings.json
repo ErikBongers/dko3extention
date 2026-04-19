@@ -11,5 +11,5 @@
     "noImplicitReturns": true,
     "noImplicitAny": true
   },
-  "files": ["./typescript/roster_diff/diffSettings.ts"]
+  "files": ["./typescript/roster_diff/diffSettingsPage.ts"]
 }
