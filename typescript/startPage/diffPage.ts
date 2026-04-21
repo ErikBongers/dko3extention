@@ -51,12 +51,25 @@ export async function setupDiffPage() {
     btnCalcDiff.onclick = () => calcAndShowDiffsWithSettings(false);
     btnDiffSettings.onclick = () => showDiffSetup(cmbDiffAcademie.value, cmbDiffSchoolYear.value);
     cmbDiffAcademie.onchange = async () => {
-        if(await loadCombboxSchoolYearAndTrySelect(dirTree))
-            pluginContainer.classList.toggle("diffCombosLoaded", true);
+        await onCmbAcademieChange(dirTree);
+    }
+    cmbDiffAcademie.value = localStorage.getItem("diffLastAcademie"); //todo: check if valid value
+    await onCmbAcademieChange(dirTree);
+    cmbDiffSchoolYear.onchange = async () => {
+        localStorage.setItem("diffLastSchoolYear", cmbDiffSchoolYear.value);
         await showDiffsFromComboboxes();
     }
-    cmbDiffSchoolYear.onchange = async () => {
-        await showDiffsFromComboboxes();
+    await showDiffsFromComboboxes();
+}
+
+async function onCmbAcademieChange(dirTree: TreeNode) {
+    let pluginContainer = document.getElementById("plugin_container")!;
+    let cmbDiffAcademie = pluginContainer.querySelector("#cmbDiffAcademie") as HTMLSelectElement;
+    let cmbDiffSchoolYear = document.querySelector("#cmbDiffSchoolYear") as HTMLSelectElement;
+    localStorage.setItem("diffLastAcademie", cmbDiffAcademie.value);
+    if (await loadCombboxSchoolYearAndTrySelect(dirTree)) {
+        cmbDiffSchoolYear.value = localStorage.getItem("diffLastSchoolYear");//todo: check if valid value
+        pluginContainer.classList.toggle("diffCombosLoaded", true);
     }
     await showDiffsFromComboboxes();
 }
@@ -119,7 +132,10 @@ export function getDiffMyAcademieFolder(folderTree: TreeNode) {
         .replaceAll("-", "");
     if(academies.includes(myAcademie))
         return myAcademie;
-    let found = academies.find(name => name.includes(myAcademie))
+    let found = academies.find(name => name == myAcademie)
+    if(found)
+        return found;
+    found = academies.find(name => name.includes(myAcademie))
     if(found)
         return found;
     return null;

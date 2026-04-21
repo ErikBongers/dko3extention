@@ -5838,12 +5838,25 @@ async function setupDiffPage() {
 	btnCalcDiff.onclick = () => calcAndShowDiffsWithSettings(false);
 	btnDiffSettings.onclick = () => showDiffSetup(cmbDiffAcademie.value, cmbDiffSchoolYear.value);
 	cmbDiffAcademie.onchange = async () => {
-		if (await loadCombboxSchoolYearAndTrySelect(dirTree)) pluginContainer.classList.toggle("diffCombosLoaded", true);
-		await showDiffsFromComboboxes();
+		await onCmbAcademieChange(dirTree);
 	};
+	cmbDiffAcademie.value = localStorage.getItem("diffLastAcademie");
+	await onCmbAcademieChange(dirTree);
 	cmbDiffSchoolYear.onchange = async () => {
+		localStorage.setItem("diffLastSchoolYear", cmbDiffSchoolYear.value);
 		await showDiffsFromComboboxes();
 	};
+	await showDiffsFromComboboxes();
+}
+async function onCmbAcademieChange(dirTree) {
+	let pluginContainer = document.getElementById("plugin_container");
+	let cmbDiffAcademie = pluginContainer.querySelector("#cmbDiffAcademie");
+	let cmbDiffSchoolYear = document.querySelector("#cmbDiffSchoolYear");
+	localStorage.setItem("diffLastAcademie", cmbDiffAcademie.value);
+	if (await loadCombboxSchoolYearAndTrySelect(dirTree)) {
+		cmbDiffSchoolYear.value = localStorage.getItem("diffLastSchoolYear");
+		pluginContainer.classList.toggle("diffCombosLoaded", true);
+	}
 	await showDiffsFromComboboxes();
 }
 async function calcAndShowDiffsWithSettings(useDiffsFromCloud) {
@@ -5891,7 +5904,9 @@ function getDiffMyAcademieFolder(folderTree) {
 	if (academies.includes(myAcademie)) return myAcademie;
 	myAcademie = myAcademie.replaceAll("-", "");
 	if (academies.includes(myAcademie)) return myAcademie;
-	let found = academies.find((name) => name.includes(myAcademie));
+	let found = academies.find((name) => name == myAcademie);
+	if (found) return found;
+	found = academies.find((name) => name.includes(myAcademie));
 	if (found) return found;
 	return null;
 }
