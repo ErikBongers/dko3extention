@@ -6125,6 +6125,22 @@ function compareSnapshots(previousSnapshot, nextSnapshot, divResults) {
 	});
 	for (let les of diffs) emmet.appendChild(tbody, `tr.${les.what}>(td{${les.les.id}}+td{${les.les.vakNaam}}+td{${les.les.naam}}+td{${les.les.lesmoment}})`);
 	if (diffs.length > 0) divResults.classList.toggle("error", true);
+	let rows = [...tbody.querySelectorAll("tr")];
+	for (let i = 0; i <= rows.length - 2; i++) {
+		let row1 = rows[i];
+		let row2 = rows[i + 1];
+		let cells1 = [...row1.querySelectorAll("td")];
+		let cells2 = [...row2.querySelectorAll("td")];
+		if (cells1[0].innerText != cells2[0].innerText) continue;
+		for (let cellIndex = 0; cellIndex < cells1.length; cellIndex++) {
+			let cell1 = cells1[cellIndex];
+			let cell2 = cells2[cellIndex];
+			if (cell1.innerText != cell2.innerText) {
+				cell1.classList.toggle("error", true);
+				cell2.classList.toggle("error", true);
+			}
+		}
+	}
 }
 
 //#endregion

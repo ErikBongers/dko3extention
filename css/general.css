@@ -538,6 +538,9 @@ div#snapshotResults {
             background-color: #ffb290;
         }
     }
+    & td.error {
+        background-color: #ffb290;
+    }
 }
 
 .gray {
