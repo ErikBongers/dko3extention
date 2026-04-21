@@ -40,12 +40,39 @@ function addTranslationRow(tagDef: TagDef, tbody: HTMLTableSectionElement) {
     }
 }
 
+function addIgnoresRow(ignore: string, tbody: HTMLTableSectionElement) {
+    let text = `tr>` + buildField(ignore, "trnsIgnore");
+    let tr = emmet.appendChild(tbody, text).first as HTMLTableRowElement;
+    let bucket = `button.deleteRow.naked>img[src="${chrome.runtime.getURL("images/trash-can.svg")}"]`;
+    emmet.appendChild(tr, `td>${bucket}`);
+
+    tbody.querySelectorAll("button.deleteRow")
+        .forEach(btn => btn.addEventListener("click", deleteTableRow));
+
+    function buildField(value: string, id: string){
+        let attrValue = value ? ` value="${value}"` : "";
+        return `(td>input-with-spaces#${id}[type="text"${attrValue}])`;
+    }
+}
+
 function fillTagDefTable(diffSettings: DiffSettings) {
     let container = document.getElementById("tagDefsContainer")!;
     let tbody = container.querySelector("table>tbody") as HTMLTableSectionElement;
     tbody.innerHTML = "";
     for (let tagDef of diffSettings.tagDefs) {
         addTranslationRow(tagDef, tbody);
+    }
+
+    document.querySelectorAll("#tagDefsContainer button.deleteRow")
+        .forEach(btn => btn.addEventListener("click", deleteTableRow));
+}
+
+function fillIgnoresTable(diffSettings: DiffSettings) {
+    let container = document.getElementById("ignoresContainer")!;
+    let tbody = container.querySelector("table>tbody") as HTMLTableSectionElement;
+    tbody.innerHTML = "";
+    for (let ignore of diffSettings.ignoreList) {
+        addIgnoresRow(ignore, tbody);
     }
 
     document.querySelectorAll("#tagDefsContainer button.deleteRow")
@@ -69,6 +96,7 @@ async function onData(request: ServiceRequest) {
 
     globalSetup = request.data as DiffSettings;
     fillTagDefTable(request.data as DiffSettings);
+    fillIgnoresTable(request.data as DiffSettings);
     //set change even AFTER filling the tables:
     document.querySelectorAll("tbody").forEach(tbody => tbody.addEventListener("change", (_) => {
         hasTableChanged = true;
@@ -107,6 +135,12 @@ function scrapeTagDefs(): TagDef[] {
         });
 }
 
+function scrapeIgnores(): string[] {
+    let rows = document.querySelectorAll("#ignoresContainer>table>tbody>tr") as NodeListOf<HTMLTableRowElement>;
+    return [...rows]
+        .map(row => (row.querySelector("#trnsIgnore") as InputWithSpaces.Type).value);
+}
+
 function onCheckTableChanged(diffSettings: DiffSettings) {
     if (!hasTableChanged)
         return;
@@ -115,7 +149,7 @@ function onCheckTableChanged(diffSettings: DiffSettings) {
         academie: diffSettings.academie,
         schoolYear: diffSettings.schoolYear,
         tagDefs: scrapeTagDefs(),
-        ignoreList: globalSetup.ignoreList //todo: scrape
+        ignoreList: scrapeIgnores()
     };
     hasTableChanged = false;
     uploadDiffSettings(diffSettings.academie, diffSettings.schoolYear, setupData)
@@ -146,17 +180,7 @@ async function onDocumentLoaded(this: Document, _: Event) {
     document.querySelectorAll(".tabs > button.tab")
         .forEach(btn => btn
             .addEventListener("click", (ev) => {
-                switch ((ev.target as HTMLElement).id) {
-                    case "btnTabTagDefs":
-                        switchTab(ev.target as HTMLButtonElement);
-                        break;
-                    case "btnTabTranslations":
-                        switchTab(ev.target as HTMLButtonElement);
-                        break;
-                    case "btnTabGradeYears":
-                        switchTab(ev.target as HTMLButtonElement);
-                        break;
-                }
+                switchTab(ev.currentTarget as HTMLButtonElement);
             }));
     let params = new URLSearchParams(document.location.search);
     let schoolYear = params.get("schoolyear")!;

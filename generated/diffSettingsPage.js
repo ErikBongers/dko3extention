@@ -524,7 +524,7 @@ handler.onMessageForMyTabType((msg) => {
 	console.log("diff setup page: message for me: ", msg);
 }).onData(onData);
 function addTranslationRow(tagDef, tbody) {
-	let text = `tr>` + buildField("Vind", tagDef.searchString, "trnsFind") + "+" + buildField("vervang door", tagDef.tag, "trnsTag");
+	let text = `tr>` + buildField("Vind", tagDef.searchString, "trnsFind") + "+" + buildField("tag met", tagDef.tag, "trnsTag");
 	let tr = emmet.appendChild(tbody, text).first;
 	let bucket = `button.deleteRow.naked>img[src="${chrome.runtime.getURL("images/trash-can.svg")}"]`;
 	emmet.appendChild(tr, `td>${bucket}`);
@@ -534,11 +534,29 @@ function addTranslationRow(tagDef, tbody) {
 		return `(td>{${label}})+(td>input-with-spaces#${id}[type="text"${attrValue}])`;
 	}
 }
+function addIgnoresRow(ignore, tbody) {
+	let text = `tr>` + buildField(ignore, "trnsIgnore");
+	let tr = emmet.appendChild(tbody, text).first;
+	let bucket = `button.deleteRow.naked>img[src="${chrome.runtime.getURL("images/trash-can.svg")}"]`;
+	emmet.appendChild(tr, `td>${bucket}`);
+	tbody.querySelectorAll("button.deleteRow").forEach((btn) => btn.addEventListener("click", deleteTableRow));
+	function buildField(value, id) {
+		let attrValue = value ? ` value="${value}"` : "";
+		return `(td>input-with-spaces#${id}[type="text"${attrValue}])`;
+	}
+}
 function fillTagDefTable(diffSettings) {
 	let container = document.getElementById("tagDefsContainer");
 	let tbody = container.querySelector("table>tbody");
 	tbody.innerHTML = "";
 	for (let tagDef of diffSettings.tagDefs) addTranslationRow(tagDef, tbody);
+	document.querySelectorAll("#tagDefsContainer button.deleteRow").forEach((btn) => btn.addEventListener("click", deleteTableRow));
+}
+function fillIgnoresTable(diffSettings) {
+	let container = document.getElementById("ignoresContainer");
+	let tbody = container.querySelector("table>tbody");
+	tbody.innerHTML = "";
+	for (let ignore of diffSettings.ignoreList) addIgnoresRow(ignore, tbody);
 	document.querySelectorAll("#tagDefsContainer button.deleteRow").forEach((btn) => btn.addEventListener("click", deleteTableRow));
 }
 function deleteTableRow(ev) {
@@ -549,15 +567,13 @@ function deleteTableRow(ev) {
 async function onData(request) {
 	let title = "Uurrooster tags voor schooljaar " + request.data.schoolYear;
 	document.title = title;
-	document.getElementById(
-		//todo: scrape
-		SETUP_HOURS_TITLE_ID
-).innerHTML = title;
+	document.getElementById(SETUP_HOURS_TITLE_ID).innerHTML = title;
 	document.querySelector("button").addEventListener("click", async () => {
 		await sendRequest(Actions.GreetingsFromChild, TabType.Undefined, TabType.Main, void 0, "Hullo! Fly safe!");
 	});
 	globalSetup = request.data;
 	fillTagDefTable(request.data);
+	fillIgnoresTable(request.data);
 	document.querySelectorAll("tbody").forEach((tbody) => tbody.addEventListener("change", (_) => {
 		hasTableChanged = true;
 	}));
@@ -587,6 +603,10 @@ function scrapeTagDefs() {
 		};
 	});
 }
+function scrapeIgnores() {
+	let rows = document.querySelectorAll("#ignoresContainer>table>tbody>tr");
+	return [...rows].map((row) => row.querySelector("#trnsIgnore").value);
+}
 function onCheckTableChanged(diffSettings) {
 	if (!hasTableChanged) return;
 	let setupData = {
@@ -594,7 +614,7 @@ function onCheckTableChanged(diffSettings) {
 		academie: diffSettings.academie,
 		schoolYear: diffSettings.schoolYear,
 		tagDefs: scrapeTagDefs(),
-		ignoreList: globalSetup.ignoreList
+		ignoreList: scrapeIgnores()
 	};
 	hasTableChanged = false;
 	uploadDiffSettings(diffSettings.academie, diffSettings.schoolYear, setupData).then((_) => {
@@ -618,17 +638,7 @@ async function onDocumentLoaded(_) {
 	let tabs = document.querySelector(".tabs");
 	switchTab(tabs.querySelector(".tab"));
 	document.querySelectorAll(".tabs > button.tab").forEach((btn) => btn.addEventListener("click", (ev) => {
-		switch (ev.target.id) {
-			case "btnTabTagDefs":
-				switchTab(ev.target);
-				break;
-			case "btnTabTranslations":
-				switchTab(ev.target);
-				break;
-			case "btnTabGradeYears":
-				switchTab(ev.target);
-				break;
-		}
+		switchTab(ev.currentTarget);
 	}));
 	let params = new URLSearchParams(document.location.search);
 	let schoolYear = params.get("schoolyear");
