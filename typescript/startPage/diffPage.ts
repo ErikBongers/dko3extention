@@ -136,7 +136,7 @@ type DiffGlobals = {
     diffSettings: DiffSettings,
 }
 
-let globals: DiffGlobals = {
+let diffGlobals: DiffGlobals = {
     diffSettings: undefined
 }
 
@@ -159,16 +159,16 @@ async function onMessage(request: ServiceRequest, _sender: MessageSender, sendRe
         console.log("Requesting tab data", request.data);
         let academie = request.data.params.academie;
         let schoolYear = request.data.params.schoolYear;
-        if(!globals.diffSettings) {
-            globals.diffSettings = await fetchDiffSettingsOrDefault(academie, schoolYear);
+        if(!diffGlobals.diffSettings) {
+            diffGlobals.diffSettings = await fetchDiffSettingsOrDefault(academie, schoolYear);
         }
-        await sendMessageToDiffSettings(Actions.TabData, globals.diffSettings);
+        await sendMessageToDiffSettings(Actions.TabData, diffGlobals.diffSettings);
         return;
     }
     if(pauseRefresh)
         return;
     pauseRefresh = true;
-    globals.diffSettings = request.data as DiffSettings;
+    diffGlobals.diffSettings = request.data as DiffSettings;
     await getAndShowDiffs(false);
     pauseRefresh = false;
 }
