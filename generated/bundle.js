@@ -1981,6 +1981,7 @@ function scrapeLesInfo(row) {
 	else les.lesType = LesType$1.Les;
 	if (mutedSpans.length > 0) les.teacher = Array.from(mutedSpans).pop().textContent;
 	les.teacher = les.teacher.replaceAll("  ", " ").replaceAll(" ,", ",").trim();
+	if (les.teacher == "(geen klasleerkracht)") les.teacher = "";
 	let textNodes = Array.from(lesCell.childNodes).filter((node) => node.nodeType === Node.TEXT_NODE && node.textContent.trim() !== "");
 	if (!textNodes) return htmlLes;
 	les.lesmoment = textNodes[0].nodeValue;

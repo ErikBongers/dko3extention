@@ -246,7 +246,8 @@ export function scrapeLesInfo(row: HTMLTableRowElement): HtmlLes {
         .replaceAll("  ", " ")
         .replaceAll(" ,", ",")
         .trim(); //clean up of names with additional spaces
-
+    if (les.teacher == "(geen klasleerkracht)")
+        les.teacher = "";
     let textNodes = Array.from(lesCell.childNodes).filter((node) => node.nodeType === Node.TEXT_NODE && node.textContent!.trim() !== "");
     if (!textNodes) return htmlLes;
 
