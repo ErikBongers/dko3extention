@@ -2,9 +2,9 @@ import {FetchedTable} from "../table/tableFetcher";
 import {dayToMinutes, GradeYear, Time, TimeSlice, timeToMinutes} from "../roster_diff/excelRoster";
 
 export function scrapeLessenOverzicht(table: HTMLTableElement) {
-    let body = table.tBodies[0];
-    if(!body)
+    if(!table)
         return [];
+    let body = table.tBodies[0];
     let lessen: HtmlLes[] = [];
     for (const row of body.rows) {
         let les = scrapeLesInfo(row);

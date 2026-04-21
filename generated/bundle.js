@@ -1788,8 +1788,8 @@ function parseTimeSlice(text) {
 //#endregion
 //#region typescript/lessen/scrape.ts
 function scrapeLessenOverzicht(table) {
+	if (!table) return [];
 	let body = table.tBodies[0];
-	if (!body) return [];
 	let lessen = [];
 	for (const row of body.rows) {
 		let les = scrapeLesInfo(row);
