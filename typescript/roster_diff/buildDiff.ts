@@ -244,7 +244,8 @@ function isDko3LesToIgnore(les: TaggedDko3LesMoment, ignoreList: string[]) {
 }
 
 function isExcelLesToIgnore(les: TaggedExcelLes, ignoreList: string[]) {
-    return ignoreList.some(ignore => les.searchText.includes(ignore))
+    return ignoreList.some(ignore => les.lesMoment.cellValue.includes(ignore))
+    || ignoreList.some(ignore => les.searchText.includes(ignore))
 }
 
 async function buildDiff(excelLessen: ClassDef[], dko3Data: Dko3DiffData, reportStatus: StatusCallback, diffSettings: DiffSettings) {

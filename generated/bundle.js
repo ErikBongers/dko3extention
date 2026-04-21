@@ -5479,7 +5479,7 @@ function isDko3LesToIgnore(les, ignoreList) {
 	return ignoreList.some((ignore) => (" " + les.lesMoment.les.naam.toLowerCase() + " ").includes(ignore) || (" " + les.lesMoment.les.vakNaam.toLowerCase() + " ").includes(ignore));
 }
 function isExcelLesToIgnore(les, ignoreList) {
-	return ignoreList.some((ignore) => les.searchText.includes(ignore));
+	return ignoreList.some((ignore) => les.lesMoment.cellValue.includes(ignore)) || ignoreList.some((ignore) => les.searchText.includes(ignore));
 }
 async function buildDiff(excelLessen, dko3Data, reportStatus, diffSettings) {
 	reportStatus("Lessen vergelijken...");
