@@ -588,6 +588,11 @@ async function onData(request) {
 		addTranslationRow(def, document.querySelector("#tagDefsContainer tbody"));
 		hasTableChanged = true;
 	});
+	document.getElementById("btnNewIgnoresRow").addEventListener("click", function(_) {
+		let ignore = "";
+		addIgnoresRow(ignore, document.querySelector("#ignoresContainer tbody"));
+		hasTableChanged = true;
+	});
 }
 let globalSetup = void 0;
 let hasTableChanged = false;

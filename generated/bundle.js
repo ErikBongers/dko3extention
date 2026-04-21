@@ -5895,7 +5895,7 @@ async function showDiffSetup(academie, schoolyear) {
 	globalDiffSettingsTabId = res.tabId;
 }
 let globalDiffSettingsTabId;
-let globals$1 = { diffSettings: void 0 };
+let diffGlobals = { diffSettings: void 0 };
 async function openDiffSettings(academie, schoolyear) {
 	return sendRequest(Actions.OpenDiffSettings, TabType.Main, TabType.Undefined, void 0, {
 		academie,
@@ -5913,13 +5913,13 @@ async function onMessage$1(request, _sender, sendResponse) {
 		console.log("Requesting tab data", request.data);
 		let academie = request.data.params.academie;
 		let schoolYear = request.data.params.schoolYear;
-		if (!globals$1.diffSettings) globals$1.diffSettings = await fetchDiffSettingsOrDefault(academie, schoolYear);
-		await sendMessageToDiffSettings(Actions.TabData, globals$1.diffSettings);
+		if (!diffGlobals.diffSettings) diffGlobals.diffSettings = await fetchDiffSettingsOrDefault(academie, schoolYear);
+		await sendMessageToDiffSettings(Actions.TabData, diffGlobals.diffSettings);
 		return;
 	}
 	if (pauseRefresh$1) return;
 	pauseRefresh$1 = true;
-	globals$1.diffSettings = request.data;
+	diffGlobals.diffSettings = request.data;
 	await getAndShowDiffs(false);
 	pauseRefresh$1 = false;
 }

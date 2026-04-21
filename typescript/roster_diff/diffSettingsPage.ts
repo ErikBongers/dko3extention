@@ -112,6 +112,11 @@ async function onData(request: ServiceRequest) {
         addTranslationRow(def, document.querySelector("#tagDefsContainer tbody")!);
         hasTableChanged = true;
     });
+    document.getElementById('btnNewIgnoresRow')!.addEventListener('click', function (_) {
+        let ignore =  "";
+        addIgnoresRow(ignore, document.querySelector("#ignoresContainer tbody")!);
+        hasTableChanged = true;
+    });
 }
 
 let globalSetup: DiffSettings | undefined = undefined;
