@@ -3,6 +3,8 @@ import {dayToMinutes, GradeYear, Time, TimeSlice, timeToMinutes} from "../roster
 
 export function scrapeLessenOverzicht(table: HTMLTableElement) {
     let body = table.tBodies[0];
+    if(!body)
+        return [];
     let lessen: HtmlLes[] = [];
     for (const row of body.rows) {
         let les = scrapeLesInfo(row);
