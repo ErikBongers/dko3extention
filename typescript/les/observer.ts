@@ -24,9 +24,9 @@ function onMutation(mutation: MutationRecord) {
     let titleHeader = document.getElementById("vh_header_lessen_les_left_title") as HTMLElement;
     if(titleHeader && !titleHeader.classList.contains("diffSearched")) {
         titleHeader.classList.add("diffSearched");
-        scrapeDiffsAcademieAndSchoolYear().then(async hereAndNow => {
-            await addDiff(titleHeader, hereAndNow.academieFolder, hereAndNow.schoolYear);
-        });
+        let academie = localStorage.getItem("diffLastAcademie");
+        let schoolYear = localStorage.getItem("diffLastSchoolYear");
+        addDiff(titleHeader, academie, schoolYear).then(r => {});
     }
     return false;
 }

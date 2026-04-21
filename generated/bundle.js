@@ -1642,6 +1642,7 @@ var ExcelRoster = class {
 		let classDefs = [];
 		let day = RosterFactory.toDayName(this.table.HeaderRowValue(0, column));
 		let teacher = this.table.HeaderRowValue(1, column);
+		if (teacher.trim() == "?") teacher = "";
 		for (let row = 0; row < this.table.RowCount; row++) {
 			let cellValue = this.table.Cell(row, column);
 			if (cellValue) {
@@ -5967,20 +5968,11 @@ function onMutation$5(mutation) {
 	let titleHeader = document.getElementById("vh_header_lessen_les_left_title");
 	if (titleHeader && !titleHeader.classList.contains("diffSearched")) {
 		titleHeader.classList.add("diffSearched");
-		scrapeDiffsAcademieAndSchoolYear().then(async (hereAndNow) => {
-			await addDiff(titleHeader, hereAndNow.academieFolder, hereAndNow.schoolYear);
-		});
+		let academie = localStorage.getItem("diffLastAcademie");
+		let schoolYear = localStorage.getItem("diffLastSchoolYear");
+		addDiff(titleHeader, academie, schoolYear).then((r) => {});
 	}
 	return false;
-}
-async function scrapeDiffsAcademieAndSchoolYear() {
-	let dirs = await getDiffDirStructure();
-	let academieFolder = getDiffMyAcademieFolder(dirs);
-	let schoolYear = Schoolyear.findInPage();
-	return {
-		academieFolder,
-		schoolYear
-	};
 }
 function onLeerlingenChanged() {
 	console.log("Les-Leerlingen changed.");
