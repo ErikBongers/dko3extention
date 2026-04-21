@@ -5919,8 +5919,8 @@ async function onMessage$1(request, _sender, sendResponse) {
 	}
 	if (pauseRefresh$1) return;
 	pauseRefresh$1 = true;
-	let diffSettings = request.data;
-	globals$1.diffSettings = diffSettings;
+	globals$1.diffSettings = request.data;
+	await getAndShowDiffs(false);
 	pauseRefresh$1 = false;
 }
 async function sendMessageToDiffSettings(action, data) {

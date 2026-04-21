@@ -2,9 +2,7 @@ import {emmet} from "../../libs/Emmeter/html";
 import {fetchDiffSettingsOrDefault, getAndShowDiffs} from "../roster_diff/showDiff";
 import {fetchFolderContent} from "../cloud";
 import {getUserAndSchoolName} from "../globals";
-import {Diff} from "../roster_diff/buildDiff";
-import {defaultIgnoreList, defaultTagDefs, DiffSettings} from "../roster_diff/diffSettings";
-import {RosterFactory} from "../roster_diff/rosterFactory";
+import {DiffSettings} from "../roster_diff/diffSettings";
 import {Actions, sendRequest, ServiceRequest, TabType} from "../messaging";
 import MessageSender = chrome.runtime.MessageSender;
 
@@ -170,9 +168,8 @@ async function onMessage(request: ServiceRequest, _sender: MessageSender, sendRe
     if(pauseRefresh)
         return;
     pauseRefresh = true;
-    let diffSettings = request.data as DiffSettings;
-    globals.diffSettings = diffSettings;
-    //todo: rebuild diffs.
+    globals.diffSettings = request.data as DiffSettings;
+    await getAndShowDiffs(false);
     pauseRefresh = false;
 }
 
