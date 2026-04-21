@@ -1,4 +1,4 @@
-import {dateDiffToString, unreachable} from "../globals";
+import {dateDiffToString, getOptions, unreachable} from "../globals";
 import {emmet} from "../../libs/Emmeter/html";
 import {decorateTableHeader} from "../table/tableHeaders";
 import {DayUppercase} from "../lessen/scrape";
@@ -8,6 +8,7 @@ import {fetchDiffSettings, uploadIgnoredDiffHashes} from "../cloud";
 import {InfoBarTableFetchListener} from "../table/loadAnyTable";
 import {createInfoBlock} from "../infoBlock";
 import {defaultIgnoreList, defaultTagDefs, DiffSettings} from "./diffSettings";
+import { options } from "../plugin_options/options";
 
 export async function fetchDiffSettingsOrDefault(academie: string, schoolYear: string) {
     let settings: DiffSettings | undefined;
@@ -29,7 +30,7 @@ export function getDiffsDko3CacheFileName(academie: string, schoolYear: string) 
     return `Dko3/Uurroosters/Cache/${academie}_${schoolYear}_dko3datacache.json`;
 }
 
-export async function getAndShowDiffs(useDiffsFromCloud: boolean) {
+export async function getAndShowDiffs(showOrCalc: "justShow" | "calcAndShow", useDkoCache: "dkoCache" | "fetchDko") {
     let divResults = document.getElementById("diffResults") as HTMLDivElement;
     divResults.innerHTML = "Ophalen...";
 
@@ -49,11 +50,13 @@ export async function getAndShowDiffs(useDiffsFromCloud: boolean) {
         divError.innerHTML = errors.join("<br>");
     }
     errors = [];
-    let json = localStorage.getItem(getDiffsDko3CacheFileName(cmbDiffAcademie.value, cmbDiffSchoolYear.value));
+    let json: string | null = null;
+    if(useDkoCache == "dkoCache")
+       json = localStorage.getItem(getDiffsDko3CacheFileName(cmbDiffAcademie.value, cmbDiffSchoolYear.value));
     let dko3DiffData = JSON.parse(json) as Dko3DiffData | null;
     let jsonDiffs: JsonDiffs | null = null;
     let diffSettings = await fetchDiffSettingsOrDefault(cmbDiffAcademie.value, cmbDiffSchoolYear.value);
-    if(useDiffsFromCloud) {
+    if(showOrCalc == "justShow") {
         try {
             jsonDiffs = await getDiffsFromCloud(cmbDiffAcademie.value, cmbDiffSchoolYear.value);
         }
@@ -77,13 +80,12 @@ export async function showDiffs(diffs: JsonDiffs, academie: string, schoolYear: 
     let elapsedTimeString = dateDiffToString(new Date(diffs.isoDate), new Date());
     if(elapsedTimeString != "")
         emmet.appendChild(divResults, `div.gray{Laatste vergelijking: ${elapsedTimeString} geleden.}`)
-    if(dko3DiffData) {
-        let div = emmet.appendChild(divResults, `div.gray{Dko3 gegevens uit cache. }`).first as HTMLDivElement;
+    if(options.showDebug && dko3DiffData) {
+        let div = emmet.appendChild(divResults, `div.gray`).first as HTMLDivElement;
         let button = emmet.appendChild(div, "button.likeLink").first as HTMLButtonElement;
-        button.innerHTML = "refresh";
+        button.innerHTML = "Zoek met dko3 cache";
         button.onclick = () => {
-            localStorage.removeItem(getDiffsDko3CacheFileName(academie, schoolYear));
-            getAndShowDiffs(false);
+            getAndShowDiffs("calcAndShow", "dkoCache");
         };
     }
     let divChk = emmet.appendChild(divResults, `div#divHideChecked>(input#chkHideChecked[type="checkbox"]+label[for="chkHideChecked"]{Verberg aangevinkte lijnen})`).first as HTMLDivElement;

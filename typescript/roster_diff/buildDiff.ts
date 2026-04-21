@@ -403,6 +403,8 @@ function matchIt(dko3LesSet: Set<TaggedDko3LesMoment>, excelLesSet: Set<TaggedEx
 }
 
 function perfectMatch(dko3Les: TaggedDko3LesMoment, excelLesSet: Set<TaggedExcelLes>): TaggedExcelLes | null {
+    if(dko3Les.lesMoment.les.teacher.includes("urgen"))
+        debugger;
     for(let excelLes of excelLesSet) {
         if(!dko3Les.subjects.some(t => excelLes.subjects.includes(t)))
             continue;

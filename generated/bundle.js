@@ -5075,7 +5075,7 @@ async function fetchDiffSettingsOrDefault(academie, schoolYear) {
 function getDiffsDko3CacheFileName(academie, schoolYear) {
 	return `Dko3/Uurroosters/Cache/${academie}_${schoolYear}_dko3datacache.json`;
 }
-async function getAndShowDiffs(useDiffsFromCloud) {
+async function getAndShowDiffs(showOrCalc, useDkoCache) {
 	let divResults = document.getElementById("diffResults");
 	divResults.innerHTML = "Ophalen...";
 	let divError = document.getElementById("diffErrors");
@@ -5092,11 +5092,12 @@ async function getAndShowDiffs(useDiffsFromCloud) {
 		divError.innerHTML = errors.join("<br>");
 	}
 	errors = [];
-	let json = localStorage.getItem(getDiffsDko3CacheFileName(cmbDiffAcademie.value, cmbDiffSchoolYear.value));
+	let json = null;
+	if (useDkoCache == "dkoCache") json = localStorage.getItem(getDiffsDko3CacheFileName(cmbDiffAcademie.value, cmbDiffSchoolYear.value));
 	let dko3DiffData = JSON.parse(json);
 	let jsonDiffs = null;
 	let diffSettings = await fetchDiffSettingsOrDefault(cmbDiffAcademie.value, cmbDiffSchoolYear.value);
-	if (useDiffsFromCloud) try {
+	if (showOrCalc == "justShow") try {
 		jsonDiffs = await getDiffsFromCloud(cmbDiffAcademie.value, cmbDiffSchoolYear.value);
 	} catch (e) {}
 	else jsonDiffs = await runDiff(reportStatus, fetchListener, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData, diffSettings);
@@ -5113,13 +5114,12 @@ async function showDiffs(diffs, academie, schoolYear, dko3DiffData, diffSettings
 	divResults.innerHTML = "";
 	let elapsedTimeString = dateDiffToString(new Date(diffs.isoDate), new Date());
 	if (elapsedTimeString != "") emmet.appendChild(divResults, `div.gray{Laatste vergelijking: ${elapsedTimeString} geleden.}`);
-	if (dko3DiffData) {
-		let div = emmet.appendChild(divResults, `div.gray{Dko3 gegevens uit cache. }`).first;
+	if (options.showDebug && dko3DiffData) {
+		let div = emmet.appendChild(divResults, `div.gray`).first;
 		let button = emmet.appendChild(div, "button.likeLink").first;
-		button.innerHTML = "refresh";
+		button.innerHTML = "Zoek met dko3 cache";
 		button.onclick = () => {
-			localStorage.removeItem(getDiffsDko3CacheFileName(academie, schoolYear));
-			getAndShowDiffs(false);
+			getAndShowDiffs("calcAndShow", "dkoCache");
 		};
 	}
 	let divChk = emmet.appendChild(divResults, `div#divHideChecked>(input#chkHideChecked[type="checkbox"]+label[for="chkHideChecked"]{Verberg aangevinkte lijnen})`).first;
@@ -5606,6 +5606,7 @@ function matchIt(dko3LesSet, excelLesSet, diffs, diffType, matchFunction) {
 	}
 }
 function perfectMatch(dko3Les, excelLesSet) {
+	if (dko3Les.lesMoment.les.teacher.includes("urgen")) debugger;
 	for (let excelLes of excelLesSet) {
 		if (!dko3Les.subjects.some((t) => excelLes.subjects.includes(t))) continue;
 		if (!DayTimeSlice.equal(dko3Les.lesMoment.dayTimeSlice, excelLes.dayTimeSlice)) continue;
@@ -5836,7 +5837,7 @@ async function setupDiffPage() {
 	emmet.insertAfter(runStatus, "div#diffResults");
 	let divInfo = emmet.insertAfter(runStatus, "div#diffInfo").last;
 	let divError = emmet.insertAfter(divInfo, "div#diffErrors.errors").last;
-	btnCalcDiff.onclick = () => calcAndShowDiffsWithSettings(false);
+	btnCalcDiff.onclick = () => calcAndShowDiffsWithSettings("calcAndShow", "fetchDko");
 	btnDiffSettings.onclick = () => showDiffSetup(cmbDiffAcademie.value, cmbDiffSchoolYear.value);
 	cmbDiffAcademie.onchange = async () => {
 		await onCmbAcademieChange(dirTree);
@@ -5860,11 +5861,11 @@ async function onCmbAcademieChange(dirTree) {
 	}
 	await showDiffsFromComboboxes();
 }
-async function calcAndShowDiffsWithSettings(useDiffsFromCloud) {
-	await getAndShowDiffs(useDiffsFromCloud);
+async function calcAndShowDiffsWithSettings(showOrCalc, useDkoCache) {
+	await getAndShowDiffs(showOrCalc, useDkoCache);
 }
 async function showDiffsFromComboboxes() {
-	await calcAndShowDiffsWithSettings(true);
+	await calcAndShowDiffsWithSettings("justShow", "dkoCache");
 }
 async function getDiffDirStructure() {
 	let folderContent = await fetchFolderContent("Dko3/Uurroosters/");
@@ -5941,7 +5942,7 @@ async function onMessage$1(request, _sender, sendResponse) {
 	if (pauseRefresh$1) return;
 	pauseRefresh$1 = true;
 	diffGlobals.diffSettings = request.data;
-	await getAndShowDiffs(false);
+	await getAndShowDiffs("calcAndShow", "dkoCache");
 	pauseRefresh$1 = false;
 }
 async function sendMessageToDiffSettings(action, data) {

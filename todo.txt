@@ -1,3 +1,9 @@
+* Button "Zoek verschillen" should not use the cache.
+  a button to use the cache should only be available in debug mode.
+
+* Include grade and year?
+  > if not specified in excel - ignore?
+
 * Test:
   - mark klas "grapje" as OK -> invisible.
   - change it back to Comedy and rerun the checks
