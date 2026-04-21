@@ -4781,6 +4781,513 @@ async function fetchAndDisplayNotifications() {
 function doNotificationAction(id) {}
 
 //#endregion
+//#region typescript/roster_diff/diffSettings.ts
+const defaultTagDefs = [
+	{
+		tag: "Vestiging Sterrenkijker/SL Durlet",
+		searchString: " sterr"
+	},
+	{
+		tag: "Vestiging Sterrenkijker/SL Durlet",
+		searchString: " durlet"
+	},
+	{
+		tag: "Vestiging De Kleine Stad",
+		searchString: " kleine stad "
+	},
+	{
+		tag: "Vestiging De Kleine Wereld",
+		searchString: " wereld "
+	},
+	{
+		tag: "Vestiging De Nieuwe Vrede",
+		searchString: " vrede "
+	},
+	{
+		tag: "Vestiging De Nieuwe Vrede",
+		searchString: " dnv "
+	},
+	{
+		tag: "Vestiging De Nieuwe Vrede",
+		searchString: " tegel"
+	},
+	{
+		tag: "Vestiging De Nieuwe Vrede",
+		searchString: " tango "
+	},
+	{
+		tag: "Vestiging De Nieuwe Vrede",
+		searchString: " vergaderzaal "
+	},
+	{
+		tag: "Vestiging De Kosmos",
+		searchString: " kosmos "
+	},
+	{
+		tag: "Vestiging De Schatkist",
+		searchString: " schatk"
+	},
+	{
+		tag: "Vestiging De Kolibrie",
+		searchString: " kolibri"
+	},
+	{
+		tag: "Vestiging Het Fonkelpad",
+		searchString: " fonkel"
+	},
+	{
+		tag: "Vestiging Alberreke",
+		searchString: " alber"
+	},
+	{
+		tag: "Vestiging c o r s o",
+		searchString: " corso "
+	},
+	{
+		tag: "Vestiging c o r s o",
+		searchString: "c o r s o"
+	},
+	{
+		tag: "Vestiging c o r s o",
+		searchString: " studio 3 "
+	},
+	{
+		tag: "Vestiging Prins Dries",
+		searchString: " prins "
+	},
+	{
+		tag: "Vestiging Prins Dries",
+		searchString: " dries "
+	},
+	{
+		tag: "Vestiging Groenhout Kasteelstraat",
+		searchString: " groenhout "
+	},
+	{
+		tag: "Vestiging Groenhout Kasteelstraat",
+		searchString: " kasteel"
+	},
+	{
+		tag: "Vestiging Het Fonkelpad",
+		searchString: " fonkel "
+	},
+	{
+		tag: "Vestiging OLV Pulhof",
+		searchString: " pulhof "
+	},
+	{
+		tag: "Vestiging OLV Pulhof",
+		searchString: " 1p "
+	},
+	{
+		tag: "Vestiging OLV Pulhof",
+		searchString: " 2p "
+	},
+	{
+		tag: "Vestiging Sterrenkijker/SL Durlet",
+		searchString: " 1d "
+	},
+	{
+		tag: "Vestiging Sterrenkijker/SL Durlet",
+		searchString: " 2d "
+	},
+	{
+		tag: "Vestiging Via Louiza",
+		searchString: " louiza "
+	},
+	{
+		tag: "Vestiging Frans Van Hombeeck",
+		searchString: " hombee"
+	},
+	{
+		tag: "Vestiging Klavertje Vier",
+		searchString: " klaver"
+	},
+	{
+		tag: "Academie Willem Van Laarstraat, Berchem",
+		searchString: " bib "
+	},
+	{
+		tag: "Academie Willem Van Laarstraat, Berchem",
+		searchString: "laarstr"
+	},
+	{
+		tag: "Academie Willem Van Laarstraat, Berchem",
+		searchString: " wvl "
+	},
+	{
+		tag: "Vestiging Frans Van Hombeeck",
+		searchString: " beeld "
+	},
+	{
+		tag: "Cabaret en comedy",
+		searchString: " cabaret "
+	},
+	{
+		tag: "Woordatelier",
+		searchString: " woordatelier "
+	},
+	{
+		tag: "Woordatelier",
+		searchString: " wa "
+	},
+	{
+		tag: "Woordlab",
+		searchString: " woordlab "
+	},
+	{
+		tag: "Woordlab",
+		searchString: " wl "
+	},
+	{
+		tag: "Literair atelier",
+		searchString: " literair atelier "
+	},
+	{
+		tag: "Literaire teksten",
+		searchString: " literaire teksten "
+	},
+	{
+		tag: "Schrijven",
+		searchString: " basiscursus "
+	},
+	{
+		tag: "Spreken en vertellen",
+		searchString: " spreken "
+	},
+	{
+		tag: "Kunstenbad muziek/woord",
+		searchString: " kunstenbad "
+	},
+	{
+		tag: "Musicalatelier",
+		searchString: " musicalatelier "
+	},
+	{
+		tag: "Musical koor",
+		searchString: " musical koor "
+	},
+	{
+		tag: "Musical zang",
+		searchString: " musical zang "
+	},
+	{
+		tag: "Theater",
+		searchString: " acteren "
+	},
+	{
+		tag: "Muziekatelier",
+		searchString: " 1p "
+	},
+	{
+		tag: "Muziekatelier",
+		searchString: " 2p "
+	},
+	{
+		tag: "Muziekatelier",
+		searchString: " 1d "
+	},
+	{
+		tag: "Muziekatelier",
+		searchString: " 2d "
+	},
+	{
+		tag: "Muziekatelier",
+		searchString: " 1va "
+	},
+	{
+		tag: "Muziekatelier",
+		searchString: " 1vb "
+	},
+	{
+		tag: "Muziekatelier",
+		searchString: " 1vc "
+	},
+	{
+		tag: "Muziekatelier",
+		searchString: " 2va "
+	},
+	{
+		tag: "Muziekatelier",
+		searchString: " 2vb "
+	},
+	{
+		tag: "Muziekatelier",
+		searchString: " 3v "
+	},
+	{
+		tag: "Muziekatelier",
+		searchString: " 1t "
+	},
+	{
+		tag: "Muziekatelier",
+		searchString: " 2t "
+	},
+	{
+		tag: "Groepsmusiceren (klassiek)",
+		searchString: " gm "
+	},
+	{
+		tag: "Atelier (musical)",
+		searchString: " musicalatelier "
+	},
+	{
+		tag: "Musicalatelier 2e graad",
+		searchString: " musical for kids "
+	}
+];
+const defaultIgnoreList = [
+	" kunstkuren ",
+	" arrangeren",
+	" combo ",
+	" harmonielab ",
+	" klanklab ",
+	" muzieklab ",
+	" electronics ",
+	" big band ",
+	" blazersensemble ",
+	" groepsmusiceren (jass pop rock) ",
+	" geluidsleer ",
+	" koor (jazz pop rock) ",
+	" koor (musical) ",
+	" slagwerkensemble "
+];
+
+//#endregion
+//#region typescript/roster_diff/showDiff.ts
+async function fetchDiffSettingsOrDefault(academie, schoolYear) {
+	let settings;
+	try {
+		settings = await fetchDiffSettings(academie, schoolYear);
+	} catch {}
+	if (!settings) return {
+		version: 0,
+		academie,
+		schoolYear,
+		tagDefs: [...defaultTagDefs],
+		ignoreList: [...defaultIgnoreList]
+	};
+	return settings;
+}
+function getDiffsDko3CacheFileName(academie, schoolYear) {
+	return `Dko3/Uurroosters/Cache/${academie}_${schoolYear}_dko3datacache.json`;
+}
+async function getAndShowDiffs(useDiffsFromCloud) {
+	let divResults = document.getElementById("diffResults");
+	divResults.innerHTML = "Ophalen...";
+	let divError = document.getElementById("diffErrors");
+	let runStatus = document.getElementById("runStatus");
+	let divInfo = document.getElementById("diffInfo");
+	let cmbDiffAcademie = document.querySelector("#cmbDiffAcademie");
+	let cmbDiffSchoolYear = document.querySelector("#cmbDiffSchoolYear");
+	let infoBlock = createInfoBlock(divInfo, "");
+	let fetchListener = new InfoBarTableFetchListener(infoBlock);
+	let errors = [];
+	function reportStatus(message, isError) {
+		if (isError == "error") errors.push(message);
+		else runStatus.innerHTML = message;
+		divError.innerHTML = errors.join("<br>");
+	}
+	errors = [];
+	let json = localStorage.getItem(getDiffsDko3CacheFileName(cmbDiffAcademie.value, cmbDiffSchoolYear.value));
+	let dko3DiffData = JSON.parse(json);
+	let jsonDiffs = null;
+	let diffSettings = await fetchDiffSettingsOrDefault(cmbDiffAcademie.value, cmbDiffSchoolYear.value);
+	if (useDiffsFromCloud) try {
+		jsonDiffs = await getDiffsFromCloud(cmbDiffAcademie.value, cmbDiffSchoolYear.value);
+	} catch (e) {}
+	else jsonDiffs = await runDiff(reportStatus, fetchListener, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData, diffSettings);
+	if (jsonDiffs) await showDiffs(jsonDiffs, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData, diffSettings);
+}
+async function showDiffs(diffs, academie, schoolYear, dko3DiffData, diffSettings) {
+	let divResults = document.getElementById("diffResults");
+	divResults.innerHTML = "Ophalen...";
+	if (!diffs) {
+		divResults.innerHTML = "";
+		return;
+	}
+	await setIgnoredFlags(diffs.orphanedDko3Lessen, diffs.orphanedExcelLessen, academie, schoolYear);
+	divResults.innerHTML = "";
+	let elapsedTimeString = dateDiffToString(new Date(diffs.isoDate), new Date());
+	if (elapsedTimeString != "") emmet.appendChild(divResults, `div.gray{Laatste vergelijking: ${elapsedTimeString} geleden.}`);
+	if (dko3DiffData) {
+		let div = emmet.appendChild(divResults, `div.gray{Dko3 gegevens uit cache. }`).first;
+		let button = emmet.appendChild(div, "button.likeLink").first;
+		button.innerHTML = "refresh";
+		button.onclick = () => {
+			localStorage.removeItem(getDiffsDko3CacheFileName(academie, schoolYear));
+			getAndShowDiffs(false);
+		};
+	}
+	let divChk = emmet.appendChild(divResults, `div#divHideChecked>(input#chkHideChecked[type="checkbox"]+label[for="chkHideChecked"]{Verberg aangevinkte lijnen})`).first;
+	let chkHideChecked = divChk.querySelector("#chkHideChecked");
+	chkHideChecked.onchange = (ev) => {
+		let input = ev.currentTarget;
+		let table$1 = document.getElementById("orphans");
+		table$1.classList.toggle("hideChecked", input.checked);
+		let ignore = table$1.classList.contains("hideChecked");
+		localStorage.setItem(OPTION_HIDE_IGNORED_DIFFS, ignore.toString());
+	};
+	for (let diff of diffs.diffs) displayDiff(diff, divResults, academie, schoolYear);
+	emmet.appendChild(divResults, "h4{Lessen zonder overeenkomsten}");
+	let { table, tbody } = createDiffTable(divResults);
+	decorateTableHeader(table, false);
+	for (let les of diffs.orphanedDko3Lessen) {
+		let tr = emmet.appendChild(tbody, "tr").last;
+		fillDiffRow(tr, les.subject, les.teacher, les.day, les.timeSlice, les.location, "perfect match", "dko3", les.momentId, "", les.lesId, "", "", les.hash, les.ignore, academie, schoolYear);
+	}
+	for (let les of diffs.orphanedExcelLessen) {
+		let tr = emmet.appendChild(tbody, "tr").last;
+		fillDiffRow(tr, les.subject, les.teacher, les.day, les.timeSlice, les.location, "perfect match", "excel", excelPostoExcelAddress(les.excelRow, les.excelColumn), les.cellValue, "", les.workBook, les.workSheet, les.hash, les.ignore, academie, schoolYear);
+		tr.classList.add("excelRow");
+	}
+	let ingore = localStorage.getItem(OPTION_HIDE_IGNORED_DIFFS) ?? "false";
+	chkHideChecked.checked = ingore == "true";
+	table.classList.toggle("hideChecked", chkHideChecked.checked);
+}
+async function runDiff(reportStatus, fetchListener, academie, schoolYear, dko3DiffData, diffSettings) {
+	let divResults = document.getElementById("diffResults");
+	divResults.innerHTML = "";
+	return buildAndSaveDiff(reportStatus, fetchListener, academie, schoolYear, dko3DiffData, diffSettings);
+}
+function fillExcelDiffRow(tr, diff, academie, schoolYear) {
+	fillDiffRow(tr, diff.excelLes.subject, diff.excelLes.teacher, diff.excelLes.day, diff.excelLes.timeSlice, diff.excelLes.location, diff.diffType, "excel", excelPostoExcelAddress(diff.excelLes.excelRow, diff.excelLes.excelColumn), diff.excelLes.cellValue, "", diff.excelLes.workBook, diff.excelLes.workSheet, diff.excelLes.hash, diff.excelLes.ignore, academie, schoolYear);
+}
+function displayDiff(diff, divResults, academie, schoolYear) {
+	let tbody = emmet.appendChild(divResults, "table.diff>tbody").last;
+	let tr = emmet.appendChild(tbody, "tr").last;
+	fillExcelDiffRow(tr, diff, academie, schoolYear);
+	tr.classList.add("excelRow");
+	let tr2 = emmet.appendChild(tbody, "tr").last;
+	fillDiffRow(tr2, diff.dko3Les.subject, diff.dko3Les.teacher, diff.dko3Les.day, diff.dko3Les.timeSlice, diff.dko3Les.location, diff.diffType, "dko3", diff.dko3Les.momentId, "", diff.dko3Les.lesId, "", "", diff.dko3Les.hash, diff.dko3Les.ignore, academie, schoolYear);
+}
+function fillDiffRow(tr, subjects, teachers, day, timeSlice, location$1, diffType, rowType, rowId, cellValue, lesId, workBook, worksheet, hash, ignore, academie, schoolYear) {
+	if (ignore) tr.classList.add("ignore");
+	let diffTeacherClass = "";
+	let diffLocationClass = "";
+	let diffTimeClass = "";
+	let diffDayClass = "";
+	let diffSubjectClass = "";
+	switch (diffType) {
+		case "match without location":
+			diffLocationClass = ".diff";
+			break;
+		case "match without teacher":
+			diffTeacherClass = ".diff";
+			break;
+		case "match without time":
+			diffTimeClass = ".diff";
+			break;
+		case "match without time and day":
+			diffTimeClass = ".diff";
+			diffDayClass = ".diff";
+			break;
+		case "match without teacher, time and day":
+			diffTeacherClass = ".diff";
+			diffTimeClass = ".diff";
+			diffDayClass = ".diff";
+			break;
+		case "perfect match": break;
+		default: unreachable(diffType);
+	}
+	if (!location$1) {
+		location$1 = "-onbekend-";
+		diffLocationClass = ".diff";
+	}
+	let tdSubjects;
+	if (subjects == "") {
+		diffSubjectClass = ".diff";
+		tdSubjects = `(td${diffSubjectClass}>div.diffTooltip{-onbekend-}>span.diffTooltiptext{${cellValue}})`;
+	} else tdSubjects = `td${diffSubjectClass}{${subjects}}`;
+	let iconClass = rowType == "excel" ? "fa-grid" : "fa-chalkboard-user";
+	tr.dataset.lesId = lesId;
+	tr.dataset.hash = hash;
+	tr.dataset.cellAddress = rowId;
+	tr.dataset.workbook = workBook;
+	tr.dataset.worksheet = worksheet;
+	tr.dataset.rowType = rowType;
+	emmet.appendChild(tr, `${tdSubjects}+td${diffTeacherClass}{${teachers}}+td${diffDayClass}{${toCompactDayString(day)}}+td${diffTimeClass}{${timeSlice}}+td${diffLocationClass}{${location$1}}+(td.buttonshow>button.goto>i.fas.${iconClass})+(td.button>button.goto.chkHide>i.fas.fa-check)`);
+	let btnGoto = tr.querySelector("button.goto");
+	btnGoto.onclick = (ev) => gotoData(ev, academie, schoolYear);
+	let btnHide = tr.querySelector("button.chkHide");
+	btnHide.onclick = (ev) => toggleIgnore(ev, academie, schoolYear);
+}
+async function toggleIgnore(ev, academie, schoolYear) {
+	let button = ev.currentTarget;
+	let tr = button.closest("tr");
+	tr.classList.toggle("ignore");
+	await saveIgnoredHashes(academie, schoolYear);
+}
+async function saveIgnoredHashes(academie, schoolYear) {
+	let table = document.getElementById("orphans");
+	let hashes = [...table.querySelectorAll("tr.ignore")].map((tr) => tr.dataset.hash);
+	await uploadIgnoredDiffHashes(academie, schoolYear, hashes);
+}
+async function gotoData(ev, academie, schoolYear) {
+	let button = ev.currentTarget;
+	let tr = button.closest("tr");
+	let rowType = tr.dataset.rowType;
+	let cellAddress = tr.dataset.cellAddress;
+	let workBook = tr.dataset.workbook;
+	let workSheet = tr.dataset.worksheet;
+	let lesId = tr.dataset.lesId;
+	if (rowType == "excel") {
+		let url = await getUrlForWorksheet(workBook, workSheet, cellAddress, academie, schoolYear);
+		if (url == "") return;
+		window.open(url, "_blank");
+	} else if (rowType == "dko3") location.href = DKO3_BASE_URL + "#lessen-les?id=" + lesId;
+}
+function toCompactDayString(day) {
+	switch (day) {
+		case "MAANDAG": return "ma ";
+		case "DINSDAG": return "di ";
+		case "WOENSDAG": return "wo ";
+		case "DONDERDAG": return "do ";
+		case "VRIJDAG": return "vr ";
+		case "ZATERDAG": return "za ";
+		case "ZONDAG": return "zo ";
+		case "": return "?? ";
+		default: unreachable(day);
+	}
+}
+function excelPostoExcelAddress(row, column) {
+	return indexToExcelColumn(column) + (row + 1).toString();
+}
+function indexToExcelColumn(index) {
+	let quotient = Math.floor(index / 26);
+	if (quotient <= 0) return chars[index];
+	return indexToExcelColumn(quotient - 1) + chars[index % 26];
+}
+const chars = [
+	"A",
+	"B",
+	"C",
+	"D",
+	"E",
+	"F",
+	"G",
+	"H",
+	"I",
+	"J",
+	"K",
+	"L",
+	"M",
+	"N",
+	"O",
+	"P",
+	"Q",
+	"R",
+	"S",
+	"T",
+	"U",
+	"V",
+	"W",
+	"X",
+	"Y",
+	"Z"
+];
+
+//#endregion
 //#region typescript/roster_diff/buildDiff.ts
 let cachedDiffs = void 0;
 async function getJsonDiffsCached(academie, schoolYear) {
@@ -4804,7 +5311,7 @@ async function buildAndSaveDiff(reportStatus, fetchListener, academie, schoolYea
 	let res = await runRosterCheck(jsonExcelDatas, reportStatus, fetchListener, dko3DiffData, diffSettings);
 	dko3DiffData = JSON.parse(json);
 	dko3DiffData.extraTeachersCache = res.extraTeacherCache.toJSON();
-	localStorage.setItem("dko3plugin.TESTDIFF", JSON.stringify(dko3DiffData));
+	localStorage.setItem(getDiffsDko3CacheFileName(academie, schoolYear), JSON.stringify(dko3DiffData));
 	let jsonDiffs = await createJsonDiffs(res.diffs, res.dko3LesSet, res.excelLesSet, res.excelRosters, academie, schoolYear);
 	let fileName = getDiffsCloudFileName(academie, schoolYear);
 	await cloud.json.upload(fileName, jsonDiffs);
@@ -5287,510 +5794,6 @@ async function getUrlForWorksheet(workBook, workSheet, cellAddress, academie, sc
 	if (cellAddress) url = url + `&activeCell=${workSheet}!${cellAddress}`;
 	return url;
 }
-
-//#endregion
-//#region typescript/roster_diff/diffSettings.ts
-const defaultTagDefs = [
-	{
-		tag: "Vestiging Sterrenkijker/SL Durlet",
-		searchString: " sterr"
-	},
-	{
-		tag: "Vestiging Sterrenkijker/SL Durlet",
-		searchString: " durlet"
-	},
-	{
-		tag: "Vestiging De Kleine Stad",
-		searchString: " kleine stad "
-	},
-	{
-		tag: "Vestiging De Kleine Wereld",
-		searchString: " wereld "
-	},
-	{
-		tag: "Vestiging De Nieuwe Vrede",
-		searchString: " vrede "
-	},
-	{
-		tag: "Vestiging De Nieuwe Vrede",
-		searchString: " dnv "
-	},
-	{
-		tag: "Vestiging De Nieuwe Vrede",
-		searchString: " tegel"
-	},
-	{
-		tag: "Vestiging De Nieuwe Vrede",
-		searchString: " tango "
-	},
-	{
-		tag: "Vestiging De Nieuwe Vrede",
-		searchString: " vergaderzaal "
-	},
-	{
-		tag: "Vestiging De Kosmos",
-		searchString: " kosmos "
-	},
-	{
-		tag: "Vestiging De Schatkist",
-		searchString: " schatk"
-	},
-	{
-		tag: "Vestiging De Kolibrie",
-		searchString: " kolibri"
-	},
-	{
-		tag: "Vestiging Het Fonkelpad",
-		searchString: " fonkel"
-	},
-	{
-		tag: "Vestiging Alberreke",
-		searchString: " alber"
-	},
-	{
-		tag: "Vestiging c o r s o",
-		searchString: " corso "
-	},
-	{
-		tag: "Vestiging c o r s o",
-		searchString: "c o r s o"
-	},
-	{
-		tag: "Vestiging c o r s o",
-		searchString: " studio 3 "
-	},
-	{
-		tag: "Vestiging Prins Dries",
-		searchString: " prins "
-	},
-	{
-		tag: "Vestiging Prins Dries",
-		searchString: " dries "
-	},
-	{
-		tag: "Vestiging Groenhout Kasteelstraat",
-		searchString: " groenhout "
-	},
-	{
-		tag: "Vestiging Groenhout Kasteelstraat",
-		searchString: " kasteel"
-	},
-	{
-		tag: "Vestiging Het Fonkelpad",
-		searchString: " fonkel "
-	},
-	{
-		tag: "Vestiging OLV Pulhof",
-		searchString: " pulhof "
-	},
-	{
-		tag: "Vestiging OLV Pulhof",
-		searchString: " 1p "
-	},
-	{
-		tag: "Vestiging OLV Pulhof",
-		searchString: " 2p "
-	},
-	{
-		tag: "Vestiging Sterrenkijker/SL Durlet",
-		searchString: " 1d "
-	},
-	{
-		tag: "Vestiging Sterrenkijker/SL Durlet",
-		searchString: " 2d "
-	},
-	{
-		tag: "Vestiging Via Louiza",
-		searchString: " louiza "
-	},
-	{
-		tag: "Vestiging Frans Van Hombeeck",
-		searchString: " hombee"
-	},
-	{
-		tag: "Vestiging Klavertje Vier",
-		searchString: " klaver"
-	},
-	{
-		tag: "Academie Willem Van Laarstraat, Berchem",
-		searchString: " bib "
-	},
-	{
-		tag: "Academie Willem Van Laarstraat, Berchem",
-		searchString: "laarstr"
-	},
-	{
-		tag: "Academie Willem Van Laarstraat, Berchem",
-		searchString: " wvl "
-	},
-	{
-		tag: "Vestiging Frans Van Hombeeck",
-		searchString: " beeld "
-	},
-	{
-		tag: "Cabaret en comedy",
-		searchString: " cabaret "
-	},
-	{
-		tag: "Woordatelier",
-		searchString: " woordatelier "
-	},
-	{
-		tag: "Woordatelier",
-		searchString: " wa "
-	},
-	{
-		tag: "Woordlab",
-		searchString: " woordlab "
-	},
-	{
-		tag: "Woordlab",
-		searchString: " wl "
-	},
-	{
-		tag: "Literair atelier",
-		searchString: " literair atelier "
-	},
-	{
-		tag: "Literaire teksten",
-		searchString: " literaire teksten "
-	},
-	{
-		tag: "Schrijven",
-		searchString: " basiscursus "
-	},
-	{
-		tag: "Spreken en vertellen",
-		searchString: " spreken "
-	},
-	{
-		tag: "Kunstenbad muziek/woord",
-		searchString: " kunstenbad "
-	},
-	{
-		tag: "Musicalatelier",
-		searchString: " musicalatelier "
-	},
-	{
-		tag: "Musical koor",
-		searchString: " musical koor "
-	},
-	{
-		tag: "Musical zang",
-		searchString: " musical zang "
-	},
-	{
-		tag: "Theater",
-		searchString: " acteren "
-	},
-	{
-		tag: "Muziekatelier",
-		searchString: " 1p "
-	},
-	{
-		tag: "Muziekatelier",
-		searchString: " 2p "
-	},
-	{
-		tag: "Muziekatelier",
-		searchString: " 1d "
-	},
-	{
-		tag: "Muziekatelier",
-		searchString: " 2d "
-	},
-	{
-		tag: "Muziekatelier",
-		searchString: " 1va "
-	},
-	{
-		tag: "Muziekatelier",
-		searchString: " 1vb "
-	},
-	{
-		tag: "Muziekatelier",
-		searchString: " 1vc "
-	},
-	{
-		tag: "Muziekatelier",
-		searchString: " 2va "
-	},
-	{
-		tag: "Muziekatelier",
-		searchString: " 2vb "
-	},
-	{
-		tag: "Muziekatelier",
-		searchString: " 3v "
-	},
-	{
-		tag: "Muziekatelier",
-		searchString: " 1t "
-	},
-	{
-		tag: "Muziekatelier",
-		searchString: " 2t "
-	},
-	{
-		tag: "Groepsmusiceren (klassiek)",
-		searchString: " gm "
-	},
-	{
-		tag: "Atelier (musical)",
-		searchString: " musicalatelier "
-	},
-	{
-		tag: "Musicalatelier 2e graad",
-		searchString: " musical for kids "
-	}
-];
-const defaultIgnoreList = [
-	" kunstkuren ",
-	" arrangeren",
-	" combo ",
-	" harmonielab ",
-	" klanklab ",
-	" muzieklab ",
-	" electronics ",
-	" big band ",
-	" blazersensemble ",
-	" groepsmusiceren (jass pop rock) ",
-	" geluidsleer ",
-	" koor (jazz pop rock) ",
-	" koor (musical) ",
-	" slagwerkensemble "
-];
-
-//#endregion
-//#region typescript/roster_diff/showDiff.ts
-async function fetchDiffSettingsOrDefault(academie, schoolYear) {
-	let settings;
-	try {
-		settings = await fetchDiffSettings(academie, schoolYear);
-	} catch {}
-	if (!settings) return {
-		version: 0,
-		academie,
-		schoolYear,
-		tagDefs: [...defaultTagDefs],
-		ignoreList: [...defaultIgnoreList]
-	};
-	return settings;
-}
-async function getAndShowDiffs(useDiffsFromCloud) {
-	let divResults = document.getElementById("diffResults");
-	divResults.innerHTML = "Ophalen...";
-	let divError = document.getElementById("diffErrors");
-	let runStatus = document.getElementById("runStatus");
-	let divInfo = document.getElementById("diffInfo");
-	let cmbDiffAcademie = document.querySelector("#cmbDiffAcademie");
-	let cmbDiffSchoolYear = document.querySelector("#cmbDiffSchoolYear");
-	let infoBlock = createInfoBlock(divInfo, "");
-	let fetchListener = new InfoBarTableFetchListener(infoBlock);
-	let errors = [];
-	function reportStatus(message, isError) {
-		if (isError == "error") errors.push(message);
-		else runStatus.innerHTML = message;
-		divError.innerHTML = errors.join("<br>");
-	}
-	errors = [];
-	let json = localStorage.getItem("dko3plugin.TESTDIFF");
-	let dko3DiffData = JSON.parse(json);
-	let jsonDiffs = null;
-	let diffSettings = await fetchDiffSettingsOrDefault(cmbDiffAcademie.value, cmbDiffSchoolYear.value);
-	if (useDiffsFromCloud) try {
-		jsonDiffs = await getDiffsFromCloud(cmbDiffAcademie.value, cmbDiffSchoolYear.value);
-	} catch (e) {}
-	else jsonDiffs = await runDiff(reportStatus, fetchListener, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData, diffSettings);
-	if (jsonDiffs) await showDiffs(jsonDiffs, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData, diffSettings);
-}
-async function showDiffs(diffs, academie, schoolYear, dko3DiffData, diffSettings) {
-	let divResults = document.getElementById("diffResults");
-	divResults.innerHTML = "Ophalen...";
-	if (!diffs) {
-		divResults.innerHTML = "";
-		return;
-	}
-	await setIgnoredFlags(diffs.orphanedDko3Lessen, diffs.orphanedExcelLessen, academie, schoolYear);
-	divResults.innerHTML = "";
-	let elapsedTimeString = dateDiffToString(new Date(diffs.isoDate), new Date());
-	if (elapsedTimeString != "") emmet.appendChild(divResults, `div.gray{Laatste vergelijking: ${elapsedTimeString} geleden.}`);
-	if (dko3DiffData) {
-		let div = emmet.appendChild(divResults, `div.gray{Dko3 gegevens uit cache. }`).first;
-		let button = emmet.appendChild(div, "button.likeLink").first;
-		button.innerHTML = "refresh";
-		button.onclick = () => {
-			localStorage.removeItem("dko3plugin.TESTDIFF");
-			getAndShowDiffs(false);
-		};
-	}
-	let divChk = emmet.appendChild(divResults, `div#divHideChecked>(input#chkHideChecked[type="checkbox"]+label[for="chkHideChecked"]{Verberg aangevinkte lijnen})`).first;
-	let chkHideChecked = divChk.querySelector("#chkHideChecked");
-	chkHideChecked.onchange = (ev) => {
-		let input = ev.currentTarget;
-		let table$1 = document.getElementById("orphans");
-		table$1.classList.toggle("hideChecked", input.checked);
-		let ignore = table$1.classList.contains("hideChecked");
-		localStorage.setItem(OPTION_HIDE_IGNORED_DIFFS, ignore.toString());
-	};
-	for (let diff of diffs.diffs) displayDiff(diff, divResults, academie, schoolYear);
-	emmet.appendChild(divResults, "h4{Lessen zonder overeenkomsten}");
-	let { table, tbody } = createDiffTable(divResults);
-	decorateTableHeader(table, false);
-	for (let les of diffs.orphanedDko3Lessen) {
-		let tr = emmet.appendChild(tbody, "tr").last;
-		fillDiffRow(tr, les.subject, les.teacher, les.day, les.timeSlice, les.location, "perfect match", "dko3", les.momentId, "", les.lesId, "", "", les.hash, les.ignore, academie, schoolYear);
-	}
-	for (let les of diffs.orphanedExcelLessen) {
-		let tr = emmet.appendChild(tbody, "tr").last;
-		fillDiffRow(tr, les.subject, les.teacher, les.day, les.timeSlice, les.location, "perfect match", "excel", excelPostoExcelAddress(les.excelRow, les.excelColumn), les.cellValue, "", les.workBook, les.workSheet, les.hash, les.ignore, academie, schoolYear);
-		tr.classList.add("excelRow");
-	}
-	let ingore = localStorage.getItem(OPTION_HIDE_IGNORED_DIFFS) ?? "false";
-	chkHideChecked.checked = ingore == "true";
-	table.classList.toggle("hideChecked", chkHideChecked.checked);
-}
-async function runDiff(reportStatus, fetchListener, academie, schoolYear, dko3DiffData, diffSettings) {
-	let divResults = document.getElementById("diffResults");
-	divResults.innerHTML = "";
-	return buildAndSaveDiff(reportStatus, fetchListener, academie, schoolYear, dko3DiffData, diffSettings);
-}
-function fillExcelDiffRow(tr, diff, academie, schoolYear) {
-	fillDiffRow(tr, diff.excelLes.subject, diff.excelLes.teacher, diff.excelLes.day, diff.excelLes.timeSlice, diff.excelLes.location, diff.diffType, "excel", excelPostoExcelAddress(diff.excelLes.excelRow, diff.excelLes.excelColumn), diff.excelLes.cellValue, "", diff.excelLes.workBook, diff.excelLes.workSheet, diff.excelLes.hash, diff.excelLes.ignore, academie, schoolYear);
-}
-function displayDiff(diff, divResults, academie, schoolYear) {
-	let tbody = emmet.appendChild(divResults, "table.diff>tbody").last;
-	let tr = emmet.appendChild(tbody, "tr").last;
-	fillExcelDiffRow(tr, diff, academie, schoolYear);
-	tr.classList.add("excelRow");
-	let tr2 = emmet.appendChild(tbody, "tr").last;
-	fillDiffRow(tr2, diff.dko3Les.subject, diff.dko3Les.teacher, diff.dko3Les.day, diff.dko3Les.timeSlice, diff.dko3Les.location, diff.diffType, "dko3", diff.dko3Les.momentId, "", diff.dko3Les.lesId, "", "", diff.dko3Les.hash, diff.dko3Les.ignore, academie, schoolYear);
-}
-function fillDiffRow(tr, subjects, teachers, day, timeSlice, location$1, diffType, rowType, rowId, cellValue, lesId, workBook, worksheet, hash, ignore, academie, schoolYear) {
-	if (ignore) tr.classList.add("ignore");
-	let diffTeacherClass = "";
-	let diffLocationClass = "";
-	let diffTimeClass = "";
-	let diffDayClass = "";
-	let diffSubjectClass = "";
-	switch (diffType) {
-		case "match without location":
-			diffLocationClass = ".diff";
-			break;
-		case "match without teacher":
-			diffTeacherClass = ".diff";
-			break;
-		case "match without time":
-			diffTimeClass = ".diff";
-			break;
-		case "match without time and day":
-			diffTimeClass = ".diff";
-			diffDayClass = ".diff";
-			break;
-		case "match without teacher, time and day":
-			diffTeacherClass = ".diff";
-			diffTimeClass = ".diff";
-			diffDayClass = ".diff";
-			break;
-		case "perfect match": break;
-		default: unreachable(diffType);
-	}
-	if (!location$1) {
-		location$1 = "-onbekend-";
-		diffLocationClass = ".diff";
-	}
-	let tdSubjects;
-	if (subjects == "") {
-		diffSubjectClass = ".diff";
-		tdSubjects = `(td${diffSubjectClass}>div.diffTooltip{-onbekend-}>span.diffTooltiptext{${cellValue}})`;
-	} else tdSubjects = `td${diffSubjectClass}{${subjects}}`;
-	let iconClass = rowType == "excel" ? "fa-grid" : "fa-chalkboard-user";
-	tr.dataset.lesId = lesId;
-	tr.dataset.hash = hash;
-	tr.dataset.cellAddress = rowId;
-	tr.dataset.workbook = workBook;
-	tr.dataset.worksheet = worksheet;
-	tr.dataset.rowType = rowType;
-	emmet.appendChild(tr, `${tdSubjects}+td${diffTeacherClass}{${teachers}}+td${diffDayClass}{${toCompactDayString(day)}}+td${diffTimeClass}{${timeSlice}}+td${diffLocationClass}{${location$1}}+(td.buttonshow>button.goto>i.fas.${iconClass})+(td.button>button.goto.chkHide>i.fas.fa-check)`);
-	let btnGoto = tr.querySelector("button.goto");
-	btnGoto.onclick = (ev) => gotoData(ev, academie, schoolYear);
-	let btnHide = tr.querySelector("button.chkHide");
-	btnHide.onclick = (ev) => toggleIgnore(ev, academie, schoolYear);
-}
-async function toggleIgnore(ev, academie, schoolYear) {
-	let button = ev.currentTarget;
-	let tr = button.closest("tr");
-	tr.classList.toggle("ignore");
-	await saveIgnoredHashes(academie, schoolYear);
-}
-async function saveIgnoredHashes(academie, schoolYear) {
-	let table = document.getElementById("orphans");
-	let hashes = [...table.querySelectorAll("tr.ignore")].map((tr) => tr.dataset.hash);
-	await uploadIgnoredDiffHashes(academie, schoolYear, hashes);
-}
-async function gotoData(ev, academie, schoolYear) {
-	let button = ev.currentTarget;
-	let tr = button.closest("tr");
-	let rowType = tr.dataset.rowType;
-	let cellAddress = tr.dataset.cellAddress;
-	let workBook = tr.dataset.workbook;
-	let workSheet = tr.dataset.worksheet;
-	let lesId = tr.dataset.lesId;
-	if (rowType == "excel") {
-		let url = await getUrlForWorksheet(workBook, workSheet, cellAddress, academie, schoolYear);
-		if (url == "") return;
-		window.open(url, "_blank");
-	} else if (rowType == "dko3") location.href = DKO3_BASE_URL + "#lessen-les?id=" + lesId;
-}
-function toCompactDayString(day) {
-	switch (day) {
-		case "MAANDAG": return "ma ";
-		case "DINSDAG": return "di ";
-		case "WOENSDAG": return "wo ";
-		case "DONDERDAG": return "do ";
-		case "VRIJDAG": return "vr ";
-		case "ZATERDAG": return "za ";
-		case "ZONDAG": return "zo ";
-		case "": return "?? ";
-		default: unreachable(day);
-	}
-}
-function excelPostoExcelAddress(row, column) {
-	return indexToExcelColumn(column) + (row + 1).toString();
-}
-function indexToExcelColumn(index) {
-	let quotient = Math.floor(index / 26);
-	if (quotient <= 0) return chars[index];
-	return indexToExcelColumn(quotient - 1) + chars[index % 26];
-}
-const chars = [
-	"A",
-	"B",
-	"C",
-	"D",
-	"E",
-	"F",
-	"G",
-	"H",
-	"I",
-	"J",
-	"K",
-	"L",
-	"M",
-	"N",
-	"O",
-	"P",
-	"Q",
-	"R",
-	"S",
-	"T",
-	"U",
-	"V",
-	"W",
-	"X",
-	"Y",
-	"Z"
-];
 
 //#endregion
 //#region typescript/startPage/diffPage.ts

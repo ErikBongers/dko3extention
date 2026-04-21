@@ -1,5 +1,3 @@
-* UX: "Zoek verschillen" and "refresh" - what's the difference?
-  
 * Cache of dko3DiffData does NOT yet check academie+schoolyear!
 
 * Test:

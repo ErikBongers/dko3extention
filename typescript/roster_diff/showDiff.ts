@@ -25,6 +25,10 @@ export async function fetchDiffSettingsOrDefault(academie: string, schoolYear: s
     return settings;
 }
 
+export function getDiffsDko3CacheFileName(academie: string, schoolYear: string) {
+    return `Dko3/Uurroosters/Cache/${academie}_${schoolYear}_dko3datacache.json`;
+}
+
 export async function getAndShowDiffs(useDiffsFromCloud: boolean) {
     let divResults = document.getElementById("diffResults") as HTMLDivElement;
     divResults.innerHTML = "Ophalen...";
@@ -45,7 +49,7 @@ export async function getAndShowDiffs(useDiffsFromCloud: boolean) {
         divError.innerHTML = errors.join("<br>");
     }
     errors = [];
-    let json = localStorage.getItem("dko3plugin.TESTDIFF");
+    let json = localStorage.getItem(getDiffsDko3CacheFileName(cmbDiffAcademie.value, cmbDiffSchoolYear.value));
     let dko3DiffData = JSON.parse(json) as Dko3DiffData | null;
     let jsonDiffs: JsonDiffs | null = null;
     let diffSettings = await fetchDiffSettingsOrDefault(cmbDiffAcademie.value, cmbDiffSchoolYear.value);
@@ -78,7 +82,7 @@ export async function showDiffs(diffs: JsonDiffs, academie: string, schoolYear: 
         let button = emmet.appendChild(div, "button.likeLink").first as HTMLButtonElement;
         button.innerHTML = "refresh";
         button.onclick = () => {
-            localStorage.removeItem("dko3plugin.TESTDIFF");
+            localStorage.removeItem(getDiffsDko3CacheFileName(academie, schoolYear));
             getAndShowDiffs(false);
         };
     }

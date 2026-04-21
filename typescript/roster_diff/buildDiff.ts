@@ -10,7 +10,7 @@ import {DKO3_BASE_URL, LESSEN_TABLE_ID} from "../def";
 import {getTableFromHash, InfoBarTableFetchListener} from "../table/loadAnyTable";
 import {emmet} from "../../libs/Emmeter/html";
 import {fetchAndDisplayNotifications} from "../notifications/notifications";
-import {StatusCallback} from "./showDiff";
+import {getDiffsDko3CacheFileName, StatusCallback} from "./showDiff";
 import {defaultIgnoreList, defaultTagDefs, DiffSettings} from "./diffSettings";
 
 let cachedDiffs: JsonDiffs = undefined;
@@ -39,7 +39,7 @@ export async function buildAndSaveDiff(reportStatus: StatusCallback, fetchListen
     //parse again, just in case previous function changed the dko3 data.
     dko3DiffData = JSON.parse(json) as Dko3DiffData;
     dko3DiffData.extraTeachersCache = res.extraTeacherCache.toJSON();
-    localStorage.setItem("dko3plugin.TESTDIFF", JSON.stringify(dko3DiffData));
+    localStorage.setItem(getDiffsDko3CacheFileName(academie, schoolYear), JSON.stringify(dko3DiffData));
 
     let jsonDiffs = await createJsonDiffs(res.diffs, res.dko3LesSet, res.excelLesSet, res.excelRosters, academie, schoolYear);
     let fileName = getDiffsCloudFileName(academie, schoolYear);
