@@ -6145,6 +6145,7 @@ async function showSnapshotsforCombobox() {
 	let divResults = document.getElementById("snapshotResults");
 	divResults.innerHTML = "";
 	let startEllipse = null;
+	let lastSkip = null;
 	for (let snapshotData of snapshotDataList) {
 		if (!snapshotData.diffs) {
 			showSnapshot(snapshotData, divResults);
@@ -6156,10 +6157,18 @@ async function showSnapshotsforCombobox() {
 			if (snapshotDataList.length == 0) startEllipse = snapshotData;
 			continue;
 		}
-		if (snapshotData.diffs.length == 0) continue;
+		if (snapshotData.diffs.length == 0) {
+			lastSkip = snapshotData;
+			continue;
+		}
 		emmet.appendChild(divResults, `div{...}`);
 		startEllipse = null;
 		showSnapshot(snapshotData, divResults);
+	}
+	if (startEllipse && lastSkip) {
+		emmet.appendChild(divResults, `div{...}`);
+		startEllipse = null;
+		showSnapshot(lastSkip, divResults);
 	}
 }
 function compareSnapshots(previousSnapshot, nextSnapshot) {

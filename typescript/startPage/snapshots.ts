@@ -122,6 +122,7 @@ async function showSnapshotsforCombobox() {
     let divResults = document.getElementById("snapshotResults") as HTMLDivElement;
     divResults.innerHTML = "";
     let startEllipse: SnapshotData | null = null;
+    let lastSkip: SnapshotData | null = null;
     for(let snapshotData of snapshotDataList) {
         if(!snapshotData.diffs) { //typically first in list.
             showSnapshot(snapshotData, divResults);
@@ -135,12 +136,20 @@ async function showSnapshotsforCombobox() {
             continue;
         }
         //inside a potential ellipse...
-        if(snapshotData.diffs.length == 0)
+        if(snapshotData.diffs.length == 0) {
+            lastSkip = snapshotData;
             continue; //skip
+        }
         //ending an ellipse
         emmet.appendChild(divResults, `div{...}`);
         startEllipse = null;
         showSnapshot(snapshotData, divResults);
+    }
+    if(startEllipse && lastSkip) {
+    //ending an ellipse
+    emmet.appendChild(divResults, `div{...}`);
+    startEllipse = null;
+    showSnapshot(lastSkip, divResults);
     }
 }
 
