@@ -1,7 +1,7 @@
 import {emmet} from "../../libs/Emmeter/html";
 import {scrapeAllNormalLessen} from "../roster_diff/buildDiff";
 import {getUserAndSchoolName, Schoolyear} from "../globals";
-import {cloud, fetchFolderContent} from "../cloud";
+import {cloud, fetchFolderContent, FileChangedInfo} from "../cloud";
 import { Les } from "../lessen/scrape";
 import {StatusCallback} from "../roster_diff/showDiff";
 
@@ -26,6 +26,7 @@ export async function setupSnapshotPage() {
     }
     button.onclick = async () => {
         await createSnapshot(cmbSnapshotSchoolYear.value, reportStatus);
+        await showSnapshotsforCombobox();
     }
     cmbSnapshotSchoolYear.onchange = async () => {
         await showSnapshotsforCombobox();
@@ -47,7 +48,8 @@ export interface SnapshotData {
     lessen: LesSnapshot[];
     academie: string;
     schoolYear: string;
-    zDate: string
+    zDate: string;
+    diffs: SnapshotDiff[] | null;
 }
 
 async function createSnapshot(schoolYear: string, reportStatus: StatusCallback) {
@@ -71,43 +73,76 @@ async function createSnapshot(schoolYear: string, reportStatus: StatusCallback) 
         lessen: snapshotList,
         academie: academieName,
         schoolYear,
-        zDate
+        zDate,
+        diffs: null,
     }
-    await cloud.json.upload(`Dko3/Snapshots/${academieName}/${schoolYear}/${zDate}.json`, snapshotData);
+    await uploadSnapshotData(snapshotData);
     reportStatus("Snapshot aangemaakt.")
+}
+
+async function uploadSnapshotData(snapshotData: SnapshotData) {
+    await cloud.json.upload(`Dko3/Snapshots/${snapshotData.academie}/${snapshotData.schoolYear}/${snapshotData.zDate}.json`, snapshotData);
+}
+
+async function fetchSnapshotData(file: FileChangedInfo) {
+    let snapshotData = await cloud.json.fetch(file.name) as SnapshotData;
+    //version 2:
+    snapshotData.diffs = snapshotData.diffs ?? null;
+    return snapshotData;
+}
+
+async function getCalculateAndSaveSnapshotDiffs(academie: string, schoolYear: string): Promise<SnapshotData[]> {
+    let content = await fetchFolderContent(`Dko3/Snapshots/${academie}/${schoolYear}/`)
+    let previousSnapshot: SnapshotData | null = null;
+    let snapshotDataList: SnapshotData[] = [];
+    for(let file of content.files) {
+        let snapshotData = await fetchSnapshotData(file);
+        if(previousSnapshot && snapshotData.diffs == null) { //todo: factor out the creattion loop from showing loop.
+            snapshotData.diffs = compareSnapshots(previousSnapshot, snapshotData);
+            await uploadSnapshotData(snapshotData);
+        }
+        snapshotDataList.push(snapshotData);
+        previousSnapshot = snapshotData;
+    }
+    return snapshotDataList;
 }
 
 async function showSnapshotsforCombobox() {
     let cmbSnapshotSchoolYear = document.querySelector("#cmbSnapshotSchoolYear") as HTMLSelectElement;
     let academieName = getUserAndSchoolName().schoolName;
-    let content = await fetchFolderContent(`Dko3/Snapshots/${academieName}/${cmbSnapshotSchoolYear.value}/`)
-    console.log(content);
+    let snapshotDataList = await getCalculateAndSaveSnapshotDiffs(academieName, cmbSnapshotSchoolYear.value);
     let divResults = document.getElementById("snapshotResults") as HTMLDivElement;
     divResults.innerHTML = "";
-    let previousSnapshot: SnapshotData | null = null;
-    for(let file of content.files) {
-        let snapshotData = await cloud.json.fetch(file.name) as SnapshotData;
+    for(let snapshotData of snapshotDataList) {
         let date = new Date(snapshotData.zDate);
         let divSnapshotContainer = emmet.appendChild(divResults, `div>h5{${date.toLocaleDateString()} ${date.toLocaleTimeString()}}`).first as HTMLDivElement;
-        if(previousSnapshot) {
-            compareSnapshots(previousSnapshot, snapshotData, divSnapshotContainer);
-        }
-        previousSnapshot = snapshotData;
+        showDifferences(snapshotData.diffs, divSnapshotContainer);
     }
 }
 
-function compareSnapshots(previousSnapshot: SnapshotData, nextSnapshot: SnapshotData, divResults: HTMLDivElement) {
-    let diffs = [];
-    for(let prev of previousSnapshot.lessen) {
+type SnapshotDiff = {
+    what: "prev" | "next",
+    les: LesSnapshot
+}
+
+function compareSnapshots(previousSnapshot: SnapshotData, nextSnapshot: SnapshotData): SnapshotDiff[] {
+    let diffs: SnapshotDiff[] = [];
+    for (let prev of previousSnapshot.lessen) {
         if (!nextSnapshot.lessen.find(les => les.hash == prev.hash)) {
-            diffs.push( {what: "prev", les: prev});
+            diffs.push({what: "prev", les: prev});
         }
     }
-    for(let next of nextSnapshot.lessen) {
+    for (let next of nextSnapshot.lessen) {
         if (!previousSnapshot.lessen.find(les => les.hash == next.hash)) {
-            diffs.push( {what: "next", les: next});
+            diffs.push({what: "next", les: next});
         }
     }
+    return diffs;
+}
+
+function showDifferences(diffs: SnapshotDiff[], divResults: HTMLDivElement) {
+    if(!diffs)
+        return;
     let tbody = emmet.appendChild(divResults, `table.snapshotDiffs>tbody`).last as HTMLTableSectionElement;
     diffs.sort((a, b) => {
         if(a.les.id == b.les.id)

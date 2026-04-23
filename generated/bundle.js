@@ -6075,6 +6075,7 @@ async function setupSnapshotPage() {
 	}
 	button.onclick = async () => {
 		await createSnapshot(cmbSnapshotSchoolYear.value, reportStatus);
+		await showSnapshotsforCombobox();
 	};
 	cmbSnapshotSchoolYear.onchange = async () => {
 		await showSnapshotsforCombobox();
@@ -6101,28 +6102,48 @@ async function createSnapshot(schoolYear, reportStatus) {
 		lessen: snapshotList,
 		academie: academieName,
 		schoolYear,
-		zDate
+		zDate,
+		diffs: null
 	};
-	await cloud.json.upload(`Dko3/Snapshots/${academieName}/${schoolYear}/${zDate}.json`, snapshotData);
+	await uploadSnapshotData(snapshotData);
 	reportStatus("Snapshot aangemaakt.");
+}
+async function uploadSnapshotData(snapshotData) {
+	await cloud.json.upload(`Dko3/Snapshots/${snapshotData.academie}/${snapshotData.schoolYear}/${snapshotData.zDate}.json`, snapshotData);
+}
+async function fetchSnapshotData(file) {
+	let snapshotData = await cloud.json.fetch(file.name);
+	snapshotData.diffs = snapshotData.diffs ?? null;
+	return snapshotData;
+}
+async function getCalculateAndSaveSnapshotDiffs(academie, schoolYear) {
+	let content = await fetchFolderContent(`Dko3/Snapshots/${academie}/${schoolYear}/`);
+	let previousSnapshot = null;
+	let snapshotDataList = [];
+	for (let file of content.files) {
+		let snapshotData = await fetchSnapshotData(file);
+		if (previousSnapshot && snapshotData.diffs == null) {
+			snapshotData.diffs = compareSnapshots(previousSnapshot, snapshotData);
+			await uploadSnapshotData(snapshotData);
+		}
+		snapshotDataList.push(snapshotData);
+		previousSnapshot = snapshotData;
+	}
+	return snapshotDataList;
 }
 async function showSnapshotsforCombobox() {
 	let cmbSnapshotSchoolYear = document.querySelector("#cmbSnapshotSchoolYear");
 	let academieName = getUserAndSchoolName().schoolName;
-	let content = await fetchFolderContent(`Dko3/Snapshots/${academieName}/${cmbSnapshotSchoolYear.value}/`);
-	console.log(content);
+	let snapshotDataList = await getCalculateAndSaveSnapshotDiffs(academieName, cmbSnapshotSchoolYear.value);
 	let divResults = document.getElementById("snapshotResults");
 	divResults.innerHTML = "";
-	let previousSnapshot = null;
-	for (let file of content.files) {
-		let snapshotData = await cloud.json.fetch(file.name);
+	for (let snapshotData of snapshotDataList) {
 		let date = new Date(snapshotData.zDate);
 		let divSnapshotContainer = emmet.appendChild(divResults, `div>h5{${date.toLocaleDateString()} ${date.toLocaleTimeString()}}`).first;
-		if (previousSnapshot) compareSnapshots(previousSnapshot, snapshotData, divSnapshotContainer);
-		previousSnapshot = snapshotData;
+		showDifferences(snapshotData.diffs, divSnapshotContainer);
 	}
 }
-function compareSnapshots(previousSnapshot, nextSnapshot, divResults) {
+function compareSnapshots(previousSnapshot, nextSnapshot) {
 	let diffs = [];
 	for (let prev of previousSnapshot.lessen) if (!nextSnapshot.lessen.find((les) => les.hash == prev.hash)) diffs.push({
 		what: "prev",
@@ -6132,6 +6153,10 @@ function compareSnapshots(previousSnapshot, nextSnapshot, divResults) {
 		what: "next",
 		les: next
 	});
+	return diffs;
+}
+function showDifferences(diffs, divResults) {
+	if (!diffs) return;
 	let tbody = emmet.appendChild(divResults, `table.snapshotDiffs>tbody`).last;
 	diffs.sort((a, b) => {
 		if (a.les.id == b.les.id) return b.what.localeCompare(a.what);
