@@ -6133,16 +6133,33 @@ async function getCalculateAndSaveSnapshotDiffs(academie, schoolYear) {
 	}
 	return snapshotDataList;
 }
+function showSnapshot(snapshotData, divResults) {
+	let date = new Date(snapshotData.zDate);
+	let divSnapshotContainer = emmet.appendChild(divResults, `div>h5{${date.toLocaleDateString()} ${date.toLocaleTimeString()}}`).first;
+	showDifferences(snapshotData.diffs, divSnapshotContainer);
+}
 async function showSnapshotsforCombobox() {
 	let cmbSnapshotSchoolYear = document.querySelector("#cmbSnapshotSchoolYear");
 	let academieName = getUserAndSchoolName().schoolName;
 	let snapshotDataList = await getCalculateAndSaveSnapshotDiffs(academieName, cmbSnapshotSchoolYear.value);
 	let divResults = document.getElementById("snapshotResults");
 	divResults.innerHTML = "";
+	let startEllipse = null;
 	for (let snapshotData of snapshotDataList) {
-		let date = new Date(snapshotData.zDate);
-		let divSnapshotContainer = emmet.appendChild(divResults, `div>h5{${date.toLocaleDateString()} ${date.toLocaleTimeString()}}`).first;
-		showDifferences(snapshotData.diffs, divSnapshotContainer);
+		if (!snapshotData.diffs) {
+			showSnapshot(snapshotData, divResults);
+			startEllipse = snapshotData;
+			continue;
+		}
+		if (!startEllipse) {
+			showSnapshot(snapshotData, divResults);
+			if (snapshotDataList.length == 0) startEllipse = snapshotData;
+			continue;
+		}
+		if (snapshotData.diffs.length == 0) continue;
+		emmet.appendChild(divResults, `div{...}`);
+		startEllipse = null;
+		showSnapshot(snapshotData, divResults);
 	}
 }
 function compareSnapshots(previousSnapshot, nextSnapshot) {

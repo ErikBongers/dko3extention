@@ -109,16 +109,38 @@ async function getCalculateAndSaveSnapshotDiffs(academie: string, schoolYear: st
     return snapshotDataList;
 }
 
+function showSnapshot(snapshotData: SnapshotData, divResults: HTMLDivElement) {
+    let date = new Date(snapshotData.zDate);
+    let divSnapshotContainer = emmet.appendChild(divResults, `div>h5{${date.toLocaleDateString()} ${date.toLocaleTimeString()}}`).first as HTMLDivElement;
+    showDifferences(snapshotData.diffs, divSnapshotContainer);
+}
+
 async function showSnapshotsforCombobox() {
     let cmbSnapshotSchoolYear = document.querySelector("#cmbSnapshotSchoolYear") as HTMLSelectElement;
     let academieName = getUserAndSchoolName().schoolName;
     let snapshotDataList = await getCalculateAndSaveSnapshotDiffs(academieName, cmbSnapshotSchoolYear.value);
     let divResults = document.getElementById("snapshotResults") as HTMLDivElement;
     divResults.innerHTML = "";
+    let startEllipse: SnapshotData | null = null;
     for(let snapshotData of snapshotDataList) {
-        let date = new Date(snapshotData.zDate);
-        let divSnapshotContainer = emmet.appendChild(divResults, `div>h5{${date.toLocaleDateString()} ${date.toLocaleTimeString()}}`).first as HTMLDivElement;
-        showDifferences(snapshotData.diffs, divSnapshotContainer);
+        if(!snapshotData.diffs) { //typically first in list.
+            showSnapshot(snapshotData, divResults);
+            startEllipse = snapshotData;
+            continue;
+        }
+        if(!startEllipse) {
+            showSnapshot(snapshotData, divResults);
+            if(snapshotDataList.length == 0)
+                startEllipse = snapshotData;
+            continue;
+        }
+        //inside a potential ellipse...
+        if(snapshotData.diffs.length == 0)
+            continue; //skip
+        //ending an ellipse
+        emmet.appendChild(divResults, `div{...}`);
+        startEllipse = null;
+        showSnapshot(snapshotData, divResults);
     }
 }
 
