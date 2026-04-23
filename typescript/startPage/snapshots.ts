@@ -13,6 +13,7 @@ export async function setupSnapshotPage() {
     let schoolYear = Schoolyear.toFullString(thisYear);
     let nextYear = Schoolyear.toFullString(thisYear + 1);
     cmbSnapshotSchoolYear.innerHTML = [schoolYear, nextYear].map(name => `<option value="${name}">${name}</option>`).join("");
+    cmbSnapshotSchoolYear.value = localStorage.getItem("snapshotLastSchoolYear");//todo: check if valid value
     let runStatus = emmet.insertAfter(button, "div#runStatus").first as HTMLDivElement;
     let divError = emmet.insertAfter(runStatus, 'div.errors').last as HTMLDivElement;
     emmet.insertAfter(divError, "div#snapshotResults");
@@ -29,6 +30,7 @@ export async function setupSnapshotPage() {
         await showSnapshotsforCombobox();
     }
     cmbSnapshotSchoolYear.onchange = async () => {
+        localStorage.setItem("snapshotLastSchoolYear", cmbSnapshotSchoolYear.value);
         await showSnapshotsforCombobox();
     }
     await showSnapshotsforCombobox();
