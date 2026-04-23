@@ -83,6 +83,7 @@ async function showSnapshotsforCombobox() {
     let content = await fetchFolderContent(`Dko3/Snapshots/${academieName}/${cmbSnapshotSchoolYear.value}/`)
     console.log(content);
     let divResults = document.getElementById("snapshotResults") as HTMLDivElement;
+    divResults.innerHTML = "";
     let previousSnapshot: SnapshotData | null = null;
     for(let file of content.files) {
         let snapshotData = await cloud.json.fetch(file.name) as SnapshotData;
