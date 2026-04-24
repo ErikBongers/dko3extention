@@ -11,7 +11,9 @@ export let settingsObservers: (() => void)[] = [];
 export function db3(message: any) {
     if (options?.showDebug) {
         console.log(message);
-        console.log(Error().stack.split("\n")[2]);
+        let stack = Error().stack;
+        if(stack)
+            console.log(stack.split("\n")[2]);
     }
 }
 
@@ -37,7 +39,7 @@ export function registerSettingsObserver(observer: () => void) {
 
 // noinspection JSUnusedGlobalSymbols
 export function searchText(text: string) {
-    let input: HTMLInputElement = document.querySelector("#snel_zoeken_veld_zoektermen");
+    let input: HTMLInputElement = document.querySelector("#snel_zoeken_veld_zoektermen")!;
     input.value = text;
     // noinspection JSDeprecatedSymbols
     let evUp = new KeyboardEvent("keyup", {
@@ -50,9 +52,9 @@ export function searchText(text: string) {
 
 export function setButtonHighlighted(buttonId: string, show: boolean) {
     if (show) {
-        document.getElementById(buttonId).classList.add("toggled");
+        document.getElementById(buttonId)!.classList.add("toggled");
     } else {
-        document.getElementById(buttonId).classList.remove("toggled");
+        document.getElementById(buttonId)!.classList.remove("toggled");
     }
 }
 
@@ -88,7 +90,7 @@ export namespace Schoolyear {
         let selects = document.querySelectorAll("select");
         return Array.from(selects)
             .filter((element) => element.id.includes("schooljaar"))
-            .pop();
+            .pop() ?? null;
     }
 
     export function getHighestAvailable() {
@@ -111,14 +113,16 @@ export namespace Schoolyear {
             let txt = el.textContent;
             let rx = /[sS]chooljaar *[=:][\s\u00A0]*(\d{4}-\d{4})/gm;
             let res = rx.exec(txt);
-            return res[1];
+            if(res)
+                return res[1];
         }
         el = document.querySelector("div.btn-toolbar");
         if(el) {
             let txt = el.textContent;
             let rx = /[sS]chooljaar *[=:]*[\s\u00A0]*(\d{4}-\d{4})/gm;
             let res = rx.exec(txt);
-            return res[1];
+            if(res)
+                return res[1];
         }
         throw "Cannot find schoolyear in page.";
     }

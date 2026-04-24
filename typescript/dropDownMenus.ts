@@ -60,7 +60,7 @@ export function setupMenu(container: HTMLElement, button: HTMLElement) {
     button.onclick = ev => {
         ev.preventDefault();
         ev.stopPropagation();
-        let dropDowwnMenu = (ev.target as HTMLElement).closest(".dropDownContainer").querySelector(".dropDownMenu");
+        let dropDowwnMenu = (ev.target as HTMLElement).closest(".dropDownContainer")!.querySelector(".dropDownMenu")!;
         if (dropDowwnMenu.classList.contains("show")) {
             closeMenus();
             return;

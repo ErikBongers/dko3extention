@@ -45,7 +45,7 @@ function gotoVolgende() {
     if(tableHasOneStudent) {
         let tr = document.querySelector(".tr-ticket-afwezigheidsmelding-leerling") as HTMLTableRowElement;
         tr.click();
-        document.getElementById("btn_opslaan_tickets_afwezigheid_toevoegen").click();
+        document.getElementById("btn_opslaan_tickets_afwezigheid_toevoegen")!.click();
     }
 }
 
@@ -57,7 +57,7 @@ function addMatchingStudents() {
         let target = leerlingLabel as HTMLElement;
         for (let lln of matchingLeerlingen) {
             let anchorClasses = lln.winner ? ".bold" : "";
-            function hook(el: HTMLElement) {
+            let hook = (el: HTMLElement) => {
                 if(el.tagName == "A") {
                     el.onclick = () => fillAndClick(lln.name);
                 }
@@ -68,13 +68,13 @@ function addMatchingStudents() {
 }
 
 function addEmailText() {
-    let emailDiv  = emmet.create('div.modal-body>div>button#btnShowEmail{Show email}.btn.btn-sm.btn-outline-success+div#showEmail.collapsed').last;
+    let emailDiv  = emmet.create('div.modal-body>div>button#btnShowEmail{Show email}.btn.btn-sm.btn-outline-success+div#showEmail.collapsed').last as HTMLDivElement;
     emailDiv.innerHTML = currentEmailHtml;
-    document.getElementById("btnShowEmail").addEventListener("click", showEmail);
+    document.getElementById("btnShowEmail")!.addEventListener("click", showEmail);
 }
 
 function showEmail() {
-    document.getElementById("showEmail").classList.toggle("collapsed");
+    document.getElementById("showEmail")!.classList.toggle("collapsed");
 }
 
 function onAddMelding() {
@@ -84,9 +84,9 @@ function onAddMelding() {
 
 function fillAndClick(name: string) {
     let formDiv = document.querySelector("#form_field_tickets_afwezigheid_toevoegen_leerling_zoeken") as HTMLDivElement;
-    let input = formDiv.querySelector("input");
+    let input = formDiv.querySelector("input")!;
     input.value = name;
-    let button = formDiv.querySelector("button");
+    let button = formDiv.querySelector("button")!;
     button.click();
     return false;
 }
@@ -120,8 +120,8 @@ async function onTicket() {
     template.innerHTML = await fetchStudentsSearch(uniqueEmails.join(" "));
     let tdLln = [...template.querySelectorAll("td")];
     matchingLeerlingen = tdLln.map(td => {
-        let id = td.querySelector("small").textContent;
-        let name = td.querySelector("strong").textContent;
+        let id = td.querySelector("small")!.textContent;
+        let name = td.querySelector("strong")!.textContent;
         setViewFromCurrentUrl();
         return <MatchingLeerling>{id, name, weight: 0, winner: false};
     });

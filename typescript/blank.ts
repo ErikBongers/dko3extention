@@ -9,17 +9,17 @@ handler
     .onMessageForMyTabType(msg => {
         let data: HtmlData = JSON.parse(msg.data);
         console.log("message for my tab type: ", msg);
-        document.getElementById("container").innerHTML = data.html;
+        document.getElementById("container")!.innerHTML = data.html;
         document.title = data.title;
     })
     .onMessageForMe(msg => {
         console.log("message for me: ", msg);
-        document.getElementById("container").innerHTML = "DATA:" + msg.data;
+        document.getElementById("container")!.innerHTML = "DATA:" + msg.data;
     })
     .onData((data: HtmlData) => {
         console.log("requested data received: ");
         console.log(data);
-        document.getElementById("container").innerHTML = data.html;
+        document.getElementById("container")!.innerHTML = data.html;
         document.title = data.title;
     });
 

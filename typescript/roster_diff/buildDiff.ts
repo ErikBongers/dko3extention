@@ -258,10 +258,14 @@ async function buildDiff(excelLessen: ClassDef[], dko3Data: Dko3DiffData, report
     })
     //split each Dko3 les into multiple lesMoments
     let lesMomenten = dko3Data.lessen
-        .map(les => les.dayTimeSlices
-            .map(slice => {
-                return new Dko3LesMoment(les, slice);
-            }))
+        .map(les => {
+            if(les.dayTimeSlices.length == 0)
+                reportStatus(`Les <a href="https://administratie.dko3.cloud/#lessen-les?id=${les.id}">${les.id}</a> heeft geen lesmoment.`, "error");
+            return les.dayTimeSlices
+                .map(slice => {
+                    return new Dko3LesMoment(les, slice);
+                });
+        })
         .flat()
         .map(lesMoment => new TaggedDko3LesMoment(lesMoment));
     let dko3LesSet: Set<TaggedDko3LesMoment> = new Set<TaggedDko3LesMoment>(lesMomenten);
@@ -281,7 +285,7 @@ async function buildDiff(excelLessen: ClassDef[], dko3Data: Dko3DiffData, report
         lesMomentenMap.set(les.lesMoment.momentId, les);
     loopAliasLessen: for(let aliasLes of dko3Data.dko3AliasLessen) {
         if (aliasLes.linkedLessenIds.length < 2) {
-            reportStatus(`Error: alias les ${aliasLes.id} heeft geen 2 geldige gekoppelde lessen.`, "error");
+            reportStatus(`Error: alias les <a href="https://administratie.dko3.cloud/#lessen-les?id=${aliasLes.id}">${aliasLes.id}</a> heeft geen 2 geldige gekoppelde lessen.`, "error");
             continue;
         }
         let linkedLessen = aliasLes.linkedLessenIds.map(lesId => dko3LesMap.get(lesId));
@@ -403,7 +407,7 @@ function matchIt(dko3LesSet: Set<TaggedDko3LesMoment>, excelLesSet: Set<TaggedEx
 }
 
 function perfectMatch(dko3Les: TaggedDko3LesMoment, excelLesSet: Set<TaggedExcelLes>): TaggedExcelLes | null {
-    if(dko3Les.lesMoment.les.teacher.includes("urgen"))
+    if(dko3Les.lesMoment.les.id == "6570")
         debugger;
     for(let excelLes of excelLesSet) {
         if(!dko3Les.subjects.some(t => excelLes.subjects.includes(t)))

@@ -137,7 +137,7 @@ function insertAt(position, target, text, onIndex, hook) {
 	nested = tokenize(text);
 	let tempRoot = document.createElement("div");
 	let result = parseAndBuild(tempRoot, onIndex, hook);
-	let first = void 0;
+	let first = null;
 	let insertPos = target;
 	let children = [...tempRoot.childNodes];
 	for (let child of children) if (!first) if (child.nodeType === Node.TEXT_NODE) first = insertPos = insertAdjacentText(target, position, child.wholeText);
@@ -185,7 +185,9 @@ function parseMult() {
 	let el = parseElement();
 	if (!el) return el;
 	if (match("*")) {
-		let count = parseInt(nested.shift());
+		let mustBeNumber = nested.shift();
+		if (!mustBeNumber) throw "Number expecting after multiplier symbol '*'";
+		let count = parseInt(mustBeNumber);
 		return {
 			count,
 			child: el
@@ -212,6 +214,7 @@ function parseChildDef() {
 	let atts = [];
 	let classList = [];
 	let text = void 0;
+	if (!tag) throw "Unexpected end of stream. Tag expected.";
 	while (nested.length) if (match(".")) {
 		let className = nested.shift();
 		if (!className) throw "Unexpected end of stream. Class name expected.";
@@ -253,11 +256,12 @@ function getAttributes() {
 		let eq = tokens.shift();
 		let sub = "";
 		if (eq === ".") {
-			sub = tokens.shift();
+			sub = tokens.shift() ?? "";
 			eq = tokens.shift();
 		}
 		if (eq != "=") throw "Equal sign expected.";
 		let value = tokens.shift();
+		if (!value) throw "Value expected";
 		if (value[0] === "\"") value = stripStringDelimiters(value);
 		if (!value) throw "Value expected.";
 		attDefs.push({
@@ -277,6 +281,7 @@ function match(expected) {
 }
 function matchStartsWith(expected) {
 	let next = nested.shift();
+	if (!next) return void 0;
 	if (next.startsWith(expected)) return next;
 	if (next) nested.unshift(next);
 	return void 0;
@@ -482,7 +487,8 @@ let settingsObservers = [];
 function db3(message) {
 	if (options?.showDebug) {
 		console.log(message);
-		console.log(Error().stack.split("\n")[2]);
+		let stack = Error().stack;
+		if (stack) console.log(stack.split("\n")[2]);
 	}
 }
 function createValidId(id) {
@@ -528,7 +534,7 @@ let Schoolyear;
 (function(_Schoolyear) {
 	function getSelectElement() {
 		let selects = document.querySelectorAll("select");
-		return Array.from(selects).filter((element) => element.id.includes("schooljaar")).pop();
+		return Array.from(selects).filter((element) => element.id.includes("schooljaar")).pop() ?? null;
 	}
 	_Schoolyear.getSelectElement = getSelectElement;
 	function getHighestAvailable() {
@@ -545,14 +551,14 @@ let Schoolyear;
 			let txt = el.textContent;
 			let rx = /[sS]chooljaar *[=:][\s\u00A0]*(\d{4}-\d{4})/gm;
 			let res = rx.exec(txt);
-			return res[1];
+			if (res) return res[1];
 		}
 		el = document.querySelector("div.btn-toolbar");
 		if (el) {
 			let txt = el.textContent;
 			let rx = /[sS]chooljaar *[=:]*[\s\u00A0]*(\d{4}-\d{4})/gm;
 			let res = rx.exec(txt);
-			return res[1];
+			if (res) return res[1];
 		}
 		throw "Cannot find schoolyear in page.";
 	}
@@ -5488,9 +5494,12 @@ async function buildDiff(excelLessen, dko3Data, reportStatus, diffSettings) {
 	excelLesSet.forEach((les) => {
 		if (isExcelLesToIgnore(les, diffSettings.ignoreList)) excelLesSet.delete(les);
 	});
-	let lesMomenten = dko3Data.lessen.map((les) => les.dayTimeSlices.map((slice) => {
-		return new Dko3LesMoment(les, slice);
-	})).flat().map((lesMoment) => new TaggedDko3LesMoment(lesMoment));
+	let lesMomenten = dko3Data.lessen.map((les) => {
+		if (les.dayTimeSlices.length == 0) reportStatus(`Les <a href="https://administratie.dko3.cloud/#lessen-les?id=${les.id}">${les.id}</a> heeft geen lesmoment.`, "error");
+		return les.dayTimeSlices.map((slice) => {
+			return new Dko3LesMoment(les, slice);
+		});
+	}).flat().map((lesMoment) => new TaggedDko3LesMoment(lesMoment));
 	let dko3LesSet = new Set(lesMomenten);
 	dko3LesSet.forEach((les) => {
 		if (isDko3LesToIgnore(les, diffSettings.ignoreList)) dko3LesSet.delete(les);
@@ -5501,7 +5510,7 @@ async function buildDiff(excelLessen, dko3Data, reportStatus, diffSettings) {
 	for (let les of dko3LesSet.values()) lesMomentenMap.set(les.lesMoment.momentId, les);
 	loopAliasLessen: for (let aliasLes of dko3Data.dko3AliasLessen) {
 		if (aliasLes.linkedLessenIds.length < 2) {
-			reportStatus(`Error: alias les ${aliasLes.id} heeft geen 2 geldige gekoppelde lessen.`, "error");
+			reportStatus(`Error: alias les <a href="https://administratie.dko3.cloud/#lessen-les?id=${aliasLes.id}">${aliasLes.id}</a> heeft geen 2 geldige gekoppelde lessen.`, "error");
 			continue;
 		}
 		let linkedLessen = aliasLes.linkedLessenIds.map((lesId) => dko3LesMap.get(lesId));
@@ -5606,7 +5615,7 @@ function matchIt(dko3LesSet, excelLesSet, diffs, diffType, matchFunction) {
 	}
 }
 function perfectMatch(dko3Les, excelLesSet) {
-	if (dko3Les.lesMoment.les.teacher.includes("urgen")) debugger;
+	if (dko3Les.lesMoment.les.id == "6570") debugger;
 	for (let excelLes of excelLesSet) {
 		if (!dko3Les.subjects.some((t) => excelLes.subjects.includes(t))) continue;
 		if (!DayTimeSlice.equal(dko3Les.lesMoment.dayTimeSlice, excelLes.dayTimeSlice)) continue;
@@ -8445,6 +8454,7 @@ function onMutationAanwezgheden(_mutation) {
 		navigationBars,
 		//wait for top and bottom bars.
 		//remove "Klasleerkracht: "
+		//todo: schrijfwijze?
 		COPY_TABLE_BTN_ID,
 		"copy table to clipboard",
 		copyTable,
@@ -8519,8 +8529,8 @@ async function copyTable() {
 		let aanwList = rowsArray.map((row) => {
 			let percentFinancierbaar = parseFloat(row.cells[1].querySelector("strong")?.textContent?.replace(",", ".") ?? "0") / 100;
 			let percentTotaal = parseFloat(row.cells[2].querySelector("strong")?.textContent?.replace(",", ".") ?? "0") / 100;
-			let vak = row.cells[0].querySelector("br")?.nextSibling?.textContent;
-			let namen = row.cells[0].querySelector("strong").textContent.split(", ");
+			let vak = row.cells[0].querySelector("br")?.nextSibling?.textContent ?? "";
+			let namen = row.cells[0].querySelector("strong")?.textContent.split(", ") ?? [];
 			let aanw = {
 				naam: namen[0],
 				voornaam: namen[1],
@@ -8567,12 +8577,18 @@ async function copyTable() {
 }
 function aanwezighedenToClipboard(infoBar) {
 	let text = window.sessionStorage.getItem(AANW_LIST);
+	if (!text) {
+		infoBar.setExtraInfo("No text to copy to clipboard!!! <a id=" + COPY_AGAIN + " href='javascript:void(0);'>Kopieer opnieuw</a>", COPY_AGAIN, () => {
+			aanwezighedenToClipboard(infoBar);
+		});
+		return;
+	}
 	navigator.clipboard.writeText(text).then((_r) => {
-		infoBar.setExtraInfo("Data copied to clipboard. <a id=" + COPY_AGAIN + " href='javascript:void(0);'>Copy again</a>", COPY_AGAIN, () => {
+		infoBar.setExtraInfo("Gegevens gecopieerd naar klipbord. <a id=" + COPY_AGAIN + " href='javascript:void(0);'>Kopieer opnieuw</a>", COPY_AGAIN, () => {
 			aanwezighedenToClipboard(infoBar);
 		});
 	}).catch((_reason) => {
-		infoBar.setExtraInfo("Could not copy to clipboard!!! <a id=" + COPY_AGAIN + " href='javascript:void(0);'>Copy again</a>", COPY_AGAIN, () => {
+		infoBar.setExtraInfo("Kan niet kopieren naar klipbord!!! <a id=" + COPY_AGAIN + " href='javascript:void(0);'>Kopieer opnieuw</a>", COPY_AGAIN, () => {
 			aanwezighedenToClipboard(infoBar);
 		});
 	});
@@ -8603,20 +8619,20 @@ function reduceVaknaamStep1(vaknaam) {
 	if (vaknaam.includes("instrument: klassiek: ")) {
 		let rx = /instrument: klassiek: (\S*)/;
 		let matches$1 = vaknaam.match(rx);
-		if (matches$1.length > 1) return matches$1[1];
+		if (matches$1 && matches$1.length > 1) return matches$1[1];
 		else return vaknaam;
 	}
 	if (vaknaam.includes("instrument: jazz-pop-rock: ")) {
 		let rx = /instrument: jazz-pop-rock: (\S*)/;
 		let matches$1 = vaknaam.match(rx);
-		if (matches$1.length > 1) if (matches$1[1].includes("elektrische")) return "gitaar JPR";
+		if (matches$1 && matches$1.length > 1) if (matches$1[1].includes("elektrische")) return "gitaar JPR";
 		else return matches$1[1] + " JPR";
 		else return vaknaam;
 	}
 	if (vaknaam.includes("rrangeren") || vaknaam.includes("opname") || vaknaam.includes("electronics")) return "elektronische muziek";
 	let rx2 = /(.*).•./;
 	let matches = vaknaam.match(rx2);
-	if (matches.length > 1) return matches[1];
+	if (matches && matches.length > 1) return matches[1];
 	return "??";
 }
 
@@ -8666,9 +8682,9 @@ function addMatchingStudents() {
 		let target = leerlingLabel;
 		for (let lln of matchingLeerlingen) {
 			let anchorClasses = lln.winner ? ".bold" : "";
-			function hook(el) {
+			let hook = (el) => {
 				if (el.tagName == "A") el.onclick = () => fillAndClick(lln.name);
-			}
+			};
 			target = emmet.insertAfter(target, `a[href="#"].leerlingLabel${anchorClasses}{${lln.name}}`, void 0, hook).first;
 		}
 	}

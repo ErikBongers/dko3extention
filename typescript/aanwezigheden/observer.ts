@@ -114,10 +114,10 @@ async function copyTable() {
 
         return rowsArray
             .map(row => {
-                let namen = row.cells[1].querySelector("strong").textContent.split(", ");
+                let namen = row.cells[1].querySelector("strong")!.textContent.split(", ");
                 let vakTxt = Array.from(row.cells[1].childNodes).filter(node => node.nodeType === Node.TEXT_NODE).map(node => node.textContent).join("");
                 let vak =  reduceVaknaam(vakTxt.substring(3));
-                let leraar = row.cells[1].querySelector("small").textContent.substring(16); //remove "Klasleerkracht: "
+                let leraar = row.cells[1].querySelector("small")!.textContent.substring(16); //remove "Klasleerkracht: "
                 return { naam: namen[0], voornaam: namen[1], code: row.cells[2].textContent[0], vak, leraar} as Pees;
             });
     });
@@ -140,8 +140,8 @@ async function copyTable() {
             .map(row => {
                 let percentFinancierbaar =  parseFloat(row.cells[1].querySelector("strong")?.textContent?.replace(",", ".") ?? "0")/100;
                 let percentTotaal =  parseFloat(row.cells[2].querySelector("strong")?.textContent?.replace(",", ".") ?? "0")/100;
-                let vak = row.cells[0].querySelector("br")?.nextSibling?.textContent;
-                let namen = row.cells[0].querySelector("strong").textContent.split(", ");
+                let vak = row.cells[0].querySelector("br")?.nextSibling?.textContent ?? "";
+                let namen = row.cells[0].querySelector("strong")?.textContent.split(", ") ?? [];
                 let aanw: Aanwezigheid = {
                     naam: namen[0],
                     voornaam: namen[1],
@@ -199,7 +199,7 @@ async function copyTable() {
 
         //replace the visible table
         tableFetcher.tableRef.getOrgTableContainer()
-            .querySelector("tbody")
+            .querySelector("tbody")!
             .replaceChildren(...fetchedTable.getRows());
     });
 }
@@ -207,14 +207,20 @@ async function copyTable() {
 //todo: user generalized function.
 function aanwezighedenToClipboard(infoBar: InfoBar) {
     let text = window.sessionStorage.getItem(def.AANW_LIST);
+    if(!text) {
+        infoBar.setExtraInfo("No text to copy to clipboard!!! <a id="+def.COPY_AGAIN+" href='javascript:void(0);'>Kopieer opnieuw</a>", def.COPY_AGAIN, () => { //todo: schrijfwijze?
+            aanwezighedenToClipboard(infoBar);
+        });
+        return;
+    }
     navigator.clipboard.writeText(text)
         .then(_r => {
-            infoBar.setExtraInfo("Data copied to clipboard. <a id="+def.COPY_AGAIN+" href='javascript:void(0);'>Copy again</a>", def.COPY_AGAIN, () => {
+            infoBar.setExtraInfo("Gegevens gecopieerd naar klipbord. <a id="+def.COPY_AGAIN+" href='javascript:void(0);'>Kopieer opnieuw</a>", def.COPY_AGAIN, () => {
                 aanwezighedenToClipboard(infoBar);
             });
         })
         .catch(_reason => {
-            infoBar.setExtraInfo("Could not copy to clipboard!!! <a id="+def.COPY_AGAIN+" href='javascript:void(0);'>Copy again</a>", def.COPY_AGAIN, () => {
+            infoBar.setExtraInfo("Kan niet kopieren naar klipbord!!! <a id="+def.COPY_AGAIN+" href='javascript:void(0);'>Kopieer opnieuw</a>", def.COPY_AGAIN, () => {
                 aanwezighedenToClipboard(infoBar);
             });
         });
@@ -286,7 +292,7 @@ function reduceVaknaamStep1(vaknaam: string) : string {
     if (vaknaam.includes("instrument: klassiek: ")) {
         let rx = /instrument: klassiek: (\S*)/;
         let matches = vaknaam.match(rx);
-        if(matches.length > 1)
+        if(matches && matches.length > 1)
             return matches[1];
         else
             return vaknaam;
@@ -294,7 +300,7 @@ function reduceVaknaamStep1(vaknaam: string) : string {
     if (vaknaam.includes("instrument: jazz-pop-rock: ")) {
         let rx = /instrument: jazz-pop-rock: (\S*)/;
         let matches = vaknaam.match(rx);
-        if(matches.length > 1) {
+        if(matches && matches.length > 1) {
             if(matches[1].includes("elektrische"))
                 return "gitaar JPR"
             else
@@ -309,7 +315,7 @@ function reduceVaknaamStep1(vaknaam: string) : string {
     }
     let rx2 = /(.*).•./;
     let matches = vaknaam.match(rx2);
-    if(matches.length > 1)
+    if(matches && matches.length > 1)
         return matches[1];
     return "??";
 }
