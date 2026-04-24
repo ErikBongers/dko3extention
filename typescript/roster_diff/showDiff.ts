@@ -53,7 +53,7 @@ export async function getAndShowDiffs(showOrCalc: "justShow" | "calcAndShow", us
     let json: string | null = null;
     if(useDkoCache == "dkoCache")
        json = localStorage.getItem(getDiffsDko3CacheFileName(cmbDiffAcademie.value, cmbDiffSchoolYear.value));
-    let dko3DiffData = JSON.parse(json) as Dko3DiffData | null;
+    let dko3DiffData = json ? JSON.parse(json) as Dko3DiffData : null;
     let jsonDiffs: JsonDiffs | null = null;
     let diffSettings = await fetchDiffSettingsOrDefault(cmbDiffAcademie.value, cmbDiffSchoolYear.value);
     if(showOrCalc == "justShow") {
@@ -199,9 +199,9 @@ async function gotoData(ev: MouseEvent, academie: string, schoolYear: string) {
     let button = ev.currentTarget as HTMLButtonElement;
     let tr = button.closest("tr") as HTMLTableRowElement;
     let rowType = tr.dataset.rowType as ("excel" | "dko3");
-    let cellAddress = tr.dataset.cellAddress;
-    let workBook = tr.dataset.workbook;
-    let workSheet = tr.dataset.worksheet;
+    let cellAddress = tr.dataset.cellAddress!;
+    let workBook = tr.dataset.workbook!;
+    let workSheet = tr.dataset.worksheet!;
     let lesId = tr.dataset.lesId;
 
     if(rowType == "excel") {

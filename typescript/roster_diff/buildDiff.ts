@@ -13,7 +13,7 @@ import {fetchAndDisplayNotifications} from "../notifications/notifications";
 import {getDiffsDko3CacheFileName, StatusCallback} from "./showDiff";
 import {defaultIgnoreList, defaultTagDefs, DiffSettings} from "./diffSettings";
 
-let cachedDiffs: JsonDiffs = undefined;
+let cachedDiffs: JsonDiffs | undefined = undefined;
 export async function getJsonDiffsCached(academie: string, schoolYear: string) {
     if(cachedDiffs)
         return cachedDiffs;
@@ -645,10 +645,10 @@ function dko3LesToJson(dko3Les: TaggedDko3LesMoment): JsonDko3LesMoment {
         momentId: dko3Les.lesMoment.momentId,
         lesId: dko3Les.lesMoment.les.id,
         day: dko3Les.lesMoment.dayTimeSlice.day,
-        timeSlice: toCompactTimeSliceString(dko3Les.lesMoment.dayTimeSlice.timeSlice),
+        timeSlice: toCompactTimeSliceString(dko3Les.lesMoment.dayTimeSlice.timeSlice!),
         subject: dko3Les.subjects.join(","),
         teacher: dko3Les.teachers.join(","),
-        location: dko3Les.location,
+        location: dko3Les.location!,
         hash: dko3Les.getHash(),
         ignore: dko3Les.ignore,
     };
@@ -662,7 +662,7 @@ function excelLesToJson(excelLes: TaggedExcelLes): JsonExcelLesMoment {
         timeSlice: toCompactTimeSliceString(excelLes.lesMoment.timeSlice),
         subject: excelLes.subjects.join(","),
         teacher: excelLes.teachers.join(","),
-        location: excelLes.location,
+        location: excelLes.location!,
         cellValue: excelLes.lesMoment.cellValue,
         workBook: excelLes.lesMoment.table.excelData.workbookName,
         workSheet: excelLes.lesMoment.table.excelData.worksheetName,
@@ -684,12 +684,12 @@ function toCompactTimeSliceString(timeSlice: TimeSlice) {
 
 export async function getDiffForLes(lesId: string, academie: string, schoolYear: string) {
     let jsonDiffs = await getJsonDiffsCached(academie, schoolYear);
-    return jsonDiffs.diffs.find(diff => diff.dko3Les.lesId == lesId);
+    return jsonDiffs!.diffs.find(diff => diff.dko3Les.lesId == lesId);
 }
 
 export async function getUrlForWorksheet(workBook: string, workSheet: string, cellAddress: string, academie: string, schoolYear: string) {
     let jsonDiffs = await getJsonDiffsCached(academie, schoolYear);
-    let url =  jsonDiffs
+    let url =  jsonDiffs!
         .workBooks.find(wb => wb.name == workBook)
         ?.worksheets.find(ws => ws.name == workSheet)
         ?.url;

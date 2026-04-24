@@ -29,7 +29,7 @@ export function defineHtmlOptions() {
     defineHtmlOption("stripCommasOnPaste", 'checked', "Strip commas when pasting in a search field.", "block1");
     defineHtmlOption("reorderStudentName", 'checked', "Toon naam leerling als voornaam + achternaam", "block1");
     defineHtmlOption("markOtherAcademies", 'checked', "Toon arcering voor 'andere' academies.", "block1");
-    defineHtmlOption("myAcademies", 'value', undefined, undefined);
+    defineHtmlOption("myAcademies", 'value', "", null);
     defineHtmlOption("showDebug", 'checked', "Toon debug info in console.", "block3");
     defineHtmlOption("allowDeleteNotif", 'checked', "Laat verwijderen van berichten toe...", "block3");
 }
@@ -38,12 +38,12 @@ type OptionDef = {
     id: string,
     property: string,
     label: string,
-    blockId: string
+    blockId: string | null
 }
 
 export let htmlOptionDefs = new Map<string, OptionDef>();
 
-export function defineHtmlOption(id: string, property: string, label: string, blockId: string) {
+export function defineHtmlOption(id: string, property: string, label: string, blockId: string | null) {
     htmlOptionDefs.set(id, {id, property, label, blockId});
 
 }

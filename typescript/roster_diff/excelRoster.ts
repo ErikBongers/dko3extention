@@ -130,12 +130,12 @@ export class ExcelRoster {
                     .replaceAll(",", " , ")
                     .replaceAll("+", " + ")
                     + " ";
-                let timeSlice: TimeSlice = undefined;
+                let timeSlice: TimeSlice | undefined = undefined;
                 let mergedRange = this.table.RangeOfCell({row, column});
                 let sliceStartText = this.table.HeaderColumnValue(mergedRange.Start.row, 0);
                 let sliceEndText = this.table.HeaderColumnValue(mergedRange.End.row, 0);
-                let sliceStart = timeSlices.get(sliceStartText);
-                let sliceEnd = timeSlices.get(sliceEndText);
+                let sliceStart = timeSlices.get(sliceStartText)!;
+                let sliceEnd = timeSlices.get(sliceEndText)!;
                 timeSlice = new TimeSlice(sliceStart.start, sliceEnd.end);
                 let times = this.findTimes(parseText);
                 if(times.length ===2) {

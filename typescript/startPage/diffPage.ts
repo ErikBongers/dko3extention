@@ -53,7 +53,7 @@ export async function setupDiffPage() {
     cmbDiffAcademie.onchange = async () => {
         await onCmbAcademieChange(dirTree);
     }
-    cmbDiffAcademie.value = localStorage.getItem("diffLastAcademie"); //todo: check if valid value
+    cmbDiffAcademie.value = localStorage.getItem("diffLastAcademie") ?? ""; //todo: check if valid value
     await onCmbAcademieChange(dirTree);
     cmbDiffSchoolYear.onchange = async () => {
         localStorage.setItem("diffLastSchoolYear", cmbDiffSchoolYear.value);
@@ -68,7 +68,7 @@ async function onCmbAcademieChange(dirTree: TreeNode) {
     let cmbDiffSchoolYear = document.querySelector("#cmbDiffSchoolYear") as HTMLSelectElement;
     localStorage.setItem("diffLastAcademie", cmbDiffAcademie.value);
     if (await loadCombboxSchoolYearAndTrySelect(dirTree)) {
-        cmbDiffSchoolYear.value = localStorage.getItem("diffLastSchoolYear");//todo: check if valid value
+        cmbDiffSchoolYear.value = localStorage.getItem("diffLastSchoolYear") ?? "";//todo: check if valid value
         pluginContainer.classList.toggle("diffCombosLoaded", true);
     }
     await showDiffsFromComboboxes();
@@ -149,7 +149,7 @@ async function showDiffSetup(academie: string, schoolyear: string) {
 let globalDiffSettingsTabId: number;
 
 type DiffGlobals = {
-    diffSettings: DiffSettings,
+    diffSettings: DiffSettings | undefined,
 }
 
 let diffGlobals: DiffGlobals = {

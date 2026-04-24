@@ -68,7 +68,7 @@ function scrapeJaarToewijzingen(jaarToewijzingTable: (FetchedTable | undefined))
     })
 }
 
-export function scrapeModules(table: HTMLTableElement, jaarToewijzingTable: FetchedTable) {
+export function scrapeModules(table: HTMLTableElement, jaarToewijzingTable: FetchedTable | undefined) {
     let lessen = scrapeLessenOverzicht(table);
     return {
         trimesterModules: scrapeTrimesterModules(lessen),
@@ -125,7 +125,7 @@ function scrapeJaarModules(lessen: HtmlLes[] ) {
 export class StudentInfo {
     graadJaar: string;
     name: string;
-    trimesterInstruments: Les[][];
+    trimesterInstruments: ((Les[][]) | undefined);
     jaarInstruments: Les[];
     allYearSame: boolean;
     naam: string;

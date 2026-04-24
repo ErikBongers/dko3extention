@@ -799,7 +799,9 @@ function defaultGotoState(pageName) {
 	return pageState$2;
 }
 function getGotoStateOrDefault(pageName) {
-	let pageState$2 = JSON.parse(sessionStorage.getItem(STORAGE_GOTO_STATE_KEY));
+	let jsonState = sessionStorage.getItem(STORAGE_GOTO_STATE_KEY);
+	if (!jsonState) return defaultGotoState(pageName);
+	let pageState$2 = JSON.parse(jsonState);
 	if (pageState$2?.pageName === pageName) return pageState$2;
 	else return defaultGotoState(pageName);
 }
@@ -1140,7 +1142,7 @@ function onMutation$8(mutation) {
 	}
 	let tabAttesten = document.getElementById("attesten");
 	if (mutation.target === tabAttesten) {
-		onAttestenChanged(tabInschrijving);
+		onAttestenChanged();
 		return true;
 	}
 	return false;
@@ -1211,7 +1213,7 @@ function expandTabs(tabsLeerling) {
 		tabBefore.insertAdjacentElement("afterend", li);
 	}
 }
-function onAttestenChanged(_tabInschrijving) {
+function onAttestenChanged() {
 	decorateSchooljaar();
 }
 function onUitleningenChanged(tableUitleningen) {
@@ -1274,11 +1276,11 @@ function onInschrijvingChanged(tabInschrijving) {
 				let rxDesperate = /Initiatie +(.*)/i;
 				instrumentText += modNames.map((modName) => {
 					let matches = modName.match(rxWide);
-					if (matches?.length >= 2) return matches[1].trim() + " - " + matches[2].trim();
+					if (matches && matches?.length >= 2) return matches[1].trim() + " - " + matches[2].trim();
 					matches = modName.match(rxBasic);
-					if (matches?.length >= 1) return matches[1].trim();
+					if (matches && matches?.length >= 1) return matches[1].trim();
 					matches = modName.match(rxDesperate);
-					if (matches?.length >= 1) return matches[1].trim();
+					if (matches && matches?.length >= 1) return matches[1].trim();
 					return ": ???";
 				}).join(", ");
 			}
@@ -1482,7 +1484,7 @@ var RosterFactory = class RosterFactory {
 		}
 		let lastPeriodRow = this.findLastPeriodRow(this.periodColumn);
 		let lastDayColumn = this.findLastDayColumn(this.periodColumn, this.daysRow);
-		this.tableRange = new ExcelRange({
+		if (lastDayColumn && lastPeriodRow) this.tableRange = new ExcelRange({
 			row: this.daysRow,
 			column: this.periodColumn
 		}, {
@@ -2188,7 +2190,7 @@ var BlockInfo = class BlockInfo {
 		return this.alleLessen().some((les) => les.warnings.length > 0);
 	}
 	alleLessen() {
-		return this.trimesters.flat().concat(this.jaarModules);
+		return this.trimesters.flat().filter((les) => les).concat(this.jaarModules);
 	}
 	mergeBlock(block) {
 		this.mergedBlocks.push(block);
@@ -2264,6 +2266,10 @@ function prepareLesmomenten(inputModules) {
 		if (module.lesmoment.startsWith("volgende les")) reLesMoment = /volgende les: (\w\w) (?:\d+\/\d+ )?(\d\d:\d\d)-(\d\d:\d\d).*/;
 		else reLesMoment = /.*(\w\w) (?:\d+\/\d+ )?(\d\d:\d\d)-(\d\d:\d\d).*/;
 		let matches = module.lesmoment.match(reLesMoment);
+		if (!matches) {
+			module.formattedLesmoment = "???";
+			continue;
+		}
 		if (matches?.length !== 4) {
 			console.error(`Could not process lesmoment "${module.lesmoment}" for instrument "${module.instrumentName}".`);
 			module.formattedLesmoment = "???";
@@ -2342,7 +2348,9 @@ function buildTableData(inputModules) {
 	});
 	for (let instr of instrumentNames) tableData.instruments.set(instr, {
 		name: instr,
-		blocks: []
+		blocks: [],
+		mergedBlocks: new Map(),
+		lesMomenten: new Map()
 	});
 	for (let block of tableData.blocks) tableData.instruments.get(block.instrumentName).blocks.push(block);
 	let teachers = distinct(tableData.blocks.map((b) => b.teacher)).sort((a, b) => {
@@ -2350,7 +2358,9 @@ function buildTableData(inputModules) {
 	});
 	for (let t of teachers) tableData.teachers.set(t, {
 		name: t,
-		blocks: []
+		blocks: [],
+		mergedBlocks: new Map(),
+		lesMomenten: new Map()
 	});
 	for (let block of tableData.blocks) tableData.teachers.get(block.teacher).blocks.push(block);
 	groupBlocksTwoLevels(tableData.teachers.values(), (block) => block.formattedLesmoment, (primary, secundary) => {
@@ -2766,7 +2776,7 @@ var DisplayOptions = /* @__PURE__ */ function(DisplayOptions$1) {
 function buildInfoRow(newTableBody, _text, show, groupId, blockId) {
 	const trBlockInfo = newTableBody.appendChild(createLesRow(groupId, blockId));
 	trBlockInfo.classList.add("blockRow");
-	if (show === false) trBlockInfo.dataset.keepHidden = "true";
+	if (!show) trBlockInfo.dataset.keepHidden = "true";
 	trBlockInfo.dataset.groupId = groupId;
 	return emmet.append(trBlockInfo, "td.infoCell[colspan=3]>div.text-muted");
 }
@@ -4045,7 +4055,9 @@ var InfoBar = class {
 	}
 	setExtraInfo(message, click_element_id, callback) {
 		this.divExtraLine.innerHTML = message;
-		if (click_element_id) document.getElementById(click_element_id).onclick = callback;
+		if (click_element_id) {
+			if (callback) document.getElementById(click_element_id).onclick = callback;
+		}
 	}
 };
 
@@ -4744,6 +4756,7 @@ async function fetchAndDisplayNotifications() {
 	notificationsDiv.innerHTML = "";
 	for (let propName of propNames) {
 		let notif = notifications.notifications[propName];
+		if (!notif) continue;
 		let imgUrl = chrome.runtime.getURL("images/waiting.gif");
 		switch (notif.level) {
 			case "warning":
@@ -5100,7 +5113,7 @@ async function getAndShowDiffs(showOrCalc, useDkoCache) {
 	errors = [];
 	let json = null;
 	if (useDkoCache == "dkoCache") json = localStorage.getItem(getDiffsDko3CacheFileName(cmbDiffAcademie.value, cmbDiffSchoolYear.value));
-	let dko3DiffData = JSON.parse(json);
+	let dko3DiffData = json ? JSON.parse(json) : null;
 	let jsonDiffs = null;
 	let diffSettings = await fetchDiffSettingsOrDefault(cmbDiffAcademie.value, cmbDiffSchoolYear.value);
 	if (showOrCalc == "justShow") try {
@@ -5848,7 +5861,7 @@ async function setupDiffPage() {
 	cmbDiffAcademie.onchange = async () => {
 		await onCmbAcademieChange(dirTree);
 	};
-	cmbDiffAcademie.value = localStorage.getItem("diffLastAcademie");
+	cmbDiffAcademie.value = localStorage.getItem("diffLastAcademie") ?? "";
 	await onCmbAcademieChange(dirTree);
 	cmbDiffSchoolYear.onchange = async () => {
 		localStorage.setItem("diffLastSchoolYear", cmbDiffSchoolYear.value);
@@ -5862,7 +5875,7 @@ async function onCmbAcademieChange(dirTree) {
 	let cmbDiffSchoolYear = document.querySelector("#cmbDiffSchoolYear");
 	localStorage.setItem("diffLastAcademie", cmbDiffAcademie.value);
 	if (await loadCombboxSchoolYearAndTrySelect(dirTree)) {
-		cmbDiffSchoolYear.value = localStorage.getItem("diffLastSchoolYear");
+		cmbDiffSchoolYear.value = localStorage.getItem("diffLastSchoolYear") ?? "";
 		pluginContainer.classList.toggle("diffCombosLoaded", true);
 	}
 	await showDiffsFromComboboxes();
@@ -5977,7 +5990,7 @@ function onMutation$5(mutation) {
 		titleHeader.classList.add("diffSearched");
 		let academie = localStorage.getItem("diffLastAcademie");
 		let schoolYear = localStorage.getItem("diffLastSchoolYear");
-		addDiff(titleHeader, academie, schoolYear).then((r) => {});
+		if (academie && schoolYear) addDiff(titleHeader, academie, schoolYear).then((r) => {});
 	}
 	return false;
 }
@@ -6070,7 +6083,7 @@ async function setupSnapshotPage() {
 	let schoolYear = Schoolyear.toFullString(thisYear);
 	let nextYear = Schoolyear.toFullString(thisYear + 1);
 	cmbSnapshotSchoolYear.innerHTML = [schoolYear, nextYear].map((name) => `<option value="${name}">${name}</option>`).join("");
-	cmbSnapshotSchoolYear.value = localStorage.getItem("snapshotLastSchoolYear");
+	cmbSnapshotSchoolYear.value = localStorage.getItem("snapshotLastSchoolYear") ?? "";
 	let runStatus = emmet.insertAfter(button, "div#runStatus").first;
 	let divError = emmet.insertAfter(runStatus, "div.errors").last;
 	emmet.insertAfter(divError, "div#snapshotResults");

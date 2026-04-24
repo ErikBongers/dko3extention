@@ -12,6 +12,7 @@
     "noImplicitThis": true,
     "noImplicitReturns": true,
     "noImplicitAny": true,
+    "strictNullChecks": true,
     "paths": {
       "default_items": ["./javascript/default_items.js"]
     },

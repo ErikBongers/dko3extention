@@ -12,11 +12,11 @@ export class BlockInfo {
     private static blockCounter: number = 0;
     private static allBlocks: BlockInfo[] = [];
     id: BlockId;
-    teacher: string;
-    instrumentName: string;
+    teacher: string | undefined;
+    instrumentName: string | undefined;
     maxAantal: number;
-    formattedLesmoment: string;
-    vestiging: string;
+    formattedLesmoment: string | undefined;
+    vestiging: string | undefined;
     trimesters: (Les| undefined)[][];
     jaarModules: Les[];
     tags: TagInfo[];
@@ -80,7 +80,10 @@ export class BlockInfo {
     }
 
     alleLessen() {
-        return this.trimesters.flat().concat(this.jaarModules);
+        return this.trimesters
+            .flat()
+            .filter(les => les)
+            .concat(this.jaarModules) as Les[];
     }
 
     mergeBlock(block: BlockInfo) {
@@ -126,7 +129,7 @@ export class BlockInfo {
             .includes(true);
         if(!maxMoreThan100) {
             maxMoreThan100 = this.trimesters.flat()
-                .map(module => module?.maxAantal > TOO_LARGE_MAX)
+                .map(module => module?.maxAantal! > TOO_LARGE_MAX)
                 .includes(true);
         }
         if(maxMoreThan100)
@@ -202,6 +205,10 @@ export function prepareLesmomenten(inputModules: Les[]) {
             reLesMoment = /.*(\w\w) (?:\d+\/\d+ )?(\d\d:\d\d)-(\d\d:\d\d).*/;
         }
         let matches = module.lesmoment.match(reLesMoment);
+        if(!matches) {
+            module.formattedLesmoment =  "???";
+            continue;
+        }
         if (matches?.length !== 4) {
             console.error(`Could not process lesmoment "${module.lesmoment}" for instrument "${module.instrumentName}".`);
             module.formattedLesmoment =  "???";
@@ -235,7 +242,7 @@ function setStudentAllTrimsTheSameInstrument(student: StudentInfo) {
         return; //skip the every() below if we haven't got 3 instruments.
     }
     student.allYearSame = instruments
-        .every((instr: any) => instr.instrumentName === (student?.trimesterInstruments[0][0]?.instrumentName ?? "---"));
+        .every((instr: any) => instr.instrumentName === (student?.trimesterInstruments![0][0]?.instrumentName ?? "---"));
 }
 
 function setStudentNoInstrumentForAllTrims(student: StudentInfo) {
@@ -312,47 +319,47 @@ export function buildTableData(inputModules: Les[]) : TableData {
     }
 
     //group by instrument/teacher/hour
-    let instrumentNames = distinct(tableData.blocks.map(b => b.instrumentName)).sort((a,b) => { return a.localeCompare(b);});
+    let instrumentNames = distinct(tableData.blocks.map(b => b.instrumentName)).sort((a,b) => { return a!.localeCompare(b!);});
     for(let instr of instrumentNames) {
-        tableData.instruments.set(instr, <Instrument>{name: instr, blocks: []});
+        tableData.instruments.set(instr!, <Instrument>{name: instr!, blocks: [], mergedBlocks: new Map(), lesMomenten: new Map()});
     }
     for(let block of tableData.blocks) {
-        tableData.instruments.get(block.instrumentName).blocks.push(block);
+        tableData.instruments.get(block.instrumentName!)!.blocks.push(block);
     }
 
     //group by teacher/instrument/hour
-    let teachers = distinct(tableData.blocks.map(b => b.teacher)).sort((a,b) => { return a.localeCompare(b);});
+    let teachers = distinct(tableData.blocks.map(b => b.teacher)).sort((a,b) => { return a!.localeCompare(b!);});
     for(let t of teachers) {
-        tableData.teachers.set(t, <Teacher>{name: t, blocks: []});
+        tableData.teachers.set(t!, <Teacher>{name: t, blocks: [], mergedBlocks: new Map(), lesMomenten: new Map()});
     }
     for(let block of tableData.blocks) {
-        tableData.teachers.get(block.teacher).blocks.push(block);
+        tableData.teachers.get(block.teacher!)!.blocks.push(block);
     }
 
     //group by teacher/lesmoment
     groupBlocksTwoLevels(
         tableData.teachers.values(),
-        (block) => block.formattedLesmoment,
+        (block) => block.formattedLesmoment!,
         (primary: Teacher, secundary) => { primary.lesMomenten = secundary; }
     );
 
     //group by instrument/lesmoment
     groupBlocksTwoLevels(
         tableData.instruments.values(),
-        (block) => block.formattedLesmoment,
+        (block) => block.formattedLesmoment!,
         (primary: Teacher, secundary) => { primary.lesMomenten = secundary; }
     );
 
     //group by teacher
     groupBlocks(
         tableData.teachers.values(),
-        (block) => block.teacher
+        (block) => block.teacher!
     );
 
     //group by instrument
     groupBlocks(
         tableData.instruments.values(),
-        (block) => block.instrumentName
+        (block) => block.instrumentName!
     );
 
     return tableData;
@@ -373,7 +380,7 @@ function groupBlocksTwoLevels(primaryGroups: Iterable<MergeableBlocksGroop>, get
         let secondaryGroup = new Map(secondaryKeys.map(key => [key, new BlockInfo()]));
         //bundle the blocks per secondary
         for (let block of blocks) {
-            secondaryGroup.get(getSecondaryKey(block)).mergeBlock(block);
+            secondaryGroup.get(getSecondaryKey(block))!.mergeBlock(block);
         }
         secondaryGroup.forEach(block => {
             block.updateMergedBlock();
@@ -389,7 +396,7 @@ function groupBlocks(primaryGroups: Iterable<MergeableBlocksGroop>, getPrimaryKe
         primary.mergedBlocks = new Map(keys.map(key => [key, new BlockInfo()]));
         //bundle the blocks per secondary
         for (let block of blocks) {
-            primary.mergedBlocks.get(getPrimaryKey(block)).mergeBlock(block);
+            primary.mergedBlocks.get(getPrimaryKey(block))!.mergeBlock(block);
         }
         primary.mergedBlocks.forEach(block => {
             block.updateMergedBlock();
@@ -397,7 +404,7 @@ function groupBlocks(primaryGroups: Iterable<MergeableBlocksGroop>, getPrimaryKe
     }
 }
 
-function addTrimesterStudentsToMapAndCount(allStudents: Map<string, StudentInfo>, blockTrimModules: Les[]) {
+function addTrimesterStudentsToMapAndCount(allStudents: Map<string, StudentInfo>, blockTrimModules: (Les | undefined)[]) {
     for(let blockTrimModule of blockTrimModules) {
         if (!blockTrimModule)
             continue;
@@ -407,11 +414,11 @@ function addTrimesterStudentsToMapAndCount(allStudents: Map<string, StudentInfo>
                 allStudents.set(student.name, student);
             }
             let stud = allStudents.get(student.name);
-            stud.trimesterInstruments[blockTrimModule.trimesterNo - 1].push(blockTrimModule);
+            stud!.trimesterInstruments![blockTrimModule.trimesterNo - 1].push(blockTrimModule);
         }
         //all trims must reference the students in the overall map.
         blockTrimModule.students = blockTrimModule.students
-            .map((student) => allStudents.get(student.name));
+            .map((student) => allStudents.get(student.name)!);
     }
 }
 
@@ -422,12 +429,12 @@ function addJaarStudentsToMapAndCount(students: Map<string, StudentInfo>, jaarMo
             student.jaarInstruments = [];
             students.set(student.name, student);
         }
-        let stud = students.get(student.name);
+        let stud = students.get(student.name)!;
         stud.jaarInstruments.push(jaarModule);
     }
     //all jaarModules must reference the students in the overall map.
     jaarModule.students = jaarModule.students
-        .map((student) => students.get(student.name));
+        .map((student) => students.get(student.name)!);
 }
 
 interface MergedBlockStudents {
@@ -548,7 +555,7 @@ export function connvertToewijzingenToModules(jaarToewijzingen:  JaarToewijzing[
 
         let les: Les;
         if(modules.has(instrument+"-"+toewijzing.klasleerkracht+"-"+toewijzing.lesmoment))  {
-            les = modules.get(instrument+"-"+toewijzing.klasleerkracht+"-"+toewijzing.lesmoment);
+            les = modules.get(instrument+"-"+toewijzing.klasleerkracht+"-"+toewijzing.lesmoment)!;
         } else {
             les = createLesFromToewijzing(instrument, toewijzing);
             modules.set(instrument + "-" + toewijzing.klasleerkracht + "-" + toewijzing.lesmoment, les);

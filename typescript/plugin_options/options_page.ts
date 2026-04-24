@@ -33,7 +33,7 @@ const saveOptionsFromGui = () => {
     chrome.storage.sync.set(
         newOptions, () => {
             // Update status to let user know options were saved.
-            const status = document.getElementById('status');
+            const status = document.getElementById('status')!;
             status.textContent = 'Opties bewaard.';
             setTimeout(() => {
                 status.textContent = '';
@@ -59,11 +59,11 @@ async function fillOptionsInGui() {
     for(let optiondDef of htmlOptionDefs.values()){
         if(!optiondDef.blockId)
             continue;
-        let block = document.getElementById(optiondDef.blockId);
+        let block = document.getElementById(optiondDef.blockId)!;
         emmet.appendChild(block, `label>input#${optiondDef.id}[type="checkbox"]+{${optiondDef.label}}`);
     }
     await restoreOptionsToGui();
 }
 
 document.addEventListener('DOMContentLoaded', fillOptionsInGui);
-document.getElementById('save').addEventListener('click', saveOptionsFromGui);
+document.getElementById('save')!.addEventListener('click', saveOptionsFromGui);

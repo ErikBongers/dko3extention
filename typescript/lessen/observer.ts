@@ -70,12 +70,12 @@ function onMutation (mutation: MutationRecord) {
 }
 
 function onClickShowTrimesters() {
-    document.getElementById("lessen_overzicht").innerHTML = "<span class=\"text-muted\">\n" +
+    document.getElementById("lessen_overzicht")!.innerHTML = "<span class=\"text-muted\">\n" +
         "                <i class=\"fa fa-cog fa-spin\"></i> <i>Bezig met laden...</i>\n" +
         "            </span>";
     setTrimesterFilterAndFetch().then((text) => {
-        document.getElementById("lessen_overzicht").innerHTML = text;
-        showTrimesterTable(decorateTable(), true);
+        document.getElementById("lessen_overzicht")!.innerHTML = text;
+        showTrimesterTable(decorateTable()!, true);
     });
 }
 
@@ -109,7 +109,7 @@ function createTrimTableDiv() {
     let trimDiv = document.getElementById(def.TRIM_DIV_ID);
     if (!trimDiv) {
         trimDiv = document.createElement("div");
-        let originalTable = document.getElementById(LESSEN_TABLE_ID);
+        let originalTable = document.getElementById(LESSEN_TABLE_ID)!;
         originalTable.insertAdjacentElement("afterend", trimDiv);
         trimDiv.id = def.TRIM_DIV_ID;
     }
@@ -121,7 +121,7 @@ function decorateTable() {
     if (!printButton) {
         return undefined;
     }
-    let copyLessonButton = printButton.parentElement.querySelector("button:has(i.fa-reply-all)") as HTMLButtonElement;
+    let copyLessonButton = printButton.parentElement!.querySelector("button:has(i.fa-reply-all)") as HTMLButtonElement;
     if(copyLessonButton?.title === "") {
         copyLessonButton.title = copyLessonButton.textContent.replaceAll("\n", " ").replaceAll("      ", " ").replaceAll("     ", " ").replaceAll("    ", " ").replaceAll("   ", " ").replaceAll("  ", " ");
         copyLessonButton.childNodes.forEach(node => {
@@ -134,7 +134,7 @@ function decorateTable() {
     }
 
     //reset state
-    let overzichtDiv = document.getElementById(def.LESSEN_OVERZICHT_ID);
+    let overzichtDiv = document.getElementById(def.LESSEN_OVERZICHT_ID)!;
     createTrimTableDiv();
     overzichtDiv.dataset.filterFullClasses = "false";
 
@@ -170,7 +170,7 @@ function onClickToggleTrimesters() {
 }
 
 export function isTrimesterTableVisible() {
-    return document.getElementById(LESSEN_TABLE_ID).style.display === "none";
+    return document.getElementById(LESSEN_TABLE_ID)!.style.display === "none";
 }
 
 export function getTrimPageElements(){
@@ -209,7 +209,7 @@ export async function getJaarToewijzigingWerklijst(schoolYear: string) {
 
 export async function showTrimesterTable(trimElements: TrimElements, show: boolean) {
     trimElements.trimTable?.remove();
-    let toewijzingTable: FetchedTable;
+    let toewijzingTable: FetchedTable | undefined;
     let schoolYear = Schoolyear.findInPage();
     if(schoolYear === "2024-2025")
         toewijzingTable = undefined;
@@ -231,7 +231,7 @@ export async function showTrimesterTable(trimElements: TrimElements, show: boole
 }
 
 function addSortingAnchorOrText() {
-    let sorteerDiv = document.getElementById("trimSorteerDiv");
+    let sorteerDiv = document.getElementById("trimSorteerDiv")!;
     sorteerDiv.innerHTML = "Sorteer : ";
     if(getSavedNameSorting() === NameSorting.FirstName) {
         html.emmet.append(sorteerDiv, "a{Naam}[href=\"#\"]+{ | }+strong{Voornaam}");

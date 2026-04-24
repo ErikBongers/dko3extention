@@ -72,7 +72,7 @@ function getSavedAndDefaultQueryItems(): QueryItem[] {
 }
 
 function screpeDropDownMenu(headerMenu: Element) {
-    let headerLabel = headerMenu.querySelector("a").textContent.trim();
+    let headerLabel = headerMenu.querySelector("a")!.textContent.trim();
 
     Array.from(headerMenu.querySelectorAll("div.dropdown-menu > a") as NodeListOf<HTMLAnchorElement>)
         .map((item) => {
@@ -87,7 +87,7 @@ function screpeDropDownMenu(headerMenu: Element) {
 
 function scrapeMainMenu() {
     powerQueryItems = [];
-    let menu = document.getElementById("dko3_navbar");
+    let menu = document.getElementById("dko3_navbar")!;
     let headerMenus = menu.querySelectorAll("#dko3_navbar > ul.navbar-nav > li.nav-item.dropdown");
     for(let headerMenu of headerMenus.values()) {
         screpeDropDownMenu(headerMenu);
@@ -160,7 +160,7 @@ function showPowerQuery(ev: KeyboardEvent) {
 }
 
 let popover = document.createElement("div");
-document.querySelector("main").appendChild(popover);
+document.querySelector("main")!.appendChild(popover);
 popover.setAttribute("popover", "auto");
 popover.id = "powerQuery";
 popover.addEventListener("toggle", (ev) => {
@@ -215,7 +215,7 @@ function filterItems(needle: string) {
 }
 
 function onItemSelected(selectedElement: HTMLElement) {
-    let item = powerQueryItems.find((item) => item.longLabel === (selectedElement).dataset.longLabel);
+    let item = powerQueryItems.find((item) => item.longLabel === (selectedElement).dataset.longLabel)!;
     popover.hidePopover();
     if (item.func) {
         item.func(item);

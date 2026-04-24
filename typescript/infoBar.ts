@@ -53,7 +53,8 @@ export class InfoBar{
     setExtraInfo(message: string, click_element_id?: string, callback?: () => void) {
         this.divExtraLine.innerHTML = message;
         if(click_element_id) {
-            document.getElementById(click_element_id).onclick = callback;
+            if(callback)
+                document.getElementById(click_element_id)!.onclick = callback;
         }
     }
 

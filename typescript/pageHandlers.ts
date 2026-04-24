@@ -19,7 +19,7 @@ export class NamedCellTableFetchListener implements TableFetchListener {
 
     private requiredHeaderLabels: string[];
     onBeforeLoading?: OnBeforeLoadingHandler;
-    private headerIndices: Map<string, number>;
+    private headerIndices: Map<string, number> | undefined;
     onColumnsMissing: OnRequiredColumnsMissingHandler;
     isValidPage: boolean;
 
@@ -32,7 +32,7 @@ export class NamedCellTableFetchListener implements TableFetchListener {
 
     onPageLoaded(tableFetcher: TableFetcher, _pageCnt: number, _text: string) {
         if(!this.headerIndices) {
-            this.headerIndices = NamedCellTableFetchListener.getHeaderIndices(tableFetcher.fetchedTable.getTemplate().content as NotHTMLTemplate);
+            this.headerIndices = NamedCellTableFetchListener.getHeaderIndices(tableFetcher.fetchedTable!.getTemplate().content as NotHTMLTemplate);
             if (!this.hasAllHeadersAndAlert()) {
                 this.isValidPage = false;
                 if (this.onColumnsMissing) {
@@ -89,14 +89,14 @@ export class NamedCellTableFetchListener implements TableFetchListener {
     }
 
     hasHeader(label: string) {
-        return this.headerIndices.has(label);
+        return this.headerIndices!.has(label);
     }
 
     getColumnText(tr: HTMLTableRowElement, label: string) : string {
-        return getColumnText(tr, this.headerIndices, label);
+        return getColumnText(tr, this.headerIndices!, label);
     }
 }
 
 export function getColumnText(tr: HTMLTableRowElement, headerIndices: Map<string, number>, label: string) : string {
-    return tr.children[headerIndices.get(label)].textContent;
+    return tr.children[headerIndices.get(label)!].textContent;
 }

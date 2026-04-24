@@ -112,7 +112,7 @@ function insertAt(position, target, text, onIndex, hook) {
 	nested = tokenize(text);
 	let tempRoot = document.createElement("div");
 	let result = parseAndBuild(tempRoot, onIndex, hook);
-	let first = void 0;
+	let first = null;
 	let insertPos = target;
 	let children = [...tempRoot.childNodes];
 	for (let child of children) if (!first) if (child.nodeType === Node.TEXT_NODE) first = insertPos = insertAdjacentText(target, position, child.wholeText);
@@ -160,7 +160,9 @@ function parseMult() {
 	let el = parseElement();
 	if (!el) return el;
 	if (match("*")) {
-		let count = parseInt(nested.shift());
+		let mustBeNumber = nested.shift();
+		if (!mustBeNumber) throw "Number expecting after multiplier symbol '*'";
+		let count = parseInt(mustBeNumber);
 		return {
 			count,
 			child: el
@@ -187,6 +189,7 @@ function parseChildDef() {
 	let atts = [];
 	let classList = [];
 	let text = void 0;
+	if (!tag) throw "Unexpected end of stream. Tag expected.";
 	while (nested.length) if (match(".")) {
 		let className = nested.shift();
 		if (!className) throw "Unexpected end of stream. Class name expected.";
@@ -228,11 +231,12 @@ function getAttributes() {
 		let eq = tokens.shift();
 		let sub = "";
 		if (eq === ".") {
-			sub = tokens.shift();
+			sub = tokens.shift() ?? "";
 			eq = tokens.shift();
 		}
 		if (eq != "=") throw "Equal sign expected.";
 		let value = tokens.shift();
+		if (!value) throw "Value expected";
 		if (value[0] === "\"") value = stripStringDelimiters(value);
 		if (!value) throw "Value expected.";
 		attDefs.push({
@@ -252,6 +256,7 @@ function match(expected) {
 }
 function matchStartsWith(expected) {
 	let next = nested.shift();
+	if (!next) return void 0;
 	if (next.startsWith(expected)) return next;
 	if (next) nested.unshift(next);
 	return void 0;
@@ -335,7 +340,7 @@ function defineHtmlOptions() {
 	defineHtmlOption("stripCommasOnPaste", "checked", "Strip commas when pasting in a search field.", "block1");
 	defineHtmlOption("reorderStudentName", "checked", "Toon naam leerling als voornaam + achternaam", "block1");
 	defineHtmlOption("markOtherAcademies", "checked", "Toon arcering voor 'andere' academies.", "block1");
-	defineHtmlOption("myAcademies", "value", void 0, void 0);
+	defineHtmlOption("myAcademies", "value", "", null);
 	defineHtmlOption("showDebug", "checked", "Toon debug info in console.", "block3");
 	defineHtmlOption("allowDeleteNotif", "checked", "Laat verwijderen van berichten toe...", "block3");
 }

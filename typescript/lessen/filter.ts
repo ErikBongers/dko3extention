@@ -20,7 +20,7 @@ export function createRowFilterFromBlockFilter(blocks: BlockInfo[]): RowFilter {
     return {
         context: {ids},
         rowFilter: function (tr: HTMLTableRowElement, context: any): boolean {
-            return context.ids.includes(parseInt(tr.dataset.blockId));
+            return context.ids.includes(parseInt(tr.dataset.blockId!));
         }
     } as RowFilter;
 }
@@ -62,13 +62,13 @@ export function createAncestorFilter(rowPreFilter: RowFilter): RowFilter {
 
     function siblingsAndAncestorsFilter(tr: HTMLTableRowElement, context: TrimFilterContext) {
         //display all child rows for the headers that match
-        if (context.filteredHeaderGroupIds.includes(tr.dataset.groupId))
+        if (context.filteredHeaderGroupIds.includes(tr.dataset.groupId!))
             return true;
         //display all siblings of non-header rows, thus the full block
-        if (context.filteredBlockIds.includes(tr.dataset.blockId))
+        if (context.filteredBlockIds.includes(tr.dataset.blockId!))
             return true;
         //display the ancestor (header) rows of matching non-header rows
-        return context.filteredGroupIds.includes(tr.dataset.groupId) && tr.classList.contains("groupHeader");
+        return context.filteredGroupIds.includes(tr.dataset.groupId!) && tr.classList.contains("groupHeader");
     }
 
     return {context: {filteredBlockIds, filteredGroupIds, filteredHeaderGroupIds} as TrimFilterContext, rowFilter: siblingsAndAncestorsFilter};
@@ -77,7 +77,7 @@ export function createAncestorFilter(rowPreFilter: RowFilter): RowFilter {
 export const TXT_FILTER_ID = "txtFilter";
 
 export function setFilterInfo(text: string) {
-    document.getElementById(FILTER_INFO_ID).innerText = text;
+    document.getElementById(FILTER_INFO_ID)!.innerText = text;
 }
 
 export function applyFilters() {
@@ -85,7 +85,7 @@ export function applyFilters() {
     pageState.searchText = (document.getElementById(TXT_FILTER_ID) as HTMLInputElement).value;
     savePageSettings(pageState);
 
-    let extraFilter: RowFilter = undefined;
+    let extraFilter: RowFilter | undefined = undefined;
     if (isTrimesterTableVisible()) {
 
         let textPreFilter = createTextRowFilter(pageState.searchText, (tr) => tr.textContent);
@@ -181,14 +181,14 @@ export function setExtraFilter(set: (pageState: LessenPageState) => void) {
 }
 
 export function addFilterFields() {
-    let divButtonNieuweLes = document.querySelector("#lessen_overzicht > div > button");
+    let divButtonNieuweLes = document.querySelector("#lessen_overzicht > div > button")!;
     if (!document.getElementById(TXT_FILTER_ID)) {
         let pageState = getPageSettings(PageName.Lessen, getDefaultPageSettings()) as LessenPageState;
         let searchField = createSearchField(TXT_FILTER_ID, applyFilters, pageState.searchText);
         divButtonNieuweLes.insertAdjacentElement("afterend", searchField);
         //menu
         let {first: span, last: idiom} = emmet.insertAfter(searchField, 'span.btn-group-sm>button.btn.btn-sm.btn-outline-secondary.ml-2>i.fas.fa-list');
-        let menu = setupMenu(span as HTMLElement, idiom.parentElement);
+        let menu = setupMenu(span as HTMLElement, idiom!.parentElement!);
         addMenuItem(menu, "Toon alles", 0, _ => setExtraFilter(_ => {}));
         addMenuItem(menu, "Filter online lessen", 0, _ => setExtraFilter(pageState => pageState.filterOnline = true));
         addMenuItem(menu, "Filter offline lessen", 0, _ => setExtraFilter(pageState => pageState.filterOffline = true));
@@ -197,7 +197,7 @@ export function addFilterFields() {
         addMenuItem(menu, "Volle lessen", 0, _ => setExtraFilter(pageState => pageState.filterFullClass = true));
         addMenuItem(menu, "Online ALC lessen", 0, _ => setExtraFilter(pageState => pageState.filterOnlineAlc = true));
         addMenuItem(menu, "Opmerkingen", 0, _ => setExtraFilter(pageState => pageState.filterWarnings = true));
-        emmet.insertAfter(idiom.parentElement, `span#${def.FILTER_INFO_ID}.filterInfo`);
+        emmet.insertAfter(idiom!.parentElement!, `span#${def.FILTER_INFO_ID}.filterInfo`);
     }
 
     applyFilters();

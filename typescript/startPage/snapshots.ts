@@ -13,7 +13,7 @@ export async function setupSnapshotPage() {
     let schoolYear = Schoolyear.toFullString(thisYear);
     let nextYear = Schoolyear.toFullString(thisYear + 1);
     cmbSnapshotSchoolYear.innerHTML = [schoolYear, nextYear].map(name => `<option value="${name}">${name}</option>`).join("");
-    cmbSnapshotSchoolYear.value = localStorage.getItem("snapshotLastSchoolYear");//todo: check if valid value
+    cmbSnapshotSchoolYear.value = localStorage.getItem("snapshotLastSchoolYear") ?? "";//todo: check if valid value
     let runStatus = emmet.insertAfter(button, "div#runStatus").first as HTMLDivElement;
     let divError = emmet.insertAfter(runStatus, 'div.errors').last as HTMLDivElement;
     emmet.insertAfter(divError, "div#snapshotResults");
@@ -112,7 +112,7 @@ async function getCalculateAndSaveSnapshotDiffs(academie: string, schoolYear: st
 function showSnapshot(snapshotData: SnapshotData, divResults: HTMLDivElement) {
     let date = new Date(snapshotData.zDate);
     let divSnapshotContainer = emmet.appendChild(divResults, `div>h5{${date.toLocaleDateString()} ${date.toLocaleTimeString()}}`).first as HTMLDivElement;
-    showDifferences(snapshotData.diffs, divSnapshotContainer);
+    showDifferences(snapshotData.diffs!, divSnapshotContainer);
 }
 
 async function showSnapshotsforCombobox() {

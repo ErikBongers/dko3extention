@@ -5,9 +5,9 @@ import {DayUppercase} from "../lessen/scrape";
 export class RosterFactory {
     private excelData: ExcelData;
     private errors: string[] = [];
-    private daysRow: number = undefined;
-    private periodColumn: number = undefined;
-    private tableRange: ExcelRange = undefined;
+    private daysRow: number | undefined = undefined;
+    private periodColumn: number | undefined = undefined;
+    private tableRange: ExcelRange | undefined = undefined;
 
     public constructor(jsonExcelData: JsonExcelData) {
         this.excelData = new ExcelData(jsonExcelData.data, jsonExcelData.mergedRanges, jsonExcelData.url, jsonExcelData.workbookName, jsonExcelData.worksheetName);
@@ -23,7 +23,8 @@ export class RosterFactory {
         }
         let lastPeriodRow = this.findLastPeriodRow(this.periodColumn);
         let lastDayColumn = this.findLastDayColumn(this.periodColumn, this.daysRow);
-        this.tableRange = new ExcelRange({row: this.daysRow, column: this.periodColumn}, {row: lastPeriodRow, column: lastDayColumn});
+        if(lastDayColumn && lastPeriodRow)
+            this.tableRange = new ExcelRange({row: this.daysRow, column: this.periodColumn}, {row: lastPeriodRow, column: lastDayColumn});
     }
 
     public getErrors(): string[] {
@@ -31,7 +32,7 @@ export class RosterFactory {
     }
 
     public getTable(): Table {
-        return new Table(this.excelData, this.tableRange, 2, 1);
+        return new Table(this.excelData, this.tableRange!, 2, 1);
     }
 
     private findDaysRow() {

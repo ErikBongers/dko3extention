@@ -163,7 +163,7 @@ export namespace Schoolyear {
 }
 
 export function getUserAndSchoolName() {
-    let footer = document.querySelector("body > main > div.row > div.col-auto.mr-auto > small");
+    let footer = document.querySelector("body > main > div.row > div.col-auto.mr-auto > small")!;
     const reInstrument = /.*Je bent aangemeld als (.*)\s@\s(.*)\./;
     const match = footer.textContent.match(reInstrument);
     if (match?.length !== 3) {
@@ -247,6 +247,7 @@ export function createSearchField(id: string, onSearchInput: (ev: Event) => any,
     let { first: clearButton } = emmet.appendChild(span, `button>img[src="${chrome.runtime.getURL("images/circle-xmark-regular.svg")}"`);
     (clearButton as HTMLElement).onclick = () => {
         input.value = "";
+        // @ts-ignore
         input.oninput(undefined);
         input.focus();
     };
@@ -298,9 +299,9 @@ export let rxEmail = /\w[\w.\-]*@\w+\.\w+/gm;
 export function whoAmI() {
     let allScripts = document.querySelectorAll("script");
     let scriptTexts = [...allScripts].map(s => s.textContent).join();
-    let email = scriptTexts.match(rxEmail)[0];
+    let email = scriptTexts.match(rxEmail)![0];
     let rxName = /name: '(.*)'/;
-    let name = scriptTexts.match(rxName)[1];
+    let name = scriptTexts.match(rxName)![1];
     return {email, name};
 }
 
@@ -337,7 +338,7 @@ export function createHtmlTable(headers: Iterable<string>, cols: Iterable<Iterab
     for (let th of headers) {
         emmet.appendChild(tmpThead as HTMLElement, `th{${th}}`);
     }
-    let tmpTbody = tmpTable.appendChild(document.createElement("tbody"));
+    let tmpTbody = tmpTable!.appendChild(document.createElement("tbody"));
     for (let tr of cols) {
         let tmpTr = tmpTbody.appendChild(document.createElement("tr"));
         for (let cell of tr) {

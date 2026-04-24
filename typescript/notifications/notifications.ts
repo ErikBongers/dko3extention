@@ -58,6 +58,8 @@ export async function fetchAndDisplayNotifications() {
     notificationsDiv.innerHTML = "";
     for (let propName of propNames) {
         let notif = notifications.notifications[propName];
+        if(!notif)
+            continue;
         let imgUrl = chrome.runtime.getURL("images/waiting.gif");
         switch (notif.level) {
             case "warning":

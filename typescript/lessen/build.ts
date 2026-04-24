@@ -66,7 +66,7 @@ export function getSavedNameSorting() {
 
 export function buildTrimesterTable(tableData: TableData, trimElements: TrimElements) {
     pageState = getPageSettings(PageName.Lessen, pageState) as LessenPageState;
-    tableData.blocks.sort((block1, block2) => block1.instrumentName.localeCompare(block2.instrumentName));
+    tableData.blocks.sort((block1, block2) => block1.instrumentName!.localeCompare(block2.instrumentName!));
     trimElements.trimTableDiv = html.emmet.create(`#${TRIM_DIV_ID}>table#trimesterTable[border="2" style.width="100%"]>colgroup>col*3`).root as HTMLDivElement;
 
     trimElements.trimTableDiv.dataset.showFullClass= isButtonHighlighted(FULL_CLASS_BUTTON_ID) ? "true" : "false";
@@ -74,7 +74,7 @@ export function buildTrimesterTable(tableData: TableData, trimElements: TrimElem
     let { root: newTable, last: trHeader } = html.emmet.create("#trimesterTable>tbody+thead.table-secondary>tr");
     Object.assign(trimElements, getTrimPageElements()); //update trimElements
 
-    let newTableBody = newTable.querySelector("tbody");
+    let newTableBody = newTable.querySelector("tbody")!;
 
     let totTrim = [0,0,0];
     for (let block of tableData.blocks) {
@@ -88,12 +88,12 @@ export function buildTrimesterTable(tableData: TableData, trimElements: TrimElem
     switch(pageState.grouping) {
         case TrimesterGrouping.InstrumentTeacherHour:
             for (let [instrumentName, instrument] of tableData.instruments) {
-                buildGroup(newTableBody, instrument.blocks, instrumentName, (block) => block.teacher, DisplayOptions.Hour | DisplayOptions.Location);
+                buildGroup(newTableBody, instrument.blocks, instrumentName, (block) => block.teacher!, DisplayOptions.Hour | DisplayOptions.Location);
             }
             break;
         case TrimesterGrouping.TeacherInstrumentHour:
             for (let [teacherName, teacher] of tableData.teachers) {
-                buildGroup(newTableBody, teacher.blocks, teacherName, (block) => block.instrumentName, DisplayOptions.Hour | DisplayOptions.Location);
+                buildGroup(newTableBody, teacher.blocks, teacherName, (block) => block.instrumentName!, DisplayOptions.Hour | DisplayOptions.Location);
             }
             break;
         case TrimesterGrouping.TeacherHour:
@@ -217,7 +217,7 @@ function buildBlock(newTableBody: HTMLTableSectionElement, block: BlockInfo, gro
         for (let trimNo = 0; trimNo < 3; trimNo++) {
             let trimester = mergedBlockStudents.trimesterStudents[trimNo];
             sortStudents(trimester);
-            let student: StudentInfo = undefined;
+            let student: StudentInfo | undefined = undefined;
             if (trimester) {
                 student = trimester[rowNo];
                 let maxTrimStudentCount = Math.max(mergedBlockStudents.maxAantallen[trimNo], mergedBlockStudents.maxJaarStudentCount);
@@ -253,7 +253,7 @@ function buildBlock(newTableBody: HTMLTableSectionElement, block: BlockInfo, gro
     for (let trimNo of [0,1,2]) {
         let row = newTableBody.children[newTableBody.children.length-1];
         row.classList.add("wachtlijst");
-        let cell = row.children[trimNo];
+        let cell = row.children[trimNo]!;
         if (mergedBlockStudents.wachtlijsten[trimNo] === 0) {
             continue;
         }
@@ -264,13 +264,13 @@ function buildBlock(newTableBody: HTMLTableSectionElement, block: BlockInfo, gro
 
         //studens on wachtlijst and there is still room available?
         if (mergedBlockStudents.wachtlijsten[trimNo] > 0 && mergedBlockStudents.trimesterStudents[trimNo].length < mergedBlockStudents.maxAantallen[trimNo]) {
-            cell.querySelector("small").classList.add("yellowMarker");
+            cell.querySelector("small")!.classList.add("yellowMarker");
             newTableBody.children[studentTopRowNo + mergedBlockStudents.trimesterStudents[trimNo].length].children[trimNo].classList.add("yellowMarker");
         }
     }
 }
 
-function createLesRow(groupId: string, blockId: number) {
+function createLesRow(groupId: string, blockId: number | undefined) {
     let tr = document.createElement("tr");
     tr.dataset.blockId = ""+blockId;
     if(blockId)
@@ -310,14 +310,14 @@ function buildBlockTitle(newTableBody: HTMLTableSectionElement, block: BlockInfo
     }
 
     for (let jaarModule of block.jaarModules) {
-        divBlockTitle.appendChild(buildModuleButton(">", jaarModule.id, false))
+        divBlockTitle!.appendChild(buildModuleButton(">", jaarModule.id, false))
     }
 
     if(block.errors) {
         let errorSpan = document.createElement("span");
         errorSpan.appendChild(document.createTextNode(block.errors));
         errorSpan.classList.add("lesError");
-        divBlockTitle.appendChild(errorSpan);
+        divBlockTitle!.appendChild(errorSpan);
     }
     return trBlockTitle;
 }
@@ -332,7 +332,7 @@ enum DisplayOptions {
 function buildInfoRow(newTableBody: HTMLTableSectionElement, _text: string, show: boolean, groupId: string, blockId: number) {
     const trBlockInfo = newTableBody.appendChild(createLesRow(groupId, blockId));
     trBlockInfo.classList.add("blockRow");
-    if(show===false)
+    if(!show)
         trBlockInfo.dataset.keepHidden = "true";
     trBlockInfo.dataset.groupId = groupId;
 
@@ -341,15 +341,15 @@ function buildInfoRow(newTableBody: HTMLTableSectionElement, _text: string, show
 
 function buildInfoRowWithText(newTableBody: HTMLTableSectionElement, show: boolean, blockId: number, groupId: string, text: string)  {
     let {last: divMuted} = buildInfoRow(newTableBody, "", show, groupId, blockId);
-    divMuted.appendChild(document.createTextNode(text));
+    divMuted!.appendChild(document.createTextNode(text));
 }
 
 function buildBlockHeader(newTableBody: HTMLTableSectionElement, block: BlockInfo, groupId: string, trimesterHeaders: string[], displayOptions: DisplayOptions) {
     //INFO
-    buildInfoRowWithText(newTableBody, Boolean((DisplayOptions.Teacher & displayOptions)), block.id, groupId, block.teacher);
-    buildInfoRowWithText(newTableBody, Boolean((DisplayOptions.Instrument & displayOptions)), block.id, groupId, block.instrumentName);
-    buildInfoRowWithText(newTableBody, Boolean((DisplayOptions.Hour & displayOptions)), block.id, groupId, block.formattedLesmoment);
-    buildInfoRowWithText(newTableBody, Boolean((DisplayOptions.Location & displayOptions)), block.id, groupId, block.vestiging);
+    buildInfoRowWithText(newTableBody, Boolean((DisplayOptions.Teacher & displayOptions)), block.id, groupId, block.teacher!);
+    buildInfoRowWithText(newTableBody, Boolean((DisplayOptions.Instrument & displayOptions)), block.id, groupId, block.instrumentName!);
+    buildInfoRowWithText(newTableBody, Boolean((DisplayOptions.Hour & displayOptions)), block.id, groupId, block.formattedLesmoment!);
+    buildInfoRowWithText(newTableBody, Boolean((DisplayOptions.Location & displayOptions)), block.id, groupId, block.vestiging!);
     if(block.tags.length > 0) {
         let {last: divMuted} = buildInfoRow(newTableBody, block.tags.join(), true, groupId, block.id);
         emmet.appendChild(divMuted as HTMLDivElement, block.tags.map(tag => {
@@ -396,7 +396,7 @@ function buildModuleButton(buttonText: string, id: string, floatRight: boolean) 
     return button;
 }
 
-function buildStudentCell(student: StudentInfo) {
+function buildStudentCell(student: StudentInfo | undefined) {
     const cell = document.createElement("td");
     let studentSpan = document.createElement("span");
     let displayName = String.fromCharCode(NBSP);

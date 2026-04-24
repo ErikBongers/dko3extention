@@ -27,7 +27,7 @@ function onMutation(mutation: MutationRecord) {
     }
     let tabAttesten = document.getElementById("attesten");
     if (mutation.target === tabAttesten) {
-        onAttestenChanged(tabInschrijving);
+        onAttestenChanged();
         return true;
     }
     return false;
@@ -111,7 +111,7 @@ function expandTabs(tabsLeerling: HTMLDivElement): void {
     }
 }
 
-function onAttestenChanged(_tabInschrijving: HTMLElement) {
+function onAttestenChanged() {
     decorateSchooljaar();
 }
 
@@ -156,7 +156,7 @@ function isActiveYear() {
 }
 
 function decorateSchooljaar() {
-    let view = document.getElementById("view_contents");
+    let view = document.getElementById("view_contents")!;
     let activeYear = isActiveYear();
     if (activeYear) {
         view.classList.remove("oldYear");
@@ -179,8 +179,8 @@ function onInschrijvingChanged(tabInschrijving: HTMLElement) {
     //Show trimester instruments.
     let moduleButtons = tabInschrijving.querySelectorAll("tr td.right_center > button");
     for(let btn of moduleButtons) {
-        let onClick = btn.getAttribute("onclick");
-        let tr = btn.parentNode.parentNode;
+        let onClick = btn.getAttribute("onclick")!;
+        let tr = btn.parentNode!.parentNode!;
         onClick = onClick.substring(10, onClick.length- 1);
         let args = onClick
             .split(", ")
@@ -197,15 +197,15 @@ function onInschrijvingChanged(tabInschrijving: HTMLElement) {
                     instrumentText += modNames
                         .map(modName => {
                             let matches = modName.match(rxWide);
-                            if (matches?.length >= 2) {
+                            if (matches && matches?.length >= 2) {
                                 return matches[1].trim() + " - " + matches[2].trim();
                             }
                             matches = modName.match(rxBasic);
-                            if (matches?.length >= 1) {
+                            if (matches && matches?.length >= 1) {
                                 return matches[1].trim();
                             }
                             matches = modName.match(rxDesperate);
-                            if (matches?.length >= 1) {
+                            if (matches && matches?.length >= 1) {
                                 return matches[1].trim();
                             }
                             return ": ???";
@@ -231,7 +231,7 @@ function setStripedLessons() {
     let classRows = document.querySelectorAll("#leerling_inschrijvingen_weergave tr");
     let classCells = Array.from(classRows)
         .filter(row => row.querySelector(".table-info") !== null)
-        .map(row => row.children.item(row.children.length - 2));
+        .map(row => row.children.item(row.children.length - 2)!);
 
     for (let td of classCells) {
         let classDate = td.querySelector("span.text-muted");
@@ -239,7 +239,7 @@ function setStripedLessons() {
             continue;
         if (classDate.textContent === "(geen lesmomenten)")
             continue;
-        for (let tdd of td.parentElement.children) {
+        for (let tdd of td.parentElement!.children) {
             if (tdd.classList.contains("table-info")) {
                 tdd.classList.add("runningStripes");
             }
@@ -265,6 +265,6 @@ async function getModules(_size: string, _modal: string, _file: string, args: st
     template.innerHTML = text2;
     let checks = template.content.querySelectorAll("i.fa-check-square");
     return Array.from(checks)
-        .map(check => check.parentNode.parentNode.parentNode.querySelector("strong").textContent);
+        .map(check => check.parentNode!.parentNode!.parentNode!.querySelector("strong")!.textContent);
 }
 
