@@ -5482,7 +5482,7 @@ var TaggedExcelLes = class extends TaggedLes {
 	}
 };
 function isDko3LesToIgnore(les, ignoreList) {
-	return ignoreList.some((ignore) => (" " + les.lesMoment.les.naam.toLowerCase() + " ").includes(ignore) || (" " + les.lesMoment.les.vakNaam.toLowerCase() + " ").includes(ignore));
+	return ignoreList.some((ignore) => (" " + les.naam.toLowerCase() + " ").includes(ignore) || (" " + les.vakNaam.toLowerCase() + " ").includes(ignore));
 }
 function isExcelLesToIgnore(les, ignoreList) {
 	return ignoreList.some((ignore) => les.lesMoment.cellValue.includes(ignore)) || ignoreList.some((ignore) => les.searchText.includes(ignore));
@@ -5494,16 +5494,13 @@ async function buildDiff(excelLessen, dko3Data, reportStatus, diffSettings) {
 	excelLesSet.forEach((les) => {
 		if (isExcelLesToIgnore(les, diffSettings.ignoreList)) excelLesSet.delete(les);
 	});
-	let lesMomenten = dko3Data.lessen.map((les) => {
+	let lesMomenten = dko3Data.lessen.filter((les) => !isDko3LesToIgnore(les, diffSettings.ignoreList)).map((les) => {
 		if (les.dayTimeSlices.length == 0) reportStatus(`Les <a href="https://administratie.dko3.cloud/#lessen-les?id=${les.id}">${les.id}</a> heeft geen lesmoment.`, "error");
 		return les.dayTimeSlices.map((slice) => {
 			return new Dko3LesMoment(les, slice);
 		});
 	}).flat().map((lesMoment) => new TaggedDko3LesMoment(lesMoment));
 	let dko3LesSet = new Set(lesMomenten);
-	dko3LesSet.forEach((les) => {
-		if (isDko3LesToIgnore(les, diffSettings.ignoreList)) dko3LesSet.delete(les);
-	});
 	let dko3LesMap = new Map();
 	for (let les of dko3Data.lessen) dko3LesMap.set(les.id, les);
 	let lesMomentenMap = new Map();

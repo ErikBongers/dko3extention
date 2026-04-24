@@ -236,10 +236,10 @@ export class TaggedExcelLes extends TaggedLes<ClassDef> {
     }
 }
 
-function isDko3LesToIgnore(les: TaggedDko3LesMoment, ignoreList: string[]) {
+function isDko3LesToIgnore(les: Les, ignoreList: string[]) {
     return ignoreList.some(ignore =>
-        (" "+les.lesMoment.les.naam.toLowerCase()+" ").includes(ignore) //todo: use subjects array instead of naam and vakNaam
-        || (" "+les.lesMoment.les.vakNaam.toLowerCase()+" ").includes(ignore)
+        (" "+les.naam.toLowerCase()+" ").includes(ignore) //todo: use subjects array instead of naam and vakNaam
+        || (" "+les.vakNaam.toLowerCase()+" ").includes(ignore)
     )
 }
 
@@ -255,9 +255,10 @@ async function buildDiff(excelLessen: ClassDef[], dko3Data: Dko3DiffData, report
     excelLesSet.forEach(les=> {
         if(isExcelLesToIgnore(les, diffSettings.ignoreList))
             excelLesSet.delete(les);
-    })
+    });
     //split each Dko3 les into multiple lesMoments
     let lesMomenten = dko3Data.lessen
+        .filter(les => !isDko3LesToIgnore(les, diffSettings.ignoreList))
         .map(les => {
             if(les.dayTimeSlices.length == 0)
                 reportStatus(`Les <a href="https://administratie.dko3.cloud/#lessen-les?id=${les.id}">${les.id}</a> heeft geen lesmoment.`, "error");
@@ -268,12 +269,8 @@ async function buildDiff(excelLessen: ClassDef[], dko3Data: Dko3DiffData, report
         })
         .flat()
         .map(lesMoment => new TaggedDko3LesMoment(lesMoment));
-    let dko3LesSet: Set<TaggedDko3LesMoment> = new Set<TaggedDko3LesMoment>(lesMomenten);
 
-    dko3LesSet.forEach(les=> {
-        if(isDko3LesToIgnore(les, diffSettings.ignoreList))
-            dko3LesSet.delete(les);
-    })
+    let dko3LesSet: Set<TaggedDko3LesMoment> = new Set<TaggedDko3LesMoment>(lesMomenten);
 
     let dko3LesMap: Map<string, Les> = new Map();
     for(let les of dko3Data.lessen)
