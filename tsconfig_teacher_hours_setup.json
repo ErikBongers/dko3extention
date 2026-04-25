@@ -9,7 +9,8 @@
     "noImplicitOverride": true,
     "noImplicitThis": true,
     "noImplicitReturns": true,
-    "noImplicitAny": true
+    "noImplicitAny": true,
+    "strictNullChecks": true
   },
   "files": ["./typescript/teacherHoursSetup.ts"]
 }
