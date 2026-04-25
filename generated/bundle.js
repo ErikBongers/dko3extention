@@ -4577,7 +4577,7 @@ function addTrimesterButton() {
 function onMutation$6(mutation) {
 	addTrimesterButton();
 	let lessenOverzicht = document.getElementById(
-		//todo: why is this check needed? If so, put it in BaseObserver?
+		//double check because of setTimeout() below.
 		//muziek=3, woord=4, DomeinOV=5, Dans=2
 		//modules =3, gewone lessen=1
 		LESSEN_OVERZICHT_ID
@@ -8541,7 +8541,6 @@ function onMutationAanwezgheden(_mutation) {
 		navigationBars,
 		//wait for top and bottom bars.
 		//remove "Klasleerkracht: "
-		//todo: schrijfwijze?
 		COPY_TABLE_BTN_ID,
 		"copy table to clipboard",
 		copyTable,

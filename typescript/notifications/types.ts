@@ -1,8 +1,7 @@
 export type NotificationLevel = "info" | "warning" | "error" | "running";
 
 export type NotificationId =
-    "FILE_POSTED"
-    | "OTHER"; //todo: OTHER should eventually be removed, as we need to be able to indentify every notif in order to be able to remove it.
+    "FILE_POSTED";
 
 export interface Notification {
     level: NotificationLevel;
