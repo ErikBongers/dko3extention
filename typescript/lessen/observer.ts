@@ -27,7 +27,7 @@ export default new LessenObserver();
 
 function onPageRefreshed() {
     console.log(`Lessen.onPageRefreshed: hash: ${location.hash}`);
-    if(location.hash != "#lessen-overzicht" ) //todo: why is this check needed? If so, put it in BaseObserver?
+    if(location.hash != "#lessen-overzicht" ) //double check because of setTimeout() below.
         return;
      if(!addTrimesterButton())
          setTimeout(onPageRefreshed, 500);
