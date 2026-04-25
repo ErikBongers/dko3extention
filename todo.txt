@@ -6,20 +6,12 @@
   > if not specified in excel - ignore?
     > yes.
 
-* strict mode: finalize.
-  > Test EVERYTHING.
-
 * When excel is copied...the invisible url is also copied, but points to the original file!
   > try to make flows insert this into the excels or something...or get rid of this al together.
 
 * Make flow that informs some users (via mail?) that a roster has changed.
   > too much spam?
   > have a diff with previous uploaded version?
-
-* Translation tables
-  > Not hard coded, but user defined in the excel files.
-
-
 
 
 

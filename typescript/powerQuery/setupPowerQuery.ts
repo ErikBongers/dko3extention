@@ -2,6 +2,7 @@ import {clamp, isAlphaNumeric, Schoolyear} from "../globals";
 import * as def from "../def";
 import {getGotoStateOrDefault, Goto, PageName, saveGotoState} from "../gotoState";
 import {default_items as defaultQueryItems } from "default_items";
+import {gotoDiffPage, gotoSnapshotPage} from "../menu";
 
 export function setupPowerQuery() {
     //dummy function to force this module to be loaded.
@@ -81,7 +82,7 @@ function screpeDropDownMenu(headerMenu: Element) {
                 href: item.href
             };
         })
-        .filter((item) => item.label != "" && item.href != "" && item.href != def.DKO3_BASE_URL+"#")
+        .filter((item) => item.label != "" && item.href != "" && item.href != def.DKO3_FULL_BASE_URL+"#")
         .forEach(item => addQueryItem(headerLabel, item.label, item.href, undefined));
 }
 
@@ -119,6 +120,8 @@ function getHardCodedQueryItems() {
     addQueryItem("Werklijst", "Lerarenuren " + Schoolyear.toShortString(Schoolyear.calculateCurrent()), "", gotoWerklijstUrenPrevYear);
     addQueryItem("Werklijst", "Lerarenuren " +Schoolyear.toShortString(Schoolyear.calculateCurrent()+1), "", gotoWerklijstUrenNextYear);
     addQueryItem("Lessen", "Trimester modules", "", gotoTrimesterModules);
+    addQueryItem("Plugin", "Vergelijk lessen met Excel uurroosters", "", gotoDiffPage);
+    addQueryItem("Plugin", "Lessen snapshots", "", gotoSnapshotPage);
 }
 
 document.body.addEventListener("keydown", showPowerQuery);

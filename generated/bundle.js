@@ -364,6 +364,7 @@ const WERKLIJST_TABLE_ID = "table_leerlingen_werklijst_table";
 const BTN_WERKLIJST_MAKEN_ID = "#btn_leerling_werklijst_maken";
 const BTN_WERKLIJST_MAKEN_WRAPPER_ID = "#btn_leerling_werklijst_maken_wrapper";
 const DKO3_BASE_URL = "/";
+const DKO3_FULL_BASE_URL = "https://administratie.dko3.cloud/";
 const BTN_WERKLIJST_NAV_BOTTOM = "tablenav_leerlingen_werklijst_bottom";
 const OPTION_HIDE_IGNORED_DIFFS = "dko3plugin.hideIgnoredDiffs";
 
@@ -822,6 +823,39 @@ let Goto = /* @__PURE__ */ function(Goto$1) {
 }({});
 
 //#endregion
+//#region typescript/menu.ts
+function setupMenu$1() {
+	let mainMenuUl = document.querySelector("#dko3_navbar > ul");
+	let listItems = mainMenuUl.querySelectorAll("li");
+	let lastItem = listItems[listItems.length - 1];
+	let { last: dropdown } = emmet.insertBefore(lastItem, `li.nav-item.dropdown>a{ Plugin }.nav-link.dropdown-toggle[href="#" role="button" data-toggle="dropdown" aria-expanded="false"]>div.dropdown-menu`);
+	let menu1 = emmet.appendChild(dropdown, `a.dropdown-item.pointer[href=\"#"]{Vergelijk lessen met Excel uurroosters}`).first;
+	menu1.onclick = () => {
+		gotoDiffPage();
+	};
+	let menu2 = emmet.appendChild(dropdown, `a.dropdown-item.pointer[href=\"#"]{Lessen snapshots}`).first;
+	menu2.onclick = () => {
+		gotoSnapshotPage();
+	};
+}
+function gotoDiffPage() {
+	let pageState$2 = getGotoStateOrDefault(PageName.StartPage);
+	pageState$2.goto = Goto.Start_page;
+	pageState$2.showPage = "diff";
+	saveGotoState(pageState$2);
+	if (location.hash == "#start-mijn_tijdslijn") location.reload();
+	else location.href = "/#start-mijn_tijdslijn";
+}
+function gotoSnapshotPage() {
+	let pageState$2 = getGotoStateOrDefault(PageName.StartPage);
+	pageState$2.goto = Goto.Start_page;
+	pageState$2.showPage = "snapshots";
+	saveGotoState(pageState$2);
+	if (location.hash == "#start-mijn_tijdslijn") location.reload();
+	else location.href = "/#start-mijn_tijdslijn";
+}
+
+//#endregion
 //#region typescript/powerQuery/setupPowerQuery.ts
 function setupPowerQuery() {}
 let powerQueryItems = [];
@@ -869,7 +903,7 @@ function screpeDropDownMenu(headerMenu) {
 			label: item.textContent.trim(),
 			href: item.href
 		};
-	}).filter((item) => item.label != "" && item.href != "" && item.href != DKO3_BASE_URL + "#").forEach((item) => addQueryItem(headerLabel, item.label, item.href, void 0));
+	}).filter((item) => item.label != "" && item.href != "" && item.href != DKO3_FULL_BASE_URL + "#").forEach((item) => addQueryItem(headerLabel, item.label, item.href, void 0));
 }
 function scrapeMainMenu() {
 	powerQueryItems = [];
@@ -899,6 +933,8 @@ function getHardCodedQueryItems() {
 	addQueryItem("Werklijst", "Lerarenuren " + Schoolyear.toShortString(Schoolyear.calculateCurrent()), "", gotoWerklijstUrenPrevYear);
 	addQueryItem("Werklijst", "Lerarenuren " + Schoolyear.toShortString(Schoolyear.calculateCurrent() + 1), "", gotoWerklijstUrenNextYear);
 	addQueryItem("Lessen", "Trimester modules", "", gotoTrimesterModules);
+	addQueryItem("Plugin", "Vergelijk lessen met Excel uurroosters", "", gotoDiffPage);
+	addQueryItem("Plugin", "Lessen snapshots", "", gotoSnapshotPage);
 }
 document.body.addEventListener("keydown", showPowerQuery);
 function showPowerQuery(ev) {
@@ -2980,7 +3016,7 @@ function addMenuSeparator(menu, title, indentLevel) {
 		ev.stopPropagation();
 	};
 }
-function setupMenu$1(container, button) {
+function setupMenu(container, button) {
 	initMenuEvents();
 	container.classList.add("dropDownContainer");
 	button.classList.add("dropDownIgnoreHide", "dropDownButton");
@@ -3130,7 +3166,7 @@ function addFilterFields() {
 		let searchField$1 = createSearchField(TXT_FILTER_ID$1, applyFilters, pageState$2.searchText);
 		divButtonNieuweLes.insertAdjacentElement("afterend", searchField$1);
 		let { first: span, last: idiom } = emmet.insertAfter(searchField$1, "span.btn-group-sm>button.btn.btn-sm.btn-outline-secondary.ml-2>i.fas.fa-list");
-		let menu = setupMenu$1(span, idiom.parentElement);
+		let menu = setupMenu(span, idiom.parentElement);
 		addMenuItem(menu, "Toon alles", 0, (_) => setExtraFilter((_$1) => {}));
 		addMenuItem(menu, "Filter online lessen", 0, (_) => setExtraFilter((pageState$3) => pageState$3.filterOnline = true));
 		addMenuItem(menu, "Filter offline lessen", 0, (_) => setExtraFilter((pageState$3) => pageState$3.filterOffline = true));
@@ -3596,7 +3632,7 @@ function decorateTableHeader(table, fetchFullTable) {
 			NO_MENU
 )) return;
 		let { first: span, last: idiom } = emmet.appendChild(colHeader, "span>button.miniButton.naked>i.fas.fa-list");
-		let menu = setupMenu$1(span, idiom.parentElement);
+		let menu = setupMenu(span, idiom.parentElement);
 		addMenuItem(menu, "Toon unieke waarden", 0, (ev) => {
 			forTableDo(ev, showDistinctColumn);
 		});
@@ -8793,39 +8829,6 @@ function inschrijvingenLinkToQueryItem(headerLabel, link, longLabelPrefix) {
 }
 
 //#endregion
-//#region typescript/menu.ts
-function setupMenu() {
-	let mainMenuUl = document.querySelector("#dko3_navbar > ul");
-	let listItems = mainMenuUl.querySelectorAll("li");
-	let lastItem = listItems[listItems.length - 1];
-	let { last: dropdown } = emmet.insertBefore(lastItem, `li.nav-item.dropdown>a{ Plugin }.nav-link.dropdown-toggle[href="#" role="button" data-toggle="dropdown" aria-expanded="false"]>div.dropdown-menu`);
-	let menu1 = emmet.appendChild(dropdown, `a.dropdown-item.pointer[href=\"#"]{Vergelijk lessen met Excel uurroosters}`).first;
-	menu1.onclick = () => {
-		gotoDiffPage();
-	};
-	let menu2 = emmet.appendChild(dropdown, `a.dropdown-item.pointer[href=\"#"]{Lessen snapshots}`).first;
-	menu2.onclick = () => {
-		gotoSnapshotPage();
-	};
-}
-function gotoDiffPage() {
-	let pageState$2 = getGotoStateOrDefault(PageName.StartPage);
-	pageState$2.goto = Goto.Start_page;
-	pageState$2.showPage = "diff";
-	saveGotoState(pageState$2);
-	if (location.hash == "#start-mijn_tijdslijn") location.reload();
-	else location.href = "/#start-mijn_tijdslijn";
-}
-function gotoSnapshotPage() {
-	let pageState$2 = getGotoStateOrDefault(PageName.StartPage);
-	pageState$2.goto = Goto.Start_page;
-	pageState$2.showPage = "snapshots";
-	saveGotoState(pageState$2);
-	if (location.hash == "#start-mijn_tijdslijn") location.reload();
-	else location.href = "/#start-mijn_tijdslijn";
-}
-
-//#endregion
 //#region typescript/main.ts
 init();
 function init() {
@@ -8860,7 +8863,7 @@ function init() {
 		onPageChanged();
 		setupPowerQuery();
 		getNotifRedButton();
-		setupMenu();
+		setupMenu$1();
 		if (document.readyState == "complete") {
 			console.log("document ready. firing onPageRefreshed.");
 			onPageRefreshed();

@@ -38,7 +38,8 @@ export const AFTER_DOWNLOAD_TABLE_ACTION = "afterDownloadTableAction";
 export const WERKLIJST_TABLE_ID = "table_leerlingen_werklijst_table";
 export const BTN_WERKLIJST_MAKEN_ID = "#btn_leerling_werklijst_maken";
 export const BTN_WERKLIJST_MAKEN_WRAPPER_ID = "#btn_leerling_werklijst_maken_wrapper";
-export const DKO3_BASE_URL = "/"; // root = https://administratie.dko3.cloud/
+export const DKO3_BASE_URL = "/";
+export const DKO3_FULL_BASE_URL = "https://administratie.dko3.cloud/"
 export const BTN_WERKLIJST_NAV_BOTTOM = "tablenav_leerlingen_werklijst_bottom";
 export const SETUP_HOURS_TITLE_ID = "setupTitle";
 export const OPTION_HIDE_IGNORED_DIFFS = "dko3plugin.hideIgnoredDiffs";
