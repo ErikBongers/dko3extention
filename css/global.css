@@ -1,0 +1,6 @@
+button.naked {
+    background: none;
+    border: none;
+    color: inherit;
+    padding: 0;
+}

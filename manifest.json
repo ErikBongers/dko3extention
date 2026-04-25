@@ -14,7 +14,8 @@
         "generated/bundle.js"
       ],
       "css": [
-        "css/general.css",
+        "css/global.css",
+        "css/content.css",
         "css/light_colors.css",
         "css/dark_colors.css",
         "css/trimesterTable.css"
