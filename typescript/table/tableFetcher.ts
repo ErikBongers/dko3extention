@@ -330,13 +330,15 @@ export class FetchedTable {
         let pageTemplate: HTMLTemplateElement;
         pageTemplate = document.createElement('template');
         pageTemplate.innerHTML = text;
-        let rows = pageTemplate.content.querySelectorAll("tbody > tr") as NodeListOf<HTMLTableRowElement>;
+        //exclude fa-meh or textContent = "Geen resultaten gevonden."
+        let rows = pageTemplate.content.querySelectorAll("tbody > tr:not(:has(i.fa-meh))") as NodeListOf<HTMLTableRowElement>;
 
         this.lastPageStartRow = this.getRows().length;
-        if(this.lastPageNumber === -1)
+        if(this.lastPageNumber === -1) {
             this.shadowTableTemplate.innerHTML = text; //to create the <table> and <tbody> and such.
-        else
-            this.shadowTableTemplate.content.querySelector("tbody")!.append(...rows);
+            this.shadowTableTemplate.content.querySelector("tbody")!.innerHTML = ""; //just keep the headers
+        }
+        this.shadowTableTemplate.content.querySelector("tbody")!.append(...rows);
         this.lastPageNumber++;
     }
 
