@@ -6,6 +6,7 @@ export class InfoBar{
     divInfoLine: HTMLDivElement;
     divTempLine: HTMLParagraphElement;
     divExtraLine: HTMLDivElement;
+    divErrorLine: HTMLDivElement;
     private tempMessage: string;
     private divCacheInfo: HTMLDivElement;
 
@@ -14,6 +15,7 @@ export class InfoBar{
         this.divInfoContainer.id = def.INFO_CONTAINER_ID;
         this.divInfoContainer.innerHTML = "";
         this.divExtraLine = emmet.appendChild(divInfoContainer, `div#${def.INFO_EXTRA_ID}.infoMessage`).last as HTMLDivElement;
+        this.divErrorLine = emmet.appendChild(divInfoContainer, `div#${def.INFO_EXTRA_ID}.infoError`).last as HTMLDivElement;
         this.divInfoLine = emmet.appendChild(divInfoContainer, "div.infoLine").last as HTMLDivElement;
         this.divTempLine = emmet.appendChild(divInfoContainer, `div#${def.INFO_TEMP_ID}.infoMessage.tempLine`).last as HTMLDivElement;
         this.divCacheInfo = emmet.appendChild(this.divInfoContainer, `div#${def.INFO_CACHE_ID}.cacheInfo`).last as HTMLDivElement;
@@ -37,6 +39,10 @@ export class InfoBar{
 
     setInfoLine(message: string) {
         this.divInfoLine.innerHTML = message;
+    }
+
+    setErrorLine(message: string) {
+        this.divErrorLine.innerHTML = message;
     }
 
     clearCacheInfo() {

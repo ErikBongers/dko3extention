@@ -1,3 +1,6 @@
+* Fetch table: " Geen resultaten gevonden."
+  > remove this row.
+
 * Get rid of plugin menu?
   Move items in pages as buttons?
   Move menu to help or login menu?

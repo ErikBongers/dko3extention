@@ -92,6 +92,11 @@ body.otherSchool {
     text-align: center;
 }
 
+.infoError {
+    text-align: center;
+    color: red;
+}
+
 .infoLine {
     display: flex;
     justify-content: center;

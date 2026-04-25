@@ -1,6 +1,6 @@
 import * as def from "../def.js";
 import {HashObserver} from "../pageObserver";
-import {addTableNavigationButton, getBothToolbars} from "../globals";
+import {addTableNavigationButton, copyToClipboardOrRequestRetry, getBothToolbars} from "../globals";
 import {createDefaultTableFetcher, createDefaultTableRef, createDefaultTableRefAndInfoBlock, getTableFromHash} from "../table/loadAnyTable";
 import {InfoBar} from "../infoBar";
 import {createInfoBlockForTable} from "../infoBlock";
@@ -204,7 +204,6 @@ async function copyTable() {
     });
 }
 
-//todo: user generalized function.
 function aanwezighedenToClipboard(infoBar: InfoBar) {
     let text = window.sessionStorage.getItem(def.AANW_LIST);
     if(!text) {
@@ -213,17 +212,7 @@ function aanwezighedenToClipboard(infoBar: InfoBar) {
         });
         return;
     }
-    navigator.clipboard.writeText(text)
-        .then(_r => {
-            infoBar.setExtraInfo("Gegevens gecopieerd naar klipbord. <a id="+def.COPY_AGAIN+" href='javascript:void(0);'>Kopieer opnieuw</a>", def.COPY_AGAIN, () => {
-                aanwezighedenToClipboard(infoBar);
-            });
-        })
-        .catch(_reason => {
-            infoBar.setExtraInfo("Kan niet kopieren naar klipbord!!! <a id="+def.COPY_AGAIN+" href='javascript:void(0);'>Kopieer opnieuw</a>", def.COPY_AGAIN, () => {
-                aanwezighedenToClipboard(infoBar);
-            });
-        });
+    copyToClipboardOrRequestRetry(infoBar, text);
 }
 
 function reduceVaknaam(vaknaam: string) : string {

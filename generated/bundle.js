@@ -756,11 +756,11 @@ function tryUntilThen(func, then) {
 }
 function copyToClipboardOrRequestRetry(infoBar, text) {
 	navigator.clipboard.writeText(text).then((_r) => {
-		infoBar.setExtraInfo("Data copied to clipboard. <a id=" + COPY_AGAIN + " href='javascript:void(0);'>Copy again</a>", COPY_AGAIN, () => {
+		infoBar.setExtraInfo("Gegevens gekopieerd naar klipbord. <a id=" + COPY_AGAIN + " href='javascript:void(0);'>Kopieer opnieuw</a>", COPY_AGAIN, () => {
 			copyToClipboardOrRequestRetry(infoBar, text);
 		});
 	}).catch((_reason) => {
-		infoBar.setExtraInfo("Could not copy to clipboard!!! <a id=" + COPY_AGAIN + " href='javascript:void(0);'>Copy again</a>", COPY_AGAIN, () => {
+		infoBar.setExtraInfo("Kan niet kopiëren naar klipbord!!! <a id=" + COPY_AGAIN + " href='javascript:void(0);'>Kopieer opnieuw</a>", COPY_AGAIN, () => {
 			copyToClipboardOrRequestRetry(infoBar, text);
 		});
 	});
@@ -3562,10 +3562,13 @@ var FetchedTable = class {
 		let pageTemplate;
 		pageTemplate = document.createElement("template");
 		pageTemplate.innerHTML = text;
-		let rows = pageTemplate.content.querySelectorAll("tbody > tr");
+		let rows = pageTemplate.content.querySelectorAll("tbody > tr:not(:has(i.fa-meh))");
 		this.lastPageStartRow = this.getRows().length;
-		if (this.lastPageNumber === -1) this.shadowTableTemplate.innerHTML = text;
-		else this.shadowTableTemplate.content.querySelector("tbody").append(...rows);
+		if (this.lastPageNumber === -1) {
+			this.shadowTableTemplate.innerHTML = text;
+			this.shadowTableTemplate.content.querySelector("tbody").innerHTML = "";
+		}
+		this.shadowTableTemplate.content.querySelector("tbody").append(...rows);
 		this.lastPageNumber++;
 	}
 };
@@ -4093,6 +4096,7 @@ var InfoBar = class {
 	divInfoLine;
 	divTempLine;
 	divExtraLine;
+	divErrorLine;
 	tempMessage;
 	divCacheInfo;
 	constructor(divInfoContainer) {
@@ -4100,6 +4104,7 @@ var InfoBar = class {
 		this.divInfoContainer.id = INFO_CONTAINER_ID;
 		this.divInfoContainer.innerHTML = "";
 		this.divExtraLine = emmet.appendChild(divInfoContainer, `div#${INFO_EXTRA_ID}.infoMessage`).last;
+		this.divErrorLine = emmet.appendChild(divInfoContainer, `div#${INFO_EXTRA_ID}.infoError`).last;
 		this.divInfoLine = emmet.appendChild(divInfoContainer, "div.infoLine").last;
 		this.divTempLine = emmet.appendChild(divInfoContainer, `div#${INFO_TEMP_ID}.infoMessage.tempLine`).last;
 		this.divCacheInfo = emmet.appendChild(this.divInfoContainer, `div#${INFO_CACHE_ID}.cacheInfo`).last;
@@ -4119,6 +4124,9 @@ var InfoBar = class {
 	}
 	setInfoLine(message) {
 		this.divInfoLine.innerHTML = message;
+	}
+	setErrorLine(message) {
+		this.divErrorLine.innerHTML = message;
 	}
 	clearCacheInfo() {
 		this.divCacheInfo.innerHTML = "";
@@ -8042,6 +8050,10 @@ let WerklijstFieldsStudent = [
 ];
 async function fetchMailMergeData(schoolyear, infoBlock, selectedFields, fullTable, criteriaString) {
 	let stamnummers = await fetchMailMergeStudents(schoolyear, infoBlock, selectedFields, criteriaString);
+	if (stamnummers.length == 0) {
+		infoBlock.infoBar.setErrorLine("Geen studenten gevonden.");
+		return "";
+	}
 	let stamnummerSet = new Set(stamnummers);
 	let fullDataTable = await fetchMailMergeFullData(schoolyear, infoBlock);
 	let tBody = fullDataTable.tBodies[0];
@@ -8099,7 +8111,6 @@ registerChecksumHandler(
 	//don't report as log.error.
 	// Can't use this action to build the table as we're also fetching the cloud data.
 	//re-create, just to be sure we have all the fields.
-	//todo: add to text top line!
 	WERKLIJST_TABLE_ID,
 	(tableDef) => {
 		let headers = NamedCellTableFetchListener.getHeaderIndices(tableDef.tableRef.getOrgTableContainer());
@@ -8395,7 +8406,7 @@ function upgradeCloudData(fromCloud) {
 	return new JsonCloudData(fromCloud);
 }
 async function mailMergeStartSchoolyear() {
-	let schoolyear = Schoolyear.getHighestAvailable();
+	let schoolyear = Schoolyear.findInPage();
 	if (!schoolyear) {
 		alert("Geen schooljaar gevonden!");
 		return;
@@ -8405,8 +8416,10 @@ async function mailMergeStartSchoolyear() {
 	let infoBlock = createInfoBlock(divInfo, "");
 	let selectedFields = scrapeSelectedFieldIndexes();
 	let text = await fetchMailMergeData(schoolyear, infoBlock, selectedFields, hasWerklijstNoCriteria(), scrapeCriteria());
-	copyToClipboardOrRequestRetry(infoBlock.infoBar, text);
-	infoBlock.infoBar.setInfoLine("REFRESH PAGE BEFORE USING THE MAIL MERGE AGAIN.");
+	if (text != "") {
+		copyToClipboardOrRequestRetry(infoBlock.infoBar, text);
+		infoBlock.infoBar.setInfoLine("HERLAAD WEBPAGINA VOOR JE OPNIEUW EEN MAILMERGE DOET! (sorry)");
+	}
 }
 function scrapeSelectedFieldIndexes() {
 	let rows = document.querySelectorAll("#tbody_leerlingen_werklijst_velden > tr");
@@ -8657,15 +8670,7 @@ function aanwezighedenToClipboard(infoBar) {
 		});
 		return;
 	}
-	navigator.clipboard.writeText(text).then((_r) => {
-		infoBar.setExtraInfo("Gegevens gecopieerd naar klipbord. <a id=" + COPY_AGAIN + " href='javascript:void(0);'>Kopieer opnieuw</a>", COPY_AGAIN, () => {
-			aanwezighedenToClipboard(infoBar);
-		});
-	}).catch((_reason) => {
-		infoBar.setExtraInfo("Kan niet kopieren naar klipbord!!! <a id=" + COPY_AGAIN + " href='javascript:void(0);'>Kopieer opnieuw</a>", COPY_AGAIN, () => {
-			aanwezighedenToClipboard(infoBar);
-		});
-	});
+	copyToClipboardOrRequestRetry(infoBar, text);
 }
 function reduceVaknaam(vaknaam) {
 	let vak = reduceVaknaamStep1(vaknaam);

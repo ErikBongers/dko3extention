@@ -337,6 +337,10 @@ let WerklijstFieldsStudent = [
 
 export async function fetchMailMergeData(schoolyear: string, infoBlock: InfoBlock, selectedFields: string[], fullTable: boolean, criteriaString: string) {
     let stamnummers = await fetchMailMergeStudents(schoolyear, infoBlock, selectedFields, criteriaString);
+    if(stamnummers.length == 0) {
+        infoBlock.infoBar.setErrorLine("Geen studenten gevonden.");
+        return "";
+    }
     let stamnummerSet = new Set(stamnummers);
 
     let fullDataTable = await fetchMailMergeFullData(schoolyear, infoBlock);

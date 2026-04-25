@@ -404,7 +404,7 @@ function upgradeCloudData(fromCloud: JsonCloudData) {
 }
 
 async function mailMergeStartSchoolyear() {
-    let schoolyear = Schoolyear.getHighestAvailable(); //todo: add to text top line!
+    let schoolyear = Schoolyear.findInPage();
     if(!schoolyear) {
         alert("Geen schooljaar gevonden!");
         return;
@@ -414,9 +414,11 @@ async function mailMergeStartSchoolyear() {
     let infoBlock = createInfoBlock(divInfo, "");
     let selectedFields = scrapeSelectedFieldIndexes();
     let text = await fetchMailMergeData(schoolyear, infoBlock, selectedFields, hasWerklijstNoCriteria(), scrapeCriteria());
-    copyToClipboardOrRequestRetry(infoBlock.infoBar, text);
-    //todo: rebuild criteria.
-    infoBlock.infoBar.setInfoLine("REFRESH PAGE BEFORE USING THE MAIL MERGE AGAIN.");
+    if(text != "") {
+        copyToClipboardOrRequestRetry(infoBlock.infoBar, text);
+        //todo: rebuild criteria.
+        infoBlock.infoBar.setInfoLine("HERLAAD WEBPAGINA VOOR JE OPNIEUW EEN MAILMERGE DOET! (sorry)");
+    }
 }
 
 function scrapeSelectedFieldIndexes() {
