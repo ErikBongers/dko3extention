@@ -1,7 +1,10 @@
 import {emmet} from "../libs/Emmeter/html";
 import {getGotoStateOrDefault, Goto, PageName, saveGotoState, StartPageGotoState} from "./gotoState";
+import {options} from "./plugin_options/options";
 
 export function setupMenu() {
+    if(!options.showPluginMenu)
+        return;
     let mainMenuUl = document.querySelector("#dko3_navbar > ul") as HTMLUListElement;
     let listItems = mainMenuUl.querySelectorAll("li");
 

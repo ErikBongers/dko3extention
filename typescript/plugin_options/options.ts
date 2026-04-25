@@ -10,6 +10,7 @@ export type Options = {
     stripCommasOnPaste: boolean;
     reorderStudentName: boolean;
     allowDeleteNotif: boolean;
+    showPluginMenu: boolean;
 };
 
 export const options: Options = {
@@ -21,11 +22,13 @@ export const options: Options = {
     stripCommasOnPaste: false,
     reorderStudentName: false,
     allowDeleteNotif: false,
+    showPluginMenu: false,
 };
 
 export function defineHtmlOptions() {
     defineHtmlOption("showNotAssignedClasses", 'checked', "Toon arcering voor niet toegewezen klassikale lessen.", "block1");
     defineHtmlOption("showTableHeaders", 'checked', "Toon keuzemenus in tabelhoofding.", "block1");
+    defineHtmlOption("showPluginMenu", 'checked', "Toon plugin menu.", "block1");
     defineHtmlOption("stripCommasOnPaste", 'checked', "Strip commas when pasting in a search field.", "block1");
     defineHtmlOption("reorderStudentName", 'checked', "Toon naam leerling als voornaam + achternaam", "block1");
     defineHtmlOption("markOtherAcademies", 'checked', "Toon arcering voor 'andere' academies.", "block1");

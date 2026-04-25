@@ -430,7 +430,8 @@ const options = {
 	showDebug: false,
 	stripCommasOnPaste: false,
 	reorderStudentName: false,
-	allowDeleteNotif: false
+	allowDeleteNotif: false,
+	showPluginMenu: false
 };
 let globalSettings = { globalHide: false };
 function getGlobalSettings() {
@@ -865,6 +866,7 @@ let Goto = /* @__PURE__ */ function(Goto$1) {
 //#endregion
 //#region typescript/menu.ts
 function setupMenu$1() {
+	if (!options.showPluginMenu) return;
 	let mainMenuUl = document.querySelector("#dko3_navbar > ul");
 	let listItems = mainMenuUl.querySelectorAll("li");
 	let lastItem = listItems[listItems.length - 1];
