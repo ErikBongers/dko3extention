@@ -133,7 +133,7 @@ function showPowerQuery(ev: KeyboardEvent) {
         getHardCodedQueryItems();
         popover.showPopover();
     } else {
-        if (popoverVisible === false)
+        if (!popoverVisible)
             return;
         if (isAlphaNumeric(ev.key) || ev.key === ' ') {
             searchField.textContent += ev.key;
