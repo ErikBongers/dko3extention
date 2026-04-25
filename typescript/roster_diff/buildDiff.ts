@@ -238,7 +238,7 @@ export class TaggedExcelLes extends TaggedLes<ClassDef> {
 
 function isDko3LesToIgnore(les: Les, ignoreList: string[]) {
     return ignoreList.some(ignore =>
-        (" "+les.naam.toLowerCase()+" ").includes(ignore) //todo: use subjects array instead of naam and vakNaam
+        (" "+les.naam.toLowerCase()+" ").includes(ignore)
         || (" "+les.vakNaam.toLowerCase()+" ").includes(ignore)
     )
 }
