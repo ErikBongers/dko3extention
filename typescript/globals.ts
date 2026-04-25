@@ -338,7 +338,7 @@ export function createHtmlTable(headers: Iterable<string>, cols: Iterable<Iterab
     for (let th of headers) {
         emmet.appendChild(tmpThead as HTMLElement, `th{${th}}`);
     }
-    let tmpTbody = tmpTable!.appendChild(document.createElement("tbody"));
+    let tmpTbody = tmpTable.appendChild(document.createElement("tbody"));
     for (let tr of cols) {
         let tmpTr = tmpTbody.appendChild(document.createElement("tr"));
         for (let cell of tr) {
