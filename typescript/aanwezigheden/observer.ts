@@ -207,7 +207,7 @@ async function copyTable() {
 function aanwezighedenToClipboard(infoBar: InfoBar) {
     let text = window.sessionStorage.getItem(def.AANW_LIST);
     if(!text) {
-        infoBar.setExtraInfo("No text to copy to clipboard!!! <a id="+def.COPY_AGAIN+" href='javascript:void(0);'>Kopieer opnieuw</a>", def.COPY_AGAIN, () => { //todo: schrijfwijze?
+        infoBar.setExtraInfo("No text to copy to clipboard!!! <a id="+def.COPY_AGAIN+" href='javascript:void(0);'>Kopieer opnieuw</a>", def.COPY_AGAIN, () => {
             aanwezighedenToClipboard(infoBar);
         });
         return;
