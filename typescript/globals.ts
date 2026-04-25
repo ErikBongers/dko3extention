@@ -447,3 +447,44 @@ export function pad(num: number, size: number) {
     return text;
 }
 
+export class SlidingWindow<T> implements Iterable<{ prev: T | null, current: T, next: T | null }> {
+    private readonly array: T[];
+    private readonly length: number;
+    private pos: number;
+
+    constructor(enumerable: Iterable<T>) {
+        this.pos = -1;
+        this.array = [...enumerable];
+        this.length = this.array.length;
+    }
+
+    [Symbol.iterator](): Iterator<{ prev: T | null; current: T; next: T | null; }, any, any> {
+        return {
+            next: () => {
+                this.pos++;
+                if (this.pos >= this.length)
+                    return {done: true, value: null};
+                return {done: false, value: {prev: this.peekPrev(), current: this.array[this.pos], next: this.peekNext()}};
+            }
+        }
+    }
+
+    public peekNext(): T | null {
+        if (this.pos + 1 > this.length)
+            return null;
+        return this.array[this.pos + 1];
+    }
+
+    public peekPrev(): T | null {
+        if (this.pos == 0)
+            return null;
+        return this.array[this.pos - 1];
+    }
+
+    public next(): T | null {
+        this.pos++;
+        if (this.pos >= this.length)
+            return null;
+        return this.array[this.pos];
+    }
+}

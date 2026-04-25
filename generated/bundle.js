@@ -773,6 +773,46 @@ function pad(num, size) {
 	while (text.length < size) text = "0" + text;
 	return text;
 }
+var SlidingWindow = class {
+	array;
+	length;
+	pos;
+	constructor(enumerable) {
+		this.pos = -1;
+		this.array = [...enumerable];
+		this.length = this.array.length;
+	}
+	[Symbol.iterator]() {
+		return { next: () => {
+			this.pos++;
+			if (this.pos >= this.length) return {
+				done: true,
+				value: null
+			};
+			return {
+				done: false,
+				value: {
+					prev: this.peekPrev(),
+					current: this.array[this.pos],
+					next: this.peekNext()
+				}
+			};
+		} };
+	}
+	peekNext() {
+		if (this.pos + 1 > this.length) return null;
+		return this.array[this.pos + 1];
+	}
+	peekPrev() {
+		if (this.pos == 0) return null;
+		return this.array[this.pos - 1];
+	}
+	next() {
+		this.pos++;
+		if (this.pos >= this.length) return null;
+		return this.array[this.pos];
+	}
+};
 
 //#endregion
 //#region typescript/gotoState.ts
@@ -6194,53 +6234,21 @@ function showSnapshot(snapshotData, divResults) {
 	let divSnapshotContainer = emmet.appendChild(divResults, `div>h5{${date.toLocaleDateString()} ${date.toLocaleTimeString()}}`).first;
 	showDifferences(snapshotData.diffs, divSnapshotContainer);
 }
-var SlidingWindow = class {
-	array;
-	length;
-	pos;
-	constructor(enumerable) {
-		this.pos = -1;
-		this.array = [...enumerable];
-		this.length = this.array.length;
-	}
-	peekNext() {
-		if (this.pos + 1 > this.length) return null;
-		return this.array[this.pos + 1];
-	}
-	peekPrev() {
-		if (this.pos == 0) return null;
-		return this.array[this.pos - 1];
-	}
-	next() {
-		this.pos++;
-		if (this.pos >= this.length) return null;
-		return this.array[this.pos];
-	}
-};
 async function showSnapshotsforCombobox() {
 	let cmbSnapshotSchoolYear = document.querySelector("#cmbSnapshotSchoolYear");
 	let academieName = getUserAndSchoolName().schoolName;
 	let snapshotDataList = await getCalculateAndSaveSnapshotDiffs(academieName, cmbSnapshotSchoolYear.value);
 	let divResults = document.getElementById("snapshotResults");
 	divResults.innerHTML = "";
-	let slidingWindow = new SlidingWindow(snapshotDataList);
 	let inEllipse = false;
 	function showSnapshotWithPossibleEllipse(snapshot) {
 		if (inEllipse) emmet.appendChild(divResults, `div{...}`);
 		inEllipse = false;
 		showSnapshot(snapshot, divResults);
 	}
-	while (true) {
-		let current = slidingWindow.next();
-		let prev = slidingWindow.peekPrev();
-		let next = slidingWindow.peekNext();
-		if (!current) break;
-		if (!prev || !next) {
-			showSnapshotWithPossibleEllipse(current);
-			continue;
-		}
-		if (current.diffs.length != 0 || prev.diffs.length != 0 || next.diffs.length != 0) {
-			showSnapshotWithPossibleEllipse(current);
+	for (let item of new SlidingWindow(snapshotDataList)) {
+		if (!item.prev || !item.next || item.current.diffs.length != 0 || item.prev.diffs.length != 0 || item.next.diffs.length != 0) {
+			showSnapshotWithPossibleEllipse(item.current);
 			continue;
 		}
 		inEllipse = true;

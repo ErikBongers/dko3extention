@@ -1,8 +1,8 @@
 import {emmet} from "../../libs/Emmeter/html";
 import {scrapeAllNormalLessen} from "../roster_diff/buildDiff";
-import {getUserAndSchoolName, Schoolyear} from "../globals";
+import {getUserAndSchoolName, Schoolyear, SlidingWindow} from "../globals";
 import {cloud, fetchFolderContent, FileChangedInfo} from "../cloud";
-import { Les } from "../lessen/scrape";
+import {Les} from "../lessen/scrape";
 import {StatusCallback} from "../roster_diff/showDiff";
 
 export async function setupSnapshotPage() {
@@ -117,53 +117,12 @@ function showSnapshot(snapshotData: SnapshotData, divResults: HTMLDivElement) {
     showDifferences(snapshotData.diffs!, divSnapshotContainer);
 }
 
-
-/*
-Ellipses
----------
-Skip an item if:
-  - next item does not have diffs.
-  - prev item does not have diffs.
-*/
-
-class SlidingWindow<T> { //todo: have an yield iterator returning {prev, current, next}
-    private readonly array: T[];
-    private readonly length: number;
-    private pos: number;
-
-    constructor(enumerable: Iterable<T>) {
-        this.pos = -1;
-        this.array = [...enumerable];
-        this.length = this.array.length;
-    }
-
-    public peekNext(): T | null {
-        if(this.pos + 1 > this.length)
-            return null;
-        return this.array[this.pos + 1];
-    }
-
-    public peekPrev(): T | null {
-        if(this.pos == 0)
-            return null;
-        return this.array[this.pos - 1];
-    }
-
-    public next(): T | null {
-        this.pos++;
-        if(this.pos >= this.length)
-            return null;
-        return this.array[this.pos];
-    }
-}
-
 async function showSnapshotsforCombobox() {
     let cmbSnapshotSchoolYear = document.querySelector("#cmbSnapshotSchoolYear") as HTMLSelectElement;
     let academieName = getUserAndSchoolName().schoolName;
     let snapshotDataList = await getCalculateAndSaveSnapshotDiffs(academieName, cmbSnapshotSchoolYear.value);
     let divResults = document.getElementById("snapshotResults") as HTMLDivElement;
     divResults.innerHTML = "";
-    let slidingWindow = new SlidingWindow(snapshotDataList);
     let inEllipse: boolean = false;
     function showSnapshotWithPossibleEllipse(snapshot: SnapshotData) {
         if(inEllipse)
@@ -171,21 +130,13 @@ async function showSnapshotsforCombobox() {
         inEllipse = false;
         showSnapshot(snapshot, divResults);
     }
-    while(true) {
-        let current = slidingWindow.next();
-        let prev = slidingWindow.peekPrev();
-        let next = slidingWindow.peekNext();
-        if(!current)
-            break;
-        if(!prev || !next) {
-            showSnapshotWithPossibleEllipse(current);
-            continue;
-        }
-        if (current.diffs.length != 0
-            || prev.diffs.length != 0
-            || next.diffs.length != 0
+    for(let item of new SlidingWindow(snapshotDataList)) {
+        if(!item.prev || !item.next //always draw the first and last snapshot.
+            || item.current.diffs.length != 0 //always draw snapshots with diffs and it's adjacent snapshots.
+            || item.prev.diffs.length != 0
+            || item.next.diffs.length != 0
         ) {
-            showSnapshotWithPossibleEllipse(current);
+            showSnapshotWithPossibleEllipse(item.current);
             continue;
         }
         inEllipse = true; //skip
