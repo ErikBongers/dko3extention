@@ -51,7 +51,7 @@ export interface SnapshotData {
     academie: string;
     schoolYear: string;
     zDate: string;
-    diffs: SnapshotDiff[] | null;
+    diffs: SnapshotDiff[];
 }
 
 async function createSnapshot(schoolYear: string, reportStatus: StatusCallback) {
@@ -76,7 +76,7 @@ async function createSnapshot(schoolYear: string, reportStatus: StatusCallback) 
         academie: academieName,
         schoolYear,
         zDate,
-        diffs: null,
+        diffs: [],
     }
     await uploadSnapshotData(snapshotData);
     reportStatus("Snapshot aangemaakt.")
@@ -103,6 +103,8 @@ async function getCalculateAndSaveSnapshotDiffs(academie: string, schoolYear: st
             snapshotData.diffs = compareSnapshots(previousSnapshot, snapshotData);
             await uploadSnapshotData(snapshotData);
         }
+        if(!snapshotData.diffs)
+            snapshotData.diffs = [];
         snapshotDataList.push(snapshotData);
         previousSnapshot = snapshotData;
     }
@@ -115,41 +117,75 @@ function showSnapshot(snapshotData: SnapshotData, divResults: HTMLDivElement) {
     showDifferences(snapshotData.diffs!, divSnapshotContainer);
 }
 
+
+/*
+Ellipses
+---------
+Skip an item if:
+  - next item does not have diffs.
+  - prev item does not have diffs.
+*/
+
+class SlidingWindow<T> { //todo: have an yield iterator returning {prev, current, next}
+    private readonly array: T[];
+    private readonly length: number;
+    private pos: number;
+
+    constructor(enumerable: Iterable<T>) {
+        this.pos = -1;
+        this.array = [...enumerable];
+        this.length = this.array.length;
+    }
+
+    public peekNext(): T | null {
+        if(this.pos + 1 > this.length)
+            return null;
+        return this.array[this.pos + 1];
+    }
+
+    public peekPrev(): T | null {
+        if(this.pos == 0)
+            return null;
+        return this.array[this.pos - 1];
+    }
+
+    public next(): T | null {
+        this.pos++;
+        if(this.pos >= this.length)
+            return null;
+        return this.array[this.pos];
+    }
+}
+
 async function showSnapshotsforCombobox() {
     let cmbSnapshotSchoolYear = document.querySelector("#cmbSnapshotSchoolYear") as HTMLSelectElement;
     let academieName = getUserAndSchoolName().schoolName;
     let snapshotDataList = await getCalculateAndSaveSnapshotDiffs(academieName, cmbSnapshotSchoolYear.value);
     let divResults = document.getElementById("snapshotResults") as HTMLDivElement;
     divResults.innerHTML = "";
-    let startEllipse: SnapshotData | null = null;
-    let lastSkip: SnapshotData | null = null;
-    for(let snapshotData of snapshotDataList) {
-        if(!snapshotData.diffs) { //typically first in list.
-            showSnapshot(snapshotData, divResults);
-            startEllipse = snapshotData;
-            continue;
-        }
-        if(!startEllipse) {
-            showSnapshot(snapshotData, divResults);
-            if(snapshotDataList.length == 0)
-                startEllipse = snapshotData;
-            continue;
-        }
-        //inside a potential ellipse...
-        if(snapshotData.diffs.length == 0) {
-            lastSkip = snapshotData;
-            continue; //skip
-        }
-        //ending an ellipse
-        emmet.appendChild(divResults, `div{...}`);
-        startEllipse = null;
-        showSnapshot(snapshotData, divResults);
+    let slidingWindow = new SlidingWindow(snapshotDataList);
+    let inEllipse: boolean = false;
+    function showSnapshotWithPossibleEllipse(snapshot: SnapshotData) {
+        if(inEllipse)
+            emmet.appendChild(divResults, `div{...}`);
+        inEllipse = false;
+        showSnapshot(snapshot, divResults);
     }
-    if(startEllipse && lastSkip) {
-    //ending an ellipse
-    emmet.appendChild(divResults, `div{...}`);
-    startEllipse = null;
-    showSnapshot(lastSkip, divResults);
+    while(true) {
+        let current = slidingWindow.next();
+        let prev = slidingWindow.peekPrev();
+        let next = slidingWindow.peekNext();
+        if(!current)
+            break;
+        if(!prev || !next) {
+            showSnapshotWithPossibleEllipse(current);
+            continue;
+        }
+        if (prev.diffs.length != 0 || next.diffs.length != 0) {
+            showSnapshotWithPossibleEllipse(current);
+            continue;
+        }
+        inEllipse = true; //skip
     }
 }
 

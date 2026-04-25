@@ -944,7 +944,7 @@ function showPowerQuery(ev) {
 		getHardCodedQueryItems();
 		popover.showPopover();
 	} else {
-		if (popoverVisible === false) return;
+		if (!popoverVisible) return;
 		if (isAlphaNumeric(ev.key) || ev.key === " ") {
 			searchField.textContent += ev.key;
 			selectedItem = 0;
@@ -6160,7 +6160,7 @@ async function createSnapshot(schoolYear, reportStatus) {
 		academie: academieName,
 		schoolYear,
 		zDate,
-		diffs: null
+		diffs: []
 	};
 	await uploadSnapshotData(snapshotData);
 	reportStatus("Snapshot aangemaakt.");
@@ -6183,6 +6183,7 @@ async function getCalculateAndSaveSnapshotDiffs(academie, schoolYear) {
 			snapshotData.diffs = compareSnapshots(previousSnapshot, snapshotData);
 			await uploadSnapshotData(snapshotData);
 		}
+		if (!snapshotData.diffs) snapshotData.diffs = [];
 		snapshotDataList.push(snapshotData);
 		previousSnapshot = snapshotData;
 	}
@@ -6193,37 +6194,56 @@ function showSnapshot(snapshotData, divResults) {
 	let divSnapshotContainer = emmet.appendChild(divResults, `div>h5{${date.toLocaleDateString()} ${date.toLocaleTimeString()}}`).first;
 	showDifferences(snapshotData.diffs, divSnapshotContainer);
 }
+var SlidingWindow = class {
+	array;
+	length;
+	pos;
+	constructor(enumerable) {
+		this.pos = -1;
+		this.array = [...enumerable];
+		this.length = this.array.length;
+	}
+	peekNext() {
+		if (this.pos + 1 > this.length) return null;
+		return this.array[this.pos + 1];
+	}
+	peekPrev() {
+		if (this.pos == 0) return null;
+		return this.array[this.pos - 1];
+	}
+	next() {
+		this.pos++;
+		if (this.pos >= this.length) return null;
+		return this.array[this.pos];
+	}
+};
 async function showSnapshotsforCombobox() {
 	let cmbSnapshotSchoolYear = document.querySelector("#cmbSnapshotSchoolYear");
 	let academieName = getUserAndSchoolName().schoolName;
 	let snapshotDataList = await getCalculateAndSaveSnapshotDiffs(academieName, cmbSnapshotSchoolYear.value);
 	let divResults = document.getElementById("snapshotResults");
 	divResults.innerHTML = "";
-	let startEllipse = null;
-	let lastSkip = null;
-	for (let snapshotData of snapshotDataList) {
-		if (!snapshotData.diffs) {
-			showSnapshot(snapshotData, divResults);
-			startEllipse = snapshotData;
-			continue;
-		}
-		if (!startEllipse) {
-			showSnapshot(snapshotData, divResults);
-			if (snapshotDataList.length == 0) startEllipse = snapshotData;
-			continue;
-		}
-		if (snapshotData.diffs.length == 0) {
-			lastSkip = snapshotData;
-			continue;
-		}
-		emmet.appendChild(divResults, `div{...}`);
-		startEllipse = null;
-		showSnapshot(snapshotData, divResults);
+	let slidingWindow = new SlidingWindow(snapshotDataList);
+	let inEllipse = false;
+	function showSnapshotWithPossibleEllipse(snapshot) {
+		if (inEllipse) emmet.appendChild(divResults, `div{...}`);
+		inEllipse = false;
+		showSnapshot(snapshot, divResults);
 	}
-	if (startEllipse && lastSkip) {
-		emmet.appendChild(divResults, `div{...}`);
-		startEllipse = null;
-		showSnapshot(lastSkip, divResults);
+	while (true) {
+		let current = slidingWindow.next();
+		let prev = slidingWindow.peekPrev();
+		let next = slidingWindow.peekNext();
+		if (!current) break;
+		if (!prev || !next) {
+			showSnapshotWithPossibleEllipse(current);
+			continue;
+		}
+		if (prev.diffs.length != 0 || next.diffs.length != 0) {
+			showSnapshotWithPossibleEllipse(current);
+			continue;
+		}
+		inEllipse = true;
 	}
 }
 function compareSnapshots(previousSnapshot, nextSnapshot) {
