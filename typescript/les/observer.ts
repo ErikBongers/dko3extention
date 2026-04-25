@@ -129,6 +129,4 @@ async function addDiff(titleHeader: HTMLElement, academie: string, schoolYear: s
         fillExcelDiffRow(tr, diff, academie, schoolYear);
         return;
     }
-
-    //todo: orphans.
 }
