@@ -426,12 +426,12 @@ export function tryUntilThen(func: () => boolean, then: () => void) {
 export function copyToClipboardOrRequestRetry(infoBar: InfoBar, text: string) {
     navigator.clipboard.writeText(text)
         .then(_r => {
-            infoBar.setExtraInfo("Data copied to clipboard. <a id=" + def.COPY_AGAIN + " href='javascript:void(0);'>Copy again</a>", def.COPY_AGAIN, () => {
+            infoBar.setExtraInfo("Gegevens gekopieerd naar klipbord. <a id="+def.COPY_AGAIN+" href='javascript:void(0);'>Kopieer opnieuw</a>", def.COPY_AGAIN, () => {
                 copyToClipboardOrRequestRetry(infoBar, text);
             });
         })
         .catch(_reason => {
-            infoBar.setExtraInfo("Could not copy to clipboard!!! <a id=" + def.COPY_AGAIN + " href='javascript:void(0);'>Copy again</a>", def.COPY_AGAIN, () => {
+            infoBar.setExtraInfo("Kan niet kopiëren naar klipbord!!! <a id="+def.COPY_AGAIN+" href='javascript:void(0);'>Kopieer opnieuw</a>", def.COPY_AGAIN, () => {
                 copyToClipboardOrRequestRetry(infoBar, text);
             });
         });
