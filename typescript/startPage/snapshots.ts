@@ -181,7 +181,10 @@ async function showSnapshotsforCombobox() {
             showSnapshotWithPossibleEllipse(current);
             continue;
         }
-        if (prev.diffs.length != 0 || next.diffs.length != 0) {
+        if (current.diffs.length != 0
+            || prev.diffs.length != 0
+            || next.diffs.length != 0
+        ) {
             showSnapshotWithPossibleEllipse(current);
             continue;
         }
