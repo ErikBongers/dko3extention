@@ -206,8 +206,10 @@ async function gotoData(ev: MouseEvent, academie: string, schoolYear: string) {
 
     if(rowType == "excel") {
         let url = await getUrlForWorksheet(workBook, workSheet, cellAddress, academie, schoolYear);
-        if(url == "")
-            return; //todo: inform user that no url exists for this les/worksheet.
+        if(url == "") {
+            alert("Geen url naar het Excel bestand. Plak de url in het Excelbestand en geef de cel de naam 'Url'. Stuur de gegevens terug door.");
+            return;
+        }
         // https:/...&activeCell=Definitief!Y24
         window.open(url, "_blank");
     }

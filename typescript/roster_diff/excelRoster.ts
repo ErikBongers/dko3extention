@@ -95,7 +95,7 @@ export class ExcelRoster {
         this.table = table;
         this.locationDefs = locations;
         this.subjectDefs = subjects;
-        this.tagDefs = diffSettings.tagDefs; //todo: don't extract diffSettings
+        this.tagDefs = diffSettings.tagDefs;
         this.ignoreList = diffSettings.ignoreList;
     }
 

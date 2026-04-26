@@ -43,7 +43,7 @@ export const defaultTagDefs: TagDef[] = [
 
     { tag: "Cabaret en comedy", searchString: " cabaret "},
     { tag: "Woordatelier", searchString: " woordatelier "},
-    { tag: "Woordatelier", searchString: " wa "}, //todo: searchString is assumed to be in lower case.
+    { tag: "Woordatelier", searchString: " wa "},
     { tag: "Woordlab", searchString: " woordlab "},
     { tag: "Woordlab", searchString: " wl "},
     { tag: "Literair atelier", searchString: " literair atelier "},
