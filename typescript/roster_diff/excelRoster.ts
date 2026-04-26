@@ -167,10 +167,6 @@ export class ExcelRoster {
         return classDefs;
     }
 
-    private gradeYearToString(gradeYear: GradeYear) { //todo: parse and check this as well.
-        return `${gradeYear.grade ? gradeYear.grade: "?"}.${gradeYear.year}`;
-    }
-
     private createTimeSlices(): Map<string, TimeSlice> {
         let timeSlices: Map<string, TimeSlice> = new Map<string, TimeSlice>();
 
