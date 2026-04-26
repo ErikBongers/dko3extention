@@ -5341,7 +5341,10 @@ async function gotoData(ev, academie, schoolYear) {
 	let lesId = tr.dataset.lesId;
 	if (rowType == "excel") {
 		let url = await getUrlForWorksheet(workBook, workSheet, cellAddress, academie, schoolYear);
-		if (url == "") return;
+		if (url == "") {
+			alert("Geen url naar het Excel bestand. Plak de url in het Excelbestand en geef de cel de naam 'Url'. Stuur de gegevens terug door.");
+			return;
+		}
 		window.open(url, "_blank");
 	} else if (rowType == "dko3") location.href = DKO3_BASE_URL + "#lessen-les?id=" + lesId;
 }
