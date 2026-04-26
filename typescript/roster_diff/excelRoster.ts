@@ -122,7 +122,7 @@ export class ExcelRoster {
             let cellValue = this.table.Cell(row, column)
             if (cellValue) {
                 let rx = /\n/g;
-                let description = cellValue //todo: merge description into the parseText below.
+                let description = cellValue
                     .replaceAll(rx, " ");
                 let parseText = " "+description
                     .replaceAll("(", " ( ") //force spaces around words or numbers
@@ -143,7 +143,7 @@ export class ExcelRoster {
                 } else if(times.length === 1) {
                     timeSlice = this.moveTimeSliceTo(timeSlice, times[0]);
                 }
-                let tags = this.findTags(parseText, this.tagDefs); //todo: first try to find tagDefs in the sheet (table)
+                let tags = this.findTags(parseText, this.tagDefs);
                 let location = this.findLocation(tags);
                 let subjects = this.findSubjects(tags);
                 let tablePos: TablePos = {row, column};
