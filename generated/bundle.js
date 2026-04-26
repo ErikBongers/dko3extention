@@ -1763,9 +1763,6 @@ var ExcelRoster = class {
 		}
 		return classDefs;
 	}
-	gradeYearToString(gradeYear) {
-		return `${gradeYear.grade ? gradeYear.grade : "?"}.${gradeYear.year}`;
-	}
 	createTimeSlices() {
 		let timeSlices = new Map();
 		for (let row = 0; row < this.table.RowCount; row++) {
@@ -3239,7 +3236,8 @@ let Grouping = /* @__PURE__ */ function(Grouping$1) {
 	return Grouping$1;
 }({});
 let Operator = /* @__PURE__ */ function(Operator$1) {
-	Operator$1["PLUS"] = "=";
+	Operator$1["PLUS"] = "+";
+	Operator$1["EQUALS"] = "=";
 	return Operator$1;
 }({});
 let FIELD;
@@ -4692,8 +4690,8 @@ function getTrimPageElements() {
 }
 async function getJaarToewijzigingWerklijst(schoolYear) {
 	let builder = await createWerklijstBuilderWithReset(schoolYear, Grouping.LES);
-	builder.addCriterium(CriteriumName.Domein, Operator.PLUS, [Domein$1.Muziek]);
-	builder.addCriterium(CriteriumName.Vak, Operator.PLUS, [
+	builder.addCriterium(CriteriumName.Domein, Operator.EQUALS, [Domein$1.Muziek]);
+	builder.addCriterium(CriteriumName.Vak, Operator.EQUALS, [
 		"instrumentinitiatie – hele jaar zelfde instrument - accordeon",
 		"instrumentinitiatie – hele jaar zelfde instrument - baglama (saz)",
 		"instrumentinitiatie – hele jaar zelfde instrument - cello",
@@ -7724,8 +7722,8 @@ async function setCriteriaForTeacherHoursAndClickFetchButton(schooljaar, hourSet
 	let selectedInstrumentNames = new Set(hourSettings.subjects.filter((i) => i.checked).map((i) => i.name));
 	let validInstruments = dko3_vakken.filter((vak) => selectedInstrumentNames.has(vak.name));
 	let vakNames = validInstruments.map((vak) => vak.name);
-	builder.addCriterium(CriteriumName.Domein, Operator.PLUS, [Domein$1.Muziek]);
-	builder.addCriterium(CriteriumName.Vak, Operator.PLUS, vakNames);
+	builder.addCriterium(CriteriumName.Domein, Operator.EQUALS, [Domein$1.Muziek]);
+	builder.addCriterium(CriteriumName.Vak, Operator.EQUALS, vakNames);
 	builder.addFields([
 		FIELD.NAAM,
 		FIELD.VOORNAAM,
