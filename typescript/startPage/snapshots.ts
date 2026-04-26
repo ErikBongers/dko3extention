@@ -99,7 +99,7 @@ async function getCalculateAndSaveSnapshotDiffs(academie: string, schoolYear: st
     let snapshotDataList: SnapshotData[] = [];
     for(let file of content.files) {
         let snapshotData = await fetchSnapshotData(file);
-        if(previousSnapshot && snapshotData.diffs == null) { //todo: factor out the creattion loop from showing loop.
+        if(previousSnapshot && snapshotData.diffs == null) {
             snapshotData.diffs = compareSnapshots(previousSnapshot, snapshotData);
             await uploadSnapshotData(snapshotData);
         }

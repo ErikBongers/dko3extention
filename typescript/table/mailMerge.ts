@@ -123,9 +123,9 @@ export class MailMergeTable {
         });
 
         this.maxInschrijvingen = Math.max(...groupedPerStudent.map(student => student.inschrijvingen.size));
-        this.maxInschrijvingen = Math.max(this.maxInschrijvingen, 3); //todo: remove this hard coded value when mail template can handle optional fields.
+        this.maxInschrijvingen = Math.max(this.maxInschrijvingen, 3); //todo: remove this hard coded value when mail template can handle optional fields. Same for maxLessen and maxVestigingsplaatsen.
         this.maxLessen = Math.max(...groupedPerStudent.map(student => [...student.inschrijvingen.values()]).map(inschrijving => inschrijving.map(lessen => lessen.length)).flat());
-        this.maxLessen = Math.max(this.maxLessen, 5); //todo: remove this hard coded value when mail template can handle optional fields.
+        this.maxLessen = Math.max(this.maxLessen, 5);
 
         let flattendToStudent: string[][] = [];
 
@@ -160,7 +160,7 @@ export class MailMergeTable {
         let maxVestigingsplaatsen = Math.max(...groupedPerStudent
             .map(student => student.vestigingsPlaatsen.length)
         );
-        maxVestigingsplaatsen = Math.max(maxVestigingsplaatsen, 3); //todo: remove this hard coded value when mail template can handle optional fields.
+        maxVestigingsplaatsen = Math.max(maxVestigingsplaatsen, 3);
 
         //Add lessen per student
         let lesNaamIndex = this.headers.findIndex(header => header == "benaming les");

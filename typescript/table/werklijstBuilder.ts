@@ -67,7 +67,7 @@ class WerklijstBuilder implements CriteriaBuilder, PreparedWerklijst {
         await fetch("views/leerlingen/werklijst/index.view.php"); //get header block (schooljaar, 1 lijn per..., criteria, velden)
         if(!reset) {
             await postNameValueList("/views/leerlingen/werklijst/session.opslaan.php", [{name: "schooljaar", value: this.schoolYear}, {name: "groepering", value: this.grouping}]);
-            return; //todo: schoolyear and grouping may not match!
+            return;
         }
         await postNameValueList("/views/leerlingen/werklijst/session.opslaan.php", [{name:"reset", value:"1"}]);
         await postNameValueList("/views/leerlingen/werklijst/session.opslaan.php", [{name: "schooljaar", value: this.schoolYear}, {name: "groepering", value: this.grouping}]);
