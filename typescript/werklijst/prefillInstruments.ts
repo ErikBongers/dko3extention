@@ -55,8 +55,8 @@ export async function setCriteriaForTeacherHoursAndClickFetchButton(schooljaar: 
     let selectedInstrumentNames  =  new Set(hourSettings.subjects.filter(i => i.checked).map(i => i.name));
     let validInstruments = dko3_vakken.filter((vak) => selectedInstrumentNames.has(vak.name));
     let vakNames = validInstruments.map(vak => vak.name);
-    builder.addCriterium(CriteriumName.Domein, Operator.PLUS, [Domein.Muziek]);
-    builder.addCriterium(CriteriumName.Vak, Operator.PLUS, vakNames); //todo: we already have the codes: Immediately add the codes?
+    builder.addCriterium(CriteriumName.Domein, Operator.EQUALS, [Domein.Muziek]);
+    builder.addCriterium(CriteriumName.Vak, Operator.EQUALS, vakNames); //todo: we already have the codes: Immediately add the codes?
     builder.addFields([FIELD.NAAM, FIELD.VOORNAAM, FIELD.VAK_NAAM, FIELD.GRAAD_LEERJAAR, FIELD.KLAS_LEERKRACHT]);
     await builder.sendSettings();
     let pageState = getGotoStateOrDefault(PageName.Werklijst) as WerklijstGotoState;

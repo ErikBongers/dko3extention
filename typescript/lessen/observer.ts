@@ -184,8 +184,8 @@ export function getTrimPageElements(){
 
 export async function getJaarToewijzigingWerklijst(schoolYear: string) {
     let builder = await createWerklijstBuilderWithReset(schoolYear, Grouping.LES);
-    builder.addCriterium(CriteriumName.Domein, Operator.PLUS, [Domein.Muziek]);
-    builder.addCriterium(CriteriumName.Vak, Operator.PLUS, [
+    builder.addCriterium(CriteriumName.Domein, Operator.EQUALS, [Domein.Muziek]);
+    builder.addCriterium(CriteriumName.Vak, Operator.EQUALS, [
         "instrumentinitiatie – hele jaar zelfde instrument - accordeon",
         "instrumentinitiatie – hele jaar zelfde instrument - baglama (saz)",
         "instrumentinitiatie – hele jaar zelfde instrument - cello",
