@@ -5636,6 +5636,7 @@ var TaggedDko3LesMoment = class extends TaggedLes {
 };
 var TaggedExcelLes = class extends TaggedLes {
 	dayTimeSlice;
+	weight = 0;
 	constructor(les, teachers) {
 		let searchText = " " + les.cellValue.toLowerCase().replaceAll("\n", " \n ").replaceAll("(", " ( ").replaceAll(")", " ) ").replaceAll(".", " . ").replaceAll(",", " , ").replaceAll("-", " - ") + " ";
 		let tags = [];
@@ -5795,11 +5796,26 @@ function dko3GradeYearsContain(dko3GradeYears, excelGradeYear) {
 	for (let dko3GradeYear of dko3GradeYears) if (GradeYear.matches(excelGradeYear, dko3GradeYear)) return true;
 	return false;
 }
+function weigh(dko3Les, excelLes) {
+	let weight = 100;
+	if (!dko3Les.subjects.some((t) => excelLes.subjects.includes(t))) weight -= 10;
+	if (!DayTimeSlice.equal(dko3Les.lesMoment.dayTimeSlice, excelLes.dayTimeSlice)) weight -= 10;
+	if (dko3Les.location != excelLes.location) weight -= 10;
+	if (!dko3Les.teachers.some((t) => excelLes.teachers.includes(t))) weight -= 10;
+	for (let excelGradeYear of excelLes.gradeYears) if (!dko3GradeYearsContain(dko3Les.gradeYears, excelGradeYear)) weight -= 1;
+	if (excelLes.gradeYears.length != dko3Les.gradeYears.length) weight -= 1;
+	return weight;
+}
 function matchOnNameOnly(dko3Les, excelLesSet) {
+	let matches = [];
 	for (let excelLes of excelLesSet) if (excelLes.lesMoment.className && dko3Les.lesMoment.les.naam) {
-		if (excelLes.lesMoment.className.trim().toLowerCase() == dko3Les.lesMoment.les.naam.trim().toLowerCase()) return excelLes;
+		if (excelLes.lesMoment.className.trim().toLowerCase() == dko3Les.lesMoment.les.naam.trim().toLowerCase()) matches.push(excelLes);
 	}
-	return null;
+	if (matches.length == 0) return null;
+	if (matches.length == 1) return matches[0];
+	for (let excelLes of matches) excelLes.weight = weigh(dko3Les, excelLes);
+	matches.sort((a, b) => b.weight - a.weight);
+	return matches[0];
 }
 function perfectMatch(dko3Les, excelLesSet) {
 	lesLoop: for (let excelLes of excelLesSet) {
