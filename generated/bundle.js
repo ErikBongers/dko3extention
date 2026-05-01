@@ -1755,14 +1755,14 @@ var ExcelRoster = class {
 	scrapeColumn(column, timeSlices) {
 		let classDefs = [];
 		let day = RosterFactory.toDayName(this.table.HeaderRowValue(0, column));
-		let teacher = this.table.HeaderRowValue(1, column);
-		if (teacher.trim() == "?") teacher = "";
+		let teacher = this.table.HeaderRowValue(1, column).trim();
+		teacher = teacher.replaceAll("?", "");
 		for (let row = 0; row < this.table.RowCount; row++) {
 			let cellValue = this.table.Cell(row, column);
 			if (cellValue) {
 				let rx = /\n/g;
 				let description = cellValue.replaceAll(rx, " ");
-				let parseText = " " + description.replaceAll("(", " ( ").replaceAll(")", " ) ").replaceAll(",", " , ").replaceAll("+", " + ").replaceAll("  ", " ") + " ";
+				let parseText = " " + description.replaceAll("(", " ( ").replaceAll(")", " ) ").replaceAll(",", " , ").replaceAll("+", " + ").replaceAll("  ", " ").replaceAll("  ", " ") + " ";
 				let timeSlice = void 0;
 				let mergedRange = this.table.RangeOfCell({
 					row,

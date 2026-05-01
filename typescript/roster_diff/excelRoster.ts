@@ -151,9 +151,9 @@ export class ExcelRoster {
     private scrapeColumn(column: number, timeSlices: Map<string, TimeSlice>) {
         let classDefs: ClassDef[] = [];
         let day = RosterFactory.toDayName(this.table.HeaderRowValue(0, column));
-        let teacher = this.table.HeaderRowValue(1, column);
-        if (teacher.trim() == "?")
-            teacher = "";
+        let teacher = this.table.HeaderRowValue(1, column).trim();
+        teacher = teacher
+            .replaceAll("?", "");
         for(let row = 0; row < this.table.RowCount; row++) {
             let cellValue = this.table.Cell(row, column)
             if (cellValue) {
@@ -165,6 +165,7 @@ export class ExcelRoster {
                     .replaceAll(")", " ) ")
                     .replaceAll(",", " , ")
                     .replaceAll("+", " + ")
+                    .replaceAll("  ", " ") //dedup spaces //" Woordatelier 3 + 4 DNV Tegelzaal Minimum 7 lln "
                     .replaceAll("  ", " ") //dedup spaces
                     + " ";
                 let timeSlice: TimeSlice | undefined = undefined;
