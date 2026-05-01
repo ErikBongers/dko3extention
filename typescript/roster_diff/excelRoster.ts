@@ -165,6 +165,7 @@ export class ExcelRoster {
                     .replaceAll(")", " ) ")
                     .replaceAll(",", " , ")
                     .replaceAll("+", " + ")
+                    .replaceAll("  ", " ") //dedup spaces
                     + " ";
                 let timeSlice: TimeSlice | undefined = undefined;
                 let mergedRange = this.table.RangeOfCell({row, column});
@@ -328,22 +329,16 @@ export class ExcelRoster {
     }
 
     private getGradeYearsFromTags(tags: TagDef[], excelPos: ExcelPos) {
-        let gradeYear: GradeYear | null = null;
+        let gradeYears: GradeYear[] = [];
         for(let tagDef of tags) {
-            if(gradeYear) {
-                if(!GradeYear.equals(gradeYear, {grade: tagDef.grade??null, year: tagDef.year??null})) {
-                    this.errors.push(`Meerdere graden en jaren gevonden voor cel [${excelPos.row}, ${excelPos.column}] TODO: link to excel file.`);
-                }
-                continue;
-            }
-            gradeYear = {
-                grade: tagDef.grade ?? null,
-                year: tagDef.year ?? null
+            if(tagDef.grade || tagDef.year) {
+                gradeYears.push({
+                    grade: tagDef.grade ?? null,
+                    year: tagDef.year ?? null
+                });
             }
         }
-        if(gradeYear)
-            return [gradeYear];
-        return [];
+        return gradeYears;
     }
 }
 

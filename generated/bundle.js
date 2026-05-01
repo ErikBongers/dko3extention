@@ -1762,7 +1762,7 @@ var ExcelRoster = class {
 			if (cellValue) {
 				let rx = /\n/g;
 				let description = cellValue.replaceAll(rx, " ");
-				let parseText = " " + description.replaceAll("(", " ( ").replaceAll(")", " ) ").replaceAll(",", " , ").replaceAll("+", " + ") + " ";
+				let parseText = " " + description.replaceAll("(", " ( ").replaceAll(")", " ) ").replaceAll(",", " , ").replaceAll("+", " + ").replaceAll("  ", " ") + " ";
 				let timeSlice = void 0;
 				let mergedRange = this.table.RangeOfCell({
 					row,
@@ -1887,22 +1887,12 @@ var ExcelRoster = class {
 		return [];
 	}
 	getGradeYearsFromTags(tags, excelPos) {
-		let gradeYear = null;
-		for (let tagDef of tags) {
-			if (gradeYear) {
-				if (!GradeYear.equals(gradeYear, {
-					grade: tagDef.grade ?? null,
-					year: tagDef.year ?? null
-				})) this.errors.push(`Meerdere graden en jaren gevonden voor cel [${excelPos.row}, ${excelPos.column}] TODO: link to excel file.`);
-				continue;
-			}
-			gradeYear = {
-				grade: tagDef.grade ?? null,
-				year: tagDef.year ?? null
-			};
-		}
-		if (gradeYear) return [gradeYear];
-		return [];
+		let gradeYears = [];
+		for (let tagDef of tags) if (tagDef.grade || tagDef.year) gradeYears.push({
+			grade: tagDef.grade ?? null,
+			year: tagDef.year ?? null
+		});
+		return gradeYears;
 	}
 };
 function parseTime(timeString) {
