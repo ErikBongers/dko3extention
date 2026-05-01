@@ -212,6 +212,7 @@ export class TaggedDko3LesMoment extends TaggedLes<Dko3LesMoment> {
             .map(txt => txt.trim());
         this.subjects.push(lesMoment.les.naam);
         this.subjects = this.subjects.filter(s => s!!);
+        this.gradeYears = lesMoment.les.gradeYears;
     }
 }
 
@@ -234,6 +235,7 @@ export class TaggedExcelLes extends TaggedLes<ClassDef> {
         this.subjects = les.subjects;
         this.subjects = this.subjects.filter(s => s!!);
         this.dayTimeSlice = new DayTimeSlice(les.day, les.timeSlice);
+        this.gradeYears = les.gradeYears;
     }
 }
 

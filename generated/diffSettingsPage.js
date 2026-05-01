@@ -529,7 +529,7 @@ handler.onMessageForMyTabType((msg) => {
 	console.log("diff setup page: message for me: ", msg);
 }).onData(onData);
 function addTranslationRow(tagDef, tbody) {
-	let text = `tr>` + buildField("Vind", tagDef.searchString, "trnsFind") + "+" + buildField("tag met", tagDef.tag, "trnsTag");
+	let text = `tr>` + buildField("Vind", tagDef.searchString, "trnsFind") + "+" + buildField("tag met", tagDef.tag, "trnsTag") + "+" + buildField("graad", tagDef.grade ?? "", "trnsGrade") + "+" + buildField("jaar", tagDef.year?.toString() ?? "", "trnsYear");
 	let tr = emmet.appendChild(tbody, text).first;
 	let bucket = `button.deleteRow.naked>img[src="${chrome.runtime.getURL("images/trash-can.svg")}"]`;
 	emmet.appendChild(tr, `td>${bucket}`);
@@ -572,7 +572,10 @@ function deleteTableRow(ev) {
 async function onData(request) {
 	let title = "Uurrooster tags voor schooljaar " + request.data.schoolYear;
 	document.title = title;
-	document.getElementById(SETUP_HOURS_TITLE_ID).innerHTML = title;
+	document.getElementById(
+		//todo: gracefull error when parsing number...or make field a string?
+		SETUP_HOURS_TITLE_ID
+).innerHTML = title;
 	document.querySelector("button").addEventListener("click", async () => {
 		await sendRequest(Actions.GreetingsFromChild, TabType.Undefined, TabType.Main, void 0, "Hullo! Fly safe!");
 	});
@@ -607,9 +610,13 @@ setInterval(() => {
 function scrapeTagDefs() {
 	let rows = document.querySelectorAll("#tagDefsContainer>table>tbody>tr");
 	return [...rows].map((row) => {
+		let grade = row.querySelector("#trnsGrade").value.trim();
+		let year = row.querySelector("#trnsYear").value.trim();
 		return {
 			searchString: row.querySelector("#trnsFind").value,
-			tag: row.querySelector("#trnsTag").value
+			tag: row.querySelector("#trnsTag").value,
+			grade,
+			year: parseInt(year)
 		};
 	});
 }

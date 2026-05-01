@@ -5610,6 +5610,7 @@ var TaggedDko3LesMoment = class extends TaggedLes {
 		this.subjects = this.lesMoment.les.vakNaam.split("+").map((txt) => txt.trim());
 		this.subjects.push(lesMoment.les.naam);
 		this.subjects = this.subjects.filter((s) => s);
+		this.gradeYears = lesMoment.les.gradeYears;
 	}
 };
 var TaggedExcelLes = class extends TaggedLes {
@@ -5623,6 +5624,7 @@ var TaggedExcelLes = class extends TaggedLes {
 		this.subjects = les.subjects;
 		this.subjects = this.subjects.filter((s) => s);
 		this.dayTimeSlice = new DayTimeSlice(les.day, les.timeSlice);
+		this.gradeYears = les.gradeYears;
 	}
 };
 function isDko3LesToIgnore(les, ignoreList) {
