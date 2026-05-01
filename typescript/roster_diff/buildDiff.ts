@@ -241,6 +241,7 @@ export class TaggedExcelLes extends TaggedLes<ClassDef> {
         this.subjects = this.subjects.filter(s => s!!);
         if(this.lesMoment.className)
             this.subjects.push(this.lesMoment.className);
+        this.subjects = [...new Set(this.subjects)];
         this.dayTimeSlice = new DayTimeSlice(les.day, les.timeSlice);
         this.gradeYears = les.gradeYears;
     }
@@ -432,7 +433,7 @@ function matchIt(dko3LesSet: Set<TaggedDko3LesMoment>, excelLesSet: Set<TaggedEx
 
 function dko3GradeYearsContain(dko3GradeYears: GradeYear[], excelGradeYear: GradeYear) {
     for(let dko3GradeYear of dko3GradeYears) {
-        if(GradeYear.contains(excelGradeYear, dko3GradeYear))
+        if(GradeYear.matches(excelGradeYear, dko3GradeYear))
             return true;
     }
     return false;
@@ -464,6 +465,9 @@ function perfectMatch(dko3Les: TaggedDko3LesMoment, excelLesSet: Set<TaggedExcel
             if(!dko3GradeYearsContain(dko3Les.gradeYears, excelGradeYear))
                 continue lesLoop;
         }
+        //all excelGradeYears match (fit within) the dkoGradeYears, but check the count for a perfect match.
+        if(excelLes.gradeYears.length != dko3Les.gradeYears.length)
+            continue;
 
         return excelLes;
     }
@@ -496,7 +500,7 @@ function matchWithoutLocation(dko3Les: TaggedDko3LesMoment, excelLesSet: Set<Tag
             continue;
         for(let excelGradeYear of excelLes.gradeYears) {
             for(let dko3GradeYear of dko3Les.gradeYears) {
-                if(!GradeYear.contains(excelGradeYear, dko3GradeYear))
+                if(!GradeYear.matches(excelGradeYear, dko3GradeYear))
                     continue lesLoop;
             }
         }
@@ -518,7 +522,7 @@ function matchWithoutTime(dko3Les: TaggedDko3LesMoment, excelLesSet: Set<TaggedE
             continue;
         for(let excelGradeYear of excelLes.gradeYears) {
             for(let dko3GradeYear of dko3Les.gradeYears) {
-                if(!GradeYear.contains(excelGradeYear, dko3GradeYear))
+                if(!GradeYear.matches(excelGradeYear, dko3GradeYear))
                     continue lesLoop;
             }
         }
@@ -538,7 +542,7 @@ function matchWithoutTimeAndDay(dko3Les: TaggedDko3LesMoment, excelLesSet: Set<T
             continue;
         for(let excelGradeYear of excelLes.gradeYears) {
             for(let dko3GradeYear of dko3Les.gradeYears) {
-                if(!GradeYear.contains(excelGradeYear, dko3GradeYear))
+                if(!GradeYear.matches(excelGradeYear, dko3GradeYear))
                     continue lesLoop;
             }
         }
@@ -556,7 +560,7 @@ function matchWithoutTeacherTimeAndDay(dko3Les: TaggedDko3LesMoment, excelLesSet
             continue;
         for(let excelGradeYear of excelLes.gradeYears) {
             for(let dko3GradeYear of dko3Les.gradeYears) {
-                if(!GradeYear.contains(excelGradeYear, dko3GradeYear))
+                if(!GradeYear.matches(excelGradeYear, dko3GradeYear))
                     continue lesLoop;
             }
         }
@@ -576,7 +580,7 @@ function matchWithoutTeacher(dko3Les: TaggedDko3LesMoment, excelLesSet: Set<Tagg
             continue;
         for(let excelGradeYear of excelLes.gradeYears) {
             for(let dko3GradeYear of dko3Les.gradeYears) {
-                if(!GradeYear.contains(excelGradeYear, dko3GradeYear))
+                if(!GradeYear.matches(excelGradeYear, dko3GradeYear))
                     continue lesLoop;
             }
         }
