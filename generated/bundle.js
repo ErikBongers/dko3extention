@@ -1643,6 +1643,25 @@ var RosterFactory = class RosterFactory {
 
 //#endregion
 //#region typescript/roster_diff/excelRoster.ts
+var GradeYear = class {
+	grade;
+	year;
+	static equals(gradeYear1, gradeYear2) {
+		return gradeYear1.grade == gradeYear2.grade && gradeYear1.year == gradeYear2.year;
+	}
+	static toString(gradeYears) {
+		let str = "";
+		for (let gradeYear of gradeYears) {
+			if (str != "") str += ", ";
+			if (gradeYear.grade) str += gradeYear.grade;
+			if (gradeYear.year) {
+				if (gradeYear.grade) str += ".";
+				str += gradeYear.year;
+			}
+		}
+		return str;
+	}
+};
 var ClassDef = class {
 	day;
 	teacher;
@@ -1756,7 +1775,9 @@ var ExcelRoster = class {
 					column
 				};
 				let excelPos = TablePos.toExcel(tablePos, this.table);
-				let classDef = new ClassDef(day, teacher, timeSlice, subjects, location$1, this.findGradeYears(parseText), excelPos.row, excelPos.column, cellValue, this.table);
+				let gradeYears = this.findGradeYears(parseText);
+				if (gradeYears.length == 0) gradeYears = this.getGradeYearsFromTags(tags, excelPos);
+				let classDef = new ClassDef(day, teacher, timeSlice, subjects, location$1, gradeYears, excelPos.row, excelPos.column, cellValue, this.table);
 				classDefs.push(classDef);
 				row = mergedRange.End.row + 1;
 			}
@@ -1845,6 +1866,27 @@ var ExcelRoster = class {
 			}
 			return gradeYears;
 		}
+		return [];
+	}
+	getGradeYearsFromTags(tags, excelPos) {
+		let gradeYear = null;
+		for (let tagName of tags) {
+			let tagDef = this.tagDefs.find((tag) => tag.tag == tagName);
+			if (tagDef) {
+				if (gradeYear) {
+					if (!GradeYear.equals(gradeYear, {
+						grade: tagDef.grade ?? null,
+						year: tagDef.year ?? null
+					})) this.errors.push(`Meerdere graden en jaren gevonden voor cel [${excelPos.row}, ${excelPos.column}] TODO: link to excel file.`);
+					continue;
+				}
+				gradeYear = {
+					grade: tagDef.grade ?? null,
+					year: tagDef.year ?? null
+				};
+			}
+		}
+		if (gradeYear) return [gradeYear];
 		return [];
 	}
 };
@@ -5240,11 +5282,11 @@ async function showDiffs(diffs, academie, schoolYear, dko3DiffData, diffSettings
 	decorateTableHeader(table, false);
 	for (let les of diffs.orphanedDko3Lessen) {
 		let tr = emmet.appendChild(tbody, "tr").last;
-		fillDiffRow(tr, les.subject, les.teacher, les.day, les.timeSlice, les.location, "perfect match", "dko3", les.momentId, "", les.lesId, "", "", les.hash, les.ignore, academie, schoolYear);
+		fillDiffRow(tr, les, "perfect match", "dko3", les.momentId, "", les.lesId, "", "", les.hash, les.ignore, academie, schoolYear);
 	}
 	for (let les of diffs.orphanedExcelLessen) {
 		let tr = emmet.appendChild(tbody, "tr").last;
-		fillDiffRow(tr, les.subject, les.teacher, les.day, les.timeSlice, les.location, "perfect match", "excel", excelPostoExcelAddress(les.excelRow, les.excelColumn), les.cellValue, "", les.workBook, les.workSheet, les.hash, les.ignore, academie, schoolYear);
+		fillDiffRow(tr, les, "perfect match", "excel", excelPostoExcelAddress(les.excelRow, les.excelColumn), les.cellValue, "", les.workBook, les.workSheet, les.hash, les.ignore, academie, schoolYear);
 		tr.classList.add("excelRow");
 	}
 	let ingore = localStorage.getItem(OPTION_HIDE_IGNORED_DIFFS) ?? "false";
@@ -5257,7 +5299,7 @@ async function runDiff(reportStatus, fetchListener, academie, schoolYear, dko3Di
 	return buildAndSaveDiff(reportStatus, fetchListener, academie, schoolYear, dko3DiffData, diffSettings);
 }
 function fillExcelDiffRow(tr, diff, academie, schoolYear) {
-	fillDiffRow(tr, diff.excelLes.subject, diff.excelLes.teacher, diff.excelLes.day, diff.excelLes.timeSlice, diff.excelLes.location, diff.diffType, "excel", excelPostoExcelAddress(diff.excelLes.excelRow, diff.excelLes.excelColumn), diff.excelLes.cellValue, "", diff.excelLes.workBook, diff.excelLes.workSheet, diff.excelLes.hash, diff.excelLes.ignore, academie, schoolYear);
+	fillDiffRow(tr, diff.excelLes, diff.diffType, "excel", excelPostoExcelAddress(diff.excelLes.excelRow, diff.excelLes.excelColumn), diff.excelLes.cellValue, "", diff.excelLes.workBook, diff.excelLes.workSheet, diff.excelLes.hash, diff.excelLes.ignore, academie, schoolYear);
 }
 function displayDiff(diff, divResults, academie, schoolYear) {
 	let tbody = emmet.appendChild(divResults, "table.diff>tbody").last;
@@ -5265,9 +5307,9 @@ function displayDiff(diff, divResults, academie, schoolYear) {
 	fillExcelDiffRow(tr, diff, academie, schoolYear);
 	tr.classList.add("excelRow");
 	let tr2 = emmet.appendChild(tbody, "tr").last;
-	fillDiffRow(tr2, diff.dko3Les.subject, diff.dko3Les.teacher, diff.dko3Les.day, diff.dko3Les.timeSlice, diff.dko3Les.location, diff.diffType, "dko3", diff.dko3Les.momentId, "", diff.dko3Les.lesId, "", "", diff.dko3Les.hash, diff.dko3Les.ignore, academie, schoolYear);
+	fillDiffRow(tr2, diff.dko3Les, diff.diffType, "dko3", diff.dko3Les.momentId, "", diff.dko3Les.lesId, "", "", diff.dko3Les.hash, diff.dko3Les.ignore, academie, schoolYear);
 }
-function fillDiffRow(tr, subjects, teachers, day, timeSlice, location$1, diffType, rowType, rowId, cellValue, lesId, workBook, worksheet, hash, ignore, academie, schoolYear) {
+function fillDiffRow(tr, jsonLes, diffType, rowType, rowId, cellValue, lesId, workBook, worksheet, hash, ignore, academie, schoolYear) {
 	if (ignore) tr.classList.add("ignore");
 	let diffTeacherClass = "";
 	let diffLocationClass = "";
@@ -5296,15 +5338,16 @@ function fillDiffRow(tr, subjects, teachers, day, timeSlice, location$1, diffTyp
 		case "perfect match": break;
 		default: unreachable(diffType);
 	}
-	if (!location$1) {
-		location$1 = "-onbekend-";
+	if (!jsonLes.location) {
+		jsonLes.location = "-onbekend-";
 		diffLocationClass = ".diff";
 	}
 	let tdSubjects;
-	if (subjects == "") {
+	if (jsonLes.subjects == "") {
 		diffSubjectClass = ".diff";
 		tdSubjects = `(td${diffSubjectClass}>div.diffTooltip{-onbekend-}>span.diffTooltiptext{${cellValue}})`;
-	} else tdSubjects = `td${diffSubjectClass}{${subjects}}`;
+	} else tdSubjects = `td${diffSubjectClass}{${jsonLes.subjects}}`;
+	let diffGradeYears = "";
 	let iconClass = rowType == "excel" ? "fa-grid" : "fa-chalkboard-user";
 	tr.dataset.lesId = lesId;
 	tr.dataset.hash = hash;
@@ -5312,7 +5355,7 @@ function fillDiffRow(tr, subjects, teachers, day, timeSlice, location$1, diffTyp
 	tr.dataset.workbook = workBook;
 	tr.dataset.worksheet = worksheet;
 	tr.dataset.rowType = rowType;
-	emmet.appendChild(tr, `${tdSubjects}+td${diffTeacherClass}{${teachers}}+td${diffDayClass}{${toCompactDayString(day)}}+td${diffTimeClass}{${timeSlice}}+td${diffLocationClass}{${location$1}}+(td.buttonshow>button.goto>i.fas.${iconClass})+(td.button>button.goto.chkHide>i.fas.fa-check)`);
+	emmet.appendChild(tr, `${tdSubjects}+td${diffGradeYears}{${GradeYear.toString(jsonLes.gradeYears)}}+td${diffTeacherClass}{${jsonLes.teachers}}+td${diffDayClass}{${toCompactDayString(jsonLes.day)}}+td${diffTimeClass}{${jsonLes.timeSlice}}+td${diffLocationClass}{${location}}+(td.buttonshow>button.goto>i.fas.${iconClass})+(td.button>button.goto.chkHide>i.fas.fa-check)`);
 	let btnGoto = tr.querySelector("button.goto");
 	btnGoto.onclick = (ev) => gotoData(ev, academie, schoolYear);
 	let btnHide = tr.querySelector("button.chkHide");
@@ -5547,6 +5590,7 @@ var TaggedLes = class {
 	subjects;
 	linkedLesMomenten = [];
 	ignore;
+	gradeYears;
 	constructor(les, tags, searchText) {
 		this.lesMoment = les;
 		this.tags = tags;
@@ -5811,10 +5855,19 @@ function getDiffsCloudFileName(academie, schoolYear) {
 	return `Dko3/${academie}_${schoolYear}_diffs.json`;
 }
 async function getDiffsFromCloud(academie, schoolYear) {
-	return await cloud.json.fetch(getDiffsCloudFileName(academie, schoolYear)).catch(function(err) {
+	let fromCloud = await cloud.json.fetch(getDiffsCloudFileName(academie, schoolYear)).catch(function(err) {
 		console.log(err);
 		return null;
 	});
+	if (fromCloud) {
+		for (let diff of fromCloud.diffs) {
+			if (!diff.dko3Les.gradeYears) diff.dko3Les.gradeYears = [];
+			if (!diff.excelLes.gradeYears) diff.excelLes.gradeYears = [];
+		}
+		for (let orphan of fromCloud.orphanedDko3Lessen) if (!orphan.gradeYears) orphan.gradeYears = [];
+		for (let orphan of fromCloud.orphanedExcelLessen) if (!orphan.gradeYears) orphan.gradeYears = [];
+	}
+	return fromCloud;
 }
 async function setIgnoredFlags(orphanedDko3Lessen, orphanedExcelLessen, academie, schoolYear) {
 	try {
@@ -5864,11 +5917,12 @@ function dko3LesToJson(dko3Les) {
 		lesId: dko3Les.lesMoment.les.id,
 		day: dko3Les.lesMoment.dayTimeSlice.day,
 		timeSlice: toCompactTimeSliceString(dko3Les.lesMoment.dayTimeSlice.timeSlice),
-		subject: dko3Les.subjects.join(","),
-		teacher: dko3Les.teachers.join(","),
+		subjects: dko3Les.subjects.join(","),
+		teachers: dko3Les.teachers.join(","),
 		location: dko3Les.location,
 		hash: dko3Les.getHash(),
-		ignore: dko3Les.ignore
+		ignore: dko3Les.ignore,
+		gradeYears: dko3Les.gradeYears
 	};
 }
 function excelLesToJson(excelLes) {
@@ -5877,14 +5931,15 @@ function excelLesToJson(excelLes) {
 		excelRow: excelLes.lesMoment.excelRow,
 		day: excelLes.lesMoment.day,
 		timeSlice: toCompactTimeSliceString(excelLes.lesMoment.timeSlice),
-		subject: excelLes.subjects.join(","),
-		teacher: excelLes.teachers.join(","),
+		subjects: excelLes.subjects.join(","),
+		teachers: excelLes.teachers.join(","),
 		location: excelLes.location,
 		cellValue: excelLes.lesMoment.cellValue,
 		workBook: excelLes.lesMoment.table.excelData.workbookName,
 		workSheet: excelLes.lesMoment.table.excelData.worksheetName,
 		hash: excelLes.getHash(),
-		ignore: excelLes.ignore
+		ignore: excelLes.ignore,
+		gradeYears: excelLes.gradeYears
 	};
 }
 function createDiffTable(divResults) {

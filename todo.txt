@@ -1,6 +1,9 @@
 * Include grade and year?
-  > if not specified in excel - ignore?
-    > yes.
+  > add a grade and year column to the translation table.
+  > this gets parsed:
+    - 1 + 2 is years, not grades.
+      > at least match on year.
+
 
 * Diffs: goto buttons
   - to the dko3 les

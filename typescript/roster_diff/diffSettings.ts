@@ -2,7 +2,9 @@ import {cloud} from "../cloud";
 
 export type TagDef = {
     tag: string,
-    searchString: string
+    searchString: string,
+    grade?: string,
+    year?: number
 }
 
 export const defaultTagDefs: TagDef[] = [

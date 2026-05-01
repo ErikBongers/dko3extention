@@ -1,6 +1,6 @@
 import {JsonExcelData} from "./excel";
 import {RosterFactory} from "./rosterFactory";
-import {ClassDef, ExcelRoster, TeacherDef, TimeSlice} from "./excelRoster";
+import {ClassDef, ExcelRoster, GradeYear, TeacherDef, TimeSlice} from "./excelRoster";
 import {cloud, deleteNotification, fetchExcelData, fetchFolderChanged, fetchIgnoredDiffHashes} from "../cloud";
 import {FetchChain} from "../table/fetchChain";
 import {pad, Schoolyear} from "../globals";
@@ -187,6 +187,7 @@ export abstract class TaggedLes<T extends ClassDef | Dko3LesMoment> {
     subjects: string[];
     linkedLesMomenten: TaggedLes<T>[] = [];
     ignore: boolean;
+    gradeYears: GradeYear[];
 
     protected constructor(les: T, tags: string[], searchText: string) {
         this.lesMoment = les;
@@ -529,38 +530,46 @@ export function getDiffsCloudFileName(academie: string, schoolYear: string) {
 }
 
 export async function getDiffsFromCloud(academie: string, schoolYear: string): Promise<JsonDiffs | null> {
-    return await cloud.json.fetch(getDiffsCloudFileName(academie, schoolYear))
+    let fromCloud= await cloud.json.fetch(getDiffsCloudFileName(academie, schoolYear))
         .catch(function (err: any): null {
             console.log(err);
             return null;
         }) as JsonDiffs | null;
+    if(fromCloud) {  //todo: temp until cloud is updated.
+        for (let diff of fromCloud.diffs) {
+            if (!diff.dko3Les.gradeYears) diff.dko3Les.gradeYears = [];
+            if (!diff.excelLes.gradeYears) diff.excelLes.gradeYears = [];
+        }
+        for(let orphan of fromCloud.orphanedDko3Lessen)
+            if(!orphan.gradeYears) orphan.gradeYears = [];
+        for(let orphan of fromCloud.orphanedExcelLessen)
+            if(!orphan.gradeYears) orphan.gradeYears = [];
+    }
+    return fromCloud;
 }
 
-export interface JsonExcelLesMoment {
-    subject: string;
-    teacher: string;
+export interface JsonBasicLesMoment {
+    subjects: string;
+    teachers: string;
     day: DayUppercase;
     timeSlice: string;
     location: string;
+    hash: string;
+    ignore: boolean;
+    gradeYears: GradeYear[];
+}
+
+export interface JsonExcelLesMoment extends JsonBasicLesMoment{
     excelRow: number;
     excelColumn: number;
     cellValue: string;
     workBook: string;
     workSheet: string;
-    hash: string;
-    ignore: boolean;
 }
 
-export interface JsonDko3LesMoment {
-    subject: string;
-    teacher: string;
-    day: DayUppercase;
-    timeSlice: string;
-    location: string;
+export interface JsonDko3LesMoment extends JsonBasicLesMoment{
     lesId: string;
     momentId: string;
-    hash: string;
-    ignore: boolean;
 }
 
 export interface JsonDiff {
@@ -646,11 +655,12 @@ function dko3LesToJson(dko3Les: TaggedDko3LesMoment): JsonDko3LesMoment {
         lesId: dko3Les.lesMoment.les.id,
         day: dko3Les.lesMoment.dayTimeSlice.day,
         timeSlice: toCompactTimeSliceString(dko3Les.lesMoment.dayTimeSlice.timeSlice!),
-        subject: dko3Les.subjects.join(","),
-        teacher: dko3Les.teachers.join(","),
+        subjects: dko3Les.subjects.join(","),
+        teachers: dko3Les.teachers.join(","),
         location: dko3Les.location!,
         hash: dko3Les.getHash(),
         ignore: dko3Les.ignore,
+        gradeYears: dko3Les.gradeYears,
     };
 }
 
@@ -660,14 +670,15 @@ function excelLesToJson(excelLes: TaggedExcelLes): JsonExcelLesMoment {
         excelRow: excelLes.lesMoment.excelRow,
         day: excelLes.lesMoment.day as DayUppercase,
         timeSlice: toCompactTimeSliceString(excelLes.lesMoment.timeSlice),
-        subject: excelLes.subjects.join(","),
-        teacher: excelLes.teachers.join(","),
+        subjects: excelLes.subjects.join(","),
+        teachers: excelLes.teachers.join(","),
         location: excelLes.location!,
         cellValue: excelLes.lesMoment.cellValue,
         workBook: excelLes.lesMoment.table.excelData.workbookName,
         workSheet: excelLes.lesMoment.table.excelData.worksheetName,
         hash: excelLes.getHash(),
-        ignore: excelLes.ignore
+        ignore: excelLes.ignore,
+        gradeYears: excelLes.gradeYears,
     };
 }
 

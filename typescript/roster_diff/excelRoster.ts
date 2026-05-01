@@ -3,9 +3,31 @@ import {RosterFactory} from "./rosterFactory";
 import {DayUppercase} from "../lessen/scrape";
 import {defaultIgnoreList, defaultTagDefs, DiffSettings, TagDef} from "./diffSettings";
 
-export type GradeYear = {
-    grade: string,
-    year: number
+export class GradeYear {
+    grade: string | null;
+    year: number | null;
+
+    public static equals(gradeYear1: GradeYear, gradeYear2: GradeYear) {
+        return gradeYear1.grade == gradeYear2.grade && gradeYear1.year == gradeYear2.year;
+    }
+
+    public static toString(gradeYears: GradeYear[]): string {
+        let str = "";
+
+        for(let gradeYear of gradeYears) {
+            if(str != "")
+                str += ", ";
+            if(gradeYear.grade)
+                str += gradeYear.grade;
+            if(gradeYear.year) {
+                if(gradeYear.grade)
+                    str += ".";
+                str += gradeYear.year;
+            }
+        }
+
+        return str;
+    }
 }
 
 export class ClassDef {
@@ -148,13 +170,17 @@ export class ExcelRoster {
                 let subjects = this.findSubjects(tags);
                 let tablePos: TablePos = {row, column};
                 let excelPos: ExcelPos = TablePos.toExcel(tablePos, this.table);
+                let gradeYears = this.findGradeYears(parseText);
+                if(gradeYears.length == 0) {
+                    gradeYears = this.getGradeYearsFromTags(tags, excelPos);
+                }
                 let classDef= new ClassDef(
                     day,
                     teacher,
                     timeSlice,
                     subjects,
                     location,
-                    this.findGradeYears(parseText),
+                    gradeYears,
                     excelPos.row,
                     excelPos.column,
                     cellValue,
@@ -268,6 +294,28 @@ export class ExcelRoster {
             }
             return gradeYears;
         }
+        return [];
+    }
+
+    private getGradeYearsFromTags(tags: string[], excelPos: ExcelPos) {
+        let gradeYear: GradeYear | null = null;
+        for(let tagName of tags) {
+            let tagDef = this.tagDefs.find(tag => tag.tag == tagName);
+            if(tagDef) {
+                if(gradeYear) {
+                    if(!GradeYear.equals(gradeYear, {grade: tagDef.grade??null, year: tagDef.year??null})) {
+                        this.errors.push(`Meerdere graden en jaren gevonden voor cel [${excelPos.row}, ${excelPos.column}] TODO: link to excel file.`);
+                    }
+                    continue;
+                }
+                gradeYear = {
+                    grade: tagDef.grade ?? null,
+                    year: tagDef.year ?? null
+                }
+            }
+        }
+        if(gradeYear)
+            return [gradeYear];
         return [];
     }
 }
