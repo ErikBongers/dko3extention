@@ -45,6 +45,7 @@ export class ClassDef {
     teacher: string;
     timeSlice: TimeSlice;
     subjects: string[];
+    className: string | null;
     location: string;
     gradeYears: GradeYear[];
     excelRow: number;
@@ -54,7 +55,7 @@ export class ClassDef {
     hash: string;
     ignore: boolean;
 
-    constructor(day: DayUppercase, teacher: string, timeSlice: TimeSlice, subjects: string[], location: string, gradeYears: GradeYear[], excelRow: number, excelColumn: number, cellValue: string, table: Table) {
+    constructor(day: DayUppercase, teacher: string, timeSlice: TimeSlice, subjects: string[], location: string, gradeYears: GradeYear[], excelRow: number, excelColumn: number, cellValue: string, table: Table, className: string | null) {
         this.day = day;
         this.teacher = teacher;
         this.timeSlice = timeSlice;
@@ -65,6 +66,7 @@ export class ClassDef {
         this.excelColumn = excelColumn;
         this.cellValue = cellValue;
         this.table = table;
+        this.className = className;
         this.hash = cellValue + day + teacher + TimeSlice.toString(timeSlice); //cellvalue + table headers should be defining enough.
     }
 
@@ -120,13 +122,15 @@ export class ExcelRoster {
     public readonly table: Table;
     private locationDefs: string[];
     private readonly subjectDefs: string[];
+    private readonly classNames: string[];
     private errors: string[] = [];
     private tagDefs: TagDef[];
     public ignoreList: string[];
-    public constructor(table: Table, locations: string[], subjects: string[], diffSettings: DiffSettings) {
+    public constructor(table: Table, locations: string[], subjects: string[], diffSettings: DiffSettings, classNames: string[]) {
         this.table = table;
         this.locationDefs = locations;
         this.subjectDefs = subjects;
+        this.classNames = classNames;
         this.tagDefs = diffSettings.tagDefs;
         this.ignoreList = diffSettings.ignoreList;
     }
@@ -179,6 +183,7 @@ export class ExcelRoster {
                 let tagStrings = tags.map(t => t.tag);
                 let location = this.findLocation(tagStrings);
                 let subjects = this.findSubjects(parseText, tagStrings);
+                let className = this.findClassName(parseText);
                 let tablePos: TablePos = {row, column};
                 let excelPos: ExcelPos = TablePos.toExcel(tablePos, this.table);
                 let gradeYears = this.findGradeYears(parseText);
@@ -195,7 +200,8 @@ export class ExcelRoster {
                     excelPos.row,
                     excelPos.column,
                     cellValue,
-                    this.table
+                    this.table,
+                    className
                 );
                 classDefs.push(classDef);
                 row = mergedRange.End.row+1;
@@ -268,6 +274,16 @@ export class ExcelRoster {
         }
 
         return this.subjectDefs.filter(subject => allSearchStrings.includes(subject));
+    }
+
+    private findClassName(text: string) {
+        let lowerCase = text.toLowerCase();
+        for (let name of this.classNames) {
+            if(lowerCase.includes(" " + name.toLowerCase() + " "))
+                return name;
+        }
+
+        return null;
     }
 
     private findTags(text: string, tagDefs: TagDef[]) {

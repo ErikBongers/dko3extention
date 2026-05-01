@@ -151,6 +151,7 @@ export function fillDiffRow(tr: HTMLTableRowElement, jsonLes: JsonBasicLesMoment
     let diffDayClass: string = "";
     let diffSubjectClass: string = "";
     switch (diffType) {
+        case "match without subject": diffSubjectClass = ".diff"; break;
         case "match without location": diffLocationClass = ".diff"; break;
         case "match without gradeYears": diffGradeYearsClass = ".diff"; break;
         case "match without teacher": diffTeacherClass = ".diff"; break;
