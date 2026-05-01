@@ -5355,7 +5355,7 @@ function fillDiffRow(tr, jsonLes, diffType, rowType, rowId, cellValue, lesId, wo
 	tr.dataset.workbook = workBook;
 	tr.dataset.worksheet = worksheet;
 	tr.dataset.rowType = rowType;
-	emmet.appendChild(tr, `${tdSubjects}+td${diffGradeYears}{${GradeYear.toString(jsonLes.gradeYears)}}+td${diffTeacherClass}{${jsonLes.teachers}}+td${diffDayClass}{${toCompactDayString(jsonLes.day)}}+td${diffTimeClass}{${jsonLes.timeSlice}}+td${diffLocationClass}{${location}}+(td.buttonshow>button.goto>i.fas.${iconClass})+(td.button>button.goto.chkHide>i.fas.fa-check)`);
+	emmet.appendChild(tr, `${tdSubjects}+td${diffGradeYears}{${GradeYear.toString(jsonLes.gradeYears)}}+td${diffTeacherClass}{${jsonLes.teachers}}+td${diffDayClass}{${toCompactDayString(jsonLes.day)}}+td${diffTimeClass}{${jsonLes.timeSlice}}+td${diffLocationClass}{${jsonLes.location}}+(td.buttonshow>button.goto>i.fas.${iconClass})+(td.button>button.goto.chkHide>i.fas.fa-check)`);
 	let btnGoto = tr.querySelector("button.goto");
 	btnGoto.onclick = (ev) => gotoData(ev, academie, schoolYear);
 	let btnHide = tr.querySelector("button.chkHide");
