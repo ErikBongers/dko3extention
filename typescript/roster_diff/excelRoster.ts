@@ -166,8 +166,9 @@ export class ExcelRoster {
                     timeSlice = this.moveTimeSliceTo(timeSlice, times[0]);
                 }
                 let tags = this.findTags(parseText, this.tagDefs);
-                let location = this.findLocation(tags);
-                let subjects = this.findSubjects(tags);
+                let tagStrings = tags.map(t => t.tag);
+                let location = this.findLocation(tagStrings);
+                let subjects = this.findSubjects(parseText, tagStrings);
                 let tablePos: TablePos = {row, column};
                 let excelPos: ExcelPos = TablePos.toExcel(tablePos, this.table);
                 let gradeYears = this.findGradeYears(parseText);
@@ -248,20 +249,23 @@ export class ExcelRoster {
             return "Academie Willem Van Laarstraat, Berchem";
     }
 
-    private findSubjects(tags: string[]) {
-        return this.subjectDefs.filter(subject => tags.includes(subject));
+    private findSubjects(text: string, tags: string[]) {
+        let allSearchStrings = [...tags];
+        let lowerCase = text.toLowerCase();
+        for (let subject of this.subjectDefs) {
+            if(lowerCase.includes(subject.toLowerCase()))
+                allSearchStrings.push(subject);
+        }
+
+        return this.subjectDefs.filter(subject => allSearchStrings.includes(subject));
     }
 
     private findTags(text: string, tagDefs: TagDef[]) {
-        let tags: string[] = [];
+        let tags: TagDef[] = [];
         let lowerCase = text.toLowerCase();
         for (let def of tagDefs) {
             if(lowerCase.includes(def.searchString))
-                tags.push(def.tag);
-        }
-        for (let subject of this.subjectDefs) {
-            if(lowerCase.includes(subject.toLowerCase()))
-                tags.push(subject);
+                tags.push(def);
         }
         return tags;
     }
@@ -297,21 +301,18 @@ export class ExcelRoster {
         return [];
     }
 
-    private getGradeYearsFromTags(tags: string[], excelPos: ExcelPos) {
+    private getGradeYearsFromTags(tags: TagDef[], excelPos: ExcelPos) {
         let gradeYear: GradeYear | null = null;
-        for(let tagName of tags) {
-            let tagDef = this.tagDefs.find(tag => tag.tag == tagName);
-            if(tagDef) {
-                if(gradeYear) {
-                    if(!GradeYear.equals(gradeYear, {grade: tagDef.grade??null, year: tagDef.year??null})) {
-                        this.errors.push(`Meerdere graden en jaren gevonden voor cel [${excelPos.row}, ${excelPos.column}] TODO: link to excel file.`);
-                    }
-                    continue;
+        for(let tagDef of tags) {
+            if(gradeYear) {
+                if(!GradeYear.equals(gradeYear, {grade: tagDef.grade??null, year: tagDef.year??null})) {
+                    this.errors.push(`Meerdere graden en jaren gevonden voor cel [${excelPos.row}, ${excelPos.column}] TODO: link to excel file.`);
                 }
-                gradeYear = {
-                    grade: tagDef.grade ?? null,
-                    year: tagDef.year ?? null
-                }
+                continue;
+            }
+            gradeYear = {
+                grade: tagDef.grade ?? null,
+                year: tagDef.year ?? null
             }
         }
         if(gradeYear)

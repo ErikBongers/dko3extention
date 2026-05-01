@@ -163,10 +163,14 @@ export function fillDiffRow(tr: HTMLTableRowElement, jsonLes: JsonBasicLesMoment
         diffLocationClass = ".diff";
     }
     let tdSubjects: string;
+    let strSubjects = jsonLes.subjects;
     if(jsonLes.subjects == "") {
         diffSubjectClass = ".diff";
-        tdSubjects = `(td${diffSubjectClass}>div.diffTooltip{-onbekend-}>span.diffTooltiptext{${cellValue}})`;
-    } else
+        strSubjects = "-onbekend-";
+    }
+    if(rowType == "excel")
+        tdSubjects = `(td${diffSubjectClass}>div.diffTooltip{${strSubjects}}>span.diffTooltiptext{${cellValue}})`;
+    else
         tdSubjects = `td${diffSubjectClass}{${jsonLes.subjects}}`;
     let diffGradeYears = ""; //todo: check if different.
     let iconClass = rowType == "excel" ? "fa-grid" : "fa-chalkboard-user";

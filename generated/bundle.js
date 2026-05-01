@@ -1768,8 +1768,9 @@ var ExcelRoster = class {
 				if (times.length === 2) timeSlice = new TimeSlice(times[0], times[1]);
 				else if (times.length === 1) timeSlice = this.moveTimeSliceTo(timeSlice, times[0]);
 				let tags = this.findTags(parseText, this.tagDefs);
-				let location$1 = this.findLocation(tags);
-				let subjects = this.findSubjects(tags);
+				let tagStrings = tags.map((t) => t.tag);
+				let location$1 = this.findLocation(tagStrings);
+				let subjects = this.findSubjects(parseText, tagStrings);
 				let tablePos = {
 					row,
 					column
@@ -1828,14 +1829,16 @@ var ExcelRoster = class {
 		if (location$1) return location$1;
 		else return "Academie Willem Van Laarstraat, Berchem";
 	}
-	findSubjects(tags) {
-		return this.subjectDefs.filter((subject) => tags.includes(subject));
+	findSubjects(text, tags) {
+		let allSearchStrings = [...tags];
+		let lowerCase = text.toLowerCase();
+		for (let subject of this.subjectDefs) if (lowerCase.includes(subject.toLowerCase())) allSearchStrings.push(subject);
+		return this.subjectDefs.filter((subject) => allSearchStrings.includes(subject));
 	}
 	findTags(text, tagDefs) {
 		let tags = [];
 		let lowerCase = text.toLowerCase();
-		for (let def of tagDefs) if (lowerCase.includes(def.searchString)) tags.push(def.tag);
-		for (let subject of this.subjectDefs) if (lowerCase.includes(subject.toLowerCase())) tags.push(subject);
+		for (let def of tagDefs) if (lowerCase.includes(def.searchString)) tags.push(def);
 		return tags;
 	}
 	findGradeYears(text) {
@@ -1870,21 +1873,18 @@ var ExcelRoster = class {
 	}
 	getGradeYearsFromTags(tags, excelPos) {
 		let gradeYear = null;
-		for (let tagName of tags) {
-			let tagDef = this.tagDefs.find((tag) => tag.tag == tagName);
-			if (tagDef) {
-				if (gradeYear) {
-					if (!GradeYear.equals(gradeYear, {
-						grade: tagDef.grade ?? null,
-						year: tagDef.year ?? null
-					})) this.errors.push(`Meerdere graden en jaren gevonden voor cel [${excelPos.row}, ${excelPos.column}] TODO: link to excel file.`);
-					continue;
-				}
-				gradeYear = {
+		for (let tagDef of tags) {
+			if (gradeYear) {
+				if (!GradeYear.equals(gradeYear, {
 					grade: tagDef.grade ?? null,
 					year: tagDef.year ?? null
-				};
+				})) this.errors.push(`Meerdere graden en jaren gevonden voor cel [${excelPos.row}, ${excelPos.column}] TODO: link to excel file.`);
+				continue;
 			}
+			gradeYear = {
+				grade: tagDef.grade ?? null,
+				year: tagDef.year ?? null
+			};
 		}
 		if (gradeYear) return [gradeYear];
 		return [];
@@ -5343,10 +5343,13 @@ function fillDiffRow(tr, jsonLes, diffType, rowType, rowId, cellValue, lesId, wo
 		diffLocationClass = ".diff";
 	}
 	let tdSubjects;
+	let strSubjects = jsonLes.subjects;
 	if (jsonLes.subjects == "") {
 		diffSubjectClass = ".diff";
-		tdSubjects = `(td${diffSubjectClass}>div.diffTooltip{-onbekend-}>span.diffTooltiptext{${cellValue}})`;
-	} else tdSubjects = `td${diffSubjectClass}{${jsonLes.subjects}}`;
+		strSubjects = "-onbekend-";
+	}
+	if (rowType == "excel") tdSubjects = `(td${diffSubjectClass}>div.diffTooltip{${strSubjects}}>span.diffTooltiptext{${cellValue}})`;
+	else tdSubjects = `td${diffSubjectClass}{${jsonLes.subjects}}`;
 	let diffGradeYears = "";
 	let iconClass = rowType == "excel" ? "fa-grid" : "fa-chalkboard-user";
 	tr.dataset.lesId = lesId;
