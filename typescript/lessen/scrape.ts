@@ -254,6 +254,8 @@ export function scrapeLesInfo(row: HTMLTableRowElement): HtmlLes {
     les.lesmoment = textNodes[0].nodeValue!;
     les.vestiging = textNodes[1].nodeValue!;
     let infoSpansText = [...lesCell.querySelectorAll("span.text-info")].map(e => e.textContent);
+    if(les.id == "6587")
+        debugger;
     les.gradeYears = textsToYearGrades(infoSpansText);
     splitLesMoment(les);
     return htmlLes;
@@ -385,10 +387,10 @@ function parseLesMoment(text: string): DayTimeSlice {
 function textsToYearGrades(texts: string[]){
     let yearGrades: GradeYear[] = [];
     texts.forEach(text => {
-        let rxNumbersCommasDots = /^[\s\d,.]+$/gm;
+        let rxNumbersCommasDots = /^[\s\d,.SC]+$/gm;
         if(rxNumbersCommasDots.test(text)) {
             let commaSeparatedTexts = text.split(",");
-            let rxDigitDotDigit = /(\d).(\d)/g;
+            let rxDigitDotDigit = /([\dSC]).(\d)/g;
             for(let candidate of commaSeparatedTexts) {
                 let matches = [...candidate.matchAll(rxDigitDotDigit)];
                 if(matches.length < 1)
