@@ -2103,9 +2103,12 @@ function scrapeLesInfo(row) {
 	les.online = lesCell.getElementsByClassName("fa-eye-slash").length === 0;
 	les.tags = Array.from(warningBadges).map((el) => el.textContent).filter((txt) => txt !== "ALC").filter((txt) => txt);
 	let mutedSpans = lesCell.querySelectorAll("span.text-muted");
-	if (mutedSpans.length > 1) les.naam = mutedSpans.item(0).textContent;
-	else les.naam = lesCell.children[1].textContent;
-	les.naam = les.naam.replaceAll("(", "").replaceAll(")", "").trim();
+	let lesName = "";
+	for (const el of lesCell.children) {
+		if (el.tagName === "BR") break;
+		if (el.tagName == "SPAN") lesName = el.textContent;
+	}
+	les.naam = lesName.replaceAll("(", "").replaceAll(")", "").trim();
 	if (Array.from(allBadges).some((el) => el.textContent === "module")) if (les.naam.includes("jaar")) les.lesType = LesType$1.JaarModule;
 	else if (les.naam.includes("rimester")) les.lesType = LesType$1.TrimesterModule;
 	else les.lesType = LesType$1.UnknownModule;

@@ -216,15 +216,15 @@ export function scrapeLesInfo(row: HTMLTableRowElement): HtmlLes {
         .filter((txt) => txt !== "ALC")
         .filter((txt) => txt);
     let mutedSpans = lesCell.querySelectorAll("span.text-muted");
-    //muted spans contain:
-    //  - class name (optional)
-    //  - teacher name (always)
-    if(mutedSpans.length > 1) {
-        les.naam = mutedSpans.item(0).textContent;
-    } else {
-        les.naam = lesCell.children[1].textContent;
+    let lesName = "";
+    //className is in the span on the 1st line (before BR)
+    for (const el of lesCell.children) {
+        if (el.tagName === 'BR') break;
+        if(el.tagName == "SPAN")
+            lesName = el.textContent;
     }
-    les.naam = les.naam
+
+    les.naam = lesName
         .replaceAll("(", "")
         .replaceAll(")", "")
         .trim();
