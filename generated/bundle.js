@@ -5587,6 +5587,7 @@ async function scrapeLessen(domein, type, schoolYear) {
 }
 var Dko3LesMoment = class Dko3LesMoment {
 	les;
+	lesMomenten = [];
 	dayTimeSlice;
 	momentId;
 	ignore;
@@ -5665,9 +5666,11 @@ async function buildDiff(excelLessen, dko3Data, reportStatus, diffSettings) {
 	});
 	let lesMomenten = dko3Data.lessen.filter((les) => !isDko3LesToIgnore(les, diffSettings.ignoreList)).map((les) => {
 		if (les.dayTimeSlices.length == 0) reportStatus(`Les <a href="https://administratie.dko3.cloud/#lessen-les?id=${les.id}">${les.id}</a> heeft geen lesmoment.`, "error");
-		return les.dayTimeSlices.map((slice) => {
+		let lesMomenten$1 = les.dayTimeSlices.map((slice) => {
 			return new Dko3LesMoment(les, slice);
 		});
+		for (let moment of lesMomenten$1) moment.lesMomenten = lesMomenten$1;
+		return lesMomenten$1;
 	}).flat().map((lesMoment) => new TaggedDko3LesMoment(lesMoment));
 	let dko3LesSet = new Set(lesMomenten);
 	let dko3LesMap = new Map();

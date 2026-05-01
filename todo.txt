@@ -1,22 +1,8 @@
-GradeYears
-===========
-Duo classes
-------------
-> If class has a sibling:
-  > when matching, one lesmoment should have one teacher, the other lesmoment should have the other teacher.
-    > but: perhaps 2 teachers work with the class at the same moment...
-      > ignore for now. Issue a warning if this is the case.
-    > but: a split class can also have ONE teacher.
-
-  If split class has 1 teacher specified and one left blank in excel and 1 specified in dko3: IGNORE !!!!
-    > only in these specific conditions!
-    So...if we are comparing 2 lesmoments and excel has no teacher but dko3 HAS as teacher:
-      > check if there's a sibling in excel that has that teacher.
-  Technical:
-    > We only have siblings for DKO3 classes.
-    > After first diff scan, do a 2nd round:
-      - for only those where the excel teacher is missing and the dko3 teacher is filled and the dko3 les has a sibling, do the above check.
-        > if check is ok: delete the diff.
+2 Lesmoments for 1 les
+========================
+DKO3 knows the 2 moments.
+  > these are split up in separate diff lines.
+    > add a ref to eachother.
 
 
 * Diffs: goto buttons

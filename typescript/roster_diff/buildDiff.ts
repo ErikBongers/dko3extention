@@ -164,6 +164,7 @@ export interface Diff {
 
 export class Dko3LesMoment {
     les: Les;
+    lesMomenten: Dko3LesMoment[] = [];
     dayTimeSlice: DayTimeSlice;
     momentId: string;
     ignore: boolean;
@@ -273,10 +274,14 @@ async function buildDiff(excelLessen: ClassDef[], dko3Data: Dko3DiffData, report
         .map(les => {
             if(les.dayTimeSlices.length == 0)
                 reportStatus(`Les <a href="https://administratie.dko3.cloud/#lessen-les?id=${les.id}">${les.id}</a> heeft geen lesmoment.`, "error");
-            return les.dayTimeSlices
+            let lesMomenten = les.dayTimeSlices
                 .map(slice => {
                     return new Dko3LesMoment(les, slice);
                 });
+            for(let moment of lesMomenten)
+                moment.lesMomenten = lesMomenten;
+
+            return lesMomenten;
         })
         .flat()
         .map(lesMoment => new TaggedDko3LesMoment(lesMoment));
