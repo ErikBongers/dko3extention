@@ -1892,6 +1892,7 @@ var ExcelRoster = class {
 			grade: tagDef.grade ?? null,
 			year: tagDef.year ?? null
 		});
+		gradeYears = gradeYears.filter((value, index, self) => self.findIndex((t) => GradeYear.equals(t, value)) === index);
 		return gradeYears;
 	}
 };

@@ -338,6 +338,8 @@ export class ExcelRoster {
                 });
             }
         }
+        //make distinct
+        gradeYears = gradeYears.filter((value, index, self) => self.findIndex(t => GradeYear.equals(t, value)) === index);
         return gradeYears;
     }
 }
