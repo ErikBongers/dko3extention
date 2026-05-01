@@ -11,6 +11,16 @@ export class GradeYear {
         return gradeYear1.grade == gradeYear2.grade && gradeYear1.year == gradeYear2.year;
     }
 
+    public static contains(partial: GradeYear, exact: GradeYear) {
+        // 2._ contains 2.1 2.2 ...
+        // _.1 contains 2.1 3.1 ...
+        if(partial.grade && partial.grade != exact.grade)
+            return false;
+        if(partial.year && partial.year != exact.year)
+            return false;
+        return true;
+    }
+
     public static toString(gradeYears: GradeYear[]): string {
         let str = "";
 

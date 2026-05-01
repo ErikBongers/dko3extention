@@ -145,12 +145,14 @@ export function fillDiffRow(tr: HTMLTableRowElement, jsonLes: JsonBasicLesMoment
     if(ignore)
         tr.classList.add("ignore");
     let diffTeacherClass: string = "";
+    let diffGradeYearsClass: string = "";
     let diffLocationClass: string = "";
     let diffTimeClass: string = "";
     let diffDayClass: string = "";
     let diffSubjectClass: string = "";
     switch (diffType) {
         case "match without location": diffLocationClass = ".diff"; break;
+        case "match without gradeYears": diffGradeYearsClass = ".diff"; break;
         case "match without teacher": diffTeacherClass = ".diff"; break;
         case "match without time": diffTimeClass = ".diff"; break;
         case "match without time and day": diffTimeClass = ".diff"; diffDayClass = ".diff"; break;
@@ -172,7 +174,6 @@ export function fillDiffRow(tr: HTMLTableRowElement, jsonLes: JsonBasicLesMoment
         tdSubjects = `(td${diffSubjectClass}>div.diffTooltip{${strSubjects}}>span.diffTooltiptext{${cellValue}})`;
     else
         tdSubjects = `td${diffSubjectClass}{${jsonLes.subjects}}`;
-    let diffGradeYears = ""; //todo: check if different.
     let iconClass = rowType == "excel" ? "fa-grid" : "fa-chalkboard-user";
     tr.dataset.lesId = lesId;
     tr.dataset.hash = hash;
@@ -180,7 +181,7 @@ export function fillDiffRow(tr: HTMLTableRowElement, jsonLes: JsonBasicLesMoment
     tr.dataset.workbook = workBook;
     tr.dataset.worksheet = worksheet;
     tr.dataset.rowType = rowType;
-    emmet.appendChild(tr, `${tdSubjects}+td${diffGradeYears}{${GradeYear.toString(jsonLes.gradeYears)}}+td${diffTeacherClass}{${jsonLes.teachers}}+td${diffDayClass}{${toCompactDayString(jsonLes.day as DayUppercase)}}+td${diffTimeClass}{${jsonLes.timeSlice}}+td${diffLocationClass}{${jsonLes.location}}+(td.buttonshow>button.goto>i.fas.${iconClass})+(td.button>button.goto.chkHide>i.fas.fa-check)`)
+    emmet.appendChild(tr, `${tdSubjects}+td${diffGradeYearsClass}{${GradeYear.toString(jsonLes.gradeYears)}}+td${diffTeacherClass}{${jsonLes.teachers}}+td${diffDayClass}{${toCompactDayString(jsonLes.day as DayUppercase)}}+td${diffTimeClass}{${jsonLes.timeSlice}}+td${diffLocationClass}{${jsonLes.location}}+(td.buttonshow>button.goto>i.fas.${iconClass})+(td.button>button.goto.chkHide>i.fas.fa-check)`)
     let btnGoto = tr.querySelector("button.goto") as HTMLButtonElement;
     btnGoto.onclick = (ev) => gotoData(ev, academie, schoolYear);
     let btnHide = tr.querySelector("button.chkHide") as HTMLButtonElement;
