@@ -254,8 +254,6 @@ export function scrapeLesInfo(row: HTMLTableRowElement): HtmlLes {
     les.lesmoment = textNodes[0].nodeValue!;
     les.vestiging = textNodes[1].nodeValue!;
     let infoSpansText = [...lesCell.querySelectorAll("span.text-info")].map(e => e.textContent);
-    if(les.id == "6587")
-        debugger;
     les.gradeYears = textsToYearGrades(infoSpansText);
     splitLesMoment(les);
     return htmlLes;
