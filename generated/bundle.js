@@ -1762,7 +1762,7 @@ var ExcelRoster = class {
 			if (cellValue) {
 				let rx = /\n/g;
 				let description = cellValue.replaceAll(rx, " ");
-				let parseText = " " + description.replaceAll("(", " ( ").replaceAll(")", " ) ").replaceAll(",", " , ").replaceAll("+", " + ").replaceAll("  ", " ").replaceAll("  ", " ") + " ";
+				let parseText = " " + description.replaceAll("(", " ( ").replaceAll(")", " ) ").replaceAll(",", " , ").replaceAll("+", " + ").replaceAll(" en ", " , ").replaceAll("  ", " ").replaceAll("  ", " ") + " ";
 				let timeSlice = void 0;
 				let mergedRange = this.table.RangeOfCell({
 					row,
@@ -1858,7 +1858,7 @@ var ExcelRoster = class {
 	}
 	findGradeYears(text) {
 		let gradeYears = [];
-		const rx = /\s+(?:(\d)\.(\d)|(S)(\d))(?:\s?[,+\/]\s?(?:(\d)\.(\d)|(S)(\d)))?(?:\s?[,+\/]\s?(?:(\d)\.(\d)|(S)(\d)))?(?:\s?[,+\/]\s?(?:(\d)\.(\d)|(S)(\d)))?(?:\s?[,+\/]\s?(?:(\d)\.(\d)|(S)(\d)))?/gm;
+		const rx = /\s+(?:(\d)\.(\d)|([SC])(\d))(?:\s?[,+\/]\s?(?:(\d)\.(\d)|([SC])(\d)))?(?:\s?[,+\/]\s?(?:(\d)\.(\d)|([SC])(\d)))?(?:\s?[,+\/]\s?(?:(\d)\.(\d)|([SC])(\d)))?(?:\s?[,+\/]\s?(?:(\d)\.(\d)|([SC])(\d)))?/gm;
 		let matches = rx.exec(text);
 		if (matches) {
 			let strippedMatches = matches.filter((m) => m);

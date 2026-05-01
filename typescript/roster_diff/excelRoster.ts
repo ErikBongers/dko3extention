@@ -165,6 +165,7 @@ export class ExcelRoster {
                     .replaceAll(")", " ) ")
                     .replaceAll(",", " , ")
                     .replaceAll("+", " + ")
+                    .replaceAll(" en ", " , ")
                     .replaceAll("  ", " ") //dedup spaces //" Woordatelier 3 + 4 DNV Tegelzaal Minimum 7 lln "
                     .replaceAll("  ", " ") //dedup spaces
                     + " ";
@@ -300,7 +301,7 @@ export class ExcelRoster {
 
     private findGradeYears(text: string) {
         let gradeYears: GradeYear[] = [];
-        const rx = /\s+(?:(\d)\.(\d)|(S)(\d))(?:\s?[,+\/]\s?(?:(\d)\.(\d)|(S)(\d)))?(?:\s?[,+\/]\s?(?:(\d)\.(\d)|(S)(\d)))?(?:\s?[,+\/]\s?(?:(\d)\.(\d)|(S)(\d)))?(?:\s?[,+\/]\s?(?:(\d)\.(\d)|(S)(\d)))?/gm;
+        const rx = /\s+(?:(\d)\.(\d)|([SC])(\d))(?:\s?[,+\/]\s?(?:(\d)\.(\d)|([SC])(\d)))?(?:\s?[,+\/]\s?(?:(\d)\.(\d)|([SC])(\d)))?(?:\s?[,+\/]\s?(?:(\d)\.(\d)|([SC])(\d)))?(?:\s?[,+\/]\s?(?:(\d)\.(\d)|([SC])(\d)))?/gm;
         let matches = rx.exec(text);
         if(matches) {
             let strippedMatches = matches.filter(m => m);
