@@ -164,7 +164,7 @@ export interface Diff {
 
 export class Dko3LesMoment {
     les: Les;
-    lesMomenten: Dko3LesMoment[] = [];
+    lesMomenten: Dko3LesMoment[] = []; //contains itself!
     dayTimeSlice: DayTimeSlice;
     momentId: string;
     ignore: boolean;
