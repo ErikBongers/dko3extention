@@ -5658,12 +5658,7 @@ function isDko3LesToIgnore(les, ignoreList) {
 function isExcelLesToIgnore(les, ignoreList) {
 	return ignoreList.some((ignore) => les.lesMoment.cellValue.includes(ignore)) || ignoreList.some((ignore) => les.searchText.includes(ignore));
 }
-async function buildDiff(excelLessen, dko3Data, reportStatus, diffSettings) {
-	reportStatus("Lessen vergelijken...");
-	let excelLesSet = new Set(excelLessen.map((les) => new TaggedExcelLes(les, dko3Data.teachers)));
-	excelLesSet.forEach((les) => {
-		if (isExcelLesToIgnore(les, diffSettings.ignoreList)) excelLesSet.delete(les);
-	});
+function splitDko3LessenIntoLesmomenten(dko3Data, diffSettings, reportStatus) {
 	let lesMomenten = dko3Data.lessen.filter((les) => !isDko3LesToIgnore(les, diffSettings.ignoreList)).map((les) => {
 		if (les.dayTimeSlices.length == 0) reportStatus(`Les <a href="https://administratie.dko3.cloud/#lessen-les?id=${les.id}">${les.id}</a> heeft geen lesmoment.`, "error");
 		let lesMomenten$1 = les.dayTimeSlices.map((slice) => {
@@ -5672,7 +5667,10 @@ async function buildDiff(excelLessen, dko3Data, reportStatus, diffSettings) {
 		for (let moment of lesMomenten$1) moment.lesMomenten = lesMomenten$1;
 		return lesMomenten$1;
 	}).flat().map((lesMoment) => new TaggedDko3LesMoment(lesMoment));
-	let dko3LesSet = new Set(lesMomenten);
+	return new Set(lesMomenten);
+}
+function createLesMomenten(dko3Data, reportStatus, diffSettings) {
+	let dko3LesSet = splitDko3LessenIntoLesmomenten(dko3Data, diffSettings, reportStatus);
 	let dko3LesMap = new Map();
 	for (let les of dko3Data.lessen) dko3LesMap.set(les.id, les);
 	let lesMomentenMap = new Map();
@@ -5708,6 +5706,15 @@ async function buildDiff(excelLessen, dko3Data, reportStatus, diffSettings) {
 			} else previousLesMoment = currentLesMoment;
 		}
 	}
+	return dko3LesSet;
+}
+async function buildDiff(excelLessen, dko3Data, reportStatus, diffSettings) {
+	reportStatus("Lessen vergelijken...");
+	let excelLesSet = new Set(excelLessen.map((les) => new TaggedExcelLes(les, dko3Data.teachers)));
+	excelLesSet.forEach((les) => {
+		if (isExcelLesToIgnore(les, diffSettings.ignoreList)) excelLesSet.delete(les);
+	});
+	let dko3LesSet = createLesMomenten(dko3Data, reportStatus, diffSettings);
 	let extraTeacherCache = ExtraTeacherCache.fromJSON(dko3Data.extraTeachersCache ?? []);
 	for (const les1 of [...dko3LesSet.values()].filter((les) => les.lesMoment.les.teacher.includes("(en nog"))) les1.teachers = await extraTeacherCache.getExtraTeachers(les1.lesMoment.les.id);
 	let diffs = [];
