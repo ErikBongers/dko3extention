@@ -211,7 +211,8 @@ export class TaggedDko3LesMoment extends TaggedLes<Dko3LesMoment> {
         super(lesMoment, tags, searchText);
         this.location = this.lesMoment.les.vestiging;
         this.teachers = [this.lesMoment.les.teacher
-            .replaceAll(/ \(en nog \d\)/g, "")];
+            .replaceAll(/ \(en nog \d\)/g, "")]
+            .filter(t => t != "");
         this.subjects = this.lesMoment.les.vakNaam
             .split('+')
             .map(txt => txt.trim());
@@ -257,7 +258,9 @@ export class TaggedExcelLes extends TaggedLes<ClassDef> {
         let tags: string[] = [];
         super(les, tags, searchText);
         this.location = this.lesMoment.location;//translate probably already done.
-        this.teachers = this.lesMoment.teacher.split(/[\/,]/g).map(t => findTeacher(t, teachers));
+        this.teachers = this.lesMoment.teacher
+            .split(/[\/,]/g).map(t => findTeacher(t, teachers))
+            .filter(t => t != "");
         this.subjects = les.subjects;
         this.subjects = this.subjects.filter(s => s!!);
         if(this.lesMoment.className)
@@ -643,6 +646,7 @@ export async function fetchTeachers(schoolYear: string): Promise<TeacherDef[]> {
         .map((strong: HTMLElement) => strong.textContent)
         .map(name => {
             let split = name.split(",");
+            name = name.trim().replaceAll(" ,", ",");
             return {name, firstName: split[1].trim()};
         });
 }

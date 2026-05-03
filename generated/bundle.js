@@ -5605,7 +5605,7 @@ var TaggedDko3LesMoment = class extends TaggedLes {
 		let tags = [];
 		super(lesMoment, tags, searchText);
 		this.location = this.lesMoment.les.vestiging;
-		this.teachers = [this.lesMoment.les.teacher.replaceAll(/ \(en nog \d\)/g, "")];
+		this.teachers = [this.lesMoment.les.teacher.replaceAll(/ \(en nog \d\)/g, "")].filter((t) => t != "");
 		this.subjects = this.lesMoment.les.vakNaam.split("+").map((txt) => txt.trim());
 		this.subjects.push(lesMoment.les.naam);
 		this.subjects = this.subjects.filter((s) => s);
@@ -5635,7 +5635,7 @@ var TaggedExcelLes = class extends TaggedLes {
 		let tags = [];
 		super(les, tags, searchText);
 		this.location = this.lesMoment.location;
-		this.teachers = this.lesMoment.teacher.split(/[\/,]/g).map((t) => findTeacher(t, teachers));
+		this.teachers = this.lesMoment.teacher.split(/[\/,]/g).map((t) => findTeacher(t, teachers)).filter((t) => t != "");
 		this.subjects = les.subjects;
 		this.subjects = this.subjects.filter((s) => s);
 		if (this.lesMoment.className) this.subjects.push(this.lesMoment.className);
@@ -5952,6 +5952,7 @@ async function fetchTeachers(schoolYear) {
 	div.innerHTML = html;
 	return [...div.querySelectorAll(`td[data-label="Naam"] strong`)].map((strong) => strong.textContent).map((name) => {
 		let split = name.split(",");
+		name = name.trim().replaceAll(" ,", ",");
 		return {
 			name,
 			firstName: split[1].trim()
