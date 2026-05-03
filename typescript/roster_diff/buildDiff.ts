@@ -505,19 +505,16 @@ function createExcelLesNamesMap(excelLesSet: Set<TaggedExcelLes>) {
 }
 
 function matchBasedOnName(ctx: MatchContext, dko3Les: TaggedDko3LesMoment, excelLesSet: Set<TaggedExcelLes>): MatchResult | null {
+    let results: MatchResult[] = [];
+
     if(!ctx.excelLesNamesMap) {
         ctx.excelLesNamesMap = createExcelLesNamesMap(excelLesSet);
     }
     let excelLessen = ctx.excelLesNamesMap.get(dko3Les.lesMoment.les.naam.trim().toLowerCase())
     if(!excelLessen)
         return null;
-    if(dko3Les.lesMoment.lesMomenten.length == 1) {
-        let weight = weigh1000(dko3Les, excelLessen[0], undefined);
-        return {excelLes: excelLessen[0], weight};
-    }
 
     //Check for related lessen
-    let results: MatchResult[] = [];
     if(dko3Les.lesMoment.lesMomenten.length > 1) {
         for(let excelLes of excelLessen) {
             let weight = weigh1000(dko3Les, excelLes, excelLessen.map(l => l.teachers).flat());

@@ -5817,17 +5817,10 @@ function createExcelLesNamesMap(excelLesSet) {
 	return excelLesNamesMap;
 }
 function matchBasedOnName(ctx, dko3Les, excelLesSet) {
+	let results = [];
 	if (!ctx.excelLesNamesMap) ctx.excelLesNamesMap = createExcelLesNamesMap(excelLesSet);
 	let excelLessen = ctx.excelLesNamesMap.get(dko3Les.lesMoment.les.naam.trim().toLowerCase());
 	if (!excelLessen) return null;
-	if (dko3Les.lesMoment.lesMomenten.length == 1) {
-		let weight = weigh1000(dko3Les, excelLessen[0], void 0);
-		return {
-			excelLes: excelLessen[0],
-			weight
-		};
-	}
-	let results = [];
 	if (dko3Les.lesMoment.lesMomenten.length > 1) {
 		for (let excelLes of excelLessen) {
 			let weight = weigh1000(dko3Les, excelLes, excelLessen.map((l) => l.teachers).flat());
