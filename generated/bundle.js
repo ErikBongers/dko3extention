@@ -5821,7 +5821,7 @@ function matchBasedOnName(ctx, dko3Les, excelLesSet) {
 	let excelLessen = ctx.excelLesNamesMap.get(dko3Les.lesMoment.les.naam.trim().toLowerCase());
 	if (!excelLessen) return null;
 	if (dko3Les.lesMoment.lesMomenten.length == 1) {
-		let weight = weigh1000(dko3Les, excelLessen[0], excelLessen.map((l) => l.teachers).flat());
+		let weight = weigh1000(dko3Les, excelLessen[0], void 0);
 		return {
 			excelLes: excelLessen[0],
 			weight
