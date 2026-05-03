@@ -5291,11 +5291,11 @@ async function showDiffs(diffs, academie, schoolYear, dko3DiffData, diffSettings
 	decorateTableHeader(table, false);
 	for (let les of diffs.orphanedDko3Lessen) {
 		let tr = emmet.appendChild(tbody, "tr").last;
-		fillDiffRow(tr, les, "perfect match", "dko3", les.momentId, "", les.lesId, "", "", les.hash, les.ignore, academie, schoolYear);
+		fillDiffRow(tr, les, "perfect match", "dko3", les.momentId, "", les.lesId, "", "", les.hash, les.ignore, academie, schoolYear, null);
 	}
 	for (let les of diffs.orphanedExcelLessen) {
 		let tr = emmet.appendChild(tbody, "tr").last;
-		fillDiffRow(tr, les, "perfect match", "excel", excelPostoExcelAddress(les.excelRow, les.excelColumn), les.cellValue, "", les.workBook, les.workSheet, les.hash, les.ignore, academie, schoolYear);
+		fillDiffRow(tr, les, "perfect match", "excel", excelPostoExcelAddress(les.excelRow, les.excelColumn), les.cellValue, "", les.workBook, les.workSheet, les.hash, les.ignore, academie, schoolYear, null);
 		tr.classList.add("excelRow");
 	}
 	let ingore = localStorage.getItem(OPTION_HIDE_IGNORED_DIFFS) ?? "false";
@@ -5308,7 +5308,7 @@ async function runDiff(reportStatus, fetchListener, academie, schoolYear, dko3Di
 	return buildAndSaveDiff(reportStatus, fetchListener, academie, schoolYear, dko3DiffData, diffSettings);
 }
 function fillExcelDiffRow(tr, diff, academie, schoolYear) {
-	fillDiffRow(tr, diff.excelLes, diff.diffType, "excel", excelPostoExcelAddress(diff.excelLes.excelRow, diff.excelLes.excelColumn), diff.excelLes.cellValue, "", diff.excelLes.workBook, diff.excelLes.workSheet, diff.excelLes.hash, diff.excelLes.ignore, academie, schoolYear);
+	fillDiffRow(tr, diff.excelLes, diff.diffType, "excel", excelPostoExcelAddress(diff.excelLes.excelRow, diff.excelLes.excelColumn), diff.excelLes.cellValue, "", diff.excelLes.workBook, diff.excelLes.workSheet, diff.excelLes.hash, diff.excelLes.ignore, academie, schoolYear, diff.weight);
 }
 function displayDiff(diff, divResults, academie, schoolYear) {
 	let tbody = emmet.appendChild(divResults, "table.diff>tbody").last;
@@ -5316,43 +5316,21 @@ function displayDiff(diff, divResults, academie, schoolYear) {
 	fillExcelDiffRow(tr, diff, academie, schoolYear);
 	tr.classList.add("excelRow");
 	let tr2 = emmet.appendChild(tbody, "tr").last;
-	fillDiffRow(tr2, diff.dko3Les, diff.diffType, "dko3", diff.dko3Les.momentId, "", diff.dko3Les.lesId, "", "", diff.dko3Les.hash, diff.dko3Les.ignore, academie, schoolYear);
+	fillDiffRow(tr2, diff.dko3Les, diff.diffType, "dko3", diff.dko3Les.momentId, "", diff.dko3Les.lesId, "", "", diff.dko3Les.hash, diff.dko3Les.ignore, academie, schoolYear, diff.weight);
 }
-function fillDiffRow(tr, jsonLes, diffType, rowType, rowId, cellValue, lesId, workBook, worksheet, hash, ignore, academie, schoolYear) {
+function fillDiffRow(tr, jsonLes, diffType, rowType, rowId, cellValue, lesId, workBook, worksheet, hash, ignore, academie, schoolYear, weight) {
 	if (ignore) tr.classList.add("ignore");
 	let diffTeacherClass = "";
 	let diffGradeYearsClass = "";
 	let diffLocationClass = "";
 	let diffTimeClass = "";
-	let diffDayClass = "";
 	let diffSubjectClass = "";
-	switch (diffType) {
-		case "match without subject":
-			diffSubjectClass = ".diff";
-			break;
-		case "match without location":
-			diffLocationClass = ".diff";
-			break;
-		case "match without gradeYears":
-			diffGradeYearsClass = ".diff";
-			break;
-		case "match without teacher":
-			diffTeacherClass = ".diff";
-			break;
-		case "match without time":
-			diffTimeClass = ".diff";
-			break;
-		case "match without time and day":
-			diffTimeClass = ".diff";
-			diffDayClass = ".diff";
-			break;
-		case "match without teacher, time and day":
-			diffTeacherClass = ".diff";
-			diffTimeClass = ".diff";
-			diffDayClass = ".diff";
-			break;
-		case "perfect match": break;
-		default: unreachable(diffType);
+	if (weight) {
+		if (weight.diffSubject) diffSubjectClass = ".diff";
+		if (weight.diffLocation) diffLocationClass = ".diff";
+		if (weight.diffGradeYears) diffGradeYearsClass = ".diff";
+		if (weight.diffTeacher) diffTeacherClass = ".diff";
+		if (weight.diffDayTime) diffTimeClass = ".diff";
 	}
 	if (!jsonLes.location) {
 		jsonLes.location = "-onbekend-";
@@ -5373,7 +5351,7 @@ function fillDiffRow(tr, jsonLes, diffType, rowType, rowId, cellValue, lesId, wo
 	tr.dataset.workbook = workBook;
 	tr.dataset.worksheet = worksheet;
 	tr.dataset.rowType = rowType;
-	emmet.appendChild(tr, `${tdSubjects}+td${diffGradeYearsClass}{${GradeYear.toString(jsonLes.gradeYears)}}+td${diffTeacherClass}{${jsonLes.teachers}}+td${diffDayClass}{${toCompactDayString(jsonLes.day)}}+td${diffTimeClass}{${jsonLes.timeSlice}}+td${diffLocationClass}{${jsonLes.location}}+(td.buttonshow>button.goto>i.fas.${iconClass})+(td.button>button.goto.chkHide>i.fas.fa-check)`);
+	emmet.appendChild(tr, `${tdSubjects}+td${diffGradeYearsClass}{${GradeYear.toString(jsonLes.gradeYears)}}+td${diffTeacherClass}{${jsonLes.teachers}}+td${diffTimeClass}{${toCompactDayString(jsonLes.day)}}+td${diffTimeClass}{${jsonLes.timeSlice}}+td${diffLocationClass}{${jsonLes.location}}+(td.buttonshow>button.goto>i.fas.${iconClass})+(td.button>button.goto.chkHide>i.fas.fa-check)`);
 	let btnGoto = tr.querySelector("button.goto");
 	btnGoto.onclick = (ev) => gotoData(ev, academie, schoolYear);
 	let btnHide = tr.querySelector("button.chkHide");
@@ -5610,7 +5588,6 @@ var TaggedLes = class {
 	location;
 	teachers;
 	subjects;
-	linkedLesMomenten = [];
 	ignore;
 	gradeYears;
 	constructor(les, tags, searchText) {
@@ -5635,9 +5612,24 @@ var TaggedDko3LesMoment = class extends TaggedLes {
 		this.gradeYears = lesMoment.les.gradeYears;
 	}
 };
+var Weight = class {
+	weight = 1e3;
+	diffTeacher = false;
+	diffSubject = false;
+	diffLocation = false;
+	diffDayTime = false;
+	diffGradeYears = 0;
+	calcWeight() {
+		this.weight = 1e3;
+		if (this.diffSubject) this.weight -= 10;
+		if (this.diffDayTime) this.weight -= 10;
+		if (this.diffLocation) this.weight -= 10;
+		if (this.diffTeacher) this.weight -= 10;
+		this.weight -= this.diffGradeYears;
+	}
+};
 var TaggedExcelLes = class extends TaggedLes {
 	dayTimeSlice;
-	weight = 0;
 	constructor(les, teachers) {
 		let searchText = " " + les.cellValue.toLowerCase().replaceAll("\n", " \n ").replaceAll("(", " ( ").replaceAll(")", " ) ").replaceAll(".", " . ").replaceAll(",", " , ").replaceAll("-", " - ") + " ";
 		let tags = [];
@@ -5719,19 +5711,11 @@ async function buildDiff(excelLessen, dko3Data, reportStatus, diffSettings) {
 	for (const les1 of [...dko3LesSet.values()].filter((les) => les.lesMoment.les.teacher.includes("(en nog"))) les1.teachers = await extraTeacherCache.getExtraTeachers(les1.lesMoment.les.id);
 	let diffs = [];
 	let ctx = {};
-	diffs = matchIt(ctx, dko3LesSet, excelLesSet, "perfect match", matchOnNameOnly);
-	for (let diff of diffs) {
-		if (!diff.dko3Les.subjects.some((t) => diff.excelLes.subjects.includes(t))) diff.diffType = "match without subject";
-		if (!DayTimeSlice.equal(diff.dko3Les.lesMoment.dayTimeSlice, diff.excelLes.dayTimeSlice)) diff.diffType = "match without time and day";
-		if (diff.dko3Les.location != diff.excelLes.location) diff.diffType = "match without location";
-		if (!diff.dko3Les.teachers.some((t) => diff.excelLes.teachers.includes(t))) diff.diffType = "match without teacher";
-		for (let excelGradeYear of diff.excelLes.gradeYears) if (!dko3GradeYearsContain(diff.dko3Les.gradeYears, excelGradeYear)) diff.diffType = "match without gradeYears";
-	}
+	diffs = matchIt(ctx, dko3LesSet, excelLesSet, "perfect match", matchBasedOnName);
 	diffs.push(...matchIt(ctx, dko3LesSet, excelLesSet, "perfect match", perfectMatch));
 	diffs.push(...matchIt(ctx, dko3LesSet, excelLesSet, "match without gradeYears", matchWithoutGradeYears));
 	diffs.push(...matchIt(ctx, dko3LesSet, excelLesSet, "match without teacher", matchWithoutTeacher));
 	diffs.push(...matchIt(ctx, dko3LesSet, excelLesSet, "match without location", matchWithoutLocation));
-	diffs.push(...matchIt(ctx, dko3LesSet, excelLesSet, "match without time", matchWithoutTime));
 	diffs.push(...matchIt(ctx, dko3LesSet, excelLesSet, "match without time and day", matchWithoutTimeAndDay));
 	diffs.push(...matchIt(ctx, dko3LesSet, excelLesSet, "match without teacher, time and day", matchWithoutTeacherTimeAndDay));
 	console.log(diffs);
@@ -5790,15 +5774,16 @@ async function getAliassesForLes(lesId, reportStatus) {
 function matchIt(ctx, dko3LesSet, excelLesSet, diffType, matchFunction) {
 	let diffs = [];
 	for (let dko3Les of dko3LesSet) {
-		let excelLes = matchFunction(ctx, dko3Les, excelLesSet);
-		if (excelLes) {
+		let result = matchFunction(ctx, dko3Les, excelLesSet);
+		if (result) {
 			diffs.push({
-				excelLes,
+				excelLes: result.excelLes,
 				dko3Les,
-				diffType
+				diffType,
+				weight: result.weight
 			});
 			dko3LesSet.delete(dko3Les);
-			excelLesSet.delete(excelLes);
+			excelLesSet.delete(result.excelLes);
 		}
 	}
 	return diffs;
@@ -5807,107 +5792,137 @@ function dko3GradeYearsContain(dko3GradeYears, excelGradeYear) {
 	for (let dko3GradeYear of dko3GradeYears) if (GradeYear.matches(excelGradeYear, dko3GradeYear)) return true;
 	return false;
 }
-function weigh(dko3Les, excelLes) {
-	let weight = 100;
-	if (!dko3Les.subjects.some((t) => excelLes.subjects.includes(t))) weight -= 10;
-	if (!DayTimeSlice.equal(dko3Les.lesMoment.dayTimeSlice, excelLes.dayTimeSlice)) weight -= 10;
-	if (dko3Les.location != excelLes.location) weight -= 10;
-	if (!dko3Les.teachers.some((t) => excelLes.teachers.includes(t))) weight -= 10;
-	for (let excelGradeYear of excelLes.gradeYears) if (!dko3GradeYearsContain(dko3Les.gradeYears, excelGradeYear)) weight -= 1;
-	if (excelLes.gradeYears.length != dko3Les.gradeYears.length) weight -= 1;
+function weigh1000(dko3Les, excelLes, extraExcelTeachers) {
+	let weight = new Weight();
+	weight.diffSubject = !dko3Les.subjects.some((t) => excelLes.subjects.includes(t));
+	weight.diffDayTime = !DayTimeSlice.equal(dko3Les.lesMoment.dayTimeSlice, excelLes.dayTimeSlice);
+	weight.diffLocation = dko3Les.location != excelLes.location;
+	if (extraExcelTeachers) weight.diffTeacher = !dko3Les.teachers.some((t) => extraExcelTeachers.includes(t));
+	else weight.diffTeacher = !dko3Les.teachers.some((t) => excelLes.teachers.includes(t));
+	for (let excelGradeYear of excelLes.gradeYears) if (!dko3GradeYearsContain(dko3Les.gradeYears, excelGradeYear)) weight.diffGradeYears++;
+	if (excelLes.gradeYears.length != dko3Les.gradeYears.length) weight.diffGradeYears++;
+	weight.calcWeight();
 	return weight;
 }
 function createExcelLesNamesMap(excelLesSet) {
 	let excelLesNamesMap = new Map();
 	for (let excelLes of excelLesSet) {
 		if (!excelLes.lesMoment.className) continue;
-		let item = excelLesNamesMap.get(excelLes.lesMoment.className);
-		if (!item) excelLesNamesMap.set(excelLes.lesMoment.className, [excelLes]);
+		let item = excelLesNamesMap.get(excelLes.lesMoment.className.toLowerCase());
+		if (!item) excelLesNamesMap.set(excelLes.lesMoment.className.toLowerCase(), [excelLes]);
 		else item.push(excelLes);
 	}
 	return excelLesNamesMap;
 }
-function matchOnNameOnly(ctx, dko3Les, excelLesSet) {
-	let matches = [];
-	if (ctx.excelLesNamesMap == void 0) ctx.excelLesNamesMap = createExcelLesNamesMap(excelLesSet);
-	for (let excelLes of excelLesSet) if (excelLes.lesMoment.className && dko3Les.lesMoment.les.naam) {
-		if (excelLes.lesMoment.className.trim().toLowerCase() == dko3Les.lesMoment.les.naam.trim().toLowerCase()) matches.push(excelLes);
+function matchBasedOnName(ctx, dko3Les, excelLesSet) {
+	if (!ctx.excelLesNamesMap) ctx.excelLesNamesMap = createExcelLesNamesMap(excelLesSet);
+	let excelLessen = ctx.excelLesNamesMap.get(dko3Les.lesMoment.les.naam.trim().toLowerCase());
+	if (!excelLessen) return null;
+	if (dko3Les.lesMoment.lesMomenten.length == 1) {
+		let weight = weigh1000(dko3Les, excelLessen[0], excelLessen.map((l) => l.teachers).flat());
+		return {
+			excelLes: excelLessen[0],
+			weight
+		};
 	}
-	if (matches.length == 0) return null;
-	if (matches.length == 1) return matches[0];
-	for (let excelLes of matches) excelLes.weight = weigh(dko3Les, excelLes);
-	matches.sort((a, b) => b.weight - a.weight);
-	return matches[0];
+	let results = [];
+	if (dko3Les.lesMoment.lesMomenten.length > 1) {
+		for (let excelLes of excelLessen) {
+			let weight = weigh1000(dko3Les, excelLes, excelLessen.map((l) => l.teachers).flat());
+			results.push({
+				excelLes,
+				weight
+			});
+		}
+		results.sort((a, b) => b.weight.weight - a.weight.weight);
+		return results[0];
+	}
+	for (let excelLes of excelLessen) {
+		let weight = weigh1000(dko3Les, excelLes);
+		results.push({
+			excelLes,
+			weight
+		});
+	}
+	results.sort((a, b) => b.weight.weight - a.weight.weight);
+	return results[0];
 }
 function perfectMatch(ctx, dko3Les, excelLesSet) {
-	lesLoop: for (let excelLes of excelLesSet) {
-		if (!dko3Les.subjects.some((t) => excelLes.subjects.includes(t))) continue;
-		if (!DayTimeSlice.equal(dko3Les.lesMoment.dayTimeSlice, excelLes.dayTimeSlice)) continue;
-		if (dko3Les.location != excelLes.location) continue;
-		if (!dko3Les.teachers.some((t) => excelLes.teachers.includes(t))) continue;
-		for (let excelGradeYear of excelLes.gradeYears) if (!dko3GradeYearsContain(dko3Les.gradeYears, excelGradeYear)) continue lesLoop;
-		if (excelLes.gradeYears.length != dko3Les.gradeYears.length) continue;
-		return excelLes;
+	for (let excelLes of excelLesSet) {
+		let weight = weigh1000(dko3Les, excelLes, void 0);
+		if (weight.weight == 1e3) return {
+			excelLes,
+			weight
+		};
 	}
 	return null;
 }
 function matchWithoutGradeYears(ctx, dko3Les, excelLesSet) {
 	for (let excelLes of excelLesSet) {
-		if (!dko3Les.subjects.some((t) => excelLes.subjects.includes(t))) continue;
-		if (!DayTimeSlice.equal(dko3Les.lesMoment.dayTimeSlice, excelLes.dayTimeSlice)) continue;
-		if (dko3Les.location != excelLes.location) continue;
-		if (!dko3Les.teachers.some((t) => excelLes.teachers.includes(t))) continue;
-		return excelLes;
+		let weight = weigh1000(dko3Les, excelLes, void 0);
+		if (weight.diffSubject) continue;
+		if (weight.diffDayTime) continue;
+		if (weight.diffLocation) continue;
+		if (weight.diffTeacher) continue;
+		return {
+			excelLes,
+			weight
+		};
 	}
 	return null;
 }
 function matchWithoutLocation(ctx, dko3Les, excelLesSet) {
-	lesLoop: for (let excelLes of excelLesSet) {
-		if (!dko3Les.subjects.some((t) => excelLes.subjects.includes(t))) continue;
-		if (!DayTimeSlice.equal(dko3Les.lesMoment.dayTimeSlice, excelLes.dayTimeSlice)) continue;
-		if (!dko3Les.teachers.some((t) => excelLes.teachers.includes(t))) continue;
-		for (let excelGradeYear of excelLes.gradeYears) for (let dko3GradeYear of dko3Les.gradeYears) if (!GradeYear.matches(excelGradeYear, dko3GradeYear)) continue lesLoop;
-		return excelLes;
-	}
-	return null;
-}
-function matchWithoutTime(ctx, dko3Les, excelLesSet) {
-	lesLoop: for (let excelLes of excelLesSet) {
-		if (!dko3Les.subjects.some((t) => excelLes.subjects.includes(t))) continue;
-		if (dko3Les.lesMoment.dayTimeSlice.day != excelLes.dayTimeSlice.day) continue;
-		if (dko3Les.location != excelLes.location) continue;
-		if (!dko3Les.teachers.some((t) => excelLes.teachers.includes(t))) continue;
-		for (let excelGradeYear of excelLes.gradeYears) for (let dko3GradeYear of dko3Les.gradeYears) if (!GradeYear.matches(excelGradeYear, dko3GradeYear)) continue lesLoop;
-		return excelLes;
+	for (let excelLes of excelLesSet) {
+		let weight = weigh1000(dko3Les, excelLes, void 0);
+		if (weight.diffSubject) continue;
+		if (weight.diffDayTime) continue;
+		if (weight.diffTeacher) continue;
+		if (weight.diffGradeYears != 0) continue;
+		return {
+			excelLes,
+			weight
+		};
 	}
 	return null;
 }
 function matchWithoutTimeAndDay(ctx, dko3Les, excelLesSet) {
-	lesLoop: for (let excelLes of excelLesSet) {
-		if (!dko3Les.subjects.some((t) => excelLes.subjects.includes(t))) continue;
-		if (dko3Les.location != excelLes.location) continue;
-		if (!dko3Les.teachers.some((t) => excelLes.teachers.includes(t))) continue;
-		for (let excelGradeYear of excelLes.gradeYears) for (let dko3GradeYear of dko3Les.gradeYears) if (!GradeYear.matches(excelGradeYear, dko3GradeYear)) continue lesLoop;
-		return excelLes;
+	for (let excelLes of excelLesSet) {
+		let weight = weigh1000(dko3Les, excelLes, void 0);
+		if (weight.diffSubject) continue;
+		if (weight.diffLocation) continue;
+		if (weight.diffTeacher) continue;
+		if (weight.diffGradeYears != 0) continue;
+		return {
+			excelLes,
+			weight
+		};
 	}
 	return null;
 }
 function matchWithoutTeacherTimeAndDay(ctx, dko3Les, excelLesSet) {
-	lesLoop: for (let excelLes of excelLesSet) {
-		if (!dko3Les.subjects.some((t) => excelLes.subjects.includes(t))) continue;
-		if (dko3Les.location != excelLes.location) continue;
-		for (let excelGradeYear of excelLes.gradeYears) for (let dko3GradeYear of dko3Les.gradeYears) if (!GradeYear.matches(excelGradeYear, dko3GradeYear)) continue lesLoop;
-		return excelLes;
+	for (let excelLes of excelLesSet) {
+		let weight = weigh1000(dko3Les, excelLes, void 0);
+		if (weight.diffSubject) continue;
+		if (weight.diffLocation) continue;
+		if (weight.diffGradeYears != 0) continue;
+		return {
+			excelLes,
+			weight
+		};
 	}
 	return null;
 }
 function matchWithoutTeacher(ctx, dko3Les, excelLesSet) {
-	lesLoop: for (let excelLes of excelLesSet) {
-		if (!dko3Les.subjects.some((t) => excelLes.subjects.includes(t))) continue;
-		if (!DayTimeSlice.equal(dko3Les.lesMoment.dayTimeSlice, excelLes.dayTimeSlice)) continue;
-		if (dko3Les.location != excelLes.location) continue;
-		for (let excelGradeYear of excelLes.gradeYears) for (let dko3GradeYear of dko3Les.gradeYears) if (!GradeYear.matches(excelGradeYear, dko3GradeYear)) continue lesLoop;
-		return excelLes;
+	for (let excelLes of excelLesSet) {
+		let weight = weigh1000(dko3Les, excelLes, void 0);
+		if (weight.diffSubject) continue;
+		if (weight.diffDayTime) continue;
+		if (weight.diffLocation) continue;
+		if (weight.diffGradeYears != 0) continue;
+		return {
+			excelLes,
+			weight
+		};
 	}
 	return null;
 }
@@ -5978,11 +5993,12 @@ async function setIgnoredFlags(orphanedDko3Lessen, orphanedExcelLessen, academie
 	} catch {}
 }
 async function createJsonDiffs(diffList, dko3LesSet, excelLesSet, excelRosters, academie, schoolYear) {
-	let diffs = diffList.filter((diff) => diff.diffType != "perfect match").map((diff) => {
+	let diffs = diffList.filter((diff) => diff.diffType != "perfect match" || diff.weight.weight != 1e3).map((diff) => {
 		return {
 			excelLes: excelLesToJson(diff.excelLes),
 			dko3Les: dko3LesToJson(diff.dko3Les),
-			diffType: diff.diffType
+			diffType: diff.diffType,
+			weight: diff.weight
 		};
 	});
 	let orphanedDko3Lessen = [...dko3LesSet.values()].map((les) => dko3LesToJson(les));
