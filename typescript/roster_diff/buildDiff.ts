@@ -467,10 +467,12 @@ function weigh1000(dko3Les: TaggedDko3LesMoment, excelLes: TaggedExcelLes, extra
     weight.diffSubject = !dko3Les.subjects.some(t => excelLes.subjects.includes(t));
     weight.diffDayTime = !DayTimeSlice.equal(dko3Les.lesMoment.dayTimeSlice,excelLes.dayTimeSlice);
     weight.diffLocation = dko3Les.location != excelLes.location;
+    let excelTeachers = excelLes.teachers;
     if(extraExcelTeachers)
-        weight.diffTeacher = !dko3Les.teachers.some(t => extraExcelTeachers.includes(t));
-    else
-        weight.diffTeacher = !dko3Les.teachers.some(t => excelLes.teachers.includes(t));
+        excelTeachers = extraExcelTeachers;
+    weight.diffTeacher = !dko3Les.teachers.every(t => excelTeachers.includes(t));
+    if(!weight.diffTeacher)
+        weight.diffTeacher = !excelTeachers.every(t => dko3Les.teachers.includes(t));
     for(let excelGradeYear of excelLes.gradeYears) {
         if(!dko3GradeYearsContain(dko3Les.gradeYears, excelGradeYear))
             weight.diffGradeYears++;
