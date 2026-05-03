@@ -349,7 +349,8 @@ async function buildDiff(excelLessen: ClassDef[], dko3Data: Dko3DiffData, report
     }
 
     let diffs: Diff[] = [];
-    diffs = matchIt(dko3LesSet, excelLesSet, "perfect match", matchOnNameOnly);
+    let ctx: MatchContext = {};
+    diffs = matchIt(ctx, dko3LesSet, excelLesSet, "perfect match", matchOnNameOnly);
     for(let diff of diffs) {
         if(!diff.dko3Les.subjects.some(t => diff.excelLes.subjects.includes(t)))
             diff.diffType = "match without subject";
@@ -364,13 +365,13 @@ async function buildDiff(excelLessen: ClassDef[], dko3Data: Dko3DiffData, report
                 diff.diffType = "match without gradeYears";
         }
     }
-    diffs.push(...matchIt(dko3LesSet, excelLesSet, "perfect match", perfectMatch));
-    diffs.push(...matchIt(dko3LesSet, excelLesSet, "match without gradeYears", matchWithoutGradeYears));
-    diffs.push(...matchIt(dko3LesSet, excelLesSet, "match without teacher", matchWithoutTeacher));
-    diffs.push(...matchIt(dko3LesSet, excelLesSet, "match without location", matchWithoutLocation));
-    diffs.push(...matchIt(dko3LesSet, excelLesSet, "match without time", matchWithoutTime));
-    diffs.push(...matchIt(dko3LesSet, excelLesSet, "match without time and day", matchWithoutTimeAndDay));
-    diffs.push(...matchIt(dko3LesSet, excelLesSet, "match without teacher, time and day", matchWithoutTeacherTimeAndDay));
+    diffs.push(...matchIt(ctx, dko3LesSet, excelLesSet, "perfect match", perfectMatch));
+    diffs.push(...matchIt(ctx, dko3LesSet, excelLesSet, "match without gradeYears", matchWithoutGradeYears));
+    diffs.push(...matchIt(ctx, dko3LesSet, excelLesSet, "match without teacher", matchWithoutTeacher));
+    diffs.push(...matchIt(ctx, dko3LesSet, excelLesSet, "match without location", matchWithoutLocation));
+    diffs.push(...matchIt(ctx, dko3LesSet, excelLesSet, "match without time", matchWithoutTime));
+    diffs.push(...matchIt(ctx, dko3LesSet, excelLesSet, "match without time and day", matchWithoutTimeAndDay));
+    diffs.push(...matchIt(ctx, dko3LesSet, excelLesSet, "match without teacher, time and day", matchWithoutTeacherTimeAndDay));
     console.log(diffs);
     console.log(dko3LesSet.values());
     console.log(excelLesSet.values());
@@ -432,10 +433,10 @@ async function getAliassesForLes(lesId: string, reportStatus: StatusCallback) {
     return [...anchors].map(a => a.textContent.trim());
 }
 
-function matchIt(dko3LesSet: Set<TaggedDko3LesMoment>, excelLesSet: Set<TaggedExcelLes>, diffType: DiffType, matchFunction: (dko3Les: TaggedDko3LesMoment, excelLesSet: Set<TaggedExcelLes>) => (TaggedExcelLes | null)) {
+function matchIt(ctx: MatchContext, dko3LesSet: Set<TaggedDko3LesMoment>, excelLesSet: Set<TaggedExcelLes>, diffType: DiffType, matchFunction: (ctx: MatchContext, dko3Les: TaggedDko3LesMoment, excelLesSet: Set<TaggedExcelLes>) => (TaggedExcelLes | null)) {
     let diffs: Diff[] = [];
     for(let dko3Les of dko3LesSet) {
-        let excelLes = matchFunction(dko3Les, excelLesSet);
+        let excelLes = matchFunction(ctx, dko3Les, excelLesSet);
         if(excelLes) {
             diffs.push({excelLes: excelLes, dko3Les: dko3Les, diffType});
             dko3LesSet.delete(dko3Les);
@@ -472,9 +473,29 @@ function weigh(dko3Les: TaggedDko3LesMoment, excelLes: TaggedExcelLes) {
         weight -= 1;
     return weight;
 }
+type MatchContext = {
+    excelLesNamesMap?: Map<string, TaggedExcelLes[]>
+}
 
-function matchOnNameOnly(dko3Les: TaggedDko3LesMoment, excelLesSet: Set<TaggedExcelLes>): TaggedExcelLes | null {
+function createExcelLesNamesMap(excelLesSet: Set<TaggedExcelLes>) {
+    let excelLesNamesMap: Map<string, TaggedExcelLes[]> = new Map();
+    for (let excelLes of excelLesSet) {
+        if(!excelLes.lesMoment.className)
+            continue;
+        let item = excelLesNamesMap.get(excelLes.lesMoment.className)
+        if(!item)
+            excelLesNamesMap.set(excelLes.lesMoment.className, [excelLes]);
+        else
+            item.push(excelLes);
+    }
+    return excelLesNamesMap;
+}
+
+function matchOnNameOnly(ctx: MatchContext, dko3Les: TaggedDko3LesMoment, excelLesSet: Set<TaggedExcelLes>): TaggedExcelLes | null {
     let matches: TaggedExcelLes[] = [];
+    if(!ctx.excelLesNamesMap) {
+        ctx.excelLesNamesMap = createExcelLesNamesMap(excelLesSet);
+    }
     for(let excelLes of excelLesSet) {
         if(excelLes.lesMoment.className && dko3Les.lesMoment.les.naam) { //todo: combine with null operator?
             if(excelLes.lesMoment.className.trim().toLowerCase() == dko3Les.lesMoment.les.naam.trim().toLowerCase()) {
@@ -494,7 +515,7 @@ function matchOnNameOnly(dko3Les: TaggedDko3LesMoment, excelLesSet: Set<TaggedEx
     return matches[0];
 }
 
-function perfectMatch(dko3Les: TaggedDko3LesMoment, excelLesSet: Set<TaggedExcelLes>): TaggedExcelLes | null {
+function perfectMatch(ctx: MatchContext, dko3Les: TaggedDko3LesMoment, excelLesSet: Set<TaggedExcelLes>): TaggedExcelLes | null {
     lesLoop:
         for(let excelLes of excelLesSet) {
         if(!dko3Les.subjects.some(t => excelLes.subjects.includes(t)))
@@ -517,7 +538,7 @@ function perfectMatch(dko3Les: TaggedDko3LesMoment, excelLesSet: Set<TaggedExcel
     }
     return null;
 }
-function matchWithoutGradeYears(dko3Les: TaggedDko3LesMoment, excelLesSet: Set<TaggedExcelLes>): TaggedExcelLes | null {
+function matchWithoutGradeYears(ctx: MatchContext, dko3Les: TaggedDko3LesMoment, excelLesSet: Set<TaggedExcelLes>): TaggedExcelLes | null {
     for(let excelLes of excelLesSet) {
         if(!dko3Les.subjects.some(t => excelLes.subjects.includes(t)))
             continue;
@@ -533,7 +554,7 @@ function matchWithoutGradeYears(dko3Les: TaggedDko3LesMoment, excelLesSet: Set<T
     return null;
 }
 
-function matchWithoutLocation(dko3Les: TaggedDko3LesMoment, excelLesSet: Set<TaggedExcelLes>): TaggedExcelLes | null {
+function matchWithoutLocation(ctx: MatchContext, dko3Les: TaggedDko3LesMoment, excelLesSet: Set<TaggedExcelLes>): TaggedExcelLes | null {
     lesLoop:
     for(let excelLes of excelLesSet) {
         if(!dko3Les.subjects.some(t => excelLes.subjects.includes(t)))
@@ -553,7 +574,7 @@ function matchWithoutLocation(dko3Les: TaggedDko3LesMoment, excelLesSet: Set<Tag
     return null;
 }
 
-function matchWithoutTime(dko3Les: TaggedDko3LesMoment, excelLesSet: Set<TaggedExcelLes>): TaggedExcelLes | null {
+function matchWithoutTime(ctx: MatchContext, dko3Les: TaggedDko3LesMoment, excelLesSet: Set<TaggedExcelLes>): TaggedExcelLes | null {
     lesLoop:
     for(let excelLes of excelLesSet) {
         if(!dko3Les.subjects.some(t => excelLes.subjects.includes(t)))
@@ -575,7 +596,7 @@ function matchWithoutTime(dko3Les: TaggedDko3LesMoment, excelLesSet: Set<TaggedE
     return null;
 }
 
-function matchWithoutTimeAndDay(dko3Les: TaggedDko3LesMoment, excelLesSet: Set<TaggedExcelLes>): TaggedExcelLes | null {
+function matchWithoutTimeAndDay(ctx: MatchContext, dko3Les: TaggedDko3LesMoment, excelLesSet: Set<TaggedExcelLes>): TaggedExcelLes | null {
     lesLoop:
     for(let excelLes of excelLesSet) {
         if(!dko3Les.subjects.some(t => excelLes.subjects.includes(t)))
@@ -595,7 +616,7 @@ function matchWithoutTimeAndDay(dko3Les: TaggedDko3LesMoment, excelLesSet: Set<T
     return null;
 }
 
-function matchWithoutTeacherTimeAndDay(dko3Les: TaggedDko3LesMoment, excelLesSet: Set<TaggedExcelLes>): TaggedExcelLes | null {
+function matchWithoutTeacherTimeAndDay(ctx: MatchContext, dko3Les: TaggedDko3LesMoment, excelLesSet: Set<TaggedExcelLes>): TaggedExcelLes | null {
     lesLoop:
     for(let excelLes of excelLesSet) {
         if(!dko3Les.subjects.some(t => excelLes.subjects.includes(t)))
@@ -613,7 +634,7 @@ function matchWithoutTeacherTimeAndDay(dko3Les: TaggedDko3LesMoment, excelLesSet
     return null;
 }
 
-function matchWithoutTeacher(dko3Les: TaggedDko3LesMoment, excelLesSet: Set<TaggedExcelLes>): TaggedExcelLes | null {
+function matchWithoutTeacher(ctx: MatchContext, dko3Les: TaggedDko3LesMoment, excelLesSet: Set<TaggedExcelLes>): TaggedExcelLes | null {
     lesLoop:
     for(let excelLes of excelLesSet) {
         if(!dko3Les.subjects.some(t => excelLes.subjects.includes(t)))

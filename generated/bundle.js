@@ -5718,7 +5718,8 @@ async function buildDiff(excelLessen, dko3Data, reportStatus, diffSettings) {
 	let extraTeacherCache = ExtraTeacherCache.fromJSON(dko3Data.extraTeachersCache ?? []);
 	for (const les1 of [...dko3LesSet.values()].filter((les) => les.lesMoment.les.teacher.includes("(en nog"))) les1.teachers = await extraTeacherCache.getExtraTeachers(les1.lesMoment.les.id);
 	let diffs = [];
-	diffs = matchIt(dko3LesSet, excelLesSet, "perfect match", matchOnNameOnly);
+	let ctx = {};
+	diffs = matchIt(ctx, dko3LesSet, excelLesSet, "perfect match", matchOnNameOnly);
 	for (let diff of diffs) {
 		if (!diff.dko3Les.subjects.some((t) => diff.excelLes.subjects.includes(t))) diff.diffType = "match without subject";
 		if (!DayTimeSlice.equal(diff.dko3Les.lesMoment.dayTimeSlice, diff.excelLes.dayTimeSlice)) diff.diffType = "match without time and day";
@@ -5726,13 +5727,13 @@ async function buildDiff(excelLessen, dko3Data, reportStatus, diffSettings) {
 		if (!diff.dko3Les.teachers.some((t) => diff.excelLes.teachers.includes(t))) diff.diffType = "match without teacher";
 		for (let excelGradeYear of diff.excelLes.gradeYears) if (!dko3GradeYearsContain(diff.dko3Les.gradeYears, excelGradeYear)) diff.diffType = "match without gradeYears";
 	}
-	diffs.push(...matchIt(dko3LesSet, excelLesSet, "perfect match", perfectMatch));
-	diffs.push(...matchIt(dko3LesSet, excelLesSet, "match without gradeYears", matchWithoutGradeYears));
-	diffs.push(...matchIt(dko3LesSet, excelLesSet, "match without teacher", matchWithoutTeacher));
-	diffs.push(...matchIt(dko3LesSet, excelLesSet, "match without location", matchWithoutLocation));
-	diffs.push(...matchIt(dko3LesSet, excelLesSet, "match without time", matchWithoutTime));
-	diffs.push(...matchIt(dko3LesSet, excelLesSet, "match without time and day", matchWithoutTimeAndDay));
-	diffs.push(...matchIt(dko3LesSet, excelLesSet, "match without teacher, time and day", matchWithoutTeacherTimeAndDay));
+	diffs.push(...matchIt(ctx, dko3LesSet, excelLesSet, "perfect match", perfectMatch));
+	diffs.push(...matchIt(ctx, dko3LesSet, excelLesSet, "match without gradeYears", matchWithoutGradeYears));
+	diffs.push(...matchIt(ctx, dko3LesSet, excelLesSet, "match without teacher", matchWithoutTeacher));
+	diffs.push(...matchIt(ctx, dko3LesSet, excelLesSet, "match without location", matchWithoutLocation));
+	diffs.push(...matchIt(ctx, dko3LesSet, excelLesSet, "match without time", matchWithoutTime));
+	diffs.push(...matchIt(ctx, dko3LesSet, excelLesSet, "match without time and day", matchWithoutTimeAndDay));
+	diffs.push(...matchIt(ctx, dko3LesSet, excelLesSet, "match without teacher, time and day", matchWithoutTeacherTimeAndDay));
 	console.log(diffs);
 	console.log(dko3LesSet.values());
 	console.log(excelLesSet.values());
@@ -5786,10 +5787,10 @@ async function getAliassesForLes(lesId, reportStatus) {
 	if (anchors.length == 0) reportStatus(`ERROR: alias les ${lesId} heeft geen (geldige) gekoppelde lessen.`);
 	return [...anchors].map((a) => a.textContent.trim());
 }
-function matchIt(dko3LesSet, excelLesSet, diffType, matchFunction) {
+function matchIt(ctx, dko3LesSet, excelLesSet, diffType, matchFunction) {
 	let diffs = [];
 	for (let dko3Les of dko3LesSet) {
-		let excelLes = matchFunction(dko3Les, excelLesSet);
+		let excelLes = matchFunction(ctx, dko3Les, excelLesSet);
 		if (excelLes) {
 			diffs.push({
 				excelLes,
@@ -5816,8 +5817,19 @@ function weigh(dko3Les, excelLes) {
 	if (excelLes.gradeYears.length != dko3Les.gradeYears.length) weight -= 1;
 	return weight;
 }
-function matchOnNameOnly(dko3Les, excelLesSet) {
+function createExcelLesNamesMap(excelLesSet) {
+	let excelLesNamesMap = new Map();
+	for (let excelLes of excelLesSet) {
+		if (!excelLes.lesMoment.className) continue;
+		let item = excelLesNamesMap.get(excelLes.lesMoment.className);
+		if (!item) excelLesNamesMap.set(excelLes.lesMoment.className, [excelLes]);
+		else item.push(excelLes);
+	}
+	return excelLesNamesMap;
+}
+function matchOnNameOnly(ctx, dko3Les, excelLesSet) {
 	let matches = [];
+	if (ctx.excelLesNamesMap == void 0) ctx.excelLesNamesMap = createExcelLesNamesMap(excelLesSet);
 	for (let excelLes of excelLesSet) if (excelLes.lesMoment.className && dko3Les.lesMoment.les.naam) {
 		if (excelLes.lesMoment.className.trim().toLowerCase() == dko3Les.lesMoment.les.naam.trim().toLowerCase()) matches.push(excelLes);
 	}
@@ -5827,7 +5839,7 @@ function matchOnNameOnly(dko3Les, excelLesSet) {
 	matches.sort((a, b) => b.weight - a.weight);
 	return matches[0];
 }
-function perfectMatch(dko3Les, excelLesSet) {
+function perfectMatch(ctx, dko3Les, excelLesSet) {
 	lesLoop: for (let excelLes of excelLesSet) {
 		if (!dko3Les.subjects.some((t) => excelLes.subjects.includes(t))) continue;
 		if (!DayTimeSlice.equal(dko3Les.lesMoment.dayTimeSlice, excelLes.dayTimeSlice)) continue;
@@ -5839,7 +5851,7 @@ function perfectMatch(dko3Les, excelLesSet) {
 	}
 	return null;
 }
-function matchWithoutGradeYears(dko3Les, excelLesSet) {
+function matchWithoutGradeYears(ctx, dko3Les, excelLesSet) {
 	for (let excelLes of excelLesSet) {
 		if (!dko3Les.subjects.some((t) => excelLes.subjects.includes(t))) continue;
 		if (!DayTimeSlice.equal(dko3Les.lesMoment.dayTimeSlice, excelLes.dayTimeSlice)) continue;
@@ -5849,7 +5861,7 @@ function matchWithoutGradeYears(dko3Les, excelLesSet) {
 	}
 	return null;
 }
-function matchWithoutLocation(dko3Les, excelLesSet) {
+function matchWithoutLocation(ctx, dko3Les, excelLesSet) {
 	lesLoop: for (let excelLes of excelLesSet) {
 		if (!dko3Les.subjects.some((t) => excelLes.subjects.includes(t))) continue;
 		if (!DayTimeSlice.equal(dko3Les.lesMoment.dayTimeSlice, excelLes.dayTimeSlice)) continue;
@@ -5859,7 +5871,7 @@ function matchWithoutLocation(dko3Les, excelLesSet) {
 	}
 	return null;
 }
-function matchWithoutTime(dko3Les, excelLesSet) {
+function matchWithoutTime(ctx, dko3Les, excelLesSet) {
 	lesLoop: for (let excelLes of excelLesSet) {
 		if (!dko3Les.subjects.some((t) => excelLes.subjects.includes(t))) continue;
 		if (dko3Les.lesMoment.dayTimeSlice.day != excelLes.dayTimeSlice.day) continue;
@@ -5870,7 +5882,7 @@ function matchWithoutTime(dko3Les, excelLesSet) {
 	}
 	return null;
 }
-function matchWithoutTimeAndDay(dko3Les, excelLesSet) {
+function matchWithoutTimeAndDay(ctx, dko3Les, excelLesSet) {
 	lesLoop: for (let excelLes of excelLesSet) {
 		if (!dko3Les.subjects.some((t) => excelLes.subjects.includes(t))) continue;
 		if (dko3Les.location != excelLes.location) continue;
@@ -5880,7 +5892,7 @@ function matchWithoutTimeAndDay(dko3Les, excelLesSet) {
 	}
 	return null;
 }
-function matchWithoutTeacherTimeAndDay(dko3Les, excelLesSet) {
+function matchWithoutTeacherTimeAndDay(ctx, dko3Les, excelLesSet) {
 	lesLoop: for (let excelLes of excelLesSet) {
 		if (!dko3Les.subjects.some((t) => excelLes.subjects.includes(t))) continue;
 		if (dko3Les.location != excelLes.location) continue;
@@ -5889,7 +5901,7 @@ function matchWithoutTeacherTimeAndDay(dko3Les, excelLesSet) {
 	}
 	return null;
 }
-function matchWithoutTeacher(dko3Les, excelLesSet) {
+function matchWithoutTeacher(ctx, dko3Les, excelLesSet) {
 	lesLoop: for (let excelLes of excelLesSet) {
 		if (!dko3Les.subjects.some((t) => excelLes.subjects.includes(t))) continue;
 		if (!DayTimeSlice.equal(dko3Les.lesMoment.dayTimeSlice, excelLes.dayTimeSlice)) continue;
