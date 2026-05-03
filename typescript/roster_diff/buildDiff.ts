@@ -3,7 +3,7 @@ import {RosterFactory} from "./rosterFactory";
 import {ClassDef, ExcelRoster, GradeYear, TeacherDef, TimeSlice} from "./excelRoster";
 import {cloud, deleteNotification, fetchExcelData, fetchFolderChanged, fetchIgnoredDiffHashes} from "../cloud";
 import {FetchChain} from "../table/fetchChain";
-import {pad, Schoolyear} from "../globals";
+import {pad} from "../globals";
 import {fetchLessen} from "../lessen/observer";
 import {DayTimeSlice, DayUppercase, Les, scrapeLessenOverzicht} from "../lessen/scrape";
 import {DKO3_BASE_URL, LESSEN_TABLE_ID} from "../def";
@@ -11,7 +11,7 @@ import {getTableFromHash, InfoBarTableFetchListener} from "../table/loadAnyTable
 import {emmet} from "../../libs/Emmeter/html";
 import {fetchAndDisplayNotifications} from "../notifications/notifications";
 import {getDiffsDko3CacheFileName, StatusCallback} from "./showDiff";
-import {defaultIgnoreList, defaultTagDefs, DiffSettings} from "./diffSettings";
+import {DiffSettings} from "./diffSettings";
 
 let cachedDiffs: JsonDiffs | undefined = undefined;
 export async function getJsonDiffsCached(academie: string, schoolYear: string) {
@@ -261,24 +261,18 @@ function isExcelLesToIgnore(les: TaggedExcelLes, ignoreList: string[]) {
     || ignoreList.some(ignore => les.searchText.includes(ignore))
 }
 
-async function buildDiff(excelLessen: ClassDef[], dko3Data: Dko3DiffData, reportStatus: StatusCallback, diffSettings: DiffSettings) {
-    reportStatus("Lessen vergelijken...");
-    let excelLesSet: Set<TaggedExcelLes> = new Set<TaggedExcelLes>(excelLessen.map(les => new TaggedExcelLes(les, dko3Data.teachers)));
-    excelLesSet.forEach(les=> {
-        if(isExcelLesToIgnore(les, diffSettings.ignoreList))
-            excelLesSet.delete(les);
-    });
+function splitDko3LessenIntoLesmomenten(dko3Data: Dko3DiffData, diffSettings: DiffSettings, reportStatus: StatusCallback) {
     //split each Dko3 les into multiple lesMoments
     let lesMomenten = dko3Data.lessen
         .filter(les => !isDko3LesToIgnore(les, diffSettings.ignoreList))
         .map(les => {
-            if(les.dayTimeSlices.length == 0)
+            if (les.dayTimeSlices.length == 0)
                 reportStatus(`Les <a href="https://administratie.dko3.cloud/#lessen-les?id=${les.id}">${les.id}</a> heeft geen lesmoment.`, "error");
             let lesMomenten = les.dayTimeSlices
                 .map(slice => {
                     return new Dko3LesMoment(les, slice);
                 });
-            for(let moment of lesMomenten)
+            for (let moment of lesMomenten)
                 moment.lesMomenten = lesMomenten;
 
             return lesMomenten;
@@ -286,23 +280,26 @@ async function buildDiff(excelLessen: ClassDef[], dko3Data: Dko3DiffData, report
         .flat()
         .map(lesMoment => new TaggedDko3LesMoment(lesMoment));
 
-    let dko3LesSet: Set<TaggedDko3LesMoment> = new Set<TaggedDko3LesMoment>(lesMomenten);
+    return new Set<TaggedDko3LesMoment>(lesMomenten);
+}
 
+function createLesMomenten(dko3Data: Dko3DiffData, reportStatus: StatusCallback, diffSettings: DiffSettings) {
+    let dko3LesSet = splitDko3LessenIntoLesmomenten(dko3Data, diffSettings, reportStatus);
     let dko3LesMap: Map<string, Les> = new Map();
-    for(let les of dko3Data.lessen)
+    for (let les of dko3Data.lessen)
         dko3LesMap.set(les.id, les);
 
     //move linked lessen inside the alias les.
     let lesMomentenMap: Map<string, TaggedDko3LesMoment> = new Map<string, TaggedDko3LesMoment>();
-    for(let les of dko3LesSet.values())
+    for (let les of dko3LesSet.values())
         lesMomentenMap.set(les.lesMoment.momentId, les);
-    loopAliasLessen: for(let aliasLes of dko3Data.dko3AliasLessen) {
+    loopAliasLessen: for (let aliasLes of dko3Data.dko3AliasLessen) {
         if (aliasLes.linkedLessenIds.length < 2) {
             reportStatus(`Error: alias les <a href="https://administratie.dko3.cloud/#lessen-les?id=${aliasLes.id}">${aliasLes.id}</a> heeft geen 2 geldige gekoppelde lessen.`, "error");
             continue;
         }
         let linkedLessen = aliasLes.linkedLessenIds.map(lesId => dko3LesMap.get(lesId));
-        if(linkedLessen.includes(undefined)) {
+        if (linkedLessen.includes(undefined)) {
             reportStatus(`Voor aliasles <a href="https://administratie.dko3.cloud/#lessen-les?id=${aliasLes.id}">${aliasLes.id}</a> zijn er ontbrekende gekoppelde lessen.`, "error");
             continue;
         }
@@ -311,13 +308,13 @@ async function buildDiff(excelLessen: ClassDef[], dko3Data: Dko3DiffData, report
         //sort the moments so we can merge them
         linkedLesMomenten.sort((a: TaggedDko3LesMoment, b: TaggedDko3LesMoment) => DayTimeSlice.startToNumber(a.lesMoment.dayTimeSlice) - DayTimeSlice.startToNumber(b.lesMoment.dayTimeSlice));
         let previousLesMoment = linkedLesMomenten[0]!;
-        for(let i = 1; i < linkedLesMomenten.length; i++) {
+        for (let i = 1; i < linkedLesMomenten.length; i++) {
             let currentLesMoment = linkedLesMomenten[i]!;
-            if(!currentLesMoment.lesMoment.dayTimeSlice.timeSlice || !previousLesMoment.lesMoment.dayTimeSlice.timeSlice) {
+            if (!currentLesMoment.lesMoment.dayTimeSlice.timeSlice || !previousLesMoment.lesMoment.dayTimeSlice.timeSlice) {
                 reportStatus(`Voor aliasles <a href="https://administratie.dko3.cloud/#lessen-les?id=${aliasLes.id}">${aliasLes.id}</a> zijn er ontbrekende lestijden.`, "error");
                 continue loopAliasLessen;
             }
-            if(DayTimeSlice.endToNumber(previousLesMoment.lesMoment.dayTimeSlice) == DayTimeSlice.startToNumber(currentLesMoment.lesMoment.dayTimeSlice)) {
+            if (DayTimeSlice.endToNumber(previousLesMoment.lesMoment.dayTimeSlice) == DayTimeSlice.startToNumber(currentLesMoment.lesMoment.dayTimeSlice)) {
                 //yeah ! we can merge them!!!
                 let newTimeSlice = new TimeSlice(structuredClone(previousLesMoment.lesMoment.dayTimeSlice.timeSlice!.start), structuredClone(currentLesMoment.lesMoment.dayTimeSlice.timeSlice!.end));
                 let newDayTimeSlice = new DayTimeSlice(previousLesMoment.lesMoment.dayTimeSlice.day, newTimeSlice);
@@ -332,6 +329,17 @@ async function buildDiff(excelLessen: ClassDef[], dko3Data: Dko3DiffData, report
             }
         }
     }
+    return dko3LesSet;
+}
+
+async function buildDiff(excelLessen: ClassDef[], dko3Data: Dko3DiffData, reportStatus: StatusCallback, diffSettings: DiffSettings) {
+    reportStatus("Lessen vergelijken...");
+    let excelLesSet: Set<TaggedExcelLes> = new Set<TaggedExcelLes>(excelLessen.map(les => new TaggedExcelLes(les, dko3Data.teachers)));
+    excelLesSet.forEach(les=> {
+        if(isExcelLesToIgnore(les, diffSettings.ignoreList))
+            excelLesSet.delete(les);
+    });
+    let dko3LesSet: Set<TaggedDko3LesMoment> = createLesMomenten(dko3Data, reportStatus, diffSettings);
     //todo: split dko3Les.vaknaam into array. Split on "+" and trim.
     //get extra teaches
     let extraTeacherCache = ExtraTeacherCache.fromJSON(dko3Data.extraTeachersCache ?? [])

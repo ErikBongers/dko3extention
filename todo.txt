@@ -7,15 +7,15 @@ DKO3 knows the 2 moments.
     EG:
     * DKO3:
       - 1A: Bert ma 12.34 // linked, split lesmoment
-      - 1A: Bert do 23.45 // linked split lesmoment
+      - 1A: Bert do 23.45 // linked, split lesmoment
       - BASISCURSUS: Runa, ma 45.56
       - BASISCURSUS: Moya, di 01.23
     * EXCEL:
-      - 1A: Maria, ma 12.34
+      - 1A: ??, ma 12.34  // >> IS OK! Only one teacher for the linked lessen in dko3.
       - 1A: Bert, do 23.45
       - BASISCURSUS: Runa, ma 45.56
       - BASISCURSUS: Moya, di 01.23
-
+  >
 
 * Diffs: goto buttons
   - to the dko3 les
