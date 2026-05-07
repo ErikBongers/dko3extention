@@ -381,8 +381,7 @@ async function fetchJson(fileName) {
 async function uploadJson(fileName, data) {
 	let res = await fetch(JSON_URL + "?fileName=" + fileName, {
 		method: "POST",
-		body: JSON.stringify(data),
-		keepalive: true
+		body: JSON.stringify(data)
 	});
 	return await res.text();
 }
@@ -6379,12 +6378,14 @@ async function createSnapshot(schoolYear, reportStatus) {
 		academie: academieName,
 		schoolYear,
 		zDate,
-		diffs: []
+		diffs: null
 	};
 	await uploadSnapshotData(snapshotData);
 	reportStatus("Snapshot aangemaakt.");
 }
 async function uploadSnapshotData(snapshotData) {
+	let jsonString = JSON.stringify(snapshotData);
+	console.log(`Length of snapshotData: ${jsonString.length} bytes.`);
 	await cloud.json.upload(`Dko3/Snapshots/${snapshotData.academie}/${snapshotData.schoolYear}/${snapshotData.zDate}.json`, snapshotData);
 }
 async function fetchSnapshotData(file) {
@@ -6402,7 +6403,6 @@ async function getCalculateAndSaveSnapshotDiffs(academie, schoolYear) {
 			snapshotData.diffs = compareSnapshots(previousSnapshot, snapshotData);
 			await uploadSnapshotData(snapshotData);
 		}
-		if (!snapshotData.diffs) snapshotData.diffs = [];
 		snapshotDataList.push(snapshotData);
 		previousSnapshot = snapshotData;
 	}
@@ -6426,7 +6426,7 @@ async function showSnapshotsforCombobox() {
 		showSnapshot(snapshot, divResults);
 	}
 	for (let item of new SlidingWindow(snapshotDataList)) {
-		if (!item.prev || !item.next || item.current.diffs.length != 0 || item.prev.diffs.length != 0 || item.next.diffs.length != 0) {
+		if (!item.prev || !item.next || item.current.diffs?.length != 0 || item.prev.diffs?.length != 0 || item.next.diffs?.length != 0) {
 			showSnapshotWithPossibleEllipse(item.current);
 			continue;
 		}
