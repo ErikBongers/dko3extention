@@ -91,7 +91,6 @@ async function createSnapshot(schoolYear: string, reportStatus: StatusCallback) 
 
 async function uploadSnapshotData(snapshotData: SnapshotData) {
     let jsonString = JSON.stringify(snapshotData);
-    console.log(`Length of snapshotData: ${jsonString.length} bytes.`);
     await cloud.json.upload(`Dko3/Snapshots/${snapshotData.academie}/${snapshotData.schoolYear}/${snapshotData.zDate}.json`, snapshotData);
 }
 
