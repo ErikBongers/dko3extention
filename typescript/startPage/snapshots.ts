@@ -51,7 +51,7 @@ export interface SnapshotData {
     academie: string;
     schoolYear: string;
     zDate: string;
-    diffs: SnapshotDiff[];
+    diffs: SnapshotDiff[] | null;
 }
 
 async function createSnapshot(schoolYear: string, reportStatus: StatusCallback) {
@@ -76,13 +76,15 @@ async function createSnapshot(schoolYear: string, reportStatus: StatusCallback) 
         academie: academieName,
         schoolYear,
         zDate,
-        diffs: [],
+        diffs: null,
     }
     await uploadSnapshotData(snapshotData);
     reportStatus("Snapshot aangemaakt.")
 }
 
 async function uploadSnapshotData(snapshotData: SnapshotData) {
+    let jsonString = JSON.stringify(snapshotData);
+    console.log(`Length of snapshotData: ${jsonString.length} bytes.`);
     await cloud.json.upload(`Dko3/Snapshots/${snapshotData.academie}/${snapshotData.schoolYear}/${snapshotData.zDate}.json`, snapshotData);
 }
 
@@ -99,12 +101,10 @@ async function getCalculateAndSaveSnapshotDiffs(academie: string, schoolYear: st
     let snapshotDataList: SnapshotData[] = [];
     for(let file of content.files) {
         let snapshotData = await fetchSnapshotData(file);
-        if(previousSnapshot && snapshotData.diffs == null) {
+        if(previousSnapshot) { // && snapshotData.diffs == null) {
             snapshotData.diffs = compareSnapshots(previousSnapshot, snapshotData);
             await uploadSnapshotData(snapshotData);
         }
-        if(!snapshotData.diffs)
-            snapshotData.diffs = [];
         snapshotDataList.push(snapshotData);
         previousSnapshot = snapshotData;
     }
@@ -132,9 +132,9 @@ async function showSnapshotsforCombobox() {
     }
     for(let item of new SlidingWindow(snapshotDataList)) {
         if(!item.prev || !item.next //always draw the first and last snapshot.
-            || item.current.diffs.length != 0 //always draw snapshots with diffs and it's adjacent snapshots.
-            || item.prev.diffs.length != 0
-            || item.next.diffs.length != 0
+            || item.current.diffs?.length != 0 //always draw a snapshot with diffs and it's adjacent snapshots.
+            || item.prev.diffs?.length != 0
+            || item.next.diffs?.length != 0
         ) {
             showSnapshotWithPossibleEllipse(item.current);
             continue;
