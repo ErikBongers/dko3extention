@@ -6391,7 +6391,6 @@ async function createSnapshot(schoolYear, reportStatus) {
 }
 async function uploadSnapshotData(snapshotData) {
 	let jsonString = JSON.stringify(snapshotData);
-	console.log(`Length of snapshotData: ${jsonString.length} bytes.`);
 	await cloud.json.upload(`Dko3/Snapshots/${snapshotData.academie}/${snapshotData.schoolYear}/${snapshotData.zDate}.json`, snapshotData);
 }
 async function fetchSnapshotData(file) {

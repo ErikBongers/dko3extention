@@ -521,6 +521,9 @@ table.snapshotDiffs {
     tr.prev {
         opacity: 0.5;
     }
+    td {
+        padding: 0 .5ch;
+    }
 }
 
 div#snapshotResults {
