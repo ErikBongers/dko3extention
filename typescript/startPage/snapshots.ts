@@ -43,7 +43,9 @@ export type LesSnapshot = {
     vakNaam: string,
     lesmoment: string,
     vestiging: string,
-    online: boolean
+    online: boolean,
+    teacher?: string,
+    gradeYears?: string,
 }
 
 export interface SnapshotData {
@@ -173,7 +175,19 @@ function showDifferences(diffs: SnapshotDiff[], divResults: HTMLDivElement) {
         return a.les.id.localeCompare(b.les.id)
     });
     for(let les of diffs) {
-        emmet.appendChild(tbody, `tr.${les.what}>(td{${les.les.id}}+td{${les.les.vakNaam}}+td{${les.les.naam}}+td{${les.les.lesmoment}})`);
+        emmet.appendChild(tbody, `
+            tr.${les.what}>(
+                td{${les.les.id}}+
+                td{${les.les.vakNaam}}+
+                td{${les.les.naam}}+
+                td{${les.les.lesmoment
+                    .replace("(wekelijks)", "")
+                }}+
+                td{${les.les.vestiging
+                    .replace("Vestiging ", "")
+                    .replace("Academie Willem Van Laarstraat, Berchem", "Wvl")
+                }}
+            )`);
     }
     if(diffs.length > 0)
         divResults.classList.toggle("error", true);
