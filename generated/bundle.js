@@ -2081,6 +2081,9 @@ var Les = class {
 	static getHash(les) {
 		return les.id + les.teacher + les.naam + les.vakNaam + les.lesmoment + les.vestiging + les.online;
 	}
+	static getNewHash(les) {
+		return les.id + les.teacher + les.naam + les.vakNaam + les.lesmoment + les.vestiging + les.online + GradeYear.toString(les.gradeYears);
+	}
 };
 function scrapeLesInfo(row) {
 	let lesCell = row.cells[0];
@@ -6364,11 +6367,14 @@ async function createSnapshot(schoolYear, reportStatus) {
 		return {
 			id: les.id,
 			hash: Les.getHash(les),
+			newHash: Les.getNewHash(les),
 			naam: les.naam,
 			vakNaam: les.vakNaam,
 			lesmoment: les.lesmoment,
 			vestiging: les.vestiging,
-			online: les.online
+			online: les.online,
+			teacher: les.teacher,
+			gradeYears: GradeYear.toString(les.gradeYears)
 		};
 	});
 	let academieName = getUserAndSchoolName().schoolName;
@@ -6435,11 +6441,17 @@ async function showSnapshotsforCombobox() {
 }
 function compareSnapshots(previousSnapshot, nextSnapshot) {
 	let diffs = [];
-	for (let prev of previousSnapshot.lessen) if (!nextSnapshot.lessen.find((les) => les.hash == prev.hash)) diffs.push({
+	for (let prev of previousSnapshot.lessen) if (!nextSnapshot.lessen.find((les) => {
+		if (les.newHash && prev.newHash) return les.newHash == prev.newHash;
+		return les.hash == prev.hash;
+	})) diffs.push({
 		what: "prev",
 		les: prev
 	});
-	for (let next of nextSnapshot.lessen) if (!previousSnapshot.lessen.find((les) => les.hash == next.hash)) diffs.push({
+	for (let next of nextSnapshot.lessen) if (!previousSnapshot.lessen.find((les) => {
+		if (les.newHash && next.newHash) return les.newHash == next.newHash;
+		return les.hash == next.hash;
+	})) diffs.push({
 		what: "next",
 		les: next
 	});
@@ -6452,13 +6464,15 @@ function showDifferences(diffs, divResults) {
 		if (a.les.id == b.les.id) return b.what.localeCompare(a.what);
 		return a.les.id.localeCompare(b.les.id);
 	});
-	for (let les of diffs) emmet.appendChild(tbody, `
-            tr.${les.what}>(
-                td{${les.les.id}}+
-                td{${les.les.vakNaam}}+
-                td{${les.les.naam}}+
-                td{${les.les.lesmoment.replace("(wekelijks)", "")}}+
-                td{${les.les.vestiging.replace("Vestiging ", "").replace("Academie Willem Van Laarstraat, Berchem", "Wvl")}}
+	for (let diff of diffs) emmet.appendChild(tbody, `
+            tr.${diff.what}>(
+                td{${diff.les.id}}+
+                td{${diff.les.vakNaam}}+
+                td{${diff.les.naam}}+
+                td{${diff.les.lesmoment.replace("(wekelijks)", "")}}+
+                td{${diff.les.vestiging.replace("Vestiging ", "").replace("Academie Willem Van Laarstraat, Berchem", "Wvl")}}+
+                td{${diff.les.teacher ?? "(lk)"}}+
+                td{${diff.les.gradeYears ?? "(g.j)"}}
             )`);
 	if (diffs.length > 0) divResults.classList.toggle("error", true);
 	let rows = [...tbody.querySelectorAll("tr")];

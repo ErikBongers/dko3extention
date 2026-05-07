@@ -187,6 +187,10 @@ export class Les {
     public static getHash(les: Les) {
         return les.id+ les.teacher + les.naam+les.vakNaam+les.lesmoment+les.vestiging+les.online;
     }
+    public static getNewHash(les: Les) {
+        return les.id+ les.teacher + les.naam+les.vakNaam+les.lesmoment+les.vestiging+les.online+GradeYear.toString(les.gradeYears);
+    }
+
 }
 
 export function scrapeLesInfo(row: HTMLTableRowElement): HtmlLes {

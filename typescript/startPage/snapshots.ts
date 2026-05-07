@@ -4,6 +4,7 @@ import {getUserAndSchoolName, Schoolyear, SlidingWindow} from "../globals";
 import {cloud, fetchFolderContent, FileChangedInfo} from "../cloud";
 import {Les} from "../lessen/scrape";
 import {StatusCallback} from "../roster_diff/showDiff";
+import {GradeYear} from "../roster_diff/excelRoster";
 
 export async function setupSnapshotPage() {
     let pluginContainer = document.getElementById("plugin_container")!;
@@ -38,7 +39,8 @@ export async function setupSnapshotPage() {
 
 export type LesSnapshot = {
     id: string,
-    hash: string,
+    hash: string,//delete when all snapshots before 8 may 2026 have been removed.
+    newHash?: string, //includes gradeYears
     naam: string,
     vakNaam: string,
     lesmoment: string,
@@ -64,11 +66,14 @@ async function createSnapshot(schoolYear: string, reportStatus: StatusCallback) 
             return {
                 id: les.id,
                 hash: Les.getHash(les),
+                newHash: Les.getNewHash(les),
                 naam: les.naam,
                 vakNaam: les.vakNaam,
                 lesmoment: les.lesmoment,
                 vestiging: les.vestiging,
-                online: les.online
+                online: les.online,
+                teacher: les.teacher,
+                gradeYears: GradeYear.toString(les.gradeYears),
             };
         });
     let academieName = getUserAndSchoolName().schoolName;
@@ -153,12 +158,20 @@ type SnapshotDiff = {
 function compareSnapshots(previousSnapshot: SnapshotData, nextSnapshot: SnapshotData): SnapshotDiff[] {
     let diffs: SnapshotDiff[] = [];
     for (let prev of previousSnapshot.lessen) {
-        if (!nextSnapshot.lessen.find(les => les.hash == prev.hash)) {
+        if (!nextSnapshot.lessen.find(les => {
+            if(les.newHash && prev.newHash)
+                return les.newHash == prev.newHash;
+            return les.hash == prev.hash
+        })) {
             diffs.push({what: "prev", les: prev});
         }
     }
     for (let next of nextSnapshot.lessen) {
-        if (!previousSnapshot.lessen.find(les => les.hash == next.hash)) {
+        if (!previousSnapshot.lessen.find(les => {
+            if(les.newHash && next.newHash)
+                return les.newHash == next.newHash;
+            return les.hash == next.hash
+        })) {
             diffs.push({what: "next", les: next});
         }
     }
@@ -174,19 +187,21 @@ function showDifferences(diffs: SnapshotDiff[], divResults: HTMLDivElement) {
             return b.what.localeCompare(a.what);
         return a.les.id.localeCompare(b.les.id)
     });
-    for(let les of diffs) {
+    for(let diff of diffs) {
         emmet.appendChild(tbody, `
-            tr.${les.what}>(
-                td{${les.les.id}}+
-                td{${les.les.vakNaam}}+
-                td{${les.les.naam}}+
-                td{${les.les.lesmoment
+            tr.${diff.what}>(
+                td{${diff.les.id}}+
+                td{${diff.les.vakNaam}}+
+                td{${diff.les.naam}}+
+                td{${diff.les.lesmoment
                     .replace("(wekelijks)", "")
                 }}+
-                td{${les.les.vestiging
+                td{${diff.les.vestiging
                     .replace("Vestiging ", "")
                     .replace("Academie Willem Van Laarstraat, Berchem", "Wvl")
-                }}
+                }}+
+                td{${diff.les.teacher??"(lk)"}}+
+                td{${diff.les.gradeYears??"(g.j)"}}
             )`);
     }
     if(diffs.length > 0)
