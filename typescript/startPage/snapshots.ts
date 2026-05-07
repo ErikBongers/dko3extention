@@ -5,6 +5,7 @@ import {cloud, fetchFolderContent, FileChangedInfo} from "../cloud";
 import {Les} from "../lessen/scrape";
 import {StatusCallback} from "../roster_diff/showDiff";
 import {GradeYear} from "../roster_diff/excelRoster";
+import {DKO3_BASE_URL} from "../def";
 
 export async function setupSnapshotPage() {
     let pluginContainer = document.getElementById("plugin_container")!;
@@ -186,10 +187,11 @@ function showDifferences(diffs: SnapshotDiff[], divResults: HTMLDivElement) {
             return b.what.localeCompare(a.what);
         return a.les.id.localeCompare(b.les.id)
     });
+    //                reportStatus(`Voor aliasles <a href="https://administratie.dko3.cloud/#lessen-les?id=${aliasLes.id}">${aliasLes.id}</a> zijn er ontbrekende lestijden.`, "error");
     for(let diff of diffs) {
         emmet.appendChild(tbody, `
             tr.${diff.what}>(
-                td{${diff.les.id}}+
+                (td>a{${diff.les.id}}[href="${DKO3_BASE_URL}#lessen-les?id=${diff.les.id}"])+
                 td{${diff.les.vakNaam}}+
                 td{${diff.les.naam}}+
                 td{${diff.les.lesmoment

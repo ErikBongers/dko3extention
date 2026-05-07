@@ -6465,7 +6465,7 @@ function showDifferences(diffs, divResults) {
 	});
 	for (let diff of diffs) emmet.appendChild(tbody, `
             tr.${diff.what}>(
-                td{${diff.les.id}}+
+                (td>a{${diff.les.id}}[href="${DKO3_BASE_URL}#lessen-les?id=${diff.les.id}"])+
                 td{${diff.les.vakNaam}}+
                 td{${diff.les.naam}}+
                 td{${diff.les.lesmoment.replace("(wekelijks)", "")}}+
