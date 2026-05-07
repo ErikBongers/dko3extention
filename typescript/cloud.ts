@@ -19,7 +19,6 @@ async function uploadJson(fileName: string, data: any) {
     let res = await fetch(def.JSON_URL + "?fileName=" + fileName, {
         method: "POST",
         body: JSON.stringify(data),
-        keepalive: true, //keeps the data valid even if window is closing.
     });
     return await res.text();
 }
