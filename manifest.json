@@ -33,6 +33,7 @@
     "storage",
     "tabs"
   ],
+  "host_permissions": ["https://academieberchem.stedelijkonderwijs.be/*"],
   "web_accessible_resources": [ {
     "matches": ["https://administratie.dko3.cloud/*"],
     "_comment": "typescript folder included for debugging in browser!",

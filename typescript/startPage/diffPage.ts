@@ -27,10 +27,30 @@ async function loadCombboxSchoolYearAndTrySelect(dirTree?: TreeNode): Promise<bo
     return false;
 }
 
+async function calcAndShowDiffsWww() {
+    let res = await fetch("https://academieberchem.stedelijkonderwijs.be/uurrooster-woord-gevorderden-18");
+    let text = await res.text();
+    console.log(text);
+}
+
 export async function setupDiffPage() {
     let pluginContainer = document.getElementById("plugin_container")!;
-    emmet.appendChild(pluginContainer, "div#diffsPage.mb-1>div>(h4{Verschillen tussen Excel uurroosters en DKO3 lessen.}+(div#combosLoading{Gegevens laden...}+select#cmbDiffAcademie+select#cmbDiffSchoolYear+button#btnCalcDiff.btn.btn-primary{Zoek verschillen}+button#btnDiffSettings.btn.btn-outline-dark{Setup}))");
+    emmet.appendChild(pluginContainer, `
+        div#diffsPage.mb-1>
+            div>(
+                h4{Verschillen tussen Excel uurroosters en DKO3 lessen.}+
+                (
+                    div#combosLoading{Gegevens laden...}+
+                    select#cmbDiffAcademie+
+                    select#cmbDiffSchoolYear+
+                    button#btnCalcDiff.btn.btn-primary{Zoek verschillen}+
+                    button#btnDiffSettings.btn.btn-outline-dark{Setup}+
+                    button#btnDiffWww.btn.btn-outline-dark{Verschillen website}
+                )
+            )
+                 `);
     let btnCalcDiff = pluginContainer.querySelector("#btnCalcDiff")  as HTMLButtonElement;
+    let btnCalcDiffWww = pluginContainer.querySelector("#btnDiffWww")  as HTMLButtonElement;
     let btnDiffSettings = pluginContainer.querySelector("#btnDiffSettings")  as HTMLButtonElement;
     let dirTree = await getDiffDirStructure();
     let myAcadFolderName = getDiffMyAcademieFolder(dirTree);
@@ -43,13 +63,16 @@ export async function setupDiffPage() {
     let cmbDiffSchoolYear = document.querySelector("#cmbDiffSchoolYear") as HTMLSelectElement;
     if(await loadCombboxSchoolYearAndTrySelect(dirTree))
         pluginContainer.classList.toggle("diffCombosLoaded", true);
-    let runStatus = emmet.insertAfter(btnDiffSettings, "div#runStatus").first as HTMLDivElement;
+    let runStatus = emmet.insertAfter(btnCalcDiffWww, "div#runStatus").first as HTMLDivElement;
     emmet.insertAfter(runStatus, "div#diffResults");
 
     let divInfo = emmet.insertAfter(runStatus, 'div#diffInfo').last as HTMLDivElement;
     let divError = emmet.insertAfter(divInfo, 'div#diffErrors.errors').last as HTMLDivElement;
+
     btnCalcDiff.onclick = () => calcAndShowDiffsWithSettings("calcAndShow", "fetchDko");
+    btnCalcDiffWww.onclick = () => calcAndShowDiffsWww();
     btnDiffSettings.onclick = () => showDiffSetup(cmbDiffAcademie.value, cmbDiffSchoolYear.value);
+
     cmbDiffAcademie.onchange = async () => {
         await onCmbAcademieChange(dirTree);
     }
