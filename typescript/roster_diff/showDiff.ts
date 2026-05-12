@@ -10,6 +10,7 @@ import {createInfoBlock} from "../infoBlock";
 import {defaultIgnoreList, defaultTagDefs, DiffSettings} from "./diffSettings";
 import { options } from "../plugin_options/options";
 import { GradeYear } from "./excelRoster";
+import {buildWwwDiff} from "../www_diff/buildDiff";
 
 export async function fetchDiffSettingsOrDefault(academie: string, schoolYear: string) {
     let settings: DiffSettings | undefined;
@@ -32,6 +33,44 @@ export function getDiffsDko3CacheFileName(academie: string, schoolYear: string) 
 }
 
 export async function getAndShowDiffs(showOrCalc: "justShow" | "calcAndShow", useDkoCache: "dkoCache" | "fetchDko") {
+    let divResults = document.getElementById("diffResults") as HTMLDivElement;
+    divResults.innerHTML = "Ophalen...";
+
+    let divError = document.getElementById("diffErrors") as HTMLDivElement;
+    let runStatus = document.getElementById("runStatus") as HTMLDivElement;
+    let divInfo = document.getElementById("diffInfo") as HTMLDivElement;
+    let cmbDiffAcademie = document.querySelector("#cmbDiffAcademie") as HTMLSelectElement;
+    let cmbDiffSchoolYear = document.querySelector("#cmbDiffSchoolYear") as HTMLSelectElement;
+    let infoBlock = createInfoBlock(divInfo, "");
+    let fetchListener = new InfoBarTableFetchListener(infoBlock);
+    let errors: string[] = [];
+    function reportStatus(message: string, isError?: "error") {
+        if(isError == "error")
+            errors.push(message);
+        else
+            runStatus.innerHTML = message;
+        divError.innerHTML = errors.join("<br>");
+    }
+    errors = [];
+    let json: string | null = null;
+    if(useDkoCache == "dkoCache")
+       json = localStorage.getItem(getDiffsDko3CacheFileName(cmbDiffAcademie.value, cmbDiffSchoolYear.value));
+    let dko3DiffData = json ? JSON.parse(json) as Dko3DiffData : null;
+    let jsonDiffs: JsonDiffs | null = null;
+    let diffSettings = await fetchDiffSettingsOrDefault(cmbDiffAcademie.value, cmbDiffSchoolYear.value);
+    if(showOrCalc == "justShow") {
+        try {
+            jsonDiffs = await getDiffsFromCloud(cmbDiffAcademie.value, cmbDiffSchoolYear.value);
+        }
+        catch (e) {}
+    } else {
+        jsonDiffs = await runDiff(reportStatus, fetchListener, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData, diffSettings);
+    }
+    if(jsonDiffs)
+        await showDiffs(jsonDiffs, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData, diffSettings);
+}
+
+export async function getAndShowWwwDiffs(showOrCalc: "justShow" | "calcAndShow", useDkoCache: "dkoCache" | "fetchDko") {
     let divResults = document.getElementById("diffResults") as HTMLDivElement;
     divResults.innerHTML = "Ophalen...";
 
@@ -126,6 +165,13 @@ async function runDiff(reportStatus: StatusCallback, fetchListener: InfoBarTable
     divResults.innerHTML = "";
 
     return buildAndSaveDiff(reportStatus, fetchListener, academie, schoolYear, dko3DiffData, diffSettings);
+}
+
+async function runWwwDiff(reportStatus: StatusCallback, fetchListener: InfoBarTableFetchListener, academie: string, schoolYear: string, dko3DiffData: Dko3DiffData | null, diffSettings: DiffSettings) {
+    let divResults = document.getElementById("diffResults") as HTMLDivElement;
+    divResults.innerHTML = "";
+
+    return buildWwwDiff(reportStatus, fetchListener, academie, schoolYear, dko3DiffData, diffSettings);
 }
 
 export function fillExcelDiffRow(tr: HTMLTableRowElement, diff: JsonDiff, academie: string, schoolYear: string) {

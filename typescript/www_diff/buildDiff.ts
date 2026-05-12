@@ -29,7 +29,7 @@ export async function buildWwwDiff(reportStatus: StatusCallback, fetchListener: 
     reportStatus(`Vergelijken met DKO3 lessen...`);
     if(!dko3DiffData)
         dko3DiffData = await getDko3Data(schoolYear, reportStatus, fetchListener);
-    parseWww()
+    await parseWww(dko3DiffData);
 }
 
 
