@@ -47,8 +47,9 @@ async function setTabId(tabType: TabType, tabId: number) {
     await chrome.storage.session.set(data);
 }
 
-async function fetchAndSendWww() {
-    let res = await fetch("https://academieberchem.stedelijkonderwijs.be/uurrooster-woord-gevorderden-18");
+async function fetchAndSendWww(message: ServiceRequest) {
+    // let res = await fetch("https://academieberchem.stedelijkonderwijs.be/uurrooster-woord-gevorderden-18");
+    let res = await fetch("https://academieberchem.stedelijkonderwijs.be/uurrooster-2e-graad-kinderen-8-tot-11-jaar");
     return await res.text();
 }
 
@@ -92,7 +93,7 @@ function onMessage(message: ServiceRequest, sender: MessageSender, sendResponse:
             sendResponse(getTabId(TabType.Main));
             break;
         case Actions.Www:
-            fetchAndSendWww().then(www => {
+            fetchAndSendWww(message).then(www => {
                 message.data = www;
                 // chrome.tabs.sendMessage(sender.tab!.id!, message).then(() => {});
                 sendResponse(message);

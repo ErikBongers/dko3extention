@@ -6246,12 +6246,45 @@ function parseWww(data) {
 	console.log(lessen);
 }
 function scrapeClassTable(table) {
+	let classIndex = void 0;
+	let dayIndex = void 0;
+	let timeIndex = void 0;
+	let locationIndex = void 0;
+	let teacherIndex = void 0;
+	for (let [i, th] of [...table.tHead.rows[0].cells].entries()) switch (th.textContent?.toLowerCase()) {
+		case "klas":
+			classIndex = i;
+			break;
+		case "dag":
+			dayIndex = i;
+			break;
+		case "lestijd":
+			timeIndex = i;
+			break;
+		case "locatie":
+			locationIndex = i;
+			break;
+		case "leerkracht":
+			teacherIndex = i;
+			break;
+		default: break;
+	}
+	let lastClass = "";
 	return [...table.tBodies[0].rows].map((row) => {
+		let className = row.cells[classIndex].textContent ?? "";
+		className = className.trim();
+		if (className == "") className = lastClass;
+		lastClass = className;
+		let day = dayIndex ? row.cells[dayIndex].textContent : "";
+		let timeString = timeIndex ? row.cells[timeIndex].textContent : "";
+		let location$1 = locationIndex ? row.cells[locationIndex].textContent : "";
+		let teacher = teacherIndex ? row.cells[teacherIndex].textContent : "";
 		return {
-			className: row.cells[0].textContent,
-			day: row.cells[1].textContent,
-			location: row.cells[3].textContent,
-			teacher: row.cells[4].textContent
+			className,
+			day,
+			timeString,
+			location: location$1,
+			teacher
 		};
 	});
 }

@@ -63,8 +63,8 @@ async function setTabId(tabType, tabId) {
 	data[tabType] = tabId.toString();
 	await chrome.storage.session.set(data);
 }
-async function fetchAndSendWww() {
-	let res = await fetch("https://academieberchem.stedelijkonderwijs.be/uurrooster-woord-gevorderden-18");
+async function fetchAndSendWww(message) {
+	let res = await fetch("https://academieberchem.stedelijkonderwijs.be/uurrooster-2e-graad-kinderen-8-tot-11-jaar");
 	return await res.text();
 }
 function onMessage(message, sender, sendResponse) {
@@ -102,7 +102,7 @@ function onMessage(message, sender, sendResponse) {
 			sendResponse(getTabId(TabType.Main));
 			break;
 		case Actions.Www:
-			fetchAndSendWww().then((www) => {
+			fetchAndSendWww(message).then((www) => {
 				message.data = www;
 				sendResponse(message);
 			});

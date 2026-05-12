@@ -199,6 +199,7 @@ setInterval(() => {
 interface WwwLesDef {
     className: string;
     day: string;
+    timeString: string;
     // timeSlice: TimeSlice;
     location: string;
     teacher: string;
@@ -227,12 +228,39 @@ function parseWww(data: string) {
 }
 
 function scrapeClassTable(table: HTMLTableElement) {
+    //get indexes of columns
+    let classIndex: number | undefined = undefined;
+    let dayIndex: number | undefined = undefined;
+    let timeIndex: number | undefined = undefined;
+    let locationIndex: number | undefined = undefined;
+    let teacherIndex: number | undefined = undefined;
+    for(let [i, th] of [...table.tHead!.rows[0].cells].entries()) {
+        switch (th.textContent?.toLowerCase()) {
+            case "klas": classIndex = i; break;
+            case "dag": dayIndex = i; break;
+            case "lestijd": timeIndex = i; break;
+            case "locatie": locationIndex = i; break;
+            case "leerkracht": teacherIndex = i; break;
+            default: break;
+        }
+    }
+    let lastClass = "";
     return [...table.tBodies[0].rows].map(row => {
+        let className = row.cells[classIndex!].textContent??"";
+        className = className.trim();
+        if(className == "")
+            className = lastClass;
+        lastClass = className;
+        let day = dayIndex? row.cells[dayIndex].textContent : "";
+        let timeString = timeIndex? row.cells[timeIndex].textContent : "";
+        let location = locationIndex? row.cells[locationIndex].textContent : "";
+        let teacher = teacherIndex? row.cells[teacherIndex].textContent : "";
         return {
-            className: row.cells[0].textContent,
-            day: row.cells[1].textContent,
-            location: row.cells[3].textContent,
-            teacher: row.cells[4].textContent,
+            className,
+            day,
+            timeString,
+            location,
+            teacher,
         } satisfies WwwLesDef as WwwLesDef;
     });
 }
