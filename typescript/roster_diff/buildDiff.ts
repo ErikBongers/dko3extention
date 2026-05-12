@@ -156,7 +156,7 @@ export type DiffType =
     | "match without teacher, time and day";
 
 export interface Diff {
-    excelLes: TaggedExcelLes;
+    excelLes: ComparableLesMoment;
     dko3Les: TaggedDko3LesMoment;
     diffType: DiffType;
     weight: Weight;
@@ -452,10 +452,10 @@ async function getAliassesForLes(lesId: string, reportStatus: StatusCallback) {
 }
 
 type MatchResult = {
-    excelLes: TaggedExcelLes,
+    excelLes: ComparableLesMoment,
     weight: Weight
 }
-function matchIt(ctx: MatchContext, dko3LesSet: Set<TaggedDko3LesMoment>, excelLesSet: Set<TaggedExcelLes>, diffType: DiffType, matchFunction: (ctx: MatchContext, dko3Les: TaggedDko3LesMoment, excelLesSet: Set<TaggedExcelLes>) => (MatchResult | null)) {
+function matchIt(ctx: MatchContext, dko3LesSet: Set<TaggedDko3LesMoment>, excelLesSet: Set<ComparableLesMoment>, diffType: DiffType, matchFunction: (ctx: MatchContext, dko3Les: TaggedDko3LesMoment, excelLesSet: Set<ComparableLesMoment>) => (MatchResult | null)) {
     let diffs: Diff[] = [];
     for(let dko3Les of dko3LesSet) {
         let result = matchFunction(ctx, dko3Les, excelLesSet);
@@ -498,24 +498,24 @@ function weigh1000(dko3Les: TaggedDko3LesMoment, otherLes: ComparableLesMoment, 
     return weight;
 }
 type MatchContext = {
-    excelLesNamesMap?: Map<string, TaggedExcelLes[]>
+    excelLesNamesMap?: Map<string, ComparableLesMoment[]>
 }
 
-function createExcelLesNamesMap(excelLesSet: Set<TaggedExcelLes>) {
-    let excelLesNamesMap: Map<string, TaggedExcelLes[]> = new Map();
+function createExcelLesNamesMap(excelLesSet: Set<ComparableLesMoment>) {
+    let excelLesNamesMap: Map<string, ComparableLesMoment[]> = new Map();
     for (let excelLes of excelLesSet) {
-        if(!excelLes.lesMoment.className)
+        if(!excelLes.className)
             continue;
-        let item = excelLesNamesMap.get(excelLes.lesMoment.className.toLowerCase())
+        let item = excelLesNamesMap.get(excelLes.className.toLowerCase())
         if(!item)
-            excelLesNamesMap.set(excelLes.lesMoment.className.toLowerCase(), [excelLes]);
+            excelLesNamesMap.set(excelLes.className.toLowerCase(), [excelLes]);
         else
             item.push(excelLes);
     }
     return excelLesNamesMap;
 }
 
-function matchBasedOnName(ctx: MatchContext, dko3Les: TaggedDko3LesMoment, excelLesSet: Set<TaggedExcelLes>): MatchResult | null {
+function matchBasedOnName(ctx: MatchContext, dko3Les: TaggedDko3LesMoment, excelLesSet: Set<ComparableLesMoment>): MatchResult | null {
     let results: MatchResult[] = [];
 
     if(!ctx.excelLesNamesMap) {
@@ -760,19 +760,19 @@ export async function setIgnoredFlags(orphanedDko3Lessen: JsonDko3LesMoment[], o
     } catch {}
 }
 
-export async function createJsonDiffs(diffList: Diff[], dko3LesSet: Set<TaggedDko3LesMoment>, excelLesSet: Set<TaggedExcelLes>, excelRosters: ExcelRoster[], academie: string, schoolYear: string): Promise<JsonDiffs> {
+export async function createJsonDiffs(diffList: Diff[], dko3LesSet: Set<TaggedDko3LesMoment>, excelLesSet: Set<ComparableLesMoment>, excelRosters: ExcelRoster[], academie: string, schoolYear: string): Promise<JsonDiffs> {
     let diffs: JsonDiff[] = diffList
         .filter(diff => diff.diffType != "perfect match" || diff.weight.weight != 1000)
         .map(diff => {
             return {
-                excelLes: excelLesToJson(diff.excelLes),
+                excelLes: excelLesToJson(diff.excelLes as TaggedExcelLes),
                 dko3Les: dko3LesToJson(diff.dko3Les),
                 diffType: diff.diffType,
                 weight: diff.weight
             } satisfies JsonDiff;
         });
     let orphanedDko3Lessen = [...dko3LesSet.values()].map(les => dko3LesToJson(les));
-    let orphanedExcelLessen = [...excelLesSet.values()].map(les => excelLesToJson(les));
+    let orphanedExcelLessen = [...excelLesSet.values()].map(les => excelLesToJson(les as TaggedExcelLes));
 
     await setIgnoredFlags(orphanedDko3Lessen, orphanedExcelLessen, academie, schoolYear);
     let workBooks: Map<string, JsonWorkBook> = new Map<string, JsonWorkBook>();

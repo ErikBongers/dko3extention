@@ -6066,9 +6066,9 @@ function weigh1000(dko3Les, otherLes, extraExcelTeachers) {
 function createExcelLesNamesMap(excelLesSet) {
 	let excelLesNamesMap = new Map();
 	for (let excelLes of excelLesSet) {
-		if (!excelLes.lesMoment.className) continue;
-		let item = excelLesNamesMap.get(excelLes.lesMoment.className.toLowerCase());
-		if (!item) excelLesNamesMap.set(excelLes.lesMoment.className.toLowerCase(), [excelLes]);
+		if (!excelLes.className) continue;
+		let item = excelLesNamesMap.get(excelLes.className.toLowerCase());
+		if (!item) excelLesNamesMap.set(excelLes.className.toLowerCase(), [excelLes]);
 		else item.push(excelLes);
 	}
 	return excelLesNamesMap;
