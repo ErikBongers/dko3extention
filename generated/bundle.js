@@ -1624,7 +1624,7 @@ var RosterFactory = class RosterFactory {
 		return void 0;
 	}
 	isPeriod(text) {
-		return parseTimeSlice(text);
+		return TimeSlice.parseTimeSlice(text);
 	}
 	findLastPeriodRow(periodColumn) {
 		return this.excelData.data.map((row, index) => this.isPeriod(row[periodColumn].toString()) ? index : -1).filter((n) => n > 0).pop();
@@ -1699,7 +1699,7 @@ var ClassDef = class {
 		return this.hash;
 	}
 };
-var TimeSlice = class {
+var TimeSlice = class TimeSlice {
 	start;
 	end;
 	constructor(start, end) {
@@ -1712,6 +1712,55 @@ var TimeSlice = class {
 	toString() {}
 	static toString(timeSlice) {
 		return `${timeSlice.start.hour}:${timeSlice.start.minutes}-${timeSlice.end.hour}:${timeSlice.end.minutes}`;
+	}
+	static parseTime(timeString) {
+		let timeParts = timeString.split(/[:;,.]/gm);
+		if (timeParts.length == 2) return {
+			hour: parseInt(timeParts[0]),
+			minutes: parseInt(timeParts[1])
+		};
+		if (timeParts.length == 1) return {
+			hour: parseInt(timeParts[0]),
+			minutes: 0
+		};
+		return null;
+	}
+	static parseTimes(text) {
+		let times = [];
+		let rx = /\s+(\d?\d)[.:,](\d\d)/gm;
+		let matches = rx.exec(text);
+		while (matches) {
+			let time = {
+				hour: parseInt(matches[1]),
+				minutes: parseInt(matches[2])
+			};
+			times.push(time);
+			matches = rx.exec(text);
+		}
+		return times;
+	}
+	static parseShortTimes(text) {
+		text = " " + text + " ";
+		let times = TimeSlice.parseTimes(text);
+		let rx = /\s+(\d?\d)\s+/gm;
+		let matches = rx.exec(text);
+		while (matches) {
+			let time = {
+				hour: parseInt(matches[1]),
+				minutes: 0
+			};
+			times.push(time);
+			matches = rx.exec(text);
+		}
+		return times;
+	}
+	static parseTimeSlice(text) {
+		let [start, end] = text.split("-");
+		if (!start || !end) return null;
+		let startTime = TimeSlice.parseTime(start);
+		let endTime = TimeSlice.parseTime(end);
+		if (!startTime || !endTime) return null;
+		return new TimeSlice(startTime, endTime);
 	}
 };
 function timeToMinutes(time) {
@@ -1773,7 +1822,7 @@ var ExcelRoster = class {
 				let sliceStart = timeSlices.get(sliceStartText);
 				let sliceEnd = timeSlices.get(sliceEndText);
 				timeSlice = new TimeSlice(sliceStart.start, sliceEnd.end);
-				let times = this.findTimes(parseText);
+				let times = TimeSlice.parseTimes(parseText);
 				if (times.length === 2) timeSlice = new TimeSlice(times[0], times[1]);
 				else if (times.length === 1) timeSlice = this.moveTimeSliceTo(timeSlice, times[0]);
 				let tags = this.findTags(parseText, this.tagDefs);
@@ -1799,25 +1848,11 @@ var ExcelRoster = class {
 		let timeSlices = new Map();
 		for (let row = 0; row < this.table.RowCount; row++) {
 			let value = this.table.HeaderColumnValue(row, 0);
-			let timeSlice = parseTimeSlice(value);
+			let timeSlice = TimeSlice.parseTimeSlice(value);
 			if (timeSlice) timeSlices.set(value, timeSlice);
 			else this.errors.push(`Could not parse time slice: ${value}`);
 		}
 		return timeSlices;
-	}
-	findTimes(text) {
-		let times = [];
-		let rx = /\s+(\d?\d)[.:,](\d\d)/gm;
-		let matches = rx.exec(text);
-		while (matches) {
-			let time = {
-				hour: parseInt(matches[1]),
-				minutes: parseInt(matches[2])
-			};
-			times.push(time);
-			matches = rx.exec(text);
-		}
-		return times;
 	}
 	moveTimeSliceTo(timeSlice, newStart) {
 		let newSlice = structuredClone(timeSlice);
@@ -1896,26 +1931,6 @@ var ExcelRoster = class {
 		return gradeYears;
 	}
 };
-function parseTime(timeString) {
-	let timeParts = timeString.split(/[:;,.]/gm);
-	if (timeParts.length == 2) return {
-		hour: parseInt(timeParts[0]),
-		minutes: parseInt(timeParts[1])
-	};
-	if (timeParts.length == 1) return {
-		hour: parseInt(timeParts[0]),
-		minutes: 0
-	};
-	return null;
-}
-function parseTimeSlice(text) {
-	let [start, end] = text.split("-");
-	if (!start || !end) return null;
-	let startTime = parseTime(start);
-	let endTime = parseTime(end);
-	if (!startTime || !endTime) return null;
-	return new TimeSlice(startTime, endTime);
-}
 
 //#endregion
 //#region typescript/lessen/scrape.ts
@@ -6076,6 +6091,85 @@ async function getUrlForWorksheet(workBook, workSheet, cellAddress, academie, sc
 }
 
 //#endregion
+//#region typescript/www_diff/buildDiff.ts
+function tagWwwLes(les) {
+	let times = TimeSlice.parseShortTimes(les.timeString);
+	if (times.length != 2) throw new Error(`Could not parse time slice ${les.timeString} for class ${les.className}.`);
+	let timeSlice = new TimeSlice(times[0], times[1]);
+	return {
+		lesDef: les,
+		timeSlice
+	};
+}
+function parseWww(data) {
+	let lessen = [];
+	for (let html of data) lessen = lessen.concat(parseHtml(html));
+	let taggedLessen = lessen.map((les) => tagWwwLes(les));
+	console.log(taggedLessen);
+}
+function parseHtml(html) {
+	let scanner = new TokenScanner(html);
+	scanner.find("<main ");
+	scanner.find(">");
+	scanner.clipTo("</main>");
+	console.log(scanner.result());
+	let div = document.createElement("div");
+	div.innerHTML = scanner.result();
+	console.log(div);
+	let pageTitle = div.querySelector("h1.title").textContent;
+	console.log(pageTitle);
+	let classTables = [...div.querySelectorAll("table")].filter((table) => {
+		return table.tHead?.rows[0].textContent.toLowerCase().includes("klas");
+	});
+	let lessen = [];
+	for (let table of classTables) lessen = lessen.concat(scrapeClassTable(table));
+	return lessen;
+}
+function scrapeClassTable(table) {
+	let classIndex = void 0;
+	let dayIndex = void 0;
+	let timeIndex = void 0;
+	let locationIndex = void 0;
+	let teacherIndex = void 0;
+	for (let [i, th] of [...table.tHead.rows[0].cells].entries()) switch (th.textContent?.toLowerCase()) {
+		case "klas":
+			classIndex = i;
+			break;
+		case "dag":
+			dayIndex = i;
+			break;
+		case "lestijd":
+			timeIndex = i;
+			break;
+		case "locatie":
+			locationIndex = i;
+			break;
+		case "leerkracht":
+			teacherIndex = i;
+			break;
+		default: break;
+	}
+	let lastClass = "";
+	return [...table.tBodies[0].rows].map((row) => {
+		let className = row.cells[classIndex].textContent ?? "";
+		className = className.trim();
+		if (className == "") className = lastClass;
+		lastClass = className;
+		let day = dayIndex ? row.cells[dayIndex].textContent : "";
+		let timeString = timeIndex ? row.cells[timeIndex].textContent : "";
+		let location$1 = locationIndex ? row.cells[locationIndex].textContent : "";
+		let teacher = teacherIndex ? row.cells[teacherIndex].textContent : "";
+		return {
+			className,
+			day,
+			timeString,
+			location: location$1,
+			teacher
+		};
+	});
+}
+
+//#endregion
 //#region typescript/startPage/diffPage.ts
 async function loadCombboxSchoolYearAndTrySelect(dirTree) {
 	if (!dirTree) dirTree = await getDiffDirStructure();
@@ -6241,72 +6335,6 @@ let pauseRefresh$1 = false;
 setInterval(() => {
 	pauseRefresh$1 = false;
 }, 2e3);
-function parseWww(data) {
-	let lessen = [];
-	for (let html of data) lessen = lessen.concat(parseHtml(html));
-	console.log(lessen);
-}
-function parseHtml(html) {
-	let scanner = new TokenScanner(html);
-	scanner.find("<main ");
-	scanner.find(">");
-	scanner.clipTo("</main>");
-	console.log(scanner.result());
-	let div = document.createElement("div");
-	div.innerHTML = scanner.result();
-	console.log(div);
-	let pageTitle = div.querySelector("h1.title").textContent;
-	console.log(pageTitle);
-	let classTables = [...div.querySelectorAll("table")].filter((table) => {
-		return table.tHead?.rows[0].textContent.toLowerCase().includes("klas");
-	});
-	let lessen = [];
-	for (let table of classTables) lessen = lessen.concat(scrapeClassTable(table));
-	return lessen;
-}
-function scrapeClassTable(table) {
-	let classIndex = void 0;
-	let dayIndex = void 0;
-	let timeIndex = void 0;
-	let locationIndex = void 0;
-	let teacherIndex = void 0;
-	for (let [i, th] of [...table.tHead.rows[0].cells].entries()) switch (th.textContent?.toLowerCase()) {
-		case "klas":
-			classIndex = i;
-			break;
-		case "dag":
-			dayIndex = i;
-			break;
-		case "lestijd":
-			timeIndex = i;
-			break;
-		case "locatie":
-			locationIndex = i;
-			break;
-		case "leerkracht":
-			teacherIndex = i;
-			break;
-		default: break;
-	}
-	let lastClass = "";
-	return [...table.tBodies[0].rows].map((row) => {
-		let className = row.cells[classIndex].textContent ?? "";
-		className = className.trim();
-		if (className == "") className = lastClass;
-		lastClass = className;
-		let day = dayIndex ? row.cells[dayIndex].textContent : "";
-		let timeString = timeIndex ? row.cells[timeIndex].textContent : "";
-		let location$1 = locationIndex ? row.cells[locationIndex].textContent : "";
-		let teacher = teacherIndex ? row.cells[teacherIndex].textContent : "";
-		return {
-			className,
-			day,
-			timeString,
-			location: location$1,
-			teacher
-		};
-	});
-}
 async function onMessage$1(request, _sender, sendResponse) {
 	if (request.senderTabType != TabType.DiffSettings) return;
 	if (request.action == Actions.RequestTabData) {

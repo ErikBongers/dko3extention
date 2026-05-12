@@ -1,6 +1,6 @@
 import {ExcelData, JsonExcelData, Table, Range, ExcelRange} from "./excel";
-import {parseTimeSlice} from "./excelRoster";
 import {DayUppercase} from "../lessen/scrape";
+import {TimeSlice} from "./excelRoster";
 
 export class RosterFactory {
     private excelData: ExcelData;
@@ -96,7 +96,7 @@ export class RosterFactory {
     }
 
     private isPeriod(text: string) {
-        return parseTimeSlice(text)!!;
+        return TimeSlice.parseTimeSlice(text)!!;
     }
 
     private findLastPeriodRow(periodColumn: number) {

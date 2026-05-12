@@ -95,7 +95,18 @@ export class TimeSlice {
         return `${timeSlice.start.hour}:${timeSlice.start.minutes}-${timeSlice.end.hour}:${timeSlice.end.minutes}`;
     }
 
-    public static parseTimes(text: string) {
+    public static parseTime(timeString: string): Time | null {
+        let timeParts = timeString.split(/[:;,.]/gm);
+        if(timeParts.length == 2) {
+            return {hour: parseInt(timeParts[0]), minutes: parseInt(timeParts[1])};
+        }
+        if(timeParts.length == 1) {
+            return { hour: parseInt(timeParts[0]), minutes: 0};
+        }
+        return null;
+    }
+
+    public static parseTimes(text: string) { //todo: merge with above and below?
         let times: Time[] = [];
         let rx = /\s+(\d?\d)[.:,](\d\d)/gm;
         let matches = rx.exec(text);
@@ -112,9 +123,9 @@ export class TimeSlice {
 
     //Allow for strings like "12 - 13", without the minutes. Avoid this function as it may catch false positives - any number is considered an hour.
     public static parseShortTimes(text: string) {
+        text = " " + text + " ";
         let times = TimeSlice.parseTimes(text);
 
-        text = " " + text + " ";
         let rx = /\s+(\d?\d)\s+/gm;
         let matches = rx.exec(text);
         while(matches) {
@@ -127,6 +138,18 @@ export class TimeSlice {
         }
         return times;
     }
+
+    public static parseTimeSlice(text: string): TimeSlice | null {
+        let [start, end] = text.split("-");
+        if(!start || !end)
+            return null;
+        let startTime = TimeSlice.parseTime(start);
+        let endTime = TimeSlice.parseTime(end);
+        if(!startTime || !endTime)
+            return null;
+        return new TimeSlice(startTime, endTime);
+    }
+
 }
 
 export type Time = {
@@ -251,7 +274,7 @@ export class ExcelRoster {
 
         for(let row = 0; row < this.table.RowCount; row++) {
             let value = this.table.HeaderColumnValue(row, 0);
-            let timeSlice = parseTimeSlice(value);
+            let timeSlice = TimeSlice.parseTimeSlice(value);
             if(timeSlice) {
                 timeSlices.set(value, timeSlice);
             } else {
@@ -371,24 +394,3 @@ export interface TeacherDef {
     callName?: string;
 }
 
-export function parseTime(timeString: string): Time | null {
-    let timeParts = timeString.split(/[:;,.]/gm);
-    if(timeParts.length == 2) {
-        return {hour: parseInt(timeParts[0]), minutes: parseInt(timeParts[1])};
-    }
-    if(timeParts.length == 1) {
-        return { hour: parseInt(timeParts[0]), minutes: 0};
-    }
-    return null;
-}
-
-export function parseTimeSlice(text: string): TimeSlice | null {
-    let [start, end] = text.split("-");
-    if(!start || !end)
-        return null;
-    let startTime = parseTime(start);
-    let endTime = parseTime(end);
-    if(!startTime || !endTime)
-        return null;
-    return new TimeSlice(startTime, endTime);
-}

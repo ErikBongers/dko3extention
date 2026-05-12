@@ -1,15 +1,25 @@
 import {TokenScanner} from "../tokenScanner";
-import {Actions, sendRequest, ServiceRequest, TabType} from "../messaging";
-import {fetchDiffSettingsOrDefault, getAndShowDiffs} from "../roster_diff/showDiff";
-import {DiffSettings} from "../roster_diff/diffSettings";
+import {TimeSlice} from "../roster_diff/excelRoster";
 
 interface WwwLesDef {
     className: string;
     day: string;
     timeString: string;
-    // timeSlice: TimeSlice;
     location: string;
     teacher: string;
+}
+
+interface TaggedWwwLesDef {
+    lesDef: WwwLesDef;
+    timeSlice: TimeSlice;
+}
+
+function tagWwwLes(les: WwwLesDef) {
+    let times = TimeSlice.parseShortTimes(les.timeString);
+    if(times.length != 2)
+        throw new Error(`Could not parse time slice ${les.timeString} for class ${les.className}.`); //todo: add url
+    let timeSlice = new TimeSlice(times[0], times[1]);
+    return {lesDef: les, timeSlice: timeSlice} satisfies TaggedWwwLesDef as TaggedWwwLesDef;
 }
 
 export function parseWww(data: string[]) {
@@ -17,7 +27,10 @@ export function parseWww(data: string[]) {
     for(let html of data) {
         lessen = lessen.concat(parseHtml(html));
     }
-    console.log(lessen);
+    let taggedLessen: TaggedWwwLesDef[] = lessen
+        .map(les => tagWwwLes(les));
+
+    console.log(taggedLessen);
 }
 
 function parseHtml(html: string) {
