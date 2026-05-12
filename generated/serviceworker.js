@@ -64,8 +64,10 @@ async function setTabId(tabType, tabId) {
 	await chrome.storage.session.set(data);
 }
 async function fetchAndSendWww(message) {
-	let res = await fetch("https://academieberchem.stedelijkonderwijs.be/uurrooster-2e-graad-kinderen-8-tot-11-jaar");
-	return await res.text();
+	let urlList = message.data.urlList;
+	let promises = urlList.map((url) => fetch(url));
+	let responses = await Promise.all(promises);
+	return await Promise.all(responses.map((res) => res.text()));
 }
 function onMessage(message, sender, sendResponse) {
 	switch (message.action) {

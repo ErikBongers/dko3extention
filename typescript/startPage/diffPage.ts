@@ -30,8 +30,12 @@ async function loadCombboxSchoolYearAndTrySelect(dirTree?: TreeNode): Promise<bo
 }
 
 async function calcAndShowDiffsWww() {
-    let response = await requestWww();
-    parseWww(response.data);
+    let response = await requestWww([
+        "https://academieberchem.stedelijkonderwijs.be/uurrooster-woord-gevorderden-18",
+        "https://academieberchem.stedelijkonderwijs.be/uurrooster-2e-graad-kinderen-8-tot-11-jaar",
+
+]);
+    parseWww(response.data as string[]);
 }
 
 export async function setupDiffPage() {
@@ -184,8 +188,8 @@ export async function openDiffSettings(academie: string, schoolyear: string) {
     return sendRequest(Actions.OpenDiffSettings, TabType.Main, TabType.Undefined, undefined, {academie, schoolyear}, "TODO: is this title used? Uurrooster setup voor schooljaar " + schoolyear);
 }
 
-async function requestWww() {
-    return sendRequest(Actions.Www, TabType.Main, TabType.Undefined, undefined, {}, "");
+async function requestWww(urlList: string[]) {
+    return sendRequest(Actions.Www, TabType.Main, TabType.Undefined, undefined, {urlList}, "");
 }
 
 chrome.runtime.onMessage.addListener(onMessage)
@@ -205,8 +209,15 @@ interface WwwLesDef {
     teacher: string;
 }
 
-function parseWww(data: string) {
-    let scanner = new TokenScanner(data);
+function parseWww(data: string[]) {
+    let lessen: WwwLesDef[] = [];
+    for(let html of data) {
+        lessen = lessen.concat(parseHtml(html));
+    }
+    console.log(lessen);
+}
+function parseHtml(html: string) {
+    let scanner = new TokenScanner(html);
     scanner.find("<main ");
     scanner.find(">");
     scanner.clipTo("</main>")
@@ -224,7 +235,7 @@ function parseWww(data: string) {
     for(let table of classTables) {
         lessen = lessen.concat(scrapeClassTable(table));
     }
-    console.log(lessen);
+    return lessen;
 }
 
 function scrapeClassTable(table: HTMLTableElement) {

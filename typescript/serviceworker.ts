@@ -48,9 +48,10 @@ async function setTabId(tabType: TabType, tabId: number) {
 }
 
 async function fetchAndSendWww(message: ServiceRequest) {
-    // let res = await fetch("https://academieberchem.stedelijkonderwijs.be/uurrooster-woord-gevorderden-18");
-    let res = await fetch("https://academieberchem.stedelijkonderwijs.be/uurrooster-2e-graad-kinderen-8-tot-11-jaar");
-    return await res.text();
+    let urlList = message.data.urlList as string[]; //todo: create a type and share with diffPage.ts
+    let promises = urlList.map(url => fetch(url));
+    let responses = await Promise.all(promises);
+    return await Promise.all(responses.map(res => res.text()));
 }
 
 function onMessage(message: ServiceRequest, sender: MessageSender, sendResponse: (response?: any) => void) {
