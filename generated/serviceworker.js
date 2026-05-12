@@ -14,6 +14,7 @@ let Actions = /* @__PURE__ */ function(Actions$1) {
 	Actions$1["DiffSettingsChanged"] = "diff_settings_changed";
 	Actions$1["GreetingsFromParent"] = "greetingsFromParent";
 	Actions$1["GreetingsFromChild"] = "greetingsFromChild";
+	Actions$1["Www"] = "Www";
 	return Actions$1;
 }({});
 let TabType = /* @__PURE__ */ function(TabType$1) {
@@ -62,6 +63,10 @@ async function setTabId(tabType, tabId) {
 	data[tabType] = tabId.toString();
 	await chrome.storage.session.set(data);
 }
+async function fetchAndSendWww() {
+	let res = await fetch("https://academieberchem.stedelijkonderwijs.be/uurrooster-woord-gevorderden-18");
+	return await res.text();
+}
 function onMessage(message, sender, sendResponse) {
 	switch (message.action) {
 		case Actions.OpenHtmlTab:
@@ -96,6 +101,12 @@ function onMessage(message, sender, sendResponse) {
 		case Actions.GetParentTabId:
 			sendResponse(getTabId(TabType.Main));
 			break;
+		case Actions.Www:
+			fetchAndSendWww().then((www) => {
+				message.data = www;
+				sendResponse(message);
+			});
+			return true;
 		case Actions.GreetingsFromChild:
 		default:
 			console.log("service worker: received message: ", message);

@@ -6096,7 +6096,8 @@ async function loadCombboxSchoolYearAndTrySelect(dirTree) {
 	return false;
 }
 async function calcAndShowDiffsWww() {
-	await requestWww();
+	let response = await requestWww();
+	parseWww(response.data);
 }
 async function setupDiffPage() {
 	let pluginContainer = document.getElementById("plugin_container");
@@ -6226,11 +6227,35 @@ let pauseRefresh$1 = false;
 setInterval(() => {
 	pauseRefresh$1 = false;
 }, 2e3);
+function parseWww(data) {
+	let scanner = new TokenScanner(data);
+	scanner.find("<main ");
+	scanner.find(">");
+	scanner.clipTo("</main>");
+	console.log(scanner.result());
+	let div = document.createElement("div");
+	div.innerHTML = scanner.result();
+	console.log(div);
+	let pageTitle = div.querySelector("h1.title").textContent;
+	console.log(pageTitle);
+	let classTables = [...div.querySelectorAll("table")].filter((table) => {
+		return table.tHead?.rows[0].textContent.toLowerCase().includes("klas");
+	});
+	let lessen = [];
+	for (let table of classTables) lessen = lessen.concat(scrapeClassTable(table));
+	console.log(lessen);
+}
+function scrapeClassTable(table) {
+	return [...table.tBodies[0].rows].map((row) => {
+		return {
+			className: row.cells[0].textContent,
+			day: row.cells[1].textContent,
+			location: row.cells[3].textContent,
+			teacher: row.cells[4].textContent
+		};
+	});
+}
 async function onMessage$1(request, _sender, sendResponse) {
-	if (request.action == Actions.Www) {
-		console.log(request.data);
-		return;
-	}
 	if (request.senderTabType != TabType.DiffSettings) return;
 	if (request.action == Actions.RequestTabData) {
 		console.log("Requesting tab data", request.data);

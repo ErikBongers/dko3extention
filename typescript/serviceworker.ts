@@ -94,7 +94,8 @@ function onMessage(message: ServiceRequest, sender: MessageSender, sendResponse:
         case Actions.Www:
             fetchAndSendWww().then(www => {
                 message.data = www;
-                chrome.tabs.sendMessage(sender.tab!.id!, message).then(() => {});
+                // chrome.tabs.sendMessage(sender.tab!.id!, message).then(() => {});
+                sendResponse(message);
             });
             return true;
         case Actions.GreetingsFromChild:

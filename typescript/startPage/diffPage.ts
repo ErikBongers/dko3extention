@@ -5,6 +5,8 @@ import {getUserAndSchoolName} from "../globals";
 import {DiffSettings} from "../roster_diff/diffSettings";
 import {Actions, sendRequest, ServiceRequest, TabType} from "../messaging";
 import MessageSender = chrome.runtime.MessageSender;
+import {TokenScanner} from "../tokenScanner";
+import {TimeSlice} from "../roster_diff/excelRoster";
 
 async function loadCombboxSchoolYearAndTrySelect(dirTree?: TreeNode): Promise<boolean> {
     if(!dirTree)
@@ -28,10 +30,8 @@ async function loadCombboxSchoolYearAndTrySelect(dirTree?: TreeNode): Promise<bo
 }
 
 async function calcAndShowDiffsWww() {
-    // let res = await fetch("https://academieberchem.stedelijkonderwijs.be/uurrooster-woord-gevorderden-18");
-    // let text = await res.text();
-    await requestWww();
-    // console.log(text);
+    let response = await requestWww();
+    parseWww(response.data);
 }
 
 export async function setupDiffPage() {
@@ -184,7 +184,7 @@ export async function openDiffSettings(academie: string, schoolyear: string) {
     return sendRequest(Actions.OpenDiffSettings, TabType.Main, TabType.Undefined, undefined, {academie, schoolyear}, "TODO: is this title used? Uurrooster setup voor schooljaar " + schoolyear);
 }
 
-export async function requestWww() {
+async function requestWww() {
     return sendRequest(Actions.Www, TabType.Main, TabType.Undefined, undefined, {}, "");
 }
 
@@ -196,11 +196,48 @@ setInterval(() => {
     pauseRefresh = false;
 }, 2000);
 
-async function onMessage(request: ServiceRequest, _sender: MessageSender, sendResponse: (response?: any) => void) {
-    if(request.action == Actions.Www) {
-        console.log(request.data);
-        return;
+interface WwwLesDef {
+    className: string;
+    day: string;
+    // timeSlice: TimeSlice;
+    location: string;
+    teacher: string;
+}
+
+function parseWww(data: string) {
+    let scanner = new TokenScanner(data);
+    scanner.find("<main ");
+    scanner.find(">");
+    scanner.clipTo("</main>")
+    console.log(scanner.result()!);
+    let div = document.createElement("div");
+    div.innerHTML = scanner.result()!;
+    console.log(div);
+    let pageTitle = div.querySelector("h1.title")!.textContent;
+    console.log(pageTitle);
+    let classTables = [...div.querySelectorAll("table") as NodeListOf<HTMLTableElement>]
+        .filter(table => {
+            return table.tHead?.rows[0].textContent.toLowerCase().includes("klas");
+        });
+    let lessen: WwwLesDef[] = [];
+    for(let table of classTables) {
+        lessen = lessen.concat(scrapeClassTable(table));
     }
+    console.log(lessen);
+}
+
+function scrapeClassTable(table: HTMLTableElement) {
+    return [...table.tBodies[0].rows].map(row => {
+        return {
+            className: row.cells[0].textContent,
+            day: row.cells[1].textContent,
+            location: row.cells[3].textContent,
+            teacher: row.cells[4].textContent,
+        } satisfies WwwLesDef as WwwLesDef;
+    });
+}
+
+async function onMessage(request: ServiceRequest, _sender: MessageSender, sendResponse: (response?: any) => void) {
     if(request.senderTabType != TabType.DiffSettings)
         return;
     if(request.action == Actions.RequestTabData) {
