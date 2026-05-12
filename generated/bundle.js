@@ -1824,8 +1824,8 @@ var ExcelRoster = class ExcelRoster {
 				let tags = ExcelRoster.findTags(parseText, this.tagDefs);
 				let tagStrings = tags.map((t) => t.tag);
 				let location$1 = ExcelRoster.findLocation(tagStrings, this.dko3Data.locations);
-				let subjects = this.findSubjects(parseText, tagStrings);
-				let className = this.findClassName(parseText);
+				let subjects = ExcelRoster.findSubjects(parseText, tagStrings, this.dko3Data);
+				let className = ExcelRoster.findClassName(parseText, this.dko3Data);
 				let tablePos = {
 					row,
 					column
@@ -1870,15 +1870,15 @@ var ExcelRoster = class ExcelRoster {
 		if (location$1) return location$1;
 		else return "Academie Willem Van Laarstraat, Berchem";
 	}
-	findSubjects(text, tags) {
+	static findSubjects(text, tags, dko3Data) {
 		let allSearchStrings = [...tags];
 		let lowerCase = text.toLowerCase();
-		for (let subject of this.dko3Data.subjects) if (lowerCase.includes(subject.toLowerCase())) allSearchStrings.push(subject);
-		return this.dko3Data.subjects.filter((subject) => allSearchStrings.includes(subject));
+		for (let subject of dko3Data.subjects) if (lowerCase.includes(subject.toLowerCase())) allSearchStrings.push(subject);
+		return dko3Data.subjects.filter((subject) => allSearchStrings.includes(subject));
 	}
-	findClassName(text) {
+	static findClassName(text, dko3Data) {
 		let lowerCase = text.toLowerCase();
-		for (let name of this.dko3Data.classNames) if (lowerCase.includes(" " + name.toLowerCase() + " ")) return name;
+		for (let name of dko3Data.classNames) if (lowerCase.includes(" " + name.toLowerCase() + " ")) return name;
 		return null;
 	}
 	static findTags(text, tagDefs) {
@@ -5245,6 +5245,8 @@ var TaggedWwwLesDef = class {
 	day;
 	teachers;
 	location;
+	subjects;
+	className;
 	constructor(lesDef, timeSlice, day, teachers, dko3Data, diffSettings) {
 		this.lesDef = lesDef;
 		this.timeSlice = timeSlice;
@@ -5253,6 +5255,8 @@ var TaggedWwwLesDef = class {
 		let tags = ExcelRoster.findTags(" " + this.lesDef.location + " ", diffSettings.tagDefs);
 		let tagStrings = tags.map((t) => t.tag);
 		this.location = ExcelRoster.findLocation(tagStrings, dko3Data.locations);
+		this.subjects = ExcelRoster.findSubjects(this.lesDef.className, tagStrings, dko3Data);
+		this.className = ExcelRoster.findClassName(" " + this.lesDef.className + " ", dko3Data);
 	}
 	getHash() {
 		return `${this.lesDef.className}-${this.lesDef.day}-${TimeSlice.toString(this.timeSlice)}-${this.teachers.join()}`;
@@ -6326,7 +6330,7 @@ async function setupDiffPage() {
 	emmet.insertAfter(runStatus, "div#diffResults");
 	let divInfo = emmet.insertAfter(runStatus, "div#diffInfo").last;
 	let divError = emmet.insertAfter(divInfo, "div#diffErrors.errors").last;
-	btnCalcDiff.onclick = () => calcAndShowDiffsWithSettings("calcAndShow", "dkoCache");
+	btnCalcDiff.onclick = () => calcAndShowDiffsWithSettings("calcAndShow", "fetchDko");
 	btnCalcDiffWww.onclick = () => calcAndShowDiffsWww();
 	btnDiffSettings.onclick = () => showDiffSetup(cmbDiffAcademie.value, cmbDiffSchoolYear.value);
 	cmbDiffAcademie.onchange = async () => {

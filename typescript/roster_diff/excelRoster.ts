@@ -237,9 +237,9 @@ export class ExcelRoster {
                 }
                 let tags = ExcelRoster.findTags(parseText, this.tagDefs);
                 let tagStrings = tags.map(t => t.tag);
-                let location = ExcelRoster.findLocation(tagStrings, this.dko3Data.locations);
-                let subjects = this.findSubjects(parseText, tagStrings);
-                let className = this.findClassName(parseText);
+                let location = ExcelRoster.findLocation(tagStrings, this.dko3Data.locations); //todo: move these functions to a DKo3data class
+                let subjects = ExcelRoster.findSubjects(parseText, tagStrings, this.dko3Data);
+                let className = ExcelRoster.findClassName(parseText, this.dko3Data);
                 let tablePos: TablePos = {row, column};
                 let excelPos: ExcelPos = TablePos.toExcel(tablePos, this.table);
                 let gradeYears = this.findGradeYears(parseText);
@@ -306,20 +306,20 @@ export class ExcelRoster {
             return "Academie Willem Van Laarstraat, Berchem";
     }
 
-    private findSubjects(text: string, tags: string[]) {
+    public static findSubjects(text: string, tags: string[], dko3Data: Dko3DiffData) {
         let allSearchStrings = [...tags];
         let lowerCase = text.toLowerCase();
-        for (let subject of this.dko3Data.subjects) {
+        for (let subject of dko3Data.subjects) {
             if(lowerCase.includes(subject.toLowerCase()))
                 allSearchStrings.push(subject);
         }
 
-        return this.dko3Data.subjects.filter(subject => allSearchStrings.includes(subject));
+        return dko3Data.subjects.filter(subject => allSearchStrings.includes(subject));
     }
 
-    private findClassName(text: string) {
+    public static findClassName(text: string, dko3Data: Dko3DiffData) {
         let lowerCase = text.toLowerCase();
-        for (let name of this.dko3Data.classNames) {
+        for (let name of dko3Data.classNames) {
             if(lowerCase.includes(" " + name.toLowerCase() + " "))
                 return name;
         }

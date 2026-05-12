@@ -22,6 +22,8 @@ class TaggedWwwLesDef {
     day: DayUppercase | null;
     teachers: string[];
     location: string;
+    subjects: string[];
+    className: string | null;
 
     constructor(lesDef: WwwLesDef, timeSlice: TimeSlice, day: DayUppercase | null, teachers: string[], dko3Data: Dko3DiffData, diffSettings: DiffSettings) {
         this.lesDef = lesDef;
@@ -31,6 +33,8 @@ class TaggedWwwLesDef {
         let tags = ExcelRoster.findTags(" " + this.lesDef.location + " ", diffSettings.tagDefs);
         let tagStrings = tags.map(t => t.tag);
         this.location = ExcelRoster.findLocation(tagStrings, dko3Data.locations);
+        this.subjects = ExcelRoster.findSubjects(this.lesDef.className, tagStrings, dko3Data);
+        this.className = ExcelRoster.findClassName(" " + this.lesDef.className + " ", dko3Data);
     }
 
     public getHash() {
