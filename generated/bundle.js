@@ -6094,7 +6094,7 @@ async function getUrlForWorksheet(workBook, workSheet, cellAddress, academie, sc
 //#region typescript/www_diff/buildDiff.ts
 function tagWwwLes(les) {
 	let times = TimeSlice.parseShortTimes(les.timeString);
-	if (times.length != 2) throw new Error(`Could not parse time slice ${les.timeString} for class ${les.className}.`);
+	if (times.length != 2) throw new Error(`Could not parse time slice ${les.timeString} for class ${les.className}. url: ${les.url}`);
 	let timeSlice = new TimeSlice(times[0], times[1]);
 	return {
 		lesDef: les,
@@ -6108,7 +6108,7 @@ function parseWww(data) {
 	console.log(taggedLessen);
 }
 function parseHtml(html) {
-	let scanner = new TokenScanner(html);
+	let scanner = new TokenScanner(html.text);
 	scanner.find("<main ");
 	scanner.find(">");
 	scanner.clipTo("</main>");
@@ -6122,10 +6122,10 @@ function parseHtml(html) {
 		return table.tHead?.rows[0].textContent.toLowerCase().includes("klas");
 	});
 	let lessen = [];
-	for (let table of classTables) lessen = lessen.concat(scrapeClassTable(table));
+	for (let table of classTables) lessen = lessen.concat(scrapeClassTable(html.url, table));
 	return lessen;
 }
-function scrapeClassTable(table) {
+function scrapeClassTable(url, table) {
 	let classIndex = void 0;
 	let dayIndex = void 0;
 	let timeIndex = void 0;
@@ -6160,6 +6160,7 @@ function scrapeClassTable(table) {
 		let location$1 = locationIndex ? row.cells[locationIndex].textContent : "";
 		let teacher = teacherIndex ? row.cells[teacherIndex].textContent : "";
 		return {
+			url,
 			className,
 			day,
 			timeString,

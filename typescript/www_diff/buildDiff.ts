@@ -2,6 +2,7 @@ import {TokenScanner} from "../tokenScanner";
 import {TimeSlice} from "../roster_diff/excelRoster";
 
 interface WwwLesDef {
+    url: string;
     className: string;
     day: string;
     timeString: string;
@@ -17,12 +18,17 @@ interface TaggedWwwLesDef {
 function tagWwwLes(les: WwwLesDef) {
     let times = TimeSlice.parseShortTimes(les.timeString);
     if(times.length != 2)
-        throw new Error(`Could not parse time slice ${les.timeString} for class ${les.className}.`); //todo: add url
+        throw new Error(`Could not parse time slice ${les.timeString} for class ${les.className}. url: ${les.url}`);
     let timeSlice = new TimeSlice(times[0], times[1]);
     return {lesDef: les, timeSlice: timeSlice} satisfies TaggedWwwLesDef as TaggedWwwLesDef;
 }
 
-export function parseWww(data: string[]) {
+export interface HtmlText {
+    url: string;
+    text: string;
+}
+
+export function parseWww(data: HtmlText[]) {
     let lessen: WwwLesDef[] = [];
     for(let html of data) {
         lessen = lessen.concat(parseHtml(html));
@@ -33,8 +39,8 @@ export function parseWww(data: string[]) {
     console.log(taggedLessen);
 }
 
-function parseHtml(html: string) {
-    let scanner = new TokenScanner(html);
+function parseHtml(html: HtmlText) {
+    let scanner = new TokenScanner(html.text);
     scanner.find("<main ");
     scanner.find(">");
     scanner.clipTo("</main>")
@@ -50,12 +56,12 @@ function parseHtml(html: string) {
         });
     let lessen: WwwLesDef[] = [];
     for(let table of classTables) {
-        lessen = lessen.concat(scrapeClassTable(table));
+        lessen = lessen.concat(scrapeClassTable(html.url, table));
     }
     return lessen;
 }
 
-function scrapeClassTable(table: HTMLTableElement) {
+function scrapeClassTable(url: string, table: HTMLTableElement) {
     //get indexes of columns
     let classIndex: number | undefined = undefined;
     let dayIndex: number | undefined = undefined;
@@ -84,6 +90,7 @@ function scrapeClassTable(table: HTMLTableElement) {
         let location = locationIndex? row.cells[locationIndex].textContent : "";
         let teacher = teacherIndex? row.cells[teacherIndex].textContent : "";
         return {
+            url,
             className,
             day,
             timeString,

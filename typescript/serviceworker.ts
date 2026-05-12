@@ -1,5 +1,6 @@
 import MessageSender = chrome.runtime.MessageSender;
 import {Actions, ServiceRequest, TabType} from "./messaging";
+import {HtmlText} from "./www_diff/buildDiff";
 
 let defaultOptions = { //todo: integrate in options.ts.
     showDebug: true,
@@ -49,9 +50,13 @@ async function setTabId(tabType: TabType, tabId: number) {
 
 async function fetchAndSendWww(message: ServiceRequest) {
     let urlList = message.data.urlList as string[]; //todo: create a type and share with diffPage.ts
-    let promises = urlList.map(url => fetch(url));
+    let promises = urlList.map(url => {
+        return {url, response: fetch(url)};
+    });
     let responses = await Promise.all(promises);
-    return await Promise.all(responses.map(res => res.text()));
+    return await Promise.all(responses.map(async res => {
+        return {url: res.url, text: await (await res.response).text()} satisfies HtmlText as HtmlText;
+    }));
 }
 
 function onMessage(message: ServiceRequest, sender: MessageSender, sendResponse: (response?: any) => void) {

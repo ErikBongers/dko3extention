@@ -65,9 +65,19 @@ async function setTabId(tabType, tabId) {
 }
 async function fetchAndSendWww(message) {
 	let urlList = message.data.urlList;
-	let promises = urlList.map((url) => fetch(url));
+	let promises = urlList.map((url) => {
+		return {
+			url,
+			response: fetch(url)
+		};
+	});
 	let responses = await Promise.all(promises);
-	return await Promise.all(responses.map((res) => res.text()));
+	return await Promise.all(responses.map(async (res) => {
+		return {
+			url: res.url,
+			text: await (await res.response).text()
+		};
+	}));
 }
 function onMessage(message, sender, sendResponse) {
 	switch (message.action) {

@@ -7,7 +7,7 @@ import {Actions, sendRequest, ServiceRequest, TabType} from "../messaging";
 import MessageSender = chrome.runtime.MessageSender;
 import {TokenScanner} from "../tokenScanner";
 import {TimeSlice} from "../roster_diff/excelRoster";
-import {parseWww} from "../www_diff/buildDiff";
+import {HtmlText, parseWww} from "../www_diff/buildDiff";
 
 async function loadCombboxSchoolYearAndTrySelect(dirTree?: TreeNode): Promise<boolean> {
     if(!dirTree)
@@ -46,7 +46,7 @@ async function calcAndShowDiffsWww() {
         "https://academieberchem.stedelijkonderwijs.be/uurrooster-elektronische-muziek-enkel-de-hoofdschool",
         "https://academieberchem.stedelijkonderwijs.be/uurrooster-2e-graad-volwassenen-vanaf-18-jaar",
 ]);
-    parseWww(response.data as string[]);
+    parseWww(response.data as HtmlText[]);
 }
 
 export async function setupDiffPage() {
