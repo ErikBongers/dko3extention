@@ -31,22 +31,7 @@ async function loadCombboxSchoolYearAndTrySelect(dirTree?: TreeNode): Promise<bo
 }
 
 async function calcAndShowDiffsWww() {
-    let response = await requestWww([
-        "https://academieberchem.stedelijkonderwijs.be/uurrooster-woord-gevorderden-18",
-        "https://academieberchem.stedelijkonderwijs.be/uurrooster-2e-graad-kinderen-8-tot-11-jaar",
-        "https://academieberchem.stedelijkonderwijs.be/uurrooster-1e-graad-kinderen-6-tot-7-jaar",
-        "https://academieberchem.stedelijkonderwijs.be/uurrooster-2e-graad-jongeren-12-tot-17-jaar",
-        "https://academieberchem.stedelijkonderwijs.be/uurrooster-3e-graad-klassiek",
-        "https://academieberchem.stedelijkonderwijs.be/uurrooster-3e-graad-jazz-pop-rock",
-        "https://academieberchem.stedelijkonderwijs.be/uurrooster-3e-graad-wereldmuziek",
-        "https://academieberchem.stedelijkonderwijs.be/uurrooster-4e-graad-klassiek",
-        "https://academieberchem.stedelijkonderwijs.be/uurrooster-4e-graad-jazz-pop-rock-volwassenen-vanaf-18-jaar",
-        "https://academieberchem.stedelijkonderwijs.be/uurrooster-4e-graad-wereldmuziek",
-        "https://academieberchem.stedelijkonderwijs.be/uurrooster-musical",
-        "https://academieberchem.stedelijkonderwijs.be/uurrooster-elektronische-muziek-enkel-de-hoofdschool",
-        "https://academieberchem.stedelijkonderwijs.be/uurrooster-2e-graad-volwassenen-vanaf-18-jaar",
-]);
-    parseWww(response.data as HtmlText[]);
+    await parseWww(response.data as HtmlText[]);
 }
 
 export async function setupDiffPage() {
@@ -197,10 +182,6 @@ let diffGlobals: DiffGlobals = {
 
 export async function openDiffSettings(academie: string, schoolyear: string) {
     return sendRequest(Actions.OpenDiffSettings, TabType.Main, TabType.Undefined, undefined, {academie, schoolyear}, "TODO: is this title used? Uurrooster setup voor schooljaar " + schoolyear);
-}
-
-async function requestWww(urlList: string[]) {
-    return sendRequest(Actions.Www, TabType.Main, TabType.Undefined, undefined, {urlList}, "");
 }
 
 chrome.runtime.onMessage.addListener(onMessage)

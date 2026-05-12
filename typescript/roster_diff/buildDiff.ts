@@ -60,7 +60,7 @@ export interface Dko3DiffData {
     extraTeachersCache?: [string, string[]][];
 }
 
-async function getDko3Data(schoolYear: string, reportStatus: StatusCallback, fetchListener: InfoBarTableFetchListener): Promise<Dko3DiffData> {
+export async function getDko3Data(schoolYear: string, reportStatus: StatusCallback, fetchListener: InfoBarTableFetchListener): Promise<Dko3DiffData> {
     reportStatus("Vestigingsplaatsen ophalen...");
     let locationsTable = await getTableFromHash("extra-academie-vestigingsplaatsen", true, fetchListener);
     let locations = [...locationsTable.getRows()].map(tr => tr.cells[1].textContent);

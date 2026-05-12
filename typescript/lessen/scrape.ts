@@ -155,6 +155,21 @@ function scrapeStudents(studentTable: HTMLTableElement) {
 export enum LesType { TrimesterModule, JaarModule, Les, UnknownModule}
 
 export type DayUppercase = "MAANDAG" | "DINSDAG" | "WOENSDAG" | "DONDERDAG" | "VRIJDAG" | "ZATERDAG" | "ZONDAG" | "";
+export function toDay(text: string) {
+    text = text.toUpperCase();
+    switch (text.toUpperCase()) {
+        case "MAANDAG":
+        case "DINSDAG":
+        case "WOENSDAG":
+        case "DONDERDAG":
+        case "VRIJDAG":
+        case "ZATERDAG":
+        case "ZONDAG":
+            return text as DayUppercase;
+        default:
+            return null;
+    }
+}
 export class HtmlLes {
     public les: Les;
     studentsTable: HTMLTableElement;
