@@ -683,6 +683,10 @@ export async function getDiffsFromCloud(academie: string, schoolYear: string): P
     return fromCloud;
 }
 
+export async function getWwwDiffsFromCloud(academie: string, schoolYear: string): Promise<JsonDiffs | null> {
+    return null;
+}
+
 export interface JsonBasicLesMoment {
     subjects: string;
     teachers: string;

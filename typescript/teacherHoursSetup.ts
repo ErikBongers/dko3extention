@@ -118,7 +118,7 @@ function deleteTableRow(ev: Event) {
     hasTableChanged = true;
 }
 
-async function onData(request: ServiceRequest) {
+async function onData(request: ServiceRequest<any>) {
     console.log("onData: ", request);
     let title = "Lerarenuren setup voor schooljaar " + request.data.schoolyear;
     document.title = title;

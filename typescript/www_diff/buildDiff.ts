@@ -7,7 +7,7 @@ import {InfoBarTableFetchListener} from "../table/loadAnyTable";
 import {DiffSettings} from "../roster_diff/diffSettings";
 import {cloud, fetchExcelData, fetchFolderChanged} from "../cloud";
 import {JsonExcelData} from "../roster_diff/excel";
-import {Actions, sendRequest, TabType} from "../messaging";
+import {Actions, sendRequest, ServiceRequest, TabType} from "../messaging";
 
 interface WwwLesDef {
     url: string;
@@ -25,14 +25,12 @@ interface TaggedWwwLesDef {
     teachers: string[];
 }
 
-export async function buildWwwDiff(reportStatus: StatusCallback, fetchListener: InfoBarTableFetchListener, academie: string, schoolYear: string, dko3DiffData: Dko3DiffData | null, diffSettings: DiffSettings) {
+export async function buildWwwDiff(reportStatus: StatusCallback, fetchListener: InfoBarTableFetchListener, academie: string, schoolYear: string, dko3DiffData: Dko3DiffData | null) {
     reportStatus(`Vergelijken met DKO3 lessen...`);
     if(!dko3DiffData)
         dko3DiffData = await getDko3Data(schoolYear, reportStatus, fetchListener);
     await parseWww(dko3DiffData);
 }
-
-
 
 function tagWwwLes(les: WwwLesDef, dko3DiffData: Dko3DiffData) {
     let times = TimeSlice.parseShortTimes(les.timeString);
@@ -64,7 +62,7 @@ async function requestWww(urlList: string[]) {
 }
 
 export async function parseWww(dko3DiffData: Dko3DiffData) {
-    let data: HtmlText[] = await requestWww([
+    let response: ServiceRequest<HtmlText[]> = await requestWww([
         "https://academieberchem.stedelijkonderwijs.be/uurrooster-woord-gevorderden-18",
         "https://academieberchem.stedelijkonderwijs.be/uurrooster-2e-graad-kinderen-8-tot-11-jaar",
         "https://academieberchem.stedelijkonderwijs.be/uurrooster-1e-graad-kinderen-6-tot-7-jaar",
@@ -81,7 +79,7 @@ export async function parseWww(dko3DiffData: Dko3DiffData) {
     ]);
 
     let lessen: WwwLesDef[] = [];
-    for(let html of data) {
+    for(let html of response.data) {
         lessen = lessen.concat(parseHtml(html));
     }
     console.log(lessen);

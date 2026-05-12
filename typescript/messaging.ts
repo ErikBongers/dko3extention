@@ -22,18 +22,18 @@ export enum TabType {
     Html = "Html"
 }
 
-export interface ServiceRequest {
+export interface ServiceRequest<T> {
     action: Actions,
     senderTabType: TabType,
     targetTabType: TabType,
-    data: any,
+    data: T,
     pageTitle?: string,
     senderTabId?: number,
     targetTabId?: number,
 }
 
 export function sendRequest(action: Actions, from: TabType, to: TabType,  toId: number | undefined, data: any, pageTitle?: string) {
-    let req: ServiceRequest = {
+    let req: ServiceRequest<any> = {
         action,
         data,
         pageTitle,
@@ -86,15 +86,15 @@ export async function sendDataRequest<T extends RequestParams>(sender: TabType, 
 }
 
 export type MessageHandler = {
-    getListener: () => (request: ServiceRequest, _sender: any, _sendResponse: any) => void;
-    onMessageForMyTabType: (callback: (msg: ServiceRequest) => void) => MessageHandler;
-    onMessageForMe: (callback: (msg: ServiceRequest) => void) => MessageHandler;
+    getListener: () => (request: ServiceRequest<any>, _sender: any, _sendResponse: any) => void;
+    onMessageForMyTabType: (callback: (msg: ServiceRequest<any>) => void) => MessageHandler;
+    onMessageForMe: (callback: (msg: ServiceRequest<any>) => void) => MessageHandler;
     onData: (callback: (data: any) => void) => MessageHandler;
 }
 
 export interface InternalMessageHandler extends MessageHandler {
-    _onMessageForMyTabType?(request: ServiceRequest): void;
-    _onMessageForMe?(request: ServiceRequest): void;
+    _onMessageForMyTabType?(request: ServiceRequest<any>): void;
+    _onMessageForMe?(request: ServiceRequest<any>): void;
     _onData?(data: any): void;
 }
 
@@ -102,7 +102,7 @@ export function createMessageHandler(tabType: TabType): MessageHandler {
     let handler:InternalMessageHandler = {
         getListener: function () {
             let self: InternalMessageHandler = this;
-            return async function onMessage(request: ServiceRequest, _sender, _sendResponse) {
+            return async function onMessage(request: ServiceRequest<any>, _sender, _sendResponse) {
                 console.log(`tab received: `, request);
                 if (request.targetTabType === tabType) {
                     self._onMessageForMyTabType?.(request);
@@ -117,11 +117,11 @@ export function createMessageHandler(tabType: TabType): MessageHandler {
                 }
             }
         },
-        onMessageForMyTabType: function (callback: (msg: ServiceRequest) => void): MessageHandler {
+        onMessageForMyTabType: function (callback: (msg: ServiceRequest<any>) => void): MessageHandler {
             this._onMessageForMyTabType = callback;
             return this;
         },
-        onMessageForMe: function (callback: (msg: ServiceRequest) => void): MessageHandler {
+        onMessageForMe: function (callback: (msg: ServiceRequest<any>) => void): MessageHandler {
             this._onMessageForMe = callback;
             return this;
         },

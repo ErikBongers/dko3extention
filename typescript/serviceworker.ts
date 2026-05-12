@@ -48,7 +48,7 @@ async function setTabId(tabType: TabType, tabId: number) {
     await chrome.storage.session.set(data);
 }
 
-async function fetchAndSendWww(message: ServiceRequest) {
+async function fetchAndSendWww(message: ServiceRequest<any>) {
     let urlList = message.data.urlList as string[]; //todo: create a type and share with diffPage.ts
     let promises = urlList.map(url => {
         return {url, response: fetch(url)};
@@ -59,7 +59,7 @@ async function fetchAndSendWww(message: ServiceRequest) {
     }));
 }
 
-function onMessage(message: ServiceRequest, sender: MessageSender, sendResponse: (response?: any) => void) {
+function onMessage(message: ServiceRequest<any>, sender: MessageSender, sendResponse: (response?: any) => void) {
     switch (message.action) {
         case Actions.OpenHtmlTab:
             let url = chrome.runtime.getURL(`resources/blank.html?cacheId=${message.data.cacheId}`);

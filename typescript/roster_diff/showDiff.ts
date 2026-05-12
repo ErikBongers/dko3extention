@@ -3,7 +3,7 @@ import {emmet} from "../../libs/Emmeter/html";
 import {decorateTableHeader} from "../table/tableHeaders";
 import {DayUppercase} from "../lessen/scrape";
 import {DKO3_BASE_URL, OPTION_HIDE_IGNORED_DIFFS} from "../def";
-import {buildAndSaveDiff, createDiffTable, DiffType, Dko3DiffData, getDiffsFromCloud, getUrlForWorksheet, JsonBasicLesMoment, JsonDiff, JsonDiffs, setIgnoredFlags, Weight} from "./buildDiff";
+import {buildAndSaveDiff, createDiffTable, DiffType, Dko3DiffData, getDiffsFromCloud, getUrlForWorksheet, getWwwDiffsFromCloud, JsonBasicLesMoment, JsonDiff, JsonDiffs, setIgnoredFlags, Weight} from "./buildDiff";
 import {fetchDiffSettings, uploadIgnoredDiffHashes} from "../cloud";
 import {InfoBarTableFetchListener} from "../table/loadAnyTable";
 import {createInfoBlock} from "../infoBlock";
@@ -29,6 +29,10 @@ export async function fetchDiffSettingsOrDefault(academie: string, schoolYear: s
 }
 
 export function getDiffsDko3CacheFileName(academie: string, schoolYear: string) {
+    return `Dko3/Uurroosters/Cache/${academie}_${schoolYear}_dko3datacache.json`;
+}
+
+export function getWwwDiffsDko3CacheFileName(academie: string, schoolYear: string) {
     return `Dko3/Uurroosters/Cache/${academie}_${schoolYear}_dko3datacache.json`;
 }
 
@@ -92,20 +96,19 @@ export async function getAndShowWwwDiffs(showOrCalc: "justShow" | "calcAndShow",
     errors = [];
     let json: string | null = null;
     if(useDkoCache == "dkoCache")
-       json = localStorage.getItem(getDiffsDko3CacheFileName(cmbDiffAcademie.value, cmbDiffSchoolYear.value));
+       json = localStorage.getItem(getWwwDiffsDko3CacheFileName(cmbDiffAcademie.value, cmbDiffSchoolYear.value));
     let dko3DiffData = json ? JSON.parse(json) as Dko3DiffData : null;
     let jsonDiffs: JsonDiffs | null = null;
-    let diffSettings = await fetchDiffSettingsOrDefault(cmbDiffAcademie.value, cmbDiffSchoolYear.value);
     if(showOrCalc == "justShow") {
         try {
-            jsonDiffs = await getDiffsFromCloud(cmbDiffAcademie.value, cmbDiffSchoolYear.value);
+            jsonDiffs = await getWwwDiffsFromCloud(cmbDiffAcademie.value, cmbDiffSchoolYear.value);
         }
         catch (e) {}
     } else {
-        jsonDiffs = await runDiff(reportStatus, fetchListener, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData, diffSettings);
+        let todo = await runWwwDiff(reportStatus, fetchListener, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData);
     }
     if(jsonDiffs)
-        await showDiffs(jsonDiffs, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData, diffSettings);
+        await showWwwDiffs(jsonDiffs, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData);
 }
 
 export async function showDiffs(diffs: JsonDiffs, academie: string, schoolYear: string, dko3DiffData: Dko3DiffData | null, diffSettings: DiffSettings) {
@@ -157,6 +160,8 @@ export async function showDiffs(diffs: JsonDiffs, academie: string, schoolYear: 
     chkHideChecked.checked = ingore == "true";
     table.classList.toggle("hideChecked", chkHideChecked.checked);
 }
+export async function showWwwDiffs(diffs: JsonDiffs, academie: string, schoolYear: string, dko3DiffData: Dko3DiffData | null) {
+}
 
 export type StatusCallback = (message: string, isError?: "error") => void;
 
@@ -167,11 +172,11 @@ async function runDiff(reportStatus: StatusCallback, fetchListener: InfoBarTable
     return buildAndSaveDiff(reportStatus, fetchListener, academie, schoolYear, dko3DiffData, diffSettings);
 }
 
-async function runWwwDiff(reportStatus: StatusCallback, fetchListener: InfoBarTableFetchListener, academie: string, schoolYear: string, dko3DiffData: Dko3DiffData | null, diffSettings: DiffSettings) {
+async function runWwwDiff(reportStatus: StatusCallback, fetchListener: InfoBarTableFetchListener, academie: string, schoolYear: string, dko3DiffData: Dko3DiffData | null) {
     let divResults = document.getElementById("diffResults") as HTMLDivElement;
     divResults.innerHTML = "";
 
-    return buildWwwDiff(reportStatus, fetchListener, academie, schoolYear, dko3DiffData, diffSettings);
+    return buildWwwDiff(reportStatus, fetchListener, academie, schoolYear, dko3DiffData);
 }
 
 export function fillExcelDiffRow(tr: HTMLTableRowElement, diff: JsonDiff, academie: string, schoolYear: string) {

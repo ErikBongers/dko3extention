@@ -1,5 +1,5 @@
 import {emmet} from "../../libs/Emmeter/html";
-import {fetchDiffSettingsOrDefault, getAndShowDiffs} from "../roster_diff/showDiff";
+import {fetchDiffSettingsOrDefault, getAndShowDiffs, getAndShowWwwDiffs} from "../roster_diff/showDiff";
 import {fetchFolderContent} from "../cloud";
 import {getUserAndSchoolName} from "../globals";
 import {DiffSettings} from "../roster_diff/diffSettings";
@@ -31,7 +31,7 @@ async function loadCombboxSchoolYearAndTrySelect(dirTree?: TreeNode): Promise<bo
 }
 
 async function calcAndShowDiffsWww() {
-    await parseWww(response.data as HtmlText[]);
+    await getAndShowWwwDiffs("calcAndShow", "fetchDko");
 }
 
 export async function setupDiffPage() {
@@ -192,7 +192,7 @@ setInterval(() => {
     pauseRefresh = false;
 }, 2000);
 
-async function onMessage(request: ServiceRequest, _sender: MessageSender, sendResponse: (response?: any) => void) {
+async function onMessage(request: ServiceRequest<any>, _sender: MessageSender, sendResponse: (response?: any) => void) {
     if(request.senderTabType != TabType.DiffSettings)
         return;
     if(request.action == Actions.RequestTabData) {

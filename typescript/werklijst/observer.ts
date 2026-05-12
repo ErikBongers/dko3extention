@@ -158,7 +158,7 @@ setInterval(() => {
     pauseRefresh = false;
 }, 2000);
 
-async function onMessage(request: ServiceRequest, _sender: MessageSender, sendResponse: (response?: any) => void) {
+async function onMessage(request: ServiceRequest<any>, _sender: MessageSender, sendResponse: (response?: any) => void) {
     if(request.senderTabType != TabType.HoursSettings)
         return;
     if(request.action == Actions.RequestTabData) {

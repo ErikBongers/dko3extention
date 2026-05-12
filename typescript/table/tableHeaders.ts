@@ -271,7 +271,7 @@ function showDistinctColumn(tableMeta: TableMeta, index: number) {
 
 chrome.runtime.onMessage.addListener(onMessage)
 
-async function onMessage(request: ServiceRequest, _sender: MessageSender, sendResponse: (response?: any) => void) {
+async function onMessage(request: ServiceRequest<any>, _sender: MessageSender, sendResponse: (response?: any) => void) {
     if (request.senderTabType != TabType.Html)
         return;
 

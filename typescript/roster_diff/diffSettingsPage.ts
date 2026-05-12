@@ -90,7 +90,7 @@ function deleteTableRow(ev: Event) {
     hasTableChanged = true;
 }
 
-async function onData(request: ServiceRequest) {
+async function onData(request: ServiceRequest<any>) {
     let title = "Uurrooster tags voor schooljaar " + request.data.schoolYear;
     document.title = title;
     document.getElementById(def.SETUP_HOURS_TITLE_ID)!.innerHTML = title;
