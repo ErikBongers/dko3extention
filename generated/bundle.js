@@ -5885,10 +5885,12 @@ var Weight = class {
 	}
 };
 var TaggedExcelLes = class extends TaggedLes {
+	className;
 	dayTimeSlice;
 	constructor(les, teachers) {
 		let searchText = " " + les.cellValue.toLowerCase().replaceAll("\n", " \n ").replaceAll("(", " ( ").replaceAll(")", " ) ").replaceAll(".", " . ").replaceAll(",", " , ").replaceAll("-", " - ") + " ";
 		super(les, [], searchText);
+		this.className = this.lesMoment.className;
 		this.location = this.lesMoment.location;
 		this.teachers = this.lesMoment.teacher.split(/[\/,]/g).map((t) => findTeacher(t, teachers)).filter((t) => t != "");
 		this.subjects = les.subjects;
@@ -6047,17 +6049,17 @@ function dko3GradeYearsContain(dko3GradeYears, excelGradeYear) {
 	for (let dko3GradeYear of dko3GradeYears) if (GradeYear.matches(excelGradeYear, dko3GradeYear)) return true;
 	return false;
 }
-function weigh1000(dko3Les, excelLes, extraExcelTeachers) {
+function weigh1000(dko3Les, otherLes, extraExcelTeachers) {
 	let weight = new Weight();
-	weight.diffSubject = !dko3Les.subjects.some((t) => excelLes.subjects.includes(t));
-	weight.diffDayTime = !DayTimeSlice.equal(dko3Les.lesMoment.dayTimeSlice, excelLes.dayTimeSlice);
-	weight.diffLocation = dko3Les.location != excelLes.location;
-	let excelTeachers = excelLes.teachers;
+	weight.diffSubject = !dko3Les.subjects.some((t) => otherLes.subjects.includes(t));
+	weight.diffDayTime = !DayTimeSlice.equal(dko3Les.lesMoment.dayTimeSlice, otherLes.dayTimeSlice);
+	weight.diffLocation = dko3Les.location != otherLes.location;
+	let excelTeachers = otherLes.teachers;
 	if (extraExcelTeachers) excelTeachers = extraExcelTeachers;
 	weight.diffTeacher = !dko3Les.teachers.every((t) => excelTeachers.includes(t));
 	if (!weight.diffTeacher) weight.diffTeacher = !excelTeachers.every((t) => dko3Les.teachers.includes(t));
-	for (let excelGradeYear of excelLes.gradeYears) if (!dko3GradeYearsContain(dko3Les.gradeYears, excelGradeYear)) weight.diffGradeYears++;
-	if (excelLes.gradeYears.length != dko3Les.gradeYears.length) weight.diffGradeYears++;
+	for (let excelGradeYear of otherLes.gradeYears) if (!dko3GradeYearsContain(dko3Les.gradeYears, excelGradeYear)) weight.diffGradeYears++;
+	if (otherLes.gradeYears.length != dko3Les.gradeYears.length) weight.diffGradeYears++;
 	weight.calcWeight();
 	return weight;
 }

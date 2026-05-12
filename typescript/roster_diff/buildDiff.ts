@@ -184,6 +184,16 @@ export class Dko3LesMoment {
     }
 }
 
+export interface ComparableLesMoment {
+    className: string | null;
+    location?: string;
+    teachers: string[];
+    subjects: string[];
+    ignore: boolean;
+    gradeYears: GradeYear[];
+    dayTimeSlice: DayTimeSlice;
+}
+
 export abstract class TaggedLes<T extends ClassDef | Dko3LesMoment> {
     lesMoment: T;
     tags:string[] = [];
@@ -243,7 +253,8 @@ export class Weight {
         }
 }
 
-export class TaggedExcelLes extends TaggedLes<ClassDef> {
+export class TaggedExcelLes extends TaggedLes<ClassDef> implements ComparableLesMoment {
+    public className: string | null;
     public dayTimeSlice: DayTimeSlice;
     constructor(les: ClassDef, teachers: TeacherDef[]) {
         let searchText = " " + les.cellValue
@@ -256,6 +267,7 @@ export class TaggedExcelLes extends TaggedLes<ClassDef> {
             .replaceAll("-", " - ")
             + " ";
         super(les, [], searchText);
+        this.className = this.lesMoment.className;
         this.location = this.lesMoment.location;//translate probably already done.
         this.teachers = this.lesMoment.teacher
             .split(/[\/,]/g).map(t => findTeacher(t, teachers))
@@ -464,23 +476,23 @@ function dko3GradeYearsContain(dko3GradeYears: GradeYear[], excelGradeYear: Grad
     return false;
 }
 
-function weigh1000(dko3Les: TaggedDko3LesMoment, excelLes: TaggedExcelLes, extraExcelTeachers?: string[]) {
+function weigh1000(dko3Les: TaggedDko3LesMoment, otherLes: ComparableLesMoment, extraExcelTeachers?: string[]) {
     let weight = new Weight();
-    weight.diffSubject = !dko3Les.subjects.some(t => excelLes.subjects.includes(t));
-    weight.diffDayTime = !DayTimeSlice.equal(dko3Les.lesMoment.dayTimeSlice,excelLes.dayTimeSlice);
-    weight.diffLocation = dko3Les.location != excelLes.location;
-    let excelTeachers = excelLes.teachers;
+    weight.diffSubject = !dko3Les.subjects.some(t => otherLes.subjects.includes(t));
+    weight.diffDayTime = !DayTimeSlice.equal(dko3Les.lesMoment.dayTimeSlice,otherLes.dayTimeSlice);
+    weight.diffLocation = dko3Les.location != otherLes.location;
+    let excelTeachers = otherLes.teachers;
     if(extraExcelTeachers)
         excelTeachers = extraExcelTeachers;
     weight.diffTeacher = !dko3Les.teachers.every(t => excelTeachers.includes(t));
     if(!weight.diffTeacher)
         weight.diffTeacher = !excelTeachers.every(t => dko3Les.teachers.includes(t));
-    for(let excelGradeYear of excelLes.gradeYears) {
+    for(let excelGradeYear of otherLes.gradeYears) {
         if(!dko3GradeYearsContain(dko3Les.gradeYears, excelGradeYear))
             weight.diffGradeYears++;
     }
     //all excelGradeYears match (fit within) the dkoGradeYears, but check the count for a perfect match.
-    if(excelLes.gradeYears.length != dko3Les.gradeYears.length)
+    if(otherLes.gradeYears.length != dko3Les.gradeYears.length)
         weight.diffGradeYears++;
     weight.calcWeight();
     return weight;
