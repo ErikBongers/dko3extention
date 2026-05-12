@@ -17,8 +17,11 @@ interface TaggedWwwLesDef {
 
 function tagWwwLes(les: WwwLesDef) {
     let times = TimeSlice.parseShortTimes(les.timeString);
-    if(times.length != 2)
-        throw new Error(`Could not parse time slice ${les.timeString} for class ${les.className}. url: ${les.url}`);
+    if(times.length != 2) {
+        console.log(`Could not parse time slice ${les.timeString} for class ${les.className}. url: ${les.url}`); //todo: report error i ux
+        return null;
+    }
+
     let timeSlice = new TimeSlice(times[0], times[1]);
     return {lesDef: les, timeSlice: timeSlice} satisfies TaggedWwwLesDef as TaggedWwwLesDef;
 }
@@ -33,8 +36,10 @@ export function parseWww(data: HtmlText[]) {
     for(let html of data) {
         lessen = lessen.concat(parseHtml(html));
     }
-    let taggedLessen: TaggedWwwLesDef[] = lessen
-        .map(les => tagWwwLes(les));
+    console.log(lessen);
+    let taggedLessen: (TaggedWwwLesDef | null)[] = lessen
+        .map(les => tagWwwLes(les))
+        .filter(les => les != null);
 
     console.log(taggedLessen);
 }
@@ -79,7 +84,7 @@ function scrapeClassTable(url: string, table: HTMLTableElement) {
         }
     }
     let lastClass = "";
-    return [...table.tBodies[0].rows].map(row => {
+    let lessen = [...table.tBodies[0].rows].map(row => {
         let className = row.cells[classIndex!].textContent??"";
         className = className.trim();
         if(className == "")
@@ -89,6 +94,16 @@ function scrapeClassTable(url: string, table: HTMLTableElement) {
         let timeString = timeIndex? row.cells[timeIndex].textContent : "";
         let location = locationIndex? row.cells[locationIndex].textContent : "";
         let teacher = teacherIndex? row.cells[teacherIndex].textContent : "";
+        if(!day && !timeString && !location && !teacher)
+            return null;
+        if(className.toLowerCase().includes("begeleidingspraktijk")
+            || className.toLowerCase().includes("muziektheorie")
+            || className.toLowerCase().includes("compositie")
+            || className.toLowerCase().includes("improvisatie")
+            || className.toLowerCase().includes("musical zang")
+            || className.toLowerCase().includes("musical koor")
+        )
+            return null;
         return {
             url,
             className,
@@ -98,4 +113,5 @@ function scrapeClassTable(url: string, table: HTMLTableElement) {
             teacher,
         } satisfies WwwLesDef as WwwLesDef;
     });
+    return lessen.filter(les => les != null) as WwwLesDef[];
 }

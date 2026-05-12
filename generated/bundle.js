@@ -6094,7 +6094,10 @@ async function getUrlForWorksheet(workBook, workSheet, cellAddress, academie, sc
 //#region typescript/www_diff/buildDiff.ts
 function tagWwwLes(les) {
 	let times = TimeSlice.parseShortTimes(les.timeString);
-	if (times.length != 2) throw new Error(`Could not parse time slice ${les.timeString} for class ${les.className}. url: ${les.url}`);
+	if (times.length != 2) {
+		console.log(`Could not parse time slice ${les.timeString} for class ${les.className}. url: ${les.url}`);
+		return null;
+	}
 	let timeSlice = new TimeSlice(times[0], times[1]);
 	return {
 		lesDef: les,
@@ -6104,7 +6107,8 @@ function tagWwwLes(les) {
 function parseWww(data) {
 	let lessen = [];
 	for (let html of data) lessen = lessen.concat(parseHtml(html));
-	let taggedLessen = lessen.map((les) => tagWwwLes(les));
+	console.log(lessen);
+	let taggedLessen = lessen.map((les) => tagWwwLes(les)).filter((les) => les != null);
 	console.log(taggedLessen);
 }
 function parseHtml(html) {
@@ -6150,7 +6154,7 @@ function scrapeClassTable(url, table) {
 		default: break;
 	}
 	let lastClass = "";
-	return [...table.tBodies[0].rows].map((row) => {
+	let lessen = [...table.tBodies[0].rows].map((row) => {
 		let className = row.cells[classIndex].textContent ?? "";
 		className = className.trim();
 		if (className == "") className = lastClass;
@@ -6159,6 +6163,8 @@ function scrapeClassTable(url, table) {
 		let timeString = timeIndex ? row.cells[timeIndex].textContent : "";
 		let location$1 = locationIndex ? row.cells[locationIndex].textContent : "";
 		let teacher = teacherIndex ? row.cells[teacherIndex].textContent : "";
+		if (!day && !timeString && !location$1 && !teacher) return null;
+		if (className.toLowerCase().includes("begeleidingspraktijk") || className.toLowerCase().includes("muziektheorie") || className.toLowerCase().includes("compositie") || className.toLowerCase().includes("improvisatie") || className.toLowerCase().includes("musical zang") || className.toLowerCase().includes("musical koor")) return null;
 		return {
 			url,
 			className,
@@ -6168,6 +6174,7 @@ function scrapeClassTable(url, table) {
 			teacher
 		};
 	});
+	return lessen.filter((les) => les != null);
 }
 
 //#endregion
