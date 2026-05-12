@@ -106,7 +106,7 @@ export async function runRosterCheck(excelDatas: JsonExcelData[], reportStatus: 
     for(let excelData of excelDatas) {
         let factory = new RosterFactory(excelData);
         let table = factory.getTable();
-        let roster = new ExcelRoster(table, dko3DiffData.locations, dko3DiffData.subjects, diffSettings, dko3DiffData.classNames);
+        let roster = new ExcelRoster(table, dko3DiffData, diffSettings);
         excelRosters.push(roster);
         let classDefs = roster.scrapeUurrooster();
         if(classDefs)
@@ -255,8 +255,7 @@ export class TaggedExcelLes extends TaggedLes<ClassDef> {
             .replaceAll(",", " , ")
             .replaceAll("-", " - ")
             + " ";
-        let tags: string[] = [];
-        super(les, tags, searchText);
+        super(les, [], searchText);
         this.location = this.lesMoment.location;//translate probably already done.
         this.teachers = this.lesMoment.teacher
             .split(/[\/,]/g).map(t => findTeacher(t, teachers))

@@ -99,13 +99,14 @@ export async function getAndShowWwwDiffs(showOrCalc: "justShow" | "calcAndShow",
        json = localStorage.getItem(getWwwDiffsDko3CacheFileName(cmbDiffAcademie.value, cmbDiffSchoolYear.value));
     let dko3DiffData = json ? JSON.parse(json) as Dko3DiffData : null;
     let jsonDiffs: JsonDiffs | null = null;
+    let diffSettings = await fetchDiffSettingsOrDefault(cmbDiffAcademie.value, cmbDiffSchoolYear.value);
     if(showOrCalc == "justShow") {
         try {
             jsonDiffs = await getWwwDiffsFromCloud(cmbDiffAcademie.value, cmbDiffSchoolYear.value);
         }
         catch (e) {}
     } else {
-        let todo = await runWwwDiff(reportStatus, fetchListener, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData);
+        let todo = await runWwwDiff(reportStatus, fetchListener, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData, diffSettings);
     }
     if(jsonDiffs)
         await showWwwDiffs(jsonDiffs, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData);
@@ -172,11 +173,11 @@ async function runDiff(reportStatus: StatusCallback, fetchListener: InfoBarTable
     return buildAndSaveDiff(reportStatus, fetchListener, academie, schoolYear, dko3DiffData, diffSettings);
 }
 
-async function runWwwDiff(reportStatus: StatusCallback, fetchListener: InfoBarTableFetchListener, academie: string, schoolYear: string, dko3DiffData: Dko3DiffData | null) {
+async function runWwwDiff(reportStatus: StatusCallback, fetchListener: InfoBarTableFetchListener, academie: string, schoolYear: string, dko3DiffData: Dko3DiffData | null, diffSettings: DiffSettings) {
     let divResults = document.getElementById("diffResults") as HTMLDivElement;
     divResults.innerHTML = "";
 
-    return buildWwwDiff(reportStatus, fetchListener, academie, schoolYear, dko3DiffData);
+    return buildWwwDiff(reportStatus, fetchListener, academie, schoolYear, dko3DiffData, diffSettings);
 }
 
 export function fillExcelDiffRow(tr: HTMLTableRowElement, diff: JsonDiff, academie: string, schoolYear: string) {

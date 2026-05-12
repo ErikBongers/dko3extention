@@ -2,6 +2,7 @@ import {ExcelPos, Table, TablePos} from "./excel";
 import {RosterFactory} from "./rosterFactory";
 import {DayUppercase} from "../lessen/scrape";
 import {defaultIgnoreList, defaultTagDefs, DiffSettings, TagDef} from "./diffSettings";
+import {Dko3DiffData} from "./buildDiff";
 
 export class GradeYear {
     grade: string | null;
@@ -176,17 +177,13 @@ export function dayToMinutes(day: DayUppercase): number {
 
 export class ExcelRoster {
     public readonly table: Table;
-    private locationDefs: string[];
-    private readonly subjectDefs: string[];
-    private readonly classNames: string[];
     private errors: string[] = [];
+    private dko3Data: Dko3DiffData;
     private tagDefs: TagDef[];
     public ignoreList: string[];
-    public constructor(table: Table, locations: string[], subjects: string[], diffSettings: DiffSettings, classNames: string[]) {
+    public constructor(table: Table, dko3Data: Dko3DiffData, diffSettings: DiffSettings) {
         this.table = table;
-        this.locationDefs = locations;
-        this.subjectDefs = subjects;
-        this.classNames = classNames;
+        this.dko3Data = dko3Data;
         this.tagDefs = diffSettings.tagDefs;
         this.ignoreList = diffSettings.ignoreList;
     }
@@ -238,9 +235,9 @@ export class ExcelRoster {
                 } else if(times.length === 1) {
                     timeSlice = this.moveTimeSliceTo(timeSlice, times[0]);
                 }
-                let tags = this.findTags(parseText, this.tagDefs);
+                let tags = ExcelRoster.findTags(parseText, this.tagDefs);
                 let tagStrings = tags.map(t => t.tag);
-                let location = this.findLocation(tagStrings);
+                let location = ExcelRoster.findLocation(tagStrings, this.dko3Data.locations);
                 let subjects = this.findSubjects(parseText, tagStrings);
                 let className = this.findClassName(parseText);
                 let tablePos: TablePos = {row, column};
@@ -298,11 +295,11 @@ export class ExcelRoster {
 
 
     public static callNames: TagDef[] = [
-        {tag: "Van Goethem, Robert", searchString: "bert"},
+        {tag: "Van Goethem, Robert", searchString: "bert"}, //todo: try to get rid of this.
     ];
 
-    private findLocation(tags: string[]) {
-        let location = this.locationDefs.find(location => tags.includes(location));
+    public static findLocation(tags: string[], locations: string[]) {
+        let location = locations.find(location => tags.includes(location));
         if(location)
             return location;
         else
@@ -312,17 +309,17 @@ export class ExcelRoster {
     private findSubjects(text: string, tags: string[]) {
         let allSearchStrings = [...tags];
         let lowerCase = text.toLowerCase();
-        for (let subject of this.subjectDefs) {
+        for (let subject of this.dko3Data.subjects) {
             if(lowerCase.includes(subject.toLowerCase()))
                 allSearchStrings.push(subject);
         }
 
-        return this.subjectDefs.filter(subject => allSearchStrings.includes(subject));
+        return this.dko3Data.subjects.filter(subject => allSearchStrings.includes(subject));
     }
 
     private findClassName(text: string) {
         let lowerCase = text.toLowerCase();
-        for (let name of this.classNames) {
+        for (let name of this.dko3Data.classNames) {
             if(lowerCase.includes(" " + name.toLowerCase() + " "))
                 return name;
         }
@@ -330,7 +327,7 @@ export class ExcelRoster {
         return null;
     }
 
-    private findTags(text: string, tagDefs: TagDef[]) {
+    public static findTags(text: string, tagDefs: TagDef[]) {
         let tags: TagDef[] = [];
         let lowerCase = text.toLowerCase();
         for (let def of tagDefs) {

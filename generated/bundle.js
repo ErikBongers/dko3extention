@@ -1778,19 +1778,15 @@ function dayToMinutes(day) {
 		default: return -1;
 	}
 }
-var ExcelRoster = class {
+var ExcelRoster = class ExcelRoster {
 	table;
-	locationDefs;
-	subjectDefs;
-	classNames;
 	errors = [];
+	dko3Data;
 	tagDefs;
 	ignoreList;
-	constructor(table, locations, subjects, diffSettings, classNames) {
+	constructor(table, dko3Data, diffSettings) {
 		this.table = table;
-		this.locationDefs = locations;
-		this.subjectDefs = subjects;
-		this.classNames = classNames;
+		this.dko3Data = dko3Data;
 		this.tagDefs = diffSettings.tagDefs;
 		this.ignoreList = diffSettings.ignoreList;
 	}
@@ -1825,9 +1821,9 @@ var ExcelRoster = class {
 				let times = TimeSlice.parseTimes(parseText);
 				if (times.length === 2) timeSlice = new TimeSlice(times[0], times[1]);
 				else if (times.length === 1) timeSlice = this.moveTimeSliceTo(timeSlice, times[0]);
-				let tags = this.findTags(parseText, this.tagDefs);
+				let tags = ExcelRoster.findTags(parseText, this.tagDefs);
 				let tagStrings = tags.map((t) => t.tag);
-				let location$1 = this.findLocation(tagStrings);
+				let location$1 = ExcelRoster.findLocation(tagStrings, this.dko3Data.locations);
 				let subjects = this.findSubjects(parseText, tagStrings);
 				let className = this.findClassName(parseText);
 				let tablePos = {
@@ -1869,23 +1865,23 @@ var ExcelRoster = class {
 		tag: "Van Goethem, Robert",
 		searchString: "bert"
 	}];
-	findLocation(tags) {
-		let location$1 = this.locationDefs.find((location$2) => tags.includes(location$2));
+	static findLocation(tags, locations) {
+		let location$1 = locations.find((location$2) => tags.includes(location$2));
 		if (location$1) return location$1;
 		else return "Academie Willem Van Laarstraat, Berchem";
 	}
 	findSubjects(text, tags) {
 		let allSearchStrings = [...tags];
 		let lowerCase = text.toLowerCase();
-		for (let subject of this.subjectDefs) if (lowerCase.includes(subject.toLowerCase())) allSearchStrings.push(subject);
-		return this.subjectDefs.filter((subject) => allSearchStrings.includes(subject));
+		for (let subject of this.dko3Data.subjects) if (lowerCase.includes(subject.toLowerCase())) allSearchStrings.push(subject);
+		return this.dko3Data.subjects.filter((subject) => allSearchStrings.includes(subject));
 	}
 	findClassName(text) {
 		let lowerCase = text.toLowerCase();
-		for (let name of this.classNames) if (lowerCase.includes(" " + name.toLowerCase() + " ")) return name;
+		for (let name of this.dko3Data.classNames) if (lowerCase.includes(" " + name.toLowerCase() + " ")) return name;
 		return null;
 	}
-	findTags(text, tagDefs) {
+	static findTags(text, tagDefs) {
 		let tags = [];
 		let lowerCase = text.toLowerCase();
 		for (let def of tagDefs) if (lowerCase.includes(def.searchString)) tags.push(def);
@@ -5248,22 +5244,26 @@ var TaggedWwwLesDef = class {
 	timeSlice;
 	day;
 	teachers;
-	constructor(lesDef, timeSlice, day, teachers) {
+	location;
+	constructor(lesDef, timeSlice, day, teachers, dko3Data, diffSettings) {
 		this.lesDef = lesDef;
 		this.timeSlice = timeSlice;
 		this.day = day;
 		this.teachers = teachers;
+		let tags = ExcelRoster.findTags(" " + this.lesDef.location + " ", diffSettings.tagDefs);
+		let tagStrings = tags.map((t) => t.tag);
+		this.location = ExcelRoster.findLocation(tagStrings, dko3Data.locations);
 	}
 	getHash() {
-		return `${this.lesDef.className}-${TimeSlice.toString(this.timeSlice)}-${this.teachers.join()}`;
+		return `${this.lesDef.className}-${this.lesDef.day}-${TimeSlice.toString(this.timeSlice)}-${this.teachers.join()}`;
 	}
 };
-async function buildWwwDiff(reportStatus, fetchListener, academie, schoolYear, dko3DiffData) {
+async function buildWwwDiff(reportStatus, fetchListener, academie, schoolYear, dko3DiffData, diffSettings) {
 	reportStatus(`Vergelijken met DKO3 lessen...`);
 	if (!dko3DiffData) dko3DiffData = await getDko3Data(schoolYear, reportStatus, fetchListener);
-	await parseWww(dko3DiffData);
+	await parseWww(dko3DiffData, diffSettings);
 }
-function tagWwwLes(les, dko3DiffData) {
+function tagWwwLes(les, dko3DiffData, diffSettings) {
 	let times = TimeSlice.parseShortTimes(les.timeString);
 	let day = toDay(les.day);
 	if (!day) console.log(`Could not parse day ${les.day}`);
@@ -5273,12 +5273,12 @@ function tagWwwLes(les, dko3DiffData) {
 	}
 	let timeSlice = new TimeSlice(times[0], times[1]);
 	let teachers = les.teacher.split(/[\/,]/g).map((t) => findTeacher(t, dko3DiffData.teachers)).filter((t) => t != "");
-	return new TaggedWwwLesDef(les, timeSlice, day, teachers);
+	return new TaggedWwwLesDef(les, timeSlice, day, teachers, dko3DiffData, diffSettings);
 }
 async function requestWww(urlList) {
 	return sendRequest(Actions.Www, TabType.Main, TabType.Undefined, void 0, { urlList }, "");
 }
-async function parseWww(dko3DiffData) {
+async function parseWww(dko3DiffData, diffSettings) {
 	let response = await requestWww([
 		"https://academieberchem.stedelijkonderwijs.be/uurrooster-woord-gevorderden-18",
 		"https://academieberchem.stedelijkonderwijs.be/uurrooster-2e-graad-kinderen-8-tot-11-jaar",
@@ -5297,7 +5297,7 @@ async function parseWww(dko3DiffData) {
 	let lessen = [];
 	for (let html of response.data) lessen = lessen.concat(parseHtml(html));
 	console.log(lessen);
-	let taggedLessen = lessen.map((les) => tagWwwLes(les, dko3DiffData)).filter((les) => les != null);
+	let taggedLessen = lessen.map((les) => tagWwwLes(les, dko3DiffData, diffSettings)).filter((les) => les != null);
 	let taggedLesMap = new Map();
 	for (let taggedLes of taggedLessen) taggedLesMap.set(taggedLes.getHash(), taggedLes);
 	console.log(taggedLesMap);
@@ -5439,11 +5439,12 @@ async function getAndShowWwwDiffs(showOrCalc, useDkoCache) {
 	if (useDkoCache == "dkoCache") json = localStorage.getItem(getWwwDiffsDko3CacheFileName(cmbDiffAcademie.value, cmbDiffSchoolYear.value));
 	let dko3DiffData = json ? JSON.parse(json) : null;
 	let jsonDiffs = null;
+	let diffSettings = await fetchDiffSettingsOrDefault(cmbDiffAcademie.value, cmbDiffSchoolYear.value);
 	if (showOrCalc == "justShow") try {
 		jsonDiffs = await getWwwDiffsFromCloud(cmbDiffAcademie.value, cmbDiffSchoolYear.value);
 	} catch (e) {}
 	else {
-		let todo = await runWwwDiff(reportStatus, fetchListener, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData);
+		let todo = await runWwwDiff(reportStatus, fetchListener, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData, diffSettings);
 	}
 	if (jsonDiffs) await showWwwDiffs(jsonDiffs, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData);
 }
@@ -5498,10 +5499,10 @@ async function runDiff(reportStatus, fetchListener, academie, schoolYear, dko3Di
 	divResults.innerHTML = "";
 	return buildAndSaveDiff(reportStatus, fetchListener, academie, schoolYear, dko3DiffData, diffSettings);
 }
-async function runWwwDiff(reportStatus, fetchListener, academie, schoolYear, dko3DiffData) {
+async function runWwwDiff(reportStatus, fetchListener, academie, schoolYear, dko3DiffData, diffSettings) {
 	let divResults = document.getElementById("diffResults");
 	divResults.innerHTML = "";
-	return buildWwwDiff(reportStatus, fetchListener, academie, schoolYear, dko3DiffData);
+	return buildWwwDiff(reportStatus, fetchListener, academie, schoolYear, dko3DiffData, diffSettings);
 }
 function fillExcelDiffRow(tr, diff, academie, schoolYear) {
 	fillDiffRow(tr, diff.excelLes, diff.diffType, "excel", excelPostoExcelAddress(diff.excelLes.excelRow, diff.excelLes.excelColumn), diff.excelLes.cellValue, "", diff.excelLes.workBook, diff.excelLes.workSheet, diff.excelLes.hash, diff.excelLes.ignore, academie, schoolYear, diff.weight);
@@ -5709,7 +5710,7 @@ async function runRosterCheck(excelDatas, reportStatus, fetchListener, dko3DiffD
 	for (let excelData of excelDatas) {
 		let factory = new RosterFactory(excelData);
 		let table = factory.getTable();
-		let roster = new ExcelRoster(table, dko3DiffData.locations, dko3DiffData.subjects, diffSettings, dko3DiffData.classNames);
+		let roster = new ExcelRoster(table, dko3DiffData, diffSettings);
 		excelRosters.push(roster);
 		let classDefs = roster.scrapeUurrooster();
 		if (classDefs) excelLessenArray.push(classDefs);
@@ -5828,8 +5829,7 @@ var TaggedExcelLes = class extends TaggedLes {
 	dayTimeSlice;
 	constructor(les, teachers) {
 		let searchText = " " + les.cellValue.toLowerCase().replaceAll("\n", " \n ").replaceAll("(", " ( ").replaceAll(")", " ) ").replaceAll(".", " . ").replaceAll(",", " , ").replaceAll("-", " - ") + " ";
-		let tags = [];
-		super(les, tags, searchText);
+		super(les, [], searchText);
 		this.location = this.lesMoment.location;
 		this.teachers = this.lesMoment.teacher.split(/[\/,]/g).map((t) => findTeacher(t, teachers)).filter((t) => t != "");
 		this.subjects = les.subjects;
@@ -6326,7 +6326,7 @@ async function setupDiffPage() {
 	emmet.insertAfter(runStatus, "div#diffResults");
 	let divInfo = emmet.insertAfter(runStatus, "div#diffInfo").last;
 	let divError = emmet.insertAfter(divInfo, "div#diffErrors.errors").last;
-	btnCalcDiff.onclick = () => calcAndShowDiffsWithSettings("calcAndShow", "fetchDko");
+	btnCalcDiff.onclick = () => calcAndShowDiffsWithSettings("calcAndShow", "dkoCache");
 	btnCalcDiffWww.onclick = () => calcAndShowDiffsWww();
 	btnDiffSettings.onclick = () => showDiffSetup(cmbDiffAcademie.value, cmbDiffSchoolYear.value);
 	cmbDiffAcademie.onchange = async () => {

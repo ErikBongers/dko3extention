@@ -1,10 +1,11 @@
 import {TokenScanner} from "../tokenScanner";
-import {TimeSlice} from "../roster_diff/excelRoster";
+import {ExcelRoster, TimeSlice} from "../roster_diff/excelRoster";
 import {DayUppercase, toDay} from "../lessen/scrape";
 import {Dko3DiffData, findTeacher, getDko3Data} from "../roster_diff/buildDiff";
 import {StatusCallback} from "../roster_diff/showDiff";
 import {InfoBarTableFetchListener} from "../table/loadAnyTable";
 import {Actions, sendRequest, ServiceRequest, TabType} from "../messaging";
+import {DiffSettings} from "../roster_diff/diffSettings";
 
 interface WwwLesDef {
     url: string;
@@ -20,27 +21,31 @@ class TaggedWwwLesDef {
     timeSlice: TimeSlice;
     day: DayUppercase | null;
     teachers: string[];
+    location: string;
 
-    constructor(lesDef: WwwLesDef, timeSlice: TimeSlice, day: DayUppercase | null, teachers: string[]) {
+    constructor(lesDef: WwwLesDef, timeSlice: TimeSlice, day: DayUppercase | null, teachers: string[], dko3Data: Dko3DiffData, diffSettings: DiffSettings) {
         this.lesDef = lesDef;
         this.timeSlice = timeSlice;
         this.day = day;
         this.teachers = teachers;
+        let tags = ExcelRoster.findTags(" " + this.lesDef.location + " ", diffSettings.tagDefs);
+        let tagStrings = tags.map(t => t.tag);
+        this.location = ExcelRoster.findLocation(tagStrings, dko3Data.locations);
     }
 
     public getHash() {
-        return `${this.lesDef.className}-${TimeSlice.toString(this.timeSlice)}-${this.teachers.join()}`;
+        return `${this.lesDef.className}-${this.lesDef.day}-${TimeSlice.toString(this.timeSlice)}-${this.teachers.join()}`;
     }
 }
 
-export async function buildWwwDiff(reportStatus: StatusCallback, fetchListener: InfoBarTableFetchListener, academie: string, schoolYear: string, dko3DiffData: Dko3DiffData | null) {
+export async function buildWwwDiff(reportStatus: StatusCallback, fetchListener: InfoBarTableFetchListener, academie: string, schoolYear: string, dko3DiffData: Dko3DiffData | null, diffSettings: DiffSettings) {
     reportStatus(`Vergelijken met DKO3 lessen...`);
     if(!dko3DiffData)
         dko3DiffData = await getDko3Data(schoolYear, reportStatus, fetchListener);
-    await parseWww(dko3DiffData);
+    await parseWww(dko3DiffData, diffSettings);
 }
 
-function tagWwwLes(les: WwwLesDef, dko3DiffData: Dko3DiffData) {
+function tagWwwLes(les: WwwLesDef, dko3DiffData: Dko3DiffData, diffSettings: DiffSettings) {
     let times = TimeSlice.parseShortTimes(les.timeString);
     let day = toDay(les.day);
     if(!day)
@@ -57,7 +62,7 @@ function tagWwwLes(les: WwwLesDef, dko3DiffData: Dko3DiffData) {
         .split(/[\/,]/g).map(t => findTeacher(t, dko3DiffData.teachers))
         .filter(t => t != "");
 
-    return new TaggedWwwLesDef(les, timeSlice, day, teachers);
+    return new TaggedWwwLesDef(les, timeSlice, day, teachers, dko3DiffData, diffSettings);
 }
 
 export interface HtmlText {
@@ -69,7 +74,7 @@ async function requestWww(urlList: string[]) {
     return sendRequest(Actions.Www, TabType.Main, TabType.Undefined, undefined, {urlList}, "");
 }
 
-export async function parseWww(dko3DiffData: Dko3DiffData) {
+export async function parseWww(dko3DiffData: Dko3DiffData, diffSettings: DiffSettings) {
     let response: ServiceRequest<HtmlText[]> = await requestWww([
         "https://academieberchem.stedelijkonderwijs.be/uurrooster-woord-gevorderden-18",
         "https://academieberchem.stedelijkonderwijs.be/uurrooster-2e-graad-kinderen-8-tot-11-jaar",
@@ -92,7 +97,7 @@ export async function parseWww(dko3DiffData: Dko3DiffData) {
     }
     console.log(lessen);
     let taggedLessen = lessen
-        .map(les => tagWwwLes(les, dko3DiffData))
+        .map(les => tagWwwLes(les, dko3DiffData, diffSettings))
         .filter(les => les != null);
 
     let taggedLesMap: Map<string, TaggedWwwLesDef> = new Map();
