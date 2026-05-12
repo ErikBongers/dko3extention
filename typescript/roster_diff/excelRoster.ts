@@ -126,7 +126,7 @@ export class TimeSlice {
         text = " " + text + " ";
         let times = TimeSlice.parseTimes(text);
 
-        let rx = /\s+(\d?\d)\s+/gm;
+        let rx = /\s+(\d?\d)[u\s]/gm;
         let matches = rx.exec(text);
         while(matches) {
             let time: Time = {
