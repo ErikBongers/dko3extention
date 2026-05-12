@@ -156,7 +156,7 @@ export enum LesType { TrimesterModule, JaarModule, Les, UnknownModule}
 
 export type DayUppercase = "MAANDAG" | "DINSDAG" | "WOENSDAG" | "DONDERDAG" | "VRIJDAG" | "ZATERDAG" | "ZONDAG" | "";
 export function toDay(text: string) {
-    text = text.toUpperCase();
+    text = text.toUpperCase().trim();
     switch (text.toUpperCase()) {
         case "MAANDAG":
         case "DINSDAG":

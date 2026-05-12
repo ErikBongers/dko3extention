@@ -2069,6 +2069,19 @@ let LesType$1 = /* @__PURE__ */ function(LesType$2) {
 	LesType$2[LesType$2["UnknownModule"] = 3] = "UnknownModule";
 	return LesType$2;
 }({});
+function toDay(text) {
+	text = text.toUpperCase().trim();
+	switch (text.toUpperCase()) {
+		case "MAANDAG":
+		case "DINSDAG":
+		case "WOENSDAG":
+		case "DONDERDAG":
+		case "VRIJDAG":
+		case "ZATERDAG":
+		case "ZONDAG": return text;
+		default: return null;
+	}
+}
 var Les = class {
 	vakNaam;
 	lesType;
@@ -5229,6 +5242,133 @@ const defaultIgnoreList = [
 ];
 
 //#endregion
+//#region typescript/www_diff/buildDiff.ts
+var TaggedWwwLesDef = class {
+	lesDef;
+	timeSlice;
+	day;
+	teachers;
+	constructor(lesDef, timeSlice, day, teachers) {
+		this.lesDef = lesDef;
+		this.timeSlice = timeSlice;
+		this.day = day;
+		this.teachers = teachers;
+	}
+	getHash() {
+		return `${this.lesDef.className}-${TimeSlice.toString(this.timeSlice)}-${this.teachers.join()}`;
+	}
+};
+async function buildWwwDiff(reportStatus, fetchListener, academie, schoolYear, dko3DiffData) {
+	reportStatus(`Vergelijken met DKO3 lessen...`);
+	if (!dko3DiffData) dko3DiffData = await getDko3Data(schoolYear, reportStatus, fetchListener);
+	await parseWww(dko3DiffData);
+}
+function tagWwwLes(les, dko3DiffData) {
+	let times = TimeSlice.parseShortTimes(les.timeString);
+	let day = toDay(les.day);
+	if (!day) console.log(`Could not parse day ${les.day}`);
+	if (times.length != 2) {
+		console.log(`Could not parse time slice ${les.timeString} for class ${les.className}. url: ${les.url}`);
+		return null;
+	}
+	let timeSlice = new TimeSlice(times[0], times[1]);
+	let teachers = les.teacher.split(/[\/,]/g).map((t) => findTeacher(t, dko3DiffData.teachers)).filter((t) => t != "");
+	return new TaggedWwwLesDef(les, timeSlice, day, teachers);
+}
+async function requestWww(urlList) {
+	return sendRequest(Actions.Www, TabType.Main, TabType.Undefined, void 0, { urlList }, "");
+}
+async function parseWww(dko3DiffData) {
+	let response = await requestWww([
+		"https://academieberchem.stedelijkonderwijs.be/uurrooster-woord-gevorderden-18",
+		"https://academieberchem.stedelijkonderwijs.be/uurrooster-2e-graad-kinderen-8-tot-11-jaar",
+		"https://academieberchem.stedelijkonderwijs.be/uurrooster-1e-graad-kinderen-6-tot-7-jaar",
+		"https://academieberchem.stedelijkonderwijs.be/uurrooster-2e-graad-jongeren-12-tot-17-jaar",
+		"https://academieberchem.stedelijkonderwijs.be/uurrooster-3e-graad-klassiek",
+		"https://academieberchem.stedelijkonderwijs.be/uurrooster-3e-graad-jazz-pop-rock",
+		"https://academieberchem.stedelijkonderwijs.be/uurrooster-3e-graad-wereldmuziek",
+		"https://academieberchem.stedelijkonderwijs.be/uurrooster-4e-graad-klassiek",
+		"https://academieberchem.stedelijkonderwijs.be/uurrooster-4e-graad-jazz-pop-rock-volwassenen-vanaf-18-jaar",
+		"https://academieberchem.stedelijkonderwijs.be/uurrooster-4e-graad-wereldmuziek",
+		"https://academieberchem.stedelijkonderwijs.be/uurrooster-musical",
+		"https://academieberchem.stedelijkonderwijs.be/uurrooster-elektronische-muziek-enkel-de-hoofdschool",
+		"https://academieberchem.stedelijkonderwijs.be/uurrooster-2e-graad-volwassenen-vanaf-18-jaar"
+	]);
+	let lessen = [];
+	for (let html of response.data) lessen = lessen.concat(parseHtml(html));
+	console.log(lessen);
+	let taggedLessen = lessen.map((les) => tagWwwLes(les, dko3DiffData)).filter((les) => les != null);
+	let taggedLesMap = new Map();
+	for (let taggedLes of taggedLessen) taggedLesMap.set(taggedLes.getHash(), taggedLes);
+	console.log(taggedLesMap);
+}
+function parseHtml(html) {
+	let scanner = new TokenScanner(html.text);
+	scanner.find("<main ");
+	scanner.find(">");
+	scanner.clipTo("</main>");
+	console.log(scanner.result());
+	let div = document.createElement("div");
+	div.innerHTML = scanner.result();
+	console.log(div);
+	let pageTitle = div.querySelector("h1.title").textContent;
+	console.log(pageTitle);
+	let classTables = [...div.querySelectorAll("table")].filter((table) => {
+		return table.tHead?.rows[0].textContent.toLowerCase().includes("klas");
+	});
+	let lessen = [];
+	for (let table of classTables) lessen = lessen.concat(scrapeClassTable(html.url, table));
+	return lessen;
+}
+function scrapeClassTable(url, table) {
+	let classIndex = void 0;
+	let dayIndex = void 0;
+	let timeIndex = void 0;
+	let locationIndex = void 0;
+	let teacherIndex = void 0;
+	for (let [i, th] of [...table.tHead.rows[0].cells].entries()) switch (th.textContent?.toLowerCase()) {
+		case "klas":
+			classIndex = i;
+			break;
+		case "dag":
+			dayIndex = i;
+			break;
+		case "lestijd":
+			timeIndex = i;
+			break;
+		case "locatie":
+			locationIndex = i;
+			break;
+		case "leerkracht":
+			teacherIndex = i;
+			break;
+		default: break;
+	}
+	let lastClass = "";
+	let lessen = [...table.tBodies[0].rows].map((row) => {
+		let className = row.cells[classIndex].textContent ?? "";
+		className = className.trim();
+		if (className == "") className = lastClass;
+		lastClass = className;
+		let day = dayIndex ? row.cells[dayIndex].textContent : "";
+		let timeString = timeIndex ? row.cells[timeIndex].textContent : "";
+		let location$1 = locationIndex ? row.cells[locationIndex].textContent : "";
+		let teacher = teacherIndex ? row.cells[teacherIndex].textContent : "";
+		if (!day && !timeString && !location$1 && !teacher) return null;
+		if (className.toLowerCase().includes("begeleidingspraktijk") || className.toLowerCase().includes("muziektheorie") || className.toLowerCase().includes("compositie") || className.toLowerCase().includes("improvisatie") || className.toLowerCase().includes("musical zang") || className.toLowerCase().includes("musical koor")) return null;
+		return {
+			url,
+			className,
+			day,
+			timeString,
+			location: location$1,
+			teacher
+		};
+	});
+	return lessen.filter((les) => les != null);
+}
+
+//#endregion
 //#region typescript/roster_diff/showDiff.ts
 async function fetchDiffSettingsOrDefault(academie, schoolYear) {
 	let settings;
@@ -5245,6 +5385,9 @@ async function fetchDiffSettingsOrDefault(academie, schoolYear) {
 	return settings;
 }
 function getDiffsDko3CacheFileName(academie, schoolYear) {
+	return `Dko3/Uurroosters/Cache/${academie}_${schoolYear}_dko3datacache.json`;
+}
+function getWwwDiffsDko3CacheFileName(academie, schoolYear) {
 	return `Dko3/Uurroosters/Cache/${academie}_${schoolYear}_dko3datacache.json`;
 }
 async function getAndShowDiffs(showOrCalc, useDkoCache) {
@@ -5274,6 +5417,35 @@ async function getAndShowDiffs(showOrCalc, useDkoCache) {
 	} catch (e) {}
 	else jsonDiffs = await runDiff(reportStatus, fetchListener, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData, diffSettings);
 	if (jsonDiffs) await showDiffs(jsonDiffs, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData, diffSettings);
+}
+async function getAndShowWwwDiffs(showOrCalc, useDkoCache) {
+	let divResults = document.getElementById("diffResults");
+	divResults.innerHTML = "Ophalen...";
+	let divError = document.getElementById("diffErrors");
+	let runStatus = document.getElementById("runStatus");
+	let divInfo = document.getElementById("diffInfo");
+	let cmbDiffAcademie = document.querySelector("#cmbDiffAcademie");
+	let cmbDiffSchoolYear = document.querySelector("#cmbDiffSchoolYear");
+	let infoBlock = createInfoBlock(divInfo, "");
+	let fetchListener = new InfoBarTableFetchListener(infoBlock);
+	let errors = [];
+	function reportStatus(message, isError) {
+		if (isError == "error") errors.push(message);
+		else runStatus.innerHTML = message;
+		divError.innerHTML = errors.join("<br>");
+	}
+	errors = [];
+	let json = null;
+	if (useDkoCache == "dkoCache") json = localStorage.getItem(getWwwDiffsDko3CacheFileName(cmbDiffAcademie.value, cmbDiffSchoolYear.value));
+	let dko3DiffData = json ? JSON.parse(json) : null;
+	let jsonDiffs = null;
+	if (showOrCalc == "justShow") try {
+		jsonDiffs = await getWwwDiffsFromCloud(cmbDiffAcademie.value, cmbDiffSchoolYear.value);
+	} catch (e) {}
+	else {
+		let todo = await runWwwDiff(reportStatus, fetchListener, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData);
+	}
+	if (jsonDiffs) await showWwwDiffs(jsonDiffs, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData);
 }
 async function showDiffs(diffs, academie, schoolYear, dko3DiffData, diffSettings) {
 	let divResults = document.getElementById("diffResults");
@@ -5320,10 +5492,16 @@ async function showDiffs(diffs, academie, schoolYear, dko3DiffData, diffSettings
 	chkHideChecked.checked = ingore == "true";
 	table.classList.toggle("hideChecked", chkHideChecked.checked);
 }
+async function showWwwDiffs(diffs, academie, schoolYear, dko3DiffData) {}
 async function runDiff(reportStatus, fetchListener, academie, schoolYear, dko3DiffData, diffSettings) {
 	let divResults = document.getElementById("diffResults");
 	divResults.innerHTML = "";
 	return buildAndSaveDiff(reportStatus, fetchListener, academie, schoolYear, dko3DiffData, diffSettings);
+}
+async function runWwwDiff(reportStatus, fetchListener, academie, schoolYear, dko3DiffData) {
+	let divResults = document.getElementById("diffResults");
+	divResults.innerHTML = "";
+	return buildWwwDiff(reportStatus, fetchListener, academie, schoolYear, dko3DiffData);
 }
 function fillExcelDiffRow(tr, diff, academie, schoolYear) {
 	fillDiffRow(tr, diff.excelLes, diff.diffType, "excel", excelPostoExcelAddress(diff.excelLes.excelRow, diff.excelLes.excelColumn), diff.excelLes.cellValue, "", diff.excelLes.workBook, diff.excelLes.workSheet, diff.excelLes.hash, diff.excelLes.ignore, academie, schoolYear, diff.weight);
@@ -5998,6 +6176,9 @@ async function getDiffsFromCloud(academie, schoolYear) {
 	}
 	return fromCloud;
 }
+async function getWwwDiffsFromCloud(academie, schoolYear) {
+	return null;
+}
 async function setIgnoredFlags(orphanedDko3Lessen, orphanedExcelLessen, academie, schoolYear) {
 	try {
 		let ignoreHashes = await fetchIgnoredDiffHashes(academie, schoolYear);
@@ -6091,93 +6272,6 @@ async function getUrlForWorksheet(workBook, workSheet, cellAddress, academie, sc
 }
 
 //#endregion
-//#region typescript/www_diff/buildDiff.ts
-function tagWwwLes(les) {
-	let times = TimeSlice.parseShortTimes(les.timeString);
-	if (times.length != 2) {
-		console.log(`Could not parse time slice ${les.timeString} for class ${les.className}. url: ${les.url}`);
-		return null;
-	}
-	let timeSlice = new TimeSlice(times[0], times[1]);
-	return {
-		lesDef: les,
-		timeSlice
-	};
-}
-function parseWww(data) {
-	let lessen = [];
-	for (let html of data) lessen = lessen.concat(parseHtml(html));
-	console.log(lessen);
-	let taggedLessen = lessen.map((les) => tagWwwLes(les)).filter((les) => les != null);
-	console.log(taggedLessen);
-}
-function parseHtml(html) {
-	let scanner = new TokenScanner(html.text);
-	scanner.find("<main ");
-	scanner.find(">");
-	scanner.clipTo("</main>");
-	console.log(scanner.result());
-	let div = document.createElement("div");
-	div.innerHTML = scanner.result();
-	console.log(div);
-	let pageTitle = div.querySelector("h1.title").textContent;
-	console.log(pageTitle);
-	let classTables = [...div.querySelectorAll("table")].filter((table) => {
-		return table.tHead?.rows[0].textContent.toLowerCase().includes("klas");
-	});
-	let lessen = [];
-	for (let table of classTables) lessen = lessen.concat(scrapeClassTable(html.url, table));
-	return lessen;
-}
-function scrapeClassTable(url, table) {
-	let classIndex = void 0;
-	let dayIndex = void 0;
-	let timeIndex = void 0;
-	let locationIndex = void 0;
-	let teacherIndex = void 0;
-	for (let [i, th] of [...table.tHead.rows[0].cells].entries()) switch (th.textContent?.toLowerCase()) {
-		case "klas":
-			classIndex = i;
-			break;
-		case "dag":
-			dayIndex = i;
-			break;
-		case "lestijd":
-			timeIndex = i;
-			break;
-		case "locatie":
-			locationIndex = i;
-			break;
-		case "leerkracht":
-			teacherIndex = i;
-			break;
-		default: break;
-	}
-	let lastClass = "";
-	let lessen = [...table.tBodies[0].rows].map((row) => {
-		let className = row.cells[classIndex].textContent ?? "";
-		className = className.trim();
-		if (className == "") className = lastClass;
-		lastClass = className;
-		let day = dayIndex ? row.cells[dayIndex].textContent : "";
-		let timeString = timeIndex ? row.cells[timeIndex].textContent : "";
-		let location$1 = locationIndex ? row.cells[locationIndex].textContent : "";
-		let teacher = teacherIndex ? row.cells[teacherIndex].textContent : "";
-		if (!day && !timeString && !location$1 && !teacher) return null;
-		if (className.toLowerCase().includes("begeleidingspraktijk") || className.toLowerCase().includes("muziektheorie") || className.toLowerCase().includes("compositie") || className.toLowerCase().includes("improvisatie") || className.toLowerCase().includes("musical zang") || className.toLowerCase().includes("musical koor")) return null;
-		return {
-			url,
-			className,
-			day,
-			timeString,
-			location: location$1,
-			teacher
-		};
-	});
-	return lessen.filter((les) => les != null);
-}
-
-//#endregion
 //#region typescript/startPage/diffPage.ts
 async function loadCombboxSchoolYearAndTrySelect(dirTree) {
 	if (!dirTree) dirTree = await getDiffDirStructure();
@@ -6198,22 +6292,7 @@ async function loadCombboxSchoolYearAndTrySelect(dirTree) {
 	return false;
 }
 async function calcAndShowDiffsWww() {
-	let response = await requestWww([
-		"https://academieberchem.stedelijkonderwijs.be/uurrooster-woord-gevorderden-18",
-		"https://academieberchem.stedelijkonderwijs.be/uurrooster-2e-graad-kinderen-8-tot-11-jaar",
-		"https://academieberchem.stedelijkonderwijs.be/uurrooster-1e-graad-kinderen-6-tot-7-jaar",
-		"https://academieberchem.stedelijkonderwijs.be/uurrooster-2e-graad-jongeren-12-tot-17-jaar",
-		"https://academieberchem.stedelijkonderwijs.be/uurrooster-3e-graad-klassiek",
-		"https://academieberchem.stedelijkonderwijs.be/uurrooster-3e-graad-jazz-pop-rock",
-		"https://academieberchem.stedelijkonderwijs.be/uurrooster-3e-graad-wereldmuziek",
-		"https://academieberchem.stedelijkonderwijs.be/uurrooster-4e-graad-klassiek",
-		"https://academieberchem.stedelijkonderwijs.be/uurrooster-4e-graad-jazz-pop-rock-volwassenen-vanaf-18-jaar",
-		"https://academieberchem.stedelijkonderwijs.be/uurrooster-4e-graad-wereldmuziek",
-		"https://academieberchem.stedelijkonderwijs.be/uurrooster-musical",
-		"https://academieberchem.stedelijkonderwijs.be/uurrooster-elektronische-muziek-enkel-de-hoofdschool",
-		"https://academieberchem.stedelijkonderwijs.be/uurrooster-2e-graad-volwassenen-vanaf-18-jaar"
-	]);
-	parseWww(response.data);
+	await getAndShowWwwDiffs("calcAndShow", "fetchDko");
 }
 async function setupDiffPage() {
 	let pluginContainer = document.getElementById("plugin_container");
@@ -6334,9 +6413,6 @@ async function openDiffSettings(academie, schoolyear) {
 		academie,
 		schoolyear
 	}, "TODO: is this title used? Uurrooster setup voor schooljaar " + schoolyear);
-}
-async function requestWww(urlList) {
-	return sendRequest(Actions.Www, TabType.Main, TabType.Undefined, void 0, { urlList }, "");
 }
 chrome.runtime.onMessage.addListener(onMessage$1);
 let pauseRefresh$1 = false;

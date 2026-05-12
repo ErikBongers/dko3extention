@@ -1,12 +1,9 @@
 import {TokenScanner} from "../tokenScanner";
 import {TimeSlice} from "../roster_diff/excelRoster";
 import {DayUppercase, toDay} from "../lessen/scrape";
-import {createJsonDiffs, Dko3DiffData, findTeacher, getDiffsCloudFileName, getDko3Data, runRosterCheck} from "../roster_diff/buildDiff";
-import {getDiffsDko3CacheFileName, StatusCallback} from "../roster_diff/showDiff";
+import {Dko3DiffData, findTeacher, getDko3Data} from "../roster_diff/buildDiff";
+import {StatusCallback} from "../roster_diff/showDiff";
 import {InfoBarTableFetchListener} from "../table/loadAnyTable";
-import {DiffSettings} from "../roster_diff/diffSettings";
-import {cloud, fetchExcelData, fetchFolderChanged} from "../cloud";
-import {JsonExcelData} from "../roster_diff/excel";
 import {Actions, sendRequest, ServiceRequest, TabType} from "../messaging";
 
 interface WwwLesDef {
@@ -18,11 +15,22 @@ interface WwwLesDef {
     teacher: string;
 }
 
-interface TaggedWwwLesDef {
+class TaggedWwwLesDef {
     lesDef: WwwLesDef;
     timeSlice: TimeSlice;
     day: DayUppercase | null;
     teachers: string[];
+
+    constructor(lesDef: WwwLesDef, timeSlice: TimeSlice, day: DayUppercase | null, teachers: string[]) {
+        this.lesDef = lesDef;
+        this.timeSlice = timeSlice;
+        this.day = day;
+        this.teachers = teachers;
+    }
+
+    public getHash() {
+        return `${this.lesDef.className}-${TimeSlice.toString(this.timeSlice)}-${this.teachers.join()}`;
+    }
 }
 
 export async function buildWwwDiff(reportStatus: StatusCallback, fetchListener: InfoBarTableFetchListener, academie: string, schoolYear: string, dko3DiffData: Dko3DiffData | null) {
@@ -49,7 +57,7 @@ function tagWwwLes(les: WwwLesDef, dko3DiffData: Dko3DiffData) {
         .split(/[\/,]/g).map(t => findTeacher(t, dko3DiffData.teachers))
         .filter(t => t != "");
 
-    return {lesDef: les, timeSlice: timeSlice, day, teachers} satisfies TaggedWwwLesDef as TaggedWwwLesDef;
+    return new TaggedWwwLesDef(les, timeSlice, day, teachers);
 }
 
 export interface HtmlText {
@@ -83,11 +91,16 @@ export async function parseWww(dko3DiffData: Dko3DiffData) {
         lessen = lessen.concat(parseHtml(html));
     }
     console.log(lessen);
-    let taggedLessen: (TaggedWwwLesDef | null)[] = lessen
+    let taggedLessen = lessen
         .map(les => tagWwwLes(les, dko3DiffData))
         .filter(les => les != null);
 
-    console.log(taggedLessen);
+    let taggedLesMap: Map<string, TaggedWwwLesDef> = new Map();
+    for(let taggedLes of taggedLessen) {
+        taggedLesMap.set(taggedLes.getHash(), taggedLes);
+    }
+
+    console.log(taggedLesMap);
 }
 
 function parseHtml(html: HtmlText) {
