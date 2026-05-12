@@ -28,9 +28,10 @@ async function loadCombboxSchoolYearAndTrySelect(dirTree?: TreeNode): Promise<bo
 }
 
 async function calcAndShowDiffsWww() {
-    let res = await fetch("https://academieberchem.stedelijkonderwijs.be/uurrooster-woord-gevorderden-18");
-    let text = await res.text();
-    console.log(text);
+    // let res = await fetch("https://academieberchem.stedelijkonderwijs.be/uurrooster-woord-gevorderden-18");
+    // let text = await res.text();
+    await requestWww();
+    // console.log(text);
 }
 
 export async function setupDiffPage() {
@@ -183,6 +184,10 @@ export async function openDiffSettings(academie: string, schoolyear: string) {
     return sendRequest(Actions.OpenDiffSettings, TabType.Main, TabType.Undefined, undefined, {academie, schoolyear}, "TODO: is this title used? Uurrooster setup voor schooljaar " + schoolyear);
 }
 
+export async function requestWww() {
+    return sendRequest(Actions.Www, TabType.Main, TabType.Undefined, undefined, {}, "");
+}
+
 chrome.runtime.onMessage.addListener(onMessage)
 let pauseRefresh = false;
 
@@ -192,6 +197,10 @@ setInterval(() => {
 }, 2000);
 
 async function onMessage(request: ServiceRequest, _sender: MessageSender, sendResponse: (response?: any) => void) {
+    if(request.action == Actions.Www) {
+        console.log(request.data);
+        return;
+    }
     if(request.senderTabType != TabType.DiffSettings)
         return;
     if(request.action == Actions.RequestTabData) {

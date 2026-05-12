@@ -11,6 +11,7 @@ export enum Actions {
     DiffSettingsChanged = "diff_settings_changed",
     GreetingsFromParent = "greetingsFromParent",
     GreetingsFromChild = "greetingsFromChild",
+    Www = "Www",
 }
 
 export enum TabType {
