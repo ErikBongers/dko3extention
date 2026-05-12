@@ -94,6 +94,39 @@ export class TimeSlice {
     public static toString(timeSlice: TimeSlice) {
         return `${timeSlice.start.hour}:${timeSlice.start.minutes}-${timeSlice.end.hour}:${timeSlice.end.minutes}`;
     }
+
+    public static parseTimes(text: string) {
+        let times: Time[] = [];
+        let rx = /\s+(\d?\d)[.:,](\d\d)/gm;
+        let matches = rx.exec(text);
+        while(matches) {
+            let time: Time = {
+                hour: parseInt(matches[1]),
+                minutes: parseInt(matches[2])
+            };
+            times.push(time);
+            matches = rx.exec(text);
+        }
+        return times;
+    }
+
+    //Allow for strings like "12 - 13", without the minutes. Avoid this function as it may catch false positives - any number is considered an hour.
+    public static parseShortTimes(text: string) {
+        let times = TimeSlice.parseTimes(text);
+
+        text = " " + text + " ";
+        let rx = /\s+(\d?\d)\s+/gm;
+        let matches = rx.exec(text);
+        while(matches) {
+            let time: Time = {
+                hour: parseInt(matches[1]),
+                minutes: 0
+            };
+            times.push(time);
+            matches = rx.exec(text);
+        }
+        return times;
+    }
 }
 
 export type Time = {
@@ -176,7 +209,7 @@ export class ExcelRoster {
                 let sliceStart = timeSlices.get(sliceStartText)!;
                 let sliceEnd = timeSlices.get(sliceEndText)!;
                 timeSlice = new TimeSlice(sliceStart.start, sliceEnd.end);
-                let times = this.findTimes(parseText);
+                let times = TimeSlice.parseTimes(parseText);
                 if(times.length ===2) {
                     timeSlice = new TimeSlice(times[0], times[1]);
                 } else if(times.length === 1) {
@@ -226,21 +259,6 @@ export class ExcelRoster {
             }
         }
         return timeSlices;
-    }
-
-    private findTimes(text: string) {
-        let times: Time[] = [];
-        let rx = /\s+(\d?\d)[.:,](\d\d)/gm;
-        let matches = rx.exec(text);
-        while(matches) {
-            let time: Time = {
-                hour: parseInt(matches[1]),
-                minutes: parseInt(matches[2])
-            };
-            times.push(time);
-            matches = rx.exec(text);
-        }
-        return times;
     }
 
     private moveTimeSliceTo(timeSlice: TimeSlice, newStart: Time) {
