@@ -1797,6 +1797,9 @@ var ExcelRoster = class ExcelRoster {
 		for (let c = 0; c <= this.table.ColumnCount; c++) classDefs = classDefs.concat(this.scrapeColumn(c, timeSlices));
 		return classDefs;
 	}
+	static makeParsable(text) {
+		return " " + text.replaceAll("(", " ( ").replaceAll(")", " ) ").replaceAll(",", " , ").replaceAll("+", " + ").replaceAll(" en ", " , ").replaceAll("  ", " ").replaceAll("  ", " ") + " ";
+	}
 	scrapeColumn(column, timeSlices) {
 		let classDefs = [];
 		let day = RosterFactory.toDayName(this.table.HeaderRowValue(0, column));
@@ -1807,7 +1810,7 @@ var ExcelRoster = class ExcelRoster {
 			if (cellValue) {
 				let rx = /\n/g;
 				let description = cellValue.replaceAll(rx, " ");
-				let parseText = " " + description.replaceAll("(", " ( ").replaceAll(")", " ) ").replaceAll(",", " , ").replaceAll("+", " + ").replaceAll(" en ", " , ").replaceAll("  ", " ").replaceAll("  ", " ") + " ";
+				let parseText = ExcelRoster.makeParsable(description);
 				let timeSlice = void 0;
 				let mergedRange = this.table.RangeOfCell({
 					row,
@@ -1832,7 +1835,7 @@ var ExcelRoster = class ExcelRoster {
 				};
 				let excelPos = TablePos.toExcel(tablePos, this.table);
 				let gradeYears = this.findGradeYears(parseText);
-				if (gradeYears.length == 0) gradeYears = this.getGradeYearsFromTags(tags, excelPos);
+				if (gradeYears.length == 0) gradeYears = ExcelRoster.getGradeYearsFromTags(tags);
 				let classDef = new ClassDef(day, teacher, timeSlice, subjects, location$1, gradeYears, excelPos.row, excelPos.column, cellValue, this.table, className);
 				classDefs.push(classDef);
 				row = mergedRange.End.row + 1;
@@ -1917,7 +1920,7 @@ var ExcelRoster = class ExcelRoster {
 		}
 		return [];
 	}
-	getGradeYearsFromTags(tags, excelPos) {
+	static getGradeYearsFromTags(tags) {
 		let gradeYears = [];
 		for (let tagDef of tags) if (tagDef.grade || tagDef.year) gradeYears.push({
 			grade: tagDef.grade ?? null,
@@ -5247,16 +5250,22 @@ var TaggedWwwLesDef = class {
 	location;
 	subjects;
 	className;
+	gradeYears;
 	constructor(lesDef, timeSlice, day, teachers, dko3Data, diffSettings) {
 		this.lesDef = lesDef;
 		this.timeSlice = timeSlice;
 		this.day = day;
 		this.teachers = teachers;
-		let tags = ExcelRoster.findTags(" " + this.lesDef.location + " ", diffSettings.tagDefs);
+		let tags = ExcelRoster.findTags(` ${this.lesDef.className} ${this.lesDef.location} `, diffSettings.tagDefs);
 		let tagStrings = tags.map((t) => t.tag);
 		this.location = ExcelRoster.findLocation(tagStrings, dko3Data.locations);
 		this.subjects = ExcelRoster.findSubjects(this.lesDef.className, tagStrings, dko3Data);
-		this.className = ExcelRoster.findClassName(" " + this.lesDef.className + " ", dko3Data);
+		this.className = ExcelRoster.findClassName(ExcelRoster.makeParsable(this.lesDef.className), dko3Data);
+		this.gradeYears = ExcelRoster.getGradeYearsFromTags(tags);
+		if (this.gradeYears.length == 0) {
+			let newTags = ExcelRoster.findTags(ExcelRoster.makeParsable(lesDef.panelTitle), diffSettings.tagDefs);
+			this.gradeYears = ExcelRoster.getGradeYearsFromTags(newTags);
+		}
 	}
 	getHash() {
 		return `${this.lesDef.className}-${this.lesDef.day}-${TimeSlice.toString(this.timeSlice)}-${this.teachers.join()}`;
@@ -5321,10 +5330,18 @@ function parseHtml(html) {
 		return table.tHead?.rows[0].textContent.toLowerCase().includes("klas");
 	});
 	let lessen = [];
-	for (let table of classTables) lessen = lessen.concat(scrapeClassTable(html.url, table));
+	for (let table of classTables) lessen = lessen.concat(scrapeClassTable(html.url, table, pageTitle));
 	return lessen;
 }
-function scrapeClassTable(url, table) {
+function scrapeClassTable(url, table, pageTitle) {
+	let panelTitle = "";
+	let panelDiv = table.closest("div.card.panel");
+	if (panelDiv) {
+		let button = panelDiv.querySelector("button");
+		if (button) panelTitle = button.textContent;
+	}
+	pageTitle = pageTitle.replaceAll("\n", " ").trim();
+	panelTitle = panelTitle.replaceAll("\n", " ").trim();
 	let classIndex = void 0;
 	let dayIndex = void 0;
 	let timeIndex = void 0;
@@ -5362,6 +5379,8 @@ function scrapeClassTable(url, table) {
 		if (className.toLowerCase().includes("begeleidingspraktijk") || className.toLowerCase().includes("muziektheorie") || className.toLowerCase().includes("compositie") || className.toLowerCase().includes("improvisatie") || className.toLowerCase().includes("musical zang") || className.toLowerCase().includes("musical koor")) return null;
 		return {
 			url,
+			pageTitle,
+			panelTitle,
 			className,
 			day,
 			timeString,

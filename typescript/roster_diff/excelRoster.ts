@@ -201,6 +201,18 @@ export class ExcelRoster {
         return classDefs;
     }
 
+    public static makeParsable(text: string) {
+        return " "+ text
+                .replaceAll("(", " ( ") //force spaces around words or numbers
+                .replaceAll(")", " ) ")
+                .replaceAll(",", " , ")
+                .replaceAll("+", " + ")
+                .replaceAll(" en ", " , ")
+                .replaceAll("  ", " ") //dedup spaces //" Woordatelier 3 + 4 DNV Tegelzaal Minimum 7 lln "
+                .replaceAll("  ", " ") //dedup spaces
+            + " ";
+    }
+
     private scrapeColumn(column: number, timeSlices: Map<string, TimeSlice>) {
         let classDefs: ClassDef[] = [];
         let day = RosterFactory.toDayName(this.table.HeaderRowValue(0, column));
@@ -213,15 +225,7 @@ export class ExcelRoster {
                 let rx = /\n/g;
                 let description = cellValue
                     .replaceAll(rx, " ");
-                let parseText = " "+description
-                    .replaceAll("(", " ( ") //force spaces around words or numbers
-                    .replaceAll(")", " ) ")
-                    .replaceAll(",", " , ")
-                    .replaceAll("+", " + ")
-                    .replaceAll(" en ", " , ")
-                    .replaceAll("  ", " ") //dedup spaces //" Woordatelier 3 + 4 DNV Tegelzaal Minimum 7 lln "
-                    .replaceAll("  ", " ") //dedup spaces
-                    + " ";
+                let parseText = ExcelRoster.makeParsable(description);
                 let timeSlice: TimeSlice | undefined = undefined;
                 let mergedRange = this.table.RangeOfCell({row, column});
                 let sliceStartText = this.table.HeaderColumnValue(mergedRange.Start.row, 0);
@@ -244,7 +248,7 @@ export class ExcelRoster {
                 let excelPos: ExcelPos = TablePos.toExcel(tablePos, this.table);
                 let gradeYears = this.findGradeYears(parseText);
                 if(gradeYears.length == 0) {
-                    gradeYears = this.getGradeYearsFromTags(tags, excelPos);
+                    gradeYears = ExcelRoster.getGradeYearsFromTags(tags);
                 }
                 let classDef= new ClassDef(
                     day,
@@ -368,7 +372,7 @@ export class ExcelRoster {
         return [];
     }
 
-    private getGradeYearsFromTags(tags: TagDef[], excelPos: ExcelPos) {
+    public static getGradeYearsFromTags(tags: TagDef[]) {
         let gradeYears: GradeYear[] = [];
         for(let tagDef of tags) {
             if(tagDef.grade || tagDef.year) {

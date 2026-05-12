@@ -1,5 +1,5 @@
 import {TokenScanner} from "../tokenScanner";
-import {ExcelRoster, TimeSlice} from "../roster_diff/excelRoster";
+import {ExcelRoster, GradeYear, TimeSlice} from "../roster_diff/excelRoster";
 import {DayUppercase, toDay} from "../lessen/scrape";
 import {Dko3DiffData, findTeacher, getDko3Data} from "../roster_diff/buildDiff";
 import {StatusCallback} from "../roster_diff/showDiff";
@@ -9,6 +9,8 @@ import {DiffSettings} from "../roster_diff/diffSettings";
 
 interface WwwLesDef {
     url: string;
+    pageTitle: string;
+    panelTitle: string;
     className: string;
     day: string;
     timeString: string;
@@ -24,17 +26,27 @@ class TaggedWwwLesDef {
     location: string;
     subjects: string[];
     className: string | null;
+    gradeYears: GradeYear[];
 
     constructor(lesDef: WwwLesDef, timeSlice: TimeSlice, day: DayUppercase | null, teachers: string[], dko3Data: Dko3DiffData, diffSettings: DiffSettings) {
         this.lesDef = lesDef;
         this.timeSlice = timeSlice;
         this.day = day;
         this.teachers = teachers;
-        let tags = ExcelRoster.findTags(" " + this.lesDef.location + " ", diffSettings.tagDefs);
+        let tags = ExcelRoster.findTags(` ${this.lesDef.className} ${this.lesDef.location} `, diffSettings.tagDefs);
         let tagStrings = tags.map(t => t.tag);
         this.location = ExcelRoster.findLocation(tagStrings, dko3Data.locations);
         this.subjects = ExcelRoster.findSubjects(this.lesDef.className, tagStrings, dko3Data);
-        this.className = ExcelRoster.findClassName(" " + this.lesDef.className + " ", dko3Data);
+        this.className = ExcelRoster.findClassName(ExcelRoster.makeParsable(this.lesDef.className), dko3Data);
+        this.gradeYears = ExcelRoster.getGradeYearsFromTags(tags);
+        if(this.gradeYears.length == 0) {
+            let newTags = ExcelRoster.findTags(ExcelRoster.makeParsable(lesDef.panelTitle), diffSettings.tagDefs);
+            this.gradeYears = ExcelRoster.getGradeYearsFromTags(newTags);
+        }
+        if(this.gradeYears.length == 0) {
+            let newTags = ExcelRoster.findTags(ExcelRoster.makeParsable(lesDef.pageTitle), diffSettings.tagDefs);
+            this.gradeYears = ExcelRoster.getGradeYearsFromTags(newTags);
+        }
     }
 
     public getHash() {
@@ -129,12 +141,28 @@ function parseHtml(html: HtmlText) {
         });
     let lessen: WwwLesDef[] = [];
     for(let table of classTables) {
-        lessen = lessen.concat(scrapeClassTable(html.url, table));
+        lessen = lessen.concat(scrapeClassTable(html.url, table, pageTitle));
     }
     return lessen;
 }
 
-function scrapeClassTable(url: string, table: HTMLTableElement) {
+function scrapeClassTable(url: string, table: HTMLTableElement, pageTitle: string) {
+    let panelTitle = "";
+    let panelDiv = table.closest("div.card.panel") as HTMLDivElement | null;
+    if(panelDiv) {
+        let button = panelDiv.querySelector("button") as HTMLButtonElement | null;
+        if(button) {
+            panelTitle = button.textContent;
+        }
+    }
+
+    pageTitle = pageTitle
+        .replaceAll("\n", " ")
+        .trim();
+    panelTitle = panelTitle
+        .replaceAll("\n", " ")
+        .trim();
+
     //get indexes of columns
     let classIndex: number | undefined = undefined;
     let dayIndex: number | undefined = undefined;
@@ -174,6 +202,8 @@ function scrapeClassTable(url: string, table: HTMLTableElement) {
             return null;
         return {
             url,
+            pageTitle,
+            panelTitle,
             className,
             day,
             timeString,
