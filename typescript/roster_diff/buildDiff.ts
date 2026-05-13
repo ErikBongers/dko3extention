@@ -185,6 +185,8 @@ export class Dko3LesMoment {
 }
 
 export interface ComparableLesMoment {
+    lesType: DiffLesType;
+    hash: string;
     className: string | null;
     location?: string;
     teachers: string[];
@@ -253,9 +255,13 @@ export class Weight {
         }
 }
 
+export type DiffLesType = "excel" | "www" | "dko3";
+
 export class TaggedExcelLes extends TaggedLes<ClassDef> implements ComparableLesMoment {
+    public lesType: DiffLesType = "excel";
     public className: string | null;
     public dayTimeSlice: DayTimeSlice;
+    public hash: string;
     constructor(les: ClassDef, teachers: TeacherDef[]) {
         let searchText = " " + les.cellValue
             .toLowerCase()
@@ -279,6 +285,7 @@ export class TaggedExcelLes extends TaggedLes<ClassDef> implements ComparableLes
         this.subjects = [...new Set(this.subjects)];
         this.dayTimeSlice = new DayTimeSlice(les.day, les.timeSlice);
         this.gradeYears = les.gradeYears;
+        this.hash = les.getHash();
     }
 }
 
@@ -375,7 +382,7 @@ export async function calcDiff(dko3Data: Dko3DiffData, reportStatus: (message: s
         les1.teachers = await extraTeacherCache.getExtraTeachers(les1.lesMoment.les.id);
     }
 
-    let diffs: Diff[] = [];
+    let diffs: Diff[];
     let ctx: MatchContext = {};
     diffs = matchIt(ctx, dko3LesSet, otherLesSet, "perfect match", matchBasedOnName);
     diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "perfect match", perfectMatch));
@@ -703,6 +710,7 @@ export async function getWwwDiffsFromCloud(academie: string, schoolYear: string)
 }
 
 export interface JsonBasicLesMoment {
+    lesType: DiffLesType
     subjects: string;
     teachers: string;
     day: DayUppercase;
@@ -746,25 +754,25 @@ export interface JsonDiffs {
     schoolYear: string;
     diffs: JsonDiff[];
     orphanedDko3Lessen: JsonDko3LesMoment[];
-    orphanedExcelLessen: JsonExcelLesMoment[];
+    orphanedOtherLessen: JsonBasicLesMoment[];
     isoDate: string,
     workBooks: JsonWorkBook[],
 }
 
-export async function setIgnoredFlags(orphanedDko3Lessen: JsonDko3LesMoment[], orphanedExcelLessen: JsonExcelLesMoment[], academie: string, schoolYear: string) {
+export async function setIgnoredFlags(orphanedDko3Lessen: JsonDko3LesMoment[], orphanedOtherLessen: JsonBasicLesMoment[], academie: string, schoolYear: string) {
     try {
         let ignoreHashes = await fetchIgnoredDiffHashes(academie, schoolYear);
         let ignoreHashSet = new Set(ignoreHashes);
         for (let les of orphanedDko3Lessen) {
             les.ignore = ignoreHashSet.has(les.hash);
         }
-        for (let les of orphanedExcelLessen) {
+        for (let les of orphanedOtherLessen) {
             les.ignore = ignoreHashSet.has(les.hash);
         }
     } catch {}
 }
 
-export async function createJsonDiffs(diffList: Diff[], dko3LesSet: Set<TaggedDko3LesMoment>, excelLesSet: Set<ComparableLesMoment>, excelRosters: ExcelRoster[], academie: string, schoolYear: string): Promise<JsonDiffs> {
+export async function createJsonDiffs(diffList: Diff[], dko3LesSet: Set<TaggedDko3LesMoment>, otherLesSet: Set<ComparableLesMoment>, excelRosters: ExcelRoster[], academie: string, schoolYear: string): Promise<JsonDiffs> {
     let diffs: JsonDiff[] = diffList
         .filter(diff => diff.diffType != "perfect match" || diff.weight.weight != 1000)
         .map(diff => {
@@ -776,9 +784,9 @@ export async function createJsonDiffs(diffList: Diff[], dko3LesSet: Set<TaggedDk
             } satisfies JsonDiff;
         });
     let orphanedDko3Lessen = [...dko3LesSet.values()].map(les => dko3LesToJson(les));
-    let orphanedExcelLessen = [...excelLesSet.values()].map(les => excelLesToJson(les as TaggedExcelLes));
+    let orphanedOtherLessen = [...otherLesSet.values()].map(les => excelLesToJson(les as TaggedExcelLes));
 
-    await setIgnoredFlags(orphanedDko3Lessen, orphanedExcelLessen, academie, schoolYear);
+    await setIgnoredFlags(orphanedDko3Lessen, orphanedOtherLessen, academie, schoolYear);
     let workBooks: Map<string, JsonWorkBook> = new Map<string, JsonWorkBook>();
     for(let excelData of excelRosters.map(r => r.table.excelData)) {
         if(!workBooks.has(excelData.workbookName)) {
@@ -799,7 +807,7 @@ export async function createJsonDiffs(diffList: Diff[], dko3LesSet: Set<TaggedDk
         schoolYear,
         diffs,
         orphanedDko3Lessen,
-        orphanedExcelLessen,
+        orphanedOtherLessen,
         isoDate: (new Date()).toISOString(),
         workBooks: [...workBooks.values()]
     } satisfies JsonDiffs;
@@ -807,8 +815,7 @@ export async function createJsonDiffs(diffList: Diff[], dko3LesSet: Set<TaggedDk
 
 function dko3LesToJson(dko3Les: TaggedDko3LesMoment): JsonDko3LesMoment {
     return {
-        momentId: dko3Les.lesMoment.momentId,
-        lesId: dko3Les.lesMoment.les.id,
+        lesType: "dko3",
         day: dko3Les.lesMoment.dayTimeSlice.day,
         timeSlice: toCompactTimeSliceString(dko3Les.lesMoment.dayTimeSlice.timeSlice!),
         subjects: dko3Les.subjects.join(","),
@@ -817,24 +824,29 @@ function dko3LesToJson(dko3Les: TaggedDko3LesMoment): JsonDko3LesMoment {
         hash: dko3Les.getHash(),
         ignore: dko3Les.ignore,
         gradeYears: dko3Les.gradeYears,
+
+        momentId: dko3Les.lesMoment.momentId,
+        lesId: dko3Les.lesMoment.les.id,
     };
 }
 
 function excelLesToJson(excelLes: TaggedExcelLes): JsonExcelLesMoment {
     return {
-        excelColumn: excelLes.lesMoment.excelColumn,
-        excelRow: excelLes.lesMoment.excelRow,
+        lesType: "excel",
         day: excelLes.lesMoment.day as DayUppercase,
         timeSlice: toCompactTimeSliceString(excelLes.lesMoment.timeSlice),
         subjects: excelLes.subjects.join(","),
         teachers: excelLes.teachers.join(","),
         location: excelLes.location!,
-        cellValue: excelLes.lesMoment.cellValue,
-        workBook: excelLes.lesMoment.table.excelData.workbookName,
-        workSheet: excelLes.lesMoment.table.excelData.worksheetName,
         hash: excelLes.getHash(),
         ignore: excelLes.ignore,
         gradeYears: excelLes.gradeYears,
+
+        excelColumn: excelLes.lesMoment.excelColumn,
+        excelRow: excelLes.lesMoment.excelRow,
+        cellValue: excelLes.lesMoment.cellValue,
+        workBook: excelLes.lesMoment.table.excelData.workbookName,
+        workSheet: excelLes.lesMoment.table.excelData.worksheetName,
     };
 }
 

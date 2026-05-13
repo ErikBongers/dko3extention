@@ -68,7 +68,7 @@ export class ClassDef {
         this.cellValue = cellValue;
         this.table = table;
         this.className = className;
-        this.hash = cellValue + day + teacher + TimeSlice.toString(timeSlice); //cellvalue + table headers should be defining enough.
+        this.hash = "excel:"+cellValue + day + teacher + TimeSlice.toString(timeSlice); //cellvalue + table headers should be defining enough.
     }
 
     public getHash() { return this.hash; }

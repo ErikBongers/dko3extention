@@ -106,7 +106,7 @@ export async function getAndShowWwwDiffs(showOrCalc: "justShow" | "calcAndShow",
         }
         catch (e) {}
     } else {
-        let todo = await runWwwDiff(reportStatus, fetchListener, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData, diffSettings);
+        jsonDiffs = await runWwwDiff(reportStatus, fetchListener, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData, diffSettings);
     }
     if(jsonDiffs)
         await showWwwDiffs(jsonDiffs, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData);
@@ -193,7 +193,7 @@ async function runWwwDiff(reportStatus: StatusCallback, fetchListener: InfoBarTa
     let divResults = document.getElementById("diffResults") as HTMLDivElement;
     divResults.innerHTML = "";
 
-    return buildWwwDiff(reportStatus, fetchListener, academie, schoolYear, dko3DiffData, diffSettings);
+    return {academie, schoolYear, ...await buildWwwDiff( reportStatus, fetchListener, academie, schoolYear, dko3DiffData, diffSettings)};
 }
 
 export function fillExcelDiffRow(tr: HTMLTableRowElement, diff: JsonDiff, academie: string, schoolYear: string) {

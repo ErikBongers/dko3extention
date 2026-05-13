@@ -5251,6 +5251,8 @@ var TaggedWwwLesDef = class {
 	subjects;
 	className;
 	gradeYears;
+	ignore;
+	dayTimeSlice;
 	constructor(lesDef, timeSlice, day, teachers, dko3Data, diffSettings) {
 		this.lesDef = lesDef;
 		this.timeSlice = timeSlice;
@@ -5270,6 +5272,8 @@ var TaggedWwwLesDef = class {
 			let newTags = ExcelRoster.findTags(ExcelRoster.makeParsable(lesDef.pageTitle), diffSettings.tagDefs);
 			this.gradeYears = ExcelRoster.getGradeYearsFromTags(newTags);
 		}
+		this.ignore = false;
+		this.dayTimeSlice = new DayTimeSlice(this.day, this.timeSlice);
 	}
 	getHash() {
 		return `${this.lesDef.className}-${this.lesDef.day}-${TimeSlice.toString(this.timeSlice)}-${this.teachers.join()}`;
@@ -5278,7 +5282,9 @@ var TaggedWwwLesDef = class {
 async function buildWwwDiff(reportStatus, fetchListener, academie, schoolYear, dko3DiffData, diffSettings) {
 	reportStatus(`Vergelijken met DKO3 lessen...`);
 	if (!dko3DiffData) dko3DiffData = await getDko3Data(schoolYear, reportStatus, fetchListener);
-	await parseWww(dko3DiffData, diffSettings);
+	let otherLessen = new Set(await parseWww(dko3DiffData, diffSettings));
+	let diffs = await calcDiff(dko3DiffData, reportStatus, diffSettings, otherLessen);
+	console.log(diffs);
 }
 function tagWwwLes(les, dko3DiffData, diffSettings) {
 	let times = TimeSlice.parseShortTimes(les.timeString);
@@ -5290,7 +5296,7 @@ function tagWwwLes(les, dko3DiffData, diffSettings) {
 	}
 	let timeSlice = new TimeSlice(times[0], times[1]);
 	let teachers = les.teacher.split(/[\/,]/g).map((t) => findTeacher(t, dko3DiffData.teachers)).filter((t) => t != "");
-	return new TaggedWwwLesDef(les, timeSlice, day, teachers, dko3DiffData, diffSettings);
+	return new TaggedWwwLesDef(les, timeSlice, day ?? "", teachers, dko3DiffData, diffSettings);
 }
 async function requestWww(urlList) {
 	return sendRequest(Actions.Www, TabType.Main, TabType.Undefined, void 0, { urlList }, "");
@@ -5318,6 +5324,7 @@ async function parseWww(dko3DiffData, diffSettings) {
 	let taggedLesMap = new Map();
 	for (let taggedLes of taggedLessen) taggedLesMap.set(taggedLes.getHash(), taggedLes);
 	console.log(taggedLesMap);
+	return taggedLesMap.values();
 }
 function parseHtml(html) {
 	let scanner = new TokenScanner(html.text);

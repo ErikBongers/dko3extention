@@ -1,7 +1,7 @@
 import {TokenScanner} from "../tokenScanner";
 import {ExcelRoster, GradeYear, TimeSlice} from "../roster_diff/excelRoster";
-import {DayUppercase, toDay} from "../lessen/scrape";
-import {Dko3DiffData, findTeacher, getDko3Data} from "../roster_diff/buildDiff";
+import {DayTimeSlice, DayUppercase, toDay} from "../lessen/scrape";
+import {calcDiff, ComparableLesMoment, Dko3DiffData, findTeacher, getDko3Data, OtherLesType} from "../roster_diff/buildDiff";
 import {StatusCallback} from "../roster_diff/showDiff";
 import {InfoBarTableFetchListener} from "../table/loadAnyTable";
 import {Actions, sendRequest, ServiceRequest, TabType} from "../messaging";
@@ -18,17 +18,21 @@ interface WwwLesDef {
     teacher: string;
 }
 
-class TaggedWwwLesDef {
+class TaggedWwwLesDef implements ComparableLesMoment{
+    lesType: OtherLesType = "www";
+    hash: string;
     lesDef: WwwLesDef;
     timeSlice: TimeSlice;
-    day: DayUppercase | null;
+    day: DayUppercase;
     teachers: string[];
     location: string;
     subjects: string[];
     className: string | null;
     gradeYears: GradeYear[];
+    ignore: boolean;
+    dayTimeSlice: DayTimeSlice;
 
-    constructor(lesDef: WwwLesDef, timeSlice: TimeSlice, day: DayUppercase | null, teachers: string[], dko3Data: Dko3DiffData, diffSettings: DiffSettings) {
+    constructor(lesDef: WwwLesDef, timeSlice: TimeSlice, day: DayUppercase, teachers: string[], dko3Data: Dko3DiffData, diffSettings: DiffSettings) {
         this.lesDef = lesDef;
         this.timeSlice = timeSlice;
         this.day = day;
@@ -47,10 +51,13 @@ class TaggedWwwLesDef {
             let newTags = ExcelRoster.findTags(ExcelRoster.makeParsable(lesDef.pageTitle), diffSettings.tagDefs);
             this.gradeYears = ExcelRoster.getGradeYearsFromTags(newTags);
         }
+        this.ignore = false;
+        this.dayTimeSlice = new DayTimeSlice(this.day, this.timeSlice);
+        this.hash = this.getHash();
     }
 
     public getHash() {
-        return `${this.lesDef.className}-${this.lesDef.day}-${TimeSlice.toString(this.timeSlice)}-${this.teachers.join()}`;
+        return `www:${this.lesDef.className}-${this.lesDef.day}-${TimeSlice.toString(this.timeSlice)}-${this.teachers.join()}`;
     }
 }
 
@@ -58,7 +65,8 @@ export async function buildWwwDiff(reportStatus: StatusCallback, fetchListener: 
     reportStatus(`Vergelijken met DKO3 lessen...`);
     if(!dko3DiffData)
         dko3DiffData = await getDko3Data(schoolYear, reportStatus, fetchListener);
-    await parseWww(dko3DiffData, diffSettings);
+    let otherLessen = new Set(await parseWww(dko3DiffData, diffSettings));
+    return calcDiff(dko3DiffData, reportStatus, diffSettings, otherLessen);
 }
 
 function tagWwwLes(les: WwwLesDef, dko3DiffData: Dko3DiffData, diffSettings: DiffSettings) {
@@ -78,7 +86,7 @@ function tagWwwLes(les: WwwLesDef, dko3DiffData: Dko3DiffData, diffSettings: Dif
         .split(/[\/,]/g).map(t => findTeacher(t, dko3DiffData.teachers))
         .filter(t => t != "");
 
-    return new TaggedWwwLesDef(les, timeSlice, day, teachers, dko3DiffData, diffSettings);
+    return new TaggedWwwLesDef(les, timeSlice, day??"", teachers, dko3DiffData, diffSettings);
 }
 
 export interface HtmlText {
@@ -122,6 +130,7 @@ export async function parseWww(dko3DiffData: Dko3DiffData, diffSettings: DiffSet
     }
 
     console.log(taggedLesMap);
+    return taggedLesMap.values();
 }
 
 function parseHtml(html: HtmlText) {
