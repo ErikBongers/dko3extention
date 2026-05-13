@@ -135,29 +135,16 @@ export async function showDiffs(diffs: JsonDiffs, academie: string, schoolYear: 
     chkHideChecked.checked = ingore == "true";
     table.classList.toggle("hideChecked", chkHideChecked.checked);
 }
-export async function showWwwDiffs(diffs: JsonDiffs, academie: string, schoolYear: string, dko3DiffData: Dko3DiffData | null) {
-}
-
 export type StatusCallback = (message: string, isError?: "error") => void;
 
-async function runDiff(reportStatus: StatusCallback, fetchListener: InfoBarTableFetchListener, academie: string, schoolYear: string, dko3DiffData: Dko3DiffData | null, diffSettings: DiffSettings, diffType: OtherLesType) {
-}
-
-async function runWwwDiff(reportStatus: StatusCallback, fetchListener: InfoBarTableFetchListener, academie: string, schoolYear: string, dko3DiffData: Dko3DiffData | null, diffSettings: DiffSettings) {
-    let divResults = document.getElementById("diffResults") as HTMLDivElement;
-    divResults.innerHTML = "";
-
-    return {academie, schoolYear, ...await buildWwwDiff( reportStatus, fetchListener, academie, schoolYear, dko3DiffData, diffSettings)};
-}
-
-export function fillExcelDiffRow(tr: HTMLTableRowElement, diff: JsonDiff, academie: string, schoolYear: string) {
+export function fillOtherDiffRow(tr: HTMLTableRowElement, diff: JsonDiff, academie: string, schoolYear: string) {
     fillDiffRow(tr, diff.otherLes, diff.diffType, "excel", diff.otherLes.gotoData, diff.otherLes.gotoData.text, diff.otherLes.hash, diff.otherLes.ignore, academie, schoolYear, diff.weight);
 }
 
 function displayDiff(diff: JsonDiff, divResults: HTMLDivElement, academie: string, schoolYear: string) {
     let tbody = emmet.appendChild(divResults, "table.diff>tbody").last as HTMLTableSectionElement;
     let tr = emmet.appendChild(tbody, "tr").last as HTMLTableRowElement;
-    fillExcelDiffRow(tr, diff, academie, schoolYear);
+    fillOtherDiffRow(tr, diff, academie, schoolYear);
     tr.classList.add("excelRow");
     let tr2 = emmet.appendChild(tbody, "tr").last as HTMLTableRowElement;
     let gotoData: DiffGotoData = {
@@ -207,7 +194,8 @@ export function fillDiffRow(tr: HTMLTableRowElement, jsonLes: JsonBasicLesMoment
     tr.dataset.cellAddress = gotoData.cellAddress;
     tr.dataset.workbook = gotoData.workBook;
     tr.dataset.worksheet = gotoData.workSheet;
-    tr.dataset.rowType = rowType;
+    tr.dataset.rowType = gotoData.rowType;
+    tr.dataset.url = gotoData.url;
     emmet.appendChild(tr, `${tdSubjects}+td${diffGradeYearsClass}{${GradeYear.toString(jsonLes.gradeYears)}}+td${diffTeacherClass}{${jsonLes.teachers}}+td${diffTimeClass}{${toCompactDayString(jsonLes.day as DayUppercase)}}+td${diffTimeClass}{${jsonLes.timeSlice}}+td${diffLocationClass}{${jsonLes.location}}+(td.buttonshow>button.goto>i.fas.${iconClass})+(td.button>button.goto.chkHide>i.fas.fa-check)`)
     let btnGoto = tr.querySelector("button.goto") as HTMLButtonElement;
     btnGoto.onclick = (ev) => gotoSource(ev, academie, schoolYear);
@@ -242,11 +230,12 @@ export interface DiffGotoData {
 async function gotoSource(ev: MouseEvent, academie: string, schoolYear: string) {
     let button = ev.currentTarget as HTMLButtonElement;
     let tr = button.closest("tr") as HTMLTableRowElement;
-    let rowType = tr.dataset.rowType as ("excel" | "dko3");
+    let rowType = tr.dataset.rowType as ("excel" | "dko3" | "www"); //todo: use a type for this
     let cellAddress = tr.dataset.cellAddress!;
     let workBook = tr.dataset.workbook!;
     let workSheet = tr.dataset.worksheet!;
     let lesId = tr.dataset.lesId;
+    let url = tr.dataset.url!;
 
     if(rowType == "excel") {
         let url = await getUrlForWorksheet(workBook, workSheet, cellAddress, academie, schoolYear);
@@ -259,6 +248,9 @@ async function gotoSource(ev: MouseEvent, academie: string, schoolYear: string) 
     }
     else if(rowType == "dko3") {
         location.href =  DKO3_BASE_URL + "#lessen-les?id="+lesId;
+    }
+    else if(rowType == "www") {
+        window.open(url, '_blank')!.focus();
     }
 }
 

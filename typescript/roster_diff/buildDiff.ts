@@ -892,10 +892,10 @@ function wwwLesToJson(wwwLesDef: TaggedWwwLesDef): JsonOtherLesMoment {
         gotoData: {
             lesId: "",
             cellAddress: "",
-            text: "",
+            text: wwwLesDef.lesDef.pageTitle + " | " + wwwLesDef.lesDef.panelTitle + " | " + wwwLesDef.lesDef.className,
             workBook: "",
             workSheet: "",
-            url: "",
+            url: wwwLesDef.lesDef.url,
             rowType: "www"
         }
 
