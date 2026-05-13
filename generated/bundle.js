@@ -5705,7 +5705,7 @@ async function buildAndSaveDiff(reportStatus, fetchListener, academie, schoolYea
 	dko3DiffData = JSON.parse(json);
 	dko3DiffData.extraTeachersCache = res.extraTeacherCache.toJSON();
 	localStorage.setItem(getDiffsDko3CacheFileName(academie, schoolYear, diffType), JSON.stringify(dko3DiffData));
-	let jsonDiffs = await createJsonDiffs(res.diffs, res.dko3LesSet, res.otherLesSet, res.excelRosters, academie, schoolYear);
+	let jsonDiffs = await createJsonDiffs(res.diffs, res.dko3LesSet, res.otherLesSet, res.excelRosters, academie, schoolYear, diffType);
 	let fileName = getDiffsCloudFileName(academie, schoolYear, diffType);
 	await cloud.json.upload(fileName, jsonDiffs);
 	sessionStorage.setItem(fileName, JSON.stringify(jsonDiffs));
@@ -6001,7 +6001,7 @@ function matchIt(ctx, dko3LesSet, excelLesSet, diffType, matchFunction) {
 		let result = matchFunction(ctx, dko3Les, excelLesSet);
 		if (result) {
 			diffs.push({
-				excelLes: result.otherLes,
+				otherLes: result.otherLes,
 				dko3Les,
 				diffType,
 				weight: result.weight
@@ -6212,17 +6212,22 @@ async function setIgnoredFlags(orphanedDko3Lessen, orphanedOtherLessen, academie
 		for (let les of orphanedOtherLessen) les.ignore = ignoreHashSet.has(les.hash);
 	} catch {}
 }
-async function createJsonDiffs(diffList, dko3LesSet, otherLesSet, excelRosters, academie, schoolYear) {
+async function createJsonDiffs(diffList, dko3LesSet, otherLesSet, excelRosters, academie, schoolYear, diffType) {
 	let diffs = diffList.filter((diff) => diff.diffType != "perfect match" || diff.weight.weight != 1e3).map((diff) => {
+		let otherLes;
+		if (diffType == "excel") otherLes = excelLesToJson(diff.otherLes);
+		else otherLes = wwwLesToJson(diff.otherLes);
 		return {
-			otherLes: excelLesToJson(diff.excelLes),
+			otherLes,
 			dko3Les: dko3LesToJson(diff.dko3Les),
 			diffType: diff.diffType,
 			weight: diff.weight
 		};
 	});
 	let orphanedDko3Lessen = [...dko3LesSet.values()].map((les) => dko3LesToJson(les));
-	let orphanedOtherLessen = [...otherLesSet.values()].map((les) => excelLesToJson(les));
+	let orphanedOtherLessen;
+	if (diffType == "excel") orphanedOtherLessen = [...otherLesSet.values()].map((les) => excelLesToJson(les));
+	else orphanedOtherLessen = [...otherLesSet.values()].map((les) => wwwLesToJson(les));
 	await setIgnoredFlags(orphanedDko3Lessen, orphanedOtherLessen, academie, schoolYear);
 	let workBooks = new Map();
 	for (let excelData of excelRosters.map((r) => r.table.excelData)) {
@@ -6281,6 +6286,28 @@ function excelLesToJson(excelLes) {
 			workSheet: excelLes.lesMoment.table.excelData.worksheetName,
 			url: "",
 			rowType: "excel"
+		}
+	};
+}
+function wwwLesToJson(wwwLesDef) {
+	return {
+		lesType: "www",
+		day: wwwLesDef.day,
+		timeSlice: toCompactTimeSliceString(wwwLesDef.timeSlice),
+		subjects: wwwLesDef.subjects.join(","),
+		teachers: wwwLesDef.teachers.join(","),
+		location: wwwLesDef.location,
+		hash: wwwLesDef.getHash(),
+		ignore: wwwLesDef.ignore,
+		gradeYears: wwwLesDef.gradeYears,
+		gotoData: {
+			lesId: "",
+			cellAddress: "",
+			text: "",
+			workBook: "",
+			workSheet: "",
+			url: "",
+			rowType: "www"
 		}
 	};
 }

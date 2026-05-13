@@ -20,7 +20,7 @@ interface WwwLesDef {
 
 export type OtherLesType = "excel" | "www";
 
-class TaggedWwwLesDef implements ComparableLesMoment{
+export class TaggedWwwLesDef implements ComparableLesMoment{
     lesType: OtherLesType = "www";
     hash: string;
     lesDef: WwwLesDef;

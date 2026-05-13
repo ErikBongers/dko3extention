@@ -12,7 +12,7 @@ import {emmet} from "../../libs/Emmeter/html";
 import {fetchAndDisplayNotifications} from "../notifications/notifications";
 import {DiffGotoData, excelPostoExcelAddress, getDiffsDko3CacheFileName, StatusCallback} from "./showDiff";
 import {DiffSettings} from "./diffSettings";
-import {OtherLesType, parseWww} from "../www_diff/buildDiff";
+import {OtherLesType, parseWww, TaggedWwwLesDef} from "../www_diff/buildDiff";
 
 let cachedDiffs: JsonDiffs | undefined = undefined;
 export async function getJsonDiffsCached(academie: string, schoolYear: string, diffType: OtherLesType) {
@@ -87,7 +87,7 @@ export async function buildAndSaveDiff(reportStatus: StatusCallback,
     dko3DiffData.extraTeachersCache = res.extraTeacherCache.toJSON();
     localStorage.setItem(getDiffsDko3CacheFileName(academie, schoolYear, diffType), JSON.stringify(dko3DiffData));
 
-    let jsonDiffs = await createJsonDiffs(res.diffs, res.dko3LesSet, res.otherLesSet, res.excelRosters, academie, schoolYear);
+    let jsonDiffs = await createJsonDiffs(res.diffs, res.dko3LesSet, res.otherLesSet, res.excelRosters, academie, schoolYear, diffType);
     let fileName = getDiffsCloudFileName(academie, schoolYear, diffType);
     await cloud.json.upload(fileName, jsonDiffs);
     sessionStorage.setItem(fileName, JSON.stringify(jsonDiffs));
@@ -185,7 +185,7 @@ export type DiffType =
     | "match without teacher, time and day";
 
 export interface Diff {
-    excelLes: ComparableLesMoment;
+    otherLes: ComparableLesMoment;
     dko3Les: TaggedDko3LesMoment;
     diffType: DiffType;
     weight: Weight;
@@ -490,7 +490,7 @@ function matchIt(ctx: MatchContext, dko3LesSet: Set<TaggedDko3LesMoment>, excelL
     for(let dko3Les of dko3LesSet) {
         let result = matchFunction(ctx, dko3Les, excelLesSet);
         if(result) {
-            diffs.push({excelLes: result.otherLes, dko3Les: dko3Les, diffType, weight: result.weight});
+            diffs.push({otherLes: result.otherLes, dko3Les: dko3Les, diffType, weight: result.weight});
             dko3LesSet.delete(dko3Les);
             excelLesSet.delete(result.otherLes);
         }
@@ -787,19 +787,28 @@ export async function setIgnoredFlags(orphanedDko3Lessen: JsonDko3LesMoment[], o
     } catch {}
 }
 
-export async function createJsonDiffs(diffList: Diff[], dko3LesSet: Set<TaggedDko3LesMoment>, otherLesSet: Set<ComparableLesMoment>, excelRosters: ExcelRoster[], academie: string, schoolYear: string): Promise<JsonDiffs> {
+export async function createJsonDiffs(diffList: Diff[], dko3LesSet: Set<TaggedDko3LesMoment>, otherLesSet: Set<ComparableLesMoment>, excelRosters: ExcelRoster[], academie: string, schoolYear: string, diffType: OtherLesType): Promise<JsonDiffs> {
     let diffs: JsonDiff[] = diffList
         .filter(diff => diff.diffType != "perfect match" || diff.weight.weight != 1000)
         .map(diff => {
+            let otherLes;
+            if(diffType == 'excel')
+                otherLes = excelLesToJson(diff.otherLes as TaggedExcelLes);
+            else
+                otherLes = wwwLesToJson(diff.otherLes as TaggedWwwLesDef);
             return {
-                otherLes: excelLesToJson(diff.excelLes as TaggedExcelLes),
+                otherLes,
                 dko3Les: dko3LesToJson(diff.dko3Les),
                 diffType: diff.diffType,
                 weight: diff.weight
             } satisfies JsonDiff;
         });
     let orphanedDko3Lessen = [...dko3LesSet.values()].map(les => dko3LesToJson(les));
-    let orphanedOtherLessen = [...otherLesSet.values()].map(les => excelLesToJson(les as TaggedExcelLes));
+    let orphanedOtherLessen;
+    if(diffType == 'excel')
+        orphanedOtherLessen = [...otherLesSet.values()].map(les => excelLesToJson(les as TaggedExcelLes));
+    else
+        orphanedOtherLessen = [...otherLesSet.values()].map(les => wwwLesToJson(les as TaggedWwwLesDef));
 
     await setIgnoredFlags(orphanedDko3Lessen, orphanedOtherLessen, academie, schoolYear);
     let workBooks: Map<string, JsonWorkBook> = new Map<string, JsonWorkBook>();
@@ -864,6 +873,30 @@ function excelLesToJson(excelLes: TaggedExcelLes): JsonOtherLesMoment {
             workSheet: excelLes.lesMoment.table.excelData.worksheetName,
             url: "",
             rowType: "excel"
+        }
+
+    };
+}
+
+function wwwLesToJson(wwwLesDef: TaggedWwwLesDef): JsonOtherLesMoment {
+    return {
+        lesType: "www",
+        day: wwwLesDef.day as DayUppercase,
+        timeSlice: toCompactTimeSliceString(wwwLesDef.timeSlice),
+        subjects: wwwLesDef.subjects.join(","),
+        teachers: wwwLesDef.teachers.join(","),
+        location: wwwLesDef.location!,
+        hash: wwwLesDef.getHash(),
+        ignore: wwwLesDef.ignore,
+        gradeYears: wwwLesDef.gradeYears,
+        gotoData: {
+            lesId: "",
+            cellAddress: "",
+            text: "",
+            workBook: "",
+            workSheet: "",
+            url: "",
+            rowType: "www"
         }
 
     };
