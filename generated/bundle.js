@@ -1521,7 +1521,7 @@ var Table = class {
 			row: this.tableRange.Start.row + this.rowHeaderCount + pos.row,
 			column: this.tableRange.Start.column + this.columnHeaderCount + pos.column
 		};
-		let exelRange = this.excelData.getMergedRangeForCell(excelPos) ?? new ExcelRange(excelPos, excelPos);
+		let exelRange = this.excelData.getMergedRangeForCell(excelPos);
 		return TableRange.FromExcel(exelRange, this);
 	}
 	HeaderRowValue(headerRow, column) {
@@ -1838,7 +1838,7 @@ var ExcelRoster = class ExcelRoster {
 				if (gradeYears.length == 0) gradeYears = ExcelRoster.getGradeYearsFromTags(tags);
 				let classDef = new ClassDef(day, teacher, timeSlice, subjects, location$1, gradeYears, excelPos.row, excelPos.column, cellValue, this.table, className);
 				classDefs.push(classDef);
-				row = mergedRange.End.row + 1;
+				row = mergedRange.End.row;
 			}
 		}
 		return classDefs;
@@ -5264,6 +5264,10 @@ var TaggedWwwLesDef = class {
 		this.gradeYears = ExcelRoster.getGradeYearsFromTags(tags);
 		if (this.gradeYears.length == 0) {
 			let newTags = ExcelRoster.findTags(ExcelRoster.makeParsable(lesDef.panelTitle), diffSettings.tagDefs);
+			this.gradeYears = ExcelRoster.getGradeYearsFromTags(newTags);
+		}
+		if (this.gradeYears.length == 0) {
+			let newTags = ExcelRoster.findTags(ExcelRoster.makeParsable(lesDef.pageTitle), diffSettings.tagDefs);
 			this.gradeYears = ExcelRoster.getGradeYearsFromTags(newTags);
 		}
 	}

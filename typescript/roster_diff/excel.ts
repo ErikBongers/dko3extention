@@ -171,8 +171,7 @@ export class Table {
 
     public RangeOfCell(pos: TablePos): TableRange {
         let excelPos: ExcelPos = {row: this.tableRange.Start.row+this.rowHeaderCount+pos.row, column: this.tableRange.Start.column+this.columnHeaderCount+pos.column};
-        let exelRange= this.excelData.getMergedRangeForCell(excelPos)
-            ?? new ExcelRange(excelPos, excelPos);
+        let exelRange= this.excelData.getMergedRangeForCell(excelPos);
         return TableRange.FromExcel(exelRange, this);
     }
 

@@ -264,7 +264,7 @@ export class ExcelRoster {
                     className
                 );
                 classDefs.push(classDef);
-                row = mergedRange.End.row+1;
+                row = mergedRange.End.row;
             }
         }
         return classDefs;
