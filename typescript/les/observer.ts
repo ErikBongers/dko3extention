@@ -4,6 +4,7 @@ import {getDiffsCloudFileName, getDiffsFromCloud, JsonDiffs} from "../roster_dif
 import {fillExcelDiffRow} from "../roster_diff/showDiff";
 import {Schoolyear} from "../globals";
 import {getDiffDirStructure, getDiffMyAcademieFolder} from "../startPage/diffPage";
+import {OtherLesType} from "../www_diff/buildDiff";
 
 class LesObserver extends HashObserver {
     constructor() {
@@ -27,7 +28,7 @@ function onMutation(mutation: MutationRecord) {
         let academie = localStorage.getItem("diffLastAcademie");
         let schoolYear = localStorage.getItem("diffLastSchoolYear");
         if(academie && schoolYear)
-            addDiff(titleHeader, academie, schoolYear).then(r => {});
+            addDiff(titleHeader, academie, schoolYear, "excel").then(r => {});
     }
     return false;
 }
@@ -102,21 +103,21 @@ function switchNaamVoornaam(_event: MouseEvent) {
     });
 }
 
-function getDiffsLocalFirst(academie: string, schoolYear: string) {
-    let fileName = getDiffsCloudFileName(academie, schoolYear);
+function getDiffsLocalFirst(academie: string, schoolYear: string, diffType: OtherLesType) {
+    let fileName = getDiffsCloudFileName(academie, schoolYear, diffType);
     let jsonDiff = sessionStorage.getItem(fileName);
     if(jsonDiff)
         return JSON.parse(jsonDiff) as JsonDiffs;
-    return getDiffsFromCloud(academie, schoolYear);
+    return getDiffsFromCloud(academie, schoolYear, diffType);
 }
 
-async function addDiff(titleHeader: HTMLElement, academie: string, schoolYear: string) {
+async function addDiff(titleHeader: HTMLElement, academie: string, schoolYear: string, diffType: OtherLesType) {
     let divDiff = document.querySelector("div.diff") as HTMLDivElement;
     if(divDiff)
         return;
 
     divDiff = emmet.insertAfter(titleHeader, "div.diff").first as HTMLDivElement;
-    let diffs = await getDiffsLocalFirst(academie, schoolYear);
+    let diffs = await getDiffsLocalFirst(academie, schoolYear, diffType);
     if(!diffs)
         return;
     let rxId = /id=(\d+)/g;

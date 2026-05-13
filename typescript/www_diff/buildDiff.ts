@@ -1,7 +1,7 @@
 import {TokenScanner} from "../tokenScanner";
 import {ExcelRoster, GradeYear, TimeSlice} from "../roster_diff/excelRoster";
 import {DayTimeSlice, DayUppercase, toDay} from "../lessen/scrape";
-import {calcDiff, ComparableLesMoment, Dko3DiffData, findTeacher, getDko3Data, OtherLesType} from "../roster_diff/buildDiff";
+import {calcDiff, ComparableLesMoment, Dko3DiffData, findTeacher, getDko3Data} from "../roster_diff/buildDiff";
 import {StatusCallback} from "../roster_diff/showDiff";
 import {InfoBarTableFetchListener} from "../table/loadAnyTable";
 import {Actions, sendRequest, ServiceRequest, TabType} from "../messaging";
@@ -17,6 +17,8 @@ interface WwwLesDef {
     location: string;
     teacher: string;
 }
+
+export type OtherLesType = "excel" | "www";
 
 class TaggedWwwLesDef implements ComparableLesMoment{
     lesType: OtherLesType = "www";

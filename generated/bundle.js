@@ -1693,7 +1693,7 @@ var ClassDef = class {
 		this.cellValue = cellValue;
 		this.table = table;
 		this.className = className;
-		this.hash = cellValue + day + teacher + TimeSlice.toString(timeSlice);
+		this.hash = "excel:" + cellValue + day + teacher + TimeSlice.toString(timeSlice);
 	}
 	getHash() {
 		return this.hash;
@@ -1838,7 +1838,7 @@ var ExcelRoster = class ExcelRoster {
 				if (gradeYears.length == 0) gradeYears = ExcelRoster.getGradeYearsFromTags(tags);
 				let classDef = new ClassDef(day, teacher, timeSlice, subjects, location$1, gradeYears, excelPos.row, excelPos.column, cellValue, this.table, className);
 				classDefs.push(classDef);
-				row = mergedRange.End.row + 1;
+				row = mergedRange.End.row;
 			}
 		}
 		return classDefs;
@@ -5243,6 +5243,8 @@ const defaultIgnoreList = [
 //#endregion
 //#region typescript/www_diff/buildDiff.ts
 var TaggedWwwLesDef = class {
+	lesType = "www";
+	hash;
 	lesDef;
 	timeSlice;
 	day;
@@ -5274,18 +5276,12 @@ var TaggedWwwLesDef = class {
 		}
 		this.ignore = false;
 		this.dayTimeSlice = new DayTimeSlice(this.day, this.timeSlice);
+		this.hash = this.getHash();
 	}
 	getHash() {
-		return `${this.lesDef.className}-${this.lesDef.day}-${TimeSlice.toString(this.timeSlice)}-${this.teachers.join()}`;
+		return `www:${this.lesDef.className}-${this.lesDef.day}-${TimeSlice.toString(this.timeSlice)}-${this.teachers.join()}`;
 	}
 };
-async function buildWwwDiff(reportStatus, fetchListener, academie, schoolYear, dko3DiffData, diffSettings) {
-	reportStatus(`Vergelijken met DKO3 lessen...`);
-	if (!dko3DiffData) dko3DiffData = await getDko3Data(schoolYear, reportStatus, fetchListener);
-	let otherLessen = new Set(await parseWww(dko3DiffData, diffSettings));
-	let diffs = await calcDiff(dko3DiffData, reportStatus, diffSettings, otherLessen);
-	console.log(diffs);
-}
 function tagWwwLes(les, dko3DiffData, diffSettings) {
 	let times = TimeSlice.parseShortTimes(les.timeString);
 	let day = toDay(les.day);
@@ -5418,13 +5414,10 @@ async function fetchDiffSettingsOrDefault(academie, schoolYear) {
 	};
 	return settings;
 }
-function getDiffsDko3CacheFileName(academie, schoolYear) {
-	return `Dko3/Uurroosters/Cache/${academie}_${schoolYear}_dko3datacache.json`;
+function getDiffsDko3CacheFileName(academie, schoolYear, diffType) {
+	return `Dko3/Uurroosters/Cache/${academie}_${schoolYear}_${diffType}_diffcache.json`;
 }
-function getWwwDiffsDko3CacheFileName(academie, schoolYear) {
-	return `Dko3/Uurroosters/Cache/${academie}_${schoolYear}_dko3datacache.json`;
-}
-async function getAndShowDiffs(showOrCalc, useDkoCache) {
+async function getAndShowDiffs(showOrCalc, useDkoCache, diffType) {
 	let divResults = document.getElementById("diffResults");
 	divResults.innerHTML = "Ophalen...";
 	let divError = document.getElementById("diffErrors");
@@ -5442,45 +5435,22 @@ async function getAndShowDiffs(showOrCalc, useDkoCache) {
 	}
 	errors = [];
 	let json = null;
-	if (useDkoCache == "dkoCache") json = localStorage.getItem(getDiffsDko3CacheFileName(cmbDiffAcademie.value, cmbDiffSchoolYear.value));
+	if (useDkoCache == "dkoCache") json = localStorage.getItem(getDiffsDko3CacheFileName(cmbDiffAcademie.value, cmbDiffSchoolYear.value, diffType));
 	let dko3DiffData = json ? JSON.parse(json) : null;
 	let jsonDiffs = null;
 	let diffSettings = await fetchDiffSettingsOrDefault(cmbDiffAcademie.value, cmbDiffSchoolYear.value);
 	if (showOrCalc == "justShow") try {
-		jsonDiffs = await getDiffsFromCloud(cmbDiffAcademie.value, cmbDiffSchoolYear.value);
-	} catch (e) {}
-	else jsonDiffs = await runDiff(reportStatus, fetchListener, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData, diffSettings);
-	if (jsonDiffs) await showDiffs(jsonDiffs, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData, diffSettings);
-}
-async function getAndShowWwwDiffs(showOrCalc, useDkoCache) {
-	let divResults = document.getElementById("diffResults");
-	divResults.innerHTML = "Ophalen...";
-	let divError = document.getElementById("diffErrors");
-	let runStatus = document.getElementById("runStatus");
-	let divInfo = document.getElementById("diffInfo");
-	let cmbDiffAcademie = document.querySelector("#cmbDiffAcademie");
-	let cmbDiffSchoolYear = document.querySelector("#cmbDiffSchoolYear");
-	let infoBlock = createInfoBlock(divInfo, "");
-	let fetchListener = new InfoBarTableFetchListener(infoBlock);
-	let errors = [];
-	function reportStatus(message, isError) {
-		if (isError == "error") errors.push(message);
-		else runStatus.innerHTML = message;
-		divError.innerHTML = errors.join("<br>");
-	}
-	errors = [];
-	let json = null;
-	if (useDkoCache == "dkoCache") json = localStorage.getItem(getWwwDiffsDko3CacheFileName(cmbDiffAcademie.value, cmbDiffSchoolYear.value));
-	let dko3DiffData = json ? JSON.parse(json) : null;
-	let jsonDiffs = null;
-	let diffSettings = await fetchDiffSettingsOrDefault(cmbDiffAcademie.value, cmbDiffSchoolYear.value);
-	if (showOrCalc == "justShow") try {
-		jsonDiffs = await getWwwDiffsFromCloud(cmbDiffAcademie.value, cmbDiffSchoolYear.value);
+		jsonDiffs = await getDiffsFromCloud(cmbDiffAcademie.value, cmbDiffSchoolYear.value, diffType);
 	} catch (e) {}
 	else {
-		let todo = await runWwwDiff(reportStatus, fetchListener, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData, diffSettings);
+		let divResults$1 = document.getElementById("diffResults");
+		divResults$1.innerHTML = "";
+		let dataPreparationFunction;
+		if (diffType == "excel") dataPreparationFunction = prepareExcelData;
+		else dataPreparationFunction = prepareWwwData;
+		jsonDiffs = await buildAndSaveDiff(reportStatus, fetchListener, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData, diffSettings, diffType, dataPreparationFunction);
 	}
-	if (jsonDiffs) await showWwwDiffs(jsonDiffs, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData);
+	if (jsonDiffs) await showDiffs(jsonDiffs, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData, diffSettings);
 }
 async function showDiffs(diffs, academie, schoolYear, dko3DiffData, diffSettings) {
 	let divResults = document.getElementById("diffResults");
@@ -5489,7 +5459,7 @@ async function showDiffs(diffs, academie, schoolYear, dko3DiffData, diffSettings
 		divResults.innerHTML = "";
 		return;
 	}
-	await setIgnoredFlags(diffs.orphanedDko3Lessen, diffs.orphanedExcelLessen, academie, schoolYear);
+	await setIgnoredFlags(diffs.orphanedDko3Lessen, diffs.orphanedOtherLessen, academie, schoolYear);
 	divResults.innerHTML = "";
 	let elapsedTimeString = dateDiffToString(new Date(diffs.isoDate), new Date());
 	if (elapsedTimeString != "") emmet.appendChild(divResults, `div.gray{Laatste vergelijking: ${elapsedTimeString} geleden.}`);
@@ -5498,7 +5468,7 @@ async function showDiffs(diffs, academie, schoolYear, dko3DiffData, diffSettings
 		let button = emmet.appendChild(div, "button.likeLink").first;
 		button.innerHTML = "Zoek met dko3 cache";
 		button.onclick = () => {
-			getAndShowDiffs("calcAndShow", "dkoCache");
+			getAndShowDiffs("calcAndShow", "dkoCache", "excel");
 		};
 	}
 	let divChk = emmet.appendChild(divResults, `div#divHideChecked>(input#chkHideChecked[type="checkbox"]+label[for="chkHideChecked"]{Verberg aangevinkte lijnen})`).first;
@@ -5522,48 +5492,22 @@ async function showDiffs(diffs, academie, schoolYear, dko3DiffData, diffSettings
 			rowType: "dko3",
 			url: "",
 			workBook: "",
-			workSheet: ""
+			workSheet: "",
+			text: ""
 		};
 		fillDiffRow(tr, les, "perfect match", "dko3", gotoData, "", les.hash, les.ignore, academie, schoolYear, null);
 	}
-	for (let les of diffs.orphanedExcelLessen) {
+	for (let les of diffs.orphanedOtherLessen) {
 		let tr = emmet.appendChild(tbody, "tr").last;
-		let gotoData = {
-			lesId: "",
-			cellAddress: excelPostoExcelAddress(les.excelRow, les.excelColumn),
-			rowType: "excel",
-			url: "",
-			workBook: les.workBook,
-			workSheet: les.workSheet
-		};
-		fillDiffRow(tr, les, "perfect match", "excel", gotoData, les.cellValue, les.hash, les.ignore, academie, schoolYear, null);
+		fillDiffRow(tr, les, "perfect match", "excel", les.gotoData, les.gotoData.text, les.hash, les.ignore, academie, schoolYear, null);
 		tr.classList.add("excelRow");
 	}
 	let ingore = localStorage.getItem(OPTION_HIDE_IGNORED_DIFFS) ?? "false";
 	chkHideChecked.checked = ingore == "true";
 	table.classList.toggle("hideChecked", chkHideChecked.checked);
 }
-async function showWwwDiffs(diffs, academie, schoolYear, dko3DiffData) {}
-async function runDiff(reportStatus, fetchListener, academie, schoolYear, dko3DiffData, diffSettings) {
-	let divResults = document.getElementById("diffResults");
-	divResults.innerHTML = "";
-	return buildAndSaveDiff(reportStatus, fetchListener, academie, schoolYear, dko3DiffData, diffSettings);
-}
-async function runWwwDiff(reportStatus, fetchListener, academie, schoolYear, dko3DiffData, diffSettings) {
-	let divResults = document.getElementById("diffResults");
-	divResults.innerHTML = "";
-	return buildWwwDiff(reportStatus, fetchListener, academie, schoolYear, dko3DiffData, diffSettings);
-}
 function fillExcelDiffRow(tr, diff, academie, schoolYear) {
-	let gotoData = {
-		lesId: "",
-		cellAddress: excelPostoExcelAddress(diff.excelLes.excelRow, diff.excelLes.excelColumn),
-		rowType: "excel",
-		url: "",
-		workBook: diff.excelLes.workBook,
-		workSheet: diff.excelLes.workSheet
-	};
-	fillDiffRow(tr, diff.excelLes, diff.diffType, "excel", gotoData, diff.excelLes.cellValue, diff.excelLes.hash, diff.excelLes.ignore, academie, schoolYear, diff.weight);
+	fillDiffRow(tr, diff.otherLes, diff.diffType, "excel", diff.otherLes.gotoData, diff.otherLes.gotoData.text, diff.otherLes.hash, diff.otherLes.ignore, academie, schoolYear, diff.weight);
 }
 function displayDiff(diff, divResults, academie, schoolYear) {
 	let tbody = emmet.appendChild(divResults, "table.diff>tbody").last;
@@ -5577,11 +5521,12 @@ function displayDiff(diff, divResults, academie, schoolYear) {
 		rowType: "dko3",
 		url: "",
 		workBook: "",
-		workSheet: ""
+		workSheet: "",
+		text: ""
 	};
 	fillDiffRow(tr2, diff.dko3Les, diff.diffType, "dko3", gotoData, "", diff.dko3Les.hash, diff.dko3Les.ignore, academie, schoolYear, diff.weight);
 }
-function fillDiffRow(tr, jsonLes, diffType, rowType, gotoData, cellValue, hash, ignore, academie, schoolYear, weight) {
+function fillDiffRow(tr, jsonLes, diffType, rowType, gotoData, orgText, hash, ignore, academie, schoolYear, weight) {
 	if (ignore) tr.classList.add("ignore");
 	let diffTeacherClass = "";
 	let diffGradeYearsClass = "";
@@ -5605,7 +5550,7 @@ function fillDiffRow(tr, jsonLes, diffType, rowType, gotoData, cellValue, hash, 
 		diffSubjectClass = ".diff";
 		strSubjects = "-onbekend-";
 	}
-	if (rowType == "excel") tdSubjects = `(td${diffSubjectClass}>div.diffTooltip{${strSubjects}}>span.diffTooltiptext{${cellValue}})`;
+	if (rowType == "excel") tdSubjects = `(td${diffSubjectClass}>div.diffTooltip{${strSubjects}}>span.diffTooltiptext{${orgText}})`;
 	else tdSubjects = `td${diffSubjectClass}{${jsonLes.subjects}}`;
 	let iconClass = rowType == "excel" ? "fa-grid" : "fa-chalkboard-user";
 	tr.dataset.hash = hash;
@@ -5701,11 +5646,19 @@ const chars = [
 //#endregion
 //#region typescript/roster_diff/buildDiff.ts
 let cachedDiffs = void 0;
-async function getJsonDiffsCached(academie, schoolYear) {
+async function getJsonDiffsCached(academie, schoolYear, diffType) {
 	if (cachedDiffs) return cachedDiffs;
-	return getDiffsFromCloud(academie, schoolYear);
+	return getDiffsFromCloud(academie, schoolYear, diffType);
 }
-async function buildAndSaveDiff(reportStatus, fetchListener, academie, schoolYear, dko3DiffData, diffSettings) {
+let prepareWwwData = async function(reportStatus, academie, schoolYear, dko3DiffData, diffSettings) {
+	reportStatus("Website uurroosters ophalen...");
+	let otherLessen = new Set(await parseWww(dko3DiffData, diffSettings));
+	return {
+		excelRosters: [],
+		otherLesSet: otherLessen
+	};
+};
+let prepareExcelData = async function(reportStatus, academie, schoolYear, dko3DiffData, diffSettings) {
 	reportStatus("Excel bestanden ophalen...");
 	let folderPath = await fetchFolderChanged(`Dko3/Uurroosters/${academie}/${schoolYear}/`);
 	reportStatus(`${folderPath.files.length} Excel bestanden gevonden.`);
@@ -5716,15 +5669,44 @@ async function buildAndSaveDiff(reportStatus, fetchListener, academie, schoolYea
 		let excelData = await fetchExcelData(file.name);
 		jsonExcelDatas.push(excelData);
 	}
-	reportStatus(`Vergelijken met DKO3 lessen...`);
+	let excelLessenArray = [];
+	let excelRosters = [];
+	reportStatus("Excel tabellen bouwen...");
+	for (let excelData of jsonExcelDatas) {
+		let factory = new RosterFactory(excelData);
+		let table = factory.getTable();
+		let roster = new ExcelRoster(table, dko3DiffData, diffSettings);
+		excelRosters.push(roster);
+		let classDefs = roster.scrapeUurrooster();
+		if (classDefs) excelLessenArray.push(classDefs);
+		console.log(excelLessenArray);
+	}
+	reportStatus("Lessen vergelijken...");
+	let dddata = dko3DiffData;
+	let otherLesSet = new Set(excelLessenArray.flat().map((les) => new TaggedExcelLes(les, dddata.teachers)));
+	otherLesSet.forEach((les) => {
+		if (isExcelLesToIgnore(les, diffSettings.ignoreList)) otherLesSet.delete(les);
+	});
+	return {
+		excelRosters,
+		otherLesSet
+	};
+};
+async function buildAndSaveDiff(reportStatus, fetchListener, academie, schoolYear, dko3DiffData, diffSettings, diffType, prepareOtherData) {
+	reportStatus(`DKO3 data ophalen...`);
 	if (!dko3DiffData) dko3DiffData = await getDko3Data(schoolYear, reportStatus, fetchListener);
 	let json = JSON.stringify(dko3DiffData);
-	let res = await runRosterCheck(jsonExcelDatas, reportStatus, fetchListener, dko3DiffData, diffSettings);
+	let { excelRosters, otherLesSet } = await prepareOtherData(reportStatus, academie, schoolYear, dko3DiffData, diffSettings);
+	let res = {
+		excelRosters,
+		...await calcDiff(dko3DiffData, reportStatus, diffSettings, otherLesSet)
+	};
+	deleteNotification("FILE_POSTED").then(() => fetchAndDisplayNotifications());
 	dko3DiffData = JSON.parse(json);
 	dko3DiffData.extraTeachersCache = res.extraTeacherCache.toJSON();
-	localStorage.setItem(getDiffsDko3CacheFileName(academie, schoolYear), JSON.stringify(dko3DiffData));
+	localStorage.setItem(getDiffsDko3CacheFileName(academie, schoolYear, diffType), JSON.stringify(dko3DiffData));
 	let jsonDiffs = await createJsonDiffs(res.diffs, res.dko3LesSet, res.otherLesSet, res.excelRosters, academie, schoolYear);
-	let fileName = getDiffsCloudFileName(academie, schoolYear);
+	let fileName = getDiffsCloudFileName(academie, schoolYear, diffType);
 	await cloud.json.upload(fileName, jsonDiffs);
 	sessionStorage.setItem(fileName, JSON.stringify(jsonDiffs));
 	reportStatus(``);
@@ -5768,26 +5750,6 @@ async function scrapeAllNormalLessen(schoolYear, reportStatus) {
 		...muziekLessen,
 		...kbLessen
 	];
-}
-async function runRosterCheck(excelDatas, reportStatus, fetchListener, dko3DiffData, diffSettings) {
-	let excelLessenArray = [];
-	let excelRosters = [];
-	reportStatus("Excel tabellen bouwen...");
-	for (let excelData of excelDatas) {
-		let factory = new RosterFactory(excelData);
-		let table = factory.getTable();
-		let roster = new ExcelRoster(table, dko3DiffData, diffSettings);
-		excelRosters.push(roster);
-		let classDefs = roster.scrapeUurrooster();
-		if (classDefs) excelLessenArray.push(classDefs);
-		console.log(excelLessenArray);
-	}
-	let res = {
-		excelRosters,
-		...await buildDiff(excelLessenArray.flat(), dko3DiffData, reportStatus, diffSettings)
-	};
-	deleteNotification("FILE_POSTED").then(() => fetchAndDisplayNotifications());
-	return res;
 }
 var LesType = /* @__PURE__ */ function(LesType$2) {
 	LesType$2["modules"] = "3";
@@ -5892,8 +5854,10 @@ var Weight = class {
 	}
 };
 var TaggedExcelLes = class extends TaggedLes {
+	lesType = "excel";
 	className;
 	dayTimeSlice;
+	hash;
 	constructor(les, teachers) {
 		let searchText = " " + les.cellValue.toLowerCase().replaceAll("\n", " \n ").replaceAll("(", " ( ").replaceAll(")", " ) ").replaceAll(".", " . ").replaceAll(",", " , ").replaceAll("-", " - ") + " ";
 		super(les, [], searchText);
@@ -5906,6 +5870,7 @@ var TaggedExcelLes = class extends TaggedLes {
 		this.subjects = [...new Set(this.subjects)];
 		this.dayTimeSlice = new DayTimeSlice(les.day, les.timeSlice);
 		this.gradeYears = les.gradeYears;
+		this.hash = les.getHash();
 	}
 };
 function isDko3LesToIgnore(les, ignoreList) {
@@ -5968,7 +5933,7 @@ async function calcDiff(dko3Data, reportStatus, diffSettings, otherLesSet) {
 	let dko3LesSet = createLesMomenten(dko3Data, reportStatus, diffSettings);
 	let extraTeacherCache = ExtraTeacherCache.fromJSON(dko3Data.extraTeachersCache ?? []);
 	for (const les1 of [...dko3LesSet.values()].filter((les) => les.lesMoment.les.teacher.includes("(en nog"))) les1.teachers = await extraTeacherCache.getExtraTeachers(les1.lesMoment.les.id);
-	let diffs = [];
+	let diffs;
 	let ctx = {};
 	diffs = matchIt(ctx, dko3LesSet, otherLesSet, "perfect match", matchBasedOnName);
 	diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "perfect match", perfectMatch));
@@ -5986,14 +5951,6 @@ async function calcDiff(dko3Data, reportStatus, diffSettings, otherLesSet) {
 		otherLesSet,
 		extraTeacherCache
 	};
-}
-async function buildDiff(excelLessen, dko3Data, reportStatus, diffSettings) {
-	reportStatus("Lessen vergelijken...");
-	let otherLesSet = new Set(excelLessen.map((les) => new TaggedExcelLes(les, dko3Data.teachers)));
-	otherLesSet.forEach((les) => {
-		if (isExcelLesToIgnore(les, diffSettings.ignoreList)) otherLesSet.delete(les);
-	});
-	return await calcDiff(dko3Data, reportStatus, diffSettings, otherLesSet);
 }
 var ExtraTeacherCache = class ExtraTeacherCache {
 	teacherMap = new Map();
@@ -6229,47 +6186,44 @@ function findTeacher(searchString, teachers) {
 	}
 	return searchString;
 }
-function getDiffsCloudFileName(academie, schoolYear) {
-	return `Dko3/${academie}_${schoolYear}_diffs.json`;
+function getDiffsCloudFileName(academie, schoolYear, diffType) {
+	return `Dko3/${academie}_${schoolYear}_${diffType}_diffs.json`;
 }
-async function getDiffsFromCloud(academie, schoolYear) {
-	let fromCloud = await cloud.json.fetch(getDiffsCloudFileName(academie, schoolYear)).catch(function(err) {
+async function getDiffsFromCloud(academie, schoolYear, diffType) {
+	let fromCloud = await cloud.json.fetch(getDiffsCloudFileName(academie, schoolYear, diffType)).catch(function(err) {
 		console.log(err);
 		return null;
 	});
 	if (fromCloud) {
 		for (let diff of fromCloud.diffs) {
 			if (!diff.dko3Les.gradeYears) diff.dko3Les.gradeYears = [];
-			if (!diff.excelLes.gradeYears) diff.excelLes.gradeYears = [];
+			if (!diff.otherLes.gradeYears) diff.otherLes.gradeYears = [];
 		}
 		for (let orphan of fromCloud.orphanedDko3Lessen) if (!orphan.gradeYears) orphan.gradeYears = [];
-		for (let orphan of fromCloud.orphanedExcelLessen) if (!orphan.gradeYears) orphan.gradeYears = [];
+		for (let orphan of fromCloud.orphanedOtherLessen) if (!orphan.gradeYears) orphan.gradeYears = [];
 	}
 	return fromCloud;
 }
-async function getWwwDiffsFromCloud(academie, schoolYear) {
-	return null;
-}
-async function setIgnoredFlags(orphanedDko3Lessen, orphanedExcelLessen, academie, schoolYear) {
+async function setIgnoredFlags(orphanedDko3Lessen, orphanedOtherLessen, academie, schoolYear) {
 	try {
 		let ignoreHashes = await fetchIgnoredDiffHashes(academie, schoolYear);
 		let ignoreHashSet = new Set(ignoreHashes);
 		for (let les of orphanedDko3Lessen) les.ignore = ignoreHashSet.has(les.hash);
-		for (let les of orphanedExcelLessen) les.ignore = ignoreHashSet.has(les.hash);
+		for (let les of orphanedOtherLessen) les.ignore = ignoreHashSet.has(les.hash);
 	} catch {}
 }
-async function createJsonDiffs(diffList, dko3LesSet, excelLesSet, excelRosters, academie, schoolYear) {
+async function createJsonDiffs(diffList, dko3LesSet, otherLesSet, excelRosters, academie, schoolYear) {
 	let diffs = diffList.filter((diff) => diff.diffType != "perfect match" || diff.weight.weight != 1e3).map((diff) => {
 		return {
-			excelLes: excelLesToJson(diff.excelLes),
+			otherLes: excelLesToJson(diff.excelLes),
 			dko3Les: dko3LesToJson(diff.dko3Les),
 			diffType: diff.diffType,
 			weight: diff.weight
 		};
 	});
 	let orphanedDko3Lessen = [...dko3LesSet.values()].map((les) => dko3LesToJson(les));
-	let orphanedExcelLessen = [...excelLesSet.values()].map((les) => excelLesToJson(les));
-	await setIgnoredFlags(orphanedDko3Lessen, orphanedExcelLessen, academie, schoolYear);
+	let orphanedOtherLessen = [...otherLesSet.values()].map((les) => excelLesToJson(les));
+	await setIgnoredFlags(orphanedDko3Lessen, orphanedOtherLessen, academie, schoolYear);
 	let workBooks = new Map();
 	for (let excelData of excelRosters.map((r) => r.table.excelData)) {
 		if (!workBooks.has(excelData.workbookName)) workBooks.set(excelData.workbookName, {
@@ -6288,15 +6242,14 @@ async function createJsonDiffs(diffList, dko3LesSet, excelLesSet, excelRosters, 
 		schoolYear,
 		diffs,
 		orphanedDko3Lessen,
-		orphanedExcelLessen,
+		orphanedOtherLessen,
 		isoDate: new Date().toISOString(),
 		workBooks: [...workBooks.values()]
 	};
 }
 function dko3LesToJson(dko3Les) {
 	return {
-		momentId: dko3Les.lesMoment.momentId,
-		lesId: dko3Les.lesMoment.les.id,
+		lesType: "dko3",
 		day: dko3Les.lesMoment.dayTimeSlice.day,
 		timeSlice: toCompactTimeSliceString(dko3Les.lesMoment.dayTimeSlice.timeSlice),
 		subjects: dko3Les.subjects.join(","),
@@ -6304,24 +6257,31 @@ function dko3LesToJson(dko3Les) {
 		location: dko3Les.location,
 		hash: dko3Les.getHash(),
 		ignore: dko3Les.ignore,
-		gradeYears: dko3Les.gradeYears
+		gradeYears: dko3Les.gradeYears,
+		momentId: dko3Les.lesMoment.momentId,
+		lesId: dko3Les.lesMoment.les.id
 	};
 }
 function excelLesToJson(excelLes) {
 	return {
-		excelColumn: excelLes.lesMoment.excelColumn,
-		excelRow: excelLes.lesMoment.excelRow,
+		lesType: "excel",
 		day: excelLes.lesMoment.day,
 		timeSlice: toCompactTimeSliceString(excelLes.lesMoment.timeSlice),
 		subjects: excelLes.subjects.join(","),
 		teachers: excelLes.teachers.join(","),
 		location: excelLes.location,
-		cellValue: excelLes.lesMoment.cellValue,
-		workBook: excelLes.lesMoment.table.excelData.workbookName,
-		workSheet: excelLes.lesMoment.table.excelData.worksheetName,
 		hash: excelLes.getHash(),
 		ignore: excelLes.ignore,
-		gradeYears: excelLes.gradeYears
+		gradeYears: excelLes.gradeYears,
+		gotoData: {
+			lesId: "",
+			cellAddress: excelPostoExcelAddress(excelLes.lesMoment.excelRow, excelLes.lesMoment.excelColumn),
+			text: excelLes.lesMoment.cellValue,
+			workBook: excelLes.lesMoment.table.excelData.workbookName,
+			workSheet: excelLes.lesMoment.table.excelData.worksheetName,
+			url: "",
+			rowType: "excel"
+		}
 	};
 }
 function createDiffTable(divResults) {
@@ -6336,7 +6296,7 @@ function toCompactTimeSliceString(timeSlice) {
 	return `${pad(timeSlice.start.hour, 2)}:${pad(timeSlice.start.minutes, 2)} - ${pad(timeSlice.end.hour, 2)}:${pad(timeSlice.end.minutes, 2)}`;
 }
 async function getUrlForWorksheet(workBook, workSheet, cellAddress, academie, schoolYear) {
-	let jsonDiffs = await getJsonDiffsCached(academie, schoolYear);
+	let jsonDiffs = await getJsonDiffsCached(academie, schoolYear, "excel");
 	let url = jsonDiffs.workBooks.find((wb) => wb.name == workBook)?.worksheets.find((ws) => ws.name == workSheet)?.url;
 	if (cellAddress) url = url + `&activeCell=${workSheet}!${cellAddress}`;
 	return url;
@@ -6361,9 +6321,6 @@ async function loadCombboxSchoolYearAndTrySelect(dirTree) {
 		return true;
 	}
 	return false;
-}
-async function calcAndShowDiffsWww() {
-	await getAndShowWwwDiffs("calcAndShow", "fetchDko");
 }
 async function setupDiffPage() {
 	let pluginContainer = document.getElementById("plugin_container");
@@ -6397,8 +6354,8 @@ async function setupDiffPage() {
 	emmet.insertAfter(runStatus, "div#diffResults");
 	let divInfo = emmet.insertAfter(runStatus, "div#diffInfo").last;
 	let divError = emmet.insertAfter(divInfo, "div#diffErrors.errors").last;
-	btnCalcDiff.onclick = () => calcAndShowDiffsWithSettings("calcAndShow", "fetchDko");
-	btnCalcDiffWww.onclick = () => calcAndShowDiffsWww();
+	btnCalcDiff.onclick = () => calcAndShowDiffsWithSettings("calcAndShow", "fetchDko", "excel");
+	btnCalcDiffWww.onclick = () => calcAndShowDiffsWithSettings("calcAndShow", "fetchDko", "www");
 	btnDiffSettings.onclick = () => showDiffSetup(cmbDiffAcademie.value, cmbDiffSchoolYear.value);
 	cmbDiffAcademie.onchange = async () => {
 		await onCmbAcademieChange(dirTree);
@@ -6422,11 +6379,11 @@ async function onCmbAcademieChange(dirTree) {
 	}
 	await showDiffsFromComboboxes();
 }
-async function calcAndShowDiffsWithSettings(showOrCalc, useDkoCache) {
-	await getAndShowDiffs(showOrCalc, useDkoCache);
+async function calcAndShowDiffsWithSettings(showOrCalc, useDkoCache, diffType) {
+	await getAndShowDiffs(showOrCalc, useDkoCache, diffType);
 }
 async function showDiffsFromComboboxes() {
-	await calcAndShowDiffsWithSettings("justShow", "dkoCache");
+	await calcAndShowDiffsWithSettings("justShow", "dkoCache", "excel");
 }
 async function getDiffDirStructure() {
 	let folderContent = await fetchFolderContent("Dko3/Uurroosters/");
@@ -6503,7 +6460,7 @@ async function onMessage$1(request, _sender, sendResponse) {
 	if (pauseRefresh$1) return;
 	pauseRefresh$1 = true;
 	diffGlobals.diffSettings = request.data;
-	await getAndShowDiffs("calcAndShow", "dkoCache");
+	await getAndShowDiffs("calcAndShow", "dkoCache", "excel");
 	pauseRefresh$1 = false;
 }
 async function sendMessageToDiffSettings(action, data) {
@@ -6532,7 +6489,7 @@ function onMutation$5(mutation) {
 		titleHeader.classList.add("diffSearched");
 		let academie = localStorage.getItem("diffLastAcademie");
 		let schoolYear = localStorage.getItem("diffLastSchoolYear");
-		if (academie && schoolYear) addDiff(titleHeader, academie, schoolYear).then((r) => {});
+		if (academie && schoolYear) addDiff(titleHeader, academie, schoolYear, "excel").then((r) => {});
 	}
 	return false;
 }
@@ -6587,17 +6544,17 @@ function switchNaamVoornaam(_event) {
 		strong.textContent = voornaam + " " + naam;
 	});
 }
-function getDiffsLocalFirst(academie, schoolYear) {
-	let fileName = getDiffsCloudFileName(academie, schoolYear);
+function getDiffsLocalFirst(academie, schoolYear, diffType) {
+	let fileName = getDiffsCloudFileName(academie, schoolYear, diffType);
 	let jsonDiff = sessionStorage.getItem(fileName);
 	if (jsonDiff) return JSON.parse(jsonDiff);
-	return getDiffsFromCloud(academie, schoolYear);
+	return getDiffsFromCloud(academie, schoolYear, diffType);
 }
-async function addDiff(titleHeader, academie, schoolYear) {
+async function addDiff(titleHeader, academie, schoolYear, diffType) {
 	let divDiff = document.querySelector("div.diff");
 	if (divDiff) return;
 	divDiff = emmet.insertAfter(titleHeader, "div.diff").first;
-	let diffs = await getDiffsLocalFirst(academie, schoolYear);
+	let diffs = await getDiffsLocalFirst(academie, schoolYear, diffType);
 	if (!diffs) return;
 	let rxId = /id=(\d+)/g;
 	let matches = rxId.exec(document.location.href);

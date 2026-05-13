@@ -1,13 +1,11 @@
 import {emmet} from "../../libs/Emmeter/html";
-import {fetchDiffSettingsOrDefault, getAndShowDiffs, getAndShowWwwDiffs} from "../roster_diff/showDiff";
+import {fetchDiffSettingsOrDefault, getAndShowDiffs} from "../roster_diff/showDiff";
 import {fetchFolderContent} from "../cloud";
 import {getUserAndSchoolName} from "../globals";
 import {DiffSettings} from "../roster_diff/diffSettings";
 import {Actions, sendRequest, ServiceRequest, TabType} from "../messaging";
 import MessageSender = chrome.runtime.MessageSender;
-import {TokenScanner} from "../tokenScanner";
-import {TimeSlice} from "../roster_diff/excelRoster";
-import {HtmlText, parseWww} from "../www_diff/buildDiff";
+import {OtherLesType} from "../www_diff/buildDiff";
 
 async function loadCombboxSchoolYearAndTrySelect(dirTree?: TreeNode): Promise<boolean> {
     if(!dirTree)
@@ -28,10 +26,6 @@ async function loadCombboxSchoolYearAndTrySelect(dirTree?: TreeNode): Promise<bo
         return true;
     }
     return false;
-}
-
-async function calcAndShowDiffsWww() {
-    await getAndShowWwwDiffs("calcAndShow", "fetchDko");
 }
 
 export async function setupDiffPage() {
@@ -70,8 +64,8 @@ export async function setupDiffPage() {
     let divInfo = emmet.insertAfter(runStatus, 'div#diffInfo').last as HTMLDivElement;
     let divError = emmet.insertAfter(divInfo, 'div#diffErrors.errors').last as HTMLDivElement;
 
-    btnCalcDiff.onclick = () => calcAndShowDiffsWithSettings("calcAndShow", "fetchDko");
-    btnCalcDiffWww.onclick = () => calcAndShowDiffsWww();
+    btnCalcDiff.onclick = () => calcAndShowDiffsWithSettings("calcAndShow", "fetchDko", "excel");
+    btnCalcDiffWww.onclick = () => calcAndShowDiffsWithSettings("calcAndShow", "fetchDko", "www");
     btnDiffSettings.onclick = () => showDiffSetup(cmbDiffAcademie.value, cmbDiffSchoolYear.value);
 
     cmbDiffAcademie.onchange = async () => {
@@ -98,12 +92,12 @@ async function onCmbAcademieChange(dirTree: TreeNode) {
     await showDiffsFromComboboxes();
 }
 
-async function calcAndShowDiffsWithSettings(showOrCalc: "justShow" | "calcAndShow", useDkoCache: "dkoCache" | "fetchDko") {
-    await getAndShowDiffs(showOrCalc, useDkoCache);
+async function calcAndShowDiffsWithSettings(showOrCalc: "justShow" | "calcAndShow", useDkoCache: "dkoCache" | "fetchDko", diffType: OtherLesType) {
+    await getAndShowDiffs(showOrCalc, useDkoCache, diffType);
 }
 
 async function showDiffsFromComboboxes() {
-    await calcAndShowDiffsWithSettings("justShow", "dkoCache");
+    await calcAndShowDiffsWithSettings("justShow", "dkoCache", "excel");
 }
 interface TreeNode {
     folderName: string;
@@ -209,7 +203,7 @@ async function onMessage(request: ServiceRequest<any>, _sender: MessageSender, s
         return;
     pauseRefresh = true;
     diffGlobals.diffSettings = request.data as DiffSettings;
-    await getAndShowDiffs("calcAndShow", "dkoCache");
+    await getAndShowDiffs("calcAndShow", "dkoCache", 'excel');
     pauseRefresh = false;
 }
 
