@@ -165,13 +165,14 @@ export class ExcelRoster {
         return classDefs;
     }
 
-    public static makeParsable(text: string) {
+    public static makeParsable(text: string, leaveENalone?: "leave 'en' alone") {
+        if(leaveENalone == undefined)
+            text = text.replaceAll(" en ", " , ");
         return " "+ text
                 .replaceAll("(", " ( ") //force spaces around words or numbers
                 .replaceAll(")", " ) ")
                 .replaceAll(",", " , ")
                 .replaceAll("+", " + ")
-                .replaceAll(" en ", " , ")
                 .replaceAll("  ", " ") //dedup spaces //" Woordatelier 3 + 4 DNV Tegelzaal Minimum 7 lln "
                 .replaceAll("  ", " ") //dedup spaces
             + " ";

@@ -53,11 +53,11 @@ export class TaggedWwwLesDef implements ComparableLesMoment{
         this.className = ExcelRoster.findClassName(ExcelRoster.makeParsable(this.lesDef.className), dko3Data);
         this.gradeYears = ExcelRoster.getGradeYearsFromTags(tags);
         if(this.gradeYears.length == 0) {
-            let newTags = ExcelRoster.findTags(ExcelRoster.makeParsable(lesDef.panelTitle), diffSettings.tagDefs);
+            let newTags = ExcelRoster.findTags(ExcelRoster.makeParsable(lesDef.panelTitle, "leave 'en' alone"), diffSettings.tagDefs);
             this.gradeYears = ExcelRoster.getGradeYearsFromTags(newTags);
         }
         if(this.gradeYears.length == 0) {
-            let newTags = ExcelRoster.findTags(ExcelRoster.makeParsable(lesDef.pageTitle), diffSettings.tagDefs);
+            let newTags = ExcelRoster.findTags(ExcelRoster.makeParsable(lesDef.pageTitle, "leave 'en' alone"), diffSettings.tagDefs);
             this.gradeYears = ExcelRoster.getGradeYearsFromTags(newTags);
         }
         this.ignore = false;
