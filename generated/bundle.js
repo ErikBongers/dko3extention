@@ -5552,20 +5552,11 @@ async function showDiffs(diffs, academie, schoolYear, dko3DiffData, diffSettings
 	decorateTableHeader(table, false);
 	for (let les of diffs.orphanedDko3Lessen) {
 		let tr = emmet.appendChild(tbody, "tr").last;
-		let gotoData = {
-			lesId: les.lesId,
-			cellAddress: "",
-			rowType: "dko3",
-			url: "",
-			workBook: "",
-			workSheet: "",
-			text: ""
-		};
-		fillDiffRow(tr, les, "perfect match", "dko3", gotoData, "", les.hash, les.ignore, academie, schoolYear, null);
+		fillDiffRow(tr, les, "perfect match", createDko3GotoData(les.lesId), "", les.hash, les.ignore, academie, schoolYear, null);
 	}
 	for (let les of diffs.orphanedOtherLessen) {
 		let tr = emmet.appendChild(tbody, "tr").last;
-		fillDiffRow(tr, les, "perfect match", "excel", les.gotoData, les.gotoData.text, les.hash, les.ignore, academie, schoolYear, null);
+		fillDiffRow(tr, les, "perfect match", les.gotoData, les.gotoData.text, les.hash, les.ignore, academie, schoolYear, null);
 		tr.classList.add("excelRow");
 	}
 	let ingore = localStorage.getItem(OPTION_HIDE_IGNORED_DIFFS) ?? "false";
@@ -5573,26 +5564,22 @@ async function showDiffs(diffs, academie, schoolYear, dko3DiffData, diffSettings
 	table.classList.toggle("hideChecked", chkHideChecked.checked);
 }
 function fillOtherDiffRow(tr, diff, academie, schoolYear) {
-	fillDiffRow(tr, diff.otherLes, diff.diffType, "excel", diff.otherLes.gotoData, diff.otherLes.gotoData.text, diff.otherLes.hash, diff.otherLes.ignore, academie, schoolYear, diff.weight);
+	fillDiffRow(tr, diff.otherLes, diff.diffType, diff.otherLes.gotoData, diff.otherLes.gotoData.text, diff.otherLes.hash, diff.otherLes.ignore, academie, schoolYear, diff.weight);
 }
 function displayDiff(diff, divResults, academie, schoolYear) {
 	let tbody = emmet.appendChild(divResults, "table.diff>tbody").last;
-	let tr = emmet.appendChild(tbody, "tr").last;
-	fillOtherDiffRow(tr, diff, academie, schoolYear);
-	tr.classList.add("excelRow");
-	let tr2 = emmet.appendChild(tbody, "tr").last;
-	let gotoData = {
-		lesId: diff.dko3Les.lesId,
-		cellAddress: "",
-		rowType: "dko3",
-		url: "",
-		workBook: "",
-		workSheet: "",
-		text: ""
-	};
-	fillDiffRow(tr2, diff.dko3Les, diff.diffType, "dko3", gotoData, "", diff.dko3Les.hash, diff.dko3Les.ignore, academie, schoolYear, diff.weight);
+	let trTop = emmet.appendChild(tbody, "tr").last;
+	let trBottom = emmet.appendChild(tbody, "tr").last;
+	let trOther = trTop;
+	let trDko3 = trBottom;
+	if (diff.otherLes.lesType == "www") {
+		trOther = trBottom;
+		trDko3 = trTop;
+	}
+	fillOtherDiffRow(trOther, diff, academie, schoolYear);
+	fillDiffRow(trDko3, diff.dko3Les, diff.diffType, createDko3GotoData(diff.dko3Les.lesId), "", diff.dko3Les.hash, diff.dko3Les.ignore, academie, schoolYear, diff.weight);
 }
-function fillDiffRow(tr, jsonLes, diffType, rowType, gotoData, orgText, hash, ignore, academie, schoolYear, weight) {
+function fillDiffRow(tr, jsonLes, diffType, gotoData, orgText, hash, ignore, academie, schoolYear, weight) {
 	if (ignore) tr.classList.add("ignore");
 	let diffTeacherClass = "";
 	let diffGradeYearsClass = "";
@@ -5616,9 +5603,22 @@ function fillDiffRow(tr, jsonLes, diffType, rowType, gotoData, orgText, hash, ig
 		diffSubjectClass = ".diff";
 		strSubjects = "-onbekend-";
 	}
-	if (rowType == "excel") tdSubjects = `(td${diffSubjectClass}>div.diffTooltip{${strSubjects}}>span.diffTooltiptext{${orgText}})`;
+	if (jsonLes.lesType != "dko3") tdSubjects = `(td${diffSubjectClass}>div.diffTooltip{${strSubjects}}>span.diffTooltiptext{${orgText}})`;
 	else tdSubjects = `td${diffSubjectClass}{${jsonLes.subjects}}`;
-	let iconClass = rowType == "excel" ? "fa-grid" : "fa-chalkboard-user";
+	tr.classList.add(jsonLes.lesType + "Row");
+	let iconClass;
+	switch (jsonLes.lesType) {
+		case "excel":
+			iconClass = "fa-grid";
+			break;
+		case "dko3":
+			iconClass = "fa-chalkboard-user";
+			break;
+		case "www":
+			iconClass = "fa-globe";
+			break;
+		default: unreachable(jsonLes.lesType);
+	}
 	tr.dataset.hash = hash;
 	tr.dataset.lesId = gotoData.lesId;
 	tr.dataset.cellAddress = gotoData.cellAddress;
@@ -5626,7 +5626,15 @@ function fillDiffRow(tr, jsonLes, diffType, rowType, gotoData, orgText, hash, ig
 	tr.dataset.worksheet = gotoData.workSheet;
 	tr.dataset.rowType = gotoData.rowType;
 	tr.dataset.url = gotoData.url;
-	emmet.appendChild(tr, `${tdSubjects}+td${diffGradeYearsClass}{${GradeYear.toString(jsonLes.gradeYears)}}+td${diffTeacherClass}{${jsonLes.teachers}}+td${diffTimeClass}{${toCompactDayString(jsonLes.day)}}+td${diffTimeClass}{${jsonLes.timeSlice}}+td${diffLocationClass}{${jsonLes.location}}+(td.buttonshow>button.goto>i.fas.${iconClass})+(td.button>button.goto.chkHide>i.fas.fa-check)`);
+	emmet.appendChild(tr, `${tdSubjects}+
+        td${diffGradeYearsClass}{${GradeYear.toString(jsonLes.gradeYears)}}+
+        td${diffTeacherClass}{${jsonLes.teachers}}+
+        td${diffTimeClass}{${toCompactDayString(jsonLes.day)}}+
+        td${diffTimeClass}{${jsonLes.timeSlice}}+
+        td${diffLocationClass}{${jsonLes.location}}+
+        (td.buttonshow>button.goto>i.fas.${iconClass})+
+        (td.button>button.goto.chkHide>i.fas.fa-check)
+    `);
 	let btnGoto = tr.querySelector("button.goto");
 	btnGoto.onclick = (ev) => gotoSource(ev, academie, schoolYear);
 	let btnHide = tr.querySelector("button.chkHide");
@@ -5642,6 +5650,17 @@ async function saveIgnoredHashes(academie, schoolYear) {
 	let table = document.getElementById("orphans");
 	let hashes = [...table.querySelectorAll("tr.ignore")].map((tr) => tr.dataset.hash);
 	await uploadIgnoredDiffHashes(academie, schoolYear, hashes);
+}
+function createDko3GotoData(lesId) {
+	return {
+		lesId,
+		cellAddress: "",
+		rowType: "dko3",
+		url: "",
+		workBook: "",
+		workSheet: "",
+		text: ""
+	};
 }
 async function gotoSource(ev, academie, schoolYear) {
 	let button = ev.currentTarget;

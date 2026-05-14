@@ -401,6 +401,10 @@ tr.excelRow td {
     color: dodgerblue;
 }
 
+tr.wwwRow td {
+    color: darkolivegreen;
+}
+
 table.diff {
     padding: 1ch;
     background-color: #eee;
