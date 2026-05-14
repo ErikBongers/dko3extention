@@ -5483,21 +5483,36 @@ async function fetchDiffSettingsOrDefault(academie, schoolYear) {
 function getDiffsDko3CacheFileName(academie, schoolYear, diffType) {
 	return `Dko3/Uurroosters/Cache/${academie}_${schoolYear}_${diffType}_diffcache.json`;
 }
+function createStatusBlock(divInfoWrapper) {
+	emmet.appendChild(divInfoWrapper, "div.runStatus");
+	emmet.appendChild(divInfoWrapper, "div.diffInfo");
+	emmet.appendChild(divInfoWrapper, "div.diffErrors.errors");
+	emmet.appendChild(divInfoWrapper, "div.diffResults");
+}
+function getStatusBlock(divInfoWrapper) {
+	let runStatus = divInfoWrapper.querySelector(".runStatus");
+	let divInfo = divInfoWrapper.querySelector(".diffInfo");
+	let divError = divInfoWrapper.querySelector(".diffErrors");
+	let divResults = divInfoWrapper.querySelector(".diffResults");
+	return {
+		runStatus,
+		divInfo,
+		divError,
+		divResults
+	};
+}
 async function getAndShowDiffs(showOrCalc, useDkoCache, diffType) {
-	let divResults = document.getElementById("diffResults");
-	divResults.innerHTML = "Ophalen...";
-	let divError = document.getElementById("diffErrors");
-	let runStatus = document.getElementById("runStatus");
-	let divInfo = document.getElementById("diffInfo");
+	let statusBlock = getStatusBlock(document.getElementById(diffType == "excel" ? "wrapperExcelDiffs" : "wrapperWwwDiffs"));
+	statusBlock.divResults.innerHTML = "Ophalen...";
 	let cmbDiffAcademie = document.querySelector("#cmbDiffAcademie");
 	let cmbDiffSchoolYear = document.querySelector("#cmbDiffSchoolYear");
-	let infoBlock = createInfoBlock(divInfo, "");
+	let infoBlock = createInfoBlock(statusBlock.divInfo, "");
 	let fetchListener = new InfoBarTableFetchListener(infoBlock);
 	let errors = [];
 	function reportStatus(message, isError) {
 		if (isError == "error") errors.push(message);
-		else runStatus.innerHTML = message;
-		divError.innerHTML = errors.join("<br>");
+		else statusBlock.runStatus.innerHTML = message;
+		statusBlock.divError.innerHTML = errors.join("<br>");
 	}
 	errors = [];
 	let json = null;
@@ -5509,35 +5524,33 @@ async function getAndShowDiffs(showOrCalc, useDkoCache, diffType) {
 		jsonDiffs = await getDiffsFromCloud(cmbDiffAcademie.value, cmbDiffSchoolYear.value, diffType);
 	} catch (e) {}
 	else {
-		let divResults$1 = document.getElementById("diffResults");
-		divResults$1.innerHTML = "";
+		statusBlock.divResults.innerHTML = "";
 		let dataPreparationFunction;
 		if (diffType == "excel") dataPreparationFunction = prepareExcelData;
 		else dataPreparationFunction = prepareWwwData;
 		jsonDiffs = await buildAndSaveDiff(reportStatus, fetchListener, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData, diffSettings, diffType, dataPreparationFunction);
 	}
-	if (jsonDiffs) await showDiffs(jsonDiffs, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData, diffSettings);
+	if (jsonDiffs) await showDiffs(jsonDiffs, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData, diffSettings, statusBlock);
 }
-async function showDiffs(diffs, academie, schoolYear, dko3DiffData, diffSettings) {
-	let divResults = document.getElementById("diffResults");
-	divResults.innerHTML = "Ophalen...";
+async function showDiffs(diffs, academie, schoolYear, dko3DiffData, diffSettings, statusBlock) {
+	statusBlock.divResults.innerHTML = "Ophalen...";
 	if (!diffs) {
-		divResults.innerHTML = "";
+		statusBlock.divResults.innerHTML = "";
 		return;
 	}
 	await setIgnoredFlags(diffs.orphanedDko3Lessen, diffs.orphanedOtherLessen, academie, schoolYear);
-	divResults.innerHTML = "";
+	statusBlock.divResults.innerHTML = "";
 	let elapsedTimeString = dateDiffToString(new Date(diffs.isoDate), new Date());
-	if (elapsedTimeString != "") emmet.appendChild(divResults, `div.gray{Laatste vergelijking: ${elapsedTimeString} geleden.}`);
+	if (elapsedTimeString != "") emmet.appendChild(statusBlock.divResults, `div.gray{Laatste vergelijking: ${elapsedTimeString} geleden.}`);
 	if (options.showDebug && dko3DiffData) {
-		let div = emmet.appendChild(divResults, `div.gray`).first;
+		let div = emmet.appendChild(statusBlock.divResults, `div.gray`).first;
 		let button = emmet.appendChild(div, "button.likeLink").first;
 		button.innerHTML = "Zoek met dko3 cache";
 		button.onclick = () => {
 			getAndShowDiffs("calcAndShow", "dkoCache", "excel");
 		};
 	}
-	let divChk = emmet.appendChild(divResults, `div#divHideChecked>(input#chkHideChecked[type="checkbox"]+label[for="chkHideChecked"]{Verberg aangevinkte lijnen})`).first;
+	let divChk = emmet.appendChild(statusBlock.divResults, `div#divHideChecked>(input#chkHideChecked[type="checkbox"]+label[for="chkHideChecked"]{Verberg aangevinkte lijnen})`).first;
 	let chkHideChecked = divChk.querySelector("#chkHideChecked");
 	chkHideChecked.onchange = (ev) => {
 		let input = ev.currentTarget;
@@ -5546,9 +5559,9 @@ async function showDiffs(diffs, academie, schoolYear, dko3DiffData, diffSettings
 		let ignore = table$1.classList.contains("hideChecked");
 		localStorage.setItem(OPTION_HIDE_IGNORED_DIFFS, ignore.toString());
 	};
-	for (let diff of diffs.diffs) displayDiff(diff, divResults, academie, schoolYear);
-	emmet.appendChild(divResults, "h4{Lessen zonder overeenkomsten}");
-	let { table, tbody } = createDiffTable(divResults);
+	for (let diff of diffs.diffs) displayDiff(diff, statusBlock.divResults, academie, schoolYear);
+	emmet.appendChild(statusBlock.divResults, "h4{Lessen zonder overeenkomsten}");
+	let { table, tbody } = createDiffTable(statusBlock.divResults);
 	decorateTableHeader(table, false);
 	for (let les of diffs.orphanedDko3Lessen) {
 		let tr = emmet.appendChild(tbody, "tr").last;
@@ -6504,30 +6517,51 @@ async function setupDiffPage() {
 	let pluginContainer = document.getElementById("plugin_container");
 	emmet.appendChild(pluginContainer, `
         div#diffsPage.mb-1>(
+            h4{Verschillen in uurroosters}+
             div.tabs>(
-                button#btnTabTagDefs.naked.hand.tab.notSelected[data-tab-id="tabExcelDiffs"]{Excel -> Dko3}+
-                button#btnTabIgnores.naked.hand.tab.notSelected[data-tab-id="tabWwwDiffs"]{Dko3 -> Www}
-            )+
-            div#tabExcelDiffs>(
-                h4{Verschillen in uurroosters}+
                 (
-                    div#combosLoading{Gegevens laden...}+
-                    select#cmbDiffAcademie+
-                    select#cmbDiffSchoolYear+
-                    button#btnCalcDiff.btn.btn-primary{Zoek verschillen}+
-                    button#btnDiffSettings.btn.btn-outline-dark{Setup}+
-                    button#btnDiffWww.btn.btn-outline-dark{Verschillen website}+
-                    div#infoContainerExcelDiffs
+                    button#btnTabTagDefs.naked.hand.tab.notSelected[data-tab-id="tabExcelDiffs"]>(
+                        span>(
+                            i.excelRow.far.fa-chalkboard-user+
+                            span.excelRow{Excel}
+                        )+
+                        i.fas.fa-arrow-right+
+                        span{Dko3}
+                    )
+                )+
+                (
+                    button#btnTabIgnores.naked.hand.tab.notSelected[data-tab-id="tabWwwDiffs"]>(
+                        span{Dko3}+
+                        i.fas.fa-arrow-right+
+                        span>(
+                            i.wwwRow.far.fa-globe+
+                            span.wwwRow{Website}
+                        )
+                    )
                 )
-            )+
-            div#tabWwwDiffs{todo}>
-                div#infoContainerWwwDiffs
+            )
+        )+
+        (
+            div#tabExcelDiffs>(
+                div#combosLoading{Gegevens laden...}+
+                select#cmbDiffAcademie+
+                select#cmbDiffSchoolYear+
+                button#btnCalcDiff.btn.btn-primary{Zoek verschillen}+
+                button#btnDiffSettings.btn.btn-outline-dark{Setup}+
+                div#wrapperExcelDiffs
+            )
+        )+
+        div#tabWwwDiffs>(
+            button#btnDiffWww.btn.btn-primary{Zoek Verschillen}+
+            button#btnDiffSettingsWww.btn.btn-outline-dark{Setup}+
+            div#wrapperWwwDiffs
         )
      `);
 	setupTabNavigation();
 	let btnCalcDiff = pluginContainer.querySelector("#btnCalcDiff");
 	let btnCalcDiffWww = pluginContainer.querySelector("#btnDiffWww");
 	let btnDiffSettings = pluginContainer.querySelector("#btnDiffSettings");
+	let btnDiffSettingsWww = pluginContainer.querySelector("#btnDiffSettings");
 	let dirTree = await getDiffDirStructure();
 	let myAcadFolderName = getDiffMyAcademieFolder(dirTree);
 	if (!myAcadFolderName) throw new Error("Could not find academie folder name.");
@@ -6537,25 +6571,23 @@ async function setupDiffPage() {
 	cmbDiffAcademie.value = myAcadFolderName;
 	let cmbDiffSchoolYear = document.querySelector("#cmbDiffSchoolYear");
 	if (await loadCombboxSchoolYearAndTrySelect(dirTree)) pluginContainer.classList.toggle("diffCombosLoaded", true);
-	let divInfoContainer = document.getElementById("infoContainerExcelDiffs");
-	let divInfoWrapper = emmet.appendChild(divInfoContainer, "div#infoWrapper").last;
-	let runStatus = emmet.appendChild(divInfoWrapper, "div#runStatus").first;
-	emmet.insertAfter(runStatus, "div#diffResults");
-	let divInfo = emmet.insertAfter(runStatus, "div#diffInfo").last;
-	let divError = emmet.insertAfter(divInfo, "div#diffErrors.errors").last;
-	btnCalcDiff.onclick = () => calcAndShowDiffsWithSettings("calcAndShow", "fetchDko", "excel");
-	btnCalcDiffWww.onclick = () => calcAndShowDiffsWithSettings("calcAndShow", "fetchDko", "www");
+	let divInfoContainerExcel = document.getElementById("wrapperExcelDiffs");
+	createStatusBlock(divInfoContainerExcel);
+	let divInfoContainerWww = document.getElementById("wrapperWwwDiffs");
+	createStatusBlock(divInfoContainerWww);
+	btnCalcDiff.onclick = () => getAndShowDiffs("calcAndShow", "fetchDko", "excel");
+	btnCalcDiffWww.onclick = () => getAndShowDiffs("calcAndShow", "fetchDko", "www");
 	btnDiffSettings.onclick = () => showDiffSetup(cmbDiffAcademie.value, cmbDiffSchoolYear.value);
+	btnDiffSettingsWww.onclick = () => showDiffSetup(cmbDiffAcademie.value, cmbDiffSchoolYear.value);
 	cmbDiffAcademie.onchange = async () => {
 		await onCmbAcademieChange(dirTree);
 	};
-	cmbDiffAcademie.value = localStorage.getItem("diffLastAcademie") ?? "";
-	await onCmbAcademieChange(dirTree);
 	cmbDiffSchoolYear.onchange = async () => {
 		localStorage.setItem("diffLastSchoolYear", cmbDiffSchoolYear.value);
 		await showDiffsFromComboboxes();
 	};
-	await showDiffsFromComboboxes();
+	cmbDiffAcademie.value = localStorage.getItem("diffLastAcademie") ?? "";
+	await onCmbAcademieChange(dirTree);
 }
 async function onCmbAcademieChange(dirTree) {
 	let pluginContainer = document.getElementById("plugin_container");
@@ -6568,11 +6600,9 @@ async function onCmbAcademieChange(dirTree) {
 	}
 	await showDiffsFromComboboxes();
 }
-async function calcAndShowDiffsWithSettings(showOrCalc, useDkoCache, diffType) {
-	await getAndShowDiffs(showOrCalc, useDkoCache, diffType);
-}
 async function showDiffsFromComboboxes() {
-	await calcAndShowDiffsWithSettings("justShow", "dkoCache", "excel");
+	await getAndShowDiffs("justShow", "dkoCache", "excel");
+	await getAndShowDiffs("justShow", "dkoCache", "www");
 }
 async function getDiffDirStructure() {
 	let folderContent = await fetchFolderContent("Dko3/Uurroosters/");

@@ -32,24 +32,42 @@ export function getDiffsDko3CacheFileName(academie: string, schoolYear: string, 
     return `Dko3/Uurroosters/Cache/${academie}_${schoolYear}_${diffType}_diffcache.json`;
 }
 
-export async function getAndShowDiffs(showOrCalc: "justShow" | "calcAndShow", useDkoCache: "dkoCache" | "fetchDko", diffType: OtherLesType) {
-    let divResults = document.getElementById("diffResults") as HTMLDivElement;
-    divResults.innerHTML = "Ophalen...";
+export interface StatusBlock {
+    runStatus: HTMLDivElement;
+    divInfo: HTMLDivElement;
+    divError: HTMLDivElement;
+    divResults: HTMLDivElement;
+}
+export function createStatusBlock(divInfoWrapper: HTMLDivElement) {
+    emmet.appendChild(divInfoWrapper, "div.runStatus");
+    emmet.appendChild(divInfoWrapper, 'div.diffInfo');
+    emmet.appendChild(divInfoWrapper, 'div.diffErrors.errors');
+    emmet.appendChild(divInfoWrapper, "div.diffResults");
+}
 
-    let divError = document.getElementById("diffErrors") as HTMLDivElement;
-    let runStatus = document.getElementById("runStatus") as HTMLDivElement;
-    let divInfo = document.getElementById("diffInfo") as HTMLDivElement;
+function getStatusBlock(divInfoWrapper: HTMLDivElement) {
+    let runStatus = divInfoWrapper.querySelector(".runStatus") as HTMLDivElement;
+    let divInfo = divInfoWrapper.querySelector(".diffInfo") as HTMLDivElement;
+    let divError = divInfoWrapper.querySelector(".diffErrors") as HTMLDivElement;
+    let divResults = divInfoWrapper.querySelector(".diffResults") as HTMLDivElement;
+    return {runStatus, divInfo, divError, divResults} as StatusBlock;
+}
+
+export async function getAndShowDiffs(showOrCalc: "justShow" | "calcAndShow", useDkoCache: "dkoCache" | "fetchDko", diffType: OtherLesType) {
+    let statusBlock = getStatusBlock(document.getElementById(diffType == "excel"? "wrapperExcelDiffs" : "wrapperWwwDiffs") as HTMLDivElement);
+    statusBlock.divResults.innerHTML = "Ophalen...";
+
     let cmbDiffAcademie = document.querySelector("#cmbDiffAcademie") as HTMLSelectElement;
     let cmbDiffSchoolYear = document.querySelector("#cmbDiffSchoolYear") as HTMLSelectElement;
-    let infoBlock = createInfoBlock(divInfo, "");
+    let infoBlock = createInfoBlock(statusBlock.divInfo, "");
     let fetchListener = new InfoBarTableFetchListener(infoBlock);
     let errors: string[] = [];
     function reportStatus(message: string, isError?: "error") {
         if(isError == "error")
             errors.push(message);
         else
-            runStatus.innerHTML = message;
-        divError.innerHTML = errors.join("<br>");
+            statusBlock.runStatus.innerHTML = message;
+        statusBlock.divError.innerHTML = errors.join("<br>");
     }
     errors = [];
     let json: string | null = null;
@@ -64,8 +82,7 @@ export async function getAndShowDiffs(showOrCalc: "justShow" | "calcAndShow", us
         }
         catch (e) {}
     } else {
-        let divResults = document.getElementById("diffResults") as HTMLDivElement;
-        divResults.innerHTML = "";
+        statusBlock.divResults.innerHTML = "";
         let dataPreparationFunction: DataPreparationFunction;
         if(diffType == "excel")
             dataPreparationFunction = prepareExcelData;
@@ -74,30 +91,29 @@ export async function getAndShowDiffs(showOrCalc: "justShow" | "calcAndShow", us
         jsonDiffs = await buildAndSaveDiff(reportStatus, fetchListener, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData, diffSettings, diffType, dataPreparationFunction);
     }
     if(jsonDiffs)
-        await showDiffs(jsonDiffs, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData, diffSettings);
+        await showDiffs(jsonDiffs, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData, diffSettings, statusBlock);
 }
 
-export async function showDiffs(diffs: JsonDiffs, academie: string, schoolYear: string, dko3DiffData: Dko3DiffData | null, diffSettings: DiffSettings) {
-    let divResults = document.getElementById("diffResults") as HTMLDivElement;
-    divResults.innerHTML = "Ophalen...";
+export async function showDiffs(diffs: JsonDiffs, academie: string, schoolYear: string, dko3DiffData: Dko3DiffData | null, diffSettings: DiffSettings, statusBlock: StatusBlock) {
+    statusBlock.divResults.innerHTML = "Ophalen...";
     if(!diffs) {
-        divResults.innerHTML = "";
+        statusBlock.divResults.innerHTML = "";
         return;
     }
     await setIgnoredFlags(diffs.orphanedDko3Lessen, diffs.orphanedOtherLessen, academie, schoolYear);
-    divResults.innerHTML = "";
+    statusBlock.divResults.innerHTML = "";
     let elapsedTimeString = dateDiffToString(new Date(diffs.isoDate), new Date());
     if(elapsedTimeString != "")
-        emmet.appendChild(divResults, `div.gray{Laatste vergelijking: ${elapsedTimeString} geleden.}`)
+        emmet.appendChild(statusBlock.divResults, `div.gray{Laatste vergelijking: ${elapsedTimeString} geleden.}`)
     if(options.showDebug && dko3DiffData) {
-        let div = emmet.appendChild(divResults, `div.gray`).first as HTMLDivElement;
+        let div = emmet.appendChild(statusBlock.divResults, `div.gray`).first as HTMLDivElement;
         let button = emmet.appendChild(div, "button.likeLink").first as HTMLButtonElement;
         button.innerHTML = "Zoek met dko3 cache";
         button.onclick = () => {
             getAndShowDiffs("calcAndShow", "dkoCache", "excel");
         };
     }
-    let divChk = emmet.appendChild(divResults, `div#divHideChecked>(input#chkHideChecked[type="checkbox"]+label[for="chkHideChecked"]{Verberg aangevinkte lijnen})`).first as HTMLDivElement;
+    let divChk = emmet.appendChild(statusBlock.divResults, `div#divHideChecked>(input#chkHideChecked[type="checkbox"]+label[for="chkHideChecked"]{Verberg aangevinkte lijnen})`).first as HTMLDivElement;
     let chkHideChecked = divChk.querySelector("#chkHideChecked") as HTMLInputElement;
     chkHideChecked.onchange = (ev) => {
         let input = ev.currentTarget as HTMLInputElement;
@@ -107,10 +123,10 @@ export async function showDiffs(diffs: JsonDiffs, academie: string, schoolYear: 
         localStorage.setItem(OPTION_HIDE_IGNORED_DIFFS, ignore.toString());
     }
     for(let diff of diffs.diffs)
-        displayDiff(diff, divResults, academie, schoolYear); //<i class="fa-solid fa-arrow-up-right-from-square"></i>
+        displayDiff(diff, statusBlock.divResults, academie, schoolYear); //<i class="fa-solid fa-arrow-up-right-from-square"></i>
 
-    emmet.appendChild(divResults, "h4{Lessen zonder overeenkomsten}");
-    let {table, tbody} = createDiffTable(divResults);
+    emmet.appendChild(statusBlock.divResults, "h4{Lessen zonder overeenkomsten}");
+    let {table, tbody} = createDiffTable(statusBlock.divResults);
 
     decorateTableHeader(table, false);
     for(let les of diffs.orphanedDko3Lessen) {

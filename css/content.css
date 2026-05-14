@@ -397,12 +397,19 @@ span.filterInfo {
     }
 }
 
-tr.excelRow td {
+tr.excelRow td, .excelRow {
     color: dodgerblue;
 }
 
-tr.wwwRow td {
+tr.wwwRow td, .wwwRow {
     color: darkolivegreen;
+}
+
+div.tabs button.tab > * {
+    margin-inline-start: 1ch;
+    & > * {
+        margin-inline-start: .5ch;
+    }
 }
 
 table.diff {
@@ -556,6 +563,6 @@ div#snapshotResults {
     margin-top: 1ch;
 }
 
-#btnDiffSettings {
+#btnDiffSettings, #btnDiffSettingsWww {
     margin-inline-start: 1ch;
 }

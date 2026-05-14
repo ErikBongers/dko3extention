@@ -1,5 +1,5 @@
 import {emmet} from "../../libs/Emmeter/html";
-import {fetchDiffSettingsOrDefault, getAndShowDiffs} from "../roster_diff/showDiff";
+import {createStatusBlock, fetchDiffSettingsOrDefault, getAndShowDiffs} from "../roster_diff/showDiff";
 import {fetchFolderContent} from "../cloud";
 import {getUserAndSchoolName} from "../globals";
 import {DiffSettings} from "../roster_diff/diffSettings";
@@ -38,24 +38,44 @@ export async function setupDiffPage() {
     let pluginContainer = document.getElementById("plugin_container")!;
     emmet.appendChild(pluginContainer, `
         div#diffsPage.mb-1>(
+            h4{Verschillen in uurroosters}+
             div.tabs>(
-                button#btnTabTagDefs.naked.hand.tab.notSelected[data-tab-id="tabExcelDiffs"]{Excel -> Dko3}+
-                button#btnTabIgnores.naked.hand.tab.notSelected[data-tab-id="tabWwwDiffs"]{Dko3 -> Www}
-            )+
-            div#tabExcelDiffs>(
-                h4{Verschillen in uurroosters}+
                 (
-                    div#combosLoading{Gegevens laden...}+
-                    select#cmbDiffAcademie+
-                    select#cmbDiffSchoolYear+
-                    button#btnCalcDiff.btn.btn-primary{Zoek verschillen}+
-                    button#btnDiffSettings.btn.btn-outline-dark{Setup}+
-                    button#btnDiffWww.btn.btn-outline-dark{Verschillen website}+
-                    div#infoContainerExcelDiffs
+                    button#btnTabTagDefs.naked.hand.tab.notSelected[data-tab-id="tabExcelDiffs"]>(
+                        span>(
+                            i.excelRow.far.fa-chalkboard-user+
+                            span.excelRow{Excel}
+                        )+
+                        i.fas.fa-arrow-right+
+                        span{Dko3}
+                    )
+                )+
+                (
+                    button#btnTabIgnores.naked.hand.tab.notSelected[data-tab-id="tabWwwDiffs"]>(
+                        span{Dko3}+
+                        i.fas.fa-arrow-right+
+                        span>(
+                            i.wwwRow.far.fa-globe+
+                            span.wwwRow{Website}
+                        )
+                    )
                 )
-            )+
-            div#tabWwwDiffs{todo}>
-                div#infoContainerWwwDiffs
+            )
+        )+
+        (
+            div#tabExcelDiffs>(
+                div#combosLoading{Gegevens laden...}+
+                select#cmbDiffAcademie+
+                select#cmbDiffSchoolYear+
+                button#btnCalcDiff.btn.btn-primary{Zoek verschillen}+
+                button#btnDiffSettings.btn.btn-outline-dark{Setup}+
+                div#wrapperExcelDiffs
+            )
+        )+
+        div#tabWwwDiffs>(
+            button#btnDiffWww.btn.btn-primary{Zoek Verschillen}+
+            button#btnDiffSettingsWww.btn.btn-outline-dark{Setup}+
+            div#wrapperWwwDiffs
         )
      `);
     setupTabNavigation();
@@ -63,6 +83,7 @@ export async function setupDiffPage() {
     let btnCalcDiff = pluginContainer.querySelector("#btnCalcDiff")  as HTMLButtonElement;
     let btnCalcDiffWww = pluginContainer.querySelector("#btnDiffWww")  as HTMLButtonElement;
     let btnDiffSettings = pluginContainer.querySelector("#btnDiffSettings")  as HTMLButtonElement;
+    let btnDiffSettingsWww = pluginContainer.querySelector("#btnDiffSettings")  as HTMLButtonElement;
     let dirTree = await getDiffDirStructure();
     let myAcadFolderName = getDiffMyAcademieFolder(dirTree);
     if(!myAcadFolderName)
@@ -75,28 +96,26 @@ export async function setupDiffPage() {
     if(await loadCombboxSchoolYearAndTrySelect(dirTree))
         pluginContainer.classList.toggle("diffCombosLoaded", true);
 
-    let divInfoContainer = document.getElementById("infoContainerExcelDiffs") as HTMLDivElement;
-    let divInfoWrapper = emmet.appendChild(divInfoContainer, "div#infoWrapper").last as HTMLDivElement;
-    let runStatus = emmet.appendChild(divInfoWrapper, "div#runStatus").first as HTMLDivElement;
-    emmet.insertAfter(runStatus, "div#diffResults");
+    let divInfoContainerExcel = document.getElementById("wrapperExcelDiffs") as HTMLDivElement;
+    createStatusBlock(divInfoContainerExcel);
+    let divInfoContainerWww = document.getElementById("wrapperWwwDiffs") as HTMLDivElement;
+    createStatusBlock(divInfoContainerWww);
 
-    let divInfo = emmet.insertAfter(runStatus, 'div#diffInfo').last as HTMLDivElement;
-    let divError = emmet.insertAfter(divInfo, 'div#diffErrors.errors').last as HTMLDivElement;
-
-    btnCalcDiff.onclick = () => calcAndShowDiffsWithSettings("calcAndShow", "fetchDko", "excel");
-    btnCalcDiffWww.onclick = () => calcAndShowDiffsWithSettings("calcAndShow", "fetchDko", "www");
+    btnCalcDiff.onclick = () => getAndShowDiffs("calcAndShow", "fetchDko", "excel");
+    btnCalcDiffWww.onclick = () => getAndShowDiffs("calcAndShow", "fetchDko", "www");
     btnDiffSettings.onclick = () => showDiffSetup(cmbDiffAcademie.value, cmbDiffSchoolYear.value);
+    btnDiffSettingsWww.onclick = () => showDiffSetup(cmbDiffAcademie.value, cmbDiffSchoolYear.value); //todo: user may not be aware of what academy/schoolYear was selected in other box, as it's not really relevant.
 
     cmbDiffAcademie.onchange = async () => {
         await onCmbAcademieChange(dirTree);
     }
-    cmbDiffAcademie.value = localStorage.getItem("diffLastAcademie") ?? ""; //todo: check if valid value
-    await onCmbAcademieChange(dirTree);
     cmbDiffSchoolYear.onchange = async () => {
         localStorage.setItem("diffLastSchoolYear", cmbDiffSchoolYear.value);
         await showDiffsFromComboboxes();
     }
-    await showDiffsFromComboboxes();
+
+    cmbDiffAcademie.value = localStorage.getItem("diffLastAcademie") ?? ""; //todo: check if valid value
+    await onCmbAcademieChange(dirTree);
 }
 
 async function onCmbAcademieChange(dirTree: TreeNode) {
@@ -111,12 +130,9 @@ async function onCmbAcademieChange(dirTree: TreeNode) {
     await showDiffsFromComboboxes();
 }
 
-async function calcAndShowDiffsWithSettings(showOrCalc: "justShow" | "calcAndShow", useDkoCache: "dkoCache" | "fetchDko", diffType: OtherLesType) {
-    await getAndShowDiffs(showOrCalc, useDkoCache, diffType);
-}
-
 async function showDiffsFromComboboxes() {
-    await calcAndShowDiffsWithSettings("justShow", "dkoCache", "excel");
+    await getAndShowDiffs("justShow", "dkoCache", "excel");
+    await getAndShowDiffs("justShow", "dkoCache", "www");
 }
 interface TreeNode {
     folderName: string;
