@@ -5789,7 +5789,7 @@ var TaggedWwwLesDef = class {
 		this.hash = this.getHash();
 	}
 	getHash() {
-		return `www:${this.lesDef.className}-${this.lesDef.day}-${TimeSlice.toString(this.timeSlice)}-${this.teachers.join()}`;
+		return `www:${this.lesDef.className}-${this.lesDef.day}-${TimeSlice.toString(this.timeSlice)}-${this.teachers.join()}-${this.location}`;
 	}
 };
 function tagWwwLes(les, dko3DiffData, diffSettings) {

@@ -66,7 +66,7 @@ export class TaggedWwwLesDef implements ComparableLesMoment{
     }
 
     public getHash() {
-        return `www:${this.lesDef.className}-${this.lesDef.day}-${TimeSlice.toString(this.timeSlice)}-${this.teachers.join()}`;
+        return `www:${this.lesDef.className}-${this.lesDef.day}-${TimeSlice.toString(this.timeSlice)}-${this.teachers.join()}-${this.location}`;
     }
 }
 
