@@ -139,7 +139,7 @@ export async function showDiffs(diffs: JsonDiffs, academie: string, schoolYear: 
         displayDiff(diff, statusBlock.divResults, academie, schoolYear); //<i class="fa-solid fa-arrow-up-right-from-square"></i>
 
     emmet.appendChild(statusBlock.divResults, "h4{Lessen zonder overeenkomsten}");
-    let {table, tbody} = createDiffTable(statusBlock.divResults);
+    let {table, tbody} = createDiffTable(statusBlock.divResults, diffType);
 
     decorateTableHeader(table, false);
     for(let les of diffs.orphanedDko3Lessen) {

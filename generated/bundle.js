@@ -5589,7 +5589,7 @@ async function showDiffs(diffs, academie, schoolYear, dko3DiffData, diffSettings
 	};
 	for (let diff of diffs.diffs) displayDiff(diff, statusBlock.divResults, academie, schoolYear);
 	emmet.appendChild(statusBlock.divResults, "h4{Lessen zonder overeenkomsten}");
-	let { table, tbody } = createDiffTable(statusBlock.divResults);
+	let { table, tbody } = createDiffTable(statusBlock.divResults, diffType);
 	decorateTableHeader(table, false);
 	for (let les of diffs.orphanedDko3Lessen) {
 		let tr = emmet.appendChild(tbody, "tr").last;
@@ -6394,8 +6394,8 @@ function wwwLesToJson(wwwLesDef) {
 		}
 	};
 }
-function createDiffTable(divResults) {
-	let { first: table, last: tbody } = emmet.appendChild(divResults, "table#orphans.diff>(thead>tr>(th.subject{Vak/Lesnaam}+th.gradeYear{Gr.Jr}+th.teacher{Leraar}+th.day{Dag}+th.{Uur}+th.location{Vestiging}+th+th))+tbody");
+function createDiffTable(divResults, diffType) {
+	let { first: table, last: tbody } = emmet.appendChild(divResults, `table#orphans${diffType}.diff>(thead>tr>(th.subject{Vak/Lesnaam}+th.gradeYear{Gr.Jr}+th.teacher{Leraar}+th.day{Dag}+th.{Uur}+th.location{Vestiging}+th+th))+tbody`);
 	return {
 		table,
 		tbody
