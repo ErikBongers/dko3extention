@@ -2073,7 +2073,7 @@ var ExcelRoster = class ExcelRoster {
 					column
 				};
 				let excelPos = TablePos.toExcel(tablePos, this.table);
-				let gradeYears = this.findGradeYears(parseText);
+				let gradeYears = ExcelRoster.findGradeYears(parseText);
 				if (gradeYears.length == 0) gradeYears = ExcelRoster.getGradeYearsFromTags(tags);
 				let classDef = new ClassDef(day, teacher, timeSlice, subjects, location$1 ?? "Academie Willem Van Laarstraat, Berchem", gradeYears, excelPos.row, excelPos.column, cellValue, this.table, className);
 				classDefs.push(classDef);
@@ -2129,7 +2129,7 @@ var ExcelRoster = class ExcelRoster {
 		for (let def of tagDefs) if (lowerCase.includes(def.searchString)) tags.push(def);
 		return tags;
 	}
-	findGradeYears(text) {
+	static findGradeYears(text) {
 		let gradeYears = [];
 		const rx = /\s+(?:(\d)\.(\d)|([SC])(\d))(?:\s?[,+\/]\s?(?:(\d)\.(\d)|([SC])(\d)))?(?:\s?[,+\/]\s?(?:(\d)\.(\d)|([SC])(\d)))?(?:\s?[,+\/]\s?(?:(\d)\.(\d)|([SC])(\d)))?(?:\s?[,+\/]\s?(?:(\d)\.(\d)|([SC])(\d)))?/gm;
 		let matches = rx.exec(text);
@@ -5808,9 +5808,14 @@ var TaggedWwwLesDef = class {
 		this.location = location$1 ?? "Academie Willem Van Laarstraat, Berchem";
 		this.subjects = ExcelRoster.findSubjects(this.lesDef.className, tagStrings, dko3Data);
 		this.className = ExcelRoster.findClassName(ExcelRoster.makeParsable(this.lesDef.className), dko3Data);
-		this.gradeYears = ExcelRoster.getGradeYearsFromTags(tags);
+		this.gradeYears = ExcelRoster.findGradeYears(ExcelRoster.makeParsable(this.lesDef.className));
+		if (this.gradeYears.length == 0) this.gradeYears = ExcelRoster.getGradeYearsFromTags(tags);
 		if (this.gradeYears.length == 0) {
 			let newTags = ExcelRoster.findTags(ExcelRoster.makeParsable(lesDef.panelTitle, "leave 'en' alone"), diffSettings.tagDefs);
+			this.gradeYears = ExcelRoster.getGradeYearsFromTags(newTags);
+		}
+		if (this.gradeYears.length == 0) {
+			let newTags = ExcelRoster.findTags(ExcelRoster.makeParsable(lesDef.sectionTitle, "leave 'en' alone"), diffSettings.tagDefs);
 			this.gradeYears = ExcelRoster.getGradeYearsFromTags(newTags);
 		}
 		if (this.gradeYears.length == 0) {
@@ -5862,6 +5867,7 @@ async function parseWww(dko3DiffData, diffSettings) {
 		"https://academieberchem.stedelijkonderwijs.be/uurrooster-woord-gevorderden-18"
 	]);
 	let lessen = [];
+	console.log(response);
 	for (let html of response.data) lessen = lessen.concat(parseHtml(html));
 	console.log(lessen);
 	let taggedLessen = lessen.map((les) => tagWwwLes(les, dko3DiffData, diffSettings)).filter((les) => les != null);
@@ -5894,6 +5900,18 @@ function scrapeClassTable(url, table, pageTitle) {
 	if (panelDiv) {
 		let button = panelDiv.querySelector("button");
 		if (button) panelTitle = button.textContent;
+	}
+	let sectionTitle = "";
+	let current = table.parentElement;
+	while (true) {
+		if (!current) break;
+		if (current.tagName == "SECTION") break;
+		let h2 = current.querySelector("h2");
+		if (h2) {
+			sectionTitle = h2.textContent;
+			break;
+		}
+		current = current.parentElement;
 	}
 	pageTitle = pageTitle.replaceAll("\n", " ").trim();
 	panelTitle = panelTitle.replaceAll("\n", " ").trim();
@@ -5935,6 +5953,7 @@ function scrapeClassTable(url, table, pageTitle) {
 		return {
 			url,
 			pageTitle,
+			sectionTitle,
 			panelTitle,
 			className,
 			day,
@@ -6022,7 +6041,7 @@ async function getDko3Data(schoolYear, reportStatus, fetchListener) {
 	let locations = [...locationsTable.getRows()].map((tr) => tr.cells[1].textContent);
 	reportStatus("Leraren ophalen...");
 	let teachers = await fetchTeachers(schoolYear);
-	for (let teacher of teachers) for (let callDef of ExcelRoster.callNames) if (teacher.name == callDef.tag) teacher.callName = callDef.searchString;
+	for (let teacher of teachers) for (let callDef of ExcelRoster.callNames) if (teacher.fullName == callDef.tag) teacher.callName = callDef.searchString;
 	let lessen = (await scrapeAllNormalLessen(schoolYear, reportStatus)).map((l) => l.les);
 	reportStatus("Ophalen aliaslessen...");
 	let dko3AliasLessen = (await scrapeLessen(Domein.Woord, LesType$1.alias, schoolYear)).map((l) => l.les);
@@ -6254,17 +6273,19 @@ async function fetchTeachers(schoolYear) {
 		let split = name.split(",");
 		name = name.trim().replaceAll(" ,", ",");
 		return {
-			name,
-			firstName: split[1].trim()
+			fullName: name,
+			firstName: split[1].trim(),
+			lastName: split[0].trim()
 		};
 	});
 }
 function findTeacher(searchString, teachers) {
 	let lowerCase = searchString.toLowerCase();
+	for (let teacherDef of teachers) if (lowerCase.includes(teacherDef.firstName.toLowerCase()) && lowerCase.includes(teacherDef.lastName.toLowerCase())) return teacherDef.fullName;
 	for (let teacherDef of teachers) {
-		if (lowerCase.includes(teacherDef.firstName.toLowerCase())) return teacherDef.name;
+		if (lowerCase.includes(teacherDef.firstName.toLowerCase())) return teacherDef.fullName;
 		if (teacherDef.callName) {
-			if (lowerCase.includes(teacherDef.callName.toLowerCase())) return teacherDef.name;
+			if (lowerCase.includes(teacherDef.callName.toLowerCase())) return teacherDef.fullName;
 		}
 	}
 	return searchString;
@@ -6355,7 +6376,7 @@ function excelLesToJson(excelLes) {
 		lesType: "excel",
 		day: excelLes.lesMoment.day,
 		timeSlice: toCompactTimeSliceString(excelLes.lesMoment.timeSlice),
-		subjects: excelLes.subjects.join(","),
+		subjects: excelLes.subjects.filter((s) => !!s).join(","),
 		teachers: excelLes.teachers.join(","),
 		location: excelLes.location,
 		hash: excelLes.getHash(),
@@ -6377,7 +6398,7 @@ function wwwLesToJson(wwwLesDef) {
 		lesType: "www",
 		day: wwwLesDef.day,
 		timeSlice: toCompactTimeSliceString(wwwLesDef.timeSlice),
-		subjects: wwwLesDef.subjects.join(","),
+		subjects: wwwLesDef.subjects.filter((s) => !!s).join(","),
 		teachers: wwwLesDef.teachers.join(","),
 		location: wwwLesDef.location,
 		hash: wwwLesDef.getHash(),
@@ -6386,7 +6407,7 @@ function wwwLesToJson(wwwLesDef) {
 		gotoData: {
 			lesId: "",
 			cellAddress: "",
-			text: wwwLesDef.lesDef.pageTitle + " | " + wwwLesDef.lesDef.panelTitle + " | " + wwwLesDef.lesDef.className,
+			text: wwwLesDef.lesDef.pageTitle + " | " + wwwLesDef.lesDef.sectionTitle + " | " + wwwLesDef.lesDef.panelTitle + " | " + wwwLesDef.lesDef.className,
 			workBook: "",
 			workSheet: "",
 			url: wwwLesDef.lesDef.url,

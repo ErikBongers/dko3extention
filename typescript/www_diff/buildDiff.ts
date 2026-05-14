@@ -11,6 +11,7 @@ import {ComparableLesMoment, GradeYear} from "../roster_diff/calcDiff";
 interface WwwLesDef {
     url: string;
     pageTitle: string;
+    sectionTitle: string;
     panelTitle: string;
     className: string;
     day: string;
@@ -51,9 +52,16 @@ export class TaggedWwwLesDef implements ComparableLesMoment{
         this.location = location ?? "Academie Willem Van Laarstraat, Berchem";
         this.subjects = ExcelRoster.findSubjects(this.lesDef.className, tagStrings, dko3Data);
         this.className = ExcelRoster.findClassName(ExcelRoster.makeParsable(this.lesDef.className), dko3Data);
-        this.gradeYears = ExcelRoster.getGradeYearsFromTags(tags);
+        this.gradeYears = ExcelRoster.findGradeYears(ExcelRoster.makeParsable(this.lesDef.className));
+        if(this.gradeYears.length == 0) {
+            this.gradeYears = ExcelRoster.getGradeYearsFromTags(tags);
+        }
         if(this.gradeYears.length == 0) {
             let newTags = ExcelRoster.findTags(ExcelRoster.makeParsable(lesDef.panelTitle, "leave 'en' alone"), diffSettings.tagDefs);
+            this.gradeYears = ExcelRoster.getGradeYearsFromTags(newTags);
+        }
+        if(this.gradeYears.length == 0) {
+            let newTags = ExcelRoster.findTags(ExcelRoster.makeParsable(lesDef.sectionTitle, "leave 'en' alone"), diffSettings.tagDefs);
             this.gradeYears = ExcelRoster.getGradeYearsFromTags(newTags);
         }
         if(this.gradeYears.length == 0) {
@@ -68,14 +76,6 @@ export class TaggedWwwLesDef implements ComparableLesMoment{
     public getHash() {
         return `www:${this.lesDef.className}-${this.lesDef.day}-${TimeSlice.toString(this.timeSlice)}-${this.teachers.join()}-${this.location}`;
     }
-}
-
-export async function buildWwwDiff(reportStatus: StatusCallback, fetchListener: InfoBarTableFetchListener, academie: string, schoolYear: string, dko3DiffData: Dko3DiffData | null, diffSettings: DiffSettings) {
-    reportStatus(`Vergelijken met DKO3 lessen...`);
-    if(!dko3DiffData)
-        dko3DiffData = await getDko3Data(schoolYear, reportStatus, fetchListener);
-    let otherLessen = new Set(await parseWww(dko3DiffData, diffSettings));
-    return calcDiff(dko3DiffData, reportStatus, diffSettings, otherLessen);
 }
 
 function tagWwwLes(les: WwwLesDef, dko3DiffData: Dko3DiffData, diffSettings: DiffSettings) {
@@ -130,6 +130,7 @@ export async function parseWww(dko3DiffData: Dko3DiffData, diffSettings: DiffSet
     ]);
 
     let lessen: WwwLesDef[] = [];
+    console.log(response);
     for(let html of response.data) {
         lessen = lessen.concat(parseHtml(html));
     }
@@ -178,7 +179,21 @@ function scrapeClassTable(url: string, table: HTMLTableElement, pageTitle: strin
             panelTitle = button.textContent;
         }
     }
-
+    //go up one parent at the time and find the first h2 sibling
+    let sectionTitle = "";
+    let current = table.parentElement;
+    while(true) {
+        if(!current)
+            break;
+        if (current.tagName == "SECTION") // don't go higher.
+            break;
+        let h2 = current.querySelector("h2");
+        if(h2) {
+            sectionTitle = h2.textContent;
+            break;
+        }
+        current = current.parentElement;
+    }
     pageTitle = pageTitle
         .replaceAll("\n", " ")
         .trim();
@@ -226,6 +241,7 @@ function scrapeClassTable(url: string, table: HTMLTableElement, pageTitle: strin
         return {
             url,
             pageTitle,
+            sectionTitle,
             panelTitle,
             className,
             day,

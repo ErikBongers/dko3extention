@@ -211,7 +211,7 @@ export class ExcelRoster {
                 let className = ExcelRoster.findClassName(parseText, this.dko3Data);
                 let tablePos: TablePos = {row, column};
                 let excelPos: ExcelPos = TablePos.toExcel(tablePos, this.table);
-                let gradeYears = this.findGradeYears(parseText);
+                let gradeYears = ExcelRoster.findGradeYears(parseText);
                 if(gradeYears.length == 0) {
                     gradeYears = ExcelRoster.getGradeYearsFromTags(tags);
                 }
@@ -306,7 +306,7 @@ export class ExcelRoster {
         return tags;
     }
 
-    private findGradeYears(text: string) {
+    public static findGradeYears(text: string) {
         let gradeYears: GradeYear[] = [];
         const rx = /\s+(?:(\d)\.(\d)|([SC])(\d))(?:\s?[,+\/]\s?(?:(\d)\.(\d)|([SC])(\d)))?(?:\s?[,+\/]\s?(?:(\d)\.(\d)|([SC])(\d)))?(?:\s?[,+\/]\s?(?:(\d)\.(\d)|([SC])(\d)))?(?:\s?[,+\/]\s?(?:(\d)\.(\d)|([SC])(\d)))?/gm;
         let matches = rx.exec(text);
@@ -355,8 +355,9 @@ export class ExcelRoster {
 
 
 export interface TeacherDef {
-    name: string;
+    fullName: string;
     firstName: string;
+    lastName: string;
     callName?: string;
 }
 

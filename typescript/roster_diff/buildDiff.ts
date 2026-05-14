@@ -116,7 +116,7 @@ export async function getDko3Data(schoolYear: string, reportStatus: StatusCallba
     let teachers = await fetchTeachers(schoolYear);
     for(let teacher of teachers) {
         for(let callDef of ExcelRoster.callNames) {
-            if(teacher.name == callDef.tag)
+            if(teacher.fullName == callDef.tag)
                 teacher.callName = callDef.searchString;
         }
     }
@@ -392,18 +392,24 @@ export async function fetchTeachers(schoolYear: string): Promise<TeacherDef[]> {
         .map(name => {
             let split = name.split(",");
             name = name.trim().replaceAll(" ,", ",");
-            return {name, firstName: split[1].trim()};
+            return {fullName: name, firstName: split[1].trim(), lastName: split[0].trim()};
         });
 }
 
 export function findTeacher(searchString: string, teachers: TeacherDef[]) {
     let lowerCase = searchString.toLowerCase();
+    //first check full name.
+    for(let teacherDef of teachers){
+        if(lowerCase.includes(teacherDef.firstName.toLowerCase())
+          && lowerCase.includes(teacherDef.lastName.toLowerCase()))
+            return teacherDef.fullName;
+    }
     for(let teacherDef of teachers){
         if(lowerCase.includes(teacherDef.firstName.toLowerCase()))
-            return teacherDef.name;
+            return teacherDef.fullName;
         if(teacherDef.callName)
             if(lowerCase.includes(teacherDef.callName.toLowerCase()))
-                return teacherDef.name;
+                return teacherDef.fullName;
     }
     return searchString;
 }
@@ -566,7 +572,7 @@ function excelLesToJson(excelLes: TaggedExcelLes): JsonOtherLesMoment {
         lesType: "excel",
         day: excelLes.lesMoment.day as DayUppercase,
         timeSlice: toCompactTimeSliceString(excelLes.lesMoment.timeSlice),
-        subjects: excelLes.subjects.join(","),
+        subjects: excelLes.subjects.filter(s => !!s).join(","),
         teachers: excelLes.teachers.join(","),
         location: excelLes.location!,
         hash: excelLes.getHash(),
@@ -590,7 +596,7 @@ function wwwLesToJson(wwwLesDef: TaggedWwwLesDef): JsonOtherLesMoment {
         lesType: "www",
         day: wwwLesDef.day as DayUppercase,
         timeSlice: toCompactTimeSliceString(wwwLesDef.timeSlice),
-        subjects: wwwLesDef.subjects.join(","),
+        subjects: wwwLesDef.subjects.filter(s => !!s).join(","),
         teachers: wwwLesDef.teachers.join(","),
         location: wwwLesDef.location!,
         hash: wwwLesDef.getHash(),
@@ -599,7 +605,7 @@ function wwwLesToJson(wwwLesDef: TaggedWwwLesDef): JsonOtherLesMoment {
         gotoData: {
             lesId: "",
             cellAddress: "",
-            text: wwwLesDef.lesDef.pageTitle + " | " + wwwLesDef.lesDef.panelTitle + " | " + wwwLesDef.lesDef.className,
+            text: wwwLesDef.lesDef.pageTitle + " | " + wwwLesDef.lesDef.sectionTitle + " | " + wwwLesDef.lesDef.panelTitle + " | " + wwwLesDef.lesDef.className,
             workBook: "",
             workSheet: "",
             url: wwwLesDef.lesDef.url,
