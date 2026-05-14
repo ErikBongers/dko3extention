@@ -1805,6 +1805,19 @@ function matchWithoutGradeYears(ctx, dko3Les, otherLesSet) {
 	}
 	return null;
 }
+function matchWithoutGradeYearsTeacher(ctx, dko3Les, otherLesSet) {
+	for (let excelLes of otherLesSet) {
+		let weight = weigh1000(dko3Les, excelLes, void 0);
+		if (weight.diffSubject) continue;
+		if (weight.diffDayTime) continue;
+		if (weight.diffLocation) continue;
+		return {
+			otherLes: excelLes,
+			weight
+		};
+	}
+	return null;
+}
 function matchWithoutLocation(ctx, dko3Les, otherLesSet) {
 	for (let excelLes of otherLesSet) {
 		let weight = weigh1000(dko3Les, excelLes, void 0);
@@ -6141,6 +6154,7 @@ async function calcDiff(dko3Data, reportStatus, diffSettings, otherLesSet) {
 	diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "match without location", matchWithoutLocation));
 	diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "match without time and day", matchWithoutTimeAndDay));
 	diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "match without teacher, time and day", matchWithoutTeacherTimeAndDay));
+	diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "match without time and day and teacher", matchWithoutGradeYearsTeacher));
 	console.log(diffs);
 	console.log(dko3LesSet.values());
 	console.log(otherLesSet.values());

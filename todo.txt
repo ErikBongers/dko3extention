@@ -1,3 +1,4 @@
+* Check ALL hashes - they should include ALL fields
 Diff with website
 - extra button in diff page
 

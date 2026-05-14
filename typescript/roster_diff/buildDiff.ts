@@ -13,7 +13,7 @@ import {fetchAndDisplayNotifications} from "../notifications/notifications";
 import {DiffGotoData, excelPostoExcelAddress, getDiffsDko3CacheFileName, StatusCallback} from "./showDiff";
 import {DiffSettings} from "./diffSettings";
 import {OtherLesType, parseWww, TaggedWwwLesDef} from "../www_diff/buildDiff";
-import {ComparableLesMoment, Diff, DiffLesType, DiffType, Dko3LesMoment, GradeYear, LesType, matchBasedOnName, MatchContext, matchIt, matchWithoutGradeYears, matchWithoutLocation, matchWithoutTeacher, matchWithoutTeacherTimeAndDay, matchWithoutTimeAndDay, perfectMatch, TaggedDko3LesMoment, TaggedLes, Weight} from "./calcDiff";
+import {ComparableLesMoment, Diff, DiffLesType, DiffType, Dko3LesMoment, GradeYear, LesType, matchBasedOnName, MatchContext, matchIt, matchWithoutGradeYears, matchWithoutGradeYearsTeacher, matchWithoutLocation, matchWithoutTeacher, matchWithoutTeacherTimeAndDay, matchWithoutTimeAndDay, perfectMatch, TaggedDko3LesMoment, TaggedLes, Weight} from "./calcDiff";
 
 let cachedDiffs: JsonDiffs | undefined = undefined;
 export async function getJsonDiffsCached(academie: string, schoolYear: string, diffType: OtherLesType) {
@@ -306,6 +306,7 @@ export async function calcDiff(dko3Data: Dko3DiffData, reportStatus: (message: s
     diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "match without location", matchWithoutLocation));
     diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "match without time and day", matchWithoutTimeAndDay));
     diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "match without teacher, time and day", matchWithoutTeacherTimeAndDay));
+    diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "match without time and day and teacher", matchWithoutGradeYearsTeacher));
     console.log(diffs);
     console.log(dko3LesSet.values());
     console.log(otherLesSet.values());

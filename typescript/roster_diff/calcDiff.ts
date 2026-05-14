@@ -113,7 +113,8 @@ export type DiffType =
     | "match without teacher"
     | "match without location"
     | "match without time and day"
-    | "match without teacher, time and day";
+    | "match without teacher, time and day"
+    | "match without time and day and teacher";
 
 export interface Diff {
     otherLes: ComparableLesMoment;
@@ -223,6 +224,21 @@ export function matchWithoutGradeYears(ctx: MatchContext, dko3Les: TaggedDko3Les
         if (weight.diffLocation)
             continue;
         if (weight.diffTeacher)
+            continue;
+
+        return {otherLes: excelLes, weight};
+    }
+    return null;
+}
+
+export function matchWithoutGradeYearsTeacher(ctx: MatchContext, dko3Les: TaggedDko3LesMoment, otherLesSet: Set<ComparableLesMoment>): MatchResult | null {
+    for (let excelLes of otherLesSet) {
+        let weight = weigh1000(dko3Les, excelLes, undefined);
+        if (weight.diffSubject)
+            continue;
+        if (weight.diffDayTime)
+            continue;
+        if (weight.diffLocation)
             continue;
 
         return {otherLes: excelLes, weight};
