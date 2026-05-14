@@ -14,6 +14,7 @@ let Actions = /* @__PURE__ */ function(Actions$1) {
 	Actions$1["DiffSettingsChanged"] = "diff_settings_changed";
 	Actions$1["GreetingsFromParent"] = "greetingsFromParent";
 	Actions$1["GreetingsFromChild"] = "greetingsFromChild";
+	Actions$1["Www"] = "Www";
 	return Actions$1;
 }({});
 let TabType = /* @__PURE__ */ function(TabType$1) {
@@ -321,7 +322,6 @@ function getAttributes() {
 		let value = tokens.shift();
 		if (!value) throw "Value expected";
 		if (value[0] === "\"") value = stripStringDelimiters(value);
-		if (!value) throw "Value expected.";
 		attDefs.push({
 			name,
 			sub,
@@ -506,8 +506,7 @@ function registerWebComponent() {
 async function uploadJson(fileName, data) {
 	let res = await fetch(JSON_URL + "?fileName=" + fileName, {
 		method: "POST",
-		body: JSON.stringify(data),
-		keepalive: true
+		body: JSON.stringify(data)
 	});
 	return await res.text();
 }
@@ -516,6 +515,27 @@ function getDiffSettingsFileName(academie, schoolYear) {
 }
 async function uploadDiffSettings(academie, schoolYear, diffSettings) {
 	await uploadJson(getDiffSettingsFileName(academie, schoolYear), diffSettings);
+}
+
+//#endregion
+//#region typescript/tabs.ts
+function switchTab(btn) {
+	let tabId = btn.dataset.tabId;
+	let tabs = btn.parentElement;
+	tabs.querySelectorAll(".tab").forEach((tab) => {
+		tab.classList.add("notSelected");
+		document.getElementById(tab.dataset.tabId).style.display = "none";
+	});
+	btn.classList.remove("notSelected");
+	document.getElementById(tabId).style.display = "block";
+}
+function setupTabNavigation(beforeTabSwitch) {
+	let tabs = document.querySelector(".tabs");
+	switchTab(tabs.querySelector(".tab"));
+	document.querySelectorAll(".tabs > button.tab").forEach((btn) => btn.addEventListener("click", (ev) => {
+		let button = ev.currentTarget;
+		if (beforeTabSwitch?.(button, button.dataset.tabId) != "cancel") switchTab(ev.currentTarget);
+	}));
 }
 
 //#endregion
@@ -614,7 +634,7 @@ function scrapeTagDefs() {
 		let grade = row.querySelector("#trnsGrade").value.trim();
 		let year = row.querySelector("#trnsYear").value.trim();
 		return {
-			searchString: row.querySelector("#trnsFind").value,
+			searchString: row.querySelector("#trnsFind").value.toLowerCase(),
 			tag: row.querySelector("#trnsTag").value,
 			grade,
 			year: parseInt(year)
@@ -642,22 +662,8 @@ function onCheckTableChanged(diffSettings) {
 window.onbeforeunload = () => {
 	if (globalSetup) onCheckTableChanged(globalSetup);
 };
-function switchTab(btn) {
-	let tabId = btn.dataset.tabId;
-	let tabs = btn.parentElement;
-	tabs.querySelectorAll(".tab").forEach((tab) => {
-		tab.classList.add("notSelected");
-		document.getElementById(tab.dataset.tabId).style.display = "none";
-	});
-	btn.classList.remove("notSelected");
-	document.getElementById(tabId).style.display = "block";
-}
 async function onDocumentLoaded(_) {
-	let tabs = document.querySelector(".tabs");
-	switchTab(tabs.querySelector(".tab"));
-	document.querySelectorAll(".tabs > button.tab").forEach((btn) => btn.addEventListener("click", (ev) => {
-		switchTab(ev.currentTarget);
-	}));
+	setupTabNavigation();
 	let params = new URLSearchParams(document.location.search);
 	let schoolYear = params.get("schoolyear");
 	let academie = params.get("academie");

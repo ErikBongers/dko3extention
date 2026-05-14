@@ -142,7 +142,7 @@ function scrapeTagDefs(): TagDef[] {
             let grade= (row.querySelector("#trnsGrade") as InputWithSpaces.Type).value.trim();
             let year = (row.querySelector("#trnsYear") as InputWithSpaces.Type).value.trim();
             return {
-                searchString: (row.querySelector("#trnsFind") as InputWithSpaces.Type).value,
+                searchString: (row.querySelector("#trnsFind") as InputWithSpaces.Type).value.toLowerCase(),
                 tag: (row.querySelector("#trnsTag") as InputWithSpaces.Type).value,
                 grade,
                 year: parseInt(year), //todo: gracefull error when parsing number...or make field a string?
