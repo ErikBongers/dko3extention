@@ -2,7 +2,7 @@ import {dateDiffToString, unreachable} from "../globals";
 import {emmet} from "../../libs/Emmeter/html";
 import {decorateTableHeader} from "../table/tableHeaders";
 import {DayUppercase} from "../lessen/scrape";
-import {DKO3_BASE_URL, OPTION_HIDE_IGNORED_DIFFS} from "../def";
+import {DKO3_BASE_URL, OPTION_HIDE_IGNORED_DIFFS, OPTION_HIDE_NO_TEACHER_DIFFS} from "../def";
 import {buildAndSaveDiff, createDiffTable, DataPreparationFunction, Dko3DiffData, getDiffsFromCloud, getUrlForWorksheet, JsonBasicLesMoment, JsonDiff, JsonDiffs, prepareExcelData, prepareWwwData, setIgnoredFlags} from "./buildDiff";
 import {fetchDiffSettings, uploadIgnoredDiffHashes} from "../cloud";
 import {InfoBarTableFetchListener} from "../table/loadAnyTable";
@@ -122,6 +122,19 @@ export async function showDiffs(diffs: JsonDiffs, academie: string, schoolYear: 
         let ignore = table.classList.contains("hideChecked");
         localStorage.setItem(OPTION_HIDE_IGNORED_DIFFS+diffType, ignore.toString());
     }
+    emmet.appendChild(divChk, `
+        div>(
+            input#chkHideNoTeacher${diffType}[type="checkbox"]+
+            label[for="chkHideNoTeacher${diffType}"]{Verberg nog te bepalen leraren}
+        )
+    `);
+    let chkHideNoTeacher = divChk.querySelector(`#chkHideNoTeacher${diffType}`) as HTMLInputElement;
+    chkHideNoTeacher.onchange = (ev) => {
+        let input = ev.currentTarget as HTMLInputElement;
+        statusBlock.divResults.classList.toggle("hideNoTeacher", input.checked);
+        let hideNoTeacher = statusBlock.divResults.classList.contains("hideNoTeacher");
+        localStorage.setItem(OPTION_HIDE_NO_TEACHER_DIFFS+diffType, hideNoTeacher.toString());
+    }
     for(let diff of diffs.diffs)
         displayDiff(diff, statusBlock.divResults, academie, schoolYear); //<i class="fa-solid fa-arrow-up-right-from-square"></i>
 
@@ -138,9 +151,13 @@ export async function showDiffs(diffs: JsonDiffs, academie: string, schoolYear: 
         fillDiffRow(tr, les, "perfect match", les.gotoData, les.gotoData.text, les.hash, les.ignore, academie, schoolYear, null);
         tr.classList.add("excelRow");
     }
-    let ingore = localStorage.getItem(OPTION_HIDE_IGNORED_DIFFS+diffType)?? "false";
-    chkHideChecked.checked = ingore == "true";
+    let ignore = localStorage.getItem(OPTION_HIDE_IGNORED_DIFFS+diffType)?? "false";
+    chkHideChecked.checked = ignore == "true";
     table.classList.toggle("hideChecked", chkHideChecked.checked);
+
+    let hideNoTeacher = localStorage.getItem(OPTION_HIDE_NO_TEACHER_DIFFS+diffType)?? "false";
+    chkHideNoTeacher.checked = hideNoTeacher == "true";
+    statusBlock.divResults.classList.toggle("hideNoTeacher", chkHideNoTeacher.checked);
 }
 export type StatusCallback = (message: string, isError?: "error") => void;
 
@@ -158,6 +175,10 @@ function displayDiff(diff: JsonDiff, divResults: HTMLDivElement, academie: strin
         trOther = trBottom;
         trDko3 = trTop;
     }
+
+    let diffOnlyTeacher = !diff.weight.diffDayTime && diff.weight.diffGradeYears == 0 && !diff.weight.diffLocation && !diff.weight.diffSubject && diff.weight.diffTeacher;
+    tbody.parentElement!.classList.toggle("justNoTeacher", diffOnlyTeacher && diff.otherLes.teachers.includes("nog te bepalen"));
+
 
     fillOtherDiffRow(trOther, diff, academie, schoolYear);
     fillDiffRow(trDko3, diff.dko3Les, diff.diffType, createDko3GotoData(diff.dko3Les.lesId), "", diff.dko3Les.hash, diff.dko3Les.ignore, academie, schoolYear, diff.weight);

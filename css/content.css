@@ -452,6 +452,12 @@ table.diff {
     }
 }
 
+div.diffResults.hideNoTeacher {
+    table.diff.justNoTeacher {
+        display: none;
+    }
+}
+
 table#orphans {
     border-radius: 1ch;
     border-collapse: separate;
