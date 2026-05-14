@@ -219,7 +219,7 @@ export class ExcelRoster {
                     teacher,
                     timeSlice,
                     subjects,
-                    location,
+                    location ?? "Academie Willem Van Laarstraat, Berchem",
                     gradeYears,
                     excelPos.row,
                     excelPos.column,
@@ -271,7 +271,7 @@ export class ExcelRoster {
         if(location)
             return location;
         else
-            return "Academie Willem Van Laarstraat, Berchem";
+            return null;
     }
 
     public static findSubjects(text: string, tags: string[], dko3Data: Dko3DiffData) {

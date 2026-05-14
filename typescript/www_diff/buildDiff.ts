@@ -42,7 +42,13 @@ export class TaggedWwwLesDef implements ComparableLesMoment{
         this.teachers = teachers;
         let tags = ExcelRoster.findTags(` ${this.lesDef.className} ${this.lesDef.location} `, diffSettings.tagDefs);
         let tagStrings = tags.map(t => t.tag);
-        this.location = ExcelRoster.findLocation(tagStrings, dko3Data.locations);
+        let location = ExcelRoster.findLocation(tagStrings, dko3Data.locations);
+        if(!location) {
+            let tags = ExcelRoster.findTags(ExcelRoster.makeParsable(this.lesDef.panelTitle), diffSettings.tagDefs);
+            let tagStrings = tags.map(t => t.tag);
+            location = ExcelRoster.findLocation(tagStrings, dko3Data.locations);
+        }
+        this.location = location ?? "Academie Willem Van Laarstraat, Berchem";
         this.subjects = ExcelRoster.findSubjects(this.lesDef.className, tagStrings, dko3Data);
         this.className = ExcelRoster.findClassName(ExcelRoster.makeParsable(this.lesDef.className), dko3Data);
         this.gradeYears = ExcelRoster.getGradeYearsFromTags(tags);

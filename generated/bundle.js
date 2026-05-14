@@ -2060,7 +2060,7 @@ var ExcelRoster = class ExcelRoster {
 				let excelPos = TablePos.toExcel(tablePos, this.table);
 				let gradeYears = this.findGradeYears(parseText);
 				if (gradeYears.length == 0) gradeYears = ExcelRoster.getGradeYearsFromTags(tags);
-				let classDef = new ClassDef(day, teacher, timeSlice, subjects, location$1, gradeYears, excelPos.row, excelPos.column, cellValue, this.table, className);
+				let classDef = new ClassDef(day, teacher, timeSlice, subjects, location$1 ?? "Academie Willem Van Laarstraat, Berchem", gradeYears, excelPos.row, excelPos.column, cellValue, this.table, className);
 				classDefs.push(classDef);
 				row = mergedRange.End.row;
 			}
@@ -2095,7 +2095,7 @@ var ExcelRoster = class ExcelRoster {
 	static findLocation(tags, locations) {
 		let location$1 = locations.find((location$2) => tags.includes(location$2));
 		if (location$1) return location$1;
-		else return "Academie Willem Van Laarstraat, Berchem";
+		else return null;
 	}
 	static findSubjects(text, tags, dko3Data) {
 		let allSearchStrings = [...tags];
@@ -5766,7 +5766,13 @@ var TaggedWwwLesDef = class {
 		this.teachers = teachers;
 		let tags = ExcelRoster.findTags(` ${this.lesDef.className} ${this.lesDef.location} `, diffSettings.tagDefs);
 		let tagStrings = tags.map((t) => t.tag);
-		this.location = ExcelRoster.findLocation(tagStrings, dko3Data.locations);
+		let location$1 = ExcelRoster.findLocation(tagStrings, dko3Data.locations);
+		if (!location$1) {
+			let tags$1 = ExcelRoster.findTags(ExcelRoster.makeParsable(this.lesDef.panelTitle), diffSettings.tagDefs);
+			let tagStrings$1 = tags$1.map((t) => t.tag);
+			location$1 = ExcelRoster.findLocation(tagStrings$1, dko3Data.locations);
+		}
+		this.location = location$1 ?? "Academie Willem Van Laarstraat, Berchem";
 		this.subjects = ExcelRoster.findSubjects(this.lesDef.className, tagStrings, dko3Data);
 		this.className = ExcelRoster.findClassName(ExcelRoster.makeParsable(this.lesDef.className), dko3Data);
 		this.gradeYears = ExcelRoster.getGradeYearsFromTags(tags);
