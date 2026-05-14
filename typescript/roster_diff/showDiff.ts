@@ -1,15 +1,15 @@
-import {dateDiffToString, getOptions, unreachable} from "../globals";
+import {dateDiffToString, unreachable} from "../globals";
 import {emmet} from "../../libs/Emmeter/html";
 import {decorateTableHeader} from "../table/tableHeaders";
 import {DayUppercase} from "../lessen/scrape";
 import {DKO3_BASE_URL, OPTION_HIDE_IGNORED_DIFFS} from "../def";
-import {buildAndSaveDiff, createDiffTable, DataPreparationFunction, Dko3DiffData, getDiffsFromCloud, getUrlForWorksheet, getWwwDiffsFromCloud, JsonBasicLesMoment, JsonDiff, JsonDiffs, prepareExcelData, prepareWwwData, setIgnoredFlags} from "./buildDiff";
+import {buildAndSaveDiff, createDiffTable, DataPreparationFunction, Dko3DiffData, getDiffsFromCloud, getUrlForWorksheet, JsonBasicLesMoment, JsonDiff, JsonDiffs, prepareExcelData, prepareWwwData, setIgnoredFlags} from "./buildDiff";
 import {fetchDiffSettings, uploadIgnoredDiffHashes} from "../cloud";
 import {InfoBarTableFetchListener} from "../table/loadAnyTable";
 import {createInfoBlock} from "../infoBlock";
 import {defaultIgnoreList, defaultTagDefs, DiffSettings} from "./diffSettings";
-import { options } from "../plugin_options/options";
-import {buildWwwDiff, OtherLesType} from "../www_diff/buildDiff";
+import {options} from "../plugin_options/options";
+import {OtherLesType} from "../www_diff/buildDiff";
 import {DiffType, GradeYear, Weight} from "./calcDiff";
 
 export async function fetchDiffSettingsOrDefault(academie: string, schoolYear: string) {
@@ -91,10 +91,10 @@ export async function getAndShowDiffs(showOrCalc: "justShow" | "calcAndShow", us
         jsonDiffs = await buildAndSaveDiff(reportStatus, fetchListener, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData, diffSettings, diffType, dataPreparationFunction);
     }
     if(jsonDiffs)
-        await showDiffs(jsonDiffs, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData, diffSettings, statusBlock);
+        await showDiffs(jsonDiffs, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData, diffSettings, statusBlock, diffType);
 }
 
-export async function showDiffs(diffs: JsonDiffs, academie: string, schoolYear: string, dko3DiffData: Dko3DiffData | null, diffSettings: DiffSettings, statusBlock: StatusBlock) {
+export async function showDiffs(diffs: JsonDiffs, academie: string, schoolYear: string, dko3DiffData: Dko3DiffData | null, diffSettings: DiffSettings, statusBlock: StatusBlock, diffType: OtherLesType) {
     statusBlock.divResults.innerHTML = "Ophalen...";
     if(!diffs) {
         statusBlock.divResults.innerHTML = "";
@@ -113,14 +113,14 @@ export async function showDiffs(diffs: JsonDiffs, academie: string, schoolYear: 
             getAndShowDiffs("calcAndShow", "dkoCache", "excel");
         };
     }
-    let divChk = emmet.appendChild(statusBlock.divResults, `div#divHideChecked>(input#chkHideChecked[type="checkbox"]+label[for="chkHideChecked"]{Verberg aangevinkte lijnen})`).first as HTMLDivElement;
-    let chkHideChecked = divChk.querySelector("#chkHideChecked") as HTMLInputElement;
+    let divChk = emmet.appendChild(statusBlock.divResults, `div#divHideChecked>(input#chkHideChecked${diffType}[type="checkbox"]+label[for="chkHideChecked${diffType}"]{Verberg aangevinkte lijnen})`).first as HTMLDivElement;
+    let chkHideChecked = divChk.querySelector(`#chkHideChecked${diffType}`) as HTMLInputElement;
     chkHideChecked.onchange = (ev) => {
         let input = ev.currentTarget as HTMLInputElement;
-        let table = document.getElementById("orphans") as HTMLTableElement;
+        let table = document.getElementById(`orphans${diffType}`) as HTMLTableElement;
         table.classList.toggle("hideChecked", input.checked);
         let ignore = table.classList.contains("hideChecked");
-        localStorage.setItem(OPTION_HIDE_IGNORED_DIFFS, ignore.toString());
+        localStorage.setItem(OPTION_HIDE_IGNORED_DIFFS+diffType, ignore.toString());
     }
     for(let diff of diffs.diffs)
         displayDiff(diff, statusBlock.divResults, academie, schoolYear); //<i class="fa-solid fa-arrow-up-right-from-square"></i>
@@ -138,7 +138,7 @@ export async function showDiffs(diffs: JsonDiffs, academie: string, schoolYear: 
         fillDiffRow(tr, les, "perfect match", les.gotoData, les.gotoData.text, les.hash, les.ignore, academie, schoolYear, null);
         tr.classList.add("excelRow");
     }
-    let ingore = localStorage.getItem(OPTION_HIDE_IGNORED_DIFFS)?? "false";
+    let ingore = localStorage.getItem(OPTION_HIDE_IGNORED_DIFFS+diffType)?? "false";
     chkHideChecked.checked = ingore == "true";
     table.classList.toggle("hideChecked", chkHideChecked.checked);
 }
@@ -219,18 +219,18 @@ export function fillDiffRow(tr: HTMLTableRowElement, jsonLes: JsonBasicLesMoment
     let btnGoto = tr.querySelector("button.goto") as HTMLButtonElement;
     btnGoto.onclick = (ev) => gotoSource(ev, academie, schoolYear);
     let btnHide = tr.querySelector("button.chkHide") as HTMLButtonElement;
-    btnHide.onclick = (ev) => toggleIgnore(ev, academie, schoolYear);
+    btnHide.onclick = (ev) => toggleIgnore(ev, academie, schoolYear, "excel"); //todo: this is wrong!!!! Should be excel or www, based on the page tab we're at.
 }
 
-async function toggleIgnore(ev: MouseEvent, academie: string, schoolYear: string) {
+async function toggleIgnore(ev: MouseEvent, academie: string, schoolYear: string, diffType: OtherLesType) {
     let button = ev.currentTarget as HTMLButtonElement;
     let tr = button.closest("tr") as HTMLTableRowElement;
     tr.classList.toggle("ignore");
-    await saveIgnoredHashes(academie, schoolYear);
+    await saveIgnoredHashes(academie, schoolYear, diffType);
 }
 
-async function saveIgnoredHashes(academie: string, schoolYear: string) {
-    let table = document.getElementById("orphans") as HTMLTableElement;
+async function saveIgnoredHashes(academie: string, schoolYear: string, diffType: OtherLesType) {
+    let table = document.getElementById(`orphans${diffType}`) as HTMLTableElement;
     let hashes = [...table.querySelectorAll("tr.ignore") as NodeListOf<HTMLTableRowElement>]
         .map(tr => tr.dataset.hash as string);
     await uploadIgnoredDiffHashes(academie, schoolYear, hashes);

@@ -122,6 +122,11 @@ export async function parseWww(dko3DiffData: Dko3DiffData, diffSettings: DiffSet
         "https://academieberchem.stedelijkonderwijs.be/uurrooster-musical",
         "https://academieberchem.stedelijkonderwijs.be/uurrooster-elektronische-muziek-enkel-de-hoofdschool",
         "https://academieberchem.stedelijkonderwijs.be/uurrooster-2e-graad-volwassenen-vanaf-18-jaar",
+        "https://academieberchem.stedelijkonderwijs.be/uurrooster-2e-graad-kinderen-8-tot-11-jaar-0",
+        "https://academieberchem.stedelijkonderwijs.be/uurrooster-3e-graad-jongeren-12-tot-en-met-14-jaar",
+        "https://academieberchem.stedelijkonderwijs.be/uurrooster-woord-jongeren-15-tot-en-met-17-jaar",
+        "https://academieberchem.stedelijkonderwijs.be/uurrooster-woord-starters-18",
+        "https://academieberchem.stedelijkonderwijs.be/uurrooster-woord-gevorderden-18",
     ]);
 
     let lessen: WwwLesDef[] = [];

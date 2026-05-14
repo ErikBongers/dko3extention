@@ -5530,9 +5530,9 @@ async function getAndShowDiffs(showOrCalc, useDkoCache, diffType) {
 		else dataPreparationFunction = prepareWwwData;
 		jsonDiffs = await buildAndSaveDiff(reportStatus, fetchListener, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData, diffSettings, diffType, dataPreparationFunction);
 	}
-	if (jsonDiffs) await showDiffs(jsonDiffs, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData, diffSettings, statusBlock);
+	if (jsonDiffs) await showDiffs(jsonDiffs, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData, diffSettings, statusBlock, diffType);
 }
-async function showDiffs(diffs, academie, schoolYear, dko3DiffData, diffSettings, statusBlock) {
+async function showDiffs(diffs, academie, schoolYear, dko3DiffData, diffSettings, statusBlock, diffType) {
 	statusBlock.divResults.innerHTML = "Ophalen...";
 	if (!diffs) {
 		statusBlock.divResults.innerHTML = "";
@@ -5550,14 +5550,14 @@ async function showDiffs(diffs, academie, schoolYear, dko3DiffData, diffSettings
 			getAndShowDiffs("calcAndShow", "dkoCache", "excel");
 		};
 	}
-	let divChk = emmet.appendChild(statusBlock.divResults, `div#divHideChecked>(input#chkHideChecked[type="checkbox"]+label[for="chkHideChecked"]{Verberg aangevinkte lijnen})`).first;
-	let chkHideChecked = divChk.querySelector("#chkHideChecked");
+	let divChk = emmet.appendChild(statusBlock.divResults, `div#divHideChecked>(input#chkHideChecked${diffType}[type="checkbox"]+label[for="chkHideChecked${diffType}"]{Verberg aangevinkte lijnen})`).first;
+	let chkHideChecked = divChk.querySelector(`#chkHideChecked${diffType}`);
 	chkHideChecked.onchange = (ev) => {
 		let input = ev.currentTarget;
-		let table$1 = document.getElementById("orphans");
+		let table$1 = document.getElementById(`orphans${diffType}`);
 		table$1.classList.toggle("hideChecked", input.checked);
 		let ignore = table$1.classList.contains("hideChecked");
-		localStorage.setItem(OPTION_HIDE_IGNORED_DIFFS, ignore.toString());
+		localStorage.setItem(OPTION_HIDE_IGNORED_DIFFS + diffType, ignore.toString());
 	};
 	for (let diff of diffs.diffs) displayDiff(diff, statusBlock.divResults, academie, schoolYear);
 	emmet.appendChild(statusBlock.divResults, "h4{Lessen zonder overeenkomsten}");
@@ -5572,7 +5572,7 @@ async function showDiffs(diffs, academie, schoolYear, dko3DiffData, diffSettings
 		fillDiffRow(tr, les, "perfect match", les.gotoData, les.gotoData.text, les.hash, les.ignore, academie, schoolYear, null);
 		tr.classList.add("excelRow");
 	}
-	let ingore = localStorage.getItem(OPTION_HIDE_IGNORED_DIFFS) ?? "false";
+	let ingore = localStorage.getItem(OPTION_HIDE_IGNORED_DIFFS + diffType) ?? "false";
 	chkHideChecked.checked = ingore == "true";
 	table.classList.toggle("hideChecked", chkHideChecked.checked);
 }
@@ -5651,16 +5651,16 @@ function fillDiffRow(tr, jsonLes, diffType, gotoData, orgText, hash, ignore, aca
 	let btnGoto = tr.querySelector("button.goto");
 	btnGoto.onclick = (ev) => gotoSource(ev, academie, schoolYear);
 	let btnHide = tr.querySelector("button.chkHide");
-	btnHide.onclick = (ev) => toggleIgnore(ev, academie, schoolYear);
+	btnHide.onclick = (ev) => toggleIgnore(ev, academie, schoolYear, "excel");
 }
-async function toggleIgnore(ev, academie, schoolYear) {
+async function toggleIgnore(ev, academie, schoolYear, diffType) {
 	let button = ev.currentTarget;
 	let tr = button.closest("tr");
 	tr.classList.toggle("ignore");
-	await saveIgnoredHashes(academie, schoolYear);
+	await saveIgnoredHashes(academie, schoolYear, diffType);
 }
-async function saveIgnoredHashes(academie, schoolYear) {
-	let table = document.getElementById("orphans");
+async function saveIgnoredHashes(academie, schoolYear, diffType) {
+	let table = document.getElementById(`orphans${diffType}`);
 	let hashes = [...table.querySelectorAll("tr.ignore")].map((tr) => tr.dataset.hash);
 	await uploadIgnoredDiffHashes(academie, schoolYear, hashes);
 }
@@ -5821,7 +5821,12 @@ async function parseWww(dko3DiffData, diffSettings) {
 		"https://academieberchem.stedelijkonderwijs.be/uurrooster-4e-graad-wereldmuziek",
 		"https://academieberchem.stedelijkonderwijs.be/uurrooster-musical",
 		"https://academieberchem.stedelijkonderwijs.be/uurrooster-elektronische-muziek-enkel-de-hoofdschool",
-		"https://academieberchem.stedelijkonderwijs.be/uurrooster-2e-graad-volwassenen-vanaf-18-jaar"
+		"https://academieberchem.stedelijkonderwijs.be/uurrooster-2e-graad-volwassenen-vanaf-18-jaar",
+		"https://academieberchem.stedelijkonderwijs.be/uurrooster-2e-graad-kinderen-8-tot-11-jaar-0",
+		"https://academieberchem.stedelijkonderwijs.be/uurrooster-3e-graad-jongeren-12-tot-en-met-14-jaar",
+		"https://academieberchem.stedelijkonderwijs.be/uurrooster-woord-jongeren-15-tot-en-met-17-jaar",
+		"https://academieberchem.stedelijkonderwijs.be/uurrooster-woord-starters-18",
+		"https://academieberchem.stedelijkonderwijs.be/uurrooster-woord-gevorderden-18"
 	]);
 	let lessen = [];
 	for (let html of response.data) lessen = lessen.concat(parseHtml(html));
