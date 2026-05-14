@@ -610,7 +610,7 @@ function wwwLesToJson(wwwLesDef: TaggedWwwLesDef): JsonOtherLesMoment {
 }
 
 export function createDiffTable(divResults: HTMLDivElement, diffType: OtherLesType) {
-    let {first: table, last: tbody} = emmet.appendChild(divResults, `table#orphans${diffType}.diff>(thead>tr>(th.subject{Vak/Lesnaam}+th.gradeYear{Gr.Jr}+th.teacher{Leraar}+th.day{Dag}+th.{Uur}+th.location{Vestiging}+th+th))+tbody`) as { target: HTMLDivElement, first: HTMLTableElement, last: HTMLTableSectionElement };
+    let {first: table, last: tbody} = emmet.appendChild(divResults, `table#orphans${diffType}.diff.diffOrphans>(thead>tr>(th.subject{Vak/Lesnaam}+th.gradeYear{Gr.Jr}+th.teacher{Leraar}+th.day{Dag}+th.{Uur}+th.location{Vestiging}+th+th))+tbody`) as { target: HTMLDivElement, first: HTMLTableElement, last: HTMLTableSectionElement };
     return {table, tbody};
 }
 

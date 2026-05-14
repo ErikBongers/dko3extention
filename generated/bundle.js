@@ -6395,7 +6395,7 @@ function wwwLesToJson(wwwLesDef) {
 	};
 }
 function createDiffTable(divResults, diffType) {
-	let { first: table, last: tbody } = emmet.appendChild(divResults, `table#orphans${diffType}.diff>(thead>tr>(th.subject{Vak/Lesnaam}+th.gradeYear{Gr.Jr}+th.teacher{Leraar}+th.day{Dag}+th.{Uur}+th.location{Vestiging}+th+th))+tbody`);
+	let { first: table, last: tbody } = emmet.appendChild(divResults, `table#orphans${diffType}.diff.diffOrphans>(thead>tr>(th.subject{Vak/Lesnaam}+th.gradeYear{Gr.Jr}+th.teacher{Leraar}+th.day{Dag}+th.{Uur}+th.location{Vestiging}+th+th))+tbody`);
 	return {
 		table,
 		tbody

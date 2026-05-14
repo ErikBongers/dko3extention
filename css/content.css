@@ -458,7 +458,7 @@ div.diffResults.hideNoTeacher {
     }
 }
 
-table.diff {
+table.diffOrphans {
     border-radius: 1ch;
     border-collapse: separate;
     &.hideChecked tr.ignore {
