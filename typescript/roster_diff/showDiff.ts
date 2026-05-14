@@ -3,14 +3,14 @@ import {emmet} from "../../libs/Emmeter/html";
 import {decorateTableHeader} from "../table/tableHeaders";
 import {DayUppercase} from "../lessen/scrape";
 import {DKO3_BASE_URL, OPTION_HIDE_IGNORED_DIFFS} from "../def";
-import {buildAndSaveDiff, createDiffTable, DataPreparationFunction, DiffType, Dko3DiffData, getDiffsFromCloud, getUrlForWorksheet, getWwwDiffsFromCloud, JsonBasicLesMoment, JsonDiff, JsonDiffs, prepareExcelData, prepareWwwData, setIgnoredFlags, Weight} from "./buildDiff";
+import {buildAndSaveDiff, createDiffTable, DataPreparationFunction, Dko3DiffData, getDiffsFromCloud, getUrlForWorksheet, getWwwDiffsFromCloud, JsonBasicLesMoment, JsonDiff, JsonDiffs, prepareExcelData, prepareWwwData, setIgnoredFlags} from "./buildDiff";
 import {fetchDiffSettings, uploadIgnoredDiffHashes} from "../cloud";
 import {InfoBarTableFetchListener} from "../table/loadAnyTable";
 import {createInfoBlock} from "../infoBlock";
 import {defaultIgnoreList, defaultTagDefs, DiffSettings} from "./diffSettings";
 import { options } from "../plugin_options/options";
-import { GradeYear } from "./excelRoster";
 import {buildWwwDiff, OtherLesType} from "../www_diff/buildDiff";
+import {DiffType, GradeYear, Weight} from "./calcDiff";
 
 export async function fetchDiffSettingsOrDefault(academie: string, schoolYear: string) {
     let settings: DiffSettings | undefined;

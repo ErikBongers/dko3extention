@@ -1642,7 +1642,224 @@ var RosterFactory = class RosterFactory {
 };
 
 //#endregion
-//#region typescript/roster_diff/excelRoster.ts
+//#region typescript/roster_diff/calcDiff.ts
+var Dko3LesMoment = class Dko3LesMoment {
+	les;
+	lesMomenten = [];
+	dayTimeSlice;
+	momentId;
+	ignore;
+	constructor(les, dayTimeSlice) {
+		this.les = les;
+		this.dayTimeSlice = dayTimeSlice;
+		this.momentId = Dko3LesMoment.createLesMomentId(les, dayTimeSlice);
+	}
+	static createLesMomentId(les, dayTimeSlice) {
+		return les.id + "_" + DayTimeSlice.toString(dayTimeSlice);
+	}
+	getHash() {
+		return Les.getHash(this.les) + DayTimeSlice.toString(this.dayTimeSlice);
+	}
+};
+var TaggedLes = class {
+	lesMoment;
+	tags = [];
+	searchText;
+	location;
+	teachers;
+	subjects;
+	ignore;
+	gradeYears;
+	constructor(les, tags, searchText) {
+		this.lesMoment = les;
+		this.tags = tags;
+		this.searchText = searchText;
+	}
+	getHash() {
+		return this.lesMoment.getHash();
+	}
+};
+var TaggedDko3LesMoment = class extends TaggedLes {
+	constructor(lesMoment) {
+		let searchText = "";
+		let tags = [];
+		super(lesMoment, tags, searchText);
+		this.location = this.lesMoment.les.vestiging;
+		this.teachers = [this.lesMoment.les.teacher.replaceAll(/ \(en nog \d\)/g, "")].filter((t) => t != "");
+		this.subjects = this.lesMoment.les.vakNaam.split("+").map((txt) => txt.trim());
+		this.subjects.push(lesMoment.les.naam);
+		this.subjects = this.subjects.filter((s) => s);
+		this.gradeYears = lesMoment.les.gradeYears;
+	}
+};
+var Weight = class {
+	weight = 1e3;
+	diffTeacher = false;
+	diffSubject = false;
+	diffLocation = false;
+	diffDayTime = false;
+	diffGradeYears = 0;
+	calcWeight() {
+		this.weight = 1e3;
+		if (this.diffSubject) this.weight -= 10;
+		if (this.diffDayTime) this.weight -= 10;
+		if (this.diffLocation) this.weight -= 10;
+		if (this.diffTeacher) this.weight -= 10;
+		this.weight -= this.diffGradeYears;
+	}
+};
+let LesType$1 = /* @__PURE__ */ function(LesType$2) {
+	LesType$2["modules"] = "3";
+	LesType$2["gewone"] = "1";
+	LesType$2["alias"] = "4";
+	return LesType$2;
+}({});
+function matchIt(ctx, dko3LesSet, otherLesSet, diffType, matchFunction) {
+	let diffs = [];
+	for (let dko3Les of dko3LesSet) {
+		let result = matchFunction(ctx, dko3Les, otherLesSet);
+		if (result) {
+			diffs.push({
+				otherLes: result.otherLes,
+				dko3Les,
+				diffType,
+				weight: result.weight
+			});
+			dko3LesSet.delete(dko3Les);
+			otherLesSet.delete(result.otherLes);
+		}
+	}
+	return diffs;
+}
+function weigh1000(dko3Les, otherLes, otherTeachersForSameLesName) {
+	let weight = new Weight();
+	weight.diffSubject = !dko3Les.subjects.some((t) => otherLes.subjects.includes(t));
+	weight.diffDayTime = !DayTimeSlice.equal(dko3Les.lesMoment.dayTimeSlice, otherLes.dayTimeSlice);
+	weight.diffLocation = dko3Les.location != otherLes.location;
+	let otherTeachers = otherLes.teachers;
+	if (otherTeachersForSameLesName) otherTeachers = otherTeachersForSameLesName;
+	weight.diffTeacher = !dko3Les.teachers.every((t) => otherTeachers.includes(t));
+	if (!weight.diffTeacher) weight.diffTeacher = !otherTeachers.every((t) => dko3Les.teachers.includes(t));
+	for (let otherGradeYear of otherLes.gradeYears) if (!dko3GradeYearsContain(dko3Les.gradeYears, otherGradeYear)) weight.diffGradeYears++;
+	if (otherLes.gradeYears.length != dko3Les.gradeYears.length) weight.diffGradeYears++;
+	weight.calcWeight();
+	return weight;
+}
+function createLesNamesMap(otherLesSet) {
+	let otherLesNamesMap = new Map();
+	for (let excelLes of otherLesSet) {
+		if (!excelLes.className) continue;
+		let item = otherLesNamesMap.get(excelLes.className.toLowerCase());
+		if (!item) otherLesNamesMap.set(excelLes.className.toLowerCase(), [excelLes]);
+		else item.push(excelLes);
+	}
+	return otherLesNamesMap;
+}
+function matchBasedOnName(ctx, dko3Les, otherLesSet) {
+	let results = [];
+	if (!ctx.otherLesNamesMap) ctx.otherLesNamesMap = createLesNamesMap(otherLesSet);
+	let otherLessenWithSameName = ctx.otherLesNamesMap.get(dko3Les.lesMoment.les.naam.trim().toLowerCase());
+	if (!otherLessenWithSameName) return null;
+	if (dko3Les.lesMoment.lesMomenten.length > 1) {
+		for (let otherLes of otherLessenWithSameName) {
+			let weight = weigh1000(dko3Les, otherLes, otherLessenWithSameName.map((l) => l.teachers).flat());
+			results.push({
+				otherLes,
+				weight
+			});
+		}
+		results.sort((a, b) => b.weight.weight - a.weight.weight);
+		return results[0];
+	}
+	for (let otherLes of otherLessenWithSameName) {
+		let weight = weigh1000(dko3Les, otherLes);
+		results.push({
+			otherLes,
+			weight
+		});
+	}
+	results.sort((a, b) => b.weight.weight - a.weight.weight);
+	return results[0];
+}
+function perfectMatch(ctx, dko3Les, otherLesSet) {
+	for (let excelLes of otherLesSet) {
+		let weight = weigh1000(dko3Les, excelLes, void 0);
+		if (weight.weight == 1e3) return {
+			otherLes: excelLes,
+			weight
+		};
+	}
+	return null;
+}
+function matchWithoutGradeYears(ctx, dko3Les, otherLesSet) {
+	for (let excelLes of otherLesSet) {
+		let weight = weigh1000(dko3Les, excelLes, void 0);
+		if (weight.diffSubject) continue;
+		if (weight.diffDayTime) continue;
+		if (weight.diffLocation) continue;
+		if (weight.diffTeacher) continue;
+		return {
+			otherLes: excelLes,
+			weight
+		};
+	}
+	return null;
+}
+function matchWithoutLocation(ctx, dko3Les, otherLesSet) {
+	for (let excelLes of otherLesSet) {
+		let weight = weigh1000(dko3Les, excelLes, void 0);
+		if (weight.diffSubject) continue;
+		if (weight.diffDayTime) continue;
+		if (weight.diffTeacher) continue;
+		if (weight.diffGradeYears != 0) continue;
+		return {
+			otherLes: excelLes,
+			weight
+		};
+	}
+	return null;
+}
+function matchWithoutTimeAndDay(ctx, dko3Les, otherLesSet) {
+	for (let excelLes of otherLesSet) {
+		let weight = weigh1000(dko3Les, excelLes, void 0);
+		if (weight.diffSubject) continue;
+		if (weight.diffLocation) continue;
+		if (weight.diffTeacher) continue;
+		if (weight.diffGradeYears != 0) continue;
+		return {
+			otherLes: excelLes,
+			weight
+		};
+	}
+	return null;
+}
+function matchWithoutTeacherTimeAndDay(ctx, dko3Les, otherLesSet) {
+	for (let excelLes of otherLesSet) {
+		let weight = weigh1000(dko3Les, excelLes, void 0);
+		if (weight.diffSubject) continue;
+		if (weight.diffLocation) continue;
+		if (weight.diffGradeYears != 0) continue;
+		return {
+			otherLes: excelLes,
+			weight
+		};
+	}
+	return null;
+}
+function matchWithoutTeacher(ctx, dko3Les, otherLesSet) {
+	for (let excelLes of otherLesSet) {
+		let weight = weigh1000(dko3Les, excelLes, void 0);
+		if (weight.diffSubject) continue;
+		if (weight.diffDayTime) continue;
+		if (weight.diffLocation) continue;
+		if (weight.diffGradeYears != 0) continue;
+		return {
+			otherLes: excelLes,
+			weight
+		};
+	}
+	return null;
+}
 var GradeYear = class {
 	grade;
 	year;
@@ -1667,6 +1884,13 @@ var GradeYear = class {
 		return str;
 	}
 };
+function dko3GradeYearsContain(dko3GradeYears, otherGradeYear) {
+	for (let dko3GradeYear of dko3GradeYears) if (GradeYear.matches(otherGradeYear, dko3GradeYear)) return true;
+	return false;
+}
+
+//#endregion
+//#region typescript/roster_diff/excelRoster.ts
 var ClassDef = class {
 	day;
 	teacher;
@@ -2002,7 +2226,7 @@ function scrapeModules(table, jaarToewijzingTable) {
 	};
 }
 function scrapeTrimesterModules(lessen) {
-	let modules = lessen.filter((les) => les.les.lesType === LesType$1.TrimesterModule);
+	let modules = lessen.filter((les) => les.les.lesType === LesType.TrimesterModule);
 	let trimesterModules = [];
 	for (let module of modules) {
 		module.les.students = scrapeStudents(module.studentsTable);
@@ -2019,7 +2243,7 @@ function scrapeTrimesterModules(lessen) {
 	return trimesterModules;
 }
 function scrapeJaarModules(lessen) {
-	let modules = lessen.filter((les) => les.les.lesType === LesType$1.JaarModule);
+	let modules = lessen.filter((les) => les.les.lesType === LesType.JaarModule);
 	let jaarModules = [];
 	for (let module of modules) {
 		module.les.students = scrapeStudents(module.studentsTable);
@@ -2061,7 +2285,7 @@ function scrapeStudents(studentTable) {
 	}
 	return students;
 }
-let LesType$1 = /* @__PURE__ */ function(LesType$2) {
+let LesType = /* @__PURE__ */ function(LesType$2) {
 	LesType$2[LesType$2["TrimesterModule"] = 0] = "TrimesterModule";
 	LesType$2[LesType$2["JaarModule"] = 1] = "JaarModule";
 	LesType$2[LesType$2["Les"] = 2] = "Les";
@@ -2140,10 +2364,10 @@ function scrapeLesInfo(row) {
 		if (el.tagName == "SPAN") lesName = el.textContent;
 	}
 	les.naam = lesName.replaceAll("(", "").replaceAll(")", "").trim();
-	if (Array.from(allBadges).some((el) => el.textContent === "module")) if (les.naam.includes("jaar")) les.lesType = LesType$1.JaarModule;
-	else if (les.naam.includes("rimester")) les.lesType = LesType$1.TrimesterModule;
-	else les.lesType = LesType$1.UnknownModule;
-	else les.lesType = LesType$1.Les;
+	if (Array.from(allBadges).some((el) => el.textContent === "module")) if (les.naam.includes("jaar")) les.lesType = LesType.JaarModule;
+	else if (les.naam.includes("rimester")) les.lesType = LesType.TrimesterModule;
+	else les.lesType = LesType.UnknownModule;
+	else les.lesType = LesType.Les;
 	if (mutedSpans.length > 0) les.teacher = Array.from(mutedSpans).pop().textContent;
 	les.teacher = les.teacher.replaceAll("  ", " ").replaceAll(" ,", ",").trim();
 	if (les.teacher == "(geen klasleerkracht)") les.teacher = "";
@@ -2393,7 +2617,7 @@ function buildTrimesters(instrumentTeacherMomentModules) {
 		[],
 		[]
 	];
-	instrumentTeacherMomentModules.filter((module) => module.lesType === LesType$1.TrimesterModule).forEach((module) => {
+	instrumentTeacherMomentModules.filter((module) => module.lesType === LesType.TrimesterModule).forEach((module) => {
 		mergedInstrument[module.trimesterNo - 1].push(module);
 	});
 	return mergedInstrument;
@@ -2485,7 +2709,7 @@ function buildTableData(inputModules) {
 					};
 				});
 				block.trimesters = buildTrimesters(instrumentTeacherMomentModules);
-				block.jaarModules = instrumentTeacherMomentModules.filter((module) => module.lesType === LesType$1.JaarModule);
+				block.jaarModules = instrumentTeacherMomentModules.filter((module) => module.lesType === LesType.JaarModule);
 				block.offline = instrumentTeacherMomentModules.some((module) => !module.online);
 				block.checkBlockForErrors();
 				tableData.blocks.push(block);
@@ -2619,7 +2843,7 @@ function mergeBlockStudents(block) {
 function createLesFromToewijzing(instrument, toewijzing) {
 	let les = new Les();
 	les.id = "";
-	les.lesType = LesType$1.JaarModule;
+	les.lesType = LesType.JaarModule;
 	les.instrumentName = instrument;
 	if (toewijzing.klasleerkracht == "") les.teacher = `toe te wijzen lk ${instrument}`;
 	else les.teacher = toewijzing.klasleerkracht;
@@ -5725,7 +5949,7 @@ async function getDko3Data(schoolYear, reportStatus, fetchListener) {
 	for (let teacher of teachers) for (let callDef of ExcelRoster.callNames) if (teacher.name == callDef.tag) teacher.callName = callDef.searchString;
 	let lessen = (await scrapeAllNormalLessen(schoolYear, reportStatus)).map((l) => l.les);
 	reportStatus("Ophalen aliaslessen...");
-	let dko3AliasLessen = (await scrapeLessen(Domein.Woord, LesType.alias, schoolYear)).map((l) => l.les);
+	let dko3AliasLessen = (await scrapeLessen(Domein.Woord, LesType$1.alias, schoolYear)).map((l) => l.les);
 	for (let les of dko3AliasLessen) les.linkedLessenIds = await getAliassesForLes(les.id, reportStatus);
 	dko3AliasLessen = dko3AliasLessen.filter((l) => l.linkedLessenIds.length > 1);
 	let subjects = lessen.map((les) => [les.vakNaam, les.naam]).flat();
@@ -5743,23 +5967,17 @@ async function getDko3Data(schoolYear, reportStatus, fetchListener) {
 }
 async function scrapeAllNormalLessen(schoolYear, reportStatus) {
 	reportStatus("Ophalen woordlessen...");
-	let dko3Lessen = await scrapeLessen(Domein.Woord, LesType.gewone, schoolYear);
+	let dko3Lessen = await scrapeLessen(Domein.Woord, LesType$1.gewone, schoolYear);
 	reportStatus("Ophalen muzieklessen...");
-	let muziekLessen = await scrapeLessen(Domein.Muziek, LesType.gewone, schoolYear);
+	let muziekLessen = await scrapeLessen(Domein.Muziek, LesType$1.gewone, schoolYear);
 	reportStatus("Ophalen kunstenbad lessen...");
-	let kbLessen = await scrapeLessen(Domein.DomeinOV, LesType.gewone, schoolYear);
+	let kbLessen = await scrapeLessen(Domein.DomeinOV, LesType$1.gewone, schoolYear);
 	return [
 		...dko3Lessen,
 		...muziekLessen,
 		...kbLessen
 	];
 }
-var LesType = /* @__PURE__ */ function(LesType$2) {
-	LesType$2["modules"] = "3";
-	LesType$2["gewone"] = "1";
-	LesType$2["alias"] = "4";
-	return LesType$2;
-}(LesType || {});
 var Domein = /* @__PURE__ */ function(Domein$2) {
 	Domein$2["Muziek"] = "3";
 	Domein$2["Woord"] = "4";
@@ -5791,71 +6009,6 @@ async function scrapeLessen(domein, type, schoolYear) {
 	let table = div.querySelector("#" + LESSEN_TABLE_ID);
 	return scrapeLessenOverzicht(table);
 }
-var Dko3LesMoment = class Dko3LesMoment {
-	les;
-	lesMomenten = [];
-	dayTimeSlice;
-	momentId;
-	ignore;
-	constructor(les, dayTimeSlice) {
-		this.les = les;
-		this.dayTimeSlice = dayTimeSlice;
-		this.momentId = Dko3LesMoment.createLesMomentId(les, dayTimeSlice);
-	}
-	static createLesMomentId(les, dayTimeSlice) {
-		return les.id + "_" + DayTimeSlice.toString(dayTimeSlice);
-	}
-	getHash() {
-		return Les.getHash(this.les) + DayTimeSlice.toString(this.dayTimeSlice);
-	}
-};
-var TaggedLes = class {
-	lesMoment;
-	tags = [];
-	searchText;
-	location;
-	teachers;
-	subjects;
-	ignore;
-	gradeYears;
-	constructor(les, tags, searchText) {
-		this.lesMoment = les;
-		this.tags = tags;
-		this.searchText = searchText;
-	}
-	getHash() {
-		return this.lesMoment.getHash();
-	}
-};
-var TaggedDko3LesMoment = class extends TaggedLes {
-	constructor(lesMoment) {
-		let searchText = "";
-		let tags = [];
-		super(lesMoment, tags, searchText);
-		this.location = this.lesMoment.les.vestiging;
-		this.teachers = [this.lesMoment.les.teacher.replaceAll(/ \(en nog \d\)/g, "")].filter((t) => t != "");
-		this.subjects = this.lesMoment.les.vakNaam.split("+").map((txt) => txt.trim());
-		this.subjects.push(lesMoment.les.naam);
-		this.subjects = this.subjects.filter((s) => s);
-		this.gradeYears = lesMoment.les.gradeYears;
-	}
-};
-var Weight = class {
-	weight = 1e3;
-	diffTeacher = false;
-	diffSubject = false;
-	diffLocation = false;
-	diffDayTime = false;
-	diffGradeYears = 0;
-	calcWeight() {
-		this.weight = 1e3;
-		if (this.diffSubject) this.weight -= 10;
-		if (this.diffDayTime) this.weight -= 10;
-		if (this.diffLocation) this.weight -= 10;
-		if (this.diffTeacher) this.weight -= 10;
-		this.weight -= this.diffGradeYears;
-	}
-};
 var TaggedExcelLes = class extends TaggedLes {
 	lesType = "excel";
 	className;
@@ -5997,156 +6150,6 @@ async function getAliassesForLes(lesId, reportStatus) {
 	let anchors = div.querySelectorAll("td > a");
 	if (anchors.length == 0) reportStatus(`ERROR: alias les ${lesId} heeft geen (geldige) gekoppelde lessen.`);
 	return [...anchors].map((a) => a.textContent.trim());
-}
-function matchIt(ctx, dko3LesSet, excelLesSet, diffType, matchFunction) {
-	let diffs = [];
-	for (let dko3Les of dko3LesSet) {
-		let result = matchFunction(ctx, dko3Les, excelLesSet);
-		if (result) {
-			diffs.push({
-				otherLes: result.otherLes,
-				dko3Les,
-				diffType,
-				weight: result.weight
-			});
-			dko3LesSet.delete(dko3Les);
-			excelLesSet.delete(result.otherLes);
-		}
-	}
-	return diffs;
-}
-function dko3GradeYearsContain(dko3GradeYears, excelGradeYear) {
-	for (let dko3GradeYear of dko3GradeYears) if (GradeYear.matches(excelGradeYear, dko3GradeYear)) return true;
-	return false;
-}
-function weigh1000(dko3Les, otherLes, otherTeachersForSameLesName) {
-	let weight = new Weight();
-	weight.diffSubject = !dko3Les.subjects.some((t) => otherLes.subjects.includes(t));
-	weight.diffDayTime = !DayTimeSlice.equal(dko3Les.lesMoment.dayTimeSlice, otherLes.dayTimeSlice);
-	weight.diffLocation = dko3Les.location != otherLes.location;
-	let excelTeachers = otherLes.teachers;
-	if (otherTeachersForSameLesName) excelTeachers = otherTeachersForSameLesName;
-	weight.diffTeacher = !dko3Les.teachers.every((t) => excelTeachers.includes(t));
-	if (!weight.diffTeacher) weight.diffTeacher = !excelTeachers.every((t) => dko3Les.teachers.includes(t));
-	for (let excelGradeYear of otherLes.gradeYears) if (!dko3GradeYearsContain(dko3Les.gradeYears, excelGradeYear)) weight.diffGradeYears++;
-	if (otherLes.gradeYears.length != dko3Les.gradeYears.length) weight.diffGradeYears++;
-	weight.calcWeight();
-	return weight;
-}
-function createLesNamesMap(excelLesSet) {
-	let excelLesNamesMap = new Map();
-	for (let excelLes of excelLesSet) {
-		if (!excelLes.className) continue;
-		let item = excelLesNamesMap.get(excelLes.className.toLowerCase());
-		if (!item) excelLesNamesMap.set(excelLes.className.toLowerCase(), [excelLes]);
-		else item.push(excelLes);
-	}
-	return excelLesNamesMap;
-}
-function matchBasedOnName(ctx, dko3Les, otherLesSet) {
-	let results = [];
-	if (!ctx.otherLesNamesMap) ctx.otherLesNamesMap = createLesNamesMap(otherLesSet);
-	let otherLessenWithSameName = ctx.otherLesNamesMap.get(dko3Les.lesMoment.les.naam.trim().toLowerCase());
-	if (!otherLessenWithSameName) return null;
-	if (dko3Les.lesMoment.lesMomenten.length > 1) {
-		for (let otherLes of otherLessenWithSameName) {
-			let weight = weigh1000(dko3Les, otherLes, otherLessenWithSameName.map((l) => l.teachers).flat());
-			results.push({
-				otherLes,
-				weight
-			});
-		}
-		results.sort((a, b) => b.weight.weight - a.weight.weight);
-		return results[0];
-	}
-	for (let otherLes of otherLessenWithSameName) {
-		let weight = weigh1000(dko3Les, otherLes);
-		results.push({
-			otherLes,
-			weight
-		});
-	}
-	results.sort((a, b) => b.weight.weight - a.weight.weight);
-	return results[0];
-}
-function perfectMatch(ctx, dko3Les, otherLesSet) {
-	for (let excelLes of otherLesSet) {
-		let weight = weigh1000(dko3Les, excelLes, void 0);
-		if (weight.weight == 1e3) return {
-			otherLes: excelLes,
-			weight
-		};
-	}
-	return null;
-}
-function matchWithoutGradeYears(ctx, dko3Les, otherLesSet) {
-	for (let excelLes of otherLesSet) {
-		let weight = weigh1000(dko3Les, excelLes, void 0);
-		if (weight.diffSubject) continue;
-		if (weight.diffDayTime) continue;
-		if (weight.diffLocation) continue;
-		if (weight.diffTeacher) continue;
-		return {
-			otherLes: excelLes,
-			weight
-		};
-	}
-	return null;
-}
-function matchWithoutLocation(ctx, dko3Les, otherLesSet) {
-	for (let excelLes of otherLesSet) {
-		let weight = weigh1000(dko3Les, excelLes, void 0);
-		if (weight.diffSubject) continue;
-		if (weight.diffDayTime) continue;
-		if (weight.diffTeacher) continue;
-		if (weight.diffGradeYears != 0) continue;
-		return {
-			otherLes: excelLes,
-			weight
-		};
-	}
-	return null;
-}
-function matchWithoutTimeAndDay(ctx, dko3Les, otherLesSet) {
-	for (let excelLes of otherLesSet) {
-		let weight = weigh1000(dko3Les, excelLes, void 0);
-		if (weight.diffSubject) continue;
-		if (weight.diffLocation) continue;
-		if (weight.diffTeacher) continue;
-		if (weight.diffGradeYears != 0) continue;
-		return {
-			otherLes: excelLes,
-			weight
-		};
-	}
-	return null;
-}
-function matchWithoutTeacherTimeAndDay(ctx, dko3Les, otherLesSet) {
-	for (let excelLes of otherLesSet) {
-		let weight = weigh1000(dko3Les, excelLes, void 0);
-		if (weight.diffSubject) continue;
-		if (weight.diffLocation) continue;
-		if (weight.diffGradeYears != 0) continue;
-		return {
-			otherLes: excelLes,
-			weight
-		};
-	}
-	return null;
-}
-function matchWithoutTeacher(ctx, dko3Les, otherLesSet) {
-	for (let excelLes of otherLesSet) {
-		let weight = weigh1000(dko3Les, excelLes, void 0);
-		if (weight.diffSubject) continue;
-		if (weight.diffDayTime) continue;
-		if (weight.diffLocation) continue;
-		if (weight.diffGradeYears != 0) continue;
-		return {
-			otherLes: excelLes,
-			weight
-		};
-	}
-	return null;
 }
 async function fetchTeachers(schoolYear) {
 	await fetch(DKO3_BASE_URL + "#personeel-personeelsleden");
@@ -6333,6 +6336,111 @@ async function getUrlForWorksheet(workBook, workSheet, cellAddress, academie, sc
 }
 
 //#endregion
+//#region typescript/les/observer.ts
+var LesObserver = class extends HashObserver {
+	constructor() {
+		super("#lessen-les", onMutation$5);
+	}
+	isPageReallyLoaded() {
+		return document.querySelectorAll("#les_leerlingen_leerlingen > span").length > 0;
+	}
+};
+var observer_default$7 = new LesObserver();
+function onMutation$5(mutation) {
+	let tabLeerlingen = document.getElementById("les_leerlingen_leerlingen");
+	if (mutation.target === tabLeerlingen) {
+		onLeerlingenChanged();
+		return true;
+	}
+	let titleHeader = document.getElementById("vh_header_lessen_les_left_title");
+	if (titleHeader && !titleHeader.classList.contains("diffSearched")) {
+		titleHeader.classList.add("diffSearched");
+		let academie = localStorage.getItem("diffLastAcademie");
+		let schoolYear = localStorage.getItem("diffLastSchoolYear");
+		if (academie && schoolYear) addDiff(titleHeader, academie, schoolYear, "excel").then((r) => {});
+	}
+	return false;
+}
+function onLeerlingenChanged() {
+	console.log("Les-Leerlingen changed.");
+	addSortVoornaamLink();
+}
+function addSortVoornaamLink() {
+	try {
+		let headerSpans = document.querySelectorAll("#les_leerlingen_leerlingen > span");
+		let sortSpan = Array.from(headerSpans).find((value) => value.textContent.includes("gesorteerd op:"));
+		let graadEnNaam = Array.from(sortSpan.querySelectorAll("a")).find((anchor) => anchor.textContent === "graad en naam");
+		const SORT_VOORNAAM_ID = "dko_plugin_sortVoornaam";
+		if (document.getElementById(SORT_VOORNAAM_ID)) return;
+		let anchorSortVoornaam = document.createElement("a");
+		anchorSortVoornaam.id = SORT_VOORNAAM_ID;
+		anchorSortVoornaam.href = "#";
+		anchorSortVoornaam.innerText = "voornaam";
+		anchorSortVoornaam.classList.add("text-muted");
+		anchorSortVoornaam.onclick = onSortVoornaam;
+		sortSpan.insertBefore(anchorSortVoornaam, graadEnNaam);
+		sortSpan.insertBefore(document.createTextNode(" | "), graadEnNaam);
+	} catch (e) {}
+}
+function onSortVoornaam(event) {
+	sortVoornaam(event);
+	switchNaamVoornaam(event);
+	return false;
+}
+function sortVoornaam(event) {
+	let rows = Array.from(document.querySelectorAll("#les_leerlingen_leerlingen > table > tbody > tr"));
+	rows.sort((tr1, tr2) => {
+		let name1 = tr1.querySelector("td > strong").textContent;
+		let name2 = tr2.querySelector("td > strong").textContent;
+		let voornaam1 = name1.split(",").pop();
+		let voornaam2 = name2.split(",").pop();
+		return voornaam1.localeCompare(voornaam2);
+	});
+	let table = document.querySelector("#les_leerlingen_leerlingen > table");
+	rows.forEach((row) => table.tBodies[0].appendChild(row));
+	Array.from(document.querySelectorAll("#les_leerlingen_leerlingen > span > a")).forEach((a) => a.classList.add("text-muted"));
+	event.target.classList.remove("text-muted");
+}
+function switchNaamVoornaam(_event) {
+	let rows = Array.from(document.querySelectorAll("#les_leerlingen_leerlingen > table > tbody > tr"));
+	rows.forEach((tr) => {
+		let strong = tr.querySelector("td > strong");
+		let name = strong.textContent;
+		let split = name.split(",");
+		let voornaam = split.pop() ?? "";
+		let naam = split.pop() ?? "";
+		strong.textContent = voornaam + " " + naam;
+	});
+}
+function getDiffsLocalFirst(academie, schoolYear, diffType) {
+	let fileName = getDiffsCloudFileName(academie, schoolYear, diffType);
+	let jsonDiff = sessionStorage.getItem(fileName);
+	if (jsonDiff) return JSON.parse(jsonDiff);
+	return getDiffsFromCloud(academie, schoolYear, diffType);
+}
+async function addDiff(titleHeader, academie, schoolYear, diffType) {
+	let divDiff = document.querySelector("div.diff");
+	if (divDiff) return;
+	divDiff = emmet.insertAfter(titleHeader, "div.diff").first;
+	let diffs = await getDiffsLocalFirst(academie, schoolYear, diffType);
+	if (!diffs) return;
+	let rxId = /id=(\d+)/g;
+	let matches = rxId.exec(document.location.href);
+	let lesId = matches[1];
+	let diff = diffs.diffs.find((diff$1) => diff$1.dko3Les.lesId == lesId);
+	if (diff) {
+		let tbody = emmet.appendChild(divDiff, "table.diff>tbody").last;
+		let tr = emmet.appendChild(tbody, "tr").last;
+		fillOtherDiffRow(tr, diff, academie, schoolYear);
+		return;
+	}
+}
+
+//#endregion
+//#region typescript/notifications/checks.ts
+async function checkChecks() {}
+
+//#endregion
 //#region typescript/startPage/diffPage.ts
 async function loadCombboxSchoolYearAndTrySelect(dirTree) {
 	if (!dirTree) dirTree = await getDiffDirStructure();
@@ -6496,111 +6604,6 @@ async function onMessage$1(request, _sender, sendResponse) {
 async function sendMessageToDiffSettings(action, data) {
 	return sendRequest(action, TabType.Main, TabType.DiffSettings, globalDiffSettingsTabId, data);
 }
-
-//#endregion
-//#region typescript/les/observer.ts
-var LesObserver = class extends HashObserver {
-	constructor() {
-		super("#lessen-les", onMutation$5);
-	}
-	isPageReallyLoaded() {
-		return document.querySelectorAll("#les_leerlingen_leerlingen > span").length > 0;
-	}
-};
-var observer_default$7 = new LesObserver();
-function onMutation$5(mutation) {
-	let tabLeerlingen = document.getElementById("les_leerlingen_leerlingen");
-	if (mutation.target === tabLeerlingen) {
-		onLeerlingenChanged();
-		return true;
-	}
-	let titleHeader = document.getElementById("vh_header_lessen_les_left_title");
-	if (titleHeader && !titleHeader.classList.contains("diffSearched")) {
-		titleHeader.classList.add("diffSearched");
-		let academie = localStorage.getItem("diffLastAcademie");
-		let schoolYear = localStorage.getItem("diffLastSchoolYear");
-		if (academie && schoolYear) addDiff(titleHeader, academie, schoolYear, "excel").then((r) => {});
-	}
-	return false;
-}
-function onLeerlingenChanged() {
-	console.log("Les-Leerlingen changed.");
-	addSortVoornaamLink();
-}
-function addSortVoornaamLink() {
-	try {
-		let headerSpans = document.querySelectorAll("#les_leerlingen_leerlingen > span");
-		let sortSpan = Array.from(headerSpans).find((value) => value.textContent.includes("gesorteerd op:"));
-		let graadEnNaam = Array.from(sortSpan.querySelectorAll("a")).find((anchor) => anchor.textContent === "graad en naam");
-		const SORT_VOORNAAM_ID = "dko_plugin_sortVoornaam";
-		if (document.getElementById(SORT_VOORNAAM_ID)) return;
-		let anchorSortVoornaam = document.createElement("a");
-		anchorSortVoornaam.id = SORT_VOORNAAM_ID;
-		anchorSortVoornaam.href = "#";
-		anchorSortVoornaam.innerText = "voornaam";
-		anchorSortVoornaam.classList.add("text-muted");
-		anchorSortVoornaam.onclick = onSortVoornaam;
-		sortSpan.insertBefore(anchorSortVoornaam, graadEnNaam);
-		sortSpan.insertBefore(document.createTextNode(" | "), graadEnNaam);
-	} catch (e) {}
-}
-function onSortVoornaam(event) {
-	sortVoornaam(event);
-	switchNaamVoornaam(event);
-	return false;
-}
-function sortVoornaam(event) {
-	let rows = Array.from(document.querySelectorAll("#les_leerlingen_leerlingen > table > tbody > tr"));
-	rows.sort((tr1, tr2) => {
-		let name1 = tr1.querySelector("td > strong").textContent;
-		let name2 = tr2.querySelector("td > strong").textContent;
-		let voornaam1 = name1.split(",").pop();
-		let voornaam2 = name2.split(",").pop();
-		return voornaam1.localeCompare(voornaam2);
-	});
-	let table = document.querySelector("#les_leerlingen_leerlingen > table");
-	rows.forEach((row) => table.tBodies[0].appendChild(row));
-	Array.from(document.querySelectorAll("#les_leerlingen_leerlingen > span > a")).forEach((a) => a.classList.add("text-muted"));
-	event.target.classList.remove("text-muted");
-}
-function switchNaamVoornaam(_event) {
-	let rows = Array.from(document.querySelectorAll("#les_leerlingen_leerlingen > table > tbody > tr"));
-	rows.forEach((tr) => {
-		let strong = tr.querySelector("td > strong");
-		let name = strong.textContent;
-		let split = name.split(",");
-		let voornaam = split.pop() ?? "";
-		let naam = split.pop() ?? "";
-		strong.textContent = voornaam + " " + naam;
-	});
-}
-function getDiffsLocalFirst(academie, schoolYear, diffType) {
-	let fileName = getDiffsCloudFileName(academie, schoolYear, diffType);
-	let jsonDiff = sessionStorage.getItem(fileName);
-	if (jsonDiff) return JSON.parse(jsonDiff);
-	return getDiffsFromCloud(academie, schoolYear, diffType);
-}
-async function addDiff(titleHeader, academie, schoolYear, diffType) {
-	let divDiff = document.querySelector("div.diff");
-	if (divDiff) return;
-	divDiff = emmet.insertAfter(titleHeader, "div.diff").first;
-	let diffs = await getDiffsLocalFirst(academie, schoolYear, diffType);
-	if (!diffs) return;
-	let rxId = /id=(\d+)/g;
-	let matches = rxId.exec(document.location.href);
-	let lesId = matches[1];
-	let diff = diffs.diffs.find((diff$1) => diff$1.dko3Les.lesId == lesId);
-	if (diff) {
-		let tbody = emmet.appendChild(divDiff, "table.diff>tbody").last;
-		let tr = emmet.appendChild(tbody, "tr").last;
-		fillOtherDiffRow(tr, diff, academie, schoolYear);
-		return;
-	}
-}
-
-//#endregion
-//#region typescript/notifications/checks.ts
-async function checkChecks() {}
 
 //#endregion
 //#region typescript/startPage/snapshots.ts

@@ -33,13 +33,6 @@ function onMutation(mutation: MutationRecord) {
     return false;
 }
 
-async function scrapeDiffsAcademieAndSchoolYear() {
-    let dirs = await getDiffDirStructure();
-    let academieFolder = getDiffMyAcademieFolder(dirs);
-    let schoolYear = Schoolyear.findInPage();
-    return {academieFolder, schoolYear};
-}
-
 function onLeerlingenChanged() {
     console.log("Les-Leerlingen changed.")
     addSortVoornaamLink();

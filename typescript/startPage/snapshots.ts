@@ -4,8 +4,8 @@ import {getUserAndSchoolName, Schoolyear, SlidingWindow} from "../globals";
 import {cloud, fetchFolderContent, FileChangedInfo} from "../cloud";
 import {Les} from "../lessen/scrape";
 import {StatusCallback} from "../roster_diff/showDiff";
-import {GradeYear} from "../roster_diff/excelRoster";
 import {DKO3_BASE_URL} from "../def";
+import {GradeYear} from "../roster_diff/calcDiff";
 
 export async function setupSnapshotPage() {
     let pluginContainer = document.getElementById("plugin_container")!;
