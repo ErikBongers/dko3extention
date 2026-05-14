@@ -871,7 +871,7 @@ function setupMenu$1() {
 	let listItems = mainMenuUl.querySelectorAll("li");
 	let lastItem = listItems[listItems.length - 1];
 	let { last: dropdown } = emmet.insertBefore(lastItem, `li.nav-item.dropdown>a{ Plugin }.nav-link.dropdown-toggle[href="#" role="button" data-toggle="dropdown" aria-expanded="false"]>div.dropdown-menu`);
-	let menu1 = emmet.appendChild(dropdown, `a.dropdown-item.pointer[href=\"#"]{Vergelijk lessen met Excel uurroosters}`).first;
+	let menu1 = emmet.appendChild(dropdown, `a.dropdown-item.pointer[href=\"#"]{Vergelijk uurroosters}`).first;
 	menu1.onclick = () => {
 		gotoDiffPage();
 	};
@@ -975,7 +975,7 @@ function getHardCodedQueryItems() {
 	addQueryItem("Werklijst", "Lerarenuren " + Schoolyear.toShortString(Schoolyear.calculateCurrent()), "", gotoWerklijstUrenPrevYear);
 	addQueryItem("Werklijst", "Lerarenuren " + Schoolyear.toShortString(Schoolyear.calculateCurrent() + 1), "", gotoWerklijstUrenNextYear);
 	addQueryItem("Lessen", "Trimester modules", "", gotoTrimesterModules);
-	addQueryItem("Plugin", "Vergelijk lessen met Excel uurroosters", "", gotoDiffPage);
+	addQueryItem("Plugin", "Vergelijk uurroosters", "", gotoDiffPage);
 	addQueryItem("Plugin", "Lessen snapshots", "", gotoSnapshotPage);
 }
 document.body.addEventListener("keydown", showPowerQuery);
@@ -6460,6 +6460,27 @@ async function addDiff(titleHeader, academie, schoolYear, diffType) {
 async function checkChecks() {}
 
 //#endregion
+//#region typescript/tabs.ts
+function switchTab(btn) {
+	let tabId = btn.dataset.tabId;
+	let tabs = btn.parentElement;
+	tabs.querySelectorAll(".tab").forEach((tab) => {
+		tab.classList.add("notSelected");
+		document.getElementById(tab.dataset.tabId).style.display = "none";
+	});
+	btn.classList.remove("notSelected");
+	document.getElementById(tabId).style.display = "block";
+}
+function setupTabNavigation(beforeTabSwitch) {
+	let tabs = document.querySelector(".tabs");
+	switchTab(tabs.querySelector(".tab"));
+	document.querySelectorAll(".tabs > button.tab").forEach((btn) => btn.addEventListener("click", (ev) => {
+		let button = ev.currentTarget;
+		if (beforeTabSwitch?.(button, button.dataset.tabId) != "cancel") switchTab(ev.currentTarget);
+	}));
+}
+
+//#endregion
 //#region typescript/startPage/diffPage.ts
 async function loadCombboxSchoolYearAndTrySelect(dirTree) {
 	if (!dirTree) dirTree = await getDiffDirStructure();
@@ -6482,19 +6503,28 @@ async function loadCombboxSchoolYearAndTrySelect(dirTree) {
 async function setupDiffPage() {
 	let pluginContainer = document.getElementById("plugin_container");
 	emmet.appendChild(pluginContainer, `
-        div#diffsPage.mb-1>
-            div>(
-                h4{Verschillen tussen Excel uurroosters en DKO3 lessen.}+
+        div#diffsPage.mb-1>(
+            div.tabs>(
+                button#btnTabTagDefs.naked.hand.tab.notSelected[data-tab-id="tabExcelDiffs"]{Excel -> Dko3}+
+                button#btnTabIgnores.naked.hand.tab.notSelected[data-tab-id="tabWwwDiffs"]{Dko3 -> Www}
+            )+
+            div#tabExcelDiffs>(
+                h4{Verschillen in uurroosters}+
                 (
                     div#combosLoading{Gegevens laden...}+
                     select#cmbDiffAcademie+
                     select#cmbDiffSchoolYear+
                     button#btnCalcDiff.btn.btn-primary{Zoek verschillen}+
                     button#btnDiffSettings.btn.btn-outline-dark{Setup}+
-                    button#btnDiffWww.btn.btn-outline-dark{Verschillen website}
+                    button#btnDiffWww.btn.btn-outline-dark{Verschillen website}+
+                    div#infoContainerExcelDiffs
                 )
-            )
-                 `);
+            )+
+            div#tabWwwDiffs{todo}>
+                div#infoContainerWwwDiffs
+        )
+     `);
+	setupTabNavigation();
 	let btnCalcDiff = pluginContainer.querySelector("#btnCalcDiff");
 	let btnCalcDiffWww = pluginContainer.querySelector("#btnDiffWww");
 	let btnDiffSettings = pluginContainer.querySelector("#btnDiffSettings");
@@ -6507,7 +6537,9 @@ async function setupDiffPage() {
 	cmbDiffAcademie.value = myAcadFolderName;
 	let cmbDiffSchoolYear = document.querySelector("#cmbDiffSchoolYear");
 	if (await loadCombboxSchoolYearAndTrySelect(dirTree)) pluginContainer.classList.toggle("diffCombosLoaded", true);
-	let runStatus = emmet.insertAfter(btnCalcDiffWww, "div#runStatus").first;
+	let divInfoContainer = document.getElementById("infoContainerExcelDiffs");
+	let divInfoWrapper = emmet.appendChild(divInfoContainer, "div#infoWrapper").last;
+	let runStatus = emmet.appendChild(divInfoWrapper, "div#runStatus").first;
 	emmet.insertAfter(runStatus, "div#diffResults");
 	let divInfo = emmet.insertAfter(runStatus, "div#diffInfo").last;
 	let divError = emmet.insertAfter(divInfo, "div#diffErrors.errors").last;

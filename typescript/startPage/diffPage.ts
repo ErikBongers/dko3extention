@@ -6,6 +6,7 @@ import {DiffSettings} from "../roster_diff/diffSettings";
 import {Actions, sendRequest, ServiceRequest, TabType} from "../messaging";
 import MessageSender = chrome.runtime.MessageSender;
 import {OtherLesType} from "../www_diff/buildDiff";
+import {setupTabNavigation} from "../tabs";
 
 async function loadCombboxSchoolYearAndTrySelect(dirTree?: TreeNode): Promise<boolean> {
     if(!dirTree)
@@ -28,22 +29,37 @@ async function loadCombboxSchoolYearAndTrySelect(dirTree?: TreeNode): Promise<bo
     return false;
 }
 
+function onBeforeTabSwitch(): ("cancel" | "continue") {
+    console.log("Tab switch");
+    return "continue";
+}
+
 export async function setupDiffPage() {
     let pluginContainer = document.getElementById("plugin_container")!;
     emmet.appendChild(pluginContainer, `
-        div#diffsPage.mb-1>
-            div>(
-                h4{Verschillen tussen Excel uurroosters en DKO3 lessen.}+
+        div#diffsPage.mb-1>(
+            div.tabs>(
+                button#btnTabTagDefs.naked.hand.tab.notSelected[data-tab-id="tabExcelDiffs"]{Excel -> Dko3}+
+                button#btnTabIgnores.naked.hand.tab.notSelected[data-tab-id="tabWwwDiffs"]{Dko3 -> Www}
+            )+
+            div#tabExcelDiffs>(
+                h4{Verschillen in uurroosters}+
                 (
                     div#combosLoading{Gegevens laden...}+
                     select#cmbDiffAcademie+
                     select#cmbDiffSchoolYear+
                     button#btnCalcDiff.btn.btn-primary{Zoek verschillen}+
                     button#btnDiffSettings.btn.btn-outline-dark{Setup}+
-                    button#btnDiffWww.btn.btn-outline-dark{Verschillen website}
+                    button#btnDiffWww.btn.btn-outline-dark{Verschillen website}+
+                    div#infoContainerExcelDiffs
                 )
-            )
-                 `);
+            )+
+            div#tabWwwDiffs{todo}>
+                div#infoContainerWwwDiffs
+        )
+     `);
+    setupTabNavigation();
+    // setupTabNavigation(onBeforeTabSwitch);
     let btnCalcDiff = pluginContainer.querySelector("#btnCalcDiff")  as HTMLButtonElement;
     let btnCalcDiffWww = pluginContainer.querySelector("#btnDiffWww")  as HTMLButtonElement;
     let btnDiffSettings = pluginContainer.querySelector("#btnDiffSettings")  as HTMLButtonElement;
@@ -58,7 +74,10 @@ export async function setupDiffPage() {
     let cmbDiffSchoolYear = document.querySelector("#cmbDiffSchoolYear") as HTMLSelectElement;
     if(await loadCombboxSchoolYearAndTrySelect(dirTree))
         pluginContainer.classList.toggle("diffCombosLoaded", true);
-    let runStatus = emmet.insertAfter(btnCalcDiffWww, "div#runStatus").first as HTMLDivElement;
+
+    let divInfoContainer = document.getElementById("infoContainerExcelDiffs") as HTMLDivElement;
+    let divInfoWrapper = emmet.appendChild(divInfoContainer, "div#infoWrapper").last as HTMLDivElement;
+    let runStatus = emmet.appendChild(divInfoWrapper, "div#runStatus").first as HTMLDivElement;
     emmet.insertAfter(runStatus, "div#diffResults");
 
     let divInfo = emmet.insertAfter(runStatus, 'div#diffInfo').last as HTMLDivElement;

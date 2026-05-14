@@ -120,7 +120,7 @@ function getHardCodedQueryItems() {
     addQueryItem("Werklijst", "Lerarenuren " + Schoolyear.toShortString(Schoolyear.calculateCurrent()), "", gotoWerklijstUrenPrevYear);
     addQueryItem("Werklijst", "Lerarenuren " +Schoolyear.toShortString(Schoolyear.calculateCurrent()+1), "", gotoWerklijstUrenNextYear);
     addQueryItem("Lessen", "Trimester modules", "", gotoTrimesterModules);
-    addQueryItem("Plugin", "Vergelijk lessen met Excel uurroosters", "", gotoDiffPage);
+    addQueryItem("Plugin", "Vergelijk uurroosters", "", gotoDiffPage);
     addQueryItem("Plugin", "Lessen snapshots", "", gotoSnapshotPage);
 }
 

@@ -4,6 +4,7 @@ import * as def from "../def";
 import * as InputWithSpaces from "../webComponents/inputWithSpaces";
 import {DiffSettings, TagDef} from "./diffSettings";
 import {uploadDiffSettings} from "../cloud";
+import {setupTabNavigation} from "../tabs";
 
 let handler  = createMessageHandler(TabType.DiffSettings);
 
@@ -177,25 +178,8 @@ window.onbeforeunload = () => {
         onCheckTableChanged(globalSetup);
 }
 
-function switchTab(btn: HTMLButtonElement) {
-    let tabId = btn.dataset.tabId!;
-    let tabs = btn.parentElement!;
-    tabs.querySelectorAll(".tab")!.forEach((tab: HTMLElement) => {
-        tab.classList.add("notSelected");
-        document.getElementById(tab.dataset.tabId!)!.style.display = "none";
-    });
-    btn.classList.remove("notSelected");
-    document.getElementById(tabId)!.style.display = "block";
-}
-
 async function onDocumentLoaded(this: Document, _: Event) {
-    let tabs = document.querySelector(".tabs")!;
-    switchTab(tabs.querySelector(".tab")!);
-    document.querySelectorAll(".tabs > button.tab")
-        .forEach(btn => btn
-            .addEventListener("click", (ev) => {
-                switchTab(ev.currentTarget as HTMLButtonElement);
-            }));
+    setupTabNavigation();
     let params = new URLSearchParams(document.location.search);
     let schoolYear = params.get("schoolyear")!;
     let academie = params.get("academie")!;

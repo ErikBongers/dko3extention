@@ -4,6 +4,7 @@ import * as def from "./def";
 
 import {GradeYearDef, mapHourSettings, saveHourSettings, TeacherHoursSetup, TeacherHoursSetupMapped, TranslationDef} from "./werklijst/hoursSettings";
 import * as InputWithSpaces from "./webComponents/inputWithSpaces";
+import {switchTab} from "./tabs";
 
 let handler  = createMessageHandler(TabType.HoursSettings);
 
@@ -223,21 +224,10 @@ window.onbeforeunload = () => {
         onCheckTableChanged(globalSetup);
 }
 
-function switchTab(btn: HTMLButtonElement) {
-    let tabId = btn.dataset.tabId!;
-    let tabs = btn.parentElement!;
-    tabs.querySelectorAll(".tab")!.forEach((tab: HTMLElement) => {
-        tab.classList.add("notSelected");
-        document.getElementById(tab.dataset.tabId!)!.style.display = "none";
-    });
-    btn.classList.remove("notSelected");
-    document.getElementById(tabId)!.style.display = "block";
-}
-
 async function onDocumentLoaded(this: Document, _: Event) {
     let tabs = document.querySelector(".tabs")!;
     switchTab(tabs.querySelector(".tab")!);
-    document.querySelectorAll(".tabs > button.tab")
+    document.querySelectorAll(".tabs > button.tab") //todo: replace with general function and test.
         .forEach(btn => btn
             .addEventListener("click", (ev) => {
                 switch ((ev.target as HTMLElement).id) {
