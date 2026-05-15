@@ -29,9 +29,11 @@ function addTranslationRow(tagDef: TagDef, tbody: HTMLTableSectionElement) {
         + "+"
         + buildField("tag met", tagDef.tag, "trnsTag")
         + "+"
-        + buildField("graad", tagDef.grade??"", "trnsGrade")
+        + buildField("gr", tagDef.grade??"", "trnsGrade")
         + "+"
-        + buildField("jaar", tagDef.year?.toString()??"", "trnsYear")
+        + buildField("jr", tagDef.year?.toString()??"", "trnsYear")
+        + "+"
+        + buildField("gr+jaren", tagDef.gradeYears?.toString()??"", "trnsGradeYears")
     ;
     let tr = emmet.appendChild(tbody, text).first as HTMLTableRowElement;
     let bucket = `button.deleteRow.naked>img[src="${chrome.runtime.getURL("images/trash-can.svg")}"]`;
@@ -113,7 +115,8 @@ async function onData(request: ServiceRequest<any>) {
     document.getElementById('btnNewTranslationRow')!.addEventListener('click', function (_) {
         let def: TagDef = {
             tag: "",
-            searchString: ""
+            searchString: "",
+            gradeYears: "",
         }
         addTranslationRow(def, document.querySelector("#tagDefsContainer tbody")!);
         hasTableChanged = true;
@@ -141,11 +144,13 @@ function scrapeTagDefs(): TagDef[] {
         .map(row => {
             let grade= (row.querySelector("#trnsGrade") as InputWithSpaces.Type).value.trim();
             let year = (row.querySelector("#trnsYear") as InputWithSpaces.Type).value.trim();
+            let gradeYears = (row.querySelector("#trnsGradeYears") as InputWithSpaces.Type).value.trim();
             return {
                 searchString: (row.querySelector("#trnsFind") as InputWithSpaces.Type).value.toLowerCase(),
                 tag: (row.querySelector("#trnsTag") as InputWithSpaces.Type).value,
                 grade,
                 year: parseInt(year), //todo: gracefull error when parsing number...or make field a string?
+                gradeYears,
             }
         });
 }

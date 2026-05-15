@@ -2125,15 +2125,18 @@ var ExcelRoster = class ExcelRoster {
 	static callNames = [
 		{
 			tag: "Van Goethem, Robert",
-			searchString: "bert"
+			searchString: "bert",
+			gradeYears: ""
 		},
 		{
 			tag: "Pavlidi, Ntiana",
-			searchString: "diana"
+			searchString: "diana",
+			gradeYears: ""
 		},
 		{
 			tag: "Wellens, Florian",
-			searchString: "flor"
+			searchString: "flor",
+			gradeYears: ""
 		}
 	];
 	static findLocation(tags, locations) {
@@ -5240,255 +5243,318 @@ function doNotificationAction(id) {}
 const defaultTagDefs = [
 	{
 		tag: "Vestiging Sterrenkijker/SL Durlet",
-		searchString: " sterr"
+		searchString: " sterr",
+		gradeYears: ""
 	},
 	{
 		tag: "Vestiging Sterrenkijker/SL Durlet",
-		searchString: " durlet"
+		searchString: " durlet",
+		gradeYears: ""
 	},
 	{
 		tag: "Vestiging De Kleine Stad",
-		searchString: " kleine stad "
+		searchString: " kleine stad ",
+		gradeYears: ""
 	},
 	{
 		tag: "Vestiging De Kleine Wereld",
-		searchString: " wereld "
+		searchString: " wereld ",
+		gradeYears: ""
 	},
 	{
 		tag: "Vestiging De Nieuwe Vrede",
-		searchString: " vrede "
+		searchString: " vrede ",
+		gradeYears: ""
 	},
 	{
 		tag: "Vestiging De Nieuwe Vrede",
-		searchString: " dnv "
+		searchString: " dnv ",
+		gradeYears: ""
 	},
 	{
 		tag: "Vestiging De Nieuwe Vrede",
-		searchString: " tegel"
+		searchString: " tegel",
+		gradeYears: ""
 	},
 	{
 		tag: "Vestiging De Nieuwe Vrede",
-		searchString: " tango "
+		searchString: " tango ",
+		gradeYears: ""
 	},
 	{
 		tag: "Vestiging De Nieuwe Vrede",
-		searchString: " vergaderzaal "
+		searchString: " vergaderzaal ",
+		gradeYears: ""
 	},
 	{
 		tag: "Vestiging De Kosmos",
-		searchString: " kosmos "
+		searchString: " kosmos ",
+		gradeYears: ""
 	},
 	{
 		tag: "Vestiging De Schatkist",
-		searchString: " schatk"
+		searchString: " schatk",
+		gradeYears: ""
 	},
 	{
 		tag: "Vestiging De Kolibrie",
-		searchString: " kolibri"
+		searchString: " kolibri",
+		gradeYears: ""
 	},
 	{
 		tag: "Vestiging Het Fonkelpad",
-		searchString: " fonkel"
+		searchString: " fonkel",
+		gradeYears: ""
 	},
 	{
 		tag: "Vestiging Alberreke",
-		searchString: " alber"
+		searchString: " alber",
+		gradeYears: ""
 	},
 	{
 		tag: "Vestiging c o r s o",
-		searchString: " corso "
+		searchString: " corso ",
+		gradeYears: ""
 	},
 	{
 		tag: "Vestiging c o r s o",
-		searchString: "c o r s o"
+		searchString: "c o r s o",
+		gradeYears: ""
 	},
 	{
 		tag: "Vestiging c o r s o",
-		searchString: " studio 3 "
+		searchString: " studio 3 ",
+		gradeYears: ""
 	},
 	{
 		tag: "Vestiging Prins Dries",
-		searchString: " prins "
+		searchString: " prins ",
+		gradeYears: ""
 	},
 	{
 		tag: "Vestiging Prins Dries",
-		searchString: " dries "
+		searchString: " dries ",
+		gradeYears: ""
 	},
 	{
 		tag: "Vestiging Groenhout Kasteelstraat",
-		searchString: " groenhout "
+		searchString: " groenhout ",
+		gradeYears: ""
 	},
 	{
 		tag: "Vestiging Groenhout Kasteelstraat",
-		searchString: " kasteel"
+		searchString: " kasteel",
+		gradeYears: ""
 	},
 	{
 		tag: "Vestiging Het Fonkelpad",
-		searchString: " fonkel "
+		searchString: " fonkel ",
+		gradeYears: ""
 	},
 	{
 		tag: "Vestiging OLV Pulhof",
-		searchString: " pulhof "
+		searchString: " pulhof ",
+		gradeYears: ""
 	},
 	{
 		tag: "Vestiging OLV Pulhof",
-		searchString: " 1p "
+		searchString: " 1p ",
+		gradeYears: ""
 	},
 	{
 		tag: "Vestiging OLV Pulhof",
-		searchString: " 2p "
+		searchString: " 2p ",
+		gradeYears: ""
 	},
 	{
 		tag: "Vestiging Sterrenkijker/SL Durlet",
-		searchString: " 1d "
+		searchString: " 1d ",
+		gradeYears: ""
 	},
 	{
 		tag: "Vestiging Sterrenkijker/SL Durlet",
-		searchString: " 2d "
+		searchString: " 2d ",
+		gradeYears: ""
 	},
 	{
 		tag: "Vestiging Via Louiza",
-		searchString: " louiza "
+		searchString: " louiza ",
+		gradeYears: ""
 	},
 	{
 		tag: "Vestiging Frans Van Hombeeck",
-		searchString: " hombee"
+		searchString: " hombee",
+		gradeYears: ""
 	},
 	{
 		tag: "Vestiging Klavertje Vier",
-		searchString: " klaver"
+		searchString: " klaver",
+		gradeYears: ""
 	},
 	{
 		tag: "Academie Willem Van Laarstraat, Berchem",
-		searchString: " bib "
+		searchString: " bib ",
+		gradeYears: ""
 	},
 	{
 		tag: "Academie Willem Van Laarstraat, Berchem",
-		searchString: "laarstr"
+		searchString: "laarstr",
+		gradeYears: ""
 	},
 	{
 		tag: "Academie Willem Van Laarstraat, Berchem",
-		searchString: " wvl "
+		searchString: " wvl ",
+		gradeYears: ""
 	},
 	{
 		tag: "Vestiging Frans Van Hombeeck",
-		searchString: " beeld "
+		searchString: " beeld ",
+		gradeYears: ""
 	},
 	{
 		tag: "Cabaret en comedy",
-		searchString: " cabaret "
+		searchString: " cabaret ",
+		gradeYears: ""
 	},
 	{
 		tag: "Woordatelier",
-		searchString: " woordatelier "
+		searchString: " woordatelier ",
+		gradeYears: ""
 	},
 	{
 		tag: "Woordatelier",
-		searchString: " wa "
+		searchString: " wa ",
+		gradeYears: ""
 	},
 	{
 		tag: "Woordlab",
-		searchString: " woordlab "
+		searchString: " woordlab ",
+		gradeYears: ""
 	},
 	{
 		tag: "Woordlab",
-		searchString: " wl "
+		searchString: " wl ",
+		gradeYears: ""
 	},
 	{
 		tag: "Literair atelier",
-		searchString: " literair atelier "
+		searchString: " literair atelier ",
+		gradeYears: ""
 	},
 	{
 		tag: "Literaire teksten",
-		searchString: " literaire teksten "
+		searchString: " literaire teksten ",
+		gradeYears: ""
 	},
 	{
 		tag: "Schrijven",
-		searchString: " basiscursus "
+		searchString: " basiscursus ",
+		gradeYears: ""
 	},
 	{
 		tag: "Spreken en vertellen",
-		searchString: " spreken "
+		searchString: " spreken ",
+		gradeYears: ""
 	},
 	{
 		tag: "Kunstenbad muziek/woord",
-		searchString: " kunstenbad "
+		searchString: " kunstenbad ",
+		gradeYears: ""
 	},
 	{
 		tag: "Musicalatelier",
-		searchString: " musicalatelier "
+		searchString: " musicalatelier ",
+		gradeYears: ""
 	},
 	{
 		tag: "Musical koor",
-		searchString: " musical koor "
+		searchString: " musical koor ",
+		gradeYears: ""
 	},
 	{
 		tag: "Musical zang",
-		searchString: " musical zang "
+		searchString: " musical zang ",
+		gradeYears: ""
 	},
 	{
 		tag: "Theater",
-		searchString: " acteren "
+		searchString: " acteren ",
+		gradeYears: ""
 	},
 	{
 		tag: "Muziekatelier",
-		searchString: " 1p "
+		searchString: " 1p ",
+		gradeYears: ""
 	},
 	{
 		tag: "Muziekatelier",
-		searchString: " 2p "
+		searchString: " 2p ",
+		gradeYears: ""
 	},
 	{
 		tag: "Muziekatelier",
-		searchString: " 1d "
+		searchString: " 1d ",
+		gradeYears: ""
 	},
 	{
 		tag: "Muziekatelier",
-		searchString: " 2d "
+		searchString: " 2d ",
+		gradeYears: ""
 	},
 	{
 		tag: "Muziekatelier",
-		searchString: " 1va "
+		searchString: " 1va ",
+		gradeYears: ""
 	},
 	{
 		tag: "Muziekatelier",
-		searchString: " 1vb "
+		searchString: " 1vb ",
+		gradeYears: ""
 	},
 	{
 		tag: "Muziekatelier",
-		searchString: " 1vc "
+		searchString: " 1vc ",
+		gradeYears: ""
 	},
 	{
 		tag: "Muziekatelier",
-		searchString: " 2va "
+		searchString: " 2va ",
+		gradeYears: ""
 	},
 	{
 		tag: "Muziekatelier",
-		searchString: " 2vb "
+		searchString: " 2vb ",
+		gradeYears: ""
 	},
 	{
 		tag: "Muziekatelier",
-		searchString: " 3v "
+		searchString: " 3v ",
+		gradeYears: ""
 	},
 	{
 		tag: "Muziekatelier",
-		searchString: " 1t "
+		searchString: " 1t ",
+		gradeYears: ""
 	},
 	{
 		tag: "Muziekatelier",
-		searchString: " 2t "
+		searchString: " 2t ",
+		gradeYears: ""
 	},
 	{
 		tag: "Groepsmusiceren (klassiek)",
-		searchString: " gm "
+		searchString: " gm ",
+		gradeYears: ""
 	},
 	{
 		tag: "Atelier (musical)",
-		searchString: " musicalatelier "
+		searchString: " musicalatelier ",
+		gradeYears: ""
 	},
 	{
 		tag: "Musicalatelier 2e graad",
-		searchString: " musical for kids "
+		searchString: " musical for kids ",
+		gradeYears: ""
 	}
 ];
 const defaultIgnoreList = [

@@ -550,7 +550,7 @@ handler.onMessageForMyTabType((msg) => {
 	console.log("diff setup page: message for me: ", msg);
 }).onData(onData);
 function addTranslationRow(tagDef, tbody) {
-	let text = `tr>` + buildField("Vind", tagDef.searchString, "trnsFind") + "+" + buildField("tag met", tagDef.tag, "trnsTag") + "+" + buildField("graad", tagDef.grade ?? "", "trnsGrade") + "+" + buildField("jaar", tagDef.year?.toString() ?? "", "trnsYear");
+	let text = `tr>` + buildField("Vind", tagDef.searchString, "trnsFind") + "+" + buildField("tag met", tagDef.tag, "trnsTag") + "+" + buildField("gr", tagDef.grade ?? "", "trnsGrade") + "+" + buildField("jr", tagDef.year?.toString() ?? "", "trnsYear") + "+" + buildField("gr+jaren", tagDef.gradeYears?.toString() ?? "", "trnsGradeYears");
 	let tr = emmet.appendChild(tbody, text).first;
 	let bucket = `button.deleteRow.naked>img[src="${chrome.runtime.getURL("images/trash-can.svg")}"]`;
 	emmet.appendChild(tr, `td>${bucket}`);
@@ -612,7 +612,8 @@ async function onData(request) {
 	document.getElementById("btnNewTranslationRow").addEventListener("click", function(_) {
 		let def = {
 			tag: "",
-			searchString: ""
+			searchString: "",
+			gradeYears: ""
 		};
 		addTranslationRow(def, document.querySelector("#tagDefsContainer tbody"));
 		hasTableChanged = true;
@@ -633,11 +634,13 @@ function scrapeTagDefs() {
 	return [...rows].map((row) => {
 		let grade = row.querySelector("#trnsGrade").value.trim();
 		let year = row.querySelector("#trnsYear").value.trim();
+		let gradeYears = row.querySelector("#trnsGradeYears").value.trim();
 		return {
 			searchString: row.querySelector("#trnsFind").value.toLowerCase(),
 			tag: row.querySelector("#trnsTag").value,
 			grade,
-			year: parseInt(year)
+			year: parseInt(year),
+			gradeYears
 		};
 	});
 }
