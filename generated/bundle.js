@@ -5948,7 +5948,7 @@ function tagWwwLes(les, dko3DiffData, diffSettings) {
 		return null;
 	}
 	let timeSlice = new TimeSlice(times[0], times[1]);
-	let teachers = les.teacher.split(/[\/,]/g).map((t) => findTeacher(t, dko3DiffData.teachers)).filter((t) => t != "");
+	let teachers = les.teacher.split(/[\/,&]/g).map((t) => findTeacher(t, dko3DiffData.teachers)).filter((t) => t != "");
 	return new TaggedWwwLesDef(les, timeSlice, day ?? "", teachers, dko3DiffData, diffSettings);
 }
 async function requestWww(urlList) {
