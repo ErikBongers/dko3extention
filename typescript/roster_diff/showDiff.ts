@@ -23,7 +23,8 @@ export async function fetchDiffSettingsOrDefault(academie: string, schoolYear: s
             academie,
             schoolYear,
             tagDefs: [...defaultTagDefs],
-            ignoreList: [...defaultIgnoreList]
+            ignoreList: [...defaultIgnoreList],
+            urls: []
         } satisfies DiffSettings;
     return settings;
 }

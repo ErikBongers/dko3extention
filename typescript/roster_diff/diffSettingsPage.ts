@@ -83,10 +83,15 @@ function fillIgnoresTable(diffSettings: DiffSettings) {
         .forEach(btn => btn.addEventListener("click", deleteTableRow));
 }
 
+function fillUrls(diffSettings: DiffSettings) {
+    let txtUrls = document.getElementById("txtWebPages") as HTMLTextAreaElement;
+    txtUrls.value = (diffSettings.urls??[]).join("\n");
+}
+
 function deleteTableRow(ev: Event) {
     let btn = ev.target as HTMLButtonElement;
     btn.closest("tr")!.remove();
-    hasTableChanged = true;
+    hasDataChanged = true;
 }
 
 async function onData(request: ServiceRequest<any>) {
@@ -101,12 +106,13 @@ async function onData(request: ServiceRequest<any>) {
     globalSetup = request.data as DiffSettings;
     fillTagDefTable(request.data as DiffSettings);
     fillIgnoresTable(request.data as DiffSettings);
+    fillUrls(request.data as DiffSettings);
     //set change even AFTER filling the tables:
     document.querySelectorAll("tbody").forEach(tbody => tbody.addEventListener("change", (_) => {
-        hasTableChanged = true;
+        hasDataChanged = true;
     }));
     document.querySelectorAll('tbody').forEach(el => el.addEventListener('input', function (_) {
-        hasTableChanged = true;
+        hasDataChanged = true;
     }));
     document.getElementById('btnNewTranslationRow')!.addEventListener('click', function (_) {
         let def: TagDef = {
@@ -115,18 +121,26 @@ async function onData(request: ServiceRequest<any>) {
             gradeYears: "",
         }
         addTranslationRow(def, document.querySelector("#tagDefsContainer tbody")!);
-        hasTableChanged = true;
+        hasDataChanged = true;
     });
     document.getElementById('btnNewIgnoresRow')!.addEventListener('click', function (_) {
         let ignore =  "";
         addIgnoresRow(ignore, document.querySelector("#ignoresContainer tbody")!);
-        hasTableChanged = true;
+        hasDataChanged = true;
+    });
+    let txtUrls = document.getElementById("txtWebPages") as HTMLTextAreaElement;
+    txtUrls.addEventListener("input", (_) => {
+        hasDataChanged = true;
+    });
+    //add blur event
+    txtUrls.addEventListener("blur", (_) => {
+        hasDataChanged = true;
     });
 }
 
 let globalSetup: DiffSettings | undefined = undefined;
 
-let hasTableChanged = false;
+let hasDataChanged = false;
 
 setInterval(() => {
     if(globalSetup)
@@ -154,16 +168,22 @@ function scrapeIgnores(): string[] {
 }
 
 function onCheckTableChanged(diffSettings: DiffSettings) {
-    if (!hasTableChanged)
+    if (!hasDataChanged)
         return;
+    let txtUrls = document.getElementById("txtWebPages") as HTMLTextAreaElement;
+    let urls = txtUrls.value
+        .split("\n")
+        .map(s => s.trim())
+        .filter(s => s.length > 0);
     let setupData: DiffSettings = {
         version: 1,
         academie: diffSettings.academie,
         schoolYear: diffSettings.schoolYear,
         tagDefs: scrapeTagDefs(),
-        ignoreList: scrapeIgnores()
+        ignoreList: scrapeIgnores(),
+        urls
     };
-    hasTableChanged = false;
+    hasDataChanged = false;
     uploadDiffSettings(diffSettings.academie, diffSettings.schoolYear, setupData)
         .then(_ => {
             sendRequest(Actions.DiffSettingsChanged, TabType.DiffSettings, TabType.Main, undefined, setupData).then(_ => {});

@@ -93,5 +93,6 @@ export interface DiffSettings {
     academie: string;
     schoolYear: string;
     tagDefs: TagDef[],
-    ignoreList: string[]
+    ignoreList: string[],
+    urls: string[],
 }

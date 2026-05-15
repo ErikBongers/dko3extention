@@ -120,27 +120,29 @@ async function requestWww(urlList: string[]) {
 }
 
 export async function parseWww(dko3DiffData: Dko3DiffData, diffSettings: DiffSettings) {
-    let response: ServiceRequest<HtmlText[]> = await requestWww([
-        "https://academieberchem.stedelijkonderwijs.be/uurrooster-woord-gevorderden-18",
-        "https://academieberchem.stedelijkonderwijs.be/uurrooster-2e-graad-kinderen-8-tot-11-jaar",
-        "https://academieberchem.stedelijkonderwijs.be/uurrooster-1e-graad-kinderen-6-tot-7-jaar",
-        "https://academieberchem.stedelijkonderwijs.be/uurrooster-2e-graad-jongeren-12-tot-17-jaar",
-        "https://academieberchem.stedelijkonderwijs.be/uurrooster-3e-graad-klassiek",
-        "https://academieberchem.stedelijkonderwijs.be/uurrooster-3e-graad-jazz-pop-rock",
-        "https://academieberchem.stedelijkonderwijs.be/uurrooster-3e-graad-wereldmuziek",
-        "https://academieberchem.stedelijkonderwijs.be/uurrooster-4e-graad-klassiek",
-        "https://academieberchem.stedelijkonderwijs.be/uurrooster-4e-graad-jazz-pop-rock-volwassenen-vanaf-18-jaar",
-        "https://academieberchem.stedelijkonderwijs.be/uurrooster-4e-graad-wereldmuziek",
-        "https://academieberchem.stedelijkonderwijs.be/uurrooster-musical",
-        "https://academieberchem.stedelijkonderwijs.be/uurrooster-elektronische-muziek-enkel-de-hoofdschool",
-        "https://academieberchem.stedelijkonderwijs.be/uurrooster-2e-graad-volwassenen-vanaf-18-jaar",
-        "https://academieberchem.stedelijkonderwijs.be/uurrooster-2e-graad-kinderen-8-tot-11-jaar-0",
-        "https://academieberchem.stedelijkonderwijs.be/uurrooster-3e-graad-jongeren-12-tot-en-met-14-jaar",
-        "https://academieberchem.stedelijkonderwijs.be/uurrooster-woord-jongeren-15-tot-en-met-17-jaar",
-        "https://academieberchem.stedelijkonderwijs.be/uurrooster-woord-starters-18",
-        "https://academieberchem.stedelijkonderwijs.be/uurrooster-woord-gevorderden-18",
-        "https://academieberchem.stedelijkonderwijs.be/uurrooster-3e-4e-graad-songwriting",
-    ]);
+    // let response: ServiceRequest<HtmlText[]> = await requestWww([
+    //     "https://academieberchem.stedelijkonderwijs.be/uurrooster-woord-gevorderden-18",
+    //     "https://academieberchem.stedelijkonderwijs.be/uurrooster-2e-graad-kinderen-8-tot-11-jaar",
+    //     "https://academieberchem.stedelijkonderwijs.be/uurrooster-1e-graad-kinderen-6-tot-7-jaar",
+    //     "https://academieberchem.stedelijkonderwijs.be/uurrooster-2e-graad-jongeren-12-tot-17-jaar",
+    //     "https://academieberchem.stedelijkonderwijs.be/uurrooster-3e-graad-klassiek",
+    //     "https://academieberchem.stedelijkonderwijs.be/uurrooster-3e-graad-jazz-pop-rock",
+    //     "https://academieberchem.stedelijkonderwijs.be/uurrooster-3e-graad-wereldmuziek",
+    //     "https://academieberchem.stedelijkonderwijs.be/uurrooster-4e-graad-klassiek",
+    //     "https://academieberchem.stedelijkonderwijs.be/uurrooster-4e-graad-jazz-pop-rock-volwassenen-vanaf-18-jaar",
+    //     "https://academieberchem.stedelijkonderwijs.be/uurrooster-4e-graad-wereldmuziek",
+    //     "https://academieberchem.stedelijkonderwijs.be/uurrooster-musical",
+    //     "https://academieberchem.stedelijkonderwijs.be/uurrooster-elektronische-muziek-enkel-de-hoofdschool",
+    //     "https://academieberchem.stedelijkonderwijs.be/uurrooster-2e-graad-volwassenen-vanaf-18-jaar",
+    //     "https://academieberchem.stedelijkonderwijs.be/uurrooster-2e-graad-kinderen-8-tot-11-jaar-0",
+    //     "https://academieberchem.stedelijkonderwijs.be/uurrooster-3e-graad-jongeren-12-tot-en-met-14-jaar",
+    //     "https://academieberchem.stedelijkonderwijs.be/uurrooster-woord-jongeren-15-tot-en-met-17-jaar",
+    //     "https://academieberchem.stedelijkonderwijs.be/uurrooster-woord-starters-18",
+    //     "https://academieberchem.stedelijkonderwijs.be/uurrooster-woord-gevorderden-18",
+    //     "https://academieberchem.stedelijkonderwijs.be/uurrooster-3e-4e-graad-songwriting",
+    // ]);
+
+    let response: ServiceRequest<HtmlText[]> = await requestWww(diffSettings.urls);
 
     let lessen: WwwLesDef[] = [];
     console.log(response);

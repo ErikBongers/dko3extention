@@ -89,3 +89,8 @@ td button {
 img.upSideDown {
     transform: rotate(180deg);
 }
+
+#txtWebPages {
+    width: 100%;
+    aspect-ratio: 16/9;
+}

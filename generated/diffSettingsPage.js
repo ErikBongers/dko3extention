@@ -585,10 +585,14 @@ function fillIgnoresTable(diffSettings) {
 	for (let ignore of diffSettings.ignoreList) addIgnoresRow(ignore, tbody);
 	document.querySelectorAll("#tagDefsContainer button.deleteRow").forEach((btn) => btn.addEventListener("click", deleteTableRow));
 }
+function fillUrls(diffSettings) {
+	let txtUrls = document.getElementById("txtWebPages");
+	txtUrls.value = (diffSettings.urls ?? []).join("\n");
+}
 function deleteTableRow(ev) {
 	let btn = ev.target;
 	btn.closest("tr").remove();
-	hasTableChanged = true;
+	hasDataChanged = true;
 }
 async function onData(request) {
 	let title = "Uurrooster tags voor schooljaar " + request.data.schoolYear;
@@ -600,11 +604,12 @@ async function onData(request) {
 	globalSetup = request.data;
 	fillTagDefTable(request.data);
 	fillIgnoresTable(request.data);
+	fillUrls(request.data);
 	document.querySelectorAll("tbody").forEach((tbody) => tbody.addEventListener("change", (_) => {
-		hasTableChanged = true;
+		hasDataChanged = true;
 	}));
 	document.querySelectorAll("tbody").forEach((el) => el.addEventListener("input", function(_) {
-		hasTableChanged = true;
+		hasDataChanged = true;
 	}));
 	document.getElementById("btnNewTranslationRow").addEventListener("click", function(_) {
 		let def = {
@@ -613,16 +618,23 @@ async function onData(request) {
 			gradeYears: ""
 		};
 		addTranslationRow(def, document.querySelector("#tagDefsContainer tbody"));
-		hasTableChanged = true;
+		hasDataChanged = true;
 	});
 	document.getElementById("btnNewIgnoresRow").addEventListener("click", function(_) {
 		let ignore = "";
 		addIgnoresRow(ignore, document.querySelector("#ignoresContainer tbody"));
-		hasTableChanged = true;
+		hasDataChanged = true;
+	});
+	let txtUrls = document.getElementById("txtWebPages");
+	txtUrls.addEventListener("input", (_) => {
+		hasDataChanged = true;
+	});
+	txtUrls.addEventListener("blur", (_) => {
+		hasDataChanged = true;
 	});
 }
 let globalSetup = void 0;
-let hasTableChanged = false;
+let hasDataChanged = false;
 setInterval(() => {
 	if (globalSetup) onCheckTableChanged(globalSetup);
 }, 1e3);
@@ -642,15 +654,18 @@ function scrapeIgnores() {
 	return [...rows].map((row) => row.querySelector("#trnsIgnore").value);
 }
 function onCheckTableChanged(diffSettings) {
-	if (!hasTableChanged) return;
+	if (!hasDataChanged) return;
+	let txtUrls = document.getElementById("txtWebPages");
+	let urls = txtUrls.value.split("\n").map((s) => s.trim()).filter((s) => s.length > 0);
 	let setupData = {
 		version: 1,
 		academie: diffSettings.academie,
 		schoolYear: diffSettings.schoolYear,
 		tagDefs: scrapeTagDefs(),
-		ignoreList: scrapeIgnores()
+		ignoreList: scrapeIgnores(),
+		urls
 	};
-	hasTableChanged = false;
+	hasDataChanged = false;
 	uploadDiffSettings(diffSettings.academie, diffSettings.schoolYear, setupData).then((_) => {
 		sendRequest(Actions.DiffSettingsChanged, TabType.DiffSettings, TabType.Main, void 0, setupData).then((_$1) => {});
 	});
