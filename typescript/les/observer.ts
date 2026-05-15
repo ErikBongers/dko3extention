@@ -120,7 +120,7 @@ async function addDiff(titleHeader: HTMLElement, academie: string, schoolYear: s
     if(diff) {
         let tbody = emmet.appendChild(divDiff, "table.diff>tbody").last as HTMLTableSectionElement;
         let tr = emmet.appendChild(tbody, "tr").last as HTMLTableRowElement;
-        fillOtherDiffRow(tr, diff, academie, schoolYear);
+        fillOtherDiffRow(tr, diff, academie, schoolYear, "no hide button");
         return;
     }
 }

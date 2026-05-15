@@ -144,11 +144,11 @@ export async function showDiffs(diffs: JsonDiffs, academie: string, schoolYear: 
     decorateTableHeader(table, false);
     for(let les of diffs.orphanedDko3Lessen) {
         let tr = emmet.appendChild(tbody, "tr").last as HTMLTableRowElement;
-        fillDiffRow(tr, les, "perfect match", createDko3GotoData(les.lesId), "", les.hash, les.ignore, academie, schoolYear, null);
+        fillDiffRow(tr, les, "perfect match", createDko3GotoData(les.lesId), "", les.hash, les.ignore, academie, schoolYear, null, null);
     }
     for(let les of diffs.orphanedOtherLessen) {
         let tr = emmet.appendChild(tbody, "tr").last as HTMLTableRowElement;
-        fillDiffRow(tr, les, "perfect match", les.gotoData, les.gotoData.text, les.hash, les.ignore, academie, schoolYear, null);
+        fillDiffRow(tr, les, "perfect match", les.gotoData, les.gotoData.text, les.hash, les.ignore, academie, schoolYear, null, null);
         tr.classList.add("excelRow");
     }
     let ignore = localStorage.getItem(OPTION_HIDE_IGNORED_DIFFS+diffType)?? "false";
@@ -161,8 +161,8 @@ export async function showDiffs(diffs: JsonDiffs, academie: string, schoolYear: 
 }
 export type StatusCallback = (message: string, isError?: "error") => void;
 
-export function fillOtherDiffRow(tr: HTMLTableRowElement, diff: JsonDiff, academie: string, schoolYear: string) {
-    fillDiffRow(tr, diff.otherLes, diff.diffType, diff.otherLes.gotoData, diff.otherLes.gotoData.text, diff.otherLes.hash, diff.otherLes.ignore, academie, schoolYear, diff.weight);
+export function fillOtherDiffRow(tr: HTMLTableRowElement, diff: JsonDiff, academie: string, schoolYear: string, noHide: "no hide button" | null) {
+    fillDiffRow(tr, diff.otherLes, diff.diffType, diff.otherLes.gotoData, diff.otherLes.gotoData.text, diff.otherLes.hash, diff.otherLes.ignore, academie, schoolYear, diff.weight, noHide);
 }
 
 function displayDiff(diff: JsonDiff, divResults: HTMLDivElement, academie: string, schoolYear: string) {
@@ -180,11 +180,11 @@ function displayDiff(diff: JsonDiff, divResults: HTMLDivElement, academie: strin
     tbody.parentElement!.classList.toggle("justNoTeacher", diffOnlyTeacher && diff.otherLes.teachers.includes("nog te bepalen"));
 
 
-    fillOtherDiffRow(trOther, diff, academie, schoolYear);
-    fillDiffRow(trDko3, diff.dko3Les, diff.diffType, createDko3GotoData(diff.dko3Les.lesId), "", diff.dko3Les.hash, diff.dko3Les.ignore, academie, schoolYear, diff.weight);
+    fillOtherDiffRow(trOther, diff, academie, schoolYear, "no hide button");
+    fillDiffRow(trDko3, diff.dko3Les, diff.diffType, createDko3GotoData(diff.dko3Les.lesId), "", diff.dko3Les.hash, diff.dko3Les.ignore, academie, schoolYear, diff.weight, "no hide button");
 }
 
-export function fillDiffRow(tr: HTMLTableRowElement, jsonLes: JsonBasicLesMoment, diffType: DiffType, gotoData: DiffGotoData, orgText: string, hash: string, ignore: boolean, academie: string, schoolYear: string, weight: Weight | null) {
+export function fillDiffRow(tr: HTMLTableRowElement, jsonLes: JsonBasicLesMoment, diffType: DiffType, gotoData: DiffGotoData, orgText: string, hash: string, ignore: boolean, academie: string, schoolYear: string, weight: Weight | null, noHide: "no hide button" | null) {
     if(ignore)
         tr.classList.add("ignore");
     let diffTeacherClass: string = "";
@@ -228,19 +228,23 @@ export function fillDiffRow(tr: HTMLTableRowElement, jsonLes: JsonBasicLesMoment
     tr.dataset.worksheet = gotoData.workSheet;
     tr.dataset.rowType = gotoData.rowType;
     tr.dataset.url = gotoData.url;
+    let hideButton = "";
+    if(!noHide)
+        hideButton = "+(td.button>button.goto.chkHide>i.fas.fa-check)";
     emmet.appendChild(tr, `${tdSubjects}+
         td${diffGradeYearsClass}{${GradeYear.toString(jsonLes.gradeYears)}}+
         td${diffTeacherClass}{${jsonLes.teachers}}+
         td${diffTimeClass}{${toCompactDayString(jsonLes.day as DayUppercase)}}+
         td${diffTimeClass}{${jsonLes.timeSlice}}+
         td${diffLocationClass}{${jsonLes.location}}+
-        (td.buttonshow>button.goto>i.fas.${iconClass})+
-        (td.button>button.goto.chkHide>i.fas.fa-check)
+        (td.buttonshow>button.goto>i.fas.${iconClass})
+        ${hideButton}
     `);
     let btnGoto = tr.querySelector("button.goto") as HTMLButtonElement;
     btnGoto.onclick = (ev) => gotoSource(ev, academie, schoolYear);
-    let btnHide = tr.querySelector("button.chkHide") as HTMLButtonElement;
-    btnHide.onclick = (ev) => toggleIgnore(ev, academie, schoolYear, "excel"); //todo: this is wrong!!!! Should be excel or www, based on the page tab we're at.
+    let btnHide = tr.querySelector("button.chkHide") as HTMLButtonElement | null;
+    if(btnHide)
+        btnHide.onclick = (ev) => toggleIgnore(ev, academie, schoolYear, "excel"); //todo: this is wrong!!!! Should be excel or www, based on the page tab we're at.
 }
 
 async function toggleIgnore(ev: MouseEvent, academie: string, schoolYear: string, diffType: OtherLesType) {
