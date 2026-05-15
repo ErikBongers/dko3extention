@@ -1,3 +1,6 @@
+* Hard coded class names: add checkbox to settings list?
+* Hard coded teacher names: idem.
+
 * Check ALL hashes - they should include ALL fields
 Diff with website
 - extra button in diff page

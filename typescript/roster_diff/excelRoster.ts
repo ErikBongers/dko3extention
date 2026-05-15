@@ -265,6 +265,9 @@ export class ExcelRoster {
 
     public static callNames: TagDef[] = [
         {tag: "Van Goethem, Robert", searchString: "bert"}, //todo: try to get rid of this.
+        {tag: "Pavlidi, Ntiana", searchString: "diana"},
+        {tag: "Wellens, Florian", searchString: "flor"},
+
     ];
 
     public static findLocation(tags: string[], locations: string[]) {

@@ -297,9 +297,9 @@ export async function calcDiff(dko3Data: Dko3DiffData, reportStatus: (message: s
         les1.teachers = await extraTeacherCache.getExtraTeachers(les1.lesMoment.les.id);
     }
 
-    let diffs: Diff[];
+    let diffs: Diff[] = [];
     let ctx: MatchContext = {};
-    diffs = matchIt(ctx, dko3LesSet, otherLesSet, "perfect match", matchBasedOnName);
+    diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "perfect match", matchBasedOnName));
     diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "perfect match", perfectMatch));
     diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "match without gradeYears", matchWithoutGradeYears));
     diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "match without teacher", matchWithoutTeacher));

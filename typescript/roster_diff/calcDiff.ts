@@ -179,12 +179,32 @@ function createLesNamesMap(otherLesSet: Set<ComparableLesMoment>) {
 export function matchBasedOnName(ctx: MatchContext, dko3Les: TaggedDko3LesMoment, otherLesSet: Set<ComparableLesMoment>): MatchResult | null {
     let results: MatchResult[] = [];
 
+    //prepare on first call
     if (!ctx.otherLesNamesMap) {
         ctx.otherLesNamesMap = createLesNamesMap(otherLesSet);
     }
-    let otherLessenWithSameName = ctx.otherLesNamesMap.get(dko3Les.lesMoment.les.naam.trim().toLowerCase())
-    if (!otherLessenWithSameName)
-        return null;
+
+    let dko3LesName = dko3Les.lesMoment.les.naam.trim().toLowerCase();
+
+    //find other lessen with same name based on the pre-defined classNames.
+    let otherLessenWithSameName = ctx.otherLesNamesMap.get(dko3LesName)
+
+    if (!otherLessenWithSameName) {
+        //2nd try with stored names.
+        let searchName = " " + dko3LesName + " ";
+        let storedNames = [" 2va ", " 1vb ", " 1vc ", " 1vd ", " 2vb ", " 2vc ", " harmonielab "]; //todo: add to settings! (or have a check box that marks this as a class name)
+        let foundName = storedNames.find(name => searchName.includes(name));
+        if(!foundName)
+            return null;
+        for(let les of otherLesSet ) {
+            if((" " + les.className?.toLowerCase() + " ").includes(foundName)) {
+                otherLessenWithSameName = [les];
+                break;
+            }
+        }
+        if (!otherLessenWithSameName)
+            return null;
+    }
 
     //Check for related lessen
     if (dko3Les.lesMoment.lesMomenten.length > 1) {

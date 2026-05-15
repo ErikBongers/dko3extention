@@ -1759,8 +1759,27 @@ function createLesNamesMap(otherLesSet) {
 function matchBasedOnName(ctx, dko3Les, otherLesSet) {
 	let results = [];
 	if (!ctx.otherLesNamesMap) ctx.otherLesNamesMap = createLesNamesMap(otherLesSet);
-	let otherLessenWithSameName = ctx.otherLesNamesMap.get(dko3Les.lesMoment.les.naam.trim().toLowerCase());
-	if (!otherLessenWithSameName) return null;
+	let dko3LesName = dko3Les.lesMoment.les.naam.trim().toLowerCase();
+	let otherLessenWithSameName = ctx.otherLesNamesMap.get(dko3LesName);
+	if (!otherLessenWithSameName) {
+		let searchName = " " + dko3LesName + " ";
+		let storedNames = [
+			" 2va ",
+			" 1vb ",
+			" 1vc ",
+			" 1vd ",
+			" 2vb ",
+			" 2vc ",
+			" harmonielab "
+		];
+		let foundName = storedNames.find((name) => searchName.includes(name));
+		if (!foundName) return null;
+		for (let les of otherLesSet) if ((" " + les.className?.toLowerCase() + " ").includes(foundName)) {
+			otherLessenWithSameName = [les];
+			break;
+		}
+		if (!otherLessenWithSameName) return null;
+	}
 	if (dko3Les.lesMoment.lesMomenten.length > 1) {
 		for (let otherLes of otherLessenWithSameName) {
 			let weight = weigh1000(dko3Les, otherLes, otherLessenWithSameName.map((l) => l.teachers).flat());
@@ -2103,10 +2122,20 @@ var ExcelRoster = class ExcelRoster {
 		newSlice.end.minutes = newEndMinutes % 60;
 		return newSlice;
 	}
-	static callNames = [{
-		tag: "Van Goethem, Robert",
-		searchString: "bert"
-	}];
+	static callNames = [
+		{
+			tag: "Van Goethem, Robert",
+			searchString: "bert"
+		},
+		{
+			tag: "Pavlidi, Ntiana",
+			searchString: "diana"
+		},
+		{
+			tag: "Wellens, Florian",
+			searchString: "flor"
+		}
+	];
 	static findLocation(tags, locations) {
 		let location$1 = locations.find((location$2) => tags.includes(location$2));
 		if (location$1) return location$1;
@@ -5807,7 +5836,7 @@ var TaggedWwwLesDef = class {
 		}
 		this.location = location$1 ?? "Academie Willem Van Laarstraat, Berchem";
 		this.subjects = ExcelRoster.findSubjects(this.lesDef.className, tagStrings, dko3Data);
-		this.className = ExcelRoster.findClassName(ExcelRoster.makeParsable(this.lesDef.className), dko3Data);
+		this.className = this.lesDef.className;
 		this.gradeYears = ExcelRoster.findGradeYears(ExcelRoster.makeParsable(this.lesDef.className));
 		if (this.gradeYears.length == 0) this.gradeYears = ExcelRoster.getGradeYearsFromTags(tags);
 		if (this.gradeYears.length == 0) {
@@ -5864,7 +5893,8 @@ async function parseWww(dko3DiffData, diffSettings) {
 		"https://academieberchem.stedelijkonderwijs.be/uurrooster-3e-graad-jongeren-12-tot-en-met-14-jaar",
 		"https://academieberchem.stedelijkonderwijs.be/uurrooster-woord-jongeren-15-tot-en-met-17-jaar",
 		"https://academieberchem.stedelijkonderwijs.be/uurrooster-woord-starters-18",
-		"https://academieberchem.stedelijkonderwijs.be/uurrooster-woord-gevorderden-18"
+		"https://academieberchem.stedelijkonderwijs.be/uurrooster-woord-gevorderden-18",
+		"https://academieberchem.stedelijkonderwijs.be/uurrooster-3e-4e-graad-songwriting"
 	]);
 	let lessen = [];
 	console.log(response);
@@ -6184,9 +6214,9 @@ async function calcDiff(dko3Data, reportStatus, diffSettings, otherLesSet) {
 	let dko3LesSet = createLesMomenten(dko3Data, reportStatus, diffSettings);
 	let extraTeacherCache = ExtraTeacherCache.fromJSON(dko3Data.extraTeachersCache ?? []);
 	for (const les1 of [...dko3LesSet.values()].filter((les) => les.lesMoment.les.teacher.includes("(en nog"))) les1.teachers = await extraTeacherCache.getExtraTeachers(les1.lesMoment.les.id);
-	let diffs;
+	let diffs = [];
 	let ctx = {};
-	diffs = matchIt(ctx, dko3LesSet, otherLesSet, "perfect match", matchBasedOnName);
+	diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "perfect match", matchBasedOnName));
 	diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "perfect match", perfectMatch));
 	diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "match without gradeYears", matchWithoutGradeYears));
 	diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "match without teacher", matchWithoutTeacher));

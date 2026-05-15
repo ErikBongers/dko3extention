@@ -51,7 +51,7 @@ export class TaggedWwwLesDef implements ComparableLesMoment{
         }
         this.location = location ?? "Academie Willem Van Laarstraat, Berchem";
         this.subjects = ExcelRoster.findSubjects(this.lesDef.className, tagStrings, dko3Data);
-        this.className = ExcelRoster.findClassName(ExcelRoster.makeParsable(this.lesDef.className), dko3Data);
+        this.className = this.lesDef.className;
         this.gradeYears = ExcelRoster.findGradeYears(ExcelRoster.makeParsable(this.lesDef.className));
         if(this.gradeYears.length == 0) {
             this.gradeYears = ExcelRoster.getGradeYearsFromTags(tags);
@@ -127,6 +127,7 @@ export async function parseWww(dko3DiffData: Dko3DiffData, diffSettings: DiffSet
         "https://academieberchem.stedelijkonderwijs.be/uurrooster-woord-jongeren-15-tot-en-met-17-jaar",
         "https://academieberchem.stedelijkonderwijs.be/uurrooster-woord-starters-18",
         "https://academieberchem.stedelijkonderwijs.be/uurrooster-woord-gevorderden-18",
+        "https://academieberchem.stedelijkonderwijs.be/uurrooster-3e-4e-graad-songwriting",
     ]);
 
     let lessen: WwwLesDef[] = [];
