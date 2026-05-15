@@ -10,16 +10,16 @@ import {DKO3_BASE_URL, LESSEN_TABLE_ID} from "../def";
 import {getTableFromHash, InfoBarTableFetchListener} from "../table/loadAnyTable";
 import {emmet} from "../../libs/Emmeter/html";
 import {fetchAndDisplayNotifications} from "../notifications/notifications";
-import {DiffGotoData, excelPostoExcelAddress, getDiffsDko3CacheFileName, StatusCallback} from "./showDiff";
+import {DiffGotoData, DiffPageType, excelPostoExcelAddress, getDiffsDko3CacheFileName, StatusCallback} from "./showDiff";
 import {DiffSettings} from "./diffSettings";
-import {OtherLesType, parseWww, TaggedWwwLesDef} from "../www_diff/buildDiff";
+import {parseWww, TaggedWwwLesDef} from "../www_diff/buildDiff";
 import {ComparableLesMoment, Diff, DiffLesType, DiffType, Dko3LesMoment, GradeYear, LesType, matchBasedOnName, MatchContext, matchIt, matchWithoutGradeYears, matchWithoutGradeYearsTeacher, matchWithoutLocation, matchWithoutTeacher, matchWithoutTeacherTimeAndDay, matchWithoutTimeAndDay, perfectMatch, TaggedDko3LesMoment, TaggedLes, Weight} from "./calcDiff";
 
 let cachedDiffs: JsonDiffs | undefined = undefined;
-export async function getJsonDiffsCached(academie: string, schoolYear: string, diffType: OtherLesType) {
+export async function getJsonDiffsCached(academie: string, schoolYear: string, diffPageType: DiffPageType) {
     if(cachedDiffs)
         return cachedDiffs;
-    return getDiffsFromCloud(academie, schoolYear, diffType);
+    return getDiffsFromCloud(academie, schoolYear, diffPageType);
 }
 
 export type DataPreparationFunction = (reportStatus: (message: string, isError?: "error") => void, academie: string, schoolYear: string, dko3DiffData: Dko3DiffData, diffSettings: DiffSettings) =>  Promise<{excelRosters: ExcelRoster[], otherLesSet: Set<ComparableLesMoment>}>;
@@ -70,7 +70,7 @@ export async function buildAndSaveDiff(reportStatus: StatusCallback,
                                        academie: string, schoolYear: string,
                                        dko3DiffData: Dko3DiffData | null,
                                        diffSettings: DiffSettings,
-                                       diffType: OtherLesType,
+                                       diffPageType: DiffPageType,
                                        prepareOtherData: DataPreparationFunction
 ) {
     reportStatus(`DKO3 data ophalen...`);
@@ -86,10 +86,10 @@ export async function buildAndSaveDiff(reportStatus: StatusCallback,
     //parse again, just in case previous function changed the dko3 data.
     dko3DiffData = JSON.parse(json) as Dko3DiffData;
     dko3DiffData.extraTeachersCache = res.extraTeacherCache.toJSON();
-    localStorage.setItem(getDiffsDko3CacheFileName(academie, schoolYear, diffType), JSON.stringify(dko3DiffData));
+    localStorage.setItem(getDiffsDko3CacheFileName(academie, schoolYear, diffPageType), JSON.stringify(dko3DiffData));
 
-    let jsonDiffs = await createJsonDiffs(res.diffs, res.dko3LesSet, res.otherLesSet, res.excelRosters, academie, schoolYear, diffType);
-    let fileName = getDiffsCloudFileName(academie, schoolYear, diffType);
+    let jsonDiffs = await createJsonDiffs(res.diffs, res.dko3LesSet, res.otherLesSet, res.excelRosters, academie, schoolYear, diffPageType);
+    let fileName = getDiffsCloudFileName(academie, schoolYear, diffPageType);
     await cloud.json.upload(fileName, jsonDiffs);
     sessionStorage.setItem(fileName, JSON.stringify(jsonDiffs));
     reportStatus(``);
@@ -414,12 +414,12 @@ export function findTeacher(searchString: string, teachers: TeacherDef[]) {
     return searchString;
 }
 
-export function getDiffsCloudFileName(academie: string, schoolYear: string, diffType: OtherLesType) {
-    return `Dko3/${academie}_${schoolYear}_${diffType}_diffs.json`;
+export function getDiffsCloudFileName(academie: string, schoolYear: string, diffPageType: DiffPageType) {
+    return `Dko3/${academie}_${schoolYear}_${diffPageType}_diffs.json`;
 }
 
-export async function getDiffsFromCloud(academie: string, schoolYear: string, diffType: OtherLesType): Promise<JsonDiffs | null> {
-    let fromCloud= await cloud.json.fetch(getDiffsCloudFileName(academie, schoolYear, diffType))
+export async function getDiffsFromCloud(academie: string, schoolYear: string, diffPageType: DiffPageType): Promise<JsonDiffs | null> {
+    let fromCloud= await cloud.json.fetch(getDiffsCloudFileName(academie, schoolYear, diffPageType))
         .catch(function (err: any): null {
             console.log(err);
             return null;
@@ -487,9 +487,9 @@ export interface JsonDiffs {
     workBooks: JsonWorkBook[],
 }
 
-export async function setIgnoredFlags(orphanedDko3Lessen: JsonDko3LesMoment[], orphanedOtherLessen: JsonBasicLesMoment[], academie: string, schoolYear: string) {
+export async function setIgnoredFlags(orphanedDko3Lessen: JsonDko3LesMoment[], orphanedOtherLessen: JsonBasicLesMoment[], academie: string, schoolYear: string, diffPageType: DiffPageType) {
     try {
-        let ignoreHashes = await fetchIgnoredDiffHashes(academie, schoolYear);
+        let ignoreHashes = await fetchIgnoredDiffHashes(academie, schoolYear, diffPageType);
         let ignoreHashSet = new Set(ignoreHashes);
         for (let les of orphanedDko3Lessen) {
             les.ignore = ignoreHashSet.has(les.hash);
@@ -500,12 +500,12 @@ export async function setIgnoredFlags(orphanedDko3Lessen: JsonDko3LesMoment[], o
     } catch {}
 }
 
-export async function createJsonDiffs(diffList: Diff[], dko3LesSet: Set<TaggedDko3LesMoment>, otherLesSet: Set<ComparableLesMoment>, excelRosters: ExcelRoster[], academie: string, schoolYear: string, diffType: OtherLesType): Promise<JsonDiffs> {
+export async function createJsonDiffs(diffList: Diff[], dko3LesSet: Set<TaggedDko3LesMoment>, otherLesSet: Set<ComparableLesMoment>, excelRosters: ExcelRoster[], academie: string, schoolYear: string, diffPageType: DiffPageType): Promise<JsonDiffs> {
     let diffs: JsonDiff[] = diffList
         .filter(diff => diff.diffType != "perfect match" || diff.weight.weight != 1000)
         .map(diff => {
             let otherLes;
-            if(diffType == 'excel')
+            if(diffPageType == "EXCEL")
                 otherLes = excelLesToJson(diff.otherLes as TaggedExcelLes);
             else
                 otherLes = wwwLesToJson(diff.otherLes as TaggedWwwLesDef);
@@ -518,12 +518,12 @@ export async function createJsonDiffs(diffList: Diff[], dko3LesSet: Set<TaggedDk
         });
     let orphanedDko3Lessen = [...dko3LesSet.values()].map(les => dko3LesToJson(les));
     let orphanedOtherLessen;
-    if(diffType == 'excel')
+    if(diffPageType == "EXCEL")
         orphanedOtherLessen = [...otherLesSet.values()].map(les => excelLesToJson(les as TaggedExcelLes));
     else
         orphanedOtherLessen = [...otherLesSet.values()].map(les => wwwLesToJson(les as TaggedWwwLesDef));
 
-    await setIgnoredFlags(orphanedDko3Lessen, orphanedOtherLessen, academie, schoolYear);
+    await setIgnoredFlags(orphanedDko3Lessen, orphanedOtherLessen, academie, schoolYear, diffPageType);
     let workBooks: Map<string, JsonWorkBook> = new Map<string, JsonWorkBook>();
     for(let excelData of excelRosters.map(r => r.table.excelData)) {
         if(!workBooks.has(excelData.workbookName)) {
@@ -615,8 +615,8 @@ function wwwLesToJson(wwwLesDef: TaggedWwwLesDef): JsonOtherLesMoment {
     };
 }
 
-export function createDiffTable(divResults: HTMLDivElement, diffType: OtherLesType) {
-    let {first: table, last: tbody} = emmet.appendChild(divResults, `table#orphans${diffType}.diff.diffOrphans>(thead>tr>(th.subject{Vak/Lesnaam}+th.gradeYear{Gr.Jr}+th.teacher{Leraar}+th.day{Dag}+th.{Uur}+th.location{Vestiging}+th+th))+tbody`) as { target: HTMLDivElement, first: HTMLTableElement, last: HTMLTableSectionElement };
+export function createDiffTable(divResults: HTMLDivElement, diffPageType: DiffPageType) {
+    let {first: table, last: tbody} = emmet.appendChild(divResults, `table#orphans${diffPageType}.diff.diffOrphans>(thead>tr>(th.subject{Vak/Lesnaam}+th.gradeYear{Gr.Jr}+th.teacher{Leraar}+th.day{Dag}+th.{Uur}+th.location{Vestiging}+th+th))+tbody`) as { target: HTMLDivElement, first: HTMLTableElement, last: HTMLTableSectionElement };
     return {table, tbody};
 }
 
@@ -627,7 +627,7 @@ function toCompactTimeSliceString(timeSlice: TimeSlice) {
 }
 
 export async function getUrlForWorksheet(workBook: string, workSheet: string, cellAddress: string, academie: string, schoolYear: string) {
-    let jsonDiffs = await getJsonDiffsCached(academie, schoolYear, "excel");
+    let jsonDiffs = await getJsonDiffsCached(academie, schoolYear, "EXCEL");
     let url =  jsonDiffs!
         .workBooks.find(wb => wb.name == workBook)
         ?.worksheets.find(ws => ws.name == workSheet)

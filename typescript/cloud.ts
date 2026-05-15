@@ -2,6 +2,8 @@ import * as def from "./def";
 import {JsonExcelData} from "./roster_diff/excel";
 import {CheckName, CheckStatus, NotificationId, NotificationLevel, Notifications, Notification} from "./notifications/types";
 import {DiffSettings} from "./roster_diff/diffSettings";
+import {OtherLesType} from "./www_diff/buildDiff";
+import {DiffPageType} from "./roster_diff/showDiff";
 
 export let cloud = {
     json: {
@@ -79,16 +81,16 @@ export async function fetchExcelData(filePath: string) {
     return await fetchJson(filePath) as JsonExcelData;
 }
 
-function getIgnoreHashesFileName(academie: string, schoolYear: string) {
-    return `Dko3/Uurroosters/${academie}/${academie}_${schoolYear}_ignored-diff-hashes.json`;
+function getIgnoreHashesFileName(academie: string, schoolYear: string, diffPageType: DiffPageType) {
+    return `Dko3/Uurroosters/${academie}/${academie}_${schoolYear}_${diffPageType}-diff-hashes.json`;
 }
 
-export async function uploadIgnoredDiffHashes(academie: string, schoolYear: string, hashes: string[]) {
-    await uploadJson(getIgnoreHashesFileName(academie, schoolYear), hashes);
+export async function uploadIgnoredDiffHashes(academie: string, schoolYear: string, hashes: string[], diffPageType: DiffPageType) {
+    await uploadJson(getIgnoreHashesFileName(academie, schoolYear, diffPageType), hashes);
 }
 
-export async function fetchIgnoredDiffHashes(academie: string, schoolYear: string) {
-    return await fetchJson(getIgnoreHashesFileName(academie, schoolYear)) as string[];
+export async function fetchIgnoredDiffHashes(academie: string, schoolYear: string, diffPageType: DiffPageType) {
+    return await fetchJson(getIgnoreHashesFileName(academie, schoolYear, diffPageType)) as string[];
 }
 
 function getDiffSettingsFileName(academie: string ,schoolYear: string ) {

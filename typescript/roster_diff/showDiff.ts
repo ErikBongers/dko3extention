@@ -28,7 +28,7 @@ export async function fetchDiffSettingsOrDefault(academie: string, schoolYear: s
     return settings;
 }
 
-export function getDiffsDko3CacheFileName(academie: string, schoolYear: string, diffType: OtherLesType) {
+export function getDiffsDko3CacheFileName(academie: string, schoolYear: string, diffType: DiffPageType) {
     return `Dko3/Uurroosters/Cache/${academie}_${schoolYear}_${diffType}_diffcache.json`;
 }
 
@@ -53,8 +53,8 @@ function getStatusBlock(divInfoWrapper: HTMLDivElement) {
     return {runStatus, divInfo, divError, divResults} as StatusBlock;
 }
 
-export async function getAndShowDiffs(showOrCalc: "justShow" | "calcAndShow", useDkoCache: "dkoCache" | "fetchDko", diffType: OtherLesType) {
-    let statusBlock = getStatusBlock(document.getElementById(diffType == "excel"? "wrapperExcelDiffs" : "wrapperWwwDiffs") as HTMLDivElement);
+export async function getAndShowDiffs(showOrCalc: "justShow" | "calcAndShow", useDkoCache: "dkoCache" | "fetchDko", diffPageType: DiffPageType) {
+    let statusBlock = getStatusBlock(document.getElementById(diffPageType == "EXCEL"? "wrapperExcelDiffs" : "wrapperWwwDiffs") as HTMLDivElement);
     statusBlock.divResults.innerHTML = "Ophalen...";
 
     let cmbDiffAcademie = document.querySelector("#cmbDiffAcademie") as HTMLSelectElement;
@@ -72,35 +72,35 @@ export async function getAndShowDiffs(showOrCalc: "justShow" | "calcAndShow", us
     errors = [];
     let json: string | null = null;
     if(useDkoCache == "dkoCache")
-       json = localStorage.getItem(getDiffsDko3CacheFileName(cmbDiffAcademie.value, cmbDiffSchoolYear.value, diffType));
+       json = localStorage.getItem(getDiffsDko3CacheFileName(cmbDiffAcademie.value, cmbDiffSchoolYear.value, diffPageType));
     let dko3DiffData = json ? JSON.parse(json) as Dko3DiffData : null;
     let jsonDiffs: JsonDiffs | null = null;
     let diffSettings = await fetchDiffSettingsOrDefault(cmbDiffAcademie.value, cmbDiffSchoolYear.value);
     if(showOrCalc == "justShow") {
         try {
-            jsonDiffs = await getDiffsFromCloud(cmbDiffAcademie.value, cmbDiffSchoolYear.value, diffType);
+            jsonDiffs = await getDiffsFromCloud(cmbDiffAcademie.value, cmbDiffSchoolYear.value, diffPageType);
         }
         catch (e) {}
     } else {
         statusBlock.divResults.innerHTML = "";
         let dataPreparationFunction: DataPreparationFunction;
-        if(diffType == "excel")
+        if(diffPageType == "EXCEL")
             dataPreparationFunction = prepareExcelData;
         else
             dataPreparationFunction = prepareWwwData;
-        jsonDiffs = await buildAndSaveDiff(reportStatus, fetchListener, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData, diffSettings, diffType, dataPreparationFunction);
+        jsonDiffs = await buildAndSaveDiff(reportStatus, fetchListener, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData, diffSettings, diffPageType, dataPreparationFunction);
     }
     if(jsonDiffs)
-        await showDiffs(jsonDiffs, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData, diffSettings, statusBlock, diffType);
+        await showDiffs(jsonDiffs, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData, diffSettings, statusBlock, diffPageType);
 }
 
-export async function showDiffs(diffs: JsonDiffs, academie: string, schoolYear: string, dko3DiffData: Dko3DiffData | null, diffSettings: DiffSettings, statusBlock: StatusBlock, diffType: OtherLesType) {
+export async function showDiffs(diffs: JsonDiffs, academie: string, schoolYear: string, dko3DiffData: Dko3DiffData | null, diffSettings: DiffSettings, statusBlock: StatusBlock, diffPageType: DiffPageType) {
     statusBlock.divResults.innerHTML = "Ophalen...";
     if(!diffs) {
         statusBlock.divResults.innerHTML = "";
         return;
     }
-    await setIgnoredFlags(diffs.orphanedDko3Lessen, diffs.orphanedOtherLessen, academie, schoolYear);
+    await setIgnoredFlags(diffs.orphanedDko3Lessen, diffs.orphanedOtherLessen, academie, schoolYear, diffPageType);
     statusBlock.divResults.innerHTML = "";
     let elapsedTimeString = dateDiffToString(new Date(diffs.isoDate), new Date());
     if(elapsedTimeString != "")
@@ -110,62 +110,62 @@ export async function showDiffs(diffs: JsonDiffs, academie: string, schoolYear: 
         let button = emmet.appendChild(div, "button.likeLink").first as HTMLButtonElement;
         button.innerHTML = "Zoek met dko3 cache";
         button.onclick = () => {
-            getAndShowDiffs("calcAndShow", "dkoCache", "excel");
+            getAndShowDiffs("calcAndShow", "dkoCache", "EXCEL");
         };
     }
-    let divChk = emmet.appendChild(statusBlock.divResults, `div#divHideChecked>(input#chkHideChecked${diffType}[type="checkbox"]+label[for="chkHideChecked${diffType}"]{Verberg aangevinkte lijnen})`).first as HTMLDivElement;
-    let chkHideChecked = divChk.querySelector(`#chkHideChecked${diffType}`) as HTMLInputElement;
+    let divChk = emmet.appendChild(statusBlock.divResults, `div#divHideChecked>(input#chkHideChecked${diffPageType}[type="checkbox"]+label[for="chkHideChecked${diffPageType}"]{Verberg aangevinkte lijnen})`).first as HTMLDivElement;
+    let chkHideChecked = divChk.querySelector(`#chkHideChecked${diffPageType}`) as HTMLInputElement;
     chkHideChecked.onchange = (ev) => {
         let input = ev.currentTarget as HTMLInputElement;
-        let table = document.getElementById(`orphans${diffType}`) as HTMLTableElement;
+        let table = document.getElementById(`orphans${diffPageType}`) as HTMLTableElement;
         table.classList.toggle("hideChecked", input.checked);
         let ignore = table.classList.contains("hideChecked");
-        localStorage.setItem(OPTION_HIDE_IGNORED_DIFFS+diffType, ignore.toString());
+        localStorage.setItem(OPTION_HIDE_IGNORED_DIFFS+diffPageType, ignore.toString());
     }
     emmet.appendChild(divChk, `
         div>(
-            input#chkHideNoTeacher${diffType}[type="checkbox"]+
-            label[for="chkHideNoTeacher${diffType}"]{Verberg nog te bepalen leraren}
+            input#chkHideNoTeacher${diffPageType}[type="checkbox"]+
+            label[for="chkHideNoTeacher${diffPageType}"]{Verberg nog te bepalen leraren}
         )
     `);
-    let chkHideNoTeacher = divChk.querySelector(`#chkHideNoTeacher${diffType}`) as HTMLInputElement;
+    let chkHideNoTeacher = divChk.querySelector(`#chkHideNoTeacher${diffPageType}`) as HTMLInputElement;
     chkHideNoTeacher.onchange = (ev) => {
         let input = ev.currentTarget as HTMLInputElement;
         statusBlock.divResults.classList.toggle("hideNoTeacher", input.checked);
         let hideNoTeacher = statusBlock.divResults.classList.contains("hideNoTeacher");
-        localStorage.setItem(OPTION_HIDE_NO_TEACHER_DIFFS+diffType, hideNoTeacher.toString());
+        localStorage.setItem(OPTION_HIDE_NO_TEACHER_DIFFS+diffPageType, hideNoTeacher.toString());
     }
     for(let diff of diffs.diffs)
-        displayDiff(diff, statusBlock.divResults, academie, schoolYear); //<i class="fa-solid fa-arrow-up-right-from-square"></i>
+        displayDiff(diff, statusBlock.divResults, academie, schoolYear, diffPageType); //<i class="fa-solid fa-arrow-up-right-from-square"></i>
 
     emmet.appendChild(statusBlock.divResults, "h4{Lessen zonder overeenkomsten}");
-    let {table, tbody} = createDiffTable(statusBlock.divResults, diffType);
+    let {table, tbody} = createDiffTable(statusBlock.divResults, diffPageType);
 
     decorateTableHeader(table, false);
     for(let les of diffs.orphanedDko3Lessen) {
         let tr = emmet.appendChild(tbody, "tr").last as HTMLTableRowElement;
-        fillDiffRow(tr, les, "perfect match", createDko3GotoData(les.lesId), "", les.hash, les.ignore, academie, schoolYear, null, null);
+        fillDiffRow(tr, les, "perfect match", createDko3GotoData(les.lesId), "", les.hash, les.ignore, academie, schoolYear, null, null, diffPageType);
     }
     for(let les of diffs.orphanedOtherLessen) {
         let tr = emmet.appendChild(tbody, "tr").last as HTMLTableRowElement;
-        fillDiffRow(tr, les, "perfect match", les.gotoData, les.gotoData.text, les.hash, les.ignore, academie, schoolYear, null, null);
+        fillDiffRow(tr, les, "perfect match", les.gotoData, les.gotoData.text, les.hash, les.ignore, academie, schoolYear, null, null, diffPageType);
         tr.classList.add("excelRow");
     }
-    let ignore = localStorage.getItem(OPTION_HIDE_IGNORED_DIFFS+diffType)?? "false";
+    let ignore = localStorage.getItem(OPTION_HIDE_IGNORED_DIFFS+diffPageType)?? "false";
     chkHideChecked.checked = ignore == "true";
     table.classList.toggle("hideChecked", chkHideChecked.checked);
 
-    let hideNoTeacher = localStorage.getItem(OPTION_HIDE_NO_TEACHER_DIFFS+diffType)?? "false";
+    let hideNoTeacher = localStorage.getItem(OPTION_HIDE_NO_TEACHER_DIFFS+diffPageType)?? "false";
     chkHideNoTeacher.checked = hideNoTeacher == "true";
     statusBlock.divResults.classList.toggle("hideNoTeacher", chkHideNoTeacher.checked);
 }
 export type StatusCallback = (message: string, isError?: "error") => void;
 
-export function fillOtherDiffRow(tr: HTMLTableRowElement, diff: JsonDiff, academie: string, schoolYear: string, noHide: "no hide button" | null) {
-    fillDiffRow(tr, diff.otherLes, diff.diffType, diff.otherLes.gotoData, diff.otherLes.gotoData.text, diff.otherLes.hash, diff.otherLes.ignore, academie, schoolYear, diff.weight, noHide);
+export function fillOtherDiffRow(tr: HTMLTableRowElement, diff: JsonDiff, academie: string, schoolYear: string, noHide: "no hide button" | null, diffPageType: DiffPageType) {
+    fillDiffRow(tr, diff.otherLes, diff.diffType, diff.otherLes.gotoData, diff.otherLes.gotoData.text, diff.otherLes.hash, diff.otherLes.ignore, academie, schoolYear, diff.weight, noHide, diffPageType);
 }
 
-function displayDiff(diff: JsonDiff, divResults: HTMLDivElement, academie: string, schoolYear: string) {
+function displayDiff(diff: JsonDiff, divResults: HTMLDivElement, academie: string, schoolYear: string, diffPageType: DiffPageType) {
     let tbody = emmet.appendChild(divResults, "table.diff>tbody").last as HTMLTableSectionElement;
     let trTop = emmet.appendChild(tbody, "tr").last as HTMLTableRowElement;
     let trBottom = emmet.appendChild(tbody, "tr").last as HTMLTableRowElement;
@@ -180,11 +180,11 @@ function displayDiff(diff: JsonDiff, divResults: HTMLDivElement, academie: strin
     tbody.parentElement!.classList.toggle("justNoTeacher", diffOnlyTeacher && diff.otherLes.teachers.includes("nog te bepalen"));
 
 
-    fillOtherDiffRow(trOther, diff, academie, schoolYear, "no hide button");
-    fillDiffRow(trDko3, diff.dko3Les, diff.diffType, createDko3GotoData(diff.dko3Les.lesId), "", diff.dko3Les.hash, diff.dko3Les.ignore, academie, schoolYear, diff.weight, "no hide button");
+    fillOtherDiffRow(trOther, diff, academie, schoolYear, "no hide button", diffPageType);
+    fillDiffRow(trDko3, diff.dko3Les, diff.diffType, createDko3GotoData(diff.dko3Les.lesId), "", diff.dko3Les.hash, diff.dko3Les.ignore, academie, schoolYear, diff.weight, "no hide button", diffPageType);
 }
 
-export function fillDiffRow(tr: HTMLTableRowElement, jsonLes: JsonBasicLesMoment, diffType: DiffType, gotoData: DiffGotoData, orgText: string, hash: string, ignore: boolean, academie: string, schoolYear: string, weight: Weight | null, noHide: "no hide button" | null) {
+export function fillDiffRow(tr: HTMLTableRowElement, jsonLes: JsonBasicLesMoment, diffType: DiffType, gotoData: DiffGotoData, orgText: string, hash: string, ignore: boolean, academie: string, schoolYear: string, weight: Weight | null, noHide: "no hide button" | null, diffPageType: DiffPageType) {
     if(ignore)
         tr.classList.add("ignore");
     let diffTeacherClass: string = "";
@@ -244,21 +244,21 @@ export function fillDiffRow(tr: HTMLTableRowElement, jsonLes: JsonBasicLesMoment
     btnGoto.onclick = (ev) => gotoSource(ev, academie, schoolYear);
     let btnHide = tr.querySelector("button.chkHide") as HTMLButtonElement | null;
     if(btnHide)
-        btnHide.onclick = (ev) => toggleIgnore(ev, academie, schoolYear, "excel"); //todo: this is wrong!!!! Should be excel or www, based on the page tab we're at.
+        btnHide.onclick = (ev) => toggleIgnore(ev, academie, schoolYear, diffPageType); //todo: merge OtherLesType and JsonLesType?
 }
-
-async function toggleIgnore(ev: MouseEvent, academie: string, schoolYear: string, diffType: OtherLesType) {
+export type DiffPageType = "EXCEL" | "WWW";
+async function toggleIgnore(ev: MouseEvent, academie: string, schoolYear: string, diffPageType: DiffPageType) {
     let button = ev.currentTarget as HTMLButtonElement;
     let tr = button.closest("tr") as HTMLTableRowElement;
     tr.classList.toggle("ignore");
-    await saveIgnoredHashes(academie, schoolYear, diffType);
+    await saveIgnoredHashes(academie, schoolYear, diffPageType);
 }
 
-async function saveIgnoredHashes(academie: string, schoolYear: string, diffType: OtherLesType) {
-    let table = document.getElementById(`orphans${diffType}`) as HTMLTableElement;
+async function saveIgnoredHashes(academie: string, schoolYear: string, diffPageType: DiffPageType) {
+    let table = document.getElementById(`orphans${diffPageType}`) as HTMLTableElement;
     let hashes = [...table.querySelectorAll("tr.ignore") as NodeListOf<HTMLTableRowElement>]
         .map(tr => tr.dataset.hash as string);
-    await uploadIgnoredDiffHashes(academie, schoolYear, hashes);
+    await uploadIgnoredDiffHashes(academie, schoolYear, hashes, diffPageType);
 }
 
 export interface DiffGotoData {

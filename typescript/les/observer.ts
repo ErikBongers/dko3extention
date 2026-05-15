@@ -1,7 +1,7 @@
 import {HashObserver} from "../pageObserver";
 import {emmet} from "../../libs/Emmeter/html";
 import {getDiffsCloudFileName, getDiffsFromCloud, JsonDiffs} from "../roster_diff/buildDiff";
-import {fillOtherDiffRow} from "../roster_diff/showDiff";
+import {DiffPageType, fillOtherDiffRow} from "../roster_diff/showDiff";
 import {Schoolyear} from "../globals";
 import {getDiffDirStructure, getDiffMyAcademieFolder} from "../startPage/diffPage";
 import {OtherLesType} from "../www_diff/buildDiff";
@@ -28,7 +28,7 @@ function onMutation(mutation: MutationRecord) {
         let academie = localStorage.getItem("diffLastAcademie");
         let schoolYear = localStorage.getItem("diffLastSchoolYear");
         if(academie && schoolYear)
-            addDiff(titleHeader, academie, schoolYear, "excel").then(r => {});
+            addDiff(titleHeader, academie, schoolYear, "EXCEL").then(r => {});
     }
     return false;
 }
@@ -96,21 +96,21 @@ function switchNaamVoornaam(_event: MouseEvent) {
     });
 }
 
-function getDiffsLocalFirst(academie: string, schoolYear: string, diffType: OtherLesType) {
-    let fileName = getDiffsCloudFileName(academie, schoolYear, diffType);
+function getDiffsLocalFirst(academie: string, schoolYear: string, diffPageType: DiffPageType) {
+    let fileName = getDiffsCloudFileName(academie, schoolYear, diffPageType);
     let jsonDiff = sessionStorage.getItem(fileName);
     if(jsonDiff)
         return JSON.parse(jsonDiff) as JsonDiffs;
-    return getDiffsFromCloud(academie, schoolYear, diffType);
+    return getDiffsFromCloud(academie, schoolYear, diffPageType);
 }
 
-async function addDiff(titleHeader: HTMLElement, academie: string, schoolYear: string, diffType: OtherLesType) {
+async function addDiff(titleHeader: HTMLElement, academie: string, schoolYear: string, diffPageType: DiffPageType) {
     let divDiff = document.querySelector("div.diff") as HTMLDivElement;
     if(divDiff)
         return;
 
     divDiff = emmet.insertAfter(titleHeader, "div.diff").first as HTMLDivElement;
-    let diffs = await getDiffsLocalFirst(academie, schoolYear, diffType);
+    let diffs = await getDiffsLocalFirst(academie, schoolYear, diffPageType);
     if(!diffs)
         return;
     let rxId = /id=(\d+)/g;
@@ -120,7 +120,7 @@ async function addDiff(titleHeader: HTMLElement, academie: string, schoolYear: s
     if(diff) {
         let tbody = emmet.appendChild(divDiff, "table.diff>tbody").last as HTMLTableSectionElement;
         let tr = emmet.appendChild(tbody, "tr").last as HTMLTableRowElement;
-        fillOtherDiffRow(tr, diff, academie, schoolYear, "no hide button");
+        fillOtherDiffRow(tr, diff, academie, schoolYear, "no hide button", diffPageType);
         return;
     }
 }
