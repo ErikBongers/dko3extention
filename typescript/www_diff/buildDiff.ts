@@ -48,6 +48,7 @@ export class TaggedWwwLesDef implements ComparableLesMoment{
             .replaceAll("Kunstenbad beeld - muziek - woord", "Kunstenbad Kleine Stad bk - muziek - woord")
             .replaceAll("blazersensemble", "Blazersensemble 2e graad") //todo: conditional on page headers.
             .replaceAll("gitaarensemble", "Gitaarensemble 2e graad") //todo: conditional on page headers.
+            .replaceAll("strijkersensemble", "Strijkersensemble 2e graad") //todo: conditional on page headers.
         ;
 
 
