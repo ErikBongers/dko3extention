@@ -5826,7 +5826,8 @@ var TaggedWwwLesDef = class {
 		this.timeSlice = timeSlice;
 		this.day = day;
 		this.teachers = teachers;
-		let tags = ExcelRoster.findTags(` ${this.lesDef.className} ${this.lesDef.location} `, diffSettings.tagDefs);
+		let translatedClassName = this.lesDef.className.replaceAll("Kunstenbad beeld - muziek - woord", "Kunstenbad Kleine Stad bk - muziek - woord").replaceAll("blazersensemble", "Blazersensemble 2e graad").replaceAll("gitaarensemble", "Gitaarensemble 2e graad");
+		let tags = ExcelRoster.findTags(` ${translatedClassName} ${this.lesDef.location} `, diffSettings.tagDefs);
 		let tagStrings = tags.map((t) => t.tag);
 		let location$1 = ExcelRoster.findLocation(tagStrings, dko3Data.locations);
 		if (!location$1) {
@@ -5836,7 +5837,7 @@ var TaggedWwwLesDef = class {
 		}
 		this.location = location$1 ?? "Academie Willem Van Laarstraat, Berchem";
 		this.subjects = ExcelRoster.findSubjects(this.lesDef.className, tagStrings, dko3Data);
-		this.className = this.lesDef.className;
+		this.className = translatedClassName;
 		this.gradeYears = ExcelRoster.findGradeYears(ExcelRoster.makeParsable(this.lesDef.className));
 		if (this.gradeYears.length == 0) this.gradeYears = ExcelRoster.getGradeYearsFromTags(tags);
 		if (this.gradeYears.length == 0) {

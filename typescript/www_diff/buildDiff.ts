@@ -41,7 +41,18 @@ export class TaggedWwwLesDef implements ComparableLesMoment{
         this.timeSlice = timeSlice;
         this.day = day;
         this.teachers = teachers;
-        let tags = ExcelRoster.findTags(` ${this.lesDef.className} ${this.lesDef.location} `, diffSettings.tagDefs);
+
+        //todo: put pe-translations in settings
+
+        let translatedClassName = this.lesDef.className
+            .replaceAll("Kunstenbad beeld - muziek - woord", "Kunstenbad Kleine Stad bk - muziek - woord")
+            .replaceAll("blazersensemble", "Blazersensemble 2e graad") //todo: conditional on page headers.
+            .replaceAll("gitaarensemble", "Gitaarensemble 2e graad") //todo: conditional on page headers.
+        ;
+
+
+
+        let tags = ExcelRoster.findTags(` ${translatedClassName} ${this.lesDef.location} `, diffSettings.tagDefs);
         let tagStrings = tags.map(t => t.tag);
         let location = ExcelRoster.findLocation(tagStrings, dko3Data.locations);
         if(!location) {
@@ -51,7 +62,7 @@ export class TaggedWwwLesDef implements ComparableLesMoment{
         }
         this.location = location ?? "Academie Willem Van Laarstraat, Berchem";
         this.subjects = ExcelRoster.findSubjects(this.lesDef.className, tagStrings, dko3Data);
-        this.className = this.lesDef.className;
+        this.className = translatedClassName;//todo: Am I sure about this?  origina: this.lesDef.className;
         this.gradeYears = ExcelRoster.findGradeYears(ExcelRoster.makeParsable(this.lesDef.className));
         if(this.gradeYears.length == 0) {
             this.gradeYears = ExcelRoster.getGradeYearsFromTags(tags);
