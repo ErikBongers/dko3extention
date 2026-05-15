@@ -2191,12 +2191,22 @@ var ExcelRoster = class ExcelRoster {
 		}
 		return [];
 	}
+	static parseGradeYears(tagDef) {
+		let split = (tagDef.gradeYears ?? "").split(",").map((t) => t.trim().toUpperCase());
+		let gradeYears = [];
+		for (let yearGrade of split) {
+			let yearParts = yearGrade.split(".");
+			if (yearParts.length == 2) gradeYears.push({
+				grade: yearParts[0],
+				year: parseInt(yearParts[1])
+			});
+			else if (yearParts.length == 1) console.error(`Syntax error in gradeYears for tag search text "${tagDef.searchString}": "${tagDef.gradeYears}"`);
+		}
+		return gradeYears;
+	}
 	static getGradeYearsFromTags(tags) {
 		let gradeYears = [];
-		for (let tagDef of tags) if (tagDef.grade || tagDef.year) gradeYears.push({
-			grade: tagDef.grade ?? null,
-			year: tagDef.year ?? null
-		});
+		for (let tagDef of tags) gradeYears.push(...this.parseGradeYears(tagDef));
 		gradeYears = gradeYears.filter((value, index, self) => self.findIndex((t) => GradeYear.equals(t, value)) === index);
 		return gradeYears;
 	}
@@ -6726,7 +6736,7 @@ async function setupDiffPage() {
 	let btnCalcDiff = pluginContainer.querySelector("#btnCalcDiff");
 	let btnCalcDiffWww = pluginContainer.querySelector("#btnDiffWww");
 	let btnDiffSettings = pluginContainer.querySelector("#btnDiffSettings");
-	let btnDiffSettingsWww = pluginContainer.querySelector("#btnDiffSettings");
+	let btnDiffSettingsWww = pluginContainer.querySelector("#btnDiffSettingsWww");
 	let dirTree = await getDiffDirStructure();
 	let myAcadFolderName = getDiffMyAcademieFolder(dirTree);
 	if (!myAcadFolderName) throw new Error("Could not find academie folder name.");

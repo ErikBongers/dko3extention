@@ -83,7 +83,7 @@ export async function setupDiffPage() {
     let btnCalcDiff = pluginContainer.querySelector("#btnCalcDiff")  as HTMLButtonElement;
     let btnCalcDiffWww = pluginContainer.querySelector("#btnDiffWww")  as HTMLButtonElement;
     let btnDiffSettings = pluginContainer.querySelector("#btnDiffSettings")  as HTMLButtonElement;
-    let btnDiffSettingsWww = pluginContainer.querySelector("#btnDiffSettings")  as HTMLButtonElement;
+    let btnDiffSettingsWww = pluginContainer.querySelector("#btnDiffSettingsWww")  as HTMLButtonElement;
     let dirTree = await getDiffDirStructure();
     let myAcadFolderName = getDiffMyAcademieFolder(dirTree);
     if(!myAcadFolderName)

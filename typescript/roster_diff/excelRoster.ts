@@ -340,15 +340,27 @@ export class ExcelRoster {
         return [];
     }
 
+    private static parseGradeYears(tagDef: TagDef): GradeYear[] {
+        let split = (tagDef.gradeYears??"").split(",")
+            .map(t => t.trim().toUpperCase());
+        let gradeYears: GradeYear[] = [];
+        for(let yearGrade of split) {
+            let yearParts = yearGrade.split(".");
+            if(yearParts.length == 2) {
+                gradeYears.push({
+                    grade: yearParts[0],
+                    year: parseInt(yearParts[1])
+                });
+            } else if(yearParts.length == 1) {
+                console.error(`Syntax error in gradeYears for tag search text "${tagDef.searchString}": "${tagDef.gradeYears}"`);
+            }
+        }
+        return gradeYears;
+    }
     public static getGradeYearsFromTags(tags: TagDef[]) {
         let gradeYears: GradeYear[] = [];
         for(let tagDef of tags) {
-            if(tagDef.grade || tagDef.year) {
-                gradeYears.push({
-                    grade: tagDef.grade ?? null,
-                    year: tagDef.year ?? null
-                });
-            }
+            gradeYears.push(...this.parseGradeYears(tagDef));
         }
         //make distinct
         gradeYears = gradeYears.filter((value, index, self) => self.findIndex(t => GradeYear.equals(t, value)) === index);
