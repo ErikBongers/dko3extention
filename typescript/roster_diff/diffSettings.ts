@@ -1,8 +1,6 @@
 export type TagDef = {
     tag: string,
     searchString: string,
-    grade?: string,
-    year?: number,
     gradeYears?: string
 }
 

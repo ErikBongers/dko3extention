@@ -2192,6 +2192,7 @@ var ExcelRoster = class ExcelRoster {
 		return [];
 	}
 	static parseGradeYears(tagDef) {
+		if (tagDef.gradeYears == "") return [];
 		let split = (tagDef.gradeYears ?? "").split(",").map((t) => t.trim().toUpperCase());
 		let gradeYears = [];
 		for (let yearGrade of split) {

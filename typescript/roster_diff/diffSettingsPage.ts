@@ -29,10 +29,6 @@ function addTranslationRow(tagDef: TagDef, tbody: HTMLTableSectionElement) {
         + "+"
         + buildField("tag met", tagDef.tag, "trnsTag")
         + "+"
-        + buildField("gr", tagDef.grade??"", "trnsGrade")
-        + "+"
-        + buildField("jr", tagDef.year?.toString()??"", "trnsYear")
-        + "+"
         + buildField("gr+jaren", tagDef.gradeYears?.toString()??"", "trnsGradeYears")
     ;
     let tr = emmet.appendChild(tbody, text).first as HTMLTableRowElement;
@@ -142,16 +138,12 @@ function scrapeTagDefs(): TagDef[] {
     let rows = document.querySelectorAll("#tagDefsContainer>table>tbody>tr") as NodeListOf<HTMLTableRowElement>;
     return [...rows]
         .map(row => {
-            let grade= (row.querySelector("#trnsGrade") as InputWithSpaces.Type).value.trim();
-            let year = (row.querySelector("#trnsYear") as InputWithSpaces.Type).value.trim();
             let gradeYears = (row.querySelector("#trnsGradeYears") as InputWithSpaces.Type).value.trim();
             return {
                 searchString: (row.querySelector("#trnsFind") as InputWithSpaces.Type).value.toLowerCase(),
                 tag: (row.querySelector("#trnsTag") as InputWithSpaces.Type).value,
-                grade,
-                year: parseInt(year), //todo: gracefull error when parsing number...or make field a string?
                 gradeYears,
-            }
+            } satisfies TagDef
         });
 }
 
