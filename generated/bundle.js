@@ -2143,8 +2143,8 @@ var ExcelRoster = class ExcelRoster {
 	}
 	static findSubjects(text, tags, dko3Data) {
 		let allSearchStrings = [...tags];
-		let lowerCase = text.toLowerCase();
-		for (let subject of dko3Data.subjects) if (lowerCase.includes(subject.toLowerCase())) allSearchStrings.push(subject);
+		let lowerCase = " " + text.toLowerCase() + " ";
+		for (let subject of dko3Data.subjects) if (lowerCase.includes(" " + subject.toLowerCase() + " ")) allSearchStrings.push(subject);
 		return dko3Data.subjects.filter((subject) => allSearchStrings.includes(subject));
 	}
 	static findClassName(text, dko3Data) {

@@ -280,9 +280,9 @@ export class ExcelRoster {
 
     public static findSubjects(text: string, tags: string[], dko3Data: Dko3DiffData) {
         let allSearchStrings = [...tags];
-        let lowerCase = text.toLowerCase();
+        let lowerCase = " " + text.toLowerCase() + " ";
         for (let subject of dko3Data.subjects) {
-            if(lowerCase.includes(subject.toLowerCase()))
+            if(lowerCase.includes(" " + subject.toLowerCase() + " "))
                 allSearchStrings.push(subject);
         }
 
