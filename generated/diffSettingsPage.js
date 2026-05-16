@@ -551,7 +551,7 @@ handler.onMessageForMyTabType((msg) => {
 }).onData(onData);
 function addTranslationRow(tagDef, tbody) {
 	let text = `tr>` + buildField("Vind", tagDef.searchString, "trnsFind") + "+" + buildField("tag met", tagDef.tag, "trnsTag") + "+" + buildField("gr+jaren", tagDef.gradeYears?.toString() ?? "", "trnsGradeYears") + `+ div.flexRow>(
-                label[for="trnsIsClassName"]{is klasnaam:}+
+                label.flexGrow[for="trnsIsClassName"]{is klasnaam:}+
                 input#trnsIsClassName[type="checkbox" ${tagDef.isClassName ? "checked=\"checked\"" : ""} name="trnsIsClassName"]
             )
            `;
@@ -561,7 +561,7 @@ function addTranslationRow(tagDef, tbody) {
 	tbody.querySelectorAll("button.deleteRow").forEach((btn) => btn.addEventListener("click", deleteTableRow));
 	function buildField(label, value, id) {
 		let attrValue = value ? ` value="${value}"` : "";
-		return `(td>{${label}})+(td>input-with-spaces#${id}[type="text"${attrValue}])`;
+		return `(td.label>{${label}})+(td>input-with-spaces#${id}[type="text"${attrValue}])`;
 	}
 	let chkIsClassName = tr.querySelector("#trnsIsClassName");
 	chkIsClassName.addEventListener("change", (_) => {

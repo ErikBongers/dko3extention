@@ -34,3 +34,11 @@ div.tabs {
     display: flex;
     flex-direction: column;
 }
+
+.flexGrow {
+    flex-grow: 1;
+}
+
+.flexSchrink {
+    flex-shrink: 1;
+}

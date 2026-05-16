@@ -32,7 +32,7 @@ function addTranslationRow(tagDef: TagDef, tbody: HTMLTableSectionElement) {
         + buildField("gr+jaren", tagDef.gradeYears?.toString()??"", "trnsGradeYears")
         + "+"
         + ` div.flexRow>(
-                label[for="trnsIsClassName"]{is klasnaam:}+
+                label.flexGrow[for="trnsIsClassName"]{is klasnaam:}+
                 input#trnsIsClassName[type="checkbox" ${tagDef.isClassName ? 'checked="checked"' : ""} name="trnsIsClassName"]
             )
            `
@@ -46,7 +46,7 @@ function addTranslationRow(tagDef: TagDef, tbody: HTMLTableSectionElement) {
 
     function buildField(label: string, value: string, id: string){
         let attrValue = value ? ` value="${value}"` : "";
-        return `(td>{${label}})+(td>input-with-spaces#${id}[type="text"${attrValue}])`;
+        return `(td.label>{${label}})+(td>input-with-spaces#${id}[type="text"${attrValue}])`;
     }
     let chkIsClassName = tr.querySelector("#trnsIsClassName") as HTMLInputElement;
     chkIsClassName.addEventListener("change", (_) => {
