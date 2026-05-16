@@ -5863,6 +5863,9 @@ const chars = [
 
 //#endregion
 //#region typescript/www_diff/buildDiff.ts
+function preTranslate(text) {
+	return text.replaceAll("Kunstenbad beeld - muziek - woord", "Kunstenbad Kleine Stad bk - muziek - woord").replaceAll("blazersensemble", "Blazersensemble 2e graad").replaceAll("gitaarensemble", "Gitaarensemble 2e graad").replaceAll("strijkersensemble", "Strijkersensemble 2e graad").replaceAll("ü", "u");
+}
 var TaggedWwwLesDef = class {
 	lesType = "www";
 	hash;
@@ -5881,7 +5884,7 @@ var TaggedWwwLesDef = class {
 		this.timeSlice = timeSlice;
 		this.day = day;
 		this.teachers = teachers;
-		let translatedClassName = this.lesDef.className.replaceAll("Kunstenbad beeld - muziek - woord", "Kunstenbad Kleine Stad bk - muziek - woord").replaceAll("blazersensemble", "Blazersensemble 2e graad").replaceAll("gitaarensemble", "Gitaarensemble 2e graad").replaceAll("strijkersensemble", "Strijkersensemble 2e graad");
+		let translatedClassName = preTranslate(this.lesDef.className);
 		let tags = ExcelRoster.findTags(` ${translatedClassName} ${this.lesDef.location} `, diffSettings.preparedDiffSettings.tagDefs);
 		let tagStrings = tags.map((t) => t.tag);
 		let location$1 = ExcelRoster.findLocation(tagStrings, dko3Data.preparedDko3DiffData.locations);
@@ -5924,7 +5927,7 @@ function tagWwwLes(les, dko3DiffData, diffSettings) {
 		return null;
 	}
 	let timeSlice = new TimeSlice(times[0], times[1]);
-	let teachers = les.teacher.split(/[\/,&]/g).map((t) => findTeacher(t, dko3DiffData.preparedDko3DiffData.teachers)).filter((t) => t != "");
+	let teachers = preTranslate(les.teacher).split(/[\/,&]/g).map((t) => findTeacher(t, dko3DiffData.preparedDko3DiffData.teachers)).filter((t) => t != "");
 	return new TaggedWwwLesDef(les, timeSlice, day ?? "", teachers, dko3DiffData, diffSettings);
 }
 async function requestWww(urlList) {
@@ -6188,7 +6191,7 @@ var TaggedExcelLes = class extends TaggedLes {
 		super(les, [], searchText);
 		this.className = this.lesMoment.className;
 		this.location = this.lesMoment.location;
-		this.teachers = this.lesMoment.teacher.split(/[\/,]/g).map((t) => findTeacher(t, teachers)).filter((t) => t != "");
+		this.teachers = preTranslate(this.lesMoment.teacher).split(/[\/,]/g).map((t) => findTeacher(t, teachers)).filter((t) => t != "");
 		this.subjects = les.subjects;
 		this.subjects = this.subjects.filter((s) => s);
 		if (this.lesMoment.className) this.subjects.push(this.lesMoment.className);
@@ -6354,7 +6357,7 @@ async function fetchTeachers(schoolYear) {
 	});
 }
 function findTeacher(searchString, teachers) {
-	let lowerCase = searchString.toLowerCase().replaceAll("ü", "u");
+	let lowerCase = searchString.toLowerCase();
 	let paddedLowerCase = " " + lowerCase + " ";
 	for (let teacherDef of teachers) if (lowerCase.includes(teacherDef.firstName.toLowerCase()) && lowerCase.includes(teacherDef.lastName.toLowerCase())) return teacherDef.fullName;
 	for (let teacherDef of teachers) {

@@ -22,6 +22,16 @@ interface WwwLesDef {
 
 export type OtherLesType = "excel" | "www";
 
+export function preTranslate(text: string) {
+    //todo: put pe-translations in settings
+    return text
+        .replaceAll("Kunstenbad beeld - muziek - woord", "Kunstenbad Kleine Stad bk - muziek - woord")
+        .replaceAll("blazersensemble", "Blazersensemble 2e graad") //todo: conditional on page headers.
+        .replaceAll("gitaarensemble", "Gitaarensemble 2e graad") //todo: conditional on page headers.
+        .replaceAll("strijkersensemble", "Strijkersensemble 2e graad") //todo: conditional on page headers.
+        .replaceAll("ü", "u"); // Jürgen !!!
+}
+
 export class TaggedWwwLesDef implements ComparableLesMoment{
     lesType: OtherLesType = "www";
     hash: string;
@@ -42,16 +52,7 @@ export class TaggedWwwLesDef implements ComparableLesMoment{
         this.day = day;
         this.teachers = teachers;
 
-        //todo: put pe-translations in settings
-
-        let translatedClassName = this.lesDef.className
-            .replaceAll("Kunstenbad beeld - muziek - woord", "Kunstenbad Kleine Stad bk - muziek - woord")
-            .replaceAll("blazersensemble", "Blazersensemble 2e graad") //todo: conditional on page headers.
-            .replaceAll("gitaarensemble", "Gitaarensemble 2e graad") //todo: conditional on page headers.
-            .replaceAll("strijkersensemble", "Strijkersensemble 2e graad") //todo: conditional on page headers.
-        ;
-
-
+        let translatedClassName = preTranslate(this.lesDef.className);
 
         let tags = ExcelRoster.findTags(` ${translatedClassName} ${this.lesDef.location} `, diffSettings.preparedDiffSettings.tagDefs);
         let tagStrings = tags.map(t => t.tag);
@@ -103,7 +104,7 @@ function tagWwwLes(les: WwwLesDef, dko3DiffData: PreparedDko3DiffData, diffSetti
 
     let timeSlice = new TimeSlice(times[0], times[1]);
 
-    let teachers = les.teacher
+    let teachers = preTranslate(les.teacher)
         .split(/[\/,&]/g).map(t => findTeacher(t, dko3DiffData.preparedDko3DiffData.teachers))
         .filter(t => t != "");
 

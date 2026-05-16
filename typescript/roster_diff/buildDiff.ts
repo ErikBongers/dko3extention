@@ -12,7 +12,7 @@ import {emmet} from "../../libs/Emmeter/html";
 import {fetchAndDisplayNotifications} from "../notifications/notifications";
 import {DiffGotoData, DiffPageType, excelPostoExcelAddress, getDiffsDko3CacheFileName, StatusCallback} from "./showDiff";
 import {DiffSettings, TagDef} from "./diffSettings";
-import {parseWww, TaggedWwwLesDef} from "../www_diff/buildDiff";
+import {parseWww, preTranslate, TaggedWwwLesDef} from "../www_diff/buildDiff";
 import {ComparableLesMoment, Diff, DiffLesType, DiffType, Dko3LesMoment, GradeYear, LesType, matchBasedOnName, MatchContext, matchIt, matchWithoutGradeYears, matchWithoutGradeYearsTeacher, matchWithoutLocation, matchWithoutTeacher, matchWithoutTeacherTimeAndDay, matchWithoutTimeAndDay, perfectMatch, TaggedDko3LesMoment, TaggedLes, Weight} from "./calcDiff";
 import {createInfoBlock} from "../infoBlock";
 
@@ -203,7 +203,7 @@ export class TaggedExcelLes extends TaggedLes<ClassDef> implements ComparableLes
         super(les, [], searchText);
         this.className = this.lesMoment.className;
         this.location = this.lesMoment.location;//translate probably already done.
-        this.teachers = this.lesMoment.teacher
+        this.teachers = preTranslate(this.lesMoment.teacher)
             .split(/[\/,]/g).map(t => findTeacher(t, teachers))
             .filter(t => t != "");
         this.subjects = les.subjects;
@@ -410,7 +410,7 @@ export async function fetchTeachers(schoolYear: string): Promise<TeacherDef[]> {
 }
 
 export function findTeacher(searchString: string, teachers: TeacherDef[]) {
-    let lowerCase = searchString.toLowerCase().replaceAll("ü", "u"); // Jürgen !!! //todo: put in pre-translations.
+    let lowerCase = searchString.toLowerCase();
     let paddedLowerCase = " " + lowerCase + " ";
     //first check full name.
     for(let teacherDef of teachers){
