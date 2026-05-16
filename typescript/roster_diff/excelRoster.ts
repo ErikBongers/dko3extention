@@ -264,9 +264,9 @@ export class ExcelRoster {
 
 
     public static callNames: TagDef[] = [
-        {tag: "Van Goethem, Robert", searchString: "bert", gradeYears: ""}, //todo: try to get rid of this.
-        {tag: "Pavlidi, Ntiana", searchString: "diana", gradeYears: ""},
-        {tag: "Wellens, Florian", searchString: "flor", gradeYears: ""},
+        // {tag: "Van Goethem, Robert", searchString: "bert", gradeYears: ""}, //todo: try to get rid of this.
+        // {tag: "Pavlidi, Ntiana", searchString: "diana", gradeYears: ""},
+        // {tag: "Wellens, Florian", searchString: "flor", gradeYears: ""},
 
     ];
 

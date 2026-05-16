@@ -101,8 +101,8 @@ export async function setupDiffPage() {
     let divInfoContainerWww = document.getElementById("wrapperWwwDiffs") as HTMLDivElement;
     createStatusBlock(divInfoContainerWww);
 
-    btnCalcDiff.onclick = () => getAndShowDiffs("calcAndShow", "fetchDko", "EXCEL");
-    btnCalcDiffWww.onclick = () => getAndShowDiffs("calcAndShow", "fetchDko", "WWW");
+    btnCalcDiff.onclick = () => getAndShowDiffs("calcAndShow", "fetchDko", "EXCEL", null);
+    btnCalcDiffWww.onclick = () => getAndShowDiffs("calcAndShow", "fetchDko", "WWW", null);
     btnDiffSettings.onclick = () => showDiffSetup(cmbDiffAcademie.value, cmbDiffSchoolYear.value);
     btnDiffSettingsWww.onclick = () => showDiffSetup(cmbDiffAcademie.value, cmbDiffSchoolYear.value); //todo: user may not be aware of what academy/schoolYear was selected in other box, as it's not really relevant.
 
@@ -131,8 +131,8 @@ async function onCmbAcademieChange(dirTree: TreeNode) {
 }
 
 async function showDiffsFromComboboxes() {
-    await getAndShowDiffs("justShow", "dkoCache", "EXCEL");
-    await getAndShowDiffs("justShow", "dkoCache", "WWW");
+    await getAndShowDiffs("justShow", "dkoCache", "EXCEL", null);
+    await getAndShowDiffs("justShow", "dkoCache", "WWW", null);
 }
 interface TreeNode {
     folderName: string;
@@ -238,8 +238,8 @@ async function onMessage(request: ServiceRequest<any>, _sender: MessageSender, s
         return;
     pauseRefresh = true;
     diffGlobals.diffSettings = request.data as DiffSettings;
-    await getAndShowDiffs("calcAndShow", "dkoCache", "EXCEL");
-    await getAndShowDiffs("calcAndShow", "dkoCache", "WWW");
+    await getAndShowDiffs("calcAndShow", "dkoCache", "EXCEL", diffGlobals.diffSettings);
+    await getAndShowDiffs("calcAndShow", "dkoCache", "WWW", diffGlobals.diffSettings);
     pauseRefresh = false;
 }
 

@@ -11,7 +11,7 @@ import {getTableFromHash, InfoBarTableFetchListener} from "../table/loadAnyTable
 import {emmet} from "../../libs/Emmeter/html";
 import {fetchAndDisplayNotifications} from "../notifications/notifications";
 import {DiffGotoData, DiffPageType, excelPostoExcelAddress, getDiffsDko3CacheFileName, StatusCallback} from "./showDiff";
-import {DiffSettings} from "./diffSettings";
+import {DiffSettings, TagDef} from "./diffSettings";
 import {parseWww, TaggedWwwLesDef} from "../www_diff/buildDiff";
 import {ComparableLesMoment, Diff, DiffLesType, DiffType, Dko3LesMoment, GradeYear, LesType, matchBasedOnName, MatchContext, matchIt, matchWithoutGradeYears, matchWithoutGradeYearsTeacher, matchWithoutLocation, matchWithoutTeacher, matchWithoutTeacherTimeAndDay, matchWithoutTimeAndDay, perfectMatch, TaggedDko3LesMoment, TaggedLes, Weight} from "./calcDiff";
 
@@ -75,7 +75,7 @@ export async function buildAndSaveDiff(reportStatus: StatusCallback,
 ) {
     reportStatus(`DKO3 data ophalen...`);
     if(!dko3DiffData)
-        dko3DiffData = await getDko3Data(schoolYear, reportStatus, fetchListener);
+        dko3DiffData = await getDko3Data(schoolYear, reportStatus, fetchListener, diffSettings);
     let json = JSON.stringify(dko3DiffData);
     let {excelRosters, otherLesSet} = await prepareOtherData(reportStatus, academie, schoolYear, dko3DiffData, diffSettings);
 
@@ -107,19 +107,13 @@ export interface Dko3DiffData {
     extraTeachersCache?: [string, string[]][];
 }
 
-export async function getDko3Data(schoolYear: string, reportStatus: StatusCallback, fetchListener: InfoBarTableFetchListener): Promise<Dko3DiffData> {
+export async function getDko3Data(schoolYear: string, reportStatus: StatusCallback, fetchListener: InfoBarTableFetchListener, diffSettings: DiffSettings): Promise<Dko3DiffData> {
     reportStatus("Vestigingsplaatsen ophalen...");
     let locationsTable = await getTableFromHash("extra-academie-vestigingsplaatsen", true, fetchListener);
     let locations = [...locationsTable.getRows()].map(tr => tr.cells[1].textContent);
 
     reportStatus("Leraren ophalen...");
     let teachers = await fetchTeachers(schoolYear);
-    for(let teacher of teachers) {
-        for(let callDef of ExcelRoster.callNames) {
-            if(teacher.fullName == callDef.tag)
-                teacher.callName = callDef.searchString;
-        }
-    }
     let lessen = (await scrapeAllNormalLessen(schoolYear, reportStatus)).map(l => l.les);
     reportStatus("Ophalen aliaslessen...");
     let dko3AliasLessen = (await scrapeLessen(Domein.Woord, LesType.alias, schoolYear)).map(l => l.les);
@@ -398,6 +392,7 @@ export async function fetchTeachers(schoolYear: string): Promise<TeacherDef[]> {
 
 export function findTeacher(searchString: string, teachers: TeacherDef[]) {
     let lowerCase = searchString.toLowerCase();
+    let paddedLowerCase = " " + lowerCase + " ";
     //first check full name.
     for(let teacherDef of teachers){
         if(lowerCase.includes(teacherDef.firstName.toLowerCase())
@@ -408,7 +403,7 @@ export function findTeacher(searchString: string, teachers: TeacherDef[]) {
         if(lowerCase.includes(teacherDef.firstName.toLowerCase()))
             return teacherDef.fullName;
         if(teacherDef.callName)
-            if(lowerCase.includes(teacherDef.callName.toLowerCase()))
+            if(paddedLowerCase.includes(teacherDef.callName.toLowerCase()))
                 return teacherDef.fullName;
     }
     return searchString;

@@ -54,7 +54,16 @@ function getStatusBlock(divInfoWrapper: HTMLDivElement) {
     return {runStatus, divInfo, divError, divResults} as StatusBlock;
 }
 
-export async function getAndShowDiffs(showOrCalc: "justShow" | "calcAndShow", useDkoCache: "dkoCache" | "fetchDko", diffPageType: DiffPageType) {
+function updateDko3DiffData(dko3DiffData: Dko3DiffData, diffSettings: DiffSettings) {
+    for(let teacher of dko3DiffData.teachers) {
+        for(let tagDef of diffSettings.tagDefs) {
+            if(teacher.fullName == tagDef.tag)
+                teacher.callName = tagDef.searchString;
+        }
+    }
+}
+
+export async function getAndShowDiffs(showOrCalc: "justShow" | "calcAndShow", useDkoCache: "dkoCache" | "fetchDko", diffPageType: DiffPageType, diffSettings: DiffSettings | null) {
     let statusBlock = getStatusBlock(document.getElementById(diffPageType == "EXCEL"? "wrapperExcelDiffs" : "wrapperWwwDiffs") as HTMLDivElement);
     statusBlock.divResults.innerHTML = "Ophalen...";
 
@@ -71,12 +80,15 @@ export async function getAndShowDiffs(showOrCalc: "justShow" | "calcAndShow", us
         statusBlock.divError.innerHTML = errors.join("<br>");
     }
     errors = [];
-    let json: string | null = null;
+    let jsonDko3DiffData: string | null = null;
     if(useDkoCache == "dkoCache")
-       json = localStorage.getItem(getDiffsDko3CacheFileName(cmbDiffAcademie.value, cmbDiffSchoolYear.value, diffPageType));
-    let dko3DiffData = json ? JSON.parse(json) as Dko3DiffData : null;
+       jsonDko3DiffData = localStorage.getItem(getDiffsDko3CacheFileName(cmbDiffAcademie.value, cmbDiffSchoolYear.value, diffPageType));
+    let dko3DiffData = jsonDko3DiffData ? JSON.parse(jsonDko3DiffData) as Dko3DiffData : null;
     let jsonDiffs: JsonDiffs | null = null;
-    let diffSettings = await fetchDiffSettingsOrDefault(cmbDiffAcademie.value, cmbDiffSchoolYear.value);
+    if(!diffSettings)
+        diffSettings = await fetchDiffSettingsOrDefault(cmbDiffAcademie.value, cmbDiffSchoolYear.value);
+    if(dko3DiffData)
+        updateDko3DiffData(dko3DiffData, diffSettings);
     if(showOrCalc == "justShow") {
         try {
             jsonDiffs = await getDiffsFromCloud(cmbDiffAcademie.value, cmbDiffSchoolYear.value, diffPageType);
@@ -111,7 +123,7 @@ export async function showDiffs(diffs: JsonDiffs, academie: string, schoolYear: 
         let button = emmet.appendChild(div, "button.likeLink").first as HTMLButtonElement;
         button.innerHTML = "Zoek met dko3 cache";
         button.onclick = () => {
-            getAndShowDiffs("calcAndShow", "dkoCache", "EXCEL");
+            getAndShowDiffs("calcAndShow", "dkoCache", "EXCEL", null);
         };
     }
     let divChk = emmet.appendChild(statusBlock.divResults, `div#divHideChecked>(input#chkHideChecked${diffPageType}[type="checkbox"]+label[for="chkHideChecked${diffPageType}"]{Verberg aangevinkte lijnen})`).first as HTMLDivElement;
