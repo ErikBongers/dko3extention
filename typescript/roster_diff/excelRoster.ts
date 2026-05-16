@@ -262,14 +262,6 @@ export class ExcelRoster {
         return newSlice;
     }
 
-
-    public static callNames: TagDef[] = [
-        // {tag: "Van Goethem, Robert", searchString: "bert", gradeYears: ""}, //todo: try to get rid of this.
-        // {tag: "Pavlidi, Ntiana", searchString: "diana", gradeYears: ""},
-        // {tag: "Wellens, Florian", searchString: "flor", gradeYears: ""},
-
-    ];
-
     public static findLocation(tags: string[], locations: string[]) {
         let location = locations.find(location => tags.includes(location));
         if(location)

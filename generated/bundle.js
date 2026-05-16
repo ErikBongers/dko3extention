@@ -2122,7 +2122,6 @@ var ExcelRoster = class ExcelRoster {
 		newSlice.end.minutes = newEndMinutes % 60;
 		return newSlice;
 	}
-	static callNames = [];
 	static findLocation(tags, locations) {
 		let location$1 = locations.find((location$2) => tags.includes(location$2));
 		if (location$1) return location$1;
