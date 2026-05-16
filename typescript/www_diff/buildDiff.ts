@@ -105,7 +105,7 @@ function tagWwwLes(les: WwwLesDef, dko3DiffData: PreparedDko3DiffData, diffSetti
     let timeSlice = new TimeSlice(times[0], times[1]);
 
     let teachers = preTranslate(les.teacher)
-        .split(/[\/,&]/g).map(t => findTeacher(t, dko3DiffData.preparedDko3DiffData.teachers))
+        .split(/[\/,&]/g).map(t => findTeacher(t, dko3DiffData.preparedDko3DiffData.teachers, t))
         .filter(t => t != "");
 
     return new TaggedWwwLesDef(les, timeSlice, day??"", teachers, dko3DiffData, diffSettings);

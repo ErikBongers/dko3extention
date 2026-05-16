@@ -11,10 +11,9 @@ import {getTableFromHash, InfoBarTableFetchListener} from "../table/loadAnyTable
 import {emmet} from "../../libs/Emmeter/html";
 import {fetchAndDisplayNotifications} from "../notifications/notifications";
 import {DiffGotoData, DiffPageType, excelPostoExcelAddress, getDiffsDko3CacheFileName, StatusCallback} from "./showDiff";
-import {DiffSettings, TagDef} from "./diffSettings";
+import {DiffSettings} from "./diffSettings";
 import {parseWww, preTranslate, TaggedWwwLesDef} from "../www_diff/buildDiff";
 import {ComparableLesMoment, Diff, DiffLesType, DiffType, Dko3LesMoment, GradeYear, LesType, matchBasedOnName, MatchContext, matchIt, matchWithoutGradeYears, matchWithoutGradeYearsTeacher, matchWithoutLocation, matchWithoutTeacher, matchWithoutTeacherTimeAndDay, matchWithoutTimeAndDay, perfectMatch, TaggedDko3LesMoment, TaggedLes, Weight} from "./calcDiff";
-import {createInfoBlock} from "../infoBlock";
 
 let cachedDiffs: JsonDiffs | undefined = undefined;
 export async function getJsonDiffsCached(academie: string, schoolYear: string, diffPageType: DiffPageType) {
@@ -203,9 +202,14 @@ export class TaggedExcelLes extends TaggedLes<ClassDef> implements ComparableLes
         super(les, [], searchText);
         this.className = this.lesMoment.className;
         this.location = this.lesMoment.location;//translate probably already done.
-        this.teachers = preTranslate(this.lesMoment.teacher)
-            .split(/[\/,]/g).map(t => findTeacher(t, teachers))
+        this.teachers = preTranslate(les.cellValue)
+            .split(/[\/,]/g).map(t => findTeacher(t, teachers, ""))
             .filter(t => t != "");
+        if(this.teachers.length == 0) {
+            this.teachers = preTranslate(this.lesMoment.teacher)
+                .split(/[\/,]/g).map(t => findTeacher(t, teachers, t))
+                .filter(t => t != "");
+        }
         this.subjects = les.subjects;
         this.subjects = this.subjects.filter(s => s!!);
         if(this.lesMoment.className)
@@ -414,7 +418,7 @@ export async function fetchTeachers(schoolYear: string): Promise<TeacherDef[]> {
         });
 }
 
-export function findTeacher(searchString: string, teachers: TeacherDef[]) {
+export function findTeacher(searchString: string, teachers: TeacherDef[], defaultValue: string) {
     let lowerCase = searchString.toLowerCase();
     let paddedLowerCase = " " + lowerCase + " ";
     //first check full name.
@@ -430,7 +434,7 @@ export function findTeacher(searchString: string, teachers: TeacherDef[]) {
             if(paddedLowerCase.includes(teacherDef.callName.toLowerCase()))
                 return teacherDef.fullName;
     }
-    return searchString;
+    return defaultValue;
 }
 
 export function getDiffsCloudFileName(academie: string, schoolYear: string, diffPageType: DiffPageType) {

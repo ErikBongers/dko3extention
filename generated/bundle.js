@@ -3914,13 +3914,9 @@ var FetchedTable = class {
 //#endregion
 //#region typescript/table/tableSort.ts
 let defaultValueFunc = (td) => td.innerText;
-function getValueFuncsOrDefault(valueFuncs, table) {
-	let actualValueFuncs;
-	if (valueFuncs) return valueFuncs;
-	else {
-		let columnCount = table.tHead.rows[0].cells.length;
-		return range(0, columnCount).map((_) => defaultValueFunc);
-	}
+function getDefaultValueFuncs(table) {
+	let columnCount = table.tHead.rows[0].cells.length;
+	return range(0, columnCount).map((_) => defaultValueFunc);
 }
 function sortTableByColumn(table, index, descending, valueFunc) {
 	let header = table.tHead.children[0].children[index];
@@ -4022,7 +4018,7 @@ function decorateTableHeader(table, fetchFullTable) {
 	if (table.tHead.classList.contains("clickHandler")) return;
 	table.tHead.classList.add("clickHandler");
 	if (!options.showTableHeaders) return;
-	let valueFuncs = getValueFuncsOrDefault(void 0, table);
+	let valueFuncs = getDefaultValueFuncs(table);
 	Array.from(table.tHead.children[0].children).forEach((colHeader) => {
 		colHeader.onclick = (ev) => {
 			reSortTableByColumn(ev, table, fetchFullTable, valueFuncs);
@@ -5944,7 +5940,7 @@ function tagWwwLes(les, dko3DiffData, diffSettings) {
 		return null;
 	}
 	let timeSlice = new TimeSlice(times[0], times[1]);
-	let teachers = preTranslate(les.teacher).split(/[\/,&]/g).map((t) => findTeacher(t, dko3DiffData.preparedDko3DiffData.teachers)).filter((t) => t != "");
+	let teachers = preTranslate(les.teacher).split(/[\/,&]/g).map((t) => findTeacher(t, dko3DiffData.preparedDko3DiffData.teachers, t)).filter((t) => t != "");
 	return new TaggedWwwLesDef(les, timeSlice, day ?? "", teachers, dko3DiffData, diffSettings);
 }
 async function requestWww(urlList) {
@@ -6208,7 +6204,8 @@ var TaggedExcelLes = class extends TaggedLes {
 		super(les, [], searchText);
 		this.className = this.lesMoment.className;
 		this.location = this.lesMoment.location;
-		this.teachers = preTranslate(this.lesMoment.teacher).split(/[\/,]/g).map((t) => findTeacher(t, teachers)).filter((t) => t != "");
+		this.teachers = preTranslate(les.cellValue).split(/[\/,]/g).map((t) => findTeacher(t, teachers, "")).filter((t) => t != "");
+		if (this.teachers.length == 0) this.teachers = preTranslate(this.lesMoment.teacher).split(/[\/,]/g).map((t) => findTeacher(t, teachers, t)).filter((t) => t != "");
 		this.subjects = les.subjects;
 		this.subjects = this.subjects.filter((s) => s);
 		if (this.lesMoment.className) this.subjects.push(this.lesMoment.className);
@@ -6375,7 +6372,7 @@ async function fetchTeachers(schoolYear) {
 		};
 	});
 }
-function findTeacher(searchString, teachers) {
+function findTeacher(searchString, teachers, defaultValue) {
 	let lowerCase = searchString.toLowerCase();
 	let paddedLowerCase = " " + lowerCase + " ";
 	for (let teacherDef of teachers) if (lowerCase.includes(teacherDef.firstName.toLowerCase()) && lowerCase.includes(teacherDef.lastName.toLowerCase())) return teacherDef.fullName;
@@ -6385,7 +6382,7 @@ function findTeacher(searchString, teachers) {
 			if (paddedLowerCase.includes(teacherDef.callName.toLowerCase())) return teacherDef.fullName;
 		}
 	}
-	return searchString;
+	return defaultValue;
 }
 function getDiffsCloudFileName(academie, schoolYear, diffPageType) {
 	return `Dko3/${academie}_${schoolYear}_${diffPageType}_diffs.json`;
