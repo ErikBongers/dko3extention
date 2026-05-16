@@ -1,7 +1,7 @@
 import {TokenScanner} from "../tokenScanner";
 import {ExcelRoster, TimeSlice} from "../roster_diff/excelRoster";
 import {DayTimeSlice, DayUppercase, toDay} from "../lessen/scrape";
-import {calcDiff, Dko3DiffData, findTeacher, getDko3Data} from "../roster_diff/buildDiff";
+import {calcDiff, Dko3DiffData, findTeacher, getDko3Data, PreparedDiffSettings, PreparedDko3DiffData} from "../roster_diff/buildDiff";
 import {StatusCallback} from "../roster_diff/showDiff";
 import {InfoBarTableFetchListener} from "../table/loadAnyTable";
 import {Actions, sendRequest, ServiceRequest, TabType} from "../messaging";
@@ -36,7 +36,7 @@ export class TaggedWwwLesDef implements ComparableLesMoment{
     ignore: boolean;
     dayTimeSlice: DayTimeSlice;
 
-    constructor(lesDef: WwwLesDef, timeSlice: TimeSlice, day: DayUppercase, teachers: string[], dko3Data: Dko3DiffData, diffSettings: DiffSettings) {
+    constructor(lesDef: WwwLesDef, timeSlice: TimeSlice, day: DayUppercase, teachers: string[], dko3Data: PreparedDko3DiffData, diffSettings: PreparedDiffSettings) {
         this.lesDef = lesDef;
         this.timeSlice = timeSlice;
         this.day = day;
@@ -53,13 +53,13 @@ export class TaggedWwwLesDef implements ComparableLesMoment{
 
 
 
-        let tags = ExcelRoster.findTags(` ${translatedClassName} ${this.lesDef.location} `, diffSettings.tagDefs);
+        let tags = ExcelRoster.findTags(` ${translatedClassName} ${this.lesDef.location} `, diffSettings.preparedDiffSettings.tagDefs);
         let tagStrings = tags.map(t => t.tag);
-        let location = ExcelRoster.findLocation(tagStrings, dko3Data.locations);
+        let location = ExcelRoster.findLocation(tagStrings, dko3Data.preparedDko3DiffData.locations);
         if(!location) {
-            let tags = ExcelRoster.findTags(ExcelRoster.makeParsable(this.lesDef.panelTitle), diffSettings.tagDefs);
+            let tags = ExcelRoster.findTags(ExcelRoster.makeParsable(this.lesDef.panelTitle), diffSettings.preparedDiffSettings.tagDefs);
             let tagStrings = tags.map(t => t.tag);
-            location = ExcelRoster.findLocation(tagStrings, dko3Data.locations);
+            location = ExcelRoster.findLocation(tagStrings, dko3Data.preparedDko3DiffData.locations);
         }
         this.location = location ?? "Academie Willem Van Laarstraat, Berchem";
         this.subjects = ExcelRoster.findSubjects(this.lesDef.className, tagStrings, dko3Data);
@@ -69,15 +69,15 @@ export class TaggedWwwLesDef implements ComparableLesMoment{
             this.gradeYears = ExcelRoster.getGradeYearsFromTags(tags);
         }
         if(this.gradeYears.length == 0) {
-            let newTags = ExcelRoster.findTags(ExcelRoster.makeParsable(lesDef.panelTitle, "leave 'en' alone"), diffSettings.tagDefs);
+            let newTags = ExcelRoster.findTags(ExcelRoster.makeParsable(lesDef.panelTitle, "leave 'en' alone"), diffSettings.preparedDiffSettings.tagDefs);
             this.gradeYears = ExcelRoster.getGradeYearsFromTags(newTags);
         }
         if(this.gradeYears.length == 0) {
-            let newTags = ExcelRoster.findTags(ExcelRoster.makeParsable(lesDef.sectionTitle, "leave 'en' alone"), diffSettings.tagDefs);
+            let newTags = ExcelRoster.findTags(ExcelRoster.makeParsable(lesDef.sectionTitle, "leave 'en' alone"), diffSettings.preparedDiffSettings.tagDefs);
             this.gradeYears = ExcelRoster.getGradeYearsFromTags(newTags);
         }
         if(this.gradeYears.length == 0) {
-            let newTags = ExcelRoster.findTags(ExcelRoster.makeParsable(lesDef.pageTitle, "leave 'en' alone"), diffSettings.tagDefs);
+            let newTags = ExcelRoster.findTags(ExcelRoster.makeParsable(lesDef.pageTitle, "leave 'en' alone"), diffSettings.preparedDiffSettings.tagDefs);
             this.gradeYears = ExcelRoster.getGradeYearsFromTags(newTags);
         }
         this.ignore = false;
@@ -90,7 +90,7 @@ export class TaggedWwwLesDef implements ComparableLesMoment{
     }
 }
 
-function tagWwwLes(les: WwwLesDef, dko3DiffData: Dko3DiffData, diffSettings: DiffSettings) {
+function tagWwwLes(les: WwwLesDef, dko3DiffData: PreparedDko3DiffData, diffSettings: PreparedDiffSettings) {
     let times = TimeSlice.parseShortTimes(les.timeString);
     let day = toDay(les.day);
     if(!day)
@@ -104,7 +104,7 @@ function tagWwwLes(les: WwwLesDef, dko3DiffData: Dko3DiffData, diffSettings: Dif
     let timeSlice = new TimeSlice(times[0], times[1]);
 
     let teachers = les.teacher
-        .split(/[\/,&]/g).map(t => findTeacher(t, dko3DiffData.teachers))
+        .split(/[\/,&]/g).map(t => findTeacher(t, dko3DiffData.preparedDko3DiffData.teachers))
         .filter(t => t != "");
 
     return new TaggedWwwLesDef(les, timeSlice, day??"", teachers, dko3DiffData, diffSettings);
@@ -119,7 +119,7 @@ async function requestWww(urlList: string[]) {
     return sendRequest(Actions.Www, TabType.Main, TabType.Undefined, undefined, {urlList}, "");
 }
 
-export async function parseWww(dko3DiffData: Dko3DiffData, diffSettings: DiffSettings) {
+export async function parseWww(dko3DiffData: PreparedDko3DiffData, diffSettings: PreparedDiffSettings) {
     // let response: ServiceRequest<HtmlText[]> = await requestWww([
     //     "https://academieberchem.stedelijkonderwijs.be/uurrooster-woord-gevorderden-18",
     //     "https://academieberchem.stedelijkonderwijs.be/uurrooster-2e-graad-kinderen-8-tot-11-jaar",
@@ -142,7 +142,7 @@ export async function parseWww(dko3DiffData: Dko3DiffData, diffSettings: DiffSet
     //     "https://academieberchem.stedelijkonderwijs.be/uurrooster-3e-4e-graad-songwriting",
     // ]);
 
-    let response: ServiceRequest<HtmlText[]> = await requestWww(diffSettings.urls);
+    let response: ServiceRequest<HtmlText[]> = await requestWww(diffSettings.preparedDiffSettings.urls);
 
     let lessen: WwwLesDef[] = [];
     console.log(response);

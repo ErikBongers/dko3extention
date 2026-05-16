@@ -9,7 +9,6 @@ import {InfoBarTableFetchListener} from "../table/loadAnyTable";
 import {createInfoBlock} from "../infoBlock";
 import {defaultIgnoreList, defaultTagDefs, DiffSettings} from "./diffSettings";
 import {options} from "../plugin_options/options";
-import {OtherLesType} from "../www_diff/buildDiff";
 import {DiffType, GradeYear, Weight} from "./calcDiff";
 
 export async function fetchDiffSettingsOrDefault(academie: string, schoolYear: string) {
@@ -54,18 +53,6 @@ function getStatusBlock(divInfoWrapper: HTMLDivElement) {
     return {runStatus, divInfo, divError, divResults} as StatusBlock;
 }
 
-function updateDko3DiffDataAndSettings(dko3DiffData: Dko3DiffData, diffSettings: DiffSettings) {
-    for(let teacher of dko3DiffData.teachers) {
-        for(let tagDef of diffSettings.tagDefs) {
-            if(teacher.fullName == tagDef.tag)
-                teacher.callName = tagDef.searchString;
-        }
-    }
-    diffSettings.classNamesFromTags = diffSettings.tagDefs
-        .filter(tagDef => tagDef.isClassName)
-        .map(tagDef => tagDef.searchString);
-}
-
 export async function getAndShowDiffs(showOrCalc: "justShow" | "calcAndShow", useDkoCache: "dkoCache" | "fetchDko", diffPageType: DiffPageType, diffSettings: DiffSettings | null) {
     let statusBlock = getStatusBlock(document.getElementById(diffPageType == "EXCEL"? "wrapperExcelDiffs" : "wrapperWwwDiffs") as HTMLDivElement);
     statusBlock.divResults.innerHTML = "Ophalen...";
@@ -90,8 +77,6 @@ export async function getAndShowDiffs(showOrCalc: "justShow" | "calcAndShow", us
     let jsonDiffs: JsonDiffs | null = null;
     if(!diffSettings)
         diffSettings = await fetchDiffSettingsOrDefault(cmbDiffAcademie.value, cmbDiffSchoolYear.value);
-    if(dko3DiffData)
-        updateDko3DiffDataAndSettings(dko3DiffData, diffSettings);
     if(showOrCalc == "justShow") {
         try {
             jsonDiffs = await getDiffsFromCloud(cmbDiffAcademie.value, cmbDiffSchoolYear.value, diffPageType);

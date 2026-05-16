@@ -1715,10 +1715,10 @@ let LesType$1 = /* @__PURE__ */ function(LesType$2) {
 	LesType$2["alias"] = "4";
 	return LesType$2;
 }({});
-function matchIt(ctx, dko3LesSet, otherLesSet, diffType, matchFunction) {
+function matchIt(ctx, dko3LesSet, otherLesSet, diffType, diffSettings, matchFunction) {
 	let diffs = [];
 	for (let dko3Les of dko3LesSet) {
-		let result = matchFunction(ctx, dko3Les, otherLesSet);
+		let result = matchFunction(ctx, dko3Les, otherLesSet, diffSettings);
 		if (result) {
 			diffs.push({
 				otherLes: result.otherLes,
@@ -1756,23 +1756,15 @@ function createLesNamesMap(otherLesSet) {
 	}
 	return otherLesNamesMap;
 }
-function matchBasedOnName(ctx, dko3Les, otherLesSet) {
+function matchBasedOnName(ctx, dko3Les, otherLesSet, diffSettings) {
 	let results = [];
 	if (!ctx.otherLesNamesMap) ctx.otherLesNamesMap = createLesNamesMap(otherLesSet);
 	let dko3LesName = dko3Les.lesMoment.les.naam.trim().toLowerCase();
 	let otherLessenWithSameName = ctx.otherLesNamesMap.get(dko3LesName);
 	if (!otherLessenWithSameName) {
 		let searchName = " " + dko3LesName + " ";
-		let storedNames = [
-			" 2va ",
-			" 1vb ",
-			" 1vc ",
-			" 1vd ",
-			" 2vb ",
-			" 2vc ",
-			" harmonielab "
-		];
-		let foundName = storedNames.find((name) => searchName.includes(name));
+		if (!diffSettings.preparedDiffSettings.classNamesFromTags) return null;
+		let foundName = diffSettings.preparedDiffSettings.classNamesFromTags.find((name) => searchName.includes(name));
 		if (!foundName) return null;
 		for (let les of otherLesSet) if ((" " + les.className?.toLowerCase() + " ").includes(foundName)) {
 			otherLessenWithSameName = [les];
@@ -1801,7 +1793,7 @@ function matchBasedOnName(ctx, dko3Les, otherLesSet) {
 	results.sort((a, b) => b.weight.weight - a.weight.weight);
 	return results[0];
 }
-function perfectMatch(ctx, dko3Les, otherLesSet) {
+function perfectMatch(ctx, dko3Les, otherLesSet, diffSettings) {
 	for (let excelLes of otherLesSet) {
 		let weight = weigh1000(dko3Les, excelLes, void 0);
 		if (weight.weight == 1e3) return {
@@ -1811,7 +1803,7 @@ function perfectMatch(ctx, dko3Les, otherLesSet) {
 	}
 	return null;
 }
-function matchWithoutGradeYears(ctx, dko3Les, otherLesSet) {
+function matchWithoutGradeYears(ctx, dko3Les, otherLesSet, diffSettings) {
 	for (let excelLes of otherLesSet) {
 		let weight = weigh1000(dko3Les, excelLes, void 0);
 		if (weight.diffSubject) continue;
@@ -1825,7 +1817,7 @@ function matchWithoutGradeYears(ctx, dko3Les, otherLesSet) {
 	}
 	return null;
 }
-function matchWithoutGradeYearsTeacher(ctx, dko3Les, otherLesSet) {
+function matchWithoutGradeYearsTeacher(ctx, dko3Les, otherLesSet, diffSettings) {
 	for (let excelLes of otherLesSet) {
 		let weight = weigh1000(dko3Les, excelLes, void 0);
 		if (weight.diffSubject) continue;
@@ -1838,7 +1830,7 @@ function matchWithoutGradeYearsTeacher(ctx, dko3Les, otherLesSet) {
 	}
 	return null;
 }
-function matchWithoutLocation(ctx, dko3Les, otherLesSet) {
+function matchWithoutLocation(ctx, dko3Les, otherLesSet, diffSettings) {
 	for (let excelLes of otherLesSet) {
 		let weight = weigh1000(dko3Les, excelLes, void 0);
 		if (weight.diffSubject) continue;
@@ -1852,7 +1844,7 @@ function matchWithoutLocation(ctx, dko3Les, otherLesSet) {
 	}
 	return null;
 }
-function matchWithoutTimeAndDay(ctx, dko3Les, otherLesSet) {
+function matchWithoutTimeAndDay(ctx, dko3Les, otherLesSet, diffSettings) {
 	for (let excelLes of otherLesSet) {
 		let weight = weigh1000(dko3Les, excelLes, void 0);
 		if (weight.diffSubject) continue;
@@ -1866,7 +1858,7 @@ function matchWithoutTimeAndDay(ctx, dko3Les, otherLesSet) {
 	}
 	return null;
 }
-function matchWithoutTeacherTimeAndDay(ctx, dko3Les, otherLesSet) {
+function matchWithoutTeacherTimeAndDay(ctx, dko3Les, otherLesSet, diffSettings) {
 	for (let excelLes of otherLesSet) {
 		let weight = weigh1000(dko3Les, excelLes, void 0);
 		if (weight.diffSubject) continue;
@@ -1879,7 +1871,7 @@ function matchWithoutTeacherTimeAndDay(ctx, dko3Les, otherLesSet) {
 	}
 	return null;
 }
-function matchWithoutTeacher(ctx, dko3Les, otherLesSet) {
+function matchWithoutTeacher(ctx, dko3Les, otherLesSet, diffSettings) {
 	for (let excelLes of otherLesSet) {
 		let weight = weigh1000(dko3Les, excelLes, void 0);
 		if (weight.diffSubject) continue;
@@ -2044,8 +2036,8 @@ var ExcelRoster = class ExcelRoster {
 	constructor(table, dko3Data, diffSettings) {
 		this.table = table;
 		this.dko3Data = dko3Data;
-		this.tagDefs = diffSettings.tagDefs;
-		this.ignoreList = diffSettings.ignoreList;
+		this.tagDefs = diffSettings.preparedDiffSettings.tagDefs;
+		this.ignoreList = diffSettings.preparedDiffSettings.ignoreList;
 	}
 	scrapeUurrooster() {
 		let timeSlices = this.createTimeSlices();
@@ -2084,7 +2076,7 @@ var ExcelRoster = class ExcelRoster {
 				else if (times.length === 1) timeSlice = this.moveTimeSliceTo(timeSlice, times[0]);
 				let tags = ExcelRoster.findTags(parseText, this.tagDefs);
 				let tagStrings = tags.map((t) => t.tag);
-				let location$1 = ExcelRoster.findLocation(tagStrings, this.dko3Data.locations);
+				let location$1 = ExcelRoster.findLocation(tagStrings, this.dko3Data.preparedDko3DiffData.locations);
 				let subjects = ExcelRoster.findSubjects(parseText, tagStrings, this.dko3Data);
 				let className = ExcelRoster.findClassName(parseText, this.dko3Data);
 				let tablePos = {
@@ -2130,12 +2122,12 @@ var ExcelRoster = class ExcelRoster {
 	static findSubjects(text, tags, dko3Data) {
 		let allSearchStrings = [...tags];
 		let lowerCase = " " + text.toLowerCase() + " ";
-		for (let subject of dko3Data.subjects) if (lowerCase.includes(" " + subject.toLowerCase() + " ")) allSearchStrings.push(subject);
-		return dko3Data.subjects.filter((subject) => allSearchStrings.includes(subject));
+		for (let subject of dko3Data.preparedDko3DiffData.subjects) if (lowerCase.includes(" " + subject.toLowerCase() + " ")) allSearchStrings.push(subject);
+		return dko3Data.preparedDko3DiffData.subjects.filter((subject) => allSearchStrings.includes(subject));
 	}
 	static findClassName(text, dko3Data) {
 		let lowerCase = text.toLowerCase();
-		for (let name of dko3Data.classNames) if (lowerCase.includes(" " + name.toLowerCase() + " ")) return name;
+		for (let name of dko3Data.preparedDko3DiffData.classNames) if (lowerCase.includes(" " + name.toLowerCase() + " ")) return name;
 		return null;
 	}
 	static findTags(text, tagDefs) {
@@ -5606,9 +5598,6 @@ function getStatusBlock(divInfoWrapper) {
 		divResults
 	};
 }
-function updateDko3DiffData(dko3DiffData, diffSettings) {
-	for (let teacher of dko3DiffData.teachers) for (let tagDef of diffSettings.tagDefs) if (teacher.fullName == tagDef.tag) teacher.callName = tagDef.searchString;
-}
 async function getAndShowDiffs(showOrCalc, useDkoCache, diffPageType, diffSettings) {
 	let statusBlock = getStatusBlock(document.getElementById(diffPageType == "EXCEL" ? "wrapperExcelDiffs" : "wrapperWwwDiffs"));
 	statusBlock.divResults.innerHTML = "Ophalen...";
@@ -5628,7 +5617,6 @@ async function getAndShowDiffs(showOrCalc, useDkoCache, diffPageType, diffSettin
 	let dko3DiffData = jsonDko3DiffData ? JSON.parse(jsonDko3DiffData) : null;
 	let jsonDiffs = null;
 	if (!diffSettings) diffSettings = await fetchDiffSettingsOrDefault(cmbDiffAcademie.value, cmbDiffSchoolYear.value);
-	if (dko3DiffData) updateDko3DiffData(dko3DiffData, diffSettings);
 	if (showOrCalc == "justShow") try {
 		jsonDiffs = await getDiffsFromCloud(cmbDiffAcademie.value, cmbDiffSchoolYear.value, diffPageType);
 	} catch (e) {}
@@ -5894,13 +5882,13 @@ var TaggedWwwLesDef = class {
 		this.day = day;
 		this.teachers = teachers;
 		let translatedClassName = this.lesDef.className.replaceAll("Kunstenbad beeld - muziek - woord", "Kunstenbad Kleine Stad bk - muziek - woord").replaceAll("blazersensemble", "Blazersensemble 2e graad").replaceAll("gitaarensemble", "Gitaarensemble 2e graad").replaceAll("strijkersensemble", "Strijkersensemble 2e graad");
-		let tags = ExcelRoster.findTags(` ${translatedClassName} ${this.lesDef.location} `, diffSettings.tagDefs);
+		let tags = ExcelRoster.findTags(` ${translatedClassName} ${this.lesDef.location} `, diffSettings.preparedDiffSettings.tagDefs);
 		let tagStrings = tags.map((t) => t.tag);
-		let location$1 = ExcelRoster.findLocation(tagStrings, dko3Data.locations);
+		let location$1 = ExcelRoster.findLocation(tagStrings, dko3Data.preparedDko3DiffData.locations);
 		if (!location$1) {
-			let tags$1 = ExcelRoster.findTags(ExcelRoster.makeParsable(this.lesDef.panelTitle), diffSettings.tagDefs);
+			let tags$1 = ExcelRoster.findTags(ExcelRoster.makeParsable(this.lesDef.panelTitle), diffSettings.preparedDiffSettings.tagDefs);
 			let tagStrings$1 = tags$1.map((t) => t.tag);
-			location$1 = ExcelRoster.findLocation(tagStrings$1, dko3Data.locations);
+			location$1 = ExcelRoster.findLocation(tagStrings$1, dko3Data.preparedDko3DiffData.locations);
 		}
 		this.location = location$1 ?? "Academie Willem Van Laarstraat, Berchem";
 		this.subjects = ExcelRoster.findSubjects(this.lesDef.className, tagStrings, dko3Data);
@@ -5908,15 +5896,15 @@ var TaggedWwwLesDef = class {
 		this.gradeYears = ExcelRoster.findGradeYears(ExcelRoster.makeParsable(this.lesDef.className));
 		if (this.gradeYears.length == 0) this.gradeYears = ExcelRoster.getGradeYearsFromTags(tags);
 		if (this.gradeYears.length == 0) {
-			let newTags = ExcelRoster.findTags(ExcelRoster.makeParsable(lesDef.panelTitle, "leave 'en' alone"), diffSettings.tagDefs);
+			let newTags = ExcelRoster.findTags(ExcelRoster.makeParsable(lesDef.panelTitle, "leave 'en' alone"), diffSettings.preparedDiffSettings.tagDefs);
 			this.gradeYears = ExcelRoster.getGradeYearsFromTags(newTags);
 		}
 		if (this.gradeYears.length == 0) {
-			let newTags = ExcelRoster.findTags(ExcelRoster.makeParsable(lesDef.sectionTitle, "leave 'en' alone"), diffSettings.tagDefs);
+			let newTags = ExcelRoster.findTags(ExcelRoster.makeParsable(lesDef.sectionTitle, "leave 'en' alone"), diffSettings.preparedDiffSettings.tagDefs);
 			this.gradeYears = ExcelRoster.getGradeYearsFromTags(newTags);
 		}
 		if (this.gradeYears.length == 0) {
-			let newTags = ExcelRoster.findTags(ExcelRoster.makeParsable(lesDef.pageTitle, "leave 'en' alone"), diffSettings.tagDefs);
+			let newTags = ExcelRoster.findTags(ExcelRoster.makeParsable(lesDef.pageTitle, "leave 'en' alone"), diffSettings.preparedDiffSettings.tagDefs);
 			this.gradeYears = ExcelRoster.getGradeYearsFromTags(newTags);
 		}
 		this.ignore = false;
@@ -5936,14 +5924,14 @@ function tagWwwLes(les, dko3DiffData, diffSettings) {
 		return null;
 	}
 	let timeSlice = new TimeSlice(times[0], times[1]);
-	let teachers = les.teacher.split(/[\/,&]/g).map((t) => findTeacher(t, dko3DiffData.teachers)).filter((t) => t != "");
+	let teachers = les.teacher.split(/[\/,&]/g).map((t) => findTeacher(t, dko3DiffData.preparedDko3DiffData.teachers)).filter((t) => t != "");
 	return new TaggedWwwLesDef(les, timeSlice, day ?? "", teachers, dko3DiffData, diffSettings);
 }
 async function requestWww(urlList) {
 	return sendRequest(Actions.Www, TabType.Main, TabType.Undefined, void 0, { urlList }, "");
 }
 async function parseWww(dko3DiffData, diffSettings) {
-	let response = await requestWww(diffSettings.urls);
+	let response = await requestWww(diffSettings.preparedDiffSettings.urls);
 	let lessen = [];
 	console.log(response);
 	for (let html of response.data) lessen = lessen.concat(parseHtml(html));
@@ -6083,23 +6071,32 @@ let prepareExcelData = async function(reportStatus, academie, schoolYear, dko3Di
 	}
 	reportStatus("Lessen vergelijken...");
 	let dddata = dko3DiffData;
-	let otherLesSet = new Set(excelLessenArray.flat().map((les) => new TaggedExcelLes(les, dddata.teachers)));
+	let otherLesSet = new Set(excelLessenArray.flat().map((les) => new TaggedExcelLes(les, dddata.preparedDko3DiffData.teachers)));
 	otherLesSet.forEach((les) => {
-		if (isExcelLesToIgnore(les, diffSettings.ignoreList)) otherLesSet.delete(les);
+		if (isExcelLesToIgnore(les, diffSettings.preparedDiffSettings.ignoreList)) otherLesSet.delete(les);
 	});
 	return {
 		excelRosters,
 		otherLesSet
 	};
 };
+function updateDko3DiffDataAndSettings(dko3DiffData, diffSettings) {
+	for (let teacher of dko3DiffData.teachers) for (let tagDef of diffSettings.tagDefs) if (teacher.fullName == tagDef.tag) teacher.callName = tagDef.searchString;
+	diffSettings.classNamesFromTags = diffSettings.tagDefs.filter((tagDef) => tagDef.isClassName).map((tagDef) => tagDef.searchString);
+	return {
+		dko3DiffData: { preparedDko3DiffData: dko3DiffData },
+		diffSettings: { preparedDiffSettings: diffSettings }
+	};
+}
 async function buildAndSaveDiff(reportStatus, fetchListener, academie, schoolYear, dko3DiffData, diffSettings, diffPageType, prepareOtherData) {
 	reportStatus(`DKO3 data ophalen...`);
-	if (!dko3DiffData) dko3DiffData = await getDko3Data(schoolYear, reportStatus, fetchListener, diffSettings);
+	if (!dko3DiffData) dko3DiffData = await getDko3Data(schoolYear, reportStatus, fetchListener);
 	let json = JSON.stringify(dko3DiffData);
-	let { excelRosters, otherLesSet } = await prepareOtherData(reportStatus, academie, schoolYear, dko3DiffData, diffSettings);
+	let preparedData = updateDko3DiffDataAndSettings(dko3DiffData, diffSettings);
+	let { excelRosters, otherLesSet } = await prepareOtherData(reportStatus, academie, schoolYear, preparedData.dko3DiffData, preparedData.diffSettings);
 	let res = {
 		excelRosters,
-		...await calcDiff(dko3DiffData, reportStatus, diffSettings, otherLesSet)
+		...await calcDiff(dko3DiffData, reportStatus, preparedData.diffSettings, otherLesSet)
 	};
 	deleteNotification("FILE_POSTED").then(() => fetchAndDisplayNotifications());
 	dko3DiffData = JSON.parse(json);
@@ -6113,7 +6110,7 @@ async function buildAndSaveDiff(reportStatus, fetchListener, academie, schoolYea
 	cachedDiffs = jsonDiffs;
 	return jsonDiffs;
 }
-async function getDko3Data(schoolYear, reportStatus, fetchListener, diffSettings) {
+async function getDko3Data(schoolYear, reportStatus, fetchListener) {
 	reportStatus("Vestigingsplaatsen ophalen...");
 	let locationsTable = await getTableFromHash("extra-academie-vestigingsplaatsen", true, fetchListener);
 	let locations = [...locationsTable.getRows()].map((tr) => tr.cells[1].textContent);
@@ -6208,7 +6205,7 @@ function isExcelLesToIgnore(les, ignoreList) {
 	return ignoreList.some((ignore) => les.lesMoment.cellValue.includes(ignore)) || ignoreList.some((ignore) => les.searchText.includes(ignore));
 }
 function splitDko3LessenIntoLesmomenten(dko3Data, diffSettings, reportStatus) {
-	let lesMomenten = dko3Data.lessen.filter((les) => !isDko3LesToIgnore(les, diffSettings.ignoreList)).map((les) => {
+	let lesMomenten = dko3Data.lessen.filter((les) => !isDko3LesToIgnore(les, diffSettings.preparedDiffSettings.ignoreList)).map((les) => {
 		if (les.dayTimeSlices.length == 0) reportStatus(`Les <a href="https://administratie.dko3.cloud/#lessen-les?id=${les.id}">${les.id}</a> heeft geen lesmoment.`, "error");
 		let lesMomenten$1 = les.dayTimeSlices.map((slice) => {
 			return new Dko3LesMoment(les, slice);
@@ -6263,14 +6260,14 @@ async function calcDiff(dko3Data, reportStatus, diffSettings, otherLesSet) {
 	for (const les1 of [...dko3LesSet.values()].filter((les) => les.lesMoment.les.teacher.includes("(en nog"))) les1.teachers = await extraTeacherCache.getExtraTeachers(les1.lesMoment.les.id);
 	let diffs = [];
 	let ctx = {};
-	diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "perfect match", matchBasedOnName));
-	diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "perfect match", perfectMatch));
-	diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "match without gradeYears", matchWithoutGradeYears));
-	diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "match without teacher", matchWithoutTeacher));
-	diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "match without location", matchWithoutLocation));
-	diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "match without time and day", matchWithoutTimeAndDay));
-	diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "match without teacher, time and day", matchWithoutTeacherTimeAndDay));
-	diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "match without time and day and teacher", matchWithoutGradeYearsTeacher));
+	diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "perfect match", diffSettings, matchBasedOnName));
+	diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "perfect match", diffSettings, perfectMatch));
+	diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "match without gradeYears", diffSettings, matchWithoutGradeYears));
+	diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "match without teacher", diffSettings, matchWithoutTeacher));
+	diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "match without location", diffSettings, matchWithoutLocation));
+	diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "match without time and day", diffSettings, matchWithoutTimeAndDay));
+	diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "match without teacher, time and day", diffSettings, matchWithoutTeacherTimeAndDay));
+	diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "match without time and day and teacher", diffSettings, matchWithoutGradeYearsTeacher));
 	console.log(diffs);
 	console.log(dko3LesSet.values());
 	console.log(otherLesSet.values());
@@ -6357,7 +6354,7 @@ async function fetchTeachers(schoolYear) {
 	});
 }
 function findTeacher(searchString, teachers) {
-	let lowerCase = searchString.toLowerCase();
+	let lowerCase = searchString.toLowerCase().replaceAll("ü", "u");
 	let paddedLowerCase = " " + lowerCase + " ";
 	for (let teacherDef of teachers) if (lowerCase.includes(teacherDef.firstName.toLowerCase()) && lowerCase.includes(teacherDef.lastName.toLowerCase())) return teacherDef.fullName;
 	for (let teacherDef of teachers) {

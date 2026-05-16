@@ -1,5 +1,5 @@
 * Hard coded class names: add checkbox to settings list
-
+* Hard coded pre-translations : search translatedClassName
 
 
 * Add errors to json diffs.

@@ -1,8 +1,8 @@
 import {ExcelPos, Table, TablePos} from "./excel";
 import {RosterFactory} from "./rosterFactory";
 import {DayUppercase} from "../lessen/scrape";
-import {DiffSettings, TagDef} from "./diffSettings";
-import {Dko3DiffData} from "./buildDiff";
+import {TagDef} from "./diffSettings";
+import {PreparedDiffSettings, PreparedDko3DiffData} from "./buildDiff";
 import {GradeYear} from "./calcDiff";
 
 export class ClassDef {
@@ -142,14 +142,14 @@ export function dayToMinutes(day: DayUppercase): number {
 export class ExcelRoster {
     public readonly table: Table;
     private errors: string[] = [];
-    private dko3Data: Dko3DiffData;
+    private dko3Data: PreparedDko3DiffData;
     private tagDefs: TagDef[];
     public ignoreList: string[];
-    public constructor(table: Table, dko3Data: Dko3DiffData, diffSettings: DiffSettings) {
+    public constructor(table: Table, dko3Data: PreparedDko3DiffData, diffSettings: PreparedDiffSettings) {
         this.table = table;
         this.dko3Data = dko3Data;
-        this.tagDefs = diffSettings.tagDefs;
-        this.ignoreList = diffSettings.ignoreList;
+        this.tagDefs = diffSettings.preparedDiffSettings.tagDefs;
+        this.ignoreList = diffSettings.preparedDiffSettings.ignoreList;
     }
 
     public scrapeUurrooster(): ClassDef[] | null {
@@ -206,7 +206,7 @@ export class ExcelRoster {
                 }
                 let tags = ExcelRoster.findTags(parseText, this.tagDefs);
                 let tagStrings = tags.map(t => t.tag);
-                let location = ExcelRoster.findLocation(tagStrings, this.dko3Data.locations); //todo: move these functions to a DKo3data class
+                let location = ExcelRoster.findLocation(tagStrings, this.dko3Data.preparedDko3DiffData.locations); //todo: move these functions to a DKo3data class
                 let subjects = ExcelRoster.findSubjects(parseText, tagStrings, this.dko3Data);
                 let className = ExcelRoster.findClassName(parseText, this.dko3Data);
                 let tablePos: TablePos = {row, column};
@@ -270,20 +270,20 @@ export class ExcelRoster {
             return null;
     }
 
-    public static findSubjects(text: string, tags: string[], dko3Data: Dko3DiffData) {
+    public static findSubjects(text: string, tags: string[], dko3Data: PreparedDko3DiffData) {
         let allSearchStrings = [...tags];
         let lowerCase = " " + text.toLowerCase() + " ";
-        for (let subject of dko3Data.subjects) {
+        for (let subject of dko3Data.preparedDko3DiffData.subjects) {
             if(lowerCase.includes(" " + subject.toLowerCase() + " "))
                 allSearchStrings.push(subject);
         }
 
-        return dko3Data.subjects.filter(subject => allSearchStrings.includes(subject));
+        return dko3Data.preparedDko3DiffData.subjects.filter(subject => allSearchStrings.includes(subject));
     }
 
-    public static findClassName(text: string, dko3Data: Dko3DiffData) {
+    public static findClassName(text: string, dko3Data: PreparedDko3DiffData) {
         let lowerCase = text.toLowerCase();
-        for (let name of dko3Data.classNames) {
+        for (let name of dko3Data.preparedDko3DiffData.classNames) {
             if(lowerCase.includes(" " + name.toLowerCase() + " "))
                 return name;
         }

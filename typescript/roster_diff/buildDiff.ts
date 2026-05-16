@@ -14,6 +14,7 @@ import {DiffGotoData, DiffPageType, excelPostoExcelAddress, getDiffsDko3CacheFil
 import {DiffSettings, TagDef} from "./diffSettings";
 import {parseWww, TaggedWwwLesDef} from "../www_diff/buildDiff";
 import {ComparableLesMoment, Diff, DiffLesType, DiffType, Dko3LesMoment, GradeYear, LesType, matchBasedOnName, MatchContext, matchIt, matchWithoutGradeYears, matchWithoutGradeYearsTeacher, matchWithoutLocation, matchWithoutTeacher, matchWithoutTeacherTimeAndDay, matchWithoutTimeAndDay, perfectMatch, TaggedDko3LesMoment, TaggedLes, Weight} from "./calcDiff";
+import {createInfoBlock} from "../infoBlock";
 
 let cachedDiffs: JsonDiffs | undefined = undefined;
 export async function getJsonDiffsCached(academie: string, schoolYear: string, diffPageType: DiffPageType) {
@@ -22,15 +23,15 @@ export async function getJsonDiffsCached(academie: string, schoolYear: string, d
     return getDiffsFromCloud(academie, schoolYear, diffPageType);
 }
 
-export type DataPreparationFunction = (reportStatus: (message: string, isError?: "error") => void, academie: string, schoolYear: string, dko3DiffData: Dko3DiffData, diffSettings: DiffSettings) =>  Promise<{excelRosters: ExcelRoster[], otherLesSet: Set<ComparableLesMoment>}>;
+export type DataPreparationFunction = (reportStatus: (message: string, isError?: "error") => void, academie: string, schoolYear: string, dko3DiffData: PreparedDko3DiffData, diffSettings: PreparedDiffSettings) =>  Promise<{excelRosters: ExcelRoster[], otherLesSet: Set<ComparableLesMoment>}>;
 
-export let prepareWwwData: DataPreparationFunction = async function(reportStatus: (message: string, isError?: "error") => void, academie: string, schoolYear: string, dko3DiffData: Dko3DiffData, diffSettings: DiffSettings) {
+export let prepareWwwData: DataPreparationFunction = async function(reportStatus: (message: string, isError?: "error") => void, academie: string, schoolYear: string, dko3DiffData: PreparedDko3DiffData, diffSettings: PreparedDiffSettings) {
     reportStatus("Website uurroosters ophalen...");
     let otherLessen = new Set(await parseWww(dko3DiffData, diffSettings));
     return {excelRosters: [], otherLesSet: otherLessen};
 }
 
-export let prepareExcelData: DataPreparationFunction = async function(reportStatus: (message: string, isError?: "error") => void, academie: string, schoolYear: string, dko3DiffData: Dko3DiffData, diffSettings: DiffSettings) {
+export let prepareExcelData: DataPreparationFunction = async function(reportStatus: (message: string, isError?: "error") => void, academie: string, schoolYear: string, dko3DiffData: PreparedDko3DiffData, diffSettings: PreparedDiffSettings) {
     reportStatus("Excel bestanden ophalen...");
     let folderPath = await fetchFolderChanged(`Dko3/Uurroosters/${academie}/${schoolYear}/`);
     reportStatus(`${folderPath.files.length} Excel bestanden gevonden.`);
@@ -57,12 +58,28 @@ export let prepareExcelData: DataPreparationFunction = async function(reportStat
     }
     reportStatus("Lessen vergelijken...");
     let dddata = dko3DiffData;
-    let otherLesSet: Set<ComparableLesMoment> = new Set<TaggedExcelLes>(excelLessenArray.flat().map(les => new TaggedExcelLes(les, dddata.teachers)));
+    let otherLesSet: Set<ComparableLesMoment> = new Set<TaggedExcelLes>(excelLessenArray.flat().map(les => new TaggedExcelLes(les, dddata.preparedDko3DiffData.teachers)));
     otherLesSet.forEach(les => {
-        if (isExcelLesToIgnore(les as TaggedExcelLes, diffSettings.ignoreList))
+        if (isExcelLesToIgnore(les as TaggedExcelLes, diffSettings.preparedDiffSettings.ignoreList))
             otherLesSet.delete(les);
     });
     return {excelRosters, otherLesSet};
+}
+
+export type PreparedDko3DiffData = { preparedDko3DiffData: Dko3DiffData };
+export type PreparedDiffSettings = { preparedDiffSettings: DiffSettings };
+export type PreparedData = {dko3DiffData: PreparedDko3DiffData, diffSettings: PreparedDiffSettings};
+function updateDko3DiffDataAndSettings(dko3DiffData: Dko3DiffData, diffSettings: DiffSettings): PreparedData {
+    for(let teacher of dko3DiffData.teachers) {
+        for(let tagDef of diffSettings.tagDefs) {
+            if(teacher.fullName == tagDef.tag)
+                teacher.callName = tagDef.searchString;
+        }
+    }
+    diffSettings.classNamesFromTags = diffSettings.tagDefs
+        .filter(tagDef => tagDef.isClassName)
+        .map(tagDef => tagDef.searchString);
+    return {dko3DiffData: {preparedDko3DiffData: dko3DiffData}, diffSettings: {preparedDiffSettings: diffSettings} }
 }
 
 export async function buildAndSaveDiff(reportStatus: StatusCallback,
@@ -77,9 +94,11 @@ export async function buildAndSaveDiff(reportStatus: StatusCallback,
     if(!dko3DiffData)
         dko3DiffData = await getDko3Data(schoolYear, reportStatus, fetchListener);
     let json = JSON.stringify(dko3DiffData);
-    let {excelRosters, otherLesSet} = await prepareOtherData(reportStatus, academie, schoolYear, dko3DiffData, diffSettings);
+    let preparedData = updateDko3DiffDataAndSettings(dko3DiffData, diffSettings);
 
-    let res = {excelRosters, ...await calcDiff(dko3DiffData, reportStatus, diffSettings, otherLesSet)};
+    let {excelRosters, otherLesSet} = await prepareOtherData(reportStatus, academie, schoolYear, preparedData.dko3DiffData, preparedData.diffSettings);
+
+    let res = {excelRosters, ...await calcDiff(dko3DiffData, reportStatus, preparedData.diffSettings, otherLesSet)};
     //no await:
     deleteNotification("FILE_POSTED").then(() => fetchAndDisplayNotifications());
 
@@ -210,10 +229,10 @@ function isExcelLesToIgnore(les: TaggedExcelLes, ignoreList: string[]) {
     || ignoreList.some(ignore => les.searchText.includes(ignore))
 }
 
-function splitDko3LessenIntoLesmomenten(dko3Data: Dko3DiffData, diffSettings: DiffSettings, reportStatus: StatusCallback) {
+function splitDko3LessenIntoLesmomenten(dko3Data: Dko3DiffData, diffSettings: PreparedDiffSettings, reportStatus: StatusCallback) {
     //split each Dko3 les into multiple lesMoments
     let lesMomenten = dko3Data.lessen
-        .filter(les => !isDko3LesToIgnore(les, diffSettings.ignoreList))
+        .filter(les => !isDko3LesToIgnore(les, diffSettings.preparedDiffSettings.ignoreList))
         .map(les => {
             if (les.dayTimeSlices.length == 0)
                 reportStatus(`Les <a href="https://administratie.dko3.cloud/#lessen-les?id=${les.id}">${les.id}</a> heeft geen lesmoment.`, "error");
@@ -232,7 +251,7 @@ function splitDko3LessenIntoLesmomenten(dko3Data: Dko3DiffData, diffSettings: Di
     return new Set<TaggedDko3LesMoment>(lesMomenten);
 }
 
-function createLesMomenten(dko3Data: Dko3DiffData, reportStatus: StatusCallback, diffSettings: DiffSettings) {
+function createLesMomenten(dko3Data: Dko3DiffData, reportStatus: StatusCallback, diffSettings: PreparedDiffSettings) {
     let dko3LesSet = splitDko3LessenIntoLesmomenten(dko3Data, diffSettings, reportStatus);
     let dko3LesMap: Map<string, Les> = new Map();
     for (let les of dko3Data.lessen)
@@ -281,7 +300,7 @@ function createLesMomenten(dko3Data: Dko3DiffData, reportStatus: StatusCallback,
     return dko3LesSet;
 }
 
-export async function calcDiff(dko3Data: Dko3DiffData, reportStatus: (message: string, isError?: "error") => void, diffSettings: DiffSettings, otherLesSet: Set<ComparableLesMoment>) {
+export async function calcDiff(dko3Data: Dko3DiffData, reportStatus: (message: string, isError?: "error") => void, diffSettings: PreparedDiffSettings, otherLesSet: Set<ComparableLesMoment>) {
     let dko3LesSet: Set<TaggedDko3LesMoment> = createLesMomenten(dko3Data, reportStatus, diffSettings);
     //todo: split dko3Les.vaknaam into array. Split on "+" and trim.
     //get extra teaches
@@ -391,7 +410,7 @@ export async function fetchTeachers(schoolYear: string): Promise<TeacherDef[]> {
 }
 
 export function findTeacher(searchString: string, teachers: TeacherDef[]) {
-    let lowerCase = searchString.toLowerCase();
+    let lowerCase = searchString.toLowerCase().replaceAll("ü", "u"); // Jürgen !!! //todo: put in pre-translations.
     let paddedLowerCase = " " + lowerCase + " ";
     //first check full name.
     for(let teacherDef of teachers){
