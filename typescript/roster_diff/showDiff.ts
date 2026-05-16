@@ -67,7 +67,6 @@ export async function getAndShowDiffs(showOrCalc: "justShow" | "calcAndShow", us
             errors.push(message);
         else
             statusBlock.runStatus.innerHTML = message;
-        statusBlock.divError.innerHTML = errors.join("<br>");
     }
     errors = [];
     let jsonDko3DiffData: string | null = null;
@@ -89,7 +88,7 @@ export async function getAndShowDiffs(showOrCalc: "justShow" | "calcAndShow", us
             dataPreparationFunction = prepareExcelData;
         else
             dataPreparationFunction = prepareWwwData;
-        jsonDiffs = await buildAndSaveDiff(reportStatus, fetchListener, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData, diffSettings, diffPageType, dataPreparationFunction);
+        jsonDiffs = await buildAndSaveDiff(reportStatus, fetchListener, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData, diffSettings, diffPageType, dataPreparationFunction, errors);
     }
     if(jsonDiffs)
         await showDiffs(jsonDiffs, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData, diffSettings, statusBlock, diffPageType);
@@ -101,6 +100,9 @@ export async function showDiffs(diffs: JsonDiffs, academie: string, schoolYear: 
         statusBlock.divResults.innerHTML = "";
         return;
     }
+    if(diffs.errors)
+        statusBlock.divError.innerHTML = diffs.errors.join("<br>");
+
     await setIgnoredFlags(diffs.orphanedDko3Lessen, diffs.orphanedOtherLessen, academie, schoolYear, diffPageType);
     statusBlock.divResults.innerHTML = "";
     let elapsedTimeString = dateDiffToString(new Date(diffs.isoDate), new Date());

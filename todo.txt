@@ -1,4 +1,6 @@
-* Hard coded class names: add checkbox to settings list
+* Alias classes: check siblings match parent.
+  > what fields?
+
 * Hard coded pre-translations : search translatedClassName
 
 

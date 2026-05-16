@@ -88,8 +88,8 @@ export async function buildAndSaveDiff(reportStatus: StatusCallback,
                                        dko3DiffData: Dko3DiffData | null,
                                        diffSettings: DiffSettings,
                                        diffPageType: DiffPageType,
-                                       prepareOtherData: DataPreparationFunction
-) {
+                                       prepareOtherData: DataPreparationFunction,
+                                       errors: string[]) {
     reportStatus(`DKO3 data ophalen...`);
     if(!dko3DiffData)
         dko3DiffData = await getDko3Data(schoolYear, reportStatus, fetchListener);
@@ -107,7 +107,7 @@ export async function buildAndSaveDiff(reportStatus: StatusCallback,
     dko3DiffData.extraTeachersCache = res.extraTeacherCache.toJSON();
     localStorage.setItem(getDiffsDko3CacheFileName(academie, schoolYear, diffPageType), JSON.stringify(dko3DiffData));
 
-    let jsonDiffs = await createJsonDiffs(res.diffs, res.dko3LesSet, res.otherLesSet, res.excelRosters, academie, schoolYear, diffPageType);
+    let jsonDiffs = await createJsonDiffs(res.diffs, res.dko3LesSet, res.otherLesSet, res.excelRosters, academie, schoolYear, diffPageType, errors);
     let fileName = getDiffsCloudFileName(academie, schoolYear, diffPageType);
     await cloud.json.upload(fileName, jsonDiffs);
     sessionStorage.setItem(fileName, JSON.stringify(jsonDiffs));
@@ -235,7 +235,7 @@ function splitDko3LessenIntoLesmomenten(dko3Data: Dko3DiffData, diffSettings: Pr
         .filter(les => !isDko3LesToIgnore(les, diffSettings.preparedDiffSettings.ignoreList))
         .map(les => {
             if (les.dayTimeSlices.length == 0)
-                reportStatus(`Les <a href="https://administratie.dko3.cloud/#lessen-les?id=${les.id}">${les.id}</a> heeft geen lesmoment.`, "error");
+                reportStatus(`Les <a href="https://administratie.dko3.cloud/#lessen-les?id=${les.id}">${les.id}</a> heeft geen lesmoment. ${les.vakNaam}(${les.naam}), ${les.teacher}`, "error");
             let lesMomenten = les.dayTimeSlices
                 .map(slice => {
                     return new Dko3LesMoment(les, slice);
@@ -495,6 +495,7 @@ export interface JsonDiffs {
     academie: string;
     schoolYear: string;
     diffs: JsonDiff[];
+    errors?: string[],
     orphanedDko3Lessen: JsonDko3LesMoment[];
     orphanedOtherLessen: JsonOtherLesMoment[];
     isoDate: string,
@@ -514,7 +515,7 @@ export async function setIgnoredFlags(orphanedDko3Lessen: JsonDko3LesMoment[], o
     } catch {}
 }
 
-export async function createJsonDiffs(diffList: Diff[], dko3LesSet: Set<TaggedDko3LesMoment>, otherLesSet: Set<ComparableLesMoment>, excelRosters: ExcelRoster[], academie: string, schoolYear: string, diffPageType: DiffPageType): Promise<JsonDiffs> {
+export async function createJsonDiffs(diffList: Diff[], dko3LesSet: Set<TaggedDko3LesMoment>, otherLesSet: Set<ComparableLesMoment>, excelRosters: ExcelRoster[], academie: string, schoolYear: string, diffPageType: DiffPageType, errors: string[]): Promise<JsonDiffs> {
     let diffs: JsonDiff[] = diffList
         .filter(diff => diff.diffType != "perfect match" || diff.weight.weight != 1000)
         .map(diff => {
@@ -557,6 +558,7 @@ export async function createJsonDiffs(diffList: Diff[], dko3LesSet: Set<TaggedDk
         academie,
         schoolYear,
         diffs,
+        errors,
         orphanedDko3Lessen,
         orphanedOtherLessen,
         isoDate: (new Date()).toISOString(),

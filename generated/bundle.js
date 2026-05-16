@@ -5609,7 +5609,6 @@ async function getAndShowDiffs(showOrCalc, useDkoCache, diffPageType, diffSettin
 	function reportStatus(message, isError) {
 		if (isError == "error") errors.push(message);
 		else statusBlock.runStatus.innerHTML = message;
-		statusBlock.divError.innerHTML = errors.join("<br>");
 	}
 	errors = [];
 	let jsonDko3DiffData = null;
@@ -5625,7 +5624,7 @@ async function getAndShowDiffs(showOrCalc, useDkoCache, diffPageType, diffSettin
 		let dataPreparationFunction;
 		if (diffPageType == "EXCEL") dataPreparationFunction = prepareExcelData;
 		else dataPreparationFunction = prepareWwwData;
-		jsonDiffs = await buildAndSaveDiff(reportStatus, fetchListener, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData, diffSettings, diffPageType, dataPreparationFunction);
+		jsonDiffs = await buildAndSaveDiff(reportStatus, fetchListener, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData, diffSettings, diffPageType, dataPreparationFunction, errors);
 	}
 	if (jsonDiffs) await showDiffs(jsonDiffs, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData, diffSettings, statusBlock, diffPageType);
 }
@@ -5635,6 +5634,7 @@ async function showDiffs(diffs, academie, schoolYear, dko3DiffData, diffSettings
 		statusBlock.divResults.innerHTML = "";
 		return;
 	}
+	if (diffs.errors) statusBlock.divError.innerHTML = diffs.errors.join("<br>");
 	await setIgnoredFlags(diffs.orphanedDko3Lessen, diffs.orphanedOtherLessen, academie, schoolYear, diffPageType);
 	statusBlock.divResults.innerHTML = "";
 	let elapsedTimeString = dateDiffToString(new Date(diffs.isoDate), new Date());
@@ -6091,7 +6091,7 @@ function updateDko3DiffDataAndSettings(dko3DiffData, diffSettings) {
 		diffSettings: { preparedDiffSettings: diffSettings }
 	};
 }
-async function buildAndSaveDiff(reportStatus, fetchListener, academie, schoolYear, dko3DiffData, diffSettings, diffPageType, prepareOtherData) {
+async function buildAndSaveDiff(reportStatus, fetchListener, academie, schoolYear, dko3DiffData, diffSettings, diffPageType, prepareOtherData, errors) {
 	reportStatus(`DKO3 data ophalen...`);
 	if (!dko3DiffData) dko3DiffData = await getDko3Data(schoolYear, reportStatus, fetchListener);
 	let json = JSON.stringify(dko3DiffData);
@@ -6105,7 +6105,7 @@ async function buildAndSaveDiff(reportStatus, fetchListener, academie, schoolYea
 	dko3DiffData = JSON.parse(json);
 	dko3DiffData.extraTeachersCache = res.extraTeacherCache.toJSON();
 	localStorage.setItem(getDiffsDko3CacheFileName(academie, schoolYear, diffPageType), JSON.stringify(dko3DiffData));
-	let jsonDiffs = await createJsonDiffs(res.diffs, res.dko3LesSet, res.otherLesSet, res.excelRosters, academie, schoolYear, diffPageType);
+	let jsonDiffs = await createJsonDiffs(res.diffs, res.dko3LesSet, res.otherLesSet, res.excelRosters, academie, schoolYear, diffPageType, errors);
 	let fileName = getDiffsCloudFileName(academie, schoolYear, diffPageType);
 	await cloud.json.upload(fileName, jsonDiffs);
 	sessionStorage.setItem(fileName, JSON.stringify(jsonDiffs));
@@ -6209,7 +6209,7 @@ function isExcelLesToIgnore(les, ignoreList) {
 }
 function splitDko3LessenIntoLesmomenten(dko3Data, diffSettings, reportStatus) {
 	let lesMomenten = dko3Data.lessen.filter((les) => !isDko3LesToIgnore(les, diffSettings.preparedDiffSettings.ignoreList)).map((les) => {
-		if (les.dayTimeSlices.length == 0) reportStatus(`Les <a href="https://administratie.dko3.cloud/#lessen-les?id=${les.id}">${les.id}</a> heeft geen lesmoment.`, "error");
+		if (les.dayTimeSlices.length == 0) reportStatus(`Les <a href="https://administratie.dko3.cloud/#lessen-les?id=${les.id}">${les.id}</a> heeft geen lesmoment. ${les.vakNaam}(${les.naam}), ${les.teacher}`, "error");
 		let lesMomenten$1 = les.dayTimeSlices.map((slice) => {
 			return new Dko3LesMoment(les, slice);
 		});
@@ -6394,7 +6394,7 @@ async function setIgnoredFlags(orphanedDko3Lessen, orphanedOtherLessen, academie
 		for (let les of orphanedOtherLessen) les.ignore = ignoreHashSet.has(les.hash);
 	} catch {}
 }
-async function createJsonDiffs(diffList, dko3LesSet, otherLesSet, excelRosters, academie, schoolYear, diffPageType) {
+async function createJsonDiffs(diffList, dko3LesSet, otherLesSet, excelRosters, academie, schoolYear, diffPageType, errors) {
 	let diffs = diffList.filter((diff) => diff.diffType != "perfect match" || diff.weight.weight != 1e3).map((diff) => {
 		let otherLes;
 		if (diffPageType == "EXCEL") otherLes = excelLesToJson(diff.otherLes);
@@ -6428,6 +6428,7 @@ async function createJsonDiffs(diffList, dko3LesSet, otherLesSet, excelRosters, 
 		academie,
 		schoolYear,
 		diffs,
+		errors,
 		orphanedDko3Lessen,
 		orphanedOtherLessen,
 		isoDate: new Date().toISOString(),
