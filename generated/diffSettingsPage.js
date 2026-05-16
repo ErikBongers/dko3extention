@@ -539,6 +539,169 @@ function setupTabNavigation(beforeTabSwitch) {
 }
 
 //#endregion
+//#region typescript/globals.ts
+let Schoolyear;
+(function(_Schoolyear) {
+	function getSelectElement() {
+		let selects = document.querySelectorAll("select");
+		return Array.from(selects).filter((element) => element.id.includes("schooljaar")).pop() ?? null;
+	}
+	_Schoolyear.getSelectElement = getSelectElement;
+	function getHighestAvailable() {
+		let el = getSelectElement();
+		if (!el) return void 0;
+		return Array.from(el.querySelectorAll("option")).map((option) => option.value).sort().pop();
+	}
+	_Schoolyear.getHighestAvailable = getHighestAvailable;
+	function findInPage() {
+		let el = getSelectElement();
+		if (el) return el.value;
+		el = document.querySelector("div.alert-info");
+		if (el) {
+			let txt = el.textContent;
+			let rx = /[sS]chooljaar *[=:][\s\u00A0]*(\d{4}-\d{4})/gm;
+			let res = rx.exec(txt);
+			if (res) return res[1];
+		}
+		el = document.querySelector("div.btn-toolbar");
+		if (el) {
+			let txt = el.textContent;
+			let rx = /[sS]chooljaar *[=:]*[\s\u00A0]*(\d{4}-\d{4})/gm;
+			let res = rx.exec(txt);
+			if (res) return res[1];
+		}
+		throw "Cannot find schoolyear in page.";
+	}
+	_Schoolyear.findInPage = findInPage;
+	function calculateCurrent() {
+		let now = new Date();
+		let year = now.getFullYear();
+		let month = now.getMonth();
+		if (month < 8) return year - 1;
+		return year;
+	}
+	_Schoolyear.calculateCurrent = calculateCurrent;
+	function calculateSetupYear() {
+		let now = new Date();
+		let year = now.getFullYear();
+		let month = now.getMonth();
+		if (month < 3) return year - 1;
+		return year;
+	}
+	_Schoolyear.calculateSetupYear = calculateSetupYear;
+	function toFullString(startYear) {
+		return `${startYear}-${startYear + 1}`;
+	}
+	_Schoolyear.toFullString = toFullString;
+	function toShortString(startYear) {
+		return `${startYear % 1e3}-${startYear % 1e3 + 1}`;
+	}
+	_Schoolyear.toShortString = toShortString;
+	function toNumbers(schoolyearString) {
+		let parts = schoolyearString.split("-").map((s) => parseInt(s));
+		return {
+			startYear: parts[0],
+			endYear: parts[1]
+		};
+	}
+	_Schoolyear.toNumbers = toNumbers;
+})(Schoolyear || (Schoolyear = {}));
+function rangeGenerator(start, stop, step = 1) {
+	return Array(Math.ceil((stop - start) / step)).fill(start).map((x, y) => x + y * step);
+}
+function range(startAt, upTo) {
+	if (upTo > startAt) return [...Array(upTo - startAt).keys()].map((n) => n + startAt);
+	else return [...Array(startAt - upTo).keys()].reverse().map((n) => n + upTo + 1);
+}
+
+//#endregion
+//#region typescript/table/tableSort.ts
+let defaultValueFunc = (td) => td.innerText;
+function getDefaultValueFuncs(table) {
+	let columnCount = table.tHead.rows[0].cells.length;
+	return range(0, columnCount).map((_) => defaultValueFunc);
+}
+function makeTableSortable(table, valueFuncs) {
+	let actualValueFuncs = valueFuncs ?? getDefaultValueFuncs(table);
+	Array.from(table.tHead.children[0].children).forEach((colHeader) => {
+		colHeader.onclick = (ev) => {
+			reSortTableByColumn2(ev, table, actualValueFuncs);
+		};
+	});
+}
+function reSortTableByColumn2(ev, table, valueFuncs) {
+	let header = table.tHead.children[0].children[getColumnIndex(ev)];
+	let wasAscending = header.classList.contains("sortAscending");
+	let columnIndex = getColumnIndex(ev);
+	sortTableByColumn(table, columnIndex, wasAscending, valueFuncs[columnIndex]);
+}
+function sortTableByColumn(table, index, descending, valueFunc) {
+	let header = table.tHead.children[0].children[index];
+	let rows = Array.from(table.tBodies[0].rows);
+	for (let thead of table.tHead.children[0].children) thead.classList.remove("sortAscending", "sortDescending");
+	let cmpFunc = cmpAlpha;
+	if (isColumnProbablyNumeric(table, index, valueFunc)) cmpFunc = cmpNumber;
+	else if (isColumnProbablyDate(table, index, valueFunc)) cmpFunc = cmpDate;
+	try {
+		sortRows(cmpFunc, header, rows, index, descending, valueFunc);
+	} catch (e) {
+		console.error(e);
+		if (cmpFunc !== cmpAlpha) sortRows(cmpAlpha, header, rows, index, descending, valueFunc);
+	}
+	rows.forEach((row) => table.tBodies[0].appendChild(row));
+}
+function getColumnIndex(ev) {
+	let td = ev.target;
+	if (td.tagName !== "TD") td = td.closest("TH");
+	return Array.prototype.indexOf.call(td.parentElement.children, td);
+}
+function isColumnProbablyNumeric(table, index, valueFunc) {
+	let rows = Array.from(table.tBodies[0].rows);
+	const MAX_SAMPLES = 100;
+	let samples = rangeGenerator(0, rows.length, rows.length > MAX_SAMPLES ? rows.length / MAX_SAMPLES : 1).map((float) => Math.floor(float));
+	return !samples.map((rowIndex) => rows[rowIndex]).some((row) => {
+		let value = valueFunc(row.children[index]);
+		return isNaN(Number(value));
+	});
+}
+function sortRows(cmpFunction, header, rows, index, descending, valueFunc) {
+	let cmpDirectionalFunction;
+	if (descending) {
+		cmpDirectionalFunction = (a, b) => cmpFunction(b.cells[index], a.cells[index], valueFunc);
+		header.classList.add("sortDescending");
+	} else {
+		cmpDirectionalFunction = (a, b) => cmpFunction(a.cells[index], b.cells[index], valueFunc);
+		header.classList.add("sortAscending");
+	}
+	rows.sort((a, b) => cmpDirectionalFunction(a, b));
+}
+function cmpAlpha(a, b, valueFunc) {
+	return valueFunc(a).localeCompare(valueFunc(b));
+}
+function cmpDate(a, b, valueFunc) {
+	return normalizeDate(valueFunc(a)).localeCompare(normalizeDate(valueFunc(b)));
+}
+function normalizeDate(date) {
+	let dateParts = date.split("-");
+	return dateParts[2] + dateParts[1] + dateParts[0];
+}
+function cmpNumber(a, b) {
+	let res = Number(a.innerText) - Number(b.innerText);
+	if (isNaN(res)) throw new Error();
+	return res;
+}
+function isColumnProbablyDate(table, index, valueFunc) {
+	let rows = Array.from(table.tBodies[0].rows);
+	return stringToDate(valueFunc(rows[0].cells[index]));
+}
+function stringToDate(text) {
+	let reDate = /^(\d\d)[-\/](\d\d)[-\/](\d\d\d\d)/;
+	let matches = text.match(reDate);
+	if (!matches) return void 0;
+	return new Date(matches[3] + "-" + matches[2] + "/" + matches[1]);
+}
+
+//#endregion
 //#region typescript/roster_diff/diffSettingsPage.ts
 let handler = createMessageHandler(TabType.DiffSettings);
 registerWebComponent();
@@ -581,11 +744,20 @@ function addIgnoresRow(ignore, tbody) {
 }
 function fillTagDefTable(diffSettings) {
 	let container = document.getElementById("tagDefsContainer");
+	let table = container.querySelector("table");
 	let tbody = container.querySelector("table>tbody");
 	tbody.innerHTML = "";
 	for (let tagDef of diffSettings.tagDefs) addTranslationRow(tagDef, tbody);
 	document.querySelectorAll("#tagDefsContainer button.deleteRow").forEach((btn) => btn.addEventListener("click", deleteTableRow));
+	let valueFuncs = getDefaultValueFuncs(table);
+	valueFuncs[1] = getInputWithSpacesValue;
+	valueFuncs[3] = getInputWithSpacesValue;
+	valueFuncs[5] = getInputWithSpacesValue;
+	makeTableSortable(table, valueFuncs);
 }
+let getInputWithSpacesValue = (td) => {
+	return td.querySelector("input-with-spaces").value;
+};
 function fillIgnoresTable(diffSettings) {
 	let container = document.getElementById("ignoresContainer");
 	let tbody = container.querySelector("table>tbody");
@@ -605,7 +777,12 @@ function deleteTableRow(ev) {
 async function onData(request) {
 	let title = "Uurrooster tags voor schooljaar " + request.data.schoolYear;
 	document.title = title;
-	document.getElementById(SETUP_HOURS_TITLE_ID).innerHTML = title;
+	document.getElementById(
+		// searchText
+		// tag
+		// grades+years
+		SETUP_HOURS_TITLE_ID
+).innerHTML = title;
 	document.querySelector("button").addEventListener("click", async () => {
 		await sendRequest(Actions.GreetingsFromChild, TabType.Undefined, TabType.Main, void 0, "Hullo! Fly safe!");
 	});

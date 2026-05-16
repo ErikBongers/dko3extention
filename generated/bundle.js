@@ -3912,29 +3912,61 @@ var FetchedTable = class {
 };
 
 //#endregion
-//#region typescript/table/tableHeaders.ts
-let _otherTabsDataCache = new Map();
-function addToOtherTabsDataCache(data) {
-	let id = Date.now().toString();
-	_otherTabsDataCache.set(id, data);
-	return id;
+//#region typescript/table/tableSort.ts
+let defaultValueFunc = (td) => td.innerText;
+function getValueFuncsOrDefault(valueFuncs, table) {
+	let actualValueFuncs;
+	if (valueFuncs) return valueFuncs;
+	else {
+		let columnCount = table.tHead.rows[0].cells.length;
+		return range(0, columnCount).map((_) => defaultValueFunc);
+	}
 }
-function sortRows(cmpFunction, header, rows, index, descending) {
+function sortTableByColumn(table, index, descending, valueFunc) {
+	let header = table.tHead.children[0].children[index];
+	let rows = Array.from(table.tBodies[0].rows);
+	for (let thead of table.tHead.children[0].children) thead.classList.remove("sortAscending", "sortDescending");
+	let cmpFunc = cmpAlpha;
+	if (isColumnProbablyNumeric(table, index, valueFunc)) cmpFunc = cmpNumber;
+	else if (isColumnProbablyDate(table, index, valueFunc)) cmpFunc = cmpDate;
+	try {
+		sortRows(cmpFunc, header, rows, index, descending, valueFunc);
+	} catch (e) {
+		console.error(e);
+		if (cmpFunc !== cmpAlpha) sortRows(cmpAlpha, header, rows, index, descending, valueFunc);
+	}
+	rows.forEach((row) => table.tBodies[0].appendChild(row));
+}
+function getColumnIndex(ev) {
+	let td = ev.target;
+	if (td.tagName !== "TD") td = td.closest("TH");
+	return Array.prototype.indexOf.call(td.parentElement.children, td);
+}
+function isColumnProbablyNumeric(table, index, valueFunc) {
+	let rows = Array.from(table.tBodies[0].rows);
+	const MAX_SAMPLES = 100;
+	let samples = rangeGenerator(0, rows.length, rows.length > MAX_SAMPLES ? rows.length / MAX_SAMPLES : 1).map((float) => Math.floor(float));
+	return !samples.map((rowIndex) => rows[rowIndex]).some((row) => {
+		let value = valueFunc(row.children[index]);
+		return isNaN(Number(value));
+	});
+}
+function sortRows(cmpFunction, header, rows, index, descending, valueFunc) {
 	let cmpDirectionalFunction;
 	if (descending) {
-		cmpDirectionalFunction = (a, b) => cmpFunction(b.cells[index], a.cells[index]);
+		cmpDirectionalFunction = (a, b) => cmpFunction(b.cells[index], a.cells[index], valueFunc);
 		header.classList.add("sortDescending");
 	} else {
-		cmpDirectionalFunction = (a, b) => cmpFunction(a.cells[index], b.cells[index]);
+		cmpDirectionalFunction = (a, b) => cmpFunction(a.cells[index], b.cells[index], valueFunc);
 		header.classList.add("sortAscending");
 	}
 	rows.sort((a, b) => cmpDirectionalFunction(a, b));
 }
-function cmpAlpha(a, b) {
-	return a.innerText.localeCompare(b.innerText);
+function cmpAlpha(a, b, valueFunc) {
+	return valueFunc(a).localeCompare(valueFunc(b));
 }
-function cmpDate(a, b) {
-	return normalizeDate(a.innerText).localeCompare(normalizeDate(b.innerText));
+function cmpDate(a, b, valueFunc) {
+	return normalizeDate(valueFunc(a)).localeCompare(normalizeDate(valueFunc(b)));
 }
 function normalizeDate(date) {
 	let dateParts = date.split("-");
@@ -3945,20 +3977,24 @@ function cmpNumber(a, b) {
 	if (isNaN(res)) throw new Error();
 	return res;
 }
-function sortTableByColumn(table, index, descending) {
-	let header = table.tHead.children[0].children[index];
+function isColumnProbablyDate(table, index, valueFunc) {
 	let rows = Array.from(table.tBodies[0].rows);
-	for (let thead of table.tHead.children[0].children) thead.classList.remove("sortAscending", "sortDescending");
-	let cmpFunc = cmpAlpha;
-	if (isColumnProbablyNumeric(table, index)) cmpFunc = cmpNumber;
-	else if (isColumnProbablyDate(table, index)) cmpFunc = cmpDate;
-	try {
-		sortRows(cmpFunc, header, rows, index, descending);
-	} catch (e) {
-		console.error(e);
-		if (cmpFunc !== cmpAlpha) sortRows(cmpAlpha, header, rows, index, descending);
-	}
-	rows.forEach((row) => table.tBodies[0].appendChild(row));
+	return stringToDate(valueFunc(rows[0].cells[index]));
+}
+function stringToDate(text) {
+	let reDate = /^(\d\d)[-\/](\d\d)[-\/](\d\d\d\d)/;
+	let matches = text.match(reDate);
+	if (!matches) return void 0;
+	return new Date(matches[3] + "-" + matches[2] + "/" + matches[1]);
+}
+
+//#endregion
+//#region typescript/table/tableHeaders.ts
+let _otherTabsDataCache = new Map();
+function addToOtherTabsDataCache(data) {
+	let id = Date.now().toString();
+	_otherTabsDataCache.set(id, data);
+	return id;
 }
 function copyFullTable(table) {
 	let headerCells = table.tHead.children[0].children;
@@ -3973,37 +4009,23 @@ function copyOneColumn(table, index) {
 function createAndCopyTable(headers, cols) {
 	navigator.clipboard.writeText(createHtmlTable(headers, cols).outerHTML).then((_r) => {});
 }
-function reSortTableByColumn(ev, table, fetchFirst) {
+function reSortTableByColumn(ev, table, fetchFirst, valueFuncs) {
 	let header = table.tHead.children[0].children[getColumnIndex(ev)];
 	let wasAscending = header.classList.contains("sortAscending");
-	if (fetchFirst) forTableDo(ev, (_fetchedTable, index) => sortTableByColumn(table, index, wasAscending));
-	else sortTableByColumn(table, getColumnIndex(ev), wasAscending);
-}
-function isColumnProbablyDate(table, index) {
-	let rows = Array.from(table.tBodies[0].rows);
-	return stringToDate(rows[0].cells[index].textContent);
-}
-function stringToDate(text) {
-	let reDate = /^(\d\d)[-\/](\d\d)[-\/](\d\d\d\d)/;
-	let matches = text.match(reDate);
-	if (!matches) return void 0;
-	return new Date(matches[3] + "-" + matches[2] + "/" + matches[1]);
-}
-function isColumnProbablyNumeric(table, index) {
-	let rows = Array.from(table.tBodies[0].rows);
-	const MAX_SAMPLES = 100;
-	let samples = rangeGenerator(0, rows.length, rows.length > MAX_SAMPLES ? rows.length / MAX_SAMPLES : 1).map((float) => Math.floor(float));
-	return !samples.map((rowIndex) => rows[rowIndex]).some((row) => {
-		return isNaN(Number(row.children[index].innerText));
-	});
+	if (fetchFirst) forTableDo(ev, (_fetchedTable, index) => sortTableByColumn(table, index, wasAscending, valueFuncs[index]));
+	else {
+		let columnIndex = getColumnIndex(ev);
+		sortTableByColumn(table, columnIndex, wasAscending, valueFuncs[columnIndex]);
+	}
 }
 function decorateTableHeader(table, fetchFullTable) {
 	if (table.tHead.classList.contains("clickHandler")) return;
 	table.tHead.classList.add("clickHandler");
 	if (!options.showTableHeaders) return;
+	let valueFuncs = getValueFuncsOrDefault(void 0, table);
 	Array.from(table.tHead.children[0].children).forEach((colHeader) => {
 		colHeader.onclick = (ev) => {
-			reSortTableByColumn(ev, table, fetchFullTable);
+			reSortTableByColumn(ev, table, fetchFullTable, valueFuncs);
 		};
 		if (table.classList.contains(
 			//todo: add this to openHtmlTab.
@@ -4027,10 +4049,10 @@ function decorateTableHeader(table, fetchFullTable) {
 		});
 		addMenuSeparator(menu, "Sorteer", 0);
 		addMenuItem(menu, "Laag naar hoog (a > z)", 1, (ev) => {
-			forTableDo(ev, (tableMeta, index) => sortTableByColumn(table, index, false));
+			forTableDo(ev, (tableMeta, index) => sortTableByColumn(table, index, false, valueFuncs[index]));
 		});
 		addMenuItem(menu, "Hoog naar laag (z > a)", 1, (ev) => {
-			forTableDo(ev, (tableMeta, index) => sortTableByColumn(table, index, true));
+			forTableDo(ev, (tableMeta, index) => sortTableByColumn(table, index, true, valueFuncs[index]));
 		});
 		addMenuSeparator(menu, "Sorteer als:", 1);
 		addMenuItem(menu, "Tekst", 2, (_ev) => {});
@@ -4068,11 +4090,6 @@ var TableHandlerForHeaders = class {
 		console.log("RESET");
 	}
 };
-function getColumnIndex(ev) {
-	let td = ev.target;
-	if (td.tagName !== "TD") td = td.closest("TH");
-	return Array.prototype.indexOf.call(td.parentElement.children, td);
-}
 function executeTableCommands(tableRef) {
 	let cmds = pageState$1.transient.getValue(GLOBAL_COMMAND_BUFFER_KEY, []);
 	for (let cmd of cmds) executeCmd(cmd, tableRef, true);
@@ -6235,7 +6252,7 @@ function createLesMomenten(dko3Data, reportStatus, diffSettings) {
 			continue;
 		}
 		let aliasLocation = aliasLes.vestiging;
-		for (let linkedLes of linkedLessen) if ((linkedLes?.vestiging ?? "-geen vesitiging-") != aliasLocation) reportStatus(`Voor aliasles <a href="https://administratie.dko3.cloud/#lessen-les?id=${aliasLes.id}">${aliasLes.id}</a> is de vestiging niet dezelfde als de gekoppelde lessen.`, "error");
+		for (let linkedLes of linkedLessen) if ((linkedLes?.vestiging ?? "-geen vestiging-") != aliasLocation) reportStatus(`Voor aliasles <a href="https://administratie.dko3.cloud/#lessen-les?id=${aliasLes.id}">${aliasLes.id}</a> is de vestiging niet dezelfde als de gekoppelde lessen.`, "error");
 		let linkedLesMomentIds = linkedLessen.map((les) => les.dayTimeSlices.map((slice) => Dko3LesMoment.createLesMomentId(les, slice))).flat();
 		let linkedLesMomenten = linkedLesMomentIds.map((momentId) => lesMomentenMap.get(momentId));
 		linkedLesMomenten.sort((a, b) => DayTimeSlice.startToNumber(a.lesMoment.dayTimeSlice) - DayTimeSlice.startToNumber(b.lesMoment.dayTimeSlice));

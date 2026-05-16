@@ -5,6 +5,7 @@ import * as InputWithSpaces from "../webComponents/inputWithSpaces";
 import {DiffSettings, TagDef} from "./diffSettings";
 import {uploadDiffSettings} from "../cloud";
 import {setupTabNavigation} from "../tabs";
+import {ColumnValueFunc, getDefaultValueFuncs, makeTableSortable} from "../table/tableSort";
 
 let handler  = createMessageHandler(TabType.DiffSettings);
 
@@ -71,6 +72,7 @@ function addIgnoresRow(ignore: string, tbody: HTMLTableSectionElement) {
 
 function fillTagDefTable(diffSettings: DiffSettings) {
     let container = document.getElementById("tagDefsContainer")!;
+    let table = container.querySelector("table") as HTMLTableElement;
     let tbody = container.querySelector("table>tbody") as HTMLTableSectionElement;
     tbody.innerHTML = "";
     for (let tagDef of diffSettings.tagDefs) {
@@ -79,7 +81,17 @@ function fillTagDefTable(diffSettings: DiffSettings) {
 
     document.querySelectorAll("#tagDefsContainer button.deleteRow")
         .forEach(btn => btn.addEventListener("click", deleteTableRow));
+    let valueFuncs: ColumnValueFunc[] = getDefaultValueFuncs(table);
+    valueFuncs[1] = getInputWithSpacesValue; // searchText
+    valueFuncs[3] = getInputWithSpacesValue; // tag
+    valueFuncs[5] = getInputWithSpacesValue; // grades+years
+
+    makeTableSortable(table, valueFuncs);
 }
+
+let getInputWithSpacesValue: ColumnValueFunc = (td: HTMLTableCellElement) => {
+    return (td.querySelector("input-with-spaces") as InputWithSpaces.Type).value;
+};
 
 function fillIgnoresTable(diffSettings: DiffSettings) {
     let container = document.getElementById("ignoresContainer")!;
