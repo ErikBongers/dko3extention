@@ -62,10 +62,19 @@ table {
 
 tr {
     border-bottom: 1px solid #bbb;
-    &:has(input[type='checkbox']){
-        opacity: 0.5;
-        &:has(input[type='checkbox']:checked){
-            opacity: 1;
+    &:hover {
+        background-color: rgb(208 208 248 / 0.2);
+    }
+}
+
+#teacherHoursSettings {
+    & tr {
+        &:has(input[type='checkbox']) {
+            opacity: 0.5;
+
+            &:has(input[type='checkbox']:checked) {
+                opacity: 1;
+            }
         }
     }
 }
@@ -93,4 +102,12 @@ img.upSideDown {
 #txtWebPages {
     width: 100%;
     aspect-ratio: 16/9;
+}
+
+input[type="checkbox"] {
+    height: 1rem;
+}
+
+label {
+    white-space: nowrap;
 }

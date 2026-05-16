@@ -550,7 +550,11 @@ handler.onMessageForMyTabType((msg) => {
 	console.log("diff setup page: message for me: ", msg);
 }).onData(onData);
 function addTranslationRow(tagDef, tbody) {
-	let text = `tr>` + buildField("Vind", tagDef.searchString, "trnsFind") + "+" + buildField("tag met", tagDef.tag, "trnsTag") + "+" + buildField("gr+jaren", tagDef.gradeYears?.toString() ?? "", "trnsGradeYears");
+	let text = `tr>` + buildField("Vind", tagDef.searchString, "trnsFind") + "+" + buildField("tag met", tagDef.tag, "trnsTag") + "+" + buildField("gr+jaren", tagDef.gradeYears?.toString() ?? "", "trnsGradeYears") + `+ div.flexRow>(
+                label[for="trnsIsClassName"]{is klasnaam:}+
+                input#trnsIsClassName[type="checkbox" ${tagDef.isClassName ? "checked=\"checked\"" : ""} name="trnsIsClassName"]
+            )
+           `;
 	let tr = emmet.appendChild(tbody, text).first;
 	let bucket = `button.deleteRow.naked>img[src="${chrome.runtime.getURL("images/trash-can.svg")}"]`;
 	emmet.appendChild(tr, `td>${bucket}`);
@@ -559,6 +563,10 @@ function addTranslationRow(tagDef, tbody) {
 		let attrValue = value ? ` value="${value}"` : "";
 		return `(td>{${label}})+(td>input-with-spaces#${id}[type="text"${attrValue}])`;
 	}
+	let chkIsClassName = tr.querySelector("#trnsIsClassName");
+	chkIsClassName.addEventListener("change", (_) => {
+		hasDataChanged = true;
+	});
 }
 function addIgnoresRow(ignore, tbody) {
 	let text = `tr>` + buildField(ignore, "trnsIgnore");
@@ -642,10 +650,12 @@ function scrapeTagDefs() {
 	let rows = document.querySelectorAll("#tagDefsContainer>table>tbody>tr");
 	return [...rows].map((row) => {
 		let gradeYears = row.querySelector("#trnsGradeYears").value.trim();
+		let isClassName = row.querySelector("#trnsIsClassName").checked;
 		return {
 			searchString: row.querySelector("#trnsFind").value.toLowerCase(),
 			tag: row.querySelector("#trnsTag").value,
-			gradeYears
+			gradeYears,
+			isClassName
 		};
 	});
 }

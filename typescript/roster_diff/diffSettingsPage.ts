@@ -30,6 +30,12 @@ function addTranslationRow(tagDef: TagDef, tbody: HTMLTableSectionElement) {
         + buildField("tag met", tagDef.tag, "trnsTag")
         + "+"
         + buildField("gr+jaren", tagDef.gradeYears?.toString()??"", "trnsGradeYears")
+        + "+"
+        + ` div.flexRow>(
+                label[for="trnsIsClassName"]{is klasnaam:}+
+                input#trnsIsClassName[type="checkbox" ${tagDef.isClassName ? 'checked="checked"' : ""} name="trnsIsClassName"]
+            )
+           `
     ;
     let tr = emmet.appendChild(tbody, text).first as HTMLTableRowElement;
     let bucket = `button.deleteRow.naked>img[src="${chrome.runtime.getURL("images/trash-can.svg")}"]`;
@@ -42,6 +48,10 @@ function addTranslationRow(tagDef: TagDef, tbody: HTMLTableSectionElement) {
         let attrValue = value ? ` value="${value}"` : "";
         return `(td>{${label}})+(td>input-with-spaces#${id}[type="text"${attrValue}])`;
     }
+    let chkIsClassName = tr.querySelector("#trnsIsClassName") as HTMLInputElement;
+    chkIsClassName.addEventListener("change", (_) => {
+        hasDataChanged = true;
+    });
 }
 
 function addIgnoresRow(ignore: string, tbody: HTMLTableSectionElement) {
@@ -153,10 +163,12 @@ function scrapeTagDefs(): TagDef[] {
     return [...rows]
         .map(row => {
             let gradeYears = (row.querySelector("#trnsGradeYears") as InputWithSpaces.Type).value.trim();
+            let isClassName = (row.querySelector("#trnsIsClassName") as HTMLInputElement).checked;
             return {
                 searchString: (row.querySelector("#trnsFind") as InputWithSpaces.Type).value.toLowerCase(),
                 tag: (row.querySelector("#trnsTag") as InputWithSpaces.Type).value,
                 gradeYears,
+                isClassName
             } satisfies TagDef
         });
 }

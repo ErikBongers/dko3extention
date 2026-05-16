@@ -1,7 +1,8 @@
 export type TagDef = {
     tag: string,
     searchString: string,
-    gradeYears?: string
+    gradeYears?: string,
+    isClassName?: boolean,
 }
 
 export const defaultTagDefs: TagDef[] = [
