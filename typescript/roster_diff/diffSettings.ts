@@ -96,4 +96,5 @@ export interface DiffSettings {
     tagDefs: TagDef[],
     ignoreList: string[],
     urls: string[],
+    classNamesFromTags?: string[];
 }

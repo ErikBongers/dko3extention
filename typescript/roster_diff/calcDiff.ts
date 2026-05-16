@@ -1,5 +1,6 @@
 import {DayTimeSlice, Les} from "../lessen/scrape";
 import {ClassDef} from "./excelRoster";
+import {DiffSettings} from "./diffSettings";
 
 export class Dko3LesMoment {
     les: Les;
@@ -123,10 +124,10 @@ export interface Diff {
     weight: Weight;
 }
 
-export function matchIt(ctx: MatchContext, dko3LesSet: Set<TaggedDko3LesMoment>, otherLesSet: Set<ComparableLesMoment>, diffType: DiffType, matchFunction: (ctx: MatchContext, dko3Les: TaggedDko3LesMoment, otherLesSet: Set<ComparableLesMoment>) => (MatchResult | null)) {
+export function matchIt(ctx: MatchContext, dko3LesSet: Set<TaggedDko3LesMoment>, otherLesSet: Set<ComparableLesMoment>, diffType: DiffType, diffSettings: DiffSettings, matchFunction: (ctx: MatchContext, dko3Les: TaggedDko3LesMoment, otherLesSet: Set<ComparableLesMoment>, diffSettings: DiffSettings) => (MatchResult | null)) {
     let diffs: Diff[] = [];
     for (let dko3Les of dko3LesSet) {
-        let result = matchFunction(ctx, dko3Les, otherLesSet);
+        let result = matchFunction(ctx, dko3Les, otherLesSet, diffSettings);
         if (result) {
             diffs.push({otherLes: result.otherLes, dko3Les: dko3Les, diffType, weight: result.weight});
             dko3LesSet.delete(dko3Les);
@@ -176,7 +177,7 @@ function createLesNamesMap(otherLesSet: Set<ComparableLesMoment>) {
     return otherLesNamesMap;
 }
 
-export function matchBasedOnName(ctx: MatchContext, dko3Les: TaggedDko3LesMoment, otherLesSet: Set<ComparableLesMoment>): MatchResult | null {
+export function matchBasedOnName(ctx: MatchContext, dko3Les: TaggedDko3LesMoment, otherLesSet: Set<ComparableLesMoment>, diffSettings: DiffSettings): MatchResult | null {
     let results: MatchResult[] = [];
 
     //prepare on first call
@@ -190,10 +191,12 @@ export function matchBasedOnName(ctx: MatchContext, dko3Les: TaggedDko3LesMoment
     let otherLessenWithSameName = ctx.otherLesNamesMap.get(dko3LesName)
 
     if (!otherLessenWithSameName) {
-        //2nd try with stored names.
+        //2nd try with class names from settings.
         let searchName = " " + dko3LesName + " ";
-        let storedNames = [" 2va ", " 1vb ", " 1vc ", " 1vd ", " 2vb ", " 2vc ", " harmonielab "]; //todo: add to settings! (or have a check box that marks this as a class name)
-        let foundName = storedNames.find(name => searchName.includes(name));
+        // let storedNames: string[] = []; //[" 2va ", " 1vb ", " 1vc ", " 1vd ", " 2vb ", " 2vc ", " harmonielab "]; //todo: add to settings! (or have a check box that marks this as a class name)
+        if(!diffSettings.classNamesFromTags)
+            return null;
+        let foundName = diffSettings.classNamesFromTags.find(name => searchName.includes(name));
         if(!foundName)
             return null;
         for(let les of otherLesSet ) {
@@ -225,7 +228,7 @@ export function matchBasedOnName(ctx: MatchContext, dko3Les: TaggedDko3LesMoment
     return results[0];
 }
 
-export function perfectMatch(ctx: MatchContext, dko3Les: TaggedDko3LesMoment, otherLesSet: Set<ComparableLesMoment>): MatchResult | null {
+export function perfectMatch(ctx: MatchContext, dko3Les: TaggedDko3LesMoment, otherLesSet: Set<ComparableLesMoment>, diffSettings: DiffSettings): MatchResult | null {
     for (let excelLes of otherLesSet) {
         let weight = weigh1000(dko3Les, excelLes, undefined);
         if (weight.weight == 1000)
@@ -234,7 +237,7 @@ export function perfectMatch(ctx: MatchContext, dko3Les: TaggedDko3LesMoment, ot
     return null;
 }
 
-export function matchWithoutGradeYears(ctx: MatchContext, dko3Les: TaggedDko3LesMoment, otherLesSet: Set<ComparableLesMoment>): MatchResult | null {
+export function matchWithoutGradeYears(ctx: MatchContext, dko3Les: TaggedDko3LesMoment, otherLesSet: Set<ComparableLesMoment>, diffSettings: DiffSettings): MatchResult | null {
     for (let excelLes of otherLesSet) {
         let weight = weigh1000(dko3Les, excelLes, undefined);
         if (weight.diffSubject)
@@ -251,7 +254,7 @@ export function matchWithoutGradeYears(ctx: MatchContext, dko3Les: TaggedDko3Les
     return null;
 }
 
-export function matchWithoutGradeYearsTeacher(ctx: MatchContext, dko3Les: TaggedDko3LesMoment, otherLesSet: Set<ComparableLesMoment>): MatchResult | null {
+export function matchWithoutGradeYearsTeacher(ctx: MatchContext, dko3Les: TaggedDko3LesMoment, otherLesSet: Set<ComparableLesMoment>, diffSettings: DiffSettings): MatchResult | null {
     for (let excelLes of otherLesSet) {
         let weight = weigh1000(dko3Les, excelLes, undefined);
         if (weight.diffSubject)
@@ -266,7 +269,7 @@ export function matchWithoutGradeYearsTeacher(ctx: MatchContext, dko3Les: Tagged
     return null;
 }
 
-export function matchWithoutLocation(ctx: MatchContext, dko3Les: TaggedDko3LesMoment, otherLesSet: Set<ComparableLesMoment>): MatchResult | null {
+export function matchWithoutLocation(ctx: MatchContext, dko3Les: TaggedDko3LesMoment, otherLesSet: Set<ComparableLesMoment>, diffSettings: DiffSettings): MatchResult | null {
     for (let excelLes of otherLesSet) {
         let weight = weigh1000(dko3Les, excelLes, undefined);
         if (weight.diffSubject)
@@ -282,7 +285,7 @@ export function matchWithoutLocation(ctx: MatchContext, dko3Les: TaggedDko3LesMo
     return null;
 }
 
-export function matchWithoutTimeAndDay(ctx: MatchContext, dko3Les: TaggedDko3LesMoment, otherLesSet: Set<ComparableLesMoment>): MatchResult | null {
+export function matchWithoutTimeAndDay(ctx: MatchContext, dko3Les: TaggedDko3LesMoment, otherLesSet: Set<ComparableLesMoment>, diffSettings: DiffSettings): MatchResult | null {
     for (let excelLes of otherLesSet) {
         let weight = weigh1000(dko3Les, excelLes, undefined);
         if (weight.diffSubject)
@@ -298,7 +301,7 @@ export function matchWithoutTimeAndDay(ctx: MatchContext, dko3Les: TaggedDko3Les
     return null;
 }
 
-export function matchWithoutTeacherTimeAndDay(ctx: MatchContext, dko3Les: TaggedDko3LesMoment, otherLesSet: Set<ComparableLesMoment>): MatchResult | null {
+export function matchWithoutTeacherTimeAndDay(ctx: MatchContext, dko3Les: TaggedDko3LesMoment, otherLesSet: Set<ComparableLesMoment>, diffSettings: DiffSettings): MatchResult | null {
     for (let excelLes of otherLesSet) {
         let weight = weigh1000(dko3Les, excelLes, undefined);
         if (weight.diffSubject)
@@ -312,7 +315,7 @@ export function matchWithoutTeacherTimeAndDay(ctx: MatchContext, dko3Les: Tagged
     return null;
 }
 
-export function matchWithoutTeacher(ctx: MatchContext, dko3Les: TaggedDko3LesMoment, otherLesSet: Set<ComparableLesMoment>): MatchResult | null {
+export function matchWithoutTeacher(ctx: MatchContext, dko3Les: TaggedDko3LesMoment, otherLesSet: Set<ComparableLesMoment>, diffSettings: DiffSettings): MatchResult | null {
     for (let excelLes of otherLesSet) {
         let weight = weigh1000(dko3Les, excelLes, undefined);
         if (weight.diffSubject)

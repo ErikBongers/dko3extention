@@ -54,13 +54,16 @@ function getStatusBlock(divInfoWrapper: HTMLDivElement) {
     return {runStatus, divInfo, divError, divResults} as StatusBlock;
 }
 
-function updateDko3DiffData(dko3DiffData: Dko3DiffData, diffSettings: DiffSettings) {
+function updateDko3DiffDataAndSettings(dko3DiffData: Dko3DiffData, diffSettings: DiffSettings) {
     for(let teacher of dko3DiffData.teachers) {
         for(let tagDef of diffSettings.tagDefs) {
             if(teacher.fullName == tagDef.tag)
                 teacher.callName = tagDef.searchString;
         }
     }
+    diffSettings.classNamesFromTags = diffSettings.tagDefs
+        .filter(tagDef => tagDef.isClassName)
+        .map(tagDef => tagDef.searchString);
 }
 
 export async function getAndShowDiffs(showOrCalc: "justShow" | "calcAndShow", useDkoCache: "dkoCache" | "fetchDko", diffPageType: DiffPageType, diffSettings: DiffSettings | null) {
@@ -88,7 +91,7 @@ export async function getAndShowDiffs(showOrCalc: "justShow" | "calcAndShow", us
     if(!diffSettings)
         diffSettings = await fetchDiffSettingsOrDefault(cmbDiffAcademie.value, cmbDiffSchoolYear.value);
     if(dko3DiffData)
-        updateDko3DiffData(dko3DiffData, diffSettings);
+        updateDko3DiffDataAndSettings(dko3DiffData, diffSettings);
     if(showOrCalc == "justShow") {
         try {
             jsonDiffs = await getDiffsFromCloud(cmbDiffAcademie.value, cmbDiffSchoolYear.value, diffPageType);

@@ -75,7 +75,7 @@ export async function buildAndSaveDiff(reportStatus: StatusCallback,
 ) {
     reportStatus(`DKO3 data ophalen...`);
     if(!dko3DiffData)
-        dko3DiffData = await getDko3Data(schoolYear, reportStatus, fetchListener, diffSettings);
+        dko3DiffData = await getDko3Data(schoolYear, reportStatus, fetchListener);
     let json = JSON.stringify(dko3DiffData);
     let {excelRosters, otherLesSet} = await prepareOtherData(reportStatus, academie, schoolYear, dko3DiffData, diffSettings);
 
@@ -107,7 +107,7 @@ export interface Dko3DiffData {
     extraTeachersCache?: [string, string[]][];
 }
 
-export async function getDko3Data(schoolYear: string, reportStatus: StatusCallback, fetchListener: InfoBarTableFetchListener, diffSettings: DiffSettings): Promise<Dko3DiffData> {
+export async function getDko3Data(schoolYear: string, reportStatus: StatusCallback, fetchListener: InfoBarTableFetchListener): Promise<Dko3DiffData> {
     reportStatus("Vestigingsplaatsen ophalen...");
     let locationsTable = await getTableFromHash("extra-academie-vestigingsplaatsen", true, fetchListener);
     let locations = [...locationsTable.getRows()].map(tr => tr.cells[1].textContent);
@@ -293,14 +293,14 @@ export async function calcDiff(dko3Data: Dko3DiffData, reportStatus: (message: s
 
     let diffs: Diff[] = [];
     let ctx: MatchContext = {};
-    diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "perfect match", matchBasedOnName));
-    diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "perfect match", perfectMatch));
-    diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "match without gradeYears", matchWithoutGradeYears));
-    diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "match without teacher", matchWithoutTeacher));
-    diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "match without location", matchWithoutLocation));
-    diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "match without time and day", matchWithoutTimeAndDay));
-    diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "match without teacher, time and day", matchWithoutTeacherTimeAndDay));
-    diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "match without time and day and teacher", matchWithoutGradeYearsTeacher));
+    diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "perfect match", diffSettings, matchBasedOnName));
+    diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "perfect match", diffSettings, perfectMatch));
+    diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "match without gradeYears", diffSettings, matchWithoutGradeYears));
+    diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "match without teacher", diffSettings, matchWithoutTeacher));
+    diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "match without location", diffSettings, matchWithoutLocation));
+    diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "match without time and day", diffSettings, matchWithoutTimeAndDay));
+    diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "match without teacher, time and day", diffSettings, matchWithoutTeacherTimeAndDay));
+    diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "match without time and day and teacher", diffSettings, matchWithoutGradeYearsTeacher));
     console.log(diffs);
     console.log(dko3LesSet.values());
     console.log(otherLesSet.values());
