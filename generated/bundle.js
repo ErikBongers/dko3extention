@@ -6234,6 +6234,8 @@ function createLesMomenten(dko3Data, reportStatus, diffSettings) {
 			reportStatus(`Voor aliasles <a href="https://administratie.dko3.cloud/#lessen-les?id=${aliasLes.id}">${aliasLes.id}</a> zijn er ontbrekende gekoppelde lessen.`, "error");
 			continue;
 		}
+		let aliasLocation = aliasLes.vestiging;
+		for (let linkedLes of linkedLessen) if ((linkedLes?.vestiging ?? "-geen vesitiging-") != aliasLocation) reportStatus(`Voor aliasles <a href="https://administratie.dko3.cloud/#lessen-les?id=${aliasLes.id}">${aliasLes.id}</a> is de vestiging niet dezelfde als de gekoppelde lessen.`, "error");
 		let linkedLesMomentIds = linkedLessen.map((les) => les.dayTimeSlices.map((slice) => Dko3LesMoment.createLesMomentId(les, slice))).flat();
 		let linkedLesMomenten = linkedLesMomentIds.map((momentId) => lesMomentenMap.get(momentId));
 		linkedLesMomenten.sort((a, b) => DayTimeSlice.startToNumber(a.lesMoment.dayTimeSlice) - DayTimeSlice.startToNumber(b.lesMoment.dayTimeSlice));

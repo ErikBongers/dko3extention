@@ -271,6 +271,11 @@ function createLesMomenten(dko3Data: Dko3DiffData, reportStatus: StatusCallback,
             reportStatus(`Voor aliasles <a href="https://administratie.dko3.cloud/#lessen-les?id=${aliasLes.id}">${aliasLes.id}</a> zijn er ontbrekende gekoppelde lessen.`, "error");
             continue;
         }
+        let aliasLocation = aliasLes.vestiging;
+        for(let linkedLes of linkedLessen) {
+            if((linkedLes?.vestiging??"-geen vestiging-") != aliasLocation)
+                reportStatus(`Voor aliasles <a href="https://administratie.dko3.cloud/#lessen-les?id=${aliasLes.id}">${aliasLes.id}</a> is de vestiging niet dezelfde als de gekoppelde lessen.`, "error");
+        }
         let linkedLesMomentIds = linkedLessen.map((les: Les) => les.dayTimeSlices.map(slice => Dko3LesMoment.createLesMomentId(les, slice))).flat();
         let linkedLesMomenten = linkedLesMomentIds.map(momentId => lesMomentenMap.get(momentId));
         //sort the moments so we can merge them

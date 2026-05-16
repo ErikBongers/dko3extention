@@ -1,34 +1,6 @@
-* Alias classes: check siblings match parent.
-  > what fields?
-
 * Hard coded pre-translations : search translatedClassName
-
-
-* Add errors to json diffs.
 * Put setup button above tabs.
-
 * Check ALL hashes - they should include ALL fields
-Diff with website
-- extra button in diff page
-
-2 Lesmoments for 1 les
-========================
-DKO3 knows the 2 moments.
-  > these are split up in separate diff lines.
-    > add a ref to eachother.
-
-    EG:
-    * DKO3:
-      - 1A: Bert ma 12.34 // linked, split lesmoment
-      - 1A: Bert do 23.45 // linked, split lesmoment
-      - BASISCURSUS: Runa, ma 45.56
-      - BASISCURSUS: Moya, di 01.23
-    * EXCEL:
-      - 1A: ??, ma 12.34  // >> IS OK! Only one teacher for the linked lessen in dko3.
-      - 1A: Bert, do 23.45
-      - BASISCURSUS: Runa, ma 45.56
-      - BASISCURSUS: Moya, di 01.23
-  >
 
 * Diffs: goto buttons
   - to the dko3 les
@@ -61,146 +33,6 @@ DKO3 knows the 2 moments.
     >>> https://stackoverflow.com/questions/73153220/get-workbook-url-from-office-scripts-api
      > maybe this can be used to set the path of the excelfile.
 
-Diff
-====
-What matters
-------------
-Students matter: they see what's in DKO3: this is the starting point.
-We want to find lessons with wrong day/hours! That's the main thing.
-Wrong teacher...meh...
-Wrong location: also important!
-Try to check for max students allowed.
-
-* Add dates to notifications: this allows users to mark them as read per notif ID...until the date changes.
-  > perhaps also include a notif hash that is an MD5 of internal data that may have changed, yet results in the same message (like roster checks)
-  > actually...only use an MD5...the reporter can decide to include a date in the hash or not.
-    > for example: wrong lessons: use the date of the most recent diff. If a diff is removed...the hash should NOT change, only when a new diff is added (or changed)
-
-* check for outdated checks.
-  > ...and update the notifications.
-
-* Checks are stored locally!
-  > but checks status is stored online -> shared info in Dko3/checks_status.json
-    : {
-      "uurroosters":  {"status": "INITIAL | RUNNING | FINISHED | FAILED", "date": "<iso Z date>", "errors": ["some tech error message (not notifications!)..."]}
-      }
-    > api
-      - GET check_status
-      - POST check_status(json: {status, date, [errors]}
-* Rosters can be partially compared: only woord,...
-
-* In start screen, start the check_rosters check.
-  - call folder_changed to see if a diff is needed.
-    > always do this, without delay, unless ROSTER_RUN is set.
-  - call the diff function, if needed.
-  - add notifications during the process.
-    - when doing the diff, add ROSTER_RUN
-    - when finished, delete ROSTER_RUN and set ROSTER_IS_DIFF if needed.
-      > don't add a message if the checks are just fine. No information overload.
-
-
-* after loading notifications, the curernt user checks if checks need to be run
-  ! most code should be run locally!!! Not on my (expensive) cloud!
-  > this happens in the start screen every second. (user won't stay here too long)
-  > this happens where needed: e.g.: in lessen page, check if rosters have changed (also every second or slower but with a button to start manually?)
-  > calls folder_changed("Dko3/Uurroosters/", ...changed date since???)
-    > changed date???
-      > retrieved from get-expired_checks
-        >
-
-* client immediately gets the notifications.
-  > some may not be meant for the user like:
-    - rosters-need-to-be-checked.
-      > this will start the check immediately (expiration=0)
-        > running tasks are shown as a notification as well
-          > but we already the notification file...
-          > so, we upload a new notification and get the full list again.
-            > we'll have a notificatin that indicates that a task is running. (status = "running" instead of eg. "error")
-              : { "level": "running", "id"="ROSTER_CHECKS", "message": "Comparing roster files against Dko3..."}
-
-* create a check_rosters function
-  > check_xxx functions return true if they are ok
-* How are checks run?
-  > from client obviously.
-    > every check has a name
-      > call it in cloud (if it's a cloud check)
-        : gcp:check_rosters() -> just checks the last run date of this check to the folder change date.
-* do Uurrooster checks have an expiration period?
-  > no! they become invalid based on changed date.
-    > set expiration times to 0.
-* in cloud:Dko3/ folder have a checks_status.json file
-  - last date that each check has run.
-    : {
-        "uurroosters":  {
-           "run": {"status": "INITIAL | RUNNING | FINISHED | FAILED", "date": "<iso Z date>", "errors": ["some tech error message (not notifications!)..."]}
-          }
-      }
-  > api:
-    - add-check(id, longName, expiration, fastExpiration) -> long name is ""
-    - report-check(name, date, errors)
-    - get-expired-checks
-    - get-check-report(name) -> returns "run" info.
-
-* user enters start page:
-  - notifications are loaded.
-  - verify that checks are up-to-date.
-    > if not, run checks
-      > mark status as CHECKS_RUNNING.
-* create function to get uurroosters last check date (stored in meta.json)
-  > if no meta file: return epoch date.
-    > report to user that uurroosters have changed more than x days/hours/...
-      > in case of epoch: report uurroosters need to be checked/have never been checked.
-  > a genaral run-checks function is called when user logs on to the start page and notices that checks haven't been run for...x time. (1 hour?)
-
-* In DKO3 start page, check if checks need to be run
-  > if relevant cloud files have changed.
-    > uurrooster files need to be checked against last check date
-      > last checked is stored in uurroosters/meta.json
-        > plugin calls folder_changed("folder_name", date)
-          > wrap it in a uurroosters_changed(date)
-Rosters
-===========
-User Workflow
---------------
-- Manually run ExcelSend(): currently only manual and the active worksheet.
-- In Dko3:
-  > start screen IMMEDIATELY shows if there are errors in the rosters.
-    > Do an instant fetch
-      > show a wait cursor if it's taking some time.
-
-  > poll if a file has been updated since 'last checked'.
-    > this happens by any user session that logs on.
-      > this user session 'locks' the update and runs the checks.
-      > 'last checked' is uploaded.
-        > to ebo_json: Dko3/Uurroosters/meta.json
-          - lastChecked: data: UTC unix time stamp.
-          - checkStatus:
-            - INITIAL: never checked before: needs manual initial check
-            - CHECK_IN_PROGRESS
-            - IDDLE
-      > no delay needed since ExcelSend() is triggered manually.
-      > a Dko3/Uurroosters/results.json file may exists with all issues (or none).
-
-- sheet may have extra tables: max per class (vak/location).
-- plugin should know what the relevant data is and the upload date.
-- a manual Flow may be able to push them all together.
-  > and send a "done" message to dko3.
-  > since excel is initiator...perhaps let plugin send a status report back to the excel when done.
-- user will be switching between excel and dko3.
-  > perhaps have a notification banner at the top of dko3: 'new roster data available: n discrepancies found. Click here...'
-> Perhas have a rosters.json file with an overview of all the uploaded rosters and their dates?
-  > this file simply gets filled with all uploads from the roster script.
-
-- have a button in excel online to "Send to DKO3 plugin".
-  > Will initiate GETs and POSTs. with DKO3
-    > Have a polling in DKO3.
-      > Manually activate or default each second?
-        > Requires handshake!
-  > Data is sent as CSV from string[][]?
-    - data matrix
-    - merged cell ranges
-    - otehr meta data (table headers, named ranges,...)
-
 * Mailmerge: Test with initiatie!
 
 * Mail merge with filters: double fetch needed: first students, then all their classes.
@@ -211,12 +43,6 @@ User Workflow
 * Werklijstbuilder without reset requires fieldnames!
   > also, check the risk of having the wrong schoolyear
     > and grouping.
-
-* DKo automatic data transfer
-  > how to 'chat' with correct user?
-    > do an initial clipboard exchange?
-     > yes. only way to ensure it's the same machine (and browser session/tab!)
-     > plugin stores an ID once in localstorage. This ID can persist forever and identifies the browser and browser-account.
 
 * Add mailmerge xls to git?
 * Mail merge: add "Merge" button to...toolbar?
