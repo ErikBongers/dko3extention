@@ -1,5 +1,16 @@
 * Saving settings may fail and the file gets deleted!
   > capture succes and try again if failed.
+* backup versions
+    - in separate folder
+    - backup filenames have the original ztime appended: xx.json__BKUP_12-JAN....Z
+    > when?
+      > not daily, since settings are worked on in peeks, not daily.
+      > thus, on every change...
+    * clean up backups
+        - weekly
+          > all files older than a week
+            > but keep some older files: one per month for this year
+
 
 * Hard coded pre-translations : search translatedClassName
 * Put setup button above tabs.

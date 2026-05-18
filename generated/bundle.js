@@ -6243,13 +6243,19 @@ function createLesMomenten(dko3Data, reportStatus, diffSettings) {
 			reportStatus(`Error: alias les <a href="https://administratie.dko3.cloud/#lessen-les?id=${aliasLes.id}">${aliasLes.id}</a> heeft geen 2 geldige gekoppelde lessen.`, "error");
 			continue;
 		}
-		let linkedLessen = aliasLes.linkedLessenIds.map((lesId) => dko3LesMap.get(lesId));
-		if (linkedLessen.includes(void 0)) {
+		let possibleLinkedLessen = aliasLes.linkedLessenIds.map((lesId) => dko3LesMap.get(lesId));
+		if (possibleLinkedLessen.includes(void 0)) {
 			reportStatus(`Voor aliasles <a href="https://administratie.dko3.cloud/#lessen-les?id=${aliasLes.id}">${aliasLes.id}</a> zijn er ontbrekende gekoppelde lessen.`, "error");
 			continue;
 		}
+		let linkedLessen = possibleLinkedLessen;
 		let aliasLocation = aliasLes.vestiging;
-		for (let linkedLes of linkedLessen) if ((linkedLes?.vestiging ?? "-geen vestiging-") != aliasLocation) reportStatus(`Voor aliasles <a href="https://administratie.dko3.cloud/#lessen-les?id=${aliasLes.id}">${aliasLes.id}</a> is de vestiging niet dezelfde als de gekoppelde lessen.`, "error");
+		let aliasGradeYearsStr = GradeYear.toString(aliasLes.gradeYears);
+		for (let linkedLes of linkedLessen) {
+			if (linkedLes.vestiging != aliasLocation) reportStatus(`Voor aliasles <a href="https://administratie.dko3.cloud/#lessen-les?id=${aliasLes.id}">${aliasLes.id}</a> is de vestiging niet dezelfde als de gekoppelde lessen.`, "error");
+			if (GradeYear.toString(linkedLes?.gradeYears ?? []) != aliasGradeYearsStr) reportStatus(`Voor aliasles <a href="https://administratie.dko3.cloud/#lessen-les?id=${aliasLes.id}">${aliasLes.id}</a> zijn de graden en jaren niet gelijk aan de gekoppelde les <a href="https://administratie.dko3.cloud/#lessen-les?id=${linkedLes.id}">${linkedLes.id}</a>.`, "error");
+			if (linkedLes.online) reportStatus(`Voor aliasles <a href="https://administratie.dko3.cloud/#lessen-les?id=${aliasLes.id}">${aliasLes.id}</a> is gekoppelde les <a href="https://administratie.dko3.cloud/#lessen-les?id=${linkedLes.id}">${linkedLes.id}</a> online zichtbaar.`, "error");
+		}
 		let linkedLesMomentIds = linkedLessen.map((les) => les.dayTimeSlices.map((slice) => Dko3LesMoment.createLesMomentId(les, slice))).flat();
 		let linkedLesMomenten = linkedLesMomentIds.map((momentId) => lesMomentenMap.get(momentId));
 		linkedLesMomenten.sort((a, b) => DayTimeSlice.startToNumber(a.lesMoment.dayTimeSlice) - DayTimeSlice.startToNumber(b.lesMoment.dayTimeSlice));
