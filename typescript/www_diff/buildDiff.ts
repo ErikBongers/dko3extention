@@ -1,11 +1,8 @@
 import {TokenScanner} from "../tokenScanner";
 import {ExcelRoster, TimeSlice} from "../roster_diff/excelRoster";
 import {DayTimeSlice, DayUppercase, toDay} from "../lessen/scrape";
-import {calcDiff, Dko3DiffData, findTeacher, getDko3Data, PreparedDiffSettings, PreparedDko3DiffData} from "../roster_diff/buildDiff";
-import {StatusCallback} from "../roster_diff/showDiff";
-import {InfoBarTableFetchListener} from "../table/loadAnyTable";
+import {findTeacher, PreparedDiffSettings, PreparedDko3DiffData} from "../roster_diff/buildDiff";
 import {Actions, sendRequest, ServiceRequest, TabType} from "../messaging";
-import {DiffSettings} from "../roster_diff/diffSettings";
 import {ComparableLesMoment, GradeYear} from "../roster_diff/calcDiff";
 
 interface WwwLesDef {

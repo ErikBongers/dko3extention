@@ -3,9 +3,9 @@ import {scrapeAllNormalLessen} from "../roster_diff/buildDiff";
 import {getUserAndSchoolName, Schoolyear, SlidingWindow} from "../globals";
 import {cloud, fetchFolderContent, FileChangedInfo} from "../cloud";
 import {Les} from "../lessen/scrape";
-import {StatusCallback} from "../roster_diff/showDiff";
 import {DKO3_BASE_URL} from "../def";
 import {GradeYear} from "../roster_diff/calcDiff";
+import {AddErrorCallback, StatusReporter, StatusXCallback} from "../roster_diff/showDiff";
 
 export async function setupSnapshotPage() {
     let pluginContainer = document.getElementById("plugin_container")!;
@@ -19,16 +19,16 @@ export async function setupSnapshotPage() {
     let runStatus = emmet.insertAfter(button, "div#runStatus").first as HTMLDivElement;
     let divError = emmet.insertAfter(runStatus, 'div.errors').last as HTMLDivElement;
     emmet.insertAfter(divError, "div#snapshotResults");
-    let errors: string[] = [];
-    function reportStatus(message: string, isError?: "error") {
-        if(isError == "error")
-            errors.push(message);
-        else
-            runStatus.innerHTML = message;
+    let reportStatus: StatusXCallback = function (message: string) {
+        runStatus.innerHTML = message;
         divError.innerHTML = errors.join("<br>");
-    }
+    };
+    let errors: string[] = [];
+    let addError: AddErrorCallback = function (message: string, errorType: "error" | "warning") {
+        errors.push(message);
+    };
     button.onclick = async () => {
-        await createSnapshot(cmbSnapshotSchoolYear.value, reportStatus);
+        await createSnapshot(cmbSnapshotSchoolYear.value, {reportStatus, addError});
         await showSnapshotsforCombobox();
     }
     cmbSnapshotSchoolYear.onchange = async () => {
@@ -59,9 +59,9 @@ export interface SnapshotData {
     diffs: SnapshotDiff[] | null;
 }
 
-async function createSnapshot(schoolYear: string, reportStatus: StatusCallback) {
-    reportStatus("Snapshot wordt gemaakt...")
-    let lessen = (await scrapeAllNormalLessen(schoolYear, reportStatus)).map(l => l.les);
+async function createSnapshot(schoolYear: string, statusReporter: StatusReporter) {
+    statusReporter.reportStatus("Snapshot wordt gemaakt...")
+    let lessen = (await scrapeAllNormalLessen(schoolYear, statusReporter)).map(l => l.les);
     let snapshotList: LesSnapshot[] = lessen
         .map(les => {
             return {
@@ -87,7 +87,7 @@ async function createSnapshot(schoolYear: string, reportStatus: StatusCallback) 
         diffs: null,
     }
     await uploadSnapshotData(snapshotData);
-    reportStatus("Snapshot aangemaakt.")
+    statusReporter.reportStatus("Snapshot aangemaakt.")
 }
 
 async function uploadSnapshotData(snapshotData: SnapshotData) {

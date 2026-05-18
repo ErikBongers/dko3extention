@@ -5618,11 +5618,14 @@ async function getAndShowDiffs(showOrCalc, useDkoCache, diffPageType, diffSettin
 	let cmbDiffSchoolYear = document.querySelector("#cmbDiffSchoolYear");
 	let infoBlock = createInfoBlock(statusBlock.divInfo, "");
 	let fetchListener = new InfoBarTableFetchListener(infoBlock);
+	let reportStatus = function(message) {
+		statusBlock.runStatus.innerHTML = message;
+	};
+	statusBlock.divError.innerHTML = "";
 	let errors = [];
-	function reportStatus(message, isError) {
-		if (isError == "error") errors.push(message);
-		else statusBlock.runStatus.innerHTML = message;
-	}
+	let addError = function(message, errorType) {
+		errors.push(message);
+	};
 	errors = [];
 	let jsonDko3DiffData = null;
 	if (useDkoCache == "dkoCache") jsonDko3DiffData = localStorage.getItem(getDiffsDko3CacheFileName(cmbDiffAcademie.value, cmbDiffSchoolYear.value, diffPageType));
@@ -5637,7 +5640,10 @@ async function getAndShowDiffs(showOrCalc, useDkoCache, diffPageType, diffSettin
 		let dataPreparationFunction;
 		if (diffPageType == "EXCEL") dataPreparationFunction = prepareExcelData;
 		else dataPreparationFunction = prepareWwwData;
-		jsonDiffs = await buildAndSaveDiff(reportStatus, fetchListener, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData, diffSettings, diffPageType, dataPreparationFunction, errors);
+		jsonDiffs = await buildAndSaveDiff({
+			reportStatus,
+			addError
+		}, fetchListener, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData, diffSettings, diffPageType, dataPreparationFunction, errors);
 	}
 	if (jsonDiffs) await showDiffs(jsonDiffs, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData, diffSettings, statusBlock, diffPageType);
 }
@@ -6054,28 +6060,28 @@ async function getJsonDiffsCached(academie, schoolYear, diffPageType) {
 	if (cachedDiffs) return cachedDiffs;
 	return getDiffsFromCloud(academie, schoolYear, diffPageType);
 }
-let prepareWwwData = async function(reportStatus, academie, schoolYear, dko3DiffData, diffSettings) {
-	reportStatus("Website uurroosters ophalen...");
+let prepareWwwData = async function(statusReporter, academie, schoolYear, dko3DiffData, diffSettings) {
+	statusReporter.reportStatus("Website uurroosters ophalen...");
 	let otherLessen = new Set(await parseWww(dko3DiffData, diffSettings));
 	return {
 		excelRosters: [],
 		otherLesSet: otherLessen
 	};
 };
-let prepareExcelData = async function(reportStatus, academie, schoolYear, dko3DiffData, diffSettings) {
-	reportStatus("Excel bestanden ophalen...");
+let prepareExcelData = async function(statusReporter, academie, schoolYear, dko3DiffData, diffSettings) {
+	statusReporter.reportStatus("Excel bestanden ophalen...");
 	let folderPath = await fetchFolderChanged(`Dko3/Uurroosters/${academie}/${schoolYear}/`);
-	reportStatus(`${folderPath.files.length} Excel bestanden gevonden.`);
+	statusReporter.reportStatus(`${folderPath.files.length} Excel bestanden gevonden.`);
 	let jsonExcelDatas = [];
 	for (let file of folderPath.files) {
 		let fileShortName = file.name.replaceAll("Dko3/Uurroosters/", "");
-		reportStatus(`Inlezen van ${fileShortName}...`);
+		statusReporter.reportStatus(`Inlezen van ${fileShortName}...`);
 		let excelData = await fetchExcelData(file.name);
 		jsonExcelDatas.push(excelData);
 	}
 	let excelLessenArray = [];
 	let excelRosters = [];
-	reportStatus("Excel tabellen bouwen...");
+	statusReporter.reportStatus("Excel tabellen bouwen...");
 	for (let excelData of jsonExcelDatas) {
 		let factory = new RosterFactory(excelData);
 		let table = factory.getTable();
@@ -6085,7 +6091,7 @@ let prepareExcelData = async function(reportStatus, academie, schoolYear, dko3Di
 		if (classDefs) excelLessenArray.push(classDefs);
 		console.log(excelLessenArray);
 	}
-	reportStatus("Lessen vergelijken...");
+	statusReporter.reportStatus("Lessen vergelijken...");
 	let dddata = dko3DiffData;
 	let otherLesSet = new Set(excelLessenArray.flat().map((les) => new TaggedExcelLes(les, dddata.preparedDko3DiffData.teachers)));
 	otherLesSet.forEach((les) => {
@@ -6104,15 +6110,15 @@ function updateDko3DiffDataAndSettings(dko3DiffData, diffSettings) {
 		diffSettings: { preparedDiffSettings: diffSettings }
 	};
 }
-async function buildAndSaveDiff(reportStatus, fetchListener, academie, schoolYear, dko3DiffData, diffSettings, diffPageType, prepareOtherData, errors) {
-	reportStatus(`DKO3 data ophalen...`);
-	if (!dko3DiffData) dko3DiffData = await getDko3Data(schoolYear, reportStatus, fetchListener);
+async function buildAndSaveDiff(statusReporter, fetchListener, academie, schoolYear, dko3DiffData, diffSettings, diffPageType, prepareOtherData, errors) {
+	statusReporter.reportStatus(`DKO3 data ophalen...`);
+	if (!dko3DiffData) dko3DiffData = await getDko3Data(schoolYear, statusReporter, fetchListener);
 	let json = JSON.stringify(dko3DiffData);
 	let preparedData = updateDko3DiffDataAndSettings(dko3DiffData, diffSettings);
-	let { excelRosters, otherLesSet } = await prepareOtherData(reportStatus, academie, schoolYear, preparedData.dko3DiffData, preparedData.diffSettings);
+	let { excelRosters, otherLesSet } = await prepareOtherData(statusReporter, academie, schoolYear, preparedData.dko3DiffData, preparedData.diffSettings);
 	let res = {
 		excelRosters,
-		...await calcDiff(dko3DiffData, reportStatus, preparedData.diffSettings, otherLesSet)
+		...await calcDiff(dko3DiffData, statusReporter, preparedData.diffSettings, otherLesSet)
 	};
 	deleteNotification("FILE_POSTED").then(() => fetchAndDisplayNotifications());
 	dko3DiffData = JSON.parse(json);
@@ -6122,20 +6128,20 @@ async function buildAndSaveDiff(reportStatus, fetchListener, academie, schoolYea
 	let fileName = getDiffsCloudFileName(academie, schoolYear, diffPageType);
 	await cloud.json.upload(fileName, jsonDiffs);
 	sessionStorage.setItem(fileName, JSON.stringify(jsonDiffs));
-	reportStatus(``);
+	statusReporter.reportStatus(``);
 	cachedDiffs = jsonDiffs;
 	return jsonDiffs;
 }
-async function getDko3Data(schoolYear, reportStatus, fetchListener) {
-	reportStatus("Vestigingsplaatsen ophalen...");
+async function getDko3Data(schoolYear, statusReporter, fetchListener) {
+	statusReporter.reportStatus("Vestigingsplaatsen ophalen...");
 	let locationsTable = await getTableFromHash("extra-academie-vestigingsplaatsen", true, fetchListener);
 	let locations = [...locationsTable.getRows()].map((tr) => tr.cells[1].textContent);
-	reportStatus("Leraren ophalen...");
+	statusReporter.reportStatus("Leraren ophalen...");
 	let teachers = await fetchTeachers(schoolYear);
-	let lessen = (await scrapeAllNormalLessen(schoolYear, reportStatus)).map((l) => l.les);
-	reportStatus("Ophalen aliaslessen...");
+	let lessen = (await scrapeAllNormalLessen(schoolYear, statusReporter)).map((l) => l.les);
+	statusReporter.reportStatus("Ophalen aliaslessen...");
 	let dko3AliasLessen = (await scrapeLessen(Domein.Woord, LesType$1.alias, schoolYear)).map((l) => l.les);
-	for (let les of dko3AliasLessen) les.linkedLessenIds = await getAliassesForLes(les.id, reportStatus);
+	for (let les of dko3AliasLessen) les.linkedLessenIds = await getAliassesForLes(les.id, statusReporter);
 	dko3AliasLessen = dko3AliasLessen.filter((l) => l.linkedLessenIds.length > 1);
 	let subjects = lessen.map((les) => [les.vakNaam, les.naam]).flat();
 	subjects = [...new Set(subjects)];
@@ -6150,12 +6156,12 @@ async function getDko3Data(schoolYear, reportStatus, fetchListener) {
 		classNames
 	};
 }
-async function scrapeAllNormalLessen(schoolYear, reportStatus) {
-	reportStatus("Ophalen woordlessen...");
+async function scrapeAllNormalLessen(schoolYear, statusReporter) {
+	statusReporter.reportStatus("Ophalen woordlessen...");
 	let dko3Lessen = await scrapeLessen(Domein.Woord, LesType$1.gewone, schoolYear);
-	reportStatus("Ophalen muzieklessen...");
+	statusReporter.reportStatus("Ophalen muzieklessen...");
 	let muziekLessen = await scrapeLessen(Domein.Muziek, LesType$1.gewone, schoolYear);
-	reportStatus("Ophalen kunstenbad lessen...");
+	statusReporter.reportStatus("Ophalen kunstenbad lessen...");
 	let kbLessen = await scrapeLessen(Domein.DomeinOV, LesType$1.gewone, schoolYear);
 	return [
 		...dko3Lessen,
@@ -6221,9 +6227,9 @@ function isDko3LesToIgnore(les, ignoreList) {
 function isExcelLesToIgnore(les, ignoreList) {
 	return ignoreList.some((ignore) => les.lesMoment.cellValue.includes(ignore)) || ignoreList.some((ignore) => les.searchText.includes(ignore));
 }
-function splitDko3LessenIntoLesmomenten(dko3Data, diffSettings, reportStatus) {
+function splitDko3LessenIntoLesmomenten(dko3Data, diffSettings, statusReporter) {
 	let lesMomenten = dko3Data.lessen.filter((les) => !isDko3LesToIgnore(les, diffSettings.preparedDiffSettings.ignoreList)).map((les) => {
-		if (les.dayTimeSlices.length == 0) reportStatus(`Les <a href="https://administratie.dko3.cloud/#lessen-les?id=${les.id}">${les.id}</a> heeft geen lesmoment. ${les.vakNaam}(${les.naam}), ${les.teacher}`, "error");
+		if (les.dayTimeSlices.length == 0) statusReporter.addError(`Les <a href="https://administratie.dko3.cloud/#lessen-les?id=${les.id}">${les.id}</a> heeft geen lesmoment. ${les.vakNaam}(${les.naam}), ${les.teacher}`, "error");
 		let lesMomenten$1 = les.dayTimeSlices.map((slice) => {
 			return new Dko3LesMoment(les, slice);
 		});
@@ -6232,29 +6238,29 @@ function splitDko3LessenIntoLesmomenten(dko3Data, diffSettings, reportStatus) {
 	}).flat().map((lesMoment) => new TaggedDko3LesMoment(lesMoment));
 	return new Set(lesMomenten);
 }
-function createLesMomenten(dko3Data, reportStatus, diffSettings) {
-	let dko3LesSet = splitDko3LessenIntoLesmomenten(dko3Data, diffSettings, reportStatus);
+function createLesMomenten(dko3Data, statusReporter, diffSettings) {
+	let dko3LesSet = splitDko3LessenIntoLesmomenten(dko3Data, diffSettings, statusReporter);
 	let dko3LesMap = new Map();
 	for (let les of dko3Data.lessen) dko3LesMap.set(les.id, les);
 	let lesMomentenMap = new Map();
 	for (let les of dko3LesSet.values()) lesMomentenMap.set(les.lesMoment.momentId, les);
 	loopAliasLessen: for (let aliasLes of dko3Data.dko3AliasLessen) {
 		if (aliasLes.linkedLessenIds.length < 2) {
-			reportStatus(`Error: alias les <a href="https://administratie.dko3.cloud/#lessen-les?id=${aliasLes.id}">${aliasLes.id}</a> heeft geen 2 geldige gekoppelde lessen.`, "error");
+			statusReporter.addError(`Error: alias les <a href="https://administratie.dko3.cloud/#lessen-les?id=${aliasLes.id}">${aliasLes.id}</a> heeft geen 2 geldige gekoppelde lessen.`, "error");
 			continue;
 		}
 		let possibleLinkedLessen = aliasLes.linkedLessenIds.map((lesId) => dko3LesMap.get(lesId));
 		if (possibleLinkedLessen.includes(void 0)) {
-			reportStatus(`Voor aliasles <a href="https://administratie.dko3.cloud/#lessen-les?id=${aliasLes.id}">${aliasLes.id}</a> zijn er ontbrekende gekoppelde lessen.`, "error");
+			statusReporter.addError(`Voor aliasles <a href="https://administratie.dko3.cloud/#lessen-les?id=${aliasLes.id}">${aliasLes.id}</a> zijn er ontbrekende gekoppelde lessen.`, "error");
 			continue;
 		}
 		let linkedLessen = possibleLinkedLessen;
 		let aliasLocation = aliasLes.vestiging;
 		let aliasGradeYearsStr = GradeYear.toString(aliasLes.gradeYears);
 		for (let linkedLes of linkedLessen) {
-			if (linkedLes.vestiging != aliasLocation) reportStatus(`Voor aliasles <a href="https://administratie.dko3.cloud/#lessen-les?id=${aliasLes.id}">${aliasLes.id}</a> is de vestiging niet dezelfde als de gekoppelde lessen.`, "error");
-			if (GradeYear.toString(linkedLes?.gradeYears ?? []) != aliasGradeYearsStr) reportStatus(`Voor aliasles <a href="https://administratie.dko3.cloud/#lessen-les?id=${aliasLes.id}">${aliasLes.id}</a> zijn de graden en jaren niet gelijk aan de gekoppelde les <a href="https://administratie.dko3.cloud/#lessen-les?id=${linkedLes.id}">${linkedLes.id}</a>.`, "error");
-			if (linkedLes.online) reportStatus(`Voor aliasles <a href="https://administratie.dko3.cloud/#lessen-les?id=${aliasLes.id}">${aliasLes.id}</a> is gekoppelde les <a href="https://administratie.dko3.cloud/#lessen-les?id=${linkedLes.id}">${linkedLes.id}</a> online zichtbaar.`, "error");
+			if (linkedLes.vestiging != aliasLocation) statusReporter.addError(`Voor aliasles <a href="https://administratie.dko3.cloud/#lessen-les?id=${aliasLes.id}">${aliasLes.id}</a> is de vestiging niet dezelfde als de gekoppelde lessen.`, "error");
+			if (GradeYear.toString(linkedLes?.gradeYears ?? []) != aliasGradeYearsStr) statusReporter.addError(`Voor aliasles <a href="https://administratie.dko3.cloud/#lessen-les?id=${aliasLes.id}">${aliasLes.id}</a> zijn de graden en jaren niet gelijk aan de gekoppelde les <a href="https://administratie.dko3.cloud/#lessen-les?id=${linkedLes.id}">${linkedLes.id}</a>.`, "error");
+			if (linkedLes.online) statusReporter.addError(`Voor aliasles <a href="https://administratie.dko3.cloud/#lessen-les?id=${aliasLes.id}">${aliasLes.id}</a> is gekoppelde les <a href="https://administratie.dko3.cloud/#lessen-les?id=${linkedLes.id}">${linkedLes.id}</a> online zichtbaar.`, "error");
 		}
 		let linkedLesMomentIds = linkedLessen.map((les) => les.dayTimeSlices.map((slice) => Dko3LesMoment.createLesMomentId(les, slice))).flat();
 		let linkedLesMomenten = linkedLesMomentIds.map((momentId) => lesMomentenMap.get(momentId));
@@ -6263,7 +6269,7 @@ function createLesMomenten(dko3Data, reportStatus, diffSettings) {
 		for (let i = 1; i < linkedLesMomenten.length; i++) {
 			let currentLesMoment = linkedLesMomenten[i];
 			if (!currentLesMoment.lesMoment.dayTimeSlice.timeSlice || !previousLesMoment.lesMoment.dayTimeSlice.timeSlice) {
-				reportStatus(`Voor aliasles <a href="https://administratie.dko3.cloud/#lessen-les?id=${aliasLes.id}">${aliasLes.id}</a> zijn er ontbrekende lestijden.`, "error");
+				statusReporter.addError(`Voor aliasles <a href="https://administratie.dko3.cloud/#lessen-les?id=${aliasLes.id}">${aliasLes.id}</a> zijn er ontbrekende lestijden.`, "error");
 				continue loopAliasLessen;
 			}
 			if (DayTimeSlice.endToNumber(previousLesMoment.lesMoment.dayTimeSlice) == DayTimeSlice.startToNumber(currentLesMoment.lesMoment.dayTimeSlice)) {
@@ -6279,8 +6285,8 @@ function createLesMomenten(dko3Data, reportStatus, diffSettings) {
 	}
 	return dko3LesSet;
 }
-async function calcDiff(dko3Data, reportStatus, diffSettings, otherLesSet) {
-	let dko3LesSet = createLesMomenten(dko3Data, reportStatus, diffSettings);
+async function calcDiff(dko3Data, statusReporter, diffSettings, otherLesSet) {
+	let dko3LesSet = createLesMomenten(dko3Data, statusReporter, diffSettings);
 	let extraTeacherCache = ExtraTeacherCache.fromJSON(dko3Data.extraTeachersCache ?? []);
 	for (const les1 of [...dko3LesSet.values()].filter((les) => les.lesMoment.les.teacher.includes("(en nog"))) les1.teachers = await extraTeacherCache.getExtraTeachers(les1.lesMoment.les.id);
 	let diffs = [];
@@ -6333,7 +6339,7 @@ async function getExtraTeachers(lesId) {
 		return s.textContent.replaceAll("  ", " ").replaceAll(" ,", ",").trim();
 	});
 }
-async function getAliassesForLes(lesId, reportStatus) {
+async function getAliassesForLes(lesId, statusReporter) {
 	await fetch("https://administratie.dko3.cloud/view.php?args=lessen-les?id=" + lesId);
 	await fetch("https://administratie.dko3.cloud/views/lessen/les/index.view.php");
 	await fetch("https://administratie.dko3.cloud/views/lessen/les/index.details.tab.php");
@@ -6343,7 +6349,7 @@ async function getAliassesForLes(lesId, reportStatus) {
 	let div = document.createElement("div");
 	div.innerHTML = htmlAliases;
 	let anchors = div.querySelectorAll("td > a");
-	if (anchors.length == 0) reportStatus(`ERROR: alias les ${lesId} heeft geen (geldige) gekoppelde lessen.`);
+	if (anchors.length == 0) statusReporter.reportStatus(`ERROR: alias les ${lesId} heeft geen (geldige) gekoppelde lessen.`);
 	return [...anchors].map((a) => a.textContent.trim());
 }
 async function fetchTeachers(schoolYear) {
@@ -6868,14 +6874,19 @@ async function setupSnapshotPage() {
 	let runStatus = emmet.insertAfter(button, "div#runStatus").first;
 	let divError = emmet.insertAfter(runStatus, "div.errors").last;
 	emmet.insertAfter(divError, "div#snapshotResults");
-	let errors = [];
-	function reportStatus(message, isError) {
-		if (isError == "error") errors.push(message);
-		else runStatus.innerHTML = message;
+	let reportStatus = function(message) {
+		runStatus.innerHTML = message;
 		divError.innerHTML = errors.join("<br>");
-	}
+	};
+	let errors = [];
+	let addError = function(message, errorType) {
+		errors.push(message);
+	};
 	button.onclick = async () => {
-		await createSnapshot(cmbSnapshotSchoolYear.value, reportStatus);
+		await createSnapshot(cmbSnapshotSchoolYear.value, {
+			reportStatus,
+			addError
+		});
 		await showSnapshotsforCombobox();
 	};
 	cmbSnapshotSchoolYear.onchange = async () => {
@@ -6884,9 +6895,9 @@ async function setupSnapshotPage() {
 	};
 	await showSnapshotsforCombobox();
 }
-async function createSnapshot(schoolYear, reportStatus) {
-	reportStatus("Snapshot wordt gemaakt...");
-	let lessen = (await scrapeAllNormalLessen(schoolYear, reportStatus)).map((l) => l.les);
+async function createSnapshot(schoolYear, statusReporter) {
+	statusReporter.reportStatus("Snapshot wordt gemaakt...");
+	let lessen = (await scrapeAllNormalLessen(schoolYear, statusReporter)).map((l) => l.les);
 	let snapshotList = lessen.map((les) => {
 		return {
 			id: les.id,
@@ -6911,7 +6922,7 @@ async function createSnapshot(schoolYear, reportStatus) {
 		diffs: null
 	};
 	await uploadSnapshotData(snapshotData);
-	reportStatus("Snapshot aangemaakt.");
+	statusReporter.reportStatus("Snapshot aangemaakt.");
 }
 async function uploadSnapshotData(snapshotData) {
 	let jsonString = JSON.stringify(snapshotData);

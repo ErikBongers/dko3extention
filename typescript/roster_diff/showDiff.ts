@@ -61,12 +61,13 @@ export async function getAndShowDiffs(showOrCalc: "justShow" | "calcAndShow", us
     let cmbDiffSchoolYear = document.querySelector("#cmbDiffSchoolYear") as HTMLSelectElement;
     let infoBlock = createInfoBlock(statusBlock.divInfo, "");
     let fetchListener = new InfoBarTableFetchListener(infoBlock);
+    let reportStatus: StatusXCallback = function (message: string) {
+        statusBlock.runStatus.innerHTML = message;
+    }
+    statusBlock.divError.innerHTML = "";
     let errors: string[] = [];
-    function reportStatus(message: string, isError?: "error") {
-        if(isError == "error")
-            errors.push(message);
-        else
-            statusBlock.runStatus.innerHTML = message;
+    let addError: AddErrorCallback = function (message: string, errorType: "error" | "warning") {
+        errors.push(message);
     }
     errors = [];
     let jsonDko3DiffData: string | null = null;
@@ -88,7 +89,7 @@ export async function getAndShowDiffs(showOrCalc: "justShow" | "calcAndShow", us
             dataPreparationFunction = prepareExcelData;
         else
             dataPreparationFunction = prepareWwwData;
-        jsonDiffs = await buildAndSaveDiff(reportStatus, fetchListener, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData, diffSettings, diffPageType, dataPreparationFunction, errors);
+        jsonDiffs = await buildAndSaveDiff({reportStatus, addError}, fetchListener, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData, diffSettings, diffPageType, dataPreparationFunction, errors);
     }
     if(jsonDiffs)
         await showDiffs(jsonDiffs, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData, diffSettings, statusBlock, diffPageType);
@@ -162,7 +163,13 @@ export async function showDiffs(diffs: JsonDiffs, academie: string, schoolYear: 
     chkHideNoTeacher.checked = hideNoTeacher == "true";
     statusBlock.divResults.classList.toggle("hideNoTeacher", chkHideNoTeacher.checked);
 }
-export type StatusCallback = (message: string, isError?: "error") => void;
+export type StatusXCallback = (message: string) => void;
+export type AddErrorCallback = (message: string, errorType: "error" | "warning") => void;
+
+export type StatusReporter = {
+    reportStatus: StatusXCallback;
+    addError: AddErrorCallback;
+}
 
 export function fillOtherDiffRow(tr: HTMLTableRowElement, diff: JsonDiff, academie: string, schoolYear: string, noHide: "no hide button" | null, diffPageType: DiffPageType) {
     fillDiffRow(tr, diff.otherLes, diff.diffType, diff.otherLes.gotoData, diff.otherLes.gotoData.text, diff.otherLes.hash, diff.otherLes.ignore, academie, schoolYear, diff.weight, noHide, diffPageType);
