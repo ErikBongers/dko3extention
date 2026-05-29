@@ -2054,7 +2054,6 @@ var ExcelRoster = class ExcelRoster {
 		let classDefs = [];
 		let day = RosterFactory.toDayName(this.table.HeaderRowValue(0, column));
 		let teacher = this.table.HeaderRowValue(1, column).trim();
-		teacher = teacher.replaceAll("?", "");
 		for (let row = 0; row < this.table.RowCount; row++) {
 			let cellValue = this.table.Cell(row, column);
 			if (cellValue) {
@@ -6211,7 +6210,7 @@ var TaggedExcelLes = class extends TaggedLes {
 		this.className = this.lesMoment.className;
 		this.location = this.lesMoment.location;
 		this.teachers = preTranslate(les.cellValue).split(/[\/,]/g).map((t) => findTeacher(t, teachers, "")).filter((t) => t != "");
-		if (this.teachers.length == 0) this.teachers = preTranslate(this.lesMoment.teacher).split(/[\/,]/g).map((t) => findTeacher(t, teachers, t)).filter((t) => t != "");
+		if (this.teachers.length == 0) this.teachers = preTranslate(this.lesMoment.teacher).split(/[\/,]/g).map((t) => t.trim()).filter((t) => t.substring(t.length - 1) != "?").map((t) => findTeacher(t, teachers, t)).filter((t) => t != "");
 		this.subjects = les.subjects;
 		this.subjects = this.subjects.filter((s) => s);
 		if (this.lesMoment.className) this.subjects.push(this.lesMoment.className);

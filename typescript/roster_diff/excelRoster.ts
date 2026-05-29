@@ -182,8 +182,6 @@ export class ExcelRoster {
         let classDefs: ClassDef[] = [];
         let day = RosterFactory.toDayName(this.table.HeaderRowValue(0, column));
         let teacher = this.table.HeaderRowValue(1, column).trim();
-        teacher = teacher
-            .replaceAll("?", "");
         for(let row = 0; row < this.table.RowCount; row++) {
             let cellValue = this.table.Cell(row, column)
             if (cellValue) {

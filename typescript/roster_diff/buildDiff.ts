@@ -207,7 +207,10 @@ export class TaggedExcelLes extends TaggedLes<ClassDef> implements ComparableLes
             .filter(t => t != "");
         if(this.teachers.length == 0) {
             this.teachers = preTranslate(this.lesMoment.teacher)
-                .split(/[\/,]/g).map(t => findTeacher(t, teachers, t))
+                .split(/[\/,]/g)
+                .map(t => t.trim())
+                .filter(t => t.substring(t.length-1) != "?")
+                .map(t => findTeacher(t, teachers, t))
                 .filter(t => t != "");
         }
         this.subjects = les.subjects;

@@ -1,3 +1,7 @@
+* Keep last changed date of lessons (effectively the snapshot) to see if the excel or the dko3 class was last changed.
+* always add the 'goto excel' icon to a les.
+* check if (grouping) alias classes are offline.
+
 * Saving settings may fail and the file gets deleted!
   > capture succes and try again if failed.
 * backup versions
