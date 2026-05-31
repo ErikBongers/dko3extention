@@ -6,7 +6,7 @@ import {DiffSettings} from "../roster_diff/diffSettings";
 import {Actions, sendRequest, ServiceRequest, TabType} from "../messaging";
 import MessageSender = chrome.runtime.MessageSender;
 import {OtherLesType} from "../www_diff/buildDiff";
-import {setupTabNavigation} from "../tabs";
+import {createTabs, setupTabNavigation} from "../tabs";
 
 async function loadCombboxSchoolYearAndTrySelect(dirTree?: TreeNode): Promise<boolean> {
     if(!dirTree)
@@ -29,57 +29,59 @@ async function loadCombboxSchoolYearAndTrySelect(dirTree?: TreeNode): Promise<bo
     return false;
 }
 
-function onBeforeTabSwitch(): ("cancel" | "continue") {
-    console.log("Tab switch");
-    return "continue";
-}
-
 export async function setupDiffPage() {
     let pluginContainer = document.getElementById("plugin_container")!;
-    emmet.appendChild(pluginContainer, `
-        div#diffsPage.mb-1>(
-            h4{Verschillen in uurroosters}+
-            div.tabs>(
-                (
-                    button#btnTabTagDefs.naked.hand.tab.notSelected[data-tab-id="tabExcelDiffs"]>(
-                        span>(
-                            i.excelRow.far.fa-chalkboard-user+
-                            span.excelRow{Excel}
-                        )+
-                        i.fas.fa-arrow-right+
-                        span{Dko3}
-                    )
-                )+
-                (
-                    button#btnTabIgnores.naked.hand.tab.notSelected[data-tab-id="tabWwwDiffs"]>(
-                        span{Dko3}+
-                        i.fas.fa-arrow-right+
-                        span>(
-                            i.wwwRow.far.fa-globe+
-                            span.wwwRow{Website}
-                        )
-                    )
-                )
+    let diffsPage = emmet.appendChild(pluginContainer, `
+        div#diffsPage.mb-1>
+            h4{Verschillen in uurroosters}
+    `).first as HTMLDivElement;
+    //todo: emmet.create has issues. See comment in emmet.create.
+    let tab1Content = emmet.create2(`
+        span>(
+            span>(
+                i.excelRow.far.fa-chalkboard-user+
+                span.excelRow{Excel}
+            )+
+            i.fas.fa-arrow-right+
+            span{Dko3}
+        )
+    `);
+
+    let tab2Content = emmet.create2(`
+        span>(
+            span{Dko3}+
+            i.fas.fa-arrow-right+
+            span>(
+                i.wwwRow.far.fa-globe+
+                span.wwwRow{Website}
             )
-        )+
-        (
-            div#tabExcelDiffs>(
-                div#combosLoading{Gegevens laden...}+
-                select#cmbDiffAcademie+
-                select#cmbDiffSchoolYear+
-                button#btnCalcDiff.btn.btn-primary{Zoek verschillen}+
-                button#btnDiffSettings.btn.btn-outline-dark{Setup}+
-                div#wrapperExcelDiffs
-            )
-        )+
+        )
+    `);
+
+    let tabs = createTabs(diffsPage, [
+        { btnId: "btnTabTagDefs", tabId: "tabExcelDiffs", btnContent: tab1Content },
+        { btnId: "btnTabIgnores", tabId: "tabWwwDiffs", btnContent: tab2Content },
+    ]);
+
+    emmet.appendChild(diffsPage, `
+        div#tabExcelDiffs>(
+            div#combosLoading{Gegevens laden...}+
+            select#cmbDiffAcademie+
+            select#cmbDiffSchoolYear+
+            button#btnCalcDiff.btn.btn-primary{Zoek verschillen}+
+            button#btnDiffSettings.btn.btn-outline-dark{Setup}+
+            div#wrapperExcelDiffs
+        )
+        `);
+    emmet.appendChild(diffsPage, `
         div#tabWwwDiffs>(
             button#btnDiffWww.btn.btn-primary{Zoek Verschillen}+
             button#btnDiffSettingsWww.btn.btn-outline-dark{Setup}+
             div#wrapperWwwDiffs
         )
      `);
-    setupTabNavigation();
-    // setupTabNavigation(onBeforeTabSwitch);
+    tabs.switchTab(0);
+
     let btnCalcDiff = pluginContainer.querySelector("#btnCalcDiff")  as HTMLButtonElement;
     let btnCalcDiffWww = pluginContainer.querySelector("#btnDiffWww")  as HTMLButtonElement;
     let btnDiffSettings = pluginContainer.querySelector("#btnDiffSettings")  as HTMLButtonElement;

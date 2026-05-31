@@ -90,6 +90,7 @@ function tokenize(textToTokenize) {
 //#region libs/Emmeter/html.ts
 let emmet = {
 	create,
+	create2,
 	append,
 	insertBefore,
 	insertAfter,
@@ -108,6 +109,13 @@ function toSelector(node) {
 	if (node.id) selector += "#" + node.id;
 	if (node.classList.length > 0) selector += "." + node.classList.join(".");
 	return selector;
+}
+function create2(text, onIndex, hook) {
+	let tempDiv = document.createElement("div");
+	let result = appendChild(tempDiv, text, onIndex, hook);
+	let first = result.first;
+	first.remove();
+	return first;
 }
 function create(text, onIndex, hook) {
 	nested = tokenize(text);
@@ -6656,9 +6664,29 @@ function switchTab(btn) {
 	btn.classList.remove("notSelected");
 	document.getElementById(tabId).style.display = "block";
 }
-function setupTabNavigation(beforeTabSwitch) {
-	let tabs = document.querySelector(".tabs");
-	switchTab(tabs.querySelector(".tab"));
+var Tabs = class {
+	tabDefs;
+	constructor(tabDefs) {
+		this.tabDefs = tabDefs;
+	}
+	switchTab(index) {
+		let btn = document.getElementById(this.tabDefs[index].btnId);
+		switchTab(btn);
+	}
+};
+function createTabs(parent, tabDefs, beforeTabSwitch) {
+	let divTabs = emmet.appendChild(parent, "div.tabs").first;
+	for (let tabDef of tabDefs) {
+		let button = emmet.appendChild(divTabs, `
+            button#${tabDef.btnId}.naked.hand.tab.notSelected[data-tab-id="${tabDef.tabId}"]
+        `).first;
+		if (typeof tabDef.btnContent == "string") button.innerHTML = tabDef.btnContent;
+		else button.appendChild(tabDef.btnContent);
+	}
+	addNavigation(divTabs, beforeTabSwitch);
+	return new Tabs(tabDefs);
+}
+function addNavigation(tabDiv, beforeTabSwitch) {
 	document.querySelectorAll(".tabs > button.tab").forEach((btn) => btn.addEventListener("click", (ev) => {
 		let button = ev.currentTarget;
 		if (beforeTabSwitch?.(button, button.dataset.tabId) != "cancel") switchTab(ev.currentTarget);
@@ -6687,49 +6715,57 @@ async function loadCombboxSchoolYearAndTrySelect(dirTree) {
 }
 async function setupDiffPage() {
 	let pluginContainer = document.getElementById("plugin_container");
-	emmet.appendChild(pluginContainer, `
-        div#diffsPage.mb-1>(
-            h4{Verschillen in uurroosters}+
-            div.tabs>(
-                (
-                    button#btnTabTagDefs.naked.hand.tab.notSelected[data-tab-id="tabExcelDiffs"]>(
-                        span>(
-                            i.excelRow.far.fa-chalkboard-user+
-                            span.excelRow{Excel}
-                        )+
-                        i.fas.fa-arrow-right+
-                        span{Dko3}
-                    )
-                )+
-                (
-                    button#btnTabIgnores.naked.hand.tab.notSelected[data-tab-id="tabWwwDiffs"]>(
-                        span{Dko3}+
-                        i.fas.fa-arrow-right+
-                        span>(
-                            i.wwwRow.far.fa-globe+
-                            span.wwwRow{Website}
-                        )
-                    )
-                )
+	let diffsPage = emmet.appendChild(pluginContainer, `
+        div#diffsPage.mb-1>
+            h4{Verschillen in uurroosters}
+    `).first;
+	let tab1Content = emmet.create2(`
+        span>(
+            span>(
+                i.excelRow.far.fa-chalkboard-user+
+                span.excelRow{Excel}
+            )+
+            i.fas.fa-arrow-right+
+            span{Dko3}
+        )
+    `);
+	let tab2Content = emmet.create2(`
+        span>(
+            span{Dko3}+
+            i.fas.fa-arrow-right+
+            span>(
+                i.wwwRow.far.fa-globe+
+                span.wwwRow{Website}
             )
-        )+
-        (
-            div#tabExcelDiffs>(
-                div#combosLoading{Gegevens laden...}+
-                select#cmbDiffAcademie+
-                select#cmbDiffSchoolYear+
-                button#btnCalcDiff.btn.btn-primary{Zoek verschillen}+
-                button#btnDiffSettings.btn.btn-outline-dark{Setup}+
-                div#wrapperExcelDiffs
-            )
-        )+
+        )
+    `);
+	let tabs = createTabs(diffsPage, [{
+		btnId: "btnTabTagDefs",
+		tabId: "tabExcelDiffs",
+		btnContent: tab1Content
+	}, {
+		btnId: "btnTabIgnores",
+		tabId: "tabWwwDiffs",
+		btnContent: tab2Content
+	}]);
+	emmet.appendChild(diffsPage, `
+        div#tabExcelDiffs>(
+            div#combosLoading{Gegevens laden...}+
+            select#cmbDiffAcademie+
+            select#cmbDiffSchoolYear+
+            button#btnCalcDiff.btn.btn-primary{Zoek verschillen}+
+            button#btnDiffSettings.btn.btn-outline-dark{Setup}+
+            div#wrapperExcelDiffs
+        )
+        `);
+	emmet.appendChild(diffsPage, `
         div#tabWwwDiffs>(
             button#btnDiffWww.btn.btn-primary{Zoek Verschillen}+
             button#btnDiffSettingsWww.btn.btn-outline-dark{Setup}+
             div#wrapperWwwDiffs
         )
      `);
-	setupTabNavigation();
+	tabs.switchTab(0);
 	let btnCalcDiff = pluginContainer.querySelector("#btnCalcDiff");
 	let btnCalcDiffWww = pluginContainer.querySelector("#btnDiffWww");
 	let btnDiffSettings = pluginContainer.querySelector("#btnDiffSettings");

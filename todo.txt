@@ -1,9 +1,9 @@
+* Test new tab functions and copy them to gringo.
+
 * Keep last changed date of lessons (effectively the snapshot) to see if the excel or the dko3 class was last changed.
-* always add the 'goto excel' icon to a les.
+* always add a "show excel" icon to a les and a "goto excel" (which is implicitely part of the excel line!).
 * check if (grouping) alias classes are offline.
 
-* Saving settings may fail and the file gets deleted!
-  > capture succes and try again if failed.
 * backup versions
     - in separate folder
     - backup filenames have the original ztime appended: xx.json__BKUP_12-JAN....Z
@@ -20,32 +20,22 @@
 * Put setup button above tabs.
 * Check ALL hashes - they should include ALL fields
 
-* Diffs: goto buttons
-  - to the dko3 les
-  - to the excel file (and exact cell?)
-   >>>  To link to a specific Excel cell in SharePoint,
-          - right-click the target cell in the Excel web app,
-          - select Copy Link > To Range.
-        Alternatively, use the syntax
-          ='https://company.sharepoint.com/sites/site/[Workbook.xlsx]SheetName'!$A$1
-          >>> https://edusoantwerpen.sharepoint.com/:x:/s/dko/berchem/IQCujO4HZ0tVQ5PoV8RrEdoTAdDM_aDWVT2Pb5of8tPWKrY?e=oz9iKz&nav=MTJfTTIwX3s1N0UxOTk5OS1FQkYyLTRCNEEtQkUwOS1DRUJBNUI3RDhDMjd9
-          >>> https://edusoantwerpen.sharepoint.com/:x:/s/dko/berchem/IQCujO4HZ0tVQ5PoV8RrEdoTAdDM_aDWVT2Pb5of8tPWKrY?e=oz9iKz&activeCell=Definitief!Y24
-          https://edusoantwerpen.sharepoint.com/sites/dko/berchem/Gedeelde%20%20documenten/Werkplek_Beleid_Secretariaat/Onderwijskundig_zorg/Onderwijsorganisatie/MW_Kalenders%20en%20uurroosters/MW%20uurroosters/OUD/Automatisering/brol.txt
-          >>> https://edusoantwerpen.sharepoint.com/sites/dko/berchem/Gedeelde%20%20documenten/Werkplek_Beleid_Secretariaat/Onderwijskundig_zorg/Onderwijsorganisatie/MW_Kalenders%20en%20uurroosters/MW%20uurroosters/OUD/Automatisering/Woord_uurrooster_25-26.xlsx
-            > this downloads the file!!!
-          >>> https://edusoantwerpen.sharepoint.com/sites/dko/berchem/Gedeelde%20%20documenten/Werkplek_Beleid_Secretariaat/Onderwijskundig_zorg/Onderwijsorganisatie/MW_Kalenders%20en%20uurroosters/MW%20uurroosters/OUD/Automatisering/Woord_uurrooster_25-26.xlsx?web=1
-          >>> https://edusoantwerpen.sharepoint.com/sites/dko/berchem/Gedeelde%20%20documenten/Werkplek_Beleid_Secretariaat/Onderwijskundig_zorg/Onderwijsorganisatie/MW_Kalenders%20en%20uurroosters/MW%20uurroosters/OUD/Automatisering/Woord_uurrooster_25-26.xlsx?web=1&activeCell=Definitief!Y24
-          >>> https://edusoantwerpen.sharepoint.com/sites/dko/berchem/Gedeelde%20%20documenten/Werkplek_Beleid_Secretariaat/Onderwijskundig_zorg/Onderwijsorganisatie/MW_Kalenders%20en%20uurroosters/MW%20uurroosters/OUD/Automatisering/Woord_uurrooster_25-26.xlsx?web=1&activeCell=Definitief!Y24
-        to create a live, updating formula reference.
-        For a clickable link, select the cell, press Ctrl+K
+Sharepoint URLs
+================
+  > this downloads the file!!!
+    >>> https://edusoantwerpen.sharepoint.com/sites/dko/berchem/Gedeelde%20%20documenten/Werkplek_Beleid_Secretariaat/Onderwijskundig_zorg/Onderwijsorganisatie/MW_Kalenders%20en%20uurroosters/MW%20uurroosters/OUD/Automatisering/Woord_uurrooster_25-26.xlsx
+  > this will goto online.
+    >>> https://edusoantwerpen.sharepoint.com/sites/dko/berchem/Gedeelde%20%20documenten/Werkplek_Beleid_Secretariaat/Onderwijskundig_zorg/Onderwijsorganisatie/MW_Kalenders%20en%20uurroosters/MW%20uurroosters/OUD/Automatisering/Woord_uurrooster_25-26.xlsx?web=1
+  > to create a live, updating formula reference.
+    >>> https://edusoantwerpen.sharepoint.com/sites/dko/berchem/Gedeelde%20%20documenten/Werkplek_Beleid_Secretariaat/Onderwijskundig_zorg/Onderwijsorganisatie/MW_Kalenders%20en%20uurroosters/MW%20uurroosters/OUD/Automatisering/Woord_uurrooster_25-26.xlsx?web=1&activeCell=Definitief!Y24
 
-        THIS WORKS WITH CELL LOCATION:
-        >>> https://edusoantwerpen.sharepoint.com/:x:/s/dko/berchem/IQCujO4HZ0tVQ5PoV8RrEdoTAdDM_aDWVT2Pb5of8tPWKrY?activeCell=Definitief!X20
-          where the mid part is the base64 guid.
-        THIS WORKS WITHOUT CELL LOCATION, but readable path:
-        >>> https://edusoantwerpen.sharepoint.com/sites/dko/berchem/Gedeelde%20%20documenten/Werkplek_Beleid_Secretariaat/Onderwijskundig_zorg/Onderwijsorganisatie/MW_Kalenders%20en%20uurroosters/MW%20uurroosters/OUD/Automatisering/Woord_uurrooster_25-26.xlsx?web=1
-         > but cell doensn't work...
-        >>> https://edusoantwerpen.sharepoint.com/sites/dko/berchem/Gedeelde%20%20documenten/Werkplek_Beleid_Secretariaat/Onderwijskundig_zorg/Onderwijsorganisatie/MW_Kalenders%20en%20uurroosters/MW%20uurroosters/OUD/Automatisering/Woord_uurrooster_25-26.xlsx?web=1&activeCell=Definitief!A12
+THIS WORKS WITH CELL LOCATION:
+>>> https://edusoantwerpen.sharepoint.com/:x:/s/dko/berchem/IQCujO4HZ0tVQ5PoV8RrEdoTAdDM_aDWVT2Pb5of8tPWKrY?activeCell=Definitief!X20
+where the mid part is the base64 guid.
+THIS WORKS WITHOUT CELL LOCATION, but readable path:
+>>> https://edusoantwerpen.sharepoint.com/sites/dko/berchem/Gedeelde%20%20documenten/Werkplek_Beleid_Secretariaat/Onderwijskundig_zorg/Onderwijsorganisatie/MW_Kalenders%20en%20uurroosters/MW%20uurroosters/OUD/Automatisering/Woord_uurrooster_25-26.xlsx?web=1
+> but cell doensn't work...
+>>> https://edusoantwerpen.sharepoint.com/sites/dko/berchem/Gedeelde%20%20documenten/Werkplek_Beleid_Secretariaat/Onderwijskundig_zorg/Onderwijsorganisatie/MW_Kalenders%20en%20uurroosters/MW%20uurroosters/OUD/Automatisering/Woord_uurrooster_25-26.xlsx?web=1&activeCell=Definitief!A12
 
   - Get url from a sharepoint file:
     >>> https://stackoverflow.com/questions/73153220/get-workbook-url-from-office-scripts-api
