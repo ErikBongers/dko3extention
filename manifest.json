@@ -18,7 +18,8 @@
         "css/content.css",
         "css/light_colors.css",
         "css/dark_colors.css",
-        "css/trimesterTable.css"
+        "css/trimesterTable.css",
+        "css/tabs.css"
       ],
       "matches": [
         "https://administratie.dko3.cloud/*"

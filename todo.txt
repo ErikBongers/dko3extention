@@ -1,5 +1,3 @@
-* Expand the Tabs class to integrate all the other tabs functions.
-
 * Keep last changed date of lessons (effectively the snapshot) to see if the excel or the dko3 class was last changed.
 * always add a "show excel" icon to a les and a "goto excel" (which is implicitely part of the excel line!).
 * check if (grouping) alias classes are offline.

@@ -5,23 +5,6 @@ button.naked {
     padding: 0;
 }
 
-div.tabs {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    button.tab {
-        padding: 1ch;
-        background-color: #eff4ff;
-        border-radius: 1ch 1ch 0 0;
-        font-weight: bold;
-        &.notSelected {
-            opacity: 0.5;
-        }
-        &:focus {
-            outline: none;
-        }
-    }
-}
-
 .hand {
     cursor: pointer;
 }

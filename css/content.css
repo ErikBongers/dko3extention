@@ -405,13 +405,6 @@ tr.wwwRow td, .wwwRow {
     color: darkolivegreen;
 }
 
-div.tabs button.tab > * {
-    margin-inline-start: 1ch;
-    & > * {
-        margin-inline-start: .5ch;
-    }
-}
-
 table.diff {
     padding: 1ch;
     background-color: #eee;
