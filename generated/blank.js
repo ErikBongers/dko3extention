@@ -14,6 +14,7 @@ let Actions = /* @__PURE__ */ function(Actions$1) {
 	Actions$1["DiffSettingsChanged"] = "diff_settings_changed";
 	Actions$1["GreetingsFromParent"] = "greetingsFromParent";
 	Actions$1["GreetingsFromChild"] = "greetingsFromChild";
+	Actions$1["Www"] = "Www";
 	return Actions$1;
 }({});
 let TabType = /* @__PURE__ */ function(TabType$1) {

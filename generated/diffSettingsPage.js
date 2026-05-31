@@ -148,6 +148,7 @@ function tokenize(textToTokenize) {
 //#region libs/Emmeter/html.ts
 let emmet = {
 	create,
+	create2,
 	append,
 	insertBefore,
 	insertAfter,
@@ -166,6 +167,13 @@ function toSelector(node) {
 	if (node.id) selector += "#" + node.id;
 	if (node.classList.length > 0) selector += "." + node.classList.join(".");
 	return selector;
+}
+function create2(text, onIndex, hook) {
+	let tempDiv = document.createElement("div");
+	let result = appendChild(tempDiv, text, onIndex, hook);
+	let first = result.first;
+	first.remove();
+	return first;
 }
 function create(text, onIndex, hook) {
 	nested = tokenize(text);
@@ -531,7 +539,10 @@ function switchTab(btn) {
 }
 function setupTabNavigation(beforeTabSwitch) {
 	let tabs = document.querySelector(".tabs");
+	addNavigation(tabs, beforeTabSwitch);
 	switchTab(tabs.querySelector(".tab"));
+}
+function addNavigation(tabDiv, beforeTabSwitch) {
 	document.querySelectorAll(".tabs > button.tab").forEach((btn) => btn.addEventListener("click", (ev) => {
 		let button = ev.currentTarget;
 		if (beforeTabSwitch?.(button, button.dataset.tabId) != "cancel") switchTab(ev.currentTarget);

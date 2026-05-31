@@ -14,6 +14,7 @@ let Actions = /* @__PURE__ */ function(Actions$1) {
 	Actions$1["DiffSettingsChanged"] = "diff_settings_changed";
 	Actions$1["GreetingsFromParent"] = "greetingsFromParent";
 	Actions$1["GreetingsFromChild"] = "greetingsFromChild";
+	Actions$1["Www"] = "Www";
 	return Actions$1;
 }({});
 let TabType = /* @__PURE__ */ function(TabType$1) {
@@ -147,6 +148,7 @@ function tokenize(textToTokenize) {
 //#region libs/Emmeter/html.ts
 let emmet = {
 	create,
+	create2,
 	append,
 	insertBefore,
 	insertAfter,
@@ -165,6 +167,13 @@ function toSelector(node) {
 	if (node.id) selector += "#" + node.id;
 	if (node.classList.length > 0) selector += "." + node.classList.join(".");
 	return selector;
+}
+function create2(text, onIndex, hook) {
+	let tempDiv = document.createElement("div");
+	let result = appendChild(tempDiv, text, onIndex, hook);
+	let first = result.first;
+	first.remove();
+	return first;
 }
 function create(text, onIndex, hook) {
 	nested = tokenize(text);
@@ -321,7 +330,6 @@ function getAttributes() {
 		let value = tokens.shift();
 		if (!value) throw "Value expected";
 		if (value[0] === "\"") value = stripStringDelimiters(value);
-		if (!value) throw "Value expected.";
 		attDefs.push({
 			name,
 			sub,
@@ -399,8 +407,7 @@ async function fetchJson(fileName) {
 async function uploadJson(fileName, data) {
 	let res = await fetch(JSON_URL + "?fileName=" + fileName, {
 		method: "POST",
-		body: JSON.stringify(data),
-		keepalive: true
+		body: JSON.stringify(data)
 	});
 	return await res.text();
 }
@@ -857,6 +864,19 @@ function registerWebComponent() {
 }
 
 //#endregion
+//#region typescript/tabs.ts
+function switchTab(btn) {
+	let tabId = btn.dataset.tabId;
+	let tabs = btn.parentElement;
+	tabs.querySelectorAll(".tab").forEach((tab) => {
+		tab.classList.add("notSelected");
+		document.getElementById(tab.dataset.tabId).style.display = "none";
+	});
+	btn.classList.remove("notSelected");
+	document.getElementById(tabId).style.display = "block";
+}
+
+//#endregion
 //#region typescript/teacherHoursSetup.ts
 let handler = createMessageHandler(TabType.HoursSettings);
 registerWebComponent();
@@ -941,6 +961,7 @@ async function onData(request) {
 	document.title = title;
 	document.getElementById(
 		//todo: validate input
+		//todo: replace with general function and test.
 		SETUP_HOURS_TITLE_ID
 ).innerHTML = title;
 	document.querySelector("button").addEventListener("click", async () => {
@@ -1022,16 +1043,6 @@ function onCheckTableChanged(dko3Setup) {
 window.onbeforeunload = () => {
 	if (globalSetup) onCheckTableChanged(globalSetup);
 };
-function switchTab(btn) {
-	let tabId = btn.dataset.tabId;
-	let tabs = btn.parentElement;
-	tabs.querySelectorAll(".tab").forEach((tab) => {
-		tab.classList.add("notSelected");
-		document.getElementById(tab.dataset.tabId).style.display = "none";
-	});
-	btn.classList.remove("notSelected");
-	document.getElementById(tabId).style.display = "block";
-}
 async function onDocumentLoaded(_) {
 	let tabs = document.querySelector(".tabs");
 	switchTab(tabs.querySelector(".tab"));

@@ -65,6 +65,7 @@ function tokenize(textToTokenize) {
 //#region libs/Emmeter/html.ts
 let emmet = {
 	create,
+	create2,
 	append,
 	insertBefore,
 	insertAfter,
@@ -83,6 +84,13 @@ function toSelector(node) {
 	if (node.id) selector += "#" + node.id;
 	if (node.classList.length > 0) selector += "." + node.classList.join(".");
 	return selector;
+}
+function create2(text, onIndex, hook) {
+	let tempDiv = document.createElement("div");
+	let result = appendChild(tempDiv, text, onIndex, hook);
+	let first = result.first;
+	first.remove();
+	return first;
 }
 function create(text, onIndex, hook) {
 	nested = tokenize(text);
@@ -239,7 +247,6 @@ function getAttributes() {
 		let value = tokens.shift();
 		if (!value) throw "Value expected";
 		if (value[0] === "\"") value = stripStringDelimiters(value);
-		if (!value) throw "Value expected.";
 		attDefs.push({
 			name,
 			sub,
@@ -317,8 +324,7 @@ async function fetchJson(fileName) {
 async function uploadJson(fileName, data) {
 	let res = await fetch(JSON_URL + "?fileName=" + fileName, {
 		method: "POST",
-		body: JSON.stringify(data),
-		keepalive: true
+		body: JSON.stringify(data)
 	});
 	return await res.text();
 }
