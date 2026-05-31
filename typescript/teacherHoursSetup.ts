@@ -4,7 +4,7 @@ import * as def from "./def";
 
 import {GradeYearDef, mapHourSettings, saveHourSettings, TeacherHoursSetup, TeacherHoursSetupMapped, TranslationDef} from "./werklijst/hoursSettings";
 import * as InputWithSpaces from "./webComponents/inputWithSpaces";
-import {switchTab} from "./tabs";
+import {Tabs} from "./tabs";
 
 let handler  = createMessageHandler(TabType.HoursSettings);
 
@@ -225,20 +225,25 @@ window.onbeforeunload = () => {
 }
 
 async function onDocumentLoaded(this: Document, _: Event) {
-    let tabs = document.querySelector(".tabs")!;
-    switchTab(tabs.querySelector(".tab")!);
+    let tabs = new Tabs(document.querySelector("div.tabsContainer")!, [
+        { btnId: "btnTabSubjects", tabId: "tabSubjects",  btnContent: "Geselecteerde vakken" },
+        { btnId: "btnTabTranslations", tabId: "tabTranslations", btnContent: "Bewerkingen" },
+        { btnId: "btnTabGradeYears", tabId: "tabGradeYears",  btnContent: "Leerlingen per les" },
+    ]);
+    tabs.switch(0);
+
     document.querySelectorAll(".tabs > button.tab") //todo: replace with general function and test.
         .forEach(btn => btn
             .addEventListener("click", (ev) => {
                 switch ((ev.target as HTMLElement).id) {
                     case "btnTabSubjects":
-                        switchTab(ev.target as HTMLButtonElement);
+                        tabs.switch(ev.target as HTMLButtonElement);
                         break;
                     case "btnTabTranslations":
-                        switchTab(ev.target as HTMLButtonElement);
+                        tabs.switch(ev.target as HTMLButtonElement);
                         break;
                     case "btnTabGradeYears":
-                        switchTab(ev.target as HTMLButtonElement);
+                        tabs.switch(ev.target as HTMLButtonElement);
                         break;
                 }
             }));

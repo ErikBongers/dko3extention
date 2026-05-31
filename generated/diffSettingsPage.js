@@ -526,30 +526,6 @@ async function uploadDiffSettings(academie, schoolYear, diffSettings) {
 }
 
 //#endregion
-//#region typescript/tabs.ts
-function switchTab(btn) {
-	let tabId = btn.dataset.tabId;
-	let tabs = btn.parentElement;
-	tabs.querySelectorAll(".tab").forEach((tab) => {
-		tab.classList.add("notSelected");
-		document.getElementById(tab.dataset.tabId).style.display = "none";
-	});
-	btn.classList.remove("notSelected");
-	document.getElementById(tabId).style.display = "block";
-}
-function setupTabNavigation(beforeTabSwitch) {
-	let tabs = document.querySelector(".tabs");
-	addNavigation(tabs, beforeTabSwitch);
-	switchTab(tabs.querySelector(".tab"));
-}
-function addNavigation(tabDiv, beforeTabSwitch) {
-	document.querySelectorAll(".tabs > button.tab").forEach((btn) => btn.addEventListener("click", (ev) => {
-		let button = ev.currentTarget;
-		if (beforeTabSwitch?.(button, button.dataset.tabId) != "cancel") switchTab(ev.currentTarget);
-	}));
-}
-
-//#endregion
 //#region typescript/globals.ts
 let Schoolyear;
 (function(_Schoolyear) {
@@ -713,6 +689,46 @@ function stringToDate(text) {
 }
 
 //#endregion
+//#region typescript/tabs.ts
+var Tabs = class {
+	tabDefs;
+	tabs;
+	beforeTabSwitch;
+	constructor(parent, tabDefs, beforeTabSwitch) {
+		this.tabDefs = tabDefs;
+		this.beforeTabSwitch = beforeTabSwitch ?? null;
+		this.tabs = emmet.appendChild(parent, "div.tabs").first;
+		for (let tabDef of tabDefs) {
+			let button = emmet.appendChild(this.tabs, `
+            button#${tabDef.btnId}.naked.hand.tab.notSelected[data-tab-id="${tabDef.tabId}"]
+        `).first;
+			if (typeof tabDef.btnContent == "string") button.innerHTML = tabDef.btnContent;
+			else button.appendChild(tabDef.btnContent);
+		}
+		this.addNavigation();
+	}
+	switch(to) {
+		let btn;
+		if (typeof to == "number") btn = document.getElementById(this.tabDefs[to].btnId);
+		else btn = to;
+		let tabId = btn.dataset.tabId;
+		let tabs = btn.parentElement;
+		tabs.querySelectorAll(".tab").forEach((tab) => {
+			tab.classList.add("notSelected");
+			document.getElementById(tab.dataset.tabId).style.display = "none";
+		});
+		btn.classList.remove("notSelected");
+		document.getElementById(tabId).style.display = "block";
+	}
+	addNavigation() {
+		document.querySelectorAll(".tabs > button.tab").forEach((btn) => btn.addEventListener("click", (ev) => {
+			let button = ev.currentTarget;
+			if (this.beforeTabSwitch?.(button, button.dataset.tabId) != "cancel") this.switch(ev.currentTarget);
+		}));
+	}
+};
+
+//#endregion
 //#region typescript/roster_diff/diffSettingsPage.ts
 let handler = createMessageHandler(TabType.DiffSettings);
 registerWebComponent();
@@ -872,7 +888,24 @@ window.onbeforeunload = () => {
 	if (globalSetup) onCheckTableChanged(globalSetup);
 };
 async function onDocumentLoaded(_) {
-	setupTabNavigation();
+	let tabs = new Tabs(document.querySelector("div.tabsContainer"), [
+		{
+			btnId: "btnTabTagDefs",
+			tabId: "tabTagDefs",
+			btnContent: "Tags"
+		},
+		{
+			btnId: "btnTabIgnores",
+			tabId: "tabIgnores",
+			btnContent: "Negeer"
+		},
+		{
+			btnId: "btnTabWebPages",
+			tabId: "tabWebPages",
+			btnContent: "Web pagina's"
+		}
+	]);
+	tabs.switch(0);
 	let params = new URLSearchParams(document.location.search);
 	let schoolYear = params.get("schoolyear");
 	let academie = params.get("academie");

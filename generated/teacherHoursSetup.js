@@ -865,16 +865,43 @@ function registerWebComponent() {
 
 //#endregion
 //#region typescript/tabs.ts
-function switchTab(btn) {
-	let tabId = btn.dataset.tabId;
-	let tabs = btn.parentElement;
-	tabs.querySelectorAll(".tab").forEach((tab) => {
-		tab.classList.add("notSelected");
-		document.getElementById(tab.dataset.tabId).style.display = "none";
-	});
-	btn.classList.remove("notSelected");
-	document.getElementById(tabId).style.display = "block";
-}
+var Tabs = class {
+	tabDefs;
+	tabs;
+	beforeTabSwitch;
+	constructor(parent, tabDefs, beforeTabSwitch) {
+		this.tabDefs = tabDefs;
+		this.beforeTabSwitch = beforeTabSwitch ?? null;
+		this.tabs = emmet.appendChild(parent, "div.tabs").first;
+		for (let tabDef of tabDefs) {
+			let button = emmet.appendChild(this.tabs, `
+            button#${tabDef.btnId}.naked.hand.tab.notSelected[data-tab-id="${tabDef.tabId}"]
+        `).first;
+			if (typeof tabDef.btnContent == "string") button.innerHTML = tabDef.btnContent;
+			else button.appendChild(tabDef.btnContent);
+		}
+		this.addNavigation();
+	}
+	switch(to) {
+		let btn;
+		if (typeof to == "number") btn = document.getElementById(this.tabDefs[to].btnId);
+		else btn = to;
+		let tabId = btn.dataset.tabId;
+		let tabs = btn.parentElement;
+		tabs.querySelectorAll(".tab").forEach((tab) => {
+			tab.classList.add("notSelected");
+			document.getElementById(tab.dataset.tabId).style.display = "none";
+		});
+		btn.classList.remove("notSelected");
+		document.getElementById(tabId).style.display = "block";
+	}
+	addNavigation() {
+		document.querySelectorAll(".tabs > button.tab").forEach((btn) => btn.addEventListener("click", (ev) => {
+			let button = ev.currentTarget;
+			if (this.beforeTabSwitch?.(button, button.dataset.tabId) != "cancel") this.switch(ev.currentTarget);
+		}));
+	}
+};
 
 //#endregion
 //#region typescript/teacherHoursSetup.ts
@@ -1044,18 +1071,34 @@ window.onbeforeunload = () => {
 	if (globalSetup) onCheckTableChanged(globalSetup);
 };
 async function onDocumentLoaded(_) {
-	let tabs = document.querySelector(".tabs");
-	switchTab(tabs.querySelector(".tab"));
+	let tabs = new Tabs(document.querySelector("div.tabsContainer"), [
+		{
+			btnId: "btnTabSubjects",
+			tabId: "tabSubjects",
+			btnContent: "Geselecteerde vakken"
+		},
+		{
+			btnId: "btnTabTranslations",
+			tabId: "tabTranslations",
+			btnContent: "Bewerkingen"
+		},
+		{
+			btnId: "btnTabGradeYears",
+			tabId: "tabGradeYears",
+			btnContent: "Leerlingen per les"
+		}
+	]);
+	tabs.switch(0);
 	document.querySelectorAll(".tabs > button.tab").forEach((btn) => btn.addEventListener("click", (ev) => {
 		switch (ev.target.id) {
 			case "btnTabSubjects":
-				switchTab(ev.target);
+				tabs.switch(ev.target);
 				break;
 			case "btnTabTranslations":
-				switchTab(ev.target);
+				tabs.switch(ev.target);
 				break;
 			case "btnTabGradeYears":
-				switchTab(ev.target);
+				tabs.switch(ev.target);
 				break;
 		}
 	}));

@@ -4,9 +4,8 @@ import {fetchFolderContent} from "../cloud";
 import {getUserAndSchoolName} from "../globals";
 import {DiffSettings} from "../roster_diff/diffSettings";
 import {Actions, sendRequest, ServiceRequest, TabType} from "../messaging";
+import {Tabs} from "../tabs";
 import MessageSender = chrome.runtime.MessageSender;
-import {OtherLesType} from "../www_diff/buildDiff";
-import {createTabs, setupTabNavigation} from "../tabs";
 
 async function loadCombboxSchoolYearAndTrySelect(dirTree?: TreeNode): Promise<boolean> {
     if(!dirTree)
@@ -58,7 +57,7 @@ export async function setupDiffPage() {
         )
     `);
 
-    let tabs = createTabs(diffsPage, [
+    let tabs = new Tabs(diffsPage, [
         { btnId: "btnTabTagDefs", tabId: "tabExcelDiffs", btnContent: tab1Content },
         { btnId: "btnTabIgnores", tabId: "tabWwwDiffs", btnContent: tab2Content },
     ]);
@@ -80,7 +79,7 @@ export async function setupDiffPage() {
             div#wrapperWwwDiffs
         )
      `);
-    tabs.switchTab(0);
+    tabs.switch(0);
 
     let btnCalcDiff = pluginContainer.querySelector("#btnCalcDiff")  as HTMLButtonElement;
     let btnCalcDiffWww = pluginContainer.querySelector("#btnDiffWww")  as HTMLButtonElement;

@@ -4,8 +4,8 @@ import * as def from "../def";
 import * as InputWithSpaces from "../webComponents/inputWithSpaces";
 import {DiffSettings, TagDef} from "./diffSettings";
 import {uploadDiffSettings} from "../cloud";
-import {setupTabNavigation} from "../tabs";
 import {ColumnValueFunc, getDefaultValueFuncs, makeTableSortable} from "../table/tableSort";
+import {Tabs} from "../tabs";
 
 let handler  = createMessageHandler(TabType.DiffSettings);
 
@@ -220,7 +220,12 @@ window.onbeforeunload = () => {
 }
 
 async function onDocumentLoaded(this: Document, _: Event) {
-    setupTabNavigation();
+    let tabs = new Tabs(document.querySelector("div.tabsContainer")!, [
+        { btnId: "btnTabTagDefs", tabId: "tabTagDefs",  btnContent: "Tags" },
+        { btnId: "btnTabIgnores", tabId: "tabIgnores", btnContent: "Negeer" },
+        { btnId: "btnTabWebPages", tabId: "tabWebPages",  btnContent: "Web pagina's" },
+    ]);
+    tabs.switch(0);
     let params = new URLSearchParams(document.location.search);
     let schoolYear = params.get("schoolyear")!;
     let academie = params.get("academie")!;

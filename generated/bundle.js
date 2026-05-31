@@ -6654,44 +6654,43 @@ async function checkChecks() {}
 
 //#endregion
 //#region typescript/tabs.ts
-function switchTab(btn) {
-	let tabId = btn.dataset.tabId;
-	let tabs = btn.parentElement;
-	tabs.querySelectorAll(".tab").forEach((tab) => {
-		tab.classList.add("notSelected");
-		document.getElementById(tab.dataset.tabId).style.display = "none";
-	});
-	btn.classList.remove("notSelected");
-	document.getElementById(tabId).style.display = "block";
-}
 var Tabs = class {
 	tabDefs;
-	constructor(tabDefs) {
+	tabs;
+	beforeTabSwitch;
+	constructor(parent, tabDefs, beforeTabSwitch) {
 		this.tabDefs = tabDefs;
-	}
-	switchTab(index) {
-		let btn = document.getElementById(this.tabDefs[index].btnId);
-		switchTab(btn);
-	}
-};
-function createTabs(parent, tabDefs, beforeTabSwitch) {
-	let divTabs = emmet.appendChild(parent, "div.tabs").first;
-	for (let tabDef of tabDefs) {
-		let button = emmet.appendChild(divTabs, `
+		this.beforeTabSwitch = beforeTabSwitch ?? null;
+		this.tabs = emmet.appendChild(parent, "div.tabs").first;
+		for (let tabDef of tabDefs) {
+			let button = emmet.appendChild(this.tabs, `
             button#${tabDef.btnId}.naked.hand.tab.notSelected[data-tab-id="${tabDef.tabId}"]
         `).first;
-		if (typeof tabDef.btnContent == "string") button.innerHTML = tabDef.btnContent;
-		else button.appendChild(tabDef.btnContent);
+			if (typeof tabDef.btnContent == "string") button.innerHTML = tabDef.btnContent;
+			else button.appendChild(tabDef.btnContent);
+		}
+		this.addNavigation();
 	}
-	addNavigation(divTabs, beforeTabSwitch);
-	return new Tabs(tabDefs);
-}
-function addNavigation(tabDiv, beforeTabSwitch) {
-	document.querySelectorAll(".tabs > button.tab").forEach((btn) => btn.addEventListener("click", (ev) => {
-		let button = ev.currentTarget;
-		if (beforeTabSwitch?.(button, button.dataset.tabId) != "cancel") switchTab(ev.currentTarget);
-	}));
-}
+	switch(to) {
+		let btn;
+		if (typeof to == "number") btn = document.getElementById(this.tabDefs[to].btnId);
+		else btn = to;
+		let tabId = btn.dataset.tabId;
+		let tabs = btn.parentElement;
+		tabs.querySelectorAll(".tab").forEach((tab) => {
+			tab.classList.add("notSelected");
+			document.getElementById(tab.dataset.tabId).style.display = "none";
+		});
+		btn.classList.remove("notSelected");
+		document.getElementById(tabId).style.display = "block";
+	}
+	addNavigation() {
+		document.querySelectorAll(".tabs > button.tab").forEach((btn) => btn.addEventListener("click", (ev) => {
+			let button = ev.currentTarget;
+			if (this.beforeTabSwitch?.(button, button.dataset.tabId) != "cancel") this.switch(ev.currentTarget);
+		}));
+	}
+};
 
 //#endregion
 //#region typescript/startPage/diffPage.ts
@@ -6739,7 +6738,7 @@ async function setupDiffPage() {
             )
         )
     `);
-	let tabs = createTabs(diffsPage, [{
+	let tabs = new Tabs(diffsPage, [{
 		btnId: "btnTabTagDefs",
 		tabId: "tabExcelDiffs",
 		btnContent: tab1Content
@@ -6765,7 +6764,7 @@ async function setupDiffPage() {
             div#wrapperWwwDiffs
         )
      `);
-	tabs.switchTab(0);
+	tabs.switch(0);
 	let btnCalcDiff = pluginContainer.querySelector("#btnCalcDiff");
 	let btnCalcDiffWww = pluginContainer.querySelector("#btnDiffWww");
 	let btnDiffSettings = pluginContainer.querySelector("#btnDiffSettings");

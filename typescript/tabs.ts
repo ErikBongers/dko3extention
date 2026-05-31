@@ -1,16 +1,5 @@
 import {emmet} from "../libs/Emmeter/html";
 
-export function switchTab(btn: HTMLButtonElement) {
-    let tabId = btn.dataset.tabId!;
-    let tabs = btn.parentElement!;
-    tabs.querySelectorAll(".tab")!.forEach((tab: HTMLElement) => {
-        tab.classList.add("notSelected");
-        document.getElementById(tab.dataset.tabId!)!.style.display = "none";
-    });
-    btn.classList.remove("notSelected");
-    document.getElementById(tabId)!.style.display = "block";
-}
-
 export type BeforeTabSwitch = (tab: HTMLButtonElement, tabId: string) => "cancel" | "continue";
 
 export interface TabDef {
@@ -21,43 +10,48 @@ export interface TabDef {
 
 export class Tabs {
     tabDefs: TabDef[];
-    constructor(tabDefs: TabDef[]) {
-        this.tabDefs = tabDefs;
-    }
-    switchTab(index: number) {
-        let btn = document.getElementById(this.tabDefs[index].btnId) as HTMLButtonElement;
-        switchTab(btn);
-    }
-}
+    tabs: HTMLDivElement;
+    private readonly beforeTabSwitch: BeforeTabSwitch | null;
 
-export function createTabs(parent: HTMLElement, tabDefs: TabDef[], beforeTabSwitch?: BeforeTabSwitch) {
-    let divTabs = emmet.appendChild(parent, "div.tabs").first as HTMLDivElement;
-    for (let tabDef of tabDefs) {
-        let button = emmet.appendChild(divTabs, `
+    constructor(parent: HTMLElement, tabDefs: TabDef[], beforeTabSwitch?: BeforeTabSwitch) {
+        this.tabDefs = tabDefs;
+        this.beforeTabSwitch = beforeTabSwitch ?? null;
+        this.tabs = emmet.appendChild(parent, "div.tabs").first as HTMLDivElement;
+        for (let tabDef of tabDefs) {
+            let button = emmet.appendChild(this.tabs, `
             button#${tabDef.btnId}.naked.hand.tab.notSelected[data-tab-id="${tabDef.tabId}"]
         `).first as HTMLButtonElement;
-        if (typeof(tabDef.btnContent) == "string") {
-            button.innerHTML = tabDef.btnContent;
-        } else {
-            button.appendChild(tabDef.btnContent);
+            if (typeof(tabDef.btnContent) == "string") {
+                button.innerHTML = tabDef.btnContent;
+            } else {
+                button.appendChild(tabDef.btnContent);
+            }
         }
+        this.addNavigation();
     }
-    addNavigation(divTabs, beforeTabSwitch);
-    return new Tabs(tabDefs);
-}
 
-export function setupTabNavigation(beforeTabSwitch?: BeforeTabSwitch) {
-    let tabs = document.querySelector(".tabs") as HTMLDivElement;
-    addNavigation(tabs, beforeTabSwitch);
-    switchTab(tabs.querySelector(".tab")!);
-}
+    switch(to: number | HTMLButtonElement) {
+        let btn: HTMLButtonElement;
+        if(typeof(to) == "number")
+            btn = document.getElementById(this.tabDefs[to].btnId) as HTMLButtonElement;
+        else
+            btn = to;
+        let tabId = btn.dataset.tabId!;
+        let tabs = btn.parentElement!;
+        tabs.querySelectorAll(".tab")!.forEach((tab: HTMLElement) => {
+            tab.classList.add("notSelected");
+            document.getElementById(tab.dataset.tabId!)!.style.display = "none";
+        });
+        btn.classList.remove("notSelected");
+        document.getElementById(tabId)!.style.display = "block";
+    }
 
-function addNavigation(tabDiv: HTMLDivElement, beforeTabSwitch?: BeforeTabSwitch) {
-    document.querySelectorAll(".tabs > button.tab")
-        .forEach(btn => btn
-            .addEventListener("click", (ev) => {
-                let button: HTMLButtonElement = ev.currentTarget as HTMLButtonElement;
-                if(beforeTabSwitch?.(button, button.dataset.tabId!) != "cancel")
-                    switchTab(ev.currentTarget as HTMLButtonElement);
-            }));
-}
+    addNavigation() {
+        document.querySelectorAll(".tabs > button.tab")
+            .forEach(btn => btn
+                .addEventListener("click", (ev) => {
+                    let button: HTMLButtonElement = ev.currentTarget as HTMLButtonElement;
+                    if(this.beforeTabSwitch?.(button, button.dataset.tabId!) != "cancel")
+                        this.switch(ev.currentTarget as HTMLButtonElement);
+                }));
+    }}
