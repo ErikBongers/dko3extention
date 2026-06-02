@@ -4,6 +4,7 @@ import {DayTimeSlice, DayUppercase, toDay} from "../lessen/scrape";
 import {findTeacher, PreparedDiffSettings, PreparedDko3DiffData} from "../roster_diff/buildDiff";
 import {Actions, sendRequest, ServiceRequest, TabType} from "../messaging";
 import {ComparableLesMoment, GradeYear} from "../roster_diff/calcDiff";
+import {PreTranslation, preTranslations} from "../roster_diff/diffSettings";
 
 interface WwwLesDef {
     url: string;
@@ -19,14 +20,13 @@ interface WwwLesDef {
 
 export type OtherLesType = "excel" | "www";
 
+export function translate(text: string, trns: PreTranslation) {
+    return text.replaceAll(trns.search, trns.replace);
+}
+
 export function preTranslate(text: string) {
-    //todo: put pe-translations in settings
-    return text
-        .replaceAll("Kunstenbad beeld - muziek - woord", "Kunstenbad Kleine Stad bk - muziek - woord")
-        .replaceAll("blazersensemble", "Blazersensemble 2e graad") //todo: conditional on page headers.
-        .replaceAll("gitaarensemble", "Gitaarensemble 2e graad") //todo: conditional on page headers.
-        .replaceAll("strijkersensemble", "Strijkersensemble 2e graad") //todo: conditional on page headers.
-        .replaceAll("ü", "u"); // Jürgen !!!
+    preTranslations.forEach(trns => text = translate(text, trns))
+    return text;
 }
 
 export class TaggedWwwLesDef implements ComparableLesMoment{

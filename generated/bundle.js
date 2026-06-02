@@ -5579,6 +5579,38 @@ const defaultIgnoreList = [
 	" koor (musical) ",
 	" slagwerkensemble "
 ];
+let preTranslations = [
+	{
+		trigger: "",
+		search: "Kunstenbad beeld - muziek - woord",
+		replace: "Kunstenbad Kleine Stad bk - muziek - woord",
+		dscr: ""
+	},
+	{
+		trigger: "",
+		search: "blazersensemble",
+		replace: "Blazersensemble 2e graad",
+		dscr: "todo: conditional on page headers."
+	},
+	{
+		trigger: "",
+		search: "gitaarensemble",
+		replace: "Gitaarensemble 2e graad",
+		dscr: "todo: conditional on page headers."
+	},
+	{
+		trigger: "",
+		search: "strijkersensemble",
+		replace: "Strijkersensemble 2e graad",
+		dscr: "todo: conditional on page headers."
+	},
+	{
+		trigger: "",
+		search: "ü",
+		replace: "u",
+		dscr: "Jürgen !!!"
+	}
+];
 
 //#endregion
 //#region typescript/roster_diff/showDiff.ts
@@ -5889,8 +5921,12 @@ const chars = [
 
 //#endregion
 //#region typescript/www_diff/buildDiff.ts
+function translate(text, trns) {
+	return text.replaceAll(trns.search, trns.replace);
+}
 function preTranslate(text) {
-	return text.replaceAll("Kunstenbad beeld - muziek - woord", "Kunstenbad Kleine Stad bk - muziek - woord").replaceAll("blazersensemble", "Blazersensemble 2e graad").replaceAll("gitaarensemble", "Gitaarensemble 2e graad").replaceAll("strijkersensemble", "Strijkersensemble 2e graad").replaceAll("ü", "u");
+	preTranslations.forEach((trns) => text = translate(text, trns));
+	return text;
 }
 var TaggedWwwLesDef = class {
 	lesType = "www";

@@ -1,4 +1,5 @@
 * Keep last changed date of lessons (effectively the snapshot) to see if the excel or the dko3 class was last changed.
+  > how> based on hash? If hash is changed, the last-changed-date is no longer valid?
 * always add a "show excel" icon to a les and a "goto excel" (which is implicitely part of the excel line!).
 * check if (grouping) alias classes are offline.
 
