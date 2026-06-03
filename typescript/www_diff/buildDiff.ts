@@ -4,7 +4,9 @@ import {DayTimeSlice, DayUppercase, toDay} from "../lessen/scrape";
 import {findTeacher, PreparedDiffSettings, PreparedDko3DiffData} from "../roster_diff/buildDiff";
 import {Actions, sendRequest, ServiceRequest, TabType} from "../messaging";
 import {ComparableLesMoment, GradeYear} from "../roster_diff/calcDiff";
-import {PreTranslation, preTranslations} from "../roster_diff/diffSettings";
+import {PreTranslation} from "../roster_diff/diffSettings";
+import {getOptions} from "../globals";
+import {fetchDiffSettingsOrDefault} from "../roster_diff/showDiff";
 
 interface WwwLesDef {
     url: string;
@@ -24,8 +26,8 @@ export function translate(text: string, trns: PreTranslation) {
     return text.replaceAll(trns.search, trns.replace);
 }
 
-export function preTranslate(text: string) {
-    preTranslations.forEach(trns => text = translate(text, trns))
+export function preTranslate(text: string, diffSettings: PreparedDiffSettings) {
+    diffSettings.preparedDiffSettings.preTranslations.forEach(trns => text = translate(text, trns))
     return text;
 }
 
@@ -49,7 +51,7 @@ export class TaggedWwwLesDef implements ComparableLesMoment{
         this.day = day;
         this.teachers = teachers;
 
-        let translatedClassName = preTranslate(this.lesDef.className);
+        let translatedClassName = preTranslate(this.lesDef.className, diffSettings);
 
         let tags = ExcelRoster.findTags(` ${translatedClassName} ${this.lesDef.location} `, diffSettings.preparedDiffSettings.tagDefs);
         let tagStrings = tags.map(t => t.tag);
@@ -101,7 +103,7 @@ function tagWwwLes(les: WwwLesDef, dko3DiffData: PreparedDko3DiffData, diffSetti
 
     let timeSlice = new TimeSlice(times[0], times[1]);
 
-    let teachers = preTranslate(les.teacher)
+    let teachers = preTranslate(les.teacher, diffSettings)
         .split(/[\/,&]/g).map(t => findTeacher(t, dko3DiffData.preparedDko3DiffData.teachers, t))
         .filter(t => t != "");
 

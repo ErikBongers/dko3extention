@@ -79,7 +79,48 @@
             </div>
             <div id="urlsContainer">
                 <!--suppress HtmlFormInputWithoutLabel -->
-                <textarea id="txtWebPages">
+                <textarea id="txtWebPages"></textarea>
+            </div>
+        </div>
+        <div id="tabPreTranslations">
+            <div class="info">
+                <div class="info">
+                    De vertalinging (tekst vervangingen) die je hier plaats gebeuren alvorens tags worden toegevoegd. <br>
+                    Gebruik dit om ambiguiteit in de excels of online uurroosters op te vangen zonder die bronnen te moeten aanpassen.<br>
+                    Het veld <code>trigger</code> doet alleen de vertaling als de trigger gevonden wordt, ergens in excel cel plus kolom en rij hoofdingen of in de hele webpagina.<br>
+                    Dit laat to om alleen een vertaling te maken voor een specifieke kolom, rij of pagina.
+                </div>
+            </div>
+            <div id="tagPreTransContainer">
+                <table>
+                    <colgroup>
+                        <col span="1" style="width: auto">
+                        <col span="1" style="width: 25%">
+                        <col span="1" style="width: auto">
+                        <col span="1" style="width: 25%">
+                        <col span="1" style="width: auto">
+                        <col span="1" style="width: 25%">
+                        <col span="1" style="width: auto">
+                        <col span="1" style="width: 25%">
+                        <col span="1" style="width: auto">
+                    </colgroup>
+                    <thead>
+                    <tr>
+                        <th class="noSort"></th>
+                        <th >Trigger</th>
+                        <th class="noSort"></th>
+                        <th >Vind</th>
+                        <th class="noSort"></th>
+                        <th >Vervang door</th>
+                        <th class="noSort"></th>
+                        <th class="noSort">Omschrijving</th>
+                        <th class="noSort"></th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+                <button id="btnNewPreTranslationRow">Nieuwe rij</button>
             </div>
         </div>
     </main>

@@ -23,8 +23,12 @@ export async function fetchDiffSettingsOrDefault(academie: string, schoolYear: s
             schoolYear,
             tagDefs: [...defaultTagDefs],
             ignoreList: [...defaultIgnoreList],
-            urls: []
+            urls: [],
+            preTranslations: [],
+
         } satisfies DiffSettings;
+    if(!settings.preTranslations)
+        settings.preTranslations = [];
     return settings;
 }
 

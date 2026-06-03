@@ -740,23 +740,31 @@ handler.onMessageForMyTabType((msg) => {
 	console.log("diff setup page: message for me: ", msg);
 }).onData(onData);
 function addTranslationRow(tagDef, tbody) {
-	let text = `tr>` + buildField("Vind", tagDef.searchString, "trnsFind") + "+" + buildField("tag met", tagDef.tag, "trnsTag") + "+" + buildField("gr+jaren", tagDef.gradeYears?.toString() ?? "", "trnsGradeYears") + `+ div.flexRow>(
+	let text = `tr>` + buildLabeledDecoratedTextField("Vind", tagDef.searchString, "trnsFind") + "+" + buildLabeledDecoratedTextField("tag met", tagDef.tag, "trnsTag") + "+" + buildLabeledDecoratedTextField("gr+jaren", tagDef.gradeYears?.toString() ?? "", "trnsGradeYears") + `+ div.flexRow>(
                 label.flexGrow[for="trnsIsClassName"]{is klasnaam:}+
                 input#trnsIsClassName[type="checkbox" ${tagDef.isClassName ? "checked=\"checked\"" : ""} name="trnsIsClassName"]
             )
            `;
 	let tr = emmet.appendChild(tbody, text).first;
-	let bucket = `button.deleteRow.naked>img[src="${chrome.runtime.getURL("images/trash-can.svg")}"]`;
-	emmet.appendChild(tr, `td>${bucket}`);
-	tbody.querySelectorAll("button.deleteRow").forEach((btn) => btn.addEventListener("click", deleteTableRow));
-	function buildField(label, value, id) {
-		let attrValue = value ? ` value="${value}"` : "";
-		return `(td.label>{${label}})+(td>input-with-spaces#${id}[type="text"${attrValue}])`;
-	}
+	addDeleteButton(tr);
 	let chkIsClassName = tr.querySelector("#trnsIsClassName");
 	chkIsClassName.addEventListener("change", (_) => {
 		hasDataChanged = true;
 	});
+}
+function addPreTranslationRow(preTrans, tbody) {
+	let text = `tr>` + buildLabeledDecoratedTextField("Als", preTrans.trigger, "trnsTrigger") + "+" + buildLabeledDecoratedTextField("vind", preTrans.search, "trnsSearch") + "+" + buildLabeledDecoratedTextField("vervang door", preTrans.replace, "trnsReplace") + "+" + buildLabeledDecoratedTextField("", preTrans.dscr, "trnsDscr");
+	let tr = emmet.appendChild(tbody, text).first;
+	addDeleteButton(tr);
+}
+function buildLabeledDecoratedTextField(label, value, id) {
+	let attrValue = value ? ` value="${value}"` : "";
+	return `(td.label>{${label}})+(td>input-with-spaces#${id}[type="text"${attrValue}])`;
+}
+function addDeleteButton(tr) {
+	let bucket = `button.deleteRow.naked>img[src="${chrome.runtime.getURL("images/trash-can.svg")}"]`;
+	emmet.appendChild(tr, `td>${bucket}`);
+	tr.querySelectorAll("button.deleteRow").forEach((btn) => btn.addEventListener("click", deleteTableRow));
 }
 function addIgnoresRow(ignore, tbody) {
 	let text = `tr>` + buildField(ignore, "trnsIgnore");
@@ -775,7 +783,19 @@ function fillTagDefTable(diffSettings) {
 	let tbody = container.querySelector("table>tbody");
 	tbody.innerHTML = "";
 	for (let tagDef of diffSettings.tagDefs) addTranslationRow(tagDef, tbody);
-	document.querySelectorAll("#tagDefsContainer button.deleteRow").forEach((btn) => btn.addEventListener("click", deleteTableRow));
+	let valueFuncs = getDefaultValueFuncs(table);
+	valueFuncs[1] = getInputWithSpacesValue;
+	valueFuncs[3] = getInputWithSpacesValue;
+	valueFuncs[5] = getInputWithSpacesValue;
+	makeTableSortable(table, valueFuncs);
+}
+function fillPreTransTable(diffSettings) {
+	let container = document.getElementById("tagPreTransContainer");
+	let table = container.querySelector("table");
+	let tbody = container.querySelector("table>tbody");
+	tbody.innerHTML = "";
+	if (!diffSettings.preTranslations) diffSettings.preTranslations = [];
+	for (let preTrans of diffSettings.preTranslations) addPreTranslationRow(preTrans, tbody);
 	let valueFuncs = getDefaultValueFuncs(table);
 	valueFuncs[1] = getInputWithSpacesValue;
 	valueFuncs[3] = getInputWithSpacesValue;
@@ -808,6 +828,9 @@ async function onData(request) {
 		// searchText
 		// tag
 		// grades+years
+		// searchText
+		// tag
+		// grades+years
 		SETUP_HOURS_TITLE_ID
 ).innerHTML = title;
 	document.querySelector("button").addEventListener("click", async () => {
@@ -815,6 +838,7 @@ async function onData(request) {
 	});
 	globalSetup = request.data;
 	fillTagDefTable(request.data);
+	fillPreTransTable(request.data);
 	fillIgnoresTable(request.data);
 	fillUrls(request.data);
 	document.querySelectorAll("tbody").forEach((tbody) => tbody.addEventListener("change", (_) => {
@@ -830,6 +854,16 @@ async function onData(request) {
 			gradeYears: ""
 		};
 		addTranslationRow(def, document.querySelector("#tagDefsContainer tbody"));
+		hasDataChanged = true;
+	});
+	document.getElementById("btnNewPreTranslationRow").addEventListener("click", function(_) {
+		let def = {
+			trigger: "",
+			search: "",
+			replace: "",
+			dscr: ""
+		};
+		addPreTranslationRow(def, document.querySelector("#tagPreTransContainer tbody"));
 		hasDataChanged = true;
 	});
 	document.getElementById("btnNewIgnoresRow").addEventListener("click", function(_) {
@@ -867,6 +901,21 @@ function scrapeIgnores() {
 	let rows = document.querySelectorAll("#ignoresContainer>table>tbody>tr");
 	return [...rows].map((row) => row.querySelector("#trnsIgnore").value);
 }
+function scrapePreTranslations() {
+	let rows = document.querySelectorAll("#tagPreTransContainer>table>tbody>tr");
+	return [...rows].map((row) => {
+		let trigger = row.querySelector("#trnsTrigger").value.trim();
+		let search = row.querySelector("#trnsSearch").value.trim();
+		let replace = row.querySelector("#trnsReplace").value.trim();
+		let dscr = row.querySelector("#trnsDscr").value.trim();
+		return {
+			trigger,
+			search,
+			replace,
+			dscr
+		};
+	});
+}
 function onCheckTableChanged(diffSettings) {
 	if (!hasDataChanged) return;
 	let txtUrls = document.getElementById("txtWebPages");
@@ -877,6 +926,7 @@ function onCheckTableChanged(diffSettings) {
 		schoolYear: diffSettings.schoolYear,
 		tagDefs: scrapeTagDefs(),
 		ignoreList: scrapeIgnores(),
+		preTranslations: scrapePreTranslations(),
 		urls
 	};
 	hasDataChanged = false;
@@ -898,6 +948,11 @@ async function onDocumentLoaded(_) {
 			btnId: "btnTabIgnores",
 			tabId: "tabIgnores",
 			btnContent: "Negeer"
+		},
+		{
+			btnId: "btnTabPreTranslations",
+			tabId: "tabPreTranslations",
+			btnContent: "Voor-vertalingen"
 		},
 		{
 			btnId: "btnTabWebPages",

@@ -1,6 +1,6 @@
 main {
-    max-width: 1000px;
     width: 100%;
+    box-sizing: border-box;
     padding-right: 15px;
     padding-left: 15px;
     margin-right: auto;

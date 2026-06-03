@@ -96,7 +96,7 @@ export interface DiffSettings {
     tagDefs: TagDef[],
     ignoreList: string[],
     urls: string[],
-    classNamesFromTags?: string[];
+    preTranslations: PreTranslation[];
 }
 
 export interface PreTranslation {
@@ -105,12 +105,3 @@ export interface PreTranslation {
     replace: string,
     dscr: string, //make sense of this replacement
 }
-
-//todo: put pe-translations in settings
-export let preTranslations: PreTranslation[] = [
-    {trigger: "", search: "Kunstenbad beeld - muziek - woord", replace: "Kunstenbad Kleine Stad bk - muziek - woord", dscr: ""},
-    {trigger: "", search: "blazersensemble", replace: "Blazersensemble 2e graad", dscr: "todo: conditional on page headers."},
-    {trigger: "", search: "gitaarensemble", replace: "Gitaarensemble 2e graad", dscr: "todo: conditional on page headers."},
-    {trigger: "", search: "strijkersensemble", replace: "Strijkersensemble 2e graad", dscr: "todo: conditional on page headers."},
-    {trigger: "", search: "ü", replace: "u", dscr: "Jürgen !!!"},
-];

@@ -57,7 +57,7 @@ export let prepareExcelData: DataPreparationFunction = async function(statusRepo
     }
     statusReporter.reportStatus("Lessen vergelijken...");
     let dddata = dko3DiffData;
-    let otherLesSet: Set<ComparableLesMoment> = new Set<TaggedExcelLes>(excelLessenArray.flat().map(les => new TaggedExcelLes(les, dddata.preparedDko3DiffData.teachers)));
+    let otherLesSet: Set<ComparableLesMoment> = new Set<TaggedExcelLes>(excelLessenArray.flat().map(les => new TaggedExcelLes(les, dddata.preparedDko3DiffData.teachers, diffSettings)));
     otherLesSet.forEach(les => {
         if (isExcelLesToIgnore(les as TaggedExcelLes, diffSettings.preparedDiffSettings.ignoreList))
             otherLesSet.delete(les);
@@ -66,7 +66,10 @@ export let prepareExcelData: DataPreparationFunction = async function(statusRepo
 }
 
 export type PreparedDko3DiffData = { preparedDko3DiffData: Dko3DiffData };
-export type PreparedDiffSettings = { preparedDiffSettings: DiffSettings };
+export type PreparedDiffSettings = {
+    preparedDiffSettings: DiffSettings,
+    classNamesFromTags: string[],
+};
 export type PreparedData = {dko3DiffData: PreparedDko3DiffData, diffSettings: PreparedDiffSettings};
 function updateDko3DiffDataAndSettings(dko3DiffData: Dko3DiffData, diffSettings: DiffSettings): PreparedData {
     for(let teacher of dko3DiffData.teachers) {
@@ -75,10 +78,10 @@ function updateDko3DiffDataAndSettings(dko3DiffData: Dko3DiffData, diffSettings:
                 teacher.callName = tagDef.searchString;
         }
     }
-    diffSettings.classNamesFromTags = diffSettings.tagDefs
+    let classNamesFromTags = diffSettings.tagDefs
         .filter(tagDef => tagDef.isClassName)
         .map(tagDef => tagDef.searchString);
-    return {dko3DiffData: {preparedDko3DiffData: dko3DiffData}, diffSettings: {preparedDiffSettings: diffSettings} }
+    return {dko3DiffData: {preparedDko3DiffData: dko3DiffData}, diffSettings: {preparedDiffSettings: diffSettings, classNamesFromTags} }
 }
 
 export async function buildAndSaveDiff(statusReporter: StatusReporter,
@@ -189,7 +192,7 @@ export class TaggedExcelLes extends TaggedLes<ClassDef> implements ComparableLes
     public className: string | null;
     public dayTimeSlice: DayTimeSlice;
     public hash: string;
-    constructor(les: ClassDef, teachers: TeacherDef[]) {
+    constructor(les: ClassDef, teachers: TeacherDef[], diffSettings: PreparedDiffSettings) {
         let searchText = " " + les.cellValue
             .toLowerCase()
             .replaceAll('\n', " \n ") //todo: dedup this code.
@@ -202,11 +205,11 @@ export class TaggedExcelLes extends TaggedLes<ClassDef> implements ComparableLes
         super(les, [], searchText);
         this.className = this.lesMoment.className;
         this.location = this.lesMoment.location;//translate probably already done.
-        this.teachers = preTranslate(les.cellValue)
+        this.teachers = preTranslate(les.cellValue, diffSettings)
             .split(/[\/,]/g).map(t => findTeacher(t, teachers, ""))
             .filter(t => t != "");
         if(this.teachers.length == 0) {
-            this.teachers = preTranslate(this.lesMoment.teacher)
+            this.teachers = preTranslate(this.lesMoment.teacher, diffSettings)
                 .split(/[\/,]/g)
                 .map(t => t.trim())
                 .filter(t => t.substring(t.length-1) != "?")

@@ -7,7 +7,7 @@ div.tabs button.tab > * {
 
 div.tabs {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
     button.tab {
         padding: 1ch;
         background-color: #eff4ff;

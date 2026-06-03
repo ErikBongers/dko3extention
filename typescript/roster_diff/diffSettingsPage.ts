@@ -2,7 +2,7 @@ import {Actions, createMessageHandler, DataRequestTypes, DiffSettingsDataRequest
 import {emmet} from "../../libs/Emmeter/html";
 import * as def from "../def";
 import * as InputWithSpaces from "../webComponents/inputWithSpaces";
-import {DiffSettings, TagDef} from "./diffSettings";
+import {DiffSettings, PreTranslation, TagDef} from "./diffSettings";
 import {uploadDiffSettings} from "../cloud";
 import {ColumnValueFunc, getDefaultValueFuncs, makeTableSortable} from "../table/tableSort";
 import {Tabs} from "../tabs";
@@ -26,11 +26,11 @@ handler
 
 function addTranslationRow(tagDef: TagDef, tbody: HTMLTableSectionElement) {
     let text = `tr>`
-        + buildField("Vind", tagDef.searchString, "trnsFind")
+        + buildLabeledDecoratedTextField("Vind", tagDef.searchString, "trnsFind")
         + "+"
-        + buildField("tag met", tagDef.tag, "trnsTag")
+        + buildLabeledDecoratedTextField("tag met", tagDef.tag, "trnsTag")
         + "+"
-        + buildField("gr+jaren", tagDef.gradeYears?.toString()??"", "trnsGradeYears")
+        + buildLabeledDecoratedTextField("gr+jaren", tagDef.gradeYears?.toString()??"", "trnsGradeYears")
         + "+"
         + ` div.flexRow>(
                 label.flexGrow[for="trnsIsClassName"]{is klasnaam:}+
@@ -39,20 +39,38 @@ function addTranslationRow(tagDef: TagDef, tbody: HTMLTableSectionElement) {
            `
     ;
     let tr = emmet.appendChild(tbody, text).first as HTMLTableRowElement;
-    let bucket = `button.deleteRow.naked>img[src="${chrome.runtime.getURL("images/trash-can.svg")}"]`;
-    emmet.appendChild(tr, `td>${bucket}`);
+    addDeleteButton(tr);
 
-    tbody.querySelectorAll("button.deleteRow")
-        .forEach(btn => btn.addEventListener("click", deleteTableRow));
-
-    function buildField(label: string, value: string, id: string){
-        let attrValue = value ? ` value="${value}"` : "";
-        return `(td.label>{${label}})+(td>input-with-spaces#${id}[type="text"${attrValue}])`;
-    }
     let chkIsClassName = tr.querySelector("#trnsIsClassName") as HTMLInputElement;
     chkIsClassName.addEventListener("change", (_) => {
         hasDataChanged = true;
     });
+}
+
+function addPreTranslationRow(preTrans: PreTranslation, tbody: HTMLTableSectionElement) {
+    let text = `tr>`
+        + buildLabeledDecoratedTextField("Als", preTrans.trigger, "trnsTrigger")
+        + "+"
+        + buildLabeledDecoratedTextField("vind", preTrans.search, "trnsSearch")
+        + "+"
+        + buildLabeledDecoratedTextField("vervang door", preTrans.replace, "trnsReplace")
+        + "+"
+        + buildLabeledDecoratedTextField("", preTrans.dscr, "trnsDscr")
+    let tr = emmet.appendChild(tbody, text).first as HTMLTableRowElement;
+    addDeleteButton(tr);
+}
+
+function buildLabeledDecoratedTextField(label: string, value: string, id: string){
+    let attrValue = value ? ` value="${value}"` : "";
+    return `(td.label>{${label}})+(td>input-with-spaces#${id}[type="text"${attrValue}])`;
+}
+
+function addDeleteButton(tr: HTMLTableRowElement) {
+    let bucket = `button.deleteRow.naked>img[src="${chrome.runtime.getURL("images/trash-can.svg")}"]`;
+    emmet.appendChild(tr, `td>${bucket}`);
+
+    tr.querySelectorAll("button.deleteRow")
+        .forEach(btn => btn.addEventListener("click", deleteTableRow));
 }
 
 function addIgnoresRow(ignore: string, tbody: HTMLTableSectionElement) {
@@ -79,8 +97,25 @@ function fillTagDefTable(diffSettings: DiffSettings) {
         addTranslationRow(tagDef, tbody);
     }
 
-    document.querySelectorAll("#tagDefsContainer button.deleteRow")
-        .forEach(btn => btn.addEventListener("click", deleteTableRow));
+    let valueFuncs: ColumnValueFunc[] = getDefaultValueFuncs(table);
+    valueFuncs[1] = getInputWithSpacesValue; // searchText
+    valueFuncs[3] = getInputWithSpacesValue; // tag
+    valueFuncs[5] = getInputWithSpacesValue; // grades+years
+
+    makeTableSortable(table, valueFuncs);
+}
+
+function fillPreTransTable(diffSettings: DiffSettings) {
+    let container = document.getElementById("tagPreTransContainer")!;
+    let table = container.querySelector("table") as HTMLTableElement;
+    let tbody = container.querySelector("table>tbody") as HTMLTableSectionElement;
+    tbody.innerHTML = "";
+    if(!diffSettings.preTranslations)
+        diffSettings.preTranslations = [];
+    for (let preTrans of diffSettings.preTranslations) {
+        addPreTranslationRow(preTrans, tbody);
+    }
+
     let valueFuncs: ColumnValueFunc[] = getDefaultValueFuncs(table);
     valueFuncs[1] = getInputWithSpacesValue; // searchText
     valueFuncs[3] = getInputWithSpacesValue; // tag
@@ -127,6 +162,7 @@ async function onData(request: ServiceRequest<any>) {
 
     globalSetup = request.data as DiffSettings;
     fillTagDefTable(request.data as DiffSettings);
+    fillPreTransTable(request.data as DiffSettings);
     fillIgnoresTable(request.data as DiffSettings);
     fillUrls(request.data as DiffSettings);
     //set change even AFTER filling the tables:
@@ -143,6 +179,16 @@ async function onData(request: ServiceRequest<any>) {
             gradeYears: "",
         }
         addTranslationRow(def, document.querySelector("#tagDefsContainer tbody")!);
+        hasDataChanged = true;
+    });
+    document.getElementById('btnNewPreTranslationRow')!.addEventListener('click', function (_) {
+        let def: PreTranslation = {
+            trigger: "",
+            search: "",
+            replace: "",
+            dscr: "",
+        }
+        addPreTranslationRow(def, document.querySelector("#tagPreTransContainer tbody")!);
         hasDataChanged = true;
     });
     document.getElementById('btnNewIgnoresRow')!.addEventListener('click', function (_) {
@@ -191,6 +237,23 @@ function scrapeIgnores(): string[] {
         .map(row => (row.querySelector("#trnsIgnore") as InputWithSpaces.Type).value);
 }
 
+function scrapePreTranslations() {
+    let rows = document.querySelectorAll("#tagPreTransContainer>table>tbody>tr") as NodeListOf<HTMLTableRowElement>;
+    return [...rows]
+        .map(row => {
+            let trigger = (row.querySelector("#trnsTrigger") as InputWithSpaces.Type).value.trim();
+            let search = (row.querySelector("#trnsSearch") as InputWithSpaces.Type).value.trim();
+            let replace = (row.querySelector("#trnsReplace") as InputWithSpaces.Type).value.trim();
+            let dscr = (row.querySelector("#trnsDscr") as InputWithSpaces.Type).value.trim();
+            return {
+                trigger,
+                search,
+                replace,
+                dscr,
+            } satisfies PreTranslation
+        });
+}
+
 function onCheckTableChanged(diffSettings: DiffSettings) {
     if (!hasDataChanged)
         return;
@@ -205,6 +268,7 @@ function onCheckTableChanged(diffSettings: DiffSettings) {
         schoolYear: diffSettings.schoolYear,
         tagDefs: scrapeTagDefs(),
         ignoreList: scrapeIgnores(),
+        preTranslations: scrapePreTranslations(),
         urls
     };
     hasDataChanged = false;
@@ -223,6 +287,7 @@ async function onDocumentLoaded(this: Document, _: Event) {
     let tabs = new Tabs(document.querySelector("div.tabsContainer")!, [
         { btnId: "btnTabTagDefs", tabId: "tabTagDefs",  btnContent: "Tags" },
         { btnId: "btnTabIgnores", tabId: "tabIgnores", btnContent: "Negeer" },
+        { btnId: "btnTabPreTranslations", tabId: "tabPreTranslations", btnContent: "Voor-vertalingen" },
         { btnId: "btnTabWebPages", tabId: "tabWebPages",  btnContent: "Web pagina's" },
     ]);
     tabs.switch(0);

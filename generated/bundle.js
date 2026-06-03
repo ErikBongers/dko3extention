@@ -1771,8 +1771,8 @@ function matchBasedOnName(ctx, dko3Les, otherLesSet, diffSettings) {
 	let otherLessenWithSameName = ctx.otherLesNamesMap.get(dko3LesName);
 	if (!otherLessenWithSameName) {
 		let searchName = " " + dko3LesName + " ";
-		if (!diffSettings.preparedDiffSettings.classNamesFromTags) return null;
-		let foundName = diffSettings.preparedDiffSettings.classNamesFromTags.find((name) => searchName.includes(name));
+		if (!diffSettings.classNamesFromTags) return null;
+		let foundName = diffSettings.classNamesFromTags.find((name) => searchName.includes(name));
 		if (!foundName) return null;
 		for (let les of otherLesSet) if ((" " + les.className?.toLowerCase() + " ").includes(foundName)) {
 			otherLessenWithSameName = [les];
@@ -5579,38 +5579,6 @@ const defaultIgnoreList = [
 	" koor (musical) ",
 	" slagwerkensemble "
 ];
-let preTranslations = [
-	{
-		trigger: "",
-		search: "Kunstenbad beeld - muziek - woord",
-		replace: "Kunstenbad Kleine Stad bk - muziek - woord",
-		dscr: ""
-	},
-	{
-		trigger: "",
-		search: "blazersensemble",
-		replace: "Blazersensemble 2e graad",
-		dscr: "todo: conditional on page headers."
-	},
-	{
-		trigger: "",
-		search: "gitaarensemble",
-		replace: "Gitaarensemble 2e graad",
-		dscr: "todo: conditional on page headers."
-	},
-	{
-		trigger: "",
-		search: "strijkersensemble",
-		replace: "Strijkersensemble 2e graad",
-		dscr: "todo: conditional on page headers."
-	},
-	{
-		trigger: "",
-		search: "ü",
-		replace: "u",
-		dscr: "Jürgen !!!"
-	}
-];
 
 //#endregion
 //#region typescript/roster_diff/showDiff.ts
@@ -5625,8 +5593,10 @@ async function fetchDiffSettingsOrDefault(academie, schoolYear) {
 		schoolYear,
 		tagDefs: [...defaultTagDefs],
 		ignoreList: [...defaultIgnoreList],
-		urls: []
+		urls: [],
+		preTranslations: []
 	};
+	if (!settings.preTranslations) settings.preTranslations = [];
 	return settings;
 }
 function getDiffsDko3CacheFileName(academie, schoolYear, diffType) {
@@ -5924,8 +5894,8 @@ const chars = [
 function translate(text, trns) {
 	return text.replaceAll(trns.search, trns.replace);
 }
-function preTranslate(text) {
-	preTranslations.forEach((trns) => text = translate(text, trns));
+function preTranslate(text, diffSettings) {
+	diffSettings.preparedDiffSettings.preTranslations.forEach((trns) => text = translate(text, trns));
 	return text;
 }
 var TaggedWwwLesDef = class {
@@ -5946,7 +5916,7 @@ var TaggedWwwLesDef = class {
 		this.timeSlice = timeSlice;
 		this.day = day;
 		this.teachers = teachers;
-		let translatedClassName = preTranslate(this.lesDef.className);
+		let translatedClassName = preTranslate(this.lesDef.className, diffSettings);
 		let tags = ExcelRoster.findTags(` ${translatedClassName} ${this.lesDef.location} `, diffSettings.preparedDiffSettings.tagDefs);
 		let tagStrings = tags.map((t) => t.tag);
 		let location$1 = ExcelRoster.findLocation(tagStrings, dko3Data.preparedDko3DiffData.locations);
@@ -5989,7 +5959,7 @@ function tagWwwLes(les, dko3DiffData, diffSettings) {
 		return null;
 	}
 	let timeSlice = new TimeSlice(times[0], times[1]);
-	let teachers = preTranslate(les.teacher).split(/[\/,&]/g).map((t) => findTeacher(t, dko3DiffData.preparedDko3DiffData.teachers, t)).filter((t) => t != "");
+	let teachers = preTranslate(les.teacher, diffSettings).split(/[\/,&]/g).map((t) => findTeacher(t, dko3DiffData.preparedDko3DiffData.teachers, t)).filter((t) => t != "");
 	return new TaggedWwwLesDef(les, timeSlice, day ?? "", teachers, dko3DiffData, diffSettings);
 }
 async function requestWww(urlList) {
@@ -6136,7 +6106,7 @@ let prepareExcelData = async function(statusReporter, academie, schoolYear, dko3
 	}
 	statusReporter.reportStatus("Lessen vergelijken...");
 	let dddata = dko3DiffData;
-	let otherLesSet = new Set(excelLessenArray.flat().map((les) => new TaggedExcelLes(les, dddata.preparedDko3DiffData.teachers)));
+	let otherLesSet = new Set(excelLessenArray.flat().map((les) => new TaggedExcelLes(les, dddata.preparedDko3DiffData.teachers, diffSettings)));
 	otherLesSet.forEach((les) => {
 		if (isExcelLesToIgnore(les, diffSettings.preparedDiffSettings.ignoreList)) otherLesSet.delete(les);
 	});
@@ -6147,10 +6117,13 @@ let prepareExcelData = async function(statusReporter, academie, schoolYear, dko3
 };
 function updateDko3DiffDataAndSettings(dko3DiffData, diffSettings) {
 	for (let teacher of dko3DiffData.teachers) for (let tagDef of diffSettings.tagDefs) if (teacher.fullName == tagDef.tag) teacher.callName = tagDef.searchString;
-	diffSettings.classNamesFromTags = diffSettings.tagDefs.filter((tagDef) => tagDef.isClassName).map((tagDef) => tagDef.searchString);
+	let classNamesFromTags = diffSettings.tagDefs.filter((tagDef) => tagDef.isClassName).map((tagDef) => tagDef.searchString);
 	return {
 		dko3DiffData: { preparedDko3DiffData: dko3DiffData },
-		diffSettings: { preparedDiffSettings: diffSettings }
+		diffSettings: {
+			preparedDiffSettings: diffSettings,
+			classNamesFromTags
+		}
 	};
 }
 async function buildAndSaveDiff(statusReporter, fetchListener, academie, schoolYear, dko3DiffData, diffSettings, diffPageType, prepareOtherData, errors) {
@@ -6248,13 +6221,13 @@ var TaggedExcelLes = class extends TaggedLes {
 	className;
 	dayTimeSlice;
 	hash;
-	constructor(les, teachers) {
+	constructor(les, teachers, diffSettings) {
 		let searchText = " " + les.cellValue.toLowerCase().replaceAll("\n", " \n ").replaceAll("(", " ( ").replaceAll(")", " ) ").replaceAll(".", " . ").replaceAll(",", " , ").replaceAll("-", " - ") + " ";
 		super(les, [], searchText);
 		this.className = this.lesMoment.className;
 		this.location = this.lesMoment.location;
-		this.teachers = preTranslate(les.cellValue).split(/[\/,]/g).map((t) => findTeacher(t, teachers, "")).filter((t) => t != "");
-		if (this.teachers.length == 0) this.teachers = preTranslate(this.lesMoment.teacher).split(/[\/,]/g).map((t) => t.trim()).filter((t) => t.substring(t.length - 1) != "?").map((t) => findTeacher(t, teachers, t)).filter((t) => t != "");
+		this.teachers = preTranslate(les.cellValue, diffSettings).split(/[\/,]/g).map((t) => findTeacher(t, teachers, "")).filter((t) => t != "");
+		if (this.teachers.length == 0) this.teachers = preTranslate(this.lesMoment.teacher, diffSettings).split(/[\/,]/g).map((t) => t.trim()).filter((t) => t.substring(t.length - 1) != "?").map((t) => findTeacher(t, teachers, t)).filter((t) => t != "");
 		this.subjects = les.subjects;
 		this.subjects = this.subjects.filter((s) => s);
 		if (this.lesMoment.className) this.subjects.push(this.lesMoment.className);

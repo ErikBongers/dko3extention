@@ -194,9 +194,9 @@ export function matchBasedOnName(ctx: MatchContext, dko3Les: TaggedDko3LesMoment
         //2nd try with class names from settings.
         let searchName = " " + dko3LesName + " ";
         // let storedNames: string[] = []; //[" 2va ", " 1vb ", " 1vc ", " 1vd ", " 2vb ", " 2vc ", " harmonielab "]; //todo: add to settings! (or have a check box that marks this as a class name)
-        if(!diffSettings.preparedDiffSettings.classNamesFromTags)
+        if(!diffSettings.classNamesFromTags)
             return null;
-        let foundName = diffSettings.preparedDiffSettings.classNamesFromTags.find(name => searchName.includes(name));
+        let foundName = diffSettings.classNamesFromTags.find(name => searchName.includes(name));
         if(!foundName)
             return null;
         for(let les of otherLesSet ) {
