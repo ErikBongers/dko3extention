@@ -6,6 +6,7 @@ import {DiffSettings, PreTranslation, TagDef} from "./diffSettings";
 import {uploadDiffSettings} from "../cloud";
 import {ColumnValueFunc, getDefaultValueFuncs, makeTableSortable} from "../table/tableSort";
 import {Tabs} from "../tabs";
+import {CloseBeforeSavePreventer} from "../closeBeforeSavePreventer";
 
 let handler  = createMessageHandler(TabType.DiffSettings);
 
@@ -13,7 +14,9 @@ InputWithSpaces.registerWebComponent();
 
 chrome.runtime.onMessage.addListener(handler.getListener());
 
-document.addEventListener("DOMContentLoaded", onDocumentLoaded)
+document.addEventListener("DOMContentLoaded", onDocumentLoaded);
+
+let dataUploader = new CloseBeforeSavePreventer(saveIfDataChanged, 1000);
 
 handler
     .onMessageForMyTabType(msg => {
@@ -43,7 +46,7 @@ function addTranslationRow(tagDef: TagDef, tbody: HTMLTableSectionElement) {
 
     let chkIsClassName = tr.querySelector("#trnsIsClassName") as HTMLInputElement;
     chkIsClassName.addEventListener("change", (_) => {
-        hasDataChanged = true;
+        dataUploader.setDataChanged();
     });
 }
 
@@ -148,7 +151,7 @@ function fillUrls(diffSettings: DiffSettings) {
 function deleteTableRow(ev: Event) {
     let btn = ev.target as HTMLButtonElement;
     btn.closest("tr")!.remove();
-    hasDataChanged = true;
+    dataUploader.setDataChanged();
 }
 
 async function onData(request: ServiceRequest<any>) {
@@ -167,10 +170,10 @@ async function onData(request: ServiceRequest<any>) {
     fillUrls(request.data as DiffSettings);
     //set change even AFTER filling the tables:
     document.querySelectorAll("tbody").forEach(tbody => tbody.addEventListener("change", (_) => {
-        hasDataChanged = true;
+        dataUploader.setDataChanged();
     }));
     document.querySelectorAll('tbody').forEach(el => el.addEventListener('input', function (_) {
-        hasDataChanged = true;
+        dataUploader.setDataChanged();
     }));
     document.getElementById('btnNewTranslationRow')!.addEventListener('click', function (_) {
         let def: TagDef = {
@@ -179,7 +182,7 @@ async function onData(request: ServiceRequest<any>) {
             gradeYears: "",
         }
         addTranslationRow(def, document.querySelector("#tagDefsContainer tbody")!);
-        hasDataChanged = true;
+        dataUploader.setDataChanged();
     });
     document.getElementById('btnNewPreTranslationRow')!.addEventListener('click', function (_) {
         let def: PreTranslation = {
@@ -189,32 +192,24 @@ async function onData(request: ServiceRequest<any>) {
             dscr: "",
         }
         addPreTranslationRow(def, document.querySelector("#tagPreTransContainer tbody")!);
-        hasDataChanged = true;
+        dataUploader.setDataChanged();
     });
     document.getElementById('btnNewIgnoresRow')!.addEventListener('click', function (_) {
         let ignore =  "";
         addIgnoresRow(ignore, document.querySelector("#ignoresContainer tbody")!);
-        hasDataChanged = true;
+        dataUploader.setDataChanged();
     });
     let txtUrls = document.getElementById("txtWebPages") as HTMLTextAreaElement;
     txtUrls.addEventListener("input", (_) => {
-        hasDataChanged = true;
+        dataUploader.setDataChanged();
     });
     //add blur event
     txtUrls.addEventListener("blur", (_) => {
-        hasDataChanged = true;
+        dataUploader.setDataChanged();
     });
 }
 
 let globalSetup: DiffSettings | undefined = undefined;
-
-let hasDataChanged = false;
-
-setInterval(() => {
-    if(globalSetup)
-        onCheckTableChanged(globalSetup);
-}, 1000);
-
 
 function scrapeTagDefs(): TagDef[] {
     let rows = document.querySelectorAll("#tagDefsContainer>table>tbody>tr") as NodeListOf<HTMLTableRowElement>;
@@ -254,8 +249,8 @@ function scrapePreTranslations() {
         });
 }
 
-function onCheckTableChanged(diffSettings: DiffSettings) {
-    if (!hasDataChanged)
+async function saveIfDataChanged() {
+    if(!globalSetup)
         return;
     let txtUrls = document.getElementById("txtWebPages") as HTMLTextAreaElement;
     let urls = txtUrls.value
@@ -264,23 +259,15 @@ function onCheckTableChanged(diffSettings: DiffSettings) {
         .filter(s => s.length > 0);
     let setupData: DiffSettings = {
         version: 1,
-        academie: diffSettings.academie,
-        schoolYear: diffSettings.schoolYear,
+        academie: globalSetup.academie,
+        schoolYear: globalSetup.schoolYear,
         tagDefs: scrapeTagDefs(),
         ignoreList: scrapeIgnores(),
         preTranslations: scrapePreTranslations(),
         urls
     };
-    hasDataChanged = false;
-    uploadDiffSettings(diffSettings.academie, diffSettings.schoolYear, setupData)
-        .then(_ => {
-            sendRequest(Actions.DiffSettingsChanged, TabType.DiffSettings, TabType.Main, undefined, setupData).then(_ => {});
-        });
-}
-
-window.onbeforeunload = () => {
-    if(globalSetup)
-        onCheckTableChanged(globalSetup);
+    await uploadDiffSettings(globalSetup.academie, globalSetup.schoolYear, setupData)
+    await sendRequest(Actions.DiffSettingsChanged, TabType.DiffSettings, TabType.Main, undefined, setupData).then(_ => {});
 }
 
 async function onDocumentLoaded(this: Document, _: Event) {

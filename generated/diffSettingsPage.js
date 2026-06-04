@@ -729,11 +729,41 @@ var Tabs = class {
 };
 
 //#endregion
+//#region typescript/closeBeforeSavePreventer.ts
+var CloseBeforeSavePreventer = class {
+	hasDataChanged = false;
+	isDataUploading = false;
+	uploadCallback;
+	saveIntervalMillis;
+	constructor(uploadCallback, saveInterval) {
+		this.uploadCallback = uploadCallback;
+		this.saveIntervalMillis = saveInterval;
+		setInterval(() => {
+			this.checkAndSave();
+		}, this.saveIntervalMillis);
+		window.addEventListener("beforeunload", (ev) => {
+			if (this.hasDataChanged || this.isDataUploading) ev.preventDefault();
+		});
+	}
+	checkAndSave() {
+		if (this.hasDataChanged) {
+			this.hasDataChanged = false;
+			this.isDataUploading = true;
+			this.uploadCallback().then(() => this.isDataUploading = false);
+		}
+	}
+	setDataChanged() {
+		this.hasDataChanged = true;
+	}
+};
+
+//#endregion
 //#region typescript/roster_diff/diffSettingsPage.ts
 let handler = createMessageHandler(TabType.DiffSettings);
 registerWebComponent();
 chrome.runtime.onMessage.addListener(handler.getListener());
 document.addEventListener("DOMContentLoaded", onDocumentLoaded);
+let dataUploader = new CloseBeforeSavePreventer(saveIfDataChanged, 1e3);
 handler.onMessageForMyTabType((msg) => {
 	console.log("diff setup page: message for my tab type: ", msg);
 }).onMessageForMe((msg) => {
@@ -749,7 +779,7 @@ function addTranslationRow(tagDef, tbody) {
 	addDeleteButton(tr);
 	let chkIsClassName = tr.querySelector("#trnsIsClassName");
 	chkIsClassName.addEventListener("change", (_) => {
-		hasDataChanged = true;
+		dataUploader.setDataChanged();
 	});
 }
 function addPreTranslationRow(preTrans, tbody) {
@@ -819,7 +849,7 @@ function fillUrls(diffSettings) {
 function deleteTableRow(ev) {
 	let btn = ev.target;
 	btn.closest("tr").remove();
-	hasDataChanged = true;
+	dataUploader.setDataChanged();
 }
 async function onData(request) {
 	let title = "Uurrooster tags voor schooljaar " + request.data.schoolYear;
@@ -842,10 +872,10 @@ async function onData(request) {
 	fillIgnoresTable(request.data);
 	fillUrls(request.data);
 	document.querySelectorAll("tbody").forEach((tbody) => tbody.addEventListener("change", (_) => {
-		hasDataChanged = true;
+		dataUploader.setDataChanged();
 	}));
 	document.querySelectorAll("tbody").forEach((el) => el.addEventListener("input", function(_) {
-		hasDataChanged = true;
+		dataUploader.setDataChanged();
 	}));
 	document.getElementById("btnNewTranslationRow").addEventListener("click", function(_) {
 		let def = {
@@ -854,7 +884,7 @@ async function onData(request) {
 			gradeYears: ""
 		};
 		addTranslationRow(def, document.querySelector("#tagDefsContainer tbody"));
-		hasDataChanged = true;
+		dataUploader.setDataChanged();
 	});
 	document.getElementById("btnNewPreTranslationRow").addEventListener("click", function(_) {
 		let def = {
@@ -864,26 +894,22 @@ async function onData(request) {
 			dscr: ""
 		};
 		addPreTranslationRow(def, document.querySelector("#tagPreTransContainer tbody"));
-		hasDataChanged = true;
+		dataUploader.setDataChanged();
 	});
 	document.getElementById("btnNewIgnoresRow").addEventListener("click", function(_) {
 		let ignore = "";
 		addIgnoresRow(ignore, document.querySelector("#ignoresContainer tbody"));
-		hasDataChanged = true;
+		dataUploader.setDataChanged();
 	});
 	let txtUrls = document.getElementById("txtWebPages");
 	txtUrls.addEventListener("input", (_) => {
-		hasDataChanged = true;
+		dataUploader.setDataChanged();
 	});
 	txtUrls.addEventListener("blur", (_) => {
-		hasDataChanged = true;
+		dataUploader.setDataChanged();
 	});
 }
 let globalSetup = void 0;
-let hasDataChanged = false;
-setInterval(() => {
-	if (globalSetup) onCheckTableChanged(globalSetup);
-}, 1e3);
 function scrapeTagDefs() {
 	let rows = document.querySelectorAll("#tagDefsContainer>table>tbody>tr");
 	return [...rows].map((row) => {
@@ -916,27 +942,22 @@ function scrapePreTranslations() {
 		};
 	});
 }
-function onCheckTableChanged(diffSettings) {
-	if (!hasDataChanged) return;
+async function saveIfDataChanged() {
+	if (!globalSetup) return;
 	let txtUrls = document.getElementById("txtWebPages");
 	let urls = txtUrls.value.split("\n").map((s) => s.trim()).filter((s) => s.length > 0);
 	let setupData = {
 		version: 1,
-		academie: diffSettings.academie,
-		schoolYear: diffSettings.schoolYear,
+		academie: globalSetup.academie,
+		schoolYear: globalSetup.schoolYear,
 		tagDefs: scrapeTagDefs(),
 		ignoreList: scrapeIgnores(),
 		preTranslations: scrapePreTranslations(),
 		urls
 	};
-	hasDataChanged = false;
-	uploadDiffSettings(diffSettings.academie, diffSettings.schoolYear, setupData).then((_) => {
-		sendRequest(Actions.DiffSettingsChanged, TabType.DiffSettings, TabType.Main, void 0, setupData).then((_$1) => {});
-	});
+	await uploadDiffSettings(globalSetup.academie, globalSetup.schoolYear, setupData);
+	await sendRequest(Actions.DiffSettingsChanged, TabType.DiffSettings, TabType.Main, void 0, setupData).then((_) => {});
 }
-window.onbeforeunload = () => {
-	if (globalSetup) onCheckTableChanged(globalSetup);
-};
 async function onDocumentLoaded(_) {
 	let tabs = new Tabs(document.querySelector("div.tabsContainer"), [
 		{
