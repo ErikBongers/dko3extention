@@ -1,10 +1,5 @@
-* Settings page: save on exit of page (lost focus or close)
-
 * Re-style tabs with a line or block.
   > see Ariba or Intelij.
-
-* Hard coded pre-translations : search translatedClassName
-  > add to settings.
 
 * Keep last changed date of lessons (effectively the snapshot) to see if the excel or the dko3 class was last changed.
   > how> based on hash? If hash is changed, the last-changed-date is no longer valid?
