@@ -3143,7 +3143,7 @@ function buildBlock(newTableBody, block, groupId, getBlockTitle, displayOptions)
 function createLesRow(groupId, blockId) {
 	let tr = document.createElement("tr");
 	tr.dataset.blockId = "" + blockId;
-	if (blockId) tr.dataset.groupId = groupId;
+	if (blockId != void 0) tr.dataset.groupId = groupId;
 	else tr.dataset.blockId = "groupTitle";
 	return tr;
 }

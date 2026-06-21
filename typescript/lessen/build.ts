@@ -273,7 +273,7 @@ function buildBlock(newTableBody: HTMLTableSectionElement, block: BlockInfo, gro
 function createLesRow(groupId: string, blockId: number | undefined) {
     let tr = document.createElement("tr");
     tr.dataset.blockId = ""+blockId;
-    if(blockId)
+    if(blockId != undefined) //watch out for a falsy "0"
         tr.dataset.groupId = groupId;
     else
         tr.dataset.blockId = "groupTitle";// a title row does not belong to a block.
