@@ -365,20 +365,26 @@ function buildBlockHeader(newTableBody: HTMLTableSectionElement, block: BlockInf
     const tdLink1 = document.createElement("td");
     trModuleLinks.appendChild(tdLink1);
     tdLink1.appendChild(document.createTextNode(trimesterHeaders[0]));
-    if (block.trimesters[0][0]) {
-        tdLink1.appendChild(buildModuleButton("1", block.trimesters[0][0].id, true, block.trimesters[0][0].online)); //todo: test multiple buttons.
+    for(let les of block.trimesters[0]) {
+        if (les) {
+            tdLink1.appendChild(buildModuleButton("1", les.id, true, les.online));
+        }
     }
     const tdLink2 = document.createElement("td");
     trModuleLinks.appendChild(tdLink2);
     tdLink2.appendChild(document.createTextNode(trimesterHeaders[1]));
-    if (block.trimesters[1][0]) {
-        tdLink2.appendChild(buildModuleButton("2", block.trimesters[1][0].id, true, block.trimesters[1][0].online));
+    for(let les of block.trimesters[1]) {
+        if (les) {
+            tdLink2.appendChild(buildModuleButton("2", les.id, true, les.online));
+        }
     }
     const tdLink3 = document.createElement("td");
     trModuleLinks.appendChild(tdLink3);
     tdLink3.appendChild(document.createTextNode(trimesterHeaders[2]));
-    if (block.trimesters[2][0]) {
-        tdLink3.appendChild(buildModuleButton("3", block.trimesters[2][0].id, true, block.trimesters[2][0].online));
+    for(let les of block.trimesters[2]) {
+        if (les) {
+            tdLink3.appendChild(buildModuleButton("3", les.id, true, les.online));
+        }
     }
     return {
         trModuleLinks: trModuleLinks
