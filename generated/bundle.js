@@ -3171,7 +3171,7 @@ function buildBlockTitle(newTableBody, block, getBlockTitle, groupId) {
 	trBlockTitle.classList.add("blockRow");
 	let { last: divBlockTitle } = emmet.append(trBlockTitle, "td.infoCell[colspan=3]>div.text-muted");
 	if (getBlockTitle) emmet.appendChild(divBlockTitle, `span.blockTitle{${getBlockTitle(block)}}`);
-	for (let jaarModule of block.jaarModules) divBlockTitle.appendChild(buildModuleButton(">", jaarModule.id, false));
+	for (let jaarModule of block.jaarModules) divBlockTitle.appendChild(buildModuleButton(">", jaarModule.id, false, jaarModule.online));
 	if (block.errors) {
 		let errorSpan = document.createElement("span");
 		errorSpan.appendChild(document.createTextNode(block.errors));
@@ -3216,20 +3216,22 @@ function buildBlockHeader(newTableBody, block, groupId, trimesterHeaders, displa
 	const tdLink1 = document.createElement("td");
 	trModuleLinks.appendChild(tdLink1);
 	tdLink1.appendChild(document.createTextNode(trimesterHeaders[0]));
-	if (block.trimesters[0][0]) tdLink1.appendChild(buildModuleButton("1", block.trimesters[0][0].id, true));
+	if (block.trimesters[0][0]) tdLink1.appendChild(buildModuleButton("1", block.trimesters[0][0].id, true, block.trimesters[0][0].online));
 	const tdLink2 = document.createElement("td");
 	trModuleLinks.appendChild(tdLink2);
 	tdLink2.appendChild(document.createTextNode(trimesterHeaders[1]));
-	if (block.trimesters[1][0]) tdLink2.appendChild(buildModuleButton("2", block.trimesters[1][0].id, true));
+	if (block.trimesters[1][0]) tdLink2.appendChild(buildModuleButton("2", block.trimesters[1][0].id, true, block.trimesters[1][0].online));
 	const tdLink3 = document.createElement("td");
 	trModuleLinks.appendChild(tdLink3);
 	tdLink3.appendChild(document.createTextNode(trimesterHeaders[2]));
-	if (block.trimesters[2][0]) tdLink3.appendChild(buildModuleButton("3", block.trimesters[2][0].id, true));
+	if (block.trimesters[2][0]) tdLink3.appendChild(buildModuleButton("3", block.trimesters[2][0].id, true, block.trimesters[2][0].online));
 	return { trModuleLinks };
 }
-function buildModuleButton(buttonText, id, floatRight) {
+function buildModuleButton(buttonText, id, floatRight, online) {
 	const button = document.createElement("a");
 	button.href = "#";
+	button.classList.toggle("offline", !online);
+	if (!online) button.title = "Offline!";
 	button.setAttribute("onclick", `showView('lessen-les','','id=${id}'); return false;`);
 	button.classList.add("lesButton");
 	if (floatRight) button.classList.add("float-right");
