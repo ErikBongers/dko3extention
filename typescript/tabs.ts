@@ -38,7 +38,7 @@ export class Tabs {
             btn = to;
         let tabId = btn.dataset.tabId!;
         let tabs = btn.parentElement!;
-        tabs.querySelectorAll(".tab")!.forEach((tab: HTMLElement) => {
+    (tabs.querySelectorAll(".tab") as NodeListOf<HTMLElement>).forEach((tab: HTMLElement) => {
             tab.classList.add("notSelected");
             document.getElementById(tab.dataset.tabId!)!.style.display = "none";
         });

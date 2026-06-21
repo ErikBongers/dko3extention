@@ -32,7 +32,7 @@ export function findFirstNavigation(element?: HTMLElement) {
     let matches = buttonPagination.innerText.match(rx);
     if(!matches)
         return undefined;
-    let buttons = buttonContainer.querySelectorAll("button.btn-secondary");
+    let buttons = buttonContainer.querySelectorAll("button.btn-secondary") as NodeListOf<HTMLButtonElement>;
     let offsets = Array.from(buttons)
         // @ts-ignore
         .filter((btn) => btn.attributes["onclick"]?.value.includes("goto("))

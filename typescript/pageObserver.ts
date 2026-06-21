@@ -52,7 +52,7 @@ export abstract class BaseObserver implements Observer {
     private readonly onPageRefreshedCallback?: () => void;
     private pageFilter: PageFilter;
     private readonly onMutation?: (mutation: MutationRecord) => boolean;
-    private observer: MutationObserver;
+    private observer?: MutationObserver;
     private readonly trackModal: boolean;
     protected constructor(onPageChangedCallback: (() => void) | undefined, pageFilter: PageFilter, onMutationCallback: ((mutation: MutationRecord) => boolean) | undefined, trackModal: boolean = false, onPageRefreshedCallback?: () => void) {
         this.onPageChangedCallback = onPageChangedCallback;
@@ -115,7 +115,7 @@ export abstract class BaseObserver implements Observer {
             childList: true,
             subtree: true
         };
-        this.observer.observe(element, config);
+        this.observer?.observe(element, config);
     }
 
     disconnect() {

@@ -57,7 +57,9 @@ function addMatchingStudents() {
         let target = leerlingLabel as HTMLElement;
         for (let lln of matchingLeerlingen) {
             let anchorClasses = lln.winner ? ".bold" : "";
-            let hook = (el: HTMLElement) => {
+            let hook = (el: Element) => {
+                if(!(el instanceof HTMLElement))
+                    return;
                 if(el.tagName == "A") {
                     el.onclick = () => fillAndClick(lln.name);
                 }

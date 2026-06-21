@@ -31,8 +31,8 @@ export class MailMergeTable {
     private data: string[][];
     private headers: string[];
     private infoBlock: InfoBlock;
-    private maxInschrijvingen: number;
-    private maxLessen: number;
+    private maxInschrijvingen: number = -1; //todo: force these to have a real value instead of -1.
+    private maxLessen: number = -1;
 
     constructor(infoBlock: InfoBlock, table: HTMLTableElement) {
         this.table = table;

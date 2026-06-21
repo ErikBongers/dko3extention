@@ -17,14 +17,19 @@ export class TablePos {
     row: number;
     column: number;
 
+    constructor(row: number, column: number) {
+        this.row = row;
+        this.column = column;
+    }
+
     static toExcel(tablePos: TablePos, table: Table) {
         return new ExcelPos(tablePos.row+table.tableRange.Start.row+table.rowHeaderCount, tablePos.column+table.tableRange.Start.column+table.columnHeaderCount);
     }
 }
 
-export abstract class JsonRange {
-    public start: CellPos;
-    public end: CellPos;
+export interface JsonRange {
+    start: CellPos;
+    end: CellPos;
 }
 
 export abstract class Range {

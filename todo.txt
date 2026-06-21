@@ -1,3 +1,4 @@
+* After strict: test trims, diffs, mailmerge, teacherHours, tableHeaders
 * Re-style tabs with a line or block.
   > see Ariba or Intelij.
 

@@ -14,8 +14,8 @@ export function makeTableSortable(table: HTMLTableElement, valueFuncs?: ColumnVa
     let actualValueFuncs = valueFuncs ?? getDefaultValueFuncs(table);
 
     Array.from(table.tHead!.children[0].children)
-        .forEach((colHeader: HTMLElement) => {
-            colHeader.onclick = (ev) => {
+        .forEach((colHeader: Element) => {
+            (colHeader as HTMLElement).onclick = (ev) => {
                 reSortTableByColumn2(ev, table, actualValueFuncs);
             };
         });

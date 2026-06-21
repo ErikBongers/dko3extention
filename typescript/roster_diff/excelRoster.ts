@@ -18,7 +18,7 @@ export class ClassDef {
     cellValue: string;
     table: Table;
     hash: string;
-    ignore: boolean;
+    // ignore: boolean;
 
     constructor(day: DayUppercase, teacher: string, timeSlice: TimeSlice, subjects: string[], location: string, gradeYears: GradeYear[], excelRow: number, excelColumn: number, cellValue: string, table: Table, className: string | null) {
         this.day = day;
@@ -207,7 +207,7 @@ export class ExcelRoster {
                 let location = ExcelRoster.findLocation(tagStrings, this.dko3Data.preparedDko3DiffData.locations); //todo: move these functions to a DKo3data class
                 let subjects = ExcelRoster.findSubjects(parseText, tagStrings, this.dko3Data);
                 let className = ExcelRoster.findClassName(parseText, this.dko3Data);
-                let tablePos: TablePos = {row, column};
+                let tablePos: TablePos = new TablePos(row, column);
                 let excelPos: ExcelPos = TablePos.toExcel(tablePos, this.table);
                 let gradeYears = ExcelRoster.findGradeYears(parseText);
                 if(gradeYears.length == 0) {

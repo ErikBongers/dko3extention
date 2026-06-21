@@ -106,7 +106,7 @@ function onPageChanged() {
     }
 }
 
-function onClipboardChange(event: ClipboardEvent) {
+function onClipboardChange(event: Event) {
     let localMachineName = localStorage.getItem("machinename");
     if(localMachineName)
         return;

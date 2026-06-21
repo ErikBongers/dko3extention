@@ -33,8 +33,8 @@ class WerklijstBuilder implements CriteriaBuilder, PreparedWerklijst {
     private readonly grouping: Grouping;
     criteria: Criterium[] = [];
     fields: Veld[];
-    private criteriaDefs: WerklijstItemDefinition[];
-    private fieldDefs: WerklijstItemDefinition[];
+    private criteriaDefs?: WerklijstItemDefinition[];
+    private fieldDefs?: WerklijstItemDefinition[];
     private preselectedFields: string[] = [];
     private criteriaString: string = "";
 
@@ -138,7 +138,7 @@ class WerklijstBuilder implements CriteriaBuilder, PreparedWerklijst {
     }
 
     async fetchMultiSelectDefinitions(criterium: CriteriumName) {
-        let critId = this.criteriaDefs.find(c => c.name === criterium)!.id;
+        let critId = this.criteriaDefs!.find(c => c.name === criterium)!.id; //! todo: force criteria to be valid: fetch() is not called in constructor.
         await postNameValueList("/views/leerlingen/werklijst/criteria/toevoegen/toevoegen.opslaan.php", [{name:"criterium_id", value:critId}]);
         let text = await fetch("/views/leerlingen/werklijst/criteria/criteria.div.php").then(res => res.text());
         const template = document.createElement('template');
@@ -155,7 +155,7 @@ class WerklijstBuilder implements CriteriaBuilder, PreparedWerklijst {
     async sendFields(fields: Veld[]) {
         let fieldsToActuallySend = fields.filter(f => !this.preselectedFields.includes(f.text));
         for (let field of fieldsToActuallySend) {
-            let fieldDef = this.fieldDefs.find(f => f.name === field.text);
+            let fieldDef = this.fieldDefs!.find(f => f.name === field.text);  //! todo: force fiedDefs to be valid: fetch() is not called in constructor.
             if (fieldDef) {
                 await postNameValueList("/views/leerlingen/werklijst/velden/toevoegen/wijzigen.opslaan.php", [{name:"veld_id", value:fieldDef.id}, {name:"selected", value:"1"}]);
             }

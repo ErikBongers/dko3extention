@@ -127,13 +127,20 @@ export class StudentInfo {
     graadJaar: string;
     name: string;
     trimesterInstruments: ((Les[][]) | undefined);
-    jaarInstruments: Les[];
-    allYearSame: boolean;
+    jaarInstruments?: Les[];
+    allYearSame?: boolean;
     naam: string;
     voornaam: string;
-    id: number;
-    info: string;
-    notAllTrimsHaveAnInstrument: boolean;
+    id?: number;
+    info: string = "";
+    notAllTrimsHaveAnInstrument?: boolean;
+
+    constructor(name: string, naam: string, voornaam: string, graadJaar: string) {
+        this.name = name;
+        this.naam = naam;
+        this.voornaam = voornaam;
+        this.graadJaar = graadJaar;
+    }
 }
 
 function scrapeStudents(studentTable: HTMLTableElement) {
@@ -142,12 +149,12 @@ function scrapeStudents(studentTable: HTMLTableElement) {
         return students;
     }
     for (const row of studentTable.tBodies[0].rows) {
-        let studentInfo = new StudentInfo();
-        studentInfo.graadJaar = row.cells[0].children[0].textContent;
-        studentInfo.name = row.cells[0].childNodes[1].textContent!;
-        let names = studentInfo.name.split(", ");
-        studentInfo.naam = names[0];
-        studentInfo.voornaam = names[1];
+        let graadJaar = row.cells[0].children[0].textContent;
+        let name = row.cells[0].childNodes[1].textContent!;
+        let names = name.split(", ");
+        let naam = names[0];
+        let voornaam = names[1];
+        let studentInfo = new StudentInfo(name, naam, voornaam, graadJaar);
         students.push(studentInfo);
     }
     return students;
@@ -174,7 +181,13 @@ export function toDay(text: string) {
 export class HtmlLes {
     public les: Les;
     studentsTable: HTMLTableElement;
+
+    constructor(les: Les, studentsTable: HTMLTableElement) {
+        this.les = les;
+        this.studentsTable = studentsTable;
+    }
 }
+
 export class Les {
     vakNaam: string;
     lesType: LesType;
@@ -191,14 +204,35 @@ export class Les {
     wachtlijst: number;
     students: StudentInfo[];
     instrumentName: string;
-    trimesterNo: number;
+    trimesterNo: number = -1;
     tags: string[];
     warnings: string[];
     gradeYears: GradeYear[] = [];
-    day: DayUppercase;
-    repeat: string; //wekelijks
+    day: DayUppercase = "";
+    repeat: string = ""; //wekelijks
     dayTimeSlices: DayTimeSlice[] = [];
     linkedLessenIds: string[] = [];
+
+    constructor(id: string, lesType: LesType, instrumentName: string, teacher: string, formattedLesmoment: string, maxAantal: number, aantal: number, vestiging: string, tags: string[], online: boolean, wachtlijst: number, alc: boolean, lesmoment: string, naam: string, students: StudentInfo[], vakNaam: string, warnings: string[]) {
+        this.id = id;
+        this.lesType = lesType;
+        this.instrumentName = instrumentName;
+        this.teacher = teacher;
+        this.formattedLesmoment = formattedLesmoment;
+        this.maxAantal = maxAantal;
+        this.aantal = aantal;
+        this.vestiging = vestiging;
+        this.tags = tags;
+        this.online = online;
+        this.wachtlijst = wachtlijst;
+        this.alc = alc;
+        this.lesmoment = lesmoment;
+        this.naam = naam;
+        this.students = students;
+        this.vakNaam = vakNaam;
+        this.warnings = warnings;
+
+    }
 
     public static getHash(les: Les) {
         return les.id+ les.teacher + les.naam+les.vakNaam+les.lesmoment+les.vestiging+les.online;
@@ -214,24 +248,12 @@ export function scrapeLesInfo(row: HTMLTableRowElement): HtmlLes {
     let studentsCell = row.cells[1];
     let meta = scrapeStudentsCellMeta(studentsCell);
 
-    let les: Les = new Les();
-    les.id = meta.id;
-    let htmlLes = {
-        les,
-        studentsTable: studentsCell.querySelectorAll("table")[0] //for delayed student scraping.
-    }
-    les.aantal = meta.aantal;
-    les.maxAantal = meta.maxAantal;
-    les.wachtlijst = meta.wachtlijst;
-    les.warnings = [...row.getElementsByClassName("text-warning")].map((el) => el.textContent);
+    let warnings = [...row.getElementsByClassName("text-warning")].map((el) => el.textContent);
 
     let [first] = lesCell.getElementsByTagName("strong");
-    les.vakNaam = first.textContent;
     let allBadges = lesCell.getElementsByClassName("badge");
     let warningBadges = lesCell.getElementsByClassName("badge-warning");
-    les.alc = Array.from(allBadges).some((el) => el.textContent === "ALC");
-    les.online = lesCell.getElementsByClassName("fa-eye-slash").length === 0;
-    les.tags = Array.from(warningBadges)
+    let tags = Array.from(warningBadges)
         .map((el) => el.textContent)
         .filter((txt) => txt !== "ALC")
         .filter((txt) => txt);
@@ -244,37 +266,59 @@ export function scrapeLesInfo(row: HTMLTableRowElement): HtmlLes {
             lesName = el.textContent;
     }
 
-    les.naam = lesName
+    let naam = lesName
         .replaceAll("(", "")
         .replaceAll(")", "")
         .trim();
+    let lesType: LesType;
     if(Array.from(allBadges).some((el) => el.textContent === "module")) {
-        if(les.naam.includes("jaar"))
-            les.lesType = LesType.JaarModule;
-        else if(les.naam.includes("rimester"))
-            les.lesType = LesType.TrimesterModule;
+        if(naam.includes("jaar"))
+            lesType = LesType.JaarModule;
+        else if(naam.includes("rimester"))
+            lesType = LesType.TrimesterModule;
         else
-            les.lesType = LesType.UnknownModule;
+            lesType = LesType.UnknownModule;
     }
     else{
-        les.lesType = LesType.Les;
+        lesType = LesType.Les;
     }
+    let teacher: string = "";
     if (mutedSpans.length > 0) {
-        les.teacher = Array.from(mutedSpans).pop()!.textContent;
+        teacher = Array.from(mutedSpans).pop()!.textContent;
     }
-    les.teacher = les.teacher
+    teacher = teacher
         .replaceAll("  ", " ")
         .replaceAll(" ,", ",")
         .trim(); //clean up of names with additional spaces
-    if (les.teacher == "(geen klasleerkracht)")
-        les.teacher = "";
+    if (teacher == "(geen klasleerkracht)")
+        teacher = "";
     let textNodes = Array.from(lesCell.childNodes).filter((node) => node.nodeType === Node.TEXT_NODE && node.textContent!.trim() !== "");
-    if (!textNodes) return htmlLes;
 
-    les.lesmoment = textNodes[0].nodeValue!;
-    les.vestiging = textNodes[1].nodeValue!;
     let infoSpansText = [...lesCell.querySelectorAll("span.text-info")].map(e => e.textContent);
-    les.gradeYears = textsToYearGrades(infoSpansText);
+    let gradeYears = textsToYearGrades(infoSpansText);
+
+    let les: Les = new Les(meta.id,
+        lesType,
+        "no instrument",
+        teacher,
+        textNodes[0].nodeValue!,
+        meta.maxAantal,
+        meta.aantal,
+        textNodes[1].nodeValue!,
+        tags,
+        lesCell.getElementsByClassName("fa-eye-slash").length === 0, meta.wachtlijst,
+        Array.from(allBadges).some((el) => el.textContent === "ALC"),
+        textNodes[0].nodeValue!,
+        naam,
+        [],
+        first.textContent,
+        warnings
+    );
+    les.gradeYears = gradeYears;
+    let htmlLes = {
+        les,
+        studentsTable: studentsCell.querySelectorAll("table")[0] //for delayed student scraping.
+    }
     splitLesMoment(les);
     return htmlLes;
 }

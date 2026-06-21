@@ -1154,7 +1154,7 @@ var BaseObserver = class {
 			childList: true,
 			subtree: true
 		};
-		this.observer.observe(element, config);
+		this.observer?.observe(element, config);
 	}
 	disconnect() {
 		this.observer?.disconnect();
@@ -1411,6 +1411,10 @@ var ExcelPos = class {
 var TablePos = class {
 	row;
 	column;
+	constructor(row, column) {
+		this.row = row;
+		this.column = column;
+	}
 	static toExcel(tablePos, table) {
 		return new ExcelPos(tablePos.row + table.tableRange.Start.row + table.rowHeaderCount, tablePos.column + table.tableRange.Start.column + table.columnHeaderCount);
 	}
@@ -1657,7 +1661,7 @@ var Dko3LesMoment = class Dko3LesMoment {
 	lesMomenten = [];
 	dayTimeSlice;
 	momentId;
-	ignore;
+	ignore = false;
 	constructor(les, dayTimeSlice) {
 		this.les = les;
 		this.dayTimeSlice = dayTimeSlice;
@@ -1675,14 +1679,16 @@ var TaggedLes = class {
 	tags = [];
 	searchText;
 	location;
-	teachers;
-	subjects;
+	teachers = [];
+	subjects = [];
 	ignore;
 	gradeYears;
-	constructor(les, tags, searchText) {
+	constructor(les, tags, searchText, gradeYears, ignore) {
 		this.lesMoment = les;
 		this.tags = tags;
 		this.searchText = searchText;
+		this.gradeYears = gradeYears;
+		this.ignore = ignore;
 	}
 	getHash() {
 		return this.lesMoment.getHash();
@@ -1692,13 +1698,12 @@ var TaggedDko3LesMoment = class extends TaggedLes {
 	constructor(lesMoment) {
 		let searchText = "";
 		let tags = [];
-		super(lesMoment, tags, searchText);
+		super(lesMoment, tags, searchText, lesMoment.les.gradeYears, lesMoment.ignore);
 		this.location = this.lesMoment.les.vestiging;
 		this.teachers = [this.lesMoment.les.teacher.replaceAll(/ \(en nog \d\)/g, "")].filter((t) => t != "");
 		this.subjects = this.lesMoment.les.vakNaam.split("+").map((txt) => txt.trim());
 		this.subjects.push(lesMoment.les.naam);
 		this.subjects = this.subjects.filter((s) => s);
-		this.gradeYears = lesMoment.les.gradeYears;
 	}
 };
 var Weight = class {
@@ -1894,8 +1899,8 @@ function matchWithoutTeacher(ctx, dko3Les, otherLesSet, diffSettings) {
 	return null;
 }
 var GradeYear = class {
-	grade;
-	year;
+	grade = null;
+	year = null;
 	static equals(gradeYear1, gradeYear2) {
 		return gradeYear1.grade == gradeYear2.grade && gradeYear1.year == gradeYear2.year;
 	}
@@ -1937,7 +1942,6 @@ var ClassDef = class {
 	cellValue;
 	table;
 	hash;
-	ignore;
 	constructor(day, teacher, timeSlice, subjects, location$1, gradeYears, excelRow, excelColumn, cellValue, table, className) {
 		this.day = day;
 		this.teacher = teacher;
@@ -2086,10 +2090,7 @@ var ExcelRoster = class ExcelRoster {
 				let location$1 = ExcelRoster.findLocation(tagStrings, this.dko3Data.preparedDko3DiffData.locations);
 				let subjects = ExcelRoster.findSubjects(parseText, tagStrings, this.dko3Data);
 				let className = ExcelRoster.findClassName(parseText, this.dko3Data);
-				let tablePos = {
-					row,
-					column
-				};
+				let tablePos = new TablePos(row, column);
 				let excelPos = TablePos.toExcel(tablePos, this.table);
 				let gradeYears = ExcelRoster.findGradeYears(parseText);
 				if (gradeYears.length == 0) gradeYears = ExcelRoster.getGradeYearsFromTags(tags);
@@ -2308,19 +2309,25 @@ var StudentInfo = class {
 	naam;
 	voornaam;
 	id;
-	info;
+	info = "";
 	notAllTrimsHaveAnInstrument;
+	constructor(name, naam, voornaam, graadJaar) {
+		this.name = name;
+		this.naam = naam;
+		this.voornaam = voornaam;
+		this.graadJaar = graadJaar;
+	}
 };
 function scrapeStudents(studentTable) {
 	let students = [];
 	if (studentTable.tBodies.length === 0) return students;
 	for (const row of studentTable.tBodies[0].rows) {
-		let studentInfo = new StudentInfo();
-		studentInfo.graadJaar = row.cells[0].children[0].textContent;
-		studentInfo.name = row.cells[0].childNodes[1].textContent;
-		let names = studentInfo.name.split(", ");
-		studentInfo.naam = names[0];
-		studentInfo.voornaam = names[1];
+		let graadJaar = row.cells[0].children[0].textContent;
+		let name = row.cells[0].childNodes[1].textContent;
+		let names = name.split(", ");
+		let naam = names[0];
+		let voornaam = names[1];
+		let studentInfo = new StudentInfo(name, naam, voornaam, graadJaar);
 		students.push(studentInfo);
 	}
 	return students;
@@ -2361,14 +2368,33 @@ var Les = class {
 	wachtlijst;
 	students;
 	instrumentName;
-	trimesterNo;
+	trimesterNo = -1;
 	tags;
 	warnings;
 	gradeYears = [];
-	day;
-	repeat;
+	day = "";
+	repeat = "";
 	dayTimeSlices = [];
 	linkedLessenIds = [];
+	constructor(id, lesType, instrumentName, teacher, formattedLesmoment, maxAantal, aantal, vestiging, tags, online, wachtlijst, alc, lesmoment, naam, students, vakNaam, warnings) {
+		this.id = id;
+		this.lesType = lesType;
+		this.instrumentName = instrumentName;
+		this.teacher = teacher;
+		this.formattedLesmoment = formattedLesmoment;
+		this.maxAantal = maxAantal;
+		this.aantal = aantal;
+		this.vestiging = vestiging;
+		this.tags = tags;
+		this.online = online;
+		this.wachtlijst = wachtlijst;
+		this.alc = alc;
+		this.lesmoment = lesmoment;
+		this.naam = naam;
+		this.students = students;
+		this.vakNaam = vakNaam;
+		this.warnings = warnings;
+	}
 	static getHash(les) {
 		return les.id + les.teacher + les.naam + les.vakNaam + les.lesmoment + les.vestiging + les.online;
 	}
@@ -2380,43 +2406,36 @@ function scrapeLesInfo(row) {
 	let lesCell = row.cells[0];
 	let studentsCell = row.cells[1];
 	let meta = scrapeStudentsCellMeta(studentsCell);
-	let les = new Les();
-	les.id = meta.id;
-	let htmlLes = {
-		les,
-		studentsTable: studentsCell.querySelectorAll("table")[0]
-	};
-	les.aantal = meta.aantal;
-	les.maxAantal = meta.maxAantal;
-	les.wachtlijst = meta.wachtlijst;
-	les.warnings = [...row.getElementsByClassName("text-warning")].map((el) => el.textContent);
+	let warnings = [...row.getElementsByClassName("text-warning")].map((el) => el.textContent);
 	let [first] = lesCell.getElementsByTagName("strong");
-	les.vakNaam = first.textContent;
 	let allBadges = lesCell.getElementsByClassName("badge");
 	let warningBadges = lesCell.getElementsByClassName("badge-warning");
-	les.alc = Array.from(allBadges).some((el) => el.textContent === "ALC");
-	les.online = lesCell.getElementsByClassName("fa-eye-slash").length === 0;
-	les.tags = Array.from(warningBadges).map((el) => el.textContent).filter((txt) => txt !== "ALC").filter((txt) => txt);
+	let tags = Array.from(warningBadges).map((el) => el.textContent).filter((txt) => txt !== "ALC").filter((txt) => txt);
 	let mutedSpans = lesCell.querySelectorAll("span.text-muted");
 	let lesName = "";
 	for (const el of lesCell.children) {
 		if (el.tagName === "BR") break;
 		if (el.tagName == "SPAN") lesName = el.textContent;
 	}
-	les.naam = lesName.replaceAll("(", "").replaceAll(")", "").trim();
-	if (Array.from(allBadges).some((el) => el.textContent === "module")) if (les.naam.includes("jaar")) les.lesType = LesType.JaarModule;
-	else if (les.naam.includes("rimester")) les.lesType = LesType.TrimesterModule;
-	else les.lesType = LesType.UnknownModule;
-	else les.lesType = LesType.Les;
-	if (mutedSpans.length > 0) les.teacher = Array.from(mutedSpans).pop().textContent;
-	les.teacher = les.teacher.replaceAll("  ", " ").replaceAll(" ,", ",").trim();
-	if (les.teacher == "(geen klasleerkracht)") les.teacher = "";
+	let naam = lesName.replaceAll("(", "").replaceAll(")", "").trim();
+	let lesType;
+	if (Array.from(allBadges).some((el) => el.textContent === "module")) if (naam.includes("jaar")) lesType = LesType.JaarModule;
+	else if (naam.includes("rimester")) lesType = LesType.TrimesterModule;
+	else lesType = LesType.UnknownModule;
+	else lesType = LesType.Les;
+	let teacher = "";
+	if (mutedSpans.length > 0) teacher = Array.from(mutedSpans).pop().textContent;
+	teacher = teacher.replaceAll("  ", " ").replaceAll(" ,", ",").trim();
+	if (teacher == "(geen klasleerkracht)") teacher = "";
 	let textNodes = Array.from(lesCell.childNodes).filter((node) => node.nodeType === Node.TEXT_NODE && node.textContent.trim() !== "");
-	if (!textNodes) return htmlLes;
-	les.lesmoment = textNodes[0].nodeValue;
-	les.vestiging = textNodes[1].nodeValue;
 	let infoSpansText = [...lesCell.querySelectorAll("span.text-info")].map((e) => e.textContent);
-	les.gradeYears = textsToYearGrades(infoSpansText);
+	let gradeYears = textsToYearGrades(infoSpansText);
+	let les = new Les(meta.id, lesType, "no instrument", teacher, textNodes[0].nodeValue, meta.maxAantal, meta.aantal, textNodes[1].nodeValue, tags, lesCell.getElementsByClassName("fa-eye-slash").length === 0, meta.wachtlijst, Array.from(allBadges).some((el) => el.textContent === "ALC"), textNodes[0].nodeValue, naam, [], first.textContent, warnings);
+	les.gradeYears = gradeYears;
+	let htmlLes = {
+		les,
+		studentsTable: studentsCell.querySelectorAll("table")[0]
+	};
 	splitLesMoment(les);
 	return htmlLes;
 }
@@ -2713,7 +2732,7 @@ function setStudentAllTrimsTheSameInstrument(student) {
 	student.allYearSame = instruments.every((instr) => instr.instrumentName === (student?.trimesterInstruments[0][0]?.instrumentName ?? "---"));
 }
 function setStudentNoInstrumentForAllTrims(student) {
-	if (student.jaarInstruments?.length > 0 && student.trimesterInstruments?.flat()?.length == 0) return;
+	if ((student.jaarInstruments?.length ?? 0) > 0 && student.trimesterInstruments?.flat()?.length == 0) return;
 	if (!student.trimesterInstruments) return;
 	student.notAllTrimsHaveAnInstrument = false;
 	for (let trim of student.trimesterInstruments) if (trim.length == 0) student.notAllTrimsHaveAnInstrument = true;
@@ -2841,11 +2860,9 @@ function addTrimesterStudentsToMapAndCount(allStudents, blockTrimModules) {
 function addJaarStudentsToMapAndCount(students, jaarModule) {
 	if (!jaarModule) return;
 	for (let student of jaarModule.students) {
-		if (!students.has(student.name)) {
-			student.jaarInstruments = [];
-			students.set(student.name, student);
-		}
+		if (!students.has(student.name)) students.set(student.name, student);
 		let stud = students.get(student.name);
+		if (!stud.jaarInstruments) stud.jaarInstruments = [];
 		stud.jaarInstruments.push(jaarModule);
 	}
 	jaarModule.students = jaarModule.students.map((student) => students.get(student.name));
@@ -2881,40 +2898,17 @@ function mergeBlockStudents(block) {
 	};
 }
 function createLesFromToewijzing(instrument, toewijzing) {
-	let les = new Les();
-	les.id = "";
-	les.lesType = LesType.JaarModule;
-	les.instrumentName = instrument;
-	if (toewijzing.klasleerkracht == "") les.teacher = `toe te wijzen lk ${instrument}`;
-	else les.teacher = toewijzing.klasleerkracht;
-	les.formattedLesmoment = toewijzing.lesmoment;
-	les.maxAantal = 999;
-	les.aantal = 0;
-	les.vestiging = "";
-	les.tags = [];
-	les.online = true;
-	les.wachtlijst = 0;
-	les.alc = false;
-	les.lesmoment = toewijzing.lesmoment;
-	les.naam = `Initiatie ${les.instrumentName} - jaartraject - ${les.teacher}`;
-	les.students = [];
-	les.vakNaam = toewijzing.vak;
-	les.warnings = [];
-	les.vestiging = "Willem van Laarstraat";
-	return les;
+	let teacher = toewijzing.klasleerkracht == "" ? `toe te wijzen lk ${instrument}` : toewijzing.klasleerkracht;
+	return new Les("", LesType.JaarModule, instrument, teacher, toewijzing.lesmoment, 999, 0, "Willem van Laarstraat", [], true, 0, false, toewijzing.lesmoment, `Initiatie ${instrument} - jaartraject - ${teacher}`, [], toewijzing.vak, []);
 }
 function createStudentFromToewijzing(toewijzing) {
-	let student = new StudentInfo();
-	student.naam = toewijzing.naam;
-	student.voornaam = toewijzing.voornaam;
-	student.name = toewijzing.naam + ", " + toewijzing.voornaam;
+	let student = new StudentInfo(toewijzing.naam + ", " + toewijzing.voornaam, toewijzing.naam, toewijzing.voornaam, toewijzing.graadJaar);
 	let rxId = /\s*id\s*=\s*(\d+)/gm;
 	let matchesId = rxId.exec(toewijzing.vak);
 	student.id = parseInt(matchesId?.[1] ?? "0");
 	student.allYearSame = true;
 	student.notAllTrimsHaveAnInstrument = false;
 	student.info = "";
-	student.graadJaar = toewijzing.graadJaar;
 	student.jaarInstruments = [];
 	student.trimesterInstruments = void 0;
 	return student;
@@ -6223,7 +6217,7 @@ var TaggedExcelLes = class extends TaggedLes {
 	hash;
 	constructor(les, teachers, diffSettings) {
 		let searchText = " " + les.cellValue.toLowerCase().replaceAll("\n", " \n ").replaceAll("(", " ( ").replaceAll(")", " ) ").replaceAll(".", " . ").replaceAll(",", " , ").replaceAll("-", " - ") + " ";
-		super(les, [], searchText);
+		super(les, [], searchText, [], false);
 		this.className = this.lesMoment.className;
 		this.location = this.lesMoment.location;
 		this.teachers = preTranslate(les.cellValue, diffSettings).split(/[\/,]/g).map((t) => findTeacher(t, teachers, "")).filter((t) => t != "");
@@ -8560,8 +8554,8 @@ var MailMergeTable = class {
 	data;
 	headers;
 	infoBlock;
-	maxInschrijvingen;
-	maxLessen;
+	maxInschrijvingen = -1;
+	maxLessen = -1;
 	constructor(infoBlock, table) {
 		this.table = table;
 		this.infoBlock = infoBlock;
@@ -9530,6 +9524,7 @@ function addMatchingStudents() {
 		for (let lln of matchingLeerlingen) {
 			let anchorClasses = lln.winner ? ".bold" : "";
 			let hook = (el) => {
+				if (!(el instanceof HTMLElement)) return;
 				if (el.tagName == "A") el.onclick = () => fillAndClick(lln.name);
 			};
 			target = emmet.insertAfter(target, `a[href="#"].leerlingLabel${anchorClasses}{${lln.name}}`, void 0, hook).first;

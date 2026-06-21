@@ -40,7 +40,7 @@ function onLeerlingenChanged() {
 
 function addSortVoornaamLink() {
     try {
-        let headerSpans = document.querySelectorAll("#les_leerlingen_leerlingen > span");
+        let headerSpans = document.querySelectorAll("#les_leerlingen_leerlingen > span") as NodeListOf<HTMLSpanElement>;
         let sortSpan = Array.from(headerSpans).find((value: HTMLSpanElement) => value.textContent.includes("gesorteerd op:"))!;
         let graadEnNaam = Array.from(sortSpan.querySelectorAll("a")).find(anchor => anchor.textContent === "graad en naam")!;
         const SORT_VOORNAAM_ID = "dko_plugin_sortVoornaam";

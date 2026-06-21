@@ -13,9 +13,9 @@ export type NotHTMLTemplate = HTMLDivElement | DocumentFragment; //HTMLDiv eleme
  */
 
 export class NamedCellTableFetchListener implements TableFetchListener {
-    onStartFetching: (tableFetcher: TableFetcher) => void;
-    onLoaded: (tableFetcher: TableFetcher) => void;
-    onFinished: (tableFetcher: TableFetcher) => void;
+    onStartFetching?: (tableFetcher: TableFetcher) => void;
+    onLoaded?: (tableFetcher: TableFetcher) => void;
+    onFinished?: (tableFetcher: TableFetcher) => void;
 
     private requiredHeaderLabels: string[];
     onBeforeLoading?: OnBeforeLoadingHandler;

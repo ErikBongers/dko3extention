@@ -113,10 +113,10 @@ export interface TableHandler {
 }
 
 export interface TableFetchListener {
-    onStartFetching: (tableFetcher: TableFetcher) => void,
-    onLoaded: (tableFetcher: TableFetcher) => void,
+    onStartFetching?: (tableFetcher: TableFetcher) => void,
+    onLoaded?: (tableFetcher: TableFetcher) => void,
     onBeforeLoadingPage: (tableFetcher: TableFetcher) => boolean,
-    onFinished: (tableFetcher: TableFetcher, succes: boolean) => void,
+    onFinished?: (tableFetcher: TableFetcher, succes: boolean) => void,
     onPageLoaded: (tableFetcher: TableFetcher, pageCnt: number, text: string) => void
 }
 
@@ -124,7 +124,7 @@ export class TableFetcher {
     tableRef: DkoTableRef;
     calculateTableCheckSum: CheckSumBuilder;
     isUsingCached = false;
-    shadowTableDate: Date;
+    shadowTableDate?: Date;
     fetchedTable?: FetchedTable;
     tableHandler?: TableHandler;
     listeners: TableFetchListener[];

@@ -58,13 +58,13 @@ export function decorateTableHeader(table: HTMLTableElement, fetchFullTable: boo
 
     let valueFuncs = getDefaultValueFuncs(table);
     Array.from(table.tHead!.children[0].children)
-        .forEach((colHeader: HTMLElement) => {
-            colHeader.onclick = (ev) => {
+        .forEach((colHeader: Element) => {
+            (colHeader as HTMLElement).onclick = (ev) => {
                 reSortTableByColumn(ev, table, fetchFullTable, valueFuncs);
             };
             if(table.classList.contains(def.NO_MENU))
                 return;
-            let {first: span, last: idiom} = emmet.appendChild(colHeader, 'span>button.miniButton.naked>i.fas.fa-list');
+            let {first: span, last: idiom} = emmet.appendChild((colHeader as HTMLElement), 'span>button.miniButton.naked>i.fas.fa-list');
             let menu = setupMenu(span as HTMLElement, idiom!.parentElement!);
             addMenuItem(menu, "Toon unieke waarden", 0, (ev) => { forTableDo(ev, showDistinctColumn); });
             addMenuItem(menu, "Verberg kolom", 0, (ev) => { console.log("verberg kolom"); forTableColumnDo(ev, hideColumn)});

@@ -7,7 +7,7 @@ export class Dko3LesMoment {
     lesMomenten: Dko3LesMoment[] = []; //contains itself!
     dayTimeSlice: DayTimeSlice;
     momentId: string;
-    ignore: boolean;
+    ignore: boolean = false;
 
     constructor(les: Les, dayTimeSlice: DayTimeSlice) {
         this.les = les;
@@ -29,15 +29,17 @@ export abstract class TaggedLes<T extends ClassDef | Dko3LesMoment> {
     tags: string[] = [];
     searchText: string;
     location?: string;
-    teachers: string[];
-    subjects: string[];
+    teachers: string[] = [];
+    subjects: string[] = [];
     ignore: boolean;
     gradeYears: GradeYear[];
 
-    protected constructor(les: T, tags: string[], searchText: string) {
+    protected constructor(les: T, tags: string[], searchText: string, gradeYears: GradeYear[], ignore: boolean) {
         this.lesMoment = les;
         this.tags = tags;
         this.searchText = searchText;
+        this.gradeYears = gradeYears;
+        this.ignore = ignore;
     }
 
     public getHash() {
@@ -50,7 +52,7 @@ export class TaggedDko3LesMoment extends TaggedLes<Dko3LesMoment> {
         let searchText = "";
         let tags: string[] = [];
 
-        super(lesMoment, tags, searchText);
+        super(lesMoment, tags, searchText, lesMoment.les.gradeYears, lesMoment.ignore);
         this.location = this.lesMoment.les.vestiging;
         this.teachers = [this.lesMoment.les.teacher
             .replaceAll(/ \(en nog \d\)/g, "")]
@@ -60,7 +62,6 @@ export class TaggedDko3LesMoment extends TaggedLes<Dko3LesMoment> {
             .map(txt => txt.trim());
         this.subjects.push(lesMoment.les.naam);
         this.subjects = this.subjects.filter(s => s!!);
-        this.gradeYears = lesMoment.les.gradeYears;
     }
 }
 
@@ -332,8 +333,8 @@ export function matchWithoutTeacher(ctx: MatchContext, dko3Les: TaggedDko3LesMom
 }
 
 export class GradeYear {
-    grade: string | null;
-    year: number | null;
+    grade: string | null = null;
+    year: number | null = null;
 
     public static equals(gradeYear1: GradeYear, gradeYear2: GradeYear) {
         return gradeYear1.grade == gradeYear2.grade && gradeYear1.year == gradeYear2.year;

@@ -150,7 +150,7 @@ export class InfoBarTableFetchListener implements TableFetchListener {
                 tableFetcher.reset();
                 defaultAction(ev);
             };
-            this.infoBar.setCacheInfo(`Gegevens uit cache, ${dateDiffToString(tableFetcher.shadowTableDate, new Date())} oud. `, resetAndLoadAction);
+            this.infoBar.setCacheInfo(`Gegevens uit cache, ${dateDiffToString(tableFetcher.shadowTableDate!, new Date())} oud. `, resetAndLoadAction); //! is filled when isUsingCache.
         }
     }
 

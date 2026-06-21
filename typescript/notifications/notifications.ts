@@ -97,7 +97,7 @@ export async function fetchAndDisplayNotifications() {
             doNotificationAction(notif.id);
         }
     }
-    notificationsDiv.querySelectorAll("button.deleteNotif").forEach((button:HTMLButtonElement) => {
+    (notificationsDiv.querySelectorAll("button.deleteNotif") as NodeListOf<HTMLButtonElement>).forEach((button:HTMLButtonElement) => {
         button.onclick = async (ev) => {
             let button = ev.currentTarget as HTMLButtonElement;
             let notifId = button.dataset.id;

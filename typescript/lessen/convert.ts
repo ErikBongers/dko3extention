@@ -1,4 +1,4 @@
-import {HtmlLes, JaarToewijzing, Les, LesType, StudentInfo} from "./scrape";
+import {JaarToewijzing, Les, LesType, StudentInfo} from "./scrape";
 import {distinct} from "../globals";
 
 interface TagInfo {
@@ -246,7 +246,7 @@ function setStudentAllTrimsTheSameInstrument(student: StudentInfo) {
 }
 
 function setStudentNoInstrumentForAllTrims(student: StudentInfo) {
-    if(student.jaarInstruments?.length > 0 && student.trimesterInstruments?.flat()?.length == 0)
+    if((student.jaarInstruments?.length??0) > 0 && student.trimesterInstruments?.flat()?.length == 0)
         return;
     if(!student.trimesterInstruments)
         return;
@@ -340,14 +340,14 @@ export function buildTableData(inputModules: Les[]) : TableData {
     groupBlocksTwoLevels(
         tableData.teachers.values(),
         (block) => block.formattedLesmoment!,
-        (primary: Teacher, secundary) => { primary.lesMomenten = secundary; }
+        (primary:  MergeableBlocksGroop, secundary) => { (primary as Teacher).lesMomenten = secundary; }
     );
 
     //group by instrument/lesmoment
     groupBlocksTwoLevels(
         tableData.instruments.values(),
         (block) => block.formattedLesmoment!,
-        (primary: Teacher, secundary) => { primary.lesMomenten = secundary; }
+        (primary: MergeableBlocksGroop, secundary) => { (primary as Teacher).lesMomenten = secundary; }
     );
 
     //group by teacher
@@ -426,10 +426,11 @@ function addJaarStudentsToMapAndCount(students: Map<string, StudentInfo>, jaarMo
     if(!jaarModule) return;
     for (let student of jaarModule.students) {
         if (!students.has(student.name)) {
-            student.jaarInstruments = [];
             students.set(student.name, student);
         }
         let stud = students.get(student.name)!;
+        if(!stud.jaarInstruments)
+            stud.jaarInstruments = [];
         stud.jaarInstruments.push(jaarModule);
     }
     //all jaarModules must reference the students in the overall map.
@@ -502,43 +503,36 @@ export function mergeBlockStudents(block: BlockInfo) {
 }
 
 function createLesFromToewijzing(instrument: string, toewijzing: JaarToewijzing) {
-    let les = new Les();
-    les.id = "";
-    les.lesType = LesType.JaarModule;
-    les.instrumentName = instrument;
-    if(toewijzing.klasleerkracht == "")
-        les.teacher = `toe te wijzen lk ${instrument}`;
-    else
-        les.teacher = toewijzing.klasleerkracht;
-    les.formattedLesmoment = toewijzing.lesmoment;
-    les.maxAantal = 999;
-    les.aantal = 0;
-    les.vestiging = "";
-    les.tags = [];
-    les.online = true;
-    les.wachtlijst = 0;
-    les.alc = false;
-    les.lesmoment = toewijzing.lesmoment;
-    les.naam = `Initiatie ${les.instrumentName} - jaartraject - ${les.teacher}`;
-    les.students = [];
-    les.vakNaam = toewijzing.vak;
-    les.warnings = [];
-    les.vestiging = "Willem van Laarstraat";
-    return les;
+    let teacher = toewijzing.klasleerkracht == ""
+            ? `toe te wijzen lk ${instrument}`
+            : toewijzing.klasleerkracht;
+    return new Les("",
+        LesType.JaarModule,
+        instrument,
+        teacher,
+        toewijzing.lesmoment,
+        999,
+        0,
+        "Willem van Laarstraat",
+        [],
+        true,
+        0,
+        false,
+        toewijzing.lesmoment,
+        `Initiatie ${instrument} - jaartraject - ${teacher}`,
+        [],
+        toewijzing.vak,
+        []);
 }
 
 function createStudentFromToewijzing(toewijzing: JaarToewijzing) {
-    let student = new StudentInfo();
-    student.naam = toewijzing.naam;
-    student.voornaam = toewijzing.voornaam;
-    student.name = toewijzing.naam + ", " + toewijzing.voornaam;
+    let student = new StudentInfo(toewijzing.naam + ", " + toewijzing.voornaam, toewijzing.naam, toewijzing.voornaam, toewijzing.graadJaar);
     let rxId = /\s*id\s*=\s*(\d+)/gm;
     let matchesId = rxId.exec(toewijzing.vak);
     student.id = parseInt(matchesId?.[1] ?? "0");
     student.allYearSame = true;
     student.notAllTrimsHaveAnInstrument = false;
     student.info = "";
-    student.graadJaar = toewijzing.graadJaar;
     student.jaarInstruments = [];
     student.trimesterInstruments = undefined;
     return student;

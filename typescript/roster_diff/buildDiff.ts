@@ -202,7 +202,7 @@ export class TaggedExcelLes extends TaggedLes<ClassDef> implements ComparableLes
             .replaceAll(",", " , ")
             .replaceAll("-", " - ")
             + " ";
-        super(les, [], searchText);
+        super(les, [], searchText, [], false);
         this.className = this.lesMoment.className;
         this.location = this.lesMoment.location;//translate probably already done.
         this.teachers = preTranslate(les.cellValue, diffSettings)
@@ -294,7 +294,7 @@ function createLesMomenten(dko3Data: Dko3DiffData, statusReporter: StatusReporte
                 statusReporter.addError(`Voor aliasles <a href="https://administratie.dko3.cloud/#lessen-les?id=${aliasLes.id}">${aliasLes.id}</a> is gekoppelde les <a href="https://administratie.dko3.cloud/#lessen-les?id=${linkedLes.id}">${linkedLes.id}</a> online zichtbaar.`, "error");
         }
         let linkedLesMomentIds = linkedLessen.map((les: Les) => les.dayTimeSlices.map(slice => Dko3LesMoment.createLesMomentId(les, slice))).flat();
-        let linkedLesMomenten = linkedLesMomentIds.map(momentId => lesMomentenMap.get(momentId));
+        let linkedLesMomenten = linkedLesMomentIds.map(momentId => lesMomentenMap.get(momentId)!); //! should all exist in the map.
         //sort the moments so we can merge them
         linkedLesMomenten.sort((a: TaggedDko3LesMoment, b: TaggedDko3LesMoment) => DayTimeSlice.startToNumber(a.lesMoment.dayTimeSlice) - DayTimeSlice.startToNumber(b.lesMoment.dayTimeSlice));
         let previousLesMoment = linkedLesMomenten[0]!;
@@ -422,7 +422,7 @@ export async function fetchTeachers(schoolYear: string): Promise<TeacherDef[]> {
     let html = await res.text();
     let div = document.createElement("div");
     div.innerHTML = html;
-    return [...div.querySelectorAll(`td[data-label="Naam"] strong`)]
+    return [...(div.querySelectorAll(`td[data-label="Naam"] strong`) as NodeListOf<HTMLElement>)]
         .map((strong: HTMLElement) => strong.textContent)
         .map(name => {
             let split = name.split(",");
