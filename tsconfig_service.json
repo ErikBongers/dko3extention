@@ -10,7 +10,7 @@
     "noImplicitThis": true,
     "noImplicitReturns": true,
     "noImplicitAny": true,
-    "strictNullChecks": true
+    "strict": true
   },
   "files": ["./typescript/serviceworker.ts"]
 }
