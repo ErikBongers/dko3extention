@@ -16,9 +16,7 @@
     "paths": {
       "default_items": ["./javascript/default_items.js"]
     },
-    "typeRoots": ["typescript/powerQuery", "node_modules/@types"]
+    "typeRoots": ["typescript/powerQuery", "node_modules/@types"],
+    "types": [ "chrome" ]
   },
-  "types": [
-    "chrome"
-  ]
 }
