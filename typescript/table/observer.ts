@@ -49,8 +49,10 @@ export function registerChecksumHandler(tableId: string, checksumHandler: CheckS
 
 export function createDownloadTableWithExtraAction() {
     return (_: Event) => {
-        downloadTableRows().then(fetchedTable => {
-            pageState.transient.getValue(def.AFTER_DOWNLOAD_TABLE_ACTION, undefined)?.(fetchedTable);
+        downloadTableRows().then(unknownData => {
+            let action = pageState.transient.getValue(def.AFTER_DOWNLOAD_TABLE_ACTION, undefined);
+            if(action && unknownData) //todo: try to type data and
+                action(unknownData.fetchedTable); //todo try to typesafe action param.
         });
     };
 }

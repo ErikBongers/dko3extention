@@ -3967,8 +3967,9 @@
 	}
 	function createDownloadTableWithExtraAction() {
 		return (_) => {
-			downloadTableRows().then((fetchedTable) => {
-				pageState$1.transient.getValue(AFTER_DOWNLOAD_TABLE_ACTION, void 0)?.(fetchedTable);
+			downloadTableRows().then((unknownData) => {
+				let action = pageState$1.transient.getValue(AFTER_DOWNLOAD_TABLE_ACTION, void 0);
+				if (action && unknownData) action(unknownData.fetchedTable);
 			});
 		};
 	}
@@ -8557,7 +8558,9 @@
 		if (request.senderTabType != "HoursSettings") return;
 		if (request.action == "request_tab_data") {
 			console.log("Requesting tab data", request.data);
-			await sendMessageToHoursSettings("tab_data", await fetchHoursSettingsOrSaveDefault(request.data.params.schoolYear));
+			let setup = await fetchHoursSettingsOrSaveDefault(request.data.params.schoolYear);
+			console.log(setup);
+			await sendMessageToHoursSettings("tab_data", setup);
 			return;
 		}
 		if (globals.activeFetcher) {
@@ -8695,6 +8698,7 @@
 		], () => {});
 	}
 	function rebuildHoursTableAfterDownloadFullTable(rows, tableRef) {
+		for (let row of rows) console.log(row.outerHTML);
 		globals.studentRowData = scrapeUren(rows, NamedCellTableFetchListener.getHeaderIndices(tableRef.getOrgTableContainer()));
 		globals.table = createTable(tableRef);
 		rebuildHoursTable(globals.table, globals.studentRowData, globals.hourSettingsMapped, globals.fromCloud);
