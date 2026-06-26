@@ -22,13 +22,14 @@ export enum Grouping {
 
 export interface Criterium {
     name: CriteriumName
-    operator: string
+    operator: Operator
     values: string[]
 }
 
 export enum Operator {
     PLUS = "+",
-    EQUALS = "="
+    EQUALS = "=",
+    NOT_EQUALS = "!=",
 }
 
 export type IsSelectedItem = (vak: string) => boolean;

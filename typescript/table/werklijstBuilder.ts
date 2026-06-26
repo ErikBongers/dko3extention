@@ -1,7 +1,7 @@
 import {Criterium, CriteriumName, fetchTableRows, Grouping, IsSelectedItem, Operator, postNameValueList, Veld} from "../werklijst/criteria";
 import {getTable, getWerklijstTableRef, InfoBarTableFetchListener} from "./loadAnyTable";
 import {getImmediateText} from "../globals";
-import {CheckSumBuilder, FetchedTable, TableFetcher, TableFetchListener} from "./tableFetcher";
+import {FetchedTable, TableFetcher, TableFetchListener} from "./tableFetcher";
 
 interface WerklijstItemDefinition {
     id: string;
@@ -98,7 +98,12 @@ class WerklijstBuilder implements CriteriaBuilder, PreparedWerklijst {
     async sendCriteria() {
         for (const c of this.criteria) {
             let codes = await this.addCodesForCriterium(c.name, c.values);
-            //todo: send operator
+            if(c.operator == Operator.NOT_EQUALS) { //todo: we're assuming the default operatore is EQUALS or PLUS.
+                await postNameValueList("/views/leerlingen/werklijst/criteria/wijzigen.opslaan.php", [
+                    {name: "criterium_id", value: codes.postId},
+                    {name: "operator", value: c.operator}
+                ]);
+            }
             await postNameValueList("/views/leerlingen/werklijst/criteria/wijzigen.opslaan.php", [
                 {name: "criterium_id", value: codes.postId},
                 {name: "value", value: codes.values.join()}
@@ -129,7 +134,7 @@ class WerklijstBuilder implements CriteriaBuilder, PreparedWerklijst {
     private async addCodesForCriterium(criterium: CriteriumName, items: (string[] | IsSelectedItem)) {
         let defs = await this.fetchMultiSelectDefinitions(criterium);
         let codes = textToCodes(items, defs.defs);
-        return {postId: defs.postId, operator: "TDOO", values: codes};
+        return {postId: defs.postId, values: codes};
     }
 
     async fetchAvailableSubjects() {

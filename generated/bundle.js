@@ -3579,6 +3579,7 @@ let Grouping = /* @__PURE__ */ function(Grouping$1) {
 let Operator = /* @__PURE__ */ function(Operator$1) {
 	Operator$1["PLUS"] = "+";
 	Operator$1["EQUALS"] = "=";
+	Operator$1["NOT_EQUALS"] = "!=";
 	return Operator$1;
 }({});
 let FIELD;
@@ -4817,6 +4818,13 @@ var WerklijstBuilder = class WerklijstBuilder {
 	async sendCriteria() {
 		for (const c of this.criteria) {
 			let codes = await this.addCodesForCriterium(c.name, c.values);
+			if (c.operator == Operator.NOT_EQUALS) await postNameValueList("/views/leerlingen/werklijst/criteria/wijzigen.opslaan.php", [{
+				name: "criterium_id",
+				value: codes.postId
+			}, {
+				name: "operator",
+				value: c.operator
+			}]);
 			await postNameValueList("/views/leerlingen/werklijst/criteria/wijzigen.opslaan.php", [{
 				name: "criterium_id",
 				value: codes.postId
@@ -4850,7 +4858,6 @@ var WerklijstBuilder = class WerklijstBuilder {
 		let codes = textToCodes(items, defs.defs);
 		return {
 			postId: defs.postId,
-			operator: "TDOO",
 			values: codes
 		};
 	}
@@ -8480,6 +8487,9 @@ async function fetchHoursSettingsOrSaveDefault(schoolyearString, dko3_subjects) 
 	return cloudSettings;
 }
 async function setCriteriaForTeacherHoursAndClickFetchButton(schooljaar, hourSettings) {
+	{
+		let x = await setCriteriaForTeacherHoursAndFetch(schooljaar, hourSettings);
+	}
 	let builder = await createWerklijstBuilderWithReset(schooljaar, Grouping.LES);
 	let dko3_vakken = await builder.fetchAvailableSubjects();
 	await builder.initialize(true);
@@ -8503,6 +8513,27 @@ async function setCriteriaForTeacherHoursAndClickFetchButton(schooljaar, hourSet
 	console.log("Werklijst prepared: reloading page (or changing hash). ");
 	if (window.location.hash === "#leerlingen-werklijst$werklijst") location.reload();
 	else location.hash = "#leerlingen-werklijst$werklijst";
+}
+async function setCriteriaForTeacherHoursAndFetch(schooljaar, hourSettings) {
+	let builder = await createWerklijstBuilderWithReset(schooljaar, Grouping.LES);
+	let dko3_vakken = await builder.fetchAvailableSubjects();
+	await builder.initialize(true);
+	if (!hourSettings) hourSettings = await fetchHoursSettingsOrSaveDefault(schooljaar, dko3_vakken);
+	let selectedInstrumentNames = new Set(hourSettings.subjects.filter((i) => i.checked).map((i) => i.name));
+	let validInstruments = dko3_vakken.filter((vak) => selectedInstrumentNames.has(vak.name));
+	let vakNames = validInstruments.map((vak) => vak.name);
+	builder.addCriterium(CriteriumName.Domein, Operator.EQUALS, [Domein$1.Muziek]);
+	builder.addCriterium(CriteriumName.Vak, Operator.EQUALS, vakNames);
+	builder.addFields([
+		FIELD.NAAM,
+		FIELD.VOORNAAM,
+		FIELD.VAK_NAAM,
+		FIELD.GRAAD_LEERJAAR,
+		FIELD.KLAS_LEERKRACHT
+	]);
+	builder.addCriterium(CriteriumName.Graad, Operator.NOT_EQUALS, ["specialisatie"]);
+	let preparedBuilder = await builder.sendSettings();
+	throw new Error("TODO");
 }
 
 //#endregion

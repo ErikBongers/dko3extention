@@ -47,6 +47,12 @@ export async function fetchHoursSettingsOrSaveDefault(schoolyearString: string, 
 }
 
 export async function setCriteriaForTeacherHoursAndClickFetchButton(schooljaar: string, hourSettings?: TeacherHoursSetup) {
+    //TEST
+    {
+        let x = await setCriteriaForTeacherHoursAndFetch(schooljaar, hourSettings);
+    }
+    //TEST
+
     let builder = await createWerklijstBuilderWithReset(schooljaar, Grouping.LES);
     let dko3_vakken = await builder.fetchAvailableSubjects();
     await builder.initialize(true);
@@ -69,3 +75,25 @@ export async function setCriteriaForTeacherHoursAndClickFetchButton(schooljaar: 
     else
         location.hash = "#leerlingen-werklijst$werklijst";
 }
+
+export async function setCriteriaForTeacherHoursAndFetch(schooljaar: string, hourSettings?: TeacherHoursSetup) {
+    let builder = await createWerklijstBuilderWithReset(schooljaar, Grouping.LES);
+    let dko3_vakken = await builder.fetchAvailableSubjects();
+    await builder.initialize(true);
+    if(!hourSettings)
+        hourSettings = await fetchHoursSettingsOrSaveDefault(schooljaar, dko3_vakken);
+    let selectedInstrumentNames  =  new Set(hourSettings.subjects.filter(i => i.checked).map(i => i.name));
+    let validInstruments = dko3_vakken.filter((vak) => selectedInstrumentNames.has(vak.name));
+    let vakNames = validInstruments.map(vak => vak.name);
+    builder.addCriterium(CriteriumName.Domein, Operator.EQUALS, [Domein.Muziek]);
+    builder.addCriterium(CriteriumName.Vak, Operator.EQUALS, vakNames); //todo: we already have the codes: Immediately add the codes?
+    builder.addFields([FIELD.NAAM, FIELD.VOORNAAM, FIELD.VAK_NAAM, FIELD.GRAAD_LEERJAAR, FIELD.KLAS_LEERKRACHT]);
+    builder.addCriterium(CriteriumName.Graad, Operator.NOT_EQUALS, ["specialisatie"]);
+    let preparedBuilder = await builder.sendSettings();
+    throw new Error("TODO");
+    let table = await preparedBuilder.fetchTable(undefined, true);
+    // await setViewFromCurrentUrl();
+    //todo: Hack for DKO3 bug. Split S1 and S2 and fetch those separately. This way, if 1 subject is present in both 4.1 and S1, they are both listed!
+    return table;
+}
+
