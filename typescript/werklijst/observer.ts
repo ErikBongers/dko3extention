@@ -164,6 +164,7 @@ async function onMessage(request: ServiceRequest<any>, _sender: MessageSender, s
     if(request.action == Actions.RequestTabData) {
         console.log("Requesting tab data", request.data);
         let setup = await fetchHoursSettingsOrSaveDefault(request.data.params.schoolYear);
+        console.log(setup);
         await sendMessageToHoursSettings(Actions.TabData, setup);
         return;
     }
@@ -357,6 +358,8 @@ function createUrenFetchListener(): NamedCellTableFetchListener {
 }
 
 function rebuildHoursTableAfterDownloadFullTable(rows: NodeListOf<HTMLTableRowElement>, tableRef: TableRef) {
+    for(let row of rows)
+        console.log(row.outerHTML);
     globals.studentRowData = scrapeUren(rows, NamedCellTableFetchListener.getHeaderIndices(tableRef.getOrgTableContainer() as HTMLDivElement));
     globals.table = createTable(tableRef);
 

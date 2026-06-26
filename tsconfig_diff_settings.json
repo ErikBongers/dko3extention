@@ -10,7 +10,8 @@
     "noImplicitThis": true,
     "noImplicitReturns": true,
     "noImplicitAny": true,
-    "strict": true
+    "strict": true,
+    "types": [ "chrome" ]
   },
   "files": ["./typescript/roster_diff/diffSettingsPage.ts"]
 }
