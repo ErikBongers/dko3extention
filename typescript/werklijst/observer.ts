@@ -1,24 +1,24 @@
-import {addButton, arrayIsEqual, copyToClipboardOrRequestRetry, getSchoolIdString, openHoursSettings, Schoolyear, setButtonHighlighted, tryUntil, tryUntilThen} from "../globals";
+import {addButton, arrayIsEqual, copyToClipboardOrRequestRetry, getSchoolIdString, openHoursSettings, Schoolyear, tryUntilThen} from "../globals";
 import * as def from "../def";
 import {BTN_WERKLIJST_NAV_BOTTOM} from "../def";
-import {createTable, getUrenVakLeraarFileName, refillTable} from "./buildUren";
-import {addStudentToVakLeraarsMap, scrapeUren, StudentUrenRow, VakLeraar} from "./scrapeUren";
-import {cloud} from "../cloud";
-import {TableFetcher, TableRef} from "../table/tableFetcher";
-import {fetchHoursSettingsOrSaveDefault, setCriteriaForTeacherHoursAndClickFetchButton} from "./prefillInstruments";
+import {refillTable} from "./buildUren";
+import {addStudentToVakLeraarsMap, StudentUrenRow, VakLeraar} from "./scrapeUren";
+import {TableFetcher} from "../table/tableFetcher";
+import {fetchHoursSettingsOrSaveDefault} from "./prefillInstruments";
 import {HashObserver} from "../pageObserver";
 import {NamedCellTableFetchListener, NotHTMLTemplate} from "../pageHandlers";
 import {decorateTableHeader} from "../table/tableHeaders";
 import {getGotoStateOrDefault, Goto, PageName, saveGotoState, WerklijstGotoState} from "../gotoState";
-import {registerChecksumHandler, setAfterDownloadTableAction} from "../table/observer";
-import {CloudData, JsonCloudData, UrenData} from "./urenData";
+import {registerChecksumHandler} from "../table/observer";
+import {CloudData, UrenData} from "./urenData";
 import {createDefaultTableFetcher, createDefaultTableRefAndInfoBlock} from "../table/loadAnyTable";
 import {Actions, sendRequest, ServiceRequest, TabType} from "../messaging";
-import {mapHourSettings, TeacherHoursSetup, TeacherHoursSetupMapped} from "./hoursSettings";
+import {TeacherHoursSetup, TeacherHoursSetupMapped} from "./hoursSettings";
 import {getJaarToewijzigingWerklijst} from "../lessen/observer";
 import {emmet} from "../../libs/Emmeter/html";
 import {createInfoBlock} from "../infoBlock";
 import {fetchMailMergeData} from "../table/mailMerge";
+import {TeacherHoursCachedState} from "./teacherHoursCachedState";
 import MessageSender = chrome.runtime.MessageSender;
 
 const TARGET_BUTTON_ID = "#tablenav_leerlingen_werklijst_top > div > div.btn-group.btn-group-sm.datatable-buttons > button:nth-child(1)";
@@ -66,8 +66,6 @@ function isPageReallyLoaded()  {
     return false;
 }
 
-
-
 function onPageReallyLoaded() {
     onAnyChangeEvent();
 }
@@ -82,7 +80,7 @@ function onAnyChangeEvent() {
         onCriteriaShown();
     } else if (document.getElementById(def.BTN_WERKLIJST_NAV_BOTTOM)) {
         addButtons();
-        onResultsShown();
+        decorateTableHeader(document.querySelector("table#"+def.WERKLIJST_TABLE_ID) as HTMLTableElement, true);
     }
 }
 
@@ -98,13 +96,13 @@ function onCriteriaShown() {
     if(pageState.goto == Goto.Werklijst_uren_prevYear) {
         pageState.goto = Goto.None;
         saveGotoState(pageState);
-        setCriteriaForTeacherHoursAndClickFetchButton(Schoolyear.toFullString(Schoolyear.calculateCurrent())).then(() => {});
+        fetchAndShowTeacherHours(Schoolyear.toFullString(Schoolyear.calculateCurrent())).then(() => {});
         return;
     }
     if(pageState.goto == Goto.Werklijst_uren_nextYear) {
         pageState.goto = Goto.None;
         saveGotoState(pageState);
-        setCriteriaForTeacherHoursAndClickFetchButton(Schoolyear.toFullString(Schoolyear.calculateCurrent()+1)).then(() => {});
+        fetchAndShowTeacherHours(Schoolyear.toFullString(Schoolyear.calculateCurrent()+1)).then(() => {});
         return;
     }
     pageState.werklijstTableName = "";
@@ -129,10 +127,10 @@ function onCriteriaShown() {
     let prevSchoolyearShort = Schoolyear.toShortString(year-1);
     let nextSchoolyearShort = Schoolyear.toShortString(year);
     addButton(btnWerklijstMaken, def.WERKLIJST_MAILMERGE_BTN_ID, "Mail merge", async () => { await mailMergeStartSchoolyear(); }, "", ["btn", "btn-outline-dark"], "Mailmerge");
-    addButton(btnWerklijstMaken, def.UREN_PREV_BTN_ID, "Toon lerarenuren voor "+ prevSchoolyear, async () => { await setCriteriaForTeacherHoursAndClickFetchButton(prevSchoolyear); }, "", ["btn", "btn-outline-dark"], "Uren "+ prevSchoolyearShort);
+    addButton(btnWerklijstMaken, def.UREN_PREV_BTN_ID, "Toon lerarenuren voor "+ prevSchoolyear, async () => { await fetchAndShowTeacherHours(prevSchoolyear); }, "", ["btn", "btn-outline-dark"], "Uren "+ prevSchoolyearShort);
     addButton(btnWerklijstMaken, def.UREN_PREV_SETUP_BTN_ID, "Setup voor "+ nextSchoolyear, async () => { await showUrenSetup(nextSchoolyear); }, "fas-certificate", ["btn", "btn-outline-dark"], "", "beforebegin", "gear.svg");
     addButton(btnWerklijstMaken, def.UREN_PREV_SETUP_BTN_ID+"sdf", "test", async () => { await sendGreetingsToHoursSettings(); }, "", ["btn", "btn-outline-dark"], "send");
-    addButton(btnWerklijstMaken, def.UREN_NEXT_BTN_ID, "Toon lerarenuren voor "+ nextSchoolyear, async () => { await setCriteriaForTeacherHoursAndClickFetchButton(nextSchoolyear); }, "", ["btn", "btn-outline-dark"], "Uren "+ nextSchoolyearShort);
+    addButton(btnWerklijstMaken, def.UREN_NEXT_BTN_ID, "Toon lerarenuren voor "+ nextSchoolyear, async () => { await fetchAndShowTeacherHours(nextSchoolyear); }, "", ["btn", "btn-outline-dark"], "Uren "+ nextSchoolyearShort);
 
     addButton(btnWerklijstMaken, "test123", "Test 123", test123, "", ["btn", "btn-outline-dark"], "Test 123");
 
@@ -168,32 +166,29 @@ async function onMessage(request: ServiceRequest<any>, _sender: MessageSender, s
         await sendMessageToHoursSettings(Actions.TabData, setup);
         return;
     }
-    if(globals.activeFetcher) {
-        await globals.activeFetcher.cancel();
-        pauseRefresh = false;
-    }
+    // if(globals.activeFetcher) {
+    //     //todo await globals.activeFetcher.cancel();
+    //     pauseRefresh = false;
+    // }
     if(pauseRefresh)
         return;
     pauseRefresh = true;
-    if(!globals.hourSettingsMapped)  {
-        console.log("It seems the page hasn't been fully built yet. Start all over again.");
-        await setCriteriaForTeacherHoursAndClickFetchButton(Schoolyear.findInPage());
-        return;
-    }
     let hourSettings = request.data as TeacherHoursSetup;
 
+    if(!globals)
+        return; //oops...
     let equalSelectedSubjects = arrayIsEqual(
         hourSettings.subjects.filter(s => s.checked).map(s => s.name),
-        globals.hourSettingsMapped.subjects.filter(s => s.checked).map(s => s.name)
+        (await globals.getHourSettingsMapped()).subjects.filter(s => s.checked).map(s => s.name)
     );
 
     if(!equalSelectedSubjects) {
-        setCriteriaForTeacherHoursAndClickFetchButton(hourSettings.schoolyear).then(_ => {
+        fetchAndShowTeacherHours(hourSettings.schoolyear).then(_ => {
             pauseRefresh = false;
         });
     } else {
-        globals.hourSettingsMapped = mapHourSettings(hourSettings);
-        rebuildHoursTable(globals.table!, globals.studentRowData, globals.hourSettingsMapped, globals.fromCloud!);
+        globals.setHourSettings(hourSettings);
+        rebuildHoursTable(await globals.getStudentRowData(), await globals.getHourSettingsMapped(), await globals.getFromCloud());
         pauseRefresh = false;
     }
 }
@@ -213,18 +208,8 @@ async function sendGreetingsToHoursSettings() {
     sendRequest(Actions.GreetingsFromParent, TabType.Main, TabType.HoursSettings, globalHoursSettingsTabId, "Hello the main content script.").then(_ => {});
 }
 
-function onResultsShown() {
-    console.log("onResultsShown");
-    let werklijstPageState = getGotoStateOrDefault(PageName.Werklijst) as WerklijstGotoState;
-    if(werklijstPageState.werklijstTableName === def.UREN_TABLE_STATE_NAME) {
-        tryUntil(onShowLerarenUren);
-    }
-    decorateTableHeader(document.querySelector("table#"+def.WERKLIJST_TABLE_ID) as HTMLTableElement, true);
-}
-
 function addButtons() {
     let targetButton = document.querySelector(TARGET_BUTTON_ID) as HTMLButtonElement;
-    addButton(targetButton, def.SHOW_HOURS_BUTTON_ID, "Toon telling", () => { toggleUrenTable(); }, "fa-guitar", ["btn-outline-info"]);
     addButton(targetButton, def.MAIL_BTN_ID, "Email to clipboard", onClickCopyEmails, "fa-envelope", ["btn", "btn-outline-info"]);
 }
 
@@ -283,23 +268,13 @@ function buildVakLeraarsMap(studentRowData: StudentUrenRow[], hourSettingsMapped
     return vakLeraars;
 }
 
-type UrenGlobals = {
-    studentRowData: StudentUrenRow[],
-    activeFetcher?: TableFetcher;
-    hourSettingsMapped?: TeacherHoursSetupMapped,
-    fromCloud?: CloudData,
-    table?: HTMLTableElement
-}
+let globals: TeacherHoursCachedState | null = null;
 
-let globals: UrenGlobals = { //todo: this sucks: all functions in this module depend on this data being filled.
-    studentRowData: [],
-    hourSettingsMapped: undefined,
-    fromCloud: undefined,
-    table: undefined,
-    activeFetcher: undefined
-};
-
-function rebuildHoursTable(table: HTMLTableElement, studentRowData: StudentUrenRow[], hourSettingsMapped: TeacherHoursSetupMapped, fromCloud: CloudData) {
+function rebuildHoursTable(studentRowData: StudentUrenRow[], hourSettingsMapped: TeacherHoursSetupMapped, fromCloud: CloudData) {
+    document.getElementById(def.HOURS_TABLE_ID)?.remove();
+    let table = emmet.create("#view_contents>table").last as HTMLTableElement; //todo: make a breaking change for this function. It's API sucks. It appends an element to a selector. Perhaps even remove this function.
+    table.id = def.HOURS_TABLE_ID;
+    table.classList.add(def.CAN_SORT, def.NO_MENU);
     let vakLeraars = buildVakLeraarsMap(studentRowData, hourSettingsMapped);
     let urenData: UrenData  = {
         year: parseInt(hourSettingsMapped.schoolyear),
@@ -309,101 +284,13 @@ function rebuildHoursTable(table: HTMLTableElement, studentRowData: StudentUrenR
     observer.disconnect();
     refillTable(table, urenData);
     observer.observeElement(document.querySelector("main")!);
-    document.getElementById(def.HOURS_TABLE_ID)!.style.display = "none";
-    showUrenTable(true);
 }
 
-function onShowLerarenUren() {
-    if (document.getElementById(def.HOURS_TABLE_ID)) {
-        showUrenTable(true);
-        return true;
-    }
+async function rebuildHoursTableAfterFetch(schoolYear: string) {
+    if(!globals)
+        globals = new TeacherHoursCachedState(schoolYear);
 
-    //todo: create function to get tableRef, infoBlock and tableFetcher, as this reoccurs in multiple places.
-    let result = createDefaultTableRefAndInfoBlock();
-    if("error" in result) {
-        console.error(result.error);
-        return false;
-    }
-    let {tableRef, infoBlock} = result.result;
-
-    let result2 = createDefaultTableFetcher(tableRef, infoBlock);
-    if ("error" in result2) {
-        console.log(result2.error); //don't report as log.error.
-        return false;
-    }
-
-    globals.activeFetcher = result2.result.tableFetcher;
-    globals.activeFetcher.addListener(createUrenFetchListener());
-
-    setAfterDownloadTableAction(undefined); // Can't use this action to build the table as we're also fetching the cloud data.
-    Promise.all([
-        globals.activeFetcher.fetch(),
-        getUrenFromCloud(getUrenVakLeraarFileName())
-    ])
-        .then(async results => {
-            let [fetchedTable, jsonCloudData] = results;
-            globals.activeFetcher = undefined;
-            globals.hourSettingsMapped = mapHourSettings(await fetchHoursSettingsOrSaveDefault(Schoolyear.findInPage()));
-            globals.fromCloud = new CloudData(upgradeCloudData(jsonCloudData));
-            rebuildHoursTableAfterDownloadFullTable(fetchedTable.getRows(), fetchedTable.tableFetcher.tableRef);
-        });
-
-    return true;
-}
-
-function createUrenFetchListener(): NamedCellTableFetchListener {
-    let requiredHeaderLabels = ["naam", "voornaam", "vak: naam", "klasleerkracht", "graad + leerjaar"];
-    return new NamedCellTableFetchListener(requiredHeaderLabels, () => {});
-}
-
-function rebuildHoursTableAfterDownloadFullTable(rows: NodeListOf<HTMLTableRowElement>, tableRef: TableRef) {
-    for(let row of rows)
-        console.log(row.outerHTML);
-    globals.studentRowData = scrapeUren(rows, NamedCellTableFetchListener.getHeaderIndices(tableRef.getOrgTableContainer() as HTMLDivElement));
-    globals.table = createTable(tableRef);
-
-    rebuildHoursTable(globals.table, globals.studentRowData, globals.hourSettingsMapped!, globals.fromCloud!);
-}
-
-async function getUrenFromCloud(fileName: string): Promise<JsonCloudData> {
-    try {
-        return await cloud.json.fetch(fileName);
-    } catch (e) {
-        return new JsonCloudData();
-    }
-}
-
-function toggleUrenTable() {
-    let showNewTable = document.getElementById(def.HOURS_TABLE_ID)!.style.display === "none";
-    showUrenTable(showNewTable);
-}
-
-function showUrenTable(show: boolean) {
-    if(show) {
-        setAfterDownloadTableAction((fetchedTable) => {
-            rebuildHoursTableAfterDownloadFullTable(fetchedTable.tableFetcher.tableRef.getOrgTableRows(), fetchedTable.tableFetcher.tableRef);
-        });
-    } else {
-        setAfterDownloadTableAction(undefined);
-    }
-    document.getElementById(def.WERKLIJST_TABLE_ID)!.style.display = show ? "none" : "table";
-    document.getElementById(def.HOURS_TABLE_ID)!.style.display = show ? "table" : "none";
-    document.getElementById(def.SHOW_HOURS_BUTTON_ID)!.title = show ? "Toon normaal" : "Toon telling";
-    setButtonHighlighted(def.SHOW_HOURS_BUTTON_ID, show);
-    if (document.getElementById(def.HOURS_TABLE_ID)) {
-        let targetButton = document.querySelector(TARGET_BUTTON_ID) as HTMLButtonElement;
-        addButton(targetButton, def.UREN_PREV_SETUP_BTN_ID, "Setup ", async () => {  await showUrenSetup(Schoolyear.findInPage()); }, "fas-certificate", ["btn", "btn-outline-dark"], "", "beforebegin", "gear.svg");
-    }
-
-    let pageState = getGotoStateOrDefault(PageName.Werklijst) as WerklijstGotoState;
-    pageState.werklijstTableName = show ? def.UREN_TABLE_STATE_NAME : "";
-    saveGotoState(pageState);
-}
-
-function upgradeCloudData(fromCloud: JsonCloudData) {
-    //if fromCloud.version === "...." --> convert.
-    return new JsonCloudData(fromCloud); //re-create, just to be sure we have all the fields.
+    rebuildHoursTable(await globals.getStudentRowData(), await globals.getHourSettingsMapped(), await globals.getFromCloud());
 }
 
 async function mailMergeStartSchoolyear() {
@@ -459,3 +346,10 @@ function hasWerklijstNoCriteria() {
     let ids = [...rows].map(tr =>  tr.dataset.criterium_id);
     return ids.length === 2 && ["1", "2"].every(value => ids.includes(value));
 }
+
+async function fetchAndShowTeacherHours(schooljaar: string) {
+    let divViewContents = document.getElementById("view_contents") as HTMLDivElement;
+    divViewContents.classList.add("hideWerklijst");
+    await rebuildHoursTableAfterFetch(schooljaar);
+}
+

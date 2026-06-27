@@ -25,3 +25,15 @@ button.naked {
 .flexSchrink {
     flex-shrink: 1;
 }
+
+.hideWerklijst {
+    & > div.row.mb-1 {
+        display: none;
+    }
+    & > div#info_div {
+        display: none;
+    }
+    & > div#div_leerlingen_werklijst_overview {
+        display: none;
+    }
+}

@@ -343,7 +343,6 @@ const DOWNLOAD_TABLE_BTN_ID = "downloadTableButton";
 const COPY_TABLE_BTN_ID = "copyTableButton";
 const LESSEN_OVERZICHT_ID = "lessen_overzicht";
 const TRIM_BUTTON_ID = "moduleButton";
-const SHOW_HOURS_BUTTON_ID = "fetchAllButton";
 const FULL_CLASS_BUTTON_ID = "fullClassButton";
 const TRIM_TABLE_ID = "trimesterTable";
 const HOURS_TABLE_ID = "werklijst_uren";
@@ -361,7 +360,6 @@ const CACHE_DATE_SUFFIX = "__date";
 const POWER_QUERY_ID = "savedPowerQuery";
 const STORAGE_GOTO_STATE_KEY = "gotoState";
 const STORAGE_PAGE_SETTINGS_KEY_PREFIX = "pageSettings_";
-const UREN_TABLE_STATE_NAME = "__uren__";
 const CAN_SORT = "canSort";
 const NO_MENU = "noMenu";
 const LESSEN_TABLE_ID = "table_lessen_resultaat_tabel";
@@ -756,9 +754,6 @@ function escapeRegexChars(text) {
 }
 function getImmediateText(element) {
 	return [...element.childNodes].map((c) => c.nodeType === 3 ? c.textContent : "").join("");
-}
-function tryUntil(func) {
-	if (!func()) setTimeout(() => tryUntil(func), 100);
 }
 function tryUntilThen(func, then) {
 	if (func()) then();
@@ -4258,9 +4253,6 @@ function createDownloadTableWithExtraAction() {
 		});
 	};
 }
-function setAfterDownloadTableAction(action) {
-	pageState$1.transient.setValue(AFTER_DOWNLOAD_TABLE_ACTION, action);
-}
 
 //#endregion
 //#region typescript/tokenScanner.ts
@@ -7536,8 +7528,8 @@ function editableObserverCallback(mutationList, _observer) {
 	if (mutationList.every((mut) => mut.type === "attributes")) return;
 	cellChanged = true;
 }
-function getUrenVakLeraarFileName() {
-	return getSchoolIdString() + "_uren_vak_lk_" + Schoolyear.findInPage().replace("-", "_") + ".json";
+function getUrenVakLeraarFileName(schoolYear) {
+	return getSchoolIdString() + "_uren_vak_lk_" + schoolYear.replace("-", "_") + ".json";
 }
 function checkAndUpdate(urenData) {
 	if (isUpdatePaused) return;
@@ -7546,7 +7538,7 @@ function checkAndUpdate(urenData) {
 	let colKeys = getYearKeys(urenData.year);
 	updateCloudColumnMapFromScreen(urenData, colKeys.keyPrev);
 	updateCloudColumnMapFromScreen(urenData, colKeys.keyNext);
-	cloud.json.upload(getUrenVakLeraarFileName(), urenData.fromCloud.toJson(colKeys.keyPrev, colKeys.keyNext)).then((_r) => {
+	cloud.json.upload(getUrenVakLeraarFileName(Schoolyear.toFullString(urenData.year)), urenData.fromCloud.toJson(colKeys.keyPrev, colKeys.keyNext)).then((_r) => {
 		console.log("Uploaded uren.");
 	});
 	recalculate(urenData);
@@ -7628,14 +7620,6 @@ function recalculate(urenData) {
 	cellChanged = false;
 	isUpdatePaused = false;
 	observeTable(true);
-}
-function createTable(tableRef) {
-	document.getElementById(HOURS_TABLE_ID)?.remove();
-	let table = document.createElement("table");
-	tableRef.getOrgTableContainer().insertAdjacentElement("afterend", table);
-	table.id = HOURS_TABLE_ID;
-	table.classList.add(CAN_SORT, NO_MENU);
-	return table;
 }
 function refillTable(table, urenData) {
 	globalUrenData = urenData;
@@ -7942,7 +7926,7 @@ function translateVak(vak, settings) {
 	return vak;
 }
 function scrapeUren(rows, headerIndices) {
-	return [...rows].map((tr) => scrapeStudent(headerIndices, tr));
+	return rows.map((tr) => scrapeStudent(headerIndices, tr));
 }
 
 //#endregion
@@ -8486,102 +8470,6 @@ async function fetchHoursSettingsOrSaveDefault(schoolyearString, dko3_subjects) 
 	cloudSettings.subjects = [...cloudSubjectMap.values()].sort((a, b) => a.name.localeCompare(b.name));
 	return cloudSettings;
 }
-async function setCriteriaForTeacherHoursAndClickFetchButton(schooljaar, hourSettings) {
-	{
-		let x = await setCriteriaForTeacherHoursAndFetch(schooljaar, hourSettings);
-	}
-	let builder = await createWerklijstBuilderWithReset(schooljaar, Grouping.LES);
-	let dko3_vakken = await builder.fetchAvailableSubjects();
-	await builder.initialize(true);
-	if (!hourSettings) hourSettings = await fetchHoursSettingsOrSaveDefault(schooljaar, dko3_vakken);
-	let selectedInstrumentNames = new Set(hourSettings.subjects.filter((i) => i.checked).map((i) => i.name));
-	let validInstruments = dko3_vakken.filter((vak) => selectedInstrumentNames.has(vak.name));
-	let vakNames = validInstruments.map((vak) => vak.name);
-	builder.addCriterium(CriteriumName.Domein, Operator.EQUALS, [Domein$1.Muziek]);
-	builder.addCriterium(CriteriumName.Vak, Operator.EQUALS, vakNames);
-	builder.addFields([
-		FIELD.NAAM,
-		FIELD.VOORNAAM,
-		FIELD.VAK_NAAM,
-		FIELD.GRAAD_LEERJAAR,
-		FIELD.KLAS_LEERKRACHT
-	]);
-	await builder.sendSettings();
-	let pageState$2 = getGotoStateOrDefault(PageName.Werklijst);
-	pageState$2.werklijstTableName = UREN_TABLE_STATE_NAME;
-	saveGotoState(pageState$2);
-	console.log("Werklijst prepared: reloading page (or changing hash). ");
-	if (window.location.hash === "#leerlingen-werklijst$werklijst") location.reload();
-	else location.hash = "#leerlingen-werklijst$werklijst";
-}
-async function setCriteriaForTeacherHoursAndFetch(schooljaar, hourSettings) {
-	let builder = await createWerklijstBuilderWithReset(schooljaar, Grouping.LES);
-	let dko3_vakken = await builder.fetchAvailableSubjects();
-	await builder.initialize(true);
-	if (!hourSettings) hourSettings = await fetchHoursSettingsOrSaveDefault(schooljaar, dko3_vakken);
-	let selectedInstrumentNames = new Set(hourSettings.subjects.filter((i) => i.checked).map((i) => i.name));
-	let validInstruments = dko3_vakken.filter((vak) => selectedInstrumentNames.has(vak.name));
-	let vakNames = validInstruments.map((vak) => vak.name);
-	builder.addCriterium(CriteriumName.Domein, Operator.EQUALS, [Domein$1.Muziek]);
-	builder.addCriterium(CriteriumName.Vak, Operator.EQUALS, vakNames);
-	builder.addFields([
-		FIELD.NAAM,
-		FIELD.VOORNAAM,
-		FIELD.VAK_NAAM,
-		FIELD.GRAAD_LEERJAAR,
-		FIELD.KLAS_LEERKRACHT
-	]);
-	builder.addCriterium(CriteriumName.Graad, Operator.NOT_EQUALS, ["specialisatie"]);
-	let preparedBuilder = await builder.sendSettings();
-	throw new Error("TODO");
-}
-
-//#endregion
-//#region typescript/werklijst/urenData.ts
-var JsonCloudData = class {
-	version;
-	columns;
-	constructor(object) {
-		this.version = "1.0";
-		this.columns = [];
-		if (object) Object.assign(this, object);
-	}
-};
-var CloudData = class {
-	columnMap;
-	constructor(jsonCloudData) {
-		this.#buildMapFromJsonData(jsonCloudData);
-	}
-	#buildMapFromJsonData(jsonCloudData) {
-		for (let column of jsonCloudData.columns) column.rowMap = new Map(column.rows.map((row) => [row.key, row.value]));
-		this.columnMap = new Map(jsonCloudData.columns.map((col) => [col.key, col.rowMap]));
-	}
-	toJson(colKey1, colKey2) {
-		let data = new JsonCloudData();
-		let col1 = this.#columnToJson(colKey1);
-		let col2 = this.#columnToJson(colKey2);
-		data.columns.push({
-			key: colKey1,
-			rows: col1
-		});
-		data.columns.push({
-			key: colKey2,
-			rows: col2
-		});
-		return data;
-	}
-	#columnToJson(colKey) {
-		let cells = [];
-		for (let [key, value] of this.columnMap.get(colKey)) {
-			let row = {
-				key,
-				value
-			};
-			cells.push(row);
-		}
-		return cells;
-	}
-};
 
 //#endregion
 //#region typescript/table/mailMerge.ts
@@ -8903,13 +8791,141 @@ async function fetchMailMergeFullData(schoolyear, infoBlock) {
 }
 
 //#endregion
+//#region typescript/werklijst/urenData.ts
+var JsonCloudData = class {
+	version;
+	columns;
+	constructor() {
+		this.version = "1.0";
+		this.columns = [];
+	}
+};
+var CloudData = class {
+	columnMap;
+	constructor(jsonCloudData) {
+		this.#buildMapFromJsonData(jsonCloudData);
+	}
+	#buildMapFromJsonData(jsonCloudData) {
+		for (let column of jsonCloudData.columns) column.rowMap = new Map(column.rows.map((row) => [row.key, row.value]));
+		this.columnMap = new Map(jsonCloudData.columns.map((col) => [col.key, col.rowMap]));
+	}
+	toJson(colKey1, colKey2) {
+		let data = new JsonCloudData();
+		let col1 = this.#columnToJson(colKey1);
+		let col2 = this.#columnToJson(colKey2);
+		data.columns.push({
+			key: colKey1,
+			rows: col1
+		});
+		data.columns.push({
+			key: colKey2,
+			rows: col2
+		});
+		return data;
+	}
+	#columnToJson(colKey) {
+		let cells = [];
+		for (let [key, value] of this.columnMap.get(colKey)) {
+			let row = {
+				key,
+				value
+			};
+			cells.push(row);
+		}
+		return cells;
+	}
+};
+
+//#endregion
+//#region typescript/werklijst/teacherHoursCachedState.ts
+var TeacherHoursCachedState = class {
+	schoolYear;
+	studentRowData = null;
+	hourSettingsMapped = null;
+	fromCloud = null;
+	selectedVakNames = null;
+	allDko3Vakken = null;
+	constructor(schoolYear) {
+		this.schoolYear = schoolYear;
+	}
+	async getStudentRowData() {
+		if (!this.studentRowData) {
+			let table = await this.fetchTeacherHours(this.schoolYear, await this.getHourSettingsMapped());
+			this.studentRowData = scrapeUren(table.rows, table.headerIndices);
+		}
+		return this.studentRowData;
+	}
+	async fetchTeacherHours(schooljaar, hourSettings) {
+		let tableNoSpec = await this.fetchHourRows(schooljaar, await this.getSelectedVakNames(), "nospec");
+		let tableOnlySpec = await this.fetchHourRows(schooljaar, await this.getSelectedVakNames(), "spec");
+		return {
+			rows: tableNoSpec.rows.concat(tableOnlySpec.rows),
+			headerIndices: tableNoSpec.headerIndices
+		};
+	}
+	async fetchHourRows(schooljaar, vakNames, spec) {
+		let builder = await createWerklijstBuilderWithReset(schooljaar, Grouping.LES);
+		builder.addCriterium(CriteriumName.Domein, Operator.EQUALS, [Domein$1.Muziek]);
+		builder.addCriterium(CriteriumName.Vak, Operator.EQUALS, vakNames);
+		builder.addFields([
+			FIELD.NAAM,
+			FIELD.VOORNAAM,
+			FIELD.VAK_NAAM,
+			FIELD.GRAAD_LEERJAAR,
+			FIELD.KLAS_LEERKRACHT
+		]);
+		builder.addCriterium(CriteriumName.Graad, spec == "spec" ? Operator.EQUALS : Operator.NOT_EQUALS, ["specialisatie"]);
+		let preparedBuilder = await builder.sendSettings();
+		let table = await preparedBuilder.fetchTable(void 0, true);
+		return {
+			rows: [...table.getRows()],
+			headerIndices: NamedCellTableFetchListener.getHeaderIndicesFromHeaderCells(table.getTable().tHead.rows[0].cells)
+		};
+	}
+	async getSelectedVakNames() {
+		if (!this.selectedVakNames) {
+			let selectedInstrumentNames = new Set((await this.getHourSettingsMapped()).subjects.filter((i) => i.checked).map((i) => i.name));
+			let validInstruments = (await this.getAllDko3Vakken()).filter((vak) => selectedInstrumentNames.has(vak.name));
+			this.selectedVakNames = validInstruments.map((vak) => vak.name);
+		}
+		return this.selectedVakNames;
+	}
+	async getAllDko3Vakken() {
+		if (!this.allDko3Vakken) {
+			let builder = await createWerklijstBuilderWithReset(this.schoolYear, Grouping.LES);
+			this.allDko3Vakken = await builder.fetchAvailableSubjects();
+		}
+		return this.allDko3Vakken;
+	}
+	async getHourSettingsMapped() {
+		if (!this.hourSettingsMapped) this.hourSettingsMapped = mapHourSettings(await fetchHoursSettingsOrSaveDefault(this.schoolYear, await this.getAllDko3Vakken()));
+		return this.hourSettingsMapped;
+	}
+	setHourSettings(hourSettings) {
+		this.hourSettingsMapped = mapHourSettings(hourSettings);
+	}
+	async getFromCloud() {
+		if (!this.fromCloud) {
+			let jsonCloudData = await getUrenFromCloud(getUrenVakLeraarFileName(this.schoolYear));
+			this.fromCloud = new CloudData(jsonCloudData);
+		}
+		return this.fromCloud;
+	}
+};
+async function getUrenFromCloud(fileName) {
+	try {
+		return await cloud.json.fetch(fileName);
+	} catch (e) {
+		return new JsonCloudData();
+	}
+}
+
+//#endregion
 //#region typescript/werklijst/observer.ts
 const TARGET_BUTTON_ID = "#tablenav_leerlingen_werklijst_top > div > div.btn-group.btn-group-sm.datatable-buttons > button:nth-child(1)";
 registerChecksumHandler(
-	//todo: this sucks: all functions in this module depend on this data being filled.
-	//don't report as log.error.
-	// Can't use this action to build the table as we're also fetching the cloud data.
-	//re-create, just to be sure we have all the fields.
+	//oops...
+	//todo: make a breaking change for this function. It's API sucks. It appends an element to a selector. Perhaps even remove this function.
 	WERKLIJST_TABLE_ID,
 	(tableDef) => {
 		let headers = NamedCellTableFetchListener.getHeaderIndices(tableDef.tableRef.getOrgTableContainer());
@@ -8947,7 +8963,7 @@ function onAnyChangeEvent() {
 	if (document.querySelector(BTN_WERKLIJST_MAKEN_ID)) onCriteriaShown();
 	else if (document.getElementById(BTN_WERKLIJST_NAV_BOTTOM)) {
 		addButtons();
-		onResultsShown();
+		decorateTableHeader(document.querySelector("table#" + WERKLIJST_TABLE_ID), true);
 	}
 }
 function onMutation$3(mutation) {
@@ -8961,13 +8977,13 @@ function onCriteriaShown() {
 	if (pageState$2.goto == Goto.Werklijst_uren_prevYear) {
 		pageState$2.goto = Goto.None;
 		saveGotoState(pageState$2);
-		setCriteriaForTeacherHoursAndClickFetchButton(Schoolyear.toFullString(Schoolyear.calculateCurrent())).then(() => {});
+		fetchAndShowTeacherHours(Schoolyear.toFullString(Schoolyear.calculateCurrent())).then(() => {});
 		return;
 	}
 	if (pageState$2.goto == Goto.Werklijst_uren_nextYear) {
 		pageState$2.goto = Goto.None;
 		saveGotoState(pageState$2);
-		setCriteriaForTeacherHoursAndClickFetchButton(Schoolyear.toFullString(Schoolyear.calculateCurrent() + 1)).then(() => {});
+		fetchAndShowTeacherHours(Schoolyear.toFullString(Schoolyear.calculateCurrent() + 1)).then(() => {});
 		return;
 	}
 	pageState$2.werklijstTableName = "";
@@ -8991,7 +9007,7 @@ function onCriteriaShown() {
 		await mailMergeStartSchoolyear();
 	}, "", ["btn", "btn-outline-dark"], "Mailmerge");
 	addButton$1(btnWerklijstMaken, UREN_PREV_BTN_ID, "Toon lerarenuren voor " + prevSchoolyear, async () => {
-		await setCriteriaForTeacherHoursAndClickFetchButton(prevSchoolyear);
+		await fetchAndShowTeacherHours(prevSchoolyear);
 	}, "", ["btn", "btn-outline-dark"], "Uren " + prevSchoolyearShort);
 	addButton$1(btnWerklijstMaken, UREN_PREV_SETUP_BTN_ID, "Setup voor " + nextSchoolyear, async () => {
 		await showUrenSetup(nextSchoolyear);
@@ -9000,7 +9016,7 @@ function onCriteriaShown() {
 		await sendGreetingsToHoursSettings();
 	}, "", ["btn", "btn-outline-dark"], "send");
 	addButton$1(btnWerklijstMaken, UREN_NEXT_BTN_ID, "Toon lerarenuren voor " + nextSchoolyear, async () => {
-		await setCriteriaForTeacherHoursAndClickFetchButton(nextSchoolyear);
+		await fetchAndShowTeacherHours(nextSchoolyear);
 	}, "", ["btn", "btn-outline-dark"], "Uren " + nextSchoolyearShort);
 	addButton$1(btnWerklijstMaken, "test123", "Test 123", test123, "", ["btn", "btn-outline-dark"], "Test 123");
 	document.getElementById("btn_leerling_werklijst_reset").addEventListener("click", resetPageIncarnationChangedFlag);
@@ -9027,25 +9043,17 @@ async function onMessage(request, _sender, sendResponse) {
 		await sendMessageToHoursSettings(Actions.TabData, setup);
 		return;
 	}
-	if (globals.activeFetcher) {
-		await globals.activeFetcher.cancel();
-		pauseRefresh = false;
-	}
 	if (pauseRefresh) return;
 	pauseRefresh = true;
-	if (!globals.hourSettingsMapped) {
-		console.log("It seems the page hasn't been fully built yet. Start all over again.");
-		await setCriteriaForTeacherHoursAndClickFetchButton(Schoolyear.findInPage());
-		return;
-	}
 	let hourSettings = request.data;
-	let equalSelectedSubjects = arrayIsEqual(hourSettings.subjects.filter((s) => s.checked).map((s) => s.name), globals.hourSettingsMapped.subjects.filter((s) => s.checked).map((s) => s.name));
-	if (!equalSelectedSubjects) setCriteriaForTeacherHoursAndClickFetchButton(hourSettings.schoolyear).then((_) => {
+	if (!globals) return;
+	let equalSelectedSubjects = arrayIsEqual(hourSettings.subjects.filter((s) => s.checked).map((s) => s.name), (await globals.getHourSettingsMapped()).subjects.filter((s) => s.checked).map((s) => s.name));
+	if (!equalSelectedSubjects) fetchAndShowTeacherHours(hourSettings.schoolyear).then((_) => {
 		pauseRefresh = false;
 	});
 	else {
-		globals.hourSettingsMapped = mapHourSettings(hourSettings);
-		rebuildHoursTable(globals.table, globals.studentRowData, globals.hourSettingsMapped, globals.fromCloud);
+		globals.setHourSettings(hourSettings);
+		rebuildHoursTable(await globals.getStudentRowData(), await globals.getHourSettingsMapped(), await globals.getFromCloud());
 		pauseRefresh = false;
 	}
 }
@@ -9060,17 +9068,8 @@ async function sendMessageToHoursSettings(action, data) {
 async function sendGreetingsToHoursSettings() {
 	sendRequest(Actions.GreetingsFromParent, TabType.Main, TabType.HoursSettings, globalHoursSettingsTabId, "Hello the main content script.").then((_) => {});
 }
-function onResultsShown() {
-	console.log("onResultsShown");
-	let werklijstPageState = getGotoStateOrDefault(PageName.Werklijst);
-	if (werklijstPageState.werklijstTableName === UREN_TABLE_STATE_NAME) tryUntil(onShowLerarenUren);
-	decorateTableHeader(document.querySelector("table#" + WERKLIJST_TABLE_ID), true);
-}
 function addButtons() {
 	let targetButton = document.querySelector(TARGET_BUTTON_ID);
-	addButton$1(targetButton, SHOW_HOURS_BUTTON_ID, "Toon telling", () => {
-		toggleUrenTable();
-	}, "fa-guitar", ["btn-outline-info"]);
 	addButton$1(targetButton, MAIL_BTN_ID, "Email to clipboard", onClickCopyEmails, "fa-envelope", ["btn", "btn-outline-info"]);
 }
 function onClickCopyEmails() {
@@ -9109,14 +9108,12 @@ function buildVakLeraarsMap(studentRowData, hourSettingsMapped) {
 	vakLeraars = new Map([...vakLeraars.entries()].sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
 	return vakLeraars;
 }
-let globals = {
-	studentRowData: [],
-	hourSettingsMapped: void 0,
-	fromCloud: void 0,
-	table: void 0,
-	activeFetcher: void 0
-};
-function rebuildHoursTable(table, studentRowData, hourSettingsMapped, fromCloud) {
+let globals = null;
+function rebuildHoursTable(studentRowData, hourSettingsMapped, fromCloud) {
+	document.getElementById(HOURS_TABLE_ID)?.remove();
+	let table = emmet.create("#view_contents>table").last;
+	table.id = HOURS_TABLE_ID;
+	table.classList.add(CAN_SORT, NO_MENU);
 	let vakLeraars = buildVakLeraarsMap(studentRowData, hourSettingsMapped);
 	let urenData = {
 		year: parseInt(hourSettingsMapped.schoolyear),
@@ -9126,85 +9123,10 @@ function rebuildHoursTable(table, studentRowData, hourSettingsMapped, fromCloud)
 	observer.disconnect();
 	refillTable(table, urenData);
 	observer.observeElement(document.querySelector("main"));
-	document.getElementById(HOURS_TABLE_ID).style.display = "none";
-	showUrenTable(true);
 }
-function onShowLerarenUren() {
-	if (document.getElementById(HOURS_TABLE_ID)) {
-		showUrenTable(true);
-		return true;
-	}
-	let result = createDefaultTableRefAndInfoBlock();
-	if ("error" in result) {
-		console.error(result.error);
-		return false;
-	}
-	let { tableRef, infoBlock } = result.result;
-	let result2 = createDefaultTableFetcher(tableRef, infoBlock);
-	if ("error" in result2) {
-		console.log(result2.error);
-		return false;
-	}
-	globals.activeFetcher = result2.result.tableFetcher;
-	globals.activeFetcher.addListener(createUrenFetchListener());
-	setAfterDownloadTableAction(void 0);
-	Promise.all([globals.activeFetcher.fetch(), getUrenFromCloud(getUrenVakLeraarFileName())]).then(async (results) => {
-		let [fetchedTable, jsonCloudData] = results;
-		globals.activeFetcher = void 0;
-		globals.hourSettingsMapped = mapHourSettings(await fetchHoursSettingsOrSaveDefault(Schoolyear.findInPage()));
-		globals.fromCloud = new CloudData(upgradeCloudData(jsonCloudData));
-		rebuildHoursTableAfterDownloadFullTable(fetchedTable.getRows(), fetchedTable.tableFetcher.tableRef);
-	});
-	return true;
-}
-function createUrenFetchListener() {
-	let requiredHeaderLabels = [
-		"naam",
-		"voornaam",
-		"vak: naam",
-		"klasleerkracht",
-		"graad + leerjaar"
-	];
-	return new NamedCellTableFetchListener(requiredHeaderLabels, () => {});
-}
-function rebuildHoursTableAfterDownloadFullTable(rows, tableRef) {
-	for (let row of rows) console.log(row.outerHTML);
-	globals.studentRowData = scrapeUren(rows, NamedCellTableFetchListener.getHeaderIndices(tableRef.getOrgTableContainer()));
-	globals.table = createTable(tableRef);
-	rebuildHoursTable(globals.table, globals.studentRowData, globals.hourSettingsMapped, globals.fromCloud);
-}
-async function getUrenFromCloud(fileName) {
-	try {
-		return await cloud.json.fetch(fileName);
-	} catch (e) {
-		return new JsonCloudData();
-	}
-}
-function toggleUrenTable() {
-	let showNewTable = document.getElementById(HOURS_TABLE_ID).style.display === "none";
-	showUrenTable(showNewTable);
-}
-function showUrenTable(show) {
-	if (show) setAfterDownloadTableAction((fetchedTable) => {
-		rebuildHoursTableAfterDownloadFullTable(fetchedTable.tableFetcher.tableRef.getOrgTableRows(), fetchedTable.tableFetcher.tableRef);
-	});
-	else setAfterDownloadTableAction(void 0);
-	document.getElementById(WERKLIJST_TABLE_ID).style.display = show ? "none" : "table";
-	document.getElementById(HOURS_TABLE_ID).style.display = show ? "table" : "none";
-	document.getElementById(SHOW_HOURS_BUTTON_ID).title = show ? "Toon normaal" : "Toon telling";
-	setButtonHighlighted(SHOW_HOURS_BUTTON_ID, show);
-	if (document.getElementById(HOURS_TABLE_ID)) {
-		let targetButton = document.querySelector(TARGET_BUTTON_ID);
-		addButton$1(targetButton, UREN_PREV_SETUP_BTN_ID, "Setup ", async () => {
-			await showUrenSetup(Schoolyear.findInPage());
-		}, "fas-certificate", ["btn", "btn-outline-dark"], "", "beforebegin", "gear.svg");
-	}
-	let pageState$2 = getGotoStateOrDefault(PageName.Werklijst);
-	pageState$2.werklijstTableName = show ? UREN_TABLE_STATE_NAME : "";
-	saveGotoState(pageState$2);
-}
-function upgradeCloudData(fromCloud) {
-	return new JsonCloudData(fromCloud);
+async function rebuildHoursTableAfterFetch(schoolYear) {
+	if (!globals) globals = new TeacherHoursCachedState(schoolYear);
+	rebuildHoursTable(await globals.getStudentRowData(), await globals.getHourSettingsMapped(), await globals.getFromCloud());
 }
 async function mailMergeStartSchoolyear() {
 	let schoolyear = Schoolyear.findInPage();
@@ -9254,6 +9176,11 @@ function hasWerklijstNoCriteria() {
 	let rows = document.querySelectorAll("#tbody_leerlingen_werklijst_criteria > tr");
 	let ids = [...rows].map((tr) => tr.dataset.criterium_id);
 	return ids.length === 2 && ["1", "2"].every((value) => ids.includes(value));
+}
+async function fetchAndShowTeacherHours(schooljaar) {
+	let divViewContents = document.getElementById("view_contents");
+	divViewContents.classList.add("hideWerklijst");
+	await rebuildHoursTableAfterFetch(schooljaar);
 }
 
 //#endregion

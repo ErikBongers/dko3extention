@@ -4,6 +4,7 @@ import {VakLeraar} from "./scrapeUren";
 import {TableRef} from "../table/tableFetcher";
 import {cloud} from "../cloud";
 import {UrenData} from "./urenData";
+import {emmet} from "../../libs/Emmeter/html";
 
 let isUpdatePaused = true;
 let cellChanged = false;
@@ -134,8 +135,8 @@ function editableObserverCallback(mutationList: MutationRecord[], _observer: Mut
     cellChanged = true;
 }
 
-export function getUrenVakLeraarFileName() {
-    return getSchoolIdString() + "_" + "uren_vak_lk_" + Schoolyear.findInPage().replace("-", "_") + ".json";
+export function getUrenVakLeraarFileName(schoolYear: string) {
+    return getSchoolIdString() + "_" + "uren_vak_lk_" + schoolYear.replace("-", "_") + ".json";
 }
 
 function checkAndUpdate(urenData: UrenData) {
@@ -151,7 +152,7 @@ function checkAndUpdate(urenData: UrenData) {
     updateCloudColumnMapFromScreen(urenData, colKeys.keyNext);
 
     cloud.json.upload(
-        getUrenVakLeraarFileName(),
+        getUrenVakLeraarFileName(Schoolyear.toFullString(urenData.year)),
         urenData.fromCloud.toJson(colKeys.keyPrev, colKeys.keyNext))
         .then(_r => { console.log("Uploaded uren.")});
 
@@ -244,15 +245,6 @@ function recalculate(urenData: UrenData) {
     cellChanged = false;
     isUpdatePaused = false;
     observeTable(true);
-}
-
-export function createTable(tableRef: TableRef) {
-    document.getElementById(def.HOURS_TABLE_ID)?.remove();
-    let table = document.createElement("table");
-    tableRef.getOrgTableContainer().insertAdjacentElement("afterend", table);
-    table.id = def.HOURS_TABLE_ID;
-    table.classList.add(def.CAN_SORT, def.NO_MENU);
-    return table;
 }
 
 export function refillTable(table: HTMLTableElement, urenData:  UrenData) {

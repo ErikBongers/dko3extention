@@ -70,7 +70,7 @@ export class NamedCellTableFetchListener implements TableFetchListener {
         return this.getHeaderIndicesFromHeaderCells(headers);
     }
 
-    static getHeaderIndicesFromHeaderCells(headers: NodeListOf<HTMLTableCellElement>) {
+    static getHeaderIndicesFromHeaderCells(headers: Iterable<HTMLTableCellElement>) {
         let headerIndices: Map<string, number> = new Map();
         Array.from(headers)
             .forEach((header, index) => {

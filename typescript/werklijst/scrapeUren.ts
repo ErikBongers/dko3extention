@@ -98,6 +98,6 @@ function translateVak(vak: string, settings: TeacherHoursSetupMapped) {
     return vak;
 }
 
-export function scrapeUren(rows: NodeListOf<HTMLTableRowElement>, headerIndices: Map<string, number>) {
-    return [...rows].map(tr => scrapeStudent(headerIndices, tr));
+export function scrapeUren(rows: HTMLTableRowElement[], headerIndices: Map<string, number>) {
+    return rows.map(tr => scrapeStudent(headerIndices, tr));
 }

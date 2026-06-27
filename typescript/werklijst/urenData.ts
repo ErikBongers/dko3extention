@@ -16,12 +16,9 @@ export class JsonCloudData {
     version: string;
     columns: JsonColumn[];
 
-    constructor(object?: Object) {
+    constructor() {
         this.version = "1.0";
         this.columns = [];
-        if(object) {
-            Object.assign(this, object);
-        }
     }
 }
 
