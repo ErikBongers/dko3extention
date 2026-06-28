@@ -9125,6 +9125,7 @@ function addHoursViewButtons(infoBlock) {
 }
 async function reload() {
 	if (!globals) return;
+	document.getElementById(HOURS_TABLE_ID)?.remove();
 	globals = new TeacherHoursCachedState(globals.schoolYear, getInfoBlock());
 	await fetchAndShowTeacherHours(globals.schoolYear, getInfoBlock());
 }
