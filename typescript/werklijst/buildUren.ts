@@ -7,6 +7,7 @@ import {emmet} from "../../libs/Emmeter/html";
 import {TeacherHoursSetupMapped} from "./hoursSettings";
 import observer from "./observer";
 import {InfoBlock} from "../infoBlock";
+import {makeTableSortable} from "../table/tableSort";
 
 let isUpdatePaused = true;
 let cellChanged = false;
@@ -391,6 +392,7 @@ export function rebuildHoursTable(studentRowData: StudentUrenRow[], hourSettings
     };
     observer.disconnect();
     refillTable(table, urenData);
+    makeTableSortable(table);
     observer.observeElement(document.querySelector("main")!);
 }
 

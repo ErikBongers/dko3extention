@@ -3953,6 +3953,20 @@ function getDefaultValueFuncs(table) {
 	let columnCount = table.tHead.rows[0].cells.length;
 	return range(0, columnCount).map((_) => defaultValueFunc);
 }
+function makeTableSortable(table, valueFuncs) {
+	let actualValueFuncs = valueFuncs ?? getDefaultValueFuncs(table);
+	Array.from(table.tHead.children[0].children).forEach((colHeader) => {
+		colHeader.onclick = (ev) => {
+			reSortTableByColumn2(ev, table, actualValueFuncs);
+		};
+	});
+}
+function reSortTableByColumn2(ev, table, valueFuncs) {
+	let header = table.tHead.children[0].children[getColumnIndex(ev)];
+	let wasAscending = header.classList.contains("sortAscending");
+	let columnIndex = getColumnIndex(ev);
+	sortTableByColumn(table, columnIndex, wasAscending, valueFuncs[columnIndex]);
+}
 function sortTableByColumn(table, index, descending, valueFunc) {
 	let header = table.tHead.children[0].children[index];
 	let rows = Array.from(table.tBodies[0].rows);
@@ -8017,6 +8031,7 @@ function rebuildHoursTable(studentRowData, hourSettingsMapped, fromCloud, infoBl
 	};
 	observer_default$4.disconnect();
 	refillTable(table, urenData);
+	makeTableSortable(table);
 	observer_default$4.observeElement(document.querySelector("main"));
 }
 function buildVakLeraarsMap(studentRowData, hourSettingsMapped) {
