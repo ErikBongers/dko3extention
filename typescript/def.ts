@@ -3,6 +3,7 @@ export const PROGRESS_BAR_ID = "progressBarFetch";
 export const UREN_PREV_BTN_ID = "prefillInstrButton";
 export const WERKLIJST_MAILMERGE_BTN_ID = "mailMergeButton";
 export const UREN_PREV_SETUP_BTN_ID = "prefillInstrSetupButton";
+export const UREN_REFRESH_BTN_ID = "refreshUrenButton";
 export const GOTO_WERKLIJST_BTN_ID = "gotoWerklijstButton";
 export const UREN_NEXT_BTN_ID = "prefillInstrButtonNext";
 export const UREN_NEXT_SETUP_BTN_ID = "prefillInstrSetupButtonNext";

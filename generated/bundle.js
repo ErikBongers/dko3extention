@@ -337,6 +337,7 @@ const PROGRESS_BAR_ID = "progressBarFetch";
 const UREN_PREV_BTN_ID = "prefillInstrButton";
 const WERKLIJST_MAILMERGE_BTN_ID = "mailMergeButton";
 const UREN_PREV_SETUP_BTN_ID = "prefillInstrSetupButton";
+const UREN_REFRESH_BTN_ID = "refreshUrenButton";
 const GOTO_WERKLIJST_BTN_ID = "gotoWerklijstButton";
 const UREN_NEXT_BTN_ID = "prefillInstrButtonNext";
 const MAIL_BTN_ID = "mailButton";
@@ -8962,6 +8963,7 @@ var TeacherHoursCachedState = class {
 		let tableNoSpec = await this.fetchHourRows(schooljaar, await this.getSelectedVakNames(), "nospec");
 		this.infoBlock.infoBar.setExtraInfo("Specialisatie lessen ophalen...");
 		let tableOnlySpec = await this.fetchHourRows(schooljaar, await this.getSelectedVakNames(), "spec");
+		await WerklijstBuilder.clear();
 		await setViewFromCurrentUrl();
 		return {
 			rows: tableNoSpec.rows.concat(tableOnlySpec.rows),
@@ -9033,9 +9035,11 @@ async function getUrenFromCloud(fileName) {
 //#region typescript/werklijst/observer.ts
 const TARGET_BUTTON_ID = "#tablenav_leerlingen_werklijst_top > div > div.btn-group.btn-group-sm.datatable-buttons > button:nth-child(1)";
 registerChecksumHandler(
+	//oops...
 	//todo: rename to TeacherHourSettings
 	//oops...
 	//oops...
+	//to override an element style set by dko3. CSS won't work in this case.
 	WERKLIJST_TABLE_ID,
 	(tableDef) => {
 		let headers = NamedCellTableFetchListener.getHeaderIndices(tableDef.tableRef.getOrgTableContainer());
@@ -9079,7 +9083,6 @@ function onMutation$3(mutation) {
 	return true;
 }
 async function gotoWerklijst() {
-	await WerklijstBuilder.clear();
 	let pageState$2 = getGotoStateOrDefault(PageName.Werklijst);
 	pageState$2.goto = Goto.None;
 	saveGotoState(pageState$2);
@@ -9089,11 +9092,19 @@ async function gotoWerklijst() {
 function addHoursViewButtons(infoBlock) {
 	let buttonBar = document.querySelector("#pluginContainer .werklijstButtonWrapper");
 	addHoursButtons(buttonBar, infoBlock);
+	addButton$1(buttonBar, UREN_REFRESH_BTN_ID, "Refresh", async () => {
+		await reload();
+	}, "fa-refresh", ["btn", "btn-outline-dark"], "Refresh ", "beforeend");
 	addButton$1(buttonBar, GOTO_WERKLIJST_BTN_ID, "Werklijst", gotoWerklijst, "", [
 		"btn",
 		"btn-outline-dark",
 		"flexRight"
 	], "Werklijst", "beforeend");
+}
+async function reload() {
+	if (!globals) return;
+	globals = new TeacherHoursCachedState(globals.schoolYear, getInfoBlock());
+	await fetchAndShowTeacherHours(globals.schoolYear, getInfoBlock());
 }
 function checkStateAndGotoTeacherHours(infoBlock) {
 	let pageState$2 = getGotoStateOrDefault(PageName.Werklijst);
@@ -9106,13 +9117,6 @@ function checkStateAndGotoTeacherHours(infoBlock) {
 		return true;
 	}
 	return false;
-}
-function onResultsShown() {
-	console.log("onResultsShown");
-	let infoBlock = addPluginContainer();
-	if (checkStateAndGotoTeacherHours(infoBlock)) return;
-	addButtons();
-	decorateTableHeader(document.querySelector("table#" + WERKLIJST_TABLE_ID), true);
 }
 function addHoursButtons(buttonBar, infoBlock) {
 	document.getElementById(UREN_PREV_BTN_ID)?.remove();
@@ -9154,8 +9158,14 @@ function addPluginContainer() {
         div.d-flex.werklijstButtonWrapper
     `).first;
 	emmet.appendChild(container, "h4");
-	let infoBlock = createInfoBlock(container, "");
-	return infoBlock;
+	return createInfoBlock(container, "");
+}
+function onResultsShown() {
+	console.log("onResultsShown");
+	let infoBlock = addPluginContainer();
+	if (checkStateAndGotoTeacherHours(infoBlock)) return;
+	addButtons();
+	decorateTableHeader(document.querySelector("table#" + WERKLIJST_TABLE_ID), true);
 }
 function onCriteriaShown() {
 	console.log("onCriteriaShown");
@@ -9289,6 +9299,8 @@ async function mailMergeStartSchoolyear() {
 async function fetchAndShowTeacherHours(schooljaar, infoBlock) {
 	let divViewContents = document.getElementById("view_contents");
 	divViewContents.classList.add("hideWerklijst");
+	let divOverView = document.getElementById("div_leerlingen_werklijst_overview");
+	divOverView.style.display = "none";
 	let title = document.querySelector("#" + PLUGIN_CONTAINER_ID + " h4");
 	title.textContent = "Lerarenuren voor schooljaar " + schooljaar;
 	await rebuildHoursTableAfterFetch(schooljaar, infoBlock);

@@ -1,7 +1,7 @@
 import {scrapeUren, StudentUrenRow} from "./scrapeUren";
 import {mapHourSettings, TeacherHoursSetup, TeacherHoursSetupMapped} from "./hoursSettings";
 import {CloudData, JsonCloudData} from "./urenData";
-import {createWerklijstBuilderWithReset} from "../table/werklijstBuilder";
+import {createWerklijstBuilderWithReset, WerklijstBuilder} from "../table/werklijstBuilder";
 import {CriteriumName, Domein, FIELD, Grouping, Operator} from "./criteria";
 import {NamedCellTableFetchListener} from "../pageHandlers";
 import {fetchHoursSettingsOrSaveDefault} from "./prefillInstruments";
@@ -44,6 +44,7 @@ export class TeacherHoursCachedState {
         let tableNoSpec = await this.fetchHourRows(schooljaar, await this.getSelectedVakNames(), "nospec");
         this.infoBlock.infoBar.setExtraInfo("Specialisatie lessen ophalen...");
         let tableOnlySpec = await this.fetchHourRows(schooljaar, await this.getSelectedVakNames(), "spec");
+        await WerklijstBuilder.clear();
         await setViewFromCurrentUrl();
         return {rows: tableNoSpec.rows.concat(tableOnlySpec.rows), headerIndices: tableNoSpec.headerIndices};
     }

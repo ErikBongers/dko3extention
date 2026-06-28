@@ -17,8 +17,8 @@ import {createInfoBlock, getInfoBlock, InfoBlock} from "../infoBlock";
 import {fetchMailMergeData} from "../table/mailMerge";
 import {TeacherHoursCachedState} from "./teacherHoursCachedState";
 import {hasWerklijstNoCriteria, scrapeCriteria, scrapeSelectedFieldIndexes} from "./criteria";
+import {WerklijstBuilder} from "../table/werklijstBuilder";
 import MessageSender = chrome.runtime.MessageSender;
-import {createWerklijstBuilderWithReset, WerklijstBuilder} from "../table/werklijstBuilder";
 
 const TARGET_BUTTON_ID = "#tablenav_leerlingen_werklijst_top > div > div.btn-group.btn-group-sm.datatable-buttons > button:nth-child(1)";
 
@@ -89,7 +89,6 @@ function onMutation(mutation: MutationRecord) {
 }
 
 async function gotoWerklijst() {
-    await WerklijstBuilder.clear();
     let pageState = getGotoStateOrDefault(PageName.Werklijst) as WerklijstGotoState;
     pageState.goto = Goto.None;
     saveGotoState(pageState);
@@ -100,9 +99,16 @@ async function gotoWerklijst() {
 function addHoursViewButtons(infoBlock: InfoBlock) {
     let buttonBar = document.querySelector("#pluginContainer .werklijstButtonWrapper") as HTMLDivElement;
     addHoursButtons(buttonBar, infoBlock);
+    addButton(buttonBar, def.UREN_REFRESH_BTN_ID, "Refresh", async () => { await reload(); }, "fa-refresh", ["btn", "btn-outline-dark"], "Refresh ", "beforeend");
     addButton(buttonBar, def.GOTO_WERKLIJST_BTN_ID, "Werklijst", gotoWerklijst, "", ["btn", "btn-outline-dark", "flexRight"], "Werklijst", "beforeend");
 }
 
+async function reload() {
+    if(!globals)
+        return; //oops...
+    globals = new TeacherHoursCachedState(globals.schoolYear, getInfoBlock());
+    await fetchAndShowTeacherHours(globals.schoolYear, getInfoBlock());
+}
 function checkStateAndGotoTeacherHours(infoBlock: InfoBlock) {
     let pageState = getGotoStateOrDefault(PageName.Werklijst) as WerklijstGotoState;
     if(pageState.goto == Goto.Werklijst_uren_prevYear) {
@@ -114,16 +120,6 @@ function checkStateAndGotoTeacherHours(infoBlock: InfoBlock) {
         return true;
     }
     return false;
-}
-
-function onResultsShown() {
-    console.log("onResultsShown");
-    let infoBlock = addPluginContainer();
-    if(checkStateAndGotoTeacherHours(infoBlock))
-        return;
-
-    addButtons();
-    decorateTableHeader(document.querySelector("table#"+def.WERKLIJST_TABLE_ID) as HTMLTableElement, true);
 }
 
 function addHoursButtons(buttonBar: HTMLDivElement, infoBlock: InfoBlock) {
@@ -163,8 +159,17 @@ function addPluginContainer() {
     `).first as HTMLDivElement;
 
     emmet.appendChild(container, "h4");
-    let infoBlock = createInfoBlock(container, "");
-    return infoBlock;
+    return createInfoBlock(container, "");
+}
+
+function onResultsShown() {
+    console.log("onResultsShown");
+    let infoBlock = addPluginContainer();
+    if(checkStateAndGotoTeacherHours(infoBlock))
+        return;
+
+    addButtons();
+    decorateTableHeader(document.querySelector("table#"+def.WERKLIJST_TABLE_ID) as HTMLTableElement, true);
 }
 
 function onCriteriaShown() {
@@ -351,6 +356,8 @@ async function mailMergeStartSchoolyear() {
 async function fetchAndShowTeacherHours(schooljaar: string, infoBlock: InfoBlock) {
     let divViewContents = document.getElementById("view_contents") as HTMLDivElement;
     divViewContents.classList.add("hideWerklijst");
+    let divOverView = document.getElementById("div_leerlingen_werklijst_overview") as HTMLDivElement;
+    divOverView.style.display = "none"; //to override an element style set by dko3. CSS won't work in this case.
     let title = document.querySelector("#" + def.PLUGIN_CONTAINER_ID + " h4") as HTMLHeadingElement;
     title.textContent = "Lerarenuren voor schooljaar " + schooljaar;
     await rebuildHoursTableAfterFetch(schooljaar, infoBlock);
