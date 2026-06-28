@@ -36,7 +36,8 @@ interface ColDef {
     ignored?: boolean,
 }
 
-const colKeysForTotals = ["grjr1_1", "grjr1_2", "grjr2_1", "grjr2_2", "grjr2_3", "grjr2_4", "grjr3_1", "grjr3_2", "grjr3_3", "grjr4_1", "grjr4_2", "grjr4_3", "grjr_s_1", "grjr_s_2"];
+const defaultColKeysForTotals = ["grjr1_1", "grjr1_2", "grjr2_1", "grjr2_2", "grjr2_3", "grjr2_4", "grjr3_1", "grjr3_2", "grjr3_3", "grjr4_1", "grjr4_2", "grjr4_3", "grjr_s_1", "grjr_s_2"];
+let colKeysForTotals: string[] = [];
 
 let colDefsArray: {key: string, def: ColDef}[] = [
     {key:"vak", def: { label:"Vak", classList: [], total: 0, factor: 1.0, getText: (ctx) => ctx.vakLeraar.vak}},
@@ -106,6 +107,7 @@ function updateColDefs(year: number) {
         colDef.colIndex = idx++;
         colDef.total = 0;
     });
+    filterIgnoredColumns();
 }
 
 interface IgnoredColumn {
@@ -253,10 +255,16 @@ function clearTotals() {
     }
 }
 
+function filterIgnoredColumns() {
+    colKeysForTotals = [...defaultColKeysForTotals];
+    colKeysForTotals = colKeysForTotals.filter(colKey => !colDefs.get(colKey)!.ignored);
+}
+
 function recalculate(urenData: UrenData) {
     isUpdatePaused = true;
     observeTable(false);
     clearTotals();
+    filterIgnoredColumns();
 
     let yearKey = getYearKeys(urenData.year).keyNext;
 
@@ -389,7 +397,8 @@ function fillTableHeader(table: HTMLTableElement, _vakLeraars: Map<string, VakLe
                 let key = target.dataset.key as string;
                 let colDef = colDefs.get(key)!; //! should exist
                 colDef.ignored = !target.checked;
-                saveLocalHourSettings({ignoredColumns: [...colDefs.values()].filter(colDef => colDef.ignored).map(colDef => ({key, ignored: colDef.ignored!}))});
+                saveLocalHourSettings({ignoredColumns: [...colDefs.entries()].filter(entry => (entry[1].ignored??false)).map(entry => ({key: entry[0], ignored: entry[1].ignored!}))});
+                recalculate(globalUrenData!); //! should be filled
             });
         }
         else

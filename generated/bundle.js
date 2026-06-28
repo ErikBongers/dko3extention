@@ -7455,7 +7455,7 @@ function onTimer() {
 	checkAndUpdate(globalUrenData);
 }
 let globalUrenData = void 0;
-const colKeysForTotals = [
+const defaultColKeysForTotals = [
 	"grjr1_1",
 	"grjr1_2",
 	"grjr2_1",
@@ -7471,6 +7471,7 @@ const colKeysForTotals = [
 	"grjr_s_1",
 	"grjr_s_2"
 ];
+let colKeysForTotals = [];
 let colDefsArray = [
 	{
 		key: "vak",
@@ -7800,6 +7801,7 @@ function updateColDefs(year) {
 		colDef.colIndex = idx++;
 		colDef.total = 0;
 	});
+	filterIgnoredColumns();
 }
 function getLocalHourSettings() {
 	let text = localStorage.getItem(
@@ -7807,6 +7809,7 @@ function getLocalHourSettings() {
 		//clear
 		//get value when not a calculated value.
 		//! should exist
+		//! should be filled
 		//todo: make a breaking change for this function. It's API sucks. It appends an element to a selector. Perhaps even remove this function.
 		LOCAL_HOURS_SETTINGS
 );
@@ -7890,10 +7893,15 @@ function calculateAndSumCell(colDef, ctx, onlyRecalc) {
 function clearTotals() {
 	for (let [_colKey, colDef] of colDefs) if (colDef.totals) colDef.total = 0;
 }
+function filterIgnoredColumns() {
+	colKeysForTotals = [...defaultColKeysForTotals];
+	colKeysForTotals = colKeysForTotals.filter((colKey) => !colDefs.get(colKey).ignored);
+}
 function recalculate(urenData) {
 	isUpdatePaused = true;
 	observeTable(false);
 	clearTotals();
+	filterIgnoredColumns();
 	let yearKey = getYearKeys(urenData.year).keyNext;
 	for (let [vakLeraarKey, vakLeraar] of urenData.vakLeraars) {
 		let tr = document.getElementById(createValidId(vakLeraarKey));
@@ -8022,10 +8030,11 @@ function fillTableHeader(table, _vakLeraars) {
 				let key$1 = target.dataset.key;
 				let colDef$1 = colDefs.get(key$1);
 				colDef$1.ignored = !target.checked;
-				saveLocalHourSettings({ ignoredColumns: [...colDefs.values()].filter((colDef$2) => colDef$2.ignored).map((colDef$2) => ({
-					key: key$1,
-					ignored: colDef$2.ignored
+				saveLocalHourSettings({ ignoredColumns: [...colDefs.entries()].filter((entry$1) => entry$1[1].ignored ?? false).map((entry$1) => ({
+					key: entry$1[0],
+					ignored: entry$1[1].ignored
 				})) });
+				recalculate(globalUrenData);
 			});
 		} else emmet.appendChild(tr_ignore, `th`);
 	}
