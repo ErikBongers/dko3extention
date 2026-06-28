@@ -112,3 +112,38 @@ export async function fetchTableRows(response:  Response) {
     return table.querySelectorAll("tr");
 }
 
+export function scrapeCriteria() {
+    let rows = document.querySelectorAll("#tbody_leerlingen_werklijst_criteria > tr") as NodeListOf<HTMLTableRowElement>;
+    let criteria: string[] = [...rows].map(tr => {
+        let id = tr.dataset.criterium_id;
+        let select = tr.cells[1].querySelector("select") as HTMLSelectElement;
+        let operator = select?.value ?? "";
+        let value = "-null-";
+        let selectionRenderedSpan = tr.cells[2].querySelector("span.select2-selection__rendered") as HTMLSpanElement;
+        if (selectionRenderedSpan) {
+            value = selectionRenderedSpan.getAttribute("title") ?? "-null-";
+            let options = tr.cells[2].querySelectorAll(".select2 option") as NodeListOf<HTMLOptionElement>;
+            let selectedOption = [...options].find(option => option.textContent === value);
+            value = selectedOption?.getAttribute("value") ?? "-null-";
+        } else {
+            let selectionRenderedUl = tr.cells[2].querySelector("ul.select2-selection__rendered") as HTMLUListElement;
+            value = [...selectionRenderedUl.querySelectorAll("li.select2-selection__choice") as NodeListOf<HTMLLIElement>].map(li => li.title).join(",");
+        }
+        return id + "_" + operator + "_" + value;
+    });
+    return criteria.join("_");
+}
+
+export function scrapeSelectedFieldIndexes() {
+    let rows = document.querySelectorAll("#tbody_leerlingen_werklijst_velden > tr");
+    return [...rows].map(row => {
+        let cells = row.querySelectorAll("td");
+        return cells[1].textContent.trim();
+    });
+}
+
+export function hasWerklijstNoCriteria() {
+    let rows = document.querySelectorAll("#tbody_leerlingen_werklijst_criteria > tr") as NodeListOf<HTMLTableRowElement>;
+    let ids = [...rows].map(tr => tr.dataset.criterium_id);
+    return ids.length === 2 && ["1", "2"].every(value => ids.includes(value));
+}

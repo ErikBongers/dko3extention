@@ -3619,6 +3619,39 @@ async function fetchTableRows(response) {
 	let table = div.querySelector("table");
 	return table.querySelectorAll("tr");
 }
+function scrapeCriteria() {
+	let rows = document.querySelectorAll("#tbody_leerlingen_werklijst_criteria > tr");
+	let criteria = [...rows].map((tr) => {
+		let id = tr.dataset.criterium_id;
+		let select = tr.cells[1].querySelector("select");
+		let operator = select?.value ?? "";
+		let value = "-null-";
+		let selectionRenderedSpan = tr.cells[2].querySelector("span.select2-selection__rendered");
+		if (selectionRenderedSpan) {
+			value = selectionRenderedSpan.getAttribute("title") ?? "-null-";
+			let options$1 = tr.cells[2].querySelectorAll(".select2 option");
+			let selectedOption = [...options$1].find((option) => option.textContent === value);
+			value = selectedOption?.getAttribute("value") ?? "-null-";
+		} else {
+			let selectionRenderedUl = tr.cells[2].querySelector("ul.select2-selection__rendered");
+			value = [...selectionRenderedUl.querySelectorAll("li.select2-selection__choice")].map((li) => li.title).join(",");
+		}
+		return id + "_" + operator + "_" + value;
+	});
+	return criteria.join("_");
+}
+function scrapeSelectedFieldIndexes() {
+	let rows = document.querySelectorAll("#tbody_leerlingen_werklijst_velden > tr");
+	return [...rows].map((row) => {
+		let cells = row.querySelectorAll("td");
+		return cells[1].textContent.trim();
+	});
+}
+function hasWerklijstNoCriteria() {
+	let rows = document.querySelectorAll("#tbody_leerlingen_werklijst_criteria > tr");
+	let ids = [...rows].map((tr) => tr.dataset.criterium_id);
+	return ids.length === 2 && ["1", "2"].every((value) => ids.includes(value));
+}
 
 //#endregion
 //#region typescript/table/tableNavigation.ts
@@ -9210,39 +9243,6 @@ async function mailMergeStartSchoolyear() {
 		copyToClipboardOrRequestRetry(infoBlock.infoBar, text);
 		infoBlock.infoBar.setInfoLine("HERLAAD WEBPAGINA VOOR JE OPNIEUW EEN MAILMERGE DOET! (sorry)");
 	}
-}
-function scrapeSelectedFieldIndexes() {
-	let rows = document.querySelectorAll("#tbody_leerlingen_werklijst_velden > tr");
-	return [...rows].map((row) => {
-		let cells = row.querySelectorAll("td");
-		return cells[1].textContent.trim();
-	});
-}
-function scrapeCriteria() {
-	let rows = document.querySelectorAll("#tbody_leerlingen_werklijst_criteria > tr");
-	let criteria = [...rows].map((tr) => {
-		let id = tr.dataset.criterium_id;
-		let select = tr.cells[1].querySelector("select");
-		let operator = select?.value ?? "";
-		let value = "-null-";
-		let selectionRenderedSpan = tr.cells[2].querySelector("span.select2-selection__rendered");
-		if (selectionRenderedSpan) {
-			value = selectionRenderedSpan.getAttribute("title") ?? "-null-";
-			let options$1 = tr.cells[2].querySelectorAll(".select2 option");
-			let selectedOption = [...options$1].find((option) => option.textContent === value);
-			value = selectedOption?.getAttribute("value") ?? "-null-";
-		} else {
-			let selectionRenderedUl = tr.cells[2].querySelector("ul.select2-selection__rendered");
-			value = [...selectionRenderedUl.querySelectorAll("li.select2-selection__choice")].map((li) => li.title).join(",");
-		}
-		return id + "_" + operator + "_" + value;
-	});
-	return criteria.join("_");
-}
-function hasWerklijstNoCriteria() {
-	let rows = document.querySelectorAll("#tbody_leerlingen_werklijst_criteria > tr");
-	let ids = [...rows].map((tr) => tr.dataset.criterium_id);
-	return ids.length === 2 && ["1", "2"].every((value) => ids.includes(value));
 }
 async function fetchAndShowTeacherHours(schooljaar, infoBlock) {
 	let divViewContents = document.getElementById("view_contents");
