@@ -88,32 +88,6 @@ function onMutation(mutation: MutationRecord) {
     return true;
 }
 
-function addPluginContainer() {
-    let viewContents = document.getElementById("view_contents") as HTMLDivElement;
-    let container = emmet.appendChild(viewContents, "div#"+def.PLUGIN_CONTAINER_ID).first as HTMLDivElement;
-    let schoolYear = Schoolyear.getHighestAvailable();
-    if(!schoolYear) {
-        alert("Geen schooljaar gevonden!");
-        return createInfoBlock(container, "");
-    }
-    let year = parseInt(schoolYear);
-    let prevSchoolyear = Schoolyear.toFullString(year-1);
-    let nextSchoolyear = Schoolyear.toFullString(year);
-    let prevSchoolyearShort = Schoolyear.toShortString(year-1);
-    let nextSchoolyearShort = Schoolyear.toShortString(year);
-    let buttonBar = emmet.appendChild(container, `
-        div.d-flex.werklijstButtonWrapper
-    `).first as HTMLDivElement;
-    addButton(buttonBar, def.UREN_PREV_BTN_ID, "Toon lerarenuren voor "+ prevSchoolyear, async () => { await fetchAndShowTeacherHours(prevSchoolyear, infoBlock); }, "", ["btn", "btn-outline-dark"], "Uren "+ prevSchoolyearShort, "beforeend");
-    addButton(buttonBar, def.UREN_NEXT_BTN_ID, "Toon lerarenuren voor "+ nextSchoolyear, async () => { await fetchAndShowTeacherHours(nextSchoolyear, infoBlock); }, "", ["btn", "btn-primary"], "Uren "+ nextSchoolyearShort, 'beforeend');
-    addButton(buttonBar, def.UREN_PREV_SETUP_BTN_ID, "Setup voor "+ nextSchoolyear, async () => { await showUrenSetup(nextSchoolyear); }, "fas-certificate", ["btn", "btn-outline-dark"], "", "beforeend", "gear.svg");
-    addButton(buttonBar, def.GOTO_WERKLIJST_BTN_ID, "Werklijst", gotoWerklijst, "fas-certificate", ["btn", "btn-outline-dark", "flexRight"], "Werklijst", "beforeend");
-
-    emmet.appendChild(container, "h4");
-    let infoBlock = createInfoBlock(container, "");
-    return infoBlock;
-}
-
 async function gotoWerklijst() {
     await WerklijstBuilder.clear();
     let pageState = getGotoStateOrDefault(PageName.Werklijst) as WerklijstGotoState;
@@ -123,14 +97,20 @@ async function gotoWerklijst() {
     location.reload();
 }
 
+function addHoursViewButtons(infoBlock: InfoBlock) {
+    let buttonBar = document.querySelector("#pluginContainer .werklijstButtonWrapper") as HTMLDivElement;
+    addHoursButtons(buttonBar, infoBlock);
+    addButton(buttonBar, def.GOTO_WERKLIJST_BTN_ID, "Werklijst", gotoWerklijst, "", ["btn", "btn-outline-dark", "flexRight"], "Werklijst", "beforeend");
+}
+
 function checkStateAndGotoTeacherHours(infoBlock: InfoBlock) {
     let pageState = getGotoStateOrDefault(PageName.Werklijst) as WerklijstGotoState;
     if(pageState.goto == Goto.Werklijst_uren_prevYear) {
-        fetchAndShowTeacherHours(Schoolyear.toFullString(Schoolyear.calculateCurrent()), infoBlock).then(() => {});
+        showHoursView(Schoolyear.toFullString(Schoolyear.calculateCurrent()), infoBlock).then(() => {});
         return true;
     }
     if(pageState.goto == Goto.Werklijst_uren_nextYear) {
-        fetchAndShowTeacherHours(Schoolyear.toFullString(Schoolyear.calculateCurrent() + 1), infoBlock).then(() => {});
+        showHoursView(Schoolyear.toFullString(Schoolyear.calculateCurrent() + 1), infoBlock).then(() => {});
         return true;
     }
     return false;
@@ -144,6 +124,47 @@ function onResultsShown() {
 
     addButtons();
     decorateTableHeader(document.querySelector("table#"+def.WERKLIJST_TABLE_ID) as HTMLTableElement, true);
+}
+
+function addHoursButtons(buttonBar: HTMLDivElement, infoBlock: InfoBlock) {
+    document.getElementById(def.UREN_PREV_BTN_ID)?.remove();
+    document.getElementById(def.UREN_NEXT_BTN_ID)?.remove();
+    document.getElementById(def.UREN_PREV_SETUP_BTN_ID)?.remove();
+    let schoolYear = Schoolyear.getHighestAvailable();
+    if(!schoolYear) {
+        alert("Geen schooljaar gevonden!");
+        return;
+    }
+    let year = parseInt(schoolYear);
+    let prevSchoolyear = Schoolyear.toFullString(year-1);
+    let nextSchoolyear = Schoolyear.toFullString(year);
+    let prevSchoolyearShort = Schoolyear.toShortString(year-1);
+    let nextSchoolyearShort = Schoolyear.toShortString(year);
+    addButton(buttonBar, def.UREN_PREV_BTN_ID, "Toon lerarenuren voor " + prevSchoolyear, async () => { await showHoursView(prevSchoolyear, infoBlock); }, "", ["btn", "btn-outline-dark"], "Uren " + prevSchoolyearShort, "beforeend");
+    addButton(buttonBar, def.UREN_NEXT_BTN_ID, "Toon lerarenuren voor " + nextSchoolyear, async () => { await showHoursView(nextSchoolyear, infoBlock); }, "", ["btn", "btn-primary"], "Uren " + nextSchoolyearShort, 'beforeend');
+    addButton(buttonBar, def.UREN_PREV_SETUP_BTN_ID, "Setup voor " + nextSchoolyear, async () => { await showUrenSetup(nextSchoolyear); }, "", ["btn", "btn-outline-dark"], "", "beforeend", "gear.svg");
+}
+
+async function showHoursView(schoolYaar: string, infoBlock: InfoBlock) {
+    addHoursViewButtons(infoBlock);
+    await fetchAndShowTeacherHours(schoolYaar, infoBlock);
+}
+
+function addPluginContainer() {
+    let viewContents = document.getElementById("view_contents") as HTMLDivElement;
+    let container = emmet.appendChild(viewContents, "div#"+def.PLUGIN_CONTAINER_ID).first as HTMLDivElement;
+    let schoolYear = Schoolyear.getHighestAvailable();
+    if(!schoolYear) {
+        alert("Geen schooljaar gevonden!");
+        return createInfoBlock(container, "");
+    }
+    let buttonBar = emmet.appendChild(container, `
+        div.d-flex.werklijstButtonWrapper
+    `).first as HTMLDivElement;
+
+    emmet.appendChild(container, "h4");
+    let infoBlock = createInfoBlock(container, "");
+    return infoBlock;
 }
 
 function onCriteriaShown() {
@@ -161,22 +182,10 @@ function onCriteriaShown() {
 
     let btnWerklijstMaken = document.querySelector(def.BTN_WERKLIJST_MAKEN_ID) as HTMLButtonElement;
     btnWerklijstMakenWrapper = emmet.insertBefore(btnWerklijstMaken, `div#${def.BTN_WERKLIJST_MAKEN_WRAPPER_ID}.werklijstButtonWrapper`).first as HTMLDivElement;
-    btnWerklijstMakenWrapper.appendChild(btnWerklijstMaken);
+    // btnWerklijstMakenWrapper.appendChild(btnWerklijstMaken);
 
-    let schoolYear = Schoolyear.getHighestAvailable();
-    if(!schoolYear) {
-        alert("Geen schooljaar gevonden!");
-        return;
-    }
-    let year = parseInt(schoolYear);
-    let prevSchoolyear = Schoolyear.toFullString(year-1);
-    let nextSchoolyear = Schoolyear.toFullString(year);
-    let prevSchoolyearShort = Schoolyear.toShortString(year-1);
-    let nextSchoolyearShort = Schoolyear.toShortString(year);
+    addHoursButtons(btnWerklijstMakenWrapper, infoBlock);
     addButton(btnWerklijstMaken, def.WERKLIJST_MAILMERGE_BTN_ID, "Mail merge", async () => { await mailMergeStartSchoolyear(); }, "", ["btn", "btn-outline-dark"], "Mailmerge");
-    addButton(btnWerklijstMaken, def.UREN_PREV_BTN_ID, "Toon lerarenuren voor "+ prevSchoolyear, async () => { await fetchAndShowTeacherHours(prevSchoolyear, infoBlock); }, "", ["btn", "btn-outline-dark"], "Uren "+ prevSchoolyearShort);
-    addButton(btnWerklijstMaken, def.UREN_NEXT_BTN_ID, "Toon lerarenuren voor "+ nextSchoolyear, async () => { await fetchAndShowTeacherHours(nextSchoolyear, infoBlock); }, "", ["btn", "btn-outline-dark"], "Uren "+ nextSchoolyearShort);
-    addButton(btnWerklijstMaken, def.UREN_PREV_SETUP_BTN_ID, "Setup voor "+ nextSchoolyear, async () => { await showUrenSetup(nextSchoolyear); }, "fas-certificate", ["btn", "btn-outline-dark"], "", "beforebegin", "gear.svg");
 
     document.getElementById("btn_leerling_werklijst_reset")!.addEventListener("click", resetPageIncarnationChangedFlag);
 
