@@ -377,6 +377,7 @@ const BTN_WERKLIJST_NAV_BOTTOM = "tablenav_leerlingen_werklijst_bottom";
 const OPTION_HIDE_IGNORED_DIFFS = "dko3plugin.hideIgnoredDiffs";
 const OPTION_HIDE_NO_TEACHER_DIFFS = "dko3plugin.hideNoTeacherDiffs";
 const PLUGIN_CONTAINER_ID = "pluginContainer";
+const LOCAL_HOURS_SETTINGS = "localHoursSettings";
 
 //#endregion
 //#region typescript/cloud.ts
@@ -7499,7 +7500,8 @@ let colDefsArray = [
 			total: 0,
 			factor: 1 / 4,
 			getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count,
-			fill: fillGraadCell
+			fill: fillGraadCell,
+			ignorable: true
 		}
 	},
 	{
@@ -7510,7 +7512,8 @@ let colDefsArray = [
 			total: 0,
 			factor: 1 / 4,
 			getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count,
-			fill: fillGraadCell
+			fill: fillGraadCell,
+			ignorable: true
 		}
 	},
 	{
@@ -7790,10 +7793,28 @@ function updateColDefs(year) {
 	});
 	colDefs = new Map([...yearColDefs, ...new Map(colDefsArray.map((def) => [def.key, def.def]))]);
 	let idx = 0;
+	let localSettings = getLocalHourSettings();
+	for (let [colKey, colDef] of colDefs) if (localSettings.ignoredColumns.some((ignored) => ignored.key === colKey)) colDef.ignored = true;
+	else colDef.ignored = false;
 	colDefs.forEach((colDef) => {
 		colDef.colIndex = idx++;
 		colDef.total = 0;
 	});
+}
+function getLocalHourSettings() {
+	let text = localStorage.getItem(
+		//ignore attrubute changes.
+		//clear
+		//get value when not a calculated value.
+		//! should exist
+		//todo: make a breaking change for this function. It's API sucks. It appends an element to a selector. Perhaps even remove this function.
+		LOCAL_HOURS_SETTINGS
+);
+	if (text) return JSON.parse(text);
+	return { ignoredColumns: [] };
+}
+function saveLocalHourSettings(settings) {
+	localStorage.setItem(LOCAL_HOURS_SETTINGS, JSON.stringify(settings));
 }
 function calcOver(ctx) {
 	let totUren = getColValue(ctx, "tot_uren");
@@ -7839,13 +7860,7 @@ function observeTable(observe) {
 		subtree: true,
 		characterData: true
 	};
-	let table = document.getElementById(
-		//ignore attrubute changes.
-		//clear
-		//get value when not a calculated value.
-		//todo: make a breaking change for this function. It's API sucks. It appends an element to a selector. Perhaps even remove this function.
-		HOURS_TABLE_ID
-);
+	let table = document.getElementById(HOURS_TABLE_ID);
 	if (observe) {
 		editableObserver.takeRecords();
 		editableObserver.observe(table, config);
@@ -7992,6 +8007,27 @@ function fillTableHeader(table, _vakLeraars) {
 		th = document.createElement("th");
 		tr_head.appendChild(th);
 		th.innerText = colDef.label;
+	}
+	let tr_ignore = document.createElement("tr");
+	thead.appendChild(tr_ignore);
+	for (let entry of colDefs) {
+		let key = entry[0];
+		let colDef = entry[1];
+		if (colDef.ignorable) {
+			let checkbox = emmet.appendChild(tr_ignore, `th>input[type="checkbox"]`).last;
+			checkbox.checked = !(colDef.ignored ?? false);
+			checkbox.dataset.key = key;
+			checkbox.addEventListener("change", (e) => {
+				let target = e.currentTarget;
+				let key$1 = target.dataset.key;
+				let colDef$1 = colDefs.get(key$1);
+				colDef$1.ignored = !target.checked;
+				saveLocalHourSettings({ ignoredColumns: [...colDefs.values()].filter((colDef$2) => colDef$2.ignored).map((colDef$2) => ({
+					key: key$1,
+					ignored: colDef$2.ignored
+				})) });
+			});
+		} else emmet.appendChild(tr_ignore, `th`);
 	}
 }
 function fillGraadCell(ctx) {

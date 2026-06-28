@@ -31,7 +31,9 @@ interface ColDef {
     calculated?: boolean,
     fill?:(ctx: Context) => (number|undefined),
     colIndex?: number,
-    total: number
+    total: number,
+    ignorable?: boolean,
+    ignored?: boolean,
 }
 
 const colKeysForTotals = ["grjr1_1", "grjr1_2", "grjr2_1", "grjr2_2", "grjr2_3", "grjr2_4", "grjr3_1", "grjr3_2", "grjr3_3", "grjr4_1", "grjr4_2", "grjr4_3", "grjr_s_1", "grjr_s_2"];
@@ -40,8 +42,8 @@ let colDefsArray: {key: string, def: ColDef}[] = [
     {key:"vak", def: { label:"Vak", classList: [], total: 0, factor: 1.0, getText: (ctx) => ctx.vakLeraar.vak}},
     {key:"leraar", def: { label:"Leraar", classList: [], total: 0, factor: 1.0, getText: (ctx) => ctx.vakLeraar.leraar.replaceAll("{", "").replaceAll("}", "")}},
 
-    {key:"grjr1_1", def: { label:"1.1", classList: [], total: 0, factor: 1/4, getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label)!.count, fill: fillGraadCell }},
-    {key:"grjr1_2", def: { label:"1.2", classList: [], total: 0, factor: 1/4, getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label)!.count, fill: fillGraadCell }},
+    {key:"grjr1_1", def: { label:"1.1", classList: [], total: 0, factor: 1/4, getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label)!.count, fill: fillGraadCell, ignorable: true }},
+    {key:"grjr1_2", def: { label:"1.2", classList: [], total: 0, factor: 1/4, getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label)!.count, fill: fillGraadCell, ignorable: true }},
 
     {key:"uren_1e_gr", def: { label:"uren\n1e gr", classList: ["yellow"], total: 0, factor: 1.0, getValue: (ctx) => calcUrenFactored(ctx, ["grjr1_1", "grjr1_2"]), totals:true, calculated:true}},
 
@@ -92,12 +94,41 @@ function updateColDefs(year: number) {
     yearColDefs.set(keyNext, { label:`Uren\n${yrNow}-${yrNext}`, classList: ["editable_number"], total: 0, factor: 1.0, getValue: (ctx: Context) => parseInt(ctx.data.fromCloud.columnMap!.get(`uren_${yrNow}_${yrNext}`)?.get(ctx.vakLeraar.id)!), totals:true});
     colDefs = new Map([...yearColDefs, ...new Map(colDefsArray.map((def) => [def.key, def.def]))]);
     let idx = 0;
+    let localSettings = getLocalHourSettings();
+    for(let [colKey, colDef] of colDefs) {
+        if(localSettings.ignoredColumns.some(ignored => ignored.key === colKey)) {
+            colDef.ignored = true;
+        } else {
+            colDef.ignored = false;
+        }
+    }
     colDefs.forEach(colDef => {
         colDef.colIndex = idx++;
         colDef.total = 0;
     });
 }
 
+interface IgnoredColumn {
+    key: string,
+    ignored: boolean,
+}
+
+interface LocalHoursSettings {
+    ignoredColumns: IgnoredColumn[],
+}
+
+function getLocalHourSettings() {
+    let text = localStorage.getItem(def.LOCAL_HOURS_SETTINGS);
+    if(text)
+        return JSON.parse(text) as LocalHoursSettings;
+    return {
+        ignoredColumns: []
+    } satisfies LocalHoursSettings as LocalHoursSettings;
+}
+
+function saveLocalHourSettings(settings: LocalHoursSettings) {
+    localStorage.setItem(def.LOCAL_HOURS_SETTINGS, JSON.stringify(settings));
+}
 
 function calcOver(ctx: Context) {
     let totUren = getColValue(ctx, "tot_uren");
@@ -343,6 +374,26 @@ function fillTableHeader(table: HTMLTableElement, _vakLeraars: Map<string, VakLe
         th = document.createElement("th");
         tr_head.appendChild(th);
         th.innerText = colDef.label;
+    }
+    let tr_ignore = document.createElement("tr");
+    thead.appendChild(tr_ignore);
+    for (let entry of colDefs) {
+        let key = entry[0];
+        let colDef = entry[1];
+        if(colDef.ignorable) {
+            let checkbox = emmet.appendChild(tr_ignore, `th>input[type="checkbox"]`).last as HTMLInputElement;
+            checkbox.checked = !(colDef.ignored ?? false);
+            checkbox.dataset.key = key;
+            checkbox.addEventListener("change", (e) => {
+                let target = e.currentTarget as HTMLInputElement;
+                let key = target.dataset.key as string;
+                let colDef = colDefs.get(key)!; //! should exist
+                colDef.ignored = !target.checked;
+                saveLocalHourSettings({ignoredColumns: [...colDefs.values()].filter(colDef => colDef.ignored).map(colDef => ({key, ignored: colDef.ignored!}))});
+            });
+        }
+        else
+            emmet.appendChild(tr_ignore, `th`);
     }
 }
 
