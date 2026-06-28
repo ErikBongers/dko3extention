@@ -18,6 +18,7 @@ import {fetchMailMergeData} from "../table/mailMerge";
 import {TeacherHoursCachedState} from "./teacherHoursCachedState";
 import {hasWerklijstNoCriteria, scrapeCriteria, scrapeSelectedFieldIndexes} from "./criteria";
 import MessageSender = chrome.runtime.MessageSender;
+import {createWerklijstBuilderWithReset, WerklijstBuilder} from "../table/werklijstBuilder";
 
 const TARGET_BUTTON_ID = "#tablenav_leerlingen_werklijst_top > div > div.btn-group.btn-group-sm.datatable-buttons > button:nth-child(1)";
 
@@ -105,24 +106,30 @@ function addPluginContainer() {
     `).first as HTMLDivElement;
     addButton(buttonBar, def.UREN_PREV_BTN_ID, "Toon lerarenuren voor "+ prevSchoolyear, async () => { await fetchAndShowTeacherHours(prevSchoolyear, infoBlock); }, "", ["btn", "btn-outline-dark"], "Uren "+ prevSchoolyearShort, "beforeend");
     addButton(buttonBar, def.UREN_NEXT_BTN_ID, "Toon lerarenuren voor "+ nextSchoolyear, async () => { await fetchAndShowTeacherHours(nextSchoolyear, infoBlock); }, "", ["btn", "btn-primary"], "Uren "+ nextSchoolyearShort, 'beforeend');
-    addButton(buttonBar, def.UREN_PREV_SETUP_BTN_ID, "Setup voor "+ nextSchoolyear, async () => { await showUrenSetup(nextSchoolyear); }, "fas-certificate", ["btn", "btn-outline-dark", "flexRight"], "", "beforeend", "gear.svg");
+    addButton(buttonBar, def.UREN_PREV_SETUP_BTN_ID, "Setup voor "+ nextSchoolyear, async () => { await showUrenSetup(nextSchoolyear); }, "fas-certificate", ["btn", "btn-outline-dark"], "", "beforeend", "gear.svg");
+    addButton(buttonBar, def.GOTO_WERKLIJST_BTN_ID, "Werklijst", gotoWerklijst, "fas-certificate", ["btn", "btn-outline-dark", "flexRight"], "Werklijst", "beforeend");
 
     emmet.appendChild(container, "h4");
     let infoBlock = createInfoBlock(container, "");
     return infoBlock;
 }
 
+async function gotoWerklijst() {
+    await WerklijstBuilder.clear();
+    let pageState = getGotoStateOrDefault(PageName.Werklijst) as WerklijstGotoState;
+    pageState.goto = Goto.None;
+    saveGotoState(pageState);
+    location.href = "#leerlingen-werklijst";
+    location.reload();
+}
+
 function checkStateAndGotoTeacherHours(infoBlock: InfoBlock) {
     let pageState = getGotoStateOrDefault(PageName.Werklijst) as WerklijstGotoState;
     if(pageState.goto == Goto.Werklijst_uren_prevYear) {
-        pageState.goto = Goto.None;
-        saveGotoState(pageState);
         fetchAndShowTeacherHours(Schoolyear.toFullString(Schoolyear.calculateCurrent()), infoBlock).then(() => {});
         return true;
     }
     if(pageState.goto == Goto.Werklijst_uren_nextYear) {
-        pageState.goto = Goto.None;
-        saveGotoState(pageState);
         fetchAndShowTeacherHours(Schoolyear.toFullString(Schoolyear.calculateCurrent() + 1), infoBlock).then(() => {});
         return true;
     }

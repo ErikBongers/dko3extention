@@ -21,14 +21,14 @@ export interface CriteriaBuilder {
 }
 
 export function createWerklijstBuilderWithoutReset(schoolYear: string, grouping: Grouping, preselectedFields: string[], criteriaString: string) {
-    return WerklijstBuilder.fetch(schoolYear, grouping, false, preselectedFields, criteriaString);
+    return WerklijstBuilder.fetch(schoolYear, grouping, false, preselectedFields, criteriaString); //todo: remove the outer functions and rename .fetch() to .createWithReset() and .createWithoutReset(). Make most member functions private.
 }
 
 export function createWerklijstBuilderWithReset(schoolYear: string, grouping: Grouping) {
     return WerklijstBuilder.fetch(schoolYear, grouping, true, [], "");
 }
 
-class WerklijstBuilder implements CriteriaBuilder, PreparedWerklijst {
+export class WerklijstBuilder implements CriteriaBuilder, PreparedWerklijst {
     private readonly schoolYear: string;
     private readonly grouping: Grouping;
     criteria: Criterium[] = [];
@@ -71,6 +71,13 @@ class WerklijstBuilder implements CriteriaBuilder, PreparedWerklijst {
         }
         await postNameValueList("/views/leerlingen/werklijst/session.opslaan.php", [{name:"reset", value:"1"}]);
         await postNameValueList("/views/leerlingen/werklijst/session.opslaan.php", [{name: "schooljaar", value: this.schoolYear}, {name: "groepering", value: this.grouping}]);
+    }
+
+    static async clear() {
+        await fetch("view.php?args=leerlingen-werklijst");
+        await fetch("views/leerlingen/werklijst/index.view.php"); //get header block (schooljaar, 1 lijn per..., criteria, velden)
+        await postNameValueList("/views/leerlingen/werklijst/session.opslaan.php", [{name:"reset", value:"1"}]);
+        // await postNameValueList("/views/leerlingen/werklijst/session.opslaan.php", [{name: "schooljaar", value: this.schoolYear}, {name: "groepering", value: this.grouping}]);
     }
 
     static async fetchDefinitions(url:string, idTagName: string, nameSelector: string) {

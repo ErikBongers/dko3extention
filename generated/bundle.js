@@ -337,6 +337,7 @@ const PROGRESS_BAR_ID = "progressBarFetch";
 const UREN_PREV_BTN_ID = "prefillInstrButton";
 const WERKLIJST_MAILMERGE_BTN_ID = "mailMergeButton";
 const UREN_PREV_SETUP_BTN_ID = "prefillInstrSetupButton";
+const GOTO_WERKLIJST_BTN_ID = "gotoWerklijstButton";
 const UREN_NEXT_BTN_ID = "prefillInstrButtonNext";
 const MAIL_BTN_ID = "mailButton";
 const DOWNLOAD_TABLE_BTN_ID = "downloadTableButton";
@@ -4849,6 +4850,14 @@ var WerklijstBuilder = class WerklijstBuilder {
 			value: this.grouping
 		}]);
 	}
+	static async clear() {
+		await fetch("view.php?args=leerlingen-werklijst");
+		await fetch("views/leerlingen/werklijst/index.view.php");
+		await postNameValueList("/views/leerlingen/werklijst/session.opslaan.php", [{
+			name: "reset",
+			value: "1"
+		}]);
+	}
 	static async fetchDefinitions(url, idTagName, nameSelector) {
 		let rows = await fetchTableRows(await fetch(url));
 		let defs = [];
@@ -9087,26 +9096,31 @@ function addPluginContainer() {
 	}, "", ["btn", "btn-primary"], "Uren " + nextSchoolyearShort, "beforeend");
 	addButton$1(buttonBar, UREN_PREV_SETUP_BTN_ID, "Setup voor " + nextSchoolyear, async () => {
 		await showUrenSetup(nextSchoolyear);
-	}, "fas-certificate", [
+	}, "fas-certificate", ["btn", "btn-outline-dark"], "", "beforeend", "gear.svg");
+	addButton$1(buttonBar, GOTO_WERKLIJST_BTN_ID, "Werklijst", gotoWerklijst, "fas-certificate", [
 		"btn",
 		"btn-outline-dark",
 		"flexRight"
-	], "", "beforeend", "gear.svg");
+	], "Werklijst", "beforeend");
 	emmet.appendChild(container, "h4");
 	let infoBlock = createInfoBlock(container, "");
 	return infoBlock;
 }
+async function gotoWerklijst() {
+	await WerklijstBuilder.clear();
+	let pageState$2 = getGotoStateOrDefault(PageName.Werklijst);
+	pageState$2.goto = Goto.None;
+	saveGotoState(pageState$2);
+	location.href = "#leerlingen-werklijst";
+	location.reload();
+}
 function checkStateAndGotoTeacherHours(infoBlock) {
 	let pageState$2 = getGotoStateOrDefault(PageName.Werklijst);
 	if (pageState$2.goto == Goto.Werklijst_uren_prevYear) {
-		pageState$2.goto = Goto.None;
-		saveGotoState(pageState$2);
 		fetchAndShowTeacherHours(Schoolyear.toFullString(Schoolyear.calculateCurrent()), infoBlock).then(() => {});
 		return true;
 	}
 	if (pageState$2.goto == Goto.Werklijst_uren_nextYear) {
-		pageState$2.goto = Goto.None;
-		saveGotoState(pageState$2);
 		fetchAndShowTeacherHours(Schoolyear.toFullString(Schoolyear.calculateCurrent() + 1), infoBlock).then(() => {});
 		return true;
 	}
