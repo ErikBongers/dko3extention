@@ -4605,7 +4605,7 @@ var ProgressBar = class ProgressBar {
 };
 function insertProgressBar(container, text = "") {
 	container.innerHTML = "";
-	let { first: divProgressLine, last: divProgressBar } = emmet.appendChild(container, `div.infoLine${PROGRESS_BAR_ID}>div.progressText{${text}}+div.progressBar`);
+	let { first: divProgressLine, last: divProgressBar } = emmet.appendChild(container, `div.infoLine#${PROGRESS_BAR_ID}>div.progressText{${text}}+div.progressBar`);
 	return new ProgressBar(divProgressLine, divProgressBar);
 }
 
@@ -6949,9 +6949,9 @@ async function openDiffSettings(academie, schoolyear) {
 	}, "TODO: is this title used? Uurrooster setup voor schooljaar " + schoolyear);
 }
 chrome.runtime.onMessage.addListener(onMessage$1);
-let pauseRefresh$1 = false;
+let pauseRefresh = false;
 setInterval(() => {
-	pauseRefresh$1 = false;
+	pauseRefresh = false;
 }, 2e3);
 async function onMessage$1(request, _sender, sendResponse) {
 	if (request.senderTabType != TabType.DiffSettings) return;
@@ -6963,12 +6963,12 @@ async function onMessage$1(request, _sender, sendResponse) {
 		await sendMessageToDiffSettings(Actions.TabData, diffGlobals.diffSettings);
 		return;
 	}
-	if (pauseRefresh$1) return;
-	pauseRefresh$1 = true;
+	if (pauseRefresh) return;
+	pauseRefresh = true;
 	diffGlobals.diffSettings = request.data;
 	await getAndShowDiffs("calcAndShow", "dkoCache", "EXCEL", diffGlobals.diffSettings);
 	await getAndShowDiffs("calcAndShow", "dkoCache", "WWW", diffGlobals.diffSettings);
-	pauseRefresh$1 = false;
+	pauseRefresh = false;
 }
 async function sendMessageToDiffSettings(action, data) {
 	return sendRequest(action, TabType.Main, TabType.DiffSettings, globalDiffSettingsTabId, data);
@@ -8954,6 +8954,9 @@ var TeacherHoursCachedState = class {
 		}
 		return this.studentRowData;
 	}
+	clearStudentRowData() {
+		this.studentRowData = null;
+	}
 	async fetchTeacherHours(schooljaar, hourSettings) {
 		this.infoBlock.infoBar.setExtraInfo("Lessen ophalen...");
 		let tableNoSpec = await this.fetchHourRows(schooljaar, await this.getSelectedVakNames(), "nospec");
@@ -9007,6 +9010,7 @@ var TeacherHoursCachedState = class {
 	}
 	setHourSettings(hourSettings) {
 		this.hourSettingsMapped = mapHourSettings(hourSettings);
+		this.selectedVakNames = null;
 	}
 	async getFromCloud() {
 		if (!this.fromCloud) {
@@ -9029,6 +9033,8 @@ async function getUrenFromCloud(fileName) {
 //#region typescript/werklijst/observer.ts
 const TARGET_BUTTON_ID = "#tablenav_leerlingen_werklijst_top > div > div.btn-group.btn-group-sm.datatable-buttons > button:nth-child(1)";
 registerChecksumHandler(
+	//todo: rename to TeacherHourSettings
+	//oops...
 	//oops...
 	WERKLIJST_TABLE_ID,
 	(tableDef) => {
@@ -9173,10 +9179,6 @@ function resetPageIncarnationChangedFlag() {
 	pageIncarnationChanged = true;
 }
 chrome.runtime.onMessage.addListener(onMessage);
-let pauseRefresh = false;
-setInterval(() => {
-	pauseRefresh = false;
-}, 2e3);
 async function onMessage(request, _sender, sendResponse) {
 	if (request.senderTabType != TabType.HoursSettings) return;
 	switch (request.action) {
@@ -9191,17 +9193,35 @@ async function onMessage(request, _sender, sendResponse) {
 			return;
 	}
 }
-async function onHoursSettingsChanged(request) {
-	if (pauseRefresh) return;
-	pauseRefresh = true;
-	let hourSettings = request.data;
+let isRefreshing = false;
+let refreshRequested = false;
+setInterval(checkAndRefresh, 500);
+async function refresh(hourSettings) {
+	if (isRefreshing) return;
 	if (!globals) return;
+	isRefreshing = true;
+	refreshRequested = false;
+	if (!hourSettings) hourSettings = await fetchHoursSettingsOrSaveDefault(globals.schoolYear);
 	let equalSelectedSubjects = arrayIsEqual(hourSettings.subjects.filter((s) => s.checked).map((s) => s.name), (await globals.getHourSettingsMapped()).subjects.filter((s) => s.checked).map((s) => s.name));
-	if (equalSelectedSubjects) {
-		globals.setHourSettings(hourSettings);
-		rebuildHoursTable(await globals.getStudentRowData(), await globals.getHourSettingsMapped(), await globals.getFromCloud(), getInfoBlock());
-	} else await fetchAndShowTeacherHours(hourSettings.schoolyear, getInfoBlock());
-	pauseRefresh = false;
+	globals.setHourSettings(hourSettings);
+	if (equalSelectedSubjects) rebuildHoursTable(await globals.getStudentRowData(), await globals.getHourSettingsMapped(), await globals.getFromCloud(), getInfoBlock());
+	else {
+		globals.clearStudentRowData();
+		await fetchAndShowTeacherHours(hourSettings.schoolyear, getInfoBlock());
+	}
+	isRefreshing = false;
+}
+async function onHoursSettingsChanged(request) {
+	if (isRefreshing) {
+		refreshRequested = true;
+		return;
+	}
+	await refresh(request.data);
+}
+async function checkAndRefresh() {
+	if (!refreshRequested) return;
+	if (!globals) return;
+	await refresh(null);
 }
 async function showUrenSetup(schoolyear) {
 	let res = await openHoursSettings(schoolyear);

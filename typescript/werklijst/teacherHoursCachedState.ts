@@ -34,6 +34,10 @@ export class TeacherHoursCachedState {
         return this.studentRowData;
     }
 
+    clearStudentRowData() {
+        this.studentRowData = null;
+    }
+
     private async fetchTeacherHours(schooljaar: string, hourSettings: TeacherHoursSetupMapped) {
         //Hack for DKO3 bug. Split S1 and S2 and fetch those separately. This way, if 1 subject is present in both 4.1 and S1, they are both listed!
         this.infoBlock.infoBar.setExtraInfo("Lessen ophalen...");
@@ -84,6 +88,7 @@ export class TeacherHoursCachedState {
 
     setHourSettings(hourSettings: TeacherHoursSetup) {
         this.hourSettingsMapped = mapHourSettings(hourSettings);
+        this.selectedVakNames = null;
     }
 
     async getFromCloud() {

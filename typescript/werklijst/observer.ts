@@ -197,12 +197,6 @@ function resetPageIncarnationChangedFlag() {
 }
 
 chrome.runtime.onMessage.addListener(onMessage)
-let pauseRefresh = false;
-
-//reset the pause after some time, because otherwise, in case of an error, the page will no longer be refreshed.
-setInterval(() => {
-    pauseRefresh = false;
-}, 2000);
 
 async function onMessage(request: ServiceRequest<any>, _sender: MessageSender, sendResponse: (response?: any) => void) {
     if(request.senderTabType != TabType.HoursSettings)
@@ -220,30 +214,50 @@ async function onMessage(request: ServiceRequest<any>, _sender: MessageSender, s
     }
 }
 
-async function onHoursSettingsChanged(request: ServiceRequest<any>) {
-    // if(globals.activeFetcher) {
-    //     //todo await globals.activeFetcher.cancel();
-    //     pauseRefresh = false;
-    // }
-    if(pauseRefresh)
-        return;
-    pauseRefresh = true;
-    let hourSettings = request.data as TeacherHoursSetup;
+let isRefreshing = false;
+let refreshRequested = false;
 
+setInterval(checkAndRefresh, 500);
+
+async function refresh(hourSettings: TeacherHoursSetup | null) { //todo: rename to TeacherHourSettings
+    if(isRefreshing)
+        return;
     if(!globals)
         return; //oops...
+
+    isRefreshing = true;
+    refreshRequested = false;
+    if(!hourSettings)
+        hourSettings = await fetchHoursSettingsOrSaveDefault(globals.schoolYear);
+
     let equalSelectedSubjects = arrayIsEqual(
         hourSettings.subjects.filter(s => s.checked).map(s => s.name),
         (await globals.getHourSettingsMapped()).subjects.filter(s => s.checked).map(s => s.name)
     );
 
+    globals.setHourSettings(hourSettings);
     if (equalSelectedSubjects) {
-        globals.setHourSettings(hourSettings);
         rebuildHoursTable(await globals.getStudentRowData(), await globals.getHourSettingsMapped(), await globals.getFromCloud(), getInfoBlock());
     } else {
+        globals.clearStudentRowData();
         await fetchAndShowTeacherHours(hourSettings.schoolyear, getInfoBlock());
     }
-    pauseRefresh = false;
+    isRefreshing = false;
+}
+
+async function onHoursSettingsChanged(request: ServiceRequest<any>) {
+    if(isRefreshing) {
+        refreshRequested = true;
+        return;
+    }
+    await refresh(request.data as TeacherHoursSetup);
+}
+async function checkAndRefresh() {
+    if(!refreshRequested)
+        return;
+    if(!globals)
+        return; //oops...
+    await refresh(null);
 }
 
 async function showUrenSetup(schoolyear: string) {
@@ -255,10 +269,6 @@ let globalHoursSettingsTabId: number;
 
 async function sendMessageToHoursSettings(action: Actions, data: any) {
     return sendRequest(action, TabType.Main, TabType.HoursSettings, globalHoursSettingsTabId, data);
-}
-
-async function sendGreetingsToHoursSettings() {
-    sendRequest(Actions.GreetingsFromParent, TabType.Main, TabType.HoursSettings, globalHoursSettingsTabId, "Hello the main content script.").then(_ => {});
 }
 
 function addButtons() {
