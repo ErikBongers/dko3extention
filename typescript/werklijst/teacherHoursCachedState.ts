@@ -6,7 +6,7 @@ import {CriteriumName, Domein, FIELD, Grouping, Operator} from "./criteria";
 import {NamedCellTableFetchListener} from "../pageHandlers";
 import {fetchHoursSettingsOrSaveDefault} from "./prefillInstruments";
 import {getUrenVakLeraarFileName} from "./buildUren";
-import {Schoolyear, setViewFromCurrentUrl} from "../globals";
+import {setViewFromCurrentUrl} from "../globals";
 import {cloud} from "../cloud";
 import {InfoBlock} from "../infoBlock";
 import {InfoBarTableFetchListener} from "../table/loadAnyTable";
@@ -18,7 +18,7 @@ export class TeacherHoursCachedState {
     private fromCloud: CloudData | null = null;
     private selectedVakNames: string[] | null = null;
     private allDko3Vakken: { name: string, value: string }[] | null = null;
-    private infoBlock: InfoBlock;
+    private readonly infoBlock: InfoBlock;
 
     constructor(schoolYear: string, infoBlock: InfoBlock) {
         this.schoolYear = schoolYear;
@@ -27,6 +27,7 @@ export class TeacherHoursCachedState {
 
     async getStudentRowData() {
         if (!this.studentRowData) {
+            this.infoBlock.infoBar.setExtraInfo("Setup ophalen...");
             let table = await this.fetchTeacherHours(this.schoolYear, (await this.getHourSettingsMapped()));
             this.studentRowData = scrapeUren(table.rows, table.headerIndices);
         }
@@ -35,7 +36,9 @@ export class TeacherHoursCachedState {
 
     private async fetchTeacherHours(schooljaar: string, hourSettings: TeacherHoursSetupMapped) {
         //Hack for DKO3 bug. Split S1 and S2 and fetch those separately. This way, if 1 subject is present in both 4.1 and S1, they are both listed!
+        this.infoBlock.infoBar.setExtraInfo("Lessen ophalen...");
         let tableNoSpec = await this.fetchHourRows(schooljaar, await this.getSelectedVakNames(), "nospec");
+        this.infoBlock.infoBar.setExtraInfo("Specialisatie lessen ophalen...");
         let tableOnlySpec = await this.fetchHourRows(schooljaar, await this.getSelectedVakNames(), "spec");
         await setViewFromCurrentUrl();
         return {rows: tableNoSpec.rows.concat(tableOnlySpec.rows), headerIndices: tableNoSpec.headerIndices};
@@ -65,6 +68,7 @@ export class TeacherHoursCachedState {
 
     async getAllDko3Vakken() {
         if(!this.allDko3Vakken) {
+            this.infoBlock.infoBar.setExtraInfo("Beschikbare vakken ophalen...");
             let builder = await createWerklijstBuilderWithReset(this.schoolYear, Grouping.LES);
             this.allDko3Vakken = await builder.fetchAvailableSubjects();
         }
@@ -84,6 +88,7 @@ export class TeacherHoursCachedState {
 
     async getFromCloud() {
         if (!this.fromCloud) {
+            this.infoBlock.infoBar.setExtraInfo("Ingevulde uren ophalen...");
             let jsonCloudData = await getUrenFromCloud(getUrenVakLeraarFileName(this.schoolYear))
             this.fromCloud = new CloudData(jsonCloudData);
         }

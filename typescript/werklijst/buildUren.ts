@@ -6,6 +6,7 @@ import {CloudData, UrenData} from "./urenData";
 import {emmet} from "../../libs/Emmeter/html";
 import {TeacherHoursSetupMapped} from "./hoursSettings";
 import observer from "./observer";
+import {InfoBlock} from "../infoBlock";
 
 let isUpdatePaused = true;
 let cellChanged = false;
@@ -376,7 +377,8 @@ function fillGraadCell(ctx: Context): number {
     return graadJaar.count;
 }
 
-export function rebuildHoursTable(studentRowData: StudentUrenRow[], hourSettingsMapped: TeacherHoursSetupMapped, fromCloud: CloudData) {
+export function rebuildHoursTable(studentRowData: StudentUrenRow[], hourSettingsMapped: TeacherHoursSetupMapped, fromCloud: CloudData, infoBlock: InfoBlock) {
+    infoBlock.infoBar.setExtraInfo("");
     document.getElementById(def.HOURS_TABLE_ID)?.remove();
     let table = emmet.create(`#${def.PLUGIN_CONTAINER_ID}>table`).last as HTMLTableElement; //todo: make a breaking change for this function. It's API sucks. It appends an element to a selector. Perhaps even remove this function.
     table.id = def.HOURS_TABLE_ID;

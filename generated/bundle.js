@@ -7993,7 +7993,8 @@ function fillGraadCell(ctx) {
 	}
 	return graadJaar.count;
 }
-function rebuildHoursTable(studentRowData, hourSettingsMapped, fromCloud) {
+function rebuildHoursTable(studentRowData, hourSettingsMapped, fromCloud, infoBlock) {
+	infoBlock.infoBar.setExtraInfo("");
 	document.getElementById(HOURS_TABLE_ID)?.remove();
 	let table = emmet.create(`#${PLUGIN_CONTAINER_ID}>table`).last;
 	table.id = HOURS_TABLE_ID;
@@ -8938,13 +8939,16 @@ var TeacherHoursCachedState = class {
 	}
 	async getStudentRowData() {
 		if (!this.studentRowData) {
+			this.infoBlock.infoBar.setExtraInfo("Setup ophalen...");
 			let table = await this.fetchTeacherHours(this.schoolYear, await this.getHourSettingsMapped());
 			this.studentRowData = scrapeUren(table.rows, table.headerIndices);
 		}
 		return this.studentRowData;
 	}
 	async fetchTeacherHours(schooljaar, hourSettings) {
+		this.infoBlock.infoBar.setExtraInfo("Lessen ophalen...");
 		let tableNoSpec = await this.fetchHourRows(schooljaar, await this.getSelectedVakNames(), "nospec");
+		this.infoBlock.infoBar.setExtraInfo("Specialisatie lessen ophalen...");
 		let tableOnlySpec = await this.fetchHourRows(schooljaar, await this.getSelectedVakNames(), "spec");
 		await setViewFromCurrentUrl();
 		return {
@@ -8982,6 +8986,7 @@ var TeacherHoursCachedState = class {
 	}
 	async getAllDko3Vakken() {
 		if (!this.allDko3Vakken) {
+			this.infoBlock.infoBar.setExtraInfo("Beschikbare vakken ophalen...");
 			let builder = await createWerklijstBuilderWithReset(this.schoolYear, Grouping.LES);
 			this.allDko3Vakken = await builder.fetchAvailableSubjects();
 		}
@@ -8996,6 +9001,7 @@ var TeacherHoursCachedState = class {
 	}
 	async getFromCloud() {
 		if (!this.fromCloud) {
+			this.infoBlock.infoBar.setExtraInfo("Ingevulde uren ophalen...");
 			let jsonCloudData = await getUrenFromCloud(getUrenVakLeraarFileName(this.schoolYear));
 			this.fromCloud = new CloudData(jsonCloudData);
 		}
@@ -9160,26 +9166,29 @@ setInterval(() => {
 }, 2e3);
 async function onMessage(request, _sender, sendResponse) {
 	if (request.senderTabType != TabType.HoursSettings) return;
-	if (request.action == Actions.RequestTabData) {
-		console.log("Requesting tab data", request.data);
-		let setup = await fetchHoursSettingsOrSaveDefault(request.data.params.schoolYear);
-		console.log(setup);
-		await sendMessageToHoursSettings(Actions.TabData, setup);
-		return;
+	switch (request.action) {
+		case Actions.RequestTabData:
+			console.log("Requesting tab data", request.data);
+			let setup = await fetchHoursSettingsOrSaveDefault(request.data.params.schoolYear);
+			console.log(setup);
+			await sendMessageToHoursSettings(Actions.TabData, setup);
+			return;
+		case Actions.HoursSettingsChanged:
+			await onHoursSettingsChanged(request);
+			return;
 	}
+}
+async function onHoursSettingsChanged(request) {
 	if (pauseRefresh) return;
 	pauseRefresh = true;
 	let hourSettings = request.data;
 	if (!globals) return;
 	let equalSelectedSubjects = arrayIsEqual(hourSettings.subjects.filter((s) => s.checked).map((s) => s.name), (await globals.getHourSettingsMapped()).subjects.filter((s) => s.checked).map((s) => s.name));
-	if (!equalSelectedSubjects) fetchAndShowTeacherHours(hourSettings.schoolyear, getInfoBlock()).then((_) => {
-		pauseRefresh = false;
-	});
-	else {
+	if (equalSelectedSubjects) {
 		globals.setHourSettings(hourSettings);
-		rebuildHoursTable(await globals.getStudentRowData(), await globals.getHourSettingsMapped(), await globals.getFromCloud());
-		pauseRefresh = false;
-	}
+		rebuildHoursTable(await globals.getStudentRowData(), await globals.getHourSettingsMapped(), await globals.getFromCloud(), getInfoBlock());
+	} else await fetchAndShowTeacherHours(hourSettings.schoolyear, getInfoBlock());
+	pauseRefresh = false;
 }
 async function showUrenSetup(schoolyear) {
 	let res = await openHoursSettings(schoolyear);
@@ -9226,7 +9235,7 @@ function onClickCopyEmails() {
 let globals = null;
 async function rebuildHoursTableAfterFetch(schoolYear, infoBlock) {
 	if (!globals) globals = new TeacherHoursCachedState(schoolYear, infoBlock);
-	rebuildHoursTable(await globals.getStudentRowData(), await globals.getHourSettingsMapped(), await globals.getFromCloud());
+	rebuildHoursTable(await globals.getStudentRowData(), await globals.getHourSettingsMapped(), await globals.getFromCloud(), infoBlock);
 }
 async function mailMergeStartSchoolyear() {
 	let schoolyear = Schoolyear.findInPage();

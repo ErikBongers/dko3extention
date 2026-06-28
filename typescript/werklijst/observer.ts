@@ -191,13 +191,20 @@ setInterval(() => {
 async function onMessage(request: ServiceRequest<any>, _sender: MessageSender, sendResponse: (response?: any) => void) {
     if(request.senderTabType != TabType.HoursSettings)
         return;
-    if(request.action == Actions.RequestTabData) {
-        console.log("Requesting tab data", request.data);
-        let setup = await fetchHoursSettingsOrSaveDefault(request.data.params.schoolYear);
-        console.log(setup);
-        await sendMessageToHoursSettings(Actions.TabData, setup);
-        return;
+    switch (request.action) {
+        case Actions.RequestTabData:
+            console.log("Requesting tab data", request.data);
+            let setup = await fetchHoursSettingsOrSaveDefault(request.data.params.schoolYear);
+            console.log(setup);
+            await sendMessageToHoursSettings(Actions.TabData, setup);
+            return;
+        case Actions.HoursSettingsChanged:
+            await onHoursSettingsChanged(request);
+            return;
     }
+}
+
+async function onHoursSettingsChanged(request: ServiceRequest<any>) {
     // if(globals.activeFetcher) {
     //     //todo await globals.activeFetcher.cancel();
     //     pauseRefresh = false;
@@ -214,15 +221,13 @@ async function onMessage(request: ServiceRequest<any>, _sender: MessageSender, s
         (await globals.getHourSettingsMapped()).subjects.filter(s => s.checked).map(s => s.name)
     );
 
-    if(!equalSelectedSubjects) {
-        fetchAndShowTeacherHours(hourSettings.schoolyear, getInfoBlock()).then(_ => {
-            pauseRefresh = false;
-        });
-    } else {
+    if (equalSelectedSubjects) {
         globals.setHourSettings(hourSettings);
-        rebuildHoursTable(await globals.getStudentRowData(), await globals.getHourSettingsMapped(), await globals.getFromCloud());
-        pauseRefresh = false;
+        rebuildHoursTable(await globals.getStudentRowData(), await globals.getHourSettingsMapped(), await globals.getFromCloud(), getInfoBlock());
+    } else {
+        await fetchAndShowTeacherHours(hourSettings.schoolyear, getInfoBlock());
     }
+    pauseRefresh = false;
 }
 
 async function showUrenSetup(schoolyear: string) {
@@ -296,7 +301,7 @@ async function rebuildHoursTableAfterFetch(schoolYear: string, infoBlock: InfoBl
     if(!globals)
         globals = new TeacherHoursCachedState(schoolYear, infoBlock);
 
-    rebuildHoursTable(await globals.getStudentRowData(), await globals.getHourSettingsMapped(), await globals.getFromCloud());
+    rebuildHoursTable(await globals.getStudentRowData(), await globals.getHourSettingsMapped(), await globals.getFromCloud(), infoBlock);
 }
 
 async function mailMergeStartSchoolyear() {
