@@ -6,8 +6,10 @@ import {CriteriumName, Domein, FIELD, Grouping, Operator} from "./criteria";
 import {NamedCellTableFetchListener} from "../pageHandlers";
 import {fetchHoursSettingsOrSaveDefault} from "./prefillInstruments";
 import {getUrenVakLeraarFileName} from "./buildUren";
-import {Schoolyear} from "../globals";
+import {Schoolyear, setViewFromCurrentUrl} from "../globals";
 import {cloud} from "../cloud";
+import {InfoBlock} from "../infoBlock";
+import {InfoBarTableFetchListener} from "../table/loadAnyTable";
 
 export class TeacherHoursCachedState {
     schoolYear: string;
@@ -16,9 +18,11 @@ export class TeacherHoursCachedState {
     private fromCloud: CloudData | null = null;
     private selectedVakNames: string[] | null = null;
     private allDko3Vakken: { name: string, value: string }[] | null = null;
+    private infoBlock: InfoBlock;
 
-    constructor(schoolYear: string) {
+    constructor(schoolYear: string, infoBlock: InfoBlock) {
         this.schoolYear = schoolYear;
+        this.infoBlock = infoBlock;
     }
 
     async getStudentRowData() {
@@ -33,7 +37,7 @@ export class TeacherHoursCachedState {
         //Hack for DKO3 bug. Split S1 and S2 and fetch those separately. This way, if 1 subject is present in both 4.1 and S1, they are both listed!
         let tableNoSpec = await this.fetchHourRows(schooljaar, await this.getSelectedVakNames(), "nospec");
         let tableOnlySpec = await this.fetchHourRows(schooljaar, await this.getSelectedVakNames(), "spec");
-        // await setViewFromCurrentUrl();
+        await setViewFromCurrentUrl();
         return {rows: tableNoSpec.rows.concat(tableOnlySpec.rows), headerIndices: tableNoSpec.headerIndices};
     }
 
@@ -44,7 +48,8 @@ export class TeacherHoursCachedState {
         builder.addFields([FIELD.NAAM, FIELD.VOORNAAM, FIELD.VAK_NAAM, FIELD.GRAAD_LEERJAAR, FIELD.KLAS_LEERKRACHT]);
         builder.addCriterium(CriteriumName.Graad, spec == "spec" ? Operator.EQUALS : Operator.NOT_EQUALS, ["specialisatie"]);
         let preparedBuilder = await builder.sendSettings();
-        let table = await preparedBuilder.fetchTable(undefined, true);
+        let listener = new InfoBarTableFetchListener(this.infoBlock);
+        let table = await preparedBuilder.fetchTable(listener, true);
         return {rows: [...table.getRows()], headerIndices: NamedCellTableFetchListener.getHeaderIndicesFromHeaderCells(table.getTable().tHead!.rows[0].cells)};
     }
 

@@ -1,10 +1,11 @@
 import * as def from "../def";
 import {createValidId, getSchoolIdString, Schoolyear} from "../globals";
-import {VakLeraar} from "./scrapeUren";
-import {TableRef} from "../table/tableFetcher";
+import {addStudentToVakLeraarsMap, StudentUrenRow, VakLeraar} from "./scrapeUren";
 import {cloud} from "../cloud";
-import {UrenData} from "./urenData";
+import {CloudData, UrenData} from "./urenData";
 import {emmet} from "../../libs/Emmeter/html";
+import {TeacherHoursSetupMapped} from "./hoursSettings";
+import observer from "./observer";
 
 let isUpdatePaused = true;
 let cellChanged = false;
@@ -373,4 +374,30 @@ function fillGraadCell(ctx: Context): number {
         iTag.classList.add('fas', "fa-user-alt");
     }
     return graadJaar.count;
+}
+
+export function rebuildHoursTable(studentRowData: StudentUrenRow[], hourSettingsMapped: TeacherHoursSetupMapped, fromCloud: CloudData) {
+    document.getElementById(def.HOURS_TABLE_ID)?.remove();
+    let table = emmet.create(`#${def.PLUGIN_CONTAINER_ID}>table`).last as HTMLTableElement; //todo: make a breaking change for this function. It's API sucks. It appends an element to a selector. Perhaps even remove this function.
+    table.id = def.HOURS_TABLE_ID;
+    table.classList.add(def.CAN_SORT, def.NO_MENU);
+    let vakLeraars = buildVakLeraarsMap(studentRowData, hourSettingsMapped);
+    let urenData: UrenData = {
+        year: parseInt(hourSettingsMapped.schoolyear),
+        fromCloud: fromCloud,
+        vakLeraars
+    };
+    observer.disconnect();
+    refillTable(table, urenData);
+    observer.observeElement(document.querySelector("main")!);
+}
+
+function buildVakLeraarsMap(studentRowData: StudentUrenRow[], hourSettingsMapped: TeacherHoursSetupMapped) {
+    let vakLeraars = new Map<string, VakLeraar>();
+    for (let studentRow of studentRowData) {
+        addStudentToVakLeraarsMap(studentRow, vakLeraars, hourSettingsMapped);
+    }
+
+    vakLeraars = new Map([...vakLeraars.entries()].sort((a, b) => a[0] < b[0] ? -1 : ((a[0] > b[0]) ? 1 : 0))) as Map<string, VakLeraar>;
+    return vakLeraars;
 }

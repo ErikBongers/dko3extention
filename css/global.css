@@ -22,6 +22,10 @@ button.naked {
     flex-grow: 1;
 }
 
+.flexRight {
+    margin-inline-start: auto;
+}
+
 .flexSchrink {
     flex-shrink: 1;
 }
@@ -35,5 +39,11 @@ button.naked {
     }
     & > div#div_leerlingen_werklijst_overview {
         display: none;
+    }
+}
+
+#pluginContainer {
+    & .werklijstButtonWrapper {
+        margin-block: .5ch;
     }
 }

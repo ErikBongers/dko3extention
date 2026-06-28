@@ -54,6 +54,12 @@ export class ProgressBar {
         this.count++;
         return true;
     }
+
+    static find() {
+        let divProgressLine = document.getElementById(def.PROGRESS_BAR_ID) as HTMLDivElement;
+        let divProgressBar = divProgressLine.querySelector(".progressBar") as HTMLDivElement;
+        return new ProgressBar(divProgressLine, divProgressBar);
+    }
 }
 
 export function insertProgressBar(container: HTMLElement, text: string = "") {

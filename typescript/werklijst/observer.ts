@@ -1,8 +1,7 @@
 import {addButton, arrayIsEqual, copyToClipboardOrRequestRetry, getSchoolIdString, openHoursSettings, Schoolyear, tryUntilThen} from "../globals";
 import * as def from "../def";
 import {BTN_WERKLIJST_NAV_BOTTOM} from "../def";
-import {refillTable} from "./buildUren";
-import {addStudentToVakLeraarsMap, StudentUrenRow, VakLeraar} from "./scrapeUren";
+import {rebuildHoursTable} from "./buildUren";
 import {TableFetcher} from "../table/tableFetcher";
 import {fetchHoursSettingsOrSaveDefault} from "./prefillInstruments";
 import {HashObserver} from "../pageObserver";
@@ -10,13 +9,11 @@ import {NamedCellTableFetchListener, NotHTMLTemplate} from "../pageHandlers";
 import {decorateTableHeader} from "../table/tableHeaders";
 import {getGotoStateOrDefault, Goto, PageName, saveGotoState, WerklijstGotoState} from "../gotoState";
 import {registerChecksumHandler} from "../table/observer";
-import {CloudData, UrenData} from "./urenData";
 import {createDefaultTableFetcher, createDefaultTableRefAndInfoBlock} from "../table/loadAnyTable";
 import {Actions, sendRequest, ServiceRequest, TabType} from "../messaging";
-import {TeacherHoursSetup, TeacherHoursSetupMapped} from "./hoursSettings";
-import {getJaarToewijzigingWerklijst} from "../lessen/observer";
+import {TeacherHoursSetup} from "./hoursSettings";
 import {emmet} from "../../libs/Emmeter/html";
-import {createInfoBlock} from "../infoBlock";
+import {createInfoBlock, getInfoBlock, InfoBlock} from "../infoBlock";
 import {fetchMailMergeData} from "../table/mailMerge";
 import {TeacherHoursCachedState} from "./teacherHoursCachedState";
 import MessageSender = chrome.runtime.MessageSender;
@@ -79,8 +76,7 @@ function onAnyChangeEvent() {
     if (document.querySelector(def.BTN_WERKLIJST_MAKEN_ID)) {
         onCriteriaShown();
     } else if (document.getElementById(def.BTN_WERKLIJST_NAV_BOTTOM)) {
-        addButtons();
-        decorateTableHeader(document.querySelector("table#"+def.WERKLIJST_TABLE_ID) as HTMLTableElement, true);
+        onResultsShown();
     }
 }
 
@@ -90,21 +86,64 @@ function onMutation(mutation: MutationRecord) {
     return true;
 }
 
-function onCriteriaShown() {
-    console.log("onCriteriaShown");
+function addPluginContainer() {
+    let viewContents = document.getElementById("view_contents") as HTMLDivElement;
+    let container = emmet.appendChild(viewContents, "div#"+def.PLUGIN_CONTAINER_ID).first as HTMLDivElement;
+    let schoolYear = Schoolyear.getHighestAvailable();
+    if(!schoolYear) {
+        alert("Geen schooljaar gevonden!");
+        return createInfoBlock(container, "");
+    }
+    let year = parseInt(schoolYear);
+    let prevSchoolyear = Schoolyear.toFullString(year-1);
+    let nextSchoolyear = Schoolyear.toFullString(year);
+    let prevSchoolyearShort = Schoolyear.toShortString(year-1);
+    let nextSchoolyearShort = Schoolyear.toShortString(year);
+    let buttonBar = emmet.appendChild(container, `
+        div.d-flex.werklijstButtonWrapper
+    `).first as HTMLDivElement;
+    addButton(buttonBar, def.UREN_PREV_BTN_ID, "Toon lerarenuren voor "+ prevSchoolyear, async () => { await fetchAndShowTeacherHours(prevSchoolyear, infoBlock); }, "", ["btn", "btn-outline-dark"], "Uren "+ prevSchoolyearShort, "beforeend");
+    addButton(buttonBar, def.UREN_NEXT_BTN_ID, "Toon lerarenuren voor "+ nextSchoolyear, async () => { await fetchAndShowTeacherHours(nextSchoolyear, infoBlock); }, "", ["btn", "btn-primary"], "Uren "+ nextSchoolyearShort, 'beforeend');
+    addButton(buttonBar, def.UREN_PREV_SETUP_BTN_ID, "Setup voor "+ nextSchoolyear, async () => { await showUrenSetup(nextSchoolyear); }, "fas-certificate", ["btn", "btn-outline-dark", "flexRight"], "", "beforeend", "gear.svg");
+
+    emmet.appendChild(container, "h4");
+    let infoBlock = createInfoBlock(container, "");
+    return infoBlock;
+}
+
+function checkStateAndGotoTeacherHours(infoBlock: InfoBlock) {
     let pageState = getGotoStateOrDefault(PageName.Werklijst) as WerklijstGotoState;
     if(pageState.goto == Goto.Werklijst_uren_prevYear) {
         pageState.goto = Goto.None;
         saveGotoState(pageState);
-        fetchAndShowTeacherHours(Schoolyear.toFullString(Schoolyear.calculateCurrent())).then(() => {});
-        return;
+        fetchAndShowTeacherHours(Schoolyear.toFullString(Schoolyear.calculateCurrent()), infoBlock).then(() => {});
+        return true;
     }
     if(pageState.goto == Goto.Werklijst_uren_nextYear) {
         pageState.goto = Goto.None;
         saveGotoState(pageState);
-        fetchAndShowTeacherHours(Schoolyear.toFullString(Schoolyear.calculateCurrent()+1)).then(() => {});
-        return;
+        fetchAndShowTeacherHours(Schoolyear.toFullString(Schoolyear.calculateCurrent() + 1), infoBlock).then(() => {});
+        return true;
     }
+    return false;
+}
+
+function onResultsShown() {
+    console.log("onResultsShown");
+    let infoBlock = addPluginContainer();
+    if(checkStateAndGotoTeacherHours(infoBlock))
+        return;
+
+    addButtons();
+    decorateTableHeader(document.querySelector("table#"+def.WERKLIJST_TABLE_ID) as HTMLTableElement, true);
+}
+
+function onCriteriaShown() {
+    console.log("onCriteriaShown");
+    let infoBlock = addPluginContainer();
+    if(checkStateAndGotoTeacherHours(infoBlock))
+        return;
+    let pageState = getGotoStateOrDefault(PageName.Werklijst) as WerklijstGotoState;
     pageState.werklijstTableName = "";
     saveGotoState(pageState);
     let btnWerklijstMakenWrapper = document.querySelector(def.BTN_WERKLIJST_MAKEN_WRAPPER_ID) as HTMLDivElement;
@@ -127,12 +166,9 @@ function onCriteriaShown() {
     let prevSchoolyearShort = Schoolyear.toShortString(year-1);
     let nextSchoolyearShort = Schoolyear.toShortString(year);
     addButton(btnWerklijstMaken, def.WERKLIJST_MAILMERGE_BTN_ID, "Mail merge", async () => { await mailMergeStartSchoolyear(); }, "", ["btn", "btn-outline-dark"], "Mailmerge");
-    addButton(btnWerklijstMaken, def.UREN_PREV_BTN_ID, "Toon lerarenuren voor "+ prevSchoolyear, async () => { await fetchAndShowTeacherHours(prevSchoolyear); }, "", ["btn", "btn-outline-dark"], "Uren "+ prevSchoolyearShort);
+    addButton(btnWerklijstMaken, def.UREN_PREV_BTN_ID, "Toon lerarenuren voor "+ prevSchoolyear, async () => { await fetchAndShowTeacherHours(prevSchoolyear, infoBlock); }, "", ["btn", "btn-outline-dark"], "Uren "+ prevSchoolyearShort);
+    addButton(btnWerklijstMaken, def.UREN_NEXT_BTN_ID, "Toon lerarenuren voor "+ nextSchoolyear, async () => { await fetchAndShowTeacherHours(nextSchoolyear, infoBlock); }, "", ["btn", "btn-outline-dark"], "Uren "+ nextSchoolyearShort);
     addButton(btnWerklijstMaken, def.UREN_PREV_SETUP_BTN_ID, "Setup voor "+ nextSchoolyear, async () => { await showUrenSetup(nextSchoolyear); }, "fas-certificate", ["btn", "btn-outline-dark"], "", "beforebegin", "gear.svg");
-    addButton(btnWerklijstMaken, def.UREN_PREV_SETUP_BTN_ID+"sdf", "test", async () => { await sendGreetingsToHoursSettings(); }, "", ["btn", "btn-outline-dark"], "send");
-    addButton(btnWerklijstMaken, def.UREN_NEXT_BTN_ID, "Toon lerarenuren voor "+ nextSchoolyear, async () => { await fetchAndShowTeacherHours(nextSchoolyear); }, "", ["btn", "btn-outline-dark"], "Uren "+ nextSchoolyearShort);
-
-    addButton(btnWerklijstMaken, "test123", "Test 123", test123, "", ["btn", "btn-outline-dark"], "Test 123");
 
     document.getElementById("btn_leerling_werklijst_reset")!.addEventListener("click", resetPageIncarnationChangedFlag);
 
@@ -141,11 +177,6 @@ function onCriteriaShown() {
 
 function resetPageIncarnationChangedFlag() {
     pageIncarnationChanged = true;
-}
-
-async function test123() {
-    let table = await getJaarToewijzigingWerklijst(Schoolyear.findInPage());
-    console.log([...table.getRows()].map(row => row.textContent));
 }
 
 chrome.runtime.onMessage.addListener(onMessage)
@@ -183,7 +214,7 @@ async function onMessage(request: ServiceRequest<any>, _sender: MessageSender, s
     );
 
     if(!equalSelectedSubjects) {
-        fetchAndShowTeacherHours(hourSettings.schoolyear).then(_ => {
+        fetchAndShowTeacherHours(hourSettings.schoolyear, getInfoBlock()).then(_ => {
             pauseRefresh = false;
         });
     } else {
@@ -258,37 +289,11 @@ function onClickCopyEmails() {
     });
 }
 
-function buildVakLeraarsMap(studentRowData: StudentUrenRow[], hourSettingsMapped: TeacherHoursSetupMapped) {
-    let vakLeraars = new Map<string, VakLeraar>();
-    for (let studentRow of studentRowData) {
-        addStudentToVakLeraarsMap(studentRow, vakLeraars, hourSettingsMapped);
-    }
-
-    vakLeraars = new Map([...vakLeraars.entries()].sort((a, b) => a[0] < b[0] ? -1 : ((a[0] > b[0]) ? 1 : 0))) as Map<string, VakLeraar>;
-    return vakLeraars;
-}
-
 let globals: TeacherHoursCachedState | null = null;
 
-function rebuildHoursTable(studentRowData: StudentUrenRow[], hourSettingsMapped: TeacherHoursSetupMapped, fromCloud: CloudData) {
-    document.getElementById(def.HOURS_TABLE_ID)?.remove();
-    let table = emmet.create("#view_contents>table").last as HTMLTableElement; //todo: make a breaking change for this function. It's API sucks. It appends an element to a selector. Perhaps even remove this function.
-    table.id = def.HOURS_TABLE_ID;
-    table.classList.add(def.CAN_SORT, def.NO_MENU);
-    let vakLeraars = buildVakLeraarsMap(studentRowData, hourSettingsMapped);
-    let urenData: UrenData  = {
-        year: parseInt(hourSettingsMapped.schoolyear),
-        fromCloud: fromCloud,
-        vakLeraars
-    };
-    observer.disconnect();
-    refillTable(table, urenData);
-    observer.observeElement(document.querySelector("main")!);
-}
-
-async function rebuildHoursTableAfterFetch(schoolYear: string) {
+async function rebuildHoursTableAfterFetch(schoolYear: string, infoBlock: InfoBlock) {
     if(!globals)
-        globals = new TeacherHoursCachedState(schoolYear);
+        globals = new TeacherHoursCachedState(schoolYear, infoBlock);
 
     rebuildHoursTable(await globals.getStudentRowData(), await globals.getHourSettingsMapped(), await globals.getFromCloud());
 }
@@ -347,9 +352,11 @@ function hasWerklijstNoCriteria() {
     return ids.length === 2 && ["1", "2"].every(value => ids.includes(value));
 }
 
-async function fetchAndShowTeacherHours(schooljaar: string) {
+async function fetchAndShowTeacherHours(schooljaar: string, infoBlock: InfoBlock) {
     let divViewContents = document.getElementById("view_contents") as HTMLDivElement;
     divViewContents.classList.add("hideWerklijst");
-    await rebuildHoursTableAfterFetch(schooljaar);
+    let title = document.querySelector("#" + def.PLUGIN_CONTAINER_ID + " h4") as HTMLHeadingElement;
+    title.textContent = "Lerarenuren voor schooljaar " + schooljaar;
+    await rebuildHoursTableAfterFetch(schooljaar, infoBlock);
 }
 

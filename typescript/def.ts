@@ -44,3 +44,4 @@ export const BTN_WERKLIJST_NAV_BOTTOM = "tablenav_leerlingen_werklijst_bottom";
 export const SETUP_HOURS_TITLE_ID = "setupTitle";
 export const OPTION_HIDE_IGNORED_DIFFS = "dko3plugin.hideIgnoredDiffs";
 export const OPTION_HIDE_NO_TEACHER_DIFFS = "dko3plugin.hideNoTeacherDiffs";
+export const PLUGIN_CONTAINER_ID = "pluginContainer";

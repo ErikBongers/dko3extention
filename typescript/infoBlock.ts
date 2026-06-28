@@ -15,7 +15,13 @@ export function createInfoBlockForTable(tableRef: TableRef): InfoBlock {
 }
 
 export function createInfoBlock(infoContainer: HTMLElement, initialMessage: string): InfoBlock {
-    let infoBar = new InfoBar(infoContainer.appendChild(document.createElement("div")));
+    let infoBar = InfoBar.create(infoContainer.appendChild(document.createElement("div")));
     let progressBar = insertProgressBar(infoBar.divInfoLine, initialMessage);
+    return {infoBar, progressBar};
+}
+
+export function getInfoBlock(): InfoBlock {
+    let infoBar = InfoBar.find();
+    let progressBar = ProgressBar.find();
     return {infoBar, progressBar};
 }

@@ -374,6 +374,7 @@ const DKO3_FULL_BASE_URL = "https://administratie.dko3.cloud/";
 const BTN_WERKLIJST_NAV_BOTTOM = "tablenav_leerlingen_werklijst_bottom";
 const OPTION_HIDE_IGNORED_DIFFS = "dko3plugin.hideIgnoredDiffs";
 const OPTION_HIDE_NO_TEACHER_DIFFS = "dko3plugin.hideNoTeacherDiffs";
+const PLUGIN_CONTAINER_ID = "pluginContainer";
 
 //#endregion
 //#region typescript/cloud.ts
@@ -4441,7 +4442,7 @@ async function fetchText(url) {
 
 //#endregion
 //#region typescript/infoBar.ts
-var InfoBar = class {
+var InfoBar = class InfoBar {
 	divInfoContainer;
 	divInfoLine;
 	divTempLine;
@@ -4449,16 +4450,33 @@ var InfoBar = class {
 	divErrorLine;
 	tempMessage;
 	divCacheInfo;
-	constructor(divInfoContainer) {
+	constructor(divInfoContainer, divExtraLine, divErrorLine, divInfoLine, divTempLine, divCacheInfo) {
 		this.divInfoContainer = divInfoContainer;
-		this.divInfoContainer.id = INFO_CONTAINER_ID;
-		this.divInfoContainer.innerHTML = "";
-		this.divExtraLine = emmet.appendChild(divInfoContainer, `div#${INFO_EXTRA_ID}.infoMessage`).last;
-		this.divErrorLine = emmet.appendChild(divInfoContainer, `div#${INFO_EXTRA_ID}.infoError`).last;
-		this.divInfoLine = emmet.appendChild(divInfoContainer, "div.infoLine").last;
-		this.divTempLine = emmet.appendChild(divInfoContainer, `div#${INFO_TEMP_ID}.infoMessage.tempLine`).last;
-		this.divCacheInfo = emmet.appendChild(this.divInfoContainer, `div#${INFO_CACHE_ID}.cacheInfo`).last;
+		this.divExtraLine = divExtraLine;
+		this.divErrorLine = divErrorLine;
+		this.divInfoLine = divInfoLine;
+		this.divTempLine = divTempLine;
+		this.divCacheInfo = divCacheInfo;
 		this.tempMessage = "";
+	}
+	static create(divInfoContainer) {
+		divInfoContainer.id = INFO_CONTAINER_ID;
+		divInfoContainer.innerHTML = "";
+		let divExtraLine = emmet.appendChild(divInfoContainer, `div#${INFO_EXTRA_ID}.infoMessage`).last;
+		let divErrorLine = emmet.appendChild(divInfoContainer, `div#${INFO_EXTRA_ID}.infoError`).last;
+		let divInfoLine = emmet.appendChild(divInfoContainer, "div.infoLine").last;
+		let divTempLine = emmet.appendChild(divInfoContainer, `div#${INFO_TEMP_ID}.infoMessage.tempLine`).last;
+		let divCacheInfo = emmet.appendChild(divInfoContainer, `div#${INFO_CACHE_ID}.cacheInfo`).last;
+		return new InfoBar(divInfoContainer, divExtraLine, divErrorLine, divInfoLine, divTempLine, divCacheInfo);
+	}
+	static find() {
+		let container = document.getElementById(INFO_CONTAINER_ID);
+		let divExtraLine = container.querySelector(`#${INFO_EXTRA_ID}`);
+		let divErrorLine = container.querySelector(`#${INFO_EXTRA_ID}`);
+		let divInfoLine = container.querySelector("div.infoLine");
+		let divTempLine = container.querySelector(`#${INFO_TEMP_ID}`);
+		let divCacheInfo = container.querySelector(`#${INFO_CACHE_ID}`);
+		return new InfoBar(container, divExtraLine, divErrorLine, divInfoLine, divTempLine, divCacheInfo);
 	}
 	setTempMessage(msg) {
 		this.tempMessage = msg;
@@ -4497,7 +4515,7 @@ var InfoBar = class {
 
 //#endregion
 //#region typescript/progressBar.ts
-var ProgressBar = class {
+var ProgressBar = class ProgressBar {
 	barElement;
 	containerElement;
 	maxCount;
@@ -4545,6 +4563,11 @@ var ProgressBar = class {
 		this.count++;
 		return true;
 	}
+	static find() {
+		let divProgressLine = document.getElementById(PROGRESS_BAR_ID);
+		let divProgressBar = divProgressLine.querySelector(".progressBar");
+		return new ProgressBar(divProgressLine, divProgressBar);
+	}
 };
 function insertProgressBar(container, text = "") {
 	container.innerHTML = "";
@@ -4560,8 +4583,16 @@ function createInfoBlockForTable(tableRef) {
 	return createInfoBlock(divInfoContainer, "loading pages... ");
 }
 function createInfoBlock(infoContainer, initialMessage) {
-	let infoBar = new InfoBar(infoContainer.appendChild(document.createElement("div")));
+	let infoBar = InfoBar.create(infoContainer.appendChild(document.createElement("div")));
 	let progressBar = insertProgressBar(infoBar.divInfoLine, initialMessage);
+	return {
+		infoBar,
+		progressBar
+	};
+}
+function getInfoBlock() {
+	let infoBar = InfoBar.find();
+	let progressBar = ProgressBar.find();
 	return {
 		infoBar,
 		progressBar
@@ -7160,6 +7191,197 @@ function setSchoolBackground() {
 }
 
 //#endregion
+//#region typescript/pageHandlers.ts
+/**
+
+* NamedCellTableFetchListener with named column labels.\
+
+* Params are:
+
+* @description
+
+*      * requiredHeaderLabels: array with labels of required columns.
+
+*      * onRequiredColumnsMissing: OnRequiredColumnsMissingHandler, which will be called when labels are missing.
+
+*/
+var NamedCellTableFetchListener = class NamedCellTableFetchListener {
+	onStartFetching;
+	onLoaded;
+	onFinished;
+	requiredHeaderLabels;
+	onBeforeLoading;
+	headerIndices;
+	onColumnsMissing;
+	isValidPage;
+	constructor(requiredHeaderLabels, onRequiredColumnsMissing) {
+		this.requiredHeaderLabels = requiredHeaderLabels;
+		this.onColumnsMissing = onRequiredColumnsMissing;
+		this.headerIndices = void 0;
+		this.isValidPage = false;
+	}
+	onPageLoaded(tableFetcher, _pageCnt, _text) {
+		if (!this.headerIndices) {
+			this.headerIndices = NamedCellTableFetchListener.getHeaderIndices(tableFetcher.fetchedTable.getTemplate().content);
+			if (!this.hasAllHeadersAndAlert()) {
+				this.isValidPage = false;
+				if (this.onColumnsMissing) this.onColumnsMissing(tableFetcher);
+				else throw "Cannot build table object - required columns missing";
+			} else this.isValidPage = true;
+		}
+	}
+	onBeforeLoadingPage(tableFetcher) {
+		let orgTableContainer = tableFetcher.tableRef.getOrgTableContainer();
+		if (!orgTableContainer) return true;
+		this.headerIndices = NamedCellTableFetchListener.getHeaderIndices(orgTableContainer);
+		return this.hasAllHeadersAndAlert();
+	}
+	hasAllHeadersAndAlert() {
+		if (!this.hasAllHeaders()) {
+			let labelString = this.requiredHeaderLabels.map((label) => "\"" + label.toUpperCase() + "\"").join(", ");
+			alert(`Voeg velden ${labelString} toe.`);
+			return false;
+		}
+		return true;
+	}
+	static getHeaderIndices(tableOrParent) {
+		let headers = tableOrParent.querySelectorAll("thead th");
+		return this.getHeaderIndicesFromHeaderCells(headers);
+	}
+	static getHeaderIndicesFromHeaderCells(headers) {
+		let headerIndices = new Map();
+		Array.from(headers).forEach((header, index) => {
+			let label = getColumnHeaderText(header);
+			if (label.startsWith("e-mailadressen")) headerIndices.set("e-mailadressen", index);
+			else headerIndices.set(label, index);
+		});
+		return headerIndices;
+	}
+	hasAllHeaders() {
+		return this.requiredHeaderLabels.every((label) => this.hasHeader(label));
+	}
+	hasHeader(label) {
+		return this.headerIndices.has(label);
+	}
+	getColumnText(tr, label) {
+		return getColumnText(tr, this.headerIndices, label);
+	}
+};
+function getColumnText(tr, headerIndices, label) {
+	return tr.children[headerIndices.get(label)].textContent;
+}
+
+//#endregion
+//#region typescript/werklijst/scrapeUren.ts
+function scrapeStudent(headerIndices, tr) {
+	let naam = getColumnText(tr, headerIndices, "naam");
+	let voornaam = getColumnText(tr, headerIndices, "voornaam");
+	let id = parseInt(tr.attributes["onclick"].value.replace("showView('leerlingen-leerling', '', 'id=", ""));
+	let leraar = getColumnText(tr, headerIndices, "klasleerkracht");
+	let vak = getColumnText(tr, headerIndices, "vak: naam");
+	let graadLeerjaar = getColumnText(tr, headerIndices, "graad + leerjaar");
+	if (leraar === "") leraar = "{nieuw}";
+	return {
+		naam,
+		voornaam,
+		id,
+		leraar,
+		vak,
+		graadLeerjaar
+	};
+}
+function addStudentToVakLeraarsMap(studentRow, vakLeraars, hourSettings) {
+	let vakLeraarKey = translateVak(studentRow.vak, hourSettings) + "_" + studentRow.leraar;
+	if (!vakLeraars.has(vakLeraarKey)) {
+		let countMap = new Map();
+		countMap.set("1.1", {
+			count: 0,
+			students: []
+		});
+		countMap.set("1.2", {
+			count: 0,
+			students: []
+		});
+		countMap.set("2.1", {
+			count: 0,
+			students: []
+		});
+		countMap.set("2.2", {
+			count: 0,
+			students: []
+		});
+		countMap.set("2.3", {
+			count: 0,
+			students: []
+		});
+		countMap.set("2.4", {
+			count: 0,
+			students: []
+		});
+		countMap.set("3.1", {
+			count: 0,
+			students: []
+		});
+		countMap.set("3.2", {
+			count: 0,
+			students: []
+		});
+		countMap.set("3.3", {
+			count: 0,
+			students: []
+		});
+		countMap.set("4.1", {
+			count: 0,
+			students: []
+		});
+		countMap.set("4.2", {
+			count: 0,
+			students: []
+		});
+		countMap.set("4.3", {
+			count: 0,
+			students: []
+		});
+		countMap.set("S.1", {
+			count: 0,
+			students: []
+		});
+		countMap.set("S.2", {
+			count: 0,
+			students: []
+		});
+		let vakLeraarObject = {
+			vak: translateVak(studentRow.vak, hourSettings),
+			leraar: studentRow.leraar,
+			id: createValidId(vakLeraarKey),
+			countMap
+		};
+		vakLeraars.set(vakLeraarKey, vakLeraarObject);
+	}
+	let vakLeraar = vakLeraars.get(vakLeraarKey);
+	if (!vakLeraar.countMap.has(studentRow.graadLeerjaar)) vakLeraar.countMap.set(studentRow.graadLeerjaar, {
+		count: 0,
+		students: []
+	});
+	let graadLeraarObject = vakLeraars.get(vakLeraarKey).countMap.get(studentRow.graadLeerjaar);
+	graadLeraarObject.count += 1;
+	graadLeraarObject.students.push(studentRow);
+}
+function translateVak(vak, settings) {
+	let alias = settings.subjectsMap.get(vak)?.alias;
+	if (alias) vak = alias;
+	settings.translations.forEach((translation) => {
+		if (translation.find) {
+			if (vak.includes(translation.find)) vak = translation.prefix + vak.replace(translation.find, translation.replace) + translation.suffix;
+		} else vak = translation.prefix + vak + translation.suffix;
+	});
+	return vak;
+}
+function scrapeUren(rows, headerIndices) {
+	return rows.map((tr) => scrapeStudent(headerIndices, tr));
+}
+
+//#endregion
 //#region typescript/werklijst/buildUren.ts
 let isUpdatePaused = true;
 let cellChanged = false;
@@ -7559,6 +7781,7 @@ function observeTable(observe) {
 		//ignore attrubute changes.
 		//clear
 		//get value when not a calculated value.
+		//todo: make a breaking change for this function. It's API sucks. It appends an element to a selector. Perhaps even remove this function.
 		HOURS_TABLE_ID
 );
 	if (observe) {
@@ -7737,196 +7960,26 @@ function fillGraadCell(ctx) {
 	}
 	return graadJaar.count;
 }
-
-//#endregion
-//#region typescript/pageHandlers.ts
-/**
-
-* NamedCellTableFetchListener with named column labels.\
-
-* Params are:
-
-* @description
-
-*      * requiredHeaderLabels: array with labels of required columns.
-
-*      * onRequiredColumnsMissing: OnRequiredColumnsMissingHandler, which will be called when labels are missing.
-
-*/
-var NamedCellTableFetchListener = class NamedCellTableFetchListener {
-	onStartFetching;
-	onLoaded;
-	onFinished;
-	requiredHeaderLabels;
-	onBeforeLoading;
-	headerIndices;
-	onColumnsMissing;
-	isValidPage;
-	constructor(requiredHeaderLabels, onRequiredColumnsMissing) {
-		this.requiredHeaderLabels = requiredHeaderLabels;
-		this.onColumnsMissing = onRequiredColumnsMissing;
-		this.headerIndices = void 0;
-		this.isValidPage = false;
-	}
-	onPageLoaded(tableFetcher, _pageCnt, _text) {
-		if (!this.headerIndices) {
-			this.headerIndices = NamedCellTableFetchListener.getHeaderIndices(tableFetcher.fetchedTable.getTemplate().content);
-			if (!this.hasAllHeadersAndAlert()) {
-				this.isValidPage = false;
-				if (this.onColumnsMissing) this.onColumnsMissing(tableFetcher);
-				else throw "Cannot build table object - required columns missing";
-			} else this.isValidPage = true;
-		}
-	}
-	onBeforeLoadingPage(tableFetcher) {
-		let orgTableContainer = tableFetcher.tableRef.getOrgTableContainer();
-		if (!orgTableContainer) return true;
-		this.headerIndices = NamedCellTableFetchListener.getHeaderIndices(orgTableContainer);
-		return this.hasAllHeadersAndAlert();
-	}
-	hasAllHeadersAndAlert() {
-		if (!this.hasAllHeaders()) {
-			let labelString = this.requiredHeaderLabels.map((label) => "\"" + label.toUpperCase() + "\"").join(", ");
-			alert(`Voeg velden ${labelString} toe.`);
-			return false;
-		}
-		return true;
-	}
-	static getHeaderIndices(tableOrParent) {
-		let headers = tableOrParent.querySelectorAll("thead th");
-		return this.getHeaderIndicesFromHeaderCells(headers);
-	}
-	static getHeaderIndicesFromHeaderCells(headers) {
-		let headerIndices = new Map();
-		Array.from(headers).forEach((header, index) => {
-			let label = getColumnHeaderText(header);
-			if (label.startsWith("e-mailadressen")) headerIndices.set("e-mailadressen", index);
-			else headerIndices.set(label, index);
-		});
-		return headerIndices;
-	}
-	hasAllHeaders() {
-		return this.requiredHeaderLabels.every((label) => this.hasHeader(label));
-	}
-	hasHeader(label) {
-		return this.headerIndices.has(label);
-	}
-	getColumnText(tr, label) {
-		return getColumnText(tr, this.headerIndices, label);
-	}
-};
-function getColumnText(tr, headerIndices, label) {
-	return tr.children[headerIndices.get(label)].textContent;
-}
-
-//#endregion
-//#region typescript/werklijst/scrapeUren.ts
-function scrapeStudent(headerIndices, tr) {
-	let naam = getColumnText(tr, headerIndices, "naam");
-	let voornaam = getColumnText(tr, headerIndices, "voornaam");
-	let id = parseInt(tr.attributes["onclick"].value.replace("showView('leerlingen-leerling', '', 'id=", ""));
-	let leraar = getColumnText(tr, headerIndices, "klasleerkracht");
-	let vak = getColumnText(tr, headerIndices, "vak: naam");
-	let graadLeerjaar = getColumnText(tr, headerIndices, "graad + leerjaar");
-	if (leraar === "") leraar = "{nieuw}";
-	return {
-		naam,
-		voornaam,
-		id,
-		leraar,
-		vak,
-		graadLeerjaar
+function rebuildHoursTable(studentRowData, hourSettingsMapped, fromCloud) {
+	document.getElementById(HOURS_TABLE_ID)?.remove();
+	let table = emmet.create(`#${PLUGIN_CONTAINER_ID}>table`).last;
+	table.id = HOURS_TABLE_ID;
+	table.classList.add(CAN_SORT, NO_MENU);
+	let vakLeraars = buildVakLeraarsMap(studentRowData, hourSettingsMapped);
+	let urenData = {
+		year: parseInt(hourSettingsMapped.schoolyear),
+		fromCloud,
+		vakLeraars
 	};
+	observer_default$4.disconnect();
+	refillTable(table, urenData);
+	observer_default$4.observeElement(document.querySelector("main"));
 }
-function addStudentToVakLeraarsMap(studentRow, vakLeraars, hourSettings) {
-	let vakLeraarKey = translateVak(studentRow.vak, hourSettings) + "_" + studentRow.leraar;
-	if (!vakLeraars.has(vakLeraarKey)) {
-		let countMap = new Map();
-		countMap.set("1.1", {
-			count: 0,
-			students: []
-		});
-		countMap.set("1.2", {
-			count: 0,
-			students: []
-		});
-		countMap.set("2.1", {
-			count: 0,
-			students: []
-		});
-		countMap.set("2.2", {
-			count: 0,
-			students: []
-		});
-		countMap.set("2.3", {
-			count: 0,
-			students: []
-		});
-		countMap.set("2.4", {
-			count: 0,
-			students: []
-		});
-		countMap.set("3.1", {
-			count: 0,
-			students: []
-		});
-		countMap.set("3.2", {
-			count: 0,
-			students: []
-		});
-		countMap.set("3.3", {
-			count: 0,
-			students: []
-		});
-		countMap.set("4.1", {
-			count: 0,
-			students: []
-		});
-		countMap.set("4.2", {
-			count: 0,
-			students: []
-		});
-		countMap.set("4.3", {
-			count: 0,
-			students: []
-		});
-		countMap.set("S.1", {
-			count: 0,
-			students: []
-		});
-		countMap.set("S.2", {
-			count: 0,
-			students: []
-		});
-		let vakLeraarObject = {
-			vak: translateVak(studentRow.vak, hourSettings),
-			leraar: studentRow.leraar,
-			id: createValidId(vakLeraarKey),
-			countMap
-		};
-		vakLeraars.set(vakLeraarKey, vakLeraarObject);
-	}
-	let vakLeraar = vakLeraars.get(vakLeraarKey);
-	if (!vakLeraar.countMap.has(studentRow.graadLeerjaar)) vakLeraar.countMap.set(studentRow.graadLeerjaar, {
-		count: 0,
-		students: []
-	});
-	let graadLeraarObject = vakLeraars.get(vakLeraarKey).countMap.get(studentRow.graadLeerjaar);
-	graadLeraarObject.count += 1;
-	graadLeraarObject.students.push(studentRow);
-}
-function translateVak(vak, settings) {
-	let alias = settings.subjectsMap.get(vak)?.alias;
-	if (alias) vak = alias;
-	settings.translations.forEach((translation) => {
-		if (translation.find) {
-			if (vak.includes(translation.find)) vak = translation.prefix + vak.replace(translation.find, translation.replace) + translation.suffix;
-		} else vak = translation.prefix + vak + translation.suffix;
-	});
-	return vak;
-}
-function scrapeUren(rows, headerIndices) {
-	return rows.map((tr) => scrapeStudent(headerIndices, tr));
+function buildVakLeraarsMap(studentRowData, hourSettingsMapped) {
+	let vakLeraars = new Map();
+	for (let studentRow of studentRowData) addStudentToVakLeraarsMap(studentRow, vakLeraars, hourSettingsMapped);
+	vakLeraars = new Map([...vakLeraars.entries()].sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
+	return vakLeraars;
 }
 
 //#endregion
@@ -8845,8 +8898,10 @@ var TeacherHoursCachedState = class {
 	fromCloud = null;
 	selectedVakNames = null;
 	allDko3Vakken = null;
-	constructor(schoolYear) {
+	infoBlock;
+	constructor(schoolYear, infoBlock) {
 		this.schoolYear = schoolYear;
+		this.infoBlock = infoBlock;
 	}
 	async getStudentRowData() {
 		if (!this.studentRowData) {
@@ -8858,6 +8913,7 @@ var TeacherHoursCachedState = class {
 	async fetchTeacherHours(schooljaar, hourSettings) {
 		let tableNoSpec = await this.fetchHourRows(schooljaar, await this.getSelectedVakNames(), "nospec");
 		let tableOnlySpec = await this.fetchHourRows(schooljaar, await this.getSelectedVakNames(), "spec");
+		await setViewFromCurrentUrl();
 		return {
 			rows: tableNoSpec.rows.concat(tableOnlySpec.rows),
 			headerIndices: tableNoSpec.headerIndices
@@ -8876,7 +8932,8 @@ var TeacherHoursCachedState = class {
 		]);
 		builder.addCriterium(CriteriumName.Graad, spec == "spec" ? Operator.EQUALS : Operator.NOT_EQUALS, ["specialisatie"]);
 		let preparedBuilder = await builder.sendSettings();
-		let table = await preparedBuilder.fetchTable(void 0, true);
+		let listener = new InfoBarTableFetchListener(this.infoBlock);
+		let table = await preparedBuilder.fetchTable(listener, true);
 		return {
 			rows: [...table.getRows()],
 			headerIndices: NamedCellTableFetchListener.getHeaderIndicesFromHeaderCells(table.getTable().tHead.rows[0].cells)
@@ -8925,7 +8982,6 @@ async function getUrenFromCloud(fileName) {
 const TARGET_BUTTON_ID = "#tablenav_leerlingen_werklijst_top > div > div.btn-group.btn-group-sm.datatable-buttons > button:nth-child(1)";
 registerChecksumHandler(
 	//oops...
-	//todo: make a breaking change for this function. It's API sucks. It appends an element to a selector. Perhaps even remove this function.
 	WERKLIJST_TABLE_ID,
 	(tableDef) => {
 		let headers = NamedCellTableFetchListener.getHeaderIndices(tableDef.tableRef.getOrgTableContainer());
@@ -8961,31 +9017,74 @@ function onAnyChangeEvent() {
 	pageIncarnationChanged = false;
 	console.log("onAnyChangeEvent");
 	if (document.querySelector(BTN_WERKLIJST_MAKEN_ID)) onCriteriaShown();
-	else if (document.getElementById(BTN_WERKLIJST_NAV_BOTTOM)) {
-		addButtons();
-		decorateTableHeader(document.querySelector("table#" + WERKLIJST_TABLE_ID), true);
-	}
+	else if (document.getElementById(BTN_WERKLIJST_NAV_BOTTOM)) onResultsShown();
 }
 function onMutation$3(mutation) {
 	console.log("onMutation");
 	tryUntilThen(isPageReallyLoaded, onAnyChangeEvent);
 	return true;
 }
-function onCriteriaShown() {
-	console.log("onCriteriaShown");
+function addPluginContainer() {
+	let viewContents = document.getElementById("view_contents");
+	let container = emmet.appendChild(viewContents, "div#" + PLUGIN_CONTAINER_ID).first;
+	let schoolYear = Schoolyear.getHighestAvailable();
+	if (!schoolYear) {
+		alert("Geen schooljaar gevonden!");
+		return createInfoBlock(container, "");
+	}
+	let year = parseInt(schoolYear);
+	let prevSchoolyear = Schoolyear.toFullString(year - 1);
+	let nextSchoolyear = Schoolyear.toFullString(year);
+	let prevSchoolyearShort = Schoolyear.toShortString(year - 1);
+	let nextSchoolyearShort = Schoolyear.toShortString(year);
+	let buttonBar = emmet.appendChild(container, `
+        div.d-flex.werklijstButtonWrapper
+    `).first;
+	addButton$1(buttonBar, UREN_PREV_BTN_ID, "Toon lerarenuren voor " + prevSchoolyear, async () => {
+		await fetchAndShowTeacherHours(prevSchoolyear, infoBlock);
+	}, "", ["btn", "btn-outline-dark"], "Uren " + prevSchoolyearShort, "beforeend");
+	addButton$1(buttonBar, UREN_NEXT_BTN_ID, "Toon lerarenuren voor " + nextSchoolyear, async () => {
+		await fetchAndShowTeacherHours(nextSchoolyear, infoBlock);
+	}, "", ["btn", "btn-primary"], "Uren " + nextSchoolyearShort, "beforeend");
+	addButton$1(buttonBar, UREN_PREV_SETUP_BTN_ID, "Setup voor " + nextSchoolyear, async () => {
+		await showUrenSetup(nextSchoolyear);
+	}, "fas-certificate", [
+		"btn",
+		"btn-outline-dark",
+		"flexRight"
+	], "", "beforeend", "gear.svg");
+	emmet.appendChild(container, "h4");
+	let infoBlock = createInfoBlock(container, "");
+	return infoBlock;
+}
+function checkStateAndGotoTeacherHours(infoBlock) {
 	let pageState$2 = getGotoStateOrDefault(PageName.Werklijst);
 	if (pageState$2.goto == Goto.Werklijst_uren_prevYear) {
 		pageState$2.goto = Goto.None;
 		saveGotoState(pageState$2);
-		fetchAndShowTeacherHours(Schoolyear.toFullString(Schoolyear.calculateCurrent())).then(() => {});
-		return;
+		fetchAndShowTeacherHours(Schoolyear.toFullString(Schoolyear.calculateCurrent()), infoBlock).then(() => {});
+		return true;
 	}
 	if (pageState$2.goto == Goto.Werklijst_uren_nextYear) {
 		pageState$2.goto = Goto.None;
 		saveGotoState(pageState$2);
-		fetchAndShowTeacherHours(Schoolyear.toFullString(Schoolyear.calculateCurrent() + 1)).then(() => {});
-		return;
+		fetchAndShowTeacherHours(Schoolyear.toFullString(Schoolyear.calculateCurrent() + 1), infoBlock).then(() => {});
+		return true;
 	}
+	return false;
+}
+function onResultsShown() {
+	console.log("onResultsShown");
+	let infoBlock = addPluginContainer();
+	if (checkStateAndGotoTeacherHours(infoBlock)) return;
+	addButtons();
+	decorateTableHeader(document.querySelector("table#" + WERKLIJST_TABLE_ID), true);
+}
+function onCriteriaShown() {
+	console.log("onCriteriaShown");
+	let infoBlock = addPluginContainer();
+	if (checkStateAndGotoTeacherHours(infoBlock)) return;
+	let pageState$2 = getGotoStateOrDefault(PageName.Werklijst);
 	pageState$2.werklijstTableName = "";
 	saveGotoState(pageState$2);
 	let btnWerklijstMakenWrapper = document.querySelector(BTN_WERKLIJST_MAKEN_WRAPPER_ID);
@@ -9007,27 +9106,19 @@ function onCriteriaShown() {
 		await mailMergeStartSchoolyear();
 	}, "", ["btn", "btn-outline-dark"], "Mailmerge");
 	addButton$1(btnWerklijstMaken, UREN_PREV_BTN_ID, "Toon lerarenuren voor " + prevSchoolyear, async () => {
-		await fetchAndShowTeacherHours(prevSchoolyear);
+		await fetchAndShowTeacherHours(prevSchoolyear, infoBlock);
 	}, "", ["btn", "btn-outline-dark"], "Uren " + prevSchoolyearShort);
+	addButton$1(btnWerklijstMaken, UREN_NEXT_BTN_ID, "Toon lerarenuren voor " + nextSchoolyear, async () => {
+		await fetchAndShowTeacherHours(nextSchoolyear, infoBlock);
+	}, "", ["btn", "btn-outline-dark"], "Uren " + nextSchoolyearShort);
 	addButton$1(btnWerklijstMaken, UREN_PREV_SETUP_BTN_ID, "Setup voor " + nextSchoolyear, async () => {
 		await showUrenSetup(nextSchoolyear);
 	}, "fas-certificate", ["btn", "btn-outline-dark"], "", "beforebegin", "gear.svg");
-	addButton$1(btnWerklijstMaken, UREN_PREV_SETUP_BTN_ID + "sdf", "test", async () => {
-		await sendGreetingsToHoursSettings();
-	}, "", ["btn", "btn-outline-dark"], "send");
-	addButton$1(btnWerklijstMaken, UREN_NEXT_BTN_ID, "Toon lerarenuren voor " + nextSchoolyear, async () => {
-		await fetchAndShowTeacherHours(nextSchoolyear);
-	}, "", ["btn", "btn-outline-dark"], "Uren " + nextSchoolyearShort);
-	addButton$1(btnWerklijstMaken, "test123", "Test 123", test123, "", ["btn", "btn-outline-dark"], "Test 123");
 	document.getElementById("btn_leerling_werklijst_reset").addEventListener("click", resetPageIncarnationChangedFlag);
 	getSchoolIdString();
 }
 function resetPageIncarnationChangedFlag() {
 	pageIncarnationChanged = true;
-}
-async function test123() {
-	let table = await getJaarToewijzigingWerklijst(Schoolyear.findInPage());
-	console.log([...table.getRows()].map((row) => row.textContent));
 }
 chrome.runtime.onMessage.addListener(onMessage);
 let pauseRefresh = false;
@@ -9048,7 +9139,7 @@ async function onMessage(request, _sender, sendResponse) {
 	let hourSettings = request.data;
 	if (!globals) return;
 	let equalSelectedSubjects = arrayIsEqual(hourSettings.subjects.filter((s) => s.checked).map((s) => s.name), (await globals.getHourSettingsMapped()).subjects.filter((s) => s.checked).map((s) => s.name));
-	if (!equalSelectedSubjects) fetchAndShowTeacherHours(hourSettings.schoolyear).then((_) => {
+	if (!equalSelectedSubjects) fetchAndShowTeacherHours(hourSettings.schoolyear, getInfoBlock()).then((_) => {
 		pauseRefresh = false;
 	});
 	else {
@@ -9064,9 +9155,6 @@ async function showUrenSetup(schoolyear) {
 let globalHoursSettingsTabId;
 async function sendMessageToHoursSettings(action, data) {
 	return sendRequest(action, TabType.Main, TabType.HoursSettings, globalHoursSettingsTabId, data);
-}
-async function sendGreetingsToHoursSettings() {
-	sendRequest(Actions.GreetingsFromParent, TabType.Main, TabType.HoursSettings, globalHoursSettingsTabId, "Hello the main content script.").then((_) => {});
 }
 function addButtons() {
 	let targetButton = document.querySelector(TARGET_BUTTON_ID);
@@ -9102,30 +9190,9 @@ function onClickCopyEmails() {
 		console.log(reason);
 	});
 }
-function buildVakLeraarsMap(studentRowData, hourSettingsMapped) {
-	let vakLeraars = new Map();
-	for (let studentRow of studentRowData) addStudentToVakLeraarsMap(studentRow, vakLeraars, hourSettingsMapped);
-	vakLeraars = new Map([...vakLeraars.entries()].sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
-	return vakLeraars;
-}
 let globals = null;
-function rebuildHoursTable(studentRowData, hourSettingsMapped, fromCloud) {
-	document.getElementById(HOURS_TABLE_ID)?.remove();
-	let table = emmet.create("#view_contents>table").last;
-	table.id = HOURS_TABLE_ID;
-	table.classList.add(CAN_SORT, NO_MENU);
-	let vakLeraars = buildVakLeraarsMap(studentRowData, hourSettingsMapped);
-	let urenData = {
-		year: parseInt(hourSettingsMapped.schoolyear),
-		fromCloud,
-		vakLeraars
-	};
-	observer.disconnect();
-	refillTable(table, urenData);
-	observer.observeElement(document.querySelector("main"));
-}
-async function rebuildHoursTableAfterFetch(schoolYear) {
-	if (!globals) globals = new TeacherHoursCachedState(schoolYear);
+async function rebuildHoursTableAfterFetch(schoolYear, infoBlock) {
+	if (!globals) globals = new TeacherHoursCachedState(schoolYear, infoBlock);
 	rebuildHoursTable(await globals.getStudentRowData(), await globals.getHourSettingsMapped(), await globals.getFromCloud());
 }
 async function mailMergeStartSchoolyear() {
@@ -9177,10 +9244,12 @@ function hasWerklijstNoCriteria() {
 	let ids = [...rows].map((tr) => tr.dataset.criterium_id);
 	return ids.length === 2 && ["1", "2"].every((value) => ids.includes(value));
 }
-async function fetchAndShowTeacherHours(schooljaar) {
+async function fetchAndShowTeacherHours(schooljaar, infoBlock) {
 	let divViewContents = document.getElementById("view_contents");
 	divViewContents.classList.add("hideWerklijst");
-	await rebuildHoursTableAfterFetch(schooljaar);
+	let title = document.querySelector("#" + PLUGIN_CONTAINER_ID + " h4");
+	title.textContent = "Lerarenuren voor schooljaar " + schooljaar;
+	await rebuildHoursTableAfterFetch(schooljaar, infoBlock);
 }
 
 //#endregion
