@@ -37,7 +37,7 @@ button.naked {
     & > div#info_div {
         display: none;
     }
-    & > div#div_leerlingen_werklijst_overview {
+    & > div#div_leerlingen_werklijst_overview * {
         display: none;
     }
 }

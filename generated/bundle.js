@@ -9061,6 +9061,8 @@ var observer_default$4 = observer;
 let pageIncarnationChanged = true;
 window.addEventListener("hashchange", () => {
 	pageIncarnationChanged = true;
+	let divViewContents = document.getElementById("view_contents");
+	divViewContents.classList.remove("hideWerklijst");
 });
 function isPageReallyLoaded() {
 	if (document.querySelector(BTN_WERKLIJST_MAKEN_ID)) return true;

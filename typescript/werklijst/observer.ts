@@ -17,7 +17,6 @@ import {createInfoBlock, getInfoBlock, InfoBlock} from "../infoBlock";
 import {fetchMailMergeData} from "../table/mailMerge";
 import {TeacherHoursCachedState} from "./teacherHoursCachedState";
 import {hasWerklijstNoCriteria, scrapeCriteria, scrapeSelectedFieldIndexes} from "./criteria";
-import {WerklijstBuilder} from "../table/werklijstBuilder";
 import MessageSender = chrome.runtime.MessageSender;
 
 const TARGET_BUTTON_ID = "#tablenav_leerlingen_werklijst_top > div > div.btn-group.btn-group-sm.datatable-buttons > button:nth-child(1)";
@@ -54,7 +53,11 @@ Unforunatelly hash changes don't cause a page reload, therefore of limited use.
 */
 
 let pageIncarnationChanged = true;
-window.addEventListener("hashchange", () => { pageIncarnationChanged = true;});
+window.addEventListener("hashchange", () => {
+    pageIncarnationChanged = true;
+    let divViewContents = document.getElementById("view_contents") as HTMLDivElement;
+    divViewContents.classList.remove("hideWerklijst");
+});
 
 function isPageReallyLoaded()  {
     if (document.querySelector(def.BTN_WERKLIJST_MAKEN_ID))
