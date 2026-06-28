@@ -1,3 +1,7 @@
+* Teacher hours: prev and next year should be based on years available in werklijst and not calculated!
+  > how ?
+    > add a Werklijst.getHighestYear() function.
+
 * TeacherHours: Use background fetch.
   > keep buttons on werklijst.
   > just remove the search fields and replace them with the background fetch results.

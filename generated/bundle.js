@@ -878,13 +878,18 @@ function setupMenu$1() {
 	let listItems = mainMenuUl.querySelectorAll("li");
 	let lastItem = listItems[listItems.length - 1];
 	let { last: dropdown } = emmet.insertBefore(lastItem, `li.nav-item.dropdown>a{ Plugin }.nav-link.dropdown-toggle[href="#" role="button" data-toggle="dropdown" aria-expanded="false"]>div.dropdown-menu`);
-	let menu1 = emmet.appendChild(dropdown, `a.dropdown-item.pointer[href=\"#"]{Vergelijk uurroosters}`).first;
-	menu1.onclick = () => {
-		gotoDiffPage();
-	};
-	let menu2 = emmet.appendChild(dropdown, `a.dropdown-item.pointer[href=\"#"]{Lessen snapshots}`).first;
-	menu2.onclick = () => {
-		gotoSnapshotPage();
+	let year = Schoolyear.calculateSetupYear();
+	let prevSchoolyearShort = Schoolyear.toShortString(year - 1);
+	let nextSchoolyearShort = Schoolyear.toShortString(year);
+	addMenuItem$1(dropdown, `Lerarenuren ${prevSchoolyearShort}`, gotoWerklijstUrenPrevYear);
+	addMenuItem$1(dropdown, `Lerarenuren ${nextSchoolyearShort}`, gotoWerklijstUrenNextYear);
+	addMenuItem$1(dropdown, "Vergelijk uurroosters", gotoDiffPage);
+	addMenuItem$1(dropdown, "Lessen snapshots", gotoSnapshotPage);
+}
+function addMenuItem$1(dropdown, label, func) {
+	let menu = emmet.appendChild(dropdown, `a.dropdown-item.pointer[href=\"#"]{${label}}`).first;
+	menu.onclick = () => {
+		func();
 	};
 }
 function gotoDiffPage() {
@@ -960,13 +965,13 @@ function scrapeMainMenu() {
 	let headerMenus = menu.querySelectorAll("#dko3_navbar > ul.navbar-nav > li.nav-item.dropdown");
 	for (let headerMenu of headerMenus.values()) screpeDropDownMenu(headerMenu);
 }
-function gotoWerklijstUrenNextYear(_queryItem) {
+function gotoWerklijstUrenNextYear() {
 	let pageState$2 = getGotoStateOrDefault(PageName.Werklijst);
 	pageState$2.goto = Goto.Werklijst_uren_nextYear;
 	saveGotoState(pageState$2);
 	location.href = "/#leerlingen-werklijst";
 }
-function gotoWerklijstUrenPrevYear(_queryItem) {
+function gotoWerklijstUrenPrevYear() {
 	let pageState$2 = getGotoStateOrDefault(PageName.Werklijst);
 	pageState$2.goto = Goto.Werklijst_uren_prevYear;
 	saveGotoState(pageState$2);
@@ -979,8 +984,8 @@ function gotoTrimesterModules(_queryItem) {
 	location.href = "/#lessen-overzicht";
 }
 function getHardCodedQueryItems() {
-	addQueryItem("Werklijst", "Lerarenuren " + Schoolyear.toShortString(Schoolyear.calculateCurrent()), "", gotoWerklijstUrenPrevYear);
-	addQueryItem("Werklijst", "Lerarenuren " + Schoolyear.toShortString(Schoolyear.calculateCurrent() + 1), "", gotoWerklijstUrenNextYear);
+	addQueryItem("Werklijst", "Lerarenuren " + Schoolyear.toShortString(Schoolyear.calculateSetupYear() - 1), "", gotoWerklijstUrenPrevYear);
+	addQueryItem("Werklijst", "Lerarenuren " + Schoolyear.toShortString(Schoolyear.calculateSetupYear()), "", gotoWerklijstUrenNextYear);
 	addQueryItem("Lessen", "Trimester modules", "", gotoTrimesterModules);
 	addQueryItem("Plugin", "Vergelijk uurroosters", "", gotoDiffPage);
 	addQueryItem("Plugin", "Lessen snapshots", "", gotoSnapshotPage);

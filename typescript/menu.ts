@@ -1,6 +1,8 @@
 import {emmet} from "../libs/Emmeter/html";
 import {getGotoStateOrDefault, Goto, PageName, saveGotoState, StartPageGotoState} from "./gotoState";
 import {options} from "./plugin_options/options";
+import {Schoolyear} from "./globals";
+import {gotoWerklijstUrenNextYear, gotoWerklijstUrenPrevYear} from "./powerQuery/setupPowerQuery";
 
 export function setupMenu() {
     if(!options.showPluginMenu)
@@ -10,15 +12,21 @@ export function setupMenu() {
 
     let lastItem = listItems[listItems.length - 1];
     let {last:dropdown} = emmet.insertBefore(lastItem, `li.nav-item.dropdown>a{ Plugin }.nav-link.dropdown-toggle[href="#" role="button" data-toggle="dropdown" aria-expanded="false"]>div.dropdown-menu`);
-    let menu1 = emmet.appendChild(dropdown as HTMLElement, `a.dropdown-item.pointer[href=\"#"]{Vergelijk uurroosters}`).first as HTMLAnchorElement;
-    menu1.onclick = () => {
-        gotoDiffPage();
-    }
-    let menu2 = emmet.appendChild(dropdown as HTMLElement, `a.dropdown-item.pointer[href=\"#"]{Lessen snapshots}`).first as HTMLAnchorElement;
-    menu2.onclick = () => {
-        gotoSnapshotPage();
-    }
 
+    let year = Schoolyear.calculateSetupYear();
+    let prevSchoolyearShort = Schoolyear.toShortString(year - 1);
+    let nextSchoolyearShort = Schoolyear.toShortString(year);
+    addMenuItem(dropdown as HTMLElement, `Lerarenuren ${prevSchoolyearShort}`, gotoWerklijstUrenPrevYear);
+    addMenuItem(dropdown as HTMLElement, `Lerarenuren ${nextSchoolyearShort}`, gotoWerklijstUrenNextYear);
+    addMenuItem(dropdown as HTMLElement, "Vergelijk uurroosters", gotoDiffPage);
+    addMenuItem(dropdown as HTMLElement, "Lessen snapshots", gotoSnapshotPage);
+}
+
+function addMenuItem(dropdown: HTMLElement, label: string, func: () => any) {
+    let menu = emmet.appendChild(dropdown, `a.dropdown-item.pointer[href=\"#"]{${label}}`).first as HTMLAnchorElement;
+    menu.onclick = () => {
+        func();
+    }
 }
 
 export function gotoDiffPage() {

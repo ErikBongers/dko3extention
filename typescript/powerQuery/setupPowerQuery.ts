@@ -95,14 +95,14 @@ function scrapeMainMenu() {
     }
 }
 
-function gotoWerklijstUrenNextYear(_queryItem: QueryItem) {
+export function gotoWerklijstUrenNextYear() {
     let pageState = getGotoStateOrDefault(PageName.Werklijst);
     pageState.goto = Goto.Werklijst_uren_nextYear;
     saveGotoState(pageState);
     location.href = "/#leerlingen-werklijst";
 }
 
-function gotoWerklijstUrenPrevYear(_queryItem: QueryItem) {
+export function gotoWerklijstUrenPrevYear() {
     let pageState = getGotoStateOrDefault(PageName.Werklijst);
     pageState.goto = Goto.Werklijst_uren_prevYear;
     saveGotoState(pageState);
@@ -117,8 +117,8 @@ function gotoTrimesterModules(_queryItem: QueryItem) {
 }
 
 function getHardCodedQueryItems() {
-    addQueryItem("Werklijst", "Lerarenuren " + Schoolyear.toShortString(Schoolyear.calculateCurrent()), "", gotoWerklijstUrenPrevYear);
-    addQueryItem("Werklijst", "Lerarenuren " +Schoolyear.toShortString(Schoolyear.calculateCurrent()+1), "", gotoWerklijstUrenNextYear);
+    addQueryItem("Werklijst", "Lerarenuren " + Schoolyear.toShortString(Schoolyear.calculateSetupYear()-1), "", gotoWerklijstUrenPrevYear);
+    addQueryItem("Werklijst", "Lerarenuren " +Schoolyear.toShortString(Schoolyear.calculateSetupYear()), "", gotoWerklijstUrenNextYear);
     addQueryItem("Lessen", "Trimester modules", "", gotoTrimesterModules);
     addQueryItem("Plugin", "Vergelijk uurroosters", "", gotoDiffPage);
     addQueryItem("Plugin", "Lessen snapshots", "", gotoSnapshotPage);
