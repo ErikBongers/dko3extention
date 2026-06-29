@@ -1,3 +1,11 @@
+* Excelroster: globally catch all exceptions per cell parsing and report them with as much detail as possible:
+  > the cell content
+  > a link to the cell.
+  > test it with the below situation, before fixing the below situation.
+
+* Excelroster: test if row heeaders with time slices is at least as long as the range of mergedcells that start in the roster.
+  > the cell could start within the time slice range, but extend outside of it.
+
 * Teacher hours: prev and next year should be based on years available in werklijst and not calculated!
   > how ?
     > add a Werklijst.getHighestYear() function.
