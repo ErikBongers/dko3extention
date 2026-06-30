@@ -505,6 +505,11 @@ export interface JsonDiff {
     weight: Weight;
 }
 
+export interface JsonPerfectMatch {
+    otherLes: JsonOtherLesMoment;
+    dkoId: number;
+}
+
 export interface JsonWorkSheet {
     name: string,
     url: string,
@@ -522,6 +527,7 @@ export interface JsonDiffs {
     orphanedOtherLessen: JsonOtherLesMoment[];
     isoDate: string,
     workBooks: JsonWorkBook[],
+    perfectMatches?: JsonPerfectMatch[],
 }
 
 export async function setIgnoredFlags(orphanedDko3Lessen: JsonDko3LesMoment[], orphanedOtherLessen: JsonBasicLesMoment[], academie: string, schoolYear: string, diffPageType: DiffPageType) {

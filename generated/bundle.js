@@ -1932,6 +1932,2626 @@ function dko3GradeYearsContain(dko3GradeYears, otherGradeYear) {
 }
 
 //#endregion
+//#region typescript/tokenScanner.ts
+var ScannerElse = class {
+	scannerIf;
+	constructor(scannerIf) {
+		this.scannerIf = scannerIf;
+	}
+	not(callback) {
+		if (!this.scannerIf.yes) callback?.(this.scannerIf.scanner);
+		return this.scannerIf.scanner;
+	}
+};
+var ScannerIf = class {
+	yes;
+	scanner;
+	constructor(yes, scanner) {
+		this.yes = yes;
+		this.scanner = scanner;
+	}
+	then(callback) {
+		if (this.yes) callback(this.scanner);
+		return new ScannerElse(this);
+	}
+};
+var TokenScanner = class TokenScanner {
+	valid;
+	source;
+	cursor;
+	constructor(text) {
+		this.valid = true;
+		this.source = text;
+		this.cursor = text;
+	}
+	static create(text) {
+		return new TokenScanner(text);
+	}
+	result() {
+		if (this.valid) return this.cursor;
+		return void 0;
+	}
+	find(...tokens) {
+		return this.#find("", tokens);
+	}
+	match(...tokens) {
+		return this.#find("^\\s*", tokens);
+	}
+	#find(prefix, tokens) {
+		if (!this.valid) return this;
+		let rxString = prefix + tokens.map((token) => escapeRegexChars(token) + "\\s*").join("");
+		let match$1 = RegExp(rxString).exec(this.cursor);
+		if (match$1) {
+			this.cursor = this.cursor.substring(match$1.index + match$1[0].length);
+			return this;
+		}
+		this.valid = false;
+		return this;
+	}
+	ifMatch(...tokens) {
+		if (!this.valid) return new ScannerIf(true, this);
+		this.match(...tokens);
+		if (this.valid) return new ScannerIf(true, this);
+		else {
+			this.valid = true;
+			return new ScannerIf(false, this);
+		}
+	}
+	clip(len) {
+		if (!this.valid) return this;
+		this.cursor = this.cursor.substring(0, len);
+		return this;
+	}
+	clipTo(end) {
+		if (!this.valid) return this;
+		let found = this.cursor.indexOf(end);
+		if (found < 0) {
+			this.valid = false;
+			return this;
+		}
+		this.cursor = this.cursor.substring(0, found);
+		return this;
+	}
+	clone() {
+		let newScanner = new TokenScanner(this.cursor);
+		newScanner.valid = this.valid;
+		return newScanner;
+	}
+	clipString() {
+		let isString = false;
+		this.ifMatch("'").then((result) => {
+			isString = true;
+			return result.clipTo("'");
+		}).not().ifMatch("\"").then((result) => {
+			isString = true;
+			return result.clipTo("\"");
+		}).not();
+		this.valid = this.valid && isString;
+		return this;
+	}
+	captureString(callback) {
+		let subScanner = this.clone();
+		let result = subScanner.clipString().result();
+		if (result) {
+			callback(result);
+			this.ifMatch("'").then((result$1) => result$1.find("'")).not().ifMatch("\"").then((result$1) => result$1.find("\"")).not();
+		}
+		return this;
+	}
+	getString() {
+		return this.clipString().result();
+	}
+};
+
+//#endregion
+//#region typescript/table/fetchChain.ts
+var FetchChain = class {
+	lastText = "";
+	get() {
+		return this.lastText;
+	}
+	set(text) {
+		this.lastText = text;
+	}
+	async fetch(url) {
+		this.lastText = await fetchText(url ?? this.lastText ?? "--null--");
+		return this.lastText;
+	}
+	findDocReadyLoadUrl() {
+		this.lastText = getDocReadyLoadUrl(this.lastText ?? "--null--");
+		return this.lastText;
+	}
+	findDocReadyLoadScript() {
+		this.lastText = getDocReadyLoadScript(this.lastText ?? "--null--")?.result();
+		return this.lastText;
+	}
+	find(...args) {
+		this.lastText = new TokenScanner(this.lastText ?? "--null--").find(...args).result();
+		return this.lastText;
+	}
+	getQuotedString() {
+		let daString = "";
+		let scanner = new TokenScanner(this.lastText ?? "--null--").captureString((res) => daString = res);
+		this.lastText = scanner.result();
+		return daString;
+	}
+	clipTo(end) {
+		this.lastText = new TokenScanner(this.lastText ?? "--null--").clipTo(end).result();
+	}
+	div() {
+		let el = document.createElement("div");
+		el.innerHTML = this.lastText ?? "";
+		return el;
+	}
+	includes(text) {
+		return this.lastText?.includes(text) ?? false;
+	}
+};
+function findDocReady(scanner) {
+	return scanner.find("$", "(", "document", ")", ".", "ready", "(");
+}
+function getDocReadyLoadUrl(text) {
+	let scanner = new TokenScanner(text);
+	while (true) {
+		let docReady = findDocReady(scanner);
+		if (!docReady.valid) return void 0;
+		let url = docReady.clone().clipTo("</script>").find(".", "load", "(").clipString().result();
+		if (url) return url;
+		scanner = docReady;
+	}
+}
+function getDocReadyLoadScript(text) {
+	let scanner = new TokenScanner(text);
+	while (true) {
+		let docReady = findDocReady(scanner);
+		if (!docReady.valid) return void 0;
+		let script = docReady.clone().clipTo("</script>");
+		let load = script.clone().find(".", "load", "(");
+		if (load.valid) return script;
+		scanner = docReady;
+	}
+}
+async function fetchText(url) {
+	let res = await fetch(url);
+	return res.text();
+}
+
+//#endregion
+//#region typescript/table/tableNavigation.ts
+var TableNavigation = class {
+	step;
+	maxCount;
+	constructor(step, maxCount) {
+		this.step = step;
+		this.maxCount = maxCount;
+	}
+	steps() {
+		return Math.ceil(this.maxCount / this.step);
+	}
+	isOnePage() {
+		return this.step >= this.maxCount;
+	}
+};
+function findFirstNavigation(element) {
+	element = element ?? document.body;
+	let buttonPagination = element.querySelector("button.datatable-paging-numbers");
+	if (!buttonPagination) return void 0;
+	let buttonContainer = buttonPagination.closest("div");
+	if (!buttonContainer) return void 0;
+	let rx = /(\d*) tot (\d*) van (\d*)/;
+	let matches = buttonPagination.innerText.match(rx);
+	if (!matches) return void 0;
+	let buttons = buttonContainer.querySelectorAll("button.btn-secondary");
+	let offsets = Array.from(buttons).filter((btn) => btn.attributes["onclick"]?.value.includes("goto(")).filter((btn) => !btn.querySelector("i.fa-fast-backward")).map((btn) => getGotoNumber(btn.attributes["onclick"].value));
+	let numbers = matches.slice(1).map((txt) => parseInt(txt));
+	if (numbers.length === 0) return void 0;
+	numbers[0] = numbers[0] - 1;
+	numbers = numbers.concat(offsets);
+	numbers.sort((a, b) => a - b);
+	numbers = [...new Set(numbers)];
+	return new TableNavigation(numbers[1] - numbers[0], numbers.pop());
+}
+function getGotoNumber(functionCall) {
+	return parseInt(functionCall.substring(functionCall.indexOf("goto(") + 5));
+}
+
+//#endregion
+//#region typescript/table/tableFetcher.ts
+var PlainTableRef = class {
+	htmlTableId;
+	constructor(htmlTableId) {
+		this.htmlTableId = htmlTableId;
+	}
+	getOrgTableContainer() {
+		return document.getElementById(this.htmlTableId).parentElement;
+	}
+	getOrgTableRows() {
+		return document.getElementById(this.htmlTableId).querySelectorAll("tbody > tr");
+	}
+	buildFetchUrl(offset) {
+		throw "Plain table cannot be fetched";
+	}
+	createElementAboveTable(element) {
+		let el = document.createElement(element);
+		document.getElementById(this.htmlTableId).insertAdjacentElement("beforebegin", el);
+		return el;
+	}
+	isFullyFetched() {
+		return true;
+	}
+};
+var DkoTableRef = class {
+	htmlTableId;
+	buildFetchUrl;
+	navigationData;
+	constructor(htmlTableId, navigationData, buildFetchUrl) {
+		this.htmlTableId = htmlTableId;
+		this.buildFetchUrl = buildFetchUrl;
+		this.navigationData = navigationData;
+	}
+	getOrgTableContainer() {
+		return document.getElementById(this.htmlTableId);
+	}
+	getOrgTableRows() {
+		return this.getOrgTableContainer().querySelectorAll("tbody > tr");
+	}
+	createElementAboveTable(element) {
+		let el = document.createElement(element);
+		this.getOrgTableContainer().insertAdjacentElement("beforebegin", el);
+		return el;
+	}
+	isFullyFetched() {
+		return this.getOrgTableContainer().querySelector("table").classList.contains("fullyFetched");
+	}
+};
+function findTableRefInCode() {
+	let foundTableRef = findTable();
+	if (!foundTableRef) return void 0;
+	let buildFetchUrl = (offset) => `/views/ui/datatable.php?id=${foundTableRef.viewId}&start=${offset}&aantal=0`;
+	let navigation = findFirstNavigation();
+	if (!navigation) return void 0;
+	return new DkoTableRef(foundTableRef.tableId, navigation, buildFetchUrl);
+}
+function findTable() {
+	let table = document.querySelector("div.table-responsive > table");
+	if (!table) return null;
+	let tableId = table.id.replace("table_", "").replace("_table", "");
+	let parentDiv = document.querySelector("div#table_" + tableId);
+	let scripts = Array.from(parentDiv.querySelectorAll("script")).map((script) => script.text).join("\n");
+	let goto = scripts.split("_goto(")[1];
+	let func = goto.split(/ function *\w/)[0];
+	let viewId = / *datatable_id *= *'(.*)'/.exec(func)[1];
+	let url = /_table'\).load\('(.*?)\?id='\s*\+\s*datatable_id\s*\+\s*'&start='\s*\+\s*start/.exec(func)[1];
+	return {
+		tableId: table.id,
+		viewId,
+		url
+	};
+}
+var TableFetcher = class {
+	tableRef;
+	calculateTableCheckSum;
+	isUsingCached = false;
+	shadowTableDate;
+	fetchedTable;
+	tableHandler;
+	listeners;
+	cancelRequested;
+	isFetchFinished;
+	constructor(tableRef, calculateTableCheckSum, tableHandler) {
+		this.tableRef = tableRef;
+		if (!calculateTableCheckSum) throw "Tablechecksum required.";
+		this.calculateTableCheckSum = calculateTableCheckSum;
+		this.fetchedTable = void 0;
+		this.tableHandler = tableHandler;
+		this.listeners = [];
+		this.cancelRequested = false;
+		this.isFetchFinished = false;
+	}
+	reset() {
+		this.clearCache();
+		this.tableHandler?.onReset?.(this);
+	}
+	async cancel() {
+		this.cancelRequested = true;
+		while (!this.isFetchFinished) await new Promise((resolve) => setTimeout(resolve));
+		this.clearCache();
+	}
+	clearCache() {
+		db3(`Clear cache for ${this.tableRef.htmlTableId}.`);
+		window.sessionStorage.removeItem(this.getCacheId());
+		window.sessionStorage.removeItem(this.getCacheId() + CACHE_DATE_SUFFIX);
+		this.fetchedTable = void 0;
+	}
+	loadFromCache() {
+		if (this.tableRef.navigationData.isOnePage()) return null;
+		db3(`Loading from cache: ${this.getCacheId()}.`);
+		let text = window.sessionStorage.getItem(this.getCacheId());
+		let dateString = window.sessionStorage.getItem(this.getCacheId() + CACHE_DATE_SUFFIX);
+		if (!text || !dateString) return void 0;
+		return {
+			text,
+			date: new Date(dateString)
+		};
+	}
+	getCacheId() {
+		let checksum = "";
+		if (this.calculateTableCheckSum) checksum = "__" + this.calculateTableCheckSum(this);
+		let id = this.tableRef.htmlTableId + checksum;
+		return id.replaceAll(/\s/g, "");
+	}
+	async fetch() {
+		if (this.fetchedTable) {
+			this.onFinished(true);
+			return this.fetchedTable;
+		}
+		this.isFetchFinished = false;
+		let cachedData = this.loadFromCache();
+		let succes;
+		this.fetchedTable = new FetchedTable(this);
+		if (cachedData) {
+			this.fetchedTable.addPage(cachedData.text);
+			this.shadowTableDate = cachedData.date;
+			this.isUsingCached = true;
+			this.onPageLoaded(1, cachedData.text);
+			this.onLoaded();
+			succes = true;
+		} else {
+			this.isUsingCached = false;
+			succes = await this.#fetchPages(this.fetchedTable);
+			if (!succes) {
+				this.onFinished(succes);
+				throw "Failed to fetch the pages.";
+			}
+			this.fetchedTable.saveToCache();
+			this.onLoaded();
+		}
+		this.onFinished(succes);
+		return this.fetchedTable;
+	}
+	onStartFetching() {
+		for (let lst of this.listeners) lst.onStartFetching?.(this);
+	}
+	onFinished(succes) {
+		this.isFetchFinished = true;
+		for (let lst of this.listeners) lst.onFinished?.(this, succes);
+	}
+	onPageLoaded(pageCnt, text) {
+		for (let lst of this.listeners) lst.onPageLoaded?.(this, pageCnt, text);
+	}
+	onLoaded() {
+		for (let lst of this.listeners) lst.onLoaded?.(this);
+	}
+	onBeforeLoadingPage() {
+		for (let lst of this.listeners) if (lst.onBeforeLoadingPage) {
+			if (!lst.onBeforeLoadingPage(this)) return false;
+		}
+		return true;
+	}
+	async #fetchPages(fetchedTable) {
+		if (!this.onBeforeLoadingPage()) return false;
+		await this.#doFetchAllPages(fetchedTable);
+		return true;
+	}
+	async #doFetchAllPages(fetchedTable) {
+		try {
+			this.onStartFetching();
+			let pageCnt = 0;
+			this.cancelRequested = false;
+			while (true) {
+				console.log("fetching page " + fetchedTable.getNextPageNumber());
+				let response = await fetch(this.tableRef.buildFetchUrl(fetchedTable.getNextOffset()));
+				let text = await response.text();
+				fetchedTable.addPage(text);
+				pageCnt++;
+				this.onPageLoaded(pageCnt, text);
+				if (pageCnt >= this.tableRef.navigationData.steps()) break;
+				if (this.cancelRequested) break;
+			}
+		} finally {}
+	}
+	addListener(listener) {
+		this.listeners.push(listener);
+	}
+};
+var FetchedTable = class {
+	shadowTableTemplate;
+	tableFetcher;
+	lastPageNumber;
+	lastPageStartRow;
+	constructor(tableDef) {
+		this.tableFetcher = tableDef;
+		this.lastPageNumber = -1;
+		this.lastPageStartRow = 0;
+		this.shadowTableTemplate = document.createElement("template");
+	}
+	getRows() {
+		let template = this.shadowTableTemplate;
+		return template.content.querySelectorAll("tbody tr:not(:has(i.fa-meh))");
+	}
+	getTable() {
+		return this.shadowTableTemplate.content.querySelector("table");
+	}
+	getRowsAsArray = () => Array.from(this.getRows());
+	getLastPageRows = () => this.getRowsAsArray().slice(this.lastPageStartRow);
+	getLastPageNumber = () => this.lastPageNumber;
+	getNextPageNumber = () => this.lastPageNumber + 1;
+	getNextOffset = () => this.getNextPageNumber() * this.tableFetcher.tableRef.navigationData.step;
+	getTemplate = () => this.shadowTableTemplate;
+	saveToCache(retry = true) {
+		db3(`Caching ${this.tableFetcher.getCacheId()}.`);
+		try {
+			window.sessionStorage.setItem(this.tableFetcher.getCacheId(), this.shadowTableTemplate.innerHTML);
+			window.sessionStorage.setItem(this.tableFetcher.getCacheId() + CACHE_DATE_SUFFIX, new Date().toJSON());
+		} catch (e) {
+			console.error(e);
+			if (!retry) return;
+			console.log("Clearing session cache and trying again...");
+			let sessionKeys = Object.keys(window.sessionStorage);
+			for (let key of sessionKeys) if (key.startsWith("table_leerlingen_werklijst")) window.sessionStorage.removeItem(key);
+			this.saveToCache(false);
+		}
+	}
+	addPage(text) {
+		let pageTemplate;
+		pageTemplate = document.createElement("template");
+		pageTemplate.innerHTML = text;
+		let rows = pageTemplate.content.querySelectorAll("tbody > tr:not(:has(i.fa-meh))");
+		this.lastPageStartRow = this.getRows().length;
+		if (this.lastPageNumber === -1) {
+			this.shadowTableTemplate.innerHTML = text;
+			this.shadowTableTemplate.content.querySelector("tbody").innerHTML = "";
+		}
+		this.shadowTableTemplate.content.querySelector("tbody").append(...rows);
+		this.lastPageNumber++;
+	}
+};
+
+//#endregion
+//#region typescript/dropDownMenus.ts
+function addMenuItem(menu, title, indentLevel, onClick) {
+	let indentClass = indentLevel ? ".menuIndent" + indentLevel : "";
+	let { first } = emmet.appendChild(menu, `button.naked.dropDownItem${indentClass}{${title}}`);
+	let item = first;
+	item.onclick = (ev) => {
+		closeMenus();
+		onClick(ev);
+	};
+}
+function closeMenus() {
+	let dropdowns = document.getElementsByClassName("dropDownMenu");
+	for (let dropDown of dropdowns) dropDown.classList.remove("show");
+}
+function onWindowClick(event) {
+	if (event.target.matches(".dropDownIgnoreHide")) return;
+	closeMenus();
+}
+function initMenuEvents() {
+	window.onclick = onWindowClick;
+}
+function addMenuSeparator(menu, title, indentLevel) {
+	let indentClass = indentLevel ? ".menuIndent" + indentLevel : "";
+	let { first } = emmet.appendChild(menu, `div.dropDownSeparator.dropDownIgnoreHide${indentClass}{${title}}`);
+	let item = first;
+	item.onclick = (ev) => {
+		ev.stopPropagation();
+	};
+}
+function setupMenu(container, button) {
+	initMenuEvents();
+	container.classList.add("dropDownContainer");
+	button.classList.add("dropDownIgnoreHide", "dropDownButton");
+	let { first } = emmet.appendChild(container, "div.dropDownMenu");
+	let menu = first;
+	button.onclick = (ev) => {
+		ev.preventDefault();
+		ev.stopPropagation();
+		let dropDowwnMenu = ev.target.closest(".dropDownContainer").querySelector(".dropDownMenu");
+		if (dropDowwnMenu.classList.contains("show")) {
+			closeMenus();
+			return;
+		}
+		closeMenus();
+		dropDowwnMenu.classList.add("show");
+	};
+	return menu;
+}
+
+//#endregion
+//#region typescript/pageState.ts
+function getPageSettings(pageName, defaultSettings) {
+	let storedState = localStorage.getItem(STORAGE_PAGE_SETTINGS_KEY_PREFIX + pageName);
+	if (storedState) return JSON.parse(storedState);
+	return defaultSettings;
+}
+function savePageSettings(state) {
+	localStorage.setItem(STORAGE_PAGE_SETTINGS_KEY_PREFIX + state.pageName, JSON.stringify(state));
+}
+let pageState$1 = { transient: {
+	getValue: getPageTransientStateValue,
+	setValue: setPageTransientStateValue,
+	clear: clearPageTransientState
+} };
+let globalTransientPageState = new Map();
+function clearPageTransientState() {
+	globalTransientPageState.clear();
+}
+function setPageTransientStateValue(key, transientState) {
+	globalTransientPageState.set(key, transientState);
+	return transientState;
+}
+function getPageTransientStateValue(key, defaultValue) {
+	let value = globalTransientPageState.get(key);
+	return value ? value : setPageTransientStateValue(key, defaultValue);
+}
+
+//#endregion
+//#region typescript/table/tableSort.ts
+let defaultValueFunc = (td) => td.innerText;
+function getDefaultValueFuncs(table) {
+	let columnCount = table.tHead.rows[0].cells.length;
+	return range(0, columnCount).map((_) => defaultValueFunc);
+}
+function makeTableSortable(table, valueFuncs) {
+	let actualValueFuncs = valueFuncs ?? getDefaultValueFuncs(table);
+	Array.from(table.tHead.children[0].children).forEach((colHeader) => {
+		colHeader.onclick = (ev) => {
+			reSortTableByColumn2(ev, table, actualValueFuncs);
+		};
+	});
+}
+function reSortTableByColumn2(ev, table, valueFuncs) {
+	let header = table.tHead.children[0].children[getColumnIndex(ev)];
+	let wasAscending = header.classList.contains("sortAscending");
+	let columnIndex = getColumnIndex(ev);
+	sortTableByColumn(table, columnIndex, wasAscending, valueFuncs[columnIndex]);
+}
+function sortTableByColumn(table, index, descending, valueFunc) {
+	let header = table.tHead.children[0].children[index];
+	let rows = Array.from(table.tBodies[0].rows);
+	for (let thead of table.tHead.children[0].children) thead.classList.remove("sortAscending", "sortDescending");
+	let cmpFunc = cmpAlpha;
+	if (isColumnProbablyNumeric(table, index, valueFunc)) cmpFunc = cmpNumber;
+	else if (isColumnProbablyDate(table, index, valueFunc)) cmpFunc = cmpDate;
+	try {
+		sortRows(cmpFunc, header, rows, index, descending, valueFunc);
+	} catch (e) {
+		console.error(e);
+		if (cmpFunc !== cmpAlpha) sortRows(cmpAlpha, header, rows, index, descending, valueFunc);
+	}
+	rows.forEach((row) => table.tBodies[0].appendChild(row));
+}
+function getColumnIndex(ev) {
+	let td = ev.target;
+	if (td.tagName !== "TD") td = td.closest("TH");
+	return Array.prototype.indexOf.call(td.parentElement.children, td);
+}
+function isColumnProbablyNumeric(table, index, valueFunc) {
+	let rows = Array.from(table.tBodies[0].rows);
+	const MAX_SAMPLES = 100;
+	let samples = rangeGenerator(0, rows.length, rows.length > MAX_SAMPLES ? rows.length / MAX_SAMPLES : 1).map((float) => Math.floor(float));
+	return !samples.map((rowIndex) => rows[rowIndex]).some((row) => {
+		let value = valueFunc(row.children[index]);
+		return isNaN(Number(value));
+	});
+}
+function sortRows(cmpFunction, header, rows, index, descending, valueFunc) {
+	let cmpDirectionalFunction;
+	if (descending) {
+		cmpDirectionalFunction = (a, b) => cmpFunction(b.cells[index], a.cells[index], valueFunc);
+		header.classList.add("sortDescending");
+	} else {
+		cmpDirectionalFunction = (a, b) => cmpFunction(a.cells[index], b.cells[index], valueFunc);
+		header.classList.add("sortAscending");
+	}
+	rows.sort((a, b) => cmpDirectionalFunction(a, b));
+}
+function cmpAlpha(a, b, valueFunc) {
+	return valueFunc(a).localeCompare(valueFunc(b));
+}
+function cmpDate(a, b, valueFunc) {
+	return normalizeDate(valueFunc(a)).localeCompare(normalizeDate(valueFunc(b)));
+}
+function normalizeDate(date) {
+	let dateParts = date.split("-");
+	return dateParts[2] + dateParts[1] + dateParts[0];
+}
+function cmpNumber(a, b) {
+	let res = Number(a.innerText) - Number(b.innerText);
+	if (isNaN(res)) throw new Error();
+	return res;
+}
+function isColumnProbablyDate(table, index, valueFunc) {
+	let rows = Array.from(table.tBodies[0].rows);
+	return stringToDate(valueFunc(rows[0].cells[index]));
+}
+function stringToDate(text) {
+	let reDate = /^(\d\d)[-\/](\d\d)[-\/](\d\d\d\d)/;
+	let matches = text.match(reDate);
+	if (!matches) return void 0;
+	return new Date(matches[3] + "-" + matches[2] + "/" + matches[1]);
+}
+
+//#endregion
+//#region typescript/table/tableHeaders.ts
+let _otherTabsDataCache = new Map();
+function addToOtherTabsDataCache(data) {
+	let id = Date.now().toString();
+	_otherTabsDataCache.set(id, data);
+	return id;
+}
+function copyFullTable(table) {
+	let headerCells = table.tHead.children[0].children;
+	let headers = [...headerCells].filter((cell) => cell.style.display !== "none").map((cell) => cell.innerText);
+	let rows = table.tBodies[0].children;
+	let cells = [...rows].map((row) => [...row.cells].filter((cell) => cell.style.display !== "none").map((cell) => cell.innerText));
+	createAndCopyTable(headers, cells);
+}
+function copyOneColumn(table, index) {
+	createAndCopyTable([table.tHead.children[0].children[index].innerText], [...table.tBodies[0].rows].map((row) => [row.cells[index].innerText]));
+}
+function createAndCopyTable(headers, cols) {
+	navigator.clipboard.writeText(createHtmlTable(headers, cols).outerHTML).then((_r) => {});
+}
+function reSortTableByColumn(ev, table, fetchFirst, valueFuncs) {
+	let header = table.tHead.children[0].children[getColumnIndex(ev)];
+	let wasAscending = header.classList.contains("sortAscending");
+	if (fetchFirst) forTableDo(ev, (_fetchedTable, index) => sortTableByColumn(table, index, wasAscending, valueFuncs[index]));
+	else {
+		let columnIndex = getColumnIndex(ev);
+		sortTableByColumn(table, columnIndex, wasAscending, valueFuncs[columnIndex]);
+	}
+}
+function decorateTableHeader(table, fetchFullTable) {
+	if (table.tHead.classList.contains("clickHandler")) return;
+	table.tHead.classList.add("clickHandler");
+	if (!options.showTableHeaders) return;
+	let valueFuncs = getDefaultValueFuncs(table);
+	Array.from(table.tHead.children[0].children).forEach((colHeader) => {
+		colHeader.onclick = (ev) => {
+			reSortTableByColumn(ev, table, fetchFullTable, valueFuncs);
+		};
+		if (table.classList.contains(
+			//todo: add this to openHtmlTab.
+			//todo: do this cast in teacherHoursSetup.ts as well. Perhaps make onMessage generic.
+			//just to be sure.
+			//THEAD
+			NO_MENU
+)) return;
+		let { first: span, last: idiom } = emmet.appendChild(colHeader, "span>button.miniButton.naked>i.fas.fa-list");
+		let menu = setupMenu(span, idiom.parentElement);
+		addMenuItem(menu, "Toon unieke waarden", 0, (ev) => {
+			forTableDo(ev, showDistinctColumn);
+		});
+		addMenuItem(menu, "Verberg kolom", 0, (ev) => {
+			console.log("verberg kolom");
+			forTableColumnDo(ev, hideColumn);
+		});
+		addMenuItem(menu, "Toon alle kolommen", 0, (ev) => {
+			console.log("verberg kolom");
+			forTableColumnDo(ev, showColumns);
+		});
+		addMenuSeparator(menu, "Sorteer", 0);
+		addMenuItem(menu, "Laag naar hoog (a > z)", 1, (ev) => {
+			forTableDo(ev, (tableMeta, index) => sortTableByColumn(table, index, false, valueFuncs[index]));
+		});
+		addMenuItem(menu, "Hoog naar laag (z > a)", 1, (ev) => {
+			forTableDo(ev, (tableMeta, index) => sortTableByColumn(table, index, true, valueFuncs[index]));
+		});
+		addMenuSeparator(menu, "Sorteer als:", 1);
+		addMenuItem(menu, "Tekst", 2, (_ev) => {});
+		addMenuItem(menu, "Getallen", 2, (_ev) => {});
+		addMenuSeparator(menu, "Kopieer nr klipbord", 0);
+		addMenuItem(menu, "Kolom", 1, (ev) => {
+			forTableDo(ev, (tableMeta, index) => copyOneColumn(table, index));
+		});
+		addMenuItem(menu, "Hele tabel", 1, (ev) => {
+			forTableDo(ev, (tableMeta, _index) => copyFullTable(table));
+		});
+		addMenuSeparator(menu, "<= Samenvoegen", 0);
+		addMenuItem(menu, "met spatie", 1, (ev) => {
+			forTableColumnDo(ev, createTwoColumnsCmd(Direction.LEFT, mergeColumnWithSpace));
+		});
+		addMenuItem(menu, "met comma", 1, (ev) => {
+			forTableColumnDo(ev, createTwoColumnsCmd(Direction.LEFT, mergeColumnWithComma));
+		});
+		addMenuSeparator(menu, "Verplaatsen", 0);
+		addMenuItem(menu, "<=", 1, (ev) => {
+			forTableColumnDo(ev, createTwoColumnsCmd(Direction.LEFT, swapColumns));
+		});
+		addMenuItem(menu, "=>", 1, (ev) => {
+			forTableColumnDo(ev, createTwoColumnsCmd(Direction.RIGHT, swapColumns));
+		});
+	});
+	relabelHeaders(table.tHead.children[0]);
+}
+function getDistinctColumn(tableContainer, index) {
+	let rows = Array.from(tableContainer.querySelector("tbody").rows);
+	return distinct(rows.map((row) => row.children[index].textContent)).sort();
+}
+var TableHandlerForHeaders = class {
+	onReset(_tableDef) {
+		console.log("RESET");
+	}
+};
+function executeTableCommands(tableRef) {
+	let cmds = pageState$1.transient.getValue(GLOBAL_COMMAND_BUFFER_KEY, []);
+	for (let cmd of cmds) executeCmd(cmd, tableRef, true);
+}
+function forTableDo(ev, doIt) {
+	ev.preventDefault();
+	ev.stopPropagation();
+	checkAndDownloadTableRows(ev).then((res) => {
+		doIt({
+			tableRef: res.tableRef,
+			infoBlock: res.infoBlock
+		}, getColumnIndex(ev));
+	});
+}
+function forTableColumnDo(ev, cmdDef) {
+	ev.preventDefault();
+	ev.stopPropagation();
+	checkAndDownloadTableRows(ev).then((tableMeta) => {
+		let index = getColumnIndex(ev);
+		let cmd = {
+			cmdDef,
+			index
+		};
+		executeCmd(cmd, tableMeta.tableRef, false);
+		let cmds = pageState$1.transient.getValue(GLOBAL_COMMAND_BUFFER_KEY, []);
+		cmds.push(cmd);
+		relabelHeaders(tableMeta.tableRef.getOrgTableContainer().querySelector("thead>tr"));
+	});
+}
+function executeCmd(cmd, tableRef, onlyBody) {
+	let context = cmd.cmdDef.getContext?.(tableRef, cmd.index);
+	let rows;
+	if (onlyBody) rows = tableRef.getOrgTableContainer().querySelector("tbody").rows;
+	else rows = tableRef.getOrgTableContainer().querySelectorAll("tr");
+	for (let row of rows) cmd.cmdDef.doForRow(row, cmd.index, context);
+}
+function showDistinctColumn(tableMeta, index) {
+	let cols = getDistinctColumn(tableMeta.tableRef.getOrgTableContainer(), index);
+	let tmpDiv = document.createElement("div");
+	let tbody = emmet.appendChild(tmpDiv, "table>tbody").last;
+	for (let col of cols) emmet.appendChild(tbody, `tr>td>{${col}}`);
+	let headerRow = tableMeta.tableRef.getOrgTableContainer().querySelector("thead>tr");
+	let headerText = getColumnHeaderText(headerRow.querySelectorAll("th")[index]);
+	let htmlData = {
+		title: headerText + " (uniek)",
+		html: tmpDiv.innerHTML
+	};
+	let id = addToOtherTabsDataCache(JSON.stringify(htmlData));
+	openHtmlTab(id, headerText + " (uniek)").then((_) => {});
+}
+chrome.runtime.onMessage.addListener(onMessage$2);
+async function onMessage$2(request, _sender, sendResponse) {
+	if (request.senderTabType != TabType.Html) return;
+	if (request.action == Actions.RequestTabData) {
+		let params = request.data.params;
+		let data = _otherTabsDataCache.get(params.cacheId);
+		await sendRequest(Actions.TabData, TabType.Main, TabType.Html, request.targetTabId, data);
+		return;
+	}
+}
+function getColumnHeaderText(cell) {
+	return [...cell.childNodes].filter((node) => node.nodeType === Node.TEXT_NODE).map((node) => node.textContent).join(" ");
+}
+let hideColumn = { doForRow: function(row, index, _context) {
+	row.cells[index].style.display = "none";
+} };
+let showColumns = { doForRow: function(row, _index, _context) {
+	for (let cell of row.cells) cell.style.display = "";
+} };
+function mergeColumnWithSpace(row, index, leftIndex) {
+	mergeColumnToLeft(row, index, leftIndex, " ");
+}
+function mergeColumnWithComma(row, index, leftIndex) {
+	mergeColumnToLeft(row, index, leftIndex, ", ");
+}
+function mergeColumnToLeft(row, index, leftIndex, separator) {
+	if (index === 0) return;
+	if (row.parentElement.tagName == "TBODY") {
+		row.cells[index].style.display = "none";
+		row.cells[leftIndex].innerText += separator + row.cells[index].innerText;
+	} else {
+		row.cells[index].style.display = "none";
+		let firstTextNode = [...row.cells[leftIndex].childNodes].filter((node) => node.nodeType === Node.TEXT_NODE)[0];
+		let secondTextNode = [...row.cells[index].childNodes].filter((node) => node.nodeType === Node.TEXT_NODE)[0];
+		if (firstTextNode && secondTextNode) firstTextNode.textContent += separator + secondTextNode.textContent;
+	}
+}
+function relabelHeaders(headerRow) {
+	for (let cell of headerRow.cells) cell.classList.remove("shiftMenuLeft");
+	headerRow.cells[headerRow.cells.length - 1].classList.add("shiftMenuLeft");
+}
+function findNextVisibleCell(headerRow, indexes) {
+	let index = void 0;
+	for (let i of indexes) if (headerRow.children[i].style.display !== "none") {
+		index = i;
+		break;
+	}
+	return index;
+}
+var Direction = /* @__PURE__ */ function(Direction$1) {
+	Direction$1[Direction$1["LEFT"] = 0] = "LEFT";
+	Direction$1[Direction$1["RIGHT"] = 1] = "RIGHT";
+	return Direction$1;
+}(Direction || {});
+function createTwoColumnsCmd(direction, twoColumnFunc) {
+	return {
+		getContext: function(tableRef, index) {
+			let row = tableRef.getOrgTableContainer().querySelector("thead>tr");
+			let cellRange = direction === Direction.LEFT ? range(index - 1, -1) : range(index + 1, row.cells.length);
+			return findNextVisibleCell(row, cellRange);
+		},
+		doForRow: function(row, index, context) {
+			twoColumnFunc(row, index, context);
+		}
+	};
+}
+function swapColumns(row, index1, index2) {
+	if (index1 == void 0 || index2 == void 0) return;
+	if (index1 > index2) [index1, index2] = [index2, index1];
+	row.children[index1].parentElement.insertBefore(row.children[index2], row.children[index1]);
+}
+
+//#endregion
+//#region typescript/table/observer.ts
+var TableObserver = class extends BaseObserver {
+	constructor() {
+		super(void 0, new AllPageFilter(), onMutation$7);
+	}
+	isPageReallyLoaded() {
+		return getBothToolbars() != void 0;
+	}
+};
+var observer_default$9 = new TableObserver();
+function onMutation$7(_mutation) {
+	let navigationBars = getBothToolbars();
+	if (!navigationBars) return false;
+	if (!findTableRefInCode()?.navigationData.isOnePage()) addTableNavigationButton(
+		navigationBars,
+		//wait for top and bottom bars.
+		//todo: try to type data and
+		//todo try to typesafe action param.
+		DOWNLOAD_TABLE_BTN_ID,
+		"download full table",
+		createDownloadTableWithExtraAction(),
+		"fa-arrow-down"
+);
+	if (document.querySelector("main div.table-responsive table thead")) decorateTableHeader(document.querySelector("main div.table-responsive table"), true);
+	let sortableTable = document.querySelector("table." + CAN_SORT);
+	if (sortableTable) decorateTableHeader(sortableTable, true);
+	return true;
+}
+let tableCriteriaBuilders = new Map();
+function getChecksumBuilder(tableId) {
+	let builder = tableCriteriaBuilders.get(tableId);
+	if (builder) return builder;
+	return (_tableFetcher) => "";
+}
+function registerChecksumHandler(tableId, checksumHandler) {
+	tableCriteriaBuilders.set(tableId, checksumHandler);
+}
+function createDownloadTableWithExtraAction() {
+	return (_) => {
+		downloadTableRows().then((unknownData) => {
+			let action = pageState$1.transient.getValue(AFTER_DOWNLOAD_TABLE_ACTION, void 0);
+			if (action && unknownData) action(unknownData.fetchedTable);
+		});
+	};
+}
+
+//#endregion
+//#region typescript/infoBar.ts
+var InfoBar = class InfoBar {
+	divInfoContainer;
+	divInfoLine;
+	divTempLine;
+	divExtraLine;
+	divErrorLine;
+	tempMessage;
+	divCacheInfo;
+	constructor(divInfoContainer, divExtraLine, divErrorLine, divInfoLine, divTempLine, divCacheInfo) {
+		this.divInfoContainer = divInfoContainer;
+		this.divExtraLine = divExtraLine;
+		this.divErrorLine = divErrorLine;
+		this.divInfoLine = divInfoLine;
+		this.divTempLine = divTempLine;
+		this.divCacheInfo = divCacheInfo;
+		this.tempMessage = "";
+	}
+	static create(divInfoContainer) {
+		divInfoContainer.id = INFO_CONTAINER_ID;
+		divInfoContainer.innerHTML = "";
+		let divExtraLine = emmet.appendChild(divInfoContainer, `div#${INFO_EXTRA_ID}.infoMessage`).last;
+		let divErrorLine = emmet.appendChild(divInfoContainer, `div#${INFO_EXTRA_ID}.infoError`).last;
+		let divInfoLine = emmet.appendChild(divInfoContainer, "div.infoLine").last;
+		let divTempLine = emmet.appendChild(divInfoContainer, `div#${INFO_TEMP_ID}.infoMessage.tempLine`).last;
+		let divCacheInfo = emmet.appendChild(divInfoContainer, `div#${INFO_CACHE_ID}.cacheInfo`).last;
+		return new InfoBar(divInfoContainer, divExtraLine, divErrorLine, divInfoLine, divTempLine, divCacheInfo);
+	}
+	static find() {
+		let container = document.getElementById(INFO_CONTAINER_ID);
+		let divExtraLine = container.querySelector(`#${INFO_EXTRA_ID}`);
+		let divErrorLine = container.querySelector(`#${INFO_EXTRA_ID}`);
+		let divInfoLine = container.querySelector("div.infoLine");
+		let divTempLine = container.querySelector(`#${INFO_TEMP_ID}`);
+		let divCacheInfo = container.querySelector(`#${INFO_CACHE_ID}`);
+		return new InfoBar(container, divExtraLine, divErrorLine, divInfoLine, divTempLine, divCacheInfo);
+	}
+	setTempMessage(msg) {
+		this.tempMessage = msg;
+		this.#updateTempMessage();
+		setTimeout(this.clearTempMessage.bind(this), 4e3);
+	}
+	clearTempMessage() {
+		this.tempMessage = "";
+		this.#updateTempMessage();
+	}
+	#updateTempMessage() {
+		this.divTempLine.innerHTML = this.tempMessage;
+	}
+	setInfoLine(message) {
+		this.divInfoLine.innerHTML = message;
+	}
+	setErrorLine(message) {
+		this.divErrorLine.innerHTML = message;
+	}
+	clearCacheInfo() {
+		this.divCacheInfo.innerHTML = "";
+	}
+	setCacheInfo(info, reset_onclick) {
+		this.divCacheInfo.innerHTML = info;
+		let button = emmet.appendChild(this.divCacheInfo, "button.likeLink").first;
+		button.innerHTML = "refresh";
+		button.onclick = reset_onclick;
+	}
+	setExtraInfo(message, click_element_id, callback) {
+		this.divExtraLine.innerHTML = message;
+		if (click_element_id) {
+			if (callback) document.getElementById(click_element_id).onclick = callback;
+		}
+	}
+};
+
+//#endregion
+//#region typescript/progressBar.ts
+var ProgressBar = class ProgressBar {
+	barElement;
+	containerElement;
+	maxCount;
+	count;
+	constructor(containerElement, barElement) {
+		this.barElement = barElement;
+		this.containerElement = containerElement;
+		this.hide();
+		this.maxCount = 0;
+		this.count = 0;
+	}
+	reset(maxCount) {
+		this.maxCount = maxCount;
+		this.count = 0;
+		this.barElement.innerHTML = "";
+		for (let i = 0; i < maxCount; i++) {
+			let block = document.createElement("div");
+			this.barElement.appendChild(block);
+			block.classList.add("progressBlock");
+		}
+	}
+	start(maxCount) {
+		this.reset(maxCount);
+		this.containerElement.style.display = "block";
+		this.next();
+	}
+	hide() {
+		this.containerElement.style.display = "none";
+	}
+	stop() {
+		this.hide();
+	}
+	next() {
+		if (this.count >= this.maxCount) return false;
+		this.barElement.children[this.count].classList.remove("iddle", "loaded");
+		this.barElement.children[this.count].classList.add("loading");
+		for (let i = 0; i < this.count; i++) {
+			this.barElement.children[i].classList.remove("iddle", "loading");
+			this.barElement.children[i].classList.add("loaded");
+		}
+		for (let i = this.count + 1; i < this.maxCount; i++) {
+			this.barElement.children[i].classList.remove("loaded", "loading");
+			this.barElement.children[i].classList.add("iddle");
+		}
+		this.count++;
+		return true;
+	}
+	static find() {
+		let divProgressLine = document.getElementById(PROGRESS_BAR_ID);
+		let divProgressBar = divProgressLine.querySelector(".progressBar");
+		return new ProgressBar(divProgressLine, divProgressBar);
+	}
+};
+function insertProgressBar(container, text = "") {
+	container.innerHTML = "";
+	let { first: divProgressLine, last: divProgressBar } = emmet.appendChild(container, `div.infoLine#${PROGRESS_BAR_ID}>div.progressText{${text}}+div.progressBar`);
+	return new ProgressBar(divProgressLine, divProgressBar);
+}
+
+//#endregion
+//#region typescript/infoBlock.ts
+function createInfoBlockForTable(tableRef) {
+	document.getElementById(INFO_CONTAINER_ID)?.remove();
+	let divInfoContainer = tableRef.createElementAboveTable("div");
+	return createInfoBlock(divInfoContainer, "loading pages... ");
+}
+function createInfoBlock(infoContainer, initialMessage) {
+	let infoBar = InfoBar.create(infoContainer.appendChild(document.createElement("div")));
+	let progressBar = insertProgressBar(infoBar.divInfoLine, initialMessage);
+	return {
+		infoBar,
+		progressBar
+	};
+}
+function getInfoBlock() {
+	let infoBar = InfoBar.find();
+	let progressBar = ProgressBar.find();
+	return {
+		infoBar,
+		progressBar
+	};
+}
+
+//#endregion
+//#region typescript/table/loadAnyTable.ts
+async function getWerklijstTableRef() {
+	let chain = new FetchChain();
+	await fetch("views/leerlingen/werklijst/werklijst.maken.php", { method: "POST" });
+	await chain.fetch("view.php?args=leerlingen-werklijst$werklijst");
+	await chain.fetch("views/leerlingen/werklijst/werklijst.view.php");
+	await chain.fetch("views/ui/datatable.php?id=leerlingen_werklijst");
+	return parseDataTablePhp(chain, "leerlingen_werklijst");
+}
+async function parseDataTablePhp(chain, htmlTableId) {
+	chain.find("var", "datatable_id", "=");
+	let datatable_id = chain.getQuotedString();
+	chain.clipTo("</script>");
+	chain.find(".", "load", "(");
+	let tableNavUrl = chain.getQuotedString() + datatable_id + "&pos=top";
+	await chain.fetch(tableNavUrl);
+	let tableNav = findFirstNavigation(chain.div());
+	if (!tableNav) throw "Can't find table navigation.";
+	let buildFetchUrl = (offset) => `/views/ui/datatable.php?id=${datatable_id}&start=${offset}&aantal=0`;
+	return new DkoTableRef(htmlTableId, tableNav, buildFetchUrl);
+}
+async function getTableRefFromHash(hash) {
+	let chain = new FetchChain();
+	await chain.fetch(DKO3_BASE_URL + "#" + hash);
+	await chain.fetch("view.php?args=" + hash);
+	chain.findDocReadyLoadUrl();
+	let index_view = await chain.fetch();
+	chain.findDocReadyLoadScript();
+	chain.find("$", "(");
+	let htmlTableId = chain.getQuotedString().substring(1);
+	chain.set(index_view);
+	chain.findDocReadyLoadUrl();
+	if (!chain.includes("ui/datatable.php")) {
+		await chain.fetch();
+		chain.findDocReadyLoadUrl();
+	}
+	await chain.fetch();
+	return parseDataTablePhp(chain, htmlTableId);
+}
+async function getTable(tableRef, infoBarListener, clearCache, checksumBuilder = null) {
+	let tableFetcher = new TableFetcher(tableRef, checksumBuilder ?? getChecksumBuilder(tableRef.htmlTableId));
+	if (infoBarListener) tableFetcher.addListener(infoBarListener);
+	if (clearCache) tableFetcher.clearCache();
+	let fetchedTable = await tableFetcher.fetch();
+	await setViewFromCurrentUrl();
+	return fetchedTable;
+}
+async function getTableFromHash(hash, clearCache, infoBarListener) {
+	let tableRef = await getTableRefFromHash(hash);
+	console.log(tableRef);
+	return await getTable(tableRef, infoBarListener, clearCache);
+}
+function createDefaultTableRefAndInfoBlock() {
+	let result = createDefaultTableRef();
+	if ("error" in result) return { error: result.error };
+	let { tableRef } = result.result;
+	let infoBlock = createInfoBlockForTable(tableRef);
+	return { result: {
+		tableRef,
+		infoBlock
+	} };
+}
+async function downloadTableRows() {
+	let result = createDefaultTableRefAndInfoBlock();
+	if ("error" in result) {
+		console.error(result.error);
+		return null;
+	}
+	let { tableRef, infoBlock } = result.result;
+	let result2 = createDefaultTableFetcher(tableRef, infoBlock);
+	if ("error" in result2) {
+		console.error(result2.error);
+		return null;
+	}
+	let { tableFetcher } = result2.result;
+	tableFetcher.tableHandler = new TableHandlerForHeaders();
+	let fetchedTable = await tableFetcher.fetch();
+	let fetchedRows = fetchedTable.getRows();
+	let tableContainer = fetchedTable.tableFetcher.tableRef.getOrgTableContainer();
+	tableContainer.querySelector("tbody").replaceChildren(...fetchedRows);
+	tableContainer.querySelector("table").classList.add("fullyFetched");
+	executeTableCommands(fetchedTable.tableFetcher.tableRef);
+	return {
+		fetchedTable,
+		infoBlock,
+		listener: new InfoBarTableFetchListener(infoBlock)
+	};
+}
+async function checkAndDownloadTableRows(ev) {
+	let tableRef = findTableRefInCode();
+	if (!tableRef) {
+		let table = ev.target.closest("table");
+		tableRef = new PlainTableRef(table.id);
+	}
+	if (tableRef.isFullyFetched()) {
+		let infoBlock = createInfoBlockForTable(tableRef);
+		return {
+			tableRef,
+			infoBlock,
+			listener: new InfoBarTableFetchListener(infoBlock)
+		};
+	}
+	let res = await downloadTableRows();
+	if (!res) throw "Can't download table rows. See reason above.";
+	return {
+		tableRef,
+		infoBlock: res.infoBlock,
+		listener: res.listener
+	};
+}
+var InfoBarTableFetchListener = class {
+	infoBar;
+	progressBar;
+	constructor(infoBlock) {
+		this.infoBar = infoBlock.infoBar;
+		this.progressBar = infoBlock.progressBar;
+	}
+	onStartFetching(tableFetcher) {
+		this.progressBar.start(tableFetcher.tableRef.navigationData.steps());
+	}
+	onLoaded(tableFetcher) {
+		if (tableFetcher.isUsingCached) {
+			let defaultAction = createDownloadTableWithExtraAction();
+			let resetAndLoadAction = (ev) => {
+				tableFetcher.reset();
+				defaultAction(ev);
+			};
+			this.infoBar.setCacheInfo(`Gegevens uit cache, ${dateDiffToString(tableFetcher.shadowTableDate, new Date())} oud. `, resetAndLoadAction);
+		}
+	}
+	onBeforeLoadingPage(_tableFetcher) {
+		return true;
+	}
+	onFinished(_tableFetcher) {
+		this.progressBar.stop();
+	}
+	onPageLoaded(_tableFetcher, _pageCnt, _text) {
+		this.progressBar.next();
+	}
+};
+function createDefaultTableRef() {
+	let tableRef = findTableRefInCode();
+	if (!tableRef) return { error: "Cannot find table." };
+	return { result: { tableRef } };
+}
+function createDefaultTableFetcher(tableRef, infoBlock) {
+	let tableFetcher = new TableFetcher(tableRef, getChecksumBuilder(tableRef.htmlTableId));
+	let infoBarListener = new InfoBarTableFetchListener(infoBlock);
+	tableFetcher.addListener(infoBarListener);
+	return { result: {
+		tableFetcher,
+		infoBlock,
+		infoBarListener
+	} };
+}
+
+//#endregion
+//#region typescript/notifications/notifications.ts
+function getNotifRedButton() {
+	let notifButton = document.getElementById("notifButton");
+	if (notifButton) return notifButton;
+	let navBar = document.getElementById("dko3_navbar");
+	let secondUl = navBar.querySelectorAll("ul").item(1);
+	return emmet.insertBefore(secondUl, "div#navBarNotifDiv>button#notifButton.noBorder{5}").last;
+}
+async function updateNotificationsInNavBar(notifications) {
+	if (!notifications) notifications = await fetchNotifications();
+	let notifButton = getNotifRedButton();
+	let count = Object.keys(notifications.notifications).length;
+	notifButton.innerHTML = count.toString();
+	notifButton.style.display = count > 0 ? "block" : "none";
+	notifButton.onclick = () => {
+		location.href = "https://administratie.dko3.cloud/#start?page=mijn_tijdslijn";
+	};
+}
+const NORMAL_SPEED_IN_SECONDS = 5 * 60;
+let pollSpeedInSeconds = 1e3 * NORMAL_SPEED_IN_SECONDS;
+setInterval(fetchAndDisplayNotifications, 1e3 * pollSpeedInSeconds);
+async function fetchAndDisplayNotifications() {
+	let notifications = await fetchNotifications();
+	await updateNotificationsInNavBar(notifications);
+	let notificationsWrapper = document.querySelector("#dko3_plugin_notifications");
+	let notificationsDiv = document.querySelector("#dko3_plugin_notifications > div > div");
+	if (!notificationsDiv) return;
+	let count = Object.keys(notifications.notifications).length;
+	notificationsWrapper.style.display = count > 0 ? "block" : "none";
+	let propNames = Object.getOwnPropertyNames(notifications.notifications);
+	notificationsDiv.innerHTML = "";
+	for (let propName of propNames) {
+		let notif = notifications.notifications[propName];
+		if (!notif) continue;
+		let imgUrl = chrome.runtime.getURL("images/waiting.gif");
+		switch (notif.level) {
+			case "warning":
+				imgUrl = chrome.runtime.getURL("images/warning.png");
+				break;
+			case "error":
+				imgUrl = chrome.runtime.getURL("images/error.png");
+				break;
+			case "running":
+				imgUrl = chrome.runtime.getURL("images/waiting.gif");
+				break;
+			case "info":
+				imgUrl = chrome.runtime.getURL("images/info.png");
+				break;
+		}
+		let delButtonClass = "";
+		if (options.allowDeleteNotif) delButtonClass = "allowDelete";
+		let html = `
+            <div class="notif notif-${notif.level} ${delButtonClass}">
+                <button class="deleteNotif noBorder" data-id="${notif.id}"  ><i class="fas fa-trash"></i></button>
+                <div class="notif-img">
+                    <img src="${imgUrl}" alt="todo">
+                </div>
+            <div>${notif.message}</div>
+            </div>
+            `;
+		let notifDiv = emmet.appendChild(notificationsDiv, "div").first;
+		notifDiv.innerHTML = html;
+		let button = notifDiv.querySelector("button.action");
+		if (!button) continue;
+		button.onclick = () => {
+			doNotificationAction(notif.id);
+		};
+	}
+	notificationsDiv.querySelectorAll("button.deleteNotif").forEach((button) => {
+		button.onclick = async (ev) => {
+			let button$1 = ev.currentTarget;
+			let notifId = button$1.dataset.id;
+			await deleteNotification(notifId);
+			await fetchAndDisplayNotifications();
+		};
+	});
+}
+function doNotificationAction(id) {}
+
+//#endregion
+//#region typescript/roster_diff/diffSettings.ts
+const defaultTagDefs = [
+	{
+		tag: "Vestiging Sterrenkijker/SL Durlet",
+		searchString: " sterr",
+		gradeYears: ""
+	},
+	{
+		tag: "Vestiging Sterrenkijker/SL Durlet",
+		searchString: " durlet",
+		gradeYears: ""
+	},
+	{
+		tag: "Vestiging De Kleine Stad",
+		searchString: " kleine stad ",
+		gradeYears: ""
+	},
+	{
+		tag: "Vestiging De Kleine Wereld",
+		searchString: " wereld ",
+		gradeYears: ""
+	},
+	{
+		tag: "Vestiging De Nieuwe Vrede",
+		searchString: " vrede ",
+		gradeYears: ""
+	},
+	{
+		tag: "Vestiging De Nieuwe Vrede",
+		searchString: " dnv ",
+		gradeYears: ""
+	},
+	{
+		tag: "Vestiging De Nieuwe Vrede",
+		searchString: " tegel",
+		gradeYears: ""
+	},
+	{
+		tag: "Vestiging De Nieuwe Vrede",
+		searchString: " tango ",
+		gradeYears: ""
+	},
+	{
+		tag: "Vestiging De Nieuwe Vrede",
+		searchString: " vergaderzaal ",
+		gradeYears: ""
+	},
+	{
+		tag: "Vestiging De Kosmos",
+		searchString: " kosmos ",
+		gradeYears: ""
+	},
+	{
+		tag: "Vestiging De Schatkist",
+		searchString: " schatk",
+		gradeYears: ""
+	},
+	{
+		tag: "Vestiging De Kolibrie",
+		searchString: " kolibri",
+		gradeYears: ""
+	},
+	{
+		tag: "Vestiging Het Fonkelpad",
+		searchString: " fonkel",
+		gradeYears: ""
+	},
+	{
+		tag: "Vestiging Alberreke",
+		searchString: " alber",
+		gradeYears: ""
+	},
+	{
+		tag: "Vestiging c o r s o",
+		searchString: " corso ",
+		gradeYears: ""
+	},
+	{
+		tag: "Vestiging c o r s o",
+		searchString: "c o r s o",
+		gradeYears: ""
+	},
+	{
+		tag: "Vestiging c o r s o",
+		searchString: " studio 3 ",
+		gradeYears: ""
+	},
+	{
+		tag: "Vestiging Prins Dries",
+		searchString: " prins ",
+		gradeYears: ""
+	},
+	{
+		tag: "Vestiging Prins Dries",
+		searchString: " dries ",
+		gradeYears: ""
+	},
+	{
+		tag: "Vestiging Groenhout Kasteelstraat",
+		searchString: " groenhout ",
+		gradeYears: ""
+	},
+	{
+		tag: "Vestiging Groenhout Kasteelstraat",
+		searchString: " kasteel",
+		gradeYears: ""
+	},
+	{
+		tag: "Vestiging Het Fonkelpad",
+		searchString: " fonkel ",
+		gradeYears: ""
+	},
+	{
+		tag: "Vestiging OLV Pulhof",
+		searchString: " pulhof ",
+		gradeYears: ""
+	},
+	{
+		tag: "Vestiging OLV Pulhof",
+		searchString: " 1p ",
+		gradeYears: ""
+	},
+	{
+		tag: "Vestiging OLV Pulhof",
+		searchString: " 2p ",
+		gradeYears: ""
+	},
+	{
+		tag: "Vestiging Sterrenkijker/SL Durlet",
+		searchString: " 1d ",
+		gradeYears: ""
+	},
+	{
+		tag: "Vestiging Sterrenkijker/SL Durlet",
+		searchString: " 2d ",
+		gradeYears: ""
+	},
+	{
+		tag: "Vestiging Via Louiza",
+		searchString: " louiza ",
+		gradeYears: ""
+	},
+	{
+		tag: "Vestiging Frans Van Hombeeck",
+		searchString: " hombee",
+		gradeYears: ""
+	},
+	{
+		tag: "Vestiging Klavertje Vier",
+		searchString: " klaver",
+		gradeYears: ""
+	},
+	{
+		tag: "Academie Willem Van Laarstraat, Berchem",
+		searchString: " bib ",
+		gradeYears: ""
+	},
+	{
+		tag: "Academie Willem Van Laarstraat, Berchem",
+		searchString: "laarstr",
+		gradeYears: ""
+	},
+	{
+		tag: "Academie Willem Van Laarstraat, Berchem",
+		searchString: " wvl ",
+		gradeYears: ""
+	},
+	{
+		tag: "Vestiging Frans Van Hombeeck",
+		searchString: " beeld ",
+		gradeYears: ""
+	},
+	{
+		tag: "Cabaret en comedy",
+		searchString: " cabaret ",
+		gradeYears: ""
+	},
+	{
+		tag: "Woordatelier",
+		searchString: " woordatelier ",
+		gradeYears: ""
+	},
+	{
+		tag: "Woordatelier",
+		searchString: " wa ",
+		gradeYears: ""
+	},
+	{
+		tag: "Woordlab",
+		searchString: " woordlab ",
+		gradeYears: ""
+	},
+	{
+		tag: "Woordlab",
+		searchString: " wl ",
+		gradeYears: ""
+	},
+	{
+		tag: "Literair atelier",
+		searchString: " literair atelier ",
+		gradeYears: ""
+	},
+	{
+		tag: "Literaire teksten",
+		searchString: " literaire teksten ",
+		gradeYears: ""
+	},
+	{
+		tag: "Schrijven",
+		searchString: " basiscursus ",
+		gradeYears: ""
+	},
+	{
+		tag: "Spreken en vertellen",
+		searchString: " spreken ",
+		gradeYears: ""
+	},
+	{
+		tag: "Kunstenbad muziek/woord",
+		searchString: " kunstenbad ",
+		gradeYears: ""
+	},
+	{
+		tag: "Musicalatelier",
+		searchString: " musicalatelier ",
+		gradeYears: ""
+	},
+	{
+		tag: "Musical koor",
+		searchString: " musical koor ",
+		gradeYears: ""
+	},
+	{
+		tag: "Musical zang",
+		searchString: " musical zang ",
+		gradeYears: ""
+	},
+	{
+		tag: "Theater",
+		searchString: " acteren ",
+		gradeYears: ""
+	},
+	{
+		tag: "Muziekatelier",
+		searchString: " 1p ",
+		gradeYears: ""
+	},
+	{
+		tag: "Muziekatelier",
+		searchString: " 2p ",
+		gradeYears: ""
+	},
+	{
+		tag: "Muziekatelier",
+		searchString: " 1d ",
+		gradeYears: ""
+	},
+	{
+		tag: "Muziekatelier",
+		searchString: " 2d ",
+		gradeYears: ""
+	},
+	{
+		tag: "Muziekatelier",
+		searchString: " 1va ",
+		gradeYears: ""
+	},
+	{
+		tag: "Muziekatelier",
+		searchString: " 1vb ",
+		gradeYears: ""
+	},
+	{
+		tag: "Muziekatelier",
+		searchString: " 1vc ",
+		gradeYears: ""
+	},
+	{
+		tag: "Muziekatelier",
+		searchString: " 2va ",
+		gradeYears: ""
+	},
+	{
+		tag: "Muziekatelier",
+		searchString: " 2vb ",
+		gradeYears: ""
+	},
+	{
+		tag: "Muziekatelier",
+		searchString: " 3v ",
+		gradeYears: ""
+	},
+	{
+		tag: "Muziekatelier",
+		searchString: " 1t ",
+		gradeYears: ""
+	},
+	{
+		tag: "Muziekatelier",
+		searchString: " 2t ",
+		gradeYears: ""
+	},
+	{
+		tag: "Groepsmusiceren (klassiek)",
+		searchString: " gm ",
+		gradeYears: ""
+	},
+	{
+		tag: "Atelier (musical)",
+		searchString: " musicalatelier ",
+		gradeYears: ""
+	},
+	{
+		tag: "Musicalatelier 2e graad",
+		searchString: " musical for kids ",
+		gradeYears: ""
+	}
+];
+const defaultIgnoreList = [
+	" kunstkuren ",
+	" arrangeren",
+	" combo ",
+	" harmonielab ",
+	" klanklab ",
+	" muzieklab ",
+	" electronics ",
+	" big band ",
+	" blazersensemble ",
+	" groepsmusiceren (jass pop rock) ",
+	" geluidsleer ",
+	" koor (jazz pop rock) ",
+	" koor (musical) ",
+	" slagwerkensemble "
+];
+
+//#endregion
+//#region typescript/roster_diff/showDiff.ts
+async function fetchDiffSettingsOrDefault(academie, schoolYear) {
+	let settings;
+	try {
+		settings = await fetchDiffSettings(academie, schoolYear);
+	} catch {}
+	if (!settings) return {
+		version: 0,
+		academie,
+		schoolYear,
+		tagDefs: [...defaultTagDefs],
+		ignoreList: [...defaultIgnoreList],
+		urls: [],
+		preTranslations: []
+	};
+	if (!settings.preTranslations) settings.preTranslations = [];
+	return settings;
+}
+function getDiffsDko3CacheFileName(academie, schoolYear, diffType) {
+	return `Dko3/Uurroosters/Cache/${academie}_${schoolYear}_${diffType}_diffcache.json`;
+}
+function createStatusBlock(divInfoWrapper) {
+	emmet.appendChild(divInfoWrapper, "div.runStatus");
+	emmet.appendChild(divInfoWrapper, "div.diffInfo");
+	emmet.appendChild(divInfoWrapper, "div.diffErrors.errors");
+	emmet.appendChild(divInfoWrapper, "div.diffResults");
+}
+function getStatusBlock(divInfoWrapper) {
+	let runStatus = divInfoWrapper.querySelector(".runStatus");
+	let divInfo = divInfoWrapper.querySelector(".diffInfo");
+	let divError = divInfoWrapper.querySelector(".diffErrors");
+	let divResults = divInfoWrapper.querySelector(".diffResults");
+	return {
+		runStatus,
+		divInfo,
+		divError,
+		divResults
+	};
+}
+async function getAndShowDiffs(showOrCalc, useDkoCache, diffPageType, diffSettings) {
+	let statusBlock = getStatusBlock(document.getElementById(diffPageType == "EXCEL" ? "wrapperExcelDiffs" : "wrapperWwwDiffs"));
+	statusBlock.divResults.innerHTML = "Ophalen...";
+	let cmbDiffAcademie = document.querySelector("#cmbDiffAcademie");
+	let cmbDiffSchoolYear = document.querySelector("#cmbDiffSchoolYear");
+	let infoBlock = createInfoBlock(statusBlock.divInfo, "");
+	let fetchListener = new InfoBarTableFetchListener(infoBlock);
+	let reportStatus = function(message) {
+		statusBlock.runStatus.innerHTML = message;
+	};
+	statusBlock.divError.innerHTML = "";
+	let errors = [];
+	let addError = function(message, errorType) {
+		errors.push(message);
+	};
+	errors = [];
+	let jsonDko3DiffData = null;
+	if (useDkoCache == "dkoCache") jsonDko3DiffData = localStorage.getItem(getDiffsDko3CacheFileName(cmbDiffAcademie.value, cmbDiffSchoolYear.value, diffPageType));
+	let dko3DiffData = jsonDko3DiffData ? JSON.parse(jsonDko3DiffData) : null;
+	let jsonDiffs = null;
+	if (!diffSettings) diffSettings = await fetchDiffSettingsOrDefault(cmbDiffAcademie.value, cmbDiffSchoolYear.value);
+	if (showOrCalc == "justShow") try {
+		jsonDiffs = await getDiffsFromCloud(cmbDiffAcademie.value, cmbDiffSchoolYear.value, diffPageType);
+	} catch (e) {}
+	else {
+		statusBlock.divResults.innerHTML = "";
+		let dataPreparationFunction;
+		if (diffPageType == "EXCEL") dataPreparationFunction = prepareExcelData;
+		else dataPreparationFunction = prepareWwwData;
+		jsonDiffs = await buildAndSaveDiff({
+			reportStatus,
+			addError
+		}, fetchListener, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData, diffSettings, diffPageType, dataPreparationFunction, errors);
+	}
+	if (jsonDiffs) await showDiffs(jsonDiffs, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData, diffSettings, statusBlock, diffPageType);
+}
+async function showDiffs(diffs, academie, schoolYear, dko3DiffData, diffSettings, statusBlock, diffPageType) {
+	statusBlock.divResults.innerHTML = "Ophalen...";
+	if (!diffs) {
+		statusBlock.divResults.innerHTML = "";
+		return;
+	}
+	if (diffs.errors) statusBlock.divError.innerHTML = diffs.errors.join("<br>");
+	await setIgnoredFlags(diffs.orphanedDko3Lessen, diffs.orphanedOtherLessen, academie, schoolYear, diffPageType);
+	statusBlock.divResults.innerHTML = "";
+	let elapsedTimeString = dateDiffToString(new Date(diffs.isoDate), new Date());
+	if (elapsedTimeString != "") emmet.appendChild(statusBlock.divResults, `div.gray{Laatste vergelijking: ${elapsedTimeString} geleden.}`);
+	if (options.showDebug && dko3DiffData) {
+		let div = emmet.appendChild(statusBlock.divResults, `div.gray`).first;
+		let button = emmet.appendChild(div, "button.likeLink").first;
+		button.innerHTML = "Zoek met dko3 cache";
+		button.onclick = () => {
+			getAndShowDiffs("calcAndShow", "dkoCache", "EXCEL", null);
+		};
+	}
+	let divChk = emmet.appendChild(statusBlock.divResults, `div#divHideChecked>(input#chkHideChecked${diffPageType}[type="checkbox"]+label[for="chkHideChecked${diffPageType}"]{Verberg aangevinkte lijnen})`).first;
+	let chkHideChecked = divChk.querySelector(`#chkHideChecked${diffPageType}`);
+	chkHideChecked.onchange = (ev) => {
+		let input = ev.currentTarget;
+		let table$1 = document.getElementById(`orphans${diffPageType}`);
+		table$1.classList.toggle("hideChecked", input.checked);
+		let ignore$1 = table$1.classList.contains("hideChecked");
+		localStorage.setItem(OPTION_HIDE_IGNORED_DIFFS + diffPageType, ignore$1.toString());
+	};
+	emmet.appendChild(divChk, `
+        div>(
+            input#chkHideNoTeacher${diffPageType}[type="checkbox"]+
+            label[for="chkHideNoTeacher${diffPageType}"]{Verberg nog te bepalen leraren}
+        )
+    `);
+	let chkHideNoTeacher = divChk.querySelector(`#chkHideNoTeacher${diffPageType}`);
+	chkHideNoTeacher.onchange = (ev) => {
+		let input = ev.currentTarget;
+		statusBlock.divResults.classList.toggle("hideNoTeacher", input.checked);
+		let hideNoTeacher$1 = statusBlock.divResults.classList.contains("hideNoTeacher");
+		localStorage.setItem(OPTION_HIDE_NO_TEACHER_DIFFS + diffPageType, hideNoTeacher$1.toString());
+	};
+	for (let diff of diffs.diffs) displayDiff(diff, statusBlock.divResults, academie, schoolYear, diffPageType);
+	emmet.appendChild(statusBlock.divResults, "h4{Lessen zonder overeenkomsten}");
+	let { table, tbody } = createDiffTable(statusBlock.divResults, diffPageType);
+	decorateTableHeader(table, false);
+	for (let les of diffs.orphanedDko3Lessen) {
+		let tr = emmet.appendChild(tbody, "tr").last;
+		fillDiffRow(tr, les, "perfect match", createDko3GotoData(les.lesId), "", les.hash, les.ignore, academie, schoolYear, null, null, diffPageType);
+	}
+	for (let les of diffs.orphanedOtherLessen) {
+		let tr = emmet.appendChild(tbody, "tr").last;
+		fillDiffRow(tr, les, "perfect match", les.gotoData, les.gotoData.text, les.hash, les.ignore, academie, schoolYear, null, null, diffPageType);
+		tr.classList.add("excelRow");
+	}
+	let ignore = localStorage.getItem(OPTION_HIDE_IGNORED_DIFFS + diffPageType) ?? "false";
+	chkHideChecked.checked = ignore == "true";
+	table.classList.toggle("hideChecked", chkHideChecked.checked);
+	let hideNoTeacher = localStorage.getItem(OPTION_HIDE_NO_TEACHER_DIFFS + diffPageType) ?? "false";
+	chkHideNoTeacher.checked = hideNoTeacher == "true";
+	statusBlock.divResults.classList.toggle("hideNoTeacher", chkHideNoTeacher.checked);
+}
+function fillOtherDiffRow(tr, diff, academie, schoolYear, noHide, diffPageType) {
+	fillDiffRow(tr, diff.otherLes, diff.diffType, diff.otherLes.gotoData, diff.otherLes.gotoData.text, diff.otherLes.hash, diff.otherLes.ignore, academie, schoolYear, diff.weight, noHide, diffPageType);
+}
+function displayDiff(diff, divResults, academie, schoolYear, diffPageType) {
+	let tbody = emmet.appendChild(divResults, "table.diff>tbody").last;
+	let trTop = emmet.appendChild(tbody, "tr").last;
+	let trBottom = emmet.appendChild(tbody, "tr").last;
+	let trOther = trTop;
+	let trDko3 = trBottom;
+	if (diff.otherLes.lesType == "www") {
+		trOther = trBottom;
+		trDko3 = trTop;
+	}
+	let diffOnlyTeacher = !diff.weight.diffDayTime && diff.weight.diffGradeYears == 0 && !diff.weight.diffLocation && !diff.weight.diffSubject && diff.weight.diffTeacher;
+	tbody.parentElement.classList.toggle("justNoTeacher", diffOnlyTeacher && diff.otherLes.teachers.includes("nog te bepalen"));
+	fillOtherDiffRow(trOther, diff, academie, schoolYear, "no hide button", diffPageType);
+	fillDiffRow(trDko3, diff.dko3Les, diff.diffType, createDko3GotoData(diff.dko3Les.lesId), "", diff.dko3Les.hash, diff.dko3Les.ignore, academie, schoolYear, diff.weight, "no hide button", diffPageType);
+}
+function fillDiffRow(tr, jsonLes, diffType, gotoData, orgText, hash, ignore, academie, schoolYear, weight, noHide, diffPageType) {
+	if (ignore) tr.classList.add("ignore");
+	let diffTeacherClass = "";
+	let diffGradeYearsClass = "";
+	let diffLocationClass = "";
+	let diffTimeClass = "";
+	let diffSubjectClass = "";
+	if (weight) {
+		if (weight.diffSubject) diffSubjectClass = ".diff";
+		if (weight.diffLocation) diffLocationClass = ".diff";
+		if (weight.diffGradeYears) diffGradeYearsClass = ".diff";
+		if (weight.diffTeacher) diffTeacherClass = ".diff";
+		if (weight.diffDayTime) diffTimeClass = ".diff";
+	}
+	if (!jsonLes.location) {
+		jsonLes.location = "-onbekend-";
+		diffLocationClass = ".diff";
+	}
+	let tdSubjects;
+	let strSubjects = jsonLes.subjects;
+	if (jsonLes.subjects == "") {
+		diffSubjectClass = ".diff";
+		strSubjects = "-onbekend-";
+	}
+	if (jsonLes.lesType != "dko3") tdSubjects = `(td${diffSubjectClass}>div.diffTooltip{${strSubjects}}>span.diffTooltiptext{${orgText}})`;
+	else tdSubjects = `td${diffSubjectClass}{${jsonLes.subjects}}`;
+	tr.classList.add(jsonLes.lesType + "Row");
+	let iconClass;
+	switch (jsonLes.lesType) {
+		case "excel":
+			iconClass = "fa-grid";
+			break;
+		case "dko3":
+			iconClass = "fa-chalkboard-user";
+			break;
+		case "www":
+			iconClass = "fa-globe";
+			break;
+		default: unreachable(jsonLes.lesType);
+	}
+	tr.dataset.hash = hash;
+	tr.dataset.lesId = gotoData.lesId;
+	tr.dataset.cellAddress = gotoData.cellAddress;
+	tr.dataset.workbook = gotoData.workBook;
+	tr.dataset.worksheet = gotoData.workSheet;
+	tr.dataset.rowType = gotoData.rowType;
+	tr.dataset.url = gotoData.url;
+	let hideButton = "";
+	if (!noHide) hideButton = "+(td.button>button.goto.chkHide>i.fas.fa-check)";
+	emmet.appendChild(tr, `${tdSubjects}+
+        td${diffGradeYearsClass}{${GradeYear.toString(jsonLes.gradeYears)}}+
+        td${diffTeacherClass}{${jsonLes.teachers}}+
+        td${diffTimeClass}{${toCompactDayString(jsonLes.day)}}+
+        td${diffTimeClass}{${jsonLes.timeSlice}}+
+        td${diffLocationClass}{${jsonLes.location}}+
+        (td.buttonshow>button.goto>i.fas.${iconClass})
+        ${hideButton}
+    `);
+	let btnGoto = tr.querySelector("button.goto");
+	btnGoto.onclick = (ev) => gotoSource(ev, academie, schoolYear);
+	let btnHide = tr.querySelector("button.chkHide");
+	if (btnHide) btnHide.onclick = (ev) => toggleIgnore(ev, academie, schoolYear, diffPageType);
+}
+async function toggleIgnore(ev, academie, schoolYear, diffPageType) {
+	let button = ev.currentTarget;
+	let tr = button.closest("tr");
+	tr.classList.toggle("ignore");
+	await saveIgnoredHashes(academie, schoolYear, diffPageType);
+}
+async function saveIgnoredHashes(academie, schoolYear, diffPageType) {
+	let table = document.getElementById(`orphans${diffPageType}`);
+	let hashes = [...table.querySelectorAll("tr.ignore")].map((tr) => tr.dataset.hash);
+	await uploadIgnoredDiffHashes(academie, schoolYear, hashes, diffPageType);
+}
+function createDko3GotoData(lesId) {
+	return {
+		lesId,
+		cellAddress: "",
+		rowType: "dko3",
+		url: "",
+		workBook: "",
+		workSheet: "",
+		text: ""
+	};
+}
+async function gotoSource(ev, academie, schoolYear) {
+	let button = ev.currentTarget;
+	let tr = button.closest("tr");
+	let rowType = tr.dataset.rowType;
+	let cellAddress = tr.dataset.cellAddress;
+	let workBook = tr.dataset.workbook;
+	let workSheet = tr.dataset.worksheet;
+	let lesId = tr.dataset.lesId;
+	let url = tr.dataset.url;
+	if (rowType == "excel") {
+		let url$1 = await getUrlForWorksheet(workBook, workSheet, cellAddress, academie, schoolYear);
+		if (url$1 == "") {
+			alert("Geen url naar het Excel bestand. Plak de url in het Excelbestand en geef de cel de naam 'Url'. Stuur de gegevens terug door.");
+			return;
+		}
+		window.open(url$1, "_blank");
+	} else if (rowType == "dko3") location.href = DKO3_BASE_URL + "#lessen-les?id=" + lesId;
+	else if (rowType == "www") window.open(url, "_blank").focus();
+}
+function toCompactDayString(day) {
+	switch (day) {
+		case "MAANDAG": return "ma ";
+		case "DINSDAG": return "di ";
+		case "WOENSDAG": return "wo ";
+		case "DONDERDAG": return "do ";
+		case "VRIJDAG": return "vr ";
+		case "ZATERDAG": return "za ";
+		case "ZONDAG": return "zo ";
+		case "": return "?? ";
+		default: unreachable(day);
+	}
+}
+function excelPostoExcelAddress(row, column) {
+	return indexToExcelColumn(column) + (row + 1).toString();
+}
+function indexToExcelColumn(index) {
+	let quotient = Math.floor(index / 26);
+	if (quotient <= 0) return chars[index];
+	return indexToExcelColumn(quotient - 1) + chars[index % 26];
+}
+const chars = [
+	"A",
+	"B",
+	"C",
+	"D",
+	"E",
+	"F",
+	"G",
+	"H",
+	"I",
+	"J",
+	"K",
+	"L",
+	"M",
+	"N",
+	"O",
+	"P",
+	"Q",
+	"R",
+	"S",
+	"T",
+	"U",
+	"V",
+	"W",
+	"X",
+	"Y",
+	"Z"
+];
+
+//#endregion
+//#region typescript/roster_diff/buildDiff.ts
+let cachedDiffs = void 0;
+async function getJsonDiffsCached(academie, schoolYear, diffPageType) {
+	if (cachedDiffs) return cachedDiffs;
+	return getDiffsFromCloud(academie, schoolYear, diffPageType);
+}
+let prepareWwwData = async function(statusReporter, academie, schoolYear, dko3DiffData, diffSettings) {
+	statusReporter.reportStatus("Website uurroosters ophalen...");
+	let otherLessen = new Set(await parseWww(dko3DiffData, diffSettings));
+	return {
+		excelRosters: [],
+		otherLesSet: otherLessen
+	};
+};
+let prepareExcelData = async function(statusReporter, academie, schoolYear, dko3DiffData, diffSettings) {
+	statusReporter.reportStatus("Excel bestanden ophalen...");
+	let folderPath = await fetchFolderChanged(`Dko3/Uurroosters/${academie}/${schoolYear}/`);
+	statusReporter.reportStatus(`${folderPath.files.length} Excel bestanden gevonden.`);
+	let jsonExcelDatas = [];
+	for (let file of folderPath.files) {
+		let fileShortName = file.name.replaceAll("Dko3/Uurroosters/", "");
+		statusReporter.reportStatus(`Inlezen van ${fileShortName}...`);
+		let excelData = await fetchExcelData(file.name);
+		jsonExcelDatas.push(excelData);
+	}
+	let excelLessenArray = [];
+	let excelRosters = [];
+	statusReporter.reportStatus("Excel tabellen bouwen...");
+	for (let excelData of jsonExcelDatas) {
+		let factory = new RosterFactory(excelData);
+		let table = factory.getTable();
+		let roster = new ExcelRoster(table, dko3DiffData, diffSettings);
+		excelRosters.push(roster);
+		let classDefs = roster.scrapeUurrooster();
+		if (classDefs) excelLessenArray.push(classDefs);
+		console.log(excelLessenArray);
+	}
+	statusReporter.reportStatus("Lessen vergelijken...");
+	let dddata = dko3DiffData;
+	let otherLesSet = new Set(excelLessenArray.flat().map((les) => new TaggedExcelLes(les, dddata.preparedDko3DiffData.teachers, diffSettings)));
+	otherLesSet.forEach((les) => {
+		if (isExcelLesToIgnore(les, diffSettings.preparedDiffSettings.ignoreList)) otherLesSet.delete(les);
+	});
+	return {
+		excelRosters,
+		otherLesSet
+	};
+};
+function updateDko3DiffDataAndSettings(dko3DiffData, diffSettings) {
+	for (let teacher of dko3DiffData.teachers) for (let tagDef of diffSettings.tagDefs) if (teacher.fullName == tagDef.tag) teacher.callName = tagDef.searchString;
+	let classNamesFromTags = diffSettings.tagDefs.filter((tagDef) => tagDef.isClassName).map((tagDef) => tagDef.searchString);
+	return {
+		dko3DiffData: { preparedDko3DiffData: dko3DiffData },
+		diffSettings: {
+			preparedDiffSettings: diffSettings,
+			classNamesFromTags
+		}
+	};
+}
+async function buildAndSaveDiff(statusReporter, fetchListener, academie, schoolYear, dko3DiffData, diffSettings, diffPageType, prepareOtherData, errors) {
+	statusReporter.reportStatus(`DKO3 data ophalen...`);
+	if (!dko3DiffData) dko3DiffData = await getDko3Data(schoolYear, statusReporter, fetchListener);
+	let json = JSON.stringify(dko3DiffData);
+	let preparedData = updateDko3DiffDataAndSettings(dko3DiffData, diffSettings);
+	let { excelRosters, otherLesSet } = await prepareOtherData(statusReporter, academie, schoolYear, preparedData.dko3DiffData, preparedData.diffSettings);
+	let res = {
+		excelRosters,
+		...await calcDiff(dko3DiffData, statusReporter, preparedData.diffSettings, otherLesSet)
+	};
+	deleteNotification("FILE_POSTED").then(() => fetchAndDisplayNotifications());
+	dko3DiffData = JSON.parse(json);
+	dko3DiffData.extraTeachersCache = res.extraTeacherCache.toJSON();
+	localStorage.setItem(getDiffsDko3CacheFileName(academie, schoolYear, diffPageType), JSON.stringify(dko3DiffData));
+	let jsonDiffs = await createJsonDiffs(res.diffs, res.dko3LesSet, res.otherLesSet, res.excelRosters, academie, schoolYear, diffPageType, errors);
+	let fileName = getDiffsCloudFileName(academie, schoolYear, diffPageType);
+	await cloud.json.upload(fileName, jsonDiffs);
+	sessionStorage.setItem(fileName, JSON.stringify(jsonDiffs));
+	statusReporter.reportStatus(``);
+	cachedDiffs = jsonDiffs;
+	return jsonDiffs;
+}
+async function getDko3Data(schoolYear, statusReporter, fetchListener) {
+	statusReporter.reportStatus("Vestigingsplaatsen ophalen...");
+	let locationsTable = await getTableFromHash("extra-academie-vestigingsplaatsen", true, fetchListener);
+	let locations = [...locationsTable.getRows()].map((tr) => tr.cells[1].textContent);
+	statusReporter.reportStatus("Leraren ophalen...");
+	let teachers = await fetchTeachers(schoolYear);
+	let lessen = (await scrapeAllNormalLessen(schoolYear, statusReporter)).map((l) => l.les);
+	statusReporter.reportStatus("Ophalen aliaslessen...");
+	let dko3AliasLessen = (await scrapeLessen(Domein$1.Woord, LesType$1.alias, schoolYear)).map((l) => l.les);
+	for (let les of dko3AliasLessen) les.linkedLessenIds = await getAliassesForLes(les.id, statusReporter);
+	dko3AliasLessen = dko3AliasLessen.filter((l) => l.linkedLessenIds.length > 1);
+	let subjects = lessen.map((les) => [les.vakNaam, les.naam]).flat();
+	subjects = [...new Set(subjects)];
+	let classNames = lessen.map((les) => les.naam).filter((n) => n != "");
+	subjects = [...new Set(subjects)];
+	return {
+		lessen,
+		locations,
+		teachers,
+		dko3AliasLessen,
+		subjects,
+		classNames
+	};
+}
+async function scrapeAllNormalLessen(schoolYear, statusReporter) {
+	statusReporter.reportStatus("Ophalen woordlessen...");
+	let dko3Lessen = await scrapeLessen(Domein$1.Woord, LesType$1.gewone, schoolYear);
+	statusReporter.reportStatus("Ophalen muzieklessen...");
+	let muziekLessen = await scrapeLessen(Domein$1.Muziek, LesType$1.gewone, schoolYear);
+	statusReporter.reportStatus("Ophalen kunstenbad lessen...");
+	let kbLessen = await scrapeLessen(Domein$1.DomeinOV, LesType$1.gewone, schoolYear);
+	return [
+		...dko3Lessen,
+		...muziekLessen,
+		...kbLessen
+	];
+}
+var Domein$1 = /* @__PURE__ */ function(Domein$2) {
+	Domein$2["Muziek"] = "3";
+	Domein$2["Woord"] = "4";
+	Domein$2["DomeinOV"] = "5";
+	Domein$2["Dans"] = "2";
+	return Domein$2;
+}(Domein$1 || {});
+async function scrapeLessen(domein, type, schoolYear) {
+	let chain = new FetchChain();
+	let hash = "lessen-overzicht";
+	await chain.fetch(DKO3_BASE_URL + "#lessen-overzicht" + hash);
+	await chain.fetch("view.php?args=" + hash);
+	let params = new URLSearchParams({
+		schooljaar: schoolYear,
+		domein,
+		vestigingsplaats: "",
+		vak: "",
+		graad: "",
+		leerkracht: "",
+		ag: "",
+		lesdag: "",
+		verberg_online: "-1",
+		soorten_lessen: type,
+		volzet: "-1"
+	});
+	let tableText = await fetchLessen(params);
+	let div = document.createElement("div");
+	div.innerHTML = tableText;
+	let table = div.querySelector("#" + LESSEN_TABLE_ID);
+	return scrapeLessenOverzicht(table);
+}
+var TaggedExcelLes = class extends TaggedLes {
+	lesType = "excel";
+	className;
+	dayTimeSlice;
+	hash;
+	constructor(les, teachers, diffSettings) {
+		let searchText = " " + les.cellValue.toLowerCase().replaceAll("\n", " \n ").replaceAll("(", " ( ").replaceAll(")", " ) ").replaceAll(".", " . ").replaceAll(",", " , ").replaceAll("-", " - ") + " ";
+		super(les, [], searchText, [], false);
+		this.className = this.lesMoment.className;
+		this.location = this.lesMoment.location;
+		this.teachers = preTranslate(les.cellValue, diffSettings).split(/[\/,]/g).map((t) => findTeacher(t, teachers, "")).filter((t) => t != "");
+		if (this.teachers.length == 0) this.teachers = preTranslate(this.lesMoment.teacher, diffSettings).split(/[\/,]/g).map((t) => t.trim()).filter((t) => t.substring(t.length - 1) != "?").map((t) => findTeacher(t, teachers, t)).filter((t) => t != "");
+		this.subjects = les.subjects;
+		this.subjects = this.subjects.filter((s) => s);
+		if (this.lesMoment.className) this.subjects.push(this.lesMoment.className);
+		this.subjects = [...new Set(this.subjects)];
+		this.dayTimeSlice = new DayTimeSlice(les.day, les.timeSlice);
+		this.gradeYears = les.gradeYears;
+		this.hash = les.getHash();
+	}
+};
+function isDko3LesToIgnore(les, ignoreList) {
+	return ignoreList.some((ignore) => (" " + les.naam.toLowerCase() + " ").includes(ignore) || (" " + les.vakNaam.toLowerCase() + " ").includes(ignore));
+}
+function isExcelLesToIgnore(les, ignoreList) {
+	return ignoreList.some((ignore) => les.lesMoment.cellValue.includes(ignore)) || ignoreList.some((ignore) => les.searchText.includes(ignore));
+}
+function splitDko3LessenIntoLesmomenten(dko3Data, diffSettings, statusReporter) {
+	let lesMomenten = dko3Data.lessen.filter((les) => !isDko3LesToIgnore(les, diffSettings.preparedDiffSettings.ignoreList)).map((les) => {
+		if (les.dayTimeSlices.length == 0) statusReporter.addError(`Les <a href="https://administratie.dko3.cloud/#lessen-les?id=${les.id}">${les.id}</a> heeft geen lesmoment. ${les.vakNaam}(${les.naam}), ${les.teacher}`, "error");
+		let lesMomenten$1 = les.dayTimeSlices.map((slice) => {
+			return new Dko3LesMoment(les, slice);
+		});
+		for (let moment of lesMomenten$1) moment.lesMomenten = lesMomenten$1;
+		return lesMomenten$1;
+	}).flat().map((lesMoment) => new TaggedDko3LesMoment(lesMoment));
+	return new Set(lesMomenten);
+}
+function createLesMomenten(dko3Data, statusReporter, diffSettings) {
+	let dko3LesSet = splitDko3LessenIntoLesmomenten(dko3Data, diffSettings, statusReporter);
+	let dko3LesMap = new Map();
+	for (let les of dko3Data.lessen) dko3LesMap.set(les.id, les);
+	let lesMomentenMap = new Map();
+	for (let les of dko3LesSet.values()) lesMomentenMap.set(les.lesMoment.momentId, les);
+	loopAliasLessen: for (let aliasLes of dko3Data.dko3AliasLessen) {
+		if (aliasLes.linkedLessenIds.length < 2) {
+			statusReporter.addError(`Error: alias les <a href="https://administratie.dko3.cloud/#lessen-les?id=${aliasLes.id}">${aliasLes.id}</a> heeft geen 2 geldige gekoppelde lessen.`, "error");
+			continue;
+		}
+		let possibleLinkedLessen = aliasLes.linkedLessenIds.map((lesId) => dko3LesMap.get(lesId));
+		if (possibleLinkedLessen.includes(void 0)) {
+			statusReporter.addError(`Voor aliasles <a href="https://administratie.dko3.cloud/#lessen-les?id=${aliasLes.id}">${aliasLes.id}</a> zijn er ontbrekende gekoppelde lessen.`, "error");
+			continue;
+		}
+		let linkedLessen = possibleLinkedLessen;
+		let aliasLocation = aliasLes.vestiging;
+		let aliasGradeYearsStr = GradeYear.toString(aliasLes.gradeYears);
+		for (let linkedLes of linkedLessen) {
+			if (linkedLes.vestiging != aliasLocation) statusReporter.addError(`Voor aliasles <a href="https://administratie.dko3.cloud/#lessen-les?id=${aliasLes.id}">${aliasLes.id}</a> is de vestiging niet dezelfde als de gekoppelde lessen.`, "error");
+			if (GradeYear.toString(linkedLes?.gradeYears ?? []) != aliasGradeYearsStr) statusReporter.addError(`Voor aliasles <a href="https://administratie.dko3.cloud/#lessen-les?id=${aliasLes.id}">${aliasLes.id}</a> zijn de graden en jaren niet gelijk aan de gekoppelde les <a href="https://administratie.dko3.cloud/#lessen-les?id=${linkedLes.id}">${linkedLes.id}</a>.`, "error");
+			if (linkedLes.online) statusReporter.addError(`Voor aliasles <a href="https://administratie.dko3.cloud/#lessen-les?id=${aliasLes.id}">${aliasLes.id}</a> is gekoppelde les <a href="https://administratie.dko3.cloud/#lessen-les?id=${linkedLes.id}">${linkedLes.id}</a> online zichtbaar.`, "error");
+		}
+		let linkedLesMomentIds = linkedLessen.map((les) => les.dayTimeSlices.map((slice) => Dko3LesMoment.createLesMomentId(les, slice))).flat();
+		let linkedLesMomenten = linkedLesMomentIds.map((momentId) => lesMomentenMap.get(momentId));
+		linkedLesMomenten.sort((a, b) => DayTimeSlice.startToNumber(a.lesMoment.dayTimeSlice) - DayTimeSlice.startToNumber(b.lesMoment.dayTimeSlice));
+		let previousLesMoment = linkedLesMomenten[0];
+		for (let i = 1; i < linkedLesMomenten.length; i++) {
+			let currentLesMoment = linkedLesMomenten[i];
+			if (!currentLesMoment.lesMoment.dayTimeSlice.timeSlice || !previousLesMoment.lesMoment.dayTimeSlice.timeSlice) {
+				statusReporter.addError(`Voor aliasles <a href="https://administratie.dko3.cloud/#lessen-les?id=${aliasLes.id}">${aliasLes.id}</a> zijn er ontbrekende lestijden.`, "error");
+				continue loopAliasLessen;
+			}
+			if (DayTimeSlice.endToNumber(previousLesMoment.lesMoment.dayTimeSlice) == DayTimeSlice.startToNumber(currentLesMoment.lesMoment.dayTimeSlice)) {
+				let newTimeSlice = new TimeSlice(structuredClone(previousLesMoment.lesMoment.dayTimeSlice.timeSlice.start), structuredClone(currentLesMoment.lesMoment.dayTimeSlice.timeSlice.end));
+				let newDayTimeSlice = new DayTimeSlice(previousLesMoment.lesMoment.dayTimeSlice.day, newTimeSlice);
+				let newAliasLesMoment = new TaggedDko3LesMoment(new Dko3LesMoment(aliasLes, newDayTimeSlice));
+				dko3LesSet.add(newAliasLesMoment);
+				dko3LesSet.delete(previousLesMoment);
+				dko3LesSet.delete(currentLesMoment);
+				previousLesMoment = newAliasLesMoment;
+			} else previousLesMoment = currentLesMoment;
+		}
+	}
+	return dko3LesSet;
+}
+async function calcDiff(dko3Data, statusReporter, diffSettings, otherLesSet) {
+	let dko3LesSet = createLesMomenten(dko3Data, statusReporter, diffSettings);
+	let extraTeacherCache = ExtraTeacherCache.fromJSON(dko3Data.extraTeachersCache ?? []);
+	for (const les1 of [...dko3LesSet.values()].filter((les) => les.lesMoment.les.teacher.includes("(en nog"))) les1.teachers = await extraTeacherCache.getExtraTeachers(les1.lesMoment.les.id);
+	let diffs = [];
+	let ctx = {};
+	diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "perfect match", diffSettings, matchBasedOnName));
+	diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "perfect match", diffSettings, perfectMatch));
+	diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "match without gradeYears", diffSettings, matchWithoutGradeYears));
+	diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "match without teacher", diffSettings, matchWithoutTeacher));
+	diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "match without location", diffSettings, matchWithoutLocation));
+	diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "match without time and day", diffSettings, matchWithoutTimeAndDay));
+	diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "match without teacher, time and day", diffSettings, matchWithoutTeacherTimeAndDay));
+	diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "match without time and day and teacher", diffSettings, matchWithoutGradeYearsTeacher));
+	console.log(diffs);
+	console.log(dko3LesSet.values());
+	console.log(otherLesSet.values());
+	return {
+		diffs,
+		dko3LesSet,
+		otherLesSet,
+		extraTeacherCache
+	};
+}
+var ExtraTeacherCache = class ExtraTeacherCache {
+	teacherMap = new Map();
+	async getExtraTeachers(lesId) {
+		if (this.teacherMap.has(lesId)) return this.teacherMap.get(lesId);
+		let newEntry = await getExtraTeachers(lesId);
+		this.teacherMap.set(lesId, newEntry);
+		return newEntry;
+	}
+	toJSON() {
+		return [...this.teacherMap.entries()];
+	}
+	static fromJSON(json) {
+		let cache = new ExtraTeacherCache();
+		cache.teacherMap = new Map(json);
+		return cache;
+	}
+};
+async function getExtraTeachers(lesId) {
+	await fetch("https://administratie.dko3.cloud/view.php?args=lessen-les?id=" + lesId);
+	await fetch("https://administratie.dko3.cloud/views/lessen/les/index.view.php");
+	await fetch("https://administratie.dko3.cloud/views/lessen/les/index.details.tab.php");
+	let res = await fetch("https://administratie.dko3.cloud/views/lessen/les/details/index.details.leerkrachten.card.php");
+	let htmlTeachers = await res.text();
+	let div = document.createElement("div");
+	div.innerHTML = htmlTeachers;
+	let strongs = div.querySelectorAll("td > strong");
+	return [...strongs].map((s) => {
+		return s.textContent.replaceAll("  ", " ").replaceAll(" ,", ",").trim();
+	});
+}
+async function getAliassesForLes(lesId, statusReporter) {
+	await fetch("https://administratie.dko3.cloud/view.php?args=lessen-les?id=" + lesId);
+	await fetch("https://administratie.dko3.cloud/views/lessen/les/index.view.php");
+	await fetch("https://administratie.dko3.cloud/views/lessen/les/index.details.tab.php");
+	await fetch("https://administratie.dko3.cloud/views/lessen/les/index.meta.tab.php");
+	let res = await fetch("https://administratie.dko3.cloud/views/lessen/les/meta/alias_gekoppelde_lessen.card.php");
+	let htmlAliases = await res.text();
+	let div = document.createElement("div");
+	div.innerHTML = htmlAliases;
+	let anchors = div.querySelectorAll("td > a");
+	if (anchors.length == 0) statusReporter.reportStatus(`ERROR: alias les ${lesId} heeft geen (geldige) gekoppelde lessen.`);
+	return [...anchors].map((a) => a.textContent.trim());
+}
+async function fetchTeachers(schoolYear) {
+	await fetch(DKO3_BASE_URL + "#personeel-personeelsleden");
+	await fetch(DKO3_BASE_URL + "view.php?args=personeel-personeelsleden");
+	await fetch(DKO3_BASE_URL + "views/personeel/personeelsleden/index.view.php");
+	await fetch(DKO3_BASE_URL + "views/personeel/personeelsleden/vestigingsplaats_schooljaar_filter.php?schooljaar=2025-2026");
+	let formData = new FormData();
+	formData.append("filters[naam]", "");
+	formData.append("filters[status_personeelsleden]", "1");
+	formData.append("filters[leerkracht]", "1");
+	formData.append("filters[interim]", "1");
+	formData.append("filters[alc]", "false");
+	formData.append("filters[administratie]", "false");
+	formData.append("filters[overig]", "false");
+	formData.append("filters[schooljaar]", schoolYear);
+	await fetch("https://administratie.dko3.cloud/views/personeel/personeelsleden/save_filters.php", {
+		method: "POST",
+		body: formData
+	});
+	let res = await fetch(DKO3_BASE_URL + "views/personeel/personeelsleden/personeelsleden.table.php");
+	let html = await res.text();
+	let div = document.createElement("div");
+	div.innerHTML = html;
+	return [...div.querySelectorAll(`td[data-label="Naam"] strong`)].map((strong) => strong.textContent).map((name) => {
+		let split = name.split(",");
+		name = name.trim().replaceAll(" ,", ",");
+		return {
+			fullName: name,
+			firstName: split[1].trim(),
+			lastName: split[0].trim()
+		};
+	});
+}
+function findTeacher(searchString, teachers, defaultValue) {
+	let lowerCase = searchString.toLowerCase();
+	let paddedLowerCase = " " + lowerCase + " ";
+	for (let teacherDef of teachers) if (lowerCase.includes(teacherDef.firstName.toLowerCase()) && lowerCase.includes(teacherDef.lastName.toLowerCase())) return teacherDef.fullName;
+	for (let teacherDef of teachers) {
+		if (lowerCase.includes(teacherDef.firstName.toLowerCase())) return teacherDef.fullName;
+		if (teacherDef.callName) {
+			if (paddedLowerCase.includes(teacherDef.callName.toLowerCase())) return teacherDef.fullName;
+		}
+	}
+	return defaultValue;
+}
+function getDiffsCloudFileName(academie, schoolYear, diffPageType) {
+	return `Dko3/${academie}_${schoolYear}_${diffPageType}_diffs.json`;
+}
+async function getDiffsFromCloud(academie, schoolYear, diffPageType) {
+	let fromCloud = await cloud.json.fetch(getDiffsCloudFileName(academie, schoolYear, diffPageType)).catch(function(err) {
+		console.log(err);
+		return null;
+	});
+	if (fromCloud) {
+		for (let diff of fromCloud.diffs) {
+			if (!diff.dko3Les.gradeYears) diff.dko3Les.gradeYears = [];
+			if (!diff.otherLes.gradeYears) diff.otherLes.gradeYears = [];
+		}
+		for (let orphan of fromCloud.orphanedDko3Lessen) if (!orphan.gradeYears) orphan.gradeYears = [];
+		for (let orphan of fromCloud.orphanedOtherLessen) if (!orphan.gradeYears) orphan.gradeYears = [];
+	}
+	return fromCloud;
+}
+async function setIgnoredFlags(orphanedDko3Lessen, orphanedOtherLessen, academie, schoolYear, diffPageType) {
+	try {
+		let ignoreHashes = await fetchIgnoredDiffHashes(academie, schoolYear, diffPageType);
+		let ignoreHashSet = new Set(ignoreHashes);
+		for (let les of orphanedDko3Lessen) les.ignore = ignoreHashSet.has(les.hash);
+		for (let les of orphanedOtherLessen) les.ignore = ignoreHashSet.has(les.hash);
+	} catch {}
+}
+async function createJsonDiffs(diffList, dko3LesSet, otherLesSet, excelRosters, academie, schoolYear, diffPageType, errors) {
+	let diffs = diffList.filter((diff) => diff.diffType != "perfect match" || diff.weight.weight != 1e3).map((diff) => {
+		let otherLes;
+		if (diffPageType == "EXCEL") otherLes = excelLesToJson(diff.otherLes);
+		else otherLes = wwwLesToJson(diff.otherLes);
+		return {
+			otherLes,
+			dko3Les: dko3LesToJson(diff.dko3Les),
+			diffType: diff.diffType,
+			weight: diff.weight
+		};
+	});
+	let orphanedDko3Lessen = [...dko3LesSet.values()].map((les) => dko3LesToJson(les));
+	let orphanedOtherLessen;
+	if (diffPageType == "EXCEL") orphanedOtherLessen = [...otherLesSet.values()].map((les) => excelLesToJson(les));
+	else orphanedOtherLessen = [...otherLesSet.values()].map((les) => wwwLesToJson(les));
+	await setIgnoredFlags(orphanedDko3Lessen, orphanedOtherLessen, academie, schoolYear, diffPageType);
+	let workBooks = new Map();
+	for (let excelData of excelRosters.map((r) => r.table.excelData)) {
+		if (!workBooks.has(excelData.workbookName)) workBooks.set(excelData.workbookName, {
+			name: excelData.workbookName,
+			worksheets: []
+		});
+		let workBook = workBooks.get(excelData.workbookName);
+		let workSheet = {
+			name: excelData.worksheetName,
+			url: excelData.url
+		};
+		workBook.worksheets.push(workSheet);
+	}
+	return {
+		academie,
+		schoolYear,
+		diffs,
+		errors,
+		orphanedDko3Lessen,
+		orphanedOtherLessen,
+		isoDate: new Date().toISOString(),
+		workBooks: [...workBooks.values()]
+	};
+}
+function dko3LesToJson(dko3Les) {
+	return {
+		lesType: "dko3",
+		day: dko3Les.lesMoment.dayTimeSlice.day,
+		timeSlice: toCompactTimeSliceString(dko3Les.lesMoment.dayTimeSlice.timeSlice),
+		subjects: dko3Les.subjects.join(","),
+		teachers: dko3Les.teachers.join(","),
+		location: dko3Les.location,
+		hash: dko3Les.getHash(),
+		ignore: dko3Les.ignore,
+		gradeYears: dko3Les.gradeYears,
+		momentId: dko3Les.lesMoment.momentId,
+		lesId: dko3Les.lesMoment.les.id
+	};
+}
+function excelLesToJson(excelLes) {
+	return {
+		lesType: "excel",
+		day: excelLes.lesMoment.day,
+		timeSlice: toCompactTimeSliceString(excelLes.lesMoment.timeSlice),
+		subjects: excelLes.subjects.filter((s) => !!s).join(","),
+		teachers: excelLes.teachers.join(","),
+		location: excelLes.location,
+		hash: excelLes.getHash(),
+		ignore: excelLes.ignore,
+		gradeYears: excelLes.gradeYears,
+		gotoData: {
+			lesId: "",
+			cellAddress: excelPostoExcelAddress(excelLes.lesMoment.excelRow, excelLes.lesMoment.excelColumn),
+			text: excelLes.lesMoment.cellValue,
+			workBook: excelLes.lesMoment.table.excelData.workbookName,
+			workSheet: excelLes.lesMoment.table.excelData.worksheetName,
+			url: "",
+			rowType: "excel"
+		}
+	};
+}
+function wwwLesToJson(wwwLesDef) {
+	return {
+		lesType: "www",
+		day: wwwLesDef.day,
+		timeSlice: toCompactTimeSliceString(wwwLesDef.timeSlice),
+		subjects: wwwLesDef.subjects.filter((s) => !!s).join(","),
+		teachers: wwwLesDef.teachers.join(","),
+		location: wwwLesDef.location,
+		hash: wwwLesDef.getHash(),
+		ignore: wwwLesDef.ignore,
+		gradeYears: wwwLesDef.gradeYears,
+		gotoData: {
+			lesId: "",
+			cellAddress: "",
+			text: wwwLesDef.lesDef.pageTitle + " | " + wwwLesDef.lesDef.sectionTitle + " | " + wwwLesDef.lesDef.panelTitle + " | " + wwwLesDef.lesDef.className,
+			workBook: "",
+			workSheet: "",
+			url: wwwLesDef.lesDef.url,
+			rowType: "www"
+		}
+	};
+}
+function createDiffTable(divResults, diffPageType) {
+	let { first: table, last: tbody } = emmet.appendChild(divResults, `table#orphans${diffPageType}.diff.diffOrphans>(thead>tr>(th.subject{Vak/Lesnaam}+th.gradeYear{Gr.Jr}+th.teacher{Leraar}+th.day{Dag}+th.{Uur}+th.location{Vestiging}+th+th))+tbody`);
+	return {
+		table,
+		tbody
+	};
+}
+function toCompactTimeSliceString(timeSlice) {
+	if (!timeSlice) return "-geen uur-";
+	return `${pad(timeSlice.start.hour, 2)}:${pad(timeSlice.start.minutes, 2)} - ${pad(timeSlice.end.hour, 2)}:${pad(timeSlice.end.minutes, 2)}`;
+}
+async function getUrlForWorksheet(workBook, workSheet, cellAddress, academie, schoolYear) {
+	let jsonDiffs = await getJsonDiffsCached(academie, schoolYear, "EXCEL");
+	let url = jsonDiffs.workBooks.find((wb) => wb.name == workBook)?.worksheets.find((ws) => ws.name == workSheet)?.url;
+	if (cellAddress) url = url + `&activeCell=${workSheet}!${cellAddress}`;
+	return url;
+}
+
+//#endregion
+//#region typescript/www_diff/buildDiff.ts
+function translate(text, trns) {
+	return text.replaceAll(trns.search, trns.replace);
+}
+function preTranslate(text, diffSettings) {
+	diffSettings.preparedDiffSettings.preTranslations.forEach((trns) => text = translate(text, trns));
+	return text;
+}
+var TaggedWwwLesDef = class {
+	lesType = "www";
+	hash;
+	lesDef;
+	timeSlice;
+	day;
+	teachers;
+	location;
+	subjects;
+	className;
+	gradeYears;
+	ignore;
+	dayTimeSlice;
+	constructor(lesDef, timeSlice, day, teachers, dko3Data, diffSettings) {
+		this.lesDef = lesDef;
+		this.timeSlice = timeSlice;
+		this.day = day;
+		this.teachers = teachers;
+		let translatedClassName = preTranslate(this.lesDef.className, diffSettings);
+		let tags = ExcelRoster.findTags(` ${translatedClassName} ${this.lesDef.location} `, diffSettings.preparedDiffSettings.tagDefs);
+		let tagStrings = tags.map((t) => t.tag);
+		let location$1 = ExcelRoster.findLocation(tagStrings, dko3Data.preparedDko3DiffData.locations);
+		if (!location$1) {
+			let tags$1 = ExcelRoster.findTags(ExcelRoster.makeParsable(this.lesDef.panelTitle), diffSettings.preparedDiffSettings.tagDefs);
+			let tagStrings$1 = tags$1.map((t) => t.tag);
+			location$1 = ExcelRoster.findLocation(tagStrings$1, dko3Data.preparedDko3DiffData.locations);
+		}
+		this.location = location$1 ?? "Academie Willem Van Laarstraat, Berchem";
+		this.subjects = ExcelRoster.findSubjects(this.lesDef.className, tagStrings, dko3Data);
+		this.className = translatedClassName;
+		this.gradeYears = ExcelRoster.findGradeYears(ExcelRoster.makeParsable(this.lesDef.className));
+		if (this.gradeYears.length == 0) this.gradeYears = ExcelRoster.getGradeYearsFromTags(tags);
+		if (this.gradeYears.length == 0) {
+			let newTags = ExcelRoster.findTags(ExcelRoster.makeParsable(lesDef.panelTitle, "leave 'en' alone"), diffSettings.preparedDiffSettings.tagDefs);
+			this.gradeYears = ExcelRoster.getGradeYearsFromTags(newTags);
+		}
+		if (this.gradeYears.length == 0) {
+			let newTags = ExcelRoster.findTags(ExcelRoster.makeParsable(lesDef.sectionTitle, "leave 'en' alone"), diffSettings.preparedDiffSettings.tagDefs);
+			this.gradeYears = ExcelRoster.getGradeYearsFromTags(newTags);
+		}
+		if (this.gradeYears.length == 0) {
+			let newTags = ExcelRoster.findTags(ExcelRoster.makeParsable(lesDef.pageTitle, "leave 'en' alone"), diffSettings.preparedDiffSettings.tagDefs);
+			this.gradeYears = ExcelRoster.getGradeYearsFromTags(newTags);
+		}
+		this.ignore = false;
+		this.dayTimeSlice = new DayTimeSlice(this.day, this.timeSlice);
+		this.hash = this.getHash();
+	}
+	getHash() {
+		return `www:${this.lesDef.className}-${this.lesDef.day}-${TimeSlice.toString(this.timeSlice)}-${this.teachers.join()}-${this.location}`;
+	}
+};
+function tagWwwLes(les, dko3DiffData, diffSettings) {
+	let times = TimeSlice.parseShortTimes(les.timeString);
+	let day = toDay(les.day);
+	if (!day) console.log(`Could not parse day ${les.day}`);
+	if (times.length != 2) {
+		console.log(`Could not parse time slice ${les.timeString} for class ${les.className}. url: ${les.url}`);
+		return null;
+	}
+	let timeSlice = new TimeSlice(times[0], times[1]);
+	let teachers = preTranslate(les.teacher, diffSettings).split(/[\/,&]/g).map((t) => findTeacher(t, dko3DiffData.preparedDko3DiffData.teachers, t)).filter((t) => t != "");
+	return new TaggedWwwLesDef(les, timeSlice, day ?? "", teachers, dko3DiffData, diffSettings);
+}
+async function requestWww(urlList) {
+	return sendRequest(Actions.Www, TabType.Main, TabType.Undefined, void 0, { urlList }, "");
+}
+async function parseWww(dko3DiffData, diffSettings) {
+	let response = await requestWww(diffSettings.preparedDiffSettings.urls);
+	let lessen = [];
+	console.log(response);
+	for (let html of response.data) lessen = lessen.concat(parseHtml(html));
+	console.log(lessen);
+	let taggedLessen = lessen.map((les) => tagWwwLes(les, dko3DiffData, diffSettings)).filter((les) => les != null);
+	let taggedLesMap = new Map();
+	for (let taggedLes of taggedLessen) taggedLesMap.set(taggedLes.getHash(), taggedLes);
+	console.log(taggedLesMap);
+	return taggedLesMap.values();
+}
+function parseHtml(html) {
+	let scanner = new TokenScanner(html.text);
+	scanner.find("<main ");
+	scanner.find(">");
+	scanner.clipTo("</main>");
+	console.log(scanner.result());
+	let div = document.createElement("div");
+	div.innerHTML = scanner.result();
+	console.log(div);
+	let pageTitle = div.querySelector("h1.title").textContent;
+	console.log(pageTitle);
+	let classTables = [...div.querySelectorAll("table")].filter((table) => {
+		return table.tHead?.rows[0].textContent.toLowerCase().includes("klas");
+	});
+	let lessen = [];
+	for (let table of classTables) lessen = lessen.concat(scrapeClassTable(html.url, table, pageTitle));
+	return lessen;
+}
+function scrapeClassTable(url, table, pageTitle) {
+	let panelTitle = "";
+	let panelDiv = table.closest("div.card.panel");
+	if (panelDiv) {
+		let button = panelDiv.querySelector("button");
+		if (button) panelTitle = button.textContent;
+	}
+	let sectionTitle = "";
+	let current = table.parentElement;
+	while (true) {
+		if (!current) break;
+		if (current.tagName == "SECTION") break;
+		let h2 = current.querySelector("h2");
+		if (h2) {
+			sectionTitle = h2.textContent;
+			break;
+		}
+		current = current.parentElement;
+	}
+	pageTitle = pageTitle.replaceAll("\n", " ").trim();
+	panelTitle = panelTitle.replaceAll("\n", " ").trim();
+	let classIndex = void 0;
+	let dayIndex = void 0;
+	let timeIndex = void 0;
+	let locationIndex = void 0;
+	let teacherIndex = void 0;
+	for (let [i, th] of [...table.tHead.rows[0].cells].entries()) switch (th.textContent?.toLowerCase()) {
+		case "klas":
+			classIndex = i;
+			break;
+		case "dag":
+			dayIndex = i;
+			break;
+		case "lestijd":
+			timeIndex = i;
+			break;
+		case "locatie":
+			locationIndex = i;
+			break;
+		case "leerkracht":
+			teacherIndex = i;
+			break;
+		default: break;
+	}
+	let lastClass = "";
+	let lessen = [...table.tBodies[0].rows].map((row) => {
+		let className = row.cells[classIndex].textContent ?? "";
+		className = className.trim();
+		if (className == "") className = lastClass;
+		lastClass = className;
+		let day = dayIndex ? row.cells[dayIndex].textContent : "";
+		let timeString = timeIndex ? row.cells[timeIndex].textContent : "";
+		let location$1 = locationIndex ? row.cells[locationIndex].textContent : "";
+		let teacher = teacherIndex ? row.cells[teacherIndex].textContent : "";
+		if (!day && !timeString && !location$1 && !teacher) return null;
+		if (className.toLowerCase().includes("begeleidingspraktijk") || className.toLowerCase().includes("muziektheorie") || className.toLowerCase().includes("compositie") || className.toLowerCase().includes("improvisatie") || className.toLowerCase().includes("musical zang") || className.toLowerCase().includes("musical koor")) return null;
+		return {
+			url,
+			pageTitle,
+			sectionTitle,
+			panelTitle,
+			className,
+			day,
+			timeString,
+			location: location$1,
+			teacher
+		};
+	});
+	return lessen.filter((les) => les != null);
+}
+
+//#endregion
 //#region typescript/roster_diff/excelRoster.ts
 var ClassDef = class {
 	day;
@@ -2049,9 +4669,11 @@ var ExcelRoster = class ExcelRoster {
 	dko3Data;
 	tagDefs;
 	ignoreList;
+	diffSettings;
 	constructor(table, dko3Data, diffSettings) {
 		this.table = table;
 		this.dko3Data = dko3Data;
+		this.diffSettings = diffSettings;
 		this.tagDefs = diffSettings.preparedDiffSettings.tagDefs;
 		this.ignoreList = diffSettings.preparedDiffSettings.ignoreList;
 	}
@@ -2075,7 +4697,7 @@ var ExcelRoster = class ExcelRoster {
 			if (cellValue) {
 				let rx = /\n/g;
 				let description = cellValue.replaceAll(rx, " ");
-				let parseText = ExcelRoster.makeParsable(description);
+				let parseText = ExcelRoster.makeParsable(preTranslate(description, this.diffSettings));
 				let timeSlice = void 0;
 				let mergedRange = this.table.RangeOfCell({
 					row,
@@ -2937,34 +5559,6 @@ function connvertToewijzingenToModules(jaarToewijzingen) {
 }
 
 //#endregion
-//#region typescript/pageState.ts
-function getPageSettings(pageName, defaultSettings) {
-	let storedState = localStorage.getItem(STORAGE_PAGE_SETTINGS_KEY_PREFIX + pageName);
-	if (storedState) return JSON.parse(storedState);
-	return defaultSettings;
-}
-function savePageSettings(state) {
-	localStorage.setItem(STORAGE_PAGE_SETTINGS_KEY_PREFIX + state.pageName, JSON.stringify(state));
-}
-let pageState$1 = { transient: {
-	getValue: getPageTransientStateValue,
-	setValue: setPageTransientStateValue,
-	clear: clearPageTransientState
-} };
-let globalTransientPageState = new Map();
-function clearPageTransientState() {
-	globalTransientPageState.clear();
-}
-function setPageTransientStateValue(key, transientState) {
-	globalTransientPageState.set(key, transientState);
-	return transientState;
-}
-function getPageTransientStateValue(key, defaultValue) {
-	let value = globalTransientPageState.get(key);
-	return value ? value : setPageTransientStateValue(key, defaultValue);
-}
-
-//#endregion
 //#region typescript/lessen/build.ts
 let NameSorting = /* @__PURE__ */ function(NameSorting$1) {
 	NameSorting$1[NameSorting$1["FirstName"] = 0] = "FirstName";
@@ -3371,56 +5965,6 @@ function filterTable(table, rowFilter) {
 }
 
 //#endregion
-//#region typescript/dropDownMenus.ts
-function addMenuItem(menu, title, indentLevel, onClick) {
-	let indentClass = indentLevel ? ".menuIndent" + indentLevel : "";
-	let { first } = emmet.appendChild(menu, `button.naked.dropDownItem${indentClass}{${title}}`);
-	let item = first;
-	item.onclick = (ev) => {
-		closeMenus();
-		onClick(ev);
-	};
-}
-function closeMenus() {
-	let dropdowns = document.getElementsByClassName("dropDownMenu");
-	for (let dropDown of dropdowns) dropDown.classList.remove("show");
-}
-function onWindowClick(event) {
-	if (event.target.matches(".dropDownIgnoreHide")) return;
-	closeMenus();
-}
-function initMenuEvents() {
-	window.onclick = onWindowClick;
-}
-function addMenuSeparator(menu, title, indentLevel) {
-	let indentClass = indentLevel ? ".menuIndent" + indentLevel : "";
-	let { first } = emmet.appendChild(menu, `div.dropDownSeparator.dropDownIgnoreHide${indentClass}{${title}}`);
-	let item = first;
-	item.onclick = (ev) => {
-		ev.stopPropagation();
-	};
-}
-function setupMenu(container, button) {
-	initMenuEvents();
-	container.classList.add("dropDownContainer");
-	button.classList.add("dropDownIgnoreHide", "dropDownButton");
-	let { first } = emmet.appendChild(container, "div.dropDownMenu");
-	let menu = first;
-	button.onclick = (ev) => {
-		ev.preventDefault();
-		ev.stopPropagation();
-		let dropDowwnMenu = ev.target.closest(".dropDownContainer").querySelector(".dropDownMenu");
-		if (dropDowwnMenu.classList.contains("show")) {
-			closeMenus();
-			return;
-		}
-		closeMenus();
-		dropDowwnMenu.classList.add("show");
-	};
-	return menu;
-}
-
-//#endregion
 //#region typescript/lessen/filter.ts
 function createBlockFilter(filter) {
 	return BlockInfo.getAllBlocks().filter(filter);
@@ -3566,7 +6110,7 @@ function addFilterFields() {
 
 //#endregion
 //#region typescript/werklijst/criteria.ts
-let Domein$1 = /* @__PURE__ */ function(Domein$2) {
+let Domein = /* @__PURE__ */ function(Domein$2) {
 	Domein$2["Muziek"] = "Muziek (Mu)";
 	Domein$2["Woord"] = "Woord (Wo)";
 	Domein$2["Dans"] = "Dans (Da)";
@@ -3659,1156 +6203,6 @@ function hasWerklijstNoCriteria() {
 	let rows = document.querySelectorAll("#tbody_leerlingen_werklijst_criteria > tr");
 	let ids = [...rows].map((tr) => tr.dataset.criterium_id);
 	return ids.length === 2 && ["1", "2"].every((value) => ids.includes(value));
-}
-
-//#endregion
-//#region typescript/table/tableNavigation.ts
-var TableNavigation = class {
-	step;
-	maxCount;
-	constructor(step, maxCount) {
-		this.step = step;
-		this.maxCount = maxCount;
-	}
-	steps() {
-		return Math.ceil(this.maxCount / this.step);
-	}
-	isOnePage() {
-		return this.step >= this.maxCount;
-	}
-};
-function findFirstNavigation(element) {
-	element = element ?? document.body;
-	let buttonPagination = element.querySelector("button.datatable-paging-numbers");
-	if (!buttonPagination) return void 0;
-	let buttonContainer = buttonPagination.closest("div");
-	if (!buttonContainer) return void 0;
-	let rx = /(\d*) tot (\d*) van (\d*)/;
-	let matches = buttonPagination.innerText.match(rx);
-	if (!matches) return void 0;
-	let buttons = buttonContainer.querySelectorAll("button.btn-secondary");
-	let offsets = Array.from(buttons).filter((btn) => btn.attributes["onclick"]?.value.includes("goto(")).filter((btn) => !btn.querySelector("i.fa-fast-backward")).map((btn) => getGotoNumber(btn.attributes["onclick"].value));
-	let numbers = matches.slice(1).map((txt) => parseInt(txt));
-	if (numbers.length === 0) return void 0;
-	numbers[0] = numbers[0] - 1;
-	numbers = numbers.concat(offsets);
-	numbers.sort((a, b) => a - b);
-	numbers = [...new Set(numbers)];
-	return new TableNavigation(numbers[1] - numbers[0], numbers.pop());
-}
-function getGotoNumber(functionCall) {
-	return parseInt(functionCall.substring(functionCall.indexOf("goto(") + 5));
-}
-
-//#endregion
-//#region typescript/table/tableFetcher.ts
-var PlainTableRef = class {
-	htmlTableId;
-	constructor(htmlTableId) {
-		this.htmlTableId = htmlTableId;
-	}
-	getOrgTableContainer() {
-		return document.getElementById(this.htmlTableId).parentElement;
-	}
-	getOrgTableRows() {
-		return document.getElementById(this.htmlTableId).querySelectorAll("tbody > tr");
-	}
-	buildFetchUrl(offset) {
-		throw "Plain table cannot be fetched";
-	}
-	createElementAboveTable(element) {
-		let el = document.createElement(element);
-		document.getElementById(this.htmlTableId).insertAdjacentElement("beforebegin", el);
-		return el;
-	}
-	isFullyFetched() {
-		return true;
-	}
-};
-var DkoTableRef = class {
-	htmlTableId;
-	buildFetchUrl;
-	navigationData;
-	constructor(htmlTableId, navigationData, buildFetchUrl) {
-		this.htmlTableId = htmlTableId;
-		this.buildFetchUrl = buildFetchUrl;
-		this.navigationData = navigationData;
-	}
-	getOrgTableContainer() {
-		return document.getElementById(this.htmlTableId);
-	}
-	getOrgTableRows() {
-		return this.getOrgTableContainer().querySelectorAll("tbody > tr");
-	}
-	createElementAboveTable(element) {
-		let el = document.createElement(element);
-		this.getOrgTableContainer().insertAdjacentElement("beforebegin", el);
-		return el;
-	}
-	isFullyFetched() {
-		return this.getOrgTableContainer().querySelector("table").classList.contains("fullyFetched");
-	}
-};
-function findTableRefInCode() {
-	let foundTableRef = findTable();
-	if (!foundTableRef) return void 0;
-	let buildFetchUrl = (offset) => `/views/ui/datatable.php?id=${foundTableRef.viewId}&start=${offset}&aantal=0`;
-	let navigation = findFirstNavigation();
-	if (!navigation) return void 0;
-	return new DkoTableRef(foundTableRef.tableId, navigation, buildFetchUrl);
-}
-function findTable() {
-	let table = document.querySelector("div.table-responsive > table");
-	if (!table) return null;
-	let tableId = table.id.replace("table_", "").replace("_table", "");
-	let parentDiv = document.querySelector("div#table_" + tableId);
-	let scripts = Array.from(parentDiv.querySelectorAll("script")).map((script) => script.text).join("\n");
-	let goto = scripts.split("_goto(")[1];
-	let func = goto.split(/ function *\w/)[0];
-	let viewId = / *datatable_id *= *'(.*)'/.exec(func)[1];
-	let url = /_table'\).load\('(.*?)\?id='\s*\+\s*datatable_id\s*\+\s*'&start='\s*\+\s*start/.exec(func)[1];
-	return {
-		tableId: table.id,
-		viewId,
-		url
-	};
-}
-var TableFetcher = class {
-	tableRef;
-	calculateTableCheckSum;
-	isUsingCached = false;
-	shadowTableDate;
-	fetchedTable;
-	tableHandler;
-	listeners;
-	cancelRequested;
-	isFetchFinished;
-	constructor(tableRef, calculateTableCheckSum, tableHandler) {
-		this.tableRef = tableRef;
-		if (!calculateTableCheckSum) throw "Tablechecksum required.";
-		this.calculateTableCheckSum = calculateTableCheckSum;
-		this.fetchedTable = void 0;
-		this.tableHandler = tableHandler;
-		this.listeners = [];
-		this.cancelRequested = false;
-		this.isFetchFinished = false;
-	}
-	reset() {
-		this.clearCache();
-		this.tableHandler?.onReset?.(this);
-	}
-	async cancel() {
-		this.cancelRequested = true;
-		while (!this.isFetchFinished) await new Promise((resolve) => setTimeout(resolve));
-		this.clearCache();
-	}
-	clearCache() {
-		db3(`Clear cache for ${this.tableRef.htmlTableId}.`);
-		window.sessionStorage.removeItem(this.getCacheId());
-		window.sessionStorage.removeItem(this.getCacheId() + CACHE_DATE_SUFFIX);
-		this.fetchedTable = void 0;
-	}
-	loadFromCache() {
-		if (this.tableRef.navigationData.isOnePage()) return null;
-		db3(`Loading from cache: ${this.getCacheId()}.`);
-		let text = window.sessionStorage.getItem(this.getCacheId());
-		let dateString = window.sessionStorage.getItem(this.getCacheId() + CACHE_DATE_SUFFIX);
-		if (!text || !dateString) return void 0;
-		return {
-			text,
-			date: new Date(dateString)
-		};
-	}
-	getCacheId() {
-		let checksum = "";
-		if (this.calculateTableCheckSum) checksum = "__" + this.calculateTableCheckSum(this);
-		let id = this.tableRef.htmlTableId + checksum;
-		return id.replaceAll(/\s/g, "");
-	}
-	async fetch() {
-		if (this.fetchedTable) {
-			this.onFinished(true);
-			return this.fetchedTable;
-		}
-		this.isFetchFinished = false;
-		let cachedData = this.loadFromCache();
-		let succes;
-		this.fetchedTable = new FetchedTable(this);
-		if (cachedData) {
-			this.fetchedTable.addPage(cachedData.text);
-			this.shadowTableDate = cachedData.date;
-			this.isUsingCached = true;
-			this.onPageLoaded(1, cachedData.text);
-			this.onLoaded();
-			succes = true;
-		} else {
-			this.isUsingCached = false;
-			succes = await this.#fetchPages(this.fetchedTable);
-			if (!succes) {
-				this.onFinished(succes);
-				throw "Failed to fetch the pages.";
-			}
-			this.fetchedTable.saveToCache();
-			this.onLoaded();
-		}
-		this.onFinished(succes);
-		return this.fetchedTable;
-	}
-	onStartFetching() {
-		for (let lst of this.listeners) lst.onStartFetching?.(this);
-	}
-	onFinished(succes) {
-		this.isFetchFinished = true;
-		for (let lst of this.listeners) lst.onFinished?.(this, succes);
-	}
-	onPageLoaded(pageCnt, text) {
-		for (let lst of this.listeners) lst.onPageLoaded?.(this, pageCnt, text);
-	}
-	onLoaded() {
-		for (let lst of this.listeners) lst.onLoaded?.(this);
-	}
-	onBeforeLoadingPage() {
-		for (let lst of this.listeners) if (lst.onBeforeLoadingPage) {
-			if (!lst.onBeforeLoadingPage(this)) return false;
-		}
-		return true;
-	}
-	async #fetchPages(fetchedTable) {
-		if (!this.onBeforeLoadingPage()) return false;
-		await this.#doFetchAllPages(fetchedTable);
-		return true;
-	}
-	async #doFetchAllPages(fetchedTable) {
-		try {
-			this.onStartFetching();
-			let pageCnt = 0;
-			this.cancelRequested = false;
-			while (true) {
-				console.log("fetching page " + fetchedTable.getNextPageNumber());
-				let response = await fetch(this.tableRef.buildFetchUrl(fetchedTable.getNextOffset()));
-				let text = await response.text();
-				fetchedTable.addPage(text);
-				pageCnt++;
-				this.onPageLoaded(pageCnt, text);
-				if (pageCnt >= this.tableRef.navigationData.steps()) break;
-				if (this.cancelRequested) break;
-			}
-		} finally {}
-	}
-	addListener(listener) {
-		this.listeners.push(listener);
-	}
-};
-var FetchedTable = class {
-	shadowTableTemplate;
-	tableFetcher;
-	lastPageNumber;
-	lastPageStartRow;
-	constructor(tableDef) {
-		this.tableFetcher = tableDef;
-		this.lastPageNumber = -1;
-		this.lastPageStartRow = 0;
-		this.shadowTableTemplate = document.createElement("template");
-	}
-	getRows() {
-		let template = this.shadowTableTemplate;
-		return template.content.querySelectorAll("tbody tr:not(:has(i.fa-meh))");
-	}
-	getTable() {
-		return this.shadowTableTemplate.content.querySelector("table");
-	}
-	getRowsAsArray = () => Array.from(this.getRows());
-	getLastPageRows = () => this.getRowsAsArray().slice(this.lastPageStartRow);
-	getLastPageNumber = () => this.lastPageNumber;
-	getNextPageNumber = () => this.lastPageNumber + 1;
-	getNextOffset = () => this.getNextPageNumber() * this.tableFetcher.tableRef.navigationData.step;
-	getTemplate = () => this.shadowTableTemplate;
-	saveToCache(retry = true) {
-		db3(`Caching ${this.tableFetcher.getCacheId()}.`);
-		try {
-			window.sessionStorage.setItem(this.tableFetcher.getCacheId(), this.shadowTableTemplate.innerHTML);
-			window.sessionStorage.setItem(this.tableFetcher.getCacheId() + CACHE_DATE_SUFFIX, new Date().toJSON());
-		} catch (e) {
-			console.error(e);
-			if (!retry) return;
-			console.log("Clearing session cache and trying again...");
-			let sessionKeys = Object.keys(window.sessionStorage);
-			for (let key of sessionKeys) if (key.startsWith("table_leerlingen_werklijst")) window.sessionStorage.removeItem(key);
-			this.saveToCache(false);
-		}
-	}
-	addPage(text) {
-		let pageTemplate;
-		pageTemplate = document.createElement("template");
-		pageTemplate.innerHTML = text;
-		let rows = pageTemplate.content.querySelectorAll("tbody > tr:not(:has(i.fa-meh))");
-		this.lastPageStartRow = this.getRows().length;
-		if (this.lastPageNumber === -1) {
-			this.shadowTableTemplate.innerHTML = text;
-			this.shadowTableTemplate.content.querySelector("tbody").innerHTML = "";
-		}
-		this.shadowTableTemplate.content.querySelector("tbody").append(...rows);
-		this.lastPageNumber++;
-	}
-};
-
-//#endregion
-//#region typescript/table/tableSort.ts
-let defaultValueFunc = (td) => td.innerText;
-function getDefaultValueFuncs(table) {
-	let columnCount = table.tHead.rows[0].cells.length;
-	return range(0, columnCount).map((_) => defaultValueFunc);
-}
-function makeTableSortable(table, valueFuncs) {
-	let actualValueFuncs = valueFuncs ?? getDefaultValueFuncs(table);
-	Array.from(table.tHead.children[0].children).forEach((colHeader) => {
-		colHeader.onclick = (ev) => {
-			reSortTableByColumn2(ev, table, actualValueFuncs);
-		};
-	});
-}
-function reSortTableByColumn2(ev, table, valueFuncs) {
-	let header = table.tHead.children[0].children[getColumnIndex(ev)];
-	let wasAscending = header.classList.contains("sortAscending");
-	let columnIndex = getColumnIndex(ev);
-	sortTableByColumn(table, columnIndex, wasAscending, valueFuncs[columnIndex]);
-}
-function sortTableByColumn(table, index, descending, valueFunc) {
-	let header = table.tHead.children[0].children[index];
-	let rows = Array.from(table.tBodies[0].rows);
-	for (let thead of table.tHead.children[0].children) thead.classList.remove("sortAscending", "sortDescending");
-	let cmpFunc = cmpAlpha;
-	if (isColumnProbablyNumeric(table, index, valueFunc)) cmpFunc = cmpNumber;
-	else if (isColumnProbablyDate(table, index, valueFunc)) cmpFunc = cmpDate;
-	try {
-		sortRows(cmpFunc, header, rows, index, descending, valueFunc);
-	} catch (e) {
-		console.error(e);
-		if (cmpFunc !== cmpAlpha) sortRows(cmpAlpha, header, rows, index, descending, valueFunc);
-	}
-	rows.forEach((row) => table.tBodies[0].appendChild(row));
-}
-function getColumnIndex(ev) {
-	let td = ev.target;
-	if (td.tagName !== "TD") td = td.closest("TH");
-	return Array.prototype.indexOf.call(td.parentElement.children, td);
-}
-function isColumnProbablyNumeric(table, index, valueFunc) {
-	let rows = Array.from(table.tBodies[0].rows);
-	const MAX_SAMPLES = 100;
-	let samples = rangeGenerator(0, rows.length, rows.length > MAX_SAMPLES ? rows.length / MAX_SAMPLES : 1).map((float) => Math.floor(float));
-	return !samples.map((rowIndex) => rows[rowIndex]).some((row) => {
-		let value = valueFunc(row.children[index]);
-		return isNaN(Number(value));
-	});
-}
-function sortRows(cmpFunction, header, rows, index, descending, valueFunc) {
-	let cmpDirectionalFunction;
-	if (descending) {
-		cmpDirectionalFunction = (a, b) => cmpFunction(b.cells[index], a.cells[index], valueFunc);
-		header.classList.add("sortDescending");
-	} else {
-		cmpDirectionalFunction = (a, b) => cmpFunction(a.cells[index], b.cells[index], valueFunc);
-		header.classList.add("sortAscending");
-	}
-	rows.sort((a, b) => cmpDirectionalFunction(a, b));
-}
-function cmpAlpha(a, b, valueFunc) {
-	return valueFunc(a).localeCompare(valueFunc(b));
-}
-function cmpDate(a, b, valueFunc) {
-	return normalizeDate(valueFunc(a)).localeCompare(normalizeDate(valueFunc(b)));
-}
-function normalizeDate(date) {
-	let dateParts = date.split("-");
-	return dateParts[2] + dateParts[1] + dateParts[0];
-}
-function cmpNumber(a, b) {
-	let res = Number(a.innerText) - Number(b.innerText);
-	if (isNaN(res)) throw new Error();
-	return res;
-}
-function isColumnProbablyDate(table, index, valueFunc) {
-	let rows = Array.from(table.tBodies[0].rows);
-	return stringToDate(valueFunc(rows[0].cells[index]));
-}
-function stringToDate(text) {
-	let reDate = /^(\d\d)[-\/](\d\d)[-\/](\d\d\d\d)/;
-	let matches = text.match(reDate);
-	if (!matches) return void 0;
-	return new Date(matches[3] + "-" + matches[2] + "/" + matches[1]);
-}
-
-//#endregion
-//#region typescript/table/tableHeaders.ts
-let _otherTabsDataCache = new Map();
-function addToOtherTabsDataCache(data) {
-	let id = Date.now().toString();
-	_otherTabsDataCache.set(id, data);
-	return id;
-}
-function copyFullTable(table) {
-	let headerCells = table.tHead.children[0].children;
-	let headers = [...headerCells].filter((cell) => cell.style.display !== "none").map((cell) => cell.innerText);
-	let rows = table.tBodies[0].children;
-	let cells = [...rows].map((row) => [...row.cells].filter((cell) => cell.style.display !== "none").map((cell) => cell.innerText));
-	createAndCopyTable(headers, cells);
-}
-function copyOneColumn(table, index) {
-	createAndCopyTable([table.tHead.children[0].children[index].innerText], [...table.tBodies[0].rows].map((row) => [row.cells[index].innerText]));
-}
-function createAndCopyTable(headers, cols) {
-	navigator.clipboard.writeText(createHtmlTable(headers, cols).outerHTML).then((_r) => {});
-}
-function reSortTableByColumn(ev, table, fetchFirst, valueFuncs) {
-	let header = table.tHead.children[0].children[getColumnIndex(ev)];
-	let wasAscending = header.classList.contains("sortAscending");
-	if (fetchFirst) forTableDo(ev, (_fetchedTable, index) => sortTableByColumn(table, index, wasAscending, valueFuncs[index]));
-	else {
-		let columnIndex = getColumnIndex(ev);
-		sortTableByColumn(table, columnIndex, wasAscending, valueFuncs[columnIndex]);
-	}
-}
-function decorateTableHeader(table, fetchFullTable) {
-	if (table.tHead.classList.contains("clickHandler")) return;
-	table.tHead.classList.add("clickHandler");
-	if (!options.showTableHeaders) return;
-	let valueFuncs = getDefaultValueFuncs(table);
-	Array.from(table.tHead.children[0].children).forEach((colHeader) => {
-		colHeader.onclick = (ev) => {
-			reSortTableByColumn(ev, table, fetchFullTable, valueFuncs);
-		};
-		if (table.classList.contains(
-			//todo: add this to openHtmlTab.
-			//todo: do this cast in teacherHoursSetup.ts as well. Perhaps make onMessage generic.
-			//just to be sure.
-			//THEAD
-			NO_MENU
-)) return;
-		let { first: span, last: idiom } = emmet.appendChild(colHeader, "span>button.miniButton.naked>i.fas.fa-list");
-		let menu = setupMenu(span, idiom.parentElement);
-		addMenuItem(menu, "Toon unieke waarden", 0, (ev) => {
-			forTableDo(ev, showDistinctColumn);
-		});
-		addMenuItem(menu, "Verberg kolom", 0, (ev) => {
-			console.log("verberg kolom");
-			forTableColumnDo(ev, hideColumn);
-		});
-		addMenuItem(menu, "Toon alle kolommen", 0, (ev) => {
-			console.log("verberg kolom");
-			forTableColumnDo(ev, showColumns);
-		});
-		addMenuSeparator(menu, "Sorteer", 0);
-		addMenuItem(menu, "Laag naar hoog (a > z)", 1, (ev) => {
-			forTableDo(ev, (tableMeta, index) => sortTableByColumn(table, index, false, valueFuncs[index]));
-		});
-		addMenuItem(menu, "Hoog naar laag (z > a)", 1, (ev) => {
-			forTableDo(ev, (tableMeta, index) => sortTableByColumn(table, index, true, valueFuncs[index]));
-		});
-		addMenuSeparator(menu, "Sorteer als:", 1);
-		addMenuItem(menu, "Tekst", 2, (_ev) => {});
-		addMenuItem(menu, "Getallen", 2, (_ev) => {});
-		addMenuSeparator(menu, "Kopieer nr klipbord", 0);
-		addMenuItem(menu, "Kolom", 1, (ev) => {
-			forTableDo(ev, (tableMeta, index) => copyOneColumn(table, index));
-		});
-		addMenuItem(menu, "Hele tabel", 1, (ev) => {
-			forTableDo(ev, (tableMeta, _index) => copyFullTable(table));
-		});
-		addMenuSeparator(menu, "<= Samenvoegen", 0);
-		addMenuItem(menu, "met spatie", 1, (ev) => {
-			forTableColumnDo(ev, createTwoColumnsCmd(Direction.LEFT, mergeColumnWithSpace));
-		});
-		addMenuItem(menu, "met comma", 1, (ev) => {
-			forTableColumnDo(ev, createTwoColumnsCmd(Direction.LEFT, mergeColumnWithComma));
-		});
-		addMenuSeparator(menu, "Verplaatsen", 0);
-		addMenuItem(menu, "<=", 1, (ev) => {
-			forTableColumnDo(ev, createTwoColumnsCmd(Direction.LEFT, swapColumns));
-		});
-		addMenuItem(menu, "=>", 1, (ev) => {
-			forTableColumnDo(ev, createTwoColumnsCmd(Direction.RIGHT, swapColumns));
-		});
-	});
-	relabelHeaders(table.tHead.children[0]);
-}
-function getDistinctColumn(tableContainer, index) {
-	let rows = Array.from(tableContainer.querySelector("tbody").rows);
-	return distinct(rows.map((row) => row.children[index].textContent)).sort();
-}
-var TableHandlerForHeaders = class {
-	onReset(_tableDef) {
-		console.log("RESET");
-	}
-};
-function executeTableCommands(tableRef) {
-	let cmds = pageState$1.transient.getValue(GLOBAL_COMMAND_BUFFER_KEY, []);
-	for (let cmd of cmds) executeCmd(cmd, tableRef, true);
-}
-function forTableDo(ev, doIt) {
-	ev.preventDefault();
-	ev.stopPropagation();
-	checkAndDownloadTableRows(ev).then((res) => {
-		doIt({
-			tableRef: res.tableRef,
-			infoBlock: res.infoBlock
-		}, getColumnIndex(ev));
-	});
-}
-function forTableColumnDo(ev, cmdDef) {
-	ev.preventDefault();
-	ev.stopPropagation();
-	checkAndDownloadTableRows(ev).then((tableMeta) => {
-		let index = getColumnIndex(ev);
-		let cmd = {
-			cmdDef,
-			index
-		};
-		executeCmd(cmd, tableMeta.tableRef, false);
-		let cmds = pageState$1.transient.getValue(GLOBAL_COMMAND_BUFFER_KEY, []);
-		cmds.push(cmd);
-		relabelHeaders(tableMeta.tableRef.getOrgTableContainer().querySelector("thead>tr"));
-	});
-}
-function executeCmd(cmd, tableRef, onlyBody) {
-	let context = cmd.cmdDef.getContext?.(tableRef, cmd.index);
-	let rows;
-	if (onlyBody) rows = tableRef.getOrgTableContainer().querySelector("tbody").rows;
-	else rows = tableRef.getOrgTableContainer().querySelectorAll("tr");
-	for (let row of rows) cmd.cmdDef.doForRow(row, cmd.index, context);
-}
-function showDistinctColumn(tableMeta, index) {
-	let cols = getDistinctColumn(tableMeta.tableRef.getOrgTableContainer(), index);
-	let tmpDiv = document.createElement("div");
-	let tbody = emmet.appendChild(tmpDiv, "table>tbody").last;
-	for (let col of cols) emmet.appendChild(tbody, `tr>td>{${col}}`);
-	let headerRow = tableMeta.tableRef.getOrgTableContainer().querySelector("thead>tr");
-	let headerText = getColumnHeaderText(headerRow.querySelectorAll("th")[index]);
-	let htmlData = {
-		title: headerText + " (uniek)",
-		html: tmpDiv.innerHTML
-	};
-	let id = addToOtherTabsDataCache(JSON.stringify(htmlData));
-	openHtmlTab(id, headerText + " (uniek)").then((_) => {});
-}
-chrome.runtime.onMessage.addListener(onMessage$2);
-async function onMessage$2(request, _sender, sendResponse) {
-	if (request.senderTabType != TabType.Html) return;
-	if (request.action == Actions.RequestTabData) {
-		let params = request.data.params;
-		let data = _otherTabsDataCache.get(params.cacheId);
-		await sendRequest(Actions.TabData, TabType.Main, TabType.Html, request.targetTabId, data);
-		return;
-	}
-}
-function getColumnHeaderText(cell) {
-	return [...cell.childNodes].filter((node) => node.nodeType === Node.TEXT_NODE).map((node) => node.textContent).join(" ");
-}
-let hideColumn = { doForRow: function(row, index, _context) {
-	row.cells[index].style.display = "none";
-} };
-let showColumns = { doForRow: function(row, _index, _context) {
-	for (let cell of row.cells) cell.style.display = "";
-} };
-function mergeColumnWithSpace(row, index, leftIndex) {
-	mergeColumnToLeft(row, index, leftIndex, " ");
-}
-function mergeColumnWithComma(row, index, leftIndex) {
-	mergeColumnToLeft(row, index, leftIndex, ", ");
-}
-function mergeColumnToLeft(row, index, leftIndex, separator) {
-	if (index === 0) return;
-	if (row.parentElement.tagName == "TBODY") {
-		row.cells[index].style.display = "none";
-		row.cells[leftIndex].innerText += separator + row.cells[index].innerText;
-	} else {
-		row.cells[index].style.display = "none";
-		let firstTextNode = [...row.cells[leftIndex].childNodes].filter((node) => node.nodeType === Node.TEXT_NODE)[0];
-		let secondTextNode = [...row.cells[index].childNodes].filter((node) => node.nodeType === Node.TEXT_NODE)[0];
-		if (firstTextNode && secondTextNode) firstTextNode.textContent += separator + secondTextNode.textContent;
-	}
-}
-function relabelHeaders(headerRow) {
-	for (let cell of headerRow.cells) cell.classList.remove("shiftMenuLeft");
-	headerRow.cells[headerRow.cells.length - 1].classList.add("shiftMenuLeft");
-}
-function findNextVisibleCell(headerRow, indexes) {
-	let index = void 0;
-	for (let i of indexes) if (headerRow.children[i].style.display !== "none") {
-		index = i;
-		break;
-	}
-	return index;
-}
-var Direction = /* @__PURE__ */ function(Direction$1) {
-	Direction$1[Direction$1["LEFT"] = 0] = "LEFT";
-	Direction$1[Direction$1["RIGHT"] = 1] = "RIGHT";
-	return Direction$1;
-}(Direction || {});
-function createTwoColumnsCmd(direction, twoColumnFunc) {
-	return {
-		getContext: function(tableRef, index) {
-			let row = tableRef.getOrgTableContainer().querySelector("thead>tr");
-			let cellRange = direction === Direction.LEFT ? range(index - 1, -1) : range(index + 1, row.cells.length);
-			return findNextVisibleCell(row, cellRange);
-		},
-		doForRow: function(row, index, context) {
-			twoColumnFunc(row, index, context);
-		}
-	};
-}
-function swapColumns(row, index1, index2) {
-	if (index1 == void 0 || index2 == void 0) return;
-	if (index1 > index2) [index1, index2] = [index2, index1];
-	row.children[index1].parentElement.insertBefore(row.children[index2], row.children[index1]);
-}
-
-//#endregion
-//#region typescript/table/observer.ts
-var TableObserver = class extends BaseObserver {
-	constructor() {
-		super(void 0, new AllPageFilter(), onMutation$7);
-	}
-	isPageReallyLoaded() {
-		return getBothToolbars() != void 0;
-	}
-};
-var observer_default$9 = new TableObserver();
-function onMutation$7(_mutation) {
-	let navigationBars = getBothToolbars();
-	if (!navigationBars) return false;
-	if (!findTableRefInCode()?.navigationData.isOnePage()) addTableNavigationButton(
-		navigationBars,
-		//wait for top and bottom bars.
-		//todo: try to type data and
-		//todo try to typesafe action param.
-		DOWNLOAD_TABLE_BTN_ID,
-		"download full table",
-		createDownloadTableWithExtraAction(),
-		"fa-arrow-down"
-);
-	if (document.querySelector("main div.table-responsive table thead")) decorateTableHeader(document.querySelector("main div.table-responsive table"), true);
-	let sortableTable = document.querySelector("table." + CAN_SORT);
-	if (sortableTable) decorateTableHeader(sortableTable, true);
-	return true;
-}
-let tableCriteriaBuilders = new Map();
-function getChecksumBuilder(tableId) {
-	let builder = tableCriteriaBuilders.get(tableId);
-	if (builder) return builder;
-	return (_tableFetcher) => "";
-}
-function registerChecksumHandler(tableId, checksumHandler) {
-	tableCriteriaBuilders.set(tableId, checksumHandler);
-}
-function createDownloadTableWithExtraAction() {
-	return (_) => {
-		downloadTableRows().then((unknownData) => {
-			let action = pageState$1.transient.getValue(AFTER_DOWNLOAD_TABLE_ACTION, void 0);
-			if (action && unknownData) action(unknownData.fetchedTable);
-		});
-	};
-}
-
-//#endregion
-//#region typescript/tokenScanner.ts
-var ScannerElse = class {
-	scannerIf;
-	constructor(scannerIf) {
-		this.scannerIf = scannerIf;
-	}
-	not(callback) {
-		if (!this.scannerIf.yes) callback?.(this.scannerIf.scanner);
-		return this.scannerIf.scanner;
-	}
-};
-var ScannerIf = class {
-	yes;
-	scanner;
-	constructor(yes, scanner) {
-		this.yes = yes;
-		this.scanner = scanner;
-	}
-	then(callback) {
-		if (this.yes) callback(this.scanner);
-		return new ScannerElse(this);
-	}
-};
-var TokenScanner = class TokenScanner {
-	valid;
-	source;
-	cursor;
-	constructor(text) {
-		this.valid = true;
-		this.source = text;
-		this.cursor = text;
-	}
-	static create(text) {
-		return new TokenScanner(text);
-	}
-	result() {
-		if (this.valid) return this.cursor;
-		return void 0;
-	}
-	find(...tokens) {
-		return this.#find("", tokens);
-	}
-	match(...tokens) {
-		return this.#find("^\\s*", tokens);
-	}
-	#find(prefix, tokens) {
-		if (!this.valid) return this;
-		let rxString = prefix + tokens.map((token) => escapeRegexChars(token) + "\\s*").join("");
-		let match$1 = RegExp(rxString).exec(this.cursor);
-		if (match$1) {
-			this.cursor = this.cursor.substring(match$1.index + match$1[0].length);
-			return this;
-		}
-		this.valid = false;
-		return this;
-	}
-	ifMatch(...tokens) {
-		if (!this.valid) return new ScannerIf(true, this);
-		this.match(...tokens);
-		if (this.valid) return new ScannerIf(true, this);
-		else {
-			this.valid = true;
-			return new ScannerIf(false, this);
-		}
-	}
-	clip(len) {
-		if (!this.valid) return this;
-		this.cursor = this.cursor.substring(0, len);
-		return this;
-	}
-	clipTo(end) {
-		if (!this.valid) return this;
-		let found = this.cursor.indexOf(end);
-		if (found < 0) {
-			this.valid = false;
-			return this;
-		}
-		this.cursor = this.cursor.substring(0, found);
-		return this;
-	}
-	clone() {
-		let newScanner = new TokenScanner(this.cursor);
-		newScanner.valid = this.valid;
-		return newScanner;
-	}
-	clipString() {
-		let isString = false;
-		this.ifMatch("'").then((result) => {
-			isString = true;
-			return result.clipTo("'");
-		}).not().ifMatch("\"").then((result) => {
-			isString = true;
-			return result.clipTo("\"");
-		}).not();
-		this.valid = this.valid && isString;
-		return this;
-	}
-	captureString(callback) {
-		let subScanner = this.clone();
-		let result = subScanner.clipString().result();
-		if (result) {
-			callback(result);
-			this.ifMatch("'").then((result$1) => result$1.find("'")).not().ifMatch("\"").then((result$1) => result$1.find("\"")).not();
-		}
-		return this;
-	}
-	getString() {
-		return this.clipString().result();
-	}
-};
-
-//#endregion
-//#region typescript/table/fetchChain.ts
-var FetchChain = class {
-	lastText = "";
-	get() {
-		return this.lastText;
-	}
-	set(text) {
-		this.lastText = text;
-	}
-	async fetch(url) {
-		this.lastText = await fetchText(url ?? this.lastText ?? "--null--");
-		return this.lastText;
-	}
-	findDocReadyLoadUrl() {
-		this.lastText = getDocReadyLoadUrl(this.lastText ?? "--null--");
-		return this.lastText;
-	}
-	findDocReadyLoadScript() {
-		this.lastText = getDocReadyLoadScript(this.lastText ?? "--null--")?.result();
-		return this.lastText;
-	}
-	find(...args) {
-		this.lastText = new TokenScanner(this.lastText ?? "--null--").find(...args).result();
-		return this.lastText;
-	}
-	getQuotedString() {
-		let daString = "";
-		let scanner = new TokenScanner(this.lastText ?? "--null--").captureString((res) => daString = res);
-		this.lastText = scanner.result();
-		return daString;
-	}
-	clipTo(end) {
-		this.lastText = new TokenScanner(this.lastText ?? "--null--").clipTo(end).result();
-	}
-	div() {
-		let el = document.createElement("div");
-		el.innerHTML = this.lastText ?? "";
-		return el;
-	}
-	includes(text) {
-		return this.lastText?.includes(text) ?? false;
-	}
-};
-function findDocReady(scanner) {
-	return scanner.find("$", "(", "document", ")", ".", "ready", "(");
-}
-function getDocReadyLoadUrl(text) {
-	let scanner = new TokenScanner(text);
-	while (true) {
-		let docReady = findDocReady(scanner);
-		if (!docReady.valid) return void 0;
-		let url = docReady.clone().clipTo("</script>").find(".", "load", "(").clipString().result();
-		if (url) return url;
-		scanner = docReady;
-	}
-}
-function getDocReadyLoadScript(text) {
-	let scanner = new TokenScanner(text);
-	while (true) {
-		let docReady = findDocReady(scanner);
-		if (!docReady.valid) return void 0;
-		let script = docReady.clone().clipTo("</script>");
-		let load = script.clone().find(".", "load", "(");
-		if (load.valid) return script;
-		scanner = docReady;
-	}
-}
-async function fetchText(url) {
-	let res = await fetch(url);
-	return res.text();
-}
-
-//#endregion
-//#region typescript/infoBar.ts
-var InfoBar = class InfoBar {
-	divInfoContainer;
-	divInfoLine;
-	divTempLine;
-	divExtraLine;
-	divErrorLine;
-	tempMessage;
-	divCacheInfo;
-	constructor(divInfoContainer, divExtraLine, divErrorLine, divInfoLine, divTempLine, divCacheInfo) {
-		this.divInfoContainer = divInfoContainer;
-		this.divExtraLine = divExtraLine;
-		this.divErrorLine = divErrorLine;
-		this.divInfoLine = divInfoLine;
-		this.divTempLine = divTempLine;
-		this.divCacheInfo = divCacheInfo;
-		this.tempMessage = "";
-	}
-	static create(divInfoContainer) {
-		divInfoContainer.id = INFO_CONTAINER_ID;
-		divInfoContainer.innerHTML = "";
-		let divExtraLine = emmet.appendChild(divInfoContainer, `div#${INFO_EXTRA_ID}.infoMessage`).last;
-		let divErrorLine = emmet.appendChild(divInfoContainer, `div#${INFO_EXTRA_ID}.infoError`).last;
-		let divInfoLine = emmet.appendChild(divInfoContainer, "div.infoLine").last;
-		let divTempLine = emmet.appendChild(divInfoContainer, `div#${INFO_TEMP_ID}.infoMessage.tempLine`).last;
-		let divCacheInfo = emmet.appendChild(divInfoContainer, `div#${INFO_CACHE_ID}.cacheInfo`).last;
-		return new InfoBar(divInfoContainer, divExtraLine, divErrorLine, divInfoLine, divTempLine, divCacheInfo);
-	}
-	static find() {
-		let container = document.getElementById(INFO_CONTAINER_ID);
-		let divExtraLine = container.querySelector(`#${INFO_EXTRA_ID}`);
-		let divErrorLine = container.querySelector(`#${INFO_EXTRA_ID}`);
-		let divInfoLine = container.querySelector("div.infoLine");
-		let divTempLine = container.querySelector(`#${INFO_TEMP_ID}`);
-		let divCacheInfo = container.querySelector(`#${INFO_CACHE_ID}`);
-		return new InfoBar(container, divExtraLine, divErrorLine, divInfoLine, divTempLine, divCacheInfo);
-	}
-	setTempMessage(msg) {
-		this.tempMessage = msg;
-		this.#updateTempMessage();
-		setTimeout(this.clearTempMessage.bind(this), 4e3);
-	}
-	clearTempMessage() {
-		this.tempMessage = "";
-		this.#updateTempMessage();
-	}
-	#updateTempMessage() {
-		this.divTempLine.innerHTML = this.tempMessage;
-	}
-	setInfoLine(message) {
-		this.divInfoLine.innerHTML = message;
-	}
-	setErrorLine(message) {
-		this.divErrorLine.innerHTML = message;
-	}
-	clearCacheInfo() {
-		this.divCacheInfo.innerHTML = "";
-	}
-	setCacheInfo(info, reset_onclick) {
-		this.divCacheInfo.innerHTML = info;
-		let button = emmet.appendChild(this.divCacheInfo, "button.likeLink").first;
-		button.innerHTML = "refresh";
-		button.onclick = reset_onclick;
-	}
-	setExtraInfo(message, click_element_id, callback) {
-		this.divExtraLine.innerHTML = message;
-		if (click_element_id) {
-			if (callback) document.getElementById(click_element_id).onclick = callback;
-		}
-	}
-};
-
-//#endregion
-//#region typescript/progressBar.ts
-var ProgressBar = class ProgressBar {
-	barElement;
-	containerElement;
-	maxCount;
-	count;
-	constructor(containerElement, barElement) {
-		this.barElement = barElement;
-		this.containerElement = containerElement;
-		this.hide();
-		this.maxCount = 0;
-		this.count = 0;
-	}
-	reset(maxCount) {
-		this.maxCount = maxCount;
-		this.count = 0;
-		this.barElement.innerHTML = "";
-		for (let i = 0; i < maxCount; i++) {
-			let block = document.createElement("div");
-			this.barElement.appendChild(block);
-			block.classList.add("progressBlock");
-		}
-	}
-	start(maxCount) {
-		this.reset(maxCount);
-		this.containerElement.style.display = "block";
-		this.next();
-	}
-	hide() {
-		this.containerElement.style.display = "none";
-	}
-	stop() {
-		this.hide();
-	}
-	next() {
-		if (this.count >= this.maxCount) return false;
-		this.barElement.children[this.count].classList.remove("iddle", "loaded");
-		this.barElement.children[this.count].classList.add("loading");
-		for (let i = 0; i < this.count; i++) {
-			this.barElement.children[i].classList.remove("iddle", "loading");
-			this.barElement.children[i].classList.add("loaded");
-		}
-		for (let i = this.count + 1; i < this.maxCount; i++) {
-			this.barElement.children[i].classList.remove("loaded", "loading");
-			this.barElement.children[i].classList.add("iddle");
-		}
-		this.count++;
-		return true;
-	}
-	static find() {
-		let divProgressLine = document.getElementById(PROGRESS_BAR_ID);
-		let divProgressBar = divProgressLine.querySelector(".progressBar");
-		return new ProgressBar(divProgressLine, divProgressBar);
-	}
-};
-function insertProgressBar(container, text = "") {
-	container.innerHTML = "";
-	let { first: divProgressLine, last: divProgressBar } = emmet.appendChild(container, `div.infoLine#${PROGRESS_BAR_ID}>div.progressText{${text}}+div.progressBar`);
-	return new ProgressBar(divProgressLine, divProgressBar);
-}
-
-//#endregion
-//#region typescript/infoBlock.ts
-function createInfoBlockForTable(tableRef) {
-	document.getElementById(INFO_CONTAINER_ID)?.remove();
-	let divInfoContainer = tableRef.createElementAboveTable("div");
-	return createInfoBlock(divInfoContainer, "loading pages... ");
-}
-function createInfoBlock(infoContainer, initialMessage) {
-	let infoBar = InfoBar.create(infoContainer.appendChild(document.createElement("div")));
-	let progressBar = insertProgressBar(infoBar.divInfoLine, initialMessage);
-	return {
-		infoBar,
-		progressBar
-	};
-}
-function getInfoBlock() {
-	let infoBar = InfoBar.find();
-	let progressBar = ProgressBar.find();
-	return {
-		infoBar,
-		progressBar
-	};
-}
-
-//#endregion
-//#region typescript/table/loadAnyTable.ts
-async function getWerklijstTableRef() {
-	let chain = new FetchChain();
-	await fetch("views/leerlingen/werklijst/werklijst.maken.php", { method: "POST" });
-	await chain.fetch("view.php?args=leerlingen-werklijst$werklijst");
-	await chain.fetch("views/leerlingen/werklijst/werklijst.view.php");
-	await chain.fetch("views/ui/datatable.php?id=leerlingen_werklijst");
-	return parseDataTablePhp(chain, "leerlingen_werklijst");
-}
-async function parseDataTablePhp(chain, htmlTableId) {
-	chain.find("var", "datatable_id", "=");
-	let datatable_id = chain.getQuotedString();
-	chain.clipTo("</script>");
-	chain.find(".", "load", "(");
-	let tableNavUrl = chain.getQuotedString() + datatable_id + "&pos=top";
-	await chain.fetch(tableNavUrl);
-	let tableNav = findFirstNavigation(chain.div());
-	if (!tableNav) throw "Can't find table navigation.";
-	let buildFetchUrl = (offset) => `/views/ui/datatable.php?id=${datatable_id}&start=${offset}&aantal=0`;
-	return new DkoTableRef(htmlTableId, tableNav, buildFetchUrl);
-}
-async function getTableRefFromHash(hash) {
-	let chain = new FetchChain();
-	await chain.fetch(DKO3_BASE_URL + "#" + hash);
-	await chain.fetch("view.php?args=" + hash);
-	chain.findDocReadyLoadUrl();
-	let index_view = await chain.fetch();
-	chain.findDocReadyLoadScript();
-	chain.find("$", "(");
-	let htmlTableId = chain.getQuotedString().substring(1);
-	chain.set(index_view);
-	chain.findDocReadyLoadUrl();
-	if (!chain.includes("ui/datatable.php")) {
-		await chain.fetch();
-		chain.findDocReadyLoadUrl();
-	}
-	await chain.fetch();
-	return parseDataTablePhp(chain, htmlTableId);
-}
-async function getTable(tableRef, infoBarListener, clearCache, checksumBuilder = null) {
-	let tableFetcher = new TableFetcher(tableRef, checksumBuilder ?? getChecksumBuilder(tableRef.htmlTableId));
-	if (infoBarListener) tableFetcher.addListener(infoBarListener);
-	if (clearCache) tableFetcher.clearCache();
-	let fetchedTable = await tableFetcher.fetch();
-	await setViewFromCurrentUrl();
-	return fetchedTable;
-}
-async function getTableFromHash(hash, clearCache, infoBarListener) {
-	let tableRef = await getTableRefFromHash(hash);
-	console.log(tableRef);
-	return await getTable(tableRef, infoBarListener, clearCache);
-}
-function createDefaultTableRefAndInfoBlock() {
-	let result = createDefaultTableRef();
-	if ("error" in result) return { error: result.error };
-	let { tableRef } = result.result;
-	let infoBlock = createInfoBlockForTable(tableRef);
-	return { result: {
-		tableRef,
-		infoBlock
-	} };
-}
-async function downloadTableRows() {
-	let result = createDefaultTableRefAndInfoBlock();
-	if ("error" in result) {
-		console.error(result.error);
-		return null;
-	}
-	let { tableRef, infoBlock } = result.result;
-	let result2 = createDefaultTableFetcher(tableRef, infoBlock);
-	if ("error" in result2) {
-		console.error(result2.error);
-		return null;
-	}
-	let { tableFetcher } = result2.result;
-	tableFetcher.tableHandler = new TableHandlerForHeaders();
-	let fetchedTable = await tableFetcher.fetch();
-	let fetchedRows = fetchedTable.getRows();
-	let tableContainer = fetchedTable.tableFetcher.tableRef.getOrgTableContainer();
-	tableContainer.querySelector("tbody").replaceChildren(...fetchedRows);
-	tableContainer.querySelector("table").classList.add("fullyFetched");
-	executeTableCommands(fetchedTable.tableFetcher.tableRef);
-	return {
-		fetchedTable,
-		infoBlock,
-		listener: new InfoBarTableFetchListener(infoBlock)
-	};
-}
-async function checkAndDownloadTableRows(ev) {
-	let tableRef = findTableRefInCode();
-	if (!tableRef) {
-		let table = ev.target.closest("table");
-		tableRef = new PlainTableRef(table.id);
-	}
-	if (tableRef.isFullyFetched()) {
-		let infoBlock = createInfoBlockForTable(tableRef);
-		return {
-			tableRef,
-			infoBlock,
-			listener: new InfoBarTableFetchListener(infoBlock)
-		};
-	}
-	let res = await downloadTableRows();
-	if (!res) throw "Can't download table rows. See reason above.";
-	return {
-		tableRef,
-		infoBlock: res.infoBlock,
-		listener: res.listener
-	};
-}
-var InfoBarTableFetchListener = class {
-	infoBar;
-	progressBar;
-	constructor(infoBlock) {
-		this.infoBar = infoBlock.infoBar;
-		this.progressBar = infoBlock.progressBar;
-	}
-	onStartFetching(tableFetcher) {
-		this.progressBar.start(tableFetcher.tableRef.navigationData.steps());
-	}
-	onLoaded(tableFetcher) {
-		if (tableFetcher.isUsingCached) {
-			let defaultAction = createDownloadTableWithExtraAction();
-			let resetAndLoadAction = (ev) => {
-				tableFetcher.reset();
-				defaultAction(ev);
-			};
-			this.infoBar.setCacheInfo(`Gegevens uit cache, ${dateDiffToString(tableFetcher.shadowTableDate, new Date())} oud. `, resetAndLoadAction);
-		}
-	}
-	onBeforeLoadingPage(_tableFetcher) {
-		return true;
-	}
-	onFinished(_tableFetcher) {
-		this.progressBar.stop();
-	}
-	onPageLoaded(_tableFetcher, _pageCnt, _text) {
-		this.progressBar.next();
-	}
-};
-function createDefaultTableRef() {
-	let tableRef = findTableRefInCode();
-	if (!tableRef) return { error: "Cannot find table." };
-	return { result: { tableRef } };
-}
-function createDefaultTableFetcher(tableRef, infoBlock) {
-	let tableFetcher = new TableFetcher(tableRef, getChecksumBuilder(tableRef.htmlTableId));
-	let infoBarListener = new InfoBarTableFetchListener(infoBlock);
-	tableFetcher.addListener(infoBarListener);
-	return { result: {
-		tableFetcher,
-		infoBlock,
-		infoBarListener
-	} };
 }
 
 //#endregion
@@ -5140,7 +6534,7 @@ function getTrimPageElements() {
 }
 async function getJaarToewijzigingWerklijst(schoolYear) {
 	let builder = await createWerklijstBuilderWithReset(schoolYear, Grouping.LES);
-	builder.addCriterium(CriteriumName.Domein, Operator.EQUALS, [Domein$1.Muziek]);
+	builder.addCriterium(CriteriumName.Domein, Operator.EQUALS, [Domein.Muziek]);
 	builder.addCriterium(CriteriumName.Vak, Operator.EQUALS, [
 		"instrumentinitiatie – hele jaar zelfde instrument - accordeon",
 		"instrumentinitiatie – hele jaar zelfde instrument - baglama (saz)",
@@ -5254,1398 +6648,6 @@ function appendGroupingAnchorOrText(target, grouping, activeSorting, separator) 
 			return false;
 		};
 	}
-}
-
-//#endregion
-//#region typescript/notifications/notifications.ts
-function getNotifRedButton() {
-	let notifButton = document.getElementById("notifButton");
-	if (notifButton) return notifButton;
-	let navBar = document.getElementById("dko3_navbar");
-	let secondUl = navBar.querySelectorAll("ul").item(1);
-	return emmet.insertBefore(secondUl, "div#navBarNotifDiv>button#notifButton.noBorder{5}").last;
-}
-async function updateNotificationsInNavBar(notifications) {
-	if (!notifications) notifications = await fetchNotifications();
-	let notifButton = getNotifRedButton();
-	let count = Object.keys(notifications.notifications).length;
-	notifButton.innerHTML = count.toString();
-	notifButton.style.display = count > 0 ? "block" : "none";
-	notifButton.onclick = () => {
-		location.href = "https://administratie.dko3.cloud/#start?page=mijn_tijdslijn";
-	};
-}
-const NORMAL_SPEED_IN_SECONDS = 5 * 60;
-let pollSpeedInSeconds = 1e3 * NORMAL_SPEED_IN_SECONDS;
-setInterval(fetchAndDisplayNotifications, 1e3 * pollSpeedInSeconds);
-async function fetchAndDisplayNotifications() {
-	let notifications = await fetchNotifications();
-	await updateNotificationsInNavBar(notifications);
-	let notificationsWrapper = document.querySelector("#dko3_plugin_notifications");
-	let notificationsDiv = document.querySelector("#dko3_plugin_notifications > div > div");
-	if (!notificationsDiv) return;
-	let count = Object.keys(notifications.notifications).length;
-	notificationsWrapper.style.display = count > 0 ? "block" : "none";
-	let propNames = Object.getOwnPropertyNames(notifications.notifications);
-	notificationsDiv.innerHTML = "";
-	for (let propName of propNames) {
-		let notif = notifications.notifications[propName];
-		if (!notif) continue;
-		let imgUrl = chrome.runtime.getURL("images/waiting.gif");
-		switch (notif.level) {
-			case "warning":
-				imgUrl = chrome.runtime.getURL("images/warning.png");
-				break;
-			case "error":
-				imgUrl = chrome.runtime.getURL("images/error.png");
-				break;
-			case "running":
-				imgUrl = chrome.runtime.getURL("images/waiting.gif");
-				break;
-			case "info":
-				imgUrl = chrome.runtime.getURL("images/info.png");
-				break;
-		}
-		let delButtonClass = "";
-		if (options.allowDeleteNotif) delButtonClass = "allowDelete";
-		let html = `
-            <div class="notif notif-${notif.level} ${delButtonClass}">
-                <button class="deleteNotif noBorder" data-id="${notif.id}"  ><i class="fas fa-trash"></i></button>
-                <div class="notif-img">
-                    <img src="${imgUrl}" alt="todo">
-                </div>
-            <div>${notif.message}</div>
-            </div>
-            `;
-		let notifDiv = emmet.appendChild(notificationsDiv, "div").first;
-		notifDiv.innerHTML = html;
-		let button = notifDiv.querySelector("button.action");
-		if (!button) continue;
-		button.onclick = () => {
-			doNotificationAction(notif.id);
-		};
-	}
-	notificationsDiv.querySelectorAll("button.deleteNotif").forEach((button) => {
-		button.onclick = async (ev) => {
-			let button$1 = ev.currentTarget;
-			let notifId = button$1.dataset.id;
-			await deleteNotification(notifId);
-			await fetchAndDisplayNotifications();
-		};
-	});
-}
-function doNotificationAction(id) {}
-
-//#endregion
-//#region typescript/roster_diff/diffSettings.ts
-const defaultTagDefs = [
-	{
-		tag: "Vestiging Sterrenkijker/SL Durlet",
-		searchString: " sterr",
-		gradeYears: ""
-	},
-	{
-		tag: "Vestiging Sterrenkijker/SL Durlet",
-		searchString: " durlet",
-		gradeYears: ""
-	},
-	{
-		tag: "Vestiging De Kleine Stad",
-		searchString: " kleine stad ",
-		gradeYears: ""
-	},
-	{
-		tag: "Vestiging De Kleine Wereld",
-		searchString: " wereld ",
-		gradeYears: ""
-	},
-	{
-		tag: "Vestiging De Nieuwe Vrede",
-		searchString: " vrede ",
-		gradeYears: ""
-	},
-	{
-		tag: "Vestiging De Nieuwe Vrede",
-		searchString: " dnv ",
-		gradeYears: ""
-	},
-	{
-		tag: "Vestiging De Nieuwe Vrede",
-		searchString: " tegel",
-		gradeYears: ""
-	},
-	{
-		tag: "Vestiging De Nieuwe Vrede",
-		searchString: " tango ",
-		gradeYears: ""
-	},
-	{
-		tag: "Vestiging De Nieuwe Vrede",
-		searchString: " vergaderzaal ",
-		gradeYears: ""
-	},
-	{
-		tag: "Vestiging De Kosmos",
-		searchString: " kosmos ",
-		gradeYears: ""
-	},
-	{
-		tag: "Vestiging De Schatkist",
-		searchString: " schatk",
-		gradeYears: ""
-	},
-	{
-		tag: "Vestiging De Kolibrie",
-		searchString: " kolibri",
-		gradeYears: ""
-	},
-	{
-		tag: "Vestiging Het Fonkelpad",
-		searchString: " fonkel",
-		gradeYears: ""
-	},
-	{
-		tag: "Vestiging Alberreke",
-		searchString: " alber",
-		gradeYears: ""
-	},
-	{
-		tag: "Vestiging c o r s o",
-		searchString: " corso ",
-		gradeYears: ""
-	},
-	{
-		tag: "Vestiging c o r s o",
-		searchString: "c o r s o",
-		gradeYears: ""
-	},
-	{
-		tag: "Vestiging c o r s o",
-		searchString: " studio 3 ",
-		gradeYears: ""
-	},
-	{
-		tag: "Vestiging Prins Dries",
-		searchString: " prins ",
-		gradeYears: ""
-	},
-	{
-		tag: "Vestiging Prins Dries",
-		searchString: " dries ",
-		gradeYears: ""
-	},
-	{
-		tag: "Vestiging Groenhout Kasteelstraat",
-		searchString: " groenhout ",
-		gradeYears: ""
-	},
-	{
-		tag: "Vestiging Groenhout Kasteelstraat",
-		searchString: " kasteel",
-		gradeYears: ""
-	},
-	{
-		tag: "Vestiging Het Fonkelpad",
-		searchString: " fonkel ",
-		gradeYears: ""
-	},
-	{
-		tag: "Vestiging OLV Pulhof",
-		searchString: " pulhof ",
-		gradeYears: ""
-	},
-	{
-		tag: "Vestiging OLV Pulhof",
-		searchString: " 1p ",
-		gradeYears: ""
-	},
-	{
-		tag: "Vestiging OLV Pulhof",
-		searchString: " 2p ",
-		gradeYears: ""
-	},
-	{
-		tag: "Vestiging Sterrenkijker/SL Durlet",
-		searchString: " 1d ",
-		gradeYears: ""
-	},
-	{
-		tag: "Vestiging Sterrenkijker/SL Durlet",
-		searchString: " 2d ",
-		gradeYears: ""
-	},
-	{
-		tag: "Vestiging Via Louiza",
-		searchString: " louiza ",
-		gradeYears: ""
-	},
-	{
-		tag: "Vestiging Frans Van Hombeeck",
-		searchString: " hombee",
-		gradeYears: ""
-	},
-	{
-		tag: "Vestiging Klavertje Vier",
-		searchString: " klaver",
-		gradeYears: ""
-	},
-	{
-		tag: "Academie Willem Van Laarstraat, Berchem",
-		searchString: " bib ",
-		gradeYears: ""
-	},
-	{
-		tag: "Academie Willem Van Laarstraat, Berchem",
-		searchString: "laarstr",
-		gradeYears: ""
-	},
-	{
-		tag: "Academie Willem Van Laarstraat, Berchem",
-		searchString: " wvl ",
-		gradeYears: ""
-	},
-	{
-		tag: "Vestiging Frans Van Hombeeck",
-		searchString: " beeld ",
-		gradeYears: ""
-	},
-	{
-		tag: "Cabaret en comedy",
-		searchString: " cabaret ",
-		gradeYears: ""
-	},
-	{
-		tag: "Woordatelier",
-		searchString: " woordatelier ",
-		gradeYears: ""
-	},
-	{
-		tag: "Woordatelier",
-		searchString: " wa ",
-		gradeYears: ""
-	},
-	{
-		tag: "Woordlab",
-		searchString: " woordlab ",
-		gradeYears: ""
-	},
-	{
-		tag: "Woordlab",
-		searchString: " wl ",
-		gradeYears: ""
-	},
-	{
-		tag: "Literair atelier",
-		searchString: " literair atelier ",
-		gradeYears: ""
-	},
-	{
-		tag: "Literaire teksten",
-		searchString: " literaire teksten ",
-		gradeYears: ""
-	},
-	{
-		tag: "Schrijven",
-		searchString: " basiscursus ",
-		gradeYears: ""
-	},
-	{
-		tag: "Spreken en vertellen",
-		searchString: " spreken ",
-		gradeYears: ""
-	},
-	{
-		tag: "Kunstenbad muziek/woord",
-		searchString: " kunstenbad ",
-		gradeYears: ""
-	},
-	{
-		tag: "Musicalatelier",
-		searchString: " musicalatelier ",
-		gradeYears: ""
-	},
-	{
-		tag: "Musical koor",
-		searchString: " musical koor ",
-		gradeYears: ""
-	},
-	{
-		tag: "Musical zang",
-		searchString: " musical zang ",
-		gradeYears: ""
-	},
-	{
-		tag: "Theater",
-		searchString: " acteren ",
-		gradeYears: ""
-	},
-	{
-		tag: "Muziekatelier",
-		searchString: " 1p ",
-		gradeYears: ""
-	},
-	{
-		tag: "Muziekatelier",
-		searchString: " 2p ",
-		gradeYears: ""
-	},
-	{
-		tag: "Muziekatelier",
-		searchString: " 1d ",
-		gradeYears: ""
-	},
-	{
-		tag: "Muziekatelier",
-		searchString: " 2d ",
-		gradeYears: ""
-	},
-	{
-		tag: "Muziekatelier",
-		searchString: " 1va ",
-		gradeYears: ""
-	},
-	{
-		tag: "Muziekatelier",
-		searchString: " 1vb ",
-		gradeYears: ""
-	},
-	{
-		tag: "Muziekatelier",
-		searchString: " 1vc ",
-		gradeYears: ""
-	},
-	{
-		tag: "Muziekatelier",
-		searchString: " 2va ",
-		gradeYears: ""
-	},
-	{
-		tag: "Muziekatelier",
-		searchString: " 2vb ",
-		gradeYears: ""
-	},
-	{
-		tag: "Muziekatelier",
-		searchString: " 3v ",
-		gradeYears: ""
-	},
-	{
-		tag: "Muziekatelier",
-		searchString: " 1t ",
-		gradeYears: ""
-	},
-	{
-		tag: "Muziekatelier",
-		searchString: " 2t ",
-		gradeYears: ""
-	},
-	{
-		tag: "Groepsmusiceren (klassiek)",
-		searchString: " gm ",
-		gradeYears: ""
-	},
-	{
-		tag: "Atelier (musical)",
-		searchString: " musicalatelier ",
-		gradeYears: ""
-	},
-	{
-		tag: "Musicalatelier 2e graad",
-		searchString: " musical for kids ",
-		gradeYears: ""
-	}
-];
-const defaultIgnoreList = [
-	" kunstkuren ",
-	" arrangeren",
-	" combo ",
-	" harmonielab ",
-	" klanklab ",
-	" muzieklab ",
-	" electronics ",
-	" big band ",
-	" blazersensemble ",
-	" groepsmusiceren (jass pop rock) ",
-	" geluidsleer ",
-	" koor (jazz pop rock) ",
-	" koor (musical) ",
-	" slagwerkensemble "
-];
-
-//#endregion
-//#region typescript/roster_diff/showDiff.ts
-async function fetchDiffSettingsOrDefault(academie, schoolYear) {
-	let settings;
-	try {
-		settings = await fetchDiffSettings(academie, schoolYear);
-	} catch {}
-	if (!settings) return {
-		version: 0,
-		academie,
-		schoolYear,
-		tagDefs: [...defaultTagDefs],
-		ignoreList: [...defaultIgnoreList],
-		urls: [],
-		preTranslations: []
-	};
-	if (!settings.preTranslations) settings.preTranslations = [];
-	return settings;
-}
-function getDiffsDko3CacheFileName(academie, schoolYear, diffType) {
-	return `Dko3/Uurroosters/Cache/${academie}_${schoolYear}_${diffType}_diffcache.json`;
-}
-function createStatusBlock(divInfoWrapper) {
-	emmet.appendChild(divInfoWrapper, "div.runStatus");
-	emmet.appendChild(divInfoWrapper, "div.diffInfo");
-	emmet.appendChild(divInfoWrapper, "div.diffErrors.errors");
-	emmet.appendChild(divInfoWrapper, "div.diffResults");
-}
-function getStatusBlock(divInfoWrapper) {
-	let runStatus = divInfoWrapper.querySelector(".runStatus");
-	let divInfo = divInfoWrapper.querySelector(".diffInfo");
-	let divError = divInfoWrapper.querySelector(".diffErrors");
-	let divResults = divInfoWrapper.querySelector(".diffResults");
-	return {
-		runStatus,
-		divInfo,
-		divError,
-		divResults
-	};
-}
-async function getAndShowDiffs(showOrCalc, useDkoCache, diffPageType, diffSettings) {
-	let statusBlock = getStatusBlock(document.getElementById(diffPageType == "EXCEL" ? "wrapperExcelDiffs" : "wrapperWwwDiffs"));
-	statusBlock.divResults.innerHTML = "Ophalen...";
-	let cmbDiffAcademie = document.querySelector("#cmbDiffAcademie");
-	let cmbDiffSchoolYear = document.querySelector("#cmbDiffSchoolYear");
-	let infoBlock = createInfoBlock(statusBlock.divInfo, "");
-	let fetchListener = new InfoBarTableFetchListener(infoBlock);
-	let reportStatus = function(message) {
-		statusBlock.runStatus.innerHTML = message;
-	};
-	statusBlock.divError.innerHTML = "";
-	let errors = [];
-	let addError = function(message, errorType) {
-		errors.push(message);
-	};
-	errors = [];
-	let jsonDko3DiffData = null;
-	if (useDkoCache == "dkoCache") jsonDko3DiffData = localStorage.getItem(getDiffsDko3CacheFileName(cmbDiffAcademie.value, cmbDiffSchoolYear.value, diffPageType));
-	let dko3DiffData = jsonDko3DiffData ? JSON.parse(jsonDko3DiffData) : null;
-	let jsonDiffs = null;
-	if (!diffSettings) diffSettings = await fetchDiffSettingsOrDefault(cmbDiffAcademie.value, cmbDiffSchoolYear.value);
-	if (showOrCalc == "justShow") try {
-		jsonDiffs = await getDiffsFromCloud(cmbDiffAcademie.value, cmbDiffSchoolYear.value, diffPageType);
-	} catch (e) {}
-	else {
-		statusBlock.divResults.innerHTML = "";
-		let dataPreparationFunction;
-		if (diffPageType == "EXCEL") dataPreparationFunction = prepareExcelData;
-		else dataPreparationFunction = prepareWwwData;
-		jsonDiffs = await buildAndSaveDiff({
-			reportStatus,
-			addError
-		}, fetchListener, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData, diffSettings, diffPageType, dataPreparationFunction, errors);
-	}
-	if (jsonDiffs) await showDiffs(jsonDiffs, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData, diffSettings, statusBlock, diffPageType);
-}
-async function showDiffs(diffs, academie, schoolYear, dko3DiffData, diffSettings, statusBlock, diffPageType) {
-	statusBlock.divResults.innerHTML = "Ophalen...";
-	if (!diffs) {
-		statusBlock.divResults.innerHTML = "";
-		return;
-	}
-	if (diffs.errors) statusBlock.divError.innerHTML = diffs.errors.join("<br>");
-	await setIgnoredFlags(diffs.orphanedDko3Lessen, diffs.orphanedOtherLessen, academie, schoolYear, diffPageType);
-	statusBlock.divResults.innerHTML = "";
-	let elapsedTimeString = dateDiffToString(new Date(diffs.isoDate), new Date());
-	if (elapsedTimeString != "") emmet.appendChild(statusBlock.divResults, `div.gray{Laatste vergelijking: ${elapsedTimeString} geleden.}`);
-	if (options.showDebug && dko3DiffData) {
-		let div = emmet.appendChild(statusBlock.divResults, `div.gray`).first;
-		let button = emmet.appendChild(div, "button.likeLink").first;
-		button.innerHTML = "Zoek met dko3 cache";
-		button.onclick = () => {
-			getAndShowDiffs("calcAndShow", "dkoCache", "EXCEL", null);
-		};
-	}
-	let divChk = emmet.appendChild(statusBlock.divResults, `div#divHideChecked>(input#chkHideChecked${diffPageType}[type="checkbox"]+label[for="chkHideChecked${diffPageType}"]{Verberg aangevinkte lijnen})`).first;
-	let chkHideChecked = divChk.querySelector(`#chkHideChecked${diffPageType}`);
-	chkHideChecked.onchange = (ev) => {
-		let input = ev.currentTarget;
-		let table$1 = document.getElementById(`orphans${diffPageType}`);
-		table$1.classList.toggle("hideChecked", input.checked);
-		let ignore$1 = table$1.classList.contains("hideChecked");
-		localStorage.setItem(OPTION_HIDE_IGNORED_DIFFS + diffPageType, ignore$1.toString());
-	};
-	emmet.appendChild(divChk, `
-        div>(
-            input#chkHideNoTeacher${diffPageType}[type="checkbox"]+
-            label[for="chkHideNoTeacher${diffPageType}"]{Verberg nog te bepalen leraren}
-        )
-    `);
-	let chkHideNoTeacher = divChk.querySelector(`#chkHideNoTeacher${diffPageType}`);
-	chkHideNoTeacher.onchange = (ev) => {
-		let input = ev.currentTarget;
-		statusBlock.divResults.classList.toggle("hideNoTeacher", input.checked);
-		let hideNoTeacher$1 = statusBlock.divResults.classList.contains("hideNoTeacher");
-		localStorage.setItem(OPTION_HIDE_NO_TEACHER_DIFFS + diffPageType, hideNoTeacher$1.toString());
-	};
-	for (let diff of diffs.diffs) displayDiff(diff, statusBlock.divResults, academie, schoolYear, diffPageType);
-	emmet.appendChild(statusBlock.divResults, "h4{Lessen zonder overeenkomsten}");
-	let { table, tbody } = createDiffTable(statusBlock.divResults, diffPageType);
-	decorateTableHeader(table, false);
-	for (let les of diffs.orphanedDko3Lessen) {
-		let tr = emmet.appendChild(tbody, "tr").last;
-		fillDiffRow(tr, les, "perfect match", createDko3GotoData(les.lesId), "", les.hash, les.ignore, academie, schoolYear, null, null, diffPageType);
-	}
-	for (let les of diffs.orphanedOtherLessen) {
-		let tr = emmet.appendChild(tbody, "tr").last;
-		fillDiffRow(tr, les, "perfect match", les.gotoData, les.gotoData.text, les.hash, les.ignore, academie, schoolYear, null, null, diffPageType);
-		tr.classList.add("excelRow");
-	}
-	let ignore = localStorage.getItem(OPTION_HIDE_IGNORED_DIFFS + diffPageType) ?? "false";
-	chkHideChecked.checked = ignore == "true";
-	table.classList.toggle("hideChecked", chkHideChecked.checked);
-	let hideNoTeacher = localStorage.getItem(OPTION_HIDE_NO_TEACHER_DIFFS + diffPageType) ?? "false";
-	chkHideNoTeacher.checked = hideNoTeacher == "true";
-	statusBlock.divResults.classList.toggle("hideNoTeacher", chkHideNoTeacher.checked);
-}
-function fillOtherDiffRow(tr, diff, academie, schoolYear, noHide, diffPageType) {
-	fillDiffRow(tr, diff.otherLes, diff.diffType, diff.otherLes.gotoData, diff.otherLes.gotoData.text, diff.otherLes.hash, diff.otherLes.ignore, academie, schoolYear, diff.weight, noHide, diffPageType);
-}
-function displayDiff(diff, divResults, academie, schoolYear, diffPageType) {
-	let tbody = emmet.appendChild(divResults, "table.diff>tbody").last;
-	let trTop = emmet.appendChild(tbody, "tr").last;
-	let trBottom = emmet.appendChild(tbody, "tr").last;
-	let trOther = trTop;
-	let trDko3 = trBottom;
-	if (diff.otherLes.lesType == "www") {
-		trOther = trBottom;
-		trDko3 = trTop;
-	}
-	let diffOnlyTeacher = !diff.weight.diffDayTime && diff.weight.diffGradeYears == 0 && !diff.weight.diffLocation && !diff.weight.diffSubject && diff.weight.diffTeacher;
-	tbody.parentElement.classList.toggle("justNoTeacher", diffOnlyTeacher && diff.otherLes.teachers.includes("nog te bepalen"));
-	fillOtherDiffRow(trOther, diff, academie, schoolYear, "no hide button", diffPageType);
-	fillDiffRow(trDko3, diff.dko3Les, diff.diffType, createDko3GotoData(diff.dko3Les.lesId), "", diff.dko3Les.hash, diff.dko3Les.ignore, academie, schoolYear, diff.weight, "no hide button", diffPageType);
-}
-function fillDiffRow(tr, jsonLes, diffType, gotoData, orgText, hash, ignore, academie, schoolYear, weight, noHide, diffPageType) {
-	if (ignore) tr.classList.add("ignore");
-	let diffTeacherClass = "";
-	let diffGradeYearsClass = "";
-	let diffLocationClass = "";
-	let diffTimeClass = "";
-	let diffSubjectClass = "";
-	if (weight) {
-		if (weight.diffSubject) diffSubjectClass = ".diff";
-		if (weight.diffLocation) diffLocationClass = ".diff";
-		if (weight.diffGradeYears) diffGradeYearsClass = ".diff";
-		if (weight.diffTeacher) diffTeacherClass = ".diff";
-		if (weight.diffDayTime) diffTimeClass = ".diff";
-	}
-	if (!jsonLes.location) {
-		jsonLes.location = "-onbekend-";
-		diffLocationClass = ".diff";
-	}
-	let tdSubjects;
-	let strSubjects = jsonLes.subjects;
-	if (jsonLes.subjects == "") {
-		diffSubjectClass = ".diff";
-		strSubjects = "-onbekend-";
-	}
-	if (jsonLes.lesType != "dko3") tdSubjects = `(td${diffSubjectClass}>div.diffTooltip{${strSubjects}}>span.diffTooltiptext{${orgText}})`;
-	else tdSubjects = `td${diffSubjectClass}{${jsonLes.subjects}}`;
-	tr.classList.add(jsonLes.lesType + "Row");
-	let iconClass;
-	switch (jsonLes.lesType) {
-		case "excel":
-			iconClass = "fa-grid";
-			break;
-		case "dko3":
-			iconClass = "fa-chalkboard-user";
-			break;
-		case "www":
-			iconClass = "fa-globe";
-			break;
-		default: unreachable(jsonLes.lesType);
-	}
-	tr.dataset.hash = hash;
-	tr.dataset.lesId = gotoData.lesId;
-	tr.dataset.cellAddress = gotoData.cellAddress;
-	tr.dataset.workbook = gotoData.workBook;
-	tr.dataset.worksheet = gotoData.workSheet;
-	tr.dataset.rowType = gotoData.rowType;
-	tr.dataset.url = gotoData.url;
-	let hideButton = "";
-	if (!noHide) hideButton = "+(td.button>button.goto.chkHide>i.fas.fa-check)";
-	emmet.appendChild(tr, `${tdSubjects}+
-        td${diffGradeYearsClass}{${GradeYear.toString(jsonLes.gradeYears)}}+
-        td${diffTeacherClass}{${jsonLes.teachers}}+
-        td${diffTimeClass}{${toCompactDayString(jsonLes.day)}}+
-        td${diffTimeClass}{${jsonLes.timeSlice}}+
-        td${diffLocationClass}{${jsonLes.location}}+
-        (td.buttonshow>button.goto>i.fas.${iconClass})
-        ${hideButton}
-    `);
-	let btnGoto = tr.querySelector("button.goto");
-	btnGoto.onclick = (ev) => gotoSource(ev, academie, schoolYear);
-	let btnHide = tr.querySelector("button.chkHide");
-	if (btnHide) btnHide.onclick = (ev) => toggleIgnore(ev, academie, schoolYear, diffPageType);
-}
-async function toggleIgnore(ev, academie, schoolYear, diffPageType) {
-	let button = ev.currentTarget;
-	let tr = button.closest("tr");
-	tr.classList.toggle("ignore");
-	await saveIgnoredHashes(academie, schoolYear, diffPageType);
-}
-async function saveIgnoredHashes(academie, schoolYear, diffPageType) {
-	let table = document.getElementById(`orphans${diffPageType}`);
-	let hashes = [...table.querySelectorAll("tr.ignore")].map((tr) => tr.dataset.hash);
-	await uploadIgnoredDiffHashes(academie, schoolYear, hashes, diffPageType);
-}
-function createDko3GotoData(lesId) {
-	return {
-		lesId,
-		cellAddress: "",
-		rowType: "dko3",
-		url: "",
-		workBook: "",
-		workSheet: "",
-		text: ""
-	};
-}
-async function gotoSource(ev, academie, schoolYear) {
-	let button = ev.currentTarget;
-	let tr = button.closest("tr");
-	let rowType = tr.dataset.rowType;
-	let cellAddress = tr.dataset.cellAddress;
-	let workBook = tr.dataset.workbook;
-	let workSheet = tr.dataset.worksheet;
-	let lesId = tr.dataset.lesId;
-	let url = tr.dataset.url;
-	if (rowType == "excel") {
-		let url$1 = await getUrlForWorksheet(workBook, workSheet, cellAddress, academie, schoolYear);
-		if (url$1 == "") {
-			alert("Geen url naar het Excel bestand. Plak de url in het Excelbestand en geef de cel de naam 'Url'. Stuur de gegevens terug door.");
-			return;
-		}
-		window.open(url$1, "_blank");
-	} else if (rowType == "dko3") location.href = DKO3_BASE_URL + "#lessen-les?id=" + lesId;
-	else if (rowType == "www") window.open(url, "_blank").focus();
-}
-function toCompactDayString(day) {
-	switch (day) {
-		case "MAANDAG": return "ma ";
-		case "DINSDAG": return "di ";
-		case "WOENSDAG": return "wo ";
-		case "DONDERDAG": return "do ";
-		case "VRIJDAG": return "vr ";
-		case "ZATERDAG": return "za ";
-		case "ZONDAG": return "zo ";
-		case "": return "?? ";
-		default: unreachable(day);
-	}
-}
-function excelPostoExcelAddress(row, column) {
-	return indexToExcelColumn(column) + (row + 1).toString();
-}
-function indexToExcelColumn(index) {
-	let quotient = Math.floor(index / 26);
-	if (quotient <= 0) return chars[index];
-	return indexToExcelColumn(quotient - 1) + chars[index % 26];
-}
-const chars = [
-	"A",
-	"B",
-	"C",
-	"D",
-	"E",
-	"F",
-	"G",
-	"H",
-	"I",
-	"J",
-	"K",
-	"L",
-	"M",
-	"N",
-	"O",
-	"P",
-	"Q",
-	"R",
-	"S",
-	"T",
-	"U",
-	"V",
-	"W",
-	"X",
-	"Y",
-	"Z"
-];
-
-//#endregion
-//#region typescript/www_diff/buildDiff.ts
-function translate(text, trns) {
-	return text.replaceAll(trns.search, trns.replace);
-}
-function preTranslate(text, diffSettings) {
-	diffSettings.preparedDiffSettings.preTranslations.forEach((trns) => text = translate(text, trns));
-	return text;
-}
-var TaggedWwwLesDef = class {
-	lesType = "www";
-	hash;
-	lesDef;
-	timeSlice;
-	day;
-	teachers;
-	location;
-	subjects;
-	className;
-	gradeYears;
-	ignore;
-	dayTimeSlice;
-	constructor(lesDef, timeSlice, day, teachers, dko3Data, diffSettings) {
-		this.lesDef = lesDef;
-		this.timeSlice = timeSlice;
-		this.day = day;
-		this.teachers = teachers;
-		let translatedClassName = preTranslate(this.lesDef.className, diffSettings);
-		let tags = ExcelRoster.findTags(` ${translatedClassName} ${this.lesDef.location} `, diffSettings.preparedDiffSettings.tagDefs);
-		let tagStrings = tags.map((t) => t.tag);
-		let location$1 = ExcelRoster.findLocation(tagStrings, dko3Data.preparedDko3DiffData.locations);
-		if (!location$1) {
-			let tags$1 = ExcelRoster.findTags(ExcelRoster.makeParsable(this.lesDef.panelTitle), diffSettings.preparedDiffSettings.tagDefs);
-			let tagStrings$1 = tags$1.map((t) => t.tag);
-			location$1 = ExcelRoster.findLocation(tagStrings$1, dko3Data.preparedDko3DiffData.locations);
-		}
-		this.location = location$1 ?? "Academie Willem Van Laarstraat, Berchem";
-		this.subjects = ExcelRoster.findSubjects(this.lesDef.className, tagStrings, dko3Data);
-		this.className = translatedClassName;
-		this.gradeYears = ExcelRoster.findGradeYears(ExcelRoster.makeParsable(this.lesDef.className));
-		if (this.gradeYears.length == 0) this.gradeYears = ExcelRoster.getGradeYearsFromTags(tags);
-		if (this.gradeYears.length == 0) {
-			let newTags = ExcelRoster.findTags(ExcelRoster.makeParsable(lesDef.panelTitle, "leave 'en' alone"), diffSettings.preparedDiffSettings.tagDefs);
-			this.gradeYears = ExcelRoster.getGradeYearsFromTags(newTags);
-		}
-		if (this.gradeYears.length == 0) {
-			let newTags = ExcelRoster.findTags(ExcelRoster.makeParsable(lesDef.sectionTitle, "leave 'en' alone"), diffSettings.preparedDiffSettings.tagDefs);
-			this.gradeYears = ExcelRoster.getGradeYearsFromTags(newTags);
-		}
-		if (this.gradeYears.length == 0) {
-			let newTags = ExcelRoster.findTags(ExcelRoster.makeParsable(lesDef.pageTitle, "leave 'en' alone"), diffSettings.preparedDiffSettings.tagDefs);
-			this.gradeYears = ExcelRoster.getGradeYearsFromTags(newTags);
-		}
-		this.ignore = false;
-		this.dayTimeSlice = new DayTimeSlice(this.day, this.timeSlice);
-		this.hash = this.getHash();
-	}
-	getHash() {
-		return `www:${this.lesDef.className}-${this.lesDef.day}-${TimeSlice.toString(this.timeSlice)}-${this.teachers.join()}-${this.location}`;
-	}
-};
-function tagWwwLes(les, dko3DiffData, diffSettings) {
-	let times = TimeSlice.parseShortTimes(les.timeString);
-	let day = toDay(les.day);
-	if (!day) console.log(`Could not parse day ${les.day}`);
-	if (times.length != 2) {
-		console.log(`Could not parse time slice ${les.timeString} for class ${les.className}. url: ${les.url}`);
-		return null;
-	}
-	let timeSlice = new TimeSlice(times[0], times[1]);
-	let teachers = preTranslate(les.teacher, diffSettings).split(/[\/,&]/g).map((t) => findTeacher(t, dko3DiffData.preparedDko3DiffData.teachers, t)).filter((t) => t != "");
-	return new TaggedWwwLesDef(les, timeSlice, day ?? "", teachers, dko3DiffData, diffSettings);
-}
-async function requestWww(urlList) {
-	return sendRequest(Actions.Www, TabType.Main, TabType.Undefined, void 0, { urlList }, "");
-}
-async function parseWww(dko3DiffData, diffSettings) {
-	let response = await requestWww(diffSettings.preparedDiffSettings.urls);
-	let lessen = [];
-	console.log(response);
-	for (let html of response.data) lessen = lessen.concat(parseHtml(html));
-	console.log(lessen);
-	let taggedLessen = lessen.map((les) => tagWwwLes(les, dko3DiffData, diffSettings)).filter((les) => les != null);
-	let taggedLesMap = new Map();
-	for (let taggedLes of taggedLessen) taggedLesMap.set(taggedLes.getHash(), taggedLes);
-	console.log(taggedLesMap);
-	return taggedLesMap.values();
-}
-function parseHtml(html) {
-	let scanner = new TokenScanner(html.text);
-	scanner.find("<main ");
-	scanner.find(">");
-	scanner.clipTo("</main>");
-	console.log(scanner.result());
-	let div = document.createElement("div");
-	div.innerHTML = scanner.result();
-	console.log(div);
-	let pageTitle = div.querySelector("h1.title").textContent;
-	console.log(pageTitle);
-	let classTables = [...div.querySelectorAll("table")].filter((table) => {
-		return table.tHead?.rows[0].textContent.toLowerCase().includes("klas");
-	});
-	let lessen = [];
-	for (let table of classTables) lessen = lessen.concat(scrapeClassTable(html.url, table, pageTitle));
-	return lessen;
-}
-function scrapeClassTable(url, table, pageTitle) {
-	let panelTitle = "";
-	let panelDiv = table.closest("div.card.panel");
-	if (panelDiv) {
-		let button = panelDiv.querySelector("button");
-		if (button) panelTitle = button.textContent;
-	}
-	let sectionTitle = "";
-	let current = table.parentElement;
-	while (true) {
-		if (!current) break;
-		if (current.tagName == "SECTION") break;
-		let h2 = current.querySelector("h2");
-		if (h2) {
-			sectionTitle = h2.textContent;
-			break;
-		}
-		current = current.parentElement;
-	}
-	pageTitle = pageTitle.replaceAll("\n", " ").trim();
-	panelTitle = panelTitle.replaceAll("\n", " ").trim();
-	let classIndex = void 0;
-	let dayIndex = void 0;
-	let timeIndex = void 0;
-	let locationIndex = void 0;
-	let teacherIndex = void 0;
-	for (let [i, th] of [...table.tHead.rows[0].cells].entries()) switch (th.textContent?.toLowerCase()) {
-		case "klas":
-			classIndex = i;
-			break;
-		case "dag":
-			dayIndex = i;
-			break;
-		case "lestijd":
-			timeIndex = i;
-			break;
-		case "locatie":
-			locationIndex = i;
-			break;
-		case "leerkracht":
-			teacherIndex = i;
-			break;
-		default: break;
-	}
-	let lastClass = "";
-	let lessen = [...table.tBodies[0].rows].map((row) => {
-		let className = row.cells[classIndex].textContent ?? "";
-		className = className.trim();
-		if (className == "") className = lastClass;
-		lastClass = className;
-		let day = dayIndex ? row.cells[dayIndex].textContent : "";
-		let timeString = timeIndex ? row.cells[timeIndex].textContent : "";
-		let location$1 = locationIndex ? row.cells[locationIndex].textContent : "";
-		let teacher = teacherIndex ? row.cells[teacherIndex].textContent : "";
-		if (!day && !timeString && !location$1 && !teacher) return null;
-		if (className.toLowerCase().includes("begeleidingspraktijk") || className.toLowerCase().includes("muziektheorie") || className.toLowerCase().includes("compositie") || className.toLowerCase().includes("improvisatie") || className.toLowerCase().includes("musical zang") || className.toLowerCase().includes("musical koor")) return null;
-		return {
-			url,
-			pageTitle,
-			sectionTitle,
-			panelTitle,
-			className,
-			day,
-			timeString,
-			location: location$1,
-			teacher
-		};
-	});
-	return lessen.filter((les) => les != null);
-}
-
-//#endregion
-//#region typescript/roster_diff/buildDiff.ts
-let cachedDiffs = void 0;
-async function getJsonDiffsCached(academie, schoolYear, diffPageType) {
-	if (cachedDiffs) return cachedDiffs;
-	return getDiffsFromCloud(academie, schoolYear, diffPageType);
-}
-let prepareWwwData = async function(statusReporter, academie, schoolYear, dko3DiffData, diffSettings) {
-	statusReporter.reportStatus("Website uurroosters ophalen...");
-	let otherLessen = new Set(await parseWww(dko3DiffData, diffSettings));
-	return {
-		excelRosters: [],
-		otherLesSet: otherLessen
-	};
-};
-let prepareExcelData = async function(statusReporter, academie, schoolYear, dko3DiffData, diffSettings) {
-	statusReporter.reportStatus("Excel bestanden ophalen...");
-	let folderPath = await fetchFolderChanged(`Dko3/Uurroosters/${academie}/${schoolYear}/`);
-	statusReporter.reportStatus(`${folderPath.files.length} Excel bestanden gevonden.`);
-	let jsonExcelDatas = [];
-	for (let file of folderPath.files) {
-		let fileShortName = file.name.replaceAll("Dko3/Uurroosters/", "");
-		statusReporter.reportStatus(`Inlezen van ${fileShortName}...`);
-		let excelData = await fetchExcelData(file.name);
-		jsonExcelDatas.push(excelData);
-	}
-	let excelLessenArray = [];
-	let excelRosters = [];
-	statusReporter.reportStatus("Excel tabellen bouwen...");
-	for (let excelData of jsonExcelDatas) {
-		let factory = new RosterFactory(excelData);
-		let table = factory.getTable();
-		let roster = new ExcelRoster(table, dko3DiffData, diffSettings);
-		excelRosters.push(roster);
-		let classDefs = roster.scrapeUurrooster();
-		if (classDefs) excelLessenArray.push(classDefs);
-		console.log(excelLessenArray);
-	}
-	statusReporter.reportStatus("Lessen vergelijken...");
-	let dddata = dko3DiffData;
-	let otherLesSet = new Set(excelLessenArray.flat().map((les) => new TaggedExcelLes(les, dddata.preparedDko3DiffData.teachers, diffSettings)));
-	otherLesSet.forEach((les) => {
-		if (isExcelLesToIgnore(les, diffSettings.preparedDiffSettings.ignoreList)) otherLesSet.delete(les);
-	});
-	return {
-		excelRosters,
-		otherLesSet
-	};
-};
-function updateDko3DiffDataAndSettings(dko3DiffData, diffSettings) {
-	for (let teacher of dko3DiffData.teachers) for (let tagDef of diffSettings.tagDefs) if (teacher.fullName == tagDef.tag) teacher.callName = tagDef.searchString;
-	let classNamesFromTags = diffSettings.tagDefs.filter((tagDef) => tagDef.isClassName).map((tagDef) => tagDef.searchString);
-	return {
-		dko3DiffData: { preparedDko3DiffData: dko3DiffData },
-		diffSettings: {
-			preparedDiffSettings: diffSettings,
-			classNamesFromTags
-		}
-	};
-}
-async function buildAndSaveDiff(statusReporter, fetchListener, academie, schoolYear, dko3DiffData, diffSettings, diffPageType, prepareOtherData, errors) {
-	statusReporter.reportStatus(`DKO3 data ophalen...`);
-	if (!dko3DiffData) dko3DiffData = await getDko3Data(schoolYear, statusReporter, fetchListener);
-	let json = JSON.stringify(dko3DiffData);
-	let preparedData = updateDko3DiffDataAndSettings(dko3DiffData, diffSettings);
-	let { excelRosters, otherLesSet } = await prepareOtherData(statusReporter, academie, schoolYear, preparedData.dko3DiffData, preparedData.diffSettings);
-	let res = {
-		excelRosters,
-		...await calcDiff(dko3DiffData, statusReporter, preparedData.diffSettings, otherLesSet)
-	};
-	deleteNotification("FILE_POSTED").then(() => fetchAndDisplayNotifications());
-	dko3DiffData = JSON.parse(json);
-	dko3DiffData.extraTeachersCache = res.extraTeacherCache.toJSON();
-	localStorage.setItem(getDiffsDko3CacheFileName(academie, schoolYear, diffPageType), JSON.stringify(dko3DiffData));
-	let jsonDiffs = await createJsonDiffs(res.diffs, res.dko3LesSet, res.otherLesSet, res.excelRosters, academie, schoolYear, diffPageType, errors);
-	let fileName = getDiffsCloudFileName(academie, schoolYear, diffPageType);
-	await cloud.json.upload(fileName, jsonDiffs);
-	sessionStorage.setItem(fileName, JSON.stringify(jsonDiffs));
-	statusReporter.reportStatus(``);
-	cachedDiffs = jsonDiffs;
-	return jsonDiffs;
-}
-async function getDko3Data(schoolYear, statusReporter, fetchListener) {
-	statusReporter.reportStatus("Vestigingsplaatsen ophalen...");
-	let locationsTable = await getTableFromHash("extra-academie-vestigingsplaatsen", true, fetchListener);
-	let locations = [...locationsTable.getRows()].map((tr) => tr.cells[1].textContent);
-	statusReporter.reportStatus("Leraren ophalen...");
-	let teachers = await fetchTeachers(schoolYear);
-	let lessen = (await scrapeAllNormalLessen(schoolYear, statusReporter)).map((l) => l.les);
-	statusReporter.reportStatus("Ophalen aliaslessen...");
-	let dko3AliasLessen = (await scrapeLessen(Domein.Woord, LesType$1.alias, schoolYear)).map((l) => l.les);
-	for (let les of dko3AliasLessen) les.linkedLessenIds = await getAliassesForLes(les.id, statusReporter);
-	dko3AliasLessen = dko3AliasLessen.filter((l) => l.linkedLessenIds.length > 1);
-	let subjects = lessen.map((les) => [les.vakNaam, les.naam]).flat();
-	subjects = [...new Set(subjects)];
-	let classNames = lessen.map((les) => les.naam).filter((n) => n != "");
-	subjects = [...new Set(subjects)];
-	return {
-		lessen,
-		locations,
-		teachers,
-		dko3AliasLessen,
-		subjects,
-		classNames
-	};
-}
-async function scrapeAllNormalLessen(schoolYear, statusReporter) {
-	statusReporter.reportStatus("Ophalen woordlessen...");
-	let dko3Lessen = await scrapeLessen(Domein.Woord, LesType$1.gewone, schoolYear);
-	statusReporter.reportStatus("Ophalen muzieklessen...");
-	let muziekLessen = await scrapeLessen(Domein.Muziek, LesType$1.gewone, schoolYear);
-	statusReporter.reportStatus("Ophalen kunstenbad lessen...");
-	let kbLessen = await scrapeLessen(Domein.DomeinOV, LesType$1.gewone, schoolYear);
-	return [
-		...dko3Lessen,
-		...muziekLessen,
-		...kbLessen
-	];
-}
-var Domein = /* @__PURE__ */ function(Domein$2) {
-	Domein$2["Muziek"] = "3";
-	Domein$2["Woord"] = "4";
-	Domein$2["DomeinOV"] = "5";
-	Domein$2["Dans"] = "2";
-	return Domein$2;
-}(Domein || {});
-async function scrapeLessen(domein, type, schoolYear) {
-	let chain = new FetchChain();
-	let hash = "lessen-overzicht";
-	await chain.fetch(DKO3_BASE_URL + "#lessen-overzicht" + hash);
-	await chain.fetch("view.php?args=" + hash);
-	let params = new URLSearchParams({
-		schooljaar: schoolYear,
-		domein,
-		vestigingsplaats: "",
-		vak: "",
-		graad: "",
-		leerkracht: "",
-		ag: "",
-		lesdag: "",
-		verberg_online: "-1",
-		soorten_lessen: type,
-		volzet: "-1"
-	});
-	let tableText = await fetchLessen(params);
-	let div = document.createElement("div");
-	div.innerHTML = tableText;
-	let table = div.querySelector("#" + LESSEN_TABLE_ID);
-	return scrapeLessenOverzicht(table);
-}
-var TaggedExcelLes = class extends TaggedLes {
-	lesType = "excel";
-	className;
-	dayTimeSlice;
-	hash;
-	constructor(les, teachers, diffSettings) {
-		let searchText = " " + les.cellValue.toLowerCase().replaceAll("\n", " \n ").replaceAll("(", " ( ").replaceAll(")", " ) ").replaceAll(".", " . ").replaceAll(",", " , ").replaceAll("-", " - ") + " ";
-		super(les, [], searchText, [], false);
-		this.className = this.lesMoment.className;
-		this.location = this.lesMoment.location;
-		this.teachers = preTranslate(les.cellValue, diffSettings).split(/[\/,]/g).map((t) => findTeacher(t, teachers, "")).filter((t) => t != "");
-		if (this.teachers.length == 0) this.teachers = preTranslate(this.lesMoment.teacher, diffSettings).split(/[\/,]/g).map((t) => t.trim()).filter((t) => t.substring(t.length - 1) != "?").map((t) => findTeacher(t, teachers, t)).filter((t) => t != "");
-		this.subjects = les.subjects;
-		this.subjects = this.subjects.filter((s) => s);
-		if (this.lesMoment.className) this.subjects.push(this.lesMoment.className);
-		this.subjects = [...new Set(this.subjects)];
-		this.dayTimeSlice = new DayTimeSlice(les.day, les.timeSlice);
-		this.gradeYears = les.gradeYears;
-		this.hash = les.getHash();
-	}
-};
-function isDko3LesToIgnore(les, ignoreList) {
-	return ignoreList.some((ignore) => (" " + les.naam.toLowerCase() + " ").includes(ignore) || (" " + les.vakNaam.toLowerCase() + " ").includes(ignore));
-}
-function isExcelLesToIgnore(les, ignoreList) {
-	return ignoreList.some((ignore) => les.lesMoment.cellValue.includes(ignore)) || ignoreList.some((ignore) => les.searchText.includes(ignore));
-}
-function splitDko3LessenIntoLesmomenten(dko3Data, diffSettings, statusReporter) {
-	let lesMomenten = dko3Data.lessen.filter((les) => !isDko3LesToIgnore(les, diffSettings.preparedDiffSettings.ignoreList)).map((les) => {
-		if (les.dayTimeSlices.length == 0) statusReporter.addError(`Les <a href="https://administratie.dko3.cloud/#lessen-les?id=${les.id}">${les.id}</a> heeft geen lesmoment. ${les.vakNaam}(${les.naam}), ${les.teacher}`, "error");
-		let lesMomenten$1 = les.dayTimeSlices.map((slice) => {
-			return new Dko3LesMoment(les, slice);
-		});
-		for (let moment of lesMomenten$1) moment.lesMomenten = lesMomenten$1;
-		return lesMomenten$1;
-	}).flat().map((lesMoment) => new TaggedDko3LesMoment(lesMoment));
-	return new Set(lesMomenten);
-}
-function createLesMomenten(dko3Data, statusReporter, diffSettings) {
-	let dko3LesSet = splitDko3LessenIntoLesmomenten(dko3Data, diffSettings, statusReporter);
-	let dko3LesMap = new Map();
-	for (let les of dko3Data.lessen) dko3LesMap.set(les.id, les);
-	let lesMomentenMap = new Map();
-	for (let les of dko3LesSet.values()) lesMomentenMap.set(les.lesMoment.momentId, les);
-	loopAliasLessen: for (let aliasLes of dko3Data.dko3AliasLessen) {
-		if (aliasLes.linkedLessenIds.length < 2) {
-			statusReporter.addError(`Error: alias les <a href="https://administratie.dko3.cloud/#lessen-les?id=${aliasLes.id}">${aliasLes.id}</a> heeft geen 2 geldige gekoppelde lessen.`, "error");
-			continue;
-		}
-		let possibleLinkedLessen = aliasLes.linkedLessenIds.map((lesId) => dko3LesMap.get(lesId));
-		if (possibleLinkedLessen.includes(void 0)) {
-			statusReporter.addError(`Voor aliasles <a href="https://administratie.dko3.cloud/#lessen-les?id=${aliasLes.id}">${aliasLes.id}</a> zijn er ontbrekende gekoppelde lessen.`, "error");
-			continue;
-		}
-		let linkedLessen = possibleLinkedLessen;
-		let aliasLocation = aliasLes.vestiging;
-		let aliasGradeYearsStr = GradeYear.toString(aliasLes.gradeYears);
-		for (let linkedLes of linkedLessen) {
-			if (linkedLes.vestiging != aliasLocation) statusReporter.addError(`Voor aliasles <a href="https://administratie.dko3.cloud/#lessen-les?id=${aliasLes.id}">${aliasLes.id}</a> is de vestiging niet dezelfde als de gekoppelde lessen.`, "error");
-			if (GradeYear.toString(linkedLes?.gradeYears ?? []) != aliasGradeYearsStr) statusReporter.addError(`Voor aliasles <a href="https://administratie.dko3.cloud/#lessen-les?id=${aliasLes.id}">${aliasLes.id}</a> zijn de graden en jaren niet gelijk aan de gekoppelde les <a href="https://administratie.dko3.cloud/#lessen-les?id=${linkedLes.id}">${linkedLes.id}</a>.`, "error");
-			if (linkedLes.online) statusReporter.addError(`Voor aliasles <a href="https://administratie.dko3.cloud/#lessen-les?id=${aliasLes.id}">${aliasLes.id}</a> is gekoppelde les <a href="https://administratie.dko3.cloud/#lessen-les?id=${linkedLes.id}">${linkedLes.id}</a> online zichtbaar.`, "error");
-		}
-		let linkedLesMomentIds = linkedLessen.map((les) => les.dayTimeSlices.map((slice) => Dko3LesMoment.createLesMomentId(les, slice))).flat();
-		let linkedLesMomenten = linkedLesMomentIds.map((momentId) => lesMomentenMap.get(momentId));
-		linkedLesMomenten.sort((a, b) => DayTimeSlice.startToNumber(a.lesMoment.dayTimeSlice) - DayTimeSlice.startToNumber(b.lesMoment.dayTimeSlice));
-		let previousLesMoment = linkedLesMomenten[0];
-		for (let i = 1; i < linkedLesMomenten.length; i++) {
-			let currentLesMoment = linkedLesMomenten[i];
-			if (!currentLesMoment.lesMoment.dayTimeSlice.timeSlice || !previousLesMoment.lesMoment.dayTimeSlice.timeSlice) {
-				statusReporter.addError(`Voor aliasles <a href="https://administratie.dko3.cloud/#lessen-les?id=${aliasLes.id}">${aliasLes.id}</a> zijn er ontbrekende lestijden.`, "error");
-				continue loopAliasLessen;
-			}
-			if (DayTimeSlice.endToNumber(previousLesMoment.lesMoment.dayTimeSlice) == DayTimeSlice.startToNumber(currentLesMoment.lesMoment.dayTimeSlice)) {
-				let newTimeSlice = new TimeSlice(structuredClone(previousLesMoment.lesMoment.dayTimeSlice.timeSlice.start), structuredClone(currentLesMoment.lesMoment.dayTimeSlice.timeSlice.end));
-				let newDayTimeSlice = new DayTimeSlice(previousLesMoment.lesMoment.dayTimeSlice.day, newTimeSlice);
-				let newAliasLesMoment = new TaggedDko3LesMoment(new Dko3LesMoment(aliasLes, newDayTimeSlice));
-				dko3LesSet.add(newAliasLesMoment);
-				dko3LesSet.delete(previousLesMoment);
-				dko3LesSet.delete(currentLesMoment);
-				previousLesMoment = newAliasLesMoment;
-			} else previousLesMoment = currentLesMoment;
-		}
-	}
-	return dko3LesSet;
-}
-async function calcDiff(dko3Data, statusReporter, diffSettings, otherLesSet) {
-	let dko3LesSet = createLesMomenten(dko3Data, statusReporter, diffSettings);
-	let extraTeacherCache = ExtraTeacherCache.fromJSON(dko3Data.extraTeachersCache ?? []);
-	for (const les1 of [...dko3LesSet.values()].filter((les) => les.lesMoment.les.teacher.includes("(en nog"))) les1.teachers = await extraTeacherCache.getExtraTeachers(les1.lesMoment.les.id);
-	let diffs = [];
-	let ctx = {};
-	diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "perfect match", diffSettings, matchBasedOnName));
-	diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "perfect match", diffSettings, perfectMatch));
-	diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "match without gradeYears", diffSettings, matchWithoutGradeYears));
-	diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "match without teacher", diffSettings, matchWithoutTeacher));
-	diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "match without location", diffSettings, matchWithoutLocation));
-	diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "match without time and day", diffSettings, matchWithoutTimeAndDay));
-	diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "match without teacher, time and day", diffSettings, matchWithoutTeacherTimeAndDay));
-	diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "match without time and day and teacher", diffSettings, matchWithoutGradeYearsTeacher));
-	console.log(diffs);
-	console.log(dko3LesSet.values());
-	console.log(otherLesSet.values());
-	return {
-		diffs,
-		dko3LesSet,
-		otherLesSet,
-		extraTeacherCache
-	};
-}
-var ExtraTeacherCache = class ExtraTeacherCache {
-	teacherMap = new Map();
-	async getExtraTeachers(lesId) {
-		if (this.teacherMap.has(lesId)) return this.teacherMap.get(lesId);
-		let newEntry = await getExtraTeachers(lesId);
-		this.teacherMap.set(lesId, newEntry);
-		return newEntry;
-	}
-	toJSON() {
-		return [...this.teacherMap.entries()];
-	}
-	static fromJSON(json) {
-		let cache = new ExtraTeacherCache();
-		cache.teacherMap = new Map(json);
-		return cache;
-	}
-};
-async function getExtraTeachers(lesId) {
-	await fetch("https://administratie.dko3.cloud/view.php?args=lessen-les?id=" + lesId);
-	await fetch("https://administratie.dko3.cloud/views/lessen/les/index.view.php");
-	await fetch("https://administratie.dko3.cloud/views/lessen/les/index.details.tab.php");
-	let res = await fetch("https://administratie.dko3.cloud/views/lessen/les/details/index.details.leerkrachten.card.php");
-	let htmlTeachers = await res.text();
-	let div = document.createElement("div");
-	div.innerHTML = htmlTeachers;
-	let strongs = div.querySelectorAll("td > strong");
-	return [...strongs].map((s) => {
-		return s.textContent.replaceAll("  ", " ").replaceAll(" ,", ",").trim();
-	});
-}
-async function getAliassesForLes(lesId, statusReporter) {
-	await fetch("https://administratie.dko3.cloud/view.php?args=lessen-les?id=" + lesId);
-	await fetch("https://administratie.dko3.cloud/views/lessen/les/index.view.php");
-	await fetch("https://administratie.dko3.cloud/views/lessen/les/index.details.tab.php");
-	await fetch("https://administratie.dko3.cloud/views/lessen/les/index.meta.tab.php");
-	let res = await fetch("https://administratie.dko3.cloud/views/lessen/les/meta/alias_gekoppelde_lessen.card.php");
-	let htmlAliases = await res.text();
-	let div = document.createElement("div");
-	div.innerHTML = htmlAliases;
-	let anchors = div.querySelectorAll("td > a");
-	if (anchors.length == 0) statusReporter.reportStatus(`ERROR: alias les ${lesId} heeft geen (geldige) gekoppelde lessen.`);
-	return [...anchors].map((a) => a.textContent.trim());
-}
-async function fetchTeachers(schoolYear) {
-	await fetch(DKO3_BASE_URL + "#personeel-personeelsleden");
-	await fetch(DKO3_BASE_URL + "view.php?args=personeel-personeelsleden");
-	await fetch(DKO3_BASE_URL + "views/personeel/personeelsleden/index.view.php");
-	await fetch(DKO3_BASE_URL + "views/personeel/personeelsleden/vestigingsplaats_schooljaar_filter.php?schooljaar=2025-2026");
-	let formData = new FormData();
-	formData.append("filters[naam]", "");
-	formData.append("filters[status_personeelsleden]", "1");
-	formData.append("filters[leerkracht]", "1");
-	formData.append("filters[interim]", "1");
-	formData.append("filters[alc]", "false");
-	formData.append("filters[administratie]", "false");
-	formData.append("filters[overig]", "false");
-	formData.append("filters[schooljaar]", schoolYear);
-	await fetch("https://administratie.dko3.cloud/views/personeel/personeelsleden/save_filters.php", {
-		method: "POST",
-		body: formData
-	});
-	let res = await fetch(DKO3_BASE_URL + "views/personeel/personeelsleden/personeelsleden.table.php");
-	let html = await res.text();
-	let div = document.createElement("div");
-	div.innerHTML = html;
-	return [...div.querySelectorAll(`td[data-label="Naam"] strong`)].map((strong) => strong.textContent).map((name) => {
-		let split = name.split(",");
-		name = name.trim().replaceAll(" ,", ",");
-		return {
-			fullName: name,
-			firstName: split[1].trim(),
-			lastName: split[0].trim()
-		};
-	});
-}
-function findTeacher(searchString, teachers, defaultValue) {
-	let lowerCase = searchString.toLowerCase();
-	let paddedLowerCase = " " + lowerCase + " ";
-	for (let teacherDef of teachers) if (lowerCase.includes(teacherDef.firstName.toLowerCase()) && lowerCase.includes(teacherDef.lastName.toLowerCase())) return teacherDef.fullName;
-	for (let teacherDef of teachers) {
-		if (lowerCase.includes(teacherDef.firstName.toLowerCase())) return teacherDef.fullName;
-		if (teacherDef.callName) {
-			if (paddedLowerCase.includes(teacherDef.callName.toLowerCase())) return teacherDef.fullName;
-		}
-	}
-	return defaultValue;
-}
-function getDiffsCloudFileName(academie, schoolYear, diffPageType) {
-	return `Dko3/${academie}_${schoolYear}_${diffPageType}_diffs.json`;
-}
-async function getDiffsFromCloud(academie, schoolYear, diffPageType) {
-	let fromCloud = await cloud.json.fetch(getDiffsCloudFileName(academie, schoolYear, diffPageType)).catch(function(err) {
-		console.log(err);
-		return null;
-	});
-	if (fromCloud) {
-		for (let diff of fromCloud.diffs) {
-			if (!diff.dko3Les.gradeYears) diff.dko3Les.gradeYears = [];
-			if (!diff.otherLes.gradeYears) diff.otherLes.gradeYears = [];
-		}
-		for (let orphan of fromCloud.orphanedDko3Lessen) if (!orphan.gradeYears) orphan.gradeYears = [];
-		for (let orphan of fromCloud.orphanedOtherLessen) if (!orphan.gradeYears) orphan.gradeYears = [];
-	}
-	return fromCloud;
-}
-async function setIgnoredFlags(orphanedDko3Lessen, orphanedOtherLessen, academie, schoolYear, diffPageType) {
-	try {
-		let ignoreHashes = await fetchIgnoredDiffHashes(academie, schoolYear, diffPageType);
-		let ignoreHashSet = new Set(ignoreHashes);
-		for (let les of orphanedDko3Lessen) les.ignore = ignoreHashSet.has(les.hash);
-		for (let les of orphanedOtherLessen) les.ignore = ignoreHashSet.has(les.hash);
-	} catch {}
-}
-async function createJsonDiffs(diffList, dko3LesSet, otherLesSet, excelRosters, academie, schoolYear, diffPageType, errors) {
-	let diffs = diffList.filter((diff) => diff.diffType != "perfect match" || diff.weight.weight != 1e3).map((diff) => {
-		let otherLes;
-		if (diffPageType == "EXCEL") otherLes = excelLesToJson(diff.otherLes);
-		else otherLes = wwwLesToJson(diff.otherLes);
-		return {
-			otherLes,
-			dko3Les: dko3LesToJson(diff.dko3Les),
-			diffType: diff.diffType,
-			weight: diff.weight
-		};
-	});
-	let orphanedDko3Lessen = [...dko3LesSet.values()].map((les) => dko3LesToJson(les));
-	let orphanedOtherLessen;
-	if (diffPageType == "EXCEL") orphanedOtherLessen = [...otherLesSet.values()].map((les) => excelLesToJson(les));
-	else orphanedOtherLessen = [...otherLesSet.values()].map((les) => wwwLesToJson(les));
-	await setIgnoredFlags(orphanedDko3Lessen, orphanedOtherLessen, academie, schoolYear, diffPageType);
-	let workBooks = new Map();
-	for (let excelData of excelRosters.map((r) => r.table.excelData)) {
-		if (!workBooks.has(excelData.workbookName)) workBooks.set(excelData.workbookName, {
-			name: excelData.workbookName,
-			worksheets: []
-		});
-		let workBook = workBooks.get(excelData.workbookName);
-		let workSheet = {
-			name: excelData.worksheetName,
-			url: excelData.url
-		};
-		workBook.worksheets.push(workSheet);
-	}
-	return {
-		academie,
-		schoolYear,
-		diffs,
-		errors,
-		orphanedDko3Lessen,
-		orphanedOtherLessen,
-		isoDate: new Date().toISOString(),
-		workBooks: [...workBooks.values()]
-	};
-}
-function dko3LesToJson(dko3Les) {
-	return {
-		lesType: "dko3",
-		day: dko3Les.lesMoment.dayTimeSlice.day,
-		timeSlice: toCompactTimeSliceString(dko3Les.lesMoment.dayTimeSlice.timeSlice),
-		subjects: dko3Les.subjects.join(","),
-		teachers: dko3Les.teachers.join(","),
-		location: dko3Les.location,
-		hash: dko3Les.getHash(),
-		ignore: dko3Les.ignore,
-		gradeYears: dko3Les.gradeYears,
-		momentId: dko3Les.lesMoment.momentId,
-		lesId: dko3Les.lesMoment.les.id
-	};
-}
-function excelLesToJson(excelLes) {
-	return {
-		lesType: "excel",
-		day: excelLes.lesMoment.day,
-		timeSlice: toCompactTimeSliceString(excelLes.lesMoment.timeSlice),
-		subjects: excelLes.subjects.filter((s) => !!s).join(","),
-		teachers: excelLes.teachers.join(","),
-		location: excelLes.location,
-		hash: excelLes.getHash(),
-		ignore: excelLes.ignore,
-		gradeYears: excelLes.gradeYears,
-		gotoData: {
-			lesId: "",
-			cellAddress: excelPostoExcelAddress(excelLes.lesMoment.excelRow, excelLes.lesMoment.excelColumn),
-			text: excelLes.lesMoment.cellValue,
-			workBook: excelLes.lesMoment.table.excelData.workbookName,
-			workSheet: excelLes.lesMoment.table.excelData.worksheetName,
-			url: "",
-			rowType: "excel"
-		}
-	};
-}
-function wwwLesToJson(wwwLesDef) {
-	return {
-		lesType: "www",
-		day: wwwLesDef.day,
-		timeSlice: toCompactTimeSliceString(wwwLesDef.timeSlice),
-		subjects: wwwLesDef.subjects.filter((s) => !!s).join(","),
-		teachers: wwwLesDef.teachers.join(","),
-		location: wwwLesDef.location,
-		hash: wwwLesDef.getHash(),
-		ignore: wwwLesDef.ignore,
-		gradeYears: wwwLesDef.gradeYears,
-		gotoData: {
-			lesId: "",
-			cellAddress: "",
-			text: wwwLesDef.lesDef.pageTitle + " | " + wwwLesDef.lesDef.sectionTitle + " | " + wwwLesDef.lesDef.panelTitle + " | " + wwwLesDef.lesDef.className,
-			workBook: "",
-			workSheet: "",
-			url: wwwLesDef.lesDef.url,
-			rowType: "www"
-		}
-	};
-}
-function createDiffTable(divResults, diffPageType) {
-	let { first: table, last: tbody } = emmet.appendChild(divResults, `table#orphans${diffPageType}.diff.diffOrphans>(thead>tr>(th.subject{Vak/Lesnaam}+th.gradeYear{Gr.Jr}+th.teacher{Leraar}+th.day{Dag}+th.{Uur}+th.location{Vestiging}+th+th))+tbody`);
-	return {
-		table,
-		tbody
-	};
-}
-function toCompactTimeSliceString(timeSlice) {
-	if (!timeSlice) return "-geen uur-";
-	return `${pad(timeSlice.start.hour, 2)}:${pad(timeSlice.start.minutes, 2)} - ${pad(timeSlice.end.hour, 2)}:${pad(timeSlice.end.minutes, 2)}`;
-}
-async function getUrlForWorksheet(workBook, workSheet, cellAddress, academie, schoolYear) {
-	let jsonDiffs = await getJsonDiffsCached(academie, schoolYear, "EXCEL");
-	let url = jsonDiffs.workBooks.find((wb) => wb.name == workBook)?.worksheets.find((ws) => ws.name == workSheet)?.url;
-	if (cellAddress) url = url + `&activeCell=${workSheet}!${cellAddress}`;
-	return url;
 }
 
 //#endregion
@@ -9037,7 +9039,7 @@ var TeacherHoursCachedState = class {
 	}
 	async fetchHourRows(schooljaar, vakNames, spec) {
 		let builder = await createWerklijstBuilderWithReset(schooljaar, Grouping.LES);
-		builder.addCriterium(CriteriumName.Domein, Operator.EQUALS, [Domein$1.Muziek]);
+		builder.addCriterium(CriteriumName.Domein, Operator.EQUALS, [Domein.Muziek]);
 		builder.addCriterium(CriteriumName.Vak, Operator.EQUALS, vakNames);
 		builder.addFields([
 			FIELD.NAAM,
