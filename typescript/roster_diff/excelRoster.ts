@@ -4,6 +4,7 @@ import {DayUppercase} from "../lessen/scrape";
 import {TagDef} from "./diffSettings";
 import {PreparedDiffSettings, PreparedDko3DiffData} from "./buildDiff";
 import {GradeYear} from "./calcDiff";
+import {preTranslate} from "../www_diff/buildDiff";
 
 export class ClassDef {
     day: DayUppercase;
@@ -145,11 +146,13 @@ export class ExcelRoster {
     private dko3Data: PreparedDko3DiffData;
     private tagDefs: TagDef[];
     public ignoreList: string[];
+    private diffSettings: PreparedDiffSettings;
     public constructor(table: Table, dko3Data: PreparedDko3DiffData, diffSettings: PreparedDiffSettings) {
         this.table = table;
         this.dko3Data = dko3Data;
-        this.tagDefs = diffSettings.preparedDiffSettings.tagDefs;
-        this.ignoreList = diffSettings.preparedDiffSettings.ignoreList;
+        this.diffSettings = diffSettings;
+        this.tagDefs = diffSettings.preparedDiffSettings.tagDefs; //todo: replace with diffSettings.
+        this.ignoreList = diffSettings.preparedDiffSettings.ignoreList; //todo: replace with diffSettings.
     }
 
     public scrapeUurrooster(): ClassDef[] | null {
@@ -188,7 +191,7 @@ export class ExcelRoster {
                 let rx = /\n/g;
                 let description = cellValue
                     .replaceAll(rx, " ");
-                let parseText = ExcelRoster.makeParsable(description);
+                let parseText = ExcelRoster.makeParsable(preTranslate(description, this.diffSettings));
                 let timeSlice: TimeSlice | undefined = undefined;
                 let mergedRange = this.table.RangeOfCell({row, column});
                 let sliceStartText = this.table.HeaderColumnValue(mergedRange.Start.row, 0);
