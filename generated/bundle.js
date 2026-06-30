@@ -4635,6 +4635,7 @@ var TimeSlice = class TimeSlice {
 				minutes: 0
 			};
 			times.push(time);
+			times.sort((a, b) => a.hour - b.hour);
 			matches = rx.exec(text);
 		}
 		return times;
