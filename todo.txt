@@ -3,7 +3,6 @@
     > some buttons at least.
     > note that all this is still in development...
 * lessen: filter op klassen met wachtlijst maar toch terug plaats.
-* Always link to excel.
 * rijksregnr paste: alleen nummers
 * check combo's offline.
   > create a scripting language for this?
