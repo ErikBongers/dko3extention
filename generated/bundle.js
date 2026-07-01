@@ -3889,7 +3889,14 @@ const chars = [
 let cachedDiffs = void 0;
 async function getJsonDiffsCached(academie, schoolYear, diffPageType) {
 	if (cachedDiffs) return cachedDiffs;
-	return getDiffsFromCloud(academie, schoolYear, diffPageType);
+	let diffs = await getDiffsFromCloud(academie, schoolYear, diffPageType);
+	if (diffs) await saveJsonDiffs(academie, schoolYear, diffPageType, diffs);
+	return diffs;
+}
+async function saveJsonDiffs(academie, schoolYear, diffPageType, jsonDiffs) {
+	let fileName = getDiffsCloudFileName(academie, schoolYear, diffPageType);
+	await cloud.json.upload(fileName, jsonDiffs);
+	sessionStorage.setItem(fileName, JSON.stringify(jsonDiffs));
 }
 let prepareWwwData = async function(statusReporter, academie, schoolYear, dko3DiffData, diffSettings) {
 	statusReporter.reportStatus("Website uurroosters ophalen...");
@@ -3959,9 +3966,7 @@ async function buildAndSaveDiff(statusReporter, fetchListener, academie, schoolY
 	dko3DiffData.extraTeachersCache = res.extraTeacherCache.toJSON();
 	localStorage.setItem(getDiffsDko3CacheFileName(academie, schoolYear, diffPageType), JSON.stringify(dko3DiffData));
 	let jsonDiffs = await createJsonDiffs(res.diffs, res.dko3LesSet, res.otherLesSet, res.excelRosters, academie, schoolYear, diffPageType, errors);
-	let fileName = getDiffsCloudFileName(academie, schoolYear, diffPageType);
-	await cloud.json.upload(fileName, jsonDiffs);
-	sessionStorage.setItem(fileName, JSON.stringify(jsonDiffs));
+	await saveJsonDiffs(academie, schoolYear, diffPageType, jsonDiffs);
 	statusReporter.reportStatus(``);
 	cachedDiffs = jsonDiffs;
 	return jsonDiffs;
@@ -4268,6 +4273,12 @@ async function createJsonDiffs(diffList, dko3LesSet, otherLesSet, excelRosters, 
 			weight: diff.weight
 		};
 	});
+	let perfectMatches = diffList.filter((diff) => diff.diffType == "perfect match" && diff.weight.weight == 1e3).map((diff) => {
+		return {
+			otherLes: excelLesToJson(diff.otherLes),
+			dkoId: diff.dko3Les.lesMoment.les.id
+		};
+	});
 	let orphanedDko3Lessen = [...dko3LesSet.values()].map((les) => dko3LesToJson(les));
 	let orphanedOtherLessen;
 	if (diffPageType == "EXCEL") orphanedOtherLessen = [...otherLesSet.values()].map((les) => excelLesToJson(les));
@@ -4294,7 +4305,8 @@ async function createJsonDiffs(diffList, dko3LesSet, otherLesSet, excelRosters, 
 		orphanedDko3Lessen,
 		orphanedOtherLessen,
 		isoDate: new Date().toISOString(),
-		workBooks: [...workBooks.values()]
+		workBooks: [...workBooks.values()],
+		perfectMatches
 	};
 }
 function dko3LesToJson(dko3Les) {
@@ -6728,27 +6740,35 @@ function switchNaamVoornaam(_event) {
 		strong.textContent = voornaam + " " + naam;
 	});
 }
-function getDiffsLocalFirst(academie, schoolYear, diffPageType) {
-	let fileName = getDiffsCloudFileName(academie, schoolYear, diffPageType);
-	let jsonDiff = sessionStorage.getItem(fileName);
-	if (jsonDiff) return JSON.parse(jsonDiff);
-	return getDiffsFromCloud(academie, schoolYear, diffPageType);
-}
 async function addDiff(titleHeader, academie, schoolYear, diffPageType) {
 	let divDiff = document.querySelector("div.diff");
 	if (divDiff) return;
 	divDiff = emmet.insertAfter(titleHeader, "div.diff").first;
-	let diffs = await getDiffsLocalFirst(academie, schoolYear, diffPageType);
+	let diffs = await getJsonDiffsCached(academie, schoolYear, diffPageType);
 	if (!diffs) return;
 	let rxId = /id=(\d+)/g;
 	let matches = rxId.exec(document.location.href);
 	let lesId = matches[1];
 	let diff = diffs.diffs.find((diff$1) => diff$1.dko3Les.lesId == lesId);
+	let otherLes = null;
+	let diffType = "perfect match";
+	let weight = new Weight();
 	if (diff) {
+		otherLes = diff.otherLes;
+		diffType = diff.diffType;
+		weight = diff.weight;
+	} else {
+		let match$1 = diffs.perfectMatches?.find((match$2) => match$2.dkoId == lesId);
+		if (match$1) {
+			otherLes = match$1.otherLes;
+			diffType = "perfect match";
+			weight = new Weight();
+		}
+	}
+	if (otherLes) {
 		let tbody = emmet.appendChild(divDiff, "table.diff>tbody").last;
 		let tr = emmet.appendChild(tbody, "tr").last;
-		fillOtherDiffRow(tr, diff, academie, schoolYear, "no hide button", diffPageType);
-		return;
+		fillDiffRow(tr, otherLes, diffType, otherLes.gotoData, otherLes.gotoData.text, otherLes.hash, otherLes.ignore, academie, schoolYear, weight, "no hide button", diffPageType);
 	}
 }
 

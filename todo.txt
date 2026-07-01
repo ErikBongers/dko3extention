@@ -1,3 +1,30 @@
+* lln fiche: fix financial tabs.
+  > merge "te betalen" and "financieel"
+    > some buttons at least.
+    > note that all this is still in development...
+* lessen: filter op klassen met wachtlijst maar toch terug plaats.
+* Always link to excel.
+* rijksregnr paste: alleen nummers
+* check combo's offline.
+  > create a scripting language for this?
+* hash tags in comments  in dko3: popup met keuzes?
+* automate: geen trigger op lokalenlijst!
+* diff: alias check restrictions!
+* aliaslessen: check gradeYears as well ! and check if siblings are offline;
+* errors: add hash and allow to hide, to avoid fatigue.
+* don't pre-filter lessen or cells, or at least show them in the hidden overview
+* verdeelklas kan over max gaan: dagelijkse check?
+* inschrijvingsknop grijs...Terug ok vanaf 1 mei? Kijken naar het laatste actieve jaar!
+* in lists with student names: allow to add extra student data. (expensive per record, but doable via werklijst)
+  > add certain hashes to certain lists> allow to add an extra hash column.
+* global search: one result? auto jump to that student (setting!)
+* voornaam achternaam ook voor personeelsfiche
+* trims: show lln op wachtlijst?
+
+* join lists
+  > werklijst MIN werklijst
+  > lln-data bij heel wat lijsten kunnen "mergen".
+
 * Excelroster: globally catch all exceptions per cell parsing and report them with as much detail as possible:
   > the cell content
   > a link to the cell.

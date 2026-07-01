@@ -19,7 +19,17 @@ let cachedDiffs: JsonDiffs | undefined = undefined;
 export async function getJsonDiffsCached(academie: string, schoolYear: string, diffPageType: DiffPageType) {
     if(cachedDiffs)
         return cachedDiffs;
-    return getDiffsFromCloud(academie, schoolYear, diffPageType);
+    let diffs = await getDiffsFromCloud(academie, schoolYear, diffPageType);
+    if(diffs) {
+        await saveJsonDiffs(academie, schoolYear, diffPageType, diffs);
+    }
+    return diffs;
+}
+
+async function saveJsonDiffs(academie: string, schoolYear: string, diffPageType: "EXCEL" | "WWW", jsonDiffs: JsonDiffs) {
+    let fileName = getDiffsCloudFileName(academie, schoolYear, diffPageType);
+    await cloud.json.upload(fileName, jsonDiffs);
+    sessionStorage.setItem(fileName, JSON.stringify(jsonDiffs));
 }
 
 export type DataPreparationFunction = (statusReporter: StatusReporter, academie: string, schoolYear: string, dko3DiffData: PreparedDko3DiffData, diffSettings: PreparedDiffSettings) =>  Promise<{excelRosters: ExcelRoster[], otherLesSet: Set<ComparableLesMoment>}>;
@@ -110,9 +120,7 @@ export async function buildAndSaveDiff(statusReporter: StatusReporter,
     localStorage.setItem(getDiffsDko3CacheFileName(academie, schoolYear, diffPageType), JSON.stringify(dko3DiffData));
 
     let jsonDiffs = await createJsonDiffs(res.diffs, res.dko3LesSet, res.otherLesSet, res.excelRosters, academie, schoolYear, diffPageType, errors);
-    let fileName = getDiffsCloudFileName(academie, schoolYear, diffPageType);
-    await cloud.json.upload(fileName, jsonDiffs);
-    sessionStorage.setItem(fileName, JSON.stringify(jsonDiffs));
+    await saveJsonDiffs(academie, schoolYear, diffPageType, jsonDiffs);
     statusReporter.reportStatus(``);
     cachedDiffs = jsonDiffs;
     return jsonDiffs;
@@ -507,7 +515,7 @@ export interface JsonDiff {
 
 export interface JsonPerfectMatch {
     otherLes: JsonOtherLesMoment;
-    dkoId: number;
+    dkoId: string;
 }
 
 export interface JsonWorkSheet {
@@ -559,6 +567,12 @@ export async function createJsonDiffs(diffList: Diff[], dko3LesSet: Set<TaggedDk
                 weight: diff.weight
             } satisfies JsonDiff;
         });
+    let perfectMatches = diffList.filter(diff => diff.diffType == "perfect match" && diff.weight.weight == 1000).map(diff => {
+        return {
+            otherLes: excelLesToJson(diff.otherLes as TaggedExcelLes),
+            dkoId: diff.dko3Les.lesMoment.les.id
+        } satisfies JsonPerfectMatch;
+    });
     let orphanedDko3Lessen = [...dko3LesSet.values()].map(les => dko3LesToJson(les));
     let orphanedOtherLessen;
     if(diffPageType == "EXCEL")
@@ -590,7 +604,8 @@ export async function createJsonDiffs(diffList: Diff[], dko3LesSet: Set<TaggedDk
         orphanedDko3Lessen,
         orphanedOtherLessen,
         isoDate: (new Date()).toISOString(),
-        workBooks: [...workBooks.values()]
+        workBooks: [...workBooks.values()],
+        perfectMatches
     } satisfies JsonDiffs;
 }
 

@@ -1,10 +1,11 @@
 import {HashObserver} from "../pageObserver";
 import {emmet} from "../../libs/Emmeter/html";
-import {getDiffsCloudFileName, getDiffsFromCloud, JsonDiffs} from "../roster_diff/buildDiff";
-import {DiffPageType, fillOtherDiffRow} from "../roster_diff/showDiff";
+import {getDiffsCloudFileName, getDiffsFromCloud, getJsonDiffsCached, JsonDiffs, JsonOtherLesMoment} from "../roster_diff/buildDiff";
+import {DiffPageType, fillDiffRow, fillOtherDiffRow} from "../roster_diff/showDiff";
 import {Schoolyear} from "../globals";
 import {getDiffDirStructure, getDiffMyAcademieFolder} from "../startPage/diffPage";
 import {OtherLesType} from "../www_diff/buildDiff";
+import {DiffType, Weight} from "../roster_diff/calcDiff";
 
 class LesObserver extends HashObserver {
     constructor() {
@@ -96,31 +97,37 @@ function switchNaamVoornaam(_event: MouseEvent) {
     });
 }
 
-function getDiffsLocalFirst(academie: string, schoolYear: string, diffPageType: DiffPageType) {
-    let fileName = getDiffsCloudFileName(academie, schoolYear, diffPageType);
-    let jsonDiff = sessionStorage.getItem(fileName);
-    if(jsonDiff)
-        return JSON.parse(jsonDiff) as JsonDiffs;
-    return getDiffsFromCloud(academie, schoolYear, diffPageType);
-}
-
 async function addDiff(titleHeader: HTMLElement, academie: string, schoolYear: string, diffPageType: DiffPageType) {
     let divDiff = document.querySelector("div.diff") as HTMLDivElement;
     if(divDiff)
         return;
 
     divDiff = emmet.insertAfter(titleHeader, "div.diff").first as HTMLDivElement;
-    let diffs = await getDiffsLocalFirst(academie, schoolYear, diffPageType);
+    let diffs = await getJsonDiffsCached(academie, schoolYear, diffPageType);
     if(!diffs)
         return;
     let rxId = /id=(\d+)/g;
     let matches = rxId.exec(document.location.href);
     let lesId = matches![1];
     let diff = diffs.diffs.find(diff => diff.dko3Les.lesId == lesId);
+    let otherLes: JsonOtherLesMoment | null = null;
+    let diffType: DiffType = "perfect match";
+    let weight: Weight = new Weight();
     if(diff) {
+        otherLes = diff.otherLes;
+        diffType = diff.diffType;
+        weight = diff.weight;
+    } else {
+        let match = diffs.perfectMatches?.find(match => match.dkoId == lesId);
+        if(match) {
+            otherLes = match.otherLes;
+            diffType = "perfect match";
+            weight = new Weight();
+        }
+    }
+    if(otherLes) {
         let tbody = emmet.appendChild(divDiff, "table.diff>tbody").last as HTMLTableSectionElement;
         let tr = emmet.appendChild(tbody, "tr").last as HTMLTableRowElement;
-        fillOtherDiffRow(tr, diff, academie, schoolYear, "no hide button", diffPageType);
-        return;
+        fillDiffRow(tr, otherLes, diffType, otherLes.gotoData, otherLes.gotoData.text, otherLes.hash, otherLes.ignore, academie, schoolYear, weight, "no hide button", diffPageType);
     }
 }
