@@ -1,3 +1,4 @@
+* Pre-translation should happen on the popover/title value
 * lln fiche: fix financial tabs.
   > merge "te betalen" and "financieel"
     > some buttons at least.

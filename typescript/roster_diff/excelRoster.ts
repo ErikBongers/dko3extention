@@ -169,6 +169,13 @@ export class ExcelRoster {
         return classDefs;
     }
 
+    public static normalizeWhiteSpace(text: string) {
+        let rx = /\n/g;
+        return text
+            .replaceAll(rx, " ")
+            .replaceAll(/\s+/g, " ")
+    }
+
     public static makeParsable(text: string, leaveENalone?: "leave 'en' alone") {
         if(leaveENalone == undefined)
             text = text.replaceAll(" en ", " , ");
@@ -177,8 +184,8 @@ export class ExcelRoster {
                 .replaceAll(")", " ) ")
                 .replaceAll(",", " , ")
                 .replaceAll("+", " + ")
-                .replaceAll("  ", " ") //dedup spaces //" Woordatelier 3 + 4 DNV Tegelzaal Minimum 7 lln "
-                .replaceAll("  ", " ") //dedup spaces
+                .replaceAll("  ", " ") //todo: replace with regex above?
+                .replaceAll("  ", " ")
             + " ";
     }
 
@@ -189,9 +196,7 @@ export class ExcelRoster {
         for(let row = 0; row < this.table.RowCount; row++) {
             let cellValue = this.table.Cell(row, column)
             if (cellValue) {
-                let rx = /\n/g;
-                let description = cellValue
-                    .replaceAll(rx, " ");
+                let description = ExcelRoster.normalizeWhiteSpace(cellValue);
                 let parseText = ExcelRoster.makeParsable(preTranslate(description, this.diffSettings));
                 let timeSlice: TimeSlice | undefined = undefined;
                 let mergedRange = this.table.RangeOfCell({row, column});

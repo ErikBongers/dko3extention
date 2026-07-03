@@ -567,12 +567,6 @@ export async function createJsonDiffs(diffList: Diff[], dko3LesSet: Set<TaggedDk
                 weight: diff.weight
             } satisfies JsonDiff;
         });
-    let perfectMatches = diffList.filter(diff => diff.diffType == "perfect match" && diff.weight.weight == 1000).map(diff => {
-        return {
-            otherLes: excelLesToJson(diff.otherLes as TaggedExcelLes),
-            dkoId: diff.dko3Les.lesMoment.les.id
-        } satisfies JsonPerfectMatch;
-    });
     let orphanedDko3Lessen = [...dko3LesSet.values()].map(les => dko3LesToJson(les));
     let orphanedOtherLessen;
     if(diffPageType == "EXCEL")
@@ -596,7 +590,7 @@ export async function createJsonDiffs(diffList: Diff[], dko3LesSet: Set<TaggedDk
         };
         workBook.worksheets.push(workSheet);
     }
-    return {
+    let res: JsonDiffs = {
         academie,
         schoolYear,
         diffs,
@@ -605,8 +599,20 @@ export async function createJsonDiffs(diffList: Diff[], dko3LesSet: Set<TaggedDk
         orphanedOtherLessen,
         isoDate: (new Date()).toISOString(),
         workBooks: [...workBooks.values()],
+    } ;
+    if (diffPageType == "WWW")
+        return res;
+
+    let perfectMatches = diffList.filter(diff => diff.diffType == "perfect match" && diff.weight.weight == 1000).map(diff => {
+        return {
+            otherLes: excelLesToJson(diff.otherLes as TaggedExcelLes),
+            dkoId: diff.dko3Les.lesMoment.les.id
+        } satisfies JsonPerfectMatch;
+    });
+    return {
+        ...res,
         perfectMatches
-    } satisfies JsonDiffs;
+    };
 }
 
 function dko3LesToJson(dko3Les: TaggedDko3LesMoment): JsonDko3LesMoment {

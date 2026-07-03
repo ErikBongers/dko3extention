@@ -4273,12 +4273,6 @@ async function createJsonDiffs(diffList, dko3LesSet, otherLesSet, excelRosters, 
 			weight: diff.weight
 		};
 	});
-	let perfectMatches = diffList.filter((diff) => diff.diffType == "perfect match" && diff.weight.weight == 1e3).map((diff) => {
-		return {
-			otherLes: excelLesToJson(diff.otherLes),
-			dkoId: diff.dko3Les.lesMoment.les.id
-		};
-	});
 	let orphanedDko3Lessen = [...dko3LesSet.values()].map((les) => dko3LesToJson(les));
 	let orphanedOtherLessen;
 	if (diffPageType == "EXCEL") orphanedOtherLessen = [...otherLesSet.values()].map((les) => excelLesToJson(les));
@@ -4297,7 +4291,7 @@ async function createJsonDiffs(diffList, dko3LesSet, otherLesSet, excelRosters, 
 		};
 		workBook.worksheets.push(workSheet);
 	}
-	return {
+	let res = {
 		academie,
 		schoolYear,
 		diffs,
@@ -4305,7 +4299,17 @@ async function createJsonDiffs(diffList, dko3LesSet, otherLesSet, excelRosters, 
 		orphanedDko3Lessen,
 		orphanedOtherLessen,
 		isoDate: new Date().toISOString(),
-		workBooks: [...workBooks.values()],
+		workBooks: [...workBooks.values()]
+	};
+	if (diffPageType == "WWW") return res;
+	let perfectMatches = diffList.filter((diff) => diff.diffType == "perfect match" && diff.weight.weight == 1e3).map((diff) => {
+		return {
+			otherLes: excelLesToJson(diff.otherLes),
+			dkoId: diff.dko3Les.lesMoment.les.id
+		};
+	});
+	return {
+		...res,
 		perfectMatches
 	};
 }
@@ -4697,6 +4701,10 @@ var ExcelRoster = class ExcelRoster {
 		for (let c = 0; c <= this.table.ColumnCount; c++) classDefs = classDefs.concat(this.scrapeColumn(c, timeSlices));
 		return classDefs;
 	}
+	static normalizeWhiteSpace(text) {
+		let rx = /\n/g;
+		return text.replaceAll(rx, " ").replaceAll(/\s+/g, " ");
+	}
 	static makeParsable(text, leaveENalone) {
 		if (leaveENalone == void 0) text = text.replaceAll(" en ", " , ");
 		return " " + text.replaceAll("(", " ( ").replaceAll(")", " ) ").replaceAll(",", " , ").replaceAll("+", " + ").replaceAll("  ", " ").replaceAll("  ", " ") + " ";
@@ -4708,8 +4716,7 @@ var ExcelRoster = class ExcelRoster {
 		for (let row = 0; row < this.table.RowCount; row++) {
 			let cellValue = this.table.Cell(row, column);
 			if (cellValue) {
-				let rx = /\n/g;
-				let description = cellValue.replaceAll(rx, " ");
+				let description = ExcelRoster.normalizeWhiteSpace(cellValue);
 				let parseText = ExcelRoster.makeParsable(preTranslate(description, this.diffSettings));
 				let timeSlice = void 0;
 				let mergedRange = this.table.RangeOfCell({
