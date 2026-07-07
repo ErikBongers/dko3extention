@@ -70,7 +70,7 @@ function addMatchingStudents() {
 }
 
 function addEmailText() {
-    let emailDiv  = emmet.create('div.modal-body>div>button#btnShowEmail{Show email}.btn.btn-sm.btn-outline-success+div#showEmail.collapsed').last as HTMLDivElement;
+    let emailDiv  = emmet.appendChild(document.querySelector("div.modal-body") as HTMLElement, 'div>button#btnShowEmail{Show email}.btn.btn-sm.btn-outline-success+div#showEmail.collapsed').last as HTMLDivElement;
     emailDiv.innerHTML = currentEmailHtml;
     document.getElementById("btnShowEmail")!.addEventListener("click", showEmail);
 }

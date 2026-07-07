@@ -441,7 +441,7 @@ function fillGraadCell(ctx: Context): number {
 export function rebuildHoursTable(studentRowData: StudentUrenRow[], hourSettingsMapped: TeacherHoursSetupMapped, fromCloud: CloudData, infoBlock: InfoBlock) {
     infoBlock.infoBar.setExtraInfo("");
     document.getElementById(def.HOURS_TABLE_ID)?.remove();
-    let table = emmet.create(`#${def.PLUGIN_CONTAINER_ID}>table`).last as HTMLTableElement; //todo: make a breaking change for this function. It's API sucks. It appends an element to a selector. Perhaps even remove this function.
+    let table = emmet.appendChild(document.getElementById(def.PLUGIN_CONTAINER_ID) as HTMLElement, `table`).last as HTMLTableElement;
     table.id = def.HOURS_TABLE_ID;
     table.classList.add(def.CAN_SORT, def.NO_MENU);
     let vakLeraars = buildVakLeraarsMap(studentRowData, hourSettingsMapped);

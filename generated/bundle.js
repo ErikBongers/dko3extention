@@ -26,90 +26,418 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
 //#endregion
 default_items = __toESM(default_items);
 
-//#region libs/Emmeter/tokenizer.ts
-const CLOSING_BRACE = "__CLOSINGBRACE__";
-const DOUBLE_QUOTE = "__DOUBLEQUOTE__";
-const NBSP = 160;
-function tokenize(textToTokenize) {
-	let tokens = [];
-	let txt = textToTokenize.replaceAll("\\}", CLOSING_BRACE).replaceAll("\\\"", DOUBLE_QUOTE);
-	let pos = 0;
-	let start = pos;
-	function pushToken() {
-		if (start != pos) tokens.push(txt.substring(start, pos).replaceAll(CLOSING_BRACE, "}").replaceAll(DOUBLE_QUOTE, "\""));
-		start = pos;
+//#region libs/Emmeter/tokenizer/PeekingTokenizer.ts
+var PeekingTokenizer = class {
+	tokenizer;
+	constructor(tokenizer) {
+		this.tokenizer = tokenizer;
 	}
-	function getTo(to) {
-		pushToken();
-		do
-			pos++;
-		while (pos < txt.length && txt[pos] != to);
-		if (pos >= txt.length) throw `Missing '${to}' at matching from pos ${start}.`;
-		pos++;
-		pushToken();
+	next() {
+		return this.tokenizer.next();
 	}
-	function getChar() {
-		pushToken();
-		pos++;
-		pushToken();
+	peek() {
+		let clone = this.tokenizer.clone();
+		return clone.next();
 	}
-	while (pos < txt.length) switch (txt[pos]) {
-		case "{":
-			getTo("}");
-			break;
-		case "\"":
-			getTo("\"");
-			break;
-		case "#":
-			pushToken();
-			pos++;
-			break;
-		case ">":
-		case "+":
-		case "[":
-		case "]":
-		case "(":
-		case ")":
-		case "*":
-		case ".":
-		case "=":
-			getChar();
-			break;
-		case " ":
-		case "\n":
-			pushToken();
-			start = ++pos;
-			break;
-		default: pos++;
+};
+
+//#endregion
+//#region libs/Emmeter/tokenizer/cursor.ts
+var Cursor = class Cursor {
+	text;
+	currentPos;
+	length;
+	constructor(text) {
+		this.text = text;
+		this.length = this.text.length;
+		this.currentPos = -1;
 	}
-	pushToken();
-	return tokens;
+	static copy(cursor) {
+		let newCursor = new Cursor(cursor.text);
+		newCursor.currentPos = cursor.currentPos;
+		return newCursor;
+	}
+	eat(char) {
+		if (this.currentPos >= this.length) return false;
+		if (this.text[this.currentPos] == char) {
+			this.currentPos++;
+			return true;
+		}
+		return false;
+	}
+	get pos() {
+		return this.currentPos;
+	}
+	get current() {
+		if (this.currentPos >= this.length) return "";
+		return this.text[this.currentPos];
+	}
+	next() {
+		if (this.currentPos >= this.length) return "";
+		this.currentPos++;
+		return this.current;
+	}
+	peek() {
+		if (this.currentPos + 1 >= this.length) return "";
+		return this.text[this.currentPos + 1];
+	}
+	getText(pos, length) {
+		return this.text.substring(pos, pos + length);
+	}
+	getTo(endChar) {
+		let start = this.currentPos + 1;
+		let end = start;
+		while (end < this.length && this.text[end] != endChar) end++;
+		if (end == this.length) return null;
+		this.currentPos = end;
+		return {
+			start,
+			length: this.currentPos - start + 1
+		};
+	}
+	getToNot(notChar) {
+		let start = this.currentPos + 1;
+		let end = start;
+		while (end < this.length && this.text[end] == notChar) end++;
+		if (end == this.length) return null;
+		if (end == start) return null;
+		this.currentPos = end - 1;
+		return {
+			start,
+			length: this.currentPos - start + 1
+		};
+	}
+	getLocation(pos) {
+		let line = 1;
+		let col = 1;
+		for (let i = 0; i < pos; i++) if (this.text[i] == "\n") {
+			line++;
+			col = 1;
+		} else col++;
+		return {
+			line,
+			col
+		};
+	}
+	getLine(pos) {
+		let loc = this.getLocation(pos);
+		let start = 0;
+		let end = this.length;
+		for (let i = 0; i < this.length; i++) if (this.text[i] == "\n") if (loc.line > 1) {
+			start = i + 1;
+			loc.line--;
+		} else {
+			end = i;
+			break;
+		}
+		return this.text.substring(start, end);
+	}
+};
+
+//#endregion
+//#region libs/Emmeter/tokenizer/indentTokenizer.ts
+function getText(token) {
+	return token.cursor.getText(token.pos, token.length);
 }
+var IndentTokenizer = class IndentTokenizer {
+	cursor;
+	constructor(text) {
+		this.cursor = new Cursor(text);
+	}
+	setCursor(cursor) {
+		this.cursor = cursor;
+	}
+	cloneCursor() {
+		return Cursor.copy(this.cursor);
+	}
+	clone() {
+		let theClone = new IndentTokenizer("");
+		theClone.setCursor(this.cloneCursor());
+		return theClone;
+	}
+	next() {
+		let char = this.cursor.next();
+		let found;
+		let id = this.eatId(char);
+		if (id) return id;
+		let num = this.eatInteger(char);
+		if (num) return num;
+		switch (char) {
+			case "": return null;
+			case "\n":
+				found = this.cursor.getToNot(" ");
+				if (found) return {
+					type: "INDENT",
+					cursor: this.cursor,
+					pos: found.start,
+					length: found.length
+				};
+				return null;
+			case " ":
+				this.skipSpaces();
+				return this.next();
+			case ">":
+			case "+":
+			case "[":
+			case "]":
+			case "(":
+			case ")":
+			case "*":
+			case ".":
+			case "=":
+			case "#": return {
+				type: char,
+				cursor: this.cursor,
+				pos: this.cursor.pos,
+				length: 1
+			};
+			case "{":
+				found = this.cursor.getTo("}");
+				if (found) return {
+					type: "TEXT",
+					cursor: this.cursor,
+					pos: found.start,
+					length: found.length - 1
+				};
+				return null;
+			case "\"":
+				found = this.cursor.getTo("\"");
+				if (found) return {
+					type: "STRING",
+					cursor: this.cursor,
+					pos: found.start,
+					length: found.length - 1
+				};
+			default: return {
+				type: "UNKNOWN",
+				cursor: this.cursor,
+				pos: this.cursor.pos,
+				length: 1
+			};
+		}
+	}
+	eatId(char) {
+		let pos = this.cursor.pos;
+		if (char.match(/[a-zA-Z\-]/)) {
+			while (this.cursor.peek().match(/[a-zA-Z0-9_\-]/)) this.cursor.next();
+			return {
+				type: "ID",
+				cursor: this.cursor,
+				pos,
+				length: this.cursor.pos - pos + 1
+			};
+		}
+		return null;
+	}
+	eatInteger(char) {
+		let pos = this.cursor.pos;
+		if (char.match(/[0-9]/)) {
+			while (this.cursor.peek().match(/[0-9]/)) this.cursor.next();
+			return {
+				type: "NUMBER",
+				cursor: this.cursor,
+				pos,
+				length: this.cursor.pos - pos + 1
+			};
+		}
+		return null;
+	}
+	getNumberToken() {
+		let token = {
+			type: "NUMBER",
+			cursor: this.cursor,
+			pos: this.cursor.pos,
+			length: 0
+		};
+		let start = this.cursor.pos;
+		while (this.cursor.peek().match(/[0-9.,]/)) this.cursor.next();
+		token.length = this.cursor.pos - start + 1;
+		return token;
+	}
+	skipSpaces() {
+		while (this.cursor.peek() == " ") this.cursor.next();
+	}
+};
+
+//#endregion
+//#region libs/Emmeter/tokenizer/FilteredTokenizer.ts
+var FilteredTokenizer = class FilteredTokenizer {
+	tokenizer;
+	exclude;
+	constructor(tokenizer, exclude) {
+		this.tokenizer = tokenizer;
+		this.exclude = exclude;
+	}
+	next() {
+		let token = this.tokenizer.next();
+		if (token && !this.exclude(token)) return this.next();
+		return token;
+	}
+	clone() {
+		return new FilteredTokenizer(this.tokenizer.clone(), this.exclude);
+	}
+};
+
+//#endregion
+//#region libs/Emmeter/parser.ts
+var Parser = class {
+	tok;
+	constructor(tok) {
+		this.tok = tok;
+	}
+	parse() {
+		let res = this.parsePlus(0);
+		let next = this.tok.next();
+		if (next) this.throwAt(`Unexpected token: ${next.type}`, next);
+		return res;
+	}
+	parsePlus(parentIndent) {
+		let list$1 = [];
+		while (true) {
+			let el = this.parseMult(parentIndent);
+			if (!el) return list$1.length === 1 ? list$1[0] : { list: list$1 };
+			list$1.push(el);
+			if (!this.match("+")) return list$1.length === 1 ? list$1[0] : { list: list$1 };
+			else debugger;
+		}
+	}
+	parseMult(parentIndent) {
+		let el = this.parseElementGroup(parentIndent);
+		if (!el) return el;
+		let starToken = this.match("*");
+		if (starToken) {
+			let mustBeNumber = this.tok.next();
+			if (!mustBeNumber) this.throwAt("Number expecting after multiplier symbol '*'", starToken);
+			let count = parseInt(getText(mustBeNumber));
+			return {
+				count,
+				child: el
+			};
+		} else return el;
+	}
+	parseElementGroup(parentIndent) {
+		let el;
+		if (this.match("(")) {
+			el = this.parsePlus(parentIndent);
+			if (!this.match(")")) this.throwAt("Expected ')'", this.tok.peek());
+			return el;
+		} else {
+			let textToken = this.match("TEXT");
+			if (textToken) {
+				let text = getText(textToken);
+				return { text };
+			} else return this.parseElement(parentIndent);
+		}
+	}
+	parseElement(parentIndent) {
+		let tag = this.tok.next();
+		let id = void 0;
+		let atts = [];
+		let classList = [];
+		let innerText = void 0;
+		if (!tag) this.throwAt("Unexpected end of stream. Tag expected.", tag);
+		while (this.tok.peek()) {
+			if (this.match(".")) {
+				let className = this.tok.next();
+				if (!className) this.throwAt("Unexpected end of stream. Class name expected.", className);
+				classList.push(getText(className));
+				continue;
+			}
+			if (this.match("[")) {
+				atts = this.parseAttributes();
+				continue;
+			}
+			if (this.match("#")) {
+				let idToken = this.tok.next();
+				if (!idToken) this.throwAt("Unexpected end of stream. ID expected.", idToken);
+				id = getText(idToken);
+				continue;
+			}
+			let textToken = this.match("TEXT");
+			if (textToken) {
+				innerText = getText(textToken);
+				continue;
+			}
+			break;
+		}
+		return {
+			tag: getText(tag),
+			id,
+			atts,
+			classList,
+			innerText,
+			child: this.parseDown(parentIndent)
+		};
+	}
+	parseDown(parentIndent) {
+		if (this.match(">")) return this.parsePlus(parentIndent);
+		return void 0;
+	}
+	parseAttributes() {
+		let attDefs = [];
+		while (true) {
+			if (this.match("]")) break;
+			let att = this.parseAttribute();
+			if (att) attDefs.push(att);
+			else break;
+		}
+		return attDefs;
+	}
+	parseAttribute() {
+		let nameToken = this.tok.next();
+		if (!nameToken) return null;
+		let name = getText(nameToken);
+		if (name[0] === ",") this.throwAt("Unexpected ',' - don't separate attributes with ','.", nameToken);
+		let eq = this.tok.next();
+		if (!eq) this.throwAt("Unexpected end of stream. '=' expected.", eq);
+		let subToken;
+		let sub = "";
+		if (eq.type === ".") {
+			subToken = this.tok.next();
+			if (subToken) sub = getText(subToken);
+			eq = this.tok.next();
+		}
+		if (eq?.type != "=") this.throwAt("Equal sign expected.", eq);
+		let valueToken = this.tok.next();
+		if (!valueToken) this.throwAt("Value expected", valueToken);
+		if (valueToken.type != "STRING" && valueToken.type != "NUMBER") this.throwAt(`Value should be STRING or NUMBER. Found ${valueToken.type}.`, valueToken);
+		let value = getText(valueToken);
+		if (value[0] === "\"") value = this.stripStringDelimiters(value);
+		return {
+			name,
+			sub,
+			value
+		};
+	}
+	match(expected) {
+		let peek = this.tok.peek();
+		if (peek?.type == expected) return this.tok.next();
+		return false;
+	}
+	stripStringDelimiters(text) {
+		if (text[0] === "'" || text[0] === "\"" || text[0] === "{") return text.substring(1, text.length - 1);
+		return text;
+	}
+	printLocation(token) {
+		let { line, col } = token.cursor.getLocation(token.pos);
+		return `line ${line}, col ${col}\n${token.cursor.getLine(token.pos)}\n${" ".repeat(col - 1)}^`;
+	}
+	throwAt(mesagee, token) {
+		if (token) throw new Error(`${mesagee}\n  at ${this.printLocation(token)}`);
+		else throw new Error(`${mesagee}\n  at EOF`);
+	}
+};
 
 //#endregion
 //#region libs/Emmeter/html.ts
 let emmet = {
-	create,
 	create2,
 	append,
 	insertBefore,
 	insertAfter,
-	appendChild,
-	test: {
-		testEmmet,
-		tokenize
-	}
+	appendChild
 };
-let nested = void 0;
 let lastCreated = void 0;
-function toSelector(node) {
-	if (!("tag" in node)) throw "TODO: not yet implemented.";
-	let selector = "";
-	if (node.tag) selector += node.tag;
-	if (node.id) selector += "#" + node.id;
-	if (node.classList.length > 0) selector += "." + node.classList.join(".");
-	return selector;
-}
 function create2(text, onIndex, hook) {
 	let tempDiv = document.createElement("div");
 	let result = appendChild(tempDiv, text, onIndex, hook);
@@ -117,21 +445,8 @@ function create2(text, onIndex, hook) {
 	first.remove();
 	return first;
 }
-function create(text, onIndex, hook) {
-	nested = tokenize(text);
-	let root = parse();
-	let parent = document.querySelector(toSelector(root));
-	if ("tag" in root) root = root.child;
-	else throw "root should be a single element.";
-	buildElement(parent, root, 1, onIndex, hook);
-	return {
-		root: parent,
-		last: lastCreated
-	};
-}
 function append(root, text, onIndex, hook) {
-	nested = tokenize(text);
-	return parseAndBuild(root, onIndex, hook);
+	return parseAndBuild(text, root, onIndex, hook);
 }
 function insertBefore(target, text, onIndex, hook) {
 	return insertAt("beforebegin", target, text, onIndex, hook);
@@ -143,9 +458,8 @@ function appendChild(parent, text, onIndex, hook) {
 	return insertAt("beforeend", parent, text, onIndex, hook);
 }
 function insertAt(position, target, text, onIndex, hook) {
-	nested = tokenize(text);
 	let tempRoot = document.createElement("div");
-	let result = parseAndBuild(tempRoot, onIndex, hook);
+	let result = parseAndBuild(text, tempRoot, onIndex, hook);
 	let first = null;
 	let insertPos = target;
 	let children = [...tempRoot.childNodes];
@@ -167,147 +481,14 @@ function insertAdjacentText(target, position, text) {
 		case "afterend": return target.parentElement.appendChild(document.createTextNode(text));
 	}
 }
-function parseAndBuild(root, onIndex, hook) {
-	buildElement(root, parse(), 1, onIndex, hook);
+function parseAndBuild(text, root, onIndex, hook) {
+	let tok = new PeekingTokenizer(new FilteredTokenizer(new IndentTokenizer(text), (t) => t.type != "INDENT"));
+	let parser = new Parser(tok);
+	buildElement(root, parser.parse(), 1, onIndex, hook);
 	return {
 		root,
 		last: lastCreated
 	};
-}
-function testEmmet(text) {
-	nested = tokenize(text);
-	return parse();
-}
-function parse() {
-	return parsePlus();
-}
-function parsePlus() {
-	let list$1 = [];
-	while (true) {
-		let el = parseMult();
-		if (!el) return list$1.length === 1 ? list$1[0] : { list: list$1 };
-		list$1.push(el);
-		if (!match("+")) return list$1.length === 1 ? list$1[0] : { list: list$1 };
-	}
-}
-function parseMult() {
-	let el = parseElement();
-	if (!el) return el;
-	if (match("*")) {
-		let mustBeNumber = nested.shift();
-		if (!mustBeNumber) throw "Number expecting after multiplier symbol '*'";
-		let count = parseInt(mustBeNumber);
-		return {
-			count,
-			child: el
-		};
-	} else return el;
-}
-function parseElement() {
-	let el;
-	if (match("(")) {
-		el = parsePlus();
-		if (!match(")")) throw "Expected ')'";
-		return el;
-	} else {
-		let text = matchStartsWith("{");
-		if (text) {
-			text = stripStringDelimiters(text);
-			return { text };
-		} else return parseChildDef();
-	}
-}
-function parseChildDef() {
-	let tag = nested.shift();
-	let id = void 0;
-	let atts = [];
-	let classList = [];
-	let text = void 0;
-	if (!tag) throw "Unexpected end of stream. Tag expected.";
-	while (nested.length) if (match(".")) {
-		let className = nested.shift();
-		if (!className) throw "Unexpected end of stream. Class name expected.";
-		classList.push(className);
-	} else if (match("[")) atts = getAttributes();
-	else {
-		let token = matchStartsWith("#");
-		if (token) id = token.substring(1);
-		else {
-			let token$1 = matchStartsWith("{");
-			if (token$1) text = stripStringDelimiters(token$1);
-			else break;
-		}
-	}
-	return {
-		tag,
-		id,
-		atts,
-		classList,
-		innerText: text,
-		child: parseDown()
-	};
-}
-function parseDown() {
-	if (match(">")) return parsePlus();
-	return void 0;
-}
-function getAttributes() {
-	let tokens = [];
-	while (nested.length) {
-		let prop = nested.shift();
-		if (prop == "]") break;
-		tokens.push(prop);
-	}
-	let attDefs = [];
-	while (tokens.length) {
-		let name = tokens.shift();
-		if (name[0] === ",") throw "Unexpected ',' - don't separate attributes with ','.";
-		let eq = tokens.shift();
-		let sub = "";
-		if (eq === ".") {
-			sub = tokens.shift() ?? "";
-			eq = tokens.shift();
-		}
-		if (eq != "=") throw "Equal sign expected.";
-		let value = tokens.shift();
-		if (!value) throw "Value expected";
-		if (value[0] === "\"") value = stripStringDelimiters(value);
-		attDefs.push({
-			name,
-			sub,
-			value
-		});
-		if (!tokens.length) break;
-	}
-	return attDefs;
-}
-function match(expected) {
-	let next = nested.shift();
-	if (next === expected) return true;
-	if (next) nested.unshift(next);
-	return false;
-}
-function matchStartsWith(expected) {
-	let next = nested.shift();
-	if (!next) return void 0;
-	if (next.startsWith(expected)) return next;
-	if (next) nested.unshift(next);
-	return void 0;
-}
-function stripStringDelimiters(text) {
-	if (text[0] === "'" || text[0] === "\"" || text[0] === "{") return text.substring(1, text.length - 1);
-	return text;
-}
-function createElement(parent, def, index, onIndex, hook) {
-	let el = parent.appendChild(document.createElement(def.tag));
-	if (def.id) el.id = addIndex(def.id, index, onIndex);
-	for (let clazz of def.classList) el.classList.add(addIndex(clazz, index, onIndex));
-	for (let att of def.atts) if (att.sub) el[addIndex(att.name, index, onIndex)][addIndex(att.sub, index, onIndex)] = addIndex(att.value, index, onIndex);
-	else el.setAttribute(addIndex(att.name, index, onIndex), addIndex(att.value, index, onIndex));
-	if (def.innerText) el.appendChild(document.createTextNode(addIndex(def.innerText, index, onIndex)));
-	lastCreated = el;
-	if (hook) hook(el);
-	return el;
 }
 function buildElement(parent, el, index, onIndex, hook) {
 	if ("tag" in el) {
@@ -328,6 +509,17 @@ function addIndex(text, index, onIndex) {
 		text = text.replace("$$", result);
 	}
 	return text.replace("$", (index + 1).toString());
+}
+function createElement(parent, def, index, onIndex, hook) {
+	let el = parent.appendChild(document.createElement(def.tag));
+	if (def.id) el.id = addIndex(def.id, index, onIndex);
+	for (let clazz of def.classList) el.classList.add(addIndex(clazz, index, onIndex));
+	for (let att of def.atts) if (att.sub) el[addIndex(att.name, index, onIndex)][addIndex(att.sub, index, onIndex)] = addIndex(att.value, index, onIndex);
+	else el.setAttribute(addIndex(att.name, index, onIndex), addIndex(att.value, index, onIndex));
+	if (def.innerText) el.appendChild(document.createTextNode(addIndex(def.innerText, index, onIndex)));
+	lastCreated = el;
+	if (hook) hook(el);
+	return el;
 }
 
 //#endregion
@@ -612,10 +804,10 @@ let Schoolyear;
 function getUserAndSchoolName() {
 	let footer = document.querySelector("body > main > div.row > div.col-auto.mr-auto > small");
 	const reInstrument = /.*Je bent aangemeld als (.*)\s@\s(.*)\./;
-	const match$1 = footer.textContent.match(reInstrument);
-	if (match$1?.length !== 3) throw new Error(`Could not process footer text "${footer.textContent}"`);
-	let userName = match$1[1];
-	let schoolName = match$1[2];
+	const match = footer.textContent.match(reInstrument);
+	if (match?.length !== 3) throw new Error(`Could not process footer text "${footer.textContent}"`);
+	let userName = match[1];
+	let schoolName = match[2];
 	return {
 		userName,
 		schoolName
@@ -1980,9 +2172,9 @@ var TokenScanner = class TokenScanner {
 	#find(prefix, tokens) {
 		if (!this.valid) return this;
 		let rxString = prefix + tokens.map((token) => escapeRegexChars(token) + "\\s*").join("");
-		let match$1 = RegExp(rxString).exec(this.cursor);
-		if (match$1) {
-			this.cursor = this.cursor.substring(match$1.index + match$1[0].length);
+		let match = RegExp(rxString).exec(this.cursor);
+		if (match) {
+			this.cursor = this.cursor.substring(match.index + match[0].length);
 			return this;
 		}
 		this.valid = false;
@@ -4918,13 +5110,13 @@ function scrapeTrimesterModules(lessen) {
 	for (let module of modules) {
 		module.les.students = scrapeStudents(module.studentsTable);
 		const reInstrument = /.*\Snitiatie\s*(\S+).*(\d).*/;
-		const match$1 = module.les.naam.match(reInstrument);
-		if (match$1?.length !== 3) {
+		const match = module.les.naam.match(reInstrument);
+		if (match?.length !== 3) {
 			console.error(`Could not process trimester module "${module.les.naam}" (${module.les.id}).`);
 			continue;
 		}
-		module.les.instrumentName = match$1[1];
-		module.les.trimesterNo = parseInt(match$1[2]);
+		module.les.instrumentName = match[1];
+		module.les.trimesterNo = parseInt(match[2]);
 		trimesterModules.push(module.les);
 	}
 	return trimesterModules;
@@ -4935,13 +5127,13 @@ function scrapeJaarModules(lessen) {
 	for (let module of modules) {
 		module.les.students = scrapeStudents(module.studentsTable);
 		const reInstrument = /.*\Snitiatie\s*(\S+).*/;
-		const match$1 = module.les.naam.match(reInstrument);
-		if (match$1?.length !== 2) {
+		const match = module.les.naam.match(reInstrument);
+		if (match?.length !== 2) {
 			console.error(`Could not process jaar module "${module.les.naam}" (${module.les.id}).`);
 			continue;
 		}
-		module.les.instrumentName = match$1[1];
-		module.les.trimesterNo = parseInt(match$1[2]);
+		module.les.instrumentName = match[1];
+		module.les.trimesterNo = parseInt(match[2]);
 		jaarModules.push(module.les);
 	}
 	return jaarModules;
@@ -5580,6 +5772,7 @@ function connvertToewijzingenToModules(jaarToewijzingen) {
 
 //#endregion
 //#region typescript/lessen/build.ts
+const NBSP = 160;
 let NameSorting = /* @__PURE__ */ function(NameSorting$1) {
 	NameSorting$1[NameSorting$1["FirstName"] = 0] = "FirstName";
 	NameSorting$1[NameSorting$1["LastName"] = 1] = "LastName";
@@ -5621,9 +5814,10 @@ function getSavedNameSorting() {
 function buildTrimesterTable(tableData, trimElements) {
 	pageState = getPageSettings(PageName.Lessen, pageState);
 	tableData.blocks.sort((block1, block2) => block1.instrumentName.localeCompare(block2.instrumentName));
-	trimElements.trimTableDiv = emmet.create(`#${TRIM_DIV_ID}>table#trimesterTable[border="2" style.width="100%"]>colgroup>col*3`).root;
+	trimElements.trimTableDiv = document.getElementById(TRIM_DIV_ID);
+	let newTable = emmet.appendChild(trimElements.trimTableDiv, `table#trimesterTable[border="2" style.width="100%"]>colgroup>col*3`).first;
 	trimElements.trimTableDiv.dataset.showFullClass = isButtonHighlighted(FULL_CLASS_BUTTON_ID) ? "true" : "false";
-	let { root: newTable, last: trHeader } = emmet.create("#trimesterTable>tbody+thead.table-secondary>tr");
+	let trHeader = emmet.appendChild(newTable, "tbody+thead.table-secondary>tr").last;
 	Object.assign(trimElements, getTrimPageElements());
 	let newTableBody = newTable.querySelector("tbody");
 	let totTrim = [
@@ -6765,9 +6959,9 @@ async function addDiff(titleHeader, academie, schoolYear, diffPageType) {
 		diffType = diff.diffType;
 		weight = diff.weight;
 	} else {
-		let match$1 = diffs.perfectMatches?.find((match$2) => match$2.dkoId == lesId);
-		if (match$1) {
-			otherLes = match$1.otherLes;
+		let match = diffs.perfectMatches?.find((match$1) => match$1.dkoId == lesId);
+		if (match) {
+			otherLes = match.otherLes;
 			diffType = "perfect match";
 			weight = new Weight();
 		}
@@ -7840,7 +8034,6 @@ function getLocalHourSettings() {
 		//get value when not a calculated value.
 		//! should exist
 		//! should be filled
-		//todo: make a breaking change for this function. It's API sucks. It appends an element to a selector. Perhaps even remove this function.
 		LOCAL_HOURS_SETTINGS
 );
 	if (text) return JSON.parse(text);
@@ -8100,7 +8293,7 @@ function fillGraadCell(ctx) {
 function rebuildHoursTable(studentRowData, hourSettingsMapped, fromCloud, infoBlock) {
 	infoBlock.infoBar.setExtraInfo("");
 	document.getElementById(HOURS_TABLE_ID)?.remove();
-	let table = emmet.create(`#${PLUGIN_CONTAINER_ID}>table`).last;
+	let table = emmet.appendChild(document.getElementById(PLUGIN_CONTAINER_ID), `table`).last;
 	table.id = HOURS_TABLE_ID;
 	table.classList.add(CAN_SORT, NO_MENU);
 	let vakLeraars = buildVakLeraarsMap(studentRowData, hourSettingsMapped);
@@ -9718,7 +9911,7 @@ function addMatchingStudents() {
 	}
 }
 function addEmailText() {
-	let emailDiv = emmet.create("div.modal-body>div>button#btnShowEmail{Show email}.btn.btn-sm.btn-outline-success+div#showEmail.collapsed").last;
+	let emailDiv = emmet.appendChild(document.querySelector("div.modal-body"), "div>button#btnShowEmail{Show email}.btn.btn-sm.btn-outline-success+div#showEmail.collapsed").last;
 	emailDiv.innerHTML = currentEmailHtml;
 	document.getElementById("btnShowEmail").addEventListener("click", showEmail);
 }
@@ -9745,7 +9938,7 @@ async function onTicket() {
 	let emailText = card_bodyDiv.textContent;
 	currentEmailHtml = card_bodyDiv.innerHTML;
 	let matches = [...emailText.matchAll(rxEmail)];
-	let uniqueEmails = [...new Set(matches.map((match$1) => match$1[0]))];
+	let uniqueEmails = [...new Set(matches.map((match) => match[0]))];
 	let { email: myEmail } = whoAmI();
 	uniqueEmails = uniqueEmails.filter((m) => m != myEmail);
 	console.log(uniqueEmails);

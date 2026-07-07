@@ -1,24 +1,56 @@
-* Pre-translation should happen on the popover/title value
+* in lists with student names: allow to add extra student data. (expensive per record, but doable via werklijst)
+  > add certain hashes to certain lists> allow to add an extra hash column.
+  > opm table
+    - has id in tr.onclick
+    - one schoolyear or all
+    - tab name.
+    - color
+    > has no download-all button???
+      > other tables with this problem?
+ 
+  > how to shift MAIN to the left?
+    - main has max width
+    > this seems to work:
+      :
+        margin-inline-start: 0; // >> works!
+        max-width: 100%;
+
+
+
+* global search: one result? auto jump to that student (setting!)
+
+* voornaam achternaam ook voor personeelsfiche
+
+* lessen: filter op klassen met wachtlijst maar toch terug plaats.
+  > add to checks.
+  > have a menu-item checks
+* check: combo's offline.
+  > create a scripting language for this?
+* check: alias with 2 classes: always offline.
+
+* don't pre-filter lessen or cells, or at least show them in the hidden overview
+
+* Pre-translation for www has an issue.
+  A pre-translation is already done on classname, but it's supposed to happen on title, which is page+section+class.
+  > option 1: test the trigger on full title and THEN do the replace on only the className.
+    > but what if the find/translate is for the full title?
+  > option 2: give the title parts labels: "Page: Uurroosters blah | Section: sdfsd | klas: sfsdf"
+    > YES!!!
+    > perhaps use newline instead of |?
+
+* automate: geen trigger op lokalenlijst!
+
 * lln fiche: fix financial tabs.
   > merge "te betalen" and "financieel"
     > some buttons at least.
     > note that all this is still in development...
-* lessen: filter op klassen met wachtlijst maar toch terug plaats.
 * rijksregnr paste: alleen nummers
-* check combo's offline.
-  > create a scripting language for this?
 * hash tags in comments  in dko3: popup met keuzes?
-* automate: geen trigger op lokalenlijst!
-* diff: alias check restrictions!
 * aliaslessen: check gradeYears as well ! and check if siblings are offline;
 * errors: add hash and allow to hide, to avoid fatigue.
-* don't pre-filter lessen or cells, or at least show them in the hidden overview
 * verdeelklas kan over max gaan: dagelijkse check?
+  > which max? That of the other classes combined?
 * inschrijvingsknop grijs...Terug ok vanaf 1 mei? Kijken naar het laatste actieve jaar!
-* in lists with student names: allow to add extra student data. (expensive per record, but doable via werklijst)
-  > add certain hashes to certain lists> allow to add an extra hash column.
-* global search: one result? auto jump to that student (setting!)
-* voornaam achternaam ook voor personeelsfiche
 * trims: show lln op wachtlijst?
 
 * join lists

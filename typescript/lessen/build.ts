@@ -4,10 +4,11 @@ import {BlockInfo, mergeBlockStudents, TableData} from "./convert";
 import {StudentInfo} from "./scrape";
 import * as html from "../../libs/Emmeter/html";
 import {emmet} from "../../libs/Emmeter/html";
-import {NBSP} from "../../libs/Emmeter/tokenizer";
 import {PageName} from "../gotoState";
 import {getTrimPageElements} from "./observer";
 import {getPageSettings, PageSettings, savePageSettings} from "../pageState";
+
+const NBSP: number = 160;
 
 export enum NameSorting {
     FirstName, LastName
@@ -67,11 +68,12 @@ export function getSavedNameSorting() {
 export function buildTrimesterTable(tableData: TableData, trimElements: TrimElements) {
     pageState = getPageSettings(PageName.Lessen, pageState) as LessenPageState;
     tableData.blocks.sort((block1, block2) => block1.instrumentName!.localeCompare(block2.instrumentName!));
-    trimElements.trimTableDiv = html.emmet.create(`#${TRIM_DIV_ID}>table#trimesterTable[border="2" style.width="100%"]>colgroup>col*3`).root as HTMLDivElement;
+    trimElements.trimTableDiv = document.getElementById(TRIM_DIV_ID) as HTMLDivElement;
+    let newTable = html.emmet.appendChild(trimElements.trimTableDiv,`table#trimesterTable[border="2" style.width="100%"]>colgroup>col*3`).first as HTMLTableElement;
 
     trimElements.trimTableDiv.dataset.showFullClass= isButtonHighlighted(FULL_CLASS_BUTTON_ID) ? "true" : "false";
 
-    let { root: newTable, last: trHeader } = html.emmet.create("#trimesterTable>tbody+thead.table-secondary>tr");
+    let trHeader = html.emmet.appendChild(newTable, "tbody+thead.table-secondary>tr").last;
     Object.assign(trimElements, getTrimPageElements()); //update trimElements
 
     let newTableBody = newTable.querySelector("tbody")!;
