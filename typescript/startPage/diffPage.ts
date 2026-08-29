@@ -35,7 +35,7 @@ export async function setupDiffPage() {
             h4{Verschillen in uurroosters}
     `).first as HTMLDivElement;
     //todo: emmet.create has issues. See comment in emmet.create.
-    let tab1Content = emmet.create2(`
+    let tab1Content = emmet.createElement(`
         span>(
             span>(
                 i.excelRow.far.fa-chalkboard-user+
@@ -46,7 +46,7 @@ export async function setupDiffPage() {
         )
     `);
 
-    let tab2Content = emmet.create2(`
+    let tab2Content = emmet.createElement(`
         span>(
             span{Dko3}+
             i.fas.fa-arrow-right+
