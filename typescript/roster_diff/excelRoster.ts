@@ -323,14 +323,18 @@ export class ExcelRoster {
             }
             return gradeYears;
         }
-        const rx2 = /\s+(\d)\s?[,+]\s?(\d)/gm;
-        matches = rx2.exec(text);
+        const rxSingleDigitList = /(\d\s*(?:[,+\/]\s*\d\s*)*)(?!\s*[,+\/])/gm;
+        matches = rxSingleDigitList.exec(text);
         if(matches) {
             let strippedMatches = matches.filter(m => m);
-            for (let i = 1; i < strippedMatches.length; i++) {
+            let singleDigitList = strippedMatches[0].split(/[,+\/]/);
+            if(singleDigitList.length == 1) {
+                return []; // one digit could mean anything.
+            }
+            for (let digit of singleDigitList) {
                 let gradeYear: GradeYear = {
-                    grade: "2", //assumptionn!
-                    year: parseInt(strippedMatches[i])
+                    grade: "2", //assumption!
+                    year: parseInt(digit)
                 };
                 gradeYears.push(gradeYear);
             }

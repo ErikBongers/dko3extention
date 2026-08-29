@@ -4786,13 +4786,14 @@
 				}
 				return gradeYears;
 			}
-			matches = /\s+(\d)\s?[,+]\s?(\d)\s?[,+]\s?(\d)\s?[,+]\s?(\d)/gm.exec(text);
+			matches = /(\d\s*(?:[,+\/]\s*\d\s*)*)(?!\s*[,+\/])/gm.exec(text);
 			if (matches) {
-				let strippedMatches = matches.filter((m) => m);
-				for (let i = 1; i < strippedMatches.length; i++) {
+				let singleDigitList = matches.filter((m) => m)[0].split(/[,+\/]/);
+				if (singleDigitList.length == 1) return [];
+				for (let digit of singleDigitList) {
 					let gradeYear = {
 						grade: "2",
-						year: parseInt(strippedMatches[i])
+						year: parseInt(digit)
 					};
 					gradeYears.push(gradeYear);
 				}
