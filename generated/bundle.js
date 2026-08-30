@@ -2355,8 +2355,20 @@
 				ev.stopPropagation();
 			};
 		}
+		addInfo(element, indentLevel) {
+			let indentClass = indentLevel ? ".menuIndent" + indentLevel : "";
+			let { first } = emmet.appendChild(this.menu, `div.dropDownSeparator.dropDownIgnoreHide${indentClass}`);
+			let item = first;
+			item.onclick = (ev) => {
+				ev.stopPropagation();
+			};
+			item.appendChild(element);
+		}
 		clickItem(itemIndex) {
 			this.menu.querySelectorAll(".dropDownItem")[itemIndex].click();
+		}
+		removeItem(index) {
+			this.menu.removeChild(this.menu.children[index]);
 		}
 	};
 	function closeMenus() {
@@ -5143,7 +5155,7 @@
 			scanner.find(`"${selectId}"`);
 			scanner.find("<option");
 			scanner.clipTo("</select>");
-			return (scanner.result()?.split("</option>").map((opt) => opt.replace("<option", "").replace("value=\"", "").trim().split(/"\s*>/)) ?? []).map((opt) => {
+			return (scanner.result()?.split("</option>").map((opt) => opt.replace(" selected ", "").replace("<option", "").replace("value=\"", "").trim().split(/"\s*>/)) ?? []).map((opt) => {
 				return {
 					code: opt[0],
 					name: opt[1]
@@ -6713,6 +6725,17 @@
 		lessenBuilder.addVak(vak);
 		let lessons = await lessenBuilder.fetch();
 		console.log(lessons);
+		menu.removeItem(1);
+		for (let les of lessons) {
+			let infoBlock = emmet.createElement(`
+            div.small>(
+                div.bold{${les.les.naam ? les.les.naam : les.les.vakNaam + " " + les.les.naam}}+
+                div{${les.les.formattedLesmoment}}+
+                div{ ${les.les.aantal}/${les.les.maxAantal} lln}
+            )
+        `);
+			menu.addInfo(infoBlock, 0);
+		}
 	}
 	function setStripedLessons() {
 		let classRows = document.querySelectorAll("#leerling_inschrijvingen_weergave tr");

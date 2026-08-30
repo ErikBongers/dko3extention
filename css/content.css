@@ -185,7 +185,7 @@ table tfoot.separatorLine {
 .tableFilter {
     margin-left: 5px;
 }
-a.bold {
+a.bold, .bold {
     font-weight: bold;
 }
 
@@ -564,4 +564,8 @@ div#snapshotResults {
 
 #btnDiffSettings, #btnDiffSettingsWww {
     margin-inline-start: 1ch;
+}
+
+.small {
+    font-size: .8em;
 }

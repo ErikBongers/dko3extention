@@ -70,9 +70,23 @@ export class DropDownMenu {
         }
     }
 
+    addInfo(element: HTMLElement, indentLevel: number) {
+        let indentClass = indentLevel ? ".menuIndent" + indentLevel : "";
+        let {first} = emmet.appendChild(this.menu, `div.dropDownSeparator.dropDownIgnoreHide${indentClass}`);
+        let item = first as HTMLElement;
+        item.onclick = (ev) => {
+            ev.stopPropagation();
+        }
+        item.appendChild(element);
+    }
+
     clickItem(itemIndex: number) {
         let items = this.menu.querySelectorAll(".dropDownItem") as NodeListOf<HTMLButtonElement>;
         items[itemIndex].click();
+    }
+
+    removeItem(index: number) {
+        this.menu.removeChild(this.menu.children[index]);
     }
 }
 

@@ -6,6 +6,7 @@ import {DropDownMenu} from "../dropDownMenus";
 import {textsToYearGrades} from "../lessen/scrape";
 import {GradeYear} from "../roster_diff/calcDiff";
 import {DomeinString, LessenFilterBuilder, LessenFilterDomein} from "../lessen/fetch";
+import {emmet} from "../../libs/Emmeter/html";
 
 class LeerlingObserver extends HashObserver {
     constructor() {
@@ -346,6 +347,17 @@ async function getRelatedClasses(schoolYear: string, menu: DropDownMenu, domein:
     lessenBuilder.addVak(vak);
     let lessons = await lessenBuilder.fetch();
     console.log(lessons);
+    menu.removeItem(1);
+    for(let les of lessons) {
+        let infoBlock = emmet.createElement(`
+            div.small>(
+                div.bold{${les.les.naam? les.les.naam : les.les.vakNaam+" "+les.les.naam}}+
+                div{${les.les.formattedLesmoment}}+
+                div{ ${les.les.aantal}/${les.les.maxAantal} lln}
+            )
+        `);
+        menu.addInfo(infoBlock, 0);
+    }
 }
 
 function setStripedLessons() {

@@ -110,6 +110,7 @@ export class LessenFilterBuilder {
         // console.log(text);
         let options = rawOptions?.split("</option>")
             .map(opt => opt
+                .replace(" selected ", "")
                 .replace("<option", "")
                 .replace("value=\"", "")
                 .trim()
