@@ -15,11 +15,13 @@ import {emmet} from "../libs/Emmeter/html";
             ...
  */
 
+export type CancelDropDown = (ev: MouseEvent) => boolean | Promise<boolean>;
 
 export class DropDownMenu {
     private readonly menu: HTMLElement;
     private readonly container: HTMLElement;
     private button: HTMLElement;
+    public cancelDropDown: CancelDropDown | undefined;
 
     constructor(container: HTMLElement, button: HTMLElement, position: "left" | "right" = "right") {
         this.container = container;
@@ -31,16 +33,18 @@ export class DropDownMenu {
         this.menu = first as HTMLElement;
         if(position === "left")
             this.container.classList.add("shiftMenuLeft");
-        this.button.onclick = ev => {
+        this.button.onclick = async ev => {
             ev.preventDefault();
             ev.stopPropagation();
-            let dropDowwnMenu = (ev.target as HTMLElement).closest(".dropDownContainer")!.querySelector(".dropDownMenu")!;
-            if (dropDowwnMenu.classList.contains("show")) {
+            if (await this.cancelDropDown?.(ev))
+                return;
+            let dropDownMenu = (ev.target as HTMLElement).closest(".dropDownContainer")!.querySelector(".dropDownMenu")!;
+            if (dropDownMenu.classList.contains("show")) {
                 closeMenus();
                 return;
             }
             closeMenus();
-            dropDowwnMenu.classList.add("show");
+            dropDownMenu.classList.add("show");
         }
     }
 
@@ -66,6 +70,10 @@ export class DropDownMenu {
         }
     }
 
+    clickItem(itemIndex: number) {
+        let items = this.menu.querySelectorAll(".dropDownItem") as NodeListOf<HTMLButtonElement>;
+        items[itemIndex].click();
+    }
 }
 
 export function closeMenus() {

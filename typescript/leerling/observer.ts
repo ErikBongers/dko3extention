@@ -1,8 +1,10 @@
-import {db3, getOptions, Schoolyear, wrapElement} from "../globals";
+import {db3, Schoolyear, wrapElement} from "../globals";
 import {HashObserver} from "../pageObserver";
 import {options} from "../plugin_options/options";
 import {fetchLes} from "../les/fetch";
 import {DropDownMenu} from "../dropDownMenus";
+import {textsToYearGrades} from "../lessen/scrape";
+import {GradeYear} from "../roster_diff/calcDiff";
 
 class LeerlingObserver extends HashObserver {
     constructor() {
@@ -230,24 +232,114 @@ async function onInschrijvingChanged(tabInschrijving: HTMLElement) {
         setStripedLessons();
     }
 
-    let iGotoClassList = document.querySelectorAll("#leerling_inschrijvingen_weergave div table tbody i.fa-list-ul") as NodeListOf<HTMLSpanElement>;
-    for (let iGotoClass of iGotoClassList) {
-        let btnGotoLes = iGotoClass.parentElement!;
-        let btnOnClick = btnGotoLes.getAttribute("onclick")!;
-        let matchLesId = btnOnClick.match(/id=(\d+)/);
-        if (matchLesId) {
-            let lesId = matchLesId[1];
-            let lesDetails = await fetchLes(lesId);
-            let wrapper = wrapElement(btnGotoLes, "div");
-            btnGotoLes.removeAttribute("onclick");
-            let newBtnGotoLes = btnGotoLes.cloneNode(true) as HTMLElement;
-            btnGotoLes.replaceWith(newBtnGotoLes);
-            let menu = new DropDownMenu(wrapper, newBtnGotoLes, "left");
-            menu.addItem("Test 1", 0, () => {console.log("test 1");});
-            menu.addItem("Test 2", 0, () => {console.log("test 2");});
-            menu.addItem("Ga naar les", 0, btnOnClick);
+    let opleidingen = scrapeOpleidingen();
+    console.log("scrapeOpleidingen", opleidingen);
+    // let iGotoClassList = document.querySelectorAll("#leerling_inschrijvingen_weergave div table tbody i.fa-list-ul") as NodeListOf<HTMLSpanElement>;
+    for(let opleiding of opleidingen) {
+        for(let lesInfo of opleiding.lessen) {
+            if(!lesInfo.gotoButton)
+                continue;
+            let btnOnClick = lesInfo.gotoButton.getAttribute("onclick");
+            if(!btnOnClick)
+                continue;
+            let matchLesId = btnOnClick.match(/id=(\d+)/);
+            if (matchLesId) {
+                let lesId = matchLesId[1];
+                let wrapper = wrapElement(lesInfo.gotoButton, "div");
+                lesInfo.gotoButton.removeAttribute("onclick");
+                let newBtnGotoLes = lesInfo.gotoButton.cloneNode(true) as HTMLElement;
+                lesInfo.gotoButton.replaceWith(newBtnGotoLes);
+                newBtnGotoLes.dataset.originalOnClick = btnOnClick;
+                let menu = new DropDownMenu(wrapper, newBtnGotoLes, "left");
+                menu.addItem("Ga naar les", 0, btnOnClick);
+                menu.cancelDropDown = async () => {
+                    let lesDetails = await fetchLes(lesId);
+                    console.log("lesDetails", lesDetails);
+                    if (lesDetails.editableName) {
+                        //assuming it's a group class, as individual classes do not have editable names.
+                        menu.addSeparator(`Bezig met laden... van ${opleiding.domein}, ${GradeYear.toString(opleiding.gradeYears)}, ${lesInfo.vak}`, 0);
+                        getRelatedClasses(menu, opleiding.domein, opleiding.gradeYears[0], lesInfo.vak).then(() => {
+                        }); //fallthrough
+                        return false;
+                    }
+                    menu.clickItem(2);
+                    return true; //CANCEL
+                }
+            }
         }
     }
+}
+
+interface LesInfo {
+    vak: string;
+    lesNaam: string
+    gotoButton: HTMLButtonElement | null;
+}
+
+
+interface Opleiding {
+    domein: string;
+    gradeYears: GradeYear[];
+    lessen: LesInfo[];
+}
+
+function scrapeOpleidingen() {
+    let divOpleidingen = document.getElementById("leerling_inschrijvingen_weergave") as HTMLDivElement;
+    let tBody = divOpleidingen.querySelector("tbody") as HTMLTableSectionElement;
+    let opleidingen: Opleiding[] = [];
+    for(let tr of tBody.querySelectorAll("tr")) {
+        let detailsTdOffset = 0;
+        if([...tr.classList].find(c => c.includes("inschrijvingen_domein"))) {
+            let rowSpan = tr.cells[0].getAttribute("rowspan");
+            if (rowSpan) {
+                let opleiding = scrapeOpleidingRow(tr);
+                opleidingen.push(opleiding);
+                detailsTdOffset = 3; //todo: find the exact number of cells to skip
+            }
+        }
+        //scrape details
+        let lesInfo = scrapeLesInfoDetails(tr, detailsTdOffset);
+
+        opleidingen[opleidingen.length-1].lessen.push(lesInfo);
+    }
+    return opleidingen;
+}
+
+function scrapeOpleidingRow(tr: HTMLTableRowElement) {
+    let tdOpleiding = tr.querySelector("td:nth-child(2)") as HTMLTableCellElement;
+    let tdText = tdOpleiding.textContent;
+    let domein = "";
+    if (tdText.includes("DomeinOv")) domein = "DomeinOv";
+    if (tdText.includes("Muziek")) domein = "Muziek";
+    if (tdText.includes("Woord")) domein = "Woord";
+    console.log("tdOpleiding", tdText, domein);
+    let rx = new RegExp(`${domein}\\s*-\\s*<strong>(.*?)</strong>`);
+    let gradeYearText = rx.exec(tdOpleiding.innerHTML)?.at(1);
+    let gradeYears: GradeYear[] = [];
+    if (gradeYearText)
+        gradeYears = textsToYearGrades([gradeYearText]);
+    let opleiding: Opleiding = {domein, gradeYears, lessen: []};
+    return opleiding;
+}
+
+function scrapeLesInfoDetails(tr: HTMLTableRowElement, detailsTdOffset: number) {
+    let tdVakLes = tr.cells[detailsTdOffset+1] as HTMLTableCellElement;
+    let strong = tdVakLes.querySelector("strong") as HTMLHeadingElement | null;
+    let vakNaam = strong?.textContent ?? "";
+    let small = tdVakLes.querySelector("small") as HTMLHeadingElement | null;
+    let lesNaam = small?.textContent ?? "";
+    let iGotoClass = document.querySelector("i.fa-list-ul") as HTMLSpanElement | null;
+    let gotoButton: HTMLButtonElement | null = null;
+    if(iGotoClass) {
+        gotoButton = iGotoClass.parentElement as HTMLButtonElement;
+    }
+
+    let lesInfo: LesInfo = {vak: vakNaam, lesNaam, gotoButton};
+    return lesInfo;
+}
+
+async function getRelatedClasses(menu: DropDownMenu, domein: string, gradeYear: GradeYear, vak: string) {
+
 }
 
 function setStripedLessons() {

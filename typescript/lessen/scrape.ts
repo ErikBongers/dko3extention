@@ -446,7 +446,7 @@ function parseLesMoment(text: string): DayTimeSlice {
     return new DayTimeSlice(day, new TimeSlice(startTime,endTime));
 }
 
-function textsToYearGrades(texts: string[]){
+export function textsToYearGrades(texts: string[]){
     let yearGrades: GradeYear[] = [];
     texts.forEach(text => {
         let rxNumbersCommasDots = /^[\s\d,.SC]+$/gm;
