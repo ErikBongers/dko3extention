@@ -5,6 +5,7 @@ import {fetchLes} from "../les/fetch";
 import {DropDownMenu} from "../dropDownMenus";
 import {textsToYearGrades} from "../lessen/scrape";
 import {GradeYear} from "../roster_diff/calcDiff";
+import {DomeinString, LessenFilterBuilder, LessenFilterDomein} from "../lessen/fetch";
 
 class LeerlingObserver extends HashObserver {
     constructor() {
@@ -258,7 +259,8 @@ async function onInschrijvingChanged(tabInschrijving: HTMLElement) {
                     if (lesDetails.editableName) {
                         //assuming it's a group class, as individual classes do not have editable names.
                         menu.addSeparator(`Bezig met laden... van ${opleiding.domein}, ${GradeYear.toString(opleiding.gradeYears)}, ${lesInfo.vak}`, 0);
-                        getRelatedClasses(menu, opleiding.domein, opleiding.gradeYears[0], lesInfo.vak).then(() => {
+                        let schoolYear = Schoolyear.findInPage();
+                        getRelatedClasses(schoolYear, menu, opleiding.domein as DomeinString, opleiding.gradeYears[0], lesInfo.vak).then(() => {
                         }); //fallthrough
                         return false;
                     }
@@ -278,7 +280,7 @@ interface LesInfo {
 
 
 interface Opleiding {
-    domein: string;
+    domein: DomeinString | "";
     gradeYears: GradeYear[];
     lessen: LesInfo[];
 }
@@ -308,8 +310,8 @@ function scrapeOpleidingen() {
 function scrapeOpleidingRow(tr: HTMLTableRowElement) {
     let tdOpleiding = tr.querySelector("td:nth-child(2)") as HTMLTableCellElement;
     let tdText = tdOpleiding.textContent;
-    let domein = "";
-    if (tdText.includes("DomeinOv")) domein = "DomeinOv";
+    let domein: DomeinString | "" = "";
+    if (tdText.includes("DomeinOv")) domein = "DomeinOV";
     if (tdText.includes("Muziek")) domein = "Muziek";
     if (tdText.includes("Woord")) domein = "Woord";
     console.log("tdOpleiding", tdText, domein);
@@ -338,8 +340,12 @@ function scrapeLesInfoDetails(tr: HTMLTableRowElement, detailsTdOffset: number) 
     return lesInfo;
 }
 
-async function getRelatedClasses(menu: DropDownMenu, domein: string, gradeYear: GradeYear, vak: string) {
-
+async function getRelatedClasses(schoolYear: string, menu: DropDownMenu, domein: DomeinString, gradeYear: GradeYear, vak: string) {
+    let lessenBuilder = await LessenFilterBuilder.create(schoolYear, domein);
+    lessenBuilder.addGraad(GradeYear.toString([gradeYear]));
+    lessenBuilder.addVak(vak);
+    let lessons = await lessenBuilder.fetch();
+    console.log(lessons);
 }
 
 function setStripedLessons() {
