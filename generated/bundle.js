@@ -1523,6 +1523,63 @@
 		};
 	}
 	//#endregion
+	//#region typescript/dropDownMenus.ts
+	var DropDownMenu = class {
+		menu;
+		container;
+		button;
+		constructor(container, button, position = "right") {
+			this.container = container;
+			this.button = button;
+			initMenuEvents();
+			this.container.classList.add("dropDownContainer");
+			this.button.classList.add("dropDownIgnoreHide", "dropDownButton");
+			let { first } = emmet.appendChild(this.container, "div.dropDownMenu");
+			this.menu = first;
+			if (position === "left") this.container.classList.add("shiftMenuLeft");
+			this.button.onclick = (ev) => {
+				ev.preventDefault();
+				ev.stopPropagation();
+				let dropDowwnMenu = ev.target.closest(".dropDownContainer").querySelector(".dropDownMenu");
+				if (dropDowwnMenu.classList.contains("show")) {
+					closeMenus();
+					return;
+				}
+				closeMenus();
+				dropDowwnMenu.classList.add("show");
+			};
+		}
+		addItem(title, indentLevel, onClick) {
+			let indentClass = indentLevel ? ".menuIndent" + indentLevel : "";
+			let { first } = emmet.appendChild(this.menu, `button.naked.dropDownItem${indentClass}{${title}}`);
+			let item = first;
+			if (typeof onClick === "string") item.setAttribute("onclick", onClick);
+			else if (typeof onClick === "function") item.onclick = (ev) => {
+				closeMenus();
+				onClick(ev);
+			};
+		}
+		addSeparator(title, indentLevel) {
+			let indentClass = indentLevel ? ".menuIndent" + indentLevel : "";
+			let { first } = emmet.appendChild(this.menu, `div.dropDownSeparator.dropDownIgnoreHide${indentClass}{${title}}`);
+			let item = first;
+			item.onclick = (ev) => {
+				ev.stopPropagation();
+			};
+		}
+	};
+	function closeMenus() {
+		let dropdowns = document.getElementsByClassName("dropDownMenu");
+		for (let dropDown of dropdowns) dropDown.classList.remove("show");
+	}
+	function onWindowClick(event) {
+		if (event.target.matches(".dropDownIgnoreHide")) return;
+		closeMenus();
+	}
+	function initMenuEvents() {
+		window.onclick = onWindowClick;
+	}
+	//#endregion
 	//#region typescript/leerling/observer.ts
 	var LeerlingObserver = class extends HashObserver {
 		constructor() {
@@ -1698,13 +1755,25 @@
 		let iGotoClassList = document.querySelectorAll("#leerling_inschrijvingen_weergave div table tbody i.fa-list-ul");
 		for (let iGotoClass of iGotoClassList) {
 			let btnGotoLes = iGotoClass.parentElement;
-			let matchLesId = btnGotoLes.getAttribute("onclick").match(/id=(\d+)/);
+			let btnOnClick = btnGotoLes.getAttribute("onclick");
+			let matchLesId = btnOnClick.match(/id=(\d+)/);
 			if (matchLesId) {
 				let lesId = matchLesId[1];
 				let lesDetails = await fetchLes(lesId);
 				console.log("lesDetails", lesDetails);
 				btnGotoLes.style.backgroundColor = lesDetails.editableName ? "blue" : "red";
-				wrapElement(btnGotoLes, "div");
+				let wrapper = wrapElement(btnGotoLes, "div");
+				btnGotoLes.removeAttribute("onclick");
+				let newBtnGotoLes = btnGotoLes.cloneNode(true);
+				btnGotoLes.replaceWith(newBtnGotoLes);
+				let menu = new DropDownMenu(wrapper, newBtnGotoLes, "left");
+				menu.addItem("Test 1", 0, () => {
+					console.log("test 1");
+				});
+				menu.addItem("Test 2", 0, () => {
+					console.log("test 2");
+				});
+				menu.addItem("Ga naar les", 0, btnOnClick);
 			}
 		}
 	}
@@ -2524,61 +2593,6 @@
 			this.lastPageNumber++;
 		}
 	};
-	//#endregion
-	//#region typescript/dropDownMenus.ts
-	var DropDownMenu = class {
-		menu;
-		container;
-		button;
-		constructor(container, button) {
-			this.container = container;
-			this.button = button;
-			initMenuEvents();
-			this.container.classList.add("dropDownContainer");
-			this.button.classList.add("dropDownIgnoreHide", "dropDownButton");
-			let { first } = emmet.appendChild(this.container, "div.dropDownMenu");
-			this.menu = first;
-			this.button.onclick = (ev) => {
-				ev.preventDefault();
-				ev.stopPropagation();
-				let dropDowwnMenu = ev.target.closest(".dropDownContainer").querySelector(".dropDownMenu");
-				if (dropDowwnMenu.classList.contains("show")) {
-					closeMenus();
-					return;
-				}
-				closeMenus();
-				dropDowwnMenu.classList.add("show");
-			};
-		}
-		addItem(title, indentLevel, onClick) {
-			let indentClass = indentLevel ? ".menuIndent" + indentLevel : "";
-			let { first } = emmet.appendChild(this.menu, `button.naked.dropDownItem${indentClass}{${title}}`);
-			let item = first;
-			item.onclick = (ev) => {
-				closeMenus();
-				onClick(ev);
-			};
-		}
-		addSeparator(title, indentLevel) {
-			let indentClass = indentLevel ? ".menuIndent" + indentLevel : "";
-			let { first } = emmet.appendChild(this.menu, `div.dropDownSeparator.dropDownIgnoreHide${indentClass}{${title}}`);
-			let item = first;
-			item.onclick = (ev) => {
-				ev.stopPropagation();
-			};
-		}
-	};
-	function closeMenus() {
-		let dropdowns = document.getElementsByClassName("dropDownMenu");
-		for (let dropDown of dropdowns) dropDown.classList.remove("show");
-	}
-	function onWindowClick(event) {
-		if (event.target.matches(".dropDownIgnoreHide")) return;
-		closeMenus();
-	}
-	function initMenuEvents() {
-		window.onclick = onWindowClick;
-	}
 	//#endregion
 	//#region typescript/pageState.ts
 	function getPageSettings(pageName, defaultSettings) {

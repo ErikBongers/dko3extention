@@ -2,6 +2,7 @@ import {db3, getOptions, Schoolyear, wrapElement} from "../globals";
 import {HashObserver} from "../pageObserver";
 import {options} from "../plugin_options/options";
 import {fetchLes} from "../les/fetch";
+import {DropDownMenu} from "../dropDownMenus";
 
 class LeerlingObserver extends HashObserver {
     constructor() {
@@ -237,9 +238,14 @@ async function onInschrijvingChanged(tabInschrijving: HTMLElement) {
         if (matchLesId) {
             let lesId = matchLesId[1];
             let lesDetails = await fetchLes(lesId);
-            console.log("lesDetails", lesDetails);
-            btnGotoLes.style.backgroundColor = lesDetails.editableName? "blue" : "red" ;
             let wrapper = wrapElement(btnGotoLes, "div");
+            btnGotoLes.removeAttribute("onclick");
+            let newBtnGotoLes = btnGotoLes.cloneNode(true) as HTMLElement;
+            btnGotoLes.replaceWith(newBtnGotoLes);
+            let menu = new DropDownMenu(wrapper, newBtnGotoLes, "left");
+            menu.addItem("Test 1", 0, () => {console.log("test 1");});
+            menu.addItem("Test 2", 0, () => {console.log("test 2");});
+            menu.addItem("Ga naar les", 0, btnOnClick);
         }
     }
 }

@@ -21,7 +21,7 @@ export class DropDownMenu {
     private readonly container: HTMLElement;
     private button: HTMLElement;
 
-    constructor(container: HTMLElement, button: HTMLElement) {
+    constructor(container: HTMLElement, button: HTMLElement, position: "left" | "right" = "right") {
         this.container = container;
         this.button = button;
         initMenuEvents();
@@ -29,6 +29,8 @@ export class DropDownMenu {
         this.button.classList.add("dropDownIgnoreHide", "dropDownButton");
         let {first} = emmet.appendChild(this.container as HTMLElement, "div.dropDownMenu");
         this.menu = first as HTMLElement;
+        if(position === "left")
+            this.container.classList.add("shiftMenuLeft");
         this.button.onclick = ev => {
             ev.preventDefault();
             ev.stopPropagation();
@@ -42,10 +44,13 @@ export class DropDownMenu {
         }
     }
 
-    addItem(title: string, indentLevel: number, onClick: (ev: MouseEvent) => void) {
+    addItem(title: string, indentLevel: number, onClick: ((ev: MouseEvent) => void) | string) {
         let indentClass = indentLevel ? ".menuIndent" + indentLevel : "";
         let {first} = emmet.appendChild(this.menu, `button.naked.dropDownItem${indentClass}{${title}}`);
-        let item = first as HTMLElement;
+        let item = first as HTMLButtonElement;
+        if(typeof onClick === "string")
+            item.setAttribute("onclick", onClick);
+        else if(typeof onClick === "function")
         item.onclick = (ev) => {
             closeMenus();
             onClick(ev);

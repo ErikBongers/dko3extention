@@ -1,3 +1,6 @@
+* switch les menu: only load LesDetails when menu is clicked.
+  > add an event callback to dropdownmenu constructor.
+
 * Fix "Geen schooljaar gevonden" in werklijst.
 
 * Switching class: check availability.
