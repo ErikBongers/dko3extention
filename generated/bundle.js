@@ -974,6 +974,12 @@
 			return this.array[this.pos];
 		}
 	};
+	function wrapElement(element, tagName) {
+		let wrapper = document.createElement(tagName);
+		element.parentNode.insertBefore(wrapper, element);
+		wrapper.appendChild(element);
+		return wrapper;
+	}
 	//#endregion
 	//#region typescript/gotoState.ts
 	function saveGotoState(state) {
@@ -1003,7 +1009,7 @@
 	}
 	//#endregion
 	//#region typescript/menu.ts
-	function setupMenu$1() {
+	function setupMenu() {
 		if (!options.showPluginMenu) return;
 		let listItems = document.querySelector("#dko3_navbar > ul").querySelectorAll("li");
 		let lastItem = listItems[listItems.length - 1];
@@ -1011,12 +1017,12 @@
 		let year = Schoolyear.calculateSetupYear();
 		let prevSchoolyearShort = Schoolyear.toShortString(year - 1);
 		let nextSchoolyearShort = Schoolyear.toShortString(year);
-		addMenuItem$1(dropdown, `Lerarenuren ${prevSchoolyearShort}`, gotoWerklijstUrenPrevYear);
-		addMenuItem$1(dropdown, `Lerarenuren ${nextSchoolyearShort}`, gotoWerklijstUrenNextYear);
-		addMenuItem$1(dropdown, "Vergelijk uurroosters", gotoDiffPage);
-		addMenuItem$1(dropdown, "Lessen snapshots", gotoSnapshotPage);
+		addMenuItem(dropdown, `Lerarenuren ${prevSchoolyearShort}`, gotoWerklijstUrenPrevYear);
+		addMenuItem(dropdown, `Lerarenuren ${nextSchoolyearShort}`, gotoWerklijstUrenNextYear);
+		addMenuItem(dropdown, "Vergelijk uurroosters", gotoDiffPage);
+		addMenuItem(dropdown, "Lessen snapshots", gotoSnapshotPage);
 	}
-	function addMenuItem$1(dropdown, label, func) {
+	function addMenuItem(dropdown, label, func) {
 		let menu = emmet.appendChild(dropdown, `a.dropdown-item.pointer[href=\"#"]{${label}}`).first;
 		menu.onclick = () => {
 			func();
@@ -1325,6 +1331,198 @@
 		}
 	};
 	//#endregion
+	//#region typescript/tokenScanner.ts
+	var ScannerElse = class {
+		scannerIf;
+		constructor(scannerIf) {
+			this.scannerIf = scannerIf;
+		}
+		not(callback) {
+			if (!this.scannerIf.yes) callback?.(this.scannerIf.scanner);
+			return this.scannerIf.scanner;
+		}
+	};
+	var ScannerIf = class {
+		yes;
+		scanner;
+		constructor(yes, scanner) {
+			this.yes = yes;
+			this.scanner = scanner;
+		}
+		then(callback) {
+			if (this.yes) callback(this.scanner);
+			return new ScannerElse(this);
+		}
+	};
+	var TokenScanner = class TokenScanner {
+		valid;
+		source;
+		cursor;
+		constructor(text) {
+			this.valid = true;
+			this.source = text;
+			this.cursor = text;
+		}
+		static create(text) {
+			return new TokenScanner(text);
+		}
+		result() {
+			if (this.valid) return this.cursor;
+		}
+		find(...tokens) {
+			return this.#find("", tokens);
+		}
+		match(...tokens) {
+			return this.#find("^\\s*", tokens);
+		}
+		#find(prefix, tokens) {
+			if (!this.valid) return this;
+			let rxString = prefix + tokens.map((token) => escapeRegexChars(token) + "\\s*").join("");
+			let match = RegExp(rxString).exec(this.cursor);
+			if (match) {
+				this.cursor = this.cursor.substring(match.index + match[0].length);
+				return this;
+			}
+			this.valid = false;
+			return this;
+		}
+		ifMatch(...tokens) {
+			if (!this.valid) return new ScannerIf(true, this);
+			this.match(...tokens);
+			if (this.valid) return new ScannerIf(true, this);
+			else {
+				this.valid = true;
+				return new ScannerIf(false, this);
+			}
+		}
+		clip(len) {
+			if (!this.valid) return this;
+			this.cursor = this.cursor.substring(0, len);
+			return this;
+		}
+		clipTo(end) {
+			if (!this.valid) return this;
+			let found = this.cursor.indexOf(end);
+			if (found < 0) {
+				this.valid = false;
+				return this;
+			}
+			this.cursor = this.cursor.substring(0, found);
+			return this;
+		}
+		clone() {
+			let newScanner = new TokenScanner(this.cursor);
+			newScanner.valid = this.valid;
+			return newScanner;
+		}
+		clipString() {
+			let isString = false;
+			this.ifMatch("'").then((result) => {
+				isString = true;
+				return result.clipTo("'");
+			}).not().ifMatch("\"").then((result) => {
+				isString = true;
+				return result.clipTo("\"");
+			}).not();
+			this.valid = this.valid && isString;
+			return this;
+		}
+		captureString(callback) {
+			let result = this.clone().clipString().result();
+			if (result) {
+				callback(result);
+				this.ifMatch("'").then((result) => result.find("'")).not().ifMatch("\"").then((result) => result.find("\"")).not();
+			}
+			return this;
+		}
+		getString() {
+			return this.clipString().result();
+		}
+	};
+	//#endregion
+	//#region typescript/table/fetchChain.ts
+	var FetchChain = class {
+		lastText = "";
+		get() {
+			return this.lastText;
+		}
+		set(text) {
+			this.lastText = text;
+		}
+		async fetch(url) {
+			this.lastText = await fetchText(url ?? this.lastText ?? "--null--");
+			return this.lastText;
+		}
+		findDocReadyLoadUrl() {
+			this.lastText = getDocReadyLoadUrl(this.lastText ?? "--null--");
+			return this.lastText;
+		}
+		findDocReadyLoadScript() {
+			this.lastText = getDocReadyLoadScript(this.lastText ?? "--null--")?.result();
+			return this.lastText;
+		}
+		find(...args) {
+			this.lastText = new TokenScanner(this.lastText ?? "--null--").find(...args).result();
+			return this.lastText;
+		}
+		getQuotedString() {
+			let daString = "";
+			let scanner = new TokenScanner(this.lastText ?? "--null--").captureString(((res) => daString = res));
+			this.lastText = scanner.result();
+			return daString;
+		}
+		clipTo(end) {
+			this.lastText = new TokenScanner(this.lastText ?? "--null--").clipTo(end).result();
+		}
+		div() {
+			let el = document.createElement("div");
+			el.innerHTML = this.lastText ?? "";
+			return el;
+		}
+		includes(text) {
+			return this.lastText?.includes(text) ?? false;
+		}
+	};
+	function findDocReady(scanner) {
+		return scanner.find("$", "(", "document", ")", ".", "ready", "(");
+	}
+	function getDocReadyLoadUrl(text) {
+		let scanner = new TokenScanner(text);
+		while (true) {
+			let docReady = findDocReady(scanner);
+			if (!docReady.valid) return void 0;
+			let url = docReady.clone().clipTo("<\/script>").find(".", "load", "(").clipString().result();
+			if (url) return url;
+			scanner = docReady;
+		}
+	}
+	function getDocReadyLoadScript(text) {
+		let scanner = new TokenScanner(text);
+		while (true) {
+			let docReady = findDocReady(scanner);
+			if (!docReady.valid) return void 0;
+			let script = docReady.clone().clipTo("<\/script>");
+			if (script.clone().find(".", "load", "(").valid) return script;
+			scanner = docReady;
+		}
+	}
+	async function fetchText(url) {
+		return (await fetch(url)).text();
+	}
+	//#endregion
+	//#region typescript/les/fetch.ts
+	async function fetchLes(id) {
+		let chain = new FetchChain();
+		await chain.fetch("view.php?args=lessen-les?id=" + id);
+		chain.findDocReadyLoadUrl();
+		await chain.fetch();
+		await chain.fetch(`views/lessen/les/index.details.tab.php`);
+		return {
+			id,
+			editableName: (await chain.fetch("views/lessen/les/details/index.details.benaming.card.php")).includes("benaming_wijzigen")
+		};
+	}
+	//#endregion
 	//#region typescript/leerling/observer.ts
 	var LeerlingObserver = class extends HashObserver {
 		constructor() {
@@ -1462,9 +1660,7 @@
 			Array.from(toewijzingButtons).filter((el) => el.textContent === "toewijzing" || el.textContent === "inschrijving").forEach((btn) => btn.classList.add("oldYear"));
 		}
 	}
-	function onInschrijvingChanged(tabInschrijving) {
-		db3("inschrijving (tab) changed.");
-		decorateSchooljaar();
+	function decorateTrimModules(tabInschrijving) {
 		let moduleButtons = tabInschrijving.querySelectorAll("tr td.right_center > button");
 		for (let btn of moduleButtons) {
 			let onClick = btn.getAttribute("onclick");
@@ -1493,7 +1689,24 @@
 				span.innerText = instrumentText;
 			});
 		}
+	}
+	async function onInschrijvingChanged(tabInschrijving) {
+		db3("inschrijving (tab) changed.");
+		decorateSchooljaar();
+		decorateTrimModules(tabInschrijving);
 		if (options.showNotAssignedClasses) setStripedLessons();
+		let iGotoClassList = document.querySelectorAll("#leerling_inschrijvingen_weergave div table tbody i.fa-list-ul");
+		for (let iGotoClass of iGotoClassList) {
+			let btnGotoLes = iGotoClass.parentElement;
+			let matchLesId = btnGotoLes.getAttribute("onclick").match(/id=(\d+)/);
+			if (matchLesId) {
+				let lesId = matchLesId[1];
+				let lesDetails = await fetchLes(lesId);
+				console.log("lesDetails", lesDetails);
+				btnGotoLes.style.backgroundColor = lesDetails.editableName ? "blue" : "red";
+				wrapElement(btnGotoLes, "div");
+			}
+		}
 	}
 	function setStripedLessons() {
 		let classRows = document.querySelectorAll("#leerling_inschrijvingen_weergave tr");
@@ -2029,185 +2242,6 @@
 		return false;
 	}
 	//#endregion
-	//#region typescript/tokenScanner.ts
-	var ScannerElse = class {
-		scannerIf;
-		constructor(scannerIf) {
-			this.scannerIf = scannerIf;
-		}
-		not(callback) {
-			if (!this.scannerIf.yes) callback?.(this.scannerIf.scanner);
-			return this.scannerIf.scanner;
-		}
-	};
-	var ScannerIf = class {
-		yes;
-		scanner;
-		constructor(yes, scanner) {
-			this.yes = yes;
-			this.scanner = scanner;
-		}
-		then(callback) {
-			if (this.yes) callback(this.scanner);
-			return new ScannerElse(this);
-		}
-	};
-	var TokenScanner = class TokenScanner {
-		valid;
-		source;
-		cursor;
-		constructor(text) {
-			this.valid = true;
-			this.source = text;
-			this.cursor = text;
-		}
-		static create(text) {
-			return new TokenScanner(text);
-		}
-		result() {
-			if (this.valid) return this.cursor;
-		}
-		find(...tokens) {
-			return this.#find("", tokens);
-		}
-		match(...tokens) {
-			return this.#find("^\\s*", tokens);
-		}
-		#find(prefix, tokens) {
-			if (!this.valid) return this;
-			let rxString = prefix + tokens.map((token) => escapeRegexChars(token) + "\\s*").join("");
-			let match = RegExp(rxString).exec(this.cursor);
-			if (match) {
-				this.cursor = this.cursor.substring(match.index + match[0].length);
-				return this;
-			}
-			this.valid = false;
-			return this;
-		}
-		ifMatch(...tokens) {
-			if (!this.valid) return new ScannerIf(true, this);
-			this.match(...tokens);
-			if (this.valid) return new ScannerIf(true, this);
-			else {
-				this.valid = true;
-				return new ScannerIf(false, this);
-			}
-		}
-		clip(len) {
-			if (!this.valid) return this;
-			this.cursor = this.cursor.substring(0, len);
-			return this;
-		}
-		clipTo(end) {
-			if (!this.valid) return this;
-			let found = this.cursor.indexOf(end);
-			if (found < 0) {
-				this.valid = false;
-				return this;
-			}
-			this.cursor = this.cursor.substring(0, found);
-			return this;
-		}
-		clone() {
-			let newScanner = new TokenScanner(this.cursor);
-			newScanner.valid = this.valid;
-			return newScanner;
-		}
-		clipString() {
-			let isString = false;
-			this.ifMatch("'").then((result) => {
-				isString = true;
-				return result.clipTo("'");
-			}).not().ifMatch("\"").then((result) => {
-				isString = true;
-				return result.clipTo("\"");
-			}).not();
-			this.valid = this.valid && isString;
-			return this;
-		}
-		captureString(callback) {
-			let result = this.clone().clipString().result();
-			if (result) {
-				callback(result);
-				this.ifMatch("'").then((result) => result.find("'")).not().ifMatch("\"").then((result) => result.find("\"")).not();
-			}
-			return this;
-		}
-		getString() {
-			return this.clipString().result();
-		}
-	};
-	//#endregion
-	//#region typescript/table/fetchChain.ts
-	var FetchChain = class {
-		lastText = "";
-		get() {
-			return this.lastText;
-		}
-		set(text) {
-			this.lastText = text;
-		}
-		async fetch(url) {
-			this.lastText = await fetchText(url ?? this.lastText ?? "--null--");
-			return this.lastText;
-		}
-		findDocReadyLoadUrl() {
-			this.lastText = getDocReadyLoadUrl(this.lastText ?? "--null--");
-			return this.lastText;
-		}
-		findDocReadyLoadScript() {
-			this.lastText = getDocReadyLoadScript(this.lastText ?? "--null--")?.result();
-			return this.lastText;
-		}
-		find(...args) {
-			this.lastText = new TokenScanner(this.lastText ?? "--null--").find(...args).result();
-			return this.lastText;
-		}
-		getQuotedString() {
-			let daString = "";
-			let scanner = new TokenScanner(this.lastText ?? "--null--").captureString(((res) => daString = res));
-			this.lastText = scanner.result();
-			return daString;
-		}
-		clipTo(end) {
-			this.lastText = new TokenScanner(this.lastText ?? "--null--").clipTo(end).result();
-		}
-		div() {
-			let el = document.createElement("div");
-			el.innerHTML = this.lastText ?? "";
-			return el;
-		}
-		includes(text) {
-			return this.lastText?.includes(text) ?? false;
-		}
-	};
-	function findDocReady(scanner) {
-		return scanner.find("$", "(", "document", ")", ".", "ready", "(");
-	}
-	function getDocReadyLoadUrl(text) {
-		let scanner = new TokenScanner(text);
-		while (true) {
-			let docReady = findDocReady(scanner);
-			if (!docReady.valid) return void 0;
-			let url = docReady.clone().clipTo("<\/script>").find(".", "load", "(").clipString().result();
-			if (url) return url;
-			scanner = docReady;
-		}
-	}
-	function getDocReadyLoadScript(text) {
-		let scanner = new TokenScanner(text);
-		while (true) {
-			let docReady = findDocReady(scanner);
-			if (!docReady.valid) return void 0;
-			let script = docReady.clone().clipTo("<\/script>");
-			if (script.clone().find(".", "load", "(").valid) return script;
-			scanner = docReady;
-		}
-	}
-	async function fetchText(url) {
-		return (await fetch(url)).text();
-	}
-	//#endregion
 	//#region typescript/table/tableNavigation.ts
 	var TableNavigation = class {
 		step;
@@ -2492,15 +2526,48 @@
 	};
 	//#endregion
 	//#region typescript/dropDownMenus.ts
-	function addMenuItem(menu, title, indentLevel, onClick) {
-		let indentClass = indentLevel ? ".menuIndent" + indentLevel : "";
-		let { first } = emmet.appendChild(menu, `button.naked.dropDownItem${indentClass}{${title}}`);
-		let item = first;
-		item.onclick = (ev) => {
-			closeMenus();
-			onClick(ev);
-		};
-	}
+	var DropDownMenu = class {
+		menu;
+		container;
+		button;
+		constructor(container, button) {
+			this.container = container;
+			this.button = button;
+			initMenuEvents();
+			this.container.classList.add("dropDownContainer");
+			this.button.classList.add("dropDownIgnoreHide", "dropDownButton");
+			let { first } = emmet.appendChild(this.container, "div.dropDownMenu");
+			this.menu = first;
+			this.button.onclick = (ev) => {
+				ev.preventDefault();
+				ev.stopPropagation();
+				let dropDowwnMenu = ev.target.closest(".dropDownContainer").querySelector(".dropDownMenu");
+				if (dropDowwnMenu.classList.contains("show")) {
+					closeMenus();
+					return;
+				}
+				closeMenus();
+				dropDowwnMenu.classList.add("show");
+			};
+		}
+		addItem(title, indentLevel, onClick) {
+			let indentClass = indentLevel ? ".menuIndent" + indentLevel : "";
+			let { first } = emmet.appendChild(this.menu, `button.naked.dropDownItem${indentClass}{${title}}`);
+			let item = first;
+			item.onclick = (ev) => {
+				closeMenus();
+				onClick(ev);
+			};
+		}
+		addSeparator(title, indentLevel) {
+			let indentClass = indentLevel ? ".menuIndent" + indentLevel : "";
+			let { first } = emmet.appendChild(this.menu, `div.dropDownSeparator.dropDownIgnoreHide${indentClass}{${title}}`);
+			let item = first;
+			item.onclick = (ev) => {
+				ev.stopPropagation();
+			};
+		}
+	};
 	function closeMenus() {
 		let dropdowns = document.getElementsByClassName("dropDownMenu");
 		for (let dropDown of dropdowns) dropDown.classList.remove("show");
@@ -2511,33 +2578,6 @@
 	}
 	function initMenuEvents() {
 		window.onclick = onWindowClick;
-	}
-	function addMenuSeparator(menu, title, indentLevel) {
-		let indentClass = indentLevel ? ".menuIndent" + indentLevel : "";
-		let { first } = emmet.appendChild(menu, `div.dropDownSeparator.dropDownIgnoreHide${indentClass}{${title}}`);
-		let item = first;
-		item.onclick = (ev) => {
-			ev.stopPropagation();
-		};
-	}
-	function setupMenu(container, button) {
-		initMenuEvents();
-		container.classList.add("dropDownContainer");
-		button.classList.add("dropDownIgnoreHide", "dropDownButton");
-		let { first } = emmet.appendChild(container, "div.dropDownMenu");
-		let menu = first;
-		button.onclick = (ev) => {
-			ev.preventDefault();
-			ev.stopPropagation();
-			let dropDowwnMenu = ev.target.closest(".dropDownContainer").querySelector(".dropDownMenu");
-			if (dropDowwnMenu.classList.contains("show")) {
-				closeMenus();
-				return;
-			}
-			closeMenus();
-			dropDowwnMenu.classList.add("show");
-		};
-		return menu;
 	}
 	//#endregion
 	//#region typescript/pageState.ts
@@ -2685,47 +2725,47 @@
 			};
 			if (table.classList.contains("noMenu")) return;
 			let { first: span, last: idiom } = emmet.appendChild(colHeader, "span>button.miniButton.naked>i.fas.fa-list");
-			let menu = setupMenu(span, idiom.parentElement);
-			addMenuItem(menu, "Toon unieke waarden", 0, (ev) => {
+			let menu = new DropDownMenu(span, idiom.parentElement);
+			menu.addItem("Toon unieke waarden", 0, (ev) => {
 				forTableDo(ev, showDistinctColumn);
 			});
-			addMenuItem(menu, "Verberg kolom", 0, (ev) => {
+			menu.addItem("Verberg kolom", 0, (ev) => {
 				console.log("verberg kolom");
 				forTableColumnDo(ev, hideColumn);
 			});
-			addMenuItem(menu, "Toon alle kolommen", 0, (ev) => {
+			menu.addItem("Toon alle kolommen", 0, (ev) => {
 				console.log("verberg kolom");
 				forTableColumnDo(ev, showColumns);
 			});
-			addMenuSeparator(menu, "Sorteer", 0);
-			addMenuItem(menu, "Laag naar hoog (a > z)", 1, (ev) => {
+			menu.addSeparator("Sorteer", 0);
+			menu.addItem("Laag naar hoog (a > z)", 1, (ev) => {
 				forTableDo(ev, (tableMeta, index) => sortTableByColumn(table, index, false, valueFuncs[index]));
 			});
-			addMenuItem(menu, "Hoog naar laag (z > a)", 1, (ev) => {
+			menu.addItem("Hoog naar laag (z > a)", 1, (ev) => {
 				forTableDo(ev, (tableMeta, index) => sortTableByColumn(table, index, true, valueFuncs[index]));
 			});
-			addMenuSeparator(menu, "Sorteer als:", 1);
-			addMenuItem(menu, "Tekst", 2, (_ev) => {});
-			addMenuItem(menu, "Getallen", 2, (_ev) => {});
-			addMenuSeparator(menu, "Kopieer nr klipbord", 0);
-			addMenuItem(menu, "Kolom", 1, (ev) => {
+			menu.addSeparator("Sorteer als:", 1);
+			menu.addItem("Tekst", 2, (_ev) => {});
+			menu.addItem("Getallen", 2, (_ev) => {});
+			menu.addSeparator("Kopieer nr klipbord", 0);
+			menu.addItem("Kolom", 1, (ev) => {
 				forTableDo(ev, (tableMeta, index) => copyOneColumn(table, index));
 			});
-			addMenuItem(menu, "Hele tabel", 1, (ev) => {
+			menu.addItem("Hele tabel", 1, (ev) => {
 				forTableDo(ev, (tableMeta, _index) => copyFullTable(table));
 			});
-			addMenuSeparator(menu, "<= Samenvoegen", 0);
-			addMenuItem(menu, "met spatie", 1, (ev) => {
+			menu.addSeparator("<= Samenvoegen", 0);
+			menu.addItem("met spatie", 1, (ev) => {
 				forTableColumnDo(ev, createTwoColumnsCmd(0, mergeColumnWithSpace));
 			});
-			addMenuItem(menu, "met comma", 1, (ev) => {
+			menu.addItem("met comma", 1, (ev) => {
 				forTableColumnDo(ev, createTwoColumnsCmd(0, mergeColumnWithComma));
 			});
-			addMenuSeparator(menu, "Verplaatsen", 0);
-			addMenuItem(menu, "<=", 1, (ev) => {
+			menu.addSeparator("Verplaatsen", 0);
+			menu.addItem("<=", 1, (ev) => {
 				forTableColumnDo(ev, createTwoColumnsCmd(0, swapColumns));
 			});
-			addMenuItem(menu, "=>", 1, (ev) => {
+			menu.addItem("=>", 1, (ev) => {
 				forTableColumnDo(ev, createTwoColumnsCmd(1, swapColumns));
 			});
 		});
@@ -6026,15 +6066,15 @@
 			let searchField = createSearchField(TXT_FILTER_ID$1, applyFilters, pageState.searchText);
 			divButtonNieuweLes.insertAdjacentElement("afterend", searchField);
 			let { first: span, last: idiom } = emmet.insertAfter(searchField, "span.btn-group-sm>button.btn.btn-sm.btn-outline-secondary.ml-2>i.fas.fa-list");
-			let menu = setupMenu(span, idiom.parentElement);
-			addMenuItem(menu, "Toon alles", 0, (_) => setExtraFilter((_) => {}));
-			addMenuItem(menu, "Filter online lessen", 0, (_) => setExtraFilter((pageState) => pageState.filterOnline = true));
-			addMenuItem(menu, "Filter offline lessen", 0, (_) => setExtraFilter((pageState) => pageState.filterOffline = true));
-			addMenuItem(menu, "Lessen zonder leraar", 0, (_) => setExtraFilter((pageState) => pageState.filterNoTeacher = true));
-			addMenuItem(menu, "Lessen zonder maximum", 0, (_) => setExtraFilter((pageState) => pageState.filterNoMax = true));
-			addMenuItem(menu, "Volle lessen", 0, (_) => setExtraFilter((pageState) => pageState.filterFullClass = true));
-			addMenuItem(menu, "Online ALC lessen", 0, (_) => setExtraFilter((pageState) => pageState.filterOnlineAlc = true));
-			addMenuItem(menu, "Opmerkingen", 0, (_) => setExtraFilter((pageState) => pageState.filterWarnings = true));
+			let menu = new DropDownMenu(span, idiom.parentElement);
+			menu.addItem("Toon alles", 0, (_) => setExtraFilter((_) => {}));
+			menu.addItem("Filter online lessen", 0, (_) => setExtraFilter((pageState) => pageState.filterOnline = true));
+			menu.addItem("Filter offline lessen", 0, (_) => setExtraFilter((pageState) => pageState.filterOffline = true));
+			menu.addItem("Lessen zonder leraar", 0, (_) => setExtraFilter((pageState) => pageState.filterNoTeacher = true));
+			menu.addItem("Lessen zonder maximum", 0, (_) => setExtraFilter((pageState) => pageState.filterNoMax = true));
+			menu.addItem("Volle lessen", 0, (_) => setExtraFilter((pageState) => pageState.filterFullClass = true));
+			menu.addItem("Online ALC lessen", 0, (_) => setExtraFilter((pageState) => pageState.filterOnlineAlc = true));
+			menu.addItem("Opmerkingen", 0, (_) => setExtraFilter((pageState) => pageState.filterWarnings = true));
 			emmet.insertAfter(idiom.parentElement, `span#${FILTER_INFO_ID}.filterInfo`);
 		}
 		applyFilters();
@@ -9587,7 +9627,7 @@
 			registerObserver(observer_default$5);
 			onPageChanged();
 			getNotifRedButton();
-			setupMenu$1();
+			setupMenu();
 			if (document.readyState == "complete") {
 				console.log("document ready. firing onPageRefreshed.");
 				onPageRefreshed();

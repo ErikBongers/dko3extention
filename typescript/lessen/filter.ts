@@ -7,7 +7,7 @@ import {PageName} from "../gotoState";
 import {getDefaultPageSettings, LessenPageState} from "./build";
 import {isTrimesterTableVisible} from "./observer";
 import {emmet} from "../../libs/Emmeter/html";
-import {addMenuItem, setupMenu} from "../dropDownMenus";
+import {DropDownMenu} from "../dropDownMenus";
 import {scrapeLesInfo, scrapeStudentsCellMeta} from "./scrape";
 import {getPageSettings, savePageSettings} from "../pageState";
 
@@ -188,15 +188,15 @@ export function addFilterFields() {
         divButtonNieuweLes.insertAdjacentElement("afterend", searchField);
         //menu
         let {first: span, last: idiom} = emmet.insertAfter(searchField, 'span.btn-group-sm>button.btn.btn-sm.btn-outline-secondary.ml-2>i.fas.fa-list');
-        let menu = setupMenu(span as HTMLElement, idiom!.parentElement!);
-        addMenuItem(menu, "Toon alles", 0, _ => setExtraFilter(_ => {}));
-        addMenuItem(menu, "Filter online lessen", 0, _ => setExtraFilter(pageState => pageState.filterOnline = true));
-        addMenuItem(menu, "Filter offline lessen", 0, _ => setExtraFilter(pageState => pageState.filterOffline = true));
-        addMenuItem(menu, "Lessen zonder leraar", 0, _ => setExtraFilter(pageState => pageState.filterNoTeacher = true));
-        addMenuItem(menu, "Lessen zonder maximum", 0, _ => setExtraFilter(pageState => pageState.filterNoMax = true));
-        addMenuItem(menu, "Volle lessen", 0, _ => setExtraFilter(pageState => pageState.filterFullClass = true));
-        addMenuItem(menu, "Online ALC lessen", 0, _ => setExtraFilter(pageState => pageState.filterOnlineAlc = true));
-        addMenuItem(menu, "Opmerkingen", 0, _ => setExtraFilter(pageState => pageState.filterWarnings = true));
+        let menu = new DropDownMenu(span as HTMLElement, idiom!.parentElement!);
+        menu.addItem("Toon alles", 0, _ => setExtraFilter(_ => {}));
+        menu.addItem("Filter online lessen", 0, _ => setExtraFilter(pageState => pageState.filterOnline = true));
+        menu.addItem("Filter offline lessen", 0, _ => setExtraFilter(pageState => pageState.filterOffline = true));
+        menu.addItem("Lessen zonder leraar", 0, _ => setExtraFilter(pageState => pageState.filterNoTeacher = true));
+        menu.addItem("Lessen zonder maximum", 0, _ => setExtraFilter(pageState => pageState.filterNoMax = true));
+        menu.addItem("Volle lessen", 0, _ => setExtraFilter(pageState => pageState.filterFullClass = true));
+        menu.addItem("Online ALC lessen", 0, _ => setExtraFilter(pageState => pageState.filterOnlineAlc = true));
+        menu.addItem("Opmerkingen", 0, _ => setExtraFilter(pageState => pageState.filterWarnings = true));
         emmet.insertAfter(idiom!.parentElement!, `span#${def.FILTER_INFO_ID}.filterInfo`);
     }
 

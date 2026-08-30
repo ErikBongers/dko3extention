@@ -15,14 +15,52 @@ import {emmet} from "../libs/Emmeter/html";
             ...
  */
 
-export function addMenuItem(menu: HTMLElement, title: string, indentLevel: number, onClick: (ev: MouseEvent) => void) {
-    let indentClass = indentLevel ? ".menuIndent" + indentLevel : "";
-    let {first} = emmet.appendChild(menu, `button.naked.dropDownItem${indentClass}{${title}}`);
-    let item = first as HTMLElement;
-    item.onclick = (ev) => {
-        closeMenus();
-        onClick(ev);
-    };
+
+export class DropDownMenu {
+    private readonly menu: HTMLElement;
+    private readonly container: HTMLElement;
+    private button: HTMLElement;
+
+    constructor(container: HTMLElement, button: HTMLElement) {
+        this.container = container;
+        this.button = button;
+        initMenuEvents();
+        this.container.classList.add("dropDownContainer");
+        this.button.classList.add("dropDownIgnoreHide", "dropDownButton");
+        let {first} = emmet.appendChild(this.container as HTMLElement, "div.dropDownMenu");
+        this.menu = first as HTMLElement;
+        this.button.onclick = ev => {
+            ev.preventDefault();
+            ev.stopPropagation();
+            let dropDowwnMenu = (ev.target as HTMLElement).closest(".dropDownContainer")!.querySelector(".dropDownMenu")!;
+            if (dropDowwnMenu.classList.contains("show")) {
+                closeMenus();
+                return;
+            }
+            closeMenus();
+            dropDowwnMenu.classList.add("show");
+        }
+    }
+
+    addItem(title: string, indentLevel: number, onClick: (ev: MouseEvent) => void) {
+        let indentClass = indentLevel ? ".menuIndent" + indentLevel : "";
+        let {first} = emmet.appendChild(this.menu, `button.naked.dropDownItem${indentClass}{${title}}`);
+        let item = first as HTMLElement;
+        item.onclick = (ev) => {
+            closeMenus();
+            onClick(ev);
+        };
+    }
+
+    addSeparator(title: string, indentLevel: number) {
+        let indentClass = indentLevel ? ".menuIndent" + indentLevel : "";
+        let {first} = emmet.appendChild(this.menu, `div.dropDownSeparator.dropDownIgnoreHide${indentClass}{${title}}`);
+        let item = first as HTMLElement;
+        item.onclick = (ev) => {
+            ev.stopPropagation();
+        }
+    }
+
 }
 
 export function closeMenus() {
@@ -42,31 +80,3 @@ function initMenuEvents() {
     window.onclick = onWindowClick;
 }
 
-export function addMenuSeparator(menu: HTMLElement, title: string, indentLevel: number) {
-    let indentClass = indentLevel ? ".menuIndent" + indentLevel : "";
-    let {first} = emmet.appendChild(menu, `div.dropDownSeparator.dropDownIgnoreHide${indentClass}{${title}}`);
-    let item = first as HTMLElement;
-    item.onclick = (ev) => {
-        ev.stopPropagation();
-    }
-}
-
-export function setupMenu(container: HTMLElement, button: HTMLElement) {
-    initMenuEvents();
-    container.classList.add("dropDownContainer");
-    button.classList.add("dropDownIgnoreHide", "dropDownButton");
-    let {first} = emmet.appendChild(container as HTMLElement, "div.dropDownMenu");
-    let menu = first as HTMLElement;
-    button.onclick = ev => {
-        ev.preventDefault();
-        ev.stopPropagation();
-        let dropDowwnMenu = (ev.target as HTMLElement).closest(".dropDownContainer")!.querySelector(".dropDownMenu")!;
-        if (dropDowwnMenu.classList.contains("show")) {
-            closeMenus();
-            return;
-        }
-        closeMenus();
-        dropDowwnMenu.classList.add("show");
-    }
-    return menu;
-}

@@ -1,6 +1,7 @@
-import {db3, getOptions, Schoolyear} from "../globals";
+import {db3, getOptions, Schoolyear, wrapElement} from "../globals";
 import {HashObserver} from "../pageObserver";
 import {options} from "../plugin_options/options";
+import {fetchLes} from "../les/fetch";
 
 class LeerlingObserver extends HashObserver {
     constructor() {
@@ -217,17 +218,30 @@ function decorateTrimModules(tabInschrijving: HTMLElement) {
     }
 }
 
-function onInschrijvingChanged(tabInschrijving: HTMLElement) {
+async function onInschrijvingChanged(tabInschrijving: HTMLElement) {
     db3("inschrijving (tab) changed.");
 
     decorateSchooljaar();
 
     decorateTrimModules(tabInschrijving);
 
-    if(options.showNotAssignedClasses) {
+    if (options.showNotAssignedClasses) {
         setStripedLessons();
     }
 
+    let iGotoClassList = document.querySelectorAll("#leerling_inschrijvingen_weergave div table tbody i.fa-list-ul") as NodeListOf<HTMLSpanElement>;
+    for (let iGotoClass of iGotoClassList) {
+        let btnGotoLes = iGotoClass.parentElement!;
+        let btnOnClick = btnGotoLes.getAttribute("onclick")!;
+        let matchLesId = btnOnClick.match(/id=(\d+)/);
+        if (matchLesId) {
+            let lesId = matchLesId[1];
+            let lesDetails = await fetchLes(lesId);
+            console.log("lesDetails", lesDetails);
+            btnGotoLes.style.backgroundColor = lesDetails.editableName? "blue" : "red" ;
+            let wrapper = wrapElement(btnGotoLes, "div");
+        }
+    }
 }
 
 function setStripedLessons() {

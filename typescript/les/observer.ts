@@ -1,10 +1,7 @@
 import {HashObserver} from "../pageObserver";
 import {emmet} from "../../libs/Emmeter/html";
-import {getDiffsCloudFileName, getDiffsFromCloud, getJsonDiffsCached, JsonDiffs, JsonOtherLesMoment} from "../roster_diff/buildDiff";
-import {DiffPageType, fillDiffRow, fillOtherDiffRow} from "../roster_diff/showDiff";
-import {Schoolyear} from "../globals";
-import {getDiffDirStructure, getDiffMyAcademieFolder} from "../startPage/diffPage";
-import {OtherLesType} from "../www_diff/buildDiff";
+import {getJsonDiffsCached, JsonOtherLesMoment} from "../roster_diff/buildDiff";
+import {DiffPageType, fillDiffRow} from "../roster_diff/showDiff";
 import {DiffType, Weight} from "../roster_diff/calcDiff";
 
 class LesObserver extends HashObserver {

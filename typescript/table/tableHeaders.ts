@@ -1,15 +1,15 @@
-import {createHtmlTable, DataCacheId, distinct, HtmlData, openHtmlTab, range, rangeGenerator} from "../globals";
+import {createHtmlTable, DataCacheId, distinct, HtmlData, openHtmlTab, range} from "../globals";
 import {emmet} from "../../libs/Emmeter/html";
 import {checkAndDownloadTableRows} from "./loadAnyTable";
-import {addMenuItem, addMenuSeparator, setupMenu} from "../dropDownMenus";
+import {DropDownMenu} from "../dropDownMenus";
 import {TableFetcher, TableHandler, TableRef} from "./tableFetcher";
 import * as def from "../def";
 import {options} from "../plugin_options/options";
 import {pageState} from "../pageState";
 import {Actions, HtmlDataRequestParams, sendRequest, ServiceRequest, TabType} from "../messaging";
 import {InfoBlock} from "../infoBlock";
-import MessageSender = chrome.runtime.MessageSender;
 import {ColumnValueFunc, getColumnIndex, getDefaultValueFuncs, sortTableByColumn} from "./tableSort";
+import MessageSender = chrome.runtime.MessageSender;
 
 let _otherTabsDataCache = new Map<string, string>();
 
@@ -65,25 +65,25 @@ export function decorateTableHeader(table: HTMLTableElement, fetchFullTable: boo
             if(table.classList.contains(def.NO_MENU))
                 return;
             let {first: span, last: idiom} = emmet.appendChild((colHeader as HTMLElement), 'span>button.miniButton.naked>i.fas.fa-list');
-            let menu = setupMenu(span as HTMLElement, idiom!.parentElement!);
-            addMenuItem(menu, "Toon unieke waarden", 0, (ev) => { forTableDo(ev, showDistinctColumn); });
-            addMenuItem(menu, "Verberg kolom", 0, (ev) => { console.log("verberg kolom"); forTableColumnDo(ev, hideColumn)});
-            addMenuItem(menu, "Toon alle kolommen", 0, (ev) => { console.log("verberg kolom"); forTableColumnDo(ev, showColumns)});
-            addMenuSeparator(menu, "Sorteer", 0);
-            addMenuItem(menu, "Laag naar hoog (a > z)", 1, (ev) => { forTableDo(ev, (tableMeta, index) => sortTableByColumn(table, index, false, valueFuncs[index]))});
-            addMenuItem(menu, "Hoog naar laag (z > a)", 1, (ev) => { forTableDo(ev, (tableMeta, index) => sortTableByColumn(table, index, true, valueFuncs[index]))});
-            addMenuSeparator(menu, "Sorteer als:", 1);
-            addMenuItem(menu, "Tekst", 2, (_ev) => { });
-            addMenuItem(menu, "Getallen", 2, (_ev) => { });
-            addMenuSeparator(menu, "Kopieer nr klipbord", 0);
-            addMenuItem(menu, "Kolom", 1, (ev) => { forTableDo(ev, (tableMeta, index) => copyOneColumn(table, index))});
-            addMenuItem(menu, "Hele tabel", 1, (ev) => { forTableDo(ev, (tableMeta, _index) => copyFullTable(table))});
-            addMenuSeparator(menu, "<= Samenvoegen", 0);
-            addMenuItem(menu, "met spatie", 1, (ev) => { forTableColumnDo(ev, createTwoColumnsCmd(Direction.LEFT, mergeColumnWithSpace))});
-            addMenuItem(menu, "met comma", 1, (ev) => { forTableColumnDo(ev, createTwoColumnsCmd(Direction.LEFT, mergeColumnWithComma))});
-            addMenuSeparator(menu, "Verplaatsen", 0);
-            addMenuItem(menu, "<=", 1, (ev) => { forTableColumnDo(ev, createTwoColumnsCmd(Direction.LEFT, swapColumns))});
-            addMenuItem(menu, "=>", 1, (ev) => { forTableColumnDo(ev, createTwoColumnsCmd(Direction.RIGHT, swapColumns))});
+            let menu = new DropDownMenu(span as HTMLElement, idiom!.parentElement!);
+            menu.addItem("Toon unieke waarden", 0, (ev) => { forTableDo(ev, showDistinctColumn); });
+            menu.addItem("Verberg kolom", 0, (ev) => { console.log("verberg kolom"); forTableColumnDo(ev, hideColumn)});
+            menu.addItem("Toon alle kolommen", 0, (ev) => { console.log("verberg kolom"); forTableColumnDo(ev, showColumns)});
+            menu.addSeparator("Sorteer", 0);
+            menu.addItem("Laag naar hoog (a > z)", 1, (ev) => { forTableDo(ev, (tableMeta, index) => sortTableByColumn(table, index, false, valueFuncs[index]))});
+            menu.addItem("Hoog naar laag (z > a)", 1, (ev) => { forTableDo(ev, (tableMeta, index) => sortTableByColumn(table, index, true, valueFuncs[index]))});
+            menu.addSeparator("Sorteer als:", 1);
+            menu.addItem("Tekst", 2, (_ev) => { });
+            menu.addItem("Getallen", 2, (_ev) => { });
+            menu.addSeparator("Kopieer nr klipbord", 0);
+            menu.addItem("Kolom", 1, (ev) => { forTableDo(ev, (tableMeta, index) => copyOneColumn(table, index))});
+            menu.addItem("Hele tabel", 1, (ev) => { forTableDo(ev, (tableMeta, _index) => copyFullTable(table))});
+            menu.addSeparator("<= Samenvoegen", 0);
+            menu.addItem("met spatie", 1, (ev) => { forTableColumnDo(ev, createTwoColumnsCmd(Direction.LEFT, mergeColumnWithSpace))});
+            menu.addItem("met comma", 1, (ev) => { forTableColumnDo(ev, createTwoColumnsCmd(Direction.LEFT, mergeColumnWithComma))});
+            menu.addSeparator("Verplaatsen", 0);
+            menu.addItem("<=", 1, (ev) => { forTableColumnDo(ev, createTwoColumnsCmd(Direction.LEFT, swapColumns))});
+            menu.addItem("=>", 1, (ev) => { forTableColumnDo(ev, createTwoColumnsCmd(Direction.RIGHT, swapColumns))});
         });
     relabelHeaders(table.tHead!.children[0] as HTMLTableRowElement);
 }

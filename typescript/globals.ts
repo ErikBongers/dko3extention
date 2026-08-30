@@ -488,3 +488,10 @@ export class SlidingWindow<T> implements Iterable<{ prev: T | null, current: T, 
         return this.array[this.pos];
     }
 }
+
+export function wrapElement(element: HTMLElement, tagName: string): HTMLElement {
+    let wrapper = document.createElement(tagName);
+    element.parentNode!.insertBefore(wrapper, element);
+    wrapper.appendChild(element);
+    return wrapper;
+}
