@@ -6710,7 +6710,7 @@
 		let tdVakLes = tr.cells[detailsTdOffset + 1];
 		let vakNaam = tdVakLes.querySelector("strong")?.textContent ?? "";
 		let lesNaam = tdVakLes.querySelector("small")?.textContent ?? "";
-		let iGotoClass = document.querySelector("i.fa-list-ul");
+		let iGotoClass = tr.querySelector("i.fa-list-ul");
 		let gotoButton = null;
 		if (iGotoClass) gotoButton = iGotoClass.parentElement;
 		return {

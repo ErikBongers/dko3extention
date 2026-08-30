@@ -331,7 +331,7 @@ function scrapeLesInfoDetails(tr: HTMLTableRowElement, detailsTdOffset: number) 
     let vakNaam = strong?.textContent ?? "";
     let small = tdVakLes.querySelector("small") as HTMLHeadingElement | null;
     let lesNaam = small?.textContent ?? "";
-    let iGotoClass = document.querySelector("i.fa-list-ul") as HTMLSpanElement | null;
+    let iGotoClass = tr.querySelector("i.fa-list-ul") as HTMLSpanElement | null;
     let gotoButton: HTMLButtonElement | null = null;
     if(iGotoClass) {
         gotoButton = iGotoClass.parentElement as HTMLButtonElement;
