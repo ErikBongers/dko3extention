@@ -2,18 +2,44 @@ import {JsonExcelData} from "./excel";
 import {RosterFactory} from "./rosterFactory";
 import {ClassDef, ExcelRoster, TeacherDef, TimeSlice} from "./excelRoster";
 import {cloud, deleteNotification, fetchExcelData, fetchFolderChanged, fetchIgnoredDiffHashes} from "../cloud";
-import {FetchChain} from "../table/fetchChain";
 import {pad} from "../globals";
-import {fetchLessen} from "../lessen/observer";
-import {DayTimeSlice, DayUppercase, Les, scrapeLessenOverzicht} from "../lessen/scrape";
-import {DKO3_BASE_URL, LESSEN_TABLE_ID} from "../def";
+import {DayTimeSlice, DayUppercase, Les} from "../lessen/scrape";
+import {DKO3_BASE_URL} from "../def";
 import {getTableFromHash, InfoBarTableFetchListener} from "../table/loadAnyTable";
 import {emmet} from "../../libs/Emmeter/html";
 import {fetchAndDisplayNotifications} from "../notifications/notifications";
-import {DiffGotoData, DiffPageType, excelPostoExcelAddress, getDiffsDko3CacheFileName, StatusReporter} from "./showDiff";
+import {
+    DiffGotoData,
+    DiffPageType,
+    excelPostoExcelAddress,
+    getDiffsDko3CacheFileName,
+    StatusReporter
+} from "./showDiff";
 import {DiffSettings} from "./diffSettings";
 import {parseWww, preTranslate, TaggedWwwLesDef} from "../www_diff/buildDiff";
-import {ComparableLesMoment, Diff, DiffLesType, DiffType, Dko3LesMoment, GradeYear, LesType, matchBasedOnName, MatchContext, matchIt, matchWithoutGradeYears, matchWithoutGradeYearsTeacher, matchWithoutLocation, matchWithoutTeacher, matchWithoutTeacherTimeAndDay, matchWithoutTimeAndDay, perfectMatch, TaggedDko3LesMoment, TaggedLes, Weight} from "./calcDiff";
+import {
+    ComparableLesMoment,
+    Diff,
+    DiffLesType,
+    DiffType,
+    Dko3LesMoment,
+    GradeYear,
+    LesType,
+    matchBasedOnName,
+    MatchContext,
+    matchIt,
+    matchWithoutGradeYears,
+    matchWithoutGradeYearsTeacher,
+    matchWithoutLocation,
+    matchWithoutTeacher,
+    matchWithoutTeacherTimeAndDay,
+    matchWithoutTimeAndDay,
+    perfectMatch,
+    TaggedDko3LesMoment,
+    TaggedLes,
+    Weight
+} from "./calcDiff";
+import {LessenFilterDomein, scrapeLessen} from "../lessen/fetch";
 
 let cachedDiffs: JsonDiffs | undefined = undefined;
 export async function getJsonDiffsCached(academie: string, schoolYear: string, diffPageType: DiffPageType) {
@@ -145,7 +171,7 @@ export async function getDko3Data(schoolYear: string, statusReporter: StatusRepo
     let teachers = await fetchTeachers(schoolYear);
     let lessen = (await scrapeAllNormalLessen(schoolYear, statusReporter)).map(l => l.les);
     statusReporter.reportStatus("Ophalen aliaslessen...");
-    let dko3AliasLessen = (await scrapeLessen(Domein.Woord, LesType.alias, schoolYear)).map(l => l.les);
+    let dko3AliasLessen = (await scrapeLessen(LessenFilterDomein.Woord, LesType.alias, schoolYear)).map(l => l.les);
     for (let les of dko3AliasLessen) {
         les.linkedLessenIds = await getAliassesForLes(les.id, statusReporter);
     }
@@ -161,38 +187,12 @@ export async function getDko3Data(schoolYear: string, statusReporter: StatusRepo
 
 export async function scrapeAllNormalLessen(schoolYear: string, statusReporter: StatusReporter) {
     statusReporter.reportStatus("Ophalen woordlessen...");
-    let dko3Lessen = await scrapeLessen(Domein.Woord, LesType.gewone, schoolYear);
+    let dko3Lessen = await scrapeLessen(LessenFilterDomein.Woord, LesType.gewone, schoolYear);
     statusReporter.reportStatus("Ophalen muzieklessen...");
-    let muziekLessen = await scrapeLessen(Domein.Muziek, LesType.gewone, schoolYear);
+    let muziekLessen = await scrapeLessen(LessenFilterDomein.Muziek, LesType.gewone, schoolYear);
     statusReporter.reportStatus("Ophalen kunstenbad lessen...");
-    let kbLessen = await scrapeLessen(Domein.DomeinOV, LesType.gewone, schoolYear);
+    let kbLessen = await scrapeLessen(LessenFilterDomein.DomeinOV, LesType.gewone, schoolYear);
     return [...dko3Lessen, ...muziekLessen, ...kbLessen];
-}
-
-enum Domein {Muziek="3", Woord="4", DomeinOV="5", Dans="2"}
-async function scrapeLessen(domein: Domein, type: LesType, schoolYear: string ) {
-    let chain = new FetchChain();
-    let hash = "lessen-overzicht";
-    await chain.fetch(DKO3_BASE_URL + "#lessen-overzicht" + hash);
-    await chain.fetch("view.php?args=" + hash); // call to changeView() - assuming this is always the same, so no parsing here.
-    let params = new URLSearchParams({
-        schooljaar: schoolYear,
-        domein,
-        vestigingsplaats: "",
-        vak: "",
-        graad: "",
-        leerkracht: "",
-        ag: "",
-        lesdag: "",
-        verberg_online: "-1",
-        soorten_lessen: type,
-        volzet: "-1"
-    });
-    let tableText = await fetchLessen(params);
-    let div = document.createElement("div");
-    div.innerHTML = tableText;
-    let table = div.querySelector("#" + LESSEN_TABLE_ID) as HTMLTableElement;
-    return scrapeLessenOverzicht(table);
 }
 
 export class TaggedExcelLes extends TaggedLes<ClassDef> implements ComparableLesMoment {
