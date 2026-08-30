@@ -1,14 +1,8 @@
-* switch les menu: only load LesDetails when menu is clicked.
-  > add an event callback to dropdownmenu constructor.
+* switch class: add menu under "toewijzing" instead of class button.
+  > or still a separate button next to class name (class name is optional!)
 
 * Fix "Geen schooljaar gevonden" in werklijst.
 
-* Switching class: check availability.
-  > button "goto class": showView('lessen-les','','id=6670');
-    > #leerling_inschrijvingen_weergave > div > table > tbody > i.fa-list-ul
-    > move this in submenu.
-      > TEST! Can I call the showView() method?
-        > Yes: the menu item should have this action as TEXT instead of a function call.
 
 * in lists with student names: allow to add extra student data. (expensive per record, but doable via werklijst)
   > add certain hashes to certain lists> allow to add an extra hash column.
