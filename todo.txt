@@ -1,3 +1,10 @@
+* Switching class: check availability.
+  > button "goto class": showView('lessen-les','','id=6670');
+    > #leerling_inschrijvingen_weergave > div > table > tbody > i.fa-list_ul
+    > move this in submenu.
+      > TEST! Can I call the showView() method?
+        > Yes: the menu item should have this action as TEXT instead of a function call.
+
 * in lists with student names: allow to add extra student data. (expensive per record, but doable via werklijst)
   > add certain hashes to certain lists> allow to add an extra hash column.
   > opm table

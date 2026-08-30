@@ -171,17 +171,12 @@ function decorateSchooljaar() {
     }
 }
 
-function onInschrijvingChanged(tabInschrijving: HTMLElement) {
-    db3("inschrijving (tab) changed.");
-
-    decorateSchooljaar();
-
-    //Show trimester instruments.
+function decorateTrimModules(tabInschrijving: HTMLElement) {
     let moduleButtons = tabInschrijving.querySelectorAll("tr td.right_center > button");
-    for(let btn of moduleButtons) {
+    for (let btn of moduleButtons) {
         let onClick = btn.getAttribute("onclick")!;
         let tr = btn.parentNode!.parentNode!;
-        onClick = onClick.substring(10, onClick.length- 1);
+        onClick = onClick.substring(10, onClick.length - 1);
         let args = onClick
             .split(", ")
             .map((arg) => arg.replaceAll("'", ""));
@@ -189,7 +184,7 @@ function onInschrijvingChanged(tabInschrijving: HTMLElement) {
         getModules(...args) // making assumptions about the arguments here.
             .then((modNames) => {
                 let instrumentText = "";
-                if(modNames.length) {
+                if (modNames.length) {
                     (tr.children[0] as HTMLTableCellElement).innerText += ": ";
                     let rxBasic = /Initiatie +(.*) *- *trimester.*/i;
                     let rxWide = /Initiatie +(.*) *- *trimester.* *- *(.*)/i;
@@ -214,12 +209,20 @@ function onInschrijvingChanged(tabInschrijving: HTMLElement) {
                 }
                 let span = document.createElement("span");
                 tr.children[0].appendChild(span);
-                if(modNames.length > 1) {
+                if (modNames.length > 1) {
                     span.classList.add("badge-warning");
                 }
                 span.innerText = instrumentText;
             });
     }
+}
+
+function onInschrijvingChanged(tabInschrijving: HTMLElement) {
+    db3("inschrijving (tab) changed.");
+
+    decorateSchooljaar();
+
+    decorateTrimModules(tabInschrijving);
 
     if(options.showNotAssignedClasses) {
         setStripedLessons();
