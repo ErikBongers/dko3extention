@@ -5181,6 +5181,9 @@
 			div.innerHTML = tableText;
 			return scrapeLessenOverzicht(div.querySelector("#" + LESSEN_TABLE_ID));
 		}
+		hasVak(vak) {
+			return this.vakken.includes(vak);
+		}
 		addVak(vak) {
 			let vakCode = this.vakCodes.find((v) => v.name === vak);
 			if (!vakCode) {
@@ -6460,13 +6463,26 @@
 		await chain.fetch();
 		let lesDetails = await chain.fetch(`views/lessen/les/index.details.tab.php`);
 		let nameDiv = await chain.fetch("views/lessen/les/details/index.details.benaming.card.php");
-		let gradeYearsText = /graden:\s*<strong>(.*?)<\/strong>/g.exec(lesDetails)?.at(1);
+		let rx = /vak:\s*<strong>(.*?)<\/strong>/g;
+		let vakText = rx.exec(lesDetails)?.at(1);
+		let vak = "";
+		if (vakText) vak = vakText.trim();
+		rx = /graden:\s*<strong>(.*?)<\/strong>/g;
+		let gradeYearsText = rx.exec(lesDetails)?.at(1);
 		let gradeYears = [];
 		if (gradeYearsText) gradeYears = textsToYearGrades([gradeYearsText]);
+		let maxAantalDiv = await chain.fetch("views/lessen/les/details/index.details.maximum_aantal_leerlingen.card.php");
+		rx = /\s*<strong>(.*?)<\/strong>/g;
+		let maxAantalText = rx.exec(maxAantalDiv)?.at(1);
+		let maxAantal = 0;
+		if (maxAantalText) maxAantal = parseInt(maxAantalText.trim());
 		return {
 			id,
 			editableName: nameDiv.includes("benaming_wijzigen"),
-			gradeYears
+			gradeYears,
+			vak,
+			maxAantal,
+			isIndividualLes: maxAantal == 0
 		};
 	}
 	//#endregion
@@ -6661,12 +6677,12 @@
 				menu.cancelDropDown = async () => {
 					let lesDetails = await fetchLes(lesId);
 					console.log("lesDetails", lesDetails);
-					if (lesDetails.editableName) {
+					if (!lesDetails.isIndividualLes) {
 						menu.addSeparator(`Bezig met laden... van ${opleiding.domein}, ${GradeYear.toString(opleiding.gradeYears)}, ${lesInfo.vak}`, 0);
 						getRelatedClasses(Schoolyear.findInPage(), menu, opleiding.domein, opleiding.gradeYears[0], lesInfo.vak).then(() => {});
 						return false;
 					}
-					menu.clickItem(2);
+					menu.clickItem(0);
 					return true;
 				};
 			}
@@ -6722,7 +6738,7 @@
 	async function getRelatedClasses(schoolYear, menu, domein, gradeYear, vak) {
 		let lessenBuilder = await LessenFilterBuilder.create(schoolYear, domein);
 		lessenBuilder.addGraad(GradeYear.toString([gradeYear]));
-		lessenBuilder.addVak(vak);
+		if (!lessenBuilder.hasVak(vak)) lessenBuilder.addVak(vak);
 		let lessons = await lessenBuilder.fetch();
 		console.log(lessons);
 		menu.removeItem(1);

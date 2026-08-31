@@ -1,7 +1,7 @@
 import {db3, Schoolyear, wrapElement} from "../globals";
 import {HashObserver} from "../pageObserver";
 import {options} from "../plugin_options/options";
-import {fetchLes} from "../les/fetch";
+import {fetchLes, LesDetails} from "../les/fetch";
 import {DropDownMenu} from "../dropDownMenus";
 import {textsToYearGrades} from "../lessen/scrape";
 import {GradeYear} from "../roster_diff/calcDiff";
@@ -257,7 +257,7 @@ async function onInschrijvingChanged(tabInschrijving: HTMLElement) {
                 menu.cancelDropDown = async () => {
                     let lesDetails = await fetchLes(lesId);
                     console.log("lesDetails", lesDetails);
-                    if (lesDetails.editableName) {
+                    if (!lesDetails.isIndividualLes) {
                         //assuming it's a group class, as individual classes do not have editable names.
                         menu.addSeparator(`Bezig met laden... van ${opleiding.domein}, ${GradeYear.toString(opleiding.gradeYears)}, ${lesInfo.vak}`, 0);
                         let schoolYear = Schoolyear.findInPage();
@@ -265,7 +265,7 @@ async function onInschrijvingChanged(tabInschrijving: HTMLElement) {
                         }); //fallthrough
                         return false;
                     }
-                    menu.clickItem(2);
+                    menu.clickItem(0);
                     return true; //CANCEL
                 }
             }
@@ -344,6 +344,7 @@ function scrapeLesInfoDetails(tr: HTMLTableRowElement, detailsTdOffset: number) 
 async function getRelatedClasses(schoolYear: string, menu: DropDownMenu, domein: DomeinString, gradeYear: GradeYear, vak: string) {
     let lessenBuilder = await LessenFilterBuilder.create(schoolYear, domein);
     lessenBuilder.addGraad(GradeYear.toString([gradeYear]));
+    if(!lessenBuilder.hasVak(vak))
     lessenBuilder.addVak(vak);
     let lessons = await lessenBuilder.fetch();
     console.log(lessons);

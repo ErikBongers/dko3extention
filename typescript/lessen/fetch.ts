@@ -143,6 +143,10 @@ export class LessenFilterBuilder {
         return scrapeLessenOverzicht(table);
     }
 
+    hasVak(vak: string) {
+        return this.vakken.includes(vak);
+    }
+
     addVak(vak: string) {
         let vakCode = this.vakCodes.find(v => v.name === vak);
         if (!vakCode) {
