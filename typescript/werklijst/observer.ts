@@ -153,15 +153,7 @@ async function showHoursView(schoolYaar: string, infoBlock: InfoBlock) {
 function addPluginContainer() {
     let viewContents = document.getElementById("view_contents") as HTMLDivElement;
     let container = emmet.appendChild(viewContents, "div#"+def.PLUGIN_CONTAINER_ID).first as HTMLDivElement;
-    let schoolYear = Schoolyear.getHighestAvailable();
-    if(!schoolYear) {
-        alert("Geen schooljaar gevonden!");
-        return createInfoBlock(container, "");
-    }
-    let buttonBar = emmet.appendChild(container, `
-        div.d-flex.werklijstButtonWrapper
-    `).first as HTMLDivElement;
-
+    emmet.appendChild(container, `div.d-flex.werklijstButtonWrapper`);
     emmet.appendChild(container, "h4");
     return createInfoBlock(container, "");
 }

@@ -9261,13 +9261,7 @@
 	function addPluginContainer() {
 		let viewContents = document.getElementById("view_contents");
 		let container = emmet.appendChild(viewContents, "div#pluginContainer").first;
-		if (!Schoolyear.getHighestAvailable()) {
-			alert("Geen schooljaar gevonden!");
-			return createInfoBlock(container, "");
-		}
-		emmet.appendChild(container, `
-        div.d-flex.werklijstButtonWrapper
-    `).first;
+		emmet.appendChild(container, `div.d-flex.werklijstButtonWrapper`);
 		emmet.appendChild(container, "h4");
 		return createInfoBlock(container, "");
 	}
