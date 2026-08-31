@@ -3,7 +3,7 @@ import {HashObserver} from "../pageObserver";
 import {options} from "../plugin_options/options";
 import {fetchLes, LesDetails} from "../les/fetch";
 import {DropDownMenu} from "../dropDownMenus";
-import {textsToYearGrades} from "../lessen/scrape";
+import {HtmlLes, textsToYearGrades} from "../lessen/scrape";
 import {GradeYear} from "../roster_diff/calcDiff";
 import {DomeinString, LessenFilterBuilder, LessenFilterDomein} from "../lessen/fetch";
 import {emmet} from "../../libs/Emmeter/html";
@@ -346,17 +346,22 @@ async function fillClassesMenu(menu: DropDownMenu, domein: DomeinString, gradeYe
     if(!lessenBuilder.hasVak(vak))
     lessenBuilder.addVak(vak);
     let lessons = await lessenBuilder.fetch();
+    lessons.sort((a, b) => buildLesTitle(a).localeCompare(buildLesTitle(b)));
     menu.removeItem(1);
     for(let les of lessons) {
         let infoBlock = emmet.createElement(`
             div.small>(
-                div.bold{${les.les.naam? les.les.naam : les.les.vakNaam+" "+les.les.naam}}+
+                div.bold.pre{${buildLesTitle(les)}}+
                 div{${les.les.formattedLesmoment}}+
                 div{ ${les.les.aantal}/${les.les.maxAantal} lln}
             )
         `);
         menu.addInfo(infoBlock, 0);
     }
+}
+
+function buildLesTitle(les: HtmlLes) {
+    return `${les.les.naam? les.les.naam : les.les.vakNaam+" "+les.les.naam}`;
 }
 
 function setStripedLessons() {

@@ -37,3 +37,7 @@ button.naked {
 .gray {
     color: gray;
 }
+
+.pre {
+    white-space: preserve nowrap;
+}

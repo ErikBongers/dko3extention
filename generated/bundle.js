@@ -6730,17 +6730,21 @@
 		lessenBuilder.addGraad(GradeYear.toString([gradeYear]));
 		if (!lessenBuilder.hasVak(vak)) lessenBuilder.addVak(vak);
 		let lessons = await lessenBuilder.fetch();
+		lessons.sort((a, b) => buildLesTitle(a).localeCompare(buildLesTitle(b)));
 		menu.removeItem(1);
 		for (let les of lessons) {
 			let infoBlock = emmet.createElement(`
             div.small>(
-                div.bold{${les.les.naam ? les.les.naam : les.les.vakNaam + " " + les.les.naam}}+
+                div.bold.pre{${buildLesTitle(les)}}+
                 div{${les.les.formattedLesmoment}}+
                 div{ ${les.les.aantal}/${les.les.maxAantal} lln}
             )
         `);
 			menu.addInfo(infoBlock, 0);
 		}
+	}
+	function buildLesTitle(les) {
+		return `${les.les.naam ? les.les.naam : les.les.vakNaam + " " + les.les.naam}`;
 	}
 	function setStripedLessons() {
 		let classRows = document.querySelectorAll("#leerling_inschrijvingen_weergave tr");
