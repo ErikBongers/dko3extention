@@ -7852,8 +7852,8 @@
 			keyNext: `uren_${yrNow}_${yrNext}`
 		};
 	}
-	function updateColDefs(year) {
-		let { yrPrev, yrNow, yrNext, keyPrev, keyNext } = getYearKeys(year);
+	function updateColDefs(urenData) {
+		let { yrPrev, yrNow, yrNext, keyPrev, keyNext } = getYearKeys(urenData.year);
 		let yearColDefs = /* @__PURE__ */ new Map();
 		yearColDefs.set(keyPrev, {
 			label: `Uren\n${yrPrev}-${yrNow}`,
@@ -7874,8 +7874,12 @@
 		colDefs = new Map([...yearColDefs, ...new Map(colDefsArray.map((def) => [def.key, def.def]))]);
 		let idx = 0;
 		let localSettings = getLocalHourSettings();
-		for (let [colKey, colDef] of colDefs) if (localSettings.ignoredColumns.some((ignored) => ignored.key === colKey)) colDef.ignored = true;
-		else colDef.ignored = false;
+		for (let [colKey, colDef] of colDefs) {
+			if (localSettings.ignoredColumns.some((ignored) => ignored.key === colKey)) colDef.ignored = true;
+			else colDef.ignored = false;
+			let gradeYearDef = urenData.settings.gradeYearsMap.get(colDef.label);
+			if (gradeYearDef) colDef.factor = 1 / gradeYearDef.studentCount;
+		}
 		colDefs.forEach((colDef) => {
 			colDef.colIndex = idx++;
 			colDef.total = 0;
@@ -8000,7 +8004,7 @@
 		globalUrenData = urenData;
 		table.innerHTML = "";
 		isUpdatePaused = true;
-		updateColDefs(urenData.year);
+		updateColDefs(urenData);
 		fillTableHeader(table, urenData.vakLeraars);
 		let tbody = document.createElement("tbody");
 		table.appendChild(tbody);
@@ -8143,6 +8147,7 @@
 		let vakLeraars = buildVakLeraarsMap(studentRowData, hourSettingsMapped);
 		let urenData = {
 			year: parseInt(hourSettingsMapped.schoolyear),
+			settings: hourSettingsMapped,
 			fromCloud,
 			vakLeraars
 		};
@@ -8160,9 +8165,11 @@
 	//#endregion
 	//#region typescript/werklijst/hoursSettings.ts
 	function mapHourSettings(hourSettings) {
-		let mapped = { ...hourSettings };
-		mapped.subjectsMap = new Map(hourSettings.subjects.map((s) => [s.name, s]));
-		return mapped;
+		return {
+			...hourSettings,
+			subjectsMap: new Map(hourSettings.subjects.map((s) => [s.name, s])),
+			gradeYearsMap: new Map(hourSettings.gradeYears.map((gy) => [gy.gradeYear, gy]))
+		};
 	}
 	let defaultInstruments = [
 		{

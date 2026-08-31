@@ -88,8 +88,8 @@ function getYearKeys(year: number) {
     return {yrPrev, yrNow, yrNext, keyPrev, keyNext};
 }
 
-function updateColDefs(year: number) {
-    let {yrPrev, yrNow, yrNext, keyPrev, keyNext} = getYearKeys(year);
+function updateColDefs(urenData: UrenData) {
+    let {yrPrev, yrNow, yrNext, keyPrev, keyNext} = getYearKeys(urenData.year);
     let yearColDefs = new Map();
     yearColDefs.set(keyPrev, { label:`Uren\n${yrPrev}-${yrNow}`, classList: ["editable_number"], total: 0, factor: 1.0, getValue: (ctx: Context) => parseInt(ctx.data.fromCloud.columnMap!.get(`uren_${yrPrev}_${yrNow}`)?.get(ctx.vakLeraar.id)!), totals:true});
     yearColDefs.set(keyNext, { label:`Uren\n${yrNow}-${yrNext}`, classList: ["editable_number"], total: 0, factor: 1.0, getValue: (ctx: Context) => parseInt(ctx.data.fromCloud.columnMap!.get(`uren_${yrNow}_${yrNext}`)?.get(ctx.vakLeraar.id)!), totals:true});
@@ -102,6 +102,9 @@ function updateColDefs(year: number) {
         } else {
             colDef.ignored = false;
         }
+        let gradeYearDef = urenData.settings.gradeYearsMap.get(colDef.label);
+        if(gradeYearDef)
+            colDef.factor = 1/gradeYearDef.studentCount;
     }
     colDefs.forEach(colDef => {
         colDef.colIndex = idx++;
@@ -293,7 +296,7 @@ export function refillTable(table: HTMLTableElement, urenData:  UrenData) {
     globalUrenData = urenData;
     table.innerHTML = "";
     isUpdatePaused = true;
-    updateColDefs(urenData.year);
+    updateColDefs(urenData);
     fillTableHeader(table, urenData.vakLeraars);
     let tbody = document.createElement("tbody");
     table.appendChild(tbody);
@@ -447,6 +450,7 @@ export function rebuildHoursTable(studentRowData: StudentUrenRow[], hourSettings
     let vakLeraars = buildVakLeraarsMap(studentRowData, hourSettingsMapped);
     let urenData: UrenData = {
         year: parseInt(hourSettingsMapped.schoolyear),
+        settings: hourSettingsMapped,
         fromCloud: fromCloud,
         vakLeraars
     };

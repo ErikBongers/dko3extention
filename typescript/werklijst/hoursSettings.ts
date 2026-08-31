@@ -1,4 +1,5 @@
 import {cloud} from "../cloud";
+import {GradeYear} from "../roster_diff/calcDiff";
 
 export type SubjectDef = {
     checked: boolean,
@@ -30,12 +31,15 @@ export type TeacherHoursSetup = {
 
 export type TeacherHoursSetupMapped = TeacherHoursSetup & {
     subjectsMap: Map<string, SubjectDef>,
+    gradeYearsMap: Map<string, GradeYearDef>,
 }
 
-export function mapHourSettings(hourSettings: TeacherHoursSetup) {
-    let mapped = {...hourSettings} as TeacherHoursSetupMapped;
-    mapped.subjectsMap = new Map(hourSettings.subjects.map(s => [s.name, s]));
-    return mapped;
+export function mapHourSettings(hourSettings: TeacherHoursSetup): TeacherHoursSetupMapped {
+    return {
+        ...hourSettings,
+        subjectsMap: new Map(hourSettings.subjects.map(s => [s.name, s])),
+        gradeYearsMap: new Map(hourSettings.gradeYears.map(gy => [gy.gradeYear, gy])),
+    };
 }
 
 let defaultInstruments = [

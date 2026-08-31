@@ -1,14 +1,17 @@
 import {VakLeraar} from "./scrapeUren";
+import {TeacherHoursSetupMapped} from "./hoursSettings";
 
 export class UrenData {
     year: number;
+    settings: TeacherHoursSetupMapped;
     fromCloud: CloudData;
     vakLeraars: Map<string, VakLeraar>;
 
-    constructor(year: number, cloudData: CloudData, vakLeraars: Map<string, VakLeraar>) {
+    constructor(year: number, settings: TeacherHoursSetupMapped, cloudData: CloudData, vakLeraars: Map<string, VakLeraar>) {
         this.year = year;
         this.fromCloud = cloudData;
         this.vakLeraars = vakLeraars;
+        this.settings = settings;
     }
 }
 
