@@ -250,10 +250,18 @@ button.miniButton {
 
 }
 
+.activePopoverButton {
+    anchor-name: --popoverButtonAnchor;
+}
+
+.popoverMenu {
+    position-anchor: --popoverButtonAnchor;
+    position-area: bottom span-right;
+    position-try-fallbacks: flip-block;
+}
+
 .dropDownMenu {
     --menu-width:  30ch;
-    display: none;
-    position: absolute;
     background-color: white;
     width: var(--menu-width);
     box-shadow: 0 8px 16px 0 rgba(0,0,0,0.2);
@@ -280,7 +288,7 @@ button.miniButton {
 
 }
 .shiftMenuLeft .dropDownMenu {
-    left: calc(2ch - var(--menu-width)); /*subtract estimated widto of buttonn from offset*/
+    right: anchor(right);
 }
 
 
@@ -316,10 +324,6 @@ div.dropDownSeparator {
 
 /* Show the dropdown menu on hover */
 /*.dropDownContainer:hover .dropDownMenu {display: block;}*/
-
-.dropDownMenu.show {
-    display:block;
-}
 
 button.likeLink {
     background: none!important;
@@ -554,10 +558,6 @@ div#snapshotResults {
     }
 }
 
-.gray {
-    color: gray;
-}
-
 #divHideChecked {
     margin-top: 1ch;
 }
@@ -566,6 +566,21 @@ div#snapshotResults {
     margin-inline-start: 1ch;
 }
 
-.small {
-    font-size: .8em;
+.hideWerklijst {
+    & > div.row.mb-1 {
+        display: none;
+    }
+    & > div#info_div {
+        display: none;
+    }
+    & > div#div_leerlingen_werklijst_overview * {
+        display: none;
+    }
 }
+
+#pluginContainer {
+    & .werklijstButtonWrapper {
+        margin-block: .5ch;
+    }
+}
+

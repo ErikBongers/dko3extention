@@ -26,11 +26,11 @@ export class DropDownMenu {
     constructor(container: HTMLElement, button: HTMLElement, position: "left" | "right" = "right") {
         this.container = container;
         this.button = button;
-        initMenuEvents();
         this.container.classList.add("dropDownContainer");
         this.button.classList.add("dropDownIgnoreHide", "dropDownButton");
-        let {first} = emmet.appendChild(this.container as HTMLElement, "div.dropDownMenu");
+        let {first} = emmet.appendChild(this.container as HTMLElement, "div.dropDownMenu.popoverMenu");
         this.menu = first as HTMLElement;
+        this.menu.setAttribute("popover", "");
         if(position === "left")
             this.container.classList.add("shiftMenuLeft");
         this.button.onclick = async ev => {
@@ -38,13 +38,11 @@ export class DropDownMenu {
             ev.stopPropagation();
             if (await this.cancelDropDown?.(ev))
                 return;
-            let dropDownMenu = (ev.target as HTMLElement).closest(".dropDownContainer")!.querySelector(".dropDownMenu")!;
-            if (dropDownMenu.classList.contains("show")) {
-                closeMenus();
-                return;
-            }
-            closeMenus();
-            dropDownMenu.classList.add("show");
+            //todo: use this.menu below?
+            let dropDownMenu = (ev.target as HTMLElement).closest(".dropDownContainer")!.querySelector(".dropDownMenu") as HTMLElement;
+            document.querySelectorAll(".activePopoverButton").forEach(p => p.classList.remove("activePopoverButton"));
+            this.button.classList.add("activePopoverButton");
+            dropDownMenu.showPopover()
         }
     }
 
@@ -56,7 +54,6 @@ export class DropDownMenu {
             item.setAttribute("onclick", onClick);
         else if(typeof onClick === "function")
         item.onclick = (ev) => {
-            closeMenus();
             onClick(ev);
         };
     }
@@ -86,24 +83,13 @@ export class DropDownMenu {
     }
 
     removeItem(index: number) {
+        if(index < 0 || index >= this.menu.children.length)
+            return false;
         this.menu.removeChild(this.menu.children[index]);
+        return true;
+    }
+
+    removeAllItems() {
+        this.menu.innerHTML = "";
     }
 }
-
-export function closeMenus() {
-    let dropdowns = document.getElementsByClassName("dropDownMenu");
-    for (let dropDown of dropdowns) {
-        dropDown.classList.remove('show');
-    }
-}
-
-function onWindowClick(event: MouseEvent) {
-    if ((event.target as Element).matches('.dropDownIgnoreHide'))
-        return;
-    closeMenus();
-}
-
-function initMenuEvents() {
-    window.onclick = onWindowClick;
-}
-

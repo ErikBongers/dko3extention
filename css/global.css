@@ -30,20 +30,10 @@ button.naked {
     flex-shrink: 1;
 }
 
-.hideWerklijst {
-    & > div.row.mb-1 {
-        display: none;
-    }
-    & > div#info_div {
-        display: none;
-    }
-    & > div#div_leerlingen_werklijst_overview * {
-        display: none;
-    }
+.small {
+    font-size: .8em;
 }
 
-#pluginContainer {
-    & .werklijstButtonWrapper {
-        margin-block: .5ch;
-    }
+.gray {
+    color: gray;
 }

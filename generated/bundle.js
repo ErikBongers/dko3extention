@@ -2318,23 +2318,20 @@
 		constructor(container, button, position = "right") {
 			this.container = container;
 			this.button = button;
-			initMenuEvents();
 			this.container.classList.add("dropDownContainer");
 			this.button.classList.add("dropDownIgnoreHide", "dropDownButton");
-			let { first } = emmet.appendChild(this.container, "div.dropDownMenu");
+			let { first } = emmet.appendChild(this.container, "div.dropDownMenu.popoverMenu");
 			this.menu = first;
+			this.menu.setAttribute("popover", "");
 			if (position === "left") this.container.classList.add("shiftMenuLeft");
 			this.button.onclick = async (ev) => {
 				ev.preventDefault();
 				ev.stopPropagation();
 				if (await this.cancelDropDown?.(ev)) return;
 				let dropDownMenu = ev.target.closest(".dropDownContainer").querySelector(".dropDownMenu");
-				if (dropDownMenu.classList.contains("show")) {
-					closeMenus();
-					return;
-				}
-				closeMenus();
-				dropDownMenu.classList.add("show");
+				document.querySelectorAll(".activePopoverButton").forEach((p) => p.classList.remove("activePopoverButton"));
+				this.button.classList.add("activePopoverButton");
+				dropDownMenu.showPopover();
 			};
 		}
 		addItem(title, indentLevel, onClick) {
@@ -2343,7 +2340,6 @@
 			let item = first;
 			if (typeof onClick === "string") item.setAttribute("onclick", onClick);
 			else if (typeof onClick === "function") item.onclick = (ev) => {
-				closeMenus();
 				onClick(ev);
 			};
 		}
@@ -2368,20 +2364,14 @@
 			this.menu.querySelectorAll(".dropDownItem")[itemIndex].click();
 		}
 		removeItem(index) {
+			if (index < 0 || index >= this.menu.children.length) return false;
 			this.menu.removeChild(this.menu.children[index]);
+			return true;
+		}
+		removeAllItems() {
+			this.menu.innerHTML = "";
 		}
 	};
-	function closeMenus() {
-		let dropdowns = document.getElementsByClassName("dropDownMenu");
-		for (let dropDown of dropdowns) dropDown.classList.remove("show");
-	}
-	function onWindowClick(event) {
-		if (event.target.matches(".dropDownIgnoreHide")) return;
-		closeMenus();
-	}
-	function initMenuEvents() {
-		window.onclick = onWindowClick;
-	}
 	//#endregion
 	//#region typescript/pageState.ts
 	function getPageSettings(pageName, defaultSettings) {
@@ -6673,13 +6663,9 @@
 				lesInfo.gotoButton.replaceWith(newBtnGotoLes);
 				newBtnGotoLes.dataset.originalOnClick = btnOnClick;
 				let menu = new DropDownMenu(wrapper, newBtnGotoLes, "left");
-				menu.addItem("Ga naar les", 0, btnOnClick);
 				menu.cancelDropDown = async () => {
-					let lesDetails = await fetchLes(lesId);
-					console.log("lesDetails", lesDetails);
-					if (!lesDetails.isIndividualLes) {
-						menu.addSeparator(`Bezig met laden... van ${opleiding.domein}, ${GradeYear.toString(opleiding.gradeYears)}, ${lesInfo.vak}`, 0);
-						getRelatedClasses(Schoolyear.findInPage(), menu, opleiding.domein, opleiding.gradeYears[0], lesInfo.vak).then(() => {});
+					if (!(await fetchLes(lesId)).isIndividualLes) {
+						fillClassesMenu(menu, opleiding.domein, opleiding.gradeYears[0], lesInfo.vak, btnOnClick).then(() => {});
 						return false;
 					}
 					menu.clickItem(0);
@@ -6735,12 +6721,15 @@
 			gotoButton
 		};
 	}
-	async function getRelatedClasses(schoolYear, menu, domein, gradeYear, vak) {
+	async function fillClassesMenu(menu, domein, gradeYear, vak, gotoLesCmd) {
+		menu.removeAllItems();
+		menu.addItem("Ga naar les", 0, gotoLesCmd);
+		menu.addSeparator(`Bezig met laden...`, 0);
+		let schoolYear = Schoolyear.findInPage();
 		let lessenBuilder = await LessenFilterBuilder.create(schoolYear, domein);
 		lessenBuilder.addGraad(GradeYear.toString([gradeYear]));
 		if (!lessenBuilder.hasVak(vak)) lessenBuilder.addVak(vak);
 		let lessons = await lessenBuilder.fetch();
-		console.log(lessons);
 		menu.removeItem(1);
 		for (let les of lessons) {
 			let infoBlock = emmet.createElement(`

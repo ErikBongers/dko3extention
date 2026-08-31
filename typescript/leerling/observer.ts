@@ -253,15 +253,10 @@ async function onInschrijvingChanged(tabInschrijving: HTMLElement) {
                 lesInfo.gotoButton.replaceWith(newBtnGotoLes);
                 newBtnGotoLes.dataset.originalOnClick = btnOnClick;
                 let menu = new DropDownMenu(wrapper, newBtnGotoLes, "left");
-                menu.addItem("Ga naar les", 0, btnOnClick);
                 menu.cancelDropDown = async () => {
                     let lesDetails = await fetchLes(lesId);
-                    console.log("lesDetails", lesDetails);
                     if (!lesDetails.isIndividualLes) {
-                        //assuming it's a group class, as individual classes do not have editable names.
-                        menu.addSeparator(`Bezig met laden... van ${opleiding.domein}, ${GradeYear.toString(opleiding.gradeYears)}, ${lesInfo.vak}`, 0);
-                        let schoolYear = Schoolyear.findInPage();
-                        getRelatedClasses(schoolYear, menu, opleiding.domein as DomeinString, opleiding.gradeYears[0], lesInfo.vak).then(() => {
+                        fillClassesMenu(menu, opleiding.domein as DomeinString, opleiding.gradeYears[0], lesInfo.vak, btnOnClick).then(() => {
                         }); //fallthrough
                         return false;
                     }
@@ -341,13 +336,16 @@ function scrapeLesInfoDetails(tr: HTMLTableRowElement, detailsTdOffset: number) 
     return lesInfo;
 }
 
-async function getRelatedClasses(schoolYear: string, menu: DropDownMenu, domein: DomeinString, gradeYear: GradeYear, vak: string) {
+async function fillClassesMenu(menu: DropDownMenu, domein: DomeinString, gradeYear: GradeYear, vak: string, gotoLesCmd: string) {
+    menu.removeAllItems();
+    menu.addItem("Ga naar les", 0, gotoLesCmd);
+    menu.addSeparator(`Bezig met laden...`, 0);
+    let schoolYear = Schoolyear.findInPage();
     let lessenBuilder = await LessenFilterBuilder.create(schoolYear, domein);
     lessenBuilder.addGraad(GradeYear.toString([gradeYear]));
     if(!lessenBuilder.hasVak(vak))
     lessenBuilder.addVak(vak);
     let lessons = await lessenBuilder.fetch();
-    console.log(lessons);
     menu.removeItem(1);
     for(let les of lessons) {
         let infoBlock = emmet.createElement(`
