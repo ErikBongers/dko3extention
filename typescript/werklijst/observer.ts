@@ -115,12 +115,16 @@ async function reload() {
 }
 function checkStateAndGotoTeacherHours(infoBlock: InfoBlock) {
     let pageState = getGotoStateOrDefault(PageName.Werklijst) as WerklijstGotoState;
+    let year = Schoolyear.calculateSetupYear();
+    let prevSchoolyear = Schoolyear.toFullString(year - 1);
+    let nextSchoolyear = Schoolyear.toFullString(year);
+
     if(pageState.goto == Goto.Werklijst_uren_prevYear) {
-        showHoursView(Schoolyear.toFullString(Schoolyear.calculateCurrent()), infoBlock).then(() => {});
+        showHoursView(prevSchoolyear, infoBlock).then(() => {});
         return true;
     }
     if(pageState.goto == Goto.Werklijst_uren_nextYear) {
-        showHoursView(Schoolyear.toFullString(Schoolyear.calculateCurrent() + 1), infoBlock).then(() => {});
+        showHoursView(nextSchoolyear, infoBlock).then(() => {});
         return true;
     }
     return false;

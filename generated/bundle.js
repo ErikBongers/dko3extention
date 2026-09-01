@@ -9229,12 +9229,15 @@
 	}
 	function checkStateAndGotoTeacherHours(infoBlock) {
 		let pageState = getGotoStateOrDefault("Werklijst");
+		let year = Schoolyear.calculateSetupYear();
+		let prevSchoolyear = Schoolyear.toFullString(year - 1);
+		let nextSchoolyear = Schoolyear.toFullString(year);
 		if (pageState.goto == "Werklijst_uren_prevYear") {
-			showHoursView(Schoolyear.toFullString(Schoolyear.calculateCurrent()), infoBlock).then(() => {});
+			showHoursView(prevSchoolyear, infoBlock).then(() => {});
 			return true;
 		}
 		if (pageState.goto == "Werklijst_uren_nextYear") {
-			showHoursView(Schoolyear.toFullString(Schoolyear.calculateCurrent() + 1), infoBlock).then(() => {});
+			showHoursView(nextSchoolyear, infoBlock).then(() => {});
 			return true;
 		}
 		return false;
