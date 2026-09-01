@@ -9293,7 +9293,7 @@
 		let btnWerklijstMakenWrapper = document.querySelector(BTN_WERKLIJST_MAKEN_WRAPPER_ID);
 		if (btnWerklijstMakenWrapper) return;
 		let btnWerklijstMaken = document.querySelector(BTN_WERKLIJST_MAKEN_ID);
-		btnWerklijstMakenWrapper = emmet.insertBefore(btnWerklijstMaken, `div#${BTN_WERKLIJST_MAKEN_WRAPPER_ID}.werklijstButtonWrapper`).first;
+		btnWerklijstMakenWrapper = emmet.insertBefore(btnWerklijstMaken, `div${BTN_WERKLIJST_MAKEN_WRAPPER_ID}.werklijstButtonWrapper`).first;
 		addHoursButtons(btnWerklijstMakenWrapper, infoBlock);
 		addButton$1(btnWerklijstMaken, WERKLIJST_MAILMERGE_BTN_ID, "Mail merge", async () => {
 			await mailMergeStartSchoolyear();

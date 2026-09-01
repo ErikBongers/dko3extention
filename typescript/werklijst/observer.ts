@@ -186,7 +186,7 @@ function onCriteriaShown() {
     }
 
     let btnWerklijstMaken = document.querySelector(def.BTN_WERKLIJST_MAKEN_ID) as HTMLButtonElement;
-    btnWerklijstMakenWrapper = emmet.insertBefore(btnWerklijstMaken, `div#${def.BTN_WERKLIJST_MAKEN_WRAPPER_ID}.werklijstButtonWrapper`).first as HTMLDivElement;
+    btnWerklijstMakenWrapper = emmet.insertBefore(btnWerklijstMaken, `div${def.BTN_WERKLIJST_MAKEN_WRAPPER_ID}.werklijstButtonWrapper`).first as HTMLDivElement;
     // btnWerklijstMakenWrapper.appendChild(btnWerklijstMaken);
 
     addHoursButtons(btnWerklijstMakenWrapper, infoBlock);
