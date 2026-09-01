@@ -9389,7 +9389,7 @@
 	}
 	let globals = null;
 	async function rebuildHoursTableAfterFetch(schoolYear, infoBlock) {
-		if (!globals) globals = new TeacherHoursCachedState(schoolYear, infoBlock);
+		if (globals?.schoolYear != schoolYear) globals = new TeacherHoursCachedState(schoolYear, infoBlock);
 		rebuildHoursTable(await globals.getStudentRowData(), await globals.getHourSettingsMapped(), await globals.getFromCloud(), infoBlock);
 	}
 	async function mailMergeStartSchoolyear() {

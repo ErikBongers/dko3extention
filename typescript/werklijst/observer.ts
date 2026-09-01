@@ -329,7 +329,7 @@ function onClickCopyEmails() {
 let globals: TeacherHoursCachedState | null = null;
 
 async function rebuildHoursTableAfterFetch(schoolYear: string, infoBlock: InfoBlock) {
-    if(!globals)
+    if(globals?.schoolYear != schoolYear)
         globals = new TeacherHoursCachedState(schoolYear, infoBlock);
 
     rebuildHoursTable(await globals.getStudentRowData(), await globals.getHourSettingsMapped(), await globals.getFromCloud(), infoBlock);
