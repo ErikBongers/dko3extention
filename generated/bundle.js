@@ -4704,6 +4704,13 @@
 				return;
 			}
 			await postNameValueList("/views/leerlingen/werklijst/session.opslaan.php", [{
+				name: "schooljaar",
+				value: this.schoolYear
+			}, {
+				name: "groepering",
+				value: this.grouping
+			}]);
+			await postNameValueList("/views/leerlingen/werklijst/session.opslaan.php", [{
 				name: "reset",
 				value: "1"
 			}]);
@@ -4714,6 +4721,8 @@
 				name: "groepering",
 				value: this.grouping
 			}]);
+			await fetch("/views/leerlingen/werklijst/criteria/criteria.div.php");
+			await fetch("/views/leerlingen/werklijst/velden/velden.div.php");
 		}
 		static async clear() {
 			await fetch("view.php?args=leerlingen-werklijst");
@@ -4742,7 +4751,8 @@
 			return this.fetchDefinitions("/views/leerlingen/werklijst/criteria/toevoegen/criteria.results.php", "criterium_id", "td");
 		}
 		static async fetchFieldDefinitions() {
-			return this.fetchDefinitions("/views/leerlingen/werklijst/velden/toevoegen/velden.results.php", "veld_id", "td:nth-child(2)");
+			await fetch("/views/leerlingen/werklijst/velden/toevoegen/toevoegen.modal.php");
+			return this.fetchDefinitions("/views/leerlingen/werklijst/velden/toevoegen/velden.results.php?zoekterm=", "veld_id", "td:nth-child(2)");
 		}
 		async sendCriteria() {
 			for (const c of this.criteria) {

@@ -1,3 +1,18 @@
+Werklijst fetches
+-----------------------
+/view.php?args=leerlingen-werklijst
+/views/leerlingen/werklijst/index.view.php
+/views/leerlingen/werklijst/session.opslaan.php
+  > post
+    - schooljaar: 2026-2027
+    - groepering:3 << 1 lijn per les
+/views/leerlingen/werklijst/criteria/criteria.div.php?_=1788377411490
+/views/leerlingen/werklijst/velden/velden.div.php?_=1788377411491
+>> click: Velden toevoegen
+/views/leerlingen/werklijst/velden/toevoegen/toevoegen.modal.php?&_=1788377411524
+/views/leerlingen/werklijst/velden/toevoegen/velden.results.php?zoekterm=&_=1788377411525
+
+
 * switch class: add menu under "toewijzing" instead of class button.
   > or still a separate button next to class name (class name is optional!)
 
