@@ -56,13 +56,14 @@ export type JaarToewijzing = {
 function scrapeJaarToewijzingen(jaarToewijzingTable: (FetchedTable | undefined)): JaarToewijzing[] {
     if(jaarToewijzingTable === undefined)
         return [];
+    let offset = 3;
     return [...jaarToewijzingTable.getRows()].map((row) => {
-        let naam = row.cells[0].textContent;
-        let voornaam = row.cells[1].textContent;
-        let vak = row.cells[2].textContent;
-        let lesmoment = row.cells[3].textContent;
-        let klasleerkracht = row.cells[4].textContent;
-        let graadJaar = row.cells[5].textContent;
+        let naam = row.cells[offset].textContent;
+        let voornaam = row.cells[offset+1].textContent;
+        let vak = row.cells[offset+2].textContent;
+        let lesmoment = row.cells[offset+3].textContent;
+        let klasleerkracht = row.cells[offset+4].textContent;
+        let graadJaar = row.cells[offset+5].textContent;
         // @ts-ignore
         let onclick = row.attributes['onclick'].value;
         return {naam, voornaam, vak, lesmoment, klasleerkracht, onclick, graadJaar};
