@@ -69,7 +69,7 @@ export class DropDownMenu {
 
     addInfo(element: HTMLElement, indentLevel: number) {
         let indentClass = indentLevel ? ".menuIndent" + indentLevel : "";
-        let {first} = emmet.appendChild(this.menu, `div.dropDownSeparator.dropDownIgnoreHide${indentClass}`);
+        let {first} = emmet.appendChild(this.menu, `div.dropDownInfo.dropDownIgnoreHide${indentClass}`);
         let item = first as HTMLElement;
         item.onclick = (ev) => {
             ev.stopPropagation();

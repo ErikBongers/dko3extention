@@ -260,16 +260,17 @@ export function scrapeLesInfo(row: HTMLTableRowElement): HtmlLes {
     let mutedSpans = lesCell.querySelectorAll("span.text-muted");
     let lesName = "";
     //className is in the span on the 1st line (before BR)
-    for (const el of lesCell.children) {
-        if (el.tagName === 'BR') break;
-        if(el.tagName == "SPAN")
-            lesName = el.textContent;
+    let childrenElementsUptoFirstBR: Element[] = [];
+    let childrenElements = lesCell.children;
+    for (let i = 0; i < childrenElements.length; i++) {
+        if(childrenElements[i].tagName === "BR") {
+            break;
+        }
+        childrenElementsUptoFirstBR.push(childrenElements[i]);
     }
-
-    let naam = lesName
-        .replaceAll("(", "")
-        .replaceAll(")", "")
-        .trim();
+    let firstLine = childrenElementsUptoFirstBR.map((el) => el.textContent).join(" ");
+    let rx = /\((.+?)\)/;
+    let naam = rx.exec(firstLine)?.at(1)??"";
     let lesType: LesType;
     if(Array.from(allBadges).some((el) => el.textContent === "module")) {
         if(naam.includes("jaar"))

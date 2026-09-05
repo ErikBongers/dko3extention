@@ -2353,7 +2353,7 @@
 		}
 		addInfo(element, indentLevel) {
 			let indentClass = indentLevel ? ".menuIndent" + indentLevel : "";
-			let { first } = emmet.appendChild(this.menu, `div.dropDownSeparator.dropDownIgnoreHide${indentClass}`);
+			let { first } = emmet.appendChild(this.menu, `div.dropDownInfo.dropDownIgnoreHide${indentClass}`);
 			let item = first;
 			item.onclick = (ev) => {
 				ev.stopPropagation();
@@ -6324,12 +6324,14 @@
 		let warningBadges = lesCell.getElementsByClassName("badge-warning");
 		let tags = Array.from(warningBadges).map((el) => el.textContent).filter((txt) => txt !== "ALC").filter((txt) => txt);
 		let mutedSpans = lesCell.querySelectorAll("span.text-muted");
-		let lesName = "";
-		for (const el of lesCell.children) {
-			if (el.tagName === "BR") break;
-			if (el.tagName == "SPAN") lesName = el.textContent;
+		let childrenElementsUptoFirstBR = [];
+		let childrenElements = lesCell.children;
+		for (let i = 0; i < childrenElements.length; i++) {
+			if (childrenElements[i].tagName === "BR") break;
+			childrenElementsUptoFirstBR.push(childrenElements[i]);
 		}
-		let naam = lesName.replaceAll("(", "").replaceAll(")", "").trim();
+		let firstLine = childrenElementsUptoFirstBR.map((el) => el.textContent).join(" ");
+		let naam = /\((.+?)\)/.exec(firstLine)?.at(1) ?? "";
 		let lesType;
 		if (Array.from(allBadges).some((el) => el.textContent === "module")) {
 			if (naam.includes("jaar")) lesType = 1;
@@ -6763,13 +6765,17 @@
 		let lessons = await lessenBuilder.fetch();
 		lessons.sort((a, b) => buildLesTitle(a).localeCompare(buildLesTitle(b)));
 		menu.removeItem(1);
+		menu.addSeparator("Alternatieven:", 0);
 		for (let les of lessons) {
-			let infoBlock = emmet.createElement(`
-            div.small>(
-                div.bold.pre{${buildLesTitle(les)}}+
-                div{${les.les.formattedLesmoment}}+
-                div{ ${les.les.aantal}/${les.les.maxAantal} lln}
-            )
+			let lesmoment = les.les.formattedLesmoment.replace("(wekelijks)", "").trim();
+			let wachtlijst = les.les.wachtlijst == 0 ? "span" : `span.red{ (${les.les.wachtlijst} op wachtlijst)}`;
+			let full = les.les.aantal >= les.les.maxAantal ? ".full" : "";
+			let infoBlock = emmet.indent.createElement(`
+            div.small${full}
+                div.bold.pre{${buildLesTitle(les)}}
+                div.pre{${lesmoment}}
+                div.pre{${les.les.aantal}/${les.les.maxAantal} lln} 
+                    ${wachtlijst}
         `);
 			menu.addInfo(infoBlock, 0);
 		}

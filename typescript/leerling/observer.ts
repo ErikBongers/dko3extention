@@ -355,13 +355,17 @@ async function fillClassesMenu(menu: DropDownMenu, opleiding: Opleiding, vak: st
     let lessons = await lessenBuilder.fetch();
     lessons.sort((a, b) => buildLesTitle(a).localeCompare(buildLesTitle(b)));
     menu.removeItem(1);
+    menu.addSeparator("Alternatieven:", 0);
     for(let les of lessons) {
-        let infoBlock = emmet.createElement(`
-            div.small>(
-                div.bold.pre{${buildLesTitle(les)}}+
-                div{${les.les.formattedLesmoment}}+
-                div{ ${les.les.aantal}/${les.les.maxAantal} lln}
-            )
+        let lesmoment = les.les.formattedLesmoment.replace('(wekelijks)', "").trim();
+        let wachtlijst = les.les.wachtlijst == 0 ? "span" : `span.red{ (${les.les.wachtlijst} op wachtlijst)}`;
+        let full = les.les.aantal >= les.les.maxAantal ? ".full": "";
+        let infoBlock = emmet.indent.createElement(`
+            div.small${full}
+                div.bold.pre{${buildLesTitle(les)}}
+                div.pre{${lesmoment}}
+                div.pre{${les.les.aantal}/${les.les.maxAantal} lln} 
+                    ${wachtlijst}
         `);
         menu.addInfo(infoBlock, 0);
     }
