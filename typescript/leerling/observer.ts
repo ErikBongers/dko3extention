@@ -260,6 +260,8 @@ async function onInschrijvingChanged(tabInschrijving: HTMLElement) {
                         }); //fallthrough
                         return false;
                     }
+                    menu.removeAllItems();
+                    menu.addItem("Ga naar les", 0, btnOnClick);
                     menu.clickItem(0);
                     return true; //CANCEL
                 }
