@@ -5127,8 +5127,10 @@
 		domein;
 		vakCodes = [];
 		graadCodes = [];
+		adminGroupCodes = [];
 		vakken = [];
 		graden = [];
+		adminGroups = [];
 		constructor(schoolYear, domein) {
 			this.schoolYear = schoolYear;
 			this.domein = LessenFilterDomein[domein];
@@ -5149,13 +5151,18 @@
 			//! should have text.
 			this.graadCodes = this.getCodesForCriteria("lessen_overzicht_graad", chain.get());
 			//! should have text.
+			this.adminGroupCodes = this.getCodesForCriteria("lessen_overzicht_ag", chain.get());
+			//! should have text.
+			this.adminGroupCodes.forEach((ag) => {
+				ag.name = ag.name.split(" ").shift() ?? "???";
+			});
 		}
 		getCodesForCriteria(selectId, text) {
 			let scanner = new TokenScanner(text);
 			scanner.find(`"${selectId}"`);
 			scanner.find("<option");
 			scanner.clipTo("</select>");
-			return (scanner.result()?.split("</option>").map((opt) => opt.replace(" selected ", "").replace("<option", "").replace("value=\"", "").trim().split(/"\s*>/)) ?? []).map((opt) => {
+			return (scanner.result()?.split("</option>").map((opt) => opt.replace(" selected ", "").replace("<option", "").replace("value=\"", "").trim().split(/"\s*>/)) ?? []).filter((opt) => opt[0] != "").map((opt) => {
 				return {
 					code: opt[0],
 					name: opt[1]
@@ -5163,7 +5170,6 @@
 			});
 		}
 		async fetch() {
-			new FetchChain();
 			let tableText = await fetchLessen(new URLSearchParams({
 				schooljaar: this.schoolYear,
 				domein: this.domein,
@@ -5171,7 +5177,7 @@
 				vak: this.vakken.join(),
 				graad: this.graden.join(),
 				leerkracht: "",
-				ag: "",
+				ag: this.adminGroups.join(),
 				lesdag: "",
 				verberg_online: "-1",
 				soorten_lessen: "1",
@@ -5187,7 +5193,7 @@
 		addVak(vak) {
 			let vakCode = this.vakCodes.find((v) => v.name === vak);
 			if (!vakCode) {
-				console.error("vak not found: " + vak);
+				console.error("vak niet gevonden: " + vak);
 				return;
 			}
 			this.vakken.push(vakCode.code);
@@ -5195,10 +5201,18 @@
 		addGraad(graad) {
 			let graadCode = this.graadCodes.find((v) => v.name === graad);
 			if (!graadCode) {
-				console.error("graad not found: " + graad);
+				console.error("graad niet gevonden: " + graad);
 				return;
 			}
 			this.graden.push(graadCode.code);
+		}
+		addAdminGroup(adminGroup) {
+			let adminGroupCode = this.adminGroupCodes.find((v) => v.name === adminGroup);
+			if (!adminGroupCode) {
+				console.error("administrative groep niet gevonden: " + adminGroup);
+				return;
+			}
+			this.adminGroups.push(adminGroupCode.code);
 		}
 	};
 	//#endregion
@@ -6675,7 +6689,7 @@
 				let menu = new DropDownMenu(wrapper, newBtnGotoLes, "left");
 				menu.cancelDropDown = async () => {
 					if (!(await fetchLes(lesId)).isIndividualLes) {
-						fillClassesMenu(menu, opleiding.domein, opleiding.gradeYears[0], lesInfo.vak, btnOnClick).then(() => {});
+						fillClassesMenu(menu, opleiding, lesInfo.vak, btnOnClick).then(() => {});
 						return false;
 					}
 					menu.removeAllItems();
@@ -6711,13 +6725,17 @@
 		if (tdText.includes("Muziek")) domein = "Muziek";
 		if (tdText.includes("Woord")) domein = "Woord";
 		console.log("tdOpleiding", tdText, domein);
-		let gradeYearText = new RegExp(`${domein}\\s*-\\s*<strong>(.*?)</strong>`).exec(tdOpleiding.innerHTML)?.at(1);
+		let rx = new RegExp(`${domein}\\s*-\\s*<strong>(.*?)</strong>`);
+		let gradeYearText = rx.exec(tdOpleiding.innerHTML)?.at(1);
 		let gradeYears = [];
 		if (gradeYearText) gradeYears = textsToYearGrades([gradeYearText]);
+		rx = /(\d{4,})/;
+		let adminGroup = rx.exec(tdText)?.at(1) ?? "";
 		return {
 			domein,
 			gradeYears,
-			lessen: []
+			lessen: [],
+			adminGroup
 		};
 	}
 	function scrapeLesInfoDetails(tr, detailsTdOffset) {
@@ -6733,13 +6751,14 @@
 			gotoButton
 		};
 	}
-	async function fillClassesMenu(menu, domein, gradeYear, vak, gotoLesCmd) {
+	async function fillClassesMenu(menu, opleiding, vak, gotoLesCmd) {
 		menu.removeAllItems();
 		menu.addItem("Ga naar les", 0, gotoLesCmd);
 		menu.addSeparator(`Bezig met laden...`, 0);
 		let schoolYear = Schoolyear.findInPage();
-		let lessenBuilder = await LessenFilterBuilder.create(schoolYear, domein);
-		lessenBuilder.addGraad(GradeYear.toString([gradeYear]));
+		let lessenBuilder = await LessenFilterBuilder.create(schoolYear, opleiding.domein);
+		lessenBuilder.addGraad(GradeYear.toString([opleiding.gradeYears[0]]));
+		if (opleiding.adminGroup != "") lessenBuilder.addAdminGroup(opleiding.adminGroup);
 		if (!lessenBuilder.hasVak(vak)) lessenBuilder.addVak(vak);
 		let lessons = await lessenBuilder.fetch();
 		lessons.sort((a, b) => buildLesTitle(a).localeCompare(buildLesTitle(b)));

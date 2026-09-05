@@ -75,8 +75,10 @@ export class LessenFilterBuilder {
     private readonly domein: LessenFilterDomein;
     private vakCodes: CriteriaCode[] = [];
     private graadCodes: CriteriaCode[] = [];
+    private adminGroupCodes: CriteriaCode[] = [];
     private vakken: string[] = [];
     private graden: string[] = [];
+    private adminGroups: string[] = [];
 
     private constructor(schoolYear: string, domein: DomeinString) {
         this.schoolYear = schoolYear;
@@ -98,6 +100,10 @@ export class LessenFilterBuilder {
         await chain.fetch(`views/lessen/overzicht/filters/index.selectie_na_domein.php?domein=${this.domein}`);
         this.vakCodes = this.getCodesForCriteria("lessen_overzicht_vak", chain.get()!); //! should have text.
         this.graadCodes = this.getCodesForCriteria("lessen_overzicht_graad", chain.get()!); //! should have text.
+        this.adminGroupCodes = this.getCodesForCriteria("lessen_overzicht_ag", chain.get()!); //! should have text.
+        this.adminGroupCodes.forEach(ag => {
+            ag.name = ag.name.split(" ").shift()??"???";
+        });
     }
 
     private getCodesForCriteria(selectId: string, text: string): CriteriaCode[] {
@@ -116,13 +122,14 @@ export class LessenFilterBuilder {
                 .trim()
                 .split(/"\s*>/)
             )??[];
-        return options.map(opt => {
+        return options
+            .filter(opt => opt[0] != "")
+            .map(opt => {
             return { code: opt[0], name: opt[1] }
         });
     }
 
     async fetch() {
-        let chain = new FetchChain();
         let params = new URLSearchParams({
             schooljaar: this.schoolYear,
             domein: this.domein,
@@ -130,7 +137,7 @@ export class LessenFilterBuilder {
             vak: this.vakken.join(),
             graad: this.graden.join(),
             leerkracht: "",
-            ag: "",
+            ag: this.adminGroups.join(),
             lesdag: "",
             verberg_online: "-1",
             soorten_lessen: "1", //todo: hard coded "gewone lessen"
@@ -150,7 +157,7 @@ export class LessenFilterBuilder {
     addVak(vak: string) {
         let vakCode = this.vakCodes.find(v => v.name === vak);
         if (!vakCode) {
-            console.error("vak not found: " + vak);
+            console.error("vak niet gevonden: " + vak);
             return;
         }
         this.vakken.push(vakCode.code);
@@ -160,9 +167,18 @@ export class LessenFilterBuilder {
     addGraad(graad: string) {
         let graadCode = this.graadCodes.find(v => v.name === graad);
         if (!graadCode) {
-            console.error("graad not found: " + graad);
+            console.error("graad niet gevonden: " + graad);
             return;
         }
         this.graden.push(graadCode.code);
+    }
+
+    addAdminGroup(adminGroup: string) {
+        let adminGroupCode = this.adminGroupCodes.find(v => v.name === adminGroup);
+        if (!adminGroupCode) {
+            console.error("administrative groep niet gevonden: " + adminGroup);
+            return;
+        }
+        this.adminGroups.push(adminGroupCode.code);
     }
 }

@@ -256,7 +256,7 @@ async function onInschrijvingChanged(tabInschrijving: HTMLElement) {
                 menu.cancelDropDown = async () => {
                     let lesDetails = await fetchLes(lesId);
                     if (!lesDetails.isIndividualLes) {
-                        fillClassesMenu(menu, opleiding.domein as DomeinString, opleiding.gradeYears[0], lesInfo.vak, btnOnClick).then(() => {
+                        fillClassesMenu(menu, opleiding, lesInfo.vak, btnOnClick).then(() => {
                         }); //fallthrough
                         return false;
                     }
@@ -281,6 +281,7 @@ interface Opleiding {
     domein: DomeinString | "";
     gradeYears: GradeYear[];
     lessen: LesInfo[];
+    adminGroup: string;
 }
 
 function scrapeOpleidingen() {
@@ -318,7 +319,9 @@ function scrapeOpleidingRow(tr: HTMLTableRowElement) {
     let gradeYears: GradeYear[] = [];
     if (gradeYearText)
         gradeYears = textsToYearGrades([gradeYearText]);
-    let opleiding: Opleiding = {domein, gradeYears, lessen: []};
+    rx = /(\d{4,})/;
+    let adminGroup = rx.exec(tdText)?.at(1)??"";
+    let opleiding: Opleiding = {domein, gradeYears, lessen: [], adminGroup};
     return opleiding;
 }
 
@@ -338,13 +341,15 @@ function scrapeLesInfoDetails(tr: HTMLTableRowElement, detailsTdOffset: number) 
     return lesInfo;
 }
 
-async function fillClassesMenu(menu: DropDownMenu, domein: DomeinString, gradeYear: GradeYear, vak: string, gotoLesCmd: string) {
+async function fillClassesMenu(menu: DropDownMenu, opleiding: Opleiding, vak: string, gotoLesCmd: string) {
     menu.removeAllItems();
     menu.addItem("Ga naar les", 0, gotoLesCmd);
     menu.addSeparator(`Bezig met laden...`, 0);
     let schoolYear = Schoolyear.findInPage();
-    let lessenBuilder = await LessenFilterBuilder.create(schoolYear, domein);
-    lessenBuilder.addGraad(GradeYear.toString([gradeYear]));
+    let lessenBuilder = await LessenFilterBuilder.create(schoolYear, opleiding.domein as DomeinString);
+    lessenBuilder.addGraad(GradeYear.toString([opleiding.gradeYears[0]]));
+    if(opleiding.adminGroup != "")
+        lessenBuilder.addAdminGroup(opleiding.adminGroup);
     if(!lessenBuilder.hasVak(vak))
     lessenBuilder.addVak(vak);
     let lessons = await lessenBuilder.fetch();
