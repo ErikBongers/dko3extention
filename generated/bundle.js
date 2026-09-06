@@ -796,9 +796,6 @@
 	function dateDiffToString(oldestDate, newestDate) {
 		return millisToString(newestDate.getTime() - oldestDate.getTime());
 	}
-	function clamp(value, min, max) {
-		return Math.min(Math.max(value, min), max);
-	}
 	function isAlphaNumeric(str) {
 		if (str.length > 1) return false;
 		let code;
@@ -1044,9 +1041,76 @@
 		if (location.hash == "#start-mijn_tijdslijn") location.reload();
 		else location.href = "/#start-mijn_tijdslijn";
 	}
+	//#endregion
+	//#region typescript/globalKeyHandlers.ts
+	var UpDownNavigator = class {
+		get selectedItem() {
+			return this._selectedItem;
+		}
+		set selectedItem(value) {
+			this._selectedItem = value;
+			this.selectionChangedHandler(this);
+		}
+		_selectedItem = 0;
+		min = 0;
+		max = 0;
+		selectionChangedHandler;
+		selectingHandler;
+		constructor(selectionChangedHandler, selectingHandler) {
+			if (selectionChangedHandler) this.selectionChangedHandler = selectionChangedHandler;
+			else this.selectionChangedHandler = () => {};
+			if (selectingHandler) this.selectingHandler = selectingHandler;
+			else this.selectingHandler = () => {};
+			document.body.addEventListener("keydown", (ev) => this.handleMenuKeys(ev), { capture: true });
+		}
+		setRange(min, max) {
+			this.min = min;
+			this.max = max;
+			return this.clampSelectedItem();
+		}
+		clampSelectedItem() {
+			return this.selectedItem = Math.min(Math.max(this.selectedItem, this.min), this.max);
+		}
+		handleMenuKeys(ev) {
+			let oldIndex = this.selectedItem;
+			let retVal = false;
+			if (ev.key === "ArrowUp") {
+				this.selectedItem--;
+				ev.preventDefault();
+				retVal = true;
+			} else if (ev.key === "ArrowDown") {
+				this.selectedItem++;
+				ev.preventDefault();
+				retVal = true;
+			} else if (ev.key === "Enter") {
+				this.selectingHandler(this);
+				ev.stopImmediatePropagation();
+				ev.preventDefault();
+				retVal = true;
+			}
+			this.clampSelectedItem();
+			if (oldIndex != this.selectedItem) this.selectionChangedHandler(this);
+			return retVal;
+		}
+		setSelectionChangedHandler(selectionChangedHandler) {
+			this.selectionChangedHandler = selectionChangedHandler;
+		}
+		clearSelectionChangedHandler() {
+			console.log("clearing selection changed handler");
+			this.selectionChangedHandler = () => {};
+		}
+		setSelectingHandler(selectingHandler) {
+			this.selectingHandler = selectingHandler;
+		}
+		clearSelectingHandler() {
+			this.selectingHandler = () => {};
+		}
+	};
+	let upDownNavigator = new UpDownNavigator();
+	function getUpDownNavigator() {
+		return upDownNavigator;
+	}
 	let powerQueryItems = [];
-	let popoverVisible = false;
-	let selectedItem = 0;
 	function addQueryItem(headerLabel, label, href, func, longLabelText) {
 		powerQueryItems.push(createQueryItem(headerLabel, label, href, func, longLabelText));
 	}
@@ -1118,36 +1182,40 @@
 		addQueryItem("Plugin", "Vergelijk uurroosters", "", gotoDiffPage);
 		addQueryItem("Plugin", "Lessen snapshots", "", gotoSnapshotPage);
 	}
-	document.body.addEventListener("keydown", showPowerQuery);
+	let powerQueryVisible = false;
+	function powerQuerySelectionChangedHandler(navigator) {
+		if (!powerQueryVisible) return;
+		[...list.children].forEach((el) => el.classList.remove("selected"));
+		list.children[navigator.selectedItem].classList.add("selected");
+	}
+	document.body.addEventListener("keydown", globalKeyDownHandler);
+	function globalKeyDownHandler(ev) {
+		showPowerQuery(ev);
+	}
 	function showPowerQuery(ev) {
 		if (ev.key === "q" && ev.ctrlKey && !ev.shiftKey && !ev.altKey) {
 			scrapeMainMenu();
 			powerQueryItems.push(...getSavedAndDefaultQueryItems());
 			getHardCodedQueryItems();
+			getUpDownNavigator().setSelectionChangedHandler(powerQuerySelectionChangedHandler);
 			popover.showPopover();
 		} else {
-			if (!popoverVisible) return;
+			if (!powerQueryVisible) return;
 			if (isAlphaNumeric(ev.key) || ev.key === " ") {
 				searchField.textContent += ev.key;
-				selectedItem = 0;
+				getUpDownNavigator().selectedItem = 0;
 			} else if (ev.key == "Escape") {
 				if (searchField.textContent !== "") {
 					searchField.textContent = "";
-					selectedItem = 0;
+					getUpDownNavigator().selectedItem = 0;
 					ev.preventDefault();
 				}
 			} else if (ev.key == "Backspace") searchField.textContent = searchField.textContent.slice(0, -1);
-			else if (ev.key == "ArrowDown") {
-				selectedItem++;
-				ev.preventDefault();
-			} else if (ev.key == "ArrowUp") {
-				selectedItem--;
-				ev.preventDefault();
-			} else if (ev.key == "Enter") {
-				let selectedDiv = list.children[selectedItem];
+			else if (ev.key == "Enter") {
+				let selectedDiv = list.children[getUpDownNavigator().selectedItem];
 				onItemSelected(selectedDiv);
 				ev.preventDefault();
-			}
+			} else getUpDownNavigator().handleMenuKeys(ev);
 		}
 		filterItems(searchField.textContent);
 	}
@@ -1156,7 +1224,8 @@
 	popover.setAttribute("popover", "auto");
 	popover.id = "powerQuery";
 	popover.addEventListener("toggle", (ev) => {
-		popoverVisible = ev.newState === "open";
+		powerQueryVisible = ev.newState === "open";
+		if (!powerQueryVisible) getUpDownNavigator().clearSelectionChangedHandler();
 	});
 	let searchField = document.createElement("label");
 	popover.appendChild(searchField);
@@ -1173,11 +1242,11 @@
 			if (needle.split("").every((char) => item.lowerCase.includes(char))) item.weight += 20;
 		}
 		list.innerHTML = powerQueryItems.filter((item) => item.weight != 0).sort((a, b) => b.weight - a.weight).map((item) => `<div data-long-label="${item.longLabel}">${item.longLabel}</div>`).slice(0, 30).join("\n");
-		selectedItem = clamp(selectedItem, 0, list.children.length - 1);
+		getUpDownNavigator().setRange(0, list.children.length - 1);
 		for (let item of list.querySelectorAll("div")) item.onclick = (ev) => {
 			onItemSelected(ev.target);
 		};
-		list.children[selectedItem]?.classList.add("selected");
+		list.children[getUpDownNavigator().selectedItem]?.classList.add("selected");
 	}
 	function onItemSelected(selectedElement) {
 		let item = powerQueryItems.find((item) => item.longLabel === selectedElement.dataset.longLabel);
@@ -2378,6 +2447,14 @@
 		}
 		removeAllItems() {
 			this.menu.innerHTML = "";
+		}
+		clearItemClass(className) {
+			this.menu.querySelectorAll(".dropDownItem");
+		}
+		setSelected(itemIndex) {
+			let items = this.menu.querySelectorAll(".dropDownItem");
+			for (let item of items) item.classList.remove("selected");
+			items[itemIndex].classList.add("selected");
 		}
 	};
 	//#endregion
@@ -9855,7 +9932,7 @@
 	}
 	async function onParentKeyUp(e) {
 		if (e.key == "Enter") {
-			console.log("parent keyup");
+			console.log("parent Enter");
 			let text = document.getElementById("snel_zoeken_veld_zoektermen").value;
 			if (await onEnterPressed(text) == "cancel") {
 				console.log("canceling");
@@ -9865,7 +9942,12 @@
 			}
 		}
 	}
+	let ignoreNextEnter = false;
 	async function onEnterPressed(text) {
+		if (ignoreNextEnter) {
+			ignoreNextEnter = false;
+			return "default";
+		}
 		if (text.startsWith("les:")) {
 			if (await gotoLesName(text.substring(4).trim())) return "cancel";
 		}
@@ -9885,7 +9967,26 @@
 						location.href = `/#lessen-les?id=${les.id}`;
 					});
 				});
+				getUpDownNavigator().setSelectionChangedHandler((navigator) => {
+					dropDownMenu.setSelected(navigator.selectedItem);
+					console.log(navigator.selectedItem);
+				});
+				getUpDownNavigator().setSelectingHandler((navigator) => {
+					console.log("goto selection");
+					ignoreNextEnter = true;
+					dropDownMenu.hide();
+					dropDownMenu.clickItem(navigator.selectedItem);
+					document.body.focus();
+				});
+				getUpDownNavigator().selectedItem = 0;
+				getUpDownNavigator().setRange(0, lesMatches.length - 1);
 				dropDownMenu.show();
+				dropDownMenu.menu.addEventListener("toggle", (ev) => {
+					if (ev.newState != "open") {
+						getUpDownNavigator().clearSelectionChangedHandler();
+						getUpDownNavigator().clearSelectingHandler();
+					}
+				});
 			}
 		}
 		return true;

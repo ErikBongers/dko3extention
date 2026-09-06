@@ -18,7 +18,7 @@ import {emmet} from "../libs/Emmeter/html";
 export type CancelDropDown = (ev: MouseEvent) => boolean | Promise<boolean>;
 
 export class DropDownMenu {
-    private readonly menu: HTMLElement;
+    readonly menu: HTMLElement;
     private readonly container: HTMLElement;
     private button: HTMLElement;
     public cancelDropDown: CancelDropDown | undefined;
@@ -101,5 +101,16 @@ export class DropDownMenu {
 
     removeAllItems() {
         this.menu.innerHTML = "";
+    }
+
+    clearItemClass(className: string) {
+        let items = this.menu.querySelectorAll(".dropDownItem") as NodeListOf<HTMLButtonElement>;
+    }
+
+    setSelected(itemIndex: number) {
+        let items = this.menu.querySelectorAll(".dropDownItem") as NodeListOf<HTMLButtonElement>;
+        for(let item of items)
+            item.classList.remove("selected");
+        items[itemIndex].classList.add("selected");
     }
 }

@@ -3,6 +3,7 @@ import * as def from "../def";
 import {getGotoStateOrDefault, Goto, PageName, saveGotoState} from "../gotoState";
 import {default_items as defaultQueryItems } from "default_items";
 import {gotoDiffPage, gotoSnapshotPage} from "../menu";
+import {getUpDownNavigator, UpDownNavigator} from "../globalKeyHandlers";
 
 export function setupPowerQuery() {
     //dummy function to force this module to be loaded.
@@ -10,8 +11,6 @@ export function setupPowerQuery() {
 
 let powerQueryItems: QueryItem[] = [];
 
-let popoverVisible = false;
-let selectedItem = 0;
 type GotoFunc = (queryItem: QueryItem) => void;
 
 export interface QueryItem {
@@ -124,39 +123,48 @@ function getHardCodedQueryItems() {
     addQueryItem("Plugin", "Lessen snapshots", "", gotoSnapshotPage);
 }
 
-document.body.addEventListener("keydown", showPowerQuery);
+let powerQueryVisible = false;
+function powerQuerySelectionChangedHandler(navigator: UpDownNavigator) {
+    if(!powerQueryVisible)
+        return;
+    [...list.children].forEach(el => el.classList.remove("selected"));
+    list.children[navigator.selectedItem].classList.add("selected");
+}
+
+document.body.addEventListener("keydown", globalKeyDownHandler);
+
+function globalKeyDownHandler(ev: KeyboardEvent) {
+    showPowerQuery(ev);
+}
 
 function showPowerQuery(ev: KeyboardEvent) {
     if (ev.key === "q" && ev.ctrlKey && !ev.shiftKey && !ev.altKey) {
         scrapeMainMenu();
         powerQueryItems.push(...getSavedAndDefaultQueryItems());
         getHardCodedQueryItems();
+        getUpDownNavigator().setSelectionChangedHandler(powerQuerySelectionChangedHandler);
         popover.showPopover();
     } else {
-        if (!popoverVisible)
+        if (!powerQueryVisible)
             return;
         if (isAlphaNumeric(ev.key) || ev.key === ' ') {
             searchField.textContent += ev.key;
-            selectedItem = 0; //back to top.
+            getUpDownNavigator().selectedItem = 0; //back to top.
         } else if (ev.key == "Escape") {
             if(searchField.textContent !== "") {
                 searchField.textContent = "";
-                selectedItem = 0;
+                getUpDownNavigator().selectedItem = 0;
                 ev.preventDefault();
             }
             //else: default behaviour: close popup.
         } else if (ev.key == "Backspace") {
             searchField.textContent = searchField.textContent.slice(0, -1);
-        } else if (ev.key == "ArrowDown") {
-            selectedItem++;
-            ev.preventDefault();
-        } else if (ev.key == "ArrowUp") {
-            selectedItem--;
-            ev.preventDefault();
         } else if (ev.key == "Enter") {
-            let selectedDiv = list.children[selectedItem] as HTMLElement;
+            let selectedDiv = list.children[getUpDownNavigator().selectedItem] as HTMLElement;
             onItemSelected(selectedDiv);
             ev.preventDefault();
+        } else {
+            getUpDownNavigator().handleMenuKeys(ev);
         }
     }
     filterItems(searchField.textContent);
@@ -168,8 +176,11 @@ popover.setAttribute("popover", "auto");
 popover.id = "powerQuery";
 popover.addEventListener("toggle", (ev) => {
     // @ts-ignore
-    popoverVisible = ev.newState === "open";
+    powerQueryVisible = ev.newState === "open";
+    if(!powerQueryVisible)
+        getUpDownNavigator().clearSelectionChangedHandler();
 });
+
 let searchField = document.createElement("label");
 popover.appendChild(searchField);
 let list = document.createElement("div");
@@ -207,14 +218,14 @@ function filterItems(needle: string) {
         .map((item) => `<div data-long-label="${item.longLabel}">${item.longLabel}</div>`)
         .slice(0, MAX_VISIBLE_QUERY_ITEMS)
         .join("\n");
-    selectedItem = clamp(selectedItem, 0, list.children.length - 1);
+    getUpDownNavigator().setRange(0, list.children.length - 1);
     for(let item of list.querySelectorAll("div")) {
         item.onclick = (ev: PointerEvent) => {
             onItemSelected(ev.target as HTMLElement);
             // ev.preventDefault();
         };
     }
-    list.children[selectedItem]?.classList.add("selected");
+    list.children[getUpDownNavigator().selectedItem]?.classList.add("selected");
 }
 
 function onItemSelected(selectedElement: HTMLElement) {

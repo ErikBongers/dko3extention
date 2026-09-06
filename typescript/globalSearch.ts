@@ -4,6 +4,7 @@ import {LesType} from "./roster_diff/calcDiff";
 import {Schoolyear} from "./globals";
 import {emmet} from "../libs/Emmeter/html";
 import {DropDownMenu} from "./dropDownMenus";
+import {getUpDownNavigator} from "./globalKeyHandlers";
 
 export function onPasteInGlobalSearchField(e: ClipboardEvent) {
     if (!options.stripCommasOnPaste)
@@ -21,7 +22,7 @@ export function onPasteInGlobalSearchField(e: ClipboardEvent) {
 
 export async function onParentKeyUp(e: KeyboardEvent) {
     if (e.key == "Enter") {
-        console.log("parent keyup");
+        console.log("parent Enter");
         let searchField = document.getElementById("snel_zoeken_veld_zoektermen") as HTMLInputElement;
         let text = searchField.value;
         if (await onEnterPressed(text) == "cancel") {
@@ -33,7 +34,13 @@ export async function onParentKeyUp(e: KeyboardEvent) {
     }
 }
 
+let ignoreNextEnter: boolean = false;
+
 async function onEnterPressed(text: string) {
+    if (ignoreNextEnter) {
+        ignoreNextEnter = false;
+        return "default";
+    }
     if (text.startsWith("les:")) {
         if (await gotoLesName(text.substring(4).trim()))
             return "cancel";
@@ -61,7 +68,26 @@ async function gotoLesName(lesName: string) {
                         location.href = `/#lessen-les?id=${les.id}`;
                     });
                 });
+            getUpDownNavigator().setSelectionChangedHandler((navigator) => {
+                dropDownMenu.setSelected(navigator.selectedItem);
+                console.log(navigator.selectedItem);
+            });
+            getUpDownNavigator().setSelectingHandler((navigator) => {
+                console.log("goto selection");
+                ignoreNextEnter = true;
+                dropDownMenu.hide();
+                dropDownMenu.clickItem(navigator.selectedItem);
+                document.body.focus();
+            });
+            getUpDownNavigator().selectedItem = 0;
+            getUpDownNavigator().setRange(0, lesMatches.length - 1);
             dropDownMenu.show();
+            dropDownMenu.menu.addEventListener("toggle", (ev) => {
+                if(ev.newState != "open") {
+                    getUpDownNavigator().clearSelectionChangedHandler();
+                    getUpDownNavigator().clearSelectingHandler();
+                }
+            })
         }
     }
 
