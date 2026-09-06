@@ -1,3 +1,21 @@
+* Replace local and session storage with indexed DBs.
+    > clear session DB on session start:
+    > do NOT do this on page load as it will trigger on page refresh!
+            // Check if this is a brand-new tab session
+            if (!sessionStorage.getItem('session_active')) {
+                // If the flag doesn't exist, this is a new session. Delete the old IndexedDB session data.
+                const deleteRequest = indexedDB.deleteDatabase('Session_DB');
+
+                deleteRequest.onsuccess = () => {
+                    console.log('Old session database cleared.');
+                    // Set the flag so a page refresh doesn't trigger another deletion
+                    sessionStorage.setItem('session_active', 'true');
+                    initializeSessionDB(); // Open your fresh session IndexedDB here
+                };
+            } else {
+                initializeSessionDB(); // Just open the existing database on page refresh
+            }
+
 * in lists with student names: allow to add extra student data. (expensive per record, but doable via werklijst)
   > add certain hashes to certain lists> allow to add an extra hash column.
   > opm table

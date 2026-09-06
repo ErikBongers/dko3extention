@@ -50,16 +50,31 @@ async function gotoLesName(lesName: string) {
     return true
 }
 
+interface CachedLesId {
+    id: string;
+    name: string;
+}
+
 async function getLesId(lesName: string) {
+    let cachedLesIds = sessionStorage.getItem("cachedLesIds");
+    if (cachedLesIds) {
+        let lesIds: CachedLesId[] = JSON.parse(cachedLesIds);
+        return findLesId(lesName, lesIds);
+    }
     let lessen = await scrapeLessen(LessenFilterDomein.Muziek, LesType.gewone, Schoolyear.toFullString(Schoolyear.calculateCurrent()));
+    sessionStorage.setItem("cachedLesIds", JSON.stringify(lessen.map(l => ({id: l.les.id, name: l.les.naam}))));
     let  lowerCaseLesName = lesName.toLowerCase();
     console.log(lessen.map(l => l.les.naam));
-    let lesId = lessen.find(l => l.les.naam.toLowerCase() == lowerCaseLesName);
-    if (lesId)
-        return lesId.les.id;
-    let includes = lessen.filter(l => l.les.naam.toLowerCase().includes(lowerCaseLesName));
-    if (includes.length == 1)
-        return includes[0].les.id;
+    return findLesId(lesName, lessen.map(l => ({id: l.les.id, name: l.les.naam})));
+}
 
+function findLesId(lesName: string, lesIds: CachedLesId[]) {
+    let lowerCaseLesName = lesName.toLowerCase();
+    let lesId =  lesIds.find(l => l.name.toLowerCase() == lowerCaseLesName);
+    if (lesId)
+        return lesId.id;
+    let includes = lesIds.filter(l => l.name.toLowerCase().includes(lowerCaseLesName));
+    if (includes.length == 1)
+        return includes[0].id;
     return null;
 }
