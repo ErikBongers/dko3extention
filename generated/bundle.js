@@ -2344,7 +2344,7 @@
 		}
 		addItem(title, indentLevel, onClick) {
 			let indentClass = indentLevel ? ".menuIndent" + indentLevel : "";
-			let { first } = emmet.appendChild(this.menu, `button.naked.dropDownItem${indentClass}{${title}}`);
+			let { first } = emmet.appendChild(this.menu, `button.naked.dropDownItem.pre${indentClass}{${title}}`);
 			let item = first;
 			if (typeof onClick === "string") item.setAttribute("onclick", onClick);
 			else if (typeof onClick === "function") item.onclick = (ev) => {
@@ -9879,7 +9879,7 @@
 			else if (lesMatches.length > 1) {
 				let searchField = document.getElementById("snel_zoeken_veld_zoektermen");
 				let dropDownMenu = new DropDownMenu(searchField.parentElement?.parentElement, searchField);
-				lesMatches.forEach((les, index) => {
+				lesMatches.sort((a, b) => a.name.localeCompare(b.name)).forEach((les, index) => {
 					dropDownMenu.addItem(les.name, 0, () => {
 						dropDownMenu.hide();
 						location.href = `/#lessen-les?id=${les.id}`;

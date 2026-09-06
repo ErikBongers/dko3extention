@@ -58,7 +58,7 @@ export class DropDownMenu {
 
     addItem(title: string, indentLevel: number, onClick: ((ev: MouseEvent) => void) | string) {
         let indentClass = indentLevel ? ".menuIndent" + indentLevel : "";
-        let {first} = emmet.appendChild(this.menu, `button.naked.dropDownItem${indentClass}{${title}}`);
+        let {first} = emmet.appendChild(this.menu, `button.naked.dropDownItem.pre${indentClass}{${title}}`);
         let item = first as HTMLButtonElement;
         if(typeof onClick === "string")
             item.setAttribute("onclick", onClick);

@@ -53,12 +53,14 @@ async function gotoLesName(lesName: string) {
             //todo: show popup with options to choose les
             let searchField = document.getElementById("snel_zoeken_veld_zoektermen") as HTMLElement;
             let dropDownMenu = new DropDownMenu(searchField.parentElement?.parentElement!, searchField);
-            lesMatches.forEach((les, index) => {
-                dropDownMenu.addItem(les.name, 0, () => {
-                    dropDownMenu.hide();
-                    location.href = `/#lessen-les?id=${les.id}`;
+            lesMatches
+                .sort((a, b) => a.name.localeCompare(b.name))
+                .forEach((les, index) => {
+                    dropDownMenu.addItem(les.name, 0, () => {
+                        dropDownMenu.hide();
+                        location.href = `/#lessen-les?id=${les.id}`;
+                    });
                 });
-            });
             dropDownMenu.show();
         }
     }
