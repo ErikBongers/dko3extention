@@ -1084,7 +1084,6 @@
 				retVal = true;
 			} else if (ev.key === "Enter") {
 				this.selectingHandler(this);
-				ev.stopImmediatePropagation();
 				ev.preventDefault();
 				retVal = true;
 			}
@@ -1215,7 +1214,7 @@
 				let selectedDiv = list.children[getUpDownNavigator().selectedItem];
 				onItemSelected(selectedDiv);
 				ev.preventDefault();
-			} else getUpDownNavigator().handleMenuKeys(ev);
+			}
 		}
 		filterItems(searchField.textContent);
 	}

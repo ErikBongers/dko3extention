@@ -159,12 +159,10 @@ function showPowerQuery(ev: KeyboardEvent) {
             //else: default behaviour: close popup.
         } else if (ev.key == "Backspace") {
             searchField.textContent = searchField.textContent.slice(0, -1);
-        } else if (ev.key == "Enter") {
+        } else if (ev.key == "Enter") { //todo: put this in navigotor selectionHandler.
             let selectedDiv = list.children[getUpDownNavigator().selectedItem] as HTMLElement;
             onItemSelected(selectedDiv);
             ev.preventDefault();
-        } else {
-            getUpDownNavigator().handleMenuKeys(ev);
         }
     }
     filterItems(searchField.textContent);

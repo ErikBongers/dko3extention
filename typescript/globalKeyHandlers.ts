@@ -38,7 +38,7 @@ export class UpDownNavigator {
         return this.selectedItem = Math.min(Math.max(this.selectedItem, this.min), this.max);
     }
 
-    handleMenuKeys(ev: KeyboardEvent) {
+    private handleMenuKeys(ev: KeyboardEvent) {
         let oldIndex = this.selectedItem;
         let retVal = false;
         if (ev.key === "ArrowUp") {
@@ -51,7 +51,6 @@ export class UpDownNavigator {
             retVal = true;
         } else if (ev.key === "Enter") {
             this.selectingHandler(this);
-            ev.stopImmediatePropagation();
             ev.preventDefault();
             retVal = true;
         }
