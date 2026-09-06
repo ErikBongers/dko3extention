@@ -9836,6 +9836,33 @@
 		return createQueryItem(headerLabel, label, link.href, void 0, longLabel);
 	}
 	//#endregion
+	//#region typescript/globalSearch.ts
+	function onPasteInGlobalSearchField(e) {
+		if (!options.stripCommasOnPaste) return;
+		let searchField = document.getElementById("snel_zoeken_veld_zoektermen");
+		let newText = (e.clipboardData?.getData("text/plain") ?? "").replaceAll(",", "").replaceAll("-", " ");
+		searchField.setRangeText(newText);
+		searchField.setSelectionRange(newText.length, newText.length);
+		e.preventDefault();
+	}
+	function onKeydownInGlobalSearchField(e) {}
+	function onParentKeyUp(e) {
+		if (e.key == "Enter") {
+			console.log("parent keyup");
+			let text = document.getElementById("snel_zoeken_veld_zoektermen").value;
+			if (onEnterPressed(text) == "cancel") {
+				console.log("canceling");
+				e.stopImmediatePropagation();
+				e.preventDefault();
+				return;
+			}
+		}
+	}
+	function onEnterPressed(text) {
+		if (text.startsWith("les:")) return "cancel";
+		return "default";
+	}
+	//#endregion
 	//#region typescript/main.ts
 	init();
 	function init() {
@@ -9925,16 +9952,12 @@
 		pageState$1.transient.clear();
 		for (let observer of observers) observer.onPageRefreshed();
 		let searchField = document.getElementById("snel_zoeken_veld_zoektermen");
-		if (searchField) searchField.addEventListener("paste", onPasteInGlobalSearchField);
+		if (searchField) {
+			searchField.addEventListener("paste", onPasteInGlobalSearchField);
+			searchField.addEventListener("keydown", onKeydownInGlobalSearchField, { passive: false });
+			searchField.parentElement.addEventListener("keyup", onParentKeyUp, { capture: true });
+		}
 		navigator.clipboard.addEventListener("clipboardchange", onClipboardChange);
-	}
-	function onPasteInGlobalSearchField(e) {
-		if (!options.stripCommasOnPaste) return;
-		let searchField = document.getElementById("snel_zoeken_veld_zoektermen");
-		let newText = (e.clipboardData?.getData("text/plain") ?? "").replaceAll(",", "").replaceAll("-", " ");
-		searchField.setRangeText(newText);
-		searchField.setSelectionRange(newText.length, newText.length);
-		e.preventDefault();
 	}
 	window.onfocus = () => fetchAndDisplayNotifications();
 	document.onvisibilitychange = () => fetchAndDisplayNotifications();
