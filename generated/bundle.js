@@ -9845,12 +9845,11 @@
 		searchField.setSelectionRange(newText.length, newText.length);
 		e.preventDefault();
 	}
-	function onKeydownInGlobalSearchField(e) {}
-	function onParentKeyUp(e) {
+	async function onParentKeyUp(e) {
 		if (e.key == "Enter") {
 			console.log("parent keyup");
 			let text = document.getElementById("snel_zoeken_veld_zoektermen").value;
-			if (onEnterPressed(text) == "cancel") {
+			if (await onEnterPressed(text) == "cancel") {
 				console.log("canceling");
 				e.stopImmediatePropagation();
 				e.preventDefault();
@@ -9858,9 +9857,27 @@
 			}
 		}
 	}
-	function onEnterPressed(text) {
-		if (text.startsWith("les:")) return "cancel";
+	async function onEnterPressed(text) {
+		if (text.startsWith("les:")) {
+			if (await gotoLesName(text.substring(4).trim())) return "cancel";
+		}
 		return "default";
+	}
+	async function gotoLesName(lesName) {
+		if (lesName.length == 0) return false;
+		let lesId = await getLesId(lesName);
+		if (lesId) location.href = `/#lessen-les?id=${lesId}`;
+		return true;
+	}
+	async function getLesId(lesName) {
+		let lessen = await scrapeLessen("3", "1", Schoolyear.toFullString(Schoolyear.calculateCurrent()));
+		let lowerCaseLesName = lesName.toLowerCase();
+		console.log(lessen.map((l) => l.les.naam));
+		let lesId = lessen.find((l) => l.les.naam.toLowerCase() == lowerCaseLesName);
+		if (lesId) return lesId.les.id;
+		let includes = lessen.filter((l) => l.les.naam.toLowerCase().includes(lowerCaseLesName));
+		if (includes.length == 1) return includes[0].les.id;
+		return null;
 	}
 	//#endregion
 	//#region typescript/main.ts
@@ -9954,7 +9971,6 @@
 		let searchField = document.getElementById("snel_zoeken_veld_zoektermen");
 		if (searchField) {
 			searchField.addEventListener("paste", onPasteInGlobalSearchField);
-			searchField.addEventListener("keydown", onKeydownInGlobalSearchField, { passive: false });
 			searchField.parentElement.addEventListener("keyup", onParentKeyUp, { capture: true });
 		}
 		navigator.clipboard.addEventListener("clipboardchange", onClipboardChange);
