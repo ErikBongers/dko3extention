@@ -2334,6 +2334,14 @@
 				dropDownMenu.showPopover();
 			};
 		}
+		show() {
+			document.querySelectorAll(".activePopoverButton").forEach((p) => p.classList.remove("activePopoverButton"));
+			this.button.classList.add("activePopoverButton");
+			this.menu.showPopover();
+		}
+		hide() {
+			this.menu.hidePopover();
+		}
 		addItem(title, indentLevel, onClick) {
 			let indentClass = indentLevel ? ".menuIndent" + indentLevel : "";
 			let { first } = emmet.appendChild(this.menu, `button.naked.dropDownItem${indentClass}{${title}}`);
@@ -9865,11 +9873,24 @@
 	}
 	async function gotoLesName(lesName) {
 		if (lesName.length == 0) return false;
-		let lesId = await getLesId(lesName);
-		if (lesId) location.href = `/#lessen-les?id=${lesId}`;
+		let lesMatches = await getLesMatches(lesName);
+		if (lesMatches) {
+			if (lesMatches.length == 1) location.href = `/#lessen-les?id=${lesMatches[0].id}`;
+			else if (lesMatches.length > 1) {
+				let searchField = document.getElementById("snel_zoeken_veld_zoektermen");
+				let dropDownMenu = new DropDownMenu(searchField.parentElement?.parentElement, searchField);
+				lesMatches.forEach((les, index) => {
+					dropDownMenu.addItem(les.name, 0, () => {
+						dropDownMenu.hide();
+						location.href = `/#lessen-les?id=${les.id}`;
+					});
+				});
+				dropDownMenu.show();
+			}
+		}
 		return true;
 	}
-	async function getLesId(lesName) {
+	async function getLesMatches(lesName) {
 		let cachedLesIds = sessionStorage.getItem("cachedLesIds");
 		if (cachedLesIds) return findLesId(lesName, JSON.parse(cachedLesIds));
 		let lessen = await scrapeLessen("3", "1", Schoolyear.toFullString(Schoolyear.calculateCurrent()));
@@ -9877,8 +9898,6 @@
 			id: l.les.id,
 			name: l.les.naam
 		}))));
-		lesName.toLowerCase();
-		console.log(lessen.map((l) => l.les.naam));
 		return findLesId(lesName, lessen.map((l) => ({
 			id: l.les.id,
 			name: l.les.naam
@@ -9887,9 +9906,9 @@
 	function findLesId(lesName, lesIds) {
 		let lowerCaseLesName = lesName.toLowerCase();
 		let lesId = lesIds.find((l) => l.name.toLowerCase() == lowerCaseLesName);
-		if (lesId) return lesId.id;
+		if (lesId) return [lesId];
 		let includes = lesIds.filter((l) => l.name.toLowerCase().includes(lowerCaseLesName));
-		if (includes.length == 1) return includes[0].id;
+		if (includes.length) return includes;
 		return null;
 	}
 	//#endregion

@@ -2,6 +2,8 @@ import {options} from "./plugin_options/options";
 import {LessenFilterDomein, scrapeLessen} from "./lessen/fetch";
 import {LesType} from "./roster_diff/calcDiff";
 import {Schoolyear} from "./globals";
+import {emmet} from "../libs/Emmeter/html";
+import {DropDownMenu} from "./dropDownMenus";
 
 export function onPasteInGlobalSearchField(e: ClipboardEvent) {
     if (!options.stripCommasOnPaste)
@@ -43,9 +45,23 @@ async function gotoLesName(lesName: string) {
     if (lesName.length == 0)
         return false;
 
-    let lesId = await getLesId(lesName);
-    if(lesId)
-        location.href = `/#lessen-les?id=${lesId}`;
+    let lesMatches = await getLesMatches(lesName);
+    if(lesMatches) {
+        if (lesMatches.length == 1)
+            location.href = `/#lessen-les?id=${lesMatches[0].id}`;
+        else if (lesMatches.length > 1) {
+            //todo: show popup with options to choose les
+            let searchField = document.getElementById("snel_zoeken_veld_zoektermen") as HTMLElement;
+            let dropDownMenu = new DropDownMenu(searchField.parentElement?.parentElement!, searchField);
+            lesMatches.forEach((les, index) => {
+                dropDownMenu.addItem(les.name, 0, () => {
+                    dropDownMenu.hide();
+                    location.href = `/#lessen-les?id=${les.id}`;
+                });
+            });
+            dropDownMenu.show();
+        }
+    }
 
     return true
 }
@@ -55,7 +71,7 @@ interface CachedLesId {
     name: string;
 }
 
-async function getLesId(lesName: string) {
+async function getLesMatches(lesName: string) {
     let cachedLesIds = sessionStorage.getItem("cachedLesIds");
     if (cachedLesIds) {
         let lesIds: CachedLesId[] = JSON.parse(cachedLesIds);
@@ -63,8 +79,6 @@ async function getLesId(lesName: string) {
     }
     let lessen = await scrapeLessen(LessenFilterDomein.Muziek, LesType.gewone, Schoolyear.toFullString(Schoolyear.calculateCurrent()));
     sessionStorage.setItem("cachedLesIds", JSON.stringify(lessen.map(l => ({id: l.les.id, name: l.les.naam}))));
-    let  lowerCaseLesName = lesName.toLowerCase();
-    console.log(lessen.map(l => l.les.naam));
     return findLesId(lesName, lessen.map(l => ({id: l.les.id, name: l.les.naam})));
 }
 
@@ -72,9 +86,9 @@ function findLesId(lesName: string, lesIds: CachedLesId[]) {
     let lowerCaseLesName = lesName.toLowerCase();
     let lesId =  lesIds.find(l => l.name.toLowerCase() == lowerCaseLesName);
     if (lesId)
-        return lesId.id;
+        return [lesId];
     let includes = lesIds.filter(l => l.name.toLowerCase().includes(lowerCaseLesName));
-    if (includes.length == 1)
-        return includes[0].id;
+    if (includes.length)
+        return includes;
     return null;
 }

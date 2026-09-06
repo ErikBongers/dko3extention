@@ -42,8 +42,18 @@ export class DropDownMenu {
             let dropDownMenu = (ev.target as HTMLElement).closest(".dropDownContainer")!.querySelector(".dropDownMenu") as HTMLElement;
             document.querySelectorAll(".activePopoverButton").forEach(p => p.classList.remove("activePopoverButton"));
             this.button.classList.add("activePopoverButton");
-            dropDownMenu.showPopover()
+            dropDownMenu.showPopover();
         }
+    }
+
+    show() {
+        document.querySelectorAll(".activePopoverButton").forEach(p => p.classList.remove("activePopoverButton"));
+        this.button.classList.add("activePopoverButton");
+        this.menu.showPopover();
+    }
+
+    hide() {
+        this.menu.hidePopover();
     }
 
     addItem(title: string, indentLevel: number, onClick: ((ev: MouseEvent) => void) | string) {

@@ -1,3 +1,5 @@
+* Goto les: show multiple options.
+
 * Replace local and session storage with indexed DBs.
     > clear session DB on session start:
     > do NOT do this on page load as it will trigger on page refresh!
