@@ -1,13 +1,6 @@
-* Global goto: implement keyboard navigation.
-  > see powerQuery
-  > uses key event on BODY.
-    > possible conflict.
-    > perhaps merge powerquery with popupmenu?
-      > perhaps...powerquery uses popover...but handles escape differntly.
-    > create some KeyboardMenu interface of super class
-      > it handles only the up and down events (for now)
-      > it has a selectedIndex
-        > updates item css class.
+* trims: click on teacher -> goto teacher.
+
+* Clean up drop down menu keyboard navigation.
 
 
 * Replace local and session storage with indexed DBs.

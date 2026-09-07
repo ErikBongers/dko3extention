@@ -143,6 +143,7 @@ function showPowerQuery(ev: KeyboardEvent) {
         powerQueryItems.push(...getSavedAndDefaultQueryItems());
         getHardCodedQueryItems();
         getUpDownNavigator().setSelectionChangedHandler(powerQuerySelectionChangedHandler);
+        getUpDownNavigator().setSelectingHandler(powerQuerySelectingHandler);
         popover.showPopover();
     } else {
         if (!powerQueryVisible)
@@ -159,13 +160,14 @@ function showPowerQuery(ev: KeyboardEvent) {
             //else: default behaviour: close popup.
         } else if (ev.key == "Backspace") {
             searchField.textContent = searchField.textContent.slice(0, -1);
-        } else if (ev.key == "Enter") { //todo: put this in navigotor selectionHandler.
-            let selectedDiv = list.children[getUpDownNavigator().selectedItem] as HTMLElement;
-            onItemSelected(selectedDiv);
-            ev.preventDefault();
         }
     }
     filterItems(searchField.textContent);
+}
+
+function powerQuerySelectingHandler(navigator: UpDownNavigator) {
+    let selectedDiv = list.children[navigator.selectedItem] as HTMLElement;
+    onItemSelected(selectedDiv);
 }
 
 let popover = document.createElement("div");

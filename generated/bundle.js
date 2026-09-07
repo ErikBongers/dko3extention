@@ -1197,6 +1197,7 @@
 			powerQueryItems.push(...getSavedAndDefaultQueryItems());
 			getHardCodedQueryItems();
 			getUpDownNavigator().setSelectionChangedHandler(powerQuerySelectionChangedHandler);
+			getUpDownNavigator().setSelectingHandler(powerQuerySelectingHandler);
 			popover.showPopover();
 		} else {
 			if (!powerQueryVisible) return;
@@ -1210,13 +1211,12 @@
 					ev.preventDefault();
 				}
 			} else if (ev.key == "Backspace") searchField.textContent = searchField.textContent.slice(0, -1);
-			else if (ev.key == "Enter") {
-				let selectedDiv = list.children[getUpDownNavigator().selectedItem];
-				onItemSelected(selectedDiv);
-				ev.preventDefault();
-			}
 		}
 		filterItems(searchField.textContent);
+	}
+	function powerQuerySelectingHandler(navigator) {
+		let selectedDiv = list.children[navigator.selectedItem];
+		onItemSelected(selectedDiv);
 	}
 	let popover = document.createElement("div");
 	document.querySelector("main").appendChild(popover);
