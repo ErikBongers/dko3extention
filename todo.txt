@@ -1,3 +1,7 @@
+* "Enter" strategy:
+  > try to attach the keyup/down listener(s) to the popup menu, which is likely not under BODY in the event chain.
+
+
 * trims: click on teacher -> goto teacher.
 
 * Clean up drop down menu keyboard navigation.

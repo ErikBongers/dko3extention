@@ -22,10 +22,11 @@ export class UpDownNavigator {
             this.selectingHandler = selectingHandler;
         else
             this.selectingHandler = () => {};
-        document.body.addEventListener("keydown", (ev) => this.handleMenuKeys(ev), { capture: true });
+        document.body.addEventListener("keydown", (ev) => this.handleMenuKeys(ev), { capture: true, passive: false });
         //todo: add this listener when activated. Now it runs CONSTANTLY.
         // >> or...attach it to the menu itself and set focus to menu?
         //   > No! because focus must stay on the input field.
+        document.body.addEventListener("keyup", (ev) => this.handleKeyUp(ev), { capture: true, passive: false });
     }
 
     setRange(min: number, max: number) {
@@ -38,6 +39,14 @@ export class UpDownNavigator {
         return this.selectedItem = Math.min(Math.max(this.selectedItem, this.min), this.max);
     }
 
+    private handleKeyUp(ev: KeyboardEvent) {
+        if(stopEnterKey) {
+            console.log("stopping ENTER key");
+            stopEnterKey = false;
+            ev.stopImmediatePropagation();
+            ev.preventDefault();
+        }
+    }
     private handleMenuKeys(ev: KeyboardEvent) {
         let oldIndex = this.selectedItem;
         let retVal = false;
@@ -50,8 +59,12 @@ export class UpDownNavigator {
             ev.preventDefault();
             retVal = true;
         } else if (ev.key === "Enter") {
-            this.selectingHandler(this);
+            console.log("ENTER key pressed");
+            ev.stopPropagation();
+            ev.stopImmediatePropagation();
             ev.preventDefault();
+            stopEnterKey = true;
+            this.selectingHandler(this);
             retVal = true;
         }
         this.clampSelectedItem();
@@ -80,6 +93,7 @@ export class UpDownNavigator {
 }
 
 let upDownNavigator: UpDownNavigator = new UpDownNavigator();
+let stopEnterKey: boolean = false;
 
 export function getUpDownNavigator() {
     return upDownNavigator;

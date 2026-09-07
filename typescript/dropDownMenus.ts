@@ -43,6 +43,7 @@ export class DropDownMenu {
             document.querySelectorAll(".activePopoverButton").forEach(p => p.classList.remove("activePopoverButton"));
             this.button.classList.add("activePopoverButton");
             dropDownMenu.showPopover();
+            this.menu.focus();
         }
     }
 
@@ -50,6 +51,7 @@ export class DropDownMenu {
         document.querySelectorAll(".activePopoverButton").forEach(p => p.classList.remove("activePopoverButton"));
         this.button.classList.add("activePopoverButton");
         this.menu.showPopover();
+        this.menu.focus();
     }
 
     hide() {

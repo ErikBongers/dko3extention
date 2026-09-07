@@ -1061,7 +1061,14 @@
 			else this.selectionChangedHandler = () => {};
 			if (selectingHandler) this.selectingHandler = selectingHandler;
 			else this.selectingHandler = () => {};
-			document.body.addEventListener("keydown", (ev) => this.handleMenuKeys(ev), { capture: true });
+			document.body.addEventListener("keydown", (ev) => this.handleMenuKeys(ev), {
+				capture: true,
+				passive: false
+			});
+			document.body.addEventListener("keyup", (ev) => this.handleKeyUp(ev), {
+				capture: true,
+				passive: false
+			});
 		}
 		setRange(min, max) {
 			this.min = min;
@@ -1070,6 +1077,14 @@
 		}
 		clampSelectedItem() {
 			return this.selectedItem = Math.min(Math.max(this.selectedItem, this.min), this.max);
+		}
+		handleKeyUp(ev) {
+			if (stopEnterKey) {
+				console.log("stopping ENTER key");
+				stopEnterKey = false;
+				ev.stopImmediatePropagation();
+				ev.preventDefault();
+			}
 		}
 		handleMenuKeys(ev) {
 			let oldIndex = this.selectedItem;
@@ -1083,8 +1098,12 @@
 				ev.preventDefault();
 				retVal = true;
 			} else if (ev.key === "Enter") {
-				this.selectingHandler(this);
+				console.log("ENTER key pressed");
+				ev.stopPropagation();
+				ev.stopImmediatePropagation();
 				ev.preventDefault();
+				stopEnterKey = true;
+				this.selectingHandler(this);
 				retVal = true;
 			}
 			this.clampSelectedItem();
@@ -1106,6 +1125,7 @@
 		}
 	};
 	let upDownNavigator = new UpDownNavigator();
+	let stopEnterKey = false;
 	function getUpDownNavigator() {
 		return upDownNavigator;
 	}
@@ -2400,12 +2420,14 @@
 				document.querySelectorAll(".activePopoverButton").forEach((p) => p.classList.remove("activePopoverButton"));
 				this.button.classList.add("activePopoverButton");
 				dropDownMenu.showPopover();
+				this.menu.focus();
 			};
 		}
 		show() {
 			document.querySelectorAll(".activePopoverButton").forEach((p) => p.classList.remove("activePopoverButton"));
 			this.button.classList.add("activePopoverButton");
 			this.menu.showPopover();
+			this.menu.focus();
 		}
 		hide() {
 			this.menu.hidePopover();
