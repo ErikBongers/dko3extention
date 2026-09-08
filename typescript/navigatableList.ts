@@ -9,6 +9,8 @@ export class NavigatableList {
         this.list = list;
         this.list.setAttribute("popover", "");
         this.list.addEventListener("keydown", this.onMenuKeyDown);
+        this.list.setAttribute("tabindex", "0");
+        this.list.focus();
         //keep this statement last as it triggers setSelected().
         this.index = new ClampedValue(NaN, NaN, NaN, (index) => this.setSelected(index));
     }
@@ -105,6 +107,10 @@ export class NavigatableList {
             item.classList.remove("selected");
         if(!isNaN(itemIndex))
             this.list.children[itemIndex].classList.add("selected");
+    }
+
+    focus() {
+        this.list.focus();
     }
 }
 

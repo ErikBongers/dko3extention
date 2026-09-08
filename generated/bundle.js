@@ -1085,6 +1085,125 @@
 	function getUpDownNavigator() {
 		return upDownNavigator;
 	}
+	//#endregion
+	//#region typescript/clampedValue.ts
+	var ClampedValue = class {
+		_value = NaN;
+		min;
+		max;
+		changedHandler;
+		constructor(value, min, max, changedHandler) {
+			this.min = min;
+			this.max = max;
+			this.changedHandler = changedHandler;
+			this.value = value;
+		}
+		get value() {
+			return this._value;
+		}
+		set value(value) {
+			let oldValue = this._value;
+			if (isNaN(value)) this._value = this.min;
+			else this._value = Math.max(this.min, Math.min(this.max, value));
+			if (oldValue !== this.value) this.changedHandler?.(this.value);
+		}
+		setRange(min, max) {
+			this.min = min;
+			this.max = max;
+			this.value = this.value + parseInt("0");
+			console.log("setRange", this);
+		}
+	};
+	//#endregion
+	//#region typescript/navigatableList.ts
+	var NavigatableList = class {
+		list;
+		index;
+		constructor(list) {
+			this.list = list;
+			this.list.setAttribute("popover", "");
+			this.list.addEventListener("keydown", this.onMenuKeyDown);
+			this.list.setAttribute("tabindex", "0");
+			this.list.focus();
+			this.index = new ClampedValue(NaN, NaN, NaN, (index) => this.setSelected(index));
+		}
+		onMenuKeyDown = (ev) => {
+			console.log("keydown");
+			if (ev.key == "ArrowDown") this.index.value++;
+			else if (ev.key == "ArrowUp") this.index.value--;
+			else if (ev.key == "Tab") {
+				ev.stopPropagation();
+				ev.stopImmediatePropagation();
+				ev.preventDefault();
+			} else if (ev.key == "Enter") {
+				this.getItem(this.index.value).click();
+				this.list.remove();
+				setTimeout(() => {
+					if (document.activeElement instanceof HTMLElement) document.activeElement?.blur();
+				});
+			}
+		};
+		addItem(title, indentLevel, onClick) {
+			let indentClass = indentLevel ? ".menuIndent" + indentLevel : "";
+			let item = emmet.appendChild(this.list, `button.naked.hideFocus.dropDownItem.pre${indentClass}`).first;
+			this.setItemContent(this.list.children.length - 1, title);
+			if (typeof onClick === "string") item.setAttribute("onclick", onClick);
+			else if (typeof onClick === "function") item.onclick = (ev) => {
+				onClick(ev);
+			};
+			this.index.setRange(0, this.list.children.length - 1);
+			return this.list.children.length - 1;
+		}
+		setItemContent(index, title) {
+			let item = this.getItem(index);
+			if (typeof title === "string") item.innerHTML = title;
+			else {
+				item.innerHTML = "";
+				item.appendChild(title);
+			}
+		}
+		addSeparator(title, indentLevel) {
+			let indentClass = indentLevel ? ".menuIndent" + indentLevel : "";
+			let { first } = emmet.appendChild(this.list, `div.dropDownSeparator.dropDownIgnoreHide${indentClass}{${title}}`);
+			let item = first;
+			item.onclick = (ev) => {
+				ev.stopPropagation();
+			};
+		}
+		addInfo(element, indentLevel) {
+			let indentClass = indentLevel ? ".menuIndent" + indentLevel : "";
+			let { first } = emmet.appendChild(this.list, `div.dropDownInfo.dropDownIgnoreHide${indentClass}`);
+			let item = first;
+			item.onclick = (ev) => {
+				ev.stopPropagation();
+			};
+			item.appendChild(element);
+		}
+		clickItem(itemIndex) {
+			this.list.children[itemIndex].click();
+		}
+		removeItem(index) {
+			if (index < 0 || index >= this.list.children.length) return false;
+			this.list.removeChild(this.list.children[index]);
+			this.index.setRange(0, this.list.children.length - 1);
+			return true;
+		}
+		getItem(index) {
+			return this.list.children[index];
+		}
+		removeAllItems() {
+			this.list.innerHTML = "";
+			this.index.setRange(NaN, NaN);
+		}
+		setSelected(itemIndex) {
+			console.log("setSelected", itemIndex);
+			for (let item of this.list.children) item.classList.remove("selected");
+			if (!isNaN(itemIndex)) this.list.children[itemIndex].classList.add("selected");
+		}
+		focus() {
+			this.list.focus();
+		}
+	};
 	let powerQueryItems = [];
 	function addQueryItem(headerLabel, label, href, func, longLabelText) {
 		powerQueryItems.push(createQueryItem(headerLabel, label, href, func, longLabelText));
@@ -1176,9 +1295,10 @@
 	});
 	let searchField = document.createElement("label");
 	popover.appendChild(searchField);
-	let list = document.createElement("div");
-	popover.appendChild(list);
-	list.classList.add("list");
+	let listDiv = document.createElement("div");
+	popover.appendChild(listDiv);
+	listDiv.classList.add("list");
+	new NavigatableList(listDiv);
 	function filterItems(needle) {
 		for (const item of powerQueryItems) {
 			item.weight = 0;
@@ -1188,12 +1308,12 @@
 			if (indices.every((num) => num !== -1) && isSorted(indices)) item.weight += 50;
 			if (needle.split("").every((char) => item.lowerCase.includes(char))) item.weight += 20;
 		}
-		list.innerHTML = powerQueryItems.filter((item) => item.weight != 0).sort((a, b) => b.weight - a.weight).map((item) => `<div data-long-label="${item.longLabel}">${item.longLabel}</div>`).slice(0, 30).join("\n");
-		getUpDownNavigator().setRange(0, list.children.length - 1);
-		for (let item of list.querySelectorAll("div")) item.onclick = (ev) => {
+		listDiv.innerHTML = powerQueryItems.filter((item) => item.weight != 0).sort((a, b) => b.weight - a.weight).map((item) => `<div data-long-label="${item.longLabel}">${item.longLabel}</div>`).slice(0, 30).join("\n");
+		getUpDownNavigator().setRange(0, listDiv.children.length - 1);
+		for (let item of listDiv.querySelectorAll("div")) item.onclick = (ev) => {
 			onItemSelected(ev.target);
 		};
-		list.children[getUpDownNavigator().selectedItem]?.classList.add("selected");
+		listDiv.children[getUpDownNavigator().selectedItem]?.classList.add("selected");
 	}
 	function onItemSelected(selectedElement) {
 		let item = powerQueryItems.find((item) => item.longLabel === selectedElement.dataset.longLabel);
@@ -2325,120 +2445,6 @@
 		}
 	};
 	//#endregion
-	//#region typescript/clampedValue.ts
-	var ClampedValue = class {
-		_value = NaN;
-		min;
-		max;
-		changedHandler;
-		constructor(value, min, max, changedHandler) {
-			this.min = min;
-			this.max = max;
-			this.changedHandler = changedHandler;
-			this.value = value;
-		}
-		get value() {
-			return this._value;
-		}
-		set value(value) {
-			let oldValue = this._value;
-			if (isNaN(value)) this._value = this.min;
-			else this._value = Math.max(this.min, Math.min(this.max, value));
-			if (oldValue !== this.value) this.changedHandler?.(this.value);
-		}
-		setRange(min, max) {
-			this.min = min;
-			this.max = max;
-			this.value = this.value + parseInt("0");
-			console.log("setRange", this);
-		}
-	};
-	//#endregion
-	//#region typescript/navigatableList.ts
-	var NavigatableList = class {
-		list;
-		index;
-		constructor(list) {
-			this.list = list;
-			this.list.setAttribute("popover", "");
-			this.list.addEventListener("keydown", this.onMenuKeyDown);
-			this.index = new ClampedValue(NaN, NaN, NaN, (index) => this.setSelected(index));
-		}
-		onMenuKeyDown = (ev) => {
-			console.log("keydown");
-			if (ev.key == "ArrowDown") this.index.value++;
-			else if (ev.key == "ArrowUp") this.index.value--;
-			else if (ev.key == "Tab") {
-				ev.stopPropagation();
-				ev.stopImmediatePropagation();
-				ev.preventDefault();
-			} else if (ev.key == "Enter") {
-				this.getItem(this.index.value).click();
-				this.list.remove();
-				setTimeout(() => {
-					if (document.activeElement instanceof HTMLElement) document.activeElement?.blur();
-				});
-			}
-		};
-		addItem(title, indentLevel, onClick) {
-			let indentClass = indentLevel ? ".menuIndent" + indentLevel : "";
-			let item = emmet.appendChild(this.list, `button.naked.hideFocus.dropDownItem.pre${indentClass}`).first;
-			this.setItemContent(this.list.children.length - 1, title);
-			if (typeof onClick === "string") item.setAttribute("onclick", onClick);
-			else if (typeof onClick === "function") item.onclick = (ev) => {
-				onClick(ev);
-			};
-			this.index.setRange(0, this.list.children.length - 1);
-			return this.list.children.length - 1;
-		}
-		setItemContent(index, title) {
-			let item = this.getItem(index);
-			if (typeof title === "string") item.innerHTML = title;
-			else {
-				item.innerHTML = "";
-				item.appendChild(title);
-			}
-		}
-		addSeparator(title, indentLevel) {
-			let indentClass = indentLevel ? ".menuIndent" + indentLevel : "";
-			let { first } = emmet.appendChild(this.list, `div.dropDownSeparator.dropDownIgnoreHide${indentClass}{${title}}`);
-			let item = first;
-			item.onclick = (ev) => {
-				ev.stopPropagation();
-			};
-		}
-		addInfo(element, indentLevel) {
-			let indentClass = indentLevel ? ".menuIndent" + indentLevel : "";
-			let { first } = emmet.appendChild(this.list, `div.dropDownInfo.dropDownIgnoreHide${indentClass}`);
-			let item = first;
-			item.onclick = (ev) => {
-				ev.stopPropagation();
-			};
-			item.appendChild(element);
-		}
-		clickItem(itemIndex) {
-			this.list.children[itemIndex].click();
-		}
-		removeItem(index) {
-			if (index < 0 || index >= this.list.children.length) return false;
-			this.list.removeChild(this.list.children[index]);
-			this.index.setRange(0, this.list.children.length - 1);
-			return true;
-		}
-		getItem(index) {
-			return this.list.children[index];
-		}
-		removeAllItems() {
-			this.list.innerHTML = "";
-			this.index.setRange(NaN, NaN);
-		}
-		setSelected(itemIndex) {
-			console.log("setSelected", itemIndex);
-			for (let item of this.list.children) item.classList.remove("selected");
-			if (!isNaN(itemIndex)) this.list.children[itemIndex].classList.add("selected");
-		}
-	};
-	//#endregion
 	//#region typescript/dropDownMenus.ts
 	var DropDownMenu = class {
 		menu;
@@ -2493,7 +2499,7 @@
 			this.button.classList.add("activePopoverButton");
 			this.menu.showPopover();
 			setTimeout(() => {
-				this.list.getItem(0).focus();
+				this.list.focus();
 			});
 		}
 		hide() {

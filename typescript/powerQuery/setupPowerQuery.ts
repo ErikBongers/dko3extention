@@ -4,6 +4,7 @@ import {getGotoStateOrDefault, Goto, PageName, saveGotoState} from "../gotoState
 import {default_items as defaultQueryItems } from "default_items";
 import {gotoDiffPage, gotoSnapshotPage} from "../menu";
 import {getUpDownNavigator, UpDownNavigator} from "../globalKeyHandlers";
+import {NavigatableList} from "../navigatableList";
 
 export function setupPowerQuery() {
     //dummy function to force this module to be loaded.
@@ -127,8 +128,8 @@ let powerQueryVisible = false;
 function powerQuerySelectionChangedHandler(navigator: UpDownNavigator) {
     if(!powerQueryVisible)
         return;
-    [...list.children].forEach(el => el.classList.remove("selected"));
-    list.children[navigator.selectedItem].classList.add("selected");
+    [...listDiv.children].forEach(el => el.classList.remove("selected"));
+    listDiv.children[navigator.selectedItem].classList.add("selected");
 }
 
 document.body.addEventListener("keydown", showPowerQuery);
@@ -164,7 +165,7 @@ function menuKeyDownHandler(ev: KeyboardEvent) {
 }
 
 function powerQuerySelectingHandler(navigator: UpDownNavigator) {
-    let selectedDiv = list.children[navigator.selectedItem] as HTMLElement;
+    let selectedDiv = listDiv.children[navigator.selectedItem] as HTMLElement;
     onItemSelected(selectedDiv);
 }
 
@@ -179,9 +180,10 @@ popover.addEventListener("toggle", (ev) => {
 
 let searchField = document.createElement("label");
 popover.appendChild(searchField);
-let list = document.createElement("div");
-popover.appendChild(list);
-list.classList.add("list");
+let listDiv = document.createElement("div");
+popover.appendChild(listDiv);
+listDiv.classList.add("list");
+let list = new NavigatableList(listDiv);
 
 function filterItems(needle: string) {
     for (const item of powerQueryItems) {
@@ -208,20 +210,20 @@ function filterItems(needle: string) {
     }
 
     const MAX_VISIBLE_QUERY_ITEMS = 30;
-    list.innerHTML = powerQueryItems
+    listDiv.innerHTML = powerQueryItems
         .filter((item) => item.weight != 0)
         .sort((a, b) => b.weight - a.weight)
         .map((item) => `<div data-long-label="${item.longLabel}">${item.longLabel}</div>`)
         .slice(0, MAX_VISIBLE_QUERY_ITEMS)
         .join("\n");
-    getUpDownNavigator().setRange(0, list.children.length - 1);
-    for(let item of list.querySelectorAll("div")) {
+    getUpDownNavigator().setRange(0, listDiv.children.length - 1);
+    for(let item of listDiv.querySelectorAll("div")) {
         item.onclick = (ev: PointerEvent) => {
             onItemSelected(ev.target as HTMLElement);
             // ev.preventDefault();
         };
     }
-    list.children[getUpDownNavigator().selectedItem]?.classList.add("selected");
+    listDiv.children[getUpDownNavigator().selectedItem]?.classList.add("selected");
 }
 
 function onItemSelected(selectedElement: HTMLElement) {

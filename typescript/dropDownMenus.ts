@@ -86,7 +86,7 @@ export class DropDownMenu {
         this.button.classList.add("activePopoverButton");
         this.menu.showPopover();
         setTimeout(() => {
-            this.list.getItem(0).focus();
+            this.list.focus(); //todo: needed?
         });
     }
 
