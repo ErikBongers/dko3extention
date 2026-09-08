@@ -1,3 +1,4 @@
+* rename CachedLesId to LesRef
 * CTRL-q: press twice: goto search field
 * keyboard handling: still try to capture up and down on menu instead of BODY:
   > set focus on 1st menu item, then blur.

@@ -4,6 +4,9 @@ import {LesType} from "./roster_diff/calcDiff";
 import {Schoolyear} from "./globals";
 import {DropDownMenu} from "./dropDownMenus";
 import {getUpDownNavigator} from "./globalKeyHandlers";
+import {fetchLes} from "./les/fetch";
+import {createLesCard} from "./leerling/observer";
+import {HtmlLes, Les} from "./lessen/scrape";
 
 export function onPasteInGlobalSearchField(e: ClipboardEvent) {
     if (!options.stripCommasOnPaste)
@@ -52,6 +55,17 @@ async function onEnterPressed(text: string) {
     return "default";
 }
 
+async function updateMenuItem(dropDownMenu: DropDownMenu, index: number, lesRef: CachedLesId) {
+    let les = await fetchLes(lesRef.id);
+    let lesmoment = "les van nu tot straks";
+    // let wachtlijst = les.wachtlijst == 0 ? "span" : `span.red{ (${les.les.wachtlijst} op wachtlijst)}`;
+    let wachtlijst = "wachtlijst";
+    // let full = les.les.aantal >= les.les.maxAantal ? ".full": "";
+    let full = "";
+    let infoBlock = createLesCard(lesRef.name, les.vak, full, lesmoment, 6666, les.maxAantal, wachtlijst);
+    dropDownMenu.setItemContent(index, infoBlock);
+}
+
 async function gotoLesName(lesName: string) {
     if (lesName.length == 0)
         return false;
@@ -63,14 +77,14 @@ async function gotoLesName(lesName: string) {
         else if (lesMatches.length > 1) {
             let searchField = document.getElementById("snel_zoeken_veld_zoektermen") as HTMLElement;
             let dropDownMenu = new DropDownMenu(searchField.parentElement?.parentElement!, searchField);
-            lesMatches
-                .sort((a, b) => a.name.localeCompare(b.name))
-                .forEach((les) => {
-                    dropDownMenu.addItem(les.name, 0, () => {
-                        dropDownMenu.hide();
-                        location.href = `/#lessen-les?id=${les.id}`;
-                    });
+            lesMatches.sort((a, b) => a.name.localeCompare(b.name));
+            for (let lesRef of lesMatches) {
+                let index = dropDownMenu.addItem(lesRef.name, 0, () => {
+                    dropDownMenu.hide();
+                    location.href = `/#lessen-les?id=${lesRef.id}`;
                 });
+                updateMenuItem(dropDownMenu, index, lesRef).then(() => {});
+            }
             getUpDownNavigator().setSelectionChangedHandler((navigator) => {
                 dropDownMenu.setSelected(navigator.selectedItem);
                 console.log(navigator.selectedItem);

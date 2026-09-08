@@ -39,6 +39,12 @@ export async function fetchLes(id: string): Promise<LesDetails> {
     if (maxAantalText) {
         maxAantal = parseInt(maxAantalText.trim());
     }
+    await fetch("/views/lessen/les/index.lesmomenten.tab.php");
+    let lesmomentenText = await chain.fetch("/views/lessen/les/lesmomenten/lesmomenten.card.php");
+    rx = /<strong>(.*?)<\/strong>/g;
+    let lesmomenten = rx.exec(lesmomentenText);
+    console.log(lesmomenten);
+    debugger;
     return {
         id: id,
         editableName: nameDiv.includes("benaming_wijzigen"),

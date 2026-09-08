@@ -2442,6 +2442,7 @@
 			else if (typeof onClick === "function") item.onclick = (ev) => {
 				onClick(ev);
 			};
+			return this.menu.children.length - 1;
 		}
 		setItemContent(index, title) {
 			let item = this.getItem(index);
@@ -6612,6 +6613,12 @@
 		let maxAantalText = rx.exec(maxAantalDiv)?.at(1);
 		let maxAantal = 0;
 		if (maxAantalText) maxAantal = parseInt(maxAantalText.trim());
+		await fetch("/views/lessen/les/index.lesmomenten.tab.php");
+		let lesmomentenText = await chain.fetch("/views/lessen/les/lesmomenten/lesmomenten.card.php");
+		rx = /<strong>(.*?)<\/strong>/g;
+		let lesmomenten = rx.exec(lesmomentenText);
+		console.log(lesmomenten);
+		debugger;
 		return {
 			id,
 			editableName: nameDiv.includes("benaming_wijzigen"),
@@ -6873,6 +6880,15 @@
 			gotoButton
 		};
 	}
+	function createLesCard(lesName, vakName, full, lesmoment, aantal, maxAantal, wachtlijst) {
+		return emmet.indent.createElement(`
+            div.small${full}
+                div.bold.pre{${buildLesTitle(lesName, vakName)}}
+                div.pre{${lesmoment}}
+                div.pre{${aantal}/${maxAantal} lln} 
+                    ${wachtlijst}
+        `);
+	}
 	async function fillClassesMenu(menu, opleiding, vak, gotoLesCmd) {
 		menu.removeAllItems();
 		menu.addItem("Ga naar les", 0, gotoLesCmd);
@@ -6883,25 +6899,19 @@
 		if (opleiding.adminGroup != "") lessenBuilder.addAdminGroup(opleiding.adminGroup);
 		if (!lessenBuilder.hasVak(vak)) lessenBuilder.addVak(vak);
 		let lessons = await lessenBuilder.fetch();
-		lessons.sort((a, b) => buildLesTitle(a).localeCompare(buildLesTitle(b)));
+		lessons.sort((a, b) => buildLesTitle(a.les.naam, a.les.vakNaam).localeCompare(buildLesTitle(b.les.naam, b.les.vakNaam)));
 		menu.removeItem(1);
 		menu.addSeparator("Alternatieven:", 0);
 		for (let les of lessons) {
 			let lesmoment = les.les.formattedLesmoment.replace("(wekelijks)", "").trim();
 			let wachtlijst = les.les.wachtlijst == 0 ? "span" : `span.red{ (${les.les.wachtlijst} op wachtlijst)}`;
 			let full = les.les.aantal >= les.les.maxAantal ? ".full" : "";
-			let infoBlock = emmet.indent.createElement(`
-            div.small${full}
-                div.bold.pre{${buildLesTitle(les)}}
-                div.pre{${lesmoment}}
-                div.pre{${les.les.aantal}/${les.les.maxAantal} lln} 
-                    ${wachtlijst}
-        `);
+			let infoBlock = createLesCard(les.les.naam, les.les.vakNaam, full, lesmoment, les.les.aantal, les.les.maxAantal, wachtlijst);
 			menu.addInfo(infoBlock, 0);
 		}
 	}
-	function buildLesTitle(les) {
-		return `${les.les.naam ? les.les.naam : les.les.vakNaam + " " + les.les.naam}`;
+	function buildLesTitle(lesName, vakName) {
+		return `${lesName ? lesName : vakName + " " + lesName}`;
 	}
 	function setStripedLessons() {
 		let classRows = document.querySelectorAll("#leerling_inschrijvingen_weergave tr");
@@ -9992,6 +10002,11 @@
 		}
 		return "default";
 	}
+	async function updateMenuItem(dropDownMenu, index, lesRef) {
+		let les = await fetchLes(lesRef.id);
+		let infoBlock = createLesCard(lesRef.name, les.vak, "", "les van nu tot straks", 6666, les.maxAantal, "wachtlijst");
+		dropDownMenu.setItemContent(index, infoBlock);
+	}
 	async function gotoLesName(lesName) {
 		if (lesName.length == 0) return false;
 		let lesMatches = await getLesMatches(lesName);
@@ -10000,12 +10015,11 @@
 			else if (lesMatches.length > 1) {
 				let searchField = document.getElementById("snel_zoeken_veld_zoektermen");
 				let dropDownMenu = new DropDownMenu(searchField.parentElement?.parentElement, searchField);
-				lesMatches.sort((a, b) => a.name.localeCompare(b.name)).forEach((les) => {
-					dropDownMenu.addItem(les.name, 0, () => {
-						dropDownMenu.hide();
-						location.href = `/#lessen-les?id=${les.id}`;
-					});
-				});
+				lesMatches.sort((a, b) => a.name.localeCompare(b.name));
+				for (let lesRef of lesMatches) updateMenuItem(dropDownMenu, dropDownMenu.addItem(lesRef.name, 0, () => {
+					dropDownMenu.hide();
+					location.href = `/#lessen-les?id=${lesRef.id}`;
+				}), lesRef).then(() => {});
 				getUpDownNavigator().setSelectionChangedHandler((navigator) => {
 					dropDownMenu.setSelected(navigator.selectedItem);
 					console.log(navigator.selectedItem);

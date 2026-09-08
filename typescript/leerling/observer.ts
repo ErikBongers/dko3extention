@@ -339,6 +339,17 @@ function scrapeLesInfoDetails(tr: HTMLTableRowElement, detailsTdOffset: number) 
     return lesInfo;
 }
 
+export function createLesCard(lesName: string, vakName: string, full: string, lesmoment: string, aantal: number, maxAantal:number, wachtlijst: string) {
+    let infoBlock = emmet.indent.createElement(`
+            div.small${full}
+                div.bold.pre{${buildLesTitle(lesName, vakName)}}
+                div.pre{${lesmoment}}
+                div.pre{${aantal}/${maxAantal} lln} 
+                    ${wachtlijst}
+        `);
+    return infoBlock;
+}
+
 async function fillClassesMenu(menu: DropDownMenu, opleiding: Opleiding, vak: string, gotoLesCmd: string) {
     menu.removeAllItems();
     menu.addItem("Ga naar les", 0, gotoLesCmd);
@@ -351,26 +362,20 @@ async function fillClassesMenu(menu: DropDownMenu, opleiding: Opleiding, vak: st
     if(!lessenBuilder.hasVak(vak))
     lessenBuilder.addVak(vak);
     let lessons = await lessenBuilder.fetch();
-    lessons.sort((a, b) => buildLesTitle(a).localeCompare(buildLesTitle(b)));
+    lessons.sort((a, b) => buildLesTitle(a.les.naam, a.les.vakNaam).localeCompare(buildLesTitle(b.les.naam, b.les.vakNaam)));
     menu.removeItem(1);
     menu.addSeparator("Alternatieven:", 0);
     for(let les of lessons) {
         let lesmoment = les.les.formattedLesmoment.replace('(wekelijks)', "").trim();
         let wachtlijst = les.les.wachtlijst == 0 ? "span" : `span.red{ (${les.les.wachtlijst} op wachtlijst)}`;
         let full = les.les.aantal >= les.les.maxAantal ? ".full": "";
-        let infoBlock = emmet.indent.createElement(`
-            div.small${full}
-                div.bold.pre{${buildLesTitle(les)}}
-                div.pre{${lesmoment}}
-                div.pre{${les.les.aantal}/${les.les.maxAantal} lln} 
-                    ${wachtlijst}
-        `);
+        let infoBlock = createLesCard(les.les.naam, les.les.vakNaam, full, lesmoment, les.les.aantal, les.les.maxAantal, wachtlijst);
         menu.addInfo(infoBlock, 0);
     }
 }
 
-function buildLesTitle(les: HtmlLes) {
-    return `${les.les.naam? les.les.naam : les.les.vakNaam+" "+les.les.naam}`;
+function buildLesTitle(lesName: string | null, vakName: string | null) {
+    return `${lesName? lesName : vakName+" "+lesName}`;
 }
 
 function setStripedLessons() {

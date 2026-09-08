@@ -82,6 +82,7 @@ export class DropDownMenu {
         item.onclick = (ev) => {
             onClick(ev);
         };
+        return this.menu.children.length - 1;
     }
 
     setItemContent(index: number, title: string | HTMLElement) {
