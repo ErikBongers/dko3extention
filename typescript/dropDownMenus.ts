@@ -1,4 +1,5 @@
 import {emmet} from "../libs/Emmeter/html";
+import {ClampedValue} from "./clampedValue";
 
 /*
 ##  Construct menus as follows:
@@ -22,6 +23,7 @@ export class DropDownMenu {
     private readonly container: HTMLElement;
     private button: HTMLElement;
     public cancelDropDown: CancelDropDown | undefined;
+    private index: ClampedValue;
 
     constructor(container: HTMLElement, button: HTMLElement, showOnClick: boolean = true) {
         this.container = container;
@@ -40,6 +42,9 @@ export class DropDownMenu {
                 this.show();
             }
         }
+        this.menu.addEventListener("keydown", this.onMenuKeyDown);
+        //keep this statement last as it triggers setSelected().
+        this.index = new ClampedValue(NaN, NaN, NaN, (index) => this.setSelected(index));
     }
 
     setPosition(position: "left" | "right") {
@@ -51,21 +56,35 @@ export class DropDownMenu {
 
     onMenuKeyDown = (ev: KeyboardEvent) => {
         console.log("keydown");
-    }
+        if(ev.key == "ArrowDown")
+            this.index.value++;
+        else if(ev.key == "ArrowUp")
+            this.index.value--;
+        else if(ev.key == "Tab") {
+            //try to keep focus inside menu
+            ev.stopPropagation();
+            ev.stopImmediatePropagation();
+            ev.preventDefault();
+        } else if(ev.key == "Enter") {
+            this.getItem(this.index.value).click();
+            this.menu.remove();
+            setTimeout(() => {
+                if(document.activeElement instanceof HTMLElement)
+                    document.activeElement?.blur();
+            });
+        }
 
-    onMenuKeyUp = (ev: KeyboardEvent) => {
-        console.log("keyup");
     }
 
     show() {
         console.log("show");
         document.querySelectorAll(".activePopoverButton").forEach(p => p.classList.remove("activePopoverButton"));
         this.button.classList.add("activePopoverButton");
-        this.menu.addEventListener("keydown", this.onMenuKeyDown);
-        this.menu.addEventListener("keyup", this.onMenuKeyUp);
+        // this.menu.addEventListener("keydown", this.onMenuKeyDown);
         this.menu.showPopover();
-        if (document.activeElement instanceof HTMLElement)
-            document.activeElement?.blur();
+        setTimeout(() => {
+            this.getItem(0).focus();
+        });
     }
 
     hide() {
@@ -74,7 +93,7 @@ export class DropDownMenu {
 
     addItem(title: string | HTMLElement, indentLevel: number, onClick: ((ev: MouseEvent) => void) | string) {
         let indentClass = indentLevel ? ".menuIndent" + indentLevel : "";
-        let item = emmet.appendChild(this.menu, `button.naked.dropDownItem.pre${indentClass}`).first as HTMLButtonElement;
+        let item = emmet.appendChild(this.menu, `button.naked.hideFocus.dropDownItem.pre${indentClass}`).first as HTMLButtonElement;
         this.setItemContent(this.menu.children.length - 1, title);
         if(typeof onClick === "string")
             item.setAttribute("onclick", onClick);
@@ -82,6 +101,7 @@ export class DropDownMenu {
         item.onclick = (ev) => {
             onClick(ev);
         };
+        this.index.setRange(0, this.menu.children.length - 1);
         return this.menu.children.length - 1;
     }
 
@@ -123,6 +143,7 @@ export class DropDownMenu {
         if(index < 0 || index >= this.menu.children.length)
             return false;
         this.menu.removeChild(this.menu.children[index]);
+        this.index.setRange(0, this.menu.children.length - 1);
         return true;
     }
 
@@ -132,6 +153,7 @@ export class DropDownMenu {
 
     removeAllItems() {
         this.menu.innerHTML = "";
+        this.index.setRange(NaN, NaN);
     }
 
     clearItemClass(className: string) {
@@ -139,9 +161,13 @@ export class DropDownMenu {
     }
 
     setSelected(itemIndex: number) {
+        console.log("setSelected", itemIndex);
         let items = this.menu.querySelectorAll(".dropDownItem") as NodeListOf<HTMLButtonElement>;
         for(let item of items)
             item.classList.remove("selected");
-        items[itemIndex].classList.add("selected");
+        if(!isNaN(itemIndex))
+            items[itemIndex].classList.add("selected");
     }
 }
+
+

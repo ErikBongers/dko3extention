@@ -1074,37 +1074,8 @@
 		clampSelectedItem() {
 			return this.selectedItem = Math.min(Math.max(this.selectedItem, this.min), this.max);
 		}
-		handleKeyUp(ev) {
-			if (stopEnterKey) {
-				console.log("stopping ENTER key");
-				stopEnterKey = false;
-				ev.stopImmediatePropagation();
-				ev.preventDefault();
-			}
-		}
 		handleMenuKeys(ev) {
-			let oldIndex = this.selectedItem;
-			let retVal = false;
-			if (ev.key === "ArrowUp") {
-				this.selectedItem--;
-				ev.preventDefault();
-				retVal = true;
-			} else if (ev.key === "ArrowDown") {
-				this.selectedItem++;
-				ev.preventDefault();
-				retVal = true;
-			} else if (ev.key === "Enter") {
-				console.log("ENTER key pressed");
-				ev.stopPropagation();
-				ev.stopImmediatePropagation();
-				ev.preventDefault();
-				stopEnterKey = true;
-				this.selectingHandler(this);
-				retVal = true;
-			}
-			this.clampSelectedItem();
-			if (oldIndex != this.selectedItem) this.selectionChangedHandler(this);
-			return retVal;
+			return false;
 		}
 		setSelectionChangedHandler(selectionChangedHandler) {
 			console.log("setting selection changed handler");
@@ -1122,7 +1093,6 @@
 		}
 	};
 	let upDownNavigator = new UpDownNavigator();
-	let stopEnterKey = false;
 	function getUpDownNavigator() {
 		return upDownNavigator;
 	}
@@ -2391,12 +2361,42 @@
 		}
 	};
 	//#endregion
+	//#region typescript/clampedValue.ts
+	var ClampedValue = class {
+		_value = NaN;
+		min;
+		max;
+		changedHandler;
+		constructor(value, min, max, changedHandler) {
+			this.min = min;
+			this.max = max;
+			this.changedHandler = changedHandler;
+			this.value = value;
+		}
+		get value() {
+			return this._value;
+		}
+		set value(value) {
+			let oldValue = this._value;
+			if (isNaN(value)) this._value = this.min;
+			else this._value = Math.max(this.min, Math.min(this.max, value));
+			if (oldValue !== this.value) this.changedHandler?.(this.value);
+		}
+		setRange(min, max) {
+			this.min = min;
+			this.max = max;
+			this.value = this.value + parseInt("0");
+			console.log("setRange", this);
+		}
+	};
+	//#endregion
 	//#region typescript/dropDownMenus.ts
 	var DropDownMenu = class {
 		menu;
 		container;
 		button;
 		cancelDropDown;
+		index;
 		constructor(container, button, showOnClick = true) {
 			this.container = container;
 			this.button = button;
@@ -2411,6 +2411,8 @@
 				if (await this.cancelDropDown?.(ev)) return;
 				this.show();
 			};
+			this.menu.addEventListener("keydown", this.onMenuKeyDown);
+			this.index = new ClampedValue(NaN, NaN, NaN, (index) => this.setSelected(index));
 		}
 		setPosition(position) {
 			if (position === "left") this.container.classList.add("shiftMenuLeft");
@@ -2418,30 +2420,41 @@
 		}
 		onMenuKeyDown = (ev) => {
 			console.log("keydown");
-		};
-		onMenuKeyUp = (ev) => {
-			console.log("keyup");
+			if (ev.key == "ArrowDown") this.index.value++;
+			else if (ev.key == "ArrowUp") this.index.value--;
+			else if (ev.key == "Tab") {
+				ev.stopPropagation();
+				ev.stopImmediatePropagation();
+				ev.preventDefault();
+			} else if (ev.key == "Enter") {
+				this.getItem(this.index.value).click();
+				this.menu.remove();
+				setTimeout(() => {
+					if (document.activeElement instanceof HTMLElement) document.activeElement?.blur();
+				});
+			}
 		};
 		show() {
 			console.log("show");
 			document.querySelectorAll(".activePopoverButton").forEach((p) => p.classList.remove("activePopoverButton"));
 			this.button.classList.add("activePopoverButton");
-			this.menu.addEventListener("keydown", this.onMenuKeyDown);
-			this.menu.addEventListener("keyup", this.onMenuKeyUp);
 			this.menu.showPopover();
-			if (document.activeElement instanceof HTMLElement) document.activeElement?.blur();
+			setTimeout(() => {
+				this.getItem(0).focus();
+			});
 		}
 		hide() {
 			this.menu.hidePopover();
 		}
 		addItem(title, indentLevel, onClick) {
 			let indentClass = indentLevel ? ".menuIndent" + indentLevel : "";
-			let item = emmet.appendChild(this.menu, `button.naked.dropDownItem.pre${indentClass}`).first;
+			let item = emmet.appendChild(this.menu, `button.naked.hideFocus.dropDownItem.pre${indentClass}`).first;
 			this.setItemContent(this.menu.children.length - 1, title);
 			if (typeof onClick === "string") item.setAttribute("onclick", onClick);
 			else if (typeof onClick === "function") item.onclick = (ev) => {
 				onClick(ev);
 			};
+			this.index.setRange(0, this.menu.children.length - 1);
 			return this.menu.children.length - 1;
 		}
 		setItemContent(index, title) {
@@ -2475,6 +2488,7 @@
 		removeItem(index) {
 			if (index < 0 || index >= this.menu.children.length) return false;
 			this.menu.removeChild(this.menu.children[index]);
+			this.index.setRange(0, this.menu.children.length - 1);
 			return true;
 		}
 		getItem(index) {
@@ -2482,14 +2496,16 @@
 		}
 		removeAllItems() {
 			this.menu.innerHTML = "";
+			this.index.setRange(NaN, NaN);
 		}
 		clearItemClass(className) {
 			this.menu.querySelectorAll(".dropDownItem");
 		}
 		setSelected(itemIndex) {
+			console.log("setSelected", itemIndex);
 			let items = this.menu.querySelectorAll(".dropDownItem");
 			for (let item of items) item.classList.remove("selected");
-			items[itemIndex].classList.add("selected");
+			if (!isNaN(itemIndex)) items[itemIndex].classList.add("selected");
 		}
 	};
 	//#endregion
@@ -10041,7 +10057,7 @@
 			if (lesMatches.length == 1) location.href = `/#lessen-les?id=${lesMatches[0].id}`;
 			else if (lesMatches.length > 1) {
 				let searchField = document.getElementById("snel_zoeken_veld_zoektermen");
-				let dropDownMenu = new DropDownMenu(searchField.parentElement?.parentElement, searchField);
+				let dropDownMenu = new DropDownMenu(searchField.parentElement?.parentElement, searchField, false);
 				lesMatches.sort((a, b) => a.name.localeCompare(b.name));
 				let queue = Promise.resolve();
 				let abortController = new AbortController();

@@ -39,38 +39,8 @@ export class UpDownNavigator {
         return this.selectedItem = Math.min(Math.max(this.selectedItem, this.min), this.max);
     }
 
-    private handleKeyUp(ev: KeyboardEvent) {
-        if(stopEnterKey) {
-            console.log("stopping ENTER key");
-            stopEnterKey = false;
-            ev.stopImmediatePropagation();
-            ev.preventDefault();
-        }
-    }
     private handleMenuKeys(ev: KeyboardEvent) {
-        let oldIndex = this.selectedItem;
-        let retVal = false;
-        if (ev.key === "ArrowUp") {
-            this.selectedItem--;
-            ev.preventDefault();
-            retVal = true;
-        } else if (ev.key === "ArrowDown") {
-            this.selectedItem++;
-            ev.preventDefault();
-            retVal = true;
-        } else if (ev.key === "Enter") {
-            console.log("ENTER key pressed");
-            ev.stopPropagation();
-            ev.stopImmediatePropagation();
-            ev.preventDefault();
-            stopEnterKey = true;
-            this.selectingHandler(this);
-            retVal = true;
-        }
-        this.clampSelectedItem();
-        if(oldIndex != this.selectedItem)
-            this.selectionChangedHandler(this);
-        return retVal;
+        return false;
     }
 
     setSelectionChangedHandler(selectionChangedHandler: (navigator: UpDownNavigator) => void) {

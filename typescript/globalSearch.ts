@@ -81,7 +81,7 @@ async function gotoLesName(lesName: string) {
             location.href = `/#lessen-les?id=${lesMatches[0].id}`;
         else if (lesMatches.length > 1) {
             let searchField = document.getElementById("snel_zoeken_veld_zoektermen") as HTMLElement;
-            let dropDownMenu = new DropDownMenu(searchField.parentElement?.parentElement!, searchField);
+            let dropDownMenu = new DropDownMenu(searchField.parentElement?.parentElement!, searchField, false);
             lesMatches.sort((a, b) => a.name.localeCompare(b.name));
             let queue = Promise.resolve();
             let abortController = new AbortController();

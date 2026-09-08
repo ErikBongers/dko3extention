@@ -1,3 +1,7 @@
+* Global keys:
+  > try to have ONE global key listened to: CTRL-Q
+  > move other listeners to the menu itself?
+
 * Avoid calling 'onclick' handler directly, but rather do a full screen refresh to avoid DKO3 statefull issues.
 
 * rename CachedLesId to LesRef
