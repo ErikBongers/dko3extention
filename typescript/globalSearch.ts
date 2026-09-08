@@ -78,12 +78,14 @@ async function gotoLesName(lesName: string) {
             let searchField = document.getElementById("snel_zoeken_veld_zoektermen") as HTMLElement;
             let dropDownMenu = new DropDownMenu(searchField.parentElement?.parentElement!, searchField);
             lesMatches.sort((a, b) => a.name.localeCompare(b.name));
+            let queue = Promise.resolve();
             for (let lesRef of lesMatches) {
                 let index = dropDownMenu.addItem(lesRef.name, 0, () => {
                     dropDownMenu.hide();
                     location.href = `/#lessen-les?id=${lesRef.id}`;
                 });
-                updateMenuItem(dropDownMenu, index, lesRef).then(() => {});
+                //make sure the internal awaits in updateMenuItem() remain grouped:
+                queue = queue.then(() => updateMenuItem(dropDownMenu, index, lesRef));
             }
             getUpDownNavigator().setSelectionChangedHandler((navigator) => {
                 dropDownMenu.setSelected(navigator.selectedItem);

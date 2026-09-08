@@ -14,7 +14,7 @@ export interface LesDetails {
 
 export async function fetchLes(id: string): Promise<LesDetails> {
     let chain = new FetchChain();
-
+    console.log("FETCHING LES",id,"--------------------");
     // await chain.fetch(def.DKO3_BASE_URL+"#" + hash);
     await chain.fetch("view.php?args=lessen-les?id=" + id);
     chain.findDocReadyLoadUrl();
@@ -39,12 +39,13 @@ export async function fetchLes(id: string): Promise<LesDetails> {
     if (maxAantalText) {
         maxAantal = parseInt(maxAantalText.trim());
     }
-    await fetch("/views/lessen/les/index.lesmomenten.tab.php");
+    await chain.fetch("/views/lessen/les/index.lesmomenten.tab.php");
     let lesmomentenText = await chain.fetch("/views/lessen/les/lesmomenten/lesmomenten.card.php");
+    console.log(id,"--------------------");
+    console.log(lesmomentenText);
     rx = /<strong>(.*?)<\/strong>/g;
     let lesmomenten = rx.exec(lesmomentenText);
     console.log(lesmomenten);
-    debugger;
     return {
         id: id,
         editableName: nameDiv.includes("benaming_wijzigen"),

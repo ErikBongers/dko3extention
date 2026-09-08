@@ -6595,6 +6595,7 @@
 	//#region typescript/les/fetch.ts
 	async function fetchLes(id) {
 		let chain = new FetchChain();
+		console.log("FETCHING LES", id, "--------------------");
 		await chain.fetch("view.php?args=lessen-les?id=" + id);
 		chain.findDocReadyLoadUrl();
 		await chain.fetch();
@@ -6613,12 +6614,13 @@
 		let maxAantalText = rx.exec(maxAantalDiv)?.at(1);
 		let maxAantal = 0;
 		if (maxAantalText) maxAantal = parseInt(maxAantalText.trim());
-		await fetch("/views/lessen/les/index.lesmomenten.tab.php");
+		await chain.fetch("/views/lessen/les/index.lesmomenten.tab.php");
 		let lesmomentenText = await chain.fetch("/views/lessen/les/lesmomenten/lesmomenten.card.php");
+		console.log(id, "--------------------");
+		console.log(lesmomentenText);
 		rx = /<strong>(.*?)<\/strong>/g;
 		let lesmomenten = rx.exec(lesmomentenText);
 		console.log(lesmomenten);
-		debugger;
 		return {
 			id,
 			editableName: nameDiv.includes("benaming_wijzigen"),
@@ -10016,10 +10018,14 @@
 				let searchField = document.getElementById("snel_zoeken_veld_zoektermen");
 				let dropDownMenu = new DropDownMenu(searchField.parentElement?.parentElement, searchField);
 				lesMatches.sort((a, b) => a.name.localeCompare(b.name));
-				for (let lesRef of lesMatches) updateMenuItem(dropDownMenu, dropDownMenu.addItem(lesRef.name, 0, () => {
-					dropDownMenu.hide();
-					location.href = `/#lessen-les?id=${lesRef.id}`;
-				}), lesRef).then(() => {});
+				let queue = Promise.resolve();
+				for (let lesRef of lesMatches) {
+					let index = dropDownMenu.addItem(lesRef.name, 0, () => {
+						dropDownMenu.hide();
+						location.href = `/#lessen-les?id=${lesRef.id}`;
+					});
+					queue = queue.then(() => updateMenuItem(dropDownMenu, index, lesRef));
+				}
 				getUpDownNavigator().setSelectionChangedHandler((navigator) => {
 					dropDownMenu.setSelected(navigator.selectedItem);
 					console.log(navigator.selectedItem);
