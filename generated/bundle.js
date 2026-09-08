@@ -9974,8 +9974,13 @@
 			ignoreNextEnter = false;
 			return "default";
 		}
-		if (text.startsWith("les:")) {
-			if (await gotoLesName(text.substring(4).trim())) return "cancel";
+		if (!text.includes(":")) return "default";
+		let parts = text.split(":");
+		let key = parts.shift();
+		//! will have 1 element
+		let value = parts.join(":");
+		if ("les".startsWith(key)) {
+			if (await gotoLesName(value.trim())) return "cancel";
 		}
 		return "default";
 	}
