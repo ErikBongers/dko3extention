@@ -167,11 +167,8 @@ body.otherSchool {
         overflow-y: hidden;
         div {
             padding: 0 3px;
-            &:hover {
-                background-color: var(--power-query-selected-item-color);
-            }
         }
-        div.selected {
+        button.selected {
             background-color: var(--power-query-selected-item-color);
         }
     }

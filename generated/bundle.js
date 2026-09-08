@@ -796,6 +796,17 @@
 	function dateDiffToString(oldestDate, newestDate) {
 		return millisToString(newestDate.getTime() - oldestDate.getTime());
 	}
+	function isAlphaNumeric(str) {
+		if (str.length > 1) return false;
+		let code;
+		let i;
+		let len;
+		for (i = 0, len = str.length; i < len; i++) {
+			code = str.charCodeAt(i);
+			if (!(code > 47 && code < 58) && !(code > 64 && code < 91) && !(code > 96 && code < 123)) return false;
+		}
+		return true;
+	}
 	function rangeGenerator(start, stop, step = 1) {
 		return Array(Math.ceil((stop - start) / step)).fill(start).map((x, y) => x + y * step);
 	}
@@ -1031,61 +1042,6 @@
 		else location.href = "/#start-mijn_tijdslijn";
 	}
 	//#endregion
-	//#region typescript/globalKeyHandlers.ts
-	var UpDownNavigator = class {
-		get selectedItem() {
-			return this._selectedItem;
-		}
-		set selectedItem(value) {
-			this._selectedItem = value;
-			this.selectionChangedHandler(this);
-		}
-		_selectedItem = 0;
-		min = 0;
-		max = 0;
-		selectionChangedHandler;
-		selectingHandler;
-		constructor(selectionChangedHandler, selectingHandler) {
-			if (selectionChangedHandler) this.selectionChangedHandler = selectionChangedHandler;
-			else this.selectionChangedHandler = () => {};
-			if (selectingHandler) this.selectingHandler = selectingHandler;
-			else this.selectingHandler = () => {};
-			document.body.addEventListener("keydown", (ev) => this.handleMenuKeys(ev), {
-				capture: true,
-				passive: false
-			});
-		}
-		setRange(min, max) {
-			this.min = min;
-			this.max = max;
-			return this.clampSelectedItem();
-		}
-		clampSelectedItem() {
-			return this.selectedItem = Math.min(Math.max(this.selectedItem, this.min), this.max);
-		}
-		handleMenuKeys(ev) {
-			return false;
-		}
-		setSelectionChangedHandler(selectionChangedHandler) {
-			console.log("setting selection changed handler");
-			this.selectionChangedHandler = selectionChangedHandler;
-		}
-		clearSelectionChangedHandler() {
-			console.log("clearing selection changed handler");
-			this.selectionChangedHandler = () => {};
-		}
-		setSelectingHandler(selectingHandler) {
-			this.selectingHandler = selectingHandler;
-		}
-		clearSelectingHandler() {
-			this.selectingHandler = () => {};
-		}
-	};
-	let upDownNavigator = new UpDownNavigator();
-	function getUpDownNavigator() {
-		return upDownNavigator;
-	}
-	//#endregion
 	//#region typescript/clampedValue.ts
 	var ClampedValue = class {
 		_value = NaN;
@@ -1121,9 +1077,9 @@
 		index;
 		constructor(list) {
 			this.list = list;
-			this.list.setAttribute("popover", "");
 			this.list.addEventListener("keydown", this.onMenuKeyDown);
 			this.list.setAttribute("tabindex", "0");
+			this.list.classList.add("hideFocus");
 			this.list.focus();
 			this.index = new ClampedValue(NaN, NaN, NaN, (index) => this.setSelected(index));
 		}
@@ -1203,6 +1159,9 @@
 		focus() {
 			this.list.focus();
 		}
+		addKeyDownListener(listener) {
+			this.list.addEventListener("keydown", listener);
+		}
 	};
 	let powerQueryItems = [];
 	function addQueryItem(headerLabel, label, href, func, longLabelText) {
@@ -1276,6 +1235,7 @@
 		addQueryItem("Plugin", "Vergelijk uurroosters", "", gotoDiffPage);
 		addQueryItem("Plugin", "Lessen snapshots", "", gotoSnapshotPage);
 	}
+	let powerQueryVisible = false;
 	document.body.addEventListener("keydown", showPowerQuery);
 	function showPowerQuery(ev) {
 		if (ev.key === "q" && ev.ctrlKey && !ev.shiftKey && !ev.altKey) {
@@ -1283,22 +1243,38 @@
 			powerQueryItems.push(...getSavedAndDefaultQueryItems());
 			getHardCodedQueryItems();
 			popover.showPopover();
+			list.focus();
 			filterItems(searchField.textContent);
 		}
+	}
+	function menuKeyDownHandler(ev) {
+		if (!powerQueryVisible) return;
+		if (isAlphaNumeric(ev.key) || ev.key === " ") {
+			searchField.textContent += ev.key;
+			list.setSelected(0);
+		} else if (ev.key == "Escape") {
+			if (searchField.textContent !== "") {
+				searchField.textContent = "";
+				list.setSelected(0);
+				ev.preventDefault();
+			}
+		} else if (ev.key == "Backspace") searchField.textContent = searchField.textContent.slice(0, -1);
+		filterItems(searchField.textContent);
 	}
 	let popover = document.createElement("div");
 	document.querySelector("main").appendChild(popover);
 	popover.setAttribute("popover", "auto");
 	popover.id = "powerQuery";
 	popover.addEventListener("toggle", (ev) => {
-		ev.newState;
+		powerQueryVisible = ev.newState === "open";
 	});
 	let searchField = document.createElement("label");
 	popover.appendChild(searchField);
 	let listDiv = document.createElement("div");
 	popover.appendChild(listDiv);
 	listDiv.classList.add("list");
-	new NavigatableList(listDiv);
+	let list = new NavigatableList(listDiv);
+	list.addKeyDownListener(menuKeyDownHandler);
 	function filterItems(needle) {
 		for (const item of powerQueryItems) {
 			item.weight = 0;
@@ -1308,15 +1284,18 @@
 			if (indices.every((num) => num !== -1) && isSorted(indices)) item.weight += 50;
 			if (needle.split("").every((char) => item.lowerCase.includes(char))) item.weight += 20;
 		}
-		listDiv.innerHTML = powerQueryItems.filter((item) => item.weight != 0).sort((a, b) => b.weight - a.weight).map((item) => `<div data-long-label="${item.longLabel}">${item.longLabel}</div>`).slice(0, 30).join("\n");
-		getUpDownNavigator().setRange(0, listDiv.children.length - 1);
-		for (let item of listDiv.querySelectorAll("div")) item.onclick = (ev) => {
-			onItemSelected(ev.target);
-		};
-		listDiv.children[getUpDownNavigator().selectedItem]?.classList.add("selected");
+		let itemsToShow = powerQueryItems.filter((item) => item.weight != 0).sort((a, b) => b.weight - a.weight).slice(0, 30);
+		list.removeAllItems();
+		for (const item of itemsToShow) {
+			let itemDiv = emmet.indent.createElement(`
+            div[data-long-label="${item.longLabel}"]{${item.longLabel}}
+        `);
+			list.addItem(itemDiv, 0, () => {
+				onItemSelected(item);
+			});
+		}
 	}
-	function onItemSelected(selectedElement) {
-		let item = powerQueryItems.find((item) => item.longLabel === selectedElement.dataset.longLabel);
+	function onItemSelected(item) {
 		popover.hidePopover();
 		if (item.func) item.func(item);
 		else location.href = item.href;

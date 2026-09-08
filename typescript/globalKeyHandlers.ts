@@ -66,7 +66,7 @@ export class UpDownNavigator {
 let upDownNavigator: UpDownNavigator = new UpDownNavigator();
 let stopEnterKey: boolean = false;
 
-export function getUpDownNavigator() {
+function getUpDownNavigator() {
     return upDownNavigator;
 }
 

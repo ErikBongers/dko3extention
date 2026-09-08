@@ -3,10 +3,8 @@ import {LessenFilterDomein, scrapeLessen} from "./lessen/fetch";
 import {LesType} from "./roster_diff/calcDiff";
 import {Schoolyear} from "./globals";
 import {DropDownMenu} from "./dropDownMenus";
-import {getUpDownNavigator} from "./globalKeyHandlers";
 import {fetchLes} from "./les/fetch";
 import {createLesCard} from "./leerling/observer";
-import {HtmlLes, Les} from "./lessen/scrape";
 
 export function onPasteInGlobalSearchField(e: ClipboardEvent) {
     if (!options.stripCommasOnPaste)

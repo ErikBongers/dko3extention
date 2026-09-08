@@ -3,8 +3,8 @@ import * as def from "../def";
 import {getGotoStateOrDefault, Goto, PageName, saveGotoState} from "../gotoState";
 import {default_items as defaultQueryItems } from "default_items";
 import {gotoDiffPage, gotoSnapshotPage} from "../menu";
-import {getUpDownNavigator, UpDownNavigator} from "../globalKeyHandlers";
 import {NavigatableList} from "../navigatableList";
+import { emmet } from "../../libs/Emmeter/html";
 
 export function setupPowerQuery() {
     //dummy function to force this module to be loaded.
@@ -125,12 +125,6 @@ function getHardCodedQueryItems() {
 }
 
 let powerQueryVisible = false;
-function powerQuerySelectionChangedHandler(navigator: UpDownNavigator) {
-    if(!powerQueryVisible)
-        return;
-    [...listDiv.children].forEach(el => el.classList.remove("selected"));
-    listDiv.children[navigator.selectedItem].classList.add("selected");
-}
 
 document.body.addEventListener("keydown", showPowerQuery);
 
@@ -139,22 +133,22 @@ function showPowerQuery(ev: KeyboardEvent) {
         scrapeMainMenu();
         powerQueryItems.push(...getSavedAndDefaultQueryItems());
         getHardCodedQueryItems();
-
         popover.showPopover();
+        list.focus();
         filterItems(searchField.textContent);
     }
 }
 
 function menuKeyDownHandler(ev: KeyboardEvent) {
-    if (!powerQueryVisible)
+    if (!powerQueryVisible) //todo: maybe not even needed as it already depends on focus?
         return;
     if (isAlphaNumeric(ev.key) || ev.key === ' ') {
         searchField.textContent += ev.key;
-        getUpDownNavigator().selectedItem = 0; //back to top.
+        list.setSelected(0);
     } else if (ev.key == "Escape") {
         if(searchField.textContent !== "") {
             searchField.textContent = "";
-            getUpDownNavigator().selectedItem = 0;
+            list.setSelected(0);
             ev.preventDefault();
         }
         //else: default behaviour: close popup.
@@ -162,11 +156,6 @@ function menuKeyDownHandler(ev: KeyboardEvent) {
         searchField.textContent = searchField.textContent.slice(0, -1);
     }
     filterItems(searchField.textContent);
-}
-
-function powerQuerySelectingHandler(navigator: UpDownNavigator) {
-    let selectedDiv = listDiv.children[navigator.selectedItem] as HTMLElement;
-    onItemSelected(selectedDiv);
 }
 
 let popover = document.createElement("div");
@@ -184,6 +173,7 @@ let listDiv = document.createElement("div");
 popover.appendChild(listDiv);
 listDiv.classList.add("list");
 let list = new NavigatableList(listDiv);
+list.addKeyDownListener(menuKeyDownHandler);
 
 function filterItems(needle: string) {
     for (const item of powerQueryItems) {
@@ -210,24 +200,22 @@ function filterItems(needle: string) {
     }
 
     const MAX_VISIBLE_QUERY_ITEMS = 30;
-    listDiv.innerHTML = powerQueryItems
+    let itemsToShow = powerQueryItems
         .filter((item) => item.weight != 0)
         .sort((a, b) => b.weight - a.weight)
-        .map((item) => `<div data-long-label="${item.longLabel}">${item.longLabel}</div>`)
-        .slice(0, MAX_VISIBLE_QUERY_ITEMS)
-        .join("\n");
-    getUpDownNavigator().setRange(0, listDiv.children.length - 1);
-    for(let item of listDiv.querySelectorAll("div")) {
-        item.onclick = (ev: PointerEvent) => {
-            onItemSelected(ev.target as HTMLElement);
-            // ev.preventDefault();
-        };
+        .slice(0, MAX_VISIBLE_QUERY_ITEMS);
+    list.removeAllItems();
+    for (const item of itemsToShow) {
+        let itemDiv = emmet.indent.createElement(`
+            div[data-long-label="${item.longLabel}"]{${item.longLabel}}
+        `);
+        list.addItem(itemDiv, 0, () => {
+            onItemSelected(item);
+        });
     }
-    listDiv.children[getUpDownNavigator().selectedItem]?.classList.add("selected");
 }
 
-function onItemSelected(selectedElement: HTMLElement) {
-    let item = powerQueryItems.find((item) => item.longLabel === (selectedElement).dataset.longLabel)!;
+function onItemSelected(item: QueryItem) {
     popover.hidePopover();
     if (item.func) {
         item.func(item);
