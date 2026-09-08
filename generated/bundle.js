@@ -2436,12 +2436,20 @@
 		}
 		addItem(title, indentLevel, onClick) {
 			let indentClass = indentLevel ? ".menuIndent" + indentLevel : "";
-			let { first } = emmet.appendChild(this.menu, `button.naked.dropDownItem.pre${indentClass}{${title}}`);
-			let item = first;
+			let item = emmet.appendChild(this.menu, `button.naked.dropDownItem.pre${indentClass}`).first;
+			this.setItemContent(this.menu.children.length - 1, title);
 			if (typeof onClick === "string") item.setAttribute("onclick", onClick);
 			else if (typeof onClick === "function") item.onclick = (ev) => {
 				onClick(ev);
 			};
+		}
+		setItemContent(index, title) {
+			let item = this.getItem(index);
+			if (typeof title === "string") item.innerHTML = title;
+			else {
+				item.innerHTML = "";
+				item.appendChild(title);
+			}
 		}
 		addSeparator(title, indentLevel) {
 			let indentClass = indentLevel ? ".menuIndent" + indentLevel : "";

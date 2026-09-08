@@ -72,16 +72,26 @@ export class DropDownMenu {
         this.menu.hidePopover();
     }
 
-    addItem(title: string, indentLevel: number, onClick: ((ev: MouseEvent) => void) | string) {
+    addItem(title: string | HTMLElement, indentLevel: number, onClick: ((ev: MouseEvent) => void) | string) {
         let indentClass = indentLevel ? ".menuIndent" + indentLevel : "";
-        let {first} = emmet.appendChild(this.menu, `button.naked.dropDownItem.pre${indentClass}{${title}}`);
-        let item = first as HTMLButtonElement;
+        let item = emmet.appendChild(this.menu, `button.naked.dropDownItem.pre${indentClass}`).first as HTMLButtonElement;
+        this.setItemContent(this.menu.children.length - 1, title);
         if(typeof onClick === "string")
             item.setAttribute("onclick", onClick);
         else if(typeof onClick === "function")
         item.onclick = (ev) => {
             onClick(ev);
         };
+    }
+
+    setItemContent(index: number, title: string | HTMLElement) {
+        let item = this.getItem(index);
+        if(typeof title === "string")
+            item.innerHTML = title;
+        else {
+            item.innerHTML = "";
+            item.appendChild(title);
+        }
     }
 
     addSeparator(title: string, indentLevel: number) {
