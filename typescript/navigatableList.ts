@@ -7,7 +7,7 @@ export class NavigatableList {
 
     constructor(list: HTMLElement) {
         this.list = list;
-        this.list.addEventListener("keydown", this.onMenuKeyDown);
+        this.list.addEventListener("keydown", this.onMenuKeyDown, {capture: true});
         this.list.setAttribute("tabindex", "0");
         this.list.classList.add("hideFocus");
         this.list.focus();
@@ -17,10 +17,18 @@ export class NavigatableList {
 
     onMenuKeyDown = (ev: KeyboardEvent) => {
         console.log("keydown");
-        if(ev.key == "ArrowDown")
+        if(ev.key == "ArrowDown") {
             this.index.value++;
-        else if(ev.key == "ArrowUp")
+            ev.stopPropagation();
+            ev.stopImmediatePropagation();
+            ev.preventDefault();
+        }
+        else if(ev.key == "ArrowUp") {
             this.index.value--;
+            ev.stopPropagation();
+            ev.stopImmediatePropagation();
+            ev.preventDefault();
+        }
         else if(ev.key == "Tab") {
             //try to keep focus inside menu
             ev.stopPropagation();

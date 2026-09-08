@@ -144,6 +144,7 @@ function menuKeyDownHandler(ev: KeyboardEvent) {
         return;
     if (isAlphaNumeric(ev.key) || ev.key === ' ') {
         searchField.textContent += ev.key;
+        filterItems(searchField.textContent);
         list.setSelected(0);
     } else if (ev.key == "Escape") {
         if(searchField.textContent !== "") {
@@ -155,7 +156,6 @@ function menuKeyDownHandler(ev: KeyboardEvent) {
     } else if (ev.key == "Backspace") {
         searchField.textContent = searchField.textContent.slice(0, -1);
     }
-    filterItems(searchField.textContent);
 }
 
 let popover = document.createElement("div");

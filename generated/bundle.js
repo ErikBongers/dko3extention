@@ -1077,7 +1077,7 @@
 		index;
 		constructor(list) {
 			this.list = list;
-			this.list.addEventListener("keydown", this.onMenuKeyDown);
+			this.list.addEventListener("keydown", this.onMenuKeyDown, { capture: true });
 			this.list.setAttribute("tabindex", "0");
 			this.list.classList.add("hideFocus");
 			this.list.focus();
@@ -1085,9 +1085,17 @@
 		}
 		onMenuKeyDown = (ev) => {
 			console.log("keydown");
-			if (ev.key == "ArrowDown") this.index.value++;
-			else if (ev.key == "ArrowUp") this.index.value--;
-			else if (ev.key == "Tab") {
+			if (ev.key == "ArrowDown") {
+				this.index.value++;
+				ev.stopPropagation();
+				ev.stopImmediatePropagation();
+				ev.preventDefault();
+			} else if (ev.key == "ArrowUp") {
+				this.index.value--;
+				ev.stopPropagation();
+				ev.stopImmediatePropagation();
+				ev.preventDefault();
+			} else if (ev.key == "Tab") {
 				ev.stopPropagation();
 				ev.stopImmediatePropagation();
 				ev.preventDefault();
@@ -1251,6 +1259,7 @@
 		if (!powerQueryVisible) return;
 		if (isAlphaNumeric(ev.key) || ev.key === " ") {
 			searchField.textContent += ev.key;
+			filterItems(searchField.textContent);
 			list.setSelected(0);
 		} else if (ev.key == "Escape") {
 			if (searchField.textContent !== "") {
@@ -1259,7 +1268,6 @@
 				ev.preventDefault();
 			}
 		} else if (ev.key == "Backspace") searchField.textContent = searchField.textContent.slice(0, -1);
-		filterItems(searchField.textContent);
 	}
 	let popover = document.createElement("div");
 	document.querySelector("main").appendChild(popover);
