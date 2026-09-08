@@ -30,6 +30,8 @@ export class DropDownMenu {
         this.button = button;
         this.container.classList.add("dropDownContainer");
         this.button.classList.add("dropDownIgnoreHide", "dropDownButton");
+        //remove previous drop down menus
+        document.querySelectorAll("div.dropDownMenu").forEach(el => el.remove());
         let {first} = emmet.appendChild(this.container as HTMLElement, "div.dropDownMenu.popoverMenu");
         this.menu = first as HTMLElement;
         this.menu.setAttribute("popover", "");

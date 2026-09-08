@@ -2444,6 +2444,7 @@
 			this.button = button;
 			this.container.classList.add("dropDownContainer");
 			this.button.classList.add("dropDownIgnoreHide", "dropDownButton");
+			document.querySelectorAll("div.dropDownMenu").forEach((el) => el.remove());
 			let { first } = emmet.appendChild(this.container, "div.dropDownMenu.popoverMenu");
 			this.menu = first;
 			this.menu.setAttribute("popover", "");

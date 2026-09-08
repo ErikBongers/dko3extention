@@ -1,19 +1,11 @@
-* Global keys:
-  > try to have ONE global key listened to: CTRL-Q
-  > move other listeners to the menu itself?
-
 * Avoid calling 'onclick' handler directly, but rather do a full screen refresh to avoid DKO3 statefull issues.
 
 * rename CachedLesId to LesRef
 * CTRL-q: press twice: goto search field
-* keyboard handling: still try to capture up and down on menu instead of BODY:
-  > set focus on 1st menu item, then blur.
-* UpDownNavigator: event listener added in constructur: we only need ONE!
 
 * trims: click on teacher -> goto teacher.
 
 * Clean up drop down menu keyboard navigation.
-
 
 * Replace local and session storage with indexed DBs.
     > clear session DB on session start:
