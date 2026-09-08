@@ -1,5 +1,4 @@
 import {emmet} from "../libs/Emmeter/html";
-import {ClampedValue} from "./clampedValue";
 import {NavigatableList} from "./navigatableList";
 
 /*
