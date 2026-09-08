@@ -6595,7 +6595,6 @@
 	//#region typescript/les/fetch.ts
 	async function fetchLes(id) {
 		let chain = new FetchChain();
-		console.log("FETCHING LES", id, "--------------------");
 		await chain.fetch("view.php?args=lessen-les?id=" + id);
 		chain.findDocReadyLoadUrl();
 		await chain.fetch();
@@ -6616,18 +6615,38 @@
 		if (maxAantalText) maxAantal = parseInt(maxAantalText.trim());
 		await chain.fetch("/views/lessen/les/index.lesmomenten.tab.php");
 		let lesmomentenText = await chain.fetch("/views/lessen/les/lesmomenten/lesmomenten.card.php");
-		console.log(id, "--------------------");
-		console.log(lesmomentenText);
 		rx = /<strong>(.*?)<\/strong>/g;
-		let lesmomenten = rx.exec(lesmomentenText);
-		console.log(lesmomenten);
+		let lesMomenten = [];
+		let match;
+		while (match = rx.exec(lesmomentenText)) lesMomenten.push(match[1]);
+		await chain.fetch("https://administratie.dko3.cloud/views/lessen/les/index.leerlingen.tab.php");
+		await chain.fetch("https://administratie.dko3.cloud/views/lessen/les/leerlingen/leerlingen.toolbar.php");
+		const now = /* @__PURE__ */ new Date();
+		const timestamp = new Intl.DateTimeFormat("sv-SE", {
+			year: "numeric",
+			month: "2-digit",
+			day: "2-digit",
+			hour: "2-digit",
+			minute: "2-digit",
+			second: "2-digit",
+			hour12: false
+		}).format(now).replace(" ", " ");
+		console.log(timestamp);
+		let params = new URLSearchParams();
+		params.append("timestamp", timestamp);
+		params.append("nu", "true");
+		let leerlingenTableText = await chain.fetch(`/views/lessen/les/leerlingen/leerlingen.tabel.php?${params}`);
+		rx = /<i>(.*?)<\/i>/g;
+		let aantallen = (rx.exec(leerlingenTableText)?.at(1) ?? "").replace(" van ", ",").replace("leerlingen", "").trim().split(",");
 		return {
 			id,
 			editableName: nameDiv.includes("benaming_wijzigen"),
 			gradeYears,
 			vak,
 			maxAantal,
-			isIndividualLes: maxAantal == 0
+			isIndividualLes: maxAantal == 0,
+			lesMomenten,
+			aantal: parseInt(aantallen[0])
 		};
 	}
 	//#endregion
@@ -10006,7 +10025,8 @@
 	}
 	async function updateMenuItem(dropDownMenu, index, lesRef) {
 		let les = await fetchLes(lesRef.id);
-		let infoBlock = createLesCard(lesRef.name, les.vak, "", "les van nu tot straks", 6666, les.maxAantal, "wachtlijst");
+		let lesmomenten = les.lesMomenten.join("\n");
+		let infoBlock = createLesCard(lesRef.name, les.vak, "", lesmomenten, les.aantal, les.maxAantal, "wachtlijst");
 		dropDownMenu.setItemContent(index, infoBlock);
 	}
 	async function gotoLesName(lesName) {

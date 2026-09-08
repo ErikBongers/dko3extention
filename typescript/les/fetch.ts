@@ -8,14 +8,14 @@ export interface LesDetails {
     editableName: boolean;
     gradeYears: GradeYear[];
     vak: string;
+    aantal: number;
     maxAantal: number;
     isIndividualLes: boolean;
+    lesMomenten: string[];
 }
 
 export async function fetchLes(id: string): Promise<LesDetails> {
     let chain = new FetchChain();
-    console.log("FETCHING LES",id,"--------------------");
-    // await chain.fetch(def.DKO3_BASE_URL+"#" + hash);
     await chain.fetch("view.php?args=lessen-les?id=" + id);
     chain.findDocReadyLoadUrl();
     await chain.fetch(); //index.view.php
@@ -41,11 +41,46 @@ export async function fetchLes(id: string): Promise<LesDetails> {
     }
     await chain.fetch("/views/lessen/les/index.lesmomenten.tab.php");
     let lesmomentenText = await chain.fetch("/views/lessen/les/lesmomenten/lesmomenten.card.php");
-    console.log(id,"--------------------");
-    console.log(lesmomentenText);
     rx = /<strong>(.*?)<\/strong>/g;
-    let lesmomenten = rx.exec(lesmomentenText);
-    console.log(lesmomenten);
+    let lesMomenten: string[] = [];
+    let match;
+    while(match = rx.exec(lesmomentenText)) {
+        lesMomenten.push(match[1]);
+    }
+
+    await chain.fetch("https://administratie.dko3.cloud/views/lessen/les/index.leerlingen.tab.php");
+    await chain.fetch("https://administratie.dko3.cloud/views/lessen/les/leerlingen/leerlingen.toolbar.php");
+    const now = new Date();
+
+    //use swedish formatting "2026-09-08 12:29:59"
+    const timestamp = new Intl.DateTimeFormat('sv-SE', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+    })
+        .format(now)
+        .replace(' ', ' ');
+
+    console.log(timestamp);
+
+    //use URLparams to add params
+    let params = new URLSearchParams();
+    params.append("timestamp", timestamp);
+    params.append("nu", "true");
+
+    let leerlingenTableText = await chain.fetch(`/views/lessen/les/leerlingen/leerlingen.tabel.php?${params}`);
+    rx = /<i>(.*?)<\/i>/g;
+    let aantalText = rx.exec(leerlingenTableText)?.at(1)??"";
+    let aantallen = aantalText
+        .replace(" van ", ",")
+        .replace("leerlingen", "")
+        .trim()
+        .split(",");
+
     return {
         id: id,
         editableName: nameDiv.includes("benaming_wijzigen"),
@@ -53,5 +88,7 @@ export async function fetchLes(id: string): Promise<LesDetails> {
         vak,
         maxAantal,
         isIndividualLes: maxAantal == 0,
+        lesMomenten,
+        aantal: parseInt(aantallen[0])
     };
 }

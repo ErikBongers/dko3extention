@@ -57,12 +57,12 @@ async function onEnterPressed(text: string) {
 
 async function updateMenuItem(dropDownMenu: DropDownMenu, index: number, lesRef: CachedLesId) {
     let les = await fetchLes(lesRef.id);
-    let lesmoment = "les van nu tot straks";
+    let lesmomenten = les.lesMomenten.join("\n");
     // let wachtlijst = les.wachtlijst == 0 ? "span" : `span.red{ (${les.les.wachtlijst} op wachtlijst)}`;
     let wachtlijst = "wachtlijst";
     // let full = les.les.aantal >= les.les.maxAantal ? ".full": "";
     let full = "";
-    let infoBlock = createLesCard(lesRef.name, les.vak, full, lesmoment, 6666, les.maxAantal, wachtlijst);
+    let infoBlock = createLesCard(lesRef.name, les.vak, full, lesmomenten, les.aantal, les.maxAantal, wachtlijst);
     dropDownMenu.setItemContent(index, infoBlock);
 }
 
