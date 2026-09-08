@@ -1,3 +1,5 @@
+* Avoid calling 'onclick' handler directly, but rather do a full screen refresh to avoid DKO3 statefull issues.
+
 * rename CachedLesId to LesRef
 * CTRL-q: press twice: goto search field
 * keyboard handling: still try to capture up and down on menu instead of BODY:
