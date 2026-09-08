@@ -235,8 +235,6 @@ async function onInschrijvingChanged(tabInschrijving: HTMLElement) {
     }
 
     let opleidingen = scrapeOpleidingen();
-    console.log("scrapeOpleidingen", opleidingen);
-    // let iGotoClassList = document.querySelectorAll("#leerling_inschrijvingen_weergave div table tbody i.fa-list-ul") as NodeListOf<HTMLSpanElement>;
     for(let opleiding of opleidingen) {
         for(let lesInfo of opleiding.lessen) {
             if(!lesInfo.gotoButton)
@@ -257,8 +255,7 @@ async function onInschrijvingChanged(tabInschrijving: HTMLElement) {
                 menu.cancelDropDown = async () => {
                     let lesDetails = await fetchLes(lesId);
                     if (!lesDetails.isIndividualLes) {
-                        fillClassesMenu(menu, opleiding, lesInfo.vak, btnOnClick).then(() => {
-                        }); //fallthrough
+                        fillClassesMenu(menu, opleiding, lesInfo.vak, btnOnClick).then(() => {}); //fallthrough
                         return false;
                     }
                     menu.removeAllItems();

@@ -1,7 +1,7 @@
 * CTRL-q: press twice: goto search field
-* "Enter" strategy:
-  > try to attach the keyup/down listener(s) to the popup menu, which is likely not under BODY in the event chain.
-
+* keyboard handling: still try to capture up and down on menu instead of BODY:
+  > set focus on 1st menu item, then blur.
+* UpDownNavigator: event listener added in constructur: we only need ONE!
 
 * trims: click on teacher -> goto teacher.
 

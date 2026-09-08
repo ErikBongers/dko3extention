@@ -2,7 +2,6 @@ import {options} from "./plugin_options/options";
 import {LessenFilterDomein, scrapeLessen} from "./lessen/fetch";
 import {LesType} from "./roster_diff/calcDiff";
 import {Schoolyear} from "./globals";
-import {emmet} from "../libs/Emmeter/html";
 import {DropDownMenu} from "./dropDownMenus";
 import {getUpDownNavigator} from "./globalKeyHandlers";
 
@@ -57,24 +56,21 @@ async function gotoLesName(lesName: string) {
         if (lesMatches.length == 1)
             location.href = `/#lessen-les?id=${lesMatches[0].id}`;
         else if (lesMatches.length > 1) {
-            //todo: show popup with options to choose les
             let searchField = document.getElementById("snel_zoeken_veld_zoektermen") as HTMLElement;
             let dropDownMenu = new DropDownMenu(searchField.parentElement?.parentElement!, searchField);
             lesMatches
                 .sort((a, b) => a.name.localeCompare(b.name))
-                .forEach((les, index) => {
+                .forEach((les) => {
                     dropDownMenu.addItem(les.name, 0, () => {
                         dropDownMenu.hide();
                         location.href = `/#lessen-les?id=${les.id}`;
                     });
                 });
-            console.log("setting selection handler to les handler");
             getUpDownNavigator().setSelectionChangedHandler((navigator) => {
                 dropDownMenu.setSelected(navigator.selectedItem);
                 console.log(navigator.selectedItem);
             });
             getUpDownNavigator().setSelectingHandler((navigator) => {
-                console.log("goto selection");
                 ignoreNextEnter = true;
                 dropDownMenu.hide();
                 dropDownMenu.clickItem(navigator.selectedItem);

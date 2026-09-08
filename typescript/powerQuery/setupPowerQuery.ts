@@ -131,11 +131,7 @@ function powerQuerySelectionChangedHandler(navigator: UpDownNavigator) {
     list.children[navigator.selectedItem].classList.add("selected");
 }
 
-document.body.addEventListener("keydown", globalKeyDownHandler);
-
-function globalKeyDownHandler(ev: KeyboardEvent) {
-    showPowerQuery(ev);
-}
+document.body.addEventListener("keydown", showPowerQuery);
 
 function showPowerQuery(ev: KeyboardEvent) {
     if (ev.key === "q" && ev.ctrlKey && !ev.shiftKey && !ev.altKey) {

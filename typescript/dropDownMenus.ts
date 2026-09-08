@@ -64,7 +64,6 @@ export class DropDownMenu {
         this.menu.addEventListener("keydown", this.onMenuKeyDown);
         this.menu.addEventListener("keyup", this.onMenuKeyUp);
         this.menu.showPopover();
-        // window.setTimeout(() => this.getItem(0).focus());
         if (document.activeElement instanceof HTMLElement)
             document.activeElement?.blur();
     }

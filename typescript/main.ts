@@ -152,7 +152,6 @@ function onPageRefreshed() {
     let searchField = document.getElementById("snel_zoeken_veld_zoektermen") as HTMLInputElement;
     if(searchField) {
         searchField.addEventListener("paste", onPasteInGlobalSearchField);
-        console.log("setting parent keyup handler");
         searchField.parentElement!.addEventListener("keyup", onParentKeyUp, {capture: true});
     }
 

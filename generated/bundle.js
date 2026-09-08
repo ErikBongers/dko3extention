@@ -1204,10 +1204,7 @@
 		[...list.children].forEach((el) => el.classList.remove("selected"));
 		list.children[navigator.selectedItem].classList.add("selected");
 	}
-	document.body.addEventListener("keydown", globalKeyDownHandler);
-	function globalKeyDownHandler(ev) {
-		showPowerQuery(ev);
-	}
+	document.body.addEventListener("keydown", showPowerQuery);
 	function showPowerQuery(ev) {
 		if (ev.key === "q" && ev.ctrlKey && !ev.shiftKey && !ev.altKey) {
 			scrapeMainMenu();
@@ -6790,7 +6787,6 @@
 		decorateTrimModules(tabInschrijving);
 		if (options.showNotAssignedClasses) setStripedLessons();
 		let opleidingen = scrapeOpleidingen();
-		console.log("scrapeOpleidingen", opleidingen);
 		for (let opleiding of opleidingen) for (let lesInfo of opleiding.lessen) {
 			if (!lesInfo.gotoButton) continue;
 			let btnOnClick = lesInfo.gotoButton.getAttribute("onclick");
@@ -9991,19 +9987,17 @@
 			else if (lesMatches.length > 1) {
 				let searchField = document.getElementById("snel_zoeken_veld_zoektermen");
 				let dropDownMenu = new DropDownMenu(searchField.parentElement?.parentElement, searchField);
-				lesMatches.sort((a, b) => a.name.localeCompare(b.name)).forEach((les, index) => {
+				lesMatches.sort((a, b) => a.name.localeCompare(b.name)).forEach((les) => {
 					dropDownMenu.addItem(les.name, 0, () => {
 						dropDownMenu.hide();
 						location.href = `/#lessen-les?id=${les.id}`;
 					});
 				});
-				console.log("setting selection handler to les handler");
 				getUpDownNavigator().setSelectionChangedHandler((navigator) => {
 					dropDownMenu.setSelected(navigator.selectedItem);
 					console.log(navigator.selectedItem);
 				});
 				getUpDownNavigator().setSelectingHandler((navigator) => {
-					console.log("goto selection");
 					ignoreNextEnter = true;
 					dropDownMenu.hide();
 					dropDownMenu.clickItem(navigator.selectedItem);
@@ -10135,7 +10129,6 @@
 		let searchField = document.getElementById("snel_zoeken_veld_zoektermen");
 		if (searchField) {
 			searchField.addEventListener("paste", onPasteInGlobalSearchField);
-			console.log("setting parent keyup handler");
 			searchField.parentElement.addEventListener("keyup", onParentKeyUp, { capture: true });
 		}
 		navigator.clipboard.addEventListener("clipboardchange", onClipboardChange);
