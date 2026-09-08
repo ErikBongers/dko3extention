@@ -252,7 +252,8 @@ async function onInschrijvingChanged(tabInschrijving: HTMLElement) {
                 let newBtnGotoLes = lesInfo.gotoButton.cloneNode(true) as HTMLElement;
                 lesInfo.gotoButton.replaceWith(newBtnGotoLes);
                 newBtnGotoLes.dataset.originalOnClick = btnOnClick;
-                let menu = new DropDownMenu(wrapper, newBtnGotoLes, "left");
+                let menu = new DropDownMenu(wrapper, newBtnGotoLes);
+                menu.setPosition("left");
                 menu.cancelDropDown = async () => {
                     let lesDetails = await fetchLes(lesId);
                     if (!lesDetails.isIndividualLes) {

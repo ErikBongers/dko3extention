@@ -23,7 +23,7 @@ export class DropDownMenu {
     private button: HTMLElement;
     public cancelDropDown: CancelDropDown | undefined;
 
-    constructor(container: HTMLElement, button: HTMLElement, position: "left" | "right" = "right") {
+    constructor(container: HTMLElement, button: HTMLElement, showOnClick: boolean = true) {
         this.container = container;
         this.button = button;
         this.container.classList.add("dropDownContainer");
@@ -31,27 +31,42 @@ export class DropDownMenu {
         let {first} = emmet.appendChild(this.container as HTMLElement, "div.dropDownMenu.popoverMenu");
         this.menu = first as HTMLElement;
         this.menu.setAttribute("popover", "");
-        if(position === "left")
-            this.container.classList.add("shiftMenuLeft");
-        this.button.onclick = async ev => {
-            ev.preventDefault();
-            ev.stopPropagation();
-            if (await this.cancelDropDown?.(ev))
-                return;
-            //todo: use this.menu below?
-            let dropDownMenu = (ev.target as HTMLElement).closest(".dropDownContainer")!.querySelector(".dropDownMenu") as HTMLElement;
-            document.querySelectorAll(".activePopoverButton").forEach(p => p.classList.remove("activePopoverButton"));
-            this.button.classList.add("activePopoverButton");
-            dropDownMenu.showPopover();
-            this.menu.focus();
+        if (showOnClick) {
+            this.button.onclick = async ev => {
+                ev.preventDefault();
+                ev.stopPropagation();
+                if (await this.cancelDropDown?.(ev))
+                    return;
+                this.show();
+            }
         }
     }
 
+    setPosition(position: "left" | "right") {
+        if(position === "left")
+            this.container.classList.add("shiftMenuLeft");
+        else
+            this.container.classList.remove("shiftMenuLeft");
+    }
+
+    onMenuKeyDown = (ev: KeyboardEvent) => {
+        console.log("keydown");
+    }
+
+    onMenuKeyUp = (ev: KeyboardEvent) => {
+        console.log("keyup");
+    }
+
     show() {
+        console.log("show");
         document.querySelectorAll(".activePopoverButton").forEach(p => p.classList.remove("activePopoverButton"));
         this.button.classList.add("activePopoverButton");
+        this.menu.addEventListener("keydown", this.onMenuKeyDown);
+        this.menu.addEventListener("keyup", this.onMenuKeyUp);
         this.menu.showPopover();
-        this.menu.focus();
+        // window.setTimeout(() => this.getItem(0).focus());
+        if (document.activeElement instanceof HTMLElement)
+            document.activeElement?.blur();
     }
 
     hide() {
@@ -99,6 +114,10 @@ export class DropDownMenu {
             return false;
         this.menu.removeChild(this.menu.children[index]);
         return true;
+    }
+
+    getItem(index: number) {
+        return this.menu.children[index] as HTMLElement;
     }
 
     removeAllItems() {

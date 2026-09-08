@@ -1065,10 +1065,6 @@
 				capture: true,
 				passive: false
 			});
-			document.body.addEventListener("keyup", (ev) => this.handleKeyUp(ev), {
-				capture: true,
-				passive: false
-			});
 		}
 		setRange(min, max) {
 			this.min = min;
@@ -1111,6 +1107,7 @@
 			return retVal;
 		}
 		setSelectionChangedHandler(selectionChangedHandler) {
+			console.log("setting selection changed handler");
 			this.selectionChangedHandler = selectionChangedHandler;
 		}
 		clearSelectionChangedHandler() {
@@ -2403,7 +2400,7 @@
 		container;
 		button;
 		cancelDropDown;
-		constructor(container, button, position = "right") {
+		constructor(container, button, showOnClick = true) {
 			this.container = container;
 			this.button = button;
 			this.container.classList.add("dropDownContainer");
@@ -2411,23 +2408,31 @@
 			let { first } = emmet.appendChild(this.container, "div.dropDownMenu.popoverMenu");
 			this.menu = first;
 			this.menu.setAttribute("popover", "");
-			if (position === "left") this.container.classList.add("shiftMenuLeft");
-			this.button.onclick = async (ev) => {
+			if (showOnClick) this.button.onclick = async (ev) => {
 				ev.preventDefault();
 				ev.stopPropagation();
 				if (await this.cancelDropDown?.(ev)) return;
-				let dropDownMenu = ev.target.closest(".dropDownContainer").querySelector(".dropDownMenu");
-				document.querySelectorAll(".activePopoverButton").forEach((p) => p.classList.remove("activePopoverButton"));
-				this.button.classList.add("activePopoverButton");
-				dropDownMenu.showPopover();
-				this.menu.focus();
+				this.show();
 			};
 		}
+		setPosition(position) {
+			if (position === "left") this.container.classList.add("shiftMenuLeft");
+			else this.container.classList.remove("shiftMenuLeft");
+		}
+		onMenuKeyDown = (ev) => {
+			console.log("keydown");
+		};
+		onMenuKeyUp = (ev) => {
+			console.log("keyup");
+		};
 		show() {
+			console.log("show");
 			document.querySelectorAll(".activePopoverButton").forEach((p) => p.classList.remove("activePopoverButton"));
 			this.button.classList.add("activePopoverButton");
+			this.menu.addEventListener("keydown", this.onMenuKeyDown);
+			this.menu.addEventListener("keyup", this.onMenuKeyUp);
 			this.menu.showPopover();
-			this.menu.focus();
+			if (document.activeElement instanceof HTMLElement) document.activeElement?.blur();
 		}
 		hide() {
 			this.menu.hidePopover();
@@ -2465,6 +2470,9 @@
 			if (index < 0 || index >= this.menu.children.length) return false;
 			this.menu.removeChild(this.menu.children[index]);
 			return true;
+		}
+		getItem(index) {
+			return this.menu.children[index];
 		}
 		removeAllItems() {
 			this.menu.innerHTML = "";
@@ -6795,7 +6803,8 @@
 				let newBtnGotoLes = lesInfo.gotoButton.cloneNode(true);
 				lesInfo.gotoButton.replaceWith(newBtnGotoLes);
 				newBtnGotoLes.dataset.originalOnClick = btnOnClick;
-				let menu = new DropDownMenu(wrapper, newBtnGotoLes, "left");
+				let menu = new DropDownMenu(wrapper, newBtnGotoLes);
+				menu.setPosition("left");
 				menu.cancelDropDown = async () => {
 					if (!(await fetchLes(lesId)).isIndividualLes) {
 						fillClassesMenu(menu, opleiding, lesInfo.vak, btnOnClick).then(() => {});
@@ -9988,6 +9997,7 @@
 						location.href = `/#lessen-les?id=${les.id}`;
 					});
 				});
+				console.log("setting selection handler to les handler");
 				getUpDownNavigator().setSelectionChangedHandler((navigator) => {
 					dropDownMenu.setSelected(navigator.selectedItem);
 					console.log(navigator.selectedItem);
@@ -10125,6 +10135,7 @@
 		let searchField = document.getElementById("snel_zoeken_veld_zoektermen");
 		if (searchField) {
 			searchField.addEventListener("paste", onPasteInGlobalSearchField);
+			console.log("setting parent keyup handler");
 			searchField.parentElement.addEventListener("keyup", onParentKeyUp, { capture: true });
 		}
 		navigator.clipboard.addEventListener("clipboardchange", onClipboardChange);

@@ -1,3 +1,4 @@
+* CTRL-q: press twice: goto search field
 * "Enter" strategy:
   > try to attach the keyup/down listener(s) to the popup menu, which is likely not under BODY in the event chain.
 

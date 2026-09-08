@@ -26,7 +26,7 @@ export class UpDownNavigator {
         //todo: add this listener when activated. Now it runs CONSTANTLY.
         // >> or...attach it to the menu itself and set focus to menu?
         //   > No! because focus must stay on the input field.
-        document.body.addEventListener("keyup", (ev) => this.handleKeyUp(ev), { capture: true, passive: false });
+        // document.body.addEventListener("keyup", (ev) => this.handleKeyUp(ev), { capture: true, passive: false });
     }
 
     setRange(min: number, max: number) {
@@ -74,6 +74,7 @@ export class UpDownNavigator {
     }
 
     setSelectionChangedHandler(selectionChangedHandler: (navigator: UpDownNavigator) => void) {
+        console.log("setting selection changed handler");
         this.selectionChangedHandler = selectionChangedHandler;
     }
 

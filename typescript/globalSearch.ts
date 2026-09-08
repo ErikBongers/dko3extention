@@ -68,6 +68,7 @@ async function gotoLesName(lesName: string) {
                         location.href = `/#lessen-les?id=${les.id}`;
                     });
                 });
+            console.log("setting selection handler to les handler");
             getUpDownNavigator().setSelectionChangedHandler((navigator) => {
                 dropDownMenu.setSelected(navigator.selectedItem);
                 console.log(navigator.selectedItem);
