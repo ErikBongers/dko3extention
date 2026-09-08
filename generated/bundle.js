@@ -796,17 +796,6 @@
 	function dateDiffToString(oldestDate, newestDate) {
 		return millisToString(newestDate.getTime() - oldestDate.getTime());
 	}
-	function isAlphaNumeric(str) {
-		if (str.length > 1) return false;
-		let code;
-		let i;
-		let len;
-		for (i = 0, len = str.length; i < len; i++) {
-			code = str.charCodeAt(i);
-			if (!(code > 47 && code < 58) && !(code > 64 && code < 91) && !(code > 96 && code < 123)) return false;
-		}
-		return true;
-	}
 	function rangeGenerator(start, stop, step = 1) {
 		return Array(Math.ceil((stop - start) / step)).fill(start).map((x, y) => x + y * step);
 	}
@@ -1168,47 +1157,22 @@
 		addQueryItem("Plugin", "Vergelijk uurroosters", "", gotoDiffPage);
 		addQueryItem("Plugin", "Lessen snapshots", "", gotoSnapshotPage);
 	}
-	let powerQueryVisible = false;
-	function powerQuerySelectionChangedHandler(navigator) {
-		if (!powerQueryVisible) return;
-		[...list.children].forEach((el) => el.classList.remove("selected"));
-		list.children[navigator.selectedItem].classList.add("selected");
-	}
 	document.body.addEventListener("keydown", showPowerQuery);
 	function showPowerQuery(ev) {
 		if (ev.key === "q" && ev.ctrlKey && !ev.shiftKey && !ev.altKey) {
 			scrapeMainMenu();
 			powerQueryItems.push(...getSavedAndDefaultQueryItems());
 			getHardCodedQueryItems();
-			getUpDownNavigator().setSelectionChangedHandler(powerQuerySelectionChangedHandler);
-			getUpDownNavigator().setSelectingHandler(powerQuerySelectingHandler);
 			popover.showPopover();
-		} else {
-			if (!powerQueryVisible) return;
-			if (isAlphaNumeric(ev.key) || ev.key === " ") {
-				searchField.textContent += ev.key;
-				getUpDownNavigator().selectedItem = 0;
-			} else if (ev.key == "Escape") {
-				if (searchField.textContent !== "") {
-					searchField.textContent = "";
-					getUpDownNavigator().selectedItem = 0;
-					ev.preventDefault();
-				}
-			} else if (ev.key == "Backspace") searchField.textContent = searchField.textContent.slice(0, -1);
+			filterItems(searchField.textContent);
 		}
-		filterItems(searchField.textContent);
-	}
-	function powerQuerySelectingHandler(navigator) {
-		let selectedDiv = list.children[navigator.selectedItem];
-		onItemSelected(selectedDiv);
 	}
 	let popover = document.createElement("div");
 	document.querySelector("main").appendChild(popover);
 	popover.setAttribute("popover", "auto");
 	popover.id = "powerQuery";
 	popover.addEventListener("toggle", (ev) => {
-		powerQueryVisible = ev.newState === "open";
-		if (!powerQueryVisible) getUpDownNavigator().clearSelectionChangedHandler();
+		ev.newState;
 	});
 	let searchField = document.createElement("label");
 	popover.appendChild(searchField);
@@ -2390,33 +2354,15 @@
 		}
 	};
 	//#endregion
-	//#region typescript/dropDownMenus.ts
-	var DropDownMenu = class {
-		menu;
-		container;
-		button;
-		cancelDropDown;
+	//#region typescript/navigatableList.ts
+	var NavigatableList = class {
+		list;
 		index;
-		constructor(container, button, showOnClick = true) {
-			this.container = container;
-			this.button = button;
-			this.container.classList.add("dropDownContainer");
-			this.button.classList.add("dropDownIgnoreHide", "dropDownButton");
-			let { first } = emmet.appendChild(this.container, "div.dropDownMenu.popoverMenu");
-			this.menu = first;
-			this.menu.setAttribute("popover", "");
-			if (showOnClick) this.button.onclick = async (ev) => {
-				ev.preventDefault();
-				ev.stopPropagation();
-				if (await this.cancelDropDown?.(ev)) return;
-				this.show();
-			};
-			this.menu.addEventListener("keydown", this.onMenuKeyDown);
+		constructor(list) {
+			this.list = list;
+			this.list.setAttribute("popover", "");
+			this.list.addEventListener("keydown", this.onMenuKeyDown);
 			this.index = new ClampedValue(NaN, NaN, NaN, (index) => this.setSelected(index));
-		}
-		setPosition(position) {
-			if (position === "left") this.container.classList.add("shiftMenuLeft");
-			else this.container.classList.remove("shiftMenuLeft");
 		}
 		onMenuKeyDown = (ev) => {
 			console.log("keydown");
@@ -2428,34 +2374,22 @@
 				ev.preventDefault();
 			} else if (ev.key == "Enter") {
 				this.getItem(this.index.value).click();
-				this.menu.remove();
+				this.list.remove();
 				setTimeout(() => {
 					if (document.activeElement instanceof HTMLElement) document.activeElement?.blur();
 				});
 			}
 		};
-		show() {
-			console.log("show");
-			document.querySelectorAll(".activePopoverButton").forEach((p) => p.classList.remove("activePopoverButton"));
-			this.button.classList.add("activePopoverButton");
-			this.menu.showPopover();
-			setTimeout(() => {
-				this.getItem(0).focus();
-			});
-		}
-		hide() {
-			this.menu.hidePopover();
-		}
 		addItem(title, indentLevel, onClick) {
 			let indentClass = indentLevel ? ".menuIndent" + indentLevel : "";
-			let item = emmet.appendChild(this.menu, `button.naked.hideFocus.dropDownItem.pre${indentClass}`).first;
-			this.setItemContent(this.menu.children.length - 1, title);
+			let item = emmet.appendChild(this.list, `button.naked.hideFocus.dropDownItem.pre${indentClass}`).first;
+			this.setItemContent(this.list.children.length - 1, title);
 			if (typeof onClick === "string") item.setAttribute("onclick", onClick);
 			else if (typeof onClick === "function") item.onclick = (ev) => {
 				onClick(ev);
 			};
-			this.index.setRange(0, this.menu.children.length - 1);
-			return this.menu.children.length - 1;
+			this.index.setRange(0, this.list.children.length - 1);
+			return this.list.children.length - 1;
 		}
 		setItemContent(index, title) {
 			let item = this.getItem(index);
@@ -2467,7 +2401,7 @@
 		}
 		addSeparator(title, indentLevel) {
 			let indentClass = indentLevel ? ".menuIndent" + indentLevel : "";
-			let { first } = emmet.appendChild(this.menu, `div.dropDownSeparator.dropDownIgnoreHide${indentClass}{${title}}`);
+			let { first } = emmet.appendChild(this.list, `div.dropDownSeparator.dropDownIgnoreHide${indentClass}{${title}}`);
 			let item = first;
 			item.onclick = (ev) => {
 				ev.stopPropagation();
@@ -2475,7 +2409,7 @@
 		}
 		addInfo(element, indentLevel) {
 			let indentClass = indentLevel ? ".menuIndent" + indentLevel : "";
-			let { first } = emmet.appendChild(this.menu, `div.dropDownInfo.dropDownIgnoreHide${indentClass}`);
+			let { first } = emmet.appendChild(this.list, `div.dropDownInfo.dropDownIgnoreHide${indentClass}`);
 			let item = first;
 			item.onclick = (ev) => {
 				ev.stopPropagation();
@@ -2483,29 +2417,87 @@
 			item.appendChild(element);
 		}
 		clickItem(itemIndex) {
-			this.menu.querySelectorAll(".dropDownItem")[itemIndex].click();
+			this.list.children[itemIndex].click();
 		}
 		removeItem(index) {
-			if (index < 0 || index >= this.menu.children.length) return false;
-			this.menu.removeChild(this.menu.children[index]);
-			this.index.setRange(0, this.menu.children.length - 1);
+			if (index < 0 || index >= this.list.children.length) return false;
+			this.list.removeChild(this.list.children[index]);
+			this.index.setRange(0, this.list.children.length - 1);
 			return true;
 		}
 		getItem(index) {
-			return this.menu.children[index];
+			return this.list.children[index];
 		}
 		removeAllItems() {
-			this.menu.innerHTML = "";
+			this.list.innerHTML = "";
 			this.index.setRange(NaN, NaN);
-		}
-		clearItemClass(className) {
-			this.menu.querySelectorAll(".dropDownItem");
 		}
 		setSelected(itemIndex) {
 			console.log("setSelected", itemIndex);
-			let items = this.menu.querySelectorAll(".dropDownItem");
-			for (let item of items) item.classList.remove("selected");
-			if (!isNaN(itemIndex)) items[itemIndex].classList.add("selected");
+			for (let item of this.list.children) item.classList.remove("selected");
+			if (!isNaN(itemIndex)) this.list.children[itemIndex].classList.add("selected");
+		}
+	};
+	//#endregion
+	//#region typescript/dropDownMenus.ts
+	var DropDownMenu = class {
+		menu;
+		container;
+		button;
+		cancelDropDown;
+		list;
+		constructor(container, button, showOnClick = true) {
+			this.container = container;
+			this.button = button;
+			this.container.classList.add("dropDownContainer");
+			this.button.classList.add("dropDownIgnoreHide", "dropDownButton");
+			let { first } = emmet.appendChild(this.container, "div.dropDownMenu.popoverMenu");
+			this.menu = first;
+			this.menu.setAttribute("popover", "");
+			this.list = new NavigatableList(this.menu);
+			if (showOnClick) this.button.onclick = async (ev) => {
+				ev.preventDefault();
+				ev.stopPropagation();
+				if (await this.cancelDropDown?.(ev)) return;
+				this.show();
+			};
+		}
+		addItem(title, indentLevel, onClick) {
+			return this.list.addItem(title, indentLevel, onClick);
+		}
+		addSeparator(title, indentLevel) {
+			this.list.addSeparator(title, indentLevel);
+		}
+		addInfo(element, indentLevel) {
+			this.list.addInfo(element, indentLevel);
+		}
+		setItemContent(index, title) {
+			this.list.setItemContent(index, title);
+		}
+		clickItem(itemIndex) {
+			this.list.clickItem(itemIndex);
+		}
+		removeItem(index) {
+			this.list.removeItem(index);
+		}
+		removeAllItems() {
+			this.list.removeAllItems();
+		}
+		setPosition(position) {
+			if (position === "left") this.container.classList.add("shiftMenuLeft");
+			else this.container.classList.remove("shiftMenuLeft");
+		}
+		show() {
+			console.log("show");
+			document.querySelectorAll(".activePopoverButton").forEach((p) => p.classList.remove("activePopoverButton"));
+			this.button.classList.add("activePopoverButton");
+			this.menu.showPopover();
+			setTimeout(() => {
+				this.list.getItem(0).focus();
+			});
+		}
+		hide() {
+			this.menu.hidePopover();
 		}
 	};
 	//#endregion
@@ -10064,31 +10056,13 @@
 				let signal = abortController.signal;
 				for (let lesRef of lesMatches) {
 					let index = dropDownMenu.addItem(lesRef.name, 0, () => {
+						abortController.abort();
 						dropDownMenu.hide();
 						location.href = `/#lessen-les?id=${lesRef.id}`;
 					});
 					queue = queue.then(() => updateMenuItem(dropDownMenu, index, lesRef, signal));
 				}
-				getUpDownNavigator().setSelectionChangedHandler((navigator) => {
-					dropDownMenu.setSelected(navigator.selectedItem);
-					console.log(navigator.selectedItem);
-				});
-				getUpDownNavigator().setSelectingHandler((navigator) => {
-					abortController.abort();
-					ignoreNextEnter = true;
-					dropDownMenu.hide();
-					dropDownMenu.clickItem(navigator.selectedItem);
-					document.body.focus();
-				});
-				getUpDownNavigator().selectedItem = 0;
-				getUpDownNavigator().setRange(0, lesMatches.length - 1);
 				dropDownMenu.show();
-				dropDownMenu.menu.addEventListener("toggle", (ev) => {
-					if (ev.newState != "open") {
-						getUpDownNavigator().clearSelectionChangedHandler();
-						getUpDownNavigator().clearSelectingHandler();
-					}
-				});
 			}
 		}
 		return true;

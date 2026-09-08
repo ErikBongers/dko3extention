@@ -88,32 +88,14 @@ async function gotoLesName(lesName: string) {
             let signal = abortController.signal;
             for (let lesRef of lesMatches) {
                 let index = dropDownMenu.addItem(lesRef.name, 0, () => {
+                    abortController.abort();
                     dropDownMenu.hide();
                     location.href = `/#lessen-les?id=${lesRef.id}`;
                 });
                 //make sure the internal awaits in updateMenuItem() remain grouped:
                 queue = queue.then(() => updateMenuItem(dropDownMenu, index, lesRef, signal));
             }
-            getUpDownNavigator().setSelectionChangedHandler((navigator) => {
-                dropDownMenu.setSelected(navigator.selectedItem);
-                console.log(navigator.selectedItem);
-            });
-            getUpDownNavigator().setSelectingHandler((navigator) => {
-                abortController.abort();
-                ignoreNextEnter = true;
-                dropDownMenu.hide();
-                dropDownMenu.clickItem(navigator.selectedItem);
-                document.body.focus();
-            });
-            getUpDownNavigator().selectedItem = 0;
-            getUpDownNavigator().setRange(0, lesMatches.length - 1);
             dropDownMenu.show();
-            dropDownMenu.menu.addEventListener("toggle", (ev) => {
-                if(ev.newState != "open") {
-                    getUpDownNavigator().clearSelectionChangedHandler();
-                    getUpDownNavigator().clearSelectingHandler();
-                }
-            })
         }
     }
 

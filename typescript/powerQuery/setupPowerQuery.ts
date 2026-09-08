@@ -138,25 +138,27 @@ function showPowerQuery(ev: KeyboardEvent) {
         scrapeMainMenu();
         powerQueryItems.push(...getSavedAndDefaultQueryItems());
         getHardCodedQueryItems();
-        getUpDownNavigator().setSelectionChangedHandler(powerQuerySelectionChangedHandler);
-        getUpDownNavigator().setSelectingHandler(powerQuerySelectingHandler);
+
         popover.showPopover();
-    } else {
-        if (!powerQueryVisible)
-            return;
-        if (isAlphaNumeric(ev.key) || ev.key === ' ') {
-            searchField.textContent += ev.key;
-            getUpDownNavigator().selectedItem = 0; //back to top.
-        } else if (ev.key == "Escape") {
-            if(searchField.textContent !== "") {
-                searchField.textContent = "";
-                getUpDownNavigator().selectedItem = 0;
-                ev.preventDefault();
-            }
-            //else: default behaviour: close popup.
-        } else if (ev.key == "Backspace") {
-            searchField.textContent = searchField.textContent.slice(0, -1);
+        filterItems(searchField.textContent);
+    }
+}
+
+function menuKeyDownHandler(ev: KeyboardEvent) {
+    if (!powerQueryVisible)
+        return;
+    if (isAlphaNumeric(ev.key) || ev.key === ' ') {
+        searchField.textContent += ev.key;
+        getUpDownNavigator().selectedItem = 0; //back to top.
+    } else if (ev.key == "Escape") {
+        if(searchField.textContent !== "") {
+            searchField.textContent = "";
+            getUpDownNavigator().selectedItem = 0;
+            ev.preventDefault();
         }
+        //else: default behaviour: close popup.
+    } else if (ev.key == "Backspace") {
+        searchField.textContent = searchField.textContent.slice(0, -1);
     }
     filterItems(searchField.textContent);
 }
@@ -173,8 +175,6 @@ popover.id = "powerQuery";
 popover.addEventListener("toggle", (ev) => {
     // @ts-ignore
     powerQueryVisible = ev.newState === "open";
-    if(!powerQueryVisible)
-        getUpDownNavigator().clearSelectionChangedHandler();
 });
 
 let searchField = document.createElement("label");
