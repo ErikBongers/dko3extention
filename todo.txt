@@ -1,3 +1,9 @@
+* Not very important bug:
+Uncaught (in promise) AbortError: signal is aborted without reason
+    at globalSearch.ts:89:37
+    at item.onclick (navigatableList.ts:56:13)
+    at HTMLDivElement.onMenuKeyDown (navigatableList.ts:38:44)
+
 * Avoid calling 'onclick' handler directly, but rather do a full screen refresh to avoid DKO3 statefull issues.
 
 * rename CachedLesId to LesRef
