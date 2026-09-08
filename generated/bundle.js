@@ -1531,8 +1531,8 @@
 		set(text) {
 			this.lastText = text;
 		}
-		async fetch(url) {
-			this.lastText = await fetchText(url ?? this.lastText ?? "--null--");
+		async fetch(url, signal) {
+			this.lastText = await fetchText(url ?? this.lastText ?? "--null--", signal);
 			return this.lastText;
 		}
 		findDocReadyLoadUrl() {
@@ -1588,8 +1588,8 @@
 			scanner = docReady;
 		}
 	}
-	async function fetchText(url) {
-		return (await fetch(url)).text();
+	async function fetchText(url, signal) {
+		return (await fetch(url, { signal })).text();
 	}
 	//#endregion
 	//#region typescript/roster_diff/excel.ts
@@ -6593,9 +6593,9 @@
 	}
 	//#endregion
 	//#region typescript/les/fetch.ts
-	async function fetchLes(id) {
+	async function fetchLes(id, signal) {
 		let chain = new FetchChain();
-		await chain.fetch("view.php?args=lessen-les?id=" + id);
+		await chain.fetch("view.php?args=lessen-les?id=" + id, signal);
 		chain.findDocReadyLoadUrl();
 		await chain.fetch();
 		let lesDetails = await chain.fetch(`views/lessen/les/index.details.tab.php`);
@@ -10023,8 +10023,13 @@
 		}
 		return "default";
 	}
-	async function updateMenuItem(dropDownMenu, index, lesRef) {
-		let les = await fetchLes(lesRef.id);
+	async function updateMenuItem(dropDownMenu, index, lesRef, signal) {
+		if (signal.aborted) {
+			console.log("ABORTED updateMenuItem:", lesRef.id);
+			return;
+		}
+		console.log("FETCHING updateMenuItem:", lesRef.id);
+		let les = await fetchLes(lesRef.id, signal);
 		let lesmomenten = les.lesMomenten.join("\n");
 		let infoBlock = createLesCard(lesRef.name, les.vak, "", lesmomenten, les.aantal, les.maxAantal, "wachtlijst");
 		dropDownMenu.setItemContent(index, infoBlock);
@@ -10039,18 +10044,21 @@
 				let dropDownMenu = new DropDownMenu(searchField.parentElement?.parentElement, searchField);
 				lesMatches.sort((a, b) => a.name.localeCompare(b.name));
 				let queue = Promise.resolve();
+				let abortController = new AbortController();
+				let signal = abortController.signal;
 				for (let lesRef of lesMatches) {
 					let index = dropDownMenu.addItem(lesRef.name, 0, () => {
 						dropDownMenu.hide();
 						location.href = `/#lessen-les?id=${lesRef.id}`;
 					});
-					queue = queue.then(() => updateMenuItem(dropDownMenu, index, lesRef));
+					queue = queue.then(() => updateMenuItem(dropDownMenu, index, lesRef, signal));
 				}
 				getUpDownNavigator().setSelectionChangedHandler((navigator) => {
 					dropDownMenu.setSelected(navigator.selectedItem);
 					console.log(navigator.selectedItem);
 				});
 				getUpDownNavigator().setSelectingHandler((navigator) => {
+					abortController.abort();
 					ignoreNextEnter = true;
 					dropDownMenu.hide();
 					dropDownMenu.clickItem(navigator.selectedItem);

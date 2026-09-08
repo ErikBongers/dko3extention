@@ -55,8 +55,13 @@ async function onEnterPressed(text: string) {
     return "default";
 }
 
-async function updateMenuItem(dropDownMenu: DropDownMenu, index: number, lesRef: CachedLesId) {
-    let les = await fetchLes(lesRef.id);
+async function updateMenuItem(dropDownMenu: DropDownMenu, index: number, lesRef: CachedLesId, signal: AbortSignal) {
+    if (signal.aborted) {
+        console.log("ABORTED updateMenuItem:", lesRef.id);
+        return;
+    }
+    console.log("FETCHING updateMenuItem:", lesRef.id);
+    let les = await fetchLes(lesRef.id, signal);
     let lesmomenten = les.lesMomenten.join("\n");
     // let wachtlijst = les.wachtlijst == 0 ? "span" : `span.red{ (${les.les.wachtlijst} op wachtlijst)}`;
     let wachtlijst = "wachtlijst";
@@ -79,19 +84,22 @@ async function gotoLesName(lesName: string) {
             let dropDownMenu = new DropDownMenu(searchField.parentElement?.parentElement!, searchField);
             lesMatches.sort((a, b) => a.name.localeCompare(b.name));
             let queue = Promise.resolve();
+            let abortController = new AbortController();
+            let signal = abortController.signal;
             for (let lesRef of lesMatches) {
                 let index = dropDownMenu.addItem(lesRef.name, 0, () => {
                     dropDownMenu.hide();
                     location.href = `/#lessen-les?id=${lesRef.id}`;
                 });
                 //make sure the internal awaits in updateMenuItem() remain grouped:
-                queue = queue.then(() => updateMenuItem(dropDownMenu, index, lesRef));
+                queue = queue.then(() => updateMenuItem(dropDownMenu, index, lesRef, signal));
             }
             getUpDownNavigator().setSelectionChangedHandler((navigator) => {
                 dropDownMenu.setSelected(navigator.selectedItem);
                 console.log(navigator.selectedItem);
             });
             getUpDownNavigator().setSelectingHandler((navigator) => {
+                abortController.abort();
                 ignoreNextEnter = true;
                 dropDownMenu.hide();
                 dropDownMenu.clickItem(navigator.selectedItem);

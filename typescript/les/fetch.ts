@@ -14,9 +14,9 @@ export interface LesDetails {
     lesMomenten: string[];
 }
 
-export async function fetchLes(id: string): Promise<LesDetails> {
+export async function fetchLes(id: string, signal?: AbortSignal): Promise<LesDetails> {
     let chain = new FetchChain();
-    await chain.fetch("view.php?args=lessen-les?id=" + id);
+    await chain.fetch("view.php?args=lessen-les?id=" + id, signal);
     chain.findDocReadyLoadUrl();
     await chain.fetch(); //index.view.php
     let tab = "details";
