@@ -6615,14 +6615,18 @@
 		let maxAantalText = rx.exec(maxAantalDiv)?.at(1);
 		let maxAantal = 0;
 		if (maxAantalText) maxAantal = parseInt(maxAantalText.trim());
+		let vestigingDiv = await chain.fetch("/views/lessen/les/details/index.details.vestigingsplaats.card.php");
+		vestigingDiv = vestigingDiv.replaceAll("<br>", "");
+		rx = /vestigingsplaats:\s*<strong>(.*?)<\/strong>/g;
+		let vestiging = rx.exec(vestigingDiv)?.at(1) ?? "";
 		await chain.fetch("/views/lessen/les/index.lesmomenten.tab.php");
 		let lesmomentenText = await chain.fetch("/views/lessen/les/lesmomenten/lesmomenten.card.php");
 		rx = /<strong>(.*?)<\/strong>/g;
 		let lesMomenten = [];
 		let match;
 		while (match = rx.exec(lesmomentenText)) lesMomenten.push(match[1]);
-		await chain.fetch("https://administratie.dko3.cloud/views/lessen/les/index.leerlingen.tab.php");
-		await chain.fetch("https://administratie.dko3.cloud/views/lessen/les/leerlingen/leerlingen.toolbar.php");
+		await chain.fetch("/views/lessen/les/index.leerlingen.tab.php");
+		await chain.fetch("/views/lessen/les/leerlingen/leerlingen.toolbar.php");
 		const now = /* @__PURE__ */ new Date();
 		const timestamp = new Intl.DateTimeFormat("sv-SE", {
 			year: "numeric",
@@ -6648,7 +6652,8 @@
 			maxAantal,
 			isIndividualLes: maxAantal == 0,
 			lesMomenten,
-			aantal: parseInt(aantallen[0])
+			aantal: parseInt(aantallen[0]),
+			vestiging
 		};
 	}
 	//#endregion
@@ -6905,10 +6910,11 @@
 			gotoButton
 		};
 	}
-	function createLesCard(lesName, vakName, full, lesmoment, aantal, maxAantal, wachtlijst) {
+	function createLesCard(lesName, vakName, full, lesmoment, aantal, maxAantal, wachtlijst, vestiging) {
 		return emmet.indent.createElement(`
             div.small${full}
                 div.bold.pre{${buildLesTitle(lesName, vakName)}}
+                div.pre{${vestiging}}
                 div.pre{${lesmoment}}
                 div.pre{${aantal}/${maxAantal} lln} 
                     ${wachtlijst}
@@ -6931,7 +6937,7 @@
 			let lesmoment = les.les.formattedLesmoment.replace("(wekelijks)", "").trim();
 			let wachtlijst = les.les.wachtlijst == 0 ? "span" : `span.red{ (${les.les.wachtlijst} op wachtlijst)}`;
 			let full = les.les.aantal >= les.les.maxAantal ? ".full" : "";
-			let infoBlock = createLesCard(les.les.naam, les.les.vakNaam, full, lesmoment, les.les.aantal, les.les.maxAantal, wachtlijst);
+			let infoBlock = createLesCard(les.les.naam, les.les.vakNaam, full, lesmoment, les.les.aantal, les.les.maxAantal, wachtlijst, les.les.vestiging);
 			menu.addInfo(infoBlock, 0);
 		}
 	}
@@ -10035,7 +10041,9 @@
 		console.log("FETCHING updateMenuItem:", lesRef.id);
 		let les = await fetchLes(lesRef.id, signal);
 		let lesmomenten = les.lesMomenten.join("\n");
-		let infoBlock = createLesCard(lesRef.name, les.vak, "", lesmomenten, les.aantal, les.maxAantal, "wachtlijst");
+		let wachtlijst = "wachtlijst";
+		let full = les.aantal >= les.maxAantal ? ".full" : "";
+		let infoBlock = createLesCard(lesRef.name, les.vak, full, lesmomenten, les.aantal, les.maxAantal, wachtlijst, les.vestiging);
 		dropDownMenu.setItemContent(index, infoBlock);
 	}
 	async function gotoLesName(lesName) {

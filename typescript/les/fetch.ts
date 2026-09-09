@@ -12,6 +12,7 @@ export interface LesDetails {
     maxAantal: number;
     isIndividualLes: boolean;
     lesMomenten: string[];
+    vestiging: string;
 }
 
 export async function fetchLes(id: string, signal?: AbortSignal): Promise<LesDetails> {
@@ -39,6 +40,12 @@ export async function fetchLes(id: string, signal?: AbortSignal): Promise<LesDet
     if (maxAantalText) {
         maxAantal = parseInt(maxAantalText.trim());
     }
+    let vestigingDiv = await chain.fetch("/views/lessen/les/details/index.details.vestigingsplaats.card.php")
+    vestigingDiv = vestigingDiv.replaceAll("<br>", "")
+    rx = /vestigingsplaats:\s*<strong>(.*?)<\/strong>/g;
+    let vestigingText = rx.exec(vestigingDiv)?.at(1);
+    let vestiging = vestigingText??"";
+
     await chain.fetch("/views/lessen/les/index.lesmomenten.tab.php");
     let lesmomentenText = await chain.fetch("/views/lessen/les/lesmomenten/lesmomenten.card.php");
     rx = /<strong>(.*?)<\/strong>/g;
@@ -48,8 +55,8 @@ export async function fetchLes(id: string, signal?: AbortSignal): Promise<LesDet
         lesMomenten.push(match[1]);
     }
 
-    await chain.fetch("https://administratie.dko3.cloud/views/lessen/les/index.leerlingen.tab.php");
-    await chain.fetch("https://administratie.dko3.cloud/views/lessen/les/leerlingen/leerlingen.toolbar.php");
+    await chain.fetch("/views/lessen/les/index.leerlingen.tab.php");
+    await chain.fetch("/views/lessen/les/leerlingen/leerlingen.toolbar.php");
     const now = new Date();
 
     //use swedish formatting "2026-09-08 12:29:59"
@@ -89,6 +96,7 @@ export async function fetchLes(id: string, signal?: AbortSignal): Promise<LesDet
         maxAantal,
         isIndividualLes: maxAantal == 0,
         lesMomenten,
-        aantal: parseInt(aantallen[0])
+        aantal: parseInt(aantallen[0]),
+        vestiging,
     };
 }

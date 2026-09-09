@@ -63,9 +63,8 @@ async function updateMenuItem(dropDownMenu: DropDownMenu, index: number, lesRef:
     let lesmomenten = les.lesMomenten.join("\n");
     // let wachtlijst = les.wachtlijst == 0 ? "span" : `span.red{ (${les.les.wachtlijst} op wachtlijst)}`;
     let wachtlijst = "wachtlijst";
-    // let full = les.les.aantal >= les.les.maxAantal ? ".full": "";
-    let full = "";
-    let infoBlock = createLesCard(lesRef.name, les.vak, full, lesmomenten, les.aantal, les.maxAantal, wachtlijst);
+    let full = les.aantal >= les.maxAantal ? ".full": "";
+    let infoBlock = createLesCard(lesRef.name, les.vak, full, lesmomenten, les.aantal, les.maxAantal, wachtlijst, les.vestiging);
     dropDownMenu.setItemContent(index, infoBlock);
 }
 

@@ -342,10 +342,11 @@ function scrapeLesInfoDetails(tr: HTMLTableRowElement, detailsTdOffset: number) 
     return lesInfo;
 }
 
-export function createLesCard(lesName: string, vakName: string, full: string, lesmoment: string, aantal: number, maxAantal:number, wachtlijst: string) {
+export function createLesCard(lesName: string, vakName: string, full: string, lesmoment: string, aantal: number, maxAantal:number, wachtlijst: string, vestiging: string) {
     let infoBlock = emmet.indent.createElement(`
             div.small${full}
                 div.bold.pre{${buildLesTitle(lesName, vakName)}}
+                div.pre{${vestiging}}
                 div.pre{${lesmoment}}
                 div.pre{${aantal}/${maxAantal} lln} 
                     ${wachtlijst}
@@ -372,7 +373,7 @@ async function fillClassesMenu(menu: DropDownMenu, opleiding: Opleiding, vak: st
         let lesmoment = les.les.formattedLesmoment.replace('(wekelijks)', "").trim();
         let wachtlijst = les.les.wachtlijst == 0 ? "span" : `span.red{ (${les.les.wachtlijst} op wachtlijst)}`;
         let full = les.les.aantal >= les.les.maxAantal ? ".full": "";
-        let infoBlock = createLesCard(les.les.naam, les.les.vakNaam, full, lesmoment, les.les.aantal, les.les.maxAantal, wachtlijst);
+        let infoBlock = createLesCard(les.les.naam, les.les.vakNaam, full, lesmoment, les.les.aantal, les.les.maxAantal, wachtlijst, les.les.vestiging);
         menu.addInfo(infoBlock, 0);
     }
 }
