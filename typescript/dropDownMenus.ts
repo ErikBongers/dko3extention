@@ -31,7 +31,7 @@ export class DropDownMenu {
         this.container.classList.add("dropDownContainer");
         this.button.classList.add("dropDownIgnoreHide", "dropDownButton");
         //remove previous drop down menus
-        document.querySelectorAll("div.dropDownMenu").forEach(el => el.remove());
+        document.querySelectorAll("div.dropDownMenu").forEach(el => el.remove()); //todo: do this before show? This would allow to have multiple drop down menus at the same time.
         let {first} = emmet.appendChild(this.container as HTMLElement, "div.dropDownMenu.popoverMenu");
         this.menu = first as HTMLElement;
         this.menu.setAttribute("popover", "");

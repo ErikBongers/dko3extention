@@ -224,24 +224,20 @@ function decorateTrimModules(tabInschrijving: HTMLElement) {
 }
 
 async function onInschrijvingChanged(tabInschrijving: HTMLElement) {
-    db3("inschrijving (tab) changed.");
-
     decorateSchooljaar();
-
     decorateTrimModules(tabInschrijving);
-
     if (options.showNotAssignedClasses) {
         setStripedLessons();
     }
 
-    let opleidingen = scrapeOpleidingen();
-    for(let opleiding of opleidingen) {
+    for(let opleiding of scrapeOpleidingen()) {
         for(let lesInfo of opleiding.lessen) {
-            if(!lesInfo.gotoButton)
+            if(!lesInfoHasButton(lesInfo))
                 continue;
             let btnOnClick = lesInfo.gotoButton.getAttribute("onclick");
             if(!btnOnClick)
                 continue;
+            //todo: scrape lesId inside scrapeOpleidingen.
             let matchLesId = btnOnClick.match(/id=(\d+)/);
             if (matchLesId) {
                 let lesId = matchLesId[1];
@@ -250,22 +246,24 @@ async function onInschrijvingChanged(tabInschrijving: HTMLElement) {
                 let newBtnGotoLes = lesInfo.gotoButton.cloneNode(true) as HTMLElement;
                 lesInfo.gotoButton.replaceWith(newBtnGotoLes);
                 newBtnGotoLes.dataset.originalOnClick = btnOnClick;
-                let menu = new DropDownMenu(wrapper, newBtnGotoLes);
-                menu.setPosition("left");
-                menu.cancelDropDown = async () => {
-                    let lesDetails = await fetchLes(lesId);
-                    if (!lesDetails.isIndividualLes) {
-                        fillClassesMenu(menu, opleiding, lesInfo.vak, btnOnClick).then(() => {}); //fallthrough
-                        return false;
-                    }
-                    menu.removeAllItems();
-                    menu.addItem("Ga naar les", 0, btnOnClick);
-                    menu.clickItem(0);
-                    return true; //CANCEL
-                }
+                newBtnGotoLes.onclick = () => showGotoLesMenu(wrapper, newBtnGotoLes, btnOnClick, lesInfo, opleiding, lesId);
             }
         }
     }
+}
+
+async function showGotoLesMenu(wrapper: HTMLElement, button: HTMLElement, btnOnClick: string, lesInfo: LesInfo, opleiding: Opleiding, lesId: string) {
+    let menu = new DropDownMenu(wrapper, button, false);
+    menu.setPosition("left");
+    menu.addItem("Ga naar les", 0, btnOnClick);
+    menu.addSeparator(`Bezig met laden...`, 0);
+    menu.show();
+    let lesDetails = await fetchLes(lesId);
+    if (lesDetails.isIndividualLes) {
+        menu.clickItem(0);
+        return;
+    }
+    await fillClassesMenu(menu, opleiding, lesInfo.vak, btnOnClick);
 }
 
 interface LesInfo {
@@ -274,6 +272,11 @@ interface LesInfo {
     gotoButton: HTMLButtonElement | null;
 }
 
+type LesInfoWitButton = Omit<LesInfo, 'gotoButton'> & { gotoButton: HTMLButtonElement };
+
+function lesInfoHasButton(lesInfo: LesInfo): lesInfo is LesInfoWitButton {
+    return lesInfo.gotoButton !== null;
+}
 
 interface Opleiding {
     domein: DomeinString | "";

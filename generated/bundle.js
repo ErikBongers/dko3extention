@@ -6820,13 +6820,11 @@
 		}
 	}
 	async function onInschrijvingChanged(tabInschrijving) {
-		db3("inschrijving (tab) changed.");
 		decorateSchooljaar();
 		decorateTrimModules(tabInschrijving);
 		if (options.showNotAssignedClasses) setStripedLessons();
-		let opleidingen = scrapeOpleidingen();
-		for (let opleiding of opleidingen) for (let lesInfo of opleiding.lessen) {
-			if (!lesInfo.gotoButton) continue;
+		for (let opleiding of scrapeOpleidingen()) for (let lesInfo of opleiding.lessen) {
+			if (!lesInfoHasButton(lesInfo)) continue;
 			let btnOnClick = lesInfo.gotoButton.getAttribute("onclick");
 			if (!btnOnClick) continue;
 			let matchLesId = btnOnClick.match(/id=(\d+)/);
@@ -6837,20 +6835,24 @@
 				let newBtnGotoLes = lesInfo.gotoButton.cloneNode(true);
 				lesInfo.gotoButton.replaceWith(newBtnGotoLes);
 				newBtnGotoLes.dataset.originalOnClick = btnOnClick;
-				let menu = new DropDownMenu(wrapper, newBtnGotoLes);
-				menu.setPosition("left");
-				menu.cancelDropDown = async () => {
-					if (!(await fetchLes(lesId)).isIndividualLes) {
-						fillClassesMenu(menu, opleiding, lesInfo.vak, btnOnClick).then(() => {});
-						return false;
-					}
-					menu.removeAllItems();
-					menu.addItem("Ga naar les", 0, btnOnClick);
-					menu.clickItem(0);
-					return true;
-				};
+				newBtnGotoLes.onclick = () => showGotoLesMenu(wrapper, newBtnGotoLes, btnOnClick, lesInfo, opleiding, lesId);
 			}
 		}
+	}
+	async function showGotoLesMenu(wrapper, button, btnOnClick, lesInfo, opleiding, lesId) {
+		let menu = new DropDownMenu(wrapper, button, false);
+		menu.setPosition("left");
+		menu.addItem("Ga naar les", 0, btnOnClick);
+		menu.addSeparator(`Bezig met laden...`, 0);
+		menu.show();
+		if ((await fetchLes(lesId)).isIndividualLes) {
+			menu.clickItem(0);
+			return;
+		}
+		await fillClassesMenu(menu, opleiding, lesInfo.vak, btnOnClick);
+	}
+	function lesInfoHasButton(lesInfo) {
+		return lesInfo.gotoButton !== null;
 	}
 	function scrapeOpleidingen() {
 		let tBody = document.getElementById("leerling_inschrijvingen_weergave").querySelector("tbody");
