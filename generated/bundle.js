@@ -6447,14 +6447,13 @@
 		let warningBadges = lesCell.getElementsByClassName("badge-warning");
 		let tags = Array.from(warningBadges).map((el) => el.textContent).filter((txt) => txt !== "ALC").filter((txt) => txt);
 		let mutedSpans = lesCell.querySelectorAll("span.text-muted");
-		let childrenElementsUptoFirstBR = [];
+		let lastTextMutedSpanText = "";
 		let childrenElements = lesCell.children;
 		for (let i = 0; i < childrenElements.length; i++) {
 			if (childrenElements[i].tagName === "BR") break;
-			childrenElementsUptoFirstBR.push(childrenElements[i]);
+			if (childrenElements[i].tagName === "SPAN" && childrenElements[i].classList.contains("text-muted")) lastTextMutedSpanText = childrenElements[i].textContent;
 		}
-		let firstLine = childrenElementsUptoFirstBR.map((el) => el.textContent).join(" ");
-		let naam = /\((.+?)\)/.exec(firstLine)?.at(1) ?? "";
+		let naam = lastTextMutedSpanText.replace("(", "").replace(")", "");
 		let lesType;
 		if (Array.from(allBadges).some((el) => el.textContent === "module")) {
 			if (naam.includes("jaar")) lesType = 1;
@@ -10210,23 +10209,7 @@
 		}
 	}));
 	//#endregion
-	//#region typescript/db/sessionDb.ts
-	const DB_VERSION = 1;
-	const DB_NAME = "sessionStorage";
-	const dbSession = initializeSession();
-	function initializeSession() {
-		if (!sessionStorage.getItem("session_active")) {
-			const deleteRequest = indexedDB.deleteDatabase(DB_NAME);
-			deleteRequest.onsuccess = () => {
-				sessionStorage.setItem("session_active", "true");
-				console.log("Database deleted successfully");
-			};
-		}
-		return openDB(DB_NAME, DB_VERSION, { upgrade(db) {
-			db.createObjectStore("LesRefs", { keyPath: "id" });
-			db.createObjectStore("Loaded");
-		} });
-	}
+	//#region typescript/db/repository.ts
 	var Repository = class {
 		dbPromise;
 		storeName;
@@ -10249,6 +10232,24 @@
 			return (await (await this.dbPromise).getAll(this.storeName)).filter(match);
 		}
 	};
+	//#endregion
+	//#region typescript/db/sessionDb.ts
+	const DB_VERSION = 1;
+	const DB_NAME = "sessionStorage";
+	const dbSession = initializeSession();
+	function initializeSession() {
+		if (!sessionStorage.getItem("session_active")) {
+			const deleteRequest = indexedDB.deleteDatabase(DB_NAME);
+			deleteRequest.onsuccess = () => {
+				sessionStorage.setItem("session_active", "true");
+				console.log("Database deleted successfully");
+			};
+		}
+		return openDB(DB_NAME, DB_VERSION, { upgrade(db) {
+			db.createObjectStore("LesRefs", { keyPath: "id" });
+			db.createObjectStore("Loaded");
+		} });
+	}
 	const SessionCache = {
 		LesRefs: new Repository(dbSession, "LesRefs"),
 		Loaded: new Repository(dbSession, "Loaded")
