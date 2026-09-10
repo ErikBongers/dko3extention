@@ -315,7 +315,7 @@ function scrapeOpleidingRow(tr: HTMLTableRowElement) {
     if (tdText.includes("Muziek")) domein = "Muziek";
     if (tdText.includes("Woord")) domein = "Woord";
     console.log("tdOpleiding", tdText, domein);
-    let rx = new RegExp(`${domein}\\s*-\\s*<strong>(.*?)</strong>`);
+    let rx = new RegExp(`${domein}\\s*-\\s*<strong>v*(.*?)</strong>`); // v2.1 denotes VRIJE LLN 2.1
     let gradeYearText = rx.exec(tdOpleiding.innerHTML)?.at(1);
     let gradeYears: GradeYear[] = [];
     if (gradeYearText)
@@ -422,4 +422,3 @@ async function getModules(_size: string, _modal: string, _file: string, args: st
     return Array.from(checks)
         .map(check => check.parentNode!.parentNode!.parentNode!.querySelector("strong")!.textContent);
 }
-
