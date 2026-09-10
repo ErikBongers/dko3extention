@@ -3,6 +3,7 @@ import {DBSchema, IDBPDatabase, openDB, StoreKey, StoreNames, StoreValue} from '
 //todo: use typed db: https://github.com/jakearchibald/idb#examples
 
 const DB_VERSION = 1;
+const DB_NAME = 'sessionStorage';
 
 export interface LesRef {
     id: string;
@@ -26,13 +27,13 @@ const dbSession = initializeSession();
 
 function initializeSession() {
     if (!sessionStorage.getItem('session_active')) {
-        const deleteRequest = indexedDB.deleteDatabase('Session_DB');
+        const deleteRequest = indexedDB.deleteDatabase(DB_NAME);
         deleteRequest.onsuccess = () => {
             sessionStorage.setItem('session_active', 'true');
             console.log('Database deleted successfully');
         };
     }
-    return openDB<SessionDb>('sessionStorage', DB_VERSION, {
+    return openDB<SessionDb>(DB_NAME, DB_VERSION, {
         upgrade(db) {
             db.createObjectStore("LesRefs", {keyPath: "id"});
             db.createObjectStore("Loaded");

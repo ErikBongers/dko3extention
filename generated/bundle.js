@@ -10212,16 +10212,17 @@
 	//#endregion
 	//#region typescript/db/sessionDb.ts
 	const DB_VERSION = 1;
+	const DB_NAME = "sessionStorage";
 	const dbSession = initializeSession();
 	function initializeSession() {
 		if (!sessionStorage.getItem("session_active")) {
-			const deleteRequest = indexedDB.deleteDatabase("Session_DB");
+			const deleteRequest = indexedDB.deleteDatabase(DB_NAME);
 			deleteRequest.onsuccess = () => {
 				sessionStorage.setItem("session_active", "true");
 				console.log("Database deleted successfully");
 			};
 		}
-		return openDB("sessionStorage", DB_VERSION, { upgrade(db) {
+		return openDB(DB_NAME, DB_VERSION, { upgrade(db) {
 			db.createObjectStore("LesRefs", { keyPath: "id" });
 			db.createObjectStore("Loaded");
 		} });
