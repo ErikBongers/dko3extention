@@ -6,10 +6,17 @@ import {Repository} from "./repository";
 const DB_VERSION = 1;
 const DB_NAME = 'sessionStorage';
 
-export interface LesRef {
+export interface Ref {
     id: string;
+}
+
+export interface LesRef extends Ref {
     name: string;
     vak: string;
+}
+
+export interface AssetRef extends Ref {
+    code: string;
 }
 
 interface SessionDb extends DBSchema {
@@ -22,7 +29,13 @@ interface SessionDb extends DBSchema {
         key: string;
         value: boolean;
         indexes: {};
-    }
+    },
+    Assets: {
+        key: string;
+        value: AssetRef;
+        indexes: {};
+    },
+
 }
 
 const dbSession = initializeSession();
@@ -39,6 +52,7 @@ function initializeSession() {
         upgrade(db) {
             db.createObjectStore("LesRefs", {keyPath: "id"});
             db.createObjectStore("Loaded");
+            db.createObjectStore("Assets");
         },
     });
 }
@@ -46,4 +60,5 @@ function initializeSession() {
 export const SessionCache = {
     LesRefs: new Repository<SessionDb, "LesRefs">(dbSession, 'LesRefs'),
     Loaded: new Repository<SessionDb, "Loaded">(dbSession, 'Loaded'),
+    AssetRefs: new Repository<SessionDb, "Assets">(dbSession, 'Assets'),
 };

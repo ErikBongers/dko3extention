@@ -10271,11 +10271,13 @@
 		return openDB(DB_NAME, DB_VERSION, { upgrade(db) {
 			db.createObjectStore("LesRefs", { keyPath: "id" });
 			db.createObjectStore("Loaded");
+			db.createObjectStore("Assets");
 		} });
 	}
 	const SessionCache = {
 		LesRefs: new Repository(dbSession, "LesRefs"),
-		Loaded: new Repository(dbSession, "Loaded")
+		Loaded: new Repository(dbSession, "Loaded"),
+		AssetRefs: new Repository(dbSession, "Assets")
 	};
 	//#endregion
 	//#region typescript/globalSearch.ts
@@ -10313,11 +10315,11 @@
 		if ("les".startsWith(key)) {
 			if (await gotoLesName(value.trim())) return "cancel";
 		} else if ("ma".startsWith(key)) {
-			if (await gotoLesName(value.trim(), "Muziekatelier")) return "cancel";
-		}
+			if (await gotoLesRef(value.trim(), "Muziekatelier")) return "cancel";
+		} else if ("asset".startsWith(key)) {}
 		return "default";
 	}
-	async function updateMenuItem(dropDownMenu, index, lesRef, signal) {
+	async function updateLesMenuItem(dropDownMenu, index, lesRef, signal) {
 		if (signal.aborted) {
 			console.log("ABORTED updateMenuItem:", lesRef.id);
 			return;
@@ -10348,7 +10350,34 @@
 						dropDownMenu.remove();
 						location.href = `/#lessen-les?id=${lesRef.id}`;
 					});
-					queue = queue.then(() => updateMenuItem(dropDownMenu, index, lesRef, signal));
+					queue = queue.then(() => updateLesMenuItem(dropDownMenu, index, lesRef, signal));
+				}
+				dropDownMenu.show();
+			}
+		}
+		return true;
+	}
+	async function gotoLesRef(lesName, vak) {
+		return gotoRef(() => getLesMatches(lesName, vak), "/#lessen-les?id=", (lesRef) => lesRef.name, updateLesMenuItem);
+	}
+	async function gotoRef(getMatches, gotoUrl, getLabel, updateMenuItem) {
+		let matches = await getMatches();
+		if (matches) {
+			if (matches.length == 1) location.href = gotoUrl + matches[0].id;
+			else if (matches.length > 1) {
+				let searchField = document.getElementById("snel_zoeken_veld_zoektermen");
+				let dropDownMenu = new DropDownMenu(searchField.parentElement?.parentElement, searchField, false);
+				matches.sort((a, b) => getLabel(a).localeCompare(getLabel(b)));
+				let queue = Promise.resolve();
+				let abortController = new AbortController();
+				let signal = abortController.signal;
+				for (let ref of matches) {
+					let index = dropDownMenu.addItem(getLabel(ref), 0, () => {
+						abortController.abort();
+						dropDownMenu.remove();
+						location.href = gotoUrl + ref.id;
+					});
+					queue = queue.then(() => updateMenuItem(dropDownMenu, index, ref, signal));
 				}
 				dropDownMenu.show();
 			}
@@ -10356,6 +10385,7 @@
 		return true;
 	}
 	async function getLesMatches(lesName, vak) {
+		if (!lesName) return [];
 		let lowerCase = lesName.toLowerCase();
 		if (!await SessionCache.Loaded.get("LesRefs")) {
 			let lesRefs = (await scrapeLessen("3", "1", Schoolyear.toFullString(Schoolyear.calculateCurrent()))).map((l) => ({
