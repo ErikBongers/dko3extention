@@ -5,7 +5,8 @@ import {Schoolyear} from "./globals";
 import {DropDownMenu} from "./dropDownMenus";
 import {fetchLes} from "./les/fetch";
 import {createLesCard} from "./leerling/observer";
-import {LesRef, Ref, SessionCache} from "./db/sessionDb";
+import {AssetRef, LesRef, Ref, SessionCache} from "./db/sessionDb";
+import {scrapeAssets} from "./assets/scrape";
 
 export function onPasteInGlobalSearchField(e: ClipboardEvent) {
     if (!options.stripCommasOnPaste)
@@ -54,25 +55,31 @@ async function onEnterPressed(text: string) {
         if (await gotoLesRef(value.trim(), "Muziekatelier"))
             return "cancel";
     } else if("asset".startsWith(key)) {
-        //todo  if (await gotoAsset(value.trim()))
-        //     return "cancel";
+        if (await gotoAssetRef(value.trim()))
+            return "cancel";
     }
     return "default";
 }
 
 async function updateLesMenuItem(dropDownMenu: DropDownMenu, index: number, lesRef: LesRef, signal: AbortSignal) {
-    if (signal.aborted) {
+    if (signal.aborted) { //todo: move this out of here
         console.log("ABORTED updateMenuItem:", lesRef.id);
         return;
     }
-    console.log("FETCHING updateMenuItem:", lesRef.id);
     let les = await fetchLes(lesRef.id, signal);
     let lesmomenten = les.lesMomenten.join("\n");
-    // let wachtlijst = les.wachtlijst == 0 ? "span" : `span.red{ (${les.les.wachtlijst} op wachtlijst)}`;
     let wachtlijst = "wachtlijst";
     let full = les.aantal >= les.maxAantal ? ".full": "";
     let infoBlock = createLesCard(lesRef.name, les.vak, full, lesmomenten, les.aantal, les.maxAantal, wachtlijst, les.vestiging);
     dropDownMenu.setItemContent(index, infoBlock);
+}
+
+async function updateAssetMenuItem(dropDownMenu: DropDownMenu, index: number, assetRef: AssetRef, signal: AbortSignal) {
+    if (signal.aborted) { //todo: move this out of here
+        console.log("ABORTED updateMenuItem:", assetRef.id);
+        return;
+    }
+    //don' do nottin' for now...
 }
 
 async function gotoLesName(lesName: string, vak?: string) {
@@ -112,6 +119,15 @@ async function gotoLesRef(lesName: string, vak?: string) {
         "/#lessen-les?id=",
         (lesRef) => lesRef.name,
         updateLesMenuItem
+    );
+}
+
+async function gotoAssetRef(assetCode: string) {
+    return gotoRef<AssetRef>(
+        () => getAssetMatches(assetCode),
+        "/#extra-assets-assets-details?id=",
+        (assetRef) => assetRef.code,
+        updateAssetMenuItem
     );
 }
 
@@ -162,4 +178,19 @@ async function getLesMatches(lesName: string, vak?: string) {
         return SessionCache.LesRefs.findMatches(lesRef => lesRef.name.toLowerCase().includes(lowerCase) && lesRef.vak == vak);
 
     return SessionCache.LesRefs.findMatches(lesRef => lesRef.name.toLowerCase().includes(lowerCase));
+}
+
+async function getAssetMatches(assetCode: string) {
+    if(!assetCode)
+        return [];
+    let lowerCase = assetCode.toLowerCase();
+    let loaded = await SessionCache.Loaded.get("AssetRefs");
+    if (!loaded) {
+        let assets = await scrapeAssets();
+        let assetRefs = assets
+            .map<AssetRef>(asset => ({id: asset.id, code: asset.code}));
+        await SessionCache.AssetRefs.bulkPut(assetRefs);
+        await SessionCache.Loaded.put(true, "AssetRefs");
+    }
+    return SessionCache.AssetRefs.findMatches(assetRef => assetRef.code.toLowerCase().includes(lowerCase));
 }

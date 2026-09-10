@@ -52,7 +52,7 @@ function initializeSession() {
         upgrade(db) {
             db.createObjectStore("LesRefs", {keyPath: "id"});
             db.createObjectStore("Loaded");
-            db.createObjectStore("Assets");
+            db.createObjectStore("Assets", {keyPath: "id"});
         },
     });
 }

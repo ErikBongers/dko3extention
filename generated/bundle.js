@@ -10271,7 +10271,7 @@
 		return openDB(DB_NAME, DB_VERSION, { upgrade(db) {
 			db.createObjectStore("LesRefs", { keyPath: "id" });
 			db.createObjectStore("Loaded");
-			db.createObjectStore("Assets");
+			db.createObjectStore("Assets", { keyPath: "id" });
 		} });
 	}
 	const SessionCache = {
@@ -10279,6 +10279,19 @@
 		Loaded: new Repository(dbSession, "Loaded"),
 		AssetRefs: new Repository(dbSession, "Assets")
 	};
+	//#endregion
+	//#region typescript/assets/scrape.ts
+	async function scrapeAssets() {
+		let snel_zoeken = document.querySelector("#snel_zoeken");
+		let infoBlockDiv = document.createElement("div");
+		snel_zoeken.parentNode.insertBefore(infoBlockDiv, snel_zoeken);
+		return [...(await getTableFromHash("extra-assets-assets", true, new InfoBarTableFetchListener(createInfoBlock(infoBlockDiv, "")))).getRows()].map((row) => {
+			return {
+				id: row.cells[0].innerText,
+				code: row.cells[1].innerText.split("\n").shift() ?? ""
+			};
+		}).filter((asset) => asset.code);
+	}
 	//#endregion
 	//#region typescript/globalSearch.ts
 	function onPasteInGlobalSearchField(e) {
@@ -10316,7 +10329,9 @@
 			if (await gotoLesName(value.trim())) return "cancel";
 		} else if ("ma".startsWith(key)) {
 			if (await gotoLesRef(value.trim(), "Muziekatelier")) return "cancel";
-		} else if ("asset".startsWith(key)) {}
+		} else if ("asset".startsWith(key)) {
+			if (await gotoAssetRef(value.trim())) return "cancel";
+		}
 		return "default";
 	}
 	async function updateLesMenuItem(dropDownMenu, index, lesRef, signal) {
@@ -10324,13 +10339,18 @@
 			console.log("ABORTED updateMenuItem:", lesRef.id);
 			return;
 		}
-		console.log("FETCHING updateMenuItem:", lesRef.id);
 		let les = await fetchLes(lesRef.id, signal);
 		let lesmomenten = les.lesMomenten.join("\n");
 		let wachtlijst = "wachtlijst";
 		let full = les.aantal >= les.maxAantal ? ".full" : "";
 		let infoBlock = createLesCard(lesRef.name, les.vak, full, lesmomenten, les.aantal, les.maxAantal, wachtlijst, les.vestiging);
 		dropDownMenu.setItemContent(index, infoBlock);
+	}
+	async function updateAssetMenuItem(dropDownMenu, index, assetRef, signal) {
+		if (signal.aborted) {
+			console.log("ABORTED updateMenuItem:", assetRef.id);
+			return;
+		}
 	}
 	async function gotoLesName(lesName, vak) {
 		if (lesName.length == 0) return false;
@@ -10359,6 +10379,9 @@
 	}
 	async function gotoLesRef(lesName, vak) {
 		return gotoRef(() => getLesMatches(lesName, vak), "/#lessen-les?id=", (lesRef) => lesRef.name, updateLesMenuItem);
+	}
+	async function gotoAssetRef(assetCode) {
+		return gotoRef(() => getAssetMatches(assetCode), "/#extra-assets-assets-details?id=", (assetRef) => assetRef.code, updateAssetMenuItem);
 	}
 	async function gotoRef(getMatches, gotoUrl, getLabel, updateMenuItem) {
 		let matches = await getMatches();
@@ -10398,6 +10421,19 @@
 		}
 		if (vak) return SessionCache.LesRefs.findMatches((lesRef) => lesRef.name.toLowerCase().includes(lowerCase) && lesRef.vak == vak);
 		return SessionCache.LesRefs.findMatches((lesRef) => lesRef.name.toLowerCase().includes(lowerCase));
+	}
+	async function getAssetMatches(assetCode) {
+		if (!assetCode) return [];
+		let lowerCase = assetCode.toLowerCase();
+		if (!await SessionCache.Loaded.get("AssetRefs")) {
+			let assetRefs = (await scrapeAssets()).map((asset) => ({
+				id: asset.id,
+				code: asset.code
+			}));
+			await SessionCache.AssetRefs.bulkPut(assetRefs);
+			await SessionCache.Loaded.put(true, "AssetRefs");
+		}
+		return SessionCache.AssetRefs.findMatches((assetRef) => assetRef.code.toLowerCase().includes(lowerCase));
 	}
 	//#endregion
 	//#region typescript/main.ts
