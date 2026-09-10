@@ -6846,16 +6846,21 @@
 		}
 	}
 	async function showGotoLesMenu(wrapper, button, btnOnClick, lesInfo, opleiding, lesId) {
-		let menu = new DropDownMenu(wrapper, button, false);
-		menu.setPosition("left");
-		menu.addItem("Ga naar les", 0, btnOnClick);
-		menu.addSeparator(`Bezig met laden...`, 0);
-		menu.show();
-		if ((await fetchLes(lesId)).isIndividualLes) {
-			menu.clickItem(0);
-			return;
+		try {
+			let menu = new DropDownMenu(wrapper, button, false);
+			menu.setPosition("left");
+			menu.addItem("Ga naar les", 0, btnOnClick);
+			menu.addSeparator(`Bezig met laden...`, 0);
+			menu.show();
+			if ((await fetchLes(lesId)).isIndividualLes) {
+				menu.clickItem(0);
+				return;
+			}
+			await fillClassesMenu(menu, opleiding, lesInfo.vak, btnOnClick);
+		} catch (e) {
+			console.error(e);
+			location.href = `/#lessen-les?id=${lesId}`;
 		}
-		await fillClassesMenu(menu, opleiding, lesInfo.vak, btnOnClick);
 	}
 	function lesInfoHasButton(lesInfo) {
 		return lesInfo.gotoButton !== null;
@@ -6934,13 +6939,7 @@
 		lessons.sort((a, b) => buildLesTitle(a.les.naam, a.les.vakNaam).localeCompare(buildLesTitle(b.les.naam, b.les.vakNaam)));
 		menu.removeItem(1);
 		menu.addSeparator("Alternatieven:", 0);
-		for (let les of lessons) {
-			let lesmoment = les.les.formattedLesmoment.replace("(wekelijks)", "").trim();
-			let wachtlijst = les.les.wachtlijst == 0 ? "span" : `span.red{ (${les.les.wachtlijst} op wachtlijst)}`;
-			let full = les.les.aantal >= les.les.maxAantal ? ".full" : "";
-			let infoBlock = createLesCard(les.les.naam, les.les.vakNaam, full, lesmoment, les.les.aantal, les.les.maxAantal, wachtlijst, les.les.vestiging);
-			menu.addInfo(infoBlock, 0);
-		}
+		for (let les of lessons) throw new Error("TEST");
 	}
 	function buildLesTitle(lesName, vakName) {
 		return `${lesName ? lesName : vakName + " " + lesName}`;

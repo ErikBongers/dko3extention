@@ -253,17 +253,24 @@ async function onInschrijvingChanged(tabInschrijving: HTMLElement) {
 }
 
 async function showGotoLesMenu(wrapper: HTMLElement, button: HTMLElement, btnOnClick: string, lesInfo: LesInfo, opleiding: Opleiding, lesId: string) {
-    let menu = new DropDownMenu(wrapper, button, false);
-    menu.setPosition("left");
-    menu.addItem("Ga naar les", 0, btnOnClick);
-    menu.addSeparator(`Bezig met laden...`, 0);
-    menu.show();
-    let lesDetails = await fetchLes(lesId);
-    if (lesDetails.isIndividualLes) {
-        menu.clickItem(0);
-        return;
+    try {
+        let menu = new DropDownMenu(wrapper, button, false);
+        menu.setPosition("left");
+        menu.addItem("Ga naar les", 0, btnOnClick);
+        menu.addSeparator(`Bezig met laden...`, 0);
+        menu.show();
+        let lesDetails = await fetchLes(lesId);
+        if (lesDetails.isIndividualLes) {
+            menu.clickItem(0);
+            return;
+        }
+        await fillClassesMenu(menu, opleiding, lesInfo.vak, btnOnClick);
+    } catch (e) {
+        console.error(e);
+        //goto les with lesId
+        location.href = `/#lessen-les?id=${lesId}`;
     }
-    await fillClassesMenu(menu, opleiding, lesInfo.vak, btnOnClick);
+
 }
 
 interface LesInfo {
