@@ -3,8 +3,8 @@ import {RosterFactory} from "./rosterFactory";
 import {DayUppercase} from "../lessen/scrape";
 import {TagDef} from "./diffSettings";
 import {PreparedDiffSettings, PreparedDko3DiffData} from "./buildDiff";
-import {GradeYear} from "./calcDiff";
 import {preTranslate} from "../www_diff/buildDiff";
+import {GradeYear} from "../gradeYear";
 
 export class ClassDef {
     day: DayUppercase;

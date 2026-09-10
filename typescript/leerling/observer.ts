@@ -4,9 +4,9 @@ import {options} from "../plugin_options/options";
 import {fetchLes, LesDetails} from "../les/fetch";
 import {DropDownMenu} from "../dropDownMenus";
 import {HtmlLes, textsToYearGrades} from "../lessen/scrape";
-import {GradeYear} from "../roster_diff/calcDiff";
 import {DomeinString, LessenFilterBuilder, LessenFilterDomein} from "../lessen/fetch";
 import {emmet} from "../../libs/Emmeter/html";
+import {GradeYear} from "../gradeYear";
 
 class LeerlingObserver extends HashObserver {
     constructor() {

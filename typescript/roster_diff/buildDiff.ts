@@ -23,7 +23,6 @@ import {
     DiffLesType,
     DiffType,
     Dko3LesMoment,
-    GradeYear,
     LesType,
     matchBasedOnName,
     MatchContext,
@@ -40,6 +39,7 @@ import {
     Weight
 } from "./calcDiff";
 import {LessenFilterDomein, scrapeLessen} from "../lessen/fetch";
+import {GradeYear} from "../gradeYear";
 
 let cachedDiffs: JsonDiffs | undefined = undefined;
 export async function getJsonDiffsCached(academie: string, schoolYear: string, diffPageType: DiffPageType) {

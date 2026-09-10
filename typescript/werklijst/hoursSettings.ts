@@ -1,5 +1,6 @@
 import {cloud} from "../cloud";
-import {GradeYear} from "../roster_diff/calcDiff";
+
+import {GradeYear} from "../gradeYear";
 
 export type SubjectDef = {
     checked: boolean,

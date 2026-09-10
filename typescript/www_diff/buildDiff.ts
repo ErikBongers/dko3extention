@@ -3,10 +3,11 @@ import {ExcelRoster, TimeSlice} from "../roster_diff/excelRoster";
 import {DayTimeSlice, DayUppercase, toDay} from "../lessen/scrape";
 import {findTeacher, PreparedDiffSettings, PreparedDko3DiffData} from "../roster_diff/buildDiff";
 import {Actions, sendRequest, ServiceRequest, TabType} from "../messaging";
-import {ComparableLesMoment, GradeYear} from "../roster_diff/calcDiff";
+import {ComparableLesMoment} from "../roster_diff/calcDiff";
 import {PreTranslation} from "../roster_diff/diffSettings";
 import {getOptions} from "../globals";
 import {fetchDiffSettingsOrDefault} from "../roster_diff/showDiff";
+import {GradeYear} from "../gradeYear";
 
 interface WwwLesDef {
     url: string;

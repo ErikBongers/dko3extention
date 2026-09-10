@@ -1,7 +1,7 @@
 import {FetchChain} from "../table/fetchChain";
 import * as def from "../def";
-import {GradeYear} from "../roster_diff/calcDiff";
 import {textsToYearGrades} from "../lessen/scrape";
+import {GradeYear} from "../gradeYear";
 
 export interface LesDetails {
     id: string;

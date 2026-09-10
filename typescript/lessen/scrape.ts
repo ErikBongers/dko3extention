@@ -1,6 +1,7 @@
 import {FetchedTable} from "../table/tableFetcher";
 import {dayToMinutes, Time, TimeSlice, timeToMinutes} from "../roster_diff/excelRoster";
-import {GradeYear} from "../roster_diff/calcDiff";
+
+import {GradeYear} from "../gradeYear";
 
 export function scrapeLessenOverzicht(table: HTMLTableElement) {
     if(!table)

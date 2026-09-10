@@ -9,7 +9,8 @@ import {InfoBarTableFetchListener} from "../table/loadAnyTable";
 import {createInfoBlock} from "../infoBlock";
 import {defaultIgnoreList, defaultTagDefs, DiffSettings} from "./diffSettings";
 import {options} from "../plugin_options/options";
-import {DiffType, GradeYear, Weight} from "./calcDiff";
+import {DiffType, Weight} from "./calcDiff";
+import {GradeYear} from "../gradeYear";
 
 export async function fetchDiffSettingsOrDefault(academie: string, schoolYear: string) {
     let settings: DiffSettings | undefined;
