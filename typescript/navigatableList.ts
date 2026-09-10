@@ -109,10 +109,9 @@ export class NavigatableList {
     }
 
     setSelected(itemIndex: number) {
-        console.log("setSelected", itemIndex);
         for(let item of this.list.children)
             item.classList.remove("selected");
-        if(!isNaN(itemIndex))
+        if(!isNaN(itemIndex) && itemIndex >= 0 && itemIndex < this.list.children.length)
             this.list.children[itemIndex].classList.add("selected");
     }
 

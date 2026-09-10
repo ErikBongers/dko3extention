@@ -1159,9 +1159,8 @@
 			this.index.setRange(NaN, NaN);
 		}
 		setSelected(itemIndex) {
-			console.log("setSelected", itemIndex);
 			for (let item of this.list.children) item.classList.remove("selected");
-			if (!isNaN(itemIndex)) this.list.children[itemIndex].classList.add("selected");
+			if (!isNaN(itemIndex) && itemIndex >= 0 && itemIndex < this.list.children.length) this.list.children[itemIndex].classList.add("selected");
 		}
 		focus() {
 			this.list.focus();
