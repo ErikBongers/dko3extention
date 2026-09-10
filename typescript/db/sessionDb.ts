@@ -9,6 +9,7 @@ const DB_NAME = 'sessionStorage';
 export interface LesRef {
     id: string;
     name: string;
+    vak: string;
 }
 
 interface SessionDb extends DBSchema {

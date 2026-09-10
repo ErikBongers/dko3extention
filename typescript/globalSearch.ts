@@ -50,6 +50,9 @@ async function onEnterPressed(text: string) {
     if ("les".startsWith(key)) {
         if (await gotoLesName(value.trim()))
             return "cancel";
+    } else if("ma".startsWith(key)) {
+        if (await gotoLesName(value.trim(), "Muziekatelier"))
+            return "cancel";
     }
     return "default";
 }
@@ -69,11 +72,11 @@ async function updateMenuItem(dropDownMenu: DropDownMenu, index: number, lesRef:
     dropDownMenu.setItemContent(index, infoBlock);
 }
 
-async function gotoLesName(lesName: string) {
+async function gotoLesName(lesName: string, vak?: string) {
     if (lesName.length == 0)
         return false;
 
-    let lesMatches = await getLesMatches(lesName);
+    let lesMatches = await getLesMatches(lesName, vak);
     if(lesMatches) {
         if (lesMatches.length == 1)
             location.href = `/#lessen-les?id=${lesMatches[0].id}`;
@@ -100,16 +103,18 @@ async function gotoLesName(lesName: string) {
     return true
 }
 
-async function getLesMatches(lesName: string) {
+async function getLesMatches(lesName: string, vak?: string) {
     let lowerCase = lesName.toLowerCase();
     let loaded = await SessionCache.Loaded.get("LesRefs");
     if (!loaded) {
         let lessen = await scrapeLessen(LessenFilterDomein.Muziek, LesType.gewone, Schoolyear.toFullString(Schoolyear.calculateCurrent()));
         let lesRefs = lessen
-            .map<LesRef>(l => ({id: l.les.id, name: l.les.naam}))
-            .filter(l => l.name);
+            .map<LesRef>(l => ({id: l.les.id, name: l.les.naam, vak: l.les.vakNaam}));
         await SessionCache.LesRefs.bulkPut(lesRefs);
         await SessionCache.Loaded.put(true, "LesRefs");
     }
+    if(vak)
+        return SessionCache.LesRefs.findMatches(lesRef => lesRef.name.toLowerCase().includes(lowerCase) && lesRef.vak == vak);
+
     return SessionCache.LesRefs.findMatches(lesRef => lesRef.name.toLowerCase().includes(lowerCase));
 }
