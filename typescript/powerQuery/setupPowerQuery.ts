@@ -130,6 +130,12 @@ document.body.addEventListener("keydown", showPowerQuery);
 
 function showPowerQuery(ev: KeyboardEvent) {
     if (ev.key === "q" && ev.ctrlKey && !ev.shiftKey && !ev.altKey) {
+        if(powerQueryVisible) {
+            ev.preventDefault();
+            popover.hidePopover();
+            (document.querySelector("#snel_zoeken_veld_zoektermen") as HTMLElement).focus();
+            return;
+        }
         scrapeMainMenu();
         powerQueryItems.push(...getSavedAndDefaultQueryItems());
         getHardCodedQueryItems();
@@ -141,6 +147,8 @@ function showPowerQuery(ev: KeyboardEvent) {
 
 function menuKeyDownHandler(ev: KeyboardEvent) {
     if (!powerQueryVisible) //todo: maybe not even needed as it already depends on focus?
+        return;
+    if (ev.ctrlKey || ev.altKey)
         return;
     if (isAlphaNumeric(ev.key) || ev.key === ' ') {
         searchField.textContent += ev.key;
@@ -155,6 +163,8 @@ function menuKeyDownHandler(ev: KeyboardEvent) {
         //else: default behaviour: close popup.
     } else if (ev.key == "Backspace") {
         searchField.textContent = searchField.textContent.slice(0, -1);
+        filterItems(searchField.textContent);
+        list.setSelected(0);
     }
 }
 

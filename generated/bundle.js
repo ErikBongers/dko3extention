@@ -1249,6 +1249,12 @@
 	document.body.addEventListener("keydown", showPowerQuery);
 	function showPowerQuery(ev) {
 		if (ev.key === "q" && ev.ctrlKey && !ev.shiftKey && !ev.altKey) {
+			if (powerQueryVisible) {
+				ev.preventDefault();
+				popover.hidePopover();
+				document.querySelector("#snel_zoeken_veld_zoektermen").focus();
+				return;
+			}
 			scrapeMainMenu();
 			powerQueryItems.push(...getSavedAndDefaultQueryItems());
 			getHardCodedQueryItems();
@@ -1259,6 +1265,7 @@
 	}
 	function menuKeyDownHandler(ev) {
 		if (!powerQueryVisible) return;
+		if (ev.ctrlKey || ev.altKey) return;
 		if (isAlphaNumeric(ev.key) || ev.key === " ") {
 			searchField.textContent += ev.key;
 			filterItems(searchField.textContent);
@@ -1269,7 +1276,11 @@
 				list.setSelected(0);
 				ev.preventDefault();
 			}
-		} else if (ev.key == "Backspace") searchField.textContent = searchField.textContent.slice(0, -1);
+		} else if (ev.key == "Backspace") {
+			searchField.textContent = searchField.textContent.slice(0, -1);
+			filterItems(searchField.textContent);
+			list.setSelected(0);
+		}
 	}
 	let popover = document.createElement("div");
 	document.querySelector("main").appendChild(popover);
