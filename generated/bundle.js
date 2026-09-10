@@ -1101,7 +1101,6 @@
 				ev.preventDefault();
 			} else if (ev.key == "Enter") {
 				this.getItem(this.index.value).click();
-				this.list.remove();
 				setTimeout(() => {
 					if (document.activeElement instanceof HTMLElement) document.activeElement?.blur();
 				});
@@ -1169,6 +1168,9 @@
 		}
 		addKeyDownListener(listener) {
 			this.list.addEventListener("keydown", listener);
+		}
+		remove() {
+			this.list.remove();
 		}
 	};
 	let powerQueryItems = [];
@@ -2180,7 +2182,7 @@
 			this.button = button;
 			this.container.classList.add("dropDownContainer");
 			this.button.classList.add("dropDownIgnoreHide", "dropDownButton");
-			document.querySelectorAll("div.dropDownMenu").forEach((el) => el.remove());
+			this.container.querySelectorAll("div.dropDownMenu").forEach((el) => el.remove());
 			let { first } = emmet.appendChild(this.container, "div.dropDownMenu.popoverMenu");
 			this.menu = first;
 			this.menu.setAttribute("popover", "");
@@ -2228,6 +2230,10 @@
 		}
 		hide() {
 			this.menu.hidePopover();
+		}
+		remove() {
+			this.list.remove();
+			this.menu.remove();
 		}
 	};
 	//#endregion
@@ -6939,7 +6945,13 @@
 		lessons.sort((a, b) => buildLesTitle(a.les.naam, a.les.vakNaam).localeCompare(buildLesTitle(b.les.naam, b.les.vakNaam)));
 		menu.removeItem(1);
 		menu.addSeparator("Alternatieven:", 0);
-		for (let les of lessons) throw new Error("TEST");
+		for (let les of lessons) {
+			let lesmoment = les.les.formattedLesmoment.replace("(wekelijks)", "").trim();
+			let wachtlijst = les.les.wachtlijst == 0 ? "span" : `span.red{ (${les.les.wachtlijst} op wachtlijst)}`;
+			let full = les.les.aantal >= les.les.maxAantal ? ".full" : "";
+			let infoBlock = createLesCard(les.les.naam, les.les.vakNaam, full, lesmoment, les.les.aantal, les.les.maxAantal, wachtlijst, les.les.vestiging);
+			menu.addInfo(infoBlock, 0);
+		}
 	}
 	function buildLesTitle(lesName, vakName) {
 		return `${lesName ? lesName : vakName + " " + lesName}`;
@@ -10321,7 +10333,7 @@
 				for (let lesRef of lesMatches) {
 					let index = dropDownMenu.addItem(lesRef.name, 0, () => {
 						abortController.abort();
-						dropDownMenu.hide();
+						dropDownMenu.remove();
 						location.href = `/#lessen-les?id=${lesRef.id}`;
 					});
 					queue = queue.then(() => updateMenuItem(dropDownMenu, index, lesRef, signal));

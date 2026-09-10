@@ -87,7 +87,7 @@ async function gotoLesName(lesName: string) {
             for (let lesRef of lesMatches) {
                 let index = dropDownMenu.addItem(lesRef.name, 0, () => {
                     abortController.abort();
-                    dropDownMenu.hide();
+                    dropDownMenu.remove();
                     location.href = `/#lessen-les?id=${lesRef.id}`;
                 });
                 //make sure the internal awaits in updateMenuItem() remain grouped:

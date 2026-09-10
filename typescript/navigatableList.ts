@@ -36,7 +36,6 @@ export class NavigatableList {
             ev.preventDefault();
         } else if(ev.key == "Enter") {
             this.getItem(this.index.value).click();
-            this.list.remove();
             setTimeout(() => {
                 if(document.activeElement instanceof HTMLElement)
                     document.activeElement?.blur();
@@ -123,6 +122,10 @@ export class NavigatableList {
 
     addKeyDownListener(listener: (ev: KeyboardEvent) => void) {
         this.list.addEventListener("keydown", listener);
+    }
+
+    remove() {
+        this.list.remove();
     }
 }
 
