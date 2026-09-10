@@ -1,3 +1,5 @@
+quick goto: initial load (session) still does the standard refresh.
+
 * Not very important bug:
 Uncaught (in promise) AbortError: signal is aborted without reason
     at globalSearch.ts:89:37

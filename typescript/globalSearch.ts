@@ -5,6 +5,7 @@ import {Schoolyear} from "./globals";
 import {DropDownMenu} from "./dropDownMenus";
 import {fetchLes} from "./les/fetch";
 import {createLesCard} from "./leerling/observer";
+import {LesRef, SessionCache} from "./db/sessionDb";
 
 export function onPasteInGlobalSearchField(e: ClipboardEvent) {
     if (!options.stripCommasOnPaste)
@@ -53,7 +54,7 @@ async function onEnterPressed(text: string) {
     return "default";
 }
 
-async function updateMenuItem(dropDownMenu: DropDownMenu, index: number, lesRef: CachedLesId, signal: AbortSignal) {
+async function updateMenuItem(dropDownMenu: DropDownMenu, index: number, lesRef: LesRef, signal: AbortSignal) {
     if (signal.aborted) {
         console.log("ABORTED updateMenuItem:", lesRef.id);
         return;
@@ -99,29 +100,16 @@ async function gotoLesName(lesName: string) {
     return true
 }
 
-interface CachedLesId {
-    id: string;
-    name: string;
-}
-
 async function getLesMatches(lesName: string) {
-    let cachedLesIds = sessionStorage.getItem("cachedLesIds");
-    if (cachedLesIds) {
-        let lesIds: CachedLesId[] = JSON.parse(cachedLesIds);
-        return findLesId(lesName, lesIds);
+    let lowerCase = lesName.toLowerCase();
+    let loaded = await SessionCache.Loaded.get("LesRefs");
+    if (!loaded) {
+        let lessen = await scrapeLessen(LessenFilterDomein.Muziek, LesType.gewone, Schoolyear.toFullString(Schoolyear.calculateCurrent()));
+        let lesRefs = lessen
+            .map<LesRef>(l => ({id: l.les.id, name: l.les.naam}))
+            .filter(l => l.name);
+        await SessionCache.LesRefs.bulkPut(lesRefs);
+        await SessionCache.Loaded.put(true, "LesRefs");
     }
-    let lessen = await scrapeLessen(LessenFilterDomein.Muziek, LesType.gewone, Schoolyear.toFullString(Schoolyear.calculateCurrent()));
-    sessionStorage.setItem("cachedLesIds", JSON.stringify(lessen.map(l => ({id: l.les.id, name: l.les.naam}))));
-    return findLesId(lesName, lessen.map(l => ({id: l.les.id, name: l.les.naam})));
-}
-
-function findLesId(lesName: string, lesIds: CachedLesId[]) {
-    let lowerCaseLesName = lesName.toLowerCase();
-    let lesId =  lesIds.find(l => l.name.toLowerCase() == lowerCaseLesName);
-    if (lesId)
-        return [lesId];
-    let includes = lesIds.filter(l => l.name.toLowerCase().includes(lowerCaseLesName));
-    if (includes.length)
-        return includes;
-    return null;
+    return SessionCache.LesRefs.findMatches(lesRef => lesRef.name.toLowerCase().includes(lowerCase));
 }
