@@ -71,6 +71,12 @@ export class BlockInfo {
         return this.alleLessen().some(les => les.aantal >= les.maxAantal);
     }
 
+    hasWaitingList() {
+        console.log("HAS WAITING LIST FILTER");
+        console.log(this.alleLessen().map(les => les.wachtlijst))
+        return this.alleLessen().some(les => les.wachtlijst != 0);
+    }
+
     hasOnlineAlcClasses() {
         return this.alleLessen().some(les => les.online && les.alc);
     }

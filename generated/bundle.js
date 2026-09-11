@@ -3974,6 +3974,11 @@
 		hasFullClasses() {
 			return this.alleLessen().some((les) => les.aantal >= les.maxAantal);
 		}
+		hasWaitingList() {
+			console.log("HAS WAITING LIST FILTER");
+			console.log(this.alleLessen().map((les) => les.wachtlijst));
+			return this.alleLessen().some((les) => les.wachtlijst != 0);
+		}
 		hasOnlineAlcClasses() {
 			return this.alleLessen().some((les) => les.online && les.alc);
 		}
@@ -4292,7 +4297,8 @@
 			filterNoMax: false,
 			filterFullClass: false,
 			filterOnlineAlc: false,
-			filterWarnings: false
+			filterWarnings: false,
+			filterWaitingList: false
 		};
 	}
 	let pageState = getDefaultPageSettings();
@@ -4714,6 +4720,7 @@
 			else if (pageState.filterNoTeacher) extraFilter = createRowFilterFromBlockFilter(createBlockFilter((b) => b.hasMissingTeachers()));
 			else if (pageState.filterNoMax) extraFilter = createRowFilterFromBlockFilter(createBlockFilter((b) => b.hasMissingMax()));
 			else if (pageState.filterFullClass) extraFilter = createRowFilterFromBlockFilter(createBlockFilter((b) => b.hasFullClasses()));
+			else if (pageState.filterWaitingList) extraFilter = createRowFilterFromBlockFilter(createBlockFilter((b) => b.hasWaitingList()));
 			else if (pageState.filterOnlineAlc) extraFilter = createRowFilterFromBlockFilter(createBlockFilter((b) => b.hasOnlineAlcClasses()));
 			else if (pageState.filterWarnings) extraFilter = createRowFilterFromBlockFilter(createBlockFilter((b) => b.hasWarningLessons()));
 			if (extraFilter) preFilter = combineFilters(createAncestorFilter(textPreFilter), extraFilter);
@@ -4733,6 +4740,12 @@
 					return scrapeResult.aantal >= scrapeResult.maxAantal;
 				}
 			};
+			else if (pageState.filterWaitingList) extraFilter = {
+				context: void 0,
+				rowFilter(tr, _context) {
+					return scrapeStudentsCellMeta(tr.cells[1]).wachtlijst != 0;
+				}
+			};
 			else if (pageState.filterOnlineAlc) extraFilter = {
 				context: void 0,
 				rowFilter(tr, _context) {
@@ -4749,6 +4762,7 @@
 		else if (pageState.filterNoTeacher) setFilterInfo("Zonder leraar");
 		else if (pageState.filterNoMax) setFilterInfo("Zonder maximum");
 		else if (pageState.filterFullClass) setFilterInfo("Volle lessen");
+		else if (pageState.filterWaitingList) setFilterInfo("Wachtlijst");
 		else if (pageState.filterOnlineAlc) setFilterInfo("Online ALC lessen");
 		else if (pageState.filterWarnings) setFilterInfo("Opmerkingen");
 		else setFilterInfo("");
@@ -4762,6 +4776,7 @@
 		pageState.filterFullClass = false;
 		pageState.filterOnlineAlc = false;
 		pageState.filterWarnings = false;
+		pageState.filterWaitingList = false;
 		set(pageState);
 		savePageSettings(pageState);
 		applyFilters();
@@ -4780,6 +4795,7 @@
 			menu.addItem("Lessen zonder leraar", 0, (_) => setExtraFilter((pageState) => pageState.filterNoTeacher = true));
 			menu.addItem("Lessen zonder maximum", 0, (_) => setExtraFilter((pageState) => pageState.filterNoMax = true));
 			menu.addItem("Volle lessen", 0, (_) => setExtraFilter((pageState) => pageState.filterFullClass = true));
+			menu.addItem("Wachtlijst", 0, (_) => setExtraFilter((pageState) => pageState.filterWaitingList = true));
 			menu.addItem("Online ALC lessen", 0, (_) => setExtraFilter((pageState) => pageState.filterOnlineAlc = true));
 			menu.addItem("Opmerkingen", 0, (_) => setExtraFilter((pageState) => pageState.filterWarnings = true));
 			emmet.insertAfter(idiom.parentElement, `span#${FILTER_INFO_ID}.filterInfo`);

@@ -100,6 +100,8 @@ export function applyFilters() {
             extraFilter = createRowFilterFromBlockFilter(createBlockFilter(b => b.hasMissingMax()));
         } else if (pageState.filterFullClass) {
             extraFilter = createRowFilterFromBlockFilter(createBlockFilter(b => b.hasFullClasses()));
+        } else if (pageState.filterWaitingList) {
+            extraFilter = createRowFilterFromBlockFilter(createBlockFilter(b => b.hasWaitingList()));
         } else if (pageState.filterOnlineAlc) {
             extraFilter = createRowFilterFromBlockFilter(createBlockFilter(b => b.hasOnlineAlcClasses())); //doesn't really make sense for trimesters, but whatever.
         } else if (pageState.filterWarnings) {
@@ -129,6 +131,14 @@ export function applyFilters() {
                     return scrapeResult.aantal >= scrapeResult.maxAantal;
                 }
             };
+        } else if (pageState.filterWaitingList) {
+            extraFilter = {
+                context: undefined,
+                rowFilter(tr: HTMLTableRowElement, _context: any): boolean {
+                    let scrapeResult = scrapeStudentsCellMeta(tr.cells[1]);
+                    return scrapeResult.wachtlijst != 0;
+                }
+            };
         } else if (pageState.filterOnlineAlc) {
              extraFilter = {
                  context: undefined,
@@ -155,6 +165,8 @@ export function applyFilters() {
         setFilterInfo("Zonder maximum");
     } else if (pageState.filterFullClass) {
         setFilterInfo("Volle lessen");
+    } else if (pageState.filterWaitingList) {
+        setFilterInfo("Wachtlijst");
     } else if (pageState.filterOnlineAlc) {
         setFilterInfo("Online ALC lessen");
     } else if (pageState.filterWarnings) {
@@ -175,6 +187,7 @@ export function setExtraFilter(set: (pageState: LessenPageState) => void) {
     pageState.filterFullClass = false;
     pageState.filterOnlineAlc = false;
     pageState.filterWarnings = false;
+    pageState.filterWaitingList = false;
     set(pageState);
     savePageSettings(pageState);
     applyFilters();
@@ -195,6 +208,7 @@ export function addFilterFields() {
         menu.addItem("Lessen zonder leraar", 0, _ => setExtraFilter(pageState => pageState.filterNoTeacher = true));
         menu.addItem("Lessen zonder maximum", 0, _ => setExtraFilter(pageState => pageState.filterNoMax = true));
         menu.addItem("Volle lessen", 0, _ => setExtraFilter(pageState => pageState.filterFullClass = true));
+        menu.addItem("Wachtlijst", 0, _ => setExtraFilter(pageState => pageState.filterWaitingList = true));
         menu.addItem("Online ALC lessen", 0, _ => setExtraFilter(pageState => pageState.filterOnlineAlc = true));
         menu.addItem("Opmerkingen", 0, _ => setExtraFilter(pageState => pageState.filterWarnings = true));
         emmet.insertAfter(idiom!.parentElement!, `span#${def.FILTER_INFO_ID}.filterInfo`);
