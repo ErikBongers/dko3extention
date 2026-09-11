@@ -10326,11 +10326,14 @@
 		//! will have 1 element
 		let value = parts.join(":");
 		if ("les".startsWith(key)) {
-			if (await gotoLesName(value.trim())) return "cancel";
+			gotoLesRef(value.trim());
+			return "cancel";
 		} else if ("ma".startsWith(key)) {
-			if (await gotoLesRef(value.trim(), "Muziekatelier")) return "cancel";
+			gotoLesRef(value.trim(), "Muziekatelier");
+			return "cancel";
 		} else if ("asset".startsWith(key)) {
-			if (await gotoAssetRef(value.trim())) return "cancel";
+			gotoAssetRef(value.trim());
+			return "cancel";
 		}
 		return "default";
 	}
@@ -10352,31 +10355,6 @@
 			return;
 		}
 	}
-	async function gotoLesName(lesName, vak) {
-		if (lesName.length == 0) return false;
-		let lesMatches = await getLesMatches(lesName, vak);
-		if (lesMatches) {
-			if (lesMatches.length == 1) location.href = `/#lessen-les?id=${lesMatches[0].id}`;
-			else if (lesMatches.length > 1) {
-				let searchField = document.getElementById("snel_zoeken_veld_zoektermen");
-				let dropDownMenu = new DropDownMenu(searchField.parentElement?.parentElement, searchField, false);
-				lesMatches.sort((a, b) => a.name.localeCompare(b.name));
-				let queue = Promise.resolve();
-				let abortController = new AbortController();
-				let signal = abortController.signal;
-				for (let lesRef of lesMatches) {
-					let index = dropDownMenu.addItem(lesRef.name, 0, () => {
-						abortController.abort();
-						dropDownMenu.remove();
-						location.href = `/#lessen-les?id=${lesRef.id}`;
-					});
-					queue = queue.then(() => updateLesMenuItem(dropDownMenu, index, lesRef, signal));
-				}
-				dropDownMenu.show();
-			}
-		}
-		return true;
-	}
 	async function gotoLesRef(lesName, vak) {
 		return gotoRef(() => getLesMatches(lesName, vak), "/#lessen-les?id=", (lesRef) => lesRef.name, updateLesMenuItem);
 	}
@@ -10385,9 +10363,17 @@
 	}
 	async function gotoRef(getMatches, gotoUrl, getLabel, updateMenuItem) {
 		let matches = await getMatches();
+		console.log("matches:", matches);
 		if (matches) {
-			if (matches.length == 1) location.href = gotoUrl + matches[0].id;
-			else if (matches.length > 1) {
+			if (matches.length == 1) {
+				console.log("gotoRef: matches.length == 1");
+				setTimeout(() => {
+					console.log(`gotoRef: matches.length == 1, location.href = ${gotoUrl + matches[0].id}`);
+					location.href = gotoUrl + matches[0].id;
+				});
+				return true;
+			}
+			if (matches.length > 1) {
 				let searchField = document.getElementById("snel_zoeken_veld_zoektermen");
 				let dropDownMenu = new DropDownMenu(searchField.parentElement?.parentElement, searchField, false);
 				matches.sort((a, b) => getLabel(a).localeCompare(getLabel(b)));
