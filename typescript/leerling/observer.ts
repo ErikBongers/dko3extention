@@ -270,7 +270,7 @@ async function showGotoLesMenu(wrapper: HTMLElement, button: HTMLElement, btnOnC
         await fillClassesMenu(menu, opleiding, lesInfo.vak, btnOnClick);
     } catch (e) {
         console.error(e);
-        await restorePage();
+        await restorePage(true);
     }
 
 }

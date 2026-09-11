@@ -6918,7 +6918,7 @@
 			await fillClassesMenu(menu, opleiding, lesInfo.vak, btnOnClick);
 		} catch (e) {
 			console.error(e);
-			await restorePage();
+			await restorePage(true);
 		}
 	}
 	function lesInfoHasButton(lesInfo) {
@@ -10420,7 +10420,7 @@
 				let searchField = document.getElementById("snel_zoeken_veld_zoektermen");
 				let abortController = new AbortController();
 				let signal = abortController.signal;
-				let dropDownMenu = new DropDownMenu(searchField.parentElement?.parentElement, searchField, false, false, abortController);
+				let dropDownMenu = new DropDownMenu(searchField.parentElement?.parentElement, searchField, false, true, abortController);
 				matches.sort((a, b) => getLabel(a).localeCompare(getLabel(b)));
 				let queue = Promise.resolve();
 				for (let ref of matches) {

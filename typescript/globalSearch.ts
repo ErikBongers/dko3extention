@@ -123,7 +123,7 @@ async function gotoRef<T extends Ref>(getMatches: () => Promise<T[]>,
             let searchField = document.getElementById("snel_zoeken_veld_zoektermen") as HTMLElement;
             let abortController = new AbortController();
             let signal = abortController.signal;
-            let dropDownMenu = new DropDownMenu(searchField.parentElement?.parentElement!, searchField, false, false, abortController);
+            let dropDownMenu = new DropDownMenu(searchField.parentElement?.parentElement!, searchField, false, true, abortController);
             matches.sort((a, b) => getLabel(a).localeCompare(getLabel(b)));
             let queue = Promise.resolve();
             for (let ref of matches) {
