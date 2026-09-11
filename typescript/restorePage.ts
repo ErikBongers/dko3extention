@@ -20,6 +20,9 @@ export function savePage() {
     savedUrl = window.location.href;
 }
 
+export function clearSavedPage() {
+    savedUrl = "";
+}
 
 async function changeView() {
     console.log("Changing view to: " + location.hash.replace('#',''));

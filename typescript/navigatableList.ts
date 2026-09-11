@@ -1,5 +1,6 @@
 import {emmet} from "../libs/Emmeter/html";
 import {ClampedValue} from "./clampedValue";
+import {clearSavedPage} from "./restorePage";
 
 export class NavigatableList {
     readonly list: HTMLElement;
@@ -39,6 +40,7 @@ export class NavigatableList {
         } else if(ev.key == "Enter") {
             if(this.abortController)
                 this.abortController.abort();
+            clearSavedPage();
             this.getItem(this.index.value).click();
             setTimeout(() => {
                 if(document.activeElement instanceof HTMLElement)

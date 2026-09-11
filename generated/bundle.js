@@ -1072,6 +1072,209 @@
 		}
 	};
 	//#endregion
+	//#region typescript/tokenScanner.ts
+	var ScannerElse = class {
+		scannerIf;
+		constructor(scannerIf) {
+			this.scannerIf = scannerIf;
+		}
+		not(callback) {
+			if (!this.scannerIf.yes) callback?.(this.scannerIf.scanner);
+			return this.scannerIf.scanner;
+		}
+	};
+	var ScannerIf = class {
+		yes;
+		scanner;
+		constructor(yes, scanner) {
+			this.yes = yes;
+			this.scanner = scanner;
+		}
+		then(callback) {
+			if (this.yes) callback(this.scanner);
+			return new ScannerElse(this);
+		}
+	};
+	var TokenScanner = class TokenScanner {
+		valid;
+		source;
+		cursor;
+		constructor(text) {
+			this.valid = true;
+			this.source = text;
+			this.cursor = text;
+		}
+		static create(text) {
+			return new TokenScanner(text);
+		}
+		result() {
+			if (this.valid) return this.cursor;
+		}
+		find(...tokens) {
+			return this.#find("", tokens);
+		}
+		match(...tokens) {
+			return this.#find("^\\s*", tokens);
+		}
+		#find(prefix, tokens) {
+			if (!this.valid) return this;
+			let rxString = prefix + tokens.map((token) => escapeRegexChars(token) + "\\s*").join("");
+			let match = RegExp(rxString).exec(this.cursor);
+			if (match) {
+				this.cursor = this.cursor.substring(match.index + match[0].length);
+				return this;
+			}
+			this.valid = false;
+			return this;
+		}
+		ifMatch(...tokens) {
+			if (!this.valid) return new ScannerIf(true, this);
+			this.match(...tokens);
+			if (this.valid) return new ScannerIf(true, this);
+			else {
+				this.valid = true;
+				return new ScannerIf(false, this);
+			}
+		}
+		clip(len) {
+			if (!this.valid) return this;
+			this.cursor = this.cursor.substring(0, len);
+			return this;
+		}
+		clipTo(end) {
+			if (!this.valid) return this;
+			let found = this.cursor.indexOf(end);
+			if (found < 0) {
+				this.valid = false;
+				return this;
+			}
+			this.cursor = this.cursor.substring(0, found);
+			return this;
+		}
+		clone() {
+			let newScanner = new TokenScanner(this.cursor);
+			newScanner.valid = this.valid;
+			return newScanner;
+		}
+		clipString() {
+			let isString = false;
+			this.ifMatch("'").then((result) => {
+				isString = true;
+				return result.clipTo("'");
+			}).not().ifMatch("\"").then((result) => {
+				isString = true;
+				return result.clipTo("\"");
+			}).not();
+			this.valid = this.valid && isString;
+			return this;
+		}
+		captureString(callback) {
+			let result = this.clone().clipString().result();
+			if (result) {
+				callback(result);
+				this.ifMatch("'").then((result) => result.find("'")).not().ifMatch("\"").then((result) => result.find("\"")).not();
+			}
+			return this;
+		}
+		getString() {
+			return this.clipString().result();
+		}
+	};
+	//#endregion
+	//#region typescript/table/fetchChain.ts
+	var FetchChain = class {
+		lastText = "";
+		get() {
+			return this.lastText;
+		}
+		set(text) {
+			this.lastText = text;
+		}
+		async fetch(url, signal) {
+			this.lastText = await fetchText(url ?? this.lastText ?? "--null--", signal);
+			return this.lastText;
+		}
+		findDocReadyLoadUrl() {
+			this.lastText = getDocReadyLoadUrl(this.lastText ?? "--null--");
+			return this.lastText;
+		}
+		findDocReadyLoadScript() {
+			this.lastText = getDocReadyLoadScript(this.lastText ?? "--null--")?.result();
+			return this.lastText;
+		}
+		find(...args) {
+			this.lastText = new TokenScanner(this.lastText ?? "--null--").find(...args).result();
+			return this.lastText;
+		}
+		getQuotedString() {
+			let daString = "";
+			let scanner = new TokenScanner(this.lastText ?? "--null--").captureString(((res) => daString = res));
+			this.lastText = scanner.result();
+			return daString;
+		}
+		clipTo(end) {
+			this.lastText = new TokenScanner(this.lastText ?? "--null--").clipTo(end).result();
+		}
+		div() {
+			let el = document.createElement("div");
+			el.innerHTML = this.lastText ?? "";
+			return el;
+		}
+		includes(text) {
+			return this.lastText?.includes(text) ?? false;
+		}
+	};
+	function findDocReady(scanner) {
+		return scanner.find("$", "(", "document", ")", ".", "ready", "(");
+	}
+	function getDocReadyLoadUrl(text) {
+		let scanner = new TokenScanner(text);
+		while (true) {
+			let docReady = findDocReady(scanner);
+			if (!docReady.valid) return void 0;
+			let url = docReady.clone().clipTo("<\/script>").find(".", "load", "(").clipString().result();
+			if (url) return url;
+			scanner = docReady;
+		}
+	}
+	function getDocReadyLoadScript(text) {
+		let scanner = new TokenScanner(text);
+		while (true) {
+			let docReady = findDocReady(scanner);
+			if (!docReady.valid) return void 0;
+			let script = docReady.clone().clipTo("<\/script>");
+			if (script.clone().find(".", "load", "(").valid) return script;
+			scanner = docReady;
+		}
+	}
+	async function fetchText(url, signal) {
+		return (await fetch(url, { signal })).text();
+	}
+	//#endregion
+	//#region typescript/restorePage.ts
+	let savedUrl = "";
+	async function restorePage(fullRefresh = false) {
+		console.log("Restoring page: " + savedUrl);
+		if (savedUrl) {
+			await new FetchChain().fetch(savedUrl);
+			if (fullRefresh) {
+				location.href = savedUrl;
+				await changeView();
+			}
+		}
+	}
+	function savePage() {
+		console.log("Saving page: " + window.location.href);
+		savedUrl = window.location.href;
+	}
+	function clearSavedPage() {
+		savedUrl = "";
+	}
+	async function changeView() {
+		console.log("Changing view to: " + location.hash.replace("#", ""));
+		await fetch("view.php?args=" + location.hash.replace("#", ""));
+	}
+	//#endregion
 	//#region typescript/navigatableList.ts
 	var NavigatableList = class {
 		list;
@@ -1104,6 +1307,7 @@
 				ev.preventDefault();
 			} else if (ev.key == "Enter") {
 				if (this.abortController) this.abortController.abort();
+				clearSavedPage();
 				this.getItem(this.index.value).click();
 				setTimeout(() => {
 					if (document.activeElement instanceof HTMLElement) document.activeElement?.blur();
@@ -1474,185 +1678,6 @@
 			return createQueryItem(headerLabel, label, link.href, void 0, longLabelPrefix + label);
 		}
 	};
-	//#endregion
-	//#region typescript/tokenScanner.ts
-	var ScannerElse = class {
-		scannerIf;
-		constructor(scannerIf) {
-			this.scannerIf = scannerIf;
-		}
-		not(callback) {
-			if (!this.scannerIf.yes) callback?.(this.scannerIf.scanner);
-			return this.scannerIf.scanner;
-		}
-	};
-	var ScannerIf = class {
-		yes;
-		scanner;
-		constructor(yes, scanner) {
-			this.yes = yes;
-			this.scanner = scanner;
-		}
-		then(callback) {
-			if (this.yes) callback(this.scanner);
-			return new ScannerElse(this);
-		}
-	};
-	var TokenScanner = class TokenScanner {
-		valid;
-		source;
-		cursor;
-		constructor(text) {
-			this.valid = true;
-			this.source = text;
-			this.cursor = text;
-		}
-		static create(text) {
-			return new TokenScanner(text);
-		}
-		result() {
-			if (this.valid) return this.cursor;
-		}
-		find(...tokens) {
-			return this.#find("", tokens);
-		}
-		match(...tokens) {
-			return this.#find("^\\s*", tokens);
-		}
-		#find(prefix, tokens) {
-			if (!this.valid) return this;
-			let rxString = prefix + tokens.map((token) => escapeRegexChars(token) + "\\s*").join("");
-			let match = RegExp(rxString).exec(this.cursor);
-			if (match) {
-				this.cursor = this.cursor.substring(match.index + match[0].length);
-				return this;
-			}
-			this.valid = false;
-			return this;
-		}
-		ifMatch(...tokens) {
-			if (!this.valid) return new ScannerIf(true, this);
-			this.match(...tokens);
-			if (this.valid) return new ScannerIf(true, this);
-			else {
-				this.valid = true;
-				return new ScannerIf(false, this);
-			}
-		}
-		clip(len) {
-			if (!this.valid) return this;
-			this.cursor = this.cursor.substring(0, len);
-			return this;
-		}
-		clipTo(end) {
-			if (!this.valid) return this;
-			let found = this.cursor.indexOf(end);
-			if (found < 0) {
-				this.valid = false;
-				return this;
-			}
-			this.cursor = this.cursor.substring(0, found);
-			return this;
-		}
-		clone() {
-			let newScanner = new TokenScanner(this.cursor);
-			newScanner.valid = this.valid;
-			return newScanner;
-		}
-		clipString() {
-			let isString = false;
-			this.ifMatch("'").then((result) => {
-				isString = true;
-				return result.clipTo("'");
-			}).not().ifMatch("\"").then((result) => {
-				isString = true;
-				return result.clipTo("\"");
-			}).not();
-			this.valid = this.valid && isString;
-			return this;
-		}
-		captureString(callback) {
-			let result = this.clone().clipString().result();
-			if (result) {
-				callback(result);
-				this.ifMatch("'").then((result) => result.find("'")).not().ifMatch("\"").then((result) => result.find("\"")).not();
-			}
-			return this;
-		}
-		getString() {
-			return this.clipString().result();
-		}
-	};
-	//#endregion
-	//#region typescript/table/fetchChain.ts
-	var FetchChain = class {
-		lastText = "";
-		get() {
-			return this.lastText;
-		}
-		set(text) {
-			this.lastText = text;
-		}
-		async fetch(url, signal) {
-			this.lastText = await fetchText(url ?? this.lastText ?? "--null--", signal);
-			return this.lastText;
-		}
-		findDocReadyLoadUrl() {
-			this.lastText = getDocReadyLoadUrl(this.lastText ?? "--null--");
-			return this.lastText;
-		}
-		findDocReadyLoadScript() {
-			this.lastText = getDocReadyLoadScript(this.lastText ?? "--null--")?.result();
-			return this.lastText;
-		}
-		find(...args) {
-			this.lastText = new TokenScanner(this.lastText ?? "--null--").find(...args).result();
-			return this.lastText;
-		}
-		getQuotedString() {
-			let daString = "";
-			let scanner = new TokenScanner(this.lastText ?? "--null--").captureString(((res) => daString = res));
-			this.lastText = scanner.result();
-			return daString;
-		}
-		clipTo(end) {
-			this.lastText = new TokenScanner(this.lastText ?? "--null--").clipTo(end).result();
-		}
-		div() {
-			let el = document.createElement("div");
-			el.innerHTML = this.lastText ?? "";
-			return el;
-		}
-		includes(text) {
-			return this.lastText?.includes(text) ?? false;
-		}
-	};
-	function findDocReady(scanner) {
-		return scanner.find("$", "(", "document", ")", ".", "ready", "(");
-	}
-	function getDocReadyLoadUrl(text) {
-		let scanner = new TokenScanner(text);
-		while (true) {
-			let docReady = findDocReady(scanner);
-			if (!docReady.valid) return void 0;
-			let url = docReady.clone().clipTo("<\/script>").find(".", "load", "(").clipString().result();
-			if (url) return url;
-			scanner = docReady;
-		}
-	}
-	function getDocReadyLoadScript(text) {
-		let scanner = new TokenScanner(text);
-		while (true) {
-			let docReady = findDocReady(scanner);
-			if (!docReady.valid) return void 0;
-			let script = docReady.clone().clipTo("<\/script>");
-			if (script.clone().find(".", "load", "(").valid) return script;
-			scanner = docReady;
-		}
-	}
-	async function fetchText(url, signal) {
-		return (await fetch(url, { signal })).text();
-	}
 	//#endregion
 	//#region typescript/roster_diff/excel.ts
 	var ExcelPos = class {
@@ -2188,27 +2213,6 @@
 			this.lastPageNumber++;
 		}
 	};
-	//#endregion
-	//#region typescript/restorePage.ts
-	let savedUrl = "";
-	async function restorePage(fullRefresh = false) {
-		console.log("Restoring page: " + savedUrl);
-		if (savedUrl) {
-			await new FetchChain().fetch(savedUrl);
-			if (fullRefresh) {
-				location.href = savedUrl;
-				await changeView();
-			}
-		}
-	}
-	function savePage() {
-		console.log("Saving page: " + window.location.href);
-		savedUrl = window.location.href;
-	}
-	async function changeView() {
-		console.log("Changing view to: " + location.hash.replace("#", ""));
-		await fetch("view.php?args=" + location.hash.replace("#", ""));
-	}
 	//#endregion
 	//#region typescript/dropDownMenus.ts
 	var DropDownMenu = class {
