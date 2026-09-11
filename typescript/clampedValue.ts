@@ -30,7 +30,6 @@ export class ClampedValue {
         this.min = min;
         this.max = max;
         this.value = this.value + parseInt("0"); //force recalculation
-        console.log("setRange", this);
     }
 
 }

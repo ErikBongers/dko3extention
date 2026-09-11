@@ -112,5 +112,3 @@ export class DropDownMenu {
         this.menu.remove();
     }
 }
-
-

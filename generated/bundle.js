@@ -1067,7 +1067,6 @@
 			this.min = min;
 			this.max = max;
 			this.value = this.value + parseInt("0");
-			console.log("setRange", this);
 		}
 	};
 	//#endregion
@@ -2189,10 +2188,8 @@
 	let savedUrl = "";
 	async function restorePage(fullRefresh = false) {
 		if (savedUrl) {
-			console.log("Restoring page to: " + savedUrl);
 			await new FetchChain().fetch(savedUrl);
 			if (fullRefresh) {
-				console.log("Full refresh of " + savedUrl);
 				location.href = savedUrl;
 				await changeView();
 			}
