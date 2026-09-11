@@ -10506,7 +10506,10 @@
 		let loaded = await cache.Loaded.get("LesRefs");
 		console.log("loaded", loaded);
 		if (!loaded) {
-			let lesRefs = (await scrapeLessen("3", "1", Schoolyear.toFullString(Schoolyear.calculateCurrent()))).map((l) => ({
+			let lessen = await scrapeLessen("3", "1", Schoolyear.toFullString(Schoolyear.calculateCurrent()));
+			lessen.push(...await scrapeLessen("2", "1", Schoolyear.toFullString(Schoolyear.calculateCurrent())));
+			lessen.push(...await scrapeLessen("4", "1", Schoolyear.toFullString(Schoolyear.calculateCurrent())));
+			let lesRefs = lessen.map((l) => ({
 				id: l.les.id,
 				name: l.les.naam,
 				vak: l.les.vakNaam

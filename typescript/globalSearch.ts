@@ -152,6 +152,8 @@ async function getLesMatches(lesName: string, vak?: string) {
     console.log("loaded", loaded);
     if (!loaded) {
         let lessen = await scrapeLessen(LessenFilterDomein.Muziek, LesType.gewone, Schoolyear.toFullString(Schoolyear.calculateCurrent()));
+        lessen.push(...await scrapeLessen(LessenFilterDomein.Dans, LesType.gewone, Schoolyear.toFullString(Schoolyear.calculateCurrent())));
+        lessen.push(...await scrapeLessen(LessenFilterDomein.Woord, LesType.gewone, Schoolyear.toFullString(Schoolyear.calculateCurrent())));
         let lesRefs = lessen
             .map<LesRef>(l => ({id: l.les.id, name: l.les.naam, vak: l.les.vakNaam}));
         await cache.LesRefs.bulkPut(lesRefs);
