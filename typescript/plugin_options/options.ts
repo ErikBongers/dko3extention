@@ -11,6 +11,7 @@ export type Options = {
     reorderStudentName: boolean;
     allowDeleteNotif: boolean;
     showPluginMenu: boolean;
+    leerlingGotoLes: boolean;
 };
 
 export const options: Options = {
@@ -23,6 +24,7 @@ export const options: Options = {
     reorderStudentName: false,
     allowDeleteNotif: false,
     showPluginMenu: false,
+    leerlingGotoLes: false,
 };
 
 export function defineHtmlOptions() {
@@ -35,6 +37,7 @@ export function defineHtmlOptions() {
     defineHtmlOption("myAcademies", 'value', "", null);
     defineHtmlOption("showDebug", 'checked', "Toon debug info in console.", "block3");
     defineHtmlOption("allowDeleteNotif", 'checked', "Laat verwijderen van berichten toe...", "block3");
+    defineHtmlOption("leerlingGotoLes", 'checked', "Leerling les knop: toon alternatieven.", "block3");
 }
 
 type OptionDef = {

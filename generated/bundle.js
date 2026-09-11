@@ -629,7 +629,8 @@
 		stripCommasOnPaste: false,
 		reorderStudentName: false,
 		allowDeleteNotif: false,
-		showPluginMenu: false
+		showPluginMenu: false,
+		leerlingGotoLes: false
 	};
 	let globalSettings = { globalHide: false };
 	function getGlobalSettings() {
@@ -6887,6 +6888,9 @@
 		decorateSchooljaar();
 		decorateTrimModules(tabInschrijving);
 		if (options.showNotAssignedClasses) setStripedLessons();
+		if (options.leerlingGotoLes) addGotoLesMenus();
+	}
+	function addGotoLesMenus() {
 		for (let opleiding of scrapeOpleidingen()) for (let lesInfo of opleiding.lessen) {
 			if (!lesInfoHasButton(lesInfo)) continue;
 			let btnOnClick = lesInfo.gotoButton.getAttribute("onclick");

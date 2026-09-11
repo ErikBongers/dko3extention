@@ -1,4 +1,4 @@
-import {Schoolyear, wrapElement} from "../globals";
+import {getOptions, Schoolyear, wrapElement} from "../globals";
 import {HashObserver} from "../pageObserver";
 import {options} from "../plugin_options/options";
 import {fetchLes} from "../les/fetch";
@@ -232,12 +232,17 @@ async function onInschrijvingChanged(tabInschrijving: HTMLElement) {
         setStripedLessons();
     }
 
-    for(let opleiding of scrapeOpleidingen()) {
-        for(let lesInfo of opleiding.lessen) {
-            if(!lesInfoHasButton(lesInfo))
+    if (options.leerlingGotoLes)
+        addGotoLesMenus();
+}
+
+function addGotoLesMenus() {
+    for (let opleiding of scrapeOpleidingen()) {
+        for (let lesInfo of opleiding.lessen) {
+            if (!lesInfoHasButton(lesInfo))
                 continue;
             let btnOnClick = lesInfo.gotoButton.getAttribute("onclick");
-            if(!btnOnClick)
+            if (!btnOnClick)
                 continue;
             //todo: scrape lesId inside scrapeOpleidingen.
             let matchLesId = btnOnClick.match(/id=(\d+)/);
