@@ -1,11 +1,11 @@
 import {options} from "./plugin_options/options";
 import {LessenFilterDomein, scrapeLessen} from "./lessen/fetch";
 import {LesType} from "./roster_diff/calcDiff";
-import {Schoolyear} from "./globals";
+import {getSchoolIdString, Schoolyear} from "./globals";
 import {DropDownMenu} from "./dropDownMenus";
 import {fetchLes} from "./les/fetch";
 import {createLesCard} from "./leerling/observer";
-import {AssetRef, LesRef, Ref, SessionCache} from "./db/sessionDb";
+import {AssetRef, getSessionSchoolCache, LesRef, Ref} from "./db/sessionDb";
 import {scrapeAssets} from "./assets/scrape";
 
 export function onPasteInGlobalSearchField(e: ClipboardEvent) {
@@ -147,31 +147,34 @@ async function getLesMatches(lesName: string, vak?: string) {
     if(!lesName)
         return [];
     let lowerCase = lesName.toLowerCase();
-    let loaded = await SessionCache.Loaded.get("LesRefs");
+    let cache = await getSessionSchoolCache(getSchoolIdString())
+    let loaded = await cache.Loaded.get("LesRefs");
+    console.log("loaded", loaded);
     if (!loaded) {
         let lessen = await scrapeLessen(LessenFilterDomein.Muziek, LesType.gewone, Schoolyear.toFullString(Schoolyear.calculateCurrent()));
         let lesRefs = lessen
             .map<LesRef>(l => ({id: l.les.id, name: l.les.naam, vak: l.les.vakNaam}));
-        await SessionCache.LesRefs.bulkPut(lesRefs);
-        await SessionCache.Loaded.put(true, "LesRefs");
+        await cache.LesRefs.bulkPut(lesRefs);
+        await cache.Loaded.put(true, "LesRefs");
     }
     if(vak)
-        return SessionCache.LesRefs.findMatches(lesRef => lesRef.name.toLowerCase().includes(lowerCase) && lesRef.vak == vak);
+        return cache.LesRefs.findMatches(lesRef => lesRef.name.toLowerCase().includes(lowerCase) && lesRef.vak == vak);
 
-    return SessionCache.LesRefs.findMatches(lesRef => lesRef.name.toLowerCase().includes(lowerCase));
+    return cache.LesRefs.findMatches(lesRef => lesRef.name.toLowerCase().includes(lowerCase));
 }
 
 async function getAssetMatches(assetCode: string) {
     if(!assetCode)
         return [];
     let lowerCase = assetCode.toLowerCase();
-    let loaded = await SessionCache.Loaded.get("AssetRefs");
+    let cache = await getSessionSchoolCache(getSchoolIdString())
+    let loaded = await cache.Loaded.get("AssetRefs");
     if (!loaded) {
         let assets = await scrapeAssets();
         let assetRefs = assets
             .map<AssetRef>(asset => ({id: asset.id, code: asset.code}));
-        await SessionCache.AssetRefs.bulkPut(assetRefs);
-        await SessionCache.Loaded.put(true, "AssetRefs");
+        await cache.AssetRefs.bulkPut(assetRefs);
+        await cache.Loaded.put(true, "AssetRefs");
     }
-    return SessionCache.AssetRefs.findMatches(assetRef => assetRef.code.toLowerCase().includes(lowerCase));
+    return cache.AssetRefs.findMatches(assetRef => assetRef.code.toLowerCase().includes(lowerCase));
 }

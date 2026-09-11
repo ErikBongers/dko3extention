@@ -1,4 +1,12 @@
+* session storage per academie!
+
+
+
+* teacherHours: link to teacher (toewijzingen)
+
 * fetch table: make abortable.
+
+* telnrs in lln fiche spaties toevoegen
 
 * trims: click on teacher -> goto teacher.
 

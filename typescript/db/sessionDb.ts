@@ -1,10 +1,10 @@
-import {DBSchema, openDB} from 'idb';
+import {DBSchema, IDBPDatabase, openDB} from 'idb';
 import {Repository} from "./repository";
 
 //todo: use typed db: https://github.com/jakearchibald/idb#examples
 
 const DB_VERSION = 1;
-const DB_NAME = 'sessionStorage';
+const SESSION_DB_PREFIX = 'sessionStorage';
 
 export interface Ref {
     id: string;
@@ -38,27 +38,64 @@ interface SessionDb extends DBSchema {
 
 }
 
-const dbSession = initializeSession();
-
-function initializeSession() {
+async function initializeSession() {
     if (!sessionStorage.getItem('session_active')) {
-        const deleteRequest = indexedDB.deleteDatabase(DB_NAME);
-        deleteRequest.onsuccess = () => {
-            sessionStorage.setItem('session_active', 'true');
-            console.log('Database deleted successfully');
-        };
+        let dbs = await indexedDB.databases();
+        for(let db of dbs) {
+            if(db.name?.startsWith(SESSION_DB_PREFIX)) {
+                const deleteRequest = indexedDB.deleteDatabase(db.name);
+                deleteRequest.onsuccess = () => {
+                    console.log(`Database ${db.name} deleted successfully.`);
+                };
+            }
+        }
+        sessionStorage.setItem('session_active', 'true');
     }
-    return openDB<SessionDb>(DB_NAME, DB_VERSION, {
-        upgrade(db) {
-            db.createObjectStore("LesRefs", {keyPath: "id"});
-            db.createObjectStore("Loaded");
-            db.createObjectStore("Assets", {keyPath: "id"});
-        },
-    });
 }
 
-export const SessionCache = {
-    LesRefs: new Repository<SessionDb, "LesRefs">(dbSession, 'LesRefs'),
-    Loaded: new Repository<SessionDb, "Loaded">(dbSession, 'Loaded'),
-    AssetRefs: new Repository<SessionDb, "Assets">(dbSession, 'Assets'),
-};
+let cacheMap: Map<string, SessionSchoolCache> = new Map();
+
+export async function getSessionSchoolCache(schoolId: string) {
+    let cache = cacheMap.get(schoolId);
+    if(!cache) {
+        cache = await SessionSchoolCache.get(schoolId);
+        cacheMap.set(schoolId, cache);
+    }
+    return cache;
+}
+
+export class SessionSchoolCache {
+    get AssetRefs(): Repository<SessionDb, "Assets"> {
+        return this._AssetRefs;
+    }
+    get Loaded(): Repository<SessionDb, "Loaded"> {
+        return this._Loaded;
+    }
+    get LesRefs(): Repository<SessionDb, "LesRefs"> {
+        return this._LesRefs;
+    }
+    private readonly _LesRefs: Repository<SessionDb, "LesRefs">;
+    private readonly _Loaded: Repository<SessionDb, "Loaded">;
+    private readonly _AssetRefs: Repository<SessionDb, "Assets">;
+
+    constructor(private schoolId: string, private db: IDBPDatabase<SessionDb>) {
+        this._LesRefs = new Repository<SessionDb, "LesRefs">(this.db, 'LesRefs');
+        this._Loaded = new Repository<SessionDb, "Loaded">(this.db, 'Loaded');
+        this._AssetRefs = new Repository<SessionDb, "Assets">(this.db, 'Assets');
+    }
+
+    private static getDbName(schoolId: string) {
+        return `${SESSION_DB_PREFIX}_${schoolId}`;
+    }
+
+    static async get(schoolId: string) {
+        await initializeSession();
+        return new SessionSchoolCache(schoolId, await openDB<SessionDb>(SessionSchoolCache.getDbName(schoolId), DB_VERSION, {
+            upgrade(db) {
+                db.createObjectStore("LesRefs", {keyPath: "id"});
+                db.createObjectStore("Loaded");
+                db.createObjectStore("Assets", {keyPath: "id"});
+            },
+        }));
+    }
+}

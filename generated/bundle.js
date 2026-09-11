@@ -10304,50 +10304,85 @@
 	//#endregion
 	//#region typescript/db/repository.ts
 	var Repository = class {
-		dbPromise;
+		db;
 		storeName;
-		constructor(dbPromise, storeName) {
-			this.dbPromise = dbPromise;
+		constructor(db, storeName) {
+			this.db = db;
 			this.storeName = storeName;
 		}
 		async get(id) {
-			return (await this.dbPromise).get(this.storeName, id);
+			return this.db.get(this.storeName, id);
 		}
 		async put(data, key) {
-			return (await this.dbPromise).put(this.storeName, data, key);
+			return this.db.put(this.storeName, data, key);
 		}
 		async bulkPut(items) {
-			let tx = (await this.dbPromise).transaction(this.storeName, "readwrite");
+			let tx = this.db.transaction(this.storeName, "readwrite");
 			let putPromises = items.map((item) => tx.store.put(item));
 			await Promise.all([...putPromises, tx.done]);
 		}
 		async findMatches(match) {
-			return (await (await this.dbPromise).getAll(this.storeName)).filter(match);
+			return (await this.db.getAll(this.storeName)).filter(match);
 		}
 	};
 	//#endregion
 	//#region typescript/db/sessionDb.ts
 	const DB_VERSION = 1;
-	const DB_NAME = "sessionStorage";
-	const dbSession = initializeSession();
-	function initializeSession() {
+	const SESSION_DB_PREFIX = "sessionStorage";
+	async function initializeSession() {
 		if (!sessionStorage.getItem("session_active")) {
-			const deleteRequest = indexedDB.deleteDatabase(DB_NAME);
-			deleteRequest.onsuccess = () => {
-				sessionStorage.setItem("session_active", "true");
-				console.log("Database deleted successfully");
-			};
+			let dbs = await indexedDB.databases();
+			for (let db of dbs) if (db.name?.startsWith(SESSION_DB_PREFIX)) {
+				const deleteRequest = indexedDB.deleteDatabase(db.name);
+				deleteRequest.onsuccess = () => {
+					console.log(`Database ${db.name} deleted successfully.`);
+				};
+			}
+			sessionStorage.setItem("session_active", "true");
 		}
-		return openDB(DB_NAME, DB_VERSION, { upgrade(db) {
-			db.createObjectStore("LesRefs", { keyPath: "id" });
-			db.createObjectStore("Loaded");
-			db.createObjectStore("Assets", { keyPath: "id" });
-		} });
 	}
-	const SessionCache = {
-		LesRefs: new Repository(dbSession, "LesRefs"),
-		Loaded: new Repository(dbSession, "Loaded"),
-		AssetRefs: new Repository(dbSession, "Assets")
+	let cacheMap = /* @__PURE__ */ new Map();
+	async function getSessionSchoolCache(schoolId) {
+		let cache = cacheMap.get(schoolId);
+		if (!cache) {
+			cache = await SessionSchoolCache.get(schoolId);
+			cacheMap.set(schoolId, cache);
+		}
+		return cache;
+	}
+	var SessionSchoolCache = class SessionSchoolCache {
+		schoolId;
+		db;
+		get AssetRefs() {
+			return this._AssetRefs;
+		}
+		get Loaded() {
+			return this._Loaded;
+		}
+		get LesRefs() {
+			return this._LesRefs;
+		}
+		_LesRefs;
+		_Loaded;
+		_AssetRefs;
+		constructor(schoolId, db) {
+			this.schoolId = schoolId;
+			this.db = db;
+			this._LesRefs = new Repository(this.db, "LesRefs");
+			this._Loaded = new Repository(this.db, "Loaded");
+			this._AssetRefs = new Repository(this.db, "Assets");
+		}
+		static getDbName(schoolId) {
+			return `${SESSION_DB_PREFIX}_${schoolId}`;
+		}
+		static async get(schoolId) {
+			await initializeSession();
+			return new SessionSchoolCache(schoolId, await openDB(SessionSchoolCache.getDbName(schoolId), DB_VERSION, { upgrade(db) {
+				db.createObjectStore("LesRefs", { keyPath: "id" });
+				db.createObjectStore("Loaded");
+				db.createObjectStore("Assets", { keyPath: "id" });
+			} }));
+		}
 	};
 	//#endregion
 	//#region typescript/assets/scrape.ts
@@ -10467,30 +10502,34 @@
 	async function getLesMatches(lesName, vak) {
 		if (!lesName) return [];
 		let lowerCase = lesName.toLowerCase();
-		if (!await SessionCache.Loaded.get("LesRefs")) {
+		let cache = await getSessionSchoolCache(getSchoolIdString());
+		let loaded = await cache.Loaded.get("LesRefs");
+		console.log("loaded", loaded);
+		if (!loaded) {
 			let lesRefs = (await scrapeLessen("3", "1", Schoolyear.toFullString(Schoolyear.calculateCurrent()))).map((l) => ({
 				id: l.les.id,
 				name: l.les.naam,
 				vak: l.les.vakNaam
 			}));
-			await SessionCache.LesRefs.bulkPut(lesRefs);
-			await SessionCache.Loaded.put(true, "LesRefs");
+			await cache.LesRefs.bulkPut(lesRefs);
+			await cache.Loaded.put(true, "LesRefs");
 		}
-		if (vak) return SessionCache.LesRefs.findMatches((lesRef) => lesRef.name.toLowerCase().includes(lowerCase) && lesRef.vak == vak);
-		return SessionCache.LesRefs.findMatches((lesRef) => lesRef.name.toLowerCase().includes(lowerCase));
+		if (vak) return cache.LesRefs.findMatches((lesRef) => lesRef.name.toLowerCase().includes(lowerCase) && lesRef.vak == vak);
+		return cache.LesRefs.findMatches((lesRef) => lesRef.name.toLowerCase().includes(lowerCase));
 	}
 	async function getAssetMatches(assetCode) {
 		if (!assetCode) return [];
 		let lowerCase = assetCode.toLowerCase();
-		if (!await SessionCache.Loaded.get("AssetRefs")) {
+		let cache = await getSessionSchoolCache(getSchoolIdString());
+		if (!await cache.Loaded.get("AssetRefs")) {
 			let assetRefs = (await scrapeAssets()).map((asset) => ({
 				id: asset.id,
 				code: asset.code
 			}));
-			await SessionCache.AssetRefs.bulkPut(assetRefs);
-			await SessionCache.Loaded.put(true, "AssetRefs");
+			await cache.AssetRefs.bulkPut(assetRefs);
+			await cache.Loaded.put(true, "AssetRefs");
 		}
-		return SessionCache.AssetRefs.findMatches((assetRef) => assetRef.code.toLowerCase().includes(lowerCase));
+		return cache.AssetRefs.findMatches((assetRef) => assetRef.code.toLowerCase().includes(lowerCase));
 	}
 	//#endregion
 	//#region typescript/main.ts
