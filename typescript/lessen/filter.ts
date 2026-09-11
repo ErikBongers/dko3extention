@@ -77,7 +77,9 @@ export function createAncestorFilter(rowPreFilter: RowFilter): RowFilter {
 export const TXT_FILTER_ID = "txtFilter";
 
 export function setFilterInfo(text: string) {
-    document.getElementById(FILTER_INFO_ID)!.innerText = text;
+    let infoSpan = document.getElementById(FILTER_INFO_ID) as HTMLSpanElement;
+    infoSpan.innerText = text;
+    infoSpan.classList.toggle("highlight", text.length > 0);
 }
 
 export function applyFilters() {
@@ -211,7 +213,7 @@ export function addFilterFields() {
         menu.addItem("Wachtlijst", 0, _ => setExtraFilter(pageState => pageState.filterWaitingList = true));
         menu.addItem("Online ALC lessen", 0, _ => setExtraFilter(pageState => pageState.filterOnlineAlc = true));
         menu.addItem("Opmerkingen", 0, _ => setExtraFilter(pageState => pageState.filterWarnings = true));
-        emmet.insertAfter(idiom!.parentElement!, `span#${def.FILTER_INFO_ID}.filterInfo`);
+        emmet.insertAfter(idiom!.parentElement!, `span#${def.FILTER_INFO_ID}.filterInfo.block.min30ch.linePad1.blockPad05`);
     }
 
     applyFilters();

@@ -4705,7 +4705,9 @@
 	}
 	const TXT_FILTER_ID$1 = "txtFilter";
 	function setFilterInfo(text) {
-		document.getElementById(FILTER_INFO_ID).innerText = text;
+		let infoSpan = document.getElementById(FILTER_INFO_ID);
+		infoSpan.innerText = text;
+		infoSpan.classList.toggle("highlight", text.length > 0);
 	}
 	function applyFilters() {
 		let pageState = getPageSettings("Lessen", getDefaultPageSettings());
@@ -4798,7 +4800,7 @@
 			menu.addItem("Wachtlijst", 0, (_) => setExtraFilter((pageState) => pageState.filterWaitingList = true));
 			menu.addItem("Online ALC lessen", 0, (_) => setExtraFilter((pageState) => pageState.filterOnlineAlc = true));
 			menu.addItem("Opmerkingen", 0, (_) => setExtraFilter((pageState) => pageState.filterWarnings = true));
-			emmet.insertAfter(idiom.parentElement, `span#${FILTER_INFO_ID}.filterInfo`);
+			emmet.insertAfter(idiom.parentElement, `span#${FILTER_INFO_ID}.filterInfo.block.min30ch.linePad1.blockPad05`);
 		}
 		applyFilters();
 	}

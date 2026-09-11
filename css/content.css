@@ -604,3 +604,23 @@ div#snapshotResults {
 :focus.hideFocus {
     outline: none;
 }
+
+.highlight {
+    background-color: #ffe790;
+}
+
+span.block {
+    display: inline-block;
+}
+
+.min30ch {
+    min-width: 30ch;
+}
+
+.linePad1 {
+    padding-inline: 1ch;
+}
+
+.blockPad05 {
+    padding-block: .5ch;
+}
