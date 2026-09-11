@@ -1,7 +1,3 @@
-* session storage per academie!
-
-
-
 * teacherHours: link to teacher (toewijzingen)
 
 * fetch table: make abortable.
