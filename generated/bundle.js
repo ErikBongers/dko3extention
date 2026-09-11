@@ -6531,13 +6531,13 @@
 		let warningBadges = lesCell.getElementsByClassName("badge-warning");
 		let tags = Array.from(warningBadges).map((el) => el.textContent).filter((txt) => txt !== "ALC").filter((txt) => txt);
 		let mutedSpans = lesCell.querySelectorAll("span.text-muted");
-		let lastTextMutedSpanText = "";
+		let allTextMutedSpanText = "";
 		let childrenElements = lesCell.children;
 		for (let i = 0; i < childrenElements.length; i++) {
 			if (childrenElements[i].tagName === "BR") break;
-			if (childrenElements[i].tagName === "SPAN" && childrenElements[i].classList.contains("text-muted")) lastTextMutedSpanText = childrenElements[i].textContent;
+			if (childrenElements[i].tagName === "SPAN" && childrenElements[i].classList.contains("text-muted")) allTextMutedSpanText += " " + childrenElements[i].textContent;
 		}
-		let naam = lastTextMutedSpanText.replace("(", "").replace(")", "");
+		let naam = allTextMutedSpanText.trim().replace(/^\(/, "").replace(/\)$/, "");
 		let lesType;
 		if (Array.from(allBadges).some((el) => el.textContent === "module")) {
 			if (naam.includes("jaar")) lesType = 1;
