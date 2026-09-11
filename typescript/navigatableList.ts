@@ -40,6 +40,12 @@ export class NavigatableList {
                 if(document.activeElement instanceof HTMLElement)
                     document.activeElement?.blur();
             });
+        } else if(ev.key == "c" && ev.ctrlKey) {
+            // noinspection JSIgnoredPromiseFromCall
+            navigator.clipboard.writeText(this.list.innerText);
+            ev.stopPropagation();
+            ev.stopImmediatePropagation();
+            ev.preventDefault();
         }
 
     }
@@ -127,5 +133,3 @@ export class NavigatableList {
         this.list.remove();
     }
 }
-
-

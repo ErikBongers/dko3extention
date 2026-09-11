@@ -1104,6 +1104,11 @@
 				setTimeout(() => {
 					if (document.activeElement instanceof HTMLElement) document.activeElement?.blur();
 				});
+			} else if (ev.key == "c" && ev.ctrlKey) {
+				navigator.clipboard.writeText(this.list.innerText);
+				ev.stopPropagation();
+				ev.stopImmediatePropagation();
+				ev.preventDefault();
 			}
 		};
 		addItem(title, indentLevel, onClick) {
