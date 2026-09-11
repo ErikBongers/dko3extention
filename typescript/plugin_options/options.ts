@@ -12,6 +12,7 @@ export type Options = {
     allowDeleteNotif: boolean;
     showPluginMenu: boolean;
     leerlingGotoLes: boolean;
+    powerGoto: boolean;
 };
 
 export const options: Options = {
@@ -25,6 +26,7 @@ export const options: Options = {
     allowDeleteNotif: false,
     showPluginMenu: false,
     leerlingGotoLes: false,
+    powerGoto: false,
 };
 
 export function defineHtmlOptions() {
@@ -38,6 +40,7 @@ export function defineHtmlOptions() {
     defineHtmlOption("showDebug", 'checked', "Toon debug info in console.", "block3");
     defineHtmlOption("allowDeleteNotif", 'checked', "Laat verwijderen van berichten toe...", "block3");
     defineHtmlOption("leerlingGotoLes", 'checked', "Leerling les knop: toon alternatieven.", "block3");
+    defineHtmlOption("powerGoto", 'checked', "Snelle lijst in algemeen zoekveld.", "block3");
 }
 
 type OptionDef = {

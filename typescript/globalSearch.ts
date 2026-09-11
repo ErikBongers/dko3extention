@@ -24,6 +24,8 @@ export function onPasteInGlobalSearchField(e: ClipboardEvent) {
 
 export async function onParentKeyUp(e: KeyboardEvent) {
     if (e.key == "Enter") {
+        if(!options.powerGoto)
+            return;
         console.log("parent Enter");
         let searchField = document.getElementById("snel_zoeken_veld_zoektermen") as HTMLInputElement;
         let text = searchField.value;

@@ -558,7 +558,8 @@
 		reorderStudentName: false,
 		allowDeleteNotif: false,
 		showPluginMenu: false,
-		leerlingGotoLes: false
+		leerlingGotoLes: false,
+		powerGoto: false
 	};
 	function defineHtmlOptions() {
 		defineHtmlOption("showNotAssignedClasses", "checked", "Toon arcering voor niet toegewezen klassikale lessen.", "block1");
@@ -571,6 +572,7 @@
 		defineHtmlOption("showDebug", "checked", "Toon debug info in console.", "block3");
 		defineHtmlOption("allowDeleteNotif", "checked", "Laat verwijderen van berichten toe...", "block3");
 		defineHtmlOption("leerlingGotoLes", "checked", "Leerling les knop: toon alternatieven.", "block3");
+		defineHtmlOption("powerGoto", "checked", "Snelle lijst in algemeen zoekveld.", "block3");
 	}
 	let htmlOptionDefs = /* @__PURE__ */ new Map();
 	function defineHtmlOption(id, property, label, blockId) {

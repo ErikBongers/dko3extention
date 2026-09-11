@@ -630,7 +630,8 @@
 		reorderStudentName: false,
 		allowDeleteNotif: false,
 		showPluginMenu: false,
-		leerlingGotoLes: false
+		leerlingGotoLes: false,
+		powerGoto: false
 	};
 	let globalSettings = { globalHide: false };
 	function getGlobalSettings() {
@@ -10351,6 +10352,7 @@
 	}
 	async function onParentKeyUp(e) {
 		if (e.key == "Enter") {
+			if (!options.powerGoto) return;
 			console.log("parent Enter");
 			let text = document.getElementById("snel_zoeken_veld_zoektermen").value;
 			if (await onEnterPressed(text) == "cancel") {
