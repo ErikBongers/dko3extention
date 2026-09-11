@@ -1,3 +1,5 @@
+* fetch table: make abortable.
+
 quick goto: initial load (session) still does the standard refresh.
 
 * Not very important bug:
