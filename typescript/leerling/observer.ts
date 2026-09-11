@@ -1,12 +1,13 @@
-import {db3, Schoolyear, wrapElement} from "../globals";
+import {Schoolyear, wrapElement} from "../globals";
 import {HashObserver} from "../pageObserver";
 import {options} from "../plugin_options/options";
-import {fetchLes, LesDetails} from "../les/fetch";
+import {fetchLes} from "../les/fetch";
 import {DropDownMenu} from "../dropDownMenus";
-import {HtmlLes, textsToYearGrades} from "../lessen/scrape";
-import {DomeinString, LessenFilterBuilder, LessenFilterDomein} from "../lessen/fetch";
+import {textsToYearGrades} from "../lessen/scrape";
+import {DomeinString, LessenFilterBuilder} from "../lessen/fetch";
 import {emmet} from "../../libs/Emmeter/html";
 import {GradeYear} from "../gradeYear";
+import {restorePage, savePage} from "../restorePage";
 
 class LeerlingObserver extends HashObserver {
     constructor() {
@@ -24,6 +25,7 @@ function onMutation(mutation: MutationRecord) {
     checkAndDecorateName();
     let tabInschrijving = document.getElementById("leerling_inschrijvingen_weergave");
     if (mutation.target === tabInschrijving) {
+        // noinspection JSIgnoredPromiseFromCall
         onInschrijvingChanged(tabInschrijving);
         return true;
     }
@@ -254,7 +256,8 @@ async function onInschrijvingChanged(tabInschrijving: HTMLElement) {
 
 async function showGotoLesMenu(wrapper: HTMLElement, button: HTMLElement, btnOnClick: string, lesInfo: LesInfo, opleiding: Opleiding, lesId: string) {
     try {
-        let menu = new DropDownMenu(wrapper, button, false);
+        savePage();
+        let menu = new DropDownMenu(wrapper, button, false, true);
         menu.setPosition("left");
         menu.addItem("Ga naar les", 0, btnOnClick);
         menu.addSeparator(`Bezig met laden...`, 0);
@@ -267,8 +270,7 @@ async function showGotoLesMenu(wrapper: HTMLElement, button: HTMLElement, btnOnC
         await fillClassesMenu(menu, opleiding, lesInfo.vak, btnOnClick);
     } catch (e) {
         console.error(e);
-        //goto les with lesId
-        location.href = `/#lessen-les?id=${lesId}`;
+        await restorePage();
     }
 
 }
@@ -350,7 +352,7 @@ function scrapeLesInfoDetails(tr: HTMLTableRowElement, detailsTdOffset: number) 
 }
 
 export function createLesCard(lesName: string, vakName: string, full: string, lesmoment: string, aantal: number, maxAantal:number, wachtlijst: string, vestiging: string) {
-    let infoBlock = emmet.indent.createElement(`
+    return emmet.indent.createElement(`
             div.small${full}
                 div.bold.pre{${buildLesTitle(lesName, vakName)}}
                 div.pre{${vestiging}}
@@ -358,7 +360,6 @@ export function createLesCard(lesName: string, vakName: string, full: string, le
                 div.pre{${aantal}/${maxAantal} lln} 
                     ${wachtlijst}
         `);
-    return infoBlock;
 }
 
 async function fillClassesMenu(menu: DropDownMenu, opleiding: Opleiding, vak: string, gotoLesCmd: string) {

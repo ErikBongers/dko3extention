@@ -1,5 +1,6 @@
 import {emmet} from "../libs/Emmeter/html";
 import {NavigatableList} from "./navigatableList";
+import {restorePage, savePage} from "./restorePage";
 
 /*
 ##  Construct menus as follows:
@@ -24,10 +25,12 @@ export class DropDownMenu {
     private button: HTMLElement;
     public cancelDropDown: CancelDropDown | undefined;
     private list: NavigatableList;
+    private fullRefreshAfterClose: boolean;
 
-    constructor(container: HTMLElement, button: HTMLElement, showOnClick: boolean = true) {
+    constructor(container: HTMLElement, button: HTMLElement, showOnClick: boolean = true, fullRefreshAfterClose: boolean = false) {
         this.container = container;
         this.button = button;
+        this.fullRefreshAfterClose = fullRefreshAfterClose;
         this.container.classList.add("dropDownContainer");
         this.button.classList.add("dropDownIgnoreHide", "dropDownButton");
         //remove previous drop down menus
@@ -35,6 +38,11 @@ export class DropDownMenu {
         let {first} = emmet.appendChild(this.container as HTMLElement, "div.dropDownMenu.popoverMenu");
         this.menu = first as HTMLElement;
         this.menu.setAttribute("popover", "");
+        this.menu.addEventListener("toggle", async ev => {
+            if (ev.newState != "open") {
+                await restorePage(fullRefreshAfterClose);
+            }
+        });
         this.list = new NavigatableList(this.menu);
         if (showOnClick) {
             this.button.onclick = async ev => {
@@ -83,6 +91,7 @@ export class DropDownMenu {
     }
 
     show() {
+        savePage();
         console.log("show");
         document.querySelectorAll(".activePopoverButton").forEach(p => p.classList.remove("activePopoverButton"));
         this.button.classList.add("activePopoverButton");
@@ -92,11 +101,13 @@ export class DropDownMenu {
         });
     }
 
-    hide() {
+    async hide() {
+        await restorePage(this.fullRefreshAfterClose);
         this.menu.hidePopover();
     }
 
-    remove() {
+    async remove() {
+        await restorePage(this.fullRefreshAfterClose);
         this.list.remove();
         this.menu.remove();
     }

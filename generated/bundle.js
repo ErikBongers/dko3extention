@@ -2185,6 +2185,28 @@
 		}
 	};
 	//#endregion
+	//#region typescript/restorePage.ts
+	let savedUrl = "";
+	async function restorePage(fullRefresh = false) {
+		if (savedUrl) {
+			console.log("Restoring page to: " + savedUrl);
+			await new FetchChain().fetch(savedUrl);
+			if (fullRefresh) {
+				console.log("Full refresh of " + savedUrl);
+				location.href = savedUrl;
+				await changeView();
+			}
+		}
+	}
+	function savePage() {
+		console.log("Saving page: " + window.location.href);
+		savedUrl = window.location.href;
+	}
+	async function changeView() {
+		console.log("Changing view to: " + location.hash.replace("#", ""));
+		await fetch("view.php?args=" + location.hash.replace("#", ""));
+	}
+	//#endregion
 	//#region typescript/dropDownMenus.ts
 	var DropDownMenu = class {
 		menu;
@@ -2192,15 +2214,20 @@
 		button;
 		cancelDropDown;
 		list;
-		constructor(container, button, showOnClick = true) {
+		fullRefreshAfterClose;
+		constructor(container, button, showOnClick = true, fullRefreshAfterClose = false) {
 			this.container = container;
 			this.button = button;
+			this.fullRefreshAfterClose = fullRefreshAfterClose;
 			this.container.classList.add("dropDownContainer");
 			this.button.classList.add("dropDownIgnoreHide", "dropDownButton");
 			this.container.querySelectorAll("div.dropDownMenu").forEach((el) => el.remove());
 			let { first } = emmet.appendChild(this.container, "div.dropDownMenu.popoverMenu");
 			this.menu = first;
 			this.menu.setAttribute("popover", "");
+			this.menu.addEventListener("toggle", async (ev) => {
+				if (ev.newState != "open") await restorePage(fullRefreshAfterClose);
+			});
 			this.list = new NavigatableList(this.menu);
 			if (showOnClick) this.button.onclick = async (ev) => {
 				ev.preventDefault();
@@ -2235,6 +2262,7 @@
 			else this.container.classList.remove("shiftMenuLeft");
 		}
 		show() {
+			savePage();
 			console.log("show");
 			document.querySelectorAll(".activePopoverButton").forEach((p) => p.classList.remove("activePopoverButton"));
 			this.button.classList.add("activePopoverButton");
@@ -2243,10 +2271,12 @@
 				this.list.focus();
 			});
 		}
-		hide() {
+		async hide() {
+			await restorePage(this.fullRefreshAfterClose);
 			this.menu.hidePopover();
 		}
-		remove() {
+		async remove() {
+			await restorePage(this.fullRefreshAfterClose);
 			this.list.remove();
 			this.menu.remove();
 		}
@@ -6868,7 +6898,8 @@
 	}
 	async function showGotoLesMenu(wrapper, button, btnOnClick, lesInfo, opleiding, lesId) {
 		try {
-			let menu = new DropDownMenu(wrapper, button, false);
+			savePage();
+			let menu = new DropDownMenu(wrapper, button, false, true);
 			menu.setPosition("left");
 			menu.addItem("Ga naar les", 0, btnOnClick);
 			menu.addSeparator(`Bezig met laden...`, 0);
@@ -6880,7 +6911,7 @@
 			await fillClassesMenu(menu, opleiding, lesInfo.vak, btnOnClick);
 		} catch (e) {
 			console.error(e);
-			location.href = `/#lessen-les?id=${lesId}`;
+			await restorePage();
 		}
 	}
 	function lesInfoHasButton(lesInfo) {
