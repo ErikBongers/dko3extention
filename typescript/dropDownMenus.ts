@@ -25,12 +25,14 @@ export class DropDownMenu {
     private button: HTMLElement;
     public cancelDropDown: CancelDropDown | undefined;
     private list: NavigatableList;
-    private fullRefreshAfterClose: boolean;
+    private readonly fullRefreshAfterClose: boolean;
+    private readonly abortController: AbortController | undefined;
 
-    constructor(container: HTMLElement, button: HTMLElement, showOnClick: boolean = true, fullRefreshAfterClose: boolean = false) {
+    constructor(container: HTMLElement, button: HTMLElement, showOnClick: boolean = true, fullRefreshAfterClose: boolean = false, abortController?: AbortController) {
         this.container = container;
         this.button = button;
         this.fullRefreshAfterClose = fullRefreshAfterClose;
+        this.abortController = abortController;
         this.container.classList.add("dropDownContainer");
         this.button.classList.add("dropDownIgnoreHide", "dropDownButton");
         //remove previous drop down menus
@@ -39,11 +41,13 @@ export class DropDownMenu {
         this.menu = first as HTMLElement;
         this.menu.setAttribute("popover", "");
         this.menu.addEventListener("toggle", async ev => {
+            console.log("toggle", ev.newState);
             if (ev.newState != "open") {
+                this.abortController?.abort()
                 await restorePage(fullRefreshAfterClose);
             }
         });
-        this.list = new NavigatableList(this.menu);
+        this.list = new NavigatableList(this.menu, this.abortController);
         if (showOnClick) {
             this.button.onclick = async ev => {
                 ev.preventDefault();

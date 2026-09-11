@@ -3,6 +3,7 @@ import {FetchChain} from "./table/fetchChain";
 let savedUrl = "";
 
 export async function restorePage(fullRefresh: boolean = false) {
+    console.log("Restoring page: " + savedUrl);
     if (savedUrl) {
         let chain =  new FetchChain();
         await chain.fetch(savedUrl);

@@ -4,9 +4,11 @@ import {ClampedValue} from "./clampedValue";
 export class NavigatableList {
     readonly list: HTMLElement;
     private index: ClampedValue;
+    private readonly abortController: AbortController | undefined;
 
-    constructor(list: HTMLElement) {
+    constructor(list: HTMLElement, abortController?: AbortController) {
         this.list = list;
+        this.abortController = abortController;
         this.list.addEventListener("keydown", this.onMenuKeyDown, {capture: true});
         this.list.setAttribute("tabindex", "0");
         this.list.classList.add("hideFocus");
@@ -35,6 +37,8 @@ export class NavigatableList {
             ev.stopImmediatePropagation();
             ev.preventDefault();
         } else if(ev.key == "Enter") {
+            if(this.abortController)
+                this.abortController.abort();
             this.getItem(this.index.value).click();
             setTimeout(() => {
                 if(document.activeElement instanceof HTMLElement)

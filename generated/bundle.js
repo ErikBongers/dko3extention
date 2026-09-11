@@ -1074,8 +1074,10 @@
 	var NavigatableList = class {
 		list;
 		index;
-		constructor(list) {
+		abortController;
+		constructor(list, abortController) {
 			this.list = list;
+			this.abortController = abortController;
 			this.list.addEventListener("keydown", this.onMenuKeyDown, { capture: true });
 			this.list.setAttribute("tabindex", "0");
 			this.list.classList.add("hideFocus");
@@ -1099,6 +1101,7 @@
 				ev.stopImmediatePropagation();
 				ev.preventDefault();
 			} else if (ev.key == "Enter") {
+				if (this.abortController) this.abortController.abort();
 				this.getItem(this.index.value).click();
 				setTimeout(() => {
 					if (document.activeElement instanceof HTMLElement) document.activeElement?.blur();
@@ -2187,6 +2190,7 @@
 	//#region typescript/restorePage.ts
 	let savedUrl = "";
 	async function restorePage(fullRefresh = false) {
+		console.log("Restoring page: " + savedUrl);
 		if (savedUrl) {
 			await new FetchChain().fetch(savedUrl);
 			if (fullRefresh) {
@@ -2212,10 +2216,12 @@
 		cancelDropDown;
 		list;
 		fullRefreshAfterClose;
-		constructor(container, button, showOnClick = true, fullRefreshAfterClose = false) {
+		abortController;
+		constructor(container, button, showOnClick = true, fullRefreshAfterClose = false, abortController) {
 			this.container = container;
 			this.button = button;
 			this.fullRefreshAfterClose = fullRefreshAfterClose;
+			this.abortController = abortController;
 			this.container.classList.add("dropDownContainer");
 			this.button.classList.add("dropDownIgnoreHide", "dropDownButton");
 			this.container.querySelectorAll("div.dropDownMenu").forEach((el) => el.remove());
@@ -2223,9 +2229,13 @@
 			this.menu = first;
 			this.menu.setAttribute("popover", "");
 			this.menu.addEventListener("toggle", async (ev) => {
-				if (ev.newState != "open") await restorePage(fullRefreshAfterClose);
+				console.log("toggle", ev.newState);
+				if (ev.newState != "open") {
+					this.abortController?.abort();
+					await restorePage(fullRefreshAfterClose);
+				}
 			});
-			this.list = new NavigatableList(this.menu);
+			this.list = new NavigatableList(this.menu, this.abortController);
 			if (showOnClick) this.button.onclick = async (ev) => {
 				ev.preventDefault();
 				ev.stopPropagation();
@@ -6893,10 +6903,10 @@
 			}
 		}
 	}
-	async function showGotoLesMenu(wrapper, button, btnOnClick, lesInfo, opleiding, lesId) {
+	async function showGotoLesMenu(wrapper, button, btnOnClick, lesInfo, opleiding, lesId, abortController) {
 		try {
 			savePage();
-			let menu = new DropDownMenu(wrapper, button, false, true);
+			let menu = new DropDownMenu(wrapper, button, false, true, abortController);
 			menu.setPosition("left");
 			menu.addItem("Ga naar les", 0, btnOnClick);
 			menu.addSeparator(`Bezig met laden...`, 0);
@@ -10408,11 +10418,11 @@
 			}
 			if (matches.length > 1) {
 				let searchField = document.getElementById("snel_zoeken_veld_zoektermen");
-				let dropDownMenu = new DropDownMenu(searchField.parentElement?.parentElement, searchField, false);
-				matches.sort((a, b) => getLabel(a).localeCompare(getLabel(b)));
-				let queue = Promise.resolve();
 				let abortController = new AbortController();
 				let signal = abortController.signal;
+				let dropDownMenu = new DropDownMenu(searchField.parentElement?.parentElement, searchField, false, false, abortController);
+				matches.sort((a, b) => getLabel(a).localeCompare(getLabel(b)));
+				let queue = Promise.resolve();
 				for (let ref of matches) {
 					let index = dropDownMenu.addItem(getLabel(ref), 0, () => {
 						abortController.abort();

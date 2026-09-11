@@ -254,10 +254,10 @@ async function onInschrijvingChanged(tabInschrijving: HTMLElement) {
     }
 }
 
-async function showGotoLesMenu(wrapper: HTMLElement, button: HTMLElement, btnOnClick: string, lesInfo: LesInfo, opleiding: Opleiding, lesId: string) {
+async function showGotoLesMenu(wrapper: HTMLElement, button: HTMLElement, btnOnClick: string, lesInfo: LesInfo, opleiding: Opleiding, lesId: string, abortController?: AbortController) {
     try {
         savePage();
-        let menu = new DropDownMenu(wrapper, button, false, true);
+        let menu = new DropDownMenu(wrapper, button, false, true, abortController);
         menu.setPosition("left");
         menu.addItem("Ga naar les", 0, btnOnClick);
         menu.addSeparator(`Bezig met laden...`, 0);
