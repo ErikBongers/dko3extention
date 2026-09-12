@@ -1,4 +1,6 @@
-const default_items =
+import {DefaultQueryItems} from "./default_items_types";
+
+export const defaultQueryItems: DefaultQueryItems =
 // PASTE HERE:
     {"Lijsten":[{"headerLabel":"Algemeen","label":"Werklijst","href":"https://administratie.dko3.cloud/#leerlingen-werklijst","weight":0,"longLabel":"Lijsten > Werklijst","lowerCase":"lijsten > werklijst"},
             {"headerLabel":"Algemeen","label":"Alle leerlingen","href":"https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_alle_leerlingen","weight":0,"longLabel":"Lijsten > Alle leerlingen","lowerCase":"lijsten > alle leerlingen"},

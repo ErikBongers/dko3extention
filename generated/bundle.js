@@ -1,3000 +1,3761 @@
-(function(default_items) {
-	//#region libs/Emmeter/tokenizer/PeekingTokenizer.ts
-	var PeekingTokenizer = class {
-		tokenizer;
-		constructor(tokenizer) {
-			this.tokenizer = tokenizer;
-		}
-		next() {
-			return this.tokenizer.next();
-		}
-		peek() {
-			return this.tokenizer.clone().next();
-		}
-	};
-	//#endregion
-	//#region libs/Emmeter/tokenizer/cursor.ts
-	var Cursor = class Cursor {
-		text;
-		currentPos;
-		length;
-		constructor(text) {
-			this.text = text;
-			this.length = this.text.length;
-			this.currentPos = -1;
-		}
-		static copy(cursor) {
-			let newCursor = new Cursor(cursor.text);
-			newCursor.currentPos = cursor.currentPos;
-			return newCursor;
-		}
-		eat(char) {
-			if (this.currentPos >= this.length) return false;
-			if (this.text[this.currentPos] == char) {
-				this.currentPos++;
-				return true;
-			}
-			return false;
-		}
-		get pos() {
-			return this.currentPos;
-		}
-		get current() {
-			if (this.currentPos >= this.length) return "";
-			return this.text[this.currentPos];
-		}
-		next() {
-			if (this.currentPos >= this.length) return "";
-			this.currentPos++;
-			return this.current;
-		}
-		peek() {
-			if (this.currentPos + 1 >= this.length) return "";
-			return this.text[this.currentPos + 1];
-		}
-		getText(pos, length) {
-			return this.text.substring(pos, pos + length);
-		}
-		getTo(endChar) {
-			let start = this.currentPos + 1;
-			let end = start;
-			while (end < this.length && this.text[end] != endChar) end++;
-			if (end == this.length) return null;
-			this.currentPos = end;
-			return {
-				start,
-				length: this.currentPos - start + 1
-			};
-		}
-		getToNot(notChar) {
-			let start = this.currentPos + 1;
-			let end = start;
-			while (end < this.length && this.text[end] == notChar) end++;
-			if (end == this.length) return null;
-			if (end == start) return null;
-			this.currentPos = end - 1;
-			return {
-				start,
-				length: this.currentPos - start + 1
-			};
-		}
-		getLocation(pos) {
-			let line = 1;
-			let col = 1;
-			for (let i = 0; i < pos; i++) if (this.text[i] == "\n") {
-				line++;
-				col = 1;
-			} else col++;
-			return {
-				line,
-				col
-			};
-		}
-		getLine(pos) {
-			let loc = this.getLocation(pos);
-			let start = 0;
-			let end = this.length;
-			for (let i = 0; i < this.length; i++) if (this.text[i] == "\n") {
-				if (loc.line > 1) {
-					start = i + 1;
-					loc.line--;
-				} else {
-					end = i;
-					break;
-				}
-			}
-			return this.text.substring(start, end);
-		}
-	};
-	//#endregion
-	//#region libs/Emmeter/tokenizer/indentTokenizer.ts
-	function getText(token) {
-		return token.cursor.getText(token.pos, token.length);
+//#region libs/Emmeter/tokenizer/PeekingTokenizer.ts
+var PeekingTokenizer = class {
+	tokenizer;
+	constructor(tokenizer) {
+		this.tokenizer = tokenizer;
 	}
-	var IndentTokenizer = class IndentTokenizer {
-		cursor;
-		constructor(text) {
-			this.cursor = new Cursor(text);
+	next() {
+		return this.tokenizer.next();
+	}
+	peek() {
+		return this.tokenizer.clone().next();
+	}
+};
+//#endregion
+//#region libs/Emmeter/tokenizer/cursor.ts
+var Cursor = class Cursor {
+	text;
+	currentPos;
+	length;
+	constructor(text) {
+		this.text = text;
+		this.length = this.text.length;
+		this.currentPos = -1;
+	}
+	static copy(cursor) {
+		let newCursor = new Cursor(cursor.text);
+		newCursor.currentPos = cursor.currentPos;
+		return newCursor;
+	}
+	eat(char) {
+		if (this.currentPos >= this.length) return false;
+		if (this.text[this.currentPos] == char) {
+			this.currentPos++;
+			return true;
 		}
-		setCursor(cursor) {
-			this.cursor = cursor;
-		}
-		cloneCursor() {
-			return Cursor.copy(this.cursor);
-		}
-		clone() {
-			let theClone = new IndentTokenizer("");
-			theClone.setCursor(this.cloneCursor());
-			return theClone;
-		}
-		next() {
-			let char = this.cursor.next();
-			let found;
-			let id = this.eatId(char);
-			if (id) return id;
-			let num = this.eatInteger(char);
-			if (num) return num;
-			switch (char) {
-				case "": return null;
-				case "\n":
-					found = this.cursor.getToNot(" ");
-					if (found) return {
-						type: "INDENT",
-						cursor: this.cursor,
-						pos: found.start,
-						length: found.length
-					};
-					return null;
-				case " ":
-					this.skipSpaces();
-					return this.next();
-				case ">":
-				case "+":
-				case "[":
-				case "]":
-				case "(":
-				case ")":
-				case "*":
-				case ".":
-				case "=":
-				case "#": return {
-					type: char,
-					cursor: this.cursor,
-					pos: this.cursor.pos,
-					length: 1
-				};
-				case "{":
-					found = this.cursor.getTo("}");
-					if (found) return {
-						type: "TEXT",
-						cursor: this.cursor,
-						pos: found.start,
-						length: found.length - 1
-					};
-					return null;
-				case "\"":
-					found = this.cursor.getTo("\"");
-					if (found) return {
-						type: "STRING",
-						cursor: this.cursor,
-						pos: found.start,
-						length: found.length - 1
-					};
-				default: return {
-					type: "UNKNOWN",
-					cursor: this.cursor,
-					pos: this.cursor.pos,
-					length: 1
-				};
-			}
-		}
-		eatId(char) {
-			let pos = this.cursor.pos;
-			if (char.match(/[a-zA-Z\-]/)) {
-				while (this.cursor.peek().match(/[a-zA-Z0-9_\-]/)) this.cursor.next();
-				return {
-					type: "ID",
-					cursor: this.cursor,
-					pos,
-					length: this.cursor.pos - pos + 1
-				};
-			}
-			return null;
-		}
-		eatInteger(char) {
-			let pos = this.cursor.pos;
-			if (char.match(/[0-9]/)) {
-				while (this.cursor.peek().match(/[0-9]/)) this.cursor.next();
-				return {
-					type: "NUMBER",
-					cursor: this.cursor,
-					pos,
-					length: this.cursor.pos - pos + 1
-				};
-			}
-			return null;
-		}
-		getNumberToken() {
-			let token = {
-				type: "NUMBER",
-				cursor: this.cursor,
-				pos: this.cursor.pos,
-				length: 0
-			};
-			let start = this.cursor.pos;
-			while (this.cursor.peek().match(/[0-9.,]/)) this.cursor.next();
-			token.length = this.cursor.pos - start + 1;
-			return token;
-		}
-		skipSpaces() {
-			while (this.cursor.peek() == " ") this.cursor.next();
-		}
-	};
-	//#endregion
-	//#region libs/Emmeter/tokenizer/FilteredTokenizer.ts
-	var FilteredTokenizer = class FilteredTokenizer {
-		tokenizer;
-		exclude;
-		constructor(tokenizer, exclude) {
-			this.tokenizer = tokenizer;
-			this.exclude = exclude;
-		}
-		next() {
-			let token = this.tokenizer.next();
-			if (token && !this.exclude(token)) return this.next();
-			return token;
-		}
-		clone() {
-			return new FilteredTokenizer(this.tokenizer.clone(), this.exclude);
-		}
-	};
-	//#endregion
-	//#region libs/Emmeter/parser.ts
-	var Parser = class {
-		tok;
-		constructor(tok) {
-			this.tok = tok;
-		}
-		parse() {
-			let res = this.parsePlus(0);
-			let next = this.tok.next();
-			if (next) this.throwAt(`Unexpected token: ${next.type}`, next);
-			return res;
-		}
-		parsePlus(currentIndent) {
-			let list = [];
-			while (true) {
-				let el = this.parseMult(currentIndent);
-				if (!el) return list.length === 1 ? list[0] : { list };
-				list.push(el);
-				if (this.match("+")) continue;
-				let indentToken = this.tok.peek();
-				if (indentToken?.type == "INDENT" && indentToken?.length == currentIndent) {
-					this.tok.next();
-					continue;
-				}
-				return list.length === 1 ? list[0] : { list };
-			}
-		}
-		parseMult(currentIndent) {
-			let el = this.parseElementGroup(currentIndent);
-			if (!el) return el;
-			let starToken = this.match("*");
-			if (starToken) {
-				let mustBeNumber = this.tok.next();
-				if (!mustBeNumber) this.throwAt("Number expecting after multiplier symbol '*'", starToken);
-				return {
-					count: parseInt(getText(mustBeNumber)),
-					child: el
-				};
-			} else return el;
-		}
-		parseElementGroup(currentIndent) {
-			let el;
-			if (this.match("(")) {
-				el = this.parsePlus(currentIndent);
-				if (!this.match(")")) this.throwAt("Expected ')'", this.tok.peek());
-				return el;
-			}
-			let indentToken = this.tok.peek();
-			if (indentToken?.type == "INDENT") {
-				if (indentToken.length > currentIndent) {
-					this.tok.next();
-					return this.parsePlus(indentToken.length);
-				}
-			}
-			let textToken = this.match("TEXT");
-			if (textToken) return { text: getText(textToken) };
-			else return this.parseElement(currentIndent);
-		}
-		parseElement(currentIndent) {
-			let tag = this.tok.next();
-			let id = void 0;
-			let atts = [];
-			let classList = [];
-			let innerText = void 0;
-			if (!tag) this.throwAt("Unexpected end of stream. Tag expected.", tag);
-			while (this.tok.peek()) {
-				if (this.match(".")) {
-					let className = this.tok.next();
-					if (!className) this.throwAt("Unexpected end of stream. Class name expected.", className);
-					classList.push(getText(className));
-					continue;
-				}
-				if (this.match("[")) {
-					atts = this.parseAttributes(currentIndent);
-					continue;
-				}
-				if (this.match("#")) {
-					let idToken = this.tok.next();
-					if (!idToken) this.throwAt("Unexpected end of stream. ID expected.", idToken);
-					id = getText(idToken);
-					continue;
-				}
-				let textToken = this.match("TEXT");
-				if (textToken) {
-					innerText = getText(textToken);
-					continue;
-				}
+		return false;
+	}
+	get pos() {
+		return this.currentPos;
+	}
+	get current() {
+		if (this.currentPos >= this.length) return "";
+		return this.text[this.currentPos];
+	}
+	next() {
+		if (this.currentPos >= this.length) return "";
+		this.currentPos++;
+		return this.current;
+	}
+	peek() {
+		if (this.currentPos + 1 >= this.length) return "";
+		return this.text[this.currentPos + 1];
+	}
+	getText(pos, length) {
+		return this.text.substring(pos, pos + length);
+	}
+	getTo(endChar) {
+		let start = this.currentPos + 1;
+		let end = start;
+		while (end < this.length && this.text[end] != endChar) end++;
+		if (end == this.length) return null;
+		this.currentPos = end;
+		return {
+			start,
+			length: this.currentPos - start + 1
+		};
+	}
+	getToNot(notChar) {
+		let start = this.currentPos + 1;
+		let end = start;
+		while (end < this.length && this.text[end] == notChar) end++;
+		if (end == this.length) return null;
+		if (end == start) return null;
+		this.currentPos = end - 1;
+		return {
+			start,
+			length: this.currentPos - start + 1
+		};
+	}
+	getLocation(pos) {
+		let line = 1;
+		let col = 1;
+		for (let i = 0; i < pos; i++) if (this.text[i] == "\n") {
+			line++;
+			col = 1;
+		} else col++;
+		return {
+			line,
+			col
+		};
+	}
+	getLine(pos) {
+		let loc = this.getLocation(pos);
+		let start = 0;
+		let end = this.length;
+		for (let i = 0; i < this.length; i++) if (this.text[i] == "\n") {
+			if (loc.line > 1) {
+				start = i + 1;
+				loc.line--;
+			} else {
+				end = i;
 				break;
 			}
-			return {
-				tag: getText(tag),
-				id,
-				atts,
-				classList,
-				innerText,
-				child: this.parseDown(currentIndent)
+		}
+		return this.text.substring(start, end);
+	}
+};
+//#endregion
+//#region libs/Emmeter/tokenizer/indentTokenizer.ts
+function getText(token) {
+	return token.cursor.getText(token.pos, token.length);
+}
+var IndentTokenizer = class IndentTokenizer {
+	cursor;
+	constructor(text) {
+		this.cursor = new Cursor(text);
+	}
+	setCursor(cursor) {
+		this.cursor = cursor;
+	}
+	cloneCursor() {
+		return Cursor.copy(this.cursor);
+	}
+	clone() {
+		let theClone = new IndentTokenizer("");
+		theClone.setCursor(this.cloneCursor());
+		return theClone;
+	}
+	next() {
+		let char = this.cursor.next();
+		let found;
+		let id = this.eatId(char);
+		if (id) return id;
+		let num = this.eatInteger(char);
+		if (num) return num;
+		switch (char) {
+			case "": return null;
+			case "\n":
+				found = this.cursor.getToNot(" ");
+				if (found) return {
+					type: "INDENT",
+					cursor: this.cursor,
+					pos: found.start,
+					length: found.length
+				};
+				return null;
+			case " ":
+				this.skipSpaces();
+				return this.next();
+			case ">":
+			case "+":
+			case "[":
+			case "]":
+			case "(":
+			case ")":
+			case "*":
+			case ".":
+			case "=":
+			case "#": return {
+				type: char,
+				cursor: this.cursor,
+				pos: this.cursor.pos,
+				length: 1
+			};
+			case "{":
+				found = this.cursor.getTo("}");
+				if (found) return {
+					type: "TEXT",
+					cursor: this.cursor,
+					pos: found.start,
+					length: found.length - 1
+				};
+				return null;
+			case "\"":
+				found = this.cursor.getTo("\"");
+				if (found) return {
+					type: "STRING",
+					cursor: this.cursor,
+					pos: found.start,
+					length: found.length - 1
+				};
+			default: return {
+				type: "UNKNOWN",
+				cursor: this.cursor,
+				pos: this.cursor.pos,
+				length: 1
 			};
 		}
-		parseDown(currentIndent) {
-			if (this.match(">")) return this.parsePlus(currentIndent);
+	}
+	eatId(char) {
+		let pos = this.cursor.pos;
+		if (char.match(/[a-zA-Z\-]/)) {
+			while (this.cursor.peek().match(/[a-zA-Z0-9_\-]/)) this.cursor.next();
+			return {
+				type: "ID",
+				cursor: this.cursor,
+				pos,
+				length: this.cursor.pos - pos + 1
+			};
+		}
+		return null;
+	}
+	eatInteger(char) {
+		let pos = this.cursor.pos;
+		if (char.match(/[0-9]/)) {
+			while (this.cursor.peek().match(/[0-9]/)) this.cursor.next();
+			return {
+				type: "NUMBER",
+				cursor: this.cursor,
+				pos,
+				length: this.cursor.pos - pos + 1
+			};
+		}
+		return null;
+	}
+	getNumberToken() {
+		let token = {
+			type: "NUMBER",
+			cursor: this.cursor,
+			pos: this.cursor.pos,
+			length: 0
+		};
+		let start = this.cursor.pos;
+		while (this.cursor.peek().match(/[0-9.,]/)) this.cursor.next();
+		token.length = this.cursor.pos - start + 1;
+		return token;
+	}
+	skipSpaces() {
+		while (this.cursor.peek() == " ") this.cursor.next();
+	}
+};
+//#endregion
+//#region libs/Emmeter/tokenizer/FilteredTokenizer.ts
+var FilteredTokenizer = class FilteredTokenizer {
+	tokenizer;
+	exclude;
+	constructor(tokenizer, exclude) {
+		this.tokenizer = tokenizer;
+		this.exclude = exclude;
+	}
+	next() {
+		let token = this.tokenizer.next();
+		if (token && !this.exclude(token)) return this.next();
+		return token;
+	}
+	clone() {
+		return new FilteredTokenizer(this.tokenizer.clone(), this.exclude);
+	}
+};
+//#endregion
+//#region libs/Emmeter/parser.ts
+var Parser = class {
+	tok;
+	constructor(tok) {
+		this.tok = tok;
+	}
+	parse() {
+		let res = this.parsePlus(0);
+		let next = this.tok.next();
+		if (next) this.throwAt(`Unexpected token: ${next.type}`, next);
+		return res;
+	}
+	parsePlus(currentIndent) {
+		let list = [];
+		while (true) {
+			let el = this.parseMult(currentIndent);
+			if (!el) return list.length === 1 ? list[0] : { list };
+			list.push(el);
+			if (this.match("+")) continue;
 			let indentToken = this.tok.peek();
-			if (indentToken?.type == "INDENT" && indentToken?.length > currentIndent) {
+			if (indentToken?.type == "INDENT" && indentToken?.length == currentIndent) {
 				this.tok.next();
-				return this.parsePlus(indentToken?.length);
+				continue;
 			}
+			return list.length === 1 ? list[0] : { list };
 		}
-		parseAttributes(currentIndent) {
-			let attDefs = [];
-			while (true) {
-				if (this.match("]")) break;
-				let att = this.parseAttribute(currentIndent);
-				if (att) attDefs.push(att);
-				else break;
-			}
-			return attDefs;
-		}
-		parseAttribute(currentIndent) {
-			let nameToken = this.tok.next();
-			if (!nameToken) return null;
-			let name = getText(nameToken);
-			if (name[0] === ",") this.throwAt("Unexpected ',' - don't separate attributes with ','.", nameToken);
-			let eq = this.tok.next();
-			if (!eq) this.throwAt("Unexpected end of stream. '=' expected.", eq);
-			let subToken;
-			let sub = "";
-			if (eq.type === ".") {
-				subToken = this.tok.next();
-				if (subToken) sub = getText(subToken);
-				eq = this.tok.next();
-			}
-			if (eq?.type != "=") this.throwAt("Equal sign expected.", eq);
-			let valueToken = this.tok.next();
-			if (!valueToken) this.throwAt("Value expected", valueToken);
-			if (valueToken.type != "STRING" && valueToken.type != "NUMBER") this.throwAt(`Value should be STRING or NUMBER. Found ${valueToken.type}.`, valueToken);
-			let value = getText(valueToken);
-			if (value[0] === "\"") value = this.stripStringDelimiters(value);
+	}
+	parseMult(currentIndent) {
+		let el = this.parseElementGroup(currentIndent);
+		if (!el) return el;
+		let starToken = this.match("*");
+		if (starToken) {
+			let mustBeNumber = this.tok.next();
+			if (!mustBeNumber) this.throwAt("Number expecting after multiplier symbol '*'", starToken);
 			return {
-				name,
-				sub,
-				value
+				count: parseInt(getText(mustBeNumber)),
+				child: el
 			};
+		} else return el;
+	}
+	parseElementGroup(currentIndent) {
+		let el;
+		if (this.match("(")) {
+			el = this.parsePlus(currentIndent);
+			if (!this.match(")")) this.throwAt("Expected ')'", this.tok.peek());
+			return el;
 		}
-		match(expected) {
-			if (this.tok.peek()?.type == expected) return this.tok.next();
-			return null;
-		}
-		stripStringDelimiters(text) {
-			if (text[0] === "'" || text[0] === "\"" || text[0] === "{") return text.substring(1, text.length - 1);
-			return text;
-		}
-		printLocation(token) {
-			let { line, col } = token.cursor.getLocation(token.pos);
-			return `line ${line}, col ${col}\n${token.cursor.getLine(token.pos)}\n${" ".repeat(col - 1)}^`;
-		}
-		throwAt(mesagee, token) {
-			if (token) throw new Error(`${mesagee}\n  at ${this.printLocation(token)}`);
-			else throw new Error(`${mesagee}\n  at EOF`);
-		}
-	};
-	//#endregion
-	//#region libs/Emmeter/html.ts
-	let emmet = {
-		createElement,
-		append,
-		insertBefore,
-		insertAfter,
-		appendChild,
-		indent: {
-			createElement: createElement_indent,
-			append: append_indent,
-			insertBefore: insertBefore_indent,
-			insertAfter: insertAfter_indent,
-			appendChild: appendChild_indent
-		}
-	};
-	let lastCreated = void 0;
-	function createElement(text, onIndex, hook) {
-		return createOnTempParent(new PeekingTokenizer(new FilteredTokenizer(new IndentTokenizer(text), (t) => t.type != "INDENT")), onIndex, hook);
-	}
-	function createElement_indent(text, onIndex, hook) {
-		return createOnTempParent(new PeekingTokenizer(new IndentTokenizer(text)), onIndex, hook);
-	}
-	function createOnTempParent(tok, onIndex, hook) {
-		let first = insertAt(tok, "beforeend", document.createElement("div"), onIndex, hook).first;
-		first.remove();
-		return first;
-	}
-	function append(root, text, onIndex, hook) {
-		return parseAndBuild(createTokenizer(text), root, onIndex, hook);
-	}
-	function append_indent(root, text, onIndex, hook) {
-		return parseAndBuild(createIndentTokenizer(text), root, onIndex, hook);
-	}
-	function insertBefore(target, text, onIndex, hook) {
-		return insertAt(createTokenizer(text), "beforebegin", target, onIndex, hook);
-	}
-	function insertBefore_indent(target, text, onIndex, hook) {
-		return insertAt(createIndentTokenizer(text), "beforebegin", target, onIndex, hook);
-	}
-	function insertAfter(target, text, onIndex, hook) {
-		return insertAt(createTokenizer(text), "afterend", target, onIndex, hook);
-	}
-	function insertAfter_indent(target, text, onIndex, hook) {
-		return insertAt(createIndentTokenizer(text), "afterend", target, onIndex, hook);
-	}
-	function appendChild(parent, text, onIndex, hook) {
-		return insertAt(createTokenizer(text), "beforeend", parent, onIndex, hook);
-	}
-	function appendChild_indent(parent, text, onIndex, hook) {
-		return insertAt(createIndentTokenizer(text), "beforeend", parent, onIndex, hook);
-	}
-	function insertAt(tok, position, target, onIndex, hook) {
-		let tempRoot = document.createElement("div");
-		let result = parseAndBuild(tok, tempRoot, onIndex, hook);
-		let first = null;
-		let insertPos = target;
-		let children = [...tempRoot.childNodes];
-		for (let child of children) if (!first) {
-			if (child.nodeType === Node.TEXT_NODE) first = insertPos = insertAdjacentText(target, position, child.wholeText);
-			else first = insertPos = target.insertAdjacentElement(position, child);
-		} else if (child.nodeType === Node.TEXT_NODE) insertPos = insertPos.parentElement.insertBefore(document.createTextNode(child.wholeText), insertPos.nextSibling);
-		else insertPos = insertPos.parentElement.insertBefore(child, insertPos.nextSibling);
-		return {
-			target,
-			first,
-			last: result.last
-		};
-	}
-	function insertAdjacentText(target, position, text) {
-		switch (position) {
-			case "beforebegin": return target.parentElement.insertBefore(document.createTextNode(text), target);
-			case "afterbegin": return target.insertBefore(document.createTextNode(text), target.firstChild);
-			case "beforeend": return target.appendChild(document.createTextNode(text));
-			case "afterend": return target.parentElement.appendChild(document.createTextNode(text));
-		}
-	}
-	function createTokenizer(text) {
-		return new PeekingTokenizer(new FilteredTokenizer(new IndentTokenizer(text), (t) => t.type != "INDENT"));
-	}
-	function createIndentTokenizer(text) {
-		return new PeekingTokenizer(new IndentTokenizer(text));
-	}
-	function parseAndBuild(tok, root, onIndex, hook) {
-		buildElement(root, new Parser(tok).parse(), 1, onIndex, hook);
-		return {
-			root,
-			last: lastCreated
-		};
-	}
-	function buildElement(parent, el, index, onIndex, hook) {
-		if ("tag" in el) {
-			let created = appendChildElement(parent, el, index, onIndex, hook);
-			if (el.child) buildElement(created, el.child, index, onIndex, hook);
-			return;
-		}
-		if ("list" in el) for (let def of el.list) buildElement(parent, def, index, onIndex, hook);
-		if ("count" in el) for (let i = 0; i < el.count; i++) buildElement(parent, el.child, i, onIndex, hook);
-		if ("text" in el) {
-			parent.appendChild(document.createTextNode(addIndex(el.text, index, onIndex)));
-			return;
-		}
-	}
-	function addIndex(text, index, onIndex) {
-		if (onIndex) {
-			let result = onIndex(index);
-			text = text.replace("$$", result);
-		}
-		return text.replace("$", (index + 1).toString());
-	}
-	function appendChildElement(parent, def, index, onIndex, hook) {
-		let el = parent.appendChild(document.createElement(def.tag));
-		if (def.id) el.id = addIndex(def.id, index, onIndex);
-		for (let clazz of def.classList) el.classList.add(addIndex(clazz, index, onIndex));
-		for (let att of def.atts) if (att.sub) el[addIndex(att.name, index, onIndex)][addIndex(att.sub, index, onIndex)] = addIndex(att.value, index, onIndex);
-		else el.setAttribute(addIndex(att.name, index, onIndex), addIndex(att.value, index, onIndex));
-		if (def.innerText) el.appendChild(document.createTextNode(addIndex(def.innerText, index, onIndex)));
-		lastCreated = el;
-		if (hook) hook(el);
-		return el;
-	}
-	//#endregion
-	//#region typescript/def.ts
-	const COPY_AGAIN = "copy_again";
-	const PROGRESS_BAR_ID = "progressBarFetch";
-	const UREN_PREV_BTN_ID = "prefillInstrButton";
-	const WERKLIJST_MAILMERGE_BTN_ID = "mailMergeButton";
-	const UREN_PREV_SETUP_BTN_ID = "prefillInstrSetupButton";
-	const UREN_REFRESH_BTN_ID = "refreshUrenButton";
-	const GOTO_WERKLIJST_BTN_ID = "gotoWerklijstButton";
-	const UREN_NEXT_BTN_ID = "prefillInstrButtonNext";
-	const MAIL_BTN_ID = "mailButton";
-	const DOWNLOAD_TABLE_BTN_ID = "downloadTableButton";
-	const COPY_TABLE_BTN_ID = "copyTableButton";
-	const LESSEN_OVERZICHT_ID = "lessen_overzicht";
-	const TRIM_BUTTON_ID = "moduleButton";
-	const TRIM_TABLE_ID = "trimesterTable";
-	const HOURS_TABLE_ID = "werklijst_uren";
-	const TRIM_DIV_ID = "trimesterDiv";
-	const CLOUD_BASE_URL = "https://europe-west1-ebo-tain.cloudfunctions.net/";
-	const JSON_URL = CLOUD_BASE_URL + "json";
-	const INFO_CONTAINER_ID = "dp3p_infoContainer";
-	const INFO_CACHE_ID = "dp3p_cacheInfo";
-	const INFO_TEMP_ID = "dp3_tempInfo";
-	const INFO_EXTRA_ID = "dp3_extraInfo";
-	const AANW_LIST = "aanwezighedenList";
-	const GLOBAL_SETTINGS_FILENAME = "global_settings.json";
-	const CACHE_DATE_SUFFIX = "__date";
-	const POWER_QUERY_ID = "savedPowerQuery";
-	const STORAGE_GOTO_STATE_KEY = "gotoState";
-	const STORAGE_PAGE_SETTINGS_KEY_PREFIX = "pageSettings_";
-	const CAN_SORT = "canSort";
-	const NO_MENU = "noMenu";
-	const LESSEN_TABLE_ID = "table_lessen_resultaat_tabel";
-	const FILTER_INFO_ID = "filterInfo";
-	const GLOBAL_COMMAND_BUFFER_KEY = "globalCmdBuffer";
-	const AFTER_DOWNLOAD_TABLE_ACTION = "afterDownloadTableAction";
-	const WERKLIJST_TABLE_ID = "table_leerlingen_werklijst_table";
-	const BTN_WERKLIJST_MAKEN_ID = "#btn_leerling_werklijst_maken";
-	const BTN_WERKLIJST_MAKEN_WRAPPER_ID = "#btn_leerling_werklijst_maken_wrapper";
-	const OPTION_HIDE_IGNORED_DIFFS = "dko3plugin.hideIgnoredDiffs";
-	const OPTION_HIDE_NO_TEACHER_DIFFS = "dko3plugin.hideNoTeacherDiffs";
-	const PLUGIN_CONTAINER_ID = "pluginContainer";
-	const LOCAL_HOURS_SETTINGS = "localHoursSettings";
-	//#endregion
-	//#region typescript/cloud.ts
-	let cloud = { json: {
-		fetch: fetchJson,
-		upload: uploadJson
-	} };
-	async function fetchJson(fileName) {
-		return fetch(JSON_URL + "?fileName=" + fileName, { method: "GET" }).then((res) => res.json());
-	}
-	async function uploadJson(fileName, data) {
-		return await (await fetch(JSON_URL + "?fileName=" + fileName, {
-			method: "POST",
-			body: JSON.stringify(data)
-		})).text();
-	}
-	async function fetchNotifications() {
-		console.log("fetching notifications");
-		return await (await fetch("https://europe-west1-ebo-tain.cloudfunctions.net/get-notifications")).json();
-	}
-	async function deleteNotification(id) {
-		await fetch(`https://europe-west1-ebo-tain.cloudfunctions.net/notification?id=${id}`, { method: "DELETE" });
-	}
-	async function fetchFolderChanged(folderName) {
-		return await (await fetch(encodeURI(CLOUD_BASE_URL + "folder-changed?folderName=" + folderName))).json();
-	}
-	async function fetchFolderContent(folderName) {
-		return await (await fetch(encodeURI(CLOUD_BASE_URL + "folder-content?folderName=" + folderName))).json();
-	}
-	async function fetchExcelData(filePath) {
-		return await fetchJson(filePath);
-	}
-	function getIgnoreHashesFileName(academie, schoolYear, diffPageType) {
-		return `Dko3/Uurroosters/${academie}/${academie}_${schoolYear}_${diffPageType}-diff-hashes.json`;
-	}
-	async function uploadIgnoredDiffHashes(academie, schoolYear, hashes, diffPageType) {
-		await uploadJson(getIgnoreHashesFileName(academie, schoolYear, diffPageType), hashes);
-	}
-	async function fetchIgnoredDiffHashes(academie, schoolYear, diffPageType) {
-		return await fetchJson(getIgnoreHashesFileName(academie, schoolYear, diffPageType));
-	}
-	function getDiffSettingsFileName(academie, schoolYear) {
-		return `Dko3/Uurroosters/${academie}/${academie}_${schoolYear}_diff_settings.json`;
-	}
-	async function fetchDiffSettings(academie, schoolYear) {
-		return await fetchJson(getDiffSettingsFileName(academie, schoolYear));
-	}
-	//#endregion
-	//#region typescript/plugin_options/options.ts
-	const options = {
-		myAcademies: "",
-		showNotAssignedClasses: true,
-		showTableHeaders: true,
-		markOtherAcademies: true,
-		showDebug: false,
-		stripCommasOnPaste: false,
-		reorderStudentName: false,
-		allowDeleteNotif: false,
-		showPluginMenu: false,
-		leerlingGotoLes: false,
-		powerGoto: false
-	};
-	let globalSettings = { globalHide: false };
-	function getGlobalSettings() {
-		return globalSettings;
-	}
-	function setGlobalSetting(settings) {
-		globalSettings = settings;
-	}
-	async function fetchGlobalSettings(defaultSettings) {
-		return await cloud.json.fetch(GLOBAL_SETTINGS_FILENAME).catch((err) => {
-			console.log(err);
-			return defaultSettings;
-		});
-	}
-	//#endregion
-	//#region typescript/messaging.ts
-	function sendRequest(action, from, to, toId, data, pageTitle) {
-		let req = {
-			action,
-			data,
-			pageTitle,
-			senderTabType: from,
-			targetTabType: to,
-			targetTabId: toId
-		};
-		return chrome.runtime.sendMessage(req);
-	}
-	//#endregion
-	//#region typescript/globals.ts
-	let observers = [];
-	let settingsObservers = [];
-	function db3(message) {
-		if (options?.showDebug) {
-			console.log(message);
-			let stack = Error().stack;
-			if (stack) console.log(stack.split("\n")[2]);
-		}
-	}
-	function createValidId(id) {
-		return id.replaceAll(" ", "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\W/g, "");
-	}
-	function registerObserver(observer) {
-		observers.push(observer);
-		if (observers.length > 20) console.error("Too many observers!");
-	}
-	function registerSettingsObserver(observer) {
-		settingsObservers.push(observer);
-		if (settingsObservers.length > 20) console.error("Too many settingsObservers!");
-	}
-	function setButtonHighlighted(buttonId, show) {
-		if (show) document.getElementById(buttonId).classList.add("toggled");
-		else document.getElementById(buttonId).classList.remove("toggled");
-	}
-	function addButton$1(targetElement, buttonId, title, clickFunction, imageId, classList, text = "", where = "beforebegin", imageFileName) {
-		if (document.getElementById(buttonId) === null) {
-			const button = document.createElement("button");
-			button.classList.add("btn", ...classList);
-			button.id = buttonId;
-			button.style.marginTop = "0";
-			button.onclick = clickFunction;
-			button.title = title;
-			if (text) {
-				let span = document.createElement("span");
-				button.appendChild(span);
-				span.innerText = text;
+		let indentToken = this.tok.peek();
+		if (indentToken?.type == "INDENT") {
+			if (indentToken.length > currentIndent) {
+				this.tok.next();
+				return this.parsePlus(indentToken.length);
 			}
-			if (imageFileName) {
-				button.classList.add("svg");
-				emmet.appendChild(button, `img[src="${chrome.runtime.getURL("images/" + imageFileName)}"]`);
-			}
-			const buttonContent = document.createElement("i");
-			button.appendChild(buttonContent);
-			if (imageId) buttonContent.classList.add("fas", imageId);
-			targetElement.insertAdjacentElement(where, button);
 		}
+		let textToken = this.match("TEXT");
+		if (textToken) return { text: getText(textToken) };
+		else return this.parseElement(currentIndent);
 	}
-	let Schoolyear;
-	(function(_Schoolyear) {
-		function getSelectElement() {
-			let selects = document.querySelectorAll("select");
-			return Array.from(selects).filter((element) => element.id.includes("schooljaar")).pop() ?? null;
-		}
-		_Schoolyear.getSelectElement = getSelectElement;
-		function getHighestAvailable() {
-			let el = getSelectElement();
-			if (!el) return void 0;
-			return Array.from(el.querySelectorAll("option")).map((option) => option.value).sort().pop();
-		}
-		_Schoolyear.getHighestAvailable = getHighestAvailable;
-		function findInPage() {
-			let el = getSelectElement();
-			if (el) return el.value;
-			el = document.querySelector("div.alert-info");
-			if (el) {
-				let txt = el.textContent;
-				let res = /[sS]chooljaar *[=:][\s\u00A0]*(\d{4}-\d{4})/gm.exec(txt);
-				if (res) return res[1];
+	parseElement(currentIndent) {
+		let tag = this.tok.next();
+		let id = void 0;
+		let atts = [];
+		let classList = [];
+		let innerText = void 0;
+		if (!tag) this.throwAt("Unexpected end of stream. Tag expected.", tag);
+		while (this.tok.peek()) {
+			if (this.match(".")) {
+				let className = this.tok.next();
+				if (!className) this.throwAt("Unexpected end of stream. Class name expected.", className);
+				classList.push(getText(className));
+				continue;
 			}
-			el = document.querySelector("div.btn-toolbar");
-			if (el) {
-				let txt = el.textContent;
-				let res = /[sS]chooljaar *[=:]*[\s\u00A0]*(\d{4}-\d{4})/gm.exec(txt);
-				if (res) return res[1];
+			if (this.match("[")) {
+				atts = this.parseAttributes(currentIndent);
+				continue;
 			}
-			throw "Cannot find schoolyear in page.";
+			if (this.match("#")) {
+				let idToken = this.tok.next();
+				if (!idToken) this.throwAt("Unexpected end of stream. ID expected.", idToken);
+				id = getText(idToken);
+				continue;
+			}
+			let textToken = this.match("TEXT");
+			if (textToken) {
+				innerText = getText(textToken);
+				continue;
+			}
+			break;
 		}
-		_Schoolyear.findInPage = findInPage;
-		function calculateCurrent() {
-			let now = /* @__PURE__ */ new Date();
-			let year = now.getFullYear();
-			if (now.getMonth() < 8) return year - 1;
-			return year;
-		}
-		_Schoolyear.calculateCurrent = calculateCurrent;
-		function calculateSetupYear() {
-			let now = /* @__PURE__ */ new Date();
-			let year = now.getFullYear();
-			if (now.getMonth() < 3) return year - 1;
-			return year;
-		}
-		_Schoolyear.calculateSetupYear = calculateSetupYear;
-		function toFullString(startYear) {
-			return `${startYear}-${startYear + 1}`;
-		}
-		_Schoolyear.toFullString = toFullString;
-		function toShortString(startYear) {
-			return `${startYear % 1e3}-${startYear % 1e3 + 1}`;
-		}
-		_Schoolyear.toShortString = toShortString;
-		function toNumbers(schoolyearString) {
-			let parts = schoolyearString.split("-").map((s) => parseInt(s));
-			return {
-				startYear: parts[0],
-				endYear: parts[1]
-			};
-		}
-		_Schoolyear.toNumbers = toNumbers;
-	})(Schoolyear || (Schoolyear = {}));
-	function getUserAndSchoolName() {
-		let footer = document.querySelector("body > main > div.row > div.col-auto.mr-auto > small");
-		const match = footer.textContent.match(/.*Je bent aangemeld als (.*)\s@\s(.*)\./);
-		if (match?.length !== 3) throw new Error(`Could not process footer text "${footer.textContent}"`);
 		return {
-			userName: match[1],
-			schoolName: match[2]
+			tag: getText(tag),
+			id,
+			atts,
+			classList,
+			innerText,
+			child: this.parseDown(currentIndent)
 		};
 	}
-	function getSchoolIdString() {
-		let { schoolName } = getUserAndSchoolName();
-		schoolName = schoolName.replace("Academie ", "").replace("Muziek", "M").replace("Woord", "W").replace("Dans", "D").replace("Beeld", "B").toLowerCase();
-		return createValidId(schoolName);
-	}
-	function millisToString(duration) {
-		let seconds = Math.floor(duration / 1e3 % 60);
-		let minutes = Math.floor(duration / 6e4 % 60);
-		let hours = Math.floor(duration / 36e5 % 24);
-		let days = Math.floor(duration / 864e5);
-		if (days > 0) return days + (days === 1 ? " dag" : " dagen");
-		else if (hours > 0) return hours + " uur";
-		else if (minutes > 0) return minutes + (minutes === 1 ? " minuut" : " minuten");
-		else if (seconds > 0) return seconds + " seconden";
-		else return "";
-	}
-	function dateDiffToString(oldestDate, newestDate) {
-		return millisToString(newestDate.getTime() - oldestDate.getTime());
-	}
-	function isAlphaNumeric(str) {
-		if (str.length > 1) return false;
-		let code;
-		let i;
-		let len;
-		for (i = 0, len = str.length; i < len; i++) {
-			code = str.charCodeAt(i);
-			if (!(code > 47 && code < 58) && !(code > 64 && code < 91) && !(code > 96 && code < 123)) return false;
+	parseDown(currentIndent) {
+		if (this.match(">")) return this.parsePlus(currentIndent);
+		let indentToken = this.tok.peek();
+		if (indentToken?.type == "INDENT" && indentToken?.length > currentIndent) {
+			this.tok.next();
+			return this.parsePlus(indentToken?.length);
 		}
-		return true;
 	}
-	function rangeGenerator(start, stop, step = 1) {
-		return Array(Math.ceil((stop - start) / step)).fill(start).map((x, y) => x + y * step);
+	parseAttributes(currentIndent) {
+		let attDefs = [];
+		while (true) {
+			if (this.match("]")) break;
+			let att = this.parseAttribute(currentIndent);
+			if (att) attDefs.push(att);
+			else break;
+		}
+		return attDefs;
 	}
-	function createSearchField(id, onSearchInput, value) {
-		let input = document.createElement("input");
-		input.type = "text";
-		input.id = id;
-		input.classList.add("tableFilter");
-		input.oninput = onSearchInput;
-		input.value = value;
-		input.placeholder = "filter";
-		let span = document.createElement("span");
-		span.classList.add("searchButton");
-		span.appendChild(input);
-		let { first: clearButton } = emmet.appendChild(span, `button>img[src="${chrome.runtime.getURL("images/circle-xmark-regular.svg")}"`);
-		clearButton.onclick = () => {
-			input.value = "";
-			input.oninput(void 0);
-			input.focus();
-		};
-		return span;
-	}
-	function getBothToolbars() {
-		let navigationBars = document.querySelectorAll("div.datatable-navigation-toolbar");
-		if (navigationBars.length < 2) return void 0;
-		return navigationBars;
-	}
-	function addTableNavigationButton(navigationBars, btnId, title, onClick, fontIconId) {
-		addButton$1(navigationBars[0].lastElementChild, btnId, title, onClick, fontIconId, ["btn-secondary"], "", "afterend");
-		return true;
-	}
-	function distinct(array) {
-		return [...new Set(array)];
-	}
-	async function fetchStudentsSearch(search) {
-		return fetch("/view.php?args=zoeken?zoek=" + encodeURIComponent(search)).then((response) => response.text()).then((_text) => fetch("/views/zoeken/index.view.php")).then((response) => response.text()).catch((err) => {
-			console.error("Request failed", err);
-			return "";
-		});
-	}
-	async function setViewFromCurrentUrl() {
-		let hash = window.location.hash.replace("#", "");
-		await fetch("/#" + hash).then((res) => res.text());
-		await fetch("view.php?args=" + hash).then((res) => res.text());
-	}
-	function equals(g1, g2) {
-		return g1.globalHide === g2.globalHide;
-	}
-	let rxEmail = /\w[\w.\-]*@\w+\.\w+/gm;
-	function whoAmI() {
-		let scriptTexts = [...document.querySelectorAll("script")].map((s) => s.textContent).join();
+	parseAttribute(currentIndent) {
+		let nameToken = this.tok.next();
+		if (!nameToken) return null;
+		let name = getText(nameToken);
+		if (name[0] === ",") this.throwAt("Unexpected ',' - don't separate attributes with ','.", nameToken);
+		let eq = this.tok.next();
+		if (!eq) this.throwAt("Unexpected end of stream. '=' expected.", eq);
+		let subToken;
+		let sub = "";
+		if (eq.type === ".") {
+			subToken = this.tok.next();
+			if (subToken) sub = getText(subToken);
+			eq = this.tok.next();
+		}
+		if (eq?.type != "=") this.throwAt("Equal sign expected.", eq);
+		let valueToken = this.tok.next();
+		if (!valueToken) this.throwAt("Value expected", valueToken);
+		if (valueToken.type != "STRING" && valueToken.type != "NUMBER") this.throwAt(`Value should be STRING or NUMBER. Found ${valueToken.type}.`, valueToken);
+		let value = getText(valueToken);
+		if (value[0] === "\"") value = this.stripStringDelimiters(value);
 		return {
-			email: scriptTexts.match(rxEmail)[0],
-			name: scriptTexts.match(/name: '(.*)'/)[1]
+			name,
+			sub,
+			value
 		};
 	}
-	function stripStudentName(name) {
-		return name.replaceAll(/[,()'-]/g, " ").replaceAll("  ", " ");
+	match(expected) {
+		if (this.tok.peek()?.type == expected) return this.tok.next();
+		return null;
 	}
-	async function openHtmlTab(cacheId, pageTitle) {
-		return sendRequest("open_tab", "Main", "Html", void 0, { cacheId }, pageTitle);
-	}
-	async function openHoursSettings(schoolyear) {
-		return sendRequest("open_hours_settings", "Main", "Undefined", void 0, { schoolyear }, "Lerarenuren setup voor schooljaar " + schoolyear);
-	}
-	function createHtmlTable(headers, cols) {
-		let tmpDiv = document.createElement("div");
-		let { first: tmpTable, last: tmpThead } = emmet.appendChild(tmpDiv, "table>thead");
-		for (let th of headers) emmet.appendChild(tmpThead, `th{${th}}`);
-		let tmpTbody = tmpTable.appendChild(document.createElement("tbody"));
-		for (let tr of cols) {
-			let tmpTr = tmpTbody.appendChild(document.createElement("tr"));
-			for (let cell of tr) emmet.appendChild(tmpTr, `td{${cell}}`);
-		}
-		return tmpTable;
-	}
-	function isButtonHighlighted(buttonId) {
-		return document.getElementById(buttonId)?.classList.contains("toggled");
-	}
-	function range(startAt, upTo) {
-		if (upTo > startAt) return [...Array(upTo - startAt).keys()].map((n) => n + startAt);
-		else return [...Array(startAt - upTo).keys()].reverse().map((n) => n + upTo + 1);
-	}
-	async function getOptions() {
-		let items = await chrome.storage.sync.get(null);
-		Object.assign(options, items);
-		setGlobalSetting(await fetchGlobalSettings(getGlobalSettings()));
-	}
-	function arrayIsEqual(a, b) {
-		if (a === b) return true;
-		if (a == null || b == null) return false;
-		if (a.length != b.length) return false;
-		let aSet = new Set(a);
-		return b.every((value, _) => aSet.has(value));
-	}
-	function escapeRegexChars(text) {
-		return text.replaceAll("\\", "\\\\").replaceAll("^", "\\^").replaceAll("$", "\\$").replaceAll(".", "\\.").replaceAll("|", "\\|").replaceAll("?", "\\?").replaceAll("*", "\\*").replaceAll("+", "\\+").replaceAll("(", "\\(").replaceAll(")", "\\)").replaceAll("[", "\\[").replaceAll("]", "\\]").replaceAll("{", "\\{").replaceAll("}", "\\}");
-	}
-	function getImmediateText(element) {
-		return [...element.childNodes].map((c) => c.nodeType === 3 ? c.textContent : "").join("");
-	}
-	function tryUntilThen(func, then) {
-		if (func()) then();
-		else setTimeout(() => tryUntilThen(func, then), 100);
-	}
-	function copyToClipboardOrRequestRetry(infoBar, text) {
-		navigator.clipboard.writeText(text).then((_r) => {
-			infoBar.setExtraInfo("Gegevens gekopieerd naar klipbord. <a id=copy_again href='javascript:void(0);'>Kopieer opnieuw</a>", COPY_AGAIN, () => {
-				copyToClipboardOrRequestRetry(infoBar, text);
-			});
-		}).catch((_reason) => {
-			infoBar.setExtraInfo("Kan niet kopiëren naar klipbord!!! <a id=copy_again href='javascript:void(0);'>Kopieer opnieuw</a>", COPY_AGAIN, () => {
-				copyToClipboardOrRequestRetry(infoBar, text);
-			});
-		});
-	}
-	function unreachable(x) {
-		throw new Error("This error will never be thrown. It is used for type safety.");
-	}
-	function pad(num, size) {
-		let text = num.toString();
-		while (text.length < size) text = "0" + text;
+	stripStringDelimiters(text) {
+		if (text[0] === "'" || text[0] === "\"" || text[0] === "{") return text.substring(1, text.length - 1);
 		return text;
 	}
-	var SlidingWindow = class {
-		array;
-		length;
-		pos;
-		constructor(enumerable) {
-			this.pos = -1;
-			this.array = [...enumerable];
-			this.length = this.array.length;
+	printLocation(token) {
+		let { line, col } = token.cursor.getLocation(token.pos);
+		return `line ${line}, col ${col}\n${token.cursor.getLine(token.pos)}\n${" ".repeat(col - 1)}^`;
+	}
+	throwAt(mesagee, token) {
+		if (token) throw new Error(`${mesagee}\n  at ${this.printLocation(token)}`);
+		else throw new Error(`${mesagee}\n  at EOF`);
+	}
+};
+//#endregion
+//#region libs/Emmeter/html.ts
+let emmet = {
+	createElement,
+	append,
+	insertBefore,
+	insertAfter,
+	appendChild,
+	indent: {
+		createElement: createElement_indent,
+		append: append_indent,
+		insertBefore: insertBefore_indent,
+		insertAfter: insertAfter_indent,
+		appendChild: appendChild_indent
+	}
+};
+let lastCreated = void 0;
+function createElement(text, onIndex, hook) {
+	return createOnTempParent(new PeekingTokenizer(new FilteredTokenizer(new IndentTokenizer(text), (t) => t.type != "INDENT")), onIndex, hook);
+}
+function createElement_indent(text, onIndex, hook) {
+	return createOnTempParent(new PeekingTokenizer(new IndentTokenizer(text)), onIndex, hook);
+}
+function createOnTempParent(tok, onIndex, hook) {
+	let first = insertAt(tok, "beforeend", document.createElement("div"), onIndex, hook).first;
+	first.remove();
+	return first;
+}
+function append(root, text, onIndex, hook) {
+	return parseAndBuild(createTokenizer(text), root, onIndex, hook);
+}
+function append_indent(root, text, onIndex, hook) {
+	return parseAndBuild(createIndentTokenizer(text), root, onIndex, hook);
+}
+function insertBefore(target, text, onIndex, hook) {
+	return insertAt(createTokenizer(text), "beforebegin", target, onIndex, hook);
+}
+function insertBefore_indent(target, text, onIndex, hook) {
+	return insertAt(createIndentTokenizer(text), "beforebegin", target, onIndex, hook);
+}
+function insertAfter(target, text, onIndex, hook) {
+	return insertAt(createTokenizer(text), "afterend", target, onIndex, hook);
+}
+function insertAfter_indent(target, text, onIndex, hook) {
+	return insertAt(createIndentTokenizer(text), "afterend", target, onIndex, hook);
+}
+function appendChild(parent, text, onIndex, hook) {
+	return insertAt(createTokenizer(text), "beforeend", parent, onIndex, hook);
+}
+function appendChild_indent(parent, text, onIndex, hook) {
+	return insertAt(createIndentTokenizer(text), "beforeend", parent, onIndex, hook);
+}
+function insertAt(tok, position, target, onIndex, hook) {
+	let tempRoot = document.createElement("div");
+	let result = parseAndBuild(tok, tempRoot, onIndex, hook);
+	let first = null;
+	let insertPos = target;
+	let children = [...tempRoot.childNodes];
+	for (let child of children) if (!first) {
+		if (child.nodeType === Node.TEXT_NODE) first = insertPos = insertAdjacentText(target, position, child.wholeText);
+		else first = insertPos = target.insertAdjacentElement(position, child);
+	} else if (child.nodeType === Node.TEXT_NODE) insertPos = insertPos.parentElement.insertBefore(document.createTextNode(child.wholeText), insertPos.nextSibling);
+	else insertPos = insertPos.parentElement.insertBefore(child, insertPos.nextSibling);
+	return {
+		target,
+		first,
+		last: result.last
+	};
+}
+function insertAdjacentText(target, position, text) {
+	switch (position) {
+		case "beforebegin": return target.parentElement.insertBefore(document.createTextNode(text), target);
+		case "afterbegin": return target.insertBefore(document.createTextNode(text), target.firstChild);
+		case "beforeend": return target.appendChild(document.createTextNode(text));
+		case "afterend": return target.parentElement.appendChild(document.createTextNode(text));
+	}
+}
+function createTokenizer(text) {
+	return new PeekingTokenizer(new FilteredTokenizer(new IndentTokenizer(text), (t) => t.type != "INDENT"));
+}
+function createIndentTokenizer(text) {
+	return new PeekingTokenizer(new IndentTokenizer(text));
+}
+function parseAndBuild(tok, root, onIndex, hook) {
+	buildElement(root, new Parser(tok).parse(), 1, onIndex, hook);
+	return {
+		root,
+		last: lastCreated
+	};
+}
+function buildElement(parent, el, index, onIndex, hook) {
+	if ("tag" in el) {
+		let created = appendChildElement(parent, el, index, onIndex, hook);
+		if (el.child) buildElement(created, el.child, index, onIndex, hook);
+		return;
+	}
+	if ("list" in el) for (let def of el.list) buildElement(parent, def, index, onIndex, hook);
+	if ("count" in el) for (let i = 0; i < el.count; i++) buildElement(parent, el.child, i, onIndex, hook);
+	if ("text" in el) {
+		parent.appendChild(document.createTextNode(addIndex(el.text, index, onIndex)));
+		return;
+	}
+}
+function addIndex(text, index, onIndex) {
+	if (onIndex) {
+		let result = onIndex(index);
+		text = text.replace("$$", result);
+	}
+	return text.replace("$", (index + 1).toString());
+}
+function appendChildElement(parent, def, index, onIndex, hook) {
+	let el = parent.appendChild(document.createElement(def.tag));
+	if (def.id) el.id = addIndex(def.id, index, onIndex);
+	for (let clazz of def.classList) el.classList.add(addIndex(clazz, index, onIndex));
+	for (let att of def.atts) if (att.sub) el[addIndex(att.name, index, onIndex)][addIndex(att.sub, index, onIndex)] = addIndex(att.value, index, onIndex);
+	else el.setAttribute(addIndex(att.name, index, onIndex), addIndex(att.value, index, onIndex));
+	if (def.innerText) el.appendChild(document.createTextNode(addIndex(def.innerText, index, onIndex)));
+	lastCreated = el;
+	if (hook) hook(el);
+	return el;
+}
+//#endregion
+//#region typescript/def.ts
+const COPY_AGAIN = "copy_again";
+const PROGRESS_BAR_ID = "progressBarFetch";
+const UREN_PREV_BTN_ID = "prefillInstrButton";
+const WERKLIJST_MAILMERGE_BTN_ID = "mailMergeButton";
+const UREN_PREV_SETUP_BTN_ID = "prefillInstrSetupButton";
+const UREN_REFRESH_BTN_ID = "refreshUrenButton";
+const GOTO_WERKLIJST_BTN_ID = "gotoWerklijstButton";
+const UREN_NEXT_BTN_ID = "prefillInstrButtonNext";
+const MAIL_BTN_ID = "mailButton";
+const DOWNLOAD_TABLE_BTN_ID = "downloadTableButton";
+const COPY_TABLE_BTN_ID = "copyTableButton";
+const LESSEN_OVERZICHT_ID = "lessen_overzicht";
+const TRIM_BUTTON_ID = "moduleButton";
+const TRIM_TABLE_ID = "trimesterTable";
+const HOURS_TABLE_ID = "werklijst_uren";
+const TRIM_DIV_ID = "trimesterDiv";
+const CLOUD_BASE_URL = "https://europe-west1-ebo-tain.cloudfunctions.net/";
+const JSON_URL = CLOUD_BASE_URL + "json";
+const INFO_CONTAINER_ID = "dp3p_infoContainer";
+const INFO_CACHE_ID = "dp3p_cacheInfo";
+const INFO_TEMP_ID = "dp3_tempInfo";
+const INFO_EXTRA_ID = "dp3_extraInfo";
+const AANW_LIST = "aanwezighedenList";
+const GLOBAL_SETTINGS_FILENAME = "global_settings.json";
+const CACHE_DATE_SUFFIX = "__date";
+const POWER_QUERY_ID = "savedPowerQuery";
+const STORAGE_GOTO_STATE_KEY = "gotoState";
+const STORAGE_PAGE_SETTINGS_KEY_PREFIX = "pageSettings_";
+const CAN_SORT = "canSort";
+const NO_MENU = "noMenu";
+const LESSEN_TABLE_ID = "table_lessen_resultaat_tabel";
+const FILTER_INFO_ID = "filterInfo";
+const GLOBAL_COMMAND_BUFFER_KEY = "globalCmdBuffer";
+const AFTER_DOWNLOAD_TABLE_ACTION = "afterDownloadTableAction";
+const WERKLIJST_TABLE_ID = "table_leerlingen_werklijst_table";
+const BTN_WERKLIJST_MAKEN_ID = "#btn_leerling_werklijst_maken";
+const BTN_WERKLIJST_MAKEN_WRAPPER_ID = "#btn_leerling_werklijst_maken_wrapper";
+const OPTION_HIDE_IGNORED_DIFFS = "dko3plugin.hideIgnoredDiffs";
+const OPTION_HIDE_NO_TEACHER_DIFFS = "dko3plugin.hideNoTeacherDiffs";
+const PLUGIN_CONTAINER_ID = "pluginContainer";
+const LOCAL_HOURS_SETTINGS = "localHoursSettings";
+//#endregion
+//#region typescript/cloud.ts
+let cloud = { json: {
+	fetch: fetchJson,
+	upload: uploadJson
+} };
+async function fetchJson(fileName) {
+	return fetch(JSON_URL + "?fileName=" + fileName, { method: "GET" }).then((res) => res.json());
+}
+async function uploadJson(fileName, data) {
+	return await (await fetch(JSON_URL + "?fileName=" + fileName, {
+		method: "POST",
+		body: JSON.stringify(data)
+	})).text();
+}
+async function fetchNotifications() {
+	console.log("fetching notifications");
+	return await (await fetch("https://europe-west1-ebo-tain.cloudfunctions.net/get-notifications")).json();
+}
+async function deleteNotification(id) {
+	await fetch(`https://europe-west1-ebo-tain.cloudfunctions.net/notification?id=${id}`, { method: "DELETE" });
+}
+async function fetchFolderChanged(folderName) {
+	return await (await fetch(encodeURI(CLOUD_BASE_URL + "folder-changed?folderName=" + folderName))).json();
+}
+async function fetchFolderContent(folderName) {
+	return await (await fetch(encodeURI(CLOUD_BASE_URL + "folder-content?folderName=" + folderName))).json();
+}
+async function fetchExcelData(filePath) {
+	return await fetchJson(filePath);
+}
+function getIgnoreHashesFileName(academie, schoolYear, diffPageType) {
+	return `Dko3/Uurroosters/${academie}/${academie}_${schoolYear}_${diffPageType}-diff-hashes.json`;
+}
+async function uploadIgnoredDiffHashes(academie, schoolYear, hashes, diffPageType) {
+	await uploadJson(getIgnoreHashesFileName(academie, schoolYear, diffPageType), hashes);
+}
+async function fetchIgnoredDiffHashes(academie, schoolYear, diffPageType) {
+	return await fetchJson(getIgnoreHashesFileName(academie, schoolYear, diffPageType));
+}
+function getDiffSettingsFileName(academie, schoolYear) {
+	return `Dko3/Uurroosters/${academie}/${academie}_${schoolYear}_diff_settings.json`;
+}
+async function fetchDiffSettings(academie, schoolYear) {
+	return await fetchJson(getDiffSettingsFileName(academie, schoolYear));
+}
+//#endregion
+//#region typescript/plugin_options/options.ts
+const options = {
+	myAcademies: "",
+	showNotAssignedClasses: true,
+	showTableHeaders: true,
+	markOtherAcademies: true,
+	showDebug: false,
+	stripCommasOnPaste: false,
+	reorderStudentName: false,
+	allowDeleteNotif: false,
+	showPluginMenu: false,
+	leerlingGotoLes: false,
+	powerGoto: false
+};
+let globalSettings = { globalHide: false };
+function getGlobalSettings() {
+	return globalSettings;
+}
+function setGlobalSetting(settings) {
+	globalSettings = settings;
+}
+async function fetchGlobalSettings(defaultSettings) {
+	return await cloud.json.fetch(GLOBAL_SETTINGS_FILENAME).catch((err) => {
+		console.log(err);
+		return defaultSettings;
+	});
+}
+//#endregion
+//#region typescript/messaging.ts
+function sendRequest(action, from, to, toId, data, pageTitle) {
+	let req = {
+		action,
+		data,
+		pageTitle,
+		senderTabType: from,
+		targetTabType: to,
+		targetTabId: toId
+	};
+	return chrome.runtime.sendMessage(req);
+}
+//#endregion
+//#region typescript/globals.ts
+let observers = [];
+let settingsObservers = [];
+function db3(message) {
+	if (options?.showDebug) {
+		console.log(message);
+		let stack = Error().stack;
+		if (stack) console.log(stack.split("\n")[2]);
+	}
+}
+function createValidId(id) {
+	return id.replaceAll(" ", "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\W/g, "");
+}
+function registerObserver(observer) {
+	observers.push(observer);
+	if (observers.length > 20) console.error("Too many observers!");
+}
+function registerSettingsObserver(observer) {
+	settingsObservers.push(observer);
+	if (settingsObservers.length > 20) console.error("Too many settingsObservers!");
+}
+function setButtonHighlighted(buttonId, show) {
+	if (show) document.getElementById(buttonId).classList.add("toggled");
+	else document.getElementById(buttonId).classList.remove("toggled");
+}
+function addButton$1(targetElement, buttonId, title, clickFunction, imageId, classList, text = "", where = "beforebegin", imageFileName) {
+	if (document.getElementById(buttonId) === null) {
+		const button = document.createElement("button");
+		button.classList.add("btn", ...classList);
+		button.id = buttonId;
+		button.style.marginTop = "0";
+		button.onclick = clickFunction;
+		button.title = title;
+		if (text) {
+			let span = document.createElement("span");
+			button.appendChild(span);
+			span.innerText = text;
 		}
-		[Symbol.iterator]() {
-			return { next: () => {
-				this.pos++;
-				if (this.pos >= this.length) return {
-					done: true,
-					value: null
-				};
-				return {
-					done: false,
-					value: {
-						prev: this.peekPrev(),
-						current: this.array[this.pos],
-						next: this.peekNext()
-					}
-				};
-			} };
+		if (imageFileName) {
+			button.classList.add("svg");
+			emmet.appendChild(button, `img[src="${chrome.runtime.getURL("images/" + imageFileName)}"]`);
 		}
-		peekNext() {
-			if (this.pos + 1 > this.length) return null;
-			return this.array[this.pos + 1];
+		const buttonContent = document.createElement("i");
+		button.appendChild(buttonContent);
+		if (imageId) buttonContent.classList.add("fas", imageId);
+		targetElement.insertAdjacentElement(where, button);
+	}
+}
+let Schoolyear;
+(function(_Schoolyear) {
+	function getSelectElement() {
+		let selects = document.querySelectorAll("select");
+		return Array.from(selects).filter((element) => element.id.includes("schooljaar")).pop() ?? null;
+	}
+	_Schoolyear.getSelectElement = getSelectElement;
+	function getHighestAvailable() {
+		let el = getSelectElement();
+		if (!el) return void 0;
+		return Array.from(el.querySelectorAll("option")).map((option) => option.value).sort().pop();
+	}
+	_Schoolyear.getHighestAvailable = getHighestAvailable;
+	function findInPage() {
+		let el = getSelectElement();
+		if (el) return el.value;
+		el = document.querySelector("div.alert-info");
+		if (el) {
+			let txt = el.textContent;
+			let res = /[sS]chooljaar *[=:][\s\u00A0]*(\d{4}-\d{4})/gm.exec(txt);
+			if (res) return res[1];
 		}
-		peekPrev() {
-			if (this.pos == 0) return null;
-			return this.array[this.pos - 1];
+		el = document.querySelector("div.btn-toolbar");
+		if (el) {
+			let txt = el.textContent;
+			let res = /[sS]chooljaar *[=:]*[\s\u00A0]*(\d{4}-\d{4})/gm.exec(txt);
+			if (res) return res[1];
 		}
-		next() {
+		throw "Cannot find schoolyear in page.";
+	}
+	_Schoolyear.findInPage = findInPage;
+	function calculateCurrent() {
+		let now = /* @__PURE__ */ new Date();
+		let year = now.getFullYear();
+		if (now.getMonth() < 8) return year - 1;
+		return year;
+	}
+	_Schoolyear.calculateCurrent = calculateCurrent;
+	function calculateSetupYear() {
+		let now = /* @__PURE__ */ new Date();
+		let year = now.getFullYear();
+		if (now.getMonth() < 3) return year - 1;
+		return year;
+	}
+	_Schoolyear.calculateSetupYear = calculateSetupYear;
+	function toFullString(startYear) {
+		return `${startYear}-${startYear + 1}`;
+	}
+	_Schoolyear.toFullString = toFullString;
+	function toShortString(startYear) {
+		return `${startYear % 1e3}-${startYear % 1e3 + 1}`;
+	}
+	_Schoolyear.toShortString = toShortString;
+	function toNumbers(schoolyearString) {
+		let parts = schoolyearString.split("-").map((s) => parseInt(s));
+		return {
+			startYear: parts[0],
+			endYear: parts[1]
+		};
+	}
+	_Schoolyear.toNumbers = toNumbers;
+})(Schoolyear || (Schoolyear = {}));
+function getUserAndSchoolName() {
+	let footer = document.querySelector("body > main > div.row > div.col-auto.mr-auto > small");
+	const match = footer.textContent.match(/.*Je bent aangemeld als (.*)\s@\s(.*)\./);
+	if (match?.length !== 3) throw new Error(`Could not process footer text "${footer.textContent}"`);
+	return {
+		userName: match[1],
+		schoolName: match[2]
+	};
+}
+function getSchoolIdString() {
+	let { schoolName } = getUserAndSchoolName();
+	schoolName = schoolName.replace("Academie ", "").replace("Muziek", "M").replace("Woord", "W").replace("Dans", "D").replace("Beeld", "B").toLowerCase();
+	return createValidId(schoolName);
+}
+function millisToString(duration) {
+	let seconds = Math.floor(duration / 1e3 % 60);
+	let minutes = Math.floor(duration / 6e4 % 60);
+	let hours = Math.floor(duration / 36e5 % 24);
+	let days = Math.floor(duration / 864e5);
+	if (days > 0) return days + (days === 1 ? " dag" : " dagen");
+	else if (hours > 0) return hours + " uur";
+	else if (minutes > 0) return minutes + (minutes === 1 ? " minuut" : " minuten");
+	else if (seconds > 0) return seconds + " seconden";
+	else return "";
+}
+function dateDiffToString(oldestDate, newestDate) {
+	return millisToString(newestDate.getTime() - oldestDate.getTime());
+}
+function isAlphaNumeric(str) {
+	if (str.length > 1) return false;
+	let code;
+	let i;
+	let len;
+	for (i = 0, len = str.length; i < len; i++) {
+		code = str.charCodeAt(i);
+		if (!(code > 47 && code < 58) && !(code > 64 && code < 91) && !(code > 96 && code < 123)) return false;
+	}
+	return true;
+}
+function rangeGenerator(start, stop, step = 1) {
+	return Array(Math.ceil((stop - start) / step)).fill(start).map((x, y) => x + y * step);
+}
+function createSearchField(id, onSearchInput, value) {
+	let input = document.createElement("input");
+	input.type = "text";
+	input.id = id;
+	input.classList.add("tableFilter");
+	input.oninput = onSearchInput;
+	input.value = value;
+	input.placeholder = "filter";
+	let span = document.createElement("span");
+	span.classList.add("searchButton");
+	span.appendChild(input);
+	let { first: clearButton } = emmet.appendChild(span, `button>img[src="${chrome.runtime.getURL("images/circle-xmark-regular.svg")}"`);
+	clearButton.onclick = () => {
+		input.value = "";
+		input.oninput(void 0);
+		input.focus();
+	};
+	return span;
+}
+function getBothToolbars() {
+	let navigationBars = document.querySelectorAll("div.datatable-navigation-toolbar");
+	if (navigationBars.length < 2) return void 0;
+	return navigationBars;
+}
+function addTableNavigationButton(navigationBars, btnId, title, onClick, fontIconId) {
+	addButton$1(navigationBars[0].lastElementChild, btnId, title, onClick, fontIconId, ["btn-secondary"], "", "afterend");
+	return true;
+}
+function distinct(array) {
+	return [...new Set(array)];
+}
+async function fetchStudentsSearch(search) {
+	return fetch("/view.php?args=zoeken?zoek=" + encodeURIComponent(search)).then((response) => response.text()).then((_text) => fetch("/views/zoeken/index.view.php")).then((response) => response.text()).catch((err) => {
+		console.error("Request failed", err);
+		return "";
+	});
+}
+async function setViewFromCurrentUrl() {
+	let hash = window.location.hash.replace("#", "");
+	await fetch("/#" + hash).then((res) => res.text());
+	await fetch("view.php?args=" + hash).then((res) => res.text());
+}
+function equals(g1, g2) {
+	return g1.globalHide === g2.globalHide;
+}
+let rxEmail = /\w[\w.\-]*@\w+\.\w+/gm;
+function whoAmI() {
+	let scriptTexts = [...document.querySelectorAll("script")].map((s) => s.textContent).join();
+	return {
+		email: scriptTexts.match(rxEmail)[0],
+		name: scriptTexts.match(/name: '(.*)'/)[1]
+	};
+}
+function stripStudentName(name) {
+	return name.replaceAll(/[,()'-]/g, " ").replaceAll("  ", " ");
+}
+async function openHtmlTab(cacheId, pageTitle) {
+	return sendRequest("open_tab", "Main", "Html", void 0, { cacheId }, pageTitle);
+}
+async function openHoursSettings(schoolyear) {
+	return sendRequest("open_hours_settings", "Main", "Undefined", void 0, { schoolyear }, "Lerarenuren setup voor schooljaar " + schoolyear);
+}
+function createHtmlTable(headers, cols) {
+	let tmpDiv = document.createElement("div");
+	let { first: tmpTable, last: tmpThead } = emmet.appendChild(tmpDiv, "table>thead");
+	for (let th of headers) emmet.appendChild(tmpThead, `th{${th}}`);
+	let tmpTbody = tmpTable.appendChild(document.createElement("tbody"));
+	for (let tr of cols) {
+		let tmpTr = tmpTbody.appendChild(document.createElement("tr"));
+		for (let cell of tr) emmet.appendChild(tmpTr, `td{${cell}}`);
+	}
+	return tmpTable;
+}
+function isButtonHighlighted(buttonId) {
+	return document.getElementById(buttonId)?.classList.contains("toggled");
+}
+function range(startAt, upTo) {
+	if (upTo > startAt) return [...Array(upTo - startAt).keys()].map((n) => n + startAt);
+	else return [...Array(startAt - upTo).keys()].reverse().map((n) => n + upTo + 1);
+}
+async function getOptions() {
+	let items = await chrome.storage.sync.get(null);
+	Object.assign(options, items);
+	setGlobalSetting(await fetchGlobalSettings(getGlobalSettings()));
+}
+function arrayIsEqual(a, b) {
+	if (a === b) return true;
+	if (a == null || b == null) return false;
+	if (a.length != b.length) return false;
+	let aSet = new Set(a);
+	return b.every((value, _) => aSet.has(value));
+}
+function escapeRegexChars(text) {
+	return text.replaceAll("\\", "\\\\").replaceAll("^", "\\^").replaceAll("$", "\\$").replaceAll(".", "\\.").replaceAll("|", "\\|").replaceAll("?", "\\?").replaceAll("*", "\\*").replaceAll("+", "\\+").replaceAll("(", "\\(").replaceAll(")", "\\)").replaceAll("[", "\\[").replaceAll("]", "\\]").replaceAll("{", "\\{").replaceAll("}", "\\}");
+}
+function getImmediateText(element) {
+	return [...element.childNodes].map((c) => c.nodeType === 3 ? c.textContent : "").join("");
+}
+function tryUntilThen(func, then) {
+	if (func()) then();
+	else setTimeout(() => tryUntilThen(func, then), 100);
+}
+function copyToClipboardOrRequestRetry(infoBar, text) {
+	navigator.clipboard.writeText(text).then((_r) => {
+		infoBar.setExtraInfo("Gegevens gekopieerd naar klipbord. <a id=copy_again href='javascript:void(0);'>Kopieer opnieuw</a>", COPY_AGAIN, () => {
+			copyToClipboardOrRequestRetry(infoBar, text);
+		});
+	}).catch((_reason) => {
+		infoBar.setExtraInfo("Kan niet kopiëren naar klipbord!!! <a id=copy_again href='javascript:void(0);'>Kopieer opnieuw</a>", COPY_AGAIN, () => {
+			copyToClipboardOrRequestRetry(infoBar, text);
+		});
+	});
+}
+function unreachable(x) {
+	throw new Error("This error will never be thrown. It is used for type safety.");
+}
+function pad(num, size) {
+	let text = num.toString();
+	while (text.length < size) text = "0" + text;
+	return text;
+}
+var SlidingWindow = class {
+	array;
+	length;
+	pos;
+	constructor(enumerable) {
+		this.pos = -1;
+		this.array = [...enumerable];
+		this.length = this.array.length;
+	}
+	[Symbol.iterator]() {
+		return { next: () => {
 			this.pos++;
-			if (this.pos >= this.length) return null;
-			return this.array[this.pos];
-		}
+			if (this.pos >= this.length) return {
+				done: true,
+				value: null
+			};
+			return {
+				done: false,
+				value: {
+					prev: this.peekPrev(),
+					current: this.array[this.pos],
+					next: this.peekNext()
+				}
+			};
+		} };
+	}
+	peekNext() {
+		if (this.pos + 1 > this.length) return null;
+		return this.array[this.pos + 1];
+	}
+	peekPrev() {
+		if (this.pos == 0) return null;
+		return this.array[this.pos - 1];
+	}
+	next() {
+		this.pos++;
+		if (this.pos >= this.length) return null;
+		return this.array[this.pos];
+	}
+};
+function wrapElement(element, tagName) {
+	let wrapper = document.createElement(tagName);
+	element.parentNode.insertBefore(wrapper, element);
+	wrapper.appendChild(element);
+	return wrapper;
+}
+//#endregion
+//#region typescript/gotoState.ts
+function saveGotoState(state) {
+	sessionStorage.setItem(STORAGE_GOTO_STATE_KEY, JSON.stringify(state));
+}
+function defaultGotoState(pageName) {
+	let pageState = {
+		goto: "",
+		pageName
 	};
-	function wrapElement(element, tagName) {
-		let wrapper = document.createElement(tagName);
-		element.parentNode.insertBefore(wrapper, element);
-		wrapper.appendChild(element);
-		return wrapper;
-	}
-	//#endregion
-	//#region typescript/gotoState.ts
-	function saveGotoState(state) {
-		sessionStorage.setItem(STORAGE_GOTO_STATE_KEY, JSON.stringify(state));
-	}
-	function defaultGotoState(pageName) {
-		let pageState = {
-			goto: "",
-			pageName
-		};
-		if (pageName === "Werklijst") return {
-			werklijstTableName: "",
-			...pageState
-		};
-		if (pageName === "Start") return {
-			showPage: "start",
-			...pageState
-		};
-		return pageState;
-	}
-	function getGotoStateOrDefault(pageName) {
-		let jsonState = sessionStorage.getItem(STORAGE_GOTO_STATE_KEY);
-		if (!jsonState) return defaultGotoState(pageName);
-		let pageState = JSON.parse(jsonState);
-		if (pageState?.pageName === pageName) return pageState;
-		else return defaultGotoState(pageName);
-	}
-	//#endregion
-	//#region typescript/menu.ts
-	function setupMenu() {
-		if (!options.showPluginMenu) return;
-		let listItems = document.querySelector("#dko3_navbar > ul").querySelectorAll("li");
-		let lastItem = listItems[listItems.length - 1];
-		let { last: dropdown } = emmet.insertBefore(lastItem, `li.nav-item.dropdown>a{ Plugin }.nav-link.dropdown-toggle[href="#" role="button" data-toggle="dropdown" aria-expanded="false"]>div.dropdown-menu`);
-		let year = Schoolyear.calculateSetupYear();
-		let prevSchoolyearShort = Schoolyear.toShortString(year - 1);
-		let nextSchoolyearShort = Schoolyear.toShortString(year);
-		addMenuItem(dropdown, `Lerarenuren ${prevSchoolyearShort}`, gotoWerklijstUrenPrevYear);
-		addMenuItem(dropdown, `Lerarenuren ${nextSchoolyearShort}`, gotoWerklijstUrenNextYear);
-		addMenuItem(dropdown, "Vergelijk uurroosters", gotoDiffPage);
-		addMenuItem(dropdown, "Lessen snapshots", gotoSnapshotPage);
-	}
-	function addMenuItem(dropdown, label, func) {
-		let menu = emmet.appendChild(dropdown, `a.dropdown-item.pointer[href=\"#"]{${label}}`).first;
-		menu.onclick = () => {
-			func();
-		};
-	}
-	function gotoDiffPage() {
-		let pageState = getGotoStateOrDefault("Start");
-		pageState.goto = "Start_page";
-		pageState.showPage = "diff";
-		saveGotoState(pageState);
-		if (location.hash == "#start-mijn_tijdslijn") location.reload();
-		else location.href = "/#start-mijn_tijdslijn";
-	}
-	function gotoSnapshotPage() {
-		let pageState = getGotoStateOrDefault("Start");
-		pageState.goto = "Start_page";
-		pageState.showPage = "snapshots";
-		saveGotoState(pageState);
-		if (location.hash == "#start-mijn_tijdslijn") location.reload();
-		else location.href = "/#start-mijn_tijdslijn";
-	}
-	//#endregion
-	//#region typescript/clampedValue.ts
-	var ClampedValue = class {
-		_value = NaN;
-		min;
-		max;
-		changedHandler;
-		constructor(value, min, max, changedHandler) {
-			this.min = min;
-			this.max = max;
-			this.changedHandler = changedHandler;
-			this.value = value;
-		}
-		get value() {
-			return this._value;
-		}
-		set value(value) {
-			let oldValue = this._value;
-			if (isNaN(value)) this._value = this.min;
-			else this._value = Math.max(this.min, Math.min(this.max, value));
-			if (oldValue !== this.value) this.changedHandler?.(this.value);
-		}
-		setRange(min, max) {
-			this.min = min;
-			this.max = max;
-			this.value = this.value + parseInt("0");
-		}
+	if (pageName === "Werklijst") return {
+		werklijstTableName: "",
+		...pageState
 	};
-	//#endregion
-	//#region typescript/tokenScanner.ts
-	var ScannerElse = class {
-		scannerIf;
-		constructor(scannerIf) {
-			this.scannerIf = scannerIf;
-		}
-		not(callback) {
-			if (!this.scannerIf.yes) callback?.(this.scannerIf.scanner);
-			return this.scannerIf.scanner;
-		}
+	if (pageName === "Start") return {
+		showPage: "start",
+		...pageState
 	};
-	var ScannerIf = class {
-		yes;
-		scanner;
-		constructor(yes, scanner) {
-			this.yes = yes;
-			this.scanner = scanner;
-		}
-		then(callback) {
-			if (this.yes) callback(this.scanner);
-			return new ScannerElse(this);
-		}
+	return pageState;
+}
+function getGotoStateOrDefault(pageName) {
+	let jsonState = sessionStorage.getItem(STORAGE_GOTO_STATE_KEY);
+	if (!jsonState) return defaultGotoState(pageName);
+	let pageState = JSON.parse(jsonState);
+	if (pageState?.pageName === pageName) return pageState;
+	else return defaultGotoState(pageName);
+}
+//#endregion
+//#region typescript/menu.ts
+function setupMenu() {
+	if (!options.showPluginMenu) return;
+	let listItems = document.querySelector("#dko3_navbar > ul").querySelectorAll("li");
+	let lastItem = listItems[listItems.length - 1];
+	let { last: dropdown } = emmet.insertBefore(lastItem, `li.nav-item.dropdown>a{ Plugin }.nav-link.dropdown-toggle[href="#" role="button" data-toggle="dropdown" aria-expanded="false"]>div.dropdown-menu`);
+	let year = Schoolyear.calculateSetupYear();
+	let prevSchoolyearShort = Schoolyear.toShortString(year - 1);
+	let nextSchoolyearShort = Schoolyear.toShortString(year);
+	addMenuItem(dropdown, `Lerarenuren ${prevSchoolyearShort}`, gotoWerklijstUrenPrevYear);
+	addMenuItem(dropdown, `Lerarenuren ${nextSchoolyearShort}`, gotoWerklijstUrenNextYear);
+	addMenuItem(dropdown, "Vergelijk uurroosters", gotoDiffPage);
+	addMenuItem(dropdown, "Lessen snapshots", gotoSnapshotPage);
+}
+function addMenuItem(dropdown, label, func) {
+	let menu = emmet.appendChild(dropdown, `a.dropdown-item.pointer[href=\"#"]{${label}}`).first;
+	menu.onclick = () => {
+		func();
 	};
-	var TokenScanner = class TokenScanner {
-		valid;
-		source;
-		cursor;
-		constructor(text) {
+}
+function gotoDiffPage() {
+	let pageState = getGotoStateOrDefault("Start");
+	pageState.goto = "Start_page";
+	pageState.showPage = "diff";
+	saveGotoState(pageState);
+	if (location.hash == "#start-mijn_tijdslijn") location.reload();
+	else location.href = "/#start-mijn_tijdslijn";
+}
+function gotoSnapshotPage() {
+	let pageState = getGotoStateOrDefault("Start");
+	pageState.goto = "Start_page";
+	pageState.showPage = "snapshots";
+	saveGotoState(pageState);
+	if (location.hash == "#start-mijn_tijdslijn") location.reload();
+	else location.href = "/#start-mijn_tijdslijn";
+}
+//#endregion
+//#region typescript/clampedValue.ts
+var ClampedValue = class {
+	_value = NaN;
+	min;
+	max;
+	changedHandler;
+	constructor(value, min, max, changedHandler) {
+		this.min = min;
+		this.max = max;
+		this.changedHandler = changedHandler;
+		this.value = value;
+	}
+	get value() {
+		return this._value;
+	}
+	set value(value) {
+		let oldValue = this._value;
+		if (isNaN(value)) this._value = this.min;
+		else this._value = Math.max(this.min, Math.min(this.max, value));
+		if (oldValue !== this.value) this.changedHandler?.(this.value);
+	}
+	setRange(min, max) {
+		this.min = min;
+		this.max = max;
+		this.value = this.value + parseInt("0");
+	}
+};
+//#endregion
+//#region typescript/tokenScanner.ts
+var ScannerElse = class {
+	scannerIf;
+	constructor(scannerIf) {
+		this.scannerIf = scannerIf;
+	}
+	not(callback) {
+		if (!this.scannerIf.yes) callback?.(this.scannerIf.scanner);
+		return this.scannerIf.scanner;
+	}
+};
+var ScannerIf = class {
+	yes;
+	scanner;
+	constructor(yes, scanner) {
+		this.yes = yes;
+		this.scanner = scanner;
+	}
+	then(callback) {
+		if (this.yes) callback(this.scanner);
+		return new ScannerElse(this);
+	}
+};
+var TokenScanner = class TokenScanner {
+	valid;
+	source;
+	cursor;
+	constructor(text) {
+		this.valid = true;
+		this.source = text;
+		this.cursor = text;
+	}
+	static create(text) {
+		return new TokenScanner(text);
+	}
+	result() {
+		if (this.valid) return this.cursor;
+	}
+	find(...tokens) {
+		return this.#find("", tokens);
+	}
+	match(...tokens) {
+		return this.#find("^\\s*", tokens);
+	}
+	#find(prefix, tokens) {
+		if (!this.valid) return this;
+		let rxString = prefix + tokens.map((token) => escapeRegexChars(token) + "\\s*").join("");
+		let match = RegExp(rxString).exec(this.cursor);
+		if (match) {
+			this.cursor = this.cursor.substring(match.index + match[0].length);
+			return this;
+		}
+		this.valid = false;
+		return this;
+	}
+	ifMatch(...tokens) {
+		if (!this.valid) return new ScannerIf(true, this);
+		this.match(...tokens);
+		if (this.valid) return new ScannerIf(true, this);
+		else {
 			this.valid = true;
-			this.source = text;
-			this.cursor = text;
+			return new ScannerIf(false, this);
 		}
-		static create(text) {
-			return new TokenScanner(text);
-		}
-		result() {
-			if (this.valid) return this.cursor;
-		}
-		find(...tokens) {
-			return this.#find("", tokens);
-		}
-		match(...tokens) {
-			return this.#find("^\\s*", tokens);
-		}
-		#find(prefix, tokens) {
-			if (!this.valid) return this;
-			let rxString = prefix + tokens.map((token) => escapeRegexChars(token) + "\\s*").join("");
-			let match = RegExp(rxString).exec(this.cursor);
-			if (match) {
-				this.cursor = this.cursor.substring(match.index + match[0].length);
-				return this;
-			}
+	}
+	clip(len) {
+		if (!this.valid) return this;
+		this.cursor = this.cursor.substring(0, len);
+		return this;
+	}
+	clipTo(end) {
+		if (!this.valid) return this;
+		let found = this.cursor.indexOf(end);
+		if (found < 0) {
 			this.valid = false;
 			return this;
 		}
-		ifMatch(...tokens) {
-			if (!this.valid) return new ScannerIf(true, this);
-			this.match(...tokens);
-			if (this.valid) return new ScannerIf(true, this);
-			else {
-				this.valid = true;
-				return new ScannerIf(false, this);
-			}
-		}
-		clip(len) {
-			if (!this.valid) return this;
-			this.cursor = this.cursor.substring(0, len);
-			return this;
-		}
-		clipTo(end) {
-			if (!this.valid) return this;
-			let found = this.cursor.indexOf(end);
-			if (found < 0) {
-				this.valid = false;
-				return this;
-			}
-			this.cursor = this.cursor.substring(0, found);
-			return this;
-		}
-		clone() {
-			let newScanner = new TokenScanner(this.cursor);
-			newScanner.valid = this.valid;
-			return newScanner;
-		}
-		clipString() {
-			let isString = false;
-			this.ifMatch("'").then((result) => {
-				isString = true;
-				return result.clipTo("'");
-			}).not().ifMatch("\"").then((result) => {
-				isString = true;
-				return result.clipTo("\"");
-			}).not();
-			this.valid = this.valid && isString;
-			return this;
-		}
-		captureString(callback) {
-			let result = this.clone().clipString().result();
-			if (result) {
-				callback(result);
-				this.ifMatch("'").then((result) => result.find("'")).not().ifMatch("\"").then((result) => result.find("\"")).not();
-			}
-			return this;
-		}
-		getString() {
-			return this.clipString().result();
-		}
-	};
-	//#endregion
-	//#region typescript/table/fetchChain.ts
-	var FetchChain = class {
-		lastText = "";
-		get() {
-			return this.lastText;
-		}
-		set(text) {
-			this.lastText = text;
-		}
-		async fetch(url, signal) {
-			this.lastText = await fetchText(url ?? this.lastText ?? "--null--", signal);
-			return this.lastText;
-		}
-		findDocReadyLoadUrl() {
-			this.lastText = getDocReadyLoadUrl(this.lastText ?? "--null--");
-			return this.lastText;
-		}
-		findDocReadyLoadScript() {
-			this.lastText = getDocReadyLoadScript(this.lastText ?? "--null--")?.result();
-			return this.lastText;
-		}
-		find(...args) {
-			this.lastText = new TokenScanner(this.lastText ?? "--null--").find(...args).result();
-			return this.lastText;
-		}
-		getQuotedString() {
-			let daString = "";
-			let scanner = new TokenScanner(this.lastText ?? "--null--").captureString(((res) => daString = res));
-			this.lastText = scanner.result();
-			return daString;
-		}
-		clipTo(end) {
-			this.lastText = new TokenScanner(this.lastText ?? "--null--").clipTo(end).result();
-		}
-		div() {
-			let el = document.createElement("div");
-			el.innerHTML = this.lastText ?? "";
-			return el;
-		}
-		includes(text) {
-			return this.lastText?.includes(text) ?? false;
-		}
-	};
-	function findDocReady(scanner) {
-		return scanner.find("$", "(", "document", ")", ".", "ready", "(");
+		this.cursor = this.cursor.substring(0, found);
+		return this;
 	}
-	function getDocReadyLoadUrl(text) {
-		let scanner = new TokenScanner(text);
-		while (true) {
-			let docReady = findDocReady(scanner);
-			if (!docReady.valid) return void 0;
-			let url = docReady.clone().clipTo("<\/script>").find(".", "load", "(").clipString().result();
-			if (url) return url;
-			scanner = docReady;
-		}
+	clone() {
+		let newScanner = new TokenScanner(this.cursor);
+		newScanner.valid = this.valid;
+		return newScanner;
 	}
-	function getDocReadyLoadScript(text) {
-		let scanner = new TokenScanner(text);
-		while (true) {
-			let docReady = findDocReady(scanner);
-			if (!docReady.valid) return void 0;
-			let script = docReady.clone().clipTo("<\/script>");
-			if (script.clone().find(".", "load", "(").valid) return script;
-			scanner = docReady;
+	clipString() {
+		let isString = false;
+		this.ifMatch("'").then((result) => {
+			isString = true;
+			return result.clipTo("'");
+		}).not().ifMatch("\"").then((result) => {
+			isString = true;
+			return result.clipTo("\"");
+		}).not();
+		this.valid = this.valid && isString;
+		return this;
+	}
+	captureString(callback) {
+		let result = this.clone().clipString().result();
+		if (result) {
+			callback(result);
+			this.ifMatch("'").then((result) => result.find("'")).not().ifMatch("\"").then((result) => result.find("\"")).not();
+		}
+		return this;
+	}
+	getString() {
+		return this.clipString().result();
+	}
+};
+//#endregion
+//#region typescript/table/fetchChain.ts
+var FetchChain = class {
+	lastText = "";
+	get() {
+		return this.lastText;
+	}
+	set(text) {
+		this.lastText = text;
+	}
+	async fetch(url, signal) {
+		this.lastText = await fetchText(url ?? this.lastText ?? "--null--", signal);
+		return this.lastText;
+	}
+	findDocReadyLoadUrl() {
+		this.lastText = getDocReadyLoadUrl(this.lastText ?? "--null--");
+		return this.lastText;
+	}
+	findDocReadyLoadScript() {
+		this.lastText = getDocReadyLoadScript(this.lastText ?? "--null--")?.result();
+		return this.lastText;
+	}
+	find(...args) {
+		this.lastText = new TokenScanner(this.lastText ?? "--null--").find(...args).result();
+		return this.lastText;
+	}
+	getQuotedString() {
+		let daString = "";
+		let scanner = new TokenScanner(this.lastText ?? "--null--").captureString(((res) => daString = res));
+		this.lastText = scanner.result();
+		return daString;
+	}
+	clipTo(end) {
+		this.lastText = new TokenScanner(this.lastText ?? "--null--").clipTo(end).result();
+	}
+	div() {
+		let el = document.createElement("div");
+		el.innerHTML = this.lastText ?? "";
+		return el;
+	}
+	includes(text) {
+		return this.lastText?.includes(text) ?? false;
+	}
+};
+function findDocReady(scanner) {
+	return scanner.find("$", "(", "document", ")", ".", "ready", "(");
+}
+function getDocReadyLoadUrl(text) {
+	let scanner = new TokenScanner(text);
+	while (true) {
+		let docReady = findDocReady(scanner);
+		if (!docReady.valid) return void 0;
+		let url = docReady.clone().clipTo("<\/script>").find(".", "load", "(").clipString().result();
+		if (url) return url;
+		scanner = docReady;
+	}
+}
+function getDocReadyLoadScript(text) {
+	let scanner = new TokenScanner(text);
+	while (true) {
+		let docReady = findDocReady(scanner);
+		if (!docReady.valid) return void 0;
+		let script = docReady.clone().clipTo("<\/script>");
+		if (script.clone().find(".", "load", "(").valid) return script;
+		scanner = docReady;
+	}
+}
+async function fetchText(url, signal) {
+	return (await fetch(url, { signal })).text();
+}
+//#endregion
+//#region typescript/restorePage.ts
+let savedUrl = "";
+async function restorePage(fullRefresh = false) {
+	console.log("Restoring page: " + savedUrl);
+	if (savedUrl) {
+		await new FetchChain().fetch(savedUrl);
+		if (fullRefresh) {
+			location.href = savedUrl;
+			await changeView();
 		}
 	}
-	async function fetchText(url, signal) {
-		return (await fetch(url, { signal })).text();
+}
+function savePage() {
+	console.log("Saving page: " + window.location.href);
+	savedUrl = window.location.href;
+}
+function clearSavedPage() {
+	savedUrl = "";
+}
+async function changeView() {
+	console.log("Changing view to: " + location.hash.replace("#", ""));
+	await fetch("view.php?args=" + location.hash.replace("#", ""));
+}
+//#endregion
+//#region typescript/navigatableList.ts
+var NavigatableList = class {
+	list;
+	index;
+	abortController;
+	constructor(list, abortController) {
+		this.list = list;
+		this.abortController = abortController;
+		this.list.addEventListener("keydown", this.onMenuKeyDown, { capture: true });
+		this.list.setAttribute("tabindex", "0");
+		this.list.classList.add("hideFocus");
+		this.list.focus();
+		this.index = new ClampedValue(NaN, NaN, NaN, (index) => this.setSelected(index));
 	}
-	//#endregion
-	//#region typescript/restorePage.ts
-	let savedUrl = "";
-	async function restorePage(fullRefresh = false) {
-		console.log("Restoring page: " + savedUrl);
-		if (savedUrl) {
-			await new FetchChain().fetch(savedUrl);
-			if (fullRefresh) {
-				location.href = savedUrl;
-				await changeView();
-			}
-		}
-	}
-	function savePage() {
-		console.log("Saving page: " + window.location.href);
-		savedUrl = window.location.href;
-	}
-	function clearSavedPage() {
-		savedUrl = "";
-	}
-	async function changeView() {
-		console.log("Changing view to: " + location.hash.replace("#", ""));
-		await fetch("view.php?args=" + location.hash.replace("#", ""));
-	}
-	//#endregion
-	//#region typescript/navigatableList.ts
-	var NavigatableList = class {
-		list;
-		index;
-		abortController;
-		constructor(list, abortController) {
-			this.list = list;
-			this.abortController = abortController;
-			this.list.addEventListener("keydown", this.onMenuKeyDown, { capture: true });
-			this.list.setAttribute("tabindex", "0");
-			this.list.classList.add("hideFocus");
-			this.list.focus();
-			this.index = new ClampedValue(NaN, NaN, NaN, (index) => this.setSelected(index));
-		}
-		onMenuKeyDown = (ev) => {
-			console.log("keydown");
-			if (ev.key == "ArrowDown") {
-				this.index.value++;
-				ev.stopPropagation();
-				ev.stopImmediatePropagation();
-				ev.preventDefault();
-			} else if (ev.key == "ArrowUp") {
-				this.index.value--;
-				ev.stopPropagation();
-				ev.stopImmediatePropagation();
-				ev.preventDefault();
-			} else if (ev.key == "Tab") {
-				ev.stopPropagation();
-				ev.stopImmediatePropagation();
-				ev.preventDefault();
-			} else if (ev.key == "Enter") {
-				if (this.abortController) this.abortController.abort();
-				clearSavedPage();
-				this.getItem(this.index.value).click();
-				setTimeout(() => {
-					if (document.activeElement instanceof HTMLElement) document.activeElement?.blur();
-				});
-			} else if (ev.key == "c" && ev.ctrlKey) {
-				navigator.clipboard.writeText(this.list.innerText);
-				ev.stopPropagation();
-				ev.stopImmediatePropagation();
-				ev.preventDefault();
-			}
-		};
-		addItem(title, indentLevel, onClick) {
-			let indentClass = indentLevel ? ".menuIndent" + indentLevel : "";
-			let item = emmet.appendChild(this.list, `button.naked.hideFocus.dropDownItem.pre${indentClass}`).first;
-			this.setItemContent(this.list.children.length - 1, title);
-			if (typeof onClick === "string") item.setAttribute("onclick", onClick);
-			else if (typeof onClick === "function") item.onclick = (ev) => {
-				onClick(ev);
-			};
-			this.index.setRange(0, this.list.children.length - 1);
-			return this.list.children.length - 1;
-		}
-		setItemContent(index, title) {
-			let item = this.getItem(index);
-			if (typeof title === "string") item.innerHTML = title;
-			else {
-				item.innerHTML = "";
-				item.appendChild(title);
-			}
-		}
-		addSeparator(title, indentLevel) {
-			let indentClass = indentLevel ? ".menuIndent" + indentLevel : "";
-			let { first } = emmet.appendChild(this.list, `div.dropDownSeparator.dropDownIgnoreHide${indentClass}{${title}}`);
-			let item = first;
-			item.onclick = (ev) => {
-				ev.stopPropagation();
-			};
-		}
-		addInfo(element, indentLevel) {
-			let indentClass = indentLevel ? ".menuIndent" + indentLevel : "";
-			let { first } = emmet.appendChild(this.list, `div.dropDownInfo.dropDownIgnoreHide${indentClass}`);
-			let item = first;
-			item.onclick = (ev) => {
-				ev.stopPropagation();
-			};
-			item.appendChild(element);
-		}
-		clickItem(itemIndex) {
-			this.list.children[itemIndex].click();
-		}
-		removeItem(index) {
-			if (index < 0 || index >= this.list.children.length) return false;
-			this.list.removeChild(this.list.children[index]);
-			this.index.setRange(0, this.list.children.length - 1);
-			return true;
-		}
-		getItem(index) {
-			return this.list.children[index];
-		}
-		removeAllItems() {
-			this.list.innerHTML = "";
-			this.index.setRange(NaN, NaN);
-		}
-		setSelected(itemIndex) {
-			for (let item of this.list.children) item.classList.remove("selected");
-			if (!isNaN(itemIndex) && itemIndex >= 0 && itemIndex < this.list.children.length) this.list.children[itemIndex].classList.add("selected");
-		}
-		focus() {
-			this.list.focus();
-		}
-		addKeyDownListener(listener) {
-			this.list.addEventListener("keydown", listener);
-		}
-		remove() {
-			this.list.remove();
-		}
-	};
-	let powerQueryItems = [];
-	function addQueryItem(headerLabel, label, href, func, longLabelText) {
-		powerQueryItems.push(createQueryItem(headerLabel, label, href, func, longLabelText));
-	}
-	function createQueryItem(headerLabel, label, href, func, longLabelText) {
-		let longLabel = longLabelText ?? headerLabel + " > " + label;
-		return {
-			headerLabel,
-			label,
-			href,
-			weight: 0,
-			longLabel,
-			lowerCase: longLabel.toLowerCase(),
-			func
-		};
-	}
-	function saveQueryItems(page, queryItems) {
-		let savedPowerQueryString = localStorage.getItem(POWER_QUERY_ID);
-		if (!savedPowerQueryString) savedPowerQueryString = "{}";
-		let savedPowerQuery = JSON.parse(savedPowerQueryString);
-		savedPowerQuery[page] = queryItems;
-		localStorage.setItem(POWER_QUERY_ID, JSON.stringify(savedPowerQuery));
-	}
-	function getSavedAndDefaultQueryItems() {
-		let savedPowerQuery = {};
-		let allItems = [];
-		let savedPowerQueryString = localStorage.getItem(POWER_QUERY_ID);
-		if (savedPowerQueryString) savedPowerQuery = JSON.parse(savedPowerQueryString);
-		let mergedPages = { ...default_items.default_items };
-		for (let page in savedPowerQuery) mergedPages[page] = savedPowerQuery[page];
-		for (let page in mergedPages) allItems.push(...mergedPages[page]);
-		return allItems;
-	}
-	function screpeDropDownMenu(headerMenu) {
-		let headerLabel = headerMenu.querySelector("a").textContent.trim();
-		Array.from(headerMenu.querySelectorAll("div.dropdown-menu > a")).map((item) => {
-			return {
-				label: item.textContent.trim(),
-				href: item.href
-			};
-		}).filter((item) => item.label != "" && item.href != "" && item.href != "https://administratie.dko3.cloud/#").forEach((item) => addQueryItem(headerLabel, item.label, item.href, void 0));
-	}
-	function scrapeMainMenu() {
-		powerQueryItems = [];
-		let headerMenus = document.getElementById("dko3_navbar").querySelectorAll("#dko3_navbar > ul.navbar-nav > li.nav-item.dropdown");
-		for (let headerMenu of headerMenus.values()) screpeDropDownMenu(headerMenu);
-	}
-	function gotoWerklijstUrenNextYear() {
-		let pageState = getGotoStateOrDefault("Werklijst");
-		pageState.goto = "Werklijst_uren_nextYear";
-		saveGotoState(pageState);
-		location.href = "/#leerlingen-werklijst";
-	}
-	function gotoWerklijstUrenPrevYear() {
-		let pageState = getGotoStateOrDefault("Werklijst");
-		pageState.goto = "Werklijst_uren_prevYear";
-		saveGotoState(pageState);
-		location.href = "/#leerlingen-werklijst";
-	}
-	function gotoTrimesterModules(_queryItem) {
-		let pageState = getGotoStateOrDefault("Lessen");
-		pageState.goto = "Lessen_trimesters_set_filter";
-		saveGotoState(pageState);
-		location.href = "/#lessen-overzicht";
-	}
-	function getHardCodedQueryItems() {
-		addQueryItem("Werklijst", "Lerarenuren " + Schoolyear.toShortString(Schoolyear.calculateSetupYear() - 1), "", gotoWerklijstUrenPrevYear);
-		addQueryItem("Werklijst", "Lerarenuren " + Schoolyear.toShortString(Schoolyear.calculateSetupYear()), "", gotoWerklijstUrenNextYear);
-		addQueryItem("Lessen", "Trimester modules", "", gotoTrimesterModules);
-		addQueryItem("Plugin", "Vergelijk uurroosters", "", gotoDiffPage);
-		addQueryItem("Plugin", "Lessen snapshots", "", gotoSnapshotPage);
-	}
-	let powerQueryVisible = false;
-	document.body.addEventListener("keydown", showPowerQuery);
-	function showPowerQuery(ev) {
-		if (ev.key === "q" && ev.ctrlKey && !ev.shiftKey && !ev.altKey) {
-			if (powerQueryVisible) {
-				ev.preventDefault();
-				popover.hidePopover();
-				document.querySelector("#snel_zoeken_veld_zoektermen").focus();
-				return;
-			}
-			scrapeMainMenu();
-			powerQueryItems.push(...getSavedAndDefaultQueryItems());
-			getHardCodedQueryItems();
-			popover.showPopover();
-			list.focus();
-			filterItems(searchField.textContent);
-		}
-	}
-	function menuKeyDownHandler(ev) {
-		if (!powerQueryVisible) return;
-		if (ev.ctrlKey || ev.altKey) return;
-		if (isAlphaNumeric(ev.key) || ev.key === " ") {
-			searchField.textContent += ev.key;
-			filterItems(searchField.textContent);
-			list.setSelected(0);
-		} else if (ev.key == "Escape") {
-			if (searchField.textContent !== "") {
-				searchField.textContent = "";
-				list.setSelected(0);
-				ev.preventDefault();
-			}
-		} else if (ev.key == "Backspace") {
-			searchField.textContent = searchField.textContent.slice(0, -1);
-			filterItems(searchField.textContent);
-			list.setSelected(0);
-		}
-	}
-	let popover = document.createElement("div");
-	document.querySelector("main").appendChild(popover);
-	popover.setAttribute("popover", "auto");
-	popover.id = "powerQuery";
-	popover.addEventListener("toggle", (ev) => {
-		powerQueryVisible = ev.newState === "open";
-	});
-	let searchField = document.createElement("label");
-	popover.appendChild(searchField);
-	let listDiv = document.createElement("div");
-	popover.appendChild(listDiv);
-	listDiv.classList.add("list");
-	let list = new NavigatableList(listDiv);
-	list.addKeyDownListener(menuKeyDownHandler);
-	function filterItems(needle) {
-		for (const item of powerQueryItems) {
-			item.weight = 0;
-			if (item.lowerCase.includes(needle)) item.weight += 1e3;
-			if (needle.split(/(?= )/g).every((word) => item.lowerCase.includes(word))) item.weight += 500;
-			let indices = needle.split("").map((char) => item.lowerCase.indexOf(char));
-			if (indices.every((num) => num !== -1) && isSorted(indices)) item.weight += 50;
-			if (needle.split("").every((char) => item.lowerCase.includes(char))) item.weight += 20;
-		}
-		let itemsToShow = powerQueryItems.filter((item) => item.weight != 0).sort((a, b) => b.weight - a.weight).slice(0, 30);
-		list.removeAllItems();
-		for (const item of itemsToShow) {
-			let itemDiv = emmet.indent.createElement(`
-            div[data-long-label="${item.longLabel}"]{${item.longLabel}}
-        `);
-			list.addItem(itemDiv, 0, () => {
-				onItemSelected(item);
+	onMenuKeyDown = (ev) => {
+		console.log("keydown");
+		if (ev.key == "ArrowDown") {
+			this.index.value++;
+			ev.stopPropagation();
+			ev.stopImmediatePropagation();
+			ev.preventDefault();
+		} else if (ev.key == "ArrowUp") {
+			this.index.value--;
+			ev.stopPropagation();
+			ev.stopImmediatePropagation();
+			ev.preventDefault();
+		} else if (ev.key == "Tab") {
+			ev.stopPropagation();
+			ev.stopImmediatePropagation();
+			ev.preventDefault();
+		} else if (ev.key == "Enter") {
+			if (this.abortController) this.abortController.abort();
+			clearSavedPage();
+			this.getItem(this.index.value).click();
+			setTimeout(() => {
+				if (document.activeElement instanceof HTMLElement) document.activeElement?.blur();
 			});
+		} else if (ev.key == "c" && ev.ctrlKey) {
+			navigator.clipboard.writeText(this.list.innerText);
+			ev.stopPropagation();
+			ev.stopImmediatePropagation();
+			ev.preventDefault();
+		}
+	};
+	addItem(title, indentLevel, onClick) {
+		let indentClass = indentLevel ? ".menuIndent" + indentLevel : "";
+		let item = emmet.appendChild(this.list, `button.naked.hideFocus.dropDownItem.pre${indentClass}`).first;
+		this.setItemContent(this.list.children.length - 1, title);
+		if (typeof onClick === "string") item.setAttribute("onclick", onClick);
+		else if (typeof onClick === "function") item.onclick = (ev) => {
+			onClick(ev);
+		};
+		this.index.setRange(0, this.list.children.length - 1);
+		return this.list.children.length - 1;
+	}
+	setItemContent(index, title) {
+		let item = this.getItem(index);
+		if (typeof title === "string") item.innerHTML = title;
+		else {
+			item.innerHTML = "";
+			item.appendChild(title);
 		}
 	}
-	function onItemSelected(item) {
-		popover.hidePopover();
-		if (item.func) item.func(item);
-		else location.href = item.href;
+	addSeparator(title, indentLevel) {
+		let indentClass = indentLevel ? ".menuIndent" + indentLevel : "";
+		let { first } = emmet.appendChild(this.list, `div.dropDownSeparator.dropDownIgnoreHide${indentClass}{${title}}`);
+		let item = first;
+		item.onclick = (ev) => {
+			ev.stopPropagation();
+		};
 	}
-	function isSorted(arr) {
-		for (let i = 0; i < arr.length - 1; i++) if (arr[i] > arr[i + 1]) return false;
+	addInfo(element, indentLevel) {
+		let indentClass = indentLevel ? ".menuIndent" + indentLevel : "";
+		let { first } = emmet.appendChild(this.list, `div.dropDownInfo.dropDownIgnoreHide${indentClass}`);
+		let item = first;
+		item.onclick = (ev) => {
+			ev.stopPropagation();
+		};
+		item.appendChild(element);
+	}
+	clickItem(itemIndex) {
+		this.list.children[itemIndex].click();
+	}
+	removeItem(index) {
+		if (index < 0 || index >= this.list.children.length) return false;
+		this.list.removeChild(this.list.children[index]);
+		this.index.setRange(0, this.list.children.length - 1);
 		return true;
 	}
-	function scrapeMenuPage(longLabelPrefix, linkConverter) {
-		let queryItems = [];
-		let blocks = document.querySelectorAll("div.card-body");
-		for (let block of blocks) {
-			let header = block.querySelector("h5");
-			if (!header) continue;
-			let headerLabel = header.textContent.trim();
-			let links = block.querySelectorAll("a");
-			for (let link of links) {
-				if (!link.href) continue;
-				let item = linkConverter(headerLabel, link, longLabelPrefix);
-				queryItems.push(item);
-			}
-		}
-		return queryItems;
+	getItem(index) {
+		return this.list.children[index];
 	}
-	//#endregion
-	//#region typescript/pageObserver.ts
-	var HashPageFilter = class {
-		urlHash;
-		constructor(urlHash) {
-			this.urlHash = urlHash;
-		}
-		match() {
-			return window.location.hash.startsWith(this.urlHash);
-		}
-	};
-	var ExactHashPageFilter = class {
-		urlHash;
-		constructor(urlHash) {
-			this.urlHash = urlHash;
-		}
-		match() {
-			if (!this.urlHash) return true;
-			return window.location.hash === this.urlHash;
-		}
-	};
-	var AllPageFilter = class {
-		constructor() {}
-		match() {
-			return true;
-		}
-	};
-	var BaseObserver = class {
-		onPageChangedCallback;
-		onPageRefreshedCallback;
-		pageFilter;
-		onMutation;
-		observer;
-		trackModal;
-		constructor(onPageChangedCallback, pageFilter, onMutationCallback, trackModal = false, onPageRefreshedCallback) {
-			this.onPageChangedCallback = onPageChangedCallback;
-			this.onPageRefreshedCallback = onPageRefreshedCallback;
-			this.pageFilter = pageFilter;
-			this.onMutation = onMutationCallback;
-			this.trackModal = trackModal;
-			if (onMutationCallback) this.observer = new MutationObserver((mutationList, observer) => this.observerCallback(mutationList, observer));
-		}
-		observerCallback(mutationList, _observer) {
-			if (!this.onMutation) return;
-			for (const mutation of mutationList) {
-				if (mutation.type !== "childList") continue;
-				if (this.onMutation(mutation)) break;
-			}
-		}
-		isPageMatching = () => this.pageFilter.match();
-		onPageRefreshed() {
-			if (this.onPageRefreshedCallback) {
-				if (this.isPageMatching()) tryUntilThen(this.isPageReallyLoaded, this.onPageRefreshedCallback);
-			}
-		}
-		onPageChanged() {
-			if (!this.pageFilter.match()) {
-				this.disconnect();
-				return;
-			}
-			if (this.onPageChangedCallback) this.onPageChangedCallback();
-			if (!this.onMutation) return;
-			console.log("Observing main element.");
-			if (!document.querySelector("main")) console.error("Can't attach observer to element.");
-			this.observeElement(document.querySelector("main"));
-			if (this.trackModal) this.observeElement(document.getElementById("dko3_modal"));
-		}
-		observeElement(element) {
-			if (!element) {
-				console.error("Can't attach observer to element.");
-				return;
-			}
-			this.observer?.observe(element, {
-				attributes: false,
-				childList: true,
-				subtree: true
-			});
-		}
-		disconnect() {
-			this.observer?.disconnect();
-		}
-	};
-	var HashObserver = class extends BaseObserver {
-		constructor(urlHash, onMutationCallback, trackModal = false, onPageRefreshedCallback) {
-			super(void 0, new HashPageFilter(urlHash), onMutationCallback, trackModal, onPageRefreshedCallback);
-		}
-	};
-	var ExactHashObserver = class extends BaseObserver {
-		constructor(urlHash, onMutationCallback, trackModal = false, onPageRefreshedCallback) {
-			super(void 0, new ExactHashPageFilter(urlHash), onMutationCallback, trackModal, onPageRefreshedCallback);
-		}
-	};
-	var PageObserver = class extends BaseObserver {
-		constructor(onPageChangedCallback, onPageRefreshedCallback) {
-			super(onPageChangedCallback, new AllPageFilter(), void 0, false, onPageRefreshedCallback);
-		}
-	};
-	var MenuScrapingObserver = class MenuScrapingObserver extends ExactHashObserver {
-		pageLoadedQuerySelector;
-		isPageReallyLoaded() {
-			return void 0 != document.querySelector(this.pageLoadedQuerySelector);
-		}
-		page;
-		longLabelPrefix;
-		constructor(urlHash, page, longLabelPrefix, pageLoadedQuerySelector) {
-			super(urlHash, (_) => {
-				return this.onMutationPageWithMenu();
-			});
-			this.page = page;
-			this.longLabelPrefix = longLabelPrefix;
-			this.pageLoadedQuerySelector = pageLoadedQuerySelector;
-		}
-		onPageChanged() {
-			super.onPageChanged.call(this);
-			if (this.isPageMatching()) this.onMutationPageWithMenu();
-		}
-		onMutationPageWithMenu() {
-			saveQueryItems(this.page, scrapeMenuPage(this.longLabelPrefix, MenuScrapingObserver.defaultLinkToQueryItem));
-			return true;
-		}
-		static defaultLinkToQueryItem(headerLabel, link, longLabelPrefix) {
-			let label = link.textContent.trim();
-			return createQueryItem(headerLabel, label, link.href, void 0, longLabelPrefix + label);
-		}
-	};
-	//#endregion
-	//#region typescript/roster_diff/excel.ts
-	var ExcelPos = class {
-		row;
-		column;
-		constructor(row, column) {
-			this.row = row;
-			this.column = column;
-		}
-	};
-	var TablePos = class {
-		row;
-		column;
-		constructor(row, column) {
-			this.row = row;
-			this.column = column;
-		}
-		static toExcel(tablePos, table) {
-			return new ExcelPos(tablePos.row + table.tableRange.Start.row + table.rowHeaderCount, tablePos.column + table.tableRange.Start.column + table.columnHeaderCount);
-		}
-	};
-	var Range = class {
-		start;
-		end;
-		RowCount() {
-			return this.end.row - this.start.row + 1;
-		}
-		ColumnCount() {
-			return this.end.column - this.start.column + 1;
-		}
-		constructor(start, end) {
-			this.start = start;
-			this.end = end;
-		}
-	};
-	var ExcelRange = class extends Range {
-		constructor(start, end) {
-			super(start, end);
-		}
-		get Start() {
-			return this.start;
-		}
-		get End() {
-			return this.end;
-		}
-	};
-	var TableRange = class TableRange {
-		start;
-		end;
-		constructor(start, end) {
-			this.start = start;
-			this.end = end;
-		}
-		static FromExcel(excelRange, table) {
-			let startRow = excelRange.Start.row - table.tableRange.Start.row - table.rowHeaderCount;
-			let endRow = excelRange.End.row - table.tableRange.Start.row - table.rowHeaderCount;
-			let startColumn = excelRange.Start.column - table.tableRange.Start.column - table.columnHeaderCount;
-			let endColumn = excelRange.End.column - table.tableRange.Start.column - table.columnHeaderCount;
-			return new TableRange({
-				row: startRow,
-				column: startColumn
-			}, {
-				row: endRow,
-				column: endColumn
-			});
-		}
-		static ToExcel(tableRange, table) {
-			return new ExcelRange(TablePos.toExcel(tableRange.Start, table), TablePos.toExcel(tableRange.End, table));
-		}
-		get Start() {
-			return this.start;
-		}
-		get End() {
-			return this.end;
-		}
-	};
-	var ExcelData = class {
-		data;
-		mergedRanges;
-		url;
-		workbookName;
-		worksheetName;
-		constructor(data, mergedRanges, url, workbookName, worksheetName) {
-			this.data = data;
-			this.mergedRanges = mergedRanges.map((r) => new ExcelRange(r.start, r.end));
-			this.url = url;
-			if (this.url) {
-				let urlParams = new URLSearchParams(this.url.substring(this.url.indexOf("?") + 1));
-				urlParams.delete("activeCell");
-				this.url = this.url.substring(0, this.url.indexOf("?")) + "?" + urlParams.toString();
-			}
-			this.workbookName = workbookName;
-			this.worksheetName = worksheetName;
-		}
-		getMergedCellValue(excelPos) {
-			let mergedRange = this.getMergedRangeForCell(excelPos);
-			return this.data[mergedRange.Start.row][mergedRange.Start.column];
-		}
-		getMergedRangeForCell(excelPos) {
-			return this.mergedRanges.find((range) => {
-				return excelPos.row >= range.Start.row && excelPos.row <= range.End.row && excelPos.column >= range.Start.column && excelPos.column <= range.End.column;
-			}) ?? new ExcelRange(excelPos, excelPos);
-		}
-	};
-	var Table = class {
-		excelData;
-		tableRange;
-		rowHeaderCount;
-		columnHeaderCount;
-		excelToTableRange(excelRange) {
-			return TableRange.FromExcel(excelRange, this);
-		}
-		get ColumnCount() {
-			return this.tableRange.ColumnCount() - this.columnHeaderCount;
-		}
-		get RowCount() {
-			return this.tableRange.RowCount() - this.rowHeaderCount;
-		}
-		constructor(excelData, tableRange, rowHeaderCount, columnHeaderCount) {
-			this.excelData = excelData;
-			this.tableRange = tableRange;
-			this.rowHeaderCount = rowHeaderCount;
-			this.columnHeaderCount = columnHeaderCount;
-		}
-		Cell(row, column) {
-			let excelPos = {
-				row: this.tableRange.Start.row + this.rowHeaderCount + row,
-				column: this.tableRange.Start.column + this.columnHeaderCount + column
-			};
-			return this.excelData.getMergedCellValue(excelPos);
-		}
-		RangeOfCell(pos) {
-			let excelPos = {
-				row: this.tableRange.Start.row + this.rowHeaderCount + pos.row,
-				column: this.tableRange.Start.column + this.columnHeaderCount + pos.column
-			};
-			let exelRange = this.excelData.getMergedRangeForCell(excelPos) ?? new ExcelRange(excelPos, excelPos);
-			return TableRange.FromExcel(exelRange, this);
-		}
-		HeaderRowValue(headerRow, column) {
-			let excelPos = {
-				row: this.tableRange.Start.row + headerRow,
-				column: this.tableRange.Start.column + this.columnHeaderCount + column
-			};
-			return this.excelData.getMergedCellValue(excelPos);
-		}
-		HeaderColumnValue(row, headerColumn) {
-			let excelPos = {
-				row: this.tableRange.Start.row + this.rowHeaderCount + row,
-				column: this.tableRange.Start.column + headerColumn
-			};
-			return this.excelData.getMergedCellValue(excelPos);
-		}
-	};
-	//#endregion
-	//#region typescript/roster_diff/rosterFactory.ts
-	var RosterFactory = class RosterFactory {
-		excelData;
-		errors = [];
-		daysRow = void 0;
-		periodColumn = void 0;
-		tableRange = void 0;
-		constructor(jsonExcelData) {
-			this.excelData = new ExcelData(jsonExcelData.data, jsonExcelData.mergedRanges, jsonExcelData.url, jsonExcelData.workbookName, jsonExcelData.worksheetName);
-			this.daysRow = this.findDaysRow();
-			if (this.daysRow === void 0) {
-				this.errors.push("Geen rij met dagnamen gevonden.");
-				return;
-			}
-			this.periodColumn = this.findPeriodColumn(this.daysRow);
-			if (this.periodColumn === void 0) {
-				this.errors.push("Geen kolom met lesmomenten gevonden.");
-				return;
-			}
-			let lastPeriodRow = this.findLastPeriodRow(this.periodColumn);
-			let lastDayColumn = this.findLastDayColumn(this.periodColumn, this.daysRow);
-			if (lastDayColumn && lastPeriodRow) this.tableRange = new ExcelRange({
-				row: this.daysRow,
-				column: this.periodColumn
-			}, {
-				row: lastPeriodRow,
-				column: lastDayColumn
-			});
-		}
-		getErrors() {
-			return this.errors;
-		}
-		getTable() {
-			return new Table(this.excelData, this.tableRange, 2, 1);
-		}
-		findDaysRow() {
-			for (let [i, row] of this.excelData.data.entries()) if (this.isDaysRow(row)) return i;
-		}
-		isDaysRow(row) {
-			let matchCount = 0;
-			for (let value of row) {
-				if (RosterFactory.isDayName(value.toString())) matchCount++;
-				if (matchCount >= 3) return true;
-			}
-			return false;
-		}
-		static isDayName(text) {
-			return this.toDayName(text) != "";
-		}
-		static toDayName(text) {
-			switch (text.toLowerCase()) {
-				case "maandag": return "MAANDAG";
-				case "dinsdag": return "DINSDAG";
-				case "woensdag": return "WOENSDAG";
-				case "donderdag": return "DONDERDAG";
-				case "vrijdag": return "VRIJDAG";
-				case "zaterdag": return "ZATERDAG";
-				case "zondag": return "ZONDAG";
-				case "ma": return "MAANDAG";
-				case "di": return "DINSDAG";
-				case "din": return "DINSDAG";
-				case "wo": return "WOENSDAG";
-				case "woe": return "WOENSDAG";
-				case "do": return "DONDERDAG";
-				case "don": return "DONDERDAG";
-				case "vr": return "VRIJDAG";
-				case "za": return "ZATERDAG";
-				case "zat": return "ZATERDAG";
-				case "zo": return "ZONDAG";
-				case "zon": return "ZONDAG";
-				default: return "";
-			}
-		}
-		findPeriodColumn(daysRow) {
-			let columnCount = this.excelData.data[0].length;
-			for (let iCol = 0; iCol < columnCount; iCol++) for (let row of this.excelData.data.slice(daysRow)) {
-				let value = row[iCol].toString();
-				if (this.isPeriod(value)) return iCol;
-			}
-		}
-		isPeriod(text) {
-			return TimeSlice.parseTimeSlice(text);
-		}
-		findLastPeriodRow(periodColumn) {
-			return this.excelData.data.map((row, index) => this.isPeriod(row[periodColumn].toString()) ? index : -1).filter((n) => n > 0).pop();
-		}
-		findLastDayColumn(periodColumn, daysRow) {
-			for (let c = periodColumn + 1; c < this.excelData.data[0].length; c++) {
-				let cellValue = this.excelData.getMergedCellValue({
-					row: daysRow,
-					column: c
-				});
-				if (!RosterFactory.isDayName(cellValue)) return c - 1;
-			}
-			return this.excelData.data[0].length - 1;
-		}
-	};
-	//#endregion
-	//#region typescript/table/tableNavigation.ts
-	var TableNavigation = class {
-		step;
-		maxCount;
-		constructor(step, maxCount) {
-			this.step = step;
-			this.maxCount = maxCount;
-		}
-		steps() {
-			return Math.ceil(this.maxCount / this.step);
-		}
-		isOnePage() {
-			return this.step >= this.maxCount;
-		}
-	};
-	function findFirstNavigation(element) {
-		element = element ?? document.body;
-		let buttonPagination = element.querySelector("button.datatable-paging-numbers");
-		if (!buttonPagination) return void 0;
-		let buttonContainer = buttonPagination.closest("div");
-		if (!buttonContainer) return;
-		let matches = buttonPagination.innerText.match(/(\d*) tot (\d*) van (\d*)/);
-		if (!matches) return void 0;
-		let buttons = buttonContainer.querySelectorAll("button.btn-secondary");
-		let offsets = Array.from(buttons).filter((btn) => btn.attributes["onclick"]?.value.includes("goto(")).filter((btn) => !btn.querySelector("i.fa-fast-backward")).map((btn) => getGotoNumber(btn.attributes["onclick"].value));
-		let numbers = matches.slice(1).map((txt) => parseInt(txt));
-		if (numbers.length === 0) return void 0;
-		numbers[0] = numbers[0] - 1;
-		numbers = numbers.concat(offsets);
-		numbers.sort((a, b) => a - b);
-		numbers = [...new Set(numbers)];
-		return new TableNavigation(numbers[1] - numbers[0], numbers.pop());
+	removeAllItems() {
+		this.list.innerHTML = "";
+		this.index.setRange(NaN, NaN);
 	}
-	function getGotoNumber(functionCall) {
-		return parseInt(functionCall.substring(functionCall.indexOf("goto(") + 5));
+	setSelected(itemIndex) {
+		for (let item of this.list.children) item.classList.remove("selected");
+		if (!isNaN(itemIndex) && itemIndex >= 0 && itemIndex < this.list.children.length) this.list.children[itemIndex].classList.add("selected");
 	}
-	//#endregion
-	//#region typescript/table/tableFetcher.ts
-	var PlainTableRef = class {
-		htmlTableId;
-		constructor(htmlTableId) {
-			this.htmlTableId = htmlTableId;
-		}
-		getOrgTableContainer() {
-			return document.getElementById(this.htmlTableId).parentElement;
-		}
-		getOrgTableRows() {
-			return document.getElementById(this.htmlTableId).querySelectorAll("tbody > tr");
-		}
-		buildFetchUrl(offset) {
-			throw "Plain table cannot be fetched";
-		}
-		createElementAboveTable(element) {
-			let el = document.createElement(element);
-			document.getElementById(this.htmlTableId).insertAdjacentElement("beforebegin", el);
-			return el;
-		}
-		isFullyFetched() {
-			return true;
-		}
-	};
-	var DkoTableRef = class {
-		htmlTableId;
-		buildFetchUrl;
-		navigationData;
-		constructor(htmlTableId, navigationData, buildFetchUrl) {
-			this.htmlTableId = htmlTableId;
-			this.buildFetchUrl = buildFetchUrl;
-			this.navigationData = navigationData;
-		}
-		getOrgTableContainer() {
-			return document.getElementById(this.htmlTableId);
-		}
-		getOrgTableRows() {
-			return this.getOrgTableContainer().querySelectorAll("tbody > tr");
-		}
-		createElementAboveTable(element) {
-			let el = document.createElement(element);
-			this.getOrgTableContainer().insertAdjacentElement("beforebegin", el);
-			return el;
-		}
-		isFullyFetched() {
-			return this.getOrgTableContainer().querySelector("table").classList.contains("fullyFetched");
-		}
-	};
-	function findTableRefInCode() {
-		let foundTableRef = findTable();
-		if (!foundTableRef) return void 0;
-		let buildFetchUrl = (offset) => `/views/ui/datatable.php?id=${foundTableRef.viewId}&start=${offset}&aantal=0`;
-		let navigation = findFirstNavigation();
-		if (!navigation) return void 0;
-		return new DkoTableRef(foundTableRef.tableId, navigation, buildFetchUrl);
+	focus() {
+		this.list.focus();
 	}
-	function findTable() {
-		let table = document.querySelector("div.table-responsive > table");
-		if (!table) return null;
-		let tableId = table.id.replace("table_", "").replace("_table", "");
-		let parentDiv = document.querySelector("div#table_" + tableId);
-		let func = Array.from(parentDiv.querySelectorAll("script")).map((script) => script.text).join("\n").split("_goto(")[1].split(/ function *\w/)[0];
-		let viewId = / *datatable_id *= *'(.*)'/.exec(func)[1];
-		let url = /_table'\).load\('(.*?)\?id='\s*\+\s*datatable_id\s*\+\s*'&start='\s*\+\s*start/.exec(func)[1];
+	addKeyDownListener(listener) {
+		this.list.addEventListener("keydown", listener);
+	}
+	remove() {
+		this.list.remove();
+	}
+};
+//#endregion
+//#region typescript/powerQuery/default_items.ts
+const defaultQueryItems = {
+	"Lijsten": [
+		{
+			"headerLabel": "Algemeen",
+			"label": "Werklijst",
+			"href": "https://administratie.dko3.cloud/#leerlingen-werklijst",
+			"weight": 0,
+			"longLabel": "Lijsten > Werklijst",
+			"lowerCase": "lijsten > werklijst"
+		},
+		{
+			"headerLabel": "Algemeen",
+			"label": "Alle leerlingen",
+			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_alle_leerlingen",
+			"weight": 0,
+			"longLabel": "Lijsten > Alle leerlingen",
+			"lowerCase": "lijsten > alle leerlingen"
+		},
+		{
+			"headerLabel": "Algemeen",
+			"label": "Alle inschrijvingen",
+			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_alle_inschrijvingen",
+			"weight": 0,
+			"longLabel": "Lijsten > Alle inschrijvingen",
+			"lowerCase": "lijsten > alle inschrijvingen"
+		},
+		{
+			"headerLabel": "Algemeen",
+			"label": "Alle vakken",
+			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_alle_vakken",
+			"weight": 0,
+			"longLabel": "Lijsten > Alle vakken",
+			"lowerCase": "lijsten > alle vakken"
+		},
+		{
+			"headerLabel": "Algemeen",
+			"label": "Alle voorstellen",
+			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_alle_voorstellen",
+			"weight": 0,
+			"longLabel": "Lijsten > Alle voorstellen",
+			"lowerCase": "lijsten > alle voorstellen"
+		},
+		{
+			"headerLabel": "Algemeen",
+			"label": "Leerlingen met opmerkingen",
+			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_alle_leerlingen_met_opmerkingen",
+			"weight": 0,
+			"longLabel": "Lijsten > Leerlingen met opmerkingen",
+			"lowerCase": "lijsten > leerlingen met opmerkingen"
+		},
+		{
+			"headerLabel": "Algemeen",
+			"label": "Alle leefeenheden",
+			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_alle_leefeenheden",
+			"weight": 0,
+			"longLabel": "Lijsten > Alle leefeenheden",
+			"lowerCase": "lijsten > alle leefeenheden"
+		},
+		{
+			"headerLabel": "Algemeen",
+			"label": "Alle vrijstellingen",
+			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_alle_vrijstellingen",
+			"weight": 0,
+			"longLabel": "Lijsten > Alle vrijstellingen",
+			"lowerCase": "lijsten > alle vrijstellingen"
+		},
+		{
+			"headerLabel": "Aanwezigheden",
+			"label": "Afwezigheidsmeldingen",
+			"href": "https://administratie.dko3.cloud/#extra-tickets?h=afwezigheden",
+			"weight": 0,
+			"longLabel": "Lijsten > Afwezigheidsmeldingen",
+			"lowerCase": "lijsten > afwezigheidsmeldingen"
+		},
+		{
+			"headerLabel": "Aanwezigheden",
+			"label": "Percentages per leerling/vak",
+			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-awi-percentages_leerling_vak",
+			"weight": 0,
+			"longLabel": "Lijsten > Percentages per leerling/vak",
+			"lowerCase": "lijsten > percentages per leerling/vak"
+		},
+		{
+			"headerLabel": "Aanwezigheden",
+			"label": "Lessen zonder registraties",
+			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-awi-lessen_zonder_registraties",
+			"weight": 0,
+			"longLabel": "Lijsten > Lessen zonder registraties",
+			"lowerCase": "lijsten > lessen zonder registraties"
+		},
+		{
+			"headerLabel": "Aanwezigheden",
+			"label": "Ontbrekende attesten",
+			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-awi-ontbrekende_attesten",
+			"weight": 0,
+			"longLabel": "Lijsten > Ontbrekende attesten",
+			"lowerCase": "lijsten > ontbrekende attesten"
+		},
+		{
+			"headerLabel": "Aanwezigheden",
+			"label": "Afwezigheidsregistraties",
+			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-awi-afwezigheidsregistraties",
+			"weight": 0,
+			"longLabel": "Lijsten > Afwezigheidsregistraties",
+			"lowerCase": "lijsten > afwezigheidsregistraties"
+		},
+		{
+			"headerLabel": "Aanwezigheden",
+			"label": "3 weken-regel",
+			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-awi-3weken",
+			"weight": 0,
+			"longLabel": "Lijsten > 3 weken-regel",
+			"lowerCase": "lijsten > 3 weken-regel"
+		},
+		{
+			"headerLabel": "Aanwezigheden",
+			"label": "Wijzigingen registraties",
+			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-awi-wijzigingen_registraties",
+			"weight": 0,
+			"longLabel": "Lijsten > Wijzigingen registraties",
+			"lowerCase": "lijsten > wijzigingen registraties"
+		},
+		{
+			"headerLabel": "Aanwezigheden",
+			"label": "Aantal registraties per code",
+			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-awi-aantal_registraties_per_code",
+			"weight": 0,
+			"longLabel": "Lijsten > Aantal registraties per code",
+			"lowerCase": "lijsten > aantal registraties per code"
+		},
+		{
+			"headerLabel": "Aanwezigheden",
+			"label": "Leerlingen met lege weken in vrije aanwezigheden",
+			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-awi-leerlingen_lege_weken_vrije_aanwezigheden",
+			"weight": 0,
+			"longLabel": "Lijsten > Leerlingen met lege weken in vrije aanwezigheden",
+			"lowerCase": "lijsten > leerlingen met lege weken in vrije aanwezigheden"
+		},
+		{
+			"headerLabel": "Attesten",
+			"label": "Pedagogische attesten",
+			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_alle_leerlingen_met_pedagogisch_attest",
+			"weight": 0,
+			"longLabel": "Lijsten > Pedagogische attesten",
+			"lowerCase": "lijsten > pedagogische attesten"
+		},
+		{
+			"headerLabel": "Attesten",
+			"label": "Verminderingsattesten",
+			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_alle_leerlingen_met_verminderingsattest",
+			"weight": 0,
+			"longLabel": "Lijsten > Verminderingsattesten",
+			"lowerCase": "lijsten > verminderingsattesten"
+		},
+		{
+			"headerLabel": "Attesten",
+			"label": "Aanvragen verminderd tarief 6",
+			"href": "https://administratie.dko3.cloud/#extra-tickets?h=verminderingsattesten",
+			"weight": 0,
+			"longLabel": "Lijsten > Aanvragen verminderd tarief 6",
+			"lowerCase": "lijsten > aanvragen verminderd tarief 6"
+		},
+		{
+			"headerLabel": "Attesten",
+			"label": "Controle toelatingsvoorwaarde",
+			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_controle_toelatingsvoorwaarde",
+			"weight": 0,
+			"longLabel": "Lijsten > Controle toelatingsvoorwaarde",
+			"lowerCase": "lijsten > controle toelatingsvoorwaarde"
+		},
+		{
+			"headerLabel": "Attesten",
+			"label": "Mogelijke schuinzitters met een verkeerd attest",
+			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_mogelijke_schuinzitters_met_verkeerd_attest",
+			"weight": 0,
+			"longLabel": "Lijsten > Mogelijke schuinzitters met een verkeerd attest",
+			"lowerCase": "lijsten > mogelijke schuinzitters met een verkeerd attest"
+		},
+		{
+			"headerLabel": "Attesten",
+			"label": "Alternatieve leercontext zonder leerkracht",
+			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_alle_leerlingen_met_ALC_zonder_leerkracht",
+			"weight": 0,
+			"longLabel": "Lijsten > Alternatieve leercontext zonder leerkracht",
+			"lowerCase": "lijsten > alternatieve leercontext zonder leerkracht"
+		},
+		{
+			"headerLabel": "Inschrijvingen",
+			"label": "Leerlingen zonder leerkracht",
+			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_alle_leerlingen_zonder_leerkracht",
+			"weight": 0,
+			"longLabel": "Lijsten > Leerlingen zonder leerkracht",
+			"lowerCase": "lijsten > leerlingen zonder leerkracht"
+		},
+		{
+			"headerLabel": "Inschrijvingen",
+			"label": "Leerlingen zonder lesmoment",
+			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_alle_leerlingen_zonder_lesmoment",
+			"weight": 0,
+			"longLabel": "Lijsten > Leerlingen zonder lesmoment",
+			"lowerCase": "lijsten > leerlingen zonder lesmoment"
+		},
+		{
+			"headerLabel": "Inschrijvingen",
+			"label": "Leerlingen die meer dan één keer in dezelfde les zitten",
+			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_leerlingen_meer_dan_1_keer_in_dezelfde_les",
+			"weight": 0,
+			"longLabel": "Lijsten > Leerlingen die meer dan één keer in dezelfde les zitten",
+			"lowerCase": "lijsten > leerlingen die meer dan één keer in dezelfde les zitten"
+		},
+		{
+			"headerLabel": "Inschrijvingen",
+			"label": "Inschrijvingen met ontbrekende vakken",
+			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_alle_leerlingen_met_ontbrekende_vakken",
+			"weight": 0,
+			"longLabel": "Lijsten > Inschrijvingen met ontbrekende vakken",
+			"lowerCase": "lijsten > inschrijvingen met ontbrekende vakken"
+		},
+		{
+			"headerLabel": "Inschrijvingen",
+			"label": "Onvolledige administratieve groepen",
+			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_onvolledige_administratieve_groepen",
+			"weight": 0,
+			"longLabel": "Lijsten > Onvolledige administratieve groepen",
+			"lowerCase": "lijsten > onvolledige administratieve groepen"
+		},
+		{
+			"headerLabel": "Inschrijvingen",
+			"label": "Overlappingen",
+			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_overlappingen",
+			"weight": 0,
+			"longLabel": "Lijsten > Overlappingen",
+			"lowerCase": "lijsten > overlappingen"
+		},
+		{
+			"headerLabel": "Inschrijvingen",
+			"label": "Leerlingen met meer dan één optie (per domein)",
+			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_leerlingen_met_meer_dan_1_optie",
+			"weight": 0,
+			"longLabel": "Lijsten > Leerlingen met meer dan één optie (per domein)",
+			"lowerCase": "lijsten > leerlingen met meer dan één optie (per domein)"
+		},
+		{
+			"headerLabel": "Inschrijvingen",
+			"label": "Leerlingen met meer dan één inschrijving (per domein)",
+			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_leerlingen_met_meer_dan_1_inschrijving",
+			"weight": 0,
+			"longLabel": "Lijsten > Leerlingen met meer dan één inschrijving (per domein)",
+			"lowerCase": "lijsten > leerlingen met meer dan één inschrijving (per domein)"
+		},
+		{
+			"headerLabel": "Inschrijvingen",
+			"label": "Leerlingen met meer dan één domein",
+			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_leerlingen_met_meer_dan_1_domein",
+			"weight": 0,
+			"longLabel": "Lijsten > Leerlingen met meer dan één domein",
+			"lowerCase": "lijsten > leerlingen met meer dan één domein"
+		},
+		{
+			"headerLabel": "Inschrijvingen",
+			"label": "Leerlingen met meer dan één instrument",
+			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_leerlingen_met_meer_dan_1_instrument",
+			"weight": 0,
+			"longLabel": "Lijsten > Leerlingen met meer dan één instrument",
+			"lowerCase": "lijsten > leerlingen met meer dan één instrument"
+		},
+		{
+			"headerLabel": "Inschrijvingen",
+			"label": "Totaal % DWT per vak",
+			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_totaal_dwt_per_vak",
+			"weight": 0,
+			"longLabel": "Lijsten > Totaal % DWT per vak",
+			"lowerCase": "lijsten > totaal % dwt per vak"
+		},
+		{
+			"headerLabel": "Inschrijvingen",
+			"label": "Niet-logisch vervolg",
+			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_niet_logisch_vervolg",
+			"weight": 0,
+			"longLabel": "Lijsten > Niet-logisch vervolg",
+			"lowerCase": "lijsten > niet-logisch vervolg"
+		},
+		{
+			"headerLabel": "Inschrijvingen",
+			"label": "Trajectwijzigingen",
+			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_trajectwijzigingen",
+			"weight": 0,
+			"longLabel": "Lijsten > Trajectwijzigingen",
+			"lowerCase": "lijsten > trajectwijzigingen"
+		},
+		{
+			"headerLabel": "Inschrijvingen",
+			"label": "Nieuwe leerlingen",
+			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_nieuwe_leerlingen",
+			"weight": 0,
+			"longLabel": "Lijsten > Nieuwe leerlingen",
+			"lowerCase": "lijsten > nieuwe leerlingen"
+		},
+		{
+			"headerLabel": "Inschrijvingen",
+			"label": "Herinschrijvingen (per leerkracht)",
+			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_herinschrijvingen",
+			"weight": 0,
+			"longLabel": "Lijsten > Herinschrijvingen (per leerkracht)",
+			"lowerCase": "lijsten > herinschrijvingen (per leerkracht)"
+		},
+		{
+			"headerLabel": "Inschrijvingen",
+			"label": "Leerlingen die dezelfde administratieve groep volgen als het vorige schooljaar",
+			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_leerlingen_die_dubbelen",
+			"weight": 0,
+			"longLabel": "Lijsten > Leerlingen die dezelfde administratieve groep volgen als het vorige schooljaar",
+			"lowerCase": "lijsten > leerlingen die dezelfde administratieve groep volgen als het vorige schooljaar"
+		},
+		{
+			"headerLabel": "Inschrijvingen",
+			"label": "Leerlingen die ook in een andere academie les volgen",
+			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_leerlingen_andere_academie",
+			"weight": 0,
+			"longLabel": "Lijsten > Leerlingen die ook in een andere academie les volgen",
+			"lowerCase": "lijsten > leerlingen die ook in een andere academie les volgen"
+		},
+		{
+			"headerLabel": "Inschrijvingen",
+			"label": "Leerlingen op een wachtlijst",
+			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_leerlingen_op_wachtlijst",
+			"weight": 0,
+			"longLabel": "Lijsten > Leerlingen op een wachtlijst",
+			"lowerCase": "lijsten > leerlingen op een wachtlijst"
+		},
+		{
+			"headerLabel": "Inschrijvingen",
+			"label": "Leerlingen op een interesselijst",
+			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_leerlingen_op_interesselijst",
+			"weight": 0,
+			"longLabel": "Lijsten > Leerlingen op een interesselijst",
+			"lowerCase": "lijsten > leerlingen op een interesselijst"
+		},
+		{
+			"headerLabel": "Inschrijvingen",
+			"label": "Leerlingen met een toelatingsvoorwaarde",
+			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_leerlingen_toelatingsvoorwaarde",
+			"weight": 0,
+			"longLabel": "Lijsten > Leerlingen met een toelatingsvoorwaarde",
+			"lowerCase": "lijsten > leerlingen met een toelatingsvoorwaarde"
+		},
+		{
+			"headerLabel": "Inschrijvingen",
+			"label": "Leerlingen in verwijderde lessen",
+			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_leerlingen_verwijderde_lessen",
+			"weight": 0,
+			"longLabel": "Lijsten > Leerlingen in verwijderde lessen",
+			"lowerCase": "lijsten > leerlingen in verwijderde lessen"
+		},
+		{
+			"headerLabel": "Inschrijvingen",
+			"label": "Leerlingen met verborgen vakken in voorstel",
+			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_leerlingen_verborgen_vakken_voorstel",
+			"weight": 0,
+			"longLabel": "Lijsten > Leerlingen met verborgen vakken in voorstel",
+			"lowerCase": "lijsten > leerlingen met verborgen vakken in voorstel"
+		},
+		{
+			"headerLabel": "Uitschrijvingen",
+			"label": "Uitschrijvingen (per schooljaar)",
+			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_alle_uitschrijvingen",
+			"weight": 0,
+			"longLabel": "Lijsten > Uitschrijvingen (per schooljaar)",
+			"lowerCase": "lijsten > uitschrijvingen (per schooljaar)"
+		},
+		{
+			"headerLabel": "Uitschrijvingen",
+			"label": "Verwijderde inschrijvingen",
+			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_alle_verwijderde_inschrijvingen",
+			"weight": 0,
+			"longLabel": "Lijsten > Verwijderde inschrijvingen",
+			"lowerCase": "lijsten > verwijderde inschrijvingen"
+		},
+		{
+			"headerLabel": "Leerlingenzending",
+			"label": "Leerlingen zonder rijksregisternummer",
+			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_alle_leerlingen_zonder_rijksregisternummer",
+			"weight": 0,
+			"longLabel": "Lijsten > Leerlingen zonder rijksregisternummer",
+			"lowerCase": "lijsten > leerlingen zonder rijksregisternummer"
+		},
+		{
+			"headerLabel": "Leerlingenzending",
+			"label": "Leerlingen met verkeerd geslacht",
+			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_alle_leerlingen_met_verkeerd_geslacht",
+			"weight": 0,
+			"longLabel": "Lijsten > Leerlingen met verkeerd geslacht",
+			"lowerCase": "lijsten > leerlingen met verkeerd geslacht"
+		},
+		{
+			"headerLabel": "Leerlingenzending",
+			"label": "Leerlingen met verkeerde geboortedatum",
+			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_alle_leerlingen_met_verkeerde_geboortedatum",
+			"weight": 0,
+			"longLabel": "Lijsten > Leerlingen met verkeerde geboortedatum",
+			"lowerCase": "lijsten > leerlingen met verkeerde geboortedatum"
+		},
+		{
+			"headerLabel": "Leerlingenzending",
+			"label": "Leerlingen zonder geboorteplaats",
+			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_leerlingen_zonder_geboorteplaats",
+			"weight": 0,
+			"longLabel": "Lijsten > Leerlingen zonder geboorteplaats",
+			"lowerCase": "lijsten > leerlingen zonder geboorteplaats"
+		},
+		{
+			"headerLabel": "Financierbaarheid",
+			"label": "Niet-financierbare leerlingen",
+			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_niet_financierbare_leerlingen",
+			"weight": 0,
+			"longLabel": "Lijsten > Niet-financierbare leerlingen",
+			"lowerCase": "lijsten > niet-financierbare leerlingen"
+		},
+		{
+			"headerLabel": "Financierbaarheid",
+			"label": "Leerlingen met verminderde financierbaarheid",
+			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_verminderde_financierbaarheid",
+			"weight": 0,
+			"longLabel": "Lijsten > Leerlingen met verminderde financierbaarheid",
+			"lowerCase": "lijsten > leerlingen met verminderde financierbaarheid"
+		},
+		{
+			"headerLabel": "Financierbaarheid",
+			"label": "50% leerlingen (gedeelde financiering)",
+			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_50pct_leerlingen",
+			"weight": 0,
+			"longLabel": "Lijsten > 50% leerlingen (gedeelde financiering)",
+			"lowerCase": "lijsten > 50% leerlingen (gedeelde financiering)"
+		},
+		{
+			"headerLabel": "Financierbaarheid",
+			"label": "Leerlingen verlengd leertraject (bissers)",
+			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_50pct_leerlingen_bissers",
+			"weight": 0,
+			"longLabel": "Lijsten > Leerlingen verlengd leertraject (bissers)",
+			"lowerCase": "lijsten > leerlingen verlengd leertraject (bissers)"
+		},
+		{
+			"headerLabel": "Financierbaarheid",
+			"label": "Leerlingen met aangepast curriculum",
+			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_leerlingen_aangepast_curriculum",
+			"weight": 0,
+			"longLabel": "Lijsten > Leerlingen met aangepast curriculum",
+			"lowerCase": "lijsten > leerlingen met aangepast curriculum"
+		},
+		{
+			"headerLabel": "Financierbaarheid",
+			"label": "Leerlingen financierbaar in tijdelijk project",
+			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_leerlingen_tijdelijk_project",
+			"weight": 0,
+			"longLabel": "Lijsten > Leerlingen financierbaar in tijdelijk project",
+			"lowerCase": "lijsten > leerlingen financierbaar in tijdelijk project"
+		},
+		{
+			"headerLabel": "Financierbaarheid",
+			"label": "Leerlingen met dubbele financierbaarheid",
+			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_leerlingen_dubbel_financierbaar",
+			"weight": 0,
+			"longLabel": "Lijsten > Leerlingen met dubbele financierbaarheid",
+			"lowerCase": "lijsten > leerlingen met dubbele financierbaarheid"
+		},
+		{
+			"headerLabel": "A-kaart",
+			"label": "Leerlingen met een A-kaartnummer",
+			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-akaart-leerlingen_met_akaartnummer",
+			"weight": 0,
+			"longLabel": "Lijsten > Leerlingen met een A-kaartnummer",
+			"lowerCase": "lijsten > leerlingen met een a-kaartnummer"
+		}
+	],
+	"Assets": [
+		{
+			"headerLabel": "Beheer",
+			"label": "Assets",
+			"href": "https://administratie.dko3.cloud/#extra-assets-assets",
+			"weight": 0,
+			"longLabel": "Assets > Assets",
+			"lowerCase": "assets > assets"
+		},
+		{
+			"headerLabel": "Beheer",
+			"label": "Categorieën",
+			"href": "https://administratie.dko3.cloud/#extra-assets-categorieen",
+			"weight": 0,
+			"longLabel": "Assets > Categorieën",
+			"lowerCase": "assets > categorieën"
+		},
+		{
+			"headerLabel": "Beheer",
+			"label": "Uitleningen",
+			"href": "https://administratie.dko3.cloud/#extra-assets-uitleningen",
+			"weight": 0,
+			"longLabel": "Assets > Uitleningen",
+			"lowerCase": "assets > uitleningen"
+		},
+		{
+			"headerLabel": "Structuur",
+			"label": "Soorten tarieven",
+			"href": "https://administratie.dko3.cloud/#extra-assets-soortentarieven",
+			"weight": 0,
+			"longLabel": "Assets > Soorten tarieven",
+			"lowerCase": "assets > soorten tarieven"
+		},
+		{
+			"headerLabel": "Structuur",
+			"label": "Soorten assets",
+			"href": "https://administratie.dko3.cloud/#extra-assets-soortenassets",
+			"weight": 0,
+			"longLabel": "Assets > Soorten assets",
+			"lowerCase": "assets > soorten assets"
+		},
+		{
+			"headerLabel": "Structuur",
+			"label": "Soorten interventies",
+			"href": "https://administratie.dko3.cloud/#extra-assets-soorteninterventies",
+			"weight": 0,
+			"longLabel": "Assets > Soorten interventies",
+			"lowerCase": "assets > soorten interventies"
+		},
+		{
+			"headerLabel": "Structuur",
+			"label": "Eigenaars",
+			"href": "https://administratie.dko3.cloud/#extra-assets-eigenaars",
+			"weight": 0,
+			"longLabel": "Assets > Eigenaars",
+			"lowerCase": "assets > eigenaars"
+		},
+		{
+			"headerLabel": "Structuur",
+			"label": "Leveranciers",
+			"href": "https://administratie.dko3.cloud/#extra-assets-leveranciers",
+			"weight": 0,
+			"longLabel": "Assets > Leveranciers",
+			"lowerCase": "assets > leveranciers"
+		}
+	],
+	"Academie": [
+		{
+			"headerLabel": "Vestigingsplaatsen",
+			"label": "Vestigingsplaatsen",
+			"href": "https://administratie.dko3.cloud/#extra-academie-vestigingsplaatsen",
+			"weight": 0,
+			"longLabel": "Academie > Vestigingsplaatsen",
+			"lowerCase": "academie > vestigingsplaatsen"
+		},
+		{
+			"headerLabel": "Vestigingsplaatsen",
+			"label": "Vestigingsplaatsen per schooljaar",
+			"href": "https://administratie.dko3.cloud/#extra-academie-vestigingsplaatsenperschooljaar",
+			"weight": 0,
+			"longLabel": "Academie > Vestigingsplaatsen per schooljaar",
+			"lowerCase": "academie > vestigingsplaatsen per schooljaar"
+		},
+		{
+			"headerLabel": "Vestigingsplaatsen",
+			"label": "Vestigingsplaatsen volgens AGODI",
+			"href": "https://administratie.dko3.cloud/#extra-academie-vestigingsplaatsenvolgensagodi",
+			"weight": 0,
+			"longLabel": "Academie > Vestigingsplaatsen volgens AGODI",
+			"lowerCase": "academie > vestigingsplaatsen volgens agodi"
+		},
+		{
+			"headerLabel": "Communicatie",
+			"label": "Providers",
+			"href": "https://administratie.dko3.cloud/#extra-academie-communicatie-providers",
+			"weight": 0,
+			"longLabel": "Academie > Providers",
+			"lowerCase": "academie > providers"
+		},
+		{
+			"headerLabel": "Communicatie",
+			"label": "Rapport naar...",
+			"href": "https://administratie.dko3.cloud/#extra-academie-communicatie-rapporten",
+			"weight": 0,
+			"longLabel": "Academie > Rapport naar...",
+			"lowerCase": "academie > rapport naar..."
+		},
+		{
+			"headerLabel": "Communicatie",
+			"label": "Campagnes",
+			"href": "https://administratie.dko3.cloud/#extra-academie-communicatie-lijsten-campagnes",
+			"weight": 0,
+			"longLabel": "Academie > Campagnes",
+			"lowerCase": "academie > campagnes"
+		},
+		{
+			"headerLabel": "Communicatie",
+			"label": "E-mailadres",
+			"href": "https://administratie.dko3.cloud/#extra-academie-communicatie-lijsten-leerlingen_zonder_email",
+			"weight": 0,
+			"longLabel": "Academie > E-mailadres",
+			"lowerCase": "academie > e-mailadres"
+		},
+		{
+			"headerLabel": "Communicatie",
+			"label": "Mobiel nummer voor verwittiging",
+			"href": "https://administratie.dko3.cloud/#extra-academie-communicatie-lijsten-leerlingen_zonder_sms",
+			"weight": 0,
+			"longLabel": "Academie > Mobiel nummer voor verwittiging",
+			"lowerCase": "academie > mobiel nummer voor verwittiging"
+		},
+		{
+			"headerLabel": "Communicatie",
+			"label": "Noodnummer (ICE)",
+			"href": "https://administratie.dko3.cloud/#extra-academie-communicatie-lijsten-leerlingen_zonder_noodnummer",
+			"weight": 0,
+			"longLabel": "Academie > Noodnummer (ICE)",
+			"lowerCase": "academie > noodnummer (ice)"
+		},
+		{
+			"headerLabel": "Syndication",
+			"label": "RSS-feeds",
+			"href": "https://administratie.dko3.cloud/#extra-academie-syndication-rssfeeds",
+			"weight": 0,
+			"longLabel": "Academie > RSS-feeds",
+			"lowerCase": "academie > rss-feeds"
+		},
+		{
+			"headerLabel": "WISA Synchronisatie",
+			"label": "Status alle academies van de IM",
+			"href": "https://administratie.dko3.cloud/#extra-academie-wisa-status",
+			"weight": 0,
+			"longLabel": "Academie > Status alle academies van de IM",
+			"lowerCase": "academie > status alle academies van de im"
+		},
+		{
+			"headerLabel": "mijnACADEMIE ™",
+			"label": "",
+			"href": "https://mijnacademie.be/",
+			"weight": 0,
+			"longLabel": "Academie > ",
+			"lowerCase": "academie > "
+		},
+		{
+			"headerLabel": "mijnACADEMIE ™",
+			"label": "Instellingen",
+			"href": "https://administratie.dko3.cloud/#extra-mijnacademie-instellingen",
+			"weight": 0,
+			"longLabel": "Academie > Instellingen",
+			"lowerCase": "academie > instellingen"
+		},
+		{
+			"headerLabel": "mijnACADEMIE ™",
+			"label": "Layout",
+			"href": "https://administratie.dko3.cloud/#extra-mijnacademie-layout",
+			"weight": 0,
+			"longLabel": "Academie > Layout",
+			"lowerCase": "academie > layout"
+		},
+		{
+			"headerLabel": "DKO3 ™",
+			"label": "Accountbeheer",
+			"href": "https://administratie.dko3.cloud/#extra-academie-accounts",
+			"weight": 0,
+			"longLabel": "Academie > Accountbeheer",
+			"lowerCase": "academie > accountbeheer"
+		},
+		{
+			"headerLabel": "DKO3 ™",
+			"label": "Niet-actieve accounts",
+			"href": "https://administratie.dko3.cloud/#extra-academie-accounts-nietactieve",
+			"weight": 0,
+			"longLabel": "Academie > Niet-actieve accounts",
+			"lowerCase": "academie > niet-actieve accounts"
+		},
+		{
+			"headerLabel": "DKO3 ™",
+			"label": "IDP Stedelijk Onderwijs Antwerpen",
+			"href": "https://administratie.dko3.cloud/#extra-academie-accounts-idp_antwerpen",
+			"weight": 0,
+			"longLabel": "Academie > IDP Stedelijk Onderwijs Antwerpen",
+			"lowerCase": "academie > idp stedelijk onderwijs antwerpen"
+		},
+		{
+			"headerLabel": "DKO3 ™",
+			"label": "Instellingen",
+			"href": "https://administratie.dko3.cloud/#extra-academie-instellingen",
+			"weight": 0,
+			"longLabel": "Academie > Instellingen",
+			"lowerCase": "academie > instellingen"
+		},
+		{
+			"headerLabel": "Documenten & bestanden",
+			"label": "Documentsjablonen",
+			"href": "https://administratie.dko3.cloud/#extra-academie-documentsjablonen",
+			"weight": 0,
+			"longLabel": "Academie > Documentsjablonen",
+			"lowerCase": "academie > documentsjablonen"
+		},
+		{
+			"headerLabel": "Documenten & bestanden",
+			"label": "Bestanden",
+			"href": "https://administratie.dko3.cloud/#extra-academie-bestanden",
+			"weight": 0,
+			"longLabel": "Academie > Bestanden",
+			"lowerCase": "academie > bestanden"
+		},
+		{
+			"headerLabel": "Documenten & bestanden",
+			"label": "Publieke bestanden",
+			"href": "https://administratie.dko3.cloud/#extra-academie-publiekebestanden",
+			"weight": 0,
+			"longLabel": "Academie > Publieke bestanden",
+			"lowerCase": "academie > publieke bestanden"
+		},
+		{
+			"headerLabel": "Documenten & bestanden",
+			"label": "Etiketformaten",
+			"href": "https://administratie.dko3.cloud/#extra-academie-etiketformaten",
+			"weight": 0,
+			"longLabel": "Academie > Etiketformaten",
+			"lowerCase": "academie > etiketformaten"
+		},
+		{
+			"headerLabel": "Documenten & bestanden",
+			"label": "Onze documenten",
+			"href": "https://administratie.dko3.cloud/#extra-academie-onze_documenten",
+			"weight": 0,
+			"longLabel": "Academie > Onze documenten",
+			"lowerCase": "academie > onze documenten"
+		},
+		{
+			"headerLabel": "Organisatie",
+			"label": "Lesvrije dagen",
+			"href": "https://administratie.dko3.cloud/#extra-academie-lesvrije_dagen",
+			"weight": 0,
+			"longLabel": "Academie > Lesvrije dagen",
+			"lowerCase": "academie > lesvrije dagen"
+		},
+		{
+			"headerLabel": "Organisatie",
+			"label": "Mijn weken",
+			"href": "https://administratie.dko3.cloud/#extra-academie-mijnweken",
+			"weight": 0,
+			"longLabel": "Academie > Mijn weken",
+			"lowerCase": "academie > mijn weken"
+		},
+		{
+			"headerLabel": "Organisatie",
+			"label": "Beschikbaarheid aanwezigheden",
+			"href": "https://administratie.dko3.cloud/#extra-academie-aanwezigheden-beschikbaarheid",
+			"weight": 0,
+			"longLabel": "Academie > Beschikbaarheid aanwezigheden",
+			"lowerCase": "academie > beschikbaarheid aanwezigheden"
+		},
+		{
+			"headerLabel": "Organisatie",
+			"label": "Gemiddeld aantal lestijden",
+			"href": "https://administratie.dko3.cloud/#extra-academie-lestijden",
+			"weight": 0,
+			"longLabel": "Academie > Gemiddeld aantal lestijden",
+			"lowerCase": "academie > gemiddeld aantal lestijden"
+		}
+	]
+};
+let powerQueryItems = [];
+function addQueryItem(headerLabel, label, href, func, longLabelText) {
+	powerQueryItems.push(createQueryItem(headerLabel, label, href, func, longLabelText));
+}
+function createQueryItem(headerLabel, label, href, func, longLabelText) {
+	let longLabel = longLabelText ?? headerLabel + " > " + label;
+	return {
+		headerLabel,
+		label,
+		href,
+		weight: 0,
+		longLabel,
+		lowerCase: longLabel.toLowerCase(),
+		func
+	};
+}
+function saveQueryItems(page, queryItems) {
+	let savedPowerQueryString = localStorage.getItem(POWER_QUERY_ID);
+	if (!savedPowerQueryString) savedPowerQueryString = "{}";
+	let savedPowerQuery = JSON.parse(savedPowerQueryString);
+	savedPowerQuery[page] = queryItems;
+	localStorage.setItem(POWER_QUERY_ID, JSON.stringify(savedPowerQuery));
+}
+function getSavedAndDefaultQueryItems() {
+	let savedPowerQuery = {};
+	let allItems = [];
+	let savedPowerQueryString = localStorage.getItem(POWER_QUERY_ID);
+	if (savedPowerQueryString) savedPowerQuery = JSON.parse(savedPowerQueryString);
+	let mergedPages = { ...defaultQueryItems };
+	for (let page in savedPowerQuery) mergedPages[page] = savedPowerQuery[page];
+	for (let page in mergedPages) allItems.push(...mergedPages[page]);
+	return allItems;
+}
+function screpeDropDownMenu(headerMenu) {
+	let headerLabel = headerMenu.querySelector("a").textContent.trim();
+	Array.from(headerMenu.querySelectorAll("div.dropdown-menu > a")).map((item) => {
 		return {
-			tableId: table.id,
-			viewId,
-			url
+			label: item.textContent.trim(),
+			href: item.href
 		};
+	}).filter((item) => item.label != "" && item.href != "" && item.href != "https://administratie.dko3.cloud/#").forEach((item) => addQueryItem(headerLabel, item.label, item.href, void 0));
+}
+function scrapeMainMenu() {
+	powerQueryItems = [];
+	let headerMenus = document.getElementById("dko3_navbar").querySelectorAll("#dko3_navbar > ul.navbar-nav > li.nav-item.dropdown");
+	for (let headerMenu of headerMenus.values()) screpeDropDownMenu(headerMenu);
+}
+function gotoWerklijstUrenNextYear() {
+	let pageState = getGotoStateOrDefault("Werklijst");
+	pageState.goto = "Werklijst_uren_nextYear";
+	saveGotoState(pageState);
+	location.href = "/#leerlingen-werklijst";
+}
+function gotoWerklijstUrenPrevYear() {
+	let pageState = getGotoStateOrDefault("Werklijst");
+	pageState.goto = "Werklijst_uren_prevYear";
+	saveGotoState(pageState);
+	location.href = "/#leerlingen-werklijst";
+}
+function gotoTrimesterModules(_queryItem) {
+	let pageState = getGotoStateOrDefault("Lessen");
+	pageState.goto = "Lessen_trimesters_set_filter";
+	saveGotoState(pageState);
+	location.href = "/#lessen-overzicht";
+}
+function getHardCodedQueryItems() {
+	addQueryItem("Werklijst", "Lerarenuren " + Schoolyear.toShortString(Schoolyear.calculateSetupYear() - 1), "", gotoWerklijstUrenPrevYear);
+	addQueryItem("Werklijst", "Lerarenuren " + Schoolyear.toShortString(Schoolyear.calculateSetupYear()), "", gotoWerklijstUrenNextYear);
+	addQueryItem("Lessen", "Trimester modules", "", gotoTrimesterModules);
+	addQueryItem("Plugin", "Vergelijk uurroosters", "", gotoDiffPage);
+	addQueryItem("Plugin", "Lessen snapshots", "", gotoSnapshotPage);
+}
+let powerQueryVisible = false;
+document.body.addEventListener("keydown", showPowerQuery);
+function showPowerQuery(ev) {
+	if (ev.key === "q" && ev.ctrlKey && !ev.shiftKey && !ev.altKey) {
+		if (powerQueryVisible) {
+			ev.preventDefault();
+			popover.hidePopover();
+			document.querySelector("#snel_zoeken_veld_zoektermen").focus();
+			return;
+		}
+		scrapeMainMenu();
+		powerQueryItems.push(...getSavedAndDefaultQueryItems());
+		getHardCodedQueryItems();
+		popover.showPopover();
+		list.focus();
+		filterItems(searchField.textContent);
 	}
-	var TableFetcher = class {
-		tableRef;
-		calculateTableCheckSum;
-		isUsingCached = false;
-		shadowTableDate;
-		fetchedTable;
-		tableHandler;
-		listeners;
-		cancelRequested;
-		isFetchFinished;
-		constructor(tableRef, calculateTableCheckSum, tableHandler) {
-			this.tableRef = tableRef;
-			if (!calculateTableCheckSum) throw "Tablechecksum required.";
-			this.calculateTableCheckSum = calculateTableCheckSum;
-			this.fetchedTable = void 0;
-			this.tableHandler = tableHandler;
-			this.listeners = [];
-			this.cancelRequested = false;
-			this.isFetchFinished = false;
+}
+function menuKeyDownHandler(ev) {
+	if (!powerQueryVisible) return;
+	if (ev.ctrlKey || ev.altKey) return;
+	if (isAlphaNumeric(ev.key) || ev.key === " ") {
+		searchField.textContent += ev.key;
+		filterItems(searchField.textContent);
+		list.setSelected(0);
+	} else if (ev.key == "Escape") {
+		if (searchField.textContent !== "") {
+			searchField.textContent = "";
+			list.setSelected(0);
+			ev.preventDefault();
 		}
-		reset() {
-			this.clearCache();
-			this.tableHandler?.onReset?.(this);
-		}
-		async cancel() {
-			this.cancelRequested = true;
-			while (!this.isFetchFinished) await new Promise((resolve) => setTimeout(resolve));
-			this.clearCache();
-		}
-		clearCache() {
-			db3(`Clear cache for ${this.tableRef.htmlTableId}.`);
-			window.sessionStorage.removeItem(this.getCacheId());
-			window.sessionStorage.removeItem(this.getCacheId() + CACHE_DATE_SUFFIX);
-			this.fetchedTable = void 0;
-		}
-		loadFromCache() {
-			if (this.tableRef.navigationData.isOnePage()) return null;
-			db3(`Loading from cache: ${this.getCacheId()}.`);
-			let text = window.sessionStorage.getItem(this.getCacheId());
-			let dateString = window.sessionStorage.getItem(this.getCacheId() + CACHE_DATE_SUFFIX);
-			if (!text || !dateString) return void 0;
-			return {
-				text,
-				date: new Date(dateString)
-			};
-		}
-		getCacheId() {
-			let checksum = "";
-			if (this.calculateTableCheckSum) checksum = "__" + this.calculateTableCheckSum(this);
-			return (this.tableRef.htmlTableId + checksum).replaceAll(/\s/g, "");
-		}
-		async fetch() {
-			if (this.fetchedTable) {
-				this.onFinished(true);
-				return this.fetchedTable;
-			}
-			this.isFetchFinished = false;
-			let cachedData = this.loadFromCache();
-			let succes;
-			this.fetchedTable = new FetchedTable(this);
-			if (cachedData) {
-				this.fetchedTable.addPage(cachedData.text);
-				this.shadowTableDate = cachedData.date;
-				this.isUsingCached = true;
-				this.onPageLoaded(1, cachedData.text);
-				this.onLoaded();
-				succes = true;
-			} else {
-				this.isUsingCached = false;
-				succes = await this.#fetchPages(this.fetchedTable);
-				if (!succes) {
-					this.onFinished(succes);
-					throw "Failed to fetch the pages.";
-				}
-				this.fetchedTable.saveToCache();
-				this.onLoaded();
-			}
-			this.onFinished(succes);
-			return this.fetchedTable;
-		}
-		onStartFetching() {
-			for (let lst of this.listeners) lst.onStartFetching?.(this);
-		}
-		onFinished(succes) {
-			this.isFetchFinished = true;
-			for (let lst of this.listeners) lst.onFinished?.(this, succes);
-		}
-		onPageLoaded(pageCnt, text) {
-			for (let lst of this.listeners) lst.onPageLoaded?.(this, pageCnt, text);
-		}
-		onLoaded() {
-			for (let lst of this.listeners) lst.onLoaded?.(this);
-		}
-		onBeforeLoadingPage() {
-			for (let lst of this.listeners) if (lst.onBeforeLoadingPage) {
-				if (!lst.onBeforeLoadingPage(this)) return false;
-			}
-			return true;
-		}
-		async #fetchPages(fetchedTable) {
-			if (!this.onBeforeLoadingPage()) return false;
-			await this.#doFetchAllPages(fetchedTable);
-			return true;
-		}
-		async #doFetchAllPages(fetchedTable) {
-			try {
-				this.onStartFetching();
-				let pageCnt = 0;
-				this.cancelRequested = false;
-				while (true) {
-					console.log("fetching page " + fetchedTable.getNextPageNumber());
-					let text = await (await fetch(this.tableRef.buildFetchUrl(fetchedTable.getNextOffset()))).text();
-					fetchedTable.addPage(text);
-					pageCnt++;
-					this.onPageLoaded(pageCnt, text);
-					if (pageCnt >= this.tableRef.navigationData.steps()) break;
-					if (this.cancelRequested) break;
-				}
-			} finally {}
-		}
-		addListener(listener) {
-			this.listeners.push(listener);
-		}
-	};
-	var FetchedTable = class {
-		shadowTableTemplate;
-		tableFetcher;
-		lastPageNumber;
-		lastPageStartRow;
-		constructor(tableDef) {
-			this.tableFetcher = tableDef;
-			this.lastPageNumber = -1;
-			this.lastPageStartRow = 0;
-			this.shadowTableTemplate = document.createElement("template");
-		}
-		getRows() {
-			return this.shadowTableTemplate.content.querySelectorAll("tbody tr:not(:has(i.fa-meh))");
-		}
-		getTable() {
-			return this.shadowTableTemplate.content.querySelector("table");
-		}
-		getRowsAsArray = () => Array.from(this.getRows());
-		getLastPageRows = () => this.getRowsAsArray().slice(this.lastPageStartRow);
-		getLastPageNumber = () => this.lastPageNumber;
-		getNextPageNumber = () => this.lastPageNumber + 1;
-		getNextOffset = () => this.getNextPageNumber() * this.tableFetcher.tableRef.navigationData.step;
-		getTemplate = () => this.shadowTableTemplate;
-		saveToCache(retry = true) {
-			db3(`Caching ${this.tableFetcher.getCacheId()}.`);
-			try {
-				window.sessionStorage.setItem(this.tableFetcher.getCacheId(), this.shadowTableTemplate.innerHTML);
-				window.sessionStorage.setItem(this.tableFetcher.getCacheId() + CACHE_DATE_SUFFIX, (/* @__PURE__ */ new Date()).toJSON());
-			} catch (e) {
-				console.error(e);
-				if (!retry) return;
-				console.log("Clearing session cache and trying again...");
-				let sessionKeys = Object.keys(window.sessionStorage);
-				for (let key of sessionKeys) if (key.startsWith("table_leerlingen_werklijst")) window.sessionStorage.removeItem(key);
-				this.saveToCache(false);
-			}
-		}
-		addPage(text) {
-			let pageTemplate;
-			pageTemplate = document.createElement("template");
-			pageTemplate.innerHTML = text;
-			let rows = pageTemplate.content.querySelectorAll("tbody > tr:not(:has(i.fa-meh))");
-			this.lastPageStartRow = this.getRows().length;
-			if (this.lastPageNumber === -1) {
-				this.shadowTableTemplate.innerHTML = text;
-				this.shadowTableTemplate.content.querySelector("tbody").innerHTML = "";
-			}
-			this.shadowTableTemplate.content.querySelector("tbody").append(...rows);
-			this.lastPageNumber++;
-		}
-	};
-	//#endregion
-	//#region typescript/dropDownMenus.ts
-	var DropDownMenu = class {
-		menu;
-		container;
-		button;
-		cancelDropDown;
-		list;
-		fullRefreshAfterClose;
-		abortController;
-		constructor(container, button, showOnClick = true, fullRefreshAfterClose = false, abortController) {
-			this.container = container;
-			this.button = button;
-			this.fullRefreshAfterClose = fullRefreshAfterClose;
-			this.abortController = abortController;
-			this.container.classList.add("dropDownContainer");
-			this.button.classList.add("dropDownIgnoreHide", "dropDownButton");
-			this.container.querySelectorAll("div.dropDownMenu").forEach((el) => el.remove());
-			let { first } = emmet.appendChild(this.container, "div.dropDownMenu.popoverMenu");
-			this.menu = first;
-			this.menu.setAttribute("popover", "");
-			this.menu.addEventListener("toggle", async (ev) => {
-				console.log("toggle", ev.newState);
-				if (ev.newState != "open") {
-					this.abortController?.abort();
-					await restorePage(fullRefreshAfterClose);
-				}
-			});
-			this.list = new NavigatableList(this.menu, this.abortController);
-			if (showOnClick) this.button.onclick = async (ev) => {
-				ev.preventDefault();
-				ev.stopPropagation();
-				if (await this.cancelDropDown?.(ev)) return;
-				this.show();
-			};
-		}
-		addItem(title, indentLevel, onClick) {
-			return this.list.addItem(title, indentLevel, onClick);
-		}
-		addSeparator(title, indentLevel) {
-			this.list.addSeparator(title, indentLevel);
-		}
-		addInfo(element, indentLevel) {
-			this.list.addInfo(element, indentLevel);
-		}
-		setItemContent(index, title) {
-			this.list.setItemContent(index, title);
-		}
-		clickItem(itemIndex) {
-			this.list.clickItem(itemIndex);
-		}
-		removeItem(index) {
-			this.list.removeItem(index);
-		}
-		removeAllItems() {
-			this.list.removeAllItems();
-		}
-		setPosition(position) {
-			if (position === "left") this.container.classList.add("shiftMenuLeft");
-			else this.container.classList.remove("shiftMenuLeft");
-		}
-		show() {
-			savePage();
-			console.log("show");
-			document.querySelectorAll(".activePopoverButton").forEach((p) => p.classList.remove("activePopoverButton"));
-			this.button.classList.add("activePopoverButton");
-			this.menu.showPopover();
-			setTimeout(() => {
-				this.list.focus();
-			});
-		}
-		async hide() {
-			await restorePage(this.fullRefreshAfterClose);
-			this.menu.hidePopover();
-		}
-		async remove() {
-			await restorePage(this.fullRefreshAfterClose);
-			this.list.remove();
-			this.menu.remove();
-		}
-	};
-	//#endregion
-	//#region typescript/pageState.ts
-	function getPageSettings(pageName, defaultSettings) {
-		let storedState = localStorage.getItem(STORAGE_PAGE_SETTINGS_KEY_PREFIX + pageName);
-		if (storedState) return JSON.parse(storedState);
-		return defaultSettings;
+	} else if (ev.key == "Backspace") {
+		searchField.textContent = searchField.textContent.slice(0, -1);
+		filterItems(searchField.textContent);
+		list.setSelected(0);
 	}
-	function savePageSettings(state) {
-		localStorage.setItem(STORAGE_PAGE_SETTINGS_KEY_PREFIX + state.pageName, JSON.stringify(state));
+}
+let popover = document.createElement("div");
+document.querySelector("main").appendChild(popover);
+popover.setAttribute("popover", "auto");
+popover.id = "powerQuery";
+popover.addEventListener("toggle", (ev) => {
+	powerQueryVisible = ev.newState === "open";
+});
+let searchField = document.createElement("label");
+popover.appendChild(searchField);
+let listDiv = document.createElement("div");
+popover.appendChild(listDiv);
+listDiv.classList.add("list");
+let list = new NavigatableList(listDiv);
+list.addKeyDownListener(menuKeyDownHandler);
+function filterItems(needle) {
+	for (const item of powerQueryItems) {
+		item.weight = 0;
+		if (item.lowerCase.includes(needle)) item.weight += 1e3;
+		if (needle.split(/(?= )/g).every((word) => item.lowerCase.includes(word))) item.weight += 500;
+		let indices = needle.split("").map((char) => item.lowerCase.indexOf(char));
+		if (indices.every((num) => num !== -1) && isSorted(indices)) item.weight += 50;
+		if (needle.split("").every((char) => item.lowerCase.includes(char))) item.weight += 20;
 	}
-	let pageState$1 = { transient: {
-		getValue: getPageTransientStateValue,
-		setValue: setPageTransientStateValue,
-		clear: clearPageTransientState
-	} };
-	let globalTransientPageState = /* @__PURE__ */ new Map();
-	function clearPageTransientState() {
-		globalTransientPageState.clear();
-	}
-	function setPageTransientStateValue(key, transientState) {
-		globalTransientPageState.set(key, transientState);
-		return transientState;
-	}
-	function getPageTransientStateValue(key, defaultValue) {
-		let value = globalTransientPageState.get(key);
-		return value ? value : setPageTransientStateValue(key, defaultValue);
-	}
-	//#endregion
-	//#region typescript/table/tableSort.ts
-	let defaultValueFunc = (td) => td.innerText;
-	function getDefaultValueFuncs(table) {
-		let columnCount = table.tHead.rows[0].cells.length;
-		//! assumptions, assumptions...
-		return range(0, columnCount).map((_) => defaultValueFunc);
-	}
-	function makeTableSortable(table, valueFuncs) {
-		let actualValueFuncs = valueFuncs ?? getDefaultValueFuncs(table);
-		Array.from(table.tHead.children[0].children).forEach((colHeader) => {
-			colHeader.onclick = (ev) => {
-				reSortTableByColumn2(ev, table, actualValueFuncs);
-			};
+	let itemsToShow = powerQueryItems.filter((item) => item.weight != 0).sort((a, b) => b.weight - a.weight).slice(0, 30);
+	list.removeAllItems();
+	for (const item of itemsToShow) {
+		let itemDiv = emmet.indent.createElement(`
+            div[data-long-label="${item.longLabel}"]{${item.longLabel}}
+        `);
+		list.addItem(itemDiv, 0, () => {
+			onItemSelected(item);
 		});
 	}
-	function reSortTableByColumn2(ev, table, valueFuncs) {
-		let wasAscending = table.tHead.children[0].children[getColumnIndex(ev)].classList.contains("sortAscending");
+}
+function onItemSelected(item) {
+	popover.hidePopover();
+	if (item.func) item.func(item);
+	else location.href = item.href;
+}
+function isSorted(arr) {
+	for (let i = 0; i < arr.length - 1; i++) if (arr[i] > arr[i + 1]) return false;
+	return true;
+}
+function scrapeMenuPage(longLabelPrefix, linkConverter) {
+	let queryItems = [];
+	let blocks = document.querySelectorAll("div.card-body");
+	for (let block of blocks) {
+		let header = block.querySelector("h5");
+		if (!header) continue;
+		let headerLabel = header.textContent.trim();
+		let links = block.querySelectorAll("a");
+		for (let link of links) {
+			if (!link.href) continue;
+			let item = linkConverter(headerLabel, link, longLabelPrefix);
+			queryItems.push(item);
+		}
+	}
+	return queryItems;
+}
+//#endregion
+//#region typescript/pageObserver.ts
+var HashPageFilter = class {
+	urlHash;
+	constructor(urlHash) {
+		this.urlHash = urlHash;
+	}
+	match() {
+		return window.location.hash.startsWith(this.urlHash);
+	}
+};
+var ExactHashPageFilter = class {
+	urlHash;
+	constructor(urlHash) {
+		this.urlHash = urlHash;
+	}
+	match() {
+		if (!this.urlHash) return true;
+		return window.location.hash === this.urlHash;
+	}
+};
+var AllPageFilter = class {
+	constructor() {}
+	match() {
+		return true;
+	}
+};
+var BaseObserver = class {
+	onPageChangedCallback;
+	onPageRefreshedCallback;
+	pageFilter;
+	onMutation;
+	observer;
+	trackModal;
+	constructor(onPageChangedCallback, pageFilter, onMutationCallback, trackModal = false, onPageRefreshedCallback) {
+		this.onPageChangedCallback = onPageChangedCallback;
+		this.onPageRefreshedCallback = onPageRefreshedCallback;
+		this.pageFilter = pageFilter;
+		this.onMutation = onMutationCallback;
+		this.trackModal = trackModal;
+		if (onMutationCallback) this.observer = new MutationObserver((mutationList, observer) => this.observerCallback(mutationList, observer));
+	}
+	observerCallback(mutationList, _observer) {
+		if (!this.onMutation) return;
+		for (const mutation of mutationList) {
+			if (mutation.type !== "childList") continue;
+			if (this.onMutation(mutation)) break;
+		}
+	}
+	isPageMatching = () => this.pageFilter.match();
+	onPageRefreshed() {
+		if (this.onPageRefreshedCallback) {
+			if (this.isPageMatching()) tryUntilThen(this.isPageReallyLoaded, this.onPageRefreshedCallback);
+		}
+	}
+	onPageChanged() {
+		if (!this.pageFilter.match()) {
+			this.disconnect();
+			return;
+		}
+		if (this.onPageChangedCallback) this.onPageChangedCallback();
+		if (!this.onMutation) return;
+		console.log("Observing main element.");
+		if (!document.querySelector("main")) console.error("Can't attach observer to element.");
+		this.observeElement(document.querySelector("main"));
+		if (this.trackModal) this.observeElement(document.getElementById("dko3_modal"));
+	}
+	observeElement(element) {
+		if (!element) {
+			console.error("Can't attach observer to element.");
+			return;
+		}
+		this.observer?.observe(element, {
+			attributes: false,
+			childList: true,
+			subtree: true
+		});
+	}
+	disconnect() {
+		this.observer?.disconnect();
+	}
+};
+var HashObserver = class extends BaseObserver {
+	constructor(urlHash, onMutationCallback, trackModal = false, onPageRefreshedCallback) {
+		super(void 0, new HashPageFilter(urlHash), onMutationCallback, trackModal, onPageRefreshedCallback);
+	}
+};
+var ExactHashObserver = class extends BaseObserver {
+	constructor(urlHash, onMutationCallback, trackModal = false, onPageRefreshedCallback) {
+		super(void 0, new ExactHashPageFilter(urlHash), onMutationCallback, trackModal, onPageRefreshedCallback);
+	}
+};
+var PageObserver = class extends BaseObserver {
+	constructor(onPageChangedCallback, onPageRefreshedCallback) {
+		super(onPageChangedCallback, new AllPageFilter(), void 0, false, onPageRefreshedCallback);
+	}
+};
+var MenuScrapingObserver = class MenuScrapingObserver extends ExactHashObserver {
+	pageLoadedQuerySelector;
+	isPageReallyLoaded() {
+		return void 0 != document.querySelector(this.pageLoadedQuerySelector);
+	}
+	page;
+	longLabelPrefix;
+	constructor(urlHash, page, longLabelPrefix, pageLoadedQuerySelector) {
+		super(urlHash, (_) => {
+			return this.onMutationPageWithMenu();
+		});
+		this.page = page;
+		this.longLabelPrefix = longLabelPrefix;
+		this.pageLoadedQuerySelector = pageLoadedQuerySelector;
+	}
+	onPageChanged() {
+		super.onPageChanged.call(this);
+		if (this.isPageMatching()) this.onMutationPageWithMenu();
+	}
+	onMutationPageWithMenu() {
+		saveQueryItems(this.page, scrapeMenuPage(this.longLabelPrefix, MenuScrapingObserver.defaultLinkToQueryItem));
+		return true;
+	}
+	static defaultLinkToQueryItem(headerLabel, link, longLabelPrefix) {
+		let label = link.textContent.trim();
+		return createQueryItem(headerLabel, label, link.href, void 0, longLabelPrefix + label);
+	}
+};
+//#endregion
+//#region typescript/roster_diff/excel.ts
+var ExcelPos = class {
+	row;
+	column;
+	constructor(row, column) {
+		this.row = row;
+		this.column = column;
+	}
+};
+var TablePos = class {
+	row;
+	column;
+	constructor(row, column) {
+		this.row = row;
+		this.column = column;
+	}
+	static toExcel(tablePos, table) {
+		return new ExcelPos(tablePos.row + table.tableRange.Start.row + table.rowHeaderCount, tablePos.column + table.tableRange.Start.column + table.columnHeaderCount);
+	}
+};
+var Range = class {
+	start;
+	end;
+	RowCount() {
+		return this.end.row - this.start.row + 1;
+	}
+	ColumnCount() {
+		return this.end.column - this.start.column + 1;
+	}
+	constructor(start, end) {
+		this.start = start;
+		this.end = end;
+	}
+};
+var ExcelRange = class extends Range {
+	constructor(start, end) {
+		super(start, end);
+	}
+	get Start() {
+		return this.start;
+	}
+	get End() {
+		return this.end;
+	}
+};
+var TableRange = class TableRange {
+	start;
+	end;
+	constructor(start, end) {
+		this.start = start;
+		this.end = end;
+	}
+	static FromExcel(excelRange, table) {
+		let startRow = excelRange.Start.row - table.tableRange.Start.row - table.rowHeaderCount;
+		let endRow = excelRange.End.row - table.tableRange.Start.row - table.rowHeaderCount;
+		let startColumn = excelRange.Start.column - table.tableRange.Start.column - table.columnHeaderCount;
+		let endColumn = excelRange.End.column - table.tableRange.Start.column - table.columnHeaderCount;
+		return new TableRange({
+			row: startRow,
+			column: startColumn
+		}, {
+			row: endRow,
+			column: endColumn
+		});
+	}
+	static ToExcel(tableRange, table) {
+		return new ExcelRange(TablePos.toExcel(tableRange.Start, table), TablePos.toExcel(tableRange.End, table));
+	}
+	get Start() {
+		return this.start;
+	}
+	get End() {
+		return this.end;
+	}
+};
+var ExcelData = class {
+	data;
+	mergedRanges;
+	url;
+	workbookName;
+	worksheetName;
+	constructor(data, mergedRanges, url, workbookName, worksheetName) {
+		this.data = data;
+		this.mergedRanges = mergedRanges.map((r) => new ExcelRange(r.start, r.end));
+		this.url = url;
+		if (this.url) {
+			let urlParams = new URLSearchParams(this.url.substring(this.url.indexOf("?") + 1));
+			urlParams.delete("activeCell");
+			this.url = this.url.substring(0, this.url.indexOf("?")) + "?" + urlParams.toString();
+		}
+		this.workbookName = workbookName;
+		this.worksheetName = worksheetName;
+	}
+	getMergedCellValue(excelPos) {
+		let mergedRange = this.getMergedRangeForCell(excelPos);
+		return this.data[mergedRange.Start.row][mergedRange.Start.column];
+	}
+	getMergedRangeForCell(excelPos) {
+		return this.mergedRanges.find((range) => {
+			return excelPos.row >= range.Start.row && excelPos.row <= range.End.row && excelPos.column >= range.Start.column && excelPos.column <= range.End.column;
+		}) ?? new ExcelRange(excelPos, excelPos);
+	}
+};
+var Table = class {
+	excelData;
+	tableRange;
+	rowHeaderCount;
+	columnHeaderCount;
+	excelToTableRange(excelRange) {
+		return TableRange.FromExcel(excelRange, this);
+	}
+	get ColumnCount() {
+		return this.tableRange.ColumnCount() - this.columnHeaderCount;
+	}
+	get RowCount() {
+		return this.tableRange.RowCount() - this.rowHeaderCount;
+	}
+	constructor(excelData, tableRange, rowHeaderCount, columnHeaderCount) {
+		this.excelData = excelData;
+		this.tableRange = tableRange;
+		this.rowHeaderCount = rowHeaderCount;
+		this.columnHeaderCount = columnHeaderCount;
+	}
+	Cell(row, column) {
+		let excelPos = {
+			row: this.tableRange.Start.row + this.rowHeaderCount + row,
+			column: this.tableRange.Start.column + this.columnHeaderCount + column
+		};
+		return this.excelData.getMergedCellValue(excelPos);
+	}
+	RangeOfCell(pos) {
+		let excelPos = {
+			row: this.tableRange.Start.row + this.rowHeaderCount + pos.row,
+			column: this.tableRange.Start.column + this.columnHeaderCount + pos.column
+		};
+		let exelRange = this.excelData.getMergedRangeForCell(excelPos) ?? new ExcelRange(excelPos, excelPos);
+		return TableRange.FromExcel(exelRange, this);
+	}
+	HeaderRowValue(headerRow, column) {
+		let excelPos = {
+			row: this.tableRange.Start.row + headerRow,
+			column: this.tableRange.Start.column + this.columnHeaderCount + column
+		};
+		return this.excelData.getMergedCellValue(excelPos);
+	}
+	HeaderColumnValue(row, headerColumn) {
+		let excelPos = {
+			row: this.tableRange.Start.row + this.rowHeaderCount + row,
+			column: this.tableRange.Start.column + headerColumn
+		};
+		return this.excelData.getMergedCellValue(excelPos);
+	}
+};
+//#endregion
+//#region typescript/roster_diff/rosterFactory.ts
+var RosterFactory = class RosterFactory {
+	excelData;
+	errors = [];
+	daysRow = void 0;
+	periodColumn = void 0;
+	tableRange = void 0;
+	constructor(jsonExcelData) {
+		this.excelData = new ExcelData(jsonExcelData.data, jsonExcelData.mergedRanges, jsonExcelData.url, jsonExcelData.workbookName, jsonExcelData.worksheetName);
+		this.daysRow = this.findDaysRow();
+		if (this.daysRow === void 0) {
+			this.errors.push("Geen rij met dagnamen gevonden.");
+			return;
+		}
+		this.periodColumn = this.findPeriodColumn(this.daysRow);
+		if (this.periodColumn === void 0) {
+			this.errors.push("Geen kolom met lesmomenten gevonden.");
+			return;
+		}
+		let lastPeriodRow = this.findLastPeriodRow(this.periodColumn);
+		let lastDayColumn = this.findLastDayColumn(this.periodColumn, this.daysRow);
+		if (lastDayColumn && lastPeriodRow) this.tableRange = new ExcelRange({
+			row: this.daysRow,
+			column: this.periodColumn
+		}, {
+			row: lastPeriodRow,
+			column: lastDayColumn
+		});
+	}
+	getErrors() {
+		return this.errors;
+	}
+	getTable() {
+		return new Table(this.excelData, this.tableRange, 2, 1);
+	}
+	findDaysRow() {
+		for (let [i, row] of this.excelData.data.entries()) if (this.isDaysRow(row)) return i;
+	}
+	isDaysRow(row) {
+		let matchCount = 0;
+		for (let value of row) {
+			if (RosterFactory.isDayName(value.toString())) matchCount++;
+			if (matchCount >= 3) return true;
+		}
+		return false;
+	}
+	static isDayName(text) {
+		return this.toDayName(text) != "";
+	}
+	static toDayName(text) {
+		switch (text.toLowerCase()) {
+			case "maandag": return "MAANDAG";
+			case "dinsdag": return "DINSDAG";
+			case "woensdag": return "WOENSDAG";
+			case "donderdag": return "DONDERDAG";
+			case "vrijdag": return "VRIJDAG";
+			case "zaterdag": return "ZATERDAG";
+			case "zondag": return "ZONDAG";
+			case "ma": return "MAANDAG";
+			case "di": return "DINSDAG";
+			case "din": return "DINSDAG";
+			case "wo": return "WOENSDAG";
+			case "woe": return "WOENSDAG";
+			case "do": return "DONDERDAG";
+			case "don": return "DONDERDAG";
+			case "vr": return "VRIJDAG";
+			case "za": return "ZATERDAG";
+			case "zat": return "ZATERDAG";
+			case "zo": return "ZONDAG";
+			case "zon": return "ZONDAG";
+			default: return "";
+		}
+	}
+	findPeriodColumn(daysRow) {
+		let columnCount = this.excelData.data[0].length;
+		for (let iCol = 0; iCol < columnCount; iCol++) for (let row of this.excelData.data.slice(daysRow)) {
+			let value = row[iCol].toString();
+			if (this.isPeriod(value)) return iCol;
+		}
+	}
+	isPeriod(text) {
+		return TimeSlice.parseTimeSlice(text);
+	}
+	findLastPeriodRow(periodColumn) {
+		return this.excelData.data.map((row, index) => this.isPeriod(row[periodColumn].toString()) ? index : -1).filter((n) => n > 0).pop();
+	}
+	findLastDayColumn(periodColumn, daysRow) {
+		for (let c = periodColumn + 1; c < this.excelData.data[0].length; c++) {
+			let cellValue = this.excelData.getMergedCellValue({
+				row: daysRow,
+				column: c
+			});
+			if (!RosterFactory.isDayName(cellValue)) return c - 1;
+		}
+		return this.excelData.data[0].length - 1;
+	}
+};
+//#endregion
+//#region typescript/table/tableNavigation.ts
+var TableNavigation = class {
+	step;
+	maxCount;
+	constructor(step, maxCount) {
+		this.step = step;
+		this.maxCount = maxCount;
+	}
+	steps() {
+		return Math.ceil(this.maxCount / this.step);
+	}
+	isOnePage() {
+		return this.step >= this.maxCount;
+	}
+};
+function findFirstNavigation(element) {
+	element = element ?? document.body;
+	let buttonPagination = element.querySelector("button.datatable-paging-numbers");
+	if (!buttonPagination) return void 0;
+	let buttonContainer = buttonPagination.closest("div");
+	if (!buttonContainer) return;
+	let matches = buttonPagination.innerText.match(/(\d*) tot (\d*) van (\d*)/);
+	if (!matches) return void 0;
+	let buttons = buttonContainer.querySelectorAll("button.btn-secondary");
+	let offsets = Array.from(buttons).filter((btn) => btn.attributes["onclick"]?.value.includes("goto(")).filter((btn) => !btn.querySelector("i.fa-fast-backward")).map((btn) => getGotoNumber(btn.attributes["onclick"].value));
+	let numbers = matches.slice(1).map((txt) => parseInt(txt));
+	if (numbers.length === 0) return void 0;
+	numbers[0] = numbers[0] - 1;
+	numbers = numbers.concat(offsets);
+	numbers.sort((a, b) => a - b);
+	numbers = [...new Set(numbers)];
+	return new TableNavigation(numbers[1] - numbers[0], numbers.pop());
+}
+function getGotoNumber(functionCall) {
+	return parseInt(functionCall.substring(functionCall.indexOf("goto(") + 5));
+}
+//#endregion
+//#region typescript/table/tableFetcher.ts
+var PlainTableRef = class {
+	htmlTableId;
+	constructor(htmlTableId) {
+		this.htmlTableId = htmlTableId;
+	}
+	getOrgTableContainer() {
+		return document.getElementById(this.htmlTableId).parentElement;
+	}
+	getOrgTableRows() {
+		return document.getElementById(this.htmlTableId).querySelectorAll("tbody > tr");
+	}
+	buildFetchUrl(offset) {
+		throw "Plain table cannot be fetched";
+	}
+	createElementAboveTable(element) {
+		let el = document.createElement(element);
+		document.getElementById(this.htmlTableId).insertAdjacentElement("beforebegin", el);
+		return el;
+	}
+	isFullyFetched() {
+		return true;
+	}
+};
+var DkoTableRef = class {
+	htmlTableId;
+	buildFetchUrl;
+	navigationData;
+	constructor(htmlTableId, navigationData, buildFetchUrl) {
+		this.htmlTableId = htmlTableId;
+		this.buildFetchUrl = buildFetchUrl;
+		this.navigationData = navigationData;
+	}
+	getOrgTableContainer() {
+		return document.getElementById(this.htmlTableId);
+	}
+	getOrgTableRows() {
+		return this.getOrgTableContainer().querySelectorAll("tbody > tr");
+	}
+	createElementAboveTable(element) {
+		let el = document.createElement(element);
+		this.getOrgTableContainer().insertAdjacentElement("beforebegin", el);
+		return el;
+	}
+	isFullyFetched() {
+		return this.getOrgTableContainer().querySelector("table").classList.contains("fullyFetched");
+	}
+};
+function findTableRefInCode() {
+	let foundTableRef = findTable();
+	if (!foundTableRef) return void 0;
+	let buildFetchUrl = (offset) => `/views/ui/datatable.php?id=${foundTableRef.viewId}&start=${offset}&aantal=0`;
+	let navigation = findFirstNavigation();
+	if (!navigation) return void 0;
+	return new DkoTableRef(foundTableRef.tableId, navigation, buildFetchUrl);
+}
+function findTable() {
+	let table = document.querySelector("div.table-responsive > table");
+	if (!table) return null;
+	let tableId = table.id.replace("table_", "").replace("_table", "");
+	let parentDiv = document.querySelector("div#table_" + tableId);
+	let func = Array.from(parentDiv.querySelectorAll("script")).map((script) => script.text).join("\n").split("_goto(")[1].split(/ function *\w/)[0];
+	let viewId = / *datatable_id *= *'(.*)'/.exec(func)[1];
+	let url = /_table'\).load\('(.*?)\?id='\s*\+\s*datatable_id\s*\+\s*'&start='\s*\+\s*start/.exec(func)[1];
+	return {
+		tableId: table.id,
+		viewId,
+		url
+	};
+}
+var TableFetcher = class {
+	tableRef;
+	calculateTableCheckSum;
+	isUsingCached = false;
+	shadowTableDate;
+	fetchedTable;
+	tableHandler;
+	listeners;
+	cancelRequested;
+	isFetchFinished;
+	constructor(tableRef, calculateTableCheckSum, tableHandler) {
+		this.tableRef = tableRef;
+		if (!calculateTableCheckSum) throw "Tablechecksum required.";
+		this.calculateTableCheckSum = calculateTableCheckSum;
+		this.fetchedTable = void 0;
+		this.tableHandler = tableHandler;
+		this.listeners = [];
+		this.cancelRequested = false;
+		this.isFetchFinished = false;
+	}
+	reset() {
+		this.clearCache();
+		this.tableHandler?.onReset?.(this);
+	}
+	async cancel() {
+		this.cancelRequested = true;
+		while (!this.isFetchFinished) await new Promise((resolve) => setTimeout(resolve));
+		this.clearCache();
+	}
+	clearCache() {
+		db3(`Clear cache for ${this.tableRef.htmlTableId}.`);
+		window.sessionStorage.removeItem(this.getCacheId());
+		window.sessionStorage.removeItem(this.getCacheId() + CACHE_DATE_SUFFIX);
+		this.fetchedTable = void 0;
+	}
+	loadFromCache() {
+		if (this.tableRef.navigationData.isOnePage()) return null;
+		db3(`Loading from cache: ${this.getCacheId()}.`);
+		let text = window.sessionStorage.getItem(this.getCacheId());
+		let dateString = window.sessionStorage.getItem(this.getCacheId() + CACHE_DATE_SUFFIX);
+		if (!text || !dateString) return void 0;
+		return {
+			text,
+			date: new Date(dateString)
+		};
+	}
+	getCacheId() {
+		let checksum = "";
+		if (this.calculateTableCheckSum) checksum = "__" + this.calculateTableCheckSum(this);
+		return (this.tableRef.htmlTableId + checksum).replaceAll(/\s/g, "");
+	}
+	async fetch() {
+		if (this.fetchedTable) {
+			this.onFinished(true);
+			return this.fetchedTable;
+		}
+		this.isFetchFinished = false;
+		let cachedData = this.loadFromCache();
+		let succes;
+		this.fetchedTable = new FetchedTable(this);
+		if (cachedData) {
+			this.fetchedTable.addPage(cachedData.text);
+			this.shadowTableDate = cachedData.date;
+			this.isUsingCached = true;
+			this.onPageLoaded(1, cachedData.text);
+			this.onLoaded();
+			succes = true;
+		} else {
+			this.isUsingCached = false;
+			succes = await this.#fetchPages(this.fetchedTable);
+			if (!succes) {
+				this.onFinished(succes);
+				throw "Failed to fetch the pages.";
+			}
+			this.fetchedTable.saveToCache();
+			this.onLoaded();
+		}
+		this.onFinished(succes);
+		return this.fetchedTable;
+	}
+	onStartFetching() {
+		for (let lst of this.listeners) lst.onStartFetching?.(this);
+	}
+	onFinished(succes) {
+		this.isFetchFinished = true;
+		for (let lst of this.listeners) lst.onFinished?.(this, succes);
+	}
+	onPageLoaded(pageCnt, text) {
+		for (let lst of this.listeners) lst.onPageLoaded?.(this, pageCnt, text);
+	}
+	onLoaded() {
+		for (let lst of this.listeners) lst.onLoaded?.(this);
+	}
+	onBeforeLoadingPage() {
+		for (let lst of this.listeners) if (lst.onBeforeLoadingPage) {
+			if (!lst.onBeforeLoadingPage(this)) return false;
+		}
+		return true;
+	}
+	async #fetchPages(fetchedTable) {
+		if (!this.onBeforeLoadingPage()) return false;
+		await this.#doFetchAllPages(fetchedTable);
+		return true;
+	}
+	async #doFetchAllPages(fetchedTable) {
+		try {
+			this.onStartFetching();
+			let pageCnt = 0;
+			this.cancelRequested = false;
+			while (true) {
+				console.log("fetching page " + fetchedTable.getNextPageNumber());
+				let text = await (await fetch(this.tableRef.buildFetchUrl(fetchedTable.getNextOffset()))).text();
+				fetchedTable.addPage(text);
+				pageCnt++;
+				this.onPageLoaded(pageCnt, text);
+				if (pageCnt >= this.tableRef.navigationData.steps()) break;
+				if (this.cancelRequested) break;
+			}
+		} finally {}
+	}
+	addListener(listener) {
+		this.listeners.push(listener);
+	}
+};
+var FetchedTable = class {
+	shadowTableTemplate;
+	tableFetcher;
+	lastPageNumber;
+	lastPageStartRow;
+	constructor(tableDef) {
+		this.tableFetcher = tableDef;
+		this.lastPageNumber = -1;
+		this.lastPageStartRow = 0;
+		this.shadowTableTemplate = document.createElement("template");
+	}
+	getRows() {
+		return this.shadowTableTemplate.content.querySelectorAll("tbody tr:not(:has(i.fa-meh))");
+	}
+	getTable() {
+		return this.shadowTableTemplate.content.querySelector("table");
+	}
+	getRowsAsArray = () => Array.from(this.getRows());
+	getLastPageRows = () => this.getRowsAsArray().slice(this.lastPageStartRow);
+	getLastPageNumber = () => this.lastPageNumber;
+	getNextPageNumber = () => this.lastPageNumber + 1;
+	getNextOffset = () => this.getNextPageNumber() * this.tableFetcher.tableRef.navigationData.step;
+	getTemplate = () => this.shadowTableTemplate;
+	saveToCache(retry = true) {
+		db3(`Caching ${this.tableFetcher.getCacheId()}.`);
+		try {
+			window.sessionStorage.setItem(this.tableFetcher.getCacheId(), this.shadowTableTemplate.innerHTML);
+			window.sessionStorage.setItem(this.tableFetcher.getCacheId() + CACHE_DATE_SUFFIX, (/* @__PURE__ */ new Date()).toJSON());
+		} catch (e) {
+			console.error(e);
+			if (!retry) return;
+			console.log("Clearing session cache and trying again...");
+			let sessionKeys = Object.keys(window.sessionStorage);
+			for (let key of sessionKeys) if (key.startsWith("table_leerlingen_werklijst")) window.sessionStorage.removeItem(key);
+			this.saveToCache(false);
+		}
+	}
+	addPage(text) {
+		let pageTemplate;
+		pageTemplate = document.createElement("template");
+		pageTemplate.innerHTML = text;
+		let rows = pageTemplate.content.querySelectorAll("tbody > tr:not(:has(i.fa-meh))");
+		this.lastPageStartRow = this.getRows().length;
+		if (this.lastPageNumber === -1) {
+			this.shadowTableTemplate.innerHTML = text;
+			this.shadowTableTemplate.content.querySelector("tbody").innerHTML = "";
+		}
+		this.shadowTableTemplate.content.querySelector("tbody").append(...rows);
+		this.lastPageNumber++;
+	}
+};
+//#endregion
+//#region typescript/dropDownMenus.ts
+var DropDownMenu = class {
+	menu;
+	container;
+	button;
+	cancelDropDown;
+	list;
+	fullRefreshAfterClose;
+	abortController;
+	constructor(container, button, showOnClick = true, fullRefreshAfterClose = false, abortController) {
+		this.container = container;
+		this.button = button;
+		this.fullRefreshAfterClose = fullRefreshAfterClose;
+		this.abortController = abortController;
+		this.container.classList.add("dropDownContainer");
+		this.button.classList.add("dropDownIgnoreHide", "dropDownButton");
+		this.container.querySelectorAll("div.dropDownMenu").forEach((el) => el.remove());
+		let { first } = emmet.appendChild(this.container, "div.dropDownMenu.popoverMenu");
+		this.menu = first;
+		this.menu.setAttribute("popover", "");
+		this.menu.addEventListener("toggle", async (ev) => {
+			console.log("toggle", ev.newState);
+			if (ev.newState != "open") {
+				this.abortController?.abort();
+				await restorePage(fullRefreshAfterClose);
+			}
+		});
+		this.list = new NavigatableList(this.menu, this.abortController);
+		if (showOnClick) this.button.onclick = async (ev) => {
+			ev.preventDefault();
+			ev.stopPropagation();
+			if (await this.cancelDropDown?.(ev)) return;
+			this.show();
+		};
+	}
+	addItem(title, indentLevel, onClick) {
+		return this.list.addItem(title, indentLevel, onClick);
+	}
+	addSeparator(title, indentLevel) {
+		this.list.addSeparator(title, indentLevel);
+	}
+	addInfo(element, indentLevel) {
+		this.list.addInfo(element, indentLevel);
+	}
+	setItemContent(index, title) {
+		this.list.setItemContent(index, title);
+	}
+	clickItem(itemIndex) {
+		this.list.clickItem(itemIndex);
+	}
+	removeItem(index) {
+		this.list.removeItem(index);
+	}
+	removeAllItems() {
+		this.list.removeAllItems();
+	}
+	setPosition(position) {
+		if (position === "left") this.container.classList.add("shiftMenuLeft");
+		else this.container.classList.remove("shiftMenuLeft");
+	}
+	show() {
+		savePage();
+		console.log("show");
+		document.querySelectorAll(".activePopoverButton").forEach((p) => p.classList.remove("activePopoverButton"));
+		this.button.classList.add("activePopoverButton");
+		this.menu.showPopover();
+		setTimeout(() => {
+			this.list.focus();
+		});
+	}
+	async hide() {
+		await restorePage(this.fullRefreshAfterClose);
+		this.menu.hidePopover();
+	}
+	async remove() {
+		await restorePage(this.fullRefreshAfterClose);
+		this.list.remove();
+		this.menu.remove();
+	}
+};
+//#endregion
+//#region typescript/pageState.ts
+function getPageSettings(pageName, defaultSettings) {
+	let storedState = localStorage.getItem(STORAGE_PAGE_SETTINGS_KEY_PREFIX + pageName);
+	if (storedState) return JSON.parse(storedState);
+	return defaultSettings;
+}
+function savePageSettings(state) {
+	localStorage.setItem(STORAGE_PAGE_SETTINGS_KEY_PREFIX + state.pageName, JSON.stringify(state));
+}
+let pageState$1 = { transient: {
+	getValue: getPageTransientStateValue,
+	setValue: setPageTransientStateValue,
+	clear: clearPageTransientState
+} };
+let globalTransientPageState = /* @__PURE__ */ new Map();
+function clearPageTransientState() {
+	globalTransientPageState.clear();
+}
+function setPageTransientStateValue(key, transientState) {
+	globalTransientPageState.set(key, transientState);
+	return transientState;
+}
+function getPageTransientStateValue(key, defaultValue) {
+	let value = globalTransientPageState.get(key);
+	return value ? value : setPageTransientStateValue(key, defaultValue);
+}
+//#endregion
+//#region typescript/table/tableSort.ts
+let defaultValueFunc = (td) => td.innerText;
+function getDefaultValueFuncs(table) {
+	let columnCount = table.tHead.rows[0].cells.length;
+	//! assumptions, assumptions...
+	return range(0, columnCount).map((_) => defaultValueFunc);
+}
+function makeTableSortable(table, valueFuncs) {
+	let actualValueFuncs = valueFuncs ?? getDefaultValueFuncs(table);
+	Array.from(table.tHead.children[0].children).forEach((colHeader) => {
+		colHeader.onclick = (ev) => {
+			reSortTableByColumn2(ev, table, actualValueFuncs);
+		};
+	});
+}
+function reSortTableByColumn2(ev, table, valueFuncs) {
+	let wasAscending = table.tHead.children[0].children[getColumnIndex(ev)].classList.contains("sortAscending");
+	let columnIndex = getColumnIndex(ev);
+	sortTableByColumn(table, columnIndex, wasAscending, valueFuncs[columnIndex]);
+}
+function sortTableByColumn(table, index, descending, valueFunc) {
+	let header = table.tHead.children[0].children[index];
+	let rows = Array.from(table.tBodies[0].rows);
+	for (let thead of table.tHead.children[0].children) thead.classList.remove("sortAscending", "sortDescending");
+	let cmpFunc = cmpAlpha;
+	if (isColumnProbablyNumeric(table, index, valueFunc)) cmpFunc = cmpNumber;
+	else if (isColumnProbablyDate(table, index, valueFunc)) cmpFunc = cmpDate;
+	try {
+		sortRows(cmpFunc, header, rows, index, descending, valueFunc);
+	} catch (e) {
+		console.error(e);
+		if (cmpFunc !== cmpAlpha) sortRows(cmpAlpha, header, rows, index, descending, valueFunc);
+	}
+	rows.forEach((row) => table.tBodies[0].appendChild(row));
+}
+function getColumnIndex(ev) {
+	let td = ev.target;
+	if (td.tagName !== "TD") td = td.closest("TH");
+	return Array.prototype.indexOf.call(td.parentElement.children, td);
+}
+function isColumnProbablyNumeric(table, index, valueFunc) {
+	let rows = Array.from(table.tBodies[0].rows);
+	const MAX_SAMPLES = 100;
+	return !rangeGenerator(0, rows.length, rows.length > MAX_SAMPLES ? rows.length / MAX_SAMPLES : 1).map((float) => Math.floor(float)).map((rowIndex) => rows[rowIndex]).some((row) => {
+		let value = valueFunc(row.children[index]);
+		return isNaN(Number(value));
+	});
+}
+function sortRows(cmpFunction, header, rows, index, descending, valueFunc) {
+	let cmpDirectionalFunction;
+	if (descending) {
+		cmpDirectionalFunction = (a, b) => cmpFunction(b.cells[index], a.cells[index], valueFunc);
+		header.classList.add("sortDescending");
+	} else {
+		cmpDirectionalFunction = (a, b) => cmpFunction(a.cells[index], b.cells[index], valueFunc);
+		header.classList.add("sortAscending");
+	}
+	rows.sort((a, b) => cmpDirectionalFunction(a, b));
+}
+function cmpAlpha(a, b, valueFunc) {
+	return valueFunc(a).localeCompare(valueFunc(b));
+}
+function cmpDate(a, b, valueFunc) {
+	return normalizeDate(valueFunc(a)).localeCompare(normalizeDate(valueFunc(b)));
+}
+function normalizeDate(date) {
+	let dateParts = date.split("-");
+	return dateParts[2] + dateParts[1] + dateParts[0];
+}
+function cmpNumber(a, b) {
+	let res = Number(a.innerText) - Number(b.innerText);
+	if (isNaN(res)) throw new Error();
+	return res;
+}
+function isColumnProbablyDate(table, index, valueFunc) {
+	return stringToDate(valueFunc(Array.from(table.tBodies[0].rows)[0].cells[index]));
+}
+function stringToDate(text) {
+	let matches = text.match(/^(\d\d)[-\/](\d\d)[-\/](\d\d\d\d)/);
+	if (!matches) return void 0;
+	return /* @__PURE__ */ new Date(matches[3] + "-" + matches[2] + "/" + matches[1]);
+}
+//#endregion
+//#region typescript/table/tableHeaders.ts
+let _otherTabsDataCache = /* @__PURE__ */ new Map();
+function addToOtherTabsDataCache(data) {
+	let id = Date.now().toString();
+	_otherTabsDataCache.set(id, data);
+	return id;
+}
+function copyFullTable(table) {
+	createAndCopyTable([...table.tHead.children[0].children].filter((cell) => cell.style.display !== "none").map((cell) => cell.innerText), [...table.tBodies[0].children].map((row) => [...row.cells].filter((cell) => cell.style.display !== "none").map((cell) => cell.innerText)));
+}
+function copyOneColumn(table, index) {
+	createAndCopyTable([table.tHead.children[0].children[index].innerText], [...table.tBodies[0].rows].map((row) => [row.cells[index].innerText]));
+}
+function createAndCopyTable(headers, cols) {
+	navigator.clipboard.writeText(createHtmlTable(headers, cols).outerHTML).then((_r) => {});
+}
+function reSortTableByColumn(ev, table, fetchFirst, valueFuncs) {
+	let wasAscending = table.tHead.children[0].children[getColumnIndex(ev)].classList.contains("sortAscending");
+	if (fetchFirst) forTableDo(ev, (_fetchedTable, index) => sortTableByColumn(table, index, wasAscending, valueFuncs[index]));
+	else {
 		let columnIndex = getColumnIndex(ev);
 		sortTableByColumn(table, columnIndex, wasAscending, valueFuncs[columnIndex]);
 	}
-	function sortTableByColumn(table, index, descending, valueFunc) {
-		let header = table.tHead.children[0].children[index];
-		let rows = Array.from(table.tBodies[0].rows);
-		for (let thead of table.tHead.children[0].children) thead.classList.remove("sortAscending", "sortDescending");
-		let cmpFunc = cmpAlpha;
-		if (isColumnProbablyNumeric(table, index, valueFunc)) cmpFunc = cmpNumber;
-		else if (isColumnProbablyDate(table, index, valueFunc)) cmpFunc = cmpDate;
-		try {
-			sortRows(cmpFunc, header, rows, index, descending, valueFunc);
-		} catch (e) {
-			console.error(e);
-			if (cmpFunc !== cmpAlpha) sortRows(cmpAlpha, header, rows, index, descending, valueFunc);
-		}
-		rows.forEach((row) => table.tBodies[0].appendChild(row));
-	}
-	function getColumnIndex(ev) {
-		let td = ev.target;
-		if (td.tagName !== "TD") td = td.closest("TH");
-		return Array.prototype.indexOf.call(td.parentElement.children, td);
-	}
-	function isColumnProbablyNumeric(table, index, valueFunc) {
-		let rows = Array.from(table.tBodies[0].rows);
-		const MAX_SAMPLES = 100;
-		return !rangeGenerator(0, rows.length, rows.length > MAX_SAMPLES ? rows.length / MAX_SAMPLES : 1).map((float) => Math.floor(float)).map((rowIndex) => rows[rowIndex]).some((row) => {
-			let value = valueFunc(row.children[index]);
-			return isNaN(Number(value));
-		});
-	}
-	function sortRows(cmpFunction, header, rows, index, descending, valueFunc) {
-		let cmpDirectionalFunction;
-		if (descending) {
-			cmpDirectionalFunction = (a, b) => cmpFunction(b.cells[index], a.cells[index], valueFunc);
-			header.classList.add("sortDescending");
-		} else {
-			cmpDirectionalFunction = (a, b) => cmpFunction(a.cells[index], b.cells[index], valueFunc);
-			header.classList.add("sortAscending");
-		}
-		rows.sort((a, b) => cmpDirectionalFunction(a, b));
-	}
-	function cmpAlpha(a, b, valueFunc) {
-		return valueFunc(a).localeCompare(valueFunc(b));
-	}
-	function cmpDate(a, b, valueFunc) {
-		return normalizeDate(valueFunc(a)).localeCompare(normalizeDate(valueFunc(b)));
-	}
-	function normalizeDate(date) {
-		let dateParts = date.split("-");
-		return dateParts[2] + dateParts[1] + dateParts[0];
-	}
-	function cmpNumber(a, b) {
-		let res = Number(a.innerText) - Number(b.innerText);
-		if (isNaN(res)) throw new Error();
-		return res;
-	}
-	function isColumnProbablyDate(table, index, valueFunc) {
-		return stringToDate(valueFunc(Array.from(table.tBodies[0].rows)[0].cells[index]));
-	}
-	function stringToDate(text) {
-		let matches = text.match(/^(\d\d)[-\/](\d\d)[-\/](\d\d\d\d)/);
-		if (!matches) return void 0;
-		return /* @__PURE__ */ new Date(matches[3] + "-" + matches[2] + "/" + matches[1]);
-	}
-	//#endregion
-	//#region typescript/table/tableHeaders.ts
-	let _otherTabsDataCache = /* @__PURE__ */ new Map();
-	function addToOtherTabsDataCache(data) {
-		let id = Date.now().toString();
-		_otherTabsDataCache.set(id, data);
-		return id;
-	}
-	function copyFullTable(table) {
-		createAndCopyTable([...table.tHead.children[0].children].filter((cell) => cell.style.display !== "none").map((cell) => cell.innerText), [...table.tBodies[0].children].map((row) => [...row.cells].filter((cell) => cell.style.display !== "none").map((cell) => cell.innerText)));
-	}
-	function copyOneColumn(table, index) {
-		createAndCopyTable([table.tHead.children[0].children[index].innerText], [...table.tBodies[0].rows].map((row) => [row.cells[index].innerText]));
-	}
-	function createAndCopyTable(headers, cols) {
-		navigator.clipboard.writeText(createHtmlTable(headers, cols).outerHTML).then((_r) => {});
-	}
-	function reSortTableByColumn(ev, table, fetchFirst, valueFuncs) {
-		let wasAscending = table.tHead.children[0].children[getColumnIndex(ev)].classList.contains("sortAscending");
-		if (fetchFirst) forTableDo(ev, (_fetchedTable, index) => sortTableByColumn(table, index, wasAscending, valueFuncs[index]));
-		else {
-			let columnIndex = getColumnIndex(ev);
-			sortTableByColumn(table, columnIndex, wasAscending, valueFuncs[columnIndex]);
-		}
-	}
-	function decorateTableHeader(table, fetchFullTable) {
-		if (table.tHead.classList.contains("clickHandler")) return;
-		table.tHead.classList.add("clickHandler");
-		if (!options.showTableHeaders) return;
-		let valueFuncs = getDefaultValueFuncs(table);
-		Array.from(table.tHead.children[0].children).forEach((colHeader) => {
-			colHeader.onclick = (ev) => {
-				reSortTableByColumn(ev, table, fetchFullTable, valueFuncs);
-			};
-			if (table.classList.contains("noMenu")) return;
-			let { first: span, last: idiom } = emmet.appendChild(colHeader, "span>button.miniButton.naked>i.fas.fa-list");
-			let menu = new DropDownMenu(span, idiom.parentElement);
-			menu.addItem("Toon unieke waarden", 0, (ev) => {
-				forTableDo(ev, showDistinctColumn);
-			});
-			menu.addItem("Verberg kolom", 0, (ev) => {
-				console.log("verberg kolom");
-				forTableColumnDo(ev, hideColumn);
-			});
-			menu.addItem("Toon alle kolommen", 0, (ev) => {
-				console.log("verberg kolom");
-				forTableColumnDo(ev, showColumns);
-			});
-			menu.addSeparator("Sorteer", 0);
-			menu.addItem("Laag naar hoog (a > z)", 1, (ev) => {
-				forTableDo(ev, (tableMeta, index) => sortTableByColumn(table, index, false, valueFuncs[index]));
-			});
-			menu.addItem("Hoog naar laag (z > a)", 1, (ev) => {
-				forTableDo(ev, (tableMeta, index) => sortTableByColumn(table, index, true, valueFuncs[index]));
-			});
-			menu.addSeparator("Sorteer als:", 1);
-			menu.addItem("Tekst", 2, (_ev) => {});
-			menu.addItem("Getallen", 2, (_ev) => {});
-			menu.addSeparator("Kopieer nr klipbord", 0);
-			menu.addItem("Kolom", 1, (ev) => {
-				forTableDo(ev, (tableMeta, index) => copyOneColumn(table, index));
-			});
-			menu.addItem("Hele tabel", 1, (ev) => {
-				forTableDo(ev, (tableMeta, _index) => copyFullTable(table));
-			});
-			menu.addSeparator("<= Samenvoegen", 0);
-			menu.addItem("met spatie", 1, (ev) => {
-				forTableColumnDo(ev, createTwoColumnsCmd(0, mergeColumnWithSpace));
-			});
-			menu.addItem("met comma", 1, (ev) => {
-				forTableColumnDo(ev, createTwoColumnsCmd(0, mergeColumnWithComma));
-			});
-			menu.addSeparator("Verplaatsen", 0);
-			menu.addItem("<=", 1, (ev) => {
-				forTableColumnDo(ev, createTwoColumnsCmd(0, swapColumns));
-			});
-			menu.addItem("=>", 1, (ev) => {
-				forTableColumnDo(ev, createTwoColumnsCmd(1, swapColumns));
-			});
-		});
-		relabelHeaders(table.tHead.children[0]);
-	}
-	function getDistinctColumn(tableContainer, index) {
-		return distinct(Array.from(tableContainer.querySelector("tbody").rows).map((row) => row.children[index].textContent)).sort();
-	}
-	var TableHandlerForHeaders = class {
-		onReset(_tableDef) {
-			console.log("RESET");
-		}
-	};
-	function executeTableCommands(tableRef) {
-		let cmds = pageState$1.transient.getValue(GLOBAL_COMMAND_BUFFER_KEY, []);
-		for (let cmd of cmds) executeCmd(cmd, tableRef, true);
-	}
-	function forTableDo(ev, doIt) {
-		ev.preventDefault();
-		ev.stopPropagation();
-		checkAndDownloadTableRows(ev).then((res) => {
-			doIt({
-				tableRef: res.tableRef,
-				infoBlock: res.infoBlock
-			}, getColumnIndex(ev));
-		});
-	}
-	function forTableColumnDo(ev, cmdDef) {
-		ev.preventDefault();
-		ev.stopPropagation();
-		checkAndDownloadTableRows(ev).then((tableMeta) => {
-			let cmd = {
-				cmdDef,
-				index: getColumnIndex(ev)
-			};
-			executeCmd(cmd, tableMeta.tableRef, false);
-			pageState$1.transient.getValue(GLOBAL_COMMAND_BUFFER_KEY, []).push(cmd);
-			relabelHeaders(tableMeta.tableRef.getOrgTableContainer().querySelector("thead>tr"));
-		});
-	}
-	function executeCmd(cmd, tableRef, onlyBody) {
-		let context = cmd.cmdDef.getContext?.(tableRef, cmd.index);
-		let rows;
-		if (onlyBody) rows = tableRef.getOrgTableContainer().querySelector("tbody").rows;
-		else rows = tableRef.getOrgTableContainer().querySelectorAll("tr");
-		for (let row of rows) cmd.cmdDef.doForRow(row, cmd.index, context);
-	}
-	function showDistinctColumn(tableMeta, index) {
-		let cols = getDistinctColumn(tableMeta.tableRef.getOrgTableContainer(), index);
-		let tmpDiv = document.createElement("div");
-		let tbody = emmet.appendChild(tmpDiv, "table>tbody").last;
-		for (let col of cols) emmet.appendChild(tbody, `tr>td>{${col}}`);
-		let headerText = getColumnHeaderText(tableMeta.tableRef.getOrgTableContainer().querySelector("thead>tr").querySelectorAll("th")[index]);
-		let htmlData = {
-			title: headerText + " (uniek)",
-			html: tmpDiv.innerHTML
+}
+function decorateTableHeader(table, fetchFullTable) {
+	if (table.tHead.classList.contains("clickHandler")) return;
+	table.tHead.classList.add("clickHandler");
+	if (!options.showTableHeaders) return;
+	let valueFuncs = getDefaultValueFuncs(table);
+	Array.from(table.tHead.children[0].children).forEach((colHeader) => {
+		colHeader.onclick = (ev) => {
+			reSortTableByColumn(ev, table, fetchFullTable, valueFuncs);
 		};
-		openHtmlTab(addToOtherTabsDataCache(JSON.stringify(htmlData)), headerText + " (uniek)").then((_) => {});
+		if (table.classList.contains("noMenu")) return;
+		let { first: span, last: idiom } = emmet.appendChild(colHeader, "span>button.miniButton.naked>i.fas.fa-list");
+		let menu = new DropDownMenu(span, idiom.parentElement);
+		menu.addItem("Toon unieke waarden", 0, (ev) => {
+			forTableDo(ev, showDistinctColumn);
+		});
+		menu.addItem("Verberg kolom", 0, (ev) => {
+			console.log("verberg kolom");
+			forTableColumnDo(ev, hideColumn);
+		});
+		menu.addItem("Toon alle kolommen", 0, (ev) => {
+			console.log("verberg kolom");
+			forTableColumnDo(ev, showColumns);
+		});
+		menu.addSeparator("Sorteer", 0);
+		menu.addItem("Laag naar hoog (a > z)", 1, (ev) => {
+			forTableDo(ev, (tableMeta, index) => sortTableByColumn(table, index, false, valueFuncs[index]));
+		});
+		menu.addItem("Hoog naar laag (z > a)", 1, (ev) => {
+			forTableDo(ev, (tableMeta, index) => sortTableByColumn(table, index, true, valueFuncs[index]));
+		});
+		menu.addSeparator("Sorteer als:", 1);
+		menu.addItem("Tekst", 2, (_ev) => {});
+		menu.addItem("Getallen", 2, (_ev) => {});
+		menu.addSeparator("Kopieer nr klipbord", 0);
+		menu.addItem("Kolom", 1, (ev) => {
+			forTableDo(ev, (tableMeta, index) => copyOneColumn(table, index));
+		});
+		menu.addItem("Hele tabel", 1, (ev) => {
+			forTableDo(ev, (tableMeta, _index) => copyFullTable(table));
+		});
+		menu.addSeparator("<= Samenvoegen", 0);
+		menu.addItem("met spatie", 1, (ev) => {
+			forTableColumnDo(ev, createTwoColumnsCmd(0, mergeColumnWithSpace));
+		});
+		menu.addItem("met comma", 1, (ev) => {
+			forTableColumnDo(ev, createTwoColumnsCmd(0, mergeColumnWithComma));
+		});
+		menu.addSeparator("Verplaatsen", 0);
+		menu.addItem("<=", 1, (ev) => {
+			forTableColumnDo(ev, createTwoColumnsCmd(0, swapColumns));
+		});
+		menu.addItem("=>", 1, (ev) => {
+			forTableColumnDo(ev, createTwoColumnsCmd(1, swapColumns));
+		});
+	});
+	relabelHeaders(table.tHead.children[0]);
+}
+function getDistinctColumn(tableContainer, index) {
+	return distinct(Array.from(tableContainer.querySelector("tbody").rows).map((row) => row.children[index].textContent)).sort();
+}
+var TableHandlerForHeaders = class {
+	onReset(_tableDef) {
+		console.log("RESET");
 	}
-	chrome.runtime.onMessage.addListener(onMessage$2);
-	async function onMessage$2(request, _sender, sendResponse) {
-		if (request.senderTabType != "Html") return;
-		if (request.action == "request_tab_data") {
-			let params = request.data.params;
-			let data = _otherTabsDataCache.get(params.cacheId);
-			await sendRequest("tab_data", "Main", "Html", request.targetTabId, data);
-			return;
-		}
+};
+function executeTableCommands(tableRef) {
+	let cmds = pageState$1.transient.getValue(GLOBAL_COMMAND_BUFFER_KEY, []);
+	for (let cmd of cmds) executeCmd(cmd, tableRef, true);
+}
+function forTableDo(ev, doIt) {
+	ev.preventDefault();
+	ev.stopPropagation();
+	checkAndDownloadTableRows(ev).then((res) => {
+		doIt({
+			tableRef: res.tableRef,
+			infoBlock: res.infoBlock
+		}, getColumnIndex(ev));
+	});
+}
+function forTableColumnDo(ev, cmdDef) {
+	ev.preventDefault();
+	ev.stopPropagation();
+	checkAndDownloadTableRows(ev).then((tableMeta) => {
+		let cmd = {
+			cmdDef,
+			index: getColumnIndex(ev)
+		};
+		executeCmd(cmd, tableMeta.tableRef, false);
+		pageState$1.transient.getValue(GLOBAL_COMMAND_BUFFER_KEY, []).push(cmd);
+		relabelHeaders(tableMeta.tableRef.getOrgTableContainer().querySelector("thead>tr"));
+	});
+}
+function executeCmd(cmd, tableRef, onlyBody) {
+	let context = cmd.cmdDef.getContext?.(tableRef, cmd.index);
+	let rows;
+	if (onlyBody) rows = tableRef.getOrgTableContainer().querySelector("tbody").rows;
+	else rows = tableRef.getOrgTableContainer().querySelectorAll("tr");
+	for (let row of rows) cmd.cmdDef.doForRow(row, cmd.index, context);
+}
+function showDistinctColumn(tableMeta, index) {
+	let cols = getDistinctColumn(tableMeta.tableRef.getOrgTableContainer(), index);
+	let tmpDiv = document.createElement("div");
+	let tbody = emmet.appendChild(tmpDiv, "table>tbody").last;
+	for (let col of cols) emmet.appendChild(tbody, `tr>td>{${col}}`);
+	let headerText = getColumnHeaderText(tableMeta.tableRef.getOrgTableContainer().querySelector("thead>tr").querySelectorAll("th")[index]);
+	let htmlData = {
+		title: headerText + " (uniek)",
+		html: tmpDiv.innerHTML
+	};
+	openHtmlTab(addToOtherTabsDataCache(JSON.stringify(htmlData)), headerText + " (uniek)").then((_) => {});
+}
+chrome.runtime.onMessage.addListener(onMessage$2);
+async function onMessage$2(request, _sender, sendResponse) {
+	if (request.senderTabType != "Html") return;
+	if (request.action == "request_tab_data") {
+		let params = request.data.params;
+		let data = _otherTabsDataCache.get(params.cacheId);
+		await sendRequest("tab_data", "Main", "Html", request.targetTabId, data);
+		return;
 	}
-	function getColumnHeaderText(cell) {
-		return [...cell.childNodes].filter((node) => node.nodeType === Node.TEXT_NODE).map((node) => node.textContent).join(" ");
-	}
-	let hideColumn = { doForRow: function(row, index, _context) {
+}
+function getColumnHeaderText(cell) {
+	return [...cell.childNodes].filter((node) => node.nodeType === Node.TEXT_NODE).map((node) => node.textContent).join(" ");
+}
+let hideColumn = { doForRow: function(row, index, _context) {
+	row.cells[index].style.display = "none";
+} };
+let showColumns = { doForRow: function(row, _index, _context) {
+	for (let cell of row.cells) cell.style.display = "";
+} };
+function mergeColumnWithSpace(row, index, leftIndex) {
+	mergeColumnToLeft(row, index, leftIndex, " ");
+}
+function mergeColumnWithComma(row, index, leftIndex) {
+	mergeColumnToLeft(row, index, leftIndex, ", ");
+}
+function mergeColumnToLeft(row, index, leftIndex, separator) {
+	if (index === 0) return;
+	if (row.parentElement.tagName == "TBODY") {
 		row.cells[index].style.display = "none";
-	} };
-	let showColumns = { doForRow: function(row, _index, _context) {
-		for (let cell of row.cells) cell.style.display = "";
-	} };
-	function mergeColumnWithSpace(row, index, leftIndex) {
-		mergeColumnToLeft(row, index, leftIndex, " ");
+		row.cells[leftIndex].innerText += separator + row.cells[index].innerText;
+	} else {
+		row.cells[index].style.display = "none";
+		let firstTextNode = [...row.cells[leftIndex].childNodes].filter((node) => node.nodeType === Node.TEXT_NODE)[0];
+		let secondTextNode = [...row.cells[index].childNodes].filter((node) => node.nodeType === Node.TEXT_NODE)[0];
+		if (firstTextNode && secondTextNode) firstTextNode.textContent += separator + secondTextNode.textContent;
 	}
-	function mergeColumnWithComma(row, index, leftIndex) {
-		mergeColumnToLeft(row, index, leftIndex, ", ");
+}
+function relabelHeaders(headerRow) {
+	for (let cell of headerRow.cells) cell.classList.remove("shiftMenuLeft");
+	headerRow.cells[headerRow.cells.length - 1].classList.add("shiftMenuLeft");
+}
+function findNextVisibleCell(headerRow, indexes) {
+	let index = void 0;
+	for (let i of indexes) if (headerRow.children[i].style.display !== "none") {
+		index = i;
+		break;
 	}
-	function mergeColumnToLeft(row, index, leftIndex, separator) {
-		if (index === 0) return;
-		if (row.parentElement.tagName == "TBODY") {
-			row.cells[index].style.display = "none";
-			row.cells[leftIndex].innerText += separator + row.cells[index].innerText;
-		} else {
-			row.cells[index].style.display = "none";
-			let firstTextNode = [...row.cells[leftIndex].childNodes].filter((node) => node.nodeType === Node.TEXT_NODE)[0];
-			let secondTextNode = [...row.cells[index].childNodes].filter((node) => node.nodeType === Node.TEXT_NODE)[0];
-			if (firstTextNode && secondTextNode) firstTextNode.textContent += separator + secondTextNode.textContent;
-		}
-	}
-	function relabelHeaders(headerRow) {
-		for (let cell of headerRow.cells) cell.classList.remove("shiftMenuLeft");
-		headerRow.cells[headerRow.cells.length - 1].classList.add("shiftMenuLeft");
-	}
-	function findNextVisibleCell(headerRow, indexes) {
-		let index = void 0;
-		for (let i of indexes) if (headerRow.children[i].style.display !== "none") {
-			index = i;
-			break;
-		}
-		return index;
-	}
-	function createTwoColumnsCmd(direction, twoColumnFunc) {
-		return {
-			getContext: function(tableRef, index) {
-				let row = tableRef.getOrgTableContainer().querySelector("thead>tr");
-				return findNextVisibleCell(row, direction === 0 ? range(index - 1, -1) : range(index + 1, row.cells.length));
-			},
-			doForRow: function(row, index, context) {
-				twoColumnFunc(row, index, context);
-			}
-		};
-	}
-	function swapColumns(row, index1, index2) {
-		if (index1 == void 0 || index2 == void 0) return;
-		if (index1 > index2) [index1, index2] = [index2, index1];
-		row.children[index1].parentElement.insertBefore(row.children[index2], row.children[index1]);
-	}
-	//#endregion
-	//#region typescript/table/observer.ts
-	var TableObserver = class extends BaseObserver {
-		constructor() {
-			super(void 0, new AllPageFilter(), onMutation$8);
-		}
-		isPageReallyLoaded() {
-			return getBothToolbars() != void 0;
+	return index;
+}
+function createTwoColumnsCmd(direction, twoColumnFunc) {
+	return {
+		getContext: function(tableRef, index) {
+			let row = tableRef.getOrgTableContainer().querySelector("thead>tr");
+			return findNextVisibleCell(row, direction === 0 ? range(index - 1, -1) : range(index + 1, row.cells.length));
+		},
+		doForRow: function(row, index, context) {
+			twoColumnFunc(row, index, context);
 		}
 	};
-	var observer_default$9 = new TableObserver();
-	function onMutation$8(_mutation) {
-		let navigationBars = getBothToolbars();
-		if (!navigationBars) return false;
-		if (!findTableRefInCode()?.navigationData.isOnePage()) addTableNavigationButton(navigationBars, DOWNLOAD_TABLE_BTN_ID, "download full table", createDownloadTableWithExtraAction(), "fa-arrow-down");
-		if (document.querySelector("main div.table-responsive table thead")) decorateTableHeader(document.querySelector("main div.table-responsive table"), true);
-		let sortableTable = document.querySelector("table.canSort");
-		if (sortableTable) decorateTableHeader(sortableTable, true);
+}
+function swapColumns(row, index1, index2) {
+	if (index1 == void 0 || index2 == void 0) return;
+	if (index1 > index2) [index1, index2] = [index2, index1];
+	row.children[index1].parentElement.insertBefore(row.children[index2], row.children[index1]);
+}
+//#endregion
+//#region typescript/table/observer.ts
+var TableObserver = class extends BaseObserver {
+	constructor() {
+		super(void 0, new AllPageFilter(), onMutation$8);
+	}
+	isPageReallyLoaded() {
+		return getBothToolbars() != void 0;
+	}
+};
+var observer_default$9 = new TableObserver();
+function onMutation$8(_mutation) {
+	let navigationBars = getBothToolbars();
+	if (!navigationBars) return false;
+	if (!findTableRefInCode()?.navigationData.isOnePage()) addTableNavigationButton(navigationBars, DOWNLOAD_TABLE_BTN_ID, "download full table", createDownloadTableWithExtraAction(), "fa-arrow-down");
+	if (document.querySelector("main div.table-responsive table thead")) decorateTableHeader(document.querySelector("main div.table-responsive table"), true);
+	let sortableTable = document.querySelector("table.canSort");
+	if (sortableTable) decorateTableHeader(sortableTable, true);
+	return true;
+}
+let tableCriteriaBuilders = /* @__PURE__ */ new Map();
+function getChecksumBuilder(tableId) {
+	let builder = tableCriteriaBuilders.get(tableId);
+	if (builder) return builder;
+	return (_tableFetcher) => "";
+}
+function registerChecksumHandler(tableId, checksumHandler) {
+	tableCriteriaBuilders.set(tableId, checksumHandler);
+}
+function createDownloadTableWithExtraAction() {
+	return (_) => {
+		downloadTableRows().then((unknownData) => {
+			let action = pageState$1.transient.getValue(AFTER_DOWNLOAD_TABLE_ACTION, void 0);
+			if (action && unknownData) action(unknownData.fetchedTable);
+		});
+	};
+}
+//#endregion
+//#region typescript/infoBar.ts
+var InfoBar = class InfoBar {
+	divInfoContainer;
+	divInfoLine;
+	divTempLine;
+	divExtraLine;
+	divErrorLine;
+	tempMessage;
+	divCacheInfo;
+	constructor(divInfoContainer, divExtraLine, divErrorLine, divInfoLine, divTempLine, divCacheInfo) {
+		this.divInfoContainer = divInfoContainer;
+		this.divExtraLine = divExtraLine;
+		this.divErrorLine = divErrorLine;
+		this.divInfoLine = divInfoLine;
+		this.divTempLine = divTempLine;
+		this.divCacheInfo = divCacheInfo;
+		this.tempMessage = "";
+	}
+	static create(divInfoContainer) {
+		divInfoContainer.id = INFO_CONTAINER_ID;
+		divInfoContainer.innerHTML = "";
+		let divExtraLine = emmet.appendChild(divInfoContainer, `div#${INFO_EXTRA_ID}.infoMessage`).last;
+		let divErrorLine = emmet.appendChild(divInfoContainer, `div#${INFO_EXTRA_ID}.infoError`).last;
+		let divInfoLine = emmet.appendChild(divInfoContainer, "div.infoLine").last;
+		let divTempLine = emmet.appendChild(divInfoContainer, `div#${INFO_TEMP_ID}.infoMessage.tempLine`).last;
+		let divCacheInfo = emmet.appendChild(divInfoContainer, `div#${INFO_CACHE_ID}.cacheInfo`).last;
+		return new InfoBar(divInfoContainer, divExtraLine, divErrorLine, divInfoLine, divTempLine, divCacheInfo);
+	}
+	static find() {
+		let container = document.getElementById(INFO_CONTAINER_ID);
+		let divExtraLine = container.querySelector(`#${INFO_EXTRA_ID}`);
+		let divErrorLine = container.querySelector(`#${INFO_EXTRA_ID}`);
+		let divInfoLine = container.querySelector("div.infoLine");
+		let divTempLine = container.querySelector(`#${INFO_TEMP_ID}`);
+		let divCacheInfo = container.querySelector(`#${INFO_CACHE_ID}`);
+		return new InfoBar(container, divExtraLine, divErrorLine, divInfoLine, divTempLine, divCacheInfo);
+	}
+	setTempMessage(msg) {
+		this.tempMessage = msg;
+		this.#updateTempMessage();
+		setTimeout(this.clearTempMessage.bind(this), 4e3);
+	}
+	clearTempMessage() {
+		this.tempMessage = "";
+		this.#updateTempMessage();
+	}
+	#updateTempMessage() {
+		this.divTempLine.innerHTML = this.tempMessage;
+	}
+	setInfoLine(message) {
+		this.divInfoLine.innerHTML = message;
+	}
+	setErrorLine(message) {
+		this.divErrorLine.innerHTML = message;
+	}
+	clearCacheInfo() {
+		this.divCacheInfo.innerHTML = "";
+	}
+	setCacheInfo(info, reset_onclick) {
+		this.divCacheInfo.innerHTML = info;
+		let button = emmet.appendChild(this.divCacheInfo, "button.likeLink").first;
+		button.innerHTML = "refresh";
+		button.onclick = reset_onclick;
+	}
+	setExtraInfo(message, click_element_id, callback) {
+		this.divExtraLine.innerHTML = message;
+		if (click_element_id) {
+			if (callback) document.getElementById(click_element_id).onclick = callback;
+		}
+	}
+};
+//#endregion
+//#region typescript/progressBar.ts
+var ProgressBar = class ProgressBar {
+	barElement;
+	containerElement;
+	maxCount;
+	count;
+	constructor(containerElement, barElement) {
+		this.barElement = barElement;
+		this.containerElement = containerElement;
+		this.hide();
+		this.maxCount = 0;
+		this.count = 0;
+	}
+	reset(maxCount) {
+		this.maxCount = maxCount;
+		this.count = 0;
+		this.barElement.innerHTML = "";
+		for (let i = 0; i < maxCount; i++) {
+			let block = document.createElement("div");
+			this.barElement.appendChild(block);
+			block.classList.add("progressBlock");
+		}
+	}
+	start(maxCount) {
+		this.reset(maxCount);
+		this.containerElement.style.display = "block";
+		this.next();
+	}
+	hide() {
+		this.containerElement.style.display = "none";
+	}
+	stop() {
+		this.hide();
+	}
+	next() {
+		if (this.count >= this.maxCount) return false;
+		this.barElement.children[this.count].classList.remove("iddle", "loaded");
+		this.barElement.children[this.count].classList.add("loading");
+		for (let i = 0; i < this.count; i++) {
+			this.barElement.children[i].classList.remove("iddle", "loading");
+			this.barElement.children[i].classList.add("loaded");
+		}
+		for (let i = this.count + 1; i < this.maxCount; i++) {
+			this.barElement.children[i].classList.remove("loaded", "loading");
+			this.barElement.children[i].classList.add("iddle");
+		}
+		this.count++;
 		return true;
 	}
-	let tableCriteriaBuilders = /* @__PURE__ */ new Map();
-	function getChecksumBuilder(tableId) {
-		let builder = tableCriteriaBuilders.get(tableId);
-		if (builder) return builder;
-		return (_tableFetcher) => "";
-	}
-	function registerChecksumHandler(tableId, checksumHandler) {
-		tableCriteriaBuilders.set(tableId, checksumHandler);
-	}
-	function createDownloadTableWithExtraAction() {
-		return (_) => {
-			downloadTableRows().then((unknownData) => {
-				let action = pageState$1.transient.getValue(AFTER_DOWNLOAD_TABLE_ACTION, void 0);
-				if (action && unknownData) action(unknownData.fetchedTable);
-			});
-		};
-	}
-	//#endregion
-	//#region typescript/infoBar.ts
-	var InfoBar = class InfoBar {
-		divInfoContainer;
-		divInfoLine;
-		divTempLine;
-		divExtraLine;
-		divErrorLine;
-		tempMessage;
-		divCacheInfo;
-		constructor(divInfoContainer, divExtraLine, divErrorLine, divInfoLine, divTempLine, divCacheInfo) {
-			this.divInfoContainer = divInfoContainer;
-			this.divExtraLine = divExtraLine;
-			this.divErrorLine = divErrorLine;
-			this.divInfoLine = divInfoLine;
-			this.divTempLine = divTempLine;
-			this.divCacheInfo = divCacheInfo;
-			this.tempMessage = "";
-		}
-		static create(divInfoContainer) {
-			divInfoContainer.id = INFO_CONTAINER_ID;
-			divInfoContainer.innerHTML = "";
-			let divExtraLine = emmet.appendChild(divInfoContainer, `div#${INFO_EXTRA_ID}.infoMessage`).last;
-			let divErrorLine = emmet.appendChild(divInfoContainer, `div#${INFO_EXTRA_ID}.infoError`).last;
-			let divInfoLine = emmet.appendChild(divInfoContainer, "div.infoLine").last;
-			let divTempLine = emmet.appendChild(divInfoContainer, `div#${INFO_TEMP_ID}.infoMessage.tempLine`).last;
-			let divCacheInfo = emmet.appendChild(divInfoContainer, `div#${INFO_CACHE_ID}.cacheInfo`).last;
-			return new InfoBar(divInfoContainer, divExtraLine, divErrorLine, divInfoLine, divTempLine, divCacheInfo);
-		}
-		static find() {
-			let container = document.getElementById(INFO_CONTAINER_ID);
-			let divExtraLine = container.querySelector(`#${INFO_EXTRA_ID}`);
-			let divErrorLine = container.querySelector(`#${INFO_EXTRA_ID}`);
-			let divInfoLine = container.querySelector("div.infoLine");
-			let divTempLine = container.querySelector(`#${INFO_TEMP_ID}`);
-			let divCacheInfo = container.querySelector(`#${INFO_CACHE_ID}`);
-			return new InfoBar(container, divExtraLine, divErrorLine, divInfoLine, divTempLine, divCacheInfo);
-		}
-		setTempMessage(msg) {
-			this.tempMessage = msg;
-			this.#updateTempMessage();
-			setTimeout(this.clearTempMessage.bind(this), 4e3);
-		}
-		clearTempMessage() {
-			this.tempMessage = "";
-			this.#updateTempMessage();
-		}
-		#updateTempMessage() {
-			this.divTempLine.innerHTML = this.tempMessage;
-		}
-		setInfoLine(message) {
-			this.divInfoLine.innerHTML = message;
-		}
-		setErrorLine(message) {
-			this.divErrorLine.innerHTML = message;
-		}
-		clearCacheInfo() {
-			this.divCacheInfo.innerHTML = "";
-		}
-		setCacheInfo(info, reset_onclick) {
-			this.divCacheInfo.innerHTML = info;
-			let button = emmet.appendChild(this.divCacheInfo, "button.likeLink").first;
-			button.innerHTML = "refresh";
-			button.onclick = reset_onclick;
-		}
-		setExtraInfo(message, click_element_id, callback) {
-			this.divExtraLine.innerHTML = message;
-			if (click_element_id) {
-				if (callback) document.getElementById(click_element_id).onclick = callback;
-			}
-		}
-	};
-	//#endregion
-	//#region typescript/progressBar.ts
-	var ProgressBar = class ProgressBar {
-		barElement;
-		containerElement;
-		maxCount;
-		count;
-		constructor(containerElement, barElement) {
-			this.barElement = barElement;
-			this.containerElement = containerElement;
-			this.hide();
-			this.maxCount = 0;
-			this.count = 0;
-		}
-		reset(maxCount) {
-			this.maxCount = maxCount;
-			this.count = 0;
-			this.barElement.innerHTML = "";
-			for (let i = 0; i < maxCount; i++) {
-				let block = document.createElement("div");
-				this.barElement.appendChild(block);
-				block.classList.add("progressBlock");
-			}
-		}
-		start(maxCount) {
-			this.reset(maxCount);
-			this.containerElement.style.display = "block";
-			this.next();
-		}
-		hide() {
-			this.containerElement.style.display = "none";
-		}
-		stop() {
-			this.hide();
-		}
-		next() {
-			if (this.count >= this.maxCount) return false;
-			this.barElement.children[this.count].classList.remove("iddle", "loaded");
-			this.barElement.children[this.count].classList.add("loading");
-			for (let i = 0; i < this.count; i++) {
-				this.barElement.children[i].classList.remove("iddle", "loading");
-				this.barElement.children[i].classList.add("loaded");
-			}
-			for (let i = this.count + 1; i < this.maxCount; i++) {
-				this.barElement.children[i].classList.remove("loaded", "loading");
-				this.barElement.children[i].classList.add("iddle");
-			}
-			this.count++;
-			return true;
-		}
-		static find() {
-			let divProgressLine = document.getElementById(PROGRESS_BAR_ID);
-			let divProgressBar = divProgressLine.querySelector(".progressBar");
-			return new ProgressBar(divProgressLine, divProgressBar);
-		}
-	};
-	function insertProgressBar(container, text = "") {
-		container.innerHTML = "";
-		let { first: divProgressLine, last: divProgressBar } = emmet.appendChild(container, `div.infoLine#${PROGRESS_BAR_ID}>div.progressText{${text}}+div.progressBar`);
+	static find() {
+		let divProgressLine = document.getElementById(PROGRESS_BAR_ID);
+		let divProgressBar = divProgressLine.querySelector(".progressBar");
 		return new ProgressBar(divProgressLine, divProgressBar);
 	}
-	//#endregion
-	//#region typescript/infoBlock.ts
-	function createInfoBlockForTable(tableRef) {
-		document.getElementById(INFO_CONTAINER_ID)?.remove();
-		return createInfoBlock(tableRef.createElementAboveTable("div"), "loading pages... ");
-	}
-	function createInfoBlock(infoContainer, initialMessage) {
-		let infoBar = InfoBar.create(infoContainer.appendChild(document.createElement("div")));
-		return {
-			infoBar,
-			progressBar: insertProgressBar(infoBar.divInfoLine, initialMessage)
-		};
-	}
-	function getInfoBlock() {
-		return {
-			infoBar: InfoBar.find(),
-			progressBar: ProgressBar.find()
-		};
-	}
-	//#endregion
-	//#region typescript/table/loadAnyTable.ts
-	async function getWerklijstTableRef() {
-		let chain = new FetchChain();
-		await fetch("views/leerlingen/werklijst/werklijst.maken.php", { method: "POST" });
-		await chain.fetch("view.php?args=leerlingen-werklijst$werklijst");
-		await chain.fetch("views/leerlingen/werklijst/werklijst.view.php");
-		await chain.fetch("views/ui/datatable.php?id=leerlingen_werklijst");
-		return parseDataTablePhp(chain, "leerlingen_werklijst");
-	}
-	async function parseDataTablePhp(chain, htmlTableId) {
-		chain.find("var", "datatable_id", "=");
-		let datatable_id = chain.getQuotedString();
-		chain.clipTo("<\/script>");
-		chain.find(".", "load", "(");
-		let tableNavUrl = chain.getQuotedString() + datatable_id + "&pos=top";
-		await chain.fetch(tableNavUrl);
-		let tableNav = findFirstNavigation(chain.div());
-		if (!tableNav) throw "Can't find table navigation.";
-		let buildFetchUrl = (offset) => `/views/ui/datatable.php?id=${datatable_id}&start=${offset}&aantal=0`;
-		return new DkoTableRef(htmlTableId, tableNav, buildFetchUrl);
-	}
-	async function getTableRefFromHash(hash) {
-		let chain = new FetchChain();
-		await chain.fetch("/#" + hash);
-		await chain.fetch("view.php?args=" + hash);
-		chain.findDocReadyLoadUrl();
-		let index_view = await chain.fetch();
-		chain.findDocReadyLoadScript();
-		chain.find("$", "(");
-		let htmlTableId = chain.getQuotedString().substring(1);
-		chain.set(index_view);
-		chain.findDocReadyLoadUrl();
-		if (!chain.includes("ui/datatable.php")) {
-			await chain.fetch();
-			chain.findDocReadyLoadUrl();
-		}
+};
+function insertProgressBar(container, text = "") {
+	container.innerHTML = "";
+	let { first: divProgressLine, last: divProgressBar } = emmet.appendChild(container, `div.infoLine#${PROGRESS_BAR_ID}>div.progressText{${text}}+div.progressBar`);
+	return new ProgressBar(divProgressLine, divProgressBar);
+}
+//#endregion
+//#region typescript/infoBlock.ts
+function createInfoBlockForTable(tableRef) {
+	document.getElementById(INFO_CONTAINER_ID)?.remove();
+	return createInfoBlock(tableRef.createElementAboveTable("div"), "loading pages... ");
+}
+function createInfoBlock(infoContainer, initialMessage) {
+	let infoBar = InfoBar.create(infoContainer.appendChild(document.createElement("div")));
+	return {
+		infoBar,
+		progressBar: insertProgressBar(infoBar.divInfoLine, initialMessage)
+	};
+}
+function getInfoBlock() {
+	return {
+		infoBar: InfoBar.find(),
+		progressBar: ProgressBar.find()
+	};
+}
+//#endregion
+//#region typescript/table/loadAnyTable.ts
+async function getWerklijstTableRef() {
+	let chain = new FetchChain();
+	await fetch("views/leerlingen/werklijst/werklijst.maken.php", { method: "POST" });
+	await chain.fetch("view.php?args=leerlingen-werklijst$werklijst");
+	await chain.fetch("views/leerlingen/werklijst/werklijst.view.php");
+	await chain.fetch("views/ui/datatable.php?id=leerlingen_werklijst");
+	return parseDataTablePhp(chain, "leerlingen_werklijst");
+}
+async function parseDataTablePhp(chain, htmlTableId) {
+	chain.find("var", "datatable_id", "=");
+	let datatable_id = chain.getQuotedString();
+	chain.clipTo("<\/script>");
+	chain.find(".", "load", "(");
+	let tableNavUrl = chain.getQuotedString() + datatable_id + "&pos=top";
+	await chain.fetch(tableNavUrl);
+	let tableNav = findFirstNavigation(chain.div());
+	if (!tableNav) throw "Can't find table navigation.";
+	let buildFetchUrl = (offset) => `/views/ui/datatable.php?id=${datatable_id}&start=${offset}&aantal=0`;
+	return new DkoTableRef(htmlTableId, tableNav, buildFetchUrl);
+}
+async function getTableRefFromHash(hash) {
+	let chain = new FetchChain();
+	await chain.fetch("/#" + hash);
+	await chain.fetch("view.php?args=" + hash);
+	chain.findDocReadyLoadUrl();
+	let index_view = await chain.fetch();
+	chain.findDocReadyLoadScript();
+	chain.find("$", "(");
+	let htmlTableId = chain.getQuotedString().substring(1);
+	chain.set(index_view);
+	chain.findDocReadyLoadUrl();
+	if (!chain.includes("ui/datatable.php")) {
 		await chain.fetch();
-		return parseDataTablePhp(chain, htmlTableId);
+		chain.findDocReadyLoadUrl();
 	}
-	async function getTable(tableRef, infoBarListener, clearCache, checksumBuilder = null) {
-		let tableFetcher = new TableFetcher(tableRef, checksumBuilder ?? getChecksumBuilder(tableRef.htmlTableId));
-		if (infoBarListener) tableFetcher.addListener(infoBarListener);
-		if (clearCache) tableFetcher.clearCache();
-		let fetchedTable = await tableFetcher.fetch();
-		await setViewFromCurrentUrl();
-		return fetchedTable;
+	await chain.fetch();
+	return parseDataTablePhp(chain, htmlTableId);
+}
+async function getTable(tableRef, infoBarListener, clearCache, checksumBuilder = null) {
+	let tableFetcher = new TableFetcher(tableRef, checksumBuilder ?? getChecksumBuilder(tableRef.htmlTableId));
+	if (infoBarListener) tableFetcher.addListener(infoBarListener);
+	if (clearCache) tableFetcher.clearCache();
+	let fetchedTable = await tableFetcher.fetch();
+	await setViewFromCurrentUrl();
+	return fetchedTable;
+}
+async function getTableFromHash(hash, clearCache, infoBarListener) {
+	let tableRef = await getTableRefFromHash(hash);
+	console.log(tableRef);
+	return await getTable(tableRef, infoBarListener, clearCache);
+}
+function createDefaultTableRefAndInfoBlock() {
+	let result = createDefaultTableRef();
+	if ("error" in result) return { error: result.error };
+	let { tableRef } = result.result;
+	return { result: {
+		tableRef,
+		infoBlock: createInfoBlockForTable(tableRef)
+	} };
+}
+async function downloadTableRows() {
+	let result = createDefaultTableRefAndInfoBlock();
+	if ("error" in result) {
+		console.error(result.error);
+		return null;
 	}
-	async function getTableFromHash(hash, clearCache, infoBarListener) {
-		let tableRef = await getTableRefFromHash(hash);
-		console.log(tableRef);
-		return await getTable(tableRef, infoBarListener, clearCache);
+	let { tableRef, infoBlock } = result.result;
+	let result2 = createDefaultTableFetcher(tableRef, infoBlock);
+	if ("error" in result2) {
+		console.error(result2.error);
+		return null;
 	}
-	function createDefaultTableRefAndInfoBlock() {
-		let result = createDefaultTableRef();
-		if ("error" in result) return { error: result.error };
-		let { tableRef } = result.result;
-		return { result: {
-			tableRef,
-			infoBlock: createInfoBlockForTable(tableRef)
-		} };
-	}
-	async function downloadTableRows() {
-		let result = createDefaultTableRefAndInfoBlock();
-		if ("error" in result) {
-			console.error(result.error);
-			return null;
-		}
-		let { tableRef, infoBlock } = result.result;
-		let result2 = createDefaultTableFetcher(tableRef, infoBlock);
-		if ("error" in result2) {
-			console.error(result2.error);
-			return null;
-		}
-		let { tableFetcher } = result2.result;
-		tableFetcher.tableHandler = new TableHandlerForHeaders();
-		let fetchedTable = await tableFetcher.fetch();
-		let fetchedRows = fetchedTable.getRows();
-		let tableContainer = fetchedTable.tableFetcher.tableRef.getOrgTableContainer();
-		tableContainer.querySelector("tbody").replaceChildren(...fetchedRows);
-		tableContainer.querySelector("table").classList.add("fullyFetched");
-		executeTableCommands(fetchedTable.tableFetcher.tableRef);
+	let { tableFetcher } = result2.result;
+	tableFetcher.tableHandler = new TableHandlerForHeaders();
+	let fetchedTable = await tableFetcher.fetch();
+	let fetchedRows = fetchedTable.getRows();
+	let tableContainer = fetchedTable.tableFetcher.tableRef.getOrgTableContainer();
+	tableContainer.querySelector("tbody").replaceChildren(...fetchedRows);
+	tableContainer.querySelector("table").classList.add("fullyFetched");
+	executeTableCommands(fetchedTable.tableFetcher.tableRef);
+	return {
+		fetchedTable,
+		infoBlock,
+		listener: new InfoBarTableFetchListener(infoBlock)
+	};
+}
+async function checkAndDownloadTableRows(ev) {
+	let tableRef = findTableRefInCode();
+	if (!tableRef) tableRef = new PlainTableRef(ev.target.closest("table").id);
+	if (tableRef.isFullyFetched()) {
+		let infoBlock = createInfoBlockForTable(tableRef);
 		return {
-			fetchedTable,
+			tableRef,
 			infoBlock,
 			listener: new InfoBarTableFetchListener(infoBlock)
 		};
 	}
-	async function checkAndDownloadTableRows(ev) {
-		let tableRef = findTableRefInCode();
-		if (!tableRef) tableRef = new PlainTableRef(ev.target.closest("table").id);
-		if (tableRef.isFullyFetched()) {
-			let infoBlock = createInfoBlockForTable(tableRef);
-			return {
-				tableRef,
-				infoBlock,
-				listener: new InfoBarTableFetchListener(infoBlock)
-			};
-		}
-		let res = await downloadTableRows();
-		if (!res) throw "Can't download table rows. See reason above.";
-		return {
-			tableRef,
-			infoBlock: res.infoBlock,
-			listener: res.listener
-		};
-	}
-	var InfoBarTableFetchListener = class {
-		infoBar;
-		progressBar;
-		constructor(infoBlock) {
-			this.infoBar = infoBlock.infoBar;
-			this.progressBar = infoBlock.progressBar;
-		}
-		onStartFetching(tableFetcher) {
-			this.progressBar.start(tableFetcher.tableRef.navigationData.steps());
-		}
-		onLoaded(tableFetcher) {
-			if (tableFetcher.isUsingCached) {
-				let defaultAction = createDownloadTableWithExtraAction();
-				let resetAndLoadAction = (ev) => {
-					tableFetcher.reset();
-					defaultAction(ev);
-				};
-				this.infoBar.setCacheInfo(`Gegevens uit cache, ${dateDiffToString(tableFetcher.shadowTableDate, /* @__PURE__ */ new Date())} oud. `, resetAndLoadAction);
-				//! is filled when isUsingCache.
-			}
-		}
-		onBeforeLoadingPage(_tableFetcher) {
-			return true;
-		}
-		onFinished(_tableFetcher) {
-			this.progressBar.stop();
-		}
-		onPageLoaded(_tableFetcher, _pageCnt, _text) {
-			this.progressBar.next();
-		}
+	let res = await downloadTableRows();
+	if (!res) throw "Can't download table rows. See reason above.";
+	return {
+		tableRef,
+		infoBlock: res.infoBlock,
+		listener: res.listener
 	};
-	function createDefaultTableRef() {
-		let tableRef = findTableRefInCode();
-		if (!tableRef) return { error: "Cannot find table." };
-		return { result: { tableRef } };
+}
+var InfoBarTableFetchListener = class {
+	infoBar;
+	progressBar;
+	constructor(infoBlock) {
+		this.infoBar = infoBlock.infoBar;
+		this.progressBar = infoBlock.progressBar;
 	}
-	function createDefaultTableFetcher(tableRef, infoBlock) {
-		let tableFetcher = new TableFetcher(tableRef, getChecksumBuilder(tableRef.htmlTableId));
-		let infoBarListener = new InfoBarTableFetchListener(infoBlock);
-		tableFetcher.addListener(infoBarListener);
-		return { result: {
-			tableFetcher,
-			infoBlock,
-			infoBarListener
-		} };
+	onStartFetching(tableFetcher) {
+		this.progressBar.start(tableFetcher.tableRef.navigationData.steps());
 	}
-	//#endregion
-	//#region typescript/notifications/notifications.ts
-	function getNotifRedButton() {
-		let notifButton = document.getElementById("notifButton");
-		if (notifButton) return notifButton;
-		let secondUl = document.getElementById("dko3_navbar").querySelectorAll("ul").item(1);
-		return emmet.insertBefore(secondUl, "div#navBarNotifDiv>button#notifButton.noBorder{5}").last;
+	onLoaded(tableFetcher) {
+		if (tableFetcher.isUsingCached) {
+			let defaultAction = createDownloadTableWithExtraAction();
+			let resetAndLoadAction = (ev) => {
+				tableFetcher.reset();
+				defaultAction(ev);
+			};
+			this.infoBar.setCacheInfo(`Gegevens uit cache, ${dateDiffToString(tableFetcher.shadowTableDate, /* @__PURE__ */ new Date())} oud. `, resetAndLoadAction);
+			//! is filled when isUsingCache.
+		}
 	}
-	async function updateNotificationsInNavBar(notifications) {
-		if (!notifications) notifications = await fetchNotifications();
-		let notifButton = getNotifRedButton();
-		let count = Object.keys(notifications.notifications).length;
-		notifButton.innerHTML = count.toString();
-		notifButton.style.display = count > 0 ? "block" : "none";
-		notifButton.onclick = () => {
-			location.href = "https://administratie.dko3.cloud/#start?page=mijn_tijdslijn";
-		};
+	onBeforeLoadingPage(_tableFetcher) {
+		return true;
 	}
-	setInterval(fetchAndDisplayNotifications, 3e8);
-	async function fetchAndDisplayNotifications() {
-		let notifications = await fetchNotifications();
-		await updateNotificationsInNavBar(notifications);
-		let notificationsWrapper = document.querySelector("#dko3_plugin_notifications");
-		let notificationsDiv = document.querySelector("#dko3_plugin_notifications > div > div");
-		if (!notificationsDiv) return;
-		let count = Object.keys(notifications.notifications).length;
-		notificationsWrapper.style.display = count > 0 ? "block" : "none";
-		let propNames = Object.getOwnPropertyNames(notifications.notifications);
-		notificationsDiv.innerHTML = "";
-		for (let propName of propNames) {
-			let notif = notifications.notifications[propName];
-			if (!notif) continue;
-			let imgUrl = chrome.runtime.getURL("images/waiting.gif");
-			switch (notif.level) {
-				case "warning":
-					imgUrl = chrome.runtime.getURL("images/warning.png");
-					break;
-				case "error":
-					imgUrl = chrome.runtime.getURL("images/error.png");
-					break;
-				case "running":
-					imgUrl = chrome.runtime.getURL("images/waiting.gif");
-					break;
-				case "info": imgUrl = chrome.runtime.getURL("images/info.png");
-			}
-			let delButtonClass = "";
-			if (options.allowDeleteNotif) delButtonClass = "allowDelete";
-			let html = `
+	onFinished(_tableFetcher) {
+		this.progressBar.stop();
+	}
+	onPageLoaded(_tableFetcher, _pageCnt, _text) {
+		this.progressBar.next();
+	}
+};
+function createDefaultTableRef() {
+	let tableRef = findTableRefInCode();
+	if (!tableRef) return { error: "Cannot find table." };
+	return { result: { tableRef } };
+}
+function createDefaultTableFetcher(tableRef, infoBlock) {
+	let tableFetcher = new TableFetcher(tableRef, getChecksumBuilder(tableRef.htmlTableId));
+	let infoBarListener = new InfoBarTableFetchListener(infoBlock);
+	tableFetcher.addListener(infoBarListener);
+	return { result: {
+		tableFetcher,
+		infoBlock,
+		infoBarListener
+	} };
+}
+//#endregion
+//#region typescript/notifications/notifications.ts
+function getNotifRedButton() {
+	let notifButton = document.getElementById("notifButton");
+	if (notifButton) return notifButton;
+	let secondUl = document.getElementById("dko3_navbar").querySelectorAll("ul").item(1);
+	return emmet.insertBefore(secondUl, "div#navBarNotifDiv>button#notifButton.noBorder{5}").last;
+}
+async function updateNotificationsInNavBar(notifications) {
+	if (!notifications) notifications = await fetchNotifications();
+	let notifButton = getNotifRedButton();
+	let count = Object.keys(notifications.notifications).length;
+	notifButton.innerHTML = count.toString();
+	notifButton.style.display = count > 0 ? "block" : "none";
+	notifButton.onclick = () => {
+		location.href = "https://administratie.dko3.cloud/#start?page=mijn_tijdslijn";
+	};
+}
+setInterval(fetchAndDisplayNotifications, 3e8);
+async function fetchAndDisplayNotifications() {
+	let notifications = await fetchNotifications();
+	await updateNotificationsInNavBar(notifications);
+	let notificationsWrapper = document.querySelector("#dko3_plugin_notifications");
+	let notificationsDiv = document.querySelector("#dko3_plugin_notifications > div > div");
+	if (!notificationsDiv) return;
+	let count = Object.keys(notifications.notifications).length;
+	notificationsWrapper.style.display = count > 0 ? "block" : "none";
+	let propNames = Object.getOwnPropertyNames(notifications.notifications);
+	notificationsDiv.innerHTML = "";
+	for (let propName of propNames) {
+		let notif = notifications.notifications[propName];
+		if (!notif) continue;
+		let imgUrl = chrome.runtime.getURL("images/waiting.gif");
+		switch (notif.level) {
+			case "warning":
+				imgUrl = chrome.runtime.getURL("images/warning.png");
+				break;
+			case "error":
+				imgUrl = chrome.runtime.getURL("images/error.png");
+				break;
+			case "running":
+				imgUrl = chrome.runtime.getURL("images/waiting.gif");
+				break;
+			case "info": imgUrl = chrome.runtime.getURL("images/info.png");
+		}
+		let delButtonClass = "";
+		if (options.allowDeleteNotif) delButtonClass = "allowDelete";
+		let html = `
             <div class="notif notif-${notif.level} ${delButtonClass}">
                 <button class="deleteNotif noBorder" data-id="${notif.id}"  ><i class="fas fa-trash"></i></button>
                 <div class="notif-img">
@@ -3003,581 +3764,581 @@
             <div>${notif.message}</div>
             </div>
             `;
-			let notifDiv = emmet.appendChild(notificationsDiv, "div").first;
-			notifDiv.innerHTML = html;
-			let button = notifDiv.querySelector("button.action");
-			if (!button) continue;
-			button.onclick = () => {
-				notif.id;
-			};
-		}
-		notificationsDiv.querySelectorAll("button.deleteNotif").forEach((button) => {
-			button.onclick = async (ev) => {
-				let notifId = ev.currentTarget.dataset.id;
-				await deleteNotification(notifId);
-				await fetchAndDisplayNotifications();
-			};
-		});
+		let notifDiv = emmet.appendChild(notificationsDiv, "div").first;
+		notifDiv.innerHTML = html;
+		let button = notifDiv.querySelector("button.action");
+		if (!button) continue;
+		button.onclick = () => {
+			notif.id;
+		};
 	}
-	//#endregion
-	//#region typescript/roster_diff/diffSettings.ts
-	const defaultTagDefs = [
-		{
-			tag: "Vestiging Sterrenkijker/SL Durlet",
-			searchString: " sterr",
-			gradeYears: ""
-		},
-		{
-			tag: "Vestiging Sterrenkijker/SL Durlet",
-			searchString: " durlet",
-			gradeYears: ""
-		},
-		{
-			tag: "Vestiging De Kleine Stad",
-			searchString: " kleine stad ",
-			gradeYears: ""
-		},
-		{
-			tag: "Vestiging De Kleine Wereld",
-			searchString: " wereld ",
-			gradeYears: ""
-		},
-		{
-			tag: "Vestiging De Nieuwe Vrede",
-			searchString: " vrede ",
-			gradeYears: ""
-		},
-		{
-			tag: "Vestiging De Nieuwe Vrede",
-			searchString: " dnv ",
-			gradeYears: ""
-		},
-		{
-			tag: "Vestiging De Nieuwe Vrede",
-			searchString: " tegel",
-			gradeYears: ""
-		},
-		{
-			tag: "Vestiging De Nieuwe Vrede",
-			searchString: " tango ",
-			gradeYears: ""
-		},
-		{
-			tag: "Vestiging De Nieuwe Vrede",
-			searchString: " vergaderzaal ",
-			gradeYears: ""
-		},
-		{
-			tag: "Vestiging De Kosmos",
-			searchString: " kosmos ",
-			gradeYears: ""
-		},
-		{
-			tag: "Vestiging De Schatkist",
-			searchString: " schatk",
-			gradeYears: ""
-		},
-		{
-			tag: "Vestiging De Kolibrie",
-			searchString: " kolibri",
-			gradeYears: ""
-		},
-		{
-			tag: "Vestiging Het Fonkelpad",
-			searchString: " fonkel",
-			gradeYears: ""
-		},
-		{
-			tag: "Vestiging Alberreke",
-			searchString: " alber",
-			gradeYears: ""
-		},
-		{
-			tag: "Vestiging c o r s o",
-			searchString: " corso ",
-			gradeYears: ""
-		},
-		{
-			tag: "Vestiging c o r s o",
-			searchString: "c o r s o",
-			gradeYears: ""
-		},
-		{
-			tag: "Vestiging c o r s o",
-			searchString: " studio 3 ",
-			gradeYears: ""
-		},
-		{
-			tag: "Vestiging Prins Dries",
-			searchString: " prins ",
-			gradeYears: ""
-		},
-		{
-			tag: "Vestiging Prins Dries",
-			searchString: " dries ",
-			gradeYears: ""
-		},
-		{
-			tag: "Vestiging Groenhout Kasteelstraat",
-			searchString: " groenhout ",
-			gradeYears: ""
-		},
-		{
-			tag: "Vestiging Groenhout Kasteelstraat",
-			searchString: " kasteel",
-			gradeYears: ""
-		},
-		{
-			tag: "Vestiging Het Fonkelpad",
-			searchString: " fonkel ",
-			gradeYears: ""
-		},
-		{
-			tag: "Vestiging OLV Pulhof",
-			searchString: " pulhof ",
-			gradeYears: ""
-		},
-		{
-			tag: "Vestiging OLV Pulhof",
-			searchString: " 1p ",
-			gradeYears: ""
-		},
-		{
-			tag: "Vestiging OLV Pulhof",
-			searchString: " 2p ",
-			gradeYears: ""
-		},
-		{
-			tag: "Vestiging Sterrenkijker/SL Durlet",
-			searchString: " 1d ",
-			gradeYears: ""
-		},
-		{
-			tag: "Vestiging Sterrenkijker/SL Durlet",
-			searchString: " 2d ",
-			gradeYears: ""
-		},
-		{
-			tag: "Vestiging Via Louiza",
-			searchString: " louiza ",
-			gradeYears: ""
-		},
-		{
-			tag: "Vestiging Frans Van Hombeeck",
-			searchString: " hombee",
-			gradeYears: ""
-		},
-		{
-			tag: "Vestiging Klavertje Vier",
-			searchString: " klaver",
-			gradeYears: ""
-		},
-		{
-			tag: "Academie Willem Van Laarstraat, Berchem",
-			searchString: " bib ",
-			gradeYears: ""
-		},
-		{
-			tag: "Academie Willem Van Laarstraat, Berchem",
-			searchString: "laarstr",
-			gradeYears: ""
-		},
-		{
-			tag: "Academie Willem Van Laarstraat, Berchem",
-			searchString: " wvl ",
-			gradeYears: ""
-		},
-		{
-			tag: "Vestiging Frans Van Hombeeck",
-			searchString: " beeld ",
-			gradeYears: ""
-		},
-		{
-			tag: "Cabaret en comedy",
-			searchString: " cabaret ",
-			gradeYears: ""
-		},
-		{
-			tag: "Woordatelier",
-			searchString: " woordatelier ",
-			gradeYears: ""
-		},
-		{
-			tag: "Woordatelier",
-			searchString: " wa ",
-			gradeYears: ""
-		},
-		{
-			tag: "Woordlab",
-			searchString: " woordlab ",
-			gradeYears: ""
-		},
-		{
-			tag: "Woordlab",
-			searchString: " wl ",
-			gradeYears: ""
-		},
-		{
-			tag: "Literair atelier",
-			searchString: " literair atelier ",
-			gradeYears: ""
-		},
-		{
-			tag: "Literaire teksten",
-			searchString: " literaire teksten ",
-			gradeYears: ""
-		},
-		{
-			tag: "Schrijven",
-			searchString: " basiscursus ",
-			gradeYears: ""
-		},
-		{
-			tag: "Spreken en vertellen",
-			searchString: " spreken ",
-			gradeYears: ""
-		},
-		{
-			tag: "Kunstenbad muziek/woord",
-			searchString: " kunstenbad ",
-			gradeYears: ""
-		},
-		{
-			tag: "Musicalatelier",
-			searchString: " musicalatelier ",
-			gradeYears: ""
-		},
-		{
-			tag: "Musical koor",
-			searchString: " musical koor ",
-			gradeYears: ""
-		},
-		{
-			tag: "Musical zang",
-			searchString: " musical zang ",
-			gradeYears: ""
-		},
-		{
-			tag: "Theater",
-			searchString: " acteren ",
-			gradeYears: ""
-		},
-		{
-			tag: "Muziekatelier",
-			searchString: " 1p ",
-			gradeYears: ""
-		},
-		{
-			tag: "Muziekatelier",
-			searchString: " 2p ",
-			gradeYears: ""
-		},
-		{
-			tag: "Muziekatelier",
-			searchString: " 1d ",
-			gradeYears: ""
-		},
-		{
-			tag: "Muziekatelier",
-			searchString: " 2d ",
-			gradeYears: ""
-		},
-		{
-			tag: "Muziekatelier",
-			searchString: " 1va ",
-			gradeYears: ""
-		},
-		{
-			tag: "Muziekatelier",
-			searchString: " 1vb ",
-			gradeYears: ""
-		},
-		{
-			tag: "Muziekatelier",
-			searchString: " 1vc ",
-			gradeYears: ""
-		},
-		{
-			tag: "Muziekatelier",
-			searchString: " 2va ",
-			gradeYears: ""
-		},
-		{
-			tag: "Muziekatelier",
-			searchString: " 2vb ",
-			gradeYears: ""
-		},
-		{
-			tag: "Muziekatelier",
-			searchString: " 3v ",
-			gradeYears: ""
-		},
-		{
-			tag: "Muziekatelier",
-			searchString: " 1t ",
-			gradeYears: ""
-		},
-		{
-			tag: "Muziekatelier",
-			searchString: " 2t ",
-			gradeYears: ""
-		},
-		{
-			tag: "Groepsmusiceren (klassiek)",
-			searchString: " gm ",
-			gradeYears: ""
-		},
-		{
-			tag: "Atelier (musical)",
-			searchString: " musicalatelier ",
-			gradeYears: ""
-		},
-		{
-			tag: "Musicalatelier 2e graad",
-			searchString: " musical for kids ",
-			gradeYears: ""
-		}
-	];
-	const defaultIgnoreList = [
-		" kunstkuren ",
-		" arrangeren",
-		" combo ",
-		" harmonielab ",
-		" klanklab ",
-		" muzieklab ",
-		" electronics ",
-		" big band ",
-		" blazersensemble ",
-		" groepsmusiceren (jass pop rock) ",
-		" geluidsleer ",
-		" koor (jazz pop rock) ",
-		" koor (musical) ",
-		" slagwerkensemble "
-	];
-	//#endregion
-	//#region typescript/gradeYear.ts
-	var GradeYear = class {
-		grade = null;
-		year = null;
-		static equals(gradeYear1, gradeYear2) {
-			return gradeYear1.grade == gradeYear2.grade && gradeYear1.year == gradeYear2.year;
-		}
-		static matches(partial, exact) {
-			if (partial.grade && partial.grade != exact.grade) return false;
-			if (partial.year && partial.year != exact.year) return false;
-			return true;
-		}
-		static toString(gradeYears) {
-			let str = "";
-			for (let gradeYear of gradeYears) {
-				if (str != "") str += ", ";
-				if (gradeYear.grade) str += gradeYear.grade;
-				if (gradeYear.year) {
-					if (gradeYear.grade) str += ".";
-					str += gradeYear.year;
-				}
+	notificationsDiv.querySelectorAll("button.deleteNotif").forEach((button) => {
+		button.onclick = async (ev) => {
+			let notifId = ev.currentTarget.dataset.id;
+			await deleteNotification(notifId);
+			await fetchAndDisplayNotifications();
+		};
+	});
+}
+//#endregion
+//#region typescript/roster_diff/diffSettings.ts
+const defaultTagDefs = [
+	{
+		tag: "Vestiging Sterrenkijker/SL Durlet",
+		searchString: " sterr",
+		gradeYears: ""
+	},
+	{
+		tag: "Vestiging Sterrenkijker/SL Durlet",
+		searchString: " durlet",
+		gradeYears: ""
+	},
+	{
+		tag: "Vestiging De Kleine Stad",
+		searchString: " kleine stad ",
+		gradeYears: ""
+	},
+	{
+		tag: "Vestiging De Kleine Wereld",
+		searchString: " wereld ",
+		gradeYears: ""
+	},
+	{
+		tag: "Vestiging De Nieuwe Vrede",
+		searchString: " vrede ",
+		gradeYears: ""
+	},
+	{
+		tag: "Vestiging De Nieuwe Vrede",
+		searchString: " dnv ",
+		gradeYears: ""
+	},
+	{
+		tag: "Vestiging De Nieuwe Vrede",
+		searchString: " tegel",
+		gradeYears: ""
+	},
+	{
+		tag: "Vestiging De Nieuwe Vrede",
+		searchString: " tango ",
+		gradeYears: ""
+	},
+	{
+		tag: "Vestiging De Nieuwe Vrede",
+		searchString: " vergaderzaal ",
+		gradeYears: ""
+	},
+	{
+		tag: "Vestiging De Kosmos",
+		searchString: " kosmos ",
+		gradeYears: ""
+	},
+	{
+		tag: "Vestiging De Schatkist",
+		searchString: " schatk",
+		gradeYears: ""
+	},
+	{
+		tag: "Vestiging De Kolibrie",
+		searchString: " kolibri",
+		gradeYears: ""
+	},
+	{
+		tag: "Vestiging Het Fonkelpad",
+		searchString: " fonkel",
+		gradeYears: ""
+	},
+	{
+		tag: "Vestiging Alberreke",
+		searchString: " alber",
+		gradeYears: ""
+	},
+	{
+		tag: "Vestiging c o r s o",
+		searchString: " corso ",
+		gradeYears: ""
+	},
+	{
+		tag: "Vestiging c o r s o",
+		searchString: "c o r s o",
+		gradeYears: ""
+	},
+	{
+		tag: "Vestiging c o r s o",
+		searchString: " studio 3 ",
+		gradeYears: ""
+	},
+	{
+		tag: "Vestiging Prins Dries",
+		searchString: " prins ",
+		gradeYears: ""
+	},
+	{
+		tag: "Vestiging Prins Dries",
+		searchString: " dries ",
+		gradeYears: ""
+	},
+	{
+		tag: "Vestiging Groenhout Kasteelstraat",
+		searchString: " groenhout ",
+		gradeYears: ""
+	},
+	{
+		tag: "Vestiging Groenhout Kasteelstraat",
+		searchString: " kasteel",
+		gradeYears: ""
+	},
+	{
+		tag: "Vestiging Het Fonkelpad",
+		searchString: " fonkel ",
+		gradeYears: ""
+	},
+	{
+		tag: "Vestiging OLV Pulhof",
+		searchString: " pulhof ",
+		gradeYears: ""
+	},
+	{
+		tag: "Vestiging OLV Pulhof",
+		searchString: " 1p ",
+		gradeYears: ""
+	},
+	{
+		tag: "Vestiging OLV Pulhof",
+		searchString: " 2p ",
+		gradeYears: ""
+	},
+	{
+		tag: "Vestiging Sterrenkijker/SL Durlet",
+		searchString: " 1d ",
+		gradeYears: ""
+	},
+	{
+		tag: "Vestiging Sterrenkijker/SL Durlet",
+		searchString: " 2d ",
+		gradeYears: ""
+	},
+	{
+		tag: "Vestiging Via Louiza",
+		searchString: " louiza ",
+		gradeYears: ""
+	},
+	{
+		tag: "Vestiging Frans Van Hombeeck",
+		searchString: " hombee",
+		gradeYears: ""
+	},
+	{
+		tag: "Vestiging Klavertje Vier",
+		searchString: " klaver",
+		gradeYears: ""
+	},
+	{
+		tag: "Academie Willem Van Laarstraat, Berchem",
+		searchString: " bib ",
+		gradeYears: ""
+	},
+	{
+		tag: "Academie Willem Van Laarstraat, Berchem",
+		searchString: "laarstr",
+		gradeYears: ""
+	},
+	{
+		tag: "Academie Willem Van Laarstraat, Berchem",
+		searchString: " wvl ",
+		gradeYears: ""
+	},
+	{
+		tag: "Vestiging Frans Van Hombeeck",
+		searchString: " beeld ",
+		gradeYears: ""
+	},
+	{
+		tag: "Cabaret en comedy",
+		searchString: " cabaret ",
+		gradeYears: ""
+	},
+	{
+		tag: "Woordatelier",
+		searchString: " woordatelier ",
+		gradeYears: ""
+	},
+	{
+		tag: "Woordatelier",
+		searchString: " wa ",
+		gradeYears: ""
+	},
+	{
+		tag: "Woordlab",
+		searchString: " woordlab ",
+		gradeYears: ""
+	},
+	{
+		tag: "Woordlab",
+		searchString: " wl ",
+		gradeYears: ""
+	},
+	{
+		tag: "Literair atelier",
+		searchString: " literair atelier ",
+		gradeYears: ""
+	},
+	{
+		tag: "Literaire teksten",
+		searchString: " literaire teksten ",
+		gradeYears: ""
+	},
+	{
+		tag: "Schrijven",
+		searchString: " basiscursus ",
+		gradeYears: ""
+	},
+	{
+		tag: "Spreken en vertellen",
+		searchString: " spreken ",
+		gradeYears: ""
+	},
+	{
+		tag: "Kunstenbad muziek/woord",
+		searchString: " kunstenbad ",
+		gradeYears: ""
+	},
+	{
+		tag: "Musicalatelier",
+		searchString: " musicalatelier ",
+		gradeYears: ""
+	},
+	{
+		tag: "Musical koor",
+		searchString: " musical koor ",
+		gradeYears: ""
+	},
+	{
+		tag: "Musical zang",
+		searchString: " musical zang ",
+		gradeYears: ""
+	},
+	{
+		tag: "Theater",
+		searchString: " acteren ",
+		gradeYears: ""
+	},
+	{
+		tag: "Muziekatelier",
+		searchString: " 1p ",
+		gradeYears: ""
+	},
+	{
+		tag: "Muziekatelier",
+		searchString: " 2p ",
+		gradeYears: ""
+	},
+	{
+		tag: "Muziekatelier",
+		searchString: " 1d ",
+		gradeYears: ""
+	},
+	{
+		tag: "Muziekatelier",
+		searchString: " 2d ",
+		gradeYears: ""
+	},
+	{
+		tag: "Muziekatelier",
+		searchString: " 1va ",
+		gradeYears: ""
+	},
+	{
+		tag: "Muziekatelier",
+		searchString: " 1vb ",
+		gradeYears: ""
+	},
+	{
+		tag: "Muziekatelier",
+		searchString: " 1vc ",
+		gradeYears: ""
+	},
+	{
+		tag: "Muziekatelier",
+		searchString: " 2va ",
+		gradeYears: ""
+	},
+	{
+		tag: "Muziekatelier",
+		searchString: " 2vb ",
+		gradeYears: ""
+	},
+	{
+		tag: "Muziekatelier",
+		searchString: " 3v ",
+		gradeYears: ""
+	},
+	{
+		tag: "Muziekatelier",
+		searchString: " 1t ",
+		gradeYears: ""
+	},
+	{
+		tag: "Muziekatelier",
+		searchString: " 2t ",
+		gradeYears: ""
+	},
+	{
+		tag: "Groepsmusiceren (klassiek)",
+		searchString: " gm ",
+		gradeYears: ""
+	},
+	{
+		tag: "Atelier (musical)",
+		searchString: " musicalatelier ",
+		gradeYears: ""
+	},
+	{
+		tag: "Musicalatelier 2e graad",
+		searchString: " musical for kids ",
+		gradeYears: ""
+	}
+];
+const defaultIgnoreList = [
+	" kunstkuren ",
+	" arrangeren",
+	" combo ",
+	" harmonielab ",
+	" klanklab ",
+	" muzieklab ",
+	" electronics ",
+	" big band ",
+	" blazersensemble ",
+	" groepsmusiceren (jass pop rock) ",
+	" geluidsleer ",
+	" koor (jazz pop rock) ",
+	" koor (musical) ",
+	" slagwerkensemble "
+];
+//#endregion
+//#region typescript/gradeYear.ts
+var GradeYear = class {
+	grade = null;
+	year = null;
+	static equals(gradeYear1, gradeYear2) {
+		return gradeYear1.grade == gradeYear2.grade && gradeYear1.year == gradeYear2.year;
+	}
+	static matches(partial, exact) {
+		if (partial.grade && partial.grade != exact.grade) return false;
+		if (partial.year && partial.year != exact.year) return false;
+		return true;
+	}
+	static toString(gradeYears) {
+		let str = "";
+		for (let gradeYear of gradeYears) {
+			if (str != "") str += ", ";
+			if (gradeYear.grade) str += gradeYear.grade;
+			if (gradeYear.year) {
+				if (gradeYear.grade) str += ".";
+				str += gradeYear.year;
 			}
-			return str;
 		}
+		return str;
+	}
+};
+//#endregion
+//#region typescript/roster_diff/showDiff.ts
+async function fetchDiffSettingsOrDefault(academie, schoolYear) {
+	let settings;
+	try {
+		settings = await fetchDiffSettings(academie, schoolYear);
+	} catch {}
+	if (!settings) return {
+		version: 0,
+		academie,
+		schoolYear,
+		tagDefs: [...defaultTagDefs],
+		ignoreList: [...defaultIgnoreList],
+		urls: [],
+		preTranslations: []
 	};
-	//#endregion
-	//#region typescript/roster_diff/showDiff.ts
-	async function fetchDiffSettingsOrDefault(academie, schoolYear) {
-		let settings;
-		try {
-			settings = await fetchDiffSettings(academie, schoolYear);
-		} catch {}
-		if (!settings) return {
-			version: 0,
-			academie,
-			schoolYear,
-			tagDefs: [...defaultTagDefs],
-			ignoreList: [...defaultIgnoreList],
-			urls: [],
-			preTranslations: []
-		};
-		if (!settings.preTranslations) settings.preTranslations = [];
-		return settings;
-	}
-	function getDiffsDko3CacheFileName(academie, schoolYear, diffType) {
-		return `Dko3/Uurroosters/Cache/${academie}_${schoolYear}_${diffType}_diffcache.json`;
-	}
-	function createStatusBlock(divInfoWrapper) {
-		emmet.appendChild(divInfoWrapper, "div.runStatus");
-		emmet.appendChild(divInfoWrapper, "div.diffInfo");
-		emmet.appendChild(divInfoWrapper, "div.diffErrors.errors");
-		emmet.appendChild(divInfoWrapper, "div.diffResults");
-	}
-	function getStatusBlock(divInfoWrapper) {
-		return {
-			runStatus: divInfoWrapper.querySelector(".runStatus"),
-			divInfo: divInfoWrapper.querySelector(".diffInfo"),
-			divError: divInfoWrapper.querySelector(".diffErrors"),
-			divResults: divInfoWrapper.querySelector(".diffResults")
-		};
-	}
-	async function getAndShowDiffs(showOrCalc, useDkoCache, diffPageType, diffSettings) {
-		let statusBlock = getStatusBlock(document.getElementById(diffPageType == "EXCEL" ? "wrapperExcelDiffs" : "wrapperWwwDiffs"));
-		statusBlock.divResults.innerHTML = "Ophalen...";
-		let cmbDiffAcademie = document.querySelector("#cmbDiffAcademie");
-		let cmbDiffSchoolYear = document.querySelector("#cmbDiffSchoolYear");
-		let fetchListener = new InfoBarTableFetchListener(createInfoBlock(statusBlock.divInfo, ""));
-		let reportStatus = function(message) {
-			statusBlock.runStatus.innerHTML = message;
-		};
-		statusBlock.divError.innerHTML = "";
-		let errors = [];
-		let addError = function(message, errorType) {
-			errors.push(message);
-		};
-		errors = [];
-		let jsonDko3DiffData = null;
-		if (useDkoCache == "dkoCache") jsonDko3DiffData = localStorage.getItem(getDiffsDko3CacheFileName(cmbDiffAcademie.value, cmbDiffSchoolYear.value, diffPageType));
-		let dko3DiffData = jsonDko3DiffData ? JSON.parse(jsonDko3DiffData) : null;
-		let jsonDiffs = null;
-		if (!diffSettings) diffSettings = await fetchDiffSettingsOrDefault(cmbDiffAcademie.value, cmbDiffSchoolYear.value);
-		if (showOrCalc == "justShow") try {
-			jsonDiffs = await getDiffsFromCloud(cmbDiffAcademie.value, cmbDiffSchoolYear.value, diffPageType);
-		} catch (e) {}
-		else {
-			statusBlock.divResults.innerHTML = "";
-			let dataPreparationFunction;
-			if (diffPageType == "EXCEL") dataPreparationFunction = prepareExcelData;
-			else dataPreparationFunction = prepareWwwData;
-			jsonDiffs = await buildAndSaveDiff({
-				reportStatus,
-				addError
-			}, fetchListener, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData, diffSettings, diffPageType, dataPreparationFunction, errors);
-		}
-		if (jsonDiffs) await showDiffs(jsonDiffs, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData, diffSettings, statusBlock, diffPageType);
-	}
-	async function showDiffs(diffs, academie, schoolYear, dko3DiffData, diffSettings, statusBlock, diffPageType) {
-		statusBlock.divResults.innerHTML = "Ophalen...";
-		if (!diffs) {
-			statusBlock.divResults.innerHTML = "";
-			return;
-		}
-		if (diffs.errors) statusBlock.divError.innerHTML = diffs.errors.join("<br>");
-		await setIgnoredFlags(diffs.orphanedDko3Lessen, diffs.orphanedOtherLessen, academie, schoolYear, diffPageType);
+	if (!settings.preTranslations) settings.preTranslations = [];
+	return settings;
+}
+function getDiffsDko3CacheFileName(academie, schoolYear, diffType) {
+	return `Dko3/Uurroosters/Cache/${academie}_${schoolYear}_${diffType}_diffcache.json`;
+}
+function createStatusBlock(divInfoWrapper) {
+	emmet.appendChild(divInfoWrapper, "div.runStatus");
+	emmet.appendChild(divInfoWrapper, "div.diffInfo");
+	emmet.appendChild(divInfoWrapper, "div.diffErrors.errors");
+	emmet.appendChild(divInfoWrapper, "div.diffResults");
+}
+function getStatusBlock(divInfoWrapper) {
+	return {
+		runStatus: divInfoWrapper.querySelector(".runStatus"),
+		divInfo: divInfoWrapper.querySelector(".diffInfo"),
+		divError: divInfoWrapper.querySelector(".diffErrors"),
+		divResults: divInfoWrapper.querySelector(".diffResults")
+	};
+}
+async function getAndShowDiffs(showOrCalc, useDkoCache, diffPageType, diffSettings) {
+	let statusBlock = getStatusBlock(document.getElementById(diffPageType == "EXCEL" ? "wrapperExcelDiffs" : "wrapperWwwDiffs"));
+	statusBlock.divResults.innerHTML = "Ophalen...";
+	let cmbDiffAcademie = document.querySelector("#cmbDiffAcademie");
+	let cmbDiffSchoolYear = document.querySelector("#cmbDiffSchoolYear");
+	let fetchListener = new InfoBarTableFetchListener(createInfoBlock(statusBlock.divInfo, ""));
+	let reportStatus = function(message) {
+		statusBlock.runStatus.innerHTML = message;
+	};
+	statusBlock.divError.innerHTML = "";
+	let errors = [];
+	let addError = function(message, errorType) {
+		errors.push(message);
+	};
+	errors = [];
+	let jsonDko3DiffData = null;
+	if (useDkoCache == "dkoCache") jsonDko3DiffData = localStorage.getItem(getDiffsDko3CacheFileName(cmbDiffAcademie.value, cmbDiffSchoolYear.value, diffPageType));
+	let dko3DiffData = jsonDko3DiffData ? JSON.parse(jsonDko3DiffData) : null;
+	let jsonDiffs = null;
+	if (!diffSettings) diffSettings = await fetchDiffSettingsOrDefault(cmbDiffAcademie.value, cmbDiffSchoolYear.value);
+	if (showOrCalc == "justShow") try {
+		jsonDiffs = await getDiffsFromCloud(cmbDiffAcademie.value, cmbDiffSchoolYear.value, diffPageType);
+	} catch (e) {}
+	else {
 		statusBlock.divResults.innerHTML = "";
-		let elapsedTimeString = dateDiffToString(new Date(diffs.isoDate), /* @__PURE__ */ new Date());
-		if (elapsedTimeString != "") emmet.appendChild(statusBlock.divResults, `div.gray{Laatste vergelijking: ${elapsedTimeString} geleden.}`);
-		if (options.showDebug && dko3DiffData) {
-			let div = emmet.appendChild(statusBlock.divResults, `div.gray`).first;
-			let button = emmet.appendChild(div, "button.likeLink").first;
-			button.innerHTML = "Zoek met dko3 cache";
-			button.onclick = () => {
-				getAndShowDiffs("calcAndShow", "dkoCache", "EXCEL", null);
-			};
-		}
-		let divChk = emmet.appendChild(statusBlock.divResults, `div#divHideChecked>(input#chkHideChecked${diffPageType}[type="checkbox"]+label[for="chkHideChecked${diffPageType}"]{Verberg aangevinkte lijnen})`).first;
-		let chkHideChecked = divChk.querySelector(`#chkHideChecked${diffPageType}`);
-		chkHideChecked.onchange = (ev) => {
-			let input = ev.currentTarget;
-			let table = document.getElementById(`orphans${diffPageType}`);
-			table.classList.toggle("hideChecked", input.checked);
-			let ignore = table.classList.contains("hideChecked");
-			localStorage.setItem(OPTION_HIDE_IGNORED_DIFFS + diffPageType, ignore.toString());
+		let dataPreparationFunction;
+		if (diffPageType == "EXCEL") dataPreparationFunction = prepareExcelData;
+		else dataPreparationFunction = prepareWwwData;
+		jsonDiffs = await buildAndSaveDiff({
+			reportStatus,
+			addError
+		}, fetchListener, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData, diffSettings, diffPageType, dataPreparationFunction, errors);
+	}
+	if (jsonDiffs) await showDiffs(jsonDiffs, cmbDiffAcademie.value, cmbDiffSchoolYear.value, dko3DiffData, diffSettings, statusBlock, diffPageType);
+}
+async function showDiffs(diffs, academie, schoolYear, dko3DiffData, diffSettings, statusBlock, diffPageType) {
+	statusBlock.divResults.innerHTML = "Ophalen...";
+	if (!diffs) {
+		statusBlock.divResults.innerHTML = "";
+		return;
+	}
+	if (diffs.errors) statusBlock.divError.innerHTML = diffs.errors.join("<br>");
+	await setIgnoredFlags(diffs.orphanedDko3Lessen, diffs.orphanedOtherLessen, academie, schoolYear, diffPageType);
+	statusBlock.divResults.innerHTML = "";
+	let elapsedTimeString = dateDiffToString(new Date(diffs.isoDate), /* @__PURE__ */ new Date());
+	if (elapsedTimeString != "") emmet.appendChild(statusBlock.divResults, `div.gray{Laatste vergelijking: ${elapsedTimeString} geleden.}`);
+	if (options.showDebug && dko3DiffData) {
+		let div = emmet.appendChild(statusBlock.divResults, `div.gray`).first;
+		let button = emmet.appendChild(div, "button.likeLink").first;
+		button.innerHTML = "Zoek met dko3 cache";
+		button.onclick = () => {
+			getAndShowDiffs("calcAndShow", "dkoCache", "EXCEL", null);
 		};
-		emmet.appendChild(divChk, `
+	}
+	let divChk = emmet.appendChild(statusBlock.divResults, `div#divHideChecked>(input#chkHideChecked${diffPageType}[type="checkbox"]+label[for="chkHideChecked${diffPageType}"]{Verberg aangevinkte lijnen})`).first;
+	let chkHideChecked = divChk.querySelector(`#chkHideChecked${diffPageType}`);
+	chkHideChecked.onchange = (ev) => {
+		let input = ev.currentTarget;
+		let table = document.getElementById(`orphans${diffPageType}`);
+		table.classList.toggle("hideChecked", input.checked);
+		let ignore = table.classList.contains("hideChecked");
+		localStorage.setItem(OPTION_HIDE_IGNORED_DIFFS + diffPageType, ignore.toString());
+	};
+	emmet.appendChild(divChk, `
         div>(
             input#chkHideNoTeacher${diffPageType}[type="checkbox"]+
             label[for="chkHideNoTeacher${diffPageType}"]{Verberg nog te bepalen leraren}
         )
     `);
-		let chkHideNoTeacher = divChk.querySelector(`#chkHideNoTeacher${diffPageType}`);
-		chkHideNoTeacher.onchange = (ev) => {
-			let input = ev.currentTarget;
-			statusBlock.divResults.classList.toggle("hideNoTeacher", input.checked);
-			let hideNoTeacher = statusBlock.divResults.classList.contains("hideNoTeacher");
-			localStorage.setItem(OPTION_HIDE_NO_TEACHER_DIFFS + diffPageType, hideNoTeacher.toString());
-		};
-		for (let diff of diffs.diffs) displayDiff(diff, statusBlock.divResults, academie, schoolYear, diffPageType);
-		emmet.appendChild(statusBlock.divResults, "h4{Lessen zonder overeenkomsten}");
-		let { table, tbody } = createDiffTable(statusBlock.divResults, diffPageType);
-		decorateTableHeader(table, false);
-		for (let les of diffs.orphanedDko3Lessen) {
-			let tr = emmet.appendChild(tbody, "tr").last;
-			fillDiffRow(tr, les, "perfect match", createDko3GotoData(les.lesId), "", les.hash, les.ignore, academie, schoolYear, null, null, diffPageType);
-		}
-		for (let les of diffs.orphanedOtherLessen) {
-			let tr = emmet.appendChild(tbody, "tr").last;
-			fillDiffRow(tr, les, "perfect match", les.gotoData, les.gotoData.text, les.hash, les.ignore, academie, schoolYear, null, null, diffPageType);
-			tr.classList.add("excelRow");
-		}
-		chkHideChecked.checked = (localStorage.getItem("dko3plugin.hideIgnoredDiffs" + diffPageType) ?? "false") == "true";
-		table.classList.toggle("hideChecked", chkHideChecked.checked);
-		chkHideNoTeacher.checked = (localStorage.getItem("dko3plugin.hideNoTeacherDiffs" + diffPageType) ?? "false") == "true";
-		statusBlock.divResults.classList.toggle("hideNoTeacher", chkHideNoTeacher.checked);
+	let chkHideNoTeacher = divChk.querySelector(`#chkHideNoTeacher${diffPageType}`);
+	chkHideNoTeacher.onchange = (ev) => {
+		let input = ev.currentTarget;
+		statusBlock.divResults.classList.toggle("hideNoTeacher", input.checked);
+		let hideNoTeacher = statusBlock.divResults.classList.contains("hideNoTeacher");
+		localStorage.setItem(OPTION_HIDE_NO_TEACHER_DIFFS + diffPageType, hideNoTeacher.toString());
+	};
+	for (let diff of diffs.diffs) displayDiff(diff, statusBlock.divResults, academie, schoolYear, diffPageType);
+	emmet.appendChild(statusBlock.divResults, "h4{Lessen zonder overeenkomsten}");
+	let { table, tbody } = createDiffTable(statusBlock.divResults, diffPageType);
+	decorateTableHeader(table, false);
+	for (let les of diffs.orphanedDko3Lessen) {
+		let tr = emmet.appendChild(tbody, "tr").last;
+		fillDiffRow(tr, les, "perfect match", createDko3GotoData(les.lesId), "", les.hash, les.ignore, academie, schoolYear, null, null, diffPageType);
 	}
-	function fillOtherDiffRow(tr, diff, academie, schoolYear, noHide, diffPageType) {
-		fillDiffRow(tr, diff.otherLes, diff.diffType, diff.otherLes.gotoData, diff.otherLes.gotoData.text, diff.otherLes.hash, diff.otherLes.ignore, academie, schoolYear, diff.weight, noHide, diffPageType);
+	for (let les of diffs.orphanedOtherLessen) {
+		let tr = emmet.appendChild(tbody, "tr").last;
+		fillDiffRow(tr, les, "perfect match", les.gotoData, les.gotoData.text, les.hash, les.ignore, academie, schoolYear, null, null, diffPageType);
+		tr.classList.add("excelRow");
 	}
-	function displayDiff(diff, divResults, academie, schoolYear, diffPageType) {
-		let tbody = emmet.appendChild(divResults, "table.diff>tbody").last;
-		let trTop = emmet.appendChild(tbody, "tr").last;
-		let trBottom = emmet.appendChild(tbody, "tr").last;
-		let trOther = trTop;
-		let trDko3 = trBottom;
-		if (diff.otherLes.lesType == "www") {
-			trOther = trBottom;
-			trDko3 = trTop;
-		}
-		let diffOnlyTeacher = !diff.weight.diffDayTime && diff.weight.diffGradeYears == 0 && !diff.weight.diffLocation && !diff.weight.diffSubject && diff.weight.diffTeacher;
-		tbody.parentElement.classList.toggle("justNoTeacher", diffOnlyTeacher && diff.otherLes.teachers.includes("nog te bepalen"));
-		fillOtherDiffRow(trOther, diff, academie, schoolYear, "no hide button", diffPageType);
-		fillDiffRow(trDko3, diff.dko3Les, diff.diffType, createDko3GotoData(diff.dko3Les.lesId), "", diff.dko3Les.hash, diff.dko3Les.ignore, academie, schoolYear, diff.weight, "no hide button", diffPageType);
+	chkHideChecked.checked = (localStorage.getItem("dko3plugin.hideIgnoredDiffs" + diffPageType) ?? "false") == "true";
+	table.classList.toggle("hideChecked", chkHideChecked.checked);
+	chkHideNoTeacher.checked = (localStorage.getItem("dko3plugin.hideNoTeacherDiffs" + diffPageType) ?? "false") == "true";
+	statusBlock.divResults.classList.toggle("hideNoTeacher", chkHideNoTeacher.checked);
+}
+function fillOtherDiffRow(tr, diff, academie, schoolYear, noHide, diffPageType) {
+	fillDiffRow(tr, diff.otherLes, diff.diffType, diff.otherLes.gotoData, diff.otherLes.gotoData.text, diff.otherLes.hash, diff.otherLes.ignore, academie, schoolYear, diff.weight, noHide, diffPageType);
+}
+function displayDiff(diff, divResults, academie, schoolYear, diffPageType) {
+	let tbody = emmet.appendChild(divResults, "table.diff>tbody").last;
+	let trTop = emmet.appendChild(tbody, "tr").last;
+	let trBottom = emmet.appendChild(tbody, "tr").last;
+	let trOther = trTop;
+	let trDko3 = trBottom;
+	if (diff.otherLes.lesType == "www") {
+		trOther = trBottom;
+		trDko3 = trTop;
 	}
-	function fillDiffRow(tr, jsonLes, diffType, gotoData, orgText, hash, ignore, academie, schoolYear, weight, noHide, diffPageType) {
-		if (ignore) tr.classList.add("ignore");
-		let diffTeacherClass = "";
-		let diffGradeYearsClass = "";
-		let diffLocationClass = "";
-		let diffTimeClass = "";
-		let diffSubjectClass = "";
-		if (weight) {
-			if (weight.diffSubject) diffSubjectClass = ".diff";
-			if (weight.diffLocation) diffLocationClass = ".diff";
-			if (weight.diffGradeYears) diffGradeYearsClass = ".diff";
-			if (weight.diffTeacher) diffTeacherClass = ".diff";
-			if (weight.diffDayTime) diffTimeClass = ".diff";
-		}
-		if (!jsonLes.location) {
-			jsonLes.location = "-onbekend-";
-			diffLocationClass = ".diff";
-		}
-		let tdSubjects;
-		let strSubjects = jsonLes.subjects;
-		if (jsonLes.subjects == "") {
-			diffSubjectClass = ".diff";
-			strSubjects = "-onbekend-";
-		}
-		if (jsonLes.lesType != "dko3") tdSubjects = `(td${diffSubjectClass}>div.diffTooltip{${strSubjects}}>span.diffTooltiptext{${orgText}})`;
-		else tdSubjects = `td${diffSubjectClass}{${jsonLes.subjects}}`;
-		tr.classList.add(jsonLes.lesType + "Row");
-		let iconClass;
-		switch (jsonLes.lesType) {
-			case "excel":
-				iconClass = "fa-grid";
-				break;
-			case "dko3":
-				iconClass = "fa-chalkboard-user";
-				break;
-			case "www":
-				iconClass = "fa-globe";
-				break;
-			default: unreachable(jsonLes.lesType);
-		}
-		tr.dataset.hash = hash;
-		tr.dataset.lesId = gotoData.lesId;
-		tr.dataset.cellAddress = gotoData.cellAddress;
-		tr.dataset.workbook = gotoData.workBook;
-		tr.dataset.worksheet = gotoData.workSheet;
-		tr.dataset.rowType = gotoData.rowType;
-		tr.dataset.url = gotoData.url;
-		let hideButton = "";
-		if (!noHide) hideButton = "+(td.button>button.goto.chkHide>i.fas.fa-check)";
-		emmet.appendChild(tr, `${tdSubjects}+
+	let diffOnlyTeacher = !diff.weight.diffDayTime && diff.weight.diffGradeYears == 0 && !diff.weight.diffLocation && !diff.weight.diffSubject && diff.weight.diffTeacher;
+	tbody.parentElement.classList.toggle("justNoTeacher", diffOnlyTeacher && diff.otherLes.teachers.includes("nog te bepalen"));
+	fillOtherDiffRow(trOther, diff, academie, schoolYear, "no hide button", diffPageType);
+	fillDiffRow(trDko3, diff.dko3Les, diff.diffType, createDko3GotoData(diff.dko3Les.lesId), "", diff.dko3Les.hash, diff.dko3Les.ignore, academie, schoolYear, diff.weight, "no hide button", diffPageType);
+}
+function fillDiffRow(tr, jsonLes, diffType, gotoData, orgText, hash, ignore, academie, schoolYear, weight, noHide, diffPageType) {
+	if (ignore) tr.classList.add("ignore");
+	let diffTeacherClass = "";
+	let diffGradeYearsClass = "";
+	let diffLocationClass = "";
+	let diffTimeClass = "";
+	let diffSubjectClass = "";
+	if (weight) {
+		if (weight.diffSubject) diffSubjectClass = ".diff";
+		if (weight.diffLocation) diffLocationClass = ".diff";
+		if (weight.diffGradeYears) diffGradeYearsClass = ".diff";
+		if (weight.diffTeacher) diffTeacherClass = ".diff";
+		if (weight.diffDayTime) diffTimeClass = ".diff";
+	}
+	if (!jsonLes.location) {
+		jsonLes.location = "-onbekend-";
+		diffLocationClass = ".diff";
+	}
+	let tdSubjects;
+	let strSubjects = jsonLes.subjects;
+	if (jsonLes.subjects == "") {
+		diffSubjectClass = ".diff";
+		strSubjects = "-onbekend-";
+	}
+	if (jsonLes.lesType != "dko3") tdSubjects = `(td${diffSubjectClass}>div.diffTooltip{${strSubjects}}>span.diffTooltiptext{${orgText}})`;
+	else tdSubjects = `td${diffSubjectClass}{${jsonLes.subjects}}`;
+	tr.classList.add(jsonLes.lesType + "Row");
+	let iconClass;
+	switch (jsonLes.lesType) {
+		case "excel":
+			iconClass = "fa-grid";
+			break;
+		case "dko3":
+			iconClass = "fa-chalkboard-user";
+			break;
+		case "www":
+			iconClass = "fa-globe";
+			break;
+		default: unreachable(jsonLes.lesType);
+	}
+	tr.dataset.hash = hash;
+	tr.dataset.lesId = gotoData.lesId;
+	tr.dataset.cellAddress = gotoData.cellAddress;
+	tr.dataset.workbook = gotoData.workBook;
+	tr.dataset.worksheet = gotoData.workSheet;
+	tr.dataset.rowType = gotoData.rowType;
+	tr.dataset.url = gotoData.url;
+	let hideButton = "";
+	if (!noHide) hideButton = "+(td.button>button.goto.chkHide>i.fas.fa-check)";
+	emmet.appendChild(tr, `${tdSubjects}+
         td${diffGradeYearsClass}{${GradeYear.toString(jsonLes.gradeYears)}}+
         td${diffTeacherClass}{${jsonLes.teachers}}+
         td${diffTimeClass}{${toCompactDayString(jsonLes.day)}}+
@@ -3586,232 +4347,222 @@
         (td.buttonshow>button.goto>i.fas.${iconClass})
         ${hideButton}
     `);
-		let btnGoto = tr.querySelector("button.goto");
-		btnGoto.onclick = (ev) => gotoSource(ev, academie, schoolYear);
-		let btnHide = tr.querySelector("button.chkHide");
-		if (btnHide) btnHide.onclick = (ev) => toggleIgnore(ev, academie, schoolYear, diffPageType);
-	}
-	async function toggleIgnore(ev, academie, schoolYear, diffPageType) {
-		ev.currentTarget.closest("tr").classList.toggle("ignore");
-		await saveIgnoredHashes(academie, schoolYear, diffPageType);
-	}
-	async function saveIgnoredHashes(academie, schoolYear, diffPageType) {
-		await uploadIgnoredDiffHashes(academie, schoolYear, [...document.getElementById(`orphans${diffPageType}`).querySelectorAll("tr.ignore")].map((tr) => tr.dataset.hash), diffPageType);
-	}
-	function createDko3GotoData(lesId) {
-		return {
-			lesId,
-			cellAddress: "",
-			rowType: "dko3",
-			url: "",
-			workBook: "",
-			workSheet: "",
-			text: ""
-		};
-	}
-	async function gotoSource(ev, academie, schoolYear) {
-		let tr = ev.currentTarget.closest("tr");
-		let rowType = tr.dataset.rowType;
-		let cellAddress = tr.dataset.cellAddress;
-		let workBook = tr.dataset.workbook;
-		let workSheet = tr.dataset.worksheet;
-		let lesId = tr.dataset.lesId;
-		let url = tr.dataset.url;
-		if (rowType == "excel") {
-			let url = await getUrlForWorksheet(workBook, workSheet, cellAddress, academie, schoolYear);
-			if (url == "") {
-				alert("Geen url naar het Excel bestand. Plak de url in het Excelbestand en geef de cel de naam 'Url'. Stuur de gegevens terug door.");
-				return;
-			}
-			window.open(url, "_blank");
-		} else if (rowType == "dko3") location.href = "/#lessen-les?id=" + lesId;
-		else if (rowType == "www") window.open(url, "_blank").focus();
-	}
-	function toCompactDayString(day) {
-		switch (day) {
-			case "MAANDAG": return "ma ";
-			case "DINSDAG": return "di ";
-			case "WOENSDAG": return "wo ";
-			case "DONDERDAG": return "do ";
-			case "VRIJDAG": return "vr ";
-			case "ZATERDAG": return "za ";
-			case "ZONDAG": return "zo ";
-			case "": return "?? ";
-			default: unreachable(day);
-		}
-	}
-	function excelPostoExcelAddress(row, column) {
-		return indexToExcelColumn(column) + (row + 1).toString();
-	}
-	function indexToExcelColumn(index) {
-		let quotient = Math.floor(index / 26);
-		if (quotient <= 0) return chars[index];
-		return indexToExcelColumn(quotient - 1) + chars[index % 26];
-	}
-	const chars = [
-		"A",
-		"B",
-		"C",
-		"D",
-		"E",
-		"F",
-		"G",
-		"H",
-		"I",
-		"J",
-		"K",
-		"L",
-		"M",
-		"N",
-		"O",
-		"P",
-		"Q",
-		"R",
-		"S",
-		"T",
-		"U",
-		"V",
-		"W",
-		"X",
-		"Y",
-		"Z"
-	];
-	//#endregion
-	//#region typescript/roster_diff/calcDiff.ts
-	var Dko3LesMoment = class Dko3LesMoment {
-		les;
-		lesMomenten = [];
-		dayTimeSlice;
-		momentId;
-		ignore = false;
-		constructor(les, dayTimeSlice) {
-			this.les = les;
-			this.dayTimeSlice = dayTimeSlice;
-			this.momentId = Dko3LesMoment.createLesMomentId(les, dayTimeSlice);
-		}
-		static createLesMomentId(les, dayTimeSlice) {
-			return les.id + "_" + DayTimeSlice.toString(dayTimeSlice);
-		}
-		getHash() {
-			return Les.getHash(this.les) + DayTimeSlice.toString(this.dayTimeSlice);
-		}
+	let btnGoto = tr.querySelector("button.goto");
+	btnGoto.onclick = (ev) => gotoSource(ev, academie, schoolYear);
+	let btnHide = tr.querySelector("button.chkHide");
+	if (btnHide) btnHide.onclick = (ev) => toggleIgnore(ev, academie, schoolYear, diffPageType);
+}
+async function toggleIgnore(ev, academie, schoolYear, diffPageType) {
+	ev.currentTarget.closest("tr").classList.toggle("ignore");
+	await saveIgnoredHashes(academie, schoolYear, diffPageType);
+}
+async function saveIgnoredHashes(academie, schoolYear, diffPageType) {
+	await uploadIgnoredDiffHashes(academie, schoolYear, [...document.getElementById(`orphans${diffPageType}`).querySelectorAll("tr.ignore")].map((tr) => tr.dataset.hash), diffPageType);
+}
+function createDko3GotoData(lesId) {
+	return {
+		lesId,
+		cellAddress: "",
+		rowType: "dko3",
+		url: "",
+		workBook: "",
+		workSheet: "",
+		text: ""
 	};
-	var TaggedLes = class {
-		lesMoment;
-		tags = [];
-		searchText;
-		location;
-		teachers = [];
-		subjects = [];
-		ignore;
-		gradeYears;
-		constructor(les, tags, searchText, gradeYears, ignore) {
-			this.lesMoment = les;
-			this.tags = tags;
-			this.searchText = searchText;
-			this.gradeYears = gradeYears;
-			this.ignore = ignore;
+}
+async function gotoSource(ev, academie, schoolYear) {
+	let tr = ev.currentTarget.closest("tr");
+	let rowType = tr.dataset.rowType;
+	let cellAddress = tr.dataset.cellAddress;
+	let workBook = tr.dataset.workbook;
+	let workSheet = tr.dataset.worksheet;
+	let lesId = tr.dataset.lesId;
+	let url = tr.dataset.url;
+	if (rowType == "excel") {
+		let url = await getUrlForWorksheet(workBook, workSheet, cellAddress, academie, schoolYear);
+		if (url == "") {
+			alert("Geen url naar het Excel bestand. Plak de url in het Excelbestand en geef de cel de naam 'Url'. Stuur de gegevens terug door.");
+			return;
 		}
-		getHash() {
-			return this.lesMoment.getHash();
-		}
-	};
-	var TaggedDko3LesMoment = class extends TaggedLes {
-		constructor(lesMoment) {
-			super(lesMoment, [], "", lesMoment.les.gradeYears, lesMoment.ignore);
-			this.location = this.lesMoment.les.vestiging;
-			this.teachers = [this.lesMoment.les.teacher.replaceAll(/ \(en nog \d\)/g, "")].filter((t) => t != "");
-			this.subjects = this.lesMoment.les.vakNaam.split("+").map((txt) => txt.trim());
-			this.subjects.push(lesMoment.les.naam);
-			this.subjects = this.subjects.filter((s) => s);
-		}
-	};
-	var Weight = class {
-		weight = 1e3;
-		diffTeacher = false;
-		diffSubject = false;
-		diffLocation = false;
-		diffDayTime = false;
-		diffGradeYears = 0;
-		calcWeight() {
-			this.weight = 1e3;
-			if (this.diffSubject) this.weight -= 10;
-			if (this.diffDayTime) this.weight -= 10;
-			if (this.diffLocation) this.weight -= 10;
-			if (this.diffTeacher) this.weight -= 10;
-			this.weight -= this.diffGradeYears;
-		}
-	};
-	function matchIt(ctx, dko3LesSet, otherLesSet, diffType, diffSettings, matchFunction) {
-		let diffs = [];
-		for (let dko3Les of dko3LesSet) {
-			let result = matchFunction(ctx, dko3Les, otherLesSet, diffSettings);
-			if (result) {
-				diffs.push({
-					otherLes: result.otherLes,
-					dko3Les,
-					diffType,
-					weight: result.weight
-				});
-				dko3LesSet.delete(dko3Les);
-				otherLesSet.delete(result.otherLes);
-			}
-		}
-		return diffs;
+		window.open(url, "_blank");
+	} else if (rowType == "dko3") location.href = "/#lessen-les?id=" + lesId;
+	else if (rowType == "www") window.open(url, "_blank").focus();
+}
+function toCompactDayString(day) {
+	switch (day) {
+		case "MAANDAG": return "ma ";
+		case "DINSDAG": return "di ";
+		case "WOENSDAG": return "wo ";
+		case "DONDERDAG": return "do ";
+		case "VRIJDAG": return "vr ";
+		case "ZATERDAG": return "za ";
+		case "ZONDAG": return "zo ";
+		case "": return "?? ";
+		default: unreachable(day);
 	}
-	function weigh1000(dko3Les, otherLes, otherTeachersForSameLesName) {
-		let weight = new Weight();
-		weight.diffSubject = !dko3Les.subjects.some((t) => otherLes.subjects.includes(t));
-		weight.diffDayTime = !DayTimeSlice.equal(dko3Les.lesMoment.dayTimeSlice, otherLes.dayTimeSlice);
-		weight.diffLocation = dko3Les.location != otherLes.location;
-		let otherTeachers = otherLes.teachers;
-		if (otherTeachersForSameLesName) otherTeachers = otherTeachersForSameLesName;
-		weight.diffTeacher = !dko3Les.teachers.every((t) => otherTeachers.includes(t));
-		if (!weight.diffTeacher) weight.diffTeacher = !otherTeachers.every((t) => dko3Les.teachers.includes(t));
-		for (let otherGradeYear of otherLes.gradeYears) if (!dko3GradeYearsContain(dko3Les.gradeYears, otherGradeYear)) weight.diffGradeYears++;
-		if (otherLes.gradeYears.length != dko3Les.gradeYears.length) weight.diffGradeYears++;
-		weight.calcWeight();
-		return weight;
+}
+function excelPostoExcelAddress(row, column) {
+	return indexToExcelColumn(column) + (row + 1).toString();
+}
+function indexToExcelColumn(index) {
+	let quotient = Math.floor(index / 26);
+	if (quotient <= 0) return chars[index];
+	return indexToExcelColumn(quotient - 1) + chars[index % 26];
+}
+const chars = [
+	"A",
+	"B",
+	"C",
+	"D",
+	"E",
+	"F",
+	"G",
+	"H",
+	"I",
+	"J",
+	"K",
+	"L",
+	"M",
+	"N",
+	"O",
+	"P",
+	"Q",
+	"R",
+	"S",
+	"T",
+	"U",
+	"V",
+	"W",
+	"X",
+	"Y",
+	"Z"
+];
+//#endregion
+//#region typescript/roster_diff/calcDiff.ts
+var Dko3LesMoment = class Dko3LesMoment {
+	les;
+	lesMomenten = [];
+	dayTimeSlice;
+	momentId;
+	ignore = false;
+	constructor(les, dayTimeSlice) {
+		this.les = les;
+		this.dayTimeSlice = dayTimeSlice;
+		this.momentId = Dko3LesMoment.createLesMomentId(les, dayTimeSlice);
 	}
-	function createLesNamesMap(otherLesSet) {
-		let otherLesNamesMap = /* @__PURE__ */ new Map();
-		for (let excelLes of otherLesSet) {
-			if (!excelLes.className) continue;
-			let item = otherLesNamesMap.get(excelLes.className.toLowerCase());
-			if (!item) otherLesNamesMap.set(excelLes.className.toLowerCase(), [excelLes]);
-			else item.push(excelLes);
-		}
-		return otherLesNamesMap;
+	static createLesMomentId(les, dayTimeSlice) {
+		return les.id + "_" + DayTimeSlice.toString(dayTimeSlice);
 	}
-	function matchBasedOnName(ctx, dko3Les, otherLesSet, diffSettings) {
-		let results = [];
-		if (!ctx.otherLesNamesMap) ctx.otherLesNamesMap = createLesNamesMap(otherLesSet);
-		let dko3LesName = dko3Les.lesMoment.les.naam.trim().toLowerCase();
-		let otherLessenWithSameName = ctx.otherLesNamesMap.get(dko3LesName);
-		if (!otherLessenWithSameName) {
-			let searchName = " " + dko3LesName + " ";
-			if (!diffSettings.classNamesFromTags) return null;
-			let foundName = diffSettings.classNamesFromTags.find((name) => searchName.includes(name));
-			if (!foundName) return null;
-			for (let les of otherLesSet) if ((" " + les.className?.toLowerCase() + " ").includes(foundName)) {
-				otherLessenWithSameName = [les];
-				break;
-			}
-			if (!otherLessenWithSameName) return null;
+	getHash() {
+		return Les.getHash(this.les) + DayTimeSlice.toString(this.dayTimeSlice);
+	}
+};
+var TaggedLes = class {
+	lesMoment;
+	tags = [];
+	searchText;
+	location;
+	teachers = [];
+	subjects = [];
+	ignore;
+	gradeYears;
+	constructor(les, tags, searchText, gradeYears, ignore) {
+		this.lesMoment = les;
+		this.tags = tags;
+		this.searchText = searchText;
+		this.gradeYears = gradeYears;
+		this.ignore = ignore;
+	}
+	getHash() {
+		return this.lesMoment.getHash();
+	}
+};
+var TaggedDko3LesMoment = class extends TaggedLes {
+	constructor(lesMoment) {
+		super(lesMoment, [], "", lesMoment.les.gradeYears, lesMoment.ignore);
+		this.location = this.lesMoment.les.vestiging;
+		this.teachers = [this.lesMoment.les.teacher.replaceAll(/ \(en nog \d\)/g, "")].filter((t) => t != "");
+		this.subjects = this.lesMoment.les.vakNaam.split("+").map((txt) => txt.trim());
+		this.subjects.push(lesMoment.les.naam);
+		this.subjects = this.subjects.filter((s) => s);
+	}
+};
+var Weight = class {
+	weight = 1e3;
+	diffTeacher = false;
+	diffSubject = false;
+	diffLocation = false;
+	diffDayTime = false;
+	diffGradeYears = 0;
+	calcWeight() {
+		this.weight = 1e3;
+		if (this.diffSubject) this.weight -= 10;
+		if (this.diffDayTime) this.weight -= 10;
+		if (this.diffLocation) this.weight -= 10;
+		if (this.diffTeacher) this.weight -= 10;
+		this.weight -= this.diffGradeYears;
+	}
+};
+function matchIt(ctx, dko3LesSet, otherLesSet, diffType, diffSettings, matchFunction) {
+	let diffs = [];
+	for (let dko3Les of dko3LesSet) {
+		let result = matchFunction(ctx, dko3Les, otherLesSet, diffSettings);
+		if (result) {
+			diffs.push({
+				otherLes: result.otherLes,
+				dko3Les,
+				diffType,
+				weight: result.weight
+			});
+			dko3LesSet.delete(dko3Les);
+			otherLesSet.delete(result.otherLes);
 		}
-		if (dko3Les.lesMoment.lesMomenten.length > 1) {
-			for (let otherLes of otherLessenWithSameName) {
-				let weight = weigh1000(dko3Les, otherLes, otherLessenWithSameName.map((l) => l.teachers).flat());
-				results.push({
-					otherLes,
-					weight
-				});
-			}
-			results.sort((a, b) => b.weight.weight - a.weight.weight);
-			return results[0];
+	}
+	return diffs;
+}
+function weigh1000(dko3Les, otherLes, otherTeachersForSameLesName) {
+	let weight = new Weight();
+	weight.diffSubject = !dko3Les.subjects.some((t) => otherLes.subjects.includes(t));
+	weight.diffDayTime = !DayTimeSlice.equal(dko3Les.lesMoment.dayTimeSlice, otherLes.dayTimeSlice);
+	weight.diffLocation = dko3Les.location != otherLes.location;
+	let otherTeachers = otherLes.teachers;
+	if (otherTeachersForSameLesName) otherTeachers = otherTeachersForSameLesName;
+	weight.diffTeacher = !dko3Les.teachers.every((t) => otherTeachers.includes(t));
+	if (!weight.diffTeacher) weight.diffTeacher = !otherTeachers.every((t) => dko3Les.teachers.includes(t));
+	for (let otherGradeYear of otherLes.gradeYears) if (!dko3GradeYearsContain(dko3Les.gradeYears, otherGradeYear)) weight.diffGradeYears++;
+	if (otherLes.gradeYears.length != dko3Les.gradeYears.length) weight.diffGradeYears++;
+	weight.calcWeight();
+	return weight;
+}
+function createLesNamesMap(otherLesSet) {
+	let otherLesNamesMap = /* @__PURE__ */ new Map();
+	for (let excelLes of otherLesSet) {
+		if (!excelLes.className) continue;
+		let item = otherLesNamesMap.get(excelLes.className.toLowerCase());
+		if (!item) otherLesNamesMap.set(excelLes.className.toLowerCase(), [excelLes]);
+		else item.push(excelLes);
+	}
+	return otherLesNamesMap;
+}
+function matchBasedOnName(ctx, dko3Les, otherLesSet, diffSettings) {
+	let results = [];
+	if (!ctx.otherLesNamesMap) ctx.otherLesNamesMap = createLesNamesMap(otherLesSet);
+	let dko3LesName = dko3Les.lesMoment.les.naam.trim().toLowerCase();
+	let otherLessenWithSameName = ctx.otherLesNamesMap.get(dko3LesName);
+	if (!otherLessenWithSameName) {
+		let searchName = " " + dko3LesName + " ";
+		if (!diffSettings.classNamesFromTags) return null;
+		let foundName = diffSettings.classNamesFromTags.find((name) => searchName.includes(name));
+		if (!foundName) return null;
+		for (let les of otherLesSet) if ((" " + les.className?.toLowerCase() + " ").includes(foundName)) {
+			otherLessenWithSameName = [les];
+			break;
 		}
+		if (!otherLessenWithSameName) return null;
+	}
+	if (dko3Les.lesMoment.lesMomenten.length > 1) {
 		for (let otherLes of otherLessenWithSameName) {
-			let weight = weigh1000(dko3Les, otherLes);
+			let weight = weigh1000(dko3Les, otherLes, otherLessenWithSameName.map((l) => l.teachers).flat());
 			results.push({
 				otherLes,
 				weight
@@ -3820,3190 +4571,3200 @@
 		results.sort((a, b) => b.weight.weight - a.weight.weight);
 		return results[0];
 	}
-	function perfectMatch(ctx, dko3Les, otherLesSet, diffSettings) {
-		for (let excelLes of otherLesSet) {
-			let weight = weigh1000(dko3Les, excelLes, void 0);
-			if (weight.weight == 1e3) return {
-				otherLes: excelLes,
-				weight
-			};
-		}
-		return null;
+	for (let otherLes of otherLessenWithSameName) {
+		let weight = weigh1000(dko3Les, otherLes);
+		results.push({
+			otherLes,
+			weight
+		});
 	}
-	function matchWithoutGradeYears(ctx, dko3Les, otherLesSet, diffSettings) {
-		for (let excelLes of otherLesSet) {
-			let weight = weigh1000(dko3Les, excelLes, void 0);
-			if (weight.diffSubject) continue;
-			if (weight.diffDayTime) continue;
-			if (weight.diffLocation) continue;
-			if (weight.diffTeacher) continue;
-			return {
-				otherLes: excelLes,
-				weight
-			};
-		}
-		return null;
+	results.sort((a, b) => b.weight.weight - a.weight.weight);
+	return results[0];
+}
+function perfectMatch(ctx, dko3Les, otherLesSet, diffSettings) {
+	for (let excelLes of otherLesSet) {
+		let weight = weigh1000(dko3Les, excelLes, void 0);
+		if (weight.weight == 1e3) return {
+			otherLes: excelLes,
+			weight
+		};
 	}
-	function matchWithoutGradeYearsTeacher(ctx, dko3Les, otherLesSet, diffSettings) {
-		for (let excelLes of otherLesSet) {
-			let weight = weigh1000(dko3Les, excelLes, void 0);
-			if (weight.diffSubject) continue;
-			if (weight.diffDayTime) continue;
-			if (weight.diffLocation) continue;
-			return {
-				otherLes: excelLes,
-				weight
-			};
-		}
-		return null;
+	return null;
+}
+function matchWithoutGradeYears(ctx, dko3Les, otherLesSet, diffSettings) {
+	for (let excelLes of otherLesSet) {
+		let weight = weigh1000(dko3Les, excelLes, void 0);
+		if (weight.diffSubject) continue;
+		if (weight.diffDayTime) continue;
+		if (weight.diffLocation) continue;
+		if (weight.diffTeacher) continue;
+		return {
+			otherLes: excelLes,
+			weight
+		};
 	}
-	function matchWithoutLocation(ctx, dko3Les, otherLesSet, diffSettings) {
-		for (let excelLes of otherLesSet) {
-			let weight = weigh1000(dko3Les, excelLes, void 0);
-			if (weight.diffSubject) continue;
-			if (weight.diffDayTime) continue;
-			if (weight.diffTeacher) continue;
-			if (weight.diffGradeYears != 0) continue;
-			return {
-				otherLes: excelLes,
-				weight
-			};
-		}
-		return null;
+	return null;
+}
+function matchWithoutGradeYearsTeacher(ctx, dko3Les, otherLesSet, diffSettings) {
+	for (let excelLes of otherLesSet) {
+		let weight = weigh1000(dko3Les, excelLes, void 0);
+		if (weight.diffSubject) continue;
+		if (weight.diffDayTime) continue;
+		if (weight.diffLocation) continue;
+		return {
+			otherLes: excelLes,
+			weight
+		};
 	}
-	function matchWithoutTimeAndDay(ctx, dko3Les, otherLesSet, diffSettings) {
-		for (let excelLes of otherLesSet) {
-			let weight = weigh1000(dko3Les, excelLes, void 0);
-			if (weight.diffSubject) continue;
-			if (weight.diffLocation) continue;
-			if (weight.diffTeacher) continue;
-			if (weight.diffGradeYears != 0) continue;
-			return {
-				otherLes: excelLes,
-				weight
-			};
-		}
-		return null;
+	return null;
+}
+function matchWithoutLocation(ctx, dko3Les, otherLesSet, diffSettings) {
+	for (let excelLes of otherLesSet) {
+		let weight = weigh1000(dko3Les, excelLes, void 0);
+		if (weight.diffSubject) continue;
+		if (weight.diffDayTime) continue;
+		if (weight.diffTeacher) continue;
+		if (weight.diffGradeYears != 0) continue;
+		return {
+			otherLes: excelLes,
+			weight
+		};
 	}
-	function matchWithoutTeacherTimeAndDay(ctx, dko3Les, otherLesSet, diffSettings) {
-		for (let excelLes of otherLesSet) {
-			let weight = weigh1000(dko3Les, excelLes, void 0);
-			if (weight.diffSubject) continue;
-			if (weight.diffLocation) continue;
-			if (weight.diffGradeYears != 0) continue;
-			return {
-				otherLes: excelLes,
-				weight
-			};
-		}
-		return null;
+	return null;
+}
+function matchWithoutTimeAndDay(ctx, dko3Les, otherLesSet, diffSettings) {
+	for (let excelLes of otherLesSet) {
+		let weight = weigh1000(dko3Les, excelLes, void 0);
+		if (weight.diffSubject) continue;
+		if (weight.diffLocation) continue;
+		if (weight.diffTeacher) continue;
+		if (weight.diffGradeYears != 0) continue;
+		return {
+			otherLes: excelLes,
+			weight
+		};
 	}
-	function matchWithoutTeacher(ctx, dko3Les, otherLesSet, diffSettings) {
-		for (let excelLes of otherLesSet) {
-			let weight = weigh1000(dko3Les, excelLes, void 0);
-			if (weight.diffSubject) continue;
-			if (weight.diffDayTime) continue;
-			if (weight.diffLocation) continue;
-			if (weight.diffGradeYears != 0) continue;
-			return {
-				otherLes: excelLes,
-				weight
-			};
-		}
-		return null;
+	return null;
+}
+function matchWithoutTeacherTimeAndDay(ctx, dko3Les, otherLesSet, diffSettings) {
+	for (let excelLes of otherLesSet) {
+		let weight = weigh1000(dko3Les, excelLes, void 0);
+		if (weight.diffSubject) continue;
+		if (weight.diffLocation) continue;
+		if (weight.diffGradeYears != 0) continue;
+		return {
+			otherLes: excelLes,
+			weight
+		};
 	}
-	function dko3GradeYearsContain(dko3GradeYears, otherGradeYear) {
-		for (let dko3GradeYear of dko3GradeYears) if (GradeYear.matches(otherGradeYear, dko3GradeYear)) return true;
-		return false;
+	return null;
+}
+function matchWithoutTeacher(ctx, dko3Les, otherLesSet, diffSettings) {
+	for (let excelLes of otherLesSet) {
+		let weight = weigh1000(dko3Les, excelLes, void 0);
+		if (weight.diffSubject) continue;
+		if (weight.diffDayTime) continue;
+		if (weight.diffLocation) continue;
+		if (weight.diffGradeYears != 0) continue;
+		return {
+			otherLes: excelLes,
+			weight
+		};
 	}
-	//#endregion
-	//#region typescript/lessen/convert.ts
-	var BlockInfo = class BlockInfo {
-		static blockCounter = 0;
-		static allBlocks = [];
-		id;
-		teacher;
-		instrumentName;
-		maxAantal;
-		formattedLesmoment;
-		vestiging;
-		trimesters;
-		jaarModules;
-		tags;
-		errors;
-		offline;
-		mergedBlocks;
-		static clearAllBlocks() {
-			BlockInfo.allBlocks = [];
-			BlockInfo.blockCounter = 0;
-		}
-		static getBlock(id) {
-			return BlockInfo.allBlocks[id];
-		}
-		static getAllBlocks() {
-			return BlockInfo.allBlocks;
-		}
-		constructor() {
-			this.id = BlockInfo.blockCounter++;
-			BlockInfo.allBlocks.push(this);
-			this.teacher = void 0;
-			this.instrumentName = void 0;
-			this.maxAantal = -1;
-			this.formattedLesmoment = void 0;
-			this.vestiging = void 0;
-			this.trimesters = [
-				[],
-				[],
-				[]
-			];
-			this.jaarModules = [];
-			this.tags = [];
-			this.errors = "";
-			this.offline = false;
-			this.mergedBlocks = [];
-		}
-		hasSomeOfflineLessen() {
-			return this.alleLessen().some((les) => les.online === false);
-		}
-		hasMissingTeachers() {
-			return this.alleLessen().some((les) => les.teacher === "(geen klasleerkracht)");
-		}
-		hasMissingMax() {
-			return this.alleLessen().some((les) => les.maxAantal > 100);
-		}
-		hasFullClasses() {
-			return this.alleLessen().some((les) => les.aantal >= les.maxAantal);
-		}
-		hasWaitingList() {
-			console.log("HAS WAITING LIST FILTER");
-			console.log(this.alleLessen().map((les) => les.wachtlijst));
-			return this.alleLessen().some((les) => les.wachtlijst != 0);
-		}
-		hasOnlineAlcClasses() {
-			return this.alleLessen().some((les) => les.online && les.alc);
-		}
-		hasWarningLessons() {
-			return this.alleLessen().some((les) => les.warnings.length > 0);
-		}
-		alleLessen() {
-			return this.trimesters.flat().filter((les) => les).concat(this.jaarModules);
-		}
-		mergeBlock(block) {
-			this.mergedBlocks.push(block);
-			this.jaarModules.push(...block.jaarModules);
-			for (let trimNo of [
-				0,
-				1,
-				2
-			]) this.trimesters[trimNo].push(...block.trimesters[trimNo]);
-			this.errors += block.errors;
-			return this;
-		}
-		containsId(id) {
-			if (this.id === id) return true;
-			return this.mergedBlocks.some((b) => b.containsId(id));
-		}
-		getIds() {
-			return this.mergedBlocks.map((b) => b.id).concat(this.id);
-		}
-		updateMergedBlock() {
-			let allLessen = this.alleLessen();
-			this.formattedLesmoment = [...new Set(allLessen.filter((les) => les).map((les) => les.formattedLesmoment))].join(", ");
-			this.teacher = [...new Set(allLessen.filter((les) => les).map((les) => les.teacher))].join(", ");
-			this.vestiging = [...new Set(allLessen.filter((les) => les).map((les) => les.vestiging))].join(", ");
-			this.instrumentName = [...new Set(allLessen.filter((les) => les).map((les) => les.instrumentName))].join(", ");
-			this.tags = distinct(allLessen.filter((les) => les).map((les) => les.tags).flat()).map((tagName) => {
-				return {
-					name: tagName,
-					partial: false
-				};
-			});
-			for (let tag of this.tags) tag.partial = !allLessen.every((les) => les.tags.includes(tag.name));
-			this.offline = allLessen.some((les) => !les.online);
-		}
-		checkBlockForErrors() {
-			let maxMoreThan100 = this.jaarModules.map((module) => module.maxAantal > 100).includes(true);
-			if (!maxMoreThan100) maxMoreThan100 = this.trimesters.flat().map((module) => module?.maxAantal > 100).includes(true);
-			if (maxMoreThan100) this.errors += "Max aantal lln > 100";
-		}
-	};
-	function buildTrimesters(instrumentTeacherMomentModules) {
-		let mergedInstrument = [
+	return null;
+}
+function dko3GradeYearsContain(dko3GradeYears, otherGradeYear) {
+	for (let dko3GradeYear of dko3GradeYears) if (GradeYear.matches(otherGradeYear, dko3GradeYear)) return true;
+	return false;
+}
+//#endregion
+//#region typescript/lessen/convert.ts
+var BlockInfo = class BlockInfo {
+	static blockCounter = 0;
+	static allBlocks = [];
+	id;
+	teacher;
+	instrumentName;
+	maxAantal;
+	formattedLesmoment;
+	vestiging;
+	trimesters;
+	jaarModules;
+	tags;
+	errors;
+	offline;
+	mergedBlocks;
+	static clearAllBlocks() {
+		BlockInfo.allBlocks = [];
+		BlockInfo.blockCounter = 0;
+	}
+	static getBlock(id) {
+		return BlockInfo.allBlocks[id];
+	}
+	static getAllBlocks() {
+		return BlockInfo.allBlocks;
+	}
+	constructor() {
+		this.id = BlockInfo.blockCounter++;
+		BlockInfo.allBlocks.push(this);
+		this.teacher = void 0;
+		this.instrumentName = void 0;
+		this.maxAantal = -1;
+		this.formattedLesmoment = void 0;
+		this.vestiging = void 0;
+		this.trimesters = [
 			[],
 			[],
 			[]
 		];
-		instrumentTeacherMomentModules.filter((module) => module.lesType === 0).forEach((module) => {
-			mergedInstrument[module.trimesterNo - 1].push(module);
-		});
-		return mergedInstrument;
+		this.jaarModules = [];
+		this.tags = [];
+		this.errors = "";
+		this.offline = false;
+		this.mergedBlocks = [];
 	}
-	function getLesmomenten(modules) {
-		let lesMomenten = modules.map((module) => module.formattedLesmoment);
-		return [...new Set(lesMomenten)];
+	hasSomeOfflineLessen() {
+		return this.alleLessen().some((les) => les.online === false);
 	}
-	function getMaxAantal(modules) {
-		return modules.map((module) => module.maxAantal).reduce((prev, next) => {
-			return prev < next ? next : prev;
-		});
+	hasMissingTeachers() {
+		return this.alleLessen().some((les) => les.teacher === "(geen klasleerkracht)");
 	}
-	function getVestigingen(modules) {
-		let vestigingen = modules.map((module) => module.vestiging);
-		return [...new Set(vestigingen)].toString();
+	hasMissingMax() {
+		return this.alleLessen().some((les) => les.maxAantal > 100);
 	}
-	function prepareLesmomenten(inputModules) {
-		let reLesMoment;
-		for (let module of inputModules) {
-			if (module.lesmoment === "(geen volgende les)" || module.lesmoment === "(geen lesmomenten)") {
-				module.formattedLesmoment = module.lesmoment;
-				continue;
-			}
-			if (module.lesmoment.startsWith("volgende les")) reLesMoment = /volgende les: (\w\w) (?:\d+\/\d+ )?(\d\d:\d\d)-(\d\d:\d\d).*/;
-			else reLesMoment = /.*(\w\w) (?:\d+\/\d+ )?(\d\d:\d\d)-(\d\d:\d\d).*/;
-			let matches = module.lesmoment.match(reLesMoment);
-			if (!matches) {
-				module.formattedLesmoment = "???";
-				continue;
-			}
-			if (matches?.length !== 4) {
-				console.error(`Could not process lesmoment "${module.lesmoment}" for instrument "${module.instrumentName}".`);
-				module.formattedLesmoment = "???";
-			} else module.formattedLesmoment = matches[1] + " " + matches[2] + "-" + matches[3];
-			module.formattedLesmoment = matches[1] + " " + matches[2] + "-" + matches[3];
-		}
+	hasFullClasses() {
+		return this.alleLessen().some((les) => les.aantal >= les.maxAantal);
 	}
-	function setStudentPopupInfo(student) {
-		student.info = "";
-		if (!student.trimesterInstruments) return;
-		for (let instrs of student.trimesterInstruments) if (instrs.length) student.info += instrs[0].trimesterNo + ". " + instrs.map((instr) => instr.instrumentName) + "\n";
-		else student.info += "?. ---\n";
+	hasWaitingList() {
+		console.log("HAS WAITING LIST FILTER");
+		console.log(this.alleLessen().map((les) => les.wachtlijst));
+		return this.alleLessen().some((les) => les.wachtlijst != 0);
 	}
-	function setStudentAllTrimsTheSameInstrument(student) {
-		if (!student.trimesterInstruments) return;
-		let instruments = student.trimesterInstruments.flat();
-		if (instruments.length < 3) {
-			student.allYearSame = false;
-			return;
-		}
-		student.allYearSame = instruments.every((instr) => instr.instrumentName === (student?.trimesterInstruments[0][0]?.instrumentName ?? "---"));
+	hasOnlineAlcClasses() {
+		return this.alleLessen().some((les) => les.online && les.alc);
 	}
-	function setStudentNoInstrumentForAllTrims(student) {
-		if ((student.jaarInstruments?.length ?? 0) > 0 && student.trimesterInstruments?.flat()?.length == 0) return;
-		if (!student.trimesterInstruments) return;
-		student.notAllTrimsHaveAnInstrument = false;
-		for (let trim of student.trimesterInstruments) if (trim.length == 0) student.notAllTrimsHaveAnInstrument = true;
+	hasWarningLessons() {
+		return this.alleLessen().some((les) => les.warnings.length > 0);
 	}
-	function buildTableData(inputModules) {
-		prepareLesmomenten(inputModules);
-		let tableData = {
-			students: /* @__PURE__ */ new Map(),
-			instruments: /* @__PURE__ */ new Map(),
-			teachers: /* @__PURE__ */ new Map(),
-			blocks: []
-		};
-		BlockInfo.clearAllBlocks();
-		let instruments = distinct(inputModules.map((module) => module.instrumentName));
-		for (let instrumentName of instruments) {
-			let instrumentModules = inputModules.filter((module) => module.instrumentName === instrumentName);
-			let teachers = distinct(instrumentModules.map((module) => module.teacher));
-			for (let teacher of teachers) {
-				let instrumentTeacherModules = instrumentModules.filter((module) => module.teacher === teacher);
-				let lesmomenten = distinct(getLesmomenten(instrumentTeacherModules));
-				for (let lesmoment of lesmomenten) {
-					let instrumentTeacherMomentModules = instrumentTeacherModules.filter((module) => module.formattedLesmoment === lesmoment);
-					let block = new BlockInfo();
-					block.instrumentName = instrumentName;
-					block.teacher = teacher;
-					block.formattedLesmoment = lesmoment;
-					block.maxAantal = getMaxAantal(instrumentTeacherMomentModules);
-					block.vestiging = getVestigingen(instrumentTeacherMomentModules);
-					block.tags = distinct(instrumentTeacherMomentModules.map((les) => les.tags).flat()).map((tagName) => {
-						return {
-							name: tagName,
-							partial: !tagFoundInAllModules(tagName, instrumentTeacherMomentModules)
-						};
-					});
-					block.trimesters = buildTrimesters(instrumentTeacherMomentModules);
-					block.jaarModules = instrumentTeacherMomentModules.filter((module) => module.lesType === 1);
-					block.offline = instrumentTeacherMomentModules.some((module) => !module.online);
-					block.checkBlockForErrors();
-					tableData.blocks.push(block);
-					for (let trim of block.trimesters) addTrimesterStudentsToMapAndCount(tableData.students, trim);
-					for (let jaarModule of block.jaarModules) addJaarStudentsToMapAndCount(tableData.students, jaarModule);
-				}
-			}
-		}
-		for (let student of tableData.students.values()) {
-			setStudentPopupInfo(student);
-			setStudentAllTrimsTheSameInstrument(student);
-			setStudentNoInstrumentForAllTrims(student);
-		}
-		let instrumentNames = distinct(tableData.blocks.map((b) => b.instrumentName)).sort((a, b) => {
-			return a.localeCompare(b);
-		});
-		for (let instr of instrumentNames) tableData.instruments.set(instr, {
-			name: instr,
-			blocks: [],
-			mergedBlocks: /* @__PURE__ */ new Map(),
-			lesMomenten: /* @__PURE__ */ new Map()
-		});
-		for (let block of tableData.blocks) tableData.instruments.get(block.instrumentName).blocks.push(block);
-		let teachers = distinct(tableData.blocks.map((b) => b.teacher)).sort((a, b) => {
-			return a.localeCompare(b);
-		});
-		for (let t of teachers) tableData.teachers.set(t, {
-			name: t,
-			blocks: [],
-			mergedBlocks: /* @__PURE__ */ new Map(),
-			lesMomenten: /* @__PURE__ */ new Map()
-		});
-		for (let block of tableData.blocks) tableData.teachers.get(block.teacher).blocks.push(block);
-		groupBlocksTwoLevels(tableData.teachers.values(), (block) => block.formattedLesmoment, (primary, secundary) => {
-			primary.lesMomenten = secundary;
-		});
-		groupBlocksTwoLevels(tableData.instruments.values(), (block) => block.formattedLesmoment, (primary, secundary) => {
-			primary.lesMomenten = secundary;
-		});
-		groupBlocks(tableData.teachers.values(), (block) => block.teacher);
-		groupBlocks(tableData.instruments.values(), (block) => block.instrumentName);
-		return tableData;
+	alleLessen() {
+		return this.trimesters.flat().filter((les) => les).concat(this.jaarModules);
 	}
-	function tagFoundInAllModules(tag, modules) {
-		for (let module of modules) if (!module.tags.includes(tag)) return false;
-		return true;
-	}
-	function groupBlocksTwoLevels(primaryGroups, getSecondaryKey, setSecondaryGroup) {
-		for (let primary of primaryGroups) {
-			let blocks = primary.blocks;
-			let secondaryKeys = distinct(blocks.map(getSecondaryKey));
-			let secondaryGroup = new Map(secondaryKeys.map((key) => [key, new BlockInfo()]));
-			for (let block of blocks) secondaryGroup.get(getSecondaryKey(block)).mergeBlock(block);
-			secondaryGroup.forEach((block) => {
-				block.updateMergedBlock();
-			});
-			setSecondaryGroup(primary, secondaryGroup);
-		}
-	}
-	function groupBlocks(primaryGroups, getPrimaryKey) {
-		for (let primary of primaryGroups) {
-			let blocks = primary.blocks;
-			let keys = distinct(blocks.map(getPrimaryKey));
-			primary.mergedBlocks = new Map(keys.map((key) => [key, new BlockInfo()]));
-			for (let block of blocks) primary.mergedBlocks.get(getPrimaryKey(block)).mergeBlock(block);
-			primary.mergedBlocks.forEach((block) => {
-				block.updateMergedBlock();
-			});
-		}
-	}
-	function addTrimesterStudentsToMapAndCount(allStudents, blockTrimModules) {
-		for (let blockTrimModule of blockTrimModules) {
-			if (!blockTrimModule) continue;
-			for (let student of blockTrimModule.students) {
-				if (!allStudents.has(student.name)) {
-					student.trimesterInstruments = [
-						[],
-						[],
-						[]
-					];
-					allStudents.set(student.name, student);
-				}
-				allStudents.get(student.name).trimesterInstruments[blockTrimModule.trimesterNo - 1].push(blockTrimModule);
-			}
-			blockTrimModule.students = blockTrimModule.students.map((student) => allStudents.get(student.name));
-		}
-	}
-	function addJaarStudentsToMapAndCount(students, jaarModule) {
-		if (!jaarModule) return;
-		for (let student of jaarModule.students) {
-			if (!students.has(student.name)) students.set(student.name, student);
-			let stud = students.get(student.name);
-			if (!stud.jaarInstruments) stud.jaarInstruments = [];
-			stud.jaarInstruments.push(jaarModule);
-		}
-		jaarModule.students = jaarModule.students.map((student) => students.get(student.name));
-	}
-	function mergeBlockStudents(block) {
-		let jaarStudents = block.jaarModules.map((les) => les.students).flat();
-		let trimesterStudents = [
-			block.trimesters[0].map((les) => les?.students ?? []).flat(),
-			block.trimesters[1].map((les) => les?.students ?? []).flat(),
-			block.trimesters[2].map((les) => les?.students ?? []).flat()
-		];
-		let maxAantallen = block.trimesters.map((trimLessen) => {
-			if (trimLessen.length === 0) return 0;
-			return trimLessen.map((les) => les?.maxAantal ?? 0).map((maxAantal) => maxAantal > 100 ? 4 : maxAantal).reduce((a, b) => a + b);
-		});
-		let blockNeededRows = Math.max(...maxAantallen, ...trimesterStudents.map((stud) => stud.length + jaarStudents.length));
-		let wachtlijsten = block.trimesters.map((trimLessen) => {
-			if (trimLessen.length === 0) return 0;
-			return trimLessen.map((les) => les?.wachtlijst ?? 0).reduce((a, b) => a + b);
-		});
-		let hasWachtlijst = wachtlijsten.some((wachtLijst) => wachtLijst > 0);
-		if (hasWachtlijst) blockNeededRows++;
-		let maxJaarStudentCount = block.jaarModules.map((mod) => mod.maxAantal).reduce((a, b) => Math.max(a, b), 0);
-		return {
-			jaarStudents,
-			trimesterStudents,
-			maxAantallen,
-			blockNeededRows,
-			wachtlijsten,
-			hasWachtlijst,
-			maxJaarStudentCount
-		};
-	}
-	function createLesFromToewijzing(instrument, toewijzing) {
-		let teacher = toewijzing.klasleerkracht == "" ? `toe te wijzen lk ${instrument}` : toewijzing.klasleerkracht;
-		return new Les("", 1, instrument, teacher, toewijzing.lesmoment, 999, 0, "Willem van Laarstraat", [], true, 0, false, toewijzing.lesmoment, `Initiatie ${instrument} - jaartraject - ${teacher}`, [], toewijzing.vak, []);
-	}
-	function createStudentFromToewijzing(toewijzing) {
-		let student = new StudentInfo(toewijzing.naam + ", " + toewijzing.voornaam, toewijzing.naam, toewijzing.voornaam, toewijzing.graadJaar);
-		let matchesId = /\s*id\s*=\s*(\d+)/gm.exec(toewijzing.vak);
-		student.id = parseInt(matchesId?.[1] ?? "0");
-		student.allYearSame = true;
-		student.notAllTrimsHaveAnInstrument = false;
-		student.info = "";
-		student.jaarInstruments = [];
-		student.trimesterInstruments = void 0;
-		return student;
-	}
-	function connvertToewijzingenToModules(jaarToewijzingen) {
-		let modules = /* @__PURE__ */ new Map();
-		for (let toewijzing of jaarToewijzingen) {
-			let instrument = /instrumentinitiatie – hele jaar zelfde instrument - (.*)/gm.exec(toewijzing.vak)?.[1] ?? "";
-			let les;
-			if (modules.has(instrument + "-" + toewijzing.klasleerkracht + "-" + toewijzing.lesmoment)) les = modules.get(instrument + "-" + toewijzing.klasleerkracht + "-" + toewijzing.lesmoment);
-			else {
-				les = createLesFromToewijzing(instrument, toewijzing);
-				modules.set(instrument + "-" + toewijzing.klasleerkracht + "-" + toewijzing.lesmoment, les);
-			}
-			let student = createStudentFromToewijzing(toewijzing);
-			les.students.push(student);
-		}
-		modules.forEach((les) => les.aantal = les.maxAantal = les.students.length);
-		return modules;
-	}
-	//#endregion
-	//#region typescript/lessen/build.ts
-	const NBSP = 160;
-	function getDefaultPageSettings() {
-		return {
-			pageName: "Lessen",
-			nameSorting: 1,
-			grouping: 1,
-			searchText: "",
-			filterOffline: false,
-			filterOnline: false,
-			filterNoTeacher: false,
-			filterNoMax: false,
-			filterFullClass: false,
-			filterOnlineAlc: false,
-			filterWarnings: false,
-			filterWaitingList: false
-		};
-	}
-	let pageState = getDefaultPageSettings();
-	function setSavedNameSorting(sorting) {
-		pageState.nameSorting = sorting;
-		savePageSettings(pageState);
-	}
-	function getSavedNameSorting() {
-		pageState = getPageSettings("Lessen", pageState);
-		return pageState.nameSorting;
-	}
-	function buildTrimesterTable(tableData, trimElements) {
-		pageState = getPageSettings("Lessen", pageState);
-		tableData.blocks.sort((block1, block2) => block1.instrumentName.localeCompare(block2.instrumentName));
-		trimElements.trimTableDiv = document.getElementById(TRIM_DIV_ID);
-		let newTable = emmet.appendChild(trimElements.trimTableDiv, `table#trimesterTable[border="2" style.width="100%"]>colgroup>col*3`).first;
-		trimElements.trimTableDiv.dataset.showFullClass = isButtonHighlighted("fullClassButton") ? "true" : "false";
-		let trHeader = emmet.appendChild(newTable, "tbody+thead.table-secondary>tr").last;
-		Object.assign(trimElements, getTrimPageElements());
-		let newTableBody = newTable.querySelector("tbody");
-		let totTrim = [
-			0,
-			0,
-			0
-		];
-		for (let block of tableData.blocks) {
-			let totJaar = block.jaarModules.map((mod) => mod.students.length).reduce((prev, curr) => prev + curr, 0);
-			for (let trimNo of [
-				0,
-				1,
-				2
-			]) totTrim[trimNo] += totJaar + (block.trimesters[trimNo][0]?.students?.length ?? 0);
-		}
-		emmet.append(trHeader, "(th>div>span.bold{Trimester $}+span.plain{ ($$ lln)})*3", (index) => totTrim[index].toString());
-		switch (pageState.grouping) {
-			case 1:
-				for (let [instrumentName, instrument] of tableData.instruments) buildGroup(newTableBody, instrument.blocks, instrumentName, (block) => block.teacher, 10);
-				break;
-			case 0:
-				for (let [teacherName, teacher] of tableData.teachers) buildGroup(newTableBody, teacher.blocks, teacherName, (block) => block.instrumentName, 10);
-				break;
-			case 2:
-				for (let [teacherName, teacher] of tableData.teachers) {
-					buildTitleRow(newTableBody, teacherName);
-					for (let [hour, block] of teacher.lesMomenten) buildBlock(newTableBody, block, teacherName, (_block) => hour, 8);
-				}
-				break;
-			case 3:
-				for (let [instrumentName, instrument] of tableData.instruments) {
-					buildTitleRow(newTableBody, instrumentName);
-					for (let [hour, block] of instrument.lesMomenten) buildBlock(newTableBody, block, instrumentName, (_block) => hour, 8);
-				}
-				break;
-			case 4:
-				for (let [instrumentName, instrument] of tableData.instruments) {
-					buildTitleRow(newTableBody, instrumentName);
-					for (let [, block] of instrument.mergedBlocks) buildBlock(newTableBody, block, instrumentName, void 0, 11);
-				}
-				break;
-			case 5: for (let [teacherName, teacher] of tableData.teachers) {
-				buildTitleRow(newTableBody, teacherName);
-				for (let [, block] of teacher.mergedBlocks) buildBlock(newTableBody, block, teacherName, void 0, 14);
-			}
-		}
-	}
-	function buildGroup(newTableBody, blocks, groupId, getBlockTitle, displayOptions) {
-		buildTitleRow(newTableBody, groupId);
-		for (let block of blocks) buildBlock(newTableBody, block, groupId, getBlockTitle, displayOptions);
-	}
-	function createStudentRow(tableBody, rowClass, groupId, blockId) {
-		let row = createLesRow(groupId, blockId);
-		tableBody.appendChild(row);
-		row.classList.add(rowClass);
-		row.dataset.hasFullClass = "false";
-		return row;
-	}
-	function buildBlock(newTableBody, block, groupId, getBlockTitle, displayOptions) {
-		let mergedBlockStudents = mergeBlockStudents(block);
-		let trimesterHeaders = [
-			0,
-			1,
-			2
-		].map((trimNo) => {
-			if (mergedBlockStudents.trimesterStudents[trimNo].length < 5 && mergedBlockStudents.maxAantallen[trimNo] < 5) return "";
-			return `${mergedBlockStudents.trimesterStudents[trimNo].length + mergedBlockStudents.jaarStudents.length} van ${mergedBlockStudents.maxAantallen[trimNo]} lln`;
-		});
-		let trTitle = buildBlockTitle(newTableBody, block, getBlockTitle, groupId);
-		let headerRows = buildBlockHeader(newTableBody, block, groupId, trimesterHeaders, displayOptions);
-		let studentTopRowNo = newTableBody.children.length;
-		let filledRowCount = 0;
-		sortStudents(mergedBlockStudents.jaarStudents);
-		for (let student of mergedBlockStudents.jaarStudents) {
-			let row = createStudentRow(newTableBody, "jaarRow", groupId, block.id);
-			for (let trimNo = 0; trimNo < 3; trimNo++) {
-				let cell = buildStudentCell(student);
-				row.appendChild(cell);
-				cell.classList.add("jaarStudent");
-				if (filledRowCount >= mergedBlockStudents.maxAantallen[trimNo]) cell.classList.add("gray");
-			}
-			filledRowCount++;
-		}
-		let hasFullClass = false;
-		for (let rowNo = 0; filledRowCount < mergedBlockStudents.blockNeededRows; rowNo++) {
-			let row = createStudentRow(newTableBody, "trimesterRow", groupId, block.id);
-			for (let trimNo = 0; trimNo < 3; trimNo++) {
-				let trimester = mergedBlockStudents.trimesterStudents[trimNo];
-				sortStudents(trimester);
-				let student = void 0;
-				if (trimester) {
-					student = trimester[rowNo];
-					let maxTrimStudentCount = Math.max(mergedBlockStudents.maxAantallen[trimNo], mergedBlockStudents.maxJaarStudentCount);
-					if (trimester.length > 0 && trimester.length >= maxTrimStudentCount) {
-						row.dataset.hasFullClass = "true";
-						hasFullClass = true;
-					}
-				}
-				let cell = buildStudentCell(student);
-				row.appendChild(cell);
-				cell.classList.add("trimesterStudent");
-				if (filledRowCount >= mergedBlockStudents.maxAantallen[trimNo]) cell.classList.add("gray");
-				if (student?.trimesterInstruments) {
-					if (student?.trimesterInstruments[trimNo].length > 1) cell.classList.add("yellowMarker");
-				}
-			}
-			filledRowCount++;
-		}
-		if (hasFullClass) {
-			if (trTitle) trTitle.dataset.hasFullClass = "true";
-			headerRows.trModuleLinks.dataset.hasFullClass = "true";
-		}
-		if (!mergedBlockStudents.hasWachtlijst) return;
+	mergeBlock(block) {
+		this.mergedBlocks.push(block);
+		this.jaarModules.push(...block.jaarModules);
 		for (let trimNo of [
 			0,
 			1,
 			2
-		]) {
-			let row = newTableBody.children[newTableBody.children.length - 1];
-			row.classList.add("wachtlijst");
-			let cell = row.children[trimNo];
-			if (mergedBlockStudents.wachtlijsten[trimNo] === 0) continue;
-			const small = document.createElement("small");
-			cell.appendChild(small);
-			small.appendChild(document.createTextNode(`(${mergedBlockStudents.wachtlijsten[trimNo]} op wachtlijst)`));
-			small.classList.add("text-danger");
-			if (mergedBlockStudents.wachtlijsten[trimNo] > 0 && mergedBlockStudents.trimesterStudents[trimNo].length < mergedBlockStudents.maxAantallen[trimNo]) {
-				cell.querySelector("small").classList.add("yellowMarker");
-				newTableBody.children[studentTopRowNo + mergedBlockStudents.trimesterStudents[trimNo].length].children[trimNo].classList.add("yellowMarker");
-			}
-		}
+		]) this.trimesters[trimNo].push(...block.trimesters[trimNo]);
+		this.errors += block.errors;
+		return this;
 	}
-	function createLesRow(groupId, blockId) {
-		let tr = document.createElement("tr");
-		tr.dataset.blockId = "" + blockId;
-		if (blockId != void 0) tr.dataset.groupId = groupId;
-		else tr.dataset.blockId = "groupTitle";
-		return tr;
+	containsId(id) {
+		if (this.id === id) return true;
+		return this.mergedBlocks.some((b) => b.containsId(id));
 	}
-	function buildTitleRow(newTableBody, title) {
-		const trTitle = createLesRow(title, void 0);
-		newTableBody.appendChild(trTitle);
-		trTitle.classList.add("blockRow", "groupHeader");
-		trTitle.dataset.groupId = title;
-		const tdTitle = document.createElement("td");
-		trTitle.appendChild(tdTitle);
-		tdTitle.classList.add("titleCell");
-		tdTitle.setAttribute("colspan", "3");
-		let divTitle = document.createElement("div");
-		tdTitle.appendChild(divTitle);
-		divTitle.classList.add("blockTitle");
-		divTitle.appendChild(document.createTextNode(title));
-		return {
-			trTitle,
-			divTitle
-		};
+	getIds() {
+		return this.mergedBlocks.map((b) => b.id).concat(this.id);
 	}
-	function buildBlockTitle(newTableBody, block, getBlockTitle, groupId) {
-		if (!getBlockTitle && !block.errors) return void 0;
-		const trBlockTitle = newTableBody.appendChild(createLesRow(groupId, block.id));
-		trBlockTitle.classList.add("blockRow");
-		let { last: divBlockTitle } = emmet.append(trBlockTitle, "td.infoCell[colspan=3]>div.text-muted");
-		if (getBlockTitle) emmet.appendChild(divBlockTitle, `span.blockTitle{${getBlockTitle(block)}}`);
-		for (let jaarModule of block.jaarModules) divBlockTitle.appendChild(buildModuleButton(">", jaarModule.id, false, jaarModule.online));
-		if (block.errors) {
-			let errorSpan = document.createElement("span");
-			errorSpan.appendChild(document.createTextNode(block.errors));
-			errorSpan.classList.add("lesError");
-			divBlockTitle.appendChild(errorSpan);
-		}
-		return trBlockTitle;
-	}
-	function buildInfoRow(newTableBody, _text, show, groupId, blockId) {
-		const trBlockInfo = newTableBody.appendChild(createLesRow(groupId, blockId));
-		trBlockInfo.classList.add("blockRow");
-		if (!show) trBlockInfo.dataset.keepHidden = "true";
-		trBlockInfo.dataset.groupId = groupId;
-		return emmet.append(trBlockInfo, "td.infoCell[colspan=3]>div.text-muted");
-	}
-	function buildInfoRowWithText(newTableBody, show, blockId, groupId, text) {
-		let { last: divMuted } = buildInfoRow(newTableBody, "", show, groupId, blockId);
-		divMuted.appendChild(document.createTextNode(text));
-	}
-	function buildBlockHeader(newTableBody, block, groupId, trimesterHeaders, displayOptions) {
-		buildInfoRowWithText(newTableBody, Boolean(1 & displayOptions), block.id, groupId, block.teacher);
-		buildInfoRowWithText(newTableBody, Boolean(4 & displayOptions), block.id, groupId, block.instrumentName);
-		buildInfoRowWithText(newTableBody, Boolean(2 & displayOptions), block.id, groupId, block.formattedLesmoment);
-		buildInfoRowWithText(newTableBody, Boolean(8 & displayOptions), block.id, groupId, block.vestiging);
-		if (block.tags.length > 0) {
-			let { last: divMuted } = buildInfoRow(newTableBody, block.tags.join(), true, groupId, block.id);
-			emmet.appendChild(divMuted, block.tags.map((tag) => {
-				return `span.badge.badge-ill.badge-warning${tag.partial ? ".muted" : ""}{${tag.name}}`;
-			}).join("+"));
-		}
-		const trModuleLinks = createLesRow(groupId, block.id);
-		newTableBody.appendChild(trModuleLinks);
-		trModuleLinks.classList.add("blockRow");
-		const tdLink1 = document.createElement("td");
-		trModuleLinks.appendChild(tdLink1);
-		tdLink1.appendChild(document.createTextNode(trimesterHeaders[0]));
-		for (let les of block.trimesters[0]) if (les) tdLink1.appendChild(buildModuleButton("1", les.id, true, les.online));
-		const tdLink2 = document.createElement("td");
-		trModuleLinks.appendChild(tdLink2);
-		tdLink2.appendChild(document.createTextNode(trimesterHeaders[1]));
-		for (let les of block.trimesters[1]) if (les) tdLink2.appendChild(buildModuleButton("2", les.id, true, les.online));
-		const tdLink3 = document.createElement("td");
-		trModuleLinks.appendChild(tdLink3);
-		tdLink3.appendChild(document.createTextNode(trimesterHeaders[2]));
-		for (let les of block.trimesters[2]) if (les) tdLink3.appendChild(buildModuleButton("3", les.id, true, les.online));
-		return { trModuleLinks };
-	}
-	function buildModuleButton(buttonText, id, floatRight, online) {
-		const button = document.createElement("a");
-		button.href = "#";
-		button.classList.toggle("offline", !online);
-		if (!online) button.title = "Offline!";
-		button.setAttribute("onclick", `showView('lessen-les','','id=${id}'); return false;`);
-		button.classList.add("lesButton");
-		if (floatRight) button.classList.add("float-right");
-		button.innerText = buttonText;
-		return button;
-	}
-	function buildStudentCell(student) {
-		const cell = document.createElement("td");
-		let studentSpan = document.createElement("span");
-		let displayName = String.fromCharCode(NBSP);
-		studentSpan.appendChild(document.createTextNode(displayName));
-		cell.appendChild(studentSpan);
-		if (!student) return cell;
-		if (pageState.nameSorting === 1) displayName = student.naam + " " + student.voornaam;
-		else displayName = student.voornaam + " " + student.naam;
-		studentSpan.textContent = displayName;
-		if (student.allYearSame) studentSpan.classList.add("allYear");
-		const button = cell.appendChild(document.createElement("button"));
-		button.classList.add("student");
-		button.title = student.info;
-		button.onclick = async function() {
-			let id = await fetchStudentId(student.name);
-			if (id <= 0) window.location.href = "/#zoeken?zoek=" + stripStudentName(student.name).replaceAll(" ", "+");
-			else window.location.href = "#leerlingen-leerling?id=" + id + ",tab=inschrijvingen";
-			return false;
-		};
-		const iTag = document.createElement("i");
-		button.appendChild(iTag);
-		iTag.classList.add("fas", "fa-user-alt");
-		if (student.notAllTrimsHaveAnInstrument) iTag.classList.add("no3trims");
-		return cell;
-	}
-	async function fetchStudentId(studentName) {
-		let strippedStudentName = stripStudentName(studentName);
-		return fetch("/view.php?args=zoeken?zoek=" + encodeURIComponent(strippedStudentName)).then((response) => response.text()).then((_text) => fetch("/views/zoeken/index.view.php")).then((response) => response.text()).then((text) => findStudentId(studentName, text)).catch((err) => {
-			console.error("Request failed", err);
-			return -1;
-		});
-	}
-	function findStudentId(studentName, text) {
-		studentName = studentName.replaceAll(",", "");
-		db3(studentName);
-		db3(text);
-		let namePos = text.indexOf(studentName);
-		if (namePos < 0) return 0;
-		let idPos = text.substring(0, namePos).lastIndexOf("'id=", namePos);
-		let found = text.substring(idPos, idPos + 10).match(/\d+/);
-		if (found?.length) return parseInt(found[0]);
-		throw `No id found for student ${studentName}.`;
-	}
-	function sortStudents(students) {
-		if (!students) return;
-		let comparator = new Intl.Collator();
-		let sorting = getSavedNameSorting();
-		students.sort((a, b) => {
-			if (a.allYearSame && !b.allYearSame) return -1;
-			else if (!a.allYearSame && b.allYearSame) return 1;
-			else {
-				let aName = sorting === 1 ? a.naam + a.voornaam : a.voornaam + a.naam;
-				let bName = sorting === 1 ? b.naam + b.voornaam : b.voornaam + b.naam;
-				return comparator.compare(aName, bName);
-			}
-		});
-	}
-	//#endregion
-	//#region typescript/filter.ts
-	function combineFilters(f1, f2) {
-		return {
-			context: {
-				f1,
-				f2
-			},
-			rowFilter: function(tr, _context) {
-				if (!f1.rowFilter(tr, f1.context)) return false;
-				return f2.rowFilter(tr, f2.context);
-			}
-		};
-	}
-	function createTextRowFilter(searchText, getRowSearchText) {
-		let context = {
-			search_OR_list: searchText.split(",").map((txt) => txt.trim()),
-			getRowSearchText
-		};
-		let rowFilter = function(tr, context) {
-			for (let search of context.search_OR_list) if (match_AND_expression(search, context.getRowSearchText(tr))) return true;
-			return false;
-		};
-		return {
-			context,
-			rowFilter
-		};
-	}
-	/**
-	* Try to match a filter expression of type "string1+string2", where both strings need to be present.
-	* @param searchText
-	* @param rowText
-	* @return true if all strings match
-	*/
-	function match_AND_expression(searchText, rowText) {
-		let search_AND_list = searchText.split("+").map((txt) => txt.trim());
-		for (let search of search_AND_list) {
-			let caseText = rowText;
-			if (search === search.toLowerCase()) caseText = rowText.toLowerCase();
-			if (!caseText.includes(search)) return false;
-		}
-		return true;
-	}
-	function filterTableRows(table, rowFilter) {
-		if (typeof table === "string") table = document.getElementById(table);
-		return Array.from(table.tBodies[0].rows).filter((tr) => rowFilter.rowFilter(tr, rowFilter.context));
-	}
-	function filterTable(table, rowFilter) {
-		if (typeof table === "string") table = document.getElementById(table);
-		for (let tr of table.tBodies[0].rows) {
-			tr.style.visibility = "collapse";
-			tr.style.borderColor = "transparent";
-		}
-		for (let tr of filterTableRows(table, rowFilter)) if (!tr.dataset.keepHidden) {
-			tr.style.visibility = "visible";
-			tr.style.borderColor = "";
-		}
-	}
-	//#endregion
-	//#region typescript/lessen/filter.ts
-	function createBlockFilter(filter) {
-		return BlockInfo.getAllBlocks().filter(filter);
-	}
-	function createRowFilterFromBlockFilter(blocks) {
-		return {
-			context: { ids: distinct(blocks.map((b) => b.getIds()).flat()) },
-			rowFilter: function(tr, context) {
-				return context.ids.includes(parseInt(tr.dataset.blockId));
-			}
-		};
-	}
-	function createQuerySelectorFilter(selector) {
-		return {
-			context: void 0,
-			rowFilter: function(tr, _context) {
-				return tr.querySelector(selector) != void 0;
-			}
-		};
-	}
-	function createInverseFilter(filter) {
-		return {
-			context: filter.context,
-			rowFilter: function(tr, context) {
-				return !filter.rowFilter(tr, context);
-			}
-		};
-	}
-	function createAncestorFilter(rowPreFilter) {
-		let filteredRows = filterTableRows(TRIM_TABLE_ID, rowPreFilter);
-		let filteredBlockIds = [...new Set(filteredRows.filter((tr) => tr.dataset.blockId !== "groupTitle").map((tr) => tr.dataset.blockId))];
-		let filteredGroupIds = [...new Set(filteredRows.map((tr) => tr.dataset.groupId))];
-		let filteredHeaderGroupIds = [...new Set(filteredRows.filter((tr) => tr.dataset.blockId === "groupTitle").map((tr) => tr.dataset.groupId))];
-		function siblingsAndAncestorsFilter(tr, context) {
-			if (context.filteredHeaderGroupIds.includes(tr.dataset.groupId)) return true;
-			if (context.filteredBlockIds.includes(tr.dataset.blockId)) return true;
-			return context.filteredGroupIds.includes(tr.dataset.groupId) && tr.classList.contains("groupHeader");
-		}
-		return {
-			context: {
-				filteredBlockIds,
-				filteredGroupIds,
-				filteredHeaderGroupIds
-			},
-			rowFilter: siblingsAndAncestorsFilter
-		};
-	}
-	const TXT_FILTER_ID$1 = "txtFilter";
-	function setFilterInfo(text) {
-		let infoSpan = document.getElementById(FILTER_INFO_ID);
-		infoSpan.innerText = text;
-		infoSpan.classList.toggle("highlight", text.length > 0);
-	}
-	function applyFilters() {
-		let pageState = getPageSettings("Lessen", getDefaultPageSettings());
-		pageState.searchText = document.getElementById(TXT_FILTER_ID$1).value;
-		savePageSettings(pageState);
-		let extraFilter = void 0;
-		if (isTrimesterTableVisible()) {
-			let textPreFilter = createTextRowFilter(pageState.searchText, (tr) => tr.textContent);
-			let preFilter = textPreFilter;
-			if (pageState.filterOffline) extraFilter = createRowFilterFromBlockFilter(createBlockFilter((b) => b.hasSomeOfflineLessen()));
-			else if (pageState.filterOnline) extraFilter = createRowFilterFromBlockFilter(createBlockFilter((b) => !b.hasSomeOfflineLessen()));
-			else if (pageState.filterNoTeacher) extraFilter = createRowFilterFromBlockFilter(createBlockFilter((b) => b.hasMissingTeachers()));
-			else if (pageState.filterNoMax) extraFilter = createRowFilterFromBlockFilter(createBlockFilter((b) => b.hasMissingMax()));
-			else if (pageState.filterFullClass) extraFilter = createRowFilterFromBlockFilter(createBlockFilter((b) => b.hasFullClasses()));
-			else if (pageState.filterWaitingList) extraFilter = createRowFilterFromBlockFilter(createBlockFilter((b) => b.hasWaitingList()));
-			else if (pageState.filterOnlineAlc) extraFilter = createRowFilterFromBlockFilter(createBlockFilter((b) => b.hasOnlineAlcClasses()));
-			else if (pageState.filterWarnings) extraFilter = createRowFilterFromBlockFilter(createBlockFilter((b) => b.hasWarningLessons()));
-			if (extraFilter) preFilter = combineFilters(createAncestorFilter(textPreFilter), extraFilter);
-			let filter = createAncestorFilter(preFilter);
-			filterTable(TRIM_TABLE_ID, filter);
-		} else {
-			let textFilter = createTextRowFilter(pageState.searchText, (tr) => tr.cells[0].textContent);
-			let filter = textFilter;
-			if (pageState.filterOffline) extraFilter = createQuerySelectorFilter("td>i.fa-eye-slash");
-			else if (pageState.filterOnline) extraFilter = createInverseFilter(createQuerySelectorFilter("td>i.fa-eye-slash"));
-			else if (pageState.filterNoTeacher) extraFilter = createTextRowFilter("(geen klasleerkracht)", (tr) => tr.cells[0].textContent);
-			else if (pageState.filterNoMax) extraFilter = createTextRowFilter("999", (tr) => tr.cells[1].textContent);
-			else if (pageState.filterFullClass) extraFilter = {
-				context: void 0,
-				rowFilter(tr, _context) {
-					let scrapeResult = scrapeStudentsCellMeta(tr.cells[1]);
-					return scrapeResult.aantal >= scrapeResult.maxAantal;
-				}
-			};
-			else if (pageState.filterWaitingList) extraFilter = {
-				context: void 0,
-				rowFilter(tr, _context) {
-					return scrapeStudentsCellMeta(tr.cells[1]).wachtlijst != 0;
-				}
-			};
-			else if (pageState.filterOnlineAlc) extraFilter = {
-				context: void 0,
-				rowFilter(tr, _context) {
-					let scrapeResult = scrapeLesInfo(tr);
-					return scrapeResult.les.online && scrapeResult.les.alc;
-				}
-			};
-			else if (pageState.filterWarnings) extraFilter = createQuerySelectorFilter(".text-warning");
-			if (extraFilter) filter = combineFilters(textFilter, extraFilter);
-			filterTable(LESSEN_TABLE_ID, filter);
-		}
-		if (pageState.filterOnline) setFilterInfo("Online lessen");
-		else if (pageState.filterOffline) setFilterInfo("Offline lessen");
-		else if (pageState.filterNoTeacher) setFilterInfo("Zonder leraar");
-		else if (pageState.filterNoMax) setFilterInfo("Zonder maximum");
-		else if (pageState.filterFullClass) setFilterInfo("Volle lessen");
-		else if (pageState.filterWaitingList) setFilterInfo("Wachtlijst");
-		else if (pageState.filterOnlineAlc) setFilterInfo("Online ALC lessen");
-		else if (pageState.filterWarnings) setFilterInfo("Opmerkingen");
-		else setFilterInfo("");
-	}
-	function setExtraFilter(set) {
-		let pageState = getPageSettings("Lessen", getDefaultPageSettings());
-		pageState.filterOffline = false;
-		pageState.filterOnline = false;
-		pageState.filterNoTeacher = false;
-		pageState.filterNoMax = false;
-		pageState.filterFullClass = false;
-		pageState.filterOnlineAlc = false;
-		pageState.filterWarnings = false;
-		pageState.filterWaitingList = false;
-		set(pageState);
-		savePageSettings(pageState);
-		applyFilters();
-	}
-	function addFilterFields() {
-		let divButtonNieuweLes = document.querySelector("#lessen_overzicht > div > button");
-		if (!document.getElementById("txtFilter")) {
-			let pageState = getPageSettings("Lessen", getDefaultPageSettings());
-			let searchField = createSearchField(TXT_FILTER_ID$1, applyFilters, pageState.searchText);
-			divButtonNieuweLes.insertAdjacentElement("afterend", searchField);
-			let { first: span, last: idiom } = emmet.insertAfter(searchField, "span.btn-group-sm>button.btn.btn-sm.btn-outline-secondary.ml-2>i.fas.fa-list");
-			let menu = new DropDownMenu(span, idiom.parentElement);
-			menu.addItem("Toon alles", 0, (_) => setExtraFilter((_) => {}));
-			menu.addItem("Filter online lessen", 0, (_) => setExtraFilter((pageState) => pageState.filterOnline = true));
-			menu.addItem("Filter offline lessen", 0, (_) => setExtraFilter((pageState) => pageState.filterOffline = true));
-			menu.addItem("Lessen zonder leraar", 0, (_) => setExtraFilter((pageState) => pageState.filterNoTeacher = true));
-			menu.addItem("Lessen zonder maximum", 0, (_) => setExtraFilter((pageState) => pageState.filterNoMax = true));
-			menu.addItem("Volle lessen", 0, (_) => setExtraFilter((pageState) => pageState.filterFullClass = true));
-			menu.addItem("Wachtlijst", 0, (_) => setExtraFilter((pageState) => pageState.filterWaitingList = true));
-			menu.addItem("Online ALC lessen", 0, (_) => setExtraFilter((pageState) => pageState.filterOnlineAlc = true));
-			menu.addItem("Opmerkingen", 0, (_) => setExtraFilter((pageState) => pageState.filterWarnings = true));
-			emmet.insertAfter(idiom.parentElement, `span#${FILTER_INFO_ID}.filterInfo.block.min30ch.linePad1.blockPad05`);
-		}
-		applyFilters();
-	}
-	//#endregion
-	//#region typescript/werklijst/criteria.ts
-	let FIELD;
-	(function(_FIELD) {
-		_FIELD.DOMEIN = { text: "domein" };
-		_FIELD.GRAAD = { text: "graad" };
-		_FIELD.LEERJAAR = { text: "leerjaar" };
-		_FIELD.BENAMING_LES = { text: "benaming les" };
-		_FIELD.VESTIGINGSPLAATS = { text: "vestigingsplaats" };
-		_FIELD.NAAM = { text: "naam" };
-		_FIELD.STAMNUMMER = { text: "stamnummer" };
-		_FIELD.VOORNAAM = { text: "voornaam" };
-		_FIELD.VAK_NAAM = { text: "vak: naam" };
-		_FIELD.GRAAD_LEERJAAR = { text: "graad + leerjaar" };
-		_FIELD.KLAS_LEERKRACHT = { text: "klasleerkracht" };
-		_FIELD.LESMOMENTEN = { text: "lesmomenten" };
-		_FIELD.LEEFTIJD_31_DEC = { text: "leeftijd op 31 dec" };
-		_FIELD.EMAIL_PUNTCOMMA = { text: "e-mailadressen (gescheiden door puntkomma)" };
-	})(FIELD || (FIELD = {}));
-	async function postNameValueList(url, criteria) {
-		const formData = new FormData();
-		criteria.forEach((c) => {
-			formData.append(c.name, c.value);
-		});
-		return fetch(url, {
-			method: "POST",
-			body: formData
-		});
-	}
-	async function fetchTableRows(response) {
-		let tableHtml = await response.text();
-		let div = document.createElement("div");
-		div.innerHTML = tableHtml;
-		return div.querySelector("table").querySelectorAll("tr");
-	}
-	function scrapeCriteria() {
-		return [...document.querySelectorAll("#tbody_leerlingen_werklijst_criteria > tr")].map((tr) => {
-			let id = tr.dataset.criterium_id;
-			let operator = tr.cells[1].querySelector("select")?.value ?? "";
-			let value = "-null-";
-			let selectionRenderedSpan = tr.cells[2].querySelector("span.select2-selection__rendered");
-			if (selectionRenderedSpan) {
-				value = selectionRenderedSpan.getAttribute("title") ?? "-null-";
-				value = [...tr.cells[2].querySelectorAll(".select2 option")].find((option) => option.textContent === value)?.getAttribute("value") ?? "-null-";
-			} else value = [...tr.cells[2].querySelector("ul.select2-selection__rendered").querySelectorAll("li.select2-selection__choice")].map((li) => li.title).join(",");
-			return id + "_" + operator + "_" + value;
-		}).join("_");
-	}
-	function scrapeSelectedFieldIndexes() {
-		return [...document.querySelectorAll("#tbody_leerlingen_werklijst_velden > tr")].map((row) => {
-			return row.querySelectorAll("td")[1].textContent.trim();
-		});
-	}
-	function hasWerklijstNoCriteria() {
-		let ids = [...document.querySelectorAll("#tbody_leerlingen_werklijst_criteria > tr")].map((tr) => tr.dataset.criterium_id);
-		return ids.length === 2 && ["1", "2"].every((value) => ids.includes(value));
-	}
-	//#endregion
-	//#region typescript/table/werklijstBuilder.ts
-	function createWerklijstBuilderWithoutReset(schoolYear, grouping, preselectedFields, criteriaString) {
-		return WerklijstBuilder.fetch(schoolYear, grouping, false, preselectedFields, criteriaString);
-	}
-	function createWerklijstBuilderWithReset(schoolYear, grouping) {
-		return WerklijstBuilder.fetch(schoolYear, grouping, true, [], "");
-	}
-	var WerklijstBuilder = class WerklijstBuilder {
-		schoolYear;
-		grouping;
-		criteria = [];
-		fields;
-		criteriaDefs;
-		fieldDefs;
-		preselectedFields = [];
-		criteriaString = "";
-		constructor(schoolYear, grouping) {
-			this.schoolYear = schoolYear;
-			this.grouping = grouping;
-			this.criteria = [];
-			this.fields = [];
-		}
-		getCheckSum() {
-			return this.criteria.map((c) => c.name + c.operator + c.values.join()).join() + this.fields.map((f) => f.text).join() + this.criteriaString;
-		}
-		static async fetch(schoolYear, grouping, reset, preselectedFields, criteriaString) {
-			let builder = new WerklijstBuilder(schoolYear, grouping);
-			await builder.initialize(reset);
-			builder.criteriaDefs = await this.fetchCriteriumDefinitions();
-			builder.fieldDefs = await this.fetchFieldDefinitions();
-			builder.criteriaString = criteriaString;
-			if (!reset) builder.setPreselectedFields(preselectedFields);
-			return builder;
-		}
-		async initialize(reset) {
-			await fetch("view.php?args=leerlingen-werklijst");
-			await fetch("views/leerlingen/werklijst/index.view.php");
-			if (!reset) {
-				await postNameValueList("/views/leerlingen/werklijst/session.opslaan.php", [{
-					name: "schooljaar",
-					value: this.schoolYear
-				}, {
-					name: "groepering",
-					value: this.grouping
-				}]);
-				return;
-			}
-			await postNameValueList("/views/leerlingen/werklijst/session.opslaan.php", [{
-				name: "schooljaar",
-				value: this.schoolYear
-			}, {
-				name: "groepering",
-				value: this.grouping
-			}]);
-			await postNameValueList("/views/leerlingen/werklijst/session.opslaan.php", [{
-				name: "reset",
-				value: "1"
-			}]);
-			await postNameValueList("/views/leerlingen/werklijst/session.opslaan.php", [{
-				name: "schooljaar",
-				value: this.schoolYear
-			}, {
-				name: "groepering",
-				value: this.grouping
-			}]);
-			await fetch("/views/leerlingen/werklijst/criteria/criteria.div.php");
-			await fetch("/views/leerlingen/werklijst/velden/velden.div.php");
-		}
-		static async clear() {
-			await fetch("view.php?args=leerlingen-werklijst");
-			await fetch("views/leerlingen/werklijst/index.view.php");
-			await postNameValueList("/views/leerlingen/werklijst/session.opslaan.php", [{
-				name: "reset",
-				value: "1"
-			}]);
-		}
-		static async fetchDefinitions(url, idTagName, nameSelector) {
-			let rows = await fetchTableRows(await fetch(url));
-			let defs = [];
-			for (let row of rows) {
-				let id = row.dataset[idTagName];
-				if (id) {
-					let name = getImmediateText(row.querySelector(nameSelector)).trim();
-					defs.push({
-						id,
-						name
-					});
-				}
-			}
-			return defs;
-		}
-		static async fetchCriteriumDefinitions() {
-			return this.fetchDefinitions("/views/leerlingen/werklijst/criteria/toevoegen/criteria.results.php", "criterium_id", "td");
-		}
-		static async fetchFieldDefinitions() {
-			await fetch("/views/leerlingen/werklijst/velden/toevoegen/toevoegen.modal.php");
-			return this.fetchDefinitions("/views/leerlingen/werklijst/velden/toevoegen/velden.results.php?zoekterm=", "veld_id", "td:nth-child(2)");
-		}
-		async sendCriteria() {
-			for (const c of this.criteria) {
-				let codes = await this.addCodesForCriterium(c.name, c.values);
-				if (c.operator == "!=") await postNameValueList("/views/leerlingen/werklijst/criteria/wijzigen.opslaan.php", [{
-					name: "criterium_id",
-					value: codes.postId
-				}, {
-					name: "operator",
-					value: c.operator
-				}]);
-				await postNameValueList("/views/leerlingen/werklijst/criteria/wijzigen.opslaan.php", [{
-					name: "criterium_id",
-					value: codes.postId
-				}, {
-					name: "value",
-					value: codes.values.join()
-				}]);
-			}
-		}
-		async sendSettings() {
-			await this.sendFields(this.fields);
-			await this.sendCriteria();
-			return this;
-		}
-		async fetchTable(listener, clearCache) {
-			return getTable(await getWerklijstTableRef(), listener, clearCache, (_) => this.getCheckSum());
-		}
-		addCriterium(name, operator, values) {
-			this.criteria.push({
-				name,
-				operator,
-				values
-			});
-		}
-		addFields(fields) {
-			this.fields.push(...fields);
-		}
-		async addCodesForCriterium(criterium, items) {
-			let defs = await this.fetchMultiSelectDefinitions(criterium);
-			let codes = textToCodes(items, defs.defs);
+	updateMergedBlock() {
+		let allLessen = this.alleLessen();
+		this.formattedLesmoment = [...new Set(allLessen.filter((les) => les).map((les) => les.formattedLesmoment))].join(", ");
+		this.teacher = [...new Set(allLessen.filter((les) => les).map((les) => les.teacher))].join(", ");
+		this.vestiging = [...new Set(allLessen.filter((les) => les).map((les) => les.vestiging))].join(", ");
+		this.instrumentName = [...new Set(allLessen.filter((les) => les).map((les) => les.instrumentName))].join(", ");
+		this.tags = distinct(allLessen.filter((les) => les).map((les) => les.tags).flat()).map((tagName) => {
 			return {
-				postId: defs.postId,
-				values: codes
+				name: tagName,
+				partial: false
 			};
+		});
+		for (let tag of this.tags) tag.partial = !allLessen.every((les) => les.tags.includes(tag.name));
+		this.offline = allLessen.some((les) => !les.online);
+	}
+	checkBlockForErrors() {
+		let maxMoreThan100 = this.jaarModules.map((module) => module.maxAantal > 100).includes(true);
+		if (!maxMoreThan100) maxMoreThan100 = this.trimesters.flat().map((module) => module?.maxAantal > 100).includes(true);
+		if (maxMoreThan100) this.errors += "Max aantal lln > 100";
+	}
+};
+function buildTrimesters(instrumentTeacherMomentModules) {
+	let mergedInstrument = [
+		[],
+		[],
+		[]
+	];
+	instrumentTeacherMomentModules.filter((module) => module.lesType === 0).forEach((module) => {
+		mergedInstrument[module.trimesterNo - 1].push(module);
+	});
+	return mergedInstrument;
+}
+function getLesmomenten(modules) {
+	let lesMomenten = modules.map((module) => module.formattedLesmoment);
+	return [...new Set(lesMomenten)];
+}
+function getMaxAantal(modules) {
+	return modules.map((module) => module.maxAantal).reduce((prev, next) => {
+		return prev < next ? next : prev;
+	});
+}
+function getVestigingen(modules) {
+	let vestigingen = modules.map((module) => module.vestiging);
+	return [...new Set(vestigingen)].toString();
+}
+function prepareLesmomenten(inputModules) {
+	let reLesMoment;
+	for (let module of inputModules) {
+		if (module.lesmoment === "(geen volgende les)" || module.lesmoment === "(geen lesmomenten)") {
+			module.formattedLesmoment = module.lesmoment;
+			continue;
 		}
-		async fetchAvailableSubjects() {
-			let defs = await this.fetchMultiSelectDefinitions("Vak");
-			return Array.from(defs.defs).map((vak) => {
-				return {
-					name: vak[0],
-					value: vak[1]
-				};
-			});
+		if (module.lesmoment.startsWith("volgende les")) reLesMoment = /volgende les: (\w\w) (?:\d+\/\d+ )?(\d\d:\d\d)-(\d\d:\d\d).*/;
+		else reLesMoment = /.*(\w\w) (?:\d+\/\d+ )?(\d\d:\d\d)-(\d\d:\d\d).*/;
+		let matches = module.lesmoment.match(reLesMoment);
+		if (!matches) {
+			module.formattedLesmoment = "???";
+			continue;
 		}
-		async fetchMultiSelectDefinitions(criterium) {
-			let critId = this.criteriaDefs.find((c) => c.name === criterium).id;
-			//! todo: force criteria to be valid: fetch() is not called in constructor.
-			await postNameValueList("/views/leerlingen/werklijst/criteria/toevoegen/toevoegen.opslaan.php", [{
-				name: "criterium_id",
-				value: critId
-			}]);
-			let text = await fetch("/views/leerlingen/werklijst/criteria/criteria.div.php").then((res) => res.text());
-			const template = document.createElement("template");
-			template.innerHTML = text;
-			let select = template.content.querySelector(`tr[data-criterium_id="${critId}"]`).querySelector(`td:nth-child(3) select`);
-			let defs = select.querySelectorAll(`option`);
-			return {
-				postId: select.dataset.postId,
-				defs: Array.from(defs).map((def) => [def.label, def.value])
-			};
-		}
-		async sendFields(fields) {
-			let fieldsToActuallySend = fields.filter((f) => !this.preselectedFields.includes(f.text));
-			for (let field of fieldsToActuallySend) {
-				let fieldDef = this.fieldDefs.find((f) => f.name === field.text);
-				//! todo: force fiedDefs to be valid: fetch() is not called in constructor.
-				if (fieldDef) await postNameValueList("/views/leerlingen/werklijst/velden/toevoegen/wijzigen.opslaan.php", [{
-					name: "veld_id",
-					value: fieldDef.id
-				}, {
-					name: "selected",
-					value: "1"
-				}]);
+		if (matches?.length !== 4) {
+			console.error(`Could not process lesmoment "${module.lesmoment}" for instrument "${module.instrumentName}".`);
+			module.formattedLesmoment = "???";
+		} else module.formattedLesmoment = matches[1] + " " + matches[2] + "-" + matches[3];
+		module.formattedLesmoment = matches[1] + " " + matches[2] + "-" + matches[3];
+	}
+}
+function setStudentPopupInfo(student) {
+	student.info = "";
+	if (!student.trimesterInstruments) return;
+	for (let instrs of student.trimesterInstruments) if (instrs.length) student.info += instrs[0].trimesterNo + ". " + instrs.map((instr) => instr.instrumentName) + "\n";
+	else student.info += "?. ---\n";
+}
+function setStudentAllTrimsTheSameInstrument(student) {
+	if (!student.trimesterInstruments) return;
+	let instruments = student.trimesterInstruments.flat();
+	if (instruments.length < 3) {
+		student.allYearSame = false;
+		return;
+	}
+	student.allYearSame = instruments.every((instr) => instr.instrumentName === (student?.trimesterInstruments[0][0]?.instrumentName ?? "---"));
+}
+function setStudentNoInstrumentForAllTrims(student) {
+	if ((student.jaarInstruments?.length ?? 0) > 0 && student.trimesterInstruments?.flat()?.length == 0) return;
+	if (!student.trimesterInstruments) return;
+	student.notAllTrimsHaveAnInstrument = false;
+	for (let trim of student.trimesterInstruments) if (trim.length == 0) student.notAllTrimsHaveAnInstrument = true;
+}
+function buildTableData(inputModules) {
+	prepareLesmomenten(inputModules);
+	let tableData = {
+		students: /* @__PURE__ */ new Map(),
+		instruments: /* @__PURE__ */ new Map(),
+		teachers: /* @__PURE__ */ new Map(),
+		blocks: []
+	};
+	BlockInfo.clearAllBlocks();
+	let instruments = distinct(inputModules.map((module) => module.instrumentName));
+	for (let instrumentName of instruments) {
+		let instrumentModules = inputModules.filter((module) => module.instrumentName === instrumentName);
+		let teachers = distinct(instrumentModules.map((module) => module.teacher));
+		for (let teacher of teachers) {
+			let instrumentTeacherModules = instrumentModules.filter((module) => module.teacher === teacher);
+			let lesmomenten = distinct(getLesmomenten(instrumentTeacherModules));
+			for (let lesmoment of lesmomenten) {
+				let instrumentTeacherMomentModules = instrumentTeacherModules.filter((module) => module.formattedLesmoment === lesmoment);
+				let block = new BlockInfo();
+				block.instrumentName = instrumentName;
+				block.teacher = teacher;
+				block.formattedLesmoment = lesmoment;
+				block.maxAantal = getMaxAantal(instrumentTeacherMomentModules);
+				block.vestiging = getVestigingen(instrumentTeacherMomentModules);
+				block.tags = distinct(instrumentTeacherMomentModules.map((les) => les.tags).flat()).map((tagName) => {
+					return {
+						name: tagName,
+						partial: !tagFoundInAllModules(tagName, instrumentTeacherMomentModules)
+					};
+				});
+				block.trimesters = buildTrimesters(instrumentTeacherMomentModules);
+				block.jaarModules = instrumentTeacherMomentModules.filter((module) => module.lesType === 1);
+				block.offline = instrumentTeacherMomentModules.some((module) => !module.online);
+				block.checkBlockForErrors();
+				tableData.blocks.push(block);
+				for (let trim of block.trimesters) addTrimesterStudentsToMapAndCount(tableData.students, trim);
+				for (let jaarModule of block.jaarModules) addJaarStudentsToMapAndCount(tableData.students, jaarModule);
 			}
 		}
-		setPreselectedFields(preselectedFields) {
-			this.preselectedFields = preselectedFields;
-		}
-	};
-	function textToCodes(items, vakDefs) {
-		let filtered;
-		if (typeof items === "function") {
-			let isIncluded = items;
-			filtered = vakDefs.filter((vakDef) => isIncluded(vakDef[0]));
-		} else filtered = vakDefs.filter((vakDef) => items.includes(vakDef[0]));
-		return filtered.map((vakDef) => vakDef[1]);
 	}
-	//#endregion
-	//#region typescript/lessen/observer.ts
-	var LessenObserver = class extends HashObserver {
-		constructor() {
-			super("#lessen-overzicht", onMutation$7, false, onPageRefreshed$1);
-		}
-		isPageReallyLoaded() {
-			return document.getElementById("btn_lessen_overzicht_zoeken") != null;
-		}
-	};
-	var observer_default$8 = new LessenObserver();
-	function onPageRefreshed$1() {
-		console.log(`Lessen.onPageRefreshed: hash: ${location.hash}`);
-		if (location.hash != "#lessen-overzicht") return;
-		if (!addTrimesterButton()) setTimeout(onPageRefreshed$1, 500);
+	for (let student of tableData.students.values()) {
+		setStudentPopupInfo(student);
+		setStudentAllTrimsTheSameInstrument(student);
+		setStudentNoInstrumentForAllTrims(student);
 	}
-	function addTrimesterButton() {
-		let btnZoek = document.getElementById("btn_lessen_overzicht_zoeken");
-		if (!btnZoek) return false;
-		if (!document.getElementById("btn_show_trimesters")) {
-			let { first } = emmet.insertAfter(btnZoek, "button.btn.btn-sm.btn-primary.w-100.mt-1#btn_show_trimesters>i.fas.fa-sitemap+{ Toon trimesters}");
-			first.onclick = onClickShowTrimesters;
-		}
-		return true;
+	let instrumentNames = distinct(tableData.blocks.map((b) => b.instrumentName)).sort((a, b) => {
+		return a.localeCompare(b);
+	});
+	for (let instr of instrumentNames) tableData.instruments.set(instr, {
+		name: instr,
+		blocks: [],
+		mergedBlocks: /* @__PURE__ */ new Map(),
+		lesMomenten: /* @__PURE__ */ new Map()
+	});
+	for (let block of tableData.blocks) tableData.instruments.get(block.instrumentName).blocks.push(block);
+	let teachers = distinct(tableData.blocks.map((b) => b.teacher)).sort((a, b) => {
+		return a.localeCompare(b);
+	});
+	for (let t of teachers) tableData.teachers.set(t, {
+		name: t,
+		blocks: [],
+		mergedBlocks: /* @__PURE__ */ new Map(),
+		lesMomenten: /* @__PURE__ */ new Map()
+	});
+	for (let block of tableData.blocks) tableData.teachers.get(block.teacher).blocks.push(block);
+	groupBlocksTwoLevels(tableData.teachers.values(), (block) => block.formattedLesmoment, (primary, secundary) => {
+		primary.lesMomenten = secundary;
+	});
+	groupBlocksTwoLevels(tableData.instruments.values(), (block) => block.formattedLesmoment, (primary, secundary) => {
+		primary.lesMomenten = secundary;
+	});
+	groupBlocks(tableData.teachers.values(), (block) => block.teacher);
+	groupBlocks(tableData.instruments.values(), (block) => block.instrumentName);
+	return tableData;
+}
+function tagFoundInAllModules(tag, modules) {
+	for (let module of modules) if (!module.tags.includes(tag)) return false;
+	return true;
+}
+function groupBlocksTwoLevels(primaryGroups, getSecondaryKey, setSecondaryGroup) {
+	for (let primary of primaryGroups) {
+		let blocks = primary.blocks;
+		let secondaryKeys = distinct(blocks.map(getSecondaryKey));
+		let secondaryGroup = new Map(secondaryKeys.map((key) => [key, new BlockInfo()]));
+		for (let block of blocks) secondaryGroup.get(getSecondaryKey(block)).mergeBlock(block);
+		secondaryGroup.forEach((block) => {
+			block.updateMergedBlock();
+		});
+		setSecondaryGroup(primary, secondaryGroup);
 	}
-	function onMutation$7(mutation) {
-		addTrimesterButton();
-		let lessenOverzicht = document.getElementById(LESSEN_OVERZICHT_ID);
-		if (mutation.target !== lessenOverzicht) return false;
-		let pageState = getGotoStateOrDefault("Lessen");
-		switch (pageState.goto) {
-			case "Lessen_trimesters_set_filter":
-				pageState.goto = "";
-				saveGotoState(pageState);
-				onClickShowTrimesters();
-				return true;
-			case "Lessen_trimesters_show":
-				pageState.goto = "";
-				saveGotoState(pageState);
-				return true;
-		}
-		return decorateTable() !== void 0;
-	}
-	function onClickShowTrimesters() {
-		document.getElementById("lessen_overzicht").innerHTML = "<span class=\"text-muted\">\n                <i class=\"fa fa-cog fa-spin\"></i> <i>Bezig met laden...</i>\n            </span>";
-		setTrimesterFilterAndFetch().then((text) => {
-			document.getElementById("lessen_overzicht").innerHTML = text;
-			showTrimesterTable(decorateTable(), true);
+}
+function groupBlocks(primaryGroups, getPrimaryKey) {
+	for (let primary of primaryGroups) {
+		let blocks = primary.blocks;
+		let keys = distinct(blocks.map(getPrimaryKey));
+		primary.mergedBlocks = new Map(keys.map((key) => [key, new BlockInfo()]));
+		for (let block of blocks) primary.mergedBlocks.get(getPrimaryKey(block)).mergeBlock(block);
+		primary.mergedBlocks.forEach((block) => {
+			block.updateMergedBlock();
 		});
 	}
-	async function setTrimesterFilterAndFetch() {
-		return fetchLessen(new URLSearchParams({
-			schooljaar: Schoolyear.findInPage(),
-			domein: "3",
-			vestigingsplaats: "",
-			vak: "",
-			graad: "",
-			leerkracht: "",
-			ag: "",
-			lesdag: "",
-			verberg_online: "-1",
-			soorten_lessen: "3",
-			volzet: "-1"
-		}));
-	}
-	async function fetchLessen(params) {
-		let url = "/views/lessen/overzicht/index.filters.php";
-		await fetch(url + "?" + params);
-		url = "/views/lessen/overzicht/index.lessen.php";
-		return (await fetch(url + "?" + params)).text();
-	}
-	function createTrimTableDiv() {
-		let trimDiv = document.getElementById(TRIM_DIV_ID);
-		if (!trimDiv) {
-			trimDiv = document.createElement("div");
-			document.getElementById(LESSEN_TABLE_ID).insertAdjacentElement("afterend", trimDiv);
-			trimDiv.id = TRIM_DIV_ID;
+}
+function addTrimesterStudentsToMapAndCount(allStudents, blockTrimModules) {
+	for (let blockTrimModule of blockTrimModules) {
+		if (!blockTrimModule) continue;
+		for (let student of blockTrimModule.students) {
+			if (!allStudents.has(student.name)) {
+				student.trimesterInstruments = [
+					[],
+					[],
+					[]
+				];
+				allStudents.set(student.name, student);
+			}
+			allStudents.get(student.name).trimesterInstruments[blockTrimModule.trimesterNo - 1].push(blockTrimModule);
 		}
-		return trimDiv;
+		blockTrimModule.students = blockTrimModule.students.map((student) => allStudents.get(student.name));
 	}
-	function decorateTable() {
-		let printButton = document.getElementById("btn_print_overzicht_lessen");
-		if (!printButton) return;
-		let copyLessonButton = printButton.parentElement.querySelector("button:has(i.fa-reply-all)");
-		if (copyLessonButton?.title === "") {
-			copyLessonButton.title = copyLessonButton.textContent.replaceAll("\n", " ").replaceAll("      ", " ").replaceAll("     ", " ").replaceAll("    ", " ").replaceAll("   ", " ").replaceAll("  ", " ");
-			copyLessonButton.childNodes.forEach((node) => {
-				if (node.nodeType === Node.TEXT_NODE) node.remove();
-			});
-			copyLessonButton.querySelector("strong")?.remove();
-			copyLessonButton.style.backgroundColor = "red";
-			copyLessonButton.style.color = "white";
-		}
-		let overzichtDiv = document.getElementById(LESSEN_OVERZICHT_ID);
-		createTrimTableDiv();
-		overzichtDiv.dataset.filterFullClasses = "false";
-		let badges = document.getElementsByClassName("badge");
-		if (Array.from(badges).some((el) => el.textContent === "module")) addButton(printButton, TRIM_BUTTON_ID, "Toon trimesters", onClickToggleTrimesters, "fa-sitemap");
-		addFilterFields();
-		return getTrimPageElements();
+}
+function addJaarStudentsToMapAndCount(students, jaarModule) {
+	if (!jaarModule) return;
+	for (let student of jaarModule.students) {
+		if (!students.has(student.name)) students.set(student.name, student);
+		let stud = students.get(student.name);
+		if (!stud.jaarInstruments) stud.jaarInstruments = [];
+		stud.jaarInstruments.push(jaarModule);
 	}
-	function addButton(printButton, buttonId, title, clickFunction, imageId) {
-		if (document.getElementById(buttonId) === null) {
-			const button = document.createElement("button");
-			button.classList.add("btn", "btn-sm", "btn-outline-secondary", "w-100");
-			button.id = buttonId;
-			button.style.marginTop = "0";
-			button.onclick = clickFunction;
-			button.title = title;
-			const buttonContent = document.createElement("i");
-			button.appendChild(buttonContent);
-			buttonContent.classList.add("fas", imageId);
-			printButton.insertAdjacentElement("beforebegin", button);
-		}
-	}
-	function onClickToggleTrimesters() {
-		showTrimesterTable(getTrimPageElements(), !isTrimesterTableVisible());
-	}
-	function isTrimesterTableVisible() {
-		return document.getElementById(LESSEN_TABLE_ID).style.display === "none";
-	}
-	function getTrimPageElements() {
-		return {
-			trimTable: document.getElementById(TRIM_TABLE_ID),
-			trimTableDiv: createTrimTableDiv(),
-			lessenTable: document.getElementById(LESSEN_TABLE_ID),
-			trimButton: document.getElementById(TRIM_BUTTON_ID)
-		};
-	}
-	async function getJaarToewijzigingWerklijst(schoolYear) {
-		let builder = await createWerklijstBuilderWithReset(schoolYear, "3");
-		builder.addCriterium("Domein", "=", ["Muziek (Mu)"]);
-		builder.addCriterium("Vak", "=", [
-			"instrumentinitiatie – hele jaar zelfde instrument - accordeon",
-			"instrumentinitiatie – hele jaar zelfde instrument - baglama (saz)",
-			"instrumentinitiatie – hele jaar zelfde instrument - cello",
-			"instrumentinitiatie – hele jaar zelfde instrument - dwarsfluit",
-			"instrumentinitiatie – hele jaar zelfde instrument - gitaar",
-			"instrumentinitiatie – hele jaar zelfde instrument - harp",
-			"instrumentinitiatie – hele jaar zelfde instrument - klarinet",
-			"instrumentinitiatie – hele jaar zelfde instrument - saxofoon",
-			"instrumentinitiatie – hele jaar zelfde instrument - slagwerk",
-			"instrumentinitiatie – hele jaar zelfde instrument - trombone",
-			"instrumentinitiatie – hele jaar zelfde instrument - trompet",
-			"instrumentinitiatie – hele jaar zelfde instrument - viool",
-			"instrumentinitiatie – hele jaar zelfde instrument - zang"
-		]);
-		builder.addFields([
-			FIELD.NAAM,
-			FIELD.VOORNAAM,
-			FIELD.VAK_NAAM,
-			FIELD.LESMOMENTEN,
-			FIELD.KLAS_LEERKRACHT,
-			FIELD.GRAAD_LEERJAAR
-		]);
-		let table = await (await builder.sendSettings()).fetchTable(void 0, true);
-		await setViewFromCurrentUrl();
-		return table;
-	}
-	async function showTrimesterTable(trimElements, show) {
-		trimElements.trimTable?.remove();
-		let toewijzingTable;
-		let schoolYear = Schoolyear.findInPage();
-		if (schoolYear === "2024-2025") toewijzingTable = void 0;
-		else toewijzingTable = await getJaarToewijzigingWerklijst(schoolYear);
-		let inputModules = scrapeModules(trimElements.lessenTable, toewijzingTable);
-		let toewijzingModules = connvertToewijzingenToModules(inputModules.jaarToewijzingen);
-		console.log(toewijzingModules);
-		inputModules.jaarModules = inputModules.jaarModules.concat(...toewijzingModules.values());
-		buildTrimesterTable(buildTableData(inputModules.trimesterModules.concat(inputModules.jaarModules)), trimElements);
-		trimElements.lessenTable.style.display = show ? "none" : "table";
-		trimElements.trimTable.style.display = show ? "table" : "none";
-		trimElements.trimButton.title = show ? "Toon normaal" : "Toon trimesters";
-		setButtonHighlighted(TRIM_BUTTON_ID, show);
-		setSorteerLine(show);
-		applyFilters();
-	}
-	function addSortingAnchorOrText() {
-		let sorteerDiv = document.getElementById("trimSorteerDiv");
-		sorteerDiv.innerHTML = "Sorteer : ";
-		if (getSavedNameSorting() === 0) emmet.append(sorteerDiv, "a{Naam}[href=\"#\"]+{ | }+strong{Voornaam}");
-		else emmet.append(sorteerDiv, "strong{Naam}+{ | }+a{Voornaam}[href=\"#\"]");
-		for (let anchor of sorteerDiv.querySelectorAll("a")) anchor.onclick = (mouseEvent) => {
-			if (mouseEvent.target.textContent === "Naam") setSavedNameSorting(1);
-			else setSavedNameSorting(0);
-			showTrimesterTable(getTrimPageElements(), true);
-			addSortingAnchorOrText();
-			return false;
-		};
-	}
-	function setSorteerLine(showTrimTable) {
-		let pageState = getPageSettings("Lessen", getDefaultPageSettings());
-		let oldSorteerSpan = document.querySelector("#lessen_overzicht > span");
-		let newGroupingDiv = document.getElementById("trimGroepeerDiv");
-		if (!newGroupingDiv) newGroupingDiv = emmet.insertAfter(oldSorteerSpan, "div#trimGroepeerDiv.text-muted").first;
-		if (!document.getElementById("trimSorteerDiv")) {
-			emmet.insertBefore(newGroupingDiv, "div#trimSorteerDiv.text-muted");
-			addSortingAnchorOrText();
-		}
-		newGroupingDiv.innerText = "Groepeer: ";
-		oldSorteerSpan.style.display = showTrimTable ? "none" : "";
-		newGroupingDiv.style.display = showTrimTable ? "" : "none";
-		appendGroupingAnchorOrText(newGroupingDiv, 1, pageState.grouping, "");
-		appendGroupingAnchorOrText(newGroupingDiv, 0, pageState.grouping, " | ");
-		appendGroupingAnchorOrText(newGroupingDiv, 2, pageState.grouping, " | ");
-		appendGroupingAnchorOrText(newGroupingDiv, 4, pageState.grouping, " | ");
-		appendGroupingAnchorOrText(newGroupingDiv, 5, pageState.grouping, " | ");
-	}
-	function appendGroupingAnchorOrText(target, grouping, activeSorting, separator) {
-		let sortingText = "";
-		switch (grouping) {
-			case 1:
-				sortingText = "instrument+leraar+lesuur";
-				break;
-			case 0:
-				sortingText = "leraar+instrument+lesuur";
-				break;
-			case 2:
-				sortingText = "leraar+lesuur";
-				break;
-			case 3:
-				sortingText = "instrument+lesuur";
-				break;
-			case 4:
-				sortingText = "instrument";
-				break;
-			case 5: sortingText = "leraar";
-		}
-		if (separator) separator = "{" + separator + "}+";
-		if (activeSorting === grouping) emmet.appendChild(target, separator + "strong{" + sortingText + "}");
+	jaarModule.students = jaarModule.students.map((student) => students.get(student.name));
+}
+function mergeBlockStudents(block) {
+	let jaarStudents = block.jaarModules.map((les) => les.students).flat();
+	let trimesterStudents = [
+		block.trimesters[0].map((les) => les?.students ?? []).flat(),
+		block.trimesters[1].map((les) => les?.students ?? []).flat(),
+		block.trimesters[2].map((les) => les?.students ?? []).flat()
+	];
+	let maxAantallen = block.trimesters.map((trimLessen) => {
+		if (trimLessen.length === 0) return 0;
+		return trimLessen.map((les) => les?.maxAantal ?? 0).map((maxAantal) => maxAantal > 100 ? 4 : maxAantal).reduce((a, b) => a + b);
+	});
+	let blockNeededRows = Math.max(...maxAantallen, ...trimesterStudents.map((stud) => stud.length + jaarStudents.length));
+	let wachtlijsten = block.trimesters.map((trimLessen) => {
+		if (trimLessen.length === 0) return 0;
+		return trimLessen.map((les) => les?.wachtlijst ?? 0).reduce((a, b) => a + b);
+	});
+	let hasWachtlijst = wachtlijsten.some((wachtLijst) => wachtLijst > 0);
+	if (hasWachtlijst) blockNeededRows++;
+	let maxJaarStudentCount = block.jaarModules.map((mod) => mod.maxAantal).reduce((a, b) => Math.max(a, b), 0);
+	return {
+		jaarStudents,
+		trimesterStudents,
+		maxAantallen,
+		blockNeededRows,
+		wachtlijsten,
+		hasWachtlijst,
+		maxJaarStudentCount
+	};
+}
+function createLesFromToewijzing(instrument, toewijzing) {
+	let teacher = toewijzing.klasleerkracht == "" ? `toe te wijzen lk ${instrument}` : toewijzing.klasleerkracht;
+	return new Les("", 1, instrument, teacher, toewijzing.lesmoment, 999, 0, "Willem van Laarstraat", [], true, 0, false, toewijzing.lesmoment, `Initiatie ${instrument} - jaartraject - ${teacher}`, [], toewijzing.vak, []);
+}
+function createStudentFromToewijzing(toewijzing) {
+	let student = new StudentInfo(toewijzing.naam + ", " + toewijzing.voornaam, toewijzing.naam, toewijzing.voornaam, toewijzing.graadJaar);
+	let matchesId = /\s*id\s*=\s*(\d+)/gm.exec(toewijzing.vak);
+	student.id = parseInt(matchesId?.[1] ?? "0");
+	student.allYearSame = true;
+	student.notAllTrimsHaveAnInstrument = false;
+	student.info = "";
+	student.jaarInstruments = [];
+	student.trimesterInstruments = void 0;
+	return student;
+}
+function connvertToewijzingenToModules(jaarToewijzingen) {
+	let modules = /* @__PURE__ */ new Map();
+	for (let toewijzing of jaarToewijzingen) {
+		let instrument = /instrumentinitiatie – hele jaar zelfde instrument - (.*)/gm.exec(toewijzing.vak)?.[1] ?? "";
+		let les;
+		if (modules.has(instrument + "-" + toewijzing.klasleerkracht + "-" + toewijzing.lesmoment)) les = modules.get(instrument + "-" + toewijzing.klasleerkracht + "-" + toewijzing.lesmoment);
 		else {
-			let button = emmet.appendChild(target, separator + "button.likeLink{" + sortingText + "}").last;
-			button.onclick = () => {
-				let pageState = getPageSettings("Lessen", getDefaultPageSettings());
-				pageState.grouping = grouping;
-				savePageSettings(pageState);
-				showTrimesterTable(getTrimPageElements(), true);
-				return false;
-			};
+			les = createLesFromToewijzing(instrument, toewijzing);
+			modules.set(instrument + "-" + toewijzing.klasleerkracht + "-" + toewijzing.lesmoment, les);
+		}
+		let student = createStudentFromToewijzing(toewijzing);
+		les.students.push(student);
+	}
+	modules.forEach((les) => les.aantal = les.maxAantal = les.students.length);
+	return modules;
+}
+//#endregion
+//#region typescript/lessen/build.ts
+const NBSP = 160;
+function getDefaultPageSettings() {
+	return {
+		pageName: "Lessen",
+		nameSorting: 1,
+		grouping: 1,
+		searchText: "",
+		filterOffline: false,
+		filterOnline: false,
+		filterNoTeacher: false,
+		filterNoMax: false,
+		filterFullClass: false,
+		filterOnlineAlc: false,
+		filterWarnings: false,
+		filterWaitingList: false
+	};
+}
+let pageState = getDefaultPageSettings();
+function setSavedNameSorting(sorting) {
+	pageState.nameSorting = sorting;
+	savePageSettings(pageState);
+}
+function getSavedNameSorting() {
+	pageState = getPageSettings("Lessen", pageState);
+	return pageState.nameSorting;
+}
+function buildTrimesterTable(tableData, trimElements) {
+	pageState = getPageSettings("Lessen", pageState);
+	tableData.blocks.sort((block1, block2) => block1.instrumentName.localeCompare(block2.instrumentName));
+	trimElements.trimTableDiv = document.getElementById(TRIM_DIV_ID);
+	let newTable = emmet.appendChild(trimElements.trimTableDiv, `table#trimesterTable[border="2" style.width="100%"]>colgroup>col*3`).first;
+	trimElements.trimTableDiv.dataset.showFullClass = isButtonHighlighted("fullClassButton") ? "true" : "false";
+	let trHeader = emmet.appendChild(newTable, "tbody+thead.table-secondary>tr").last;
+	Object.assign(trimElements, getTrimPageElements());
+	let newTableBody = newTable.querySelector("tbody");
+	let totTrim = [
+		0,
+		0,
+		0
+	];
+	for (let block of tableData.blocks) {
+		let totJaar = block.jaarModules.map((mod) => mod.students.length).reduce((prev, curr) => prev + curr, 0);
+		for (let trimNo of [
+			0,
+			1,
+			2
+		]) totTrim[trimNo] += totJaar + (block.trimesters[trimNo][0]?.students?.length ?? 0);
+	}
+	emmet.append(trHeader, "(th>div>span.bold{Trimester $}+span.plain{ ($$ lln)})*3", (index) => totTrim[index].toString());
+	switch (pageState.grouping) {
+		case 1:
+			for (let [instrumentName, instrument] of tableData.instruments) buildGroup(newTableBody, instrument.blocks, instrumentName, (block) => block.teacher, 10);
+			break;
+		case 0:
+			for (let [teacherName, teacher] of tableData.teachers) buildGroup(newTableBody, teacher.blocks, teacherName, (block) => block.instrumentName, 10);
+			break;
+		case 2:
+			for (let [teacherName, teacher] of tableData.teachers) {
+				buildTitleRow(newTableBody, teacherName);
+				for (let [hour, block] of teacher.lesMomenten) buildBlock(newTableBody, block, teacherName, (_block) => hour, 8);
+			}
+			break;
+		case 3:
+			for (let [instrumentName, instrument] of tableData.instruments) {
+				buildTitleRow(newTableBody, instrumentName);
+				for (let [hour, block] of instrument.lesMomenten) buildBlock(newTableBody, block, instrumentName, (_block) => hour, 8);
+			}
+			break;
+		case 4:
+			for (let [instrumentName, instrument] of tableData.instruments) {
+				buildTitleRow(newTableBody, instrumentName);
+				for (let [, block] of instrument.mergedBlocks) buildBlock(newTableBody, block, instrumentName, void 0, 11);
+			}
+			break;
+		case 5: for (let [teacherName, teacher] of tableData.teachers) {
+			buildTitleRow(newTableBody, teacherName);
+			for (let [, block] of teacher.mergedBlocks) buildBlock(newTableBody, block, teacherName, void 0, 14);
 		}
 	}
-	//#endregion
-	//#region typescript/lessen/fetch.ts
-	let LessenFilterDomein = /* @__PURE__ */ function(LessenFilterDomein) {
-		LessenFilterDomein["Muziek"] = "3";
-		LessenFilterDomein["Woord"] = "4";
-		LessenFilterDomein["DomeinOV"] = "5";
-		LessenFilterDomein["Dans"] = "2";
-		return LessenFilterDomein;
-	}({});
-	async function scrapeLessen(domein, type, schoolYear) {
+}
+function buildGroup(newTableBody, blocks, groupId, getBlockTitle, displayOptions) {
+	buildTitleRow(newTableBody, groupId);
+	for (let block of blocks) buildBlock(newTableBody, block, groupId, getBlockTitle, displayOptions);
+}
+function createStudentRow(tableBody, rowClass, groupId, blockId) {
+	let row = createLesRow(groupId, blockId);
+	tableBody.appendChild(row);
+	row.classList.add(rowClass);
+	row.dataset.hasFullClass = "false";
+	return row;
+}
+function buildBlock(newTableBody, block, groupId, getBlockTitle, displayOptions) {
+	let mergedBlockStudents = mergeBlockStudents(block);
+	let trimesterHeaders = [
+		0,
+		1,
+		2
+	].map((trimNo) => {
+		if (mergedBlockStudents.trimesterStudents[trimNo].length < 5 && mergedBlockStudents.maxAantallen[trimNo] < 5) return "";
+		return `${mergedBlockStudents.trimesterStudents[trimNo].length + mergedBlockStudents.jaarStudents.length} van ${mergedBlockStudents.maxAantallen[trimNo]} lln`;
+	});
+	let trTitle = buildBlockTitle(newTableBody, block, getBlockTitle, groupId);
+	let headerRows = buildBlockHeader(newTableBody, block, groupId, trimesterHeaders, displayOptions);
+	let studentTopRowNo = newTableBody.children.length;
+	let filledRowCount = 0;
+	sortStudents(mergedBlockStudents.jaarStudents);
+	for (let student of mergedBlockStudents.jaarStudents) {
+		let row = createStudentRow(newTableBody, "jaarRow", groupId, block.id);
+		for (let trimNo = 0; trimNo < 3; trimNo++) {
+			let cell = buildStudentCell(student);
+			row.appendChild(cell);
+			cell.classList.add("jaarStudent");
+			if (filledRowCount >= mergedBlockStudents.maxAantallen[trimNo]) cell.classList.add("gray");
+		}
+		filledRowCount++;
+	}
+	let hasFullClass = false;
+	for (let rowNo = 0; filledRowCount < mergedBlockStudents.blockNeededRows; rowNo++) {
+		let row = createStudentRow(newTableBody, "trimesterRow", groupId, block.id);
+		for (let trimNo = 0; trimNo < 3; trimNo++) {
+			let trimester = mergedBlockStudents.trimesterStudents[trimNo];
+			sortStudents(trimester);
+			let student = void 0;
+			if (trimester) {
+				student = trimester[rowNo];
+				let maxTrimStudentCount = Math.max(mergedBlockStudents.maxAantallen[trimNo], mergedBlockStudents.maxJaarStudentCount);
+				if (trimester.length > 0 && trimester.length >= maxTrimStudentCount) {
+					row.dataset.hasFullClass = "true";
+					hasFullClass = true;
+				}
+			}
+			let cell = buildStudentCell(student);
+			row.appendChild(cell);
+			cell.classList.add("trimesterStudent");
+			if (filledRowCount >= mergedBlockStudents.maxAantallen[trimNo]) cell.classList.add("gray");
+			if (student?.trimesterInstruments) {
+				if (student?.trimesterInstruments[trimNo].length > 1) cell.classList.add("yellowMarker");
+			}
+		}
+		filledRowCount++;
+	}
+	if (hasFullClass) {
+		if (trTitle) trTitle.dataset.hasFullClass = "true";
+		headerRows.trModuleLinks.dataset.hasFullClass = "true";
+	}
+	if (!mergedBlockStudents.hasWachtlijst) return;
+	for (let trimNo of [
+		0,
+		1,
+		2
+	]) {
+		let row = newTableBody.children[newTableBody.children.length - 1];
+		row.classList.add("wachtlijst");
+		let cell = row.children[trimNo];
+		if (mergedBlockStudents.wachtlijsten[trimNo] === 0) continue;
+		const small = document.createElement("small");
+		cell.appendChild(small);
+		small.appendChild(document.createTextNode(`(${mergedBlockStudents.wachtlijsten[trimNo]} op wachtlijst)`));
+		small.classList.add("text-danger");
+		if (mergedBlockStudents.wachtlijsten[trimNo] > 0 && mergedBlockStudents.trimesterStudents[trimNo].length < mergedBlockStudents.maxAantallen[trimNo]) {
+			cell.querySelector("small").classList.add("yellowMarker");
+			newTableBody.children[studentTopRowNo + mergedBlockStudents.trimesterStudents[trimNo].length].children[trimNo].classList.add("yellowMarker");
+		}
+	}
+}
+function createLesRow(groupId, blockId) {
+	let tr = document.createElement("tr");
+	tr.dataset.blockId = "" + blockId;
+	if (blockId != void 0) tr.dataset.groupId = groupId;
+	else tr.dataset.blockId = "groupTitle";
+	return tr;
+}
+function buildTitleRow(newTableBody, title) {
+	const trTitle = createLesRow(title, void 0);
+	newTableBody.appendChild(trTitle);
+	trTitle.classList.add("blockRow", "groupHeader");
+	trTitle.dataset.groupId = title;
+	const tdTitle = document.createElement("td");
+	trTitle.appendChild(tdTitle);
+	tdTitle.classList.add("titleCell");
+	tdTitle.setAttribute("colspan", "3");
+	let divTitle = document.createElement("div");
+	tdTitle.appendChild(divTitle);
+	divTitle.classList.add("blockTitle");
+	divTitle.appendChild(document.createTextNode(title));
+	return {
+		trTitle,
+		divTitle
+	};
+}
+function buildBlockTitle(newTableBody, block, getBlockTitle, groupId) {
+	if (!getBlockTitle && !block.errors) return void 0;
+	const trBlockTitle = newTableBody.appendChild(createLesRow(groupId, block.id));
+	trBlockTitle.classList.add("blockRow");
+	let { last: divBlockTitle } = emmet.append(trBlockTitle, "td.infoCell[colspan=3]>div.text-muted");
+	if (getBlockTitle) emmet.appendChild(divBlockTitle, `span.blockTitle{${getBlockTitle(block)}}`);
+	for (let jaarModule of block.jaarModules) divBlockTitle.appendChild(buildModuleButton(">", jaarModule.id, false, jaarModule.online));
+	if (block.errors) {
+		let errorSpan = document.createElement("span");
+		errorSpan.appendChild(document.createTextNode(block.errors));
+		errorSpan.classList.add("lesError");
+		divBlockTitle.appendChild(errorSpan);
+	}
+	return trBlockTitle;
+}
+function buildInfoRow(newTableBody, _text, show, groupId, blockId) {
+	const trBlockInfo = newTableBody.appendChild(createLesRow(groupId, blockId));
+	trBlockInfo.classList.add("blockRow");
+	if (!show) trBlockInfo.dataset.keepHidden = "true";
+	trBlockInfo.dataset.groupId = groupId;
+	return emmet.append(trBlockInfo, "td.infoCell[colspan=3]>div.text-muted");
+}
+function buildInfoRowWithText(newTableBody, show, blockId, groupId, text) {
+	let { last: divMuted } = buildInfoRow(newTableBody, "", show, groupId, blockId);
+	divMuted.appendChild(document.createTextNode(text));
+}
+function buildBlockHeader(newTableBody, block, groupId, trimesterHeaders, displayOptions) {
+	buildInfoRowWithText(newTableBody, Boolean(1 & displayOptions), block.id, groupId, block.teacher);
+	buildInfoRowWithText(newTableBody, Boolean(4 & displayOptions), block.id, groupId, block.instrumentName);
+	buildInfoRowWithText(newTableBody, Boolean(2 & displayOptions), block.id, groupId, block.formattedLesmoment);
+	buildInfoRowWithText(newTableBody, Boolean(8 & displayOptions), block.id, groupId, block.vestiging);
+	if (block.tags.length > 0) {
+		let { last: divMuted } = buildInfoRow(newTableBody, block.tags.join(), true, groupId, block.id);
+		emmet.appendChild(divMuted, block.tags.map((tag) => {
+			return `span.badge.badge-ill.badge-warning${tag.partial ? ".muted" : ""}{${tag.name}}`;
+		}).join("+"));
+	}
+	const trModuleLinks = createLesRow(groupId, block.id);
+	newTableBody.appendChild(trModuleLinks);
+	trModuleLinks.classList.add("blockRow");
+	const tdLink1 = document.createElement("td");
+	trModuleLinks.appendChild(tdLink1);
+	tdLink1.appendChild(document.createTextNode(trimesterHeaders[0]));
+	for (let les of block.trimesters[0]) if (les) tdLink1.appendChild(buildModuleButton("1", les.id, true, les.online));
+	const tdLink2 = document.createElement("td");
+	trModuleLinks.appendChild(tdLink2);
+	tdLink2.appendChild(document.createTextNode(trimesterHeaders[1]));
+	for (let les of block.trimesters[1]) if (les) tdLink2.appendChild(buildModuleButton("2", les.id, true, les.online));
+	const tdLink3 = document.createElement("td");
+	trModuleLinks.appendChild(tdLink3);
+	tdLink3.appendChild(document.createTextNode(trimesterHeaders[2]));
+	for (let les of block.trimesters[2]) if (les) tdLink3.appendChild(buildModuleButton("3", les.id, true, les.online));
+	return { trModuleLinks };
+}
+function buildModuleButton(buttonText, id, floatRight, online) {
+	const button = document.createElement("a");
+	button.href = "#";
+	button.classList.toggle("offline", !online);
+	if (!online) button.title = "Offline!";
+	button.setAttribute("onclick", `showView('lessen-les','','id=${id}'); return false;`);
+	button.classList.add("lesButton");
+	if (floatRight) button.classList.add("float-right");
+	button.innerText = buttonText;
+	return button;
+}
+function buildStudentCell(student) {
+	const cell = document.createElement("td");
+	let studentSpan = document.createElement("span");
+	let displayName = String.fromCharCode(NBSP);
+	studentSpan.appendChild(document.createTextNode(displayName));
+	cell.appendChild(studentSpan);
+	if (!student) return cell;
+	if (pageState.nameSorting === 1) displayName = student.naam + " " + student.voornaam;
+	else displayName = student.voornaam + " " + student.naam;
+	studentSpan.textContent = displayName;
+	if (student.allYearSame) studentSpan.classList.add("allYear");
+	const button = cell.appendChild(document.createElement("button"));
+	button.classList.add("student");
+	button.title = student.info;
+	button.onclick = async function() {
+		let id = await fetchStudentId(student.name);
+		if (id <= 0) window.location.href = "/#zoeken?zoek=" + stripStudentName(student.name).replaceAll(" ", "+");
+		else window.location.href = "#leerlingen-leerling?id=" + id + ",tab=inschrijvingen";
+		return false;
+	};
+	const iTag = document.createElement("i");
+	button.appendChild(iTag);
+	iTag.classList.add("fas", "fa-user-alt");
+	if (student.notAllTrimsHaveAnInstrument) iTag.classList.add("no3trims");
+	return cell;
+}
+async function fetchStudentId(studentName) {
+	let strippedStudentName = stripStudentName(studentName);
+	return fetch("/view.php?args=zoeken?zoek=" + encodeURIComponent(strippedStudentName)).then((response) => response.text()).then((_text) => fetch("/views/zoeken/index.view.php")).then((response) => response.text()).then((text) => findStudentId(studentName, text)).catch((err) => {
+		console.error("Request failed", err);
+		return -1;
+	});
+}
+function findStudentId(studentName, text) {
+	studentName = studentName.replaceAll(",", "");
+	db3(studentName);
+	db3(text);
+	let namePos = text.indexOf(studentName);
+	if (namePos < 0) return 0;
+	let idPos = text.substring(0, namePos).lastIndexOf("'id=", namePos);
+	let found = text.substring(idPos, idPos + 10).match(/\d+/);
+	if (found?.length) return parseInt(found[0]);
+	throw `No id found for student ${studentName}.`;
+}
+function sortStudents(students) {
+	if (!students) return;
+	let comparator = new Intl.Collator();
+	let sorting = getSavedNameSorting();
+	students.sort((a, b) => {
+		if (a.allYearSame && !b.allYearSame) return -1;
+		else if (!a.allYearSame && b.allYearSame) return 1;
+		else {
+			let aName = sorting === 1 ? a.naam + a.voornaam : a.voornaam + a.naam;
+			let bName = sorting === 1 ? b.naam + b.voornaam : b.voornaam + b.naam;
+			return comparator.compare(aName, bName);
+		}
+	});
+}
+//#endregion
+//#region typescript/filter.ts
+function combineFilters(f1, f2) {
+	return {
+		context: {
+			f1,
+			f2
+		},
+		rowFilter: function(tr, _context) {
+			if (!f1.rowFilter(tr, f1.context)) return false;
+			return f2.rowFilter(tr, f2.context);
+		}
+	};
+}
+function createTextRowFilter(searchText, getRowSearchText) {
+	let context = {
+		search_OR_list: searchText.split(",").map((txt) => txt.trim()),
+		getRowSearchText
+	};
+	let rowFilter = function(tr, context) {
+		for (let search of context.search_OR_list) if (match_AND_expression(search, context.getRowSearchText(tr))) return true;
+		return false;
+	};
+	return {
+		context,
+		rowFilter
+	};
+}
+/**
+* Try to match a filter expression of type "string1+string2", where both strings need to be present.
+* @param searchText
+* @param rowText
+* @return true if all strings match
+*/
+function match_AND_expression(searchText, rowText) {
+	let search_AND_list = searchText.split("+").map((txt) => txt.trim());
+	for (let search of search_AND_list) {
+		let caseText = rowText;
+		if (search === search.toLowerCase()) caseText = rowText.toLowerCase();
+		if (!caseText.includes(search)) return false;
+	}
+	return true;
+}
+function filterTableRows(table, rowFilter) {
+	if (typeof table === "string") table = document.getElementById(table);
+	return Array.from(table.tBodies[0].rows).filter((tr) => rowFilter.rowFilter(tr, rowFilter.context));
+}
+function filterTable(table, rowFilter) {
+	if (typeof table === "string") table = document.getElementById(table);
+	for (let tr of table.tBodies[0].rows) {
+		tr.style.visibility = "collapse";
+		tr.style.borderColor = "transparent";
+	}
+	for (let tr of filterTableRows(table, rowFilter)) if (!tr.dataset.keepHidden) {
+		tr.style.visibility = "visible";
+		tr.style.borderColor = "";
+	}
+}
+//#endregion
+//#region typescript/lessen/filter.ts
+function createBlockFilter(filter) {
+	return BlockInfo.getAllBlocks().filter(filter);
+}
+function createRowFilterFromBlockFilter(blocks) {
+	return {
+		context: { ids: distinct(blocks.map((b) => b.getIds()).flat()) },
+		rowFilter: function(tr, context) {
+			return context.ids.includes(parseInt(tr.dataset.blockId));
+		}
+	};
+}
+function createQuerySelectorFilter(selector) {
+	return {
+		context: void 0,
+		rowFilter: function(tr, _context) {
+			return tr.querySelector(selector) != void 0;
+		}
+	};
+}
+function createInverseFilter(filter) {
+	return {
+		context: filter.context,
+		rowFilter: function(tr, context) {
+			return !filter.rowFilter(tr, context);
+		}
+	};
+}
+function createAncestorFilter(rowPreFilter) {
+	let filteredRows = filterTableRows(TRIM_TABLE_ID, rowPreFilter);
+	let filteredBlockIds = [...new Set(filteredRows.filter((tr) => tr.dataset.blockId !== "groupTitle").map((tr) => tr.dataset.blockId))];
+	let filteredGroupIds = [...new Set(filteredRows.map((tr) => tr.dataset.groupId))];
+	let filteredHeaderGroupIds = [...new Set(filteredRows.filter((tr) => tr.dataset.blockId === "groupTitle").map((tr) => tr.dataset.groupId))];
+	function siblingsAndAncestorsFilter(tr, context) {
+		if (context.filteredHeaderGroupIds.includes(tr.dataset.groupId)) return true;
+		if (context.filteredBlockIds.includes(tr.dataset.blockId)) return true;
+		return context.filteredGroupIds.includes(tr.dataset.groupId) && tr.classList.contains("groupHeader");
+	}
+	return {
+		context: {
+			filteredBlockIds,
+			filteredGroupIds,
+			filteredHeaderGroupIds
+		},
+		rowFilter: siblingsAndAncestorsFilter
+	};
+}
+const TXT_FILTER_ID$1 = "txtFilter";
+function setFilterInfo(text) {
+	let infoSpan = document.getElementById(FILTER_INFO_ID);
+	infoSpan.innerText = text;
+	infoSpan.classList.toggle("highlight", text.length > 0);
+}
+function applyFilters() {
+	let pageState = getPageSettings("Lessen", getDefaultPageSettings());
+	pageState.searchText = document.getElementById(TXT_FILTER_ID$1).value;
+	savePageSettings(pageState);
+	let extraFilter = void 0;
+	if (isTrimesterTableVisible()) {
+		let textPreFilter = createTextRowFilter(pageState.searchText, (tr) => tr.textContent);
+		let preFilter = textPreFilter;
+		if (pageState.filterOffline) extraFilter = createRowFilterFromBlockFilter(createBlockFilter((b) => b.hasSomeOfflineLessen()));
+		else if (pageState.filterOnline) extraFilter = createRowFilterFromBlockFilter(createBlockFilter((b) => !b.hasSomeOfflineLessen()));
+		else if (pageState.filterNoTeacher) extraFilter = createRowFilterFromBlockFilter(createBlockFilter((b) => b.hasMissingTeachers()));
+		else if (pageState.filterNoMax) extraFilter = createRowFilterFromBlockFilter(createBlockFilter((b) => b.hasMissingMax()));
+		else if (pageState.filterFullClass) extraFilter = createRowFilterFromBlockFilter(createBlockFilter((b) => b.hasFullClasses()));
+		else if (pageState.filterWaitingList) extraFilter = createRowFilterFromBlockFilter(createBlockFilter((b) => b.hasWaitingList()));
+		else if (pageState.filterOnlineAlc) extraFilter = createRowFilterFromBlockFilter(createBlockFilter((b) => b.hasOnlineAlcClasses()));
+		else if (pageState.filterWarnings) extraFilter = createRowFilterFromBlockFilter(createBlockFilter((b) => b.hasWarningLessons()));
+		if (extraFilter) preFilter = combineFilters(createAncestorFilter(textPreFilter), extraFilter);
+		let filter = createAncestorFilter(preFilter);
+		filterTable(TRIM_TABLE_ID, filter);
+	} else {
+		let textFilter = createTextRowFilter(pageState.searchText, (tr) => tr.cells[0].textContent);
+		let filter = textFilter;
+		if (pageState.filterOffline) extraFilter = createQuerySelectorFilter("td>i.fa-eye-slash");
+		else if (pageState.filterOnline) extraFilter = createInverseFilter(createQuerySelectorFilter("td>i.fa-eye-slash"));
+		else if (pageState.filterNoTeacher) extraFilter = createTextRowFilter("(geen klasleerkracht)", (tr) => tr.cells[0].textContent);
+		else if (pageState.filterNoMax) extraFilter = createTextRowFilter("999", (tr) => tr.cells[1].textContent);
+		else if (pageState.filterFullClass) extraFilter = {
+			context: void 0,
+			rowFilter(tr, _context) {
+				let scrapeResult = scrapeStudentsCellMeta(tr.cells[1]);
+				return scrapeResult.aantal >= scrapeResult.maxAantal;
+			}
+		};
+		else if (pageState.filterWaitingList) extraFilter = {
+			context: void 0,
+			rowFilter(tr, _context) {
+				return scrapeStudentsCellMeta(tr.cells[1]).wachtlijst != 0;
+			}
+		};
+		else if (pageState.filterOnlineAlc) extraFilter = {
+			context: void 0,
+			rowFilter(tr, _context) {
+				let scrapeResult = scrapeLesInfo(tr);
+				return scrapeResult.les.online && scrapeResult.les.alc;
+			}
+		};
+		else if (pageState.filterWarnings) extraFilter = createQuerySelectorFilter(".text-warning");
+		if (extraFilter) filter = combineFilters(textFilter, extraFilter);
+		filterTable(LESSEN_TABLE_ID, filter);
+	}
+	if (pageState.filterOnline) setFilterInfo("Online lessen");
+	else if (pageState.filterOffline) setFilterInfo("Offline lessen");
+	else if (pageState.filterNoTeacher) setFilterInfo("Zonder leraar");
+	else if (pageState.filterNoMax) setFilterInfo("Zonder maximum");
+	else if (pageState.filterFullClass) setFilterInfo("Volle lessen");
+	else if (pageState.filterWaitingList) setFilterInfo("Wachtlijst");
+	else if (pageState.filterOnlineAlc) setFilterInfo("Online ALC lessen");
+	else if (pageState.filterWarnings) setFilterInfo("Opmerkingen");
+	else setFilterInfo("");
+}
+function setExtraFilter(set) {
+	let pageState = getPageSettings("Lessen", getDefaultPageSettings());
+	pageState.filterOffline = false;
+	pageState.filterOnline = false;
+	pageState.filterNoTeacher = false;
+	pageState.filterNoMax = false;
+	pageState.filterFullClass = false;
+	pageState.filterOnlineAlc = false;
+	pageState.filterWarnings = false;
+	pageState.filterWaitingList = false;
+	set(pageState);
+	savePageSettings(pageState);
+	applyFilters();
+}
+function addFilterFields() {
+	let divButtonNieuweLes = document.querySelector("#lessen_overzicht > div > button");
+	if (!document.getElementById("txtFilter")) {
+		let pageState = getPageSettings("Lessen", getDefaultPageSettings());
+		let searchField = createSearchField(TXT_FILTER_ID$1, applyFilters, pageState.searchText);
+		divButtonNieuweLes.insertAdjacentElement("afterend", searchField);
+		let { first: span, last: idiom } = emmet.insertAfter(searchField, "span.btn-group-sm>button.btn.btn-sm.btn-outline-secondary.ml-2>i.fas.fa-list");
+		let menu = new DropDownMenu(span, idiom.parentElement);
+		menu.addItem("Toon alles", 0, (_) => setExtraFilter((_) => {}));
+		menu.addItem("Filter online lessen", 0, (_) => setExtraFilter((pageState) => pageState.filterOnline = true));
+		menu.addItem("Filter offline lessen", 0, (_) => setExtraFilter((pageState) => pageState.filterOffline = true));
+		menu.addItem("Lessen zonder leraar", 0, (_) => setExtraFilter((pageState) => pageState.filterNoTeacher = true));
+		menu.addItem("Lessen zonder maximum", 0, (_) => setExtraFilter((pageState) => pageState.filterNoMax = true));
+		menu.addItem("Volle lessen", 0, (_) => setExtraFilter((pageState) => pageState.filterFullClass = true));
+		menu.addItem("Wachtlijst", 0, (_) => setExtraFilter((pageState) => pageState.filterWaitingList = true));
+		menu.addItem("Online ALC lessen", 0, (_) => setExtraFilter((pageState) => pageState.filterOnlineAlc = true));
+		menu.addItem("Opmerkingen", 0, (_) => setExtraFilter((pageState) => pageState.filterWarnings = true));
+		emmet.insertAfter(idiom.parentElement, `span#${FILTER_INFO_ID}.filterInfo.block.min30ch.linePad1.blockPad05`);
+	}
+	applyFilters();
+}
+//#endregion
+//#region typescript/werklijst/criteria.ts
+let FIELD;
+(function(_FIELD) {
+	_FIELD.DOMEIN = { text: "domein" };
+	_FIELD.GRAAD = { text: "graad" };
+	_FIELD.LEERJAAR = { text: "leerjaar" };
+	_FIELD.BENAMING_LES = { text: "benaming les" };
+	_FIELD.VESTIGINGSPLAATS = { text: "vestigingsplaats" };
+	_FIELD.NAAM = { text: "naam" };
+	_FIELD.STAMNUMMER = { text: "stamnummer" };
+	_FIELD.VOORNAAM = { text: "voornaam" };
+	_FIELD.VAK_NAAM = { text: "vak: naam" };
+	_FIELD.GRAAD_LEERJAAR = { text: "graad + leerjaar" };
+	_FIELD.KLAS_LEERKRACHT = { text: "klasleerkracht" };
+	_FIELD.LESMOMENTEN = { text: "lesmomenten" };
+	_FIELD.LEEFTIJD_31_DEC = { text: "leeftijd op 31 dec" };
+	_FIELD.EMAIL_PUNTCOMMA = { text: "e-mailadressen (gescheiden door puntkomma)" };
+})(FIELD || (FIELD = {}));
+async function postNameValueList(url, criteria) {
+	const formData = new FormData();
+	criteria.forEach((c) => {
+		formData.append(c.name, c.value);
+	});
+	return fetch(url, {
+		method: "POST",
+		body: formData
+	});
+}
+async function fetchTableRows(response) {
+	let tableHtml = await response.text();
+	let div = document.createElement("div");
+	div.innerHTML = tableHtml;
+	return div.querySelector("table").querySelectorAll("tr");
+}
+function scrapeCriteria() {
+	return [...document.querySelectorAll("#tbody_leerlingen_werklijst_criteria > tr")].map((tr) => {
+		let id = tr.dataset.criterium_id;
+		let operator = tr.cells[1].querySelector("select")?.value ?? "";
+		let value = "-null-";
+		let selectionRenderedSpan = tr.cells[2].querySelector("span.select2-selection__rendered");
+		if (selectionRenderedSpan) {
+			value = selectionRenderedSpan.getAttribute("title") ?? "-null-";
+			value = [...tr.cells[2].querySelectorAll(".select2 option")].find((option) => option.textContent === value)?.getAttribute("value") ?? "-null-";
+		} else value = [...tr.cells[2].querySelector("ul.select2-selection__rendered").querySelectorAll("li.select2-selection__choice")].map((li) => li.title).join(",");
+		return id + "_" + operator + "_" + value;
+	}).join("_");
+}
+function scrapeSelectedFieldIndexes() {
+	return [...document.querySelectorAll("#tbody_leerlingen_werklijst_velden > tr")].map((row) => {
+		return row.querySelectorAll("td")[1].textContent.trim();
+	});
+}
+function hasWerklijstNoCriteria() {
+	let ids = [...document.querySelectorAll("#tbody_leerlingen_werklijst_criteria > tr")].map((tr) => tr.dataset.criterium_id);
+	return ids.length === 2 && ["1", "2"].every((value) => ids.includes(value));
+}
+//#endregion
+//#region typescript/table/werklijstBuilder.ts
+function createWerklijstBuilderWithoutReset(schoolYear, grouping, preselectedFields, criteriaString) {
+	return WerklijstBuilder.fetch(schoolYear, grouping, false, preselectedFields, criteriaString);
+}
+function createWerklijstBuilderWithReset(schoolYear, grouping) {
+	return WerklijstBuilder.fetch(schoolYear, grouping, true, [], "");
+}
+var WerklijstBuilder = class WerklijstBuilder {
+	schoolYear;
+	grouping;
+	criteria = [];
+	fields;
+	criteriaDefs;
+	fieldDefs;
+	preselectedFields = [];
+	criteriaString = "";
+	constructor(schoolYear, grouping) {
+		this.schoolYear = schoolYear;
+		this.grouping = grouping;
+		this.criteria = [];
+		this.fields = [];
+	}
+	getCheckSum() {
+		return this.criteria.map((c) => c.name + c.operator + c.values.join()).join() + this.fields.map((f) => f.text).join() + this.criteriaString;
+	}
+	static async fetch(schoolYear, grouping, reset, preselectedFields, criteriaString) {
+		let builder = new WerklijstBuilder(schoolYear, grouping);
+		await builder.initialize(reset);
+		builder.criteriaDefs = await this.fetchCriteriumDefinitions();
+		builder.fieldDefs = await this.fetchFieldDefinitions();
+		builder.criteriaString = criteriaString;
+		if (!reset) builder.setPreselectedFields(preselectedFields);
+		return builder;
+	}
+	async initialize(reset) {
+		await fetch("view.php?args=leerlingen-werklijst");
+		await fetch("views/leerlingen/werklijst/index.view.php");
+		if (!reset) {
+			await postNameValueList("/views/leerlingen/werklijst/session.opslaan.php", [{
+				name: "schooljaar",
+				value: this.schoolYear
+			}, {
+				name: "groepering",
+				value: this.grouping
+			}]);
+			return;
+		}
+		await postNameValueList("/views/leerlingen/werklijst/session.opslaan.php", [{
+			name: "schooljaar",
+			value: this.schoolYear
+		}, {
+			name: "groepering",
+			value: this.grouping
+		}]);
+		await postNameValueList("/views/leerlingen/werklijst/session.opslaan.php", [{
+			name: "reset",
+			value: "1"
+		}]);
+		await postNameValueList("/views/leerlingen/werklijst/session.opslaan.php", [{
+			name: "schooljaar",
+			value: this.schoolYear
+		}, {
+			name: "groepering",
+			value: this.grouping
+		}]);
+		await fetch("/views/leerlingen/werklijst/criteria/criteria.div.php");
+		await fetch("/views/leerlingen/werklijst/velden/velden.div.php");
+	}
+	static async clear() {
+		await fetch("view.php?args=leerlingen-werklijst");
+		await fetch("views/leerlingen/werklijst/index.view.php");
+		await postNameValueList("/views/leerlingen/werklijst/session.opslaan.php", [{
+			name: "reset",
+			value: "1"
+		}]);
+	}
+	static async fetchDefinitions(url, idTagName, nameSelector) {
+		let rows = await fetchTableRows(await fetch(url));
+		let defs = [];
+		for (let row of rows) {
+			let id = row.dataset[idTagName];
+			if (id) {
+				let name = getImmediateText(row.querySelector(nameSelector)).trim();
+				defs.push({
+					id,
+					name
+				});
+			}
+		}
+		return defs;
+	}
+	static async fetchCriteriumDefinitions() {
+		return this.fetchDefinitions("/views/leerlingen/werklijst/criteria/toevoegen/criteria.results.php", "criterium_id", "td");
+	}
+	static async fetchFieldDefinitions() {
+		await fetch("/views/leerlingen/werklijst/velden/toevoegen/toevoegen.modal.php");
+		return this.fetchDefinitions("/views/leerlingen/werklijst/velden/toevoegen/velden.results.php?zoekterm=", "veld_id", "td:nth-child(2)");
+	}
+	async sendCriteria() {
+		for (const c of this.criteria) {
+			let codes = await this.addCodesForCriterium(c.name, c.values);
+			if (c.operator == "!=") await postNameValueList("/views/leerlingen/werklijst/criteria/wijzigen.opslaan.php", [{
+				name: "criterium_id",
+				value: codes.postId
+			}, {
+				name: "operator",
+				value: c.operator
+			}]);
+			await postNameValueList("/views/leerlingen/werklijst/criteria/wijzigen.opslaan.php", [{
+				name: "criterium_id",
+				value: codes.postId
+			}, {
+				name: "value",
+				value: codes.values.join()
+			}]);
+		}
+	}
+	async sendSettings() {
+		await this.sendFields(this.fields);
+		await this.sendCriteria();
+		return this;
+	}
+	async fetchTable(listener, clearCache) {
+		return getTable(await getWerklijstTableRef(), listener, clearCache, (_) => this.getCheckSum());
+	}
+	addCriterium(name, operator, values) {
+		this.criteria.push({
+			name,
+			operator,
+			values
+		});
+	}
+	addFields(fields) {
+		this.fields.push(...fields);
+	}
+	async addCodesForCriterium(criterium, items) {
+		let defs = await this.fetchMultiSelectDefinitions(criterium);
+		let codes = textToCodes(items, defs.defs);
+		return {
+			postId: defs.postId,
+			values: codes
+		};
+	}
+	async fetchAvailableSubjects() {
+		let defs = await this.fetchMultiSelectDefinitions("Vak");
+		return Array.from(defs.defs).map((vak) => {
+			return {
+				name: vak[0],
+				value: vak[1]
+			};
+		});
+	}
+	async fetchMultiSelectDefinitions(criterium) {
+		let critId = this.criteriaDefs.find((c) => c.name === criterium).id;
+		//! todo: force criteria to be valid: fetch() is not called in constructor.
+		await postNameValueList("/views/leerlingen/werklijst/criteria/toevoegen/toevoegen.opslaan.php", [{
+			name: "criterium_id",
+			value: critId
+		}]);
+		let text = await fetch("/views/leerlingen/werklijst/criteria/criteria.div.php").then((res) => res.text());
+		const template = document.createElement("template");
+		template.innerHTML = text;
+		let select = template.content.querySelector(`tr[data-criterium_id="${critId}"]`).querySelector(`td:nth-child(3) select`);
+		let defs = select.querySelectorAll(`option`);
+		return {
+			postId: select.dataset.postId,
+			defs: Array.from(defs).map((def) => [def.label, def.value])
+		};
+	}
+	async sendFields(fields) {
+		let fieldsToActuallySend = fields.filter((f) => !this.preselectedFields.includes(f.text));
+		for (let field of fieldsToActuallySend) {
+			let fieldDef = this.fieldDefs.find((f) => f.name === field.text);
+			//! todo: force fiedDefs to be valid: fetch() is not called in constructor.
+			if (fieldDef) await postNameValueList("/views/leerlingen/werklijst/velden/toevoegen/wijzigen.opslaan.php", [{
+				name: "veld_id",
+				value: fieldDef.id
+			}, {
+				name: "selected",
+				value: "1"
+			}]);
+		}
+	}
+	setPreselectedFields(preselectedFields) {
+		this.preselectedFields = preselectedFields;
+	}
+};
+function textToCodes(items, vakDefs) {
+	let filtered;
+	if (typeof items === "function") {
+		let isIncluded = items;
+		filtered = vakDefs.filter((vakDef) => isIncluded(vakDef[0]));
+	} else filtered = vakDefs.filter((vakDef) => items.includes(vakDef[0]));
+	return filtered.map((vakDef) => vakDef[1]);
+}
+//#endregion
+//#region typescript/lessen/observer.ts
+var LessenObserver = class extends HashObserver {
+	constructor() {
+		super("#lessen-overzicht", onMutation$7, false, onPageRefreshed$1);
+	}
+	isPageReallyLoaded() {
+		return document.getElementById("btn_lessen_overzicht_zoeken") != null;
+	}
+};
+var observer_default$8 = new LessenObserver();
+function onPageRefreshed$1() {
+	console.log(`Lessen.onPageRefreshed: hash: ${location.hash}`);
+	if (location.hash != "#lessen-overzicht") return;
+	if (!addTrimesterButton()) setTimeout(onPageRefreshed$1, 500);
+}
+function addTrimesterButton() {
+	let btnZoek = document.getElementById("btn_lessen_overzicht_zoeken");
+	if (!btnZoek) return false;
+	if (!document.getElementById("btn_show_trimesters")) {
+		let { first } = emmet.insertAfter(btnZoek, "button.btn.btn-sm.btn-primary.w-100.mt-1#btn_show_trimesters>i.fas.fa-sitemap+{ Toon trimesters}");
+		first.onclick = onClickShowTrimesters;
+	}
+	return true;
+}
+function onMutation$7(mutation) {
+	addTrimesterButton();
+	let lessenOverzicht = document.getElementById(LESSEN_OVERZICHT_ID);
+	if (mutation.target !== lessenOverzicht) return false;
+	let pageState = getGotoStateOrDefault("Lessen");
+	switch (pageState.goto) {
+		case "Lessen_trimesters_set_filter":
+			pageState.goto = "";
+			saveGotoState(pageState);
+			onClickShowTrimesters();
+			return true;
+		case "Lessen_trimesters_show":
+			pageState.goto = "";
+			saveGotoState(pageState);
+			return true;
+	}
+	return decorateTable() !== void 0;
+}
+function onClickShowTrimesters() {
+	document.getElementById("lessen_overzicht").innerHTML = "<span class=\"text-muted\">\n                <i class=\"fa fa-cog fa-spin\"></i> <i>Bezig met laden...</i>\n            </span>";
+	setTrimesterFilterAndFetch().then((text) => {
+		document.getElementById("lessen_overzicht").innerHTML = text;
+		showTrimesterTable(decorateTable(), true);
+	});
+}
+async function setTrimesterFilterAndFetch() {
+	return fetchLessen(new URLSearchParams({
+		schooljaar: Schoolyear.findInPage(),
+		domein: "3",
+		vestigingsplaats: "",
+		vak: "",
+		graad: "",
+		leerkracht: "",
+		ag: "",
+		lesdag: "",
+		verberg_online: "-1",
+		soorten_lessen: "3",
+		volzet: "-1"
+	}));
+}
+async function fetchLessen(params) {
+	let url = "/views/lessen/overzicht/index.filters.php";
+	await fetch(url + "?" + params);
+	url = "/views/lessen/overzicht/index.lessen.php";
+	return (await fetch(url + "?" + params)).text();
+}
+function createTrimTableDiv() {
+	let trimDiv = document.getElementById(TRIM_DIV_ID);
+	if (!trimDiv) {
+		trimDiv = document.createElement("div");
+		document.getElementById(LESSEN_TABLE_ID).insertAdjacentElement("afterend", trimDiv);
+		trimDiv.id = TRIM_DIV_ID;
+	}
+	return trimDiv;
+}
+function decorateTable() {
+	let printButton = document.getElementById("btn_print_overzicht_lessen");
+	if (!printButton) return;
+	let copyLessonButton = printButton.parentElement.querySelector("button:has(i.fa-reply-all)");
+	if (copyLessonButton?.title === "") {
+		copyLessonButton.title = copyLessonButton.textContent.replaceAll("\n", " ").replaceAll("      ", " ").replaceAll("     ", " ").replaceAll("    ", " ").replaceAll("   ", " ").replaceAll("  ", " ");
+		copyLessonButton.childNodes.forEach((node) => {
+			if (node.nodeType === Node.TEXT_NODE) node.remove();
+		});
+		copyLessonButton.querySelector("strong")?.remove();
+		copyLessonButton.style.backgroundColor = "red";
+		copyLessonButton.style.color = "white";
+	}
+	let overzichtDiv = document.getElementById(LESSEN_OVERZICHT_ID);
+	createTrimTableDiv();
+	overzichtDiv.dataset.filterFullClasses = "false";
+	let badges = document.getElementsByClassName("badge");
+	if (Array.from(badges).some((el) => el.textContent === "module")) addButton(printButton, TRIM_BUTTON_ID, "Toon trimesters", onClickToggleTrimesters, "fa-sitemap");
+	addFilterFields();
+	return getTrimPageElements();
+}
+function addButton(printButton, buttonId, title, clickFunction, imageId) {
+	if (document.getElementById(buttonId) === null) {
+		const button = document.createElement("button");
+		button.classList.add("btn", "btn-sm", "btn-outline-secondary", "w-100");
+		button.id = buttonId;
+		button.style.marginTop = "0";
+		button.onclick = clickFunction;
+		button.title = title;
+		const buttonContent = document.createElement("i");
+		button.appendChild(buttonContent);
+		buttonContent.classList.add("fas", imageId);
+		printButton.insertAdjacentElement("beforebegin", button);
+	}
+}
+function onClickToggleTrimesters() {
+	showTrimesterTable(getTrimPageElements(), !isTrimesterTableVisible());
+}
+function isTrimesterTableVisible() {
+	return document.getElementById(LESSEN_TABLE_ID).style.display === "none";
+}
+function getTrimPageElements() {
+	return {
+		trimTable: document.getElementById(TRIM_TABLE_ID),
+		trimTableDiv: createTrimTableDiv(),
+		lessenTable: document.getElementById(LESSEN_TABLE_ID),
+		trimButton: document.getElementById(TRIM_BUTTON_ID)
+	};
+}
+async function getJaarToewijzigingWerklijst(schoolYear) {
+	let builder = await createWerklijstBuilderWithReset(schoolYear, "3");
+	builder.addCriterium("Domein", "=", ["Muziek (Mu)"]);
+	builder.addCriterium("Vak", "=", [
+		"instrumentinitiatie – hele jaar zelfde instrument - accordeon",
+		"instrumentinitiatie – hele jaar zelfde instrument - baglama (saz)",
+		"instrumentinitiatie – hele jaar zelfde instrument - cello",
+		"instrumentinitiatie – hele jaar zelfde instrument - dwarsfluit",
+		"instrumentinitiatie – hele jaar zelfde instrument - gitaar",
+		"instrumentinitiatie – hele jaar zelfde instrument - harp",
+		"instrumentinitiatie – hele jaar zelfde instrument - klarinet",
+		"instrumentinitiatie – hele jaar zelfde instrument - saxofoon",
+		"instrumentinitiatie – hele jaar zelfde instrument - slagwerk",
+		"instrumentinitiatie – hele jaar zelfde instrument - trombone",
+		"instrumentinitiatie – hele jaar zelfde instrument - trompet",
+		"instrumentinitiatie – hele jaar zelfde instrument - viool",
+		"instrumentinitiatie – hele jaar zelfde instrument - zang"
+	]);
+	builder.addFields([
+		FIELD.NAAM,
+		FIELD.VOORNAAM,
+		FIELD.VAK_NAAM,
+		FIELD.LESMOMENTEN,
+		FIELD.KLAS_LEERKRACHT,
+		FIELD.GRAAD_LEERJAAR
+	]);
+	let table = await (await builder.sendSettings()).fetchTable(void 0, true);
+	await setViewFromCurrentUrl();
+	return table;
+}
+async function showTrimesterTable(trimElements, show) {
+	trimElements.trimTable?.remove();
+	let toewijzingTable;
+	let schoolYear = Schoolyear.findInPage();
+	if (schoolYear === "2024-2025") toewijzingTable = void 0;
+	else toewijzingTable = await getJaarToewijzigingWerklijst(schoolYear);
+	let inputModules = scrapeModules(trimElements.lessenTable, toewijzingTable);
+	let toewijzingModules = connvertToewijzingenToModules(inputModules.jaarToewijzingen);
+	console.log(toewijzingModules);
+	inputModules.jaarModules = inputModules.jaarModules.concat(...toewijzingModules.values());
+	buildTrimesterTable(buildTableData(inputModules.trimesterModules.concat(inputModules.jaarModules)), trimElements);
+	trimElements.lessenTable.style.display = show ? "none" : "table";
+	trimElements.trimTable.style.display = show ? "table" : "none";
+	trimElements.trimButton.title = show ? "Toon normaal" : "Toon trimesters";
+	setButtonHighlighted(TRIM_BUTTON_ID, show);
+	setSorteerLine(show);
+	applyFilters();
+}
+function addSortingAnchorOrText() {
+	let sorteerDiv = document.getElementById("trimSorteerDiv");
+	sorteerDiv.innerHTML = "Sorteer : ";
+	if (getSavedNameSorting() === 0) emmet.append(sorteerDiv, "a{Naam}[href=\"#\"]+{ | }+strong{Voornaam}");
+	else emmet.append(sorteerDiv, "strong{Naam}+{ | }+a{Voornaam}[href=\"#\"]");
+	for (let anchor of sorteerDiv.querySelectorAll("a")) anchor.onclick = (mouseEvent) => {
+		if (mouseEvent.target.textContent === "Naam") setSavedNameSorting(1);
+		else setSavedNameSorting(0);
+		showTrimesterTable(getTrimPageElements(), true);
+		addSortingAnchorOrText();
+		return false;
+	};
+}
+function setSorteerLine(showTrimTable) {
+	let pageState = getPageSettings("Lessen", getDefaultPageSettings());
+	let oldSorteerSpan = document.querySelector("#lessen_overzicht > span");
+	let newGroupingDiv = document.getElementById("trimGroepeerDiv");
+	if (!newGroupingDiv) newGroupingDiv = emmet.insertAfter(oldSorteerSpan, "div#trimGroepeerDiv.text-muted").first;
+	if (!document.getElementById("trimSorteerDiv")) {
+		emmet.insertBefore(newGroupingDiv, "div#trimSorteerDiv.text-muted");
+		addSortingAnchorOrText();
+	}
+	newGroupingDiv.innerText = "Groepeer: ";
+	oldSorteerSpan.style.display = showTrimTable ? "none" : "";
+	newGroupingDiv.style.display = showTrimTable ? "" : "none";
+	appendGroupingAnchorOrText(newGroupingDiv, 1, pageState.grouping, "");
+	appendGroupingAnchorOrText(newGroupingDiv, 0, pageState.grouping, " | ");
+	appendGroupingAnchorOrText(newGroupingDiv, 2, pageState.grouping, " | ");
+	appendGroupingAnchorOrText(newGroupingDiv, 4, pageState.grouping, " | ");
+	appendGroupingAnchorOrText(newGroupingDiv, 5, pageState.grouping, " | ");
+}
+function appendGroupingAnchorOrText(target, grouping, activeSorting, separator) {
+	let sortingText = "";
+	switch (grouping) {
+		case 1:
+			sortingText = "instrument+leraar+lesuur";
+			break;
+		case 0:
+			sortingText = "leraar+instrument+lesuur";
+			break;
+		case 2:
+			sortingText = "leraar+lesuur";
+			break;
+		case 3:
+			sortingText = "instrument+lesuur";
+			break;
+		case 4:
+			sortingText = "instrument";
+			break;
+		case 5: sortingText = "leraar";
+	}
+	if (separator) separator = "{" + separator + "}+";
+	if (activeSorting === grouping) emmet.appendChild(target, separator + "strong{" + sortingText + "}");
+	else {
+		let button = emmet.appendChild(target, separator + "button.likeLink{" + sortingText + "}").last;
+		button.onclick = () => {
+			let pageState = getPageSettings("Lessen", getDefaultPageSettings());
+			pageState.grouping = grouping;
+			savePageSettings(pageState);
+			showTrimesterTable(getTrimPageElements(), true);
+			return false;
+		};
+	}
+}
+//#endregion
+//#region typescript/lessen/fetch.ts
+let LessenFilterDomein = /* @__PURE__ */ function(LessenFilterDomein) {
+	LessenFilterDomein["Muziek"] = "3";
+	LessenFilterDomein["Woord"] = "4";
+	LessenFilterDomein["DomeinOV"] = "5";
+	LessenFilterDomein["Dans"] = "2";
+	return LessenFilterDomein;
+}({});
+async function scrapeLessen(domein, type, schoolYear) {
+	let chain = new FetchChain();
+	await chain.fetch("/#lessen-overzichtlessen-overzicht");
+	await chain.fetch("view.php?args=lessen-overzicht");
+	let tableText = await fetchLessen(new URLSearchParams({
+		schooljaar: schoolYear,
+		domein,
+		vestigingsplaats: "",
+		vak: "",
+		graad: "",
+		leerkracht: "",
+		ag: "",
+		lesdag: "",
+		verberg_online: "-1",
+		soorten_lessen: type,
+		volzet: "-1"
+	}));
+	let div = document.createElement("div");
+	div.innerHTML = tableText;
+	return scrapeLessenOverzicht(div.querySelector("#" + LESSEN_TABLE_ID));
+}
+var LessenFilterBuilder = class LessenFilterBuilder {
+	schoolYear;
+	domein;
+	vakCodes = [];
+	graadCodes = [];
+	adminGroupCodes = [];
+	vakken = [];
+	graden = [];
+	adminGroups = [];
+	constructor(schoolYear, domein) {
+		this.schoolYear = schoolYear;
+		this.domein = LessenFilterDomein[domein];
+	}
+	static async create(schoolYear, domein) {
+		let builder = new LessenFilterBuilder(schoolYear, domein);
+		await builder.initialize();
+		return builder;
+	}
+	async initialize() {
 		let chain = new FetchChain();
-		await chain.fetch("/#lessen-overzichtlessen-overzicht");
 		await chain.fetch("view.php?args=lessen-overzicht");
+		chain.findDocReadyLoadUrl();
+		await chain.fetch();
+		await chain.fetch(`views/lessen/overzicht/filters/index.selectie_na_schooljaar.php?schooljaar=${this.schoolYear}`);
+		await chain.fetch(`views/lessen/overzicht/filters/index.selectie_na_domein.php?domein=${this.domein}`);
+		this.vakCodes = this.getCodesForCriteria("lessen_overzicht_vak", chain.get());
+		//! should have text.
+		this.graadCodes = this.getCodesForCriteria("lessen_overzicht_graad", chain.get());
+		//! should have text.
+		this.adminGroupCodes = this.getCodesForCriteria("lessen_overzicht_ag", chain.get());
+		//! should have text.
+		this.adminGroupCodes.forEach((ag) => {
+			ag.name = ag.name.split(" ").shift() ?? "???";
+		});
+	}
+	getCodesForCriteria(selectId, text) {
+		let scanner = new TokenScanner(text);
+		scanner.find(`"${selectId}"`);
+		scanner.find("<option");
+		scanner.clipTo("</select>");
+		return (scanner.result()?.split("</option>").map((opt) => opt.replace(" selected ", "").replace("<option", "").replace("value=\"", "").trim().split(/"\s*>/)) ?? []).filter((opt) => opt[0] != "").map((opt) => {
+			return {
+				code: opt[0],
+				name: opt[1]
+			};
+		});
+	}
+	async fetch() {
 		let tableText = await fetchLessen(new URLSearchParams({
-			schooljaar: schoolYear,
-			domein,
+			schooljaar: this.schoolYear,
+			domein: this.domein,
 			vestigingsplaats: "",
-			vak: "",
-			graad: "",
+			vak: this.vakken.join(),
+			graad: this.graden.join(),
 			leerkracht: "",
-			ag: "",
+			ag: this.adminGroups.join(),
 			lesdag: "",
 			verberg_online: "-1",
-			soorten_lessen: type,
+			soorten_lessen: "1",
 			volzet: "-1"
 		}));
 		let div = document.createElement("div");
 		div.innerHTML = tableText;
 		return scrapeLessenOverzicht(div.querySelector("#" + LESSEN_TABLE_ID));
 	}
-	var LessenFilterBuilder = class LessenFilterBuilder {
-		schoolYear;
-		domein;
-		vakCodes = [];
-		graadCodes = [];
-		adminGroupCodes = [];
-		vakken = [];
-		graden = [];
-		adminGroups = [];
-		constructor(schoolYear, domein) {
-			this.schoolYear = schoolYear;
-			this.domein = LessenFilterDomein[domein];
+	hasVak(vak) {
+		return this.vakken.includes(vak);
+	}
+	addVak(vak) {
+		let vakCode = this.vakCodes.find((v) => v.name === vak);
+		if (!vakCode) {
+			console.error("vak niet gevonden: " + vak);
+			return;
 		}
-		static async create(schoolYear, domein) {
-			let builder = new LessenFilterBuilder(schoolYear, domein);
-			await builder.initialize();
-			return builder;
+		this.vakken.push(vakCode.code);
+	}
+	addGraad(graad) {
+		let graadCode = this.graadCodes.find((v) => v.name === graad);
+		if (!graadCode) {
+			console.error("graad niet gevonden: " + graad);
+			return;
 		}
-		async initialize() {
-			let chain = new FetchChain();
-			await chain.fetch("view.php?args=lessen-overzicht");
-			chain.findDocReadyLoadUrl();
-			await chain.fetch();
-			await chain.fetch(`views/lessen/overzicht/filters/index.selectie_na_schooljaar.php?schooljaar=${this.schoolYear}`);
-			await chain.fetch(`views/lessen/overzicht/filters/index.selectie_na_domein.php?domein=${this.domein}`);
-			this.vakCodes = this.getCodesForCriteria("lessen_overzicht_vak", chain.get());
-			//! should have text.
-			this.graadCodes = this.getCodesForCriteria("lessen_overzicht_graad", chain.get());
-			//! should have text.
-			this.adminGroupCodes = this.getCodesForCriteria("lessen_overzicht_ag", chain.get());
-			//! should have text.
-			this.adminGroupCodes.forEach((ag) => {
-				ag.name = ag.name.split(" ").shift() ?? "???";
-			});
+		this.graden.push(graadCode.code);
+	}
+	addAdminGroup(adminGroup) {
+		let adminGroupCode = this.adminGroupCodes.find((v) => v.name === adminGroup);
+		if (!adminGroupCode) {
+			console.error("administrative groep niet gevonden: " + adminGroup);
+			return;
 		}
-		getCodesForCriteria(selectId, text) {
-			let scanner = new TokenScanner(text);
-			scanner.find(`"${selectId}"`);
-			scanner.find("<option");
-			scanner.clipTo("</select>");
-			return (scanner.result()?.split("</option>").map((opt) => opt.replace(" selected ", "").replace("<option", "").replace("value=\"", "").trim().split(/"\s*>/)) ?? []).filter((opt) => opt[0] != "").map((opt) => {
-				return {
-					code: opt[0],
-					name: opt[1]
-				};
-			});
-		}
-		async fetch() {
-			let tableText = await fetchLessen(new URLSearchParams({
-				schooljaar: this.schoolYear,
-				domein: this.domein,
-				vestigingsplaats: "",
-				vak: this.vakken.join(),
-				graad: this.graden.join(),
-				leerkracht: "",
-				ag: this.adminGroups.join(),
-				lesdag: "",
-				verberg_online: "-1",
-				soorten_lessen: "1",
-				volzet: "-1"
-			}));
-			let div = document.createElement("div");
-			div.innerHTML = tableText;
-			return scrapeLessenOverzicht(div.querySelector("#" + LESSEN_TABLE_ID));
-		}
-		hasVak(vak) {
-			return this.vakken.includes(vak);
-		}
-		addVak(vak) {
-			let vakCode = this.vakCodes.find((v) => v.name === vak);
-			if (!vakCode) {
-				console.error("vak niet gevonden: " + vak);
-				return;
-			}
-			this.vakken.push(vakCode.code);
-		}
-		addGraad(graad) {
-			let graadCode = this.graadCodes.find((v) => v.name === graad);
-			if (!graadCode) {
-				console.error("graad niet gevonden: " + graad);
-				return;
-			}
-			this.graden.push(graadCode.code);
-		}
-		addAdminGroup(adminGroup) {
-			let adminGroupCode = this.adminGroupCodes.find((v) => v.name === adminGroup);
-			if (!adminGroupCode) {
-				console.error("administrative groep niet gevonden: " + adminGroup);
-				return;
-			}
-			this.adminGroups.push(adminGroupCode.code);
+		this.adminGroups.push(adminGroupCode.code);
+	}
+};
+//#endregion
+//#region typescript/roster_diff/buildDiff.ts
+let cachedDiffs = void 0;
+async function getJsonDiffsCached(academie, schoolYear, diffPageType) {
+	if (cachedDiffs) return cachedDiffs;
+	let diffs = await getDiffsFromCloud(academie, schoolYear, diffPageType);
+	if (diffs) await saveJsonDiffs(academie, schoolYear, diffPageType, diffs);
+	return diffs;
+}
+async function saveJsonDiffs(academie, schoolYear, diffPageType, jsonDiffs) {
+	let fileName = getDiffsCloudFileName(academie, schoolYear, diffPageType);
+	await cloud.json.upload(fileName, jsonDiffs);
+	sessionStorage.setItem(fileName, JSON.stringify(jsonDiffs));
+}
+let prepareWwwData = async function(statusReporter, academie, schoolYear, dko3DiffData, diffSettings) {
+	statusReporter.reportStatus("Website uurroosters ophalen...");
+	return {
+		excelRosters: [],
+		otherLesSet: new Set(await parseWww(dko3DiffData, diffSettings))
+	};
+};
+let prepareExcelData = async function(statusReporter, academie, schoolYear, dko3DiffData, diffSettings) {
+	statusReporter.reportStatus("Excel bestanden ophalen...");
+	let folderPath = await fetchFolderChanged(`Dko3/Uurroosters/${academie}/${schoolYear}/`);
+	statusReporter.reportStatus(`${folderPath.files.length} Excel bestanden gevonden.`);
+	let jsonExcelDatas = [];
+	for (let file of folderPath.files) {
+		let fileShortName = file.name.replaceAll("Dko3/Uurroosters/", "");
+		statusReporter.reportStatus(`Inlezen van ${fileShortName}...`);
+		let excelData = await fetchExcelData(file.name);
+		jsonExcelDatas.push(excelData);
+	}
+	let excelLessenArray = [];
+	let excelRosters = [];
+	statusReporter.reportStatus("Excel tabellen bouwen...");
+	for (let excelData of jsonExcelDatas) {
+		let roster = new ExcelRoster(new RosterFactory(excelData).getTable(), dko3DiffData, diffSettings);
+		excelRosters.push(roster);
+		let classDefs = roster.scrapeUurrooster();
+		if (classDefs) excelLessenArray.push(classDefs);
+		console.log(excelLessenArray);
+	}
+	statusReporter.reportStatus("Lessen vergelijken...");
+	let dddata = dko3DiffData;
+	let otherLesSet = new Set(excelLessenArray.flat().map((les) => new TaggedExcelLes(les, dddata.preparedDko3DiffData.teachers, diffSettings)));
+	otherLesSet.forEach((les) => {
+		if (isExcelLesToIgnore(les, diffSettings.preparedDiffSettings.ignoreList)) otherLesSet.delete(les);
+	});
+	return {
+		excelRosters,
+		otherLesSet
+	};
+};
+function updateDko3DiffDataAndSettings(dko3DiffData, diffSettings) {
+	for (let teacher of dko3DiffData.teachers) for (let tagDef of diffSettings.tagDefs) if (teacher.fullName == tagDef.tag) teacher.callName = tagDef.searchString;
+	let classNamesFromTags = diffSettings.tagDefs.filter((tagDef) => tagDef.isClassName).map((tagDef) => tagDef.searchString);
+	return {
+		dko3DiffData: { preparedDko3DiffData: dko3DiffData },
+		diffSettings: {
+			preparedDiffSettings: diffSettings,
+			classNamesFromTags
 		}
 	};
-	//#endregion
-	//#region typescript/roster_diff/buildDiff.ts
-	let cachedDiffs = void 0;
-	async function getJsonDiffsCached(academie, schoolYear, diffPageType) {
-		if (cachedDiffs) return cachedDiffs;
-		let diffs = await getDiffsFromCloud(academie, schoolYear, diffPageType);
-		if (diffs) await saveJsonDiffs(academie, schoolYear, diffPageType, diffs);
-		return diffs;
-	}
-	async function saveJsonDiffs(academie, schoolYear, diffPageType, jsonDiffs) {
-		let fileName = getDiffsCloudFileName(academie, schoolYear, diffPageType);
-		await cloud.json.upload(fileName, jsonDiffs);
-		sessionStorage.setItem(fileName, JSON.stringify(jsonDiffs));
-	}
-	let prepareWwwData = async function(statusReporter, academie, schoolYear, dko3DiffData, diffSettings) {
-		statusReporter.reportStatus("Website uurroosters ophalen...");
-		return {
-			excelRosters: [],
-			otherLesSet: new Set(await parseWww(dko3DiffData, diffSettings))
-		};
+}
+async function buildAndSaveDiff(statusReporter, fetchListener, academie, schoolYear, dko3DiffData, diffSettings, diffPageType, prepareOtherData, errors) {
+	statusReporter.reportStatus(`DKO3 data ophalen...`);
+	if (!dko3DiffData) dko3DiffData = await getDko3Data(schoolYear, statusReporter, fetchListener);
+	let json = JSON.stringify(dko3DiffData);
+	let preparedData = updateDko3DiffDataAndSettings(dko3DiffData, diffSettings);
+	let { excelRosters, otherLesSet } = await prepareOtherData(statusReporter, academie, schoolYear, preparedData.dko3DiffData, preparedData.diffSettings);
+	let res = {
+		excelRosters,
+		...await calcDiff(dko3DiffData, statusReporter, preparedData.diffSettings, otherLesSet)
 	};
-	let prepareExcelData = async function(statusReporter, academie, schoolYear, dko3DiffData, diffSettings) {
-		statusReporter.reportStatus("Excel bestanden ophalen...");
-		let folderPath = await fetchFolderChanged(`Dko3/Uurroosters/${academie}/${schoolYear}/`);
-		statusReporter.reportStatus(`${folderPath.files.length} Excel bestanden gevonden.`);
-		let jsonExcelDatas = [];
-		for (let file of folderPath.files) {
-			let fileShortName = file.name.replaceAll("Dko3/Uurroosters/", "");
-			statusReporter.reportStatus(`Inlezen van ${fileShortName}...`);
-			let excelData = await fetchExcelData(file.name);
-			jsonExcelDatas.push(excelData);
-		}
-		let excelLessenArray = [];
-		let excelRosters = [];
-		statusReporter.reportStatus("Excel tabellen bouwen...");
-		for (let excelData of jsonExcelDatas) {
-			let roster = new ExcelRoster(new RosterFactory(excelData).getTable(), dko3DiffData, diffSettings);
-			excelRosters.push(roster);
-			let classDefs = roster.scrapeUurrooster();
-			if (classDefs) excelLessenArray.push(classDefs);
-			console.log(excelLessenArray);
-		}
-		statusReporter.reportStatus("Lessen vergelijken...");
-		let dddata = dko3DiffData;
-		let otherLesSet = new Set(excelLessenArray.flat().map((les) => new TaggedExcelLes(les, dddata.preparedDko3DiffData.teachers, diffSettings)));
-		otherLesSet.forEach((les) => {
-			if (isExcelLesToIgnore(les, diffSettings.preparedDiffSettings.ignoreList)) otherLesSet.delete(les);
+	deleteNotification("FILE_POSTED").then(() => fetchAndDisplayNotifications());
+	dko3DiffData = JSON.parse(json);
+	dko3DiffData.extraTeachersCache = res.extraTeacherCache.toJSON();
+	localStorage.setItem(getDiffsDko3CacheFileName(academie, schoolYear, diffPageType), JSON.stringify(dko3DiffData));
+	let jsonDiffs = await createJsonDiffs(res.diffs, res.dko3LesSet, res.otherLesSet, res.excelRosters, academie, schoolYear, diffPageType, errors);
+	await saveJsonDiffs(academie, schoolYear, diffPageType, jsonDiffs);
+	statusReporter.reportStatus(``);
+	cachedDiffs = jsonDiffs;
+	return jsonDiffs;
+}
+async function getDko3Data(schoolYear, statusReporter, fetchListener) {
+	statusReporter.reportStatus("Vestigingsplaatsen ophalen...");
+	let locations = [...(await getTableFromHash("extra-academie-vestigingsplaatsen", true, fetchListener)).getRows()].map((tr) => tr.cells[1].textContent);
+	statusReporter.reportStatus("Leraren ophalen...");
+	let teachers = await fetchTeachers(schoolYear);
+	let lessen = (await scrapeAllNormalLessen(schoolYear, statusReporter)).map((l) => l.les);
+	statusReporter.reportStatus("Ophalen aliaslessen...");
+	let dko3AliasLessen = (await scrapeLessen("4", "4", schoolYear)).map((l) => l.les);
+	for (let les of dko3AliasLessen) les.linkedLessenIds = await getAliassesForLes(les.id, statusReporter);
+	dko3AliasLessen = dko3AliasLessen.filter((l) => l.linkedLessenIds.length > 1);
+	let subjects = lessen.map((les) => [les.vakNaam, les.naam]).flat();
+	subjects = [...new Set(subjects)];
+	let classNames = lessen.map((les) => les.naam).filter((n) => n != "");
+	subjects = [...new Set(subjects)];
+	return {
+		lessen,
+		locations,
+		teachers,
+		dko3AliasLessen,
+		subjects,
+		classNames
+	};
+}
+async function scrapeAllNormalLessen(schoolYear, statusReporter) {
+	statusReporter.reportStatus("Ophalen woordlessen...");
+	let dko3Lessen = await scrapeLessen("4", "1", schoolYear);
+	statusReporter.reportStatus("Ophalen muzieklessen...");
+	let muziekLessen = await scrapeLessen("3", "1", schoolYear);
+	statusReporter.reportStatus("Ophalen kunstenbad lessen...");
+	let kbLessen = await scrapeLessen("5", "1", schoolYear);
+	return [
+		...dko3Lessen,
+		...muziekLessen,
+		...kbLessen
+	];
+}
+var TaggedExcelLes = class extends TaggedLes {
+	lesType = "excel";
+	className;
+	dayTimeSlice;
+	hash;
+	constructor(les, teachers, diffSettings) {
+		let searchText = " " + les.cellValue.toLowerCase().replaceAll("\n", " \n ").replaceAll("(", " ( ").replaceAll(")", " ) ").replaceAll(".", " . ").replaceAll(",", " , ").replaceAll("-", " - ") + " ";
+		super(les, [], searchText, [], false);
+		this.className = this.lesMoment.className;
+		this.location = this.lesMoment.location;
+		this.teachers = preTranslate(les.cellValue, diffSettings).split(/[\/,]/g).map((t) => findTeacher(t, teachers, "")).filter((t) => t != "");
+		if (this.teachers.length == 0) this.teachers = preTranslate(this.lesMoment.teacher, diffSettings).split(/[\/,]/g).map((t) => t.trim()).filter((t) => t.substring(t.length - 1) != "?").map((t) => findTeacher(t, teachers, t)).filter((t) => t != "");
+		this.subjects = les.subjects;
+		this.subjects = this.subjects.filter((s) => s);
+		if (this.lesMoment.className) this.subjects.push(this.lesMoment.className);
+		this.subjects = [...new Set(this.subjects)];
+		this.dayTimeSlice = new DayTimeSlice(les.day, les.timeSlice);
+		this.gradeYears = les.gradeYears;
+		this.hash = les.getHash();
+	}
+};
+function isDko3LesToIgnore(les, ignoreList) {
+	return ignoreList.some((ignore) => (" " + les.naam.toLowerCase() + " ").includes(ignore) || (" " + les.vakNaam.toLowerCase() + " ").includes(ignore));
+}
+function isExcelLesToIgnore(les, ignoreList) {
+	return ignoreList.some((ignore) => les.lesMoment.cellValue.includes(ignore)) || ignoreList.some((ignore) => les.searchText.includes(ignore));
+}
+function splitDko3LessenIntoLesmomenten(dko3Data, diffSettings, statusReporter) {
+	let lesMomenten = dko3Data.lessen.filter((les) => !isDko3LesToIgnore(les, diffSettings.preparedDiffSettings.ignoreList)).map((les) => {
+		if (les.dayTimeSlices.length == 0) statusReporter.addError(`Les <a href="https://administratie.dko3.cloud/#lessen-les?id=${les.id}">${les.id}</a> heeft geen lesmoment. ${les.vakNaam}(${les.naam}), ${les.teacher}`, "error");
+		let lesMomenten = les.dayTimeSlices.map((slice) => {
+			return new Dko3LesMoment(les, slice);
 		});
-		return {
-			excelRosters,
-			otherLesSet
-		};
+		for (let moment of lesMomenten) moment.lesMomenten = lesMomenten;
+		return lesMomenten;
+	}).flat().map((lesMoment) => new TaggedDko3LesMoment(lesMoment));
+	return new Set(lesMomenten);
+}
+function createLesMomenten(dko3Data, statusReporter, diffSettings) {
+	let dko3LesSet = splitDko3LessenIntoLesmomenten(dko3Data, diffSettings, statusReporter);
+	let dko3LesMap = /* @__PURE__ */ new Map();
+	for (let les of dko3Data.lessen) dko3LesMap.set(les.id, les);
+	let lesMomentenMap = /* @__PURE__ */ new Map();
+	for (let les of dko3LesSet.values()) lesMomentenMap.set(les.lesMoment.momentId, les);
+	loopAliasLessen: for (let aliasLes of dko3Data.dko3AliasLessen) {
+		if (aliasLes.linkedLessenIds.length < 2) {
+			statusReporter.addError(`Error: alias les <a href="https://administratie.dko3.cloud/#lessen-les?id=${aliasLes.id}">${aliasLes.id}</a> heeft geen 2 geldige gekoppelde lessen.`, "error");
+			continue;
+		}
+		let possibleLinkedLessen = aliasLes.linkedLessenIds.map((lesId) => dko3LesMap.get(lesId));
+		if (possibleLinkedLessen.includes(void 0)) {
+			statusReporter.addError(`Voor aliasles <a href="https://administratie.dko3.cloud/#lessen-les?id=${aliasLes.id}">${aliasLes.id}</a> zijn er ontbrekende gekoppelde lessen.`, "error");
+			continue;
+		}
+		let linkedLessen = possibleLinkedLessen;
+		let aliasLocation = aliasLes.vestiging;
+		let aliasGradeYearsStr = GradeYear.toString(aliasLes.gradeYears);
+		for (let linkedLes of linkedLessen) {
+			if (linkedLes.vestiging != aliasLocation) statusReporter.addError(`Voor aliasles <a href="https://administratie.dko3.cloud/#lessen-les?id=${aliasLes.id}">${aliasLes.id}</a> is de vestiging niet dezelfde als de gekoppelde lessen.`, "error");
+			if (GradeYear.toString(linkedLes?.gradeYears ?? []) != aliasGradeYearsStr) statusReporter.addError(`Voor aliasles <a href="https://administratie.dko3.cloud/#lessen-les?id=${aliasLes.id}">${aliasLes.id}</a> zijn de graden en jaren niet gelijk aan de gekoppelde les <a href="https://administratie.dko3.cloud/#lessen-les?id=${linkedLes.id}">${linkedLes.id}</a>.`, "error");
+			if (linkedLes.online) statusReporter.addError(`Voor aliasles <a href="https://administratie.dko3.cloud/#lessen-les?id=${aliasLes.id}">${aliasLes.id}</a> is gekoppelde les <a href="https://administratie.dko3.cloud/#lessen-les?id=${linkedLes.id}">${linkedLes.id}</a> online zichtbaar.`, "error");
+		}
+		let linkedLesMomenten = linkedLessen.map((les) => les.dayTimeSlices.map((slice) => Dko3LesMoment.createLesMomentId(les, slice))).flat().map((momentId) => lesMomentenMap.get(momentId));
+		//! should all exist in the map.
+		linkedLesMomenten.sort((a, b) => DayTimeSlice.startToNumber(a.lesMoment.dayTimeSlice) - DayTimeSlice.startToNumber(b.lesMoment.dayTimeSlice));
+		let previousLesMoment = linkedLesMomenten[0];
+		for (let i = 1; i < linkedLesMomenten.length; i++) {
+			let currentLesMoment = linkedLesMomenten[i];
+			if (!currentLesMoment.lesMoment.dayTimeSlice.timeSlice || !previousLesMoment.lesMoment.dayTimeSlice.timeSlice) {
+				statusReporter.addError(`Voor aliasles <a href="https://administratie.dko3.cloud/#lessen-les?id=${aliasLes.id}">${aliasLes.id}</a> zijn er ontbrekende lestijden.`, "error");
+				continue loopAliasLessen;
+			}
+			if (DayTimeSlice.endToNumber(previousLesMoment.lesMoment.dayTimeSlice) == DayTimeSlice.startToNumber(currentLesMoment.lesMoment.dayTimeSlice)) {
+				let newTimeSlice = new TimeSlice(structuredClone(previousLesMoment.lesMoment.dayTimeSlice.timeSlice.start), structuredClone(currentLesMoment.lesMoment.dayTimeSlice.timeSlice.end));
+				let newAliasLesMoment = new TaggedDko3LesMoment(new Dko3LesMoment(aliasLes, new DayTimeSlice(previousLesMoment.lesMoment.dayTimeSlice.day, newTimeSlice)));
+				dko3LesSet.add(newAliasLesMoment);
+				dko3LesSet.delete(previousLesMoment);
+				dko3LesSet.delete(currentLesMoment);
+				previousLesMoment = newAliasLesMoment;
+			} else previousLesMoment = currentLesMoment;
+		}
+	}
+	return dko3LesSet;
+}
+async function calcDiff(dko3Data, statusReporter, diffSettings, otherLesSet) {
+	let dko3LesSet = createLesMomenten(dko3Data, statusReporter, diffSettings);
+	let extraTeacherCache = ExtraTeacherCache.fromJSON(dko3Data.extraTeachersCache ?? []);
+	for (const les1 of [...dko3LesSet.values()].filter((les) => les.lesMoment.les.teacher.includes("(en nog"))) les1.teachers = await extraTeacherCache.getExtraTeachers(les1.lesMoment.les.id);
+	let diffs = [];
+	let ctx = {};
+	diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "perfect match", diffSettings, matchBasedOnName));
+	diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "perfect match", diffSettings, perfectMatch));
+	diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "match without gradeYears", diffSettings, matchWithoutGradeYears));
+	diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "match without teacher", diffSettings, matchWithoutTeacher));
+	diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "match without location", diffSettings, matchWithoutLocation));
+	diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "match without time and day", diffSettings, matchWithoutTimeAndDay));
+	diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "match without teacher, time and day", diffSettings, matchWithoutTeacherTimeAndDay));
+	diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "match without time and day and teacher", diffSettings, matchWithoutGradeYearsTeacher));
+	console.log(diffs);
+	console.log(dko3LesSet.values());
+	console.log(otherLesSet.values());
+	return {
+		diffs,
+		dko3LesSet,
+		otherLesSet,
+		extraTeacherCache
 	};
-	function updateDko3DiffDataAndSettings(dko3DiffData, diffSettings) {
-		for (let teacher of dko3DiffData.teachers) for (let tagDef of diffSettings.tagDefs) if (teacher.fullName == tagDef.tag) teacher.callName = tagDef.searchString;
-		let classNamesFromTags = diffSettings.tagDefs.filter((tagDef) => tagDef.isClassName).map((tagDef) => tagDef.searchString);
+}
+var ExtraTeacherCache = class ExtraTeacherCache {
+	teacherMap = /* @__PURE__ */ new Map();
+	async getExtraTeachers(lesId) {
+		if (this.teacherMap.has(lesId)) return this.teacherMap.get(lesId);
+		let newEntry = await getExtraTeachers(lesId);
+		this.teacherMap.set(lesId, newEntry);
+		return newEntry;
+	}
+	toJSON() {
+		return [...this.teacherMap.entries()];
+	}
+	static fromJSON(json) {
+		let cache = new ExtraTeacherCache();
+		cache.teacherMap = new Map(json);
+		return cache;
+	}
+};
+async function getExtraTeachers(lesId) {
+	await fetch("https://administratie.dko3.cloud/view.php?args=lessen-les?id=" + lesId);
+	await fetch("https://administratie.dko3.cloud/views/lessen/les/index.view.php");
+	await fetch("https://administratie.dko3.cloud/views/lessen/les/index.details.tab.php");
+	let htmlTeachers = await (await fetch("https://administratie.dko3.cloud/views/lessen/les/details/index.details.leerkrachten.card.php")).text();
+	let div = document.createElement("div");
+	div.innerHTML = htmlTeachers;
+	return [...div.querySelectorAll("td > strong")].map((s) => {
+		return s.textContent.replaceAll("  ", " ").replaceAll(" ,", ",").trim();
+	});
+}
+async function getAliassesForLes(lesId, statusReporter) {
+	await fetch("https://administratie.dko3.cloud/view.php?args=lessen-les?id=" + lesId);
+	await fetch("https://administratie.dko3.cloud/views/lessen/les/index.view.php");
+	await fetch("https://administratie.dko3.cloud/views/lessen/les/index.details.tab.php");
+	await fetch("https://administratie.dko3.cloud/views/lessen/les/index.meta.tab.php");
+	let htmlAliases = await (await fetch("https://administratie.dko3.cloud/views/lessen/les/meta/alias_gekoppelde_lessen.card.php")).text();
+	let div = document.createElement("div");
+	div.innerHTML = htmlAliases;
+	let anchors = div.querySelectorAll("td > a");
+	if (anchors.length == 0) statusReporter.reportStatus(`ERROR: alias les ${lesId} heeft geen (geldige) gekoppelde lessen.`);
+	return [...anchors].map((a) => a.textContent.trim());
+}
+async function fetchTeachers(schoolYear) {
+	await fetch("/#personeel-personeelsleden");
+	await fetch("/view.php?args=personeel-personeelsleden");
+	await fetch("/views/personeel/personeelsleden/index.view.php");
+	await fetch("/views/personeel/personeelsleden/vestigingsplaats_schooljaar_filter.php?schooljaar=2025-2026");
+	let formData = new FormData();
+	formData.append("filters[naam]", "");
+	formData.append("filters[status_personeelsleden]", "1");
+	formData.append("filters[leerkracht]", "1");
+	formData.append("filters[interim]", "1");
+	formData.append("filters[alc]", "false");
+	formData.append("filters[administratie]", "false");
+	formData.append("filters[overig]", "false");
+	formData.append("filters[schooljaar]", schoolYear);
+	await fetch("https://administratie.dko3.cloud/views/personeel/personeelsleden/save_filters.php", {
+		method: "POST",
+		body: formData
+	});
+	let html = await (await fetch("/views/personeel/personeelsleden/personeelsleden.table.php")).text();
+	let div = document.createElement("div");
+	div.innerHTML = html;
+	return [...div.querySelectorAll(`td[data-label="Naam"] strong`)].map((strong) => strong.textContent).map((name) => {
+		let split = name.split(",");
+		name = name.trim().replaceAll(" ,", ",");
 		return {
-			dko3DiffData: { preparedDko3DiffData: dko3DiffData },
-			diffSettings: {
-				preparedDiffSettings: diffSettings,
-				classNamesFromTags
-			}
+			fullName: name,
+			firstName: split[1].trim(),
+			lastName: split[0].trim()
 		};
+	});
+}
+function findTeacher(searchString, teachers, defaultValue) {
+	let lowerCase = searchString.toLowerCase();
+	let paddedLowerCase = " " + lowerCase + " ";
+	for (let teacherDef of teachers) if (lowerCase.includes(teacherDef.firstName.toLowerCase()) && lowerCase.includes(teacherDef.lastName.toLowerCase())) return teacherDef.fullName;
+	for (let teacherDef of teachers) {
+		if (lowerCase.includes(teacherDef.firstName.toLowerCase())) return teacherDef.fullName;
+		if (teacherDef.callName) {
+			if (paddedLowerCase.includes(teacherDef.callName.toLowerCase())) return teacherDef.fullName;
+		}
 	}
-	async function buildAndSaveDiff(statusReporter, fetchListener, academie, schoolYear, dko3DiffData, diffSettings, diffPageType, prepareOtherData, errors) {
-		statusReporter.reportStatus(`DKO3 data ophalen...`);
-		if (!dko3DiffData) dko3DiffData = await getDko3Data(schoolYear, statusReporter, fetchListener);
-		let json = JSON.stringify(dko3DiffData);
-		let preparedData = updateDko3DiffDataAndSettings(dko3DiffData, diffSettings);
-		let { excelRosters, otherLesSet } = await prepareOtherData(statusReporter, academie, schoolYear, preparedData.dko3DiffData, preparedData.diffSettings);
-		let res = {
-			excelRosters,
-			...await calcDiff(dko3DiffData, statusReporter, preparedData.diffSettings, otherLesSet)
-		};
-		deleteNotification("FILE_POSTED").then(() => fetchAndDisplayNotifications());
-		dko3DiffData = JSON.parse(json);
-		dko3DiffData.extraTeachersCache = res.extraTeacherCache.toJSON();
-		localStorage.setItem(getDiffsDko3CacheFileName(academie, schoolYear, diffPageType), JSON.stringify(dko3DiffData));
-		let jsonDiffs = await createJsonDiffs(res.diffs, res.dko3LesSet, res.otherLesSet, res.excelRosters, academie, schoolYear, diffPageType, errors);
-		await saveJsonDiffs(academie, schoolYear, diffPageType, jsonDiffs);
-		statusReporter.reportStatus(``);
-		cachedDiffs = jsonDiffs;
-		return jsonDiffs;
+	return defaultValue;
+}
+function getDiffsCloudFileName(academie, schoolYear, diffPageType) {
+	return `Dko3/${academie}_${schoolYear}_${diffPageType}_diffs.json`;
+}
+async function getDiffsFromCloud(academie, schoolYear, diffPageType) {
+	let fromCloud = await cloud.json.fetch(getDiffsCloudFileName(academie, schoolYear, diffPageType)).catch(function(err) {
+		console.log(err);
+		return null;
+	});
+	if (fromCloud) {
+		for (let diff of fromCloud.diffs) {
+			if (!diff.dko3Les.gradeYears) diff.dko3Les.gradeYears = [];
+			if (!diff.otherLes.gradeYears) diff.otherLes.gradeYears = [];
+		}
+		for (let orphan of fromCloud.orphanedDko3Lessen) if (!orphan.gradeYears) orphan.gradeYears = [];
+		for (let orphan of fromCloud.orphanedOtherLessen) if (!orphan.gradeYears) orphan.gradeYears = [];
 	}
-	async function getDko3Data(schoolYear, statusReporter, fetchListener) {
-		statusReporter.reportStatus("Vestigingsplaatsen ophalen...");
-		let locations = [...(await getTableFromHash("extra-academie-vestigingsplaatsen", true, fetchListener)).getRows()].map((tr) => tr.cells[1].textContent);
-		statusReporter.reportStatus("Leraren ophalen...");
-		let teachers = await fetchTeachers(schoolYear);
-		let lessen = (await scrapeAllNormalLessen(schoolYear, statusReporter)).map((l) => l.les);
-		statusReporter.reportStatus("Ophalen aliaslessen...");
-		let dko3AliasLessen = (await scrapeLessen("4", "4", schoolYear)).map((l) => l.les);
-		for (let les of dko3AliasLessen) les.linkedLessenIds = await getAliassesForLes(les.id, statusReporter);
-		dko3AliasLessen = dko3AliasLessen.filter((l) => l.linkedLessenIds.length > 1);
-		let subjects = lessen.map((les) => [les.vakNaam, les.naam]).flat();
-		subjects = [...new Set(subjects)];
-		let classNames = lessen.map((les) => les.naam).filter((n) => n != "");
-		subjects = [...new Set(subjects)];
+	return fromCloud;
+}
+async function setIgnoredFlags(orphanedDko3Lessen, orphanedOtherLessen, academie, schoolYear, diffPageType) {
+	try {
+		let ignoreHashes = await fetchIgnoredDiffHashes(academie, schoolYear, diffPageType);
+		let ignoreHashSet = new Set(ignoreHashes);
+		for (let les of orphanedDko3Lessen) les.ignore = ignoreHashSet.has(les.hash);
+		for (let les of orphanedOtherLessen) les.ignore = ignoreHashSet.has(les.hash);
+	} catch {}
+}
+async function createJsonDiffs(diffList, dko3LesSet, otherLesSet, excelRosters, academie, schoolYear, diffPageType, errors) {
+	let diffs = diffList.filter((diff) => diff.diffType != "perfect match" || diff.weight.weight != 1e3).map((diff) => {
+		let otherLes;
+		if (diffPageType == "EXCEL") otherLes = excelLesToJson(diff.otherLes);
+		else otherLes = wwwLesToJson(diff.otherLes);
 		return {
-			lessen,
-			locations,
-			teachers,
-			dko3AliasLessen,
-			subjects,
-			classNames
+			otherLes,
+			dko3Les: dko3LesToJson(diff.dko3Les),
+			diffType: diff.diffType,
+			weight: diff.weight
 		};
-	}
-	async function scrapeAllNormalLessen(schoolYear, statusReporter) {
-		statusReporter.reportStatus("Ophalen woordlessen...");
-		let dko3Lessen = await scrapeLessen("4", "1", schoolYear);
-		statusReporter.reportStatus("Ophalen muzieklessen...");
-		let muziekLessen = await scrapeLessen("3", "1", schoolYear);
-		statusReporter.reportStatus("Ophalen kunstenbad lessen...");
-		let kbLessen = await scrapeLessen("5", "1", schoolYear);
-		return [
-			...dko3Lessen,
-			...muziekLessen,
-			...kbLessen
-		];
-	}
-	var TaggedExcelLes = class extends TaggedLes {
-		lesType = "excel";
-		className;
-		dayTimeSlice;
-		hash;
-		constructor(les, teachers, diffSettings) {
-			let searchText = " " + les.cellValue.toLowerCase().replaceAll("\n", " \n ").replaceAll("(", " ( ").replaceAll(")", " ) ").replaceAll(".", " . ").replaceAll(",", " , ").replaceAll("-", " - ") + " ";
-			super(les, [], searchText, [], false);
-			this.className = this.lesMoment.className;
-			this.location = this.lesMoment.location;
-			this.teachers = preTranslate(les.cellValue, diffSettings).split(/[\/,]/g).map((t) => findTeacher(t, teachers, "")).filter((t) => t != "");
-			if (this.teachers.length == 0) this.teachers = preTranslate(this.lesMoment.teacher, diffSettings).split(/[\/,]/g).map((t) => t.trim()).filter((t) => t.substring(t.length - 1) != "?").map((t) => findTeacher(t, teachers, t)).filter((t) => t != "");
-			this.subjects = les.subjects;
-			this.subjects = this.subjects.filter((s) => s);
-			if (this.lesMoment.className) this.subjects.push(this.lesMoment.className);
-			this.subjects = [...new Set(this.subjects)];
-			this.dayTimeSlice = new DayTimeSlice(les.day, les.timeSlice);
-			this.gradeYears = les.gradeYears;
-			this.hash = les.getHash();
-		}
-	};
-	function isDko3LesToIgnore(les, ignoreList) {
-		return ignoreList.some((ignore) => (" " + les.naam.toLowerCase() + " ").includes(ignore) || (" " + les.vakNaam.toLowerCase() + " ").includes(ignore));
-	}
-	function isExcelLesToIgnore(les, ignoreList) {
-		return ignoreList.some((ignore) => les.lesMoment.cellValue.includes(ignore)) || ignoreList.some((ignore) => les.searchText.includes(ignore));
-	}
-	function splitDko3LessenIntoLesmomenten(dko3Data, diffSettings, statusReporter) {
-		let lesMomenten = dko3Data.lessen.filter((les) => !isDko3LesToIgnore(les, diffSettings.preparedDiffSettings.ignoreList)).map((les) => {
-			if (les.dayTimeSlices.length == 0) statusReporter.addError(`Les <a href="https://administratie.dko3.cloud/#lessen-les?id=${les.id}">${les.id}</a> heeft geen lesmoment. ${les.vakNaam}(${les.naam}), ${les.teacher}`, "error");
-			let lesMomenten = les.dayTimeSlices.map((slice) => {
-				return new Dko3LesMoment(les, slice);
-			});
-			for (let moment of lesMomenten) moment.lesMomenten = lesMomenten;
-			return lesMomenten;
-		}).flat().map((lesMoment) => new TaggedDko3LesMoment(lesMoment));
-		return new Set(lesMomenten);
-	}
-	function createLesMomenten(dko3Data, statusReporter, diffSettings) {
-		let dko3LesSet = splitDko3LessenIntoLesmomenten(dko3Data, diffSettings, statusReporter);
-		let dko3LesMap = /* @__PURE__ */ new Map();
-		for (let les of dko3Data.lessen) dko3LesMap.set(les.id, les);
-		let lesMomentenMap = /* @__PURE__ */ new Map();
-		for (let les of dko3LesSet.values()) lesMomentenMap.set(les.lesMoment.momentId, les);
-		loopAliasLessen: for (let aliasLes of dko3Data.dko3AliasLessen) {
-			if (aliasLes.linkedLessenIds.length < 2) {
-				statusReporter.addError(`Error: alias les <a href="https://administratie.dko3.cloud/#lessen-les?id=${aliasLes.id}">${aliasLes.id}</a> heeft geen 2 geldige gekoppelde lessen.`, "error");
-				continue;
-			}
-			let possibleLinkedLessen = aliasLes.linkedLessenIds.map((lesId) => dko3LesMap.get(lesId));
-			if (possibleLinkedLessen.includes(void 0)) {
-				statusReporter.addError(`Voor aliasles <a href="https://administratie.dko3.cloud/#lessen-les?id=${aliasLes.id}">${aliasLes.id}</a> zijn er ontbrekende gekoppelde lessen.`, "error");
-				continue;
-			}
-			let linkedLessen = possibleLinkedLessen;
-			let aliasLocation = aliasLes.vestiging;
-			let aliasGradeYearsStr = GradeYear.toString(aliasLes.gradeYears);
-			for (let linkedLes of linkedLessen) {
-				if (linkedLes.vestiging != aliasLocation) statusReporter.addError(`Voor aliasles <a href="https://administratie.dko3.cloud/#lessen-les?id=${aliasLes.id}">${aliasLes.id}</a> is de vestiging niet dezelfde als de gekoppelde lessen.`, "error");
-				if (GradeYear.toString(linkedLes?.gradeYears ?? []) != aliasGradeYearsStr) statusReporter.addError(`Voor aliasles <a href="https://administratie.dko3.cloud/#lessen-les?id=${aliasLes.id}">${aliasLes.id}</a> zijn de graden en jaren niet gelijk aan de gekoppelde les <a href="https://administratie.dko3.cloud/#lessen-les?id=${linkedLes.id}">${linkedLes.id}</a>.`, "error");
-				if (linkedLes.online) statusReporter.addError(`Voor aliasles <a href="https://administratie.dko3.cloud/#lessen-les?id=${aliasLes.id}">${aliasLes.id}</a> is gekoppelde les <a href="https://administratie.dko3.cloud/#lessen-les?id=${linkedLes.id}">${linkedLes.id}</a> online zichtbaar.`, "error");
-			}
-			let linkedLesMomenten = linkedLessen.map((les) => les.dayTimeSlices.map((slice) => Dko3LesMoment.createLesMomentId(les, slice))).flat().map((momentId) => lesMomentenMap.get(momentId));
-			//! should all exist in the map.
-			linkedLesMomenten.sort((a, b) => DayTimeSlice.startToNumber(a.lesMoment.dayTimeSlice) - DayTimeSlice.startToNumber(b.lesMoment.dayTimeSlice));
-			let previousLesMoment = linkedLesMomenten[0];
-			for (let i = 1; i < linkedLesMomenten.length; i++) {
-				let currentLesMoment = linkedLesMomenten[i];
-				if (!currentLesMoment.lesMoment.dayTimeSlice.timeSlice || !previousLesMoment.lesMoment.dayTimeSlice.timeSlice) {
-					statusReporter.addError(`Voor aliasles <a href="https://administratie.dko3.cloud/#lessen-les?id=${aliasLes.id}">${aliasLes.id}</a> zijn er ontbrekende lestijden.`, "error");
-					continue loopAliasLessen;
-				}
-				if (DayTimeSlice.endToNumber(previousLesMoment.lesMoment.dayTimeSlice) == DayTimeSlice.startToNumber(currentLesMoment.lesMoment.dayTimeSlice)) {
-					let newTimeSlice = new TimeSlice(structuredClone(previousLesMoment.lesMoment.dayTimeSlice.timeSlice.start), structuredClone(currentLesMoment.lesMoment.dayTimeSlice.timeSlice.end));
-					let newAliasLesMoment = new TaggedDko3LesMoment(new Dko3LesMoment(aliasLes, new DayTimeSlice(previousLesMoment.lesMoment.dayTimeSlice.day, newTimeSlice)));
-					dko3LesSet.add(newAliasLesMoment);
-					dko3LesSet.delete(previousLesMoment);
-					dko3LesSet.delete(currentLesMoment);
-					previousLesMoment = newAliasLesMoment;
-				} else previousLesMoment = currentLesMoment;
-			}
-		}
-		return dko3LesSet;
-	}
-	async function calcDiff(dko3Data, statusReporter, diffSettings, otherLesSet) {
-		let dko3LesSet = createLesMomenten(dko3Data, statusReporter, diffSettings);
-		let extraTeacherCache = ExtraTeacherCache.fromJSON(dko3Data.extraTeachersCache ?? []);
-		for (const les1 of [...dko3LesSet.values()].filter((les) => les.lesMoment.les.teacher.includes("(en nog"))) les1.teachers = await extraTeacherCache.getExtraTeachers(les1.lesMoment.les.id);
-		let diffs = [];
-		let ctx = {};
-		diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "perfect match", diffSettings, matchBasedOnName));
-		diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "perfect match", diffSettings, perfectMatch));
-		diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "match without gradeYears", diffSettings, matchWithoutGradeYears));
-		diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "match without teacher", diffSettings, matchWithoutTeacher));
-		diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "match without location", diffSettings, matchWithoutLocation));
-		diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "match without time and day", diffSettings, matchWithoutTimeAndDay));
-		diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "match without teacher, time and day", diffSettings, matchWithoutTeacherTimeAndDay));
-		diffs.push(...matchIt(ctx, dko3LesSet, otherLesSet, "match without time and day and teacher", diffSettings, matchWithoutGradeYearsTeacher));
-		console.log(diffs);
-		console.log(dko3LesSet.values());
-		console.log(otherLesSet.values());
-		return {
-			diffs,
-			dko3LesSet,
-			otherLesSet,
-			extraTeacherCache
-		};
-	}
-	var ExtraTeacherCache = class ExtraTeacherCache {
-		teacherMap = /* @__PURE__ */ new Map();
-		async getExtraTeachers(lesId) {
-			if (this.teacherMap.has(lesId)) return this.teacherMap.get(lesId);
-			let newEntry = await getExtraTeachers(lesId);
-			this.teacherMap.set(lesId, newEntry);
-			return newEntry;
-		}
-		toJSON() {
-			return [...this.teacherMap.entries()];
-		}
-		static fromJSON(json) {
-			let cache = new ExtraTeacherCache();
-			cache.teacherMap = new Map(json);
-			return cache;
-		}
-	};
-	async function getExtraTeachers(lesId) {
-		await fetch("https://administratie.dko3.cloud/view.php?args=lessen-les?id=" + lesId);
-		await fetch("https://administratie.dko3.cloud/views/lessen/les/index.view.php");
-		await fetch("https://administratie.dko3.cloud/views/lessen/les/index.details.tab.php");
-		let htmlTeachers = await (await fetch("https://administratie.dko3.cloud/views/lessen/les/details/index.details.leerkrachten.card.php")).text();
-		let div = document.createElement("div");
-		div.innerHTML = htmlTeachers;
-		return [...div.querySelectorAll("td > strong")].map((s) => {
-			return s.textContent.replaceAll("  ", " ").replaceAll(" ,", ",").trim();
+	});
+	let orphanedDko3Lessen = [...dko3LesSet.values()].map((les) => dko3LesToJson(les));
+	let orphanedOtherLessen;
+	if (diffPageType == "EXCEL") orphanedOtherLessen = [...otherLesSet.values()].map((les) => excelLesToJson(les));
+	else orphanedOtherLessen = [...otherLesSet.values()].map((les) => wwwLesToJson(les));
+	await setIgnoredFlags(orphanedDko3Lessen, orphanedOtherLessen, academie, schoolYear, diffPageType);
+	let workBooks = /* @__PURE__ */ new Map();
+	for (let excelData of excelRosters.map((r) => r.table.excelData)) {
+		if (!workBooks.has(excelData.workbookName)) workBooks.set(excelData.workbookName, {
+			name: excelData.workbookName,
+			worksheets: []
 		});
+		let workBook = workBooks.get(excelData.workbookName);
+		let workSheet = {
+			name: excelData.worksheetName,
+			url: excelData.url
+		};
+		workBook.worksheets.push(workSheet);
 	}
-	async function getAliassesForLes(lesId, statusReporter) {
-		await fetch("https://administratie.dko3.cloud/view.php?args=lessen-les?id=" + lesId);
-		await fetch("https://administratie.dko3.cloud/views/lessen/les/index.view.php");
-		await fetch("https://administratie.dko3.cloud/views/lessen/les/index.details.tab.php");
-		await fetch("https://administratie.dko3.cloud/views/lessen/les/index.meta.tab.php");
-		let htmlAliases = await (await fetch("https://administratie.dko3.cloud/views/lessen/les/meta/alias_gekoppelde_lessen.card.php")).text();
-		let div = document.createElement("div");
-		div.innerHTML = htmlAliases;
-		let anchors = div.querySelectorAll("td > a");
-		if (anchors.length == 0) statusReporter.reportStatus(`ERROR: alias les ${lesId} heeft geen (geldige) gekoppelde lessen.`);
-		return [...anchors].map((a) => a.textContent.trim());
+	let res = {
+		academie,
+		schoolYear,
+		diffs,
+		errors,
+		orphanedDko3Lessen,
+		orphanedOtherLessen,
+		isoDate: (/* @__PURE__ */ new Date()).toISOString(),
+		workBooks: [...workBooks.values()]
+	};
+	if (diffPageType == "WWW") return res;
+	let perfectMatches = diffList.filter((diff) => diff.diffType == "perfect match" && diff.weight.weight == 1e3).map((diff) => {
+		return {
+			otherLes: excelLesToJson(diff.otherLes),
+			dkoId: diff.dko3Les.lesMoment.les.id
+		};
+	});
+	return {
+		...res,
+		perfectMatches
+	};
+}
+function dko3LesToJson(dko3Les) {
+	return {
+		lesType: "dko3",
+		day: dko3Les.lesMoment.dayTimeSlice.day,
+		timeSlice: toCompactTimeSliceString(dko3Les.lesMoment.dayTimeSlice.timeSlice),
+		subjects: dko3Les.subjects.join(","),
+		teachers: dko3Les.teachers.join(","),
+		location: dko3Les.location,
+		hash: dko3Les.getHash(),
+		ignore: dko3Les.ignore,
+		gradeYears: dko3Les.gradeYears,
+		momentId: dko3Les.lesMoment.momentId,
+		lesId: dko3Les.lesMoment.les.id
+	};
+}
+function excelLesToJson(excelLes) {
+	return {
+		lesType: "excel",
+		day: excelLes.lesMoment.day,
+		timeSlice: toCompactTimeSliceString(excelLes.lesMoment.timeSlice),
+		subjects: excelLes.subjects.filter((s) => !!s).join(","),
+		teachers: excelLes.teachers.join(","),
+		location: excelLes.location,
+		hash: excelLes.getHash(),
+		ignore: excelLes.ignore,
+		gradeYears: excelLes.gradeYears,
+		gotoData: {
+			lesId: "",
+			cellAddress: excelPostoExcelAddress(excelLes.lesMoment.excelRow, excelLes.lesMoment.excelColumn),
+			text: excelLes.lesMoment.cellValue,
+			workBook: excelLes.lesMoment.table.excelData.workbookName,
+			workSheet: excelLes.lesMoment.table.excelData.worksheetName,
+			url: "",
+			rowType: "excel"
+		}
+	};
+}
+function wwwLesToJson(wwwLesDef) {
+	return {
+		lesType: "www",
+		day: wwwLesDef.day,
+		timeSlice: toCompactTimeSliceString(wwwLesDef.timeSlice),
+		subjects: wwwLesDef.subjects.filter((s) => !!s).join(","),
+		teachers: wwwLesDef.teachers.join(","),
+		location: wwwLesDef.location,
+		hash: wwwLesDef.getHash(),
+		ignore: wwwLesDef.ignore,
+		gradeYears: wwwLesDef.gradeYears,
+		gotoData: {
+			lesId: "",
+			cellAddress: "",
+			text: wwwLesDef.lesDef.pageTitle + " | " + wwwLesDef.lesDef.sectionTitle + " | " + wwwLesDef.lesDef.panelTitle + " | " + wwwLesDef.lesDef.className,
+			workBook: "",
+			workSheet: "",
+			url: wwwLesDef.lesDef.url,
+			rowType: "www"
+		}
+	};
+}
+function createDiffTable(divResults, diffPageType) {
+	let { first: table, last: tbody } = emmet.appendChild(divResults, `table#orphans${diffPageType}.diff.diffOrphans>(thead>tr>(th.subject{Vak/Lesnaam}+th.gradeYear{Gr.Jr}+th.teacher{Leraar}+th.day{Dag}+th.{Uur}+th.location{Vestiging}+th+th))+tbody`);
+	return {
+		table,
+		tbody
+	};
+}
+function toCompactTimeSliceString(timeSlice) {
+	if (!timeSlice) return "-geen uur-";
+	return `${pad(timeSlice.start.hour, 2)}:${pad(timeSlice.start.minutes, 2)} - ${pad(timeSlice.end.hour, 2)}:${pad(timeSlice.end.minutes, 2)}`;
+}
+async function getUrlForWorksheet(workBook, workSheet, cellAddress, academie, schoolYear) {
+	let url = (await getJsonDiffsCached(academie, schoolYear, "EXCEL")).workBooks.find((wb) => wb.name == workBook)?.worksheets.find((ws) => ws.name == workSheet)?.url;
+	if (cellAddress) url = url + `&activeCell=${workSheet}!${cellAddress}`;
+	return url;
+}
+//#endregion
+//#region typescript/www_diff/buildDiff.ts
+function translate(text, trns) {
+	return text.replaceAll(trns.search, trns.replace);
+}
+function preTranslate(text, diffSettings) {
+	diffSettings.preparedDiffSettings.preTranslations.forEach((trns) => text = translate(text, trns));
+	return text;
+}
+var TaggedWwwLesDef = class {
+	lesType = "www";
+	hash;
+	lesDef;
+	timeSlice;
+	day;
+	teachers;
+	location;
+	subjects;
+	className;
+	gradeYears;
+	ignore;
+	dayTimeSlice;
+	constructor(lesDef, timeSlice, day, teachers, dko3Data, diffSettings) {
+		this.lesDef = lesDef;
+		this.timeSlice = timeSlice;
+		this.day = day;
+		this.teachers = teachers;
+		let translatedClassName = preTranslate(this.lesDef.className, diffSettings);
+		let tags = ExcelRoster.findTags(` ${translatedClassName} ${this.lesDef.location} `, diffSettings.preparedDiffSettings.tagDefs);
+		let tagStrings = tags.map((t) => t.tag);
+		let location = ExcelRoster.findLocation(tagStrings, dko3Data.preparedDko3DiffData.locations);
+		if (!location) {
+			let tagStrings = ExcelRoster.findTags(ExcelRoster.makeParsable(this.lesDef.panelTitle), diffSettings.preparedDiffSettings.tagDefs).map((t) => t.tag);
+			location = ExcelRoster.findLocation(tagStrings, dko3Data.preparedDko3DiffData.locations);
+		}
+		this.location = location ?? "Academie Willem Van Laarstraat, Berchem";
+		this.subjects = ExcelRoster.findSubjects(this.lesDef.className, tagStrings, dko3Data);
+		this.className = translatedClassName;
+		this.gradeYears = ExcelRoster.findGradeYears(ExcelRoster.makeParsable(this.lesDef.className));
+		if (this.gradeYears.length == 0) this.gradeYears = ExcelRoster.getGradeYearsFromTags(tags);
+		if (this.gradeYears.length == 0) {
+			let newTags = ExcelRoster.findTags(ExcelRoster.makeParsable(lesDef.panelTitle, "leave 'en' alone"), diffSettings.preparedDiffSettings.tagDefs);
+			this.gradeYears = ExcelRoster.getGradeYearsFromTags(newTags);
+		}
+		if (this.gradeYears.length == 0) {
+			let newTags = ExcelRoster.findTags(ExcelRoster.makeParsable(lesDef.sectionTitle, "leave 'en' alone"), diffSettings.preparedDiffSettings.tagDefs);
+			this.gradeYears = ExcelRoster.getGradeYearsFromTags(newTags);
+		}
+		if (this.gradeYears.length == 0) {
+			let newTags = ExcelRoster.findTags(ExcelRoster.makeParsable(lesDef.pageTitle, "leave 'en' alone"), diffSettings.preparedDiffSettings.tagDefs);
+			this.gradeYears = ExcelRoster.getGradeYearsFromTags(newTags);
+		}
+		this.ignore = false;
+		this.dayTimeSlice = new DayTimeSlice(this.day, this.timeSlice);
+		this.hash = this.getHash();
 	}
-	async function fetchTeachers(schoolYear) {
-		await fetch("/#personeel-personeelsleden");
-		await fetch("/view.php?args=personeel-personeelsleden");
-		await fetch("/views/personeel/personeelsleden/index.view.php");
-		await fetch("/views/personeel/personeelsleden/vestigingsplaats_schooljaar_filter.php?schooljaar=2025-2026");
-		let formData = new FormData();
-		formData.append("filters[naam]", "");
-		formData.append("filters[status_personeelsleden]", "1");
-		formData.append("filters[leerkracht]", "1");
-		formData.append("filters[interim]", "1");
-		formData.append("filters[alc]", "false");
-		formData.append("filters[administratie]", "false");
-		formData.append("filters[overig]", "false");
-		formData.append("filters[schooljaar]", schoolYear);
-		await fetch("https://administratie.dko3.cloud/views/personeel/personeelsleden/save_filters.php", {
-			method: "POST",
-			body: formData
-		});
-		let html = await (await fetch("/views/personeel/personeelsleden/personeelsleden.table.php")).text();
-		let div = document.createElement("div");
-		div.innerHTML = html;
-		return [...div.querySelectorAll(`td[data-label="Naam"] strong`)].map((strong) => strong.textContent).map((name) => {
-			let split = name.split(",");
-			name = name.trim().replaceAll(" ,", ",");
-			return {
-				fullName: name,
-				firstName: split[1].trim(),
-				lastName: split[0].trim()
+	getHash() {
+		return `www:${this.lesDef.className}-${this.lesDef.day}-${TimeSlice.toString(this.timeSlice)}-${this.teachers.join()}-${this.location}`;
+	}
+};
+function tagWwwLes(les, dko3DiffData, diffSettings) {
+	let times = TimeSlice.parseShortTimes(les.timeString);
+	let day = toDay(les.day);
+	if (!day) console.log(`Could not parse day ${les.day}`);
+	if (times.length != 2) {
+		console.log(`Could not parse time slice ${les.timeString} for class ${les.className}. url: ${les.url}`);
+		return null;
+	}
+	let timeSlice = new TimeSlice(times[0], times[1]);
+	let teachers = preTranslate(les.teacher, diffSettings).split(/[\/,&]/g).map((t) => findTeacher(t, dko3DiffData.preparedDko3DiffData.teachers, t)).filter((t) => t != "");
+	return new TaggedWwwLesDef(les, timeSlice, day ?? "", teachers, dko3DiffData, diffSettings);
+}
+async function requestWww(urlList) {
+	return sendRequest("Www", "Main", "Undefined", void 0, { urlList }, "");
+}
+async function parseWww(dko3DiffData, diffSettings) {
+	let response = await requestWww(diffSettings.preparedDiffSettings.urls);
+	let lessen = [];
+	console.log(response);
+	for (let html of response.data) lessen = lessen.concat(parseHtml(html));
+	console.log(lessen);
+	let taggedLessen = lessen.map((les) => tagWwwLes(les, dko3DiffData, diffSettings)).filter((les) => les != null);
+	let taggedLesMap = /* @__PURE__ */ new Map();
+	for (let taggedLes of taggedLessen) taggedLesMap.set(taggedLes.getHash(), taggedLes);
+	console.log(taggedLesMap);
+	return taggedLesMap.values();
+}
+function parseHtml(html) {
+	let scanner = new TokenScanner(html.text);
+	scanner.find("<main ");
+	scanner.find(">");
+	scanner.clipTo("</main>");
+	console.log(scanner.result());
+	let div = document.createElement("div");
+	div.innerHTML = scanner.result();
+	console.log(div);
+	let pageTitle = div.querySelector("h1.title").textContent;
+	console.log(pageTitle);
+	let classTables = [...div.querySelectorAll("table")].filter((table) => {
+		return table.tHead?.rows[0].textContent.toLowerCase().includes("klas");
+	});
+	let lessen = [];
+	for (let table of classTables) lessen = lessen.concat(scrapeClassTable(html.url, table, pageTitle));
+	return lessen;
+}
+function scrapeClassTable(url, table, pageTitle) {
+	let panelTitle = "";
+	let panelDiv = table.closest("div.card.panel");
+	if (panelDiv) {
+		let button = panelDiv.querySelector("button");
+		if (button) panelTitle = button.textContent;
+	}
+	let sectionTitle = "";
+	let current = table.parentElement;
+	while (true) {
+		if (!current) break;
+		if (current.tagName == "SECTION") break;
+		let h2 = current.querySelector("h2");
+		if (h2) {
+			sectionTitle = h2.textContent;
+			break;
+		}
+		current = current.parentElement;
+	}
+	pageTitle = pageTitle.replaceAll("\n", " ").trim();
+	panelTitle = panelTitle.replaceAll("\n", " ").trim();
+	let classIndex = void 0;
+	let dayIndex = void 0;
+	let timeIndex = void 0;
+	let locationIndex = void 0;
+	let teacherIndex = void 0;
+	for (let [i, th] of [...table.tHead.rows[0].cells].entries()) switch (th.textContent?.toLowerCase()) {
+		case "klas":
+			classIndex = i;
+			break;
+		case "dag":
+			dayIndex = i;
+			break;
+		case "lestijd":
+			timeIndex = i;
+			break;
+		case "locatie":
+			locationIndex = i;
+			break;
+		case "leerkracht": teacherIndex = i;
+	}
+	let lastClass = "";
+	return [...table.tBodies[0].rows].map((row) => {
+		let className = row.cells[classIndex].textContent ?? "";
+		className = className.trim();
+		if (className == "") className = lastClass;
+		lastClass = className;
+		let day = dayIndex ? row.cells[dayIndex].textContent : "";
+		let timeString = timeIndex ? row.cells[timeIndex].textContent : "";
+		let location = locationIndex ? row.cells[locationIndex].textContent : "";
+		let teacher = teacherIndex ? row.cells[teacherIndex].textContent : "";
+		if (!day && !timeString && !location && !teacher) return null;
+		if (className.toLowerCase().includes("begeleidingspraktijk") || className.toLowerCase().includes("muziektheorie") || className.toLowerCase().includes("compositie") || className.toLowerCase().includes("improvisatie") || className.toLowerCase().includes("musical zang") || className.toLowerCase().includes("musical koor")) return null;
+		return {
+			url,
+			pageTitle,
+			sectionTitle,
+			panelTitle,
+			className,
+			day,
+			timeString,
+			location,
+			teacher
+		};
+	}).filter((les) => les != null);
+}
+//#endregion
+//#region typescript/roster_diff/excelRoster.ts
+var ClassDef = class {
+	day;
+	teacher;
+	timeSlice;
+	subjects;
+	className;
+	location;
+	gradeYears;
+	excelRow;
+	excelColumn;
+	cellValue;
+	table;
+	hash;
+	constructor(day, teacher, timeSlice, subjects, location, gradeYears, excelRow, excelColumn, cellValue, table, className) {
+		this.day = day;
+		this.teacher = teacher;
+		this.timeSlice = timeSlice;
+		this.subjects = subjects;
+		this.location = location;
+		this.gradeYears = gradeYears;
+		this.excelRow = excelRow;
+		this.excelColumn = excelColumn;
+		this.cellValue = cellValue;
+		this.table = table;
+		this.className = className;
+		this.hash = "excel:" + cellValue + day + teacher + TimeSlice.toString(timeSlice);
+	}
+	getHash() {
+		return this.hash;
+	}
+};
+var TimeSlice = class TimeSlice {
+	start;
+	end;
+	constructor(start, end) {
+		this.start = start;
+		this.end = end;
+	}
+	static equal(timeslice1, timeslice2) {
+		return timeslice1.start.hour == timeslice2.start.hour && timeslice1.start.minutes == timeslice2.start.minutes && timeslice1.end.hour == timeslice2.end.hour && timeslice1.end.minutes == timeslice2.end.minutes;
+	}
+	toString() {}
+	static toString(timeSlice) {
+		return `${timeSlice.start.hour}:${timeSlice.start.minutes}-${timeSlice.end.hour}:${timeSlice.end.minutes}`;
+	}
+	static parseTime(timeString) {
+		let timeParts = timeString.split(/[:;,.]/gm);
+		if (timeParts.length == 2) return {
+			hour: parseInt(timeParts[0]),
+			minutes: parseInt(timeParts[1])
+		};
+		if (timeParts.length == 1) return {
+			hour: parseInt(timeParts[0]),
+			minutes: 0
+		};
+		return null;
+	}
+	static parseTimes(text) {
+		let times = [];
+		let rx = /\s+(\d?\d)[.:,](\d\d)/gm;
+		let matches = rx.exec(text);
+		while (matches) {
+			let time = {
+				hour: parseInt(matches[1]),
+				minutes: parseInt(matches[2])
 			};
-		});
-	}
-	function findTeacher(searchString, teachers, defaultValue) {
-		let lowerCase = searchString.toLowerCase();
-		let paddedLowerCase = " " + lowerCase + " ";
-		for (let teacherDef of teachers) if (lowerCase.includes(teacherDef.firstName.toLowerCase()) && lowerCase.includes(teacherDef.lastName.toLowerCase())) return teacherDef.fullName;
-		for (let teacherDef of teachers) {
-			if (lowerCase.includes(teacherDef.firstName.toLowerCase())) return teacherDef.fullName;
-			if (teacherDef.callName) {
-				if (paddedLowerCase.includes(teacherDef.callName.toLowerCase())) return teacherDef.fullName;
-			}
+			times.push(time);
+			matches = rx.exec(text);
 		}
-		return defaultValue;
+		return times;
 	}
-	function getDiffsCloudFileName(academie, schoolYear, diffPageType) {
-		return `Dko3/${academie}_${schoolYear}_${diffPageType}_diffs.json`;
-	}
-	async function getDiffsFromCloud(academie, schoolYear, diffPageType) {
-		let fromCloud = await cloud.json.fetch(getDiffsCloudFileName(academie, schoolYear, diffPageType)).catch(function(err) {
-			console.log(err);
-			return null;
-		});
-		if (fromCloud) {
-			for (let diff of fromCloud.diffs) {
-				if (!diff.dko3Les.gradeYears) diff.dko3Les.gradeYears = [];
-				if (!diff.otherLes.gradeYears) diff.otherLes.gradeYears = [];
-			}
-			for (let orphan of fromCloud.orphanedDko3Lessen) if (!orphan.gradeYears) orphan.gradeYears = [];
-			for (let orphan of fromCloud.orphanedOtherLessen) if (!orphan.gradeYears) orphan.gradeYears = [];
-		}
-		return fromCloud;
-	}
-	async function setIgnoredFlags(orphanedDko3Lessen, orphanedOtherLessen, academie, schoolYear, diffPageType) {
-		try {
-			let ignoreHashes = await fetchIgnoredDiffHashes(academie, schoolYear, diffPageType);
-			let ignoreHashSet = new Set(ignoreHashes);
-			for (let les of orphanedDko3Lessen) les.ignore = ignoreHashSet.has(les.hash);
-			for (let les of orphanedOtherLessen) les.ignore = ignoreHashSet.has(les.hash);
-		} catch {}
-	}
-	async function createJsonDiffs(diffList, dko3LesSet, otherLesSet, excelRosters, academie, schoolYear, diffPageType, errors) {
-		let diffs = diffList.filter((diff) => diff.diffType != "perfect match" || diff.weight.weight != 1e3).map((diff) => {
-			let otherLes;
-			if (diffPageType == "EXCEL") otherLes = excelLesToJson(diff.otherLes);
-			else otherLes = wwwLesToJson(diff.otherLes);
-			return {
-				otherLes,
-				dko3Les: dko3LesToJson(diff.dko3Les),
-				diffType: diff.diffType,
-				weight: diff.weight
-			};
-		});
-		let orphanedDko3Lessen = [...dko3LesSet.values()].map((les) => dko3LesToJson(les));
-		let orphanedOtherLessen;
-		if (diffPageType == "EXCEL") orphanedOtherLessen = [...otherLesSet.values()].map((les) => excelLesToJson(les));
-		else orphanedOtherLessen = [...otherLesSet.values()].map((les) => wwwLesToJson(les));
-		await setIgnoredFlags(orphanedDko3Lessen, orphanedOtherLessen, academie, schoolYear, diffPageType);
-		let workBooks = /* @__PURE__ */ new Map();
-		for (let excelData of excelRosters.map((r) => r.table.excelData)) {
-			if (!workBooks.has(excelData.workbookName)) workBooks.set(excelData.workbookName, {
-				name: excelData.workbookName,
-				worksheets: []
-			});
-			let workBook = workBooks.get(excelData.workbookName);
-			let workSheet = {
-				name: excelData.worksheetName,
-				url: excelData.url
-			};
-			workBook.worksheets.push(workSheet);
-		}
-		let res = {
-			academie,
-			schoolYear,
-			diffs,
-			errors,
-			orphanedDko3Lessen,
-			orphanedOtherLessen,
-			isoDate: (/* @__PURE__ */ new Date()).toISOString(),
-			workBooks: [...workBooks.values()]
-		};
-		if (diffPageType == "WWW") return res;
-		let perfectMatches = diffList.filter((diff) => diff.diffType == "perfect match" && diff.weight.weight == 1e3).map((diff) => {
-			return {
-				otherLes: excelLesToJson(diff.otherLes),
-				dkoId: diff.dko3Les.lesMoment.les.id
-			};
-		});
-		return {
-			...res,
-			perfectMatches
-		};
-	}
-	function dko3LesToJson(dko3Les) {
-		return {
-			lesType: "dko3",
-			day: dko3Les.lesMoment.dayTimeSlice.day,
-			timeSlice: toCompactTimeSliceString(dko3Les.lesMoment.dayTimeSlice.timeSlice),
-			subjects: dko3Les.subjects.join(","),
-			teachers: dko3Les.teachers.join(","),
-			location: dko3Les.location,
-			hash: dko3Les.getHash(),
-			ignore: dko3Les.ignore,
-			gradeYears: dko3Les.gradeYears,
-			momentId: dko3Les.lesMoment.momentId,
-			lesId: dko3Les.lesMoment.les.id
-		};
-	}
-	function excelLesToJson(excelLes) {
-		return {
-			lesType: "excel",
-			day: excelLes.lesMoment.day,
-			timeSlice: toCompactTimeSliceString(excelLes.lesMoment.timeSlice),
-			subjects: excelLes.subjects.filter((s) => !!s).join(","),
-			teachers: excelLes.teachers.join(","),
-			location: excelLes.location,
-			hash: excelLes.getHash(),
-			ignore: excelLes.ignore,
-			gradeYears: excelLes.gradeYears,
-			gotoData: {
-				lesId: "",
-				cellAddress: excelPostoExcelAddress(excelLes.lesMoment.excelRow, excelLes.lesMoment.excelColumn),
-				text: excelLes.lesMoment.cellValue,
-				workBook: excelLes.lesMoment.table.excelData.workbookName,
-				workSheet: excelLes.lesMoment.table.excelData.worksheetName,
-				url: "",
-				rowType: "excel"
-			}
-		};
-	}
-	function wwwLesToJson(wwwLesDef) {
-		return {
-			lesType: "www",
-			day: wwwLesDef.day,
-			timeSlice: toCompactTimeSliceString(wwwLesDef.timeSlice),
-			subjects: wwwLesDef.subjects.filter((s) => !!s).join(","),
-			teachers: wwwLesDef.teachers.join(","),
-			location: wwwLesDef.location,
-			hash: wwwLesDef.getHash(),
-			ignore: wwwLesDef.ignore,
-			gradeYears: wwwLesDef.gradeYears,
-			gotoData: {
-				lesId: "",
-				cellAddress: "",
-				text: wwwLesDef.lesDef.pageTitle + " | " + wwwLesDef.lesDef.sectionTitle + " | " + wwwLesDef.lesDef.panelTitle + " | " + wwwLesDef.lesDef.className,
-				workBook: "",
-				workSheet: "",
-				url: wwwLesDef.lesDef.url,
-				rowType: "www"
-			}
-		};
-	}
-	function createDiffTable(divResults, diffPageType) {
-		let { first: table, last: tbody } = emmet.appendChild(divResults, `table#orphans${diffPageType}.diff.diffOrphans>(thead>tr>(th.subject{Vak/Lesnaam}+th.gradeYear{Gr.Jr}+th.teacher{Leraar}+th.day{Dag}+th.{Uur}+th.location{Vestiging}+th+th))+tbody`);
-		return {
-			table,
-			tbody
-		};
-	}
-	function toCompactTimeSliceString(timeSlice) {
-		if (!timeSlice) return "-geen uur-";
-		return `${pad(timeSlice.start.hour, 2)}:${pad(timeSlice.start.minutes, 2)} - ${pad(timeSlice.end.hour, 2)}:${pad(timeSlice.end.minutes, 2)}`;
-	}
-	async function getUrlForWorksheet(workBook, workSheet, cellAddress, academie, schoolYear) {
-		let url = (await getJsonDiffsCached(academie, schoolYear, "EXCEL")).workBooks.find((wb) => wb.name == workBook)?.worksheets.find((ws) => ws.name == workSheet)?.url;
-		if (cellAddress) url = url + `&activeCell=${workSheet}!${cellAddress}`;
-		return url;
-	}
-	//#endregion
-	//#region typescript/www_diff/buildDiff.ts
-	function translate(text, trns) {
-		return text.replaceAll(trns.search, trns.replace);
-	}
-	function preTranslate(text, diffSettings) {
-		diffSettings.preparedDiffSettings.preTranslations.forEach((trns) => text = translate(text, trns));
-		return text;
-	}
-	var TaggedWwwLesDef = class {
-		lesType = "www";
-		hash;
-		lesDef;
-		timeSlice;
-		day;
-		teachers;
-		location;
-		subjects;
-		className;
-		gradeYears;
-		ignore;
-		dayTimeSlice;
-		constructor(lesDef, timeSlice, day, teachers, dko3Data, diffSettings) {
-			this.lesDef = lesDef;
-			this.timeSlice = timeSlice;
-			this.day = day;
-			this.teachers = teachers;
-			let translatedClassName = preTranslate(this.lesDef.className, diffSettings);
-			let tags = ExcelRoster.findTags(` ${translatedClassName} ${this.lesDef.location} `, diffSettings.preparedDiffSettings.tagDefs);
-			let tagStrings = tags.map((t) => t.tag);
-			let location = ExcelRoster.findLocation(tagStrings, dko3Data.preparedDko3DiffData.locations);
-			if (!location) {
-				let tagStrings = ExcelRoster.findTags(ExcelRoster.makeParsable(this.lesDef.panelTitle), diffSettings.preparedDiffSettings.tagDefs).map((t) => t.tag);
-				location = ExcelRoster.findLocation(tagStrings, dko3Data.preparedDko3DiffData.locations);
-			}
-			this.location = location ?? "Academie Willem Van Laarstraat, Berchem";
-			this.subjects = ExcelRoster.findSubjects(this.lesDef.className, tagStrings, dko3Data);
-			this.className = translatedClassName;
-			this.gradeYears = ExcelRoster.findGradeYears(ExcelRoster.makeParsable(this.lesDef.className));
-			if (this.gradeYears.length == 0) this.gradeYears = ExcelRoster.getGradeYearsFromTags(tags);
-			if (this.gradeYears.length == 0) {
-				let newTags = ExcelRoster.findTags(ExcelRoster.makeParsable(lesDef.panelTitle, "leave 'en' alone"), diffSettings.preparedDiffSettings.tagDefs);
-				this.gradeYears = ExcelRoster.getGradeYearsFromTags(newTags);
-			}
-			if (this.gradeYears.length == 0) {
-				let newTags = ExcelRoster.findTags(ExcelRoster.makeParsable(lesDef.sectionTitle, "leave 'en' alone"), diffSettings.preparedDiffSettings.tagDefs);
-				this.gradeYears = ExcelRoster.getGradeYearsFromTags(newTags);
-			}
-			if (this.gradeYears.length == 0) {
-				let newTags = ExcelRoster.findTags(ExcelRoster.makeParsable(lesDef.pageTitle, "leave 'en' alone"), diffSettings.preparedDiffSettings.tagDefs);
-				this.gradeYears = ExcelRoster.getGradeYearsFromTags(newTags);
-			}
-			this.ignore = false;
-			this.dayTimeSlice = new DayTimeSlice(this.day, this.timeSlice);
-			this.hash = this.getHash();
-		}
-		getHash() {
-			return `www:${this.lesDef.className}-${this.lesDef.day}-${TimeSlice.toString(this.timeSlice)}-${this.teachers.join()}-${this.location}`;
-		}
-	};
-	function tagWwwLes(les, dko3DiffData, diffSettings) {
-		let times = TimeSlice.parseShortTimes(les.timeString);
-		let day = toDay(les.day);
-		if (!day) console.log(`Could not parse day ${les.day}`);
-		if (times.length != 2) {
-			console.log(`Could not parse time slice ${les.timeString} for class ${les.className}. url: ${les.url}`);
-			return null;
-		}
-		let timeSlice = new TimeSlice(times[0], times[1]);
-		let teachers = preTranslate(les.teacher, diffSettings).split(/[\/,&]/g).map((t) => findTeacher(t, dko3DiffData.preparedDko3DiffData.teachers, t)).filter((t) => t != "");
-		return new TaggedWwwLesDef(les, timeSlice, day ?? "", teachers, dko3DiffData, diffSettings);
-	}
-	async function requestWww(urlList) {
-		return sendRequest("Www", "Main", "Undefined", void 0, { urlList }, "");
-	}
-	async function parseWww(dko3DiffData, diffSettings) {
-		let response = await requestWww(diffSettings.preparedDiffSettings.urls);
-		let lessen = [];
-		console.log(response);
-		for (let html of response.data) lessen = lessen.concat(parseHtml(html));
-		console.log(lessen);
-		let taggedLessen = lessen.map((les) => tagWwwLes(les, dko3DiffData, diffSettings)).filter((les) => les != null);
-		let taggedLesMap = /* @__PURE__ */ new Map();
-		for (let taggedLes of taggedLessen) taggedLesMap.set(taggedLes.getHash(), taggedLes);
-		console.log(taggedLesMap);
-		return taggedLesMap.values();
-	}
-	function parseHtml(html) {
-		let scanner = new TokenScanner(html.text);
-		scanner.find("<main ");
-		scanner.find(">");
-		scanner.clipTo("</main>");
-		console.log(scanner.result());
-		let div = document.createElement("div");
-		div.innerHTML = scanner.result();
-		console.log(div);
-		let pageTitle = div.querySelector("h1.title").textContent;
-		console.log(pageTitle);
-		let classTables = [...div.querySelectorAll("table")].filter((table) => {
-			return table.tHead?.rows[0].textContent.toLowerCase().includes("klas");
-		});
-		let lessen = [];
-		for (let table of classTables) lessen = lessen.concat(scrapeClassTable(html.url, table, pageTitle));
-		return lessen;
-	}
-	function scrapeClassTable(url, table, pageTitle) {
-		let panelTitle = "";
-		let panelDiv = table.closest("div.card.panel");
-		if (panelDiv) {
-			let button = panelDiv.querySelector("button");
-			if (button) panelTitle = button.textContent;
-		}
-		let sectionTitle = "";
-		let current = table.parentElement;
-		while (true) {
-			if (!current) break;
-			if (current.tagName == "SECTION") break;
-			let h2 = current.querySelector("h2");
-			if (h2) {
-				sectionTitle = h2.textContent;
-				break;
-			}
-			current = current.parentElement;
-		}
-		pageTitle = pageTitle.replaceAll("\n", " ").trim();
-		panelTitle = panelTitle.replaceAll("\n", " ").trim();
-		let classIndex = void 0;
-		let dayIndex = void 0;
-		let timeIndex = void 0;
-		let locationIndex = void 0;
-		let teacherIndex = void 0;
-		for (let [i, th] of [...table.tHead.rows[0].cells].entries()) switch (th.textContent?.toLowerCase()) {
-			case "klas":
-				classIndex = i;
-				break;
-			case "dag":
-				dayIndex = i;
-				break;
-			case "lestijd":
-				timeIndex = i;
-				break;
-			case "locatie":
-				locationIndex = i;
-				break;
-			case "leerkracht": teacherIndex = i;
-		}
-		let lastClass = "";
-		return [...table.tBodies[0].rows].map((row) => {
-			let className = row.cells[classIndex].textContent ?? "";
-			className = className.trim();
-			if (className == "") className = lastClass;
-			lastClass = className;
-			let day = dayIndex ? row.cells[dayIndex].textContent : "";
-			let timeString = timeIndex ? row.cells[timeIndex].textContent : "";
-			let location = locationIndex ? row.cells[locationIndex].textContent : "";
-			let teacher = teacherIndex ? row.cells[teacherIndex].textContent : "";
-			if (!day && !timeString && !location && !teacher) return null;
-			if (className.toLowerCase().includes("begeleidingspraktijk") || className.toLowerCase().includes("muziektheorie") || className.toLowerCase().includes("compositie") || className.toLowerCase().includes("improvisatie") || className.toLowerCase().includes("musical zang") || className.toLowerCase().includes("musical koor")) return null;
-			return {
-				url,
-				pageTitle,
-				sectionTitle,
-				panelTitle,
-				className,
-				day,
-				timeString,
-				location,
-				teacher
-			};
-		}).filter((les) => les != null);
-	}
-	//#endregion
-	//#region typescript/roster_diff/excelRoster.ts
-	var ClassDef = class {
-		day;
-		teacher;
-		timeSlice;
-		subjects;
-		className;
-		location;
-		gradeYears;
-		excelRow;
-		excelColumn;
-		cellValue;
-		table;
-		hash;
-		constructor(day, teacher, timeSlice, subjects, location, gradeYears, excelRow, excelColumn, cellValue, table, className) {
-			this.day = day;
-			this.teacher = teacher;
-			this.timeSlice = timeSlice;
-			this.subjects = subjects;
-			this.location = location;
-			this.gradeYears = gradeYears;
-			this.excelRow = excelRow;
-			this.excelColumn = excelColumn;
-			this.cellValue = cellValue;
-			this.table = table;
-			this.className = className;
-			this.hash = "excel:" + cellValue + day + teacher + TimeSlice.toString(timeSlice);
-		}
-		getHash() {
-			return this.hash;
-		}
-	};
-	var TimeSlice = class TimeSlice {
-		start;
-		end;
-		constructor(start, end) {
-			this.start = start;
-			this.end = end;
-		}
-		static equal(timeslice1, timeslice2) {
-			return timeslice1.start.hour == timeslice2.start.hour && timeslice1.start.minutes == timeslice2.start.minutes && timeslice1.end.hour == timeslice2.end.hour && timeslice1.end.minutes == timeslice2.end.minutes;
-		}
-		toString() {}
-		static toString(timeSlice) {
-			return `${timeSlice.start.hour}:${timeSlice.start.minutes}-${timeSlice.end.hour}:${timeSlice.end.minutes}`;
-		}
-		static parseTime(timeString) {
-			let timeParts = timeString.split(/[:;,.]/gm);
-			if (timeParts.length == 2) return {
-				hour: parseInt(timeParts[0]),
-				minutes: parseInt(timeParts[1])
-			};
-			if (timeParts.length == 1) return {
-				hour: parseInt(timeParts[0]),
+	static parseShortTimes(text) {
+		text = " " + text + " ";
+		let times = TimeSlice.parseTimes(text);
+		let rx = /\s+(\d?\d)[u\s]/gm;
+		let matches = rx.exec(text);
+		while (matches) {
+			let time = {
+				hour: parseInt(matches[1]),
 				minutes: 0
 			};
-			return null;
+			times.push(time);
+			times.sort((a, b) => a.hour - b.hour);
+			matches = rx.exec(text);
 		}
-		static parseTimes(text) {
-			let times = [];
-			let rx = /\s+(\d?\d)[.:,](\d\d)/gm;
-			let matches = rx.exec(text);
-			while (matches) {
-				let time = {
-					hour: parseInt(matches[1]),
-					minutes: parseInt(matches[2])
-				};
-				times.push(time);
-				matches = rx.exec(text);
-			}
-			return times;
-		}
-		static parseShortTimes(text) {
-			text = " " + text + " ";
-			let times = TimeSlice.parseTimes(text);
-			let rx = /\s+(\d?\d)[u\s]/gm;
-			let matches = rx.exec(text);
-			while (matches) {
-				let time = {
-					hour: parseInt(matches[1]),
-					minutes: 0
-				};
-				times.push(time);
-				times.sort((a, b) => a.hour - b.hour);
-				matches = rx.exec(text);
-			}
-			return times;
-		}
-		static parseTimeSlice(text) {
-			let [start, end] = text.split("-");
-			if (!start || !end) return null;
-			let startTime = TimeSlice.parseTime(start);
-			let endTime = TimeSlice.parseTime(end);
-			if (!startTime || !endTime) return null;
-			return new TimeSlice(startTime, endTime);
-		}
-	};
-	function timeToMinutes(time) {
-		return time.hour * 60 + time.minutes;
+		return times;
 	}
-	function dayToMinutes(day) {
-		switch (day) {
-			case "MAANDAG": return 0;
-			case "DINSDAG": return 1440;
-			case "WOENSDAG": return 2880;
-			case "DONDERDAG": return 4320;
-			case "VRIJDAG": return 5760;
-			case "ZATERDAG": return 7200;
-			case "ZONDAG": return 8640;
-			default: return -1;
-		}
+	static parseTimeSlice(text) {
+		let [start, end] = text.split("-");
+		if (!start || !end) return null;
+		let startTime = TimeSlice.parseTime(start);
+		let endTime = TimeSlice.parseTime(end);
+		if (!startTime || !endTime) return null;
+		return new TimeSlice(startTime, endTime);
 	}
-	var ExcelRoster = class ExcelRoster {
-		table;
-		errors = [];
-		dko3Data;
-		tagDefs;
-		ignoreList;
-		diffSettings;
-		constructor(table, dko3Data, diffSettings) {
-			this.table = table;
-			this.dko3Data = dko3Data;
-			this.diffSettings = diffSettings;
-			this.tagDefs = diffSettings.preparedDiffSettings.tagDefs;
-			this.ignoreList = diffSettings.preparedDiffSettings.ignoreList;
-		}
-		scrapeUurrooster() {
-			let timeSlices = this.createTimeSlices();
-			if (this.errors.length > 0) return null;
-			let classDefs = [];
-			for (let c = 0; c <= this.table.ColumnCount; c++) classDefs = classDefs.concat(this.scrapeColumn(c, timeSlices));
-			return classDefs;
-		}
-		static normalizeWhiteSpace(text) {
-			return text.replaceAll(/\n/g, " ").replaceAll(/\s+/g, " ");
-		}
-		static makeParsable(text, leaveENalone) {
-			if (leaveENalone == void 0) text = text.replaceAll(" en ", " , ");
-			return " " + text.replaceAll("(", " ( ").replaceAll(")", " ) ").replaceAll(",", " , ").replaceAll("+", " + ").replaceAll("  ", " ").replaceAll("  ", " ") + " ";
-		}
-		scrapeColumn(column, timeSlices) {
-			let classDefs = [];
-			let day = RosterFactory.toDayName(this.table.HeaderRowValue(0, column));
-			let teacher = this.table.HeaderRowValue(1, column).trim();
-			for (let row = 0; row < this.table.RowCount; row++) {
-				let cellValue = this.table.Cell(row, column);
-				if (cellValue) {
-					let description = ExcelRoster.normalizeWhiteSpace(cellValue);
-					let parseText = ExcelRoster.makeParsable(preTranslate(description, this.diffSettings));
-					let timeSlice = void 0;
-					let mergedRange = this.table.RangeOfCell({
-						row,
-						column
-					});
-					let sliceStartText = this.table.HeaderColumnValue(mergedRange.Start.row, 0);
-					let sliceEndText = this.table.HeaderColumnValue(mergedRange.End.row, 0);
-					let sliceStart = timeSlices.get(sliceStartText);
-					let sliceEnd = timeSlices.get(sliceEndText);
-					timeSlice = new TimeSlice(sliceStart.start, sliceEnd.end);
-					let times = TimeSlice.parseTimes(parseText);
-					if (times.length === 2) timeSlice = new TimeSlice(times[0], times[1]);
-					else if (times.length === 1) timeSlice = this.moveTimeSliceTo(timeSlice, times[0]);
-					let tags = ExcelRoster.findTags(parseText, this.tagDefs);
-					let tagStrings = tags.map((t) => t.tag);
-					let location = ExcelRoster.findLocation(tagStrings, this.dko3Data.preparedDko3DiffData.locations);
-					let subjects = ExcelRoster.findSubjects(parseText, tagStrings, this.dko3Data);
-					let className = ExcelRoster.findClassName(parseText, this.dko3Data);
-					let tablePos = new TablePos(row, column);
-					let excelPos = TablePos.toExcel(tablePos, this.table);
-					let gradeYears = ExcelRoster.findGradeYears(parseText);
-					if (gradeYears.length == 0) gradeYears = ExcelRoster.getGradeYearsFromTags(tags);
-					let classDef = new ClassDef(day, teacher, timeSlice, subjects, location ?? "Academie Willem Van Laarstraat, Berchem", gradeYears, excelPos.row, excelPos.column, cellValue, this.table, className);
-					classDefs.push(classDef);
-					row = mergedRange.End.row;
-				}
-			}
-			return classDefs;
-		}
-		createTimeSlices() {
-			let timeSlices = /* @__PURE__ */ new Map();
-			for (let row = 0; row < this.table.RowCount; row++) {
-				let value = this.table.HeaderColumnValue(row, 0);
-				let timeSlice = TimeSlice.parseTimeSlice(value);
-				if (timeSlice) timeSlices.set(value, timeSlice);
-				else this.errors.push(`Could not parse time slice: ${value}`);
-			}
-			return timeSlices;
-		}
-		moveTimeSliceTo(timeSlice, newStart) {
-			let newSlice = structuredClone(timeSlice);
-			let startMinutes = timeSlice.start.hour * 60 + timeSlice.start.minutes;
-			let duration = timeSlice.end.hour * 60 + timeSlice.end.minutes - startMinutes;
-			newSlice.start = structuredClone(newStart);
-			let newEndMinutes = newStart.hour * 60 + newStart.minutes + duration;
-			newSlice.end.hour = Math.trunc(newEndMinutes / 60);
-			newSlice.end.minutes = newEndMinutes % 60;
-			return newSlice;
-		}
-		static findLocation(tags, locations) {
-			let location = locations.find((location) => tags.includes(location));
-			if (location) return location;
-			else return null;
-		}
-		static findSubjects(text, tags, dko3Data) {
-			let allSearchStrings = [...tags];
-			let lowerCase = " " + text.toLowerCase() + " ";
-			for (let subject of dko3Data.preparedDko3DiffData.subjects) if (lowerCase.includes(" " + subject.toLowerCase() + " ")) allSearchStrings.push(subject);
-			return dko3Data.preparedDko3DiffData.subjects.filter((subject) => allSearchStrings.includes(subject));
-		}
-		static findClassName(text, dko3Data) {
-			let lowerCase = text.toLowerCase();
-			for (let name of dko3Data.preparedDko3DiffData.classNames) if (lowerCase.includes(" " + name.toLowerCase() + " ")) return name;
-			return null;
-		}
-		static findTags(text, tagDefs) {
-			let tags = [];
-			let lowerCase = text.toLowerCase();
-			for (let def of tagDefs) if (lowerCase.includes(def.searchString)) tags.push(def);
-			return tags;
-		}
-		static findGradeYears(text) {
-			let gradeYears = [];
-			let matches = /\s+(?:(\d)\.(\d)|([SC])(\d))(?:\s?[,+\/]\s?(?:(\d)\.(\d)|([SC])(\d)))?(?:\s?[,+\/]\s?(?:(\d)\.(\d)|([SC])(\d)))?(?:\s?[,+\/]\s?(?:(\d)\.(\d)|([SC])(\d)))?(?:\s?[,+\/]\s?(?:(\d)\.(\d)|([SC])(\d)))?/gm.exec(text);
-			if (matches) {
-				let strippedMatches = matches.filter((m) => m);
-				for (let i = 1; i < strippedMatches.length; i += 2) {
-					let gradeYear = {
-						grade: strippedMatches[i],
-						year: parseInt(strippedMatches[i + 1])
-					};
-					gradeYears.push(gradeYear);
-				}
-				return gradeYears;
-			}
-			matches = /(\d\s*(?:[,+\/]\s*\d\s*)*)(?!\s*[,+\/])/gm.exec(text);
-			if (matches) {
-				let singleDigitList = matches.filter((m) => m)[0].split(/[,+\/]/);
-				if (singleDigitList.length == 1) return [];
-				for (let digit of singleDigitList) {
-					let gradeYear = {
-						grade: "2",
-						year: parseInt(digit)
-					};
-					gradeYears.push(gradeYear);
-				}
-				return gradeYears;
-			}
-			return [];
-		}
-		static parseGradeYears(tagDef) {
-			if (tagDef.gradeYears == "") return [];
-			let split = (tagDef.gradeYears ?? "").split(",").map((t) => t.trim().toUpperCase());
-			let gradeYears = [];
-			for (let yearGrade of split) {
-				let yearParts = yearGrade.split(".");
-				if (yearParts.length == 2) gradeYears.push({
-					grade: yearParts[0],
-					year: parseInt(yearParts[1])
+};
+function timeToMinutes(time) {
+	return time.hour * 60 + time.minutes;
+}
+function dayToMinutes(day) {
+	switch (day) {
+		case "MAANDAG": return 0;
+		case "DINSDAG": return 1440;
+		case "WOENSDAG": return 2880;
+		case "DONDERDAG": return 4320;
+		case "VRIJDAG": return 5760;
+		case "ZATERDAG": return 7200;
+		case "ZONDAG": return 8640;
+		default: return -1;
+	}
+}
+var ExcelRoster = class ExcelRoster {
+	table;
+	errors = [];
+	dko3Data;
+	tagDefs;
+	ignoreList;
+	diffSettings;
+	constructor(table, dko3Data, diffSettings) {
+		this.table = table;
+		this.dko3Data = dko3Data;
+		this.diffSettings = diffSettings;
+		this.tagDefs = diffSettings.preparedDiffSettings.tagDefs;
+		this.ignoreList = diffSettings.preparedDiffSettings.ignoreList;
+	}
+	scrapeUurrooster() {
+		let timeSlices = this.createTimeSlices();
+		if (this.errors.length > 0) return null;
+		let classDefs = [];
+		for (let c = 0; c <= this.table.ColumnCount; c++) classDefs = classDefs.concat(this.scrapeColumn(c, timeSlices));
+		return classDefs;
+	}
+	static normalizeWhiteSpace(text) {
+		return text.replaceAll(/\n/g, " ").replaceAll(/\s+/g, " ");
+	}
+	static makeParsable(text, leaveENalone) {
+		if (leaveENalone == void 0) text = text.replaceAll(" en ", " , ");
+		return " " + text.replaceAll("(", " ( ").replaceAll(")", " ) ").replaceAll(",", " , ").replaceAll("+", " + ").replaceAll("  ", " ").replaceAll("  ", " ") + " ";
+	}
+	scrapeColumn(column, timeSlices) {
+		let classDefs = [];
+		let day = RosterFactory.toDayName(this.table.HeaderRowValue(0, column));
+		let teacher = this.table.HeaderRowValue(1, column).trim();
+		for (let row = 0; row < this.table.RowCount; row++) {
+			let cellValue = this.table.Cell(row, column);
+			if (cellValue) {
+				let description = ExcelRoster.normalizeWhiteSpace(cellValue);
+				let parseText = ExcelRoster.makeParsable(preTranslate(description, this.diffSettings));
+				let timeSlice = void 0;
+				let mergedRange = this.table.RangeOfCell({
+					row,
+					column
 				});
-				else if (yearParts.length == 1) console.error(`Syntax error in gradeYears for tag search text "${tagDef.searchString}": "${tagDef.gradeYears}"`);
-			}
-			return gradeYears;
-		}
-		static getGradeYearsFromTags(tags) {
-			let gradeYears = [];
-			for (let tagDef of tags) gradeYears.push(...this.parseGradeYears(tagDef));
-			gradeYears = gradeYears.filter((value, index, self) => self.findIndex((t) => GradeYear.equals(t, value)) === index);
-			return gradeYears;
-		}
-	};
-	//#endregion
-	//#region typescript/lessen/scrape.ts
-	function scrapeLessenOverzicht(table) {
-		if (!table) return [];
-		let body = table.tBodies[0];
-		let lessen = [];
-		for (const row of body.rows) {
-			let les = scrapeLesInfo(row);
-			lessen.push(les);
-		}
-		return lessen;
-	}
-	function scrapeStudentsCellMeta(studentsCell) {
-		let smallTags = studentsCell.querySelectorAll("small");
-		let aantal = 0;
-		let maxAantal = 0;
-		let arrayLeerlingenAantal = Array.from(smallTags).map((item) => item.textContent).filter((txt) => txt.includes("leerlingen"));
-		if (arrayLeerlingenAantal.length > 0) {
-			let matches = arrayLeerlingenAantal[0].match(/(\d+).\D+(\d+)/);
-			if (matches) {
-				aantal = parseInt(matches[1]);
-				maxAantal = parseInt(matches[2]);
+				let sliceStartText = this.table.HeaderColumnValue(mergedRange.Start.row, 0);
+				let sliceEndText = this.table.HeaderColumnValue(mergedRange.End.row, 0);
+				let sliceStart = timeSlices.get(sliceStartText);
+				let sliceEnd = timeSlices.get(sliceEndText);
+				timeSlice = new TimeSlice(sliceStart.start, sliceEnd.end);
+				let times = TimeSlice.parseTimes(parseText);
+				if (times.length === 2) timeSlice = new TimeSlice(times[0], times[1]);
+				else if (times.length === 1) timeSlice = this.moveTimeSliceTo(timeSlice, times[0]);
+				let tags = ExcelRoster.findTags(parseText, this.tagDefs);
+				let tagStrings = tags.map((t) => t.tag);
+				let location = ExcelRoster.findLocation(tagStrings, this.dko3Data.preparedDko3DiffData.locations);
+				let subjects = ExcelRoster.findSubjects(parseText, tagStrings, this.dko3Data);
+				let className = ExcelRoster.findClassName(parseText, this.dko3Data);
+				let tablePos = new TablePos(row, column);
+				let excelPos = TablePos.toExcel(tablePos, this.table);
+				let gradeYears = ExcelRoster.findGradeYears(parseText);
+				if (gradeYears.length == 0) gradeYears = ExcelRoster.getGradeYearsFromTags(tags);
+				let classDef = new ClassDef(day, teacher, timeSlice, subjects, location ?? "Academie Willem Van Laarstraat, Berchem", gradeYears, excelPos.row, excelPos.column, cellValue, this.table, className);
+				classDefs.push(classDef);
+				row = mergedRange.End.row;
 			}
 		}
-		let id = Array.from(smallTags).find((item) => item.classList.contains("float-right")).textContent;
-		let wachtlijst = 0;
-		let arrayWachtlijst = Array.from(smallTags).map((item) => item.textContent).filter((txt) => txt.includes("wachtlijst"));
-		if (arrayWachtlijst.length > 0) {
-			let matches = arrayWachtlijst[0].match(/(\d+)/);
-			if (matches) wachtlijst = parseInt(matches[1]);
-		}
-		return {
-			aantal,
-			maxAantal,
-			id,
-			wachtlijst
-		};
+		return classDefs;
 	}
-	function scrapeJaarToewijzingen(jaarToewijzingTable) {
-		if (jaarToewijzingTable === void 0) return [];
-		let offset = 3;
-		return [...jaarToewijzingTable.getRows()].map((row) => {
-			let naam = row.cells[offset].textContent;
-			let voornaam = row.cells[4].textContent;
-			let vak = row.cells[5].textContent;
-			let lesmoment = row.cells[6].textContent;
-			let klasleerkracht = row.cells[7].textContent;
-			let graadJaar = row.cells[8].textContent;
-			return {
-				naam,
-				voornaam,
-				vak,
-				lesmoment,
-				klasleerkracht,
-				onclick: row.attributes["onclick"].value,
-				graadJaar
-			};
-		});
+	createTimeSlices() {
+		let timeSlices = /* @__PURE__ */ new Map();
+		for (let row = 0; row < this.table.RowCount; row++) {
+			let value = this.table.HeaderColumnValue(row, 0);
+			let timeSlice = TimeSlice.parseTimeSlice(value);
+			if (timeSlice) timeSlices.set(value, timeSlice);
+			else this.errors.push(`Could not parse time slice: ${value}`);
+		}
+		return timeSlices;
 	}
-	function scrapeModules(table, jaarToewijzingTable) {
-		let lessen = scrapeLessenOverzicht(table);
-		return {
-			trimesterModules: scrapeTrimesterModules(lessen),
-			jaarModules: scrapeJaarModules(lessen),
-			jaarToewijzingen: scrapeJaarToewijzingen(jaarToewijzingTable)
-		};
+	moveTimeSliceTo(timeSlice, newStart) {
+		let newSlice = structuredClone(timeSlice);
+		let startMinutes = timeSlice.start.hour * 60 + timeSlice.start.minutes;
+		let duration = timeSlice.end.hour * 60 + timeSlice.end.minutes - startMinutes;
+		newSlice.start = structuredClone(newStart);
+		let newEndMinutes = newStart.hour * 60 + newStart.minutes + duration;
+		newSlice.end.hour = Math.trunc(newEndMinutes / 60);
+		newSlice.end.minutes = newEndMinutes % 60;
+		return newSlice;
 	}
-	function scrapeTrimesterModules(lessen) {
-		let modules = lessen.filter((les) => les.les.lesType === 0);
-		let trimesterModules = [];
-		for (let module of modules) {
-			module.les.students = scrapeStudents(module.studentsTable);
-			const match = module.les.naam.match(/.*\Snitiatie\s*(\S+).*(\d).*/);
-			if (match?.length !== 3) {
-				console.error(`Could not process trimester module "${module.les.naam}" (${module.les.id}).`);
-				continue;
-			}
-			module.les.instrumentName = match[1];
-			module.les.trimesterNo = parseInt(match[2]);
-			trimesterModules.push(module.les);
-		}
-		return trimesterModules;
+	static findLocation(tags, locations) {
+		let location = locations.find((location) => tags.includes(location));
+		if (location) return location;
+		else return null;
 	}
-	function scrapeJaarModules(lessen) {
-		let modules = lessen.filter((les) => les.les.lesType === 1);
-		let jaarModules = [];
-		for (let module of modules) {
-			module.les.students = scrapeStudents(module.studentsTable);
-			const match = module.les.naam.match(/.*\Snitiatie\s*(\S+).*/);
-			if (match?.length !== 2) {
-				console.error(`Could not process jaar module "${module.les.naam}" (${module.les.id}).`);
-				continue;
-			}
-			module.les.instrumentName = match[1];
-			module.les.trimesterNo = parseInt(match[2]);
-			jaarModules.push(module.les);
-		}
-		return jaarModules;
+	static findSubjects(text, tags, dko3Data) {
+		let allSearchStrings = [...tags];
+		let lowerCase = " " + text.toLowerCase() + " ";
+		for (let subject of dko3Data.preparedDko3DiffData.subjects) if (lowerCase.includes(" " + subject.toLowerCase() + " ")) allSearchStrings.push(subject);
+		return dko3Data.preparedDko3DiffData.subjects.filter((subject) => allSearchStrings.includes(subject));
 	}
-	var StudentInfo = class {
-		graadJaar;
-		name;
-		trimesterInstruments;
-		jaarInstruments;
-		allYearSame;
-		naam;
-		voornaam;
-		id;
-		info = "";
-		notAllTrimsHaveAnInstrument;
-		constructor(name, naam, voornaam, graadJaar) {
-			this.name = name;
-			this.naam = naam;
-			this.voornaam = voornaam;
-			this.graadJaar = graadJaar;
-		}
-	};
-	function scrapeStudents(studentTable) {
-		let students = [];
-		if (studentTable.tBodies.length === 0) return students;
-		for (const row of studentTable.tBodies[0].rows) {
-			let graadJaar = row.cells[0].children[0].textContent;
-			let name = row.cells[0].childNodes[1].textContent;
-			let names = name.split(", ");
-			let naam = names[0];
-			let voornaam = names[1];
-			let studentInfo = new StudentInfo(name, naam, voornaam, graadJaar);
-			students.push(studentInfo);
-		}
-		return students;
+	static findClassName(text, dko3Data) {
+		let lowerCase = text.toLowerCase();
+		for (let name of dko3Data.preparedDko3DiffData.classNames) if (lowerCase.includes(" " + name.toLowerCase() + " ")) return name;
+		return null;
 	}
-	function toDay(text) {
-		text = text.toUpperCase().trim();
-		switch (text.toUpperCase()) {
-			case "MAANDAG":
-			case "DINSDAG":
-			case "WOENSDAG":
-			case "DONDERDAG":
-			case "VRIJDAG":
-			case "ZATERDAG":
-			case "ZONDAG": return text;
-			default: return null;
-		}
+	static findTags(text, tagDefs) {
+		let tags = [];
+		let lowerCase = text.toLowerCase();
+		for (let def of tagDefs) if (lowerCase.includes(def.searchString)) tags.push(def);
+		return tags;
 	}
-	var Les = class {
-		vakNaam;
-		lesType;
-		alc;
-		online;
-		naam;
-		teacher;
-		lesmoment;
-		formattedLesmoment;
-		vestiging;
-		aantal;
-		maxAantal;
-		id;
-		wachtlijst;
-		students;
-		instrumentName;
-		trimesterNo = -1;
-		tags;
-		warnings;
-		gradeYears = [];
-		day = "";
-		repeat = "";
-		dayTimeSlices = [];
-		linkedLessenIds = [];
-		constructor(id, lesType, instrumentName, teacher, formattedLesmoment, maxAantal, aantal, vestiging, tags, online, wachtlijst, alc, lesmoment, naam, students, vakNaam, warnings) {
-			this.id = id;
-			this.lesType = lesType;
-			this.instrumentName = instrumentName;
-			this.teacher = teacher;
-			this.formattedLesmoment = formattedLesmoment;
-			this.maxAantal = maxAantal;
-			this.aantal = aantal;
-			this.vestiging = vestiging;
-			this.tags = tags;
-			this.online = online;
-			this.wachtlijst = wachtlijst;
-			this.alc = alc;
-			this.lesmoment = lesmoment;
-			this.naam = naam;
-			this.students = students;
-			this.vakNaam = vakNaam;
-			this.warnings = warnings;
-		}
-		static getHash(les) {
-			return les.id + les.teacher + les.naam + les.vakNaam + les.lesmoment + les.vestiging + les.online;
-		}
-		static getNewHash(les) {
-			return les.id + les.teacher + les.naam + les.vakNaam + les.lesmoment + les.vestiging + les.online + GradeYear.toString(les.gradeYears);
-		}
-	};
-	function scrapeLesInfo(row) {
-		let lesCell = row.cells[0];
-		let studentsCell = row.cells[1];
-		let meta = scrapeStudentsCellMeta(studentsCell);
-		let warnings = [...row.getElementsByClassName("text-warning")].map((el) => el.textContent);
-		let [first] = lesCell.getElementsByTagName("strong");
-		let allBadges = lesCell.getElementsByClassName("badge");
-		let warningBadges = lesCell.getElementsByClassName("badge-warning");
-		let tags = Array.from(warningBadges).map((el) => el.textContent).filter((txt) => txt !== "ALC").filter((txt) => txt);
-		let mutedSpans = lesCell.querySelectorAll("span.text-muted");
-		let allTextMutedSpanText = "";
-		let childrenElements = lesCell.children;
-		for (let i = 0; i < childrenElements.length; i++) {
-			if (childrenElements[i].tagName === "BR") break;
-			if (childrenElements[i].tagName === "SPAN" && childrenElements[i].classList.contains("text-muted")) allTextMutedSpanText += " " + childrenElements[i].textContent;
-		}
-		let naam = allTextMutedSpanText.trim().replace(/^\(/, "").replace(/\)$/, "");
-		let lesType;
-		if (Array.from(allBadges).some((el) => el.textContent === "module")) {
-			if (naam.includes("jaar")) lesType = 1;
-			else if (naam.includes("rimester")) lesType = 0;
-			else lesType = 3;
-		} else lesType = 2;
-		let teacher = "";
-		if (mutedSpans.length > 0) teacher = Array.from(mutedSpans).pop().textContent;
-		teacher = teacher.replaceAll("  ", " ").replaceAll(" ,", ",").trim();
-		if (teacher == "(geen klasleerkracht)") teacher = "";
-		let textNodes = Array.from(lesCell.childNodes).filter((node) => node.nodeType === Node.TEXT_NODE && node.textContent.trim() !== "");
-		let gradeYears = textsToYearGrades([...lesCell.querySelectorAll("span.text-info")].map((e) => e.textContent));
-		let les = new Les(meta.id, lesType, "no instrument", teacher, textNodes[0].nodeValue, meta.maxAantal, meta.aantal, textNodes[1].nodeValue, tags, lesCell.getElementsByClassName("fa-eye-slash").length === 0, meta.wachtlijst, Array.from(allBadges).some((el) => el.textContent === "ALC"), textNodes[0].nodeValue, naam, [], first.textContent, warnings);
-		les.gradeYears = gradeYears;
-		let htmlLes = {
-			les,
-			studentsTable: studentsCell.querySelectorAll("table")[0]
-		};
-		splitLesMoment(les);
-		return htmlLes;
-	}
-	function splitLesMoment(les) {
-		if (les.lesmoment == "(geen volgende les)") return;
-		if (les.lesmoment == "(geen lesmomenten)") return;
-		let remaining = les.lesmoment;
-		if (remaining.startsWith("volgende les: ")) remaining = remaining.substring(14, 17) + remaining.substring(22);
-		if (remaining.includes("wekelijks")) les.repeat = "wekelijks";
-		remaining = remaining.replaceAll("wekelijks", "").replaceAll("(", "").replaceAll(")", "").trim();
-		if (remaining.length < 11) return;
-		les.dayTimeSlices = parseLesMomenten(remaining);
-	}
-	function parseLesMomenten(text) {
-		let dayTimeSlices = text.split(" en ").map((text) => parseLesMoment(text));
-		if (dayTimeSlices.some((slice) => slice.timeSlice == null)) {
-			let firstTime = dayTimeSlices.find((lesMoment) => lesMoment.timeSlice !== null).timeSlice;
-			dayTimeSlices.forEach((lesMoment) => lesMoment.timeSlice = firstTime);
-		} else if (dayTimeSlices.some((slice) => slice.day == "")) {
-			let firstDay = dayTimeSlices.find((lesMoment) => lesMoment.day != "").day;
-			dayTimeSlices.forEach((lesMoment) => lesMoment.day = firstDay);
-		}
-		return dayTimeSlices;
-	}
-	var DayTimeSlice = class {
-		day;
-		timeSlice;
-		constructor(day, timeSlice) {
-			this.day = day;
-			this.timeSlice = timeSlice;
-		}
-		toString() {}
-		static toString(dayTimeSlice) {
-			if (dayTimeSlice.timeSlice === null) return "null";
-			return `${dayTimeSlice.day} ${TimeSlice.toString(dayTimeSlice.timeSlice)}`;
-		}
-		static startToNumber(dayTimeSlice) {
-			if (dayTimeSlice.timeSlice === null) return -1;
-			return dayToMinutes(dayTimeSlice.day) + timeToMinutes(dayTimeSlice.timeSlice.start);
-		}
-		static endToNumber(dayTimeSlice) {
-			if (dayTimeSlice.timeSlice === null) return -1;
-			return dayToMinutes(dayTimeSlice.day) + timeToMinutes(dayTimeSlice.timeSlice.end);
-		}
-		static equal(dayTimeSlice1, dayTimeSlice2) {
-			if (dayTimeSlice1.day != dayTimeSlice2.day) return false;
-			if (!dayTimeSlice1.timeSlice) return false;
-			if (!dayTimeSlice2.timeSlice) return false;
-			return TimeSlice.equal(dayTimeSlice1.timeSlice, dayTimeSlice2.timeSlice);
-		}
-	};
-	function parseLesMoment(text) {
-		let first2 = text.substring(0, 2);
-		let day = "";
-		switch (first2) {
-			case "ma":
-				day = "MAANDAG";
-				break;
-			case "di":
-				day = "DINSDAG";
-				break;
-			case "wo":
-				day = "WOENSDAG";
-				break;
-			case "do":
-				day = "DONDERDAG";
-				break;
-			case "vr":
-				day = "VRIJDAG";
-				break;
-			case "za":
-				day = "ZATERDAG";
-				break;
-			case "zo":
-				day = "ZONDAG";
-				break;
-			default: day = "";
-		}
-		if (day != "") text = text.substring(3);
-		let startAndEnd = text.split("-");
-		if (startAndEnd.length < 2) return new DayTimeSlice(day, null);
-		let hourMinutes = startAndEnd[0].split(":");
-		if (hourMinutes.length < 2) return new DayTimeSlice(day, null);
-		let hour = parseInt(hourMinutes[0]);
-		let minutes = parseInt(hourMinutes[1]);
-		if (isNaN(hour) || isNaN(minutes)) return new DayTimeSlice(day, null);
-		let startTime = {
-			hour,
-			minutes
-		};
-		hourMinutes = startAndEnd[1].split(":");
-		if (hourMinutes.length < 2) return new DayTimeSlice(day, null);
-		hour = parseInt(hourMinutes[0]);
-		minutes = parseInt(hourMinutes[1]);
-		if (isNaN(hour) || isNaN(minutes)) return new DayTimeSlice(day, null);
-		return new DayTimeSlice(day, new TimeSlice(startTime, {
-			hour,
-			minutes
-		}));
-	}
-	function textsToYearGrades(texts) {
-		let yearGrades = [];
-		texts.forEach((text) => {
-			if (/^[\s\d,.SC]+$/gm.test(text)) {
-				let commaSeparatedTexts = text.split(",");
-				let rxDigitDotDigit = /([\dSC]).(\d)/g;
-				for (let candidate of commaSeparatedTexts) {
-					let matches = [...candidate.matchAll(rxDigitDotDigit)];
-					if (matches.length < 1) continue;
-					let grade = matches[0][1];
-					let year = parseInt(matches[0][2]);
-					yearGrades.push({
-						grade,
-						year
-					});
-				}
-			}
-		});
-		return yearGrades;
-	}
-	//#endregion
-	//#region typescript/les/fetch.ts
-	async function fetchLes(id, signal) {
-		let chain = new FetchChain();
-		await chain.fetch("view.php?args=lessen-les?id=" + id, signal);
-		chain.findDocReadyLoadUrl();
-		await chain.fetch();
-		let lesDetails = await chain.fetch(`views/lessen/les/index.details.tab.php`);
-		let nameDiv = await chain.fetch("views/lessen/les/details/index.details.benaming.card.php");
-		let rx = /vak:\s*<strong>(.*?)<\/strong>/g;
-		let vakText = rx.exec(lesDetails)?.at(1);
-		let vak = "";
-		if (vakText) vak = vakText.trim();
-		rx = /graden:\s*<strong>(.*?)<\/strong>/g;
-		let gradeYearsText = rx.exec(lesDetails)?.at(1);
+	static findGradeYears(text) {
 		let gradeYears = [];
-		if (gradeYearsText) gradeYears = textsToYearGrades([gradeYearsText]);
-		let maxAantalDiv = await chain.fetch("views/lessen/les/details/index.details.maximum_aantal_leerlingen.card.php");
-		rx = /\s*<strong>(.*?)<\/strong>/g;
-		let maxAantalText = rx.exec(maxAantalDiv)?.at(1);
-		let maxAantal = 0;
-		if (maxAantalText) maxAantal = parseInt(maxAantalText.trim());
-		let vestigingDiv = await chain.fetch("/views/lessen/les/details/index.details.vestigingsplaats.card.php");
-		vestigingDiv = vestigingDiv.replaceAll("<br>", "");
-		rx = /vestigingsplaats:\s*<strong>(.*?)<\/strong>/g;
-		let vestiging = rx.exec(vestigingDiv)?.at(1) ?? "";
-		await chain.fetch("/views/lessen/les/index.lesmomenten.tab.php");
-		let lesmomentenText = await chain.fetch("/views/lessen/les/lesmomenten/lesmomenten.card.php");
-		rx = /<strong>(.*?)<\/strong>/g;
-		let lesMomenten = [];
-		let match;
-		while (match = rx.exec(lesmomentenText)) lesMomenten.push(match[1]);
-		await chain.fetch("/views/lessen/les/index.leerlingen.tab.php");
-		await chain.fetch("/views/lessen/les/leerlingen/leerlingen.toolbar.php");
-		const now = /* @__PURE__ */ new Date();
-		const timestamp = new Intl.DateTimeFormat("sv-SE", {
-			year: "numeric",
-			month: "2-digit",
-			day: "2-digit",
-			hour: "2-digit",
-			minute: "2-digit",
-			second: "2-digit",
-			hour12: false
-		}).format(now).replace(" ", " ");
-		console.log(timestamp);
-		let params = new URLSearchParams();
-		params.append("timestamp", timestamp);
-		params.append("nu", "true");
-		let leerlingenTableText = await chain.fetch(`/views/lessen/les/leerlingen/leerlingen.tabel.php?${params}`);
-		rx = /<i>(.*?)<\/i>/g;
-		let aantallen = (rx.exec(leerlingenTableText)?.at(1) ?? "").replace(" van ", ",").replace("leerlingen", "").trim().split(",");
+		let matches = /\s+(?:(\d)\.(\d)|([SC])(\d))(?:\s?[,+\/]\s?(?:(\d)\.(\d)|([SC])(\d)))?(?:\s?[,+\/]\s?(?:(\d)\.(\d)|([SC])(\d)))?(?:\s?[,+\/]\s?(?:(\d)\.(\d)|([SC])(\d)))?(?:\s?[,+\/]\s?(?:(\d)\.(\d)|([SC])(\d)))?/gm.exec(text);
+		if (matches) {
+			let strippedMatches = matches.filter((m) => m);
+			for (let i = 1; i < strippedMatches.length; i += 2) {
+				let gradeYear = {
+					grade: strippedMatches[i],
+					year: parseInt(strippedMatches[i + 1])
+				};
+				gradeYears.push(gradeYear);
+			}
+			return gradeYears;
+		}
+		matches = /(\d\s*(?:[,+\/]\s*\d\s*)*)(?!\s*[,+\/])/gm.exec(text);
+		if (matches) {
+			let singleDigitList = matches.filter((m) => m)[0].split(/[,+\/]/);
+			if (singleDigitList.length == 1) return [];
+			for (let digit of singleDigitList) {
+				let gradeYear = {
+					grade: "2",
+					year: parseInt(digit)
+				};
+				gradeYears.push(gradeYear);
+			}
+			return gradeYears;
+		}
+		return [];
+	}
+	static parseGradeYears(tagDef) {
+		if (tagDef.gradeYears == "") return [];
+		let split = (tagDef.gradeYears ?? "").split(",").map((t) => t.trim().toUpperCase());
+		let gradeYears = [];
+		for (let yearGrade of split) {
+			let yearParts = yearGrade.split(".");
+			if (yearParts.length == 2) gradeYears.push({
+				grade: yearParts[0],
+				year: parseInt(yearParts[1])
+			});
+			else if (yearParts.length == 1) console.error(`Syntax error in gradeYears for tag search text "${tagDef.searchString}": "${tagDef.gradeYears}"`);
+		}
+		return gradeYears;
+	}
+	static getGradeYearsFromTags(tags) {
+		let gradeYears = [];
+		for (let tagDef of tags) gradeYears.push(...this.parseGradeYears(tagDef));
+		gradeYears = gradeYears.filter((value, index, self) => self.findIndex((t) => GradeYear.equals(t, value)) === index);
+		return gradeYears;
+	}
+};
+//#endregion
+//#region typescript/lessen/scrape.ts
+function scrapeLessenOverzicht(table) {
+	if (!table) return [];
+	let body = table.tBodies[0];
+	let lessen = [];
+	for (const row of body.rows) {
+		let les = scrapeLesInfo(row);
+		lessen.push(les);
+	}
+	return lessen;
+}
+function scrapeStudentsCellMeta(studentsCell) {
+	let smallTags = studentsCell.querySelectorAll("small");
+	let aantal = 0;
+	let maxAantal = 0;
+	let arrayLeerlingenAantal = Array.from(smallTags).map((item) => item.textContent).filter((txt) => txt.includes("leerlingen"));
+	if (arrayLeerlingenAantal.length > 0) {
+		let matches = arrayLeerlingenAantal[0].match(/(\d+).\D+(\d+)/);
+		if (matches) {
+			aantal = parseInt(matches[1]);
+			maxAantal = parseInt(matches[2]);
+		}
+	}
+	let id = Array.from(smallTags).find((item) => item.classList.contains("float-right")).textContent;
+	let wachtlijst = 0;
+	let arrayWachtlijst = Array.from(smallTags).map((item) => item.textContent).filter((txt) => txt.includes("wachtlijst"));
+	if (arrayWachtlijst.length > 0) {
+		let matches = arrayWachtlijst[0].match(/(\d+)/);
+		if (matches) wachtlijst = parseInt(matches[1]);
+	}
+	return {
+		aantal,
+		maxAantal,
+		id,
+		wachtlijst
+	};
+}
+function scrapeJaarToewijzingen(jaarToewijzingTable) {
+	if (jaarToewijzingTable === void 0) return [];
+	let offset = 3;
+	return [...jaarToewijzingTable.getRows()].map((row) => {
+		let naam = row.cells[offset].textContent;
+		let voornaam = row.cells[4].textContent;
+		let vak = row.cells[5].textContent;
+		let lesmoment = row.cells[6].textContent;
+		let klasleerkracht = row.cells[7].textContent;
+		let graadJaar = row.cells[8].textContent;
 		return {
-			id,
-			editableName: nameDiv.includes("benaming_wijzigen"),
-			gradeYears,
+			naam,
+			voornaam,
 			vak,
-			maxAantal,
-			isIndividualLes: maxAantal == 0,
-			lesMomenten,
-			aantal: parseInt(aantallen[0]),
-			vestiging
+			lesmoment,
+			klasleerkracht,
+			onclick: row.attributes["onclick"].value,
+			graadJaar
 		};
-	}
-	//#endregion
-	//#region typescript/leerling/observer.ts
-	var LeerlingObserver = class extends HashObserver {
-		constructor() {
-			super("#leerlingen-leerling", onMutation$6);
-		}
-		isPageReallyLoaded() {
-			throw new Error("Method not implemented.");
-		}
+	});
+}
+function scrapeModules(table, jaarToewijzingTable) {
+	let lessen = scrapeLessenOverzicht(table);
+	return {
+		trimesterModules: scrapeTrimesterModules(lessen),
+		jaarModules: scrapeJaarModules(lessen),
+		jaarToewijzingen: scrapeJaarToewijzingen(jaarToewijzingTable)
 	};
-	var observer_default$7 = new LeerlingObserver();
-	function onMutation$6(mutation) {
-		checkAndExpandTabs();
-		checkAndDecorateName();
-		let tabInschrijving = document.getElementById("leerling_inschrijvingen_weergave");
-		if (mutation.target === tabInschrijving) {
-			onInschrijvingChanged(tabInschrijving);
-			return true;
+}
+function scrapeTrimesterModules(lessen) {
+	let modules = lessen.filter((les) => les.les.lesType === 0);
+	let trimesterModules = [];
+	for (let module of modules) {
+		module.les.students = scrapeStudents(module.studentsTable);
+		const match = module.les.naam.match(/.*\Snitiatie\s*(\S+).*(\d).*/);
+		if (match?.length !== 3) {
+			console.error(`Could not process trimester module "${module.les.naam}" (${module.les.id}).`);
+			continue;
 		}
-		if (mutation.target.id.includes("_uitleningen_table")) {
-			onUitleningenChanged(mutation.target);
-			return true;
-		}
-		let tabAttesten = document.getElementById("attesten");
-		if (mutation.target === tabAttesten) {
-			onAttestenChanged();
-			return true;
-		}
-		return false;
+		module.les.instrumentName = match[1];
+		module.les.trimesterNo = parseInt(match[2]);
+		trimesterModules.push(module.les);
 	}
-	function checkAndDecorateName() {
-		let header = document.getElementById("vh_header_leerlingen_leerling_left_title");
-		if (!header) return;
-		if (header.dataset.nameDecorated === "true") return;
-		decorateName(header);
-		header.dataset.nameDecorated = "true";
+	return trimesterModules;
+}
+function scrapeJaarModules(lessen) {
+	let modules = lessen.filter((les) => les.les.lesType === 1);
+	let jaarModules = [];
+	for (let module of modules) {
+		module.les.students = scrapeStudents(module.studentsTable);
+		const match = module.les.naam.match(/.*\Snitiatie\s*(\S+).*/);
+		if (match?.length !== 2) {
+			console.error(`Could not process jaar module "${module.les.naam}" (${module.les.id}).`);
+			continue;
+		}
+		module.les.instrumentName = match[1];
+		module.les.trimesterNo = parseInt(match[2]);
+		jaarModules.push(module.les);
 	}
-	function decorateName(header) {
-		if (!options.reorderStudentName) return;
-		let split = header.textContent.split(",");
-		let firstName = split.pop() ?? "";
-		let lastName = split.pop() ?? "";
-		let officialFirstName = "";
-		if (firstName.includes("(")) {
-			let matches = firstName.match(/(\S*) *\((.*)\)/);
-			if (matches?.length === 3) {
-				firstName = matches[2];
-				officialFirstName = matches[1];
+	return jaarModules;
+}
+var StudentInfo = class {
+	graadJaar;
+	name;
+	trimesterInstruments;
+	jaarInstruments;
+	allYearSame;
+	naam;
+	voornaam;
+	id;
+	info = "";
+	notAllTrimsHaveAnInstrument;
+	constructor(name, naam, voornaam, graadJaar) {
+		this.name = name;
+		this.naam = naam;
+		this.voornaam = voornaam;
+		this.graadJaar = graadJaar;
+	}
+};
+function scrapeStudents(studentTable) {
+	let students = [];
+	if (studentTable.tBodies.length === 0) return students;
+	for (const row of studentTable.tBodies[0].rows) {
+		let graadJaar = row.cells[0].children[0].textContent;
+		let name = row.cells[0].childNodes[1].textContent;
+		let names = name.split(", ");
+		let naam = names[0];
+		let voornaam = names[1];
+		let studentInfo = new StudentInfo(name, naam, voornaam, graadJaar);
+		students.push(studentInfo);
+	}
+	return students;
+}
+function toDay(text) {
+	text = text.toUpperCase().trim();
+	switch (text.toUpperCase()) {
+		case "MAANDAG":
+		case "DINSDAG":
+		case "WOENSDAG":
+		case "DONDERDAG":
+		case "VRIJDAG":
+		case "ZATERDAG":
+		case "ZONDAG": return text;
+		default: return null;
+	}
+}
+var Les = class {
+	vakNaam;
+	lesType;
+	alc;
+	online;
+	naam;
+	teacher;
+	lesmoment;
+	formattedLesmoment;
+	vestiging;
+	aantal;
+	maxAantal;
+	id;
+	wachtlijst;
+	students;
+	instrumentName;
+	trimesterNo = -1;
+	tags;
+	warnings;
+	gradeYears = [];
+	day = "";
+	repeat = "";
+	dayTimeSlices = [];
+	linkedLessenIds = [];
+	constructor(id, lesType, instrumentName, teacher, formattedLesmoment, maxAantal, aantal, vestiging, tags, online, wachtlijst, alc, lesmoment, naam, students, vakNaam, warnings) {
+		this.id = id;
+		this.lesType = lesType;
+		this.instrumentName = instrumentName;
+		this.teacher = teacher;
+		this.formattedLesmoment = formattedLesmoment;
+		this.maxAantal = maxAantal;
+		this.aantal = aantal;
+		this.vestiging = vestiging;
+		this.tags = tags;
+		this.online = online;
+		this.wachtlijst = wachtlijst;
+		this.alc = alc;
+		this.lesmoment = lesmoment;
+		this.naam = naam;
+		this.students = students;
+		this.vakNaam = vakNaam;
+		this.warnings = warnings;
+	}
+	static getHash(les) {
+		return les.id + les.teacher + les.naam + les.vakNaam + les.lesmoment + les.vestiging + les.online;
+	}
+	static getNewHash(les) {
+		return les.id + les.teacher + les.naam + les.vakNaam + les.lesmoment + les.vestiging + les.online + GradeYear.toString(les.gradeYears);
+	}
+};
+function scrapeLesInfo(row) {
+	let lesCell = row.cells[0];
+	let studentsCell = row.cells[1];
+	let meta = scrapeStudentsCellMeta(studentsCell);
+	let warnings = [...row.getElementsByClassName("text-warning")].map((el) => el.textContent);
+	let [first] = lesCell.getElementsByTagName("strong");
+	let allBadges = lesCell.getElementsByClassName("badge");
+	let warningBadges = lesCell.getElementsByClassName("badge-warning");
+	let tags = Array.from(warningBadges).map((el) => el.textContent).filter((txt) => txt !== "ALC").filter((txt) => txt);
+	let mutedSpans = lesCell.querySelectorAll("span.text-muted");
+	let allTextMutedSpanText = "";
+	let childrenElements = lesCell.children;
+	for (let i = 0; i < childrenElements.length; i++) {
+		if (childrenElements[i].tagName === "BR") break;
+		if (childrenElements[i].tagName === "SPAN" && childrenElements[i].classList.contains("text-muted")) allTextMutedSpanText += " " + childrenElements[i].textContent;
+	}
+	let naam = allTextMutedSpanText.trim().replace(/^\(/, "").replace(/\)$/, "");
+	let lesType;
+	if (Array.from(allBadges).some((el) => el.textContent === "module")) {
+		if (naam.includes("jaar")) lesType = 1;
+		else if (naam.includes("rimester")) lesType = 0;
+		else lesType = 3;
+	} else lesType = 2;
+	let teacher = "";
+	if (mutedSpans.length > 0) teacher = Array.from(mutedSpans).pop().textContent;
+	teacher = teacher.replaceAll("  ", " ").replaceAll(" ,", ",").trim();
+	if (teacher == "(geen klasleerkracht)") teacher = "";
+	let textNodes = Array.from(lesCell.childNodes).filter((node) => node.nodeType === Node.TEXT_NODE && node.textContent.trim() !== "");
+	let gradeYears = textsToYearGrades([...lesCell.querySelectorAll("span.text-info")].map((e) => e.textContent));
+	let les = new Les(meta.id, lesType, "no instrument", teacher, textNodes[0].nodeValue, meta.maxAantal, meta.aantal, textNodes[1].nodeValue, tags, lesCell.getElementsByClassName("fa-eye-slash").length === 0, meta.wachtlijst, Array.from(allBadges).some((el) => el.textContent === "ALC"), textNodes[0].nodeValue, naam, [], first.textContent, warnings);
+	les.gradeYears = gradeYears;
+	let htmlLes = {
+		les,
+		studentsTable: studentsCell.querySelectorAll("table")[0]
+	};
+	splitLesMoment(les);
+	return htmlLes;
+}
+function splitLesMoment(les) {
+	if (les.lesmoment == "(geen volgende les)") return;
+	if (les.lesmoment == "(geen lesmomenten)") return;
+	let remaining = les.lesmoment;
+	if (remaining.startsWith("volgende les: ")) remaining = remaining.substring(14, 17) + remaining.substring(22);
+	if (remaining.includes("wekelijks")) les.repeat = "wekelijks";
+	remaining = remaining.replaceAll("wekelijks", "").replaceAll("(", "").replaceAll(")", "").trim();
+	if (remaining.length < 11) return;
+	les.dayTimeSlices = parseLesMomenten(remaining);
+}
+function parseLesMomenten(text) {
+	let dayTimeSlices = text.split(" en ").map((text) => parseLesMoment(text));
+	if (dayTimeSlices.some((slice) => slice.timeSlice == null)) {
+		let firstTime = dayTimeSlices.find((lesMoment) => lesMoment.timeSlice !== null).timeSlice;
+		dayTimeSlices.forEach((lesMoment) => lesMoment.timeSlice = firstTime);
+	} else if (dayTimeSlices.some((slice) => slice.day == "")) {
+		let firstDay = dayTimeSlices.find((lesMoment) => lesMoment.day != "").day;
+		dayTimeSlices.forEach((lesMoment) => lesMoment.day = firstDay);
+	}
+	return dayTimeSlices;
+}
+var DayTimeSlice = class {
+	day;
+	timeSlice;
+	constructor(day, timeSlice) {
+		this.day = day;
+		this.timeSlice = timeSlice;
+	}
+	toString() {}
+	static toString(dayTimeSlice) {
+		if (dayTimeSlice.timeSlice === null) return "null";
+		return `${dayTimeSlice.day} ${TimeSlice.toString(dayTimeSlice.timeSlice)}`;
+	}
+	static startToNumber(dayTimeSlice) {
+		if (dayTimeSlice.timeSlice === null) return -1;
+		return dayToMinutes(dayTimeSlice.day) + timeToMinutes(dayTimeSlice.timeSlice.start);
+	}
+	static endToNumber(dayTimeSlice) {
+		if (dayTimeSlice.timeSlice === null) return -1;
+		return dayToMinutes(dayTimeSlice.day) + timeToMinutes(dayTimeSlice.timeSlice.end);
+	}
+	static equal(dayTimeSlice1, dayTimeSlice2) {
+		if (dayTimeSlice1.day != dayTimeSlice2.day) return false;
+		if (!dayTimeSlice1.timeSlice) return false;
+		if (!dayTimeSlice2.timeSlice) return false;
+		return TimeSlice.equal(dayTimeSlice1.timeSlice, dayTimeSlice2.timeSlice);
+	}
+};
+function parseLesMoment(text) {
+	let first2 = text.substring(0, 2);
+	let day = "";
+	switch (first2) {
+		case "ma":
+			day = "MAANDAG";
+			break;
+		case "di":
+			day = "DINSDAG";
+			break;
+		case "wo":
+			day = "WOENSDAG";
+			break;
+		case "do":
+			day = "DONDERDAG";
+			break;
+		case "vr":
+			day = "VRIJDAG";
+			break;
+		case "za":
+			day = "ZATERDAG";
+			break;
+		case "zo":
+			day = "ZONDAG";
+			break;
+		default: day = "";
+	}
+	if (day != "") text = text.substring(3);
+	let startAndEnd = text.split("-");
+	if (startAndEnd.length < 2) return new DayTimeSlice(day, null);
+	let hourMinutes = startAndEnd[0].split(":");
+	if (hourMinutes.length < 2) return new DayTimeSlice(day, null);
+	let hour = parseInt(hourMinutes[0]);
+	let minutes = parseInt(hourMinutes[1]);
+	if (isNaN(hour) || isNaN(minutes)) return new DayTimeSlice(day, null);
+	let startTime = {
+		hour,
+		minutes
+	};
+	hourMinutes = startAndEnd[1].split(":");
+	if (hourMinutes.length < 2) return new DayTimeSlice(day, null);
+	hour = parseInt(hourMinutes[0]);
+	minutes = parseInt(hourMinutes[1]);
+	if (isNaN(hour) || isNaN(minutes)) return new DayTimeSlice(day, null);
+	return new DayTimeSlice(day, new TimeSlice(startTime, {
+		hour,
+		minutes
+	}));
+}
+function textsToYearGrades(texts) {
+	let yearGrades = [];
+	texts.forEach((text) => {
+		if (/^[\s\d,.SC]+$/gm.test(text)) {
+			let commaSeparatedTexts = text.split(",");
+			let rxDigitDotDigit = /([\dSC]).(\d)/g;
+			for (let candidate of commaSeparatedTexts) {
+				let matches = [...candidate.matchAll(rxDigitDotDigit)];
+				if (matches.length < 1) continue;
+				let grade = matches[0][1];
+				let year = parseInt(matches[0][2]);
+				yearGrades.push({
+					grade,
+					year
+				});
 			}
 		}
-		header.textContent = "";
-		let spanFirstName = document.createElement("span");
-		spanFirstName.classList.add("firstName");
-		spanFirstName.innerText = firstName;
-		header.appendChild(spanFirstName);
-		header.appendChild(document.createTextNode(" "));
-		let spanLastName = document.createElement("span");
-		spanLastName.classList.add("lastName");
-		spanLastName.innerText = lastName;
-		header.appendChild(spanLastName);
-		if (officialFirstName) {
-			header.appendChild(document.createTextNode(" ("));
-			let spanCallName = document.createElement("span");
-			spanCallName.classList.add("officialName");
-			spanCallName.innerText = officialFirstName;
-			header.appendChild(spanCallName);
-			header.appendChild(document.createTextNode(")"));
+	});
+	return yearGrades;
+}
+//#endregion
+//#region typescript/les/fetch.ts
+async function fetchLes(id, signal) {
+	let chain = new FetchChain();
+	await chain.fetch("view.php?args=lessen-les?id=" + id, signal);
+	chain.findDocReadyLoadUrl();
+	await chain.fetch();
+	let lesDetails = await chain.fetch(`views/lessen/les/index.details.tab.php`);
+	let nameDiv = await chain.fetch("views/lessen/les/details/index.details.benaming.card.php");
+	let rx = /vak:\s*<strong>(.*?)<\/strong>/g;
+	let vakText = rx.exec(lesDetails)?.at(1);
+	let vak = "";
+	if (vakText) vak = vakText.trim();
+	rx = /graden:\s*<strong>(.*?)<\/strong>/g;
+	let gradeYearsText = rx.exec(lesDetails)?.at(1);
+	let gradeYears = [];
+	if (gradeYearsText) gradeYears = textsToYearGrades([gradeYearsText]);
+	let maxAantalDiv = await chain.fetch("views/lessen/les/details/index.details.maximum_aantal_leerlingen.card.php");
+	rx = /\s*<strong>(.*?)<\/strong>/g;
+	let maxAantalText = rx.exec(maxAantalDiv)?.at(1);
+	let maxAantal = 0;
+	if (maxAantalText) maxAantal = parseInt(maxAantalText.trim());
+	let vestigingDiv = await chain.fetch("/views/lessen/les/details/index.details.vestigingsplaats.card.php");
+	vestigingDiv = vestigingDiv.replaceAll("<br>", "");
+	rx = /vestigingsplaats:\s*<strong>(.*?)<\/strong>/g;
+	let vestiging = rx.exec(vestigingDiv)?.at(1) ?? "";
+	await chain.fetch("/views/lessen/les/index.lesmomenten.tab.php");
+	let lesmomentenText = await chain.fetch("/views/lessen/les/lesmomenten/lesmomenten.card.php");
+	rx = /<strong>(.*?)<\/strong>/g;
+	let lesMomenten = [];
+	let match;
+	while (match = rx.exec(lesmomentenText)) lesMomenten.push(match[1]);
+	await chain.fetch("/views/lessen/les/index.leerlingen.tab.php");
+	await chain.fetch("/views/lessen/les/leerlingen/leerlingen.toolbar.php");
+	const now = /* @__PURE__ */ new Date();
+	const timestamp = new Intl.DateTimeFormat("sv-SE", {
+		year: "numeric",
+		month: "2-digit",
+		day: "2-digit",
+		hour: "2-digit",
+		minute: "2-digit",
+		second: "2-digit",
+		hour12: false
+	}).format(now).replace(" ", " ");
+	console.log(timestamp);
+	let params = new URLSearchParams();
+	params.append("timestamp", timestamp);
+	params.append("nu", "true");
+	let leerlingenTableText = await chain.fetch(`/views/lessen/les/leerlingen/leerlingen.tabel.php?${params}`);
+	rx = /<i>(.*?)<\/i>/g;
+	let aantallen = (rx.exec(leerlingenTableText)?.at(1) ?? "").replace(" van ", ",").replace("leerlingen", "").trim().split(",");
+	return {
+		id,
+		editableName: nameDiv.includes("benaming_wijzigen"),
+		gradeYears,
+		vak,
+		maxAantal,
+		isIndividualLes: maxAantal == 0,
+		lesMomenten,
+		aantal: parseInt(aantallen[0]),
+		vestiging
+	};
+}
+//#endregion
+//#region typescript/leerling/observer.ts
+var LeerlingObserver = class extends HashObserver {
+	constructor() {
+		super("#leerlingen-leerling", onMutation$6);
+	}
+	isPageReallyLoaded() {
+		throw new Error("Method not implemented.");
+	}
+};
+var observer_default$7 = new LeerlingObserver();
+function onMutation$6(mutation) {
+	checkAndExpandTabs();
+	checkAndDecorateName();
+	let tabInschrijving = document.getElementById("leerling_inschrijvingen_weergave");
+	if (mutation.target === tabInschrijving) {
+		onInschrijvingChanged(tabInschrijving);
+		return true;
+	}
+	if (mutation.target.id.includes("_uitleningen_table")) {
+		onUitleningenChanged(mutation.target);
+		return true;
+	}
+	let tabAttesten = document.getElementById("attesten");
+	if (mutation.target === tabAttesten) {
+		onAttestenChanged();
+		return true;
+	}
+	return false;
+}
+function checkAndDecorateName() {
+	let header = document.getElementById("vh_header_leerlingen_leerling_left_title");
+	if (!header) return;
+	if (header.dataset.nameDecorated === "true") return;
+	decorateName(header);
+	header.dataset.nameDecorated = "true";
+}
+function decorateName(header) {
+	if (!options.reorderStudentName) return;
+	let split = header.textContent.split(",");
+	let firstName = split.pop() ?? "";
+	let lastName = split.pop() ?? "";
+	let officialFirstName = "";
+	if (firstName.includes("(")) {
+		let matches = firstName.match(/(\S*) *\((.*)\)/);
+		if (matches?.length === 3) {
+			firstName = matches[2];
+			officialFirstName = matches[1];
 		}
 	}
-	function checkAndExpandTabs() {
-		let tabsLeerling = document.querySelector("#tab_leerling");
-		if (!tabsLeerling) return;
-		if (tabsLeerling.dataset.expanded === "true") return;
-		expandTabs(tabsLeerling);
-		tabsLeerling.dataset.expanded = "true";
+	header.textContent = "";
+	let spanFirstName = document.createElement("span");
+	spanFirstName.classList.add("firstName");
+	spanFirstName.innerText = firstName;
+	header.appendChild(spanFirstName);
+	header.appendChild(document.createTextNode(" "));
+	let spanLastName = document.createElement("span");
+	spanLastName.classList.add("lastName");
+	spanLastName.innerText = lastName;
+	header.appendChild(spanLastName);
+	if (officialFirstName) {
+		header.appendChild(document.createTextNode(" ("));
+		let spanCallName = document.createElement("span");
+		spanCallName.classList.add("officialName");
+		spanCallName.innerText = officialFirstName;
+		header.appendChild(spanCallName);
+		header.appendChild(document.createTextNode(")"));
 	}
-	function expandTabs(tabsLeerling) {
-		let tabBefore = tabsLeerling.querySelector("div.card-header > ul > li:nth-child(4)");
-		if (!tabBefore) return;
-		let anchors = tabsLeerling.querySelectorAll("a.dropdown-item");
-		for (let anchor of anchors) if ([
-			"#evaluatie2",
-			"#aanwezigheden",
-			"#uitleningen"
-		].includes(anchor.getAttribute("href") ?? "")) {
-			let li = document.createElement("li");
-			li.classList.add("nav-item");
-			li.appendChild(anchor);
-			anchor.classList.remove("dropdown-item");
-			anchor.classList.add("nav-link");
-			tabBefore.insertAdjacentElement("afterend", li);
+}
+function checkAndExpandTabs() {
+	let tabsLeerling = document.querySelector("#tab_leerling");
+	if (!tabsLeerling) return;
+	if (tabsLeerling.dataset.expanded === "true") return;
+	expandTabs(tabsLeerling);
+	tabsLeerling.dataset.expanded = "true";
+}
+function expandTabs(tabsLeerling) {
+	let tabBefore = tabsLeerling.querySelector("div.card-header > ul > li:nth-child(4)");
+	if (!tabBefore) return;
+	let anchors = tabsLeerling.querySelectorAll("a.dropdown-item");
+	for (let anchor of anchors) if ([
+		"#evaluatie2",
+		"#aanwezigheden",
+		"#uitleningen"
+	].includes(anchor.getAttribute("href") ?? "")) {
+		let li = document.createElement("li");
+		li.classList.add("nav-item");
+		li.appendChild(anchor);
+		anchor.classList.remove("dropdown-item");
+		anchor.classList.add("nav-link");
+		tabBefore.insertAdjacentElement("afterend", li);
+	}
+}
+function onAttestenChanged() {
+	decorateSchooljaar();
+}
+function onUitleningenChanged(tableUitleningen) {
+	let firstCells = tableUitleningen.querySelectorAll("tbody > tr > td:first-child");
+	for (let cell of firstCells) {
+		if (cell.classList.contains("text-muted")) break;
+		let anchor = document.createElement("a");
+		anchor.innerText = cell.innerText;
+		anchor.setAttribute("href", "/#extra-assets-uitleningen-uitlening?id=" + anchor.innerText);
+		cell.textContent = "";
+		cell.appendChild(anchor);
+	}
+}
+function getSchooljaarElementAndListen() {
+	let schooljaar = Schoolyear.getSelectElement();
+	let listening = "changeListerenAdded";
+	if (!schooljaar?.classList.contains(listening)) {
+		schooljaar?.classList.add(listening);
+		schooljaar?.addEventListener("click", () => {
+			decorateSchooljaar();
+		});
+	}
+	return schooljaar;
+}
+function isActiveYear() {
+	let selectedYearElement = getSchooljaarElementAndListen();
+	if (!selectedYearElement) return true;
+	let selectedYear = parseInt(selectedYearElement.value);
+	let now = /* @__PURE__ */ new Date();
+	let month = now.getMonth();
+	let registrationSchoolYearStart = now.getFullYear();
+	if (month <= 3) registrationSchoolYearStart--;
+	return selectedYear === registrationSchoolYearStart;
+}
+function decorateSchooljaar() {
+	let view = document.getElementById("view_contents");
+	let activeYear = isActiveYear();
+	if (activeYear) view.classList.remove("oldYear");
+	else view.classList.add("oldYear");
+	if (!activeYear) {
+		let toewijzingButtons = document.querySelectorAll("#leerling_inschrijvingen_weergave button");
+		Array.from(toewijzingButtons).filter((el) => el.textContent === "toewijzing" || el.textContent === "inschrijving").forEach((btn) => btn.classList.add("oldYear"));
+	}
+}
+function decorateTrimModules(tabInschrijving) {
+	let moduleButtons = tabInschrijving.querySelectorAll("tr td.right_center > button");
+	for (let btn of moduleButtons) {
+		let onClick = btn.getAttribute("onclick");
+		let tr = btn.parentNode.parentNode;
+		onClick = onClick.substring(10, onClick.length - 1);
+		getModules(...onClick.split(", ").map((arg) => arg.replaceAll("'", ""))).then((modNames) => {
+			let instrumentText = "";
+			if (modNames.length) {
+				tr.children[0].innerText += ": ";
+				let rxBasic = /Initiatie +(.*) *- *trimester.*/i;
+				let rxWide = /Initiatie +(.*) *- *trimester.* *- *(.*)/i;
+				let rxDesperate = /Initiatie +(.*)/i;
+				instrumentText += modNames.map((modName) => {
+					let matches = modName.match(rxWide);
+					if (matches && matches?.length >= 2) return matches[1].trim() + " - " + matches[2].trim();
+					matches = modName.match(rxBasic);
+					if (matches && matches?.length >= 1) return matches[1].trim();
+					matches = modName.match(rxDesperate);
+					if (matches && matches?.length >= 1) return matches[1].trim();
+					return ": ???";
+				}).join(", ");
+			}
+			let span = document.createElement("span");
+			tr.children[0].appendChild(span);
+			if (modNames.length > 1) span.classList.add("badge-warning");
+			span.innerText = instrumentText;
+		});
+	}
+}
+async function onInschrijvingChanged(tabInschrijving) {
+	decorateSchooljaar();
+	decorateTrimModules(tabInschrijving);
+	if (options.showNotAssignedClasses) setStripedLessons();
+	if (options.leerlingGotoLes) addGotoLesMenus();
+}
+function addGotoLesMenus() {
+	for (let opleiding of scrapeOpleidingen()) for (let lesInfo of opleiding.lessen) {
+		if (!lesInfoHasButton(lesInfo)) continue;
+		let btnOnClick = lesInfo.gotoButton.getAttribute("onclick");
+		if (!btnOnClick) continue;
+		let matchLesId = btnOnClick.match(/id=(\d+)/);
+		if (matchLesId) {
+			let lesId = matchLesId[1];
+			let wrapper = wrapElement(lesInfo.gotoButton, "div");
+			lesInfo.gotoButton.removeAttribute("onclick");
+			let newBtnGotoLes = lesInfo.gotoButton.cloneNode(true);
+			lesInfo.gotoButton.replaceWith(newBtnGotoLes);
+			newBtnGotoLes.dataset.originalOnClick = btnOnClick;
+			newBtnGotoLes.onclick = () => showGotoLesMenu(wrapper, newBtnGotoLes, btnOnClick, lesInfo, opleiding, lesId);
 		}
 	}
-	function onAttestenChanged() {
-		decorateSchooljaar();
-	}
-	function onUitleningenChanged(tableUitleningen) {
-		let firstCells = tableUitleningen.querySelectorAll("tbody > tr > td:first-child");
-		for (let cell of firstCells) {
-			if (cell.classList.contains("text-muted")) break;
-			let anchor = document.createElement("a");
-			anchor.innerText = cell.innerText;
-			anchor.setAttribute("href", "/#extra-assets-uitleningen-uitlening?id=" + anchor.innerText);
-			cell.textContent = "";
-			cell.appendChild(anchor);
+}
+async function showGotoLesMenu(wrapper, button, btnOnClick, lesInfo, opleiding, lesId, abortController) {
+	try {
+		savePage();
+		let menu = new DropDownMenu(wrapper, button, false, true, abortController);
+		menu.setPosition("left");
+		menu.addItem("Ga naar les", 0, btnOnClick);
+		menu.addSeparator(`Bezig met laden...`, 0);
+		menu.show();
+		if ((await fetchLes(lesId)).isIndividualLes) {
+			menu.clickItem(0);
+			return;
 		}
+		await fillClassesMenu(menu, opleiding, lesInfo.vak, btnOnClick);
+	} catch (e) {
+		console.error(e);
+		await restorePage(true);
 	}
-	function getSchooljaarElementAndListen() {
-		let schooljaar = Schoolyear.getSelectElement();
-		let listening = "changeListerenAdded";
-		if (!schooljaar?.classList.contains(listening)) {
-			schooljaar?.classList.add(listening);
-			schooljaar?.addEventListener("click", () => {
-				decorateSchooljaar();
-			});
-		}
-		return schooljaar;
-	}
-	function isActiveYear() {
-		let selectedYearElement = getSchooljaarElementAndListen();
-		if (!selectedYearElement) return true;
-		let selectedYear = parseInt(selectedYearElement.value);
-		let now = /* @__PURE__ */ new Date();
-		let month = now.getMonth();
-		let registrationSchoolYearStart = now.getFullYear();
-		if (month <= 3) registrationSchoolYearStart--;
-		return selectedYear === registrationSchoolYearStart;
-	}
-	function decorateSchooljaar() {
-		let view = document.getElementById("view_contents");
-		let activeYear = isActiveYear();
-		if (activeYear) view.classList.remove("oldYear");
-		else view.classList.add("oldYear");
-		if (!activeYear) {
-			let toewijzingButtons = document.querySelectorAll("#leerling_inschrijvingen_weergave button");
-			Array.from(toewijzingButtons).filter((el) => el.textContent === "toewijzing" || el.textContent === "inschrijving").forEach((btn) => btn.classList.add("oldYear"));
-		}
-	}
-	function decorateTrimModules(tabInschrijving) {
-		let moduleButtons = tabInschrijving.querySelectorAll("tr td.right_center > button");
-		for (let btn of moduleButtons) {
-			let onClick = btn.getAttribute("onclick");
-			let tr = btn.parentNode.parentNode;
-			onClick = onClick.substring(10, onClick.length - 1);
-			getModules(...onClick.split(", ").map((arg) => arg.replaceAll("'", ""))).then((modNames) => {
-				let instrumentText = "";
-				if (modNames.length) {
-					tr.children[0].innerText += ": ";
-					let rxBasic = /Initiatie +(.*) *- *trimester.*/i;
-					let rxWide = /Initiatie +(.*) *- *trimester.* *- *(.*)/i;
-					let rxDesperate = /Initiatie +(.*)/i;
-					instrumentText += modNames.map((modName) => {
-						let matches = modName.match(rxWide);
-						if (matches && matches?.length >= 2) return matches[1].trim() + " - " + matches[2].trim();
-						matches = modName.match(rxBasic);
-						if (matches && matches?.length >= 1) return matches[1].trim();
-						matches = modName.match(rxDesperate);
-						if (matches && matches?.length >= 1) return matches[1].trim();
-						return ": ???";
-					}).join(", ");
-				}
-				let span = document.createElement("span");
-				tr.children[0].appendChild(span);
-				if (modNames.length > 1) span.classList.add("badge-warning");
-				span.innerText = instrumentText;
-			});
-		}
-	}
-	async function onInschrijvingChanged(tabInschrijving) {
-		decorateSchooljaar();
-		decorateTrimModules(tabInschrijving);
-		if (options.showNotAssignedClasses) setStripedLessons();
-		if (options.leerlingGotoLes) addGotoLesMenus();
-	}
-	function addGotoLesMenus() {
-		for (let opleiding of scrapeOpleidingen()) for (let lesInfo of opleiding.lessen) {
-			if (!lesInfoHasButton(lesInfo)) continue;
-			let btnOnClick = lesInfo.gotoButton.getAttribute("onclick");
-			if (!btnOnClick) continue;
-			let matchLesId = btnOnClick.match(/id=(\d+)/);
-			if (matchLesId) {
-				let lesId = matchLesId[1];
-				let wrapper = wrapElement(lesInfo.gotoButton, "div");
-				lesInfo.gotoButton.removeAttribute("onclick");
-				let newBtnGotoLes = lesInfo.gotoButton.cloneNode(true);
-				lesInfo.gotoButton.replaceWith(newBtnGotoLes);
-				newBtnGotoLes.dataset.originalOnClick = btnOnClick;
-				newBtnGotoLes.onclick = () => showGotoLesMenu(wrapper, newBtnGotoLes, btnOnClick, lesInfo, opleiding, lesId);
+}
+function lesInfoHasButton(lesInfo) {
+	return lesInfo.gotoButton !== null;
+}
+function scrapeOpleidingen() {
+	let tBody = document.getElementById("leerling_inschrijvingen_weergave").querySelector("tbody");
+	let opleidingen = [];
+	for (let tr of tBody.querySelectorAll("tr")) {
+		let detailsTdOffset = 0;
+		if ([...tr.classList].find((c) => c.includes("inschrijvingen_domein"))) {
+			if (tr.cells[0].getAttribute("rowspan")) {
+				let opleiding = scrapeOpleidingRow(tr);
+				opleidingen.push(opleiding);
+				detailsTdOffset = 3;
 			}
 		}
+		let lesInfo = scrapeLesInfoDetails(tr, detailsTdOffset);
+		opleidingen[opleidingen.length - 1].lessen.push(lesInfo);
 	}
-	async function showGotoLesMenu(wrapper, button, btnOnClick, lesInfo, opleiding, lesId, abortController) {
-		try {
-			savePage();
-			let menu = new DropDownMenu(wrapper, button, false, true, abortController);
-			menu.setPosition("left");
-			menu.addItem("Ga naar les", 0, btnOnClick);
-			menu.addSeparator(`Bezig met laden...`, 0);
-			menu.show();
-			if ((await fetchLes(lesId)).isIndividualLes) {
-				menu.clickItem(0);
-				return;
-			}
-			await fillClassesMenu(menu, opleiding, lesInfo.vak, btnOnClick);
-		} catch (e) {
-			console.error(e);
-			await restorePage(true);
-		}
-	}
-	function lesInfoHasButton(lesInfo) {
-		return lesInfo.gotoButton !== null;
-	}
-	function scrapeOpleidingen() {
-		let tBody = document.getElementById("leerling_inschrijvingen_weergave").querySelector("tbody");
-		let opleidingen = [];
-		for (let tr of tBody.querySelectorAll("tr")) {
-			let detailsTdOffset = 0;
-			if ([...tr.classList].find((c) => c.includes("inschrijvingen_domein"))) {
-				if (tr.cells[0].getAttribute("rowspan")) {
-					let opleiding = scrapeOpleidingRow(tr);
-					opleidingen.push(opleiding);
-					detailsTdOffset = 3;
-				}
-			}
-			let lesInfo = scrapeLesInfoDetails(tr, detailsTdOffset);
-			opleidingen[opleidingen.length - 1].lessen.push(lesInfo);
-		}
-		return opleidingen;
-	}
-	function scrapeOpleidingRow(tr) {
-		let tdOpleiding = tr.querySelector("td:nth-child(2)");
-		let tdText = tdOpleiding.textContent;
-		let domein = "";
-		if (tdText.includes("DomeinOv")) domein = "DomeinOV";
-		if (tdText.includes("Muziek")) domein = "Muziek";
-		if (tdText.includes("Woord")) domein = "Woord";
-		console.log("tdOpleiding", tdText, domein);
-		let rx = new RegExp(`${domein}\\s*-\\s*<strong>v*(.*?)</strong>`);
-		let gradeYearText = rx.exec(tdOpleiding.innerHTML)?.at(1);
-		let gradeYears = [];
-		if (gradeYearText) gradeYears = textsToYearGrades([gradeYearText]);
-		rx = /(\d{4,})/;
-		let adminGroup = rx.exec(tdText)?.at(1) ?? "";
-		return {
-			domein,
-			gradeYears,
-			lessen: [],
-			adminGroup
-		};
-	}
-	function scrapeLesInfoDetails(tr, detailsTdOffset) {
-		let tdVakLes = tr.cells[detailsTdOffset + 1];
-		let vakNaam = tdVakLes.querySelector("strong")?.textContent ?? "";
-		let lesNaam = tdVakLes.querySelector("small")?.textContent ?? "";
-		let iGotoClass = tr.querySelector("i.fa-list-ul");
-		let gotoButton = null;
-		if (iGotoClass) gotoButton = iGotoClass.parentElement;
-		return {
-			vak: vakNaam,
-			lesNaam,
-			gotoButton
-		};
-	}
-	function createLesCard(lesName, vakName, full, lesmoment, aantal, maxAantal, wachtlijst, vestiging) {
-		return emmet.indent.createElement(`
+	return opleidingen;
+}
+function scrapeOpleidingRow(tr) {
+	let tdOpleiding = tr.querySelector("td:nth-child(2)");
+	let tdText = tdOpleiding.textContent;
+	let domein = "";
+	if (tdText.includes("DomeinOv")) domein = "DomeinOV";
+	if (tdText.includes("Muziek")) domein = "Muziek";
+	if (tdText.includes("Woord")) domein = "Woord";
+	console.log("tdOpleiding", tdText, domein);
+	let rx = new RegExp(`${domein}\\s*-\\s*<strong>v*(.*?)</strong>`);
+	let gradeYearText = rx.exec(tdOpleiding.innerHTML)?.at(1);
+	let gradeYears = [];
+	if (gradeYearText) gradeYears = textsToYearGrades([gradeYearText]);
+	rx = /(\d{4,})/;
+	let adminGroup = rx.exec(tdText)?.at(1) ?? "";
+	return {
+		domein,
+		gradeYears,
+		lessen: [],
+		adminGroup
+	};
+}
+function scrapeLesInfoDetails(tr, detailsTdOffset) {
+	let tdVakLes = tr.cells[detailsTdOffset + 1];
+	let vakNaam = tdVakLes.querySelector("strong")?.textContent ?? "";
+	let lesNaam = tdVakLes.querySelector("small")?.textContent ?? "";
+	let iGotoClass = tr.querySelector("i.fa-list-ul");
+	let gotoButton = null;
+	if (iGotoClass) gotoButton = iGotoClass.parentElement;
+	return {
+		vak: vakNaam,
+		lesNaam,
+		gotoButton
+	};
+}
+function createLesCard(lesName, vakName, full, lesmoment, aantal, maxAantal, wachtlijst, vestiging) {
+	return emmet.indent.createElement(`
             div.small${full}
                 div.bold.pre{${buildLesTitle(lesName, vakName)}}
                 div.pre{${vestiging}}
@@ -7011,219 +7772,219 @@
                 div.pre{${aantal}/${maxAantal} lln} 
                     ${wachtlijst}
         `);
+}
+async function fillClassesMenu(menu, opleiding, vak, gotoLesCmd) {
+	menu.removeAllItems();
+	menu.addItem("Ga naar les", 0, gotoLesCmd);
+	menu.addSeparator(`Bezig met laden...`, 0);
+	let schoolYear = Schoolyear.findInPage();
+	let lessenBuilder = await LessenFilterBuilder.create(schoolYear, opleiding.domein);
+	lessenBuilder.addGraad(GradeYear.toString([opleiding.gradeYears[0]]));
+	if (opleiding.adminGroup != "") lessenBuilder.addAdminGroup(opleiding.adminGroup);
+	if (!lessenBuilder.hasVak(vak)) lessenBuilder.addVak(vak);
+	let lessons = await lessenBuilder.fetch();
+	lessons.sort((a, b) => buildLesTitle(a.les.naam, a.les.vakNaam).localeCompare(buildLesTitle(b.les.naam, b.les.vakNaam)));
+	menu.removeItem(1);
+	menu.addSeparator("Alternatieven:", 0);
+	for (let les of lessons) {
+		let lesmoment = les.les.formattedLesmoment.replace("(wekelijks)", "").trim();
+		let wachtlijst = les.les.wachtlijst == 0 ? "span" : `span.red{ (${les.les.wachtlijst} op wachtlijst)}`;
+		let full = les.les.aantal >= les.les.maxAantal ? ".full" : "";
+		let infoBlock = createLesCard(les.les.naam, les.les.vakNaam, full, lesmoment, les.les.aantal, les.les.maxAantal, wachtlijst, les.les.vestiging);
+		menu.addInfo(infoBlock, 0);
 	}
-	async function fillClassesMenu(menu, opleiding, vak, gotoLesCmd) {
-		menu.removeAllItems();
-		menu.addItem("Ga naar les", 0, gotoLesCmd);
-		menu.addSeparator(`Bezig met laden...`, 0);
-		let schoolYear = Schoolyear.findInPage();
-		let lessenBuilder = await LessenFilterBuilder.create(schoolYear, opleiding.domein);
-		lessenBuilder.addGraad(GradeYear.toString([opleiding.gradeYears[0]]));
-		if (opleiding.adminGroup != "") lessenBuilder.addAdminGroup(opleiding.adminGroup);
-		if (!lessenBuilder.hasVak(vak)) lessenBuilder.addVak(vak);
-		let lessons = await lessenBuilder.fetch();
-		lessons.sort((a, b) => buildLesTitle(a.les.naam, a.les.vakNaam).localeCompare(buildLesTitle(b.les.naam, b.les.vakNaam)));
-		menu.removeItem(1);
-		menu.addSeparator("Alternatieven:", 0);
-		for (let les of lessons) {
-			let lesmoment = les.les.formattedLesmoment.replace("(wekelijks)", "").trim();
-			let wachtlijst = les.les.wachtlijst == 0 ? "span" : `span.red{ (${les.les.wachtlijst} op wachtlijst)}`;
-			let full = les.les.aantal >= les.les.maxAantal ? ".full" : "";
-			let infoBlock = createLesCard(les.les.naam, les.les.vakNaam, full, lesmoment, les.les.aantal, les.les.maxAantal, wachtlijst, les.les.vestiging);
-			menu.addInfo(infoBlock, 0);
+}
+function buildLesTitle(lesName, vakName) {
+	return `${lesName ? lesName : vakName + " " + lesName}`;
+}
+function setStripedLessons() {
+	let classRows = document.querySelectorAll("#leerling_inschrijvingen_weergave tr");
+	let classCells = Array.from(classRows).filter((row) => row.querySelector(".table-info") !== null).map((row) => row.children.item(row.children.length - 2));
+	for (let td of classCells) {
+		let classDate = td.querySelector("span.text-muted");
+		if (!classDate) continue;
+		if (classDate.textContent === "(geen lesmomenten)") continue;
+		for (let tdd of td.parentElement.children) if (tdd.classList.contains("table-info")) tdd.classList.add("runningStripes");
+	}
+}
+async function getModules(_size, _modal, _file, args) {
+	let text2 = await (await fetch("/views/leerlingen/leerling/inschrijvingen/modules_kiezen.modules.div.php?" + args)).text();
+	const template = document.createElement("template");
+	template.innerHTML = text2;
+	let checks = template.content.querySelectorAll("i.fa-check-square");
+	return Array.from(checks).map((check) => check.parentNode.parentNode.parentNode.querySelector("strong").textContent);
+}
+//#endregion
+//#region typescript/les/observer.ts
+var LesObserver = class extends HashObserver {
+	constructor() {
+		super("#lessen-les", onMutation$5);
+	}
+	isPageReallyLoaded() {
+		return document.querySelectorAll("#les_leerlingen_leerlingen > span").length > 0;
+	}
+};
+var observer_default$6 = new LesObserver();
+function onMutation$5(mutation) {
+	let tabLeerlingen = document.getElementById("les_leerlingen_leerlingen");
+	if (mutation.target === tabLeerlingen) {
+		onLeerlingenChanged();
+		return true;
+	}
+	let titleHeader = document.getElementById("vh_header_lessen_les_left_title");
+	if (titleHeader && !titleHeader.classList.contains("diffSearched")) {
+		titleHeader.classList.add("diffSearched");
+		let academie = localStorage.getItem("diffLastAcademie");
+		let schoolYear = localStorage.getItem("diffLastSchoolYear");
+		if (academie && schoolYear) addDiff(titleHeader, academie, schoolYear, "EXCEL").then((r) => {});
+	}
+	return false;
+}
+function onLeerlingenChanged() {
+	console.log("Les-Leerlingen changed.");
+	addSortVoornaamLink();
+}
+function addSortVoornaamLink() {
+	try {
+		let headerSpans = document.querySelectorAll("#les_leerlingen_leerlingen > span");
+		let sortSpan = Array.from(headerSpans).find((value) => value.textContent.includes("gesorteerd op:"));
+		let graadEnNaam = Array.from(sortSpan.querySelectorAll("a")).find((anchor) => anchor.textContent === "graad en naam");
+		const SORT_VOORNAAM_ID = "dko_plugin_sortVoornaam";
+		if (document.getElementById(SORT_VOORNAAM_ID)) return;
+		let anchorSortVoornaam = document.createElement("a");
+		anchorSortVoornaam.id = SORT_VOORNAAM_ID;
+		anchorSortVoornaam.href = "#";
+		anchorSortVoornaam.innerText = "voornaam";
+		anchorSortVoornaam.classList.add("text-muted");
+		anchorSortVoornaam.onclick = onSortVoornaam;
+		sortSpan.insertBefore(anchorSortVoornaam, graadEnNaam);
+		sortSpan.insertBefore(document.createTextNode(" | "), graadEnNaam);
+	} catch (e) {}
+}
+function onSortVoornaam(event) {
+	sortVoornaam(event);
+	switchNaamVoornaam(event);
+	return false;
+}
+function sortVoornaam(event) {
+	let rows = Array.from(document.querySelectorAll("#les_leerlingen_leerlingen > table > tbody > tr"));
+	rows.sort((tr1, tr2) => {
+		let name1 = tr1.querySelector("td > strong").textContent;
+		let name2 = tr2.querySelector("td > strong").textContent;
+		let voornaam1 = name1.split(",").pop();
+		let voornaam2 = name2.split(",").pop();
+		return voornaam1.localeCompare(voornaam2);
+	});
+	let table = document.querySelector("#les_leerlingen_leerlingen > table");
+	rows.forEach((row) => table.tBodies[0].appendChild(row));
+	Array.from(document.querySelectorAll("#les_leerlingen_leerlingen > span > a")).forEach((a) => a.classList.add("text-muted"));
+	event.target.classList.remove("text-muted");
+}
+function switchNaamVoornaam(_event) {
+	Array.from(document.querySelectorAll("#les_leerlingen_leerlingen > table > tbody > tr")).forEach((tr) => {
+		let strong = tr.querySelector("td > strong");
+		let split = strong.textContent.split(",");
+		let voornaam = split.pop() ?? "";
+		let naam = split.pop() ?? "";
+		strong.textContent = voornaam + " " + naam;
+	});
+}
+async function addDiff(titleHeader, academie, schoolYear, diffPageType) {
+	let divDiff = document.querySelector("div.diff");
+	if (divDiff) return;
+	divDiff = emmet.insertAfter(titleHeader, "div.diff").first;
+	let diffs = await getJsonDiffsCached(academie, schoolYear, diffPageType);
+	if (!diffs) return;
+	let lesId = /id=(\d+)/g.exec(document.location.href)[1];
+	let diff = diffs.diffs.find((diff) => diff.dko3Les.lesId == lesId);
+	let otherLes = null;
+	let diffType = "perfect match";
+	let weight = new Weight();
+	if (diff) {
+		otherLes = diff.otherLes;
+		diffType = diff.diffType;
+		weight = diff.weight;
+	} else {
+		let match = diffs.perfectMatches?.find((match) => match.dkoId == lesId);
+		if (match) {
+			otherLes = match.otherLes;
+			diffType = "perfect match";
+			weight = new Weight();
 		}
 	}
-	function buildLesTitle(lesName, vakName) {
-		return `${lesName ? lesName : vakName + " " + lesName}`;
+	if (otherLes) {
+		let tbody = emmet.appendChild(divDiff, "table.diff>tbody").last;
+		let tr = emmet.appendChild(tbody, "tr").last;
+		fillDiffRow(tr, otherLes, diffType, otherLes.gotoData, otherLes.gotoData.text, otherLes.hash, otherLes.ignore, academie, schoolYear, weight, "no hide button", diffPageType);
 	}
-	function setStripedLessons() {
-		let classRows = document.querySelectorAll("#leerling_inschrijvingen_weergave tr");
-		let classCells = Array.from(classRows).filter((row) => row.querySelector(".table-info") !== null).map((row) => row.children.item(row.children.length - 2));
-		for (let td of classCells) {
-			let classDate = td.querySelector("span.text-muted");
-			if (!classDate) continue;
-			if (classDate.textContent === "(geen lesmomenten)") continue;
-			for (let tdd of td.parentElement.children) if (tdd.classList.contains("table-info")) tdd.classList.add("runningStripes");
-		}
-	}
-	async function getModules(_size, _modal, _file, args) {
-		let text2 = await (await fetch("/views/leerlingen/leerling/inschrijvingen/modules_kiezen.modules.div.php?" + args)).text();
-		const template = document.createElement("template");
-		template.innerHTML = text2;
-		let checks = template.content.querySelectorAll("i.fa-check-square");
-		return Array.from(checks).map((check) => check.parentNode.parentNode.parentNode.querySelector("strong").textContent);
-	}
-	//#endregion
-	//#region typescript/les/observer.ts
-	var LesObserver = class extends HashObserver {
-		constructor() {
-			super("#lessen-les", onMutation$5);
-		}
-		isPageReallyLoaded() {
-			return document.querySelectorAll("#les_leerlingen_leerlingen > span").length > 0;
-		}
-	};
-	var observer_default$6 = new LesObserver();
-	function onMutation$5(mutation) {
-		let tabLeerlingen = document.getElementById("les_leerlingen_leerlingen");
-		if (mutation.target === tabLeerlingen) {
-			onLeerlingenChanged();
-			return true;
-		}
-		let titleHeader = document.getElementById("vh_header_lessen_les_left_title");
-		if (titleHeader && !titleHeader.classList.contains("diffSearched")) {
-			titleHeader.classList.add("diffSearched");
-			let academie = localStorage.getItem("diffLastAcademie");
-			let schoolYear = localStorage.getItem("diffLastSchoolYear");
-			if (academie && schoolYear) addDiff(titleHeader, academie, schoolYear, "EXCEL").then((r) => {});
-		}
-		return false;
-	}
-	function onLeerlingenChanged() {
-		console.log("Les-Leerlingen changed.");
-		addSortVoornaamLink();
-	}
-	function addSortVoornaamLink() {
-		try {
-			let headerSpans = document.querySelectorAll("#les_leerlingen_leerlingen > span");
-			let sortSpan = Array.from(headerSpans).find((value) => value.textContent.includes("gesorteerd op:"));
-			let graadEnNaam = Array.from(sortSpan.querySelectorAll("a")).find((anchor) => anchor.textContent === "graad en naam");
-			const SORT_VOORNAAM_ID = "dko_plugin_sortVoornaam";
-			if (document.getElementById(SORT_VOORNAAM_ID)) return;
-			let anchorSortVoornaam = document.createElement("a");
-			anchorSortVoornaam.id = SORT_VOORNAAM_ID;
-			anchorSortVoornaam.href = "#";
-			anchorSortVoornaam.innerText = "voornaam";
-			anchorSortVoornaam.classList.add("text-muted");
-			anchorSortVoornaam.onclick = onSortVoornaam;
-			sortSpan.insertBefore(anchorSortVoornaam, graadEnNaam);
-			sortSpan.insertBefore(document.createTextNode(" | "), graadEnNaam);
-		} catch (e) {}
-	}
-	function onSortVoornaam(event) {
-		sortVoornaam(event);
-		switchNaamVoornaam(event);
-		return false;
-	}
-	function sortVoornaam(event) {
-		let rows = Array.from(document.querySelectorAll("#les_leerlingen_leerlingen > table > tbody > tr"));
-		rows.sort((tr1, tr2) => {
-			let name1 = tr1.querySelector("td > strong").textContent;
-			let name2 = tr2.querySelector("td > strong").textContent;
-			let voornaam1 = name1.split(",").pop();
-			let voornaam2 = name2.split(",").pop();
-			return voornaam1.localeCompare(voornaam2);
-		});
-		let table = document.querySelector("#les_leerlingen_leerlingen > table");
-		rows.forEach((row) => table.tBodies[0].appendChild(row));
-		Array.from(document.querySelectorAll("#les_leerlingen_leerlingen > span > a")).forEach((a) => a.classList.add("text-muted"));
-		event.target.classList.remove("text-muted");
-	}
-	function switchNaamVoornaam(_event) {
-		Array.from(document.querySelectorAll("#les_leerlingen_leerlingen > table > tbody > tr")).forEach((tr) => {
-			let strong = tr.querySelector("td > strong");
-			let split = strong.textContent.split(",");
-			let voornaam = split.pop() ?? "";
-			let naam = split.pop() ?? "";
-			strong.textContent = voornaam + " " + naam;
-		});
-	}
-	async function addDiff(titleHeader, academie, schoolYear, diffPageType) {
-		let divDiff = document.querySelector("div.diff");
-		if (divDiff) return;
-		divDiff = emmet.insertAfter(titleHeader, "div.diff").first;
-		let diffs = await getJsonDiffsCached(academie, schoolYear, diffPageType);
-		if (!diffs) return;
-		let lesId = /id=(\d+)/g.exec(document.location.href)[1];
-		let diff = diffs.diffs.find((diff) => diff.dko3Les.lesId == lesId);
-		let otherLes = null;
-		let diffType = "perfect match";
-		let weight = new Weight();
-		if (diff) {
-			otherLes = diff.otherLes;
-			diffType = diff.diffType;
-			weight = diff.weight;
-		} else {
-			let match = diffs.perfectMatches?.find((match) => match.dkoId == lesId);
-			if (match) {
-				otherLes = match.otherLes;
-				diffType = "perfect match";
-				weight = new Weight();
-			}
-		}
-		if (otherLes) {
-			let tbody = emmet.appendChild(divDiff, "table.diff>tbody").last;
-			let tr = emmet.appendChild(tbody, "tr").last;
-			fillDiffRow(tr, otherLes, diffType, otherLes.gotoData, otherLes.gotoData.text, otherLes.hash, otherLes.ignore, academie, schoolYear, weight, "no hide button", diffPageType);
-		}
-	}
-	//#endregion
-	//#region typescript/notifications/checks.ts
-	async function checkChecks() {}
-	//#endregion
-	//#region typescript/tabs.ts
-	var Tabs = class {
-		tabDefs;
-		tabs;
-		beforeTabSwitch;
-		constructor(parent, tabDefs, beforeTabSwitch) {
-			this.tabDefs = tabDefs;
-			this.beforeTabSwitch = beforeTabSwitch ?? null;
-			this.tabs = emmet.appendChild(parent, "div.tabs").first;
-			for (let tabDef of tabDefs) {
-				let button = emmet.appendChild(this.tabs, `
+}
+//#endregion
+//#region typescript/notifications/checks.ts
+async function checkChecks() {}
+//#endregion
+//#region typescript/tabs.ts
+var Tabs = class {
+	tabDefs;
+	tabs;
+	beforeTabSwitch;
+	constructor(parent, tabDefs, beforeTabSwitch) {
+		this.tabDefs = tabDefs;
+		this.beforeTabSwitch = beforeTabSwitch ?? null;
+		this.tabs = emmet.appendChild(parent, "div.tabs").first;
+		for (let tabDef of tabDefs) {
+			let button = emmet.appendChild(this.tabs, `
             button#${tabDef.btnId}.naked.hand.tab.notSelected[data-tab-id="${tabDef.tabId}"]
         `).first;
-				if (typeof tabDef.btnContent == "string") button.innerHTML = tabDef.btnContent;
-				else button.appendChild(tabDef.btnContent);
-			}
-			this.addNavigation();
+			if (typeof tabDef.btnContent == "string") button.innerHTML = tabDef.btnContent;
+			else button.appendChild(tabDef.btnContent);
 		}
-		switch(to) {
-			let btn;
-			if (typeof to == "number") btn = document.getElementById(this.tabDefs[to].btnId);
-			else btn = to;
-			let tabId = btn.dataset.tabId;
-			btn.parentElement.querySelectorAll(".tab").forEach((tab) => {
-				tab.classList.add("notSelected");
-				document.getElementById(tab.dataset.tabId).style.display = "none";
-			});
-			btn.classList.remove("notSelected");
-			document.getElementById(tabId).style.display = "block";
-		}
-		addNavigation() {
-			document.querySelectorAll(".tabs > button.tab").forEach((btn) => btn.addEventListener("click", (ev) => {
-				let button = ev.currentTarget;
-				if (this.beforeTabSwitch?.(button, button.dataset.tabId) != "cancel") this.switch(ev.currentTarget);
-			}));
-		}
-	};
-	//#endregion
-	//#region typescript/startPage/diffPage.ts
-	async function loadCombboxSchoolYearAndTrySelect(dirTree) {
-		if (!dirTree) dirTree = await getDiffDirStructure();
-		let cmbDiffAcademie = document.getElementById("plugin_container").querySelector("#cmbDiffAcademie");
-		let schoolYears = [...dirTree.nodes.get(cmbDiffAcademie.value).nodes.values()].map((n) => n.folderName);
-		let cmbDiffSchoolYear = document.querySelector("#cmbDiffSchoolYear");
-		let prevSelectedSchoolYear = cmbDiffSchoolYear.value;
-		cmbDiffSchoolYear.innerHTML = schoolYears.map((schoolYear) => `<option value="${schoolYear}">${schoolYear}</option>`).join("");
-		if (schoolYears.length == 1) {
-			cmbDiffSchoolYear.value = schoolYears[0];
-			return true;
-		}
-		if (schoolYears.includes(prevSelectedSchoolYear)) {
-			cmbDiffSchoolYear.value = prevSelectedSchoolYear;
-			return true;
-		}
-		return false;
+		this.addNavigation();
 	}
-	async function setupDiffPage() {
-		let pluginContainer = document.getElementById("plugin_container");
-		let diffsPage = emmet.appendChild(pluginContainer, `
+	switch(to) {
+		let btn;
+		if (typeof to == "number") btn = document.getElementById(this.tabDefs[to].btnId);
+		else btn = to;
+		let tabId = btn.dataset.tabId;
+		btn.parentElement.querySelectorAll(".tab").forEach((tab) => {
+			tab.classList.add("notSelected");
+			document.getElementById(tab.dataset.tabId).style.display = "none";
+		});
+		btn.classList.remove("notSelected");
+		document.getElementById(tabId).style.display = "block";
+	}
+	addNavigation() {
+		document.querySelectorAll(".tabs > button.tab").forEach((btn) => btn.addEventListener("click", (ev) => {
+			let button = ev.currentTarget;
+			if (this.beforeTabSwitch?.(button, button.dataset.tabId) != "cancel") this.switch(ev.currentTarget);
+		}));
+	}
+};
+//#endregion
+//#region typescript/startPage/diffPage.ts
+async function loadCombboxSchoolYearAndTrySelect(dirTree) {
+	if (!dirTree) dirTree = await getDiffDirStructure();
+	let cmbDiffAcademie = document.getElementById("plugin_container").querySelector("#cmbDiffAcademie");
+	let schoolYears = [...dirTree.nodes.get(cmbDiffAcademie.value).nodes.values()].map((n) => n.folderName);
+	let cmbDiffSchoolYear = document.querySelector("#cmbDiffSchoolYear");
+	let prevSelectedSchoolYear = cmbDiffSchoolYear.value;
+	cmbDiffSchoolYear.innerHTML = schoolYears.map((schoolYear) => `<option value="${schoolYear}">${schoolYear}</option>`).join("");
+	if (schoolYears.length == 1) {
+		cmbDiffSchoolYear.value = schoolYears[0];
+		return true;
+	}
+	if (schoolYears.includes(prevSelectedSchoolYear)) {
+		cmbDiffSchoolYear.value = prevSelectedSchoolYear;
+		return true;
+	}
+	return false;
+}
+async function setupDiffPage() {
+	let pluginContainer = document.getElementById("plugin_container");
+	let diffsPage = emmet.appendChild(pluginContainer, `
         div#diffsPage.mb-1>
             h4{Verschillen in uurroosters}
     `).first;
-		let tab1Content = emmet.createElement(`
+	let tab1Content = emmet.createElement(`
         span>(
             span>(
                 i.excelRow.far.fa-chalkboard-user+
@@ -7233,7 +7994,7 @@
             span{Dko3}
         )
     `);
-		let tab2Content = emmet.createElement(`
+	let tab2Content = emmet.createElement(`
         span>(
             span{Dko3}+
             i.fas.fa-arrow-right+
@@ -7243,16 +8004,16 @@
             )
         )
     `);
-		let tabs = new Tabs(diffsPage, [{
-			btnId: "btnTabTagDefs",
-			tabId: "tabExcelDiffs",
-			btnContent: tab1Content
-		}, {
-			btnId: "btnTabIgnores",
-			tabId: "tabWwwDiffs",
-			btnContent: tab2Content
-		}]);
-		emmet.appendChild(diffsPage, `
+	let tabs = new Tabs(diffsPage, [{
+		btnId: "btnTabTagDefs",
+		tabId: "tabExcelDiffs",
+		btnContent: tab1Content
+	}, {
+		btnId: "btnTabIgnores",
+		tabId: "tabWwwDiffs",
+		btnContent: tab2Content
+	}]);
+	emmet.appendChild(diffsPage, `
         div#tabExcelDiffs>(
             div#combosLoading{Gegevens laden...}+
             select#cmbDiffAcademie+
@@ -7262,271 +8023,271 @@
             div#wrapperExcelDiffs
         )
         `);
-		emmet.appendChild(diffsPage, `
+	emmet.appendChild(diffsPage, `
         div#tabWwwDiffs>(
             button#btnDiffWww.btn.btn-primary{Zoek Verschillen}+
             button#btnDiffSettingsWww.btn.btn-outline-dark{Setup}+
             div#wrapperWwwDiffs
         )
      `);
-		tabs.switch(0);
-		let btnCalcDiff = pluginContainer.querySelector("#btnCalcDiff");
-		let btnCalcDiffWww = pluginContainer.querySelector("#btnDiffWww");
-		let btnDiffSettings = pluginContainer.querySelector("#btnDiffSettings");
-		let btnDiffSettingsWww = pluginContainer.querySelector("#btnDiffSettingsWww");
-		let dirTree = await getDiffDirStructure();
-		let myAcadFolderName = getDiffMyAcademieFolder(dirTree);
-		if (!myAcadFolderName) throw new Error("Could not find academie folder name.");
-		let academies = getAcademies(dirTree);
-		let cmbDiffAcademie = pluginContainer.querySelector("#cmbDiffAcademie");
-		cmbDiffAcademie.innerHTML = academies.map((name) => `<option value="${name}">${name}</option>`).join("");
-		cmbDiffAcademie.value = myAcadFolderName;
-		let cmbDiffSchoolYear = document.querySelector("#cmbDiffSchoolYear");
-		if (await loadCombboxSchoolYearAndTrySelect(dirTree)) pluginContainer.classList.toggle("diffCombosLoaded", true);
-		createStatusBlock(document.getElementById("wrapperExcelDiffs"));
-		createStatusBlock(document.getElementById("wrapperWwwDiffs"));
-		btnCalcDiff.onclick = () => getAndShowDiffs("calcAndShow", "fetchDko", "EXCEL", null);
-		btnCalcDiffWww.onclick = () => getAndShowDiffs("calcAndShow", "fetchDko", "WWW", null);
-		btnDiffSettings.onclick = () => showDiffSetup(cmbDiffAcademie.value, cmbDiffSchoolYear.value);
-		btnDiffSettingsWww.onclick = () => showDiffSetup(cmbDiffAcademie.value, cmbDiffSchoolYear.value);
-		cmbDiffAcademie.onchange = async () => {
-			await onCmbAcademieChange(dirTree);
-		};
-		cmbDiffSchoolYear.onchange = async () => {
-			localStorage.setItem("diffLastSchoolYear", cmbDiffSchoolYear.value);
-			await showDiffsFromComboboxes();
-		};
-		cmbDiffAcademie.value = localStorage.getItem("diffLastAcademie") ?? "";
+	tabs.switch(0);
+	let btnCalcDiff = pluginContainer.querySelector("#btnCalcDiff");
+	let btnCalcDiffWww = pluginContainer.querySelector("#btnDiffWww");
+	let btnDiffSettings = pluginContainer.querySelector("#btnDiffSettings");
+	let btnDiffSettingsWww = pluginContainer.querySelector("#btnDiffSettingsWww");
+	let dirTree = await getDiffDirStructure();
+	let myAcadFolderName = getDiffMyAcademieFolder(dirTree);
+	if (!myAcadFolderName) throw new Error("Could not find academie folder name.");
+	let academies = getAcademies(dirTree);
+	let cmbDiffAcademie = pluginContainer.querySelector("#cmbDiffAcademie");
+	cmbDiffAcademie.innerHTML = academies.map((name) => `<option value="${name}">${name}</option>`).join("");
+	cmbDiffAcademie.value = myAcadFolderName;
+	let cmbDiffSchoolYear = document.querySelector("#cmbDiffSchoolYear");
+	if (await loadCombboxSchoolYearAndTrySelect(dirTree)) pluginContainer.classList.toggle("diffCombosLoaded", true);
+	createStatusBlock(document.getElementById("wrapperExcelDiffs"));
+	createStatusBlock(document.getElementById("wrapperWwwDiffs"));
+	btnCalcDiff.onclick = () => getAndShowDiffs("calcAndShow", "fetchDko", "EXCEL", null);
+	btnCalcDiffWww.onclick = () => getAndShowDiffs("calcAndShow", "fetchDko", "WWW", null);
+	btnDiffSettings.onclick = () => showDiffSetup(cmbDiffAcademie.value, cmbDiffSchoolYear.value);
+	btnDiffSettingsWww.onclick = () => showDiffSetup(cmbDiffAcademie.value, cmbDiffSchoolYear.value);
+	cmbDiffAcademie.onchange = async () => {
 		await onCmbAcademieChange(dirTree);
-	}
-	async function onCmbAcademieChange(dirTree) {
-		let pluginContainer = document.getElementById("plugin_container");
-		let cmbDiffAcademie = pluginContainer.querySelector("#cmbDiffAcademie");
-		let cmbDiffSchoolYear = document.querySelector("#cmbDiffSchoolYear");
-		localStorage.setItem("diffLastAcademie", cmbDiffAcademie.value);
-		if (await loadCombboxSchoolYearAndTrySelect(dirTree)) {
-			cmbDiffSchoolYear.value = localStorage.getItem("diffLastSchoolYear") ?? "";
-			pluginContainer.classList.toggle("diffCombosLoaded", true);
-		}
+	};
+	cmbDiffSchoolYear.onchange = async () => {
+		localStorage.setItem("diffLastSchoolYear", cmbDiffSchoolYear.value);
 		await showDiffsFromComboboxes();
+	};
+	cmbDiffAcademie.value = localStorage.getItem("diffLastAcademie") ?? "";
+	await onCmbAcademieChange(dirTree);
+}
+async function onCmbAcademieChange(dirTree) {
+	let pluginContainer = document.getElementById("plugin_container");
+	let cmbDiffAcademie = pluginContainer.querySelector("#cmbDiffAcademie");
+	let cmbDiffSchoolYear = document.querySelector("#cmbDiffSchoolYear");
+	localStorage.setItem("diffLastAcademie", cmbDiffAcademie.value);
+	if (await loadCombboxSchoolYearAndTrySelect(dirTree)) {
+		cmbDiffSchoolYear.value = localStorage.getItem("diffLastSchoolYear") ?? "";
+		pluginContainer.classList.toggle("diffCombosLoaded", true);
 	}
-	async function showDiffsFromComboboxes() {
-		await getAndShowDiffs("justShow", "dkoCache", "EXCEL", null);
-		await getAndShowDiffs("justShow", "dkoCache", "WWW", null);
-	}
-	async function getDiffDirStructure() {
-		let folderContent = await fetchFolderContent("Dko3/Uurroosters/");
-		let folderTree = {
-			folderName: "",
-			nodes: /* @__PURE__ */ new Map()
-		};
-		for (let file of folderContent.files) {
-			let dirs = file.name.split("/");
-			dirs.pop();
-			dirs.shift();
-			dirs.shift();
-			let currentNode = folderTree;
-			for (let dir of dirs) {
-				let node = currentNode.nodes.get(dir);
-				if (!node) {
-					node = {
-						folderName: dir,
-						nodes: /* @__PURE__ */ new Map()
-					};
-					currentNode.nodes.set(dir, node);
-				}
-				currentNode = node;
-			}
-		}
-		return folderTree;
-	}
-	function getAcademies(folderTree) {
-		return [...folderTree.nodes.values()].map((n) => n.folderName);
-	}
-	function getDiffMyAcademieFolder(folderTree) {
-		let myAcademie = getUserAndSchoolName().schoolName;
-		let academies = getAcademies(folderTree);
-		if (academies.includes(myAcademie)) return myAcademie;
-		myAcademie = myAcademie.replace("(", "").replaceAll(")", "");
-		if (academies.includes(myAcademie)) return myAcademie;
-		myAcademie = myAcademie.replaceAll("Muziek", "M").replaceAll("Woord", "W").replaceAll("Dans", "D").replaceAll("Beeld", "B");
-		if (academies.includes(myAcademie)) return myAcademie;
-		myAcademie = myAcademie.replaceAll("-", "");
-		if (academies.includes(myAcademie)) return myAcademie;
-		let found = academies.find((name) => name == myAcademie);
-		if (found) return found;
-		found = academies.find((name) => name.includes(myAcademie));
-		if (found) return found;
-		return null;
-	}
-	async function showDiffSetup(academie, schoolyear) {
-		globalDiffSettingsTabId = (await openDiffSettings(academie, schoolyear)).tabId;
-	}
-	let globalDiffSettingsTabId;
-	let diffGlobals = { diffSettings: void 0 };
-	async function openDiffSettings(academie, schoolyear) {
-		return sendRequest("open_diff_settings", "Main", "Undefined", void 0, {
-			academie,
-			schoolyear
-		}, "TODO: is this title used? Uurrooster setup voor schooljaar " + schoolyear);
-	}
-	chrome.runtime.onMessage.addListener(onMessage$1);
-	let pauseRefresh = false;
-	setInterval(() => {
-		pauseRefresh = false;
-	}, 2e3);
-	async function onMessage$1(request, _sender, sendResponse) {
-		if (request.senderTabType != "diffSettings") return;
-		if (request.action == "request_tab_data") {
-			console.log("Requesting tab data", request.data);
-			let academie = request.data.params.academie;
-			let schoolYear = request.data.params.schoolYear;
-			if (!diffGlobals.diffSettings) diffGlobals.diffSettings = await fetchDiffSettingsOrDefault(academie, schoolYear);
-			await sendMessageToDiffSettings("tab_data", diffGlobals.diffSettings);
-			return;
-		}
-		if (pauseRefresh) return;
-		pauseRefresh = true;
-		diffGlobals.diffSettings = request.data;
-		await getAndShowDiffs("calcAndShow", "dkoCache", "EXCEL", diffGlobals.diffSettings);
-		await getAndShowDiffs("calcAndShow", "dkoCache", "WWW", diffGlobals.diffSettings);
-		pauseRefresh = false;
-	}
-	async function sendMessageToDiffSettings(action, data) {
-		return sendRequest(action, "Main", "diffSettings", globalDiffSettingsTabId, data);
-	}
-	//#endregion
-	//#region typescript/startPage/snapshots.ts
-	async function setupSnapshotPage() {
-		let pluginContainer = document.getElementById("plugin_container");
-		let button = emmet.appendChild(pluginContainer, "div#snapshotPage.mb-1>div>(h4{Snapshots van lessen.}+(select#cmbSnapshotSchoolYear+button.btn.btn-primary{Snapshot maken}))").last;
-		let cmbSnapshotSchoolYear = pluginContainer.querySelector("#cmbSnapshotSchoolYear");
-		let thisYear = Schoolyear.calculateCurrent();
-		cmbSnapshotSchoolYear.innerHTML = [Schoolyear.toFullString(thisYear), Schoolyear.toFullString(thisYear + 1)].map((name) => `<option value="${name}">${name}</option>`).join("");
-		cmbSnapshotSchoolYear.value = localStorage.getItem("snapshotLastSchoolYear") ?? "";
-		let runStatus = emmet.insertAfter(button, "div#runStatus").first;
-		let divError = emmet.insertAfter(runStatus, "div.errors").last;
-		emmet.insertAfter(divError, "div#snapshotResults");
-		let reportStatus = function(message) {
-			runStatus.innerHTML = message;
-			divError.innerHTML = errors.join("<br>");
-		};
-		let errors = [];
-		let addError = function(message, errorType) {
-			errors.push(message);
-		};
-		button.onclick = async () => {
-			await createSnapshot(cmbSnapshotSchoolYear.value, {
-				reportStatus,
-				addError
-			});
-			await showSnapshotsforCombobox();
-		};
-		cmbSnapshotSchoolYear.onchange = async () => {
-			localStorage.setItem("snapshotLastSchoolYear", cmbSnapshotSchoolYear.value);
-			await showSnapshotsforCombobox();
-		};
-		await showSnapshotsforCombobox();
-	}
-	async function createSnapshot(schoolYear, statusReporter) {
-		statusReporter.reportStatus("Snapshot wordt gemaakt...");
-		await uploadSnapshotData({
-			lessen: (await scrapeAllNormalLessen(schoolYear, statusReporter)).map((l) => l.les).map((les) => {
-				return {
-					id: les.id,
-					hash: Les.getHash(les),
-					newHash: Les.getNewHash(les),
-					naam: les.naam,
-					vakNaam: les.vakNaam,
-					lesmoment: les.lesmoment,
-					vestiging: les.vestiging,
-					online: les.online,
-					teacher: les.teacher,
-					gradeYears: GradeYear.toString(les.gradeYears)
+	await showDiffsFromComboboxes();
+}
+async function showDiffsFromComboboxes() {
+	await getAndShowDiffs("justShow", "dkoCache", "EXCEL", null);
+	await getAndShowDiffs("justShow", "dkoCache", "WWW", null);
+}
+async function getDiffDirStructure() {
+	let folderContent = await fetchFolderContent("Dko3/Uurroosters/");
+	let folderTree = {
+		folderName: "",
+		nodes: /* @__PURE__ */ new Map()
+	};
+	for (let file of folderContent.files) {
+		let dirs = file.name.split("/");
+		dirs.pop();
+		dirs.shift();
+		dirs.shift();
+		let currentNode = folderTree;
+		for (let dir of dirs) {
+			let node = currentNode.nodes.get(dir);
+			if (!node) {
+				node = {
+					folderName: dir,
+					nodes: /* @__PURE__ */ new Map()
 				};
-			}),
-			academie: getUserAndSchoolName().schoolName,
-			schoolYear,
-			zDate: (/* @__PURE__ */ new Date()).toISOString(),
-			diffs: null
-		});
-		statusReporter.reportStatus("Snapshot aangemaakt.");
-	}
-	async function uploadSnapshotData(snapshotData) {
-		JSON.stringify(snapshotData);
-		await cloud.json.upload(`Dko3/Snapshots/${snapshotData.academie}/${snapshotData.schoolYear}/${snapshotData.zDate}.json`, snapshotData);
-	}
-	async function fetchSnapshotData(file) {
-		let snapshotData = await cloud.json.fetch(file.name);
-		snapshotData.diffs = snapshotData.diffs ?? null;
-		return snapshotData;
-	}
-	async function getCalculateAndSaveSnapshotDiffs(academie, schoolYear) {
-		let content = await fetchFolderContent(`Dko3/Snapshots/${academie}/${schoolYear}/`);
-		let previousSnapshot = null;
-		let snapshotDataList = [];
-		for (let file of content.files) {
-			let snapshotData = await fetchSnapshotData(file);
-			if (previousSnapshot && snapshotData.diffs == null) {
-				snapshotData.diffs = compareSnapshots(previousSnapshot, snapshotData);
-				await uploadSnapshotData(snapshotData);
+				currentNode.nodes.set(dir, node);
 			}
-			snapshotDataList.push(snapshotData);
-			previousSnapshot = snapshotData;
-		}
-		return snapshotDataList;
-	}
-	function showSnapshot(snapshotData, divResults) {
-		let date = new Date(snapshotData.zDate);
-		let divSnapshotContainer = emmet.appendChild(divResults, `div>h5{${date.toLocaleDateString()} ${date.toLocaleTimeString()}}`).first;
-		showDifferences(snapshotData.diffs, divSnapshotContainer);
-	}
-	async function showSnapshotsforCombobox() {
-		let cmbSnapshotSchoolYear = document.querySelector("#cmbSnapshotSchoolYear");
-		let academieName = getUserAndSchoolName().schoolName;
-		let snapshotDataList = await getCalculateAndSaveSnapshotDiffs(academieName, cmbSnapshotSchoolYear.value);
-		let divResults = document.getElementById("snapshotResults");
-		divResults.innerHTML = "";
-		let inEllipse = false;
-		function showSnapshotWithPossibleEllipse(snapshot) {
-			if (inEllipse) emmet.appendChild(divResults, `div{...}`);
-			inEllipse = false;
-			showSnapshot(snapshot, divResults);
-		}
-		for (let item of new SlidingWindow(snapshotDataList)) {
-			if (!item.prev || !item.next || item.current.diffs?.length != 0 || item.prev.diffs?.length != 0 || item.next.diffs?.length != 0) {
-				showSnapshotWithPossibleEllipse(item.current);
-				continue;
-			}
-			inEllipse = true;
+			currentNode = node;
 		}
 	}
-	function compareSnapshots(previousSnapshot, nextSnapshot) {
-		let diffs = [];
-		for (let prev of previousSnapshot.lessen) if (!nextSnapshot.lessen.find((les) => {
-			if (les.newHash && prev.newHash) return les.newHash == prev.newHash;
-			return les.hash == prev.hash;
-		})) diffs.push({
-			what: "prev",
-			les: prev
-		});
-		for (let next of nextSnapshot.lessen) if (!previousSnapshot.lessen.find((les) => {
-			if (les.newHash && next.newHash) return les.newHash == next.newHash;
-			return les.hash == next.hash;
-		})) diffs.push({
-			what: "next",
-			les: next
-		});
-		return diffs;
+	return folderTree;
+}
+function getAcademies(folderTree) {
+	return [...folderTree.nodes.values()].map((n) => n.folderName);
+}
+function getDiffMyAcademieFolder(folderTree) {
+	let myAcademie = getUserAndSchoolName().schoolName;
+	let academies = getAcademies(folderTree);
+	if (academies.includes(myAcademie)) return myAcademie;
+	myAcademie = myAcademie.replace("(", "").replaceAll(")", "");
+	if (academies.includes(myAcademie)) return myAcademie;
+	myAcademie = myAcademie.replaceAll("Muziek", "M").replaceAll("Woord", "W").replaceAll("Dans", "D").replaceAll("Beeld", "B");
+	if (academies.includes(myAcademie)) return myAcademie;
+	myAcademie = myAcademie.replaceAll("-", "");
+	if (academies.includes(myAcademie)) return myAcademie;
+	let found = academies.find((name) => name == myAcademie);
+	if (found) return found;
+	found = academies.find((name) => name.includes(myAcademie));
+	if (found) return found;
+	return null;
+}
+async function showDiffSetup(academie, schoolyear) {
+	globalDiffSettingsTabId = (await openDiffSettings(academie, schoolyear)).tabId;
+}
+let globalDiffSettingsTabId;
+let diffGlobals = { diffSettings: void 0 };
+async function openDiffSettings(academie, schoolyear) {
+	return sendRequest("open_diff_settings", "Main", "Undefined", void 0, {
+		academie,
+		schoolyear
+	}, "TODO: is this title used? Uurrooster setup voor schooljaar " + schoolyear);
+}
+chrome.runtime.onMessage.addListener(onMessage$1);
+let pauseRefresh = false;
+setInterval(() => {
+	pauseRefresh = false;
+}, 2e3);
+async function onMessage$1(request, _sender, sendResponse) {
+	if (request.senderTabType != "diffSettings") return;
+	if (request.action == "request_tab_data") {
+		console.log("Requesting tab data", request.data);
+		let academie = request.data.params.academie;
+		let schoolYear = request.data.params.schoolYear;
+		if (!diffGlobals.diffSettings) diffGlobals.diffSettings = await fetchDiffSettingsOrDefault(academie, schoolYear);
+		await sendMessageToDiffSettings("tab_data", diffGlobals.diffSettings);
+		return;
 	}
-	function showDifferences(diffs, divResults) {
-		if (!diffs) return;
-		let tbody = emmet.appendChild(divResults, `table.snapshotDiffs>tbody`).last;
-		diffs.sort((a, b) => {
-			if (a.les.id == b.les.id) return b.what.localeCompare(a.what);
-			return a.les.id.localeCompare(b.les.id);
+	if (pauseRefresh) return;
+	pauseRefresh = true;
+	diffGlobals.diffSettings = request.data;
+	await getAndShowDiffs("calcAndShow", "dkoCache", "EXCEL", diffGlobals.diffSettings);
+	await getAndShowDiffs("calcAndShow", "dkoCache", "WWW", diffGlobals.diffSettings);
+	pauseRefresh = false;
+}
+async function sendMessageToDiffSettings(action, data) {
+	return sendRequest(action, "Main", "diffSettings", globalDiffSettingsTabId, data);
+}
+//#endregion
+//#region typescript/startPage/snapshots.ts
+async function setupSnapshotPage() {
+	let pluginContainer = document.getElementById("plugin_container");
+	let button = emmet.appendChild(pluginContainer, "div#snapshotPage.mb-1>div>(h4{Snapshots van lessen.}+(select#cmbSnapshotSchoolYear+button.btn.btn-primary{Snapshot maken}))").last;
+	let cmbSnapshotSchoolYear = pluginContainer.querySelector("#cmbSnapshotSchoolYear");
+	let thisYear = Schoolyear.calculateCurrent();
+	cmbSnapshotSchoolYear.innerHTML = [Schoolyear.toFullString(thisYear), Schoolyear.toFullString(thisYear + 1)].map((name) => `<option value="${name}">${name}</option>`).join("");
+	cmbSnapshotSchoolYear.value = localStorage.getItem("snapshotLastSchoolYear") ?? "";
+	let runStatus = emmet.insertAfter(button, "div#runStatus").first;
+	let divError = emmet.insertAfter(runStatus, "div.errors").last;
+	emmet.insertAfter(divError, "div#snapshotResults");
+	let reportStatus = function(message) {
+		runStatus.innerHTML = message;
+		divError.innerHTML = errors.join("<br>");
+	};
+	let errors = [];
+	let addError = function(message, errorType) {
+		errors.push(message);
+	};
+	button.onclick = async () => {
+		await createSnapshot(cmbSnapshotSchoolYear.value, {
+			reportStatus,
+			addError
 		});
-		for (let diff of diffs) emmet.appendChild(tbody, `
+		await showSnapshotsforCombobox();
+	};
+	cmbSnapshotSchoolYear.onchange = async () => {
+		localStorage.setItem("snapshotLastSchoolYear", cmbSnapshotSchoolYear.value);
+		await showSnapshotsforCombobox();
+	};
+	await showSnapshotsforCombobox();
+}
+async function createSnapshot(schoolYear, statusReporter) {
+	statusReporter.reportStatus("Snapshot wordt gemaakt...");
+	await uploadSnapshotData({
+		lessen: (await scrapeAllNormalLessen(schoolYear, statusReporter)).map((l) => l.les).map((les) => {
+			return {
+				id: les.id,
+				hash: Les.getHash(les),
+				newHash: Les.getNewHash(les),
+				naam: les.naam,
+				vakNaam: les.vakNaam,
+				lesmoment: les.lesmoment,
+				vestiging: les.vestiging,
+				online: les.online,
+				teacher: les.teacher,
+				gradeYears: GradeYear.toString(les.gradeYears)
+			};
+		}),
+		academie: getUserAndSchoolName().schoolName,
+		schoolYear,
+		zDate: (/* @__PURE__ */ new Date()).toISOString(),
+		diffs: null
+	});
+	statusReporter.reportStatus("Snapshot aangemaakt.");
+}
+async function uploadSnapshotData(snapshotData) {
+	JSON.stringify(snapshotData);
+	await cloud.json.upload(`Dko3/Snapshots/${snapshotData.academie}/${snapshotData.schoolYear}/${snapshotData.zDate}.json`, snapshotData);
+}
+async function fetchSnapshotData(file) {
+	let snapshotData = await cloud.json.fetch(file.name);
+	snapshotData.diffs = snapshotData.diffs ?? null;
+	return snapshotData;
+}
+async function getCalculateAndSaveSnapshotDiffs(academie, schoolYear) {
+	let content = await fetchFolderContent(`Dko3/Snapshots/${academie}/${schoolYear}/`);
+	let previousSnapshot = null;
+	let snapshotDataList = [];
+	for (let file of content.files) {
+		let snapshotData = await fetchSnapshotData(file);
+		if (previousSnapshot && snapshotData.diffs == null) {
+			snapshotData.diffs = compareSnapshots(previousSnapshot, snapshotData);
+			await uploadSnapshotData(snapshotData);
+		}
+		snapshotDataList.push(snapshotData);
+		previousSnapshot = snapshotData;
+	}
+	return snapshotDataList;
+}
+function showSnapshot(snapshotData, divResults) {
+	let date = new Date(snapshotData.zDate);
+	let divSnapshotContainer = emmet.appendChild(divResults, `div>h5{${date.toLocaleDateString()} ${date.toLocaleTimeString()}}`).first;
+	showDifferences(snapshotData.diffs, divSnapshotContainer);
+}
+async function showSnapshotsforCombobox() {
+	let cmbSnapshotSchoolYear = document.querySelector("#cmbSnapshotSchoolYear");
+	let academieName = getUserAndSchoolName().schoolName;
+	let snapshotDataList = await getCalculateAndSaveSnapshotDiffs(academieName, cmbSnapshotSchoolYear.value);
+	let divResults = document.getElementById("snapshotResults");
+	divResults.innerHTML = "";
+	let inEllipse = false;
+	function showSnapshotWithPossibleEllipse(snapshot) {
+		if (inEllipse) emmet.appendChild(divResults, `div{...}`);
+		inEllipse = false;
+		showSnapshot(snapshot, divResults);
+	}
+	for (let item of new SlidingWindow(snapshotDataList)) {
+		if (!item.prev || !item.next || item.current.diffs?.length != 0 || item.prev.diffs?.length != 0 || item.next.diffs?.length != 0) {
+			showSnapshotWithPossibleEllipse(item.current);
+			continue;
+		}
+		inEllipse = true;
+	}
+}
+function compareSnapshots(previousSnapshot, nextSnapshot) {
+	let diffs = [];
+	for (let prev of previousSnapshot.lessen) if (!nextSnapshot.lessen.find((les) => {
+		if (les.newHash && prev.newHash) return les.newHash == prev.newHash;
+		return les.hash == prev.hash;
+	})) diffs.push({
+		what: "prev",
+		les: prev
+	});
+	for (let next of nextSnapshot.lessen) if (!previousSnapshot.lessen.find((les) => {
+		if (les.newHash && next.newHash) return les.newHash == next.newHash;
+		return les.hash == next.hash;
+	})) diffs.push({
+		what: "next",
+		les: next
+	});
+	return diffs;
+}
+function showDifferences(diffs, divResults) {
+	if (!diffs) return;
+	let tbody = emmet.appendChild(divResults, `table.snapshotDiffs>tbody`).last;
+	diffs.sort((a, b) => {
+		if (a.les.id == b.les.id) return b.what.localeCompare(a.what);
+		return a.les.id.localeCompare(b.les.id);
+	});
+	for (let diff of diffs) emmet.appendChild(tbody, `
             tr.${diff.what}>(
                 (td>a{${diff.les.id}}[href="/#lessen-les?id=${diff.les.id}"])+
                 td{${diff.les.vakNaam}}+
@@ -7536,751 +8297,795 @@
                 td{${diff.les.teacher ?? "(lk)"}}+
                 td{${diff.les.gradeYears ?? "(g.j)"}}
             )`);
-		if (diffs.length > 0) divResults.classList.toggle("error", true);
-		let rows = [...tbody.querySelectorAll("tr")];
-		for (let i = 0; i <= rows.length - 2; i++) {
-			let row1 = rows[i];
-			let row2 = rows[i + 1];
-			let cells1 = [...row1.querySelectorAll("td")];
-			let cells2 = [...row2.querySelectorAll("td")];
-			if (cells1[0].innerText != cells2[0].innerText) continue;
-			for (let cellIndex = 0; cellIndex < cells1.length; cellIndex++) {
-				let cell1 = cells1[cellIndex];
-				let cell2 = cells2[cellIndex];
-				if (cell1.innerText != cell2.innerText) {
-					cell1.classList.toggle("error", true);
-					cell2.classList.toggle("error", true);
-				}
+	if (diffs.length > 0) divResults.classList.toggle("error", true);
+	let rows = [...tbody.querySelectorAll("tr")];
+	for (let i = 0; i <= rows.length - 2; i++) {
+		let row1 = rows[i];
+		let row2 = rows[i + 1];
+		let cells1 = [...row1.querySelectorAll("td")];
+		let cells2 = [...row2.querySelectorAll("td")];
+		if (cells1[0].innerText != cells2[0].innerText) continue;
+		for (let cellIndex = 0; cellIndex < cells1.length; cellIndex++) {
+			let cell1 = cells1[cellIndex];
+			let cell2 = cells2[cellIndex];
+			if (cell1.innerText != cell2.innerText) {
+				cell1.classList.toggle("error", true);
+				cell2.classList.toggle("error", true);
 			}
 		}
 	}
-	//#endregion
-	//#region typescript/startPage/observer.ts
-	var StartPageObserver = class extends ExactHashObserver {
-		constructor() {
-			super("#start-mijn_tijdslijn", onMutation$4);
-		}
-		isPageReallyLoaded() {
-			return isLoaded();
-		}
-	};
-	var observer_default$5 = new StartPageObserver();
-	function isLoaded() {
-		return document.querySelector("#dko3_start_content")?.textContent.includes("welkom") ?? false;
+}
+//#endregion
+//#region typescript/startPage/observer.ts
+var StartPageObserver = class extends ExactHashObserver {
+	constructor() {
+		super("#start-mijn_tijdslijn", onMutation$4);
 	}
-	function onMutation$4(_mutation) {
-		if (document.querySelector("#dko3_plugin_notifications")) return true;
-		if (document.querySelector("#view_contents>div.row")) setupPluginPage().then(() => {});
-		let startContentDiv = document.querySelector("#dko3_start_content");
-		if (startContentDiv) {
-			if (startContentDiv.textContent.includes("welkom")) {
-				emmet.insertAfter(startContentDiv.children[0], "div#dko3_plugin_notifications>div.alert.alert-info.shadow-sm>(h5>strong{Plugin berichten})+div");
-				doStartupStuff().then(() => {});
-			}
+	isPageReallyLoaded() {
+		return isLoaded();
+	}
+};
+var observer_default$5 = new StartPageObserver();
+function isLoaded() {
+	return document.querySelector("#dko3_start_content")?.textContent.includes("welkom") ?? false;
+}
+function onMutation$4(_mutation) {
+	if (document.querySelector("#dko3_plugin_notifications")) return true;
+	if (document.querySelector("#view_contents>div.row")) setupPluginPage().then(() => {});
+	let startContentDiv = document.querySelector("#dko3_start_content");
+	if (startContentDiv) {
+		if (startContentDiv.textContent.includes("welkom")) {
+			emmet.insertAfter(startContentDiv.children[0], "div#dko3_plugin_notifications>div.alert.alert-info.shadow-sm>(h5>strong{Plugin berichten})+div");
+			doStartupStuff().then(() => {});
+		}
+		return true;
+	}
+	return false;
+}
+async function doStartupStuff() {
+	await fetchAndDisplayNotifications();
+	await checkChecks();
+}
+async function setupPluginPage() {
+	if (document.getElementById("plugin_container")) return;
+	let viewContent = document.getElementById("view_contents");
+	if (!viewContent) return;
+	emmet.appendChild(viewContent, "div#plugin_container");
+	let pageState = getGotoStateOrDefault("Start");
+	if (pageState.goto == "Start_page") {
+		if (pageState.showPage == "start") {
+			pageState.goto = "";
+			saveGotoState(pageState);
+			return;
+		}
+		if (pageState.showPage == "diff") {
+			pageState.goto = "";
+			saveGotoState(pageState);
+			let viewContent = document.getElementById("view_contents");
+			emmet.insertBefore(viewContent.firstElementChild, "div.hide_view_contents");
+			await setupDiffPage();
+			return;
+		}
+		if (pageState.showPage == "snapshots") {
+			pageState.goto = "";
+			saveGotoState(pageState);
+			let viewContent = document.getElementById("view_contents");
+			emmet.insertBefore(viewContent.firstElementChild, "div.hide_view_contents");
+			await setupSnapshotPage();
+			return;
+		}
+	}
+	pageState.goto = "";
+	saveGotoState(pageState);
+}
+//#endregion
+//#region typescript/academie/observer.ts
+var AcademieObserver = class extends PageObserver {
+	constructor() {
+		super(setSchoolBackground);
+	}
+	isPageReallyLoaded() {
+		try {
+			getUserAndSchoolName();
 			return true;
+		} catch (_) {
+			return false;
 		}
-		return false;
 	}
-	async function doStartupStuff() {
-		await fetchAndDisplayNotifications();
-		await checkChecks();
+};
+var observer_default$4 = new AcademieObserver();
+registerSettingsObserver(setSchoolBackground);
+function setSchoolBackground() {
+	let { schoolName } = getUserAndSchoolName();
+	let isMyAcademy = options.myAcademies.split("\n").filter((needle) => needle !== "").find((needle) => schoolName.includes(needle)) != void 0;
+	if (options.myAcademies === "") isMyAcademy = true;
+	if (isMyAcademy || getGlobalSettings().globalHide === true || options.markOtherAcademies === false) document.body.classList.remove("otherSchool");
+	else document.body.classList.add("otherSchool");
+}
+//#endregion
+//#region typescript/pageHandlers.ts
+/**
+* NamedCellTableFetchListener with named column labels.\
+* Params are:
+* @description
+*      * requiredHeaderLabels: array with labels of required columns.
+*      * onRequiredColumnsMissing: OnRequiredColumnsMissingHandler, which will be called when labels are missing.
+*/
+var NamedCellTableFetchListener = class NamedCellTableFetchListener {
+	onStartFetching;
+	onLoaded;
+	onFinished;
+	requiredHeaderLabels;
+	onBeforeLoading;
+	headerIndices;
+	onColumnsMissing;
+	isValidPage;
+	constructor(requiredHeaderLabels, onRequiredColumnsMissing) {
+		this.requiredHeaderLabels = requiredHeaderLabels;
+		this.onColumnsMissing = onRequiredColumnsMissing;
+		this.headerIndices = void 0;
+		this.isValidPage = false;
 	}
-	async function setupPluginPage() {
-		if (document.getElementById("plugin_container")) return;
-		let viewContent = document.getElementById("view_contents");
-		if (!viewContent) return;
-		emmet.appendChild(viewContent, "div#plugin_container");
-		let pageState = getGotoStateOrDefault("Start");
-		if (pageState.goto == "Start_page") {
-			if (pageState.showPage == "start") {
-				pageState.goto = "";
-				saveGotoState(pageState);
-				return;
-			}
-			if (pageState.showPage == "diff") {
-				pageState.goto = "";
-				saveGotoState(pageState);
-				let viewContent = document.getElementById("view_contents");
-				emmet.insertBefore(viewContent.firstElementChild, "div.hide_view_contents");
-				await setupDiffPage();
-				return;
-			}
-			if (pageState.showPage == "snapshots") {
-				pageState.goto = "";
-				saveGotoState(pageState);
-				let viewContent = document.getElementById("view_contents");
-				emmet.insertBefore(viewContent.firstElementChild, "div.hide_view_contents");
-				await setupSnapshotPage();
-				return;
-			}
+	onPageLoaded(tableFetcher, _pageCnt, _text) {
+		if (!this.headerIndices) {
+			this.headerIndices = NamedCellTableFetchListener.getHeaderIndices(tableFetcher.fetchedTable.getTemplate().content);
+			if (!this.hasAllHeadersAndAlert()) {
+				this.isValidPage = false;
+				if (this.onColumnsMissing) this.onColumnsMissing(tableFetcher);
+				else throw "Cannot build table object - required columns missing";
+			} else this.isValidPage = true;
 		}
-		pageState.goto = "";
-		saveGotoState(pageState);
 	}
-	//#endregion
-	//#region typescript/academie/observer.ts
-	var AcademieObserver = class extends PageObserver {
-		constructor() {
-			super(setSchoolBackground);
+	onBeforeLoadingPage(tableFetcher) {
+		let orgTableContainer = tableFetcher.tableRef.getOrgTableContainer();
+		if (!orgTableContainer) return true;
+		this.headerIndices = NamedCellTableFetchListener.getHeaderIndices(orgTableContainer);
+		return this.hasAllHeadersAndAlert();
+	}
+	hasAllHeadersAndAlert() {
+		if (!this.hasAllHeaders()) {
+			let labelString = this.requiredHeaderLabels.map((label) => "\"" + label.toUpperCase() + "\"").join(", ");
+			alert(`Voeg velden ${labelString} toe.`);
+			return false;
 		}
-		isPageReallyLoaded() {
-			try {
-				getUserAndSchoolName();
-				return true;
-			} catch (_) {
-				return false;
-			}
-		}
+		return true;
+	}
+	static getHeaderIndices(tableOrParent) {
+		let headers = tableOrParent.querySelectorAll("thead th");
+		return this.getHeaderIndicesFromHeaderCells(headers);
+	}
+	static getHeaderIndicesFromHeaderCells(headers) {
+		let headerIndices = /* @__PURE__ */ new Map();
+		Array.from(headers).forEach((header, index) => {
+			let label = getColumnHeaderText(header);
+			if (label.startsWith("e-mailadressen")) headerIndices.set("e-mailadressen", index);
+			else headerIndices.set(label, index);
+		});
+		return headerIndices;
+	}
+	hasAllHeaders() {
+		return this.requiredHeaderLabels.every((label) => this.hasHeader(label));
+	}
+	hasHeader(label) {
+		return this.headerIndices.has(label);
+	}
+	getColumnText(tr, label) {
+		return getColumnText(tr, this.headerIndices, label);
+	}
+};
+function getColumnText(tr, headerIndices, label) {
+	return tr.children[headerIndices.get(label)].textContent;
+}
+//#endregion
+//#region typescript/werklijst/scrapeUren.ts
+function scrapeStudent(headerIndices, tr) {
+	let naam = getColumnText(tr, headerIndices, "naam");
+	let voornaam = getColumnText(tr, headerIndices, "voornaam");
+	let id = parseInt(tr.attributes["onclick"].value.replace("showView('leerlingen-leerling', '', 'id=", ""));
+	let leraar = getColumnText(tr, headerIndices, "klasleerkracht");
+	let vak = getColumnText(tr, headerIndices, "vak: naam");
+	let graadLeerjaar = getColumnText(tr, headerIndices, "graad + leerjaar");
+	if (leraar === "") leraar = "{nieuw}";
+	return {
+		naam,
+		voornaam,
+		id,
+		leraar,
+		vak,
+		graadLeerjaar
 	};
-	var observer_default$4 = new AcademieObserver();
-	registerSettingsObserver(setSchoolBackground);
-	function setSchoolBackground() {
-		let { schoolName } = getUserAndSchoolName();
-		let isMyAcademy = options.myAcademies.split("\n").filter((needle) => needle !== "").find((needle) => schoolName.includes(needle)) != void 0;
-		if (options.myAcademies === "") isMyAcademy = true;
-		if (isMyAcademy || getGlobalSettings().globalHide === true || options.markOtherAcademies === false) document.body.classList.remove("otherSchool");
-		else document.body.classList.add("otherSchool");
-	}
-	//#endregion
-	//#region typescript/pageHandlers.ts
-	/**
-	* NamedCellTableFetchListener with named column labels.\
-	* Params are:
-	* @description
-	*      * requiredHeaderLabels: array with labels of required columns.
-	*      * onRequiredColumnsMissing: OnRequiredColumnsMissingHandler, which will be called when labels are missing.
-	*/
-	var NamedCellTableFetchListener = class NamedCellTableFetchListener {
-		onStartFetching;
-		onLoaded;
-		onFinished;
-		requiredHeaderLabels;
-		onBeforeLoading;
-		headerIndices;
-		onColumnsMissing;
-		isValidPage;
-		constructor(requiredHeaderLabels, onRequiredColumnsMissing) {
-			this.requiredHeaderLabels = requiredHeaderLabels;
-			this.onColumnsMissing = onRequiredColumnsMissing;
-			this.headerIndices = void 0;
-			this.isValidPage = false;
-		}
-		onPageLoaded(tableFetcher, _pageCnt, _text) {
-			if (!this.headerIndices) {
-				this.headerIndices = NamedCellTableFetchListener.getHeaderIndices(tableFetcher.fetchedTable.getTemplate().content);
-				if (!this.hasAllHeadersAndAlert()) {
-					this.isValidPage = false;
-					if (this.onColumnsMissing) this.onColumnsMissing(tableFetcher);
-					else throw "Cannot build table object - required columns missing";
-				} else this.isValidPage = true;
-			}
-		}
-		onBeforeLoadingPage(tableFetcher) {
-			let orgTableContainer = tableFetcher.tableRef.getOrgTableContainer();
-			if (!orgTableContainer) return true;
-			this.headerIndices = NamedCellTableFetchListener.getHeaderIndices(orgTableContainer);
-			return this.hasAllHeadersAndAlert();
-		}
-		hasAllHeadersAndAlert() {
-			if (!this.hasAllHeaders()) {
-				let labelString = this.requiredHeaderLabels.map((label) => "\"" + label.toUpperCase() + "\"").join(", ");
-				alert(`Voeg velden ${labelString} toe.`);
-				return false;
-			}
-			return true;
-		}
-		static getHeaderIndices(tableOrParent) {
-			let headers = tableOrParent.querySelectorAll("thead th");
-			return this.getHeaderIndicesFromHeaderCells(headers);
-		}
-		static getHeaderIndicesFromHeaderCells(headers) {
-			let headerIndices = /* @__PURE__ */ new Map();
-			Array.from(headers).forEach((header, index) => {
-				let label = getColumnHeaderText(header);
-				if (label.startsWith("e-mailadressen")) headerIndices.set("e-mailadressen", index);
-				else headerIndices.set(label, index);
-			});
-			return headerIndices;
-		}
-		hasAllHeaders() {
-			return this.requiredHeaderLabels.every((label) => this.hasHeader(label));
-		}
-		hasHeader(label) {
-			return this.headerIndices.has(label);
-		}
-		getColumnText(tr, label) {
-			return getColumnText(tr, this.headerIndices, label);
-		}
-	};
-	function getColumnText(tr, headerIndices, label) {
-		return tr.children[headerIndices.get(label)].textContent;
-	}
-	//#endregion
-	//#region typescript/werklijst/scrapeUren.ts
-	function scrapeStudent(headerIndices, tr) {
-		let naam = getColumnText(tr, headerIndices, "naam");
-		let voornaam = getColumnText(tr, headerIndices, "voornaam");
-		let id = parseInt(tr.attributes["onclick"].value.replace("showView('leerlingen-leerling', '', 'id=", ""));
-		let leraar = getColumnText(tr, headerIndices, "klasleerkracht");
-		let vak = getColumnText(tr, headerIndices, "vak: naam");
-		let graadLeerjaar = getColumnText(tr, headerIndices, "graad + leerjaar");
-		if (leraar === "") leraar = "{nieuw}";
-		return {
-			naam,
-			voornaam,
-			id,
-			leraar,
-			vak,
-			graadLeerjaar
-		};
-	}
-	function addStudentToVakLeraarsMap(studentRow, vakLeraars, hourSettings) {
-		let vakLeraarKey = translateVak(studentRow.vak, hourSettings) + "_" + studentRow.leraar;
-		if (!vakLeraars.has(vakLeraarKey)) {
-			let countMap = /* @__PURE__ */ new Map();
-			countMap.set("1.1", {
-				count: 0,
-				students: []
-			});
-			countMap.set("1.2", {
-				count: 0,
-				students: []
-			});
-			countMap.set("2.1", {
-				count: 0,
-				students: []
-			});
-			countMap.set("2.2", {
-				count: 0,
-				students: []
-			});
-			countMap.set("2.3", {
-				count: 0,
-				students: []
-			});
-			countMap.set("2.4", {
-				count: 0,
-				students: []
-			});
-			countMap.set("3.1", {
-				count: 0,
-				students: []
-			});
-			countMap.set("3.2", {
-				count: 0,
-				students: []
-			});
-			countMap.set("3.3", {
-				count: 0,
-				students: []
-			});
-			countMap.set("4.1", {
-				count: 0,
-				students: []
-			});
-			countMap.set("4.2", {
-				count: 0,
-				students: []
-			});
-			countMap.set("4.3", {
-				count: 0,
-				students: []
-			});
-			countMap.set("S.1", {
-				count: 0,
-				students: []
-			});
-			countMap.set("S.2", {
-				count: 0,
-				students: []
-			});
-			let vakLeraarObject = {
-				vak: translateVak(studentRow.vak, hourSettings),
-				leraar: studentRow.leraar,
-				id: createValidId(vakLeraarKey),
-				countMap
-			};
-			vakLeraars.set(vakLeraarKey, vakLeraarObject);
-		}
-		let vakLeraar = vakLeraars.get(vakLeraarKey);
-		if (!vakLeraar.countMap.has(studentRow.graadLeerjaar)) vakLeraar.countMap.set(studentRow.graadLeerjaar, {
+}
+function addStudentToVakLeraarsMap(studentRow, vakLeraars, hourSettings) {
+	let vakLeraarKey = translateVak(studentRow.vak, hourSettings) + "_" + studentRow.leraar;
+	if (!vakLeraars.has(vakLeraarKey)) {
+		let countMap = /* @__PURE__ */ new Map();
+		countMap.set("1.1", {
 			count: 0,
 			students: []
 		});
-		let graadLeraarObject = vakLeraars.get(vakLeraarKey).countMap.get(studentRow.graadLeerjaar);
-		graadLeraarObject.count += 1;
-		graadLeraarObject.students.push(studentRow);
-	}
-	function translateVak(vak, settings) {
-		let alias = settings.subjectsMap.get(vak)?.alias;
-		if (alias) vak = alias;
-		settings.translations.forEach((translation) => {
-			if (translation.find) {
-				if (vak.includes(translation.find)) vak = translation.prefix + vak.replace(translation.find, translation.replace) + translation.suffix;
-			} else vak = translation.prefix + vak + translation.suffix;
+		countMap.set("1.2", {
+			count: 0,
+			students: []
 		});
-		return vak;
-	}
-	function scrapeUren(rows, headerIndices) {
-		return rows.map((tr) => scrapeStudent(headerIndices, tr));
-	}
-	//#endregion
-	//#region typescript/werklijst/buildUren.ts
-	let isUpdatePaused = true;
-	let cellChanged = false;
-	let popoverIndex = 1;
-	let editableObserver = new MutationObserver((mutationList, observer) => editableObserverCallback(mutationList, observer));
-	setInterval(onTimer, 5e3);
-	function onTimer() {
-		checkAndUpdate(globalUrenData);
-	}
-	let globalUrenData = void 0;
-	const defaultColKeysForTotals = [
-		"grjr1_1",
-		"grjr1_2",
-		"grjr2_1",
-		"grjr2_2",
-		"grjr2_3",
-		"grjr2_4",
-		"grjr3_1",
-		"grjr3_2",
-		"grjr3_3",
-		"grjr4_1",
-		"grjr4_2",
-		"grjr4_3",
-		"grjr_s_1",
-		"grjr_s_2"
-	];
-	let colKeysForTotals = [];
-	let colDefsArray = [
-		{
-			key: "vak",
-			def: {
-				label: "Vak",
-				classList: [],
-				total: 0,
-				factor: 1,
-				getText: (ctx) => ctx.vakLeraar.vak
-			}
-		},
-		{
-			key: "leraar",
-			def: {
-				label: "Leraar",
-				classList: [],
-				total: 0,
-				factor: 1,
-				getText: (ctx) => ctx.vakLeraar.leraar.replaceAll("{", "").replaceAll("}", "")
-			}
-		},
-		{
-			key: "grjr1_1",
-			def: {
-				label: "1.1",
-				classList: [],
-				total: 0,
-				factor: 1 / 4,
-				getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count,
-				fill: fillGraadCell,
-				ignorable: true
-			}
-		},
-		{
-			key: "grjr1_2",
-			def: {
-				label: "1.2",
-				classList: [],
-				total: 0,
-				factor: 1 / 4,
-				getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count,
-				fill: fillGraadCell,
-				ignorable: true
-			}
-		},
-		{
-			key: "uren_1e_gr",
-			def: {
-				label: "uren\n1e gr",
-				classList: ["yellow"],
-				total: 0,
-				factor: 1,
-				getValue: (ctx) => calcUrenFactored(ctx, ["grjr1_1", "grjr1_2"]),
-				totals: true,
-				calculated: true
-			}
-		},
-		{
-			key: "grjr2_1",
-			def: {
-				label: "2.1",
-				classList: [],
-				total: 0,
-				factor: 1 / 3,
-				getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count,
-				fill: fillGraadCell
-			}
-		},
-		{
-			key: "grjr2_2",
-			def: {
-				label: "2.2",
-				classList: [],
-				total: 0,
-				factor: 1 / 3,
-				getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count,
-				fill: fillGraadCell
-			}
-		},
-		{
-			key: "grjr2_3",
-			def: {
-				label: "2.3",
-				classList: [],
-				total: 0,
-				factor: 1 / 3,
-				getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count,
-				fill: fillGraadCell
-			}
-		},
-		{
-			key: "grjr2_4",
-			def: {
-				label: "2.4",
-				classList: [],
-				total: 0,
-				factor: 1 / 3,
-				getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count,
-				fill: fillGraadCell
-			}
-		},
-		{
-			key: "uren_2e_gr",
-			def: {
-				label: "uren\n2e gr",
-				classList: ["yellow"],
-				total: 0,
-				factor: 1,
-				getValue: (ctx) => calcUrenFactored(ctx, [
-					"grjr2_1",
-					"grjr2_2",
-					"grjr2_3",
-					"grjr2_4"
-				]),
-				totals: true,
-				calculated: true
-			}
-		},
-		{
-			key: "grjr3_1",
-			def: {
-				label: "3.1",
-				classList: [],
-				total: 0,
-				factor: 1 / 3,
-				getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count,
-				fill: fillGraadCell
-			}
-		},
-		{
-			key: "grjr3_2",
-			def: {
-				label: "3.2",
-				classList: [],
-				total: 0,
-				factor: 1 / 3,
-				getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count,
-				fill: fillGraadCell
-			}
-		},
-		{
-			key: "grjr3_3",
-			def: {
-				label: "3.3",
-				classList: [],
-				total: 0,
-				factor: 1 / 2,
-				getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count,
-				fill: fillGraadCell
-			}
-		},
-		{
-			key: "uren_3e_gr",
-			def: {
-				label: "uren\n3e gr",
-				classList: ["yellow"],
-				total: 0,
-				factor: 1,
-				getValue: (ctx) => calcUrenFactored(ctx, [
-					"grjr3_1",
-					"grjr3_2",
-					"grjr3_3"
-				]),
-				totals: true,
-				calculated: true
-			}
-		},
-		{
-			key: "grjr4_1",
-			def: {
-				label: "4.1",
-				classList: [],
-				total: 0,
-				factor: 1 / 2,
-				getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count,
-				fill: fillGraadCell
-			}
-		},
-		{
-			key: "grjr4_2",
-			def: {
-				label: "4.2",
-				classList: [],
-				total: 0,
-				factor: 1 / 2,
-				getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count,
-				fill: fillGraadCell
-			}
-		},
-		{
-			key: "grjr4_3",
-			def: {
-				label: "4.3",
-				classList: [],
-				total: 0,
-				factor: 1 / 2,
-				getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count,
-				fill: fillGraadCell
-			}
-		},
-		{
-			key: "uren_4e_gr",
-			def: {
-				label: "uren\n4e gr",
-				classList: ["yellow"],
-				total: 0,
-				factor: 1,
-				getValue: (ctx) => calcUrenFactored(ctx, [
-					"grjr4_1",
-					"grjr4_2",
-					"grjr4_3"
-				]),
-				totals: true,
-				calculated: true
-			}
-		},
-		{
-			key: "grjr_s_1",
-			def: {
-				label: "S.1",
-				classList: [],
-				total: 0,
-				factor: 1 / 2,
-				getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count,
-				fill: fillGraadCell
-			}
-		},
-		{
-			key: "grjr_s_2",
-			def: {
-				label: "S.2",
-				classList: [],
-				total: 0,
-				factor: 1 / 2,
-				getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count,
-				fill: fillGraadCell
-			}
-		},
-		{
-			key: "uren_spec",
-			def: {
-				label: "uren\nspec",
-				classList: ["yellow"],
-				total: 0,
-				factor: 1,
-				getValue: (ctx) => calcUrenFactored(ctx, ["grjr_s_1", "grjr_s_2"]),
-				totals: true,
-				calculated: true
-			}
-		},
-		{
-			key: "aantal_lln",
-			def: {
-				label: "aantal\nlln",
-				classList: ["blueish"],
-				total: 0,
-				factor: 1,
-				getValue: (ctx) => calcUren(ctx, colKeysForTotals),
-				totals: true,
-				calculated: true
-			}
-		},
-		{
-			key: "tot_uren",
-			def: {
-				label: "tot\nuren",
-				classList: ["creme"],
-				total: 0,
-				factor: 1,
-				getValue: (ctx) => calcUrenFactored(ctx, colKeysForTotals),
-				totals: true,
-				calculated: true
-			}
-		},
-		{
-			key: "over",
-			def: {
-				label: "Over",
-				classList: [],
-				total: 0,
-				factor: 1,
-				getValue: (ctx) => calcOver(ctx),
-				calculated: true
-			}
-		}
-	];
-	let colDefs = new Map(colDefsArray.map((def) => [def.key, def.def]));
-	function getYearKeys(year) {
-		let yrPrev = year - 2e3 - 1;
-		let yrNow = yrPrev + 1;
-		let yrNext = yrPrev + 2;
-		return {
-			yrPrev,
-			yrNow,
-			yrNext,
-			keyPrev: `uren_${yrPrev}_${yrNow}`,
-			keyNext: `uren_${yrNow}_${yrNext}`
+		countMap.set("2.1", {
+			count: 0,
+			students: []
+		});
+		countMap.set("2.2", {
+			count: 0,
+			students: []
+		});
+		countMap.set("2.3", {
+			count: 0,
+			students: []
+		});
+		countMap.set("2.4", {
+			count: 0,
+			students: []
+		});
+		countMap.set("3.1", {
+			count: 0,
+			students: []
+		});
+		countMap.set("3.2", {
+			count: 0,
+			students: []
+		});
+		countMap.set("3.3", {
+			count: 0,
+			students: []
+		});
+		countMap.set("4.1", {
+			count: 0,
+			students: []
+		});
+		countMap.set("4.2", {
+			count: 0,
+			students: []
+		});
+		countMap.set("4.3", {
+			count: 0,
+			students: []
+		});
+		countMap.set("S.1", {
+			count: 0,
+			students: []
+		});
+		countMap.set("S.2", {
+			count: 0,
+			students: []
+		});
+		let vakLeraarObject = {
+			vak: translateVak(studentRow.vak, hourSettings),
+			leraar: studentRow.leraar,
+			id: createValidId(vakLeraarKey),
+			countMap
 		};
+		vakLeraars.set(vakLeraarKey, vakLeraarObject);
 	}
-	function updateColDefs(urenData) {
-		let { yrPrev, yrNow, yrNext, keyPrev, keyNext } = getYearKeys(urenData.year);
-		let yearColDefs = /* @__PURE__ */ new Map();
-		yearColDefs.set(keyPrev, {
-			label: `Uren\n${yrPrev}-${yrNow}`,
-			classList: ["editable_number"],
+	let vakLeraar = vakLeraars.get(vakLeraarKey);
+	if (!vakLeraar.countMap.has(studentRow.graadLeerjaar)) vakLeraar.countMap.set(studentRow.graadLeerjaar, {
+		count: 0,
+		students: []
+	});
+	let graadLeraarObject = vakLeraars.get(vakLeraarKey).countMap.get(studentRow.graadLeerjaar);
+	graadLeraarObject.count += 1;
+	graadLeraarObject.students.push(studentRow);
+}
+function translateVak(vak, settings) {
+	let alias = settings.subjectsMap.get(vak)?.alias;
+	if (alias) vak = alias;
+	settings.translations.forEach((translation) => {
+		if (translation.find) {
+			if (vak.includes(translation.find)) vak = translation.prefix + vak.replace(translation.find, translation.replace) + translation.suffix;
+		} else vak = translation.prefix + vak + translation.suffix;
+	});
+	return vak;
+}
+function scrapeUren(rows, headerIndices) {
+	return rows.map((tr) => scrapeStudent(headerIndices, tr));
+}
+//#endregion
+//#region typescript/werklijst/buildUren.ts
+let isUpdatePaused = true;
+let cellChanged = false;
+let popoverIndex = 1;
+let editableObserver = new MutationObserver((mutationList, observer) => editableObserverCallback(mutationList, observer));
+setInterval(onTimer, 5e3);
+function onTimer() {
+	checkAndUpdate(globalUrenData);
+}
+let globalUrenData = void 0;
+const defaultColKeysForTotals = [
+	"grjr1_1",
+	"grjr1_2",
+	"grjr2_1",
+	"grjr2_2",
+	"grjr2_3",
+	"grjr2_4",
+	"grjr3_1",
+	"grjr3_2",
+	"grjr3_3",
+	"grjr4_1",
+	"grjr4_2",
+	"grjr4_3",
+	"grjr_s_1",
+	"grjr_s_2"
+];
+let colKeysForTotals = [];
+let colDefsArray = [
+	{
+		key: "vak",
+		def: {
+			label: "Vak",
+			classList: [],
 			total: 0,
 			factor: 1,
-			getValue: (ctx) => parseInt(ctx.data.fromCloud.columnMap.get(`uren_${yrPrev}_${yrNow}`)?.get(ctx.vakLeraar.id)),
-			totals: true
-		});
-		yearColDefs.set(keyNext, {
-			label: `Uren\n${yrNow}-${yrNext}`,
-			classList: ["editable_number"],
+			getText: (ctx) => ctx.vakLeraar.vak
+		}
+	},
+	{
+		key: "leraar",
+		def: {
+			label: "Leraar",
+			classList: [],
 			total: 0,
 			factor: 1,
-			getValue: (ctx) => parseInt(ctx.data.fromCloud.columnMap.get(`uren_${yrNow}_${yrNext}`)?.get(ctx.vakLeraar.id)),
-			totals: true
-		});
-		colDefs = new Map([...yearColDefs, ...new Map(colDefsArray.map((def) => [def.key, def.def]))]);
-		let idx = 0;
-		let localSettings = getLocalHourSettings();
+			getText: (ctx) => ctx.vakLeraar.leraar.replaceAll("{", "").replaceAll("}", "")
+		}
+	},
+	{
+		key: "grjr1_1",
+		def: {
+			label: "1.1",
+			classList: [],
+			total: 0,
+			factor: 1 / 4,
+			getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count,
+			fill: fillGraadCell,
+			ignorable: true
+		}
+	},
+	{
+		key: "grjr1_2",
+		def: {
+			label: "1.2",
+			classList: [],
+			total: 0,
+			factor: 1 / 4,
+			getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count,
+			fill: fillGraadCell,
+			ignorable: true
+		}
+	},
+	{
+		key: "uren_1e_gr",
+		def: {
+			label: "uren\n1e gr",
+			classList: ["yellow"],
+			total: 0,
+			factor: 1,
+			getValue: (ctx) => calcUrenFactored(ctx, ["grjr1_1", "grjr1_2"]),
+			totals: true,
+			calculated: true
+		}
+	},
+	{
+		key: "grjr2_1",
+		def: {
+			label: "2.1",
+			classList: [],
+			total: 0,
+			factor: 1 / 3,
+			getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count,
+			fill: fillGraadCell
+		}
+	},
+	{
+		key: "grjr2_2",
+		def: {
+			label: "2.2",
+			classList: [],
+			total: 0,
+			factor: 1 / 3,
+			getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count,
+			fill: fillGraadCell
+		}
+	},
+	{
+		key: "grjr2_3",
+		def: {
+			label: "2.3",
+			classList: [],
+			total: 0,
+			factor: 1 / 3,
+			getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count,
+			fill: fillGraadCell
+		}
+	},
+	{
+		key: "grjr2_4",
+		def: {
+			label: "2.4",
+			classList: [],
+			total: 0,
+			factor: 1 / 3,
+			getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count,
+			fill: fillGraadCell
+		}
+	},
+	{
+		key: "uren_2e_gr",
+		def: {
+			label: "uren\n2e gr",
+			classList: ["yellow"],
+			total: 0,
+			factor: 1,
+			getValue: (ctx) => calcUrenFactored(ctx, [
+				"grjr2_1",
+				"grjr2_2",
+				"grjr2_3",
+				"grjr2_4"
+			]),
+			totals: true,
+			calculated: true
+		}
+	},
+	{
+		key: "grjr3_1",
+		def: {
+			label: "3.1",
+			classList: [],
+			total: 0,
+			factor: 1 / 3,
+			getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count,
+			fill: fillGraadCell
+		}
+	},
+	{
+		key: "grjr3_2",
+		def: {
+			label: "3.2",
+			classList: [],
+			total: 0,
+			factor: 1 / 3,
+			getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count,
+			fill: fillGraadCell
+		}
+	},
+	{
+		key: "grjr3_3",
+		def: {
+			label: "3.3",
+			classList: [],
+			total: 0,
+			factor: 1 / 2,
+			getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count,
+			fill: fillGraadCell
+		}
+	},
+	{
+		key: "uren_3e_gr",
+		def: {
+			label: "uren\n3e gr",
+			classList: ["yellow"],
+			total: 0,
+			factor: 1,
+			getValue: (ctx) => calcUrenFactored(ctx, [
+				"grjr3_1",
+				"grjr3_2",
+				"grjr3_3"
+			]),
+			totals: true,
+			calculated: true
+		}
+	},
+	{
+		key: "grjr4_1",
+		def: {
+			label: "4.1",
+			classList: [],
+			total: 0,
+			factor: 1 / 2,
+			getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count,
+			fill: fillGraadCell
+		}
+	},
+	{
+		key: "grjr4_2",
+		def: {
+			label: "4.2",
+			classList: [],
+			total: 0,
+			factor: 1 / 2,
+			getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count,
+			fill: fillGraadCell
+		}
+	},
+	{
+		key: "grjr4_3",
+		def: {
+			label: "4.3",
+			classList: [],
+			total: 0,
+			factor: 1 / 2,
+			getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count,
+			fill: fillGraadCell
+		}
+	},
+	{
+		key: "uren_4e_gr",
+		def: {
+			label: "uren\n4e gr",
+			classList: ["yellow"],
+			total: 0,
+			factor: 1,
+			getValue: (ctx) => calcUrenFactored(ctx, [
+				"grjr4_1",
+				"grjr4_2",
+				"grjr4_3"
+			]),
+			totals: true,
+			calculated: true
+		}
+	},
+	{
+		key: "grjr_s_1",
+		def: {
+			label: "S.1",
+			classList: [],
+			total: 0,
+			factor: 1 / 2,
+			getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count,
+			fill: fillGraadCell
+		}
+	},
+	{
+		key: "grjr_s_2",
+		def: {
+			label: "S.2",
+			classList: [],
+			total: 0,
+			factor: 1 / 2,
+			getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label).count,
+			fill: fillGraadCell
+		}
+	},
+	{
+		key: "uren_spec",
+		def: {
+			label: "uren\nspec",
+			classList: ["yellow"],
+			total: 0,
+			factor: 1,
+			getValue: (ctx) => calcUrenFactored(ctx, ["grjr_s_1", "grjr_s_2"]),
+			totals: true,
+			calculated: true
+		}
+	},
+	{
+		key: "aantal_lln",
+		def: {
+			label: "aantal\nlln",
+			classList: ["blueish"],
+			total: 0,
+			factor: 1,
+			getValue: (ctx) => calcUren(ctx, colKeysForTotals),
+			totals: true,
+			calculated: true
+		}
+	},
+	{
+		key: "tot_uren",
+		def: {
+			label: "tot\nuren",
+			classList: ["creme"],
+			total: 0,
+			factor: 1,
+			getValue: (ctx) => calcUrenFactored(ctx, colKeysForTotals),
+			totals: true,
+			calculated: true
+		}
+	},
+	{
+		key: "over",
+		def: {
+			label: "Over",
+			classList: [],
+			total: 0,
+			factor: 1,
+			getValue: (ctx) => calcOver(ctx),
+			calculated: true
+		}
+	}
+];
+let colDefs = new Map(colDefsArray.map((def) => [def.key, def.def]));
+function getYearKeys(year) {
+	let yrPrev = year - 2e3 - 1;
+	let yrNow = yrPrev + 1;
+	let yrNext = yrPrev + 2;
+	return {
+		yrPrev,
+		yrNow,
+		yrNext,
+		keyPrev: `uren_${yrPrev}_${yrNow}`,
+		keyNext: `uren_${yrNow}_${yrNext}`
+	};
+}
+function updateColDefs(urenData) {
+	let { yrPrev, yrNow, yrNext, keyPrev, keyNext } = getYearKeys(urenData.year);
+	let yearColDefs = /* @__PURE__ */ new Map();
+	yearColDefs.set(keyPrev, {
+		label: `Uren\n${yrPrev}-${yrNow}`,
+		classList: ["editable_number"],
+		total: 0,
+		factor: 1,
+		getValue: (ctx) => parseInt(ctx.data.fromCloud.columnMap.get(`uren_${yrPrev}_${yrNow}`)?.get(ctx.vakLeraar.id)),
+		totals: true
+	});
+	yearColDefs.set(keyNext, {
+		label: `Uren\n${yrNow}-${yrNext}`,
+		classList: ["editable_number"],
+		total: 0,
+		factor: 1,
+		getValue: (ctx) => parseInt(ctx.data.fromCloud.columnMap.get(`uren_${yrNow}_${yrNext}`)?.get(ctx.vakLeraar.id)),
+		totals: true
+	});
+	colDefs = new Map([...yearColDefs, ...new Map(colDefsArray.map((def) => [def.key, def.def]))]);
+	let idx = 0;
+	let localSettings = getLocalHourSettings();
+	for (let [colKey, colDef] of colDefs) {
+		if (localSettings.ignoredColumns.some((ignored) => ignored.key === colKey)) colDef.ignored = true;
+		else colDef.ignored = false;
+		let gradeYearDef = urenData.settings.gradeYearsMap.get(colDef.label);
+		if (gradeYearDef) colDef.factor = 1 / gradeYearDef.studentCount;
+	}
+	colDefs.forEach((colDef) => {
+		colDef.colIndex = idx++;
+		colDef.total = 0;
+	});
+	filterIgnoredColumns();
+}
+function getLocalHourSettings() {
+	let text = localStorage.getItem(LOCAL_HOURS_SETTINGS);
+	if (text) return JSON.parse(text);
+	return { ignoredColumns: [] };
+}
+function saveLocalHourSettings(settings) {
+	localStorage.setItem(LOCAL_HOURS_SETTINGS, JSON.stringify(settings));
+}
+function calcOver(ctx) {
+	let totUren = getColValue(ctx, "tot_uren");
+	if (isNaN(totUren)) totUren = 0;
+	let urenJaar = getColValue(ctx, ctx.yearKey);
+	if (isNaN(urenJaar)) urenJaar = 0;
+	return urenJaar - totUren;
+}
+function getColValue(ctx, colKey) {
+	let newCtx = { ...ctx };
+	newCtx.colKey = colKey;
+	newCtx.colDef = newCtx.colDefs.get(colKey);
+	return newCtx.colDef.getValue(newCtx);
+}
+function editableObserverCallback(mutationList, _observer) {
+	if (mutationList.every((mut) => mut.type === "attributes")) return;
+	cellChanged = true;
+}
+function getUrenVakLeraarFileName(schoolYear) {
+	return getSchoolIdString() + "_uren_vak_lk_" + schoolYear.replace("-", "_") + ".json";
+}
+function checkAndUpdate(urenData) {
+	if (isUpdatePaused) return;
+	if (!cellChanged) return;
+	cellChanged = false;
+	let colKeys = getYearKeys(urenData.year);
+	updateCloudColumnMapFromScreen(urenData, colKeys.keyPrev);
+	updateCloudColumnMapFromScreen(urenData, colKeys.keyNext);
+	cloud.json.upload(getUrenVakLeraarFileName(Schoolyear.toFullString(urenData.year)), urenData.fromCloud.toJson(colKeys.keyPrev, colKeys.keyNext)).then((_r) => {
+		console.log("Uploaded uren.");
+	});
+	recalculate(urenData);
+}
+function updateCloudColumnMapFromScreen(urenData, colKey) {
+	let colDef = colDefs.get(colKey);
+	if (!urenData.fromCloud.columnMap.has(colKey)) urenData.fromCloud.columnMap.set(colKey, /* @__PURE__ */ new Map());
+	for (let tr of document.querySelectorAll("#werklijst_uren tbody tr")) urenData.fromCloud.columnMap.get(colKey).set(tr.id, tr.children[colDef.colIndex].textContent);
+}
+function observeTable(observe) {
+	const config = {
+		attributes: true,
+		childList: true,
+		subtree: true,
+		characterData: true
+	};
+	let table = document.getElementById(HOURS_TABLE_ID);
+	if (observe) {
+		editableObserver.takeRecords();
+		editableObserver.observe(table, config);
+	} else editableObserver.disconnect();
+}
+function fillCell(ctx) {
+	if (ctx.colDef.getText) {
+		ctx.td.innerText = ctx.colDef.getText(ctx);
+		return;
+	}
+	if (ctx.colDef.fill) {
+		ctx.colDef.fill(ctx);
+		return;
+	}
+	let theValue = ctx.colDef.getValue(ctx);
+	ctx.td.innerText = trimNumber(theValue);
+	return theValue;
+}
+function calculateAndSumCell(colDef, ctx, onlyRecalc) {
+	let theValue = void 0;
+	if (colDef.calculated || !onlyRecalc) theValue = fillCell(ctx);
+	if (colDef.totals) {
+		if (!theValue) theValue = colDef.getValue(ctx);
+		if (theValue) colDef.total += theValue;
+	}
+}
+function clearTotals() {
+	for (let [_colKey, colDef] of colDefs) if (colDef.totals) colDef.total = 0;
+}
+function filterIgnoredColumns() {
+	colKeysForTotals = [...defaultColKeysForTotals];
+	colKeysForTotals = colKeysForTotals.filter((colKey) => !colDefs.get(colKey).ignored);
+}
+function recalculate(urenData) {
+	isUpdatePaused = true;
+	observeTable(false);
+	clearTotals();
+	filterIgnoredColumns();
+	let yearKey = getYearKeys(urenData.year).keyNext;
+	for (let [vakLeraarKey, vakLeraar] of urenData.vakLeraars) {
+		let tr = document.getElementById(createValidId(vakLeraarKey));
+		for (let [colKey, colDef] of colDefs) calculateAndSumCell(colDef, {
+			td: tr.children[colDef.colIndex],
+			colKey,
+			colDef,
+			vakLeraar,
+			tr,
+			colDefs,
+			data: urenData,
+			yearKey
+		}, true);
+	}
+	let trTotal = document.getElementById("__totals__");
+	for (let [_colKey, colDef] of colDefs) {
+		let td = trTotal.children[colDef.colIndex];
+		if (colDef.totals) td.innerText = trimNumber(colDef.total);
+	}
+	cellChanged = false;
+	isUpdatePaused = false;
+	observeTable(true);
+}
+function refillTable(table, urenData) {
+	globalUrenData = urenData;
+	table.innerHTML = "";
+	isUpdatePaused = true;
+	updateColDefs(urenData);
+	fillTableHeader(table, urenData.vakLeraars);
+	let tbody = document.createElement("tbody");
+	table.appendChild(tbody);
+	let lastVak = "";
+	let rowClass = "";
+	clearTotals();
+	let yearKey = getYearKeys(urenData.year).keyNext;
+	for (let [vakLeraarKey, vakLeraar] of urenData.vakLeraars) {
+		let tr = document.createElement("tr");
+		tbody.appendChild(tr);
+		tr.dataset["vak_leraar"] = vakLeraarKey;
+		tr.id = createValidId(vakLeraarKey);
+		if (vakLeraar.vak !== lastVak) rowClass = rowClass === "" ? "darkRow" : "";
+		if (rowClass != "") tr.classList.add(rowClass);
+		lastVak = vakLeraar.vak;
 		for (let [colKey, colDef] of colDefs) {
-			if (localSettings.ignoredColumns.some((ignored) => ignored.key === colKey)) colDef.ignored = true;
-			else colDef.ignored = false;
-			let gradeYearDef = urenData.settings.gradeYearsMap.get(colDef.label);
-			if (gradeYearDef) colDef.factor = 1 / gradeYearDef.studentCount;
-		}
-		colDefs.forEach((colDef) => {
-			colDef.colIndex = idx++;
-			colDef.total = 0;
-		});
-		filterIgnoredColumns();
-	}
-	function getLocalHourSettings() {
-		let text = localStorage.getItem(LOCAL_HOURS_SETTINGS);
-		if (text) return JSON.parse(text);
-		return { ignoredColumns: [] };
-	}
-	function saveLocalHourSettings(settings) {
-		localStorage.setItem(LOCAL_HOURS_SETTINGS, JSON.stringify(settings));
-	}
-	function calcOver(ctx) {
-		let totUren = getColValue(ctx, "tot_uren");
-		if (isNaN(totUren)) totUren = 0;
-		let urenJaar = getColValue(ctx, ctx.yearKey);
-		if (isNaN(urenJaar)) urenJaar = 0;
-		return urenJaar - totUren;
-	}
-	function getColValue(ctx, colKey) {
-		let newCtx = { ...ctx };
-		newCtx.colKey = colKey;
-		newCtx.colDef = newCtx.colDefs.get(colKey);
-		return newCtx.colDef.getValue(newCtx);
-	}
-	function editableObserverCallback(mutationList, _observer) {
-		if (mutationList.every((mut) => mut.type === "attributes")) return;
-		cellChanged = true;
-	}
-	function getUrenVakLeraarFileName(schoolYear) {
-		return getSchoolIdString() + "_uren_vak_lk_" + schoolYear.replace("-", "_") + ".json";
-	}
-	function checkAndUpdate(urenData) {
-		if (isUpdatePaused) return;
-		if (!cellChanged) return;
-		cellChanged = false;
-		let colKeys = getYearKeys(urenData.year);
-		updateCloudColumnMapFromScreen(urenData, colKeys.keyPrev);
-		updateCloudColumnMapFromScreen(urenData, colKeys.keyNext);
-		cloud.json.upload(getUrenVakLeraarFileName(Schoolyear.toFullString(urenData.year)), urenData.fromCloud.toJson(colKeys.keyPrev, colKeys.keyNext)).then((_r) => {
-			console.log("Uploaded uren.");
-		});
-		recalculate(urenData);
-	}
-	function updateCloudColumnMapFromScreen(urenData, colKey) {
-		let colDef = colDefs.get(colKey);
-		if (!urenData.fromCloud.columnMap.has(colKey)) urenData.fromCloud.columnMap.set(colKey, /* @__PURE__ */ new Map());
-		for (let tr of document.querySelectorAll("#werklijst_uren tbody tr")) urenData.fromCloud.columnMap.get(colKey).set(tr.id, tr.children[colDef.colIndex].textContent);
-	}
-	function observeTable(observe) {
-		const config = {
-			attributes: true,
-			childList: true,
-			subtree: true,
-			characterData: true
-		};
-		let table = document.getElementById(HOURS_TABLE_ID);
-		if (observe) {
-			editableObserver.takeRecords();
-			editableObserver.observe(table, config);
-		} else editableObserver.disconnect();
-	}
-	function fillCell(ctx) {
-		if (ctx.colDef.getText) {
-			ctx.td.innerText = ctx.colDef.getText(ctx);
-			return;
-		}
-		if (ctx.colDef.fill) {
-			ctx.colDef.fill(ctx);
-			return;
-		}
-		let theValue = ctx.colDef.getValue(ctx);
-		ctx.td.innerText = trimNumber(theValue);
-		return theValue;
-	}
-	function calculateAndSumCell(colDef, ctx, onlyRecalc) {
-		let theValue = void 0;
-		if (colDef.calculated || !onlyRecalc) theValue = fillCell(ctx);
-		if (colDef.totals) {
-			if (!theValue) theValue = colDef.getValue(ctx);
-			if (theValue) colDef.total += theValue;
-		}
-	}
-	function clearTotals() {
-		for (let [_colKey, colDef] of colDefs) if (colDef.totals) colDef.total = 0;
-	}
-	function filterIgnoredColumns() {
-		colKeysForTotals = [...defaultColKeysForTotals];
-		colKeysForTotals = colKeysForTotals.filter((colKey) => !colDefs.get(colKey).ignored);
-	}
-	function recalculate(urenData) {
-		isUpdatePaused = true;
-		observeTable(false);
-		clearTotals();
-		filterIgnoredColumns();
-		let yearKey = getYearKeys(urenData.year).keyNext;
-		for (let [vakLeraarKey, vakLeraar] of urenData.vakLeraars) {
-			let tr = document.getElementById(createValidId(vakLeraarKey));
-			for (let [colKey, colDef] of colDefs) calculateAndSumCell(colDef, {
-				td: tr.children[colDef.colIndex],
+			let td = document.createElement("td");
+			tr.appendChild(td);
+			td.classList.add(...colDef.classList);
+			calculateAndSumCell(colDef, {
+				td,
 				colKey,
 				colDef,
 				vakLeraar,
@@ -8288,2351 +9093,2306 @@
 				colDefs,
 				data: urenData,
 				yearKey
-			}, true);
+			}, false);
 		}
-		let trTotal = document.getElementById("__totals__");
-		for (let [_colKey, colDef] of colDefs) {
-			let td = trTotal.children[colDef.colIndex];
-			if (colDef.totals) td.innerText = trimNumber(colDef.total);
-		}
-		cellChanged = false;
-		isUpdatePaused = false;
-		observeTable(true);
 	}
-	function refillTable(table, urenData) {
-		globalUrenData = urenData;
-		table.innerHTML = "";
-		isUpdatePaused = true;
-		updateColDefs(urenData);
-		fillTableHeader(table, urenData.vakLeraars);
-		let tbody = document.createElement("tbody");
-		table.appendChild(tbody);
-		let lastVak = "";
-		let rowClass = "";
-		clearTotals();
-		let yearKey = getYearKeys(urenData.year).keyNext;
-		for (let [vakLeraarKey, vakLeraar] of urenData.vakLeraars) {
-			let tr = document.createElement("tr");
-			tbody.appendChild(tr);
-			tr.dataset["vak_leraar"] = vakLeraarKey;
-			tr.id = createValidId(vakLeraarKey);
-			if (vakLeraar.vak !== lastVak) rowClass = rowClass === "" ? "darkRow" : "";
-			if (rowClass != "") tr.classList.add(rowClass);
-			lastVak = vakLeraar.vak;
-			for (let [colKey, colDef] of colDefs) {
-				let td = document.createElement("td");
-				tr.appendChild(td);
-				td.classList.add(...colDef.classList);
-				calculateAndSumCell(colDef, {
-					td,
-					colKey,
-					colDef,
-					vakLeraar,
-					tr,
-					colDefs,
-					data: urenData,
-					yearKey
-				}, false);
+	let tFoot = document.createElement("tfoot");
+	table.appendChild(tFoot);
+	tFoot.classList.add("separatorLine");
+	let trTotal = document.createElement("tr");
+	tFoot.appendChild(trTotal);
+	trTotal.id = "__totals__";
+	for (let [_colKey, colDef] of colDefs) {
+		let td = document.createElement("td");
+		trTotal.appendChild(td);
+		if (colDef.totals) td.innerText = trimNumber(colDef.total);
+	}
+	table.querySelectorAll("td.editable_number").forEach((td) => td.setAttribute("contenteditable", "true"));
+	observeTable(true);
+	isUpdatePaused = false;
+}
+function calcUren(ctx, keys) {
+	let tot = 0;
+	for (let key of keys) {
+		let colDef = ctx.colDefs.get(key);
+		let cnt = ctx.vakLeraar.countMap.get(colDef.label).students.length;
+		tot += cnt;
+	}
+	return tot;
+}
+function calcUrenFactored(ctx, keys) {
+	let tot = 0;
+	for (let key of keys) {
+		let colDef = ctx.colDefs.get(key);
+		let cnt = ctx.vakLeraar.countMap.get(colDef.label).students.length;
+		let factor = colDefs.get(key).factor;
+		tot += cnt * factor;
+	}
+	return tot;
+}
+function trimNumber(num) {
+	if (isNaN(num)) return "";
+	return (Math.round(num * 100) / 100).toFixed(2).replace(".00", "");
+}
+function fillTableHeader(table, _vakLeraars) {
+	let thead = document.createElement("thead");
+	table.appendChild(thead);
+	let tr_head = document.createElement("tr");
+	thead.appendChild(tr_head);
+	let th = document.createElement("th");
+	for (let colDef of colDefs.values()) {
+		th = document.createElement("th");
+		tr_head.appendChild(th);
+		th.innerText = colDef.label;
+	}
+	let tr_ignore = document.createElement("tr");
+	thead.appendChild(tr_ignore);
+	for (let entry of colDefs) {
+		let key = entry[0];
+		let colDef = entry[1];
+		if (colDef.ignorable) {
+			let checkbox = emmet.appendChild(tr_ignore, `th>input[type="checkbox"]`).last;
+			checkbox.checked = !(colDef.ignored ?? false);
+			checkbox.dataset.key = key;
+			checkbox.addEventListener("change", (e) => {
+				let target = e.currentTarget;
+				let key = target.dataset.key;
+				let colDef = colDefs.get(key);
+				//! should exist
+				colDef.ignored = !target.checked;
+				saveLocalHourSettings({ ignoredColumns: [...colDefs.entries()].filter((entry) => entry[1].ignored ?? false).map((entry) => ({
+					key: entry[0],
+					ignored: entry[1].ignored
+				})) });
+				recalculate(globalUrenData);
+				//! should be filled
+			});
+		} else emmet.appendChild(tr_ignore, `th`);
+	}
+}
+function fillGraadCell(ctx) {
+	let graadJaar = ctx.vakLeraar.countMap.get(ctx.colDef.label);
+	if (!graadJaar) return NaN;
+	let button = document.createElement("button");
+	ctx.td.appendChild(button);
+	if ((graadJaar?.count ?? 0) === 0) return graadJaar.count;
+	button.innerText = graadJaar.count.toString();
+	popoverIndex++;
+	button.setAttribute("popovertarget", "students_" + popoverIndex);
+	let popoverDiv = document.createElement("div");
+	ctx.td.appendChild(popoverDiv);
+	popoverDiv.id = "students_" + popoverIndex;
+	popoverDiv.setAttribute("popover", "auto");
+	for (let student of graadJaar.students) {
+		let studentDiv = document.createElement("div");
+		popoverDiv.appendChild(studentDiv);
+		studentDiv.innerText = student.voornaam + " " + student.naam;
+		const anchor = document.createElement("a");
+		studentDiv.appendChild(anchor);
+		anchor.href = "#leerlingen-leerling?id=" + student.id + ",tab=inschrijvingen";
+		anchor.classList.add("pl-1");
+		anchor.dataset.studentid = student.id.toString();
+		const iTag = document.createElement("i");
+		anchor.appendChild(iTag);
+		iTag.classList.add("fas", "fa-user-alt");
+	}
+	return graadJaar.count;
+}
+function rebuildHoursTable(studentRowData, hourSettingsMapped, fromCloud, infoBlock) {
+	infoBlock.infoBar.setExtraInfo("");
+	document.getElementById(HOURS_TABLE_ID)?.remove();
+	let table = emmet.appendChild(document.getElementById(PLUGIN_CONTAINER_ID), `table`).last;
+	table.id = HOURS_TABLE_ID;
+	table.classList.add(CAN_SORT, NO_MENU);
+	let vakLeraars = buildVakLeraarsMap(studentRowData, hourSettingsMapped);
+	let urenData = {
+		year: parseInt(hourSettingsMapped.schoolyear),
+		settings: hourSettingsMapped,
+		fromCloud,
+		vakLeraars
+	};
+	observer.disconnect();
+	refillTable(table, urenData);
+	makeTableSortable(table);
+	observer.observeElement(document.querySelector("main"));
+}
+function buildVakLeraarsMap(studentRowData, hourSettingsMapped) {
+	let vakLeraars = /* @__PURE__ */ new Map();
+	for (let studentRow of studentRowData) addStudentToVakLeraarsMap(studentRow, vakLeraars, hourSettingsMapped);
+	vakLeraars = new Map([...vakLeraars.entries()].sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
+	return vakLeraars;
+}
+//#endregion
+//#region typescript/werklijst/hoursSettings.ts
+function mapHourSettings(hourSettings) {
+	return {
+		...hourSettings,
+		subjectsMap: new Map(hourSettings.subjects.map((s) => [s.name, s])),
+		gradeYearsMap: new Map(hourSettings.gradeYears.map((gy) => [gy.gradeYear, gy]))
+	};
+}
+let defaultInstruments = [
+	{
+		checked: true,
+		name: "Aaaaa",
+		alias: "bbb",
+		stillValid: true
+	},
+	{
+		checked: true,
+		name: "Accordeon",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Altfluit",
+		alias: "Dwarsfluit",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Althoorn",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Altklarinet",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Altsaxofoon",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Altsaxofoon (jazz pop rock)",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Altviool",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Baglama/saz (wereldmuziek)",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Bariton",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Baritonsaxofoon",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Baritonsaxofoon (jazz pop rock)",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Basfluit",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Basgitaar (jazz pop rock)",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Basklarinet",
+		alias: "Klarinet",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Bastrombone",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Bastuba",
+		alias: "Koper",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Bugel",
+		alias: "Koper",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Cello",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Contrabas (jazz pop rock)",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Contrabas (klassiek)",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Dwarsfluit",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Engelse hoorn",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Eufonium",
+		alias: "Koper",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Fagot",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Gitaar",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Gitaar (jazz pop rock)",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Harp",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Hobo",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Hoorn",
+		alias: "Koper",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Keyboard (jazz pop rock)",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Klarinet",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Kornet",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Orgel",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Piano",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Piano (jazz pop rock)",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Pianolab",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Piccolo",
+		alias: "Dwarsfluit",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Slagwerk",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Slagwerk (jazz pop rock)",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Sopraansaxofoon",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Sopraansaxofoon (jazz pop rock)",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Tenorsaxofoon",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Tenorsaxofoon (jazz pop rock)",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Trombone",
+		alias: "Koper",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Trompet",
+		alias: "Koper",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Trompet (jazz pop rock)",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Ud (wereldmuziek)",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Viool",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Zang",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Zang (jazz pop rock)",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Zang (musical 2e graad)",
+		alias: "",
+		stillValid: false
+	},
+	{
+		checked: true,
+		name: "Zang (musical)",
+		alias: "",
+		stillValid: false
+	}
+];
+let defaultInstrumentsMap = /* @__PURE__ */ new Map();
+defaultInstruments.forEach((i) => defaultInstrumentsMap.set(i.name, i));
+let defaultTranslationDefs = [
+	{
+		find: "Altsaxofoon",
+		replace: "Saxofoon",
+		prefix: "",
+		suffix: ""
+	},
+	{
+		find: "Sopraansaxofoon",
+		replace: "Saxofoon",
+		prefix: "",
+		suffix: ""
+	},
+	{
+		find: "Baritonsaxofoon",
+		replace: "Saxofoon",
+		prefix: "",
+		suffix: ""
+	},
+	{
+		find: "Tenorsaxofoon",
+		replace: "Saxofoon",
+		prefix: "",
+		suffix: ""
+	},
+	{
+		find: "(klassiek)",
+		replace: "",
+		prefix: "K ",
+		suffix: ""
+	},
+	{
+		find: "(jazz pop rock)",
+		replace: "",
+		prefix: "JPR ",
+		suffix: ""
+	},
+	{
+		find: "(musical)",
+		replace: "",
+		prefix: "M ",
+		suffix: ""
+	},
+	{
+		find: "(musical 2e graad)",
+		replace: "(2e graad)",
+		prefix: "M ",
+		suffix: ""
+	},
+	{
+		find: "(wereldmuziek)",
+		replace: "",
+		prefix: "WM ",
+		suffix: ""
+	},
+	{
+		find: "instrumentinitiatie",
+		replace: "init",
+		prefix: "",
+		suffix: ""
+	},
+	{
+		find: "",
+		replace: "",
+		prefix: "K ",
+		suffix: ""
+	},
+	{
+		find: "K JPR ",
+		replace: "JPR ",
+		prefix: "",
+		suffix: ""
+	},
+	{
+		find: "K M ",
+		replace: "M ",
+		prefix: "",
+		suffix: ""
+	},
+	{
+		find: "K WM ",
+		replace: "WM ",
+		prefix: "",
+		suffix: ""
+	},
+	{
+		find: "K K ",
+		replace: "K ",
+		prefix: "",
+		suffix: ""
+	}
+];
+async function getDefaultHourSettings(schoolyear) {
+	let grades = await getDefaultGradeYears(schoolyear);
+	return {
+		version: 1,
+		schoolyear,
+		subjects: [...defaultInstruments],
+		translations: [...defaultTranslationDefs],
+		gradeYears: grades
+	};
+}
+function createTeacherHoursFileName(schoolyear) {
+	return "teacherHoursSetup_" + schoolyear + ".json";
+}
+async function saveHourSettings(hoursSetup) {
+	let fileName = createTeacherHoursFileName(hoursSetup.schoolyear);
+	return cloud.json.upload(fileName, hoursSetup);
+}
+async function getDefaultGradeYears(_schoolYearString) {
+	return new Promise((resolve, _reject) => {
+		resolve([
+			{
+				checked: true,
+				gradeYear: "1.1",
+				studentCount: 4
+			},
+			{
+				checked: true,
+				gradeYear: "1.2",
+				studentCount: 4
+			},
+			{
+				checked: true,
+				gradeYear: "2.1",
+				studentCount: 3
+			},
+			{
+				checked: true,
+				gradeYear: "2.2",
+				studentCount: 3
+			},
+			{
+				checked: true,
+				gradeYear: "2.3",
+				studentCount: 3
+			},
+			{
+				checked: true,
+				gradeYear: "2.4",
+				studentCount: 3
+			},
+			{
+				checked: true,
+				gradeYear: "3.1",
+				studentCount: 3
+			},
+			{
+				checked: true,
+				gradeYear: "3.2",
+				studentCount: 3
+			},
+			{
+				checked: true,
+				gradeYear: "3.3",
+				studentCount: 2
+			},
+			{
+				checked: true,
+				gradeYear: "4.1",
+				studentCount: 2
+			},
+			{
+				checked: true,
+				gradeYear: "4.2",
+				studentCount: 2
+			},
+			{
+				checked: true,
+				gradeYear: "4.3",
+				studentCount: 2
+			},
+			{
+				checked: true,
+				gradeYear: "S.1",
+				studentCount: 2
+			},
+			{
+				checked: true,
+				gradeYear: "S.2",
+				studentCount: 2
 			}
-		}
-		let tFoot = document.createElement("tfoot");
-		table.appendChild(tFoot);
-		tFoot.classList.add("separatorLine");
-		let trTotal = document.createElement("tr");
-		tFoot.appendChild(trTotal);
-		trTotal.id = "__totals__";
-		for (let [_colKey, colDef] of colDefs) {
-			let td = document.createElement("td");
-			trTotal.appendChild(td);
-			if (colDef.totals) td.innerText = trimNumber(colDef.total);
-		}
-		table.querySelectorAll("td.editable_number").forEach((td) => td.setAttribute("contenteditable", "true"));
-		observeTable(true);
-		isUpdatePaused = false;
+		]);
+	});
+}
+//#endregion
+//#region typescript/werklijst/prefillInstruments.ts
+async function fetchHoursSettingsOrSaveDefault(schoolyearString, dko3_subjects) {
+	let builder = await createWerklijstBuilderWithReset(schoolyearString, "3");
+	if (!dko3_subjects) dko3_subjects = await builder.fetchAvailableSubjects();
+	let subjectNames = dko3_subjects.map((vak) => vak.name);
+	let availableSubjectSet = new Set(subjectNames);
+	let cloudSettings = await cloud.json.fetch(createTeacherHoursFileName(schoolyearString)).catch((_) => {});
+	if (!cloudSettings) {
+		let prevYearString = Schoolyear.toFullString(Schoolyear.toNumbers(schoolyearString).startYear - 1);
+		cloudSettings = await cloud.json.fetch(createTeacherHoursFileName(prevYearString)).catch((_) => {});
+		if (!cloudSettings) cloudSettings = await getDefaultHourSettings(schoolyearString);
+		else cloudSettings.schoolyear = schoolyearString;
+		await saveHourSettings(cloudSettings);
 	}
-	function calcUren(ctx, keys) {
-		let tot = 0;
-		for (let key of keys) {
-			let colDef = ctx.colDefs.get(key);
-			let cnt = ctx.vakLeraar.countMap.get(colDef.label).students.length;
-			tot += cnt;
-		}
-		return tot;
+	cloudSettings.subjects.forEach((s) => s.stillValid = availableSubjectSet.has(s.name));
+	let cloudSubjectMap = new Map(cloudSettings.subjects.map((s) => [s.name, s]));
+	for (let name of availableSubjectSet) if (!cloudSubjectMap.has(name)) cloudSubjectMap.set(name, {
+		checked: false,
+		name,
+		alias: "",
+		stillValid: true
+	});
+	cloudSettings.subjects = [...cloudSubjectMap.values()].sort((a, b) => a.name.localeCompare(b.name));
+	return cloudSettings;
+}
+//#endregion
+//#region typescript/table/mailMerge.ts
+var MailMergeTable = class {
+	table;
+	data;
+	headers;
+	infoBlock;
+	maxInschrijvingen = -1;
+	maxLessen = -1;
+	constructor(infoBlock, table) {
+		this.table = table;
+		this.infoBlock = infoBlock;
+		let headerCells = this.table.tHead.children[0].children;
+		this.headers = [...headerCells].filter((cell) => cell.style.display !== "none").map((cell) => cell.innerText);
+		let rows = table.tBodies[0].children;
+		this.data = [...rows].map((row) => [...row.cells].filter((cell) => cell.style.display !== "none").map((cell) => cell.innerText));
+		let indexVoornaam = this.headers.findIndex((header) => header == "voornaam");
+		let indexFinancierbaarheid = this.headers.findIndex((header) => header == "financierbaarheid");
+		if (indexVoornaam != -1) this.data.forEach((row) => row[indexFinancierbaarheid] = row[indexFinancierbaarheid] == "" ? "Vrij" : "");
+		this.data = this.data.filter((row) => row[indexVoornaam] != "Contactgegevens");
 	}
-	function calcUrenFactored(ctx, keys) {
-		let tot = 0;
-		for (let key of keys) {
-			let colDef = ctx.colDefs.get(key);
-			let cnt = ctx.vakLeraar.countMap.get(colDef.label).students.length;
-			let factor = colDefs.get(key).factor;
-			tot += cnt * factor;
-		}
-		return tot;
+	async build() {
+		this.infoBlock.infoBar.setExtraInfo("Studentengegevens ophalen...");
+		let studentTable = this.buildStudentTable();
+		this.infoBlock.infoBar.setExtraInfo("");
+		return studentTable;
 	}
-	function trimNumber(num) {
-		if (isNaN(num)) return "";
-		return (Math.round(num * 100) / 100).toFixed(2).replace(".00", "");
+	async toHtml() {
+		let studentTable = await this.build();
+		if (!studentTable) throw "Can't create html  = student table is null.";
+		return createHtmlTable(studentTable.headers, studentTable.data).outerHTML;
 	}
-	function fillTableHeader(table, _vakLeraars) {
-		let thead = document.createElement("thead");
-		table.appendChild(thead);
-		let tr_head = document.createElement("tr");
-		thead.appendChild(tr_head);
-		let th = document.createElement("th");
-		for (let colDef of colDefs.values()) {
-			th = document.createElement("th");
-			tr_head.appendChild(th);
-			th.innerText = colDef.label;
+	buildStudentTable() {
+		let emailIndex = this.headers.findIndex((header) => header.toLowerCase().includes("e-mailadressen"));
+		if (emailIndex === -1) {
+			alert("Geen e-mailadressen gevonden'. Voed dit veld toe aan de lijst.");
+			return null;
 		}
-		let tr_ignore = document.createElement("tr");
-		thead.appendChild(tr_ignore);
-		for (let entry of colDefs) {
-			let key = entry[0];
-			let colDef = entry[1];
-			if (colDef.ignorable) {
-				let checkbox = emmet.appendChild(tr_ignore, `th>input[type="checkbox"]`).last;
-				checkbox.checked = !(colDef.ignored ?? false);
-				checkbox.dataset.key = key;
-				checkbox.addEventListener("change", (e) => {
-					let target = e.currentTarget;
-					let key = target.dataset.key;
-					let colDef = colDefs.get(key);
-					//! should exist
-					colDef.ignored = !target.checked;
-					saveLocalHourSettings({ ignoredColumns: [...colDefs.entries()].filter((entry) => entry[1].ignored ?? false).map((entry) => ({
-						key: entry[0],
-						ignored: entry[1].ignored
-					})) });
-					recalculate(globalUrenData);
-					//! should be filled
+		let dataDef = {
+			studentColumnIndexes: [],
+			inschrijvingenColumnIndexes: [],
+			lesColumnIndexes: []
+		};
+		this.headers.forEach((header, index) => {
+			if (WerklijstFieldsStudent.includes(header)) dataDef.studentColumnIndexes.push(index);
+			else if (WerklijstFieldsInschrijving.includes(header)) dataDef.inschrijvingenColumnIndexes.push(index);
+			else if (WerklijstFieldsLes.includes(header)) dataDef.lesColumnIndexes.push(index);
+		});
+		let groupedPerStudent = [];
+		this.data.forEach((row, rowIndex) => {
+			if (groupedPerStudent.length == 0) {
+				groupedPerStudent.push({
+					vestigingsPlaatsen: [],
+					allInschrijvingenRows: [rowIndex],
+					inschrijvingen: /* @__PURE__ */ new Map(),
+					lessen: "",
+					vakken: ""
 				});
-			} else emmet.appendChild(tr_ignore, `th`);
-		}
-	}
-	function fillGraadCell(ctx) {
-		let graadJaar = ctx.vakLeraar.countMap.get(ctx.colDef.label);
-		if (!graadJaar) return NaN;
-		let button = document.createElement("button");
-		ctx.td.appendChild(button);
-		if ((graadJaar?.count ?? 0) === 0) return graadJaar.count;
-		button.innerText = graadJaar.count.toString();
-		popoverIndex++;
-		button.setAttribute("popovertarget", "students_" + popoverIndex);
-		let popoverDiv = document.createElement("div");
-		ctx.td.appendChild(popoverDiv);
-		popoverDiv.id = "students_" + popoverIndex;
-		popoverDiv.setAttribute("popover", "auto");
-		for (let student of graadJaar.students) {
-			let studentDiv = document.createElement("div");
-			popoverDiv.appendChild(studentDiv);
-			studentDiv.innerText = student.voornaam + " " + student.naam;
-			const anchor = document.createElement("a");
-			studentDiv.appendChild(anchor);
-			anchor.href = "#leerlingen-leerling?id=" + student.id + ",tab=inschrijvingen";
-			anchor.classList.add("pl-1");
-			anchor.dataset.studentid = student.id.toString();
-			const iTag = document.createElement("i");
-			anchor.appendChild(iTag);
-			iTag.classList.add("fas", "fa-user-alt");
-		}
-		return graadJaar.count;
-	}
-	function rebuildHoursTable(studentRowData, hourSettingsMapped, fromCloud, infoBlock) {
-		infoBlock.infoBar.setExtraInfo("");
-		document.getElementById(HOURS_TABLE_ID)?.remove();
-		let table = emmet.appendChild(document.getElementById(PLUGIN_CONTAINER_ID), `table`).last;
-		table.id = HOURS_TABLE_ID;
-		table.classList.add(CAN_SORT, NO_MENU);
-		let vakLeraars = buildVakLeraarsMap(studentRowData, hourSettingsMapped);
-		let urenData = {
-			year: parseInt(hourSettingsMapped.schoolyear),
-			settings: hourSettingsMapped,
-			fromCloud,
-			vakLeraars
-		};
-		observer.disconnect();
-		refillTable(table, urenData);
-		makeTableSortable(table);
-		observer.observeElement(document.querySelector("main"));
-	}
-	function buildVakLeraarsMap(studentRowData, hourSettingsMapped) {
-		let vakLeraars = /* @__PURE__ */ new Map();
-		for (let studentRow of studentRowData) addStudentToVakLeraarsMap(studentRow, vakLeraars, hourSettingsMapped);
-		vakLeraars = new Map([...vakLeraars.entries()].sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
-		return vakLeraars;
-	}
-	//#endregion
-	//#region typescript/werklijst/hoursSettings.ts
-	function mapHourSettings(hourSettings) {
-		return {
-			...hourSettings,
-			subjectsMap: new Map(hourSettings.subjects.map((s) => [s.name, s])),
-			gradeYearsMap: new Map(hourSettings.gradeYears.map((gy) => [gy.gradeYear, gy]))
-		};
-	}
-	let defaultInstruments = [
-		{
-			checked: true,
-			name: "Aaaaa",
-			alias: "bbb",
-			stillValid: true
-		},
-		{
-			checked: true,
-			name: "Accordeon",
-			alias: "",
-			stillValid: false
-		},
-		{
-			checked: true,
-			name: "Altfluit",
-			alias: "Dwarsfluit",
-			stillValid: false
-		},
-		{
-			checked: true,
-			name: "Althoorn",
-			alias: "",
-			stillValid: false
-		},
-		{
-			checked: true,
-			name: "Altklarinet",
-			alias: "",
-			stillValid: false
-		},
-		{
-			checked: true,
-			name: "Altsaxofoon",
-			alias: "",
-			stillValid: false
-		},
-		{
-			checked: true,
-			name: "Altsaxofoon (jazz pop rock)",
-			alias: "",
-			stillValid: false
-		},
-		{
-			checked: true,
-			name: "Altviool",
-			alias: "",
-			stillValid: false
-		},
-		{
-			checked: true,
-			name: "Baglama/saz (wereldmuziek)",
-			alias: "",
-			stillValid: false
-		},
-		{
-			checked: true,
-			name: "Bariton",
-			alias: "",
-			stillValid: false
-		},
-		{
-			checked: true,
-			name: "Baritonsaxofoon",
-			alias: "",
-			stillValid: false
-		},
-		{
-			checked: true,
-			name: "Baritonsaxofoon (jazz pop rock)",
-			alias: "",
-			stillValid: false
-		},
-		{
-			checked: true,
-			name: "Basfluit",
-			alias: "",
-			stillValid: false
-		},
-		{
-			checked: true,
-			name: "Basgitaar (jazz pop rock)",
-			alias: "",
-			stillValid: false
-		},
-		{
-			checked: true,
-			name: "Basklarinet",
-			alias: "Klarinet",
-			stillValid: false
-		},
-		{
-			checked: true,
-			name: "Bastrombone",
-			alias: "",
-			stillValid: false
-		},
-		{
-			checked: true,
-			name: "Bastuba",
-			alias: "Koper",
-			stillValid: false
-		},
-		{
-			checked: true,
-			name: "Bugel",
-			alias: "Koper",
-			stillValid: false
-		},
-		{
-			checked: true,
-			name: "Cello",
-			alias: "",
-			stillValid: false
-		},
-		{
-			checked: true,
-			name: "Contrabas (jazz pop rock)",
-			alias: "",
-			stillValid: false
-		},
-		{
-			checked: true,
-			name: "Contrabas (klassiek)",
-			alias: "",
-			stillValid: false
-		},
-		{
-			checked: true,
-			name: "Dwarsfluit",
-			alias: "",
-			stillValid: false
-		},
-		{
-			checked: true,
-			name: "Engelse hoorn",
-			alias: "",
-			stillValid: false
-		},
-		{
-			checked: true,
-			name: "Eufonium",
-			alias: "Koper",
-			stillValid: false
-		},
-		{
-			checked: true,
-			name: "Fagot",
-			alias: "",
-			stillValid: false
-		},
-		{
-			checked: true,
-			name: "Gitaar",
-			alias: "",
-			stillValid: false
-		},
-		{
-			checked: true,
-			name: "Gitaar (jazz pop rock)",
-			alias: "",
-			stillValid: false
-		},
-		{
-			checked: true,
-			name: "Harp",
-			alias: "",
-			stillValid: false
-		},
-		{
-			checked: true,
-			name: "Hobo",
-			alias: "",
-			stillValid: false
-		},
-		{
-			checked: true,
-			name: "Hoorn",
-			alias: "Koper",
-			stillValid: false
-		},
-		{
-			checked: true,
-			name: "Keyboard (jazz pop rock)",
-			alias: "",
-			stillValid: false
-		},
-		{
-			checked: true,
-			name: "Klarinet",
-			alias: "",
-			stillValid: false
-		},
-		{
-			checked: true,
-			name: "Kornet",
-			alias: "",
-			stillValid: false
-		},
-		{
-			checked: true,
-			name: "Orgel",
-			alias: "",
-			stillValid: false
-		},
-		{
-			checked: true,
-			name: "Piano",
-			alias: "",
-			stillValid: false
-		},
-		{
-			checked: true,
-			name: "Piano (jazz pop rock)",
-			alias: "",
-			stillValid: false
-		},
-		{
-			checked: true,
-			name: "Pianolab",
-			alias: "",
-			stillValid: false
-		},
-		{
-			checked: true,
-			name: "Piccolo",
-			alias: "Dwarsfluit",
-			stillValid: false
-		},
-		{
-			checked: true,
-			name: "Slagwerk",
-			alias: "",
-			stillValid: false
-		},
-		{
-			checked: true,
-			name: "Slagwerk (jazz pop rock)",
-			alias: "",
-			stillValid: false
-		},
-		{
-			checked: true,
-			name: "Sopraansaxofoon",
-			alias: "",
-			stillValid: false
-		},
-		{
-			checked: true,
-			name: "Sopraansaxofoon (jazz pop rock)",
-			alias: "",
-			stillValid: false
-		},
-		{
-			checked: true,
-			name: "Tenorsaxofoon",
-			alias: "",
-			stillValid: false
-		},
-		{
-			checked: true,
-			name: "Tenorsaxofoon (jazz pop rock)",
-			alias: "",
-			stillValid: false
-		},
-		{
-			checked: true,
-			name: "Trombone",
-			alias: "Koper",
-			stillValid: false
-		},
-		{
-			checked: true,
-			name: "Trompet",
-			alias: "Koper",
-			stillValid: false
-		},
-		{
-			checked: true,
-			name: "Trompet (jazz pop rock)",
-			alias: "",
-			stillValid: false
-		},
-		{
-			checked: true,
-			name: "Ud (wereldmuziek)",
-			alias: "",
-			stillValid: false
-		},
-		{
-			checked: true,
-			name: "Viool",
-			alias: "",
-			stillValid: false
-		},
-		{
-			checked: true,
-			name: "Zang",
-			alias: "",
-			stillValid: false
-		},
-		{
-			checked: true,
-			name: "Zang (jazz pop rock)",
-			alias: "",
-			stillValid: false
-		},
-		{
-			checked: true,
-			name: "Zang (musical 2e graad)",
-			alias: "",
-			stillValid: false
-		},
-		{
-			checked: true,
-			name: "Zang (musical)",
-			alias: "",
-			stillValid: false
-		}
-	];
-	let defaultInstrumentsMap = /* @__PURE__ */ new Map();
-	defaultInstruments.forEach((i) => defaultInstrumentsMap.set(i.name, i));
-	let defaultTranslationDefs = [
-		{
-			find: "Altsaxofoon",
-			replace: "Saxofoon",
-			prefix: "",
-			suffix: ""
-		},
-		{
-			find: "Sopraansaxofoon",
-			replace: "Saxofoon",
-			prefix: "",
-			suffix: ""
-		},
-		{
-			find: "Baritonsaxofoon",
-			replace: "Saxofoon",
-			prefix: "",
-			suffix: ""
-		},
-		{
-			find: "Tenorsaxofoon",
-			replace: "Saxofoon",
-			prefix: "",
-			suffix: ""
-		},
-		{
-			find: "(klassiek)",
-			replace: "",
-			prefix: "K ",
-			suffix: ""
-		},
-		{
-			find: "(jazz pop rock)",
-			replace: "",
-			prefix: "JPR ",
-			suffix: ""
-		},
-		{
-			find: "(musical)",
-			replace: "",
-			prefix: "M ",
-			suffix: ""
-		},
-		{
-			find: "(musical 2e graad)",
-			replace: "(2e graad)",
-			prefix: "M ",
-			suffix: ""
-		},
-		{
-			find: "(wereldmuziek)",
-			replace: "",
-			prefix: "WM ",
-			suffix: ""
-		},
-		{
-			find: "instrumentinitiatie",
-			replace: "init",
-			prefix: "",
-			suffix: ""
-		},
-		{
-			find: "",
-			replace: "",
-			prefix: "K ",
-			suffix: ""
-		},
-		{
-			find: "K JPR ",
-			replace: "JPR ",
-			prefix: "",
-			suffix: ""
-		},
-		{
-			find: "K M ",
-			replace: "M ",
-			prefix: "",
-			suffix: ""
-		},
-		{
-			find: "K WM ",
-			replace: "WM ",
-			prefix: "",
-			suffix: ""
-		},
-		{
-			find: "K K ",
-			replace: "K ",
-			prefix: "",
-			suffix: ""
-		}
-	];
-	async function getDefaultHourSettings(schoolyear) {
-		let grades = await getDefaultGradeYears(schoolyear);
-		return {
-			version: 1,
-			schoolyear,
-			subjects: [...defaultInstruments],
-			translations: [...defaultTranslationDefs],
-			gradeYears: grades
-		};
-	}
-	function createTeacherHoursFileName(schoolyear) {
-		return "teacherHoursSetup_" + schoolyear + ".json";
-	}
-	async function saveHourSettings(hoursSetup) {
-		let fileName = createTeacherHoursFileName(hoursSetup.schoolyear);
-		return cloud.json.upload(fileName, hoursSetup);
-	}
-	async function getDefaultGradeYears(_schoolYearString) {
-		return new Promise((resolve, _reject) => {
-			resolve([
-				{
-					checked: true,
-					gradeYear: "1.1",
-					studentCount: 4
-				},
-				{
-					checked: true,
-					gradeYear: "1.2",
-					studentCount: 4
-				},
-				{
-					checked: true,
-					gradeYear: "2.1",
-					studentCount: 3
-				},
-				{
-					checked: true,
-					gradeYear: "2.2",
-					studentCount: 3
-				},
-				{
-					checked: true,
-					gradeYear: "2.3",
-					studentCount: 3
-				},
-				{
-					checked: true,
-					gradeYear: "2.4",
-					studentCount: 3
-				},
-				{
-					checked: true,
-					gradeYear: "3.1",
-					studentCount: 3
-				},
-				{
-					checked: true,
-					gradeYear: "3.2",
-					studentCount: 3
-				},
-				{
-					checked: true,
-					gradeYear: "3.3",
-					studentCount: 2
-				},
-				{
-					checked: true,
-					gradeYear: "4.1",
-					studentCount: 2
-				},
-				{
-					checked: true,
-					gradeYear: "4.2",
-					studentCount: 2
-				},
-				{
-					checked: true,
-					gradeYear: "4.3",
-					studentCount: 2
-				},
-				{
-					checked: true,
-					gradeYear: "S.1",
-					studentCount: 2
-				},
-				{
-					checked: true,
-					gradeYear: "S.2",
-					studentCount: 2
-				}
-			]);
-		});
-	}
-	//#endregion
-	//#region typescript/werklijst/prefillInstruments.ts
-	async function fetchHoursSettingsOrSaveDefault(schoolyearString, dko3_subjects) {
-		let builder = await createWerklijstBuilderWithReset(schoolyearString, "3");
-		if (!dko3_subjects) dko3_subjects = await builder.fetchAvailableSubjects();
-		let subjectNames = dko3_subjects.map((vak) => vak.name);
-		let availableSubjectSet = new Set(subjectNames);
-		let cloudSettings = await cloud.json.fetch(createTeacherHoursFileName(schoolyearString)).catch((_) => {});
-		if (!cloudSettings) {
-			let prevYearString = Schoolyear.toFullString(Schoolyear.toNumbers(schoolyearString).startYear - 1);
-			cloudSettings = await cloud.json.fetch(createTeacherHoursFileName(prevYearString)).catch((_) => {});
-			if (!cloudSettings) cloudSettings = await getDefaultHourSettings(schoolyearString);
-			else cloudSettings.schoolyear = schoolyearString;
-			await saveHourSettings(cloudSettings);
-		}
-		cloudSettings.subjects.forEach((s) => s.stillValid = availableSubjectSet.has(s.name));
-		let cloudSubjectMap = new Map(cloudSettings.subjects.map((s) => [s.name, s]));
-		for (let name of availableSubjectSet) if (!cloudSubjectMap.has(name)) cloudSubjectMap.set(name, {
-			checked: false,
-			name,
-			alias: "",
-			stillValid: true
-		});
-		cloudSettings.subjects = [...cloudSubjectMap.values()].sort((a, b) => a.name.localeCompare(b.name));
-		return cloudSettings;
-	}
-	//#endregion
-	//#region typescript/table/mailMerge.ts
-	var MailMergeTable = class {
-		table;
-		data;
-		headers;
-		infoBlock;
-		maxInschrijvingen = -1;
-		maxLessen = -1;
-		constructor(infoBlock, table) {
-			this.table = table;
-			this.infoBlock = infoBlock;
-			let headerCells = this.table.tHead.children[0].children;
-			this.headers = [...headerCells].filter((cell) => cell.style.display !== "none").map((cell) => cell.innerText);
-			let rows = table.tBodies[0].children;
-			this.data = [...rows].map((row) => [...row.cells].filter((cell) => cell.style.display !== "none").map((cell) => cell.innerText));
-			let indexVoornaam = this.headers.findIndex((header) => header == "voornaam");
-			let indexFinancierbaarheid = this.headers.findIndex((header) => header == "financierbaarheid");
-			if (indexVoornaam != -1) this.data.forEach((row) => row[indexFinancierbaarheid] = row[indexFinancierbaarheid] == "" ? "Vrij" : "");
-			this.data = this.data.filter((row) => row[indexVoornaam] != "Contactgegevens");
-		}
-		async build() {
-			this.infoBlock.infoBar.setExtraInfo("Studentengegevens ophalen...");
-			let studentTable = this.buildStudentTable();
-			this.infoBlock.infoBar.setExtraInfo("");
-			return studentTable;
-		}
-		async toHtml() {
-			let studentTable = await this.build();
-			if (!studentTable) throw "Can't create html  = student table is null.";
-			return createHtmlTable(studentTable.headers, studentTable.data).outerHTML;
-		}
-		buildStudentTable() {
-			let emailIndex = this.headers.findIndex((header) => header.toLowerCase().includes("e-mailadressen"));
-			if (emailIndex === -1) {
-				alert("Geen e-mailadressen gevonden'. Voed dit veld toe aan de lijst.");
-				return null;
+				return;
 			}
-			let dataDef = {
-				studentColumnIndexes: [],
-				inschrijvingenColumnIndexes: [],
-				lesColumnIndexes: []
-			};
-			this.headers.forEach((header, index) => {
-				if (WerklijstFieldsStudent.includes(header)) dataDef.studentColumnIndexes.push(index);
-				else if (WerklijstFieldsInschrijving.includes(header)) dataDef.inschrijvingenColumnIndexes.push(index);
-				else if (WerklijstFieldsLes.includes(header)) dataDef.lesColumnIndexes.push(index);
-			});
-			let groupedPerStudent = [];
-			this.data.forEach((row, rowIndex) => {
-				if (groupedPerStudent.length == 0) {
-					groupedPerStudent.push({
-						vestigingsPlaatsen: [],
-						allInschrijvingenRows: [rowIndex],
-						inschrijvingen: /* @__PURE__ */ new Map(),
-						lessen: "",
-						vakken: ""
-					});
-					return;
-				}
-				let baseStudentRow = this.data[groupedPerStudent[groupedPerStudent.length - 1].allInschrijvingenRows[0]];
-				if (dataDef.studentColumnIndexes.some((index) => row[index] != baseStudentRow[index])) {
-					groupedPerStudent.push({
-						vestigingsPlaatsen: [],
-						allInschrijvingenRows: [rowIndex],
-						inschrijvingen: /* @__PURE__ */ new Map(),
-						lessen: "",
-						vakken: ""
-					});
-					return;
-				}
-				groupedPerStudent[groupedPerStudent.length - 1].allInschrijvingenRows.push(rowIndex);
-			});
-			groupedPerStudent.forEach((student) => {
-				student.allInschrijvingenRows.forEach((inschrijvingRow) => {
-					let currentRow = this.data[inschrijvingRow];
-					let key = dataDef.inschrijvingenColumnIndexes.map((index) => currentRow[index]).join("|");
-					if (!student.inschrijvingen.has(key)) student.inschrijvingen.set(key, []);
-					student.inschrijvingen.get(key).push(inschrijvingRow);
+			let baseStudentRow = this.data[groupedPerStudent[groupedPerStudent.length - 1].allInschrijvingenRows[0]];
+			if (dataDef.studentColumnIndexes.some((index) => row[index] != baseStudentRow[index])) {
+				groupedPerStudent.push({
+					vestigingsPlaatsen: [],
+					allInschrijvingenRows: [rowIndex],
+					inschrijvingen: /* @__PURE__ */ new Map(),
+					lessen: "",
+					vakken: ""
 				});
+				return;
+			}
+			groupedPerStudent[groupedPerStudent.length - 1].allInschrijvingenRows.push(rowIndex);
+		});
+		groupedPerStudent.forEach((student) => {
+			student.allInschrijvingenRows.forEach((inschrijvingRow) => {
+				let currentRow = this.data[inschrijvingRow];
+				let key = dataDef.inschrijvingenColumnIndexes.map((index) => currentRow[index]).join("|");
+				if (!student.inschrijvingen.has(key)) student.inschrijvingen.set(key, []);
+				student.inschrijvingen.get(key).push(inschrijvingRow);
 			});
-			this.maxInschrijvingen = Math.max(...groupedPerStudent.map((student) => student.inschrijvingen.size));
-			this.maxInschrijvingen = Math.max(this.maxInschrijvingen, 3);
-			this.maxLessen = Math.max(...groupedPerStudent.map((student) => [...student.inschrijvingen.values()]).map((inschrijving) => inschrijving.map((lessen) => lessen.length)).flat());
-			this.maxLessen = Math.max(this.maxLessen, 5);
-			let flattendToStudent = [];
-			let flattendHeaders = [];
-			dataDef.studentColumnIndexes.forEach((colIndex) => flattendHeaders.push(this.headers[colIndex]));
-			[...new Array(this.maxInschrijvingen).keys()].forEach((inschrijvingCnt) => {
-				dataDef.inschrijvingenColumnIndexes.forEach((colIndex) => {
-					let label = `${this.headers[colIndex]}${inschrijvingCnt + 1}`;
+		});
+		this.maxInschrijvingen = Math.max(...groupedPerStudent.map((student) => student.inschrijvingen.size));
+		this.maxInschrijvingen = Math.max(this.maxInschrijvingen, 3);
+		this.maxLessen = Math.max(...groupedPerStudent.map((student) => [...student.inschrijvingen.values()]).map((inschrijving) => inschrijving.map((lessen) => lessen.length)).flat());
+		this.maxLessen = Math.max(this.maxLessen, 5);
+		let flattendToStudent = [];
+		let flattendHeaders = [];
+		dataDef.studentColumnIndexes.forEach((colIndex) => flattendHeaders.push(this.headers[colIndex]));
+		[...new Array(this.maxInschrijvingen).keys()].forEach((inschrijvingCnt) => {
+			dataDef.inschrijvingenColumnIndexes.forEach((colIndex) => {
+				let label = `${this.headers[colIndex]}${inschrijvingCnt + 1}`;
+				flattendHeaders.push(label);
+			});
+			[...new Array(this.maxLessen).keys()].forEach((lesCnt) => {
+				dataDef.lesColumnIndexes.forEach((colIndex) => {
+					let label = `${this.headers[colIndex]}${inschrijvingCnt + 1}.${lesCnt + 1}`;
 					flattendHeaders.push(label);
 				});
-				[...new Array(this.maxLessen).keys()].forEach((lesCnt) => {
-					dataDef.lesColumnIndexes.forEach((colIndex) => {
-						let label = `${this.headers[colIndex]}${inschrijvingCnt + 1}.${lesCnt + 1}`;
-						flattendHeaders.push(label);
+			});
+		});
+		let vestigingsPlaatsIndex = this.headers.findIndex((header) => header == "vestigingsplaats");
+		groupedPerStudent.forEach((student) => {
+			student.vestigingsPlaatsen = student.allInschrijvingenRows.map((row) => this.data[row][vestigingsPlaatsIndex]).filter((vestiging) => vestiging != "").reduce((acc, vestiging) => {
+				if (!acc.includes(vestiging)) acc.push(vestiging);
+				return acc;
+			}, []);
+		});
+		let maxVestigingsplaatsen = Math.max(...groupedPerStudent.map((student) => student.vestigingsPlaatsen.length));
+		maxVestigingsplaatsen = Math.max(maxVestigingsplaatsen, 3);
+		let lesNaamIndex = this.headers.findIndex((header) => header == "benaming les");
+		groupedPerStudent.forEach((student) => {
+			student.lessen = [...student.inschrijvingen.values()].map((inschrijving) => inschrijving.map((lessen) => lessen)).flat().map((rowIndex) => this.data[rowIndex][lesNaamIndex]).filter((les) => les != "").join(";");
+		});
+		let vakNaamIndex = this.headers.findIndex((header) => header == "vak: naam");
+		groupedPerStudent.forEach((student) => {
+			let vakNames = [...student.inschrijvingen.values()].map((inschrijving) => inschrijving.map((vakken) => vakken)).flat().map((rowIndex) => this.data[rowIndex][vakNaamIndex]);
+			student.vakken = [...new Set(vakNames)].filter((vak) => vak != "").join(";");
+		});
+		groupedPerStudent.forEach((student) => {
+			let row = [];
+			dataDef.studentColumnIndexes.forEach((colIndex) => row.push(this.data[student.allInschrijvingenRows[0]][colIndex]));
+			let inschrijvingen = [...student.inschrijvingen.values()];
+			[...new Array(this.maxInschrijvingen).keys()].forEach((inschrijvingCnt) => {
+				if (inschrijvingCnt < inschrijvingen.length) {
+					let inschrijvingRows = inschrijvingen[inschrijvingCnt];
+					dataDef.inschrijvingenColumnIndexes.forEach((colIndex) => row.push(this.translateMailMerge(inschrijvingRows[0], colIndex)));
+					[...new Array(this.maxLessen).keys()].forEach((lesCnt) => {
+						if (lesCnt < inschrijvingRows.length) {
+							let rowIndex = inschrijvingRows[lesCnt];
+							dataDef.lesColumnIndexes.forEach((colIndex) => row.push(this.translateMailMerge(rowIndex, colIndex)));
+						} else dataDef.lesColumnIndexes.forEach((_) => row.push(""));
 					});
-				});
-			});
-			let vestigingsPlaatsIndex = this.headers.findIndex((header) => header == "vestigingsplaats");
-			groupedPerStudent.forEach((student) => {
-				student.vestigingsPlaatsen = student.allInschrijvingenRows.map((row) => this.data[row][vestigingsPlaatsIndex]).filter((vestiging) => vestiging != "").reduce((acc, vestiging) => {
-					if (!acc.includes(vestiging)) acc.push(vestiging);
-					return acc;
-				}, []);
-			});
-			let maxVestigingsplaatsen = Math.max(...groupedPerStudent.map((student) => student.vestigingsPlaatsen.length));
-			maxVestigingsplaatsen = Math.max(maxVestigingsplaatsen, 3);
-			let lesNaamIndex = this.headers.findIndex((header) => header == "benaming les");
-			groupedPerStudent.forEach((student) => {
-				student.lessen = [...student.inschrijvingen.values()].map((inschrijving) => inschrijving.map((lessen) => lessen)).flat().map((rowIndex) => this.data[rowIndex][lesNaamIndex]).filter((les) => les != "").join(";");
-			});
-			let vakNaamIndex = this.headers.findIndex((header) => header == "vak: naam");
-			groupedPerStudent.forEach((student) => {
-				let vakNames = [...student.inschrijvingen.values()].map((inschrijving) => inschrijving.map((vakken) => vakken)).flat().map((rowIndex) => this.data[rowIndex][vakNaamIndex]);
-				student.vakken = [...new Set(vakNames)].filter((vak) => vak != "").join(";");
-			});
-			groupedPerStudent.forEach((student) => {
-				let row = [];
-				dataDef.studentColumnIndexes.forEach((colIndex) => row.push(this.data[student.allInschrijvingenRows[0]][colIndex]));
-				let inschrijvingen = [...student.inschrijvingen.values()];
-				[...new Array(this.maxInschrijvingen).keys()].forEach((inschrijvingCnt) => {
-					if (inschrijvingCnt < inschrijvingen.length) {
-						let inschrijvingRows = inschrijvingen[inschrijvingCnt];
-						dataDef.inschrijvingenColumnIndexes.forEach((colIndex) => row.push(this.translateMailMerge(inschrijvingRows[0], colIndex)));
-						[...new Array(this.maxLessen).keys()].forEach((lesCnt) => {
-							if (lesCnt < inschrijvingRows.length) {
-								let rowIndex = inschrijvingRows[lesCnt];
-								dataDef.lesColumnIndexes.forEach((colIndex) => row.push(this.translateMailMerge(rowIndex, colIndex)));
-							} else dataDef.lesColumnIndexes.forEach((_) => row.push(""));
-						});
-					} else {
-						dataDef.inschrijvingenColumnIndexes.forEach((_) => row.push(""));
-						[...new Array(this.maxLessen).keys()].forEach((_) => {
-							dataDef.lesColumnIndexes.forEach((_) => row.push(""));
-						});
-					}
-				});
-				student.vestigingsPlaatsen.forEach((vestiging) => row.push(vestiging));
-				[...new Array(maxVestigingsplaatsen - student.vestigingsPlaatsen.length).keys()].forEach((_) => row.push(""));
-				row.push(student.lessen);
-				row.push(student.vakken);
-				flattendToStudent.push(row);
-			});
-			flattendHeaders.push(...[...new Array(maxVestigingsplaatsen).keys()].map((index) => `vestigingsplaats[${index + 1}]`));
-			flattendHeaders[emailIndex] = "email";
-			flattendHeaders.push("lessen");
-			flattendHeaders.push("vakken");
-			flattendToStudent.sort((a, b) => (a[1] + a[2]).localeCompare(b[1] + b[2]));
-			let maxRow = [...flattendToStudent[0]];
-			flattendHeaders.length;
-			flattendToStudent.forEach((row) => {
-				row.forEach((cell, index) => {
-					if (cell.length > maxRow[index].length) maxRow[index] = cell;
-				});
-			});
-			maxRow[emailIndex] = "LANGSTE_TEKSTEN_PER_VELD@example.com";
-			flattendToStudent.unshift(maxRow);
-			return {
-				headers: flattendHeaders,
-				data: flattendToStudent,
-				maxVestigingsplaatsen
-			};
-		}
-		translateMailMerge(rowIndex, colIndex) {
-			let row = this.data[rowIndex];
-			this.headers[colIndex];
-			let value = row[colIndex];
-			if (this.headers[colIndex].includes("lesmoment")) value = value.replace("(wekelijks)", "").trim();
-			return value;
-		}
-	};
-	let WerklijstFieldsInschrijving = [
-		"domein",
-		"vakken (binnen de criteria)",
-		"alle vakken",
-		"instrumenten (binnen de criteria)",
-		"alle instrumenten",
-		"graad",
-		"leerjaar",
-		"graad + leerjaar",
-		"graad + leerjaar + sectie",
-		"optie",
-		"sectie",
-		"administratieve groep: naam",
-		"administratieve groep: officiële naam",
-		"administratieve groep: code",
-		"volledig vrije leerling",
-		"volledig eigen leerling",
-		"volledig vrije en/of eigen leerling",
-		"inschrijving: datum",
-		"uitschrijving: datum",
-		"uitschrijving: reden",
-		"financierbaarheid",
-		"inschrijving: einde graad",
-		"leertraject",
-		"studierichting",
-		"geslaagd (vak)",
-		"resultaat (vak)",
-		"geslaagd (globaal)",
-		"resultaat (globaal)",
-		"alternatieve leercontext",
-		"akkoord en meer: ingevuld?",
-		"akkoord en meer:  toestemming beeldmateriaal?",
-		"akkoord en meer: ingevuld op",
-		"akkoord en meer: ingevuld door",
-		"status Discimus",
-		"cursussen"
-	];
-	let WerklijstFieldsLes = [
-		"vak: naam",
-		"vak: officiële naam",
-		"vak: code",
-		"les: id",
-		"vestigingsplaats",
-		"benaming les",
-		"lesmomenten",
-		"lokaal",
-		"klasleerkracht",
-		"alle leerkrachten (zonder interims)",
-		"alle leerkrachten (met interims)"
-	];
-	let WerklijstFieldsStudent = [
-		"stamnummer",
-		"naam",
-		"voornaam",
-		"roepnaam",
-		"persoon: id",
-		"geboortedatum",
-		"geboorteplaats",
-		"geslacht",
-		"gender",
-		"rijksregisternummer",
-		"nationaliteit",
-		"opmerking personalia",
-		"leeftijd op 31 december",
-		"leeftijd op vandaag",
-		"token",
-		"is zorgleerling?",
-		"huisnummer",
-		"busnummer",
-		"postcode",
-		"gemeente",
-		"land",
-		"leefeenheid: alle leden",
-		"leefeenheid: alle actieve leden in [schooljaar]",
-		"leefeenheid: te betalen",
-		"leefeenheid: betaald",
-		"leefeenheid: saldo",
-		"e-mailadressen (gescheiden door puntkomma)",
-		"e-mailadressen marketing (gescheiden door komma)",
-		"e-mailadressen marketing (gescheiden door puntkomma)",
-		"e-mailadres van de school",
-		"telefoonnummers",
-		"mobiele nummers voor verwittiging"
-	];
-	async function fetchMailMergeData(schoolyear, infoBlock, selectedFields, fullTable, criteriaString) {
-		let stamnummers = await fetchMailMergeStudents(schoolyear, infoBlock, selectedFields, criteriaString);
-		if (stamnummers.length == 0) {
-			infoBlock.infoBar.setErrorLine("Geen studenten gevonden.");
-			return "";
-		}
-		let stamnummerSet = new Set(stamnummers);
-		let fullDataTable = await fetchMailMergeFullData(schoolyear, infoBlock);
-		let tBody = fullDataTable.tBodies[0];
-		let rowCount = tBody.rows.length;
-		for (let i = rowCount - 1; i >= 0; i--) if (!stamnummerSet.has(tBody.rows[i].cells[0].textContent)) tBody.deleteRow(i);
-		return await new MailMergeTable(infoBlock, fullDataTable).toHtml();
-	}
-	async function fetchMailMergeStudents(schoolyear, infoBlock, selectedFields, criteriaString) {
-		infoBlock.infoBar.setExtraInfo("Filter voorbereiden...");
-		let builder = await createWerklijstBuilderWithoutReset(schoolyear, "3", selectedFields, criteriaString);
-		builder.addFields([
-			FIELD.STAMNUMMER,
-			FIELD.NAAM,
-			FIELD.VOORNAAM
-		]);
-		let preparedWerklijst = await builder.sendSettings();
-		infoBlock.infoBar.setExtraInfo("Studentengegevens ophalen...");
-		let table = (await preparedWerklijst.fetchTable(new InfoBarTableFetchListener(infoBlock), false)).getTable();
-		let stamnummerIndex = [...table.tHead.rows[0].cells].map((td) => td.textContent).findIndex((header) => header.toLowerCase().includes("stamnummer"));
-		return [...table.tBodies[0].rows].map((tr) => tr.cells[stamnummerIndex].textContent);
-	}
-	async function fetchMailMergeFullData(schoolyear, infoBlock) {
-		infoBlock.infoBar.setExtraInfo("Filter voorbereiden...");
-		let builder = await createWerklijstBuilderWithReset(schoolyear, "3");
-		builder.addFields([
-			FIELD.STAMNUMMER,
-			FIELD.NAAM,
-			FIELD.VOORNAAM,
-			FIELD.LEEFTIJD_31_DEC,
-			FIELD.EMAIL_PUNTCOMMA,
-			FIELD.DOMEIN,
-			FIELD.VAK_NAAM,
-			FIELD.GRAAD,
-			FIELD.LEERJAAR,
-			FIELD.BENAMING_LES,
-			FIELD.LESMOMENTEN,
-			FIELD.KLAS_LEERKRACHT,
-			FIELD.VESTIGINGSPLAATS
-		]);
-		let preparedWerklijst = await builder.sendSettings();
-		infoBlock.infoBar.setExtraInfo("Alle lesgegevens ophalen...");
-		return (await preparedWerklijst.fetchTable(new InfoBarTableFetchListener(infoBlock), false)).getTable();
-	}
-	//#endregion
-	//#region typescript/werklijst/urenData.ts
-	var JsonCloudData = class {
-		version;
-		columns;
-		constructor() {
-			this.version = "1.0";
-			this.columns = [];
-		}
-	};
-	var CloudData = class {
-		columnMap;
-		constructor(jsonCloudData) {
-			this.#buildMapFromJsonData(jsonCloudData);
-		}
-		#buildMapFromJsonData(jsonCloudData) {
-			for (let column of jsonCloudData.columns) column.rowMap = new Map(column.rows.map((row) => [row.key, row.value]));
-			this.columnMap = new Map(jsonCloudData.columns.map((col) => [col.key, col.rowMap]));
-		}
-		toJson(colKey1, colKey2) {
-			let data = new JsonCloudData();
-			let col1 = this.#columnToJson(colKey1);
-			let col2 = this.#columnToJson(colKey2);
-			data.columns.push({
-				key: colKey1,
-				rows: col1
-			});
-			data.columns.push({
-				key: colKey2,
-				rows: col2
-			});
-			return data;
-		}
-		#columnToJson(colKey) {
-			let cells = [];
-			for (let [key, value] of this.columnMap.get(colKey)) {
-				let row = {
-					key,
-					value
-				};
-				cells.push(row);
-			}
-			return cells;
-		}
-	};
-	//#endregion
-	//#region typescript/werklijst/teacherHoursCachedState.ts
-	var TeacherHoursCachedState = class {
-		schoolYear;
-		studentRowData = null;
-		hourSettingsMapped = null;
-		fromCloud = null;
-		selectedVakNames = null;
-		allDko3Vakken = null;
-		infoBlock;
-		constructor(schoolYear, infoBlock) {
-			this.schoolYear = schoolYear;
-			this.infoBlock = infoBlock;
-		}
-		async getStudentRowData() {
-			if (!this.studentRowData) {
-				this.infoBlock.infoBar.setExtraInfo("Setup ophalen...");
-				let table = await this.fetchTeacherHours(this.schoolYear, await this.getHourSettingsMapped());
-				this.studentRowData = scrapeUren(table.rows, table.headerIndices);
-			}
-			return this.studentRowData;
-		}
-		clearStudentRowData() {
-			this.studentRowData = null;
-		}
-		async fetchTeacherHours(schooljaar, hourSettings) {
-			this.infoBlock.infoBar.setExtraInfo("Lessen ophalen...");
-			let tableNoSpec = await this.fetchHourRows(schooljaar, await this.getSelectedVakNames(), "nospec");
-			this.infoBlock.infoBar.setExtraInfo("Specialisatie lessen ophalen...");
-			let tableOnlySpec = await this.fetchHourRows(schooljaar, await this.getSelectedVakNames(), "spec");
-			await WerklijstBuilder.clear();
-			await setViewFromCurrentUrl();
-			return {
-				rows: tableNoSpec.rows.concat(tableOnlySpec.rows),
-				headerIndices: tableNoSpec.headerIndices
-			};
-		}
-		async fetchHourRows(schooljaar, vakNames, spec) {
-			let builder = await createWerklijstBuilderWithReset(schooljaar, "3");
-			builder.addCriterium("Domein", "=", ["Muziek (Mu)"]);
-			builder.addCriterium("Vak", "=", vakNames);
-			builder.addFields([
-				FIELD.NAAM,
-				FIELD.VOORNAAM,
-				FIELD.VAK_NAAM,
-				FIELD.GRAAD_LEERJAAR,
-				FIELD.KLAS_LEERKRACHT
-			]);
-			builder.addCriterium("Graad", spec == "spec" ? "=" : "!=", ["specialisatie"]);
-			let preparedBuilder = await builder.sendSettings();
-			let listener = new InfoBarTableFetchListener(this.infoBlock);
-			let table = await preparedBuilder.fetchTable(listener, true);
-			return {
-				rows: [...table.getRows()],
-				headerIndices: NamedCellTableFetchListener.getHeaderIndicesFromHeaderCells(table.getTable().tHead.rows[0].cells)
-			};
-		}
-		async getSelectedVakNames() {
-			if (!this.selectedVakNames) {
-				let selectedInstrumentNames = new Set((await this.getHourSettingsMapped()).subjects.filter((i) => i.checked).map((i) => i.name));
-				let validInstruments = (await this.getAllDko3Vakken()).filter((vak) => selectedInstrumentNames.has(vak.name));
-				this.selectedVakNames = validInstruments.map((vak) => vak.name);
-			}
-			return this.selectedVakNames;
-		}
-		async getAllDko3Vakken() {
-			if (!this.allDko3Vakken) {
-				this.infoBlock.infoBar.setExtraInfo("Beschikbare vakken ophalen...");
-				let builder = await createWerklijstBuilderWithReset(this.schoolYear, "3");
-				this.allDko3Vakken = await builder.fetchAvailableSubjects();
-			}
-			return this.allDko3Vakken;
-		}
-		async getHourSettingsMapped() {
-			if (!this.hourSettingsMapped) this.hourSettingsMapped = mapHourSettings(await fetchHoursSettingsOrSaveDefault(this.schoolYear, await this.getAllDko3Vakken()));
-			return this.hourSettingsMapped;
-		}
-		setHourSettings(hourSettings) {
-			this.hourSettingsMapped = mapHourSettings(hourSettings);
-			this.selectedVakNames = null;
-		}
-		async getFromCloud() {
-			if (!this.fromCloud) {
-				this.infoBlock.infoBar.setExtraInfo("Ingevulde uren ophalen...");
-				let jsonCloudData = await getUrenFromCloud(getUrenVakLeraarFileName(this.schoolYear));
-				this.fromCloud = new CloudData(jsonCloudData);
-			}
-			return this.fromCloud;
-		}
-	};
-	async function getUrenFromCloud(fileName) {
-		try {
-			return await cloud.json.fetch(fileName);
-		} catch (e) {
-			return new JsonCloudData();
-		}
-	}
-	//#endregion
-	//#region typescript/werklijst/observer.ts
-	const TARGET_BUTTON_ID = "#tablenav_leerlingen_werklijst_top > div > div.btn-group.btn-group-sm.datatable-buttons > button:nth-child(1)";
-	registerChecksumHandler(WERKLIJST_TABLE_ID, (tableDef) => {
-		let fields = [...NamedCellTableFetchListener.getHeaderIndices(tableDef.tableRef.getOrgTableContainer())].map(([key, value]) => key);
-		return (document.querySelector("#view_contents > div.alert.alert-info")?.textContent.replace("Criteria aanpassen", "")?.replace("Criteria:", "") ?? "") + "__" + fields.join("_");
-	});
-	var WerklijstObserver = class extends HashObserver {
-		constructor() {
-			super("#leerlingen-werklijst", onMutation$3, false, onPageReallyLoaded);
-		}
-		isPageReallyLoaded() {
-			return isPageReallyLoaded();
-		}
-	};
-	let observer = new WerklijstObserver();
-	let pageIncarnationChanged = true;
-	window.addEventListener("hashchange", () => {
-		pageIncarnationChanged = true;
-		document.getElementById("view_contents").classList.remove("hideWerklijst");
-	});
-	function isPageReallyLoaded() {
-		if (document.querySelector("#btn_leerling_werklijst_maken")) return true;
-		if (document.getElementById("tablenav_leerlingen_werklijst_bottom") && document.querySelector(TARGET_BUTTON_ID)) return true;
-		return false;
-	}
-	function onPageReallyLoaded() {
-		onAnyChangeEvent();
-	}
-	function onAnyChangeEvent() {
-		if (!pageIncarnationChanged) return;
-		pageIncarnationChanged = false;
-		console.log("onAnyChangeEvent");
-		if (document.querySelector("#btn_leerling_werklijst_maken")) onCriteriaShown();
-		else if (document.getElementById("tablenav_leerlingen_werklijst_bottom")) onResultsShown();
-	}
-	function onMutation$3(mutation) {
-		console.log("onMutation");
-		tryUntilThen(isPageReallyLoaded, onAnyChangeEvent);
-		return true;
-	}
-	async function gotoWerklijst() {
-		let pageState = getGotoStateOrDefault("Werklijst");
-		pageState.goto = "";
-		saveGotoState(pageState);
-		location.href = "#leerlingen-werklijst";
-		location.reload();
-	}
-	function addHoursViewButtons(infoBlock) {
-		let buttonBar = document.querySelector("#pluginContainer .werklijstButtonWrapper");
-		addHoursButtons(buttonBar, infoBlock);
-		addButton$1(buttonBar, UREN_REFRESH_BTN_ID, "Refresh", async () => {
-			await reload();
-		}, "fa-refresh", ["btn", "btn-outline-dark"], "Refresh ", "beforeend");
-		addButton$1(buttonBar, GOTO_WERKLIJST_BTN_ID, "Werklijst", gotoWerklijst, "", [
-			"btn",
-			"btn-outline-dark",
-			"flexRight"
-		], "Werklijst", "beforeend");
-	}
-	async function reload() {
-		if (!globals) return;
-		document.getElementById(HOURS_TABLE_ID)?.remove();
-		globals = new TeacherHoursCachedState(globals.schoolYear, getInfoBlock());
-		await fetchAndShowTeacherHours(globals.schoolYear, getInfoBlock());
-	}
-	function checkStateAndGotoTeacherHours(infoBlock) {
-		let pageState = getGotoStateOrDefault("Werklijst");
-		let year = Schoolyear.calculateSetupYear();
-		let prevSchoolyear = Schoolyear.toFullString(year - 1);
-		let nextSchoolyear = Schoolyear.toFullString(year);
-		if (pageState.goto == "Werklijst_uren_prevYear") {
-			showHoursView(prevSchoolyear, infoBlock).then(() => {});
-			return true;
-		}
-		if (pageState.goto == "Werklijst_uren_nextYear") {
-			showHoursView(nextSchoolyear, infoBlock).then(() => {});
-			return true;
-		}
-		return false;
-	}
-	function addHoursButtons(buttonBar, infoBlock) {
-		document.getElementById(UREN_PREV_BTN_ID)?.remove();
-		document.getElementById(UREN_NEXT_BTN_ID)?.remove();
-		document.getElementById(UREN_PREV_SETUP_BTN_ID)?.remove();
-		let schoolYear = Schoolyear.getHighestAvailable();
-		if (!schoolYear) {
-			alert("Geen schooljaar gevonden!");
-			return;
-		}
-		let year = parseInt(schoolYear);
-		let prevSchoolyear = Schoolyear.toFullString(year - 1);
-		let nextSchoolyear = Schoolyear.toFullString(year);
-		let prevSchoolyearShort = Schoolyear.toShortString(year - 1);
-		let nextSchoolyearShort = Schoolyear.toShortString(year);
-		addButton$1(buttonBar, UREN_PREV_BTN_ID, "Toon lerarenuren voor " + prevSchoolyear, async () => {
-			await showHoursView(prevSchoolyear, infoBlock);
-		}, "", ["btn", "btn-outline-dark"], "Uren " + prevSchoolyearShort, "beforeend");
-		addButton$1(buttonBar, UREN_NEXT_BTN_ID, "Toon lerarenuren voor " + nextSchoolyear, async () => {
-			await showHoursView(nextSchoolyear, infoBlock);
-		}, "", ["btn", "btn-primary"], "Uren " + nextSchoolyearShort, "beforeend");
-		addButton$1(buttonBar, UREN_PREV_SETUP_BTN_ID, "Setup voor " + nextSchoolyear, async () => {
-			await showUrenSetup(nextSchoolyear);
-		}, "", ["btn", "btn-outline-dark"], "", "beforeend", "gear.svg");
-	}
-	async function showHoursView(schoolYaar, infoBlock) {
-		addHoursViewButtons(infoBlock);
-		await fetchAndShowTeacherHours(schoolYaar, infoBlock);
-	}
-	function addPluginContainer() {
-		let viewContents = document.getElementById("view_contents");
-		let container = emmet.appendChild(viewContents, "div#pluginContainer").first;
-		emmet.appendChild(container, `div.d-flex.werklijstButtonWrapper`);
-		emmet.appendChild(container, "h4");
-		return createInfoBlock(container, "");
-	}
-	function onResultsShown() {
-		console.log("onResultsShown");
-		if (checkStateAndGotoTeacherHours(addPluginContainer())) return;
-		addButtons();
-		decorateTableHeader(document.querySelector("table#" + WERKLIJST_TABLE_ID), true);
-	}
-	function onCriteriaShown() {
-		console.log("onCriteriaShown");
-		let infoBlock = addPluginContainer();
-		if (checkStateAndGotoTeacherHours(infoBlock)) return;
-		let pageState = getGotoStateOrDefault("Werklijst");
-		pageState.werklijstTableName = "";
-		saveGotoState(pageState);
-		let btnWerklijstMakenWrapper = document.querySelector(BTN_WERKLIJST_MAKEN_WRAPPER_ID);
-		if (btnWerklijstMakenWrapper) return;
-		let btnWerklijstMaken = document.querySelector(BTN_WERKLIJST_MAKEN_ID);
-		btnWerklijstMakenWrapper = emmet.insertBefore(btnWerklijstMaken, `div${BTN_WERKLIJST_MAKEN_WRAPPER_ID}.werklijstButtonWrapper`).first;
-		addHoursButtons(btnWerklijstMakenWrapper, infoBlock);
-		addButton$1(btnWerklijstMaken, WERKLIJST_MAILMERGE_BTN_ID, "Mail merge", async () => {
-			await mailMergeStartSchoolyear();
-		}, "", ["btn", "btn-outline-dark"], "Mailmerge");
-		document.getElementById("btn_leerling_werklijst_reset").addEventListener("click", resetPageIncarnationChangedFlag);
-		getSchoolIdString();
-	}
-	function resetPageIncarnationChangedFlag() {
-		pageIncarnationChanged = true;
-	}
-	chrome.runtime.onMessage.addListener(onMessage);
-	async function onMessage(request, _sender, sendResponse) {
-		if (request.senderTabType != "HoursSettings") return;
-		switch (request.action) {
-			case "request_tab_data":
-				console.log("Requesting tab data", request.data);
-				let setup = await fetchHoursSettingsOrSaveDefault(request.data.params.schoolYear);
-				console.log(setup);
-				await sendMessageToHoursSettings("tab_data", setup);
-				return;
-			case "open_hours_settings_changed":
-				await onHoursSettingsChanged(request);
-				return;
-		}
-	}
-	let isRefreshing = false;
-	let refreshRequested = false;
-	setInterval(checkAndRefresh, 500);
-	async function refresh(hourSettings) {
-		if (isRefreshing) return;
-		if (!globals) return;
-		isRefreshing = true;
-		refreshRequested = false;
-		if (!hourSettings) hourSettings = await fetchHoursSettingsOrSaveDefault(globals.schoolYear);
-		let equalSelectedSubjects = arrayIsEqual(hourSettings.subjects.filter((s) => s.checked).map((s) => s.name), (await globals.getHourSettingsMapped()).subjects.filter((s) => s.checked).map((s) => s.name));
-		globals.setHourSettings(hourSettings);
-		if (equalSelectedSubjects) rebuildHoursTable(await globals.getStudentRowData(), await globals.getHourSettingsMapped(), await globals.getFromCloud(), getInfoBlock());
-		else {
-			globals.clearStudentRowData();
-			await fetchAndShowTeacherHours(hourSettings.schoolyear, getInfoBlock());
-		}
-		isRefreshing = false;
-	}
-	async function onHoursSettingsChanged(request) {
-		if (isRefreshing) {
-			refreshRequested = true;
-			return;
-		}
-		await refresh(request.data);
-	}
-	async function checkAndRefresh() {
-		if (!refreshRequested) return;
-		if (!globals) return;
-		await refresh(null);
-	}
-	async function showUrenSetup(schoolyear) {
-		globalHoursSettingsTabId = (await openHoursSettings(schoolyear)).tabId;
-	}
-	let globalHoursSettingsTabId;
-	async function sendMessageToHoursSettings(action, data) {
-		return sendRequest(action, "Main", "HoursSettings", globalHoursSettingsTabId, data);
-	}
-	function addButtons() {
-		addButton$1(document.querySelector(TARGET_BUTTON_ID), MAIL_BTN_ID, "Email to clipboard", onClickCopyEmails, "fa-envelope", ["btn", "btn-outline-info"]);
-	}
-	function onClickCopyEmails() {
-		let namedCellListener = new NamedCellTableFetchListener(["e-mailadressen"], (_tableDef1) => {
-			navigator.clipboard.writeText("").then((_value) => {
-				console.log("Clipboard cleared.");
-			});
-		});
-		let result = createDefaultTableRefAndInfoBlock();
-		if ("error" in result) {
-			console.error(result.error);
-			return;
-		}
-		let { tableRef, infoBlock } = result.result;
-		let result2 = createDefaultTableFetcher(tableRef, infoBlock);
-		if ("error" in result2) {
-			console.error(result2.error);
-			return;
-		}
-		let { tableFetcher } = result2.result;
-		tableFetcher.addListener(namedCellListener);
-		tableFetcher.fetch().then((fetchedTable) => {
-			let flattened = fetchedTable.getRowsAsArray().map((tr) => namedCellListener.getColumnText(tr, "e-mailadressen")).map((emails) => emails.split(/[,;]/)).flat().filter((email) => !email.includes("@academiestudent.be")).filter((email) => email !== "");
-			flattened = [...new Set(flattened)];
-			navigator.clipboard.writeText(flattened.join(";\n")).then(() => infoBlock.infoBar.setTempMessage("Alle emails zijn naar het clipboard gekopieerd. Je kan ze plakken in Outlook."));
-		}).catch((reason) => {
-			console.log("Loading failed (gracefully.");
-			console.log(reason);
-		});
-	}
-	let globals = null;
-	async function rebuildHoursTableAfterFetch(schoolYear, infoBlock) {
-		if (globals?.schoolYear != schoolYear) globals = new TeacherHoursCachedState(schoolYear, infoBlock);
-		rebuildHoursTable(await globals.getStudentRowData(), await globals.getHourSettingsMapped(), await globals.getFromCloud(), infoBlock);
-	}
-	async function mailMergeStartSchoolyear() {
-		let schoolyear = Schoolyear.findInPage();
-		if (!schoolyear) {
-			alert("Geen schooljaar gevonden!");
-			return;
-		}
-		let infoBlock = createInfoBlock(document.getElementById("div_leerling_werklijst_footer").insertAdjacentElement("afterend", document.createElement("div")), "");
-		let text = await fetchMailMergeData(schoolyear, infoBlock, scrapeSelectedFieldIndexes(), hasWerklijstNoCriteria(), scrapeCriteria());
-		if (text != "") {
-			copyToClipboardOrRequestRetry(infoBlock.infoBar, text);
-			infoBlock.infoBar.setInfoLine("HERLAAD WEBPAGINA VOOR JE OPNIEUW EEN MAILMERGE DOET! (sorry)");
-		}
-	}
-	async function fetchAndShowTeacherHours(schooljaar, infoBlock) {
-		document.getElementById("view_contents").classList.add("hideWerklijst");
-		let divOverView = document.getElementById("div_leerlingen_werklijst_overview");
-		divOverView.style.display = "none";
-		let title = document.querySelector("#pluginContainer h4");
-		title.textContent = "Lerarenuren voor schooljaar " + schooljaar;
-		await rebuildHoursTableAfterFetch(schooljaar, infoBlock);
-	}
-	//#endregion
-	//#region typescript/vakgroep/observer.ts
-	var VakGroepObserver = class extends HashObserver {
-		constructor() {
-			super("#extra-inschrijvingen-vakgroepen-vakgroep", onMutation$2);
-		}
-		isPageReallyLoaded() {
-			return document.getElementById("div_table_vakgroepen_vakken") != null;
-		}
-	};
-	var observer_default$3 = new VakGroepObserver();
-	function onMutation$2(mutation) {
-		let divVakken = document.getElementById("div_table_vakgroepen_vakken");
-		if (mutation.target !== divVakken) return false;
-		onVakgroepChanged(divVakken);
-		return true;
-	}
-	const TXT_FILTER_ID = "txtFilter";
-	let savedSearch = "";
-	function onVakgroepChanged(divVakken) {
-		let table = divVakken.querySelector("table");
-		if (!document.getElementById(TXT_FILTER_ID)) table.parentElement.insertBefore(createSearchField(TXT_FILTER_ID, onSearchInput, savedSearch), table);
-		onSearchInput();
-	}
-	function onSearchInput() {
-		savedSearch = document.getElementById(TXT_FILTER_ID).value;
-		function getRowText(tr) {
-			let instrumentName = tr.cells[0].querySelector("label").textContent.trim();
-			let strong = tr.cells[0].querySelector("strong")?.textContent.trim();
-			return instrumentName + " " + strong;
-		}
-		let rowFilter = createTextRowFilter(savedSearch, getRowText);
-		filterTable(document.querySelector("#div_table_vakgroepen_vakken table"), rowFilter);
-	}
-	//#endregion
-	//#region typescript/verwittigen/observer.ts
-	var VerwittigenObserver = class extends HashObserver {
-		constructor() {
-			super("#leerlingen-verwittigen", onMutation$1);
-		}
-		isPageReallyLoaded() {
-			return document.getElementById("leerlingen_verwittigen_bericht_sjabloon") != null;
-		}
-	};
-	var observer_default$2 = new VerwittigenObserver();
-	const CHAR_COUNTER = "charCounterClass";
-	const COUNTER_ID = "charCounter";
-	function onMutation$1(_mutation) {
-		let txtSms = document.getElementById("leerlingen_verwittigen_bericht_sjabloon");
-		if (txtSms && !txtSms?.classList.contains(CHAR_COUNTER)) {
-			txtSms.classList.add(CHAR_COUNTER);
-			txtSms.addEventListener("input", onSmsChanged);
-			let span = document.createElement("span");
-			span.id = COUNTER_ID;
-			txtSms.parentElement.appendChild(span);
-			onSmsChanged(void 0);
-		}
-		return true;
-	}
-	function onSmsChanged(_event) {
-		let txtSms = document.getElementById("leerlingen_verwittigen_bericht_sjabloon");
-		let spanCounter = document.getElementById(COUNTER_ID);
-		spanCounter.textContent = txtSms.value.length.toString();
-	}
-	//#endregion
-	//#region typescript/aanwezigheden/observer.ts
-	var AanwezighedenObserver = class extends HashObserver {
-		constructor() {
-			super("#leerlingen-lijsten-awi-percentages_leerling_vak", onMutationAanwezgheden);
-		}
-		isPageReallyLoaded() {
-			return document.getElementById("table_lijst_awi_percentages_leerling_vak_table") != null;
-		}
-	};
-	var observer_default$1 = new AanwezighedenObserver();
-	function onMutationAanwezgheden(_mutation) {
-		if (!document.getElementById("table_lijst_awi_percentages_leerling_vak_table")) return false;
-		let navigationBars = getBothToolbars();
-		if (!navigationBars) return false;
-		addTableNavigationButton(navigationBars, COPY_TABLE_BTN_ID, "copy table to clipboard", copyTable, "fa-clipboard");
-		return true;
-	}
-	async function copyTable() {
-		let result = createDefaultTableRefAndInfoBlock();
-		if ("error" in result) {
-			console.error(result.error);
-			return;
-		}
-		let { tableRef, infoBlock } = result.result;
-		let result2 = createDefaultTableFetcher(tableRef, infoBlock);
-		if ("error" in result2) {
-			console.error(result2.error);
-			return;
-		}
-		let { tableFetcher, infoBarListener } = result2.result;
-		infoBlock.infoBar.setExtraInfo("Fetching 3-weken data...");
-		let wekenLijst = await getTableFromHash("leerlingen-lijsten-awi-3weken", true, infoBarListener).then((bckTableDef) => {
-			return bckTableDef.getRowsAsArray().map((row) => {
-				let namen = row.cells[0].textContent.split(", ");
-				return {
-					naam: namen[0],
-					voornaam: namen[1],
-					weken: parseInt(row.cells[2].textContent)
-				};
-			});
-		});
-		console.log(wekenLijst);
-		infoBlock.infoBar.setExtraInfo("Fetching attesten...");
-		let attestenLijst = await getTableFromHash("leerlingen-lijsten-awi-ontbrekende_attesten", true, infoBarListener).then((bckTableDef) => {
-			return bckTableDef.getRowsAsArray().map((tr) => {
-				return {
-					datum: tr.cells[0].textContent,
-					leerling: tr.cells[1].textContent,
-					vak: tr.cells[2].textContent,
-					leraar: tr.cells[3].textContent,
-					reden: tr.cells[4].textContent
-				};
-			});
-		});
-		console.log(attestenLijst);
-		infoBlock.infoBar.setExtraInfo("Fetching afwezigheidscodes...");
-		let pList = await getTableFromHash("leerlingen-lijsten-awi-afwezigheidsregistraties", true, infoBarListener).then((bckTableDef) => {
-			return bckTableDef.getRowsAsArray().map((row) => {
-				let namen = row.cells[1].querySelector("strong").textContent.split(", ");
-				let vak = reduceVaknaam(Array.from(row.cells[1].childNodes).filter((node) => node.nodeType === Node.TEXT_NODE).map((node) => node.textContent).join("").substring(3));
-				let leraar = row.cells[1].querySelector("small").textContent.substring(16);
-				return {
-					naam: namen[0],
-					voornaam: namen[1],
-					code: row.cells[2].textContent[0],
-					vak,
-					leraar
-				};
-			});
-		});
-		console.log(pList);
-		tableFetcher.clearCache();
-		tableFetcher.fetch().then((fetchedTable) => {
-			let wekenMap = /* @__PURE__ */ new Map();
-			for (let week of wekenLijst) wekenMap.set(week.naam + "," + week.voornaam, week);
-			let rowsArray = fetchedTable.getRowsAsArray();
-			let text = "data:" + (/* @__PURE__ */ new Date()).toLocaleDateString() + "\n";
-			let aanwList = rowsArray.map((row) => {
-				let percentFinancierbaar = parseFloat(row.cells[1].querySelector("strong")?.textContent?.replace(",", ".") ?? "0") / 100;
-				let percentTotaal = parseFloat(row.cells[2].querySelector("strong")?.textContent?.replace(",", ".") ?? "0") / 100;
-				let vak = row.cells[0].querySelector("br")?.nextSibling?.textContent ?? "";
-				let namen = row.cells[0].querySelector("strong")?.textContent.split(", ") ?? [];
-				let aanw = {
-					naam: namen[0],
-					voornaam: namen[1],
-					vak,
-					vakReduced: reduceVaknaam(vak),
-					percentFinancierbaar,
-					percentTotaal,
-					percentFinancierbaarAP: 0,
-					percentTotaalAP: 0,
-					weken: "",
-					codeP: 0
-				};
-				let week = wekenMap.get(aanw.naam + "," + aanw.voornaam);
-				if (week) {
-					if (aanw.weken) aanw.weken += " + " + week.weken;
-					else aanw.weken = week.weken.toString();
+				} else {
+					dataDef.inschrijvingenColumnIndexes.forEach((_) => row.push(""));
+					[...new Array(this.maxLessen).keys()].forEach((_) => {
+						dataDef.lesColumnIndexes.forEach((_) => row.push(""));
+					});
 				}
-				return aanw;
 			});
-			let studentVakPees = /* @__PURE__ */ new Map();
-			let leraarPees = /* @__PURE__ */ new Map();
-			pList.filter((line) => line.code === "P").forEach((p) => {
-				studentVakPees.set(p.naam + "," + p.voornaam + "," + p.vak, (studentVakPees.get(p.naam + "," + p.voornaam + "," + p.vak) ?? 0) + 1);
-				leraarPees.set(p.leraar, (leraarPees.get(p.leraar) ?? 0) + 1);
-			});
-			console.log(studentVakPees);
-			console.log(leraarPees);
-			aanwList.forEach((aanw) => {
-				let newP = studentVakPees.get(aanw.naam + "," + aanw.voornaam + "," + aanw.vakReduced) ?? 0;
-				if (newP > aanw.codeP) aanw.codeP = newP;
-			});
-			aanwList.forEach((aanw) => {
-				text += "lln: " + aanw.naam + "," + aanw.voornaam + "," + aanw.vakReduced + "," + aanw.percentFinancierbaar + "," + aanw.weken + "," + aanw.codeP + "\n";
-			});
-			leraarPees.forEach((leraarP, key) => {
-				text += "leraar: " + key + "," + leraarP + "\n";
-			});
-			attestenLijst.forEach((attest) => {
-				text += "attest: " + attest.datum + "," + attest.leerling + "," + attest.vak + "," + attest.leraar + "," + attest.reden + "\n";
-			});
-			console.log(text);
-			window.sessionStorage.setItem(AANW_LIST, text);
-			aanwezighedenToClipboard(infoBlock.infoBar);
-			tableFetcher.tableRef.getOrgTableContainer().querySelector("tbody").replaceChildren(...fetchedTable.getRows());
+			student.vestigingsPlaatsen.forEach((vestiging) => row.push(vestiging));
+			[...new Array(maxVestigingsplaatsen - student.vestigingsPlaatsen.length).keys()].forEach((_) => row.push(""));
+			row.push(student.lessen);
+			row.push(student.vakken);
+			flattendToStudent.push(row);
 		});
-	}
-	function aanwezighedenToClipboard(infoBar) {
-		let text = window.sessionStorage.getItem(AANW_LIST);
-		if (!text) {
-			infoBar.setExtraInfo("No text to copy to clipboard!!! <a id=copy_again href='javascript:void(0);'>Kopieer opnieuw</a>", COPY_AGAIN, () => {
-				aanwezighedenToClipboard(infoBar);
+		flattendHeaders.push(...[...new Array(maxVestigingsplaatsen).keys()].map((index) => `vestigingsplaats[${index + 1}]`));
+		flattendHeaders[emailIndex] = "email";
+		flattendHeaders.push("lessen");
+		flattendHeaders.push("vakken");
+		flattendToStudent.sort((a, b) => (a[1] + a[2]).localeCompare(b[1] + b[2]));
+		let maxRow = [...flattendToStudent[0]];
+		flattendHeaders.length;
+		flattendToStudent.forEach((row) => {
+			row.forEach((cell, index) => {
+				if (cell.length > maxRow[index].length) maxRow[index] = cell;
 			});
-			return;
-		}
-		copyToClipboardOrRequestRetry(infoBar, text);
-	}
-	function reduceVaknaam(vaknaam) {
-		return reduceVaknaamStep1(vaknaam).replace("orkestslagwerk", "slagwerk").replace("jazz pop rock)", "JPR").replace("koor", "GM").replace(": musical", "").replace(" (musical)", "");
-	}
-	function reduceVaknaamStep1(vaknaam) {
-		vaknaam = vaknaam.toLowerCase();
-		if (vaknaam.includes("culturele vorming")) {
-			if (vaknaam.includes("3.")) return "ML";
-			else return "MA";
-		}
-		if (vaknaam.includes("uziekatelier")) return "MA";
-		if (vaknaam.includes("uzieklab")) return "ML";
-		if (vaknaam.includes("roepsmusiceren")) return "GM";
-		if (vaknaam.includes("theorie")) return "MT";
-		if (vaknaam.includes("geleidingspraktijk")) return "BP";
-		if (vaknaam.includes("oordatelier")) return "WA";
-		if (vaknaam.includes("oordlab")) return "WL";
-		if (vaknaam.includes("mprovisatie")) return "impro";
-		if (vaknaam.includes("omeinoverschrijdende")) return "KB";
-		if (vaknaam.includes("unstenbad")) return "KB";
-		if (vaknaam.includes("ramalab")) return "DL";
-		if (vaknaam.includes("oordstudio")) return "WS";
-		if (vaknaam.includes("ramastudio")) return "DS";
-		if (vaknaam.includes("ompositie")) return "compositie";
-		if (vaknaam.includes(" saz")) return "saz";
-		if (vaknaam.includes("instrument: klassiek: ")) {
-			let matches = vaknaam.match(/instrument: klassiek: (\S*)/);
-			if (matches && matches.length > 1) return matches[1];
-			else return vaknaam;
-		}
-		if (vaknaam.includes("instrument: jazz-pop-rock: ")) {
-			let matches = vaknaam.match(/instrument: jazz-pop-rock: (\S*)/);
-			if (matches && matches.length > 1) {
-				if (matches[1].includes("elektrische")) return "gitaar JPR";
-				else return matches[1] + " JPR";
-			} else return vaknaam;
-		}
-		if (vaknaam.includes("rrangeren") || vaknaam.includes("opname") || vaknaam.includes("electronics")) return "elektronische muziek";
-		let matches = vaknaam.match(/(.*).•./);
-		if (matches && matches.length > 1) return matches[1];
-		return "??";
-	}
-	//#endregion
-	//#region typescript/afwezigheden/observer.ts
-	var AfwezighedenObserver = class extends ExactHashObserver {
-		constructor() {
-			super("#extra-tickets?h=afwezigheden", onMutation, true);
-		}
-		isPageReallyLoaded() {
-			if (document.getElementById("ticket_payload")) return true;
-			if (document.getElementById("dko3_modal_contents")) return true;
-			if (document.getElementById("div_tickets_afwezigheid_toevoegen_leerling")) return true;
-			return false;
-		}
-	};
-	var observer_default = new AfwezighedenObserver();
-	function onMutation(mutation) {
-		if (mutation.target === document.getElementById("ticket_payload")) {
-			onTicket();
-			return true;
-		}
-		if (mutation.target === document.getElementById("dko3_modal_contents")) {
-			onAddMelding();
-			return true;
-		}
-		if (mutation.target === document.getElementById("div_tickets_afwezigheid_toevoegen_leerling") && mutation.addedNodes.length > 0) {
-			setTimeout(gotoVolgende, 10);
-			return true;
-		}
-		return false;
-	}
-	function gotoVolgende() {
-		if (document.querySelector("#div_tickets_afwezigheid_toevoegen_leerling table").querySelectorAll("i.fa-square").length === 1) {
-			document.querySelector(".tr-ticket-afwezigheidsmelding-leerling").click();
-			document.getElementById("btn_opslaan_tickets_afwezigheid_toevoegen").click();
-		}
-	}
-	function addMatchingStudents() {
-		let leerlingLabel = document.querySelector("#form_field_tickets_afwezigheid_toevoegen_leerling_zoeken > label");
-		if (leerlingLabel && !leerlingLabel.dataset.filled) {
-			leerlingLabel.dataset.filled = "true";
-			leerlingLabel.textContent = "Leerling:   reeds gevonden: ";
-			let target = leerlingLabel;
-			for (let lln of matchingLeerlingen) {
-				let anchorClasses = lln.winner ? ".bold" : "";
-				let hook = (el) => {
-					if (!(el instanceof HTMLElement)) return;
-					if (el.tagName == "A") el.onclick = () => fillAndClick(lln.name);
-				};
-				target = emmet.insertAfter(target, `a[href="#"].leerlingLabel${anchorClasses}{${lln.name}}`, void 0, hook).first;
-			}
-		}
-	}
-	function addEmailText() {
-		let emailDiv = emmet.appendChild(document.querySelector("div.modal-body"), "div>button#btnShowEmail{Show email}.btn.btn-sm.btn-outline-success+div#showEmail.collapsed").last;
-		emailDiv.innerHTML = currentEmailHtml;
-		document.getElementById("btnShowEmail").addEventListener("click", showEmail);
-	}
-	function showEmail() {
-		document.getElementById("showEmail").classList.toggle("collapsed");
-	}
-	function onAddMelding() {
-		addMatchingStudents();
-		addEmailText();
-	}
-	function fillAndClick(name) {
-		let formDiv = document.querySelector("#form_field_tickets_afwezigheid_toevoegen_leerling_zoeken");
-		let input = formDiv.querySelector("input");
-		input.value = name;
-		formDiv.querySelector("button").click();
-		return false;
-	}
-	let matchingLeerlingen = [];
-	let currentEmailHtml = "";
-	async function onTicket() {
-		let card_bodyDiv = document.querySelector(".card-body");
-		if (!card_bodyDiv) return;
-		let emailText = card_bodyDiv.textContent;
-		currentEmailHtml = card_bodyDiv.innerHTML;
-		let matches = [...emailText.matchAll(rxEmail)];
-		let uniqueEmails = [...new Set(matches.map((match) => match[0]))];
-		let { email: myEmail } = whoAmI();
-		uniqueEmails = uniqueEmails.filter((m) => m != myEmail);
-		console.log(uniqueEmails);
-		let template = document.createElement("div");
-		template.innerHTML = await fetchStudentsSearch(uniqueEmails.join(" "));
-		matchingLeerlingen = [...template.querySelectorAll("td")].map((td) => {
-			let id = td.querySelector("small").textContent;
-			let name = td.querySelector("strong").textContent;
-			setViewFromCurrentUrl();
-			return {
-				id,
-				name,
-				weight: 0,
-				winner: false
-			};
 		});
-		findUniqueMatch(emailText, matchingLeerlingen);
-	}
-	function findUniqueMatch(emailText, matchingLeerlingen) {
-		if (matchingLeerlingen.length === 1) {
-			matchingLeerlingen[0].winner = true;
-			return;
-		}
-		let strippedText = emailText.replaceAll("\n", " ").replaceAll("\r", " ");
-		let mailLowerCase = strippedText.toLowerCase();
-		for (let lln of matchingLeerlingen) {
-			let nameParts = lln.name.split(" ");
-			for (let namePart of nameParts) {
-				if (strippedText.includes(" " + namePart + " ")) lln.weight++;
-				if (mailLowerCase.includes(" " + namePart.toLowerCase() + " ")) lln.weight++;
-			}
-		}
-		matchingLeerlingen.sort((a, b) => b.weight - a.weight);
-		if (matchingLeerlingen[0].weight > matchingLeerlingen[1].weight) matchingLeerlingen[0].winner = true;
-	}
-	//#endregion
-	//#region typescript/pages/observer.ts
-	var ExtraInschrijvingenObserver = class extends ExactHashObserver {
-		constructor() {
-			super("#extra-inschrijvingen", onMutationExtraInschrijvingen);
-		}
-		isPageReallyLoaded() {
-			return document.querySelector("#view_contents > div:nth-child(3) > div:nth-child(3) > div.card.mb-2.shadow-sm > div > a:nth-child(11)") != null;
-		}
-	};
-	let extraInschrijvingenObserver = new ExtraInschrijvingenObserver();
-	let allLijstenObserver = new MenuScrapingObserver("#leerlingen-lijsten", "Lijsten", "Lijsten > ", "#div_leerlingen_lijsten");
-	let financialObserver = new MenuScrapingObserver("#extra-financieel", "Financieel", "Financieel > ", "#view_contents > div:nth-child(2) > div:nth-child(3) > div:nth-child(2) > div > a:nth-child(8)");
-	let assetsObserver = new MenuScrapingObserver("#extra-assets", "Assets", "Assets > ", "#view_contents > div:nth-child(2) > div:nth-child(2) > div > div > a:nth-child(10)");
-	let evaluatieObserver = new MenuScrapingObserver("#extra-evaluatie", "Evaluatie", "Evaluatie > ", "#view_contents > div:nth-child(3) > div:nth-child(3) > div:nth-child(3) > div > a:nth-child(10)");
-	let academieMenuObserver = new MenuScrapingObserver("#extra-academie", "Academie", "Academie > ", "#view_contents > div:nth-child(2) > div:nth-child(3) > div:nth-child(2) > div > a:nth-child(12)");
-	function onMutationExtraInschrijvingen(_mutation) {
-		saveQueryItems("ExtraInschrijvingen", scrapeMenuPage("Inschrijvingen > ", inschrijvingenLinkToQueryItem));
-		return true;
-	}
-	function inschrijvingenLinkToQueryItem(headerLabel, link, longLabelPrefix) {
-		let label = link.textContent.trim();
-		let longLabel = longLabelPrefix + headerLabel + " > " + label;
-		if (label.toLowerCase().includes("inschrijving")) longLabel = headerLabel + " > " + label;
-		return createQueryItem(headerLabel, label, link.href, void 0, longLabel);
-	}
-	//#endregion
-	//#region node_modules/idb/build/index.js
-	const instanceOfAny = (object, constructors) => constructors.some((c) => object instanceof c);
-	let idbProxyableTypes;
-	let cursorAdvanceMethods;
-	function getIdbProxyableTypes() {
-		return idbProxyableTypes || (idbProxyableTypes = [
-			IDBDatabase,
-			IDBObjectStore,
-			IDBIndex,
-			IDBCursor,
-			IDBTransaction
-		]);
-	}
-	function getCursorAdvanceMethods() {
-		return cursorAdvanceMethods || (cursorAdvanceMethods = [
-			IDBCursor.prototype.advance,
-			IDBCursor.prototype.continue,
-			IDBCursor.prototype.continuePrimaryKey
-		]);
-	}
-	const transactionDoneMap = /* @__PURE__ */ new WeakMap();
-	const transformCache = /* @__PURE__ */ new WeakMap();
-	const reverseTransformCache = /* @__PURE__ */ new WeakMap();
-	function promisifyRequest(request) {
-		const promise = new Promise((resolve, reject) => {
-			const unlisten = () => {
-				request.removeEventListener("success", success);
-				request.removeEventListener("error", error);
-			};
-			const success = () => {
-				resolve(wrap(request.result));
-				unlisten();
-			};
-			const error = () => {
-				reject(request.error);
-				unlisten();
-			};
-			request.addEventListener("success", success);
-			request.addEventListener("error", error);
-		});
-		reverseTransformCache.set(promise, request);
-		return promise;
-	}
-	function cacheDonePromiseForTransaction(tx) {
-		if (transactionDoneMap.has(tx)) return;
-		const done = new Promise((resolve, reject) => {
-			const unlisten = () => {
-				tx.removeEventListener("complete", complete);
-				tx.removeEventListener("error", error);
-				tx.removeEventListener("abort", error);
-			};
-			const complete = () => {
-				resolve();
-				unlisten();
-			};
-			const error = () => {
-				reject(tx.error || new DOMException("AbortError", "AbortError"));
-				unlisten();
-			};
-			tx.addEventListener("complete", complete);
-			tx.addEventListener("error", error);
-			tx.addEventListener("abort", error);
-		});
-		transactionDoneMap.set(tx, done);
-	}
-	let idbProxyTraps = {
-		get(target, prop, receiver) {
-			if (target instanceof IDBTransaction) {
-				if (prop === "done") return transactionDoneMap.get(target);
-				if (prop === "store") return receiver.objectStoreNames[1] ? void 0 : receiver.objectStore(receiver.objectStoreNames[0]);
-			}
-			return wrap(target[prop]);
-		},
-		set(target, prop, value) {
-			target[prop] = value;
-			return true;
-		},
-		has(target, prop) {
-			if (target instanceof IDBTransaction && (prop === "done" || prop === "store")) return true;
-			return prop in target;
-		}
-	};
-	function replaceTraps(callback) {
-		idbProxyTraps = callback(idbProxyTraps);
-	}
-	function wrapFunction(func) {
-		if (getCursorAdvanceMethods().includes(func)) return function(...args) {
-			func.apply(unwrap(this), args);
-			return wrap(this.request);
-		};
-		return function(...args) {
-			return wrap(func.apply(unwrap(this), args));
+		maxRow[emailIndex] = "LANGSTE_TEKSTEN_PER_VELD@example.com";
+		flattendToStudent.unshift(maxRow);
+		return {
+			headers: flattendHeaders,
+			data: flattendToStudent,
+			maxVestigingsplaatsen
 		};
 	}
-	function transformCachableValue(value) {
-		if (typeof value === "function") return wrapFunction(value);
-		if (value instanceof IDBTransaction) cacheDonePromiseForTransaction(value);
-		if (instanceOfAny(value, getIdbProxyableTypes())) return new Proxy(value, idbProxyTraps);
+	translateMailMerge(rowIndex, colIndex) {
+		let row = this.data[rowIndex];
+		this.headers[colIndex];
+		let value = row[colIndex];
+		if (this.headers[colIndex].includes("lesmoment")) value = value.replace("(wekelijks)", "").trim();
 		return value;
 	}
-	function wrap(value) {
-		if (value instanceof IDBRequest) return promisifyRequest(value);
-		if (transformCache.has(value)) return transformCache.get(value);
-		const newValue = transformCachableValue(value);
-		if (newValue !== value) {
-			transformCache.set(value, newValue);
-			reverseTransformCache.set(newValue, value);
-		}
-		return newValue;
+};
+let WerklijstFieldsInschrijving = [
+	"domein",
+	"vakken (binnen de criteria)",
+	"alle vakken",
+	"instrumenten (binnen de criteria)",
+	"alle instrumenten",
+	"graad",
+	"leerjaar",
+	"graad + leerjaar",
+	"graad + leerjaar + sectie",
+	"optie",
+	"sectie",
+	"administratieve groep: naam",
+	"administratieve groep: officiële naam",
+	"administratieve groep: code",
+	"volledig vrije leerling",
+	"volledig eigen leerling",
+	"volledig vrije en/of eigen leerling",
+	"inschrijving: datum",
+	"uitschrijving: datum",
+	"uitschrijving: reden",
+	"financierbaarheid",
+	"inschrijving: einde graad",
+	"leertraject",
+	"studierichting",
+	"geslaagd (vak)",
+	"resultaat (vak)",
+	"geslaagd (globaal)",
+	"resultaat (globaal)",
+	"alternatieve leercontext",
+	"akkoord en meer: ingevuld?",
+	"akkoord en meer:  toestemming beeldmateriaal?",
+	"akkoord en meer: ingevuld op",
+	"akkoord en meer: ingevuld door",
+	"status Discimus",
+	"cursussen"
+];
+let WerklijstFieldsLes = [
+	"vak: naam",
+	"vak: officiële naam",
+	"vak: code",
+	"les: id",
+	"vestigingsplaats",
+	"benaming les",
+	"lesmomenten",
+	"lokaal",
+	"klasleerkracht",
+	"alle leerkrachten (zonder interims)",
+	"alle leerkrachten (met interims)"
+];
+let WerklijstFieldsStudent = [
+	"stamnummer",
+	"naam",
+	"voornaam",
+	"roepnaam",
+	"persoon: id",
+	"geboortedatum",
+	"geboorteplaats",
+	"geslacht",
+	"gender",
+	"rijksregisternummer",
+	"nationaliteit",
+	"opmerking personalia",
+	"leeftijd op 31 december",
+	"leeftijd op vandaag",
+	"token",
+	"is zorgleerling?",
+	"huisnummer",
+	"busnummer",
+	"postcode",
+	"gemeente",
+	"land",
+	"leefeenheid: alle leden",
+	"leefeenheid: alle actieve leden in [schooljaar]",
+	"leefeenheid: te betalen",
+	"leefeenheid: betaald",
+	"leefeenheid: saldo",
+	"e-mailadressen (gescheiden door puntkomma)",
+	"e-mailadressen marketing (gescheiden door komma)",
+	"e-mailadressen marketing (gescheiden door puntkomma)",
+	"e-mailadres van de school",
+	"telefoonnummers",
+	"mobiele nummers voor verwittiging"
+];
+async function fetchMailMergeData(schoolyear, infoBlock, selectedFields, fullTable, criteriaString) {
+	let stamnummers = await fetchMailMergeStudents(schoolyear, infoBlock, selectedFields, criteriaString);
+	if (stamnummers.length == 0) {
+		infoBlock.infoBar.setErrorLine("Geen studenten gevonden.");
+		return "";
 	}
-	const unwrap = (value) => reverseTransformCache.get(value);
-	/**
-	* Open a database.
-	*
-	* @param name Name of the database.
-	* @param version Schema version.
-	* @param callbacks Additional callbacks.
-	*/
-	function openDB(name, version, { blocked, upgrade, blocking, terminated } = {}) {
-		const request = indexedDB.open(name, version);
-		const openPromise = wrap(request);
-		if (upgrade) request.addEventListener("upgradeneeded", (event) => {
-			upgrade(wrap(request.result), event.oldVersion, event.newVersion, wrap(request.transaction), event);
+	let stamnummerSet = new Set(stamnummers);
+	let fullDataTable = await fetchMailMergeFullData(schoolyear, infoBlock);
+	let tBody = fullDataTable.tBodies[0];
+	let rowCount = tBody.rows.length;
+	for (let i = rowCount - 1; i >= 0; i--) if (!stamnummerSet.has(tBody.rows[i].cells[0].textContent)) tBody.deleteRow(i);
+	return await new MailMergeTable(infoBlock, fullDataTable).toHtml();
+}
+async function fetchMailMergeStudents(schoolyear, infoBlock, selectedFields, criteriaString) {
+	infoBlock.infoBar.setExtraInfo("Filter voorbereiden...");
+	let builder = await createWerklijstBuilderWithoutReset(schoolyear, "3", selectedFields, criteriaString);
+	builder.addFields([
+		FIELD.STAMNUMMER,
+		FIELD.NAAM,
+		FIELD.VOORNAAM
+	]);
+	let preparedWerklijst = await builder.sendSettings();
+	infoBlock.infoBar.setExtraInfo("Studentengegevens ophalen...");
+	let table = (await preparedWerklijst.fetchTable(new InfoBarTableFetchListener(infoBlock), false)).getTable();
+	let stamnummerIndex = [...table.tHead.rows[0].cells].map((td) => td.textContent).findIndex((header) => header.toLowerCase().includes("stamnummer"));
+	return [...table.tBodies[0].rows].map((tr) => tr.cells[stamnummerIndex].textContent);
+}
+async function fetchMailMergeFullData(schoolyear, infoBlock) {
+	infoBlock.infoBar.setExtraInfo("Filter voorbereiden...");
+	let builder = await createWerklijstBuilderWithReset(schoolyear, "3");
+	builder.addFields([
+		FIELD.STAMNUMMER,
+		FIELD.NAAM,
+		FIELD.VOORNAAM,
+		FIELD.LEEFTIJD_31_DEC,
+		FIELD.EMAIL_PUNTCOMMA,
+		FIELD.DOMEIN,
+		FIELD.VAK_NAAM,
+		FIELD.GRAAD,
+		FIELD.LEERJAAR,
+		FIELD.BENAMING_LES,
+		FIELD.LESMOMENTEN,
+		FIELD.KLAS_LEERKRACHT,
+		FIELD.VESTIGINGSPLAATS
+	]);
+	let preparedWerklijst = await builder.sendSettings();
+	infoBlock.infoBar.setExtraInfo("Alle lesgegevens ophalen...");
+	return (await preparedWerklijst.fetchTable(new InfoBarTableFetchListener(infoBlock), false)).getTable();
+}
+//#endregion
+//#region typescript/werklijst/urenData.ts
+var JsonCloudData = class {
+	version;
+	columns;
+	constructor() {
+		this.version = "1.0";
+		this.columns = [];
+	}
+};
+var CloudData = class {
+	columnMap;
+	constructor(jsonCloudData) {
+		this.#buildMapFromJsonData(jsonCloudData);
+	}
+	#buildMapFromJsonData(jsonCloudData) {
+		for (let column of jsonCloudData.columns) column.rowMap = new Map(column.rows.map((row) => [row.key, row.value]));
+		this.columnMap = new Map(jsonCloudData.columns.map((col) => [col.key, col.rowMap]));
+	}
+	toJson(colKey1, colKey2) {
+		let data = new JsonCloudData();
+		let col1 = this.#columnToJson(colKey1);
+		let col2 = this.#columnToJson(colKey2);
+		data.columns.push({
+			key: colKey1,
+			rows: col1
 		});
-		if (blocked) request.addEventListener("blocked", (event) => blocked(event.oldVersion, event.newVersion, event));
-		openPromise.then((db) => {
-			if (terminated) db.addEventListener("close", () => terminated());
-			if (blocking) db.addEventListener("versionchange", (event) => blocking(event.oldVersion, event.newVersion, event));
-		}).catch(() => {});
-		return openPromise;
+		data.columns.push({
+			key: colKey2,
+			rows: col2
+		});
+		return data;
 	}
-	const readMethods = [
-		"get",
-		"getKey",
-		"getAll",
-		"getAllKeys",
-		"count"
-	];
-	const writeMethods = [
-		"put",
-		"add",
-		"delete",
-		"clear"
-	];
-	const cachedMethods = /* @__PURE__ */ new Map();
-	function getMethod(target, prop) {
-		if (!(target instanceof IDBDatabase && !(prop in target) && typeof prop === "string")) return;
-		if (cachedMethods.get(prop)) return cachedMethods.get(prop);
-		const targetFuncName = prop.replace(/FromIndex$/, "");
-		const useIndex = prop !== targetFuncName;
-		const isWrite = writeMethods.includes(targetFuncName);
-		if (!(targetFuncName in (useIndex ? IDBIndex : IDBObjectStore).prototype) || !(isWrite || readMethods.includes(targetFuncName))) return;
-		const method = async function(storeName, ...args) {
-			const tx = this.transaction(storeName, isWrite ? "readwrite" : "readonly");
-			let target = tx.store;
-			if (useIndex) target = target.index(args.shift());
-			return (await Promise.all([target[targetFuncName](...args), isWrite && tx.done]))[0];
-		};
-		cachedMethods.set(prop, method);
-		return method;
-	}
-	replaceTraps((oldTraps) => ({
-		...oldTraps,
-		get: (target, prop, receiver) => getMethod(target, prop) || oldTraps.get(target, prop, receiver),
-		has: (target, prop) => !!getMethod(target, prop) || oldTraps.has(target, prop)
-	}));
-	const advanceMethodProps = [
-		"continue",
-		"continuePrimaryKey",
-		"advance"
-	];
-	const methodMap = {};
-	const advanceResults = /* @__PURE__ */ new WeakMap();
-	const ittrProxiedCursorToOriginalProxy = /* @__PURE__ */ new WeakMap();
-	const cursorIteratorTraps = { get(target, prop) {
-		if (!advanceMethodProps.includes(prop)) return target[prop];
-		let cachedFunc = methodMap[prop];
-		if (!cachedFunc) cachedFunc = methodMap[prop] = function(...args) {
-			advanceResults.set(this, ittrProxiedCursorToOriginalProxy.get(this)[prop](...args));
-		};
-		return cachedFunc;
-	} };
-	async function* iterate(...args) {
-		let cursor = this;
-		if (!(cursor instanceof IDBCursor)) cursor = await cursor.openCursor(...args);
-		if (!cursor) return;
-		cursor = cursor;
-		const proxiedCursor = new Proxy(cursor, cursorIteratorTraps);
-		ittrProxiedCursorToOriginalProxy.set(proxiedCursor, cursor);
-		reverseTransformCache.set(proxiedCursor, unwrap(cursor));
-		while (cursor) {
-			yield proxiedCursor;
-			cursor = await (advanceResults.get(proxiedCursor) || cursor.continue());
-			advanceResults.delete(proxiedCursor);
-		}
-	}
-	function isIteratorProp(target, prop) {
-		return prop === Symbol.asyncIterator && instanceOfAny(target, [
-			IDBIndex,
-			IDBObjectStore,
-			IDBCursor
-		]) || prop === "iterate" && instanceOfAny(target, [IDBIndex, IDBObjectStore]);
-	}
-	replaceTraps((oldTraps) => ({
-		...oldTraps,
-		get(target, prop, receiver) {
-			if (isIteratorProp(target, prop)) return iterate;
-			return oldTraps.get(target, prop, receiver);
-		},
-		has(target, prop) {
-			return isIteratorProp(target, prop) || oldTraps.has(target, prop);
-		}
-	}));
-	//#endregion
-	//#region typescript/db/repository.ts
-	var Repository = class {
-		db;
-		storeName;
-		constructor(db, storeName) {
-			this.db = db;
-			this.storeName = storeName;
-		}
-		async get(id) {
-			return this.db.get(this.storeName, id);
-		}
-		async put(data, key) {
-			return this.db.put(this.storeName, data, key);
-		}
-		async bulkPut(items) {
-			let tx = this.db.transaction(this.storeName, "readwrite");
-			let putPromises = items.map((item) => tx.store.put(item));
-			await Promise.all([...putPromises, tx.done]);
-		}
-		async findMatches(match) {
-			return (await this.db.getAll(this.storeName)).filter(match);
-		}
-	};
-	//#endregion
-	//#region typescript/db/sessionDb.ts
-	const DB_VERSION = 1;
-	const SESSION_DB_PREFIX = "sessionStorage";
-	async function initializeSession() {
-		if (!sessionStorage.getItem("session_active")) {
-			let dbs = await indexedDB.databases();
-			for (let db of dbs) if (db.name?.startsWith(SESSION_DB_PREFIX)) {
-				const deleteRequest = indexedDB.deleteDatabase(db.name);
-				deleteRequest.onsuccess = () => {
-					console.log(`Database ${db.name} deleted successfully.`);
-				};
-			}
-			sessionStorage.setItem("session_active", "true");
-		}
-	}
-	let cacheMap = /* @__PURE__ */ new Map();
-	async function getSessionSchoolCache(schoolId) {
-		let cache = cacheMap.get(schoolId);
-		if (!cache) {
-			cache = await SessionSchoolCache.get(schoolId);
-			cacheMap.set(schoolId, cache);
-		}
-		return cache;
-	}
-	var SessionSchoolCache = class SessionSchoolCache {
-		schoolId;
-		db;
-		get AssetRefs() {
-			return this._AssetRefs;
-		}
-		get Loaded() {
-			return this._Loaded;
-		}
-		get LesRefs() {
-			return this._LesRefs;
-		}
-		_LesRefs;
-		_Loaded;
-		_AssetRefs;
-		constructor(schoolId, db) {
-			this.schoolId = schoolId;
-			this.db = db;
-			this._LesRefs = new Repository(this.db, "LesRefs");
-			this._Loaded = new Repository(this.db, "Loaded");
-			this._AssetRefs = new Repository(this.db, "Assets");
-		}
-		static getDbName(schoolId) {
-			return `${SESSION_DB_PREFIX}_${schoolId}`;
-		}
-		static async get(schoolId) {
-			await initializeSession();
-			return new SessionSchoolCache(schoolId, await openDB(SessionSchoolCache.getDbName(schoolId), DB_VERSION, { upgrade(db) {
-				db.createObjectStore("LesRefs", { keyPath: "id" });
-				db.createObjectStore("Loaded");
-				db.createObjectStore("Assets", { keyPath: "id" });
-			} }));
-		}
-	};
-	//#endregion
-	//#region typescript/assets/scrape.ts
-	async function scrapeAssets() {
-		let snel_zoeken = document.querySelector("#snel_zoeken");
-		let infoBlockDiv = document.createElement("div");
-		snel_zoeken.parentNode.insertBefore(infoBlockDiv, snel_zoeken);
-		return [...(await getTableFromHash("extra-assets-assets", true, new InfoBarTableFetchListener(createInfoBlock(infoBlockDiv, "")))).getRows()].map((row) => {
-			return {
-				id: row.cells[0].innerText,
-				code: row.cells[1].innerText.split("\n").shift() ?? ""
+	#columnToJson(colKey) {
+		let cells = [];
+		for (let [key, value] of this.columnMap.get(colKey)) {
+			let row = {
+				key,
+				value
 			};
-		}).filter((asset) => asset.code);
-	}
-	//#endregion
-	//#region typescript/globalSearch.ts
-	function onPasteInGlobalSearchField(e) {
-		if (!options.stripCommasOnPaste) return;
-		let searchField = document.getElementById("snel_zoeken_veld_zoektermen");
-		let newText = (e.clipboardData?.getData("text/plain") ?? "").replaceAll(",", "").replaceAll("-", " ");
-		searchField.setRangeText(newText);
-		searchField.setSelectionRange(newText.length, newText.length);
-		e.preventDefault();
-	}
-	async function onParentKeyUp(e) {
-		if (e.key == "Enter") {
-			if (!options.powerGoto) return;
-			console.log("parent Enter");
-			let text = document.getElementById("snel_zoeken_veld_zoektermen").value;
-			if (await onEnterPressed(text) == "cancel") {
-				console.log("canceling");
-				e.stopImmediatePropagation();
-				e.preventDefault();
-				return;
-			}
+			cells.push(row);
 		}
+		return cells;
 	}
-	let ignoreNextEnter = false;
-	async function onEnterPressed(text) {
-		if (ignoreNextEnter) {
-			ignoreNextEnter = false;
-			return "default";
+};
+//#endregion
+//#region typescript/werklijst/teacherHoursCachedState.ts
+var TeacherHoursCachedState = class {
+	schoolYear;
+	studentRowData = null;
+	hourSettingsMapped = null;
+	fromCloud = null;
+	selectedVakNames = null;
+	allDko3Vakken = null;
+	infoBlock;
+	constructor(schoolYear, infoBlock) {
+		this.schoolYear = schoolYear;
+		this.infoBlock = infoBlock;
+	}
+	async getStudentRowData() {
+		if (!this.studentRowData) {
+			this.infoBlock.infoBar.setExtraInfo("Setup ophalen...");
+			let table = await this.fetchTeacherHours(this.schoolYear, await this.getHourSettingsMapped());
+			this.studentRowData = scrapeUren(table.rows, table.headerIndices);
 		}
-		if (!text.includes(":")) return "default";
-		let parts = text.split(":");
-		let key = parts.shift();
-		//! will have 1 element
-		let value = parts.join(":");
-		if ("les".startsWith(key)) {
-			gotoLesRef(value.trim());
-			return "cancel";
-		} else if ("ma".startsWith(key)) {
-			gotoLesRef(value.trim(), "Muziekatelier");
-			return "cancel";
-		} else if ("asset".startsWith(key)) {
-			gotoAssetRef(value.trim());
-			return "cancel";
+		return this.studentRowData;
+	}
+	clearStudentRowData() {
+		this.studentRowData = null;
+	}
+	async fetchTeacherHours(schooljaar, hourSettings) {
+		this.infoBlock.infoBar.setExtraInfo("Lessen ophalen...");
+		let tableNoSpec = await this.fetchHourRows(schooljaar, await this.getSelectedVakNames(), "nospec");
+		this.infoBlock.infoBar.setExtraInfo("Specialisatie lessen ophalen...");
+		let tableOnlySpec = await this.fetchHourRows(schooljaar, await this.getSelectedVakNames(), "spec");
+		await WerklijstBuilder.clear();
+		await setViewFromCurrentUrl();
+		return {
+			rows: tableNoSpec.rows.concat(tableOnlySpec.rows),
+			headerIndices: tableNoSpec.headerIndices
+		};
+	}
+	async fetchHourRows(schooljaar, vakNames, spec) {
+		let builder = await createWerklijstBuilderWithReset(schooljaar, "3");
+		builder.addCriterium("Domein", "=", ["Muziek (Mu)"]);
+		builder.addCriterium("Vak", "=", vakNames);
+		builder.addFields([
+			FIELD.NAAM,
+			FIELD.VOORNAAM,
+			FIELD.VAK_NAAM,
+			FIELD.GRAAD_LEERJAAR,
+			FIELD.KLAS_LEERKRACHT
+		]);
+		builder.addCriterium("Graad", spec == "spec" ? "=" : "!=", ["specialisatie"]);
+		let preparedBuilder = await builder.sendSettings();
+		let listener = new InfoBarTableFetchListener(this.infoBlock);
+		let table = await preparedBuilder.fetchTable(listener, true);
+		return {
+			rows: [...table.getRows()],
+			headerIndices: NamedCellTableFetchListener.getHeaderIndicesFromHeaderCells(table.getTable().tHead.rows[0].cells)
+		};
+	}
+	async getSelectedVakNames() {
+		if (!this.selectedVakNames) {
+			let selectedInstrumentNames = new Set((await this.getHourSettingsMapped()).subjects.filter((i) => i.checked).map((i) => i.name));
+			let validInstruments = (await this.getAllDko3Vakken()).filter((vak) => selectedInstrumentNames.has(vak.name));
+			this.selectedVakNames = validInstruments.map((vak) => vak.name);
 		}
-		return "default";
+		return this.selectedVakNames;
 	}
-	async function updateLesMenuItem(dropDownMenu, index, lesRef, signal) {
-		if (signal.aborted) {
-			console.log("ABORTED updateMenuItem:", lesRef.id);
-			return;
+	async getAllDko3Vakken() {
+		if (!this.allDko3Vakken) {
+			this.infoBlock.infoBar.setExtraInfo("Beschikbare vakken ophalen...");
+			let builder = await createWerklijstBuilderWithReset(this.schoolYear, "3");
+			this.allDko3Vakken = await builder.fetchAvailableSubjects();
 		}
-		let les = await fetchLes(lesRef.id, signal);
-		let lesmomenten = les.lesMomenten.join("\n");
-		let wachtlijst = "wachtlijst";
-		let full = les.aantal >= les.maxAantal ? ".full" : "";
-		let infoBlock = createLesCard(lesRef.name, les.vak, full, lesmomenten, les.aantal, les.maxAantal, wachtlijst, les.vestiging);
-		dropDownMenu.setItemContent(index, infoBlock);
+		return this.allDko3Vakken;
 	}
-	async function updateAssetMenuItem(dropDownMenu, index, assetRef, signal) {
-		if (signal.aborted) {
-			console.log("ABORTED updateMenuItem:", assetRef.id);
-			return;
+	async getHourSettingsMapped() {
+		if (!this.hourSettingsMapped) this.hourSettingsMapped = mapHourSettings(await fetchHoursSettingsOrSaveDefault(this.schoolYear, await this.getAllDko3Vakken()));
+		return this.hourSettingsMapped;
+	}
+	setHourSettings(hourSettings) {
+		this.hourSettingsMapped = mapHourSettings(hourSettings);
+		this.selectedVakNames = null;
+	}
+	async getFromCloud() {
+		if (!this.fromCloud) {
+			this.infoBlock.infoBar.setExtraInfo("Ingevulde uren ophalen...");
+			let jsonCloudData = await getUrenFromCloud(getUrenVakLeraarFileName(this.schoolYear));
+			this.fromCloud = new CloudData(jsonCloudData);
 		}
+		return this.fromCloud;
 	}
-	async function gotoLesRef(lesName, vak) {
-		return gotoRef(() => getLesMatches(lesName, vak), "/#lessen-les?id=", (lesRef) => lesRef.name, updateLesMenuItem);
+};
+async function getUrenFromCloud(fileName) {
+	try {
+		return await cloud.json.fetch(fileName);
+	} catch (e) {
+		return new JsonCloudData();
 	}
-	async function gotoAssetRef(assetCode) {
-		return gotoRef(() => getAssetMatches(assetCode), "/#extra-assets-assets-details?id=", (assetRef) => assetRef.code, updateAssetMenuItem);
+}
+//#endregion
+//#region typescript/werklijst/observer.ts
+const TARGET_BUTTON_ID = "#tablenav_leerlingen_werklijst_top > div > div.btn-group.btn-group-sm.datatable-buttons > button:nth-child(1)";
+registerChecksumHandler(WERKLIJST_TABLE_ID, (tableDef) => {
+	let fields = [...NamedCellTableFetchListener.getHeaderIndices(tableDef.tableRef.getOrgTableContainer())].map(([key, value]) => key);
+	return (document.querySelector("#view_contents > div.alert.alert-info")?.textContent.replace("Criteria aanpassen", "")?.replace("Criteria:", "") ?? "") + "__" + fields.join("_");
+});
+var WerklijstObserver = class extends HashObserver {
+	constructor() {
+		super("#leerlingen-werklijst", onMutation$3, false, onPageReallyLoaded);
 	}
-	async function gotoRef(getMatches, gotoUrl, getLabel, updateMenuItem) {
-		let matches = await getMatches();
-		console.log("matches:", matches);
-		if (matches) {
-			if (matches.length == 1) {
-				console.log("gotoRef: matches.length == 1");
-				setTimeout(() => {
-					console.log(`gotoRef: matches.length == 1, location.href = ${gotoUrl + matches[0].id}`);
-					location.href = gotoUrl + matches[0].id;
-				});
-				return true;
-			}
-			if (matches.length > 1) {
-				let searchField = document.getElementById("snel_zoeken_veld_zoektermen");
-				let abortController = new AbortController();
-				let signal = abortController.signal;
-				let dropDownMenu = new DropDownMenu(searchField.parentElement?.parentElement, searchField, false, true, abortController);
-				matches.sort((a, b) => getLabel(a).localeCompare(getLabel(b)));
-				let queue = Promise.resolve();
-				for (let ref of matches) {
-					let index = dropDownMenu.addItem(getLabel(ref), 0, () => {
-						abortController.abort();
-						dropDownMenu.remove();
-						location.href = gotoUrl + ref.id;
-					});
-					queue = queue.then(() => updateMenuItem(dropDownMenu, index, ref, signal));
-				}
-				dropDownMenu.show();
-			}
-		}
+	isPageReallyLoaded() {
+		return isPageReallyLoaded();
+	}
+};
+let observer = new WerklijstObserver();
+let pageIncarnationChanged = true;
+window.addEventListener("hashchange", () => {
+	pageIncarnationChanged = true;
+	document.getElementById("view_contents").classList.remove("hideWerklijst");
+});
+function isPageReallyLoaded() {
+	if (document.querySelector("#btn_leerling_werklijst_maken")) return true;
+	if (document.getElementById("tablenav_leerlingen_werklijst_bottom") && document.querySelector(TARGET_BUTTON_ID)) return true;
+	return false;
+}
+function onPageReallyLoaded() {
+	onAnyChangeEvent();
+}
+function onAnyChangeEvent() {
+	if (!pageIncarnationChanged) return;
+	pageIncarnationChanged = false;
+	console.log("onAnyChangeEvent");
+	if (document.querySelector("#btn_leerling_werklijst_maken")) onCriteriaShown();
+	else if (document.getElementById("tablenav_leerlingen_werklijst_bottom")) onResultsShown();
+}
+function onMutation$3(mutation) {
+	console.log("onMutation");
+	tryUntilThen(isPageReallyLoaded, onAnyChangeEvent);
+	return true;
+}
+async function gotoWerklijst() {
+	let pageState = getGotoStateOrDefault("Werklijst");
+	pageState.goto = "";
+	saveGotoState(pageState);
+	location.href = "#leerlingen-werklijst";
+	location.reload();
+}
+function addHoursViewButtons(infoBlock) {
+	let buttonBar = document.querySelector("#pluginContainer .werklijstButtonWrapper");
+	addHoursButtons(buttonBar, infoBlock);
+	addButton$1(buttonBar, UREN_REFRESH_BTN_ID, "Refresh", async () => {
+		await reload();
+	}, "fa-refresh", ["btn", "btn-outline-dark"], "Refresh ", "beforeend");
+	addButton$1(buttonBar, GOTO_WERKLIJST_BTN_ID, "Werklijst", gotoWerklijst, "", [
+		"btn",
+		"btn-outline-dark",
+		"flexRight"
+	], "Werklijst", "beforeend");
+}
+async function reload() {
+	if (!globals) return;
+	document.getElementById(HOURS_TABLE_ID)?.remove();
+	globals = new TeacherHoursCachedState(globals.schoolYear, getInfoBlock());
+	await fetchAndShowTeacherHours(globals.schoolYear, getInfoBlock());
+}
+function checkStateAndGotoTeacherHours(infoBlock) {
+	let pageState = getGotoStateOrDefault("Werklijst");
+	let year = Schoolyear.calculateSetupYear();
+	let prevSchoolyear = Schoolyear.toFullString(year - 1);
+	let nextSchoolyear = Schoolyear.toFullString(year);
+	if (pageState.goto == "Werklijst_uren_prevYear") {
+		showHoursView(prevSchoolyear, infoBlock).then(() => {});
 		return true;
 	}
-	async function getLesMatches(lesName, vak) {
-		if (!lesName) return [];
-		let lowerCase = lesName.toLowerCase();
-		let cache = await getSessionSchoolCache(getSchoolIdString());
-		let loaded = await cache.Loaded.get("LesRefs");
-		console.log("loaded", loaded);
-		if (!loaded) {
-			let lessen = await scrapeLessen("3", "1", Schoolyear.toFullString(Schoolyear.calculateCurrent()));
-			lessen.push(...await scrapeLessen("2", "1", Schoolyear.toFullString(Schoolyear.calculateCurrent())));
-			lessen.push(...await scrapeLessen("4", "1", Schoolyear.toFullString(Schoolyear.calculateCurrent())));
-			let lesRefs = lessen.map((l) => ({
-				id: l.les.id,
-				name: l.les.naam,
-				vak: l.les.vakNaam
-			}));
-			await cache.LesRefs.bulkPut(lesRefs);
-			await cache.Loaded.put(true, "LesRefs");
-		}
-		if (vak) return cache.LesRefs.findMatches((lesRef) => lesRef.name.toLowerCase().includes(lowerCase) && lesRef.vak == vak);
-		return cache.LesRefs.findMatches((lesRef) => lesRef.name.toLowerCase().includes(lowerCase));
+	if (pageState.goto == "Werklijst_uren_nextYear") {
+		showHoursView(nextSchoolyear, infoBlock).then(() => {});
+		return true;
 	}
-	async function getAssetMatches(assetCode) {
-		if (!assetCode) return [];
-		let lowerCase = assetCode.toLowerCase();
-		let cache = await getSessionSchoolCache(getSchoolIdString());
-		if (!await cache.Loaded.get("AssetRefs")) {
-			let assetRefs = (await scrapeAssets()).map((asset) => ({
-				id: asset.id,
-				code: asset.code
-			}));
-			await cache.AssetRefs.bulkPut(assetRefs);
-			await cache.Loaded.put(true, "AssetRefs");
-		}
-		return cache.AssetRefs.findMatches((assetRef) => assetRef.code.toLowerCase().includes(lowerCase));
+	return false;
+}
+function addHoursButtons(buttonBar, infoBlock) {
+	document.getElementById(UREN_PREV_BTN_ID)?.remove();
+	document.getElementById(UREN_NEXT_BTN_ID)?.remove();
+	document.getElementById(UREN_PREV_SETUP_BTN_ID)?.remove();
+	let schoolYear = Schoolyear.getHighestAvailable();
+	if (!schoolYear) {
+		alert("Geen schooljaar gevonden!");
+		return;
 	}
-	//#endregion
-	//#region typescript/main.ts
-	init();
-	function init() {
-		getOptions().then(() => {
-			chrome.storage.onChanged.addListener((_changes, area) => {
-				if (area === "sync") getOptions().then((_r) => {
-					onSettingsChanged();
+	let year = parseInt(schoolYear);
+	let prevSchoolyear = Schoolyear.toFullString(year - 1);
+	let nextSchoolyear = Schoolyear.toFullString(year);
+	let prevSchoolyearShort = Schoolyear.toShortString(year - 1);
+	let nextSchoolyearShort = Schoolyear.toShortString(year);
+	addButton$1(buttonBar, UREN_PREV_BTN_ID, "Toon lerarenuren voor " + prevSchoolyear, async () => {
+		await showHoursView(prevSchoolyear, infoBlock);
+	}, "", ["btn", "btn-outline-dark"], "Uren " + prevSchoolyearShort, "beforeend");
+	addButton$1(buttonBar, UREN_NEXT_BTN_ID, "Toon lerarenuren voor " + nextSchoolyear, async () => {
+		await showHoursView(nextSchoolyear, infoBlock);
+	}, "", ["btn", "btn-primary"], "Uren " + nextSchoolyearShort, "beforeend");
+	addButton$1(buttonBar, UREN_PREV_SETUP_BTN_ID, "Setup voor " + nextSchoolyear, async () => {
+		await showUrenSetup(nextSchoolyear);
+	}, "", ["btn", "btn-outline-dark"], "", "beforeend", "gear.svg");
+}
+async function showHoursView(schoolYaar, infoBlock) {
+	addHoursViewButtons(infoBlock);
+	await fetchAndShowTeacherHours(schoolYaar, infoBlock);
+}
+function addPluginContainer() {
+	let viewContents = document.getElementById("view_contents");
+	let container = emmet.appendChild(viewContents, "div#pluginContainer").first;
+	emmet.appendChild(container, `div.d-flex.werklijstButtonWrapper`);
+	emmet.appendChild(container, "h4");
+	return createInfoBlock(container, "");
+}
+function onResultsShown() {
+	console.log("onResultsShown");
+	if (checkStateAndGotoTeacherHours(addPluginContainer())) return;
+	addButtons();
+	decorateTableHeader(document.querySelector("table#" + WERKLIJST_TABLE_ID), true);
+}
+function onCriteriaShown() {
+	console.log("onCriteriaShown");
+	let infoBlock = addPluginContainer();
+	if (checkStateAndGotoTeacherHours(infoBlock)) return;
+	let pageState = getGotoStateOrDefault("Werklijst");
+	pageState.werklijstTableName = "";
+	saveGotoState(pageState);
+	let btnWerklijstMakenWrapper = document.querySelector(BTN_WERKLIJST_MAKEN_WRAPPER_ID);
+	if (btnWerklijstMakenWrapper) return;
+	let btnWerklijstMaken = document.querySelector(BTN_WERKLIJST_MAKEN_ID);
+	btnWerklijstMakenWrapper = emmet.insertBefore(btnWerklijstMaken, `div${BTN_WERKLIJST_MAKEN_WRAPPER_ID}.werklijstButtonWrapper`).first;
+	addHoursButtons(btnWerklijstMakenWrapper, infoBlock);
+	addButton$1(btnWerklijstMaken, WERKLIJST_MAILMERGE_BTN_ID, "Mail merge", async () => {
+		await mailMergeStartSchoolyear();
+	}, "", ["btn", "btn-outline-dark"], "Mailmerge");
+	document.getElementById("btn_leerling_werklijst_reset").addEventListener("click", resetPageIncarnationChangedFlag);
+	getSchoolIdString();
+}
+function resetPageIncarnationChangedFlag() {
+	pageIncarnationChanged = true;
+}
+chrome.runtime.onMessage.addListener(onMessage);
+async function onMessage(request, _sender, sendResponse) {
+	if (request.senderTabType != "HoursSettings") return;
+	switch (request.action) {
+		case "request_tab_data":
+			console.log("Requesting tab data", request.data);
+			let setup = await fetchHoursSettingsOrSaveDefault(request.data.params.schoolYear);
+			console.log(setup);
+			await sendMessageToHoursSettings("tab_data", setup);
+			return;
+		case "open_hours_settings_changed":
+			await onHoursSettingsChanged(request);
+			return;
+	}
+}
+let isRefreshing = false;
+let refreshRequested = false;
+setInterval(checkAndRefresh, 500);
+async function refresh(hourSettings) {
+	if (isRefreshing) return;
+	if (!globals) return;
+	isRefreshing = true;
+	refreshRequested = false;
+	if (!hourSettings) hourSettings = await fetchHoursSettingsOrSaveDefault(globals.schoolYear);
+	let equalSelectedSubjects = arrayIsEqual(hourSettings.subjects.filter((s) => s.checked).map((s) => s.name), (await globals.getHourSettingsMapped()).subjects.filter((s) => s.checked).map((s) => s.name));
+	globals.setHourSettings(hourSettings);
+	if (equalSelectedSubjects) rebuildHoursTable(await globals.getStudentRowData(), await globals.getHourSettingsMapped(), await globals.getFromCloud(), getInfoBlock());
+	else {
+		globals.clearStudentRowData();
+		await fetchAndShowTeacherHours(hourSettings.schoolyear, getInfoBlock());
+	}
+	isRefreshing = false;
+}
+async function onHoursSettingsChanged(request) {
+	if (isRefreshing) {
+		refreshRequested = true;
+		return;
+	}
+	await refresh(request.data);
+}
+async function checkAndRefresh() {
+	if (!refreshRequested) return;
+	if (!globals) return;
+	await refresh(null);
+}
+async function showUrenSetup(schoolyear) {
+	globalHoursSettingsTabId = (await openHoursSettings(schoolyear)).tabId;
+}
+let globalHoursSettingsTabId;
+async function sendMessageToHoursSettings(action, data) {
+	return sendRequest(action, "Main", "HoursSettings", globalHoursSettingsTabId, data);
+}
+function addButtons() {
+	addButton$1(document.querySelector(TARGET_BUTTON_ID), MAIL_BTN_ID, "Email to clipboard", onClickCopyEmails, "fa-envelope", ["btn", "btn-outline-info"]);
+}
+function onClickCopyEmails() {
+	let namedCellListener = new NamedCellTableFetchListener(["e-mailadressen"], (_tableDef1) => {
+		navigator.clipboard.writeText("").then((_value) => {
+			console.log("Clipboard cleared.");
+		});
+	});
+	let result = createDefaultTableRefAndInfoBlock();
+	if ("error" in result) {
+		console.error(result.error);
+		return;
+	}
+	let { tableRef, infoBlock } = result.result;
+	let result2 = createDefaultTableFetcher(tableRef, infoBlock);
+	if ("error" in result2) {
+		console.error(result2.error);
+		return;
+	}
+	let { tableFetcher } = result2.result;
+	tableFetcher.addListener(namedCellListener);
+	tableFetcher.fetch().then((fetchedTable) => {
+		let flattened = fetchedTable.getRowsAsArray().map((tr) => namedCellListener.getColumnText(tr, "e-mailadressen")).map((emails) => emails.split(/[,;]/)).flat().filter((email) => !email.includes("@academiestudent.be")).filter((email) => email !== "");
+		flattened = [...new Set(flattened)];
+		navigator.clipboard.writeText(flattened.join(";\n")).then(() => infoBlock.infoBar.setTempMessage("Alle emails zijn naar het clipboard gekopieerd. Je kan ze plakken in Outlook."));
+	}).catch((reason) => {
+		console.log("Loading failed (gracefully.");
+		console.log(reason);
+	});
+}
+let globals = null;
+async function rebuildHoursTableAfterFetch(schoolYear, infoBlock) {
+	if (globals?.schoolYear != schoolYear) globals = new TeacherHoursCachedState(schoolYear, infoBlock);
+	rebuildHoursTable(await globals.getStudentRowData(), await globals.getHourSettingsMapped(), await globals.getFromCloud(), infoBlock);
+}
+async function mailMergeStartSchoolyear() {
+	let schoolyear = Schoolyear.findInPage();
+	if (!schoolyear) {
+		alert("Geen schooljaar gevonden!");
+		return;
+	}
+	let infoBlock = createInfoBlock(document.getElementById("div_leerling_werklijst_footer").insertAdjacentElement("afterend", document.createElement("div")), "");
+	let text = await fetchMailMergeData(schoolyear, infoBlock, scrapeSelectedFieldIndexes(), hasWerklijstNoCriteria(), scrapeCriteria());
+	if (text != "") {
+		copyToClipboardOrRequestRetry(infoBlock.infoBar, text);
+		infoBlock.infoBar.setInfoLine("HERLAAD WEBPAGINA VOOR JE OPNIEUW EEN MAILMERGE DOET! (sorry)");
+	}
+}
+async function fetchAndShowTeacherHours(schooljaar, infoBlock) {
+	document.getElementById("view_contents").classList.add("hideWerklijst");
+	let divOverView = document.getElementById("div_leerlingen_werklijst_overview");
+	divOverView.style.display = "none";
+	let title = document.querySelector("#pluginContainer h4");
+	title.textContent = "Lerarenuren voor schooljaar " + schooljaar;
+	await rebuildHoursTableAfterFetch(schooljaar, infoBlock);
+}
+//#endregion
+//#region typescript/vakgroep/observer.ts
+var VakGroepObserver = class extends HashObserver {
+	constructor() {
+		super("#extra-inschrijvingen-vakgroepen-vakgroep", onMutation$2);
+	}
+	isPageReallyLoaded() {
+		return document.getElementById("div_table_vakgroepen_vakken") != null;
+	}
+};
+var observer_default$3 = new VakGroepObserver();
+function onMutation$2(mutation) {
+	let divVakken = document.getElementById("div_table_vakgroepen_vakken");
+	if (mutation.target !== divVakken) return false;
+	onVakgroepChanged(divVakken);
+	return true;
+}
+const TXT_FILTER_ID = "txtFilter";
+let savedSearch = "";
+function onVakgroepChanged(divVakken) {
+	let table = divVakken.querySelector("table");
+	if (!document.getElementById(TXT_FILTER_ID)) table.parentElement.insertBefore(createSearchField(TXT_FILTER_ID, onSearchInput, savedSearch), table);
+	onSearchInput();
+}
+function onSearchInput() {
+	savedSearch = document.getElementById(TXT_FILTER_ID).value;
+	function getRowText(tr) {
+		let instrumentName = tr.cells[0].querySelector("label").textContent.trim();
+		let strong = tr.cells[0].querySelector("strong")?.textContent.trim();
+		return instrumentName + " " + strong;
+	}
+	let rowFilter = createTextRowFilter(savedSearch, getRowText);
+	filterTable(document.querySelector("#div_table_vakgroepen_vakken table"), rowFilter);
+}
+//#endregion
+//#region typescript/verwittigen/observer.ts
+var VerwittigenObserver = class extends HashObserver {
+	constructor() {
+		super("#leerlingen-verwittigen", onMutation$1);
+	}
+	isPageReallyLoaded() {
+		return document.getElementById("leerlingen_verwittigen_bericht_sjabloon") != null;
+	}
+};
+var observer_default$2 = new VerwittigenObserver();
+const CHAR_COUNTER = "charCounterClass";
+const COUNTER_ID = "charCounter";
+function onMutation$1(_mutation) {
+	let txtSms = document.getElementById("leerlingen_verwittigen_bericht_sjabloon");
+	if (txtSms && !txtSms?.classList.contains(CHAR_COUNTER)) {
+		txtSms.classList.add(CHAR_COUNTER);
+		txtSms.addEventListener("input", onSmsChanged);
+		let span = document.createElement("span");
+		span.id = COUNTER_ID;
+		txtSms.parentElement.appendChild(span);
+		onSmsChanged(void 0);
+	}
+	return true;
+}
+function onSmsChanged(_event) {
+	let txtSms = document.getElementById("leerlingen_verwittigen_bericht_sjabloon");
+	let spanCounter = document.getElementById(COUNTER_ID);
+	spanCounter.textContent = txtSms.value.length.toString();
+}
+//#endregion
+//#region typescript/aanwezigheden/observer.ts
+var AanwezighedenObserver = class extends HashObserver {
+	constructor() {
+		super("#leerlingen-lijsten-awi-percentages_leerling_vak", onMutationAanwezgheden);
+	}
+	isPageReallyLoaded() {
+		return document.getElementById("table_lijst_awi_percentages_leerling_vak_table") != null;
+	}
+};
+var observer_default$1 = new AanwezighedenObserver();
+function onMutationAanwezgheden(_mutation) {
+	if (!document.getElementById("table_lijst_awi_percentages_leerling_vak_table")) return false;
+	let navigationBars = getBothToolbars();
+	if (!navigationBars) return false;
+	addTableNavigationButton(navigationBars, COPY_TABLE_BTN_ID, "copy table to clipboard", copyTable, "fa-clipboard");
+	return true;
+}
+async function copyTable() {
+	let result = createDefaultTableRefAndInfoBlock();
+	if ("error" in result) {
+		console.error(result.error);
+		return;
+	}
+	let { tableRef, infoBlock } = result.result;
+	let result2 = createDefaultTableFetcher(tableRef, infoBlock);
+	if ("error" in result2) {
+		console.error(result2.error);
+		return;
+	}
+	let { tableFetcher, infoBarListener } = result2.result;
+	infoBlock.infoBar.setExtraInfo("Fetching 3-weken data...");
+	let wekenLijst = await getTableFromHash("leerlingen-lijsten-awi-3weken", true, infoBarListener).then((bckTableDef) => {
+		return bckTableDef.getRowsAsArray().map((row) => {
+			let namen = row.cells[0].textContent.split(", ");
+			return {
+				naam: namen[0],
+				voornaam: namen[1],
+				weken: parseInt(row.cells[2].textContent)
+			};
+		});
+	});
+	console.log(wekenLijst);
+	infoBlock.infoBar.setExtraInfo("Fetching attesten...");
+	let attestenLijst = await getTableFromHash("leerlingen-lijsten-awi-ontbrekende_attesten", true, infoBarListener).then((bckTableDef) => {
+		return bckTableDef.getRowsAsArray().map((tr) => {
+			return {
+				datum: tr.cells[0].textContent,
+				leerling: tr.cells[1].textContent,
+				vak: tr.cells[2].textContent,
+				leraar: tr.cells[3].textContent,
+				reden: tr.cells[4].textContent
+			};
+		});
+	});
+	console.log(attestenLijst);
+	infoBlock.infoBar.setExtraInfo("Fetching afwezigheidscodes...");
+	let pList = await getTableFromHash("leerlingen-lijsten-awi-afwezigheidsregistraties", true, infoBarListener).then((bckTableDef) => {
+		return bckTableDef.getRowsAsArray().map((row) => {
+			let namen = row.cells[1].querySelector("strong").textContent.split(", ");
+			let vak = reduceVaknaam(Array.from(row.cells[1].childNodes).filter((node) => node.nodeType === Node.TEXT_NODE).map((node) => node.textContent).join("").substring(3));
+			let leraar = row.cells[1].querySelector("small").textContent.substring(16);
+			return {
+				naam: namen[0],
+				voornaam: namen[1],
+				code: row.cells[2].textContent[0],
+				vak,
+				leraar
+			};
+		});
+	});
+	console.log(pList);
+	tableFetcher.clearCache();
+	tableFetcher.fetch().then((fetchedTable) => {
+		let wekenMap = /* @__PURE__ */ new Map();
+		for (let week of wekenLijst) wekenMap.set(week.naam + "," + week.voornaam, week);
+		let rowsArray = fetchedTable.getRowsAsArray();
+		let text = "data:" + (/* @__PURE__ */ new Date()).toLocaleDateString() + "\n";
+		let aanwList = rowsArray.map((row) => {
+			let percentFinancierbaar = parseFloat(row.cells[1].querySelector("strong")?.textContent?.replace(",", ".") ?? "0") / 100;
+			let percentTotaal = parseFloat(row.cells[2].querySelector("strong")?.textContent?.replace(",", ".") ?? "0") / 100;
+			let vak = row.cells[0].querySelector("br")?.nextSibling?.textContent ?? "";
+			let namen = row.cells[0].querySelector("strong")?.textContent.split(", ") ?? [];
+			let aanw = {
+				naam: namen[0],
+				voornaam: namen[1],
+				vak,
+				vakReduced: reduceVaknaam(vak),
+				percentFinancierbaar,
+				percentTotaal,
+				percentFinancierbaarAP: 0,
+				percentTotaalAP: 0,
+				weken: "",
+				codeP: 0
+			};
+			let week = wekenMap.get(aanw.naam + "," + aanw.voornaam);
+			if (week) {
+				if (aanw.weken) aanw.weken += " + " + week.weken;
+				else aanw.weken = week.weken.toString();
+			}
+			return aanw;
+		});
+		let studentVakPees = /* @__PURE__ */ new Map();
+		let leraarPees = /* @__PURE__ */ new Map();
+		pList.filter((line) => line.code === "P").forEach((p) => {
+			studentVakPees.set(p.naam + "," + p.voornaam + "," + p.vak, (studentVakPees.get(p.naam + "," + p.voornaam + "," + p.vak) ?? 0) + 1);
+			leraarPees.set(p.leraar, (leraarPees.get(p.leraar) ?? 0) + 1);
+		});
+		console.log(studentVakPees);
+		console.log(leraarPees);
+		aanwList.forEach((aanw) => {
+			let newP = studentVakPees.get(aanw.naam + "," + aanw.voornaam + "," + aanw.vakReduced) ?? 0;
+			if (newP > aanw.codeP) aanw.codeP = newP;
+		});
+		aanwList.forEach((aanw) => {
+			text += "lln: " + aanw.naam + "," + aanw.voornaam + "," + aanw.vakReduced + "," + aanw.percentFinancierbaar + "," + aanw.weken + "," + aanw.codeP + "\n";
+		});
+		leraarPees.forEach((leraarP, key) => {
+			text += "leraar: " + key + "," + leraarP + "\n";
+		});
+		attestenLijst.forEach((attest) => {
+			text += "attest: " + attest.datum + "," + attest.leerling + "," + attest.vak + "," + attest.leraar + "," + attest.reden + "\n";
+		});
+		console.log(text);
+		window.sessionStorage.setItem(AANW_LIST, text);
+		aanwezighedenToClipboard(infoBlock.infoBar);
+		tableFetcher.tableRef.getOrgTableContainer().querySelector("tbody").replaceChildren(...fetchedTable.getRows());
+	});
+}
+function aanwezighedenToClipboard(infoBar) {
+	let text = window.sessionStorage.getItem(AANW_LIST);
+	if (!text) {
+		infoBar.setExtraInfo("No text to copy to clipboard!!! <a id=copy_again href='javascript:void(0);'>Kopieer opnieuw</a>", COPY_AGAIN, () => {
+			aanwezighedenToClipboard(infoBar);
+		});
+		return;
+	}
+	copyToClipboardOrRequestRetry(infoBar, text);
+}
+function reduceVaknaam(vaknaam) {
+	return reduceVaknaamStep1(vaknaam).replace("orkestslagwerk", "slagwerk").replace("jazz pop rock)", "JPR").replace("koor", "GM").replace(": musical", "").replace(" (musical)", "");
+}
+function reduceVaknaamStep1(vaknaam) {
+	vaknaam = vaknaam.toLowerCase();
+	if (vaknaam.includes("culturele vorming")) {
+		if (vaknaam.includes("3.")) return "ML";
+		else return "MA";
+	}
+	if (vaknaam.includes("uziekatelier")) return "MA";
+	if (vaknaam.includes("uzieklab")) return "ML";
+	if (vaknaam.includes("roepsmusiceren")) return "GM";
+	if (vaknaam.includes("theorie")) return "MT";
+	if (vaknaam.includes("geleidingspraktijk")) return "BP";
+	if (vaknaam.includes("oordatelier")) return "WA";
+	if (vaknaam.includes("oordlab")) return "WL";
+	if (vaknaam.includes("mprovisatie")) return "impro";
+	if (vaknaam.includes("omeinoverschrijdende")) return "KB";
+	if (vaknaam.includes("unstenbad")) return "KB";
+	if (vaknaam.includes("ramalab")) return "DL";
+	if (vaknaam.includes("oordstudio")) return "WS";
+	if (vaknaam.includes("ramastudio")) return "DS";
+	if (vaknaam.includes("ompositie")) return "compositie";
+	if (vaknaam.includes(" saz")) return "saz";
+	if (vaknaam.includes("instrument: klassiek: ")) {
+		let matches = vaknaam.match(/instrument: klassiek: (\S*)/);
+		if (matches && matches.length > 1) return matches[1];
+		else return vaknaam;
+	}
+	if (vaknaam.includes("instrument: jazz-pop-rock: ")) {
+		let matches = vaknaam.match(/instrument: jazz-pop-rock: (\S*)/);
+		if (matches && matches.length > 1) {
+			if (matches[1].includes("elektrische")) return "gitaar JPR";
+			else return matches[1] + " JPR";
+		} else return vaknaam;
+	}
+	if (vaknaam.includes("rrangeren") || vaknaam.includes("opname") || vaknaam.includes("electronics")) return "elektronische muziek";
+	let matches = vaknaam.match(/(.*).•./);
+	if (matches && matches.length > 1) return matches[1];
+	return "??";
+}
+//#endregion
+//#region typescript/afwezigheden/observer.ts
+var AfwezighedenObserver = class extends ExactHashObserver {
+	constructor() {
+		super("#extra-tickets?h=afwezigheden", onMutation, true);
+	}
+	isPageReallyLoaded() {
+		if (document.getElementById("ticket_payload")) return true;
+		if (document.getElementById("dko3_modal_contents")) return true;
+		if (document.getElementById("div_tickets_afwezigheid_toevoegen_leerling")) return true;
+		return false;
+	}
+};
+var observer_default = new AfwezighedenObserver();
+function onMutation(mutation) {
+	if (mutation.target === document.getElementById("ticket_payload")) {
+		onTicket();
+		return true;
+	}
+	if (mutation.target === document.getElementById("dko3_modal_contents")) {
+		onAddMelding();
+		return true;
+	}
+	if (mutation.target === document.getElementById("div_tickets_afwezigheid_toevoegen_leerling") && mutation.addedNodes.length > 0) {
+		setTimeout(gotoVolgende, 10);
+		return true;
+	}
+	return false;
+}
+function gotoVolgende() {
+	if (document.querySelector("#div_tickets_afwezigheid_toevoegen_leerling table").querySelectorAll("i.fa-square").length === 1) {
+		document.querySelector(".tr-ticket-afwezigheidsmelding-leerling").click();
+		document.getElementById("btn_opslaan_tickets_afwezigheid_toevoegen").click();
+	}
+}
+function addMatchingStudents() {
+	let leerlingLabel = document.querySelector("#form_field_tickets_afwezigheid_toevoegen_leerling_zoeken > label");
+	if (leerlingLabel && !leerlingLabel.dataset.filled) {
+		leerlingLabel.dataset.filled = "true";
+		leerlingLabel.textContent = "Leerling:   reeds gevonden: ";
+		let target = leerlingLabel;
+		for (let lln of matchingLeerlingen) {
+			let anchorClasses = lln.winner ? ".bold" : "";
+			let hook = (el) => {
+				if (!(el instanceof HTMLElement)) return;
+				if (el.tagName == "A") el.onclick = () => fillAndClick(lln.name);
+			};
+			target = emmet.insertAfter(target, `a[href="#"].leerlingLabel${anchorClasses}{${lln.name}}`, void 0, hook).first;
+		}
+	}
+}
+function addEmailText() {
+	let emailDiv = emmet.appendChild(document.querySelector("div.modal-body"), "div>button#btnShowEmail{Show email}.btn.btn-sm.btn-outline-success+div#showEmail.collapsed").last;
+	emailDiv.innerHTML = currentEmailHtml;
+	document.getElementById("btnShowEmail").addEventListener("click", showEmail);
+}
+function showEmail() {
+	document.getElementById("showEmail").classList.toggle("collapsed");
+}
+function onAddMelding() {
+	addMatchingStudents();
+	addEmailText();
+}
+function fillAndClick(name) {
+	let formDiv = document.querySelector("#form_field_tickets_afwezigheid_toevoegen_leerling_zoeken");
+	let input = formDiv.querySelector("input");
+	input.value = name;
+	formDiv.querySelector("button").click();
+	return false;
+}
+let matchingLeerlingen = [];
+let currentEmailHtml = "";
+async function onTicket() {
+	let card_bodyDiv = document.querySelector(".card-body");
+	if (!card_bodyDiv) return;
+	let emailText = card_bodyDiv.textContent;
+	currentEmailHtml = card_bodyDiv.innerHTML;
+	let matches = [...emailText.matchAll(rxEmail)];
+	let uniqueEmails = [...new Set(matches.map((match) => match[0]))];
+	let { email: myEmail } = whoAmI();
+	uniqueEmails = uniqueEmails.filter((m) => m != myEmail);
+	console.log(uniqueEmails);
+	let template = document.createElement("div");
+	template.innerHTML = await fetchStudentsSearch(uniqueEmails.join(" "));
+	matchingLeerlingen = [...template.querySelectorAll("td")].map((td) => {
+		let id = td.querySelector("small").textContent;
+		let name = td.querySelector("strong").textContent;
+		setViewFromCurrentUrl();
+		return {
+			id,
+			name,
+			weight: 0,
+			winner: false
+		};
+	});
+	findUniqueMatch(emailText, matchingLeerlingen);
+}
+function findUniqueMatch(emailText, matchingLeerlingen) {
+	if (matchingLeerlingen.length === 1) {
+		matchingLeerlingen[0].winner = true;
+		return;
+	}
+	let strippedText = emailText.replaceAll("\n", " ").replaceAll("\r", " ");
+	let mailLowerCase = strippedText.toLowerCase();
+	for (let lln of matchingLeerlingen) {
+		let nameParts = lln.name.split(" ");
+		for (let namePart of nameParts) {
+			if (strippedText.includes(" " + namePart + " ")) lln.weight++;
+			if (mailLowerCase.includes(" " + namePart.toLowerCase() + " ")) lln.weight++;
+		}
+	}
+	matchingLeerlingen.sort((a, b) => b.weight - a.weight);
+	if (matchingLeerlingen[0].weight > matchingLeerlingen[1].weight) matchingLeerlingen[0].winner = true;
+}
+//#endregion
+//#region typescript/pages/observer.ts
+var ExtraInschrijvingenObserver = class extends ExactHashObserver {
+	constructor() {
+		super("#extra-inschrijvingen", onMutationExtraInschrijvingen);
+	}
+	isPageReallyLoaded() {
+		return document.querySelector("#view_contents > div:nth-child(3) > div:nth-child(3) > div.card.mb-2.shadow-sm > div > a:nth-child(11)") != null;
+	}
+};
+let extraInschrijvingenObserver = new ExtraInschrijvingenObserver();
+let allLijstenObserver = new MenuScrapingObserver("#leerlingen-lijsten", "Lijsten", "Lijsten > ", "#div_leerlingen_lijsten");
+let financialObserver = new MenuScrapingObserver("#extra-financieel", "Financieel", "Financieel > ", "#view_contents > div:nth-child(2) > div:nth-child(3) > div:nth-child(2) > div > a:nth-child(8)");
+let assetsObserver = new MenuScrapingObserver("#extra-assets", "Assets", "Assets > ", "#view_contents > div:nth-child(2) > div:nth-child(2) > div > div > a:nth-child(10)");
+let evaluatieObserver = new MenuScrapingObserver("#extra-evaluatie", "Evaluatie", "Evaluatie > ", "#view_contents > div:nth-child(3) > div:nth-child(3) > div:nth-child(3) > div > a:nth-child(10)");
+let academieMenuObserver = new MenuScrapingObserver("#extra-academie", "Academie", "Academie > ", "#view_contents > div:nth-child(2) > div:nth-child(3) > div:nth-child(2) > div > a:nth-child(12)");
+function onMutationExtraInschrijvingen(_mutation) {
+	saveQueryItems("ExtraInschrijvingen", scrapeMenuPage("Inschrijvingen > ", inschrijvingenLinkToQueryItem));
+	return true;
+}
+function inschrijvingenLinkToQueryItem(headerLabel, link, longLabelPrefix) {
+	let label = link.textContent.trim();
+	let longLabel = longLabelPrefix + headerLabel + " > " + label;
+	if (label.toLowerCase().includes("inschrijving")) longLabel = headerLabel + " > " + label;
+	return createQueryItem(headerLabel, label, link.href, void 0, longLabel);
+}
+//#endregion
+//#region node_modules/idb/build/index.js
+const instanceOfAny = (object, constructors) => constructors.some((c) => object instanceof c);
+let idbProxyableTypes;
+let cursorAdvanceMethods;
+function getIdbProxyableTypes() {
+	return idbProxyableTypes || (idbProxyableTypes = [
+		IDBDatabase,
+		IDBObjectStore,
+		IDBIndex,
+		IDBCursor,
+		IDBTransaction
+	]);
+}
+function getCursorAdvanceMethods() {
+	return cursorAdvanceMethods || (cursorAdvanceMethods = [
+		IDBCursor.prototype.advance,
+		IDBCursor.prototype.continue,
+		IDBCursor.prototype.continuePrimaryKey
+	]);
+}
+const transactionDoneMap = /* @__PURE__ */ new WeakMap();
+const transformCache = /* @__PURE__ */ new WeakMap();
+const reverseTransformCache = /* @__PURE__ */ new WeakMap();
+function promisifyRequest(request) {
+	const promise = new Promise((resolve, reject) => {
+		const unlisten = () => {
+			request.removeEventListener("success", success);
+			request.removeEventListener("error", error);
+		};
+		const success = () => {
+			resolve(wrap(request.result));
+			unlisten();
+		};
+		const error = () => {
+			reject(request.error);
+			unlisten();
+		};
+		request.addEventListener("success", success);
+		request.addEventListener("error", error);
+	});
+	reverseTransformCache.set(promise, request);
+	return promise;
+}
+function cacheDonePromiseForTransaction(tx) {
+	if (transactionDoneMap.has(tx)) return;
+	const done = new Promise((resolve, reject) => {
+		const unlisten = () => {
+			tx.removeEventListener("complete", complete);
+			tx.removeEventListener("error", error);
+			tx.removeEventListener("abort", error);
+		};
+		const complete = () => {
+			resolve();
+			unlisten();
+		};
+		const error = () => {
+			reject(tx.error || new DOMException("AbortError", "AbortError"));
+			unlisten();
+		};
+		tx.addEventListener("complete", complete);
+		tx.addEventListener("error", error);
+		tx.addEventListener("abort", error);
+	});
+	transactionDoneMap.set(tx, done);
+}
+let idbProxyTraps = {
+	get(target, prop, receiver) {
+		if (target instanceof IDBTransaction) {
+			if (prop === "done") return transactionDoneMap.get(target);
+			if (prop === "store") return receiver.objectStoreNames[1] ? void 0 : receiver.objectStore(receiver.objectStoreNames[0]);
+		}
+		return wrap(target[prop]);
+	},
+	set(target, prop, value) {
+		target[prop] = value;
+		return true;
+	},
+	has(target, prop) {
+		if (target instanceof IDBTransaction && (prop === "done" || prop === "store")) return true;
+		return prop in target;
+	}
+};
+function replaceTraps(callback) {
+	idbProxyTraps = callback(idbProxyTraps);
+}
+function wrapFunction(func) {
+	if (getCursorAdvanceMethods().includes(func)) return function(...args) {
+		func.apply(unwrap(this), args);
+		return wrap(this.request);
+	};
+	return function(...args) {
+		return wrap(func.apply(unwrap(this), args));
+	};
+}
+function transformCachableValue(value) {
+	if (typeof value === "function") return wrapFunction(value);
+	if (value instanceof IDBTransaction) cacheDonePromiseForTransaction(value);
+	if (instanceOfAny(value, getIdbProxyableTypes())) return new Proxy(value, idbProxyTraps);
+	return value;
+}
+function wrap(value) {
+	if (value instanceof IDBRequest) return promisifyRequest(value);
+	if (transformCache.has(value)) return transformCache.get(value);
+	const newValue = transformCachableValue(value);
+	if (newValue !== value) {
+		transformCache.set(value, newValue);
+		reverseTransformCache.set(newValue, value);
+	}
+	return newValue;
+}
+const unwrap = (value) => reverseTransformCache.get(value);
+/**
+* Open a database.
+*
+* @param name Name of the database.
+* @param version Schema version.
+* @param callbacks Additional callbacks.
+*/
+function openDB(name, version, { blocked, upgrade, blocking, terminated } = {}) {
+	const request = indexedDB.open(name, version);
+	const openPromise = wrap(request);
+	if (upgrade) request.addEventListener("upgradeneeded", (event) => {
+		upgrade(wrap(request.result), event.oldVersion, event.newVersion, wrap(request.transaction), event);
+	});
+	if (blocked) request.addEventListener("blocked", (event) => blocked(event.oldVersion, event.newVersion, event));
+	openPromise.then((db) => {
+		if (terminated) db.addEventListener("close", () => terminated());
+		if (blocking) db.addEventListener("versionchange", (event) => blocking(event.oldVersion, event.newVersion, event));
+	}).catch(() => {});
+	return openPromise;
+}
+const readMethods = [
+	"get",
+	"getKey",
+	"getAll",
+	"getAllKeys",
+	"count"
+];
+const writeMethods = [
+	"put",
+	"add",
+	"delete",
+	"clear"
+];
+const cachedMethods = /* @__PURE__ */ new Map();
+function getMethod(target, prop) {
+	if (!(target instanceof IDBDatabase && !(prop in target) && typeof prop === "string")) return;
+	if (cachedMethods.get(prop)) return cachedMethods.get(prop);
+	const targetFuncName = prop.replace(/FromIndex$/, "");
+	const useIndex = prop !== targetFuncName;
+	const isWrite = writeMethods.includes(targetFuncName);
+	if (!(targetFuncName in (useIndex ? IDBIndex : IDBObjectStore).prototype) || !(isWrite || readMethods.includes(targetFuncName))) return;
+	const method = async function(storeName, ...args) {
+		const tx = this.transaction(storeName, isWrite ? "readwrite" : "readonly");
+		let target = tx.store;
+		if (useIndex) target = target.index(args.shift());
+		return (await Promise.all([target[targetFuncName](...args), isWrite && tx.done]))[0];
+	};
+	cachedMethods.set(prop, method);
+	return method;
+}
+replaceTraps((oldTraps) => ({
+	...oldTraps,
+	get: (target, prop, receiver) => getMethod(target, prop) || oldTraps.get(target, prop, receiver),
+	has: (target, prop) => !!getMethod(target, prop) || oldTraps.has(target, prop)
+}));
+const advanceMethodProps = [
+	"continue",
+	"continuePrimaryKey",
+	"advance"
+];
+const methodMap = {};
+const advanceResults = /* @__PURE__ */ new WeakMap();
+const ittrProxiedCursorToOriginalProxy = /* @__PURE__ */ new WeakMap();
+const cursorIteratorTraps = { get(target, prop) {
+	if (!advanceMethodProps.includes(prop)) return target[prop];
+	let cachedFunc = methodMap[prop];
+	if (!cachedFunc) cachedFunc = methodMap[prop] = function(...args) {
+		advanceResults.set(this, ittrProxiedCursorToOriginalProxy.get(this)[prop](...args));
+	};
+	return cachedFunc;
+} };
+async function* iterate(...args) {
+	let cursor = this;
+	if (!(cursor instanceof IDBCursor)) cursor = await cursor.openCursor(...args);
+	if (!cursor) return;
+	cursor = cursor;
+	const proxiedCursor = new Proxy(cursor, cursorIteratorTraps);
+	ittrProxiedCursorToOriginalProxy.set(proxiedCursor, cursor);
+	reverseTransformCache.set(proxiedCursor, unwrap(cursor));
+	while (cursor) {
+		yield proxiedCursor;
+		cursor = await (advanceResults.get(proxiedCursor) || cursor.continue());
+		advanceResults.delete(proxiedCursor);
+	}
+}
+function isIteratorProp(target, prop) {
+	return prop === Symbol.asyncIterator && instanceOfAny(target, [
+		IDBIndex,
+		IDBObjectStore,
+		IDBCursor
+	]) || prop === "iterate" && instanceOfAny(target, [IDBIndex, IDBObjectStore]);
+}
+replaceTraps((oldTraps) => ({
+	...oldTraps,
+	get(target, prop, receiver) {
+		if (isIteratorProp(target, prop)) return iterate;
+		return oldTraps.get(target, prop, receiver);
+	},
+	has(target, prop) {
+		return isIteratorProp(target, prop) || oldTraps.has(target, prop);
+	}
+}));
+//#endregion
+//#region typescript/db/repository.ts
+var Repository = class {
+	db;
+	storeName;
+	constructor(db, storeName) {
+		this.db = db;
+		this.storeName = storeName;
+	}
+	async get(id) {
+		return this.db.get(this.storeName, id);
+	}
+	async put(data, key) {
+		return this.db.put(this.storeName, data, key);
+	}
+	async bulkPut(items) {
+		let tx = this.db.transaction(this.storeName, "readwrite");
+		let putPromises = items.map((item) => tx.store.put(item));
+		await Promise.all([...putPromises, tx.done]);
+	}
+	async findMatches(match) {
+		return (await this.db.getAll(this.storeName)).filter(match);
+	}
+};
+//#endregion
+//#region typescript/db/sessionDb.ts
+const DB_VERSION = 1;
+const SESSION_DB_PREFIX = "sessionStorage";
+async function initializeSession() {
+	if (!sessionStorage.getItem("session_active")) {
+		let dbs = await indexedDB.databases();
+		for (let db of dbs) if (db.name?.startsWith(SESSION_DB_PREFIX)) {
+			const deleteRequest = indexedDB.deleteDatabase(db.name);
+			deleteRequest.onsuccess = () => {
+				console.log(`Database ${db.name} deleted successfully.`);
+			};
+		}
+		sessionStorage.setItem("session_active", "true");
+	}
+}
+let cacheMap = /* @__PURE__ */ new Map();
+async function getSessionSchoolCache(schoolId) {
+	let cache = cacheMap.get(schoolId);
+	if (!cache) {
+		cache = await SessionSchoolCache.get(schoolId);
+		cacheMap.set(schoolId, cache);
+	}
+	return cache;
+}
+var SessionSchoolCache = class SessionSchoolCache {
+	schoolId;
+	db;
+	get AssetRefs() {
+		return this._AssetRefs;
+	}
+	get Loaded() {
+		return this._Loaded;
+	}
+	get LesRefs() {
+		return this._LesRefs;
+	}
+	_LesRefs;
+	_Loaded;
+	_AssetRefs;
+	constructor(schoolId, db) {
+		this.schoolId = schoolId;
+		this.db = db;
+		this._LesRefs = new Repository(this.db, "LesRefs");
+		this._Loaded = new Repository(this.db, "Loaded");
+		this._AssetRefs = new Repository(this.db, "Assets");
+	}
+	static getDbName(schoolId) {
+		return `${SESSION_DB_PREFIX}_${schoolId}`;
+	}
+	static async get(schoolId) {
+		await initializeSession();
+		return new SessionSchoolCache(schoolId, await openDB(SessionSchoolCache.getDbName(schoolId), DB_VERSION, { upgrade(db) {
+			db.createObjectStore("LesRefs", { keyPath: "id" });
+			db.createObjectStore("Loaded");
+			db.createObjectStore("Assets", { keyPath: "id" });
+		} }));
+	}
+};
+//#endregion
+//#region typescript/assets/scrape.ts
+async function scrapeAssets() {
+	let snel_zoeken = document.querySelector("#snel_zoeken");
+	let infoBlockDiv = document.createElement("div");
+	snel_zoeken.parentNode.insertBefore(infoBlockDiv, snel_zoeken);
+	return [...(await getTableFromHash("extra-assets-assets", true, new InfoBarTableFetchListener(createInfoBlock(infoBlockDiv, "")))).getRows()].map((row) => {
+		return {
+			id: row.cells[0].innerText,
+			code: row.cells[1].innerText.split("\n").shift() ?? ""
+		};
+	}).filter((asset) => asset.code);
+}
+//#endregion
+//#region typescript/globalSearch.ts
+function onPasteInGlobalSearchField(e) {
+	if (!options.stripCommasOnPaste) return;
+	let searchField = document.getElementById("snel_zoeken_veld_zoektermen");
+	let newText = (e.clipboardData?.getData("text/plain") ?? "").replaceAll(",", "").replaceAll("-", " ");
+	searchField.setRangeText(newText);
+	searchField.setSelectionRange(newText.length, newText.length);
+	e.preventDefault();
+}
+async function onParentKeyUp(e) {
+	if (e.key == "Enter") {
+		if (!options.powerGoto) return;
+		console.log("parent Enter");
+		let text = document.getElementById("snel_zoeken_veld_zoektermen").value;
+		if (await onEnterPressed(text) == "cancel") {
+			console.log("canceling");
+			e.stopImmediatePropagation();
+			e.preventDefault();
+			return;
+		}
+	}
+}
+let ignoreNextEnter = false;
+async function onEnterPressed(text) {
+	if (ignoreNextEnter) {
+		ignoreNextEnter = false;
+		return "default";
+	}
+	if (!text.includes(":")) return "default";
+	let parts = text.split(":");
+	let key = parts.shift();
+	//! will have 1 element
+	let value = parts.join(":");
+	if ("les".startsWith(key)) {
+		gotoLesRef(value.trim());
+		return "cancel";
+	} else if ("ma".startsWith(key)) {
+		gotoLesRef(value.trim(), "Muziekatelier");
+		return "cancel";
+	} else if ("asset".startsWith(key)) {
+		gotoAssetRef(value.trim());
+		return "cancel";
+	}
+	return "default";
+}
+async function updateLesMenuItem(dropDownMenu, index, lesRef, signal) {
+	if (signal.aborted) {
+		console.log("ABORTED updateMenuItem:", lesRef.id);
+		return;
+	}
+	let les = await fetchLes(lesRef.id, signal);
+	let lesmomenten = les.lesMomenten.join("\n");
+	let wachtlijst = "wachtlijst";
+	let full = les.aantal >= les.maxAantal ? ".full" : "";
+	let infoBlock = createLesCard(lesRef.name, les.vak, full, lesmomenten, les.aantal, les.maxAantal, wachtlijst, les.vestiging);
+	dropDownMenu.setItemContent(index, infoBlock);
+}
+async function updateAssetMenuItem(dropDownMenu, index, assetRef, signal) {
+	if (signal.aborted) {
+		console.log("ABORTED updateMenuItem:", assetRef.id);
+		return;
+	}
+}
+async function gotoLesRef(lesName, vak) {
+	return gotoRef(() => getLesMatches(lesName, vak), "/#lessen-les?id=", (lesRef) => lesRef.name, updateLesMenuItem);
+}
+async function gotoAssetRef(assetCode) {
+	return gotoRef(() => getAssetMatches(assetCode), "/#extra-assets-assets-details?id=", (assetRef) => assetRef.code, updateAssetMenuItem);
+}
+async function gotoRef(getMatches, gotoUrl, getLabel, updateMenuItem) {
+	let matches = await getMatches();
+	console.log("matches:", matches);
+	if (matches) {
+		if (matches.length == 1) {
+			console.log("gotoRef: matches.length == 1");
+			setTimeout(() => {
+				console.log(`gotoRef: matches.length == 1, location.href = ${gotoUrl + matches[0].id}`);
+				location.href = gotoUrl + matches[0].id;
+			});
+			return true;
+		}
+		if (matches.length > 1) {
+			let searchField = document.getElementById("snel_zoeken_veld_zoektermen");
+			let abortController = new AbortController();
+			let signal = abortController.signal;
+			let dropDownMenu = new DropDownMenu(searchField.parentElement?.parentElement, searchField, false, true, abortController);
+			matches.sort((a, b) => getLabel(a).localeCompare(getLabel(b)));
+			let queue = Promise.resolve();
+			for (let ref of matches) {
+				let index = dropDownMenu.addItem(getLabel(ref), 0, () => {
+					abortController.abort();
+					dropDownMenu.remove();
+					location.href = gotoUrl + ref.id;
 				});
-			});
-			window.navigation.addEventListener("navigatesuccess", () => {
-				checkGlobalSettings();
-				onPageChanged();
-			});
-			registerObserver(observer_default$7);
-			registerObserver(observer_default$8);
-			registerObserver(observer_default$6);
-			registerObserver(observer_default$4);
-			registerObserver(observer);
-			registerObserver(observer_default$9);
-			registerObserver(extraInschrijvingenObserver);
-			registerObserver(allLijstenObserver);
-			registerObserver(financialObserver);
-			registerObserver(assetsObserver);
-			registerObserver(evaluatieObserver);
-			registerObserver(observer_default$3);
-			registerObserver(observer_default$2);
-			registerObserver(academieMenuObserver);
-			registerObserver(observer_default$1);
-			registerObserver(observer_default);
-			registerObserver(observer_default);
-			registerObserver(observer_default$5);
-			onPageChanged();
-			getNotifRedButton();
-			setupMenu();
-			if (document.readyState == "complete") {
-				console.log("document ready. firing onPageRefreshed.");
-				onPageRefreshed();
-			} else window.addEventListener("load", () => {
-				console.log("load event fired.");
-				onPageRefreshed();
+				queue = queue.then(() => updateMenuItem(dropDownMenu, index, ref, signal));
+			}
+			dropDownMenu.show();
+		}
+	}
+	return true;
+}
+async function getLesMatches(lesName, vak) {
+	if (!lesName) return [];
+	let lowerCase = lesName.toLowerCase();
+	let cache = await getSessionSchoolCache(getSchoolIdString());
+	let loaded = await cache.Loaded.get("LesRefs");
+	console.log("loaded", loaded);
+	if (!loaded) {
+		let lessen = await scrapeLessen("3", "1", Schoolyear.toFullString(Schoolyear.calculateCurrent()));
+		lessen.push(...await scrapeLessen("2", "1", Schoolyear.toFullString(Schoolyear.calculateCurrent())));
+		lessen.push(...await scrapeLessen("4", "1", Schoolyear.toFullString(Schoolyear.calculateCurrent())));
+		let lesRefs = lessen.map((l) => ({
+			id: l.les.id,
+			name: l.les.naam,
+			vak: l.les.vakNaam
+		}));
+		await cache.LesRefs.bulkPut(lesRefs);
+		await cache.Loaded.put(true, "LesRefs");
+	}
+	if (vak) return cache.LesRefs.findMatches((lesRef) => lesRef.name.toLowerCase().includes(lowerCase) && lesRef.vak == vak);
+	return cache.LesRefs.findMatches((lesRef) => lesRef.name.toLowerCase().includes(lowerCase));
+}
+async function getAssetMatches(assetCode) {
+	if (!assetCode) return [];
+	let lowerCase = assetCode.toLowerCase();
+	let cache = await getSessionSchoolCache(getSchoolIdString());
+	if (!await cache.Loaded.get("AssetRefs")) {
+		let assetRefs = (await scrapeAssets()).map((asset) => ({
+			id: asset.id,
+			code: asset.code
+		}));
+		await cache.AssetRefs.bulkPut(assetRefs);
+		await cache.Loaded.put(true, "AssetRefs");
+	}
+	return cache.AssetRefs.findMatches((assetRef) => assetRef.code.toLowerCase().includes(lowerCase));
+}
+//#endregion
+//#region typescript/main.ts
+init();
+function init() {
+	getOptions().then(() => {
+		chrome.storage.onChanged.addListener((_changes, area) => {
+			if (area === "sync") getOptions().then((_r) => {
+				onSettingsChanged();
 			});
 		});
-	}
-	let lastCheckTime = Date.now();
-	function checkGlobalSettings() {
-		if (Date.now() > lastCheckTime + 1e4) {
-			lastCheckTime = Date.now();
-			console.log("Re-fetching global settings.");
-			fetchGlobalSettings(getGlobalSettings()).then((r) => {
-				if (!equals(getGlobalSettings(), r)) {
-					setGlobalSetting(r);
-					onSettingsChanged();
-				}
-			});
-		}
-	}
-	function onSettingsChanged() {
-		console.log("on settings changed.");
-		for (let observer of settingsObservers) observer();
-	}
-	function onPageChanged() {
-		if (getGlobalSettings().globalHide) return;
-		pageState$1.transient.clear();
-		for (let observer of observers) observer.onPageChanged();
-	}
-	function onClipboardChange(event) {
-		if (localStorage.getItem("machinename")) return;
-		console.log("clipboard changed.");
-		navigator.clipboard.read().then((items) => {
-			for (let item of items) {
-				console.log("clipboard item types: ", item.types);
-				if (item.types.includes("text/plain")) item.getType("text/plain").then(async (blob) => {
-					let text = await blob.text();
-					console.log("clipboard text: ", text);
-					if (text.startsWith("DKO3PLUGIN:")) {
-						let machinename = text.split(":")[1];
-						console.log("machinename: ", machinename);
-						localStorage.setItem("machinename", machinename);
-						await navigator.clipboard.writeText("");
-					}
-				});
+		window.navigation.addEventListener("navigatesuccess", () => {
+			checkGlobalSettings();
+			onPageChanged();
+		});
+		registerObserver(observer_default$7);
+		registerObserver(observer_default$8);
+		registerObserver(observer_default$6);
+		registerObserver(observer_default$4);
+		registerObserver(observer);
+		registerObserver(observer_default$9);
+		registerObserver(extraInschrijvingenObserver);
+		registerObserver(allLijstenObserver);
+		registerObserver(financialObserver);
+		registerObserver(assetsObserver);
+		registerObserver(evaluatieObserver);
+		registerObserver(observer_default$3);
+		registerObserver(observer_default$2);
+		registerObserver(academieMenuObserver);
+		registerObserver(observer_default$1);
+		registerObserver(observer_default);
+		registerObserver(observer_default);
+		registerObserver(observer_default$5);
+		onPageChanged();
+		getNotifRedButton();
+		setupMenu();
+		if (document.readyState == "complete") {
+			console.log("document ready. firing onPageRefreshed.");
+			onPageRefreshed();
+		} else window.addEventListener("load", () => {
+			console.log("load event fired.");
+			onPageRefreshed();
+		});
+	});
+}
+let lastCheckTime = Date.now();
+function checkGlobalSettings() {
+	if (Date.now() > lastCheckTime + 1e4) {
+		lastCheckTime = Date.now();
+		console.log("Re-fetching global settings.");
+		fetchGlobalSettings(getGlobalSettings()).then((r) => {
+			if (!equals(getGlobalSettings(), r)) {
+				setGlobalSetting(r);
+				onSettingsChanged();
 			}
 		});
 	}
-	function onPageRefreshed() {
-		if (getGlobalSettings().globalHide) return;
-		pageState$1.transient.clear();
-		for (let observer of observers) observer.onPageRefreshed();
-		let searchField = document.getElementById("snel_zoeken_veld_zoektermen");
-		if (searchField) {
-			searchField.addEventListener("paste", onPasteInGlobalSearchField);
-			searchField.parentElement.addEventListener("keyup", onParentKeyUp, { capture: true });
+}
+function onSettingsChanged() {
+	console.log("on settings changed.");
+	for (let observer of settingsObservers) observer();
+}
+function onPageChanged() {
+	if (getGlobalSettings().globalHide) return;
+	pageState$1.transient.clear();
+	for (let observer of observers) observer.onPageChanged();
+}
+function onClipboardChange(event) {
+	if (localStorage.getItem("machinename")) return;
+	console.log("clipboard changed.");
+	navigator.clipboard.read().then((items) => {
+		for (let item of items) {
+			console.log("clipboard item types: ", item.types);
+			if (item.types.includes("text/plain")) item.getType("text/plain").then(async (blob) => {
+				let text = await blob.text();
+				console.log("clipboard text: ", text);
+				if (text.startsWith("DKO3PLUGIN:")) {
+					let machinename = text.split(":")[1];
+					console.log("machinename: ", machinename);
+					localStorage.setItem("machinename", machinename);
+					await navigator.clipboard.writeText("");
+				}
+			});
 		}
-		navigator.clipboard.addEventListener("clipboardchange", onClipboardChange);
+	});
+}
+function onPageRefreshed() {
+	if (getGlobalSettings().globalHide) return;
+	pageState$1.transient.clear();
+	for (let observer of observers) observer.onPageRefreshed();
+	let searchField = document.getElementById("snel_zoeken_veld_zoektermen");
+	if (searchField) {
+		searchField.addEventListener("paste", onPasteInGlobalSearchField);
+		searchField.parentElement.addEventListener("keyup", onParentKeyUp, { capture: true });
 	}
-	window.onfocus = () => fetchAndDisplayNotifications();
-	document.onvisibilitychange = () => fetchAndDisplayNotifications();
-	//#endregion
-})(default_items);
+	navigator.clipboard.addEventListener("clipboardchange", onClipboardChange);
+}
+window.onfocus = () => fetchAndDisplayNotifications();
+document.onvisibilitychange = () => fetchAndDisplayNotifications();
+//#endregion
 
 //# sourceMappingURL=bundle.js.map
