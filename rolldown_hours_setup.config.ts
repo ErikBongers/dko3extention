@@ -7,5 +7,6 @@ export default defineConfig({
         file: "generated/teacherHoursSetup.js",
         format: "iife",
         sourcemap: true,
-    }
+    },
+    tsconfig: "./tsconfig_teacher_hours_setup.json"
 })

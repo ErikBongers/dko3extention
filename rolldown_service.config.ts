@@ -7,5 +7,6 @@ export default defineConfig({
         file: "generated/serviceworker.js",
         format: "iife",
         sourcemap: true,
-    }
+    },
+    tsconfig: "./tsconfig_service.json"
 })
