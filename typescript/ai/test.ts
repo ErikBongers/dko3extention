@@ -3,7 +3,7 @@ import { env, pipeline } from '@huggingface/transformers';
 import * as ort from 'onnxruntime-web';
 // import * as ort from 'onnxruntime-web/all';
 
-const testEmailText = "Beste planner, ik denk dat Bobby en Emre er vanavond helaas niet bij kunnen zijn. Groeten, familie Janssens.";
+const testEmailText = "Beste planner, ik denk dat bobby en emre er vanavond helaas niet bij kunnen zijn. Groeten, familie janssens. Ter info, wij gebruiker Microsoft Outlook, wonen in Belgie en Nederland en gaan op vakantie in Kalmthout.";
 
 export function runAiTest() {
     // Define a test email snippet with mixed Flemish and Turkish names

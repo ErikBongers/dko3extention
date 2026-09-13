@@ -40302,7 +40302,7 @@ apis.IS_PROCESS_AVAILABLE;
 Object.keys(DEFAULT_DTYPE_SUFFIX_MAPPING);
 //#endregion
 //#region typescript/ai/test.ts
-const testEmailText = "Beste planner, ik denk dat Bobby en Emre er vanavond helaas niet bij kunnen zijn. Groeten, familie Janssens.";
+const testEmailText = "Beste planner, ik denk dat Bobby en Emre er vanavond helaas niet bij kunnen zijn. Groeten, familie Janssens. Ter info, wij gebruiker Microsoft Outlook, wonen in Belgie en Nederland en gaan op vakantie in Kalmthout.";
 function runAiTest() {
 	console.log("⏳ Sending text to Service Worker for local AI analysis...");
 	let serviceRequest = {
