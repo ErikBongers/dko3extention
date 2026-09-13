@@ -3317,8 +3317,8 @@ function showDistinctColumn(tableMeta, index) {
 	};
 	openHtmlTab(addToOtherTabsDataCache(JSON.stringify(htmlData)), headerText + " (uniek)").then((_) => {});
 }
-chrome.runtime.onMessage.addListener(onMessage$2);
-async function onMessage$2(request, _sender, sendResponse) {
+chrome.runtime.onMessage.addListener(onMessage$3);
+async function onMessage$3(request, _sender, sendResponse) {
 	if (request.senderTabType != "Html") return;
 	if (request.action == "request_tab_data") {
 		let params = request.data.params;
@@ -8147,12 +8147,12 @@ async function openDiffSettings(academie, schoolyear) {
 		schoolyear
 	}, "TODO: is this title used? Uurrooster setup voor schooljaar " + schoolyear);
 }
-chrome.runtime.onMessage.addListener(onMessage$1);
+chrome.runtime.onMessage.addListener(onMessage$2);
 let pauseRefresh = false;
 setInterval(() => {
 	pauseRefresh = false;
 }, 2e3);
-async function onMessage$1(request, _sender, sendResponse) {
+async function onMessage$2(request, _sender, sendResponse) {
 	if (request.senderTabType != "diffSettings") return;
 	if (request.action == "request_tab_data") {
 		console.log("Requesting tab data", request.data);
@@ -10371,8 +10371,8 @@ function onCriteriaShown() {
 function resetPageIncarnationChangedFlag() {
 	pageIncarnationChanged = true;
 }
-chrome.runtime.onMessage.addListener(onMessage);
-async function onMessage(request, _sender, sendResponse) {
+chrome.runtime.onMessage.addListener(onMessage$1);
+async function onMessage$1(request, _sender, sendResponse) {
 	if (request.senderTabType != "HoursSettings") return;
 	switch (request.action) {
 		case "request_tab_data":
@@ -40339,7 +40339,7 @@ let nerPipelineInstance = null;
 async function getNerPipeline() {
 	if (!nerPipelineInstance) nerPipelineInstance = await pipeline2("token-classification", "onnx-community/bert-base-multilingual-cased-ner-hrl-ONNX", {
 		dtype: "fp32",
-		device: "wasm"
+		device: "webgpu"
 	});
 	return nerPipelineInstance;
 }
@@ -40354,6 +40354,40 @@ async function handleInference(text) {
 			success: false,
 			error: error.message
 		};
+	}
+}
+let worker = null;
+function onMessage(event) {
+	const { status, output } = event.data;
+	if (status === "complete") console.log(output);
+}
+async function runAiTestInWorker() {
+	if (!worker) throw new Error("Worker not initialized");
+	worker.postMessage({ text: testEmailText });
+}
+async function doInitWorker() {
+	worker = await initWorker(onMessage);
+}
+async function initWorker(onMessage) {
+	if (worker) return worker;
+	try {
+		const extensionWorkerUrl = chrome.runtime.getURL("generated/aiworker.js");
+		const workerCode = await (await fetch(extensionWorkerUrl)).text();
+		const blob = new Blob([workerCode], { type: "application/javascript" });
+		const blobUrl = URL.createObjectURL(blob);
+		console.log("Creating worker for code URL:", blobUrl);
+		const aiWorker = new Worker(blobUrl, { type: "module" });
+		aiWorker.onmessage = onMessage;
+		const extensionRoot = chrome.runtime.getURL("/");
+		aiWorker.postMessage({
+			type: "INIT_PATH",
+			path: extensionRoot
+		});
+		worker = aiWorker;
+		return aiWorker;
+	} catch (error) {
+		console.error("Worker initialization failed:", error);
+		throw error;
 	}
 }
 //#endregion
@@ -40456,7 +40490,8 @@ window.onfocus = () => fetchAndDisplayNotifications();
 document.onvisibilitychange = () => fetchAndDisplayNotifications();
 window.runAiTest = runAiTest;
 window.runAiTest2 = runAiTest2;
-runAiTest2();
+await doInitWorker();
+await runAiTestInWorker();
 //#endregion
 
 //# sourceMappingURL=bundle.js.map

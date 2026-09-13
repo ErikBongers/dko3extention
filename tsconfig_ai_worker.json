@@ -1,0 +1,18 @@
+{
+  "include": ["typescript/**/*"],
+  "compilerOptions": {
+    "outDir": "./generated",
+    "target": "esnext",
+    "sourceMap": true,
+    "noEmit": true,
+    "incremental": false,
+    "noImplicitOverride": true,
+    "noImplicitThis": true,
+    "noImplicitReturns": true,
+    "noImplicitAny": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "types": [ "chrome" ]
+  },
+  "files": ["./typescript/ai/worker.ts"]
+}

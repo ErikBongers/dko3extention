@@ -81,3 +81,50 @@ async function handleInference(text: string) {
         return { success: false, error: (error as Error).message };
     }
 }
+
+let worker: Worker | null = null;
+
+function onMessage(event: any) {
+    const { status, output } = event.data
+    if (status === 'complete') {
+        console.log(output);
+    }
+}
+
+export async function runAiTestInWorker() {
+    if(!worker)
+        throw new Error("Worker not initialized");
+    worker.postMessage({ text: testEmailText });
+}
+
+export async function doInitWorker() {
+    worker = await initWorker(onMessage);
+}
+
+async function initWorker(onMessage: (event: MessageEvent) => void): Promise<Worker> {
+    if(worker)
+        return worker;
+    try {
+        const extensionWorkerUrl = chrome.runtime.getURL('generated/aiworker.js');
+
+        const response = await fetch(extensionWorkerUrl);
+        const workerCode = await response.text();
+
+        const blob = new Blob([workerCode], { type: 'application/javascript' });
+        const blobUrl = URL.createObjectURL(blob);
+
+        console.log("Creating worker for code URL:", blobUrl);
+        const aiWorker = new Worker(blobUrl, { type: 'module' });
+        aiWorker.onmessage = onMessage;
+
+        const extensionRoot = chrome.runtime.getURL('/');
+        aiWorker.postMessage({ type: 'INIT_PATH', path: extensionRoot });
+
+        worker = aiWorker;
+        return aiWorker;
+
+    } catch (error) {
+        console.error("Worker initialization failed:", error);
+        throw error;
+    }
+}
