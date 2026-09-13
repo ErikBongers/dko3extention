@@ -11305,11 +11305,7 @@ function onMessage(event) {
 	if (status === "complete") console.log(output);
 }
 async function runAiTestInWorker() {
-	if (!worker) throw new Error("Worker not initialized");
-	worker.postMessage({ text: testEmailText });
-}
-async function doInitWorker() {
-	worker = await initWorker(onMessage);
+	(await initWorker(onMessage)).postMessage({ text: testEmailText });
 }
 async function initWorker(onMessage) {
 	if (worker) return worker;
@@ -11431,7 +11427,6 @@ function onPageRefreshed() {
 }
 window.onfocus = () => fetchAndDisplayNotifications();
 document.onvisibilitychange = () => fetchAndDisplayNotifications();
-await doInitWorker();
 await runAiTestInWorker();
 //#endregion
 

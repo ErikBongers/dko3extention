@@ -1,7 +1,7 @@
 const testEmailText = "Beste planner, ik denk dat Bobby en Emre er vanavond helaas niet bij kunnen zijn. Groeten, familie Janssens. Ter info, wij gebruiker Microsoft Outlook, wonen in Belgie en Nederland en gaan op vakantie in Kalmthout.";
 // const testEmailText = "Beste planner, ik denk dat bobby en emre er vanavond helaas niet bij kunnen zijn. Groeten, familie janssens. Ter info, wij gebruiker Microsoft Outlook, wonen in Belgie en Nederland en gaan op vakantie in Kalmthout.";
 
-let worker: Worker | null = null;
+let worker: Worker | Promise<Worker> | null = null;
 
 function onMessage(event: any) {
     const { status, output } = event.data
@@ -11,9 +11,7 @@ function onMessage(event: any) {
 }
 
 export async function runAiTestInWorker() {
-    if(!worker)
-        throw new Error("Worker not initialized");
-    worker.postMessage({ text: testEmailText });
+    (await initWorker(onMessage)).postMessage({ text: testEmailText });
 }
 
 export async function doInitWorker() {
@@ -23,6 +21,7 @@ export async function doInitWorker() {
 async function initWorker(onMessage: (event: MessageEvent) => void): Promise<Worker> {
     if(worker)
         return worker;
+
     try {
         const extensionWorkerUrl = chrome.runtime.getURL('generated/aiworker.js');
 

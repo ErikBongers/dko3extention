@@ -639,18 +639,12 @@
 		for (let optiondDef of htmlOptionDefs.values()) {
 			if (!optiondDef.blockId) continue;
 			let block = document.getElementById(optiondDef.blockId);
-			let first = emmet.indent.appendChild(block, `
+			emmet.indent.appendChild(block, `
             div
                 label
                     input#${optiondDef.id}[type="checkbox"]+{${optiondDef.label}}
                 div.suffix.showWhenTrue.pre{${optiondDef.suffixWhenTrue ?? ""}}
-            `).first;
-			let input = first.querySelector(`#${optiondDef.id}`);
-			input.addEventListener("change", () => {
-				first.querySelector("div.suffix")?.classList.toggle("isTrue", input.checked);
-			});
-			input.dispatchEvent(new Event("change"));
-			first.querySelector("div.suffix")?.classList.toggle("isTrue", input.checked);
+            `).first.querySelector(`#${optiondDef.id}`);
 		}
 		await restoreOptionsToGui();
 	}

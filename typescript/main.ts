@@ -170,5 +170,4 @@ document.onvisibilitychange = () => fetchAndDisplayNotifications();
 // (window as any).runAiTest = runAiTest;
 // (window as any).runAiTest2 = runAiTest2;
 // runAiTest2();
-await doInitWorker();
 await runAiTestInWorker();
