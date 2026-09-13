@@ -6,8 +6,8 @@ async function runAiTest2sub(text: string) {
     }
 
     env.allowLocalModels = false;
-    env.backends.onnx.wasm!.wasmPaths = `${extensionRoot}ai/huggingWasmEngine/`;
-    env.localModelPath = `${extensionRoot}ai/models/onnx-community_bert-base-multilingual-cased-ner-hrl-ONNX/`;
+    // env.backends.onnx.wasm!.wasmPaths = `${extensionRoot}ai/huggingWasmEngine/`;
+    // env.localModelPath = `${extensionRoot}ai/models/onnx-community_bert-base-multilingual-cased-ner-hrl-ONNX/`;
     let res = await handleInference(text);
     console.log(res);
     return res;
@@ -21,7 +21,9 @@ async function getNerPipeline() {
         // Point directly to your bundled package folder
         nerPipelineInstance = await pipeline(
             'token-classification',
-            'onnx-community/bert-base-multilingual-cased-ner-hrl-ONNX',
+            // 'Babelscape/wikineural-multilingual-ner', //no js interface.
+            // 'jdp8/wikineural-multilingual-ner',   //works but only for capitalized names.
+            'onnx-community/bert-base-multilingual-cased-ner-hrl-ONNX', //works but only for capitalized names.
             {
                 // FIX: Force the engine to read "model.onnx" instead of looking for "model_quantized.onnx"
                 dtype: 'fp32',

@@ -29007,8 +29007,6 @@ Object.keys(DEFAULT_DTYPE_SUFFIX_MAPPING);
 async function runAiTest2sub(text) {
 	if (!extensionRoot) return "Oops: Extension root not set";
 	env.allowLocalModels = false;
-	env.backends.onnx.wasm.wasmPaths = `${extensionRoot}ai/huggingWasmEngine/`;
-	env.localModelPath = `${extensionRoot}ai/models/onnx-community_bert-base-multilingual-cased-ner-hrl-ONNX/`;
 	let res = await handleInference(text);
 	console.log(res);
 	return res;

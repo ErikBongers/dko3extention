@@ -25,7 +25,7 @@ import {pageState} from "./pageState";
 import {fetchAndDisplayNotifications, getNotifRedButton} from "./notifications/notifications";
 import {setupMenu} from "./menu";
 import {onParentKeyUp, onPasteInGlobalSearchField} from "./globalSearch";
-import {doInitWorker, runAiTest, runAiTest2, runAiTestInWorker} from "./ai/test";
+import {doInitWorker, runAiTestInWorker} from "./ai/test";
 
 init();
 
@@ -167,8 +167,8 @@ window.onfocus = () => fetchAndDisplayNotifications();
 document.onvisibilitychange = () => fetchAndDisplayNotifications();
 
 //TEST
-(window as any).runAiTest = runAiTest;
-(window as any).runAiTest2 = runAiTest2;
+// (window as any).runAiTest = runAiTest;
+// (window as any).runAiTest2 = runAiTest2;
 // runAiTest2();
 await doInitWorker();
 await runAiTestInWorker();
