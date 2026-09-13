@@ -630,7 +630,8 @@ const options = {
 	allowDeleteNotif: false,
 	showPluginMenu: false,
 	leerlingGotoLes: false,
-	powerGoto: false
+	powerGoto: false,
+	enableAI: false
 };
 let globalSettings = { globalHide: false };
 function getGlobalSettings() {

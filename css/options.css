@@ -6,6 +6,8 @@ html {
 body {
     display: table-cell;
     vertical-align: middle;
+    max-width: 1000px; /* Limits the content width on large screens */
+    margin: 0 auto;    /* Centers the body element horizontally */
 }
 
 label {
@@ -33,4 +35,14 @@ button
 
 input[type="checkbox" i]  {
     margin-left: 0;
+}
+
+div.suffix {
+    font-style: italic;
+    font-size: .8em;
+    opacity: .6;
+}
+
+div:not(:has(input:checked)) div.suffix.showWhenTrue {
+    display: none;
 }

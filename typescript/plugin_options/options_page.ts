@@ -60,7 +60,13 @@ async function fillOptionsInGui() {
         if(!optiondDef.blockId)
             continue;
         let block = document.getElementById(optiondDef.blockId)!;
-        emmet.appendChild(block, `label>input#${optiondDef.id}[type="checkbox"]+{${optiondDef.label}}`);
+        let first = emmet.indent.appendChild(block, `
+            div
+                label
+                    input#${optiondDef.id}[type="checkbox"]+{${optiondDef.label}}
+                div.suffix.showWhenTrue.pre{${optiondDef.suffixWhenTrue??""}}
+            `).first as HTMLDivElement;
+        let input = first.querySelector(`#${optiondDef.id}`) as HTMLInputElement;
     }
     await restoreOptionsToGui();
 }

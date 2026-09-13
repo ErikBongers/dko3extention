@@ -13,6 +13,7 @@ export type Options = {
     showPluginMenu: boolean;
     leerlingGotoLes: boolean;
     powerGoto: boolean;
+    enableAI: boolean;
 };
 
 export const options: Options = {
@@ -27,6 +28,7 @@ export const options: Options = {
     showPluginMenu: false,
     leerlingGotoLes: false,
     powerGoto: false,
+    enableAI: false,
 };
 
 export function defineHtmlOptions() {
@@ -41,6 +43,8 @@ export function defineHtmlOptions() {
     defineHtmlOption("allowDeleteNotif", 'checked', "Laat verwijderen van berichten toe...", "block3");
     defineHtmlOption("leerlingGotoLes", 'checked', "Leerling les knop: toon alternatieven.", "block3");
     defineHtmlOption("powerGoto", 'checked', "Snelle lijst in algemeen zoekveld.", "block3");
+    defineHtmlOption("enableAI", 'checked', "Activeer AI (jaja, 't is zover)", "block3",
+        "Waarschuwing:\n Het gebruik van AI kan volgende nevenwerkingen hebben:\n  - werkloosheid\n  - nucleaire oorlog\n  - einde van de mensheid\nIndien een van deze zaken zich voordoet, gelieve onze helpdesk te contacteren.");
 }
 
 type OptionDef = {
@@ -48,12 +52,13 @@ type OptionDef = {
     property: string,
     label: string,
     blockId: string | null
+    suffixWhenTrue?: string;
 }
 
 export let htmlOptionDefs = new Map<string, OptionDef>();
 
-export function defineHtmlOption(id: string, property: string, label: string, blockId: string | null) {
-    htmlOptionDefs.set(id, {id, property, label, blockId});
+export function defineHtmlOption(id: string, property: string, label: string, blockId: string | null, suffixWhenTrue?: string) {
+    htmlOptionDefs.set(id, {id, property, label, blockId, suffixWhenTrue});
 
 }
 

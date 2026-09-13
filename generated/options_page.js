@@ -559,7 +559,8 @@
 		allowDeleteNotif: false,
 		showPluginMenu: false,
 		leerlingGotoLes: false,
-		powerGoto: false
+		powerGoto: false,
+		enableAI: false
 	};
 	function defineHtmlOptions() {
 		defineHtmlOption("showNotAssignedClasses", "checked", "Toon arcering voor niet toegewezen klassikale lessen.", "block1");
@@ -573,14 +574,16 @@
 		defineHtmlOption("allowDeleteNotif", "checked", "Laat verwijderen van berichten toe...", "block3");
 		defineHtmlOption("leerlingGotoLes", "checked", "Leerling les knop: toon alternatieven.", "block3");
 		defineHtmlOption("powerGoto", "checked", "Snelle lijst in algemeen zoekveld.", "block3");
+		defineHtmlOption("enableAI", "checked", "Activeer AI (jaja, 't is zover)", "block3", "Waarschuwing:\n Het gebruik van AI kan volgende nevenwerkingen hebben:\n  - werkloosheid\n  - nucleaire oorlog\n  - einde van de mensheid\nIndien een van deze zaken zich voordoet, gelieve onze helpdesk te contacteren.");
 	}
 	let htmlOptionDefs = /* @__PURE__ */ new Map();
-	function defineHtmlOption(id, property, label, blockId) {
+	function defineHtmlOption(id, property, label, blockId, suffixWhenTrue) {
 		htmlOptionDefs.set(id, {
 			id,
 			property,
 			label,
-			blockId
+			blockId,
+			suffixWhenTrue
 		});
 	}
 	let globalSettings = { globalHide: false };
@@ -636,7 +639,18 @@
 		for (let optiondDef of htmlOptionDefs.values()) {
 			if (!optiondDef.blockId) continue;
 			let block = document.getElementById(optiondDef.blockId);
-			emmet.appendChild(block, `label>input#${optiondDef.id}[type="checkbox"]+{${optiondDef.label}}`);
+			let first = emmet.indent.appendChild(block, `
+            div
+                label
+                    input#${optiondDef.id}[type="checkbox"]+{${optiondDef.label}}
+                div.suffix.showWhenTrue.pre{${optiondDef.suffixWhenTrue ?? ""}}
+            `).first;
+			let input = first.querySelector(`#${optiondDef.id}`);
+			input.addEventListener("change", () => {
+				first.querySelector("div.suffix")?.classList.toggle("isTrue", input.checked);
+			});
+			input.dispatchEvent(new Event("change"));
+			first.querySelector("div.suffix")?.classList.toggle("isTrue", input.checked);
 		}
 		await restoreOptionsToGui();
 	}
