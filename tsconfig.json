@@ -13,6 +13,7 @@
     "noImplicitReturns": true,
     "noImplicitAny": true,
     "strict": true,
+    "skipLibCheck": true,
     "paths": {
     },
     "typeRoots": ["typescript/powerQuery", "node_modules/@types"],

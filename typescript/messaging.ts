@@ -12,6 +12,7 @@ export enum Actions {
     GreetingsFromParent = "greetingsFromParent",
     GreetingsFromChild = "greetingsFromChild",
     Www = "Www",
+    AnalyzeText = "ANALYZE_TEXT",
 }
 
 export enum TabType {

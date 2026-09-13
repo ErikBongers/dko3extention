@@ -1,3 +1,6 @@
+* perhaps patch transformers?
+  >> https://github.com/huggingface/transformers.js/issues/1248
+
 * teacherHours: link to teacher (toewijzingen)
 
 * fetch table: make abortable.

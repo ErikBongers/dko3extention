@@ -10,7 +10,7 @@
   "content_scripts": [
     {
       "js": [
-        "generated/bundle.js"
+        "importWrapper.js"
       ],
       "css": [
         "css/global.css",
@@ -25,8 +25,12 @@
       ]
     }
   ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+  },
   "background": {
-    "service_worker": "generated/serviceworker.js"
+    "service_worker": "generated/serviceworker.js",
+    "type": "module"
   },
   "options_page": "options.html",
   "permissions": [
@@ -41,7 +45,8 @@
       "generated/*",
       "typescript/*",
       "resources/*",
-      "images/*"
+      "images/*",
+      "ai/*"
     ]
   }
   ]

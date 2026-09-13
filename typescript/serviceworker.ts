@@ -1,6 +1,7 @@
 import MessageSender = chrome.runtime.MessageSender;
 import {Actions, ServiceRequest, TabType} from "./messaging";
 import {HtmlText} from "./www_diff/buildDiff";
+import {handleInference} from "./ai/background";
 
 let defaultOptions = { //todo: integrate in options.ts.
     showDebug: true,
@@ -105,12 +106,11 @@ function onMessage(message: ServiceRequest<any>, sender: MessageSender, sendResp
                 sendResponse(message);
             });
             return true;
+        case Actions.AnalyzeText:
+            handleInference(message.data).then(sendResponse);
+            return true; // Keeps the communication channel open for asynchronous reply
         case Actions.GreetingsFromChild:
         default:
-            console.log("service worker: received message: ", message);
-            getTabId(message.targetTabType).then(id => {
-                chrome.tabs.sendMessage(id, message).then(() => {});
-            });
             break;
     }
     return false;

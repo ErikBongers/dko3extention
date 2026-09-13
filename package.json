@@ -13,17 +13,20 @@
     "build_blank": "tsc --project ./tsconfig_blank.json && rolldown -c rolldown_blank.config.ts",
     "build_hours_setup": "tsc --project ./tsconfig_teacher_hours_setup.json && rolldown -c rolldown_hours_setup.config.ts",
     "build_diff_settings": "tsc --project ./tsconfig_diff_settings.json && rolldown -c rolldown_diff_settings.config.ts",
-    "publish_edge": "powershell ./zip.ps1"
+    "publish_edge": "powershell ./zip.ps1",
+    "download_mBERT": "node scripts/download_hugging_model.js Xenova/bert-base-NER",
+    "download_multilangBERT": "node scripts/download_hugging_model.js onnx-community/bert-base-multilingual-cased-ner-hrl-ONNX"
   },
   "author": "",
   "license": "ISC",
   "type": "module",
   "devDependencies": {
     "@types/chrome": "^0.0.313",
-    "rolldown": "^1.2.6"
+    "rolldown": "^1.2.6",
+    "rollup-plugin-copy": "^3.5.0"
   },
   "dependencies": {
+    "@huggingface/transformers": "^4.2.0",
     "idb": "^8.0.3"
   }
-
 }

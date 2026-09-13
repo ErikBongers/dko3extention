@@ -1,4 +1,4 @@
-import { defineConfig } from 'rolldown'
+import { defineConfig } from 'rolldown';
 
 // noinspection JSUnusedGlobalSymbols
 export default defineConfig({
