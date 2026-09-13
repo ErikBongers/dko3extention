@@ -29004,7 +29004,7 @@ apis.IS_PROCESS_AVAILABLE;
 Object.keys(DEFAULT_DTYPE_SUFFIX_MAPPING);
 //#endregion
 //#region typescript/ai/worker.ts
-async function runAiTest2sub(text) {
+async function runAiAndFilterPersons(text) {
 	if (!extensionRoot) return "Oops: Extension root not set";
 	env.allowLocalModels = false;
 	let res = await handleInference(text);
@@ -29021,9 +29021,11 @@ async function getNerPipeline() {
 }
 async function handleInference(text) {
 	try {
+		const results = await (await getNerPipeline())(text, { aggregation_strategy: "simple" });
+		console.log("Worker received results:", results);
 		return {
 			success: true,
-			entities: (await (await getNerPipeline())(text)).filter((item) => item.entity.includes("PER"))
+			entities: results.filter((item) => item.entity_group?.includes("PER") || item.entity?.includes("PER"))
 		};
 	} catch (error) {
 		return {
@@ -29038,8 +29040,17 @@ self.onmessage = async (event) => {
 		env.backends.onnx.wasm.wasmPaths = `${extensionRoot}ai/huggingWasmEngine/`;
 		console.log("Worker localized successfully!");
 		return;
+	} else if (event.data.type === "extractNames") {
+		console.log("Worker received data:", event.data);
+		const names = await runAiAndFilterPersons(event.data.wordList.join(", "));
+		console.log(names);
+		self.postMessage({
+			status: "complete",
+			output: JSON.stringify(names)
+		});
+		return;
 	}
-	const result = await runAiTest2sub(event.data.text);
+	const result = await runAiAndFilterPersons(event.data.text);
 	console.log("Worker:", result);
 	self.postMessage({
 		status: "complete",

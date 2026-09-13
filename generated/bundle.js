@@ -10710,6 +10710,45 @@ function reduceVaknaamStep1(vaknaam) {
 	return "??";
 }
 //#endregion
+//#region typescript/ai/test.ts
+const testEmailText = "Beste planner, ik denk dat Bobby en Emre er vanavond helaas niet bij kunnen zijn. Groeten, familie Janssens. Ter info, wij gebruiker Microsoft Outlook, wonen in Belgie en Nederland en gaan op vakantie in Kalmthout.";
+let worker = null;
+function onMessage(event) {
+	const { status, output } = event.data;
+	if (status === "complete") console.log("Result from AI worker: ", output);
+}
+async function runAiTestInWorker() {
+	(await initWorker(onMessage)).postMessage({ text: testEmailText });
+}
+async function findPersonsInWorker(wordList) {
+	(await initWorker(onMessage)).postMessage({
+		type: "extractNames",
+		wordList
+	});
+}
+async function initWorker(onMessage) {
+	if (worker) return worker;
+	try {
+		const extensionWorkerUrl = chrome.runtime.getURL("generated/aiworker.js");
+		const workerCode = await (await fetch(extensionWorkerUrl)).text();
+		const blob = new Blob([workerCode], { type: "application/javascript" });
+		const blobUrl = URL.createObjectURL(blob);
+		console.log("Creating worker for code URL:", blobUrl);
+		const aiWorker = new Worker(blobUrl, { type: "module" });
+		aiWorker.onmessage = onMessage;
+		const extensionRoot = chrome.runtime.getURL("/");
+		aiWorker.postMessage({
+			type: "INIT_PATH",
+			path: extensionRoot
+		});
+		worker = aiWorker;
+		return aiWorker;
+	} catch (error) {
+		console.error("Worker initialization failed:", error);
+		throw error;
+	}
+}
+//#endregion
 //#region typescript/afwezigheden/observer.ts
 var AfwezighedenObserver = class extends ExactHashObserver {
 	constructor() {
@@ -10762,7 +10801,7 @@ function addMatchingStudents() {
 }
 function addEmailText() {
 	let emailDiv = emmet.appendChild(document.querySelector("div.modal-body"), "div>button#btnShowEmail{Show email}.btn.btn-sm.btn-outline-success+div#showEmail.collapsed").last;
-	emailDiv.innerHTML = currentEmailHtml;
+	emailDiv.innerHTML = global_currentEmailHtml;
 	document.getElementById("btnShowEmail").addEventListener("click", showEmail);
 }
 function showEmail() {
@@ -10780,19 +10819,16 @@ function fillAndClick(name) {
 	return false;
 }
 let matchingLeerlingen = [];
-let currentEmailHtml = "";
+let global_currentEmailHtml = "";
 async function onTicket() {
 	let card_bodyDiv = document.querySelector(".card-body");
 	if (!card_bodyDiv) return;
 	let emailText = card_bodyDiv.textContent;
-	currentEmailHtml = card_bodyDiv.innerHTML;
-	let matches = [...emailText.matchAll(rxEmail)];
-	let uniqueEmails = [...new Set(matches.map((match) => match[0]))];
-	let { email: myEmail } = whoAmI();
-	uniqueEmails = uniqueEmails.filter((m) => m != myEmail);
-	console.log(uniqueEmails);
+	global_currentEmailHtml = card_bodyDiv.innerHTML;
+	let parseMailData = parseEmail(emailText);
+	console.log(parseMailData);
 	let template = document.createElement("div");
-	template.innerHTML = await fetchStudentsSearch(uniqueEmails.join(" "));
+	template.innerHTML = await fetchStudentsSearch(parseMailData.uniqueEmails.join(" "));
 	matchingLeerlingen = [...template.querySelectorAll("td")].map((td) => {
 		let id = td.querySelector("small").textContent;
 		let name = td.querySelector("strong").textContent;
@@ -10805,6 +10841,20 @@ async function onTicket() {
 		};
 	});
 	findUniqueMatch(emailText, matchingLeerlingen);
+	let names = await findPersonsInWorker(parseMailData.uniqueCapital);
+	console.log(names);
+}
+function parseEmail(emailText) {
+	let matches = [...emailText.matchAll(rxEmail)];
+	let uniqueEmails = [...new Set(matches.map((match) => match[0]))];
+	let { email: myEmail } = whoAmI();
+	uniqueEmails = uniqueEmails.filter((m) => m != myEmail);
+	const matchesCapital = [...emailText.matchAll(/\W+(\p{Lu}\p{L}+(-\p{Lu}\p{L}+)?)/gmu)].map((match) => match[1]);
+	let uniqueCapital = [...new Set(matchesCapital)];
+	return {
+		uniqueEmails,
+		uniqueCapital
+	};
 }
 function findUniqueMatch(emailText, matchingLeerlingen) {
 	if (matchingLeerlingen.length === 1) {
@@ -11295,39 +11345,6 @@ async function getAssetMatches(assetCode) {
 		await cache.Loaded.put(true, "AssetRefs");
 	}
 	return cache.AssetRefs.findMatches((assetRef) => assetRef.code.toLowerCase().includes(lowerCase));
-}
-//#endregion
-//#region typescript/ai/test.ts
-const testEmailText = "Beste planner, ik denk dat Bobby en Emre er vanavond helaas niet bij kunnen zijn. Groeten, familie Janssens. Ter info, wij gebruiker Microsoft Outlook, wonen in Belgie en Nederland en gaan op vakantie in Kalmthout.";
-let worker = null;
-function onMessage(event) {
-	const { status, output } = event.data;
-	if (status === "complete") console.log(output);
-}
-async function runAiTestInWorker() {
-	(await initWorker(onMessage)).postMessage({ text: testEmailText });
-}
-async function initWorker(onMessage) {
-	if (worker) return worker;
-	try {
-		const extensionWorkerUrl = chrome.runtime.getURL("generated/aiworker.js");
-		const workerCode = await (await fetch(extensionWorkerUrl)).text();
-		const blob = new Blob([workerCode], { type: "application/javascript" });
-		const blobUrl = URL.createObjectURL(blob);
-		console.log("Creating worker for code URL:", blobUrl);
-		const aiWorker = new Worker(blobUrl, { type: "module" });
-		aiWorker.onmessage = onMessage;
-		const extensionRoot = chrome.runtime.getURL("/");
-		aiWorker.postMessage({
-			type: "INIT_PATH",
-			path: extensionRoot
-		});
-		worker = aiWorker;
-		return aiWorker;
-	} catch (error) {
-		console.error("Worker initialization failed:", error);
-		throw error;
-	}
 }
 //#endregion
 //#region typescript/main.ts

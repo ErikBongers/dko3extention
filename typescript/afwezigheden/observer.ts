@@ -1,6 +1,7 @@
 import {ExactHashObserver} from "../pageObserver";
 import {fetchStudentsSearch, rxEmail, setViewFromCurrentUrl, whoAmI} from "../globals";
 import {emmet} from "../../libs/Emmeter/html";
+import {findPersonsInWorker} from "../ai/test";
 
 class AfwezighedenObserver extends ExactHashObserver {
     constructor() {
@@ -71,7 +72,7 @@ function addMatchingStudents() {
 
 function addEmailText() {
     let emailDiv  = emmet.appendChild(document.querySelector("div.modal-body") as HTMLElement, 'div>button#btnShowEmail{Show email}.btn.btn-sm.btn-outline-success+div#showEmail.collapsed').last as HTMLDivElement;
-    emailDiv.innerHTML = currentEmailHtml;
+    emailDiv.innerHTML = global_currentEmailHtml;
     document.getElementById("btnShowEmail")!.addEventListener("click", showEmail);
 }
 
@@ -102,24 +103,20 @@ interface MatchingLeerling {
     winner: boolean
 }
 
-let currentEmailHtml = "";
+let global_currentEmailHtml = "";
 
 async function onTicket() {
     let card_bodyDiv = document.querySelector(".card-body");
     if(!card_bodyDiv)
         return;
     let emailText = card_bodyDiv.textContent;
-    currentEmailHtml = card_bodyDiv.innerHTML;
+    global_currentEmailHtml = card_bodyDiv.innerHTML;
 
-    let matches = [...emailText.matchAll(rxEmail)];
-    let uniqueEmails = [...new Set(matches.map(match => match[0]))];
-    
-    let {email: myEmail} = whoAmI();
-    uniqueEmails = uniqueEmails.filter(m => m != myEmail);
-    console.log(uniqueEmails);
+    let parseMailData = parseEmail(emailText);
+    console.log(parseMailData);
 
     let template = document.createElement("div");
-    template.innerHTML = await fetchStudentsSearch(uniqueEmails.join(" "));
+    template.innerHTML = await fetchStudentsSearch(parseMailData.uniqueEmails.join(" "));
     let tdLln = [...template.querySelectorAll("td")];
     matchingLeerlingen = tdLln.map(td => {
         let id = td.querySelector("small")!.textContent;
@@ -128,6 +125,21 @@ async function onTicket() {
         return <MatchingLeerling>{id, name, weight: 0, winner: false};
     });
     findUniqueMatch(emailText, matchingLeerlingen);
+    let names = await findPersonsInWorker(parseMailData.uniqueCapital);
+    console.log(names);
+}
+
+function parseEmail(emailText: string) {
+    let matches = [...emailText.matchAll(rxEmail)];
+    let uniqueEmails = [...new Set(matches.map(match => match[0]))];
+
+    let {email: myEmail} = whoAmI();
+    uniqueEmails = uniqueEmails.filter(m => m != myEmail);
+
+    let rxCapital = /\W+(\p{Lu}\p{L}+(-\p{Lu}\p{L}+)?)/gmu; //also Anne-Marie and Erbstösser
+    const matchesCapital = [...emailText.matchAll(rxCapital)].map(match => match[1]);
+    let uniqueCapital = [...new Set(matchesCapital)];
+    return {uniqueEmails, uniqueCapital};
 }
 
 function findUniqueMatch(emailText: string, matchingLeerlingen: MatchingLeerling[]) {

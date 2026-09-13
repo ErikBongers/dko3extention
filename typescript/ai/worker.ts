@@ -1,6 +1,6 @@
 import { env, pipeline } from '@huggingface/transformers';
 
-async function runAiTest2sub(text: string) {
+async function runAiAndFilterPersons(text: string) {
     if(!extensionRoot){
         return "Oops: Extension root not set";
     }
@@ -33,12 +33,15 @@ async function getNerPipeline() {
 async function handleInference(text: string) {
     try {
         const classifier = await getNerPipeline();
-        const results = await classifier(text);
+        const results = await classifier(text, {
+            aggregation_strategy: 'simple'
+        });
+        console.log("Worker received results:", results);
 
         // Filter the array to return only extracted entities tagged as a Person (PER)
         return {
             success: true,
-            entities: results.filter((item: any) => item.entity.includes('PER'))
+            entities: results.filter((item: any) => item.entity_group?.includes('PER') || item.entity?.includes('PER'))
         };
     } catch (error) {
         return { success: false, error: (error as Error).message };
@@ -51,8 +54,14 @@ self.onmessage = async (event) => {
         env.backends.onnx.wasm!.wasmPaths = `${extensionRoot}ai/huggingWasmEngine/`;
         console.log("Worker localized successfully!");
         return;
+    } else if(event.data.type === "extractNames") {
+        console.log("Worker received data:", event.data);
+        const names = await runAiAndFilterPersons(event.data.wordList.join(', '));
+        console.log(names);
+        self.postMessage({ status: 'complete', output: JSON.stringify(names) });
+        return;
     }
-    const result = await runAiTest2sub(event.data.text);
+    const result = await runAiAndFilterPersons(event.data.text);
     console.log("Worker:", result);
     self.postMessage({ status: 'complete', output: JSON.stringify(result) });
 }

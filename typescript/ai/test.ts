@@ -6,12 +6,16 @@ let worker: Worker | Promise<Worker> | null = null;
 function onMessage(event: any) {
     const { status, output } = event.data
     if (status === 'complete') {
-        console.log(output);
+        console.log("Result from AI worker: ", output);
     }
 }
 
 export async function runAiTestInWorker() {
     (await initWorker(onMessage)).postMessage({ text: testEmailText });
+}
+
+export async function findPersonsInWorker(wordList: string[]) {
+    (await initWorker(onMessage)).postMessage({ type: "extractNames", wordList });
 }
 
 export async function doInitWorker() {
