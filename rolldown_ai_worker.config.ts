@@ -15,14 +15,16 @@ export default defineConfig({
         hook: 'writeBundle', // Forces the copy routine to happen safely after code compilation
         targets: [
             {
-                src: './node_modules/onnxruntime-web/dist/*.wasm',
-                dest: './ai/huggingWasmEngine'
-            },
-            {
-                src: './node_modules/onnxruntime-web/dist/*.mjs',
+                // Use a bracket wildcard to copy only the matching .wasm and .mjs files
+                src: [
+                    './node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.{mjs,wasm}',
+                    './node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.asyncify.{mjs,wasm}'
+                ],
                 dest: './ai/huggingWasmEngine'
             }
         ]
+        // Optional: overwrites files if they already exist in your build folder
+        // copyOnce: false
     })
 ]
 })
