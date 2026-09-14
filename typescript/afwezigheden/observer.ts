@@ -1,7 +1,7 @@
 import {ExactHashObserver} from "../pageObserver";
-import {fetchStudentsSearch, rxEmail, setViewFromCurrentUrl, whoAmI} from "../globals";
+import {fetchStudentsSearch, highlightText, rxEmail, setViewFromCurrentUrl, whoAmI} from "../globals";
 import {emmet} from "../../libs/Emmeter/html";
-import {findPersonsInWorker} from "../ai/test";
+import {findPersonsInWorker} from "../ai/api";
 
 class AfwezighedenObserver extends ExactHashObserver {
     constructor() {
@@ -124,9 +124,24 @@ async function onTicket() {
         setViewFromCurrentUrl();
         return <MatchingLeerling>{id, name, weight: 0, winner: false};
     });
-    findUniqueMatch(emailText, matchingLeerlingen);
-    let names = await findPersonsInWorker(parseMailData.uniqueCapital);
-    console.log(names);
+    const cards = document.querySelectorAll(".card-body") as NodeListOf<HTMLElement>;
+    let winner = findUniqueMatch(emailText, matchingLeerlingen);
+    if(winner) {
+        let nameParts = winner.name
+            .split(",")
+            .map(name =>
+                name.trim()
+                    .split(" ")
+            )
+            .flat()
+            .map(name => name.trim())
+        ;
+        highlightText(cards, nameParts, "highlightedName");
+    }
+    //else, eventually...
+    await findPersonsInWorker(parseMailData.uniqueCapital, (data) => {
+        highlightText(cards, data.output, "highlightedName", ["light"]);
+    });
 }
 
 function parseEmail(emailText: string) {
@@ -145,7 +160,7 @@ function parseEmail(emailText: string) {
 function findUniqueMatch(emailText: string, matchingLeerlingen: MatchingLeerling[]) {
     if(matchingLeerlingen.length === 1) {
         matchingLeerlingen[0].winner = true;
-        return;
+        return matchingLeerlingen[0];
     }
 
     //lln: [Erik Pierre Bongers, Iris Marlies Bongers]
@@ -166,6 +181,9 @@ function findUniqueMatch(emailText: string, matchingLeerlingen: MatchingLeerling
     }
     //do we have a winner?
     matchingLeerlingen.sort((a, b) => b.weight - a.weight);
-    if(matchingLeerlingen[0].weight > matchingLeerlingen[1].weight)
+    if(matchingLeerlingen[0].weight > matchingLeerlingen[1].weight) {
         matchingLeerlingen[0].winner = true;
+        return matchingLeerlingen[0];
+    }
+    return null;
 }

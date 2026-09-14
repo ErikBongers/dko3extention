@@ -648,7 +648,7 @@ async function fetchGlobalSettings(defaultSettings) {
 }
 //#endregion
 //#region typescript/messaging.ts
-function sendRequest(action, from, to, toId, data, pageTitle) {
+function sendRequest$1(action, from, to, toId, data, pageTitle) {
 	let req = {
 		action,
 		data,
@@ -869,10 +869,10 @@ function stripStudentName(name) {
 	return name.replaceAll(/[,()'-]/g, " ").replaceAll("  ", " ");
 }
 async function openHtmlTab(cacheId, pageTitle) {
-	return sendRequest("open_tab", "Main", "Html", void 0, { cacheId }, pageTitle);
+	return sendRequest$1("open_tab", "Main", "Html", void 0, { cacheId }, pageTitle);
 }
 async function openHoursSettings(schoolyear) {
-	return sendRequest("open_hours_settings", "Main", "Undefined", void 0, { schoolyear }, "Lerarenuren setup voor schooljaar " + schoolyear);
+	return sendRequest$1("open_hours_settings", "Main", "Undefined", void 0, { schoolyear }, "Lerarenuren setup voor schooljaar " + schoolyear);
 }
 function createHtmlTable(headers, cols) {
 	let tmpDiv = document.createElement("div");
@@ -978,6 +978,39 @@ function wrapElement(element, tagName) {
 	element.parentNode.insertBefore(wrapper, element);
 	wrapper.appendChild(element);
 	return wrapper;
+}
+function highlightText(element, wordList, highlightClassName, extraClasses = []) {
+	let cards = element instanceof HTMLElement ? [element] : element;
+	if (wordList.length === 0) return;
+	for (const card of cards) {
+		const walker = document.createTreeWalker(card, NodeFilter.SHOW_TEXT, { acceptNode(node) {
+			const parent = node.parentElement;
+			if (!parent) return NodeFilter.FILTER_REJECT;
+			if (parent.closest("." + highlightClassName)) return NodeFilter.FILTER_REJECT;
+			if (!node.textContent || !wordList.some((word) => node.textContent.includes(word))) return NodeFilter.FILTER_REJECT;
+			return NodeFilter.FILTER_ACCEPT;
+		} });
+		const textNodes = [];
+		while (walker.nextNode()) textNodes.push(walker.currentNode);
+		let rxWords = new RegExp(`(${wordList.join("|")})`, "gu");
+		for (const textNode of textNodes) {
+			const fragment = document.createDocumentFragment();
+			const text = textNode.textContent ?? "";
+			let lastIndex = 0;
+			for (const match of text.matchAll(rxWords)) {
+				const matchText = match[0];
+				const matchIndex = match.index ?? 0;
+				fragment.append(document.createTextNode(text.slice(lastIndex, matchIndex)));
+				const span = document.createElement("span");
+				span.classList.add(highlightClassName, ...extraClasses);
+				span.textContent = matchText;
+				fragment.append(span);
+				lastIndex = matchIndex + matchText.length;
+			}
+			fragment.append(document.createTextNode(text.slice(lastIndex)));
+			textNode.replaceWith(fragment);
+		}
+	}
 }
 //#endregion
 //#region typescript/gotoState.ts
@@ -3308,7 +3341,7 @@ async function onMessage$3(request, _sender, sendResponse) {
 	if (request.action == "request_tab_data") {
 		let params = request.data.params;
 		let data = _otherTabsDataCache.get(params.cacheId);
-		await sendRequest("tab_data", "Main", "Html", request.targetTabId, data);
+		await sendRequest$1("tab_data", "Main", "Html", request.targetTabId, data);
 		return;
 	}
 }
@@ -6720,7 +6753,7 @@ function tagWwwLes(les, dko3DiffData, diffSettings) {
 	return new TaggedWwwLesDef(les, timeSlice, day ?? "", teachers, dko3DiffData, diffSettings);
 }
 async function requestWww(urlList) {
-	return sendRequest("Www", "Main", "Undefined", void 0, { urlList }, "");
+	return sendRequest$1("Www", "Main", "Undefined", void 0, { urlList }, "");
 }
 async function parseWww(dko3DiffData, diffSettings) {
 	let response = await requestWww(diffSettings.preparedDiffSettings.urls);
@@ -8127,7 +8160,7 @@ async function showDiffSetup(academie, schoolyear) {
 let globalDiffSettingsTabId;
 let diffGlobals = { diffSettings: void 0 };
 async function openDiffSettings(academie, schoolyear) {
-	return sendRequest("open_diff_settings", "Main", "Undefined", void 0, {
+	return sendRequest$1("open_diff_settings", "Main", "Undefined", void 0, {
 		academie,
 		schoolyear
 	}, "TODO: is this title used? Uurrooster setup voor schooljaar " + schoolyear);
@@ -8155,7 +8188,7 @@ async function onMessage$2(request, _sender, sendResponse) {
 	pauseRefresh = false;
 }
 async function sendMessageToDiffSettings(action, data) {
-	return sendRequest(action, "Main", "diffSettings", globalDiffSettingsTabId, data);
+	return sendRequest$1(action, "Main", "diffSettings", globalDiffSettingsTabId, data);
 }
 //#endregion
 //#region typescript/startPage/snapshots.ts
@@ -10406,7 +10439,7 @@ async function showUrenSetup(schoolyear) {
 }
 let globalHoursSettingsTabId;
 async function sendMessageToHoursSettings(action, data) {
-	return sendRequest(action, "Main", "HoursSettings", globalHoursSettingsTabId, data);
+	return sendRequest$1(action, "Main", "HoursSettings", globalHoursSettingsTabId, data);
 }
 function addButtons() {
 	addButton$1(document.querySelector(TARGET_BUTTON_ID), MAIL_BTN_ID, "Email to clipboard", onClickCopyEmails, "fa-envelope", ["btn", "btn-outline-info"]);
@@ -10710,22 +10743,8 @@ function reduceVaknaamStep1(vaknaam) {
 	return "??";
 }
 //#endregion
-//#region typescript/ai/test.ts
-const testEmailText = "Beste planner, ik denk dat Bobby en Emre er vanavond helaas niet bij kunnen zijn. Groeten, familie Janssens. Ter info, wij gebruiker Microsoft Outlook, wonen in Belgie en Nederland en gaan op vakantie in Kalmthout.";
+//#region typescript/ai/core.ts
 let worker = null;
-function onMessage(event) {
-	const { status, output } = event.data;
-	if (status === "complete") console.log("Result from AI worker: ", output);
-}
-async function runAiTestInWorker() {
-	(await initWorker(onMessage)).postMessage({ text: testEmailText });
-}
-async function findPersonsInWorker(wordList) {
-	(await initWorker(onMessage)).postMessage({
-		type: "extractNames",
-		wordList
-	});
-}
 async function initWorker(onMessage) {
 	if (worker) return worker;
 	try {
@@ -10738,8 +10757,9 @@ async function initWorker(onMessage) {
 		aiWorker.onmessage = onMessage;
 		const extensionRoot = chrome.runtime.getURL("/");
 		aiWorker.postMessage({
-			type: "INIT_PATH",
-			path: extensionRoot
+			type: "initPath",
+			data: extensionRoot,
+			status: "sending"
 		});
 		worker = aiWorker;
 		return aiWorker;
@@ -10747,6 +10767,31 @@ async function initWorker(onMessage) {
 		console.error("Worker initialization failed:", error);
 		throw error;
 	}
+}
+//#endregion
+//#region typescript/ai/api.ts
+function onMessage(event) {
+	const { status } = event.data;
+	if (status != "complete") {
+		console.log("Result from AI worker, not complete: ", event.data);
+		return;
+	}
+	if (event.data.type === "getNames") onResultMap["getNames"]?.(event.data);
+}
+let onResultMap = {
+	getNames: (names) => console.log("AI list of names: ", names),
+	initPath: (data) => console.log("AI init path: ", data)
+};
+async function findPersonsInWorker(wordList, onResult) {
+	onResultMap["getNames"] = onResult;
+	await sendRequest("getNames", wordList);
+}
+async function sendRequest(type, data) {
+	(await initWorker(onMessage)).postMessage({
+		status: "sending",
+		type,
+		data
+	});
 }
 //#endregion
 //#region typescript/afwezigheden/observer.ts
@@ -10840,9 +10885,12 @@ async function onTicket() {
 			winner: false
 		};
 	});
-	findUniqueMatch(emailText, matchingLeerlingen);
-	let names = await findPersonsInWorker(parseMailData.uniqueCapital);
-	console.log(names);
+	const cards = document.querySelectorAll(".card-body");
+	let winner = findUniqueMatch(emailText, matchingLeerlingen);
+	if (winner) highlightText(cards, winner.name.split(",").map((name) => name.trim().split(" ")).flat().map((name) => name.trim()), "highlightedName");
+	await findPersonsInWorker(parseMailData.uniqueCapital, (data) => {
+		highlightText(cards, data.output, "highlightedName", ["light"]);
+	});
 }
 function parseEmail(emailText) {
 	let matches = [...emailText.matchAll(rxEmail)];
@@ -10859,7 +10907,7 @@ function parseEmail(emailText) {
 function findUniqueMatch(emailText, matchingLeerlingen) {
 	if (matchingLeerlingen.length === 1) {
 		matchingLeerlingen[0].winner = true;
-		return;
+		return matchingLeerlingen[0];
 	}
 	let strippedText = emailText.replaceAll("\n", " ").replaceAll("\r", " ");
 	let mailLowerCase = strippedText.toLowerCase();
@@ -10871,7 +10919,11 @@ function findUniqueMatch(emailText, matchingLeerlingen) {
 		}
 	}
 	matchingLeerlingen.sort((a, b) => b.weight - a.weight);
-	if (matchingLeerlingen[0].weight > matchingLeerlingen[1].weight) matchingLeerlingen[0].winner = true;
+	if (matchingLeerlingen[0].weight > matchingLeerlingen[1].weight) {
+		matchingLeerlingen[0].winner = true;
+		return matchingLeerlingen[0];
+	}
+	return null;
 }
 //#endregion
 //#region typescript/pages/observer.ts
@@ -11376,7 +11428,6 @@ function init() {
 		registerObserver(academieMenuObserver);
 		registerObserver(observer_default$1);
 		registerObserver(observer_default);
-		registerObserver(observer_default);
 		registerObserver(observer_default$5);
 		onPageChanged();
 		getNotifRedButton();
@@ -11444,7 +11495,6 @@ function onPageRefreshed() {
 }
 window.onfocus = () => fetchAndDisplayNotifications();
 document.onvisibilitychange = () => fetchAndDisplayNotifications();
-await runAiTestInWorker();
 //#endregion
 
 //# sourceMappingURL=bundle.js.map

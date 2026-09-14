@@ -1,14 +1,15 @@
 import { env, pipeline } from '@huggingface/transformers';
+import {GetNames, WorkerRequest} from "./types";
 
-async function runAiAndFilterPersons(text: string) {
+async function runAiAndFilterPersons(text: string): Promise<string[]> {
     if(!extensionRoot){
-        return "Oops: Extension root not set";
+        throw "Oops: Extension root not set";
     }
 
     env.allowLocalModels = false;
     let res = await handleInference(text);
     console.log(res);
-    return res;
+    return res.entities.map((entity: any) => entity.word);
 }
 
 // Keep a local reference to the pipeline singleton
@@ -48,22 +49,26 @@ async function handleInference(text: string) {
     }
 }
 
-self.onmessage = async (event) => {
-    if (event.data.type === 'INIT_PATH') {
-        extensionRoot = event.data.path;
+self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
+    if (event.data.type === "initPath") {
+        extensionRoot = event.data.data;
+        console.log("extensionRoot:", extensionRoot);
         env.backends.onnx.wasm!.wasmPaths = `${extensionRoot}ai/huggingWasmEngine/`;
         console.log("Worker localized successfully!");
         return;
-    } else if(event.data.type === "extractNames") {
+    } else if(event.data.type === "getNames") {
         console.log("Worker received data:", event.data);
-        const names = await runAiAndFilterPersons(event.data.wordList.join(', '));
+        let names = await runAiAndFilterPersons(event.data.data.join(', '));
+        names = names.map(name => name.replace(" - ", "-"));
         console.log(names);
-        self.postMessage({ status: 'complete', output: JSON.stringify(names) });
+        let result: GetNames = {
+            ...event.data,
+            output: names,
+            status: 'complete'
+        };
+        self.postMessage(result);
         return;
     }
-    const result = await runAiAndFilterPersons(event.data.text);
-    console.log("Worker:", result);
-    self.postMessage({ status: 'complete', output: JSON.stringify(result) });
 }
 
 let extensionRoot = '';

@@ -25,7 +25,6 @@ import {pageState} from "./pageState";
 import {fetchAndDisplayNotifications, getNotifRedButton} from "./notifications/notifications";
 import {setupMenu} from "./menu";
 import {onParentKeyUp, onPasteInGlobalSearchField} from "./globalSearch";
-import {doInitWorker, runAiTestInWorker} from "./ai/test";
 
 init();
 
@@ -64,7 +63,6 @@ function init() {
         registerObserver(smsObserver);
         registerObserver(academieMenuObserver);
         registerObserver(aanwezighedenObserver);
-        registerObserver(afwezighedenObserver);
         registerObserver(afwezighedenObserver);
         registerObserver(startPageObserver);
         onPageChanged();
@@ -165,9 +163,3 @@ function whatever() {
 
 window.onfocus = () => fetchAndDisplayNotifications();
 document.onvisibilitychange = () => fetchAndDisplayNotifications();
-
-//TEST
-// (window as any).runAiTest = runAiTest;
-// (window as any).runAiTest2 = runAiTest2;
-// runAiTest2();
-await runAiTestInWorker();

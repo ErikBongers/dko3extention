@@ -3,6 +3,8 @@
 
 :root {
     --dko3-blue: #007bff;
+    --highlight-bkgcolor: #ffe790;
+    --ai-highlight-bkgcolor: #ffe790;
 }
 
 .btn-outline-secondary.toggled,
@@ -606,7 +608,7 @@ div#snapshotResults {
 }
 
 .highlight {
-    background-color: #ffe790;
+    background-color: var(--highlight-bkgcolor);
 }
 
 span.block {
@@ -623,4 +625,11 @@ span.block {
 
 .blockPad05 {
     padding-block: .5ch;
+}
+
+.highlightedName {
+    background-color: var(--ai-highlight-bkgcolor);
+    &.light {
+        background-color: rgb(from var(--ai-highlight-bkgcolor) r g b / 30%);
+    }
 }

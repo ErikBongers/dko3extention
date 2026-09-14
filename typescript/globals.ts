@@ -1,6 +1,12 @@
 import {Observer} from "./pageObserver";
 import {emmet} from "../libs/Emmeter/html";
-import {fetchGlobalSettings, getGlobalSettings, GlobalSettings, options, setGlobalSetting} from "./plugin_options/options";
+import {
+    fetchGlobalSettings,
+    getGlobalSettings,
+    GlobalSettings,
+    options,
+    setGlobalSetting
+} from "./plugin_options/options";
 import {Actions, sendRequest, TabType} from "./messaging";
 import * as def from "./def"
 import {InfoBar} from "./infoBar";
@@ -494,4 +500,62 @@ export function wrapElement(element: HTMLElement, tagName: string): HTMLElement 
     element.parentNode!.insertBefore(wrapper, element);
     wrapper.appendChild(element);
     return wrapper;
+}
+
+export function highlightText(element: HTMLElement | NodeListOf<HTMLElement>, wordList: string[], highlightClassName: string, extraClasses: string[] = []) {
+    let cards = element instanceof HTMLElement ? [element] : element;
+    if (wordList.length === 0)
+        return;
+
+    for (const card of cards) {
+        const walker = document.createTreeWalker(
+            card,
+            NodeFilter.SHOW_TEXT,
+            {
+                acceptNode(node) {
+                    const parent = node.parentElement;
+                    if (!parent)
+                        return NodeFilter.FILTER_REJECT;
+
+                    if (parent.closest("." + highlightClassName))
+                        return NodeFilter.FILTER_REJECT;
+
+                    if (!node.textContent || !wordList.some(word => node.textContent!.includes(word))) {
+                        return NodeFilter.FILTER_REJECT;
+                    }
+
+                    return NodeFilter.FILTER_ACCEPT;
+                }
+            }
+        );
+
+        const textNodes: Text[] = [];
+        while (walker.nextNode()) {
+            textNodes.push(walker.currentNode as Text);
+        }
+
+        let rxWords = new RegExp(`(${wordList.join("|")})`, "gu");
+        for (const textNode of textNodes) {
+            const fragment = document.createDocumentFragment();
+            const text = textNode.textContent ?? "";
+            let lastIndex = 0;
+
+            for (const match of text.matchAll(rxWords)) {
+                const matchText = match[0];
+                const matchIndex = match.index ?? 0;
+
+                fragment.append(document.createTextNode(text.slice(lastIndex, matchIndex)));
+
+                const span = document.createElement("span");
+                span.classList.add(highlightClassName, ...extraClasses);
+                span.textContent = matchText;
+                fragment.append(span);
+
+                lastIndex = matchIndex + matchText.length;
+            }
+
+            fragment.append(document.createTextNode(text.slice(lastIndex)));
+            textNode.replaceWith(fragment);
+        }
+    }
 }

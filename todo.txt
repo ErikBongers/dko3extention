@@ -1,3 +1,6 @@
+* try parsing full lines.
+  > maybe things line Van: will not be recognized as names.
+
 * perhaps patch transformers?
   >> https://github.com/huggingface/transformers.js/issues/1248
 
