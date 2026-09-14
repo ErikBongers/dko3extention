@@ -1,5 +1,7 @@
-* try parsing full lines.
-  > maybe things line Van: will not be recognized as names.
+* qwen3.5-webgpu model can read emails in dutch!!!
+  >> https://huggingface.co/spaces/webml-community/Qwen3.5-WebGPU
+  > transformers.js can output json data based on a json schema.
+
 
 * perhaps patch transformers?
   >> https://github.com/huggingface/transformers.js/issues/1248
