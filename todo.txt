@@ -1,3 +1,41 @@
+* Local models to try
+  - Llama 3.3 (8B)
+  - Qwen 3 / Qwen 3.5 (7B or 8B)
+  - Google Gemma 3 / Gemma 4 (4B to 12B)
+  > Tools:
+    powershell
+        install ollama
+        : irm https://ollama.com/install.ps1 | iex
+        download and run a model
+        : ollama run qwen3.5:9b
+        : ollama pull qwen3.5:4b
+        or to pull a model
+        : ollama pull llama3
+        as webservice:
+        : ollama serve
+        > will start localhost:11434
+
+Given the sender of the following mail has 3 children, Bob 5y, Alice 7y and Clara 10y, who will be absent: "Beste, mijn jongste dochter kan helaas vanavond niet naar de les komen wegens een verkoudheid. Vriendelijke groeten, Anja".
+
+* Local AI to SQL connection (python:
+    : pip install -U langchain-ollama langchain-community langchain-experimental
+
+        from langchain_community.utilities import SQLDatabase
+        from langchain_experimental.sql import SQLDatabaseChain
+        from langchain_community.llms import Ollama
+
+        db = SQLDatabase.from_uri("sqlite:///C:/Users/yourname/databases/company.db")
+
+        llm = Ollama(model="llama3", base_url="http://localhost:11434")
+
+        db_chain = SQLDatabaseChain.from_llm(llm, db, verbose=True)
+
+        response = db_chain.run("How many employees were hired in 2025?")
+        print(response)
+
+
+
+
 * qwen3.5-webgpu model can read emails in dutch!!!
   >> https://huggingface.co/spaces/webml-community/Qwen3.5-WebGPU
   > transformers.js can output json data based on a json schema.
