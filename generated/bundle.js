@@ -54,10 +54,10 @@ var Cursor = class Cursor {
 	getText(pos, length) {
 		return this.text.substring(pos, pos + length);
 	}
-	getTo(endChar) {
+	getTo(endChar, allowEscape = false) {
 		let start = this.currentPos + 1;
 		let end = start;
-		while (end < this.length && this.text[end] != endChar) end++;
+		while (end < this.length && (this.text[end] != endChar || this.text[end - 1] == "\\")) end++;
 		if (end == this.length) return null;
 		this.currentPos = end;
 		return {
@@ -68,7 +68,7 @@ var Cursor = class Cursor {
 	getToNot(notChar) {
 		let start = this.currentPos + 1;
 		let end = start;
-		while (end < this.length && this.text[end] == notChar) end++;
+		while (end < this.length && (this.text[end] == notChar || this.text[end - 1] == "\\")) end++;
 		if (end == this.length) return null;
 		if (end == start) return null;
 		this.currentPos = end - 1;
@@ -1346,7 +1346,12 @@ var NavigatableList = class {
 				if (document.activeElement instanceof HTMLElement) document.activeElement?.blur();
 			});
 		} else if (ev.key == "c" && ev.ctrlKey) {
-			const clipboardItemData = { ["text/html"]: this.list.innerHTML };
+			const textHtml = "text/html";
+			const textPlain = "text/plain";
+			const clipboardItemData = {
+				[textHtml]: this.list.innerHTML,
+				[textPlain]: this.list.innerText
+			};
 			const clipboardItem = new ClipboardItem(clipboardItemData);
 			navigator.clipboard.write([clipboardItem]);
 			ev.stopPropagation();
