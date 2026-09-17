@@ -63,7 +63,7 @@ export class DropDownMenu {
         return this.list.addItem(title, indentLevel, onClick);
     }
 
-    addSeparator(title: string, indentLevel: number) {
+    addSeparator(title: string | HTMLElement, indentLevel: number) {
         this.list.addSeparator(title, indentLevel);
     }
 

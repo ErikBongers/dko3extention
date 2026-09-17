@@ -264,7 +264,7 @@ async function showGotoLesMenu(wrapper: HTMLElement, button: HTMLElement, btnOnC
         savePage();
         let menu = new DropDownMenu(wrapper, button, false, true, abortController);
         menu.setPosition("left");
-        menu.addItem("Ga naar les", 0, btnOnClick);
+        menu.addItem(emmet.createElement(`span.noClipboard{Ga naar les}`), 0, btnOnClick);
         menu.addSeparator(`Bezig met laden...`, 0);
         menu.show();
         let lesDetails = await fetchLes(lesId);
@@ -363,14 +363,14 @@ export function createLesCard(lesName: string, vakName: string, full: string, le
                     strong{${buildLesTitle(lesName, vakName)}}
                 div.pre{${vestiging}}
                 div.pre{${lesmoment}}
-                div.pre{${aantal}/${maxAantal} lln} 
+                div.pre.noClipboard{${aantal}/${maxAantal} lln} 
                     ${wachtlijst}
         `);
 }
 
 async function fillClassesMenu(menu: DropDownMenu, opleiding: Opleiding, vak: string, gotoLesCmd: string) {
     menu.removeAllItems();
-    menu.addItem("Ga naar les", 0, gotoLesCmd);
+    menu.addItem(emmet.createElement(`span.noClipboard{Ga naar les}`), 0, gotoLesCmd);
     menu.addSeparator(`Bezig met laden...`, 0);
     let schoolYear = Schoolyear.findInPage();
     let lessenBuilder = await LessenFilterBuilder.create(schoolYear, opleiding.domein as DomeinString);
@@ -382,7 +382,7 @@ async function fillClassesMenu(menu: DropDownMenu, opleiding: Opleiding, vak: st
     let lessons = await lessenBuilder.fetch();
     lessons.sort((a, b) => buildLesTitle(a.les.naam, a.les.vakNaam).localeCompare(buildLesTitle(b.les.naam, b.les.vakNaam)));
     menu.removeItem(1);
-    menu.addSeparator("Alternatieven:", 0);
+    menu.addSeparator(emmet.createElement(`span.noClipboard{Alternatieven:}`), 0);
     for(let les of lessons) {
         let lesmoment = les.les.formattedLesmoment.replace('(wekelijks)', "").trim();
         let wachtlijst = les.les.wachtlijst == 0 ? "span" : `span.red{ (${les.les.wachtlijst} op wachtlijst)}`;

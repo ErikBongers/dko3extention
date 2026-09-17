@@ -50,9 +50,11 @@ export class NavigatableList {
             // noinspection JSIgnoredPromiseFromCall
             const textHtml = "text/html";
             const textPlain = "text/plain";
+            const clonedList = this.list.cloneNode(true) as HTMLElement;
+            clonedList.querySelectorAll(".noClipboard").forEach((element) => element.remove());
             const clipboardItemData = {
-                [textHtml]: this.list.innerHTML,
-                [textPlain]: this.list.innerText,
+                [textHtml]: clonedList.innerHTML,
+                [textPlain]: clonedList.innerText,
             };
             const clipboardItem = new ClipboardItem(clipboardItemData);
             // noinspection JSIgnoredPromiseFromCall
@@ -80,6 +82,10 @@ export class NavigatableList {
 
     setItemContent(index: number, title: string | HTMLElement) {
         let item = this.getItem(index);
+        this.setContent(item, title);
+    }
+
+    private setContent(item: HTMLElement, title: string | HTMLElement) {
         if(typeof title === "string")
             item.innerHTML = title;
         else {
@@ -88,9 +94,10 @@ export class NavigatableList {
         }
     }
 
-    addSeparator(title: string, indentLevel: number) {
+    addSeparator(title: string | HTMLElement, indentLevel: number) {
         let indentClass = indentLevel ? ".menuIndent" + indentLevel : "";
-        let {first} = emmet.appendChild(this.list, `div.dropDownSeparator.dropDownIgnoreHide${indentClass}{${title}}`);
+        let first = emmet.appendChild(this.list, `div.dropDownSeparator.dropDownIgnoreHide${indentClass}`).first as HTMLElement;
+        this.setContent(first, title);
         let item = first as HTMLElement;
         item.onclick = (ev) => {
             ev.stopPropagation();

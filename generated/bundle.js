@@ -57,7 +57,7 @@ var Cursor = class Cursor {
 	getTo(endChar, allowEscape = false) {
 		let start = this.currentPos + 1;
 		let end = start;
-		while (end < this.length && (this.text[end] != endChar || this.text[end - 1] == "\\")) end++;
+		while (end < this.length && (this.text[end] != endChar || this.text[end - 1] == "'")) end++;
 		if (end == this.length) return null;
 		this.currentPos = end;
 		return {
@@ -68,7 +68,7 @@ var Cursor = class Cursor {
 	getToNot(notChar) {
 		let start = this.currentPos + 1;
 		let end = start;
-		while (end < this.length && (this.text[end] == notChar || this.text[end - 1] == "\\")) end++;
+		while (end < this.length && (this.text[end] == notChar || this.text[end - 1] == "'")) end++;
 		if (end == this.length) return null;
 		if (end == start) return null;
 		this.currentPos = end - 1;
@@ -1348,9 +1348,11 @@ var NavigatableList = class {
 		} else if (ev.key == "c" && ev.ctrlKey) {
 			const textHtml = "text/html";
 			const textPlain = "text/plain";
+			const clonedList = this.list.cloneNode(true);
+			clonedList.querySelectorAll(".noClipboard").forEach((element) => element.remove());
 			const clipboardItemData = {
-				[textHtml]: this.list.innerHTML,
-				[textPlain]: this.list.innerText
+				[textHtml]: clonedList.innerHTML,
+				[textPlain]: clonedList.innerText
 			};
 			const clipboardItem = new ClipboardItem(clipboardItemData);
 			navigator.clipboard.write([clipboardItem]);
@@ -1372,6 +1374,9 @@ var NavigatableList = class {
 	}
 	setItemContent(index, title) {
 		let item = this.getItem(index);
+		this.setContent(item, title);
+	}
+	setContent(item, title) {
 		if (typeof title === "string") item.innerHTML = title;
 		else {
 			item.innerHTML = "";
@@ -1380,7 +1385,8 @@ var NavigatableList = class {
 	}
 	addSeparator(title, indentLevel) {
 		let indentClass = indentLevel ? ".menuIndent" + indentLevel : "";
-		let { first } = emmet.appendChild(this.list, `div.dropDownSeparator.dropDownIgnoreHide${indentClass}{${title}}`);
+		let first = emmet.appendChild(this.list, `div.dropDownSeparator.dropDownIgnoreHide${indentClass}`).first;
+		this.setContent(first, title);
 		let item = first;
 		item.onclick = (ev) => {
 			ev.stopPropagation();
@@ -7737,7 +7743,7 @@ async function showGotoLesMenu(wrapper, button, btnOnClick, lesInfo, opleiding, 
 		savePage();
 		let menu = new DropDownMenu(wrapper, button, false, true, abortController);
 		menu.setPosition("left");
-		menu.addItem("Ga naar les", 0, btnOnClick);
+		menu.addItem(emmet.createElement(`span.noClipboard{Ga naar les}`), 0, btnOnClick);
 		menu.addSeparator(`Bezig met laden...`, 0);
 		menu.show();
 		if ((await fetchLes(lesId)).isIndividualLes) {
@@ -7811,13 +7817,13 @@ function createLesCard(lesName, vakName, full, lesmoment, aantal, maxAantal, wac
                     strong{${buildLesTitle(lesName, vakName)}}
                 div.pre{${vestiging}}
                 div.pre{${lesmoment}}
-                div.pre{${aantal}/${maxAantal} lln} 
+                div.pre.noClipboard{${aantal}/${maxAantal} lln} 
                     ${wachtlijst}
         `);
 }
 async function fillClassesMenu(menu, opleiding, vak, gotoLesCmd) {
 	menu.removeAllItems();
-	menu.addItem("Ga naar les", 0, gotoLesCmd);
+	menu.addItem(emmet.createElement(`span.noClipboard{Ga naar les}`), 0, gotoLesCmd);
 	menu.addSeparator(`Bezig met laden...`, 0);
 	let schoolYear = Schoolyear.findInPage();
 	let lessenBuilder = await LessenFilterBuilder.create(schoolYear, opleiding.domein);
@@ -7827,7 +7833,7 @@ async function fillClassesMenu(menu, opleiding, vak, gotoLesCmd) {
 	let lessons = await lessenBuilder.fetch();
 	lessons.sort((a, b) => buildLesTitle(a.les.naam, a.les.vakNaam).localeCompare(buildLesTitle(b.les.naam, b.les.vakNaam)));
 	menu.removeItem(1);
-	menu.addSeparator("Alternatieven:", 0);
+	menu.addSeparator(emmet.createElement(`span.noClipboard{Alternatieven:}`), 0);
 	for (let les of lessons) {
 		let lesmoment = les.les.formattedLesmoment.replace("(wekelijks)", "").trim();
 		let wachtlijst = les.les.wachtlijst == 0 ? "span" : `span.red{ (${les.les.wachtlijst} op wachtlijst)}`;

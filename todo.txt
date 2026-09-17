@@ -1,3 +1,8 @@
+* overzicht lessen: 2e lk ook tonen ipv ((en nog 1)
+* cache knop voor lesoverzicht om snel te kunnen les openen en terug nr de lijst
+* mail naar hele wachtlijst bij een specifieke klas.
+
+
 * Local models to try
   - Llama 3.3 (8B)
   - Qwen 3 / Qwen 3.5 (7B or 8B)
