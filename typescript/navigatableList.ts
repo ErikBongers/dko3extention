@@ -48,7 +48,16 @@ export class NavigatableList {
             });
         } else if(ev.key == "c" && ev.ctrlKey) {
             // noinspection JSIgnoredPromiseFromCall
-            navigator.clipboard.writeText(this.list.innerText);
+            // navigator.clipboard.writeText(this.list.innerText);
+            const textHtml = "text/html";
+            const textPlain = "text/plain";
+            const clipboardItemData = {
+                [textHtml]: this.list.innerHTML,
+                // [textPlain]: this.list.innerText,
+            };
+            const clipboardItem = new ClipboardItem(clipboardItemData);
+            // noinspection JSIgnoredPromiseFromCall
+            navigator.clipboard.write([clipboardItem]);
             ev.stopPropagation();
             ev.stopImmediatePropagation();
             ev.preventDefault();
@@ -139,3 +148,4 @@ export class NavigatableList {
         this.list.remove();
     }
 }
+

@@ -1346,7 +1346,9 @@ var NavigatableList = class {
 				if (document.activeElement instanceof HTMLElement) document.activeElement?.blur();
 			});
 		} else if (ev.key == "c" && ev.ctrlKey) {
-			navigator.clipboard.writeText(this.list.innerText);
+			const clipboardItemData = { ["text/html"]: this.list.innerHTML };
+			const clipboardItem = new ClipboardItem(clipboardItemData);
+			navigator.clipboard.write([clipboardItem]);
 			ev.stopPropagation();
 			ev.stopImmediatePropagation();
 			ev.preventDefault();
@@ -7800,7 +7802,8 @@ function scrapeLesInfoDetails(tr, detailsTdOffset) {
 function createLesCard(lesName, vakName, full, lesmoment, aantal, maxAantal, wachtlijst, vestiging) {
 	return emmet.indent.createElement(`
             div.small${full}
-                div.bold.pre{${buildLesTitle(lesName, vakName)}}
+                div.bold.pre
+                    strong{${buildLesTitle(lesName, vakName)}}
                 div.pre{${vestiging}}
                 div.pre{${lesmoment}}
                 div.pre{${aantal}/${maxAantal} lln} 

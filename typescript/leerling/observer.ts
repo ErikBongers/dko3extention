@@ -359,7 +359,8 @@ function scrapeLesInfoDetails(tr: HTMLTableRowElement, detailsTdOffset: number) 
 export function createLesCard(lesName: string, vakName: string, full: string, lesmoment: string, aantal: number, maxAantal:number, wachtlijst: string, vestiging: string) {
     return emmet.indent.createElement(`
             div.small${full}
-                div.bold.pre{${buildLesTitle(lesName, vakName)}}
+                div.bold.pre
+                    strong{${buildLesTitle(lesName, vakName)}}
                 div.pre{${vestiging}}
                 div.pre{${lesmoment}}
                 div.pre{${aantal}/${maxAantal} lln} 
