@@ -11417,7 +11417,7 @@ async function scrapeAssets() {
 	return [...(await getTableFromHash("extra-assets-assets", true, new InfoBarTableFetchListener(createInfoBlock(infoBlockDiv, "")))).getRows()].map((row) => {
 		return {
 			id: row.cells[0].innerText,
-			code: row.cells[1].innerText.split("\n").shift() ?? ""
+			code: [...row.cells[1].childNodes].map((node) => node.nodeValue).join("")
 		};
 	}).filter((asset) => asset.code);
 }

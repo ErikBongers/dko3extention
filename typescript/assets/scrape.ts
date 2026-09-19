@@ -15,10 +15,9 @@ export async function scrapeAssets(): Promise<Asset[]> {
 
     let table = await getTableFromHash("extra-assets-assets", true, fetchListener);
     return [...table.getRows()].map(row => {
-
         return {
             id: row.cells[0].innerText,
-            code: row.cells[1].innerText.split("\n").shift()??"",
+            code: [...row.cells[1].childNodes].map(node => node.nodeValue).join(""),
         };
     })
         .filter(asset => asset.code);
