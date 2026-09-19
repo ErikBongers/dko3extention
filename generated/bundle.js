@@ -3179,6 +3179,10 @@ function createDefaultTableFetcher(tableRef, infoBlock) {
 		infoBarListener
 	} };
 }
+async function scrapeTable(tableFetcher, rowConverter) {
+	createGlobalInfoBlockAndListener();
+	return [...(await tableFetcher.fetch()).getRows()].map((row) => rowConverter(row)).filter((item) => item != null);
+}
 //#endregion
 //#region typescript/globals.ts
 let observers = [];
@@ -3531,6 +3535,12 @@ function highlightText(element, wordList, highlightClassName, extraClasses = [])
 			textNode.replaceWith(fragment);
 		}
 	}
+}
+function createGlobalInfoBlockAndListener() {
+	let snel_zoeken = document.querySelector("#snel_zoeken");
+	let infoBlockDiv = document.createElement("div");
+	snel_zoeken.parentNode.insertBefore(infoBlockDiv, snel_zoeken);
+	return new InfoBarTableFetchListener(createInfoBlock(infoBlockDiv, ""));
 }
 //#endregion
 //#region typescript/roster_diff/excel.ts
@@ -8789,6 +8799,60 @@ function scrapeUren(rows, headerIndices) {
 	return rows.map((tr) => scrapeStudent(headerIndices, tr));
 }
 //#endregion
+//#region typescript/personeel/scrape.ts
+async function scrapeTeachers() {
+	return scrapeTable(new Dko3PersoneelFetcher(), (row) => {
+		console.log(row);
+	});
+}
+function getTableRef() {
+	return {
+		htmlTableId: "",
+		createElementAboveTable: () => document.createElement("div"),
+		getOrgTableContainer: () => document.body,
+		getOrgTableRows: () => document.querySelectorAll("table > tbody > tr"),
+		isFullyFetched: () => true
+	};
+}
+var Dko3PersoneelFetcher = class Dko3PersoneelFetcher extends TableFetcher {
+	static getCheckSumBuilder() {
+		return () => "personeelsleden.todo:filtercriteria";
+	}
+	constructor() {
+		super(getTableRef(), Dko3PersoneelFetcher.getCheckSumBuilder());
+	}
+	async fetch() {
+		let chain = new FetchChain();
+		await chain.fetch("/#personeel-personeelsleden");
+		await chain.fetch("view.php?args=personeel-personeelsleden");
+		chain.findDocReadyLoadUrl();
+		await chain.fetch();
+		await chain.fetch(`/views/personeel/personeelsleden/vestigingsplaats_schooljaar_filter.php?schooljaar=${Schoolyear.toFullString(Schoolyear.calculateCurrent())}`);
+		await chain.post("/views/personeel/personeelsleden/save_filters.php", void 0, [
+			["filters[naam]", ""],
+			["filters[status_personeelsleden]", "1"],
+			["filters[leerkracht]", "1"],
+			["filters[interim]", "1"],
+			["filters[alc]", "1"],
+			["filters[administratie]", "1"],
+			["filters[overig]", "1"],
+			["filters[schooljaar]", Schoolyear.toFullString(Schoolyear.calculateCurrent())]
+		]);
+		let tableText = await chain.fetch("/views/personeel/personeelsleden/personeelsleden.table.php");
+		let div = document.createElement("div");
+		div.innerHTML = tableText;
+		let table = div.querySelector("table");
+		//! should have a table.
+		let getRows = () => table.querySelectorAll("tbody > tr");
+		return {
+			getRows,
+			tableFetcher: this,
+			getRowsAsArray: () => Array.from(getRows()),
+			getTable: () => table
+		};
+	}
+};
+//#endregion
 //#region typescript/werklijst/buildUren.ts
 let isUpdatePaused = true;
 let cellChanged = false;
@@ -8834,7 +8898,7 @@ let colDefsArray = [
 			classList: [],
 			total: 0,
 			factor: 1,
-			getText: (ctx) => ctx.vakLeraar.leraar.replaceAll("{", "").replaceAll("}", "")
+			getText: getTeacherValue
 		}
 	},
 	{
@@ -9103,6 +9167,20 @@ let colDefsArray = [
 	}
 ];
 let colDefs = new Map(colDefsArray.map((def) => [def.key, def.def]));
+function getTeacherValue(ctx) {
+	let name = ctx.vakLeraar.leraar.replaceAll("{", "").replaceAll("}", "");
+	let element = emmet.indent.createElement(`
+        span
+            span{${name}}
+            a[href="javascript:void(0)"]
+                i.fas.fa-user-alt
+    `);
+	//! must have A element.
+	element.querySelector("a").addEventListener("click", async () => {
+		await scrapeTeachers();
+	});
+	return element;
+}
 function getYearKeys(year) {
 	let yrPrev = year - 2e3 - 1;
 	let yrNow = yrPrev + 1;
@@ -9209,7 +9287,12 @@ function observeTable(observe) {
 }
 function fillCell(ctx) {
 	if (ctx.colDef.getText) {
-		ctx.td.innerText = ctx.colDef.getText(ctx);
+		let content = ctx.colDef.getText(ctx);
+		if (typeof content === "string") ctx.td.innerText = content;
+		else {
+			ctx.td.innerHTML = "";
+			ctx.td.appendChild(content);
+		}
 		return;
 	}
 	if (ctx.colDef.fill) {
@@ -11403,7 +11486,7 @@ var SessionSchoolCache = class SessionSchoolCache {
 		this.db = db;
 		this._LesRefs = new Repository(this.db, "LesRefs");
 		this._Loaded = new Repository(this.db, "Loaded");
-		this._AssetRefs = new Repository(this.db, "Assets");
+		this._AssetRefs = new Repository(this.db, "AssetRefs");
 	}
 	static getDbName(schoolId) {
 		return `${SESSION_DB_PREFIX}_${schoolId}`;
@@ -11413,7 +11496,7 @@ var SessionSchoolCache = class SessionSchoolCache {
 		return new SessionSchoolCache(schoolId, await openDB(SessionSchoolCache.getDbName(schoolId), DB_VERSION, { upgrade(db) {
 			db.createObjectStore("LesRefs", { keyPath: "id" });
 			db.createObjectStore("Loaded");
-			db.createObjectStore("Assets", { keyPath: "id" });
+			db.createObjectStore("AssetRefs", { keyPath: "id" });
 		} }));
 	}
 };
@@ -11560,19 +11643,25 @@ async function getLesMatches(lesName, vak) {
 	matches.sort((a, b) => a.name.localeCompare(b.name));
 	return matches;
 }
+async function getAssetRefs() {
+	return (await scrapeAssets()).map((asset) => ({
+		id: asset.id,
+		code: asset.code
+	}));
+}
+async function getRepositoryCached(storeName, getRefs) {
+	let cache = await getSessionSchoolCache(getSchoolIdString());
+	if (!await cache.Loaded.get(storeName)) {
+		let refs = await getRefs();
+		await cache[storeName].bulkPut(refs);
+		await cache.Loaded.put(true, storeName);
+	}
+	return cache;
+}
 async function getAssetMatches(assetCode) {
 	if (!assetCode) return [];
 	let lowerCase = assetCode.toLowerCase();
-	let cache = await getSessionSchoolCache(getSchoolIdString());
-	if (!await cache.Loaded.get("AssetRefs")) {
-		let assetRefs = (await scrapeAssets()).map((asset) => ({
-			id: asset.id,
-			code: asset.code
-		}));
-		await cache.AssetRefs.bulkPut(assetRefs);
-		await cache.Loaded.put(true, "AssetRefs");
-	}
-	return cache.AssetRefs.findMatches((assetRef) => assetRef.code.toLowerCase().includes(lowerCase));
+	return (await getRepositoryCached("AssetRefs", getAssetRefs)).AssetRefs.findMatches((assetRef) => assetRef.code.toLowerCase().includes(lowerCase));
 }
 //#endregion
 //#region typescript/main.ts

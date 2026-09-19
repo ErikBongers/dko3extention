@@ -8,6 +8,7 @@ import {TeacherHoursSetupMapped} from "./hoursSettings";
 import observer from "./observer";
 import {InfoBlock} from "../infoBlock";
 import {makeTableSortable} from "../table/tableSort";
+import {scrapeTeachers} from "../personeel/scrape";
 
 let isUpdatePaused = true;
 let cellChanged = false;
@@ -25,7 +26,7 @@ interface ColDef {
     label: string,
     classList: string[],
     factor: number,
-    getText?: (ctx: Context) => string,
+    getText?: (ctx: Context) => string | HTMLElement,
     getValue?: (ctx: Context) => number,
     totals?: boolean,
     calculated?: boolean,
@@ -41,7 +42,7 @@ let colKeysForTotals: string[] = [];
 
 let colDefsArray: {key: string, def: ColDef}[] = [
     {key:"vak", def: { label:"Vak", classList: [], total: 0, factor: 1.0, getText: (ctx) => ctx.vakLeraar.vak}},
-    {key:"leraar", def: { label:"Leraar", classList: [], total: 0, factor: 1.0, getText: (ctx) => ctx.vakLeraar.leraar.replaceAll("{", "").replaceAll("}", "")}},
+    {key:"leraar", def: { label:"Leraar", classList: [], total: 0, factor: 1.0, getText: getTeacherValue}},
 
     {key:"grjr1_1", def: { label:"1.1", classList: [], total: 0, factor: 1/4, getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label)!.count, fill: fillGraadCell, ignorable: true }},
     {key:"grjr1_2", def: { label:"1.2", classList: [], total: 0, factor: 1/4, getValue: (ctx) => ctx.vakLeraar.countMap.get(ctx.colDef.label)!.count, fill: fillGraadCell, ignorable: true }},
@@ -78,6 +79,22 @@ let colDefsArray: {key: string, def: ColDef}[] = [
 ];
 
 let colDefs = new Map(colDefsArray.map((def) => [def.key, def.def]));
+
+function getTeacherValue(ctx: Context) {
+    let name = ctx.vakLeraar.leraar.replaceAll("{", "").replaceAll("}", "");
+
+    let element= emmet.indent.createElement(`
+        span
+            span{${name}}
+            a[href="javascript:void(0)"]
+                i.fas.fa-user-alt
+    `);
+    let a = element.querySelector("a")!; //! must have A element.
+    a.addEventListener("click", async () => {
+        let teachers = await scrapeTeachers();
+    });
+    return element;
+}
 
 function getYearKeys(year: number) {
     let yrPrev = year - 2000 - 1;
@@ -226,7 +243,13 @@ function observeTable(observe: boolean) {
 
 function fillCell(ctx: Context): (number| undefined) {
     if(ctx.colDef.getText) {
-        ctx.td.innerText = ctx.colDef.getText(ctx);
+        let content = ctx.colDef.getText(ctx);
+        if(typeof content === "string")
+            ctx.td.innerText = content;
+        else {
+            ctx.td.innerHTML = "";
+            ctx.td.appendChild(content);
+        }
         return undefined;
     }
     if (ctx.colDef.fill) {

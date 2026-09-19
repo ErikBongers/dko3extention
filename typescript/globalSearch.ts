@@ -5,8 +5,9 @@ import {getSchoolIdString, Schoolyear} from "./globals";
 import {DropDownMenu} from "./dropDownMenus";
 import {fetchLes} from "./les/fetch";
 import {createLesCard, PlaceHolder} from "./leerling/observer";
-import {AssetRef, getSessionSchoolCache, LesRef, Ref} from "./db/sessionDb";
+import {AssetRef, getSessionSchoolCache, LesRef, Ref, SessionDb} from "./db/sessionDb";
 import {scrapeAssets} from "./assets/scrape";
+import {StoreNames} from "idb";
 
 export function onPasteInGlobalSearchField(e: ClipboardEvent) {
     if (!options.stripCommasOnPaste)
@@ -172,18 +173,28 @@ async function getLesMatches(lesName: string, vak?: string) {
     return matches;
 }
 
+async function getAssetRefs() {
+    let assets = await scrapeAssets();
+    return assets
+        .map<AssetRef>(asset => ({id: asset.id, code: asset.code}));
+}
+
+async function getRepositoryCached<K extends StoreNames<SessionDb>, T extends Ref>(storeName: K, getRefs: () => Promise<T[]>) {
+    let cache = await getSessionSchoolCache(getSchoolIdString())
+    let loaded = await cache.Loaded.get(storeName as string);
+    if (!loaded) {
+        let refs = await getRefs();
+        // @ts-ignore
+        await cache[storeName].bulkPut(refs);
+        await cache.Loaded.put(true, storeName as string);
+    }
+    return cache;
+}
+
 async function getAssetMatches(assetCode: string) {
     if(!assetCode)
         return [];
     let lowerCase = assetCode.toLowerCase();
-    let cache = await getSessionSchoolCache(getSchoolIdString())
-    let loaded = await cache.Loaded.get("AssetRefs");
-    if (!loaded) {
-        let assets = await scrapeAssets();
-        let assetRefs = assets
-            .map<AssetRef>(asset => ({id: asset.id, code: asset.code}));
-        await cache.AssetRefs.bulkPut(assetRefs);
-        await cache.Loaded.put(true, "AssetRefs");
-    }
+    let cache = await getRepositoryCached("AssetRefs", getAssetRefs);
     return cache.AssetRefs.findMatches(assetRef => assetRef.code.toLowerCase().includes(lowerCase));
 }

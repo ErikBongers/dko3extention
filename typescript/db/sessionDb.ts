@@ -19,7 +19,7 @@ export interface AssetRef extends Ref {
     code: string;
 }
 
-interface SessionDb extends DBSchema {
+export interface SessionDb extends DBSchema {
     LesRefs: {
         value: LesRef;
         key: string;
@@ -30,7 +30,7 @@ interface SessionDb extends DBSchema {
         value: boolean;
         indexes: {};
     },
-    Assets: {
+    AssetRefs: {
         key: string;
         value: AssetRef;
         indexes: {};
@@ -65,7 +65,7 @@ export async function getSessionSchoolCache(schoolId: string) {
 }
 
 export class SessionSchoolCache {
-    get AssetRefs(): Repository<SessionDb, "Assets"> {
+    get AssetRefs(): Repository<SessionDb, "AssetRefs"> {
         return this._AssetRefs;
     }
     get Loaded(): Repository<SessionDb, "Loaded"> {
@@ -76,12 +76,12 @@ export class SessionSchoolCache {
     }
     private readonly _LesRefs: Repository<SessionDb, "LesRefs">;
     private readonly _Loaded: Repository<SessionDb, "Loaded">;
-    private readonly _AssetRefs: Repository<SessionDb, "Assets">;
+    private readonly _AssetRefs: Repository<SessionDb, "AssetRefs">;
 
     constructor(private schoolId: string, private db: IDBPDatabase<SessionDb>) {
         this._LesRefs = new Repository<SessionDb, "LesRefs">(this.db, 'LesRefs');
         this._Loaded = new Repository<SessionDb, "Loaded">(this.db, 'Loaded');
-        this._AssetRefs = new Repository<SessionDb, "Assets">(this.db, 'Assets');
+        this._AssetRefs = new Repository<SessionDb, "AssetRefs">(this.db, 'AssetRefs');
     }
 
     private static getDbName(schoolId: string) {
@@ -94,7 +94,7 @@ export class SessionSchoolCache {
             upgrade(db) {
                 db.createObjectStore("LesRefs", {keyPath: "id"});
                 db.createObjectStore("Loaded");
-                db.createObjectStore("Assets", {keyPath: "id"});
+                db.createObjectStore("AssetRefs", {keyPath: "id"});
             },
         }));
     }
