@@ -673,358 +673,450 @@ function sendRequest$1(action, from, to, toId, data, pageTitle) {
 	return chrome.runtime.sendMessage(req);
 }
 //#endregion
-//#region typescript/globals.ts
-let observers = [];
-let settingsObservers = [];
-function db3(message) {
-	if (options?.showDebug) {
-		console.log(message);
-		let stack = Error().stack;
-		if (stack) console.log(stack.split("\n")[2]);
+//#region typescript/infoBar.ts
+var InfoBar = class InfoBar {
+	divInfoContainer;
+	divInfoLine;
+	divTempLine;
+	divExtraLine;
+	divErrorLine;
+	tempMessage;
+	divCacheInfo;
+	constructor(divInfoContainer, divExtraLine, divErrorLine, divInfoLine, divTempLine, divCacheInfo) {
+		this.divInfoContainer = divInfoContainer;
+		this.divExtraLine = divExtraLine;
+		this.divErrorLine = divErrorLine;
+		this.divInfoLine = divInfoLine;
+		this.divTempLine = divTempLine;
+		this.divCacheInfo = divCacheInfo;
+		this.tempMessage = "";
 	}
-}
-function createValidId(id) {
-	return id.replaceAll(" ", "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\W/g, "");
-}
-function registerObserver(observer) {
-	observers.push(observer);
-	if (observers.length > 20) console.error("Too many observers!");
-}
-function registerSettingsObserver(observer) {
-	settingsObservers.push(observer);
-	if (settingsObservers.length > 20) console.error("Too many settingsObservers!");
-}
-function setButtonHighlighted(buttonId, show) {
-	if (show) document.getElementById(buttonId).classList.add("toggled");
-	else document.getElementById(buttonId).classList.remove("toggled");
-}
-function addButton$1(targetElement, buttonId, title, clickFunction, imageId, classList, text = "", where = "beforebegin", imageFileName) {
-	if (document.getElementById(buttonId) === null) {
-		const button = document.createElement("button");
-		button.classList.add("btn", ...classList);
-		button.id = buttonId;
-		button.style.marginTop = "0";
-		button.onclick = clickFunction;
-		button.title = title;
-		if (text) {
-			let span = document.createElement("span");
-			button.appendChild(span);
-			span.innerText = text;
+	static create(divInfoContainer) {
+		divInfoContainer.id = INFO_CONTAINER_ID;
+		divInfoContainer.innerHTML = "";
+		let divExtraLine = emmet.appendChild(divInfoContainer, `div#${INFO_EXTRA_ID}.infoMessage`).last;
+		let divErrorLine = emmet.appendChild(divInfoContainer, `div#${INFO_EXTRA_ID}.infoError`).last;
+		let divInfoLine = emmet.appendChild(divInfoContainer, "div.infoLine").last;
+		let divTempLine = emmet.appendChild(divInfoContainer, `div#${INFO_TEMP_ID}.infoMessage.tempLine`).last;
+		let divCacheInfo = emmet.appendChild(divInfoContainer, `div#${INFO_CACHE_ID}.cacheInfo`).last;
+		return new InfoBar(divInfoContainer, divExtraLine, divErrorLine, divInfoLine, divTempLine, divCacheInfo);
+	}
+	static find() {
+		let container = document.getElementById(INFO_CONTAINER_ID);
+		let divExtraLine = container.querySelector(`#${INFO_EXTRA_ID}`);
+		let divErrorLine = container.querySelector(`#${INFO_EXTRA_ID}`);
+		let divInfoLine = container.querySelector("div.infoLine");
+		let divTempLine = container.querySelector(`#${INFO_TEMP_ID}`);
+		let divCacheInfo = container.querySelector(`#${INFO_CACHE_ID}`);
+		return new InfoBar(container, divExtraLine, divErrorLine, divInfoLine, divTempLine, divCacheInfo);
+	}
+	setTempMessage(msg) {
+		this.tempMessage = msg;
+		this.#updateTempMessage();
+		setTimeout(this.clearTempMessage.bind(this), 4e3);
+	}
+	clearTempMessage() {
+		this.tempMessage = "";
+		this.#updateTempMessage();
+	}
+	#updateTempMessage() {
+		this.divTempLine.innerHTML = this.tempMessage;
+	}
+	setInfoLine(message) {
+		this.divInfoLine.innerHTML = message;
+	}
+	setErrorLine(message) {
+		this.divErrorLine.innerHTML = message;
+	}
+	clearCacheInfo() {
+		this.divCacheInfo.innerHTML = "";
+	}
+	setCacheInfo(info, reset_onclick) {
+		this.divCacheInfo.innerHTML = info;
+		let button = emmet.appendChild(this.divCacheInfo, "button.likeLink").first;
+		button.innerHTML = "refresh";
+		button.onclick = reset_onclick;
+	}
+	setExtraInfo(message, click_element_id, callback) {
+		this.divExtraLine.innerHTML = message;
+		if (click_element_id) {
+			if (callback) document.getElementById(click_element_id).onclick = callback;
 		}
-		if (imageFileName) {
-			button.classList.add("svg");
-			emmet.appendChild(button, `img[src="${chrome.runtime.getURL("images/" + imageFileName)}"]`);
-		}
-		const buttonContent = document.createElement("i");
-		button.appendChild(buttonContent);
-		if (imageId) buttonContent.classList.add("fas", imageId);
-		targetElement.insertAdjacentElement(where, button);
-	}
-}
-let Schoolyear;
-(function(_Schoolyear) {
-	function getSelectElement() {
-		let selects = document.querySelectorAll("select");
-		return Array.from(selects).filter((element) => element.id.includes("schooljaar")).pop() ?? null;
-	}
-	_Schoolyear.getSelectElement = getSelectElement;
-	function getHighestAvailable() {
-		let el = getSelectElement();
-		if (!el) return void 0;
-		return Array.from(el.querySelectorAll("option")).map((option) => option.value).sort().pop();
-	}
-	_Schoolyear.getHighestAvailable = getHighestAvailable;
-	function findInPage() {
-		let el = getSelectElement();
-		if (el) return el.value;
-		el = document.querySelector("div.alert-info");
-		if (el) {
-			let txt = el.textContent;
-			let res = /[sS]chooljaar *[=:][\s\u00A0]*(\d{4}-\d{4})/gm.exec(txt);
-			if (res) return res[1];
-		}
-		el = document.querySelector("div.btn-toolbar");
-		if (el) {
-			let txt = el.textContent;
-			let res = /[sS]chooljaar *[=:]*[\s\u00A0]*(\d{4}-\d{4})/gm.exec(txt);
-			if (res) return res[1];
-		}
-		throw "Cannot find schoolyear in page.";
-	}
-	_Schoolyear.findInPage = findInPage;
-	function calculateCurrent() {
-		let now = /* @__PURE__ */ new Date();
-		let year = now.getFullYear();
-		if (now.getMonth() < 8) return year - 1;
-		return year;
-	}
-	_Schoolyear.calculateCurrent = calculateCurrent;
-	function calculateSetupYear() {
-		let now = /* @__PURE__ */ new Date();
-		let year = now.getFullYear();
-		if (now.getMonth() < 3) return year - 1;
-		return year;
-	}
-	_Schoolyear.calculateSetupYear = calculateSetupYear;
-	function toFullString(startYear) {
-		return `${startYear}-${startYear + 1}`;
-	}
-	_Schoolyear.toFullString = toFullString;
-	function toShortString(startYear) {
-		return `${startYear % 1e3}-${startYear % 1e3 + 1}`;
-	}
-	_Schoolyear.toShortString = toShortString;
-	function toNumbers(schoolyearString) {
-		let parts = schoolyearString.split("-").map((s) => parseInt(s));
-		return {
-			startYear: parts[0],
-			endYear: parts[1]
-		};
-	}
-	_Schoolyear.toNumbers = toNumbers;
-})(Schoolyear || (Schoolyear = {}));
-function getUserAndSchoolName() {
-	let footer = document.querySelector("body > main > div.row > div.col-auto.mr-auto > small");
-	const match = footer.textContent.match(/.*Je bent aangemeld als (.*)\s@\s(.*)\./);
-	if (match?.length !== 3) throw new Error(`Could not process footer text "${footer.textContent}"`);
-	return {
-		userName: match[1],
-		schoolName: match[2]
-	};
-}
-function getSchoolIdString() {
-	let { schoolName } = getUserAndSchoolName();
-	schoolName = schoolName.replace("Academie ", "").replace("Muziek", "M").replace("Woord", "W").replace("Dans", "D").replace("Beeld", "B").toLowerCase();
-	return createValidId(schoolName);
-}
-function millisToString(duration) {
-	let seconds = Math.floor(duration / 1e3 % 60);
-	let minutes = Math.floor(duration / 6e4 % 60);
-	let hours = Math.floor(duration / 36e5 % 24);
-	let days = Math.floor(duration / 864e5);
-	if (days > 0) return days + (days === 1 ? " dag" : " dagen");
-	else if (hours > 0) return hours + " uur";
-	else if (minutes > 0) return minutes + (minutes === 1 ? " minuut" : " minuten");
-	else if (seconds > 0) return seconds + " seconden";
-	else return "";
-}
-function dateDiffToString(oldestDate, newestDate) {
-	return millisToString(newestDate.getTime() - oldestDate.getTime());
-}
-function isAlphaNumeric(str) {
-	if (str.length > 1) return false;
-	let code;
-	let i;
-	let len;
-	for (i = 0, len = str.length; i < len; i++) {
-		code = str.charCodeAt(i);
-		if (!(code > 47 && code < 58) && !(code > 64 && code < 91) && !(code > 96 && code < 123)) return false;
-	}
-	return true;
-}
-function rangeGenerator(start, stop, step = 1) {
-	return Array(Math.ceil((stop - start) / step)).fill(start).map((x, y) => x + y * step);
-}
-function createSearchField(id, onSearchInput, value) {
-	let input = document.createElement("input");
-	input.type = "text";
-	input.id = id;
-	input.classList.add("tableFilter");
-	input.oninput = onSearchInput;
-	input.value = value;
-	input.placeholder = "filter";
-	let span = document.createElement("span");
-	span.classList.add("searchButton");
-	span.appendChild(input);
-	let { first: clearButton } = emmet.appendChild(span, `button>img[src="${chrome.runtime.getURL("images/circle-xmark-regular.svg")}"`);
-	clearButton.onclick = () => {
-		input.value = "";
-		input.oninput(void 0);
-		input.focus();
-	};
-	return span;
-}
-function getBothToolbars() {
-	let navigationBars = document.querySelectorAll("div.datatable-navigation-toolbar");
-	if (navigationBars.length < 2) return void 0;
-	return navigationBars;
-}
-function addTableNavigationButton(navigationBars, btnId, title, onClick, fontIconId) {
-	addButton$1(navigationBars[0].lastElementChild, btnId, title, onClick, fontIconId, ["btn-secondary"], "", "afterend");
-	return true;
-}
-function distinct(array) {
-	return [...new Set(array)];
-}
-async function fetchStudentsSearch(search) {
-	return fetch("/view.php?args=zoeken?zoek=" + encodeURIComponent(search)).then((response) => response.text()).then((_text) => fetch("/views/zoeken/index.view.php")).then((response) => response.text()).catch((err) => {
-		console.error("Request failed", err);
-		return "";
-	});
-}
-async function setViewFromCurrentUrl() {
-	let hash = window.location.hash.replace("#", "");
-	await fetch("/#" + hash).then((res) => res.text());
-	await fetch("view.php?args=" + hash).then((res) => res.text());
-}
-function equals(g1, g2) {
-	return g1.globalHide === g2.globalHide;
-}
-let rxEmail = /\w[\w.\-]*@\w+\.\w+/gm;
-function whoAmI() {
-	let scriptTexts = [...document.querySelectorAll("script")].map((s) => s.textContent).join();
-	return {
-		email: scriptTexts.match(rxEmail)[0],
-		name: scriptTexts.match(/name: '(.*)'/)[1]
-	};
-}
-function stripStudentName(name) {
-	return name.replaceAll(/[,()'-]/g, " ").replaceAll("  ", " ");
-}
-async function openHtmlTab(cacheId, pageTitle) {
-	return sendRequest$1("open_tab", "Main", "Html", void 0, { cacheId }, pageTitle);
-}
-async function openHoursSettings(schoolyear) {
-	return sendRequest$1("open_hours_settings", "Main", "Undefined", void 0, { schoolyear }, "Lerarenuren setup voor schooljaar " + schoolyear);
-}
-function createHtmlTable(headers, cols) {
-	let tmpDiv = document.createElement("div");
-	let { first: tmpTable, last: tmpThead } = emmet.appendChild(tmpDiv, "table>thead");
-	for (let th of headers) emmet.appendChild(tmpThead, `th{${th}}`);
-	let tmpTbody = tmpTable.appendChild(document.createElement("tbody"));
-	for (let tr of cols) {
-		let tmpTr = tmpTbody.appendChild(document.createElement("tr"));
-		for (let cell of tr) emmet.appendChild(tmpTr, `td{${cell}}`);
-	}
-	return tmpTable;
-}
-function isButtonHighlighted(buttonId) {
-	return document.getElementById(buttonId)?.classList.contains("toggled");
-}
-function range(startAt, upTo) {
-	if (upTo > startAt) return [...Array(upTo - startAt).keys()].map((n) => n + startAt);
-	else return [...Array(startAt - upTo).keys()].reverse().map((n) => n + upTo + 1);
-}
-async function getOptions() {
-	let items = await chrome.storage.sync.get(null);
-	Object.assign(options, items);
-	setGlobalSetting(await fetchGlobalSettings(getGlobalSettings()));
-}
-function arrayIsEqual(a, b) {
-	if (a === b) return true;
-	if (a == null || b == null) return false;
-	if (a.length != b.length) return false;
-	let aSet = new Set(a);
-	return b.every((value, _) => aSet.has(value));
-}
-function escapeRegexChars(text) {
-	return text.replaceAll("\\", "\\\\").replaceAll("^", "\\^").replaceAll("$", "\\$").replaceAll(".", "\\.").replaceAll("|", "\\|").replaceAll("?", "\\?").replaceAll("*", "\\*").replaceAll("+", "\\+").replaceAll("(", "\\(").replaceAll(")", "\\)").replaceAll("[", "\\[").replaceAll("]", "\\]").replaceAll("{", "\\{").replaceAll("}", "\\}");
-}
-function getImmediateText(element) {
-	return [...element.childNodes].map((c) => c.nodeType === 3 ? c.textContent : "").join("");
-}
-function tryUntilThen(func, then) {
-	if (func()) then();
-	else setTimeout(() => tryUntilThen(func, then), 100);
-}
-function copyToClipboardOrRequestRetry(infoBar, text) {
-	navigator.clipboard.writeText(text).then((_r) => {
-		infoBar.setExtraInfo("Gegevens gekopieerd naar klipbord. <a id=copy_again href='javascript:void(0);'>Kopieer opnieuw</a>", COPY_AGAIN, () => {
-			copyToClipboardOrRequestRetry(infoBar, text);
-		});
-	}).catch((_reason) => {
-		infoBar.setExtraInfo("Kan niet kopiëren naar klipbord!!! <a id=copy_again href='javascript:void(0);'>Kopieer opnieuw</a>", COPY_AGAIN, () => {
-			copyToClipboardOrRequestRetry(infoBar, text);
-		});
-	});
-}
-function unreachable(x) {
-	throw new Error("This error will never be thrown. It is used for type safety.");
-}
-function pad(num, size) {
-	let text = num.toString();
-	while (text.length < size) text = "0" + text;
-	return text;
-}
-var SlidingWindow = class {
-	array;
-	length;
-	pos;
-	constructor(enumerable) {
-		this.pos = -1;
-		this.array = [...enumerable];
-		this.length = this.array.length;
-	}
-	[Symbol.iterator]() {
-		return { next: () => {
-			this.pos++;
-			if (this.pos >= this.length) return {
-				done: true,
-				value: null
-			};
-			return {
-				done: false,
-				value: {
-					prev: this.peekPrev(),
-					current: this.array[this.pos],
-					next: this.peekNext()
-				}
-			};
-		} };
-	}
-	peekNext() {
-		if (this.pos + 1 > this.length) return null;
-		return this.array[this.pos + 1];
-	}
-	peekPrev() {
-		if (this.pos == 0) return null;
-		return this.array[this.pos - 1];
-	}
-	next() {
-		this.pos++;
-		if (this.pos >= this.length) return null;
-		return this.array[this.pos];
 	}
 };
-function wrapElement(element, tagName) {
-	let wrapper = document.createElement(tagName);
-	element.parentNode.insertBefore(wrapper, element);
-	wrapper.appendChild(element);
-	return wrapper;
-}
-function highlightText(element, wordList, highlightClassName, extraClasses = []) {
-	let cards = element instanceof HTMLElement ? [element] : element;
-	if (wordList.length === 0) return;
-	for (const card of cards) {
-		const walker = document.createTreeWalker(card, NodeFilter.SHOW_TEXT, { acceptNode(node) {
-			const parent = node.parentElement;
-			if (!parent) return NodeFilter.FILTER_REJECT;
-			if (parent.closest("." + highlightClassName)) return NodeFilter.FILTER_REJECT;
-			if (!node.textContent || !wordList.some((word) => node.textContent.includes(word))) return NodeFilter.FILTER_REJECT;
-			return NodeFilter.FILTER_ACCEPT;
-		} });
-		const textNodes = [];
-		while (walker.nextNode()) textNodes.push(walker.currentNode);
-		let rxWords = new RegExp(`(${wordList.join("|")})`, "gu");
-		for (const textNode of textNodes) {
-			const fragment = document.createDocumentFragment();
-			const text = textNode.textContent ?? "";
-			let lastIndex = 0;
-			for (const match of text.matchAll(rxWords)) {
-				const matchText = match[0];
-				const matchIndex = match.index ?? 0;
-				fragment.append(document.createTextNode(text.slice(lastIndex, matchIndex)));
-				const span = document.createElement("span");
-				span.classList.add(highlightClassName, ...extraClasses);
-				span.textContent = matchText;
-				fragment.append(span);
-				lastIndex = matchIndex + matchText.length;
-			}
-			fragment.append(document.createTextNode(text.slice(lastIndex)));
-			textNode.replaceWith(fragment);
+//#endregion
+//#region typescript/progressBar.ts
+var ProgressBar = class ProgressBar {
+	barElement;
+	containerElement;
+	maxCount;
+	count;
+	constructor(containerElement, barElement) {
+		this.barElement = barElement;
+		this.containerElement = containerElement;
+		this.hide();
+		this.maxCount = 0;
+		this.count = 0;
+	}
+	reset(maxCount) {
+		this.maxCount = maxCount;
+		this.count = 0;
+		this.barElement.innerHTML = "";
+		for (let i = 0; i < maxCount; i++) {
+			let block = document.createElement("div");
+			this.barElement.appendChild(block);
+			block.classList.add("progressBlock");
 		}
 	}
+	start(maxCount) {
+		this.reset(maxCount);
+		this.containerElement.style.display = "block";
+		this.next();
+	}
+	hide() {
+		this.containerElement.style.display = "none";
+	}
+	stop() {
+		this.hide();
+	}
+	next() {
+		if (this.count >= this.maxCount) return false;
+		this.barElement.children[this.count].classList.remove("iddle", "loaded");
+		this.barElement.children[this.count].classList.add("loading");
+		for (let i = 0; i < this.count; i++) {
+			this.barElement.children[i].classList.remove("iddle", "loading");
+			this.barElement.children[i].classList.add("loaded");
+		}
+		for (let i = this.count + 1; i < this.maxCount; i++) {
+			this.barElement.children[i].classList.remove("loaded", "loading");
+			this.barElement.children[i].classList.add("iddle");
+		}
+		this.count++;
+		return true;
+	}
+	static find() {
+		let divProgressLine = document.getElementById(PROGRESS_BAR_ID);
+		let divProgressBar = divProgressLine.querySelector(".progressBar");
+		return new ProgressBar(divProgressLine, divProgressBar);
+	}
+};
+function insertProgressBar(container, text = "") {
+	container.innerHTML = "";
+	let { first: divProgressLine, last: divProgressBar } = emmet.appendChild(container, `div.infoLine#${PROGRESS_BAR_ID}>div.progressText{${text}}+div.progressBar`);
+	return new ProgressBar(divProgressLine, divProgressBar);
 }
+//#endregion
+//#region typescript/infoBlock.ts
+function createInfoBlockForTable(tableRef) {
+	document.getElementById(INFO_CONTAINER_ID)?.remove();
+	return createInfoBlock(tableRef.createElementAboveTable("div"), "loading pages... ");
+}
+function createInfoBlock(infoContainer, initialMessage) {
+	let infoBar = InfoBar.create(infoContainer.appendChild(document.createElement("div")));
+	return {
+		infoBar,
+		progressBar: insertProgressBar(infoBar.divInfoLine, initialMessage)
+	};
+}
+function getInfoBlock() {
+	return {
+		infoBar: InfoBar.find(),
+		progressBar: ProgressBar.find()
+	};
+}
+//#endregion
+//#region typescript/table/tableNavigation.ts
+var TableNavigation = class {
+	step;
+	maxCount;
+	constructor(step, maxCount) {
+		this.step = step;
+		this.maxCount = maxCount;
+	}
+	steps() {
+		return Math.ceil(this.maxCount / this.step);
+	}
+	isOnePage() {
+		return this.step >= this.maxCount;
+	}
+};
+function findFirstNavigation(element) {
+	element = element ?? document.body;
+	let buttonPagination = element.querySelector("button.datatable-paging-numbers");
+	if (!buttonPagination) return void 0;
+	let buttonContainer = buttonPagination.closest("div");
+	if (!buttonContainer) return;
+	let matches = buttonPagination.innerText.match(/(\d*) tot (\d*) van (\d*)/);
+	if (!matches) return void 0;
+	let buttons = buttonContainer.querySelectorAll("button.btn-secondary");
+	let offsets = Array.from(buttons).filter((btn) => btn.attributes["onclick"]?.value.includes("goto(")).filter((btn) => !btn.querySelector("i.fa-fast-backward")).map((btn) => getGotoNumber(btn.attributes["onclick"].value));
+	let numbers = matches.slice(1).map((txt) => parseInt(txt));
+	if (numbers.length === 0) return void 0;
+	numbers[0] = numbers[0] - 1;
+	numbers = numbers.concat(offsets);
+	numbers.sort((a, b) => a - b);
+	numbers = [...new Set(numbers)];
+	return new TableNavigation(numbers[1] - numbers[0], numbers.pop());
+}
+function getGotoNumber(functionCall) {
+	return parseInt(functionCall.substring(functionCall.indexOf("goto(") + 5));
+}
+//#endregion
+//#region typescript/table/tableFetcher.ts
+var PlainTableRef = class {
+	htmlTableId;
+	constructor(htmlTableId) {
+		this.htmlTableId = htmlTableId;
+	}
+	getOrgTableContainer() {
+		return document.getElementById(this.htmlTableId).parentElement;
+	}
+	getOrgTableRows() {
+		return document.getElementById(this.htmlTableId).querySelectorAll("tbody > tr");
+	}
+	buildFetchPageUrl(offset) {
+		throw "Plain table cannot be fetched";
+	}
+	createElementAboveTable(element) {
+		let el = document.createElement(element);
+		document.getElementById(this.htmlTableId).insertAdjacentElement("beforebegin", el);
+		return el;
+	}
+	isFullyFetched() {
+		return true;
+	}
+};
+var DkoTableRef = class {
+	htmlTableId;
+	buildFetchPageUrl;
+	navigationData;
+	constructor(htmlTableId, navigationData, buildFetchUrl) {
+		this.htmlTableId = htmlTableId;
+		this.buildFetchPageUrl = buildFetchUrl;
+		this.navigationData = navigationData;
+	}
+	getOrgTableContainer() {
+		return document.getElementById(this.htmlTableId);
+	}
+	getOrgTableRows() {
+		return this.getOrgTableContainer().querySelectorAll("tbody > tr");
+	}
+	createElementAboveTable(element) {
+		let el = document.createElement(element);
+		this.getOrgTableContainer().insertAdjacentElement("beforebegin", el);
+		return el;
+	}
+	isFullyFetched() {
+		return this.getOrgTableContainer().querySelector("table").classList.contains("fullyFetched");
+	}
+};
+function findTableRefInCode() {
+	let foundTableRef = findTable();
+	if (!foundTableRef) return void 0;
+	let buildFetchUrl = (offset) => `/views/ui/datatable.php?id=${foundTableRef.viewId}&start=${offset}&aantal=0`;
+	let navigation = findFirstNavigation();
+	if (!navigation) return void 0;
+	return new DkoTableRef(foundTableRef.tableId, navigation, buildFetchUrl);
+}
+function findTable() {
+	let table = document.querySelector("div.table-responsive > table");
+	if (!table) return null;
+	let tableId = table.id.replace("table_", "").replace("_table", "");
+	let parentDiv = document.querySelector("div#table_" + tableId);
+	let func = Array.from(parentDiv.querySelectorAll("script")).map((script) => script.text).join("\n").split("_goto(")[1].split(/ function *\w/)[0];
+	let viewId = / *datatable_id *= *'(.*)'/.exec(func)[1];
+	let url = /_table'\).load\('(.*?)\?id='\s*\+\s*datatable_id\s*\+\s*'&start='\s*\+\s*start/.exec(func)[1];
+	return {
+		tableId: table.id,
+		viewId,
+		url
+	};
+}
+var TableFetcher = class {
+	calculateTableCheckSum;
+	tableRef;
+	tableHandler;
+	listeners;
+	constructor(tableRef, calculateTableCheckSum, tableHandler) {
+		this.calculateTableCheckSum = calculateTableCheckSum;
+		this.tableRef = tableRef;
+		this.tableHandler = tableHandler;
+		this.listeners = [];
+	}
+	clearCache() {
+		db3(`Clear cache for ${this.tableRef.htmlTableId}.`);
+		window.sessionStorage.removeItem(this.getCacheId());
+		window.sessionStorage.removeItem(this.getCacheId() + CACHE_DATE_SUFFIX);
+	}
+	getCacheId() {
+		let checksum = "";
+		if (this.calculateTableCheckSum) checksum = "__" + this.calculateTableCheckSum(this);
+		return (this.tableRef.htmlTableId + checksum).replaceAll(/\s/g, "");
+	}
+	addListener(listener) {
+		this.listeners.push(listener);
+	}
+};
+var NavigatableTableFetcher = class extends TableFetcher {
+	isUsingCached = false;
+	shadowTableDate;
+	fetchedTable;
+	cancelRequested;
+	isFetchFinished;
+	constructor(tableRef, calculateTableCheckSum, tableHandler) {
+		super(tableRef, calculateTableCheckSum, tableHandler);
+		this.fetchedTable = void 0;
+		this.cancelRequested = false;
+		this.isFetchFinished = false;
+	}
+	reset() {
+		this.clearCache();
+		this.tableHandler?.onReset?.(this);
+	}
+	clearCache() {
+		super.clearCache();
+		this.fetchedTable = void 0;
+	}
+	async cancel() {
+		this.cancelRequested = true;
+		while (!this.isFetchFinished) await new Promise((resolve) => setTimeout(resolve));
+		this.clearCache();
+	}
+	getDkoTableRef() {
+		return this.tableRef;
+	}
+	loadFromCache() {
+		if (this.getDkoTableRef().navigationData.isOnePage()) return null;
+		db3(`Loading from cache: ${this.getCacheId()}.`);
+		let text = window.sessionStorage.getItem(this.getCacheId());
+		let dateString = window.sessionStorage.getItem(this.getCacheId() + CACHE_DATE_SUFFIX);
+		if (!text || !dateString) return void 0;
+		return {
+			text,
+			date: new Date(dateString)
+		};
+	}
+	async fetch() {
+		if (this.fetchedTable) {
+			this.onFinished(true);
+			return this.fetchedTable;
+		}
+		this.isFetchFinished = false;
+		let cachedData = this.loadFromCache();
+		let succes;
+		this.fetchedTable = new NavigatableFetchedTable(this);
+		if (cachedData) {
+			this.fetchedTable.addPage(cachedData.text);
+			this.shadowTableDate = cachedData.date;
+			this.isUsingCached = true;
+			this.onPageLoaded(1, cachedData.text);
+			this.onLoaded();
+			succes = true;
+		} else {
+			this.isUsingCached = false;
+			succes = await this.#fetchPages(this.fetchedTable);
+			if (!succes) {
+				this.onFinished(succes);
+				throw "Failed to fetch the pages.";
+			}
+			this.fetchedTable.saveToCache();
+			this.onLoaded();
+		}
+		this.onFinished(succes);
+		return this.fetchedTable;
+	}
+	onStartFetching() {
+		for (let lst of this.listeners) lst.onStartFetching?.(this);
+	}
+	onFinished(succes) {
+		this.isFetchFinished = true;
+		for (let lst of this.listeners) lst.onFinished?.(this, succes);
+	}
+	onPageLoaded(pageCnt, text) {
+		for (let lst of this.listeners) lst.onPageLoaded?.(this, pageCnt, text);
+	}
+	onLoaded() {
+		for (let lst of this.listeners) lst.onLoaded?.(this);
+	}
+	onBeforeLoadingPage() {
+		for (let lst of this.listeners) if (lst.onBeforeLoadingPage) {
+			if (!lst.onBeforeLoadingPage(this)) return false;
+		}
+		return true;
+	}
+	async #fetchPages(fetchedTable) {
+		if (!this.onBeforeLoadingPage()) return false;
+		await this.#doFetchAllPages(fetchedTable);
+		return true;
+	}
+	async #doFetchAllPages(fetchedTable) {
+		try {
+			this.onStartFetching();
+			let pageCnt = 0;
+			this.cancelRequested = false;
+			while (true) {
+				console.log("fetching page " + fetchedTable.getNextPageNumber());
+				let text = await (await fetch(this.tableRef.buildFetchPageUrl(fetchedTable.getNextOffset()))).text();
+				fetchedTable.addPage(text);
+				pageCnt++;
+				this.onPageLoaded(pageCnt, text);
+				if (pageCnt >= this.getDkoTableRef().navigationData.steps()) break;
+				if (this.cancelRequested) break;
+			}
+		} finally {}
+	}
+};
+var NavigatableFetchedTable = class {
+	shadowTableTemplate;
+	tableFetcher;
+	lastPageNumber;
+	lastPageStartRow;
+	constructor(tableDef) {
+		this.tableFetcher = tableDef;
+		this.lastPageNumber = -1;
+		this.lastPageStartRow = 0;
+		this.shadowTableTemplate = document.createElement("template");
+	}
+	getRows() {
+		return this.shadowTableTemplate.content.querySelectorAll("tbody tr:not(:has(i.fa-meh))");
+	}
+	getTable() {
+		return this.shadowTableTemplate.content.querySelector("table");
+	}
+	getRowsAsArray = () => Array.from(this.getRows());
+	getLastPageRows = () => this.getRowsAsArray().slice(this.lastPageStartRow);
+	getLastPageNumber = () => this.lastPageNumber;
+	getNextPageNumber = () => this.lastPageNumber + 1;
+	getNextOffset = () => this.getNextPageNumber() * this.tableFetcher.getDkoTableRef().navigationData.step;
+	getTemplate = () => this.shadowTableTemplate;
+	saveToCache(retry = true) {
+		db3(`Caching ${this.tableFetcher.getCacheId()}.`);
+		try {
+			window.sessionStorage.setItem(this.tableFetcher.getCacheId(), this.shadowTableTemplate.innerHTML);
+			window.sessionStorage.setItem(this.tableFetcher.getCacheId() + CACHE_DATE_SUFFIX, (/* @__PURE__ */ new Date()).toJSON());
+		} catch (e) {
+			console.error(e);
+			if (!retry) return;
+			console.log("Clearing session cache and trying again...");
+			let sessionKeys = Object.keys(window.sessionStorage);
+			for (let key of sessionKeys) if (key.startsWith("table_leerlingen_werklijst")) window.sessionStorage.removeItem(key);
+			this.saveToCache(false);
+		}
+	}
+	addPage(text) {
+		let pageTemplate;
+		pageTemplate = document.createElement("template");
+		pageTemplate.innerHTML = text;
+		let rows = pageTemplate.content.querySelectorAll("tbody > tr:not(:has(i.fa-meh))");
+		this.lastPageStartRow = this.getRows().length;
+		if (this.lastPageNumber === -1) {
+			this.shadowTableTemplate.innerHTML = text;
+			this.shadowTableTemplate.content.querySelector("tbody").innerHTML = "";
+		}
+		this.shadowTableTemplate.content.querySelector("tbody").append(...rows);
+		this.lastPageNumber++;
+	}
+};
 //#endregion
 //#region typescript/gotoState.ts
 function saveGotoState(state) {
@@ -1240,8 +1332,8 @@ var FetchChain = class {
 		this.lastText = await fetchText(url ?? this.lastText ?? "--null--", signal);
 		return this.lastText;
 	}
-	async post(url, signal) {
-		this.lastText = await fetchText(url, signal, true);
+	async post(url, signal, params) {
+		this.lastText = await fetchText(url, signal, true, params);
 		return this.lastText;
 	}
 	findDocReadyLoadUrl() {
@@ -1297,10 +1389,11 @@ function getDocReadyLoadScript(text) {
 		scanner = docReady;
 	}
 }
-async function fetchText(url, signal, post = false) {
+async function fetchText(url, signal, post = false, params) {
 	return (post ? await fetch(url, {
 		signal,
-		method: "POST"
+		method: "POST",
+		body: new URLSearchParams(params)
 	}) : await fetch(url, { signal })).text();
 }
 //#endregion
@@ -2507,541 +2600,6 @@ var MenuScrapingObserver = class MenuScrapingObserver extends ExactHashObserver 
 	}
 };
 //#endregion
-//#region typescript/roster_diff/excel.ts
-var ExcelPos = class {
-	row;
-	column;
-	constructor(row, column) {
-		this.row = row;
-		this.column = column;
-	}
-};
-var TablePos = class {
-	row;
-	column;
-	constructor(row, column) {
-		this.row = row;
-		this.column = column;
-	}
-	static toExcel(tablePos, table) {
-		return new ExcelPos(tablePos.row + table.tableRange.Start.row + table.rowHeaderCount, tablePos.column + table.tableRange.Start.column + table.columnHeaderCount);
-	}
-};
-var Range = class {
-	start;
-	end;
-	RowCount() {
-		return this.end.row - this.start.row + 1;
-	}
-	ColumnCount() {
-		return this.end.column - this.start.column + 1;
-	}
-	constructor(start, end) {
-		this.start = start;
-		this.end = end;
-	}
-};
-var ExcelRange = class extends Range {
-	constructor(start, end) {
-		super(start, end);
-	}
-	get Start() {
-		return this.start;
-	}
-	get End() {
-		return this.end;
-	}
-};
-var TableRange = class TableRange {
-	start;
-	end;
-	constructor(start, end) {
-		this.start = start;
-		this.end = end;
-	}
-	static FromExcel(excelRange, table) {
-		let startRow = excelRange.Start.row - table.tableRange.Start.row - table.rowHeaderCount;
-		let endRow = excelRange.End.row - table.tableRange.Start.row - table.rowHeaderCount;
-		let startColumn = excelRange.Start.column - table.tableRange.Start.column - table.columnHeaderCount;
-		let endColumn = excelRange.End.column - table.tableRange.Start.column - table.columnHeaderCount;
-		return new TableRange({
-			row: startRow,
-			column: startColumn
-		}, {
-			row: endRow,
-			column: endColumn
-		});
-	}
-	static ToExcel(tableRange, table) {
-		return new ExcelRange(TablePos.toExcel(tableRange.Start, table), TablePos.toExcel(tableRange.End, table));
-	}
-	get Start() {
-		return this.start;
-	}
-	get End() {
-		return this.end;
-	}
-};
-var ExcelData = class {
-	data;
-	mergedRanges;
-	url;
-	workbookName;
-	worksheetName;
-	constructor(data, mergedRanges, url, workbookName, worksheetName) {
-		this.data = data;
-		this.mergedRanges = mergedRanges.map((r) => new ExcelRange(r.start, r.end));
-		this.url = url;
-		if (this.url) {
-			let urlParams = new URLSearchParams(this.url.substring(this.url.indexOf("?") + 1));
-			urlParams.delete("activeCell");
-			this.url = this.url.substring(0, this.url.indexOf("?")) + "?" + urlParams.toString();
-		}
-		this.workbookName = workbookName;
-		this.worksheetName = worksheetName;
-	}
-	getMergedCellValue(excelPos) {
-		let mergedRange = this.getMergedRangeForCell(excelPos);
-		return this.data[mergedRange.Start.row][mergedRange.Start.column];
-	}
-	getMergedRangeForCell(excelPos) {
-		return this.mergedRanges.find((range) => {
-			return excelPos.row >= range.Start.row && excelPos.row <= range.End.row && excelPos.column >= range.Start.column && excelPos.column <= range.End.column;
-		}) ?? new ExcelRange(excelPos, excelPos);
-	}
-};
-var Table = class {
-	excelData;
-	tableRange;
-	rowHeaderCount;
-	columnHeaderCount;
-	excelToTableRange(excelRange) {
-		return TableRange.FromExcel(excelRange, this);
-	}
-	get ColumnCount() {
-		return this.tableRange.ColumnCount() - this.columnHeaderCount;
-	}
-	get RowCount() {
-		return this.tableRange.RowCount() - this.rowHeaderCount;
-	}
-	constructor(excelData, tableRange, rowHeaderCount, columnHeaderCount) {
-		this.excelData = excelData;
-		this.tableRange = tableRange;
-		this.rowHeaderCount = rowHeaderCount;
-		this.columnHeaderCount = columnHeaderCount;
-	}
-	Cell(row, column) {
-		let excelPos = {
-			row: this.tableRange.Start.row + this.rowHeaderCount + row,
-			column: this.tableRange.Start.column + this.columnHeaderCount + column
-		};
-		return this.excelData.getMergedCellValue(excelPos);
-	}
-	RangeOfCell(pos) {
-		let excelPos = {
-			row: this.tableRange.Start.row + this.rowHeaderCount + pos.row,
-			column: this.tableRange.Start.column + this.columnHeaderCount + pos.column
-		};
-		let exelRange = this.excelData.getMergedRangeForCell(excelPos) ?? new ExcelRange(excelPos, excelPos);
-		return TableRange.FromExcel(exelRange, this);
-	}
-	HeaderRowValue(headerRow, column) {
-		let excelPos = {
-			row: this.tableRange.Start.row + headerRow,
-			column: this.tableRange.Start.column + this.columnHeaderCount + column
-		};
-		return this.excelData.getMergedCellValue(excelPos);
-	}
-	HeaderColumnValue(row, headerColumn) {
-		let excelPos = {
-			row: this.tableRange.Start.row + this.rowHeaderCount + row,
-			column: this.tableRange.Start.column + headerColumn
-		};
-		return this.excelData.getMergedCellValue(excelPos);
-	}
-};
-//#endregion
-//#region typescript/roster_diff/rosterFactory.ts
-var RosterFactory = class RosterFactory {
-	excelData;
-	errors = [];
-	daysRow = void 0;
-	periodColumn = void 0;
-	tableRange = void 0;
-	constructor(jsonExcelData) {
-		this.excelData = new ExcelData(jsonExcelData.data, jsonExcelData.mergedRanges, jsonExcelData.url, jsonExcelData.workbookName, jsonExcelData.worksheetName);
-		this.daysRow = this.findDaysRow();
-		if (this.daysRow === void 0) {
-			this.errors.push("Geen rij met dagnamen gevonden.");
-			return;
-		}
-		this.periodColumn = this.findPeriodColumn(this.daysRow);
-		if (this.periodColumn === void 0) {
-			this.errors.push("Geen kolom met lesmomenten gevonden.");
-			return;
-		}
-		let lastPeriodRow = this.findLastPeriodRow(this.periodColumn);
-		let lastDayColumn = this.findLastDayColumn(this.periodColumn, this.daysRow);
-		if (lastDayColumn && lastPeriodRow) this.tableRange = new ExcelRange({
-			row: this.daysRow,
-			column: this.periodColumn
-		}, {
-			row: lastPeriodRow,
-			column: lastDayColumn
-		});
-	}
-	getErrors() {
-		return this.errors;
-	}
-	getTable() {
-		return new Table(this.excelData, this.tableRange, 2, 1);
-	}
-	findDaysRow() {
-		for (let [i, row] of this.excelData.data.entries()) if (this.isDaysRow(row)) return i;
-	}
-	isDaysRow(row) {
-		let matchCount = 0;
-		for (let value of row) {
-			if (RosterFactory.isDayName(value.toString())) matchCount++;
-			if (matchCount >= 3) return true;
-		}
-		return false;
-	}
-	static isDayName(text) {
-		return this.toDayName(text) != "";
-	}
-	static toDayName(text) {
-		switch (text.toLowerCase()) {
-			case "maandag": return "MAANDAG";
-			case "dinsdag": return "DINSDAG";
-			case "woensdag": return "WOENSDAG";
-			case "donderdag": return "DONDERDAG";
-			case "vrijdag": return "VRIJDAG";
-			case "zaterdag": return "ZATERDAG";
-			case "zondag": return "ZONDAG";
-			case "ma": return "MAANDAG";
-			case "di": return "DINSDAG";
-			case "din": return "DINSDAG";
-			case "wo": return "WOENSDAG";
-			case "woe": return "WOENSDAG";
-			case "do": return "DONDERDAG";
-			case "don": return "DONDERDAG";
-			case "vr": return "VRIJDAG";
-			case "za": return "ZATERDAG";
-			case "zat": return "ZATERDAG";
-			case "zo": return "ZONDAG";
-			case "zon": return "ZONDAG";
-			default: return "";
-		}
-	}
-	findPeriodColumn(daysRow) {
-		let columnCount = this.excelData.data[0].length;
-		for (let iCol = 0; iCol < columnCount; iCol++) for (let row of this.excelData.data.slice(daysRow)) {
-			let value = row[iCol].toString();
-			if (this.isPeriod(value)) return iCol;
-		}
-	}
-	isPeriod(text) {
-		return TimeSlice.parseTimeSlice(text);
-	}
-	findLastPeriodRow(periodColumn) {
-		return this.excelData.data.map((row, index) => this.isPeriod(row[periodColumn].toString()) ? index : -1).filter((n) => n > 0).pop();
-	}
-	findLastDayColumn(periodColumn, daysRow) {
-		for (let c = periodColumn + 1; c < this.excelData.data[0].length; c++) {
-			let cellValue = this.excelData.getMergedCellValue({
-				row: daysRow,
-				column: c
-			});
-			if (!RosterFactory.isDayName(cellValue)) return c - 1;
-		}
-		return this.excelData.data[0].length - 1;
-	}
-};
-//#endregion
-//#region typescript/table/tableNavigation.ts
-var TableNavigation = class {
-	step;
-	maxCount;
-	constructor(step, maxCount) {
-		this.step = step;
-		this.maxCount = maxCount;
-	}
-	steps() {
-		return Math.ceil(this.maxCount / this.step);
-	}
-	isOnePage() {
-		return this.step >= this.maxCount;
-	}
-};
-function findFirstNavigation(element) {
-	element = element ?? document.body;
-	let buttonPagination = element.querySelector("button.datatable-paging-numbers");
-	if (!buttonPagination) return void 0;
-	let buttonContainer = buttonPagination.closest("div");
-	if (!buttonContainer) return;
-	let matches = buttonPagination.innerText.match(/(\d*) tot (\d*) van (\d*)/);
-	if (!matches) return void 0;
-	let buttons = buttonContainer.querySelectorAll("button.btn-secondary");
-	let offsets = Array.from(buttons).filter((btn) => btn.attributes["onclick"]?.value.includes("goto(")).filter((btn) => !btn.querySelector("i.fa-fast-backward")).map((btn) => getGotoNumber(btn.attributes["onclick"].value));
-	let numbers = matches.slice(1).map((txt) => parseInt(txt));
-	if (numbers.length === 0) return void 0;
-	numbers[0] = numbers[0] - 1;
-	numbers = numbers.concat(offsets);
-	numbers.sort((a, b) => a - b);
-	numbers = [...new Set(numbers)];
-	return new TableNavigation(numbers[1] - numbers[0], numbers.pop());
-}
-function getGotoNumber(functionCall) {
-	return parseInt(functionCall.substring(functionCall.indexOf("goto(") + 5));
-}
-//#endregion
-//#region typescript/table/tableFetcher.ts
-var PlainTableRef = class {
-	htmlTableId;
-	constructor(htmlTableId) {
-		this.htmlTableId = htmlTableId;
-	}
-	getOrgTableContainer() {
-		return document.getElementById(this.htmlTableId).parentElement;
-	}
-	getOrgTableRows() {
-		return document.getElementById(this.htmlTableId).querySelectorAll("tbody > tr");
-	}
-	buildFetchUrl(offset) {
-		throw "Plain table cannot be fetched";
-	}
-	createElementAboveTable(element) {
-		let el = document.createElement(element);
-		document.getElementById(this.htmlTableId).insertAdjacentElement("beforebegin", el);
-		return el;
-	}
-	isFullyFetched() {
-		return true;
-	}
-};
-var DkoTableRef = class {
-	htmlTableId;
-	buildFetchUrl;
-	navigationData;
-	constructor(htmlTableId, navigationData, buildFetchUrl) {
-		this.htmlTableId = htmlTableId;
-		this.buildFetchUrl = buildFetchUrl;
-		this.navigationData = navigationData;
-	}
-	getOrgTableContainer() {
-		return document.getElementById(this.htmlTableId);
-	}
-	getOrgTableRows() {
-		return this.getOrgTableContainer().querySelectorAll("tbody > tr");
-	}
-	createElementAboveTable(element) {
-		let el = document.createElement(element);
-		this.getOrgTableContainer().insertAdjacentElement("beforebegin", el);
-		return el;
-	}
-	isFullyFetched() {
-		return this.getOrgTableContainer().querySelector("table").classList.contains("fullyFetched");
-	}
-};
-function findTableRefInCode() {
-	let foundTableRef = findTable();
-	if (!foundTableRef) return void 0;
-	let buildFetchUrl = (offset) => `/views/ui/datatable.php?id=${foundTableRef.viewId}&start=${offset}&aantal=0`;
-	let navigation = findFirstNavigation();
-	if (!navigation) return void 0;
-	return new DkoTableRef(foundTableRef.tableId, navigation, buildFetchUrl);
-}
-function findTable() {
-	let table = document.querySelector("div.table-responsive > table");
-	if (!table) return null;
-	let tableId = table.id.replace("table_", "").replace("_table", "");
-	let parentDiv = document.querySelector("div#table_" + tableId);
-	let func = Array.from(parentDiv.querySelectorAll("script")).map((script) => script.text).join("\n").split("_goto(")[1].split(/ function *\w/)[0];
-	let viewId = / *datatable_id *= *'(.*)'/.exec(func)[1];
-	let url = /_table'\).load\('(.*?)\?id='\s*\+\s*datatable_id\s*\+\s*'&start='\s*\+\s*start/.exec(func)[1];
-	return {
-		tableId: table.id,
-		viewId,
-		url
-	};
-}
-var TableFetcher = class {
-	tableRef;
-	calculateTableCheckSum;
-	isUsingCached = false;
-	shadowTableDate;
-	fetchedTable;
-	tableHandler;
-	listeners;
-	cancelRequested;
-	isFetchFinished;
-	constructor(tableRef, calculateTableCheckSum, tableHandler) {
-		this.tableRef = tableRef;
-		if (!calculateTableCheckSum) throw "Tablechecksum required.";
-		this.calculateTableCheckSum = calculateTableCheckSum;
-		this.fetchedTable = void 0;
-		this.tableHandler = tableHandler;
-		this.listeners = [];
-		this.cancelRequested = false;
-		this.isFetchFinished = false;
-	}
-	reset() {
-		this.clearCache();
-		this.tableHandler?.onReset?.(this);
-	}
-	async cancel() {
-		this.cancelRequested = true;
-		while (!this.isFetchFinished) await new Promise((resolve) => setTimeout(resolve));
-		this.clearCache();
-	}
-	clearCache() {
-		db3(`Clear cache for ${this.tableRef.htmlTableId}.`);
-		window.sessionStorage.removeItem(this.getCacheId());
-		window.sessionStorage.removeItem(this.getCacheId() + CACHE_DATE_SUFFIX);
-		this.fetchedTable = void 0;
-	}
-	loadFromCache() {
-		if (this.tableRef.navigationData.isOnePage()) return null;
-		db3(`Loading from cache: ${this.getCacheId()}.`);
-		let text = window.sessionStorage.getItem(this.getCacheId());
-		let dateString = window.sessionStorage.getItem(this.getCacheId() + CACHE_DATE_SUFFIX);
-		if (!text || !dateString) return void 0;
-		return {
-			text,
-			date: new Date(dateString)
-		};
-	}
-	getCacheId() {
-		let checksum = "";
-		if (this.calculateTableCheckSum) checksum = "__" + this.calculateTableCheckSum(this);
-		return (this.tableRef.htmlTableId + checksum).replaceAll(/\s/g, "");
-	}
-	async fetch() {
-		if (this.fetchedTable) {
-			this.onFinished(true);
-			return this.fetchedTable;
-		}
-		this.isFetchFinished = false;
-		let cachedData = this.loadFromCache();
-		let succes;
-		this.fetchedTable = new FetchedTable(this);
-		if (cachedData) {
-			this.fetchedTable.addPage(cachedData.text);
-			this.shadowTableDate = cachedData.date;
-			this.isUsingCached = true;
-			this.onPageLoaded(1, cachedData.text);
-			this.onLoaded();
-			succes = true;
-		} else {
-			this.isUsingCached = false;
-			succes = await this.#fetchPages(this.fetchedTable);
-			if (!succes) {
-				this.onFinished(succes);
-				throw "Failed to fetch the pages.";
-			}
-			this.fetchedTable.saveToCache();
-			this.onLoaded();
-		}
-		this.onFinished(succes);
-		return this.fetchedTable;
-	}
-	onStartFetching() {
-		for (let lst of this.listeners) lst.onStartFetching?.(this);
-	}
-	onFinished(succes) {
-		this.isFetchFinished = true;
-		for (let lst of this.listeners) lst.onFinished?.(this, succes);
-	}
-	onPageLoaded(pageCnt, text) {
-		for (let lst of this.listeners) lst.onPageLoaded?.(this, pageCnt, text);
-	}
-	onLoaded() {
-		for (let lst of this.listeners) lst.onLoaded?.(this);
-	}
-	onBeforeLoadingPage() {
-		for (let lst of this.listeners) if (lst.onBeforeLoadingPage) {
-			if (!lst.onBeforeLoadingPage(this)) return false;
-		}
-		return true;
-	}
-	async #fetchPages(fetchedTable) {
-		if (!this.onBeforeLoadingPage()) return false;
-		await this.#doFetchAllPages(fetchedTable);
-		return true;
-	}
-	async #doFetchAllPages(fetchedTable) {
-		try {
-			this.onStartFetching();
-			let pageCnt = 0;
-			this.cancelRequested = false;
-			while (true) {
-				console.log("fetching page " + fetchedTable.getNextPageNumber());
-				let text = await (await fetch(this.tableRef.buildFetchUrl(fetchedTable.getNextOffset()))).text();
-				fetchedTable.addPage(text);
-				pageCnt++;
-				this.onPageLoaded(pageCnt, text);
-				if (pageCnt >= this.tableRef.navigationData.steps()) break;
-				if (this.cancelRequested) break;
-			}
-		} finally {}
-	}
-	addListener(listener) {
-		this.listeners.push(listener);
-	}
-};
-var FetchedTable = class {
-	shadowTableTemplate;
-	tableFetcher;
-	lastPageNumber;
-	lastPageStartRow;
-	constructor(tableDef) {
-		this.tableFetcher = tableDef;
-		this.lastPageNumber = -1;
-		this.lastPageStartRow = 0;
-		this.shadowTableTemplate = document.createElement("template");
-	}
-	getRows() {
-		return this.shadowTableTemplate.content.querySelectorAll("tbody tr:not(:has(i.fa-meh))");
-	}
-	getTable() {
-		return this.shadowTableTemplate.content.querySelector("table");
-	}
-	getRowsAsArray = () => Array.from(this.getRows());
-	getLastPageRows = () => this.getRowsAsArray().slice(this.lastPageStartRow);
-	getLastPageNumber = () => this.lastPageNumber;
-	getNextPageNumber = () => this.lastPageNumber + 1;
-	getNextOffset = () => this.getNextPageNumber() * this.tableFetcher.tableRef.navigationData.step;
-	getTemplate = () => this.shadowTableTemplate;
-	saveToCache(retry = true) {
-		db3(`Caching ${this.tableFetcher.getCacheId()}.`);
-		try {
-			window.sessionStorage.setItem(this.tableFetcher.getCacheId(), this.shadowTableTemplate.innerHTML);
-			window.sessionStorage.setItem(this.tableFetcher.getCacheId() + CACHE_DATE_SUFFIX, (/* @__PURE__ */ new Date()).toJSON());
-		} catch (e) {
-			console.error(e);
-			if (!retry) return;
-			console.log("Clearing session cache and trying again...");
-			let sessionKeys = Object.keys(window.sessionStorage);
-			for (let key of sessionKeys) if (key.startsWith("table_leerlingen_werklijst")) window.sessionStorage.removeItem(key);
-			this.saveToCache(false);
-		}
-	}
-	addPage(text) {
-		let pageTemplate;
-		pageTemplate = document.createElement("template");
-		pageTemplate.innerHTML = text;
-		let rows = pageTemplate.content.querySelectorAll("tbody > tr:not(:has(i.fa-meh))");
-		this.lastPageStartRow = this.getRows().length;
-		if (this.lastPageNumber === -1) {
-			this.shadowTableTemplate.innerHTML = text;
-			this.shadowTableTemplate.content.querySelector("tbody").innerHTML = "";
-		}
-		this.shadowTableTemplate.content.querySelector("tbody").append(...rows);
-		this.lastPageNumber++;
-	}
-};
-//#endregion
 //#region typescript/dropDownMenus.ts
 var DropDownMenu = class {
 	menu;
@@ -3471,158 +3029,6 @@ function createDownloadTableWithExtraAction() {
 	};
 }
 //#endregion
-//#region typescript/infoBar.ts
-var InfoBar = class InfoBar {
-	divInfoContainer;
-	divInfoLine;
-	divTempLine;
-	divExtraLine;
-	divErrorLine;
-	tempMessage;
-	divCacheInfo;
-	constructor(divInfoContainer, divExtraLine, divErrorLine, divInfoLine, divTempLine, divCacheInfo) {
-		this.divInfoContainer = divInfoContainer;
-		this.divExtraLine = divExtraLine;
-		this.divErrorLine = divErrorLine;
-		this.divInfoLine = divInfoLine;
-		this.divTempLine = divTempLine;
-		this.divCacheInfo = divCacheInfo;
-		this.tempMessage = "";
-	}
-	static create(divInfoContainer) {
-		divInfoContainer.id = INFO_CONTAINER_ID;
-		divInfoContainer.innerHTML = "";
-		let divExtraLine = emmet.appendChild(divInfoContainer, `div#${INFO_EXTRA_ID}.infoMessage`).last;
-		let divErrorLine = emmet.appendChild(divInfoContainer, `div#${INFO_EXTRA_ID}.infoError`).last;
-		let divInfoLine = emmet.appendChild(divInfoContainer, "div.infoLine").last;
-		let divTempLine = emmet.appendChild(divInfoContainer, `div#${INFO_TEMP_ID}.infoMessage.tempLine`).last;
-		let divCacheInfo = emmet.appendChild(divInfoContainer, `div#${INFO_CACHE_ID}.cacheInfo`).last;
-		return new InfoBar(divInfoContainer, divExtraLine, divErrorLine, divInfoLine, divTempLine, divCacheInfo);
-	}
-	static find() {
-		let container = document.getElementById(INFO_CONTAINER_ID);
-		let divExtraLine = container.querySelector(`#${INFO_EXTRA_ID}`);
-		let divErrorLine = container.querySelector(`#${INFO_EXTRA_ID}`);
-		let divInfoLine = container.querySelector("div.infoLine");
-		let divTempLine = container.querySelector(`#${INFO_TEMP_ID}`);
-		let divCacheInfo = container.querySelector(`#${INFO_CACHE_ID}`);
-		return new InfoBar(container, divExtraLine, divErrorLine, divInfoLine, divTempLine, divCacheInfo);
-	}
-	setTempMessage(msg) {
-		this.tempMessage = msg;
-		this.#updateTempMessage();
-		setTimeout(this.clearTempMessage.bind(this), 4e3);
-	}
-	clearTempMessage() {
-		this.tempMessage = "";
-		this.#updateTempMessage();
-	}
-	#updateTempMessage() {
-		this.divTempLine.innerHTML = this.tempMessage;
-	}
-	setInfoLine(message) {
-		this.divInfoLine.innerHTML = message;
-	}
-	setErrorLine(message) {
-		this.divErrorLine.innerHTML = message;
-	}
-	clearCacheInfo() {
-		this.divCacheInfo.innerHTML = "";
-	}
-	setCacheInfo(info, reset_onclick) {
-		this.divCacheInfo.innerHTML = info;
-		let button = emmet.appendChild(this.divCacheInfo, "button.likeLink").first;
-		button.innerHTML = "refresh";
-		button.onclick = reset_onclick;
-	}
-	setExtraInfo(message, click_element_id, callback) {
-		this.divExtraLine.innerHTML = message;
-		if (click_element_id) {
-			if (callback) document.getElementById(click_element_id).onclick = callback;
-		}
-	}
-};
-//#endregion
-//#region typescript/progressBar.ts
-var ProgressBar = class ProgressBar {
-	barElement;
-	containerElement;
-	maxCount;
-	count;
-	constructor(containerElement, barElement) {
-		this.barElement = barElement;
-		this.containerElement = containerElement;
-		this.hide();
-		this.maxCount = 0;
-		this.count = 0;
-	}
-	reset(maxCount) {
-		this.maxCount = maxCount;
-		this.count = 0;
-		this.barElement.innerHTML = "";
-		for (let i = 0; i < maxCount; i++) {
-			let block = document.createElement("div");
-			this.barElement.appendChild(block);
-			block.classList.add("progressBlock");
-		}
-	}
-	start(maxCount) {
-		this.reset(maxCount);
-		this.containerElement.style.display = "block";
-		this.next();
-	}
-	hide() {
-		this.containerElement.style.display = "none";
-	}
-	stop() {
-		this.hide();
-	}
-	next() {
-		if (this.count >= this.maxCount) return false;
-		this.barElement.children[this.count].classList.remove("iddle", "loaded");
-		this.barElement.children[this.count].classList.add("loading");
-		for (let i = 0; i < this.count; i++) {
-			this.barElement.children[i].classList.remove("iddle", "loading");
-			this.barElement.children[i].classList.add("loaded");
-		}
-		for (let i = this.count + 1; i < this.maxCount; i++) {
-			this.barElement.children[i].classList.remove("loaded", "loading");
-			this.barElement.children[i].classList.add("iddle");
-		}
-		this.count++;
-		return true;
-	}
-	static find() {
-		let divProgressLine = document.getElementById(PROGRESS_BAR_ID);
-		let divProgressBar = divProgressLine.querySelector(".progressBar");
-		return new ProgressBar(divProgressLine, divProgressBar);
-	}
-};
-function insertProgressBar(container, text = "") {
-	container.innerHTML = "";
-	let { first: divProgressLine, last: divProgressBar } = emmet.appendChild(container, `div.infoLine#${PROGRESS_BAR_ID}>div.progressText{${text}}+div.progressBar`);
-	return new ProgressBar(divProgressLine, divProgressBar);
-}
-//#endregion
-//#region typescript/infoBlock.ts
-function createInfoBlockForTable(tableRef) {
-	document.getElementById(INFO_CONTAINER_ID)?.remove();
-	return createInfoBlock(tableRef.createElementAboveTable("div"), "loading pages... ");
-}
-function createInfoBlock(infoContainer, initialMessage) {
-	let infoBar = InfoBar.create(infoContainer.appendChild(document.createElement("div")));
-	return {
-		infoBar,
-		progressBar: insertProgressBar(infoBar.divInfoLine, initialMessage)
-	};
-}
-function getInfoBlock() {
-	return {
-		infoBar: InfoBar.find(),
-		progressBar: ProgressBar.find()
-	};
-}
-//#endregion
 //#region typescript/table/loadAnyTable.ts
 async function getWerklijstTableRef() {
 	let chain = new FetchChain();
@@ -3662,18 +3068,20 @@ async function getTableRefFromHash(hash) {
 	await chain.fetch();
 	return parseDataTablePhp(chain, htmlTableId);
 }
-async function getTable(tableRef, infoBarListener, clearCache, checksumBuilder = null) {
-	let tableFetcher = new TableFetcher(tableRef, checksumBuilder ?? getChecksumBuilder(tableRef.htmlTableId));
+async function getWhateverTable(infoBarListener, tableFetcher, clearCache) {
 	if (infoBarListener) tableFetcher.addListener(infoBarListener);
 	if (clearCache) tableFetcher.clearCache();
 	let fetchedTable = await tableFetcher.fetch();
 	await setViewFromCurrentUrl();
 	return fetchedTable;
 }
+async function getNavigatableTable(tableRef, infoBarListener, clearCache, checksumBuilder = null) {
+	return await getWhateverTable(infoBarListener, new NavigatableTableFetcher(tableRef, checksumBuilder ?? getChecksumBuilder(tableRef.htmlTableId)), clearCache);
+}
 async function getTableFromHash(hash, clearCache, infoBarListener) {
 	let tableRef = await getTableRefFromHash(hash);
 	console.log(tableRef);
-	return await getTable(tableRef, infoBarListener, clearCache);
+	return await getNavigatableTable(tableRef, infoBarListener, clearCache);
 }
 function createDefaultTableRefAndInfoBlock() {
 	let result = createDefaultTableRef();
@@ -3737,7 +3145,7 @@ var InfoBarTableFetchListener = class {
 		this.progressBar = infoBlock.progressBar;
 	}
 	onStartFetching(tableFetcher) {
-		this.progressBar.start(tableFetcher.tableRef.navigationData.steps());
+		this.progressBar.start(tableFetcher.getDkoTableRef().navigationData.steps());
 	}
 	onLoaded(tableFetcher) {
 		if (tableFetcher.isUsingCached) {
@@ -3766,7 +3174,7 @@ function createDefaultTableRef() {
 	return { result: { tableRef } };
 }
 function createDefaultTableFetcher(tableRef, infoBlock) {
-	let tableFetcher = new TableFetcher(tableRef, getChecksumBuilder(tableRef.htmlTableId));
+	let tableFetcher = new NavigatableTableFetcher(tableRef, getChecksumBuilder(tableRef.htmlTableId));
 	let infoBarListener = new InfoBarTableFetchListener(infoBlock);
 	tableFetcher.addListener(infoBarListener);
 	return { result: {
@@ -3775,6 +3183,611 @@ function createDefaultTableFetcher(tableRef, infoBlock) {
 		infoBarListener
 	} };
 }
+//#endregion
+//#region typescript/globals.ts
+let observers = [];
+let settingsObservers = [];
+function db3(message) {
+	if (options?.showDebug) {
+		console.log(message);
+		let stack = Error().stack;
+		if (stack) console.log(stack.split("\n")[2]);
+	}
+}
+function createValidId(id) {
+	return id.replaceAll(" ", "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\W/g, "");
+}
+function registerObserver(observer) {
+	observers.push(observer);
+	if (observers.length > 20) console.error("Too many observers!");
+}
+function registerSettingsObserver(observer) {
+	settingsObservers.push(observer);
+	if (settingsObservers.length > 20) console.error("Too many settingsObservers!");
+}
+function setButtonHighlighted(buttonId, show) {
+	if (show) document.getElementById(buttonId).classList.add("toggled");
+	else document.getElementById(buttonId).classList.remove("toggled");
+}
+function addButton$1(targetElement, buttonId, title, clickFunction, imageId, classList, text = "", where = "beforebegin", imageFileName) {
+	if (document.getElementById(buttonId) === null) {
+		const button = document.createElement("button");
+		button.classList.add("btn", ...classList);
+		button.id = buttonId;
+		button.style.marginTop = "0";
+		button.onclick = clickFunction;
+		button.title = title;
+		if (text) {
+			let span = document.createElement("span");
+			button.appendChild(span);
+			span.innerText = text;
+		}
+		if (imageFileName) {
+			button.classList.add("svg");
+			emmet.appendChild(button, `img[src="${chrome.runtime.getURL("images/" + imageFileName)}"]`);
+		}
+		const buttonContent = document.createElement("i");
+		button.appendChild(buttonContent);
+		if (imageId) buttonContent.classList.add("fas", imageId);
+		targetElement.insertAdjacentElement(where, button);
+	}
+}
+let Schoolyear;
+(function(_Schoolyear) {
+	function getSelectElement() {
+		let selects = document.querySelectorAll("select");
+		return Array.from(selects).filter((element) => element.id.includes("schooljaar")).pop() ?? null;
+	}
+	_Schoolyear.getSelectElement = getSelectElement;
+	function getHighestAvailable() {
+		let el = getSelectElement();
+		if (!el) return void 0;
+		return Array.from(el.querySelectorAll("option")).map((option) => option.value).sort().pop();
+	}
+	_Schoolyear.getHighestAvailable = getHighestAvailable;
+	function findInPage() {
+		let el = getSelectElement();
+		if (el) return el.value;
+		el = document.querySelector("div.alert-info");
+		if (el) {
+			let txt = el.textContent;
+			let res = /[sS]chooljaar *[=:][\s\u00A0]*(\d{4}-\d{4})/gm.exec(txt);
+			if (res) return res[1];
+		}
+		el = document.querySelector("div.btn-toolbar");
+		if (el) {
+			let txt = el.textContent;
+			let res = /[sS]chooljaar *[=:]*[\s\u00A0]*(\d{4}-\d{4})/gm.exec(txt);
+			if (res) return res[1];
+		}
+		throw "Cannot find schoolyear in page.";
+	}
+	_Schoolyear.findInPage = findInPage;
+	function calculateCurrent() {
+		let now = /* @__PURE__ */ new Date();
+		let year = now.getFullYear();
+		if (now.getMonth() < 8) return year - 1;
+		return year;
+	}
+	_Schoolyear.calculateCurrent = calculateCurrent;
+	function calculateSetupYear() {
+		let now = /* @__PURE__ */ new Date();
+		let year = now.getFullYear();
+		if (now.getMonth() < 3) return year - 1;
+		return year;
+	}
+	_Schoolyear.calculateSetupYear = calculateSetupYear;
+	function toFullString(startYear) {
+		return `${startYear}-${startYear + 1}`;
+	}
+	_Schoolyear.toFullString = toFullString;
+	function toShortString(startYear) {
+		return `${startYear % 1e3}-${startYear % 1e3 + 1}`;
+	}
+	_Schoolyear.toShortString = toShortString;
+	function toNumbers(schoolyearString) {
+		let parts = schoolyearString.split("-").map((s) => parseInt(s));
+		return {
+			startYear: parts[0],
+			endYear: parts[1]
+		};
+	}
+	_Schoolyear.toNumbers = toNumbers;
+})(Schoolyear || (Schoolyear = {}));
+function getUserAndSchoolName() {
+	let footer = document.querySelector("body > main > div.row > div.col-auto.mr-auto > small");
+	const match = footer.textContent.match(/.*Je bent aangemeld als (.*)\s@\s(.*)\./);
+	if (match?.length !== 3) throw new Error(`Could not process footer text "${footer.textContent}"`);
+	return {
+		userName: match[1],
+		schoolName: match[2]
+	};
+}
+function getSchoolIdString() {
+	let { schoolName } = getUserAndSchoolName();
+	schoolName = schoolName.replace("Academie ", "").replace("Muziek", "M").replace("Woord", "W").replace("Dans", "D").replace("Beeld", "B").toLowerCase();
+	return createValidId(schoolName);
+}
+function millisToString(duration) {
+	let seconds = Math.floor(duration / 1e3 % 60);
+	let minutes = Math.floor(duration / 6e4 % 60);
+	let hours = Math.floor(duration / 36e5 % 24);
+	let days = Math.floor(duration / 864e5);
+	if (days > 0) return days + (days === 1 ? " dag" : " dagen");
+	else if (hours > 0) return hours + " uur";
+	else if (minutes > 0) return minutes + (minutes === 1 ? " minuut" : " minuten");
+	else if (seconds > 0) return seconds + " seconden";
+	else return "";
+}
+function dateDiffToString(oldestDate, newestDate) {
+	return millisToString(newestDate.getTime() - oldestDate.getTime());
+}
+function isAlphaNumeric(str) {
+	if (str.length > 1) return false;
+	let code;
+	let i;
+	let len;
+	for (i = 0, len = str.length; i < len; i++) {
+		code = str.charCodeAt(i);
+		if (!(code > 47 && code < 58) && !(code > 64 && code < 91) && !(code > 96 && code < 123)) return false;
+	}
+	return true;
+}
+function rangeGenerator(start, stop, step = 1) {
+	return Array(Math.ceil((stop - start) / step)).fill(start).map((x, y) => x + y * step);
+}
+function createSearchField(id, onSearchInput, value) {
+	let input = document.createElement("input");
+	input.type = "text";
+	input.id = id;
+	input.classList.add("tableFilter");
+	input.oninput = onSearchInput;
+	input.value = value;
+	input.placeholder = "filter";
+	let span = document.createElement("span");
+	span.classList.add("searchButton");
+	span.appendChild(input);
+	let { first: clearButton } = emmet.appendChild(span, `button>img[src="${chrome.runtime.getURL("images/circle-xmark-regular.svg")}"`);
+	clearButton.onclick = () => {
+		input.value = "";
+		input.oninput(void 0);
+		input.focus();
+	};
+	return span;
+}
+function getBothToolbars() {
+	let navigationBars = document.querySelectorAll("div.datatable-navigation-toolbar");
+	if (navigationBars.length < 2) return void 0;
+	return navigationBars;
+}
+function addTableNavigationButton(navigationBars, btnId, title, onClick, fontIconId) {
+	addButton$1(navigationBars[0].lastElementChild, btnId, title, onClick, fontIconId, ["btn-secondary"], "", "afterend");
+	return true;
+}
+function distinct(array) {
+	return [...new Set(array)];
+}
+async function fetchStudentsSearch(search) {
+	return fetch("/view.php?args=zoeken?zoek=" + encodeURIComponent(search)).then((response) => response.text()).then((_text) => fetch("/views/zoeken/index.view.php")).then((response) => response.text()).catch((err) => {
+		console.error("Request failed", err);
+		return "";
+	});
+}
+async function setViewFromCurrentUrl() {
+	let hash = window.location.hash.replace("#", "");
+	await fetch("/#" + hash).then((res) => res.text());
+	await fetch("view.php?args=" + hash).then((res) => res.text());
+}
+function equals(g1, g2) {
+	return g1.globalHide === g2.globalHide;
+}
+let rxEmail = /\w[\w.\-]*@\w+\.\w+/gm;
+function whoAmI() {
+	let scriptTexts = [...document.querySelectorAll("script")].map((s) => s.textContent).join();
+	return {
+		email: scriptTexts.match(rxEmail)[0],
+		name: scriptTexts.match(/name: '(.*)'/)[1]
+	};
+}
+function stripStudentName(name) {
+	return name.replaceAll(/[,()'-]/g, " ").replaceAll("  ", " ");
+}
+async function openHtmlTab(cacheId, pageTitle) {
+	return sendRequest$1("open_tab", "Main", "Html", void 0, { cacheId }, pageTitle);
+}
+async function openHoursSettings(schoolyear) {
+	return sendRequest$1("open_hours_settings", "Main", "Undefined", void 0, { schoolyear }, "Lerarenuren setup voor schooljaar " + schoolyear);
+}
+function createHtmlTable(headers, cols) {
+	let tmpDiv = document.createElement("div");
+	let { first: tmpTable, last: tmpThead } = emmet.appendChild(tmpDiv, "table>thead");
+	for (let th of headers) emmet.appendChild(tmpThead, `th{${th}}`);
+	let tmpTbody = tmpTable.appendChild(document.createElement("tbody"));
+	for (let tr of cols) {
+		let tmpTr = tmpTbody.appendChild(document.createElement("tr"));
+		for (let cell of tr) emmet.appendChild(tmpTr, `td{${cell}}`);
+	}
+	return tmpTable;
+}
+function isButtonHighlighted(buttonId) {
+	return document.getElementById(buttonId)?.classList.contains("toggled");
+}
+function range(startAt, upTo) {
+	if (upTo > startAt) return [...Array(upTo - startAt).keys()].map((n) => n + startAt);
+	else return [...Array(startAt - upTo).keys()].reverse().map((n) => n + upTo + 1);
+}
+async function getOptions() {
+	let items = await chrome.storage.sync.get(null);
+	Object.assign(options, items);
+	setGlobalSetting(await fetchGlobalSettings(getGlobalSettings()));
+}
+function arrayIsEqual(a, b) {
+	if (a === b) return true;
+	if (a == null || b == null) return false;
+	if (a.length != b.length) return false;
+	let aSet = new Set(a);
+	return b.every((value, _) => aSet.has(value));
+}
+function escapeRegexChars(text) {
+	return text.replaceAll("\\", "\\\\").replaceAll("^", "\\^").replaceAll("$", "\\$").replaceAll(".", "\\.").replaceAll("|", "\\|").replaceAll("?", "\\?").replaceAll("*", "\\*").replaceAll("+", "\\+").replaceAll("(", "\\(").replaceAll(")", "\\)").replaceAll("[", "\\[").replaceAll("]", "\\]").replaceAll("{", "\\{").replaceAll("}", "\\}");
+}
+function getImmediateText(element) {
+	return [...element.childNodes].map((c) => c.nodeType === 3 ? c.textContent : "").join("");
+}
+function tryUntilThen(func, then) {
+	if (func()) then();
+	else setTimeout(() => tryUntilThen(func, then), 100);
+}
+function copyToClipboardOrRequestRetry(infoBar, text) {
+	navigator.clipboard.writeText(text).then((_r) => {
+		infoBar.setExtraInfo("Gegevens gekopieerd naar klipbord. <a id=copy_again href='javascript:void(0);'>Kopieer opnieuw</a>", COPY_AGAIN, () => {
+			copyToClipboardOrRequestRetry(infoBar, text);
+		});
+	}).catch((_reason) => {
+		infoBar.setExtraInfo("Kan niet kopiëren naar klipbord!!! <a id=copy_again href='javascript:void(0);'>Kopieer opnieuw</a>", COPY_AGAIN, () => {
+			copyToClipboardOrRequestRetry(infoBar, text);
+		});
+	});
+}
+function unreachable(x) {
+	throw new Error("This error will never be thrown. It is used for type safety.");
+}
+function pad(num, size) {
+	let text = num.toString();
+	while (text.length < size) text = "0" + text;
+	return text;
+}
+var SlidingWindow = class {
+	array;
+	length;
+	pos;
+	constructor(enumerable) {
+		this.pos = -1;
+		this.array = [...enumerable];
+		this.length = this.array.length;
+	}
+	[Symbol.iterator]() {
+		return { next: () => {
+			this.pos++;
+			if (this.pos >= this.length) return {
+				done: true,
+				value: null
+			};
+			return {
+				done: false,
+				value: {
+					prev: this.peekPrev(),
+					current: this.array[this.pos],
+					next: this.peekNext()
+				}
+			};
+		} };
+	}
+	peekNext() {
+		if (this.pos + 1 > this.length) return null;
+		return this.array[this.pos + 1];
+	}
+	peekPrev() {
+		if (this.pos == 0) return null;
+		return this.array[this.pos - 1];
+	}
+	next() {
+		this.pos++;
+		if (this.pos >= this.length) return null;
+		return this.array[this.pos];
+	}
+};
+function wrapElement(element, tagName) {
+	let wrapper = document.createElement(tagName);
+	element.parentNode.insertBefore(wrapper, element);
+	wrapper.appendChild(element);
+	return wrapper;
+}
+function highlightText(element, wordList, highlightClassName, extraClasses = []) {
+	let cards = element instanceof HTMLElement ? [element] : element;
+	if (wordList.length === 0) return;
+	for (const card of cards) {
+		const walker = document.createTreeWalker(card, NodeFilter.SHOW_TEXT, { acceptNode(node) {
+			const parent = node.parentElement;
+			if (!parent) return NodeFilter.FILTER_REJECT;
+			if (parent.closest("." + highlightClassName)) return NodeFilter.FILTER_REJECT;
+			if (!node.textContent || !wordList.some((word) => node.textContent.includes(word))) return NodeFilter.FILTER_REJECT;
+			return NodeFilter.FILTER_ACCEPT;
+		} });
+		const textNodes = [];
+		while (walker.nextNode()) textNodes.push(walker.currentNode);
+		let rxWords = new RegExp(`(${wordList.join("|")})`, "gu");
+		for (const textNode of textNodes) {
+			const fragment = document.createDocumentFragment();
+			const text = textNode.textContent ?? "";
+			let lastIndex = 0;
+			for (const match of text.matchAll(rxWords)) {
+				const matchText = match[0];
+				const matchIndex = match.index ?? 0;
+				fragment.append(document.createTextNode(text.slice(lastIndex, matchIndex)));
+				const span = document.createElement("span");
+				span.classList.add(highlightClassName, ...extraClasses);
+				span.textContent = matchText;
+				fragment.append(span);
+				lastIndex = matchIndex + matchText.length;
+			}
+			fragment.append(document.createTextNode(text.slice(lastIndex)));
+			textNode.replaceWith(fragment);
+		}
+	}
+}
+//#endregion
+//#region typescript/roster_diff/excel.ts
+var ExcelPos = class {
+	row;
+	column;
+	constructor(row, column) {
+		this.row = row;
+		this.column = column;
+	}
+};
+var TablePos = class {
+	row;
+	column;
+	constructor(row, column) {
+		this.row = row;
+		this.column = column;
+	}
+	static toExcel(tablePos, table) {
+		return new ExcelPos(tablePos.row + table.tableRange.Start.row + table.rowHeaderCount, tablePos.column + table.tableRange.Start.column + table.columnHeaderCount);
+	}
+};
+var Range = class {
+	start;
+	end;
+	RowCount() {
+		return this.end.row - this.start.row + 1;
+	}
+	ColumnCount() {
+		return this.end.column - this.start.column + 1;
+	}
+	constructor(start, end) {
+		this.start = start;
+		this.end = end;
+	}
+};
+var ExcelRange = class extends Range {
+	constructor(start, end) {
+		super(start, end);
+	}
+	get Start() {
+		return this.start;
+	}
+	get End() {
+		return this.end;
+	}
+};
+var TableRange = class TableRange {
+	start;
+	end;
+	constructor(start, end) {
+		this.start = start;
+		this.end = end;
+	}
+	static FromExcel(excelRange, table) {
+		let startRow = excelRange.Start.row - table.tableRange.Start.row - table.rowHeaderCount;
+		let endRow = excelRange.End.row - table.tableRange.Start.row - table.rowHeaderCount;
+		let startColumn = excelRange.Start.column - table.tableRange.Start.column - table.columnHeaderCount;
+		let endColumn = excelRange.End.column - table.tableRange.Start.column - table.columnHeaderCount;
+		return new TableRange({
+			row: startRow,
+			column: startColumn
+		}, {
+			row: endRow,
+			column: endColumn
+		});
+	}
+	static ToExcel(tableRange, table) {
+		return new ExcelRange(TablePos.toExcel(tableRange.Start, table), TablePos.toExcel(tableRange.End, table));
+	}
+	get Start() {
+		return this.start;
+	}
+	get End() {
+		return this.end;
+	}
+};
+var ExcelData = class {
+	data;
+	mergedRanges;
+	url;
+	workbookName;
+	worksheetName;
+	constructor(data, mergedRanges, url, workbookName, worksheetName) {
+		this.data = data;
+		this.mergedRanges = mergedRanges.map((r) => new ExcelRange(r.start, r.end));
+		this.url = url;
+		if (this.url) {
+			let urlParams = new URLSearchParams(this.url.substring(this.url.indexOf("?") + 1));
+			urlParams.delete("activeCell");
+			this.url = this.url.substring(0, this.url.indexOf("?")) + "?" + urlParams.toString();
+		}
+		this.workbookName = workbookName;
+		this.worksheetName = worksheetName;
+	}
+	getMergedCellValue(excelPos) {
+		let mergedRange = this.getMergedRangeForCell(excelPos);
+		return this.data[mergedRange.Start.row][mergedRange.Start.column];
+	}
+	getMergedRangeForCell(excelPos) {
+		return this.mergedRanges.find((range) => {
+			return excelPos.row >= range.Start.row && excelPos.row <= range.End.row && excelPos.column >= range.Start.column && excelPos.column <= range.End.column;
+		}) ?? new ExcelRange(excelPos, excelPos);
+	}
+};
+var Table = class {
+	excelData;
+	tableRange;
+	rowHeaderCount;
+	columnHeaderCount;
+	excelToTableRange(excelRange) {
+		return TableRange.FromExcel(excelRange, this);
+	}
+	get ColumnCount() {
+		return this.tableRange.ColumnCount() - this.columnHeaderCount;
+	}
+	get RowCount() {
+		return this.tableRange.RowCount() - this.rowHeaderCount;
+	}
+	constructor(excelData, tableRange, rowHeaderCount, columnHeaderCount) {
+		this.excelData = excelData;
+		this.tableRange = tableRange;
+		this.rowHeaderCount = rowHeaderCount;
+		this.columnHeaderCount = columnHeaderCount;
+	}
+	Cell(row, column) {
+		let excelPos = {
+			row: this.tableRange.Start.row + this.rowHeaderCount + row,
+			column: this.tableRange.Start.column + this.columnHeaderCount + column
+		};
+		return this.excelData.getMergedCellValue(excelPos);
+	}
+	RangeOfCell(pos) {
+		let excelPos = {
+			row: this.tableRange.Start.row + this.rowHeaderCount + pos.row,
+			column: this.tableRange.Start.column + this.columnHeaderCount + pos.column
+		};
+		let exelRange = this.excelData.getMergedRangeForCell(excelPos) ?? new ExcelRange(excelPos, excelPos);
+		return TableRange.FromExcel(exelRange, this);
+	}
+	HeaderRowValue(headerRow, column) {
+		let excelPos = {
+			row: this.tableRange.Start.row + headerRow,
+			column: this.tableRange.Start.column + this.columnHeaderCount + column
+		};
+		return this.excelData.getMergedCellValue(excelPos);
+	}
+	HeaderColumnValue(row, headerColumn) {
+		let excelPos = {
+			row: this.tableRange.Start.row + this.rowHeaderCount + row,
+			column: this.tableRange.Start.column + headerColumn
+		};
+		return this.excelData.getMergedCellValue(excelPos);
+	}
+};
+//#endregion
+//#region typescript/roster_diff/rosterFactory.ts
+var RosterFactory = class RosterFactory {
+	excelData;
+	errors = [];
+	daysRow = void 0;
+	periodColumn = void 0;
+	tableRange = void 0;
+	constructor(jsonExcelData) {
+		this.excelData = new ExcelData(jsonExcelData.data, jsonExcelData.mergedRanges, jsonExcelData.url, jsonExcelData.workbookName, jsonExcelData.worksheetName);
+		this.daysRow = this.findDaysRow();
+		if (this.daysRow === void 0) {
+			this.errors.push("Geen rij met dagnamen gevonden.");
+			return;
+		}
+		this.periodColumn = this.findPeriodColumn(this.daysRow);
+		if (this.periodColumn === void 0) {
+			this.errors.push("Geen kolom met lesmomenten gevonden.");
+			return;
+		}
+		let lastPeriodRow = this.findLastPeriodRow(this.periodColumn);
+		let lastDayColumn = this.findLastDayColumn(this.periodColumn, this.daysRow);
+		if (lastDayColumn && lastPeriodRow) this.tableRange = new ExcelRange({
+			row: this.daysRow,
+			column: this.periodColumn
+		}, {
+			row: lastPeriodRow,
+			column: lastDayColumn
+		});
+	}
+	getErrors() {
+		return this.errors;
+	}
+	getTable() {
+		return new Table(this.excelData, this.tableRange, 2, 1);
+	}
+	findDaysRow() {
+		for (let [i, row] of this.excelData.data.entries()) if (this.isDaysRow(row)) return i;
+	}
+	isDaysRow(row) {
+		let matchCount = 0;
+		for (let value of row) {
+			if (RosterFactory.isDayName(value.toString())) matchCount++;
+			if (matchCount >= 3) return true;
+		}
+		return false;
+	}
+	static isDayName(text) {
+		return this.toDayName(text) != "";
+	}
+	static toDayName(text) {
+		switch (text.toLowerCase()) {
+			case "maandag": return "MAANDAG";
+			case "dinsdag": return "DINSDAG";
+			case "woensdag": return "WOENSDAG";
+			case "donderdag": return "DONDERDAG";
+			case "vrijdag": return "VRIJDAG";
+			case "zaterdag": return "ZATERDAG";
+			case "zondag": return "ZONDAG";
+			case "ma": return "MAANDAG";
+			case "di": return "DINSDAG";
+			case "din": return "DINSDAG";
+			case "wo": return "WOENSDAG";
+			case "woe": return "WOENSDAG";
+			case "do": return "DONDERDAG";
+			case "don": return "DONDERDAG";
+			case "vr": return "VRIJDAG";
+			case "za": return "ZATERDAG";
+			case "zat": return "ZATERDAG";
+			case "zo": return "ZONDAG";
+			case "zon": return "ZONDAG";
+			default: return "";
+		}
+	}
+	findPeriodColumn(daysRow) {
+		let columnCount = this.excelData.data[0].length;
+		for (let iCol = 0; iCol < columnCount; iCol++) for (let row of this.excelData.data.slice(daysRow)) {
+			let value = row[iCol].toString();
+			if (this.isPeriod(value)) return iCol;
+		}
+	}
+	isPeriod(text) {
+		return TimeSlice.parseTimeSlice(text);
+	}
+	findLastPeriodRow(periodColumn) {
+		return this.excelData.data.map((row, index) => this.isPeriod(row[periodColumn].toString()) ? index : -1).filter((n) => n > 0).pop();
+	}
+	findLastDayColumn(periodColumn, daysRow) {
+		for (let c = periodColumn + 1; c < this.excelData.data[0].length; c++) {
+			let cellValue = this.excelData.getMergedCellValue({
+				row: daysRow,
+				column: c
+			});
+			if (!RosterFactory.isDayName(cellValue)) return c - 1;
+		}
+		return this.excelData.data[0].length - 1;
+	}
+};
 //#endregion
 //#region typescript/notifications/notifications.ts
 function getNotifRedButton() {
@@ -5814,7 +5827,7 @@ var WerklijstBuilder = class WerklijstBuilder {
 		return this;
 	}
 	async fetchTable(listener, clearCache) {
-		return getTable(await getWerklijstTableRef(), listener, clearCache, (_) => this.getCheckSum());
+		return getNavigatableTable(await getWerklijstTableRef(), listener, clearCache, (_) => this.getCheckSum());
 	}
 	addCriterium(name, operator, values) {
 		this.criteria.push({

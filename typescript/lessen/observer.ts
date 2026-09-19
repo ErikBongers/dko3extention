@@ -20,7 +20,7 @@ import {getGotoStateOrDefault, Goto, PageName, saveGotoState} from "../gotoState
 import {addFilterFields, applyFilters} from "./filter";
 import {getPageSettings, savePageSettings} from "../pageState";
 import {CriteriumName, Domein, FIELD, Grouping, Operator} from "../werklijst/criteria";
-import {FetchedTable} from "../table/tableFetcher";
+import {FetchedTable, NavigatableFetchedTable} from "../table/tableFetcher";
 import {createWerklijstBuilderWithReset} from "../table/werklijstBuilder";
 import {fetchLes} from "../les/fetch";
 

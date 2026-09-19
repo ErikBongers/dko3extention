@@ -1,7 +1,13 @@
 import {addTableNavigationButton, getBothToolbars} from "../globals";
 import * as def from "../def";
 import {AllPageFilter, BaseObserver} from "../pageObserver";
-import {CheckSumBuilder, FetchedTable, findTableRefInCode, TableFetcher} from "./tableFetcher";
+import {
+    CheckSumBuilder,
+    NavigatableFetchedTable,
+    findTableRefInCode,
+    NavigatableTableFetcher,
+    TableFetcher
+} from "./tableFetcher";
 import {decorateTableHeader} from "./tableHeaders";
 import {downloadTableRows} from "./loadAnyTable";
 import {pageState} from "../pageState";
@@ -57,6 +63,6 @@ export function createDownloadTableWithExtraAction() {
     };
 }
 
-export function  setAfterDownloadTableAction(action:  ((fetchedTable: FetchedTable) => void) | undefined) {
+export function  setAfterDownloadTableAction(action:  ((fetchedTable: NavigatableFetchedTable) => void) | undefined) {
     pageState.transient.setValue(def.AFTER_DOWNLOAD_TABLE_ACTION, action);
 }

@@ -1,7 +1,15 @@
 import {findFirstNavigation} from "./tableNavigation";
-import {CheckSumBuilder, DkoTableRef, findTableRefInCode, PlainTableRef, TableFetcher, TableFetchListener, TableRef} from "./tableFetcher";
+import {
+    CheckSumBuilder,
+    DkoTableRef,
+    findTableRefInCode,
+    PlainTableRef,
+    NavigatableTableFetcher,
+    TableFetchListener,
+    TableRef, TableFetcher
+} from "./tableFetcher";
 import {createDownloadTableWithExtraAction, getChecksumBuilder} from "./observer";
-import {dateDiffToString, millisToString, Result, setViewFromCurrentUrl} from "../globals";
+import {createGlobalInfoBlockAndListener, dateDiffToString, Result, setViewFromCurrentUrl} from "../globals";
 import {InfoBar} from "../infoBar";
 import {ProgressBar} from "../progressBar";
 import * as def from "../def";
@@ -53,13 +61,8 @@ async function getTableRefFromHash(hash: string) {
     return parseDataTablePhp(chain, htmlTableId);
 }
 
-export async function getTable(tableRef: DkoTableRef, infoBarListener: InfoBarTableFetchListener | undefined, clearCache: boolean, checksumBuilder: CheckSumBuilder | null = null) {
-    let tableFetcher = new TableFetcher(
-        tableRef,
-        checksumBuilder ?? getChecksumBuilder(tableRef.htmlTableId)
-    );
-
-    if(infoBarListener)
+async function getWhateverTable(infoBarListener: InfoBarTableFetchListener | undefined, tableFetcher: TableFetcher, clearCache: boolean) {
+    if (infoBarListener)
         tableFetcher.addListener(infoBarListener);
 
     if (clearCache)
@@ -70,11 +73,19 @@ export async function getTable(tableRef: DkoTableRef, infoBarListener: InfoBarTa
     return fetchedTable;
 }
 
+export async function getNavigatableTable(tableRef: DkoTableRef, infoBarListener: InfoBarTableFetchListener | undefined, clearCache: boolean, checksumBuilder: CheckSumBuilder | null = null) {
+    let tableFetcher = new NavigatableTableFetcher(
+        tableRef,
+        checksumBuilder ?? getChecksumBuilder(tableRef.htmlTableId)
+    );
+    return await getWhateverTable(infoBarListener, tableFetcher, clearCache);
+}
+
 //don't include the pound sign "#"
 export async function getTableFromHash(hash: string, clearCache: boolean, infoBarListener: InfoBarTableFetchListener) {
     let tableRef = await getTableRefFromHash(hash);
     console.log(tableRef);
-    return await getTable(tableRef, infoBarListener, clearCache);
+    return await getNavigatableTable(tableRef, infoBarListener, clearCache);
 }
 
 export function createDefaultTableRefAndInfoBlock() {
@@ -140,10 +151,10 @@ export class InfoBarTableFetchListener implements TableFetchListener {
         this.progressBar = infoBlock.progressBar;
     }
 
-    onStartFetching(tableFetcher: TableFetcher): void {
-        this.progressBar.start(tableFetcher.tableRef.navigationData.steps());
+    onStartFetching(tableFetcher: NavigatableTableFetcher): void {
+        this.progressBar.start(tableFetcher.getDkoTableRef().navigationData.steps());
     }
-    onLoaded (tableFetcher: TableFetcher): void {
+    onLoaded (tableFetcher: NavigatableTableFetcher): void {
         if(tableFetcher.isUsingCached) {
             let defaultAction = createDownloadTableWithExtraAction();
             let resetAndLoadAction = (ev: Event)=> {
@@ -154,15 +165,15 @@ export class InfoBarTableFetchListener implements TableFetchListener {
         }
     }
 
-    onBeforeLoadingPage(_tableFetcher: TableFetcher): boolean {
+    onBeforeLoadingPage(_tableFetcher: NavigatableTableFetcher): boolean {
         return true;
     }
 
-    onFinished(_tableFetcher: TableFetcher): void {
+    onFinished(_tableFetcher: NavigatableTableFetcher): void {
         this.progressBar.stop();
     }
 
-    onPageLoaded(_tableFetcher: TableFetcher, _pageCnt: number, _text: string): void {
+    onPageLoaded(_tableFetcher: NavigatableTableFetcher, _pageCnt: number, _text: string): void {
         this.progressBar.next();
     }
 }
@@ -180,16 +191,32 @@ export function createDefaultTableRef(): Result<DefaultTableRef> {
 }
 
 interface DefaultTableFetcher {
-    tableFetcher: TableFetcher,
+    tableFetcher: NavigatableTableFetcher,
     infoBlock: InfoBlock,
     infoBarListener: InfoBarTableFetchListener
 }
 export function createDefaultTableFetcher(tableRef: DkoTableRef, infoBlock: InfoBlock): Result<DefaultTableFetcher> {
-    let tableFetcher = new TableFetcher(
+    let tableFetcher = new NavigatableTableFetcher(
         tableRef,
         getChecksumBuilder(tableRef.htmlTableId)
     );
     let infoBarListener = new InfoBarTableFetchListener(infoBlock);
     tableFetcher.addListener(infoBarListener);
     return { result: {tableFetcher, infoBlock, infoBarListener} };
+}
+
+export async function scrapeHashPageTable<T>(hash: string, rowConverter: (row: HTMLTableRowElement) => T | null): Promise<T[]> {
+    let fetchListener = createGlobalInfoBlockAndListener();
+
+    let table = await getTableFromHash(hash, true, fetchListener);
+    return [...table.getRows()].map(row => rowConverter(row))
+        .filter(item => item != null);
+}
+
+export async function scrapeTable<T>(tableFetcher: TableFetcher, rowConverter: (row: HTMLTableRowElement) => T | null): Promise<T[]> {
+    let fetchListener = createGlobalInfoBlockAndListener();
+
+    let table = await tableFetcher.fetch();
+    return [...table.getRows()].map(row => rowConverter(row))
+        .filter(item => item != null);
 }

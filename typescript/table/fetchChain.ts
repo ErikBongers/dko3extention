@@ -16,8 +16,8 @@ export class FetchChain {
         return this.lastText;
     }
 
-    async post(url: string, signal?: AbortSignal) {
-        this.lastText = await fetchText(url, signal, true);
+    async post(url: string, signal?: AbortSignal, params?: [string, string][]) {
+        this.lastText = await fetchText(url, signal, true, params);
         return this.lastText;
     }
 
@@ -98,7 +98,7 @@ export function getDocReadyLoadScript(text: string) {
     }
 }
 
-export async function fetchText(url: string, signal?: AbortSignal, post: boolean = false) {
-    let res = post ? await fetch(url, { signal, method: "POST" }) : await fetch(url, { signal });
+export async function fetchText(url: string, signal?: AbortSignal, post: boolean = false, params?: [string, string][]) {
+    let res = post ? await fetch(url, { signal, method: "POST", body: new URLSearchParams(params) }) : await fetch(url, { signal });
     return res.text();
 }

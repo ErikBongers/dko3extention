@@ -2,7 +2,7 @@ import {createHtmlTable, DataCacheId, distinct, HtmlData, openHtmlTab, range} fr
 import {emmet} from "../../libs/Emmeter/html";
 import {checkAndDownloadTableRows} from "./loadAnyTable";
 import {DropDownMenu} from "../dropDownMenus";
-import {TableFetcher, TableHandler, TableRef} from "./tableFetcher";
+import {NavigatableTableFetcher, TableHandler, TableRef} from "./tableFetcher";
 import * as def from "../def";
 import {options} from "../plugin_options/options";
 import {pageState} from "../pageState";
@@ -95,7 +95,7 @@ function getDistinctColumn(tableContainer: HTMLElement, index: number) {
 }
 
 export class TableHandlerForHeaders implements TableHandler {
-    onReset(_tableDef: TableFetcher){
+    onReset(_tableDef: NavigatableTableFetcher){
         console.log("RESET");
     }
 }

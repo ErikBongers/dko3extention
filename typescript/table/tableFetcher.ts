@@ -6,7 +6,7 @@ export interface TableRef {
     htmlTableId: string;
     getOrgTableContainer(): HTMLElement;
     getOrgTableRows(): NodeListOf<HTMLTableRowElement>;
-    buildFetchUrl: (offset: number) => string;
+    buildFetchPageUrl: (offset: number) => string;
     createElementAboveTable(element: string): HTMLElement;
     isFullyFetched(): boolean;
 }
@@ -26,7 +26,7 @@ export class PlainTableRef implements TableRef {
         return document.getElementById(this.htmlTableId)!.querySelectorAll("tbody > tr") as NodeListOf<HTMLTableRowElement>;
     }
 
-    buildFetchUrl(offset: number): string { //todo: perhaps leave this function out of the TableRef interface?
+    buildFetchPageUrl(offset: number): string { //todo: perhaps leave this function out of the TableRef interface?
         throw "Plain table cannot be fetched";
     }
 
@@ -41,12 +41,12 @@ export class PlainTableRef implements TableRef {
 
 export class DkoTableRef implements TableRef {
     htmlTableId: string;
-    buildFetchUrl: (offset: number) => string;
+    buildFetchPageUrl: (offset: number) => string;
     navigationData: TableNavigation;
 
     constructor(htmlTableId: string, navigationData: TableNavigation, buildFetchUrl: (offset: number) => string) {
         this.htmlTableId = htmlTableId;
-        this.buildFetchUrl = buildFetchUrl;
+        this.buildFetchPageUrl = buildFetchUrl;
         this.navigationData = navigationData;
     }
 
@@ -109,36 +109,61 @@ function findTable() {
 export type CheckSumBuilder = (tableDef: TableFetcher) => string;
 
 export interface TableHandler {
-    onReset: (tableDef: TableFetcher) => void;
+    onReset: (tableDef: NavigatableTableFetcher) => void;
 }
 
 export interface TableFetchListener {
-    onStartFetching?: (tableFetcher: TableFetcher) => void,
-    onLoaded?: (tableFetcher: TableFetcher) => void,
-    onBeforeLoadingPage: (tableFetcher: TableFetcher) => boolean,
-    onFinished?: (tableFetcher: TableFetcher, succes: boolean) => void,
-    onPageLoaded: (tableFetcher: TableFetcher, pageCnt: number, text: string) => void
+    onStartFetching?: (tableFetcher: NavigatableTableFetcher) => void,
+    onLoaded?: (tableFetcher: NavigatableTableFetcher) => void,
+    onBeforeLoadingPage: (tableFetcher: NavigatableTableFetcher) => boolean,
+    onFinished?: (tableFetcher: NavigatableTableFetcher, succes: boolean) => void,
+    onPageLoaded: (tableFetcher: NavigatableTableFetcher, pageCnt: number, text: string) => void
 }
 
-export class TableFetcher {
-    tableRef: DkoTableRef;
+export abstract class TableFetcher {
     calculateTableCheckSum: CheckSumBuilder;
-    isUsingCached = false;
-    shadowTableDate?: Date;
-    fetchedTable?: FetchedTable;
+    tableRef: TableRef;
     tableHandler?: TableHandler;
     listeners: TableFetchListener[];
+
+    protected constructor(tableRef: TableRef, calculateTableCheckSum: CheckSumBuilder, tableHandler?: TableHandler) {
+        this.calculateTableCheckSum = calculateTableCheckSum;
+        this.tableRef = tableRef;
+        this.tableHandler = tableHandler;
+        this.listeners = [];
+    }
+
+    clearCache() {
+        db3(`Clear cache for ${this.tableRef.htmlTableId}.`);
+        window.sessionStorage.removeItem(this.getCacheId());
+        window.sessionStorage.removeItem(this.getCacheId()+ def.CACHE_DATE_SUFFIX);
+    }
+
+    getCacheId() {
+        let checksum = "";
+        if (this.calculateTableCheckSum)
+            checksum = "__" + this.calculateTableCheckSum(this);
+        let id = this.tableRef.htmlTableId + checksum;
+        return id.replaceAll(/\s/g, "");
+    }
+
+    addListener(listener: TableFetchListener) {
+        this.listeners.push(listener);
+    }
+
+    abstract fetch(): Promise<FetchedTable>;
+}
+
+export class NavigatableTableFetcher extends TableFetcher {
+    isUsingCached = false;
+    shadowTableDate?: Date;
+    fetchedTable?: NavigatableFetchedTable;
     private cancelRequested: boolean;
     private isFetchFinished: boolean;
 
     constructor(tableRef: DkoTableRef, calculateTableCheckSum: CheckSumBuilder, tableHandler?: TableHandler) {
-        this.tableRef = tableRef;
-        if(!calculateTableCheckSum)
-            throw ("Tablechecksum required.");
-        this.calculateTableCheckSum = calculateTableCheckSum;
+        super(tableRef, calculateTableCheckSum, tableHandler);
         this.fetchedTable = undefined;
-        this.tableHandler = tableHandler;
-        this.listeners = [];
         this.cancelRequested = false;
         this.isFetchFinished = false;
     }
@@ -146,6 +171,11 @@ export class TableFetcher {
     reset() {
         this.clearCache();
         this.tableHandler?.onReset?.(this);
+    }
+
+    override clearCache() {
+        super.clearCache();
+        this.fetchedTable = undefined;
     }
 
     async cancel() {
@@ -156,15 +186,12 @@ export class TableFetcher {
         this.clearCache(); // only a partial table has been fetched.
     }
 
-    clearCache() {
-        db3(`Clear cache for ${this.tableRef.htmlTableId}.`);
-        window.sessionStorage.removeItem(this.getCacheId());
-        window.sessionStorage.removeItem(this.getCacheId()+ def.CACHE_DATE_SUFFIX);
-        this.fetchedTable = undefined;
+    getDkoTableRef() {
+        return this.tableRef as DkoTableRef;
     }
 
     loadFromCache() {
-        if(this.tableRef.navigationData.isOnePage())
+        if(this.getDkoTableRef().navigationData.isOnePage())
             return null;
 
         db3(`Loading from cache: ${this.getCacheId()}.`);
@@ -178,15 +205,7 @@ export class TableFetcher {
         };
     }
 
-    getCacheId() {
-        let checksum = "";
-        if (this.calculateTableCheckSum)
-            checksum = "__" + this.calculateTableCheckSum(this);
-        let id = this.tableRef.htmlTableId + checksum;
-        return id.replaceAll(/\s/g, "");
-    }
-
-    async fetch() {
+    async fetch(): Promise<FetchedTable> {
         if(this.fetchedTable) {
             this.onFinished(true);
             return this.fetchedTable;
@@ -194,7 +213,7 @@ export class TableFetcher {
         this.isFetchFinished = false;
         let cachedData = this.loadFromCache();
         let succes: boolean;
-        this.fetchedTable = new FetchedTable(this);
+        this.fetchedTable = new NavigatableFetchedTable(this);
         if(cachedData) {
             this.fetchedTable.addPage(cachedData.text);
             this.shadowTableDate = cachedData.date;
@@ -243,26 +262,26 @@ export class TableFetcher {
         return true;
     }
 
-    async #fetchPages(fetchedTable: FetchedTable) {
+    async #fetchPages(fetchedTable: NavigatableFetchedTable) {
         if(!this.onBeforeLoadingPage())
             return false;
         await this.#doFetchAllPages(fetchedTable);
         return true;
     }
 
-    async #doFetchAllPages(fetchedTable: FetchedTable) {
+    async #doFetchAllPages(fetchedTable: NavigatableFetchedTable) {
         try {
             this.onStartFetching();
             let pageCnt = 0;
             this.cancelRequested = false;
             while (true) {
                 console.log("fetching page " + fetchedTable.getNextPageNumber());
-                let response = await fetch(this.tableRef.buildFetchUrl(fetchedTable.getNextOffset()));
+                let response = await fetch(this.tableRef.buildFetchPageUrl(fetchedTable.getNextOffset()));
                 let text = await response.text();
                 fetchedTable.addPage(text);
                 pageCnt++;
                 this.onPageLoaded(pageCnt, text);
-                if(pageCnt >= this.tableRef.navigationData.steps())
+                if(pageCnt >= this.getDkoTableRef().navigationData.steps())
                     break;
                 if(this.cancelRequested)
                     break;
@@ -270,20 +289,22 @@ export class TableFetcher {
         } finally {
         }
     }
-
-    addListener(listener: TableFetchListener) {
-        this.listeners.push(listener);
-    }
-
 }
 
-export class FetchedTable {
-    private readonly shadowTableTemplate: HTMLTemplateElement;
+export interface FetchedTable {
+    getRows(): NodeListOf<HTMLTableRowElement>;
+    getRowsAsArray(): HTMLTableRowElement[];
+    getTable(): HTMLTableElement;
     tableFetcher: TableFetcher;
+}
+
+export class NavigatableFetchedTable implements FetchedTable {
+    private readonly shadowTableTemplate: HTMLTemplateElement;
+    tableFetcher: NavigatableTableFetcher;
     lastPageNumber: number;
     lastPageStartRow: number;
 
-    constructor(tableDef: TableFetcher) {
+    constructor(tableDef: NavigatableTableFetcher) {
         this.tableFetcher = tableDef;
         this.lastPageNumber = -1;
         this.lastPageStartRow = 0;
@@ -303,7 +324,7 @@ export class FetchedTable {
     getLastPageRows = () => this.getRowsAsArray().slice(this.lastPageStartRow);
     getLastPageNumber = () => this.lastPageNumber;
     getNextPageNumber = () => this.lastPageNumber+1;
-    getNextOffset = () => this.getNextPageNumber()*this.tableFetcher.tableRef.navigationData.step;
+    getNextOffset = () => this.getNextPageNumber()*this.tableFetcher.getDkoTableRef().navigationData.step;
     getTemplate = () => this.shadowTableTemplate;
 
     saveToCache(retry: boolean = true) {

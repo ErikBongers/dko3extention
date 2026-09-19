@@ -1,4 +1,4 @@
-import {FetchedTable} from "../table/tableFetcher";
+import {FetchedTable, NavigatableFetchedTable} from "../table/tableFetcher";
 import {dayToMinutes, Time, TimeSlice, timeToMinutes} from "../roster_diff/excelRoster";
 
 import {GradeYear} from "../gradeYear";

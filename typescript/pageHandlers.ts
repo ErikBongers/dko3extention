@@ -1,7 +1,7 @@
-import {TableFetcher, TableFetchListener} from "./table/tableFetcher";
+import {NavigatableTableFetcher, TableFetchListener} from "./table/tableFetcher";
 import {getColumnHeaderText} from "./table/tableHeaders";
-type OnBeforeLoadingHandler = (tableDef: TableFetcher) => boolean;
-type OnRequiredColumnsMissingHandler = (tableDef: TableFetcher) => void;
+type OnBeforeLoadingHandler = (tableDef: NavigatableTableFetcher) => boolean;
+type OnRequiredColumnsMissingHandler = (tableDef: NavigatableTableFetcher) => void;
 export type NotHTMLTemplate = HTMLDivElement | DocumentFragment; //HTMLDiv element is arbitrarily chosen. Any subclass from HTMLElement will do.
 
 /**
@@ -13,9 +13,9 @@ export type NotHTMLTemplate = HTMLDivElement | DocumentFragment; //HTMLDiv eleme
  */
 
 export class NamedCellTableFetchListener implements TableFetchListener {
-    onStartFetching?: (tableFetcher: TableFetcher) => void;
-    onLoaded?: (tableFetcher: TableFetcher) => void;
-    onFinished?: (tableFetcher: TableFetcher) => void;
+    onStartFetching?: (tableFetcher: NavigatableTableFetcher) => void;
+    onLoaded?: (tableFetcher: NavigatableTableFetcher) => void;
+    onFinished?: (tableFetcher: NavigatableTableFetcher) => void;
 
     private requiredHeaderLabels: string[];
     onBeforeLoading?: OnBeforeLoadingHandler;
@@ -30,7 +30,7 @@ export class NamedCellTableFetchListener implements TableFetchListener {
         this.isValidPage = false;
     }
 
-    onPageLoaded(tableFetcher: TableFetcher, _pageCnt: number, _text: string) {
+    onPageLoaded(tableFetcher: NavigatableTableFetcher, _pageCnt: number, _text: string) {
         if(!this.headerIndices) {
             this.headerIndices = NamedCellTableFetchListener.getHeaderIndices(tableFetcher.fetchedTable!.getTemplate().content as NotHTMLTemplate);
             if (!this.hasAllHeadersAndAlert()) {
@@ -46,7 +46,7 @@ export class NamedCellTableFetchListener implements TableFetchListener {
         }
     }
 
-    onBeforeLoadingPage(tableFetcher: TableFetcher): boolean {
+    onBeforeLoadingPage(tableFetcher: NavigatableTableFetcher): boolean {
         let orgTableContainer = tableFetcher.tableRef.getOrgTableContainer();
         if(!orgTableContainer)
             return true;//postpone field checks to first page load.

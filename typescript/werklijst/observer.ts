@@ -2,7 +2,7 @@ import {addButton, arrayIsEqual, copyToClipboardOrRequestRetry, getSchoolIdStrin
 import * as def from "../def";
 import {BTN_WERKLIJST_NAV_BOTTOM} from "../def";
 import {rebuildHoursTable} from "./buildUren";
-import {TableFetcher} from "../table/tableFetcher";
+import {NavigatableTableFetcher, TableFetcher} from "../table/tableFetcher";
 import {fetchHoursSettingsOrSaveDefault} from "./prefillInstruments";
 import {HashObserver} from "../pageObserver";
 import {NamedCellTableFetchListener, NotHTMLTemplate} from "../pageHandlers";

@@ -1,7 +1,13 @@
 import {Criterium, CriteriumName, fetchTableRows, Grouping, IsSelectedItem, Operator, postNameValueList, Veld} from "../werklijst/criteria";
-import {getTable, getWerklijstTableRef, InfoBarTableFetchListener} from "./loadAnyTable";
+import {getNavigatableTable, getWerklijstTableRef, InfoBarTableFetchListener} from "./loadAnyTable";
 import {getImmediateText} from "../globals";
-import {FetchedTable, TableFetcher, TableFetchListener} from "./tableFetcher";
+import {
+    FetchedTable,
+    NavigatableFetchedTable,
+    NavigatableTableFetcher,
+    TableFetcher,
+    TableFetchListener
+} from "./tableFetcher";
 
 interface WerklijstItemDefinition {
     id: string;
@@ -132,7 +138,7 @@ export class WerklijstBuilder implements CriteriaBuilder, PreparedWerklijst {
 
     async fetchTable(listener: InfoBarTableFetchListener | undefined, clearCache: boolean) {
         let tableRef = await getWerklijstTableRef();
-        return getTable(tableRef, listener, clearCache, (_: TableFetcher) => this.getCheckSum());
+        return getNavigatableTable(tableRef, listener, clearCache, (_: TableFetcher) => this.getCheckSum());
         //todo: keep state of builder: TABLE_FETCHED.
     }
 

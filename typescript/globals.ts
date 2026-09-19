@@ -10,6 +10,8 @@ import {
 import {Actions, sendRequest, TabType} from "./messaging";
 import * as def from "./def"
 import {InfoBar} from "./infoBar";
+import {createInfoBlock} from "./infoBlock";
+import {InfoBarTableFetchListener} from "./table/loadAnyTable";
 
 export let observers: Observer[] = [];
 export let settingsObservers: (() => void)[] = [];
@@ -558,4 +560,13 @@ export function highlightText(element: HTMLElement | NodeListOf<HTMLElement>, wo
             textNode.replaceWith(fragment);
         }
     }
+}
+
+export function createGlobalInfoBlockAndListener() {
+    let snel_zoeken = document.querySelector("#snel_zoeken") as HTMLDivElement;
+    //create div above snel_zoeken
+    let infoBlockDiv = document.createElement("div");
+    snel_zoeken.parentNode!.insertBefore(infoBlockDiv, snel_zoeken);
+    let infoBlock = createInfoBlock(infoBlockDiv, "");
+    return new InfoBarTableFetchListener(infoBlock);
 }
