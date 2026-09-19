@@ -7889,7 +7889,6 @@ function scrapeOpleidingRow(tr) {
 	if (tdText.includes("DomeinOv")) domein = "DomeinOV";
 	if (tdText.includes("Muziek")) domein = "Muziek";
 	if (tdText.includes("Woord")) domein = "Woord";
-	console.log("tdOpleiding", tdText, domein);
 	let rx = new RegExp(`${domein}\\s*-\\s*<strong>v*(.*?)</strong>`);
 	let gradeYearText = rx.exec(tdOpleiding.innerHTML)?.at(1);
 	let gradeYears = [];
@@ -7947,7 +7946,6 @@ function createLesCard(lesName, lesCardData) {
                     { lln} 
                     ${wachtlijst}
         `;
-	console.log(emmetText);
 	return emmet.indent.createElement(emmetText);
 }
 async function fillClassesMenu(menu, opleiding, vak, gotoLesCmd) {
@@ -7960,7 +7958,6 @@ async function fillClassesMenu(menu, opleiding, vak, gotoLesCmd) {
 	if (opleiding.adminGroup != "") lessenBuilder.addAdminGroup(opleiding.adminGroup);
 	if (!lessenBuilder.hasVak(vak)) lessenBuilder.addVak(vak);
 	let lessons = await lessenBuilder.fetch();
-	console.log(lessons);
 	lessons.sort((a, b) => buildLesTitle(a.les.naam, a.les.vakNaam).localeCompare(buildLesTitle(b.les.naam, b.les.vakNaam)));
 	menu.removeItem(1);
 	menu.addSeparator(emmet.createElement(`span.noClipboard{Alternatieven:}`), 0);

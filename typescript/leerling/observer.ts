@@ -328,7 +328,6 @@ function scrapeOpleidingRow(tr: HTMLTableRowElement) {
     if (tdText.includes("DomeinOv")) domein = "DomeinOV";
     if (tdText.includes("Muziek")) domein = "Muziek";
     if (tdText.includes("Woord")) domein = "Woord";
-    console.log("tdOpleiding", tdText, domein);
     let rx = new RegExp(`${domein}\\s*-\\s*<strong>v*(.*?)</strong>`); // v2.1 denotes VRIJE LLN 2.1
     let gradeYearText = rx.exec(tdOpleiding.innerHTML)?.at(1);
     let gradeYears: GradeYear[] = [];
