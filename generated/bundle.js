@@ -10,6 +10,11 @@ var PeekingTokenizer = class {
 	peek() {
 		return this.tokenizer.clone().next();
 	}
+	peekSecond() {
+		let clone = this.tokenizer.clone();
+		clone.next();
+		return clone.next();
+	}
 };
 //#endregion
 //#region libs/Emmeter/tokenizer/cursor.ts
@@ -260,6 +265,13 @@ var Parser = class {
 		if (next) this.throwAt(`Unexpected token: ${next.type}`, next);
 		return res;
 	}
+	eatEmptyLinesAndPeek() {
+		while (true) {
+			let token = this.tok.peek();
+			if (token?.type == "INDENT" && this.tok.peekSecond()?.type == "INDENT") this.tok.next();
+			else return token;
+		}
+	}
 	parsePlus(currentIndent) {
 		let list = [];
 		while (true) {
@@ -267,7 +279,7 @@ var Parser = class {
 			if (!el) return list.length === 1 ? list[0] : { list };
 			list.push(el);
 			if (this.match("+")) continue;
-			let indentToken = this.tok.peek();
+			let indentToken = this.eatEmptyLinesAndPeek();
 			if (indentToken?.type == "INDENT" && indentToken?.length == currentIndent) {
 				this.tok.next();
 				continue;
@@ -295,7 +307,7 @@ var Parser = class {
 			if (!this.match(")")) this.throwAt("Expected ')'", this.tok.peek());
 			return el;
 		}
-		let indentToken = this.tok.peek();
+		let indentToken = this.eatEmptyLinesAndPeek();
 		if (indentToken?.type == "INDENT") {
 			if (indentToken.length > currentIndent) {
 				this.tok.next();
@@ -348,7 +360,7 @@ var Parser = class {
 	}
 	parseDown(currentIndent) {
 		if (this.match(">")) return this.parsePlus(currentIndent);
-		let indentToken = this.tok.peek();
+		let indentToken = this.eatEmptyLinesAndPeek();
 		if (indentToken?.type == "INDENT" && indentToken?.length > currentIndent) {
 			this.tok.next();
 			return this.parsePlus(indentToken?.length);
