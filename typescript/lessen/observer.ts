@@ -1,6 +1,15 @@
-import {scrapeModules} from "./scrape";
+import {getId, scrapeModules, scrapeTeacherNameSpans} from "./scrape";
 import {buildTableData, connvertToewijzingenToModules} from "./convert";
-import {buildTrimesterTable, getDefaultPageSettings, getSavedNameSorting, LessenPageState, NameSorting, setSavedNameSorting, TrimElements, TrimesterGrouping} from "./build";
+import {
+    buildTrimesterTable,
+    getDefaultPageSettings,
+    getSavedNameSorting,
+    LessenPageState,
+    NameSorting,
+    setSavedNameSorting,
+    TrimElements,
+    TrimesterGrouping
+} from "./build";
 import * as def from "../def";
 import {LESSEN_TABLE_ID} from "../def";
 import {Schoolyear, setButtonHighlighted, setViewFromCurrentUrl} from "../globals";
@@ -13,6 +22,7 @@ import {getPageSettings, savePageSettings} from "../pageState";
 import {CriteriumName, Domein, FIELD, Grouping, Operator} from "../werklijst/criteria";
 import {FetchedTable} from "../table/tableFetcher";
 import {createWerklijstBuilderWithReset} from "../table/werklijstBuilder";
+import {fetchLes} from "../les/fetch";
 
 class LessenObserver extends HashObserver {
     constructor() {
@@ -116,6 +126,40 @@ function createTrimTableDiv() {
     return trimDiv;
 }
 
+export interface TeacherNameSpanMeta {
+    id: string;
+    row: HTMLTableRowElement;
+    teacherNameSpan: HTMLElement;
+}
+
+async function expandTeacherName(span: TeacherNameSpanMeta) {
+    let lesInfo = await fetchLes(span.id, undefined, {teachers: true});
+    if (!lesInfo) {
+        return;
+    }
+    span.teacherNameSpan.textContent = lesInfo.teachers
+        .map((teacher) => teacher.name)
+        .join(", ");
+}
+
+function onClickShowAllTeachers() {
+    let spans = scrapeTeacherNameSpans();
+    let extraTeacherSpans = spans.filter(span => span.textContent?.includes("(en nog"));
+    let expandedSpans = extraTeacherSpans.map(span => {
+        let tr = span.closest("tr")!;
+        let id = getId(tr);
+        return {id, row: tr, teacherNameSpan: span};
+    });
+
+    let promiseQueue = Promise.resolve();
+    expandedSpans.forEach(async span => {
+        promiseQueue = promiseQueue.then(() => {
+            return expandTeacherName(span);
+        });
+    });
+    console.log(expandedSpans);
+}
+
 function decorateTable() {
     let printButton = document.getElementById("btn_print_overzicht_lessen") as HTMLButtonElement;
     if (!printButton) {
@@ -141,6 +185,7 @@ function decorateTable() {
     let badges = document.getElementsByClassName("badge");
     let hasModules = Array.from(badges).some((el) => el.textContent === "module");
 
+    addButton(printButton, def.SHOW_ALL_TEACHERS_BTN_ID, "Toon alle leraars", onClickShowAllTeachers, "fa-users");
     if (hasModules) {
         addButton(printButton, def.TRIM_BUTTON_ID, "Toon trimesters", onClickToggleTrimesters, "fa-sitemap");
     }
@@ -215,7 +260,7 @@ export async function showTrimesterTable(trimElements: TrimElements, show: boole
         toewijzingTable = undefined;
     else
         toewijzingTable = await getJaarToewijzigingWerklijst(schoolYear);
-    let inputModules = scrapeModules(trimElements.lessenTable, toewijzingTable);
+    let inputModules = scrapeModules(toewijzingTable);
     let toewijzingModules  =  connvertToewijzingenToModules(inputModules.jaarToewijzingen);
     console.log(toewijzingModules);
     inputModules.jaarModules = inputModules.jaarModules.concat(...toewijzingModules.values());

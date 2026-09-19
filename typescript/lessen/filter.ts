@@ -129,7 +129,7 @@ export function applyFilters() {
             extraFilter = {
                 context: undefined,
                 rowFilter(tr: HTMLTableRowElement, _context: any): boolean {
-                    let scrapeResult = scrapeStudentsCellMeta(tr.cells[1]);
+                    let scrapeResult = scrapeStudentsCellMeta(tr);
                     return scrapeResult.aantal >= scrapeResult.maxAantal;
                 }
             };
@@ -137,7 +137,7 @@ export function applyFilters() {
             extraFilter = {
                 context: undefined,
                 rowFilter(tr: HTMLTableRowElement, _context: any): boolean {
-                    let scrapeResult = scrapeStudentsCellMeta(tr.cells[1]);
+                    let scrapeResult = scrapeStudentsCellMeta(tr);
                     return scrapeResult.wachtlijst != 0;
                 }
             };
@@ -178,6 +178,28 @@ export function applyFilters() {
     else {
         setFilterInfo("");
     }
+}
+
+function fetchAndShowAllTeachers() {
+    let table = document.getElementById("lessen-table") as HTMLTableElement;
+    let rows = [...table.getElementsByTagName("tr")];
+    rows.forEach((row) => {
+
+    });
+
+}
+
+function applyPostFetches(pageState: LessenPageState) {
+    if (pageState.showAllTeachers) {
+        fetchAndShowAllTeachers();
+    }
+}
+
+export function toggleShowAllTeachers() {
+    let pageState = getPageSettings(PageName.Lessen, getDefaultPageSettings()) as LessenPageState;
+    pageState.showAllTeachers = !pageState.showAllTeachers;
+    savePageSettings(pageState);
+    applyPostFetches(pageState);
 }
 
 export function setExtraFilter(set: (pageState: LessenPageState) => void) {

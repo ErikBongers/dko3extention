@@ -36,6 +36,7 @@ export interface LessenPageState extends PageSettings {
     filterOnlineAlc: boolean;
     filterWarnings: boolean;
     filterWaitingList: boolean;
+    showAllTeachers: boolean;
 }
 
 export function getDefaultPageSettings() {
@@ -52,6 +53,7 @@ export function getDefaultPageSettings() {
         filterOnlineAlc: false,
         filterWarnings: false,
         filterWaitingList: false,
+        showAllTeachers: false,
     } satisfies LessenPageState as LessenPageState;
 }
 

@@ -543,6 +543,7 @@ const DOWNLOAD_TABLE_BTN_ID = "downloadTableButton";
 const COPY_TABLE_BTN_ID = "copyTableButton";
 const LESSEN_OVERZICHT_ID = "lessen_overzicht";
 const TRIM_BUTTON_ID = "moduleButton";
+const SHOW_ALL_TEACHERS_BTN_ID = "showAllTeachersButton";
 const TRIM_TABLE_ID = "trimesterTable";
 const HOURS_TABLE_ID = "werklijst_uren";
 const TRIM_DIV_ID = "trimesterDiv";
@@ -5106,7 +5107,8 @@ function getDefaultPageSettings() {
 		filterFullClass: false,
 		filterOnlineAlc: false,
 		filterWarnings: false,
-		filterWaitingList: false
+		filterWaitingList: false,
+		showAllTeachers: false
 	};
 }
 let pageState = getDefaultPageSettings();
@@ -5546,14 +5548,14 @@ function applyFilters() {
 		else if (pageState.filterFullClass) extraFilter = {
 			context: void 0,
 			rowFilter(tr, _context) {
-				let scrapeResult = scrapeStudentsCellMeta(tr.cells[1]);
+				let scrapeResult = scrapeStudentsCellMeta(tr);
 				return scrapeResult.aantal >= scrapeResult.maxAantal;
 			}
 		};
 		else if (pageState.filterWaitingList) extraFilter = {
 			context: void 0,
 			rowFilter(tr, _context) {
-				return scrapeStudentsCellMeta(tr.cells[1]).wachtlijst != 0;
+				return scrapeStudentsCellMeta(tr).wachtlijst != 0;
 			}
 		};
 		else if (pageState.filterOnlineAlc) extraFilter = {
@@ -5945,6 +5947,28 @@ function createTrimTableDiv() {
 	}
 	return trimDiv;
 }
+async function expandTeacherName(span) {
+	let lesInfo = await fetchLes(span.id, void 0, { teachers: true });
+	if (!lesInfo) return;
+	span.teacherNameSpan.textContent = lesInfo.teachers.map((teacher) => teacher.name).join(", ");
+}
+function onClickShowAllTeachers() {
+	let expandedSpans = scrapeTeacherNameSpans().filter((span) => span.textContent?.includes("(en nog")).map((span) => {
+		let tr = span.closest("tr");
+		return {
+			id: getId(tr),
+			row: tr,
+			teacherNameSpan: span
+		};
+	});
+	let promiseQueue = Promise.resolve();
+	expandedSpans.forEach(async (span) => {
+		promiseQueue = promiseQueue.then(() => {
+			return expandTeacherName(span);
+		});
+	});
+	console.log(expandedSpans);
+}
 function decorateTable() {
 	let printButton = document.getElementById("btn_print_overzicht_lessen");
 	if (!printButton) return;
@@ -5962,7 +5986,9 @@ function decorateTable() {
 	createTrimTableDiv();
 	overzichtDiv.dataset.filterFullClasses = "false";
 	let badges = document.getElementsByClassName("badge");
-	if (Array.from(badges).some((el) => el.textContent === "module")) addButton(printButton, TRIM_BUTTON_ID, "Toon trimesters", onClickToggleTrimesters, "fa-sitemap");
+	let hasModules = Array.from(badges).some((el) => el.textContent === "module");
+	addButton(printButton, SHOW_ALL_TEACHERS_BTN_ID, "Toon alle leraars", onClickShowAllTeachers, "fa-users");
+	if (hasModules) addButton(printButton, TRIM_BUTTON_ID, "Toon trimesters", onClickToggleTrimesters, "fa-sitemap");
 	addFilterFields();
 	return getTrimPageElements();
 }
@@ -6030,7 +6056,7 @@ async function showTrimesterTable(trimElements, show) {
 	let schoolYear = Schoolyear.findInPage();
 	if (schoolYear === "2024-2025") toewijzingTable = void 0;
 	else toewijzingTable = await getJaarToewijzigingWerklijst(schoolYear);
-	let inputModules = scrapeModules(trimElements.lessenTable, toewijzingTable);
+	let inputModules = scrapeModules(toewijzingTable);
 	let toewijzingModules = connvertToewijzingenToModules(inputModules.jaarToewijzingen);
 	console.log(toewijzingModules);
 	inputModules.jaarModules = inputModules.jaarModules.concat(...toewijzingModules.values());
@@ -6134,7 +6160,7 @@ async function scrapeLessen(domein, type, schoolYear) {
 	}));
 	let div = document.createElement("div");
 	div.innerHTML = tableText;
-	return scrapeLessenOverzicht(div.querySelector("#" + LESSEN_TABLE_ID));
+	return scrapeLessenOverzicht();
 }
 var LessenFilterBuilder = class LessenFilterBuilder {
 	schoolYear;
@@ -6199,7 +6225,7 @@ var LessenFilterBuilder = class LessenFilterBuilder {
 		}));
 		let div = document.createElement("div");
 		div.innerHTML = tableText;
-		return scrapeLessenOverzicht(div.querySelector("#" + LESSEN_TABLE_ID));
+		return scrapeLessenOverzicht();
 	}
 	hasVak(vak) {
 		return this.vakken.includes(vak);
@@ -7137,18 +7163,28 @@ var ExcelRoster = class ExcelRoster {
 };
 //#endregion
 //#region typescript/lessen/scrape.ts
-function scrapeLessenOverzicht(table) {
+function scrapeLessenOverzicht() {
+	return scrapeLessenRows(scrapeLesInfo);
+}
+function scrapeTeacherNameSpans() {
+	return scrapeLessenRows(scrapeTeacherNameSpan);
+}
+function scrapeLessenRows(scrapeRow) {
+	let table = document.getElementById(LESSEN_TABLE_ID);
 	if (!table) return [];
 	let body = table.tBodies[0];
-	let lessen = [];
+	let items = [];
 	for (const row of body.rows) {
-		let les = scrapeLesInfo(row);
-		lessen.push(les);
+		let item = scrapeRow(row);
+		if (item) items.push(item);
 	}
-	return lessen;
+	return items;
 }
-function scrapeStudentsCellMeta(studentsCell) {
-	let smallTags = studentsCell.querySelectorAll("small");
+function getId(row) {
+	return Array.from(row.cells[1].querySelectorAll("small")).find((item) => item.classList.contains("float-right")).textContent;
+}
+function scrapeStudentsCellMeta(row) {
+	let smallTags = row.cells[1].querySelectorAll("small");
 	let aantal = 0;
 	let maxAantal = 0;
 	let arrayLeerlingenAantal = Array.from(smallTags).map((item) => item.textContent).filter((txt) => txt.includes("leerlingen"));
@@ -7159,7 +7195,7 @@ function scrapeStudentsCellMeta(studentsCell) {
 			maxAantal = parseInt(matches[2]);
 		}
 	}
-	let id = Array.from(smallTags).find((item) => item.classList.contains("float-right")).textContent;
+	let id = getId(row);
 	let wachtlijst = 0;
 	let arrayWachtlijst = Array.from(smallTags).map((item) => item.textContent).filter((txt) => txt.includes("wachtlijst"));
 	if (arrayWachtlijst.length > 0) {
@@ -7194,8 +7230,8 @@ function scrapeJaarToewijzingen(jaarToewijzingTable) {
 		};
 	});
 }
-function scrapeModules(table, jaarToewijzingTable) {
-	let lessen = scrapeLessenOverzicht(table);
+function scrapeModules(jaarToewijzingTable) {
+	let lessen = scrapeLessenOverzicht();
 	return {
 		trimesterModules: scrapeTrimesterModules(lessen),
 		jaarModules: scrapeJaarModules(lessen),
@@ -7254,7 +7290,7 @@ var StudentInfo = class {
 };
 function scrapeStudents(studentTable) {
 	let students = [];
-	if (studentTable.tBodies.length === 0) return students;
+	if (!studentTable.tBodies.length) return [];
 	for (const row of studentTable.tBodies[0].rows) {
 		let graadJaar = row.cells[0].children[0].textContent;
 		let name = row.cells[0].childNodes[1].textContent;
@@ -7329,16 +7365,27 @@ var Les = class {
 		return les.id + les.teacher + les.naam + les.vakNaam + les.lesmoment + les.vestiging + les.online + GradeYear.toString(les.gradeYears);
 	}
 };
+function scrapeTeacherNameSpan(row) {
+	let mutedSpans = getMutedSpans(getLesCell(row));
+	if (mutedSpans.length > 0) return Array.from(mutedSpans).pop() ?? null;
+	return null;
+}
+function getLesCell(row) {
+	return row.cells[0];
+}
+function getMutedSpans(lesCell) {
+	return lesCell.querySelectorAll("span.text-muted");
+}
 function scrapeLesInfo(row) {
-	let lesCell = row.cells[0];
+	let lesCell = getLesCell(row);
 	let studentsCell = row.cells[1];
-	let meta = scrapeStudentsCellMeta(studentsCell);
+	let meta = scrapeStudentsCellMeta(row);
 	let warnings = [...row.getElementsByClassName("text-warning")].map((el) => el.textContent);
 	let [first] = lesCell.getElementsByTagName("strong");
 	let allBadges = lesCell.getElementsByClassName("badge");
 	let warningBadges = lesCell.getElementsByClassName("badge-warning");
 	let tags = Array.from(warningBadges).map((el) => el.textContent).filter((txt) => txt !== "ALC").filter((txt) => txt);
-	let mutedSpans = lesCell.querySelectorAll("span.text-muted");
+	let mutedSpans = getMutedSpans(lesCell);
 	let allTextMutedSpanText = "";
 	let childrenElements = lesCell.children;
 	for (let i = 0; i < childrenElements.length; i++) {
@@ -7486,13 +7533,29 @@ function textsToYearGrades(texts) {
 }
 //#endregion
 //#region typescript/les/fetch.ts
-async function fetchLes(id, signal) {
+async function fetchLes(id, signal, options) {
+	if (!options) options = {
+		teachers: true,
+		maxStudents: true,
+		locations: true,
+		name: true,
+		moments: true,
+		studentCount: true
+	};
+	options = {
+		teachers: false,
+		maxStudents: false,
+		locations: false,
+		name: false,
+		moments: false,
+		studentCount: false,
+		...options
+	};
 	let chain = new FetchChain();
 	await chain.fetch("view.php?args=lessen-les?id=" + id, signal);
 	chain.findDocReadyLoadUrl();
 	await chain.fetch();
 	let lesDetails = await chain.fetch(`views/lessen/les/index.details.tab.php`);
-	let nameDiv = await chain.fetch("views/lessen/les/details/index.details.benaming.card.php");
 	let rx = /vak:\s*<strong>(.*?)<\/strong>/g;
 	let vakText = rx.exec(lesDetails)?.at(1);
 	let vak = "";
@@ -7501,50 +7564,85 @@ async function fetchLes(id, signal) {
 	let gradeYearsText = rx.exec(lesDetails)?.at(1);
 	let gradeYears = [];
 	if (gradeYearsText) gradeYears = textsToYearGrades([gradeYearsText]);
-	let maxAantalDiv = await chain.fetch("views/lessen/les/details/index.details.maximum_aantal_leerlingen.card.php");
-	rx = /\s*<strong>(.*?)<\/strong>/g;
-	let maxAantalText = rx.exec(maxAantalDiv)?.at(1);
+	let name = "";
+	let editableName = false;
+	if (options.name) {
+		let nameDiv = await chain.fetch("views/lessen/les/details/index.details.benaming.card.php");
+		name = "todo";
+		editableName = nameDiv.includes("benaming_wijzigen");
+	}
 	let maxAantal = 0;
-	if (maxAantalText) maxAantal = parseInt(maxAantalText.trim());
-	let vestigingDiv = await chain.fetch("/views/lessen/les/details/index.details.vestigingsplaats.card.php");
-	vestigingDiv = vestigingDiv.replaceAll("<br>", "");
-	rx = /vestigingsplaats:\s*<strong>(.*?)<\/strong>/g;
-	let vestiging = rx.exec(vestigingDiv)?.at(1) ?? "";
-	await chain.fetch("/views/lessen/les/index.lesmomenten.tab.php");
-	let lesmomentenText = await chain.fetch("/views/lessen/les/lesmomenten/lesmomenten.card.php");
-	rx = /<strong>(.*?)<\/strong>/g;
+	if (options.maxStudents) {
+		let maxAantalDiv = await chain.fetch("views/lessen/les/details/index.details.maximum_aantal_leerlingen.card.php");
+		rx = /\s*<strong>(.*?)<\/strong>/g;
+		let maxAantalText = rx.exec(maxAantalDiv)?.at(1);
+		if (maxAantalText) maxAantal = parseInt(maxAantalText.trim());
+	}
+	let vestiging = "";
+	if (options.locations) {
+		let vestigingDiv = await chain.fetch("/views/lessen/les/details/index.details.vestigingsplaats.card.php");
+		vestigingDiv = vestigingDiv.replaceAll("<br>", "");
+		rx = /vestigingsplaats:\s*<strong>(.*?)<\/strong>/g;
+		vestiging = rx.exec(vestigingDiv)?.at(1) ?? "";
+	}
+	let teachers = [];
+	if (options.teachers) {
+		let teachersDivText = await chain.fetch("views/lessen/les/details/index.details.leerkrachten.card.php");
+		let tempDiv = document.createElement("div");
+		tempDiv.innerHTML = teachersDivText;
+		for (let tr of tempDiv.querySelectorAll("tr:has(strong)")) {
+			let name = tr.querySelector("strong")?.textContent.trim() ?? "";
+			let role = tr.querySelector("small.text-muted")?.textContent.trim() ?? "";
+			let id = (tr.querySelector("a")?.href ?? "").split("=").at(-1) ?? "";
+			teachers.push({
+				name,
+				role,
+				id
+			});
+		}
+		console.log(teachers);
+	}
 	let lesMomenten = [];
-	let match;
-	while (match = rx.exec(lesmomentenText)) lesMomenten.push(match[1]);
-	await chain.fetch("/views/lessen/les/index.leerlingen.tab.php");
-	await chain.fetch("/views/lessen/les/leerlingen/leerlingen.toolbar.php");
-	const now = /* @__PURE__ */ new Date();
-	const timestamp = new Intl.DateTimeFormat("sv-SE", {
-		year: "numeric",
-		month: "2-digit",
-		day: "2-digit",
-		hour: "2-digit",
-		minute: "2-digit",
-		second: "2-digit",
-		hour12: false
-	}).format(now).replace(" ", " ");
-	console.log(timestamp);
-	let params = new URLSearchParams();
-	params.append("timestamp", timestamp);
-	params.append("nu", "true");
-	let leerlingenTableText = await chain.fetch(`/views/lessen/les/leerlingen/leerlingen.tabel.php?${params}`);
-	rx = /<i>(.*?)<\/i>/g;
-	let aantallen = (rx.exec(leerlingenTableText)?.at(1) ?? "").replace(" van ", ",").replace("leerlingen", "").trim().split(",");
+	if (options.moments) {
+		await chain.fetch("/views/lessen/les/index.lesmomenten.tab.php");
+		let lesmomentenText = await chain.fetch("/views/lessen/les/lesmomenten/lesmomenten.card.php");
+		rx = /<strong>(.*?)<\/strong>/g;
+		let match;
+		while (match = rx.exec(lesmomentenText)) lesMomenten.push(match[1]);
+	}
+	let aantallen = [0, 0];
+	if (options.studentCount) {
+		await chain.fetch("/views/lessen/les/index.leerlingen.tab.php");
+		await chain.fetch("/views/lessen/les/leerlingen/leerlingen.toolbar.php");
+		const now = /* @__PURE__ */ new Date();
+		const timestamp = new Intl.DateTimeFormat("sv-SE", {
+			year: "numeric",
+			month: "2-digit",
+			day: "2-digit",
+			hour: "2-digit",
+			minute: "2-digit",
+			second: "2-digit",
+			hour12: false
+		}).format(now).replace(" ", " ");
+		let params = new URLSearchParams();
+		params.append("timestamp", timestamp);
+		params.append("nu", "true");
+		let leerlingenTableText = await chain.fetch(`/views/lessen/les/leerlingen/leerlingen.tabel.php?${params}`);
+		rx = /<i>(.*?)<\/i>/g;
+		aantallen = (rx.exec(leerlingenTableText)?.at(1) ?? "").replace(" van ", ",").replace("leerlingen", "").trim().split(",").map((x) => parseInt(x));
+	}
 	return {
 		id,
-		editableName: nameDiv.includes("benaming_wijzigen"),
+		name,
+		editableName,
 		gradeYears,
 		vak,
 		maxAantal,
 		isIndividualLes: maxAantal == 0,
 		lesMomenten,
-		aantal: parseInt(aantallen[0]),
-		vestiging
+		aantal: aantallen[0],
+		vestiging,
+		teachers
 	};
 }
 //#endregion

@@ -2,20 +2,38 @@ import {FetchedTable} from "../table/tableFetcher";
 import {dayToMinutes, Time, TimeSlice, timeToMinutes} from "../roster_diff/excelRoster";
 
 import {GradeYear} from "../gradeYear";
+import {LESSEN_TABLE_ID} from "../def";
 
-export function scrapeLessenOverzicht(table: HTMLTableElement) {
+export function scrapeLessenOverzicht() {
+    return scrapeLessenRows(scrapeLesInfo);
+}
+
+export function scrapeTeacherNameSpans() {
+    return scrapeLessenRows(scrapeTeacherNameSpan);
+}
+
+export function scrapeLessenRows<T>(scrapeRow: (row: HTMLTableRowElement) => T | null): T[] {
+    let table = document.getElementById(LESSEN_TABLE_ID) as HTMLTableElement;
     if(!table)
         return [];
     let body = table.tBodies[0];
-    let lessen: HtmlLes[] = [];
+    let items: T[] = [];
     for (const row of body.rows) {
-        let les = scrapeLesInfo(row);
-        lessen.push(les);
+        let item = scrapeRow(row);
+        if(item)
+            items.push(item);
     }
-    return lessen;
+    return items;
 }
 
-export function scrapeStudentsCellMeta(studentsCell: HTMLTableCellElement) {
+export function getId(row: HTMLTableRowElement) {
+    let idTag = Array.from(row.cells[1].querySelectorAll("small"))
+        .find((item) => item.classList.contains("float-right"))!;
+    return idTag.textContent;
+}
+
+export function scrapeStudentsCellMeta(row: HTMLTableRowElement) {
+    let studentsCell = row.cells[1];
     let smallTags = studentsCell.querySelectorAll("small");
     //aantallen
     let aantal = 0;
@@ -30,8 +48,7 @@ export function scrapeStudentsCellMeta(studentsCell: HTMLTableCellElement) {
         }
     }
     //id
-    let idTag = Array.from(smallTags).find((item) => item.classList.contains("float-right"))!;
-    let id = idTag.textContent;
+    let id = getId(row);
     //wachtlijst
     let wachtlijst = 0;
     let arrayWachtlijst = Array.from(smallTags).map((item) => item.textContent).filter((txt) => txt.includes("wachtlijst"));
@@ -71,8 +88,8 @@ function scrapeJaarToewijzingen(jaarToewijzingTable: (FetchedTable | undefined))
     })
 }
 
-export function scrapeModules(table: HTMLTableElement, jaarToewijzingTable: FetchedTable | undefined) {
-    let lessen = scrapeLessenOverzicht(table);
+export function scrapeModules(jaarToewijzingTable: FetchedTable | undefined) {
+    let lessen = scrapeLessenOverzicht();
     return {
         trimesterModules: scrapeTrimesterModules(lessen),
         jaarModules: scrapeJaarModules(lessen),
@@ -147,9 +164,9 @@ export class StudentInfo {
 
 function scrapeStudents(studentTable: HTMLTableElement) {
     let students: StudentInfo[] = [];
-    if(studentTable.tBodies.length === 0) {
-        return students;
-    }
+    if(!studentTable.tBodies.length)
+        return [];
+
     for (const row of studentTable.tBodies[0].rows) {
         let graadJaar = row.cells[0].children[0].textContent;
         let name = row.cells[0].childNodes[1].textContent!;
@@ -245,10 +262,26 @@ export class Les {
 
 }
 
+function scrapeTeacherNameSpan(row: HTMLTableRowElement): HTMLElement | null {
+    let mutedSpans = getMutedSpans(getLesCell(row));
+    if (mutedSpans.length > 0)
+        return Array.from(mutedSpans).pop()??null;
+
+    return null;
+}
+
+function getLesCell(row: HTMLTableRowElement) {
+    return row.cells[0];
+}
+
+function getMutedSpans(lesCell: HTMLTableCellElement) {
+    return lesCell.querySelectorAll("span.text-muted") as NodeListOf<HTMLElement>;
+}
+
 export function scrapeLesInfo(row: HTMLTableRowElement): HtmlLes {
-    let lesCell = row.cells[0];
+    let lesCell = getLesCell(row);
     let studentsCell = row.cells[1];
-    let meta = scrapeStudentsCellMeta(studentsCell);
+    let meta = scrapeStudentsCellMeta(row);
 
     let warnings = [...row.getElementsByClassName("text-warning")].map((el) => el.textContent);
 
@@ -259,7 +292,7 @@ export function scrapeLesInfo(row: HTMLTableRowElement): HtmlLes {
         .map((el) => el.textContent)
         .filter((txt) => txt !== "ALC")
         .filter((txt) => txt);
-    let mutedSpans = lesCell.querySelectorAll("span.text-muted");
+    let mutedSpans = getMutedSpans(lesCell);
     let lesName = "";
     //className is in the span on the 1st line (before BR)
     let allTextMutedSpanText = "";
