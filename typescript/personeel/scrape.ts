@@ -2,7 +2,8 @@ import {scrapeHashPageTable, scrapeTable} from "../table/loadAnyTable";
 import {FetchChain} from "../table/fetchChain";
 import * as def from "../def";
 import {createGlobalInfoBlockAndListener, Schoolyear} from "../globals";
-import {FetchedTable, TableFetcher, TableRef} from "../table/tableFetcher";
+import {FetchedTable, TableFetcher} from "../table/tableFetcher";
+import {TableRef} from "../table/tableRef";
 
 export interface Teacher {
     id: string;

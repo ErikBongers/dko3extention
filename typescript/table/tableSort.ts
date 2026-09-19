@@ -1,7 +1,7 @@
 import {options} from "../plugin_options/options";
 import * as def from "../def";
-import {TableRef} from "./tableFetcher";
 import {range, rangeGenerator} from "../globals";
+import {TableRef} from "./tableRef";
 
 export let defaultValueFunc: ColumnValueFunc = (td: HTMLTableCellElement) => td.innerText;
 

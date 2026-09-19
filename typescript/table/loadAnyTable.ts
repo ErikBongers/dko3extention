@@ -1,12 +1,10 @@
 import {findFirstNavigation} from "./tableNavigation";
 import {
     CheckSumBuilder,
-    DkoTableRef,
     findTableRefInCode,
-    PlainTableRef,
     NavigatableTableFetcher,
     TableFetchListener,
-    TableRef, TableFetcher
+    TableFetcher
 } from "./tableFetcher";
 import {createDownloadTableWithExtraAction, getChecksumBuilder} from "./observer";
 import {createGlobalInfoBlockAndListener, dateDiffToString, Result, setViewFromCurrentUrl} from "../globals";
@@ -16,6 +14,7 @@ import * as def from "../def";
 import {executeTableCommands, TableHandlerForHeaders} from "./tableHeaders";
 import {FetchChain} from "./fetchChain";
 import {createInfoBlockForTable, InfoBlock} from "../infoBlock";
+import {DkoTableRef, PlainTableRef, TableRef} from "./tableRef";
 
 export async function  getWerklijstTableRef() {
     let chain = new FetchChain();
