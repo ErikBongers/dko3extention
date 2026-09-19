@@ -405,7 +405,6 @@ export function createLesCard(lesName: string, lesCardData: LesCardData | PlaceH
                     { lln} 
                     ${wachtlijst}
         `;
-    console.log(emmetText);
     return emmet.indent.createElement(emmetText);
 }
 
@@ -421,7 +420,6 @@ async function fillClassesMenu(menu: DropDownMenu, opleiding: Opleiding, vak: st
     if(!lessenBuilder.hasVak(vak))
     lessenBuilder.addVak(vak);
     let lessons = await lessenBuilder.fetch();
-    console.log(lessons);
     lessons.sort((a, b) => buildLesTitle(a.les.naam, a.les.vakNaam).localeCompare(buildLesTitle(b.les.naam, b.les.vakNaam)));
     menu.removeItem(1);
     menu.addSeparator(emmet.createElement(`span.noClipboard{Alternatieven:}`), 0);
