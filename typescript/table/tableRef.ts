@@ -4,7 +4,6 @@ export interface TableRef {
     htmlTableId: string;
     getOrgTableContainer(): HTMLElement;
     getOrgTableRows(): NodeListOf<HTMLTableRowElement>;
-    buildFetchPageUrl: (offset: number) => string;
     createElementAboveTable(element: string): HTMLElement;
     isFullyFetched(): boolean;
 }
@@ -22,10 +21,6 @@ export class PlainTableRef implements TableRef {
 
     getOrgTableRows(): NodeListOf<HTMLTableRowElement> {
         return document.getElementById(this.htmlTableId)!.querySelectorAll("tbody > tr") as NodeListOf<HTMLTableRowElement>;
-    }
-
-    buildFetchPageUrl(offset: number): string { //todo: perhaps leave this function out of the TableRef interface?
-        throw "Plain table cannot be fetched";
     }
 
     createElementAboveTable(element: string): HTMLElement {

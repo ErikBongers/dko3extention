@@ -21,7 +21,6 @@ export async function scrapeTeachers() {
 function getTableRef(): TableRef {
     return {
         htmlTableId: "",
-        buildFetchPageUrl: () => "",
         createElementAboveTable: () => document.createElement("div"),
         getOrgTableContainer: () => document.body, //todo: who uses these 2 functions? Try to get rid of them.
         getOrgTableRows: () => document.querySelectorAll("table > tbody > tr"),

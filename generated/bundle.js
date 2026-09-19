@@ -862,7 +862,7 @@ function getGotoNumber(functionCall) {
 	return parseInt(functionCall.substring(functionCall.indexOf("goto(") + 5));
 }
 //#endregion
-//#region typescript/table/tableFetcher.ts
+//#region typescript/table/tableRef.ts
 var PlainTableRef = class {
 	htmlTableId;
 	constructor(htmlTableId) {
@@ -873,9 +873,6 @@ var PlainTableRef = class {
 	}
 	getOrgTableRows() {
 		return document.getElementById(this.htmlTableId).querySelectorAll("tbody > tr");
-	}
-	buildFetchPageUrl(offset) {
-		throw "Plain table cannot be fetched";
 	}
 	createElementAboveTable(element) {
 		let el = document.createElement(element);
@@ -910,6 +907,8 @@ var DkoTableRef = class {
 		return this.getOrgTableContainer().querySelector("table").classList.contains("fullyFetched");
 	}
 };
+//#endregion
+//#region typescript/table/tableFetcher.ts
 function findTableRefInCode() {
 	let foundTableRef = findTable();
 	if (!foundTableRef) return void 0;
@@ -1056,7 +1055,7 @@ var NavigatableTableFetcher = class extends TableFetcher {
 			this.cancelRequested = false;
 			while (true) {
 				console.log("fetching page " + fetchedTable.getNextPageNumber());
-				let text = await (await fetch(this.tableRef.buildFetchPageUrl(fetchedTable.getNextOffset()))).text();
+				let text = await (await fetch(this.getDkoTableRef().buildFetchPageUrl(fetchedTable.getNextOffset()))).text();
 				fetchedTable.addPage(text);
 				pageCnt++;
 				this.onPageLoaded(pageCnt, text);

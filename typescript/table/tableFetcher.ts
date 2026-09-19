@@ -210,7 +210,7 @@ export class NavigatableTableFetcher extends TableFetcher {
             this.cancelRequested = false;
             while (true) {
                 console.log("fetching page " + fetchedTable.getNextPageNumber());
-                let response = await fetch(this.tableRef.buildFetchPageUrl(fetchedTable.getNextOffset()));
+                let response = await fetch(this.getDkoTableRef().buildFetchPageUrl(fetchedTable.getNextOffset()));
                 let text = await response.text();
                 fetchedTable.addPage(text);
                 pageCnt++;
