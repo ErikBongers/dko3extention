@@ -948,8 +948,7 @@ var TableFetcher = class {
 		window.sessionStorage.removeItem(this.getCacheId() + CACHE_DATE_SUFFIX);
 	}
 	getCacheId() {
-		let checksum = "";
-		if (this.calculateTableCheckSum) checksum = "__" + this.calculateTableCheckSum(this);
+		let checksum = "__" + this.calculateTableCheckSum(this);
 		return (this.tableRef.htmlTableId + checksum).replaceAll(/\s/g, "");
 	}
 	addListener(listener) {
@@ -1083,8 +1082,6 @@ var NavigatableFetchedTable = class {
 		return this.shadowTableTemplate.content.querySelector("table");
 	}
 	getRowsAsArray = () => Array.from(this.getRows());
-	getLastPageRows = () => this.getRowsAsArray().slice(this.lastPageStartRow);
-	getLastPageNumber = () => this.lastPageNumber;
 	getNextPageNumber = () => this.lastPageNumber + 1;
 	getNextOffset = () => this.getNextPageNumber() * this.tableFetcher.getDkoTableRef().navigationData.step;
 	getTemplate = () => this.shadowTableTemplate;

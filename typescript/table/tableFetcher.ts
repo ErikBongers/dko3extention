@@ -74,9 +74,7 @@ export abstract class TableFetcher {
     }
 
     getCacheId() {
-        let checksum = "";
-        if (this.calculateTableCheckSum)
-            checksum = "__" + this.calculateTableCheckSum(this);
+        let checksum = "__" + this.calculateTableCheckSum(this);
         let id = this.tableRef.htmlTableId + checksum;
         return id.replaceAll(/\s/g, "");
     }
@@ -255,8 +253,6 @@ export class NavigatableFetchedTable implements FetchedTable {
     }
 
     getRowsAsArray = () => Array.from(this.getRows());
-    getLastPageRows = () => this.getRowsAsArray().slice(this.lastPageStartRow);
-    getLastPageNumber = () => this.lastPageNumber;
     getNextPageNumber = () => this.lastPageNumber+1;
     getNextOffset = () => this.getNextPageNumber()*this.tableFetcher.getDkoTableRef().navigationData.step;
     getTemplate = () => this.shadowTableTemplate;
