@@ -16,6 +16,11 @@ export class FetchChain {
         return this.lastText;
     }
 
+    async post(url: string, signal?: AbortSignal) {
+        this.lastText = await fetchText(url, signal, true);
+        return this.lastText;
+    }
+
     findDocReadyLoadUrl() {
         this.lastText = getDocReadyLoadUrl(this.lastText ?? "--null--");
         return this.lastText;
@@ -93,7 +98,7 @@ export function getDocReadyLoadScript(text: string) {
     }
 }
 
-export async function fetchText(url: string, signal?: AbortSignal) {
-    let res = await fetch(url, { signal });
+export async function fetchText(url: string, signal?: AbortSignal, post: boolean = false) {
+    let res = post ? await fetch(url, { signal, method: "POST" }) : await fetch(url, { signal });
     return res.text();
 }

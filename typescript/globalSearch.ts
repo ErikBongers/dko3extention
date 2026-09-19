@@ -4,7 +4,7 @@ import {LesType} from "./roster_diff/calcDiff";
 import {getSchoolIdString, Schoolyear} from "./globals";
 import {DropDownMenu} from "./dropDownMenus";
 import {fetchLes} from "./les/fetch";
-import {createLesCard} from "./leerling/observer";
+import {createLesCard, PlaceHolder} from "./leerling/observer";
 import {AssetRef, getSessionSchoolCache, LesRef, Ref} from "./db/sessionDb";
 import {scrapeAssets} from "./assets/scrape";
 
@@ -73,9 +73,16 @@ async function updateLesMenuItem(dropDownMenu: DropDownMenu, index: number, lesR
     }
     let les = await fetchLes(lesRef.id, signal);
     let lesmomenten = les.lesMomenten.join("\n");
-    let wachtlijst = "wachtlijst";
-    let full = les.aantal >= les.maxAantal ? ".full": "";
-    let infoBlock = createLesCard(lesRef.name, les.vak, full, lesmomenten, les.aantal, les.maxAantal, wachtlijst, les.vestiging);
+    let full = les.aantal >= les.maxAantal;
+    let infoBlock = createLesCard(lesRef.name, {
+        vakName: les.vak,
+        full,
+        lesmoment: lesmomenten,
+        aantal: les.aantal,
+        maxAantal: les.maxAantal,
+        wachtlijst: 0, //todo
+        vestiging: les.vestiging
+    });
     dropDownMenu.setItemContent(index, infoBlock);
 }
 
@@ -91,7 +98,7 @@ async function gotoLesRef(lesName: string, vak?: string) {
     return gotoRef<LesRef>(
         () => getLesMatches(lesName, vak),
         "/#lessen-les?id=",
-        (lesRef) => lesRef.name,
+        (lesRef) => createLesCard(lesRef.name, PlaceHolder),
         updateLesMenuItem
     );
 }
@@ -107,11 +114,10 @@ async function gotoAssetRef(assetCode: string) {
 
 async function gotoRef<T extends Ref>(getMatches: () => Promise<T[]>,
                                       gotoUrl: string,
-                                      getLabel: (ref: T) => string,
+                                      getLabel: (ref: T) => string | HTMLElement,
                                       updateMenuItem: (dropDownMenu: DropDownMenu, index: number, ref: T, signal: AbortSignal) => Promise<void>
                                       ) {
     let matches = await getMatches();
-    console.log("matches:", matches);
     if(matches) {
         if (matches.length == 1) {
             console.log("gotoRef: matches.length == 1");
@@ -126,7 +132,6 @@ async function gotoRef<T extends Ref>(getMatches: () => Promise<T[]>,
             let abortController = new AbortController();
             let signal = abortController.signal;
             let dropDownMenu = new DropDownMenu(searchField.parentElement?.parentElement!, searchField, false, true, abortController);
-            matches.sort((a, b) => getLabel(a).localeCompare(getLabel(b)));
             let queue = Promise.resolve();
             for (let ref of matches) {
                 let index = dropDownMenu.addItem(getLabel(ref), 0, () => {
@@ -162,7 +167,9 @@ async function getLesMatches(lesName: string, vak?: string) {
     if(vak)
         return cache.LesRefs.findMatches(lesRef => lesRef.name.toLowerCase().includes(lowerCase) && lesRef.vak == vak);
 
-    return cache.LesRefs.findMatches(lesRef => lesRef.name.toLowerCase().includes(lowerCase));
+    let matches = await cache.LesRefs.findMatches(lesRef => lesRef.name.toLowerCase().includes(lowerCase));
+    matches.sort((a, b) => a.name.localeCompare(b.name));
+    return matches;
 }
 
 async function getAssetMatches(assetCode: string) {

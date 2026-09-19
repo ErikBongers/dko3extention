@@ -145,7 +145,7 @@ export class LessenFilterBuilder {
         let tableText = await fetchLessen(params);
         let div = document.createElement("div");
         div.innerHTML = tableText;
-        return scrapeLessenOverzicht();
+        return scrapeLessenOverzicht(div.querySelector("table")!); //! should contain a table.
     }
 
     hasVak(vak: string) {

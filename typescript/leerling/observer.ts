@@ -356,16 +356,57 @@ function scrapeLesInfoDetails(tr: HTMLTableRowElement, detailsTdOffset: number) 
     return lesInfo;
 }
 
-export function createLesCard(lesName: string, vakName: string, full: string, lesmoment: string, aantal: number, maxAantal:number, wachtlijst: string, vestiging: string) {
-    return emmet.indent.createElement(`
-            div.small${full}
+export const PlaceHolder = Symbol("placeholder");
+
+export type PlaceHolder = typeof PlaceHolder;
+
+function convertToEmmet(text: string | number | PlaceHolder, charWidth: number) {
+    if(text === PlaceHolder)
+        return `span.placeHolder.wch${charWidth}`;
+    else
+        return `{${text}}`;
+}
+
+export type LesCardData = {
+    vakName: string;
+    full: boolean;
+    lesmoment: string | PlaceHolder;
+    aantal: number | PlaceHolder;
+    maxAantal: number | PlaceHolder;
+    wachtlijst: number;
+    vestiging: string | PlaceHolder;
+}
+
+export function createLesCard(lesName: string, lesCardData: LesCardData | PlaceHolder) {
+    if(lesCardData === PlaceHolder) {
+        lesCardData = {
+            vakName: "",
+            full: false,
+            lesmoment: PlaceHolder,
+            aantal: PlaceHolder,
+            maxAantal: PlaceHolder,
+            wachtlijst: 0,
+            vestiging: PlaceHolder
+        };
+    }
+    let wachtlijst = lesCardData.wachtlijst == 0 ? "span" : `span.red{ (${lesCardData.wachtlijst} op wachtlijst)}`;
+    let emmetText = `
+            div.small${lesCardData.full? ".full": ""}
                 div.bold.pre
-                    strong{${buildLesTitle(lesName, vakName)}}
-                div.pre{${vestiging}}
-                div.pre{${lesmoment}}
-                div.pre.noClipboard{${aantal}/${maxAantal} lln} 
+                    strong{${buildLesTitle(lesName, lesCardData.vakName)}}
+                div.pre
+                    ${convertToEmmet(lesCardData.vestiging, 13)}
+                div.pre
+                    ${convertToEmmet(lesCardData.lesmoment, 11)}
+                div.pre.noClipboard
+                    ${convertToEmmet(lesCardData.aantal, 2)}
+                    {/}
+                    ${convertToEmmet(lesCardData.maxAantal, 2)} 
+                    { lln} 
                     ${wachtlijst}
-        `);
+        `;
+    console.log(emmetText);
+    return emmet.indent.createElement(emmetText);
 }
 
 async function fillClassesMenu(menu: DropDownMenu, opleiding: Opleiding, vak: string, gotoLesCmd: string) {
@@ -380,14 +421,22 @@ async function fillClassesMenu(menu: DropDownMenu, opleiding: Opleiding, vak: st
     if(!lessenBuilder.hasVak(vak))
     lessenBuilder.addVak(vak);
     let lessons = await lessenBuilder.fetch();
+    console.log(lessons);
     lessons.sort((a, b) => buildLesTitle(a.les.naam, a.les.vakNaam).localeCompare(buildLesTitle(b.les.naam, b.les.vakNaam)));
     menu.removeItem(1);
     menu.addSeparator(emmet.createElement(`span.noClipboard{Alternatieven:}`), 0);
     for(let les of lessons) {
         let lesmoment = les.les.formattedLesmoment.replace('(wekelijks)', "").trim();
-        let wachtlijst = les.les.wachtlijst == 0 ? "span" : `span.red{ (${les.les.wachtlijst} op wachtlijst)}`;
-        let full = les.les.aantal >= les.les.maxAantal ? ".full": "";
-        let infoBlock = createLesCard(les.les.naam, les.les.vakNaam, full, lesmoment, les.les.aantal, les.les.maxAantal, wachtlijst, les.les.vestiging);
+        let full = les.les.aantal >= les.les.maxAantal;
+        let infoBlock = createLesCard(les.les.naam, {
+            vakName:les.les.vakNaam,
+            full,
+            lesmoment,
+            aantal: les.les.aantal,
+            maxAantal: les.les.maxAantal,
+            wachtlijst: les.les.wachtlijst,
+            vestiging: les.les.vestiging}
+        );
         menu.addInfo(infoBlock, 0);
     }
 }

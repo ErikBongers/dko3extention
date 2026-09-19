@@ -1228,6 +1228,10 @@ var FetchChain = class {
 		this.lastText = await fetchText(url ?? this.lastText ?? "--null--", signal);
 		return this.lastText;
 	}
+	async post(url, signal) {
+		this.lastText = await fetchText(url, signal, true);
+		return this.lastText;
+	}
 	findDocReadyLoadUrl() {
 		this.lastText = getDocReadyLoadUrl(this.lastText ?? "--null--");
 		return this.lastText;
@@ -1281,8 +1285,11 @@ function getDocReadyLoadScript(text) {
 		scanner = docReady;
 	}
 }
-async function fetchText(url, signal) {
-	return (await fetch(url, { signal })).text();
+async function fetchText(url, signal, post = false) {
+	return (post ? await fetch(url, {
+		signal,
+		method: "POST"
+	}) : await fetch(url, { signal })).text();
 }
 //#endregion
 //#region typescript/restorePage.ts
@@ -6225,7 +6232,8 @@ var LessenFilterBuilder = class LessenFilterBuilder {
 		}));
 		let div = document.createElement("div");
 		div.innerHTML = tableText;
-		return scrapeLessenOverzicht();
+		return scrapeLessenOverzicht(div.querySelector("table"));
+		//! should contain a table.
 	}
 	hasVak(vak) {
 		return this.vakken.includes(vak);
@@ -7163,14 +7171,14 @@ var ExcelRoster = class ExcelRoster {
 };
 //#endregion
 //#region typescript/lessen/scrape.ts
-function scrapeLessenOverzicht() {
-	return scrapeLessenRows(scrapeLesInfo);
+function scrapeLessenOverzicht(table) {
+	if (!table) table = document.getElementById(LESSEN_TABLE_ID);
+	return scrapeLessenRows(table, scrapeLesInfo);
 }
 function scrapeTeacherNameSpans() {
-	return scrapeLessenRows(scrapeTeacherNameSpan);
+	return scrapeLessenRows(document.getElementById(LESSEN_TABLE_ID), scrapeTeacherNameSpan);
 }
-function scrapeLessenRows(scrapeRow) {
-	let table = document.getElementById(LESSEN_TABLE_ID);
+function scrapeLessenRows(table, scrapeRow) {
 	if (!table) return [];
 	let body = table.tBodies[0];
 	let items = [];
@@ -7908,16 +7916,39 @@ function scrapeLesInfoDetails(tr, detailsTdOffset) {
 		gotoButton
 	};
 }
-function createLesCard(lesName, vakName, full, lesmoment, aantal, maxAantal, wachtlijst, vestiging) {
-	return emmet.indent.createElement(`
-            div.small${full}
+const PlaceHolder = Symbol("placeholder");
+function convertToEmmet(text, charWidth) {
+	if (text === PlaceHolder) return `span.placeHolder.wch${charWidth}`;
+	else return `{${text}}`;
+}
+function createLesCard(lesName, lesCardData) {
+	if (lesCardData === PlaceHolder) lesCardData = {
+		vakName: "",
+		full: false,
+		lesmoment: PlaceHolder,
+		aantal: PlaceHolder,
+		maxAantal: PlaceHolder,
+		wachtlijst: 0,
+		vestiging: PlaceHolder
+	};
+	let wachtlijst = lesCardData.wachtlijst == 0 ? "span" : `span.red{ (${lesCardData.wachtlijst} op wachtlijst)}`;
+	let emmetText = `
+            div.small${lesCardData.full ? ".full" : ""}
                 div.bold.pre
-                    strong{${buildLesTitle(lesName, vakName)}}
-                div.pre{${vestiging}}
-                div.pre{${lesmoment}}
-                div.pre.noClipboard{${aantal}/${maxAantal} lln} 
+                    strong{${buildLesTitle(lesName, lesCardData.vakName)}}
+                div.pre
+                    ${convertToEmmet(lesCardData.vestiging, 13)}
+                div.pre
+                    ${convertToEmmet(lesCardData.lesmoment, 11)}
+                div.pre.noClipboard
+                    ${convertToEmmet(lesCardData.aantal, 2)}
+                    {/}
+                    ${convertToEmmet(lesCardData.maxAantal, 2)} 
+                    { lln} 
                     ${wachtlijst}
-        `);
+        `;
+	console.log(emmetText);
+	return emmet.indent.createElement(emmetText);
 }
 async function fillClassesMenu(menu, opleiding, vak, gotoLesCmd) {
 	menu.removeAllItems();
@@ -7929,14 +7960,22 @@ async function fillClassesMenu(menu, opleiding, vak, gotoLesCmd) {
 	if (opleiding.adminGroup != "") lessenBuilder.addAdminGroup(opleiding.adminGroup);
 	if (!lessenBuilder.hasVak(vak)) lessenBuilder.addVak(vak);
 	let lessons = await lessenBuilder.fetch();
+	console.log(lessons);
 	lessons.sort((a, b) => buildLesTitle(a.les.naam, a.les.vakNaam).localeCompare(buildLesTitle(b.les.naam, b.les.vakNaam)));
 	menu.removeItem(1);
 	menu.addSeparator(emmet.createElement(`span.noClipboard{Alternatieven:}`), 0);
 	for (let les of lessons) {
 		let lesmoment = les.les.formattedLesmoment.replace("(wekelijks)", "").trim();
-		let wachtlijst = les.les.wachtlijst == 0 ? "span" : `span.red{ (${les.les.wachtlijst} op wachtlijst)}`;
-		let full = les.les.aantal >= les.les.maxAantal ? ".full" : "";
-		let infoBlock = createLesCard(les.les.naam, les.les.vakNaam, full, lesmoment, les.les.aantal, les.les.maxAantal, wachtlijst, les.les.vestiging);
+		let full = les.les.aantal >= les.les.maxAantal;
+		let infoBlock = createLesCard(les.les.naam, {
+			vakName: les.les.vakNaam,
+			full,
+			lesmoment,
+			aantal: les.les.aantal,
+			maxAantal: les.les.maxAantal,
+			wachtlijst: les.les.wachtlijst,
+			vestiging: les.les.vestiging
+		});
 		menu.addInfo(infoBlock, 0);
 	}
 }
@@ -11426,9 +11465,16 @@ async function updateLesMenuItem(dropDownMenu, index, lesRef, signal) {
 	}
 	let les = await fetchLes(lesRef.id, signal);
 	let lesmomenten = les.lesMomenten.join("\n");
-	let wachtlijst = "wachtlijst";
-	let full = les.aantal >= les.maxAantal ? ".full" : "";
-	let infoBlock = createLesCard(lesRef.name, les.vak, full, lesmomenten, les.aantal, les.maxAantal, wachtlijst, les.vestiging);
+	let full = les.aantal >= les.maxAantal;
+	let infoBlock = createLesCard(lesRef.name, {
+		vakName: les.vak,
+		full,
+		lesmoment: lesmomenten,
+		aantal: les.aantal,
+		maxAantal: les.maxAantal,
+		wachtlijst: 0,
+		vestiging: les.vestiging
+	});
 	dropDownMenu.setItemContent(index, infoBlock);
 }
 async function updateAssetMenuItem(dropDownMenu, index, assetRef, signal) {
@@ -11438,14 +11484,13 @@ async function updateAssetMenuItem(dropDownMenu, index, assetRef, signal) {
 	}
 }
 async function gotoLesRef(lesName, vak) {
-	return gotoRef(() => getLesMatches(lesName, vak), "/#lessen-les?id=", (lesRef) => lesRef.name, updateLesMenuItem);
+	return gotoRef(() => getLesMatches(lesName, vak), "/#lessen-les?id=", (lesRef) => createLesCard(lesRef.name, PlaceHolder), updateLesMenuItem);
 }
 async function gotoAssetRef(assetCode) {
 	return gotoRef(() => getAssetMatches(assetCode), "/#extra-assets-assets-details?id=", (assetRef) => assetRef.code, updateAssetMenuItem);
 }
 async function gotoRef(getMatches, gotoUrl, getLabel, updateMenuItem) {
 	let matches = await getMatches();
-	console.log("matches:", matches);
 	if (matches) {
 		if (matches.length == 1) {
 			console.log("gotoRef: matches.length == 1");
@@ -11460,7 +11505,6 @@ async function gotoRef(getMatches, gotoUrl, getLabel, updateMenuItem) {
 			let abortController = new AbortController();
 			let signal = abortController.signal;
 			let dropDownMenu = new DropDownMenu(searchField.parentElement?.parentElement, searchField, false, true, abortController);
-			matches.sort((a, b) => getLabel(a).localeCompare(getLabel(b)));
 			let queue = Promise.resolve();
 			for (let ref of matches) {
 				let index = dropDownMenu.addItem(getLabel(ref), 0, () => {
@@ -11494,7 +11538,9 @@ async function getLesMatches(lesName, vak) {
 		await cache.Loaded.put(true, "LesRefs");
 	}
 	if (vak) return cache.LesRefs.findMatches((lesRef) => lesRef.name.toLowerCase().includes(lowerCase) && lesRef.vak == vak);
-	return cache.LesRefs.findMatches((lesRef) => lesRef.name.toLowerCase().includes(lowerCase));
+	let matches = await cache.LesRefs.findMatches((lesRef) => lesRef.name.toLowerCase().includes(lowerCase));
+	matches.sort((a, b) => a.name.localeCompare(b.name));
+	return matches;
 }
 async function getAssetMatches(assetCode) {
 	if (!assetCode) return [];

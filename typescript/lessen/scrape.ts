@@ -4,16 +4,18 @@ import {dayToMinutes, Time, TimeSlice, timeToMinutes} from "../roster_diff/excel
 import {GradeYear} from "../gradeYear";
 import {LESSEN_TABLE_ID} from "../def";
 
-export function scrapeLessenOverzicht() {
-    return scrapeLessenRows(scrapeLesInfo);
+export function scrapeLessenOverzicht(table?: HTMLTableElement) {
+    if(!table)
+        table = document.getElementById(LESSEN_TABLE_ID) as HTMLTableElement;
+    return scrapeLessenRows(table, scrapeLesInfo);
 }
 
 export function scrapeTeacherNameSpans() {
-    return scrapeLessenRows(scrapeTeacherNameSpan);
+    let table = document.getElementById(LESSEN_TABLE_ID) as HTMLTableElement;
+    return scrapeLessenRows(table, scrapeTeacherNameSpan);
 }
 
-export function scrapeLessenRows<T>(scrapeRow: (row: HTMLTableRowElement) => T | null): T[] {
-    let table = document.getElementById(LESSEN_TABLE_ID) as HTMLTableElement;
+export function scrapeLessenRows<T>(table: HTMLTableElement, scrapeRow: (row: HTMLTableRowElement) => T | null): T[] {
     if(!table)
         return [];
     let body = table.tBodies[0];

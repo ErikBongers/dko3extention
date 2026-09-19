@@ -41,3 +41,22 @@ button.naked {
 .pre {
     white-space: preserve nowrap;
 }
+
+.placeHolder {
+    background-color: lightgray;
+    height: 1ch;
+    display: inline-block;
+    border-radius: 9999px;
+}
+
+.wch13 {
+    width: 13ch;
+}
+
+.wch11 {
+    width: 11ch;
+}
+
+.wch2 {
+    width: 2ch;
+}
