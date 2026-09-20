@@ -100,6 +100,8 @@ function getTeacherValue(ctx: Context) {
         let teacher = teachers[0];
         location.href = "/#personeel-personeelslid?id=" + teacher.id;
     });
+    if(name == "nieuw")
+        button.remove();
     return element;
 }
 
@@ -445,6 +447,7 @@ function fillGraadCell(ctx: Context): number {
         return NaN;
     let button = document.createElement("button") as HTMLButtonElement;
     ctx.td.appendChild(button);
+    button.classList.add("cellPopover");
     if((graadJaar?.count ?? 0) === 0)
         return graadJaar.count;
     button.innerText = graadJaar.count.toString();

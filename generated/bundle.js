@@ -9647,15 +9647,15 @@ function getTeacherValue(ctx) {
             button.naked
                 i.fas.fa-user-alt
     `);
+	let button = element.querySelector("button");
 	//! must have A element.
-	element.querySelector("button").addEventListener("click", async () => {
-		console.log("GOTO TEACHER " + ctx.vakLeraar.leraar);
+	button.addEventListener("click", async () => {
 		let teachers = await (await getRepositoryCached("TeacherRefs", scrapeTeachers)).findMatches((ref) => ref.firstName === firstName && ref.lastName === lastName);
 		if (teachers.length === 0) return;
 		let teacher = teachers[0];
-		console.log("GOTO TEACHER " + teacher.id);
 		location.href = "/#personeel-personeelslid?id=" + teacher.id;
 	});
+	if (name == "nieuw") button.remove();
 	return element;
 }
 function getYearKeys(year) {
@@ -9938,6 +9938,7 @@ function fillGraadCell(ctx) {
 	if (!graadJaar) return NaN;
 	let button = document.createElement("button");
 	ctx.td.appendChild(button);
+	button.classList.add("cellPopover");
 	if ((graadJaar?.count ?? 0) === 0) return graadJaar.count;
 	button.innerText = graadJaar.count.toString();
 	popoverIndex++;
