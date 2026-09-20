@@ -8802,7 +8802,12 @@ function scrapeUren(rows, headerIndices) {
 //#region typescript/personeel/scrape.ts
 async function scrapeTeachers() {
 	return scrapeTable(new Dko3PersoneelFetcher(), (row) => {
-		console.log(row);
+		let [lastName, firstName] = row.querySelector("strong").textContent.split(", ");
+		return {
+			id: row.dataset.id,
+			firstName,
+			lastName
+		};
 	});
 }
 function getTableRef() {
@@ -8852,6 +8857,472 @@ var Dko3PersoneelFetcher = class Dko3PersoneelFetcher extends TableFetcher {
 		};
 	}
 };
+//#endregion
+//#region node_modules/idb/build/index.js
+const instanceOfAny = (object, constructors) => constructors.some((c) => object instanceof c);
+let idbProxyableTypes;
+let cursorAdvanceMethods;
+function getIdbProxyableTypes() {
+	return idbProxyableTypes || (idbProxyableTypes = [
+		IDBDatabase,
+		IDBObjectStore,
+		IDBIndex,
+		IDBCursor,
+		IDBTransaction
+	]);
+}
+function getCursorAdvanceMethods() {
+	return cursorAdvanceMethods || (cursorAdvanceMethods = [
+		IDBCursor.prototype.advance,
+		IDBCursor.prototype.continue,
+		IDBCursor.prototype.continuePrimaryKey
+	]);
+}
+const transactionDoneMap = /* @__PURE__ */ new WeakMap();
+const transformCache = /* @__PURE__ */ new WeakMap();
+const reverseTransformCache = /* @__PURE__ */ new WeakMap();
+function promisifyRequest(request) {
+	const promise = new Promise((resolve, reject) => {
+		const unlisten = () => {
+			request.removeEventListener("success", success);
+			request.removeEventListener("error", error);
+		};
+		const success = () => {
+			resolve(wrap(request.result));
+			unlisten();
+		};
+		const error = () => {
+			reject(request.error);
+			unlisten();
+		};
+		request.addEventListener("success", success);
+		request.addEventListener("error", error);
+	});
+	reverseTransformCache.set(promise, request);
+	return promise;
+}
+function cacheDonePromiseForTransaction(tx) {
+	if (transactionDoneMap.has(tx)) return;
+	const done = new Promise((resolve, reject) => {
+		const unlisten = () => {
+			tx.removeEventListener("complete", complete);
+			tx.removeEventListener("error", error);
+			tx.removeEventListener("abort", error);
+		};
+		const complete = () => {
+			resolve();
+			unlisten();
+		};
+		const error = () => {
+			reject(tx.error || new DOMException("AbortError", "AbortError"));
+			unlisten();
+		};
+		tx.addEventListener("complete", complete);
+		tx.addEventListener("error", error);
+		tx.addEventListener("abort", error);
+	});
+	transactionDoneMap.set(tx, done);
+}
+let idbProxyTraps = {
+	get(target, prop, receiver) {
+		if (target instanceof IDBTransaction) {
+			if (prop === "done") return transactionDoneMap.get(target);
+			if (prop === "store") return receiver.objectStoreNames[1] ? void 0 : receiver.objectStore(receiver.objectStoreNames[0]);
+		}
+		return wrap(target[prop]);
+	},
+	set(target, prop, value) {
+		target[prop] = value;
+		return true;
+	},
+	has(target, prop) {
+		if (target instanceof IDBTransaction && (prop === "done" || prop === "store")) return true;
+		return prop in target;
+	}
+};
+function replaceTraps(callback) {
+	idbProxyTraps = callback(idbProxyTraps);
+}
+function wrapFunction(func) {
+	if (getCursorAdvanceMethods().includes(func)) return function(...args) {
+		func.apply(unwrap(this), args);
+		return wrap(this.request);
+	};
+	return function(...args) {
+		return wrap(func.apply(unwrap(this), args));
+	};
+}
+function transformCachableValue(value) {
+	if (typeof value === "function") return wrapFunction(value);
+	if (value instanceof IDBTransaction) cacheDonePromiseForTransaction(value);
+	if (instanceOfAny(value, getIdbProxyableTypes())) return new Proxy(value, idbProxyTraps);
+	return value;
+}
+function wrap(value) {
+	if (value instanceof IDBRequest) return promisifyRequest(value);
+	if (transformCache.has(value)) return transformCache.get(value);
+	const newValue = transformCachableValue(value);
+	if (newValue !== value) {
+		transformCache.set(value, newValue);
+		reverseTransformCache.set(newValue, value);
+	}
+	return newValue;
+}
+const unwrap = (value) => reverseTransformCache.get(value);
+/**
+* Open a database.
+*
+* @param name Name of the database.
+* @param version Schema version.
+* @param callbacks Additional callbacks.
+*/
+function openDB(name, version, { blocked, upgrade, blocking, terminated } = {}) {
+	const request = indexedDB.open(name, version);
+	const openPromise = wrap(request);
+	if (upgrade) request.addEventListener("upgradeneeded", (event) => {
+		upgrade(wrap(request.result), event.oldVersion, event.newVersion, wrap(request.transaction), event);
+	});
+	if (blocked) request.addEventListener("blocked", (event) => blocked(event.oldVersion, event.newVersion, event));
+	openPromise.then((db) => {
+		if (terminated) db.addEventListener("close", () => terminated());
+		if (blocking) db.addEventListener("versionchange", (event) => blocking(event.oldVersion, event.newVersion, event));
+	}).catch(() => {});
+	return openPromise;
+}
+const readMethods = [
+	"get",
+	"getKey",
+	"getAll",
+	"getAllKeys",
+	"count"
+];
+const writeMethods = [
+	"put",
+	"add",
+	"delete",
+	"clear"
+];
+const cachedMethods = /* @__PURE__ */ new Map();
+function getMethod(target, prop) {
+	if (!(target instanceof IDBDatabase && !(prop in target) && typeof prop === "string")) return;
+	if (cachedMethods.get(prop)) return cachedMethods.get(prop);
+	const targetFuncName = prop.replace(/FromIndex$/, "");
+	const useIndex = prop !== targetFuncName;
+	const isWrite = writeMethods.includes(targetFuncName);
+	if (!(targetFuncName in (useIndex ? IDBIndex : IDBObjectStore).prototype) || !(isWrite || readMethods.includes(targetFuncName))) return;
+	const method = async function(storeName, ...args) {
+		const tx = this.transaction(storeName, isWrite ? "readwrite" : "readonly");
+		let target = tx.store;
+		if (useIndex) target = target.index(args.shift());
+		return (await Promise.all([target[targetFuncName](...args), isWrite && tx.done]))[0];
+	};
+	cachedMethods.set(prop, method);
+	return method;
+}
+replaceTraps((oldTraps) => ({
+	...oldTraps,
+	get: (target, prop, receiver) => getMethod(target, prop) || oldTraps.get(target, prop, receiver),
+	has: (target, prop) => !!getMethod(target, prop) || oldTraps.has(target, prop)
+}));
+const advanceMethodProps = [
+	"continue",
+	"continuePrimaryKey",
+	"advance"
+];
+const methodMap = {};
+const advanceResults = /* @__PURE__ */ new WeakMap();
+const ittrProxiedCursorToOriginalProxy = /* @__PURE__ */ new WeakMap();
+const cursorIteratorTraps = { get(target, prop) {
+	if (!advanceMethodProps.includes(prop)) return target[prop];
+	let cachedFunc = methodMap[prop];
+	if (!cachedFunc) cachedFunc = methodMap[prop] = function(...args) {
+		advanceResults.set(this, ittrProxiedCursorToOriginalProxy.get(this)[prop](...args));
+	};
+	return cachedFunc;
+} };
+async function* iterate(...args) {
+	let cursor = this;
+	if (!(cursor instanceof IDBCursor)) cursor = await cursor.openCursor(...args);
+	if (!cursor) return;
+	cursor = cursor;
+	const proxiedCursor = new Proxy(cursor, cursorIteratorTraps);
+	ittrProxiedCursorToOriginalProxy.set(proxiedCursor, cursor);
+	reverseTransformCache.set(proxiedCursor, unwrap(cursor));
+	while (cursor) {
+		yield proxiedCursor;
+		cursor = await (advanceResults.get(proxiedCursor) || cursor.continue());
+		advanceResults.delete(proxiedCursor);
+	}
+}
+function isIteratorProp(target, prop) {
+	return prop === Symbol.asyncIterator && instanceOfAny(target, [
+		IDBIndex,
+		IDBObjectStore,
+		IDBCursor
+	]) || prop === "iterate" && instanceOfAny(target, [IDBIndex, IDBObjectStore]);
+}
+replaceTraps((oldTraps) => ({
+	...oldTraps,
+	get(target, prop, receiver) {
+		if (isIteratorProp(target, prop)) return iterate;
+		return oldTraps.get(target, prop, receiver);
+	},
+	has(target, prop) {
+		return isIteratorProp(target, prop) || oldTraps.has(target, prop);
+	}
+}));
+//#endregion
+//#region typescript/db/repository.ts
+var Repository = class {
+	db;
+	storeName;
+	constructor(db, storeName) {
+		this.db = db;
+		this.storeName = storeName;
+	}
+	async get(id) {
+		return this.db.get(this.storeName, id);
+	}
+	async put(data, key) {
+		return this.db.put(this.storeName, data, key);
+	}
+	async bulkPut(items) {
+		let tx = this.db.transaction(this.storeName, "readwrite");
+		let putPromises = items.map((item) => tx.store.put(item));
+		await Promise.all([...putPromises, tx.done]);
+	}
+	async findMatches(match) {
+		return (await this.db.getAll(this.storeName)).filter(match);
+	}
+};
+//#endregion
+//#region typescript/db/sessionDb.ts
+const DB_VERSION = 1;
+const SESSION_DB_PREFIX = "sessionStorage";
+async function initializeSession() {
+	if (!sessionStorage.getItem("session_active")) {
+		let dbs = await indexedDB.databases();
+		for (let db of dbs) if (db.name?.startsWith(SESSION_DB_PREFIX)) {
+			const deleteRequest = indexedDB.deleteDatabase(db.name);
+			deleteRequest.onsuccess = () => {
+				console.log(`Database ${db.name} deleted successfully.`);
+			};
+		}
+		sessionStorage.setItem("session_active", "true");
+	}
+}
+let cacheMap = /* @__PURE__ */ new Map();
+async function getSessionSchoolCache(schoolId) {
+	let cache = cacheMap.get(schoolId);
+	if (!cache) {
+		cache = await SessionSchoolCache.get(schoolId);
+		cacheMap.set(schoolId, cache);
+	}
+	return cache;
+}
+var SessionSchoolCache = class SessionSchoolCache {
+	schoolId;
+	db;
+	get AssetRefs() {
+		return this._AssetRefs;
+	}
+	get Loaded() {
+		return this._Loaded;
+	}
+	get LesRefs() {
+		return this._LesRefs;
+	}
+	get TeacherRefs() {
+		return this._TeacherRefs;
+	}
+	_LesRefs;
+	_Loaded;
+	_AssetRefs;
+	_TeacherRefs;
+	constructor(schoolId, db) {
+		this.schoolId = schoolId;
+		this.db = db;
+		this._LesRefs = new Repository(this.db, "LesRefs");
+		this._Loaded = new Repository(this.db, "Loaded");
+		this._AssetRefs = new Repository(this.db, "AssetRefs");
+		this._TeacherRefs = new Repository(this.db, "TeacherRefs");
+	}
+	static getDbName(schoolId) {
+		return `${SESSION_DB_PREFIX}_${schoolId}`;
+	}
+	static async get(schoolId) {
+		await initializeSession();
+		return new SessionSchoolCache(schoolId, await openDB(SessionSchoolCache.getDbName(schoolId), DB_VERSION, { upgrade(db) {
+			db.createObjectStore("LesRefs", { keyPath: "id" });
+			db.createObjectStore("Loaded");
+			db.createObjectStore("AssetRefs", { keyPath: "id" });
+			db.createObjectStore("TeacherRefs", { keyPath: "id" });
+		} }));
+	}
+};
+//#endregion
+//#region typescript/assets/scrape.ts
+async function scrapeAssets() {
+	let snel_zoeken = document.querySelector("#snel_zoeken");
+	let infoBlockDiv = document.createElement("div");
+	snel_zoeken.parentNode.insertBefore(infoBlockDiv, snel_zoeken);
+	return [...(await getTableFromHash("extra-assets-assets", true, new InfoBarTableFetchListener(createInfoBlock(infoBlockDiv, "")))).getRows()].map((row) => {
+		return {
+			id: row.cells[0].innerText,
+			code: [...row.cells[1].childNodes].map((node) => node.nodeValue).join("")
+		};
+	}).filter((asset) => asset.code);
+}
+//#endregion
+//#region typescript/globalSearch.ts
+function onPasteInGlobalSearchField(e) {
+	if (!options.stripCommasOnPaste) return;
+	let searchField = document.getElementById("snel_zoeken_veld_zoektermen");
+	let newText = (e.clipboardData?.getData("text/plain") ?? "").replaceAll(",", "").replaceAll("-", " ");
+	searchField.setRangeText(newText);
+	searchField.setSelectionRange(newText.length, newText.length);
+	e.preventDefault();
+}
+async function onParentKeyUp(e) {
+	if (e.key == "Enter") {
+		if (!options.powerGoto) return;
+		console.log("parent Enter");
+		let text = document.getElementById("snel_zoeken_veld_zoektermen").value;
+		if (await onEnterPressed(text) == "cancel") {
+			console.log("canceling");
+			e.stopImmediatePropagation();
+			e.preventDefault();
+			return;
+		}
+	}
+}
+let ignoreNextEnter = false;
+async function onEnterPressed(text) {
+	if (ignoreNextEnter) {
+		ignoreNextEnter = false;
+		return "default";
+	}
+	if (!text.includes(":")) return "default";
+	let parts = text.split(":");
+	let key = parts.shift();
+	//! will have 1 element
+	let value = parts.join(":");
+	if ("les".startsWith(key)) {
+		gotoLesRef(value.trim());
+		return "cancel";
+	} else if ("ma".startsWith(key)) {
+		gotoLesRef(value.trim(), "Muziekatelier");
+		return "cancel";
+	} else if ("asset".startsWith(key)) {
+		gotoAssetRef(value.trim());
+		return "cancel";
+	}
+	return "default";
+}
+async function updateLesMenuItem(dropDownMenu, index, lesRef, signal) {
+	if (signal.aborted) {
+		console.log("ABORTED updateMenuItem:", lesRef.id);
+		return;
+	}
+	let les = await fetchLes(lesRef.id, signal);
+	let lesmomenten = les.lesMomenten.join("\n");
+	let full = les.aantal >= les.maxAantal;
+	let infoBlock = createLesCard(lesRef.name, {
+		vakName: les.vak,
+		full,
+		lesmoment: lesmomenten,
+		aantal: les.aantal,
+		maxAantal: les.maxAantal,
+		wachtlijst: 0,
+		vestiging: les.vestiging
+	});
+	dropDownMenu.setItemContent(index, infoBlock);
+}
+async function updateAssetMenuItem(dropDownMenu, index, assetRef, signal) {
+	if (signal.aborted) {
+		console.log("ABORTED updateMenuItem:", assetRef.id);
+		return;
+	}
+}
+async function gotoLesRef(lesName, vak) {
+	return gotoRef(() => getLesMatches(lesName, vak), "/#lessen-les?id=", (lesRef) => createLesCard(lesRef.name, PlaceHolder), updateLesMenuItem);
+}
+async function gotoAssetRef(assetCode) {
+	return gotoRef(() => getAssetMatches(assetCode), "/#extra-assets-assets-details?id=", (assetRef) => assetRef.code, updateAssetMenuItem);
+}
+async function gotoRef(getMatches, gotoUrl, getLabel, updateMenuItem) {
+	let matches = await getMatches();
+	if (matches) {
+		if (matches.length == 1) {
+			console.log("gotoRef: matches.length == 1");
+			setTimeout(() => {
+				console.log(`gotoRef: matches.length == 1, location.href = ${gotoUrl + matches[0].id}`);
+				location.href = gotoUrl + matches[0].id;
+			});
+			return true;
+		}
+		if (matches.length > 1) {
+			let searchField = document.getElementById("snel_zoeken_veld_zoektermen");
+			let abortController = new AbortController();
+			let signal = abortController.signal;
+			let dropDownMenu = new DropDownMenu(searchField.parentElement?.parentElement, searchField, false, true, abortController);
+			let queue = Promise.resolve();
+			for (let ref of matches) {
+				let index = dropDownMenu.addItem(getLabel(ref), 0, () => {
+					abortController.abort();
+					dropDownMenu.remove();
+					location.href = gotoUrl + ref.id;
+				});
+				queue = queue.then(() => updateMenuItem(dropDownMenu, index, ref, signal));
+			}
+			dropDownMenu.show();
+		}
+	}
+	return true;
+}
+async function getLesMatches(lesName, vak) {
+	if (!lesName) return [];
+	let lowerCase = lesName.toLowerCase();
+	let cache = await getSessionSchoolCache(getSchoolIdString());
+	let loaded = await cache.Loaded.get("LesRefs");
+	console.log("loaded", loaded);
+	if (!loaded) {
+		let lessen = await scrapeLessen("3", "1", Schoolyear.toFullString(Schoolyear.calculateCurrent()));
+		lessen.push(...await scrapeLessen("2", "1", Schoolyear.toFullString(Schoolyear.calculateCurrent())));
+		lessen.push(...await scrapeLessen("4", "1", Schoolyear.toFullString(Schoolyear.calculateCurrent())));
+		let lesRefs = lessen.map((l) => ({
+			id: l.les.id,
+			name: l.les.naam,
+			vak: l.les.vakNaam
+		}));
+		await cache.LesRefs.bulkPut(lesRefs);
+		await cache.Loaded.put(true, "LesRefs");
+	}
+	if (vak) return cache.LesRefs.findMatches((lesRef) => lesRef.name.toLowerCase().includes(lowerCase) && lesRef.vak == vak);
+	let matches = await cache.LesRefs.findMatches((lesRef) => lesRef.name.toLowerCase().includes(lowerCase));
+	matches.sort((a, b) => a.name.localeCompare(b.name));
+	return matches;
+}
+async function getAssetRefs() {
+	return (await scrapeAssets()).map((asset) => ({
+		id: asset.id,
+		code: asset.code
+	}));
+}
+async function getRepositoryCached(storeName, getRefs) {
+	let cache = await getSessionSchoolCache(getSchoolIdString());
+	if (!await cache.Loaded.get(storeName)) {
+		let refs = await getRefs();
+		await cache[storeName].bulkPut(refs);
+		await cache.Loaded.put(true, storeName);
+	}
+	return cache[storeName];
+}
+async function getAssetMatches(assetCode) {
+	if (!assetCode) return [];
+	let lowerCase = assetCode.toLowerCase();
+	return (await getRepositoryCached("AssetRefs", getAssetRefs)).findMatches((assetRef) => assetRef.code.toLowerCase().includes(lowerCase));
+}
 //#endregion
 //#region typescript/werklijst/buildUren.ts
 let isUpdatePaused = true;
@@ -9169,15 +9640,21 @@ let colDefsArray = [
 let colDefs = new Map(colDefsArray.map((def) => [def.key, def.def]));
 function getTeacherValue(ctx) {
 	let name = ctx.vakLeraar.leraar.replaceAll("{", "").replaceAll("}", "");
+	let [lastName, firstName] = name.split(", ");
 	let element = emmet.indent.createElement(`
         span
             span{${name}}
-            a[href="javascript:void(0)"]
+            button.naked
                 i.fas.fa-user-alt
     `);
 	//! must have A element.
-	element.querySelector("a").addEventListener("click", async () => {
-		await scrapeTeachers();
+	element.querySelector("button").addEventListener("click", async () => {
+		console.log("GOTO TEACHER " + ctx.vakLeraar.leraar);
+		let teachers = await (await getRepositoryCached("TeacherRefs", scrapeTeachers)).findMatches((ref) => ref.firstName === firstName && ref.lastName === lastName);
+		if (teachers.length === 0) return;
+		let teacher = teachers[0];
+		console.log("GOTO TEACHER " + teacher.id);
+		location.href = "/#personeel-personeelslid?id=" + teacher.id;
 	});
 	return element;
 }
@@ -11202,466 +11679,6 @@ function inschrijvingenLinkToQueryItem(headerLabel, link, longLabelPrefix) {
 	let longLabel = longLabelPrefix + headerLabel + " > " + label;
 	if (label.toLowerCase().includes("inschrijving")) longLabel = headerLabel + " > " + label;
 	return createQueryItem(headerLabel, label, link.href, void 0, longLabel);
-}
-//#endregion
-//#region node_modules/idb/build/index.js
-const instanceOfAny = (object, constructors) => constructors.some((c) => object instanceof c);
-let idbProxyableTypes;
-let cursorAdvanceMethods;
-function getIdbProxyableTypes() {
-	return idbProxyableTypes || (idbProxyableTypes = [
-		IDBDatabase,
-		IDBObjectStore,
-		IDBIndex,
-		IDBCursor,
-		IDBTransaction
-	]);
-}
-function getCursorAdvanceMethods() {
-	return cursorAdvanceMethods || (cursorAdvanceMethods = [
-		IDBCursor.prototype.advance,
-		IDBCursor.prototype.continue,
-		IDBCursor.prototype.continuePrimaryKey
-	]);
-}
-const transactionDoneMap = /* @__PURE__ */ new WeakMap();
-const transformCache = /* @__PURE__ */ new WeakMap();
-const reverseTransformCache = /* @__PURE__ */ new WeakMap();
-function promisifyRequest(request) {
-	const promise = new Promise((resolve, reject) => {
-		const unlisten = () => {
-			request.removeEventListener("success", success);
-			request.removeEventListener("error", error);
-		};
-		const success = () => {
-			resolve(wrap(request.result));
-			unlisten();
-		};
-		const error = () => {
-			reject(request.error);
-			unlisten();
-		};
-		request.addEventListener("success", success);
-		request.addEventListener("error", error);
-	});
-	reverseTransformCache.set(promise, request);
-	return promise;
-}
-function cacheDonePromiseForTransaction(tx) {
-	if (transactionDoneMap.has(tx)) return;
-	const done = new Promise((resolve, reject) => {
-		const unlisten = () => {
-			tx.removeEventListener("complete", complete);
-			tx.removeEventListener("error", error);
-			tx.removeEventListener("abort", error);
-		};
-		const complete = () => {
-			resolve();
-			unlisten();
-		};
-		const error = () => {
-			reject(tx.error || new DOMException("AbortError", "AbortError"));
-			unlisten();
-		};
-		tx.addEventListener("complete", complete);
-		tx.addEventListener("error", error);
-		tx.addEventListener("abort", error);
-	});
-	transactionDoneMap.set(tx, done);
-}
-let idbProxyTraps = {
-	get(target, prop, receiver) {
-		if (target instanceof IDBTransaction) {
-			if (prop === "done") return transactionDoneMap.get(target);
-			if (prop === "store") return receiver.objectStoreNames[1] ? void 0 : receiver.objectStore(receiver.objectStoreNames[0]);
-		}
-		return wrap(target[prop]);
-	},
-	set(target, prop, value) {
-		target[prop] = value;
-		return true;
-	},
-	has(target, prop) {
-		if (target instanceof IDBTransaction && (prop === "done" || prop === "store")) return true;
-		return prop in target;
-	}
-};
-function replaceTraps(callback) {
-	idbProxyTraps = callback(idbProxyTraps);
-}
-function wrapFunction(func) {
-	if (getCursorAdvanceMethods().includes(func)) return function(...args) {
-		func.apply(unwrap(this), args);
-		return wrap(this.request);
-	};
-	return function(...args) {
-		return wrap(func.apply(unwrap(this), args));
-	};
-}
-function transformCachableValue(value) {
-	if (typeof value === "function") return wrapFunction(value);
-	if (value instanceof IDBTransaction) cacheDonePromiseForTransaction(value);
-	if (instanceOfAny(value, getIdbProxyableTypes())) return new Proxy(value, idbProxyTraps);
-	return value;
-}
-function wrap(value) {
-	if (value instanceof IDBRequest) return promisifyRequest(value);
-	if (transformCache.has(value)) return transformCache.get(value);
-	const newValue = transformCachableValue(value);
-	if (newValue !== value) {
-		transformCache.set(value, newValue);
-		reverseTransformCache.set(newValue, value);
-	}
-	return newValue;
-}
-const unwrap = (value) => reverseTransformCache.get(value);
-/**
-* Open a database.
-*
-* @param name Name of the database.
-* @param version Schema version.
-* @param callbacks Additional callbacks.
-*/
-function openDB(name, version, { blocked, upgrade, blocking, terminated } = {}) {
-	const request = indexedDB.open(name, version);
-	const openPromise = wrap(request);
-	if (upgrade) request.addEventListener("upgradeneeded", (event) => {
-		upgrade(wrap(request.result), event.oldVersion, event.newVersion, wrap(request.transaction), event);
-	});
-	if (blocked) request.addEventListener("blocked", (event) => blocked(event.oldVersion, event.newVersion, event));
-	openPromise.then((db) => {
-		if (terminated) db.addEventListener("close", () => terminated());
-		if (blocking) db.addEventListener("versionchange", (event) => blocking(event.oldVersion, event.newVersion, event));
-	}).catch(() => {});
-	return openPromise;
-}
-const readMethods = [
-	"get",
-	"getKey",
-	"getAll",
-	"getAllKeys",
-	"count"
-];
-const writeMethods = [
-	"put",
-	"add",
-	"delete",
-	"clear"
-];
-const cachedMethods = /* @__PURE__ */ new Map();
-function getMethod(target, prop) {
-	if (!(target instanceof IDBDatabase && !(prop in target) && typeof prop === "string")) return;
-	if (cachedMethods.get(prop)) return cachedMethods.get(prop);
-	const targetFuncName = prop.replace(/FromIndex$/, "");
-	const useIndex = prop !== targetFuncName;
-	const isWrite = writeMethods.includes(targetFuncName);
-	if (!(targetFuncName in (useIndex ? IDBIndex : IDBObjectStore).prototype) || !(isWrite || readMethods.includes(targetFuncName))) return;
-	const method = async function(storeName, ...args) {
-		const tx = this.transaction(storeName, isWrite ? "readwrite" : "readonly");
-		let target = tx.store;
-		if (useIndex) target = target.index(args.shift());
-		return (await Promise.all([target[targetFuncName](...args), isWrite && tx.done]))[0];
-	};
-	cachedMethods.set(prop, method);
-	return method;
-}
-replaceTraps((oldTraps) => ({
-	...oldTraps,
-	get: (target, prop, receiver) => getMethod(target, prop) || oldTraps.get(target, prop, receiver),
-	has: (target, prop) => !!getMethod(target, prop) || oldTraps.has(target, prop)
-}));
-const advanceMethodProps = [
-	"continue",
-	"continuePrimaryKey",
-	"advance"
-];
-const methodMap = {};
-const advanceResults = /* @__PURE__ */ new WeakMap();
-const ittrProxiedCursorToOriginalProxy = /* @__PURE__ */ new WeakMap();
-const cursorIteratorTraps = { get(target, prop) {
-	if (!advanceMethodProps.includes(prop)) return target[prop];
-	let cachedFunc = methodMap[prop];
-	if (!cachedFunc) cachedFunc = methodMap[prop] = function(...args) {
-		advanceResults.set(this, ittrProxiedCursorToOriginalProxy.get(this)[prop](...args));
-	};
-	return cachedFunc;
-} };
-async function* iterate(...args) {
-	let cursor = this;
-	if (!(cursor instanceof IDBCursor)) cursor = await cursor.openCursor(...args);
-	if (!cursor) return;
-	cursor = cursor;
-	const proxiedCursor = new Proxy(cursor, cursorIteratorTraps);
-	ittrProxiedCursorToOriginalProxy.set(proxiedCursor, cursor);
-	reverseTransformCache.set(proxiedCursor, unwrap(cursor));
-	while (cursor) {
-		yield proxiedCursor;
-		cursor = await (advanceResults.get(proxiedCursor) || cursor.continue());
-		advanceResults.delete(proxiedCursor);
-	}
-}
-function isIteratorProp(target, prop) {
-	return prop === Symbol.asyncIterator && instanceOfAny(target, [
-		IDBIndex,
-		IDBObjectStore,
-		IDBCursor
-	]) || prop === "iterate" && instanceOfAny(target, [IDBIndex, IDBObjectStore]);
-}
-replaceTraps((oldTraps) => ({
-	...oldTraps,
-	get(target, prop, receiver) {
-		if (isIteratorProp(target, prop)) return iterate;
-		return oldTraps.get(target, prop, receiver);
-	},
-	has(target, prop) {
-		return isIteratorProp(target, prop) || oldTraps.has(target, prop);
-	}
-}));
-//#endregion
-//#region typescript/db/repository.ts
-var Repository = class {
-	db;
-	storeName;
-	constructor(db, storeName) {
-		this.db = db;
-		this.storeName = storeName;
-	}
-	async get(id) {
-		return this.db.get(this.storeName, id);
-	}
-	async put(data, key) {
-		return this.db.put(this.storeName, data, key);
-	}
-	async bulkPut(items) {
-		let tx = this.db.transaction(this.storeName, "readwrite");
-		let putPromises = items.map((item) => tx.store.put(item));
-		await Promise.all([...putPromises, tx.done]);
-	}
-	async findMatches(match) {
-		return (await this.db.getAll(this.storeName)).filter(match);
-	}
-};
-//#endregion
-//#region typescript/db/sessionDb.ts
-const DB_VERSION = 1;
-const SESSION_DB_PREFIX = "sessionStorage";
-async function initializeSession() {
-	if (!sessionStorage.getItem("session_active")) {
-		let dbs = await indexedDB.databases();
-		for (let db of dbs) if (db.name?.startsWith(SESSION_DB_PREFIX)) {
-			const deleteRequest = indexedDB.deleteDatabase(db.name);
-			deleteRequest.onsuccess = () => {
-				console.log(`Database ${db.name} deleted successfully.`);
-			};
-		}
-		sessionStorage.setItem("session_active", "true");
-	}
-}
-let cacheMap = /* @__PURE__ */ new Map();
-async function getSessionSchoolCache(schoolId) {
-	let cache = cacheMap.get(schoolId);
-	if (!cache) {
-		cache = await SessionSchoolCache.get(schoolId);
-		cacheMap.set(schoolId, cache);
-	}
-	return cache;
-}
-var SessionSchoolCache = class SessionSchoolCache {
-	schoolId;
-	db;
-	get AssetRefs() {
-		return this._AssetRefs;
-	}
-	get Loaded() {
-		return this._Loaded;
-	}
-	get LesRefs() {
-		return this._LesRefs;
-	}
-	_LesRefs;
-	_Loaded;
-	_AssetRefs;
-	constructor(schoolId, db) {
-		this.schoolId = schoolId;
-		this.db = db;
-		this._LesRefs = new Repository(this.db, "LesRefs");
-		this._Loaded = new Repository(this.db, "Loaded");
-		this._AssetRefs = new Repository(this.db, "AssetRefs");
-	}
-	static getDbName(schoolId) {
-		return `${SESSION_DB_PREFIX}_${schoolId}`;
-	}
-	static async get(schoolId) {
-		await initializeSession();
-		return new SessionSchoolCache(schoolId, await openDB(SessionSchoolCache.getDbName(schoolId), DB_VERSION, { upgrade(db) {
-			db.createObjectStore("LesRefs", { keyPath: "id" });
-			db.createObjectStore("Loaded");
-			db.createObjectStore("AssetRefs", { keyPath: "id" });
-		} }));
-	}
-};
-//#endregion
-//#region typescript/assets/scrape.ts
-async function scrapeAssets() {
-	let snel_zoeken = document.querySelector("#snel_zoeken");
-	let infoBlockDiv = document.createElement("div");
-	snel_zoeken.parentNode.insertBefore(infoBlockDiv, snel_zoeken);
-	return [...(await getTableFromHash("extra-assets-assets", true, new InfoBarTableFetchListener(createInfoBlock(infoBlockDiv, "")))).getRows()].map((row) => {
-		return {
-			id: row.cells[0].innerText,
-			code: [...row.cells[1].childNodes].map((node) => node.nodeValue).join("")
-		};
-	}).filter((asset) => asset.code);
-}
-//#endregion
-//#region typescript/globalSearch.ts
-function onPasteInGlobalSearchField(e) {
-	if (!options.stripCommasOnPaste) return;
-	let searchField = document.getElementById("snel_zoeken_veld_zoektermen");
-	let newText = (e.clipboardData?.getData("text/plain") ?? "").replaceAll(",", "").replaceAll("-", " ");
-	searchField.setRangeText(newText);
-	searchField.setSelectionRange(newText.length, newText.length);
-	e.preventDefault();
-}
-async function onParentKeyUp(e) {
-	if (e.key == "Enter") {
-		if (!options.powerGoto) return;
-		console.log("parent Enter");
-		let text = document.getElementById("snel_zoeken_veld_zoektermen").value;
-		if (await onEnterPressed(text) == "cancel") {
-			console.log("canceling");
-			e.stopImmediatePropagation();
-			e.preventDefault();
-			return;
-		}
-	}
-}
-let ignoreNextEnter = false;
-async function onEnterPressed(text) {
-	if (ignoreNextEnter) {
-		ignoreNextEnter = false;
-		return "default";
-	}
-	if (!text.includes(":")) return "default";
-	let parts = text.split(":");
-	let key = parts.shift();
-	//! will have 1 element
-	let value = parts.join(":");
-	if ("les".startsWith(key)) {
-		gotoLesRef(value.trim());
-		return "cancel";
-	} else if ("ma".startsWith(key)) {
-		gotoLesRef(value.trim(), "Muziekatelier");
-		return "cancel";
-	} else if ("asset".startsWith(key)) {
-		gotoAssetRef(value.trim());
-		return "cancel";
-	}
-	return "default";
-}
-async function updateLesMenuItem(dropDownMenu, index, lesRef, signal) {
-	if (signal.aborted) {
-		console.log("ABORTED updateMenuItem:", lesRef.id);
-		return;
-	}
-	let les = await fetchLes(lesRef.id, signal);
-	let lesmomenten = les.lesMomenten.join("\n");
-	let full = les.aantal >= les.maxAantal;
-	let infoBlock = createLesCard(lesRef.name, {
-		vakName: les.vak,
-		full,
-		lesmoment: lesmomenten,
-		aantal: les.aantal,
-		maxAantal: les.maxAantal,
-		wachtlijst: 0,
-		vestiging: les.vestiging
-	});
-	dropDownMenu.setItemContent(index, infoBlock);
-}
-async function updateAssetMenuItem(dropDownMenu, index, assetRef, signal) {
-	if (signal.aborted) {
-		console.log("ABORTED updateMenuItem:", assetRef.id);
-		return;
-	}
-}
-async function gotoLesRef(lesName, vak) {
-	return gotoRef(() => getLesMatches(lesName, vak), "/#lessen-les?id=", (lesRef) => createLesCard(lesRef.name, PlaceHolder), updateLesMenuItem);
-}
-async function gotoAssetRef(assetCode) {
-	return gotoRef(() => getAssetMatches(assetCode), "/#extra-assets-assets-details?id=", (assetRef) => assetRef.code, updateAssetMenuItem);
-}
-async function gotoRef(getMatches, gotoUrl, getLabel, updateMenuItem) {
-	let matches = await getMatches();
-	if (matches) {
-		if (matches.length == 1) {
-			console.log("gotoRef: matches.length == 1");
-			setTimeout(() => {
-				console.log(`gotoRef: matches.length == 1, location.href = ${gotoUrl + matches[0].id}`);
-				location.href = gotoUrl + matches[0].id;
-			});
-			return true;
-		}
-		if (matches.length > 1) {
-			let searchField = document.getElementById("snel_zoeken_veld_zoektermen");
-			let abortController = new AbortController();
-			let signal = abortController.signal;
-			let dropDownMenu = new DropDownMenu(searchField.parentElement?.parentElement, searchField, false, true, abortController);
-			let queue = Promise.resolve();
-			for (let ref of matches) {
-				let index = dropDownMenu.addItem(getLabel(ref), 0, () => {
-					abortController.abort();
-					dropDownMenu.remove();
-					location.href = gotoUrl + ref.id;
-				});
-				queue = queue.then(() => updateMenuItem(dropDownMenu, index, ref, signal));
-			}
-			dropDownMenu.show();
-		}
-	}
-	return true;
-}
-async function getLesMatches(lesName, vak) {
-	if (!lesName) return [];
-	let lowerCase = lesName.toLowerCase();
-	let cache = await getSessionSchoolCache(getSchoolIdString());
-	let loaded = await cache.Loaded.get("LesRefs");
-	console.log("loaded", loaded);
-	if (!loaded) {
-		let lessen = await scrapeLessen("3", "1", Schoolyear.toFullString(Schoolyear.calculateCurrent()));
-		lessen.push(...await scrapeLessen("2", "1", Schoolyear.toFullString(Schoolyear.calculateCurrent())));
-		lessen.push(...await scrapeLessen("4", "1", Schoolyear.toFullString(Schoolyear.calculateCurrent())));
-		let lesRefs = lessen.map((l) => ({
-			id: l.les.id,
-			name: l.les.naam,
-			vak: l.les.vakNaam
-		}));
-		await cache.LesRefs.bulkPut(lesRefs);
-		await cache.Loaded.put(true, "LesRefs");
-	}
-	if (vak) return cache.LesRefs.findMatches((lesRef) => lesRef.name.toLowerCase().includes(lowerCase) && lesRef.vak == vak);
-	let matches = await cache.LesRefs.findMatches((lesRef) => lesRef.name.toLowerCase().includes(lowerCase));
-	matches.sort((a, b) => a.name.localeCompare(b.name));
-	return matches;
-}
-async function getAssetRefs() {
-	return (await scrapeAssets()).map((asset) => ({
-		id: asset.id,
-		code: asset.code
-	}));
-}
-async function getRepositoryCached(storeName, getRefs) {
-	let cache = await getSessionSchoolCache(getSchoolIdString());
-	if (!await cache.Loaded.get(storeName)) {
-		let refs = await getRefs();
-		await cache[storeName].bulkPut(refs);
-		await cache.Loaded.put(true, storeName);
-	}
-	return cache;
-}
-async function getAssetMatches(assetCode) {
-	if (!assetCode) return [];
-	let lowerCase = assetCode.toLowerCase();
-	return (await getRepositoryCached("AssetRefs", getAssetRefs)).AssetRefs.findMatches((assetRef) => assetRef.code.toLowerCase().includes(lowerCase));
 }
 //#endregion
 //#region typescript/main.ts

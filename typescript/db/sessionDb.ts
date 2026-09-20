@@ -19,6 +19,12 @@ export interface AssetRef extends Ref {
     code: string;
 }
 
+export interface TeacherRef extends Ref {
+    id: string;
+    firstName: string;
+    lastName: string;
+}
+
 export interface SessionDb extends DBSchema {
     LesRefs: {
         value: LesRef;
@@ -33,6 +39,11 @@ export interface SessionDb extends DBSchema {
     AssetRefs: {
         key: string;
         value: AssetRef;
+        indexes: {};
+    },
+    TeacherRefs: {
+        key: string;
+        value: TeacherRef;
         indexes: {};
     },
 
@@ -74,14 +85,19 @@ export class SessionSchoolCache {
     get LesRefs(): Repository<SessionDb, "LesRefs"> {
         return this._LesRefs;
     }
+    get TeacherRefs(): Repository<SessionDb, "TeacherRefs"> {
+        return this._TeacherRefs;
+    }
     private readonly _LesRefs: Repository<SessionDb, "LesRefs">;
     private readonly _Loaded: Repository<SessionDb, "Loaded">;
     private readonly _AssetRefs: Repository<SessionDb, "AssetRefs">;
+    private readonly _TeacherRefs: Repository<SessionDb, "TeacherRefs">;
 
     constructor(private schoolId: string, private db: IDBPDatabase<SessionDb>) {
         this._LesRefs = new Repository<SessionDb, "LesRefs">(this.db, 'LesRefs');
         this._Loaded = new Repository<SessionDb, "Loaded">(this.db, 'Loaded');
         this._AssetRefs = new Repository<SessionDb, "AssetRefs">(this.db, 'AssetRefs');
+        this._TeacherRefs = new Repository<SessionDb, "TeacherRefs">(this.db, 'TeacherRefs');
     }
 
     private static getDbName(schoolId: string) {
@@ -95,6 +111,7 @@ export class SessionSchoolCache {
                 db.createObjectStore("LesRefs", {keyPath: "id"});
                 db.createObjectStore("Loaded");
                 db.createObjectStore("AssetRefs", {keyPath: "id"});
+                db.createObjectStore("TeacherRefs", {keyPath: "id"});
             },
         }));
     }

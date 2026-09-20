@@ -9,6 +9,7 @@ import observer from "./observer";
 import {InfoBlock} from "../infoBlock";
 import {makeTableSortable} from "../table/tableSort";
 import {scrapeTeachers} from "../personeel/scrape";
+import {getRepositoryCached} from "../globalSearch";
 
 let isUpdatePaused = true;
 let cellChanged = false;
@@ -82,16 +83,22 @@ let colDefs = new Map(colDefsArray.map((def) => [def.key, def.def]));
 
 function getTeacherValue(ctx: Context) {
     let name = ctx.vakLeraar.leraar.replaceAll("{", "").replaceAll("}", "");
+    let [lastName, firstName] = name.split(", ");
 
     let element= emmet.indent.createElement(`
         span
             span{${name}}
-            a[href="javascript:void(0)"]
+            button.naked
                 i.fas.fa-user-alt
     `);
-    let a = element.querySelector("a")!; //! must have A element.
-    a.addEventListener("click", async () => {
-        let teachers = await scrapeTeachers();
+    let button = element.querySelector("button")!; //! must have A element.
+    button.addEventListener("click", async () => {
+        let cache = await getRepositoryCached("TeacherRefs", scrapeTeachers);
+        let teachers = await cache.findMatches((ref) => ref.firstName === firstName && ref.lastName === lastName);
+        if(teachers.length === 0)
+            return;
+        let teacher = teachers[0];
+        location.href = "/#personeel-personeelslid?id=" + teacher.id;
     });
     return element;
 }

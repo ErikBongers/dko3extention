@@ -4,6 +4,7 @@ import * as def from "../def";
 import {Schoolyear} from "../globals";
 import {FetchedTable, TableFetcher} from "../table/tableFetcher";
 import {TableRef} from "../table/tableRef";
+import {TeacherRef} from "../db/sessionDb";
 
 export interface Teacher {
     id: string;
@@ -12,8 +13,9 @@ export interface Teacher {
 
 export async function scrapeTeachers() {
     return scrapeTable(new Dko3PersoneelFetcher(), row => {
-        //todo
-        console.log(row);
+        let strong = row.querySelector("strong")!;
+        let [lastName, firstName] = strong.textContent.split(", ");
+        return {id: row.dataset.id!, firstName, lastName} satisfies TeacherRef;
     });
 }
 

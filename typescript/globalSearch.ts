@@ -179,7 +179,7 @@ async function getAssetRefs() {
         .map<AssetRef>(asset => ({id: asset.id, code: asset.code}));
 }
 
-async function getRepositoryCached<K extends StoreNames<SessionDb>, T extends Ref>(storeName: K, getRefs: () => Promise<T[]>) {
+export async function getRepositoryCached<K extends StoreNames<SessionDb>, T extends Ref>(storeName: K, getRefs: () => Promise<T[]>) {
     let cache = await getSessionSchoolCache(getSchoolIdString())
     let loaded = await cache.Loaded.get(storeName as string);
     if (!loaded) {
@@ -188,7 +188,7 @@ async function getRepositoryCached<K extends StoreNames<SessionDb>, T extends Re
         await cache[storeName].bulkPut(refs);
         await cache.Loaded.put(true, storeName as string);
     }
-    return cache;
+    return cache[storeName];
 }
 
 async function getAssetMatches(assetCode: string) {
@@ -196,5 +196,5 @@ async function getAssetMatches(assetCode: string) {
         return [];
     let lowerCase = assetCode.toLowerCase();
     let cache = await getRepositoryCached("AssetRefs", getAssetRefs);
-    return cache.AssetRefs.findMatches(assetRef => assetRef.code.toLowerCase().includes(lowerCase));
+    return cache.findMatches(assetRef => assetRef.code.toLowerCase().includes(lowerCase));
 }
