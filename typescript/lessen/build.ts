@@ -1,9 +1,9 @@
 import {FULL_CLASS_BUTTON_ID, TRIM_DIV_ID} from "../def";
-import {db3, isButtonHighlighted, stripStudentName} from "../globals";
+import {db3, gotoTeacher, isButtonHighlighted, stripStudentName} from "../globals";
 import {BlockInfo, mergeBlockStudents, TableData} from "./convert";
 import {StudentInfo} from "./scrape";
 import * as html from "../../libs/Emmeter/html";
-import {emmet} from "../../libs/Emmeter/html";
+import {emmet} from "../../libs/Emmeter";
 import {PageName} from "../gotoState";
 import {getTrimPageElements} from "./observer";
 import {getPageSettings, PageSettings, savePageSettings} from "../pageState";
@@ -94,7 +94,7 @@ export function buildTrimesterTable(tableData: TableData, trimElements: TrimElem
     switch(pageState.grouping) {
         case TrimesterGrouping.InstrumentTeacherHour:
             for (let [instrumentName, instrument] of tableData.instruments) {
-                buildGroup(newTableBody, instrument.blocks, instrumentName, (block) => block.teacher!, DisplayOptions.Hour | DisplayOptions.Location);
+                buildGroup(newTableBody, instrument.blocks, instrumentName, (block) => createTeacherSpan(block), DisplayOptions.Hour | DisplayOptions.Location);
             }
             break;
         case TrimesterGrouping.TeacherInstrumentHour:
@@ -137,7 +137,7 @@ export function buildTrimesterTable(tableData: TableData, trimElements: TrimElem
     }
 }
 
-function buildGroup(newTableBody: HTMLTableSectionElement, blocks: BlockInfo[], groupId: string, getBlockTitle: (block: BlockInfo) => string, displayOptions: DisplayOptions) {
+function buildGroup(newTableBody: HTMLTableSectionElement, blocks: BlockInfo[], groupId: string, getBlockTitle: (block: BlockInfo) => string | HTMLElement, displayOptions: DisplayOptions) {
     buildTitleRow(newTableBody, groupId);
     for (let block of blocks) {
         buildBlock(newTableBody, block, groupId, getBlockTitle, displayOptions);
@@ -175,7 +175,7 @@ First draw the 2 jaarmodule students.
 
  */
 
-function buildBlock(newTableBody: HTMLTableSectionElement, block: BlockInfo, groupId: string, getBlockTitle: (undefined | ((block: BlockInfo) => string)), displayOptions: DisplayOptions) {
+function buildBlock(newTableBody: HTMLTableSectionElement, block: BlockInfo, groupId: string, getBlockTitle: (undefined | ((block: BlockInfo) => string | HTMLElement)), displayOptions: DisplayOptions) {
     let mergedBlockStudents = mergeBlockStudents(block);
 
     let trimesterHeaders = [0,1,2] .map(trimNo => {
@@ -304,7 +304,7 @@ function buildTitleRow(newTableBody: HTMLTableSectionElement, title: string) {
     return {trTitle, divTitle};
 }
 
-function buildBlockTitle(newTableBody: HTMLTableSectionElement, block: BlockInfo, getBlockTitle: (undefined | ((block: BlockInfo) => string)), groupId: string) {
+function buildBlockTitle(newTableBody: HTMLTableSectionElement, block: BlockInfo, getBlockTitle: (undefined | ((block: BlockInfo) => string | HTMLElement)), groupId: string) {
     if(!getBlockTitle && !block.errors)
         return undefined;
     const trBlockTitle = newTableBody.appendChild(createLesRow(groupId, block.id));
@@ -312,7 +312,13 @@ function buildBlockTitle(newTableBody: HTMLTableSectionElement, block: BlockInfo
 
     let {last: divBlockTitle} = html.emmet.append(trBlockTitle, "td.infoCell[colspan=3]>div.text-muted");
     if(getBlockTitle) {
-        emmet.appendChild(divBlockTitle as HTMLDivElement, `span.blockTitle{${getBlockTitle(block)}}`);
+        let title = getBlockTitle(block);
+        if(typeof title == "string")
+            emmet.appendChild(divBlockTitle as HTMLDivElement, `span.blockTitle{${title}}`);
+        else {
+            let {first} = emmet.appendChild(divBlockTitle as HTMLDivElement, `span.blockTitle`);
+            first.appendChild(title);
+        }
     }
 
     for (let jaarModule of block.jaarModules) {
@@ -345,14 +351,32 @@ function buildInfoRow(newTableBody: HTMLTableSectionElement, _text: string, show
     return html.emmet.append(trBlockInfo, "td.infoCell[colspan=3]>div.text-muted");
 }
 
-function buildInfoRowWithText(newTableBody: HTMLTableSectionElement, show: boolean, blockId: number, groupId: string, text: string)  {
+function buildInfoRowWithText(newTableBody: HTMLTableSectionElement, show: boolean, blockId: number, groupId: string, text: string | HTMLElement)  {
     let {last: divMuted} = buildInfoRow(newTableBody, "", show, groupId, blockId);
-    divMuted!.appendChild(document.createTextNode(text));
+    if(typeof text === "string")
+        divMuted!.appendChild(document.createTextNode(text));
+    else
+        divMuted!.appendChild(text);
+}
+
+function createTeacherSpan(block: BlockInfo) {
+    let teacherSpan = emmet.indent.createElement(`
+        span{${block.teacher!}}
+            button.naked.blueIcon
+                i.fas.fa-user-alt
+    `);
+    let button = teacherSpan.firstElementChild as HTMLButtonElement;
+    button.onclick = async () => {
+        let [lastName, firstName] = block.teacher!.split(", ");
+        await gotoTeacher(firstName, lastName);
+    };
+    return teacherSpan;
 }
 
 function buildBlockHeader(newTableBody: HTMLTableSectionElement, block: BlockInfo, groupId: string, trimesterHeaders: string[], displayOptions: DisplayOptions) {
     //INFO
-    buildInfoRowWithText(newTableBody, Boolean((DisplayOptions.Teacher & displayOptions)), block.id, groupId, block.teacher!);
+    let teacherSpan = createTeacherSpan(block);
+    buildInfoRowWithText(newTableBody, Boolean((DisplayOptions.Teacher & displayOptions)), block.id, groupId, teacherSpan);
     buildInfoRowWithText(newTableBody, Boolean((DisplayOptions.Instrument & displayOptions)), block.id, groupId, block.instrumentName!);
     buildInfoRowWithText(newTableBody, Boolean((DisplayOptions.Hour & displayOptions)), block.id, groupId, block.formattedLesmoment!);
     buildInfoRowWithText(newTableBody, Boolean((DisplayOptions.Location & displayOptions)), block.id, groupId, block.vestiging!);

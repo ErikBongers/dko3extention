@@ -50,10 +50,6 @@ Given the sender of the following mail has 3 children, Bob 5y, Alice 7y and Clar
 
 * fetch table: make abortable.
 
-* telnrs in lln fiche spaties toevoegen
-
-* trims: click on teacher -> goto teacher.
-
 * in lists with student names: allow to add extra student data. (expensive per record, but doable via werklijst)
   > add certain hashes to certain lists> allow to add an extra hash column.
   > opm table

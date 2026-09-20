@@ -60,3 +60,8 @@ button.naked {
 .wch2 {
     width: 2ch;
 }
+
+.blueIcon,
+button.blueIcon{
+    color: #007bff;
+}
