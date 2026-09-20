@@ -9643,9 +9643,7 @@ function getTeacherValue(ctx) {
 	let [lastName, firstName] = name.split(", ");
 	let element = emmet.indent.createElement(`
         span
-            span{${name}}
-            button.naked
-                i.fas.fa-user-alt
+            button.bkgGray{${name}}
     `);
 	let button = element.querySelector("button");
 	//! must have A element.
@@ -9938,7 +9936,7 @@ function fillGraadCell(ctx) {
 	if (!graadJaar) return NaN;
 	let button = document.createElement("button");
 	ctx.td.appendChild(button);
-	button.classList.add("cellPopover");
+	button.classList.add("bkgGray");
 	if ((graadJaar?.count ?? 0) === 0) return graadJaar.count;
 	button.innerText = graadJaar.count.toString();
 	popoverIndex++;
