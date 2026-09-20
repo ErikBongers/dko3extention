@@ -4,10 +4,10 @@ import {LesType} from "./roster_diff/calcDiff";
 import {getSchoolIdString, Schoolyear} from "./globals";
 import {DropDownMenu} from "./dropDownMenus";
 import {fetchLes} from "./les/fetch";
-import {createLesCard, PlaceHolder} from "./leerling/observer";
 import {AssetRef, getSessionSchoolCache, LesRef, Ref, SessionDb} from "./db/sessionDb";
 import {scrapeAssets} from "./assets/scrape";
 import {StoreNames} from "idb";
+import {createLesCard, PlaceHolder} from "./leerling/scrape";
 
 export function onPasteInGlobalSearchField(e: ClipboardEvent) {
     if (!options.stripCommasOnPaste)

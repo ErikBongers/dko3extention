@@ -48,8 +48,6 @@ Given the sender of the following mail has 3 children, Bob 5y, Alice 7y and Clar
 * perhaps patch transformers?
   >> https://github.com/huggingface/transformers.js/issues/1248
 
-* teacherHours: link to teacher (toewijzingen)
-
 * fetch table: make abortable.
 
 * telnrs in lln fiche spaties toevoegen

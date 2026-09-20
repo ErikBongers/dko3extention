@@ -7685,6 +7685,94 @@ async function fetchLes(id, signal, options) {
 	};
 }
 //#endregion
+//#region typescript/leerling/scrape.ts
+const PlaceHolder = Symbol("placeholder");
+function convertToEmmet(text, charWidth) {
+	if (text === PlaceHolder) return `span.placeHolder.wch${charWidth}`;
+	else return `{${text}}`;
+}
+function createLesCard(lesName, lesCardData) {
+	if (lesCardData === PlaceHolder) lesCardData = {
+		vakName: "",
+		full: false,
+		lesmoment: PlaceHolder,
+		aantal: PlaceHolder,
+		maxAantal: PlaceHolder,
+		wachtlijst: 0,
+		vestiging: PlaceHolder
+	};
+	let wachtlijst = lesCardData.wachtlijst == 0 ? "span" : `span.red{ (${lesCardData.wachtlijst} op wachtlijst)}`;
+	let emmetText = `
+            div.small${lesCardData.full ? ".full" : ""}
+                div.bold.pre
+                    strong{${buildLesTitle(lesName, lesCardData.vakName)}}
+                div.pre
+                    ${convertToEmmet(lesCardData.vestiging, 13)}
+                div.pre
+                    ${convertToEmmet(lesCardData.lesmoment, 11)}
+                div.pre.noClipboard
+                    ${convertToEmmet(lesCardData.aantal, 2)}
+                    {/}
+                    ${convertToEmmet(lesCardData.maxAantal, 2)} 
+                    { lln} 
+                    ${wachtlijst}
+        `;
+	return emmet.indent.createElement(emmetText);
+}
+function buildLesTitle(lesName, vakName) {
+	return `${lesName ? lesName : vakName + " " + lesName}`;
+}
+function scrapeOpleidingen() {
+	let tBody = document.getElementById("leerling_inschrijvingen_weergave").querySelector("tbody");
+	let opleidingen = [];
+	for (let tr of tBody.querySelectorAll("tr")) {
+		let detailsTdOffset = 0;
+		if ([...tr.classList].find((c) => c.includes("inschrijvingen_domein"))) {
+			if (tr.cells[0].getAttribute("rowspan")) {
+				let opleiding = scrapeOpleidingRow(tr);
+				opleidingen.push(opleiding);
+				detailsTdOffset = 3;
+			}
+		}
+		let lesInfo = scrapeLesInfoDetails(tr, detailsTdOffset);
+		opleidingen[opleidingen.length - 1].lessen.push(lesInfo);
+	}
+	return opleidingen;
+}
+function scrapeOpleidingRow(tr) {
+	let tdOpleiding = tr.querySelector("td:nth-child(2)");
+	let tdText = tdOpleiding.textContent;
+	let domein = "";
+	if (tdText.includes("DomeinOv")) domein = "DomeinOV";
+	if (tdText.includes("Muziek")) domein = "Muziek";
+	if (tdText.includes("Woord")) domein = "Woord";
+	let rx = new RegExp(`${domein}\\s*-\\s*<strong>v*(.*?)</strong>`);
+	let gradeYearText = rx.exec(tdOpleiding.innerHTML)?.at(1);
+	let gradeYears = [];
+	if (gradeYearText) gradeYears = textsToYearGrades([gradeYearText]);
+	rx = /(\d{4,})/;
+	let adminGroup = rx.exec(tdText)?.at(1) ?? "";
+	return {
+		domein,
+		gradeYears,
+		lessen: [],
+		adminGroup
+	};
+}
+function scrapeLesInfoDetails(tr, detailsTdOffset) {
+	let tdVakLes = tr.cells[detailsTdOffset + 1];
+	let vakNaam = tdVakLes.querySelector("strong")?.textContent ?? "";
+	let lesNaam = tdVakLes.querySelector("small")?.textContent ?? "";
+	let iGotoClass = tr.querySelector("i.fa-list-ul");
+	let gotoButton = null;
+	if (iGotoClass) gotoButton = iGotoClass.parentElement;
+	return {
+		vak: vakNaam,
+		lesNaam,
+		gotoButton
+	};
+}
+//#endregion
 //#region typescript/leerling/observer.ts
 var LeerlingObserver = class extends HashObserver {
 	constructor() {
@@ -7896,89 +7984,6 @@ async function showGotoLesMenu(wrapper, button, btnOnClick, lesInfo, opleiding, 
 function lesInfoHasButton(lesInfo) {
 	return lesInfo.gotoButton !== null;
 }
-function scrapeOpleidingen() {
-	let tBody = document.getElementById("leerling_inschrijvingen_weergave").querySelector("tbody");
-	let opleidingen = [];
-	for (let tr of tBody.querySelectorAll("tr")) {
-		let detailsTdOffset = 0;
-		if ([...tr.classList].find((c) => c.includes("inschrijvingen_domein"))) {
-			if (tr.cells[0].getAttribute("rowspan")) {
-				let opleiding = scrapeOpleidingRow(tr);
-				opleidingen.push(opleiding);
-				detailsTdOffset = 3;
-			}
-		}
-		let lesInfo = scrapeLesInfoDetails(tr, detailsTdOffset);
-		opleidingen[opleidingen.length - 1].lessen.push(lesInfo);
-	}
-	return opleidingen;
-}
-function scrapeOpleidingRow(tr) {
-	let tdOpleiding = tr.querySelector("td:nth-child(2)");
-	let tdText = tdOpleiding.textContent;
-	let domein = "";
-	if (tdText.includes("DomeinOv")) domein = "DomeinOV";
-	if (tdText.includes("Muziek")) domein = "Muziek";
-	if (tdText.includes("Woord")) domein = "Woord";
-	let rx = new RegExp(`${domein}\\s*-\\s*<strong>v*(.*?)</strong>`);
-	let gradeYearText = rx.exec(tdOpleiding.innerHTML)?.at(1);
-	let gradeYears = [];
-	if (gradeYearText) gradeYears = textsToYearGrades([gradeYearText]);
-	rx = /(\d{4,})/;
-	let adminGroup = rx.exec(tdText)?.at(1) ?? "";
-	return {
-		domein,
-		gradeYears,
-		lessen: [],
-		adminGroup
-	};
-}
-function scrapeLesInfoDetails(tr, detailsTdOffset) {
-	let tdVakLes = tr.cells[detailsTdOffset + 1];
-	let vakNaam = tdVakLes.querySelector("strong")?.textContent ?? "";
-	let lesNaam = tdVakLes.querySelector("small")?.textContent ?? "";
-	let iGotoClass = tr.querySelector("i.fa-list-ul");
-	let gotoButton = null;
-	if (iGotoClass) gotoButton = iGotoClass.parentElement;
-	return {
-		vak: vakNaam,
-		lesNaam,
-		gotoButton
-	};
-}
-const PlaceHolder = Symbol("placeholder");
-function convertToEmmet(text, charWidth) {
-	if (text === PlaceHolder) return `span.placeHolder.wch${charWidth}`;
-	else return `{${text}}`;
-}
-function createLesCard(lesName, lesCardData) {
-	if (lesCardData === PlaceHolder) lesCardData = {
-		vakName: "",
-		full: false,
-		lesmoment: PlaceHolder,
-		aantal: PlaceHolder,
-		maxAantal: PlaceHolder,
-		wachtlijst: 0,
-		vestiging: PlaceHolder
-	};
-	let wachtlijst = lesCardData.wachtlijst == 0 ? "span" : `span.red{ (${lesCardData.wachtlijst} op wachtlijst)}`;
-	let emmetText = `
-            div.small${lesCardData.full ? ".full" : ""}
-                div.bold.pre
-                    strong{${buildLesTitle(lesName, lesCardData.vakName)}}
-                div.pre
-                    ${convertToEmmet(lesCardData.vestiging, 13)}
-                div.pre
-                    ${convertToEmmet(lesCardData.lesmoment, 11)}
-                div.pre.noClipboard
-                    ${convertToEmmet(lesCardData.aantal, 2)}
-                    {/}
-                    ${convertToEmmet(lesCardData.maxAantal, 2)} 
-                    { lln} 
-                    ${wachtlijst}
-        `;
-	return emmet.indent.createElement(emmetText);
-}
 async function fillClassesMenu(menu, opleiding, vak, gotoLesCmd) {
 	menu.removeAllItems();
 	menu.addItem(emmet.createElement(`span.noClipboard{Ga naar les}`), 0, gotoLesCmd);
@@ -8006,9 +8011,6 @@ async function fillClassesMenu(menu, opleiding, vak, gotoLesCmd) {
 		});
 		menu.addInfo(infoBlock, 0);
 	}
-}
-function buildLesTitle(lesName, vakName) {
-	return `${lesName ? lesName : vakName + " " + lesName}`;
 }
 function setStripedLessons() {
 	let classRows = document.querySelectorAll("#leerling_inschrijvingen_weergave tr");
