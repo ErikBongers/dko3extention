@@ -7791,6 +7791,10 @@ function onMutation$6(mutation) {
 		onInschrijvingChanged(tabInschrijving);
 		return true;
 	}
+	if (document.querySelector("#card-contact table")) {
+		decoratePhoneNumbers();
+		return true;
+	}
 	if (mutation.target.id.includes("_uitleningen_table")) {
 		onUitleningenChanged(mutation.target);
 		return true;
@@ -7909,6 +7913,26 @@ function decorateSchooljaar() {
 		let toewijzingButtons = document.querySelectorAll("#leerling_inschrijvingen_weergave button");
 		Array.from(toewijzingButtons).filter((el) => el.textContent === "toewijzing" || el.textContent === "inschrijving").forEach((btn) => btn.classList.add("oldYear"));
 	}
+}
+function decoratePhoneNumbers() {
+	console.log("decoratePhoneNumbers");
+	let contactCardsDiv = document.getElementById("card-contact");
+	if (!contactCardsDiv) return;
+	[...contactCardsDiv.querySelectorAll("table a")].filter((anchor) => anchor.href.startsWith("tel:")).forEach((anchor) => {
+		if (anchor.dataset.decorated === "true") return;
+		anchor.dataset.decorated = "true";
+		let text = anchor.textContent.trim();
+		if (text.startsWith("00")) {
+			text = text.replaceAll(" ", "");
+			let blocks = [];
+			blocks.push(text.substring(0, 4));
+			blocks.push(text.substring(4, 7));
+			blocks.push(text.substring(7, 9));
+			blocks.push(text.substring(9, 11));
+			blocks.push(text.substring(11, 13));
+			anchor.textContent = blocks.join(" ");
+		}
+	});
 }
 function decorateTrimModules(tabInschrijving) {
 	let moduleButtons = tabInschrijving.querySelectorAll("tr td.right_center > button");

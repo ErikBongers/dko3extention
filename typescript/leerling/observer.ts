@@ -29,6 +29,11 @@ function onMutation(mutation: MutationRecord) {
         onInschrijvingChanged(tabInschrijving);
         return true;
     }
+    let contactsTable = document.querySelector("#card-contact table");
+    if (contactsTable) {
+        decoratePhoneNumbers();
+        return true;
+    }
     if ((mutation.target as HTMLElement).id.includes("_uitleningen_table")){
         onUitleningenChanged(mutation.target as HTMLElement);
         return true;
@@ -177,6 +182,32 @@ function decorateSchooljaar() {
             .filter((el) => (el.textContent === "toewijzing") || (el.textContent === "inschrijving"))
             .forEach((btn) => btn.classList.add("oldYear"));
     }
+}
+
+function decoratePhoneNumbers() {
+    console.log("decoratePhoneNumbers");
+    let contactCardsDiv = document.getElementById("card-contact") as HTMLDivElement;
+    if (!contactCardsDiv)
+        return;
+    [...contactCardsDiv.querySelectorAll("table a") as NodeListOf<HTMLAnchorElement>]
+        .filter((anchor) => anchor.href.startsWith("tel:"))
+        .forEach((anchor) => {
+            if(anchor.dataset.decorated === "true")
+                return;
+            anchor.dataset.decorated = "true";
+            let text = anchor.textContent!.trim();
+            if(text.startsWith("00")) {
+                text = text.replaceAll(" ", "");
+                let blocks: string[] = [];
+                blocks.push(text.substring(0, 4));
+                blocks.push(text.substring(4, 7));
+                blocks.push(text.substring(7, 9));
+                blocks.push(text.substring(9, 11));
+                blocks.push(text.substring(11, 13));
+                blocks.push(text.substring(13, 15));
+                anchor.textContent = blocks.join(" ");
+            }
+        });
 }
 
 function decorateTrimModules(tabInschrijving: HTMLElement) {
