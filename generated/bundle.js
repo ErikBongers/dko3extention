@@ -11755,7 +11755,7 @@ function inschrijvingenLinkToQueryItem(headerLabel, link, longLabelPrefix) {
 //#endregion
 //#region typescript/main.ts
 const script = document.createElement("script");
-script.src = chrome.runtime.getURL("javascript/inject.js");
+script.src = chrome.runtime.getURL("javascript/hook_jquery_ready.js");
 script.dataset.isolated = "false";
 (document.head || document.documentElement).appendChild(script);
 window.addEventListener("SPA_JQUERY_CASCADE_DONE", () => {

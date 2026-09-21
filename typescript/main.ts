@@ -28,7 +28,7 @@ import {onParentKeyUp, onPasteInGlobalSearchField} from "./globalSearch";
 
 // 1. Inject the MAIN world hook script immediately
 const script = document.createElement('script');
-script.src = chrome.runtime.getURL('javascript/inject.js');
+script.src = chrome.runtime.getURL('javascript/hook_jquery_ready.js');
 // Crucial: Execute in the host page context, not the extension context
 script.dataset.isolated = "false";
 (document.head || document.documentElement).appendChild(script);
