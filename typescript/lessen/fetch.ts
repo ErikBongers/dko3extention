@@ -28,7 +28,7 @@ export async function scrapeLessen(domein: LessenFilterDomein, type: LesType, sc
     let tableText = await fetchLessen(params);
     let div = document.createElement("div");
     div.innerHTML = tableText;
-    return scrapeLessenOverzicht();
+    return scrapeLessenOverzicht(div.querySelector("table") as HTMLTableElement);
 }
 
 /*
