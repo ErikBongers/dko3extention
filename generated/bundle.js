@@ -2375,26 +2375,61 @@ function getHardCodedQueryItems() {
 	addQueryItem("Plugin", "Lessen snapshots", "", gotoSnapshotPage);
 }
 let powerQueryVisible = false;
-document.body.addEventListener("keydown", showPowerQuery);
+function addGlobalKeyDownListener() {
+	if (!document.body) {
+		setTimeout(addGlobalKeyDownListener, 100);
+		return;
+	}
+	document.body.addEventListener("keydown", showPowerQuery);
+	let popover = document.createElement("div");
+	document.querySelector("body").appendChild(popover);
+	popover.setAttribute("popover", "auto");
+	popover.id = "powerQuery";
+	popover.addEventListener("toggle", (ev) => {
+		powerQueryVisible = ev.newState === "open";
+	});
+	let searchField = document.createElement("label");
+	popover.appendChild(searchField);
+	searchField.id = "powerQuerySearchField";
+	let listDiv = document.createElement("div");
+	listDiv.id = "powerQueryList";
+	popover.appendChild(listDiv);
+	listDiv.classList.add("list");
+	new NavigatableList(listDiv).addKeyDownListener(menuKeyDownHandler);
+}
+let list = null;
+function getPopover() {
+	return document.querySelector("#powerQuery");
+}
+function getPowerQueryList() {
+	if (!list) list = new NavigatableList(document.querySelector("#powerQueryList"));
+	return list;
+}
+function getPowerQuerySearchField() {
+	return document.querySelector("#powerQuerySearchField");
+}
+addGlobalKeyDownListener();
 function showPowerQuery(ev) {
 	if (ev.key === "q" && ev.ctrlKey && !ev.shiftKey && !ev.altKey) {
 		if (powerQueryVisible) {
 			ev.preventDefault();
-			popover.hidePopover();
+			getPopover().hidePopover();
 			document.querySelector("#snel_zoeken_veld_zoektermen").focus();
 			return;
 		}
 		scrapeMainMenu();
 		powerQueryItems.push(...getSavedAndDefaultQueryItems());
 		getHardCodedQueryItems();
-		popover.showPopover();
-		list.focus();
-		filterItems(searchField.textContent);
+		getPopover().showPopover();
+		getPowerQueryList().focus();
+		filterItems(getPowerQuerySearchField().textContent);
 	}
 }
 function menuKeyDownHandler(ev) {
 	if (!powerQueryVisible) return;
 	if (ev.ctrlKey || ev.altKey) return;
+	let searchField = getPowerQuerySearchField();
+	let list = getPowerQueryList();
 	if (isAlphaNumeric(ev.key) || ev.key === " ") {
 		searchField.textContent += ev.key;
 		filterItems(searchField.textContent);
@@ -2411,20 +2446,6 @@ function menuKeyDownHandler(ev) {
 		list.setSelected(0);
 	}
 }
-let popover = document.createElement("div");
-document.querySelector("main").appendChild(popover);
-popover.setAttribute("popover", "auto");
-popover.id = "powerQuery";
-popover.addEventListener("toggle", (ev) => {
-	powerQueryVisible = ev.newState === "open";
-});
-let searchField = document.createElement("label");
-popover.appendChild(searchField);
-let listDiv = document.createElement("div");
-popover.appendChild(listDiv);
-listDiv.classList.add("list");
-let list = new NavigatableList(listDiv);
-list.addKeyDownListener(menuKeyDownHandler);
 function filterItems(needle) {
 	for (const item of powerQueryItems) {
 		item.weight = 0;
@@ -2435,18 +2456,18 @@ function filterItems(needle) {
 		if (needle.split("").every((char) => item.lowerCase.includes(char))) item.weight += 20;
 	}
 	let itemsToShow = powerQueryItems.filter((item) => item.weight != 0).sort((a, b) => b.weight - a.weight).slice(0, 30);
-	list.removeAllItems();
+	getPowerQueryList().removeAllItems();
 	for (const item of itemsToShow) {
 		let itemDiv = emmet.indent.createElement(`
             div[data-long-label="${item.longLabel}"]{${item.longLabel}}
         `);
-		list.addItem(itemDiv, 0, () => {
+		getPowerQueryList().addItem(itemDiv, 0, () => {
 			onItemSelected(item);
 		});
 	}
 }
 function onItemSelected(item) {
-	popover.hidePopover();
+	getPopover().hidePopover();
 	if (item.func) item.func(item);
 	else location.href = item.href;
 }
@@ -5320,7 +5341,10 @@ function scrapeTeacherNameSpans() {
 	return scrapeLessenRows(document.getElementById(LESSEN_TABLE_ID), scrapeTeacherNameSpan);
 }
 function scrapeLessenRows(table, scrapeRow) {
-	if (!table) return [];
+	if (!table) {
+		console.error("table is undefined");
+		return [];
+	}
 	let body = table.tBodies[0];
 	let items = [];
 	for (const row of body.rows) {
@@ -7251,7 +7275,7 @@ async function scrapeLessen(domein, type, schoolYear) {
 	}));
 	let div = document.createElement("div");
 	div.innerHTML = tableText;
-	return scrapeLessenOverzicht();
+	return scrapeLessenOverzicht(div.querySelector("table"));
 }
 var LessenFilterBuilder = class LessenFilterBuilder {
 	schoolYear;
@@ -7805,7 +7829,7 @@ async function updateLesMenuItem(dropDownMenu, index, lesRef, signal) {
 	let les = await fetchLes(lesRef.id, signal);
 	let lesmomenten = les.lesMomenten.join("\n");
 	let full = les.aantal >= les.maxAantal;
-	let infoBlock = createLesCard(lesRef.name, {
+	let lesCard = createLesCard(lesRef.name, {
 		vakName: les.vak,
 		full,
 		lesmoment: lesmomenten,
@@ -7814,7 +7838,7 @@ async function updateLesMenuItem(dropDownMenu, index, lesRef, signal) {
 		wachtlijst: 0,
 		vestiging: les.vestiging
 	});
-	dropDownMenu.setItemContent(index, infoBlock);
+	dropDownMenu.setItemContent(index, lesCard);
 }
 async function updateAssetMenuItem(dropDownMenu, index, assetRef, signal) {
 	if (signal.aborted) {
@@ -7861,25 +7885,22 @@ async function gotoRef(getMatches, gotoUrl, getLabel, updateMenuItem) {
 async function getLesMatches(lesName, vak) {
 	if (!lesName) return [];
 	let lowerCase = lesName.toLowerCase();
-	let cache = await getSessionSchoolCache(getSchoolIdString());
-	let loaded = await cache.Loaded.get("LesRefs");
-	console.log("loaded", loaded);
-	if (!loaded) {
-		let lessen = await scrapeLessen("3", "1", Schoolyear.toFullString(Schoolyear.calculateCurrent()));
-		lessen.push(...await scrapeLessen("2", "1", Schoolyear.toFullString(Schoolyear.calculateCurrent())));
-		lessen.push(...await scrapeLessen("4", "1", Schoolyear.toFullString(Schoolyear.calculateCurrent())));
-		let lesRefs = lessen.map((l) => ({
-			id: l.les.id,
-			name: l.les.naam,
-			vak: l.les.vakNaam
-		}));
-		await cache.LesRefs.bulkPut(lesRefs);
-		await cache.Loaded.put(true, "LesRefs");
-	}
-	if (vak) return cache.LesRefs.findMatches((lesRef) => lesRef.name.toLowerCase().includes(lowerCase) && lesRef.vak == vak);
-	let matches = await cache.LesRefs.findMatches((lesRef) => lesRef.name.toLowerCase().includes(lowerCase));
+	let lesRefs = await getRepositoryCached("LesRefs", getLesRefs);
+	if (vak) return lesRefs.findMatches((lesRef) => lesRef.name.toLowerCase().includes(lowerCase) && lesRef.vak == vak);
+	let matches = await lesRefs.findMatches((lesRef) => lesRef.name.toLowerCase().includes(lowerCase));
 	matches.sort((a, b) => a.name.localeCompare(b.name));
 	return matches;
+}
+async function getLesRefs() {
+	let lessen = await scrapeLessen("3", "1", Schoolyear.toFullString(Schoolyear.calculateCurrent()));
+	lessen.push(...await scrapeLessen("2", "1", Schoolyear.toFullString(Schoolyear.calculateCurrent())));
+	lessen.push(...await scrapeLessen("4", "1", Schoolyear.toFullString(Schoolyear.calculateCurrent())));
+	console.log(lessen);
+	return lessen.map((l) => ({
+		id: l.les.id,
+		name: l.les.naam,
+		vak: l.les.vakNaam
+	}));
 }
 async function getAssetRefs() {
 	return (await scrapeAssets()).map((asset) => ({
@@ -11733,6 +11754,13 @@ function inschrijvingenLinkToQueryItem(headerLabel, link, longLabelPrefix) {
 }
 //#endregion
 //#region typescript/main.ts
+const script = document.createElement("script");
+script.src = chrome.runtime.getURL("javascript/inject.js");
+script.dataset.isolated = "false";
+(document.head || document.documentElement).appendChild(script);
+window.addEventListener("SPA_JQUERY_CASCADE_DONE", () => {
+	console.log("Chrome Extension Alert: All injected script jQuery ready blocks have finished executing!");
+});
 init();
 function init() {
 	getOptions().then(() => {

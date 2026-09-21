@@ -26,6 +26,21 @@ import {fetchAndDisplayNotifications, getNotifRedButton} from "./notifications/n
 import {setupMenu} from "./menu";
 import {onParentKeyUp, onPasteInGlobalSearchField} from "./globalSearch";
 
+// 1. Inject the MAIN world hook script immediately
+const script = document.createElement('script');
+script.src = chrome.runtime.getURL('javascript/inject.js');
+// Crucial: Execute in the host page context, not the extension context
+script.dataset.isolated = "false";
+(document.head || document.documentElement).appendChild(script);
+// script.remove();
+
+// 2. Listen for the event fired by your hook
+window.addEventListener("SPA_JQUERY_CASCADE_DONE", () => {
+    console.log("Chrome Extension Alert: All injected script jQuery ready blocks have finished executing!");
+
+    // Perform your extension's DOM scrapings or manipulations safely here
+});
+
 init();
 
 // noinspection JSUnusedGlobalSymbols

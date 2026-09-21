@@ -126,22 +126,65 @@ function getHardCodedQueryItems() {
 
 let powerQueryVisible = false;
 
-document.body.addEventListener("keydown", showPowerQuery);
+function addGlobalKeyDownListener() {
+    if(!document.body) {
+        setTimeout(addGlobalKeyDownListener, 100);
+        return;
+    }
+
+    document.body.addEventListener("keydown", showPowerQuery);
+    let popover = document.createElement("div");
+    document.querySelector("body")!.appendChild(popover);
+    popover.setAttribute("popover", "auto");
+    popover.id = "powerQuery";
+    popover.addEventListener("toggle", (ev) => {
+        // @ts-ignore
+        powerQueryVisible = ev.newState === "open";
+    });
+
+    let searchField = document.createElement("label");
+    popover.appendChild(searchField);
+    searchField.id = "powerQuerySearchField";
+    let listDiv = document.createElement("div");
+    listDiv.id = "powerQueryList";
+    popover.appendChild(listDiv);
+    listDiv.classList.add("list");
+    let list = new NavigatableList(listDiv);
+    list.addKeyDownListener(menuKeyDownHandler);
+}
+
+let list: NavigatableList | null = null;
+
+function getPopover() {
+    return document.querySelector("#powerQuery") as HTMLDivElement;
+}
+
+function getPowerQueryList() {
+    if(!list)
+        list = new NavigatableList(document.querySelector("#powerQueryList") as HTMLDivElement);
+    return list;
+}
+
+function getPowerQuerySearchField() {
+    return document.querySelector("#powerQuerySearchField") as HTMLLabelElement;
+}
+
+addGlobalKeyDownListener();
 
 function showPowerQuery(ev: KeyboardEvent) {
     if (ev.key === "q" && ev.ctrlKey && !ev.shiftKey && !ev.altKey) {
         if(powerQueryVisible) {
             ev.preventDefault();
-            popover.hidePopover();
+            getPopover().hidePopover();
             (document.querySelector("#snel_zoeken_veld_zoektermen") as HTMLElement).focus();
             return;
         }
         scrapeMainMenu();
         powerQueryItems.push(...getSavedAndDefaultQueryItems());
         getHardCodedQueryItems();
-        popover.showPopover();
-        list.focus();
-        filterItems(searchField.textContent);
+        getPopover().showPopover();
+        getPowerQueryList().focus();
+        filterItems(getPowerQuerySearchField().textContent);
     }
 }
 
@@ -150,6 +193,8 @@ function menuKeyDownHandler(ev: KeyboardEvent) {
         return;
     if (ev.ctrlKey || ev.altKey)
         return;
+    let searchField = getPowerQuerySearchField();
+    let list = getPowerQueryList();
     if (isAlphaNumeric(ev.key) || ev.key === ' ') {
         searchField.textContent += ev.key;
         filterItems(searchField.textContent);
@@ -167,23 +212,6 @@ function menuKeyDownHandler(ev: KeyboardEvent) {
         list.setSelected(0);
     }
 }
-
-let popover = document.createElement("div");
-document.querySelector("main")!.appendChild(popover);
-popover.setAttribute("popover", "auto");
-popover.id = "powerQuery";
-popover.addEventListener("toggle", (ev) => {
-    // @ts-ignore
-    powerQueryVisible = ev.newState === "open";
-});
-
-let searchField = document.createElement("label");
-popover.appendChild(searchField);
-let listDiv = document.createElement("div");
-popover.appendChild(listDiv);
-listDiv.classList.add("list");
-let list = new NavigatableList(listDiv);
-list.addKeyDownListener(menuKeyDownHandler);
 
 function filterItems(needle: string) {
     for (const item of powerQueryItems) {
@@ -214,19 +242,19 @@ function filterItems(needle: string) {
         .filter((item) => item.weight != 0)
         .sort((a, b) => b.weight - a.weight)
         .slice(0, MAX_VISIBLE_QUERY_ITEMS);
-    list.removeAllItems();
+    getPowerQueryList().removeAllItems();
     for (const item of itemsToShow) {
         let itemDiv = emmet.indent.createElement(`
             div[data-long-label="${item.longLabel}"]{${item.longLabel}}
         `);
-        list.addItem(itemDiv, 0, () => {
+        getPowerQueryList().addItem(itemDiv, 0, () => {
             onItemSelected(item);
         });
     }
 }
 
 function onItemSelected(item: QueryItem) {
-    popover.hidePopover();
+    getPopover().hidePopover();
     if (item.func) {
         item.func(item);
     } else {

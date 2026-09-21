@@ -10,7 +10,7 @@
   "content_scripts": [
     {
       "js": [
-        "importWrapper.js"
+        "generated/bundle.js"
       ],
       "css": [
         "css/global.css",
@@ -22,7 +22,8 @@
       ],
       "matches": [
         "https://administratie.dko3.cloud/*"
-      ]
+      ],
+      "run_at": "document_start"
     }
   ],
   "content_security_policy": {
@@ -46,7 +47,8 @@
       "typescript/*",
       "resources/*",
       "images/*",
-      "ai/*"
+      "ai/*",
+      "javascript/*"
     ]
   }
   ]
