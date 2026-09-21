@@ -1,3 +1,4 @@
+* quick goto: teachers
 * cache knop voor lesoverzicht om snel te kunnen les openen en terug nr de lijst
 * mail naar hele wachtlijst bij een specifieke klas.
 

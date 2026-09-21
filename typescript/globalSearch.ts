@@ -75,7 +75,7 @@ async function updateLesMenuItem(dropDownMenu: DropDownMenu, index: number, lesR
     let les = await fetchLes(lesRef.id, signal);
     let lesmomenten = les.lesMomenten.join("\n");
     let full = les.aantal >= les.maxAantal;
-    let infoBlock = createLesCard(lesRef.name, {
+    let lesCard = createLesCard(lesRef.name, {
         vakName: les.vak,
         full,
         lesmoment: lesmomenten,
@@ -84,7 +84,7 @@ async function updateLesMenuItem(dropDownMenu: DropDownMenu, index: number, lesR
         wachtlijst: 0, //todo
         vestiging: les.vestiging
     });
-    dropDownMenu.setItemContent(index, infoBlock);
+    dropDownMenu.setItemContent(index, lesCard);
 }
 
 async function updateAssetMenuItem(dropDownMenu: DropDownMenu, index: number, assetRef: AssetRef, signal: AbortSignal) {
@@ -153,24 +153,22 @@ async function getLesMatches(lesName: string, vak?: string) {
     if(!lesName)
         return [];
     let lowerCase = lesName.toLowerCase();
-    let cache = await getSessionSchoolCache(getSchoolIdString())
-    let loaded = await cache.Loaded.get("LesRefs");
-    console.log("loaded", loaded);
-    if (!loaded) {
-        let lessen = await scrapeLessen(LessenFilterDomein.Muziek, LesType.gewone, Schoolyear.toFullString(Schoolyear.calculateCurrent()));
-        lessen.push(...await scrapeLessen(LessenFilterDomein.Dans, LesType.gewone, Schoolyear.toFullString(Schoolyear.calculateCurrent())));
-        lessen.push(...await scrapeLessen(LessenFilterDomein.Woord, LesType.gewone, Schoolyear.toFullString(Schoolyear.calculateCurrent())));
-        let lesRefs = lessen
-            .map<LesRef>(l => ({id: l.les.id, name: l.les.naam, vak: l.les.vakNaam}));
-        await cache.LesRefs.bulkPut(lesRefs);
-        await cache.Loaded.put(true, "LesRefs");
-    }
+    let lesRefs = await getRepositoryCached("LesRefs",getLesRefs);
     if(vak)
-        return cache.LesRefs.findMatches(lesRef => lesRef.name.toLowerCase().includes(lowerCase) && lesRef.vak == vak);
+        return lesRefs.findMatches(lesRef => lesRef.name.toLowerCase().includes(lowerCase) && lesRef.vak == vak);
 
-    let matches = await cache.LesRefs.findMatches(lesRef => lesRef.name.toLowerCase().includes(lowerCase));
+    let matches = await lesRefs.findMatches(lesRef => lesRef.name.toLowerCase().includes(lowerCase));
     matches.sort((a, b) => a.name.localeCompare(b.name));
     return matches;
+}
+
+async function getLesRefs() {
+    let lessen = await scrapeLessen(LessenFilterDomein.Muziek, LesType.gewone, Schoolyear.toFullString(Schoolyear.calculateCurrent()));
+    lessen.push(...await scrapeLessen(LessenFilterDomein.Dans, LesType.gewone, Schoolyear.toFullString(Schoolyear.calculateCurrent())));
+    lessen.push(...await scrapeLessen(LessenFilterDomein.Woord, LesType.gewone, Schoolyear.toFullString(Schoolyear.calculateCurrent())));
+    console.log(lessen);
+    return lessen
+        .map<LesRef>(l => ({id: l.les.id, name: l.les.naam, vak: l.les.vakNaam}));
 }
 
 async function getAssetRefs() {

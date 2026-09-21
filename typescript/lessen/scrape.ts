@@ -16,8 +16,10 @@ export function scrapeTeacherNameSpans() {
 }
 
 export function scrapeLessenRows<T>(table: HTMLTableElement, scrapeRow: (row: HTMLTableRowElement) => T | null): T[] {
-    if(!table)
+    if(!table) {
+        console.error("table is undefined");
         return [];
+    }
     let body = table.tBodies[0];
     let items: T[] = [];
     for (const row of body.rows) {
