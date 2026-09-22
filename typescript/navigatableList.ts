@@ -1,4 +1,4 @@
-import {emmet} from "../libs/Emmeter/html";
+import {emmet} from "../libs/Emmeter";
 import {ClampedValue} from "./clampedValue";
 import {clearSavedPage} from "./restorePage";
 
