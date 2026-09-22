@@ -235,7 +235,7 @@ export function addFilterFields() {
         menu.addItem("Wachtlijst", 0, _ => setExtraFilter(pageState => pageState.filterWaitingList = true));
         menu.addItem("Online ALC lessen", 0, _ => setExtraFilter(pageState => pageState.filterOnlineAlc = true));
         menu.addItem("Opmerkingen", 0, _ => setExtraFilter(pageState => pageState.filterWarnings = true));
-        emmet.insertAfter(idiom!.parentElement!, `span#${def.FILTER_INFO_ID}.filterInfo.block.min30ch.linePad1.blockPad05`);
+        emmet.insertAfter(idiom!.parentElement!, `span#${def.FILTER_INFO_ID}.filterInfo.block.min28ch.linePad1.blockPad05`);
     }
 
     applyFilters();

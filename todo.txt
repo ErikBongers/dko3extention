@@ -1,3 +1,5 @@
+* leerling: alt lessen: show if lln on wachtlijst
+  > button to place on wachtlijst without leaving screen!!
 * global search: wait message during initial session data load.
 * cache knop voor lesoverzicht om snel te kunnen les openen en terug nr de lijst
 * mail naar hele wachtlijst bij een specifieke klas.
