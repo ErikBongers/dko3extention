@@ -4,6 +4,7 @@ let savedUrl = "";
 
 export async function restorePage(fullRefresh: boolean = false) {
     console.log("Restoring page: " + savedUrl);
+    pageProbablyLoaded = false;
     if (savedUrl) {
         let chain =  new FetchChain();
         await chain.fetch(savedUrl);
@@ -43,4 +44,21 @@ export function showView(view: string, file: string, args: string) {
     }
 
     location.hash = "#" + view + file_string + args_string;
+}
+
+let pageProbablyLoaded = false;
+let pageProbablyLoadedListeners: (() => void)[] = [];
+
+export function setPageProbablyLoaded() {
+    pageProbablyLoaded = true;
+    while (pageProbablyLoadedListeners.length > 0)
+        pageProbablyLoadedListeners.shift()!();
+}
+
+export async function waitForPageProbablyLoaded() {
+    return new Promise<void>((resolve) => {
+        if (pageProbablyLoaded)
+            return resolve(undefined);
+        pageProbablyLoadedListeners.push(resolve);
+    });
 }

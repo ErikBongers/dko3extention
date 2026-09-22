@@ -8,6 +8,7 @@ import {AssetRef, getSessionSchoolCache, LesRef, Ref, SessionDb} from "./db/sess
 import {scrapeAssets} from "./assets/scrape";
 import {StoreNames} from "idb";
 import {createLesCard, PlaceHolder} from "./leerling/scrape";
+import {waitForPageProbablyLoaded} from "./restorePage";
 
 export function onPasteInGlobalSearchField(e: ClipboardEvent) {
     if (!options.stripCommasOnPaste)
@@ -118,6 +119,7 @@ async function gotoRef<T extends Ref>(getMatches: () => Promise<T[]>,
                                       getLabel: (ref: T) => string | HTMLElement,
                                       updateMenuItem: (dropDownMenu: DropDownMenu, index: number, ref: T, signal: AbortSignal) => Promise<void>
                                       ) {
+    await waitForPageProbablyLoaded();
     let matches = await getMatches();
     if(matches) {
         if (matches.length == 1) {

@@ -1397,6 +1397,7 @@ async function fetchText(url, signal, post = false, params) {
 let savedUrl = "";
 async function restorePage(fullRefresh = false) {
 	console.log("Restoring page: " + savedUrl);
+	pageProbablyLoaded = false;
 	if (savedUrl) {
 		await new FetchChain().fetch(savedUrl);
 		if (fullRefresh) {
@@ -1415,6 +1416,18 @@ function clearSavedPage() {
 async function changeView() {
 	console.log("Changing view to: " + location.hash.replace("#", ""));
 	await fetch("view.php?args=" + location.hash.replace("#", ""));
+}
+let pageProbablyLoaded = false;
+let pageProbablyLoadedListeners = [];
+function setPageProbablyLoaded() {
+	pageProbablyLoaded = true;
+	while (pageProbablyLoadedListeners.length > 0) pageProbablyLoadedListeners.shift()();
+}
+async function waitForPageProbablyLoaded() {
+	return new Promise((resolve) => {
+		if (pageProbablyLoaded) return resolve(void 0);
+		pageProbablyLoadedListeners.push(resolve);
+	});
 }
 //#endregion
 //#region typescript/navigatableList.ts
@@ -7853,6 +7866,7 @@ async function gotoAssetRef(assetCode) {
 	return gotoRef(() => getAssetMatches(assetCode), "/#extra-assets-assets-details?id=", (assetRef) => assetRef.code, updateAssetMenuItem);
 }
 async function gotoRef(getMatches, gotoUrl, getLabel, updateMenuItem) {
+	await waitForPageProbablyLoaded();
 	let matches = await getMatches();
 	if (matches) {
 		if (matches.length == 1) {
@@ -11760,6 +11774,7 @@ script.dataset.isolated = "false";
 (document.head || document.documentElement).appendChild(script);
 window.addEventListener("SPA_JQUERY_CASCADE_DONE", () => {
 	console.log("Chrome Extension Alert: All injected script jQuery ready blocks have finished executing!");
+	setPageProbablyLoaded();
 });
 init();
 function init() {

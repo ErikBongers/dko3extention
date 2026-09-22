@@ -25,6 +25,7 @@ import {pageState} from "./pageState";
 import {fetchAndDisplayNotifications, getNotifRedButton} from "./notifications/notifications";
 import {setupMenu} from "./menu";
 import {onParentKeyUp, onPasteInGlobalSearchField} from "./globalSearch";
+import {setPageProbablyLoaded} from "./restorePage";
 
 // 1. Inject the MAIN world hook script immediately
 const script = document.createElement('script');
@@ -37,8 +38,7 @@ script.dataset.isolated = "false";
 // 2. Listen for the event fired by your hook
 window.addEventListener("SPA_JQUERY_CASCADE_DONE", () => {
     console.log("Chrome Extension Alert: All injected script jQuery ready blocks have finished executing!");
-
-    // Perform your extension's DOM scrapings or manipulations safely here
+    setPageProbablyLoaded();
 });
 
 init();
