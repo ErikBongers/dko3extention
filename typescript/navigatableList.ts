@@ -79,9 +79,12 @@ export class NavigatableList {
         if(typeof onClick === "string")
             item.setAttribute("onclick", onClick);
         else if(typeof onClick === "function")
-        item.onclick = (ev) => {
-            onClick(ev);
-        };
+            item.onclick = (ev) => {
+                if ((ev.target as HTMLElement).checkVisibility())
+                    onClick(ev);
+                else
+                    console.log("Item clicked, but invisible");
+            };
         this.index.setRange(0, this.list.children.length - 1);
         return this.list.children.length - 1;
     }

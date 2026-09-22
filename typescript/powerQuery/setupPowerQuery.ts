@@ -3,7 +3,7 @@ import * as def from "../def";
 import {getGotoStateOrDefault, Goto, PageName, saveGotoState} from "../gotoState";
 import {gotoDiffPage, gotoSnapshotPage} from "../menu";
 import {NavigatableList} from "../navigatableList";
-import {emmet} from "../../libs/Emmeter/html";
+import {emmet} from "../../libs/Emmeter";
 import {defaultQueryItems} from "./default_items";
 
 export function setupPowerQuery() {

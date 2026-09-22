@@ -1492,8 +1492,7 @@ var ClampedValue = class {
 //#region typescript/restorePage.ts
 let savedUrl = "";
 async function restorePage(fullRefresh = false) {
-	console.log("Restoring page: " + savedUrl);
-	pageProbablyLoaded = false;
+	console.log(`${fullRefresh ? "Full refresh" : "Re-fetch"} page: ` + savedUrl);
 	if (savedUrl) {
 		await new FetchChain().fetch(savedUrl);
 		if (fullRefresh) {
@@ -1587,7 +1586,8 @@ var NavigatableList = class {
 		this.setItemContent(this.list.children.length - 1, title);
 		if (typeof onClick === "string") item.setAttribute("onclick", onClick);
 		else if (typeof onClick === "function") item.onclick = (ev) => {
-			onClick(ev);
+			if (ev.target.checkVisibility()) onClick(ev);
+			else console.log("Item clicked, but invisible");
 		};
 		this.index.setRange(0, this.list.children.length - 1);
 		return this.list.children.length - 1;
@@ -7939,7 +7939,10 @@ async function gotoTeacherRef(text) {
 }
 async function gotoRef(getMatches, gotoUrl, getLabel, updateMenuItem) {
 	await waitForPageProbablyLoaded();
-	let matches = await getMatches(getInfoBlockForPage());
+	let infoBlock = getInfoBlockForPage();
+	infoBlock.infoBar.setInfoLine("Ophalen gegevens...");
+	let matches = await getMatches(infoBlock);
+	infoBlock.infoBar.setInfoLine("");
 	if (matches) {
 		if (matches.length == 1) {
 			console.log("gotoRef: matches.length == 1");

@@ -3,12 +3,12 @@ import {FetchChain} from "./table/fetchChain";
 let savedUrl = "";
 
 export async function restorePage(fullRefresh: boolean = false) {
-    console.log("Restoring page: " + savedUrl);
-    pageProbablyLoaded = false;
+    console.log(`${fullRefresh?"Full refresh":"Re-fetch"} page: ` + savedUrl);
     if (savedUrl) {
         let chain =  new FetchChain();
         await chain.fetch(savedUrl);
         if(fullRefresh) {
+            // pageProbablyLoaded = false;
             location.href = savedUrl;
             await changeView();
             // location.reload();

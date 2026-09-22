@@ -28,6 +28,7 @@ export class DropDownMenu {
     private readonly fullRefreshAfterClose: boolean;
     private readonly abortController: AbortController | undefined;
 
+    //todo: merge button and showOnClick by making button nullable.
     constructor(container: HTMLElement, button: HTMLElement, showOnClick: boolean = true, fullRefreshAfterClose: boolean = false, abortController?: AbortController) {
         this.container = container;
         this.button = button;

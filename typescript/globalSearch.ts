@@ -152,7 +152,10 @@ async function gotoRef<T extends Ref>(getMatches: (infoBlock: InfoBlock) => Prom
                                       updateMenuItem: (dropDownMenu: DropDownMenu, index: number, ref: T, signal: AbortSignal) => Promise<void>,
                                       ) {
     await waitForPageProbablyLoaded();
-    let matches = await getMatches(getInfoBlockForPage());
+    let infoBlock = getInfoBlockForPage();
+    infoBlock.infoBar.setInfoLine("Ophalen gegevens...");
+    let matches = await getMatches(infoBlock);
+    infoBlock.infoBar.setInfoLine("");
     if(matches) {
         if (matches.length == 1) {
             console.log("gotoRef: matches.length == 1");
