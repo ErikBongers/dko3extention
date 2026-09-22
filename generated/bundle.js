@@ -7971,7 +7971,11 @@ async function getLesMatches(lesName, vak) {
 	if (!lesName) return [];
 	let lowerCase = lesName.toLowerCase();
 	let lesRefs = await getRepositoryCached("LesRefs", getLesRefs);
-	if (vak) return lesRefs.findMatches((lesRef) => lesRef.name.toLowerCase().includes(lowerCase) && lesRef.vak == vak);
+	if (vak) {
+		let matches = await lesRefs.findMatches((lesRef) => lesRef.name.toLowerCase().includes(lowerCase) && lesRef.vak == vak);
+		matches.sort((a, b) => a.name.localeCompare(b.name));
+		return matches;
+	}
 	let matches = await lesRefs.findMatches((lesRef) => lesRef.name.toLowerCase().includes(lowerCase));
 	matches.sort((a, b) => a.name.localeCompare(b.name));
 	return matches;
@@ -8017,9 +8021,11 @@ async function getAssetMatches(assetCode) {
 async function getTeacherMatches(text) {
 	if (!text) return [];
 	let lowerCase = text.toLowerCase();
-	return (await getRepositoryCached("TeacherRefs", getTeacherRefs)).findMatches((teacherRef) => {
+	let matches = await (await getRepositoryCached("TeacherRefs", getTeacherRefs)).findMatches((teacherRef) => {
 		return teacherRef.firstName.toLowerCase().includes(lowerCase) || teacherRef.lastName.toLowerCase().includes(lowerCase);
 	});
+	matches.sort((a, b) => a.firstName.localeCompare(b.firstName) || a.lastName.localeCompare(b.lastName));
+	return matches;
 }
 //#endregion
 //#region typescript/globals.ts
