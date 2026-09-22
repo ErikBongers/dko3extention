@@ -38,6 +38,15 @@ export async function onParentKeyUp(e: KeyboardEvent) {
             e.preventDefault();
             return;
         }
+        return;
+    }
+}
+
+export function onSearchKeyDown(e: KeyboardEvent) {
+    if(e.key == "Escape") {
+        let searchField = document.getElementById("snel_zoeken_veld_zoektermen") as HTMLInputElement;
+        searchField.value = "";
+        return;
     }
 }
 

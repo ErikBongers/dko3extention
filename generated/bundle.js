@@ -7870,6 +7870,14 @@ async function onParentKeyUp(e) {
 			e.preventDefault();
 			return;
 		}
+		return;
+	}
+}
+function onSearchKeyDown(e) {
+	if (e.key == "Escape") {
+		let searchField = document.getElementById("snel_zoeken_veld_zoektermen");
+		searchField.value = "";
+		return;
 	}
 }
 let ignoreNextEnter = false;
@@ -11900,6 +11908,7 @@ function onPageRefreshed() {
 	if (searchField) {
 		searchField.addEventListener("paste", onPasteInGlobalSearchField);
 		searchField.parentElement.addEventListener("keyup", onParentKeyUp, { capture: true });
+		searchField.addEventListener("keydown", onSearchKeyDown, { capture: false });
 	}
 	navigator.clipboard.addEventListener("clipboardchange", onClipboardChange);
 }

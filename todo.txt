@@ -1,5 +1,4 @@
 * global search: wait message during initial session data load.
-* global search field: ESC means clear field.
 * cache knop voor lesoverzicht om snel te kunnen les openen en terug nr de lijst
 * mail naar hele wachtlijst bij een specifieke klas.
 

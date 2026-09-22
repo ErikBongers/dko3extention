@@ -24,7 +24,7 @@ import {fetchGlobalSettings, getGlobalSettings, setGlobalSetting} from "./plugin
 import {pageState} from "./pageState";
 import {fetchAndDisplayNotifications, getNotifRedButton} from "./notifications/notifications";
 import {setupMenu} from "./menu";
-import {onParentKeyUp, onPasteInGlobalSearchField} from "./globalSearch";
+import {onParentKeyUp, onPasteInGlobalSearchField, onSearchKeyDown} from "./globalSearch";
 import {setPageProbablyLoaded} from "./restorePage";
 
 // 1. Inject the MAIN world hook script immediately
@@ -167,6 +167,7 @@ function onPageRefreshed() {
     if(searchField) {
         searchField.addEventListener("paste", onPasteInGlobalSearchField);
         searchField.parentElement!.addEventListener("keyup", onParentKeyUp, {capture: true});
+        searchField.addEventListener("keydown", onSearchKeyDown, {capture: false});
     }
 
     navigator.clipboard.addEventListener("clipboardchange", onClipboardChange);
