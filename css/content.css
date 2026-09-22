@@ -108,7 +108,13 @@ body.otherSchool {
         font-size: .7em;
         opacity: 0.7;
     }
-    .progressBar {
+}
+
+#progressBarContainer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    & .progressBar {
         margin-bottom: 6px;
     }
 }

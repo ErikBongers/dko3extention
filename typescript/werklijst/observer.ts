@@ -1,8 +1,16 @@
-import {addButton, arrayIsEqual, copyToClipboardOrRequestRetry, getSchoolIdString, openHoursSettings, Schoolyear, tryUntilThen} from "../globals";
+import {
+    addButton,
+    arrayIsEqual,
+    copyToClipboardOrRequestRetry,
+    getSchoolIdString,
+    openHoursSettings,
+    Schoolyear,
+    tryUntilThen
+} from "../globals";
 import * as def from "../def";
 import {BTN_WERKLIJST_NAV_BOTTOM} from "../def";
 import {rebuildHoursTable} from "./buildUren";
-import {NavigatableTableFetcher, TableFetcher} from "../table/tableFetcher";
+import {TableFetcher} from "../table/tableFetcher";
 import {fetchHoursSettingsOrSaveDefault} from "./prefillInstruments";
 import {HashObserver} from "../pageObserver";
 import {NamedCellTableFetchListener, NotHTMLTemplate} from "../pageHandlers";
@@ -12,8 +20,8 @@ import {registerChecksumHandler} from "../table/observer";
 import {createDefaultTableFetcher, createDefaultTableRefAndInfoBlock} from "../table/loadAnyTable";
 import {Actions, sendRequest, ServiceRequest, TabType} from "../messaging";
 import {TeacherHoursSetup} from "./hoursSettings";
-import {emmet} from "../../libs/Emmeter/html";
-import {createInfoBlock, getInfoBlock, InfoBlock} from "../infoBlock";
+import {emmet} from "../../libs/Emmeter";
+import {getInfoBlock, InfoBlock} from "../infoBlock";
 import {fetchMailMergeData} from "../table/mailMerge";
 import {TeacherHoursCachedState} from "./teacherHoursCachedState";
 import {hasWerklijstNoCriteria, scrapeCriteria, scrapeSelectedFieldIndexes} from "./criteria";
@@ -110,8 +118,11 @@ async function reload() {
     if(!globals)
         return; //oops...
     document.getElementById(def.HOURS_TABLE_ID)?.remove();
-    globals = new TeacherHoursCachedState(globals.schoolYear, getInfoBlock());
-    await fetchAndShowTeacherHours(globals.schoolYear, getInfoBlock());
+    globals = new TeacherHoursCachedState(
+        globals.schoolYear,
+        getInfoBlock(document.getElementById(def.PLUGIN_CONTAINER_ID) as HTMLElement)
+    );
+    await fetchAndShowTeacherHours(globals.schoolYear, getInfoBlock(document.getElementById(def.PLUGIN_CONTAINER_ID) as HTMLElement));
 }
 function checkStateAndGotoTeacherHours(infoBlock: InfoBlock) {
     let pageState = getGotoStateOrDefault(PageName.Werklijst) as WerklijstGotoState;
@@ -159,7 +170,7 @@ function addPluginContainer() {
     let container = emmet.appendChild(viewContents, "div#"+def.PLUGIN_CONTAINER_ID).first as HTMLDivElement;
     emmet.appendChild(container, `div.d-flex.werklijstButtonWrapper`);
     emmet.appendChild(container, "h4");
-    return createInfoBlock(container, "");
+    return getInfoBlock(container);
 }
 
 function onResultsShown() {
@@ -242,10 +253,16 @@ async function refresh(hourSettings: TeacherHoursSetup | null) { //todo: rename 
 
     globals.setHourSettings(hourSettings);
     if (equalSelectedSubjects) {
-        rebuildHoursTable(await globals.getStudentRowData(), await globals.getHourSettingsMapped(), await globals.getFromCloud(), getInfoBlock());
+        rebuildHoursTable(
+            await globals.getStudentRowData(),
+            await globals.getHourSettingsMapped(),
+            await globals.getFromCloud(),
+            getInfoBlock(document.getElementById(def.PLUGIN_CONTAINER_ID) as HTMLElement));
     } else {
         globals.clearStudentRowData();
-        await fetchAndShowTeacherHours(hourSettings.schoolyear, getInfoBlock());
+        await fetchAndShowTeacherHours(
+            hourSettings.schoolyear,
+            getInfoBlock(document.getElementById(def.PLUGIN_CONTAINER_ID) as HTMLElement));
     }
     isRefreshing = false;
 }
@@ -343,7 +360,7 @@ async function mailMergeStartSchoolyear() {
     }
     let divFooter = document.getElementById("div_leerling_werklijst_footer") as HTMLDivElement;
     let divInfo = divFooter.insertAdjacentElement("afterend", document.createElement("div")) as HTMLDivElement;
-    let infoBlock = createInfoBlock(divInfo, "");
+    let infoBlock = getInfoBlock(divInfo);
     let selectedFields = scrapeSelectedFieldIndexes();
     let text = await fetchMailMergeData(schoolyear, infoBlock, selectedFields, hasWerklijstNoCriteria(), scrapeCriteria());
     if(text != "") {

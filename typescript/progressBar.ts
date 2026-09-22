@@ -1,15 +1,24 @@
-import * as def from "./def";
-import {emmet} from "../libs/Emmeter/html";
+import {emmet} from "../libs/Emmeter";
 
 export class ProgressBar {
-    private barElement: HTMLElement;
-    private containerElement: HTMLElement;
+    private barElement: HTMLDivElement;
+    private parent: HTMLElement;
+    private container: HTMLDivElement;
     private maxCount: number;
     private count: number;
+    static readonly ID = "progressBarContainer";
 
-    constructor(containerElement: HTMLElement, barElement: HTMLElement) {
-        this.barElement = barElement;
-        this.containerElement = containerElement;
+    constructor(parent: HTMLElement) {
+        this.parent = parent;
+        let container = this.parent.querySelector("#" + ProgressBar.ID) as HTMLDivElement | null;
+        if(!container) {
+            container = emmet.indent.appendChild(this.parent, `
+                div#${ProgressBar.ID}
+                    div.progressBar
+            `).first as HTMLDivElement;
+        }
+        this.container = container;
+        this.barElement = this.container.querySelector(".progressBar") as HTMLDivElement;
         this.hide();
         this.maxCount = 0;
         this.count = 0;
@@ -27,12 +36,12 @@ export class ProgressBar {
     }
     start(maxCount: number) {
         this.reset(maxCount);
-        this.containerElement.style.display = "block";
+        this.container.style.display = "";
         this.next();
     }
 
     hide() {
-        this.containerElement.style.display = "none";
+        this.container.style.display = "none";
     }
     stop() {
         this.hide();
@@ -54,16 +63,4 @@ export class ProgressBar {
         this.count++;
         return true;
     }
-
-    static find() {
-        let divProgressLine = document.getElementById(def.PROGRESS_BAR_ID) as HTMLDivElement;
-        let divProgressBar = divProgressLine.querySelector(".progressBar") as HTMLDivElement;
-        return new ProgressBar(divProgressLine, divProgressBar);
-    }
-}
-
-export function insertProgressBar(container: HTMLElement, text: string = "") {
-    container.innerHTML = "";
-    let {first: divProgressLine, last: divProgressBar} = emmet.appendChild(container, `div.infoLine#${def.PROGRESS_BAR_ID}>div.progressText{${text}}+div.progressBar`);
-    return new ProgressBar(divProgressLine as HTMLDivElement, divProgressBar as HTMLDivElement);
 }

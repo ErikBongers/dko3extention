@@ -7,13 +7,13 @@ import {
     TableFetcher
 } from "./tableFetcher";
 import {createDownloadTableWithExtraAction, getChecksumBuilder} from "./observer";
-import {createGlobalInfoBlockAndListener, dateDiffToString, Result, setViewFromCurrentUrl} from "../globals";
+import {dateDiffToString, Result, setViewFromCurrentUrl} from "../globals";
 import {InfoBar} from "../infoBar";
 import {ProgressBar} from "../progressBar";
 import * as def from "../def";
 import {executeTableCommands, TableHandlerForHeaders} from "./tableHeaders";
 import {FetchChain} from "./fetchChain";
-import {createInfoBlockForTable, InfoBlock} from "../infoBlock";
+import {getInfoBlockForPage, createInfoBlockForTable, InfoBlock} from "../infoBlock";
 import {DkoTableRef, PlainTableRef, TableRef} from "./tableRef";
 
 export async function  getWerklijstTableRef() {
@@ -205,7 +205,7 @@ export function createDefaultTableFetcher(tableRef: DkoTableRef, infoBlock: Info
 }
 
 export async function scrapeHashPageTable<T>(hash: string, rowConverter: (row: HTMLTableRowElement) => T | null): Promise<T[]> {
-    let fetchListener = createGlobalInfoBlockAndListener();
+    let fetchListener = getInfoBlockForPage();
 
     let table = await getTableFromHash(hash, true, fetchListener);
     return [...table.getRows()].map(row => rowConverter(row))
@@ -213,7 +213,7 @@ export async function scrapeHashPageTable<T>(hash: string, rowConverter: (row: H
 }
 
 export async function scrapeTable<T>(tableFetcher: TableFetcher, rowConverter: (row: HTMLTableRowElement) => T | null): Promise<T[]> {
-    let fetchListener = createGlobalInfoBlockAndListener();
+    let fetchListener = getInfoBlockForPage();
 
     let table = await tableFetcher.fetch();
     return [...table.getRows()].map(row => rowConverter(row))

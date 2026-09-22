@@ -1,44 +1,40 @@
 import * as def from "./def";
-import {emmet} from "../libs/Emmeter/html";
+import {emmet} from "../libs/Emmeter";
 
 export class InfoBar{
-    divInfoContainer: HTMLDivElement;
+    parent: HTMLElement;
+    container: HTMLDivElement;
     divInfoLine: HTMLDivElement;
     divTempLine: HTMLParagraphElement;
     divExtraLine: HTMLDivElement;
     divErrorLine: HTMLDivElement;
     private tempMessage: string;
     private divCacheInfo: HTMLDivElement;
+    private static readonly ID =  "dp3p_infoContainer";
+    private static readonly EXTRA_ID =  "dp3_extraInfo";
+    private static readonly ERROR_ID =  "dp3_errorInfo";
+    private static readonly TEMP_ID =  "dp3_tempInfo";
+    private static readonly CACHE_ID =  "dp3p_cacheInfo";
 
-    constructor(divInfoContainer: HTMLDivElement, divExtraLine: HTMLDivElement, divErrorLine: HTMLDivElement, divInfoLine: HTMLDivElement, divTempLine: HTMLParagraphElement, divCacheInfo: HTMLDivElement) {
-        this.divInfoContainer = divInfoContainer;
-        this.divExtraLine = divExtraLine;
-        this.divErrorLine = divErrorLine;
-        this.divInfoLine = divInfoLine;
-        this.divTempLine = divTempLine;
-        this.divCacheInfo = divCacheInfo;
+    constructor(parent: HTMLElement) {
+        this.parent = parent;
         this.tempMessage = "";
-    }
-
-    static create(divInfoContainer: HTMLDivElement) {
-        divInfoContainer.id = def.INFO_CONTAINER_ID;
-        divInfoContainer.innerHTML = "";
-        let divExtraLine = emmet.appendChild(divInfoContainer, `div#${def.INFO_EXTRA_ID}.infoMessage`).last as HTMLDivElement;
-        let divErrorLine = emmet.appendChild(divInfoContainer, `div#${def.INFO_EXTRA_ID}.infoError`).last as HTMLDivElement;
-        let divInfoLine = emmet.appendChild(divInfoContainer, "div.infoLine").last as HTMLDivElement;
-        let divTempLine = emmet.appendChild(divInfoContainer, `div#${def.INFO_TEMP_ID}.infoMessage.tempLine`).last as HTMLDivElement;
-        let divCacheInfo = emmet.appendChild(divInfoContainer, `div#${def.INFO_CACHE_ID}.cacheInfo`).last as HTMLDivElement;
-        return new InfoBar(divInfoContainer, divExtraLine, divErrorLine, divInfoLine, divTempLine, divCacheInfo);
-    }
-
-    static find(): InfoBar {
-        let container = document.getElementById(def.INFO_CONTAINER_ID) as HTMLDivElement;
-        let divExtraLine = container.querySelector(`#${def.INFO_EXTRA_ID}`) as HTMLDivElement;
-        let divErrorLine = container.querySelector(`#${def.INFO_EXTRA_ID}`) as HTMLDivElement;
-        let divInfoLine = container.querySelector("div.infoLine") as HTMLDivElement;
-        let divTempLine = container.querySelector(`#${def.INFO_TEMP_ID}`) as HTMLDivElement;
-        let divCacheInfo = container.querySelector(`#${def.INFO_CACHE_ID}`) as HTMLDivElement;
-        return new InfoBar(container, divExtraLine, divErrorLine, divInfoLine, divTempLine, divCacheInfo);
+        let container = parent.querySelector(`div#${InfoBar.ID}`) as HTMLDivElement | null;
+        if(!container) {
+            container = emmet.appendChild(parent, `div#${InfoBar.ID}`).first as HTMLDivElement;
+            this.divExtraLine = emmet.appendChild(container, `div#${InfoBar.EXTRA_ID}.infoMessage`).last as HTMLDivElement;
+            this.divErrorLine = emmet.appendChild(container, `div#${InfoBar.ERROR_ID}.infoError`).last as HTMLDivElement;
+            this.divInfoLine = emmet.appendChild(container, "div.infoLine").last as HTMLDivElement;
+            this.divTempLine = emmet.appendChild(container, `div#${InfoBar.TEMP_ID}.infoMessage.tempLine`).last as HTMLDivElement;
+            this.divCacheInfo = emmet.appendChild(container, `div#${InfoBar.CACHE_ID}.cacheInfo`).last as HTMLDivElement;
+        } else {
+            this.divExtraLine = container.querySelector(`#${InfoBar.EXTRA_ID}`) as HTMLDivElement;
+            this.divErrorLine = container.querySelector(`#${InfoBar.ERROR_ID}`) as HTMLDivElement;
+            this.divInfoLine = container.querySelector("div.infoLine") as HTMLDivElement;
+            this.divTempLine = container.querySelector(`#${InfoBar.TEMP_ID}`) as HTMLDivElement;
+            this.divCacheInfo = container.querySelector(`#${InfoBar.CACHE_ID}`) as HTMLDivElement;
+        }
+        this.container = container;
     }
 
     setTempMessage(msg : string ) {
@@ -62,10 +58,6 @@ export class InfoBar{
 
     setErrorLine(message: string) {
         this.divErrorLine.innerHTML = message;
-    }
-
-    clearCacheInfo() {
-        this.divCacheInfo.innerHTML = "";
     }
 
     setCacheInfo(info: string, reset_onclick: (ev: MouseEvent) => any) {

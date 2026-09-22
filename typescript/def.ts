@@ -1,5 +1,4 @@
 export const COPY_AGAIN = "copy_again";
-export const PROGRESS_BAR_ID = "progressBarFetch";
 export const UREN_PREV_BTN_ID = "prefillInstrButton";
 export const WERKLIJST_MAILMERGE_BTN_ID = "mailMergeButton";
 export const UREN_PREV_SETUP_BTN_ID = "prefillInstrSetupButton";
@@ -21,10 +20,7 @@ export const TRIM_DIV_ID = "trimesterDiv";
 export const CLOUD_BASE_URL = "https://europe-west1-ebo-tain.cloudfunctions.net/";
 export const JSON_URL =  CLOUD_BASE_URL + "json";
 export const CHECK_STATUS_URL =  CLOUD_BASE_URL + "check-status";
-export const INFO_CONTAINER_ID =  "dp3p_infoContainer";
-export const INFO_CACHE_ID =  "dp3p_cacheInfo";
-export const INFO_TEMP_ID =  "dp3_tempInfo";
-export const INFO_EXTRA_ID =  "dp3_extraInfo";
+export const INFO_CONTAINER_FOR_PAGE_ID =  "dp3p_infoContainerForPage";
 export const AANW_LIST =  "aanwezighedenList";
 export const GLOBAL_SETTINGS_FILENAME =  "global_settings.json";
 export const CACHE_DATE_SUFFIX = "__date";

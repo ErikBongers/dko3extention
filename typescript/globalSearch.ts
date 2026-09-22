@@ -10,6 +10,7 @@ import {StoreNames} from "idb";
 import {createLesCard, PlaceHolder} from "./leerling/scrape";
 import {waitForPageProbablyLoaded} from "./restorePage";
 import {scrapeTeachers} from "./personeel/scrape";
+import {getInfoBlockForPage, InfoBlock} from "./infoBlock";
 
 export function onPasteInGlobalSearchField(e: ClipboardEvent) {
     if (!options.stripCommasOnPaste)
@@ -145,13 +146,13 @@ async function gotoTeacherRef(text: string) {
     );
 }
 
-async function gotoRef<T extends Ref>(getMatches: () => Promise<T[]>,
+async function gotoRef<T extends Ref>(getMatches: (infoBlock: InfoBlock) => Promise<T[]>,
                                       gotoUrl: string,
                                       getLabel: (ref: T) => string | HTMLElement,
-                                      updateMenuItem: (dropDownMenu: DropDownMenu, index: number, ref: T, signal: AbortSignal) => Promise<void>
+                                      updateMenuItem: (dropDownMenu: DropDownMenu, index: number, ref: T, signal: AbortSignal) => Promise<void>,
                                       ) {
     await waitForPageProbablyLoaded();
-    let matches = await getMatches();
+    let matches = await getMatches(getInfoBlockForPage());
     if(matches) {
         if (matches.length == 1) {
             console.log("gotoRef: matches.length == 1");

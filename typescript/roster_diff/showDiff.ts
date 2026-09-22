@@ -1,16 +1,29 @@
 import {dateDiffToString, unreachable} from "../globals";
-import {emmet} from "../../libs/Emmeter/html";
+import {emmet} from "../../libs/Emmeter";
 import {decorateTableHeader} from "../table/tableHeaders";
 import {DayUppercase} from "../lessen/scrape";
 import {DKO3_BASE_URL, OPTION_HIDE_IGNORED_DIFFS, OPTION_HIDE_NO_TEACHER_DIFFS} from "../def";
-import {buildAndSaveDiff, createDiffTable, DataPreparationFunction, Dko3DiffData, getDiffsFromCloud, getUrlForWorksheet, JsonBasicLesMoment, JsonDiff, JsonDiffs, prepareExcelData, prepareWwwData, setIgnoredFlags} from "./buildDiff";
+import {
+    buildAndSaveDiff,
+    createDiffTable,
+    DataPreparationFunction,
+    Dko3DiffData,
+    getDiffsFromCloud,
+    getUrlForWorksheet,
+    JsonBasicLesMoment,
+    JsonDiff,
+    JsonDiffs,
+    prepareExcelData,
+    prepareWwwData,
+    setIgnoredFlags
+} from "./buildDiff";
 import {fetchDiffSettings, uploadIgnoredDiffHashes} from "../cloud";
 import {InfoBarTableFetchListener} from "../table/loadAnyTable";
-import {createInfoBlock} from "../infoBlock";
 import {defaultIgnoreList, defaultTagDefs, DiffSettings} from "./diffSettings";
 import {options} from "../plugin_options/options";
 import {DiffType, Weight} from "./calcDiff";
 import {GradeYear} from "../gradeYear";
+import {getInfoBlock} from "../infoBlock";
 
 export async function fetchDiffSettingsOrDefault(academie: string, schoolYear: string) {
     let settings: DiffSettings | undefined;
@@ -64,7 +77,7 @@ export async function getAndShowDiffs(showOrCalc: "justShow" | "calcAndShow", us
 
     let cmbDiffAcademie = document.querySelector("#cmbDiffAcademie") as HTMLSelectElement;
     let cmbDiffSchoolYear = document.querySelector("#cmbDiffSchoolYear") as HTMLSelectElement;
-    let infoBlock = createInfoBlock(statusBlock.divInfo, "");
+    let infoBlock = getInfoBlock(statusBlock.divInfo);
     let fetchListener = new InfoBarTableFetchListener(infoBlock);
     let reportStatus: StatusXCallback = function (message: string) {
         statusBlock.runStatus.innerHTML = message;

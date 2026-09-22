@@ -1,5 +1,5 @@
 import {getTableFromHash, InfoBarTableFetchListener} from "../table/loadAnyTable";
-import {createInfoBlock} from "../infoBlock";
+import {getInfoBlock} from "../infoBlock";
 
 export interface Asset {
     id: string;
@@ -10,7 +10,7 @@ export async function scrapeAssets(): Promise<Asset[]> {
     //create div above snel_zoeken
     let infoBlockDiv = document.createElement("div");
     snel_zoeken.parentNode!.insertBefore(infoBlockDiv, snel_zoeken);
-    let infoBlock = createInfoBlock(infoBlockDiv, "");
+    let infoBlock = getInfoBlock(infoBlockDiv);
     let fetchListener = new InfoBarTableFetchListener(infoBlock);
 
     let table = await getTableFromHash("extra-assets-assets", true, fetchListener);

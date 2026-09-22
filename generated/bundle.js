@@ -543,7 +543,6 @@ function appendChildElement(parent, def, index, onIndex, hook) {
 //#endregion
 //#region typescript/def.ts
 const COPY_AGAIN = "copy_again";
-const PROGRESS_BAR_ID = "progressBarFetch";
 const UREN_PREV_BTN_ID = "prefillInstrButton";
 const WERKLIJST_MAILMERGE_BTN_ID = "mailMergeButton";
 const UREN_PREV_SETUP_BTN_ID = "prefillInstrSetupButton";
@@ -561,10 +560,7 @@ const HOURS_TABLE_ID = "werklijst_uren";
 const TRIM_DIV_ID = "trimesterDiv";
 const CLOUD_BASE_URL = "https://europe-west1-ebo-tain.cloudfunctions.net/";
 const JSON_URL = CLOUD_BASE_URL + "json";
-const INFO_CONTAINER_ID = "dp3p_infoContainer";
-const INFO_CACHE_ID = "dp3p_cacheInfo";
-const INFO_TEMP_ID = "dp3_tempInfo";
-const INFO_EXTRA_ID = "dp3_extraInfo";
+const INFO_CONTAINER_FOR_PAGE_ID = "dp3p_infoContainerForPage";
 const AANW_LIST = "aanwezighedenList";
 const GLOBAL_SETTINGS_FILENAME = "global_settings.json";
 const CACHE_DATE_SUFFIX = "__date";
@@ -673,157 +669,444 @@ function sendRequest$1(action, from, to, toId, data, pageTitle) {
 	return chrome.runtime.sendMessage(req);
 }
 //#endregion
-//#region typescript/infoBar.ts
-var InfoBar = class InfoBar {
-	divInfoContainer;
-	divInfoLine;
-	divTempLine;
-	divExtraLine;
-	divErrorLine;
-	tempMessage;
-	divCacheInfo;
-	constructor(divInfoContainer, divExtraLine, divErrorLine, divInfoLine, divTempLine, divCacheInfo) {
-		this.divInfoContainer = divInfoContainer;
-		this.divExtraLine = divExtraLine;
-		this.divErrorLine = divErrorLine;
-		this.divInfoLine = divInfoLine;
-		this.divTempLine = divTempLine;
-		this.divCacheInfo = divCacheInfo;
-		this.tempMessage = "";
+//#region typescript/tokenScanner.ts
+var ScannerElse = class {
+	scannerIf;
+	constructor(scannerIf) {
+		this.scannerIf = scannerIf;
 	}
-	static create(divInfoContainer) {
-		divInfoContainer.id = INFO_CONTAINER_ID;
-		divInfoContainer.innerHTML = "";
-		let divExtraLine = emmet.appendChild(divInfoContainer, `div#${INFO_EXTRA_ID}.infoMessage`).last;
-		let divErrorLine = emmet.appendChild(divInfoContainer, `div#${INFO_EXTRA_ID}.infoError`).last;
-		let divInfoLine = emmet.appendChild(divInfoContainer, "div.infoLine").last;
-		let divTempLine = emmet.appendChild(divInfoContainer, `div#${INFO_TEMP_ID}.infoMessage.tempLine`).last;
-		let divCacheInfo = emmet.appendChild(divInfoContainer, `div#${INFO_CACHE_ID}.cacheInfo`).last;
-		return new InfoBar(divInfoContainer, divExtraLine, divErrorLine, divInfoLine, divTempLine, divCacheInfo);
+	not(callback) {
+		if (!this.scannerIf.yes) callback?.(this.scannerIf.scanner);
+		return this.scannerIf.scanner;
 	}
-	static find() {
-		let container = document.getElementById(INFO_CONTAINER_ID);
-		let divExtraLine = container.querySelector(`#${INFO_EXTRA_ID}`);
-		let divErrorLine = container.querySelector(`#${INFO_EXTRA_ID}`);
-		let divInfoLine = container.querySelector("div.infoLine");
-		let divTempLine = container.querySelector(`#${INFO_TEMP_ID}`);
-		let divCacheInfo = container.querySelector(`#${INFO_CACHE_ID}`);
-		return new InfoBar(container, divExtraLine, divErrorLine, divInfoLine, divTempLine, divCacheInfo);
+};
+var ScannerIf = class {
+	yes;
+	scanner;
+	constructor(yes, scanner) {
+		this.yes = yes;
+		this.scanner = scanner;
 	}
-	setTempMessage(msg) {
-		this.tempMessage = msg;
-		this.#updateTempMessage();
-		setTimeout(this.clearTempMessage.bind(this), 4e3);
+	then(callback) {
+		if (this.yes) callback(this.scanner);
+		return new ScannerElse(this);
 	}
-	clearTempMessage() {
-		this.tempMessage = "";
-		this.#updateTempMessage();
+};
+var TokenScanner = class TokenScanner {
+	valid;
+	source;
+	cursor;
+	constructor(text) {
+		this.valid = true;
+		this.source = text;
+		this.cursor = text;
 	}
-	#updateTempMessage() {
-		this.divTempLine.innerHTML = this.tempMessage;
+	static create(text) {
+		return new TokenScanner(text);
 	}
-	setInfoLine(message) {
-		this.divInfoLine.innerHTML = message;
+	result() {
+		if (this.valid) return this.cursor;
 	}
-	setErrorLine(message) {
-		this.divErrorLine.innerHTML = message;
+	find(...tokens) {
+		return this.#find("", tokens);
 	}
-	clearCacheInfo() {
-		this.divCacheInfo.innerHTML = "";
+	match(...tokens) {
+		return this.#find("^\\s*", tokens);
 	}
-	setCacheInfo(info, reset_onclick) {
-		this.divCacheInfo.innerHTML = info;
-		let button = emmet.appendChild(this.divCacheInfo, "button.likeLink").first;
-		button.innerHTML = "refresh";
-		button.onclick = reset_onclick;
-	}
-	setExtraInfo(message, click_element_id, callback) {
-		this.divExtraLine.innerHTML = message;
-		if (click_element_id) {
-			if (callback) document.getElementById(click_element_id).onclick = callback;
+	#find(prefix, tokens) {
+		if (!this.valid) return this;
+		let rxString = prefix + tokens.map((token) => escapeRegexChars(token) + "\\s*").join("");
+		let match = RegExp(rxString).exec(this.cursor);
+		if (match) {
+			this.cursor = this.cursor.substring(match.index + match[0].length);
+			return this;
 		}
+		this.valid = false;
+		return this;
+	}
+	ifMatch(...tokens) {
+		if (!this.valid) return new ScannerIf(true, this);
+		this.match(...tokens);
+		if (this.valid) return new ScannerIf(true, this);
+		else {
+			this.valid = true;
+			return new ScannerIf(false, this);
+		}
+	}
+	clip(len) {
+		if (!this.valid) return this;
+		this.cursor = this.cursor.substring(0, len);
+		return this;
+	}
+	clipTo(end) {
+		if (!this.valid) return this;
+		let found = this.cursor.indexOf(end);
+		if (found < 0) {
+			this.valid = false;
+			return this;
+		}
+		this.cursor = this.cursor.substring(0, found);
+		return this;
+	}
+	clone() {
+		let newScanner = new TokenScanner(this.cursor);
+		newScanner.valid = this.valid;
+		return newScanner;
+	}
+	clipString() {
+		let isString = false;
+		this.ifMatch("'").then((result) => {
+			isString = true;
+			return result.clipTo("'");
+		}).not().ifMatch("\"").then((result) => {
+			isString = true;
+			return result.clipTo("\"");
+		}).not();
+		this.valid = this.valid && isString;
+		return this;
+	}
+	captureString(callback) {
+		let result = this.clone().clipString().result();
+		if (result) {
+			callback(result);
+			this.ifMatch("'").then((result) => result.find("'")).not().ifMatch("\"").then((result) => result.find("\"")).not();
+		}
+		return this;
+	}
+	getString() {
+		return this.clipString().result();
 	}
 };
 //#endregion
-//#region typescript/progressBar.ts
-var ProgressBar = class ProgressBar {
-	barElement;
-	containerElement;
-	maxCount;
-	count;
-	constructor(containerElement, barElement) {
-		this.barElement = barElement;
-		this.containerElement = containerElement;
-		this.hide();
-		this.maxCount = 0;
-		this.count = 0;
+//#region typescript/table/fetchChain.ts
+var FetchChain = class {
+	lastText = "";
+	get() {
+		return this.lastText;
 	}
-	reset(maxCount) {
-		this.maxCount = maxCount;
-		this.count = 0;
-		this.barElement.innerHTML = "";
-		for (let i = 0; i < maxCount; i++) {
-			let block = document.createElement("div");
-			this.barElement.appendChild(block);
-			block.classList.add("progressBlock");
-		}
+	set(text) {
+		this.lastText = text;
 	}
-	start(maxCount) {
-		this.reset(maxCount);
-		this.containerElement.style.display = "block";
-		this.next();
+	async fetch(url, signal) {
+		this.lastText = await fetchText(url ?? this.lastText ?? "--null--", signal);
+		return this.lastText;
 	}
-	hide() {
-		this.containerElement.style.display = "none";
+	async post(url, signal, params) {
+		this.lastText = await fetchText(url, signal, true, params);
+		return this.lastText;
 	}
-	stop() {
-		this.hide();
+	findDocReadyLoadUrl() {
+		this.lastText = getDocReadyLoadUrl(this.lastText ?? "--null--");
+		return this.lastText;
 	}
-	next() {
-		if (this.count >= this.maxCount) return false;
-		this.barElement.children[this.count].classList.remove("iddle", "loaded");
-		this.barElement.children[this.count].classList.add("loading");
-		for (let i = 0; i < this.count; i++) {
-			this.barElement.children[i].classList.remove("iddle", "loading");
-			this.barElement.children[i].classList.add("loaded");
-		}
-		for (let i = this.count + 1; i < this.maxCount; i++) {
-			this.barElement.children[i].classList.remove("loaded", "loading");
-			this.barElement.children[i].classList.add("iddle");
-		}
-		this.count++;
-		return true;
+	findDocReadyLoadScript() {
+		this.lastText = getDocReadyLoadScript(this.lastText ?? "--null--")?.result();
+		return this.lastText;
 	}
-	static find() {
-		let divProgressLine = document.getElementById(PROGRESS_BAR_ID);
-		let divProgressBar = divProgressLine.querySelector(".progressBar");
-		return new ProgressBar(divProgressLine, divProgressBar);
+	find(...args) {
+		this.lastText = new TokenScanner(this.lastText ?? "--null--").find(...args).result();
+		return this.lastText;
+	}
+	getQuotedString() {
+		let daString = "";
+		let scanner = new TokenScanner(this.lastText ?? "--null--").captureString(((res) => daString = res));
+		this.lastText = scanner.result();
+		return daString;
+	}
+	clipTo(end) {
+		this.lastText = new TokenScanner(this.lastText ?? "--null--").clipTo(end).result();
+	}
+	div() {
+		let el = document.createElement("div");
+		el.innerHTML = this.lastText ?? "";
+		return el;
+	}
+	includes(text) {
+		return this.lastText?.includes(text) ?? false;
 	}
 };
-function insertProgressBar(container, text = "") {
-	container.innerHTML = "";
-	let { first: divProgressLine, last: divProgressBar } = emmet.appendChild(container, `div.infoLine#${PROGRESS_BAR_ID}>div.progressText{${text}}+div.progressBar`);
-	return new ProgressBar(divProgressLine, divProgressBar);
+function findDocReady(scanner) {
+	return scanner.find("$", "(", "document", ")", ".", "ready", "(");
+}
+function getDocReadyLoadUrl(text) {
+	let scanner = new TokenScanner(text);
+	while (true) {
+		let docReady = findDocReady(scanner);
+		if (!docReady.valid) return void 0;
+		let url = docReady.clone().clipTo("<\/script>").find(".", "load", "(").clipString().result();
+		if (url) return url;
+		scanner = docReady;
+	}
+}
+function getDocReadyLoadScript(text) {
+	let scanner = new TokenScanner(text);
+	while (true) {
+		let docReady = findDocReady(scanner);
+		if (!docReady.valid) return void 0;
+		let script = docReady.clone().clipTo("<\/script>");
+		if (script.clone().find(".", "load", "(").valid) return script;
+		scanner = docReady;
+	}
+}
+async function fetchText(url, signal, post = false, params) {
+	return (post ? await fetch(url, {
+		signal,
+		method: "POST",
+		body: new URLSearchParams(params)
+	}) : await fetch(url, { signal })).text();
 }
 //#endregion
-//#region typescript/infoBlock.ts
-function createInfoBlockForTable(tableRef) {
-	document.getElementById(INFO_CONTAINER_ID)?.remove();
-	return createInfoBlock(tableRef.createElementAboveTable("div"), "loading pages... ");
-}
-function createInfoBlock(infoContainer, initialMessage) {
-	let infoBar = InfoBar.create(infoContainer.appendChild(document.createElement("div")));
-	return {
-		infoBar,
-		progressBar: insertProgressBar(infoBar.divInfoLine, initialMessage)
-	};
-}
-function getInfoBlock() {
-	return {
-		infoBar: InfoBar.find(),
-		progressBar: ProgressBar.find()
-	};
-}
+//#region typescript/roster_diff/excel.ts
+var ExcelPos = class {
+	row;
+	column;
+	constructor(row, column) {
+		this.row = row;
+		this.column = column;
+	}
+};
+var TablePos = class {
+	row;
+	column;
+	constructor(row, column) {
+		this.row = row;
+		this.column = column;
+	}
+	static toExcel(tablePos, table) {
+		return new ExcelPos(tablePos.row + table.tableRange.Start.row + table.rowHeaderCount, tablePos.column + table.tableRange.Start.column + table.columnHeaderCount);
+	}
+};
+var Range = class {
+	start;
+	end;
+	RowCount() {
+		return this.end.row - this.start.row + 1;
+	}
+	ColumnCount() {
+		return this.end.column - this.start.column + 1;
+	}
+	constructor(start, end) {
+		this.start = start;
+		this.end = end;
+	}
+};
+var ExcelRange = class extends Range {
+	constructor(start, end) {
+		super(start, end);
+	}
+	get Start() {
+		return this.start;
+	}
+	get End() {
+		return this.end;
+	}
+};
+var TableRange = class TableRange {
+	start;
+	end;
+	constructor(start, end) {
+		this.start = start;
+		this.end = end;
+	}
+	static FromExcel(excelRange, table) {
+		let startRow = excelRange.Start.row - table.tableRange.Start.row - table.rowHeaderCount;
+		let endRow = excelRange.End.row - table.tableRange.Start.row - table.rowHeaderCount;
+		let startColumn = excelRange.Start.column - table.tableRange.Start.column - table.columnHeaderCount;
+		let endColumn = excelRange.End.column - table.tableRange.Start.column - table.columnHeaderCount;
+		return new TableRange({
+			row: startRow,
+			column: startColumn
+		}, {
+			row: endRow,
+			column: endColumn
+		});
+	}
+	static ToExcel(tableRange, table) {
+		return new ExcelRange(TablePos.toExcel(tableRange.Start, table), TablePos.toExcel(tableRange.End, table));
+	}
+	get Start() {
+		return this.start;
+	}
+	get End() {
+		return this.end;
+	}
+};
+var ExcelData = class {
+	data;
+	mergedRanges;
+	url;
+	workbookName;
+	worksheetName;
+	constructor(data, mergedRanges, url, workbookName, worksheetName) {
+		this.data = data;
+		this.mergedRanges = mergedRanges.map((r) => new ExcelRange(r.start, r.end));
+		this.url = url;
+		if (this.url) {
+			let urlParams = new URLSearchParams(this.url.substring(this.url.indexOf("?") + 1));
+			urlParams.delete("activeCell");
+			this.url = this.url.substring(0, this.url.indexOf("?")) + "?" + urlParams.toString();
+		}
+		this.workbookName = workbookName;
+		this.worksheetName = worksheetName;
+	}
+	getMergedCellValue(excelPos) {
+		let mergedRange = this.getMergedRangeForCell(excelPos);
+		return this.data[mergedRange.Start.row][mergedRange.Start.column];
+	}
+	getMergedRangeForCell(excelPos) {
+		return this.mergedRanges.find((range) => {
+			return excelPos.row >= range.Start.row && excelPos.row <= range.End.row && excelPos.column >= range.Start.column && excelPos.column <= range.End.column;
+		}) ?? new ExcelRange(excelPos, excelPos);
+	}
+};
+var Table = class {
+	excelData;
+	tableRange;
+	rowHeaderCount;
+	columnHeaderCount;
+	excelToTableRange(excelRange) {
+		return TableRange.FromExcel(excelRange, this);
+	}
+	get ColumnCount() {
+		return this.tableRange.ColumnCount() - this.columnHeaderCount;
+	}
+	get RowCount() {
+		return this.tableRange.RowCount() - this.rowHeaderCount;
+	}
+	constructor(excelData, tableRange, rowHeaderCount, columnHeaderCount) {
+		this.excelData = excelData;
+		this.tableRange = tableRange;
+		this.rowHeaderCount = rowHeaderCount;
+		this.columnHeaderCount = columnHeaderCount;
+	}
+	Cell(row, column) {
+		let excelPos = {
+			row: this.tableRange.Start.row + this.rowHeaderCount + row,
+			column: this.tableRange.Start.column + this.columnHeaderCount + column
+		};
+		return this.excelData.getMergedCellValue(excelPos);
+	}
+	RangeOfCell(pos) {
+		let excelPos = {
+			row: this.tableRange.Start.row + this.rowHeaderCount + pos.row,
+			column: this.tableRange.Start.column + this.columnHeaderCount + pos.column
+		};
+		let exelRange = this.excelData.getMergedRangeForCell(excelPos) ?? new ExcelRange(excelPos, excelPos);
+		return TableRange.FromExcel(exelRange, this);
+	}
+	HeaderRowValue(headerRow, column) {
+		let excelPos = {
+			row: this.tableRange.Start.row + headerRow,
+			column: this.tableRange.Start.column + this.columnHeaderCount + column
+		};
+		return this.excelData.getMergedCellValue(excelPos);
+	}
+	HeaderColumnValue(row, headerColumn) {
+		let excelPos = {
+			row: this.tableRange.Start.row + this.rowHeaderCount + row,
+			column: this.tableRange.Start.column + headerColumn
+		};
+		return this.excelData.getMergedCellValue(excelPos);
+	}
+};
+//#endregion
+//#region typescript/roster_diff/rosterFactory.ts
+var RosterFactory = class RosterFactory {
+	excelData;
+	errors = [];
+	daysRow = void 0;
+	periodColumn = void 0;
+	tableRange = void 0;
+	constructor(jsonExcelData) {
+		this.excelData = new ExcelData(jsonExcelData.data, jsonExcelData.mergedRanges, jsonExcelData.url, jsonExcelData.workbookName, jsonExcelData.worksheetName);
+		this.daysRow = this.findDaysRow();
+		if (this.daysRow === void 0) {
+			this.errors.push("Geen rij met dagnamen gevonden.");
+			return;
+		}
+		this.periodColumn = this.findPeriodColumn(this.daysRow);
+		if (this.periodColumn === void 0) {
+			this.errors.push("Geen kolom met lesmomenten gevonden.");
+			return;
+		}
+		let lastPeriodRow = this.findLastPeriodRow(this.periodColumn);
+		let lastDayColumn = this.findLastDayColumn(this.periodColumn, this.daysRow);
+		if (lastDayColumn && lastPeriodRow) this.tableRange = new ExcelRange({
+			row: this.daysRow,
+			column: this.periodColumn
+		}, {
+			row: lastPeriodRow,
+			column: lastDayColumn
+		});
+	}
+	getErrors() {
+		return this.errors;
+	}
+	getTable() {
+		return new Table(this.excelData, this.tableRange, 2, 1);
+	}
+	findDaysRow() {
+		for (let [i, row] of this.excelData.data.entries()) if (this.isDaysRow(row)) return i;
+	}
+	isDaysRow(row) {
+		let matchCount = 0;
+		for (let value of row) {
+			if (RosterFactory.isDayName(value.toString())) matchCount++;
+			if (matchCount >= 3) return true;
+		}
+		return false;
+	}
+	static isDayName(text) {
+		return this.toDayName(text) != "";
+	}
+	static toDayName(text) {
+		switch (text.toLowerCase()) {
+			case "maandag": return "MAANDAG";
+			case "dinsdag": return "DINSDAG";
+			case "woensdag": return "WOENSDAG";
+			case "donderdag": return "DONDERDAG";
+			case "vrijdag": return "VRIJDAG";
+			case "zaterdag": return "ZATERDAG";
+			case "zondag": return "ZONDAG";
+			case "ma": return "MAANDAG";
+			case "di": return "DINSDAG";
+			case "din": return "DINSDAG";
+			case "wo": return "WOENSDAG";
+			case "woe": return "WOENSDAG";
+			case "do": return "DONDERDAG";
+			case "don": return "DONDERDAG";
+			case "vr": return "VRIJDAG";
+			case "za": return "ZATERDAG";
+			case "zat": return "ZATERDAG";
+			case "zo": return "ZONDAG";
+			case "zon": return "ZONDAG";
+			default: return "";
+		}
+	}
+	findPeriodColumn(daysRow) {
+		let columnCount = this.excelData.data[0].length;
+		for (let iCol = 0; iCol < columnCount; iCol++) for (let row of this.excelData.data.slice(daysRow)) {
+			let value = row[iCol].toString();
+			if (this.isPeriod(value)) return iCol;
+		}
+	}
+	isPeriod(text) {
+		return TimeSlice.parseTimeSlice(text);
+	}
+	findLastPeriodRow(periodColumn) {
+		return this.excelData.data.map((row, index) => this.isPeriod(row[periodColumn].toString()) ? index : -1).filter((n) => n > 0).pop();
+	}
+	findLastDayColumn(periodColumn, daysRow) {
+		for (let c = periodColumn + 1; c < this.excelData.data[0].length; c++) {
+			let cellValue = this.excelData.getMergedCellValue({
+				row: daysRow,
+				column: c
+			});
+			if (!RosterFactory.isDayName(cellValue)) return c - 1;
+		}
+		return this.excelData.data[0].length - 1;
+	}
+};
 //#endregion
 //#region typescript/table/tableNavigation.ts
 var TableNavigation = class {
@@ -1205,193 +1488,6 @@ var ClampedValue = class {
 		this.value = this.value + parseInt("0");
 	}
 };
-//#endregion
-//#region typescript/tokenScanner.ts
-var ScannerElse = class {
-	scannerIf;
-	constructor(scannerIf) {
-		this.scannerIf = scannerIf;
-	}
-	not(callback) {
-		if (!this.scannerIf.yes) callback?.(this.scannerIf.scanner);
-		return this.scannerIf.scanner;
-	}
-};
-var ScannerIf = class {
-	yes;
-	scanner;
-	constructor(yes, scanner) {
-		this.yes = yes;
-		this.scanner = scanner;
-	}
-	then(callback) {
-		if (this.yes) callback(this.scanner);
-		return new ScannerElse(this);
-	}
-};
-var TokenScanner = class TokenScanner {
-	valid;
-	source;
-	cursor;
-	constructor(text) {
-		this.valid = true;
-		this.source = text;
-		this.cursor = text;
-	}
-	static create(text) {
-		return new TokenScanner(text);
-	}
-	result() {
-		if (this.valid) return this.cursor;
-	}
-	find(...tokens) {
-		return this.#find("", tokens);
-	}
-	match(...tokens) {
-		return this.#find("^\\s*", tokens);
-	}
-	#find(prefix, tokens) {
-		if (!this.valid) return this;
-		let rxString = prefix + tokens.map((token) => escapeRegexChars(token) + "\\s*").join("");
-		let match = RegExp(rxString).exec(this.cursor);
-		if (match) {
-			this.cursor = this.cursor.substring(match.index + match[0].length);
-			return this;
-		}
-		this.valid = false;
-		return this;
-	}
-	ifMatch(...tokens) {
-		if (!this.valid) return new ScannerIf(true, this);
-		this.match(...tokens);
-		if (this.valid) return new ScannerIf(true, this);
-		else {
-			this.valid = true;
-			return new ScannerIf(false, this);
-		}
-	}
-	clip(len) {
-		if (!this.valid) return this;
-		this.cursor = this.cursor.substring(0, len);
-		return this;
-	}
-	clipTo(end) {
-		if (!this.valid) return this;
-		let found = this.cursor.indexOf(end);
-		if (found < 0) {
-			this.valid = false;
-			return this;
-		}
-		this.cursor = this.cursor.substring(0, found);
-		return this;
-	}
-	clone() {
-		let newScanner = new TokenScanner(this.cursor);
-		newScanner.valid = this.valid;
-		return newScanner;
-	}
-	clipString() {
-		let isString = false;
-		this.ifMatch("'").then((result) => {
-			isString = true;
-			return result.clipTo("'");
-		}).not().ifMatch("\"").then((result) => {
-			isString = true;
-			return result.clipTo("\"");
-		}).not();
-		this.valid = this.valid && isString;
-		return this;
-	}
-	captureString(callback) {
-		let result = this.clone().clipString().result();
-		if (result) {
-			callback(result);
-			this.ifMatch("'").then((result) => result.find("'")).not().ifMatch("\"").then((result) => result.find("\"")).not();
-		}
-		return this;
-	}
-	getString() {
-		return this.clipString().result();
-	}
-};
-//#endregion
-//#region typescript/table/fetchChain.ts
-var FetchChain = class {
-	lastText = "";
-	get() {
-		return this.lastText;
-	}
-	set(text) {
-		this.lastText = text;
-	}
-	async fetch(url, signal) {
-		this.lastText = await fetchText(url ?? this.lastText ?? "--null--", signal);
-		return this.lastText;
-	}
-	async post(url, signal, params) {
-		this.lastText = await fetchText(url, signal, true, params);
-		return this.lastText;
-	}
-	findDocReadyLoadUrl() {
-		this.lastText = getDocReadyLoadUrl(this.lastText ?? "--null--");
-		return this.lastText;
-	}
-	findDocReadyLoadScript() {
-		this.lastText = getDocReadyLoadScript(this.lastText ?? "--null--")?.result();
-		return this.lastText;
-	}
-	find(...args) {
-		this.lastText = new TokenScanner(this.lastText ?? "--null--").find(...args).result();
-		return this.lastText;
-	}
-	getQuotedString() {
-		let daString = "";
-		let scanner = new TokenScanner(this.lastText ?? "--null--").captureString(((res) => daString = res));
-		this.lastText = scanner.result();
-		return daString;
-	}
-	clipTo(end) {
-		this.lastText = new TokenScanner(this.lastText ?? "--null--").clipTo(end).result();
-	}
-	div() {
-		let el = document.createElement("div");
-		el.innerHTML = this.lastText ?? "";
-		return el;
-	}
-	includes(text) {
-		return this.lastText?.includes(text) ?? false;
-	}
-};
-function findDocReady(scanner) {
-	return scanner.find("$", "(", "document", ")", ".", "ready", "(");
-}
-function getDocReadyLoadUrl(text) {
-	let scanner = new TokenScanner(text);
-	while (true) {
-		let docReady = findDocReady(scanner);
-		if (!docReady.valid) return void 0;
-		let url = docReady.clone().clipTo("<\/script>").find(".", "load", "(").clipString().result();
-		if (url) return url;
-		scanner = docReady;
-	}
-}
-function getDocReadyLoadScript(text) {
-	let scanner = new TokenScanner(text);
-	while (true) {
-		let docReady = findDocReady(scanner);
-		if (!docReady.valid) return void 0;
-		let script = docReady.clone().clipTo("<\/script>");
-		if (script.clone().find(".", "load", "(").valid) return script;
-		scanner = docReady;
-	}
-}
-async function fetchText(url, signal, post = false, params) {
-	return (post ? await fetch(url, {
-		signal,
-		method: "POST",
-		body: new URLSearchParams(params)
-	}) : await fetch(url, { signal })).text();
-}
 //#endregion
 //#region typescript/restorePage.ts
 let savedUrl = "";
@@ -3061,6 +3157,153 @@ function createDownloadTableWithExtraAction() {
 	};
 }
 //#endregion
+//#region typescript/infoBar.ts
+var InfoBar = class InfoBar {
+	parent;
+	container;
+	divInfoLine;
+	divTempLine;
+	divExtraLine;
+	divErrorLine;
+	tempMessage;
+	divCacheInfo;
+	static ID = "dp3p_infoContainer";
+	static EXTRA_ID = "dp3_extraInfo";
+	static ERROR_ID = "dp3_errorInfo";
+	static TEMP_ID = "dp3_tempInfo";
+	static CACHE_ID = "dp3p_cacheInfo";
+	constructor(parent) {
+		this.parent = parent;
+		this.tempMessage = "";
+		let container = parent.querySelector(`div#${InfoBar.ID}`);
+		if (!container) {
+			container = emmet.appendChild(parent, `div#${InfoBar.ID}`).first;
+			this.divExtraLine = emmet.appendChild(container, `div#${InfoBar.EXTRA_ID}.infoMessage`).last;
+			this.divErrorLine = emmet.appendChild(container, `div#${InfoBar.ERROR_ID}.infoError`).last;
+			this.divInfoLine = emmet.appendChild(container, "div.infoLine").last;
+			this.divTempLine = emmet.appendChild(container, `div#${InfoBar.TEMP_ID}.infoMessage.tempLine`).last;
+			this.divCacheInfo = emmet.appendChild(container, `div#${InfoBar.CACHE_ID}.cacheInfo`).last;
+		} else {
+			this.divExtraLine = container.querySelector(`#${InfoBar.EXTRA_ID}`);
+			this.divErrorLine = container.querySelector(`#${InfoBar.ERROR_ID}`);
+			this.divInfoLine = container.querySelector("div.infoLine");
+			this.divTempLine = container.querySelector(`#${InfoBar.TEMP_ID}`);
+			this.divCacheInfo = container.querySelector(`#${InfoBar.CACHE_ID}`);
+		}
+		this.container = container;
+	}
+	setTempMessage(msg) {
+		this.tempMessage = msg;
+		this.#updateTempMessage();
+		setTimeout(this.clearTempMessage.bind(this), 4e3);
+	}
+	clearTempMessage() {
+		this.tempMessage = "";
+		this.#updateTempMessage();
+	}
+	#updateTempMessage() {
+		this.divTempLine.innerHTML = this.tempMessage;
+	}
+	setInfoLine(message) {
+		this.divInfoLine.innerHTML = message;
+	}
+	setErrorLine(message) {
+		this.divErrorLine.innerHTML = message;
+	}
+	setCacheInfo(info, reset_onclick) {
+		this.divCacheInfo.innerHTML = info;
+		let button = emmet.appendChild(this.divCacheInfo, "button.likeLink").first;
+		button.innerHTML = "refresh";
+		button.onclick = reset_onclick;
+	}
+	setExtraInfo(message, click_element_id, callback) {
+		this.divExtraLine.innerHTML = message;
+		if (click_element_id) {
+			if (callback) document.getElementById(click_element_id).onclick = callback;
+		}
+	}
+};
+//#endregion
+//#region typescript/progressBar.ts
+var ProgressBar = class ProgressBar {
+	barElement;
+	parent;
+	container;
+	maxCount;
+	count;
+	static ID = "progressBarContainer";
+	constructor(parent) {
+		this.parent = parent;
+		let container = this.parent.querySelector("#" + ProgressBar.ID);
+		if (!container) container = emmet.indent.appendChild(this.parent, `
+                div#${ProgressBar.ID}
+                    div.progressBar
+            `).first;
+		this.container = container;
+		this.barElement = this.container.querySelector(".progressBar");
+		this.hide();
+		this.maxCount = 0;
+		this.count = 0;
+	}
+	reset(maxCount) {
+		this.maxCount = maxCount;
+		this.count = 0;
+		this.barElement.innerHTML = "";
+		for (let i = 0; i < maxCount; i++) {
+			let block = document.createElement("div");
+			this.barElement.appendChild(block);
+			block.classList.add("progressBlock");
+		}
+	}
+	start(maxCount) {
+		this.reset(maxCount);
+		this.container.style.display = "";
+		this.next();
+	}
+	hide() {
+		this.container.style.display = "none";
+	}
+	stop() {
+		this.hide();
+	}
+	next() {
+		if (this.count >= this.maxCount) return false;
+		this.barElement.children[this.count].classList.remove("iddle", "loaded");
+		this.barElement.children[this.count].classList.add("loading");
+		for (let i = 0; i < this.count; i++) {
+			this.barElement.children[i].classList.remove("iddle", "loading");
+			this.barElement.children[i].classList.add("loaded");
+		}
+		for (let i = this.count + 1; i < this.maxCount; i++) {
+			this.barElement.children[i].classList.remove("loaded", "loading");
+			this.barElement.children[i].classList.add("iddle");
+		}
+		this.count++;
+		return true;
+	}
+};
+//#endregion
+//#region typescript/infoBlock.ts
+function createInfoBlockForTable(tableRef) {
+	return getInfoBlock(tableRef.createElementAboveTable("div"));
+}
+function getInfoBlock(parent) {
+	return {
+		infoBar: new InfoBar(parent),
+		progressBar: new ProgressBar(parent)
+	};
+}
+function getInfoBlockForPage() {
+	let infoBlockDiv = document.getElementById(INFO_CONTAINER_FOR_PAGE_ID);
+	if (!infoBlockDiv) {
+		let snel_zoeken = document.querySelector("#snel_zoeken");
+		infoBlockDiv = document.createElement("div");
+		infoBlockDiv.id = INFO_CONTAINER_FOR_PAGE_ID;
+		snel_zoeken.parentNode.insertBefore(infoBlockDiv, snel_zoeken);
+	}
+	return new InfoBarTableFetchListener(getInfoBlock(infoBlockDiv));
+}
+//#endregion
 //#region typescript/table/loadAnyTable.ts
 async function getWerklijstTableRef() {
 	let chain = new FetchChain();
@@ -3216,261 +3459,9 @@ function createDefaultTableFetcher(tableRef, infoBlock) {
 	} };
 }
 async function scrapeTable(tableFetcher, rowConverter) {
-	createGlobalInfoBlockAndListener();
+	getInfoBlockForPage();
 	return [...(await tableFetcher.fetch()).getRows()].map((row) => rowConverter(row)).filter((item) => item != null);
 }
-//#endregion
-//#region typescript/roster_diff/excel.ts
-var ExcelPos = class {
-	row;
-	column;
-	constructor(row, column) {
-		this.row = row;
-		this.column = column;
-	}
-};
-var TablePos = class {
-	row;
-	column;
-	constructor(row, column) {
-		this.row = row;
-		this.column = column;
-	}
-	static toExcel(tablePos, table) {
-		return new ExcelPos(tablePos.row + table.tableRange.Start.row + table.rowHeaderCount, tablePos.column + table.tableRange.Start.column + table.columnHeaderCount);
-	}
-};
-var Range = class {
-	start;
-	end;
-	RowCount() {
-		return this.end.row - this.start.row + 1;
-	}
-	ColumnCount() {
-		return this.end.column - this.start.column + 1;
-	}
-	constructor(start, end) {
-		this.start = start;
-		this.end = end;
-	}
-};
-var ExcelRange = class extends Range {
-	constructor(start, end) {
-		super(start, end);
-	}
-	get Start() {
-		return this.start;
-	}
-	get End() {
-		return this.end;
-	}
-};
-var TableRange = class TableRange {
-	start;
-	end;
-	constructor(start, end) {
-		this.start = start;
-		this.end = end;
-	}
-	static FromExcel(excelRange, table) {
-		let startRow = excelRange.Start.row - table.tableRange.Start.row - table.rowHeaderCount;
-		let endRow = excelRange.End.row - table.tableRange.Start.row - table.rowHeaderCount;
-		let startColumn = excelRange.Start.column - table.tableRange.Start.column - table.columnHeaderCount;
-		let endColumn = excelRange.End.column - table.tableRange.Start.column - table.columnHeaderCount;
-		return new TableRange({
-			row: startRow,
-			column: startColumn
-		}, {
-			row: endRow,
-			column: endColumn
-		});
-	}
-	static ToExcel(tableRange, table) {
-		return new ExcelRange(TablePos.toExcel(tableRange.Start, table), TablePos.toExcel(tableRange.End, table));
-	}
-	get Start() {
-		return this.start;
-	}
-	get End() {
-		return this.end;
-	}
-};
-var ExcelData = class {
-	data;
-	mergedRanges;
-	url;
-	workbookName;
-	worksheetName;
-	constructor(data, mergedRanges, url, workbookName, worksheetName) {
-		this.data = data;
-		this.mergedRanges = mergedRanges.map((r) => new ExcelRange(r.start, r.end));
-		this.url = url;
-		if (this.url) {
-			let urlParams = new URLSearchParams(this.url.substring(this.url.indexOf("?") + 1));
-			urlParams.delete("activeCell");
-			this.url = this.url.substring(0, this.url.indexOf("?")) + "?" + urlParams.toString();
-		}
-		this.workbookName = workbookName;
-		this.worksheetName = worksheetName;
-	}
-	getMergedCellValue(excelPos) {
-		let mergedRange = this.getMergedRangeForCell(excelPos);
-		return this.data[mergedRange.Start.row][mergedRange.Start.column];
-	}
-	getMergedRangeForCell(excelPos) {
-		return this.mergedRanges.find((range) => {
-			return excelPos.row >= range.Start.row && excelPos.row <= range.End.row && excelPos.column >= range.Start.column && excelPos.column <= range.End.column;
-		}) ?? new ExcelRange(excelPos, excelPos);
-	}
-};
-var Table = class {
-	excelData;
-	tableRange;
-	rowHeaderCount;
-	columnHeaderCount;
-	excelToTableRange(excelRange) {
-		return TableRange.FromExcel(excelRange, this);
-	}
-	get ColumnCount() {
-		return this.tableRange.ColumnCount() - this.columnHeaderCount;
-	}
-	get RowCount() {
-		return this.tableRange.RowCount() - this.rowHeaderCount;
-	}
-	constructor(excelData, tableRange, rowHeaderCount, columnHeaderCount) {
-		this.excelData = excelData;
-		this.tableRange = tableRange;
-		this.rowHeaderCount = rowHeaderCount;
-		this.columnHeaderCount = columnHeaderCount;
-	}
-	Cell(row, column) {
-		let excelPos = {
-			row: this.tableRange.Start.row + this.rowHeaderCount + row,
-			column: this.tableRange.Start.column + this.columnHeaderCount + column
-		};
-		return this.excelData.getMergedCellValue(excelPos);
-	}
-	RangeOfCell(pos) {
-		let excelPos = {
-			row: this.tableRange.Start.row + this.rowHeaderCount + pos.row,
-			column: this.tableRange.Start.column + this.columnHeaderCount + pos.column
-		};
-		let exelRange = this.excelData.getMergedRangeForCell(excelPos) ?? new ExcelRange(excelPos, excelPos);
-		return TableRange.FromExcel(exelRange, this);
-	}
-	HeaderRowValue(headerRow, column) {
-		let excelPos = {
-			row: this.tableRange.Start.row + headerRow,
-			column: this.tableRange.Start.column + this.columnHeaderCount + column
-		};
-		return this.excelData.getMergedCellValue(excelPos);
-	}
-	HeaderColumnValue(row, headerColumn) {
-		let excelPos = {
-			row: this.tableRange.Start.row + this.rowHeaderCount + row,
-			column: this.tableRange.Start.column + headerColumn
-		};
-		return this.excelData.getMergedCellValue(excelPos);
-	}
-};
-//#endregion
-//#region typescript/roster_diff/rosterFactory.ts
-var RosterFactory = class RosterFactory {
-	excelData;
-	errors = [];
-	daysRow = void 0;
-	periodColumn = void 0;
-	tableRange = void 0;
-	constructor(jsonExcelData) {
-		this.excelData = new ExcelData(jsonExcelData.data, jsonExcelData.mergedRanges, jsonExcelData.url, jsonExcelData.workbookName, jsonExcelData.worksheetName);
-		this.daysRow = this.findDaysRow();
-		if (this.daysRow === void 0) {
-			this.errors.push("Geen rij met dagnamen gevonden.");
-			return;
-		}
-		this.periodColumn = this.findPeriodColumn(this.daysRow);
-		if (this.periodColumn === void 0) {
-			this.errors.push("Geen kolom met lesmomenten gevonden.");
-			return;
-		}
-		let lastPeriodRow = this.findLastPeriodRow(this.periodColumn);
-		let lastDayColumn = this.findLastDayColumn(this.periodColumn, this.daysRow);
-		if (lastDayColumn && lastPeriodRow) this.tableRange = new ExcelRange({
-			row: this.daysRow,
-			column: this.periodColumn
-		}, {
-			row: lastPeriodRow,
-			column: lastDayColumn
-		});
-	}
-	getErrors() {
-		return this.errors;
-	}
-	getTable() {
-		return new Table(this.excelData, this.tableRange, 2, 1);
-	}
-	findDaysRow() {
-		for (let [i, row] of this.excelData.data.entries()) if (this.isDaysRow(row)) return i;
-	}
-	isDaysRow(row) {
-		let matchCount = 0;
-		for (let value of row) {
-			if (RosterFactory.isDayName(value.toString())) matchCount++;
-			if (matchCount >= 3) return true;
-		}
-		return false;
-	}
-	static isDayName(text) {
-		return this.toDayName(text) != "";
-	}
-	static toDayName(text) {
-		switch (text.toLowerCase()) {
-			case "maandag": return "MAANDAG";
-			case "dinsdag": return "DINSDAG";
-			case "woensdag": return "WOENSDAG";
-			case "donderdag": return "DONDERDAG";
-			case "vrijdag": return "VRIJDAG";
-			case "zaterdag": return "ZATERDAG";
-			case "zondag": return "ZONDAG";
-			case "ma": return "MAANDAG";
-			case "di": return "DINSDAG";
-			case "din": return "DINSDAG";
-			case "wo": return "WOENSDAG";
-			case "woe": return "WOENSDAG";
-			case "do": return "DONDERDAG";
-			case "don": return "DONDERDAG";
-			case "vr": return "VRIJDAG";
-			case "za": return "ZATERDAG";
-			case "zat": return "ZATERDAG";
-			case "zo": return "ZONDAG";
-			case "zon": return "ZONDAG";
-			default: return "";
-		}
-	}
-	findPeriodColumn(daysRow) {
-		let columnCount = this.excelData.data[0].length;
-		for (let iCol = 0; iCol < columnCount; iCol++) for (let row of this.excelData.data.slice(daysRow)) {
-			let value = row[iCol].toString();
-			if (this.isPeriod(value)) return iCol;
-		}
-	}
-	isPeriod(text) {
-		return TimeSlice.parseTimeSlice(text);
-	}
-	findLastPeriodRow(periodColumn) {
-		return this.excelData.data.map((row, index) => this.isPeriod(row[periodColumn].toString()) ? index : -1).filter((n) => n > 0).pop();
-	}
-	findLastDayColumn(periodColumn, daysRow) {
-		for (let c = periodColumn + 1; c < this.excelData.data[0].length; c++) {
-			let cellValue = this.excelData.getMergedCellValue({
-				row: daysRow,
-				column: c
-			});
-			if (!RosterFactory.isDayName(cellValue)) return c - 1;
-		}
-		return this.excelData.data[0].length - 1;
-	}
-};
 //#endregion
 //#region typescript/notifications/notifications.ts
 function getNotifRedButton() {
@@ -3945,7 +3936,7 @@ async function getAndShowDiffs(showOrCalc, useDkoCache, diffPageType, diffSettin
 	statusBlock.divResults.innerHTML = "Ophalen...";
 	let cmbDiffAcademie = document.querySelector("#cmbDiffAcademie");
 	let cmbDiffSchoolYear = document.querySelector("#cmbDiffSchoolYear");
-	let fetchListener = new InfoBarTableFetchListener(createInfoBlock(statusBlock.divInfo, ""));
+	let fetchListener = new InfoBarTableFetchListener(getInfoBlock(statusBlock.divInfo));
 	let reportStatus = function(message) {
 		statusBlock.runStatus.innerHTML = message;
 	};
@@ -7695,7 +7686,7 @@ async function scrapeAssets() {
 	let snel_zoeken = document.querySelector("#snel_zoeken");
 	let infoBlockDiv = document.createElement("div");
 	snel_zoeken.parentNode.insertBefore(infoBlockDiv, snel_zoeken);
-	return [...(await getTableFromHash("extra-assets-assets", true, new InfoBarTableFetchListener(createInfoBlock(infoBlockDiv, "")))).getRows()].map((row) => {
+	return [...(await getTableFromHash("extra-assets-assets", true, new InfoBarTableFetchListener(getInfoBlock(infoBlockDiv)))).getRows()].map((row) => {
 		return {
 			id: row.cells[0].innerText,
 			code: [...row.cells[1].childNodes].map((node) => node.nodeValue).join("")
@@ -7948,7 +7939,7 @@ async function gotoTeacherRef(text) {
 }
 async function gotoRef(getMatches, gotoUrl, getLabel, updateMenuItem) {
 	await waitForPageProbablyLoaded();
-	let matches = await getMatches();
+	let matches = await getMatches(getInfoBlockForPage());
 	if (matches) {
 		if (matches.length == 1) {
 			console.log("gotoRef: matches.length == 1");
@@ -8389,12 +8380,6 @@ function highlightText(element, wordList, highlightClassName, extraClasses = [])
 			textNode.replaceWith(fragment);
 		}
 	}
-}
-function createGlobalInfoBlockAndListener() {
-	let snel_zoeken = document.querySelector("#snel_zoeken");
-	let infoBlockDiv = document.createElement("div");
-	snel_zoeken.parentNode.insertBefore(infoBlockDiv, snel_zoeken);
-	return new InfoBarTableFetchListener(createInfoBlock(infoBlockDiv, ""));
 }
 async function gotoTeacher(firstName, lastName) {
 	let teachers = await (await getRepositoryCached("TeacherRefs", scrapeTeachers)).findMatches((ref) => ref.firstName === firstName && ref.lastName === lastName);
@@ -11166,8 +11151,8 @@ function addHoursViewButtons(infoBlock) {
 async function reload() {
 	if (!globals) return;
 	document.getElementById(HOURS_TABLE_ID)?.remove();
-	globals = new TeacherHoursCachedState(globals.schoolYear, getInfoBlock());
-	await fetchAndShowTeacherHours(globals.schoolYear, getInfoBlock());
+	globals = new TeacherHoursCachedState(globals.schoolYear, getInfoBlock(document.getElementById(PLUGIN_CONTAINER_ID)));
+	await fetchAndShowTeacherHours(globals.schoolYear, getInfoBlock(document.getElementById(PLUGIN_CONTAINER_ID)));
 }
 function checkStateAndGotoTeacherHours(infoBlock) {
 	let pageState = getGotoStateOrDefault("Werklijst");
@@ -11217,7 +11202,7 @@ function addPluginContainer() {
 	let container = emmet.appendChild(viewContents, "div#pluginContainer").first;
 	emmet.appendChild(container, `div.d-flex.werklijstButtonWrapper`);
 	emmet.appendChild(container, "h4");
-	return createInfoBlock(container, "");
+	return getInfoBlock(container);
 }
 function onResultsShown() {
 	console.log("onResultsShown");
@@ -11272,10 +11257,10 @@ async function refresh(hourSettings) {
 	if (!hourSettings) hourSettings = await fetchHoursSettingsOrSaveDefault(globals.schoolYear);
 	let equalSelectedSubjects = arrayIsEqual(hourSettings.subjects.filter((s) => s.checked).map((s) => s.name), (await globals.getHourSettingsMapped()).subjects.filter((s) => s.checked).map((s) => s.name));
 	globals.setHourSettings(hourSettings);
-	if (equalSelectedSubjects) rebuildHoursTable(await globals.getStudentRowData(), await globals.getHourSettingsMapped(), await globals.getFromCloud(), getInfoBlock());
+	if (equalSelectedSubjects) rebuildHoursTable(await globals.getStudentRowData(), await globals.getHourSettingsMapped(), await globals.getFromCloud(), getInfoBlock(document.getElementById(PLUGIN_CONTAINER_ID)));
 	else {
 		globals.clearStudentRowData();
-		await fetchAndShowTeacherHours(hourSettings.schoolyear, getInfoBlock());
+		await fetchAndShowTeacherHours(hourSettings.schoolyear, getInfoBlock(document.getElementById(PLUGIN_CONTAINER_ID)));
 	}
 	isRefreshing = false;
 }
@@ -11340,7 +11325,7 @@ async function mailMergeStartSchoolyear() {
 		alert("Geen schooljaar gevonden!");
 		return;
 	}
-	let infoBlock = createInfoBlock(document.getElementById("div_leerling_werklijst_footer").insertAdjacentElement("afterend", document.createElement("div")), "");
+	let infoBlock = getInfoBlock(document.getElementById("div_leerling_werklijst_footer").insertAdjacentElement("afterend", document.createElement("div")));
 	let text = await fetchMailMergeData(schoolyear, infoBlock, scrapeSelectedFieldIndexes(), hasWerklijstNoCriteria(), scrapeCriteria());
 	if (text != "") {
 		copyToClipboardOrRequestRetry(infoBlock.infoBar, text);
