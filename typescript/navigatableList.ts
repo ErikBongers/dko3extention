@@ -21,13 +21,19 @@ export class NavigatableList {
     onMenuKeyDown = (ev: KeyboardEvent) => {
         console.log("keydown");
         if(ev.key == "ArrowDown") {
-            this.index.value++;
+            if(this.index.value < this.list.children.length - 1)
+                this.index.value++;
+            else
+                this.index.value = 0;
             ev.stopPropagation();
             ev.stopImmediatePropagation();
             ev.preventDefault();
         }
         else if(ev.key == "ArrowUp") {
-            this.index.value--;
+            if(this.index.value > 0)
+                this.index.value--;
+            else
+                this.index.value = this.list.children.length - 1;
             ev.stopPropagation();
             ev.stopImmediatePropagation();
             ev.preventDefault();
