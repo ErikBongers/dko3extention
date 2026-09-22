@@ -4,11 +4,12 @@ import {LesType} from "./roster_diff/calcDiff";
 import {getSchoolIdString, Schoolyear} from "./globals";
 import {DropDownMenu} from "./dropDownMenus";
 import {fetchLes} from "./les/fetch";
-import {AssetRef, getSessionSchoolCache, LesRef, Ref, SessionDb} from "./db/sessionDb";
+import {AssetRef, getSessionSchoolCache, LesRef, Ref, SessionDb, TeacherRef} from "./db/sessionDb";
 import {scrapeAssets} from "./assets/scrape";
 import {StoreNames} from "idb";
 import {createLesCard, PlaceHolder} from "./leerling/scrape";
 import {waitForPageProbablyLoaded} from "./restorePage";
+import {scrapeTeachers} from "./personeel/scrape";
 
 export function onPasteInGlobalSearchField(e: ClipboardEvent) {
     if (!options.stripCommasOnPaste)
@@ -64,6 +65,10 @@ async function onEnterPressed(text: string) {
         // noinspection ES6MissingAwait
         gotoAssetRef(value.trim());
         return "cancel";
+    } else if(key == "lk" || key == "p") {
+        // noinspection ES6MissingAwait
+        gotoTeacherRef(value.trim());
+        return "cancel";
     }
     return "default";
 }
@@ -96,6 +101,14 @@ async function updateAssetMenuItem(dropDownMenu: DropDownMenu, index: number, as
     //don' do nottin' for now...
 }
 
+async function updateTeacherMenuItem(dropDownMenu: DropDownMenu, index: number, teacherRef: TeacherRef, signal: AbortSignal) {
+    if (signal.aborted) { //todo: move this out of here
+        console.log("ABORTED updateMenuItem:", teacherRef.id);
+        return;
+    }
+    //don' do nottin' for now...
+}
+
 async function gotoLesRef(lesName: string, vak?: string) {
     return gotoRef<LesRef>(
         () => getLesMatches(lesName, vak),
@@ -111,6 +124,15 @@ async function gotoAssetRef(assetCode: string) {
         "/#extra-assets-assets-details?id=",
         (assetRef) => assetRef.code,
         updateAssetMenuItem
+    );
+}
+
+async function gotoTeacherRef(text: string) {
+    return gotoRef<TeacherRef>(
+        () => getTeacherMatches(text),
+        "/#personeel-personeelslid?id=",
+        (teacherRef) => teacherRef.firstName + " " + teacherRef.lastName,
+        updateTeacherMenuItem
     );
 }
 
@@ -179,6 +201,12 @@ async function getAssetRefs() {
         .map<AssetRef>(asset => ({id: asset.id, code: asset.code}));
 }
 
+async function getTeacherRefs() {
+    let teachers = await scrapeTeachers();
+    return teachers
+        .map<TeacherRef>(t => ({id: t.id, firstName: t.firstName, lastName: t.lastName}));
+}
+
 export async function getRepositoryCached<K extends StoreNames<SessionDb>, T extends Ref>(storeName: K, getRefs: () => Promise<T[]>) {
     let cache = await getSessionSchoolCache(getSchoolIdString())
     let loaded = await cache.Loaded.get(storeName as string);
@@ -197,4 +225,14 @@ async function getAssetMatches(assetCode: string) {
     let lowerCase = assetCode.toLowerCase();
     let cache = await getRepositoryCached("AssetRefs", getAssetRefs);
     return cache.findMatches(assetRef => assetRef.code.toLowerCase().includes(lowerCase));
+}
+
+async function getTeacherMatches(text: string) {
+    if(!text)
+        return [];
+    let lowerCase = text.toLowerCase();
+    let cache = await getRepositoryCached("TeacherRefs", getTeacherRefs);
+    return cache.findMatches(teacherRef => {
+        return teacherRef.firstName.toLowerCase().includes(lowerCase) || teacherRef.lastName.toLowerCase().includes(lowerCase);
+    });
 }

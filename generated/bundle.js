@@ -7789,154 +7789,6 @@ function scrapeLesInfoDetails(tr, detailsTdOffset) {
 	};
 }
 //#endregion
-//#region typescript/globalSearch.ts
-function onPasteInGlobalSearchField(e) {
-	if (!options.stripCommasOnPaste) return;
-	let searchField = document.getElementById("snel_zoeken_veld_zoektermen");
-	let newText = (e.clipboardData?.getData("text/plain") ?? "").replaceAll(",", "").replaceAll("-", " ");
-	searchField.setRangeText(newText);
-	searchField.setSelectionRange(newText.length, newText.length);
-	e.preventDefault();
-}
-async function onParentKeyUp(e) {
-	if (e.key == "Enter") {
-		if (!options.powerGoto) return;
-		console.log("parent Enter");
-		let text = document.getElementById("snel_zoeken_veld_zoektermen").value;
-		if (await onEnterPressed(text) == "cancel") {
-			console.log("canceling");
-			e.stopImmediatePropagation();
-			e.preventDefault();
-			return;
-		}
-	}
-}
-let ignoreNextEnter = false;
-async function onEnterPressed(text) {
-	if (ignoreNextEnter) {
-		ignoreNextEnter = false;
-		return "default";
-	}
-	if (!text.includes(":")) return "default";
-	let parts = text.split(":");
-	let key = parts.shift();
-	//! will have 1 element
-	let value = parts.join(":");
-	if ("les".startsWith(key)) {
-		gotoLesRef(value.trim());
-		return "cancel";
-	} else if ("ma".startsWith(key)) {
-		gotoLesRef(value.trim(), "Muziekatelier");
-		return "cancel";
-	} else if ("asset".startsWith(key)) {
-		gotoAssetRef(value.trim());
-		return "cancel";
-	}
-	return "default";
-}
-async function updateLesMenuItem(dropDownMenu, index, lesRef, signal) {
-	if (signal.aborted) {
-		console.log("ABORTED updateMenuItem:", lesRef.id);
-		return;
-	}
-	let les = await fetchLes(lesRef.id, signal);
-	let lesmomenten = les.lesMomenten.join("\n");
-	let full = les.aantal >= les.maxAantal;
-	let lesCard = createLesCard(lesRef.name, {
-		vakName: les.vak,
-		full,
-		lesmoment: lesmomenten,
-		aantal: les.aantal,
-		maxAantal: les.maxAantal,
-		wachtlijst: 0,
-		vestiging: les.vestiging
-	});
-	dropDownMenu.setItemContent(index, lesCard);
-}
-async function updateAssetMenuItem(dropDownMenu, index, assetRef, signal) {
-	if (signal.aborted) {
-		console.log("ABORTED updateMenuItem:", assetRef.id);
-		return;
-	}
-}
-async function gotoLesRef(lesName, vak) {
-	return gotoRef(() => getLesMatches(lesName, vak), "/#lessen-les?id=", (lesRef) => createLesCard(lesRef.name, PlaceHolder), updateLesMenuItem);
-}
-async function gotoAssetRef(assetCode) {
-	return gotoRef(() => getAssetMatches(assetCode), "/#extra-assets-assets-details?id=", (assetRef) => assetRef.code, updateAssetMenuItem);
-}
-async function gotoRef(getMatches, gotoUrl, getLabel, updateMenuItem) {
-	await waitForPageProbablyLoaded();
-	let matches = await getMatches();
-	if (matches) {
-		if (matches.length == 1) {
-			console.log("gotoRef: matches.length == 1");
-			setTimeout(() => {
-				console.log(`gotoRef: matches.length == 1, location.href = ${gotoUrl + matches[0].id}`);
-				location.href = gotoUrl + matches[0].id;
-			});
-			return true;
-		}
-		if (matches.length > 1) {
-			let searchField = document.getElementById("snel_zoeken_veld_zoektermen");
-			let abortController = new AbortController();
-			let signal = abortController.signal;
-			let dropDownMenu = new DropDownMenu(searchField.parentElement?.parentElement, searchField, false, true, abortController);
-			let queue = Promise.resolve();
-			for (let ref of matches) {
-				let index = dropDownMenu.addItem(getLabel(ref), 0, () => {
-					abortController.abort();
-					dropDownMenu.remove();
-					location.href = gotoUrl + ref.id;
-				});
-				queue = queue.then(() => updateMenuItem(dropDownMenu, index, ref, signal));
-			}
-			dropDownMenu.show();
-		}
-	}
-	return true;
-}
-async function getLesMatches(lesName, vak) {
-	if (!lesName) return [];
-	let lowerCase = lesName.toLowerCase();
-	let lesRefs = await getRepositoryCached("LesRefs", getLesRefs);
-	if (vak) return lesRefs.findMatches((lesRef) => lesRef.name.toLowerCase().includes(lowerCase) && lesRef.vak == vak);
-	let matches = await lesRefs.findMatches((lesRef) => lesRef.name.toLowerCase().includes(lowerCase));
-	matches.sort((a, b) => a.name.localeCompare(b.name));
-	return matches;
-}
-async function getLesRefs() {
-	let lessen = await scrapeLessen("3", "1", Schoolyear.toFullString(Schoolyear.calculateCurrent()));
-	lessen.push(...await scrapeLessen("2", "1", Schoolyear.toFullString(Schoolyear.calculateCurrent())));
-	lessen.push(...await scrapeLessen("4", "1", Schoolyear.toFullString(Schoolyear.calculateCurrent())));
-	console.log(lessen);
-	return lessen.map((l) => ({
-		id: l.les.id,
-		name: l.les.naam,
-		vak: l.les.vakNaam
-	}));
-}
-async function getAssetRefs() {
-	return (await scrapeAssets()).map((asset) => ({
-		id: asset.id,
-		code: asset.code
-	}));
-}
-async function getRepositoryCached(storeName, getRefs) {
-	let cache = await getSessionSchoolCache(getSchoolIdString());
-	if (!await cache.Loaded.get(storeName)) {
-		let refs = await getRefs();
-		await cache[storeName].bulkPut(refs);
-		await cache.Loaded.put(true, storeName);
-	}
-	return cache[storeName];
-}
-async function getAssetMatches(assetCode) {
-	if (!assetCode) return [];
-	let lowerCase = assetCode.toLowerCase();
-	return (await getRepositoryCached("AssetRefs", getAssetRefs)).findMatches((assetRef) => assetRef.code.toLowerCase().includes(lowerCase));
-}
-//#endregion
 //#region typescript/personeel/scrape.ts
 async function scrapeTeachers() {
 	return scrapeTable(new Dko3PersoneelFetcher(), (row) => {
@@ -7995,6 +7847,180 @@ var Dko3PersoneelFetcher = class Dko3PersoneelFetcher extends TableFetcher {
 		};
 	}
 };
+//#endregion
+//#region typescript/globalSearch.ts
+function onPasteInGlobalSearchField(e) {
+	if (!options.stripCommasOnPaste) return;
+	let searchField = document.getElementById("snel_zoeken_veld_zoektermen");
+	let newText = (e.clipboardData?.getData("text/plain") ?? "").replaceAll(",", "").replaceAll("-", " ");
+	searchField.setRangeText(newText);
+	searchField.setSelectionRange(newText.length, newText.length);
+	e.preventDefault();
+}
+async function onParentKeyUp(e) {
+	if (e.key == "Enter") {
+		if (!options.powerGoto) return;
+		console.log("parent Enter");
+		let text = document.getElementById("snel_zoeken_veld_zoektermen").value;
+		if (await onEnterPressed(text) == "cancel") {
+			console.log("canceling");
+			e.stopImmediatePropagation();
+			e.preventDefault();
+			return;
+		}
+	}
+}
+let ignoreNextEnter = false;
+async function onEnterPressed(text) {
+	if (ignoreNextEnter) {
+		ignoreNextEnter = false;
+		return "default";
+	}
+	if (!text.includes(":")) return "default";
+	let parts = text.split(":");
+	let key = parts.shift();
+	//! will have 1 element
+	let value = parts.join(":");
+	if ("les".startsWith(key)) {
+		gotoLesRef(value.trim());
+		return "cancel";
+	} else if ("ma".startsWith(key)) {
+		gotoLesRef(value.trim(), "Muziekatelier");
+		return "cancel";
+	} else if ("asset".startsWith(key)) {
+		gotoAssetRef(value.trim());
+		return "cancel";
+	} else if (key == "lk" || key == "p") {
+		gotoTeacherRef(value.trim());
+		return "cancel";
+	}
+	return "default";
+}
+async function updateLesMenuItem(dropDownMenu, index, lesRef, signal) {
+	if (signal.aborted) {
+		console.log("ABORTED updateMenuItem:", lesRef.id);
+		return;
+	}
+	let les = await fetchLes(lesRef.id, signal);
+	let lesmomenten = les.lesMomenten.join("\n");
+	let full = les.aantal >= les.maxAantal;
+	let lesCard = createLesCard(lesRef.name, {
+		vakName: les.vak,
+		full,
+		lesmoment: lesmomenten,
+		aantal: les.aantal,
+		maxAantal: les.maxAantal,
+		wachtlijst: 0,
+		vestiging: les.vestiging
+	});
+	dropDownMenu.setItemContent(index, lesCard);
+}
+async function updateAssetMenuItem(dropDownMenu, index, assetRef, signal) {
+	if (signal.aborted) {
+		console.log("ABORTED updateMenuItem:", assetRef.id);
+		return;
+	}
+}
+async function updateTeacherMenuItem(dropDownMenu, index, teacherRef, signal) {
+	if (signal.aborted) {
+		console.log("ABORTED updateMenuItem:", teacherRef.id);
+		return;
+	}
+}
+async function gotoLesRef(lesName, vak) {
+	return gotoRef(() => getLesMatches(lesName, vak), "/#lessen-les?id=", (lesRef) => createLesCard(lesRef.name, PlaceHolder), updateLesMenuItem);
+}
+async function gotoAssetRef(assetCode) {
+	return gotoRef(() => getAssetMatches(assetCode), "/#extra-assets-assets-details?id=", (assetRef) => assetRef.code, updateAssetMenuItem);
+}
+async function gotoTeacherRef(text) {
+	return gotoRef(() => getTeacherMatches(text), "/#personeel-personeelslid?id=", (teacherRef) => teacherRef.firstName + " " + teacherRef.lastName, updateTeacherMenuItem);
+}
+async function gotoRef(getMatches, gotoUrl, getLabel, updateMenuItem) {
+	await waitForPageProbablyLoaded();
+	let matches = await getMatches();
+	if (matches) {
+		if (matches.length == 1) {
+			console.log("gotoRef: matches.length == 1");
+			setTimeout(() => {
+				console.log(`gotoRef: matches.length == 1, location.href = ${gotoUrl + matches[0].id}`);
+				location.href = gotoUrl + matches[0].id;
+			});
+			return true;
+		}
+		if (matches.length > 1) {
+			let searchField = document.getElementById("snel_zoeken_veld_zoektermen");
+			let abortController = new AbortController();
+			let signal = abortController.signal;
+			let dropDownMenu = new DropDownMenu(searchField.parentElement?.parentElement, searchField, false, true, abortController);
+			let queue = Promise.resolve();
+			for (let ref of matches) {
+				let index = dropDownMenu.addItem(getLabel(ref), 0, () => {
+					abortController.abort();
+					dropDownMenu.remove();
+					location.href = gotoUrl + ref.id;
+				});
+				queue = queue.then(() => updateMenuItem(dropDownMenu, index, ref, signal));
+			}
+			dropDownMenu.show();
+		}
+	}
+	return true;
+}
+async function getLesMatches(lesName, vak) {
+	if (!lesName) return [];
+	let lowerCase = lesName.toLowerCase();
+	let lesRefs = await getRepositoryCached("LesRefs", getLesRefs);
+	if (vak) return lesRefs.findMatches((lesRef) => lesRef.name.toLowerCase().includes(lowerCase) && lesRef.vak == vak);
+	let matches = await lesRefs.findMatches((lesRef) => lesRef.name.toLowerCase().includes(lowerCase));
+	matches.sort((a, b) => a.name.localeCompare(b.name));
+	return matches;
+}
+async function getLesRefs() {
+	let lessen = await scrapeLessen("3", "1", Schoolyear.toFullString(Schoolyear.calculateCurrent()));
+	lessen.push(...await scrapeLessen("2", "1", Schoolyear.toFullString(Schoolyear.calculateCurrent())));
+	lessen.push(...await scrapeLessen("4", "1", Schoolyear.toFullString(Schoolyear.calculateCurrent())));
+	console.log(lessen);
+	return lessen.map((l) => ({
+		id: l.les.id,
+		name: l.les.naam,
+		vak: l.les.vakNaam
+	}));
+}
+async function getAssetRefs() {
+	return (await scrapeAssets()).map((asset) => ({
+		id: asset.id,
+		code: asset.code
+	}));
+}
+async function getTeacherRefs() {
+	return (await scrapeTeachers()).map((t) => ({
+		id: t.id,
+		firstName: t.firstName,
+		lastName: t.lastName
+	}));
+}
+async function getRepositoryCached(storeName, getRefs) {
+	let cache = await getSessionSchoolCache(getSchoolIdString());
+	if (!await cache.Loaded.get(storeName)) {
+		let refs = await getRefs();
+		await cache[storeName].bulkPut(refs);
+		await cache.Loaded.put(true, storeName);
+	}
+	return cache[storeName];
+}
+async function getAssetMatches(assetCode) {
+	if (!assetCode) return [];
+	let lowerCase = assetCode.toLowerCase();
+	return (await getRepositoryCached("AssetRefs", getAssetRefs)).findMatches((assetRef) => assetRef.code.toLowerCase().includes(lowerCase));
+}
+async function getTeacherMatches(text) {
+	if (!text) return [];
+	let lowerCase = text.toLowerCase();
+	return (await getRepositoryCached("TeacherRefs", getTeacherRefs)).findMatches((teacherRef) => {
+		return teacherRef.firstName.toLowerCase().includes(lowerCase) || teacherRef.lastName.toLowerCase().includes(lowerCase);
+	});
+}
 //#endregion
 //#region typescript/globals.ts
 let observers = [];
