@@ -152,7 +152,8 @@ async function onTicket() {
     //     highlightText(cards, data.output, "highlightedName", ["light"]);
     // });
     await ai.findNames(emailText, (data) => {
-        highlightText(cards, data.output, "highlightedName", ["light"]);
+        let singleNames = data.output.map(n => n.split(" ")).flat().map(name => name.trim());
+        highlightText(cards, singleNames, "highlightedName", ["light"]);
     });
 }
 

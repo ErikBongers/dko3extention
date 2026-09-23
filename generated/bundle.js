@@ -11650,7 +11650,7 @@ function onMessage(event) {
 		console.log("Result from AI worker, not complete: ", event.data);
 		return;
 	}
-	if (event.data.type === "getNames") onResultMap["getNames"]?.(event.data);
+	onResultMap[event.data.type]?.(event.data);
 }
 let onResultMap = {
 	getNames: (names) => console.log("AI list of names: ", names),
@@ -11768,7 +11768,8 @@ async function onTicket() {
 	let winner = findUniqueMatch(emailText, matchingLeerlingen);
 	if (winner) highlightText(cards, winner.name.split(",").map((name) => name.trim().split(" ")).flat().map((name) => name.trim()), "highlightedName");
 	await ai.findNames(emailText, (data) => {
-		highlightText(cards, data.output, "highlightedName", ["light"]);
+		let singleNames = data.output.map((n) => n.split(" ")).flat().map((name) => name.trim());
+		highlightText(cards, singleNames, "highlightedName", ["light"]);
 	});
 }
 function parseEmail(emailText) {

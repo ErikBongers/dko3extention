@@ -12,9 +12,8 @@ export function onMessage(event: MessageEvent<WorkerRequest>) {
         console.log("Result from AI worker, not complete: ", event.data);
         return;
     }
-    if(event.data.type === "getNames") {
-        onResultMap["getNames"]?.(event.data);
-    }
+    // @ts-ignore
+    onResultMap[event.data.type]?.(event.data);
 }
 
 type RequestDataFor<T extends WorkerRequest['type']> =
