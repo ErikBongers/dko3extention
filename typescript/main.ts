@@ -27,6 +27,7 @@ import {setupMenu} from "./menu";
 import {onParentKeyUp, onPasteInGlobalSearchField, onSearchKeyDown} from "./globalSearch";
 import {setPageProbablyLoaded} from "./restorePage";
 
+sessionStorage.setItem("dp3_jQueryReadyHookInstalled", "false");
 // 1. Inject the MAIN world hook script immediately
 const script = document.createElement('script');
 script.src = chrome.runtime.getURL('javascript/hook_jquery_ready.js');

@@ -1519,6 +1519,10 @@ function setPageProbablyLoaded() {
 	while (pageProbablyLoadedListeners.length > 0) pageProbablyLoadedListeners.shift()();
 }
 async function waitForPageProbablyLoaded() {
+	if (sessionStorage.getItem("dp3_jQueryReadyHookInstalled") !== "true") {
+		console.log("jQueryReadyHook not installed");
+		return;
+	}
 	return new Promise((resolve) => {
 		if (pageProbablyLoaded) return resolve(void 0);
 		pageProbablyLoadedListeners.push(resolve);
@@ -11798,6 +11802,7 @@ function inschrijvingenLinkToQueryItem(headerLabel, link, longLabelPrefix) {
 }
 //#endregion
 //#region typescript/main.ts
+sessionStorage.setItem("dp3_jQueryReadyHookInstalled", "false");
 const script = document.createElement("script");
 script.src = chrome.runtime.getURL("javascript/hook_jquery_ready.js");
 script.dataset.isolated = "false";

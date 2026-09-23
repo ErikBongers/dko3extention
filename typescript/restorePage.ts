@@ -56,6 +56,14 @@ export function setPageProbablyLoaded() {
 }
 
 export async function waitForPageProbablyLoaded() {
+    let hookInstalled = sessionStorage.getItem("dp3_jQueryReadyHookInstalled");
+    // @ts-ignore
+    if(hookInstalled !== "true") {
+        console.log("jQueryReadyHook not installed");
+        // @ts-ignore
+        // dp3_hookJqueryReady();
+        return;
+    }
     return new Promise<void>((resolve) => {
         if (pageProbablyLoaded)
             return resolve(undefined);
