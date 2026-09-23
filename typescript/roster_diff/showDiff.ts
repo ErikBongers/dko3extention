@@ -1,4 +1,4 @@
-import {dateDiffToString, unreachable} from "../globals";
+import {dateDiffToString} from "../globals";
 import {emmet} from "../../libs/Emmeter";
 import {decorateTableHeader} from "../table/tableHeaders";
 import {DayUppercase} from "../lessen/scrape";
@@ -24,6 +24,7 @@ import {options} from "../plugin_options/options";
 import {DiffType, Weight} from "./calcDiff";
 import {GradeYear} from "../gradeYear";
 import {getInfoBlock} from "../infoBlock";
+import {unreachable} from "../unreachable";
 
 export async function fetchDiffSettingsOrDefault(academie: string, schoolYear: string) {
     let settings: DiffSettings | undefined;

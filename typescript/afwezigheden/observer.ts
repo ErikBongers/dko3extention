@@ -7,8 +7,8 @@ import {
     setViewFromCurrentUrl,
     whoAmI
 } from "../globals";
-import {emmet} from "../../libs/Emmeter/html";
-import {findPersonsInWorker} from "../ai/api";
+import {emmet} from "../../libs/Emmeter";
+import {ai} from "../ai/api";
 
 class AfwezighedenObserver extends ExactHashObserver {
     constructor() {
@@ -116,7 +116,9 @@ async function onTicket() {
     let card_bodyDiv = document.querySelector(".card-body") as HTMLDivElement | null;
     if(!card_bodyDiv)
         return;
-    let emailText = getHTMLTextWithNewlines(card_bodyDiv);
+    let emailText = getHTMLTextWithNewlines(card_bodyDiv)
+        .replaceAll("Bijlage toevoegen...", "")
+        .replaceAll("via e-mail", "");
     global_currentEmailHtml = card_bodyDiv.innerHTML;
 
     let parseMailData = parseEmail(emailText);
@@ -146,7 +148,10 @@ async function onTicket() {
         highlightText(cards, nameParts, "highlightedName");
     }
     //else, eventually...
-    await findPersonsInWorker(parseMailData.uniqueCapital, (data) => {
+    // await ai.getNames(parseMailData.uniqueCapital, (data) => {
+    //     highlightText(cards, data.output, "highlightedName", ["light"]);
+    // });
+    await ai.findNames(emailText, (data) => {
         highlightText(cards, data.output, "highlightedName", ["light"]);
     });
 }

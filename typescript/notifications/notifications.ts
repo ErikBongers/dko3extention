@@ -1,8 +1,8 @@
-import {unreachable} from "../globals";
 import {emmet} from "../../libs/Emmeter/html";
 import {deleteNotification, fetchNotifications} from "../cloud";
 import {NotificationId, Notifications} from "./types";
 import {options} from "../plugin_options/options";
+import {unreachable} from "../unreachable";
 
 export function getNotifRedButton() {
     let notifButton = document.getElementById("notifButton") as HTMLButtonElement;

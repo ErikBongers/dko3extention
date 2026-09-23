@@ -1,5 +1,4 @@
 {
-  "include": ["typescript/**/*"],
   "compilerOptions": {
     "outDir": "./generated",
     "target": "esnext",

@@ -16,56 +16,63 @@ var __require = /* @__PURE__ */ ((x) => typeof require !== "undefined" ? require
 //#endregion
 //#region node_modules/onnxruntime-web/dist/ort.webgpu.bundle.min.mjs
 var ort_webgpu_bundle_min_exports = /* @__PURE__ */ __exportAll({
-	InferenceSession: () => qf,
-	TRACE: () => Ga,
+	InferenceSession: () => bc,
+	TRACE: () => Qa,
 	TRACE_EVENT_BEGIN: () => $e,
 	TRACE_EVENT_END: () => ze,
-	TRACE_FUNC_BEGIN: () => tt,
-	TRACE_FUNC_END: () => rt,
+	TRACE_FUNC_BEGIN: () => ot,
+	TRACE_FUNC_END: () => at,
 	Tensor: () => Le,
-	default: () => gl,
-	env: () => K,
-	registerBackend: () => Ke
+	default: () => $l,
+	env: () => ee,
+	registerBackend: () => rt
 });
 /*!
-* ONNX Runtime Web v1.26.0-dev.20260416-b7804b056c
+* ONNX Runtime Web v1.31.0-dev.20260914-8d85527a0
 * Copyright (c) Microsoft Corporation. All rights reserved.
 * Licensed under the MIT License.
 */
-var jr = Object.defineProperty;
-var zf = Object.getOwnPropertyDescriptor;
-var Vf = Object.getOwnPropertyNames;
-var jf = Object.prototype.hasOwnProperty;
-var Hr = ((a) => typeof __require < "u" ? __require : typeof Proxy < "u" ? new Proxy(a, { get: (r, s) => (typeof __require < "u" ? __require : r)[s] }) : a)(function(a) {
+var Jr = Object.defineProperty;
+var dc = Object.getOwnPropertyDescriptor;
+var lc = Object.getOwnPropertyNames;
+var pc = Object.prototype.hasOwnProperty;
+var Xr = ((a) => typeof __require < "u" ? __require : typeof Proxy < "u" ? new Proxy(a, { get: (r, s) => (typeof __require < "u" ? __require : r)[s] }) : a)(function(a) {
 	if (typeof __require < "u") return __require.apply(this, arguments);
 	throw Error("Dynamic require of \"" + a + "\" is not supported");
 });
-var k = (a, r) => () => (a && (r = a(a = 0)), r);
+var G = (a, r, s) => () => {
+	if (s) throw s[0];
+	try {
+		return a && (r = a(a = 0)), r;
+	} catch (f) {
+		throw s = [f], f;
+	}
+};
 var At = (a, r) => {
-	for (var s in r) jr(a, s, {
+	for (var s in r) Jr(a, s, {
 		get: r[s],
 		enumerable: !0
 	});
 };
-var Hf = (a, r, s, f) => {
-	if (r && typeof r == "object" || typeof r == "function") for (let i of Vf(r)) !jf.call(a, i) && i !== s && jr(a, i, {
+var mc = (a, r, s, f) => {
+	if (r && typeof r == "object" || typeof r == "function") for (let i of lc(r)) !pc.call(a, i) && i !== s && Jr(a, i, {
 		get: () => r[i],
-		enumerable: !(f = zf(r, i)) || f.enumerable
+		enumerable: !(f = dc(r, i)) || f.enumerable
 	});
 	return a;
 };
-var $t = (a) => Hf(jr({}, "__esModule", { value: !0 }), a);
-var zt;
-var Ze;
-var Ke;
-var Yf;
-var Ta;
-var Yr = k(() => {
+var Ht = (a) => mc(Jr({}, "__esModule", { value: !0 }), a);
+var qt;
+var tt;
+var rt;
+var hc;
+var Da;
+var Zr = G(() => {
 	"use strict";
-	zt = /* @__PURE__ */ new Map(), Ze = [], Ke = (a, r, s) => {
+	qt = /* @__PURE__ */ new Map(), tt = [], rt = (a, r, s) => {
 		if (r && typeof r.init == "function" && typeof r.createInferenceSessionHandler == "function") {
-			let f = zt.get(a);
-			if (f === void 0) zt.set(a, {
+			let f = qt.get(a);
+			if (f === void 0) qt.set(a, {
 				backend: r,
 				priority: s
 			});
@@ -74,19 +81,19 @@ var Yr = k(() => {
 				if (f.priority === s && f.backend !== r) throw new Error(`cannot register backend "${a}" using priority ${s}`);
 			}
 			if (s >= 0) {
-				let i = Ze.indexOf(a);
-				i !== -1 && Ze.splice(i, 1);
-				for (let d = 0; d < Ze.length; d++) if (zt.get(Ze[d]).priority <= s) {
-					Ze.splice(d, 0, a);
+				let i = tt.indexOf(a);
+				i !== -1 && tt.splice(i, 1);
+				for (let p = 0; p < tt.length; p++) if (qt.get(tt[p]).priority <= s) {
+					tt.splice(p, 0, a);
 					return;
 				}
-				Ze.push(a);
+				tt.push(a);
 			}
 			return;
 		}
 		throw new TypeError("not a valid backend");
-	}, Yf = async (a) => {
-		let r = zt.get(a);
+	}, hc = async (a) => {
+		let r = qt.get(a);
 		if (!r) return "backend not found.";
 		if (r.initialized) return r.backend;
 		if (r.aborted) return r.error;
@@ -100,40 +107,40 @@ var Yr = k(() => {
 				delete r.initPromise;
 			}
 		}
-	}, Ta = async (a) => {
-		let r = a.executionProviders || [], s = r.map((y) => typeof y == "string" ? y : y.name), f = s.length === 0 ? Ze : s, i, d = [], l = /* @__PURE__ */ new Set();
-		for (let y of f) {
-			let w = await Yf(y);
-			typeof w == "string" ? d.push({
-				name: y,
+	}, Da = async (a) => {
+		let r = a.executionProviders || [], s = r.map((g) => typeof g == "string" ? g : g.name), f = s.length === 0 ? tt : s, i, p = [], l = /* @__PURE__ */ new Set();
+		for (let g of f) {
+			let w = await hc(g);
+			typeof w == "string" ? p.push({
+				name: g,
 				err: w
-			}) : (i || (i = w), i === w && l.add(y));
+			}) : (i || (i = w), i === w && l.add(g));
 		}
-		if (!i) throw new Error(`no available backend found. ERR: ${d.map((y) => `[${y.name}] ${y.err}`).join(", ")}`);
-		for (let { name: y, err: w } of d) s.includes(y) && console.warn(`removing requested execution provider "${y}" from session options because it is not available: ${w}`);
-		let m = r.filter((y) => l.has(typeof y == "string" ? y : y.name));
-		return [i, new Proxy(a, { get: (y, w) => w === "executionProviders" ? m : Reflect.get(y, w) })];
+		if (!i) throw new Error(`no available backend found. ERR: ${p.map((g) => `[${g.name}] ${g.err}`).join(", ")}`);
+		for (let { name: g, err: w } of p) s.includes(g) && console.warn(`removing requested execution provider "${g}" from session options because it is not available: ${w}`);
+		let b = r.filter((g) => l.has(typeof g == "string" ? g : g.name));
+		return [i, new Proxy(a, { get: (g, w) => w === "executionProviders" ? b : Reflect.get(g, w) })];
 	};
 });
-var va = k(() => {
+var Pa = G(() => {
 	"use strict";
-	Yr();
+	Zr();
 });
-var Ea;
-var Sa = k(() => {
+var Ua;
+var _a = G(() => {
 	"use strict";
-	Ea = "1.24.0-dev.20251116-b39e144322";
+	Ua = "1.31.0-dev.20260911-2a43ec07e";
 });
-var Aa;
+var Ra;
 var ie;
-var qr = k(() => {
+var Kr = G(() => {
 	"use strict";
-	Sa();
-	Aa = "warning", ie = {
+	_a();
+	Ra = "warning", ie = {
 		wasm: {},
 		webgl: {},
 		webgpu: {},
-		versions: { common: Ea },
+		versions: { common: Ua },
 		set logLevel(a) {
 			if (a !== void 0) {
 				if (typeof a != "string" || [
@@ -143,142 +150,142 @@ var qr = k(() => {
 					"error",
 					"fatal"
 				].indexOf(a) === -1) throw new Error(`Unsupported logging level: ${a}`);
-				Aa = a;
+				Ra = a;
 			}
 		},
 		get logLevel() {
-			return Aa;
+			return Ra;
 		}
 	};
 	Object.defineProperty(ie, "logLevel", { enumerable: !0 });
 });
-var K;
-var Ia = k(() => {
+var ee;
+var Na = G(() => {
 	"use strict";
-	qr();
-	K = ie;
+	Kr();
+	ee = ie;
 });
-var xa;
-var La;
-var Oa = k(() => {
+var Wa;
+var ka;
+var Fa = G(() => {
 	"use strict";
-	xa = (a, r) => {
+	Wa = (a, r) => {
 		let s = typeof document < "u" ? document.createElement("canvas") : new OffscreenCanvas(1, 1);
 		s.width = a.dims[3], s.height = a.dims[2];
 		let f = s.getContext("2d");
 		if (f != null) {
-			let i, d;
-			r?.tensorLayout !== void 0 && r.tensorLayout === "NHWC" ? (i = a.dims[2], d = a.dims[3]) : (i = a.dims[3], d = a.dims[2]);
-			let l = r?.format !== void 0 ? r.format : "RGB", m = r?.norm, y, w;
-			m === void 0 || m.mean === void 0 ? y = [
+			let i, p;
+			r?.tensorLayout !== void 0 && r.tensorLayout === "NHWC" ? (i = a.dims[2], p = a.dims[3]) : (i = a.dims[3], p = a.dims[2]);
+			let l = r?.format !== void 0 ? r.format : "RGB", b = r?.norm, g, w;
+			b === void 0 || b.mean === void 0 ? g = [
 				255,
 				255,
 				255,
 				255
-			] : typeof m.mean == "number" ? y = [
-				m.mean,
-				m.mean,
-				m.mean,
-				m.mean
-			] : (y = [
-				m.mean[0],
-				m.mean[1],
-				m.mean[2],
+			] : typeof b.mean == "number" ? g = [
+				b.mean,
+				b.mean,
+				b.mean,
+				b.mean
+			] : (g = [
+				b.mean[0],
+				b.mean[1],
+				b.mean[2],
 				0
-			], m.mean[3] !== void 0 && (y[3] = m.mean[3])), m === void 0 || m.bias === void 0 ? w = [
+			], b.mean[3] !== void 0 && (g[3] = b.mean[3])), b === void 0 || b.bias === void 0 ? w = [
 				0,
 				0,
 				0,
 				0
-			] : typeof m.bias == "number" ? w = [
-				m.bias,
-				m.bias,
-				m.bias,
-				m.bias
+			] : typeof b.bias == "number" ? w = [
+				b.bias,
+				b.bias,
+				b.bias,
+				b.bias
 			] : (w = [
-				m.bias[0],
-				m.bias[1],
-				m.bias[2],
+				b.bias[0],
+				b.bias[1],
+				b.bias[2],
 				0
-			], m.bias[3] !== void 0 && (w[3] = m.bias[3]));
-			let T = d * i, g = 0, v = T, S = T * 2, C = -1;
-			l === "RGBA" ? (g = 0, v = T, S = T * 2, C = T * 3) : l === "RGB" ? (g = 0, v = T, S = T * 2) : l === "RBG" && (g = 0, S = T, v = T * 2);
-			for (let R = 0; R < d; R++) for (let H = 0; H < i; H++) {
-				let U = (a.data[g++] - w[0]) * y[0], M = (a.data[v++] - w[1]) * y[1], Y = (a.data[S++] - w[2]) * y[2], O = C === -1 ? 255 : (a.data[C++] - w[3]) * y[3];
-				f.fillStyle = "rgba(" + U + "," + M + "," + Y + "," + O + ")", f.fillRect(H, R, 1, 1);
+			], b.bias[3] !== void 0 && (w[3] = b.bias[3]));
+			let S = p * i, v = 0, T = S, A = S * 2, C = -1;
+			l === "RGBA" ? (v = 0, T = S, A = S * 2, C = S * 3) : l === "RGB" ? (v = 0, T = S, A = S * 2) : l === "RBG" && (v = 0, A = S, T = S * 2);
+			for (let _ = 0; _ < p; _++) for (let k = 0; k < i; k++) {
+				let U = (a.data[v++] - w[0]) * g[0], M = (a.data[T++] - w[1]) * g[1], Y = (a.data[A++] - w[2]) * g[2], O = C === -1 ? 255 : (a.data[C++] - w[3]) * g[3];
+				f.fillStyle = "rgba(" + U + "," + M + "," + Y + "," + O + ")", f.fillRect(k, _, 1, 1);
 			}
 			if ("toDataURL" in s) return s.toDataURL();
 			throw new Error("toDataURL is not supported");
 		} else throw new Error("Can not access image data");
-	}, La = (a, r) => {
+	}, ka = (a, r) => {
 		let s = typeof document < "u" ? document.createElement("canvas").getContext("2d") : new OffscreenCanvas(1, 1).getContext("2d"), f;
 		if (s != null) {
-			let i, d, l;
-			r?.tensorLayout !== void 0 && r.tensorLayout === "NHWC" ? (i = a.dims[2], d = a.dims[1], l = a.dims[3]) : (i = a.dims[3], d = a.dims[2], l = a.dims[1]);
-			let m = r !== void 0 && r.format !== void 0 ? r.format : "RGB", y = r?.norm, w, T;
-			y === void 0 || y.mean === void 0 ? w = [
+			let i, p, l;
+			r?.tensorLayout !== void 0 && r.tensorLayout === "NHWC" ? (i = a.dims[2], p = a.dims[1], l = a.dims[3]) : (i = a.dims[3], p = a.dims[2], l = a.dims[1]);
+			let b = r !== void 0 && r.format !== void 0 ? r.format : "RGB", g = r?.norm, w, S;
+			g === void 0 || g.mean === void 0 ? w = [
 				255,
 				255,
 				255,
 				255
-			] : typeof y.mean == "number" ? w = [
-				y.mean,
-				y.mean,
-				y.mean,
-				y.mean
+			] : typeof g.mean == "number" ? w = [
+				g.mean,
+				g.mean,
+				g.mean,
+				g.mean
 			] : (w = [
-				y.mean[0],
-				y.mean[1],
-				y.mean[2],
+				g.mean[0],
+				g.mean[1],
+				g.mean[2],
 				255
-			], y.mean[3] !== void 0 && (w[3] = y.mean[3])), y === void 0 || y.bias === void 0 ? T = [
+			], g.mean[3] !== void 0 && (w[3] = g.mean[3])), g === void 0 || g.bias === void 0 ? S = [
 				0,
 				0,
 				0,
 				0
-			] : typeof y.bias == "number" ? T = [
-				y.bias,
-				y.bias,
-				y.bias,
-				y.bias
-			] : (T = [
-				y.bias[0],
-				y.bias[1],
-				y.bias[2],
+			] : typeof g.bias == "number" ? S = [
+				g.bias,
+				g.bias,
+				g.bias,
+				g.bias
+			] : (S = [
+				g.bias[0],
+				g.bias[1],
+				g.bias[2],
 				0
-			], y.bias[3] !== void 0 && (T[3] = y.bias[3]));
-			let g = d * i;
+			], g.bias[3] !== void 0 && (S[3] = g.bias[3]));
+			let v = p * i;
 			if (r !== void 0 && (r.format !== void 0 && l === 4 && r.format !== "RGBA" || l === 3 && r.format !== "RGB" && r.format !== "BGR")) throw new Error("Tensor format doesn't match input tensor dims");
-			let v = 4, S = 0, C = 1, R = 2, H = 3, U = 0, M = g, Y = g * 2, O = -1;
-			m === "RGBA" ? (U = 0, M = g, Y = g * 2, O = g * 3) : m === "RGB" ? (U = 0, M = g, Y = g * 2) : m === "RBG" && (U = 0, Y = g, M = g * 2), f = s.createImageData(i, d);
-			for (let W = 0; W < d * i; S += v, C += v, R += v, H += v, W++) f.data[S] = (a.data[U++] - T[0]) * w[0], f.data[C] = (a.data[M++] - T[1]) * w[1], f.data[R] = (a.data[Y++] - T[2]) * w[2], f.data[H] = O === -1 ? 255 : (a.data[O++] - T[3]) * w[3];
+			let T = 4, A = 0, C = 1, _ = 2, k = 3, U = 0, M = v, Y = v * 2, O = -1;
+			b === "RGBA" ? (U = 0, M = v, Y = v * 2, O = v * 3) : b === "RGB" ? (U = 0, M = v, Y = v * 2) : b === "RBG" && (U = 0, Y = v, M = v * 2), f = s.createImageData(i, p);
+			for (let $ = 0; $ < p * i; A += T, C += T, _ += T, k += T, $++) f.data[A] = (a.data[U++] - S[0]) * w[0], f.data[C] = (a.data[M++] - S[1]) * w[1], f.data[_] = (a.data[Y++] - S[2]) * w[2], f.data[k] = O === -1 ? 255 : (a.data[O++] - S[3]) * w[3];
 		} else throw new Error("Can not access image data");
 		return f;
 	};
 });
-var Jr;
-var Ba;
-var Ma;
-var Ca;
-var Ua;
-var Da;
-var Pa = k(() => {
+var Qr;
+var Ga;
+var $a;
+var za;
+var Va;
+var ja;
+var Ha = G(() => {
 	"use strict";
-	Vt();
-	Jr = (a, r) => {
+	Yt();
+	Qr = (a, r) => {
 		if (a === void 0) throw new Error("Image buffer must be defined");
 		if (r.height === void 0 || r.width === void 0) throw new Error("Image height and width must be defined");
 		if (r.tensorLayout === "NHWC") throw new Error("NHWC Tensor layout is not supported yet");
 		let { height: s, width: f } = r, i = r.norm ?? {
 			mean: 255,
 			bias: 0
-		}, d, l;
-		typeof i.mean == "number" ? d = [
+		}, p, l;
+		typeof i.mean == "number" ? p = [
 			i.mean,
 			i.mean,
 			i.mean,
 			i.mean
-		] : d = [
+		] : p = [
 			i.mean[0],
 			i.mean[1],
 			i.mean[2],
@@ -294,74 +301,74 @@ var Pa = k(() => {
 			i.bias[2],
 			i.bias[3] ?? 0
 		];
-		let m = r.format !== void 0 ? r.format : "RGBA", y = r.tensorFormat !== void 0 && r.tensorFormat !== void 0 ? r.tensorFormat : "RGB", w = s * f, T = y === "RGBA" ? new Float32Array(w * 4) : new Float32Array(w * 3), g = 4, v = 0, S = 1, C = 2, R = 3, H = 0, U = w, M = w * 2, Y = -1;
-		m === "RGB" && (g = 3, v = 0, S = 1, C = 2, R = -1), y === "RGBA" ? Y = w * 3 : y === "RBG" ? (H = 0, M = w, U = w * 2) : y === "BGR" && (M = 0, U = w, H = w * 2);
-		for (let W = 0; W < w; W++, v += g, C += g, S += g, R += g) T[H++] = (a[v] + l[0]) / d[0], T[U++] = (a[S] + l[1]) / d[1], T[M++] = (a[C] + l[2]) / d[2], Y !== -1 && R !== -1 && (T[Y++] = (a[R] + l[3]) / d[3]);
-		return y === "RGBA" ? new le("float32", T, [
+		let b = r.format !== void 0 ? r.format : "RGBA", g = r.tensorFormat !== void 0 && r.tensorFormat !== void 0 ? r.tensorFormat : "RGB", w = s * f, S = g === "RGBA" ? new Float32Array(w * 4) : new Float32Array(w * 3), v = 4, T = 0, A = 1, C = 2, _ = 3, k = 0, U = w, M = w * 2, Y = -1;
+		b === "RGB" && (v = 3, T = 0, A = 1, C = 2, _ = -1), g === "RGBA" ? Y = w * 3 : g === "RBG" ? (k = 0, M = w, U = w * 2) : g === "BGR" && (M = 0, U = w, k = w * 2);
+		for (let $ = 0; $ < w; $++, T += v, C += v, A += v, _ += v) S[k++] = (a[T] + l[0]) / p[0], S[U++] = (a[A] + l[1]) / p[1], S[M++] = (a[C] + l[2]) / p[2], Y !== -1 && _ !== -1 && (S[Y++] = (a[_] + l[3]) / p[3]);
+		return g === "RGBA" ? new ce("float32", S, [
 			1,
 			4,
 			s,
 			f
-		]) : new le("float32", T, [
+		]) : new ce("float32", S, [
 			1,
 			3,
 			s,
 			f
 		]);
-	}, Ba = async (a, r) => {
-		let s = typeof HTMLImageElement < "u" && a instanceof HTMLImageElement, f = typeof ImageData < "u" && a instanceof ImageData, i = typeof ImageBitmap < "u" && a instanceof ImageBitmap, d = typeof a == "string", l, m = r ?? {}, y = () => {
+	}, Ga = async (a, r) => {
+		let s = typeof HTMLImageElement < "u" && a instanceof HTMLImageElement, f = typeof ImageData < "u" && a instanceof ImageData, i = typeof ImageBitmap < "u" && a instanceof ImageBitmap, p = typeof a == "string", l, b = r ?? {}, g = () => {
 			if (typeof document < "u") return document.createElement("canvas");
 			if (typeof OffscreenCanvas < "u") return new OffscreenCanvas(1, 1);
 			throw new Error("Canvas is not supported");
-		}, w = (T) => typeof HTMLCanvasElement < "u" && T instanceof HTMLCanvasElement || T instanceof OffscreenCanvas ? T.getContext("2d") : null;
+		}, w = (S) => typeof HTMLCanvasElement < "u" && S instanceof HTMLCanvasElement || S instanceof OffscreenCanvas ? S.getContext("2d") : null;
 		if (s) {
-			let T = y();
-			T.width = a.width, T.height = a.height;
-			let g = w(T);
-			if (g != null) {
-				let v = a.height, S = a.width;
-				if (r !== void 0 && r.resizedHeight !== void 0 && r.resizedWidth !== void 0 && (v = r.resizedHeight, S = r.resizedWidth), r !== void 0) {
-					if (m = r, r.tensorFormat !== void 0) throw new Error("Image input config format must be RGBA for HTMLImageElement");
-					m.tensorFormat = "RGBA", m.height = v, m.width = S;
-				} else m.tensorFormat = "RGBA", m.height = v, m.width = S;
-				g.drawImage(a, 0, 0), l = g.getImageData(0, 0, S, v).data;
+			let S = g();
+			S.width = a.width, S.height = a.height;
+			let v = w(S);
+			if (v != null) {
+				let T = a.height, A = a.width;
+				if (r !== void 0 && r.resizedHeight !== void 0 && r.resizedWidth !== void 0 && (T = r.resizedHeight, A = r.resizedWidth), r !== void 0) {
+					if (b = r, r.tensorFormat !== void 0) throw new Error("Image input config format must be RGBA for HTMLImageElement");
+					b.tensorFormat = "RGBA", b.height = T, b.width = A;
+				} else b.tensorFormat = "RGBA", b.height = T, b.width = A;
+				v.drawImage(a, 0, 0), l = v.getImageData(0, 0, A, T).data;
 			} else throw new Error("Can not access image data");
 		} else if (f) {
-			let T, g;
-			if (r !== void 0 && r.resizedWidth !== void 0 && r.resizedHeight !== void 0 ? (T = r.resizedHeight, g = r.resizedWidth) : (T = a.height, g = a.width), r !== void 0 && (m = r), m.format = "RGBA", m.height = T, m.width = g, r !== void 0) {
-				let v = y();
-				v.width = g, v.height = T;
-				let S = w(v);
-				if (S != null) S.putImageData(a, 0, 0), l = S.getImageData(0, 0, g, T).data;
+			let S, v;
+			if (r !== void 0 && r.resizedWidth !== void 0 && r.resizedHeight !== void 0 ? (S = r.resizedHeight, v = r.resizedWidth) : (S = a.height, v = a.width), r !== void 0 && (b = r), b.format = "RGBA", b.height = S, b.width = v, r !== void 0) {
+				let T = g();
+				T.width = v, T.height = S;
+				let A = w(T);
+				if (A != null) A.putImageData(a, 0, 0), l = A.getImageData(0, 0, v, S).data;
 				else throw new Error("Can not access image data");
 			} else l = a.data;
 		} else if (i) {
 			if (r === void 0) throw new Error("Please provide image config with format for Imagebitmap");
-			let T = y();
-			T.width = a.width, T.height = a.height;
-			let g = w(T);
-			if (g != null) {
-				let v = a.height, S = a.width;
-				return g.drawImage(a, 0, 0, S, v), l = g.getImageData(0, 0, S, v).data, m.height = v, m.width = S, Jr(l, m);
+			let S = g();
+			S.width = a.width, S.height = a.height;
+			let v = w(S);
+			if (v != null) {
+				let T = a.height, A = a.width;
+				return v.drawImage(a, 0, 0, A, T), l = v.getImageData(0, 0, A, T).data, b.height = T, b.width = A, Qr(l, b);
 			} else throw new Error("Can not access image data");
 		} else {
-			if (d) return new Promise((T, g) => {
-				let v = y(), S = w(v);
-				if (!a || !S) return g();
+			if (p) return new Promise((S, v) => {
+				let T = g(), A = w(T);
+				if (!a || !A) return v();
 				let C = new Image();
 				C.crossOrigin = "Anonymous", C.src = a, C.onload = () => {
-					v.width = C.width, v.height = C.height, S.drawImage(C, 0, 0, v.width, v.height);
-					let R = S.getImageData(0, 0, v.width, v.height);
-					m.height = v.height, m.width = v.width, T(Jr(R.data, m));
+					T.width = C.width, T.height = C.height, A.drawImage(C, 0, 0, T.width, T.height);
+					let _ = A.getImageData(0, 0, T.width, T.height);
+					b.height = T.height, b.width = T.width, S(Qr(_.data, b));
 				};
 			});
 			throw new Error("Input data provided is not supported - aborted tensor creation");
 		}
-		if (l !== void 0) return Jr(l, m);
+		if (l !== void 0) return Qr(l, b);
 		throw new Error("Input data provided is not supported - aborted tensor creation");
-	}, Ma = (a, r) => {
-		let { width: s, height: f, download: i, dispose: d } = r;
-		return new le({
+	}, $a = (a, r) => {
+		let { width: s, height: f, download: i, dispose: p } = r;
+		return new ce({
 			location: "texture",
 			type: "float32",
 			texture: a,
@@ -372,42 +379,42 @@ var Pa = k(() => {
 				4
 			],
 			download: i,
-			dispose: d
+			dispose: p
 		});
-	}, Ca = (a, r) => {
-		let { dataType: s, dims: f, download: i, dispose: d } = r;
-		return new le({
+	}, za = (a, r) => {
+		let { dataType: s, dims: f, download: i, dispose: p } = r;
+		return new ce({
 			location: "gpu-buffer",
 			type: s ?? "float32",
 			gpuBuffer: a,
 			dims: f,
 			download: i,
-			dispose: d
+			dispose: p
 		});
-	}, Ua = (a, r) => {
-		let { dataType: s, dims: f, download: i, dispose: d } = r;
-		return new le({
+	}, Va = (a, r) => {
+		let { dataType: s, dims: f, download: i, dispose: p } = r;
+		return new ce({
 			location: "ml-tensor",
 			type: s ?? "float32",
 			mlTensor: a,
 			dims: f,
 			download: i,
-			dispose: d
+			dispose: p
 		});
-	}, Da = (a, r, s) => new le({
+	}, ja = (a, r, s) => new ce({
 		location: "cpu-pinned",
 		type: a,
 		data: r,
 		dims: s ?? [r.length]
 	});
 });
-var et;
+var nt;
 var It;
-var _a;
-var Ra;
-var Na = k(() => {
+var qa;
+var Ya;
+var Ja = G(() => {
 	"use strict";
-	et = /* @__PURE__ */ new Map([
+	nt = /* @__PURE__ */ new Map([
 		["float32", Float32Array],
 		["uint8", Uint8Array],
 		["int8", Int8Array],
@@ -428,20 +435,20 @@ var Na = k(() => {
 		[Int32Array, "int32"],
 		[Float64Array, "float64"],
 		[Uint32Array, "uint32"]
-	]), _a = !1, Ra = () => {
-		if (!_a) {
-			_a = !0;
+	]), qa = !1, Ya = () => {
+		if (!qa) {
+			qa = !0;
 			let a = typeof BigInt64Array < "u" && BigInt64Array.from, r = typeof BigUint64Array < "u" && BigUint64Array.from, s = globalThis.Float16Array, f = typeof s < "u" && s.from;
-			a && (et.set("int64", BigInt64Array), It.set(BigInt64Array, "int64")), r && (et.set("uint64", BigUint64Array), It.set(BigUint64Array, "uint64")), f ? (et.set("float16", s), It.set(s, "float16")) : et.set("float16", Uint16Array);
+			a && (nt.set("int64", BigInt64Array), It.set(BigInt64Array, "int64")), r && (nt.set("uint64", BigUint64Array), It.set(BigUint64Array, "uint64")), f ? (nt.set("float16", s), It.set(s, "float16")) : nt.set("float16", Uint16Array);
 		}
 	};
 });
-var ka;
-var Wa;
-var Fa = k(() => {
+var Xa;
+var Za;
+var Ka = G(() => {
 	"use strict";
-	Vt();
-	ka = (a) => {
+	Yt();
+	Xa = (a) => {
 		let r = 1;
 		for (let s = 0; s < a.length; s++) {
 			let f = a[s];
@@ -450,28 +457,28 @@ var Fa = k(() => {
 			r *= f;
 		}
 		return r;
-	}, Wa = (a, r) => {
+	}, Za = (a, r) => {
 		switch (a.location) {
-			case "cpu": return new le(a.type, a.data, r);
-			case "cpu-pinned": return new le({
+			case "cpu": return new ce(a.type, a.data, r);
+			case "cpu-pinned": return new ce({
 				location: "cpu-pinned",
 				data: a.data,
 				type: a.type,
 				dims: r
 			});
-			case "texture": return new le({
+			case "texture": return new ce({
 				location: "texture",
 				texture: a.texture,
 				type: a.type,
 				dims: r
 			});
-			case "gpu-buffer": return new le({
+			case "gpu-buffer": return new ce({
 				location: "gpu-buffer",
 				gpuBuffer: a.gpuBuffer,
 				type: a.type,
 				dims: r
 			});
-			case "ml-tensor": return new le({
+			case "ml-tensor": return new ce({
 				location: "ml-tensor",
 				mlTensor: a.mlTensor,
 				type: a.type,
@@ -481,22 +488,22 @@ var Fa = k(() => {
 		}
 	};
 });
-var le;
-var Vt = k(() => {
+var ce;
+var Yt = G(() => {
 	"use strict";
-	Oa();
-	Pa();
-	Na();
 	Fa();
-	le = class {
+	Ha();
+	Ja();
+	Ka();
+	ce = class {
 		constructor(r, s, f) {
-			Ra();
-			let i, d;
-			if (typeof r == "object" && "location" in r) switch (this.dataLocation = r.location, i = r.type, d = r.dims, r.location) {
+			Ya();
+			let i, p;
+			if (typeof r == "object" && "location" in r) switch (this.dataLocation = r.location, i = r.type, p = r.dims, r.location) {
 				case "cpu-pinned": {
-					let m = et.get(i);
-					if (!m) throw new TypeError(`unsupported type "${i}" to create tensor from pinned buffer`);
-					if (!(r.data instanceof m)) throw new TypeError(`buffer should be of type ${m.name}`);
+					let b = nt.get(i);
+					if (!b) throw new TypeError(`unsupported type "${i}" to create tensor from pinned buffer`);
+					if (!(r.data instanceof b)) throw new TypeError(`buffer should be of type ${b.name}`);
 					this.cpuData = r.data;
 					break;
 				}
@@ -515,62 +522,62 @@ var Vt = k(() => {
 				default: throw new Error(`Tensor constructor: unsupported location '${this.dataLocation}'`);
 			}
 			else {
-				let m, y;
-				if (typeof r == "string") if (i = r, y = f, r === "string") {
+				let b, g;
+				if (typeof r == "string") if (i = r, g = f, r === "string") {
 					if (!Array.isArray(s)) throw new TypeError("A string tensor's data must be a string array.");
-					m = s;
+					b = s;
 				} else {
-					let w = et.get(r);
+					let w = nt.get(r);
 					if (w === void 0) throw new TypeError(`Unsupported tensor type: ${r}.`);
 					if (Array.isArray(s)) {
 						if (r === "float16" && w === Uint16Array || r === "uint4" || r === "int4") throw new TypeError(`Creating a ${r} tensor from number array is not supported. Please use ${w.name} as data.`);
-						r === "uint64" || r === "int64" ? m = w.from(s, BigInt) : m = w.from(s);
-					} else if (s instanceof w) m = s;
-					else if (s instanceof Uint8ClampedArray) if (r === "uint8") m = Uint8Array.from(s);
+						r === "uint64" || r === "int64" ? b = w.from(s, BigInt) : b = w.from(s);
+					} else if (s instanceof w) b = s;
+					else if (s instanceof Uint8ClampedArray) if (r === "uint8") b = Uint8Array.from(s);
 					else throw new TypeError("A Uint8ClampedArray tensor's data must be type of uint8");
-					else if (r === "float16" && s instanceof Uint16Array && w !== Uint16Array) m = new globalThis.Float16Array(s.buffer, s.byteOffset, s.length);
+					else if (r === "float16" && s instanceof Uint16Array && w !== Uint16Array) b = new globalThis.Float16Array(s.buffer, s.byteOffset, s.length);
 					else throw new TypeError(`A ${i} tensor's data must be type of ${w}`);
 				}
-				else if (y = s, Array.isArray(r)) {
+				else if (g = s, Array.isArray(r)) {
 					if (r.length === 0) throw new TypeError("Tensor type cannot be inferred from an empty array.");
 					let w = typeof r[0];
-					if (w === "string") i = "string", m = r;
-					else if (w === "boolean") i = "bool", m = Uint8Array.from(r);
+					if (w === "string") i = "string", b = r;
+					else if (w === "boolean") i = "bool", b = Uint8Array.from(r);
 					else throw new TypeError(`Invalid element type of data array: ${w}.`);
-				} else if (r instanceof Uint8ClampedArray) i = "uint8", m = Uint8Array.from(r);
+				} else if (r instanceof Uint8ClampedArray) i = "uint8", b = Uint8Array.from(r);
 				else {
 					let w = It.get(r.constructor);
 					if (w === void 0) throw new TypeError(`Unsupported type for tensor data: ${r.constructor}.`);
-					i = w, m = r;
+					i = w, b = r;
 				}
-				if (y === void 0) y = [m.length];
-				else if (!Array.isArray(y)) throw new TypeError("A tensor's dims must be a number array");
-				d = y, this.cpuData = m, this.dataLocation = "cpu";
+				if (g === void 0) g = [b.length];
+				else if (!Array.isArray(g)) throw new TypeError("A tensor's dims must be a number array");
+				p = g, this.cpuData = b, this.dataLocation = "cpu";
 			}
-			let l = ka(d);
+			let l = Xa(p);
 			if (this.cpuData && l !== this.cpuData.length && !((i === "uint4" || i === "int4") && Math.ceil(l / 2) === this.cpuData.length)) throw new Error(`Tensor's size(${l}) does not match data length(${this.cpuData.length}).`);
-			this.type = i, this.dims = d, this.size = l;
+			this.type = i, this.dims = p, this.size = l;
 		}
 		static async fromImage(r, s) {
-			return Ba(r, s);
+			return Ga(r, s);
 		}
 		static fromTexture(r, s) {
-			return Ma(r, s);
+			return $a(r, s);
 		}
 		static fromGpuBuffer(r, s) {
-			return Ca(r, s);
+			return za(r, s);
 		}
 		static fromMLTensor(r, s) {
-			return Ua(r, s);
+			return Va(r, s);
 		}
 		static fromPinnedBuffer(r, s, f) {
-			return Da(r, s, f);
+			return ja(r, s, f);
 		}
 		toDataURL(r) {
-			return xa(this, r);
+			return Wa(this, r);
 		}
 		toImageData(r) {
-			return La(this, r);
+			return ka(this, r);
 		}
 		get data() {
 			if (this.ensureValid(), !this.cpuData) throw new Error("The data is not on CPU. Use `getData()` to download GPU data to CPU, or use `texture` or `gpuBuffer` property to access the GPU data directly.");
@@ -619,60 +626,60 @@ var Vt = k(() => {
 		}
 		reshape(r) {
 			if (this.ensureValid(), this.downloader || this.disposer) throw new Error("Cannot reshape a tensor that owns GPU resource.");
-			return Wa(this, r);
+			return Za(this, r);
 		}
 	};
 });
 var Le;
-var Xr = k(() => {
+var en = G(() => {
 	"use strict";
-	Vt();
-	Le = le;
+	Yt();
+	Le = ce;
 });
-var Ga;
-var $a;
-var tt;
-var rt;
+var Qa;
+var es;
+var ot;
+var at;
 var $e;
 var ze;
-var Qr = k(() => {
+var tn = G(() => {
 	"use strict";
-	qr();
-	Ga = (a, r) => {
+	Kr();
+	Qa = (a, r) => {
 		(typeof ie.trace > "u" ? !ie.wasm.trace : !ie.trace) || console.timeStamp(`${a}::ORT::${r}`);
-	}, $a = (a, r) => {
+	}, es = (a, r) => {
 		let s = (/* @__PURE__ */ new Error()).stack?.split(/\r\n|\r|\n/g) || [], f = !1;
 		for (let i = 0; i < s.length; i++) {
 			if (f && !s[i].includes("TRACE_FUNC")) {
-				let d = `FUNC_${a}::${s[i].trim().split(" ")[1]}`;
-				r && (d += `::${r}`), Ga("CPU", d);
+				let p = `FUNC_${a}::${s[i].trim().split(" ")[1]}`;
+				r && (p += `::${r}`), Qa("CPU", p);
 				return;
 			}
 			s[i].includes("TRACE_FUNC") && (f = !0);
 		}
-	}, tt = (a) => {
-		(typeof ie.trace > "u" ? !ie.wasm.trace : !ie.trace) || $a("BEGIN", a);
-	}, rt = (a) => {
-		(typeof ie.trace > "u" ? !ie.wasm.trace : !ie.trace) || $a("END", a);
+	}, ot = (a) => {
+		(typeof ie.trace > "u" ? !ie.wasm.trace : !ie.trace) || es("BEGIN", a);
+	}, at = (a) => {
+		(typeof ie.trace > "u" ? !ie.wasm.trace : !ie.trace) || es("END", a);
 	}, $e = (a) => {
 		(typeof ie.trace > "u" ? !ie.wasm.trace : !ie.trace) || console.time(`ORT::${a}`);
 	}, ze = (a) => {
 		(typeof ie.trace > "u" ? !ie.wasm.trace : !ie.trace) || console.timeEnd(`ORT::${a}`);
 	};
 });
-var jt;
-var za = k(() => {
+var Jt;
+var ts = G(() => {
 	"use strict";
-	Yr();
-	Xr();
-	Qr();
-	jt = class a {
+	Zr();
+	en();
+	tn();
+	Jt = class a {
 		constructor(r) {
 			this.handler = r;
 		}
 		async run(r, s, f) {
-			tt(), $e("InferenceSession.run");
-			let i = {}, d = {};
+			ot(), $e("InferenceSession.run");
+			let i = {}, p = {};
 			if (typeof r != "object" || r === null || r instanceof Le || Array.isArray(r)) throw new TypeError("'feeds' must be an object that use input names as keys and OnnxValue as corresponding values.");
 			let l = !0;
 			if (typeof s == "object") {
@@ -686,58 +693,58 @@ var za = k(() => {
 						if (this.outputNames.indexOf(w) === -1) throw new RangeError(`'fetches' contains invalid output name: ${w}.`);
 						i[w] = null;
 					}
-					if (typeof f == "object" && f !== null) d = f;
+					if (typeof f == "object" && f !== null) p = f;
 					else if (typeof f < "u") throw new TypeError("'options' must be an object.");
 				} else {
-					let w = !1, T = Object.getOwnPropertyNames(s);
-					for (let g of this.outputNames) if (T.indexOf(g) !== -1) {
-						let v = s[g];
-						(v === null || v instanceof Le) && (w = !0, l = !1, i[g] = v);
+					let w = !1, S = Object.getOwnPropertyNames(s);
+					for (let v of this.outputNames) if (S.indexOf(v) !== -1) {
+						let T = s[v];
+						(T === null || T instanceof Le) && (w = !0, l = !1, i[v] = T);
 					}
 					if (w) {
-						if (typeof f == "object" && f !== null) d = f;
+						if (typeof f == "object" && f !== null) p = f;
 						else if (typeof f < "u") throw new TypeError("'options' must be an object.");
-					} else d = s;
+					} else p = s;
 				}
 			} else if (typeof s < "u") throw new TypeError("Unexpected argument[1]: must be 'fetches' or 'options'.");
 			for (let w of this.inputNames) if (typeof r[w] > "u") throw new Error(`input '${w}' is missing in 'feeds'.`);
 			if (l) for (let w of this.outputNames) i[w] = null;
-			let m = await this.handler.run(r, i, d), y = {};
-			for (let w in m) if (Object.hasOwnProperty.call(m, w)) {
-				let T = m[w];
-				T instanceof Le ? y[w] = T : y[w] = new Le(T.type, T.data, T.dims);
+			let b = await this.handler.run(r, i, p), g = {};
+			for (let w in b) if (Object.hasOwnProperty.call(b, w)) {
+				let S = b[w];
+				S instanceof Le ? g[w] = S : g[w] = new Le(S.type, S.data, S.dims);
 			}
-			return ze("InferenceSession.run"), rt(), y;
+			return ze("InferenceSession.run"), at(), g;
 		}
 		async release() {
 			return this.handler.dispose();
 		}
 		static async create(r, s, f, i) {
-			tt(), $e("InferenceSession.create");
-			let d, l = {};
+			ot(), $e("InferenceSession.create");
+			let p, l = {};
 			if (typeof r == "string") {
-				if (d = r, typeof s == "object" && s !== null) l = s;
+				if (p = r, typeof s == "object" && s !== null) l = s;
 				else if (typeof s < "u") throw new TypeError("'options' must be an object.");
 			} else if (r instanceof Uint8Array) {
-				if (d = r, typeof s == "object" && s !== null) l = s;
+				if (p = r, typeof s == "object" && s !== null) l = s;
 				else if (typeof s < "u") throw new TypeError("'options' must be an object.");
 			} else if (r instanceof ArrayBuffer || typeof SharedArrayBuffer < "u" && r instanceof SharedArrayBuffer) {
-				let T = r, g = 0, v = r.byteLength;
+				let S = r, v = 0, T = r.byteLength;
 				if (typeof s == "object" && s !== null) l = s;
 				else if (typeof s == "number") {
-					if (g = s, !Number.isSafeInteger(g)) throw new RangeError("'byteOffset' must be an integer.");
-					if (g < 0 || g >= T.byteLength) throw new RangeError(`'byteOffset' is out of range [0, ${T.byteLength}).`);
-					if (v = r.byteLength - g, typeof f == "number") {
-						if (v = f, !Number.isSafeInteger(v)) throw new RangeError("'byteLength' must be an integer.");
-						if (v <= 0 || g + v > T.byteLength) throw new RangeError(`'byteLength' is out of range (0, ${T.byteLength - g}].`);
+					if (v = s, !Number.isSafeInteger(v)) throw new RangeError("'byteOffset' must be an integer.");
+					if (v < 0 || v >= S.byteLength) throw new RangeError(`'byteOffset' is out of range [0, ${S.byteLength}).`);
+					if (T = r.byteLength - v, typeof f == "number") {
+						if (T = f, !Number.isSafeInteger(T)) throw new RangeError("'byteLength' must be an integer.");
+						if (T <= 0 || v + T > S.byteLength) throw new RangeError(`'byteLength' is out of range (0, ${S.byteLength - v}].`);
 						if (typeof i == "object" && i !== null) l = i;
 						else if (typeof i < "u") throw new TypeError("'options' must be an object.");
 					} else if (typeof f < "u") throw new TypeError("'byteLength' must be a number.");
 				} else if (typeof s < "u") throw new TypeError("'options' must be an object.");
-				d = new Uint8Array(T, g, v);
+				p = new Uint8Array(S, v, T);
 			} else throw new TypeError("Unexpected argument[0]: must be 'path' or 'buffer'.");
-			let [m, y] = await Ta(l), w = await m.createInferenceSessionHandler(d, y);
-			return ze("InferenceSession.create"), rt(), new a(w);
+			let [b, g] = await Da(l), w = await b.createInferenceSessionHandler(p, g);
+			return ze("InferenceSession.create"), at(), new a(w);
 		}
 		startProfiling() {
 			this.handler.startProfiling();
@@ -759,69 +766,69 @@ var za = k(() => {
 		}
 	};
 });
-var qf;
-var Va = k(() => {
+var bc;
+var rs = G(() => {
 	"use strict";
-	za();
-	qf = jt;
+	ts();
+	bc = Jt;
 });
-var ja = k(() => {
-	"use strict";
-});
-var Ha = k(() => {
+var ns = G(() => {
 	"use strict";
 });
-var Ya = k(() => {
+var os = G(() => {
 	"use strict";
 });
-var qa = k(() => {
+var as = G(() => {
 	"use strict";
 });
-var Zr = {};
-At(Zr, {
-	InferenceSession: () => qf,
-	TRACE: () => Ga,
+var ss = G(() => {
+	"use strict";
+});
+var rn = {};
+At(rn, {
+	InferenceSession: () => bc,
+	TRACE: () => Qa,
 	TRACE_EVENT_BEGIN: () => $e,
 	TRACE_EVENT_END: () => ze,
-	TRACE_FUNC_BEGIN: () => tt,
-	TRACE_FUNC_END: () => rt,
+	TRACE_FUNC_BEGIN: () => ot,
+	TRACE_FUNC_END: () => at,
 	Tensor: () => Le,
-	env: () => K,
-	registerBackend: () => Ke
+	env: () => ee,
+	registerBackend: () => rt
 });
-var Ve = k(() => {
+var Ve = G(() => {
 	"use strict";
-	va();
-	Ia();
-	Va();
-	Xr();
-	ja();
-	Ha();
-	Qr();
-	Ya();
-	qa();
+	Pa();
+	Na();
+	rs();
+	en();
+	ns();
+	os();
+	tn();
+	as();
+	ss();
 });
-var Ht = k(() => {
+var Xt = G(() => {
 	"use strict";
 });
-var Za = {};
-At(Za, { default: () => Jf });
-var Xa;
-var Qa;
-var Jf;
-var Ka = k(() => {
+var cs = {};
+At(cs, { default: () => gc });
+var us;
+var fs;
+var gc;
+var ds = G(() => {
 	"use strict";
-	Kr();
+	nn();
 	je();
-	Yt();
-	Xa = "ort-wasm-proxy-worker", Qa = globalThis.self?.name === Xa;
-	Qa && (self.onmessage = (a) => {
+	Zt();
+	us = "ort-wasm-proxy-worker", fs = globalThis.self?.name === us;
+	fs && (self.onmessage = (a) => {
 		let { type: r, in: s } = a.data;
 		try {
 			switch (r) {
 				case "init-wasm":
-					qt(s.wasm).then(() => {
-						Jt(s).then(() => {
+					Kt(s.wasm).then(() => {
+						Qt(s).then(() => {
 							postMessage({ type: r });
 						}, (f) => {
 							postMessage({
@@ -838,18 +845,18 @@ var Ka = k(() => {
 					break;
 				case "init-ep": {
 					let { epName: f, env: i } = s;
-					Xt(i, f).then(() => {
+					er(i, f).then(() => {
 						postMessage({ type: r });
-					}, (d) => {
+					}, (p) => {
 						postMessage({
 							type: r,
-							err: d
+							err: p
 						});
 					});
 					break;
 				}
 				case "copy-from": {
-					let { buffer: f } = s, i = xt(f);
+					let { buffer: f } = s, i = Lt(f);
 					postMessage({
 						type: r,
 						out: i
@@ -858,41 +865,41 @@ var Ka = k(() => {
 				}
 				case "create": {
 					let { model: f, options: i } = s;
-					Qt(f, i).then((d) => {
+					tr(f, i).then((p) => {
 						postMessage({
 							type: r,
-							out: d
+							out: p
 						});
-					}, (d) => {
+					}, (p) => {
 						postMessage({
 							type: r,
-							err: d
+							err: p
 						});
 					});
 					break;
 				}
 				case "release":
-					Zt(s), postMessage({ type: r });
+					rr(s), postMessage({ type: r });
 					break;
 				case "run": {
-					let { sessionId: f, inputIndices: i, inputs: d, outputIndices: l, options: m } = s;
-					Kt(f, i, d, l, new Array(l.length).fill(null), m).then((y) => {
-						y.some((w) => w[3] !== "cpu") ? postMessage({
+					let { sessionId: f, inputIndices: i, inputs: p, outputIndices: l, options: b } = s;
+					nr(f, i, p, l, new Array(l.length).fill(null), b).then((g) => {
+						g.some((w) => w[3] !== "cpu") ? postMessage({
 							type: r,
 							err: "Proxy does not support non-cpu tensor location."
 						}) : postMessage({
 							type: r,
-							out: y
-						}, tr([...d, ...y]));
-					}, (y) => {
+							out: g
+						}, ar([...p, ...g]));
+					}, (g) => {
 						postMessage({
 							type: r,
-							err: y
+							err: g
 						});
 					});
 					break;
 				}
-				case "end-profiling": er(s), postMessage({ type: r });
+				case "end-profiling": or(s), postMessage({ type: r });
 			}
 		} catch (f) {
 			postMessage({
@@ -901,29 +908,29 @@ var Ka = k(() => {
 			});
 		}
 	});
-	Jf = Qa ? null : (a) => new Worker(a ?? ge, {
+	gc = fs ? null : (a) => new Worker(a ?? ye, {
 		type: "module",
-		name: Xa
+		name: us
 	});
 });
-var ts = {};
-At(ts, { default: () => Xf });
-async function es(a = {}) {
+var ps = {};
+At(ps, { default: () => yc });
+async function ls(a = {}) {
 	var r = a, s = !!globalThis.window, f = !!globalThis.WorkerGlobalScope, i = f && self.name?.startsWith("em-pthread");
 	r.mountExternalData = (e, t) => {
-		e.startsWith("./") && (e = e.substring(2)), (r.Uc || (r.Uc = /* @__PURE__ */ new Map())).set(e, t);
+		e.startsWith("./") && (e = e.substring(2)), (r.ed || (r.ed = /* @__PURE__ */ new Map())).set(e, t);
 	}, r.unmountExternalData = () => {
-		delete r.Uc;
+		delete r.ed, delete r.Te, delete r.Se, delete r.Ue;
 	}, globalThis.SharedArrayBuffer ?? new WebAssembly.Memory({
 		initial: 0,
 		maximum: 0,
 		shared: !0
 	}).buffer.constructor;
-	let d = () => {
+	let p = () => {
 		let e = (t) => (...n) => {
 			let o = Me;
 			return n = t(...n), Me != o ? new Promise((u, c) => {
-				Lr = {
+				Cr = {
 					resolve: u,
 					reject: c
 				};
@@ -937,19 +944,19 @@ async function es(a = {}) {
 				"_OrtRunWithBinding",
 				"_OrtBindInput"
 			]) r[t] = e(r[t]);
-		})(), typeof jsepRunAsync < "u" && (r._OrtRun = jsepRunAsync(r._OrtRun), r._OrtRunWithBinding = jsepRunAsync(r._OrtRunWithBinding)), d = void 0;
+		})(), typeof jsepRunAsync < "u" && (r._OrtRun = jsepRunAsync(r._OrtRun), r._OrtRunWithBinding = jsepRunAsync(r._OrtRunWithBinding)), p = void 0;
 	};
 	r.asyncInit = () => {
-		d?.();
+		p?.();
 	};
-	var l, m, y = (e, t) => {
+	var l, b, g = (e, t) => {
 		throw t;
-	}, w = import.meta.url, T = "";
+	}, w = import.meta.url, S = "";
 	if (s || f) {
 		try {
-			T = new URL(".", w).href;
+			S = new URL(".", w).href;
 		} catch {}
-		f && (m = (e) => {
+		f && (b = (e) => {
 			var t = new XMLHttpRequest();
 			return t.open("GET", e, !1), t.responseType = "arraybuffer", t.send(null), new Uint8Array(t.response);
 		}), l = async (e) => {
@@ -964,269 +971,278 @@ async function es(a = {}) {
 			throw Error(t.status + " : " + t.url);
 		};
 	}
-	var g, v, S, C, R, H, U = console.log.bind(console), M = console.error.bind(console), Y = U, O = M, W = !1, oe = (e) => e.startsWith("file://");
-	function p() {
-		Fe.buffer != X.buffer && se();
+	var v, T, A, C, _, k, U = console.log.bind(console), M = console.error.bind(console), Y = U, O = M, $ = !1, oe = (e) => e.startsWith("file://");
+	function d() {
+		Fe.buffer != Z.buffer && se();
 	}
 	if (i) {
 		let e = function(t) {
 			try {
-				var n = t.data, o = n.Oc;
+				var n = t.data, o = n.$c;
 				if (o === "load") {
 					let u = [];
-					self.onmessage = (c) => u.push(c), H = () => {
-						postMessage({ Oc: "loaded" });
+					self.onmessage = (c) => u.push(c), k = () => {
+						postMessage({ $c: "loaded" });
 						for (let c of u) e(c);
 						self.onmessage = e;
 					};
-					for (let c of n.ce) r[c] && !r[c].proxy || (r[c] = (...h) => {
+					for (let c of n.ue) r[c] && !r[c].proxy || (r[c] = (...h) => {
 						postMessage({
-							Oc: "callHandler",
-							be: c,
+							$c: "callHandler",
+							te: c,
 							args: h
 						});
 					}, c == "print" && (Y = r[c]), c == "printErr" && (O = r[c]));
-					Fe = n.ie, se(), v = n.je, bt(), Gt();
+					Fe = n.Me, se(), T = n.Ne, wt(), jt();
 				} else if (o === "run") {
 					(function(u) {
-						var c = (p(), A)[u + 52 >>> 2 >>> 0];
-						u = (p(), A)[u + 56 >>> 2 >>> 0], Co(c, c - u), D(c);
-					})(n.Nc), Wr(n.Nc, 0, 0, 1, 0, 0), bn(), Ar(n.Nc), ne || (po(), ne = !0);
+						var c = (d(), E)[u + 52 >>> 2 >>> 0];
+						u = (d(), E)[u + 56 >>> 2 >>> 0], Fo(c, c - u), D(c);
+					})(n.Xc), zr(n.Xc, 0, 0, 1, 0, 0), wn(), Br(n.Xc), te || (vo(), te = !0);
 					try {
-						$s(n.ge, n.Wc);
+						ei(n.ze, n.kd);
 					} catch (u) {
 						if (u != "unwind") throw u;
 					}
-				} else n.target !== "setimmediate" && (o === "checkMailbox" ? ne && Dt() : o && (O(`worker: received unknown command ${o}`), O(n)));
+				} else n.target !== "setimmediate" && (o === "checkMailbox" ? te && _t() : o && (O(`worker: received unknown command ${o}`), O(n)));
 			} catch (u) {
-				throw xo(), u;
+				throw _o(), u;
 			}
 		};
-		var ne = !1;
+		var te = !1;
 		self.onunhandledrejection = (t) => {
 			throw t.reason || t;
 		}, self.onmessage = e;
 	}
-	var X, J, Ue, Q, x, A, _, ae, me, q, we, re = !1;
+	var Z, X, De, K, I, E, R, ae, pe, J, ge, ne = !1;
 	function se() {
 		var e = Fe.buffer;
-		r.HEAP8 = X = new Int8Array(e), Ue = new Int16Array(e), r.HEAPU8 = J = new Uint8Array(e), Q = new Uint16Array(e), r.HEAP32 = x = new Int32Array(e), r.HEAPU32 = A = new Uint32Array(e), _ = new Float32Array(e), ae = new Float64Array(e), me = new BigInt64Array(e), q = new BigUint64Array(e);
+		r.HEAP8 = Z = new Int8Array(e), De = new Int16Array(e), r.HEAPU8 = X = new Uint8Array(e), K = new Uint16Array(e), r.HEAP32 = I = new Int32Array(e), r.HEAPU32 = E = new Uint32Array(e), R = new Float32Array(e), ae = new Float64Array(e), pe = new BigInt64Array(e), J = new BigUint64Array(e);
 	}
-	function hr() {
-		re = !0, i ? H() : ke._b();
+	function wr() {
+		ne = !0, i ? k() : Ne.hc();
 	}
-	function Te(e) {
-		throw O(e = "Aborted(" + e + ")"), W = !0, e = new WebAssembly.RuntimeError(e + ". Build with -sASSERTIONS for more info."), R?.(e), e;
+	function we(e) {
+		throw O(e = "Aborted(" + e + ")"), $ = !0, e = new WebAssembly.RuntimeError(e + ". Build with -sASSERTIONS for more info."), _?.(e), e;
 	}
-	function Ye() {
+	function qe() {
 		return { a: {
-			f: zs,
-			J: Vs,
-			k: js,
-			p: Hs,
-			l: Ys,
-			sa: qs,
-			b: Js,
-			ca: Xs,
-			Ja: Sn,
-			q: Qs,
-			da: Ln,
-			Za: On,
-			Fa: Bn,
-			Ha: Mn,
-			_a: Cn,
-			Xa: Un,
-			Qa: Dn,
-			Wa: Pn,
-			oa: _n,
-			Ga: Rn,
-			Xb: Nn,
-			Ya: kn,
-			Yb: Wn,
-			db: Zs,
-			Da: ei,
-			Sb: ti,
-			Qb: ni,
-			Ca: ai,
-			M: si,
-			I: ii,
-			Rb: ui,
-			ja: hi,
-			Tb: yi,
-			Ta: bi,
-			Vb: gi,
-			Ka: Ti,
-			Ob: vi,
-			ka: Ei,
-			Sa: Ar,
-			ab: Si,
-			U: Li,
-			n: Ui,
-			c: Er,
-			rb: Di,
-			w: Pi,
-			L: _i,
-			z: Ri,
-			j: Ni,
-			o: Yn,
-			sb: ki,
-			G: Wi,
-			T: Fi,
-			h: Gi,
-			u: $i,
-			m: zi,
-			i: Vi,
-			Na: ji,
-			Oa: Hi,
-			Pa: Yi,
-			La: Qn,
-			Ma: Zn,
-			Pb: Kn,
-			eb: Ji,
-			cb: Zi,
-			Y: Ki,
-			qb: eu,
-			la: tu,
-			bb: Xi,
-			fb: ru,
-			$a: nu,
-			Wb: ou,
+			qa: Af,
+			f: ti,
+			K: ri,
+			k: ni,
+			p: oi,
+			l: ai,
+			fa: si,
+			b: ii,
+			da: ui,
+			gc: An,
+			q: fi,
+			ea: On,
+			Ua: Mn,
+			cc: Cn,
+			ec: Dn,
+			Va: Pn,
+			Sa: Un,
+			La: _n,
+			Ra: Rn,
+			oa: Nn,
+			dc: Wn,
+			ac: kn,
+			Ta: Fn,
+			bc: Gn,
+			_a: ci,
+			Ba: li,
+			Xb: pi,
+			Vb: hi,
+			Aa: gi,
+			O: yi,
+			J: wi,
+			Wb: Ti,
+			ka: Li,
+			Yb: Bi,
+			Oa: Oi,
+			_b: Ci,
+			Ea: Di,
+			Tb: Pi,
+			Ca: Ui,
+			Na: Br,
+			Xa: _i,
+			U: ki,
+			n: Vi,
+			c: Ir,
+			qb: ji,
+			w: Hi,
 			N: qi,
-			gb: au,
-			X: su,
-			Ub: iu,
-			nb: yu,
-			C: bu,
-			ra: wu,
-			qa: gu,
-			pb: Tu,
-			W: vu,
-			v: Eu,
-			mb: Su,
-			lb: Au,
-			kb: Iu,
-			ob: xu,
-			jb: Lu,
-			ib: Ou,
-			hb: Bu,
-			Ua: ao,
-			Va: so,
-			Ia: br,
-			V: io,
-			na: uo,
-			Ra: fo,
-			ma: co,
-			Cb: Ff,
-			xa: Pf,
-			Db: Wf,
-			ya: Df,
-			F: Ef,
-			e: ff,
-			s: sf,
-			x: af,
-			B: gf,
-			Fb: Mf,
-			ba: Bf,
-			D: lf,
-			za: Cf,
-			$: _f,
-			ga: Of,
-			Gb: Lf,
-			Hb: xf,
-			Ba: Sf,
-			Aa: If,
-			Ib: Af,
-			wa: kf,
-			aa: Uf,
-			d: uf,
-			A: df,
-			r: cf,
-			Bb: Gf,
-			t: mf,
-			y: Tf,
-			H: pf,
-			E: hf,
-			K: vf,
-			R: Rf,
-			ia: wf,
-			_: Nf,
-			Jb: bf,
-			Kb: yf,
-			g: Cu,
+			A: Yi,
+			j: Ji,
+			o: Jn,
+			rb: Xi,
+			H: Zi,
+			T: Ki,
+			g: Qi,
+			u: eu,
+			m: tu,
+			i: ru,
+			Ia: nu,
+			Ja: ou,
+			Ka: au,
+			Ga: Qn,
+			Ha: eo,
+			Ub: to,
+			ab: iu,
+			Za: cu,
+			Z: du,
+			pb: lu,
+			Da: pu,
+			Ya: uu,
+			X: mu,
+			Wa: hu,
+			$b: bu,
+			G: su,
+			db: gu,
+			_: yu,
+			pa: Ft,
+			Zb: Tu,
+			cb: wu,
+			bb: vu,
+			lb: Uu,
+			z: _u,
+			sa: Ru,
+			ra: Nu,
+			nb: Wu,
+			Y: ku,
+			v: Fu,
+			kb: Gu,
+			jb: $u,
+			ib: zu,
+			mb: Vu,
+			gb: ju,
+			fb: Hu,
+			eb: qu,
+			Pa: po,
+			Qa: mo,
+			fc: vr,
+			W: ho,
+			Fa: bo,
+			ma: go,
+			Ma: yo,
+			la: wo,
+			Fb: fc,
+			va: nc,
+			Gb: uc,
+			wa: rc,
+			E: zf,
+			e: Of,
+			r: Lf,
+			x: If,
+			C: kf,
+			Ib: Qf,
+			ca: Kf,
+			D: Df,
+			xa: ec,
+			aa: oc,
+			ha: Zf,
+			Jb: Xf,
+			Kb: Jf,
+			za: jf,
+			Lb: qf,
+			ya: Yf,
+			Mb: Hf,
+			ua: ic,
+			ba: tc,
+			d: Bf,
+			B: Cf,
+			s: Mf,
+			Eb: cc,
+			t: Uf,
+			y: Gf,
+			F: Pf,
+			I: _f,
+			L: $f,
+			Nb: Vf,
+			R: ac,
+			ia: Wf,
+			$: sc,
+			Pb: Nf,
+			Rb: Rf,
+			Ob: Ff,
+			h: Ju,
 			a: Fe,
-			Nb: qe,
-			Eb: Uu,
-			ha: Du,
-			O: Pu,
-			pa: _u,
-			Lb: Ru,
-			ta: Nu,
-			Q: ku,
-			yb: Wu,
-			zb: Fu,
-			ua: Gu,
-			ea: $u,
-			P: zu,
-			Ea: Vu,
-			va: ju,
-			Z: Hu,
-			wb: Yu,
-			Zb: qu,
-			S: Ju,
-			Ab: Xu,
-			tb: Qu,
-			ub: Ku,
-			vb: ef,
-			fa: tf,
-			xb: rf,
-			Mb: nf
+			$a: Ye,
+			Hb: Xu,
+			V: Zu,
+			M: Ku,
+			na: Qu,
+			Db: ef,
+			ja: tf,
+			S: rf,
+			Ab: nf,
+			Bb: of,
+			vb: af,
+			wb: sf,
+			P: uf,
+			xb: ff,
+			yb: cf,
+			ta: df,
+			Sb: lf,
+			ob: pf,
+			Q: mf,
+			hb: hf,
+			Cb: bf,
+			sb: gf,
+			tb: wf,
+			ub: Tf,
+			ga: vf,
+			zb: Ef,
+			Qb: Sf
 		} };
 	}
-	async function bt() {
+	async function wt() {
 		function e(o, u) {
-			var c = ke = o.exports;
+			var c = Ne = o.exports;
 			o = {};
-			for (let [h, b] of Object.entries(c)) typeof b == "function" ? (c = Ai(b), o[h] = c) : o[h] = b;
-			return ke = o, ke = function() {
-				var h = ke, b = (I) => (F) => I(F) >>> 0, E = (I) => () => I() >>> 0;
-				return (h = Object.assign({}, h)).$b = b(h.$b), h.Cc = E(h.Cc), h.Ec = b(h.Ec), h.rd = ((I) => (F, j) => I(F, j) >>> 0)(h.rd), h.wd = b(h.wd), h.xd = E(h.xd), h.Bd = b(h.Bd), h;
-			}(), hn.push(ke.id), lo = (o = ke).$b, po = o.ac, r._OrtInit = o.bc, r._OrtGetLastError = o.cc, r._OrtCreateSessionOptions = o.dc, r._OrtAppendExecutionProvider = o.ec, r._OrtAddFreeDimensionOverride = o.fc, r._OrtAddSessionConfigEntry = o.gc, r._OrtReleaseSessionOptions = o.hc, r._OrtCreateSession = o.ic, r._OrtReleaseSession = o.jc, r._OrtGetInputOutputCount = o.kc, r._OrtGetInputOutputMetadata = o.lc, r._OrtFree = o.mc, r._OrtCreateTensor = o.nc, r._OrtGetTensorData = o.oc, r._OrtReleaseTensor = o.pc, r._OrtCreateRunOptions = o.qc, r._OrtAddRunConfigEntry = o.rc, r._OrtReleaseRunOptions = o.sc, r._OrtCreateBinding = o.tc, r._OrtBindInput = o.uc, r._OrtBindOutput = o.vc, r._OrtClearBoundOutputs = o.wc, r._OrtReleaseBinding = o.xc, r._OrtRunWithBinding = o.yc, r._OrtRun = o.zc, r._OrtEndProfiling = o.Ac, Dr = r._OrtGetWebGpuDevice = o.Bc, Wt = o.Cc, xe = r._free = o.Dc, pt = r._malloc = o.Ec, mo = r._wgpuBufferRelease = o.Fc, ho = r._wgpuCreateInstance = o.Gc, yo = o.Hc, bo = o.Ic, wo = o.Jc, go = o.Kc, To = o.Lc, vo = o.Pc, Eo = o.Zc, So = o._c, Ao = o.$c, Pr = o.bd, _r = o.cd, Rr = o.dd, Nr = o.ed, Et = o.fd, kr = o.gd, Io = o.hd, Wr = o.kd, xo = o.ld, Lo = o.md, Oo = o.nd, Fr = o.od, Bo = o.pd, Mo = o.qd, Gr = o.rd, N = o.sd, St = o.td, Co = o.ud, D = o.vd, Ft = o.wd, P = o.xd, Uo = o.yd, $r = o.zd, Do = o.Ad, Po = o.Bd, _o = o.Cd, zr = o.Dd, Ro = o.Ed, No = o.Fd, ko = o.Gd, Wo = o.Hd, Fo = o.Id, Go = o.Jd, $o = o.Kd, zo = o.Ld, Vo = o.Md, jo = o.Nd, Ho = o.Od, Yo = o.Pd, qo = o.Qd, Jo = o.Rd, Xo = o.Td, Qo = o.Ud, Zo = o.Vd, Ko = o.Wd, ea = o.Yd, ta = o.Zd, ra = o._d, na = o.$d, oa = o.ae, aa = o.oe, sa = o.pe, ia = o.qe, ua = o.re, fa = o.se, ca = o.te, da = o.ue, la = o.ve, pa = o.we, ma = o.xe, ha = o.ye, ya = o.Ye, ba = o.Ze, wa = o._e, ga = o.$e, v = u, ke;
+			for (let [h, m] of Object.entries(c)) typeof m == "function" ? (c = Ri(m), o[h] = c) : o[h] = m;
+			return Ne = o, Ne = (function() {
+				var h = Ne, m = (x) => (N) => x(N) >>> 0, y = (x) => () => x() >>> 0;
+				return (h = Object.assign({}, h)).ic = m(h.ic), h.Nc = y(h.Nc), h.Pc = m(h.Pc), h.Bd = ((x) => (N, F) => x(N, F) >>> 0)(h.Bd), h.Gd = m(h.Gd), h.Hd = y(h.Hd), h.Ld = m(h.Ld), h;
+			})(), gn.push(Ne.sd), To = (o = Ne).ic, vo = o.jc, r._OrtInit = o.kc, r._OrtGetLastError = o.lc, r._OrtCreateSessionOptions = o.mc, r._OrtAppendExecutionProvider = o.nc, r._OrtAddFreeDimensionOverride = o.oc, r._OrtAddSessionConfigEntry = o.pc, r._OrtReleaseSessionOptions = o.qc, r._OrtCreateSession = o.rc, r._OrtReleaseSession = o.sc, r._OrtGetInputOutputCount = o.tc, r._OrtGetInputOutputMetadata = o.uc, r._OrtFree = o.vc, r._OrtCreateTensor = o.wc, r._OrtGetTensorData = o.xc, r._OrtReleaseTensor = o.yc, r._OrtCreateRunOptions = o.zc, r._OrtAddRunConfigEntry = o.Ac, r._OrtReleaseRunOptions = o.Bc, r._OrtCreateBinding = o.Cc, r._OrtBindInput = o.Dc, r._OrtBindOutput = o.Ec, r._OrtClearBoundOutputs = o.Fc, r._OrtReleaseBinding = o.Gc, r._OrtRunWithBinding = o.Hc, r._OrtRun = o.Ic, r._OrtEndProfiling = o.Jc, Eo = r._OrtCreateWebGpuInstance = o.Kc, r._wgpuCreateInstance = o.Lc, Nr = r._OrtGetWebGpuDevice = o.Mc, zt = o.Nc, ve = r._free = o.Oc, Ke = r._malloc = o.Pc, So = r._wgpuBufferRelease = o.Qc, xo = o.Rc, Ao = o.Sc, Io = o.Tc, Lo = o.Uc, Bo = o.Vc, Oo = o.Yc, Mo = o.Zc, Co = o.hd, Do = o.id, Po = o.jd, Wr = o.ld, kr = o.md, Fr = o.nd, Gr = o.od, St = o.pd, $r = o.qd, Uo = o.rd, zr = o.ud, _o = o.vd, Ro = o.wd, No = o.xd, Vr = o.yd, Wo = o.zd, ko = o.Ad, jr = o.Bd, W = o.Cd, xt = o.Dd, Fo = o.Ed, D = o.Fd, Vt = o.Gd, P = o.Hd, Go = o.Id, Hr = o.Jd, $o = o.Kd, zo = o.Ld, Vo = o.Md, qr = o.Nd, jo = o.Od, Ho = o.Pd, qo = o.Qd, Yo = o.Rd, Jo = o.Sd, Xo = o.Td, Zo = o.Ud, Ko = o.Vd, Qo = o.Wd, ea = o.Xd, ta = o.Yd, ra = o.Zd, na = o._d, oa = o.$d, aa = o.ae, sa = o.be, ia = o.ce, ua = o.de, fa = o.fe, ca = o.ge, da = o.he, la = o.ie, pa = o.je, ma = o.ke, ha = o.le, ba = o.me, ga = o.Ae, ya = o.Be, wa = o.Ce, Ta = o.De, va = o.Ee, Ea = o.Fe, Sa = o.Ge, xa = o.He, Aa = o.Ie, Ia = o.Je, La = o.Ke, Ba = o.nf, Oa = o.of, Ma = o.pf, Ca = o.qf, T = u, Ne;
 		}
-		var t, n = Ye();
+		var t, n = qe();
 		return r.instantiateWasm ? new Promise((o) => {
 			r.instantiateWasm(n, (u, c) => {
 				o(e(u, c));
 			});
-		}) : i ? e(new WebAssembly.Instance(v, Ye()), v) : (we ??= r.locateFile ? r.locateFile ? r.locateFile("ort-wasm-simd-threaded.asyncify.wasm", T) : T + "ort-wasm-simd-threaded.asyncify.wasm" : new URL("ort-wasm-simd-threaded.asyncify.wasm", import.meta.url).href, t = await async function(o) {
-			var u = we;
-			if (!g && !oe(u)) try {
+		}) : i ? e(new WebAssembly.Instance(T, qe()), T) : (ge ??= r.locateFile ? r.locateFile ? r.locateFile("ort-wasm-simd-threaded.asyncify.wasm", S) : S + "ort-wasm-simd-threaded.asyncify.wasm" : new URL("ort-wasm-simd-threaded.asyncify.wasm", import.meta.url).href, t = await (async function(o) {
+			var u = ge;
+			if (!v && !oe(u)) try {
 				var c = fetch(u, { credentials: "same-origin" });
 				return await WebAssembly.instantiateStreaming(c, o);
 			} catch (h) {
 				O(`wasm streaming compile failed: ${h}`), O("falling back to ArrayBuffer instantiation");
 			}
-			return async function(h, b) {
+			return (async function(h, m) {
 				try {
-					var E = await async function(I) {
-						if (!g) try {
-							var F = await l(I);
-							return new Uint8Array(F);
+					var y = await (async function(x) {
+						if (!v) try {
+							var N = await l(x);
+							return new Uint8Array(N);
 						} catch {}
-						if (I == we && g) I = new Uint8Array(g);
+						if (x == ge && v) x = new Uint8Array(v);
 						else {
-							if (!m) throw "both async and sync fetching of the wasm failed";
-							I = m(I);
+							if (!b) throw "both async and sync fetching of the wasm failed";
+							x = b(x);
 						}
-						return I;
-					}(h);
-					return await WebAssembly.instantiate(E, b);
-				} catch (I) {
-					O(`failed to asynchronously prepare wasm: ${I}`), Te(I);
+						return x;
+					})(h);
+					return await WebAssembly.instantiate(y, m);
+				} catch (x) {
+					O(`failed to asynchronously prepare wasm: ${x}`), we(x);
 				}
-			}(u, o);
-		}(n), e(t.instance, t.module));
+			})(u, o);
+		})(n), e(t.instance, t.module));
 	}
-	class wt {
+	class Tt {
 		name = "ExitStatus";
 		constructor(t) {
 			this.message = `Program terminated with exit(${t})`, this.status = t;
@@ -1234,68 +1250,68 @@ async function es(a = {}) {
 	}
 	var Se = (e) => {
 		e.terminate(), e.onmessage = () => {};
-	}, Ae = [], Oe = 0, ee = null, Z = (e) => {
-		We.length == 0 && (gn(), wn(We[0]));
-		var t = We.pop();
+	}, xe = [], Be = 0, re = null, Q = (e) => {
+		ke.length == 0 && (vn(), Tn(ke[0]));
+		var t = ke.pop();
 		if (!t) return 6;
-		gt.push(t), Je[e.Nc] = t, t.Nc = e.Nc;
+		vt.push(t), Je[e.Xc] = t, t.Xc = e.Xc;
 		var n = {
-			Oc: "run",
-			ge: e.fe,
-			Wc: e.Wc,
-			Nc: e.Nc
+			$c: "run",
+			ze: e.ye,
+			kd: e.kd,
+			Xc: e.Xc
 		};
-		return t.postMessage(n, e.Yc), 0;
-	}, G = 0, V = (e, t, ...n) => {
-		var o, u = 16 * n.length, c = P(), h = Ft(u), b = h >>> 3;
-		for (o of n) typeof o == "bigint" ? ((p(), me)[b++ >>> 0] = 1n, (p(), me)[b++ >>> 0] = o) : ((p(), me)[b++ >>> 0] = 0n, (p(), ae)[b++ >>> 0] = o);
-		return e = Lo(e, 0, u, h, t), D(c), e;
+		return t.postMessage(n, e.oe), 0;
+	}, z = 0, H = (e, t, ...n) => {
+		var o, u = 16 * n.length, c = P(), h = Vt(u), m = h >>> 3;
+		for (o of n) typeof o == "bigint" ? ((d(), pe)[m++ >>> 0] = 1n, (d(), pe)[m++ >>> 0] = o) : ((d(), pe)[m++ >>> 0] = 0n, (d(), ae)[m++ >>> 0] = o);
+		return e = Ro(e, 0, u, h, t), D(c), e;
 	};
-	function qe(e) {
-		if (i) return V(0, 1, e);
-		if (S = e, !(0 < G)) {
-			for (var t of gt) Se(t);
-			for (t of We) Se(t);
-			We = [], gt = [], Je = {}, W = !0;
+	function Ye(e) {
+		if (i) return H(0, 1, e);
+		if (A = e, !(0 < z)) {
+			for (var t of vt) Se(t);
+			for (t of ke) Se(t);
+			ke = [], vt = [], Je = {}, $ = !0;
 		}
-		y(0, new wt(e));
+		g(0, new Tt(e));
 	}
-	function yr(e) {
-		if (i) return V(1, 0, e);
-		br(e);
+	function Tr(e) {
+		if (i) return H(1, 0, e);
+		vr(e);
 	}
-	var br = (e) => {
-		if (S = e, i) throw yr(e), "unwind";
-		qe(e);
-	}, We = [], gt = [], hn = [], Je = {}, yn = (e) => {
-		var t = e.Nc;
-		delete Je[t], We.push(e), gt.splice(gt.indexOf(e), 1), e.Nc = 0, Oo(t);
+	var vr = (e) => {
+		if (A = e, i) throw Tr(e), "unwind";
+		Ye(e);
+	}, ke = [], vt = [], gn = [], Je = {}, yn = (e) => {
+		var t = e.Xc;
+		delete Je[t], ke.push(e), vt.splice(vt.indexOf(e), 1), e.Xc = 0, No(t);
 	};
-	function bn() {
-		hn.forEach((e) => e());
+	function wn() {
+		gn.forEach((e) => e());
 	}
-	var wn = (e) => new Promise((t) => {
+	var Tn = (e) => new Promise((t) => {
 		e.onmessage = (u) => {
 			var c = u.data;
-			if (u = c.Oc, c.Vc && c.Vc != Wt()) {
-				var h = Je[c.Vc];
-				h ? h.postMessage(c, c.Yc) : O(`Internal error! Worker sent a message "${u}" to target pthread ${c.Vc}, but that thread no longer exists!`);
-			} else u === "checkMailbox" ? Dt() : u === "spawnThread" ? Z(c) : u === "cleanupThread" ? he(() => {
-				yn(Je[c.he]);
-			}) : u === "loaded" ? (e.loaded = !0, t(e)) : c.target === "setimmediate" ? e.postMessage(c) : u === "uncaughtException" ? e.onerror(c.error) : u === "callHandler" ? r[c.be](...c.args) : u && O(`worker sent an unknown command ${u}`);
+			if (u = c.$c, c.gd && c.gd != zt()) {
+				var h = Je[c.gd];
+				h ? h.postMessage(c, c.oe) : O(`Internal error! Worker sent a message "${u}" to target pthread ${c.gd}, but that thread no longer exists!`);
+			} else u === "checkMailbox" ? _t() : u === "spawnThread" ? Q(c) : u === "cleanupThread" ? me(() => {
+				yn(Je[c.Le]);
+			}) : u === "loaded" ? (e.loaded = !0, t(e)) : c.target === "setimmediate" ? e.postMessage(c) : u === "uncaughtException" ? e.onerror(c.error) : u === "callHandler" ? r[c.te](...c.args) : u && O(`worker sent an unknown command ${u}`);
 		}, e.onerror = (u) => {
 			throw O(`worker sent an error! ${u.filename}:${u.lineno}: ${u.message}`), u;
 		};
 		var n, o = [];
 		for (n of []) r.propertyIsEnumerable(n) && o.push(n);
 		e.postMessage({
-			Oc: "load",
-			ce: o,
-			ie: Fe,
-			je: v
+			$c: "load",
+			ue: o,
+			Me: Fe,
+			Ne: T
 		});
 	});
-	function gn() {
+	function vn() {
 		var e = new Worker((() => {
 			let t = URL;
 			return import.meta.url > "file:" && import.meta.url < "file;" ? new t("ort.webgpu.bundle.min.mjs", import.meta.url) : new URL(import.meta.url);
@@ -1304,91 +1320,91 @@ async function es(a = {}) {
 			workerData: "em-pthread",
 			name: "em-pthread"
 		});
-		We.push(e);
+		ke.push(e);
 	}
-	var Fe, $s = (e, t) => {
-		G = 0, e = zr(e, t), 0 < G ? S = e : Fr(e);
-	}, Ct = [], Ut = 0, ce = (e) => -9007199254740992 > e || 9007199254740992 < e ? NaN : Number(e);
-	function zs(e) {
-		var t = new wr(e >>>= 0);
-		return (p(), X)[t.Qc + 12 >>> 0] == 0 && (Tn(t, !0), Ut--), vn(t, !1), Ct.push(t), Po(e);
+	var Fe, ei = (e, t) => {
+		z = 0, e = qr(e, t), 0 < z ? A = e : Vr(e);
+	}, Pt = [], Ut = 0, ue = (e) => -9007199254740992 > e || 9007199254740992 < e ? NaN : Number(e);
+	function ti(e) {
+		var t = new Er(e >>>= 0);
+		return (d(), Z)[t.ad + 12 >>> 0] == 0 && (En(t, !0), Ut--), Sn(t, !1), Pt.push(t), zo(e);
 	}
-	var ft = 0, Vs = () => {
-		N(0, 0);
-		var e = Ct.pop();
-		Uo(e.Xc), ft = 0;
+	var dt = 0, ri = () => {
+		W(0, 0);
+		var e = Pt.pop();
+		Go(e.td), dt = 0;
 	};
-	function Tn(e, t) {
-		t = t ? 1 : 0, (p(), X)[e.Qc + 12 >>> 0] = t;
+	function En(e, t) {
+		t = t ? 1 : 0, (d(), Z)[e.ad + 12 >>> 0] = t;
 	}
-	function vn(e, t) {
-		t = t ? 1 : 0, (p(), X)[e.Qc + 13 >>> 0] = t;
+	function Sn(e, t) {
+		t = t ? 1 : 0, (d(), Z)[e.ad + 13 >>> 0] = t;
 	}
-	class wr {
+	class Er {
 		constructor(t) {
-			this.Xc = t, this.Qc = t - 24;
+			this.td = t, this.ad = t - 24;
 		}
 	}
-	var gr = (e) => {
-		var t = ft;
-		if (!t) return St(0), 0;
-		var n = new wr(t);
-		(p(), A)[n.Qc + 16 >>> 2 >>> 0] = t;
-		var o = (p(), A)[n.Qc + 4 >>> 2 >>> 0];
-		if (!o) return St(0), t;
+	var Sr = (e) => {
+		var t = dt;
+		if (!t) return xt(0), 0;
+		var n = new Er(t);
+		(d(), E)[n.ad + 16 >>> 2 >>> 0] = t;
+		var o = (d(), E)[n.ad + 4 >>> 2 >>> 0];
+		if (!o) return xt(0), t;
 		for (var u of e) {
 			if (u === 0 || u === o) break;
-			if (Do(u, o, n.Qc + 16)) return St(u), t;
+			if ($o(u, o, n.ad + 16)) return xt(u), t;
 		}
-		return St(o), t;
+		return xt(o), t;
 	};
-	function js() {
-		return gr([]);
+	function ni() {
+		return Sr([]);
 	}
-	function Hs(e) {
-		return gr([e >>> 0]);
+	function oi(e) {
+		return Sr([e >>> 0]);
 	}
-	function Ys(e, t, n, o) {
-		return gr([
+	function ai(e, t, n, o) {
+		return Sr([
 			e >>> 0,
 			t >>> 0,
 			n >>> 0,
 			o >>> 0
 		]);
 	}
-	var qs = () => {
-		var e = Ct.pop();
-		e || Te("no exception to throw");
-		var t = e.Xc;
-		throw (p(), X)[e.Qc + 13 >>> 0] == 0 && (Ct.push(e), vn(e, !0), Tn(e, !1), Ut++), $r(t), ft = t;
+	var si = () => {
+		var e = Pt.pop();
+		e || we("no exception to throw");
+		var t = e.td;
+		throw (d(), Z)[e.ad + 13 >>> 0] == 0 && (Pt.push(e), Sn(e, !0), En(e, !1), Ut++), Hr(t), dt = t;
 	};
-	function Js(e, t, n) {
-		var o = new wr(e >>>= 0);
-		throw t >>>= 0, n >>>= 0, (p(), A)[o.Qc + 16 >>> 2 >>> 0] = 0, (p(), A)[o.Qc + 4 >>> 2 >>> 0] = t, (p(), A)[o.Qc + 8 >>> 2 >>> 0] = n, $r(e), Ut++, ft = e;
+	function ii(e, t, n) {
+		var o = new Er(e >>>= 0);
+		throw t >>>= 0, n >>>= 0, (d(), E)[o.ad + 16 >>> 2 >>> 0] = 0, (d(), E)[o.ad + 4 >>> 2 >>> 0] = t, (d(), E)[o.ad + 8 >>> 2 >>> 0] = n, Hr(e), Ut++, dt = e;
 	}
-	var Xs = () => Ut;
-	function En(e, t, n, o) {
-		return i ? V(2, 1, e, t, n, o) : Sn(e, t, n, o);
+	var ui = () => Ut;
+	function xn(e, t, n, o) {
+		return i ? H(2, 1, e, t, n, o) : An(e, t, n, o);
 	}
-	function Sn(e, t, n, o) {
+	function An(e, t, n, o) {
 		if (e >>>= 0, t >>>= 0, n >>>= 0, o >>>= 0, !globalThis.SharedArrayBuffer) return 6;
 		var u = [];
-		return i && u.length === 0 ? En(e, t, n, o) : (e = {
-			fe: n,
-			Nc: e,
-			Wc: o,
-			Yc: u
-		}, i ? (e.Oc = "spawnThread", postMessage(e, u), 0) : Z(e));
+		return i && u.length === 0 ? xn(e, t, n, o) : (e = {
+			ye: n,
+			Xc: e,
+			kd: o,
+			oe: u
+		}, i ? (e.$c = "spawnThread", postMessage(e, u), 0) : Q(e));
 	}
-	function Qs(e) {
-		throw ft ||= e >>> 0, ft;
+	function fi(e) {
+		throw dt ||= e >>> 0, dt;
 	}
-	var An = globalThis.TextDecoder && new TextDecoder(), In = (e, t, n, o) => {
+	var In = globalThis.TextDecoder && new TextDecoder(), Ln = (e, t, n, o) => {
 		if (n = t + n, o) return n;
 		for (; e[t] && !(t >= n);) ++t;
 		return t;
-	}, xn = (e, t = 0, n, o) => {
-		if (16 < (n = In(e, t >>>= 0, n, o)) - t && e.buffer && An) return An.decode(e.buffer instanceof ArrayBuffer ? e.subarray(t, n) : e.slice(t, n));
+	}, Bn = (e, t = 0, n, o) => {
+		if (16 < (n = Ln(e, t >>>= 0, n, o)) - t && e.buffer && In) return In.decode(e.buffer instanceof ArrayBuffer ? e.subarray(t, n) : e.slice(t, n));
 		for (o = ""; t < n;) {
 			var u = e[t++];
 			if (128 & u) {
@@ -1401,109 +1417,109 @@ async function es(a = {}) {
 			} else o += String.fromCharCode(u);
 		}
 		return o;
-	}, ct = (e, t, n) => (e >>>= 0) ? xn((p(), J), e, t, n) : "";
-	function Ln(e, t, n) {
-		return i ? V(3, 1, e, t, n) : 0;
+	}, lt = (e, t, n) => (e >>>= 0) ? Bn((d(), X), e, t, n) : "";
+	function On(e, t, n) {
+		return i ? H(3, 1, e, t, n) : 0;
 	}
-	function On(e, t) {
-		if (i) return V(4, 1, e, t);
+	function Mn(e, t) {
+		if (i) return H(4, 1, e, t);
 	}
-	function Bn(e, t) {
-		if (i) return V(5, 1, e, t);
-	}
-	function Mn(e, t, n) {
-		if (i) return V(6, 1, e, t, n);
-	}
-	function Cn(e, t, n) {
-		return i ? V(7, 1, e, t, n) : 0;
-	}
-	function Un(e, t) {
-		if (i) return V(8, 1, e, t);
+	function Cn(e, t) {
+		if (i) return H(5, 1, e, t);
 	}
 	function Dn(e, t, n) {
-		if (i) return V(9, 1, e, t, n);
+		if (i) return H(6, 1, e, t, n);
 	}
-	function Pn(e, t, n, o) {
-		if (i) return V(10, 1, e, t, n, o);
+	function Pn(e, t, n) {
+		return i ? H(7, 1, e, t, n) : 0;
 	}
-	function _n(e, t, n, o) {
-		if (i) return V(11, 1, e, t, n, o);
+	function Un(e, t) {
+		if (i) return H(8, 1, e, t);
+	}
+	function _n(e, t, n) {
+		if (i) return H(9, 1, e, t, n);
 	}
 	function Rn(e, t, n, o) {
-		if (i) return V(12, 1, e, t, n, o);
+		if (i) return H(10, 1, e, t, n, o);
 	}
-	function Nn(e) {
-		if (i) return V(13, 1, e);
+	function Nn(e, t, n, o) {
+		if (i) return H(11, 1, e, t, n, o);
 	}
-	function kn(e, t) {
-		if (i) return V(14, 1, e, t);
+	function Wn(e, t, n, o) {
+		if (i) return H(12, 1, e, t, n, o);
 	}
-	function Wn(e, t, n) {
-		if (i) return V(15, 1, e, t, n);
+	function kn(e) {
+		if (i) return H(13, 1, e);
 	}
-	var Zs = () => Te(""), Be = (e) => {
+	function Fn(e, t) {
+		if (i) return H(14, 1, e, t);
+	}
+	function Gn(e, t, n) {
+		if (i) return H(15, 1, e, t, n);
+	}
+	var ci = () => we(""), Oe = (e) => {
 		e >>>= 0;
 		for (var t = "";;) {
-			var n = (p(), J)[e++ >>> 0];
+			var n = (d(), X)[e++ >>> 0];
 			if (!n) return t;
 			t += String.fromCharCode(n);
 		}
-	}, Tr = {}, vr = {}, Ks = {}, dt = class extends Error {
+	}, xr = {}, Ar = {}, di = {}, pt = class extends Error {
 		constructor(e) {
 			super(e), this.name = "BindingError";
 		}
 	};
-	function De(e, t, n = {}) {
-		return function(o, u, c = {}) {
+	function Pe(e, t, n = {}) {
+		return (function(o, u, c = {}) {
 			var h = u.name;
-			if (!o) throw new dt(`type "${h}" must have a positive integer typeid pointer`);
-			if (vr.hasOwnProperty(o)) {
-				if (c.de) return;
-				throw new dt(`Cannot register type '${h}' twice`);
+			if (!o) throw new pt(`type "${h}" must have a positive integer typeid pointer`);
+			if (Ar.hasOwnProperty(o)) {
+				if (c.ve) return;
+				throw new pt(`Cannot register type '${h}' twice`);
 			}
-			vr[o] = u, delete Ks[o], Tr.hasOwnProperty(o) && (u = Tr[o], delete Tr[o], u.forEach((b) => b()));
-		}(e, t, n);
+			Ar[o] = u, delete di[o], xr.hasOwnProperty(o) && (u = xr[o], delete xr[o], u.forEach((m) => m()));
+		})(e, t, n);
 	}
-	var Fn = (e, t, n) => {
+	var $n = (e, t, n) => {
 		switch (t) {
-			case 1: return n ? (o) => (p(), X)[o >>> 0] : (o) => (p(), J)[o >>> 0];
-			case 2: return n ? (o) => (p(), Ue)[o >>> 1 >>> 0] : (o) => (p(), Q)[o >>> 1 >>> 0];
-			case 4: return n ? (o) => (p(), x)[o >>> 2 >>> 0] : (o) => (p(), A)[o >>> 2 >>> 0];
-			case 8: return n ? (o) => (p(), me)[o >>> 3 >>> 0] : (o) => (p(), q)[o >>> 3 >>> 0];
+			case 1: return n ? (o) => (d(), Z)[o >>> 0] : (o) => (d(), X)[o >>> 0];
+			case 2: return n ? (o) => (d(), De)[o >>> 1 >>> 0] : (o) => (d(), K)[o >>> 1 >>> 0];
+			case 4: return n ? (o) => (d(), I)[o >>> 2 >>> 0] : (o) => (d(), E)[o >>> 2 >>> 0];
+			case 8: return n ? (o) => (d(), pe)[o >>> 3 >>> 0] : (o) => (d(), J)[o >>> 3 >>> 0];
 			default: throw new TypeError(`invalid integer width (${t}): ${e}`);
 		}
 	};
-	function ei(e, t, n, o, u) {
-		e >>>= 0, n >>>= 0, t = Be(t >>> 0);
+	function li(e, t, n, o, u) {
+		e >>>= 0, n >>>= 0, t = Oe(t >>> 0);
 		let c = (h) => h;
 		if (o = o === 0n) {
 			let h = 8 * n;
-			c = (b) => BigInt.asUintN(h, b), u = c(u);
+			c = (m) => BigInt.asUintN(h, m), u = c(u);
 		}
-		De(e, {
+		Pe(e, {
 			name: t,
-			Mc: c,
-			Sc: (h, b) => (typeof b == "number" && (b = BigInt(b)), b),
-			Rc: Fn(t, n, !o),
-			Tc: null
+			Wc: c,
+			cd: (h, m) => (typeof m == "number" && (m = BigInt(m)), m),
+			bd: $n(t, n, !o),
+			dd: null
 		});
 	}
-	function ti(e, t, n, o) {
-		De(e >>>= 0, {
-			name: t = Be(t >>> 0),
-			Mc: function(u) {
+	function pi(e, t, n, o) {
+		Pe(e >>>= 0, {
+			name: t = Oe(t >>> 0),
+			Wc: function(u) {
 				return !!u;
 			},
-			Sc: function(u, c) {
+			cd: function(u, c) {
 				return c ? n : o;
 			},
-			Rc: function(u) {
-				return this.Mc((p(), J)[u >>> 0]);
+			bd: function(u) {
+				return this.Wc((d(), X)[u >>> 0]);
 			},
-			Tc: null
+			dd: null
 		});
 	}
-	var Gn = [], Xe = [
+	var zn = [], Xe = [
 		0,
 		1,
 		,
@@ -1515,78 +1531,78 @@ async function es(a = {}) {
 		!1,
 		1
 	];
-	function Er(e) {
-		9 < (e >>>= 0) && --Xe[e + 1] == 0 && (Xe[e] = void 0, Gn.push(e));
+	function Ir(e) {
+		9 < (e >>>= 0) && --Xe[e + 1] === 0 && (Xe[e] = void 0, zn.push(e));
 	}
-	var ve = (e) => {
-		if (!e) throw new dt(`Cannot use deleted val. handle = ${e}`);
+	var Te = (e) => {
+		if (!e) throw new pt(`Cannot use deleted val. handle = ${e}`);
 		return Xe[e];
-	}, Ie = (e) => {
+	}, Ae = (e) => {
 		switch (e) {
 			case void 0: return 2;
 			case null: return 4;
 			case !0: return 6;
 			case !1: return 8;
 			default:
-				let t = Gn.pop() || Xe.length;
+				let t = zn.pop() || Xe.length;
 				return Xe[t] = e, Xe[t + 1] = 1, t;
 		}
 	};
-	function Sr(e) {
-		return this.Mc((p(), A)[e >>> 2 >>> 0]);
+	function Lr(e) {
+		return this.Wc((d(), E)[e >>> 2 >>> 0]);
 	}
-	var ri = {
+	var mi = {
 		name: "emscripten::val",
-		Mc: (e) => {
-			var t = ve(e);
-			return Er(e), t;
+		Wc: (e) => {
+			var t = Te(e);
+			return Ir(e), t;
 		},
-		Sc: (e, t) => Ie(t),
-		Rc: Sr,
-		Tc: null
+		cd: (e, t) => Ae(t),
+		bd: Lr,
+		dd: null
 	};
-	function ni(e) {
-		return De(e >>> 0, ri);
+	function hi(e) {
+		return Pe(e >>> 0, mi);
 	}
-	var oi = (e, t) => {
+	var bi = (e, t) => {
 		switch (t) {
 			case 4: return function(n) {
-				return this.Mc((p(), _)[n >>> 2 >>> 0]);
+				return this.Wc((d(), R)[n >>> 2 >>> 0]);
 			};
 			case 8: return function(n) {
-				return this.Mc((p(), ae)[n >>> 3 >>> 0]);
+				return this.Wc((d(), ae)[n >>> 3 >>> 0]);
 			};
 			default: throw new TypeError(`invalid float width (${t}): ${e}`);
 		}
 	};
-	function ai(e, t, n) {
-		n >>>= 0, De(e >>>= 0, {
-			name: t = Be(t >>> 0),
-			Mc: (o) => o,
-			Sc: (o, u) => u,
-			Rc: oi(t, n),
-			Tc: null
+	function gi(e, t, n) {
+		n >>>= 0, Pe(e >>>= 0, {
+			name: t = Oe(t >>> 0),
+			Wc: (o) => o,
+			cd: (o, u) => u,
+			bd: bi(t, n),
+			dd: null
 		});
 	}
-	function si(e, t, n, o, u) {
-		e >>>= 0, n >>>= 0, t = Be(t >>> 0);
-		let c = (b) => b;
+	function yi(e, t, n, o, u) {
+		e >>>= 0, n >>>= 0, t = Oe(t >>> 0);
+		let c = (m) => m;
 		if (o === 0) {
 			var h = 32 - 8 * n;
-			c = (b) => b << h >>> h, u = c(u);
+			c = (m) => m << h >>> h, u = c(u);
 		}
-		De(e, {
+		Pe(e, {
 			name: t,
-			Mc: c,
-			Sc: (b, E) => E,
-			Rc: Fn(t, n, o !== 0),
-			Tc: null
+			Wc: c,
+			cd: (m, y) => y,
+			bd: $n(t, n, o !== 0),
+			dd: null
 		});
 	}
-	function ii(e, t, n) {
+	function wi(e, t, n) {
 		function o(c) {
-			var h = (p(), A)[c >>> 2 >>> 0];
-			return c = (p(), A)[c + 4 >>> 2 >>> 0], new u((p(), X).buffer, c, h);
+			var h = (d(), E)[c >>> 2 >>> 0];
+			return c = (d(), E)[c + 4 >>> 2 >>> 0], new u((d(), Z).buffer, c, h);
 		}
 		var u = [
 			Int8Array,
@@ -1600,14 +1616,14 @@ async function es(a = {}) {
 			BigInt64Array,
 			BigUint64Array
 		][t];
-		De(e >>>= 0, {
-			name: n = Be(n >>> 0),
-			Mc: o,
-			Rc: o
-		}, { de: !0 });
+		Pe(e >>>= 0, {
+			name: n = Oe(n >>> 0),
+			Wc: o,
+			bd: o
+		}, { ve: !0 });
 	}
-	var Pe = (e, t, n) => {
-		var o = (p(), J);
+	var Ue = (e, t, n) => {
+		var o = (d(), X);
 		if (t >>>= 0, 0 < n) {
 			var u = t;
 			n = t + n - 1;
@@ -1637,287 +1653,287 @@ async function es(a = {}) {
 		}
 		return t;
 	};
-	function ui(e, t) {
-		De(e >>>= 0, {
-			name: t = Be(t >>> 0),
-			Mc(n) {
-				var o = (p(), A)[n >>> 2 >>> 0];
-				return o = ct(n + 4, o, !0), xe(n), o;
+	function Ti(e, t) {
+		Pe(e >>>= 0, {
+			name: t = Oe(t >>> 0),
+			Wc(n) {
+				var o = (d(), E)[n >>> 2 >>> 0];
+				return o = lt(n + 4, o, !0), ve(n), o;
 			},
-			Sc(n, o) {
+			cd(n, o) {
 				o instanceof ArrayBuffer && (o = new Uint8Array(o));
 				var u = typeof o == "string";
-				if (!(u || ArrayBuffer.isView(o) && o.BYTES_PER_ELEMENT == 1)) throw new dt("Cannot pass non-string to std::string");
-				var c = u ? _e(o) : o.length, h = pt(4 + c + 1), b = h + 4;
-				return (p(), A)[h >>> 2 >>> 0] = c, u ? Pe(o, b, c + 1) : (p(), J).set(o, b >>> 0), n !== null && n.push(xe, h), h;
+				if (!(u || ArrayBuffer.isView(o) && o.BYTES_PER_ELEMENT == 1)) throw new pt("Cannot pass non-string to std::string");
+				var c = u ? _e(o) : o.length, h = Ke(4 + c + 1), m = h + 4;
+				return (d(), E)[h >>> 2 >>> 0] = c, u ? Ue(o, m, c + 1) : (d(), X).set(o, m >>> 0), n !== null && n.push(ve, h), h;
 			},
-			Rc: Sr,
-			Tc(n) {
-				xe(n);
+			bd: Lr,
+			dd(n) {
+				ve(n);
 			}
 		});
 	}
-	var $n = globalThis.TextDecoder ? new TextDecoder("utf-16le") : void 0, fi = (e, t, n) => {
-		if (e >>>= 1, 16 < (t = In((p(), Q), e, t / 2, n)) - e && $n) return $n.decode((p(), Q).slice(e, t));
+	var Vn = globalThis.TextDecoder ? new TextDecoder("utf-16le") : void 0, vi = (e, t, n) => {
+		if (e >>>= 1, 16 < (t = Ln((d(), K), e, t / 2, n)) - e && Vn) return Vn.decode((d(), K).slice(e, t));
 		for (n = ""; e < t; ++e) {
-			var o = (p(), Q)[e >>> 0];
+			var o = (d(), K)[e >>> 0];
 			n += String.fromCharCode(o);
 		}
 		return n;
-	}, ci = (e, t, n) => {
+	}, Ei = (e, t, n) => {
 		if (n ??= 2147483647, 2 > n) return 0;
 		var o = t;
 		n = (n -= 2) < 2 * e.length ? n / 2 : e.length;
 		for (var u = 0; u < n; ++u) {
 			var c = e.charCodeAt(u);
-			(p(), Ue)[t >>> 1 >>> 0] = c, t += 2;
+			(d(), De)[t >>> 1 >>> 0] = c, t += 2;
 		}
-		return (p(), Ue)[t >>> 1 >>> 0] = 0, t - o;
-	}, di = (e) => 2 * e.length, li = (e, t, n) => {
+		return (d(), De)[t >>> 1 >>> 0] = 0, t - o;
+	}, Si = (e) => 2 * e.length, xi = (e, t, n) => {
 		var o = "";
 		e >>>= 2;
 		for (var u = 0; !(u >= t / 4); u++) {
-			var c = (p(), A)[e + u >>> 0];
+			var c = (d(), E)[e + u >>> 0];
 			if (!c && !n) break;
 			o += String.fromCodePoint(c);
 		}
 		return o;
-	}, pi = (e, t, n) => {
+	}, Ai = (e, t, n) => {
 		if (t >>>= 0, n ??= 2147483647, 4 > n) return 0;
 		var o = t;
 		n = o + n - 4;
 		for (var u = 0; u < e.length; ++u) {
 			var c = e.codePointAt(u);
-			if (65535 < c && u++, (p(), x)[t >>> 2 >>> 0] = c, (t += 4) + 4 > n) break;
+			if (65535 < c && u++, (d(), I)[t >>> 2 >>> 0] = c, (t += 4) + 4 > n) break;
 		}
-		return (p(), x)[t >>> 2 >>> 0] = 0, t - o;
-	}, mi = (e) => {
+		return (d(), I)[t >>> 2 >>> 0] = 0, t - o;
+	}, Ii = (e) => {
 		for (var t = 0, n = 0; n < e.length; ++n) 65535 < e.codePointAt(n) && n++, t += 4;
 		return t;
 	};
-	function hi(e, t, n) {
-		if (e >>>= 0, t >>>= 0, n = Be(n >>>= 0), t === 2) var o = fi, u = ci, c = di;
-		else o = li, u = pi, c = mi;
-		De(e, {
+	function Li(e, t, n) {
+		if (e >>>= 0, t >>>= 0, n = Oe(n >>>= 0), t === 2) var o = vi, u = Ei, c = Si;
+		else o = xi, u = Ai, c = Ii;
+		Pe(e, {
 			name: n,
-			Mc: (h) => {
-				var b = (p(), A)[h >>> 2 >>> 0];
-				return b = o(h + 4, b * t, !0), xe(h), b;
+			Wc: (h) => {
+				var m = (d(), E)[h >>> 2 >>> 0];
+				return m = o(h + 4, m * t, !0), ve(h), m;
 			},
-			Sc: (h, b) => {
-				if (typeof b != "string") throw new dt(`Cannot pass non-string to C++ string type ${n}`);
-				var E = c(b), I = pt(4 + E + t);
-				return (p(), A)[I >>> 2 >>> 0] = E / t, u(b, I + 4, E + t), h !== null && h.push(xe, I), I;
+			cd: (h, m) => {
+				if (typeof m != "string") throw new pt(`Cannot pass non-string to C++ string type ${n}`);
+				var y = c(m), x = Ke(4 + y + t);
+				return (d(), E)[x >>> 2 >>> 0] = y / t, u(m, x + 4, y + t), h !== null && h.push(ve, x), x;
 			},
-			Rc: Sr,
-			Tc(h) {
-				xe(h);
+			bd: Lr,
+			dd(h) {
+				ve(h);
 			}
 		});
 	}
-	function yi(e, t) {
-		De(e >>>= 0, {
-			ee: !0,
-			name: t = Be(t >>> 0),
-			Mc: () => {},
-			Sc: () => {}
+	function Bi(e, t) {
+		Pe(e >>>= 0, {
+			we: !0,
+			name: t = Oe(t >>> 0),
+			Wc: () => {},
+			cd: () => {}
 		});
 	}
-	function bi(e) {
-		Wr(e >>> 0, !f, 1, !s, 131072, !1), bn();
+	function Oi(e) {
+		zr(e >>> 0, !f, 1, !s, 131072, !1), wn();
 	}
-	var he = (e) => {
-		if (!W) try {
-			if (e(), !(0 < G)) try {
-				i ? Wt() && Fr(S) : br(S);
+	var me = (e) => {
+		if (!$) try {
+			if (e(), !(0 < z)) try {
+				i ? zt() && Vr(A) : vr(A);
 			} catch (t) {
-				t instanceof wt || t == "unwind" || y(0, t);
+				t instanceof Tt || t == "unwind" || g(0, t);
 			}
 		} catch (t) {
-			t instanceof wt || t == "unwind" || y(0, t);
+			t instanceof Tt || t == "unwind" || g(0, t);
 		}
-	}, wi = !Atomics.waitAsync || globalThis.navigator?.userAgent && 91 > Number((navigator.userAgent.match(/Chrom(e|ium)\/([0-9]+)\./) || [])[2]);
-	function Ar(e) {
-		e >>>= 0, wi || (Atomics.waitAsync((p(), x), e >>> 2, e).value.then(Dt), e += 128, Atomics.store((p(), x), e >>> 2, 1));
+	}, Mi = !Atomics.waitAsync || globalThis.navigator?.userAgent && 91 > Number((navigator.userAgent.match(/Chrom(e|ium)\/([0-9]+)\./) || [])[2]);
+	function Br(e) {
+		e >>>= 0, Mi || (Atomics.waitAsync((d(), I), e >>> 2, e).value.then(_t), e += 128, Atomics.store((d(), I), e >>> 2, 1));
 	}
-	var Dt = () => he(() => {
-		var e = Wt();
-		e && (Ar(e), Mo());
+	var _t = () => me(() => {
+		var e = zt();
+		e && (Br(e), ko());
 	});
-	function gi(e, t) {
-		(e >>>= 0) == t >>> 0 ? setTimeout(Dt) : i ? postMessage({
-			Vc: e,
-			Oc: "checkMailbox"
-		}) : (e = Je[e]) && e.postMessage({ Oc: "checkMailbox" });
+	function Ci(e, t) {
+		(e >>>= 0) == t >>> 0 ? setTimeout(_t) : i ? postMessage({
+			gd: e,
+			$c: "checkMailbox"
+		}) : (e = Je[e]) && e.postMessage({ $c: "checkMailbox" });
 	}
-	var Ir = [];
-	function Ti(e, t, n, o, u) {
-		for (t >>>= 0, u >>>= 0, Ir.length = 0, n = u >>> 3, o = u + o >>> 3; n < o;) {
-			var c = (p(), me)[n++ >>> 0] ? (p(), me)[n++ >>> 0] : (p(), ae)[n++ >>> 0];
-			Ir.push(c);
+	var Or = [];
+	function Di(e, t, n, o, u) {
+		for (t >>>= 0, u >>>= 0, Or.length = 0, n = u >>> 3, o = u + o >>> 3; n < o;) {
+			var c = (d(), pe)[n++ >>> 0] ? (d(), pe)[n++ >>> 0] : (d(), ae)[n++ >>> 0];
+			Or.push(c);
 		}
-		return (t ? Vr[t] : of[e])(...Ir);
+		return (t ? Yr[t] : xf[e])(...Or);
 	}
-	var vi = () => {
-		G = 0;
+	var Pi = () => {
+		z = 0;
 	};
-	function Ei(e) {
+	function Ui(e) {
 		e >>>= 0, i ? postMessage({
-			Oc: "cleanupThread",
-			he: e
+			$c: "cleanupThread",
+			Le: e
 		}) : yn(Je[e]);
 	}
-	function Si(e) {}
-	var Pt = (e) => {
+	function _i(e) {}
+	var Rt = (e) => {
 		try {
 			e();
 		} catch (t) {
-			Te(t);
+			we(t);
 		}
 	};
-	function Ai(e) {
+	function Ri(e) {
 		var t = (...n) => {
-			_t.push(e);
+			Nt.push(e);
 			try {
 				return e(...n);
 			} finally {
-				W || (_t.pop(), Me && Ge === 1 && _t.length === 0 && (Ge = 0, G += 1, Pt(ba), typeof Fibers < "u" && Fibers.Be()));
+				$ || (Nt.pop(), Me && Ge === 1 && Nt.length === 0 && (Ge = 0, z += 1, Rt(Oa), typeof Fibers < "u" && Fibers.We()));
 			}
 		};
-		return jn.set(e, t), t;
+		return qn.set(e, t), t;
 	}
-	var Ge = 0, Me = null, zn = 0, _t = [], xr = /* @__PURE__ */ new Map(), Vn = /* @__PURE__ */ new Map(), jn = /* @__PURE__ */ new Map(), Ii = 0, Lr = null, xi = [], Hn = (e) => function(t) {
-		if (!W) {
+	var Ge = 0, Me = null, jn = 0, Nt = [], Mr = /* @__PURE__ */ new Map(), Hn = /* @__PURE__ */ new Map(), qn = /* @__PURE__ */ new Map(), Ni = 0, Cr = null, Wi = [], Yn = (e) => (function(t) {
+		if (!$) {
 			if (Ge === 0) {
 				var n = !1, o = !1;
 				t((u = 0) => {
-					if (!W && (zn = u, n = !0, o)) {
-						Ge = 2, Pt(() => wa(Me)), typeof MainLoop < "u" && MainLoop.Xd && MainLoop.resume(), u = !1;
+					if (!$ && (jn = u, n = !0, o)) {
+						Ge = 2, Rt(() => Ma(Me)), typeof MainLoop < "u" && MainLoop.se && MainLoop.resume(), u = !1;
 						try {
-							var c = function() {
-								var E = (p(), x)[Me + 8 >>> 2 >>> 0];
-								return E = Vn.get(E), E = jn.get(E), --G, E();
-							}();
-						} catch (E) {
-							c = E, u = !0;
+							var c = (function() {
+								var y = (d(), I)[Me + 8 >>> 2 >>> 0];
+								return y = Hn.get(y), y = qn.get(y), --z, y();
+							})();
+						} catch (y) {
+							c = y, u = !0;
 						}
 						var h = !1;
 						if (!Me) {
-							var b = Lr;
-							b && (Lr = null, (u ? b.reject : b.resolve)(c), h = !0);
+							var m = Cr;
+							m && (Cr = null, (u ? m.reject : m.resolve)(c), h = !0);
 						}
 						if (u && !h) throw c;
 					}
-				}), o = !0, n || (Ge = 1, Me = function() {
-					var u = pt(65548), c = u + 12;
-					if ((p(), A)[u >>> 2 >>> 0] = c, (p(), A)[u + 4 >>> 2 >>> 0] = c + 65536, c = _t[0], !xr.has(c)) {
-						var h = Ii++;
-						xr.set(c, h), Vn.set(h, c);
+				}), o = !0, n || (Ge = 1, Me = (function() {
+					var u = Ke(65548), c = u + 12;
+					if ((d(), E)[u >>> 2 >>> 0] = c, (d(), E)[u + 4 >>> 2 >>> 0] = c + 65536, c = Nt[0], !Mr.has(c)) {
+						var h = Ni++;
+						Mr.set(c, h), Hn.set(h, c);
 					}
-					return c = xr.get(c), (p(), x)[u + 8 >>> 2 >>> 0] = c, u;
-				}(), typeof MainLoop < "u" && MainLoop.Xd && MainLoop.pause(), Pt(() => ya(Me)));
-			} else Ge === 2 ? (Ge = 0, Pt(ga), xe(Me), Me = null, xi.forEach(he)) : Te(`invalid state: ${Ge}`);
-			return zn;
+					return c = Mr.get(c), (d(), I)[u + 8 >>> 2 >>> 0] = c, u;
+				})(), typeof MainLoop < "u" && MainLoop.se && MainLoop.pause(), Rt(() => Ba(Me)));
+			} else Ge === 2 ? (Ge = 0, Rt(Ca), ve(Me), Me = null, Wi.forEach(me)) : we(`invalid state: ${Ge}`);
+			return jn;
 		}
-	}((t) => {
+	})((t) => {
 		e().then(t);
 	});
-	function Li(e) {
-		return e >>>= 0, Hn(async () => {
-			return Ie(await ve(e));
+	function ki(e) {
+		return e >>>= 0, Yn(async () => {
+			return Ae(await Te(e));
 		});
 	}
-	var Or = [], Oi = (e) => {
-		var t = Or.length;
-		return Or.push(e), t;
-	}, Bi = (e, t) => {
+	var Dr = [], Fi = (e) => {
+		var t = Dr.length;
+		return Dr.push(e), t;
+	}, Gi = (e, t) => {
 		for (var n = Array(e), o = 0; o < e; ++o) {
-			var u = o, c = (p(), A)[t + 4 * o >>> 2 >>> 0], h = vr[c];
-			if (h === void 0) throw e = `parameter ${o}`, c = lo(c), t = Be(c), xe(c), new dt(`${e} has unknown type ${t}`);
+			var u = o, c = (d(), E)[t + 4 * o >>> 2 >>> 0], h = Ar[c];
+			if (h === void 0) throw e = `parameter ${o}`, c = To(c), t = Oe(c), ve(c), new pt(`${e} has unknown type ${t}`);
 			n[u] = h;
 		}
 		return n;
-	}, Mi = (e, t, n) => {
+	}, $i = (e, t, n) => {
 		var o = [];
-		return e = e(o, n), o.length && ((p(), A)[t >>> 2 >>> 0] = Ie(o)), e;
-	}, Ci = {}, Rt = (e) => {
-		var t = Ci[e];
-		return t === void 0 ? Be(e) : t;
+		return e = e(o, n), o.length && ((d(), E)[t >>> 2 >>> 0] = Ae(o)), e;
+	}, zi = {}, Wt = (e) => {
+		var t = zi[e];
+		return t === void 0 ? Oe(e) : t;
 	};
-	function Ui(e, t, n) {
-		var [o, ...u] = Bi(e, t >>> 0);
-		t = o.Sc.bind(o);
-		var c = u.map((E) => E.Rc.bind(E));
+	function Vi(e, t, n) {
+		var [o, ...u] = Gi(e, t >>> 0);
+		t = o.cd.bind(o);
+		var c = u.map((y) => y.bd.bind(y));
 		e--;
-		var h = { toValue: ve };
-		switch (e = c.map((E, I) => {
-			var F = `argFromPtr${I}`;
-			return h[F] = E, `${F}(args${I ? "+" + 8 * I : ""})`;
+		var h = { toValue: Te };
+		switch (e = c.map((y, x) => {
+			var N = `argFromPtr${x}`;
+			return h[N] = y, `${N}(args${x ? "+" + 8 * x : ""})`;
 		}), n) {
 			case 0:
-				var b = "toValue(handle)";
+				var m = "toValue(handle)";
 				break;
 			case 2:
-				b = "new (toValue(handle))";
+				m = "new (toValue(handle))";
 				break;
 			case 3:
-				b = "";
+				m = "";
 				break;
-			case 1: h.getStringOrSymbol = Rt, b = "toValue(handle)[getStringOrSymbol(methodName)]";
+			case 1: h.getStringOrSymbol = Wt, m = "toValue(handle)[getStringOrSymbol(methodName)]";
 		}
-		return b += `(${e})`, o.ee || (h.toReturnWire = t, h.emval_returnValue = Mi, b = `return emval_returnValue(toReturnWire, destructorsRef, ${b})`), b = `return function (handle, methodName, destructorsRef, args) {
-  ${b}
-  }`, n = new Function(Object.keys(h), b)(...Object.values(h)), b = `methodCaller<(${u.map((E) => E.name)}) => ${o.name}>`, Oi(Object.defineProperty(n, "name", { value: b }));
+		return m += `(${e})`, o.we || (h.toReturnWire = t, h.emval_returnValue = $i, m = `return emval_returnValue(toReturnWire, destructorsRef, ${m})`), m = `return function (handle, methodName, destructorsRef, args) {
+  ${m}
+  }`, n = new Function(Object.keys(h), m)(...Object.values(h)), m = `methodCaller<(${u.map((y) => y.name)}) => ${o.name}>`, Fi(Object.defineProperty(n, "name", { value: m }));
 	}
-	function Di(e, t) {
-		return t >>>= 0, (e = ve(e >>> 0)) == ve(t);
+	function ji(e, t) {
+		return t >>>= 0, (e = Te(e >>> 0)) == Te(t);
 	}
-	function Pi(e) {
-		return (e >>>= 0) ? (e = Rt(e), Ie(globalThis[e])) : Ie(globalThis);
+	function Hi(e) {
+		return (e >>>= 0) ? (e = Wt(e), Ae(globalThis[e])) : Ae(globalThis);
 	}
-	function _i(e) {
-		return e = Rt(e >>> 0), Ie(r[e]);
+	function qi(e) {
+		return e = Wt(e >>> 0), Ae(r[e]);
 	}
-	function Ri(e, t) {
-		return t >>>= 0, e = ve(e >>> 0), t = ve(t), Ie(e[t]);
+	function Yi(e, t) {
+		return t >>>= 0, e = Te(e >>> 0), t = Te(t), Ae(e[t]);
 	}
-	function Ni(e) {
+	function Ji(e) {
 		9 < (e >>>= 0) && (Xe[e + 1] += 1);
 	}
-	function Yn(e, t, n, o, u) {
-		return Or[e >>> 0](t >>> 0, n >>> 0, o >>> 0, u >>> 0);
+	function Jn(e, t, n, o, u) {
+		return Dr[e >>> 0](t >>> 0, n >>> 0, o >>> 0, u >>> 0);
 	}
-	function ki(e, t, n, o, u) {
-		return Yn(e >>> 0, t >>> 0, n >>> 0, o >>> 0, u >>> 0);
+	function Xi(e, t, n, o, u) {
+		return Jn(e >>> 0, t >>> 0, n >>> 0, o >>> 0, u >>> 0);
 	}
-	function Wi() {
-		return Ie([]);
+	function Zi() {
+		return Ae([]);
 	}
-	function Fi(e) {
-		e = ve(e >>> 0);
+	function Ki(e) {
+		e = Te(e >>> 0);
 		for (var t = Array(e.length), n = 0; n < e.length; n++) t[n] = e[n];
-		return Ie(t);
+		return Ae(t);
 	}
-	function Gi(e) {
-		return Ie(Rt(e >>> 0));
+	function Qi(e) {
+		return Ae(Wt(e >>> 0));
 	}
-	function $i() {
-		return Ie({});
+	function eu() {
+		return Ae({});
 	}
-	function zi(e) {
-		for (var t = ve(e >>>= 0); t.length;) {
+	function tu(e) {
+		for (var t = Te(e >>>= 0); t.length;) {
 			var n = t.pop();
 			t.pop()(n);
 		}
-		Er(e);
+		Ir(e);
 	}
-	function Vi(e, t, n) {
-		t >>>= 0, n >>>= 0, e = ve(e >>> 0), t = ve(t), n = ve(n), e[t] = n;
+	function ru(e, t, n) {
+		t >>>= 0, n >>>= 0, e = Te(e >>> 0), t = Te(t), n = Te(n), e[t] = n;
 	}
-	function ji(e, t) {
-		e = ce(e), t >>>= 0, e = /* @__PURE__ */ new Date(1e3 * e), (p(), x)[t >>> 2 >>> 0] = e.getUTCSeconds(), (p(), x)[t + 4 >>> 2 >>> 0] = e.getUTCMinutes(), (p(), x)[t + 8 >>> 2 >>> 0] = e.getUTCHours(), (p(), x)[t + 12 >>> 2 >>> 0] = e.getUTCDate(), (p(), x)[t + 16 >>> 2 >>> 0] = e.getUTCMonth(), (p(), x)[t + 20 >>> 2 >>> 0] = e.getUTCFullYear() - 1900, (p(), x)[t + 24 >>> 2 >>> 0] = e.getUTCDay(), e = (e.getTime() - Date.UTC(e.getUTCFullYear(), 0, 1, 0, 0, 0, 0)) / 864e5 | 0, (p(), x)[t + 28 >>> 2 >>> 0] = e;
+	function nu(e, t) {
+		e = ue(e), t >>>= 0, e = /* @__PURE__ */ new Date(1e3 * e), (d(), I)[t >>> 2 >>> 0] = e.getUTCSeconds(), (d(), I)[t + 4 >>> 2 >>> 0] = e.getUTCMinutes(), (d(), I)[t + 8 >>> 2 >>> 0] = e.getUTCHours(), (d(), I)[t + 12 >>> 2 >>> 0] = e.getUTCDate(), (d(), I)[t + 16 >>> 2 >>> 0] = e.getUTCMonth(), (d(), I)[t + 20 >>> 2 >>> 0] = e.getUTCFullYear() - 1900, (d(), I)[t + 24 >>> 2 >>> 0] = e.getUTCDay(), e = (e.getTime() - Date.UTC(e.getUTCFullYear(), 0, 1, 0, 0, 0, 0)) / 864e5 | 0, (d(), I)[t + 28 >>> 2 >>> 0] = e;
 	}
-	var qn = (e) => e % 4 == 0 && (e % 100 != 0 || e % 400 == 0), Jn = [
+	var Xn = (e) => e % 4 == 0 && (e % 100 != 0 || e % 400 == 0), Zn = [
 		0,
 		31,
 		60,
@@ -1930,7 +1946,7 @@ async function es(a = {}) {
 		274,
 		305,
 		335
-	], Xn = [
+	], Kn = [
 		0,
 		31,
 		59,
@@ -1944,83 +1960,107 @@ async function es(a = {}) {
 		304,
 		334
 	];
-	function Hi(e, t) {
-		e = ce(e), t >>>= 0, e = /* @__PURE__ */ new Date(1e3 * e), (p(), x)[t >>> 2 >>> 0] = e.getSeconds(), (p(), x)[t + 4 >>> 2 >>> 0] = e.getMinutes(), (p(), x)[t + 8 >>> 2 >>> 0] = e.getHours(), (p(), x)[t + 12 >>> 2 >>> 0] = e.getDate(), (p(), x)[t + 16 >>> 2 >>> 0] = e.getMonth(), (p(), x)[t + 20 >>> 2 >>> 0] = e.getFullYear() - 1900, (p(), x)[t + 24 >>> 2 >>> 0] = e.getDay();
-		var n = (qn(e.getFullYear()) ? Jn : Xn)[e.getMonth()] + e.getDate() - 1 | 0;
-		(p(), x)[t + 28 >>> 2 >>> 0] = n, (p(), x)[t + 36 >>> 2 >>> 0] = -60 * e.getTimezoneOffset(), n = new Date(e.getFullYear(), 6, 1).getTimezoneOffset();
+	function ou(e, t) {
+		e = ue(e), t >>>= 0, e = /* @__PURE__ */ new Date(1e3 * e), (d(), I)[t >>> 2 >>> 0] = e.getSeconds(), (d(), I)[t + 4 >>> 2 >>> 0] = e.getMinutes(), (d(), I)[t + 8 >>> 2 >>> 0] = e.getHours(), (d(), I)[t + 12 >>> 2 >>> 0] = e.getDate(), (d(), I)[t + 16 >>> 2 >>> 0] = e.getMonth(), (d(), I)[t + 20 >>> 2 >>> 0] = e.getFullYear() - 1900, (d(), I)[t + 24 >>> 2 >>> 0] = e.getDay();
+		var n = (Xn(e.getFullYear()) ? Zn : Kn)[e.getMonth()] + e.getDate() - 1 | 0;
+		(d(), I)[t + 28 >>> 2 >>> 0] = n, (d(), I)[t + 36 >>> 2 >>> 0] = -60 * e.getTimezoneOffset(), n = new Date(e.getFullYear(), 6, 1).getTimezoneOffset();
 		var o = new Date(e.getFullYear(), 0, 1).getTimezoneOffset();
-		e = 0 | (n != o && e.getTimezoneOffset() == Math.min(o, n)), (p(), x)[t + 32 >>> 2 >>> 0] = e;
+		e = 0 | (n != o && e.getTimezoneOffset() == Math.min(o, n)), (d(), I)[t + 32 >>> 2 >>> 0] = e;
 	}
-	function Yi(e) {
+	function au(e) {
 		e >>>= 0;
-		var t = new Date((p(), x)[e + 20 >>> 2 >>> 0] + 1900, (p(), x)[e + 16 >>> 2 >>> 0], (p(), x)[e + 12 >>> 2 >>> 0], (p(), x)[e + 8 >>> 2 >>> 0], (p(), x)[e + 4 >>> 2 >>> 0], (p(), x)[e >>> 2 >>> 0], 0), n = (p(), x)[e + 32 >>> 2 >>> 0], o = t.getTimezoneOffset(), u = new Date(t.getFullYear(), 6, 1).getTimezoneOffset(), c = new Date(t.getFullYear(), 0, 1).getTimezoneOffset(), h = Math.min(c, u);
-		return 0 > n ? (p(), x)[e + 32 >>> 2 >>> 0] = +(u != c && h == o) : 0 < n != (h == o) && (u = Math.max(c, u), t.setTime(t.getTime() + 6e4 * ((0 < n ? h : u) - o))), (p(), x)[e + 24 >>> 2 >>> 0] = t.getDay(), n = (qn(t.getFullYear()) ? Jn : Xn)[t.getMonth()] + t.getDate() - 1 | 0, (p(), x)[e + 28 >>> 2 >>> 0] = n, (p(), x)[e >>> 2 >>> 0] = t.getSeconds(), (p(), x)[e + 4 >>> 2 >>> 0] = t.getMinutes(), (p(), x)[e + 8 >>> 2 >>> 0] = t.getHours(), (p(), x)[e + 12 >>> 2 >>> 0] = t.getDate(), (p(), x)[e + 16 >>> 2 >>> 0] = t.getMonth(), (p(), x)[e + 20 >>> 2 >>> 0] = t.getYear(), e = t.getTime(), BigInt(isNaN(e) ? -1 : e / 1e3);
+		var t = new Date((d(), I)[e + 20 >>> 2 >>> 0] + 1900, (d(), I)[e + 16 >>> 2 >>> 0], (d(), I)[e + 12 >>> 2 >>> 0], (d(), I)[e + 8 >>> 2 >>> 0], (d(), I)[e + 4 >>> 2 >>> 0], (d(), I)[e >>> 2 >>> 0], 0), n = (d(), I)[e + 32 >>> 2 >>> 0], o = t.getTimezoneOffset(), u = new Date(t.getFullYear(), 6, 1).getTimezoneOffset(), c = new Date(t.getFullYear(), 0, 1).getTimezoneOffset(), h = Math.min(c, u);
+		return 0 > n ? (d(), I)[e + 32 >>> 2 >>> 0] = +(u != c && h == o) : 0 < n != (h == o) && (u = Math.max(c, u), t.setTime(t.getTime() + 6e4 * ((0 < n ? h : u) - o))), (d(), I)[e + 24 >>> 2 >>> 0] = t.getDay(), n = (Xn(t.getFullYear()) ? Zn : Kn)[t.getMonth()] + t.getDate() - 1 | 0, (d(), I)[e + 28 >>> 2 >>> 0] = n, (d(), I)[e >>> 2 >>> 0] = t.getSeconds(), (d(), I)[e + 4 >>> 2 >>> 0] = t.getMinutes(), (d(), I)[e + 8 >>> 2 >>> 0] = t.getHours(), (d(), I)[e + 12 >>> 2 >>> 0] = t.getDate(), (d(), I)[e + 16 >>> 2 >>> 0] = t.getMonth(), (d(), I)[e + 20 >>> 2 >>> 0] = t.getYear(), e = t.getTime(), BigInt(isNaN(e) ? -1 : e / 1e3);
 	}
 	function Qn(e, t, n, o, u, c, h) {
-		return i ? V(16, 1, e, t, n, o, u, c, h) : -52;
+		return i ? H(16, 1, e, t, n, o, u, c, h) : -52;
 	}
-	function Zn(e, t, n, o, u, c) {
-		if (i) return V(17, 1, e, t, n, o, u, c);
+	function eo(e, t, n, o, u, c) {
+		if (i) return H(17, 1, e, t, n, o, u, c);
 	}
-	var Tt = {}, qi = () => performance.timeOrigin + performance.now();
-	function Kn(e, t) {
-		if (i) return V(18, 1, e, t);
-		if (Tt[e] && (clearTimeout(Tt[e].id), delete Tt[e]), !t) return 0;
-		return Tt[e] = {
+	var Et = {}, su = () => performance.timeOrigin + performance.now();
+	function to(e, t) {
+		if (i) return H(18, 1, e, t);
+		if (Et[e] && (clearTimeout(Et[e].id), delete Et[e]), !t) return 0;
+		return Et[e] = {
 			id: setTimeout(() => {
-				delete Tt[e], he(() => Bo(e, performance.timeOrigin + performance.now()));
+				delete Et[e], me(() => Wo(e, performance.timeOrigin + performance.now()));
 			}, t),
-			Ae: t
+			Ve: t
 		}, 0;
 	}
-	function Ji(e, t, n, o) {
+	function iu(e, t, n, o) {
 		e >>>= 0, t >>>= 0, n >>>= 0, o >>>= 0;
 		var u = (/* @__PURE__ */ new Date()).getFullYear(), c = new Date(u, 0, 1).getTimezoneOffset();
 		u = new Date(u, 6, 1).getTimezoneOffset();
 		var h = Math.max(c, u);
-		(p(), A)[e >>> 2 >>> 0] = 60 * h, (p(), x)[t >>> 2 >>> 0] = +(c != u), e = (t = (b) => {
-			var E = Math.abs(b);
-			return `UTC${0 <= b ? "-" : "+"}${String(Math.floor(E / 60)).padStart(2, "0")}${String(E % 60).padStart(2, "0")}`;
-		})(c), t = t(u), u < c ? (Pe(e, n, 17), Pe(t, o, 17)) : (Pe(e, o, 17), Pe(t, n, 17));
+		(d(), E)[e >>> 2 >>> 0] = 60 * h, (d(), I)[t >>> 2 >>> 0] = +(c != u), e = (t = (m) => {
+			var y = Math.abs(m);
+			return `UTC${0 <= m ? "-" : "+"}${String(Math.floor(y / 60)).padStart(2, "0")}${String(y % 60).padStart(2, "0")}`;
+		})(c), t = t(u), u < c ? (Ue(e, n, 17), Ue(t, o, 17)) : (Ue(e, o, 17), Ue(t, n, 17));
 	}
-	var Xi = () => Date.now(), Qi = 1;
-	function Zi(e, t, n) {
+	var uu = () => Date.now(), fu = 1;
+	function cu(e, t, n) {
 		if (n >>>= 0, !(0 <= e && 3 >= e)) return 28;
 		if (e === 0) e = Date.now();
 		else {
-			if (!Qi) return 52;
+			if (!fu) return 52;
 			e = performance.timeOrigin + performance.now();
 		}
-		return e = Math.round(1e6 * e), (p(), me)[n >>> 3 >>> 0] = BigInt(e), 0;
+		return e = Math.round(1e6 * e), (d(), pe)[n >>> 3 >>> 0] = BigInt(e), 0;
 	}
-	var Br = [], eo = (e, t) => {
-		Br.length = 0;
-		for (var n; n = (p(), J)[e++ >>> 0];) {
+	var Pr = [], ro = (e, t) => {
+		Pr.length = 0;
+		for (var n; n = (d(), X)[e++ >>> 0];) {
 			var o = n != 105;
-			t += (o &= n != 112) && t % 8 ? 4 : 0, Br.push(n == 112 ? (p(), A)[t >>> 2 >>> 0] : n == 106 ? (p(), me)[t >>> 3 >>> 0] : n == 105 ? (p(), x)[t >>> 2 >>> 0] : (p(), ae)[t >>> 3 >>> 0]), t += o ? 8 : 4;
+			t += (o &= n != 112) && t % 8 ? 4 : 0, Pr.push(n == 112 ? (d(), E)[t >>> 2 >>> 0] : n == 106 ? (d(), pe)[t >>> 3 >>> 0] : n == 105 ? (d(), I)[t >>> 2 >>> 0] : (d(), ae)[t >>> 3 >>> 0]), t += o ? 8 : 4;
 		}
-		return Br;
+		return Pr;
 	};
-	function Ki(e, t, n) {
-		return e >>>= 0, t = eo(t >>> 0, n >>> 0), Vr[e](...t);
+	function du(e, t, n) {
+		return e >>>= 0, t = ro(t >>> 0, n >>> 0), Yr[e](...t);
 	}
-	function eu(e, t, n) {
-		return e >>>= 0, t = eo(t >>> 0, n >>> 0), Vr[e](...t);
+	function lu(e, t, n) {
+		return e >>>= 0, t = ro(t >>> 0, n >>> 0), Yr[e](...t);
 	}
-	var tu = () => {};
-	function ru(e, t) {
-		return O(ct(e >>> 0, t >>> 0));
+	var pu = () => {};
+	function mu(e, t) {
+		return O(lt(e >>> 0, t >>> 0));
 	}
-	var nu = () => {
-		throw G += 1, "unwind";
+	var hu = () => {
+		throw z += 1, "unwind";
 	};
-	function ou() {
+	function bu() {
 		return 4294901760;
 	}
-	var au = () => 1, su = () => navigator.hardwareConcurrency;
-	function iu(e) {
+	var gu = () => 1, yu = () => navigator.hardwareConcurrency, Ze = {}, no = (e) => {
+		var t = _e(e) + 1, n = Ke(t);
+		return n && Ue(e, n, t), n;
+	}, kt = (e) => {
+		var t;
+		return (t = /\bwasm-function\[\d+\]:(0x[0-9a-f]+)/.exec(e)) ? +t[1] : (t = /:(\d+):\d+(?:\)|$)/.exec(e)) ? 2147483648 | +t[1] : 0;
+	}, oo = (e) => {
+		for (var t of e) (e = kt(t)) && (Ze[e] = t);
+	};
+	function wu() {
+		var e = Error().stack.toString().split(`
+`);
+		return e[0] == "Error" && e.shift(), oo(e), Ze.ee = kt(e[3]), Ze.xe = e, Ze.ee;
+	}
+	function Ft(e) {
+		if (!(e = Ze[e >>> 0])) return 0;
+		var t;
+		if (t = /^\s+at .*\.wasm\.(.*) \(.*\)$/.exec(e)) e = t[1];
+		else if (t = /^\s+at (.*) \(.*\)$/.exec(e)) e = t[1];
+		else {
+			if (!(t = /^(.+?)@/.exec(e))) return 0;
+			e = t[1];
+		}
+		return ve(Ft.ne ?? 0), Ft.ne = no(e), Ft.ne;
+	}
+	function Tu(e) {
 		e >>>= 0;
-		var t = (p(), J).length;
+		var t = (d(), X).length;
 		if (e <= t || 4294901760 < e) return !1;
 		for (var n = 1; 4 >= n; n *= 2) {
 			var o = t * (1 + .2 / n);
@@ -2038,44 +2078,48 @@ async function es(a = {}) {
 		}
 		return !1;
 	}
+	function vu(e, t, n) {
+		if (e >>>= 0, t >>>= 0, Ze.ee == e) var o = Ze.xe;
+		else (o = Error().stack.toString().split(`
+`))[0] == "Error" && o.shift(), oo(o);
+		for (var u = 3; o[u] && kt(o[u]) != e;) ++u;
+		for (e = 0; e < n && o[e + u]; ++e) (d(), I)[t + 4 * e >>> 2 >>> 0] = kt(o[e + u]);
+		return e;
+	}
 	var Ce = (e) => {
-		var t = _e(e) + 1, n = Ft(t);
-		return Pe(e, n, t), n;
-	}, Mr = (e, t) => {
-		(p(), A)[e >>> 2 >>> 0] = t;
-		var n = (p(), A)[e >>> 2 >>> 0];
-		(p(), A)[e + 4 >>> 2 >>> 0] = (t - n) / 4294967296;
-	}, vt = (e) => (p(), A)[e >>> 2 >>> 0] + 4294967296 * (p(), x)[e + 4 >>> 2 >>> 0], de = [], uu = (e, t) => {
-		de[e >>> 0] = t;
-	}, Re = [], Nt = [], lt = (e, t) => {
-		Nt[e] = new Promise((n) => t.finally(() => n(e)));
-	}, L = (e) => {
-		if (e) return de[e >>> 0];
-	}, fu = (e, t) => {
-		for (e = (p(), A)[e >>> 2 >>> 0]; e; e = (p(), A)[e >>> 2 >>> 0]) t[(p(), x)[e + 4 >>> 2 >>> 0]](e);
-	}, kt = (e, t, n) => {
-		(p(), A)[e >>> 2 >>> 0] = t, (p(), A)[e + 4 >>> 2 >>> 0] = n;
-	}, to = (e) => {
-		var t = (p(), A)[e >>> 2 >>> 0];
-		return e = (p(), A)[e + 4 >>> 2 >>> 0], ct(t, e);
-	}, Ne = (e) => {
-		var t = (p(), A)[e >>> 2 >>> 0];
-		return e = (p(), A)[e + 4 >>> 2 >>> 0], t ? ct(t, e) : e === 0 ? "" : void 0;
-	}, cu = (e) => {
-		var t = Ne(e + 4), n = (n = (p(), A)[e + 12 >>> 2 >>> 0]) ? L(n) : "auto";
+		var t = _e(e) + 1, n = Vt(t);
+		return Ue(e, n, t), n;
+	}, mt = (e) => (d(), E)[e >>> 2 >>> 0] + 4294967296 * (d(), I)[e + 4 >>> 2 >>> 0], fe = [], ao = (e, t) => {
+		fe[e >>> 0] = t;
+	}, Re = [], Gt = [], ht = (e, t) => {
+		Gt[e] = new Promise((n) => t.finally(() => n(e)));
+	}, B = (e) => {
+		if (e) return fe[e >>> 0];
+	}, Ur = (e, t) => {
+		for (e = (d(), E)[e >>> 2 >>> 0]; e; e = (d(), E)[e >>> 2 >>> 0]) t[(d(), I)[e + 4 >>> 2 >>> 0]](e);
+	}, $t = (e, t, n) => {
+		(d(), E)[e >>> 2 >>> 0] = t, (d(), E)[e + 4 >>> 2 >>> 0] = n;
+	}, so = (e) => {
+		var t = (d(), E)[e >>> 2 >>> 0];
+		return e = (d(), E)[e + 4 >>> 2 >>> 0], lt(t, e);
+	}, Ie = (e) => {
+		var t = (d(), E)[e >>> 2 >>> 0];
+		return e = (d(), E)[e + 4 >>> 2 >>> 0], t ? lt(t, e) : e === 0 ? "" : void 0;
+	}, Eu = (e) => {
+		var t = Ie(e + 4), n = (n = (d(), E)[e + 12 >>> 2 >>> 0]) ? B(n) : "auto";
 		if (e += 16) {
-			var o = L((p(), A)[e + 4 >>> 2 >>> 0]), u = (p(), A)[e + 16 >>> 2 >>> 0], c = (p(), A)[e + 20 >>> 2 >>> 0];
+			var o = B((d(), E)[e + 4 >>> 2 >>> 0]), u = (d(), E)[e + 16 >>> 2 >>> 0], c = (d(), E)[e + 20 >>> 2 >>> 0];
 			if (u) {
-				for (var h = {}, b = 0; b < u; ++b) {
-					var E = c + 24 * b;
-					h[to(E + 4)] = (p(), ae)[E + 16 >>> 3 >>> 0];
+				for (var h = {}, m = 0; m < u; ++m) {
+					var y = c + 24 * m;
+					h[so(y + 4)] = (d(), ae)[y + 16 >>> 3 >>> 0];
 				}
 				u = h;
 			} else u = void 0;
 			e = {
 				module: o,
 				constants: u,
-				entryPoint: Ne(e + 8)
+				entryPoint: Ie(e + 8)
 			};
 		} else e = void 0;
 		return {
@@ -2083,21 +2127,45 @@ async function es(a = {}) {
 			layout: n,
 			compute: e
 		};
-	}, ro = (e, t) => {
-		function n(o, u) {
-			o = e[o], (p(), A)[t + u >>> 2 >>> 0] = o;
+	}, io = (e, t) => {
+		function n(c, h, m, y = 0) {
+			c = e[c] ?? y, (d(), E)[h + m >>> 2 >>> 0] = c;
 		}
-		n("maxTextureDimension1D", 4), n("maxTextureDimension2D", 8), n("maxTextureDimension3D", 12), n("maxTextureArrayLayers", 16), n("maxBindGroups", 20), n("maxBindGroupsPlusVertexBuffers", 24), n("maxBindingsPerBindGroup", 28), n("maxDynamicUniformBuffersPerPipelineLayout", 32), n("maxDynamicStorageBuffersPerPipelineLayout", 36), n("maxSampledTexturesPerShaderStage", 40), n("maxSamplersPerShaderStage", 44), n("maxStorageBuffersPerShaderStage", 48), n("maxStorageTexturesPerShaderStage", 52), n("maxUniformBuffersPerShaderStage", 56), n("minUniformBufferOffsetAlignment", 80), n("minStorageBufferOffsetAlignment", 84), Mr(t + 64, e.maxUniformBufferBindingSize), Mr(t + 72, e.maxStorageBufferBindingSize), n("maxVertexBuffers", 88), Mr(t + 96, e.maxBufferSize), n("maxVertexAttributes", 104), n("maxVertexBufferArrayStride", 108), n("maxInterStageShaderVariables", 112), n("maxColorAttachments", 116), n("maxColorAttachmentBytesPerSample", 120), n("maxComputeWorkgroupStorageSize", 124), n("maxComputeInvocationsPerWorkgroup", 128), n("maxComputeWorkgroupSizeX", 132), n("maxComputeWorkgroupSizeY", 136), n("maxComputeWorkgroupSizeZ", 140), n("maxComputeWorkgroupsPerDimension", 144), e.ze !== void 0 && n("maxImmediateSize", 148);
-	}, du = [
+		function o(c, h, m, y = 0) {
+			h += m, c = e[c] ?? y, (d(), E)[h >>> 2 >>> 0] = c, y = (d(), E)[h >>> 2 >>> 0], (d(), E)[h + 4 >>> 2 >>> 0] = (c - y) / 4294967296;
+		}
+		var u = (d(), E)[t >>> 2 >>> 0];
+		n("maxTextureDimension1D", t, 4), n("maxTextureDimension2D", t, 8), n("maxTextureDimension3D", t, 12), n("maxTextureArrayLayers", t, 16), n("maxBindGroups", t, 20), n("maxBindGroupsPlusVertexBuffers", t, 24), n("maxBindingsPerBindGroup", t, 28), n("maxDynamicUniformBuffersPerPipelineLayout", t, 32), n("maxDynamicStorageBuffersPerPipelineLayout", t, 36), n("maxSampledTexturesPerShaderStage", t, 40), n("maxSamplersPerShaderStage", t, 44), n("maxStorageBuffersPerShaderStage", t, 48), n("maxStorageTexturesPerShaderStage", t, 52), n("maxUniformBuffersPerShaderStage", t, 56), n("minUniformBufferOffsetAlignment", t, 80), n("minStorageBufferOffsetAlignment", t, 84), o("maxUniformBufferBindingSize", t, 64), o("maxStorageBufferBindingSize", t, 72), n("maxVertexBuffers", t, 88), o("maxBufferSize", t, 96), n("maxVertexAttributes", t, 104), n("maxVertexBufferArrayStride", t, 108), n("maxInterStageShaderVariables", t, 112), n("maxColorAttachments", t, 116), n("maxColorAttachmentBytesPerSample", t, 120), n("maxComputeWorkgroupStorageSize", t, 124), n("maxComputeInvocationsPerWorkgroup", t, 128), n("maxComputeWorkgroupSizeX", t, 132), n("maxComputeWorkgroupSizeY", t, 136), n("maxComputeWorkgroupSizeZ", t, 140), n("maxComputeWorkgroupsPerDimension", t, 144), n("maxImmediateSize", t, 148), u !== 0 && (d(), n("maxStorageBuffersInVertexStage", u, 8, e.maxStorageBuffersPerShaderStage), n("maxStorageBuffersInFragmentStage", u, 16, e.maxStorageBuffersPerShaderStage), n("maxStorageTexturesInVertexStage", u, 12, e.maxStorageTexturesPerShaderStage), n("maxStorageTexturesInFragmentStage", u, 20, e.maxStorageTexturesPerShaderStage));
+	}, Su = (e, t) => {
+		(d(), E)[t + 52 >>> 2 >>> 0] = e.subgroupMinSize, (d(), E)[t + 56 >>> 2 >>> 0] = e.subgroupMaxSize;
+		var n = no(e.vendor + e.architecture + e.device + e.description), o = _e(e.vendor);
+		$t(t + 4, n, o), n += o, o = _e(e.architecture), $t(t + 12, n, o), n += o, o = _e(e.device), $t(t + 20, n, o), n += o, o = _e(e.description), $t(t + 28, n, o), n += o, (d(), I)[t + 36 >>> 2 >>> 0] = 2, n = e.isFallbackAdapter ? 3 : 4, (d(), I)[t + 40 >>> 2 >>> 0] = n, (d(), E)[t + 44 >>> 2 >>> 0] = 0, (d(), E)[t + 48 >>> 2 >>> 0] = 0, Ur(t, { 327739: (u) => {
+			let c = 0, h = 0;
+			if (e.subgroupMatrixConfigs) {
+				c = e.subgroupMatrixConfigs.length, h = Ke(20 * c);
+				for (let [m, y] of e.subgroupMatrixConfigs.entries()) {
+					let x = h + 20 * m, N = fo.indexOf(y.componentType), F = fo.indexOf(y.resultComponentType);
+					(d(), I)[x >>> 2 >>> 0] = N, (d(), I)[x + 4 >>> 2 >>> 0] = F, (d(), E)[x + 8 >>> 2 >>> 0] = y.M, (d(), E)[x + 12 >>> 2 >>> 0] = y.N, (d(), E)[x + 16 >>> 2 >>> 0] = y.K;
+				}
+			}
+			(d(), E)[u + 12 >>> 2 >>> 0] = h, (d(), E)[u + 8 >>> 2 >>> 0] = c;
+		} });
+	}, xu = [
+		,
+		,
+		"uniform",
+		"storage",
+		"read-only-storage"
+	], Au = [
 		,
 		"validation",
 		"out-of-memory",
 		"internal"
-	], lu = [
+	], Iu = [
 		,
 		"compatibility",
 		"core"
-	], no = {
+	], uo = {
 		1: "core-features-and-limits",
 		2: "depth-clip-control",
 		3: "depth32float-stencil8",
@@ -2120,220 +2188,361 @@ async function es(a = {}) {
 		20: "texture-formats-tier2",
 		21: "primitive-index",
 		22: "texture-component-swizzle",
+		23: "subgroup-size-control",
 		327692: "chromium-experimental-unorm16-texture-formats",
-		327729: "chromium-experimental-multi-draw-indirect"
-	}, pu = [
+		327729: "chromium-experimental-multi-draw-indirect",
+		327732: "chromium-experimental-subgroup-matrix"
+	}, Lu = [
 		,
 		"low-power",
 		"high-performance"
-	], mu = [
+	], Bu = [
 		,
 		"occlusion",
 		"timestamp"
-	], hu = {
+	], Ou = [
+		,
+		,
+		"filtering",
+		"non-filtering",
+		"comparison"
+	], Mu = [
+		,
+		,
+		"write-only",
+		"read-only",
+		"read-write"
+	], fo = [
+		,
+		"f32",
+		"f16",
+		"u32",
+		"i32",
+		"u8",
+		"i8"
+	], Cu = [
+		,
+		"r8unorm",
+		"r8snorm",
+		"r8uint",
+		"r8sint",
+		"r16unorm",
+		"r16snorm",
+		"r16uint",
+		"r16sint",
+		"r16float",
+		"rg8unorm",
+		"rg8snorm",
+		"rg8uint",
+		"rg8sint",
+		"r32float",
+		"r32uint",
+		"r32sint",
+		"rg16unorm",
+		"rg16snorm",
+		"rg16uint",
+		"rg16sint",
+		"rg16float",
+		"rgba8unorm",
+		"rgba8unorm-srgb",
+		"rgba8snorm",
+		"rgba8uint",
+		"rgba8sint",
+		"bgra8unorm",
+		"bgra8unorm-srgb",
+		"rgb10a2uint",
+		"rgb10a2unorm",
+		"rg11b10ufloat",
+		"rgb9e5ufloat",
+		"rg32float",
+		"rg32uint",
+		"rg32sint",
+		"rgba16unorm",
+		"rgba16snorm",
+		"rgba16uint",
+		"rgba16sint",
+		"rgba16float",
+		"rgba32float",
+		"rgba32uint",
+		"rgba32sint",
+		"stencil8",
+		"depth16unorm",
+		"depth24plus",
+		"depth24plus-stencil8",
+		"depth32float",
+		"depth32float-stencil8",
+		"bc1-rgba-unorm",
+		"bc1-rgba-unorm-srgb",
+		"bc2-rgba-unorm",
+		"bc2-rgba-unorm-srgb",
+		"bc3-rgba-unorm",
+		"bc3-rgba-unorm-srgb",
+		"bc4-r-unorm",
+		"bc4-r-snorm",
+		"bc5-rg-unorm",
+		"bc5-rg-snorm",
+		"bc6h-rgb-ufloat",
+		"bc6h-rgb-float",
+		"bc7-rgba-unorm",
+		"bc7-rgba-unorm-srgb",
+		"etc2-rgb8unorm",
+		"etc2-rgb8unorm-srgb",
+		"etc2-rgb8a1unorm",
+		"etc2-rgb8a1unorm-srgb",
+		"etc2-rgba8unorm",
+		"etc2-rgba8unorm-srgb",
+		"eac-r11unorm",
+		"eac-r11snorm",
+		"eac-rg11unorm",
+		"eac-rg11snorm",
+		"astc-4x4-unorm",
+		"astc-4x4-unorm-srgb",
+		"astc-5x4-unorm",
+		"astc-5x4-unorm-srgb",
+		"astc-5x5-unorm",
+		"astc-5x5-unorm-srgb",
+		"astc-6x5-unorm",
+		"astc-6x5-unorm-srgb",
+		"astc-6x6-unorm",
+		"astc-6x6-unorm-srgb",
+		"astc-8x5-unorm",
+		"astc-8x5-unorm-srgb",
+		"astc-8x6-unorm",
+		"astc-8x6-unorm-srgb",
+		"astc-8x8-unorm",
+		"astc-8x8-unorm-srgb",
+		"astc-10x5-unorm",
+		"astc-10x5-unorm-srgb",
+		"astc-10x6-unorm",
+		"astc-10x6-unorm-srgb",
+		"astc-10x8-unorm",
+		"astc-10x8-unorm-srgb",
+		"astc-10x10-unorm",
+		"astc-10x10-unorm-srgb",
+		"astc-12x10-unorm",
+		"astc-12x10-unorm-srgb",
+		"astc-12x12-unorm",
+		"astc-12x12-unorm-srgb"
+	], Du = [
+		,
+		,
+		"float",
+		"unfilterable-float",
+		"depth",
+		"sint",
+		"uint"
+	], co = [
+		,
+		"1d",
+		"2d",
+		"2d-array",
+		"cube",
+		"cube-array",
+		"3d"
+	], Pu = {
 		undefined: 1,
 		unknown: 1,
 		destroyed: 2
 	};
-	function yu(e, t, n, o, u, c) {
-		t = ce(t), n = ce(n), o >>>= 0, u >>>= 0, c >>>= 0;
-		var h = L(e >>> 0);
+	function Uu(e, t, n, o, u, c) {
+		t = ue(t), n = ue(n), o >>>= 0, u >>>= 0, c >>>= 0;
+		var h = B(e >>> 0);
 		if (e = {}, c) {
-			var b = (p(), A)[c + 12 >>> 2 >>> 0];
-			if (b) {
-				var E = (p(), A)[c + 16 >>> 2 >>> 0];
-				e.requiredFeatures = Array.from((p(), A).subarray(E >>> 2 >>> 0, E + 4 * b >>> 2 >>> 0), (B) => no[B]);
+			var m = (d(), E)[c + 12 >>> 2 >>> 0];
+			if (m) {
+				var y = (d(), E)[c + 16 >>> 2 >>> 0];
+				e.requiredFeatures = Array.from((d(), E).subarray(y >>> 2 >>> 0, y + 4 * m >>> 2 >>> 0), (L) => uo[L]);
 			}
-			var I = (p(), A)[c + 20 >>> 2 >>> 0];
-			if (I) {
-				let B = function(ye, fe, Qe = !1) {
-					fe = I + fe, (fe = (p(), A)[fe >>> 2 >>> 0]) == 4294967295 || Qe && fe == 0 || (F[ye] = fe);
-				}, ue = function(ye, fe) {
-					fe = I + fe;
-					var Qe = (p(), A)[fe >>> 2 >>> 0], $f = (p(), A)[fe + 4 >>> 2 >>> 0];
-					Qe == 4294967295 && $f == 4294967295 || (F[ye] = vt(fe));
+			if (m = (d(), E)[c + 20 >>> 2 >>> 0]) {
+				let L = function(he, de, Qe, et = !1) {
+					de += Qe, (de = (d(), E)[de >>> 2 >>> 0]) == 4294967295 || et && de == 0 || (x[he] = de);
+				}, q = function(he, de, Qe) {
+					de += Qe, Qe = (d(), E)[de >>> 2 >>> 0];
+					var et = (d(), E)[de + 4 >>> 2 >>> 0];
+					Qe == 4294967295 && et == 4294967295 || (x[he] = mt(de));
 				};
-				var F = {};
-				B("maxTextureDimension1D", 4), B("maxTextureDimension2D", 8), B("maxTextureDimension3D", 12), B("maxTextureArrayLayers", 16), B("maxBindGroups", 20), B("maxBindGroupsPlusVertexBuffers", 24), B("maxDynamicUniformBuffersPerPipelineLayout", 32), B("maxDynamicStorageBuffersPerPipelineLayout", 36), B("maxSampledTexturesPerShaderStage", 40), B("maxSamplersPerShaderStage", 44), B("maxStorageBuffersPerShaderStage", 48), B("maxStorageTexturesPerShaderStage", 52), B("maxUniformBuffersPerShaderStage", 56), B("minUniformBufferOffsetAlignment", 80), B("minStorageBufferOffsetAlignment", 84), ue("maxUniformBufferBindingSize", 64), ue("maxStorageBufferBindingSize", 72), B("maxVertexBuffers", 88), ue("maxBufferSize", 96), B("maxVertexAttributes", 104), B("maxVertexBufferArrayStride", 108), B("maxInterStageShaderVariables", 112), B("maxColorAttachments", 116), B("maxColorAttachmentBytesPerSample", 120), B("maxComputeWorkgroupStorageSize", 124), B("maxComputeInvocationsPerWorkgroup", 128), B("maxComputeWorkgroupSizeX", 132), B("maxComputeWorkgroupSizeY", 136), B("maxComputeWorkgroupSizeZ", 140), B("maxComputeWorkgroupsPerDimension", 144), B("maxImmediateSize", 148, !0), e.requiredLimits = F;
+				y = (d(), E)[m >>> 2 >>> 0];
+				var x = {};
+				L("maxTextureDimension1D", m, 4), L("maxTextureDimension2D", m, 8), L("maxTextureDimension3D", m, 12), L("maxTextureArrayLayers", m, 16), L("maxBindGroups", m, 20), L("maxBindGroupsPlusVertexBuffers", m, 24), L("maxBindingsPerBindGroup", m, 28), L("maxDynamicUniformBuffersPerPipelineLayout", m, 32), L("maxDynamicStorageBuffersPerPipelineLayout", m, 36), L("maxSampledTexturesPerShaderStage", m, 40), L("maxSamplersPerShaderStage", m, 44), L("maxStorageBuffersPerShaderStage", m, 48), L("maxStorageTexturesPerShaderStage", m, 52), L("maxUniformBuffersPerShaderStage", m, 56), L("minUniformBufferOffsetAlignment", m, 80), L("minStorageBufferOffsetAlignment", m, 84), q("maxUniformBufferBindingSize", m, 64), q("maxStorageBufferBindingSize", m, 72), L("maxVertexBuffers", m, 88), q("maxBufferSize", m, 96), L("maxVertexAttributes", m, 104), L("maxVertexBufferArrayStride", m, 108), L("maxInterStageShaderVariables", m, 112), L("maxColorAttachments", m, 116), L("maxColorAttachmentBytesPerSample", m, 120), L("maxComputeWorkgroupStorageSize", m, 124), L("maxComputeInvocationsPerWorkgroup", m, 128), L("maxComputeWorkgroupSizeX", m, 132), L("maxComputeWorkgroupSizeY", m, 136), L("maxComputeWorkgroupSizeZ", m, 140), L("maxComputeWorkgroupsPerDimension", m, 144), L("maxImmediateSize", m, 148, !0), y !== 0 && (d(), "maxStorageBuffersInVertexStage" in GPUSupportedLimits.prototype && (L("maxStorageBuffersInVertexStage", y, 8), L("maxStorageTexturesInVertexStage", y, 12), L("maxStorageBuffersInFragmentStage", y, 16), L("maxStorageTexturesInFragmentStage", y, 20))), e.requiredLimits = x;
 			}
-			(b = (p(), A)[c + 24 >>> 2 >>> 0]) && (b = { label: Ne(b + 4) }, e.defaultQueue = b), e.label = Ne(c + 4);
+			(m = (d(), E)[c + 24 >>> 2 >>> 0]) && (m = { label: Ie(m + 4) }, e.defaultQueue = m), e.label = Ie(c + 4);
 		}
-		G += 1, lt(t, h.requestDevice(e).then((B) => {
-			--G, he(() => {
-				de[u >>> 0] = B.queue, de[o >>> 0] = B, G += 1, lt(n, B.lost.then((ue) => {
-					he(() => {
-						B.onuncapturederror = () => {};
-						var ye = P(), fe = Ce(ue.message);
-						_r(n, hu[ue.reason], fe), D(ye);
-					}), --G;
-				})), B.onuncapturederror = (ue) => {
-					var ye = 5;
-					ue.error instanceof GPUValidationError ? ye = 2 : ue.error instanceof GPUOutOfMemoryError ? ye = 3 : ue.error instanceof GPUInternalError && (ye = 4);
-					var fe = P();
-					ue = Ce(ue.error.message), Io(o, ye, ue), D(fe);
-				}, "adapterInfo" in B || (B.adapterInfo = h.info), kr(t, 1, o, 0);
+		z += 1, ht(t, h.requestDevice(e).then((L) => {
+			--z, me(() => {
+				fe[u >>> 0] = L.queue, fe[o >>> 0] = L, z += 1, ht(n, L.lost.then((q) => {
+					me(() => {
+						L.onuncapturederror = () => {};
+						var he = P(), de = Ce(q.message);
+						kr(n, Pu[q.reason], de), D(he);
+					}), --z;
+				})), L.onuncapturederror = (q) => {
+					var he = 5;
+					q.error instanceof GPUValidationError ? he = 2 : q.error instanceof GPUOutOfMemoryError ? he = 3 : q.error instanceof GPUInternalError && (he = 4);
+					var de = P();
+					q = Ce(q.error.message), Uo(o, he, q), D(de);
+				}, "adapterInfo" in L || (L.adapterInfo = h.info), $r(t, 1, o, 0);
 			});
-		}, (B) => {
-			--G, he(() => {
-				var ue = P(), ye = Ce(B.message);
-				kr(t, 3, o, ye), n && _r(n, 4, ye), D(ue);
+		}, (L) => {
+			--z, me(() => {
+				var q = P(), he = Ce(L.message);
+				$r(t, 3, o, he), n && kr(n, 4, he), D(q);
 			});
 		}));
 	}
-	function bu(e) {
-		var t = L(e >>>= 0), n = Re[e];
+	function _u(e) {
+		var t = B(e >>>= 0), n = Re[e];
 		if (n) {
 			for (var o = 0; o < n.length; ++o) n[o]();
 			delete Re[e];
 		}
 		t.destroy();
 	}
-	function wu(e, t, n) {
+	function Ru(e, t, n) {
 		n >>>= 0;
-		var o = L(e >>>= 0);
+		var o = B(e >>>= 0);
 		n == 4294967295 && (n = void 0);
 		try {
 			var u = o.getMappedRange(t >>> 0, n);
 		} catch {
 			return 0;
 		}
-		var c = Gr(16, u.byteLength);
-		return (p(), J).set(new Uint8Array(u), c >>> 0), Re[e].push(() => xe(c)), c;
+		var c = jr(16, u.byteLength);
+		return (d(), X).set(new Uint8Array(u), c >>> 0), Re[e].push(() => ve(c)), c;
 	}
-	function gu(e, t, n) {
+	function Nu(e, t, n) {
 		n >>>= 0;
-		var o = L(e >>>= 0);
+		var o = B(e >>>= 0);
 		n == 4294967295 && (n = void 0);
 		try {
 			var u = o.getMappedRange(t >>> 0, n);
 		} catch {
 			return 0;
 		}
-		var c = Gr(16, u.byteLength);
-		return (p(), J).fill(0, c, u.byteLength), Re[e].push(() => {
-			new Uint8Array(u).set((p(), J).subarray(c >>> 0, c + u.byteLength >>> 0)), xe(c);
+		var c = jr(16, u.byteLength);
+		return (d(), X).fill(0, c, u.byteLength), Re[e].push(() => {
+			new Uint8Array(u).set((d(), X).subarray(c >>> 0, c + u.byteLength >>> 0)), ve(c);
 		}), c;
 	}
-	function Tu(e, t, n, o, u) {
-		e >>>= 0, t = ce(t), n = ce(n), u >>>= 0;
-		var c = L(e);
-		Re[e] = [], u == 4294967295 && (u = void 0), G += 1, lt(t, c.mapAsync(n, o >>> 0, u).then(() => {
-			--G, he(() => {
-				Rr(t, 1, 0);
+	function Wu(e, t, n, o, u) {
+		e >>>= 0, t = ue(t), n = ue(n), u >>>= 0;
+		var c = B(e);
+		Re[e] = [], u == 4294967295 && (u = void 0), z += 1, ht(t, c.mapAsync(n, o >>> 0, u).then(() => {
+			--z, me(() => {
+				Fr(t, 1, 0);
 			});
 		}, (h) => {
-			--G, he(() => {
+			--z, me(() => {
 				P();
-				var b = Ce(h.message);
-				Rr(t, h.name === "AbortError" ? 4 : h.name === "OperationError" ? 3 : 0, b), delete Re[e];
+				var m = Ce(h.message);
+				Fr(t, h.name === "AbortError" ? 4 : h.name === "OperationError" ? 3 : 0, m), delete Re[e];
 			});
 		}));
 	}
-	function vu(e) {
-		var t = L(e >>>= 0), n = Re[e];
+	function ku(e) {
+		var t = B(e >>>= 0), n = Re[e];
 		if (n) {
 			for (var o = 0; o < n.length; ++o) n[o]();
 			delete Re[e], t.unmap();
 		}
 	}
-	function Eu(e) {
-		delete de[e >>> 0];
+	function Fu(e) {
+		delete fe[e >>> 0];
 	}
-	function Su(e, t, n) {
+	function Gu(e, t, n) {
 		e >>>= 0, t >>>= 0, n >>>= 0;
-		var o = !!(p(), A)[t + 32 >>> 2 >>> 0];
+		var o = !!(d(), E)[t + 32 >>> 2 >>> 0];
 		t = {
-			label: Ne(t + 4),
-			usage: (p(), A)[t + 16 >>> 2 >>> 0],
-			size: vt(t + 24),
+			label: Ie(t + 4),
+			usage: (d(), E)[t + 16 >>> 2 >>> 0],
+			size: mt(t + 24),
 			mappedAtCreation: o
-		}, e = L(e);
+		}, e = B(e);
 		try {
 			var u = e.createBuffer(t);
 		} catch {
 			return !1;
 		}
-		return de[n >>> 0] = u, o && (Re[n] = []), !0;
+		return fe[n >>> 0] = u, o && (Re[n] = []), !0;
 	}
-	function Au(e, t, n, o) {
-		e >>>= 0, t = ce(t), o >>>= 0, n = cu(n >>> 0), e = L(e), G += 1, lt(t, e.createComputePipelineAsync(n).then((u) => {
-			--G, he(() => {
-				de[o >>> 0] = u, Pr(t, 1, o, 0);
+	function $u(e, t, n, o) {
+		e >>>= 0, t = ue(t), o >>>= 0, n = Eu(n >>> 0), e = B(e), z += 1, ht(t, e.createComputePipelineAsync(n).then((u) => {
+			--z, me(() => {
+				fe[o >>> 0] = u, Wr(t, 1, o, 0);
 			});
 		}, (u) => {
-			--G, he(() => {
+			--z, me(() => {
 				var c = P(), h = Ce(u.message);
-				Pr(t, u.reason === "validation" ? 3 : u.reason === "internal" ? 4 : 0, o, h), D(c);
+				Wr(t, u.reason === "validation" ? 3 : u.reason === "internal" ? 4 : 0, o, h), D(c);
 			});
 		}));
 	}
-	function Iu(e, t, n) {
+	function zu(e, t, n) {
 		e >>>= 0, t >>>= 0, n >>>= 0;
-		var o = (p(), A)[t >>> 2 >>> 0], u = (p(), x)[o + 4 >>> 2 >>> 0];
+		var o = (d(), E)[t >>> 2 >>> 0], u = (d(), I)[o + 4 >>> 2 >>> 0];
 		t = {
-			label: Ne(t + 4),
+			label: Ie(t + 4),
 			code: ""
-		}, u === 2 && (t.code = to(o + 8)), e = L(e).createShaderModule(t), de[n >>> 0] = e;
+		}, u === 2 && (t.code = so(o + 8)), e = B(e).createShaderModule(t), fe[n >>> 0] = e;
 	}
-	var xu = (e) => {
-		(e = L(e)).onuncapturederror = null, e.destroy();
+	var Vu = (e) => {
+		(e = B(e)).onuncapturederror = null, e.destroy();
 	};
-	function Lu(e, t) {
-		t = ce(t), e = L(e >>> 0), G += 1, lt(t, e.popErrorScope().then((n) => {
-			--G, he(() => {
+	function ju(e, t) {
+		t = ue(t), e = B(e >>> 0), z += 1, ht(t, e.popErrorScope().then((n) => {
+			--z, me(() => {
 				var o = 5;
 				n ? n instanceof GPUValidationError ? o = 2 : n instanceof GPUOutOfMemoryError ? o = 3 : n instanceof GPUInternalError && (o = 4) : o = 1;
 				var u = P(), c = n ? Ce(n.message) : 0;
-				Nr(t, 1, o, c), D(u);
+				Gr(t, 1, o, c), D(u);
 			});
 		}, (n) => {
-			--G, he(() => {
+			--z, me(() => {
 				var o = P(), u = Ce(n.message);
-				Nr(t, 1, 5, u), D(o);
+				Gr(t, 1, 5, u), D(o);
 			});
 		}));
 	}
-	function Ou(e, t, n, o) {
-		if (t = ce(t), o >>>= 0, n >>>= 0) {
+	function Hu(e, t, n, o) {
+		if (t = ue(t), o >>>= 0, n >>>= 0) {
 			var u = {
-				featureLevel: lu[(p(), x)[n + 4 >>> 2 >>> 0]],
-				powerPreference: pu[(p(), x)[n + 8 >>> 2 >>> 0]],
-				forceFallbackAdapter: !!(p(), A)[n + 12 >>> 2 >>> 0]
+				featureLevel: Iu[(d(), I)[n + 4 >>> 2 >>> 0]],
+				powerPreference: Lu[(d(), I)[n + 8 >>> 2 >>> 0]],
+				forceFallbackAdapter: !!(d(), E)[n + 12 >>> 2 >>> 0]
 			};
-			(e = (p(), A)[n >>> 2 >>> 0]) !== 0 && (p(), u.De = !!(p(), A)[e + 8 >>> 2 >>> 0]);
+			(e = (d(), E)[n >>> 2 >>> 0]) !== 0 && (d(), u.Ye = !!(d(), E)[e + 8 >>> 2 >>> 0]);
 		}
-		"gpu" in navigator ? (G += 1, lt(t, navigator.gpu.requestAdapter(u).then((c) => {
-			--G, he(() => {
-				if (c) de[o >>> 0] = c, Et(t, 1, o, 0);
+		"gpu" in navigator ? (z += 1, ht(t, navigator.gpu.requestAdapter(u).then((c) => {
+			--z, me(() => {
+				if (c) fe[o >>> 0] = c, St(t, 1, o, 0);
 				else {
-					var h = P(), b = Ce("WebGPU not available on this browser (requestAdapter returned null)");
-					Et(t, 3, o, b), D(h);
+					var h = P(), m = Ce("WebGPU not available on this browser (requestAdapter returned null)");
+					St(t, 3, o, m), D(h);
 				}
 			});
 		}, (c) => {
-			--G, he(() => {
-				var h = P(), b = Ce(c.message);
-				Et(t, 4, o, b), D(h);
+			--z, me(() => {
+				var h = P(), m = Ce(c.message);
+				St(t, 4, o, m), D(h);
 			});
-		}))) : (u = P(), e = Ce("WebGPU not available on this browser (navigator.gpu is not available)"), Et(t, 3, o, e), D(u));
+		}))) : (u = P(), e = Ce("WebGPU not available on this browser (navigator.gpu is not available)"), St(t, 3, o, e), D(u));
 	}
-	function Bu(e, t, n) {
-		return e >>>= 0, t >>>= 0, n >>>= 0, Hn(async () => {
+	function qu(e, t, n) {
+		return e >>>= 0, t >>>= 0, n >>>= 0, Yn(async () => {
 			var o = [];
 			if (n) {
-				var u = (p(), x)[n >>> 2 >>> 0];
-				o.length = t + 1, o[t] = new Promise((b) => setTimeout(b, u, 0));
+				var u = (d(), I)[n >>> 2 >>> 0];
+				o.length = t + 1, o[t] = new Promise((m) => setTimeout(m, u, 0));
 			} else o.length = t;
 			for (var c = 0; c < t; ++c) {
-				var h = vt(e + 8 * c);
-				if (!(h in Nt)) return h;
-				o[c] = Nt[h];
+				var h = mt(e + 8 * c);
+				if (!(h in Gt)) return h;
+				o[c] = Gt[h];
 			}
-			return o = await Promise.race(o), delete Nt[o], o;
+			return o = await Promise.race(o), delete Gt[o], o;
 		});
 	}
-	var Cr, Ur = {}, oo = () => {
-		if (!Cr) {
+	var _r, Rr = {}, lo = () => {
+		if (!_r) {
 			var e, t = {
 				USER: "web_user",
 				LOGNAME: "web_user",
@@ -2343,165 +2552,222 @@ async function es(a = {}) {
 				LANG: (globalThis.navigator?.language ?? "C").replace("-", "_") + ".UTF-8",
 				_: "./this.program"
 			};
-			for (e in Ur) Ur[e] === void 0 ? delete t[e] : t[e] = Ur[e];
+			for (e in Rr) Rr[e] === void 0 ? delete t[e] : t[e] = Rr[e];
 			var n = [];
 			for (e in t) n.push(`${e}=${t[e]}`);
-			Cr = n;
+			_r = n;
 		}
-		return Cr;
+		return _r;
 	};
-	function ao(e, t) {
-		if (i) return V(19, 1, e, t);
+	function po(e, t) {
+		if (i) return H(19, 1, e, t);
 		e >>>= 0, t >>>= 0;
 		var n, o = 0, u = 0;
-		for (n of oo()) {
+		for (n of lo()) {
 			var c = t + o;
-			(p(), A)[e + u >>> 2 >>> 0] = c, o += Pe(n, c, 1 / 0) + 1, u += 4;
+			(d(), E)[e + u >>> 2 >>> 0] = c, o += Ue(n, c, 1 / 0) + 1, u += 4;
 		}
 		return 0;
 	}
-	function so(e, t) {
-		if (i) return V(20, 1, e, t);
+	function mo(e, t) {
+		if (i) return H(20, 1, e, t);
 		e >>>= 0, t >>>= 0;
-		var n = oo();
-		for (var o of ((p(), A)[e >>> 2 >>> 0] = n.length, e = 0, n)) e += _e(o) + 1;
-		return (p(), A)[t >>> 2 >>> 0] = e, 0;
+		var n = lo();
+		for (var o of ((d(), E)[e >>> 2 >>> 0] = n.length, e = 0, n)) e += _e(o) + 1;
+		return (d(), E)[t >>> 2 >>> 0] = e, 0;
 	}
-	function io(e) {
-		return i ? V(21, 1, e) : 52;
+	function ho(e) {
+		return i ? H(21, 1, e) : 52;
 	}
-	function uo(e, t, n, o) {
-		return i ? V(22, 1, e, t, n, o) : 52;
+	function bo(e, t, n, o, u) {
+		return i ? H(22, 1, e, t, n, o, u) : 52;
 	}
-	function fo(e, t, n, o) {
-		return i ? V(23, 1, e, t, n, o) : 70;
+	function go(e, t, n, o) {
+		return i ? H(23, 1, e, t, n, o) : 52;
 	}
-	var Mu = [
+	function yo(e, t, n, o) {
+		return i ? H(24, 1, e, t, n, o) : 70;
+	}
+	var Yu = [
 		null,
 		[],
 		[]
 	];
-	function co(e, t, n, o) {
-		if (i) return V(24, 1, e, t, n, o);
+	function wo(e, t, n, o) {
+		if (i) return H(25, 1, e, t, n, o);
 		t >>>= 0, n >>>= 0, o >>>= 0;
 		for (var u = 0, c = 0; c < n; c++) {
-			var h = (p(), A)[t >>> 2 >>> 0], b = (p(), A)[t + 4 >>> 2 >>> 0];
+			var h = (d(), E)[t >>> 2 >>> 0], m = (d(), E)[t + 4 >>> 2 >>> 0];
 			t += 8;
-			for (var E = 0; E < b; E++) {
-				var I = e, F = (p(), J)[h + E >>> 0], j = Mu[I];
-				F === 0 || F === 10 ? ((I === 1 ? Y : O)(xn(j)), j.length = 0) : j.push(F);
+			for (var y = 0; y < m; y++) {
+				var x = e, N = (d(), X)[h + y >>> 0], F = Yu[x];
+				N === 0 || N === 10 ? ((x === 1 ? Y : O)(Bn(F)), F.length = 0) : F.push(N);
 			}
-			u += b;
+			u += m;
 		}
-		return (p(), A)[o >>> 2 >>> 0] = u, 0;
+		return (d(), E)[o >>> 2 >>> 0] = u, 0;
 	}
-	function Cu(e) {
+	function Ju(e) {
 		return e >>> 0;
 	}
-	function Uu(e, t) {
-		return ro(L(e >>> 0).limits, t >>> 0), 1;
+	function Xu(e, t) {
+		return io(B(e >>> 0).limits, t >>> 0), 1;
 	}
-	function Du(e, t) {
-		return L(e >>> 0).features.has(no[t]);
+	function Zu(e, t) {
+		return B(e >>> 0).features.has(uo[t]);
 	}
-	function Pu(e) {
-		return BigInt(L(e >>> 0).size);
+	function Ku(e) {
+		return BigInt(B(e >>> 0).size);
 	}
-	function _u(e) {
-		return BigInt(L(e >>> 0).usage);
+	function Qu(e) {
+		return BigInt(B(e >>> 0).usage);
 	}
-	function Ru(e, t) {
+	function ef(e, t) {
 		if (e >>>= 0, t >>>= 0) {
-			var n = Ne(t + 4);
+			var n = Ie(t + 4);
 			n = {
 				label: n,
-				timestampWrites: t = (t = (p(), A)[t + 12 >>> 2 >>> 0]) !== 0 ? {
-					querySet: L((p(), A)[t + 4 >>> 2 >>> 0]),
-					beginningOfPassWriteIndex: (p(), A)[t + 8 >>> 2 >>> 0],
-					endOfPassWriteIndex: (p(), A)[t + 12 >>> 2 >>> 0]
+				timestampWrites: t = (t = (d(), E)[t + 12 >>> 2 >>> 0]) !== 0 ? {
+					querySet: B((d(), E)[t + 4 >>> 2 >>> 0]),
+					beginningOfPassWriteIndex: (d(), E)[t + 8 >>> 2 >>> 0],
+					endOfPassWriteIndex: (d(), E)[t + 12 >>> 2 >>> 0]
 				} : void 0
 			};
 		}
-		return t = L(e), e = To(0), n = t.beginComputePass(n), de[e >>> 0] = n, e;
+		return t = B(e), e = Bo(0), n = t.beginComputePass(n), fe[e >>> 0] = n, e;
 	}
-	function Nu(e, t, n, o) {
-		n = ce(n), (o = ce(o)) == -1 && (o = void 0), (e = L(e >>> 0)).clearBuffer(L(t >>> 0), n, o);
+	function tf(e, t, n, o) {
+		n = ue(n), (o = ue(o)) == -1 && (o = void 0), (e = B(e >>> 0)).clearBuffer(B(t >>> 0), n, o);
 	}
-	function ku(e, t, n, o, u, c) {
-		n = ce(n), u = ce(u), c = ce(c), L(e >>> 0).copyBufferToBuffer(L(t >>> 0), n, L(o >>> 0), u, c);
+	function rf(e, t, n, o, u, c) {
+		n = ue(n), u = ue(u), c = ue(c), B(e >>> 0).copyBufferToBuffer(B(t >>> 0), n, B(o >>> 0), u, c);
 	}
-	function Wu(e) {
-		var t = L(e >>> 0);
-		return e = wo(0), t = t.finish(), de[e >>> 0] = t, e;
+	function nf(e) {
+		var t = B(e >>> 0);
+		return e = Io(0), t = t.finish(), fe[e >>> 0] = t, e;
 	}
-	function Fu(e, t, n, o, u, c) {
-		c = ce(c), L(e >>> 0).resolveQuerySet(L(t >>> 0), n, o, L(u >>> 0), c);
+	function of(e, t, n, o, u, c) {
+		c = ue(c), B(e >>> 0).resolveQuerySet(B(t >>> 0), n, o, B(u >>> 0), c);
 	}
-	function Gu(e, t, n, o) {
-		L(e >>> 0).dispatchWorkgroups(t, n, o);
+	function af(e, t, n, o) {
+		B(e >>> 0).dispatchWorkgroups(t, n, o);
 	}
-	function $u(e, t, n) {
-		n = ce(n), L(e >>> 0).dispatchWorkgroupsIndirect(L(t >>> 0), n);
+	function sf(e, t, n) {
+		n = ue(n), B(e >>> 0).dispatchWorkgroupsIndirect(B(t >>> 0), n);
 	}
-	function zu(e) {
-		L(e >>> 0).end();
+	function uf(e) {
+		B(e >>> 0).end();
 	}
-	function Vu(e, t, n, o, u) {
-		o >>>= 0, u >>>= 0, e = L(e >>> 0), n = L(n >>> 0), o == 0 ? e.setBindGroup(t, n) : e.setBindGroup(t, n, (p(), A), u >>> 2, o);
+	function ff(e, t, n, o, u) {
+		o >>>= 0, u >>>= 0, e = B(e >>> 0), n = B(n >>> 0), o == 0 ? e.setBindGroup(t, n) : e.setBindGroup(t, n, (d(), E), u >>> 2, o);
 	}
-	function ju(e, t) {
-		L(e >>> 0).setPipeline(L(t >>> 0));
+	function cf(e, t) {
+		B(e >>> 0).setPipeline(B(t >>> 0));
 	}
-	function Hu(e, t, n) {
-		L(e >>> 0).Ce(L(t >>> 0), n);
+	function df(e, t, n) {
+		B(e >>> 0).Xe(B(t >>> 0), n);
 	}
-	function Yu(e, t) {
-		var n = L(e >>> 0);
-		return e = bo(0), t = n.getBindGroupLayout(t), de[e >>> 0] = t, e;
-	}
-	function qu(e, t) {
+	function lf(e, t) {
 		function n(u) {
-			var c = (p(), A)[u + 8 >>> 2 >>> 0], h = (p(), A)[u + 32 >>> 2 >>> 0], b = (p(), A)[u + 36 >>> 2 >>> 0], E = 0;
-			return fu(u, { 327681: (I) => {
-				E = (p(), A)[I + 8 >>> 2 >>> 0];
-			} }), c ? ((h = vt(u + 24)) == -1 && (h = void 0), c = {
-				buffer: L(c),
-				offset: vt(u + 16),
+			var c = (d(), E)[u + 8 >>> 2 >>> 0], h = (d(), E)[u + 32 >>> 2 >>> 0], m = (d(), E)[u + 36 >>> 2 >>> 0], y = 0;
+			return Ur(u, { 14: (x) => {
+				y = (d(), E)[x + 8 >>> 2 >>> 0];
+			} }), c ? ((h = mt(u + 24)) == -1 && (h = void 0), c = {
+				buffer: B(c),
+				offset: mt(u + 16),
 				size: h
-			}) : c = L(h || b || E), {
-				binding: (p(), A)[u + 4 >>> 2 >>> 0],
+			}) : c = B(h || m || y), {
+				binding: (d(), E)[u + 4 >>> 2 >>> 0],
 				resource: c
 			};
 		}
 		e >>>= 0, t = {
-			label: Ne(4 + (t >>>= 0)),
-			layout: L((p(), A)[t + 12 >>> 2 >>> 0]),
-			entries: function(u, c) {
-				for (var h = [], b = 0; b < u; ++b) h.push(n(c + 40 * b));
+			label: Ie((t >>>= 0) + 4),
+			layout: B((d(), E)[t + 12 >>> 2 >>> 0]),
+			entries: (function(u, c) {
+				for (var h = [], m = 0; m < u; ++m) h.push(n(c + 40 * m));
 				return h;
-			}((p(), A)[t + 16 >>> 2 >>> 0], (p(), A)[t + 20 >>> 2 >>> 0])
-		}, e = L(e);
-		var o = yo(0);
-		return uu(o, e.createBindGroup(t)), o;
+			})((d(), E)[t + 16 >>> 2 >>> 0], (d(), E)[t + 20 >>> 2 >>> 0])
+		}, e = B(e);
+		var o = xo(0);
+		return ao(o, e.createBindGroup(t)), o;
 	}
-	function Ju(e, t) {
+	function pf(e, t) {
+		function n(y) {
+			var x = (d(), E)[y + 4 >>> 2 >>> 0];
+			if (x) return {
+				type: xu[x],
+				hasDynamicOffset: !!(d(), E)[y + 8 >>> 2 >>> 0],
+				minBindingSize: mt(y + 16)
+			};
+		}
+		function o(y) {
+			if (y = (d(), E)[y + 4 >>> 2 >>> 0]) return { type: Ou[y] };
+		}
+		function u(y) {
+			var x = (d(), E)[y + 4 >>> 2 >>> 0];
+			if (x) return {
+				sampleType: Du[x],
+				viewDimension: co[(d(), I)[y + 8 >>> 2 >>> 0]],
+				multisampled: !!(d(), E)[y + 12 >>> 2 >>> 0]
+			};
+		}
+		function c(y) {
+			var x = (d(), E)[y + 4 >>> 2 >>> 0];
+			if (x) return {
+				access: Mu[x],
+				format: Cu[(d(), I)[y + 8 >>> 2 >>> 0]],
+				viewDimension: co[(d(), I)[y + 12 >>> 2 >>> 0]]
+			};
+		}
+		function h(y) {
+			var x = {
+				binding: (d(), E)[y + 4 >>> 2 >>> 0],
+				visibility: (d(), E)[y + 8 >>> 2 >>> 0],
+				buffer: n(y + 24),
+				sampler: o(y + 48),
+				texture: u(y + 56),
+				storageTexture: c(y + 72)
+			};
+			return Ur(y, { 13: () => {
+				x.externalTexture = {};
+			} }), x;
+		}
+		e >>>= 0, t = {
+			label: Ie((t >>>= 0) + 4),
+			entries: (function(y, x) {
+				for (var N = [], F = 0; F < y; ++F) N.push(h(x + 88 * F));
+				return N;
+			})((d(), E)[t + 12 >>> 2 >>> 0], (d(), E)[t + 16 >>> 2 >>> 0])
+		}, e = B(e);
+		var m = Ao(0);
+		return ao(m, e.createBindGroupLayout(t)), m;
+	}
+	function mf(e, t) {
 		var n;
-		return e >>>= 0, (t >>>= 0) && (n = { label: Ne(t + 4) }), t = L(e), e = go(0), n = t.createCommandEncoder(n), de[e >>> 0] = n, e;
+		return e >>>= 0, (t >>>= 0) && (n = { label: Ie(t + 4) }), t = B(e), e = Lo(0), n = t.createCommandEncoder(n), fe[e >>> 0] = n, e;
 	}
-	function Xu(e, t) {
+	function hf(e, t) {
+		e >>>= 0, t >>>= 0;
+		for (var n = (d(), E)[t + 12 >>> 2 >>> 0], o = (d(), E)[t + 16 >>> 2 >>> 0], u = [], c = 0; c < n; ++c) u.push(B((d(), E)[o + 4 * c >>> 2 >>> 0]));
+		return t = {
+			label: Ie(t + 4),
+			bindGroupLayouts: u,
+			immediateSize: (d(), E)[t + 20 >>> 2 >>> 0]
+		}, n = B(e), e = Oo(0), t = n.createPipelineLayout(t), fe[e >>> 0] = t, e;
+	}
+	function bf(e, t) {
 		e >>>= 0, t >>>= 0, t = {
-			type: mu[(p(), x)[t + 12 >>> 2 >>> 0]],
-			count: (p(), A)[t + 16 >>> 2 >>> 0]
+			type: Bu[(d(), I)[t + 12 >>> 2 >>> 0]],
+			count: (d(), E)[t + 16 >>> 2 >>> 0]
 		};
-		var n = L(e);
-		return e = vo(0), t = n.createQuerySet(t), de[e >>> 0] = t, e;
+		var n = B(e);
+		return e = Mo(0), t = n.createQuerySet(t), fe[e >>> 0] = t, e;
 	}
-	function Qu(e, t) {
-		e = L(e >>> 0).adapterInfo, t >>>= 0, (p(), A)[t + 52 >>> 2 >>> 0] = e.subgroupMinSize, (p(), A)[t + 56 >>> 2 >>> 0] = e.subgroupMaxSize;
-		var n = e.vendor + e.architecture + e.device + e.description, o = _e(n) + 1, u = pt(o);
-		return u && Pe(n, u, o), n = u, o = _e(e.vendor), kt(t + 4, n, o), n += o, o = _e(e.architecture), kt(t + 12, n, o), n += o, o = _e(e.device), kt(t + 20, n, o), kt(t + 28, n + o, _e(e.description)), (p(), x)[t + 36 >>> 2 >>> 0] = 2, e = e.isFallbackAdapter ? 3 : 4, (p(), x)[t + 40 >>> 2 >>> 0] = e, (p(), A)[t + 44 >>> 2 >>> 0] = 0, (p(), A)[t + 48 >>> 2 >>> 0] = 0, 1;
+	function gf(e, t) {
+		return Su(B(e >>> 0).adapterInfo, t >>> 0), 1;
 	}
-	var Zu = {
+	var yf = {
 		"core-features-and-limits": 1,
 		"depth-clip-control": 2,
 		"depth32float-stencil8": 3,
@@ -2524,119 +2790,122 @@ async function es(a = {}) {
 		"texture-formats-tier2": 20,
 		"primitive-index": 21,
 		"texture-component-swizzle": 22,
+		"subgroup-size-control": 23,
 		"chromium-experimental-unorm16-texture-formats": 327692,
-		"chromium-experimental-multi-draw-indirect": 327729
+		"chromium-experimental-multi-draw-indirect": 327729,
+		"chromium-experimental-subgroup-matrix": 327732
 	};
-	function Ku(e, t) {
+	function wf(e, t) {
 		t >>>= 0;
-		var n = L(e >>> 0);
-		e = pt(4 * n.features.size);
+		var n = B(e >>> 0);
+		e = Ke(4 * n.features.size);
 		var o = 0, u = 0;
-		for (let c of n.features) 0 <= (n = Zu[c]) && ((p(), x)[e + o >>> 2 >>> 0] = n, o += 4, u++);
-		(p(), A)[t + 4 >>> 2 >>> 0] = e, (p(), A)[t >>> 2 >>> 0] = u;
+		for (let c of n.features) 0 <= (n = yf[c]) && ((d(), I)[e + o >>> 2 >>> 0] = n, o += 4, u++);
+		(d(), E)[t + 4 >>> 2 >>> 0] = e, (d(), E)[t >>> 2 >>> 0] = u;
 	}
-	function ef(e, t) {
-		return ro(L(e >>> 0).limits, t >>> 0), 1;
+	function Tf(e, t) {
+		return io(B(e >>> 0).limits, t >>> 0), 1;
 	}
-	function tf(e, t) {
-		L(e >>> 0).pushErrorScope(du[t]);
+	function vf(e, t) {
+		B(e >>> 0).pushErrorScope(Au[t]);
 	}
-	function rf(e, t, n) {
-		t >>>= 0, n >>>= 0, e = L(e >>> 0), t = Array.from((p(), x).subarray(n >>> 2 >>> 0, n + 4 * t >>> 2 >>> 0), (o) => L(o)), e.submit(t);
+	function Ef(e, t, n) {
+		t >>>= 0, n >>>= 0, e = B(e >>> 0), t = Array.from((d(), I).subarray(n >>> 2 >>> 0, n + 4 * t >>> 2 >>> 0), (o) => B(o)), e.submit(t);
 	}
-	function nf(e, t, n, o, u) {
-		n = ce(n), o >>>= 0, u >>>= 0, e = L(e >>> 0), t = L(t >>> 0), o = (p(), J).subarray(o >>> 0, o + u >>> 0), e.writeBuffer(t, n, o, 0, u);
+	function Sf(e, t, n, o, u) {
+		n = ue(n), o >>>= 0, u >>>= 0, e = B(e >>> 0), t = B(t >>> 0), o = (d(), X).subarray(o >>> 0, o + u >>> 0), e.writeBuffer(t, n, o, 0, u);
 	}
-	i || function() {
-		for (var e = r.numThreads - 1; e--;) gn();
-		Ae.push(async () => {
-			var t = async function() {
-				if (!i) return Promise.all(We.map(wn));
-			}();
-			Oe++, await t, --Oe == 0 && ee && (t = ee, ee = null, t());
+	i || (function() {
+		for (var e = r.numThreads - 1; e--;) vn();
+		xe.push(async () => {
+			var t = (async function() {
+				if (!i) return Promise.all(ke.map(Tn));
+			})();
+			Be++, await t, --Be == 0 && re && (t = re, re = null, t());
 		});
-	}(), i || (Fe = new WebAssembly.Memory({
+	})(), i || (Fe = new WebAssembly.Memory({
 		initial: 256,
 		maximum: 65536,
 		shared: !0
-	}), se()), r.wasmBinary && (g = r.wasmBinary), r.stackSave = () => P(), r.stackRestore = (e) => D(e), r.stackAlloc = (e) => Ft(e), r.setValue = function(e, t, n = "i8") {
+	}), se()), r.wasmBinary && (v = r.wasmBinary), r.stackSave = () => P(), r.stackRestore = (e) => D(e), r.stackAlloc = (e) => Vt(e), r.setValue = function(e, t, n = "i8") {
 		switch (n.endsWith("*") && (n = "*"), n) {
 			case "i1":
 			case "i8":
-				(p(), X)[e >>> 0] = t;
+				(d(), Z)[e >>> 0] = t;
 				break;
 			case "i16":
-				(p(), Ue)[e >>> 1 >>> 0] = t;
+				(d(), De)[e >>> 1 >>> 0] = t;
 				break;
 			case "i32":
-				(p(), x)[e >>> 2 >>> 0] = t;
+				(d(), I)[e >>> 2 >>> 0] = t;
 				break;
 			case "i64":
-				(p(), me)[e >>> 3 >>> 0] = BigInt(t);
+				(d(), pe)[e >>> 3 >>> 0] = BigInt(t);
 				break;
 			case "float":
-				(p(), _)[e >>> 2 >>> 0] = t;
+				(d(), R)[e >>> 2 >>> 0] = t;
 				break;
 			case "double":
-				(p(), ae)[e >>> 3 >>> 0] = t;
+				(d(), ae)[e >>> 3 >>> 0] = t;
 				break;
 			case "*":
-				(p(), A)[e >>> 2 >>> 0] = t;
+				(d(), E)[e >>> 2 >>> 0] = t;
 				break;
-			default: Te(`invalid type for setValue: ${n}`);
+			default: we(`invalid type for setValue: ${n}`);
 		}
 	}, r.getValue = function(e, t = "i8") {
 		switch (t.endsWith("*") && (t = "*"), t) {
 			case "i1":
-			case "i8": return (p(), X)[e >>> 0];
-			case "i16": return (p(), Ue)[e >>> 1 >>> 0];
-			case "i32": return (p(), x)[e >>> 2 >>> 0];
-			case "i64": return (p(), me)[e >>> 3 >>> 0];
-			case "float": return (p(), _)[e >>> 2 >>> 0];
-			case "double": return (p(), ae)[e >>> 3 >>> 0];
-			case "*": return (p(), A)[e >>> 2 >>> 0];
-			default: Te(`invalid type for getValue: ${t}`);
+			case "i8": return (d(), Z)[e >>> 0];
+			case "i16": return (d(), De)[e >>> 1 >>> 0];
+			case "i32": return (d(), I)[e >>> 2 >>> 0];
+			case "i64": return (d(), pe)[e >>> 3 >>> 0];
+			case "float": return (d(), R)[e >>> 2 >>> 0];
+			case "double": return (d(), ae)[e >>> 3 >>> 0];
+			case "*": return (d(), E)[e >>> 2 >>> 0];
+			default: we(`invalid type for getValue: ${t}`);
 		}
-	}, r.UTF8ToString = ct, r.stringToUTF8 = Pe, r.lengthBytesUTF8 = _e;
-	var lo, po, Dr, Wt, xe, pt, mo, ho, yo, bo, wo, go, To, vo, Eo, So, Ao, Pr, _r, Rr, Nr, Et, kr, Io, Wr, xo, Lo, Oo, Fr, Bo, Mo, Gr, N, St, Co, D, Ft, P, Uo, $r, Do, Po, _o, zr, Ro, No, ko, Wo, Fo, Go, $o, zo, Vo, jo, Ho, Yo, qo, Jo, Xo, Qo, Zo, Ko, ea, ta, ra, na, oa, aa, sa, ia, ua, fa, ca, da, la, pa, ma, ha, ya, ba, wa, ga, ke, of = [
-		qe,
-		yr,
-		En,
-		Ln,
+	}, r.UTF8ToString = lt, r.stringToUTF8 = Ue, r.lengthBytesUTF8 = _e;
+	var To, vo, Eo, Nr, zt, ve, Ke, So, xo, Ao, Io, Lo, Bo, Oo, Mo, Co, Do, Po, Wr, kr, Fr, Gr, St, $r, Uo, zr, _o, Ro, No, Vr, Wo, ko, jr, W, xt, Fo, D, Vt, P, Go, Hr, $o, zo, Vo, qr, jo, Ho, qo, Yo, Jo, Xo, Zo, Ko, Qo, ea, ta, ra, na, oa, aa, sa, ia, ua, fa, ca, da, la, pa, ma, ha, ba, ga, ya, wa, Ta, va, Ea, Sa, xa, Aa, Ia, La, Ba, Oa, Ma, Ca, Ne, xf = [
+		Ye,
+		Tr,
+		xn,
 		On,
-		Bn,
 		Mn,
 		Cn,
-		Un,
 		Dn,
 		Pn,
+		Un,
 		_n,
 		Rn,
 		Nn,
-		kn,
 		Wn,
+		kn,
+		Fn,
+		Gn,
 		Qn,
-		Zn,
-		Kn,
-		ao,
-		so,
-		io,
-		uo,
-		fo,
-		co
-	], Vr = {
-		970348: (e, t, n, o, u) => {
-			if (r === void 0 || !r.Uc) return 1;
-			if ((e = ct(Number(e >>> 0))).startsWith("./") && (e = e.substring(2)), !(e = r.Uc.get(e))) return 2;
+		eo,
+		to,
+		po,
+		mo,
+		ho,
+		bo,
+		go,
+		yo,
+		wo
+	], Yr = {
+		1280444: (e, t, n, o, u) => {
+			if (r === void 0 || !r.ed) return 1;
+			if ((e = lt(Number(e >>> 0))).startsWith("./") && (e = e.substring(2)), !(e = r.ed.get(e))) return 2;
 			if (t = Number(t >>> 0), n = Number(n >>> 0), o = Number(o >>> 0), t + n > e.byteLength) return 3;
 			try {
 				let c = e.subarray(t, t + n);
 				switch (u) {
 					case 0:
-						(p(), J).set(c, o >>> 0);
+						(d(), X).set(c, o >>> 0);
 						break;
 					case 1:
-						r.ad ? r.ad(o, c) : r.ne(o, c);
+						r.pe ? r.pe(o, c) : r.Re(o, c);
 						break;
 					default: return 4;
 				}
@@ -2645,509 +2914,539 @@ async function es(a = {}) {
 				return 4;
 			}
 		},
-		971172: (e, t, n) => {
-			r.Sd(e, (p(), J).subarray(t >>> 0, t + n >>> 0));
+		1281268: (e, t, n) => {
+			r.re(e, (d(), X).subarray(t >>> 0, t + n >>> 0));
 		},
-		971236: () => r.le(),
-		971278: (e) => {
-			r.jd(e);
+		1281332: () => r.Pe(),
+		1281374: (e) => {
+			r.qe(e);
 		},
-		971315: () => typeof wasmOffsetConverter < "u"
+		1281411: () => typeof wasmOffsetConverter < "u"
 	};
-	function af(e, t, n, o) {
+	function Af() {
+		return typeof wasmOffsetConverter < "u";
+	}
+	function If(e, t, n, o) {
 		var u = P();
 		try {
-			return zo(e, t, n, o);
+			return Ko(e, t, n, o);
 		} catch (c) {
 			if (D(u), c !== c + 0) throw c;
-			N(1, 0);
+			W(1, 0);
 		}
 	}
-	function sf(e, t, n) {
+	function Lf(e, t, n) {
 		var o = P();
 		try {
-			return Fo(e, t, n);
+			return Jo(e, t, n);
 		} catch (u) {
 			if (D(o), u !== u + 0) throw u;
-			N(1, 0);
+			W(1, 0);
 		}
 	}
-	function uf(e) {
+	function Bf(e) {
 		var t = P();
 		try {
-			Ro(e);
+			jo(e);
 		} catch (n) {
 			if (D(t), n !== n + 0) throw n;
-			N(1, 0);
+			W(1, 0);
 		}
 	}
-	function ff(e, t) {
+	function Of(e, t) {
 		var n = P();
 		try {
-			return zr(e, t);
+			return qr(e, t);
 		} catch (o) {
 			if (D(n), o !== o + 0) throw o;
-			N(1, 0);
+			W(1, 0);
 		}
 	}
-	function cf(e, t, n) {
+	function Mf(e, t, n) {
 		var o = P();
 		try {
-			_o(e, t, n);
+			Vo(e, t, n);
 		} catch (u) {
 			if (D(o), u !== u + 0) throw u;
-			N(1, 0);
+			W(1, 0);
 		}
 	}
-	function df(e, t) {
+	function Cf(e, t) {
 		var n = P();
 		try {
-			Vo(e, t);
+			Qo(e, t);
 		} catch (o) {
 			if (D(n), o !== o + 0) throw o;
-			N(1, 0);
+			W(1, 0);
 		}
 	}
-	function lf(e, t, n, o, u, c, h) {
-		var b = P();
+	function Df(e, t, n, o, u, c, h) {
+		var m = P();
 		try {
-			return Wo(e, t, n, o, u, c, h);
-		} catch (E) {
-			if (D(b), E !== E + 0) throw E;
-			N(1, 0);
+			return Yo(e, t, n, o, u, c, h);
+		} catch (y) {
+			if (D(m), y !== y + 0) throw y;
+			W(1, 0);
 		}
 	}
-	function pf(e, t, n, o, u, c) {
+	function Pf(e, t, n, o, u, c) {
 		var h = P();
 		try {
-			No(e, t, n, o, u, c);
-		} catch (b) {
-			if (D(h), b !== b + 0) throw b;
-			N(1, 0);
+			Ho(e, t, n, o, u, c);
+		} catch (m) {
+			if (D(h), m !== m + 0) throw m;
+			W(1, 0);
 		}
 	}
-	function mf(e, t, n, o) {
+	function Uf(e, t, n, o) {
 		var u = P();
 		try {
-			$o(e, t, n, o);
+			Zo(e, t, n, o);
 		} catch (c) {
 			if (D(u), c !== c + 0) throw c;
-			N(1, 0);
+			W(1, 0);
 		}
 	}
-	function hf(e, t, n, o, u, c, h) {
-		var b = P();
+	function _f(e, t, n, o, u, c, h) {
+		var m = P();
 		try {
-			Ho(e, t, n, o, u, c, h);
-		} catch (E) {
-			if (D(b), E !== E + 0) throw E;
-			N(1, 0);
+			ta(e, t, n, o, u, c, h);
+		} catch (y) {
+			if (D(m), y !== y + 0) throw y;
+			W(1, 0);
 		}
 	}
-	function yf(e, t, n, o, u, c, h) {
-		var b = P();
+	function Rf(e, t, n, o, u, c, h) {
+		var m = P();
 		try {
-			Yo(e, t, n, o, u, c, h);
-		} catch (E) {
-			if (D(b), E !== E + 0) throw E;
-			N(1, 0);
+			ra(e, t, n, o, u, c, h);
+		} catch (y) {
+			if (D(m), y !== y + 0) throw y;
+			W(1, 0);
 		}
 	}
-	function bf(e, t, n, o, u, c, h, b) {
-		var E = P();
+	function Nf(e, t, n, o, u, c, h, m) {
+		var y = P();
 		try {
-			ra(e, t, n, o, u, c, h, b);
-		} catch (I) {
-			if (D(E), I !== I + 0) throw I;
-			N(1, 0);
+			la(e, t, n, o, u, c, h, m);
+		} catch (x) {
+			if (D(y), x !== x + 0) throw x;
+			W(1, 0);
 		}
 	}
-	function wf(e, t, n, o, u, c, h, b, E, I, F, j) {
-		var te = P();
+	function Wf(e, t, n, o, u, c, h, m, y, x, N, F) {
+		var L = P();
 		try {
-			qo(e, t, n, o, u, c, h, b, E, I, F, j);
-		} catch (B) {
-			if (D(te), B !== B + 0) throw B;
-			N(1, 0);
+			na(e, t, n, o, u, c, h, m, y, x, N, F);
+		} catch (q) {
+			if (D(L), q !== q + 0) throw q;
+			W(1, 0);
 		}
 	}
-	function gf(e, t, n, o, u) {
+	function kf(e, t, n, o, u) {
 		var c = P();
 		try {
-			return jo(e, t, n, o, u);
+			return ea(e, t, n, o, u);
 		} catch (h) {
 			if (D(c), h !== h + 0) throw h;
-			N(1, 0);
+			W(1, 0);
 		}
 	}
-	function Tf(e, t, n, o, u) {
+	function Ff(e, t, n, o, u, c) {
+		var h = P();
+		try {
+			pa(e, t, n, o, u, c);
+		} catch (m) {
+			if (D(h), m !== m + 0) throw m;
+			W(1, 0);
+		}
+	}
+	function Gf(e, t, n, o, u) {
 		var c = P();
 		try {
-			ko(e, t, n, o, u);
+			qo(e, t, n, o, u);
 		} catch (h) {
 			if (D(c), h !== h + 0) throw h;
-			N(1, 0);
+			W(1, 0);
 		}
 	}
-	function vf(e, t, n, o, u, c, h, b) {
-		var E = P();
+	function $f(e, t, n, o, u, c, h, m) {
+		var y = P();
 		try {
-			Go(e, t, n, o, u, c, h, b);
-		} catch (I) {
-			if (D(E), I !== I + 0) throw I;
-			N(1, 0);
+			Xo(e, t, n, o, u, c, h, m);
+		} catch (x) {
+			if (D(y), x !== x + 0) throw x;
+			W(1, 0);
 		}
 	}
-	function Ef(e) {
+	function zf(e) {
 		var t = P();
 		try {
-			return na(e);
+			return ma(e);
 		} catch (n) {
 			if (D(t), n !== n + 0) throw n;
-			N(1, 0);
+			W(1, 0);
 		}
 	}
-	function Sf(e, t, n) {
+	function Vf(e, t, n, o, u, c, h, m, y) {
+		var x = P();
+		try {
+			aa(e, t, n, o, u, c, h, m, y);
+		} catch (N) {
+			if (D(x), N !== N + 0) throw N;
+			W(1, 0);
+		}
+	}
+	function jf(e, t, n) {
 		var o = P();
 		try {
-			return oa(e, t, n);
+			return ha(e, t, n);
 		} catch (u) {
 			if (D(o), u !== u + 0) throw u;
-			N(1, 0);
+			W(1, 0);
 		}
 	}
-	function Af(e, t) {
+	function Hf(e, t) {
 		var n = P();
 		try {
-			return ha(e, t);
+			return La(e, t);
 		} catch (o) {
 			if (D(n), o !== o + 0) throw o;
-			return N(1, 0), 0n;
+			return W(1, 0), 0n;
 		}
 	}
-	function If(e) {
+	function qf(e, t, n, o) {
+		var u = P();
+		try {
+			return ba(e, t, n, o);
+		} catch (c) {
+			if (D(u), c !== c + 0) throw c;
+			W(1, 0);
+		}
+	}
+	function Yf(e) {
 		var t = P();
 		try {
-			return Jo(e);
+			return oa(e);
 		} catch (n) {
 			if (D(t), n !== n + 0) throw n;
-			return N(1, 0), 0n;
+			return W(1, 0), 0n;
 		}
 	}
-	function xf(e, t, n, o) {
+	function Jf(e, t, n, o) {
 		var u = P();
 		try {
-			return aa(e, t, n, o);
+			return ga(e, t, n, o);
 		} catch (c) {
 			if (D(u), c !== c + 0) throw c;
-			N(1, 0);
+			W(1, 0);
 		}
 	}
-	function Lf(e, t, n, o, u) {
+	function Xf(e, t, n, o, u) {
 		var c = P();
 		try {
-			return sa(e, t, n, o, u);
+			return ya(e, t, n, o, u);
 		} catch (h) {
 			if (D(c), h !== h + 0) throw h;
-			N(1, 0);
+			W(1, 0);
 		}
 	}
-	function Of(e, t, n, o, u, c) {
+	function Zf(e, t, n, o, u, c) {
 		var h = P();
 		try {
-			return ia(e, t, n, o, u, c);
-		} catch (b) {
-			if (D(h), b !== b + 0) throw b;
-			N(1, 0);
+			return wa(e, t, n, o, u, c);
+		} catch (m) {
+			if (D(h), m !== m + 0) throw m;
+			W(1, 0);
 		}
 	}
-	function Bf(e, t, n, o, u, c) {
+	function Kf(e, t, n, o, u, c) {
 		var h = P();
 		try {
-			return ea(e, t, n, o, u, c);
-		} catch (b) {
-			if (D(h), b !== b + 0) throw b;
-			N(1, 0);
+			return ca(e, t, n, o, u, c);
+		} catch (m) {
+			if (D(h), m !== m + 0) throw m;
+			W(1, 0);
 		}
 	}
-	function Mf(e, t, n, o, u, c) {
+	function Qf(e, t, n, o, u, c) {
 		var h = P();
 		try {
-			return ua(e, t, n, o, u, c);
-		} catch (b) {
-			if (D(h), b !== b + 0) throw b;
-			N(1, 0);
+			return Ta(e, t, n, o, u, c);
+		} catch (m) {
+			if (D(h), m !== m + 0) throw m;
+			W(1, 0);
 		}
 	}
-	function Cf(e, t, n, o, u, c, h, b) {
-		var E = P();
+	function ec(e, t, n, o, u, c, h, m) {
+		var y = P();
 		try {
-			return ta(e, t, n, o, u, c, h, b);
-		} catch (I) {
-			if (D(E), I !== I + 0) throw I;
-			N(1, 0);
+			return da(e, t, n, o, u, c, h, m);
+		} catch (x) {
+			if (D(y), x !== x + 0) throw x;
+			W(1, 0);
 		}
 	}
-	function Uf(e, t, n, o, u) {
+	function tc(e, t, n, o, u) {
 		var c = P();
 		try {
-			return fa(e, t, n, o, u);
+			return va(e, t, n, o, u);
 		} catch (h) {
 			if (D(c), h !== h + 0) throw h;
-			return N(1, 0), 0n;
+			return W(1, 0), 0n;
 		}
 	}
-	function Df(e, t, n, o) {
+	function rc(e, t, n, o) {
 		var u = P();
 		try {
-			return ca(e, t, n, o);
+			return Ea(e, t, n, o);
 		} catch (c) {
 			if (D(u), c !== c + 0) throw c;
-			N(1, 0);
+			W(1, 0);
 		}
 	}
-	function Pf(e, t, n, o) {
+	function nc(e, t, n, o) {
 		var u = P();
 		try {
-			return da(e, t, n, o);
+			return Sa(e, t, n, o);
 		} catch (c) {
 			if (D(u), c !== c + 0) throw c;
-			N(1, 0);
+			W(1, 0);
 		}
 	}
-	function _f(e, t, n, o, u, c, h, b, E, I, F, j) {
-		var te = P();
+	function oc(e, t, n, o, u, c, h, m, y, x, N, F) {
+		var L = P();
 		try {
-			return la(e, t, n, o, u, c, h, b, E, I, F, j);
-		} catch (B) {
-			if (D(te), B !== B + 0) throw B;
-			N(1, 0);
+			return xa(e, t, n, o, u, c, h, m, y, x, N, F);
+		} catch (q) {
+			if (D(L), q !== q + 0) throw q;
+			W(1, 0);
 		}
 	}
-	function Rf(e, t, n, o, u, c, h, b, E, I, F) {
-		var j = P();
+	function ac(e, t, n, o, u, c, h, m, y, x, N) {
+		var F = P();
 		try {
-			pa(e, t, n, o, u, c, h, b, E, I, F);
-		} catch (te) {
-			if (D(j), te !== te + 0) throw te;
-			N(1, 0);
+			Aa(e, t, n, o, u, c, h, m, y, x, N);
+		} catch (L) {
+			if (D(F), L !== L + 0) throw L;
+			W(1, 0);
 		}
 	}
-	function Nf(e, t, n, o, u, c, h, b, E, I, F, j, te, B, ue, ye) {
-		var fe = P();
+	function sc(e, t, n, o, u, c, h, m, y, x, N, F, L, q, he, de) {
+		var Qe = P();
 		try {
-			ma(e, t, n, o, u, c, h, b, E, I, F, j, te, B, ue, ye);
-		} catch (Qe) {
-			if (D(fe), Qe !== Qe + 0) throw Qe;
-			N(1, 0);
+			Ia(e, t, n, o, u, c, h, m, y, x, N, F, L, q, he, de);
+		} catch (et) {
+			if (D(Qe), et !== et + 0) throw et;
+			W(1, 0);
 		}
 	}
-	function kf(e, t, n) {
+	function ic(e, t, n) {
 		var o = P();
 		try {
-			return Qo(e, t, n);
+			return ia(e, t, n);
 		} catch (u) {
 			if (D(o), u !== u + 0) throw u;
-			return N(1, 0), 0n;
+			return W(1, 0), 0n;
 		}
 	}
-	function Wf(e, t, n) {
+	function uc(e, t, n) {
 		var o = P();
 		try {
-			return Xo(e, t, n);
+			return sa(e, t, n);
 		} catch (u) {
 			if (D(o), u !== u + 0) throw u;
-			N(1, 0);
+			W(1, 0);
 		}
 	}
-	function Ff(e, t, n) {
+	function fc(e, t, n) {
 		var o = P();
 		try {
-			return Zo(e, t, n);
+			return ua(e, t, n);
 		} catch (u) {
 			if (D(o), u !== u + 0) throw u;
-			N(1, 0);
+			W(1, 0);
 		}
 	}
-	function Gf(e, t, n, o) {
+	function cc(e, t, n, o) {
 		var u = P();
 		try {
-			Ko(e, t, n, o);
+			fa(e, t, n, o);
 		} catch (c) {
 			if (D(u), c !== c + 0) throw c;
-			N(1, 0);
+			W(1, 0);
 		}
 	}
-	function Gt() {
-		if (0 < Oe) ee = Gt;
-		else if (i) C?.(r), hr();
+	function jt() {
+		if (0 < Be) re = jt;
+		else if (i) C?.(r), wr();
 		else {
-			for (var e = Ae; 0 < e.length;) e.shift()(r);
-			0 < Oe ? ee = Gt : (r.calledRun = !0, W || (hr(), C?.(r)));
+			for (var e = xe; 0 < e.length;) e.shift()(r);
+			0 < Be ? re = jt : (r.calledRun = !0, $ || (wr(), C?.(r)));
 		}
 	}
-	return i || (ke = await bt(), Gt()), r.PTR_SIZE = 4, r.webgpuInit = (e) => {
+	return i || (Ne = await wt(), jt()), r.PTR_SIZE = 4, r.webgpuInit = (e) => {
 		let t = /* @__PURE__ */ new WeakMap(), n, o, u = 1;
-		r.webgpuRegisterDevice = (b) => {
+		r.webgpuRegisterDevice = (m) => {
 			if (o !== void 0) throw Error("another WebGPU EP inference session is being created.");
-			if (b) {
-				var E = t.get(b);
-				if (!E) {
-					let I = ((F, j = 0) => {
-						var te = Ao(j);
-						return j = So(j, te), de[te >>> 0] = F.queue, de[j >>> 0] = F, j;
-					})(b, E = ho(0));
-					E = [
+			if (m) {
+				var y = t.get(m);
+				if (!y) {
+					let x = ((N, F = 0) => {
+						var L = Po(F);
+						return F = Do(F, L), fe[L >>> 0] = N.queue, fe[F >>> 0] = N, F;
+					})(m, y = Eo());
+					y = [
 						u++,
-						E,
-						I
-					], t.set(b, E);
+						y,
+						x
+					], t.set(m, y);
 				}
-				return n = b, o = E[0], E;
+				return n = m, o = y[0], y;
 			}
 			n = void 0, o = 0;
 		};
 		let c = /* @__PURE__ */ new Map();
-		r.webgpuOnCreateSession = (b) => {
+		r.webgpuOnCreateSession = (m) => {
 			if (o !== void 0) {
-				var E = o;
-				if (o = void 0, b) {
-					let I = Dr(E);
-					c.set(b, I), E === 0 && e(n ?? L(I));
+				var y = o;
+				if (o = void 0, m) {
+					let x = Nr(y);
+					c.set(m, x), y === 0 && e(n ?? B(x));
 				}
 				n = void 0;
 			}
-		}, r.webgpuOnReleaseSession = (b) => {
-			c.delete(b);
+		}, r.webgpuOnReleaseSession = (m) => {
+			c.delete(m);
 		};
 		let h = Symbol("gpuBufferMetadata");
-		r.webgpuRegisterBuffer = (b, E, I) => {
-			if (I) return b[h] = [I, NaN], I;
-			if (I = b[h]) return I[1]++, I[0];
-			if ((E = c.get(E)) === void 0) throw Error("Invalid session handle passed to webgpuRegisterBuffer");
-			return E = ((F, j = 0) => (F.mapState === "unmapped" || Te(), j = Eo(j), de[j >>> 0] = F, j))(b, E), b[h] = [E, 1], E;
-		}, r.webgpuUnregisterBuffer = (b) => {
-			let E = b[h];
-			if (!E) throw Error("Buffer is not registered");
-			E[1]--, E[1] === 0 && (mo(E[0]), delete b[h]);
-		}, r.webgpuGetBuffer = (b) => L(b), r.webgpuCreateDownloader = (b, E, I) => {
-			if ((I = c.get(I)) === void 0) throw Error("Invalid session handle passed to webgpuRegisterBuffer");
-			let F = L(I), j = 16 * Math.ceil(Number(E) / 16);
+		r.webgpuRegisterBuffer = (m, y, x) => {
+			if (x) return m[h] = [x, NaN], x;
+			if (x = m[h]) return x[1]++, x[0];
+			if ((y = c.get(y)) === void 0) throw Error("Invalid session handle passed to webgpuRegisterBuffer");
+			return y = ((N, F = 0) => (N.mapState === "unmapped" || we(), F = Co(F), fe[F >>> 0] = N, F))(m, y), m[h] = [y, 1], y;
+		}, r.webgpuUnregisterBuffer = (m) => {
+			let y = m[h];
+			if (!y) throw Error("Buffer is not registered");
+			y[1]--, y[1] === 0 && (So(y[0]), delete m[h]);
+		}, r.webgpuGetBuffer = (m) => B(m), r.webgpuCreateDownloader = (m, y, x) => {
+			if ((x = c.get(x)) === void 0) throw Error("Invalid session handle passed to webgpuRegisterBuffer");
+			let N = B(x), F = 16 * Math.ceil(Number(y) / 16);
 			return async () => {
-				let te = F.createBuffer({
-					size: j,
+				let L = N.createBuffer({
+					size: F,
 					usage: 9
 				});
 				try {
-					let B = F.createCommandEncoder();
-					return B.copyBufferToBuffer(b, 0, te, 0, j), F.queue.submit([B.finish()]), await te.mapAsync(GPUMapMode.READ), te.getMappedRange().slice(0, E);
+					let q = N.createCommandEncoder();
+					return q.copyBufferToBuffer(m, 0, L, 0, F), N.queue.submit([q.finish()]), await L.mapAsync(GPUMapMode.READ), L.getMappedRange().slice(0, y);
 				} finally {
-					te.destroy();
+					L.destroy();
 				}
 			};
-		}, r.ad = (b, E) => {
-			var I = E.buffer;
-			let F = E.byteOffset, j = E.byteLength;
-			if (E = 16 * Math.ceil(Number(j) / 16), b = L(b), !n) {
-				var te = Dr(o);
-				n = L(te);
+		}, r.pe = (m, y) => {
+			var x = y.buffer;
+			let N = y.byteOffset, F = y.byteLength;
+			if (y = 16 * Math.ceil(Number(F) / 16), m = B(m), !n) {
+				var L = Nr(o);
+				n = B(L);
 			}
-			let B = (te = n.createBuffer({
+			let q = (L = n.createBuffer({
 				mappedAtCreation: !0,
-				size: E,
+				size: y,
 				usage: 6
 			})).getMappedRange();
-			new Uint8Array(B).set(new Uint8Array(I, F, j)), te.unmap(), (I = n.createCommandEncoder()).copyBufferToBuffer(te, 0, b, 0, E), n.queue.submit([I.finish()]), te.destroy();
+			new Uint8Array(q).set(new Uint8Array(x, N, F)), L.unmap(), (x = n.createCommandEncoder()).copyBufferToBuffer(L, 0, m, 0, y), n.queue.submit([x.finish()]), L.destroy();
 		};
 	}, r.webnnInit = (e) => {
 		let t = e[0];
-		[r.le, r.jd, r.webnnEnsureTensor, r.Sd, r.webnnDownloadTensor, r.ke, r.webnnEnableTraceEvent] = e.slice(1), r.webnnReleaseTensorId = r.jd, r.webnnUploadTensor = r.Sd, r.webnnRegisterMLContext = r.ke, r.webnnOnRunStart = (n) => t.onRunStart(n), r.webnnOnRunEnd = t.onRunEnd.bind(t), r.webnnOnReleaseSession = (n) => {
+		[r.Pe, r.qe, r.webnnEnsureTensor, r.re, r.webnnDownloadTensor, r.Oe, r.webnnEnableTraceEvent] = e.slice(1), r.webnnReleaseTensorId = r.qe, r.webnnUploadTensor = r.re, r.webnnRegisterMLContext = r.Oe, r.webnnOnRunStart = (n) => t.onRunStart(n), r.webnnOnRunEnd = t.onRunEnd.bind(t), r.webnnOnReleaseSession = (n) => {
 			t.onReleaseSession(n);
-		}, r.webnnCreateMLTensorDownloader = (n, o) => t.createMLTensorDownloader(n, o), r.webnnRegisterMLTensor = (n, o, u, c) => t.registerMLTensor(n, o, u, c), r.webnnCreateMLContext = (n) => t.createMLContext(n), r.webnnRegisterMLConstant = (n, o, u, c, h, b) => t.registerMLConstant(n, o, u, c, h, r.Uc, b), r.webnnRegisterGraphInput = t.registerGraphInput.bind(t), r.webnnIsGraphInput = t.isGraphInput.bind(t), r.webnnRegisterGraphOutput = t.registerGraphOutput.bind(t), r.webnnIsGraphOutput = t.isGraphOutput.bind(t), r.webnnCreateTemporaryTensor = t.createTemporaryTensor.bind(t), r.webnnIsGraphInputOutputTypeSupported = t.isGraphInputOutputTypeSupported.bind(t);
-	}, re ? r : new Promise((e, t) => {
-		C = e, R = t;
+		}, r.webnnCreateMLTensorDownloader = (n, o) => t.createMLTensorDownloader(n, o), r.webnnRegisterMLTensor = (n, o, u, c) => t.registerMLTensor(n, o, u, c), r.webnnCreateMLContext = (n) => t.createMLContext(n), r.webnnRegisterGraphInput = t.registerGraphInput.bind(t), r.webnnIsGraphInput = t.isGraphInput.bind(t), r.webnnRegisterGraphOutput = t.registerGraphOutput.bind(t), r.webnnIsGraphOutput = t.isGraphOutput.bind(t), r.webnnCreateTemporaryTensor = t.createTemporaryTensor.bind(t), r.webnnIsGraphInputOutputTypeSupported = t.isGraphInputOutputTypeSupported.bind(t);
+	}, ne ? r : new Promise((e, t) => {
+		C = e, _ = t;
 	});
 }
-var Xf;
-var Qf;
-var rs = k(() => {
+var yc;
+var wc;
+var ms = G(() => {
 	"use strict";
-	Xf = es, Qf = globalThis.self?.name?.startsWith("em-pthread");
-	Qf && es();
+	yc = ls, wc = globalThis.self?.name?.startsWith("em-pthread");
+	wc && ls();
 });
-var as;
-var tn;
-var Zf;
-var ge;
-var ss;
-var en;
-var Kf;
-var ec;
-var is;
-var tc;
-var ns;
-var us;
-var os;
-var fs;
-var Yt = k(() => {
+var gs;
+var an;
+var Tc;
+var ye;
+var ys;
+var on;
+var vc;
+var Ec;
+var ws;
+var Sc;
+var hs;
+var Ts;
+var bs;
+var vs;
+var Zt = G(() => {
 	"use strict";
-	Ht();
-	as = typeof location > "u" ? void 0 : location.origin, tn = import.meta.url > "file:" && import.meta.url < "file;", Zf = () => {
-		if (tn) return new URL(new URL("ort.webgpu.bundle.min.mjs", import.meta.url).href, as).href;
+	Xt();
+	gs = typeof location > "u" ? void 0 : location.origin, an = import.meta.url > "file:" && import.meta.url < "file;", Tc = () => {
+		if (an) return new URL(new URL("ort.webgpu.bundle.min.mjs", import.meta.url).href, gs).href;
 		return import.meta.url;
-	}, ge = Zf(), ss = () => {
-		if (ge && !ge.startsWith("blob:")) return ge.substring(0, ge.lastIndexOf("/") + 1);
-	}, en = (a, r) => {
+	}, ye = Tc(), ys = () => {
+		if (ye && !ye.startsWith("blob:")) return ye.substring(0, ye.lastIndexOf("/") + 1);
+	}, on = (a, r) => {
 		try {
-			let s = r ?? ge;
-			return (s ? new URL(a, s) : new URL(a)).origin === as;
+			let s = r ?? ye;
+			return (s ? new URL(a, s) : new URL(a)).origin === gs;
 		} catch {
 			return !1;
 		}
-	}, Kf = (a, r) => {
-		let s = r ?? ge;
+	}, vc = (a, r) => {
+		let s = r ?? ye;
 		try {
 			return (s ? new URL(a, s) : new URL(a)).href;
 		} catch {
 			return;
 		}
-	}, ec = (a, r) => `${r ?? "./"}${a}`, is = async (a) => {
+	}, Ec = (a, r) => `${r ?? "./"}${a}`, ws = async (a) => {
 		let s = await (await fetch(a, { credentials: "same-origin" })).blob();
 		return URL.createObjectURL(s);
-	}, tc = async (a) => (await import(
+	}, Sc = async (a) => (await import(
 		/*webpackIgnore:true*/
 		/*@vite-ignore*/
 		a
-)).default, ns = (Ka(), $t(Za)).default, us = async () => {
-		if (!ge) throw new Error("Failed to load proxy worker: cannot determine the script source URL.");
-		if (en(ge)) return [void 0, ns()];
-		let a = await is(ge);
-		return [a, ns(a)];
-	}, os = (rs(), $t(ts)).default, fs = async (a, r, s, f) => {
-		let i = os && !(a || r);
-		if (i) if (ge) i = en(ge) || f && !s;
+)).default, hs = (ds(), Ht(cs)).default, Ts = async () => {
+		if (!ye) throw new Error("Failed to load proxy worker: cannot determine the script source URL.");
+		if (on(ye)) return [void 0, hs()];
+		let a = await ws(ye);
+		return [a, hs(a)];
+	}, bs = (ms(), Ht(ps)).default, vs = async (a, r, s, f) => {
+		let i = bs && !(a || r);
+		if (i) if (ye) i = on(ye) || f && !s;
 		else if (f && !s) i = !0;
 		else throw new Error("cannot determine the script source URL.");
-		if (i) return [void 0, os];
+		if (i) return [void 0, bs];
 		{
-			let d = "ort-wasm-simd-threaded.asyncify.mjs", l = a ?? Kf(d, r), m = s && l && !en(l, r), y = m ? await is(l) : l ?? ec(d, r);
-			return [m ? y : void 0, await tc(y)];
+			let p = "ort-wasm-simd-threaded.asyncify.mjs", l = a ?? vc(p, r), b = s && l && !on(l, r), g = b ? await ws(l) : l ?? Ec(p, r);
+			return [b ? g : void 0, await Sc(g)];
 		}
 	};
 });
-var rn;
-var nn;
-var rr;
-var cs;
-var rc;
-var nc;
-var oc;
-var qt;
-var z;
-var je = k(() => {
+var sn;
+var un;
+var sr;
+var Es;
+var xc;
+var Ac;
+var Ic;
+var Kt;
+var j;
+var je = G(() => {
 	"use strict";
-	Yt();
-	nn = !1, rr = !1, cs = !1, rc = () => {
+	Zt();
+	un = !1, sr = !1, Es = !1, xc = () => {
 		if (typeof SharedArrayBuffer > "u") return !1;
 		try {
 			return typeof MessageChannel < "u" && new MessageChannel().port1.postMessage(new SharedArrayBuffer(1)), WebAssembly.validate(new Uint8Array([
@@ -3192,7 +3491,7 @@ var je = k(() => {
 		} catch {
 			return !1;
 		}
-	}, nc = () => {
+	}, Ac = () => {
 		try {
 			return WebAssembly.validate(new Uint8Array([
 				0,
@@ -3249,7 +3548,7 @@ var je = k(() => {
 		} catch {
 			return !1;
 		}
-	}, oc = () => {
+	}, Ic = () => {
 		try {
 			return WebAssembly.validate(new Uint8Array([
 				0,
@@ -3296,112 +3595,112 @@ var je = k(() => {
 		} catch {
 			return !1;
 		}
-	}, qt = async (a) => {
-		if (nn) return Promise.resolve();
-		if (rr) throw new Error("multiple calls to 'initializeWebAssembly()' detected.");
-		if (cs) throw new Error("previous call to 'initializeWebAssembly()' failed.");
-		rr = !0;
+	}, Kt = async (a) => {
+		if (un) return Promise.resolve();
+		if (sr) throw new Error("multiple calls to 'initializeWebAssembly()' detected.");
+		if (Es) throw new Error("previous call to 'initializeWebAssembly()' failed.");
+		sr = !0;
 		let r = a.initTimeout, s = a.numThreads;
 		if (a.simd !== !1) {
 			if (a.simd === "relaxed") {
-				if (!oc()) throw new Error("Relaxed WebAssembly SIMD is not supported in the current environment.");
-			} else if (!nc()) throw new Error("WebAssembly SIMD is not supported in the current environment.");
+				if (!Ic()) throw new Error("Relaxed WebAssembly SIMD is not supported in the current environment.");
+			} else if (!Ac()) throw new Error("WebAssembly SIMD is not supported in the current environment.");
 		}
-		let f = rc();
+		let f = xc();
 		s > 1 && !f && (typeof self < "u" && !self.crossOriginIsolated && console.warn("env.wasm.numThreads is set to " + s + ", but this will not work unless you enable crossOriginIsolated mode. See https://web.dev/cross-origin-isolation-guide/ for more info."), console.warn("WebAssembly multi-threading is not supported in the current environment. Falling back to single-threading."), a.numThreads = s = 1);
-		let i = a.wasmPaths, d = typeof i == "string" ? i : void 0, l = i?.mjs, m = l?.href ?? l, y = i?.wasm, w = y?.href ?? y, T = a.wasmBinary, [g, v] = await fs(m, d, s > 1, !!T || !!w), S = !1, C = [];
-		if (r > 0 && C.push(new Promise((R) => {
+		let i = a.wasmPaths, p = typeof i == "string" ? i : void 0, l = i?.mjs, b = l?.href ?? l, g = i?.wasm, w = g?.href ?? g, S = a.wasmBinary, [v, T] = await vs(b, p, s > 1, !!S || !!w), A = !1, C = [];
+		if (r > 0 && C.push(new Promise((_) => {
 			setTimeout(() => {
-				S = !0, R();
+				A = !0, _();
 			}, r);
-		})), C.push(new Promise((R, H) => {
+		})), C.push(new Promise((_, k) => {
 			let U = { numThreads: s };
-			if (T) U.wasmBinary = T, U.locateFile = (M) => M;
-			else if (w || d) U.locateFile = (M) => w ?? d + M;
-			else if (m && m.indexOf("blob:") !== 0) U.locateFile = (M) => new URL(M, m).href;
-			else if (g) {
-				let M = ss();
+			if (S) U.wasmBinary = S, U.locateFile = (M) => M;
+			else if (w || p) U.locateFile = (M) => w ?? p + M;
+			else if (b && b.indexOf("blob:") !== 0) U.locateFile = (M) => new URL(M, b).href;
+			else if (v) {
+				let M = ys();
 				M && (U.locateFile = (Y) => M + Y);
 			}
-			v(U).then((M) => {
-				rr = !1, nn = !0, rn = M, R(), g && URL.revokeObjectURL(g);
+			T(U).then((M) => {
+				sr = !1, un = !0, sn = M, _(), v && URL.revokeObjectURL(v);
 			}, (M) => {
-				rr = !1, cs = !0, H(M);
+				sr = !1, Es = !0, k(M);
 			});
-		})), await Promise.race(C), S) throw new Error(`WebAssembly backend initializing failed due to timeout: ${r}ms`);
-	}, z = () => {
-		if (nn && rn) return rn;
+		})), await Promise.race(C), A) throw new Error(`WebAssembly backend initializing failed due to timeout: ${r}ms`);
+	}, j = () => {
+		if (un && sn) return sn;
 		throw new Error("WebAssembly is not initialized yet.");
 	};
 });
 var be;
-var Lt;
-var $;
-var nr = k(() => {
+var Bt;
+var V;
+var ir = G(() => {
 	"use strict";
 	je();
 	be = (a, r) => {
-		let s = z(), f = s.lengthBytesUTF8(a) + 1, i = s._malloc(f);
+		let s = j(), f = s.lengthBytesUTF8(a) + 1, i = s._malloc(f);
 		return s.stringToUTF8(a, i, f), r.push(i), i;
-	}, Lt = (a, r, s, f) => {
+	}, Bt = (a, r, s, f) => {
 		if (typeof a == "object" && a !== null) {
 			if (s.has(a)) throw new Error("Circular reference in options");
 			s.add(a);
 		}
-		Object.entries(a).forEach(([i, d]) => {
+		Object.entries(a).forEach(([i, p]) => {
 			let l = r ? r + i : i;
-			if (typeof d == "object") Lt(d, l + ".", s, f);
-			else if (typeof d == "string" || typeof d == "number") f(l, d.toString());
-			else if (typeof d == "boolean") f(l, d ? "1" : "0");
-			else throw new Error(`Can't handle extra config type: ${typeof d}`);
+			if (typeof p == "object") Bt(p, l + ".", s, f);
+			else if (typeof p == "string" || typeof p == "number") f(l, p.toString());
+			else if (typeof p == "boolean") f(l, p ? "1" : "0");
+			else throw new Error(`Can't handle extra config type: ${typeof p}`);
 		});
-	}, $ = (a) => {
-		let r = z(), s = r.stackSave();
+	}, V = (a) => {
+		let r = j(), s = r.stackSave();
 		try {
 			let f = r.PTR_SIZE, i = r.stackAlloc(2 * f);
 			r._OrtGetLastError(i, i + f);
-			let d = Number(r.getValue(i, f === 4 ? "i32" : "i64")), l = r.getValue(i + f, "*"), m = l ? r.UTF8ToString(l) : "";
-			throw new Error(`${a} ERROR_CODE: ${d}, ERROR_MESSAGE: ${m}`);
+			let p = Number(r.getValue(i, f === 4 ? "i32" : "i64")), l = r.getValue(i + f, "*"), b = l ? r.UTF8ToString(l) : "";
+			throw new Error(`${a} ERROR_CODE: ${p}, ERROR_MESSAGE: ${b}`);
 		} finally {
 			r.stackRestore(s);
 		}
 	};
 });
-var ds;
-var ls = k(() => {
+var Ss;
+var xs = G(() => {
 	"use strict";
 	je();
-	nr();
-	ds = (a) => {
-		let r = z(), s = 0, f = [], i = a || {};
+	ir();
+	Ss = (a) => {
+		let r = j(), s = 0, f = [], i = a || {};
 		try {
 			if (a?.logSeverityLevel === void 0) i.logSeverityLevel = 2;
 			else if (typeof a.logSeverityLevel != "number" || !Number.isInteger(a.logSeverityLevel) || a.logSeverityLevel < 0 || a.logSeverityLevel > 4) throw new Error(`log severity level is not valid: ${a.logSeverityLevel}`);
 			if (a?.logVerbosityLevel === void 0) i.logVerbosityLevel = 0;
 			else if (typeof a.logVerbosityLevel != "number" || !Number.isInteger(a.logVerbosityLevel)) throw new Error(`log verbosity level is not valid: ${a.logVerbosityLevel}`);
 			a?.terminate === void 0 && (i.terminate = !1);
-			let d = 0;
-			return a?.tag !== void 0 && (d = be(a.tag, f)), s = r._OrtCreateRunOptions(i.logSeverityLevel, i.logVerbosityLevel, !!i.terminate, d), s === 0 && $("Can't create run options."), a?.extra !== void 0 && Lt(a.extra, "", /* @__PURE__ */ new WeakSet(), (l, m) => {
-				let y = be(l, f), w = be(m, f);
-				r._OrtAddRunConfigEntry(s, y, w) !== 0 && $(`Can't set a run config entry: ${l} - ${m}.`);
+			let p = 0;
+			return a?.tag !== void 0 && (p = be(a.tag, f)), s = r._OrtCreateRunOptions(i.logSeverityLevel, i.logVerbosityLevel, !!i.terminate, p), s === 0 && V("Can't create run options."), a?.extra !== void 0 && Bt(a.extra, "", /* @__PURE__ */ new WeakSet(), (l, b) => {
+				let g = be(l, f), w = be(b, f);
+				r._OrtAddRunConfigEntry(s, g, w) !== 0 && V(`Can't set a run config entry: ${l} - ${b}.`);
 			}), [s, f];
-		} catch (d) {
-			throw s !== 0 && r._OrtReleaseRunOptions(s), f.forEach((l) => r._free(l)), d;
+		} catch (p) {
+			throw s !== 0 && r._OrtReleaseRunOptions(s), f.forEach((l) => r._free(l)), p;
 		}
 	};
 });
-var ac;
-var sc;
-var ic;
-var on;
-var ot;
-var uc;
-var ps;
-var ms = k(() => {
+var Lc;
+var Bc;
+var Oc;
+var Ot;
+var We;
+var Mc;
+var As;
+var Is = G(() => {
 	"use strict";
 	je();
-	nr();
-	ac = (a) => {
+	ir();
+	Lc = (a) => {
 		switch (a) {
 			case "disabled": return 0;
 			case "basic": return 1;
@@ -3410,103 +3709,115 @@ var ms = k(() => {
 			case "all": return 99;
 			default: throw new Error(`unsupported graph optimization level: ${a}`);
 		}
-	}, sc = (a) => {
+	}, Bc = (a) => {
 		switch (a) {
 			case "sequential": return 0;
 			case "parallel": return 1;
 			default: throw new Error(`unsupported execution mode: ${a}`);
 		}
-	}, ic = (a) => {
+	}, Oc = (a) => {
 		a.extra || (a.extra = {}), a.extra.session || (a.extra.session = {});
 		let r = a.extra.session;
 		r.use_ort_model_bytes_directly || (r.use_ort_model_bytes_directly = "1"), a.executionProviders && a.executionProviders.some((s) => (typeof s == "string" ? s : s.name) === "webgpu") && (a.enableMemPattern = !1);
-	}, on = (a, r, s, f) => {
-		let i = be(r, f), d = be(s, f);
-		z()._OrtAddSessionConfigEntry(a, i, d) !== 0 && $(`Can't set a session config entry: ${r} - ${s}.`);
-	}, ot = (a, r, s, f) => {
-		let i = be(r, f), d = be(s, f);
-		a.push([i, d]);
-	}, uc = async (a, r, s) => {
+	}, Ot = (a, r, s, f) => {
+		let i = be(r, f), p = be(s, f);
+		j()._OrtAddSessionConfigEntry(a, i, p) !== 0 && V(`Can't set a session config entry: ${r} - ${s}.`);
+	}, We = (a, r, s, f) => {
+		let i = be(r, f), p = be(s, f);
+		a.push([i, p]);
+	}, Mc = async (a, r, s) => {
 		let f = r.executionProviders;
 		for (let i of f) {
-			let d = typeof i == "string" ? i : i.name, l = [];
-			switch (d) {
+			let p = typeof i == "string" ? i : i.name, l = [];
+			switch (p) {
 				case "webnn":
-					if (d = "WEBNN", typeof i != "string") {
-						let v = i?.deviceType;
-						v && on(a, "deviceType", v, s);
+					if (p = "WEBNN", Ot(a, "session.disable_quant_qdq", "1", s), Ot(a, "session.disable_qdq_constant_folding", "1", s), typeof i != "string") {
+						let T = i?.deviceType;
+						T && Ot(a, "deviceType", T, s);
 					}
 					break;
 				case "webgpu":
 					{
-						d = "WebGPU";
-						let g;
+						p = "WebGPU";
+						let v;
 						if (typeof i != "string") {
-							let S = i;
-							if (S.device) if (typeof GPUDevice < "u" && S.device instanceof GPUDevice) g = S.device;
+							let A = i;
+							if (A.device) if (typeof GPUDevice < "u" && A.device instanceof GPUDevice) v = A.device;
 							else throw new Error("Invalid GPU device set in WebGPU EP options.");
 							let { enableGraphCapture: C } = r;
-							if (typeof C == "boolean" && C && ot(l, "enableGraphCapture", "1", s), typeof S.preferredLayout == "string" && ot(l, "preferredLayout", S.preferredLayout, s), S.forceCpuNodeNames) {
-								let R = Array.isArray(S.forceCpuNodeNames) ? S.forceCpuNodeNames : [S.forceCpuNodeNames];
-								ot(l, "forceCpuNodeNames", R.join(`
+							if (typeof C == "boolean" && C && We(l, "enableGraphCapture", "1", s), typeof A.preferredLayout == "string" && We(l, "preferredLayout", A.preferredLayout, s), A.forceCpuNodeNames) {
+								let _ = Array.isArray(A.forceCpuNodeNames) ? A.forceCpuNodeNames : [A.forceCpuNodeNames];
+								We(l, "forceCpuNodeNames", _.join(`
 `), s);
 							}
-							S.validationMode && ot(l, "validationMode", S.validationMode, s);
+							A.validationMode && We(l, "validationMode", A.validationMode, s), typeof A.enableMatmulFp32Accumulation == "boolean" && We(l, "enableMatmulFp32Accumulation", A.enableMatmulFp32Accumulation ? "1" : "0", s);
+							for (let _ of [
+								"storageBufferCacheMode",
+								"uniformBufferCacheMode",
+								"queryResolveBufferCacheMode",
+								"defaultBufferCacheMode"
+							]) {
+								let k = A[_];
+								if (k) {
+									if (k !== "disabled" && k !== "lazyRelease" && k !== "simple" && k !== "bucket") throw new Error(`${_} must be one of 'disabled', 'lazyRelease', 'simple' or 'bucket': ${k}`);
+									We(l, _, k, s);
+								}
+							}
 						}
-						let v = z().webgpuRegisterDevice(g);
-						if (v) {
-							let [S, C, R] = v;
-							ot(l, "deviceId", S.toString(), s), ot(l, "webgpuInstance", C.toString(), s), ot(l, "webgpuDevice", R.toString(), s);
+						let T = j().webgpuRegisterDevice(v);
+						if (T) {
+							let [A, C, _] = T;
+							We(l, "deviceId", A.toString(), s), We(l, "webgpuInstance", C.toString(), s), We(l, "webgpuDevice", _.toString(), s);
 						}
 					}
 					break;
 				case "wasm":
 				case "cpu": continue;
-				default: throw new Error(`not supported execution provider: ${d}`);
+				default: throw new Error(`not supported execution provider: ${p}`);
 			}
-			let m = be(d, s), y = l.length, w = 0, T = 0;
-			if (y > 0) {
-				w = z()._malloc(y * z().PTR_SIZE), s.push(w), T = z()._malloc(y * z().PTR_SIZE), s.push(T);
-				for (let g = 0; g < y; g++) z().setValue(w + g * z().PTR_SIZE, l[g][0], "*"), z().setValue(T + g * z().PTR_SIZE, l[g][1], "*");
+			let b = be(p, s), g = l.length, w = 0, S = 0;
+			if (g > 0) {
+				w = j()._malloc(g * j().PTR_SIZE), s.push(w), S = j()._malloc(g * j().PTR_SIZE), s.push(S);
+				for (let v = 0; v < g; v++) j().setValue(w + v * j().PTR_SIZE, l[v][0], "*"), j().setValue(S + v * j().PTR_SIZE, l[v][1], "*");
 			}
-			await z()._OrtAppendExecutionProvider(a, m, w, T, y) !== 0 && $(`Can't append execution provider: ${d}.`);
+			await j()._OrtAppendExecutionProvider(a, b, w, S, g) !== 0 && V(`Can't append execution provider: ${p}.`);
 		}
-	}, ps = async (a) => {
-		let r = z(), s = 0, f = [], i = a || {};
-		ic(i);
+	}, As = async (a) => {
+		let r = j(), s = 0, f = [], i = a || {};
+		Oc(i);
 		try {
-			let d = ac(i.graphOptimizationLevel ?? "all"), l = sc(i.executionMode ?? "sequential"), m = typeof i.logId == "string" ? be(i.logId, f) : 0, y = i.logSeverityLevel ?? 2;
-			if (!Number.isInteger(y) || y < 0 || y > 4) throw new Error(`log severity level is not valid: ${y}`);
+			let p = Lc(i.graphOptimizationLevel ?? "all"), l = Bc(i.executionMode ?? "sequential"), b = typeof i.logId == "string" ? be(i.logId, f) : 0, g = i.logSeverityLevel ?? 2;
+			if (!Number.isInteger(g) || g < 0 || g > 4) throw new Error(`log severity level is not valid: ${g}`);
 			let w = i.logVerbosityLevel ?? 0;
 			if (!Number.isInteger(w) || w < 0 || w > 4) throw new Error(`log verbosity level is not valid: ${w}`);
-			let T = typeof i.optimizedModelFilePath == "string" ? be(i.optimizedModelFilePath, f) : 0;
-			if (s = r._OrtCreateSessionOptions(d, !!i.enableCpuMemArena, !!i.enableMemPattern, l, !!i.enableProfiling, 0, m, y, w, T), s === 0 && $("Can't create session options."), i.executionProviders && await uc(s, i, f), i.enableGraphCapture !== void 0) {
+			let S = typeof i.optimizedModelFilePath == "string" ? be(i.optimizedModelFilePath, f) : 0;
+			if (s = r._OrtCreateSessionOptions(p, !!i.enableCpuMemArena, !!i.enableMemPattern, l, !!i.enableProfiling, 0, b, g, w, S), s === 0 && V("Can't create session options."), i.executionProviders && await Mc(s, i, f), i.enableGraphCapture !== void 0) {
 				if (typeof i.enableGraphCapture != "boolean") throw new Error(`enableGraphCapture must be a boolean value: ${i.enableGraphCapture}`);
-				on(s, "enableGraphCapture", i.enableGraphCapture.toString(), f);
+				Ot(s, "enableGraphCapture", i.enableGraphCapture.toString(), f);
 			}
-			if (i.freeDimensionOverrides) for (let [g, v] of Object.entries(i.freeDimensionOverrides)) {
-				if (typeof g != "string") throw new Error(`free dimension override name must be a string: ${g}`);
-				if (typeof v != "number" || !Number.isInteger(v) || v < 0) throw new Error(`free dimension override value must be a non-negative integer: ${v}`);
-				let S = be(g, f);
-				r._OrtAddFreeDimensionOverride(s, S, v) !== 0 && $(`Can't set a free dimension override: ${g} - ${v}.`);
+			if (i.freeDimensionOverrides) for (let [v, T] of Object.entries(i.freeDimensionOverrides)) {
+				if (typeof v != "string") throw new Error(`free dimension override name must be a string: ${v}`);
+				if (typeof T != "number" || !Number.isInteger(T) || T < 0) throw new Error(`free dimension override value must be a non-negative integer: ${T}`);
+				let A = be(v, f);
+				r._OrtAddFreeDimensionOverride(s, A, T) !== 0 && V(`Can't set a free dimension override: ${v} - ${T}.`);
 			}
-			return i.extra !== void 0 && Lt(i.extra, "", /* @__PURE__ */ new WeakSet(), (g, v) => {
-				on(s, g, v, f);
+			return i.extra !== void 0 && Bt(i.extra, "", /* @__PURE__ */ new WeakSet(), (v, T) => {
+				Ot(s, v, T, f);
 			}), [s, f];
-		} catch (d) {
-			throw s !== 0 && r._OrtReleaseSessionOptions(s) !== 0 && $("Can't release session options."), f.forEach((l) => r._free(l)), d;
+		} catch (p) {
+			throw s !== 0 && r._OrtReleaseSessionOptions(s) !== 0 && V("Can't release session options."), f.forEach((l) => r._free(l)), p;
 		}
 	};
 });
 var He;
-var or;
-var mt;
-var at;
-var Ot;
-var ar;
-var sr;
-var an;
-var st = k(() => {
+var ur;
+var bt;
+var it;
+var Mt;
+var fr;
+var cr;
+var fn;
+var ut = G(() => {
 	"use strict";
 	He = (a) => {
 		switch (a) {
@@ -3527,7 +3838,7 @@ var st = k(() => {
 			case "uint4": return 21;
 			default: throw new Error(`unsupported data type: ${a}`);
 		}
-	}, or = (a) => {
+	}, ur = (a) => {
 		switch (a) {
 			case 3: return "int8";
 			case 2: return "uint8";
@@ -3546,7 +3857,7 @@ var st = k(() => {
 			case 21: return "uint4";
 			default: throw new Error(`unsupported data type: ${a}`);
 		}
-	}, mt = (a, r) => {
+	}, bt = (a, r) => {
 		let s = [
 			-1,
 			4,
@@ -3571,11 +3882,11 @@ var st = k(() => {
 			-1,
 			.5,
 			.5
-		][a], f = typeof r == "number" ? r : r.reduce((i, d) => i * d, 1);
+		][a], f = typeof r == "number" ? r : r.reduce((i, p) => i * p, 1);
 		return s > 0 ? Math.ceil(f * s) : void 0;
-	}, at = (a) => {
+	}, it = (a) => {
 		switch (a) {
-			case "float16": return typeof Float16Array < "u" && Float16Array.from ? Float16Array : Uint16Array;
+			case "float16": return typeof Float16Array < "u" ? Float16Array : Uint16Array;
 			case "float32": return Float32Array;
 			case "uint8": return Uint8Array;
 			case "int8": return Int8Array;
@@ -3589,7 +3900,7 @@ var st = k(() => {
 			case "uint64": return BigUint64Array;
 			default: throw new Error(`unsupported type: ${a}`);
 		}
-	}, Ot = (a) => {
+	}, Mt = (a) => {
 		switch (a) {
 			case "verbose": return 0;
 			case "info": return 1;
@@ -3598,7 +3909,7 @@ var st = k(() => {
 			case "fatal": return 4;
 			default: throw new Error(`unsupported logging level: ${a}`);
 		}
-	}, ar = (a) => a === "float32" || a === "float16" || a === "int32" || a === "int64" || a === "uint32" || a === "uint8" || a === "bool" || a === "uint4" || a === "int4", sr = (a) => a === "float32" || a === "float16" || a === "int32" || a === "int64" || a === "uint32" || a === "uint64" || a === "int8" || a === "uint8" || a === "bool" || a === "uint4" || a === "int4", an = (a) => {
+	}, fr = (a) => a === "float32" || a === "float16" || a === "int32" || a === "int64" || a === "uint32" || a === "uint8" || a === "bool" || a === "uint4" || a === "int4", cr = (a) => a === "float32" || a === "float16" || a === "int32" || a === "int64" || a === "uint32" || a === "uint64" || a === "int8" || a === "uint8" || a === "bool" || a === "uint4" || a === "int4", fn = (a) => {
 		switch (a) {
 			case "none": return 0;
 			case "cpu": return 1;
@@ -3610,11 +3921,11 @@ var st = k(() => {
 		}
 	};
 });
-var Bt;
-var sn = k(() => {
+var Ct;
+var cn = G(() => {
 	"use strict";
-	Ht();
-	Bt = async (a) => {
+	Xt();
+	Ct = async (a) => {
 		if (typeof a == "string") {
 			let r = await fetch(a);
 			if (!r.ok) throw new Error(`failed to load external data file: ${a}`);
@@ -3622,79 +3933,79 @@ var sn = k(() => {
 			if (f < 1073741824) return new Uint8Array(await r.arrayBuffer());
 			{
 				if (!r.body) throw new Error(`failed to load external data file: ${a}, no response body.`);
-				let i = r.body.getReader(), d;
+				let i = r.body.getReader(), p;
 				try {
-					d = new ArrayBuffer(f);
-				} catch (m) {
-					if (m instanceof RangeError) {
-						let y = Math.ceil(f / 65536);
-						d = new WebAssembly.Memory({
-							initial: y,
-							maximum: y
+					p = new ArrayBuffer(f);
+				} catch (b) {
+					if (b instanceof RangeError) {
+						let g = Math.ceil(f / 65536);
+						p = new WebAssembly.Memory({
+							initial: g,
+							maximum: g
 						}).buffer;
-					} else throw m;
+					} else throw b;
 				}
 				let l = 0;
 				for (;;) {
-					let { done: m, value: y } = await i.read();
-					if (m) break;
-					let w = y.byteLength;
-					new Uint8Array(d, l, w).set(y), l += w;
+					let { done: b, value: g } = await i.read();
+					if (b) break;
+					let w = g.byteLength;
+					new Uint8Array(p, l, w).set(g), l += w;
 				}
-				return new Uint8Array(d, 0, f);
+				return new Uint8Array(p, 0, f);
 			}
 		} else return a instanceof Blob ? new Uint8Array(await a.arrayBuffer()) : a instanceof Uint8Array ? a : new Uint8Array(a);
 	};
 });
-var hs;
-var ys = k(() => {
+var Ls;
+var Bs = G(() => {
 	"use strict";
-	st();
-	hs = (a, r) => new (at(r))(a);
+	ut();
+	Ls = (a, r) => new (it(r))(a);
 });
-var fc;
-var cc;
-var bs;
-var ws;
-var gs;
-var dc;
-var pe;
-var un = k(() => {
+var Cc;
+var Dc;
+var Os;
+var Ms;
+var Cs;
+var Pc;
+var le;
+var dn = G(() => {
 	"use strict";
-	st();
-	fc = [
+	ut();
+	Cc = [
 		"V",
 		"I",
 		"W",
 		"E",
 		"F"
-	], cc = (a, r) => {
-		console.log(`[${fc[a]},${(/* @__PURE__ */ new Date()).toISOString()}]${r}`);
-	}, gs = (a, r) => {
-		bs = a, ws = r;
-	}, dc = (a, r) => {
-		let s = Ot(a);
-		s >= Ot(bs) && cc(s, typeof r == "function" ? r() : r);
-	}, pe = (...a) => {
-		ws && dc(...a);
+	], Dc = (a, r) => {
+		console.log(`[${Cc[a]},${(/* @__PURE__ */ new Date()).toISOString()}]${r}`);
+	}, Cs = (a, r) => {
+		Os = a, Ms = r;
+	}, Pc = (a, r) => {
+		let s = Mt(a);
+		s >= Mt(Os) && Dc(s, typeof r == "function" ? r() : r);
+	}, le = (...a) => {
+		Ms && Pc(...a);
 	};
 });
-var vs;
-var cn;
-var Es;
-var lc;
-var Ts;
-var pc;
-var Ss;
-var ir;
-var ur;
-var fn;
-var As;
-var Is = k(() => {
+var Ps;
+var Uc;
+var Us;
+var _c;
+var Ds;
+var Rc;
+var _s;
+var dr;
+var lr;
+var ln;
+var Rs;
+var Ns = G(() => {
 	"use strict";
-	st();
-	un();
-	vs = /* @__PURE__ */ new Map([
+	ut();
+	dn();
+	Ps = /* @__PURE__ */ new Map([
 		["float32", 32],
 		["float16", 16],
 		["int32", 32],
@@ -3705,34 +4016,34 @@ var Is = k(() => {
 		["uint8", 8],
 		["int4", 4],
 		["uint4", 4]
-	]), cn = (a, r) => {
+	]), Uc = (a, r) => {
 		if (r === "int32") return a;
-		let s = vs.get(r);
+		let s = Ps.get(r);
 		if (!s) throw new Error(`WebNN backend does not support data type: ${r}`);
 		let f = s / 8;
 		if (a.byteLength % f !== 0) throw new Error(`Invalid Uint8Array length - must be a multiple of ${f}.`);
-		let i = a.byteLength / f, d = new (at(r))(a.buffer, a.byteOffset, i);
+		let i = a.byteLength / f, p = new (it(r))(a.buffer, a.byteOffset, i);
 		switch (r) {
 			case "int64":
 			case "uint64": {
 				let l = new Int32Array(i);
-				for (let m = 0; m < i; m++) {
-					let y = d[m];
-					if (y > 2147483647n || y < -2147483648n) throw new Error("Can not convert int64 data to int32 - value out of range.");
-					l[m] = Number(y);
+				for (let b = 0; b < i; b++) {
+					let g = p[b];
+					if (g > 2147483647n || g < -2147483648n) throw new Error("Can not convert int64 data to int32 - value out of range.");
+					l[b] = Number(g);
 				}
 				return new Uint8Array(l.buffer);
 			}
 			case "int8":
 			case "uint8":
 			case "uint32": {
-				if (r === "uint32" && d.some((m) => m > 2147483647)) throw new Error("Can not convert uint32 data to int32 - value out of range.");
-				let l = Int32Array.from(d, Number);
+				if (r === "uint32" && p.some((b) => b > 2147483647)) throw new Error("Can not convert uint32 data to int32 - value out of range.");
+				let l = Int32Array.from(p, Number);
 				return new Uint8Array(l.buffer);
 			}
 			default: throw new Error(`Unsupported data conversion from ${r} to 'int32'`);
 		}
-	}, Es = (a, r) => {
+	}, Us = (a, r) => {
 		if (r === "int32") return a;
 		if (a.byteLength % 4 !== 0) throw new Error("Invalid Uint8Array length - must be a multiple of 4 (int32).");
 		let s = a.byteLength / 4, f = new Int32Array(a.buffer, a.byteOffset, s);
@@ -3742,12 +4053,12 @@ var Is = k(() => {
 				return new Uint8Array(i.buffer);
 			}
 			case "uint64": {
-				if (f.some((d) => d < 0)) throw new Error("Can not convert int32 data to uin64 - negative value found.");
+				if (f.some((p) => p < 0)) throw new Error("Can not convert int32 data to uin64 - negative value found.");
 				let i = BigUint64Array.from(f, BigInt);
 				return new Uint8Array(i.buffer);
 			}
 			case "int8": {
-				if (f.some((d) => d < -128 || d > 127)) throw new Error("Can not convert int32 data to int8 - value out of range.");
+				if (f.some((p) => p < -128 || p > 127)) throw new Error("Can not convert int32 data to int8 - value out of range.");
 				let i = Int8Array.from(f, Number);
 				return new Uint8Array(i.buffer);
 			}
@@ -3755,26 +4066,26 @@ var Is = k(() => {
 				if (f.some((i) => i < 0 || i > 255)) throw new Error("Can not convert int32 data to uint8 - value out of range.");
 				return Uint8Array.from(f, Number);
 			case "uint32": {
-				if (f.some((d) => d < 0)) throw new Error("Can not convert int32 data to uint32 - negative value found.");
+				if (f.some((p) => p < 0)) throw new Error("Can not convert int32 data to uint32 - negative value found.");
 				let i = Uint32Array.from(f, Number);
 				return new Uint8Array(i.buffer);
 			}
 			default: throw new Error(`Unsupported data conversion from 'int32' to ${r}`);
 		}
-	}, lc = 1, Ts = () => lc++, pc = /* @__PURE__ */ new Map([
+	}, _c = 1, Ds = () => _c++, Rc = /* @__PURE__ */ new Map([
 		["int8", "int32"],
 		["uint8", "int32"],
 		["uint32", "int32"],
 		["int64", "int32"]
-	]), Ss = (a, r) => {
-		let s = vs.get(a);
+	]), _s = (a, r) => {
+		let s = Ps.get(a);
 		if (!s) throw new Error(`WebNN backend does not support data type: ${a}`);
 		return r.length > 0 ? Math.ceil(r.reduce((f, i) => f * i) * s / 8) : 0;
-	}, ir = class {
+	}, dr = class {
 		constructor(r) {
 			this.isDataConverted = !1;
-			let { sessionId: s, context: f, tensor: i, dataType: d, shape: l, fallbackDataType: m } = r;
-			this.sessionId = s, this.mlContext = f, this.mlTensor = i, this.dataType = d, this.tensorShape = l, this.fallbackDataType = m;
+			let { sessionId: s, context: f, tensor: i, dataType: p, shape: l, fallbackDataType: b } = r;
+			this.sessionId = s, this.mlContext = f, this.mlTensor = i, this.dataType = p, this.tensorShape = l, this.fallbackDataType = b;
 		}
 		get tensor() {
 			return this.mlTensor;
@@ -3789,30 +4100,30 @@ var Is = k(() => {
 			return this.tensorShape;
 		}
 		get byteLength() {
-			return Ss(this.dataType, this.tensorShape);
+			return _s(this.dataType, this.tensorShape);
 		}
 		destroy() {
-			pe("verbose", () => "[WebNN] TensorWrapper.destroy"), this.mlTensor.destroy();
+			le("verbose", () => "[WebNN] TensorWrapper.destroy"), this.mlTensor.destroy();
 		}
 		write(r) {
 			this.mlContext.writeTensor(this.mlTensor, r);
 		}
 		async read(r) {
 			if (this.fallbackDataType) {
-				let s = await this.mlContext.readTensor(this.mlTensor), f = Es(new Uint8Array(s), this.dataType);
+				let s = await this.mlContext.readTensor(this.mlTensor), f = Us(new Uint8Array(s), this.dataType);
 				if (r) {
 					(r instanceof ArrayBuffer ? new Uint8Array(r) : new Uint8Array(r.buffer, r.byteOffset, r.byteLength)).set(f);
 					return;
-				} else return f.buffer;
+				} else return new Uint8Array(f).buffer;
 			} else return r ? this.mlContext.readTensor(this.mlTensor, r) : this.mlContext.readTensor(this.mlTensor);
 		}
 		canReuseTensor(r, s, f) {
-			return this.mlContext === r && this.dataType === s && this.tensorShape.length === f.length && this.tensorShape.every((i, d) => i === f[d]);
+			return this.mlContext === r && this.dataType === s && this.tensorShape.length === f.length && this.tensorShape.every((i, p) => i === f[p]);
 		}
 		setIsDataConverted(r) {
 			this.isDataConverted = r;
 		}
-	}, ur = class {
+	}, lr = class {
 		constructor(r, s) {
 			this.tensorManager = r;
 			this.wrapper = s;
@@ -3824,37 +4135,37 @@ var Is = k(() => {
 			this.tensorWrapper && (this.tensorManager.releaseTensor(this.tensorWrapper), this.wrapper = void 0);
 		}
 		async ensureTensor(r, s, f, i) {
-			let d = this.tensorManager.getMLContext(r), l = this.tensorManager.getMLOpSupportLimits(r), m;
+			let p = this.tensorManager.getMLContext(r), l = this.tensorManager.getMLOpSupportLimits(r), b;
 			if (!l?.input.dataTypes.includes(s)) {
-				if (m = pc.get(s), !m || l?.input.dataTypes.includes(m)) throw new Error(`WebNN backend does not support data type: ${s}`);
-				pe("verbose", () => `[WebNN] TensorIdTracker.ensureTensor: fallback dataType from ${s} to ${m}`);
+				if (b = Rc.get(s), !b || !l?.input.dataTypes.includes(b)) throw new Error(`WebNN backend does not support data type: ${s}`);
+				le("verbose", () => `[WebNN] TensorIdTracker.ensureTensor: fallback dataType from ${s} to ${b}`);
 			}
 			if (this.wrapper) {
-				if (this.wrapper.canReuseTensor(d, s, f)) return this.wrapper.tensor;
+				if (this.wrapper.canReuseTensor(p, s, f)) return this.wrapper.tensor;
 				if (i) {
-					if (this.wrapper.byteLength !== Ss(s, f)) throw new Error("Unable to copy data to tensor with different size.");
+					if (this.wrapper.byteLength !== _s(s, f)) throw new Error("Unable to copy data to tensor with different size.");
 					this.activeUpload = new Uint8Array(await this.wrapper.read());
 				}
 				this.tensorManager.releaseTensor(this.wrapper);
 			}
-			let y = typeof MLTensorUsage > "u" ? void 0 : MLTensorUsage.READ | MLTensorUsage.WRITE;
-			return this.wrapper = await this.tensorManager.getCachedTensor(r, s, f, y, !0, !0, m), i && this.activeUpload && (this.wrapper.write(this.activeUpload), this.activeUpload = void 0), this.wrapper.tensor;
+			let g = typeof MLTensorUsage > "u" ? void 0 : MLTensorUsage.READ | MLTensorUsage.WRITE;
+			return this.wrapper = await this.tensorManager.getCachedTensor(r, s, f, g, !0, !0, b), i && this.activeUpload && (this.wrapper.write(this.activeUpload), this.activeUpload = void 0), this.wrapper.tensor;
 		}
 		upload(r) {
 			let s = r;
 			if (this.wrapper) {
-				if (this.wrapper.fallbackType) if (this.wrapper.fallbackType === "int32") s = cn(r, this.wrapper.type), this.wrapper.setIsDataConverted(!0);
+				if (this.wrapper.fallbackType) if (this.wrapper.fallbackType === "int32") s = Uc(r, this.wrapper.type), this.wrapper.setIsDataConverted(!0);
 				else throw new Error(`Unsupported fallback data type: ${this.wrapper.fallbackType}`);
 				if (r.byteLength === this.wrapper.byteLength) {
 					this.wrapper.write(s);
 					return;
-				} else pe("verbose", () => "Data size does not match tensor size. Releasing tensor."), this.releaseTensor();
+				} else le("verbose", () => "Data size does not match tensor size. Releasing tensor."), this.releaseTensor();
 			}
 			this.activeUpload ? this.activeUpload.set(s) : this.activeUpload = new Uint8Array(s);
 		}
 		async download(r) {
 			if (this.activeUpload) {
-				let s = this.wrapper?.isDataConverted ? Es(this.activeUpload, this.wrapper?.type) : this.activeUpload;
+				let s = this.wrapper?.isDataConverted ? Us(this.activeUpload, this.wrapper?.type) : this.activeUpload;
 				if (r) {
 					r instanceof ArrayBuffer ? new Uint8Array(r).set(s) : new Uint8Array(r.buffer, r.byteOffset, r.byteLength).set(s);
 					return;
@@ -3863,7 +4174,7 @@ var Is = k(() => {
 			if (!this.wrapper) throw new Error("Tensor has not been created.");
 			return r ? this.wrapper.read(r) : this.wrapper.read();
 		}
-	}, fn = class {
+	}, ln = class {
 		constructor(r) {
 			this.backend = r;
 			this.tensorTrackersById = /* @__PURE__ */ new Map();
@@ -3879,18 +4190,18 @@ var Is = k(() => {
 			return this.backend.getMLOpSupportLimits(r);
 		}
 		reserveTensorId() {
-			let r = Ts();
-			return this.tensorTrackersById.set(r, new ur(this)), r;
+			let r = Ds();
+			return this.tensorTrackersById.set(r, new lr(this)), r;
 		}
 		releaseTensorId(r) {
 			let s = this.tensorTrackersById.get(r);
 			s && (this.tensorTrackersById.delete(r), s.tensorWrapper && this.releaseTensor(s.tensorWrapper));
 		}
-		async ensureTensor(r, s, f, i, d) {
-			pe("verbose", () => `[WebNN] TensorManager.ensureTensor {tensorId: ${s}, dataType: ${f}, shape: ${i}, copyOld: ${d}}`);
+		async ensureTensor(r, s, f, i, p) {
+			le("verbose", () => `[WebNN] TensorManager.ensureTensor {tensorId: ${s}, dataType: ${f}, shape: ${i}, copyOld: ${p}}`);
 			let l = this.tensorTrackersById.get(s);
 			if (!l) throw new Error("Tensor not found.");
-			return l.ensureTensor(r, f, i, d);
+			return l.ensureTensor(r, f, i, p);
 		}
 		upload(r, s) {
 			let f = this.tensorTrackersById.get(r);
@@ -3898,7 +4209,7 @@ var Is = k(() => {
 			f.upload(s);
 		}
 		async download(r, s) {
-			pe("verbose", () => `[WebNN] TensorManager.download {tensorId: ${r}, dstBuffer: ${s?.byteLength}}`);
+			le("verbose", () => `[WebNN] TensorManager.download {tensorId: ${r}, dstBuffer: ${s?.byteLength}}`);
 			let f = this.tensorTrackersById.get(r);
 			if (!f) throw new Error("Tensor not found.");
 			return f.download(s);
@@ -3908,58 +4219,58 @@ var Is = k(() => {
 			this.freeTensors = this.freeTensors.filter((s) => s.sessionId !== r);
 		}
 		registerTensor(r, s, f, i) {
-			let d = this.getMLContext(r), l = Ts(), m = new ir({
+			let p = this.getMLContext(r), l = Ds(), b = new dr({
 				sessionId: r,
-				context: d,
+				context: p,
 				tensor: s,
 				dataType: f,
 				shape: i
 			});
-			return this.tensorTrackersById.set(l, new ur(this, m)), this.externalTensors.add(m), l;
+			return this.tensorTrackersById.set(l, new lr(this, b)), this.externalTensors.add(b), l;
 		}
-		async getCachedTensor(r, s, f, i, d, l, m) {
-			let y = this.getMLContext(r);
-			for (let [T, g] of this.freeTensors.entries()) if (g.canReuseTensor(y, s, f)) {
-				pe("verbose", () => `[WebNN] Reusing tensor {dataType: ${s}, ${m ? `fallbackDataType: ${m},` : ""} shape: ${f}`);
-				let v = this.freeTensors.splice(T, 1)[0];
-				return v.sessionId = r, v;
+		async getCachedTensor(r, s, f, i, p, l, b) {
+			let g = this.getMLContext(r);
+			for (let [S, v] of this.freeTensors.entries()) if (v.canReuseTensor(g, s, f)) {
+				le("verbose", () => `[WebNN] Reusing tensor {dataType: ${s}, ${b ? `fallbackDataType: ${b},` : ""} shape: ${f}`);
+				let T = this.freeTensors.splice(S, 1)[0];
+				return T.sessionId = r, T;
 			}
-			pe("verbose", () => `[WebNN] MLContext.createTensor {dataType: ${s}, ${m ? `fallbackDataType: ${m},` : ""} shape: ${f}}`);
-			let w = await y.createTensor({
-				dataType: m ?? s,
+			le("verbose", () => `[WebNN] MLContext.createTensor {dataType: ${s}, ${b ? `fallbackDataType: ${b},` : ""} shape: ${f}}`);
+			let w = await g.createTensor({
+				dataType: b ?? s,
 				shape: f,
 				dimensions: f,
 				usage: i,
-				writable: d,
+				writable: p,
 				readable: l
 			});
-			return new ir({
+			return new dr({
 				sessionId: r,
-				context: y,
+				context: g,
 				tensor: w,
 				dataType: s,
 				shape: f,
-				fallbackDataType: m
+				fallbackDataType: b
 			});
 		}
 		releaseTensor(r) {
 			this.externalTensors.has(r) && this.externalTensors.delete(r), this.freeTensors.push(r);
 		}
-	}, As = (...a) => new fn(...a);
+	}, Rs = (...a) => new ln(...a);
 });
-var xs = {};
-At(xs, { WebNNBackend: () => dn });
-var fr;
-var mc;
-var dn;
-var Ls = k(() => {
+var Ws = {};
+At(Ws, { WebNNBackend: () => pn });
+var pr;
+var Nc;
+var pn;
+var ks = G(() => {
 	"use strict";
-	st();
+	ut();
 	je();
-	ys();
-	Is();
-	un();
-	fr = /* @__PURE__ */ new Map([
+	Bs();
+	Ns();
+	dn();
+	pr = /* @__PURE__ */ new Map([
 		[1, "float32"],
 		[10, "float16"],
 		[6, "int32"],
@@ -3971,14 +4282,14 @@ var Ls = k(() => {
 		[3, "int8"],
 		[2, "uint8"],
 		[9, "uint8"]
-	]), mc = (a, r) => {
+	]), Nc = (a, r) => {
 		if (a === r) return !0;
 		if (a === void 0 || r === void 0) return !1;
 		let s = Object.keys(a).sort(), f = Object.keys(r).sort();
-		return s.length === f.length && s.every((i, d) => i === f[d] && a[i] === r[i]);
-	}, dn = class {
+		return s.length === f.length && s.every((i, p) => i === f[p] && a[i] === r[i]);
+	}, pn = class {
 		constructor(r) {
-			this.tensorManager = As(this);
+			this.tensorManager = Rs(this);
 			this.mlContextBySessionId = /* @__PURE__ */ new Map();
 			this.sessionIdsByMLContext = /* @__PURE__ */ new Map();
 			this.mlContextCache = [];
@@ -3988,20 +4299,20 @@ var Ls = k(() => {
 			this.temporaryGraphOutputs = [];
 			this.temporarySessionTensorIds = /* @__PURE__ */ new Map();
 			this.mlOpSupportLimitsBySessionId = /* @__PURE__ */ new Map();
-			gs(r.logLevel, !!r.debug);
+			Cs(r.logLevel, !!r.debug);
 		}
 		get currentSessionId() {
 			if (this.activeSessionId === void 0) throw new Error("No active session");
 			return this.activeSessionId;
 		}
 		onRunStart(r) {
-			pe("verbose", () => `[WebNN] onRunStart {sessionId: ${r}}`), this.activeSessionId = r;
+			le("verbose", () => `[WebNN] onRunStart {sessionId: ${r}}`), this.activeSessionId = r;
 		}
 		onRunEnd(r) {
-			pe("verbose", () => `[WebNN] onRunEnd {sessionId: ${r}}`);
+			le("verbose", () => `[WebNN] onRunEnd {sessionId: ${r}}`);
 			let s = this.temporarySessionTensorIds.get(r);
 			if (s) {
-				for (let f of s) pe("verbose", () => `[WebNN] releasing temporary tensor {tensorId: ${f}}`), this.tensorManager.releaseTensorId(f);
+				for (let f of s) le("verbose", () => `[WebNN] releasing temporary tensor {tensorId: ${f}}`), this.tensorManager.releaseTensorId(f);
 				this.temporarySessionTensorIds.delete(r), this.activeSessionId = void 0;
 			}
 		}
@@ -4024,7 +4335,7 @@ var Ls = k(() => {
 					return this.mlContextCache.push({ mlContext: i }), i;
 				}
 			}
-			let s = this.mlContextCache.findIndex((f) => mc(f.options, r));
+			let s = this.mlContextCache.findIndex((f) => Nc(f.options, r));
 			if (s !== -1) return this.mlContextCache[s].mlContext;
 			{
 				let f = await navigator.ml.createContext(r);
@@ -4047,7 +4358,7 @@ var Ls = k(() => {
 			let f = this.sessionIdsByMLContext.get(s);
 			if (f.delete(r), f.size === 0) {
 				this.sessionIdsByMLContext.delete(s);
-				let i = this.mlContextCache.findIndex((d) => d.mlContext === s);
+				let i = this.mlContextCache.findIndex((p) => p.mlContext === s);
 				i !== -1 && this.mlContextCache.splice(i, 1);
 			}
 		}
@@ -4061,25 +4372,25 @@ var Ls = k(() => {
 			return this.tensorManager.reserveTensorId();
 		}
 		releaseTensorId(r) {
-			pe("verbose", () => `[WebNN] releaseTensorId {tensorId: ${r}}`), this.tensorManager.releaseTensorId(r);
+			le("verbose", () => `[WebNN] releaseTensorId {tensorId: ${r}}`), this.tensorManager.releaseTensorId(r);
 		}
-		async ensureTensor(r, s, f, i, d) {
-			let l = fr.get(f);
+		async ensureTensor(r, s, f, i, p) {
+			let l = pr.get(f);
 			if (!l) throw new Error(`Unsupported ONNX data type: ${f}`);
-			return this.tensorManager.ensureTensor(r ?? this.currentSessionId, s, l, i, d);
+			return this.tensorManager.ensureTensor(r ?? this.currentSessionId, s, l, i, p);
 		}
 		async createTemporaryTensor(r, s, f) {
-			pe("verbose", () => `[WebNN] createTemporaryTensor {onnxDataType: ${s}, shape: ${f}}`);
-			let i = fr.get(s);
+			le("verbose", () => `[WebNN] createTemporaryTensor {onnxDataType: ${s}, shape: ${f}}`);
+			let i = pr.get(s);
 			if (!i) throw new Error(`Unsupported ONNX data type: ${s}`);
-			let d = this.tensorManager.reserveTensorId();
-			await this.tensorManager.ensureTensor(r, d, i, f, !1);
+			let p = this.tensorManager.reserveTensorId();
+			await this.tensorManager.ensureTensor(r, p, i, f, !1);
 			let l = this.temporarySessionTensorIds.get(r);
-			return l ? l.push(d) : this.temporarySessionTensorIds.set(r, [d]), d;
+			return l ? l.push(p) : this.temporarySessionTensorIds.set(r, [p]), p;
 		}
 		uploadTensor(r, s) {
-			if (!z().shouldTransferToMLTensor) throw new Error("Trying to upload to a MLTensor while shouldTransferToMLTensor is false");
-			pe("verbose", () => `[WebNN] uploadTensor {tensorId: ${r}, data: ${s.byteLength}}`), this.tensorManager.upload(r, s);
+			if (!j().shouldTransferToMLTensor) throw new Error("Trying to upload to a MLTensor while shouldTransferToMLTensor is false");
+			le("verbose", () => `[WebNN] uploadTensor {tensorId: ${r}, data: ${s.byteLength}}`), this.tensorManager.upload(r, s);
 		}
 		async downloadTensor(r, s) {
 			return this.tensorManager.download(r, s);
@@ -4087,56 +4398,14 @@ var Ls = k(() => {
 		createMLTensorDownloader(r, s) {
 			return async () => {
 				let f = await this.tensorManager.download(r);
-				return hs(f, s);
+				return Ls(f, s);
 			};
 		}
 		registerMLTensor(r, s, f, i) {
-			let d = fr.get(f);
-			if (!d) throw new Error(`Unsupported ONNX data type: ${f}`);
-			let l = this.tensorManager.registerTensor(r, s, d, i);
-			return pe("verbose", () => `[WebNN] registerMLTensor {tensor: ${s}, dataType: ${d}, dimensions: ${i}} -> {tensorId: ${l}}`), l;
-		}
-		registerMLConstant(r, s, f, i, d, l, m = !1) {
-			if (!l) throw new Error("External mounted files are not available.");
-			let y = r;
-			r.startsWith("./") && (y = r.substring(2));
-			let w = l.get(y);
-			if (!w) throw new Error(`File with name ${y} not found in preloaded files.`);
-			if (s + f > w.byteLength) throw new Error("Out of bounds: data offset and length exceed the external file data size.");
-			let T = w.slice(s, s + f).buffer, g;
-			switch (d.dataType) {
-				case "float32":
-					g = new Float32Array(T);
-					break;
-				case "float16":
-					g = typeof Float16Array < "u" && Float16Array.from ? new Float16Array(T) : new Uint16Array(T);
-					break;
-				case "int32":
-					g = new Int32Array(T);
-					break;
-				case "uint32":
-					g = new Uint32Array(T);
-					break;
-				case "int64":
-					if (m) {
-						let v = cn(new Uint8Array(T), "int64");
-						g = new Int32Array(v.buffer), d.dataType = "int32";
-					} else g = new BigInt64Array(T);
-					break;
-				case "uint64":
-					g = new BigUint64Array(T);
-					break;
-				case "int8":
-					g = new Int8Array(T);
-					break;
-				case "int4":
-				case "uint4":
-				case "uint8":
-					g = new Uint8Array(T);
-					break;
-				default: throw new Error(`Unsupported data type: ${d.dataType} in creating WebNN Constant from external data.`);
-			}
-			return pe("verbose", () => `[WebNN] registerMLConstant {dataType: ${d.dataType}, shape: ${d.shape}}} ${m ? "(Note: it was int64 data type and registered to int32 as workaround)" : ""}`), i.constant(d, g);
+			let p = pr.get(f);
+			if (!p) throw new Error(`Unsupported ONNX data type: ${f}`);
+			let l = this.tensorManager.registerTensor(r, s, p, i);
+			return le("verbose", () => `[WebNN] registerMLTensor {tensor: ${s}, dataType: ${p}, dimensions: ${i}} -> {tensorId: ${l}}`), l;
 		}
 		registerGraphInput(r) {
 			this.temporaryGraphInputs.push(r);
@@ -4153,40 +4422,40 @@ var Ls = k(() => {
 			return f ? f.includes(s) : !1;
 		}
 		isGraphInputOutputTypeSupported(r, s, f = !0) {
-			let i = fr.get(He(s)), d = this.mlOpSupportLimitsBySessionId.get(r);
-			return typeof i > "u" ? !1 : f ? !!d?.input.dataTypes.includes(i) : !!d?.output.dataTypes.includes(i);
+			let i = pr.get(He(s)), p = this.mlOpSupportLimitsBySessionId.get(r);
+			return typeof i > "u" ? !1 : f ? !!p?.input.dataTypes.includes(i) : !!p?.output.dataTypes.includes(i);
 		}
 		flush() {}
 	};
 });
-var hc;
-var Jt;
-var Xt;
-var it;
-var yc;
-var Os;
-var xt;
+var Wc;
 var Qt;
-var Zt;
-var Bs;
-var Kt;
 var er;
+var ft;
+var kc;
+var Fs;
+var Lt;
 var tr;
-var Kr = k(() => {
+var rr;
+var Gs;
+var nr;
+var or;
+var ar;
+var nn = G(() => {
 	"use strict";
 	Ve();
-	ls();
-	ms();
-	st();
+	xs();
+	Is();
+	ut();
 	je();
-	nr();
-	sn();
-	hc = (a, r) => {
-		z()._OrtInit(a, r) !== 0 && $("Can't initialize onnxruntime.");
-	}, Jt = async (a) => {
-		hc(a.wasm.numThreads, Ot(a.logLevel));
-	}, Xt = async (a, r) => {
-		z().asyncInit?.();
+	ir();
+	cn();
+	Wc = (a, r) => {
+		j()._OrtInit(a, r) !== 0 && V("Can't initialize onnxruntime.");
+	}, Qt = async (a) => {
+		Wc(a.wasm.numThreads, Mt(a.logLevel));
+	}, er = async (a, r) => {
+		j().asyncInit?.();
 		let s = a.webgpu.adapter;
 		if (r === "webgpu") {
 			if (typeof navigator > "u" || !navigator.gpu) throw new Error("WebGPU is not supported in current environment");
@@ -4204,367 +4473,367 @@ var Kr = k(() => {
 			}
 		}
 		if (r === "webnn" && (typeof navigator > "u" || !navigator.ml)) throw new Error("WebNN is not supported in current environment");
-		if (r === "webgpu" && z().webgpuInit((f) => {
+		if (r === "webgpu" && j().webgpuInit((f) => {
 			a.webgpu.device = f;
 		}), r === "webnn") {
-			let f = new (Ls(), $t(xs)).WebNNBackend(a);
-			z().webnnInit([
+			let f = new (ks(), Ht(Ws)).WebNNBackend(a);
+			j().webnnInit([
 				f,
 				() => f.reserveTensorId(),
 				(i) => f.releaseTensorId(i),
-				async (i, d, l, m, y) => f.ensureTensor(i, d, l, m, y),
-				(i, d) => {
-					f.uploadTensor(i, d);
+				async (i, p, l, b, g) => f.ensureTensor(i, p, l, b, g),
+				(i, p) => {
+					f.uploadTensor(i, p);
 				},
-				async (i, d) => f.downloadTensor(i, d),
-				(i, d) => f.registerMLContext(i, d),
+				async (i, p) => f.downloadTensor(i, p),
+				(i, p) => f.registerMLContext(i, p),
 				!!a.trace
 			]);
 		}
-	}, it = /* @__PURE__ */ new Map(), yc = (a) => {
-		let r = z(), s = r.stackSave();
+	}, ft = /* @__PURE__ */ new Map(), kc = (a) => {
+		let r = j(), s = r.stackSave();
 		try {
 			let f = r.PTR_SIZE, i = r.stackAlloc(2 * f);
-			r._OrtGetInputOutputCount(a, i, i + f) !== 0 && $("Can't get session input/output count.");
+			r._OrtGetInputOutputCount(a, i, i + f) !== 0 && V("Can't get session input/output count.");
 			let l = f === 4 ? "i32" : "i64";
 			return [Number(r.getValue(i, l)), Number(r.getValue(i + f, l))];
 		} finally {
 			r.stackRestore(s);
 		}
-	}, Os = (a, r) => {
-		let s = z(), f = s.stackSave(), i = 0;
+	}, Fs = (a, r) => {
+		let s = j(), f = s.stackSave(), i = 0;
 		try {
-			let d = s.PTR_SIZE, l = s.stackAlloc(2 * d);
-			s._OrtGetInputOutputMetadata(a, r, l, l + d) !== 0 && $("Can't get session input/output metadata.");
-			let y = Number(s.getValue(l, "*"));
-			i = Number(s.getValue(l + d, "*"));
+			let p = s.PTR_SIZE, l = s.stackAlloc(2 * p);
+			s._OrtGetInputOutputMetadata(a, r, l, l + p) !== 0 && V("Can't get session input/output metadata.");
+			let g = Number(s.getValue(l, "*"));
+			i = Number(s.getValue(l + p, "*"));
 			let w = s.HEAP32[i / 4];
-			if (w === 0) return [y, 0];
-			let T = s.HEAPU32[i / 4 + 1], g = [];
-			for (let v = 0; v < T; v++) {
-				let S = Number(s.getValue(i + 8 + v * d, "*"));
-				g.push(S !== 0 ? s.UTF8ToString(S) : Number(s.getValue(i + 8 + (v + T) * d, "*")));
+			if (w === 0) return [g, 0];
+			let S = s.HEAPU32[i / 4 + 1], v = [];
+			for (let T = 0; T < S; T++) {
+				let A = Number(s.getValue(i + 8 + T * p, "*"));
+				v.push(A !== 0 ? s.UTF8ToString(A) : Number(s.getValue(i + 8 + (T + S) * p, "*")));
 			}
 			return [
-				y,
+				g,
 				w,
-				g
+				v
 			];
 		} finally {
 			s.stackRestore(f), i !== 0 && s._OrtFree(i);
 		}
-	}, xt = (a) => {
-		let r = z(), s = r._malloc(a.byteLength);
+	}, Lt = (a) => {
+		let r = j(), s = r._malloc(a.byteLength);
 		if (s === 0) throw new Error(`Can't create a session. failed to allocate a buffer of size ${a.byteLength}.`);
 		return r.HEAPU8.set(a, s), [s, a.byteLength];
-	}, Qt = async (a, r) => {
-		let s, f, i = z();
-		Array.isArray(a) ? [s, f] = a : a.buffer === i.HEAPU8.buffer ? [s, f] = [a.byteOffset, a.byteLength] : [s, f] = xt(a);
-		let d = 0, l = 0, m = 0, y = [], w = [], T = [];
+	}, tr = async (a, r) => {
+		let s, f, i = j();
+		Array.isArray(a) ? [s, f] = a : a.buffer === i.HEAPU8.buffer ? [s, f] = [a.byteOffset, a.byteLength] : [s, f] = Lt(a);
+		let p = 0, l = 0, b = 0, g = [], w = [], S = [];
 		try {
-			if ([l, y] = await ps(r), r?.externalData && i.mountExternalData) {
+			if ([l, g] = await As(r), r?.externalData && i.mountExternalData) {
 				let O = [];
-				for (let W of r.externalData) {
-					let oe = typeof W == "string" ? W : W.path;
-					O.push(Bt(typeof W == "string" ? W : W.data).then((p) => {
-						i.mountExternalData(oe, p);
+				for (let $ of r.externalData) {
+					let oe = typeof $ == "string" ? $ : $.path, d = typeof $ == "string" ? $ : $.data;
+					O.push(Ct(d).then((te) => {
+						i.mountExternalData(oe, te);
 					}));
 				}
 				await Promise.all(O);
 			}
 			for (let O of r?.executionProviders ?? []) if ((typeof O == "string" ? O : O.name) === "webnn") {
 				if (i.shouldTransferToMLTensor = !1, typeof O != "string") {
-					let oe = O, p = oe?.context, ne = oe?.gpuDevice, X = oe?.deviceType, J = oe?.powerPreference;
-					p ? i.currentContext = p : ne ? i.currentContext = await i.webnnCreateMLContext(ne) : i.currentContext = await i.webnnCreateMLContext({
-						deviceType: X,
-						powerPreference: J
+					let oe = O, d = oe?.context, te = oe?.gpuDevice, Z = oe?.deviceType, X = oe?.powerPreference;
+					d ? i.currentContext = d : te ? i.currentContext = await i.webnnCreateMLContext(te) : i.currentContext = await i.webnnCreateMLContext({
+						deviceType: Z,
+						powerPreference: X
 					});
 				} else i.currentContext = await i.webnnCreateMLContext();
 				break;
 			}
-			d = await i._OrtCreateSession(s, f, l), i.webgpuOnCreateSession?.(d), d === 0 && $("Can't create a session."), i.jsepOnCreateSession?.(), i.currentContext && (i.webnnRegisterMLContext(d, i.currentContext), i.currentContext = void 0, i.shouldTransferToMLTensor = !0);
-			let [g, v] = yc(d), S = !!r?.enableGraphCapture, C = [], R = [], H = [], U = [], M = [];
-			for (let O = 0; O < g; O++) {
-				let [W, oe, p] = Os(d, O);
-				W === 0 && $("Can't get an input name."), w.push(W);
-				let ne = i.UTF8ToString(W);
-				C.push(ne), H.push(oe === 0 ? {
-					name: ne,
+			p = await i._OrtCreateSession(s, f, l), i.webgpuOnCreateSession?.(p), p === 0 && V("Can't create a session."), i.jsepOnCreateSession?.(), i.currentContext && (i.webnnRegisterMLContext(p, i.currentContext), i.currentContext = void 0, i.shouldTransferToMLTensor = !0);
+			let [v, T] = kc(p), A = !!r?.enableGraphCapture, C = [], _ = [], k = [], U = [], M = [];
+			for (let O = 0; O < v; O++) {
+				let [$, oe, d] = Fs(p, O);
+				$ === 0 && V("Can't get an input name."), w.push($);
+				let te = i.UTF8ToString($);
+				C.push(te), k.push(oe === 0 ? {
+					name: te,
 					isTensor: !1
 				} : {
-					name: ne,
+					name: te,
 					isTensor: !0,
-					type: or(oe),
-					shape: p
+					type: ur(oe),
+					shape: d
 				});
 			}
-			for (let O = 0; O < v; O++) {
-				let [W, oe, p] = Os(d, O + g);
-				W === 0 && $("Can't get an output name."), T.push(W);
-				let ne = i.UTF8ToString(W);
-				R.push(ne), U.push(oe === 0 ? {
-					name: ne,
+			for (let O = 0; O < T; O++) {
+				let [$, oe, d] = Fs(p, O + v);
+				$ === 0 && V("Can't get an output name."), S.push($);
+				let te = i.UTF8ToString($);
+				_.push(te), U.push(oe === 0 ? {
+					name: te,
 					isTensor: !1
 				} : {
-					name: ne,
+					name: te,
 					isTensor: !0,
-					type: or(oe),
-					shape: p
+					type: ur(oe),
+					shape: d
 				});
 				{
-					if (S && r?.preferredOutputLocation === void 0) {
+					if (A && r?.preferredOutputLocation === void 0) {
 						M.push("gpu-buffer");
 						continue;
 					}
-					let X = typeof r?.preferredOutputLocation == "string" ? r.preferredOutputLocation : r?.preferredOutputLocation?.[ne] ?? "cpu", J = i.webnnIsGraphOutput;
-					if (X === "cpu" && J && J(d, ne)) {
+					let Z = typeof r?.preferredOutputLocation == "string" ? r.preferredOutputLocation : r?.preferredOutputLocation?.[te] ?? "cpu", X = i.webnnIsGraphOutput;
+					if (Z === "cpu" && X && X(p, te)) {
 						M.push("ml-tensor-cpu-output");
 						continue;
 					}
-					if (X !== "cpu" && X !== "cpu-pinned" && X !== "gpu-buffer" && X !== "ml-tensor") throw new Error(`Not supported preferred output location: ${X}.`);
-					if (S && X !== "gpu-buffer") throw new Error(`Not supported preferred output location: ${X}. Only 'gpu-buffer' location is supported when enableGraphCapture is true.`);
-					M.push(X);
+					if (Z !== "cpu" && Z !== "cpu-pinned" && Z !== "gpu-buffer" && Z !== "ml-tensor") throw new Error(`Not supported preferred output location: ${Z}.`);
+					if (A && Z !== "gpu-buffer") throw new Error(`Not supported preferred output location: ${Z}. Only 'gpu-buffer' location is supported when enableGraphCapture is true.`);
+					M.push(Z);
 				}
 			}
 			let Y = null;
-			return M.some((O) => O === "gpu-buffer" || O === "ml-tensor" || O === "ml-tensor-cpu-output") && (m = i._OrtCreateBinding(d), m === 0 && $("Can't create IO binding."), Y = {
-				handle: m,
+			return M.some((O) => O === "gpu-buffer" || O === "ml-tensor" || O === "ml-tensor-cpu-output") && (b = i._OrtCreateBinding(p), b === 0 && V("Can't create IO binding."), Y = {
+				handle: b,
 				outputPreferredLocations: M,
-				outputPreferredLocationsEncoded: M.map((O) => O === "ml-tensor-cpu-output" ? "ml-tensor" : O).map((O) => an(O))
-			}), it.set(d, [
-				d,
+				outputPreferredLocationsEncoded: M.map((O) => O === "ml-tensor-cpu-output" ? "ml-tensor" : O).map((O) => fn(O))
+			}), ft.set(p, [
+				p,
 				w,
-				T,
-				Y,
 				S,
+				Y,
+				A,
 				!1
 			]), [
-				d,
+				p,
 				C,
-				R,
-				H,
+				_,
+				k,
 				U
 			];
-		} catch (g) {
-			throw w.forEach((v) => i._OrtFree(v)), T.forEach((v) => i._OrtFree(v)), m !== 0 && i._OrtReleaseBinding(m) !== 0 && $("Can't release IO binding."), d !== 0 && i._OrtReleaseSession(d) !== 0 && $("Can't release session."), g;
+		} catch (v) {
+			throw w.forEach((T) => i._OrtFree(T)), S.forEach((T) => i._OrtFree(T)), b !== 0 && i._OrtReleaseBinding(b) !== 0 && V("Can't release IO binding."), p !== 0 && i._OrtReleaseSession(p) !== 0 && V("Can't release session."), v;
 		} finally {
-			i._free(s), l !== 0 && i._OrtReleaseSessionOptions(l) !== 0 && $("Can't release session options."), y.forEach((g) => i._free(g)), i.unmountExternalData?.();
+			i._free(s), l !== 0 && i._OrtReleaseSessionOptions(l) !== 0 && V("Can't release session options."), g.forEach((v) => i._free(v)), i.unmountExternalData?.();
 		}
-	}, Zt = (a) => {
-		let r = z(), s = it.get(a);
+	}, rr = (a) => {
+		let r = j(), s = ft.get(a);
 		if (!s) throw new Error(`cannot release session. invalid session id: ${a}`);
-		let [f, i, d, l, m] = s;
-		l && (m && r._OrtClearBoundOutputs(l.handle) !== 0 && $("Can't clear bound outputs."), r._OrtReleaseBinding(l.handle) !== 0 && $("Can't release IO binding.")), r.jsepOnReleaseSession?.(a), r.webnnOnReleaseSession?.(a), r.webgpuOnReleaseSession?.(a), i.forEach((y) => r._OrtFree(y)), d.forEach((y) => r._OrtFree(y)), r._OrtReleaseSession(f) !== 0 && $("Can't release session."), it.delete(a);
-	}, Bs = async (a, r, s, f, i, d, l = !1) => {
+		let [f, i, p, l, b] = s;
+		l && (b && r._OrtClearBoundOutputs(l.handle) !== 0 && V("Can't clear bound outputs."), r._OrtReleaseBinding(l.handle) !== 0 && V("Can't release IO binding.")), r.jsepOnReleaseSession?.(a), r.webnnOnReleaseSession?.(a), r.webgpuOnReleaseSession?.(a), i.forEach((g) => r._OrtFree(g)), p.forEach((g) => r._OrtFree(g)), r._OrtReleaseSession(f) !== 0 && V("Can't release session."), ft.delete(a);
+	}, Gs = async (a, r, s, f, i, p, l = !1) => {
 		if (!a) {
 			r.push(0);
 			return;
 		}
-		let m = z(), y = m.PTR_SIZE, w = a[0], T = a[1], g = a[3], v = g, S, C;
-		if (w === "string" && (g === "gpu-buffer" || g === "ml-tensor")) throw new Error("String tensor is not supported on GPU.");
-		if (l && g !== "gpu-buffer") throw new Error(`External buffer must be provided for input/output index ${d} when enableGraphCapture is true.`);
-		if (g === "gpu-buffer") {
+		let b = j(), g = b.PTR_SIZE, w = a[0], S = a[1], v = a[3], T = v, A, C;
+		if (w === "string" && (v === "gpu-buffer" || v === "ml-tensor")) throw new Error("String tensor is not supported on GPU.");
+		if (l && v !== "gpu-buffer") throw new Error(`External buffer must be provided for input/output index ${p} when enableGraphCapture is true.`);
+		if (v === "gpu-buffer") {
 			let U = a[2].gpuBuffer;
-			C = mt(He(w), T);
+			C = bt(He(w), S);
 			{
-				let M = m.webgpuRegisterBuffer;
+				let M = b.webgpuRegisterBuffer;
 				if (!M) throw new Error("Tensor location \"gpu-buffer\" is not supported without using WebGPU.");
-				S = M(U, f);
+				A = M(U, f);
 			}
-		} else if (g === "ml-tensor") {
+		} else if (v === "ml-tensor") {
 			let U = a[2].mlTensor;
-			C = mt(He(w), T);
-			let M = m.webnnRegisterMLTensor;
+			C = bt(He(w), S);
+			let M = b.webnnRegisterMLTensor;
 			if (!M) throw new Error("Tensor location \"ml-tensor\" is not supported without using WebNN.");
-			S = M(f, U, He(w), T);
+			A = M(f, U, He(w), S);
 		} else {
 			let U = a[2];
 			if (Array.isArray(U)) {
-				C = y * U.length, S = m._malloc(C), s.push(S);
+				C = g * U.length, A = b._malloc(C), s.push(A);
 				for (let M = 0; M < U.length; M++) {
 					if (typeof U[M] != "string") throw new TypeError(`tensor data at index ${M} is not a string`);
-					m.setValue(S + M * y, be(U[M], s), "*");
+					b.setValue(A + M * g, be(U[M], s), "*");
 				}
 			} else {
-				let M = m.webnnIsGraphInput, Y = m.webnnIsGraphOutput;
+				let M = b.webnnIsGraphInput, Y = b.webnnIsGraphOutput;
 				if (w !== "string" && M && Y) {
-					let O = m.UTF8ToString(i);
+					let O = b.UTF8ToString(i);
 					if (M(f, O) || Y(f, O)) {
-						let W = He(w);
-						C = mt(W, T), v = "ml-tensor";
-						let oe = m.webnnCreateTemporaryTensor, p = m.webnnUploadTensor;
-						if (!oe || !p) throw new Error("Tensor location \"ml-tensor\" is not supported without using WebNN.");
-						let ne = await oe(f, W, T);
-						p(ne, new Uint8Array(U.buffer, U.byteOffset, U.byteLength)), S = ne;
-					} else C = U.byteLength, S = m._malloc(C), s.push(S), m.HEAPU8.set(new Uint8Array(U.buffer, U.byteOffset, C), S);
-				} else C = U.byteLength, S = m._malloc(C), s.push(S), m.HEAPU8.set(new Uint8Array(U.buffer, U.byteOffset, C), S);
+						let $ = He(w);
+						C = bt($, S), T = "ml-tensor";
+						let oe = b.webnnCreateTemporaryTensor, d = b.webnnUploadTensor;
+						if (!oe || !d) throw new Error("Tensor location \"ml-tensor\" is not supported without using WebNN.");
+						let te = await oe(f, $, S);
+						d(te, new Uint8Array(U.buffer, U.byteOffset, U.byteLength)), A = te;
+					} else C = U.byteLength, A = b._malloc(C), s.push(A), b.HEAPU8.set(new Uint8Array(U.buffer, U.byteOffset, C), A);
+				} else C = U.byteLength, A = b._malloc(C), s.push(A), b.HEAPU8.set(new Uint8Array(U.buffer, U.byteOffset, C), A);
 			}
 		}
-		let R = m.stackSave(), H = m.stackAlloc(4 * T.length);
+		let _ = b.stackSave(), k = b.stackAlloc(4 * S.length);
 		try {
-			T.forEach((M, Y) => m.setValue(H + Y * y, M, y === 4 ? "i32" : "i64"));
-			let U = m._OrtCreateTensor(He(w), S, C, H, T.length, an(v));
-			U === 0 && $(`Can't create tensor for input/output. session=${f}, index=${d}.`), r.push(U);
+			S.forEach((M, Y) => b.setValue(k + Y * g, M, g === 4 ? "i32" : "i64"));
+			let U = b._OrtCreateTensor(He(w), A, C, k, S.length, fn(T));
+			U === 0 && V(`Can't create tensor for input/output. session=${f}, index=${p}.`), r.push(U);
 		} finally {
-			m.stackRestore(R);
+			b.stackRestore(_);
 		}
-	}, Kt = async (a, r, s, f, i, d) => {
-		let l = z(), m = l.PTR_SIZE, y = it.get(a);
-		if (!y) throw new Error(`cannot run inference. invalid session id: ${a}`);
-		let w = y[0], T = y[1], g = y[2], v = y[3], S = y[4], C = y[5], R = r.length, H = f.length, U = 0, M = [], Y = [], O = [], W = [], oe = [], p = l.stackSave(), ne = l.stackAlloc(R * m), X = l.stackAlloc(R * m), J = l.stackAlloc(H * m), Ue = l.stackAlloc(H * m);
+	}, nr = async (a, r, s, f, i, p) => {
+		let l = j(), b = l.PTR_SIZE, g = ft.get(a);
+		if (!g) throw new Error(`cannot run inference. invalid session id: ${a}`);
+		let w = g[0], S = g[1], v = g[2], T = g[3], A = g[4], C = g[5], _ = r.length, k = f.length, U = 0, M = [], Y = [], O = [], $ = [], oe = [], d = l.stackSave(), te = l.stackAlloc(_ * b), Z = l.stackAlloc(_ * b), X = l.stackAlloc(k * b), De = l.stackAlloc(k * b);
 		try {
-			[U, M] = ds(d), $e("wasm prepareInputOutputTensor");
-			for (let _ = 0; _ < R; _++) await Bs(s[_], Y, W, a, T[r[_]], r[_], S);
-			for (let _ = 0; _ < H; _++) await Bs(i[_], O, W, a, g[f[_]], R + f[_], S);
+			[U, M] = Ss(p), $e("wasm prepareInputOutputTensor");
+			for (let R = 0; R < _; R++) await Gs(s[R], Y, $, a, S[r[R]], r[R], A);
+			for (let R = 0; R < k; R++) await Gs(i[R], O, $, a, v[f[R]], _ + f[R], A);
 			ze("wasm prepareInputOutputTensor");
-			for (let _ = 0; _ < R; _++) l.setValue(ne + _ * m, Y[_], "*"), l.setValue(X + _ * m, T[r[_]], "*");
-			for (let _ = 0; _ < H; _++) l.setValue(J + _ * m, O[_], "*"), l.setValue(Ue + _ * m, g[f[_]], "*");
-			if (v && !C) {
-				let { handle: _, outputPreferredLocations: ae, outputPreferredLocationsEncoded: me } = v;
-				if (T.length !== R) throw new Error(`input count from feeds (${R}) is expected to be always equal to model's input count (${T.length}).`);
+			for (let R = 0; R < _; R++) l.setValue(te + R * b, Y[R], "*"), l.setValue(Z + R * b, S[r[R]], "*");
+			for (let R = 0; R < k; R++) l.setValue(X + R * b, O[R], "*"), l.setValue(De + R * b, v[f[R]], "*");
+			if (T && !C) {
+				let { handle: R, outputPreferredLocations: ae, outputPreferredLocationsEncoded: pe } = T;
+				if (S.length !== _) throw new Error(`input count from feeds (${_}) is expected to be always equal to model's input count (${S.length}).`);
 				$e("wasm bindInputsOutputs");
-				for (let q = 0; q < R; q++) {
-					let we = r[q];
-					await l._OrtBindInput(_, T[we], Y[q]) !== 0 && $(`Can't bind input[${q}] for session=${a}.`);
+				for (let J = 0; J < _; J++) {
+					let ge = r[J];
+					await l._OrtBindInput(R, S[ge], Y[J]) !== 0 && V(`Can't bind input[${J}] for session=${a}.`);
 				}
-				for (let q = 0; q < H; q++) {
-					let we = f[q];
-					i[q]?.[3] ? (oe.push(O[q]), l._OrtBindOutput(_, g[we], O[q], 0) !== 0 && $(`Can't bind pre-allocated output[${q}] for session=${a}.`)) : l._OrtBindOutput(_, g[we], 0, me[we]) !== 0 && $(`Can't bind output[${q}] to ${ae[q]} for session=${a}.`);
+				for (let J = 0; J < k; J++) {
+					let ge = f[J];
+					i[J]?.[3] ? (oe.push(O[J]), l._OrtBindOutput(R, v[ge], O[J], 0) !== 0 && V(`Can't bind pre-allocated output[${J}] for session=${a}.`)) : l._OrtBindOutput(R, v[ge], 0, pe[ge]) !== 0 && V(`Can't bind output[${J}] to ${ae[J]} for session=${a}.`);
 				}
-				ze("wasm bindInputsOutputs"), it.set(a, [
+				ze("wasm bindInputsOutputs"), ft.set(a, [
 					w,
-					T,
-					g,
-					v,
 					S,
+					v,
+					T,
+					A,
 					!0
 				]);
 			}
 			l.jsepOnRunStart?.(w), l.webnnOnRunStart?.(w);
-			let Q;
-			v ? Q = await l._OrtRunWithBinding(w, v.handle, H, J, U) : Q = await l._OrtRun(w, X, ne, R, Ue, H, J, U), Q !== 0 && $("failed to call OrtRun().");
-			let x = [], A = [];
+			let K;
+			T ? K = await l._OrtRunWithBinding(w, T.handle, k, X, U) : K = await l._OrtRun(w, Z, te, _, De, k, X, U), K !== 0 && V("failed to call OrtRun().");
+			let I = [], E = [];
 			$e("wasm ProcessOutputTensor");
-			for (let _ = 0; _ < H; _++) {
-				let ae = Number(l.getValue(J + _ * m, "*"));
-				if (ae === O[_] || oe.includes(O[_])) {
-					x.push(i[_]), ae !== O[_] && l._OrtReleaseTensor(ae) !== 0 && $("Can't release tensor.");
+			for (let R = 0; R < k; R++) {
+				let ae = Number(l.getValue(X + R * b, "*"));
+				if (ae === O[R] || oe.includes(O[R])) {
+					I.push(i[R]), ae !== O[R] && l._OrtReleaseTensor(ae) !== 0 && V("Can't release tensor.");
 					continue;
 				}
-				let me = l.stackSave(), q = l.stackAlloc(4 * m), we = !1, re, se = 0;
+				let pe = l.stackSave(), J = l.stackAlloc(4 * b), ge = !1, ne, se = 0;
 				try {
-					l._OrtGetTensorData(ae, q, q + m, q + 2 * m, q + 3 * m) !== 0 && $(`Can't access output tensor data on index ${_}.`);
-					let Te = m === 4 ? "i32" : "i64", Ye = Number(l.getValue(q, Te));
-					se = l.getValue(q + m, "*");
-					let bt = l.getValue(q + m * 2, "*"), wt = Number(l.getValue(q + m * 3, Te)), Se = [];
-					for (let ee = 0; ee < wt; ee++) Se.push(Number(l.getValue(bt + ee * m, Te)));
-					l._OrtFree(bt) !== 0 && $("Can't free memory for tensor dims.");
-					let Ae = Se.reduce((ee, Z) => ee * Z, 1);
-					re = or(Ye);
-					let Oe = v?.outputPreferredLocations[f[_]];
-					if (re === "string") {
-						if (Oe === "gpu-buffer" || Oe === "ml-tensor") throw new Error("String tensor is not supported on GPU.");
-						let ee = [];
-						for (let Z = 0; Z < Ae; Z++) {
-							let G = l.getValue(se + Z * m, "*"), V = l.getValue(se + (Z + 1) * m, "*"), qe = Z === Ae - 1 ? void 0 : V - G;
-							ee.push(l.UTF8ToString(G, qe));
+					l._OrtGetTensorData(ae, J, J + b, J + 2 * b, J + 3 * b) !== 0 && V(`Can't access output tensor data on index ${R}.`);
+					let we = b === 4 ? "i32" : "i64", qe = Number(l.getValue(J, we));
+					se = l.getValue(J + b, "*");
+					let wt = l.getValue(J + b * 2, "*"), Tt = Number(l.getValue(J + b * 3, we)), Se = [];
+					for (let re = 0; re < Tt; re++) Se.push(Number(l.getValue(wt + re * b, we)));
+					l._OrtFree(wt) !== 0 && V("Can't free memory for tensor dims.");
+					let xe = Se.reduce((re, Q) => re * Q, 1);
+					ne = ur(qe);
+					let Be = T?.outputPreferredLocations[f[R]];
+					if (ne === "string") {
+						if (Be === "gpu-buffer" || Be === "ml-tensor") throw new Error("String tensor is not supported on GPU.");
+						let re = [];
+						for (let Q = 0; Q < xe; Q++) {
+							let z = l.getValue(se + Q * b, "*"), H = l.getValue(se + (Q + 1) * b, "*"), Ye = Q === xe - 1 ? void 0 : H - z;
+							re.push(l.UTF8ToString(z, Ye));
 						}
-						x.push([
-							re,
+						I.push([
+							ne,
 							Se,
-							ee,
+							re,
 							"cpu"
 						]);
-					} else if (Oe === "gpu-buffer" && Ae > 0) {
-						let ee = l.webgpuGetBuffer;
-						if (!ee) throw new Error("preferredLocation \"gpu-buffer\" is not supported without using WebGPU.");
-						let Z = ee(se), G = mt(Ye, Ae);
-						if (G === void 0 || !ar(re)) throw new Error(`Unsupported data type: ${re}`);
-						we = !0;
+					} else if (Be === "gpu-buffer" && xe > 0) {
+						let re = l.webgpuGetBuffer;
+						if (!re) throw new Error("preferredLocation \"gpu-buffer\" is not supported without using WebGPU.");
+						let Q = re(se), z = bt(qe, xe);
+						if (z === void 0 || !fr(ne)) throw new Error(`Unsupported data type: ${ne}`);
+						ge = !0;
 						{
-							l.webgpuRegisterBuffer(Z, a, se);
-							let V = l.webgpuCreateDownloader(Z, G, a);
-							x.push([
-								re,
+							l.webgpuRegisterBuffer(Q, a, se);
+							let H = l.webgpuCreateDownloader(Q, z, a);
+							I.push([
+								ne,
 								Se,
 								{
-									gpuBuffer: Z,
+									gpuBuffer: Q,
 									download: async () => {
-										let qe = await V();
-										return new (at(re))(qe);
+										let Ye = await H();
+										return new (it(ne))(Ye);
 									},
 									dispose: () => {
-										l._OrtReleaseTensor(ae) !== 0 && $("Can't release tensor.");
+										l._OrtReleaseTensor(ae) !== 0 && V("Can't release tensor.");
 									}
 								},
 								"gpu-buffer"
 							]);
 						}
-					} else if (Oe === "ml-tensor" && Ae > 0) {
-						let ee = l.webnnEnsureTensor, Z = l.webnnIsGraphInputOutputTypeSupported;
-						if (!ee || !Z) throw new Error("preferredLocation \"ml-tensor\" is not supported without using WebNN.");
-						if (mt(Ye, Ae) === void 0 || !sr(re)) throw new Error(`Unsupported data type: ${re}`);
-						if (!Z(a, re, !1)) throw new Error(`preferredLocation "ml-tensor" for ${re} output is not supported by current WebNN Context.`);
-						let V = await ee(a, se, Ye, Se, !1);
-						we = !0, x.push([
-							re,
+					} else if (Be === "ml-tensor" && xe > 0) {
+						let re = l.webnnEnsureTensor, Q = l.webnnIsGraphInputOutputTypeSupported;
+						if (!re || !Q) throw new Error("preferredLocation \"ml-tensor\" is not supported without using WebNN.");
+						if (bt(qe, xe) === void 0 || !cr(ne)) throw new Error(`Unsupported data type: ${ne}`);
+						if (!Q(a, ne, !1)) throw new Error(`preferredLocation "ml-tensor" for ${ne} output is not supported by current WebNN Context.`);
+						let H = await re(a, se, qe, Se, !1);
+						ge = !0, I.push([
+							ne,
 							Se,
 							{
-								mlTensor: V,
-								download: l.webnnCreateMLTensorDownloader(se, re),
+								mlTensor: H,
+								download: l.webnnCreateMLTensorDownloader(se, ne),
 								dispose: () => {
 									l.webnnReleaseTensorId(se), l._OrtReleaseTensor(ae);
 								}
 							},
 							"ml-tensor"
 						]);
-					} else if (Oe === "ml-tensor-cpu-output" && Ae > 0) {
-						let ee = l.webnnCreateMLTensorDownloader(se, re)(), Z = x.length;
-						we = !0, A.push((async () => {
-							let G = [Z, await ee];
-							return l.webnnReleaseTensorId(se), l._OrtReleaseTensor(ae), G;
-						})()), x.push([
-							re,
+					} else if (Be === "ml-tensor-cpu-output" && xe > 0) {
+						let re = l.webnnCreateMLTensorDownloader(se, ne)(), Q = I.length;
+						ge = !0, E.push((async () => {
+							let z = [Q, await re];
+							return l.webnnReleaseTensorId(se), l._OrtReleaseTensor(ae), z;
+						})()), I.push([
+							ne,
 							Se,
 							[],
 							"cpu"
 						]);
 					} else {
-						let Z = new (at(re))(Ae);
-						new Uint8Array(Z.buffer, Z.byteOffset, Z.byteLength).set(l.HEAPU8.subarray(se, se + Z.byteLength)), x.push([
-							re,
+						let Q = new (it(ne))(xe);
+						new Uint8Array(Q.buffer, Q.byteOffset, Q.byteLength).set(l.HEAPU8.subarray(se, se + Q.byteLength)), I.push([
+							ne,
 							Se,
-							Z,
+							Q,
 							"cpu"
 						]);
 					}
 				} finally {
-					l.stackRestore(me), re === "string" && se && l._free(se), we || l._OrtReleaseTensor(ae);
+					l.stackRestore(pe), ne === "string" && se && l._free(se), ge || l._OrtReleaseTensor(ae);
 				}
 			}
-			v && !S && (l._OrtClearBoundOutputs(v.handle) !== 0 && $("Can't clear bound outputs."), it.set(a, [
+			T && !A && (l._OrtClearBoundOutputs(T.handle) !== 0 && V("Can't clear bound outputs."), ft.set(a, [
 				w,
-				T,
-				g,
-				v,
 				S,
+				v,
+				T,
+				A,
 				!1
 			]));
-			for (let [_, ae] of await Promise.all(A)) x[_][2] = ae;
-			return ze("wasm ProcessOutputTensor"), x;
+			for (let [R, ae] of await Promise.all(E)) I[R][2] = ae;
+			return ze("wasm ProcessOutputTensor"), I;
 		} finally {
-			l.webnnOnRunEnd?.(w), l.stackRestore(p), s.forEach((Q) => {
-				Q && Q[3] === "gpu-buffer" && l.webgpuUnregisterBuffer(Q[2].gpuBuffer);
-			}), i.forEach((Q) => {
-				Q && Q[3] === "gpu-buffer" && l.webgpuUnregisterBuffer(Q[2].gpuBuffer);
-			}), Y.forEach((Q) => l._OrtReleaseTensor(Q)), O.forEach((Q) => l._OrtReleaseTensor(Q)), W.forEach((Q) => l._free(Q)), U !== 0 && l._OrtReleaseRunOptions(U), M.forEach((Q) => l._free(Q));
+			l.webnnOnRunEnd?.(w), l.stackRestore(d), s.forEach((K) => {
+				K && K[3] === "gpu-buffer" && l.webgpuUnregisterBuffer(K[2].gpuBuffer);
+			}), i.forEach((K) => {
+				K && K[3] === "gpu-buffer" && l.webgpuUnregisterBuffer(K[2].gpuBuffer);
+			}), Y.forEach((K) => l._OrtReleaseTensor(K)), O.forEach((K) => l._OrtReleaseTensor(K)), $.forEach((K) => l._free(K)), U !== 0 && l._OrtReleaseRunOptions(U), M.forEach((K) => l._free(K));
 		}
-	}, er = (a) => {
-		let r = z(), s = it.get(a);
+	}, or = (a) => {
+		let r = j(), s = ft.get(a);
 		if (!s) throw new Error("invalid session id");
 		let f = s[0], i = r._OrtEndProfiling(f);
-		i === 0 && $("Can't get an profile file name."), r._OrtFree(i);
-	}, tr = (a) => {
+		i === 0 && V("Can't get an profile file name."), r._OrtFree(i);
+	}, ar = (a) => {
 		let r = [];
 		for (let s of a) {
 			let f = s[2];
@@ -4573,39 +4842,39 @@ var Kr = k(() => {
 		return r;
 	};
 });
-var ut;
+var ct;
 var Ee;
-var Mt;
-var dr;
-var lr;
-var cr;
-var ln;
-var pn;
-var ht;
+var Dt;
+var hr;
+var br;
+var mr;
+var mn;
+var hn;
+var gt;
 var yt;
-var wc;
-var Ms;
-var Cs;
-var Us;
-var Ds;
-var Ps;
-var _s;
-var Rs;
-var mn = k(() => {
+var Gc;
+var $s;
+var zs;
+var Vs;
+var js;
+var Hs;
+var qs;
+var Ys;
+var bn = G(() => {
 	"use strict";
 	Ve();
-	Kr();
+	nn();
 	je();
-	Yt();
-	ut = () => !!K.wasm.proxy && typeof document < "u", Mt = !1, dr = !1, lr = !1, pn = /* @__PURE__ */ new Map(), ht = (a, r) => {
-		let s = pn.get(a);
-		s ? s.push(r) : pn.set(a, [r]);
+	Zt();
+	ct = () => !!ee.wasm.proxy && typeof document < "u", Dt = !1, hr = !1, br = !1, hn = /* @__PURE__ */ new Map(), gt = (a, r) => {
+		let s = hn.get(a);
+		s ? s.push(r) : hn.set(a, [r]);
 	}, yt = () => {
-		if (Mt || !dr || lr || !Ee) throw new Error("worker not ready");
-	}, wc = (a) => {
+		if (Dt || !hr || br || !Ee) throw new Error("worker not ready");
+	}, Gc = (a) => {
 		switch (a.data.type) {
 			case "init-wasm":
-				Mt = !1, a.data.err ? (lr = !0, ln[1](a.data.err)) : (dr = !0, ln[0]()), cr && (URL.revokeObjectURL(cr), cr = void 0);
+				Dt = !1, a.data.err ? (br = !0, mn[1](a.data.err)) : (hr = !0, mn[0]()), mr && (URL.revokeObjectURL(mr), mr = void 0);
 				break;
 			case "init-ep":
 			case "copy-from":
@@ -4613,124 +4882,124 @@ var mn = k(() => {
 			case "release":
 			case "run":
 			case "end-profiling": {
-				let r = pn.get(a.data.type);
+				let r = hn.get(a.data.type);
 				a.data.err ? r.shift()[1](a.data.err) : r.shift()[0](a.data.out);
 				break;
 			}
 		}
-	}, Ms = async () => {
-		if (!dr) {
-			if (Mt) throw new Error("multiple calls to 'initWasm()' detected.");
-			if (lr) throw new Error("previous call to 'initWasm()' failed.");
-			if (Mt = !0, ut()) return new Promise((a, r) => {
-				Ee?.terminate(), us().then(([s, f]) => {
+	}, $s = async () => {
+		if (!hr) {
+			if (Dt) throw new Error("multiple calls to 'initWasm()' detected.");
+			if (br) throw new Error("previous call to 'initWasm()' failed.");
+			if (Dt = !0, ct()) return new Promise((a, r) => {
+				Ee?.terminate(), Ts().then(([s, f]) => {
 					try {
-						Ee = f, Ee.onerror = (d) => r(d), Ee.onmessage = wc, ln = [a, r];
+						Ee = f, Ee.onerror = (p) => r(p), Ee.onmessage = Gc, mn = [a, r];
 						let i = {
 							type: "init-wasm",
-							in: K
+							in: ee
 						};
-						!i.in.wasm.wasmPaths && (s || tn) && (i.in.wasm.wasmPaths = { wasm: new URL("ort-wasm-simd-threaded.asyncify.wasm", import.meta.url).href }), Ee.postMessage(i), cr = s;
+						!i.in.wasm.wasmPaths && (s || an) && (i.in.wasm.wasmPaths = { wasm: new URL("ort-wasm-simd-threaded.asyncify.wasm", import.meta.url).href }), Ee.postMessage(i), mr = s;
 					} catch (i) {
 						r(i);
 					}
 				}, r);
 			});
 			try {
-				await qt(K.wasm), await Jt(K), dr = !0;
+				await Kt(ee.wasm), await Qt(ee), hr = !0;
 			} catch (a) {
-				throw lr = !0, a;
+				throw br = !0, a;
 			} finally {
-				Mt = !1;
+				Dt = !1;
 			}
 		}
-	}, Cs = async (a) => {
-		if (ut()) return yt(), new Promise((r, s) => {
-			ht("init-ep", [r, s]);
+	}, zs = async (a) => {
+		if (ct()) return yt(), new Promise((r, s) => {
+			gt("init-ep", [r, s]);
 			let f = {
 				type: "init-ep",
 				in: {
 					epName: a,
-					env: K
+					env: ee
 				}
 			};
 			Ee.postMessage(f);
 		});
-		await Xt(K, a);
-	}, Us = async (a) => ut() ? (yt(), new Promise((r, s) => {
-		ht("copy-from", [r, s]);
+		await er(ee, a);
+	}, Vs = async (a) => ct() ? (yt(), new Promise((r, s) => {
+		gt("copy-from", [r, s]);
 		let f = {
 			type: "copy-from",
 			in: { buffer: a }
 		};
 		Ee.postMessage(f, [a.buffer]);
-	})) : xt(a), Ds = async (a, r) => {
-		if (ut()) {
+	})) : Lt(a), js = async (a, r) => {
+		if (ct()) {
 			if (r?.preferredOutputLocation) throw new Error("session option \"preferredOutputLocation\" is not supported for proxy.");
 			return yt(), new Promise((s, f) => {
-				ht("create", [s, f]);
+				gt("create", [s, f]);
 				let i = {
 					type: "create",
 					in: {
 						model: a,
 						options: { ...r }
 					}
-				}, d = [];
-				a instanceof Uint8Array && d.push(a.buffer), Ee.postMessage(i, d);
+				}, p = [];
+				a instanceof Uint8Array && p.push(a.buffer), Ee.postMessage(i, p);
 			});
-		} else return Qt(a, r);
-	}, Ps = async (a) => {
-		if (ut()) return yt(), new Promise((r, s) => {
-			ht("release", [r, s]);
+		} else return tr(a, r);
+	}, Hs = async (a) => {
+		if (ct()) return yt(), new Promise((r, s) => {
+			gt("release", [r, s]);
 			let f = {
 				type: "release",
 				in: a
 			};
 			Ee.postMessage(f);
 		});
-		Zt(a);
-	}, _s = async (a, r, s, f, i, d) => {
-		if (ut()) {
+		rr(a);
+	}, qs = async (a, r, s, f, i, p) => {
+		if (ct()) {
 			if (s.some((l) => l[3] !== "cpu")) throw new Error("input tensor on GPU is not supported for proxy.");
 			if (i.some((l) => l)) throw new Error("pre-allocated output tensor is not supported for proxy.");
-			return yt(), new Promise((l, m) => {
-				ht("run", [l, m]);
-				let y = s, w = {
+			return yt(), new Promise((l, b) => {
+				gt("run", [l, b]);
+				let g = s, w = {
 					type: "run",
 					in: {
 						sessionId: a,
 						inputIndices: r,
-						inputs: y,
+						inputs: g,
 						outputIndices: f,
-						options: d
+						options: p
 					}
 				};
-				Ee.postMessage(w, tr(y));
+				Ee.postMessage(w, ar(g));
 			});
-		} else return Kt(a, r, s, f, i, d);
-	}, Rs = async (a) => {
-		if (ut()) return yt(), new Promise((r, s) => {
-			ht("end-profiling", [r, s]);
+		} else return nr(a, r, s, f, i, p);
+	}, Ys = async (a) => {
+		if (ct()) return yt(), new Promise((r, s) => {
+			gt("end-profiling", [r, s]);
 			let f = {
 				type: "end-profiling",
 				in: a
 			};
 			Ee.postMessage(f);
 		});
-		er(a);
+		or(a);
 	};
 });
-var Ns;
-var gc;
-var pr;
-var ks = k(() => {
+var Js;
+var $c;
+var gr;
+var Xs = G(() => {
 	"use strict";
 	Ve();
-	mn();
-	st();
-	Ht();
-	sn();
-	Ns = (a, r) => {
+	bn();
+	ut();
+	Xt();
+	cn();
+	Js = (a, r) => {
 		switch (a.location) {
 			case "cpu": return [
 				a.type,
@@ -4752,12 +5021,12 @@ var ks = k(() => {
 			];
 			default: throw new Error(`invalid data location: ${a.location} for ${r()}`);
 		}
-	}, gc = (a) => {
+	}, $c = (a) => {
 		switch (a[3]) {
 			case "cpu": return new Le(a[0], a[2], a[1]);
 			case "gpu-buffer": {
 				let r = a[0];
-				if (!ar(r)) throw new Error(`not supported data type: ${r} for deserializing GPU tensor`);
+				if (!fr(r)) throw new Error(`not supported data type: ${r} for deserializing GPU tensor`);
 				let { gpuBuffer: s, download: f, dispose: i } = a[2];
 				return Le.fromGpuBuffer(s, {
 					dataType: r,
@@ -4768,7 +5037,7 @@ var ks = k(() => {
 			}
 			case "ml-tensor": {
 				let r = a[0];
-				if (!sr(r)) throw new Error(`not supported data type: ${r} for deserializing MLTensor tensor`);
+				if (!cr(r)) throw new Error(`not supported data type: ${r} for deserializing MLTensor tensor`);
 				let { mlTensor: s, download: f, dispose: i } = a[2];
 				return Le.fromMLTensor(s, {
 					dataType: r,
@@ -4779,90 +5048,90 @@ var ks = k(() => {
 			}
 			default: throw new Error(`invalid data location: ${a[3]}`);
 		}
-	}, pr = class {
+	}, gr = class {
 		async fetchModelAndCopyToWasmMemory(r) {
-			return Us(await Bt(r));
+			return Vs(await Ct(r));
 		}
 		async loadModel(r, s) {
-			tt();
+			ot();
 			let f;
-			typeof r == "string" ? f = await this.fetchModelAndCopyToWasmMemory(r) : f = r, [this.sessionId, this.inputNames, this.outputNames, this.inputMetadata, this.outputMetadata] = await Ds(f, s), rt();
+			typeof r == "string" ? f = await this.fetchModelAndCopyToWasmMemory(r) : f = r, [this.sessionId, this.inputNames, this.outputNames, this.inputMetadata, this.outputMetadata] = await js(f, s), at();
 		}
 		async dispose() {
-			return Ps(this.sessionId);
+			return Hs(this.sessionId);
 		}
 		async run(r, s, f) {
-			tt();
-			let i = [], d = [];
-			Object.entries(r).forEach((v) => {
-				let S = v[0], C = v[1], R = this.inputNames.indexOf(S);
-				if (R === -1) throw new Error(`invalid input '${S}'`);
-				i.push(C), d.push(R);
+			ot();
+			let i = [], p = [];
+			Object.entries(r).forEach((T) => {
+				let A = T[0], C = T[1], _ = this.inputNames.indexOf(A);
+				if (_ === -1) throw new Error(`invalid input '${A}'`);
+				i.push(C), p.push(_);
 			});
-			let l = [], m = [];
-			Object.entries(s).forEach((v) => {
-				let S = v[0], C = v[1], R = this.outputNames.indexOf(S);
-				if (R === -1) throw new Error(`invalid output '${S}'`);
-				l.push(C), m.push(R);
+			let l = [], b = [];
+			Object.entries(s).forEach((T) => {
+				let A = T[0], C = T[1], _ = this.outputNames.indexOf(A);
+				if (_ === -1) throw new Error(`invalid output '${A}'`);
+				l.push(C), b.push(_);
 			});
-			let y = i.map((v, S) => Ns(v, () => `input "${this.inputNames[d[S]]}"`)), w = l.map((v, S) => v ? Ns(v, () => `output "${this.outputNames[m[S]]}"`) : null), T = await _s(this.sessionId, d, y, m, w, f), g = {};
-			for (let v = 0; v < T.length; v++) g[this.outputNames[m[v]]] = l[v] ?? gc(T[v]);
-			return rt(), g;
+			let g = i.map((T, A) => Js(T, () => `input "${this.inputNames[p[A]]}"`)), w = l.map((T, A) => T ? Js(T, () => `output "${this.outputNames[b[A]]}"`) : null), S = await qs(this.sessionId, p, g, b, w, f), v = {};
+			for (let T = 0; T < S.length; T++) v[this.outputNames[b[T]]] = l[T] ?? $c(S[T]);
+			return at(), v;
 		}
 		startProfiling() {}
 		endProfiling() {
-			Rs(this.sessionId);
+			Ys(this.sessionId);
 		}
 	};
 });
-var Fs = {};
-At(Fs, {
-	OnnxruntimeWebAssemblyBackend: () => mr,
-	initializeFlags: () => Ws,
-	wasmBackend: () => Tc
+var Ks = {};
+At(Ks, {
+	OnnxruntimeWebAssemblyBackend: () => yr,
+	initializeFlags: () => Zs,
+	wasmBackend: () => zc
 });
-var Ws;
-var mr;
-var Tc;
-var Gs = k(() => {
+var Zs;
+var yr;
+var zc;
+var Qs = G(() => {
 	"use strict";
 	Ve();
-	mn();
-	ks();
-	Ws = () => {
-		(typeof K.wasm.initTimeout != "number" || K.wasm.initTimeout < 0) && (K.wasm.initTimeout = 0);
-		let a = K.wasm.simd;
-		if (typeof a != "boolean" && a !== void 0 && a !== "fixed" && a !== "relaxed" && (console.warn(`Property "env.wasm.simd" is set to unknown value "${a}". Reset it to \`false\` and ignore SIMD feature checking.`), K.wasm.simd = !1), typeof K.wasm.proxy != "boolean" && (K.wasm.proxy = !1), typeof K.wasm.trace != "boolean" && (K.wasm.trace = !1), typeof K.wasm.numThreads != "number" || !Number.isInteger(K.wasm.numThreads) || K.wasm.numThreads <= 0) if (typeof self < "u" && !self.crossOriginIsolated) K.wasm.numThreads = 1;
+	bn();
+	Xs();
+	Zs = () => {
+		(typeof ee.wasm.initTimeout != "number" || ee.wasm.initTimeout < 0) && (ee.wasm.initTimeout = 0);
+		let a = ee.wasm.simd;
+		if (typeof a != "boolean" && a !== void 0 && a !== "fixed" && a !== "relaxed" && (console.warn(`Property "env.wasm.simd" is set to unknown value "${a}". Reset it to \`false\` and ignore SIMD feature checking.`), ee.wasm.simd = !1), typeof ee.wasm.proxy != "boolean" && (ee.wasm.proxy = !1), typeof ee.wasm.trace != "boolean" && (ee.wasm.trace = !1), typeof ee.wasm.numThreads != "number" || !Number.isInteger(ee.wasm.numThreads) || ee.wasm.numThreads <= 0) if (typeof self < "u" && !self.crossOriginIsolated) ee.wasm.numThreads = 1;
 		else {
-			let r = typeof navigator > "u" ? Hr("node:os").cpus().length : navigator.hardwareConcurrency;
-			K.wasm.numThreads = Math.min(4, Math.ceil((r || 1) / 2));
+			let r = typeof navigator > "u" ? Xr("node:os").cpus().length : navigator.hardwareConcurrency;
+			ee.wasm.numThreads = Math.min(4, Math.ceil((r || 1) / 2));
 		}
-	}, mr = class {
+	}, yr = class {
 		async init(r) {
-			Ws(), await Ms(), await Cs(r);
+			Zs(), await $s(), await zs(r);
 		}
 		async createInferenceSessionHandler(r, s) {
-			let f = new pr();
+			let f = new gr();
 			return await f.loadModel(r, s), f;
 		}
-	}, Tc = new mr();
+	}, zc = new yr();
 });
 Ve();
 Ve();
 Ve();
-var Ja = "1.26.0-dev.20260416-b7804b056c";
-var gl = Zr;
+var is = "1.31.0-dev.20260914-8d85527a0";
+var $l = rn;
 {
-	let a = (Gs(), $t(Fs)).wasmBackend;
-	Ke("webgpu", a, 5), Ke("webnn", a, 5), Ke("cpu", a, 10), Ke("wasm", a, 10);
+	let a = (Qs(), Ht(Ks)).wasmBackend;
+	rt("webgpu", a, 5), rt("webnn", a, 5), rt("cpu", a, 10), rt("wasm", a, 10);
 }
-Object.defineProperty(K.versions, "web", {
-	value: Ja,
+Object.defineProperty(ee.versions, "web", {
+	value: is,
 	enumerable: !0
 });
 //#endregion
 //#region node_modules/onnxruntime-common/dist/esm/version.js
-const version = "1.24.3";
+const version = "1.30.0";
 //#endregion
 //#region node_modules/onnxruntime-common/dist/esm/env-impl.js
 let logLevelValue = "warning";
@@ -5635,7 +5904,7 @@ var __export = (target, all) => {
 var node_fs_default = {};
 var node_path_default = {};
 var node_url_default = {};
-var VERSION = "4.2.0";
+var VERSION = "4.3.0";
 var HAS_SELF = typeof self !== "undefined";
 var IS_FS_AVAILABLE = !isEmpty(node_fs_default);
 var IS_PATH_AVAILABLE = !isEmpty(node_path_default);
@@ -5657,14 +5926,14 @@ var IS_WEBNN_AVAILABLE = typeof navigator !== "undefined" && "ml" in navigator;
 var IS_CRYPTO_AVAILABLE = typeof crypto !== "undefined" && typeof crypto.getRandomValues === "function";
 var IS_CHROME_AVAILABLE = typeof chrome !== "undefined" && typeof chrome.runtime !== "undefined" && typeof chrome.runtime.id === "string";
 var IS_SERVICE_WORKER_ENV = typeof ServiceWorkerGlobalScope !== "undefined" && HAS_SELF && self instanceof ServiceWorkerGlobalScope;
-var isSafari = () => {
+var isSafariBelow26 = () => {
 	if (typeof navigator === "undefined") return false;
 	const userAgent = navigator.userAgent;
-	const isAppleVendor = (navigator.vendor || "").indexOf("Apple") > -1;
-	const notOtherBrowser = !userAgent.match(/CriOS|FxiOS|EdgiOS|OPiOS|mercury|brave/i) && !userAgent.includes("Chrome") && !userAgent.includes("Android");
-	return isAppleVendor && notOtherBrowser;
+	if (!((navigator.vendor || "").indexOf("Apple") > -1 && !userAgent.match(/CriOS|FxiOS|EdgiOS|OPiOS|mercury|brave/i) && !userAgent.includes("Chrome") && !userAgent.includes("Android"))) return false;
+	const match = userAgent.match(/Version\/(\d+)/);
+	return match ? parseInt(match[1], 10) < 26 : false;
 };
-var IS_SAFARI = isSafari();
+var IS_SAFARI_BELOW_26 = isSafariBelow26();
 var apis = Object.freeze({
 	/** Whether we are running in a browser environment (and not a web worker) */
 	IS_BROWSER_ENV,
@@ -5682,8 +5951,8 @@ var apis = Object.freeze({
 	IS_WEBGPU_AVAILABLE,
 	/** Whether the WebNN API is available */
 	IS_WEBNN_AVAILABLE,
-	/** Whether we are running in a Safari browser */
-	IS_SAFARI,
+	/** Whether we are running in a Safari browser older than version 26. */
+	IS_SAFARI_BELOW_26,
 	/** Whether the Node.js process API is available */
 	IS_PROCESS_AVAILABLE,
 	/** Whether we are running in a Node.js-like environment (node, deno, bun) */
@@ -5700,7 +5969,7 @@ var apis = Object.freeze({
 var RUNNING_LOCALLY = IS_FS_AVAILABLE && IS_PATH_AVAILABLE;
 var dirname__ = "./";
 if (RUNNING_LOCALLY) {
-	const _import_meta_url = Object(import.meta).url;
+	const _import_meta_url = import.meta.url;
 	if (_import_meta_url) dirname__ = node_path_default.dirname(node_path_default.dirname(node_url_default.fileURLToPath(_import_meta_url)));
 	else if (typeof __dirname !== "undefined") dirname__ = node_path_default.dirname(__dirname);
 }
@@ -5783,6 +6052,7 @@ var DefaultProgressCallback = class extends Callable {
 		super();
 		this.callback = callback;
 		this.files_loading = files_loading;
+		this.loads = /* @__PURE__ */ new Map();
 	}
 	/**
 	* @param {ProgressInfo} info
@@ -5950,70 +6220,446 @@ var AddedToken = class {
 	}
 };
 var AddedToken_default = AddedToken;
-var BYTES_TO_UNICODE = (() => {
-	const bs = [
-		...Array.from({ length: "~".charCodeAt(0) - "!".charCodeAt(0) + 1 }, (_, i) => i + "!".charCodeAt(0)),
-		...Array.from({ length: "¬".charCodeAt(0) - "¡".charCodeAt(0) + 1 }, (_, i) => i + "¡".charCodeAt(0)),
-		...Array.from({ length: "ÿ".charCodeAt(0) - "®".charCodeAt(0) + 1 }, (_, i) => i + "®".charCodeAt(0))
-	];
-	const cs = bs.slice();
-	let n = 0;
-	for (let b = 0; b < 256; ++b) if (!bs.includes(b)) {
-		bs.push(b);
-		cs.push(256 + n);
-		n += 1;
-	}
-	const ccs = cs.map((n2) => String.fromCharCode(n2));
-	return Object.fromEntries(bs.map((b, i) => [b, ccs[i]]));
-})();
-var reverse_dictionary = (data) => Object.fromEntries(Object.entries(data).map(([key, value]) => [value, key]));
-var UNICODE_TO_BYTES = reverse_dictionary(BYTES_TO_UNICODE);
-var BLOOM_SPLIT_CHARS = ".,!?…。，、।۔،";
-var PROBLEMATIC_REGEX_MAP = /* @__PURE__ */ new Map([
-	["(?i:'s|'t|'re|'ve|'m|'ll|'d)", "(?:'([sS]|[tT]|[rR][eE]|[vV][eE]|[mM]|[lL][lL]|[dD]))"],
-	["(?i:[sdmt]|ll|ve|re)", "(?:[sS]|[dD]|[mM]|[tT]|[lL][lL]|[vV][eE]|[rR][eE])"],
-	["[^\\r\\n\\p{L}\\p{N}]?+", "[^\\r\\n\\p{L}\\p{N}]?"],
-	["[^\\s\\p{L}\\p{N}]++", "[^\\s\\p{L}\\p{N}]+"],
-	["(?>\\p{Nd}{510})", "(?:\\p{Nd}{510})"],
-	["\\p{Nd}{3}+", "(?:\\p{Nd}{3})+"],
-	["\\G", ""],
-	[` ?[^(\\s|[${BLOOM_SPLIT_CHARS}])]+`, ` ?[^\\s${BLOOM_SPLIT_CHARS}]+`]
-]);
-var PUNCTUATION_REGEX = "\\p{P}\\u0021-\\u002F\\u003A-\\u0040\\u005B-\\u0060\\u007B-\\u007E";
-var clean_up_tokenization = (text) => text.replace(/ \./g, ".").replace(/ \?/g, "?").replace(/ \!/g, "!").replace(/ ,/g, ",").replace(/ \' /g, "'").replace(/ n't/g, "n't").replace(/ 'm/g, "'m").replace(/ 's/g, "'s").replace(/ 've/g, "'ve").replace(/ 're/g, "'re");
-var create_pattern = (pattern, invert = true) => {
-	if (pattern.Regex !== void 0) {
-		let regex = pattern.Regex.replace(/\\([#&~])/g, "$1");
-		regex = regex.replace(/\\A/g, "^").replace(/\\z/g, "$").replace(/\\Z/g, "(?=\\r?\\n?$)");
-		for (const [key, value] of PROBLEMATIC_REGEX_MAP) regex = regex.replaceAll(key, value);
-		try {
-			return new RegExp(regex, "gu");
-		} catch (error) {
-			if (!(error instanceof SyntaxError) || !error.message.toLowerCase().includes("invalid property name")) throw error;
-			let changed = false;
-			const fixed = regex.replace(/(\\[pP])\{([^}=]+)\}/g, (_, p, n) => {
+var compile_unicode_regexp = (source, flags) => {
+	try {
+		return new RegExp(source, flags);
+	} catch (error) {
+		if (!(error instanceof SyntaxError)) throw error;
+		const property_names = /* @__PURE__ */ new Map();
+		const rewritten = source.replace(/(\\[pP])\{([^}=]+)\}/g, (text, p, n, offset) => {
+			let preceding_backslashes = 0;
+			for (let i = offset - 1; i >= 0 && source[i] === "\\"; --i) ++preceding_backslashes;
+			if (preceding_backslashes % 2 === 1) return text;
+			let property_name = property_names.get(n);
+			if (property_name === void 0) {
 				try {
 					new RegExp(`\\p{${n}}`, "u");
-					return `${p}{${n}}`;
+					property_name = n;
 				} catch {
-					changed = true;
-					return `${p}{Script=${n}}`;
+					property_name = `Script=${n}`;
 				}
-			});
-			if (!changed) throw error;
-			try {
-				return new RegExp(fixed, "gu");
-			} catch (e) {
-				throw error;
+				property_names.set(n, property_name);
 			}
+			return `${p}{${property_name}}`;
+		});
+		if (rewritten === source) throw error;
+		try {
+			return new RegExp(rewritten, flags);
+		} catch {
+			throw error;
 		}
-	} else if (pattern.String !== void 0) {
+	}
+};
+var clean_up_tokenization = (text) => text.replace(/ \./g, ".").replace(/ \?/g, "?").replace(/ \!/g, "!").replace(/ ,/g, ",").replace(/ \' /g, "'").replace(/ n't/g, "n't").replace(/ 'm/g, "'m").replace(/ 's/g, "'s").replace(/ 've/g, "'ve").replace(/ 're/g, "'re");
+var create_pattern = (pattern, invert = true) => {
+	if (pattern.Regex !== void 0) return compile_unicode_regexp(rewrite_oniguruma_to_js(normalize_bloom_split_char_class(pattern.Regex)), "gu");
+	else if (pattern.String !== void 0) {
 		const escaped = escape_reg_exp(pattern.String);
 		return new RegExp(invert ? escaped : `(${escaped})`, "gu");
 	} else {
 		console.warn("Unknown pattern type:", pattern);
 		return null;
 	}
+};
+var UNICODE_WORD_CHARS_IN_CLASS = "\\p{Alphabetic}\\p{M}\\p{Nd}\\p{Pc}";
+var UNICODE_WORD_CHARS = `${UNICODE_WORD_CHARS_IN_CLASS}\\u00B2\\u00B3\\u00B9\\u00BC-\\u00BE`;
+var UNICODE_WORD_CLASS = `[${UNICODE_WORD_CHARS}]`;
+var UNICODE_NON_WORD_CLASS = `[^${UNICODE_WORD_CHARS}]`;
+var UNICODE_WORD_BOUNDARY = `(?:(?<!${UNICODE_WORD_CLASS})(?=${UNICODE_WORD_CLASS})|(?<=${UNICODE_WORD_CLASS})(?!${UNICODE_WORD_CLASS}))`;
+var UNICODE_NON_WORD_BOUNDARY = `(?:(?<!${UNICODE_WORD_CLASS})(?!${UNICODE_WORD_CLASS})|(?<=${UNICODE_WORD_CLASS})(?=${UNICODE_WORD_CLASS}))`;
+var LINE_START_ANCHOR = "(?:(?<![\\s\\S])|(?<=\\n))";
+var LINE_END_ANCHOR = "(?:(?=\\n)|(?![\\s\\S]))";
+var HEX_DIGIT_CHARS = "0-9A-Fa-f";
+var ESCAPE_REWRITES = /* @__PURE__ */ new Map([
+	["A", "(?<![\\s\\S])"],
+	["z", "(?![\\s\\S])"],
+	["Z", "(?=\\n?(?![\\s\\S]))"],
+	["h", `[${HEX_DIGIT_CHARS}]`],
+	["H", `[^${HEX_DIGIT_CHARS}]`],
+	["w", UNICODE_WORD_CLASS],
+	["W", UNICODE_NON_WORD_CLASS],
+	["d", "\\p{Nd}"],
+	["D", "\\P{Nd}"],
+	["s", "\\p{White_Space}"],
+	["S", "\\P{White_Space}"],
+	["b", UNICODE_WORD_BOUNDARY],
+	["B", UNICODE_NON_WORD_BOUNDARY],
+	["a", "\\x07"],
+	["e", "\\x1B"]
+]);
+var CLASS_ESCAPE_REWRITES = /* @__PURE__ */ new Map([
+	["h", HEX_DIGIT_CHARS],
+	["w", UNICODE_WORD_CHARS_IN_CLASS],
+	["d", "\\p{Nd}"],
+	["D", "\\P{Nd}"],
+	["s", "\\p{White_Space}"],
+	["S", "\\P{White_Space}"],
+	["a", "\\x07"],
+	["e", "\\x1B"]
+]);
+var CLASS_COMPLEMENT_ALTERNATIVES = /* @__PURE__ */ new Map([["W", `[^${UNICODE_WORD_CHARS_IN_CLASS}]`], ["H", `[^${HEX_DIGIT_CHARS}]`]]);
+var RAW_WHITESPACE_ESCAPES = /* @__PURE__ */ new Map([
+	["\n", "\\n"],
+	["\r", "\\r"],
+	["	", "\\t"],
+	["\f", "\\f"],
+	["\v", "\\v"]
+]);
+var POSIX_CLASS_FRAGMENTS = /* @__PURE__ */ new Map([
+	["alpha", "\\p{Alphabetic}"],
+	["alnum", "\\p{Alphabetic}\\p{Nd}"],
+	["digit", "\\p{Nd}"],
+	["lower", "\\p{Lowercase}"],
+	["upper", "\\p{Uppercase}"],
+	["space", "\\p{White_Space}"],
+	["blank", "\\t\\p{Zs}"],
+	["punct", "\\p{P}\\p{S}"],
+	["cntrl", "\\p{Cc}"],
+	["word", UNICODE_WORD_CHARS_IN_CLASS],
+	["xdigit", HEX_DIGIT_CHARS]
+]);
+var JS_SYNTAX_CHARS = "^$\\.*+?()[]{}|/";
+var GROUP_PREFIX_RE = /^\(\?(?:<[=!]|<[A-Za-z_][A-Za-z0-9_]*>|[:=!>])/;
+var BRACED_ESCAPE_RE = /^\\([pPxu])\{([^}]*)\}/;
+var QUANTIFIER_BRACE_RE = /^\{(\d+(?:,\d*)?|,\d+)\}/;
+var POSIX_BRACKET_RE = /^\[:(\^?)(\p{Alphabetic}+):\]/u;
+var EMPTY_NEGATED_POSIX_BRACKET_RE = /^\[:\^:\]/;
+var UNSUPPORTED_POSIX_BRACKET_RE = /^\[(?:\.[^\]]*\.\]|=[^\]]*=\])/;
+var FIXED_WIDTH_ESCAPE_RE = /^(?:\\x[0-9A-Fa-f]{2}|\\u[0-9A-Fa-f]{4}|\\c[A-Za-z])/;
+var is_ascii_letter = (char) => char >= "A" && char <= "Z" || char >= "a" && char <= "z";
+var character_at = (text, index) => String.fromCodePoint(text.codePointAt(index));
+var get_ascii_folded_hex_atom = (hex) => {
+	if (!/^[0-9A-Fa-f]{1,8}$/.test(hex)) return null;
+	const code_point = Number.parseInt(hex, 16);
+	if (code_point > 127) return null;
+	const letter = String.fromCharCode(code_point);
+	return is_ascii_letter(letter) ? `[${letter.toLowerCase()}${letter.toUpperCase()}]` : null;
+};
+var normalize_bloom_split_char_class = (regex) => regex.replace(/\[\^\(\\s\|\[([^\]]+)\]\)\]/g, "[^()|\\s$1]");
+var ANY_CODE_POINT = "[\\s\\S]";
+var MAX_CHARACTER_CLASS_NESTING_DEPTH = 256;
+var create_character_class_operand = () => ({
+	fragment: "",
+	alternatives: [],
+	tail: null,
+	contains_complex_set: false
+});
+var throw_character_class_range_error = (index) => {
+	throw new SyntaxError(`Unsupported range with a set-valued character-class operand at index ${index}`);
+};
+var add_character_class_atom = (operand, atom, index, contains_complex_set = true) => {
+	if (operand.tail === "range") throw_character_class_range_error(index);
+	operand.alternatives.push(atom);
+	operand.tail = "set";
+	operand.contains_complex_set = operand.contains_complex_set || contains_complex_set;
+};
+var append_character_class_fragment = (operand, fragment, set_valued = false, index = -1) => {
+	if (set_valued && operand.tail === "range") throw_character_class_range_error(index);
+	if (operand.tail === "range") {
+		operand.fragment += fragment;
+		operand.tail = "complete_range";
+		return;
+	}
+	operand.fragment += fragment;
+	operand.tail = set_valued ? "set" : "scalar";
+	operand.contains_complex_set = operand.contains_complex_set || set_valued;
+};
+var rewrite_character_class_escape = (regex, index, operand) => {
+	const braced = BRACED_ESCAPE_RE.exec(regex.slice(index));
+	if (braced) {
+		const [text, kind, body] = braced;
+		if (kind === "P" && body === "Word") add_character_class_atom(operand, `[^${UNICODE_WORD_CHARS_IN_CLASS}]`, index);
+		else append_character_class_fragment(operand, kind === "x" ? `\\u{${body}}` : kind === "p" && body === "Word" ? UNICODE_WORD_CHARS_IN_CLASS : text, kind === "p" || kind === "P", index);
+		return index + text.length;
+	}
+	const fixed_width = FIXED_WIDTH_ESCAPE_RE.exec(regex.slice(index));
+	if (fixed_width) {
+		append_character_class_fragment(operand, fixed_width[0]);
+		return index + fixed_width[0].length;
+	}
+	if (index + 1 >= regex.length) throw new SyntaxError(`Unterminated escape in character class at index ${index}`);
+	const next = character_at(regex, index + 1);
+	const next_end = index + 1 + next.length;
+	const raw_whitespace = RAW_WHITESPACE_ESCAPES.get(next);
+	if (raw_whitespace !== void 0) {
+		append_character_class_fragment(operand, raw_whitespace);
+		return next_end;
+	}
+	const complement = CLASS_COMPLEMENT_ALTERNATIVES.get(next);
+	if (complement !== void 0) {
+		add_character_class_atom(operand, complement, index);
+		return next_end;
+	}
+	const rewrite = CLASS_ESCAPE_REWRITES.get(next);
+	let replacement;
+	let set_valued = false;
+	if (rewrite !== void 0) {
+		replacement = rewrite;
+		set_valued = next !== "a" && next !== "e";
+	} else if (/[A-Za-z0-9]/.test(next)) replacement = `\\${next}`;
+	else if (JS_SYNTAX_CHARS.includes(next) || next === "-") replacement = `\\${next}`;
+	else replacement = next;
+	append_character_class_fragment(operand, replacement, set_valued, index);
+	return next_end;
+};
+var compile_character_set_union = (pieces) => {
+	if (pieces.length === 1) return pieces[0];
+	return `(?:(?=(?:${pieces.join("|")}))${ANY_CODE_POINT})`;
+};
+var compile_character_class_operand = (operand) => {
+	return compile_character_set_union(operand.fragment.length === 0 ? operand.alternatives : [`[${operand.fragment}]`, ...operand.alternatives]);
+};
+var get_ascii_fold_additions = (positive_atom) => {
+	const membership = compile_unicode_regexp(`^(?:${positive_atom})$`, "u");
+	let additions = "";
+	for (let offset = 0; offset < 26; ++offset) {
+		const upper = String.fromCharCode(65 + offset);
+		const lower = String.fromCharCode(97 + offset);
+		const has_upper = membership.test(upper);
+		if (has_upper !== membership.test(lower)) additions += has_upper ? lower : upper;
+	}
+	return additions;
+};
+var parse_character_class = (regex, start, ascii_fold, apply_ascii_fold = true, nesting_depth = 1) => {
+	if (nesting_depth > MAX_CHARACTER_CLASS_NESTING_DEPTH) throw new SyntaxError(`Maximum character-class nesting depth of ${MAX_CHARACTER_CLASS_NESTING_DEPTH} exceeded at index ${start}`);
+	let i = start + 1;
+	const negated = regex[i] === "^";
+	if (negated) ++i;
+	const first_content_index = i;
+	const operands = [create_character_class_operand()];
+	let operand = operands[0];
+	let contains_nested_negated_complex_set = false;
+	while (i < regex.length) {
+		const char = character_at(regex, i);
+		if (char === "\\") {
+			i = rewrite_character_class_escape(regex, i, operand);
+			continue;
+		}
+		if (char === "]") {
+			if (i === first_content_index) {
+				append_character_class_fragment(operand, "\\]");
+				++i;
+				continue;
+			}
+			if (operand.tail === null) {
+				if (operands.length > 1) throw new SyntaxError(`Malformed character-class intersection with an empty operand at index ${i}`);
+				throw new SyntaxError(`Empty character class at index ${start}`);
+			}
+			const contains_complex_set = operands.some((candidate) => candidate.contains_complex_set);
+			if (negated && operands.length > 1 && contains_nested_negated_complex_set) throw new SyntaxError(`Unsupported outer-negated character-class intersection with a nested negated class containing a Unicode property, POSIX class, or shorthand at index ${start}`);
+			const first_atom = compile_character_class_operand(operands[0]);
+			let positive_atom = first_atom;
+			if (operands.length > 1) {
+				let lookaheads = "";
+				for (let j = 1; j < operands.length; ++j) lookaheads += `(?=${compile_character_class_operand(operands[j])})`;
+				positive_atom = `(?:${lookaheads}${first_atom})`;
+			}
+			const is_direct_class = operands.length === 1 && operand.alternatives.length === 0;
+			let direct_fragment = operand.fragment;
+			if (ascii_fold && apply_ascii_fold) {
+				const additions = get_ascii_fold_additions(positive_atom);
+				if (additions.length > 0) {
+					if (is_direct_class) {
+						direct_fragment += additions;
+						positive_atom = `[${direct_fragment}]`;
+					} else positive_atom = compile_character_set_union([positive_atom, `[${additions}]`]);
+				}
+			}
+			return {
+				atom: negated ? is_direct_class ? `[^${direct_fragment}]` : `(?:(?!${positive_atom})${ANY_CODE_POINT})` : positive_atom,
+				end: i + 1,
+				negated,
+				contains_complex_set,
+				contains_nested_negated_complex_set
+			};
+		}
+		if (regex.startsWith("&&", i)) {
+			if (operand.tail === null) throw new SyntaxError(`Malformed character-class intersection with an empty operand at index ${i}`);
+			operand = create_character_class_operand();
+			operands.push(operand);
+			i += 2;
+			continue;
+		}
+		if (char === "[") {
+			const suffix = regex.slice(i);
+			if (EMPTY_NEGATED_POSIX_BRACKET_RE.test(suffix)) throw new SyntaxError(`Malformed empty negated POSIX character class at index ${i}`);
+			const posix = POSIX_BRACKET_RE.exec(suffix);
+			if (posix) {
+				const [, posix_negated, name] = posix;
+				const fragment = POSIX_CLASS_FRAGMENTS.get(name);
+				if (fragment === void 0) throw new SyntaxError(`Unsupported POSIX character class "${name}" at index ${i}`);
+				if (ascii_fold && posix_negated && (name === "lower" || name === "upper")) throw new SyntaxError(`Unsupported negated POSIX ${name} class inside an inline case-insensitive group`);
+				if (posix_negated) add_character_class_atom(operand, `[^${fragment}]`, i);
+				else append_character_class_fragment(operand, fragment, true, i);
+				i += posix[0].length;
+				continue;
+			}
+			if (UNSUPPORTED_POSIX_BRACKET_RE.test(suffix)) throw new SyntaxError(`Unsupported POSIX collating or equivalence bracket expression at index ${i}`);
+			const nested = parse_character_class(regex, i, ascii_fold, false, nesting_depth + 1);
+			add_character_class_atom(operand, nested.atom, i, nested.contains_complex_set);
+			contains_nested_negated_complex_set ||= nested.contains_nested_negated_complex_set || nested.negated && nested.contains_complex_set;
+			i = nested.end;
+			continue;
+		}
+		if (char === "-") {
+			const is_terminal_literal = regex[i + 1] === "]" || regex.startsWith("&&", i + 1);
+			if (operand.tail === "set" && !is_terminal_literal) throw_character_class_range_error(i);
+			if (operand.tail === null || operand.tail === "range" || operand.tail === "complete_range" || is_terminal_literal) append_character_class_fragment(operand, "\\-");
+			else {
+				operand.fragment += "-";
+				operand.tail = "range";
+			}
+			++i;
+			continue;
+		}
+		append_character_class_fragment(operand, char === "^" && operand.fragment.length === 0 ? "\\^" : char);
+		i += char.length;
+	}
+	throw new SyntaxError(`${operands.length > 1 ? "Unterminated character-class intersection" : "Unterminated character class"} at index ${start}`);
+};
+var rewrite_oniguruma_to_js = (regex) => {
+	let out = "";
+	let atom_start = -1;
+	let last_was_quantifier = false;
+	let ascii_fold = false;
+	const group_states = [];
+	const emit_atom = (text) => {
+		atom_start = out.length;
+		out += text;
+		last_was_quantifier = false;
+	};
+	for (let i = 0; i < regex.length;) {
+		const char = character_at(regex, i);
+		if (char === "\\") {
+			const braced = BRACED_ESCAPE_RE.exec(regex.slice(i));
+			if (braced) {
+				const [text, kind, body] = braced;
+				let replacement2 = text;
+				if (kind === "x") {
+					const code_point_escape = `\\u{${body}}`;
+					replacement2 = ascii_fold ? get_ascii_folded_hex_atom(body) ?? code_point_escape : code_point_escape;
+				} else if (body === "Word") replacement2 = kind === "p" ? UNICODE_WORD_CLASS : UNICODE_NON_WORD_CLASS;
+				emit_atom(replacement2);
+				i += text.length;
+				continue;
+			}
+			const fixed_width = FIXED_WIDTH_ESCAPE_RE.exec(regex.slice(i));
+			if (fixed_width) {
+				const text = fixed_width[0];
+				emit_atom(ascii_fold && text[1] !== "c" ? get_ascii_folded_hex_atom(text.slice(2)) ?? text : text);
+				i += text.length;
+				continue;
+			}
+			if (i + 1 >= regex.length) {
+				out += char;
+				break;
+			}
+			const next = character_at(regex, i + 1);
+			i += 1 + next.length;
+			if (next === "G") continue;
+			const raw_whitespace = RAW_WHITESPACE_ESCAPES.get(next);
+			if (raw_whitespace !== void 0) {
+				emit_atom(raw_whitespace);
+				continue;
+			}
+			const rewrite = ESCAPE_REWRITES.get(next);
+			let replacement;
+			if (rewrite !== void 0) replacement = rewrite;
+			else if (/[A-Za-z0-9]/.test(next)) replacement = `\\${next}`;
+			else if (JS_SYNTAX_CHARS.includes(next)) replacement = `\\${next}`;
+			else replacement = next;
+			emit_atom(replacement);
+			continue;
+		}
+		switch (char) {
+			case "[": {
+				const parsed = parse_character_class(regex, i, ascii_fold);
+				emit_atom(parsed.atom);
+				i = parsed.end;
+				continue;
+			}
+			case "]":
+				emit_atom("\\]");
+				++i;
+				continue;
+			case ".":
+				emit_atom("[^\\n]");
+				++i;
+				continue;
+			case "^":
+				emit_atom(LINE_START_ANCHOR);
+				++i;
+				continue;
+			case "$":
+				emit_atom(LINE_END_ANCHOR);
+				++i;
+				continue;
+			case "(": {
+				const inline_case_insensitive = regex.startsWith("(?i:", i);
+				const source_prefix = inline_case_insensitive ? "(?i:" : GROUP_PREFIX_RE.exec(regex.slice(i))?.[0] ?? "(";
+				const output_prefix = inline_case_insensitive ? "(?:" : source_prefix === "(?>" ? "(?:" : source_prefix;
+				group_states.push([out.length, ascii_fold]);
+				if (inline_case_insensitive) ascii_fold = true;
+				out += output_prefix;
+				last_was_quantifier = false;
+				i += source_prefix.length;
+				continue;
+			}
+			case ")":
+				out += char;
+				[atom_start, ascii_fold] = group_states.pop() ?? [-1, false];
+				last_was_quantifier = false;
+				++i;
+				continue;
+			case "|":
+				out += char;
+				atom_start = -1;
+				last_was_quantifier = false;
+				++i;
+				continue;
+			case "{": {
+				const quant = QUANTIFIER_BRACE_RE.exec(regex.slice(i));
+				if (!quant || atom_start < 0) {
+					emit_atom("\\{");
+					++i;
+					continue;
+				}
+				const body = quant[1].startsWith(",") ? `0${quant[1]}` : quant[1];
+				i += quant[0].length;
+				const following = regex[i];
+				if (following === "+" || following === "*") {
+					out = `${out.slice(0, atom_start)}(?:${out.slice(atom_start)}{${body}})${following}`;
+					++i;
+				} else out += `{${body}}`;
+				last_was_quantifier = true;
+				continue;
+			}
+			case "}":
+				emit_atom("\\}");
+				++i;
+				continue;
+			case "+":
+				if (last_was_quantifier) {
+					++i;
+					continue;
+				}
+				out += char;
+				last_was_quantifier = true;
+				++i;
+				continue;
+			case "*":
+			case "?":
+				out += char;
+				last_was_quantifier = true;
+				++i;
+				continue;
+			default:
+				emit_atom(ascii_fold && is_ascii_letter(char) ? `[${char.toLowerCase()}${char.toUpperCase()}]` : char);
+				i += char.length;
+				continue;
+		}
+	}
+	return out;
 };
 var escape_reg_exp = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 var fuse_unk = (arr, tokens_to_ids, unk_token_id) => {
@@ -6205,13 +6851,19 @@ var Sequence = class extends Normalizer_default {
 var Sequence_default = Sequence;
 var Replace = class extends Normalizer_default {
 	/**
+	* @param config The configuration object for the normalizer.
+	*/
+	constructor(config) {
+		super(config);
+		this.pattern = create_pattern(this.config.pattern ?? {});
+	}
+	/**
 	* Normalize the input text by replacing the pattern with the content.
 	* @param text The input text to be normalized.
 	* @returns The normalized text after replacing the pattern with the content.
 	*/
 	normalize(text) {
-		const pattern = create_pattern(this.config.pattern ?? {});
-		return pattern === null ? text : text.replaceAll(pattern, this.config.content ?? "");
+		return this.pattern === null ? text : text.replaceAll(this.pattern, this.config.content ?? "");
 	}
 };
 var Replace_default = Replace;
@@ -6349,6 +7001,25 @@ var PreTokenizer = class extends Callable_default {
 	}
 };
 var PreTokenizer_default = PreTokenizer;
+var BYTES_TO_UNICODE = (() => {
+	const bs = [
+		...Array.from({ length: "~".charCodeAt(0) - "!".charCodeAt(0) + 1 }, (_, i) => i + "!".charCodeAt(0)),
+		...Array.from({ length: "¬".charCodeAt(0) - "¡".charCodeAt(0) + 1 }, (_, i) => i + "¡".charCodeAt(0)),
+		...Array.from({ length: "ÿ".charCodeAt(0) - "®".charCodeAt(0) + 1 }, (_, i) => i + "®".charCodeAt(0))
+	];
+	const cs = bs.slice();
+	let n = 0;
+	for (let b = 0; b < 256; ++b) if (!bs.includes(b)) {
+		bs.push(b);
+		cs.push(256 + n);
+		n += 1;
+	}
+	const ccs = cs.map((n2) => String.fromCharCode(n2));
+	return Object.fromEntries(bs.map((b, i) => [b, ccs[i]]));
+})();
+var reverse_dictionary = (data) => Object.fromEntries(Object.entries(data).map(([key, value]) => [value, key]));
+var UNICODE_TO_BYTES = reverse_dictionary(BYTES_TO_UNICODE);
+var PUNCTUATION_REGEX = "\\p{P}\\u0021-\\u002F\\u003A-\\u0040\\u005B-\\u0060\\u007B-\\u007E";
 var ByteLevel = class extends PreTokenizer_default {
 	/**
 	* Creates a new instance of the `ByteLevelPreTokenizer` class.
@@ -6429,7 +7100,7 @@ var Split = class extends PreTokenizer_default {
 	*/
 	pre_tokenize_text(text) {
 		if (this.pattern === null) return [];
-		if (this.config.invert) return text.match(this.pattern) || [];
+		if (this.config.invert) return (text.match(this.pattern) || []).filter((x) => x);
 		else if (this.config.behavior?.toLowerCase() === "removed") return text.split(this.pattern).filter((x) => x);
 		else return regex_split(text, this.pattern);
 	}
@@ -6717,15 +7388,17 @@ var CharTrie = class {
 		node.is_leaf = true;
 	}
 	/**
-	* Searches the trie for all strings with a common prefix of `text`.
-	* @param text The common prefix to search for.
-	* @yields Each string in the trie that has `text` as a prefix.
+	* Searches the trie for stored strings that match `chars` starting at `start`.
+	* @param chars The input characters to search.
+	* @param start The index to start searching from.
+	* @yields Each stored string that is a prefix of `chars` starting at `start`.
 	*/
-	*common_prefix_search(text) {
+	*common_prefix_search(chars, start = 0) {
 		let node = this.root;
 		if (node === void 0) return;
 		let prefix = "";
-		for (const ch of text) {
+		for (let i = start; i < chars.length; ++i) {
+			const ch = chars[i];
 			prefix += ch;
 			node = node.children.get(ch);
 			if (node === void 0) return;
@@ -6909,11 +7582,8 @@ var Unigram = class extends TokenizerModel_default {
 		let begin_pos = 0;
 		while (begin_pos < chars.length) {
 			let has_single_node = false;
-			const tokens = [];
-			const sliced = chars.slice(begin_pos).join("");
-			const prefixed_tokens = this.trie.common_prefix_search(sliced);
+			const prefixed_tokens = this.trie.common_prefix_search(chars, begin_pos);
 			for (const token of prefixed_tokens) {
-				tokens.push(token);
 				const token_id = this.tokens_to_ids.get(token);
 				const token_score = this.scores[token_id];
 				const n = len(token);
@@ -7679,9 +8349,16 @@ var Sequence4 = class extends Decoder_default {
 };
 var Sequence_default4 = Sequence4;
 var Replace3 = class extends Decoder_default {
+	/**
+	* @param config The configuration object for the decoder.
+	*/
+	constructor(config) {
+		super(config);
+		this.pattern = create_pattern(this.config.pattern);
+	}
 	decode_chain(tokens) {
-		const pattern = create_pattern(this.config.pattern);
 		const content = this.config.content ?? "";
+		const pattern = this.pattern;
 		return pattern === null ? tokens : tokens.map((token) => token.replaceAll(pattern, content));
 	}
 };
@@ -7939,6 +8616,17 @@ var Tokenizer = class {
 	}
 };
 var Tokenizer_default = Tokenizer;
+var __defProp2 = Object.defineProperty;
+var __defNormalProp = (obj, key, value) => key in obj ? __defProp2(obj, key, {
+	enumerable: true,
+	configurable: true,
+	writable: true,
+	value
+}) : obj[key] = value;
+var __publicField = (obj, key, value) => {
+	__defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
+	return value;
+};
 var TOKEN_TYPES = Object.freeze({
 	Text: "Text",
 	NumericLiteral: "NumericLiteral",
@@ -7962,6 +8650,7 @@ var TOKEN_TYPES = Object.freeze({
 	CallOperator: "CallOperator",
 	AdditiveBinaryOperator: "AdditiveBinaryOperator",
 	MultiplicativeBinaryOperator: "MultiplicativeBinaryOperator",
+	ExponentiationBinaryOperator: "ExponentiationBinaryOperator",
 	ComparisonBinaryOperator: "ComparisonBinaryOperator",
 	UnaryOperator: "UnaryOperator",
 	Comment: "Comment"
@@ -8010,7 +8699,9 @@ var ORDERED_MAPPING_TABLE = [
 	["+", TOKEN_TYPES.AdditiveBinaryOperator],
 	["-", TOKEN_TYPES.AdditiveBinaryOperator],
 	["~", TOKEN_TYPES.AdditiveBinaryOperator],
+	["**", TOKEN_TYPES.ExponentiationBinaryOperator],
 	["*", TOKEN_TYPES.MultiplicativeBinaryOperator],
+	["//", TOKEN_TYPES.MultiplicativeBinaryOperator],
 	["/", TOKEN_TYPES.MultiplicativeBinaryOperator],
 	["%", TOKEN_TYPES.MultiplicativeBinaryOperator],
 	["=", TOKEN_TYPES.Equals]
@@ -8030,7 +8721,7 @@ function preprocess(template, options = {}) {
 	if (template.endsWith("\n")) template = template.slice(0, -1);
 	if (options.lstrip_blocks) template = template.replace(/^[ \t]*({[#%-])/gm, "$1");
 	if (options.trim_blocks) template = template.replace(/([#%-]})\n/g, "$1");
-	return template.replace(/{%\s*(end)?generation\s*%}/gs, "");
+	return template.replace(/(\s*){%(-?)\s*(?:end)?generation\s*(-?)%}(\s*)/gs, (_, before, lstrip, rstrip, after) => (lstrip ? "" : before) + (rstrip ? "" : after));
 }
 function tokenize(source, options = {}) {
 	const tokens = [];
@@ -8129,7 +8820,12 @@ function tokenize(source, options = {}) {
 				case TOKEN_TYPES.CloseSquareBracket: break;
 				default: {
 					++cursorPosition;
-					const num = consumeWhile(isInteger);
+					let num = consumeWhile(isInteger);
+					if (num.length > 0 && src[cursorPosition] === "." && isInteger(src[cursorPosition + 1])) {
+						++cursorPosition;
+						const frac = consumeWhile(isInteger);
+						num = `${num}.${frac}`;
+					}
 					tokens.push(new Token(`${char}${num}`, num.length > 0 ? TOKEN_TYPES.NumericLiteral : TOKEN_TYPES.UnaryOperator));
 					continue;
 				}
@@ -8155,7 +8851,7 @@ function tokenize(source, options = {}) {
 		}
 		if (isInteger(char)) {
 			let num = consumeWhile(isInteger);
-			if (src[cursorPosition] === "." && isInteger(src[cursorPosition + 1])) {
+			if (tokens.at(-1)?.type !== TOKEN_TYPES.Dot && src[cursorPosition] === "." && isInteger(src[cursorPosition + 1])) {
 				++cursorPosition;
 				const frac = consumeWhile(isInteger);
 				num = `${num}.${frac}`;
@@ -8361,6 +9057,13 @@ var SpreadExpression = class extends Expression {
 	}
 	type = "SpreadExpression";
 };
+var KeywordSpreadExpression = class extends Expression {
+	constructor(argument) {
+		super();
+		this.argument = argument;
+	}
+	type = "KeywordSpreadExpression";
+};
 var CallStatement = class extends Statement {
 	constructor(call, callerArgs, body) {
 		super();
@@ -8446,10 +9149,10 @@ function parse(tokens) {
 			case "call": {
 				++current;
 				let callerArgs = null;
-				if (is(TOKEN_TYPES.OpenParen)) callerArgs = parseArgs();
+				if (is(TOKEN_TYPES.OpenParen)) callerArgs = parseArgs("parameters");
 				const callee = parsePrimaryExpression();
 				if (callee.type !== "Identifier") throw new SyntaxError(`Expected identifier following call statement`);
-				const callArgs = parseArgs();
+				const callArgs = parseArgs("call");
 				expect(TOKEN_TYPES.CloseStatement, "Expected closing statement token");
 				const body = [];
 				while (!isStatement("endcall")) body.push(parseAny());
@@ -8530,7 +9233,7 @@ function parse(tokens) {
 	function parseMacroStatement() {
 		const name = parsePrimaryExpression();
 		if (name.type !== "Identifier") throw new SyntaxError(`Expected identifier following macro statement`);
-		const args = parseArgs();
+		const args = parseArgs("parameters");
 		expect(TOKEN_TYPES.CloseStatement, "Expected closing statement token");
 		const body = [];
 		while (!isStatement("endmacro")) body.push(parseAny());
@@ -8640,32 +9343,56 @@ function parse(tokens) {
 		return member;
 	}
 	function parseCallExpression(callee) {
-		let expression = new CallExpression(callee, parseArgs());
+		let expression = new CallExpression(callee, parseArgs("call"));
 		expression = parseMemberExpression(expression);
 		if (is(TOKEN_TYPES.OpenParen)) expression = parseCallExpression(expression);
 		return expression;
 	}
-	function parseArgs() {
+	function parseArgs(mode) {
 		expect(TOKEN_TYPES.OpenParen, "Expected opening parenthesis for arguments list");
-		const args = parseArgumentsList();
+		const args = parseArgumentsList(mode);
 		expect(TOKEN_TYPES.CloseParen, "Expected closing parenthesis for arguments list");
 		return args;
 	}
-	function parseArgumentsList() {
+	function parseArgumentsList(mode) {
 		const args = [];
+		const parameterNames = /* @__PURE__ */ new Set();
+		let sawKeywordOrDefault = false;
+		let sawSpreadArgument = false;
 		while (!is(TOKEN_TYPES.CloseParen)) {
+			const isKeywordSpread = is(TOKEN_TYPES.ExponentiationBinaryOperator);
+			const isPositionalSpread = is(TOKEN_TYPES.MultiplicativeBinaryOperator) && tokens[current].value === "*";
+			if (mode === "parameters" && (isKeywordSpread || isPositionalSpread)) throw new SyntaxError("Argument unpacking is not allowed in parameter declarations");
+			if (isKeywordSpread) {
+				++current;
+				args.push(new KeywordSpreadExpression(parseExpression()));
+				if (is(TOKEN_TYPES.Comma)) ++current;
+				if (!is(TOKEN_TYPES.CloseParen)) throw new SyntaxError("Expected closing parenthesis: `**` must be applied to the final argument");
+				break;
+			}
 			let argument;
-			if (tokens[current].type === TOKEN_TYPES.MultiplicativeBinaryOperator && tokens[current].value === "*") {
+			if (isPositionalSpread) {
+				if (sawSpreadArgument) throw new SyntaxError("Only one `*` argument unpacking is allowed");
+				sawSpreadArgument = true;
 				++current;
 				argument = new SpreadExpression(parseExpression());
 			} else {
 				argument = parseExpression();
 				if (is(TOKEN_TYPES.Equals)) {
 					++current;
-					if (!(argument instanceof Identifier)) throw new SyntaxError(`Expected identifier for keyword argument`);
+					if (!(argument instanceof Identifier)) throw new SyntaxError(mode === "parameters" ? "Expected identifier for parameter declaration" : "Expected identifier for keyword argument");
 					const value = parseExpression();
 					argument = new KeywordArgumentExpression(argument, value);
 				}
+				if (mode === "parameters") {
+					if (!(argument instanceof Identifier || argument instanceof KeywordArgumentExpression)) throw new SyntaxError("Expected identifier for parameter declaration");
+					const parameterName = argument instanceof Identifier ? argument.value : argument.key.value;
+					if (parameterNames.has(parameterName)) throw new SyntaxError(`Duplicate parameter name: ${parameterName}`);
+					parameterNames.add(parameterName);
+				}
+				if (argument instanceof KeywordArgumentExpression) sawKeywordOrDefault = true;
+				else if (sawKeywordOrDefault) throw new SyntaxError(mode === "call" ? "Positional arguments must come before keyword arguments" : "Non-default argument follows default argument");
+				else if (sawSpreadArgument) throw new SyntaxError("Positional arguments must not follow `*` argument unpacking");
 			}
 			args.push(argument);
 			if (is(TOKEN_TYPES.Comma)) ++current;
@@ -8704,15 +9431,24 @@ function parse(tokens) {
 				expect(TOKEN_TYPES.CloseSquareBracket, "Expected closing square bracket");
 			} else {
 				property = parsePrimaryExpression();
-				if (property.type !== "Identifier") throw new SyntaxError(`Expected identifier following dot operator`);
+				if (property.type !== "Identifier" && property.type !== "IntegerLiteral") throw new SyntaxError(`Expected identifier or integer following dot operator`);
 			}
 			object = new MemberExpression(object, property, computed);
 		}
 		return object;
 	}
 	function parseMultiplicativeExpression() {
-		let left = parseTestExpression();
+		let left = parsePowerExpression();
 		while (is(TOKEN_TYPES.MultiplicativeBinaryOperator)) {
+			const operator = tokens[current++];
+			const right = parsePowerExpression();
+			left = new BinaryExpression(operator, left, right);
+		}
+		return left;
+	}
+	function parsePowerExpression() {
+		let left = parseTestExpression();
+		while (is(TOKEN_TYPES.ExponentiationBinaryOperator)) {
 			const operator = tokens[current++];
 			const right = parseTestExpression();
 			left = new BinaryExpression(operator, left, right);
@@ -8732,7 +9468,7 @@ function parse(tokens) {
 		return operand;
 	}
 	function parseFilterExpression() {
-		let operand = parseCallMemberExpression();
+		let operand = parseUnarySignExpression();
 		while (is(TOKEN_TYPES.Pipe)) {
 			++current;
 			let filter = parsePrimaryExpression();
@@ -8741,6 +9477,14 @@ function parse(tokens) {
 			operand = new FilterExpression(operand, filter);
 		}
 		return operand;
+	}
+	function parseUnarySignExpression() {
+		const token = tokens[current];
+		if (token && (token.type === TOKEN_TYPES.UnaryOperator || token.type === TOKEN_TYPES.AdditiveBinaryOperator) && (token.value === "-" || token.value === "+")) {
+			const operator = tokens[current++];
+			return new UnaryExpression(operator, parseUnarySignExpression());
+		}
+		return parseCallMemberExpression();
 	}
 	function parsePrimaryExpression() {
 		const token = tokens[current++];
@@ -8852,13 +9596,16 @@ function replace(str, oldvalue, newvalue, count2) {
 }
 var BreakControl = class extends Error {};
 var ContinueControl = class extends Error {};
+var EMPTY_BUILTINS = /* @__PURE__ */ new Map();
 var RuntimeValue = class {
 	type = "RuntimeValue";
 	value;
 	/**
 	* A collection of built-in functions for this type.
 	*/
-	builtins = /* @__PURE__ */ new Map();
+	get builtins() {
+		return EMPTY_BUILTINS;
+	}
 	/**
 	* Creates a new RuntimeValue.
 	*/
@@ -8883,96 +9630,100 @@ var IntegerValue = class extends RuntimeValue {
 var FloatValue = class extends RuntimeValue {
 	type = "FloatValue";
 	toString() {
+		if (Object.is(this.value, -0)) return "-0.0";
 		return this.value % 1 === 0 ? this.value.toFixed(1) : this.value.toString();
 	}
 };
 var StringValue = class extends RuntimeValue {
 	type = "StringValue";
-	builtins = /* @__PURE__ */ new Map([
-		["upper", new FunctionValue(() => {
-			return new StringValue(this.value.toUpperCase());
-		})],
-		["lower", new FunctionValue(() => {
-			return new StringValue(this.value.toLowerCase());
-		})],
-		["strip", new FunctionValue(() => {
-			return new StringValue(this.value.trim());
-		})],
-		["title", new FunctionValue(() => {
-			return new StringValue(titleCase(this.value));
-		})],
-		["capitalize", new FunctionValue(() => {
-			return new StringValue(this.value.charAt(0).toUpperCase() + this.value.slice(1));
-		})],
-		["length", new IntegerValue(this.value.length)],
-		["rstrip", new FunctionValue(() => {
-			return new StringValue(this.value.trimEnd());
-		})],
-		["lstrip", new FunctionValue(() => {
-			return new StringValue(this.value.trimStart());
-		})],
-		["startswith", new FunctionValue((args) => {
-			if (args.length === 0) throw new Error("startswith() requires at least one argument");
-			const pattern = args[0];
-			if (pattern instanceof StringValue) return new BooleanValue(this.value.startsWith(pattern.value));
-			else if (pattern instanceof ArrayValue) {
-				for (const item of pattern.value) {
-					if (!(item instanceof StringValue)) throw new Error("startswith() tuple elements must be strings");
-					if (this.value.startsWith(item.value)) return new BooleanValue(true);
-				}
-				return new BooleanValue(false);
-			}
-			throw new Error("startswith() argument must be a string or tuple of strings");
-		})],
-		["endswith", new FunctionValue((args) => {
-			if (args.length === 0) throw new Error("endswith() requires at least one argument");
-			const pattern = args[0];
-			if (pattern instanceof StringValue) return new BooleanValue(this.value.endsWith(pattern.value));
-			else if (pattern instanceof ArrayValue) {
-				for (const item of pattern.value) {
-					if (!(item instanceof StringValue)) throw new Error("endswith() tuple elements must be strings");
-					if (this.value.endsWith(item.value)) return new BooleanValue(true);
-				}
-				return new BooleanValue(false);
-			}
-			throw new Error("endswith() argument must be a string or tuple of strings");
-		})],
-		["split", new FunctionValue((args) => {
-			const sep = args[0] ?? new NullValue();
-			if (!(sep instanceof StringValue || sep instanceof NullValue)) throw new Error("sep argument must be a string or null");
-			const maxsplit = args[1] ?? new IntegerValue(-1);
-			if (!(maxsplit instanceof IntegerValue)) throw new Error("maxsplit argument must be a number");
-			let result = [];
-			if (sep instanceof NullValue) {
-				const text = this.value.trimStart();
-				for (const { 0: match, index } of text.matchAll(/\S+/g)) {
-					if (maxsplit.value !== -1 && result.length >= maxsplit.value && index !== void 0) {
-						result.push(match + text.slice(index + match.length));
-						break;
+	_builtins;
+	get builtins() {
+		return this._builtins ??= /* @__PURE__ */ new Map([
+			["upper", new FunctionValue(() => {
+				return new StringValue(this.value.toUpperCase());
+			})],
+			["lower", new FunctionValue(() => {
+				return new StringValue(this.value.toLowerCase());
+			})],
+			["strip", new FunctionValue(() => {
+				return new StringValue(this.value.trim());
+			})],
+			["title", new FunctionValue(() => {
+				return new StringValue(titleCase(this.value));
+			})],
+			["capitalize", new FunctionValue(() => {
+				return new StringValue(this.value.charAt(0).toUpperCase() + this.value.slice(1));
+			})],
+			["length", new IntegerValue(this.value.length)],
+			["rstrip", new FunctionValue(() => {
+				return new StringValue(this.value.trimEnd());
+			})],
+			["lstrip", new FunctionValue(() => {
+				return new StringValue(this.value.trimStart());
+			})],
+			["startswith", new FunctionValue((args) => {
+				if (args.length === 0) throw new Error("startswith() requires at least one argument");
+				const pattern = args[0];
+				if (pattern instanceof StringValue) return new BooleanValue(this.value.startsWith(pattern.value));
+				else if (pattern instanceof ArrayValue) {
+					for (const item of pattern.value) {
+						if (!(item instanceof StringValue)) throw new Error("startswith() tuple elements must be strings");
+						if (this.value.startsWith(item.value)) return new BooleanValue(true);
 					}
-					result.push(match);
+					return new BooleanValue(false);
 				}
-			} else {
-				if (sep.value === "") throw new Error("empty separator");
-				result = this.value.split(sep.value);
-				if (maxsplit.value !== -1 && result.length > maxsplit.value) result.push(result.splice(maxsplit.value).join(sep.value));
-			}
-			return new ArrayValue(result.map((part) => new StringValue(part)));
-		})],
-		["replace", new FunctionValue((args) => {
-			if (args.length < 2) throw new Error("replace() requires at least two arguments");
-			const oldValue = args[0];
-			const newValue = args[1];
-			if (!(oldValue instanceof StringValue && newValue instanceof StringValue)) throw new Error("replace() arguments must be strings");
-			let count2;
-			if (args.length > 2) {
-				if (args[2].type === "KeywordArgumentsValue") count2 = args[2].value.get("count") ?? new NullValue();
-				else count2 = args[2];
-			} else count2 = new NullValue();
-			if (!(count2 instanceof IntegerValue || count2 instanceof NullValue)) throw new Error("replace() count argument must be a number or null");
-			return new StringValue(replace(this.value, oldValue.value, newValue.value, count2.value));
-		})]
-	]);
+				throw new Error("startswith() argument must be a string or tuple of strings");
+			})],
+			["endswith", new FunctionValue((args) => {
+				if (args.length === 0) throw new Error("endswith() requires at least one argument");
+				const pattern = args[0];
+				if (pattern instanceof StringValue) return new BooleanValue(this.value.endsWith(pattern.value));
+				else if (pattern instanceof ArrayValue) {
+					for (const item of pattern.value) {
+						if (!(item instanceof StringValue)) throw new Error("endswith() tuple elements must be strings");
+						if (this.value.endsWith(item.value)) return new BooleanValue(true);
+					}
+					return new BooleanValue(false);
+				}
+				throw new Error("endswith() argument must be a string or tuple of strings");
+			})],
+			["split", new FunctionValue((args) => {
+				const sep = args[0] ?? new NullValue();
+				if (!(sep instanceof StringValue || sep instanceof NullValue)) throw new Error("sep argument must be a string or null");
+				const maxsplit = args[1] ?? new IntegerValue(-1);
+				if (!(maxsplit instanceof IntegerValue)) throw new Error("maxsplit argument must be a number");
+				let result = [];
+				if (sep instanceof NullValue) {
+					const text = this.value.trimStart();
+					for (const { 0: match, index } of text.matchAll(/\S+/g)) {
+						if (maxsplit.value !== -1 && result.length >= maxsplit.value && index !== void 0) {
+							result.push(match + text.slice(index + match.length));
+							break;
+						}
+						result.push(match);
+					}
+				} else {
+					if (sep.value === "") throw new Error("empty separator");
+					result = this.value.split(sep.value);
+					if (maxsplit.value !== -1 && result.length > maxsplit.value) result.push(result.splice(maxsplit.value).join(sep.value));
+				}
+				return new ArrayValue(result.map((part) => new StringValue(part)));
+			})],
+			["replace", new FunctionValue((args) => {
+				if (args.length < 2) throw new Error("replace() requires at least two arguments");
+				const oldValue = args[0];
+				const newValue = args[1];
+				if (!(oldValue instanceof StringValue && newValue instanceof StringValue)) throw new Error("replace() arguments must be strings");
+				let count2;
+				if (args.length > 2) {
+					if (args[2].type === "KeywordArgumentsValue") count2 = args[2].value.get("count") ?? new NullValue();
+					else count2 = args[2];
+				} else count2 = new NullValue();
+				if (!(count2 instanceof IntegerValue || count2 instanceof NullValue)) throw new Error("replace() count argument must be a number or null");
+				return new StringValue(replace(this.value, oldValue.value, newValue.value, count2.value));
+			})]
+		]);
+	}
 };
 var BooleanValue = class extends RuntimeValue {
 	type = "BooleanValue";
@@ -9005,6 +9756,7 @@ function toJSON(input, options = {}, depth = 0, convertUndefinedToNull = true) {
 			return result;
 		}
 		case "ArrayValue":
+		case "NamespaceValue":
 		case "ObjectValue": {
 			const indentValue = indent ? " ".repeat(indent) : "";
 			const basePadding = "\n" + indentValue.repeat(depth);
@@ -9029,6 +9781,7 @@ function toJSON(input, options = {}, depth = 0, convertUndefinedToNull = true) {
 }
 var ObjectValue = class extends RuntimeValue {
 	type = "ObjectValue";
+	_builtins;
 	/**
 	* NOTE: necessary to override since all JavaScript arrays are considered truthy,
 	* while only non-empty Python arrays are consider truthy.
@@ -9040,39 +9793,41 @@ var ObjectValue = class extends RuntimeValue {
 	__bool__() {
 		return new BooleanValue(this.value.size > 0);
 	}
-	builtins = /* @__PURE__ */ new Map([
-		["get", new FunctionValue(([key, defaultValue]) => {
-			if (!(key instanceof StringValue)) throw new Error(`Object key must be a string: got ${key.type}`);
-			return this.value.get(key.value) ?? defaultValue ?? new NullValue();
-		})],
-		["items", new FunctionValue(() => this.items())],
-		["keys", new FunctionValue(() => this.keys())],
-		["values", new FunctionValue(() => this.values())],
-		["dictsort", new FunctionValue((args) => {
-			let kwargs = /* @__PURE__ */ new Map();
-			const positionalArgs = args.filter((arg) => {
-				if (arg instanceof KeywordArgumentsValue) {
-					kwargs = arg.value;
-					return false;
-				}
-				return true;
-			});
-			const caseSensitive = positionalArgs.at(0) ?? kwargs.get("case_sensitive") ?? new BooleanValue(false);
-			if (!(caseSensitive instanceof BooleanValue)) throw new Error("case_sensitive must be a boolean");
-			const by = positionalArgs.at(1) ?? kwargs.get("by") ?? new StringValue("key");
-			if (!(by instanceof StringValue)) throw new Error("by must be a string");
-			if (!["key", "value"].includes(by.value)) throw new Error("by must be either 'key' or 'value'");
-			const reverse = positionalArgs.at(2) ?? kwargs.get("reverse") ?? new BooleanValue(false);
-			if (!(reverse instanceof BooleanValue)) throw new Error("reverse must be a boolean");
-			return new ArrayValue(Array.from(this.value.entries()).map(([key, value]) => new ArrayValue([new StringValue(key), value])).sort((a, b) => {
-				const index = by.value === "key" ? 0 : 1;
-				const aVal = a.value[index];
-				const bVal = b.value[index];
-				const result = compareRuntimeValues(aVal, bVal, caseSensitive.value);
-				return reverse.value ? -result : result;
-			}));
-		})]
-	]);
+	get builtins() {
+		return this._builtins ??= /* @__PURE__ */ new Map([
+			["get", new FunctionValue(([key, defaultValue]) => {
+				if (!(key instanceof StringValue)) throw new Error(`Object key must be a string: got ${key.type}`);
+				return this.value.get(key.value) ?? defaultValue ?? new NullValue();
+			})],
+			["items", new FunctionValue(() => this.items())],
+			["keys", new FunctionValue(() => this.keys())],
+			["values", new FunctionValue(() => this.values())],
+			["dictsort", new FunctionValue((args) => {
+				let kwargs = /* @__PURE__ */ new Map();
+				const positionalArgs = args.filter((arg) => {
+					if (arg instanceof KeywordArgumentsValue) {
+						kwargs = arg.value;
+						return false;
+					}
+					return true;
+				});
+				const caseSensitive = positionalArgs.at(0) ?? kwargs.get("case_sensitive") ?? new BooleanValue(false);
+				if (!(caseSensitive instanceof BooleanValue)) throw new Error("case_sensitive must be a boolean");
+				const by = positionalArgs.at(1) ?? kwargs.get("by") ?? new StringValue("key");
+				if (!(by instanceof StringValue)) throw new Error("by must be a string");
+				if (!["key", "value"].includes(by.value)) throw new Error("by must be either 'key' or 'value'");
+				const reverse = positionalArgs.at(2) ?? kwargs.get("reverse") ?? new BooleanValue(false);
+				if (!(reverse instanceof BooleanValue)) throw new Error("reverse must be a boolean");
+				return new ArrayValue(Array.from(this.value.entries()).map(([key, value]) => new ArrayValue([new StringValue(key), value])).sort((a, b) => {
+					const index = by.value === "key" ? 0 : 1;
+					const aVal = a.value[index];
+					const bVal = b.value[index];
+					const result = compareRuntimeValues(aVal, bVal, caseSensitive.value);
+					return reverse.value ? -result : result;
+				}));
+			})]
+		]);
+	}
 	items() {
 		return new ArrayValue(Array.from(this.value.entries()).map(([key, value]) => new ArrayValue([new StringValue(key), value])));
 	}
@@ -9089,9 +9844,18 @@ var ObjectValue = class extends RuntimeValue {
 var KeywordArgumentsValue = class extends ObjectValue {
 	type = "KeywordArgumentsValue";
 };
+var NamespaceValue = class extends RuntimeValue {
+	type = "NamespaceValue";
+	toString() {
+		return toJSON(this, {}, 0, false);
+	}
+};
 var ArrayValue = class extends RuntimeValue {
 	type = "ArrayValue";
-	builtins = /* @__PURE__ */ new Map([["length", new IntegerValue(this.value.length)]]);
+	_builtins;
+	get builtins() {
+		return this._builtins ??= /* @__PURE__ */ new Map([["length", new IntegerValue(this.value.length)]]);
+	}
 	/**
 	* NOTE: necessary to override since all JavaScript arrays are considered truthy,
 	* while only non-empty Python arrays are consider truthy.
@@ -9119,7 +9883,16 @@ var NullValue = class extends RuntimeValue {
 var UndefinedValue = class extends RuntimeValue {
 	type = "UndefinedValue";
 };
-var Environment = class {
+function normalizeNamespaceEntry(pair) {
+	let values;
+	if (pair instanceof ArrayValue) values = pair.value;
+	else if (pair instanceof StringValue) values = Array.from(pair.value, (char) => new StringValue(char));
+	if (!values || values.length !== 2) throw new Error("namespace expected an object or an iterable of [key, value] pairs");
+	const [key, value] = values;
+	if (!(key instanceof StringValue)) throw new Error("namespace keys must be strings");
+	return [key, value];
+}
+var _Environment = class {
 	constructor(parent) {
 		this.parent = parent;
 	}
@@ -9127,47 +9900,24 @@ var Environment = class {
 	* The variables declared in this environment.
 	*/
 	variables = /* @__PURE__ */ new Map([["namespace", new FunctionValue((args) => {
-		if (args.length === 0) return new ObjectValue(/* @__PURE__ */ new Map());
-		if (args.length !== 1 || !(args[0] instanceof ObjectValue)) throw new Error("`namespace` expects either zero arguments or a single object argument");
-		return args[0];
+		const positional = args.slice();
+		let kwargs;
+		if (positional.at(-1) instanceof KeywordArgumentsValue) kwargs = positional.pop();
+		if (positional.length > 1) throw new Error(`namespace expected at most 1 argument, got ${positional.length}`);
+		const entries = /* @__PURE__ */ new Map();
+		if (positional.length === 1) {
+			const source = positional[0];
+			if (source instanceof ObjectValue) for (const [key, value] of source.value) entries.set(key, value);
+			else if (source instanceof ArrayValue) for (const pair of source.value) {
+				const [key, value] = normalizeNamespaceEntry(pair);
+				entries.set(key.value, value);
+			}
+			else throw new Error(`'${source.type}' object is not iterable`);
+		}
+		if (kwargs) for (const [key, value] of kwargs.value) entries.set(key, value);
+		return new NamespaceValue(entries);
 	})]]);
-	/**
-	* The tests available in this environment.
-	*/
-	tests = /* @__PURE__ */ new Map([
-		["boolean", (operand) => operand.type === "BooleanValue"],
-		["callable", (operand) => operand instanceof FunctionValue],
-		["odd", (operand) => {
-			if (!(operand instanceof IntegerValue)) throw new Error(`cannot odd on ${operand.type}`);
-			return operand.value % 2 !== 0;
-		}],
-		["even", (operand) => {
-			if (!(operand instanceof IntegerValue)) throw new Error(`cannot even on ${operand.type}`);
-			return operand.value % 2 === 0;
-		}],
-		["false", (operand) => operand.type === "BooleanValue" && !operand.value],
-		["true", (operand) => operand.type === "BooleanValue" && operand.value],
-		["none", (operand) => operand.type === "NullValue"],
-		["string", (operand) => operand.type === "StringValue"],
-		["number", (operand) => operand instanceof IntegerValue || operand instanceof FloatValue],
-		["integer", (operand) => operand instanceof IntegerValue],
-		["iterable", (operand) => operand.type === "ArrayValue" || operand.type === "StringValue"],
-		["mapping", (operand) => operand instanceof ObjectValue],
-		["sequence", (operand) => operand instanceof ArrayValue || operand instanceof ObjectValue || operand instanceof StringValue],
-		["lower", (operand) => {
-			const str = operand.value;
-			return operand.type === "StringValue" && str === str.toLowerCase();
-		}],
-		["upper", (operand) => {
-			const str = operand.value;
-			return operand.type === "StringValue" && str === str.toUpperCase();
-		}],
-		["none", (operand) => operand.type === "NullValue"],
-		["defined", (operand) => operand.type !== "UndefinedValue"],
-		["undefined", (operand) => operand.type === "UndefinedValue"],
-		["equalto", (a, b) => a.value === b.value],
-		["eq", (a, b) => a.value === b.value]
-	]);
+	tests = _Environment.TESTS;
 	/**
 	* Set the value of a variable in the current environment.
 	*/
@@ -9205,6 +9955,41 @@ var Environment = class {
 		}
 	}
 };
+var Environment = _Environment;
+__publicField(Environment, "TESTS", /* @__PURE__ */ new Map([
+	["boolean", (operand) => operand.type === "BooleanValue"],
+	["callable", (operand) => operand instanceof FunctionValue],
+	["odd", (operand) => {
+		if (!(operand instanceof IntegerValue)) throw new Error(`cannot odd on ${operand.type}`);
+		return operand.value % 2 !== 0;
+	}],
+	["even", (operand) => {
+		if (!(operand instanceof IntegerValue)) throw new Error(`cannot even on ${operand.type}`);
+		return operand.value % 2 === 0;
+	}],
+	["false", (operand) => operand.type === "BooleanValue" && !operand.value],
+	["true", (operand) => operand.type === "BooleanValue" && operand.value],
+	["none", (operand) => operand.type === "NullValue"],
+	["string", (operand) => operand.type === "StringValue"],
+	["number", (operand) => operand instanceof IntegerValue || operand instanceof FloatValue],
+	["integer", (operand) => operand instanceof IntegerValue],
+	["iterable", (operand) => operand.type === "ArrayValue" || operand.type === "StringValue"],
+	["mapping", (operand) => operand instanceof ObjectValue],
+	["sequence", (operand) => operand instanceof ArrayValue || operand instanceof ObjectValue || operand instanceof StringValue],
+	["lower", (operand) => {
+		const str = operand.value;
+		return operand.type === "StringValue" && str === str.toLowerCase();
+	}],
+	["upper", (operand) => {
+		const str = operand.value;
+		return operand.type === "StringValue" && str === str.toUpperCase();
+	}],
+	["none", (operand) => operand.type === "NullValue"],
+	["defined", (operand) => operand.type !== "UndefinedValue"],
+	["undefined", (operand) => operand.type === "UndefinedValue"],
+	["equalto", (a, b) => a.value === b.value],
+	["eq", (a, b) => a.value === b.value]
+]));
 function setupGlobals(env2) {
 	env2.set("false", false);
 	env2.set("true", true);
@@ -9218,10 +10003,19 @@ function setupGlobals(env2) {
 	env2.set("False", false);
 	env2.set("None", null);
 }
+function isAttributeContainer(value) {
+	return value instanceof ObjectValue || value instanceof NamespaceValue;
+}
+function isNumericLikeValue(value) {
+	return value instanceof IntegerValue || value instanceof FloatValue || value instanceof BooleanValue;
+}
+function getNumericValue(value) {
+	return value instanceof BooleanValue ? Number(value.value) : value.value;
+}
 function getAttributeValue(item, attributePath) {
 	const parts = attributePath.split(".");
 	let value = item;
-	for (const part of parts) if (value instanceof ObjectValue) value = value.value.get(part) ?? new UndefinedValue();
+	for (const part of parts) if (isAttributeContainer(value)) value = value.value.get(part) ?? new UndefinedValue();
 	else if (value instanceof ArrayValue) {
 		const index = parseInt(part, 10);
 		if (!isNaN(index) && index >= 0 && index < value.value.length) value = value.value[index];
@@ -9234,12 +10028,7 @@ function compareRuntimeValues(a, b, caseSensitive = false) {
 	if (a instanceof NullValue || b instanceof NullValue) throw new Error(`Cannot compare ${a.type} with ${b.type}`);
 	if (a instanceof UndefinedValue && b instanceof UndefinedValue) return 0;
 	if (a instanceof UndefinedValue || b instanceof UndefinedValue) throw new Error(`Cannot compare ${a.type} with ${b.type}`);
-	const isNumericLike = (v) => v instanceof IntegerValue || v instanceof FloatValue || v instanceof BooleanValue;
-	const getNumericValue = (v) => {
-		if (v instanceof BooleanValue) return v.value ? 1 : 0;
-		return v.value;
-	};
-	if (isNumericLike(a) && isNumericLike(b)) {
+	if (isNumericLikeValue(a) && isNumericLikeValue(b)) {
 		const aNum = getNumericValue(a);
 		const bNum = getNumericValue(b);
 		return aNum < bNum ? -1 : aNum > bNum ? 1 : 0;
@@ -9257,6 +10046,133 @@ function compareRuntimeValues(a, b, caseSensitive = false) {
 		}
 		default: throw new Error(`Cannot compare type: ${a.type}`);
 	}
+}
+function getParameterDescriptor(argument) {
+	if (argument.type === "Identifier") return { name: argument.value };
+	const keywordArgument = argument;
+	return {
+		name: keywordArgument.key.value,
+		defaultValue: keywordArgument.value
+	};
+}
+function isSpecialMacroArgument(name) {
+	return name === "kwargs" || name === "varargs";
+}
+function findAccessedSpecialMacroArguments(parameters, body) {
+	const declared = /* @__PURE__ */ new Set();
+	const accessed = /* @__PURE__ */ new Set();
+	const declareName = (name) => {
+		if (isSpecialMacroArgument(name)) declared.add(name);
+	};
+	const declareTarget = (target) => {
+		if (target.type === "Identifier") declareName(target.value);
+		else if (target.type === "TupleLiteral") for (const item of target.value) declareTarget(item);
+	};
+	const declareArgument = (argument) => {
+		declareName(getParameterDescriptor(argument).name);
+	};
+	const visitArgumentDefaults = (args) => {
+		for (const argument of args) {
+			const parameter = getParameterDescriptor(argument);
+			if (parameter.defaultValue) visit(parameter.defaultValue);
+		}
+	};
+	const visitFilter = (filter) => {
+		if (filter.type === "CallExpression") visit(filter.args);
+	};
+	const visit = (node) => {
+		if (Array.isArray(node)) {
+			for (const item of node) visit(item);
+			return;
+		}
+		if (node instanceof Map) {
+			for (const [key, value] of node) {
+				visit(key);
+				visit(value);
+			}
+			return;
+		}
+		if (!(node instanceof Statement)) return;
+		switch (node.type) {
+			case "For": {
+				const statement = node;
+				declareTarget(statement.loopvar);
+				if (statement.iterable.type === "SelectExpression") {
+					const iterable = statement.iterable;
+					visit(iterable.lhs);
+					visit(statement.body);
+					visit(statement.defaultBlock);
+					visit(iterable.test);
+					return;
+				}
+				visit(statement.iterable);
+				visit(statement.body);
+				visit(statement.defaultBlock);
+				return;
+			}
+			case "Set": {
+				const statement = node;
+				declareTarget(statement.assignee);
+				visit(statement.value);
+				visit(statement.body);
+				return;
+			}
+			case "Macro": {
+				const statement = node;
+				for (const argument of statement.args) declareArgument(argument);
+				visitArgumentDefaults(statement.args);
+				visit(statement.body);
+				return;
+			}
+			case "CallStatement": {
+				const statement = node;
+				visit(statement.call);
+				for (const argument of statement.callerArgs ?? []) declareArgument(argument);
+				visitArgumentDefaults(statement.callerArgs ?? []);
+				visit(statement.body);
+				return;
+			}
+			case "FilterStatement": {
+				const statement = node;
+				visit(statement.body);
+				visitFilter(statement.filter);
+				return;
+			}
+			case "Identifier": {
+				const name = node.value;
+				if (isSpecialMacroArgument(name) && !declared.has(name)) accessed.add(name);
+				return;
+			}
+			case "MemberExpression": {
+				const expression = node;
+				visit(expression.object);
+				if (expression.computed) visit(expression.property);
+				return;
+			}
+			case "FilterExpression": {
+				const expression = node;
+				visit(expression.operand);
+				visitFilter(expression.filter);
+				return;
+			}
+			case "TestExpression":
+				visit(node.operand);
+				return;
+			case "SelectExpression": {
+				const expression = node;
+				visit(expression.test);
+				visit(expression.lhs);
+				return;
+			}
+			case "KeywordArgumentExpression":
+				visit(node.value);
+				return;
+			default: for (const child of Object.values(node)) visit(child);
+		}
+	};
+	for (const parameter of parameters) declareArgument(parameter);
+	visit(body);
+	return accessed;
 }
 var Interpreter = class {
 	global;
@@ -9288,7 +10204,14 @@ var Interpreter = class {
 			throw new Error(`Cannot perform operation ${node.operator.value} on undefined values`);
 		} else if (left instanceof NullValue || right instanceof NullValue) throw new Error("Cannot perform operation on null values");
 		else if (node.operator.value === "~") return new StringValue(left.value.toString() + right.value.toString());
-		else if ((left instanceof IntegerValue || left instanceof FloatValue) && (right instanceof IntegerValue || right instanceof FloatValue)) {
+		else if (node.operator.value === "**" && isNumericLikeValue(left) && isNumericLikeValue(right)) {
+			const a = getNumericValue(left);
+			const b = getNumericValue(right);
+			if (a === 0 && b < 0) throw new Error("0.0 cannot be raised to a negative power");
+			const result = a ** b;
+			if (!Number.isFinite(result)) throw new Error("Exponentiation result is not a finite real number");
+			return left instanceof FloatValue || right instanceof FloatValue || b < 0 ? new FloatValue(result) : new IntegerValue(result);
+		} else if ((left instanceof IntegerValue || left instanceof FloatValue) && (right instanceof IntegerValue || right instanceof FloatValue)) {
 			const a = left.value, b = right.value;
 			switch (node.operator.value) {
 				case "+":
@@ -9298,6 +10221,10 @@ var Interpreter = class {
 					return left instanceof FloatValue || right instanceof FloatValue ? new FloatValue(res) : new IntegerValue(res);
 				}
 				case "/": return new FloatValue(a / b);
+				case "//": {
+					const res = Math.floor(a / b);
+					return left instanceof FloatValue || right instanceof FloatValue ? new FloatValue(res) : new IntegerValue(res);
+				}
 				case "%": {
 					const rem = a % b;
 					return left instanceof FloatValue || right instanceof FloatValue ? new FloatValue(rem) : new IntegerValue(rem);
@@ -9333,17 +10260,24 @@ var Interpreter = class {
 	evaluateArguments(args, environment) {
 		const positionalArguments = [];
 		const keywordArguments = /* @__PURE__ */ new Map();
+		const addKeywordArgument = (key, value) => {
+			if (keywordArguments.has(key)) throw new Error(`Got multiple values for keyword argument '${key}'`);
+			keywordArguments.set(key, value);
+		};
 		for (const argument of args) if (argument.type === "SpreadExpression") {
 			const spreadNode = argument;
 			const val = this.evaluate(spreadNode.argument, environment);
 			if (!(val instanceof ArrayValue)) throw new Error(`Cannot unpack non-iterable type: ${val.type}`);
 			for (const item of val.value) positionalArguments.push(item);
-		} else if (argument.type === "KeywordArgumentExpression") {
+		} else if (argument.type !== "KeywordArgumentExpression" && argument.type !== "KeywordSpreadExpression") positionalArguments.push(this.evaluate(argument, environment));
+		for (const argument of args) if (argument.type === "KeywordArgumentExpression") {
 			const kwarg = argument;
-			keywordArguments.set(kwarg.key.value, this.evaluate(kwarg.value, environment));
-		} else {
-			if (keywordArguments.size > 0) throw new Error("Positional arguments must come before keyword arguments");
-			positionalArguments.push(this.evaluate(argument, environment));
+			addKeywordArgument(kwarg.key.value, this.evaluate(kwarg.value, environment));
+		} else if (argument.type === "KeywordSpreadExpression") {
+			const spreadNode = argument;
+			const val = this.evaluate(spreadNode.argument, environment);
+			if (!(val instanceof ObjectValue)) throw new Error(`Argument after ** must be a mapping, not ${val.type}`);
+			for (const [key, value] of val.value) addKeywordArgument(key, value);
 		}
 		return [positionalArguments, keywordArguments];
 	}
@@ -9498,7 +10432,7 @@ var Interpreter = class {
 					case "selectattr":
 					case "rejectattr": {
 						const select = filterName === "selectattr";
-						if (operand.value.some((x) => !(x instanceof ObjectValue))) throw new Error(`\`${filterName}\` can only be applied to array of objects`);
+						if (operand.value.some((item) => !isAttributeContainer(item))) throw new Error(`\`${filterName}\` can only be applied to array of objects`);
 						if (filter.args.some((x) => x.type !== "StringLiteral")) throw new Error(`arguments of \`${filterName}\` must be strings`);
 						const [attr, testName, value] = filter.args.map((x) => this.evaluate(x, environment));
 						let testFunction;
@@ -9520,7 +10454,7 @@ var Interpreter = class {
 							if (!(attr instanceof StringValue)) throw new Error("attribute must be a string");
 							const defaultValue = kwargs.get("default");
 							return new ArrayValue(operand.value.map((item) => {
-								if (!(item instanceof ObjectValue)) throw new Error("items in map must be an object");
+								if (!isAttributeContainer(item)) throw new Error("items in map must be an object");
 								const value = getAttributeValue(item, attr.value);
 								return value instanceof UndefinedValue ? defaultValue ?? new UndefinedValue() : value;
 							}));
@@ -9591,6 +10525,15 @@ var Interpreter = class {
 		const argument = this.evaluate(node.argument, environment);
 		switch (node.operator.value) {
 			case "not": return new BooleanValue(!argument.value);
+			case "+":
+			case "-": {
+				const sign = node.operator.value === "-" ? -1 : 1;
+				if (argument instanceof IntegerValue || argument instanceof FloatValue || argument instanceof BooleanValue) {
+					const result = sign * (argument instanceof BooleanValue ? argument.value ? 1 : 0 : argument.value);
+					return argument instanceof FloatValue ? new FloatValue(result) : new IntegerValue(result);
+				}
+				throw new SyntaxError(`Unknown operator "${node.operator.value}" for ${argument.type}`);
+			}
 			default: throw new SyntaxError(`Unknown operator: ${node.operator.value}`);
 		}
 	}
@@ -9635,11 +10578,12 @@ var Interpreter = class {
 		if (expr.computed) {
 			if (expr.property.type === "SliceExpression") return this.evaluateSliceExpression(object, expr.property, environment);
 			else property = this.evaluate(expr.property, environment);
-		} else property = new StringValue(expr.property.value);
+		} else if (expr.property.type === "IntegerLiteral") property = new IntegerValue(expr.property.value);
+		else property = new StringValue(expr.property.value);
 		let value;
-		if (object instanceof ObjectValue) {
+		if (isAttributeContainer(object)) {
 			if (!(property instanceof StringValue)) throw new Error(`Cannot access property with non-string: got ${property.type}`);
-			value = object.value.get(property.value) ?? object.builtins.get(property.value);
+			value = object.value.get(property.value) ?? (object instanceof ObjectValue ? object.builtins.get(property.value) : void 0);
 		} else if (object instanceof ArrayValue || object instanceof StringValue) {
 			if (property instanceof IntegerValue) {
 				value = object.value.at(property.value);
@@ -9670,7 +10614,7 @@ var Interpreter = class {
 		} else if (node.assignee.type === "MemberExpression") {
 			const member = node.assignee;
 			const object = this.evaluate(member.object, environment);
-			if (!(object instanceof ObjectValue)) throw new Error("Cannot assign to member of non-object");
+			if (!(object instanceof NamespaceValue)) throw new Error("cannot assign attribute on non-namespace object");
 			if (member.property.type !== "Identifier") throw new Error("Cannot assign to member with non-identifier property");
 			object.value.set(member.property.value, rhs);
 		} else throw new Error(`Invalid LHS inside assignment expression: ${JSON.stringify(node.assignee)}`);
@@ -9749,39 +10693,48 @@ var Interpreter = class {
 		return new StringValue(result);
 	}
 	/**
+	* Bind every parameter name and special argument before evaluating defaults,
+	* preventing unbound parameters from resolving in an outer scope.
+	*/
+	bindMacroArguments(displayName, parameters, specialArguments, args, scope) {
+		const positionalArguments = args.slice();
+		let keywordArguments = /* @__PURE__ */ new Map();
+		if (positionalArguments.at(-1) instanceof KeywordArgumentsValue) keywordArguments = new Map(positionalArguments.pop().value);
+		const pendingDefaults = [];
+		for (let i = 0; i < parameters.length; ++i) {
+			const { name, defaultValue } = getParameterDescriptor(parameters[i]);
+			let value = positionalArguments[i];
+			if (value === void 0 && keywordArguments.has(name)) {
+				value = keywordArguments.get(name);
+				keywordArguments.delete(name);
+			}
+			if (value === void 0 && defaultValue !== void 0) pendingDefaults.push([name, defaultValue]);
+			scope.setVariable(name, value ?? new UndefinedValue());
+		}
+		if (specialArguments.has("kwargs")) scope.setVariable("kwargs", new ObjectValue(keywordArguments));
+		else if (keywordArguments.size > 0) throw new Error(`macro ${displayName} takes no keyword argument '${keywordArguments.keys().next().value}'`);
+		if (specialArguments.has("varargs")) scope.setVariable("varargs", new ArrayValue(positionalArguments.slice(parameters.length)));
+		else if (positionalArguments.length > parameters.length) throw new Error(`macro ${displayName} takes not more than ${parameters.length} argument(s)`);
+		for (const [name, defaultValue] of pendingDefaults) scope.setVariable(name, this.evaluate(defaultValue, scope));
+	}
+	/**
 	* See https://jinja.palletsprojects.com/en/3.1.x/templates/#macros for more information.
 	*/
 	evaluateMacro(node, environment) {
+		const specialArguments = findAccessedSpecialMacroArguments(node.args, node.body);
 		environment.setVariable(node.name.value, new FunctionValue((args, scope) => {
 			const macroScope = new Environment(scope);
-			args = args.slice();
-			let kwargs;
-			if (args.at(-1)?.type === "KeywordArgumentsValue") kwargs = args.pop();
-			for (let i = 0; i < node.args.length; ++i) {
-				const nodeArg = node.args[i];
-				const passedArg = args[i];
-				if (nodeArg.type === "Identifier") {
-					const identifier = nodeArg;
-					if (!passedArg) throw new Error(`Missing positional argument: ${identifier.value}`);
-					macroScope.setVariable(identifier.value, passedArg);
-				} else if (nodeArg.type === "KeywordArgumentExpression") {
-					const kwarg = nodeArg;
-					const value = passedArg ?? kwargs?.value.get(kwarg.key.value) ?? this.evaluate(kwarg.value, macroScope);
-					macroScope.setVariable(kwarg.key.value, value);
-				} else throw new Error(`Unknown argument type: ${nodeArg.type}`);
-			}
+			this.bindMacroArguments(`'${node.name.value}'`, node.args, specialArguments, args, macroScope);
 			return this.evaluateBlock(node.body, macroScope);
 		}));
 		return new NullValue();
 	}
 	evaluateCallStatement(node, environment) {
-		const callerFn = new FunctionValue((callerArgs, callerEnv) => {
-			const callBlockEnv = new Environment(callerEnv);
-			if (node.callerArgs) for (let i = 0; i < node.callerArgs.length; ++i) {
-				const param = node.callerArgs[i];
-				if (param.type !== "Identifier") throw new Error(`Caller parameter must be an identifier, got ${param.type}`);
-				callBlockEnv.setVariable(param.value, callerArgs[i] ?? new UndefinedValue());
-			}
+		const parameters = node.callerArgs ?? [];
+		const specialArguments = findAccessedSpecialMacroArguments(parameters, node.body);
+		const callerFn = new FunctionValue((callerArguments) => {
+			const callBlockEnv = new Environment(environment);
+			this.bindMacroArguments("None", parameters, specialArguments, callerArguments, callBlockEnv);
 			return this.evaluateBlock(node.body, callBlockEnv);
 		});
 		const [macroArgs, macroKwargs] = this.evaluateArguments(node.call.args, environment);
@@ -9854,17 +10807,47 @@ function convertToRuntimeValues(input) {
 var NEWLINE = "\n";
 var OPEN_STATEMENT = "{%- ";
 var CLOSE_STATEMENT = " -%}";
+var PRECEDENCE = Object.freeze({
+	CONDITIONAL: 0,
+	LOGICAL_OR: 1,
+	LOGICAL_AND: 2,
+	LOGICAL_NOT: 3,
+	COMPARISON: 4,
+	ADDITIVE: 5,
+	MULTIPLICATIVE: 6,
+	EXPONENTIATION: 7,
+	TEST: 8,
+	FILTER: 9,
+	UNARY_SIGN: 10,
+	ATOM: 11
+});
 function getBinaryOperatorPrecedence(expr) {
 	switch (expr.operator.type) {
-		case "MultiplicativeBinaryOperator": return 4;
-		case "AdditiveBinaryOperator": return 3;
-		case "ComparisonBinaryOperator": return 2;
+		case "ExponentiationBinaryOperator": return PRECEDENCE.EXPONENTIATION;
+		case "MultiplicativeBinaryOperator": return PRECEDENCE.MULTIPLICATIVE;
+		case "AdditiveBinaryOperator": return PRECEDENCE.ADDITIVE;
+		case "ComparisonBinaryOperator": return PRECEDENCE.COMPARISON;
 		case "Identifier":
-			if (expr.operator.value === "and") return 1;
-			if (expr.operator.value === "in" || expr.operator.value === "not in") return 2;
-			return 0;
+			if (expr.operator.value === "and") return PRECEDENCE.LOGICAL_AND;
+			if (expr.operator.value === "in" || expr.operator.value === "not in") return PRECEDENCE.COMPARISON;
+			return PRECEDENCE.LOGICAL_OR;
 	}
-	return 0;
+	return PRECEDENCE.LOGICAL_OR;
+}
+function getPrecedence(node) {
+	switch (node.type) {
+		case "SelectExpression":
+		case "Ternary": return PRECEDENCE.CONDITIONAL;
+		case "BinaryExpression": return getBinaryOperatorPrecedence(node);
+		case "UnaryExpression": return node.operator.value === "not" ? PRECEDENCE.LOGICAL_NOT : PRECEDENCE.UNARY_SIGN;
+		case "TestExpression": return PRECEDENCE.TEST;
+		case "FilterExpression": return PRECEDENCE.FILTER;
+		default: return PRECEDENCE.ATOM;
+	}
+}
+function formatOperand(node, minPrecedence) {
+	const expr = formatExpression(node);
+	return getPrecedence(node) < minPrecedence ? `(${expr})` : expr;
 }
 function format(program, indent = "	") {
 	const indentStr = typeof indent === "number" ? " ".repeat(indent) : indent;
@@ -9875,6 +10858,9 @@ function createStatement(...text) {
 }
 function formatStatements(stmts, depth, indentStr) {
 	return stmts.map((stmt) => formatStatement(stmt, depth, indentStr)).join(NEWLINE);
+}
+function formatExpressionList(expressions) {
+	return expressions.map((expression) => formatExpression(expression)).join(", ");
 }
 function formatStatement(node, depth, indentStr) {
 	const pad = indentStr.repeat(depth);
@@ -9932,12 +10918,12 @@ function formatSet(node, depth, indentStr) {
 }
 function formatMacro(node, depth, indentStr) {
 	const pad = indentStr.repeat(depth);
-	const args = node.args.map(formatExpression).join(", ");
+	const args = formatExpressionList(node.args);
 	return pad + createStatement("macro", `${node.name.value}(${args})`) + NEWLINE + formatStatements(node.body, depth + 1, indentStr) + NEWLINE + pad + createStatement("endmacro");
 }
 function formatCallStatement(node, depth, indentStr) {
 	const pad = indentStr.repeat(depth);
-	const params = node.callerArgs && node.callerArgs.length > 0 ? `(${node.callerArgs.map(formatExpression).join(", ")})` : "";
+	const params = node.callerArgs && node.callerArgs.length > 0 ? `(${formatExpressionList(node.callerArgs)})` : "";
 	const callExpr = formatExpression(node.call);
 	let out = pad + createStatement(`call${params}`, callExpr) + NEWLINE;
 	out += formatStatements(node.body, depth + 1, indentStr) + NEWLINE;
@@ -9951,67 +10937,61 @@ function formatFilterStatement(node, depth, indentStr) {
 	out += pad + createStatement("endfilter");
 	return out;
 }
-function formatExpression(node, parentPrec = -1) {
+function formatExpression(node) {
 	switch (node.type) {
 		case "SpreadExpression": return `*${formatExpression(node.argument)}`;
+		case "KeywordSpreadExpression": return `**${formatExpression(node.argument)}`;
 		case "Identifier": return node.value;
 		case "IntegerLiteral": return `${node.value}`;
-		case "FloatLiteral": return `${node.value}`;
+		case "FloatLiteral": {
+			const value = node.value;
+			if (Object.is(value, -0)) return "-0.0";
+			return value % 1 === 0 ? value.toFixed(1) : value.toString();
+		}
 		case "StringLiteral": return JSON.stringify(node.value);
 		case "BinaryExpression": {
 			const n = node;
 			const thisPrecedence = getBinaryOperatorPrecedence(n);
-			const left = formatExpression(n.left, thisPrecedence);
-			const right = formatExpression(n.right, thisPrecedence + 1);
-			const expr = `${left} ${n.operator.value} ${right}`;
-			return thisPrecedence < parentPrec ? `(${expr})` : expr;
+			const left = formatOperand(n.left, thisPrecedence);
+			const right = formatOperand(n.right, thisPrecedence + 1);
+			return `${left} ${n.operator.value} ${right}`;
 		}
 		case "UnaryExpression": {
 			const n = node;
-			return n.operator.value + (n.operator.value === "not" ? " " : "") + formatExpression(n.argument, Infinity);
+			const operandPrecedence = n.argument.type === "UnaryExpression" ? getPrecedence(n) : PRECEDENCE.ATOM;
+			return n.operator.value + (n.operator.value === "not" ? " " : "") + formatOperand(n.argument, operandPrecedence);
 		}
 		case "CallExpression": {
 			const n = node;
-			const args = n.args.map(formatExpression).join(", ");
+			const args = formatExpressionList(n.args);
 			return `${formatExpression(n.callee)}(${args})`;
 		}
 		case "MemberExpression": {
 			const n = node;
-			let obj = formatExpression(n.object);
-			if (![
-				"Identifier",
-				"MemberExpression",
-				"CallExpression",
-				"StringLiteral",
-				"IntegerLiteral",
-				"FloatLiteral",
-				"ArrayLiteral",
-				"TupleLiteral",
-				"ObjectLiteral"
-			].includes(n.object.type)) obj = `(${obj})`;
+			const obj = formatOperand(n.object, PRECEDENCE.ATOM);
 			let prop = formatExpression(n.property);
-			if (!n.computed && n.property.type !== "Identifier") prop = `(${prop})`;
+			if (!n.computed && n.property.type !== "Identifier" && n.property.type !== "IntegerLiteral") prop = `(${prop})`;
 			return n.computed ? `${obj}[${prop}]` : `${obj}.${prop}`;
 		}
 		case "FilterExpression": {
 			const n = node;
-			const operand = formatExpression(n.operand, Infinity);
+			const operand = formatOperand(n.operand, PRECEDENCE.FILTER);
 			if (n.filter.type === "CallExpression") return `${operand} | ${formatExpression(n.filter)}`;
 			return `${operand} | ${n.filter.value}`;
 		}
 		case "SelectExpression": {
 			const n = node;
-			return `${formatExpression(n.lhs)} if ${formatExpression(n.test)}`;
+			return `${formatOperand(n.lhs, PRECEDENCE.LOGICAL_OR)} if ${formatOperand(n.test, PRECEDENCE.LOGICAL_OR)}`;
 		}
 		case "TestExpression": {
 			const n = node;
-			return `${formatExpression(n.operand)} is${n.negate ? " not" : ""} ${n.test.value}`;
+			return `${formatOperand(n.operand, PRECEDENCE.TEST)} is${n.negate ? " not" : ""} ${n.test.value}`;
 		}
 		case "ArrayLiteral":
 		case "TupleLiteral": {
-			const elems = node.value.map(formatExpression);
+			const elems = formatExpressionList(node.value);
 			const brackets = node.type === "ArrayLiteral" ? "[]" : "()";
-			return `${brackets[0]}${elems.join(", ")}${brackets[1]}`;
+			return `${brackets[0]}${elems}${brackets[1]}`;
 		}
 		case "ObjectLiteral": return `{${Array.from(node.value.entries()).map(([k, v]) => `${formatExpression(k)}: ${formatExpression(v)}`).join(", ")}}`;
 		case "SliceExpression": {
@@ -10024,8 +11004,7 @@ function formatExpression(node, parentPrec = -1) {
 		}
 		case "Ternary": {
 			const n = node;
-			const expr = `${formatExpression(n.trueExpr)} if ${formatExpression(n.condition, 0)} else ${formatExpression(n.falseExpr)}`;
-			return parentPrec > -1 ? `(${expr})` : expr;
+			return `${formatOperand(n.trueExpr, PRECEDENCE.LOGICAL_OR)} if ${formatOperand(n.condition, PRECEDENCE.LOGICAL_OR)} else ${formatOperand(n.falseExpr, PRECEDENCE.CONDITIONAL)}`;
 		}
 		default: throw new Error(`Unknown expression type: ${node.type}`);
 	}
@@ -10168,7 +11147,7 @@ var Random = class {
 	*
 	* When called with a number, initializes the state deterministically from that value.
 	* When called with no arguments (or `undefined`/`null`), seeds from OS entropy
-	* via `crypto.getRandomValues`, matching Python's `random.seed()` behaviour.
+	* via `crypto.getRandomValues`, matching Python's `random.seed()` behavior.
 	*
 	* @param {number} [n] The seed value. Omit to seed from OS entropy.
 	*/
@@ -10213,6 +11192,7 @@ var Random = class {
 	* then applies the standard MT19937 tempering transform.
 	*
 	* @returns {number} A random integer in the range [0, 2^32 - 1].
+	* @internal
 	*/
 	_int32() {
 		const mt = this._mt;
@@ -10433,10 +11413,37 @@ function isValidHfModelId(string) {
 	if (string.endsWith(".git") || string.endsWith(".ipynb")) return false;
 	return true;
 }
+function makePretrainedOptionsKey(model_id, options = {}, ...parts) {
+	return JSON.stringify([
+		model_id,
+		options.revision ?? "main",
+		options.cache_dir ?? null,
+		options.local_files_only ?? false,
+		...parts
+	]);
+}
+var ModelFileNotFoundError = class extends Error {
+	/**
+	* @param {string} message The error message.
+	* @param {Object} [options] Additional error information.
+	* @param {number|null} [options.status=null] The HTTP status code, when the failure came from a Hub response.
+	*/
+	constructor(message, { status = null } = {}) {
+		super(message);
+		this.name = "ModelFileNotFoundError";
+		this.status = status;
+	}
+};
+var NOT_FOUND_STATUSES = /* @__PURE__ */ new Set([
+	401,
+	403,
+	404
+]);
 function handleError(status, remoteURL, fatal) {
 	if (!fatal) return null;
-	const message = ERROR_MAPPING[status] ?? `Error (${status}) occurred while trying to load file`;
-	throw Error(`${message}: "${remoteURL}".`);
+	const fullMessage = `${ERROR_MAPPING[status] ?? `Error (${status}) occurred while trying to load file`}: "${remoteURL}".`;
+	if (NOT_FOUND_STATUSES.has(status)) throw new ModelFileNotFoundError(fullMessage, { status });
+	throw Error(fullMessage);
 }
 async function readResponse(response, progress_callback, expectedSize) {
 	const contentLength = response.headers.get("Content-Length");
@@ -10470,12 +11477,17 @@ async function readResponse(response, progress_callback, expectedSize) {
 function isBlobURL(url) {
 	return isValidUrl(url, ["blob:"]);
 }
-function toAbsoluteURL(url) {
+function toAbsoluteURL(url, { allowUnresolved = false } = {}) {
 	let baseURL;
 	if (typeof location !== "undefined" && location.href) baseURL = location.href;
 	else if (typeof import.meta !== "undefined" && import.meta.url) baseURL = import.meta.url;
 	else return url;
-	return new URL(url, baseURL).href;
+	try {
+		return new URL(url, baseURL).href;
+	} catch (error) {
+		if (!allowUnresolved) throw error;
+		return url;
+	}
 }
 var HASH_ALGORITHM = "SHA-256";
 var HASH_CACHE_NAME = "experimental_transformers-hash-cache";
@@ -10512,8 +11524,7 @@ var CrossOriginStorage = class {
 		const hashValue = await this._getFileHash(request);
 		if (!hashValue) return;
 		try {
-			const [handle] = await navigator.crossOriginStorage.requestFileHandles([makeHashDescriptor(hashValue)]);
-			const blob = await handle.getFile();
+			const blob = await (await navigator.crossOriginStorage.requestFileHandle(makeHashDescriptor(hashValue))).getFile();
 			return new Response(blob, { headers: { "Content-Length": String(blob.size) } });
 		} catch {
 			return;
@@ -10552,8 +11563,10 @@ var CrossOriginStorage = class {
 	* @returns {Promise<void>}
 	*/
 	_storeBlobInCOS = async (blob, hashHex) => {
-		const [handle] = await navigator.crossOriginStorage.requestFileHandles([makeHashDescriptor(hashHex)], { create: true });
-		const writableStream = await handle.createWritable();
+		const writableStream = await (await navigator.crossOriginStorage.requestFileHandle(makeHashDescriptor(hashHex), {
+			create: true,
+			origins: "*"
+		})).createWritable();
 		await writableStream.write(blob);
 		await writableStream.close();
 	};
@@ -10767,13 +11780,7 @@ async function fetch_file_head(urlOrPath) {
 	});
 }
 function get_file_metadata(path_or_repo_id, filename, options = {}) {
-	return memoizePromise(JSON.stringify([
-		path_or_repo_id,
-		filename,
-		options?.revision,
-		options?.cache_dir,
-		options?.local_files_only
-	]), () => _get_file_metadata(path_or_repo_id, filename, options));
+	return memoizePromise(makePretrainedOptionsKey(path_or_repo_id, options, filename), () => _get_file_metadata(path_or_repo_id, filename, options));
 }
 async function _get_file_metadata(path_or_repo_id, filename, options) {
 	const cache2 = await getCache(options?.cache_dir);
@@ -10804,7 +11811,7 @@ async function _get_file_metadata(path_or_repo_id, filename, options) {
 			}
 		} catch (e) {}
 	}
-	if (env.allowRemoteModels && !options.local_files_only && validModelId) try {
+	if (env.allowRemoteModels && !options.local_files_only && validModelId) {
 		const rangeResponse = await fetch_file_head(remoteURL);
 		if (rangeResponse && rangeResponse.status >= 200 && rangeResponse.status < 300) {
 			let size;
@@ -10829,8 +11836,7 @@ async function _get_file_metadata(path_or_repo_id, filename, options) {
 				fromCache: false
 			};
 		}
-	} catch (e) {
-		logger.warn(`Unable to fetch file metadata for "${remoteURL}": ${e}`);
+		if (rangeResponse && rangeResponse.status !== 404 && rangeResponse.status !== 416) handleError(rangeResponse.status, remoteURL, true);
 	}
 	return {
 		exists: false,
@@ -10879,6 +11885,7 @@ async function checkCachedResource(cache2, localPath, proposedCacheKey) {
 }
 async function storeCachedResource(path_or_repo_id, filename, cache2, cacheKey, response, result, options = {}) {
 	if (await cache2.match(cacheKey) !== void 0) return;
+	if (typeof Cache !== "undefined" && cache2 instanceof Cache && !isValidUrl(toAbsoluteURL(cacheKey, { allowUnresolved: true }), ["http:", "https:"])) return;
 	if (!result) {
 		const wrapped_progress = options.progress_callback ? (data) => dispatchCallback(options.progress_callback, {
 			status: "progress",
@@ -10925,10 +11932,10 @@ async function loadResourceFile(path_or_repo_id, filename, fatal = true, options
 		}
 		if (response === void 0 || typeof response !== "string" && response.status === 404) {
 			if (options.local_files_only || !env.allowRemoteModels) {
-				if (fatal) throw Error(`\`local_files_only=true\` or \`env.allowRemoteModels=false\` and file was not found locally at "${localPath}".`);
+				if (fatal) throw new ModelFileNotFoundError(`\`local_files_only=true\` or \`env.allowRemoteModels=false\` and file was not found locally at "${localPath}".`);
 				else return null;
 			}
-			if (!validModelId) throw Error(`Local file missing at "${localPath}" and download aborted due to invalid model ID "${path_or_repo_id}".`);
+			if (!validModelId) throw new ModelFileNotFoundError(`Local file missing at "${localPath}" and download aborted due to invalid model ID "${path_or_repo_id}".`);
 			response = await getFile(remoteURL);
 			if (response.status !== 200) return handleError(response.status, remoteURL, fatal);
 			cacheKey = proposedCacheKey;
@@ -11009,22 +12016,19 @@ async function getModelFile(path_or_repo_id, filename, fatal = true, options = {
 		if (options.local_files_only) throw Error("Invalid configuration detected: local models are disabled (`env.allowLocalModels=false`) but you have requested to only use local models (`local_files_only=true`).");
 		else if (!env.allowRemoteModels) throw Error("Invalid configuration detected: both local and remote models are disabled. Fix by setting `env.allowLocalModels` or `env.allowRemoteModels` to `true`.");
 	}
-	dispatchCallback(options.progress_callback, {
-		status: "initiate",
-		name: path_or_repo_id,
-		file: filename
-	});
-	const key = `${path_or_repo_id}::${filename}`;
-	let pending = INFLIGHT_LOADS.get(key);
+	const key = makePretrainedOptionsKey(path_or_repo_id, options, filename, fatal, return_path);
+	const { progress_callback } = options;
+	const loads = progress_callback instanceof DefaultProgressCallback ? progress_callback.loads : INFLIGHT_LOADS;
+	let pending = loads.get(key);
 	if (!pending) {
-		pending = loadResourceFile(path_or_repo_id, filename, fatal, options, return_path, await getCache(options?.cache_dir)).then((result) => {
-			INFLIGHT_LOADS.delete(key);
-			return result;
-		}, (err) => {
-			INFLIGHT_LOADS.delete(key);
-			throw err;
+		dispatchCallback(progress_callback, {
+			status: "initiate",
+			name: path_or_repo_id,
+			file: filename
 		});
-		INFLIGHT_LOADS.set(key, pending);
+		pending = getCache(options.cache_dir).then((cache2) => loadResourceFile(path_or_repo_id, filename, fatal, options, return_path, cache2));
+		if (loads === INFLIGHT_LOADS) pending = pending.finally(() => INFLIGHT_LOADS.delete(key));
+		loads.set(key, pending);
 	}
 	return await pending;
 }
@@ -11718,9 +12722,7 @@ var uint16_to_float32 = /* @__PURE__ */ (function() {
 		return out;
 	};
 })();
-var onnxruntime_node_exports = {};
-__export(onnxruntime_node_exports, { default: () => onnxruntime_node_default });
-var onnxruntime_node_default = {};
+var onnx_node_default = {};
 async function loadAndCacheFile(url) {
 	const fileName = url.split("/").pop();
 	let cache2;
@@ -11812,7 +12814,7 @@ var ONNX;
 var ORT_SYMBOL = /* @__PURE__ */ Symbol.for("onnxruntime");
 if (ORT_SYMBOL in globalThis) ONNX = globalThis[ORT_SYMBOL];
 else if (apis.IS_NODE_ENV) {
-	ONNX = onnxruntime_node_exports;
+	ONNX = onnx_node_default;
 	switch (process.platform) {
 		case "win32":
 			supportedDevices.push("dml");
@@ -11911,12 +12913,11 @@ if (ONNX_ENV) {
 	if (ONNX_ENV.wasm) {
 		if (!(typeof ServiceWorkerGlobalScope !== "undefined" && self instanceof ServiceWorkerGlobalScope) && ONNX_ENV.versions?.web && !ONNX_ENV.wasm.wasmPaths) {
 			const wasmPathPrefix = `https://cdn.jsdelivr.net/npm/onnxruntime-web@${ONNX_ENV.versions.web}/dist/`;
-			ONNX_ENV.wasm.wasmPaths = apis.IS_SAFARI ? {
-				mjs: `${wasmPathPrefix}ort-wasm-simd-threaded.mjs`,
-				wasm: `${wasmPathPrefix}ort-wasm-simd-threaded.wasm`
-			} : {
-				mjs: `${wasmPathPrefix}ort-wasm-simd-threaded.asyncify.mjs`,
-				wasm: `${wasmPathPrefix}ort-wasm-simd-threaded.asyncify.wasm`
+			let wasmPathSuffix = ".asyncify";
+			if (apis.IS_SAFARI_BELOW_26 && !apis.IS_WEBGPU_AVAILABLE) wasmPathSuffix = "";
+			ONNX_ENV.wasm.wasmPaths = {
+				mjs: `${wasmPathPrefix}ort-wasm-simd-threaded${wasmPathSuffix}.mjs`,
+				wasm: `${wasmPathPrefix}ort-wasm-simd-threaded${wasmPathSuffix}.wasm`
 			};
 		}
 		ONNX_ENV.wasm.proxy = false;
@@ -12609,10 +13610,8 @@ var TensorOpRegistry = class {
 		if (!this._rfft) this._rfft = wrap([
 			8,
 			9,
-			18,
-			0,
 			58,
-			97,
+			93,
 			10,
 			33,
 			10,
@@ -12652,28 +13651,26 @@ var TensorOpRegistry = class {
 			1,
 			100,
 			90,
-			21,
+			19,
 			10,
 			1,
 			120,
 			18,
-			16,
-			10,
 			14,
+			10,
+			12,
 			8,
 			1,
 			18,
+			8,
 			10,
+			0,
 			10,
-			3,
-			18,
+			0,
+			10,
+			2,
+			8,
 			1,
-			115,
-			10,
-			3,
-			18,
-			1,
-			99,
 			90,
 			11,
 			10,
@@ -12688,28 +13685,26 @@ var TensorOpRegistry = class {
 			18,
 			0,
 			98,
-			21,
+			19,
 			10,
 			1,
 			121,
 			18,
-			16,
-			10,
 			14,
+			10,
+			12,
 			8,
 			1,
 			18,
+			8,
 			10,
+			0,
 			10,
-			3,
-			18,
-			1,
-			115,
+			0,
 			10,
-			3,
-			18,
-			1,
-			99,
+			2,
+			8,
+			2,
 			66,
 			2,
 			16,
@@ -13064,7 +14059,10 @@ var Tensor2 = class _Tensor {
 	}
 	ort_tensor;
 	/**
-	* Create a new Tensor or copy an existing Tensor.
+	* Create a new Tensor, either from raw data or by wrapping an `onnxruntime` tensor:
+	* - `new Tensor(dataType, data, dims)`, e.g. `new Tensor('float32', new Float32Array([1, 2, 3]), [3])`.
+	* - `new Tensor(ortTensor)`.
+	*
 	* @param {[DataType, DataArray, number[]]|[ONNXTensor]} args
 	*/
 	constructor(...args) {
@@ -13089,6 +14087,9 @@ var Tensor2 = class _Tensor {
 			}
 		});
 	}
+	/**
+	* Releases the underlying ONNX Runtime tensor (e.g., GPU buffers). Do not use the tensor afterwards.
+	*/
 	dispose() {
 		this.ort_tensor.dispose();
 	}
@@ -13108,6 +14109,7 @@ var Tensor2 = class _Tensor {
 	* Index into a Tensor object.
 	* @param {number} index The index to access.
 	* @returns {Tensor} The data at the specified index.
+	* @private
 	*/
 	_getitem(index) {
 		const [iterLength, ...iterDims] = this.dims;
@@ -13116,15 +14118,6 @@ var Tensor2 = class _Tensor {
 			const iterSize = iterDims.reduce((a, b) => a * b);
 			return this._subarray(index, iterSize, iterDims);
 		} else return new _Tensor(this.type, [this.data[index]], iterDims);
-	}
-	/**
-	* @param {number|bigint} item The item to search for in the tensor
-	* @returns {number} The index of the first occurrence of item in the tensor data.
-	*/
-	indexOf(item) {
-		const this_data = this.data;
-		for (let index = 0; index < this_data.length; ++index) if (this_data[index] == item) return index;
-		return -1;
 	}
 	/**
 	* @param {number} index
@@ -13262,6 +14255,33 @@ var Tensor2 = class _Tensor {
 	sub_(val) {
 		const this_data = this.data;
 		for (let i = 0; i < this_data.length; ++i) this_data[i] -= val;
+		return this;
+	}
+	/**
+	* Return a new Tensor with the element-wise remainder of division by a constant.
+	* Uses Python-style modulo signs (e.g. `-1 mod 2 = 1`) while preserving the tensor's dtype.
+	* Negative divisors are unsupported for unsigned and boolean tensors.
+	* This operation does not implement PyTorch's dtype promotion or scalar casting rules.
+	* @param {number|bigint} val The divisor.
+	* @returns {Tensor} The new tensor.
+	*/
+	remainder(val) {
+		return this.clone().remainder_(val);
+	}
+	/**
+	* In-place version of @see {@link Tensor.remainder}
+	* @param {number|bigint} val The divisor.
+	* @returns {Tensor} Returns `this`.
+	*/
+	remainder_(val) {
+		const this_data = this.data;
+		const divisor = this_data instanceof BigInt64Array || this_data instanceof BigUint64Array ? BigInt(val) : Number(val);
+		if ((divisor === 0 || divisor === 0n) && (this.type.includes("int") || this.type === "bool")) throw new RangeError("Division by zero");
+		if (divisor < 0 && (this.type.startsWith("uint") || this.type === "bool")) throw new RangeError("Negative divisors are not supported for unsigned or boolean tensors");
+		for (let i = 0; i < this_data.length; ++i) {
+			const remainder = this_data[i] % divisor;
+			this_data[i] = remainder < 0 && divisor > 0 || remainder > 0 && divisor < 0 ? remainder + divisor : remainder;
+		}
 		return this;
 	}
 	/**
@@ -13460,6 +14480,8 @@ var Tensor2 = class _Tensor {
 	}
 	/**
 	* In-place version of @see {@link Tensor.squeeze}
+	* @param {number|number[]|null} [dim=null] If given, the input will be squeezed only in the specified dimensions.
+	* @returns {Tensor} `this`, with the specified dimensions of size 1 removed.
 	*/
 	squeeze_(dim = null) {
 		this.dims = calc_squeeze_dims(this.dims, dim);
@@ -13486,6 +14508,9 @@ var Tensor2 = class _Tensor {
 	}
 	/**
 	* In-place version of @see {@link Tensor.flatten}
+	* @param {number} [start_dim=0] the first dim to flatten
+	* @param {number} [end_dim=-1] the last dim to flatten
+	* @returns {Tensor} `this`, flattened along the specified dimensions.
 	*/
 	flatten_(start_dim = 0, end_dim = -1) {
 		end_dim = (end_dim + this.dims.length) % this.dims.length;
@@ -13530,11 +14555,19 @@ var Tensor2 = class _Tensor {
 		}
 		return new _Tensor(this.type, this_data, dims);
 	}
+	/**
+	* In-place version of @see {@link Tensor.neg}
+	* @returns {Tensor} `this`, with every element negated.
+	*/
 	neg_() {
 		const this_data = this.data;
 		for (let i = 0; i < this_data.length; ++i) this_data[i] = -this_data[i];
 		return this;
 	}
+	/**
+	* Returns a new tensor with the negative of the elements of this tensor.
+	* @returns {Tensor} the output tensor.
+	*/
 	neg() {
 		return this.clone().neg_();
 	}
@@ -13593,9 +14626,21 @@ var Tensor2 = class _Tensor {
 	round() {
 		return this.clone().round_();
 	}
+	/**
+	* Returns the mean value of each row of this tensor in the given dimension `dim`.
+	* @param {number|null} [dim=null] the dimension to reduce. If `null`, the mean of all elements is computed.
+	* @param {boolean} [keepdim=false] whether the output tensor has `dim` retained or not.
+	* @returns {Tensor} A new tensor with means taken along the specified dimension.
+	*/
 	mean(dim = null, keepdim = false) {
 		return mean(this, dim, keepdim);
 	}
+	/**
+	* Returns the minimum value of each row of this tensor in the given dimension `dim`.
+	* @param {number|null} [dim=null] the dimension to reduce. If `null`, the minimum of all elements is computed.
+	* @param {boolean} [keepdim=false] whether the output tensor has `dim` retained or not.
+	* @returns {Tensor} A new tensor with minimum values taken along the specified dimension.
+	*/
 	min(dim = null, keepdim = false) {
 		if (dim === null) {
 			const val = min2(this.data)[0];
@@ -13604,6 +14649,12 @@ var Tensor2 = class _Tensor {
 		const [type, result, resultDims] = reduce_helper((a, b) => Math.min(a, b), this, dim, keepdim, Infinity);
 		return new _Tensor(type, result, resultDims);
 	}
+	/**
+	* Returns the maximum value of each row of this tensor in the given dimension `dim`.
+	* @param {number|null} [dim=null] the dimension to reduce. If `null`, the maximum of all elements is computed.
+	* @param {boolean} [keepdim=false] whether the output tensor has `dim` retained or not.
+	* @returns {Tensor} A new tensor with maximum values taken along the specified dimension.
+	*/
 	max(dim = null, keepdim = false) {
 		if (dim === null) {
 			const val = max(this.data)[0];
@@ -13612,11 +14663,25 @@ var Tensor2 = class _Tensor {
 		const [type, result, resultDims] = reduce_helper((a, b) => Math.max(a, b), this, dim, keepdim, -Infinity);
 		return new _Tensor(type, result, resultDims);
 	}
+	/**
+	* Returns the index of the minimum value of all elements in this tensor.
+	* @param {number|null} [dim=null] the dimension to reduce. Only `null` (reduce over all elements) is currently supported.
+	* @param {boolean} [keepdim=false] whether the output tensor has `dim` retained or not.
+	* @returns {Tensor} An `int64` scalar tensor containing the index of the minimum value.
+	* @throws {Error} If `dim` is not `null`.
+	*/
 	argmin(dim = null, keepdim = false) {
 		if (dim !== null) throw new Error("`dim !== null` not yet implemented.");
 		const index = min2(this.data)[1];
 		return new _Tensor("int64", [BigInt(index)], []);
 	}
+	/**
+	* Returns the index of the maximum value of all elements in this tensor.
+	* @param {number|null} [dim=null] the dimension to reduce. Only `null` (reduce over all elements) is currently supported.
+	* @param {boolean} [keepdim=false] whether the output tensor has `dim` retained or not.
+	* @returns {Tensor} An `int64` scalar tensor containing the index of the maximum value.
+	* @throws {Error} If `dim` is not `null`.
+	*/
 	argmax(dim = null, keepdim = false) {
 		if (dim !== null) throw new Error("`dim !== null` not yet implemented.");
 		const index = max(this.data)[1];
@@ -13694,7 +14759,7 @@ var Tensor2 = class _Tensor {
 };
 function reshape(data, dimensions) {
 	const totalElements = data.length;
-	if (totalElements !== dimensions.reduce((a, b) => a * b)) throw Error(`cannot reshape array of size ${totalElements} into shape (${dimensions})`);
+	if (totalElements !== (dimensions.length === 0 ? 1 : dimensions.reduce((a, b) => a * b))) throw Error(`cannot reshape array of size ${totalElements} into shape (${dimensions})`);
 	let reshapedArray = data;
 	for (let i = dimensions.length - 1; i >= 0; i--) reshapedArray = reshapedArray.reduce((acc, val) => {
 		let lastArray = acc[acc.length - 1];
@@ -14078,9 +15143,9 @@ var PreTrainedTokenizer = class extends Callable {
 		this.all_special_tokens = special_tokens.map((t) => t.content);
 	}
 	/**
-	* Loads a pre-trained tokenizer from the given `pretrained_model_name_or_path`.
+	* Loads a pretrained tokenizer from the given `pretrained_model_name_or_path`.
 	*
-	* @param {string} pretrained_model_name_or_path The path to the pre-trained tokenizer.
+	* @param {string} pretrained_model_name_or_path The path to the pretrained tokenizer.
 	* @param {PretrainedTokenizerOptions} options Additional options for loading the tokenizer.
 	*
 	* @throws {Error} Throws an error if the tokenizer.json or tokenizer_config.json files are not found in the `pretrained_model_name_or_path`.
@@ -14270,7 +15335,7 @@ var PreTrainedTokenizer = class extends Callable {
 	* @param {number[]|bigint[]|Tensor} token_ids List/Tensor of token IDs to decode.
 	* @param {Object} [decode_args={}]
 	* @param {boolean} [decode_args.skip_special_tokens=false] If true, special tokens are removed from the output string.
-	* @param {boolean} [decode_args.clean_up_tokenization_spaces=true] If true, spaces before punctuations and abbreviated forms are removed.
+	* @param {boolean} [decode_args.clean_up_tokenization_spaces=true] If true, spaces before punctuation and abbreviated forms are removed.
 	*
 	* @returns {string} The decoded string.
 	* @throws {Error} If `token_ids` is not a non-empty array of integers.
@@ -14333,7 +15398,7 @@ var PreTrainedTokenizer = class extends Callable {
 	* ids. This method is intended for use with chat models, and will read the tokenizer's chat_template attribute to
 	* determine the format and control tokens to use when converting.
 	*
-	* See [here](https://huggingface.co/docs/transformers/chat_templating) for more information.
+	* See the [chat templating guide](https://huggingface.co/docs/transformers/chat_templating) for more information.
 	*
 	* **Example:** Applying a chat template to a conversation.
 	*
@@ -14360,33 +15425,8 @@ var PreTrainedTokenizer = class extends Callable {
 	* @template {boolean} [TTokenize=true]
 	* @template {boolean} [TReturnTensor=true]
 	* @template {boolean} [TReturnDict=true]
-	* @param {Object} [options] An optional object containing the following properties:
-	* @param {string|null} [options.chat_template=null] A Jinja template to use for this conversion. If
-	* this is not passed, the model's chat template will be used instead.
-	* @param {Object[]} [options.tools=null]
-	* A list of tools (callable functions) that will be accessible to the model. If the template does not
-	* support function calling, this argument will have no effect. Each tool should be passed as a JSON Schema,
-	* giving the name, description and argument types for the tool. See our
-	* [chat templating guide](https://huggingface.co/docs/transformers/main/en/chat_templating#automated-function-conversion-for-tool-use)
-	* for more information.
-	* @param {Record<string, string>[]} [options.documents=null]
-	* A list of dicts representing documents that will be accessible to the model if it is performing RAG
-	* (retrieval-augmented generation). If the template does not support RAG, this argument will have no
-	* effect. We recommend that each document should be a dict containing "title" and "text" keys. Please
-	* see the RAG section of the [chat templating guide](https://huggingface.co/docs/transformers/main/en/chat_templating#arguments-for-RAG)
-	* for examples of passing documents with chat templates.
-	* @param {boolean} [options.add_generation_prompt=false] Whether to end the prompt with the token(s) that indicate
-	* the start of an assistant message. This is useful when you want to generate a response from the model.
-	* Note that this argument will be passed to the chat template, and so it must be supported in the
-	* template for this argument to have any effect.
-	* @param {TTokenize} [options.tokenize=true] Whether to tokenize the output. If false, the output will be a string.
-	* @param {boolean} [options.padding=false] Whether to pad sequences to the maximum length. Has no effect if tokenize is false.
-	* @param {boolean} [options.truncation=false] Whether to truncate sequences to the maximum length. Has no effect if tokenize is false.
-	* @param {number|null} [options.max_length=null] Maximum length (in tokens) to use for padding or truncation. Has no effect if tokenize is false.
-	* If not specified, the tokenizer's `max_length` attribute will be used as a default.
-	* @param {TReturnTensor} [options.return_tensor=true] Whether to return the output as a Tensor or an Array. Has no effect if tokenize is false.
-	* @param {TReturnDict} [options.return_dict=true] Whether to return a dictionary with named outputs. Has no effect if tokenize is false.
-	* @param {Object} [options.tokenizer_kwargs={}] Additional options to pass to the tokenizer.
+	* @param {ApplyChatTemplateOptions<TTokenize, TReturnTensor, TReturnDict>} [options] Options controlling
+	* template rendering and tokenization.
 	* @returns {ApplyChatTemplateReturn<TTokenize, TReturnTensor, TReturnDict>} The tokenized output.
 	*/
 	apply_chat_template(conversation, options = (
@@ -14439,9 +15479,12 @@ function _build_translation_inputs(self2, raw_inputs, tokenizer_options, generat
 	if (!self2.language_codes.includes(tgt_lang_token)) throw new Error(`Target language code "${tgt_lang_token}" is not valid. Must be one of: {${self2.language_codes.join(", ")}}`);
 	if (src_lang_token !== void 0) {
 		if (!self2.language_codes.includes(src_lang_token)) throw new Error(`Source language code "${src_lang_token}" is not valid. Must be one of: {${self2.language_codes.join(", ")}}`);
-		for (const item of self2._tokenizer.post_processor.config.single) if ("SpecialToken" in item && self2.languageRegex.test(item.SpecialToken.id)) {
-			item.SpecialToken.id = self2.lang_to_token(src_lang_token);
-			break;
+		const post_processor_config = self2._tokenizer.post_processor?.config;
+		if (post_processor_config && "single" in post_processor_config) {
+			for (const item of post_processor_config.single) if ("SpecialToken" in item && self2.languageRegex.test(item.SpecialToken.id)) {
+				item.SpecialToken.id = self2.lang_to_token(src_lang_token);
+				break;
+			}
 		}
 	}
 	generate_kwargs.forced_bos_token_id = self2._tokenizer.token_to_id(self2.lang_to_token(tgt_lang_token));
@@ -15206,7 +16249,7 @@ var AutoTokenizer = class {
 	* - A path to a *directory* containing tokenizer files, e.g., `./my_model_directory/`.
 	* @param {import('../../tokenization_utils.js').PretrainedTokenizerOptions} options Additional options for loading the tokenizer.
 	*
-	* @returns {Promise<PreTrainedTokenizer>} A new instance of the PreTrainedTokenizer class.
+	* @returns {Promise<PreTrainedTokenizer>} The loaded tokenizer.
 	*/
 	static async from_pretrained(pretrained_model_name_or_path, { progress_callback = null, config = null, cache_dir = null, local_files_only = false, revision = "main" } = {}) {
 		const [tokenizerJSON, tokenizerConfig] = await loadTokenizer(pretrained_model_name_or_path, {
@@ -15227,7 +16270,7 @@ var AutoTokenizer = class {
 };
 var GITHUB_ISSUE_URL = "https://github.com/huggingface/transformers.js/issues/new/choose";
 var FEATURE_EXTRACTOR_NAME = "preprocessor_config.json";
-var IMAGE_PROCESSOR_NAME = FEATURE_EXTRACTOR_NAME;
+var IMAGE_PROCESSOR_NAME = "preprocessor_config.json";
 var PROCESSOR_NAME = "processor_config.json";
 var CHAT_TEMPLATE_NAME = "chat_template.jinja";
 var Processor = class extends Callable {
@@ -15239,10 +16282,10 @@ var Processor = class extends Callable {
 	static uses_processor_config = false;
 	static uses_chat_template_file = false;
 	/**
-	* Creates a new Processor with the given components
-	* @param {Object} config
-	* @param {Record<string, Object>} components
-	* @param {string} chat_template
+	* Create a processor from parsed config and its component preprocessors.
+	* @param {Object} config Processor configuration.
+	* @param {Record<string, Object>} components Loaded tokenizer, image processor, and/or feature extractor.
+	* @param {string|null} chat_template Optional chat template loaded from the model repo.
 	*/
 	constructor(config, components, chat_template) {
 		super();
@@ -15251,24 +16294,28 @@ var Processor = class extends Callable {
 		this.chat_template = chat_template;
 	}
 	/**
+	* The image processor used by this processor, if any.
 	* @returns {import('./image_processors_utils.js').ImageProcessor|undefined} The image processor of the processor, if it exists.
 	*/
 	get image_processor() {
 		return this.components.image_processor;
 	}
 	/**
+	* The tokenizer used by this processor, if any.
 	* @returns {PreTrainedTokenizer|undefined} The tokenizer of the processor, if it exists.
 	*/
 	get tokenizer() {
 		return this.components.tokenizer;
 	}
 	/**
+	* The feature extractor used by this processor, if any.
 	* @returns {import('./feature_extraction_utils.js').FeatureExtractor|undefined} The feature extractor of the processor, if it exists.
 	*/
 	get feature_extractor() {
 		return this.components.feature_extractor;
 	}
 	/**
+	* Delegates to the underlying tokenizer's `apply_chat_template`.
 	* @param {Parameters<PreTrainedTokenizer['apply_chat_template']>[0]} messages
 	* @param {Parameters<PreTrainedTokenizer['apply_chat_template']>[1]} options
 	* @returns {ReturnType<PreTrainedTokenizer['apply_chat_template']>}
@@ -15282,6 +16329,7 @@ var Processor = class extends Callable {
 		});
 	}
 	/**
+	* Decode a batch of tokenized sequences via the underlying tokenizer.
 	* @param {Parameters<PreTrainedTokenizer['batch_decode']>} args
 	* @returns {ReturnType<PreTrainedTokenizer['batch_decode']>}
 	*/
@@ -15290,6 +16338,7 @@ var Processor = class extends Callable {
 		return this.tokenizer.batch_decode(...args);
 	}
 	/**
+	* Decode a single tokenized sequence via the underlying tokenizer.
 	* @param {Parameters<PreTrainedTokenizer['decode']>} args
 	* @returns {ReturnType<PreTrainedTokenizer['decode']>}
 	*/
@@ -15318,13 +16367,13 @@ var Processor = class extends Callable {
 	* property of the config object (either passed as an argument or loaded from `pretrained_model_name_or_path` if possible)
 	*
 	* @param {string} pretrained_model_name_or_path The name or path of the pretrained model. Can be either:
-	* - A string, the *model id* of a pretrained processor hosted inside a model repo on huggingface.co.
-	*   Valid model ids can be located at the root-level, like `bert-base-uncased`, or namespaced under a
+	* - A string, the *model ID* of a pretrained processor hosted inside a model repo on huggingface.co.
+	*   Valid model IDs can be located at the root level, like `bert-base-uncased`, or namespaced under a
 	*   user or organization name, like `dbmdz/bert-base-german-cased`.
 	* - A path to a *directory* containing processor files, e.g., `./my_model_directory/`.
 	* @param {PretrainedProcessorOptions} options Additional options for loading the processor.
 	*
-	* @returns {Promise<Processor>} A new instance of the Processor class.
+	* @returns {Promise<Processor>} A new processor instance.
 	*/
 	static async from_pretrained(pretrained_model_name_or_path, options = {}) {
 		const [config, components, chat_template] = await Promise.all([
@@ -15379,7 +16428,7 @@ __export(processors_exports, {
 });
 var FeatureExtractor = class extends Callable {
 	/**
-	* Constructs a new FeatureExtractor instance.
+	* Create a feature extractor from a parsed `preprocessor_config.json`.
 	*
 	* @param {Object} config The configuration for the feature extractor.
 	*/
@@ -15394,13 +16443,13 @@ var FeatureExtractor = class extends Callable {
 	* the config object (either passed as an argument or loaded from `pretrained_model_name_or_path` if possible)
 	*
 	* @param {string} pretrained_model_name_or_path The name or path of the pretrained model. Can be either:
-	* - A string, the *model id* of a pretrained feature_extractor hosted inside a model repo on huggingface.co.
-	*   Valid model ids can be located at the root-level, like `bert-base-uncased`, or namespaced under a
+	* - A string, the *model ID* of a pretrained feature extractor hosted inside a model repo on huggingface.co.
+	*   Valid model IDs can be located at the root level, like `bert-base-uncased`, or namespaced under a
 	*   user or organization name, like `dbmdz/bert-base-german-cased`.
 	* - A path to a *directory* containing feature_extractor files, e.g., `./my_model_directory/`.
 	* @param {import('./utils/hub.js').PretrainedOptions} options Additional options for loading the feature_extractor.
 	*
-	* @returns {Promise<FeatureExtractor>} A new instance of the Feature Extractor class.
+	* @returns {Promise<FeatureExtractor>} A new feature extractor instance.
 	*/
 	static async from_pretrained(pretrained_model_name_or_path, options = {}) {
 		const config = await getModelJSON(pretrained_model_name_or_path, FEATURE_EXTRACTOR_NAME, true, options);
@@ -15408,7 +16457,7 @@ var FeatureExtractor = class extends Callable {
 	}
 };
 function validate_audio_inputs(audio, feature_extractor) {
-	if (!(audio instanceof Float32Array || audio instanceof Float64Array)) throw new Error(`${feature_extractor} expects input to be a Float32Array or a Float64Array, but got ${audio?.constructor?.name ?? typeof audio} instead. If using the feature extractor directly, remember to use \`read_audio(url, sampling_rate)\` to obtain the raw audio data of the file/url.`);
+	if (!(audio instanceof Float32Array || audio instanceof Float64Array)) throw new Error(`${feature_extractor} expects input to be a Float32Array or a Float64Array, but got ${audio?.constructor?.name ?? typeof audio} instead. If using the feature extractor directly, remember to use \`load_audio(url, sampling_rate)\` to obtain the raw audio data of the file/url.`);
 }
 var feature_extractors_exports = {};
 __export(feature_extractors_exports, {
@@ -15468,7 +16517,9 @@ async function load_audio(url, sampling_rate) {
 	} else audio = decoded.getChannelData(0);
 	return audio;
 }
-var read_audio = load_audio;
+async function read_audio(url, sampling_rate) {
+	return await load_audio(url, sampling_rate);
+}
 function generalized_cosine_window(M, a_0) {
 	if (M < 1) return /* @__PURE__ */ new Float64Array();
 	if (M === 1) return new Float64Array([1]);
@@ -15718,7 +16769,7 @@ function encodeWAV(chunks, rate) {
 	view.setUint16(34, 32, true);
 	writeString(view, 36, "data");
 	view.setUint32(40, totalLength * 4, true);
-	return new Blob([buffer, ...chunks.map((chunk2) => chunk2.buffer)], { type: "audio/wav" });
+	return new Blob([buffer, ...chunks.map((chunk2) => chunk2.buffer instanceof ArrayBuffer ? new Uint8Array(chunk2.buffer, chunk2.byteOffset, chunk2.byteLength) : chunk2.slice())], { type: "audio/wav" });
 }
 function writeString(view, offset, string) {
 	for (let i = 0; i < string.length; ++i) view.setUint8(offset + i, string.charCodeAt(i));
@@ -16214,7 +17265,7 @@ var GraniteSpeechFeatureExtractor = class extends FeatureExtractor {
 	async _call(audio) {
 		validate_audio_inputs(audio, "GraniteSpeechFeatureExtractor");
 		const { n_fft, hop_length, n_mels } = this.config.melspec_kwargs;
-		const num_frames = 1 + Math.floor((audio.length - 1) / hop_length);
+		const num_frames = Math.floor(audio.length / hop_length) + 1;
 		const max_num_frames = num_frames - num_frames % 2;
 		return { input_features: (await spectrogram(audio, this.window, n_fft, hop_length, {
 			power: 2,
@@ -16736,11 +17787,15 @@ var RawImage = class _RawImage {
 	}
 	/**
 	* Helper method to create a new Image from a tensor
-	* @param {Tensor} tensor
+	* @param {Tensor} tensor The 3D tensor containing the image data. Must be of type `uint8`.
+	* @param {'CHW'|'HWC'} [channel_format='CHW'] The dimension ordering of the tensor.
+	* @returns {RawImage} The image created from the tensor.
+	* @throws {Error} If the tensor does not have 3 dimensions, or the channel format,
+	* tensor type, or number of channels is unsupported.
 	*/
 	static fromTensor(tensor, channel_format = "CHW") {
 		if (tensor.dims.length !== 3) throw new Error(`Tensor should have 3 dimensions, but has ${tensor.dims.length} dimensions.`);
-		if (channel_format === "CHW") tensor = tensor.transpose(1, 2, 0);
+		if (channel_format === "CHW") tensor = tensor.permute(1, 2, 0);
 		else if (channel_format === "HWC") {} else throw new Error(`Unsupported channel format: ${channel_format}`);
 		if (!(tensor.data instanceof Uint8ClampedArray || tensor.data instanceof Uint8Array)) throw new Error(`Unsupported tensor type: ${tensor.type}`);
 		switch (tensor.dims[2]) {
@@ -17356,7 +18411,7 @@ function post_process_instance_segmentation(outputs, threshold = .5, target_size
 }
 var ImageProcessor = class extends Callable {
 	/**
-	* Constructs a new `ImageProcessor`.
+	* Create an image processor from a parsed `preprocessor_config.json`.
 	* @param {ImageProcessorConfig} config The configuration object.
 	*/
 	constructor(config) {
@@ -17495,7 +18550,7 @@ var ImageProcessor = class extends Callable {
 		return [pixelData, imgDims];
 	}
 	/**
-	* Rescale the image' pixel values by `this.rescale_factor`.
+	* Rescale the image pixel values by `this.rescale_factor`.
 	* @param {Float32Array} pixelData The pixel data to rescale.
 	* @returns {void}
 	*/
@@ -17637,10 +18692,8 @@ var ImageProcessor = class extends Callable {
 		};
 	}
 	/**
-	* Calls the feature extraction process on an array of images,
-	* preprocesses each image, and concatenates the resulting
-	* features into a single Tensor.
-	* @param {RawImage[]} images The image(s) to extract features from.
+	* Preprocess one or more images and batch the result into `pixel_values`.
+	* @param {RawImage|RawImage[]} images The image or images to preprocess.
 	* @param {...any} args Additional arguments.
 	* @returns {Promise<ImageProcessorResult>} An object containing the concatenated pixel values (and other metadata) of the preprocessed images.
 	*/
@@ -17666,7 +18719,7 @@ var ImageProcessor = class extends Callable {
 	* - A path to a *directory* containing processor files, e.g., `./my_model_directory/`.
 	* @param {import('./utils/hub.js').PretrainedOptions} options Additional options for loading the processor.
 	*
-	* @returns {Promise<ImageProcessor>} A new instance of the Processor class.
+	* @returns {Promise<ImageProcessor>} A new image processor instance.
 	*/
 	static async from_pretrained(pretrained_model_name_or_path, options = {}) {
 		const preprocessorConfig = await getModelJSON(pretrained_model_name_or_path, IMAGE_PROCESSOR_NAME, true, options);
@@ -20083,11 +21136,26 @@ function getNormalizedConfig(config) {
 			break;
 		case "youtu":
 		case "deepseek_v3":
+		case "deepseek_v4":
 		case "glm_moe_dsa":
 		case "mistral4":
 			mapping["num_heads"] = "num_key_value_heads";
 			mapping["num_layers"] = "num_hidden_layers";
-			mapping["dim_kv"] = "qk_head_dim";
+			mapping["dim_kv"] = config.model_type === "deepseek_v4" ? "head_dim" : "qk_head_dim";
+			mapping["num_attention_heads"] = "num_attention_heads";
+			break;
+		case "zaya":
+			mapping["num_heads"] = "num_key_value_heads";
+			mapping["num_layers"] = "num_hidden_layers";
+			mapping["hidden_size"] = "hidden_size";
+			mapping["dim_kv"] = "head_dim";
+			mapping["num_attention_heads"] = "num_attention_heads";
+			break;
+		case "hrm_text":
+			mapping["num_heads"] = "num_key_value_heads";
+			mapping["num_layers"] = "num_hidden_layers";
+			mapping["hidden_size"] = "hidden_size";
+			mapping["dim_kv"] = "head_dim";
 			mapping["num_attention_heads"] = "num_attention_heads";
 			break;
 		case "t5":
@@ -20186,14 +21254,14 @@ function getNormalizedConfig(config) {
 function getCacheNames(config, options) {
 	if (!(config instanceof PretrainedConfig)) config = new PretrainedConfig(config);
 	const pkv_prefix = options?.prefix ?? "past_key_values";
-	const conv_prefix = pkv_prefix === "present" ? "present" : "past";
+	const cache_prefix = pkv_prefix === "present" ? "present" : "past";
 	const names = /* @__PURE__ */ new Set();
 	if (["lfm2", "lfm2_moe"].includes(config.model_type)) {
 		const { layer_types } = config;
 		for (let i = 0; i < layer_types.length; ++i) if (layer_types[i] === "full_attention") {
 			names.add(`${pkv_prefix}.${i}.key`);
 			names.add(`${pkv_prefix}.${i}.value`);
-		} else if (layer_types[i] === "conv") names.add(`${conv_prefix}_conv.${i}`);
+		} else if (layer_types[i] === "conv") names.add(`${cache_prefix}_conv.${i}`);
 		else throw new Error(`Unsupported layer type: ${layer_types[i]}`);
 		return names;
 	} else if ([
@@ -20206,8 +21274,8 @@ function getCacheNames(config, options) {
 		const num_layers = c.num_hidden_layers ?? layer_types?.length;
 		for (let i = 0; i < num_layers; ++i) {
 			if (!layer_types || layer_types[i] === "mamba") {
-				names.add(`${conv_prefix}_conv.${i}`);
-				names.add(`${conv_prefix}_ssm.${i}`);
+				names.add(`${cache_prefix}_conv.${i}`);
+				names.add(`${cache_prefix}_ssm.${i}`);
 			}
 			if (!layer_types || layer_types[i] === "attention") {
 				names.add(`${pkv_prefix}.${i}.key`);
@@ -20227,11 +21295,11 @@ function getCacheNames(config, options) {
 			names.add(`${pkv_prefix}.${i}.value`);
 		} else if (layer_types[i] === "linear_attention") {
 			if (config.model_type === "olmo_hybrid") {
-				names.add(`${conv_prefix}_conv.${i}.key`);
-				names.add(`${conv_prefix}_conv.${i}.value`);
-				names.add(`${conv_prefix}_conv.${i}.query`);
-			} else names.add(`${conv_prefix}_conv.${i}`);
-			names.add(`${conv_prefix}_recurrent.${i}`);
+				names.add(`${cache_prefix}_conv.${i}.key`);
+				names.add(`${cache_prefix}_conv.${i}.value`);
+				names.add(`${cache_prefix}_conv.${i}.query`);
+			} else names.add(`${cache_prefix}_conv.${i}`);
+			names.add(`${cache_prefix}_recurrent.${i}`);
 		} else throw new Error(`Unsupported layer type: ${layer_types[i]}`);
 		return names;
 	} else if (["gemma4", "gemma4_text"].includes(config.model_type)) {
@@ -20240,6 +21308,33 @@ function getCacheNames(config, options) {
 		for (let i = 0; i < num_kv_layers; ++i) {
 			names.add(`${pkv_prefix}.${i}.key`);
 			names.add(`${pkv_prefix}.${i}.value`);
+		}
+		return names;
+	} else if (config.model_type === "deepseek_v4") {
+		const { layer_types, num_hidden_layers } = config;
+		for (let i = 0; i < num_hidden_layers; ++i) {
+			names.add(`${pkv_prefix}.${i}.key`);
+			names.add(`${pkv_prefix}.${i}.value`);
+			const layer_type = layer_types[i];
+			if (layer_type === "compressed_sparse_attention") {
+				names.add(`${cache_prefix}_compressor.${i}.kv`);
+				names.add(`${cache_prefix}_compressor.${i}.gate`);
+				names.add(`${cache_prefix}_indexer.${i}.kv`);
+				names.add(`${cache_prefix}_indexer.${i}.gate`);
+			} else if (layer_type === "heavily_compressed_attention") {
+				names.add(`${cache_prefix}_compressor.${i}.kv`);
+				names.add(`${cache_prefix}_compressor.${i}.gate`);
+			} else if (layer_type && layer_type !== "sliding_attention") throw new Error(`Unsupported layer type: ${layer_type}`);
+		}
+		return names;
+	} else if (config.model_type === "zaya") {
+		const { num_hidden_layers, cca_time1 } = config;
+		const stride = cca_time1 ?? 1;
+		for (let i = 0; i < num_hidden_layers; i += stride) {
+			names.add(`${pkv_prefix}.${i}.key`);
+			names.add(`${pkv_prefix}.${i}.value`);
+			names.add(`${pkv_prefix}.${i}.conv_state`);
+			names.add(`${pkv_prefix}.${i}.shift_state`);
 		}
 		return names;
 	} else if ([
@@ -20281,7 +21376,7 @@ var PretrainedConfig = class _PretrainedConfig {
 	/** @type {TransformersJSConfig} */
 	"transformers.js_config";
 	/**
-	* Create a new PreTrainedTokenizer instance.
+	* Create a new `PretrainedConfig` from a parsed `config.json` object.
 	* @param {Object} configJSON The JSON of the config.
 	*/
 	constructor(configJSON) {
@@ -20289,9 +21384,9 @@ var PretrainedConfig = class _PretrainedConfig {
 		this.normalized_config = getNormalizedConfig(this);
 	}
 	/**
-	* Loads a pre-trained config from the given `pretrained_model_name_or_path`.
+	* Loads a pretrained config from the given `pretrained_model_name_or_path`.
 	*
-	* @param {string} pretrained_model_name_or_path The path to the pre-trained config.
+	* @param {string} pretrained_model_name_or_path The path to the pretrained config.
 	* @param {PretrainedOptions} options Additional options for loading the config.
 	* @throws {Error} Throws an error if the config.json is not found in the `pretrained_model_name_or_path`.
 	*
@@ -20465,6 +21560,20 @@ function validateInputs(session, inputs) {
 	return checkedInputs;
 }
 var ModelOutput = class {};
+var BaseModelOutput = class extends ModelOutput {
+	/**
+	* @param {Object} output The output of the model.
+	* @param {Tensor} output.last_hidden_state Sequence of hidden-states at the output of the last layer of the model.
+	* @param {Tensor} [output.hidden_states] Hidden-states of the model at the output of each layer plus the optional initial embedding outputs.
+	* @param {Tensor} [output.attentions] Attentions weights after the attention softmax, used to compute the weighted average in the self-attention heads.
+	*/
+	constructor({ last_hidden_state, hidden_states = null, attentions = null }) {
+		super();
+		this.last_hidden_state = last_hidden_state;
+		this.hidden_states = hidden_states;
+		this.attentions = attentions;
+	}
+};
 var SequenceClassifierOutput = class extends ModelOutput {
 	/**
 	* @param {Object} output The output of the model.
@@ -20521,6 +21630,37 @@ var CausalLMOutput = class extends ModelOutput {
 		this.logits = logits;
 	}
 };
+var CausalLMOutputWithPast = class extends ModelOutput {
+	/**
+	* @param {Object} output The output of the model.
+	* @param {Tensor} output.logits Prediction scores of the language modeling head (scores for each vocabulary token before softmax).
+	* @param {Tensor} output.past_key_values Contains pre-computed hidden-states (key and values in the self-attention blocks)
+	* that can be used (see `past_key_values` input) to speed up sequential decoding.
+	*/
+	constructor({ logits, past_key_values }) {
+		super();
+		this.logits = logits;
+		this.past_key_values = past_key_values;
+	}
+};
+var Seq2SeqLMOutput = class extends ModelOutput {
+	/**
+	* @param {Object} output The output of the model.
+	* @param {Tensor} output.logits The output logits of the model.
+	* @param {Tensor} output.past_key_values An tensor of key/value pairs that represent the previous state of the model.
+	* @param {Tensor} output.encoder_outputs The output of the encoder in a sequence-to-sequence model.
+	* @param {Tensor} [output.decoder_attentions] Attentions weights of the decoder, after the attention softmax, used to compute the weighted average in the self-attention heads.
+	* @param {Tensor} [output.cross_attentions] Attentions weights of the decoder's cross-attention layer, after the attention softmax, used to compute the weighted average in the cross-attention heads.
+	*/
+	constructor({ logits, past_key_values, encoder_outputs, decoder_attentions = null, cross_attentions = null }) {
+		super();
+		this.logits = logits;
+		this.past_key_values = past_key_values;
+		this.encoder_outputs = encoder_outputs;
+		this.decoder_attentions = decoder_attentions;
+		this.cross_attentions = cross_attentions;
+	}
+};
 var ImageMattingOutput = class extends ModelOutput {
 	/**
 	* @param {Object} output The output of the model.
@@ -20536,7 +21676,7 @@ var LogitsProcessor = class extends Callable {
 	* Apply the processor to the input logits.
 	*
 	* @abstract
-	* @param {bigint[][]} input_ids The input ids.
+	* @param {bigint[][]} input_ids The input IDs.
 	* @param {Tensor} logits The logits to process.
 	* @throws {Error} Throws an error if `_call` is not implemented in the subclass.
 	*/
@@ -20549,7 +21689,7 @@ var LogitsWarper = class extends Callable {
 	* Apply the processor to the input logits.
 	*
 	* @abstract
-	* @param {bigint[][]} input_ids The input ids.
+	* @param {bigint[][]} input_ids The input IDs.
 	* @param {Tensor} logits The logits to process.
 	* @throws {Error} Throws an error if `_call` is not implemented in the subclass.
 	*/
@@ -20624,7 +21764,7 @@ var ForcedEOSTokenLogitsProcessor = class extends LogitsProcessor {
 	/**
 	* Create a ForcedEOSTokenLogitsProcessor.
 	* @param {number} max_length The maximum length of the sequence to be generated.
-	* @param {number|number[]} eos_token_id The id(s) of the *end-of-sequence* token.
+	* @param {number|number[]} eos_token_id The ID or IDs of the *end-of-sequence* token.
 	*/
 	constructor(max_length, eos_token_id) {
 		super();
@@ -20634,7 +21774,7 @@ var ForcedEOSTokenLogitsProcessor = class extends LogitsProcessor {
 	/**
 	* Apply the processor to input_ids and logits.
 	*
-	* @param {bigint[][]} input_ids The input ids.
+	* @param {bigint[][]} input_ids The input IDs.
 	* @param {Tensor} logits The logits tensor.
 	*/
 	_call(input_ids, logits) {
@@ -20743,15 +21883,15 @@ var WhisperTimeStampLogitsProcessor = class extends LogitsProcessor {
 var NoRepeatNGramLogitsProcessor = class extends LogitsProcessor {
 	/**
 	* Create a NoRepeatNGramLogitsProcessor.
-	* @param {number} no_repeat_ngram_size The no-repeat-ngram size. All ngrams of this size can only occur once.
+	* @param {number} no_repeat_ngram_size The no-repeat n-gram size. All n-grams of this size can only occur once.
 	*/
 	constructor(no_repeat_ngram_size) {
 		super();
 		this.no_repeat_ngram_size = no_repeat_ngram_size;
 	}
 	/**
-	* Generate n-grams from a sequence of token ids.
-	* @param {bigint[]} prevInputIds List of previous input ids
+	* Generate n-grams from a sequence of token IDs.
+	* @param {bigint[]} prevInputIds List of previous input IDs.
 	* @returns {Map<string, number[]>} Map of generated n-grams
 	*/
 	getNgrams(prevInputIds) {
@@ -20773,9 +21913,9 @@ var NoRepeatNGramLogitsProcessor = class extends LogitsProcessor {
 		return generatedNgram;
 	}
 	/**
-	* Generate n-grams from a sequence of token ids.
+	* Generate n-grams from a sequence of token IDs.
 	* @param {Map<string, number[]>} bannedNgrams Map of banned n-grams
-	* @param {bigint[]} prevInputIds List of previous input ids
+	* @param {bigint[]} prevInputIds List of previous input IDs.
 	* @returns {number[]} Map of generated n-grams
 	*/
 	getGeneratedNgrams(bannedNgrams, prevInputIds) {
@@ -20784,7 +21924,7 @@ var NoRepeatNGramLogitsProcessor = class extends LogitsProcessor {
 	}
 	/**
 	* Calculate banned n-gram tokens
-	* @param {bigint[]} prevInputIds List of previous input ids
+	* @param {bigint[]} prevInputIds List of previous input IDs.
 	* @returns {number[]} Map of generated n-grams
 	*/
 	calcBannedNgramTokens(prevInputIds) {
@@ -20796,10 +21936,10 @@ var NoRepeatNGramLogitsProcessor = class extends LogitsProcessor {
 		}
 	}
 	/**
-	* Apply the no-repeat-ngram processor to the logits.
+	* Apply the no-repeat n-gram processor to the logits.
 	* @param {bigint[][]} input_ids The input IDs.
 	* @param {Tensor} logits The logits.
-	* @returns {Tensor} The logits with no-repeat-ngram processing.
+	* @returns {Tensor} The logits with no-repeat n-gram processing.
 	*/
 	_call(input_ids, logits) {
 		for (let i = 0; i < input_ids.length; ++i) {
@@ -20813,7 +21953,7 @@ var NoRepeatNGramLogitsProcessor = class extends LogitsProcessor {
 var RepetitionPenaltyLogitsProcessor = class extends LogitsProcessor {
 	/**
 	* Create a RepetitionPenaltyLogitsProcessor.
-	* @param {number} penalty The parameter for repetition penalty.
+	* @param {number} penalty Penalty applied to repeated tokens.
 	* - 1.0 means no penalty. Above 1.0 penalizes previously generated tokens.
 	* - Between 0.0 and 1.0 rewards previously generated tokens.
 	*/
@@ -20843,7 +21983,7 @@ var MinLengthLogitsProcessor = class extends LogitsProcessor {
 	/**
 	* Create a MinLengthLogitsProcessor.
 	* @param {number} min_length The minimum length below which the score of `eos_token_id` is set to negative infinity.
-	* @param {number|number[]} eos_token_id The ID/IDs of the end-of-sequence token.
+	* @param {number|number[]} eos_token_id The ID or IDs of the end-of-sequence token.
 	*/
 	constructor(min_length, eos_token_id) {
 		super();
@@ -20869,7 +22009,7 @@ var MinNewTokensLengthLogitsProcessor = class extends LogitsProcessor {
 	* Create a MinNewTokensLengthLogitsProcessor.
 	* @param {number} prompt_length_to_skip The input tokens length.
 	* @param {number} min_new_tokens The minimum *new* tokens length below which the score of `eos_token_id` is set to negative infinity.
-	* @param {number|number[]} eos_token_id The ID/IDs of the end-of-sequence token.
+	* @param {number|number[]} eos_token_id The ID or IDs of the end-of-sequence token.
 	*/
 	constructor(prompt_length_to_skip, min_new_tokens, eos_token_id) {
 		super();
@@ -20894,8 +22034,8 @@ var MinNewTokensLengthLogitsProcessor = class extends LogitsProcessor {
 var NoBadWordsLogitsProcessor = class extends LogitsProcessor {
 	/**
 	* Create a `NoBadWordsLogitsProcessor`.
-	* @param {number[][]} bad_words_ids List of list of token ids that are not allowed to be generated.
-	* @param {number|number[]} eos_token_id The id of the *end-of-sequence* token. Optionally, use a list to set multiple *end-of-sequence* tokens.
+	* @param {number[][]} bad_words_ids List of token ID sequences that are not allowed to be generated.
+	* @param {number|number[]} eos_token_id The ID of the *end-of-sequence* token. Optionally, use a list to set multiple *end-of-sequence* tokens.
 	*/
 	constructor(bad_words_ids, eos_token_id) {
 		super();
@@ -20928,13 +22068,13 @@ var NoBadWordsLogitsProcessor = class extends LogitsProcessor {
 var ClassifierFreeGuidanceLogitsProcessor = class extends LogitsProcessor {
 	/**
 	* Create a `ClassifierFreeGuidanceLogitsProcessor`.
-	* @param {number} guidance_scale The guidance scale for classifier free guidance (CFG). CFG is enabled by setting `guidance_scale > 1`.
-	* Higher guidance scale encourages the model to generate samples that are more closely linked to the input
+	* @param {number} guidance_scale The guidance scale for classifier-free guidance (CFG). CFG is enabled by setting `guidance_scale > 1`.
+	* Higher guidance scale encourages the model to generate samples that are more closely tied to the input
 	* prompt, usually at the expense of poorer quality.
 	*/
 	constructor(guidance_scale) {
 		super();
-		if (guidance_scale <= 1) throw new Error(`Require guidance scale >1 to use the classifier free guidance processor, got guidance scale ${guidance_scale}.`);
+		if (guidance_scale <= 1) throw new Error(`Require guidance scale >1 to use the classifier-free guidance processor, got guidance scale ${guidance_scale}.`);
 		this.guidance_scale = guidance_scale;
 	}
 	/**
@@ -20989,7 +22129,7 @@ var GenerationConfig = class {
 	*/
 	max_length = 20;
 	/**
-	* The maximum numbers of tokens to generate, ignoring the number of tokens in the prompt.
+	* The maximum number of tokens to generate, ignoring the number of tokens in the prompt.
 	* @type {number}
 	* @default null
 	*/
@@ -21003,7 +22143,7 @@ var GenerationConfig = class {
 	*/
 	min_length = 0;
 	/**
-	* The minimum numbers of tokens to generate, ignoring the number of tokens in the prompt.
+	* The minimum number of tokens to generate, ignoring the number of tokens in the prompt.
 	* @type {number}
 	* @default null
 	*/
@@ -21011,21 +22151,21 @@ var GenerationConfig = class {
 	/**
 	* Controls the stopping condition for beam-based methods, like beam-search. It accepts the following values:
 	* - `true`, where the generation stops as soon as there are `num_beams` complete candidates;
-	* - `false`, where an heuristic is applied and the generation stops when is it very unlikely to find better candidates;
+	* - `false`, where a heuristic is applied and the generation stops when it is very unlikely to find better candidates;
 	* - `"never"`, where the beam search procedure only stops when there cannot be better candidates (canonical beam search algorithm).
 	* @type {boolean|"never"}
 	* @default false
 	*/
 	early_stopping = false;
 	/**
-	* The maximum amount of time you allow the computation to run for in seconds.
-	* Generation will still finish the current pass after allocated time has been passed.
+	* The maximum time, in seconds, allowed for generation.
+	* Generation will still finish the current pass after the allocated time has passed.
 	* @type {number}
 	* @default null
 	*/
 	max_time = null;
 	/**
-	* Whether or not to use sampling; use greedy decoding otherwise.
+	* Whether to use sampling; use greedy decoding otherwise.
 	* @type {boolean}
 	* @default false
 	*/
@@ -21037,20 +22177,20 @@ var GenerationConfig = class {
 	*/
 	num_beams = 1;
 	/**
-	* Number of groups to divide `num_beams` into in order to ensure diversity among different groups of beams.
+	* Number of groups to divide `num_beams` into to encourage diversity among different groups of beams.
 	* See [this paper](https://huggingface.co/papers/1610.02424) for more details.
 	* @type {number}
 	* @default 1
 	*/
 	num_beam_groups = 1;
 	/**
-	* The values balance the model confidence and the degeneration penalty in contrastive search decoding.
+	* Balance model confidence against the degeneration penalty during contrastive search decoding.
 	* @type {number}
 	* @default null
 	*/
 	penalty_alpha = null;
 	/**
-	* Whether or not the model should use the past last key/values attentions (if applicable to the model) to speed up decoding.
+	* Whether the model should reuse past key/value states, when supported, to speed up decoding.
 	* @type {boolean}
 	* @default true
 	*/
@@ -21062,27 +22202,27 @@ var GenerationConfig = class {
 	*/
 	temperature = 1;
 	/**
-	* The number of highest probability vocabulary tokens to keep for top-k-filtering.
+	* The number of highest-probability vocabulary tokens to keep for top-k filtering.
 	* @type {number}
 	* @default 50
 	*/
 	top_k = 50;
 	/**
-	* If set to float < 1, only the smallest set of most probable tokens with probabilities that add up to `top_p` or higher are kept for generation.
+	* If set to a float below 1, only the smallest set of most probable tokens with probabilities that add up to `top_p` or higher are kept for generation.
 	* @type {number}
 	* @default 1.0
 	*/
 	top_p = 1;
 	/**
 	* Local typicality measures how similar the conditional probability of predicting a target token next is to the expected conditional probability of predicting a random token next, given the partial text already generated.
-	* If set to float < 1, the smallest set of the most locally typical tokens with probabilities that add up to `typical_p` or higher are kept for generation.
+	* If set to a float below 1, the smallest set of the most locally typical tokens with probabilities that add up to `typical_p` or higher are kept for generation.
 	* See [this paper](https://huggingface.co/papers/2202.00666) for more details.
 	* @type {number}
 	* @default 1.0
 	*/
 	typical_p = 1;
 	/**
-	* If set to float strictly between 0 and 1, only tokens with a conditional probability greater than `epsilon_cutoff` will be sampled.
+	* If set to a float strictly between 0 and 1, only tokens with a conditional probability greater than `epsilon_cutoff` will be sampled.
 	* In the paper, suggested values range from 3e-4 to 9e-4, depending on the size of the model.
 	* See [Truncation Sampling as Language Model Desmoothing](https://huggingface.co/papers/2210.15191) for more details.
 	* @type {number}
@@ -21091,7 +22231,7 @@ var GenerationConfig = class {
 	epsilon_cutoff = 0;
 	/**
 	* Eta sampling is a hybrid of locally typical sampling and epsilon sampling.
-	* If set to float strictly between 0 and 1, a token is only considered if it is greater than either `eta_cutoff` or `sqrt(eta_cutoff) * exp(-entropy(softmax(next_token_logits)))`.
+	* If set to a float strictly between 0 and 1, a token is only considered if it is greater than either `eta_cutoff` or `sqrt(eta_cutoff) * exp(-entropy(softmax(next_token_logits)))`.
 	* The latter term is intuitively the expected next token probability, scaled by `sqrt(eta_cutoff)`. In the paper, suggested values range from 3e-4 to 2e-3, depending on the size of the model.
 	* See [Truncation Sampling as Language Model Desmoothing](https://huggingface.co/papers/2210.15191) for more details.
 	* @type {number}
@@ -21099,29 +22239,28 @@ var GenerationConfig = class {
 	*/
 	eta_cutoff = 0;
 	/**
-	* This value is subtracted from a beam's score if it generates a token same as any beam from other group at a particular time.
+	* This value is subtracted from a beam's score if it generates the same token as any beam from another group at a particular time.
 	* Note that `diversity_penalty` is only effective if `group beam search` is enabled.
 	* @type {number}
 	* @default 0.0
 	*/
 	diversity_penalty = 0;
 	/**
-	* The parameter for repetition penalty. 1.0 means no penalty.
+	* Penalty applied to repeated tokens. 1.0 means no penalty.
 	* See [this paper](https://huggingface.co/papers/1909.05858) for more details.
 	* @type {number}
 	* @default 1.0
 	*/
 	repetition_penalty = 1;
 	/**
-	* The paramater for encoder_repetition_penalty.
-	* An exponential penalty on sequences that are not in the original input.
+	* Penalty applied to sequences that are not in the original input.
 	* 1.0 means no penalty.
 	* @type {number}
 	* @default 1.0
 	*/
 	encoder_repetition_penalty = 1;
 	/**
-	* Exponential penalty to the length that is used with beam-based generation.
+	* Exponential penalty applied to sequence length during beam-based generation.
 	* It is applied as an exponent to the sequence length, which in turn is used to divide the score of the sequence.
 	* Since the score is the log likelihood of the sequence (i.e. negative), `length_penalty` > 0.0 promotes longer sequences, while `length_penalty` < 0.0 encourages shorter sequences.
 	* @type {number}
@@ -21129,96 +22268,96 @@ var GenerationConfig = class {
 	*/
 	length_penalty = 1;
 	/**
-	* If set to int > 0, all ngrams of that size can only occur once.
+	* If set to an integer greater than 0, all n-grams of that size can only occur once.
 	* @type {number}
 	* @default 0
 	*/
 	no_repeat_ngram_size = 0;
 	/**
-	* List of token ids that are not allowed to be generated.
-	* In order to get the token ids of the words that should not appear in the generated text, use
+	* List of token IDs that are not allowed to be generated.
+	* In order to get the token IDs of the words that should not appear in the generated text, use
 	* `tokenizer(bad_words, { add_prefix_space: true, add_special_tokens: false }).input_ids`.
 	* @type {number[][]}
 	* @default null
 	*/
 	bad_words_ids = null;
 	/**
-	* List of token ids that must be generated.
-	* If given a `number[][]`, this is treated as a simple list of words that must be included, the opposite to `bad_words_ids`.
-	* If given `number[][][]`, this triggers a [disjunctive constraint](https://github.com/huggingface/transformers/issues/14081), where one can allow different forms of each word.
+	* List of token IDs that must be generated.
+	* If given a `number[][]`, this is treated as a simple list of words that must be included, the opposite of `bad_words_ids`.
+	* If given `number[][][]`, this triggers a [disjunctive constraint](https://github.com/huggingface/transformers/issues/14081), which allows different forms of each word.
 	* @type {number[][]|number[][][]}
 	* @default null
 	*/
 	force_words_ids = null;
 	/**
 	* Whether to renormalize the logits after applying all the logits processors or warpers (including the custom ones).
-	* It's highly recommended to set this flag to `true` as the search algorithms suppose the score logits are normalized but some logit processors or warpers break the normalization.
+	* It's highly recommended to set this flag to `true` because search algorithms assume the score logits are normalized, but some logit processors or warpers break the normalization.
 	* @type {boolean}
 	* @default false
 	*/
 	renormalize_logits = false;
 	/**
-	* Custom constraints that can be added to the generation to ensure that the output will contain the use of certain tokens as defined by `Constraint` objects, in the most sensible way possible.
+	* Custom constraints that guide generation to include certain tokens as defined by `Constraint` objects.
 	* @type {Object[]}
 	* @default null
 	*/
 	constraints = null;
 	/**
-	* The id of the token to force as the first generated token after the `decoder_start_token_id`.
+	* The ID of the token to force as the first generated token after the `decoder_start_token_id`.
 	* Useful for multilingual models like mBART where the first generated token needs to be the target language token.
 	* @type {number}
 	* @default null
 	*/
 	forced_bos_token_id = null;
 	/**
-	* The id of the token to force as the last generated token when `max_length` is reached.
+	* The ID of the token to force as the last generated token when `max_length` is reached.
 	* Optionally, use a list to set multiple *end-of-sequence* tokens.
 	* @type {number|number[]}
 	* @default null
 	*/
 	forced_eos_token_id = null;
 	/**
-	* Whether to remove possible *nan* and *inf* outputs of the model to prevent the generation method to crash. Note that using `remove_invalid_values` can slow down generation.
+	* Whether to remove possible *nan* and *inf* outputs of the model to prevent the generation method from crashing. Note that using `remove_invalid_values` can slow down generation.
 	* @type {boolean}
 	*/
 	remove_invalid_values = false;
 	/**
-	* This Tuple adds an exponentially increasing length penalty, after a certain amount of tokens have been generated.
-	* The tuple shall consist of: `(start_index, decay_factor)` where `start_index` indicates where penalty starts and `decay_factor` represents the factor of exponential decay.
+	* This tuple adds an exponentially increasing length penalty after a certain number of tokens have been generated.
+	* The tuple consists of: `(start_index, decay_factor)` where `start_index` indicates where the penalty starts and `decay_factor` represents the factor of exponential decay.
 	* @type {[number, number]}
 	* @default null
 	*/
 	exponential_decay_length_penalty = null;
 	/**
-	* A list of tokens that will be suppressed at generation.
-	* The `SuppressTokens` logit processor will set their log probs to `-inf` so that they are not sampled.
+	* A list of tokens to suppress during generation.
+	* The `SuppressTokens` logit processor sets their log probabilities to `-inf` so that they are not sampled.
 	* @type {number[]}
 	* @default null
 	*/
 	suppress_tokens = null;
 	/**
-	* A streamer that will be used to stream the generation.
+	* Streamer used to yield generated text incrementally.
 	* @type {import('./streamers.js').TextStreamer}
 	* @default null
 	*/
 	streamer = null;
 	/**
-	* A list of tokens that will be suppressed at the beginning of the generation.
-	* The `SuppressBeginTokens` logit processor will set their log probs to `-inf` so that they are not sampled.
+	* A list of tokens to suppress at the beginning of the generation.
+	* The `SuppressBeginTokens` logit processor sets their log probabilities to `-inf` so that they are not sampled.
 	* @type {number[]}
 	* @default null
 	*/
 	begin_suppress_tokens = null;
 	/**
-	* A list of pairs of integers which indicates a mapping from generation indices to token indices that will be forced before sampling.
+	* A list of integer pairs that maps generation indices to token indices that will be forced before sampling.
 	* For example, `[[1, 123]]` means the second generated token will always be a token of index 123.
 	* @type {[number, number][]}
 	* @default null
 	*/
 	forced_decoder_ids = null;
 	/**
-	* The guidance scale for classifier free guidance (CFG). CFG is enabled by setting `guidance_scale > 1`.
-	* Higher guidance scale encourages the model to generate samples that are more closely linked to the input
+	* The guidance scale for classifier-free guidance (CFG). CFG is enabled by setting `guidance_scale > 1`.
+	* Higher guidance scale encourages the model to generate samples that are more closely tied to the input
 	* prompt, usually at the expense of poorer quality.
 	* @type {number}
 	* @default null
@@ -21231,66 +22370,66 @@ var GenerationConfig = class {
 	*/
 	num_return_sequences = 1;
 	/**
-	* Whether or not to return the attentions tensors of all attention layers.
+	* Whether to return attention tensors from all attention layers.
 	* See `attentions` under returned tensors for more details.
 	* @type {boolean}
 	* @default false
 	*/
 	output_attentions = false;
 	/**
-	* Whether or not to return the hidden states of all layers.
+	* Whether to return the hidden states of all layers.
 	* See `hidden_states` under returned tensors for more details.
 	* @type {boolean}
 	* @default false
 	*/
 	output_hidden_states = false;
 	/**
-	* Whether or not to return the prediction scores.
+	* Whether to return the prediction scores.
 	* See `scores` under returned tensors for more details.
 	* @type {boolean}
 	* @default false
 	*/
 	output_scores = false;
 	/**
-	* Whether or not to return a `ModelOutput` instead of a plain tuple.
+	* Whether to return a `ModelOutput` instead of a plain tuple.
 	* @type {boolean}
 	* @default false
 	*/
 	return_dict_in_generate = false;
 	/**
-	* The id of the *padding* token.
+	* The ID of the *padding* token.
 	* @type {number}
 	* @default null
 	*/
 	pad_token_id = null;
 	/**
-	* The id of the *beginning-of-sequence* token.
+	* The ID of the *beginning-of-sequence* token.
 	* @type {number}
 	* @default null
 	*/
 	bos_token_id = null;
 	/**
-	* The id of the *end-of-sequence* token.
+	* The ID of the *end-of-sequence* token.
 	* Optionally, use a list to set multiple *end-of-sequence* tokens.
 	* @type {number|number[]}
 	* @default null
 	*/
 	eos_token_id = null;
 	/**
-	* If set to int > 0, all ngrams of that size that occur in the `encoder_input_ids` cannot occur in the `decoder_input_ids`.
+	* If set to an integer greater than 0, all n-grams of that size that occur in the `encoder_input_ids` cannot occur in the `decoder_input_ids`.
 	* @type {number}
 	* @default 0
 	*/
 	encoder_no_repeat_ngram_size = 0;
 	/**
-	* If an encoder-decoder model starts decoding with a different token than *bos*, the id of that token.
+	* If an encoder-decoder model starts decoding with a token other than *bos*, the ID of that token.
 	* @type {number}
 	* @default null
 	*/
 	decoder_start_token_id = null;
 	/**
-	* Additional generation kwargs will be forwarded to the `generate` function of the model.
-	* Kwargs that are not present in `generate`'s signature will be used in the model forward pass.
+	* Additional generation kwargs forwarded to the model's `generate` function.
+	* Kwargs that are not present in `generate`'s signature are used in the model forward pass.
 	* @type {Object}
 	* @default {}
 	*/
@@ -21308,7 +22447,7 @@ var StoppingCriteria = class extends Callable {
 	*
 	* @param {number[][]} input_ids (`number[][]` of shape `(batch_size, sequence_length)`):
 	* Indices of input sequence tokens in the vocabulary.
-	* @param {number[][]} scores scores (`number[][]` of shape `(batch_size, config.vocab_size)`):
+	* @param {number[][]} scores (`number[][]` of shape `(batch_size, config.vocab_size)`):
 	* Prediction scores of a language modeling head. These can be scores for each vocabulary token before SoftMax
 	* or scores for each vocabulary token after SoftMax.
 	* @returns {boolean[]} A list of booleans indicating whether each sequence should be stopped.
@@ -21373,7 +22512,7 @@ var MaxLengthCriteria = class extends StoppingCriteria {
 var EosTokenCriteria = class extends StoppingCriteria {
 	/**
 	*
-	* @param {number|number[]} eos_token_id The id of the *end-of-sequence* token.
+	* @param {number|number[]} eos_token_id The ID of the *end-of-sequence* token.
 	* Optionally, use a list to set multiple *end-of-sequence* tokens.
 	*/
 	constructor(eos_token_id) {
@@ -21658,6 +22797,7 @@ var MODEL_SESSION_CONFIG = {
 			}
 			return s;
 		},
+		cache_sessions: { decoder_model_merged: true },
 		optional_configs: { generation_config: "generation_config.json" }
 	},
 	[MODEL_TYPES.Phi3V]: {
@@ -21756,12 +22896,11 @@ function get_config(modelId, { config = null, cache_dir = null, local_files_only
 		local_files_only,
 		revision
 	});
-	return memoizePromise(JSON.stringify([
-		modelId,
+	return memoizePromise(makePretrainedOptionsKey(modelId, {
 		cache_dir,
 		local_files_only,
 		revision
-	]), () => AutoConfig.from_pretrained(modelId, {
+	}), () => AutoConfig.from_pretrained(modelId, {
 		config,
 		cache_dir,
 		local_files_only,
@@ -21905,7 +23044,7 @@ var PreTrainedModel = class extends Callable {
 	forward_params = ["input_ids", "attention_mask"];
 	_return_dict_in_generate_keys = null;
 	/**
-	* Creates a new instance of the `PreTrainedModel` class.
+	* Create a model from configuration and inference sessions.
 	* @param {import('../configs.js').PretrainedConfig} config The model configuration.
 	* @param {Record<string, any>} sessions The inference sessions for the model.
 	* @param {Record<string, Object>} configs Additional configuration files (e.g., generation_config.json).
@@ -21924,7 +23063,7 @@ var PreTrainedModel = class extends Callable {
 	}
 	/**
 	* Disposes of all the ONNX sessions that were created during inference.
-	* @returns {Promise<unknown[]>} An array of promises, one for each ONNX session that is being disposed.
+	* @returns {Promise<void[]>} Resolves after each session has been released.
 	* @todo Use https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/FinalizationRegistry
 	*/
 	async dispose() {
@@ -21939,13 +23078,13 @@ var PreTrainedModel = class extends Callable {
 	* (either passed as an argument or loaded from `pretrained_model_name_or_path` if possible)
 	*
 	* @param {string} pretrained_model_name_or_path The name or path of the pretrained model. Can be either:
-	* - A string, the *model id* of a pretrained model hosted inside a model repo on huggingface.co.
-	*   Valid model ids can be located at the root-level, like `bert-base-uncased`, or namespaced under a
+	* - A string, the *model ID* of a pretrained model hosted inside a model repo on huggingface.co.
+	*   Valid model IDs can be located at the root level, like `bert-base-uncased`, or namespaced under a
 	*   user or organization name, like `dbmdz/bert-base-german-cased`.
 	* - A path to a *directory* containing model weights, e.g., `./my_model_directory/`.
 	* @param {import('../utils/hub.js').PretrainedModelOptions} options Additional options for loading the model.
 	*
-	* @returns {Promise<PreTrainedModel>} A new instance of the `PreTrainedModel` class.
+	* @returns {Promise<PreTrainedModel>} A model instance with ready inference sessions.
 	*/
 	static async from_pretrained(pretrained_model_name_or_path, { progress_callback = null, config = null, cache_dir = null, local_files_only = false, revision = "main", model_file_name = null, subfolder = "onnx", device = null, dtype = null, use_external_data_format = null, session_options = {} } = {}) {
 		const options = {
@@ -21997,19 +23136,17 @@ var PreTrainedModel = class extends Callable {
 		return new this(config, ...info);
 	}
 	/**
-	* Runs the model with the provided inputs
-	* @param {Object} model_inputs Object containing input tensors
-	* @returns {Promise<Object>} Object containing output tensors
+	* Runs the model with the provided inputs.
+	* @param {Object} model_inputs Object containing input tensors.
+	* @returns {Promise<Object>} Object containing output tensors.
 	*/
 	async _call(model_inputs) {
 		return await this.forward(model_inputs);
 	}
 	/**
-	* Forward method for a pretrained model. If not overridden by a subclass, the correct forward method
-	* will be chosen based on the model type.
+	* Run the model's forward pass.
 	* @param {Object} model_inputs The input data to the model in the format specified in the ONNX model.
 	* @returns {Promise<Object>} The output data from the model in the format specified in the ONNX model.
-	* @throws {Error} This method must be implemented in subclasses.
 	*/
 	async forward(model_inputs) {
 		return await this._forward(this, model_inputs);
@@ -22183,7 +23320,7 @@ var PreTrainedModel = class extends Callable {
 				decoder_start_token_id ??= bos_token_id;
 				if (this.config.model_type === "musicgen") decoder_input_ids = Array.from({ length: batch_size * this.config.decoder.num_codebooks }, () => [decoder_start_token_id]);
 				else if (Array.isArray(decoder_start_token_id)) {
-					if (decoder_start_token_id.length !== batch_size) throw new Error(`\`decoder_start_token_id\` expcted to have length ${batch_size} but got ${decoder_start_token_id.length}`);
+					if (decoder_start_token_id.length !== batch_size) throw new Error(`\`decoder_start_token_id\` expected to have length ${batch_size} but got ${decoder_start_token_id.length}`);
 					decoder_input_ids = decoder_start_token_id;
 				} else decoder_input_ids = Array.from({ length: batch_size }, () => [decoder_start_token_id]);
 			} else if (!Array.isArray(decoder_input_ids[0])) decoder_input_ids = Array.from({ length: batch_size }, () => decoder_input_ids);
@@ -22196,7 +23333,7 @@ var PreTrainedModel = class extends Callable {
 		};
 	}
 	/**
-	* Generates sequences of token ids for models with a language modeling head.
+	* Generate token sequences with a language-modeling head.
 	* @param {import('../generation/parameters.js').GenerationFunctionParameters} options
 	* @returns {Promise<ModelOutput|Tensor>} The output of the model, which can contain the generated token ids, attentions, and scores.
 	*/
@@ -22298,12 +23435,30 @@ var PreTrainedModel = class extends Callable {
 		const session = this.sessions[sessionName];
 		return (await sessionRun(session, pick(inputs, session.inputNames)))[outputName];
 	}
+	/**
+	* Encode image inputs into features for multimodal generation.
+	* @param {any} inputs Vision encoder inputs.
+	* @returns {Promise<any>} Image features.
+	* @internal
+	*/
 	async encode_image(inputs) {
 		return this._encode_input("vision_encoder", inputs, "image_features");
 	}
+	/**
+	* Encode token ids into embeddings for multimodal generation.
+	* @param {any} inputs Text encoder inputs.
+	* @returns {Promise<any>} Text embeddings.
+	* @internal
+	*/
 	async encode_text(inputs) {
 		return this._encode_input("embed_tokens", inputs, "inputs_embeds");
 	}
+	/**
+	* Encode audio inputs into features for multimodal generation.
+	* @param {any} inputs Audio encoder inputs.
+	* @returns {Promise<any>} Audio features.
+	* @internal
+	*/
 	async encode_audio(inputs) {
 		return this._encode_input("audio_encoder", inputs, "audio_features");
 	}
@@ -22346,7 +23501,7 @@ async function auto_encoder_forward(self2, model_inputs) {
 function getPastKeyValues(decoderResults, pastKeyValues) {
 	const pkvs = /* @__PURE__ */ Object.create(null);
 	for (const name in decoderResults) if (name.startsWith("present")) {
-		const newName = name.replace("present_ssm", "past_ssm").replace("present_conv", "past_conv").replace("present_recurrent", "past_recurrent").replace("present", "past_key_values");
+		const newName = name.replace("present_ssm", "past_ssm").replace("present_conv", "past_conv").replace("present_recurrent", "past_recurrent").replace("present_compressor", "past_compressor").replace("present_indexer", "past_indexer").replace("present", "past_key_values");
 		if (name.includes("encoder") && pastKeyValues) pkvs[newName] = pastKeyValues[newName];
 		else pkvs[newName] = decoderResults[name];
 	}
@@ -22401,6 +23556,10 @@ function addPastKeyValues(self2, decoderFeeds, pastKeyValues) {
 	}
 	return new DynamicCache(entries);
 }
+function setNumLogitsToKeep(self2, model_inputs, value) {
+	if (model_inputs.num_logits_to_keep) return;
+	if ((self2.sessions["decoder_model_merged"] ?? self2.sessions["model"])?.inputNames.includes("num_logits_to_keep")) model_inputs.num_logits_to_keep = new Tensor2("int64", [value], []);
+}
 async function decoder_forward(self2, model_inputs, is_encoder_decoder = false) {
 	const session = self2.sessions[is_encoder_decoder ? "decoder_model_merged" : "model"];
 	const { past_key_values, ...new_model_inputs } = model_inputs;
@@ -22410,11 +23569,11 @@ async function decoder_forward(self2, model_inputs, is_encoder_decoder = false) 
 		"gemma3_text",
 		"gemma3"
 	].includes(self2.config.model_type) ? 1 : 0);
-	if (session.inputNames.includes("num_logits_to_keep") && !new_model_inputs.num_logits_to_keep) new_model_inputs.num_logits_to_keep = new Tensor2("int64", [0n], []);
+	setNumLogitsToKeep(self2, new_model_inputs, 0n);
 	addPastKeyValues(self2, new_model_inputs, past_key_values);
 	return await sessionRun(session, pick(new_model_inputs, session.inputNames));
 }
-async function generic_text_to_text_forward(self2, { encode_function, merge_function, modality_input_names, modality_output_name, input_ids = null, attention_mask = null, position_ids = null, inputs_embeds = null, past_key_values = null, generation_config = null, logits_processor = null, ...kwargs }) {
+async function generic_text_to_text_forward(self2, { encode_function, merge_function, modality_input_names, modality_output_name, input_ids = null, attention_mask = null, position_ids = null, inputs_embeds = null, past_key_values = null, generation_config = null, logits_processor = null, num_logits_to_keep = null, ...kwargs }) {
 	if (!inputs_embeds) {
 		inputs_embeds = await self2.encode_text({
 			input_ids,
@@ -22467,7 +23626,8 @@ async function generic_text_to_text_forward(self2, { encode_function, merge_func
 		attention_mask,
 		position_ids,
 		generation_config,
-		logits_processor
+		logits_processor,
+		num_logits_to_keep
 	}, true);
 }
 async function audio_text_to_text_forward(self2, params) {
@@ -22521,7 +23681,7 @@ function create_position_ids(model_inputs, past_key_values = null, start_index =
 }
 function decoder_prepare_inputs_for_generation(self2, input_ids, model_inputs, generation_config) {
 	const past_length = model_inputs.past_key_values ? model_inputs.past_key_values.get_seq_length() : 0;
-	if ((self2.sessions["decoder_model_merged"] ?? self2.sessions["model"])?.inputNames.includes("num_logits_to_keep") && !model_inputs.num_logits_to_keep) model_inputs.num_logits_to_keep = new Tensor2("int64", [1n], []);
+	setNumLogitsToKeep(self2, model_inputs, 1n);
 	if (!model_inputs.attention_mask) {
 		let dims;
 		for (const key of [
@@ -22543,6 +23703,7 @@ function decoder_prepare_inputs_for_generation(self2, input_ids, model_inputs, g
 }
 function encoder_decoder_prepare_inputs_for_generation(self2, input_ids, model_inputs, generation_config) {
 	if (model_inputs.past_key_values) input_ids = input_ids.map((x) => [x.at(-1)]);
+	setNumLogitsToKeep(self2, model_inputs, 1n);
 	return {
 		...model_inputs,
 		decoder_input_ids: toI64Tensor(input_ids)
@@ -22617,6 +23778,7 @@ __export(models_exports, {
 	BartForSequenceClassification: () => BartForSequenceClassification,
 	BartModel: () => BartModel,
 	BartPretrainedModel: () => BartPretrainedModel,
+	BaseModelOutput: () => BaseModelOutput,
 	BeitForImageClassification: () => BeitForImageClassification,
 	BeitModel: () => BeitModel,
 	BeitPreTrainedModel: () => BeitPreTrainedModel,
@@ -22652,6 +23814,8 @@ __export(models_exports, {
 	CamembertForTokenClassification: () => CamembertForTokenClassification,
 	CamembertModel: () => CamembertModel,
 	CamembertPreTrainedModel: () => CamembertPreTrainedModel,
+	CausalLMOutput: () => CausalLMOutput,
+	CausalLMOutputWithPast: () => CausalLMOutputWithPast,
 	ChatterboxModel: () => ChatterboxModel,
 	ChatterboxPreTrainedModel: () => ChatterboxPreTrainedModel,
 	ChineseCLIPModel: () => ChineseCLIPModel,
@@ -22717,6 +23881,9 @@ __export(models_exports, {
 	DeepseekV3ForCausalLM: () => DeepseekV3ForCausalLM,
 	DeepseekV3Model: () => DeepseekV3Model,
 	DeepseekV3PreTrainedModel: () => DeepseekV3PreTrainedModel,
+	DeepseekV4ForCausalLM: () => DeepseekV4ForCausalLM,
+	DeepseekV4Model: () => DeepseekV4Model,
+	DeepseekV4PreTrainedModel: () => DeepseekV4PreTrainedModel,
 	DeiTForImageClassification: () => DeiTForImageClassification,
 	DeiTModel: () => DeiTModel,
 	DeiTPreTrainedModel: () => DeiTPreTrainedModel,
@@ -22841,6 +24008,9 @@ __export(models_exports, {
 	HieraForImageClassification: () => HieraForImageClassification,
 	HieraModel: () => HieraModel,
 	HieraPreTrainedModel: () => HieraPreTrainedModel,
+	HrmTextForCausalLM: () => HrmTextForCausalLM,
+	HrmTextModel: () => HrmTextModel,
+	HrmTextPreTrainedModel: () => HrmTextPreTrainedModel,
 	HubertForCTC: () => HubertForCTC,
 	HubertForSequenceClassification: () => HubertForSequenceClassification,
 	HubertModel: () => HubertModel,
@@ -22852,6 +24022,7 @@ __export(models_exports, {
 	IJepaModel: () => IJepaModel,
 	IJepaPreTrainedModel: () => IJepaPreTrainedModel,
 	Idefics3ForConditionalGeneration: () => Idefics3ForConditionalGeneration,
+	ImageMattingOutput: () => ImageMattingOutput,
 	JAISLMHeadModel: () => JAISLMHeadModel,
 	JAISModel: () => JAISModel,
 	JAISPreTrainedModel: () => JAISPreTrainedModel,
@@ -22903,6 +24074,7 @@ __export(models_exports, {
 	MaskFormerForInstanceSegmentation: () => MaskFormerForInstanceSegmentation,
 	MaskFormerModel: () => MaskFormerModel,
 	MaskFormerPreTrainedModel: () => MaskFormerPreTrainedModel,
+	MaskedLMOutput: () => MaskedLMOutput,
 	Metric3DForDepthEstimation: () => Metric3DForDepthEstimation,
 	Metric3DPreTrainedModel: () => Metric3DPreTrainedModel,
 	Metric3Dv2ForDepthEstimation: () => Metric3Dv2ForDepthEstimation,
@@ -22916,6 +24088,13 @@ __export(models_exports, {
 	MimiEncoderOutput: () => MimiEncoderOutput,
 	MimiModel: () => MimiModel,
 	MimiPreTrainedModel: () => MimiPreTrainedModel,
+	Ministral3ForCausalLM: () => Ministral3ForCausalLM,
+	Ministral3Model: () => Ministral3Model,
+	Ministral3PreTrainedModel: () => Ministral3PreTrainedModel,
+	MinistralForCausalLM: () => MinistralForCausalLM,
+	MinistralModel: () => MinistralModel,
+	MinistralPreTrainedModel: () => MinistralPreTrainedModel,
+	Mistral3ForConditionalGeneration: () => Mistral3ForConditionalGeneration,
 	Mistral4ForCausalLM: () => Mistral4ForCausalLM,
 	Mistral4Model: () => Mistral4Model,
 	Mistral4PreTrainedModel: () => Mistral4PreTrainedModel,
@@ -22952,6 +24131,7 @@ __export(models_exports, {
 	MobileViTV2ForImageClassification: () => MobileViTV2ForImageClassification,
 	MobileViTV2Model: () => MobileViTV2Model,
 	MobileViTV2PreTrainedModel: () => MobileViTV2PreTrainedModel,
+	ModelOutput: () => ModelOutput,
 	ModernBertDecoderForCausalLM: () => ModernBertDecoderForCausalLM,
 	ModernBertDecoderModel: () => ModernBertDecoderModel,
 	ModernBertDecoderPreTrainedModel: () => ModernBertDecoderPreTrainedModel,
@@ -23038,6 +24218,7 @@ __export(models_exports, {
 	PyAnnoteForAudioFrameClassification: () => PyAnnoteForAudioFrameClassification,
 	PyAnnoteModel: () => PyAnnoteModel,
 	PyAnnotePreTrainedModel: () => PyAnnotePreTrainedModel,
+	QuestionAnsweringModelOutput: () => QuestionAnsweringModelOutput,
 	Qwen2ForCausalLM: () => Qwen2ForCausalLM,
 	Qwen2Model: () => Qwen2Model,
 	Qwen2MoeForCausalLM: () => Qwen2MoeForCausalLM,
@@ -23108,6 +24289,8 @@ __export(models_exports, {
 	SegformerForSemanticSegmentation: () => SegformerForSemanticSegmentation,
 	SegformerModel: () => SegformerModel,
 	SegformerPreTrainedModel: () => SegformerPreTrainedModel,
+	Seq2SeqLMOutput: () => Seq2SeqLMOutput,
+	SequenceClassifierOutput: () => SequenceClassifierOutput,
 	SiglipModel: () => SiglipModel,
 	SiglipPreTrainedModel: () => SiglipPreTrainedModel,
 	SiglipTextModel: () => SiglipTextModel,
@@ -23157,6 +24340,7 @@ __export(models_exports, {
 	TableTransformerModel: () => TableTransformerModel,
 	TableTransformerObjectDetectionOutput: () => TableTransformerObjectDetectionOutput,
 	TableTransformerPreTrainedModel: () => TableTransformerPreTrainedModel,
+	TokenClassifierOutput: () => TokenClassifierOutput,
 	TrOCRForCausalLM: () => TrOCRForCausalLM,
 	TrOCRPreTrainedModel: () => TrOCRPreTrainedModel,
 	UltravoxModel: () => UltravoxModel,
@@ -23231,7 +24415,10 @@ __export(models_exports, {
 	YolosPreTrainedModel: () => YolosPreTrainedModel,
 	YoutuForCausalLM: () => YoutuForCausalLM,
 	YoutuModel: () => YoutuModel,
-	YoutuPreTrainedModel: () => YoutuPreTrainedModel
+	YoutuPreTrainedModel: () => YoutuPreTrainedModel,
+	ZayaForCausalLM: () => ZayaForCausalLM,
+	ZayaModel: () => ZayaModel,
+	ZayaPreTrainedModel: () => ZayaPreTrainedModel
 });
 var AlbertPreTrainedModel = class extends PreTrainedModel {};
 var AlbertModel = class extends AlbertPreTrainedModel {};
@@ -23436,7 +24623,7 @@ var ChatterboxModel = class extends ChatterboxPreTrainedModel {
 	async encode_speech(audio_values) {
 		return sessionRun(this.sessions["speech_encoder"], { audio_values });
 	}
-	async forward({ input_ids = null, attention_mask = null, audio_values = null, exaggeration = null, position_ids = null, inputs_embeds = null, past_key_values = null, generation_config = null, logits_processor = null, audio_features = null, audio_tokens = null, speaker_embeddings = null, speaker_features = null, ...kwargs }) {
+	async forward({ input_ids = null, attention_mask = null, audio_values = null, exaggeration = null, position_ids = null, inputs_embeds = null, past_key_values = null, generation_config = null, logits_processor = null, num_logits_to_keep = null, audio_features = null, audio_tokens = null, speaker_embeddings = null, speaker_features = null, ...kwargs }) {
 		let speech_encoder_outputs;
 		if (!inputs_embeds) {
 			const expected_inputs = this.sessions["embed_tokens"].inputNames;
@@ -23476,7 +24663,8 @@ var ChatterboxModel = class extends ChatterboxPreTrainedModel {
 				past_key_values,
 				attention_mask,
 				generation_config,
-				logits_processor
+				logits_processor,
+				num_logits_to_keep
 			}, false),
 			...speech_encoder_outputs
 		};
@@ -23500,22 +24688,27 @@ var ChatterboxModel = class extends ChatterboxPreTrainedModel {
 	}
 	/** @type {PreTrainedModel['generate']} */
 	async generate(params) {
-		const { sequences, audio_tokens, speaker_embeddings, speaker_features } = await super.generate({
+		const supplied_past_key_values = params.past_key_values;
+		const { sequences, audio_tokens, speaker_embeddings, speaker_features, past_key_values } = await super.generate({
 			...params,
 			return_dict_in_generate: true
 		});
-		const new_tokens = sequences.slice(null, [params.input_ids.dims[1], -1]);
-		const speech_tokens = cat([
-			audio_tokens,
-			new_tokens,
-			full([new_tokens.dims[0], 3], SILENCE_TOKEN)
-		], 1);
-		const { waveform } = await sessionRun(this.sessions["conditional_decoder"], {
-			speech_tokens,
-			speaker_features,
-			speaker_embeddings
-		});
-		return waveform;
+		try {
+			const new_tokens = sequences.slice(null, [params.input_ids.dims[1], -1]);
+			const speech_tokens = cat([
+				audio_tokens,
+				new_tokens,
+				full([new_tokens.dims[0], 3], SILENCE_TOKEN)
+			], 1);
+			const { waveform } = await sessionRun(this.sessions["conditional_decoder"], {
+				speech_tokens,
+				speaker_features,
+				speaker_embeddings
+			});
+			return waveform;
+		} finally {
+			if (past_key_values !== supplied_past_key_values) await past_key_values?.dispose();
+		}
 	}
 };
 var ChineseCLIPPreTrainedModel = class extends PreTrainedModel {};
@@ -23813,6 +25006,9 @@ var DebertaForQuestionAnswering = class extends DebertaPreTrainedModel {
 var DeepseekV3PreTrainedModel = class extends PreTrainedModel {};
 var DeepseekV3Model = class extends DeepseekV3PreTrainedModel {};
 var DeepseekV3ForCausalLM = class extends DeepseekV3PreTrainedModel {};
+var DeepseekV4PreTrainedModel = class extends PreTrainedModel {};
+var DeepseekV4Model = class extends DeepseekV4PreTrainedModel {};
+var DeepseekV4ForCausalLM = class extends DeepseekV4PreTrainedModel {};
 var DebertaV2PreTrainedModel = class extends PreTrainedModel {};
 var DebertaV2Model = class extends DebertaV2PreTrainedModel {};
 var DebertaV2ForMaskedLM = class extends DebertaV2PreTrainedModel {
@@ -24183,7 +25379,7 @@ var Florence2ForConditionalGeneration = class extends Florence2PreTrainedModel {
 			attention_mask
 		};
 	}
-	async forward({ input_ids, pixel_values, attention_mask, decoder_input_ids, decoder_attention_mask, encoder_outputs, past_key_values, inputs_embeds, decoder_inputs_embeds }) {
+	async forward({ input_ids, pixel_values, attention_mask, decoder_input_ids, decoder_attention_mask, encoder_outputs, past_key_values, inputs_embeds, decoder_inputs_embeds, num_logits_to_keep = null }) {
 		if (!inputs_embeds) ({inputs_embeds, attention_mask} = await this._prepare_inputs_embeds({
 			input_ids,
 			pixel_values,
@@ -24206,7 +25402,8 @@ var Florence2ForConditionalGeneration = class extends Florence2PreTrainedModel {
 			attention_mask: decoder_attention_mask,
 			encoder_attention_mask: attention_mask,
 			encoder_hidden_states: encoder_outputs,
-			past_key_values
+			past_key_values,
+			num_logits_to_keep
 		};
 		return await decoder_forward(this, decoderFeeds, true);
 	}
@@ -24257,7 +25454,7 @@ var Gemma3nPreTrainedModel = class extends PreTrainedModel {
 	];
 };
 var Gemma3nForConditionalGeneration = class extends Gemma3nPreTrainedModel {
-	async forward({ input_ids = null, attention_mask = null, pixel_values = null, input_features = null, input_features_mask = null, position_ids = null, inputs_embeds = null, per_layer_inputs = null, past_key_values = null, generation_config = null, logits_processor = null, ...kwargs }) {
+	async forward({ input_ids = null, attention_mask = null, pixel_values = null, input_features = null, input_features_mask = null, position_ids = null, inputs_embeds = null, per_layer_inputs = null, past_key_values = null, generation_config = null, logits_processor = null, num_logits_to_keep = null, ...kwargs }) {
 		if (!inputs_embeds || !per_layer_inputs) {
 			({inputs_embeds, per_layer_inputs} = await sessionRun(this.sessions["embed_tokens"], { input_ids }));
 			if (input_ids.dims[1] !== 1) {
@@ -24294,7 +25491,8 @@ var Gemma3nForConditionalGeneration = class extends Gemma3nPreTrainedModel {
 			attention_mask,
 			position_ids,
 			generation_config,
-			logits_processor
+			logits_processor,
+			num_logits_to_keep
 		}, true);
 	}
 	_encode_vision(kwargs) {
@@ -24549,6 +25747,7 @@ var Qwen2VLForConditionalGeneration = class extends Qwen2VLPreTrainedModel {
 		});
 	}
 	prepare_inputs_for_generation(input_ids, model_inputs, generation_config) {
+		setNumLogitsToKeep(this, model_inputs, 1n);
 		if (!model_inputs.attention_mask || model_inputs.position_ids) return model_inputs;
 		if (!(this.sessions["decoder_model_merged"] ?? this.sessions["model"]).inputNames.includes("position_ids")) return model_inputs;
 		if (!model_inputs.past_key_values) [model_inputs.position_ids, model_inputs.rope_deltas] = this.get_rope_index(model_inputs.input_ids, model_inputs.image_grid_thw, model_inputs.video_grid_thw, model_inputs.attention_mask);
@@ -24712,6 +25911,21 @@ var HieraForImageClassification = class extends HieraPreTrainedModel {
 	*/
 	async _call(model_inputs) {
 		return new SequenceClassifierOutput(await super._call(model_inputs));
+	}
+};
+var HrmTextPreTrainedModel = class extends PreTrainedModel {};
+var HrmTextModel = class extends HrmTextPreTrainedModel {};
+var HrmTextForCausalLM = class extends HrmTextPreTrainedModel {
+	forward_params = [
+		"input_ids",
+		"attention_mask",
+		"token_type_ids",
+		"past_key_values"
+	];
+	prepare_inputs_for_generation(input_ids, model_inputs, generation_config) {
+		const prepared = decoder_prepare_inputs_for_generation(this, input_ids, model_inputs, generation_config);
+		prepared.token_type_ids = (prepared.past_key_values ? zeros_like : ones_like)(prepared.input_ids);
+		return prepared;
 	}
 };
 var Wav2Vec2PreTrainedModel = class extends PreTrainedModel {};
@@ -24980,9 +26194,16 @@ var MimiDecoderModel = class extends MimiPreTrainedModel {
 		});
 	}
 };
+var MinistralPreTrainedModel = class extends PreTrainedModel {};
+var MinistralModel = class extends MinistralPreTrainedModel {};
+var MinistralForCausalLM = class extends MinistralPreTrainedModel {};
+var Ministral3PreTrainedModel = class extends PreTrainedModel {};
+var Ministral3Model = class extends Ministral3PreTrainedModel {};
+var Ministral3ForCausalLM = class extends Ministral3PreTrainedModel {};
 var MistralPreTrainedModel = class extends PreTrainedModel {};
 var MistralModel = class extends MistralPreTrainedModel {};
 var MistralForCausalLM = class extends MistralPreTrainedModel {};
+var Mistral3ForConditionalGeneration = class extends LlavaForConditionalGeneration {};
 var Mistral4PreTrainedModel = class extends PreTrainedModel {};
 var Mistral4Model = class extends Mistral4PreTrainedModel {};
 var Mistral4ForCausalLM = class extends Mistral4PreTrainedModel {};
@@ -25233,6 +26454,7 @@ var MultiModalityCausalLM = class extends MultiModalityPreTrainedModel {
 	}
 	prepare_inputs_for_generation(input_ids, model_inputs, generation_config) {
 		const has_past_key_values = !!model_inputs.past_key_values;
+		setNumLogitsToKeep(this, model_inputs, 1n);
 		if (generation_config.guidance_scale !== null && generation_config.guidance_scale > 1) {
 			if (has_past_key_values) model_inputs.input_ids = cat([model_inputs.input_ids, model_inputs.input_ids], 0);
 			else {
@@ -25470,7 +26692,7 @@ var Phi3VPreTrainedModel = class extends PreTrainedModel {
 	];
 };
 var Phi3VForCausalLM = class extends Phi3VPreTrainedModel {
-	async forward({ input_ids = null, attention_mask = null, pixel_values = null, image_sizes = null, position_ids = null, inputs_embeds = null, past_key_values = null, generation_config = null, logits_processor = null, ...kwargs }) {
+	async forward({ input_ids = null, attention_mask = null, pixel_values = null, image_sizes = null, position_ids = null, inputs_embeds = null, past_key_values = null, generation_config = null, logits_processor = null, num_logits_to_keep = null, ...kwargs }) {
 		if (!inputs_embeds) {
 			let image_features;
 			if (pixel_values && input_ids.dims[1] !== 1) {
@@ -25494,7 +26716,8 @@ var Phi3VForCausalLM = class extends Phi3VPreTrainedModel {
 			attention_mask,
 			position_ids,
 			generation_config,
-			logits_processor
+			logits_processor,
+			num_logits_to_keep
 		}, false);
 	}
 };
@@ -25901,7 +27124,7 @@ var SpeechT5ForTextToSpeech = class extends SpeechT5PreTrainedModel {
 	* @param {number} [options.minlenratio=0.0] Used to calculate the minimum required length for the output sequence.
 	* @param {number} [options.maxlenratio=20.0] Used to calculate the maximum allowed length for the output sequence.
 	* @param {Object} [options.vocoder=null] The vocoder that converts the mel spectrogram into a speech waveform. If `null`, the output is the mel spectrogram.
-	* @param {boolean} [options.output_cross_attentions=false] Whether or not to return the attentions tensors of the decoder's cross-attention layers.
+	* @param {boolean} [options.output_cross_attentions=false] Whether to return attention tensors from the decoder's cross-attention layers.
 	* @returns {Promise<SpeechOutput>} A promise which resolves to an object containing the spectrogram, waveform, and cross-attention tensors.
 	*/
 	async generate_speech(input_values, speaker_embeddings, { threshold = .5, minlenratio = 0, maxlenratio = 20, vocoder = null } = {}) {
@@ -26710,7 +27933,7 @@ var WhisperForConditionalGeneration = class extends WhisperPreTrainedModel {
 		const weights = stack(alignment_heads.map(([l, h]) => {
 			if (l >= cross_attentions.length) throw new Error(`Layer index ${l} is out of bounds for cross attentions (length ${cross_attentions.length}).`);
 			return num_frames ? cross_attentions[l].slice(null, h, null, [0, num_frames]) : cross_attentions[l].slice(null, h);
-		})).transpose(1, 0, 2, 3);
+		})).permute(1, 0, 2, 3);
 		const [std, calculatedMean] = std_mean(weights, -2, 0, true);
 		const smoothedWeights = weights.clone();
 		for (let a = 0; a < smoothedWeights.dims[0]; ++a) {
@@ -26861,6 +28084,9 @@ var YolosObjectDetectionOutput = class extends ModelOutput {
 var YoutuPreTrainedModel = class extends PreTrainedModel {};
 var YoutuModel = class extends YoutuPreTrainedModel {};
 var YoutuForCausalLM = class extends YoutuPreTrainedModel {};
+var ZayaPreTrainedModel = class extends PreTrainedModel {};
+var ZayaModel = class extends ZayaPreTrainedModel {};
+var ZayaForCausalLM = class extends ZayaPreTrainedModel {};
 var MODEL_MAPPING_NAMES_ENCODER_ONLY = /* @__PURE__ */ new Map([
 	["bert", "BertModel"],
 	["eurobert", "EuroBertModel"],
@@ -27015,6 +28241,7 @@ var MODEL_MAPPING_NAMES_DECODER_ONLY = /* @__PURE__ */ new Map([
 	["ernie4_5", "Ernie4_5ForCausalLM"],
 	["starcoder2", "Starcoder2Model"],
 	["deepseek_v3", "DeepseekV3Model"],
+	["deepseek_v4", "DeepseekV4Model"],
 	["falcon", "FalconModel"],
 	["falcon_h1", "FalconH1Model"],
 	["nemotron_h", "NemotronHModel"],
@@ -27022,7 +28249,9 @@ var MODEL_MAPPING_NAMES_DECODER_ONLY = /* @__PURE__ */ new Map([
 	["stablelm", "StableLmModel"],
 	["modernbert-decoder", "ModernBertDecoderModel"],
 	["hunyuan_v1_dense", "HunYuanDenseV1Model"],
-	["youtu", "YoutuModel"]
+	["youtu", "YoutuModel"],
+	["zaya", "ZayaModel"],
+	["hrm_text", "HrmTextModel"]
 ]);
 var MODEL_FOR_SPEECH_SEQ_2_SEQ_MAPPING_NAMES = /* @__PURE__ */ new Map([
 	["speecht5", "SpeechT5ForSpeechToText"],
@@ -27154,6 +28383,7 @@ var MODEL_FOR_CAUSAL_LM_MAPPING_NAMES = /* @__PURE__ */ new Map([
 	["ernie4_5", "Ernie4_5ForCausalLM"],
 	["starcoder2", "Starcoder2ForCausalLM"],
 	["deepseek_v3", "DeepseekV3ForCausalLM"],
+	["deepseek_v4", "DeepseekV4ForCausalLM"],
 	["falcon", "FalconForCausalLM"],
 	["falcon_h1", "FalconH1ForCausalLM"],
 	["nemotron_h", "NemotronHForCausalLM"],
@@ -27163,6 +28393,8 @@ var MODEL_FOR_CAUSAL_LM_MAPPING_NAMES = /* @__PURE__ */ new Map([
 	["modernbert-decoder", "ModernBertDecoderForCausalLM"],
 	["hunyuan_v1_dense", "HunYuanDenseV1ForCausalLM"],
 	["youtu", "YoutuForCausalLM"],
+	["zaya", "ZayaForCausalLM"],
+	["hrm_text", "HrmTextForCausalLM"],
 	["phi3_v", "Phi3VForCausalLM"]
 ]);
 var MODEL_FOR_MULTIMODALITY_MAPPING_NAMES = /* @__PURE__ */ new Map([["multi_modality", "MultiModalityCausalLM"]]);
@@ -27584,7 +28816,10 @@ var PretrainedMixin = class {
 	}
 };
 var AutoModel = class extends PretrainedMixin {
-	/** @type {Map<string, Object>[]} */
+	/**
+	* @internal
+	* @type {Map<string, Object>[]}
+	*/
 	static MODEL_CLASS_MAPPINGS = MODEL_CLASS_TYPE_MAPPING.map((x) => x[0]);
 	static BASE_IF_FAIL = true;
 };
@@ -28243,7 +29478,7 @@ var AutomaticSpeechRecognitionPipeline = class extends Pipeline {
 				...kwargs,
 				...inputs
 			});
-			const text = this.processor.batch_decode(
+			const text = this.tokenizer.batch_decode(
 				/** @type {Tensor} */
 				outputs,
 				{ skip_special_tokens: true }
@@ -28948,12 +30183,16 @@ async function pipeline2(task, model = null, { progress_callback = null, config 
 		dtype
 	});
 	let files_loading = {};
-	if (progress_callback) (await Promise.all(expected_files.map(async (file) => get_file_metadata(model, file)))).forEach((m, i) => {
-		if (m.exists) files_loading[expected_files[i]] = {
-			loaded: 0,
-			total: m.size ?? 0
-		};
-	});
+	if (progress_callback) try {
+		(await Promise.all(expected_files.map(async (file) => get_file_metadata(model, file)))).forEach((m, i) => {
+			if (m.exists) files_loading[expected_files[i]] = {
+				loaded: 0,
+				total: m.size ?? 0
+			};
+		});
+	} catch (e) {
+		logger.warn(`Unable to fetch model file metadata for total progress tracking: ${e}`);
+	}
 	const pretrainedOptions = {
 		progress_callback: progress_callback ? new DefaultProgressCallback(progress_callback, files_loading) : void 0,
 		config,
@@ -29003,6 +30242,11 @@ async function pipeline2(task, model = null, { progress_callback = null, config 
 apis.IS_PROCESS_AVAILABLE;
 Object.keys(DEFAULT_DTYPE_SUFFIX_MAPPING);
 //#endregion
+//#region typescript/unreachable.ts
+function unreachable(x) {
+	throw new Error("This error will never be thrown. It is used for type safety.");
+}
+//#endregion
 //#region typescript/ai/worker.ts
 async function runAiAndFilterPersons(text) {
 	if (!extensionRoot) throw "Oops: Extension root not set";
@@ -29034,25 +30278,43 @@ async function handleInference(text) {
 		};
 	}
 }
+async function getNames(data) {
+	let names = await runAiAndFilterPersons(data.data.join(", "));
+	names = names.map((name) => name.replace(" - ", "-"));
+	console.log(names);
+	let result = {
+		...data,
+		output: names,
+		status: "complete"
+	};
+	self.postMessage(result);
+}
+async function findNames(data) {
+	let names = await runAiAndFilterPersons(data.data);
+	names = names.map((name) => name.replace(" - ", "-"));
+	console.log(names);
+	let result = {
+		...data,
+		output: names,
+		status: "complete"
+	};
+	self.postMessage(result);
+}
 self.onmessage = async (event) => {
-	if (event.data.type === "initPath") {
-		extensionRoot = event.data.data;
-		console.log("extensionRoot:", extensionRoot);
-		env.backends.onnx.wasm.wasmPaths = `${extensionRoot}ai/huggingWasmEngine/`;
-		console.log("Worker localized successfully!");
-		return;
-	} else if (event.data.type === "getNames") {
-		console.log("Worker received data:", event.data);
-		let names = await runAiAndFilterPersons(event.data.data.join(", "));
-		names = names.map((name) => name.replace(" - ", "-"));
-		console.log(names);
-		let result = {
-			...event.data,
-			output: names,
-			status: "complete"
-		};
-		self.postMessage(result);
-		return;
+	switch (event.data.type) {
+		case "initPath":
+			extensionRoot = event.data.data;
+			console.log("extensionRoot:", extensionRoot);
+			env.backends.onnx.wasm.wasmPaths = `${extensionRoot}ai/huggingWasmEngine/`;
+			console.log("Worker localized successfully!");
+			return;
+		case "getNames":
+			await getNames(event.data);
+			return;
+		case "findNames":
+			await findNames(event.data);
+			return;
+		default: unreachable(event.data);
 	}
 };
 let extensionRoot = "";

@@ -1,5 +1,7 @@
 import { env, pipeline } from '@huggingface/transformers';
-import {GetNames, WorkerRequest} from "./types";
+import {FindNamesInText, GetNames, WorkerRequest} from "./types";
+
+import {unreachable} from "../unreachable";
 
 async function runAiAndFilterPersons(text: string): Promise<string[]> {
     if(!extensionRoot){
@@ -49,25 +51,46 @@ async function handleInference(text: string) {
     }
 }
 
+async function getNames(data: GetNames) {
+    let names = await runAiAndFilterPersons(data.data.join(', '));
+    names = names.map(name => name.replace(" - ", "-"));
+    console.log(names);
+    let result: GetNames = {
+        ...data,
+        output: names,
+        status: 'complete'
+    };
+    self.postMessage(result); //todo: send return value in onmessage instead of posting it?
+}
+
+async function findNames(data: FindNamesInText) {
+    let names = await runAiAndFilterPersons(data.data);
+    names = names.map(name => name.replace(" - ", "-"));
+    console.log(names);
+    let result: FindNamesInText = {
+        ...data,
+        output: names,
+        status: 'complete'
+    };
+    self.postMessage(result); //todo: send return value in onmessage instead of posting it?
+}
+
 self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
-    if (event.data.type === "initPath") {
-        extensionRoot = event.data.data;
-        console.log("extensionRoot:", extensionRoot);
-        env.backends.onnx.wasm!.wasmPaths = `${extensionRoot}ai/huggingWasmEngine/`;
-        console.log("Worker localized successfully!");
-        return;
-    } else if(event.data.type === "getNames") {
-        console.log("Worker received data:", event.data);
-        let names = await runAiAndFilterPersons(event.data.data.join(', '));
-        names = names.map(name => name.replace(" - ", "-"));
-        console.log(names);
-        let result: GetNames = {
-            ...event.data,
-            output: names,
-            status: 'complete'
-        };
-        self.postMessage(result);
-        return;
+    switch (event.data.type) {
+        case "initPath":
+            extensionRoot = event.data.data;
+            console.log("extensionRoot:", extensionRoot);
+            env.backends.onnx.wasm!.wasmPaths = `${extensionRoot}ai/huggingWasmEngine/`;
+            console.log("Worker localized successfully!");
+            return;
+        case "getNames":
+            await getNames(event.data);
+            return;
+        case "findNames":
+            await findNames(event.data);
+            return;
+        default:
+            unreachable(event.data)
     }
 }
 

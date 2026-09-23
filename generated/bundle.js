@@ -3469,6 +3469,11 @@ async function scrapeTable(tableFetcher, rowConverter) {
 	return [...(await tableFetcher.fetch()).getRows()].map((row) => rowConverter(row)).filter((item) => item != null);
 }
 //#endregion
+//#region typescript/unreachable.ts
+function unreachable(x) {
+	throw new Error("This error will never be thrown. It is used for type safety.");
+}
+//#endregion
 //#region typescript/notifications/notifications.ts
 function getNotifRedButton() {
 	let notifButton = document.getElementById("notifButton");
@@ -8320,9 +8325,6 @@ function copyToClipboardOrRequestRetry(infoBar, text) {
 		});
 	});
 }
-function unreachable(x) {
-	throw new Error("This error will never be thrown. It is used for type safety.");
-}
 function pad(num, size) {
 	let text = num.toString();
 	while (text.length < size) text = "0" + text;
@@ -11638,6 +11640,10 @@ async function initWorker(onMessage) {
 }
 //#endregion
 //#region typescript/ai/api.ts
+let ai = {
+	getNames,
+	findNames
+};
 function onMessage(event) {
 	const { status } = event.data;
 	if (status != "complete") {
@@ -11648,11 +11654,16 @@ function onMessage(event) {
 }
 let onResultMap = {
 	getNames: (names) => console.log("AI list of names: ", names),
-	initPath: (data) => console.log("AI init path: ", data)
+	initPath: (data) => console.log("AI init path: ", data),
+	findNames: (data) => console.log("AI find names: ", data)
 };
-async function findPersonsInWorker(wordList, onResult) {
+async function getNames(wordList, onResult) {
 	onResultMap["getNames"] = onResult;
 	await sendRequest("getNames", wordList);
+}
+async function findNames(text, onResult) {
+	onResultMap["findNames"] = onResult;
+	await sendRequest("findNames", text);
 }
 async function sendRequest(type, data) {
 	(await initWorker(onMessage)).postMessage({
@@ -11736,8 +11747,7 @@ let global_currentEmailHtml = "";
 async function onTicket() {
 	let card_bodyDiv = document.querySelector(".card-body");
 	if (!card_bodyDiv) return;
-	let emailText = getHTMLTextWithNewlines(card_bodyDiv);
-	console.log(emailText);
+	let emailText = getHTMLTextWithNewlines(card_bodyDiv).replaceAll("Bijlage toevoegen...", "").replaceAll("via e-mail", "");
 	global_currentEmailHtml = card_bodyDiv.innerHTML;
 	let parseMailData = parseEmail(emailText);
 	console.log(parseMailData);
@@ -11757,7 +11767,7 @@ async function onTicket() {
 	const cards = document.querySelectorAll(".card-body");
 	let winner = findUniqueMatch(emailText, matchingLeerlingen);
 	if (winner) highlightText(cards, winner.name.split(",").map((name) => name.trim().split(" ")).flat().map((name) => name.trim()), "highlightedName");
-	await findPersonsInWorker(parseMailData.uniqueCapital, (data) => {
+	await ai.findNames(emailText, (data) => {
 		highlightText(cards, data.output, "highlightedName", ["light"]);
 	});
 }
