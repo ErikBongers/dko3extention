@@ -5,6 +5,16 @@ button.naked {
     padding: 0;
 }
 
+button.asLink {
+    background: none;
+    border: none;
+    color: inherit;
+    padding: 0;
+    &:hover {
+        color: var(--dko3-blue);
+    }
+}
+
 .hand {
     cursor: pointer;
 }

@@ -9787,7 +9787,7 @@ function getTeacherValue(ctx) {
 	let name = ctx.vakLeraar.leraar.replaceAll("{", "").replaceAll("}", "");
 	let element = emmet.indent.createElement(`
         span
-            button.bkgGray{${name}}
+            button.asLink{${name}}
     `);
 	let button = element.querySelector("button");
 	//! must have A element.

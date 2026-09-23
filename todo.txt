@@ -1,6 +1,3 @@
-* cleanup globals so it doesn't include anything but types.
-  > this, to avoid it executing module-level code from includes.
-
 * leerling: alt lessen: show if lln on wachtlijst
   > button to place on wachtlijst without leaving screen!!
     > no: breaks principle of not saving dko3 data in bkg.

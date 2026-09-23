@@ -85,7 +85,7 @@ function getTeacherValue(ctx: Context) {
 
     let element= emmet.indent.createElement(`
         span
-            button.bkgGray{${name}}
+            button.asLink{${name}}
     `);
     let button = element.querySelector("button")!; //! must have A element.
     button.addEventListener("click", async () => {
