@@ -418,6 +418,29 @@ export function getImmediateText(element: HTMLElement) {
     return [...element.childNodes].map(c => c.nodeType === 3 ? c.textContent : "").join("");
 }
 
+export function getHTMLTextWithNewlines(element: HTMLElement): string {
+    let text = "";
+    for (const child of element.childNodes) {
+        if (child.nodeType === Node.TEXT_NODE) {
+            text += child.textContent ?? "";
+        } else if (child.nodeType === Node.ELEMENT_NODE) {
+            const el = child as HTMLElement;
+            switch (el.tagName) {
+                case "BR":
+                    text += "\n";
+                    break;
+                case "DIV":
+                    text += "\n" + getHTMLTextWithNewlines(el);
+                    break;
+                default:
+                    text += getHTMLTextWithNewlines(el);
+                    break;
+            }
+        }
+    }
+    return text.replace(/\n{3,}/, '\n\n');
+}
+
 export function tryUntil(func: () => boolean) {
     if (!func())
         setTimeout(() => tryUntil(func), 100);

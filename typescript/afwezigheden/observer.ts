@@ -1,5 +1,12 @@
 import {ExactHashObserver} from "../pageObserver";
-import {fetchStudentsSearch, highlightText, rxEmail, setViewFromCurrentUrl, whoAmI} from "../globals";
+import {
+    fetchStudentsSearch,
+    getHTMLTextWithNewlines,
+    highlightText,
+    rxEmail,
+    setViewFromCurrentUrl,
+    whoAmI
+} from "../globals";
 import {emmet} from "../../libs/Emmeter/html";
 import {findPersonsInWorker} from "../ai/api";
 
@@ -106,10 +113,10 @@ interface MatchingLeerling {
 let global_currentEmailHtml = "";
 
 async function onTicket() {
-    let card_bodyDiv = document.querySelector(".card-body");
+    let card_bodyDiv = document.querySelector(".card-body") as HTMLDivElement | null;
     if(!card_bodyDiv)
         return;
-    let emailText = card_bodyDiv.textContent;
+    let emailText = getHTMLTextWithNewlines(card_bodyDiv);
     global_currentEmailHtml = card_bodyDiv.innerHTML;
 
     let parseMailData = parseEmail(emailText);

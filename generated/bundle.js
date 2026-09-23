@@ -8288,6 +8288,23 @@ function escapeRegexChars(text) {
 function getImmediateText(element) {
 	return [...element.childNodes].map((c) => c.nodeType === 3 ? c.textContent : "").join("");
 }
+function getHTMLTextWithNewlines(element) {
+	let text = "";
+	for (const child of element.childNodes) if (child.nodeType === Node.TEXT_NODE) text += child.textContent ?? "";
+	else if (child.nodeType === Node.ELEMENT_NODE) {
+		const el = child;
+		switch (el.tagName) {
+			case "BR":
+				text += "\n";
+				break;
+			case "DIV":
+				text += "\n" + getHTMLTextWithNewlines(el);
+				break;
+			default: text += getHTMLTextWithNewlines(el);
+		}
+	}
+	return text.replace(/\n{3,}/, "\n\n");
+}
 function tryUntilThen(func, then) {
 	if (func()) then();
 	else setTimeout(() => tryUntilThen(func, then), 100);
@@ -11719,7 +11736,8 @@ let global_currentEmailHtml = "";
 async function onTicket() {
 	let card_bodyDiv = document.querySelector(".card-body");
 	if (!card_bodyDiv) return;
-	let emailText = card_bodyDiv.textContent;
+	let emailText = getHTMLTextWithNewlines(card_bodyDiv);
+	console.log(emailText);
 	global_currentEmailHtml = card_bodyDiv.innerHTML;
 	let parseMailData = parseEmail(emailText);
 	console.log(parseMailData);

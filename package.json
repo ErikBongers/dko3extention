@@ -27,7 +27,7 @@
     "rollup-plugin-copy": "^3.5.0"
   },
   "dependencies": {
-    "@huggingface/transformers": "^4.2.0",
+    "@huggingface/transformers": "^4.3.0",
     "idb": "^8.0.3"
   }
 }
