@@ -57,6 +57,13 @@ body.otherSchool {
 }
 
 #werklijst_uren {
+    .studentPopover {
+        position-area: bottom span-right;
+        border-radius: 1ch;
+        border-top-left-radius: 0;
+        box-shadow: 0px 0px 20px 5px rgba(0, 0, 0, 0.2);
+        border-color: transparent;
+    }
     tr.darkRow {
         background-color: rgba(72, 61, 139, 0.08);
     }

@@ -10087,6 +10087,7 @@ function fillGraadCell(ctx) {
 	ctx.td.appendChild(popoverDiv);
 	popoverDiv.id = "students_" + popoverIndex;
 	popoverDiv.setAttribute("popover", "auto");
+	popoverDiv.classList.add("studentPopover");
 	for (let student of graadJaar.students) {
 		let studentDiv = document.createElement("div");
 		popoverDiv.appendChild(studentDiv);
