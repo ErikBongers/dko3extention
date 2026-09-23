@@ -64,6 +64,11 @@
 		peek() {
 			return this.tokenizer.clone().next();
 		}
+		peekSecond() {
+			let clone = this.tokenizer.clone();
+			clone.next();
+			return clone.next();
+		}
 	};
 	//#endregion
 	//#region libs/Emmeter/tokenizer/cursor.ts
@@ -108,10 +113,10 @@
 		getText(pos, length) {
 			return this.text.substring(pos, pos + length);
 		}
-		getTo(endChar) {
+		getTo(endChar, allowEscape = false) {
 			let start = this.currentPos + 1;
 			let end = start;
-			while (end < this.length && this.text[end] != endChar) end++;
+			while (end < this.length && (this.text[end] != endChar || this.text[end - 1] == "'")) end++;
 			if (end == this.length) return null;
 			this.currentPos = end;
 			return {
@@ -122,7 +127,7 @@
 		getToNot(notChar) {
 			let start = this.currentPos + 1;
 			let end = start;
-			while (end < this.length && this.text[end] == notChar) end++;
+			while (end < this.length && (this.text[end] == notChar || this.text[end - 1] == "'")) end++;
 			if (end == this.length) return null;
 			if (end == start) return null;
 			this.currentPos = end - 1;
@@ -314,6 +319,13 @@
 			if (next) this.throwAt(`Unexpected token: ${next.type}`, next);
 			return res;
 		}
+		eatEmptyLinesAndPeek() {
+			while (true) {
+				let token = this.tok.peek();
+				if (token?.type == "INDENT" && this.tok.peekSecond()?.type == "INDENT") this.tok.next();
+				else return token;
+			}
+		}
 		parsePlus(currentIndent) {
 			let list = [];
 			while (true) {
@@ -321,7 +333,7 @@
 				if (!el) return list.length === 1 ? list[0] : { list };
 				list.push(el);
 				if (this.match("+")) continue;
-				let indentToken = this.tok.peek();
+				let indentToken = this.eatEmptyLinesAndPeek();
 				if (indentToken?.type == "INDENT" && indentToken?.length == currentIndent) {
 					this.tok.next();
 					continue;
@@ -349,7 +361,7 @@
 				if (!this.match(")")) this.throwAt("Expected ')'", this.tok.peek());
 				return el;
 			}
-			let indentToken = this.tok.peek();
+			let indentToken = this.eatEmptyLinesAndPeek();
 			if (indentToken?.type == "INDENT") {
 				if (indentToken.length > currentIndent) {
 					this.tok.next();
@@ -402,7 +414,7 @@
 		}
 		parseDown(currentIndent) {
 			if (this.match(">")) return this.parsePlus(currentIndent);
-			let indentToken = this.tok.peek();
+			let indentToken = this.eatEmptyLinesAndPeek();
 			if (indentToken?.type == "INDENT" && indentToken?.length > currentIndent) {
 				this.tok.next();
 				return this.parsePlus(indentToken?.length);

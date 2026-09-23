@@ -1,5 +1,5 @@
 import {FULL_CLASS_BUTTON_ID, TRIM_DIV_ID} from "../def";
-import {db3, gotoTeacher, isButtonHighlighted, stripStudentName} from "../globals";
+import {db3, isButtonHighlighted, stripStudentName} from "../globals";
 import {BlockInfo, mergeBlockStudents, TableData} from "./convert";
 import {StudentInfo} from "./scrape";
 import * as html from "../../libs/Emmeter/html";
@@ -7,6 +7,7 @@ import {emmet} from "../../libs/Emmeter";
 import {PageName} from "../gotoState";
 import {getTrimPageElements} from "./observer";
 import {getPageSettings, PageSettings, savePageSettings} from "../pageState";
+import {gotoTeacher} from "../personeel/scrape";
 
 const NBSP: number = 160;
 

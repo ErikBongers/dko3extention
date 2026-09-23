@@ -5,6 +5,7 @@ import {Schoolyear} from "../globals";
 import {FetchedTable, TableFetcher} from "../table/tableFetcher";
 import {TableRef} from "../table/tableRef";
 import {TeacherRef} from "../db/sessionDb";
+import {getRepositoryCached} from "../globalSearch";
 
 export interface Teacher {
     id: string;
@@ -66,4 +67,13 @@ export class Dko3PersoneelFetcher extends TableFetcher {
         let getRows = () => table.querySelectorAll("tbody > tr") as NodeListOf<HTMLTableRowElement>;
         return {getRows, tableFetcher: this, getRowsAsArray: () => Array.from(getRows()), getTable: () => table};
     }
+}
+
+export async function gotoTeacher(firstName: string, lastName: string) {
+    let cache = await getRepositoryCached("TeacherRefs", scrapeTeachers);
+    let teachers = await cache.findMatches((ref) => ref.firstName === firstName && ref.lastName === lastName);
+    if (teachers.length === 0)
+        return;
+    let teacher = teachers[0];
+    location.href = "/#personeel-personeelslid?id=" + teacher.id;
 }

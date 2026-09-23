@@ -10,8 +10,6 @@ import {
 import {Actions, sendRequest, TabType} from "./messaging";
 import * as def from "./def"
 import {InfoBar} from "./infoBar";
-import {getRepositoryCached} from "./globalSearch";
-import {scrapeTeachers} from "./personeel/scrape";
 
 export let observers: Observer[] = [];
 export let settingsObservers: (() => void)[] = [];
@@ -581,11 +579,3 @@ export function highlightText(element: HTMLElement | NodeListOf<HTMLElement>, wo
     }
 }
 
-export async function gotoTeacher(firstName: string, lastName: string) {
-    let cache = await getRepositoryCached("TeacherRefs", scrapeTeachers);
-    let teachers = await cache.findMatches((ref) => ref.firstName === firstName && ref.lastName === lastName);
-    if (teachers.length === 0)
-        return;
-    let teacher = teachers[0];
-    location.href = "/#personeel-personeelslid?id=" + teacher.id;
-}

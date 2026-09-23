@@ -1,5 +1,5 @@
 import * as def from "../def";
-import {createValidId, getSchoolIdString, gotoTeacher, Schoolyear} from "../globals";
+import {createValidId, getSchoolIdString, Schoolyear} from "../globals";
 import {addStudentToVakLeraarsMap, StudentUrenRow, VakLeraar} from "./scrapeUren";
 import {cloud} from "../cloud";
 import {CloudData, UrenData} from "./urenData";
@@ -8,6 +8,7 @@ import {TeacherHoursSetupMapped} from "./hoursSettings";
 import observer from "./observer";
 import {InfoBlock} from "../infoBlock";
 import {makeTableSortable} from "../table/tableSort";
+import {gotoTeacher} from "../personeel/scrape";
 
 let isUpdatePaused = true;
 let cellChanged = false;

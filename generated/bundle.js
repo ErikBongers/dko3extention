@@ -669,6 +669,465 @@ function sendRequest$1(action, from, to, toId, data, pageTitle) {
 	return chrome.runtime.sendMessage(req);
 }
 //#endregion
+//#region typescript/globals.ts
+let observers = [];
+let settingsObservers = [];
+function db3(message) {
+	if (options?.showDebug) {
+		console.log(message);
+		let stack = Error().stack;
+		if (stack) console.log(stack.split("\n")[2]);
+	}
+}
+function createValidId(id) {
+	return id.replaceAll(" ", "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\W/g, "");
+}
+function registerObserver(observer) {
+	observers.push(observer);
+	if (observers.length > 20) console.error("Too many observers!");
+}
+function registerSettingsObserver(observer) {
+	settingsObservers.push(observer);
+	if (settingsObservers.length > 20) console.error("Too many settingsObservers!");
+}
+function setButtonHighlighted(buttonId, show) {
+	if (show) document.getElementById(buttonId).classList.add("toggled");
+	else document.getElementById(buttonId).classList.remove("toggled");
+}
+function addButton$1(targetElement, buttonId, title, clickFunction, imageId, classList, text = "", where = "beforebegin", imageFileName) {
+	if (document.getElementById(buttonId) === null) {
+		const button = document.createElement("button");
+		button.classList.add("btn", ...classList);
+		button.id = buttonId;
+		button.style.marginTop = "0";
+		button.onclick = clickFunction;
+		button.title = title;
+		if (text) {
+			let span = document.createElement("span");
+			button.appendChild(span);
+			span.innerText = text;
+		}
+		if (imageFileName) {
+			button.classList.add("svg");
+			emmet.appendChild(button, `img[src="${chrome.runtime.getURL("images/" + imageFileName)}"]`);
+		}
+		const buttonContent = document.createElement("i");
+		button.appendChild(buttonContent);
+		if (imageId) buttonContent.classList.add("fas", imageId);
+		targetElement.insertAdjacentElement(where, button);
+	}
+}
+let Schoolyear;
+(function(_Schoolyear) {
+	function getSelectElement() {
+		let selects = document.querySelectorAll("select");
+		return Array.from(selects).filter((element) => element.id.includes("schooljaar")).pop() ?? null;
+	}
+	_Schoolyear.getSelectElement = getSelectElement;
+	function getHighestAvailable() {
+		let el = getSelectElement();
+		if (!el) return void 0;
+		return Array.from(el.querySelectorAll("option")).map((option) => option.value).sort().pop();
+	}
+	_Schoolyear.getHighestAvailable = getHighestAvailable;
+	function findInPage() {
+		let el = getSelectElement();
+		if (el) return el.value;
+		el = document.querySelector("div.alert-info");
+		if (el) {
+			let txt = el.textContent;
+			let res = /[sS]chooljaar *[=:][\s\u00A0]*(\d{4}-\d{4})/gm.exec(txt);
+			if (res) return res[1];
+		}
+		el = document.querySelector("div.btn-toolbar");
+		if (el) {
+			let txt = el.textContent;
+			let res = /[sS]chooljaar *[=:]*[\s\u00A0]*(\d{4}-\d{4})/gm.exec(txt);
+			if (res) return res[1];
+		}
+		throw "Cannot find schoolyear in page.";
+	}
+	_Schoolyear.findInPage = findInPage;
+	function calculateCurrent() {
+		let now = /* @__PURE__ */ new Date();
+		let year = now.getFullYear();
+		if (now.getMonth() < 8) return year - 1;
+		return year;
+	}
+	_Schoolyear.calculateCurrent = calculateCurrent;
+	function calculateSetupYear() {
+		let now = /* @__PURE__ */ new Date();
+		let year = now.getFullYear();
+		if (now.getMonth() < 3) return year - 1;
+		return year;
+	}
+	_Schoolyear.calculateSetupYear = calculateSetupYear;
+	function toFullString(startYear) {
+		return `${startYear}-${startYear + 1}`;
+	}
+	_Schoolyear.toFullString = toFullString;
+	function toShortString(startYear) {
+		return `${startYear % 1e3}-${startYear % 1e3 + 1}`;
+	}
+	_Schoolyear.toShortString = toShortString;
+	function toNumbers(schoolyearString) {
+		let parts = schoolyearString.split("-").map((s) => parseInt(s));
+		return {
+			startYear: parts[0],
+			endYear: parts[1]
+		};
+	}
+	_Schoolyear.toNumbers = toNumbers;
+})(Schoolyear || (Schoolyear = {}));
+function getUserAndSchoolName() {
+	let footer = document.querySelector("body > main > div.row > div.col-auto.mr-auto > small");
+	const match = footer.textContent.match(/.*Je bent aangemeld als (.*)\s@\s(.*)\./);
+	if (match?.length !== 3) throw new Error(`Could not process footer text "${footer.textContent}"`);
+	return {
+		userName: match[1],
+		schoolName: match[2]
+	};
+}
+function getSchoolIdString() {
+	let { schoolName } = getUserAndSchoolName();
+	schoolName = schoolName.replace("Academie ", "").replace("Muziek", "M").replace("Woord", "W").replace("Dans", "D").replace("Beeld", "B").toLowerCase();
+	return createValidId(schoolName);
+}
+function millisToString(duration) {
+	let seconds = Math.floor(duration / 1e3 % 60);
+	let minutes = Math.floor(duration / 6e4 % 60);
+	let hours = Math.floor(duration / 36e5 % 24);
+	let days = Math.floor(duration / 864e5);
+	if (days > 0) return days + (days === 1 ? " dag" : " dagen");
+	else if (hours > 0) return hours + " uur";
+	else if (minutes > 0) return minutes + (minutes === 1 ? " minuut" : " minuten");
+	else if (seconds > 0) return seconds + " seconden";
+	else return "";
+}
+function dateDiffToString(oldestDate, newestDate) {
+	return millisToString(newestDate.getTime() - oldestDate.getTime());
+}
+function isAlphaNumeric(str) {
+	if (str.length > 1) return false;
+	let code;
+	let i;
+	let len;
+	for (i = 0, len = str.length; i < len; i++) {
+		code = str.charCodeAt(i);
+		if (!(code > 47 && code < 58) && !(code > 64 && code < 91) && !(code > 96 && code < 123)) return false;
+	}
+	return true;
+}
+function rangeGenerator(start, stop, step = 1) {
+	return Array(Math.ceil((stop - start) / step)).fill(start).map((x, y) => x + y * step);
+}
+function createSearchField(id, onSearchInput, value) {
+	let input = document.createElement("input");
+	input.type = "text";
+	input.id = id;
+	input.classList.add("tableFilter");
+	input.oninput = onSearchInput;
+	input.value = value;
+	input.placeholder = "filter";
+	let span = document.createElement("span");
+	span.classList.add("searchButton");
+	span.appendChild(input);
+	let { first: clearButton } = emmet.appendChild(span, `button>img[src="${chrome.runtime.getURL("images/circle-xmark-regular.svg")}"`);
+	clearButton.onclick = () => {
+		input.value = "";
+		input.oninput(void 0);
+		input.focus();
+	};
+	return span;
+}
+function getBothToolbars() {
+	let navigationBars = document.querySelectorAll("div.datatable-navigation-toolbar");
+	if (navigationBars.length < 2) return void 0;
+	return navigationBars;
+}
+function addTableNavigationButton(navigationBars, btnId, title, onClick, fontIconId) {
+	addButton$1(navigationBars[0].lastElementChild, btnId, title, onClick, fontIconId, ["btn-secondary"], "", "afterend");
+	return true;
+}
+function distinct(array) {
+	return [...new Set(array)];
+}
+async function fetchStudentsSearch(search) {
+	return fetch("/view.php?args=zoeken?zoek=" + encodeURIComponent(search)).then((response) => response.text()).then((_text) => fetch("/views/zoeken/index.view.php")).then((response) => response.text()).catch((err) => {
+		console.error("Request failed", err);
+		return "";
+	});
+}
+async function setViewFromCurrentUrl() {
+	let hash = window.location.hash.replace("#", "");
+	await fetch("/#" + hash).then((res) => res.text());
+	await fetch("view.php?args=" + hash).then((res) => res.text());
+}
+function equals(g1, g2) {
+	return g1.globalHide === g2.globalHide;
+}
+let rxEmail = /\w[\w.\-]*@\w+\.\w+/gm;
+function whoAmI() {
+	let scriptTexts = [...document.querySelectorAll("script")].map((s) => s.textContent).join();
+	return {
+		email: scriptTexts.match(rxEmail)[0],
+		name: scriptTexts.match(/name: '(.*)'/)[1]
+	};
+}
+function stripStudentName(name) {
+	return name.replaceAll(/[,()'-]/g, " ").replaceAll("  ", " ");
+}
+async function openHtmlTab(cacheId, pageTitle) {
+	return sendRequest$1("open_tab", "Main", "Html", void 0, { cacheId }, pageTitle);
+}
+async function openHoursSettings(schoolyear) {
+	return sendRequest$1("open_hours_settings", "Main", "Undefined", void 0, { schoolyear }, "Lerarenuren setup voor schooljaar " + schoolyear);
+}
+function createHtmlTable(headers, cols) {
+	let tmpDiv = document.createElement("div");
+	let { first: tmpTable, last: tmpThead } = emmet.appendChild(tmpDiv, "table>thead");
+	for (let th of headers) emmet.appendChild(tmpThead, `th{${th}}`);
+	let tmpTbody = tmpTable.appendChild(document.createElement("tbody"));
+	for (let tr of cols) {
+		let tmpTr = tmpTbody.appendChild(document.createElement("tr"));
+		for (let cell of tr) emmet.appendChild(tmpTr, `td{${cell}}`);
+	}
+	return tmpTable;
+}
+function isButtonHighlighted(buttonId) {
+	return document.getElementById(buttonId)?.classList.contains("toggled");
+}
+function range(startAt, upTo) {
+	if (upTo > startAt) return [...Array(upTo - startAt).keys()].map((n) => n + startAt);
+	else return [...Array(startAt - upTo).keys()].reverse().map((n) => n + upTo + 1);
+}
+async function getOptions() {
+	let items = await chrome.storage.sync.get(null);
+	Object.assign(options, items);
+	setGlobalSetting(await fetchGlobalSettings(getGlobalSettings()));
+}
+function arrayIsEqual(a, b) {
+	if (a === b) return true;
+	if (a == null || b == null) return false;
+	if (a.length != b.length) return false;
+	let aSet = new Set(a);
+	return b.every((value, _) => aSet.has(value));
+}
+function escapeRegexChars(text) {
+	return text.replaceAll("\\", "\\\\").replaceAll("^", "\\^").replaceAll("$", "\\$").replaceAll(".", "\\.").replaceAll("|", "\\|").replaceAll("?", "\\?").replaceAll("*", "\\*").replaceAll("+", "\\+").replaceAll("(", "\\(").replaceAll(")", "\\)").replaceAll("[", "\\[").replaceAll("]", "\\]").replaceAll("{", "\\{").replaceAll("}", "\\}");
+}
+function getImmediateText(element) {
+	return [...element.childNodes].map((c) => c.nodeType === 3 ? c.textContent : "").join("");
+}
+function getHTMLTextWithNewlines(element) {
+	let text = "";
+	for (const child of element.childNodes) if (child.nodeType === Node.TEXT_NODE) text += child.textContent ?? "";
+	else if (child.nodeType === Node.ELEMENT_NODE) {
+		const el = child;
+		switch (el.tagName) {
+			case "BR":
+				text += "\n";
+				break;
+			case "DIV":
+				text += "\n" + getHTMLTextWithNewlines(el);
+				break;
+			default: text += getHTMLTextWithNewlines(el);
+		}
+	}
+	return text.replace(/\n{3,}/, "\n\n");
+}
+function tryUntilThen(func, then) {
+	if (func()) then();
+	else setTimeout(() => tryUntilThen(func, then), 100);
+}
+function copyToClipboardOrRequestRetry(infoBar, text) {
+	navigator.clipboard.writeText(text).then((_r) => {
+		infoBar.setExtraInfo("Gegevens gekopieerd naar klipbord. <a id=copy_again href='javascript:void(0);'>Kopieer opnieuw</a>", COPY_AGAIN, () => {
+			copyToClipboardOrRequestRetry(infoBar, text);
+		});
+	}).catch((_reason) => {
+		infoBar.setExtraInfo("Kan niet kopiëren naar klipbord!!! <a id=copy_again href='javascript:void(0);'>Kopieer opnieuw</a>", COPY_AGAIN, () => {
+			copyToClipboardOrRequestRetry(infoBar, text);
+		});
+	});
+}
+function pad(num, size) {
+	let text = num.toString();
+	while (text.length < size) text = "0" + text;
+	return text;
+}
+var SlidingWindow = class {
+	array;
+	length;
+	pos;
+	constructor(enumerable) {
+		this.pos = -1;
+		this.array = [...enumerable];
+		this.length = this.array.length;
+	}
+	[Symbol.iterator]() {
+		return { next: () => {
+			this.pos++;
+			if (this.pos >= this.length) return {
+				done: true,
+				value: null
+			};
+			return {
+				done: false,
+				value: {
+					prev: this.peekPrev(),
+					current: this.array[this.pos],
+					next: this.peekNext()
+				}
+			};
+		} };
+	}
+	peekNext() {
+		if (this.pos + 1 > this.length) return null;
+		return this.array[this.pos + 1];
+	}
+	peekPrev() {
+		if (this.pos == 0) return null;
+		return this.array[this.pos - 1];
+	}
+	next() {
+		this.pos++;
+		if (this.pos >= this.length) return null;
+		return this.array[this.pos];
+	}
+};
+function wrapElement(element, tagName) {
+	let wrapper = document.createElement(tagName);
+	element.parentNode.insertBefore(wrapper, element);
+	wrapper.appendChild(element);
+	return wrapper;
+}
+function highlightText(element, wordList, highlightClassName, extraClasses = []) {
+	let cards = element instanceof HTMLElement ? [element] : element;
+	if (wordList.length === 0) return;
+	for (const card of cards) {
+		const walker = document.createTreeWalker(card, NodeFilter.SHOW_TEXT, { acceptNode(node) {
+			const parent = node.parentElement;
+			if (!parent) return NodeFilter.FILTER_REJECT;
+			if (parent.closest("." + highlightClassName)) return NodeFilter.FILTER_REJECT;
+			if (!node.textContent || !wordList.some((word) => node.textContent.includes(word))) return NodeFilter.FILTER_REJECT;
+			return NodeFilter.FILTER_ACCEPT;
+		} });
+		const textNodes = [];
+		while (walker.nextNode()) textNodes.push(walker.currentNode);
+		let rxWords = new RegExp(`(${wordList.join("|")})`, "gu");
+		for (const textNode of textNodes) {
+			const fragment = document.createDocumentFragment();
+			const text = textNode.textContent ?? "";
+			let lastIndex = 0;
+			for (const match of text.matchAll(rxWords)) {
+				const matchText = match[0];
+				const matchIndex = match.index ?? 0;
+				fragment.append(document.createTextNode(text.slice(lastIndex, matchIndex)));
+				const span = document.createElement("span");
+				span.classList.add(highlightClassName, ...extraClasses);
+				span.textContent = matchText;
+				fragment.append(span);
+				lastIndex = matchIndex + matchText.length;
+			}
+			fragment.append(document.createTextNode(text.slice(lastIndex)));
+			textNode.replaceWith(fragment);
+		}
+	}
+}
+//#endregion
+//#region typescript/gotoState.ts
+function saveGotoState(state) {
+	sessionStorage.setItem(STORAGE_GOTO_STATE_KEY, JSON.stringify(state));
+}
+function defaultGotoState(pageName) {
+	let pageState = {
+		goto: "",
+		pageName
+	};
+	if (pageName === "Werklijst") return {
+		werklijstTableName: "",
+		...pageState
+	};
+	if (pageName === "Start") return {
+		showPage: "start",
+		...pageState
+	};
+	return pageState;
+}
+function getGotoStateOrDefault(pageName) {
+	let jsonState = sessionStorage.getItem(STORAGE_GOTO_STATE_KEY);
+	if (!jsonState) return defaultGotoState(pageName);
+	let pageState = JSON.parse(jsonState);
+	if (pageState?.pageName === pageName) return pageState;
+	else return defaultGotoState(pageName);
+}
+//#endregion
+//#region typescript/menu.ts
+function setupMenu() {
+	if (!options.showPluginMenu) return;
+	let listItems = document.querySelector("#dko3_navbar > ul").querySelectorAll("li");
+	let lastItem = listItems[listItems.length - 1];
+	let { last: dropdown } = emmet.insertBefore(lastItem, `li.nav-item.dropdown>a{ Plugin }.nav-link.dropdown-toggle[href="#" role="button" data-toggle="dropdown" aria-expanded="false"]>div.dropdown-menu`);
+	let year = Schoolyear.calculateSetupYear();
+	let prevSchoolyearShort = Schoolyear.toShortString(year - 1);
+	let nextSchoolyearShort = Schoolyear.toShortString(year);
+	addMenuItem(dropdown, `Lerarenuren ${prevSchoolyearShort}`, gotoWerklijstUrenPrevYear);
+	addMenuItem(dropdown, `Lerarenuren ${nextSchoolyearShort}`, gotoWerklijstUrenNextYear);
+	addMenuItem(dropdown, "Vergelijk uurroosters", gotoDiffPage);
+	addMenuItem(dropdown, "Lessen snapshots", gotoSnapshotPage);
+}
+function addMenuItem(dropdown, label, func) {
+	let menu = emmet.appendChild(dropdown, `a.dropdown-item.pointer[href=\"#"]{${label}}`).first;
+	menu.onclick = () => {
+		func();
+	};
+}
+function gotoDiffPage() {
+	let pageState = getGotoStateOrDefault("Start");
+	pageState.goto = "Start_page";
+	pageState.showPage = "diff";
+	saveGotoState(pageState);
+	if (location.hash == "#start-mijn_tijdslijn") location.reload();
+	else location.href = "/#start-mijn_tijdslijn";
+}
+function gotoSnapshotPage() {
+	let pageState = getGotoStateOrDefault("Start");
+	pageState.goto = "Start_page";
+	pageState.showPage = "snapshots";
+	saveGotoState(pageState);
+	if (location.hash == "#start-mijn_tijdslijn") location.reload();
+	else location.href = "/#start-mijn_tijdslijn";
+}
+//#endregion
+//#region typescript/clampedValue.ts
+var ClampedValue = class {
+	_value = NaN;
+	min;
+	max;
+	changedHandler;
+	constructor(value, min, max, changedHandler) {
+		this.min = min;
+		this.max = max;
+		this.changedHandler = changedHandler;
+		this.value = value;
+	}
+	get value() {
+		return this._value;
+	}
+	set value(value) {
+		let oldValue = this._value;
+		if (isNaN(value)) this._value = this.min;
+		else this._value = Math.max(this.min, Math.min(this.max, value));
+		if (oldValue !== this.value) this.changedHandler?.(this.value);
+	}
+	setRange(min, max) {
+		this.min = min;
+		this.max = max;
+		this.value = this.value + parseInt("0");
+	}
+};
+//#endregion
 //#region typescript/tokenScanner.ts
 var ScannerElse = class {
 	scannerIf;
@@ -855,639 +1314,6 @@ async function fetchText(url, signal, post = false, params) {
 		body: new URLSearchParams(params)
 	}) : await fetch(url, { signal })).text();
 }
-//#endregion
-//#region typescript/roster_diff/excel.ts
-var ExcelPos = class {
-	row;
-	column;
-	constructor(row, column) {
-		this.row = row;
-		this.column = column;
-	}
-};
-var TablePos = class {
-	row;
-	column;
-	constructor(row, column) {
-		this.row = row;
-		this.column = column;
-	}
-	static toExcel(tablePos, table) {
-		return new ExcelPos(tablePos.row + table.tableRange.Start.row + table.rowHeaderCount, tablePos.column + table.tableRange.Start.column + table.columnHeaderCount);
-	}
-};
-var Range = class {
-	start;
-	end;
-	RowCount() {
-		return this.end.row - this.start.row + 1;
-	}
-	ColumnCount() {
-		return this.end.column - this.start.column + 1;
-	}
-	constructor(start, end) {
-		this.start = start;
-		this.end = end;
-	}
-};
-var ExcelRange = class extends Range {
-	constructor(start, end) {
-		super(start, end);
-	}
-	get Start() {
-		return this.start;
-	}
-	get End() {
-		return this.end;
-	}
-};
-var TableRange = class TableRange {
-	start;
-	end;
-	constructor(start, end) {
-		this.start = start;
-		this.end = end;
-	}
-	static FromExcel(excelRange, table) {
-		let startRow = excelRange.Start.row - table.tableRange.Start.row - table.rowHeaderCount;
-		let endRow = excelRange.End.row - table.tableRange.Start.row - table.rowHeaderCount;
-		let startColumn = excelRange.Start.column - table.tableRange.Start.column - table.columnHeaderCount;
-		let endColumn = excelRange.End.column - table.tableRange.Start.column - table.columnHeaderCount;
-		return new TableRange({
-			row: startRow,
-			column: startColumn
-		}, {
-			row: endRow,
-			column: endColumn
-		});
-	}
-	static ToExcel(tableRange, table) {
-		return new ExcelRange(TablePos.toExcel(tableRange.Start, table), TablePos.toExcel(tableRange.End, table));
-	}
-	get Start() {
-		return this.start;
-	}
-	get End() {
-		return this.end;
-	}
-};
-var ExcelData = class {
-	data;
-	mergedRanges;
-	url;
-	workbookName;
-	worksheetName;
-	constructor(data, mergedRanges, url, workbookName, worksheetName) {
-		this.data = data;
-		this.mergedRanges = mergedRanges.map((r) => new ExcelRange(r.start, r.end));
-		this.url = url;
-		if (this.url) {
-			let urlParams = new URLSearchParams(this.url.substring(this.url.indexOf("?") + 1));
-			urlParams.delete("activeCell");
-			this.url = this.url.substring(0, this.url.indexOf("?")) + "?" + urlParams.toString();
-		}
-		this.workbookName = workbookName;
-		this.worksheetName = worksheetName;
-	}
-	getMergedCellValue(excelPos) {
-		let mergedRange = this.getMergedRangeForCell(excelPos);
-		return this.data[mergedRange.Start.row][mergedRange.Start.column];
-	}
-	getMergedRangeForCell(excelPos) {
-		return this.mergedRanges.find((range) => {
-			return excelPos.row >= range.Start.row && excelPos.row <= range.End.row && excelPos.column >= range.Start.column && excelPos.column <= range.End.column;
-		}) ?? new ExcelRange(excelPos, excelPos);
-	}
-};
-var Table = class {
-	excelData;
-	tableRange;
-	rowHeaderCount;
-	columnHeaderCount;
-	excelToTableRange(excelRange) {
-		return TableRange.FromExcel(excelRange, this);
-	}
-	get ColumnCount() {
-		return this.tableRange.ColumnCount() - this.columnHeaderCount;
-	}
-	get RowCount() {
-		return this.tableRange.RowCount() - this.rowHeaderCount;
-	}
-	constructor(excelData, tableRange, rowHeaderCount, columnHeaderCount) {
-		this.excelData = excelData;
-		this.tableRange = tableRange;
-		this.rowHeaderCount = rowHeaderCount;
-		this.columnHeaderCount = columnHeaderCount;
-	}
-	Cell(row, column) {
-		let excelPos = {
-			row: this.tableRange.Start.row + this.rowHeaderCount + row,
-			column: this.tableRange.Start.column + this.columnHeaderCount + column
-		};
-		return this.excelData.getMergedCellValue(excelPos);
-	}
-	RangeOfCell(pos) {
-		let excelPos = {
-			row: this.tableRange.Start.row + this.rowHeaderCount + pos.row,
-			column: this.tableRange.Start.column + this.columnHeaderCount + pos.column
-		};
-		let exelRange = this.excelData.getMergedRangeForCell(excelPos) ?? new ExcelRange(excelPos, excelPos);
-		return TableRange.FromExcel(exelRange, this);
-	}
-	HeaderRowValue(headerRow, column) {
-		let excelPos = {
-			row: this.tableRange.Start.row + headerRow,
-			column: this.tableRange.Start.column + this.columnHeaderCount + column
-		};
-		return this.excelData.getMergedCellValue(excelPos);
-	}
-	HeaderColumnValue(row, headerColumn) {
-		let excelPos = {
-			row: this.tableRange.Start.row + this.rowHeaderCount + row,
-			column: this.tableRange.Start.column + headerColumn
-		};
-		return this.excelData.getMergedCellValue(excelPos);
-	}
-};
-//#endregion
-//#region typescript/roster_diff/rosterFactory.ts
-var RosterFactory = class RosterFactory {
-	excelData;
-	errors = [];
-	daysRow = void 0;
-	periodColumn = void 0;
-	tableRange = void 0;
-	constructor(jsonExcelData) {
-		this.excelData = new ExcelData(jsonExcelData.data, jsonExcelData.mergedRanges, jsonExcelData.url, jsonExcelData.workbookName, jsonExcelData.worksheetName);
-		this.daysRow = this.findDaysRow();
-		if (this.daysRow === void 0) {
-			this.errors.push("Geen rij met dagnamen gevonden.");
-			return;
-		}
-		this.periodColumn = this.findPeriodColumn(this.daysRow);
-		if (this.periodColumn === void 0) {
-			this.errors.push("Geen kolom met lesmomenten gevonden.");
-			return;
-		}
-		let lastPeriodRow = this.findLastPeriodRow(this.periodColumn);
-		let lastDayColumn = this.findLastDayColumn(this.periodColumn, this.daysRow);
-		if (lastDayColumn && lastPeriodRow) this.tableRange = new ExcelRange({
-			row: this.daysRow,
-			column: this.periodColumn
-		}, {
-			row: lastPeriodRow,
-			column: lastDayColumn
-		});
-	}
-	getErrors() {
-		return this.errors;
-	}
-	getTable() {
-		return new Table(this.excelData, this.tableRange, 2, 1);
-	}
-	findDaysRow() {
-		for (let [i, row] of this.excelData.data.entries()) if (this.isDaysRow(row)) return i;
-	}
-	isDaysRow(row) {
-		let matchCount = 0;
-		for (let value of row) {
-			if (RosterFactory.isDayName(value.toString())) matchCount++;
-			if (matchCount >= 3) return true;
-		}
-		return false;
-	}
-	static isDayName(text) {
-		return this.toDayName(text) != "";
-	}
-	static toDayName(text) {
-		switch (text.toLowerCase()) {
-			case "maandag": return "MAANDAG";
-			case "dinsdag": return "DINSDAG";
-			case "woensdag": return "WOENSDAG";
-			case "donderdag": return "DONDERDAG";
-			case "vrijdag": return "VRIJDAG";
-			case "zaterdag": return "ZATERDAG";
-			case "zondag": return "ZONDAG";
-			case "ma": return "MAANDAG";
-			case "di": return "DINSDAG";
-			case "din": return "DINSDAG";
-			case "wo": return "WOENSDAG";
-			case "woe": return "WOENSDAG";
-			case "do": return "DONDERDAG";
-			case "don": return "DONDERDAG";
-			case "vr": return "VRIJDAG";
-			case "za": return "ZATERDAG";
-			case "zat": return "ZATERDAG";
-			case "zo": return "ZONDAG";
-			case "zon": return "ZONDAG";
-			default: return "";
-		}
-	}
-	findPeriodColumn(daysRow) {
-		let columnCount = this.excelData.data[0].length;
-		for (let iCol = 0; iCol < columnCount; iCol++) for (let row of this.excelData.data.slice(daysRow)) {
-			let value = row[iCol].toString();
-			if (this.isPeriod(value)) return iCol;
-		}
-	}
-	isPeriod(text) {
-		return TimeSlice.parseTimeSlice(text);
-	}
-	findLastPeriodRow(periodColumn) {
-		return this.excelData.data.map((row, index) => this.isPeriod(row[periodColumn].toString()) ? index : -1).filter((n) => n > 0).pop();
-	}
-	findLastDayColumn(periodColumn, daysRow) {
-		for (let c = periodColumn + 1; c < this.excelData.data[0].length; c++) {
-			let cellValue = this.excelData.getMergedCellValue({
-				row: daysRow,
-				column: c
-			});
-			if (!RosterFactory.isDayName(cellValue)) return c - 1;
-		}
-		return this.excelData.data[0].length - 1;
-	}
-};
-//#endregion
-//#region typescript/table/tableNavigation.ts
-var TableNavigation = class {
-	step;
-	maxCount;
-	constructor(step, maxCount) {
-		this.step = step;
-		this.maxCount = maxCount;
-	}
-	steps() {
-		return Math.ceil(this.maxCount / this.step);
-	}
-	isOnePage() {
-		return this.step >= this.maxCount;
-	}
-};
-function findFirstNavigation(element) {
-	element = element ?? document.body;
-	let buttonPagination = element.querySelector("button.datatable-paging-numbers");
-	if (!buttonPagination) return void 0;
-	let buttonContainer = buttonPagination.closest("div");
-	if (!buttonContainer) return;
-	let matches = buttonPagination.innerText.match(/(\d*) tot (\d*) van (\d*)/);
-	if (!matches) return void 0;
-	let buttons = buttonContainer.querySelectorAll("button.btn-secondary");
-	let offsets = Array.from(buttons).filter((btn) => btn.attributes["onclick"]?.value.includes("goto(")).filter((btn) => !btn.querySelector("i.fa-fast-backward")).map((btn) => getGotoNumber(btn.attributes["onclick"].value));
-	let numbers = matches.slice(1).map((txt) => parseInt(txt));
-	if (numbers.length === 0) return void 0;
-	numbers[0] = numbers[0] - 1;
-	numbers = numbers.concat(offsets);
-	numbers.sort((a, b) => a - b);
-	numbers = [...new Set(numbers)];
-	return new TableNavigation(numbers[1] - numbers[0], numbers.pop());
-}
-function getGotoNumber(functionCall) {
-	return parseInt(functionCall.substring(functionCall.indexOf("goto(") + 5));
-}
-//#endregion
-//#region typescript/table/tableRef.ts
-var PlainTableRef = class {
-	htmlTableId;
-	constructor(htmlTableId) {
-		this.htmlTableId = htmlTableId;
-	}
-	getOrgTableContainer() {
-		return document.getElementById(this.htmlTableId).parentElement;
-	}
-	getOrgTableRows() {
-		return document.getElementById(this.htmlTableId).querySelectorAll("tbody > tr");
-	}
-	createElementAboveTable(element) {
-		let el = document.createElement(element);
-		document.getElementById(this.htmlTableId).insertAdjacentElement("beforebegin", el);
-		return el;
-	}
-	isFullyFetched() {
-		return true;
-	}
-};
-var DkoTableRef = class {
-	htmlTableId;
-	buildFetchPageUrl;
-	navigationData;
-	constructor(htmlTableId, navigationData, buildFetchUrl) {
-		this.htmlTableId = htmlTableId;
-		this.buildFetchPageUrl = buildFetchUrl;
-		this.navigationData = navigationData;
-	}
-	getOrgTableContainer() {
-		return document.getElementById(this.htmlTableId);
-	}
-	getOrgTableRows() {
-		return this.getOrgTableContainer().querySelectorAll("tbody > tr");
-	}
-	createElementAboveTable(element) {
-		let el = document.createElement(element);
-		this.getOrgTableContainer().insertAdjacentElement("beforebegin", el);
-		return el;
-	}
-	isFullyFetched() {
-		return this.getOrgTableContainer().querySelector("table").classList.contains("fullyFetched");
-	}
-};
-//#endregion
-//#region typescript/table/tableFetcher.ts
-function findTableRefInCode() {
-	let foundTableRef = findTable();
-	if (!foundTableRef) return void 0;
-	let buildFetchUrl = (offset) => `/views/ui/datatable.php?id=${foundTableRef.viewId}&start=${offset}&aantal=0`;
-	let navigation = findFirstNavigation();
-	if (!navigation) return void 0;
-	return new DkoTableRef(foundTableRef.tableId, navigation, buildFetchUrl);
-}
-function findTable() {
-	let table = document.querySelector("div.table-responsive > table");
-	if (!table) return null;
-	let tableId = table.id.replace("table_", "").replace("_table", "");
-	let parentDiv = document.querySelector("div#table_" + tableId);
-	let func = Array.from(parentDiv.querySelectorAll("script")).map((script) => script.text).join("\n").split("_goto(")[1].split(/ function *\w/)[0];
-	let viewId = / *datatable_id *= *'(.*)'/.exec(func)[1];
-	let url = /_table'\).load\('(.*?)\?id='\s*\+\s*datatable_id\s*\+\s*'&start='\s*\+\s*start/.exec(func)[1];
-	return {
-		tableId: table.id,
-		viewId,
-		url
-	};
-}
-var TableFetcher = class {
-	calculateTableCheckSum;
-	tableRef;
-	tableHandler;
-	listeners;
-	constructor(tableRef, calculateTableCheckSum, tableHandler) {
-		this.calculateTableCheckSum = calculateTableCheckSum;
-		this.tableRef = tableRef;
-		this.tableHandler = tableHandler;
-		this.listeners = [];
-	}
-	clearCache() {
-		db3(`Clear cache for ${this.tableRef.htmlTableId}.`);
-		window.sessionStorage.removeItem(this.getCacheId());
-		window.sessionStorage.removeItem(this.getCacheId() + CACHE_DATE_SUFFIX);
-	}
-	getCacheId() {
-		let checksum = "__" + this.calculateTableCheckSum(this);
-		return (this.tableRef.htmlTableId + checksum).replaceAll(/\s/g, "");
-	}
-	addListener(listener) {
-		this.listeners.push(listener);
-	}
-};
-var NavigatableTableFetcher = class extends TableFetcher {
-	isUsingCached = false;
-	shadowTableDate;
-	fetchedTable;
-	cancelRequested;
-	isFetchFinished;
-	constructor(tableRef, calculateTableCheckSum, tableHandler) {
-		super(tableRef, calculateTableCheckSum, tableHandler);
-		this.fetchedTable = void 0;
-		this.cancelRequested = false;
-		this.isFetchFinished = false;
-	}
-	reset() {
-		this.clearCache();
-		this.tableHandler?.onReset?.(this);
-	}
-	clearCache() {
-		super.clearCache();
-		this.fetchedTable = void 0;
-	}
-	async cancel() {
-		this.cancelRequested = true;
-		while (!this.isFetchFinished) await new Promise((resolve) => setTimeout(resolve));
-		this.clearCache();
-	}
-	getDkoTableRef() {
-		return this.tableRef;
-	}
-	loadFromCache() {
-		if (this.getDkoTableRef().navigationData.isOnePage()) return null;
-		db3(`Loading from cache: ${this.getCacheId()}.`);
-		let text = window.sessionStorage.getItem(this.getCacheId());
-		let dateString = window.sessionStorage.getItem(this.getCacheId() + CACHE_DATE_SUFFIX);
-		if (!text || !dateString) return void 0;
-		return {
-			text,
-			date: new Date(dateString)
-		};
-	}
-	async fetch() {
-		if (this.fetchedTable) {
-			this.onFinished(true);
-			return this.fetchedTable;
-		}
-		this.isFetchFinished = false;
-		let cachedData = this.loadFromCache();
-		let succes;
-		this.fetchedTable = new NavigatableFetchedTable(this);
-		if (cachedData) {
-			this.fetchedTable.addPage(cachedData.text);
-			this.shadowTableDate = cachedData.date;
-			this.isUsingCached = true;
-			this.onPageLoaded(1, cachedData.text);
-			this.onLoaded();
-			succes = true;
-		} else {
-			this.isUsingCached = false;
-			succes = await this.#fetchPages(this.fetchedTable);
-			if (!succes) {
-				this.onFinished(succes);
-				throw "Failed to fetch the pages.";
-			}
-			this.fetchedTable.saveToCache();
-			this.onLoaded();
-		}
-		this.onFinished(succes);
-		return this.fetchedTable;
-	}
-	onStartFetching() {
-		for (let lst of this.listeners) lst.onStartFetching?.(this);
-	}
-	onFinished(succes) {
-		this.isFetchFinished = true;
-		for (let lst of this.listeners) lst.onFinished?.(this, succes);
-	}
-	onPageLoaded(pageCnt, text) {
-		for (let lst of this.listeners) lst.onPageLoaded?.(this, pageCnt, text);
-	}
-	onLoaded() {
-		for (let lst of this.listeners) lst.onLoaded?.(this);
-	}
-	onBeforeLoadingPage() {
-		for (let lst of this.listeners) if (lst.onBeforeLoadingPage) {
-			if (!lst.onBeforeLoadingPage(this)) return false;
-		}
-		return true;
-	}
-	async #fetchPages(fetchedTable) {
-		if (!this.onBeforeLoadingPage()) return false;
-		await this.#doFetchAllPages(fetchedTable);
-		return true;
-	}
-	async #doFetchAllPages(fetchedTable) {
-		try {
-			this.onStartFetching();
-			let pageCnt = 0;
-			this.cancelRequested = false;
-			while (true) {
-				console.log("fetching page " + fetchedTable.getNextPageNumber());
-				let text = await (await fetch(this.getDkoTableRef().buildFetchPageUrl(fetchedTable.getNextOffset()))).text();
-				fetchedTable.addPage(text);
-				pageCnt++;
-				this.onPageLoaded(pageCnt, text);
-				if (pageCnt >= this.getDkoTableRef().navigationData.steps()) break;
-				if (this.cancelRequested) break;
-			}
-		} finally {}
-	}
-};
-var NavigatableFetchedTable = class {
-	shadowTableTemplate;
-	tableFetcher;
-	lastPageNumber;
-	lastPageStartRow;
-	constructor(tableDef) {
-		this.tableFetcher = tableDef;
-		this.lastPageNumber = -1;
-		this.lastPageStartRow = 0;
-		this.shadowTableTemplate = document.createElement("template");
-	}
-	getRows() {
-		return this.shadowTableTemplate.content.querySelectorAll("tbody tr:not(:has(i.fa-meh))");
-	}
-	getTable() {
-		return this.shadowTableTemplate.content.querySelector("table");
-	}
-	getRowsAsArray = () => Array.from(this.getRows());
-	getNextPageNumber = () => this.lastPageNumber + 1;
-	getNextOffset = () => this.getNextPageNumber() * this.tableFetcher.getDkoTableRef().navigationData.step;
-	getTemplate = () => this.shadowTableTemplate;
-	saveToCache(retry = true) {
-		db3(`Caching ${this.tableFetcher.getCacheId()}.`);
-		try {
-			window.sessionStorage.setItem(this.tableFetcher.getCacheId(), this.shadowTableTemplate.innerHTML);
-			window.sessionStorage.setItem(this.tableFetcher.getCacheId() + CACHE_DATE_SUFFIX, (/* @__PURE__ */ new Date()).toJSON());
-		} catch (e) {
-			console.error(e);
-			if (!retry) return;
-			console.log("Clearing session cache and trying again...");
-			let sessionKeys = Object.keys(window.sessionStorage);
-			for (let key of sessionKeys) if (key.startsWith("table_leerlingen_werklijst")) window.sessionStorage.removeItem(key);
-			this.saveToCache(false);
-		}
-	}
-	addPage(text) {
-		let pageTemplate;
-		pageTemplate = document.createElement("template");
-		pageTemplate.innerHTML = text;
-		let rows = pageTemplate.content.querySelectorAll("tbody > tr:not(:has(i.fa-meh))");
-		this.lastPageStartRow = this.getRows().length;
-		if (this.lastPageNumber === -1) {
-			this.shadowTableTemplate.innerHTML = text;
-			this.shadowTableTemplate.content.querySelector("tbody").innerHTML = "";
-		}
-		this.shadowTableTemplate.content.querySelector("tbody").append(...rows);
-		this.lastPageNumber++;
-	}
-};
-//#endregion
-//#region typescript/gotoState.ts
-function saveGotoState(state) {
-	sessionStorage.setItem(STORAGE_GOTO_STATE_KEY, JSON.stringify(state));
-}
-function defaultGotoState(pageName) {
-	let pageState = {
-		goto: "",
-		pageName
-	};
-	if (pageName === "Werklijst") return {
-		werklijstTableName: "",
-		...pageState
-	};
-	if (pageName === "Start") return {
-		showPage: "start",
-		...pageState
-	};
-	return pageState;
-}
-function getGotoStateOrDefault(pageName) {
-	let jsonState = sessionStorage.getItem(STORAGE_GOTO_STATE_KEY);
-	if (!jsonState) return defaultGotoState(pageName);
-	let pageState = JSON.parse(jsonState);
-	if (pageState?.pageName === pageName) return pageState;
-	else return defaultGotoState(pageName);
-}
-//#endregion
-//#region typescript/menu.ts
-function setupMenu() {
-	if (!options.showPluginMenu) return;
-	let listItems = document.querySelector("#dko3_navbar > ul").querySelectorAll("li");
-	let lastItem = listItems[listItems.length - 1];
-	let { last: dropdown } = emmet.insertBefore(lastItem, `li.nav-item.dropdown>a{ Plugin }.nav-link.dropdown-toggle[href="#" role="button" data-toggle="dropdown" aria-expanded="false"]>div.dropdown-menu`);
-	let year = Schoolyear.calculateSetupYear();
-	let prevSchoolyearShort = Schoolyear.toShortString(year - 1);
-	let nextSchoolyearShort = Schoolyear.toShortString(year);
-	addMenuItem(dropdown, `Lerarenuren ${prevSchoolyearShort}`, gotoWerklijstUrenPrevYear);
-	addMenuItem(dropdown, `Lerarenuren ${nextSchoolyearShort}`, gotoWerklijstUrenNextYear);
-	addMenuItem(dropdown, "Vergelijk uurroosters", gotoDiffPage);
-	addMenuItem(dropdown, "Lessen snapshots", gotoSnapshotPage);
-}
-function addMenuItem(dropdown, label, func) {
-	let menu = emmet.appendChild(dropdown, `a.dropdown-item.pointer[href=\"#"]{${label}}`).first;
-	menu.onclick = () => {
-		func();
-	};
-}
-function gotoDiffPage() {
-	let pageState = getGotoStateOrDefault("Start");
-	pageState.goto = "Start_page";
-	pageState.showPage = "diff";
-	saveGotoState(pageState);
-	if (location.hash == "#start-mijn_tijdslijn") location.reload();
-	else location.href = "/#start-mijn_tijdslijn";
-}
-function gotoSnapshotPage() {
-	let pageState = getGotoStateOrDefault("Start");
-	pageState.goto = "Start_page";
-	pageState.showPage = "snapshots";
-	saveGotoState(pageState);
-	if (location.hash == "#start-mijn_tijdslijn") location.reload();
-	else location.href = "/#start-mijn_tijdslijn";
-}
-//#endregion
-//#region typescript/clampedValue.ts
-var ClampedValue = class {
-	_value = NaN;
-	min;
-	max;
-	changedHandler;
-	constructor(value, min, max, changedHandler) {
-		this.min = min;
-		this.max = max;
-		this.changedHandler = changedHandler;
-		this.value = value;
-	}
-	get value() {
-		return this._value;
-	}
-	set value(value) {
-		let oldValue = this._value;
-		if (isNaN(value)) this._value = this.min;
-		else this._value = Math.max(this.min, Math.min(this.max, value));
-		if (oldValue !== this.value) this.changedHandler?.(this.value);
-	}
-	setRange(min, max) {
-		this.min = min;
-		this.max = max;
-		this.value = this.value + parseInt("0");
-	}
-};
 //#endregion
 //#region typescript/restorePage.ts
 let savedUrl = "";
@@ -2731,6 +2557,547 @@ var MenuScrapingObserver = class MenuScrapingObserver extends ExactHashObserver 
 	static defaultLinkToQueryItem(headerLabel, link, longLabelPrefix) {
 		let label = link.textContent.trim();
 		return createQueryItem(headerLabel, label, link.href, void 0, longLabelPrefix + label);
+	}
+};
+//#endregion
+//#region typescript/roster_diff/excel.ts
+var ExcelPos = class {
+	row;
+	column;
+	constructor(row, column) {
+		this.row = row;
+		this.column = column;
+	}
+};
+var TablePos = class {
+	row;
+	column;
+	constructor(row, column) {
+		this.row = row;
+		this.column = column;
+	}
+	static toExcel(tablePos, table) {
+		return new ExcelPos(tablePos.row + table.tableRange.Start.row + table.rowHeaderCount, tablePos.column + table.tableRange.Start.column + table.columnHeaderCount);
+	}
+};
+var Range = class {
+	start;
+	end;
+	RowCount() {
+		return this.end.row - this.start.row + 1;
+	}
+	ColumnCount() {
+		return this.end.column - this.start.column + 1;
+	}
+	constructor(start, end) {
+		this.start = start;
+		this.end = end;
+	}
+};
+var ExcelRange = class extends Range {
+	constructor(start, end) {
+		super(start, end);
+	}
+	get Start() {
+		return this.start;
+	}
+	get End() {
+		return this.end;
+	}
+};
+var TableRange = class TableRange {
+	start;
+	end;
+	constructor(start, end) {
+		this.start = start;
+		this.end = end;
+	}
+	static FromExcel(excelRange, table) {
+		let startRow = excelRange.Start.row - table.tableRange.Start.row - table.rowHeaderCount;
+		let endRow = excelRange.End.row - table.tableRange.Start.row - table.rowHeaderCount;
+		let startColumn = excelRange.Start.column - table.tableRange.Start.column - table.columnHeaderCount;
+		let endColumn = excelRange.End.column - table.tableRange.Start.column - table.columnHeaderCount;
+		return new TableRange({
+			row: startRow,
+			column: startColumn
+		}, {
+			row: endRow,
+			column: endColumn
+		});
+	}
+	static ToExcel(tableRange, table) {
+		return new ExcelRange(TablePos.toExcel(tableRange.Start, table), TablePos.toExcel(tableRange.End, table));
+	}
+	get Start() {
+		return this.start;
+	}
+	get End() {
+		return this.end;
+	}
+};
+var ExcelData = class {
+	data;
+	mergedRanges;
+	url;
+	workbookName;
+	worksheetName;
+	constructor(data, mergedRanges, url, workbookName, worksheetName) {
+		this.data = data;
+		this.mergedRanges = mergedRanges.map((r) => new ExcelRange(r.start, r.end));
+		this.url = url;
+		if (this.url) {
+			let urlParams = new URLSearchParams(this.url.substring(this.url.indexOf("?") + 1));
+			urlParams.delete("activeCell");
+			this.url = this.url.substring(0, this.url.indexOf("?")) + "?" + urlParams.toString();
+		}
+		this.workbookName = workbookName;
+		this.worksheetName = worksheetName;
+	}
+	getMergedCellValue(excelPos) {
+		let mergedRange = this.getMergedRangeForCell(excelPos);
+		return this.data[mergedRange.Start.row][mergedRange.Start.column];
+	}
+	getMergedRangeForCell(excelPos) {
+		return this.mergedRanges.find((range) => {
+			return excelPos.row >= range.Start.row && excelPos.row <= range.End.row && excelPos.column >= range.Start.column && excelPos.column <= range.End.column;
+		}) ?? new ExcelRange(excelPos, excelPos);
+	}
+};
+var Table = class {
+	excelData;
+	tableRange;
+	rowHeaderCount;
+	columnHeaderCount;
+	excelToTableRange(excelRange) {
+		return TableRange.FromExcel(excelRange, this);
+	}
+	get ColumnCount() {
+		return this.tableRange.ColumnCount() - this.columnHeaderCount;
+	}
+	get RowCount() {
+		return this.tableRange.RowCount() - this.rowHeaderCount;
+	}
+	constructor(excelData, tableRange, rowHeaderCount, columnHeaderCount) {
+		this.excelData = excelData;
+		this.tableRange = tableRange;
+		this.rowHeaderCount = rowHeaderCount;
+		this.columnHeaderCount = columnHeaderCount;
+	}
+	Cell(row, column) {
+		let excelPos = {
+			row: this.tableRange.Start.row + this.rowHeaderCount + row,
+			column: this.tableRange.Start.column + this.columnHeaderCount + column
+		};
+		return this.excelData.getMergedCellValue(excelPos);
+	}
+	RangeOfCell(pos) {
+		let excelPos = {
+			row: this.tableRange.Start.row + this.rowHeaderCount + pos.row,
+			column: this.tableRange.Start.column + this.columnHeaderCount + pos.column
+		};
+		let exelRange = this.excelData.getMergedRangeForCell(excelPos) ?? new ExcelRange(excelPos, excelPos);
+		return TableRange.FromExcel(exelRange, this);
+	}
+	HeaderRowValue(headerRow, column) {
+		let excelPos = {
+			row: this.tableRange.Start.row + headerRow,
+			column: this.tableRange.Start.column + this.columnHeaderCount + column
+		};
+		return this.excelData.getMergedCellValue(excelPos);
+	}
+	HeaderColumnValue(row, headerColumn) {
+		let excelPos = {
+			row: this.tableRange.Start.row + this.rowHeaderCount + row,
+			column: this.tableRange.Start.column + headerColumn
+		};
+		return this.excelData.getMergedCellValue(excelPos);
+	}
+};
+//#endregion
+//#region typescript/roster_diff/rosterFactory.ts
+var RosterFactory = class RosterFactory {
+	excelData;
+	errors = [];
+	daysRow = void 0;
+	periodColumn = void 0;
+	tableRange = void 0;
+	constructor(jsonExcelData) {
+		this.excelData = new ExcelData(jsonExcelData.data, jsonExcelData.mergedRanges, jsonExcelData.url, jsonExcelData.workbookName, jsonExcelData.worksheetName);
+		this.daysRow = this.findDaysRow();
+		if (this.daysRow === void 0) {
+			this.errors.push("Geen rij met dagnamen gevonden.");
+			return;
+		}
+		this.periodColumn = this.findPeriodColumn(this.daysRow);
+		if (this.periodColumn === void 0) {
+			this.errors.push("Geen kolom met lesmomenten gevonden.");
+			return;
+		}
+		let lastPeriodRow = this.findLastPeriodRow(this.periodColumn);
+		let lastDayColumn = this.findLastDayColumn(this.periodColumn, this.daysRow);
+		if (lastDayColumn && lastPeriodRow) this.tableRange = new ExcelRange({
+			row: this.daysRow,
+			column: this.periodColumn
+		}, {
+			row: lastPeriodRow,
+			column: lastDayColumn
+		});
+	}
+	getErrors() {
+		return this.errors;
+	}
+	getTable() {
+		return new Table(this.excelData, this.tableRange, 2, 1);
+	}
+	findDaysRow() {
+		for (let [i, row] of this.excelData.data.entries()) if (this.isDaysRow(row)) return i;
+	}
+	isDaysRow(row) {
+		let matchCount = 0;
+		for (let value of row) {
+			if (RosterFactory.isDayName(value.toString())) matchCount++;
+			if (matchCount >= 3) return true;
+		}
+		return false;
+	}
+	static isDayName(text) {
+		return this.toDayName(text) != "";
+	}
+	static toDayName(text) {
+		switch (text.toLowerCase()) {
+			case "maandag": return "MAANDAG";
+			case "dinsdag": return "DINSDAG";
+			case "woensdag": return "WOENSDAG";
+			case "donderdag": return "DONDERDAG";
+			case "vrijdag": return "VRIJDAG";
+			case "zaterdag": return "ZATERDAG";
+			case "zondag": return "ZONDAG";
+			case "ma": return "MAANDAG";
+			case "di": return "DINSDAG";
+			case "din": return "DINSDAG";
+			case "wo": return "WOENSDAG";
+			case "woe": return "WOENSDAG";
+			case "do": return "DONDERDAG";
+			case "don": return "DONDERDAG";
+			case "vr": return "VRIJDAG";
+			case "za": return "ZATERDAG";
+			case "zat": return "ZATERDAG";
+			case "zo": return "ZONDAG";
+			case "zon": return "ZONDAG";
+			default: return "";
+		}
+	}
+	findPeriodColumn(daysRow) {
+		let columnCount = this.excelData.data[0].length;
+		for (let iCol = 0; iCol < columnCount; iCol++) for (let row of this.excelData.data.slice(daysRow)) {
+			let value = row[iCol].toString();
+			if (this.isPeriod(value)) return iCol;
+		}
+	}
+	isPeriod(text) {
+		return TimeSlice.parseTimeSlice(text);
+	}
+	findLastPeriodRow(periodColumn) {
+		return this.excelData.data.map((row, index) => this.isPeriod(row[periodColumn].toString()) ? index : -1).filter((n) => n > 0).pop();
+	}
+	findLastDayColumn(periodColumn, daysRow) {
+		for (let c = periodColumn + 1; c < this.excelData.data[0].length; c++) {
+			let cellValue = this.excelData.getMergedCellValue({
+				row: daysRow,
+				column: c
+			});
+			if (!RosterFactory.isDayName(cellValue)) return c - 1;
+		}
+		return this.excelData.data[0].length - 1;
+	}
+};
+//#endregion
+//#region typescript/table/tableNavigation.ts
+var TableNavigation = class {
+	step;
+	maxCount;
+	constructor(step, maxCount) {
+		this.step = step;
+		this.maxCount = maxCount;
+	}
+	steps() {
+		return Math.ceil(this.maxCount / this.step);
+	}
+	isOnePage() {
+		return this.step >= this.maxCount;
+	}
+};
+function findFirstNavigation(element) {
+	element = element ?? document.body;
+	let buttonPagination = element.querySelector("button.datatable-paging-numbers");
+	if (!buttonPagination) return void 0;
+	let buttonContainer = buttonPagination.closest("div");
+	if (!buttonContainer) return;
+	let matches = buttonPagination.innerText.match(/(\d*) tot (\d*) van (\d*)/);
+	if (!matches) return void 0;
+	let buttons = buttonContainer.querySelectorAll("button.btn-secondary");
+	let offsets = Array.from(buttons).filter((btn) => btn.attributes["onclick"]?.value.includes("goto(")).filter((btn) => !btn.querySelector("i.fa-fast-backward")).map((btn) => getGotoNumber(btn.attributes["onclick"].value));
+	let numbers = matches.slice(1).map((txt) => parseInt(txt));
+	if (numbers.length === 0) return void 0;
+	numbers[0] = numbers[0] - 1;
+	numbers = numbers.concat(offsets);
+	numbers.sort((a, b) => a - b);
+	numbers = [...new Set(numbers)];
+	return new TableNavigation(numbers[1] - numbers[0], numbers.pop());
+}
+function getGotoNumber(functionCall) {
+	return parseInt(functionCall.substring(functionCall.indexOf("goto(") + 5));
+}
+//#endregion
+//#region typescript/table/tableRef.ts
+var PlainTableRef = class {
+	htmlTableId;
+	constructor(htmlTableId) {
+		this.htmlTableId = htmlTableId;
+	}
+	getOrgTableContainer() {
+		return document.getElementById(this.htmlTableId).parentElement;
+	}
+	getOrgTableRows() {
+		return document.getElementById(this.htmlTableId).querySelectorAll("tbody > tr");
+	}
+	createElementAboveTable(element) {
+		let el = document.createElement(element);
+		document.getElementById(this.htmlTableId).insertAdjacentElement("beforebegin", el);
+		return el;
+	}
+	isFullyFetched() {
+		return true;
+	}
+};
+var DkoTableRef = class {
+	htmlTableId;
+	buildFetchPageUrl;
+	navigationData;
+	constructor(htmlTableId, navigationData, buildFetchUrl) {
+		this.htmlTableId = htmlTableId;
+		this.buildFetchPageUrl = buildFetchUrl;
+		this.navigationData = navigationData;
+	}
+	getOrgTableContainer() {
+		return document.getElementById(this.htmlTableId);
+	}
+	getOrgTableRows() {
+		return this.getOrgTableContainer().querySelectorAll("tbody > tr");
+	}
+	createElementAboveTable(element) {
+		let el = document.createElement(element);
+		this.getOrgTableContainer().insertAdjacentElement("beforebegin", el);
+		return el;
+	}
+	isFullyFetched() {
+		return this.getOrgTableContainer().querySelector("table").classList.contains("fullyFetched");
+	}
+};
+//#endregion
+//#region typescript/table/tableFetcher.ts
+function findTableRefInCode() {
+	let foundTableRef = findTable();
+	if (!foundTableRef) return void 0;
+	let buildFetchUrl = (offset) => `/views/ui/datatable.php?id=${foundTableRef.viewId}&start=${offset}&aantal=0`;
+	let navigation = findFirstNavigation();
+	if (!navigation) return void 0;
+	return new DkoTableRef(foundTableRef.tableId, navigation, buildFetchUrl);
+}
+function findTable() {
+	let table = document.querySelector("div.table-responsive > table");
+	if (!table) return null;
+	let tableId = table.id.replace("table_", "").replace("_table", "");
+	let parentDiv = document.querySelector("div#table_" + tableId);
+	let func = Array.from(parentDiv.querySelectorAll("script")).map((script) => script.text).join("\n").split("_goto(")[1].split(/ function *\w/)[0];
+	let viewId = / *datatable_id *= *'(.*)'/.exec(func)[1];
+	let url = /_table'\).load\('(.*?)\?id='\s*\+\s*datatable_id\s*\+\s*'&start='\s*\+\s*start/.exec(func)[1];
+	return {
+		tableId: table.id,
+		viewId,
+		url
+	};
+}
+var TableFetcher = class {
+	calculateTableCheckSum;
+	tableRef;
+	tableHandler;
+	listeners;
+	constructor(tableRef, calculateTableCheckSum, tableHandler) {
+		this.calculateTableCheckSum = calculateTableCheckSum;
+		this.tableRef = tableRef;
+		this.tableHandler = tableHandler;
+		this.listeners = [];
+	}
+	clearCache() {
+		db3(`Clear cache for ${this.tableRef.htmlTableId}.`);
+		window.sessionStorage.removeItem(this.getCacheId());
+		window.sessionStorage.removeItem(this.getCacheId() + CACHE_DATE_SUFFIX);
+	}
+	getCacheId() {
+		let checksum = "__" + this.calculateTableCheckSum(this);
+		return (this.tableRef.htmlTableId + checksum).replaceAll(/\s/g, "");
+	}
+	addListener(listener) {
+		this.listeners.push(listener);
+	}
+};
+var NavigatableTableFetcher = class extends TableFetcher {
+	isUsingCached = false;
+	shadowTableDate;
+	fetchedTable;
+	cancelRequested;
+	isFetchFinished;
+	constructor(tableRef, calculateTableCheckSum, tableHandler) {
+		super(tableRef, calculateTableCheckSum, tableHandler);
+		this.fetchedTable = void 0;
+		this.cancelRequested = false;
+		this.isFetchFinished = false;
+	}
+	reset() {
+		this.clearCache();
+		this.tableHandler?.onReset?.(this);
+	}
+	clearCache() {
+		super.clearCache();
+		this.fetchedTable = void 0;
+	}
+	async cancel() {
+		this.cancelRequested = true;
+		while (!this.isFetchFinished) await new Promise((resolve) => setTimeout(resolve));
+		this.clearCache();
+	}
+	getDkoTableRef() {
+		return this.tableRef;
+	}
+	loadFromCache() {
+		if (this.getDkoTableRef().navigationData.isOnePage()) return null;
+		db3(`Loading from cache: ${this.getCacheId()}.`);
+		let text = window.sessionStorage.getItem(this.getCacheId());
+		let dateString = window.sessionStorage.getItem(this.getCacheId() + CACHE_DATE_SUFFIX);
+		if (!text || !dateString) return void 0;
+		return {
+			text,
+			date: new Date(dateString)
+		};
+	}
+	async fetch() {
+		if (this.fetchedTable) {
+			this.onFinished(true);
+			return this.fetchedTable;
+		}
+		this.isFetchFinished = false;
+		let cachedData = this.loadFromCache();
+		let succes;
+		this.fetchedTable = new NavigatableFetchedTable(this);
+		if (cachedData) {
+			this.fetchedTable.addPage(cachedData.text);
+			this.shadowTableDate = cachedData.date;
+			this.isUsingCached = true;
+			this.onPageLoaded(1, cachedData.text);
+			this.onLoaded();
+			succes = true;
+		} else {
+			this.isUsingCached = false;
+			succes = await this.#fetchPages(this.fetchedTable);
+			if (!succes) {
+				this.onFinished(succes);
+				throw "Failed to fetch the pages.";
+			}
+			this.fetchedTable.saveToCache();
+			this.onLoaded();
+		}
+		this.onFinished(succes);
+		return this.fetchedTable;
+	}
+	onStartFetching() {
+		for (let lst of this.listeners) lst.onStartFetching?.(this);
+	}
+	onFinished(succes) {
+		this.isFetchFinished = true;
+		for (let lst of this.listeners) lst.onFinished?.(this, succes);
+	}
+	onPageLoaded(pageCnt, text) {
+		for (let lst of this.listeners) lst.onPageLoaded?.(this, pageCnt, text);
+	}
+	onLoaded() {
+		for (let lst of this.listeners) lst.onLoaded?.(this);
+	}
+	onBeforeLoadingPage() {
+		for (let lst of this.listeners) if (lst.onBeforeLoadingPage) {
+			if (!lst.onBeforeLoadingPage(this)) return false;
+		}
+		return true;
+	}
+	async #fetchPages(fetchedTable) {
+		if (!this.onBeforeLoadingPage()) return false;
+		await this.#doFetchAllPages(fetchedTable);
+		return true;
+	}
+	async #doFetchAllPages(fetchedTable) {
+		try {
+			this.onStartFetching();
+			let pageCnt = 0;
+			this.cancelRequested = false;
+			while (true) {
+				console.log("fetching page " + fetchedTable.getNextPageNumber());
+				let text = await (await fetch(this.getDkoTableRef().buildFetchPageUrl(fetchedTable.getNextOffset()))).text();
+				fetchedTable.addPage(text);
+				pageCnt++;
+				this.onPageLoaded(pageCnt, text);
+				if (pageCnt >= this.getDkoTableRef().navigationData.steps()) break;
+				if (this.cancelRequested) break;
+			}
+		} finally {}
+	}
+};
+var NavigatableFetchedTable = class {
+	shadowTableTemplate;
+	tableFetcher;
+	lastPageNumber;
+	lastPageStartRow;
+	constructor(tableDef) {
+		this.tableFetcher = tableDef;
+		this.lastPageNumber = -1;
+		this.lastPageStartRow = 0;
+		this.shadowTableTemplate = document.createElement("template");
+	}
+	getRows() {
+		return this.shadowTableTemplate.content.querySelectorAll("tbody tr:not(:has(i.fa-meh))");
+	}
+	getTable() {
+		return this.shadowTableTemplate.content.querySelector("table");
+	}
+	getRowsAsArray = () => Array.from(this.getRows());
+	getNextPageNumber = () => this.lastPageNumber + 1;
+	getNextOffset = () => this.getNextPageNumber() * this.tableFetcher.getDkoTableRef().navigationData.step;
+	getTemplate = () => this.shadowTableTemplate;
+	saveToCache(retry = true) {
+		db3(`Caching ${this.tableFetcher.getCacheId()}.`);
+		try {
+			window.sessionStorage.setItem(this.tableFetcher.getCacheId(), this.shadowTableTemplate.innerHTML);
+			window.sessionStorage.setItem(this.tableFetcher.getCacheId() + CACHE_DATE_SUFFIX, (/* @__PURE__ */ new Date()).toJSON());
+		} catch (e) {
+			console.error(e);
+			if (!retry) return;
+			console.log("Clearing session cache and trying again...");
+			let sessionKeys = Object.keys(window.sessionStorage);
+			for (let key of sessionKeys) if (key.startsWith("table_leerlingen_werklijst")) window.sessionStorage.removeItem(key);
+			this.saveToCache(false);
+		}
+	}
+	addPage(text) {
+		let pageTemplate;
+		pageTemplate = document.createElement("template");
+		pageTemplate.innerHTML = text;
+		let rows = pageTemplate.content.querySelectorAll("tbody > tr:not(:has(i.fa-meh))");
+		this.lastPageStartRow = this.getRows().length;
+		if (this.lastPageNumber === -1) {
+			this.shadowTableTemplate.innerHTML = text;
+			this.shadowTableTemplate.content.querySelector("tbody").innerHTML = "";
+		}
+		this.shadowTableTemplate.content.querySelector("tbody").append(...rows);
+		this.lastPageNumber++;
 	}
 };
 //#endregion
@@ -4443,6 +4810,2219 @@ function dko3GradeYearsContain(dko3GradeYears, otherGradeYear) {
 	return false;
 }
 //#endregion
+//#region typescript/lessen/convert.ts
+var BlockInfo = class BlockInfo {
+	static blockCounter = 0;
+	static allBlocks = [];
+	id;
+	teacher;
+	instrumentName;
+	maxAantal;
+	formattedLesmoment;
+	vestiging;
+	trimesters;
+	jaarModules;
+	tags;
+	errors;
+	offline;
+	mergedBlocks;
+	static clearAllBlocks() {
+		BlockInfo.allBlocks = [];
+		BlockInfo.blockCounter = 0;
+	}
+	static getBlock(id) {
+		return BlockInfo.allBlocks[id];
+	}
+	static getAllBlocks() {
+		return BlockInfo.allBlocks;
+	}
+	constructor() {
+		this.id = BlockInfo.blockCounter++;
+		BlockInfo.allBlocks.push(this);
+		this.teacher = void 0;
+		this.instrumentName = void 0;
+		this.maxAantal = -1;
+		this.formattedLesmoment = void 0;
+		this.vestiging = void 0;
+		this.trimesters = [
+			[],
+			[],
+			[]
+		];
+		this.jaarModules = [];
+		this.tags = [];
+		this.errors = "";
+		this.offline = false;
+		this.mergedBlocks = [];
+	}
+	hasSomeOfflineLessen() {
+		return this.alleLessen().some((les) => les.online === false);
+	}
+	hasMissingTeachers() {
+		return this.alleLessen().some((les) => les.teacher === "(geen klasleerkracht)");
+	}
+	hasMissingMax() {
+		return this.alleLessen().some((les) => les.maxAantal > 100);
+	}
+	hasFullClasses() {
+		return this.alleLessen().some((les) => les.aantal >= les.maxAantal);
+	}
+	hasWaitingList() {
+		console.log("HAS WAITING LIST FILTER");
+		console.log(this.alleLessen().map((les) => les.wachtlijst));
+		return this.alleLessen().some((les) => les.wachtlijst != 0);
+	}
+	hasOnlineAlcClasses() {
+		return this.alleLessen().some((les) => les.online && les.alc);
+	}
+	hasWarningLessons() {
+		return this.alleLessen().some((les) => les.warnings.length > 0);
+	}
+	alleLessen() {
+		return this.trimesters.flat().filter((les) => les).concat(this.jaarModules);
+	}
+	mergeBlock(block) {
+		this.mergedBlocks.push(block);
+		this.jaarModules.push(...block.jaarModules);
+		for (let trimNo of [
+			0,
+			1,
+			2
+		]) this.trimesters[trimNo].push(...block.trimesters[trimNo]);
+		this.errors += block.errors;
+		return this;
+	}
+	containsId(id) {
+		if (this.id === id) return true;
+		return this.mergedBlocks.some((b) => b.containsId(id));
+	}
+	getIds() {
+		return this.mergedBlocks.map((b) => b.id).concat(this.id);
+	}
+	updateMergedBlock() {
+		let allLessen = this.alleLessen();
+		this.formattedLesmoment = [...new Set(allLessen.filter((les) => les).map((les) => les.formattedLesmoment))].join(", ");
+		this.teacher = [...new Set(allLessen.filter((les) => les).map((les) => les.teacher))].join(", ");
+		this.vestiging = [...new Set(allLessen.filter((les) => les).map((les) => les.vestiging))].join(", ");
+		this.instrumentName = [...new Set(allLessen.filter((les) => les).map((les) => les.instrumentName))].join(", ");
+		this.tags = distinct(allLessen.filter((les) => les).map((les) => les.tags).flat()).map((tagName) => {
+			return {
+				name: tagName,
+				partial: false
+			};
+		});
+		for (let tag of this.tags) tag.partial = !allLessen.every((les) => les.tags.includes(tag.name));
+		this.offline = allLessen.some((les) => !les.online);
+	}
+	checkBlockForErrors() {
+		let maxMoreThan100 = this.jaarModules.map((module) => module.maxAantal > 100).includes(true);
+		if (!maxMoreThan100) maxMoreThan100 = this.trimesters.flat().map((module) => module?.maxAantal > 100).includes(true);
+		if (maxMoreThan100) this.errors += "Max aantal lln > 100";
+	}
+};
+function buildTrimesters(instrumentTeacherMomentModules) {
+	let mergedInstrument = [
+		[],
+		[],
+		[]
+	];
+	instrumentTeacherMomentModules.filter((module) => module.lesType === 0).forEach((module) => {
+		mergedInstrument[module.trimesterNo - 1].push(module);
+	});
+	return mergedInstrument;
+}
+function getLesmomenten(modules) {
+	let lesMomenten = modules.map((module) => module.formattedLesmoment);
+	return [...new Set(lesMomenten)];
+}
+function getMaxAantal(modules) {
+	return modules.map((module) => module.maxAantal).reduce((prev, next) => {
+		return prev < next ? next : prev;
+	});
+}
+function getVestigingen(modules) {
+	let vestigingen = modules.map((module) => module.vestiging);
+	return [...new Set(vestigingen)].toString();
+}
+function prepareLesmomenten(inputModules) {
+	let reLesMoment;
+	for (let module of inputModules) {
+		if (module.lesmoment === "(geen volgende les)" || module.lesmoment === "(geen lesmomenten)") {
+			module.formattedLesmoment = module.lesmoment;
+			continue;
+		}
+		if (module.lesmoment.startsWith("volgende les")) reLesMoment = /volgende les: (\w\w) (?:\d+\/\d+ )?(\d\d:\d\d)-(\d\d:\d\d).*/;
+		else reLesMoment = /.*(\w\w) (?:\d+\/\d+ )?(\d\d:\d\d)-(\d\d:\d\d).*/;
+		let matches = module.lesmoment.match(reLesMoment);
+		if (!matches) {
+			module.formattedLesmoment = "???";
+			continue;
+		}
+		if (matches?.length !== 4) {
+			console.error(`Could not process lesmoment "${module.lesmoment}" for instrument "${module.instrumentName}".`);
+			module.formattedLesmoment = "???";
+		} else module.formattedLesmoment = matches[1] + " " + matches[2] + "-" + matches[3];
+		module.formattedLesmoment = matches[1] + " " + matches[2] + "-" + matches[3];
+	}
+}
+function setStudentPopupInfo(student) {
+	student.info = "";
+	if (!student.trimesterInstruments) return;
+	for (let instrs of student.trimesterInstruments) if (instrs.length) student.info += instrs[0].trimesterNo + ". " + instrs.map((instr) => instr.instrumentName) + "\n";
+	else student.info += "?. ---\n";
+}
+function setStudentAllTrimsTheSameInstrument(student) {
+	if (!student.trimesterInstruments) return;
+	let instruments = student.trimesterInstruments.flat();
+	if (instruments.length < 3) {
+		student.allYearSame = false;
+		return;
+	}
+	student.allYearSame = instruments.every((instr) => instr.instrumentName === (student?.trimesterInstruments[0][0]?.instrumentName ?? "---"));
+}
+function setStudentNoInstrumentForAllTrims(student) {
+	if ((student.jaarInstruments?.length ?? 0) > 0 && student.trimesterInstruments?.flat()?.length == 0) return;
+	if (!student.trimesterInstruments) return;
+	student.notAllTrimsHaveAnInstrument = false;
+	for (let trim of student.trimesterInstruments) if (trim.length == 0) student.notAllTrimsHaveAnInstrument = true;
+}
+function buildTableData(inputModules) {
+	prepareLesmomenten(inputModules);
+	let tableData = {
+		students: /* @__PURE__ */ new Map(),
+		instruments: /* @__PURE__ */ new Map(),
+		teachers: /* @__PURE__ */ new Map(),
+		blocks: []
+	};
+	BlockInfo.clearAllBlocks();
+	let instruments = distinct(inputModules.map((module) => module.instrumentName));
+	for (let instrumentName of instruments) {
+		let instrumentModules = inputModules.filter((module) => module.instrumentName === instrumentName);
+		let teachers = distinct(instrumentModules.map((module) => module.teacher));
+		for (let teacher of teachers) {
+			let instrumentTeacherModules = instrumentModules.filter((module) => module.teacher === teacher);
+			let lesmomenten = distinct(getLesmomenten(instrumentTeacherModules));
+			for (let lesmoment of lesmomenten) {
+				let instrumentTeacherMomentModules = instrumentTeacherModules.filter((module) => module.formattedLesmoment === lesmoment);
+				let block = new BlockInfo();
+				block.instrumentName = instrumentName;
+				block.teacher = teacher;
+				block.formattedLesmoment = lesmoment;
+				block.maxAantal = getMaxAantal(instrumentTeacherMomentModules);
+				block.vestiging = getVestigingen(instrumentTeacherMomentModules);
+				block.tags = distinct(instrumentTeacherMomentModules.map((les) => les.tags).flat()).map((tagName) => {
+					return {
+						name: tagName,
+						partial: !tagFoundInAllModules(tagName, instrumentTeacherMomentModules)
+					};
+				});
+				block.trimesters = buildTrimesters(instrumentTeacherMomentModules);
+				block.jaarModules = instrumentTeacherMomentModules.filter((module) => module.lesType === 1);
+				block.offline = instrumentTeacherMomentModules.some((module) => !module.online);
+				block.checkBlockForErrors();
+				tableData.blocks.push(block);
+				for (let trim of block.trimesters) addTrimesterStudentsToMapAndCount(tableData.students, trim);
+				for (let jaarModule of block.jaarModules) addJaarStudentsToMapAndCount(tableData.students, jaarModule);
+			}
+		}
+	}
+	for (let student of tableData.students.values()) {
+		setStudentPopupInfo(student);
+		setStudentAllTrimsTheSameInstrument(student);
+		setStudentNoInstrumentForAllTrims(student);
+	}
+	let instrumentNames = distinct(tableData.blocks.map((b) => b.instrumentName)).sort((a, b) => {
+		return a.localeCompare(b);
+	});
+	for (let instr of instrumentNames) tableData.instruments.set(instr, {
+		name: instr,
+		blocks: [],
+		mergedBlocks: /* @__PURE__ */ new Map(),
+		lesMomenten: /* @__PURE__ */ new Map()
+	});
+	for (let block of tableData.blocks) tableData.instruments.get(block.instrumentName).blocks.push(block);
+	let teachers = distinct(tableData.blocks.map((b) => b.teacher)).sort((a, b) => {
+		return a.localeCompare(b);
+	});
+	for (let t of teachers) tableData.teachers.set(t, {
+		name: t,
+		blocks: [],
+		mergedBlocks: /* @__PURE__ */ new Map(),
+		lesMomenten: /* @__PURE__ */ new Map()
+	});
+	for (let block of tableData.blocks) tableData.teachers.get(block.teacher).blocks.push(block);
+	groupBlocksTwoLevels(tableData.teachers.values(), (block) => block.formattedLesmoment, (primary, secundary) => {
+		primary.lesMomenten = secundary;
+	});
+	groupBlocksTwoLevels(tableData.instruments.values(), (block) => block.formattedLesmoment, (primary, secundary) => {
+		primary.lesMomenten = secundary;
+	});
+	groupBlocks(tableData.teachers.values(), (block) => block.teacher);
+	groupBlocks(tableData.instruments.values(), (block) => block.instrumentName);
+	return tableData;
+}
+function tagFoundInAllModules(tag, modules) {
+	for (let module of modules) if (!module.tags.includes(tag)) return false;
+	return true;
+}
+function groupBlocksTwoLevels(primaryGroups, getSecondaryKey, setSecondaryGroup) {
+	for (let primary of primaryGroups) {
+		let blocks = primary.blocks;
+		let secondaryKeys = distinct(blocks.map(getSecondaryKey));
+		let secondaryGroup = new Map(secondaryKeys.map((key) => [key, new BlockInfo()]));
+		for (let block of blocks) secondaryGroup.get(getSecondaryKey(block)).mergeBlock(block);
+		secondaryGroup.forEach((block) => {
+			block.updateMergedBlock();
+		});
+		setSecondaryGroup(primary, secondaryGroup);
+	}
+}
+function groupBlocks(primaryGroups, getPrimaryKey) {
+	for (let primary of primaryGroups) {
+		let blocks = primary.blocks;
+		let keys = distinct(blocks.map(getPrimaryKey));
+		primary.mergedBlocks = new Map(keys.map((key) => [key, new BlockInfo()]));
+		for (let block of blocks) primary.mergedBlocks.get(getPrimaryKey(block)).mergeBlock(block);
+		primary.mergedBlocks.forEach((block) => {
+			block.updateMergedBlock();
+		});
+	}
+}
+function addTrimesterStudentsToMapAndCount(allStudents, blockTrimModules) {
+	for (let blockTrimModule of blockTrimModules) {
+		if (!blockTrimModule) continue;
+		for (let student of blockTrimModule.students) {
+			if (!allStudents.has(student.name)) {
+				student.trimesterInstruments = [
+					[],
+					[],
+					[]
+				];
+				allStudents.set(student.name, student);
+			}
+			allStudents.get(student.name).trimesterInstruments[blockTrimModule.trimesterNo - 1].push(blockTrimModule);
+		}
+		blockTrimModule.students = blockTrimModule.students.map((student) => allStudents.get(student.name));
+	}
+}
+function addJaarStudentsToMapAndCount(students, jaarModule) {
+	if (!jaarModule) return;
+	for (let student of jaarModule.students) {
+		if (!students.has(student.name)) students.set(student.name, student);
+		let stud = students.get(student.name);
+		if (!stud.jaarInstruments) stud.jaarInstruments = [];
+		stud.jaarInstruments.push(jaarModule);
+	}
+	jaarModule.students = jaarModule.students.map((student) => students.get(student.name));
+}
+function mergeBlockStudents(block) {
+	let jaarStudents = block.jaarModules.map((les) => les.students).flat();
+	let trimesterStudents = [
+		block.trimesters[0].map((les) => les?.students ?? []).flat(),
+		block.trimesters[1].map((les) => les?.students ?? []).flat(),
+		block.trimesters[2].map((les) => les?.students ?? []).flat()
+	];
+	let maxAantallen = block.trimesters.map((trimLessen) => {
+		if (trimLessen.length === 0) return 0;
+		return trimLessen.map((les) => les?.maxAantal ?? 0).map((maxAantal) => maxAantal > 100 ? 4 : maxAantal).reduce((a, b) => a + b);
+	});
+	let blockNeededRows = Math.max(...maxAantallen, ...trimesterStudents.map((stud) => stud.length + jaarStudents.length));
+	let wachtlijsten = block.trimesters.map((trimLessen) => {
+		if (trimLessen.length === 0) return 0;
+		return trimLessen.map((les) => les?.wachtlijst ?? 0).reduce((a, b) => a + b);
+	});
+	let hasWachtlijst = wachtlijsten.some((wachtLijst) => wachtLijst > 0);
+	if (hasWachtlijst) blockNeededRows++;
+	let maxJaarStudentCount = block.jaarModules.map((mod) => mod.maxAantal).reduce((a, b) => Math.max(a, b), 0);
+	return {
+		jaarStudents,
+		trimesterStudents,
+		maxAantallen,
+		blockNeededRows,
+		wachtlijsten,
+		hasWachtlijst,
+		maxJaarStudentCount
+	};
+}
+function createLesFromToewijzing(instrument, toewijzing) {
+	let teacher = toewijzing.klasleerkracht == "" ? `toe te wijzen lk ${instrument}` : toewijzing.klasleerkracht;
+	return new Les("", 1, instrument, teacher, toewijzing.lesmoment, 999, 0, "Willem van Laarstraat", [], true, 0, false, toewijzing.lesmoment, `Initiatie ${instrument} - jaartraject - ${teacher}`, [], toewijzing.vak, []);
+}
+function createStudentFromToewijzing(toewijzing) {
+	let student = new StudentInfo(toewijzing.naam + ", " + toewijzing.voornaam, toewijzing.naam, toewijzing.voornaam, toewijzing.graadJaar);
+	let matchesId = /\s*id\s*=\s*(\d+)/gm.exec(toewijzing.vak);
+	student.id = parseInt(matchesId?.[1] ?? "0");
+	student.allYearSame = true;
+	student.notAllTrimsHaveAnInstrument = false;
+	student.info = "";
+	student.jaarInstruments = [];
+	student.trimesterInstruments = void 0;
+	return student;
+}
+function connvertToewijzingenToModules(jaarToewijzingen) {
+	let modules = /* @__PURE__ */ new Map();
+	for (let toewijzing of jaarToewijzingen) {
+		let instrument = /instrumentinitiatie – hele jaar zelfde instrument - (.*)/gm.exec(toewijzing.vak)?.[1] ?? "";
+		let les;
+		if (modules.has(instrument + "-" + toewijzing.klasleerkracht + "-" + toewijzing.lesmoment)) les = modules.get(instrument + "-" + toewijzing.klasleerkracht + "-" + toewijzing.lesmoment);
+		else {
+			les = createLesFromToewijzing(instrument, toewijzing);
+			modules.set(instrument + "-" + toewijzing.klasleerkracht + "-" + toewijzing.lesmoment, les);
+		}
+		let student = createStudentFromToewijzing(toewijzing);
+		les.students.push(student);
+	}
+	modules.forEach((les) => les.aantal = les.maxAantal = les.students.length);
+	return modules;
+}
+//#endregion
+//#region node_modules/idb/build/index.js
+const instanceOfAny = (object, constructors) => constructors.some((c) => object instanceof c);
+let idbProxyableTypes;
+let cursorAdvanceMethods;
+function getIdbProxyableTypes() {
+	return idbProxyableTypes || (idbProxyableTypes = [
+		IDBDatabase,
+		IDBObjectStore,
+		IDBIndex,
+		IDBCursor,
+		IDBTransaction
+	]);
+}
+function getCursorAdvanceMethods() {
+	return cursorAdvanceMethods || (cursorAdvanceMethods = [
+		IDBCursor.prototype.advance,
+		IDBCursor.prototype.continue,
+		IDBCursor.prototype.continuePrimaryKey
+	]);
+}
+const transactionDoneMap = /* @__PURE__ */ new WeakMap();
+const transformCache = /* @__PURE__ */ new WeakMap();
+const reverseTransformCache = /* @__PURE__ */ new WeakMap();
+function promisifyRequest(request) {
+	const promise = new Promise((resolve, reject) => {
+		const unlisten = () => {
+			request.removeEventListener("success", success);
+			request.removeEventListener("error", error);
+		};
+		const success = () => {
+			resolve(wrap(request.result));
+			unlisten();
+		};
+		const error = () => {
+			reject(request.error);
+			unlisten();
+		};
+		request.addEventListener("success", success);
+		request.addEventListener("error", error);
+	});
+	reverseTransformCache.set(promise, request);
+	return promise;
+}
+function cacheDonePromiseForTransaction(tx) {
+	if (transactionDoneMap.has(tx)) return;
+	const done = new Promise((resolve, reject) => {
+		const unlisten = () => {
+			tx.removeEventListener("complete", complete);
+			tx.removeEventListener("error", error);
+			tx.removeEventListener("abort", error);
+		};
+		const complete = () => {
+			resolve();
+			unlisten();
+		};
+		const error = () => {
+			reject(tx.error || new DOMException("AbortError", "AbortError"));
+			unlisten();
+		};
+		tx.addEventListener("complete", complete);
+		tx.addEventListener("error", error);
+		tx.addEventListener("abort", error);
+	});
+	transactionDoneMap.set(tx, done);
+}
+let idbProxyTraps = {
+	get(target, prop, receiver) {
+		if (target instanceof IDBTransaction) {
+			if (prop === "done") return transactionDoneMap.get(target);
+			if (prop === "store") return receiver.objectStoreNames[1] ? void 0 : receiver.objectStore(receiver.objectStoreNames[0]);
+		}
+		return wrap(target[prop]);
+	},
+	set(target, prop, value) {
+		target[prop] = value;
+		return true;
+	},
+	has(target, prop) {
+		if (target instanceof IDBTransaction && (prop === "done" || prop === "store")) return true;
+		return prop in target;
+	}
+};
+function replaceTraps(callback) {
+	idbProxyTraps = callback(idbProxyTraps);
+}
+function wrapFunction(func) {
+	if (getCursorAdvanceMethods().includes(func)) return function(...args) {
+		func.apply(unwrap(this), args);
+		return wrap(this.request);
+	};
+	return function(...args) {
+		return wrap(func.apply(unwrap(this), args));
+	};
+}
+function transformCachableValue(value) {
+	if (typeof value === "function") return wrapFunction(value);
+	if (value instanceof IDBTransaction) cacheDonePromiseForTransaction(value);
+	if (instanceOfAny(value, getIdbProxyableTypes())) return new Proxy(value, idbProxyTraps);
+	return value;
+}
+function wrap(value) {
+	if (value instanceof IDBRequest) return promisifyRequest(value);
+	if (transformCache.has(value)) return transformCache.get(value);
+	const newValue = transformCachableValue(value);
+	if (newValue !== value) {
+		transformCache.set(value, newValue);
+		reverseTransformCache.set(newValue, value);
+	}
+	return newValue;
+}
+const unwrap = (value) => reverseTransformCache.get(value);
+/**
+* Open a database.
+*
+* @param name Name of the database.
+* @param version Schema version.
+* @param callbacks Additional callbacks.
+*/
+function openDB(name, version, { blocked, upgrade, blocking, terminated } = {}) {
+	const request = indexedDB.open(name, version);
+	const openPromise = wrap(request);
+	if (upgrade) request.addEventListener("upgradeneeded", (event) => {
+		upgrade(wrap(request.result), event.oldVersion, event.newVersion, wrap(request.transaction), event);
+	});
+	if (blocked) request.addEventListener("blocked", (event) => blocked(event.oldVersion, event.newVersion, event));
+	openPromise.then((db) => {
+		if (terminated) db.addEventListener("close", () => terminated());
+		if (blocking) db.addEventListener("versionchange", (event) => blocking(event.oldVersion, event.newVersion, event));
+	}).catch(() => {});
+	return openPromise;
+}
+const readMethods = [
+	"get",
+	"getKey",
+	"getAll",
+	"getAllKeys",
+	"count"
+];
+const writeMethods = [
+	"put",
+	"add",
+	"delete",
+	"clear"
+];
+const cachedMethods = /* @__PURE__ */ new Map();
+function getMethod(target, prop) {
+	if (!(target instanceof IDBDatabase && !(prop in target) && typeof prop === "string")) return;
+	if (cachedMethods.get(prop)) return cachedMethods.get(prop);
+	const targetFuncName = prop.replace(/FromIndex$/, "");
+	const useIndex = prop !== targetFuncName;
+	const isWrite = writeMethods.includes(targetFuncName);
+	if (!(targetFuncName in (useIndex ? IDBIndex : IDBObjectStore).prototype) || !(isWrite || readMethods.includes(targetFuncName))) return;
+	const method = async function(storeName, ...args) {
+		const tx = this.transaction(storeName, isWrite ? "readwrite" : "readonly");
+		let target = tx.store;
+		if (useIndex) target = target.index(args.shift());
+		return (await Promise.all([target[targetFuncName](...args), isWrite && tx.done]))[0];
+	};
+	cachedMethods.set(prop, method);
+	return method;
+}
+replaceTraps((oldTraps) => ({
+	...oldTraps,
+	get: (target, prop, receiver) => getMethod(target, prop) || oldTraps.get(target, prop, receiver),
+	has: (target, prop) => !!getMethod(target, prop) || oldTraps.has(target, prop)
+}));
+const advanceMethodProps = [
+	"continue",
+	"continuePrimaryKey",
+	"advance"
+];
+const methodMap = {};
+const advanceResults = /* @__PURE__ */ new WeakMap();
+const ittrProxiedCursorToOriginalProxy = /* @__PURE__ */ new WeakMap();
+const cursorIteratorTraps = { get(target, prop) {
+	if (!advanceMethodProps.includes(prop)) return target[prop];
+	let cachedFunc = methodMap[prop];
+	if (!cachedFunc) cachedFunc = methodMap[prop] = function(...args) {
+		advanceResults.set(this, ittrProxiedCursorToOriginalProxy.get(this)[prop](...args));
+	};
+	return cachedFunc;
+} };
+async function* iterate(...args) {
+	let cursor = this;
+	if (!(cursor instanceof IDBCursor)) cursor = await cursor.openCursor(...args);
+	if (!cursor) return;
+	cursor = cursor;
+	const proxiedCursor = new Proxy(cursor, cursorIteratorTraps);
+	ittrProxiedCursorToOriginalProxy.set(proxiedCursor, cursor);
+	reverseTransformCache.set(proxiedCursor, unwrap(cursor));
+	while (cursor) {
+		yield proxiedCursor;
+		cursor = await (advanceResults.get(proxiedCursor) || cursor.continue());
+		advanceResults.delete(proxiedCursor);
+	}
+}
+function isIteratorProp(target, prop) {
+	return prop === Symbol.asyncIterator && instanceOfAny(target, [
+		IDBIndex,
+		IDBObjectStore,
+		IDBCursor
+	]) || prop === "iterate" && instanceOfAny(target, [IDBIndex, IDBObjectStore]);
+}
+replaceTraps((oldTraps) => ({
+	...oldTraps,
+	get(target, prop, receiver) {
+		if (isIteratorProp(target, prop)) return iterate;
+		return oldTraps.get(target, prop, receiver);
+	},
+	has(target, prop) {
+		return isIteratorProp(target, prop) || oldTraps.has(target, prop);
+	}
+}));
+//#endregion
+//#region typescript/db/repository.ts
+var Repository = class {
+	db;
+	storeName;
+	constructor(db, storeName) {
+		this.db = db;
+		this.storeName = storeName;
+	}
+	async get(id) {
+		return this.db.get(this.storeName, id);
+	}
+	async put(data, key) {
+		return this.db.put(this.storeName, data, key);
+	}
+	async bulkPut(items) {
+		let tx = this.db.transaction(this.storeName, "readwrite");
+		let putPromises = items.map((item) => tx.store.put(item));
+		await Promise.all([...putPromises, tx.done]);
+	}
+	async findMatches(match) {
+		return (await this.db.getAll(this.storeName)).filter(match);
+	}
+};
+//#endregion
+//#region typescript/db/sessionDb.ts
+const DB_VERSION = 1;
+const SESSION_DB_PREFIX = "sessionStorage";
+async function initializeSession() {
+	if (!sessionStorage.getItem("session_active")) {
+		let dbs = await indexedDB.databases();
+		for (let db of dbs) if (db.name?.startsWith(SESSION_DB_PREFIX)) {
+			const deleteRequest = indexedDB.deleteDatabase(db.name);
+			deleteRequest.onsuccess = () => {
+				console.log(`Database ${db.name} deleted successfully.`);
+			};
+		}
+		sessionStorage.setItem("session_active", "true");
+	}
+}
+let cacheMap = /* @__PURE__ */ new Map();
+async function getSessionSchoolCache(schoolId) {
+	let cache = cacheMap.get(schoolId);
+	if (!cache) {
+		cache = await SessionSchoolCache.get(schoolId);
+		cacheMap.set(schoolId, cache);
+	}
+	return cache;
+}
+var SessionSchoolCache = class SessionSchoolCache {
+	schoolId;
+	db;
+	get AssetRefs() {
+		return this._AssetRefs;
+	}
+	get Loaded() {
+		return this._Loaded;
+	}
+	get LesRefs() {
+		return this._LesRefs;
+	}
+	get TeacherRefs() {
+		return this._TeacherRefs;
+	}
+	_LesRefs;
+	_Loaded;
+	_AssetRefs;
+	_TeacherRefs;
+	constructor(schoolId, db) {
+		this.schoolId = schoolId;
+		this.db = db;
+		this._LesRefs = new Repository(this.db, "LesRefs");
+		this._Loaded = new Repository(this.db, "Loaded");
+		this._AssetRefs = new Repository(this.db, "AssetRefs");
+		this._TeacherRefs = new Repository(this.db, "TeacherRefs");
+	}
+	static getDbName(schoolId) {
+		return `${SESSION_DB_PREFIX}_${schoolId}`;
+	}
+	static async get(schoolId) {
+		await initializeSession();
+		return new SessionSchoolCache(schoolId, await openDB(SessionSchoolCache.getDbName(schoolId), DB_VERSION, { upgrade(db) {
+			db.createObjectStore("LesRefs", { keyPath: "id" });
+			db.createObjectStore("Loaded");
+			db.createObjectStore("AssetRefs", { keyPath: "id" });
+			db.createObjectStore("TeacherRefs", { keyPath: "id" });
+		} }));
+	}
+};
+//#endregion
+//#region typescript/assets/scrape.ts
+async function scrapeAssets() {
+	let snel_zoeken = document.querySelector("#snel_zoeken");
+	let infoBlockDiv = document.createElement("div");
+	snel_zoeken.parentNode.insertBefore(infoBlockDiv, snel_zoeken);
+	return [...(await getTableFromHash("extra-assets-assets", true, new InfoBarTableFetchListener(getInfoBlock(infoBlockDiv)))).getRows()].map((row) => {
+		return {
+			id: row.cells[0].innerText,
+			code: [...row.cells[1].childNodes].map((node) => node.nodeValue).join("")
+		};
+	}).filter((asset) => asset.code);
+}
+//#endregion
+//#region typescript/leerling/scrape.ts
+const PlaceHolder = Symbol("placeholder");
+function convertToEmmet(text, charWidth) {
+	if (text === PlaceHolder) return `span.placeHolder.wch${charWidth}`;
+	else return `{${text}}`;
+}
+function createLesCard(lesName, lesCardData) {
+	if (lesCardData === PlaceHolder) lesCardData = {
+		vakName: "",
+		full: false,
+		lesmoment: PlaceHolder,
+		aantal: PlaceHolder,
+		maxAantal: PlaceHolder,
+		wachtlijst: 0,
+		vestiging: PlaceHolder
+	};
+	let wachtlijst = lesCardData.wachtlijst == 0 ? "span" : `span.red{ (${lesCardData.wachtlijst} op wachtlijst)}`;
+	let emmetText = `
+            div.small${lesCardData.full ? ".full" : ""}
+                div.bold.pre
+                    strong{${buildLesTitle(lesName, lesCardData.vakName)}}
+                div.pre
+                    ${convertToEmmet(lesCardData.vestiging, 13)}
+                div.pre
+                    ${convertToEmmet(lesCardData.lesmoment, 11)}
+                div.pre.noClipboard
+                    ${convertToEmmet(lesCardData.aantal, 2)}
+                    {/}
+                    ${convertToEmmet(lesCardData.maxAantal, 2)} 
+                    { lln} 
+                    ${wachtlijst}
+        `;
+	return emmet.indent.createElement(emmetText);
+}
+function buildLesTitle(lesName, vakName) {
+	return `${lesName ? lesName : vakName + " " + lesName}`;
+}
+function scrapeOpleidingen() {
+	let tBody = document.getElementById("leerling_inschrijvingen_weergave").querySelector("tbody");
+	let opleidingen = [];
+	for (let tr of tBody.querySelectorAll("tr")) {
+		let detailsTdOffset = 0;
+		if ([...tr.classList].find((c) => c.includes("inschrijvingen_domein"))) {
+			if (tr.cells[0].getAttribute("rowspan")) {
+				let opleiding = scrapeOpleidingRow(tr);
+				opleidingen.push(opleiding);
+				detailsTdOffset = 3;
+			}
+		}
+		let lesInfo = scrapeLesInfoDetails(tr, detailsTdOffset);
+		opleidingen[opleidingen.length - 1].lessen.push(lesInfo);
+	}
+	return opleidingen;
+}
+function scrapeOpleidingRow(tr) {
+	let tdOpleiding = tr.querySelector("td:nth-child(2)");
+	let tdText = tdOpleiding.textContent;
+	let domein = "";
+	if (tdText.includes("DomeinOv")) domein = "DomeinOV";
+	if (tdText.includes("Muziek")) domein = "Muziek";
+	if (tdText.includes("Woord")) domein = "Woord";
+	let rx = new RegExp(`${domein}\\s*-\\s*<strong>v*(.*?)</strong>`);
+	let gradeYearText = rx.exec(tdOpleiding.innerHTML)?.at(1);
+	let gradeYears = [];
+	if (gradeYearText) gradeYears = textsToYearGrades([gradeYearText]);
+	rx = /(\d{4,})/;
+	let adminGroup = rx.exec(tdText)?.at(1) ?? "";
+	return {
+		domein,
+		gradeYears,
+		lessen: [],
+		adminGroup
+	};
+}
+function scrapeLesInfoDetails(tr, detailsTdOffset) {
+	let tdVakLes = tr.cells[detailsTdOffset + 1];
+	let vakNaam = tdVakLes.querySelector("strong")?.textContent ?? "";
+	let lesNaam = tdVakLes.querySelector("small")?.textContent ?? "";
+	let iGotoClass = tr.querySelector("i.fa-list-ul");
+	let gotoButton = null;
+	if (iGotoClass) gotoButton = iGotoClass.parentElement;
+	return {
+		vak: vakNaam,
+		lesNaam,
+		gotoButton
+	};
+}
+//#endregion
+//#region typescript/globalSearch.ts
+function onPasteInGlobalSearchField(e) {
+	if (!options.stripCommasOnPaste) return;
+	let searchField = document.getElementById("snel_zoeken_veld_zoektermen");
+	let newText = (e.clipboardData?.getData("text/plain") ?? "").replaceAll(",", "").replaceAll("-", " ");
+	searchField.setRangeText(newText);
+	searchField.setSelectionRange(newText.length, newText.length);
+	e.preventDefault();
+}
+async function onParentKeyUp(e) {
+	if (e.key == "Enter") {
+		if (!options.powerGoto) return;
+		console.log("parent Enter");
+		let text = document.getElementById("snel_zoeken_veld_zoektermen").value;
+		if (await onEnterPressed(text) == "cancel") {
+			console.log("canceling");
+			e.stopImmediatePropagation();
+			e.preventDefault();
+			return;
+		}
+		return;
+	}
+}
+function onSearchKeyDown(e) {
+	if (e.key == "Escape") {
+		let searchField = document.getElementById("snel_zoeken_veld_zoektermen");
+		searchField.value = "";
+		return;
+	}
+}
+let ignoreNextEnter = false;
+async function onEnterPressed(text) {
+	if (ignoreNextEnter) {
+		ignoreNextEnter = false;
+		return "default";
+	}
+	if (!text.includes(":")) return "default";
+	let parts = text.split(":");
+	let key = parts.shift();
+	//! will have 1 element
+	let value = parts.join(":");
+	if ("les".startsWith(key)) {
+		gotoLesRef(value.trim());
+		return "cancel";
+	} else if ("ma".startsWith(key)) {
+		gotoLesRef(value.trim(), "Muziekatelier");
+		return "cancel";
+	} else if ("asset".startsWith(key)) {
+		gotoAssetRef(value.trim());
+		return "cancel";
+	} else if (key == "lk" || key == "p") {
+		gotoTeacherRef(value.trim());
+		return "cancel";
+	}
+	return "default";
+}
+async function updateLesMenuItem(dropDownMenu, index, lesRef, signal) {
+	if (signal.aborted) {
+		console.log("ABORTED updateMenuItem:", lesRef.id);
+		return;
+	}
+	let les = await fetchLes(lesRef.id, signal);
+	let lesmomenten = les.lesMomenten.join("\n");
+	let full = les.aantal >= les.maxAantal;
+	let lesCard = createLesCard(lesRef.name, {
+		vakName: les.vak,
+		full,
+		lesmoment: lesmomenten,
+		aantal: les.aantal,
+		maxAantal: les.maxAantal,
+		wachtlijst: 0,
+		vestiging: les.vestiging
+	});
+	dropDownMenu.setItemContent(index, lesCard);
+}
+async function updateAssetMenuItem(dropDownMenu, index, assetRef, signal) {
+	if (signal.aborted) {
+		console.log("ABORTED updateMenuItem:", assetRef.id);
+		return;
+	}
+}
+async function updateTeacherMenuItem(dropDownMenu, index, teacherRef, signal) {
+	if (signal.aborted) {
+		console.log("ABORTED updateMenuItem:", teacherRef.id);
+		return;
+	}
+}
+async function gotoLesRef(lesName, vak) {
+	return gotoRef(() => getLesMatches(lesName, vak), "/#lessen-les?id=", (lesRef) => createLesCard(lesRef.name, PlaceHolder), updateLesMenuItem);
+}
+async function gotoAssetRef(assetCode) {
+	return gotoRef(() => getAssetMatches(assetCode), "/#extra-assets-assets-details?id=", (assetRef) => assetRef.code, updateAssetMenuItem);
+}
+async function gotoTeacherRef(text) {
+	return gotoRef(() => getTeacherMatches(text), "/#personeel-personeelslid?id=", (teacherRef) => teacherRef.firstName + " " + teacherRef.lastName, updateTeacherMenuItem);
+}
+async function gotoRef(getMatches, gotoUrl, getLabel, updateMenuItem) {
+	await waitForPageProbablyLoaded();
+	let infoBlock = getInfoBlockForPage();
+	infoBlock.infoBar.setInfoLine("Ophalen gegevens...");
+	let matches = await getMatches(infoBlock);
+	infoBlock.infoBar.setInfoLine("");
+	if (matches) {
+		if (matches.length == 1) {
+			console.log("gotoRef: matches.length == 1");
+			setTimeout(() => {
+				console.log(`gotoRef: matches.length == 1, location.href = ${gotoUrl + matches[0].id}`);
+				location.href = gotoUrl + matches[0].id;
+			});
+			return true;
+		}
+		if (matches.length > 1) {
+			let searchField = document.getElementById("snel_zoeken_veld_zoektermen");
+			let abortController = new AbortController();
+			let signal = abortController.signal;
+			let dropDownMenu = new DropDownMenu(searchField.parentElement?.parentElement, searchField, false, true, abortController);
+			let queue = Promise.resolve();
+			for (let ref of matches) {
+				let index = dropDownMenu.addItem(getLabel(ref), 0, () => {
+					abortController.abort("Aborting menu.");
+					dropDownMenu.remove();
+					location.href = gotoUrl + ref.id;
+				});
+				queue = queue.then(() => updateMenuItem(dropDownMenu, index, ref, signal));
+			}
+			dropDownMenu.show();
+		}
+	}
+	return true;
+}
+async function getLesMatches(lesName, vak) {
+	if (!lesName) return [];
+	let lowerCase = lesName.toLowerCase();
+	let lesRefs = await getRepositoryCached("LesRefs", getLesRefs);
+	if (vak) {
+		let matches = await lesRefs.findMatches((lesRef) => lesRef.name.toLowerCase().includes(lowerCase) && lesRef.vak == vak);
+		matches.sort((a, b) => a.name.localeCompare(b.name));
+		return matches;
+	}
+	let matches = await lesRefs.findMatches((lesRef) => lesRef.name.toLowerCase().includes(lowerCase));
+	matches.sort((a, b) => a.name.localeCompare(b.name));
+	return matches;
+}
+async function getLesRefs() {
+	let lessen = await scrapeLessen("3", "1", Schoolyear.toFullString(Schoolyear.calculateCurrent()));
+	lessen.push(...await scrapeLessen("2", "1", Schoolyear.toFullString(Schoolyear.calculateCurrent())));
+	lessen.push(...await scrapeLessen("4", "1", Schoolyear.toFullString(Schoolyear.calculateCurrent())));
+	console.log(lessen);
+	return lessen.map((l) => ({
+		id: l.les.id,
+		name: l.les.naam,
+		vak: l.les.vakNaam
+	}));
+}
+async function getAssetRefs() {
+	return (await scrapeAssets()).map((asset) => ({
+		id: asset.id,
+		code: asset.code
+	}));
+}
+async function getTeacherRefs() {
+	return (await scrapeTeachers()).map((t) => ({
+		id: t.id,
+		firstName: t.firstName,
+		lastName: t.lastName
+	}));
+}
+async function getRepositoryCached(storeName, getRefs) {
+	let cache = await getSessionSchoolCache(getSchoolIdString());
+	if (!await cache.Loaded.get(storeName)) {
+		let refs = await getRefs();
+		await cache[storeName].bulkPut(refs);
+		await cache.Loaded.put(true, storeName);
+	}
+	return cache[storeName];
+}
+async function getAssetMatches(assetCode) {
+	if (!assetCode) return [];
+	let lowerCase = assetCode.toLowerCase();
+	return (await getRepositoryCached("AssetRefs", getAssetRefs)).findMatches((assetRef) => assetRef.code.toLowerCase().includes(lowerCase));
+}
+async function getTeacherMatches(text) {
+	if (!text) return [];
+	let lowerCase = text.toLowerCase();
+	let matches = await (await getRepositoryCached("TeacherRefs", getTeacherRefs)).findMatches((teacherRef) => {
+		return teacherRef.firstName.toLowerCase().includes(lowerCase) || teacherRef.lastName.toLowerCase().includes(lowerCase);
+	});
+	matches.sort((a, b) => a.firstName.localeCompare(b.firstName) || a.lastName.localeCompare(b.lastName));
+	return matches;
+}
+//#endregion
+//#region typescript/personeel/scrape.ts
+async function scrapeTeachers() {
+	return scrapeTable(new Dko3PersoneelFetcher(), (row) => {
+		let [lastName, firstName] = row.querySelector("strong").textContent.split(", ");
+		return {
+			id: row.dataset.id,
+			firstName,
+			lastName
+		};
+	});
+}
+function getTableRef() {
+	return {
+		htmlTableId: "",
+		createElementAboveTable: () => document.createElement("div"),
+		getOrgTableContainer: () => document.body,
+		getOrgTableRows: () => document.querySelectorAll("table > tbody > tr"),
+		isFullyFetched: () => true
+	};
+}
+var Dko3PersoneelFetcher = class Dko3PersoneelFetcher extends TableFetcher {
+	static getCheckSumBuilder() {
+		return () => "personeelsleden.todo:filtercriteria";
+	}
+	constructor() {
+		super(getTableRef(), Dko3PersoneelFetcher.getCheckSumBuilder());
+	}
+	async fetch() {
+		let chain = new FetchChain();
+		await chain.fetch("/#personeel-personeelsleden");
+		await chain.fetch("view.php?args=personeel-personeelsleden");
+		chain.findDocReadyLoadUrl();
+		await chain.fetch();
+		await chain.fetch(`/views/personeel/personeelsleden/vestigingsplaats_schooljaar_filter.php?schooljaar=${Schoolyear.toFullString(Schoolyear.calculateCurrent())}`);
+		await chain.post("/views/personeel/personeelsleden/save_filters.php", void 0, [
+			["filters[naam]", ""],
+			["filters[status_personeelsleden]", "1"],
+			["filters[leerkracht]", "1"],
+			["filters[interim]", "1"],
+			["filters[alc]", "1"],
+			["filters[administratie]", "1"],
+			["filters[overig]", "1"],
+			["filters[schooljaar]", Schoolyear.toFullString(Schoolyear.calculateCurrent())]
+		]);
+		let tableText = await chain.fetch("/views/personeel/personeelsleden/personeelsleden.table.php");
+		let div = document.createElement("div");
+		div.innerHTML = tableText;
+		let table = div.querySelector("table");
+		//! should have a table.
+		let getRows = () => table.querySelectorAll("tbody > tr");
+		return {
+			getRows,
+			tableFetcher: this,
+			getRowsAsArray: () => Array.from(getRows()),
+			getTable: () => table
+		};
+	}
+};
+async function gotoTeacher(firstName, lastName) {
+	let teachers = await (await getRepositoryCached("TeacherRefs", scrapeTeachers)).findMatches((ref) => ref.firstName === firstName && ref.lastName === lastName);
+	if (teachers.length === 0) return;
+	let teacher = teachers[0];
+	location.href = "/#personeel-personeelslid?id=" + teacher.id;
+}
+//#endregion
+//#region typescript/lessen/build.ts
+const NBSP = 160;
+function getDefaultPageSettings() {
+	return {
+		pageName: "Lessen",
+		nameSorting: 1,
+		grouping: 1,
+		searchText: "",
+		filterOffline: false,
+		filterOnline: false,
+		filterNoTeacher: false,
+		filterNoMax: false,
+		filterFullClass: false,
+		filterOnlineAlc: false,
+		filterWarnings: false,
+		filterWaitingList: false,
+		showAllTeachers: false
+	};
+}
+let pageState = getDefaultPageSettings();
+function setSavedNameSorting(sorting) {
+	pageState.nameSorting = sorting;
+	savePageSettings(pageState);
+}
+function getSavedNameSorting() {
+	pageState = getPageSettings("Lessen", pageState);
+	return pageState.nameSorting;
+}
+function buildTrimesterTable(tableData, trimElements) {
+	pageState = getPageSettings("Lessen", pageState);
+	tableData.blocks.sort((block1, block2) => block1.instrumentName.localeCompare(block2.instrumentName));
+	trimElements.trimTableDiv = document.getElementById(TRIM_DIV_ID);
+	let newTable = emmet.appendChild(trimElements.trimTableDiv, `table#trimesterTable[border="2" style.width="100%"]>colgroup>col*3`).first;
+	trimElements.trimTableDiv.dataset.showFullClass = isButtonHighlighted("fullClassButton") ? "true" : "false";
+	let trHeader = emmet.appendChild(newTable, "tbody+thead.table-secondary>tr").last;
+	Object.assign(trimElements, getTrimPageElements());
+	let newTableBody = newTable.querySelector("tbody");
+	let totTrim = [
+		0,
+		0,
+		0
+	];
+	for (let block of tableData.blocks) {
+		let totJaar = block.jaarModules.map((mod) => mod.students.length).reduce((prev, curr) => prev + curr, 0);
+		for (let trimNo of [
+			0,
+			1,
+			2
+		]) totTrim[trimNo] += totJaar + (block.trimesters[trimNo][0]?.students?.length ?? 0);
+	}
+	emmet.append(trHeader, "(th>div>span.bold{Trimester $}+span.plain{ ($$ lln)})*3", (index) => totTrim[index].toString());
+	switch (pageState.grouping) {
+		case 1:
+			for (let [instrumentName, instrument] of tableData.instruments) buildGroup(newTableBody, instrument.blocks, instrumentName, (block) => createTeacherSpan(block), 10);
+			break;
+		case 0:
+			for (let [teacherName, teacher] of tableData.teachers) buildGroup(newTableBody, teacher.blocks, teacherName, (block) => block.instrumentName, 10);
+			break;
+		case 2:
+			for (let [teacherName, teacher] of tableData.teachers) {
+				buildTitleRow(newTableBody, teacherName);
+				for (let [hour, block] of teacher.lesMomenten) buildBlock(newTableBody, block, teacherName, (_block) => hour, 8);
+			}
+			break;
+		case 3:
+			for (let [instrumentName, instrument] of tableData.instruments) {
+				buildTitleRow(newTableBody, instrumentName);
+				for (let [hour, block] of instrument.lesMomenten) buildBlock(newTableBody, block, instrumentName, (_block) => hour, 8);
+			}
+			break;
+		case 4:
+			for (let [instrumentName, instrument] of tableData.instruments) {
+				buildTitleRow(newTableBody, instrumentName);
+				for (let [, block] of instrument.mergedBlocks) buildBlock(newTableBody, block, instrumentName, void 0, 11);
+			}
+			break;
+		case 5: for (let [teacherName, teacher] of tableData.teachers) {
+			buildTitleRow(newTableBody, teacherName);
+			for (let [, block] of teacher.mergedBlocks) buildBlock(newTableBody, block, teacherName, void 0, 14);
+		}
+	}
+}
+function buildGroup(newTableBody, blocks, groupId, getBlockTitle, displayOptions) {
+	buildTitleRow(newTableBody, groupId);
+	for (let block of blocks) buildBlock(newTableBody, block, groupId, getBlockTitle, displayOptions);
+}
+function createStudentRow(tableBody, rowClass, groupId, blockId) {
+	let row = createLesRow(groupId, blockId);
+	tableBody.appendChild(row);
+	row.classList.add(rowClass);
+	row.dataset.hasFullClass = "false";
+	return row;
+}
+function buildBlock(newTableBody, block, groupId, getBlockTitle, displayOptions) {
+	let mergedBlockStudents = mergeBlockStudents(block);
+	let trimesterHeaders = [
+		0,
+		1,
+		2
+	].map((trimNo) => {
+		if (mergedBlockStudents.trimesterStudents[trimNo].length < 5 && mergedBlockStudents.maxAantallen[trimNo] < 5) return "";
+		return `${mergedBlockStudents.trimesterStudents[trimNo].length + mergedBlockStudents.jaarStudents.length} van ${mergedBlockStudents.maxAantallen[trimNo]} lln`;
+	});
+	let trTitle = buildBlockTitle(newTableBody, block, getBlockTitle, groupId);
+	let headerRows = buildBlockHeader(newTableBody, block, groupId, trimesterHeaders, displayOptions);
+	let studentTopRowNo = newTableBody.children.length;
+	let filledRowCount = 0;
+	sortStudents(mergedBlockStudents.jaarStudents);
+	for (let student of mergedBlockStudents.jaarStudents) {
+		let row = createStudentRow(newTableBody, "jaarRow", groupId, block.id);
+		for (let trimNo = 0; trimNo < 3; trimNo++) {
+			let cell = buildStudentCell(student);
+			row.appendChild(cell);
+			cell.classList.add("jaarStudent");
+			if (filledRowCount >= mergedBlockStudents.maxAantallen[trimNo]) cell.classList.add("gray");
+		}
+		filledRowCount++;
+	}
+	let hasFullClass = false;
+	for (let rowNo = 0; filledRowCount < mergedBlockStudents.blockNeededRows; rowNo++) {
+		let row = createStudentRow(newTableBody, "trimesterRow", groupId, block.id);
+		for (let trimNo = 0; trimNo < 3; trimNo++) {
+			let trimester = mergedBlockStudents.trimesterStudents[trimNo];
+			sortStudents(trimester);
+			let student = void 0;
+			if (trimester) {
+				student = trimester[rowNo];
+				let maxTrimStudentCount = Math.max(mergedBlockStudents.maxAantallen[trimNo], mergedBlockStudents.maxJaarStudentCount);
+				if (trimester.length > 0 && trimester.length >= maxTrimStudentCount) {
+					row.dataset.hasFullClass = "true";
+					hasFullClass = true;
+				}
+			}
+			let cell = buildStudentCell(student);
+			row.appendChild(cell);
+			cell.classList.add("trimesterStudent");
+			if (filledRowCount >= mergedBlockStudents.maxAantallen[trimNo]) cell.classList.add("gray");
+			if (student?.trimesterInstruments) {
+				if (student?.trimesterInstruments[trimNo].length > 1) cell.classList.add("yellowMarker");
+			}
+		}
+		filledRowCount++;
+	}
+	if (hasFullClass) {
+		if (trTitle) trTitle.dataset.hasFullClass = "true";
+		headerRows.trModuleLinks.dataset.hasFullClass = "true";
+	}
+	if (!mergedBlockStudents.hasWachtlijst) return;
+	for (let trimNo of [
+		0,
+		1,
+		2
+	]) {
+		let row = newTableBody.children[newTableBody.children.length - 1];
+		row.classList.add("wachtlijst");
+		let cell = row.children[trimNo];
+		if (mergedBlockStudents.wachtlijsten[trimNo] === 0) continue;
+		const small = document.createElement("small");
+		cell.appendChild(small);
+		small.appendChild(document.createTextNode(`(${mergedBlockStudents.wachtlijsten[trimNo]} op wachtlijst)`));
+		small.classList.add("text-danger");
+		if (mergedBlockStudents.wachtlijsten[trimNo] > 0 && mergedBlockStudents.trimesterStudents[trimNo].length < mergedBlockStudents.maxAantallen[trimNo]) {
+			cell.querySelector("small").classList.add("yellowMarker");
+			newTableBody.children[studentTopRowNo + mergedBlockStudents.trimesterStudents[trimNo].length].children[trimNo].classList.add("yellowMarker");
+		}
+	}
+}
+function createLesRow(groupId, blockId) {
+	let tr = document.createElement("tr");
+	tr.dataset.blockId = "" + blockId;
+	if (blockId != void 0) tr.dataset.groupId = groupId;
+	else tr.dataset.blockId = "groupTitle";
+	return tr;
+}
+function buildTitleRow(newTableBody, title) {
+	const trTitle = createLesRow(title, void 0);
+	newTableBody.appendChild(trTitle);
+	trTitle.classList.add("blockRow", "groupHeader");
+	trTitle.dataset.groupId = title;
+	const tdTitle = document.createElement("td");
+	trTitle.appendChild(tdTitle);
+	tdTitle.classList.add("titleCell");
+	tdTitle.setAttribute("colspan", "3");
+	let divTitle = document.createElement("div");
+	tdTitle.appendChild(divTitle);
+	divTitle.classList.add("blockTitle");
+	divTitle.appendChild(document.createTextNode(title));
+	return {
+		trTitle,
+		divTitle
+	};
+}
+function buildBlockTitle(newTableBody, block, getBlockTitle, groupId) {
+	if (!getBlockTitle && !block.errors) return void 0;
+	const trBlockTitle = newTableBody.appendChild(createLesRow(groupId, block.id));
+	trBlockTitle.classList.add("blockRow");
+	let { last: divBlockTitle } = emmet.append(trBlockTitle, "td.infoCell[colspan=3]>div.text-muted");
+	if (getBlockTitle) {
+		let title = getBlockTitle(block);
+		if (typeof title == "string") emmet.appendChild(divBlockTitle, `span.blockTitle{${title}}`);
+		else {
+			let { first } = emmet.appendChild(divBlockTitle, `span.blockTitle`);
+			first.appendChild(title);
+		}
+	}
+	for (let jaarModule of block.jaarModules) divBlockTitle.appendChild(buildModuleButton(">", jaarModule.id, false, jaarModule.online));
+	if (block.errors) {
+		let errorSpan = document.createElement("span");
+		errorSpan.appendChild(document.createTextNode(block.errors));
+		errorSpan.classList.add("lesError");
+		divBlockTitle.appendChild(errorSpan);
+	}
+	return trBlockTitle;
+}
+function buildInfoRow(newTableBody, _text, show, groupId, blockId) {
+	const trBlockInfo = newTableBody.appendChild(createLesRow(groupId, blockId));
+	trBlockInfo.classList.add("blockRow");
+	if (!show) trBlockInfo.dataset.keepHidden = "true";
+	trBlockInfo.dataset.groupId = groupId;
+	return emmet.append(trBlockInfo, "td.infoCell[colspan=3]>div.text-muted");
+}
+function buildInfoRowWithText(newTableBody, show, blockId, groupId, text) {
+	let { last: divMuted } = buildInfoRow(newTableBody, "", show, groupId, blockId);
+	if (typeof text === "string") divMuted.appendChild(document.createTextNode(text));
+	else divMuted.appendChild(text);
+}
+function createTeacherSpan(block) {
+	let teacherSpan = emmet.indent.createElement(`
+        span{${block.teacher}}
+            button.naked.blueIcon
+                i.fas.fa-user-alt
+    `);
+	let button = teacherSpan.firstElementChild;
+	button.onclick = async () => {
+		let [lastName, firstName] = block.teacher.split(", ");
+		await gotoTeacher(firstName, lastName);
+	};
+	return teacherSpan;
+}
+function buildBlockHeader(newTableBody, block, groupId, trimesterHeaders, displayOptions) {
+	let teacherSpan = createTeacherSpan(block);
+	buildInfoRowWithText(newTableBody, Boolean(1 & displayOptions), block.id, groupId, teacherSpan);
+	buildInfoRowWithText(newTableBody, Boolean(4 & displayOptions), block.id, groupId, block.instrumentName);
+	buildInfoRowWithText(newTableBody, Boolean(2 & displayOptions), block.id, groupId, block.formattedLesmoment);
+	buildInfoRowWithText(newTableBody, Boolean(8 & displayOptions), block.id, groupId, block.vestiging);
+	if (block.tags.length > 0) {
+		let { last: divMuted } = buildInfoRow(newTableBody, block.tags.join(), true, groupId, block.id);
+		emmet.appendChild(divMuted, block.tags.map((tag) => {
+			return `span.badge.badge-ill.badge-warning${tag.partial ? ".muted" : ""}{${tag.name}}`;
+		}).join("+"));
+	}
+	const trModuleLinks = createLesRow(groupId, block.id);
+	newTableBody.appendChild(trModuleLinks);
+	trModuleLinks.classList.add("blockRow");
+	const tdLink1 = document.createElement("td");
+	trModuleLinks.appendChild(tdLink1);
+	tdLink1.appendChild(document.createTextNode(trimesterHeaders[0]));
+	for (let les of block.trimesters[0]) if (les) tdLink1.appendChild(buildModuleButton("1", les.id, true, les.online));
+	const tdLink2 = document.createElement("td");
+	trModuleLinks.appendChild(tdLink2);
+	tdLink2.appendChild(document.createTextNode(trimesterHeaders[1]));
+	for (let les of block.trimesters[1]) if (les) tdLink2.appendChild(buildModuleButton("2", les.id, true, les.online));
+	const tdLink3 = document.createElement("td");
+	trModuleLinks.appendChild(tdLink3);
+	tdLink3.appendChild(document.createTextNode(trimesterHeaders[2]));
+	for (let les of block.trimesters[2]) if (les) tdLink3.appendChild(buildModuleButton("3", les.id, true, les.online));
+	return { trModuleLinks };
+}
+function buildModuleButton(buttonText, id, floatRight, online) {
+	const button = document.createElement("a");
+	button.href = "#";
+	button.classList.toggle("offline", !online);
+	if (!online) button.title = "Offline!";
+	button.setAttribute("onclick", `showView('lessen-les','','id=${id}'); return false;`);
+	button.classList.add("lesButton");
+	if (floatRight) button.classList.add("float-right");
+	button.innerText = buttonText;
+	return button;
+}
+function buildStudentCell(student) {
+	const cell = document.createElement("td");
+	let studentSpan = document.createElement("span");
+	let displayName = String.fromCharCode(NBSP);
+	studentSpan.appendChild(document.createTextNode(displayName));
+	cell.appendChild(studentSpan);
+	if (!student) return cell;
+	if (pageState.nameSorting === 1) displayName = student.naam + " " + student.voornaam;
+	else displayName = student.voornaam + " " + student.naam;
+	studentSpan.textContent = displayName;
+	if (student.allYearSame) studentSpan.classList.add("allYear");
+	const button = cell.appendChild(document.createElement("button"));
+	button.classList.add("student");
+	button.title = student.info;
+	button.onclick = async function() {
+		let id = await fetchStudentId(student.name);
+		if (id <= 0) window.location.href = "/#zoeken?zoek=" + stripStudentName(student.name).replaceAll(" ", "+");
+		else window.location.href = "#leerlingen-leerling?id=" + id + ",tab=inschrijvingen";
+		return false;
+	};
+	const iTag = document.createElement("i");
+	button.appendChild(iTag);
+	iTag.classList.add("fas", "fa-user-alt");
+	if (student.notAllTrimsHaveAnInstrument) iTag.classList.add("no3trims");
+	return cell;
+}
+async function fetchStudentId(studentName) {
+	let strippedStudentName = stripStudentName(studentName);
+	return fetch("/view.php?args=zoeken?zoek=" + encodeURIComponent(strippedStudentName)).then((response) => response.text()).then((_text) => fetch("/views/zoeken/index.view.php")).then((response) => response.text()).then((text) => findStudentId(studentName, text)).catch((err) => {
+		console.error("Request failed", err);
+		return -1;
+	});
+}
+function findStudentId(studentName, text) {
+	studentName = studentName.replaceAll(",", "");
+	db3(studentName);
+	db3(text);
+	let namePos = text.indexOf(studentName);
+	if (namePos < 0) return 0;
+	let idPos = text.substring(0, namePos).lastIndexOf("'id=", namePos);
+	let found = text.substring(idPos, idPos + 10).match(/\d+/);
+	if (found?.length) return parseInt(found[0]);
+	throw `No id found for student ${studentName}.`;
+}
+function sortStudents(students) {
+	if (!students) return;
+	let comparator = new Intl.Collator();
+	let sorting = getSavedNameSorting();
+	students.sort((a, b) => {
+		if (a.allYearSame && !b.allYearSame) return -1;
+		else if (!a.allYearSame && b.allYearSame) return 1;
+		else {
+			let aName = sorting === 1 ? a.naam + a.voornaam : a.voornaam + a.naam;
+			let bName = sorting === 1 ? b.naam + b.voornaam : b.voornaam + b.naam;
+			return comparator.compare(aName, bName);
+		}
+	});
+}
+//#endregion
+//#region typescript/filter.ts
+function combineFilters(f1, f2) {
+	return {
+		context: {
+			f1,
+			f2
+		},
+		rowFilter: function(tr, _context) {
+			if (!f1.rowFilter(tr, f1.context)) return false;
+			return f2.rowFilter(tr, f2.context);
+		}
+	};
+}
+function createTextRowFilter(searchText, getRowSearchText) {
+	let context = {
+		search_OR_list: searchText.split(",").map((txt) => txt.trim()),
+		getRowSearchText
+	};
+	let rowFilter = function(tr, context) {
+		for (let search of context.search_OR_list) if (match_AND_expression(search, context.getRowSearchText(tr))) return true;
+		return false;
+	};
+	return {
+		context,
+		rowFilter
+	};
+}
+/**
+* Try to match a filter expression of type "string1+string2", where both strings need to be present.
+* @param searchText
+* @param rowText
+* @return true if all strings match
+*/
+function match_AND_expression(searchText, rowText) {
+	let search_AND_list = searchText.split("+").map((txt) => txt.trim());
+	for (let search of search_AND_list) {
+		let caseText = rowText;
+		if (search === search.toLowerCase()) caseText = rowText.toLowerCase();
+		if (!caseText.includes(search)) return false;
+	}
+	return true;
+}
+function filterTableRows(table, rowFilter) {
+	if (typeof table === "string") table = document.getElementById(table);
+	return Array.from(table.tBodies[0].rows).filter((tr) => rowFilter.rowFilter(tr, rowFilter.context));
+}
+function filterTable(table, rowFilter) {
+	if (typeof table === "string") table = document.getElementById(table);
+	for (let tr of table.tBodies[0].rows) {
+		tr.style.visibility = "collapse";
+		tr.style.borderColor = "transparent";
+	}
+	for (let tr of filterTableRows(table, rowFilter)) if (!tr.dataset.keepHidden) {
+		tr.style.visibility = "visible";
+		tr.style.borderColor = "";
+	}
+}
+//#endregion
+//#region typescript/lessen/filter.ts
+function createBlockFilter(filter) {
+	return BlockInfo.getAllBlocks().filter(filter);
+}
+function createRowFilterFromBlockFilter(blocks) {
+	return {
+		context: { ids: distinct(blocks.map((b) => b.getIds()).flat()) },
+		rowFilter: function(tr, context) {
+			return context.ids.includes(parseInt(tr.dataset.blockId));
+		}
+	};
+}
+function createQuerySelectorFilter(selector) {
+	return {
+		context: void 0,
+		rowFilter: function(tr, _context) {
+			return tr.querySelector(selector) != void 0;
+		}
+	};
+}
+function createInverseFilter(filter) {
+	return {
+		context: filter.context,
+		rowFilter: function(tr, context) {
+			return !filter.rowFilter(tr, context);
+		}
+	};
+}
+function createAncestorFilter(rowPreFilter) {
+	let filteredRows = filterTableRows(TRIM_TABLE_ID, rowPreFilter);
+	let filteredBlockIds = [...new Set(filteredRows.filter((tr) => tr.dataset.blockId !== "groupTitle").map((tr) => tr.dataset.blockId))];
+	let filteredGroupIds = [...new Set(filteredRows.map((tr) => tr.dataset.groupId))];
+	let filteredHeaderGroupIds = [...new Set(filteredRows.filter((tr) => tr.dataset.blockId === "groupTitle").map((tr) => tr.dataset.groupId))];
+	function siblingsAndAncestorsFilter(tr, context) {
+		if (context.filteredHeaderGroupIds.includes(tr.dataset.groupId)) return true;
+		if (context.filteredBlockIds.includes(tr.dataset.blockId)) return true;
+		return context.filteredGroupIds.includes(tr.dataset.groupId) && tr.classList.contains("groupHeader");
+	}
+	return {
+		context: {
+			filteredBlockIds,
+			filteredGroupIds,
+			filteredHeaderGroupIds
+		},
+		rowFilter: siblingsAndAncestorsFilter
+	};
+}
+const TXT_FILTER_ID$1 = "txtFilter";
+function setFilterInfo(text) {
+	let infoSpan = document.getElementById(FILTER_INFO_ID);
+	infoSpan.innerText = text;
+	infoSpan.classList.toggle("highlight", text.length > 0);
+}
+function applyFilters() {
+	let pageState = getPageSettings("Lessen", getDefaultPageSettings());
+	pageState.searchText = document.getElementById(TXT_FILTER_ID$1).value;
+	savePageSettings(pageState);
+	let extraFilter = void 0;
+	if (isTrimesterTableVisible()) {
+		let textPreFilter = createTextRowFilter(pageState.searchText, (tr) => tr.textContent);
+		let preFilter = textPreFilter;
+		if (pageState.filterOffline) extraFilter = createRowFilterFromBlockFilter(createBlockFilter((b) => b.hasSomeOfflineLessen()));
+		else if (pageState.filterOnline) extraFilter = createRowFilterFromBlockFilter(createBlockFilter((b) => !b.hasSomeOfflineLessen()));
+		else if (pageState.filterNoTeacher) extraFilter = createRowFilterFromBlockFilter(createBlockFilter((b) => b.hasMissingTeachers()));
+		else if (pageState.filterNoMax) extraFilter = createRowFilterFromBlockFilter(createBlockFilter((b) => b.hasMissingMax()));
+		else if (pageState.filterFullClass) extraFilter = createRowFilterFromBlockFilter(createBlockFilter((b) => b.hasFullClasses()));
+		else if (pageState.filterWaitingList) extraFilter = createRowFilterFromBlockFilter(createBlockFilter((b) => b.hasWaitingList()));
+		else if (pageState.filterOnlineAlc) extraFilter = createRowFilterFromBlockFilter(createBlockFilter((b) => b.hasOnlineAlcClasses()));
+		else if (pageState.filterWarnings) extraFilter = createRowFilterFromBlockFilter(createBlockFilter((b) => b.hasWarningLessons()));
+		if (extraFilter) preFilter = combineFilters(createAncestorFilter(textPreFilter), extraFilter);
+		let filter = createAncestorFilter(preFilter);
+		filterTable(TRIM_TABLE_ID, filter);
+	} else {
+		let textFilter = createTextRowFilter(pageState.searchText, (tr) => tr.cells[0].textContent);
+		let filter = textFilter;
+		if (pageState.filterOffline) extraFilter = createQuerySelectorFilter("td>i.fa-eye-slash");
+		else if (pageState.filterOnline) extraFilter = createInverseFilter(createQuerySelectorFilter("td>i.fa-eye-slash"));
+		else if (pageState.filterNoTeacher) extraFilter = createTextRowFilter("(geen klasleerkracht)", (tr) => tr.cells[0].textContent);
+		else if (pageState.filterNoMax) extraFilter = createTextRowFilter("999", (tr) => tr.cells[1].textContent);
+		else if (pageState.filterFullClass) extraFilter = {
+			context: void 0,
+			rowFilter(tr, _context) {
+				let scrapeResult = scrapeStudentsCellMeta(tr);
+				return scrapeResult.aantal >= scrapeResult.maxAantal;
+			}
+		};
+		else if (pageState.filterWaitingList) extraFilter = {
+			context: void 0,
+			rowFilter(tr, _context) {
+				return scrapeStudentsCellMeta(tr).wachtlijst != 0;
+			}
+		};
+		else if (pageState.filterOnlineAlc) extraFilter = {
+			context: void 0,
+			rowFilter(tr, _context) {
+				let scrapeResult = scrapeLesInfo(tr);
+				return scrapeResult.les.online && scrapeResult.les.alc;
+			}
+		};
+		else if (pageState.filterWarnings) extraFilter = createQuerySelectorFilter(".text-warning");
+		if (extraFilter) filter = combineFilters(textFilter, extraFilter);
+		filterTable(LESSEN_TABLE_ID, filter);
+	}
+	if (pageState.filterOnline) setFilterInfo("Online lessen");
+	else if (pageState.filterOffline) setFilterInfo("Offline lessen");
+	else if (pageState.filterNoTeacher) setFilterInfo("Zonder leraar");
+	else if (pageState.filterNoMax) setFilterInfo("Zonder maximum");
+	else if (pageState.filterFullClass) setFilterInfo("Volle lessen");
+	else if (pageState.filterWaitingList) setFilterInfo("Wachtlijst");
+	else if (pageState.filterOnlineAlc) setFilterInfo("Online ALC lessen");
+	else if (pageState.filterWarnings) setFilterInfo("Opmerkingen");
+	else setFilterInfo("");
+}
+function setExtraFilter(set) {
+	let pageState = getPageSettings("Lessen", getDefaultPageSettings());
+	pageState.filterOffline = false;
+	pageState.filterOnline = false;
+	pageState.filterNoTeacher = false;
+	pageState.filterNoMax = false;
+	pageState.filterFullClass = false;
+	pageState.filterOnlineAlc = false;
+	pageState.filterWarnings = false;
+	pageState.filterWaitingList = false;
+	set(pageState);
+	savePageSettings(pageState);
+	applyFilters();
+}
+function addFilterFields() {
+	let divButtonNieuweLes = document.querySelector("#lessen_overzicht > div > button");
+	if (!document.getElementById("txtFilter")) {
+		let pageState = getPageSettings("Lessen", getDefaultPageSettings());
+		let searchField = createSearchField(TXT_FILTER_ID$1, applyFilters, pageState.searchText);
+		divButtonNieuweLes.insertAdjacentElement("afterend", searchField);
+		let { first: span, last: idiom } = emmet.insertAfter(searchField, "span.btn-group-sm>button.btn.btn-sm.btn-outline-secondary.ml-2>i.fas.fa-list");
+		let menu = new DropDownMenu(span, idiom.parentElement);
+		menu.addItem("Toon alles", 0, (_) => setExtraFilter((_) => {}));
+		menu.addItem("Filter online lessen", 0, (_) => setExtraFilter((pageState) => pageState.filterOnline = true));
+		menu.addItem("Filter offline lessen", 0, (_) => setExtraFilter((pageState) => pageState.filterOffline = true));
+		menu.addItem("Lessen zonder leraar", 0, (_) => setExtraFilter((pageState) => pageState.filterNoTeacher = true));
+		menu.addItem("Lessen zonder maximum", 0, (_) => setExtraFilter((pageState) => pageState.filterNoMax = true));
+		menu.addItem("Volle lessen", 0, (_) => setExtraFilter((pageState) => pageState.filterFullClass = true));
+		menu.addItem("Wachtlijst", 0, (_) => setExtraFilter((pageState) => pageState.filterWaitingList = true));
+		menu.addItem("Online ALC lessen", 0, (_) => setExtraFilter((pageState) => pageState.filterOnlineAlc = true));
+		menu.addItem("Opmerkingen", 0, (_) => setExtraFilter((pageState) => pageState.filterWarnings = true));
+		emmet.insertAfter(idiom.parentElement, `span#${FILTER_INFO_ID}.filterInfo.block.min28ch.linePad1.blockPad05`);
+	}
+	applyFilters();
+}
+//#endregion
+//#region typescript/werklijst/criteria.ts
+let FIELD;
+(function(_FIELD) {
+	_FIELD.DOMEIN = { text: "domein" };
+	_FIELD.GRAAD = { text: "graad" };
+	_FIELD.LEERJAAR = { text: "leerjaar" };
+	_FIELD.BENAMING_LES = { text: "benaming les" };
+	_FIELD.VESTIGINGSPLAATS = { text: "vestigingsplaats" };
+	_FIELD.NAAM = { text: "naam" };
+	_FIELD.STAMNUMMER = { text: "stamnummer" };
+	_FIELD.VOORNAAM = { text: "voornaam" };
+	_FIELD.VAK_NAAM = { text: "vak: naam" };
+	_FIELD.GRAAD_LEERJAAR = { text: "graad + leerjaar" };
+	_FIELD.KLAS_LEERKRACHT = { text: "klasleerkracht" };
+	_FIELD.LESMOMENTEN = { text: "lesmomenten" };
+	_FIELD.LEEFTIJD_31_DEC = { text: "leeftijd op 31 dec" };
+	_FIELD.EMAIL_PUNTCOMMA = { text: "e-mailadressen (gescheiden door puntkomma)" };
+})(FIELD || (FIELD = {}));
+async function postNameValueList(url, criteria) {
+	const formData = new FormData();
+	criteria.forEach((c) => {
+		formData.append(c.name, c.value);
+	});
+	return fetch(url, {
+		method: "POST",
+		body: formData
+	});
+}
+async function fetchTableRows(response) {
+	let tableHtml = await response.text();
+	let div = document.createElement("div");
+	div.innerHTML = tableHtml;
+	return div.querySelector("table").querySelectorAll("tr");
+}
+function scrapeCriteria() {
+	return [...document.querySelectorAll("#tbody_leerlingen_werklijst_criteria > tr")].map((tr) => {
+		let id = tr.dataset.criterium_id;
+		let operator = tr.cells[1].querySelector("select")?.value ?? "";
+		let value = "-null-";
+		let selectionRenderedSpan = tr.cells[2].querySelector("span.select2-selection__rendered");
+		if (selectionRenderedSpan) {
+			value = selectionRenderedSpan.getAttribute("title") ?? "-null-";
+			value = [...tr.cells[2].querySelectorAll(".select2 option")].find((option) => option.textContent === value)?.getAttribute("value") ?? "-null-";
+		} else value = [...tr.cells[2].querySelector("ul.select2-selection__rendered").querySelectorAll("li.select2-selection__choice")].map((li) => li.title).join(",");
+		return id + "_" + operator + "_" + value;
+	}).join("_");
+}
+function scrapeSelectedFieldIndexes() {
+	return [...document.querySelectorAll("#tbody_leerlingen_werklijst_velden > tr")].map((row) => {
+		return row.querySelectorAll("td")[1].textContent.trim();
+	});
+}
+function hasWerklijstNoCriteria() {
+	let ids = [...document.querySelectorAll("#tbody_leerlingen_werklijst_criteria > tr")].map((tr) => tr.dataset.criterium_id);
+	return ids.length === 2 && ["1", "2"].every((value) => ids.includes(value));
+}
+//#endregion
+//#region typescript/table/werklijstBuilder.ts
+function createWerklijstBuilderWithoutReset(schoolYear, grouping, preselectedFields, criteriaString) {
+	return WerklijstBuilder.fetch(schoolYear, grouping, false, preselectedFields, criteriaString);
+}
+function createWerklijstBuilderWithReset(schoolYear, grouping) {
+	return WerklijstBuilder.fetch(schoolYear, grouping, true, [], "");
+}
+var WerklijstBuilder = class WerklijstBuilder {
+	schoolYear;
+	grouping;
+	criteria = [];
+	fields;
+	criteriaDefs;
+	fieldDefs;
+	preselectedFields = [];
+	criteriaString = "";
+	constructor(schoolYear, grouping) {
+		this.schoolYear = schoolYear;
+		this.grouping = grouping;
+		this.criteria = [];
+		this.fields = [];
+	}
+	getCheckSum() {
+		return this.criteria.map((c) => c.name + c.operator + c.values.join()).join() + this.fields.map((f) => f.text).join() + this.criteriaString;
+	}
+	static async fetch(schoolYear, grouping, reset, preselectedFields, criteriaString) {
+		let builder = new WerklijstBuilder(schoolYear, grouping);
+		await builder.initialize(reset);
+		builder.criteriaDefs = await this.fetchCriteriumDefinitions();
+		builder.fieldDefs = await this.fetchFieldDefinitions();
+		builder.criteriaString = criteriaString;
+		if (!reset) builder.setPreselectedFields(preselectedFields);
+		return builder;
+	}
+	async initialize(reset) {
+		await fetch("view.php?args=leerlingen-werklijst");
+		await fetch("views/leerlingen/werklijst/index.view.php");
+		if (!reset) {
+			await postNameValueList("/views/leerlingen/werklijst/session.opslaan.php", [{
+				name: "schooljaar",
+				value: this.schoolYear
+			}, {
+				name: "groepering",
+				value: this.grouping
+			}]);
+			return;
+		}
+		await postNameValueList("/views/leerlingen/werklijst/session.opslaan.php", [{
+			name: "schooljaar",
+			value: this.schoolYear
+		}, {
+			name: "groepering",
+			value: this.grouping
+		}]);
+		await postNameValueList("/views/leerlingen/werklijst/session.opslaan.php", [{
+			name: "reset",
+			value: "1"
+		}]);
+		await postNameValueList("/views/leerlingen/werklijst/session.opslaan.php", [{
+			name: "schooljaar",
+			value: this.schoolYear
+		}, {
+			name: "groepering",
+			value: this.grouping
+		}]);
+		await fetch("/views/leerlingen/werklijst/criteria/criteria.div.php");
+		await fetch("/views/leerlingen/werklijst/velden/velden.div.php");
+	}
+	static async clear() {
+		await fetch("view.php?args=leerlingen-werklijst");
+		await fetch("views/leerlingen/werklijst/index.view.php");
+		await postNameValueList("/views/leerlingen/werklijst/session.opslaan.php", [{
+			name: "reset",
+			value: "1"
+		}]);
+	}
+	static async fetchDefinitions(url, idTagName, nameSelector) {
+		let rows = await fetchTableRows(await fetch(url));
+		let defs = [];
+		for (let row of rows) {
+			let id = row.dataset[idTagName];
+			if (id) {
+				let name = getImmediateText(row.querySelector(nameSelector)).trim();
+				defs.push({
+					id,
+					name
+				});
+			}
+		}
+		return defs;
+	}
+	static async fetchCriteriumDefinitions() {
+		return this.fetchDefinitions("/views/leerlingen/werklijst/criteria/toevoegen/criteria.results.php", "criterium_id", "td");
+	}
+	static async fetchFieldDefinitions() {
+		await fetch("/views/leerlingen/werklijst/velden/toevoegen/toevoegen.modal.php");
+		return this.fetchDefinitions("/views/leerlingen/werklijst/velden/toevoegen/velden.results.php?zoekterm=", "veld_id", "td:nth-child(2)");
+	}
+	async sendCriteria() {
+		for (const c of this.criteria) {
+			let codes = await this.addCodesForCriterium(c.name, c.values);
+			if (c.operator == "!=") await postNameValueList("/views/leerlingen/werklijst/criteria/wijzigen.opslaan.php", [{
+				name: "criterium_id",
+				value: codes.postId
+			}, {
+				name: "operator",
+				value: c.operator
+			}]);
+			await postNameValueList("/views/leerlingen/werklijst/criteria/wijzigen.opslaan.php", [{
+				name: "criterium_id",
+				value: codes.postId
+			}, {
+				name: "value",
+				value: codes.values.join()
+			}]);
+		}
+	}
+	async sendSettings() {
+		await this.sendFields(this.fields);
+		await this.sendCriteria();
+		return this;
+	}
+	async fetchTable(listener, clearCache) {
+		return getNavigatableTable(await getWerklijstTableRef(), listener, clearCache, (_) => this.getCheckSum());
+	}
+	addCriterium(name, operator, values) {
+		this.criteria.push({
+			name,
+			operator,
+			values
+		});
+	}
+	addFields(fields) {
+		this.fields.push(...fields);
+	}
+	async addCodesForCriterium(criterium, items) {
+		let defs = await this.fetchMultiSelectDefinitions(criterium);
+		let codes = textToCodes(items, defs.defs);
+		return {
+			postId: defs.postId,
+			values: codes
+		};
+	}
+	async fetchAvailableSubjects() {
+		let defs = await this.fetchMultiSelectDefinitions("Vak");
+		return Array.from(defs.defs).map((vak) => {
+			return {
+				name: vak[0],
+				value: vak[1]
+			};
+		});
+	}
+	async fetchMultiSelectDefinitions(criterium) {
+		let critId = this.criteriaDefs.find((c) => c.name === criterium).id;
+		//! todo: force criteria to be valid: fetch() is not called in constructor.
+		await postNameValueList("/views/leerlingen/werklijst/criteria/toevoegen/toevoegen.opslaan.php", [{
+			name: "criterium_id",
+			value: critId
+		}]);
+		let text = await fetch("/views/leerlingen/werklijst/criteria/criteria.div.php").then((res) => res.text());
+		const template = document.createElement("template");
+		template.innerHTML = text;
+		let select = template.content.querySelector(`tr[data-criterium_id="${critId}"]`).querySelector(`td:nth-child(3) select`);
+		let defs = select.querySelectorAll(`option`);
+		return {
+			postId: select.dataset.postId,
+			defs: Array.from(defs).map((def) => [def.label, def.value])
+		};
+	}
+	async sendFields(fields) {
+		let fieldsToActuallySend = fields.filter((f) => !this.preselectedFields.includes(f.text));
+		for (let field of fieldsToActuallySend) {
+			let fieldDef = this.fieldDefs.find((f) => f.name === field.text);
+			//! todo: force fiedDefs to be valid: fetch() is not called in constructor.
+			if (fieldDef) await postNameValueList("/views/leerlingen/werklijst/velden/toevoegen/wijzigen.opslaan.php", [{
+				name: "veld_id",
+				value: fieldDef.id
+			}, {
+				name: "selected",
+				value: "1"
+			}]);
+		}
+	}
+	setPreselectedFields(preselectedFields) {
+		this.preselectedFields = preselectedFields;
+	}
+};
+function textToCodes(items, vakDefs) {
+	let filtered;
+	if (typeof items === "function") {
+		let isIncluded = items;
+		filtered = vakDefs.filter((vakDef) => isIncluded(vakDef[0]));
+	} else filtered = vakDefs.filter((vakDef) => items.includes(vakDef[0]));
+	return filtered.map((vakDef) => vakDef[1]);
+}
+//#endregion
+//#region typescript/lessen/observer.ts
+var LessenObserver = class extends HashObserver {
+	constructor() {
+		super("#lessen-overzicht", onMutation$7, false, onPageRefreshed$1);
+	}
+	isPageReallyLoaded() {
+		return document.getElementById("btn_lessen_overzicht_zoeken") != null;
+	}
+};
+var observer_default$8 = new LessenObserver();
+function onPageRefreshed$1() {
+	console.log(`Lessen.onPageRefreshed: hash: ${location.hash}`);
+	if (location.hash != "#lessen-overzicht") return;
+	if (!addTrimesterButton()) setTimeout(onPageRefreshed$1, 500);
+}
+function addTrimesterButton() {
+	let btnZoek = document.getElementById("btn_lessen_overzicht_zoeken");
+	if (!btnZoek) return false;
+	if (!document.getElementById("btn_show_trimesters")) {
+		let { first } = emmet.insertAfter(btnZoek, "button.btn.btn-sm.btn-primary.w-100.mt-1#btn_show_trimesters>i.fas.fa-sitemap+{ Toon trimesters}");
+		first.onclick = onClickShowTrimesters;
+	}
+	return true;
+}
+function onMutation$7(mutation) {
+	addTrimesterButton();
+	let lessenOverzicht = document.getElementById(LESSEN_OVERZICHT_ID);
+	if (mutation.target !== lessenOverzicht) return false;
+	let pageState = getGotoStateOrDefault("Lessen");
+	switch (pageState.goto) {
+		case "Lessen_trimesters_set_filter":
+			pageState.goto = "";
+			saveGotoState(pageState);
+			onClickShowTrimesters();
+			return true;
+		case "Lessen_trimesters_show":
+			pageState.goto = "";
+			saveGotoState(pageState);
+			return true;
+	}
+	return decorateTable() !== void 0;
+}
+function onClickShowTrimesters() {
+	document.getElementById("lessen_overzicht").innerHTML = "<span class=\"text-muted\">\n                <i class=\"fa fa-cog fa-spin\"></i> <i>Bezig met laden...</i>\n            </span>";
+	setTrimesterFilterAndFetch().then((text) => {
+		document.getElementById("lessen_overzicht").innerHTML = text;
+		showTrimesterTable(decorateTable(), true);
+	});
+}
+async function setTrimesterFilterAndFetch() {
+	return fetchLessen(new URLSearchParams({
+		schooljaar: Schoolyear.findInPage(),
+		domein: "3",
+		vestigingsplaats: "",
+		vak: "",
+		graad: "",
+		leerkracht: "",
+		ag: "",
+		lesdag: "",
+		verberg_online: "-1",
+		soorten_lessen: "3",
+		volzet: "-1"
+	}));
+}
+async function fetchLessen(params) {
+	let url = "/views/lessen/overzicht/index.filters.php";
+	await fetch(url + "?" + params);
+	url = "/views/lessen/overzicht/index.lessen.php";
+	return (await fetch(url + "?" + params)).text();
+}
+function createTrimTableDiv() {
+	let trimDiv = document.getElementById(TRIM_DIV_ID);
+	if (!trimDiv) {
+		trimDiv = document.createElement("div");
+		document.getElementById(LESSEN_TABLE_ID).insertAdjacentElement("afterend", trimDiv);
+		trimDiv.id = TRIM_DIV_ID;
+	}
+	return trimDiv;
+}
+async function expandTeacherName(span) {
+	let lesInfo = await fetchLes(span.id, void 0, { teachers: true });
+	if (!lesInfo) return;
+	span.teacherNameSpan.textContent = lesInfo.teachers.map((teacher) => teacher.name).join(", ");
+}
+function onClickShowAllTeachers() {
+	let expandedSpans = scrapeTeacherNameSpans().filter((span) => span.textContent?.includes("(en nog")).map((span) => {
+		let tr = span.closest("tr");
+		return {
+			id: getId(tr),
+			row: tr,
+			teacherNameSpan: span
+		};
+	});
+	let promiseQueue = Promise.resolve();
+	expandedSpans.forEach(async (span) => {
+		promiseQueue = promiseQueue.then(() => {
+			return expandTeacherName(span);
+		});
+	});
+	console.log(expandedSpans);
+}
+function decorateTable() {
+	let printButton = document.getElementById("btn_print_overzicht_lessen");
+	if (!printButton) return;
+	let copyLessonButton = printButton.parentElement.querySelector("button:has(i.fa-reply-all)");
+	if (copyLessonButton?.title === "") {
+		copyLessonButton.title = copyLessonButton.textContent.replaceAll("\n", " ").replaceAll("      ", " ").replaceAll("     ", " ").replaceAll("    ", " ").replaceAll("   ", " ").replaceAll("  ", " ");
+		copyLessonButton.childNodes.forEach((node) => {
+			if (node.nodeType === Node.TEXT_NODE) node.remove();
+		});
+		copyLessonButton.querySelector("strong")?.remove();
+		copyLessonButton.style.backgroundColor = "red";
+		copyLessonButton.style.color = "white";
+	}
+	let overzichtDiv = document.getElementById(LESSEN_OVERZICHT_ID);
+	createTrimTableDiv();
+	overzichtDiv.dataset.filterFullClasses = "false";
+	let badges = document.getElementsByClassName("badge");
+	let hasModules = Array.from(badges).some((el) => el.textContent === "module");
+	addButton(printButton, SHOW_ALL_TEACHERS_BTN_ID, "Toon alle leraars", onClickShowAllTeachers, "fa-users");
+	if (hasModules) addButton(printButton, TRIM_BUTTON_ID, "Toon trimesters", onClickToggleTrimesters, "fa-sitemap");
+	addFilterFields();
+	return getTrimPageElements();
+}
+function addButton(printButton, buttonId, title, clickFunction, imageId) {
+	if (document.getElementById(buttonId) === null) {
+		const button = document.createElement("button");
+		button.classList.add("btn", "btn-sm", "btn-outline-secondary", "w-100");
+		button.id = buttonId;
+		button.style.marginTop = "0";
+		button.onclick = clickFunction;
+		button.title = title;
+		const buttonContent = document.createElement("i");
+		button.appendChild(buttonContent);
+		buttonContent.classList.add("fas", imageId);
+		printButton.insertAdjacentElement("beforebegin", button);
+	}
+}
+function onClickToggleTrimesters() {
+	showTrimesterTable(getTrimPageElements(), !isTrimesterTableVisible());
+}
+function isTrimesterTableVisible() {
+	return document.getElementById(LESSEN_TABLE_ID).style.display === "none";
+}
+function getTrimPageElements() {
+	return {
+		trimTable: document.getElementById(TRIM_TABLE_ID),
+		trimTableDiv: createTrimTableDiv(),
+		lessenTable: document.getElementById(LESSEN_TABLE_ID),
+		trimButton: document.getElementById(TRIM_BUTTON_ID)
+	};
+}
+async function getJaarToewijzigingWerklijst(schoolYear) {
+	let builder = await createWerklijstBuilderWithReset(schoolYear, "3");
+	builder.addCriterium("Domein", "=", ["Muziek (Mu)"]);
+	builder.addCriterium("Vak", "=", [
+		"instrumentinitiatie – hele jaar zelfde instrument - accordeon",
+		"instrumentinitiatie – hele jaar zelfde instrument - baglama (saz)",
+		"instrumentinitiatie – hele jaar zelfde instrument - cello",
+		"instrumentinitiatie – hele jaar zelfde instrument - dwarsfluit",
+		"instrumentinitiatie – hele jaar zelfde instrument - gitaar",
+		"instrumentinitiatie – hele jaar zelfde instrument - harp",
+		"instrumentinitiatie – hele jaar zelfde instrument - klarinet",
+		"instrumentinitiatie – hele jaar zelfde instrument - saxofoon",
+		"instrumentinitiatie – hele jaar zelfde instrument - slagwerk",
+		"instrumentinitiatie – hele jaar zelfde instrument - trombone",
+		"instrumentinitiatie – hele jaar zelfde instrument - trompet",
+		"instrumentinitiatie – hele jaar zelfde instrument - viool",
+		"instrumentinitiatie – hele jaar zelfde instrument - zang"
+	]);
+	builder.addFields([
+		FIELD.NAAM,
+		FIELD.VOORNAAM,
+		FIELD.VAK_NAAM,
+		FIELD.LESMOMENTEN,
+		FIELD.KLAS_LEERKRACHT,
+		FIELD.GRAAD_LEERJAAR
+	]);
+	let table = await (await builder.sendSettings()).fetchTable(void 0, true);
+	await setViewFromCurrentUrl();
+	return table;
+}
+async function showTrimesterTable(trimElements, show) {
+	trimElements.trimTable?.remove();
+	let toewijzingTable;
+	let schoolYear = Schoolyear.findInPage();
+	if (schoolYear === "2024-2025") toewijzingTable = void 0;
+	else toewijzingTable = await getJaarToewijzigingWerklijst(schoolYear);
+	let inputModules = scrapeModules(toewijzingTable);
+	let toewijzingModules = connvertToewijzingenToModules(inputModules.jaarToewijzingen);
+	console.log(toewijzingModules);
+	inputModules.jaarModules = inputModules.jaarModules.concat(...toewijzingModules.values());
+	buildTrimesterTable(buildTableData(inputModules.trimesterModules.concat(inputModules.jaarModules)), trimElements);
+	trimElements.lessenTable.style.display = show ? "none" : "table";
+	trimElements.trimTable.style.display = show ? "table" : "none";
+	trimElements.trimButton.title = show ? "Toon normaal" : "Toon trimesters";
+	setButtonHighlighted(TRIM_BUTTON_ID, show);
+	setSorteerLine(show);
+	applyFilters();
+}
+function addSortingAnchorOrText() {
+	let sorteerDiv = document.getElementById("trimSorteerDiv");
+	sorteerDiv.innerHTML = "Sorteer : ";
+	if (getSavedNameSorting() === 0) emmet.append(sorteerDiv, "a{Naam}[href=\"#\"]+{ | }+strong{Voornaam}");
+	else emmet.append(sorteerDiv, "strong{Naam}+{ | }+a{Voornaam}[href=\"#\"]");
+	for (let anchor of sorteerDiv.querySelectorAll("a")) anchor.onclick = (mouseEvent) => {
+		if (mouseEvent.target.textContent === "Naam") setSavedNameSorting(1);
+		else setSavedNameSorting(0);
+		showTrimesterTable(getTrimPageElements(), true);
+		addSortingAnchorOrText();
+		return false;
+	};
+}
+function setSorteerLine(showTrimTable) {
+	let pageState = getPageSettings("Lessen", getDefaultPageSettings());
+	let oldSorteerSpan = document.querySelector("#lessen_overzicht > span");
+	let newGroupingDiv = document.getElementById("trimGroepeerDiv");
+	if (!newGroupingDiv) newGroupingDiv = emmet.insertAfter(oldSorteerSpan, "div#trimGroepeerDiv.text-muted").first;
+	if (!document.getElementById("trimSorteerDiv")) {
+		emmet.insertBefore(newGroupingDiv, "div#trimSorteerDiv.text-muted");
+		addSortingAnchorOrText();
+	}
+	newGroupingDiv.innerText = "Groepeer: ";
+	oldSorteerSpan.style.display = showTrimTable ? "none" : "";
+	newGroupingDiv.style.display = showTrimTable ? "" : "none";
+	appendGroupingAnchorOrText(newGroupingDiv, 1, pageState.grouping, "");
+	appendGroupingAnchorOrText(newGroupingDiv, 0, pageState.grouping, " | ");
+	appendGroupingAnchorOrText(newGroupingDiv, 2, pageState.grouping, " | ");
+	appendGroupingAnchorOrText(newGroupingDiv, 4, pageState.grouping, " | ");
+	appendGroupingAnchorOrText(newGroupingDiv, 5, pageState.grouping, " | ");
+}
+function appendGroupingAnchorOrText(target, grouping, activeSorting, separator) {
+	let sortingText = "";
+	switch (grouping) {
+		case 1:
+			sortingText = "instrument+leraar+lesuur";
+			break;
+		case 0:
+			sortingText = "leraar+instrument+lesuur";
+			break;
+		case 2:
+			sortingText = "leraar+lesuur";
+			break;
+		case 3:
+			sortingText = "instrument+lesuur";
+			break;
+		case 4:
+			sortingText = "instrument";
+			break;
+		case 5: sortingText = "leraar";
+	}
+	if (separator) separator = "{" + separator + "}+";
+	if (activeSorting === grouping) emmet.appendChild(target, separator + "strong{" + sortingText + "}");
+	else {
+		let button = emmet.appendChild(target, separator + "button.likeLink{" + sortingText + "}").last;
+		button.onclick = () => {
+			let pageState = getPageSettings("Lessen", getDefaultPageSettings());
+			pageState.grouping = grouping;
+			savePageSettings(pageState);
+			showTrimesterTable(getTrimPageElements(), true);
+			return false;
+		};
+	}
+}
+//#endregion
+//#region typescript/lessen/fetch.ts
+let LessenFilterDomein = /* @__PURE__ */ function(LessenFilterDomein) {
+	LessenFilterDomein["Muziek"] = "3";
+	LessenFilterDomein["Woord"] = "4";
+	LessenFilterDomein["DomeinOV"] = "5";
+	LessenFilterDomein["Dans"] = "2";
+	return LessenFilterDomein;
+}({});
+async function scrapeLessen(domein, type, schoolYear) {
+	let chain = new FetchChain();
+	await chain.fetch("/#lessen-overzichtlessen-overzicht");
+	await chain.fetch("view.php?args=lessen-overzicht");
+	let tableText = await fetchLessen(new URLSearchParams({
+		schooljaar: schoolYear,
+		domein,
+		vestigingsplaats: "",
+		vak: "",
+		graad: "",
+		leerkracht: "",
+		ag: "",
+		lesdag: "",
+		verberg_online: "-1",
+		soorten_lessen: type,
+		volzet: "-1"
+	}));
+	let div = document.createElement("div");
+	div.innerHTML = tableText;
+	return scrapeLessenOverzicht(div.querySelector("table"));
+}
+var LessenFilterBuilder = class LessenFilterBuilder {
+	schoolYear;
+	domein;
+	vakCodes = [];
+	graadCodes = [];
+	adminGroupCodes = [];
+	vakken = [];
+	graden = [];
+	adminGroups = [];
+	constructor(schoolYear, domein) {
+		this.schoolYear = schoolYear;
+		this.domein = LessenFilterDomein[domein];
+	}
+	static async create(schoolYear, domein) {
+		let builder = new LessenFilterBuilder(schoolYear, domein);
+		await builder.initialize();
+		return builder;
+	}
+	async initialize() {
+		let chain = new FetchChain();
+		await chain.fetch("view.php?args=lessen-overzicht");
+		chain.findDocReadyLoadUrl();
+		await chain.fetch();
+		await chain.fetch(`views/lessen/overzicht/filters/index.selectie_na_schooljaar.php?schooljaar=${this.schoolYear}`);
+		await chain.fetch(`views/lessen/overzicht/filters/index.selectie_na_domein.php?domein=${this.domein}`);
+		this.vakCodes = this.getCodesForCriteria("lessen_overzicht_vak", chain.get());
+		//! should have text.
+		this.graadCodes = this.getCodesForCriteria("lessen_overzicht_graad", chain.get());
+		//! should have text.
+		this.adminGroupCodes = this.getCodesForCriteria("lessen_overzicht_ag", chain.get());
+		//! should have text.
+		this.adminGroupCodes.forEach((ag) => {
+			ag.name = ag.name.split(" ").shift() ?? "???";
+		});
+	}
+	getCodesForCriteria(selectId, text) {
+		let scanner = new TokenScanner(text);
+		scanner.find(`"${selectId}"`);
+		scanner.find("<option");
+		scanner.clipTo("</select>");
+		return (scanner.result()?.split("</option>").map((opt) => opt.replace(" selected ", "").replace("<option", "").replace("value=\"", "").trim().split(/"\s*>/)) ?? []).filter((opt) => opt[0] != "").map((opt) => {
+			return {
+				code: opt[0],
+				name: opt[1]
+			};
+		});
+	}
+	async fetch() {
+		let tableText = await fetchLessen(new URLSearchParams({
+			schooljaar: this.schoolYear,
+			domein: this.domein,
+			vestigingsplaats: "",
+			vak: this.vakken.join(),
+			graad: this.graden.join(),
+			leerkracht: "",
+			ag: this.adminGroups.join(),
+			lesdag: "",
+			verberg_online: "-1",
+			soorten_lessen: "1",
+			volzet: "-1"
+		}));
+		let div = document.createElement("div");
+		div.innerHTML = tableText;
+		return scrapeLessenOverzicht(div.querySelector("table"));
+		//! should contain a table.
+	}
+	hasVak(vak) {
+		return this.vakken.includes(vak);
+	}
+	addVak(vak) {
+		let vakCode = this.vakCodes.find((v) => v.name === vak);
+		if (!vakCode) {
+			console.error("vak niet gevonden: " + vak);
+			return;
+		}
+		this.vakken.push(vakCode.code);
+	}
+	addGraad(graad) {
+		let graadCode = this.graadCodes.find((v) => v.name === graad);
+		if (!graadCode) {
+			console.error("graad niet gevonden: " + graad);
+			return;
+		}
+		this.graden.push(graadCode.code);
+	}
+	addAdminGroup(adminGroup) {
+		let adminGroupCode = this.adminGroupCodes.find((v) => v.name === adminGroup);
+		if (!adminGroupCode) {
+			console.error("administrative groep niet gevonden: " + adminGroup);
+			return;
+		}
+		this.adminGroups.push(adminGroupCode.code);
+	}
+};
+//#endregion
 //#region typescript/roster_diff/buildDiff.ts
 let cachedDiffs = void 0;
 async function getJsonDiffsCached(academie, schoolYear, diffPageType) {
@@ -5722,1170 +8302,6 @@ function textsToYearGrades(texts) {
 	return yearGrades;
 }
 //#endregion
-//#region typescript/lessen/convert.ts
-var BlockInfo = class BlockInfo {
-	static blockCounter = 0;
-	static allBlocks = [];
-	id;
-	teacher;
-	instrumentName;
-	maxAantal;
-	formattedLesmoment;
-	vestiging;
-	trimesters;
-	jaarModules;
-	tags;
-	errors;
-	offline;
-	mergedBlocks;
-	static clearAllBlocks() {
-		BlockInfo.allBlocks = [];
-		BlockInfo.blockCounter = 0;
-	}
-	static getBlock(id) {
-		return BlockInfo.allBlocks[id];
-	}
-	static getAllBlocks() {
-		return BlockInfo.allBlocks;
-	}
-	constructor() {
-		this.id = BlockInfo.blockCounter++;
-		BlockInfo.allBlocks.push(this);
-		this.teacher = void 0;
-		this.instrumentName = void 0;
-		this.maxAantal = -1;
-		this.formattedLesmoment = void 0;
-		this.vestiging = void 0;
-		this.trimesters = [
-			[],
-			[],
-			[]
-		];
-		this.jaarModules = [];
-		this.tags = [];
-		this.errors = "";
-		this.offline = false;
-		this.mergedBlocks = [];
-	}
-	hasSomeOfflineLessen() {
-		return this.alleLessen().some((les) => les.online === false);
-	}
-	hasMissingTeachers() {
-		return this.alleLessen().some((les) => les.teacher === "(geen klasleerkracht)");
-	}
-	hasMissingMax() {
-		return this.alleLessen().some((les) => les.maxAantal > 100);
-	}
-	hasFullClasses() {
-		return this.alleLessen().some((les) => les.aantal >= les.maxAantal);
-	}
-	hasWaitingList() {
-		console.log("HAS WAITING LIST FILTER");
-		console.log(this.alleLessen().map((les) => les.wachtlijst));
-		return this.alleLessen().some((les) => les.wachtlijst != 0);
-	}
-	hasOnlineAlcClasses() {
-		return this.alleLessen().some((les) => les.online && les.alc);
-	}
-	hasWarningLessons() {
-		return this.alleLessen().some((les) => les.warnings.length > 0);
-	}
-	alleLessen() {
-		return this.trimesters.flat().filter((les) => les).concat(this.jaarModules);
-	}
-	mergeBlock(block) {
-		this.mergedBlocks.push(block);
-		this.jaarModules.push(...block.jaarModules);
-		for (let trimNo of [
-			0,
-			1,
-			2
-		]) this.trimesters[trimNo].push(...block.trimesters[trimNo]);
-		this.errors += block.errors;
-		return this;
-	}
-	containsId(id) {
-		if (this.id === id) return true;
-		return this.mergedBlocks.some((b) => b.containsId(id));
-	}
-	getIds() {
-		return this.mergedBlocks.map((b) => b.id).concat(this.id);
-	}
-	updateMergedBlock() {
-		let allLessen = this.alleLessen();
-		this.formattedLesmoment = [...new Set(allLessen.filter((les) => les).map((les) => les.formattedLesmoment))].join(", ");
-		this.teacher = [...new Set(allLessen.filter((les) => les).map((les) => les.teacher))].join(", ");
-		this.vestiging = [...new Set(allLessen.filter((les) => les).map((les) => les.vestiging))].join(", ");
-		this.instrumentName = [...new Set(allLessen.filter((les) => les).map((les) => les.instrumentName))].join(", ");
-		this.tags = distinct(allLessen.filter((les) => les).map((les) => les.tags).flat()).map((tagName) => {
-			return {
-				name: tagName,
-				partial: false
-			};
-		});
-		for (let tag of this.tags) tag.partial = !allLessen.every((les) => les.tags.includes(tag.name));
-		this.offline = allLessen.some((les) => !les.online);
-	}
-	checkBlockForErrors() {
-		let maxMoreThan100 = this.jaarModules.map((module) => module.maxAantal > 100).includes(true);
-		if (!maxMoreThan100) maxMoreThan100 = this.trimesters.flat().map((module) => module?.maxAantal > 100).includes(true);
-		if (maxMoreThan100) this.errors += "Max aantal lln > 100";
-	}
-};
-function buildTrimesters(instrumentTeacherMomentModules) {
-	let mergedInstrument = [
-		[],
-		[],
-		[]
-	];
-	instrumentTeacherMomentModules.filter((module) => module.lesType === 0).forEach((module) => {
-		mergedInstrument[module.trimesterNo - 1].push(module);
-	});
-	return mergedInstrument;
-}
-function getLesmomenten(modules) {
-	let lesMomenten = modules.map((module) => module.formattedLesmoment);
-	return [...new Set(lesMomenten)];
-}
-function getMaxAantal(modules) {
-	return modules.map((module) => module.maxAantal).reduce((prev, next) => {
-		return prev < next ? next : prev;
-	});
-}
-function getVestigingen(modules) {
-	let vestigingen = modules.map((module) => module.vestiging);
-	return [...new Set(vestigingen)].toString();
-}
-function prepareLesmomenten(inputModules) {
-	let reLesMoment;
-	for (let module of inputModules) {
-		if (module.lesmoment === "(geen volgende les)" || module.lesmoment === "(geen lesmomenten)") {
-			module.formattedLesmoment = module.lesmoment;
-			continue;
-		}
-		if (module.lesmoment.startsWith("volgende les")) reLesMoment = /volgende les: (\w\w) (?:\d+\/\d+ )?(\d\d:\d\d)-(\d\d:\d\d).*/;
-		else reLesMoment = /.*(\w\w) (?:\d+\/\d+ )?(\d\d:\d\d)-(\d\d:\d\d).*/;
-		let matches = module.lesmoment.match(reLesMoment);
-		if (!matches) {
-			module.formattedLesmoment = "???";
-			continue;
-		}
-		if (matches?.length !== 4) {
-			console.error(`Could not process lesmoment "${module.lesmoment}" for instrument "${module.instrumentName}".`);
-			module.formattedLesmoment = "???";
-		} else module.formattedLesmoment = matches[1] + " " + matches[2] + "-" + matches[3];
-		module.formattedLesmoment = matches[1] + " " + matches[2] + "-" + matches[3];
-	}
-}
-function setStudentPopupInfo(student) {
-	student.info = "";
-	if (!student.trimesterInstruments) return;
-	for (let instrs of student.trimesterInstruments) if (instrs.length) student.info += instrs[0].trimesterNo + ". " + instrs.map((instr) => instr.instrumentName) + "\n";
-	else student.info += "?. ---\n";
-}
-function setStudentAllTrimsTheSameInstrument(student) {
-	if (!student.trimesterInstruments) return;
-	let instruments = student.trimesterInstruments.flat();
-	if (instruments.length < 3) {
-		student.allYearSame = false;
-		return;
-	}
-	student.allYearSame = instruments.every((instr) => instr.instrumentName === (student?.trimesterInstruments[0][0]?.instrumentName ?? "---"));
-}
-function setStudentNoInstrumentForAllTrims(student) {
-	if ((student.jaarInstruments?.length ?? 0) > 0 && student.trimesterInstruments?.flat()?.length == 0) return;
-	if (!student.trimesterInstruments) return;
-	student.notAllTrimsHaveAnInstrument = false;
-	for (let trim of student.trimesterInstruments) if (trim.length == 0) student.notAllTrimsHaveAnInstrument = true;
-}
-function buildTableData(inputModules) {
-	prepareLesmomenten(inputModules);
-	let tableData = {
-		students: /* @__PURE__ */ new Map(),
-		instruments: /* @__PURE__ */ new Map(),
-		teachers: /* @__PURE__ */ new Map(),
-		blocks: []
-	};
-	BlockInfo.clearAllBlocks();
-	let instruments = distinct(inputModules.map((module) => module.instrumentName));
-	for (let instrumentName of instruments) {
-		let instrumentModules = inputModules.filter((module) => module.instrumentName === instrumentName);
-		let teachers = distinct(instrumentModules.map((module) => module.teacher));
-		for (let teacher of teachers) {
-			let instrumentTeacherModules = instrumentModules.filter((module) => module.teacher === teacher);
-			let lesmomenten = distinct(getLesmomenten(instrumentTeacherModules));
-			for (let lesmoment of lesmomenten) {
-				let instrumentTeacherMomentModules = instrumentTeacherModules.filter((module) => module.formattedLesmoment === lesmoment);
-				let block = new BlockInfo();
-				block.instrumentName = instrumentName;
-				block.teacher = teacher;
-				block.formattedLesmoment = lesmoment;
-				block.maxAantal = getMaxAantal(instrumentTeacherMomentModules);
-				block.vestiging = getVestigingen(instrumentTeacherMomentModules);
-				block.tags = distinct(instrumentTeacherMomentModules.map((les) => les.tags).flat()).map((tagName) => {
-					return {
-						name: tagName,
-						partial: !tagFoundInAllModules(tagName, instrumentTeacherMomentModules)
-					};
-				});
-				block.trimesters = buildTrimesters(instrumentTeacherMomentModules);
-				block.jaarModules = instrumentTeacherMomentModules.filter((module) => module.lesType === 1);
-				block.offline = instrumentTeacherMomentModules.some((module) => !module.online);
-				block.checkBlockForErrors();
-				tableData.blocks.push(block);
-				for (let trim of block.trimesters) addTrimesterStudentsToMapAndCount(tableData.students, trim);
-				for (let jaarModule of block.jaarModules) addJaarStudentsToMapAndCount(tableData.students, jaarModule);
-			}
-		}
-	}
-	for (let student of tableData.students.values()) {
-		setStudentPopupInfo(student);
-		setStudentAllTrimsTheSameInstrument(student);
-		setStudentNoInstrumentForAllTrims(student);
-	}
-	let instrumentNames = distinct(tableData.blocks.map((b) => b.instrumentName)).sort((a, b) => {
-		return a.localeCompare(b);
-	});
-	for (let instr of instrumentNames) tableData.instruments.set(instr, {
-		name: instr,
-		blocks: [],
-		mergedBlocks: /* @__PURE__ */ new Map(),
-		lesMomenten: /* @__PURE__ */ new Map()
-	});
-	for (let block of tableData.blocks) tableData.instruments.get(block.instrumentName).blocks.push(block);
-	let teachers = distinct(tableData.blocks.map((b) => b.teacher)).sort((a, b) => {
-		return a.localeCompare(b);
-	});
-	for (let t of teachers) tableData.teachers.set(t, {
-		name: t,
-		blocks: [],
-		mergedBlocks: /* @__PURE__ */ new Map(),
-		lesMomenten: /* @__PURE__ */ new Map()
-	});
-	for (let block of tableData.blocks) tableData.teachers.get(block.teacher).blocks.push(block);
-	groupBlocksTwoLevels(tableData.teachers.values(), (block) => block.formattedLesmoment, (primary, secundary) => {
-		primary.lesMomenten = secundary;
-	});
-	groupBlocksTwoLevels(tableData.instruments.values(), (block) => block.formattedLesmoment, (primary, secundary) => {
-		primary.lesMomenten = secundary;
-	});
-	groupBlocks(tableData.teachers.values(), (block) => block.teacher);
-	groupBlocks(tableData.instruments.values(), (block) => block.instrumentName);
-	return tableData;
-}
-function tagFoundInAllModules(tag, modules) {
-	for (let module of modules) if (!module.tags.includes(tag)) return false;
-	return true;
-}
-function groupBlocksTwoLevels(primaryGroups, getSecondaryKey, setSecondaryGroup) {
-	for (let primary of primaryGroups) {
-		let blocks = primary.blocks;
-		let secondaryKeys = distinct(blocks.map(getSecondaryKey));
-		let secondaryGroup = new Map(secondaryKeys.map((key) => [key, new BlockInfo()]));
-		for (let block of blocks) secondaryGroup.get(getSecondaryKey(block)).mergeBlock(block);
-		secondaryGroup.forEach((block) => {
-			block.updateMergedBlock();
-		});
-		setSecondaryGroup(primary, secondaryGroup);
-	}
-}
-function groupBlocks(primaryGroups, getPrimaryKey) {
-	for (let primary of primaryGroups) {
-		let blocks = primary.blocks;
-		let keys = distinct(blocks.map(getPrimaryKey));
-		primary.mergedBlocks = new Map(keys.map((key) => [key, new BlockInfo()]));
-		for (let block of blocks) primary.mergedBlocks.get(getPrimaryKey(block)).mergeBlock(block);
-		primary.mergedBlocks.forEach((block) => {
-			block.updateMergedBlock();
-		});
-	}
-}
-function addTrimesterStudentsToMapAndCount(allStudents, blockTrimModules) {
-	for (let blockTrimModule of blockTrimModules) {
-		if (!blockTrimModule) continue;
-		for (let student of blockTrimModule.students) {
-			if (!allStudents.has(student.name)) {
-				student.trimesterInstruments = [
-					[],
-					[],
-					[]
-				];
-				allStudents.set(student.name, student);
-			}
-			allStudents.get(student.name).trimesterInstruments[blockTrimModule.trimesterNo - 1].push(blockTrimModule);
-		}
-		blockTrimModule.students = blockTrimModule.students.map((student) => allStudents.get(student.name));
-	}
-}
-function addJaarStudentsToMapAndCount(students, jaarModule) {
-	if (!jaarModule) return;
-	for (let student of jaarModule.students) {
-		if (!students.has(student.name)) students.set(student.name, student);
-		let stud = students.get(student.name);
-		if (!stud.jaarInstruments) stud.jaarInstruments = [];
-		stud.jaarInstruments.push(jaarModule);
-	}
-	jaarModule.students = jaarModule.students.map((student) => students.get(student.name));
-}
-function mergeBlockStudents(block) {
-	let jaarStudents = block.jaarModules.map((les) => les.students).flat();
-	let trimesterStudents = [
-		block.trimesters[0].map((les) => les?.students ?? []).flat(),
-		block.trimesters[1].map((les) => les?.students ?? []).flat(),
-		block.trimesters[2].map((les) => les?.students ?? []).flat()
-	];
-	let maxAantallen = block.trimesters.map((trimLessen) => {
-		if (trimLessen.length === 0) return 0;
-		return trimLessen.map((les) => les?.maxAantal ?? 0).map((maxAantal) => maxAantal > 100 ? 4 : maxAantal).reduce((a, b) => a + b);
-	});
-	let blockNeededRows = Math.max(...maxAantallen, ...trimesterStudents.map((stud) => stud.length + jaarStudents.length));
-	let wachtlijsten = block.trimesters.map((trimLessen) => {
-		if (trimLessen.length === 0) return 0;
-		return trimLessen.map((les) => les?.wachtlijst ?? 0).reduce((a, b) => a + b);
-	});
-	let hasWachtlijst = wachtlijsten.some((wachtLijst) => wachtLijst > 0);
-	if (hasWachtlijst) blockNeededRows++;
-	let maxJaarStudentCount = block.jaarModules.map((mod) => mod.maxAantal).reduce((a, b) => Math.max(a, b), 0);
-	return {
-		jaarStudents,
-		trimesterStudents,
-		maxAantallen,
-		blockNeededRows,
-		wachtlijsten,
-		hasWachtlijst,
-		maxJaarStudentCount
-	};
-}
-function createLesFromToewijzing(instrument, toewijzing) {
-	let teacher = toewijzing.klasleerkracht == "" ? `toe te wijzen lk ${instrument}` : toewijzing.klasleerkracht;
-	return new Les("", 1, instrument, teacher, toewijzing.lesmoment, 999, 0, "Willem van Laarstraat", [], true, 0, false, toewijzing.lesmoment, `Initiatie ${instrument} - jaartraject - ${teacher}`, [], toewijzing.vak, []);
-}
-function createStudentFromToewijzing(toewijzing) {
-	let student = new StudentInfo(toewijzing.naam + ", " + toewijzing.voornaam, toewijzing.naam, toewijzing.voornaam, toewijzing.graadJaar);
-	let matchesId = /\s*id\s*=\s*(\d+)/gm.exec(toewijzing.vak);
-	student.id = parseInt(matchesId?.[1] ?? "0");
-	student.allYearSame = true;
-	student.notAllTrimsHaveAnInstrument = false;
-	student.info = "";
-	student.jaarInstruments = [];
-	student.trimesterInstruments = void 0;
-	return student;
-}
-function connvertToewijzingenToModules(jaarToewijzingen) {
-	let modules = /* @__PURE__ */ new Map();
-	for (let toewijzing of jaarToewijzingen) {
-		let instrument = /instrumentinitiatie – hele jaar zelfde instrument - (.*)/gm.exec(toewijzing.vak)?.[1] ?? "";
-		let les;
-		if (modules.has(instrument + "-" + toewijzing.klasleerkracht + "-" + toewijzing.lesmoment)) les = modules.get(instrument + "-" + toewijzing.klasleerkracht + "-" + toewijzing.lesmoment);
-		else {
-			les = createLesFromToewijzing(instrument, toewijzing);
-			modules.set(instrument + "-" + toewijzing.klasleerkracht + "-" + toewijzing.lesmoment, les);
-		}
-		let student = createStudentFromToewijzing(toewijzing);
-		les.students.push(student);
-	}
-	modules.forEach((les) => les.aantal = les.maxAantal = les.students.length);
-	return modules;
-}
-//#endregion
-//#region typescript/lessen/build.ts
-const NBSP = 160;
-function getDefaultPageSettings() {
-	return {
-		pageName: "Lessen",
-		nameSorting: 1,
-		grouping: 1,
-		searchText: "",
-		filterOffline: false,
-		filterOnline: false,
-		filterNoTeacher: false,
-		filterNoMax: false,
-		filterFullClass: false,
-		filterOnlineAlc: false,
-		filterWarnings: false,
-		filterWaitingList: false,
-		showAllTeachers: false
-	};
-}
-let pageState = getDefaultPageSettings();
-function setSavedNameSorting(sorting) {
-	pageState.nameSorting = sorting;
-	savePageSettings(pageState);
-}
-function getSavedNameSorting() {
-	pageState = getPageSettings("Lessen", pageState);
-	return pageState.nameSorting;
-}
-function buildTrimesterTable(tableData, trimElements) {
-	pageState = getPageSettings("Lessen", pageState);
-	tableData.blocks.sort((block1, block2) => block1.instrumentName.localeCompare(block2.instrumentName));
-	trimElements.trimTableDiv = document.getElementById(TRIM_DIV_ID);
-	let newTable = emmet.appendChild(trimElements.trimTableDiv, `table#trimesterTable[border="2" style.width="100%"]>colgroup>col*3`).first;
-	trimElements.trimTableDiv.dataset.showFullClass = isButtonHighlighted("fullClassButton") ? "true" : "false";
-	let trHeader = emmet.appendChild(newTable, "tbody+thead.table-secondary>tr").last;
-	Object.assign(trimElements, getTrimPageElements());
-	let newTableBody = newTable.querySelector("tbody");
-	let totTrim = [
-		0,
-		0,
-		0
-	];
-	for (let block of tableData.blocks) {
-		let totJaar = block.jaarModules.map((mod) => mod.students.length).reduce((prev, curr) => prev + curr, 0);
-		for (let trimNo of [
-			0,
-			1,
-			2
-		]) totTrim[trimNo] += totJaar + (block.trimesters[trimNo][0]?.students?.length ?? 0);
-	}
-	emmet.append(trHeader, "(th>div>span.bold{Trimester $}+span.plain{ ($$ lln)})*3", (index) => totTrim[index].toString());
-	switch (pageState.grouping) {
-		case 1:
-			for (let [instrumentName, instrument] of tableData.instruments) buildGroup(newTableBody, instrument.blocks, instrumentName, (block) => createTeacherSpan(block), 10);
-			break;
-		case 0:
-			for (let [teacherName, teacher] of tableData.teachers) buildGroup(newTableBody, teacher.blocks, teacherName, (block) => block.instrumentName, 10);
-			break;
-		case 2:
-			for (let [teacherName, teacher] of tableData.teachers) {
-				buildTitleRow(newTableBody, teacherName);
-				for (let [hour, block] of teacher.lesMomenten) buildBlock(newTableBody, block, teacherName, (_block) => hour, 8);
-			}
-			break;
-		case 3:
-			for (let [instrumentName, instrument] of tableData.instruments) {
-				buildTitleRow(newTableBody, instrumentName);
-				for (let [hour, block] of instrument.lesMomenten) buildBlock(newTableBody, block, instrumentName, (_block) => hour, 8);
-			}
-			break;
-		case 4:
-			for (let [instrumentName, instrument] of tableData.instruments) {
-				buildTitleRow(newTableBody, instrumentName);
-				for (let [, block] of instrument.mergedBlocks) buildBlock(newTableBody, block, instrumentName, void 0, 11);
-			}
-			break;
-		case 5: for (let [teacherName, teacher] of tableData.teachers) {
-			buildTitleRow(newTableBody, teacherName);
-			for (let [, block] of teacher.mergedBlocks) buildBlock(newTableBody, block, teacherName, void 0, 14);
-		}
-	}
-}
-function buildGroup(newTableBody, blocks, groupId, getBlockTitle, displayOptions) {
-	buildTitleRow(newTableBody, groupId);
-	for (let block of blocks) buildBlock(newTableBody, block, groupId, getBlockTitle, displayOptions);
-}
-function createStudentRow(tableBody, rowClass, groupId, blockId) {
-	let row = createLesRow(groupId, blockId);
-	tableBody.appendChild(row);
-	row.classList.add(rowClass);
-	row.dataset.hasFullClass = "false";
-	return row;
-}
-function buildBlock(newTableBody, block, groupId, getBlockTitle, displayOptions) {
-	let mergedBlockStudents = mergeBlockStudents(block);
-	let trimesterHeaders = [
-		0,
-		1,
-		2
-	].map((trimNo) => {
-		if (mergedBlockStudents.trimesterStudents[trimNo].length < 5 && mergedBlockStudents.maxAantallen[trimNo] < 5) return "";
-		return `${mergedBlockStudents.trimesterStudents[trimNo].length + mergedBlockStudents.jaarStudents.length} van ${mergedBlockStudents.maxAantallen[trimNo]} lln`;
-	});
-	let trTitle = buildBlockTitle(newTableBody, block, getBlockTitle, groupId);
-	let headerRows = buildBlockHeader(newTableBody, block, groupId, trimesterHeaders, displayOptions);
-	let studentTopRowNo = newTableBody.children.length;
-	let filledRowCount = 0;
-	sortStudents(mergedBlockStudents.jaarStudents);
-	for (let student of mergedBlockStudents.jaarStudents) {
-		let row = createStudentRow(newTableBody, "jaarRow", groupId, block.id);
-		for (let trimNo = 0; trimNo < 3; trimNo++) {
-			let cell = buildStudentCell(student);
-			row.appendChild(cell);
-			cell.classList.add("jaarStudent");
-			if (filledRowCount >= mergedBlockStudents.maxAantallen[trimNo]) cell.classList.add("gray");
-		}
-		filledRowCount++;
-	}
-	let hasFullClass = false;
-	for (let rowNo = 0; filledRowCount < mergedBlockStudents.blockNeededRows; rowNo++) {
-		let row = createStudentRow(newTableBody, "trimesterRow", groupId, block.id);
-		for (let trimNo = 0; trimNo < 3; trimNo++) {
-			let trimester = mergedBlockStudents.trimesterStudents[trimNo];
-			sortStudents(trimester);
-			let student = void 0;
-			if (trimester) {
-				student = trimester[rowNo];
-				let maxTrimStudentCount = Math.max(mergedBlockStudents.maxAantallen[trimNo], mergedBlockStudents.maxJaarStudentCount);
-				if (trimester.length > 0 && trimester.length >= maxTrimStudentCount) {
-					row.dataset.hasFullClass = "true";
-					hasFullClass = true;
-				}
-			}
-			let cell = buildStudentCell(student);
-			row.appendChild(cell);
-			cell.classList.add("trimesterStudent");
-			if (filledRowCount >= mergedBlockStudents.maxAantallen[trimNo]) cell.classList.add("gray");
-			if (student?.trimesterInstruments) {
-				if (student?.trimesterInstruments[trimNo].length > 1) cell.classList.add("yellowMarker");
-			}
-		}
-		filledRowCount++;
-	}
-	if (hasFullClass) {
-		if (trTitle) trTitle.dataset.hasFullClass = "true";
-		headerRows.trModuleLinks.dataset.hasFullClass = "true";
-	}
-	if (!mergedBlockStudents.hasWachtlijst) return;
-	for (let trimNo of [
-		0,
-		1,
-		2
-	]) {
-		let row = newTableBody.children[newTableBody.children.length - 1];
-		row.classList.add("wachtlijst");
-		let cell = row.children[trimNo];
-		if (mergedBlockStudents.wachtlijsten[trimNo] === 0) continue;
-		const small = document.createElement("small");
-		cell.appendChild(small);
-		small.appendChild(document.createTextNode(`(${mergedBlockStudents.wachtlijsten[trimNo]} op wachtlijst)`));
-		small.classList.add("text-danger");
-		if (mergedBlockStudents.wachtlijsten[trimNo] > 0 && mergedBlockStudents.trimesterStudents[trimNo].length < mergedBlockStudents.maxAantallen[trimNo]) {
-			cell.querySelector("small").classList.add("yellowMarker");
-			newTableBody.children[studentTopRowNo + mergedBlockStudents.trimesterStudents[trimNo].length].children[trimNo].classList.add("yellowMarker");
-		}
-	}
-}
-function createLesRow(groupId, blockId) {
-	let tr = document.createElement("tr");
-	tr.dataset.blockId = "" + blockId;
-	if (blockId != void 0) tr.dataset.groupId = groupId;
-	else tr.dataset.blockId = "groupTitle";
-	return tr;
-}
-function buildTitleRow(newTableBody, title) {
-	const trTitle = createLesRow(title, void 0);
-	newTableBody.appendChild(trTitle);
-	trTitle.classList.add("blockRow", "groupHeader");
-	trTitle.dataset.groupId = title;
-	const tdTitle = document.createElement("td");
-	trTitle.appendChild(tdTitle);
-	tdTitle.classList.add("titleCell");
-	tdTitle.setAttribute("colspan", "3");
-	let divTitle = document.createElement("div");
-	tdTitle.appendChild(divTitle);
-	divTitle.classList.add("blockTitle");
-	divTitle.appendChild(document.createTextNode(title));
-	return {
-		trTitle,
-		divTitle
-	};
-}
-function buildBlockTitle(newTableBody, block, getBlockTitle, groupId) {
-	if (!getBlockTitle && !block.errors) return void 0;
-	const trBlockTitle = newTableBody.appendChild(createLesRow(groupId, block.id));
-	trBlockTitle.classList.add("blockRow");
-	let { last: divBlockTitle } = emmet.append(trBlockTitle, "td.infoCell[colspan=3]>div.text-muted");
-	if (getBlockTitle) {
-		let title = getBlockTitle(block);
-		if (typeof title == "string") emmet.appendChild(divBlockTitle, `span.blockTitle{${title}}`);
-		else {
-			let { first } = emmet.appendChild(divBlockTitle, `span.blockTitle`);
-			first.appendChild(title);
-		}
-	}
-	for (let jaarModule of block.jaarModules) divBlockTitle.appendChild(buildModuleButton(">", jaarModule.id, false, jaarModule.online));
-	if (block.errors) {
-		let errorSpan = document.createElement("span");
-		errorSpan.appendChild(document.createTextNode(block.errors));
-		errorSpan.classList.add("lesError");
-		divBlockTitle.appendChild(errorSpan);
-	}
-	return trBlockTitle;
-}
-function buildInfoRow(newTableBody, _text, show, groupId, blockId) {
-	const trBlockInfo = newTableBody.appendChild(createLesRow(groupId, blockId));
-	trBlockInfo.classList.add("blockRow");
-	if (!show) trBlockInfo.dataset.keepHidden = "true";
-	trBlockInfo.dataset.groupId = groupId;
-	return emmet.append(trBlockInfo, "td.infoCell[colspan=3]>div.text-muted");
-}
-function buildInfoRowWithText(newTableBody, show, blockId, groupId, text) {
-	let { last: divMuted } = buildInfoRow(newTableBody, "", show, groupId, blockId);
-	if (typeof text === "string") divMuted.appendChild(document.createTextNode(text));
-	else divMuted.appendChild(text);
-}
-function createTeacherSpan(block) {
-	let teacherSpan = emmet.indent.createElement(`
-        span{${block.teacher}}
-            button.naked.blueIcon
-                i.fas.fa-user-alt
-    `);
-	let button = teacherSpan.firstElementChild;
-	button.onclick = async () => {
-		let [lastName, firstName] = block.teacher.split(", ");
-		await gotoTeacher(firstName, lastName);
-	};
-	return teacherSpan;
-}
-function buildBlockHeader(newTableBody, block, groupId, trimesterHeaders, displayOptions) {
-	let teacherSpan = createTeacherSpan(block);
-	buildInfoRowWithText(newTableBody, Boolean(1 & displayOptions), block.id, groupId, teacherSpan);
-	buildInfoRowWithText(newTableBody, Boolean(4 & displayOptions), block.id, groupId, block.instrumentName);
-	buildInfoRowWithText(newTableBody, Boolean(2 & displayOptions), block.id, groupId, block.formattedLesmoment);
-	buildInfoRowWithText(newTableBody, Boolean(8 & displayOptions), block.id, groupId, block.vestiging);
-	if (block.tags.length > 0) {
-		let { last: divMuted } = buildInfoRow(newTableBody, block.tags.join(), true, groupId, block.id);
-		emmet.appendChild(divMuted, block.tags.map((tag) => {
-			return `span.badge.badge-ill.badge-warning${tag.partial ? ".muted" : ""}{${tag.name}}`;
-		}).join("+"));
-	}
-	const trModuleLinks = createLesRow(groupId, block.id);
-	newTableBody.appendChild(trModuleLinks);
-	trModuleLinks.classList.add("blockRow");
-	const tdLink1 = document.createElement("td");
-	trModuleLinks.appendChild(tdLink1);
-	tdLink1.appendChild(document.createTextNode(trimesterHeaders[0]));
-	for (let les of block.trimesters[0]) if (les) tdLink1.appendChild(buildModuleButton("1", les.id, true, les.online));
-	const tdLink2 = document.createElement("td");
-	trModuleLinks.appendChild(tdLink2);
-	tdLink2.appendChild(document.createTextNode(trimesterHeaders[1]));
-	for (let les of block.trimesters[1]) if (les) tdLink2.appendChild(buildModuleButton("2", les.id, true, les.online));
-	const tdLink3 = document.createElement("td");
-	trModuleLinks.appendChild(tdLink3);
-	tdLink3.appendChild(document.createTextNode(trimesterHeaders[2]));
-	for (let les of block.trimesters[2]) if (les) tdLink3.appendChild(buildModuleButton("3", les.id, true, les.online));
-	return { trModuleLinks };
-}
-function buildModuleButton(buttonText, id, floatRight, online) {
-	const button = document.createElement("a");
-	button.href = "#";
-	button.classList.toggle("offline", !online);
-	if (!online) button.title = "Offline!";
-	button.setAttribute("onclick", `showView('lessen-les','','id=${id}'); return false;`);
-	button.classList.add("lesButton");
-	if (floatRight) button.classList.add("float-right");
-	button.innerText = buttonText;
-	return button;
-}
-function buildStudentCell(student) {
-	const cell = document.createElement("td");
-	let studentSpan = document.createElement("span");
-	let displayName = String.fromCharCode(NBSP);
-	studentSpan.appendChild(document.createTextNode(displayName));
-	cell.appendChild(studentSpan);
-	if (!student) return cell;
-	if (pageState.nameSorting === 1) displayName = student.naam + " " + student.voornaam;
-	else displayName = student.voornaam + " " + student.naam;
-	studentSpan.textContent = displayName;
-	if (student.allYearSame) studentSpan.classList.add("allYear");
-	const button = cell.appendChild(document.createElement("button"));
-	button.classList.add("student");
-	button.title = student.info;
-	button.onclick = async function() {
-		let id = await fetchStudentId(student.name);
-		if (id <= 0) window.location.href = "/#zoeken?zoek=" + stripStudentName(student.name).replaceAll(" ", "+");
-		else window.location.href = "#leerlingen-leerling?id=" + id + ",tab=inschrijvingen";
-		return false;
-	};
-	const iTag = document.createElement("i");
-	button.appendChild(iTag);
-	iTag.classList.add("fas", "fa-user-alt");
-	if (student.notAllTrimsHaveAnInstrument) iTag.classList.add("no3trims");
-	return cell;
-}
-async function fetchStudentId(studentName) {
-	let strippedStudentName = stripStudentName(studentName);
-	return fetch("/view.php?args=zoeken?zoek=" + encodeURIComponent(strippedStudentName)).then((response) => response.text()).then((_text) => fetch("/views/zoeken/index.view.php")).then((response) => response.text()).then((text) => findStudentId(studentName, text)).catch((err) => {
-		console.error("Request failed", err);
-		return -1;
-	});
-}
-function findStudentId(studentName, text) {
-	studentName = studentName.replaceAll(",", "");
-	db3(studentName);
-	db3(text);
-	let namePos = text.indexOf(studentName);
-	if (namePos < 0) return 0;
-	let idPos = text.substring(0, namePos).lastIndexOf("'id=", namePos);
-	let found = text.substring(idPos, idPos + 10).match(/\d+/);
-	if (found?.length) return parseInt(found[0]);
-	throw `No id found for student ${studentName}.`;
-}
-function sortStudents(students) {
-	if (!students) return;
-	let comparator = new Intl.Collator();
-	let sorting = getSavedNameSorting();
-	students.sort((a, b) => {
-		if (a.allYearSame && !b.allYearSame) return -1;
-		else if (!a.allYearSame && b.allYearSame) return 1;
-		else {
-			let aName = sorting === 1 ? a.naam + a.voornaam : a.voornaam + a.naam;
-			let bName = sorting === 1 ? b.naam + b.voornaam : b.voornaam + b.naam;
-			return comparator.compare(aName, bName);
-		}
-	});
-}
-//#endregion
-//#region typescript/filter.ts
-function combineFilters(f1, f2) {
-	return {
-		context: {
-			f1,
-			f2
-		},
-		rowFilter: function(tr, _context) {
-			if (!f1.rowFilter(tr, f1.context)) return false;
-			return f2.rowFilter(tr, f2.context);
-		}
-	};
-}
-function createTextRowFilter(searchText, getRowSearchText) {
-	let context = {
-		search_OR_list: searchText.split(",").map((txt) => txt.trim()),
-		getRowSearchText
-	};
-	let rowFilter = function(tr, context) {
-		for (let search of context.search_OR_list) if (match_AND_expression(search, context.getRowSearchText(tr))) return true;
-		return false;
-	};
-	return {
-		context,
-		rowFilter
-	};
-}
-/**
-* Try to match a filter expression of type "string1+string2", where both strings need to be present.
-* @param searchText
-* @param rowText
-* @return true if all strings match
-*/
-function match_AND_expression(searchText, rowText) {
-	let search_AND_list = searchText.split("+").map((txt) => txt.trim());
-	for (let search of search_AND_list) {
-		let caseText = rowText;
-		if (search === search.toLowerCase()) caseText = rowText.toLowerCase();
-		if (!caseText.includes(search)) return false;
-	}
-	return true;
-}
-function filterTableRows(table, rowFilter) {
-	if (typeof table === "string") table = document.getElementById(table);
-	return Array.from(table.tBodies[0].rows).filter((tr) => rowFilter.rowFilter(tr, rowFilter.context));
-}
-function filterTable(table, rowFilter) {
-	if (typeof table === "string") table = document.getElementById(table);
-	for (let tr of table.tBodies[0].rows) {
-		tr.style.visibility = "collapse";
-		tr.style.borderColor = "transparent";
-	}
-	for (let tr of filterTableRows(table, rowFilter)) if (!tr.dataset.keepHidden) {
-		tr.style.visibility = "visible";
-		tr.style.borderColor = "";
-	}
-}
-//#endregion
-//#region typescript/lessen/filter.ts
-function createBlockFilter(filter) {
-	return BlockInfo.getAllBlocks().filter(filter);
-}
-function createRowFilterFromBlockFilter(blocks) {
-	return {
-		context: { ids: distinct(blocks.map((b) => b.getIds()).flat()) },
-		rowFilter: function(tr, context) {
-			return context.ids.includes(parseInt(tr.dataset.blockId));
-		}
-	};
-}
-function createQuerySelectorFilter(selector) {
-	return {
-		context: void 0,
-		rowFilter: function(tr, _context) {
-			return tr.querySelector(selector) != void 0;
-		}
-	};
-}
-function createInverseFilter(filter) {
-	return {
-		context: filter.context,
-		rowFilter: function(tr, context) {
-			return !filter.rowFilter(tr, context);
-		}
-	};
-}
-function createAncestorFilter(rowPreFilter) {
-	let filteredRows = filterTableRows(TRIM_TABLE_ID, rowPreFilter);
-	let filteredBlockIds = [...new Set(filteredRows.filter((tr) => tr.dataset.blockId !== "groupTitle").map((tr) => tr.dataset.blockId))];
-	let filteredGroupIds = [...new Set(filteredRows.map((tr) => tr.dataset.groupId))];
-	let filteredHeaderGroupIds = [...new Set(filteredRows.filter((tr) => tr.dataset.blockId === "groupTitle").map((tr) => tr.dataset.groupId))];
-	function siblingsAndAncestorsFilter(tr, context) {
-		if (context.filteredHeaderGroupIds.includes(tr.dataset.groupId)) return true;
-		if (context.filteredBlockIds.includes(tr.dataset.blockId)) return true;
-		return context.filteredGroupIds.includes(tr.dataset.groupId) && tr.classList.contains("groupHeader");
-	}
-	return {
-		context: {
-			filteredBlockIds,
-			filteredGroupIds,
-			filteredHeaderGroupIds
-		},
-		rowFilter: siblingsAndAncestorsFilter
-	};
-}
-const TXT_FILTER_ID$1 = "txtFilter";
-function setFilterInfo(text) {
-	let infoSpan = document.getElementById(FILTER_INFO_ID);
-	infoSpan.innerText = text;
-	infoSpan.classList.toggle("highlight", text.length > 0);
-}
-function applyFilters() {
-	let pageState = getPageSettings("Lessen", getDefaultPageSettings());
-	pageState.searchText = document.getElementById(TXT_FILTER_ID$1).value;
-	savePageSettings(pageState);
-	let extraFilter = void 0;
-	if (isTrimesterTableVisible()) {
-		let textPreFilter = createTextRowFilter(pageState.searchText, (tr) => tr.textContent);
-		let preFilter = textPreFilter;
-		if (pageState.filterOffline) extraFilter = createRowFilterFromBlockFilter(createBlockFilter((b) => b.hasSomeOfflineLessen()));
-		else if (pageState.filterOnline) extraFilter = createRowFilterFromBlockFilter(createBlockFilter((b) => !b.hasSomeOfflineLessen()));
-		else if (pageState.filterNoTeacher) extraFilter = createRowFilterFromBlockFilter(createBlockFilter((b) => b.hasMissingTeachers()));
-		else if (pageState.filterNoMax) extraFilter = createRowFilterFromBlockFilter(createBlockFilter((b) => b.hasMissingMax()));
-		else if (pageState.filterFullClass) extraFilter = createRowFilterFromBlockFilter(createBlockFilter((b) => b.hasFullClasses()));
-		else if (pageState.filterWaitingList) extraFilter = createRowFilterFromBlockFilter(createBlockFilter((b) => b.hasWaitingList()));
-		else if (pageState.filterOnlineAlc) extraFilter = createRowFilterFromBlockFilter(createBlockFilter((b) => b.hasOnlineAlcClasses()));
-		else if (pageState.filterWarnings) extraFilter = createRowFilterFromBlockFilter(createBlockFilter((b) => b.hasWarningLessons()));
-		if (extraFilter) preFilter = combineFilters(createAncestorFilter(textPreFilter), extraFilter);
-		let filter = createAncestorFilter(preFilter);
-		filterTable(TRIM_TABLE_ID, filter);
-	} else {
-		let textFilter = createTextRowFilter(pageState.searchText, (tr) => tr.cells[0].textContent);
-		let filter = textFilter;
-		if (pageState.filterOffline) extraFilter = createQuerySelectorFilter("td>i.fa-eye-slash");
-		else if (pageState.filterOnline) extraFilter = createInverseFilter(createQuerySelectorFilter("td>i.fa-eye-slash"));
-		else if (pageState.filterNoTeacher) extraFilter = createTextRowFilter("(geen klasleerkracht)", (tr) => tr.cells[0].textContent);
-		else if (pageState.filterNoMax) extraFilter = createTextRowFilter("999", (tr) => tr.cells[1].textContent);
-		else if (pageState.filterFullClass) extraFilter = {
-			context: void 0,
-			rowFilter(tr, _context) {
-				let scrapeResult = scrapeStudentsCellMeta(tr);
-				return scrapeResult.aantal >= scrapeResult.maxAantal;
-			}
-		};
-		else if (pageState.filterWaitingList) extraFilter = {
-			context: void 0,
-			rowFilter(tr, _context) {
-				return scrapeStudentsCellMeta(tr).wachtlijst != 0;
-			}
-		};
-		else if (pageState.filterOnlineAlc) extraFilter = {
-			context: void 0,
-			rowFilter(tr, _context) {
-				let scrapeResult = scrapeLesInfo(tr);
-				return scrapeResult.les.online && scrapeResult.les.alc;
-			}
-		};
-		else if (pageState.filterWarnings) extraFilter = createQuerySelectorFilter(".text-warning");
-		if (extraFilter) filter = combineFilters(textFilter, extraFilter);
-		filterTable(LESSEN_TABLE_ID, filter);
-	}
-	if (pageState.filterOnline) setFilterInfo("Online lessen");
-	else if (pageState.filterOffline) setFilterInfo("Offline lessen");
-	else if (pageState.filterNoTeacher) setFilterInfo("Zonder leraar");
-	else if (pageState.filterNoMax) setFilterInfo("Zonder maximum");
-	else if (pageState.filterFullClass) setFilterInfo("Volle lessen");
-	else if (pageState.filterWaitingList) setFilterInfo("Wachtlijst");
-	else if (pageState.filterOnlineAlc) setFilterInfo("Online ALC lessen");
-	else if (pageState.filterWarnings) setFilterInfo("Opmerkingen");
-	else setFilterInfo("");
-}
-function setExtraFilter(set) {
-	let pageState = getPageSettings("Lessen", getDefaultPageSettings());
-	pageState.filterOffline = false;
-	pageState.filterOnline = false;
-	pageState.filterNoTeacher = false;
-	pageState.filterNoMax = false;
-	pageState.filterFullClass = false;
-	pageState.filterOnlineAlc = false;
-	pageState.filterWarnings = false;
-	pageState.filterWaitingList = false;
-	set(pageState);
-	savePageSettings(pageState);
-	applyFilters();
-}
-function addFilterFields() {
-	let divButtonNieuweLes = document.querySelector("#lessen_overzicht > div > button");
-	if (!document.getElementById("txtFilter")) {
-		let pageState = getPageSettings("Lessen", getDefaultPageSettings());
-		let searchField = createSearchField(TXT_FILTER_ID$1, applyFilters, pageState.searchText);
-		divButtonNieuweLes.insertAdjacentElement("afterend", searchField);
-		let { first: span, last: idiom } = emmet.insertAfter(searchField, "span.btn-group-sm>button.btn.btn-sm.btn-outline-secondary.ml-2>i.fas.fa-list");
-		let menu = new DropDownMenu(span, idiom.parentElement);
-		menu.addItem("Toon alles", 0, (_) => setExtraFilter((_) => {}));
-		menu.addItem("Filter online lessen", 0, (_) => setExtraFilter((pageState) => pageState.filterOnline = true));
-		menu.addItem("Filter offline lessen", 0, (_) => setExtraFilter((pageState) => pageState.filterOffline = true));
-		menu.addItem("Lessen zonder leraar", 0, (_) => setExtraFilter((pageState) => pageState.filterNoTeacher = true));
-		menu.addItem("Lessen zonder maximum", 0, (_) => setExtraFilter((pageState) => pageState.filterNoMax = true));
-		menu.addItem("Volle lessen", 0, (_) => setExtraFilter((pageState) => pageState.filterFullClass = true));
-		menu.addItem("Wachtlijst", 0, (_) => setExtraFilter((pageState) => pageState.filterWaitingList = true));
-		menu.addItem("Online ALC lessen", 0, (_) => setExtraFilter((pageState) => pageState.filterOnlineAlc = true));
-		menu.addItem("Opmerkingen", 0, (_) => setExtraFilter((pageState) => pageState.filterWarnings = true));
-		emmet.insertAfter(idiom.parentElement, `span#${FILTER_INFO_ID}.filterInfo.block.min28ch.linePad1.blockPad05`);
-	}
-	applyFilters();
-}
-//#endregion
-//#region typescript/werklijst/criteria.ts
-let FIELD;
-(function(_FIELD) {
-	_FIELD.DOMEIN = { text: "domein" };
-	_FIELD.GRAAD = { text: "graad" };
-	_FIELD.LEERJAAR = { text: "leerjaar" };
-	_FIELD.BENAMING_LES = { text: "benaming les" };
-	_FIELD.VESTIGINGSPLAATS = { text: "vestigingsplaats" };
-	_FIELD.NAAM = { text: "naam" };
-	_FIELD.STAMNUMMER = { text: "stamnummer" };
-	_FIELD.VOORNAAM = { text: "voornaam" };
-	_FIELD.VAK_NAAM = { text: "vak: naam" };
-	_FIELD.GRAAD_LEERJAAR = { text: "graad + leerjaar" };
-	_FIELD.KLAS_LEERKRACHT = { text: "klasleerkracht" };
-	_FIELD.LESMOMENTEN = { text: "lesmomenten" };
-	_FIELD.LEEFTIJD_31_DEC = { text: "leeftijd op 31 dec" };
-	_FIELD.EMAIL_PUNTCOMMA = { text: "e-mailadressen (gescheiden door puntkomma)" };
-})(FIELD || (FIELD = {}));
-async function postNameValueList(url, criteria) {
-	const formData = new FormData();
-	criteria.forEach((c) => {
-		formData.append(c.name, c.value);
-	});
-	return fetch(url, {
-		method: "POST",
-		body: formData
-	});
-}
-async function fetchTableRows(response) {
-	let tableHtml = await response.text();
-	let div = document.createElement("div");
-	div.innerHTML = tableHtml;
-	return div.querySelector("table").querySelectorAll("tr");
-}
-function scrapeCriteria() {
-	return [...document.querySelectorAll("#tbody_leerlingen_werklijst_criteria > tr")].map((tr) => {
-		let id = tr.dataset.criterium_id;
-		let operator = tr.cells[1].querySelector("select")?.value ?? "";
-		let value = "-null-";
-		let selectionRenderedSpan = tr.cells[2].querySelector("span.select2-selection__rendered");
-		if (selectionRenderedSpan) {
-			value = selectionRenderedSpan.getAttribute("title") ?? "-null-";
-			value = [...tr.cells[2].querySelectorAll(".select2 option")].find((option) => option.textContent === value)?.getAttribute("value") ?? "-null-";
-		} else value = [...tr.cells[2].querySelector("ul.select2-selection__rendered").querySelectorAll("li.select2-selection__choice")].map((li) => li.title).join(",");
-		return id + "_" + operator + "_" + value;
-	}).join("_");
-}
-function scrapeSelectedFieldIndexes() {
-	return [...document.querySelectorAll("#tbody_leerlingen_werklijst_velden > tr")].map((row) => {
-		return row.querySelectorAll("td")[1].textContent.trim();
-	});
-}
-function hasWerklijstNoCriteria() {
-	let ids = [...document.querySelectorAll("#tbody_leerlingen_werklijst_criteria > tr")].map((tr) => tr.dataset.criterium_id);
-	return ids.length === 2 && ["1", "2"].every((value) => ids.includes(value));
-}
-//#endregion
-//#region typescript/table/werklijstBuilder.ts
-function createWerklijstBuilderWithoutReset(schoolYear, grouping, preselectedFields, criteriaString) {
-	return WerklijstBuilder.fetch(schoolYear, grouping, false, preselectedFields, criteriaString);
-}
-function createWerklijstBuilderWithReset(schoolYear, grouping) {
-	return WerklijstBuilder.fetch(schoolYear, grouping, true, [], "");
-}
-var WerklijstBuilder = class WerklijstBuilder {
-	schoolYear;
-	grouping;
-	criteria = [];
-	fields;
-	criteriaDefs;
-	fieldDefs;
-	preselectedFields = [];
-	criteriaString = "";
-	constructor(schoolYear, grouping) {
-		this.schoolYear = schoolYear;
-		this.grouping = grouping;
-		this.criteria = [];
-		this.fields = [];
-	}
-	getCheckSum() {
-		return this.criteria.map((c) => c.name + c.operator + c.values.join()).join() + this.fields.map((f) => f.text).join() + this.criteriaString;
-	}
-	static async fetch(schoolYear, grouping, reset, preselectedFields, criteriaString) {
-		let builder = new WerklijstBuilder(schoolYear, grouping);
-		await builder.initialize(reset);
-		builder.criteriaDefs = await this.fetchCriteriumDefinitions();
-		builder.fieldDefs = await this.fetchFieldDefinitions();
-		builder.criteriaString = criteriaString;
-		if (!reset) builder.setPreselectedFields(preselectedFields);
-		return builder;
-	}
-	async initialize(reset) {
-		await fetch("view.php?args=leerlingen-werklijst");
-		await fetch("views/leerlingen/werklijst/index.view.php");
-		if (!reset) {
-			await postNameValueList("/views/leerlingen/werklijst/session.opslaan.php", [{
-				name: "schooljaar",
-				value: this.schoolYear
-			}, {
-				name: "groepering",
-				value: this.grouping
-			}]);
-			return;
-		}
-		await postNameValueList("/views/leerlingen/werklijst/session.opslaan.php", [{
-			name: "schooljaar",
-			value: this.schoolYear
-		}, {
-			name: "groepering",
-			value: this.grouping
-		}]);
-		await postNameValueList("/views/leerlingen/werklijst/session.opslaan.php", [{
-			name: "reset",
-			value: "1"
-		}]);
-		await postNameValueList("/views/leerlingen/werklijst/session.opslaan.php", [{
-			name: "schooljaar",
-			value: this.schoolYear
-		}, {
-			name: "groepering",
-			value: this.grouping
-		}]);
-		await fetch("/views/leerlingen/werklijst/criteria/criteria.div.php");
-		await fetch("/views/leerlingen/werklijst/velden/velden.div.php");
-	}
-	static async clear() {
-		await fetch("view.php?args=leerlingen-werklijst");
-		await fetch("views/leerlingen/werklijst/index.view.php");
-		await postNameValueList("/views/leerlingen/werklijst/session.opslaan.php", [{
-			name: "reset",
-			value: "1"
-		}]);
-	}
-	static async fetchDefinitions(url, idTagName, nameSelector) {
-		let rows = await fetchTableRows(await fetch(url));
-		let defs = [];
-		for (let row of rows) {
-			let id = row.dataset[idTagName];
-			if (id) {
-				let name = getImmediateText(row.querySelector(nameSelector)).trim();
-				defs.push({
-					id,
-					name
-				});
-			}
-		}
-		return defs;
-	}
-	static async fetchCriteriumDefinitions() {
-		return this.fetchDefinitions("/views/leerlingen/werklijst/criteria/toevoegen/criteria.results.php", "criterium_id", "td");
-	}
-	static async fetchFieldDefinitions() {
-		await fetch("/views/leerlingen/werklijst/velden/toevoegen/toevoegen.modal.php");
-		return this.fetchDefinitions("/views/leerlingen/werklijst/velden/toevoegen/velden.results.php?zoekterm=", "veld_id", "td:nth-child(2)");
-	}
-	async sendCriteria() {
-		for (const c of this.criteria) {
-			let codes = await this.addCodesForCriterium(c.name, c.values);
-			if (c.operator == "!=") await postNameValueList("/views/leerlingen/werklijst/criteria/wijzigen.opslaan.php", [{
-				name: "criterium_id",
-				value: codes.postId
-			}, {
-				name: "operator",
-				value: c.operator
-			}]);
-			await postNameValueList("/views/leerlingen/werklijst/criteria/wijzigen.opslaan.php", [{
-				name: "criterium_id",
-				value: codes.postId
-			}, {
-				name: "value",
-				value: codes.values.join()
-			}]);
-		}
-	}
-	async sendSettings() {
-		await this.sendFields(this.fields);
-		await this.sendCriteria();
-		return this;
-	}
-	async fetchTable(listener, clearCache) {
-		return getNavigatableTable(await getWerklijstTableRef(), listener, clearCache, (_) => this.getCheckSum());
-	}
-	addCriterium(name, operator, values) {
-		this.criteria.push({
-			name,
-			operator,
-			values
-		});
-	}
-	addFields(fields) {
-		this.fields.push(...fields);
-	}
-	async addCodesForCriterium(criterium, items) {
-		let defs = await this.fetchMultiSelectDefinitions(criterium);
-		let codes = textToCodes(items, defs.defs);
-		return {
-			postId: defs.postId,
-			values: codes
-		};
-	}
-	async fetchAvailableSubjects() {
-		let defs = await this.fetchMultiSelectDefinitions("Vak");
-		return Array.from(defs.defs).map((vak) => {
-			return {
-				name: vak[0],
-				value: vak[1]
-			};
-		});
-	}
-	async fetchMultiSelectDefinitions(criterium) {
-		let critId = this.criteriaDefs.find((c) => c.name === criterium).id;
-		//! todo: force criteria to be valid: fetch() is not called in constructor.
-		await postNameValueList("/views/leerlingen/werklijst/criteria/toevoegen/toevoegen.opslaan.php", [{
-			name: "criterium_id",
-			value: critId
-		}]);
-		let text = await fetch("/views/leerlingen/werklijst/criteria/criteria.div.php").then((res) => res.text());
-		const template = document.createElement("template");
-		template.innerHTML = text;
-		let select = template.content.querySelector(`tr[data-criterium_id="${critId}"]`).querySelector(`td:nth-child(3) select`);
-		let defs = select.querySelectorAll(`option`);
-		return {
-			postId: select.dataset.postId,
-			defs: Array.from(defs).map((def) => [def.label, def.value])
-		};
-	}
-	async sendFields(fields) {
-		let fieldsToActuallySend = fields.filter((f) => !this.preselectedFields.includes(f.text));
-		for (let field of fieldsToActuallySend) {
-			let fieldDef = this.fieldDefs.find((f) => f.name === field.text);
-			//! todo: force fiedDefs to be valid: fetch() is not called in constructor.
-			if (fieldDef) await postNameValueList("/views/leerlingen/werklijst/velden/toevoegen/wijzigen.opslaan.php", [{
-				name: "veld_id",
-				value: fieldDef.id
-			}, {
-				name: "selected",
-				value: "1"
-			}]);
-		}
-	}
-	setPreselectedFields(preselectedFields) {
-		this.preselectedFields = preselectedFields;
-	}
-};
-function textToCodes(items, vakDefs) {
-	let filtered;
-	if (typeof items === "function") {
-		let isIncluded = items;
-		filtered = vakDefs.filter((vakDef) => isIncluded(vakDef[0]));
-	} else filtered = vakDefs.filter((vakDef) => items.includes(vakDef[0]));
-	return filtered.map((vakDef) => vakDef[1]);
-}
-//#endregion
 //#region typescript/les/fetch.ts
 async function fetchLes(id, signal, options) {
 	if (!options) options = {
@@ -6998,1422 +8414,6 @@ async function fetchLes(id, signal, options) {
 		vestiging,
 		teachers
 	};
-}
-//#endregion
-//#region typescript/lessen/observer.ts
-var LessenObserver = class extends HashObserver {
-	constructor() {
-		super("#lessen-overzicht", onMutation$7, false, onPageRefreshed$1);
-	}
-	isPageReallyLoaded() {
-		return document.getElementById("btn_lessen_overzicht_zoeken") != null;
-	}
-};
-var observer_default$8 = new LessenObserver();
-function onPageRefreshed$1() {
-	console.log(`Lessen.onPageRefreshed: hash: ${location.hash}`);
-	if (location.hash != "#lessen-overzicht") return;
-	if (!addTrimesterButton()) setTimeout(onPageRefreshed$1, 500);
-}
-function addTrimesterButton() {
-	let btnZoek = document.getElementById("btn_lessen_overzicht_zoeken");
-	if (!btnZoek) return false;
-	if (!document.getElementById("btn_show_trimesters")) {
-		let { first } = emmet.insertAfter(btnZoek, "button.btn.btn-sm.btn-primary.w-100.mt-1#btn_show_trimesters>i.fas.fa-sitemap+{ Toon trimesters}");
-		first.onclick = onClickShowTrimesters;
-	}
-	return true;
-}
-function onMutation$7(mutation) {
-	addTrimesterButton();
-	let lessenOverzicht = document.getElementById(LESSEN_OVERZICHT_ID);
-	if (mutation.target !== lessenOverzicht) return false;
-	let pageState = getGotoStateOrDefault("Lessen");
-	switch (pageState.goto) {
-		case "Lessen_trimesters_set_filter":
-			pageState.goto = "";
-			saveGotoState(pageState);
-			onClickShowTrimesters();
-			return true;
-		case "Lessen_trimesters_show":
-			pageState.goto = "";
-			saveGotoState(pageState);
-			return true;
-	}
-	return decorateTable() !== void 0;
-}
-function onClickShowTrimesters() {
-	document.getElementById("lessen_overzicht").innerHTML = "<span class=\"text-muted\">\n                <i class=\"fa fa-cog fa-spin\"></i> <i>Bezig met laden...</i>\n            </span>";
-	setTrimesterFilterAndFetch().then((text) => {
-		document.getElementById("lessen_overzicht").innerHTML = text;
-		showTrimesterTable(decorateTable(), true);
-	});
-}
-async function setTrimesterFilterAndFetch() {
-	return fetchLessen(new URLSearchParams({
-		schooljaar: Schoolyear.findInPage(),
-		domein: "3",
-		vestigingsplaats: "",
-		vak: "",
-		graad: "",
-		leerkracht: "",
-		ag: "",
-		lesdag: "",
-		verberg_online: "-1",
-		soorten_lessen: "3",
-		volzet: "-1"
-	}));
-}
-async function fetchLessen(params) {
-	let url = "/views/lessen/overzicht/index.filters.php";
-	await fetch(url + "?" + params);
-	url = "/views/lessen/overzicht/index.lessen.php";
-	return (await fetch(url + "?" + params)).text();
-}
-function createTrimTableDiv() {
-	let trimDiv = document.getElementById(TRIM_DIV_ID);
-	if (!trimDiv) {
-		trimDiv = document.createElement("div");
-		document.getElementById(LESSEN_TABLE_ID).insertAdjacentElement("afterend", trimDiv);
-		trimDiv.id = TRIM_DIV_ID;
-	}
-	return trimDiv;
-}
-async function expandTeacherName(span) {
-	let lesInfo = await fetchLes(span.id, void 0, { teachers: true });
-	if (!lesInfo) return;
-	span.teacherNameSpan.textContent = lesInfo.teachers.map((teacher) => teacher.name).join(", ");
-}
-function onClickShowAllTeachers() {
-	let expandedSpans = scrapeTeacherNameSpans().filter((span) => span.textContent?.includes("(en nog")).map((span) => {
-		let tr = span.closest("tr");
-		return {
-			id: getId(tr),
-			row: tr,
-			teacherNameSpan: span
-		};
-	});
-	let promiseQueue = Promise.resolve();
-	expandedSpans.forEach(async (span) => {
-		promiseQueue = promiseQueue.then(() => {
-			return expandTeacherName(span);
-		});
-	});
-	console.log(expandedSpans);
-}
-function decorateTable() {
-	let printButton = document.getElementById("btn_print_overzicht_lessen");
-	if (!printButton) return;
-	let copyLessonButton = printButton.parentElement.querySelector("button:has(i.fa-reply-all)");
-	if (copyLessonButton?.title === "") {
-		copyLessonButton.title = copyLessonButton.textContent.replaceAll("\n", " ").replaceAll("      ", " ").replaceAll("     ", " ").replaceAll("    ", " ").replaceAll("   ", " ").replaceAll("  ", " ");
-		copyLessonButton.childNodes.forEach((node) => {
-			if (node.nodeType === Node.TEXT_NODE) node.remove();
-		});
-		copyLessonButton.querySelector("strong")?.remove();
-		copyLessonButton.style.backgroundColor = "red";
-		copyLessonButton.style.color = "white";
-	}
-	let overzichtDiv = document.getElementById(LESSEN_OVERZICHT_ID);
-	createTrimTableDiv();
-	overzichtDiv.dataset.filterFullClasses = "false";
-	let badges = document.getElementsByClassName("badge");
-	let hasModules = Array.from(badges).some((el) => el.textContent === "module");
-	addButton$1(printButton, SHOW_ALL_TEACHERS_BTN_ID, "Toon alle leraars", onClickShowAllTeachers, "fa-users");
-	if (hasModules) addButton$1(printButton, TRIM_BUTTON_ID, "Toon trimesters", onClickToggleTrimesters, "fa-sitemap");
-	addFilterFields();
-	return getTrimPageElements();
-}
-function addButton$1(printButton, buttonId, title, clickFunction, imageId) {
-	if (document.getElementById(buttonId) === null) {
-		const button = document.createElement("button");
-		button.classList.add("btn", "btn-sm", "btn-outline-secondary", "w-100");
-		button.id = buttonId;
-		button.style.marginTop = "0";
-		button.onclick = clickFunction;
-		button.title = title;
-		const buttonContent = document.createElement("i");
-		button.appendChild(buttonContent);
-		buttonContent.classList.add("fas", imageId);
-		printButton.insertAdjacentElement("beforebegin", button);
-	}
-}
-function onClickToggleTrimesters() {
-	showTrimesterTable(getTrimPageElements(), !isTrimesterTableVisible());
-}
-function isTrimesterTableVisible() {
-	return document.getElementById(LESSEN_TABLE_ID).style.display === "none";
-}
-function getTrimPageElements() {
-	return {
-		trimTable: document.getElementById(TRIM_TABLE_ID),
-		trimTableDiv: createTrimTableDiv(),
-		lessenTable: document.getElementById(LESSEN_TABLE_ID),
-		trimButton: document.getElementById(TRIM_BUTTON_ID)
-	};
-}
-async function getJaarToewijzigingWerklijst(schoolYear) {
-	let builder = await createWerklijstBuilderWithReset(schoolYear, "3");
-	builder.addCriterium("Domein", "=", ["Muziek (Mu)"]);
-	builder.addCriterium("Vak", "=", [
-		"instrumentinitiatie – hele jaar zelfde instrument - accordeon",
-		"instrumentinitiatie – hele jaar zelfde instrument - baglama (saz)",
-		"instrumentinitiatie – hele jaar zelfde instrument - cello",
-		"instrumentinitiatie – hele jaar zelfde instrument - dwarsfluit",
-		"instrumentinitiatie – hele jaar zelfde instrument - gitaar",
-		"instrumentinitiatie – hele jaar zelfde instrument - harp",
-		"instrumentinitiatie – hele jaar zelfde instrument - klarinet",
-		"instrumentinitiatie – hele jaar zelfde instrument - saxofoon",
-		"instrumentinitiatie – hele jaar zelfde instrument - slagwerk",
-		"instrumentinitiatie – hele jaar zelfde instrument - trombone",
-		"instrumentinitiatie – hele jaar zelfde instrument - trompet",
-		"instrumentinitiatie – hele jaar zelfde instrument - viool",
-		"instrumentinitiatie – hele jaar zelfde instrument - zang"
-	]);
-	builder.addFields([
-		FIELD.NAAM,
-		FIELD.VOORNAAM,
-		FIELD.VAK_NAAM,
-		FIELD.LESMOMENTEN,
-		FIELD.KLAS_LEERKRACHT,
-		FIELD.GRAAD_LEERJAAR
-	]);
-	let table = await (await builder.sendSettings()).fetchTable(void 0, true);
-	await setViewFromCurrentUrl();
-	return table;
-}
-async function showTrimesterTable(trimElements, show) {
-	trimElements.trimTable?.remove();
-	let toewijzingTable;
-	let schoolYear = Schoolyear.findInPage();
-	if (schoolYear === "2024-2025") toewijzingTable = void 0;
-	else toewijzingTable = await getJaarToewijzigingWerklijst(schoolYear);
-	let inputModules = scrapeModules(toewijzingTable);
-	let toewijzingModules = connvertToewijzingenToModules(inputModules.jaarToewijzingen);
-	console.log(toewijzingModules);
-	inputModules.jaarModules = inputModules.jaarModules.concat(...toewijzingModules.values());
-	buildTrimesterTable(buildTableData(inputModules.trimesterModules.concat(inputModules.jaarModules)), trimElements);
-	trimElements.lessenTable.style.display = show ? "none" : "table";
-	trimElements.trimTable.style.display = show ? "table" : "none";
-	trimElements.trimButton.title = show ? "Toon normaal" : "Toon trimesters";
-	setButtonHighlighted(TRIM_BUTTON_ID, show);
-	setSorteerLine(show);
-	applyFilters();
-}
-function addSortingAnchorOrText() {
-	let sorteerDiv = document.getElementById("trimSorteerDiv");
-	sorteerDiv.innerHTML = "Sorteer : ";
-	if (getSavedNameSorting() === 0) emmet.append(sorteerDiv, "a{Naam}[href=\"#\"]+{ | }+strong{Voornaam}");
-	else emmet.append(sorteerDiv, "strong{Naam}+{ | }+a{Voornaam}[href=\"#\"]");
-	for (let anchor of sorteerDiv.querySelectorAll("a")) anchor.onclick = (mouseEvent) => {
-		if (mouseEvent.target.textContent === "Naam") setSavedNameSorting(1);
-		else setSavedNameSorting(0);
-		showTrimesterTable(getTrimPageElements(), true);
-		addSortingAnchorOrText();
-		return false;
-	};
-}
-function setSorteerLine(showTrimTable) {
-	let pageState = getPageSettings("Lessen", getDefaultPageSettings());
-	let oldSorteerSpan = document.querySelector("#lessen_overzicht > span");
-	let newGroupingDiv = document.getElementById("trimGroepeerDiv");
-	if (!newGroupingDiv) newGroupingDiv = emmet.insertAfter(oldSorteerSpan, "div#trimGroepeerDiv.text-muted").first;
-	if (!document.getElementById("trimSorteerDiv")) {
-		emmet.insertBefore(newGroupingDiv, "div#trimSorteerDiv.text-muted");
-		addSortingAnchorOrText();
-	}
-	newGroupingDiv.innerText = "Groepeer: ";
-	oldSorteerSpan.style.display = showTrimTable ? "none" : "";
-	newGroupingDiv.style.display = showTrimTable ? "" : "none";
-	appendGroupingAnchorOrText(newGroupingDiv, 1, pageState.grouping, "");
-	appendGroupingAnchorOrText(newGroupingDiv, 0, pageState.grouping, " | ");
-	appendGroupingAnchorOrText(newGroupingDiv, 2, pageState.grouping, " | ");
-	appendGroupingAnchorOrText(newGroupingDiv, 4, pageState.grouping, " | ");
-	appendGroupingAnchorOrText(newGroupingDiv, 5, pageState.grouping, " | ");
-}
-function appendGroupingAnchorOrText(target, grouping, activeSorting, separator) {
-	let sortingText = "";
-	switch (grouping) {
-		case 1:
-			sortingText = "instrument+leraar+lesuur";
-			break;
-		case 0:
-			sortingText = "leraar+instrument+lesuur";
-			break;
-		case 2:
-			sortingText = "leraar+lesuur";
-			break;
-		case 3:
-			sortingText = "instrument+lesuur";
-			break;
-		case 4:
-			sortingText = "instrument";
-			break;
-		case 5: sortingText = "leraar";
-	}
-	if (separator) separator = "{" + separator + "}+";
-	if (activeSorting === grouping) emmet.appendChild(target, separator + "strong{" + sortingText + "}");
-	else {
-		let button = emmet.appendChild(target, separator + "button.likeLink{" + sortingText + "}").last;
-		button.onclick = () => {
-			let pageState = getPageSettings("Lessen", getDefaultPageSettings());
-			pageState.grouping = grouping;
-			savePageSettings(pageState);
-			showTrimesterTable(getTrimPageElements(), true);
-			return false;
-		};
-	}
-}
-//#endregion
-//#region typescript/lessen/fetch.ts
-let LessenFilterDomein = /* @__PURE__ */ function(LessenFilterDomein) {
-	LessenFilterDomein["Muziek"] = "3";
-	LessenFilterDomein["Woord"] = "4";
-	LessenFilterDomein["DomeinOV"] = "5";
-	LessenFilterDomein["Dans"] = "2";
-	return LessenFilterDomein;
-}({});
-async function scrapeLessen(domein, type, schoolYear) {
-	let chain = new FetchChain();
-	await chain.fetch("/#lessen-overzichtlessen-overzicht");
-	await chain.fetch("view.php?args=lessen-overzicht");
-	let tableText = await fetchLessen(new URLSearchParams({
-		schooljaar: schoolYear,
-		domein,
-		vestigingsplaats: "",
-		vak: "",
-		graad: "",
-		leerkracht: "",
-		ag: "",
-		lesdag: "",
-		verberg_online: "-1",
-		soorten_lessen: type,
-		volzet: "-1"
-	}));
-	let div = document.createElement("div");
-	div.innerHTML = tableText;
-	return scrapeLessenOverzicht(div.querySelector("table"));
-}
-var LessenFilterBuilder = class LessenFilterBuilder {
-	schoolYear;
-	domein;
-	vakCodes = [];
-	graadCodes = [];
-	adminGroupCodes = [];
-	vakken = [];
-	graden = [];
-	adminGroups = [];
-	constructor(schoolYear, domein) {
-		this.schoolYear = schoolYear;
-		this.domein = LessenFilterDomein[domein];
-	}
-	static async create(schoolYear, domein) {
-		let builder = new LessenFilterBuilder(schoolYear, domein);
-		await builder.initialize();
-		return builder;
-	}
-	async initialize() {
-		let chain = new FetchChain();
-		await chain.fetch("view.php?args=lessen-overzicht");
-		chain.findDocReadyLoadUrl();
-		await chain.fetch();
-		await chain.fetch(`views/lessen/overzicht/filters/index.selectie_na_schooljaar.php?schooljaar=${this.schoolYear}`);
-		await chain.fetch(`views/lessen/overzicht/filters/index.selectie_na_domein.php?domein=${this.domein}`);
-		this.vakCodes = this.getCodesForCriteria("lessen_overzicht_vak", chain.get());
-		//! should have text.
-		this.graadCodes = this.getCodesForCriteria("lessen_overzicht_graad", chain.get());
-		//! should have text.
-		this.adminGroupCodes = this.getCodesForCriteria("lessen_overzicht_ag", chain.get());
-		//! should have text.
-		this.adminGroupCodes.forEach((ag) => {
-			ag.name = ag.name.split(" ").shift() ?? "???";
-		});
-	}
-	getCodesForCriteria(selectId, text) {
-		let scanner = new TokenScanner(text);
-		scanner.find(`"${selectId}"`);
-		scanner.find("<option");
-		scanner.clipTo("</select>");
-		return (scanner.result()?.split("</option>").map((opt) => opt.replace(" selected ", "").replace("<option", "").replace("value=\"", "").trim().split(/"\s*>/)) ?? []).filter((opt) => opt[0] != "").map((opt) => {
-			return {
-				code: opt[0],
-				name: opt[1]
-			};
-		});
-	}
-	async fetch() {
-		let tableText = await fetchLessen(new URLSearchParams({
-			schooljaar: this.schoolYear,
-			domein: this.domein,
-			vestigingsplaats: "",
-			vak: this.vakken.join(),
-			graad: this.graden.join(),
-			leerkracht: "",
-			ag: this.adminGroups.join(),
-			lesdag: "",
-			verberg_online: "-1",
-			soorten_lessen: "1",
-			volzet: "-1"
-		}));
-		let div = document.createElement("div");
-		div.innerHTML = tableText;
-		return scrapeLessenOverzicht(div.querySelector("table"));
-		//! should contain a table.
-	}
-	hasVak(vak) {
-		return this.vakken.includes(vak);
-	}
-	addVak(vak) {
-		let vakCode = this.vakCodes.find((v) => v.name === vak);
-		if (!vakCode) {
-			console.error("vak niet gevonden: " + vak);
-			return;
-		}
-		this.vakken.push(vakCode.code);
-	}
-	addGraad(graad) {
-		let graadCode = this.graadCodes.find((v) => v.name === graad);
-		if (!graadCode) {
-			console.error("graad niet gevonden: " + graad);
-			return;
-		}
-		this.graden.push(graadCode.code);
-	}
-	addAdminGroup(adminGroup) {
-		let adminGroupCode = this.adminGroupCodes.find((v) => v.name === adminGroup);
-		if (!adminGroupCode) {
-			console.error("administrative groep niet gevonden: " + adminGroup);
-			return;
-		}
-		this.adminGroups.push(adminGroupCode.code);
-	}
-};
-//#endregion
-//#region node_modules/idb/build/index.js
-const instanceOfAny = (object, constructors) => constructors.some((c) => object instanceof c);
-let idbProxyableTypes;
-let cursorAdvanceMethods;
-function getIdbProxyableTypes() {
-	return idbProxyableTypes || (idbProxyableTypes = [
-		IDBDatabase,
-		IDBObjectStore,
-		IDBIndex,
-		IDBCursor,
-		IDBTransaction
-	]);
-}
-function getCursorAdvanceMethods() {
-	return cursorAdvanceMethods || (cursorAdvanceMethods = [
-		IDBCursor.prototype.advance,
-		IDBCursor.prototype.continue,
-		IDBCursor.prototype.continuePrimaryKey
-	]);
-}
-const transactionDoneMap = /* @__PURE__ */ new WeakMap();
-const transformCache = /* @__PURE__ */ new WeakMap();
-const reverseTransformCache = /* @__PURE__ */ new WeakMap();
-function promisifyRequest(request) {
-	const promise = new Promise((resolve, reject) => {
-		const unlisten = () => {
-			request.removeEventListener("success", success);
-			request.removeEventListener("error", error);
-		};
-		const success = () => {
-			resolve(wrap(request.result));
-			unlisten();
-		};
-		const error = () => {
-			reject(request.error);
-			unlisten();
-		};
-		request.addEventListener("success", success);
-		request.addEventListener("error", error);
-	});
-	reverseTransformCache.set(promise, request);
-	return promise;
-}
-function cacheDonePromiseForTransaction(tx) {
-	if (transactionDoneMap.has(tx)) return;
-	const done = new Promise((resolve, reject) => {
-		const unlisten = () => {
-			tx.removeEventListener("complete", complete);
-			tx.removeEventListener("error", error);
-			tx.removeEventListener("abort", error);
-		};
-		const complete = () => {
-			resolve();
-			unlisten();
-		};
-		const error = () => {
-			reject(tx.error || new DOMException("AbortError", "AbortError"));
-			unlisten();
-		};
-		tx.addEventListener("complete", complete);
-		tx.addEventListener("error", error);
-		tx.addEventListener("abort", error);
-	});
-	transactionDoneMap.set(tx, done);
-}
-let idbProxyTraps = {
-	get(target, prop, receiver) {
-		if (target instanceof IDBTransaction) {
-			if (prop === "done") return transactionDoneMap.get(target);
-			if (prop === "store") return receiver.objectStoreNames[1] ? void 0 : receiver.objectStore(receiver.objectStoreNames[0]);
-		}
-		return wrap(target[prop]);
-	},
-	set(target, prop, value) {
-		target[prop] = value;
-		return true;
-	},
-	has(target, prop) {
-		if (target instanceof IDBTransaction && (prop === "done" || prop === "store")) return true;
-		return prop in target;
-	}
-};
-function replaceTraps(callback) {
-	idbProxyTraps = callback(idbProxyTraps);
-}
-function wrapFunction(func) {
-	if (getCursorAdvanceMethods().includes(func)) return function(...args) {
-		func.apply(unwrap(this), args);
-		return wrap(this.request);
-	};
-	return function(...args) {
-		return wrap(func.apply(unwrap(this), args));
-	};
-}
-function transformCachableValue(value) {
-	if (typeof value === "function") return wrapFunction(value);
-	if (value instanceof IDBTransaction) cacheDonePromiseForTransaction(value);
-	if (instanceOfAny(value, getIdbProxyableTypes())) return new Proxy(value, idbProxyTraps);
-	return value;
-}
-function wrap(value) {
-	if (value instanceof IDBRequest) return promisifyRequest(value);
-	if (transformCache.has(value)) return transformCache.get(value);
-	const newValue = transformCachableValue(value);
-	if (newValue !== value) {
-		transformCache.set(value, newValue);
-		reverseTransformCache.set(newValue, value);
-	}
-	return newValue;
-}
-const unwrap = (value) => reverseTransformCache.get(value);
-/**
-* Open a database.
-*
-* @param name Name of the database.
-* @param version Schema version.
-* @param callbacks Additional callbacks.
-*/
-function openDB(name, version, { blocked, upgrade, blocking, terminated } = {}) {
-	const request = indexedDB.open(name, version);
-	const openPromise = wrap(request);
-	if (upgrade) request.addEventListener("upgradeneeded", (event) => {
-		upgrade(wrap(request.result), event.oldVersion, event.newVersion, wrap(request.transaction), event);
-	});
-	if (blocked) request.addEventListener("blocked", (event) => blocked(event.oldVersion, event.newVersion, event));
-	openPromise.then((db) => {
-		if (terminated) db.addEventListener("close", () => terminated());
-		if (blocking) db.addEventListener("versionchange", (event) => blocking(event.oldVersion, event.newVersion, event));
-	}).catch(() => {});
-	return openPromise;
-}
-const readMethods = [
-	"get",
-	"getKey",
-	"getAll",
-	"getAllKeys",
-	"count"
-];
-const writeMethods = [
-	"put",
-	"add",
-	"delete",
-	"clear"
-];
-const cachedMethods = /* @__PURE__ */ new Map();
-function getMethod(target, prop) {
-	if (!(target instanceof IDBDatabase && !(prop in target) && typeof prop === "string")) return;
-	if (cachedMethods.get(prop)) return cachedMethods.get(prop);
-	const targetFuncName = prop.replace(/FromIndex$/, "");
-	const useIndex = prop !== targetFuncName;
-	const isWrite = writeMethods.includes(targetFuncName);
-	if (!(targetFuncName in (useIndex ? IDBIndex : IDBObjectStore).prototype) || !(isWrite || readMethods.includes(targetFuncName))) return;
-	const method = async function(storeName, ...args) {
-		const tx = this.transaction(storeName, isWrite ? "readwrite" : "readonly");
-		let target = tx.store;
-		if (useIndex) target = target.index(args.shift());
-		return (await Promise.all([target[targetFuncName](...args), isWrite && tx.done]))[0];
-	};
-	cachedMethods.set(prop, method);
-	return method;
-}
-replaceTraps((oldTraps) => ({
-	...oldTraps,
-	get: (target, prop, receiver) => getMethod(target, prop) || oldTraps.get(target, prop, receiver),
-	has: (target, prop) => !!getMethod(target, prop) || oldTraps.has(target, prop)
-}));
-const advanceMethodProps = [
-	"continue",
-	"continuePrimaryKey",
-	"advance"
-];
-const methodMap = {};
-const advanceResults = /* @__PURE__ */ new WeakMap();
-const ittrProxiedCursorToOriginalProxy = /* @__PURE__ */ new WeakMap();
-const cursorIteratorTraps = { get(target, prop) {
-	if (!advanceMethodProps.includes(prop)) return target[prop];
-	let cachedFunc = methodMap[prop];
-	if (!cachedFunc) cachedFunc = methodMap[prop] = function(...args) {
-		advanceResults.set(this, ittrProxiedCursorToOriginalProxy.get(this)[prop](...args));
-	};
-	return cachedFunc;
-} };
-async function* iterate(...args) {
-	let cursor = this;
-	if (!(cursor instanceof IDBCursor)) cursor = await cursor.openCursor(...args);
-	if (!cursor) return;
-	cursor = cursor;
-	const proxiedCursor = new Proxy(cursor, cursorIteratorTraps);
-	ittrProxiedCursorToOriginalProxy.set(proxiedCursor, cursor);
-	reverseTransformCache.set(proxiedCursor, unwrap(cursor));
-	while (cursor) {
-		yield proxiedCursor;
-		cursor = await (advanceResults.get(proxiedCursor) || cursor.continue());
-		advanceResults.delete(proxiedCursor);
-	}
-}
-function isIteratorProp(target, prop) {
-	return prop === Symbol.asyncIterator && instanceOfAny(target, [
-		IDBIndex,
-		IDBObjectStore,
-		IDBCursor
-	]) || prop === "iterate" && instanceOfAny(target, [IDBIndex, IDBObjectStore]);
-}
-replaceTraps((oldTraps) => ({
-	...oldTraps,
-	get(target, prop, receiver) {
-		if (isIteratorProp(target, prop)) return iterate;
-		return oldTraps.get(target, prop, receiver);
-	},
-	has(target, prop) {
-		return isIteratorProp(target, prop) || oldTraps.has(target, prop);
-	}
-}));
-//#endregion
-//#region typescript/db/repository.ts
-var Repository = class {
-	db;
-	storeName;
-	constructor(db, storeName) {
-		this.db = db;
-		this.storeName = storeName;
-	}
-	async get(id) {
-		return this.db.get(this.storeName, id);
-	}
-	async put(data, key) {
-		return this.db.put(this.storeName, data, key);
-	}
-	async bulkPut(items) {
-		let tx = this.db.transaction(this.storeName, "readwrite");
-		let putPromises = items.map((item) => tx.store.put(item));
-		await Promise.all([...putPromises, tx.done]);
-	}
-	async findMatches(match) {
-		return (await this.db.getAll(this.storeName)).filter(match);
-	}
-};
-//#endregion
-//#region typescript/db/sessionDb.ts
-const DB_VERSION = 1;
-const SESSION_DB_PREFIX = "sessionStorage";
-async function initializeSession() {
-	if (!sessionStorage.getItem("session_active")) {
-		let dbs = await indexedDB.databases();
-		for (let db of dbs) if (db.name?.startsWith(SESSION_DB_PREFIX)) {
-			const deleteRequest = indexedDB.deleteDatabase(db.name);
-			deleteRequest.onsuccess = () => {
-				console.log(`Database ${db.name} deleted successfully.`);
-			};
-		}
-		sessionStorage.setItem("session_active", "true");
-	}
-}
-let cacheMap = /* @__PURE__ */ new Map();
-async function getSessionSchoolCache(schoolId) {
-	let cache = cacheMap.get(schoolId);
-	if (!cache) {
-		cache = await SessionSchoolCache.get(schoolId);
-		cacheMap.set(schoolId, cache);
-	}
-	return cache;
-}
-var SessionSchoolCache = class SessionSchoolCache {
-	schoolId;
-	db;
-	get AssetRefs() {
-		return this._AssetRefs;
-	}
-	get Loaded() {
-		return this._Loaded;
-	}
-	get LesRefs() {
-		return this._LesRefs;
-	}
-	get TeacherRefs() {
-		return this._TeacherRefs;
-	}
-	_LesRefs;
-	_Loaded;
-	_AssetRefs;
-	_TeacherRefs;
-	constructor(schoolId, db) {
-		this.schoolId = schoolId;
-		this.db = db;
-		this._LesRefs = new Repository(this.db, "LesRefs");
-		this._Loaded = new Repository(this.db, "Loaded");
-		this._AssetRefs = new Repository(this.db, "AssetRefs");
-		this._TeacherRefs = new Repository(this.db, "TeacherRefs");
-	}
-	static getDbName(schoolId) {
-		return `${SESSION_DB_PREFIX}_${schoolId}`;
-	}
-	static async get(schoolId) {
-		await initializeSession();
-		return new SessionSchoolCache(schoolId, await openDB(SessionSchoolCache.getDbName(schoolId), DB_VERSION, { upgrade(db) {
-			db.createObjectStore("LesRefs", { keyPath: "id" });
-			db.createObjectStore("Loaded");
-			db.createObjectStore("AssetRefs", { keyPath: "id" });
-			db.createObjectStore("TeacherRefs", { keyPath: "id" });
-		} }));
-	}
-};
-//#endregion
-//#region typescript/assets/scrape.ts
-async function scrapeAssets() {
-	let snel_zoeken = document.querySelector("#snel_zoeken");
-	let infoBlockDiv = document.createElement("div");
-	snel_zoeken.parentNode.insertBefore(infoBlockDiv, snel_zoeken);
-	return [...(await getTableFromHash("extra-assets-assets", true, new InfoBarTableFetchListener(getInfoBlock(infoBlockDiv)))).getRows()].map((row) => {
-		return {
-			id: row.cells[0].innerText,
-			code: [...row.cells[1].childNodes].map((node) => node.nodeValue).join("")
-		};
-	}).filter((asset) => asset.code);
-}
-//#endregion
-//#region typescript/leerling/scrape.ts
-const PlaceHolder = Symbol("placeholder");
-function convertToEmmet(text, charWidth) {
-	if (text === PlaceHolder) return `span.placeHolder.wch${charWidth}`;
-	else return `{${text}}`;
-}
-function createLesCard(lesName, lesCardData) {
-	if (lesCardData === PlaceHolder) lesCardData = {
-		vakName: "",
-		full: false,
-		lesmoment: PlaceHolder,
-		aantal: PlaceHolder,
-		maxAantal: PlaceHolder,
-		wachtlijst: 0,
-		vestiging: PlaceHolder
-	};
-	let wachtlijst = lesCardData.wachtlijst == 0 ? "span" : `span.red{ (${lesCardData.wachtlijst} op wachtlijst)}`;
-	let emmetText = `
-            div.small${lesCardData.full ? ".full" : ""}
-                div.bold.pre
-                    strong{${buildLesTitle(lesName, lesCardData.vakName)}}
-                div.pre
-                    ${convertToEmmet(lesCardData.vestiging, 13)}
-                div.pre
-                    ${convertToEmmet(lesCardData.lesmoment, 11)}
-                div.pre.noClipboard
-                    ${convertToEmmet(lesCardData.aantal, 2)}
-                    {/}
-                    ${convertToEmmet(lesCardData.maxAantal, 2)} 
-                    { lln} 
-                    ${wachtlijst}
-        `;
-	return emmet.indent.createElement(emmetText);
-}
-function buildLesTitle(lesName, vakName) {
-	return `${lesName ? lesName : vakName + " " + lesName}`;
-}
-function scrapeOpleidingen() {
-	let tBody = document.getElementById("leerling_inschrijvingen_weergave").querySelector("tbody");
-	let opleidingen = [];
-	for (let tr of tBody.querySelectorAll("tr")) {
-		let detailsTdOffset = 0;
-		if ([...tr.classList].find((c) => c.includes("inschrijvingen_domein"))) {
-			if (tr.cells[0].getAttribute("rowspan")) {
-				let opleiding = scrapeOpleidingRow(tr);
-				opleidingen.push(opleiding);
-				detailsTdOffset = 3;
-			}
-		}
-		let lesInfo = scrapeLesInfoDetails(tr, detailsTdOffset);
-		opleidingen[opleidingen.length - 1].lessen.push(lesInfo);
-	}
-	return opleidingen;
-}
-function scrapeOpleidingRow(tr) {
-	let tdOpleiding = tr.querySelector("td:nth-child(2)");
-	let tdText = tdOpleiding.textContent;
-	let domein = "";
-	if (tdText.includes("DomeinOv")) domein = "DomeinOV";
-	if (tdText.includes("Muziek")) domein = "Muziek";
-	if (tdText.includes("Woord")) domein = "Woord";
-	let rx = new RegExp(`${domein}\\s*-\\s*<strong>v*(.*?)</strong>`);
-	let gradeYearText = rx.exec(tdOpleiding.innerHTML)?.at(1);
-	let gradeYears = [];
-	if (gradeYearText) gradeYears = textsToYearGrades([gradeYearText]);
-	rx = /(\d{4,})/;
-	let adminGroup = rx.exec(tdText)?.at(1) ?? "";
-	return {
-		domein,
-		gradeYears,
-		lessen: [],
-		adminGroup
-	};
-}
-function scrapeLesInfoDetails(tr, detailsTdOffset) {
-	let tdVakLes = tr.cells[detailsTdOffset + 1];
-	let vakNaam = tdVakLes.querySelector("strong")?.textContent ?? "";
-	let lesNaam = tdVakLes.querySelector("small")?.textContent ?? "";
-	let iGotoClass = tr.querySelector("i.fa-list-ul");
-	let gotoButton = null;
-	if (iGotoClass) gotoButton = iGotoClass.parentElement;
-	return {
-		vak: vakNaam,
-		lesNaam,
-		gotoButton
-	};
-}
-//#endregion
-//#region typescript/personeel/scrape.ts
-async function scrapeTeachers() {
-	return scrapeTable(new Dko3PersoneelFetcher(), (row) => {
-		let [lastName, firstName] = row.querySelector("strong").textContent.split(", ");
-		return {
-			id: row.dataset.id,
-			firstName,
-			lastName
-		};
-	});
-}
-function getTableRef() {
-	return {
-		htmlTableId: "",
-		createElementAboveTable: () => document.createElement("div"),
-		getOrgTableContainer: () => document.body,
-		getOrgTableRows: () => document.querySelectorAll("table > tbody > tr"),
-		isFullyFetched: () => true
-	};
-}
-var Dko3PersoneelFetcher = class Dko3PersoneelFetcher extends TableFetcher {
-	static getCheckSumBuilder() {
-		return () => "personeelsleden.todo:filtercriteria";
-	}
-	constructor() {
-		super(getTableRef(), Dko3PersoneelFetcher.getCheckSumBuilder());
-	}
-	async fetch() {
-		let chain = new FetchChain();
-		await chain.fetch("/#personeel-personeelsleden");
-		await chain.fetch("view.php?args=personeel-personeelsleden");
-		chain.findDocReadyLoadUrl();
-		await chain.fetch();
-		await chain.fetch(`/views/personeel/personeelsleden/vestigingsplaats_schooljaar_filter.php?schooljaar=${Schoolyear.toFullString(Schoolyear.calculateCurrent())}`);
-		await chain.post("/views/personeel/personeelsleden/save_filters.php", void 0, [
-			["filters[naam]", ""],
-			["filters[status_personeelsleden]", "1"],
-			["filters[leerkracht]", "1"],
-			["filters[interim]", "1"],
-			["filters[alc]", "1"],
-			["filters[administratie]", "1"],
-			["filters[overig]", "1"],
-			["filters[schooljaar]", Schoolyear.toFullString(Schoolyear.calculateCurrent())]
-		]);
-		let tableText = await chain.fetch("/views/personeel/personeelsleden/personeelsleden.table.php");
-		let div = document.createElement("div");
-		div.innerHTML = tableText;
-		let table = div.querySelector("table");
-		//! should have a table.
-		let getRows = () => table.querySelectorAll("tbody > tr");
-		return {
-			getRows,
-			tableFetcher: this,
-			getRowsAsArray: () => Array.from(getRows()),
-			getTable: () => table
-		};
-	}
-};
-//#endregion
-//#region typescript/globalSearch.ts
-function onPasteInGlobalSearchField(e) {
-	if (!options.stripCommasOnPaste) return;
-	let searchField = document.getElementById("snel_zoeken_veld_zoektermen");
-	let newText = (e.clipboardData?.getData("text/plain") ?? "").replaceAll(",", "").replaceAll("-", " ");
-	searchField.setRangeText(newText);
-	searchField.setSelectionRange(newText.length, newText.length);
-	e.preventDefault();
-}
-async function onParentKeyUp(e) {
-	if (e.key == "Enter") {
-		if (!options.powerGoto) return;
-		console.log("parent Enter");
-		let text = document.getElementById("snel_zoeken_veld_zoektermen").value;
-		if (await onEnterPressed(text) == "cancel") {
-			console.log("canceling");
-			e.stopImmediatePropagation();
-			e.preventDefault();
-			return;
-		}
-		return;
-	}
-}
-function onSearchKeyDown(e) {
-	if (e.key == "Escape") {
-		let searchField = document.getElementById("snel_zoeken_veld_zoektermen");
-		searchField.value = "";
-		return;
-	}
-}
-let ignoreNextEnter = false;
-async function onEnterPressed(text) {
-	if (ignoreNextEnter) {
-		ignoreNextEnter = false;
-		return "default";
-	}
-	if (!text.includes(":")) return "default";
-	let parts = text.split(":");
-	let key = parts.shift();
-	//! will have 1 element
-	let value = parts.join(":");
-	if ("les".startsWith(key)) {
-		gotoLesRef(value.trim());
-		return "cancel";
-	} else if ("ma".startsWith(key)) {
-		gotoLesRef(value.trim(), "Muziekatelier");
-		return "cancel";
-	} else if ("asset".startsWith(key)) {
-		gotoAssetRef(value.trim());
-		return "cancel";
-	} else if (key == "lk" || key == "p") {
-		gotoTeacherRef(value.trim());
-		return "cancel";
-	}
-	return "default";
-}
-async function updateLesMenuItem(dropDownMenu, index, lesRef, signal) {
-	if (signal.aborted) {
-		console.log("ABORTED updateMenuItem:", lesRef.id);
-		return;
-	}
-	let les = await fetchLes(lesRef.id, signal);
-	let lesmomenten = les.lesMomenten.join("\n");
-	let full = les.aantal >= les.maxAantal;
-	let lesCard = createLesCard(lesRef.name, {
-		vakName: les.vak,
-		full,
-		lesmoment: lesmomenten,
-		aantal: les.aantal,
-		maxAantal: les.maxAantal,
-		wachtlijst: 0,
-		vestiging: les.vestiging
-	});
-	dropDownMenu.setItemContent(index, lesCard);
-}
-async function updateAssetMenuItem(dropDownMenu, index, assetRef, signal) {
-	if (signal.aborted) {
-		console.log("ABORTED updateMenuItem:", assetRef.id);
-		return;
-	}
-}
-async function updateTeacherMenuItem(dropDownMenu, index, teacherRef, signal) {
-	if (signal.aborted) {
-		console.log("ABORTED updateMenuItem:", teacherRef.id);
-		return;
-	}
-}
-async function gotoLesRef(lesName, vak) {
-	return gotoRef(() => getLesMatches(lesName, vak), "/#lessen-les?id=", (lesRef) => createLesCard(lesRef.name, PlaceHolder), updateLesMenuItem);
-}
-async function gotoAssetRef(assetCode) {
-	return gotoRef(() => getAssetMatches(assetCode), "/#extra-assets-assets-details?id=", (assetRef) => assetRef.code, updateAssetMenuItem);
-}
-async function gotoTeacherRef(text) {
-	return gotoRef(() => getTeacherMatches(text), "/#personeel-personeelslid?id=", (teacherRef) => teacherRef.firstName + " " + teacherRef.lastName, updateTeacherMenuItem);
-}
-async function gotoRef(getMatches, gotoUrl, getLabel, updateMenuItem) {
-	await waitForPageProbablyLoaded();
-	let infoBlock = getInfoBlockForPage();
-	infoBlock.infoBar.setInfoLine("Ophalen gegevens...");
-	let matches = await getMatches(infoBlock);
-	infoBlock.infoBar.setInfoLine("");
-	if (matches) {
-		if (matches.length == 1) {
-			console.log("gotoRef: matches.length == 1");
-			setTimeout(() => {
-				console.log(`gotoRef: matches.length == 1, location.href = ${gotoUrl + matches[0].id}`);
-				location.href = gotoUrl + matches[0].id;
-			});
-			return true;
-		}
-		if (matches.length > 1) {
-			let searchField = document.getElementById("snel_zoeken_veld_zoektermen");
-			let abortController = new AbortController();
-			let signal = abortController.signal;
-			let dropDownMenu = new DropDownMenu(searchField.parentElement?.parentElement, searchField, false, true, abortController);
-			let queue = Promise.resolve();
-			for (let ref of matches) {
-				let index = dropDownMenu.addItem(getLabel(ref), 0, () => {
-					abortController.abort("Aborting menu.");
-					dropDownMenu.remove();
-					location.href = gotoUrl + ref.id;
-				});
-				queue = queue.then(() => updateMenuItem(dropDownMenu, index, ref, signal));
-			}
-			dropDownMenu.show();
-		}
-	}
-	return true;
-}
-async function getLesMatches(lesName, vak) {
-	if (!lesName) return [];
-	let lowerCase = lesName.toLowerCase();
-	let lesRefs = await getRepositoryCached("LesRefs", getLesRefs);
-	if (vak) {
-		let matches = await lesRefs.findMatches((lesRef) => lesRef.name.toLowerCase().includes(lowerCase) && lesRef.vak == vak);
-		matches.sort((a, b) => a.name.localeCompare(b.name));
-		return matches;
-	}
-	let matches = await lesRefs.findMatches((lesRef) => lesRef.name.toLowerCase().includes(lowerCase));
-	matches.sort((a, b) => a.name.localeCompare(b.name));
-	return matches;
-}
-async function getLesRefs() {
-	let lessen = await scrapeLessen("3", "1", Schoolyear.toFullString(Schoolyear.calculateCurrent()));
-	lessen.push(...await scrapeLessen("2", "1", Schoolyear.toFullString(Schoolyear.calculateCurrent())));
-	lessen.push(...await scrapeLessen("4", "1", Schoolyear.toFullString(Schoolyear.calculateCurrent())));
-	console.log(lessen);
-	return lessen.map((l) => ({
-		id: l.les.id,
-		name: l.les.naam,
-		vak: l.les.vakNaam
-	}));
-}
-async function getAssetRefs() {
-	return (await scrapeAssets()).map((asset) => ({
-		id: asset.id,
-		code: asset.code
-	}));
-}
-async function getTeacherRefs() {
-	return (await scrapeTeachers()).map((t) => ({
-		id: t.id,
-		firstName: t.firstName,
-		lastName: t.lastName
-	}));
-}
-async function getRepositoryCached(storeName, getRefs) {
-	let cache = await getSessionSchoolCache(getSchoolIdString());
-	if (!await cache.Loaded.get(storeName)) {
-		let refs = await getRefs();
-		await cache[storeName].bulkPut(refs);
-		await cache.Loaded.put(true, storeName);
-	}
-	return cache[storeName];
-}
-async function getAssetMatches(assetCode) {
-	if (!assetCode) return [];
-	let lowerCase = assetCode.toLowerCase();
-	return (await getRepositoryCached("AssetRefs", getAssetRefs)).findMatches((assetRef) => assetRef.code.toLowerCase().includes(lowerCase));
-}
-async function getTeacherMatches(text) {
-	if (!text) return [];
-	let lowerCase = text.toLowerCase();
-	let matches = await (await getRepositoryCached("TeacherRefs", getTeacherRefs)).findMatches((teacherRef) => {
-		return teacherRef.firstName.toLowerCase().includes(lowerCase) || teacherRef.lastName.toLowerCase().includes(lowerCase);
-	});
-	matches.sort((a, b) => a.firstName.localeCompare(b.firstName) || a.lastName.localeCompare(b.lastName));
-	return matches;
-}
-//#endregion
-//#region typescript/globals.ts
-let observers = [];
-let settingsObservers = [];
-function db3(message) {
-	if (options?.showDebug) {
-		console.log(message);
-		let stack = Error().stack;
-		if (stack) console.log(stack.split("\n")[2]);
-	}
-}
-function createValidId(id) {
-	return id.replaceAll(" ", "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\W/g, "");
-}
-function registerObserver(observer) {
-	observers.push(observer);
-	if (observers.length > 20) console.error("Too many observers!");
-}
-function registerSettingsObserver(observer) {
-	settingsObservers.push(observer);
-	if (settingsObservers.length > 20) console.error("Too many settingsObservers!");
-}
-function setButtonHighlighted(buttonId, show) {
-	if (show) document.getElementById(buttonId).classList.add("toggled");
-	else document.getElementById(buttonId).classList.remove("toggled");
-}
-function addButton(targetElement, buttonId, title, clickFunction, imageId, classList, text = "", where = "beforebegin", imageFileName) {
-	if (document.getElementById(buttonId) === null) {
-		const button = document.createElement("button");
-		button.classList.add("btn", ...classList);
-		button.id = buttonId;
-		button.style.marginTop = "0";
-		button.onclick = clickFunction;
-		button.title = title;
-		if (text) {
-			let span = document.createElement("span");
-			button.appendChild(span);
-			span.innerText = text;
-		}
-		if (imageFileName) {
-			button.classList.add("svg");
-			emmet.appendChild(button, `img[src="${chrome.runtime.getURL("images/" + imageFileName)}"]`);
-		}
-		const buttonContent = document.createElement("i");
-		button.appendChild(buttonContent);
-		if (imageId) buttonContent.classList.add("fas", imageId);
-		targetElement.insertAdjacentElement(where, button);
-	}
-}
-let Schoolyear;
-(function(_Schoolyear) {
-	function getSelectElement() {
-		let selects = document.querySelectorAll("select");
-		return Array.from(selects).filter((element) => element.id.includes("schooljaar")).pop() ?? null;
-	}
-	_Schoolyear.getSelectElement = getSelectElement;
-	function getHighestAvailable() {
-		let el = getSelectElement();
-		if (!el) return void 0;
-		return Array.from(el.querySelectorAll("option")).map((option) => option.value).sort().pop();
-	}
-	_Schoolyear.getHighestAvailable = getHighestAvailable;
-	function findInPage() {
-		let el = getSelectElement();
-		if (el) return el.value;
-		el = document.querySelector("div.alert-info");
-		if (el) {
-			let txt = el.textContent;
-			let res = /[sS]chooljaar *[=:][\s\u00A0]*(\d{4}-\d{4})/gm.exec(txt);
-			if (res) return res[1];
-		}
-		el = document.querySelector("div.btn-toolbar");
-		if (el) {
-			let txt = el.textContent;
-			let res = /[sS]chooljaar *[=:]*[\s\u00A0]*(\d{4}-\d{4})/gm.exec(txt);
-			if (res) return res[1];
-		}
-		throw "Cannot find schoolyear in page.";
-	}
-	_Schoolyear.findInPage = findInPage;
-	function calculateCurrent() {
-		let now = /* @__PURE__ */ new Date();
-		let year = now.getFullYear();
-		if (now.getMonth() < 8) return year - 1;
-		return year;
-	}
-	_Schoolyear.calculateCurrent = calculateCurrent;
-	function calculateSetupYear() {
-		let now = /* @__PURE__ */ new Date();
-		let year = now.getFullYear();
-		if (now.getMonth() < 3) return year - 1;
-		return year;
-	}
-	_Schoolyear.calculateSetupYear = calculateSetupYear;
-	function toFullString(startYear) {
-		return `${startYear}-${startYear + 1}`;
-	}
-	_Schoolyear.toFullString = toFullString;
-	function toShortString(startYear) {
-		return `${startYear % 1e3}-${startYear % 1e3 + 1}`;
-	}
-	_Schoolyear.toShortString = toShortString;
-	function toNumbers(schoolyearString) {
-		let parts = schoolyearString.split("-").map((s) => parseInt(s));
-		return {
-			startYear: parts[0],
-			endYear: parts[1]
-		};
-	}
-	_Schoolyear.toNumbers = toNumbers;
-})(Schoolyear || (Schoolyear = {}));
-function getUserAndSchoolName() {
-	let footer = document.querySelector("body > main > div.row > div.col-auto.mr-auto > small");
-	const match = footer.textContent.match(/.*Je bent aangemeld als (.*)\s@\s(.*)\./);
-	if (match?.length !== 3) throw new Error(`Could not process footer text "${footer.textContent}"`);
-	return {
-		userName: match[1],
-		schoolName: match[2]
-	};
-}
-function getSchoolIdString() {
-	let { schoolName } = getUserAndSchoolName();
-	schoolName = schoolName.replace("Academie ", "").replace("Muziek", "M").replace("Woord", "W").replace("Dans", "D").replace("Beeld", "B").toLowerCase();
-	return createValidId(schoolName);
-}
-function millisToString(duration) {
-	let seconds = Math.floor(duration / 1e3 % 60);
-	let minutes = Math.floor(duration / 6e4 % 60);
-	let hours = Math.floor(duration / 36e5 % 24);
-	let days = Math.floor(duration / 864e5);
-	if (days > 0) return days + (days === 1 ? " dag" : " dagen");
-	else if (hours > 0) return hours + " uur";
-	else if (minutes > 0) return minutes + (minutes === 1 ? " minuut" : " minuten");
-	else if (seconds > 0) return seconds + " seconden";
-	else return "";
-}
-function dateDiffToString(oldestDate, newestDate) {
-	return millisToString(newestDate.getTime() - oldestDate.getTime());
-}
-function isAlphaNumeric(str) {
-	if (str.length > 1) return false;
-	let code;
-	let i;
-	let len;
-	for (i = 0, len = str.length; i < len; i++) {
-		code = str.charCodeAt(i);
-		if (!(code > 47 && code < 58) && !(code > 64 && code < 91) && !(code > 96 && code < 123)) return false;
-	}
-	return true;
-}
-function rangeGenerator(start, stop, step = 1) {
-	return Array(Math.ceil((stop - start) / step)).fill(start).map((x, y) => x + y * step);
-}
-function createSearchField(id, onSearchInput, value) {
-	let input = document.createElement("input");
-	input.type = "text";
-	input.id = id;
-	input.classList.add("tableFilter");
-	input.oninput = onSearchInput;
-	input.value = value;
-	input.placeholder = "filter";
-	let span = document.createElement("span");
-	span.classList.add("searchButton");
-	span.appendChild(input);
-	let { first: clearButton } = emmet.appendChild(span, `button>img[src="${chrome.runtime.getURL("images/circle-xmark-regular.svg")}"`);
-	clearButton.onclick = () => {
-		input.value = "";
-		input.oninput(void 0);
-		input.focus();
-	};
-	return span;
-}
-function getBothToolbars() {
-	let navigationBars = document.querySelectorAll("div.datatable-navigation-toolbar");
-	if (navigationBars.length < 2) return void 0;
-	return navigationBars;
-}
-function addTableNavigationButton(navigationBars, btnId, title, onClick, fontIconId) {
-	addButton(navigationBars[0].lastElementChild, btnId, title, onClick, fontIconId, ["btn-secondary"], "", "afterend");
-	return true;
-}
-function distinct(array) {
-	return [...new Set(array)];
-}
-async function fetchStudentsSearch(search) {
-	return fetch("/view.php?args=zoeken?zoek=" + encodeURIComponent(search)).then((response) => response.text()).then((_text) => fetch("/views/zoeken/index.view.php")).then((response) => response.text()).catch((err) => {
-		console.error("Request failed", err);
-		return "";
-	});
-}
-async function setViewFromCurrentUrl() {
-	let hash = window.location.hash.replace("#", "");
-	await fetch("/#" + hash).then((res) => res.text());
-	await fetch("view.php?args=" + hash).then((res) => res.text());
-}
-function equals(g1, g2) {
-	return g1.globalHide === g2.globalHide;
-}
-let rxEmail = /\w[\w.\-]*@\w+\.\w+/gm;
-function whoAmI() {
-	let scriptTexts = [...document.querySelectorAll("script")].map((s) => s.textContent).join();
-	return {
-		email: scriptTexts.match(rxEmail)[0],
-		name: scriptTexts.match(/name: '(.*)'/)[1]
-	};
-}
-function stripStudentName(name) {
-	return name.replaceAll(/[,()'-]/g, " ").replaceAll("  ", " ");
-}
-async function openHtmlTab(cacheId, pageTitle) {
-	return sendRequest$1("open_tab", "Main", "Html", void 0, { cacheId }, pageTitle);
-}
-async function openHoursSettings(schoolyear) {
-	return sendRequest$1("open_hours_settings", "Main", "Undefined", void 0, { schoolyear }, "Lerarenuren setup voor schooljaar " + schoolyear);
-}
-function createHtmlTable(headers, cols) {
-	let tmpDiv = document.createElement("div");
-	let { first: tmpTable, last: tmpThead } = emmet.appendChild(tmpDiv, "table>thead");
-	for (let th of headers) emmet.appendChild(tmpThead, `th{${th}}`);
-	let tmpTbody = tmpTable.appendChild(document.createElement("tbody"));
-	for (let tr of cols) {
-		let tmpTr = tmpTbody.appendChild(document.createElement("tr"));
-		for (let cell of tr) emmet.appendChild(tmpTr, `td{${cell}}`);
-	}
-	return tmpTable;
-}
-function isButtonHighlighted(buttonId) {
-	return document.getElementById(buttonId)?.classList.contains("toggled");
-}
-function range(startAt, upTo) {
-	if (upTo > startAt) return [...Array(upTo - startAt).keys()].map((n) => n + startAt);
-	else return [...Array(startAt - upTo).keys()].reverse().map((n) => n + upTo + 1);
-}
-async function getOptions() {
-	let items = await chrome.storage.sync.get(null);
-	Object.assign(options, items);
-	setGlobalSetting(await fetchGlobalSettings(getGlobalSettings()));
-}
-function arrayIsEqual(a, b) {
-	if (a === b) return true;
-	if (a == null || b == null) return false;
-	if (a.length != b.length) return false;
-	let aSet = new Set(a);
-	return b.every((value, _) => aSet.has(value));
-}
-function escapeRegexChars(text) {
-	return text.replaceAll("\\", "\\\\").replaceAll("^", "\\^").replaceAll("$", "\\$").replaceAll(".", "\\.").replaceAll("|", "\\|").replaceAll("?", "\\?").replaceAll("*", "\\*").replaceAll("+", "\\+").replaceAll("(", "\\(").replaceAll(")", "\\)").replaceAll("[", "\\[").replaceAll("]", "\\]").replaceAll("{", "\\{").replaceAll("}", "\\}");
-}
-function getImmediateText(element) {
-	return [...element.childNodes].map((c) => c.nodeType === 3 ? c.textContent : "").join("");
-}
-function getHTMLTextWithNewlines(element) {
-	let text = "";
-	for (const child of element.childNodes) if (child.nodeType === Node.TEXT_NODE) text += child.textContent ?? "";
-	else if (child.nodeType === Node.ELEMENT_NODE) {
-		const el = child;
-		switch (el.tagName) {
-			case "BR":
-				text += "\n";
-				break;
-			case "DIV":
-				text += "\n" + getHTMLTextWithNewlines(el);
-				break;
-			default: text += getHTMLTextWithNewlines(el);
-		}
-	}
-	return text.replace(/\n{3,}/, "\n\n");
-}
-function tryUntilThen(func, then) {
-	if (func()) then();
-	else setTimeout(() => tryUntilThen(func, then), 100);
-}
-function copyToClipboardOrRequestRetry(infoBar, text) {
-	navigator.clipboard.writeText(text).then((_r) => {
-		infoBar.setExtraInfo("Gegevens gekopieerd naar klipbord. <a id=copy_again href='javascript:void(0);'>Kopieer opnieuw</a>", COPY_AGAIN, () => {
-			copyToClipboardOrRequestRetry(infoBar, text);
-		});
-	}).catch((_reason) => {
-		infoBar.setExtraInfo("Kan niet kopiëren naar klipbord!!! <a id=copy_again href='javascript:void(0);'>Kopieer opnieuw</a>", COPY_AGAIN, () => {
-			copyToClipboardOrRequestRetry(infoBar, text);
-		});
-	});
-}
-function pad(num, size) {
-	let text = num.toString();
-	while (text.length < size) text = "0" + text;
-	return text;
-}
-var SlidingWindow = class {
-	array;
-	length;
-	pos;
-	constructor(enumerable) {
-		this.pos = -1;
-		this.array = [...enumerable];
-		this.length = this.array.length;
-	}
-	[Symbol.iterator]() {
-		return { next: () => {
-			this.pos++;
-			if (this.pos >= this.length) return {
-				done: true,
-				value: null
-			};
-			return {
-				done: false,
-				value: {
-					prev: this.peekPrev(),
-					current: this.array[this.pos],
-					next: this.peekNext()
-				}
-			};
-		} };
-	}
-	peekNext() {
-		if (this.pos + 1 > this.length) return null;
-		return this.array[this.pos + 1];
-	}
-	peekPrev() {
-		if (this.pos == 0) return null;
-		return this.array[this.pos - 1];
-	}
-	next() {
-		this.pos++;
-		if (this.pos >= this.length) return null;
-		return this.array[this.pos];
-	}
-};
-function wrapElement(element, tagName) {
-	let wrapper = document.createElement(tagName);
-	element.parentNode.insertBefore(wrapper, element);
-	wrapper.appendChild(element);
-	return wrapper;
-}
-function highlightText(element, wordList, highlightClassName, extraClasses = []) {
-	let cards = element instanceof HTMLElement ? [element] : element;
-	if (wordList.length === 0) return;
-	for (const card of cards) {
-		const walker = document.createTreeWalker(card, NodeFilter.SHOW_TEXT, { acceptNode(node) {
-			const parent = node.parentElement;
-			if (!parent) return NodeFilter.FILTER_REJECT;
-			if (parent.closest("." + highlightClassName)) return NodeFilter.FILTER_REJECT;
-			if (!node.textContent || !wordList.some((word) => node.textContent.includes(word))) return NodeFilter.FILTER_REJECT;
-			return NodeFilter.FILTER_ACCEPT;
-		} });
-		const textNodes = [];
-		while (walker.nextNode()) textNodes.push(walker.currentNode);
-		let rxWords = new RegExp(`(${wordList.join("|")})`, "gu");
-		for (const textNode of textNodes) {
-			const fragment = document.createDocumentFragment();
-			const text = textNode.textContent ?? "";
-			let lastIndex = 0;
-			for (const match of text.matchAll(rxWords)) {
-				const matchText = match[0];
-				const matchIndex = match.index ?? 0;
-				fragment.append(document.createTextNode(text.slice(lastIndex, matchIndex)));
-				const span = document.createElement("span");
-				span.classList.add(highlightClassName, ...extraClasses);
-				span.textContent = matchText;
-				fragment.append(span);
-				lastIndex = matchIndex + matchText.length;
-			}
-			fragment.append(document.createTextNode(text.slice(lastIndex)));
-			textNode.replaceWith(fragment);
-		}
-	}
-}
-async function gotoTeacher(firstName, lastName) {
-	let teachers = await (await getRepositoryCached("TeacherRefs", scrapeTeachers)).findMatches((ref) => ref.firstName === firstName && ref.lastName === lastName);
-	if (teachers.length === 0) return;
-	let teacher = teachers[0];
-	location.href = "/#personeel-personeelslid?id=" + teacher.id;
 }
 //#endregion
 //#region typescript/leerling/observer.ts
@@ -11167,10 +11167,10 @@ async function gotoWerklijst() {
 function addHoursViewButtons(infoBlock) {
 	let buttonBar = document.querySelector("#pluginContainer .werklijstButtonWrapper");
 	addHoursButtons(buttonBar, infoBlock);
-	addButton(buttonBar, UREN_REFRESH_BTN_ID, "Refresh", async () => {
+	addButton$1(buttonBar, UREN_REFRESH_BTN_ID, "Refresh", async () => {
 		await reload();
 	}, "fa-refresh", ["btn", "btn-outline-dark"], "Refresh ", "beforeend");
-	addButton(buttonBar, GOTO_WERKLIJST_BTN_ID, "Werklijst", gotoWerklijst, "", [
+	addButton$1(buttonBar, GOTO_WERKLIJST_BTN_ID, "Werklijst", gotoWerklijst, "", [
 		"btn",
 		"btn-outline-dark",
 		"flexRight"
@@ -11211,13 +11211,13 @@ function addHoursButtons(buttonBar, infoBlock) {
 	let nextSchoolyear = Schoolyear.toFullString(year);
 	let prevSchoolyearShort = Schoolyear.toShortString(year - 1);
 	let nextSchoolyearShort = Schoolyear.toShortString(year);
-	addButton(buttonBar, UREN_PREV_BTN_ID, "Toon lerarenuren voor " + prevSchoolyear, async () => {
+	addButton$1(buttonBar, UREN_PREV_BTN_ID, "Toon lerarenuren voor " + prevSchoolyear, async () => {
 		await showHoursView(prevSchoolyear, infoBlock);
 	}, "", ["btn", "btn-outline-dark"], "Uren " + prevSchoolyearShort, "beforeend");
-	addButton(buttonBar, UREN_NEXT_BTN_ID, "Toon lerarenuren voor " + nextSchoolyear, async () => {
+	addButton$1(buttonBar, UREN_NEXT_BTN_ID, "Toon lerarenuren voor " + nextSchoolyear, async () => {
 		await showHoursView(nextSchoolyear, infoBlock);
 	}, "", ["btn", "btn-primary"], "Uren " + nextSchoolyearShort, "beforeend");
-	addButton(buttonBar, UREN_PREV_SETUP_BTN_ID, "Setup voor " + nextSchoolyear, async () => {
+	addButton$1(buttonBar, UREN_PREV_SETUP_BTN_ID, "Setup voor " + nextSchoolyear, async () => {
 		await showUrenSetup(nextSchoolyear);
 	}, "", ["btn", "btn-outline-dark"], "", "beforeend", "gear.svg");
 }
@@ -11250,7 +11250,7 @@ function onCriteriaShown() {
 	let btnWerklijstMaken = document.querySelector(BTN_WERKLIJST_MAKEN_ID);
 	btnWerklijstMakenWrapper = emmet.insertBefore(btnWerklijstMaken, `div${BTN_WERKLIJST_MAKEN_WRAPPER_ID}.werklijstButtonWrapper`).first;
 	addHoursButtons(btnWerklijstMakenWrapper, infoBlock);
-	addButton(btnWerklijstMaken, WERKLIJST_MAILMERGE_BTN_ID, "Mail merge", async () => {
+	addButton$1(btnWerklijstMaken, WERKLIJST_MAILMERGE_BTN_ID, "Mail merge", async () => {
 		await mailMergeStartSchoolyear();
 	}, "", ["btn", "btn-outline-dark"], "Mailmerge");
 	document.getElementById("btn_leerling_werklijst_reset").addEventListener("click", resetPageIncarnationChangedFlag);
@@ -11312,7 +11312,7 @@ async function sendMessageToHoursSettings(action, data) {
 	return sendRequest$1(action, "Main", "HoursSettings", globalHoursSettingsTabId, data);
 }
 function addButtons() {
-	addButton(document.querySelector(TARGET_BUTTON_ID), MAIL_BTN_ID, "Email to clipboard", onClickCopyEmails, "fa-envelope", ["btn", "btn-outline-info"]);
+	addButton$1(document.querySelector(TARGET_BUTTON_ID), MAIL_BTN_ID, "Email to clipboard", onClickCopyEmails, "fa-envelope", ["btn", "btn-outline-info"]);
 }
 function onClickCopyEmails() {
 	let namedCellListener = new NamedCellTableFetchListener(["e-mailadressen"], (_tableDef1) => {
