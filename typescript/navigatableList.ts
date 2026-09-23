@@ -80,8 +80,10 @@ export class NavigatableList {
             item.setAttribute("onclick", onClick);
         else if(typeof onClick === "function")
             item.onclick = (ev) => {
-                if ((ev.target as HTMLElement).checkVisibility())
+                if ((ev.target as HTMLElement).checkVisibility()) {
+                    clearSavedPage();
                     onClick(ev);
+                }
                 else
                     console.log("Item clicked, but invisible");
             };

@@ -1590,8 +1590,10 @@ var NavigatableList = class {
 		this.setItemContent(this.list.children.length - 1, title);
 		if (typeof onClick === "string") item.setAttribute("onclick", onClick);
 		else if (typeof onClick === "function") item.onclick = (ev) => {
-			if (ev.target.checkVisibility()) onClick(ev);
-			else console.log("Item clicked, but invisible");
+			if (ev.target.checkVisibility()) {
+				clearSavedPage();
+				onClick(ev);
+			} else console.log("Item clicked, but invisible");
 		};
 		this.index.setRange(0, this.list.children.length - 1);
 		return this.list.children.length - 1;
@@ -7964,7 +7966,7 @@ async function gotoRef(getMatches, gotoUrl, getLabel, updateMenuItem) {
 			let queue = Promise.resolve();
 			for (let ref of matches) {
 				let index = dropDownMenu.addItem(getLabel(ref), 0, () => {
-					abortController.abort();
+					abortController.abort("Aborting menu.");
 					dropDownMenu.remove();
 					location.href = gotoUrl + ref.id;
 				});

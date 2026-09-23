@@ -8,7 +8,7 @@ import {AssetRef, getSessionSchoolCache, LesRef, Ref, SessionDb, TeacherRef} fro
 import {scrapeAssets} from "./assets/scrape";
 import {StoreNames} from "idb";
 import {createLesCard, PlaceHolder} from "./leerling/scrape";
-import {waitForPageProbablyLoaded} from "./restorePage";
+import {clearSavedPage, waitForPageProbablyLoaded} from "./restorePage";
 import {scrapeTeachers} from "./personeel/scrape";
 import {getInfoBlockForPage, InfoBlock} from "./infoBlock";
 
@@ -173,7 +173,7 @@ async function gotoRef<T extends Ref>(getMatches: (infoBlock: InfoBlock) => Prom
             let queue = Promise.resolve();
             for (let ref of matches) {
                 let index = dropDownMenu.addItem(getLabel(ref), 0, () => {
-                    abortController.abort();
+                    abortController.abort("Aborting menu.");
                     dropDownMenu.remove();
                     location.href = gotoUrl + ref.id;
                 });
