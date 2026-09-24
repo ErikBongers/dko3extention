@@ -640,7 +640,8 @@ const options = {
 	showPluginMenu: false,
 	leerlingGotoLes: false,
 	powerGoto: false,
-	enableAI: false
+	enableAI: false,
+	jumpToSingleResult: true
 };
 let globalSettings = { globalHide: false };
 function getGlobalSettings() {
@@ -11830,6 +11831,7 @@ function onMutation(_mutation) {
 	return true;
 }
 function actUponSearchResults() {
+	if (!options.jumpToSingleResult) return;
 	let studentTable = document.getElementById("zoek_leerlingen_tabel").querySelector("table");
 	if (!studentTable) return;
 	let teacherTable = document.getElementById("zoek_personeelsleden_tabel").querySelector("table");

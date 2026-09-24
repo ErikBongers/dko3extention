@@ -1,4 +1,5 @@
 import {HashObserver} from "../pageObserver";
+import {options} from "../plugin_options/options";
 
 class ZoekenObserver extends HashObserver {
     constructor() {
@@ -22,6 +23,8 @@ function onMutation(_mutation: MutationRecord) {
     return true;
 }
 function actUponSearchResults() {
+    if(!options.jumpToSingleResult)
+        return;
     let studentsDiv = document.getElementById("zoek_leerlingen_tabel") as HTMLDivElement;
     let studentTable = studentsDiv.querySelector("table") as HTMLTableElement;
     if (!studentTable) {

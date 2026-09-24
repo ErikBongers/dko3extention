@@ -1,4 +1,4 @@
-import {emmet} from "../../libs/Emmeter/html";
+import {emmet} from "../../libs/Emmeter";
 import {defineHtmlOptions, fetchGlobalSettings, getGlobalSettings, htmlOptionDefs, options, saveGlobalSettings} from "./options";
 
 defineHtmlOptions();
@@ -60,13 +60,12 @@ async function fillOptionsInGui() {
         if(!optiondDef.blockId)
             continue;
         let block = document.getElementById(optiondDef.blockId)!;
-        let first = emmet.indent.appendChild(block, `
+        emmet.indent.appendChild(block, `
             div
                 label
                     input#${optiondDef.id}[type="checkbox"]+{${optiondDef.label}}
                 div.suffix.showWhenTrue.pre{${optiondDef.suffixWhenTrue??""}}
-            `).first as HTMLDivElement;
-        let input = first.querySelector(`#${optiondDef.id}`) as HTMLInputElement;
+            `);
     }
     await restoreOptionsToGui();
 }

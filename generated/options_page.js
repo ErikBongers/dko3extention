@@ -572,7 +572,8 @@
 		showPluginMenu: false,
 		leerlingGotoLes: false,
 		powerGoto: false,
-		enableAI: false
+		enableAI: false,
+		jumpToSingleResult: true
 	};
 	function defineHtmlOptions() {
 		defineHtmlOption("showNotAssignedClasses", "checked", "Toon arcering voor niet toegewezen klassikale lessen.", "block1");
@@ -586,6 +587,7 @@
 		defineHtmlOption("allowDeleteNotif", "checked", "Laat verwijderen van berichten toe...", "block3");
 		defineHtmlOption("leerlingGotoLes", "checked", "Leerling les knop: toon alternatieven.", "block3");
 		defineHtmlOption("powerGoto", "checked", "Snelle lijst in algemeen zoekveld.", "block3");
+		defineHtmlOption("jumpToSingleResult", "checked", "Ga direct naar uniek resultaat van algemeen zoekveld.", "block3");
 		defineHtmlOption("enableAI", "checked", "Activeer AI (jaja, 't is zover)", "block3", "Waarschuwing:\n Het gebruik van AI kan volgende nevenwerkingen hebben:\n  - werkloosheid\n  - nucleaire oorlog\n  - einde van de mensheid\nIndien een van deze zaken zich voordoet, gelieve onze helpdesk te contacteren.");
 	}
 	let htmlOptionDefs = /* @__PURE__ */ new Map();
@@ -656,7 +658,7 @@
                 label
                     input#${optiondDef.id}[type="checkbox"]+{${optiondDef.label}}
                 div.suffix.showWhenTrue.pre{${optiondDef.suffixWhenTrue ?? ""}}
-            `).first.querySelector(`#${optiondDef.id}`);
+            `);
 		}
 		await restoreOptionsToGui();
 	}
