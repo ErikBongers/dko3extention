@@ -2338,15 +2338,16 @@ function addGlobalKeyDownListener() {
 	listDiv.id = "powerQueryList";
 	popover.appendChild(listDiv);
 	listDiv.classList.add("list");
-	new NavigatableList(listDiv).addKeyDownListener(menuKeyDownHandler);
+	globalList = new NavigatableList(listDiv);
+	globalList.addKeyDownListener(menuKeyDownHandler);
 }
-let list = null;
+let globalList = null;
 function getPopover() {
 	return document.querySelector("#powerQuery");
 }
 function getPowerQueryList() {
-	if (!list) list = new NavigatableList(document.querySelector("#powerQueryList"));
-	return list;
+	if (!globalList) globalList = new NavigatableList(document.querySelector("#powerQueryList"));
+	return globalList;
 }
 function getPowerQuerySearchField() {
 	return document.querySelector("#powerQuerySearchField");

@@ -149,20 +149,20 @@ function addGlobalKeyDownListener() {
     listDiv.id = "powerQueryList";
     popover.appendChild(listDiv);
     listDiv.classList.add("list");
-    let list = new NavigatableList(listDiv);
-    list.addKeyDownListener(menuKeyDownHandler);
+    globalList = new NavigatableList(listDiv);
+    globalList.addKeyDownListener(menuKeyDownHandler);
 }
 
-let list: NavigatableList | null = null;
+let globalList: NavigatableList | null = null;
 
 function getPopover() {
     return document.querySelector("#powerQuery") as HTMLDivElement;
 }
 
 function getPowerQueryList() {
-    if(!list)
-        list = new NavigatableList(document.querySelector("#powerQueryList") as HTMLDivElement);
-    return list;
+    if(!globalList)
+        globalList = new NavigatableList(document.querySelector("#powerQueryList") as HTMLDivElement);
+    return globalList;
 }
 
 function getPowerQuerySearchField() {
