@@ -33,7 +33,7 @@ export async function onParentKeyUp(e: KeyboardEvent) {
         console.log("parent Enter");
         let searchField = document.getElementById("snel_zoeken_veld_zoektermen") as HTMLInputElement;
         let text = searchField.value;
-        if (await onEnterPressed(text) == "cancel") {
+        if (await onEnterKeyUpInParentOfSearchField(text) == "cancel") {
             console.log("canceling");
             e.stopImmediatePropagation();
             e.preventDefault();
@@ -43,7 +43,7 @@ export async function onParentKeyUp(e: KeyboardEvent) {
     }
 }
 
-export function onSearchKeyDown(e: KeyboardEvent) {
+export function onSearchFieldKeyDown(e: KeyboardEvent) {
     if(e.key == "Escape") {
         let searchField = document.getElementById("snel_zoeken_veld_zoektermen") as HTMLInputElement;
         searchField.value = "";
@@ -53,7 +53,7 @@ export function onSearchKeyDown(e: KeyboardEvent) {
 
 let ignoreNextEnter: boolean = false;
 
-async function onEnterPressed(text: string) {
+async function onEnterKeyUpInParentOfSearchField(text: string) {
     if (ignoreNextEnter) {
         ignoreNextEnter = false;
         return "default";

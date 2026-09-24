@@ -3497,14 +3497,14 @@ function swapColumns(row, index1, index2) {
 //#region typescript/table/observer.ts
 var TableObserver = class extends BaseObserver {
 	constructor() {
-		super(void 0, new AllPageFilter(), onMutation$8);
+		super(void 0, new AllPageFilter(), onMutation$9);
 	}
 	isPageReallyLoaded() {
 		return getBothToolbars() != void 0;
 	}
 };
-var observer_default$9 = new TableObserver();
-function onMutation$8(_mutation) {
+var observer_default$10 = new TableObserver();
+function onMutation$9(_mutation) {
 	let navigationBars = getBothToolbars();
 	if (!navigationBars) return false;
 	if (!findTableRefInCode()?.navigationData.isOnePage()) addTableNavigationButton(navigationBars, DOWNLOAD_TABLE_BTN_ID, "download full table", createDownloadTableWithExtraAction(), "fa-arrow-down");
@@ -5595,7 +5595,7 @@ async function onParentKeyUp(e) {
 		if (!options.powerGoto) return;
 		console.log("parent Enter");
 		let text = document.getElementById("snel_zoeken_veld_zoektermen").value;
-		if (await onEnterPressed(text) == "cancel") {
+		if (await onEnterKeyUpInParentOfSearchField(text) == "cancel") {
 			console.log("canceling");
 			e.stopImmediatePropagation();
 			e.preventDefault();
@@ -5604,7 +5604,7 @@ async function onParentKeyUp(e) {
 		return;
 	}
 }
-function onSearchKeyDown(e) {
+function onSearchFieldKeyDown(e) {
 	if (e.key == "Escape") {
 		let searchField = document.getElementById("snel_zoeken_veld_zoektermen");
 		searchField.value = "";
@@ -5612,7 +5612,7 @@ function onSearchKeyDown(e) {
 	}
 }
 let ignoreNextEnter = false;
-async function onEnterPressed(text) {
+async function onEnterKeyUpInParentOfSearchField(text) {
 	if (ignoreNextEnter) {
 		ignoreNextEnter = false;
 		return "default";
@@ -6638,13 +6638,13 @@ function textToCodes(items, vakDefs) {
 //#region typescript/lessen/observer.ts
 var LessenObserver = class extends HashObserver {
 	constructor() {
-		super("#lessen-overzicht", onMutation$7, false, onPageRefreshed$1);
+		super("#lessen-overzicht", onMutation$8, false, onPageRefreshed$1);
 	}
 	isPageReallyLoaded() {
 		return document.getElementById("btn_lessen_overzicht_zoeken") != null;
 	}
 };
-var observer_default$8 = new LessenObserver();
+var observer_default$9 = new LessenObserver();
 function onPageRefreshed$1() {
 	console.log(`Lessen.onPageRefreshed: hash: ${location.hash}`);
 	if (location.hash != "#lessen-overzicht") return;
@@ -6659,7 +6659,7 @@ function addTrimesterButton() {
 	}
 	return true;
 }
-function onMutation$7(mutation) {
+function onMutation$8(mutation) {
 	addTrimesterButton();
 	let lessenOverzicht = document.getElementById(LESSEN_OVERZICHT_ID);
 	if (mutation.target !== lessenOverzicht) return false;
@@ -8420,14 +8420,14 @@ async function fetchLes(id, signal, options) {
 //#region typescript/leerling/observer.ts
 var LeerlingObserver = class extends HashObserver {
 	constructor() {
-		super("#leerlingen-leerling", onMutation$6);
+		super("#leerlingen-leerling", onMutation$7);
 	}
 	isPageReallyLoaded() {
 		throw new Error("Method not implemented.");
 	}
 };
-var observer_default$7 = new LeerlingObserver();
-function onMutation$6(mutation) {
+var observer_default$8 = new LeerlingObserver();
+function onMutation$7(mutation) {
 	checkAndExpandTabs();
 	checkAndDecorateName();
 	let tabInschrijving = document.getElementById("leerling_inschrijvingen_weergave");
@@ -8702,14 +8702,14 @@ async function getModules(_size, _modal, _file, args) {
 //#region typescript/les/observer.ts
 var LesObserver = class extends HashObserver {
 	constructor() {
-		super("#lessen-les", onMutation$5);
+		super("#lessen-les", onMutation$6);
 	}
 	isPageReallyLoaded() {
 		return document.querySelectorAll("#les_leerlingen_leerlingen > span").length > 0;
 	}
 };
-var observer_default$6 = new LesObserver();
-function onMutation$5(mutation) {
+var observer_default$7 = new LesObserver();
+function onMutation$6(mutation) {
 	let tabLeerlingen = document.getElementById("les_leerlingen_leerlingen");
 	if (mutation.target === tabLeerlingen) {
 		onLeerlingenChanged();
@@ -9203,17 +9203,17 @@ function showDifferences(diffs, divResults) {
 //#region typescript/startPage/observer.ts
 var StartPageObserver = class extends ExactHashObserver {
 	constructor() {
-		super("#start-mijn_tijdslijn", onMutation$4);
+		super("#start-mijn_tijdslijn", onMutation$5);
 	}
 	isPageReallyLoaded() {
 		return isLoaded();
 	}
 };
-var observer_default$5 = new StartPageObserver();
+var observer_default$6 = new StartPageObserver();
 function isLoaded() {
 	return document.querySelector("#dko3_start_content")?.textContent.includes("welkom") ?? false;
 }
-function onMutation$4(_mutation) {
+function onMutation$5(_mutation) {
 	if (document.querySelector("#dko3_plugin_notifications")) return true;
 	if (document.querySelector("#view_contents>div.row")) setupPluginPage().then(() => {});
 	let startContentDiv = document.querySelector("#dko3_start_content");
@@ -9277,7 +9277,7 @@ var AcademieObserver = class extends PageObserver {
 		}
 	}
 };
-var observer_default$4 = new AcademieObserver();
+var observer_default$5 = new AcademieObserver();
 registerSettingsObserver(setSchoolBackground);
 function setSchoolBackground() {
 	let { schoolName } = getUserAndSchoolName();
@@ -11127,7 +11127,7 @@ registerChecksumHandler(WERKLIJST_TABLE_ID, (tableDef) => {
 });
 var WerklijstObserver = class extends HashObserver {
 	constructor() {
-		super("#leerlingen-werklijst", onMutation$3, false, onPageReallyLoaded);
+		super("#leerlingen-werklijst", onMutation$4, false, onPageReallyLoaded);
 	}
 	isPageReallyLoaded() {
 		return isPageReallyLoaded();
@@ -11154,7 +11154,7 @@ function onAnyChangeEvent() {
 	if (document.querySelector("#btn_leerling_werklijst_maken")) onCriteriaShown();
 	else if (document.getElementById("tablenav_leerlingen_werklijst_bottom")) onResultsShown();
 }
-function onMutation$3(mutation) {
+function onMutation$4(mutation) {
 	console.log("onMutation");
 	tryUntilThen(isPageReallyLoaded, onAnyChangeEvent);
 	return true;
@@ -11374,14 +11374,14 @@ async function fetchAndShowTeacherHours(schooljaar, infoBlock) {
 //#region typescript/vakgroep/observer.ts
 var VakGroepObserver = class extends HashObserver {
 	constructor() {
-		super("#extra-inschrijvingen-vakgroepen-vakgroep", onMutation$2);
+		super("#extra-inschrijvingen-vakgroepen-vakgroep", onMutation$3);
 	}
 	isPageReallyLoaded() {
 		return document.getElementById("div_table_vakgroepen_vakken") != null;
 	}
 };
-var observer_default$3 = new VakGroepObserver();
-function onMutation$2(mutation) {
+var observer_default$4 = new VakGroepObserver();
+function onMutation$3(mutation) {
 	let divVakken = document.getElementById("div_table_vakgroepen_vakken");
 	if (mutation.target !== divVakken) return false;
 	onVakgroepChanged(divVakken);
@@ -11408,16 +11408,16 @@ function onSearchInput() {
 //#region typescript/verwittigen/observer.ts
 var VerwittigenObserver = class extends HashObserver {
 	constructor() {
-		super("#leerlingen-verwittigen", onMutation$1);
+		super("#leerlingen-verwittigen", onMutation$2);
 	}
 	isPageReallyLoaded() {
 		return document.getElementById("leerlingen_verwittigen_bericht_sjabloon") != null;
 	}
 };
-var observer_default$2 = new VerwittigenObserver();
+var observer_default$3 = new VerwittigenObserver();
 const CHAR_COUNTER = "charCounterClass";
 const COUNTER_ID = "charCounter";
-function onMutation$1(_mutation) {
+function onMutation$2(_mutation) {
 	let txtSms = document.getElementById("leerlingen_verwittigen_bericht_sjabloon");
 	if (txtSms && !txtSms?.classList.contains(CHAR_COUNTER)) {
 		txtSms.classList.add(CHAR_COUNTER);
@@ -11444,7 +11444,7 @@ var AanwezighedenObserver = class extends HashObserver {
 		return document.getElementById("table_lijst_awi_percentages_leerling_vak_table") != null;
 	}
 };
-var observer_default$1 = new AanwezighedenObserver();
+var observer_default$2 = new AanwezighedenObserver();
 function onMutationAanwezgheden(_mutation) {
 	if (!document.getElementById("table_lijst_awi_percentages_leerling_vak_table")) return false;
 	let navigationBars = getBothToolbars();
@@ -11678,7 +11678,7 @@ async function sendRequest(type, data) {
 //#region typescript/afwezigheden/observer.ts
 var AfwezighedenObserver = class extends ExactHashObserver {
 	constructor() {
-		super("#extra-tickets?h=afwezigheden", onMutation, true);
+		super("#extra-tickets?h=afwezigheden", onMutation$1, true);
 	}
 	isPageReallyLoaded() {
 		if (document.getElementById("ticket_payload")) return true;
@@ -11687,8 +11687,8 @@ var AfwezighedenObserver = class extends ExactHashObserver {
 		return false;
 	}
 };
-var observer_default = new AfwezighedenObserver();
-function onMutation(mutation) {
+var observer_default$1 = new AfwezighedenObserver();
+function onMutation$1(mutation) {
 	if (mutation.target === document.getElementById("ticket_payload")) {
 		onTicket();
 		return true;
@@ -11813,6 +11813,32 @@ function findUniqueMatch(emailText, matchingLeerlingen) {
 	return null;
 }
 //#endregion
+//#region typescript/zoeken/observer.ts
+var ZoekenObserver = class extends HashObserver {
+	constructor() {
+		super("#zoeken", onMutation);
+	}
+	isPageReallyLoaded() {
+		return document.getElementById("table_lijst_awi_percentages_leerling_vak_table") != null;
+	}
+};
+var observer_default = new ZoekenObserver();
+function onMutation(_mutation) {
+	console.log("zoeken mutation");
+	if (!document.getElementById("zoek_leerlingen_tabel")) return false;
+	actUponSearchResults();
+	return true;
+}
+function actUponSearchResults() {
+	let studentTable = document.getElementById("zoek_leerlingen_tabel").querySelector("table");
+	if (!studentTable) return;
+	let teacherTable = document.getElementById("zoek_personeelsleden_tabel").querySelector("table");
+	if (!teacherTable) return;
+	if (studentTable.rows.length == 1) {
+		if (teacherTable.rows.length == 0) studentTable.rows[0].click();
+	}
+}
+//#endregion
 //#region typescript/pages/observer.ts
 var ExtraInschrijvingenObserver = class extends ExactHashObserver {
 	constructor() {
@@ -11861,23 +11887,24 @@ function init() {
 			checkGlobalSettings();
 			onPageChanged();
 		});
-		registerObserver(observer_default$7);
 		registerObserver(observer_default$8);
-		registerObserver(observer_default$6);
-		registerObserver(observer_default$4);
-		registerObserver(observer);
 		registerObserver(observer_default$9);
+		registerObserver(observer_default$7);
+		registerObserver(observer_default$5);
+		registerObserver(observer);
+		registerObserver(observer_default$10);
 		registerObserver(extraInschrijvingenObserver);
 		registerObserver(allLijstenObserver);
 		registerObserver(financialObserver);
 		registerObserver(assetsObserver);
 		registerObserver(evaluatieObserver);
+		registerObserver(observer_default$4);
 		registerObserver(observer_default$3);
-		registerObserver(observer_default$2);
 		registerObserver(academieMenuObserver);
+		registerObserver(observer_default$2);
 		registerObserver(observer_default$1);
+		registerObserver(observer_default$6);
 		registerObserver(observer_default);
-		registerObserver(observer_default$5);
 		onPageChanged();
 		getNotifRedButton();
 		setupMenu();
@@ -11939,7 +11966,7 @@ function onPageRefreshed() {
 	if (searchField) {
 		searchField.addEventListener("paste", onPasteInGlobalSearchField);
 		searchField.parentElement.addEventListener("keyup", onParentKeyUp, { capture: true });
-		searchField.addEventListener("keydown", onSearchKeyDown, { capture: false });
+		searchField.addEventListener("keydown", onSearchFieldKeyDown, { capture: false });
 	}
 	navigator.clipboard.addEventListener("clipboardchange", onClipboardChange);
 }

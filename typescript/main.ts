@@ -11,6 +11,7 @@ import vakgroepObserver from "./vakgroep/observer";
 import smsObserver from "./verwittigen/observer";
 import aanwezighedenObserver from "./aanwezigheden/observer";
 import afwezighedenObserver from "./afwezigheden/observer";
+import zoekenObserver from "./zoeken/observer";
 import {setupPowerQuery} from "./powerQuery/setupPowerQuery";
 import {
     academieMenuObserver,
@@ -24,7 +25,7 @@ import {fetchGlobalSettings, getGlobalSettings, setGlobalSetting} from "./plugin
 import {pageState} from "./pageState";
 import {fetchAndDisplayNotifications, getNotifRedButton} from "./notifications/notifications";
 import {setupMenu} from "./menu";
-import {onParentKeyUp, onPasteInGlobalSearchField, onSearchKeyDown} from "./globalSearch";
+import {onParentKeyUp, onPasteInGlobalSearchField, onSearchFieldKeyDown} from "./globalSearch";
 import {setPageProbablyLoaded} from "./restorePage";
 
 sessionStorage.setItem("dp3_jQueryReadyHookInstalled", "false");
@@ -81,6 +82,7 @@ function init() {
         registerObserver(aanwezighedenObserver);
         registerObserver(afwezighedenObserver);
         registerObserver(startPageObserver);
+        registerObserver(zoekenObserver);
         onPageChanged();
         setupPowerQuery();
         getNotifRedButton();
@@ -168,7 +170,7 @@ function onPageRefreshed() {
     if(searchField) {
         searchField.addEventListener("paste", onPasteInGlobalSearchField);
         searchField.parentElement!.addEventListener("keyup", onParentKeyUp, {capture: true});
-        searchField.addEventListener("keydown", onSearchKeyDown, {capture: false});
+        searchField.addEventListener("keydown", onSearchFieldKeyDown, {capture: false});
     }
 
     navigator.clipboard.addEventListener("clipboardchange", onClipboardChange);

@@ -1,4 +1,4 @@
-* global search: one result? auto jump to that student (setting!)
+* global search: one result? auto jump to that student.
   > options:
     * Als er maar 1 zoekresultaat is gevonden:
         * (geen actie)
