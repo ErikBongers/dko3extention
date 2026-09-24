@@ -1,3 +1,10 @@
+* global search: one result? auto jump to that student (setting!)
+  > options:
+    * Als er maar 1 zoekresultaat is gevonden:
+        * (geen actie)
+        * Ga onmiddelijk naar de gevonden persoon.
+        * Druk een 2e keer <enter> om door te gaan.
+
 * leerling: alt lessen: show if lln on wachtlijst
   > button to place on wachtlijst without leaving screen!!
     > no: breaks principle of not saving dko3 data in bkg.
@@ -69,8 +76,6 @@ Given the sender of the following mail has 3 children, Bob 5y, Alice 7y and Clar
       :
         margin-inline-start: 0; // >> works!
         max-width: 100%;
-
-* global search: one result? auto jump to that student (setting!)
 
 * voornaam achternaam ook voor personeelsfiche
 

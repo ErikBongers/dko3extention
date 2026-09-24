@@ -11768,7 +11768,7 @@ async function onTicket() {
 	const cards = document.querySelectorAll(".card-body");
 	let winner = findUniqueMatch(emailText, matchingLeerlingen);
 	if (winner) highlightText(cards, winner.name.split(",").map((name) => name.trim().split(" ")).flat().map((name) => name.trim()), "highlightedName");
-	await ai.findNames(emailText, (data) => {
+	if (options.enableAI) await ai.findNames(emailText, (data) => {
 		let singleNames = data.output.map((n) => n.split(" ")).flat().map((name) => name.trim());
 		highlightText(cards, singleNames, "highlightedName", ["light"]);
 	});
@@ -11800,6 +11800,11 @@ function findUniqueMatch(emailText, matchingLeerlingen) {
 		}
 	}
 	matchingLeerlingen.sort((a, b) => b.weight - a.weight);
+	if (matchingLeerlingen.length == 1) {
+		matchingLeerlingen[0].winner = true;
+		return matchingLeerlingen[0];
+	}
+	if (matchingLeerlingen.length < 2) return null;
 	if (matchingLeerlingen[0].weight > matchingLeerlingen[1].weight) {
 		matchingLeerlingen[0].winner = true;
 		return matchingLeerlingen[0];

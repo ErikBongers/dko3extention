@@ -9,6 +9,7 @@ import {
 } from "../globals";
 import {emmet} from "../../libs/Emmeter";
 import {ai} from "../ai/api";
+import {options} from "../plugin_options/options";
 
 class AfwezighedenObserver extends ExactHashObserver {
     constructor() {
@@ -147,14 +148,15 @@ async function onTicket() {
         ;
         highlightText(cards, nameParts, "highlightedName");
     }
-    //else, eventually...
-    // await ai.getNames(parseMailData.uniqueCapital, (data) => {
-    //     highlightText(cards, data.output, "highlightedName", ["light"]);
-    // });
-    await ai.findNames(emailText, (data) => {
-        let singleNames = data.output.map(n => n.split(" ")).flat().map(name => name.trim());
-        highlightText(cards, singleNames, "highlightedName", ["light"]);
-    });
+    if(options.enableAI) {
+        // await ai.getNames(parseMailData.uniqueCapital, (data) => {
+        //     highlightText(cards, data.output, "highlightedName", ["light"]);
+        // });
+        await ai.findNames(emailText, (data) => {
+            let singleNames = data.output.map(n => n.split(" ")).flat().map(name => name.trim());
+            highlightText(cards, singleNames, "highlightedName", ["light"]);
+        });
+    }
 }
 
 function parseEmail(emailText: string) {
@@ -194,6 +196,13 @@ function findUniqueMatch(emailText: string, matchingLeerlingen: MatchingLeerling
     }
     //do we have a winner?
     matchingLeerlingen.sort((a, b) => b.weight - a.weight);
+    if(matchingLeerlingen.length == 1) {
+        matchingLeerlingen[0].winner = true;
+        return matchingLeerlingen[0];
+    }
+    if(matchingLeerlingen.length < 2) {
+        return null;
+    }
     if(matchingLeerlingen[0].weight > matchingLeerlingen[1].weight) {
         matchingLeerlingen[0].winner = true;
         return matchingLeerlingen[0];
