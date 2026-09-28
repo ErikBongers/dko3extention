@@ -62,7 +62,7 @@ var Cursor = class Cursor {
 	getTo(endChar, allowEscape = false) {
 		let start = this.currentPos + 1;
 		let end = start;
-		while (end < this.length && (this.text[end] != endChar || this.text[end - 1] == "'")) end++;
+		while (end < this.length && (this.text[end] != endChar || this.text[end - 1] == "\\")) end++;
 		if (end == this.length) return null;
 		this.currentPos = end;
 		return {
@@ -73,7 +73,7 @@ var Cursor = class Cursor {
 	getToNot(notChar) {
 		let start = this.currentPos + 1;
 		let end = start;
-		while (end < this.length && (this.text[end] == notChar || this.text[end - 1] == "'")) end++;
+		while (end < this.length && (this.text[end] == notChar || this.text[end - 1] == "\\")) end++;
 		if (end == this.length) return null;
 		if (end == start) return null;
 		this.currentPos = end - 1;
@@ -9775,7 +9775,7 @@ let colDefsArray = [
 	{
 		key: "over",
 		def: {
-			label: "Over",
+			label: "uren\nvrij",
 			classList: [],
 			total: 0,
 			factor: 1,

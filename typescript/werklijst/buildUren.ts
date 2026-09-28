@@ -75,7 +75,7 @@ let colDefsArray: {key: string, def: ColDef}[] = [
 
     {key:"aantal_lln", def: { label:"aantal\nlln", classList: ["blueish"], total: 0, factor: 1.0, getValue: (ctx) => calcUren(ctx, colKeysForTotals), totals:true, calculated:true}},
     {key:"tot_uren", def: { label:"tot\nuren", classList: ["creme"], total: 0, factor: 1.0, getValue: (ctx) => calcUrenFactored(ctx, colKeysForTotals), totals:true, calculated:true}},
-    {key:"over", def: { label:"Over", classList: [], total: 0, factor: 1.0, getValue: (ctx) => calcOver(ctx), calculated:true}},
+    {key:"over", def: { label:"uren\nvrij", classList: [], total: 0, factor: 1.0, getValue: (ctx) => calcOver(ctx), calculated:true}},
 ];
 
 let colDefs = new Map(colDefsArray.map((def) => [def.key, def.def]));

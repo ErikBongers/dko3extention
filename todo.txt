@@ -1,14 +1,5 @@
-* global search: one result? auto jump to that student.
-  > options:
-    * Als er maar 1 zoekresultaat is gevonden:
-        * (geen actie)
-        * Ga onmiddelijk naar de gevonden persoon.
-        * Druk een 2e keer <enter> om door te gaan.
-
-* leerling: alt lessen: show if lln on wachtlijst
-  > button to place on wachtlijst without leaving screen!!
-    > no: breaks principle of not saving dko3 data in bkg.
 * cache knop voor lesoverzicht om snel te kunnen les openen en terug nr de lijst
+
 * mail naar hele wachtlijst bij een specifieke klas.
 
 
