@@ -5486,12 +5486,14 @@ async function scrapeAssets() {
 	let snel_zoeken = document.querySelector("#snel_zoeken");
 	let infoBlockDiv = document.createElement("div");
 	snel_zoeken.parentNode.insertBefore(infoBlockDiv, snel_zoeken);
-	return [...(await getTableFromHash("extra-assets-assets", true, new InfoBarTableFetchListener(getInfoBlock(infoBlockDiv)))).getRows()].map((row) => {
+	let table = await getTableFromHash("extra-aenp-assets-assets", true, new InfoBarTableFetchListener(getInfoBlock(infoBlockDiv)));
+	console.log(table);
+	return [...table.getRows()].map((row) => {
 		return {
-			id: row.cells[0].innerText,
-			code: [...row.cells[1].childNodes].map((node) => node.nodeValue).join("")
+			id: row.getAttribute("onclick")?.match(/(\d+)/)?.[1] ?? "",
+			code: row.cells[0].innerText
 		};
-	}).filter((asset) => asset.code);
+	}).filter((asset) => asset.code && asset.id);
 }
 //#endregion
 //#region typescript/leerling/scrape.ts
@@ -5673,7 +5675,7 @@ async function gotoLesRef(lesName, vak) {
 	return gotoRef(() => getLesMatches(lesName, vak), "/#lessen-les?id=", (lesRef) => createLesCard(lesRef.name, PlaceHolder), updateLesMenuItem);
 }
 async function gotoAssetRef(assetCode) {
-	return gotoRef(() => getAssetMatches(assetCode), "/#extra-assets-assets-details?id=", (assetRef) => assetRef.code, updateAssetMenuItem);
+	return gotoRef(() => getAssetMatches(assetCode), "/#extra-aenp-assets-assets-details?id=", (assetRef) => assetRef.code, updateAssetMenuItem);
 }
 async function gotoTeacherRef(text) {
 	return gotoRef(() => getTeacherMatches(text), "/#personeel-personeelslid?id=", (teacherRef) => teacherRef.firstName + " " + teacherRef.lastName, updateTeacherMenuItem);

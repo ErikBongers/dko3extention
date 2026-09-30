@@ -131,7 +131,7 @@ async function gotoLesRef(lesName: string, vak?: string) {
 async function gotoAssetRef(assetCode: string) {
     return gotoRef<AssetRef>(
         () => getAssetMatches(assetCode),
-        "/#extra-assets-assets-details?id=",
+        "/#extra-aenp-assets-assets-details?id=",
         (assetRef) => assetRef.code,
         updateAssetMenuItem
     );

@@ -1,3 +1,7 @@
+* navigate plugin table details.
+  > take into account plugin filters and sorting.
+  > visually replace navigation buttons to indicate it's the custom one.
+
 * cache knop voor lesoverzicht om snel te kunnen les openen en terug nr de lijst
 
 * mail naar hele wachtlijst bij een specifieke klas.

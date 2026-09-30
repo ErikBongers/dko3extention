@@ -13,12 +13,13 @@ export async function scrapeAssets(): Promise<Asset[]> {
     let infoBlock = getInfoBlock(infoBlockDiv);
     let fetchListener = new InfoBarTableFetchListener(infoBlock);
 
-    let table = await getTableFromHash("extra-assets-assets", true, fetchListener);
+    let table = await getTableFromHash("extra-aenp-assets-assets", true, fetchListener);
+    console.log(table);
     return [...table.getRows()].map(row => {
         return {
-            id: row.cells[0].innerText,
-            code: [...row.cells[1].childNodes].map(node => node.nodeValue).join(""),
+            id: row.getAttribute("onclick")?.match(/(\d+)/)?.[1]??"",
+            code: row.cells[0].innerText,
         };
     })
-        .filter(asset => asset.code);
+        .filter(asset => asset.code && asset.id);
 }
