@@ -6,6 +6,7 @@ export class NavigatableList {
     readonly list: HTMLElement;
     private index: ClampedValue;
     private readonly abortController: AbortController | undefined;
+    private indexChangedListeners: ((index: number) => void)[] = [];
 
     constructor(list: HTMLElement, abortController?: AbortController) {
         this.list = list;
@@ -14,8 +15,8 @@ export class NavigatableList {
         this.list.setAttribute("tabindex", "0");
         this.list.classList.add("hideFocus");
         this.list.focus();
-        //keep this statement last as it triggers setSelected().
-        this.index = new ClampedValue(NaN, NaN, NaN, (index) => this.setSelected(index));
+        //keep this statement last as it triggers onSelectionChanged().
+        this.index = new ClampedValue(NaN, NaN, NaN, (index) => this.onSelectionChanged(index));
     }
 
     onMenuKeyDown = (ev: KeyboardEvent) => {
@@ -25,6 +26,7 @@ export class NavigatableList {
                 this.index.value++;
             else
                 this.index.value = 0;
+            this.indexChangedListeners.forEach((listener) => listener(this.index.value));
             ev.stopPropagation();
             ev.stopImmediatePropagation();
             ev.preventDefault();
@@ -34,6 +36,7 @@ export class NavigatableList {
                 this.index.value--;
             else
                 this.index.value = this.list.children.length - 1;
+            this.indexChangedListeners.forEach((listener) => listener(this.index.value));
             ev.stopPropagation();
             ev.stopImmediatePropagation();
             ev.preventDefault();
@@ -146,7 +149,11 @@ export class NavigatableList {
         this.index.setRange(NaN, NaN);
     }
 
-    setSelected(itemIndex: number) {
+    setSelected(index: number) {
+        this.index.value = index;
+    }
+
+    onSelectionChanged(itemIndex: number) {
         for(let item of this.list.children)
             item.classList.remove("selected");
         if(!isNaN(itemIndex) && itemIndex >= 0 && itemIndex < this.list.children.length)
@@ -159,6 +166,10 @@ export class NavigatableList {
 
     addKeyDownListener(listener: (ev: KeyboardEvent) => void) {
         this.list.addEventListener("keydown", listener);
+    }
+
+    addIndexChanged(listener: (index: number) => void) {
+        this.indexChangedListeners.push(listener);
     }
 
     remove() {

@@ -1361,6 +1361,7 @@ var NavigatableList = class {
 	list;
 	index;
 	abortController;
+	indexChangedListeners = [];
 	constructor(list, abortController) {
 		this.list = list;
 		this.abortController = abortController;
@@ -1368,19 +1369,21 @@ var NavigatableList = class {
 		this.list.setAttribute("tabindex", "0");
 		this.list.classList.add("hideFocus");
 		this.list.focus();
-		this.index = new ClampedValue(NaN, NaN, NaN, (index) => this.setSelected(index));
+		this.index = new ClampedValue(NaN, NaN, NaN, (index) => this.onSelectionChanged(index));
 	}
 	onMenuKeyDown = (ev) => {
 		console.log("keydown");
 		if (ev.key == "ArrowDown") {
 			if (this.index.value < this.list.children.length - 1) this.index.value++;
 			else this.index.value = 0;
+			this.indexChangedListeners.forEach((listener) => listener(this.index.value));
 			ev.stopPropagation();
 			ev.stopImmediatePropagation();
 			ev.preventDefault();
 		} else if (ev.key == "ArrowUp") {
 			if (this.index.value > 0) this.index.value--;
 			else this.index.value = this.list.children.length - 1;
+			this.indexChangedListeners.forEach((listener) => listener(this.index.value));
 			ev.stopPropagation();
 			ev.stopImmediatePropagation();
 			ev.preventDefault();
@@ -1470,7 +1473,10 @@ var NavigatableList = class {
 		this.list.innerHTML = "";
 		this.index.setRange(NaN, NaN);
 	}
-	setSelected(itemIndex) {
+	setSelected(index) {
+		this.index.value = index;
+	}
+	onSelectionChanged(itemIndex) {
 		for (let item of this.list.children) item.classList.remove("selected");
 		if (!isNaN(itemIndex) && itemIndex >= 0 && itemIndex < this.list.children.length) this.list.children[itemIndex].classList.add("selected");
 	}
@@ -1479,6 +1485,9 @@ var NavigatableList = class {
 	}
 	addKeyDownListener(listener) {
 		this.list.addEventListener("keydown", listener);
+	}
+	addIndexChanged(listener) {
+		this.indexChangedListeners.push(listener);
 	}
 	remove() {
 		this.list.remove();
@@ -1720,15 +1729,25 @@ function addGlobalKeyDownListener() {
 	listDiv.id = "powerQueryList";
 	popover.appendChild(listDiv);
 	listDiv.classList.add("list");
-	globalList = new NavigatableList(listDiv);
-	globalList.addKeyDownListener(menuKeyDownHandler);
+	globalList = {
+		list: new NavigatableList(listDiv),
+		lastIndex: 0
+	};
+	globalList.list.addKeyDownListener(menuKeyDownHandler);
+	globalList.list.addIndexChanged((index) => {
+		globalList.lastIndex = index;
+		//!should be filled.
+	});
 }
 let globalList = null;
 function getPopover() {
 	return document.querySelector("#powerQuery");
 }
 function getPowerQueryList() {
-	if (!globalList) globalList = new NavigatableList(document.querySelector("#powerQueryList"));
+	if (!globalList) globalList = {
+		list: new NavigatableList(document.querySelector("#powerQueryList")),
+		lastIndex: 0
+	};
 	return globalList;
 }
 function getPowerQuerySearchField() {
@@ -1747,8 +1766,9 @@ function showPowerQuery(ev) {
 		powerQueryItems.push(...getSavedAndDefaultQueryItems());
 		getHardCodedQueryItems();
 		getPopover().showPopover();
-		getPowerQueryList().focus();
+		getPowerQueryList().list.list.focus();
 		filterItems(getPowerQuerySearchField().textContent);
+		getPowerQueryList().list.setSelected(globalList.lastIndex);
 	}
 }
 function menuKeyDownHandler(ev) {
@@ -1759,17 +1779,17 @@ function menuKeyDownHandler(ev) {
 	if (isAlphaNumeric(ev.key) || ev.key === " ") {
 		searchField.textContent += ev.key;
 		filterItems(searchField.textContent);
-		list.setSelected(0);
+		list.list.setSelected(0);
 	} else if (ev.key == "Escape") {
 		if (searchField.textContent !== "") {
 			searchField.textContent = "";
-			list.setSelected(0);
+			list.list.setSelected(0);
 			ev.preventDefault();
 		}
 	} else if (ev.key == "Backspace") {
 		searchField.textContent = searchField.textContent.slice(0, -1);
 		filterItems(searchField.textContent);
-		list.setSelected(0);
+		list.list.setSelected(0);
 	}
 }
 function filterItems(needle) {
@@ -1782,12 +1802,12 @@ function filterItems(needle) {
 		if (needle.split("").every((char) => item.lowerCase.includes(char))) item.weight += 20;
 	}
 	let itemsToShow = powerQueryItems.filter((item) => item.weight != 0).sort((a, b) => b.weight - a.weight).slice(0, 30);
-	getPowerQueryList().removeAllItems();
+	getPowerQueryList().list.removeAllItems();
 	for (const item of itemsToShow) {
 		let itemDiv = emmet.indent.createElement(`
             div[data-long-label="${item.longLabel}"]{${item.longLabel}}
         `);
-		getPowerQueryList().addItem(itemDiv, 0, () => {
+		getPowerQueryList().list.addItem(itemDiv, 0, () => {
 			onItemSelected(item);
 		});
 	}
