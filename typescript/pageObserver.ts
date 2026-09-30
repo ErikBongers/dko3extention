@@ -168,7 +168,7 @@ export class MenuScrapingObserver extends ExactHashObserver {
     }
 
     onMutationPageWithMenu() {
-        saveQueryItems(this.page, scrapeMenuPage(this.longLabelPrefix, MenuScrapingObserver.defaultLinkToQueryItem));
+        saveQueryItems(this.page, scrapeMenuPage(this.page, this.longLabelPrefix, MenuScrapingObserver.defaultLinkToQueryItem));
         return true;
     }
 

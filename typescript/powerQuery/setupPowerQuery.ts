@@ -4,7 +4,8 @@ import {getGotoStateOrDefault, Goto, PageName, saveGotoState} from "../gotoState
 import {gotoDiffPage, gotoSnapshotPage} from "../menu";
 import {NavigatableList} from "../navigatableList";
 import {emmet} from "../../libs/Emmeter";
-import {defaultQueryItems} from "./default_items";
+import {DEFAULT_QUERY_ITEMS__VERSION__, defaultQueryItems} from "./default_items";
+import {DefaultQueryItems, DefaultQueryItemsWithVersion, isDefaultQueryItemsWithVersion} from "./default_items_types";
 
 export function setupPowerQuery() {
     //dummy function to force this module to be loaded.
@@ -42,25 +43,35 @@ export function createQueryItem(headerLabel: string, label: string, href: string
 }
 
 export function saveQueryItems(page: string, queryItems: QueryItem[]) {
-    let savedPowerQueryString = localStorage.getItem(def.POWER_QUERY_ID);
-    if(!savedPowerQueryString) {
-        savedPowerQueryString = "{}";
-    }
-    let savedPowerQuery = JSON.parse(savedPowerQueryString);
+    let savedPowerQuery = getSavedQueryItems();
     savedPowerQuery[page] = queryItems;
-    localStorage.setItem(def.POWER_QUERY_ID, JSON.stringify(savedPowerQuery));
+    let queryItemsWithVersion: DefaultQueryItemsWithVersion = {
+        __version__: DEFAULT_QUERY_ITEMS__VERSION__,
+        queryItems: savedPowerQuery
+    };
+    localStorage.setItem(def.POWER_QUERY_ID, JSON.stringify(queryItemsWithVersion));
+}
+
+function getSavedQueryItems() {
+    let savedPowerQuery: DefaultQueryItems = {};
+    let savedPowerQueryString = localStorage.getItem(def.POWER_QUERY_ID);
+    if (savedPowerQueryString) {
+        let savedPowerQueryTry: object = JSON.parse(savedPowerQueryString);
+        if (isDefaultQueryItemsWithVersion(savedPowerQueryTry)) {
+            if (savedPowerQueryTry.__version__ == DEFAULT_QUERY_ITEMS__VERSION__) {
+                savedPowerQuery = savedPowerQueryTry.queryItems;
+            }
+        }
+    }
+    return savedPowerQuery;
 }
 
 function getSavedAndDefaultQueryItems(): QueryItem[] {
-    let savedPowerQuery = {};
     let allItems = [];
-    let savedPowerQueryString = localStorage.getItem(def.POWER_QUERY_ID);
-    if(savedPowerQueryString) {
-        savedPowerQuery = JSON.parse(savedPowerQueryString);
-    }
+    let savedPowerQuery = getSavedQueryItems();
 
-    //merge saved pages and default pages.
-    let mergedPages = {...defaultQueryItems};
+    //merge saved pages over default pages.
+    let mergedPages = {...defaultQueryItems.queryItems};
     for(let page in savedPowerQuery) {
         // @ts-ignore
         mergedPages[page] = savedPowerQuery[page];
@@ -271,15 +282,15 @@ function isSorted(arr: number[]) {
     return true;
 }
 
-export function scrapeMenuPage(longLabelPrefix: string, linkConverter: LinkToQueryConverter) {
+export function scrapeMenuPage(page: string, longLabelPrefix: string, linkConverter: LinkToQueryConverter) {
     let queryItems: QueryItem[] = [];
     let blocks = document.querySelectorAll("div.card-body");
     for (let block of blocks) {
+        let headerLabel = page;
         let header = block.querySelector('h5');
-        if (!header) {
-            continue;
+        if (header) {
+            headerLabel = header.textContent.trim();
         }
-        let headerLabel = header.textContent.trim();
         let links = block.querySelectorAll("a");
         for (let link of links) {
             if (!link.href)

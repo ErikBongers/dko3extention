@@ -14,12 +14,12 @@ export let extraInschrijvingenObserver = new ExtraInschrijvingenObserver();
 
 export let allLijstenObserver = new MenuScrapingObserver("#leerlingen-lijsten", "Lijsten", "Lijsten > ", "#div_leerlingen_lijsten");
 export let financialObserver = new MenuScrapingObserver("#extra-financieel", "Financieel", "Financieel > ", "#view_contents > div:nth-child(2) > div:nth-child(3) > div:nth-child(2) > div > a:nth-child(8)");
-export let assetsObserver = new MenuScrapingObserver("#extra-assets", "Assets", "Assets > ", "#view_contents > div:nth-child(2) > div:nth-child(2) > div > div > a:nth-child(10)");
+export let assetsObserver = new MenuScrapingObserver("#extra-aenp", "Assets", "Assets > ", "#view_contents > div:nth-child(6)");
 export let evaluatieObserver = new MenuScrapingObserver("#extra-evaluatie", "Evaluatie", "Evaluatie > ", "#view_contents > div:nth-child(3) > div:nth-child(3) > div:nth-child(3) > div > a:nth-child(10)");
 export let academieMenuObserver = new MenuScrapingObserver("#extra-academie", "Academie", "Academie > ", "#view_contents > div:nth-child(2) > div:nth-child(3) > div:nth-child(2) > div > a:nth-child(12)");
 
 function onMutationExtraInschrijvingen(_mutation: MutationRecord) {
-    saveQueryItems("ExtraInschrijvingen", scrapeMenuPage("Inschrijvingen > ", inschrijvingenLinkToQueryItem));
+    saveQueryItems("ExtraInschrijvingen", scrapeMenuPage("ExtraInschrijvingen", "Inschrijvingen > ", inschrijvingenLinkToQueryItem));
     return true;
 }
 

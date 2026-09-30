@@ -1487,1441 +1487,135 @@ var NavigatableList = class {
 //#endregion
 //#region typescript/powerQuery/default_items.ts
 const defaultQueryItems = {
-	"Lijsten": [
+	"__version__": 1,
+	"queryItems": { "Assets": [
 		{
-			"headerLabel": "Algemeen",
-			"label": "Werklijst",
-			"href": "https://administratie.dko3.cloud/#leerlingen-werklijst",
+			"headerLabel": "Assets",
+			"label": "Assets",
+			"href": "https://administratie.dko3.cloud/#extra-aenp-assets-assets",
 			"weight": 0,
-			"longLabel": "Lijsten > Werklijst",
-			"lowerCase": "lijsten > werklijst"
+			"longLabel": "Assets > Assets",
+			"lowerCase": "assets > assets"
 		},
 		{
-			"headerLabel": "Algemeen",
-			"label": "Alle leerlingen",
-			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_alle_leerlingen",
+			"headerLabel": "Assets",
+			"label": "Groepen",
+			"href": "https://administratie.dko3.cloud/#extra-aenp-assets-groepen",
 			"weight": 0,
-			"longLabel": "Lijsten > Alle leerlingen",
-			"lowerCase": "lijsten > alle leerlingen"
+			"longLabel": "Assets > Groepen",
+			"lowerCase": "assets > groepen"
 		},
 		{
-			"headerLabel": "Algemeen",
-			"label": "Alle inschrijvingen",
-			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_alle_inschrijvingen",
+			"headerLabel": "Assets",
+			"label": "Uitleningen",
+			"href": "https://administratie.dko3.cloud/#extra-aenp-uitleningen",
 			"weight": 0,
-			"longLabel": "Lijsten > Alle inschrijvingen",
-			"lowerCase": "lijsten > alle inschrijvingen"
+			"longLabel": "Assets > Uitleningen",
+			"lowerCase": "assets > uitleningen"
 		},
 		{
-			"headerLabel": "Algemeen",
-			"label": "Alle vakken",
-			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_alle_vakken",
+			"headerLabel": "Assets",
+			"label": "Interventies",
+			"href": "https://administratie.dko3.cloud/#extra-aenp-interventies",
 			"weight": 0,
-			"longLabel": "Lijsten > Alle vakken",
-			"lowerCase": "lijsten > alle vakken"
-		},
-		{
-			"headerLabel": "Algemeen",
-			"label": "Alle voorstellen",
-			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_alle_voorstellen",
-			"weight": 0,
-			"longLabel": "Lijsten > Alle voorstellen",
-			"lowerCase": "lijsten > alle voorstellen"
-		},
-		{
-			"headerLabel": "Algemeen",
-			"label": "Leerlingen met opmerkingen",
-			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_alle_leerlingen_met_opmerkingen",
-			"weight": 0,
-			"longLabel": "Lijsten > Leerlingen met opmerkingen",
-			"lowerCase": "lijsten > leerlingen met opmerkingen"
-		},
-		{
-			"headerLabel": "Algemeen",
-			"label": "Alle leefeenheden",
-			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_alle_leefeenheden",
-			"weight": 0,
-			"longLabel": "Lijsten > Alle leefeenheden",
-			"lowerCase": "lijsten > alle leefeenheden"
-		},
-		{
-			"headerLabel": "Algemeen",
-			"label": "Alle vrijstellingen",
-			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_alle_vrijstellingen",
-			"weight": 0,
-			"longLabel": "Lijsten > Alle vrijstellingen",
-			"lowerCase": "lijsten > alle vrijstellingen"
-		},
-		{
-			"headerLabel": "Aanwezigheden",
-			"label": "Afwezigheidsmeldingen",
-			"href": "https://administratie.dko3.cloud/#extra-tickets?h=afwezigheden",
-			"weight": 0,
-			"longLabel": "Lijsten > Afwezigheidsmeldingen",
-			"lowerCase": "lijsten > afwezigheidsmeldingen"
-		},
-		{
-			"headerLabel": "Aanwezigheden",
-			"label": "Percentages per leerling/vak",
-			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-awi-percentages_leerling_vak",
-			"weight": 0,
-			"longLabel": "Lijsten > Percentages per leerling/vak",
-			"lowerCase": "lijsten > percentages per leerling/vak"
-		},
-		{
-			"headerLabel": "Aanwezigheden",
-			"label": "Lessen zonder registraties",
-			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-awi-lessen_zonder_registraties",
-			"weight": 0,
-			"longLabel": "Lijsten > Lessen zonder registraties",
-			"lowerCase": "lijsten > lessen zonder registraties"
-		},
-		{
-			"headerLabel": "Aanwezigheden",
-			"label": "Ontbrekende attesten",
-			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-awi-ontbrekende_attesten",
-			"weight": 0,
-			"longLabel": "Lijsten > Ontbrekende attesten",
-			"lowerCase": "lijsten > ontbrekende attesten"
-		},
-		{
-			"headerLabel": "Aanwezigheden",
-			"label": "Afwezigheidsregistraties",
-			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-awi-afwezigheidsregistraties",
-			"weight": 0,
-			"longLabel": "Lijsten > Afwezigheidsregistraties",
-			"lowerCase": "lijsten > afwezigheidsregistraties"
-		},
-		{
-			"headerLabel": "Aanwezigheden",
-			"label": "3 weken-regel",
-			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-awi-3weken",
-			"weight": 0,
-			"longLabel": "Lijsten > 3 weken-regel",
-			"lowerCase": "lijsten > 3 weken-regel"
-		},
-		{
-			"headerLabel": "Aanwezigheden",
-			"label": "Wijzigingen registraties",
-			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-awi-wijzigingen_registraties",
-			"weight": 0,
-			"longLabel": "Lijsten > Wijzigingen registraties",
-			"lowerCase": "lijsten > wijzigingen registraties"
-		},
-		{
-			"headerLabel": "Aanwezigheden",
-			"label": "Aantal registraties per code",
-			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-awi-aantal_registraties_per_code",
-			"weight": 0,
-			"longLabel": "Lijsten > Aantal registraties per code",
-			"lowerCase": "lijsten > aantal registraties per code"
-		},
-		{
-			"headerLabel": "Aanwezigheden",
-			"label": "Leerlingen met lege weken in vrije aanwezigheden",
-			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-awi-leerlingen_lege_weken_vrije_aanwezigheden",
-			"weight": 0,
-			"longLabel": "Lijsten > Leerlingen met lege weken in vrije aanwezigheden",
-			"lowerCase": "lijsten > leerlingen met lege weken in vrije aanwezigheden"
-		},
-		{
-			"headerLabel": "Attesten",
-			"label": "Pedagogische attesten",
-			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_alle_leerlingen_met_pedagogisch_attest",
-			"weight": 0,
-			"longLabel": "Lijsten > Pedagogische attesten",
-			"lowerCase": "lijsten > pedagogische attesten"
-		},
-		{
-			"headerLabel": "Attesten",
-			"label": "Verminderingsattesten",
-			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_alle_leerlingen_met_verminderingsattest",
-			"weight": 0,
-			"longLabel": "Lijsten > Verminderingsattesten",
-			"lowerCase": "lijsten > verminderingsattesten"
-		},
-		{
-			"headerLabel": "Attesten",
-			"label": "Aanvragen verminderd tarief 1",
-			"href": "https://administratie.dko3.cloud/#extra-tickets?h=verminderingsattesten",
-			"weight": 0,
-			"longLabel": "Lijsten > Aanvragen verminderd tarief 1",
-			"lowerCase": "lijsten > aanvragen verminderd tarief 1"
-		},
-		{
-			"headerLabel": "Attesten",
-			"label": "Controle toelatingsvoorwaarde",
-			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_controle_toelatingsvoorwaarde",
-			"weight": 0,
-			"longLabel": "Lijsten > Controle toelatingsvoorwaarde",
-			"lowerCase": "lijsten > controle toelatingsvoorwaarde"
-		},
-		{
-			"headerLabel": "Attesten",
-			"label": "Mogelijke schuinzitters met een verkeerd attest",
-			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_mogelijke_schuinzitters_met_verkeerd_attest",
-			"weight": 0,
-			"longLabel": "Lijsten > Mogelijke schuinzitters met een verkeerd attest",
-			"lowerCase": "lijsten > mogelijke schuinzitters met een verkeerd attest"
-		},
-		{
-			"headerLabel": "Attesten",
-			"label": "Alternatieve leercontext zonder leerkracht",
-			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_alle_leerlingen_met_ALC_zonder_leerkracht",
-			"weight": 0,
-			"longLabel": "Lijsten > Alternatieve leercontext zonder leerkracht",
-			"lowerCase": "lijsten > alternatieve leercontext zonder leerkracht"
-		},
-		{
-			"headerLabel": "Inschrijvingen",
-			"label": "Leerlingen zonder leerkracht",
-			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_alle_leerlingen_zonder_leerkracht",
-			"weight": 0,
-			"longLabel": "Lijsten > Leerlingen zonder leerkracht",
-			"lowerCase": "lijsten > leerlingen zonder leerkracht"
-		},
-		{
-			"headerLabel": "Inschrijvingen",
-			"label": "Leerlingen zonder lesmoment",
-			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_alle_leerlingen_zonder_lesmoment",
-			"weight": 0,
-			"longLabel": "Lijsten > Leerlingen zonder lesmoment",
-			"lowerCase": "lijsten > leerlingen zonder lesmoment"
-		},
-		{
-			"headerLabel": "Inschrijvingen",
-			"label": "Leerlingen die meer dan één keer in dezelfde les zitten",
-			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_leerlingen_meer_dan_1_keer_in_dezelfde_les",
-			"weight": 0,
-			"longLabel": "Lijsten > Leerlingen die meer dan één keer in dezelfde les zitten",
-			"lowerCase": "lijsten > leerlingen die meer dan één keer in dezelfde les zitten"
-		},
-		{
-			"headerLabel": "Inschrijvingen",
-			"label": "Inschrijvingen met ontbrekende vakken",
-			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_alle_leerlingen_met_ontbrekende_vakken",
-			"weight": 0,
-			"longLabel": "Lijsten > Inschrijvingen met ontbrekende vakken",
-			"lowerCase": "lijsten > inschrijvingen met ontbrekende vakken"
-		},
-		{
-			"headerLabel": "Inschrijvingen",
-			"label": "Onvolledige administratieve groepen",
-			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_onvolledige_administratieve_groepen",
-			"weight": 0,
-			"longLabel": "Lijsten > Onvolledige administratieve groepen",
-			"lowerCase": "lijsten > onvolledige administratieve groepen"
-		},
-		{
-			"headerLabel": "Inschrijvingen",
-			"label": "Overlappingen",
-			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_overlappingen",
-			"weight": 0,
-			"longLabel": "Lijsten > Overlappingen",
-			"lowerCase": "lijsten > overlappingen"
-		},
-		{
-			"headerLabel": "Inschrijvingen",
-			"label": "Leerlingen met meer dan één optie (per domein)",
-			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_leerlingen_met_meer_dan_1_optie",
-			"weight": 0,
-			"longLabel": "Lijsten > Leerlingen met meer dan één optie (per domein)",
-			"lowerCase": "lijsten > leerlingen met meer dan één optie (per domein)"
-		},
-		{
-			"headerLabel": "Inschrijvingen",
-			"label": "Leerlingen met meer dan één inschrijving (per domein)",
-			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_leerlingen_met_meer_dan_1_inschrijving",
-			"weight": 0,
-			"longLabel": "Lijsten > Leerlingen met meer dan één inschrijving (per domein)",
-			"lowerCase": "lijsten > leerlingen met meer dan één inschrijving (per domein)"
-		},
-		{
-			"headerLabel": "Inschrijvingen",
-			"label": "Leerlingen met meer dan één domein",
-			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_leerlingen_met_meer_dan_1_domein",
-			"weight": 0,
-			"longLabel": "Lijsten > Leerlingen met meer dan één domein",
-			"lowerCase": "lijsten > leerlingen met meer dan één domein"
-		},
-		{
-			"headerLabel": "Inschrijvingen",
-			"label": "Leerlingen met meer dan één instrument",
-			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_leerlingen_met_meer_dan_1_instrument",
-			"weight": 0,
-			"longLabel": "Lijsten > Leerlingen met meer dan één instrument",
-			"lowerCase": "lijsten > leerlingen met meer dan één instrument"
-		},
-		{
-			"headerLabel": "Inschrijvingen",
-			"label": "Totaal % DWT per vak",
-			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_totaal_dwt_per_vak",
-			"weight": 0,
-			"longLabel": "Lijsten > Totaal % DWT per vak",
-			"lowerCase": "lijsten > totaal % dwt per vak"
-		},
-		{
-			"headerLabel": "Inschrijvingen",
-			"label": "Niet-logisch vervolg",
-			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_niet_logisch_vervolg",
-			"weight": 0,
-			"longLabel": "Lijsten > Niet-logisch vervolg",
-			"lowerCase": "lijsten > niet-logisch vervolg"
-		},
-		{
-			"headerLabel": "Inschrijvingen",
-			"label": "Trajectwijzigingen",
-			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_trajectwijzigingen",
-			"weight": 0,
-			"longLabel": "Lijsten > Trajectwijzigingen",
-			"lowerCase": "lijsten > trajectwijzigingen"
-		},
-		{
-			"headerLabel": "Inschrijvingen",
-			"label": "Nieuwe leerlingen",
-			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_nieuwe_leerlingen",
-			"weight": 0,
-			"longLabel": "Lijsten > Nieuwe leerlingen",
-			"lowerCase": "lijsten > nieuwe leerlingen"
-		},
-		{
-			"headerLabel": "Inschrijvingen",
-			"label": "Herinschrijvingen (per leerkracht)",
-			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_herinschrijvingen",
-			"weight": 0,
-			"longLabel": "Lijsten > Herinschrijvingen (per leerkracht)",
-			"lowerCase": "lijsten > herinschrijvingen (per leerkracht)"
-		},
-		{
-			"headerLabel": "Inschrijvingen",
-			"label": "Leerlingen die dezelfde administratieve groep volgen als het vorige schooljaar",
-			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_leerlingen_die_dubbelen",
-			"weight": 0,
-			"longLabel": "Lijsten > Leerlingen die dezelfde administratieve groep volgen als het vorige schooljaar",
-			"lowerCase": "lijsten > leerlingen die dezelfde administratieve groep volgen als het vorige schooljaar"
-		},
-		{
-			"headerLabel": "Inschrijvingen",
-			"label": "Leerlingen die ook in een andere academie les volgen",
-			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_leerlingen_andere_academie",
-			"weight": 0,
-			"longLabel": "Lijsten > Leerlingen die ook in een andere academie les volgen",
-			"lowerCase": "lijsten > leerlingen die ook in een andere academie les volgen"
-		},
-		{
-			"headerLabel": "Inschrijvingen",
-			"label": "Leerlingen op een wachtlijst",
-			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_leerlingen_op_wachtlijst",
-			"weight": 0,
-			"longLabel": "Lijsten > Leerlingen op een wachtlijst",
-			"lowerCase": "lijsten > leerlingen op een wachtlijst"
-		},
-		{
-			"headerLabel": "Inschrijvingen",
-			"label": "Leerlingen op een interesselijst",
-			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_leerlingen_op_interesselijst",
-			"weight": 0,
-			"longLabel": "Lijsten > Leerlingen op een interesselijst",
-			"lowerCase": "lijsten > leerlingen op een interesselijst"
-		},
-		{
-			"headerLabel": "Inschrijvingen",
-			"label": "Leerlingen met een toelatingsvoorwaarde",
-			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_leerlingen_toelatingsvoorwaarde",
-			"weight": 0,
-			"longLabel": "Lijsten > Leerlingen met een toelatingsvoorwaarde",
-			"lowerCase": "lijsten > leerlingen met een toelatingsvoorwaarde"
-		},
-		{
-			"headerLabel": "Inschrijvingen",
-			"label": "Leerlingen in verwijderde lessen",
-			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_leerlingen_verwijderde_lessen",
-			"weight": 0,
-			"longLabel": "Lijsten > Leerlingen in verwijderde lessen",
-			"lowerCase": "lijsten > leerlingen in verwijderde lessen"
-		},
-		{
-			"headerLabel": "Inschrijvingen",
-			"label": "Leerlingen met verborgen vakken in voorstel",
-			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_leerlingen_verborgen_vakken_voorstel",
-			"weight": 0,
-			"longLabel": "Lijsten > Leerlingen met verborgen vakken in voorstel",
-			"lowerCase": "lijsten > leerlingen met verborgen vakken in voorstel"
-		},
-		{
-			"headerLabel": "Uitschrijvingen",
-			"label": "Uitschrijvingen (per schooljaar)",
-			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_alle_uitschrijvingen",
-			"weight": 0,
-			"longLabel": "Lijsten > Uitschrijvingen (per schooljaar)",
-			"lowerCase": "lijsten > uitschrijvingen (per schooljaar)"
-		},
-		{
-			"headerLabel": "Uitschrijvingen",
-			"label": "Verwijderde inschrijvingen",
-			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_alle_verwijderde_inschrijvingen",
-			"weight": 0,
-			"longLabel": "Lijsten > Verwijderde inschrijvingen",
-			"lowerCase": "lijsten > verwijderde inschrijvingen"
-		},
-		{
-			"headerLabel": "Leerlingenzending",
-			"label": "Leerlingen zonder rijksregisternummer",
-			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_alle_leerlingen_zonder_rijksregisternummer",
-			"weight": 0,
-			"longLabel": "Lijsten > Leerlingen zonder rijksregisternummer",
-			"lowerCase": "lijsten > leerlingen zonder rijksregisternummer"
-		},
-		{
-			"headerLabel": "Leerlingenzending",
-			"label": "Leerlingen met verkeerd geslacht",
-			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_alle_leerlingen_met_verkeerd_geslacht",
-			"weight": 0,
-			"longLabel": "Lijsten > Leerlingen met verkeerd geslacht",
-			"lowerCase": "lijsten > leerlingen met verkeerd geslacht"
-		},
-		{
-			"headerLabel": "Leerlingenzending",
-			"label": "Leerlingen met verkeerde geboortedatum",
-			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_alle_leerlingen_met_verkeerde_geboortedatum",
-			"weight": 0,
-			"longLabel": "Lijsten > Leerlingen met verkeerde geboortedatum",
-			"lowerCase": "lijsten > leerlingen met verkeerde geboortedatum"
-		},
-		{
-			"headerLabel": "Leerlingenzending",
-			"label": "Leerlingen zonder geboorteplaats",
-			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_leerlingen_zonder_geboorteplaats",
-			"weight": 0,
-			"longLabel": "Lijsten > Leerlingen zonder geboorteplaats",
-			"lowerCase": "lijsten > leerlingen zonder geboorteplaats"
-		},
-		{
-			"headerLabel": "Financierbaarheid",
-			"label": "Niet-financierbare leerlingen",
-			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_niet_financierbare_leerlingen",
-			"weight": 0,
-			"longLabel": "Lijsten > Niet-financierbare leerlingen",
-			"lowerCase": "lijsten > niet-financierbare leerlingen"
-		},
-		{
-			"headerLabel": "Financierbaarheid",
-			"label": "Leerlingen met verminderde financierbaarheid",
-			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_verminderde_financierbaarheid",
-			"weight": 0,
-			"longLabel": "Lijsten > Leerlingen met verminderde financierbaarheid",
-			"lowerCase": "lijsten > leerlingen met verminderde financierbaarheid"
-		},
-		{
-			"headerLabel": "Financierbaarheid",
-			"label": "50% leerlingen (gedeelde financiering)",
-			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_50pct_leerlingen",
-			"weight": 0,
-			"longLabel": "Lijsten > 50% leerlingen (gedeelde financiering)",
-			"lowerCase": "lijsten > 50% leerlingen (gedeelde financiering)"
-		},
-		{
-			"headerLabel": "Financierbaarheid",
-			"label": "Leerlingen verlengd leertraject (bissers)",
-			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_50pct_leerlingen_bissers",
-			"weight": 0,
-			"longLabel": "Lijsten > Leerlingen verlengd leertraject (bissers)",
-			"lowerCase": "lijsten > leerlingen verlengd leertraject (bissers)"
-		},
-		{
-			"headerLabel": "Financierbaarheid",
-			"label": "Leerlingen met aangepast curriculum",
-			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_leerlingen_aangepast_curriculum",
-			"weight": 0,
-			"longLabel": "Lijsten > Leerlingen met aangepast curriculum",
-			"lowerCase": "lijsten > leerlingen met aangepast curriculum"
-		},
-		{
-			"headerLabel": "Financierbaarheid",
-			"label": "Leerlingen financierbaar in tijdelijk project",
-			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_leerlingen_tijdelijk_project",
-			"weight": 0,
-			"longLabel": "Lijsten > Leerlingen financierbaar in tijdelijk project",
-			"lowerCase": "lijsten > leerlingen financierbaar in tijdelijk project"
-		},
-		{
-			"headerLabel": "Financierbaarheid",
-			"label": "Leerlingen met dubbele financierbaarheid",
-			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-werklijst_leerlingen_dubbel_financierbaar",
-			"weight": 0,
-			"longLabel": "Lijsten > Leerlingen met dubbele financierbaarheid",
-			"lowerCase": "lijsten > leerlingen met dubbele financierbaarheid"
-		},
-		{
-			"headerLabel": "A-kaart",
-			"label": "Leerlingen met een A-kaartnummer",
-			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-akaart-leerlingen_met_akaartnummer",
-			"weight": 0,
-			"longLabel": "Lijsten > Leerlingen met een A-kaartnummer",
-			"lowerCase": "lijsten > leerlingen met een a-kaartnummer"
-		}
-	],
-	"ExtraInschrijvingen": [
-		{
-			"headerLabel": "Aanbod",
-			"label": "Domeinen",
-			"href": "https://administratie.dko3.cloud/#extra-inschrijvingen-domeinen",
-			"weight": 0,
-			"longLabel": "Inschrijvingen > Aanbod > Domeinen",
-			"lowerCase": "inschrijvingen > aanbod > domeinen"
-		},
-		{
-			"headerLabel": "Aanbod",
-			"label": "Graden",
-			"href": "https://administratie.dko3.cloud/#extra-inschrijvingen-graden",
-			"weight": 0,
-			"longLabel": "Inschrijvingen > Aanbod > Graden",
-			"lowerCase": "inschrijvingen > aanbod > graden"
-		},
-		{
-			"headerLabel": "Aanbod",
-			"label": "Clusters",
-			"href": "https://administratie.dko3.cloud/#extra-inschrijvingen-clusters",
-			"weight": 0,
-			"longLabel": "Inschrijvingen > Aanbod > Clusters",
-			"lowerCase": "inschrijvingen > aanbod > clusters"
-		},
-		{
-			"headerLabel": "Aanbod",
-			"label": "Aangeboden vakken",
-			"href": "https://administratie.dko3.cloud/#extra-inschrijvingen-vakken",
-			"weight": 0,
-			"longLabel": "Inschrijvingen > Aanbod > Aangeboden vakken",
-			"lowerCase": "inschrijvingen > aanbod > aangeboden vakken"
-		},
-		{
-			"headerLabel": "Aanbod",
-			"label": "Vakgroepen",
-			"href": "https://administratie.dko3.cloud/#extra-inschrijvingen-vakgroepen",
-			"weight": 0,
-			"longLabel": "Inschrijvingen > Aanbod > Vakgroepen",
-			"lowerCase": "inschrijvingen > aanbod > vakgroepen"
-		},
-		{
-			"headerLabel": "Aanbod",
-			"label": "Administratieve groepen",
-			"href": "https://administratie.dko3.cloud/#extra-inschrijvingen-administratievegroepen",
-			"weight": 0,
-			"longLabel": "Inschrijvingen > Aanbod > Administratieve groepen",
-			"lowerCase": "inschrijvingen > aanbod > administratieve groepen"
-		},
-		{
-			"headerLabel": "Aanbod",
-			"label": "Controle gekoppelde vakken",
-			"href": "https://administratie.dko3.cloud/#extra-inschrijvingen-controle_gekoppeldevakken",
-			"weight": 0,
-			"longLabel": "Inschrijvingen > Aanbod > Controle gekoppelde vakken",
-			"lowerCase": "inschrijvingen > aanbod > controle gekoppelde vakken"
-		},
-		{
-			"headerLabel": "Aanbod",
-			"label": "Departement - Administratie - Documentatie",
-			"href": "https://administratie.dko3.cloud/#departement-administratie-documentatie",
-			"weight": 0,
-			"longLabel": "Inschrijvingen > Aanbod > Departement - Administratie - Documentatie",
-			"lowerCase": "inschrijvingen > aanbod > departement - administratie - documentatie"
-		},
-		{
-			"headerLabel": "Logisch vervolg",
-			"label": "Logisch vervolg bepalen",
-			"href": "https://administratie.dko3.cloud/#extra-inschrijvingen-logischvervolg",
-			"weight": 0,
-			"longLabel": "Inschrijvingen > Logisch vervolg > Logisch vervolg bepalen",
-			"lowerCase": "inschrijvingen > logisch vervolg > logisch vervolg bepalen"
-		},
-		{
-			"headerLabel": "Logisch vervolg",
-			"label": "Uitzonderingen beheren",
-			"href": "https://administratie.dko3.cloud/#extra-inschrijvingen-logischvervolg-uitzonderingen",
-			"weight": 0,
-			"longLabel": "Inschrijvingen > Logisch vervolg > Uitzonderingen beheren",
-			"lowerCase": "inschrijvingen > logisch vervolg > uitzonderingen beheren"
-		},
-		{
-			"headerLabel": "Logisch vervolg",
-			"label": "Leerlingen met dubbel voorstel",
-			"href": "https://administratie.dko3.cloud/#extra-inschrijvingen-logischvervolg-leerlingen_dubbel_voorstel",
-			"weight": 0,
-			"longLabel": "Inschrijvingen > Logisch vervolg > Leerlingen met dubbel voorstel",
-			"lowerCase": "inschrijvingen > logisch vervolg > leerlingen met dubbel voorstel"
-		},
-		{
-			"headerLabel": "Discimus",
-			"label": "Personen",
-			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-discimus3-personen",
-			"weight": 0,
-			"longLabel": "Inschrijvingen > Discimus > Personen",
-			"lowerCase": "inschrijvingen > discimus > personen"
-		},
-		{
-			"headerLabel": "Discimus",
-			"label": "Inschrijvingen",
-			"href": "https://administratie.dko3.cloud/#leerlingen-lijsten-discimus3-inschrijvingen",
-			"weight": 0,
-			"longLabel": "Discimus > Inschrijvingen",
-			"lowerCase": "discimus > inschrijvingen"
-		},
-		{
-			"headerLabel": "Discimus",
-			"label": "Status",
-			"href": "https://administratie.dko3.cloud/#extra-inschrijvingen-discimus3-status",
-			"weight": 0,
-			"longLabel": "Inschrijvingen > Discimus > Status",
-			"lowerCase": "inschrijvingen > discimus > status"
-		},
-		{
-			"headerLabel": "Voorbereiding",
-			"label": "Akkoord academiereglement & APP",
-			"href": "https://administratie.dko3.cloud/#extra-mijnacademie-lijsten-akkoord_academiereglementen",
-			"weight": 0,
-			"longLabel": "Inschrijvingen > Voorbereiding > Akkoord academiereglement & APP",
-			"lowerCase": "inschrijvingen > voorbereiding > akkoord academiereglement & app"
-		},
-		{
-			"headerLabel": "Voorbereiding",
-			"label": "Toestemming beeldmateriaal",
-			"href": "https://administratie.dko3.cloud/#extra-mijnacademie-lijsten-akkoord_beeldmateriaal",
-			"weight": 0,
-			"longLabel": "Inschrijvingen > Voorbereiding > Toestemming beeldmateriaal",
-			"lowerCase": "inschrijvingen > voorbereiding > toestemming beeldmateriaal"
-		},
-		{
-			"headerLabel": "Voorbereiding",
-			"label": "Extra vragen",
-			"href": "https://administratie.dko3.cloud/#extra-mijnacademie-vragen",
-			"weight": 0,
-			"longLabel": "Inschrijvingen > Voorbereiding > Extra vragen",
-			"lowerCase": "inschrijvingen > voorbereiding > extra vragen"
-		},
-		{
-			"headerLabel": "Financieel",
-			"label": "Inschrijvingsgeld",
-			"href": "https://administratie.dko3.cloud/#extra-inschrijvingen-inschrijvingsgeld",
-			"weight": 0,
-			"longLabel": "Financieel > Inschrijvingsgeld",
-			"lowerCase": "financieel > inschrijvingsgeld"
-		},
-		{
-			"headerLabel": "Financieel",
-			"label": "Mogelijke correcties",
-			"href": "https://administratie.dko3.cloud/#extra-inschrijvingen-mogelijke_correcties",
-			"weight": 0,
-			"longLabel": "Inschrijvingen > Financieel > Mogelijke correcties",
-			"lowerCase": "inschrijvingen > financieel > mogelijke correcties"
-		},
-		{
-			"headerLabel": "Financieel",
-			"label": "Fiscale attesten",
-			"href": "https://administratie.dko3.cloud/#extra-inschrijvingen-attesten_kinderopvang",
-			"weight": 0,
-			"longLabel": "Inschrijvingen > Financieel > Fiscale attesten",
-			"lowerCase": "inschrijvingen > financieel > fiscale attesten"
-		},
-		{
-			"headerLabel": "(Online) inschrijvingen",
-			"label": "",
-			"href": "https://mijnacademie.be/",
-			"weight": 0,
-			"longLabel": "Inschrijvingen > (Online) inschrijvingen > ",
-			"lowerCase": "inschrijvingen > (online) inschrijvingen > "
-		},
-		{
-			"headerLabel": "(Online) inschrijvingen",
-			"label": "Tijdslijn online inschrijvingen",
-			"href": "https://administratie.dko3.cloud/#extra-mijnacademie-tijdslijn",
-			"weight": 0,
-			"longLabel": "(Online) inschrijvingen > Tijdslijn online inschrijvingen",
-			"lowerCase": "(online) inschrijvingen > tijdslijn online inschrijvingen"
-		},
-		{
-			"headerLabel": "(Online) inschrijvingen",
-			"label": "Individuele beschikbaarheid",
-			"href": "https://administratie.dko3.cloud/#extra-mijnacademie-individuelebeschikbaarheid",
-			"weight": 0,
-			"longLabel": "Inschrijvingen > (Online) inschrijvingen > Individuele beschikbaarheid",
-			"lowerCase": "inschrijvingen > (online) inschrijvingen > individuele beschikbaarheid"
-		},
-		{
-			"headerLabel": "(Online) inschrijvingen",
-			"label": "Lijst online inschrijvingen",
-			"href": "https://administratie.dko3.cloud/#extra-mijnacademie-lijsten-inschrijvingen_online",
-			"weight": 0,
-			"longLabel": "(Online) inschrijvingen > Lijst online inschrijvingen",
-			"lowerCase": "(online) inschrijvingen > lijst online inschrijvingen"
-		},
-		{
-			"headerLabel": "(Online) inschrijvingen",
-			"label": "Lijst niet-online inschrijvingen",
-			"href": "https://administratie.dko3.cloud/#extra-mijnacademie-lijsten-inschrijvingen_nietonline",
-			"weight": 0,
-			"longLabel": "(Online) inschrijvingen > Lijst niet-online inschrijvingen",
-			"lowerCase": "(online) inschrijvingen > lijst niet-online inschrijvingen"
-		},
-		{
-			"headerLabel": "(Online) inschrijvingen",
-			"label": "Lijst niet-tijdig betaalde inschrijvingen",
-			"href": "https://administratie.dko3.cloud/#extra-mijnacademie-lijsten-niettijdigbetaalde_onlineinschrijvingen",
-			"weight": 0,
-			"longLabel": "(Online) inschrijvingen > Lijst niet-tijdig betaalde inschrijvingen",
-			"lowerCase": "(online) inschrijvingen > lijst niet-tijdig betaalde inschrijvingen"
-		},
-		{
-			"headerLabel": "(Online) inschrijvingen",
-			"label": "Lijst contactgegevens gecontroleerd",
-			"href": "https://administratie.dko3.cloud/#extra-mijnacademie-lijsten-checks-check_contactgegevens",
-			"weight": 0,
-			"longLabel": "Inschrijvingen > (Online) inschrijvingen > Lijst contactgegevens gecontroleerd",
-			"lowerCase": "inschrijvingen > (online) inschrijvingen > lijst contactgegevens gecontroleerd"
-		},
-		{
-			"headerLabel": "(Online) inschrijvingen",
-			"label": "Lijst ingevulde extra vragen",
-			"href": "https://administratie.dko3.cloud/#extra-mijnacademie-lijsten-checks-check_extravragen",
-			"weight": 0,
-			"longLabel": "Inschrijvingen > (Online) inschrijvingen > Lijst ingevulde extra vragen",
-			"lowerCase": "inschrijvingen > (online) inschrijvingen > lijst ingevulde extra vragen"
-		},
-		{
-			"headerLabel": "(Online) inschrijvingen",
-			"label": "Lijst dagschool gecontroleerd",
-			"href": "https://administratie.dko3.cloud/#extra-mijnacademie-lijsten-checks-check_dagscholen",
-			"weight": 0,
-			"longLabel": "Inschrijvingen > (Online) inschrijvingen > Lijst dagschool gecontroleerd",
-			"lowerCase": "inschrijvingen > (online) inschrijvingen > lijst dagschool gecontroleerd"
-		},
-		{
-			"headerLabel": "(Online) inschrijvingen",
-			"label": "Accountbeheer",
-			"href": "https://administratie.dko3.cloud/#extra-mijnacademie-accountbeheer",
-			"weight": 0,
-			"longLabel": "Inschrijvingen > (Online) inschrijvingen > Accountbeheer",
-			"lowerCase": "inschrijvingen > (online) inschrijvingen > accountbeheer"
-		},
-		{
-			"headerLabel": "(Online) inschrijvingen",
-			"label": "Aanbod per leeftijd",
-			"href": "https://administratie.dko3.cloud/#extra-mijnacademie-aanbodperleeftijd",
-			"weight": 0,
-			"longLabel": "Inschrijvingen > (Online) inschrijvingen > Aanbod per leeftijd",
-			"lowerCase": "inschrijvingen > (online) inschrijvingen > aanbod per leeftijd"
-		},
-		{
-			"headerLabel": "Varia",
-			"label": "Partners alternatieve leercontext",
-			"href": "https://administratie.dko3.cloud/#extra-inschrijvingen-alternatieve_leercontext_partners",
-			"weight": 0,
-			"longLabel": "Inschrijvingen > Varia > Partners alternatieve leercontext",
-			"lowerCase": "inschrijvingen > varia > partners alternatieve leercontext"
-		},
-		{
-			"headerLabel": "Varia",
-			"label": "Interesselijsten",
-			"href": "https://administratie.dko3.cloud/#extra-inschrijvingen-interesselijsten",
-			"weight": 0,
-			"longLabel": "Inschrijvingen > Varia > Interesselijsten",
-			"lowerCase": "inschrijvingen > varia > interesselijsten"
-		},
-		{
-			"headerLabel": "Varia",
-			"label": "Beschikbaarheid toewijzen",
-			"href": "https://administratie.dko3.cloud/#extra-inschrijvingen-beschikbaarheid_toewijzen_2",
-			"weight": 0,
-			"longLabel": "Inschrijvingen > Varia > Beschikbaarheid toewijzen",
-			"lowerCase": "inschrijvingen > varia > beschikbaarheid toewijzen"
-		},
-		{
-			"headerLabel": "Varia",
-			"label": "Modulegroepen",
-			"href": "https://administratie.dko3.cloud/#extra-inschrijvingen-modulegroepen",
-			"weight": 0,
-			"longLabel": "Inschrijvingen > Varia > Modulegroepen",
-			"lowerCase": "inschrijvingen > varia > modulegroepen"
-		},
-		{
-			"headerLabel": "Verdeling",
-			"label": "Nieuwe leerlingen instrument",
-			"href": "https://administratie.dko3.cloud/#extra-inschrijvingen-nieuweleerlingeninstrument",
-			"weight": 0,
-			"longLabel": "Inschrijvingen > Verdeling > Nieuwe leerlingen instrument",
-			"lowerCase": "inschrijvingen > verdeling > nieuwe leerlingen instrument"
-		},
-		{
-			"headerLabel": "Verdeling",
-			"label": "Pedagogisch comfort",
-			"href": "https://administratie.dko3.cloud/#extra-inschrijvingen-pedagogischcomfort",
-			"weight": 0,
-			"longLabel": "Inschrijvingen > Verdeling > Pedagogisch comfort",
-			"lowerCase": "inschrijvingen > verdeling > pedagogisch comfort"
-		},
-		{
-			"headerLabel": "Verdeling",
-			"label": "Controle capaciteit",
-			"href": "https://administratie.dko3.cloud/#extra-inschrijvingen-controle_capaciteit",
-			"weight": 0,
-			"longLabel": "Inschrijvingen > Verdeling > Controle capaciteit",
-			"lowerCase": "inschrijvingen > verdeling > controle capaciteit"
-		},
-		{
-			"headerLabel": "Documenten",
-			"label": "SEMU-aangifte",
-			"href": "https://administratie.dko3.cloud/#extra-inschrijvingen-semu",
-			"weight": 0,
-			"longLabel": "Inschrijvingen > Documenten > SEMU-aangifte",
-			"lowerCase": "inschrijvingen > documenten > semu-aangifte"
-		},
-		{
-			"headerLabel": "Statistieken",
-			"label": "Omkadering",
-			"href": "https://administratie.dko3.cloud/#extra-inschrijvingen-statistieken-omkadering",
-			"weight": 0,
-			"longLabel": "Inschrijvingen > Statistieken > Omkadering",
-			"lowerCase": "inschrijvingen > statistieken > omkadering"
-		},
-		{
-			"headerLabel": "Statistieken",
-			"label": "Aantal lesdagen per week",
-			"href": "https://administratie.dko3.cloud/#extra-inschrijvingen-statistieken-lesdagen_per_week",
-			"weight": 0,
-			"longLabel": "Inschrijvingen > Statistieken > Aantal lesdagen per week",
-			"lowerCase": "inschrijvingen > statistieken > aantal lesdagen per week"
-		},
-		{
-			"headerLabel": "Statistieken",
-			"label": "Aantal lesuren per jaar",
-			"href": "https://administratie.dko3.cloud/#extra-inschrijvingen-statistieken-verzekering",
-			"weight": 0,
-			"longLabel": "Inschrijvingen > Statistieken > Aantal lesuren per jaar",
-			"lowerCase": "inschrijvingen > statistieken > aantal lesuren per jaar"
-		},
-		{
-			"headerLabel": "Statistieken",
-			"label": "Verdeelsleutels vestigingsplaatsen",
-			"href": "https://administratie.dko3.cloud/#extra-inschrijvingen-statistieken-verdeelsleutels_vestigingsplaatsen",
-			"weight": 0,
-			"longLabel": "Inschrijvingen > Statistieken > Verdeelsleutels vestigingsplaatsen",
-			"lowerCase": "inschrijvingen > statistieken > verdeelsleutels vestigingsplaatsen"
-		},
-		{
-			"headerLabel": "Statistieken",
-			"label": "Leerlingen per instrument",
-			"href": "https://administratie.dko3.cloud/#extra-inschrijvingen-statistieken-leerlingen_per_instrument",
-			"weight": 0,
-			"longLabel": "Inschrijvingen > Statistieken > Leerlingen per instrument",
-			"lowerCase": "inschrijvingen > statistieken > leerlingen per instrument"
-		}
-	],
-	"Financieel": [
-		{
-			"headerLabel": "Totalen",
-			"label": "Transacties",
-			"href": "https://administratie.dko3.cloud/#extra-financieel-lijsten-transacties",
-			"weight": 0,
-			"longLabel": "Financieel > Transacties",
-			"lowerCase": "financieel > transacties"
-		},
-		{
-			"headerLabel": "Totalen",
-			"label": "Te betalen",
-			"href": "https://administratie.dko3.cloud/#extra-financieel-lijsten-tebetalen",
-			"weight": 0,
-			"longLabel": "Financieel > Te betalen",
-			"lowerCase": "financieel > te betalen"
-		},
-		{
-			"headerLabel": "Totalen",
-			"label": "Openstaande saldo's",
-			"href": "https://administratie.dko3.cloud/#extra-financieel-lijsten-openstaand",
-			"weight": 0,
-			"longLabel": "Financieel > Openstaande saldo's",
-			"lowerCase": "financieel > openstaande saldo's"
-		},
-		{
-			"headerLabel": "Totalen",
-			"label": "Manuele correcties",
-			"href": "https://administratie.dko3.cloud/#extra-financieel-lijsten-manuele_correcties",
-			"weight": 0,
-			"longLabel": "Financieel > Manuele correcties",
-			"lowerCase": "financieel > manuele correcties"
-		},
-		{
-			"headerLabel": "Totalen",
-			"label": "Openstaande rekeningen (tot en met 2025-2026)",
-			"href": "https://administratie.dko3.cloud/#extra-financieel_oud-openstaanderekeningen",
-			"weight": 0,
-			"longLabel": "Financieel > Openstaande rekeningen (tot en met 2025-2026)",
-			"lowerCase": "financieel > openstaande rekeningen (tot en met 2025-2026)"
-		},
-		{
-			"headerLabel": "Betalingen",
-			"label": "CODA-bestanden",
-			"href": "https://administratie.dko3.cloud/#extra-financieel-coda",
-			"weight": 0,
-			"longLabel": "Financieel > CODA-bestanden",
-			"lowerCase": "financieel > coda-bestanden"
-		},
-		{
-			"headerLabel": "Betalingen",
-			"label": "Betalingsplannen",
-			"href": "https://administratie.dko3.cloud/#extra-financieel-lijsten-betalingsplannen",
-			"weight": 0,
-			"longLabel": "Financieel > Betalingsplannen",
-			"lowerCase": "financieel > betalingsplannen"
-		},
-		{
-			"headerLabel": "Betalingen",
-			"label": "'Lijst MultiSafepay 'uncleared'",
-			"href": "https://administratie.dko3.cloud/#extra-financieel-lijsten-psp_uncleared",
-			"weight": 0,
-			"longLabel": "Financieel > 'Lijst MultiSafepay 'uncleared'",
-			"lowerCase": "financieel > 'lijst multisafepay 'uncleared'"
-		}
-	],
-	"Evaluatie": [
-		{
-			"headerLabel": "Voorbereiding",
-			"label": "Evaluatieperiodes",
-			"href": "https://administratie.dko3.cloud/#extra-evaluatie-voorbereiding-evaluatieperiodes",
-			"weight": 0,
-			"longLabel": "Evaluatie > Evaluatieperiodes",
-			"lowerCase": "evaluatie > evaluatieperiodes"
-		},
-		{
-			"headerLabel": "Voorbereiding",
-			"label": "Trajecten",
-			"href": "https://administratie.dko3.cloud/#extra-evaluatie-voorbereiding-trajecten",
-			"weight": 0,
-			"longLabel": "Evaluatie > Trajecten",
-			"lowerCase": "evaluatie > trajecten"
-		},
-		{
-			"headerLabel": "Voorbereiding",
-			"label": "Bloksoorten",
-			"href": "https://administratie.dko3.cloud/#extra-evaluatie-voorbereiding-bloksoorten",
-			"weight": 0,
-			"longLabel": "Evaluatie > Bloksoorten",
-			"lowerCase": "evaluatie > bloksoorten"
-		},
-		{
-			"headerLabel": "Voorbereiding",
-			"label": "Puntenlijstvelden",
-			"href": "https://administratie.dko3.cloud/#extra-evaluatie-voorbereiding-puntenlijstvelden",
-			"weight": 0,
-			"longLabel": "Evaluatie > Puntenlijstvelden",
-			"lowerCase": "evaluatie > puntenlijstvelden"
-		},
-		{
-			"headerLabel": "Voorbereiding",
-			"label": "Alias-vakken",
-			"href": "https://administratie.dko3.cloud/#extra-evaluatie-voorbereiding-alias_vakken",
-			"weight": 0,
-			"longLabel": "Evaluatie > Alias-vakken",
-			"lowerCase": "evaluatie > alias-vakken"
-		},
-		{
-			"headerLabel": "Voorbereiding",
-			"label": "Afbeeldingsgroepen",
-			"href": "https://administratie.dko3.cloud/#extra-evaluatie-voorbereiding-afbeeldingsgroepen",
-			"weight": 0,
-			"longLabel": "Evaluatie > Afbeeldingsgroepen",
-			"lowerCase": "evaluatie > afbeeldingsgroepen"
-		},
-		{
-			"headerLabel": "Voorbereiding",
-			"label": "Waardengroepen",
-			"href": "https://administratie.dko3.cloud/#extra-evaluatie-voorbereiding-waardengroepen",
-			"weight": 0,
-			"longLabel": "Evaluatie > Waardengroepen",
-			"lowerCase": "evaluatie > waardengroepen"
-		},
-		{
-			"headerLabel": "Voorbereiding",
-			"label": "Datasets",
-			"href": "https://administratie.dko3.cloud/#extra-evaluatie-voorbereiding-datasets",
-			"weight": 0,
-			"longLabel": "Evaluatie > Datasets",
-			"lowerCase": "evaluatie > datasets"
-		},
-		{
-			"headerLabel": "Controle",
-			"label": "Leerlingen zonder profiel",
-			"href": "https://administratie.dko3.cloud/#extra-evaluatie-controle-leerlingen_zonder_profiel",
-			"weight": 0,
-			"longLabel": "Evaluatie > Leerlingen zonder profiel",
-			"lowerCase": "evaluatie > leerlingen zonder profiel"
-		},
-		{
-			"headerLabel": "Controle",
-			"label": "Leerlingen met verkeerd profiel",
-			"href": "https://administratie.dko3.cloud/#extra-evaluatie-controle-leerlingen_met_verkeerd_profiel",
-			"weight": 0,
-			"longLabel": "Evaluatie > Leerlingen met verkeerd profiel",
-			"lowerCase": "evaluatie > leerlingen met verkeerd profiel"
-		},
-		{
-			"headerLabel": "Controle",
-			"label": "Overzicht afgewerkt per leerkracht",
-			"href": "https://administratie.dko3.cloud/#extra-evaluatie-controle-overzicht_afgewerkt_per_leerkracht",
-			"weight": 0,
-			"longLabel": "Evaluatie > Overzicht afgewerkt per leerkracht",
-			"lowerCase": "evaluatie > overzicht afgewerkt per leerkracht"
-		},
-		{
-			"headerLabel": "Controle",
-			"label": "Overzicht gezien op mijnACADEMIE",
-			"href": "https://administratie.dko3.cloud/#extra-evaluatie-controle-overzicht_gezien_op_mijnACADEMIE",
-			"weight": 0,
-			"longLabel": "Evaluatie > Overzicht gezien op mijnACADEMIE",
-			"lowerCase": "evaluatie > overzicht gezien op mijnacademie"
-		},
-		{
-			"headerLabel": "Officiële documenten",
-			"label": "Leerbewijzen",
-			"href": "https://administratie.dko3.cloud/#extra-evaluatie-documenten-leerbewijzen",
-			"weight": 0,
-			"longLabel": "Evaluatie > Leerbewijzen",
-			"lowerCase": "evaluatie > leerbewijzen"
-		},
-		{
-			"headerLabel": "Officiële documenten",
-			"label": "PV's",
-			"href": "https://administratie.dko3.cloud/#extra-evaluatie-documenten-pvs",
-			"weight": 0,
-			"longLabel": "Evaluatie > PV's",
-			"lowerCase": "evaluatie > pv's"
-		},
-		{
-			"headerLabel": "Structuur",
-			"label": "Evaluatieblokken",
-			"href": "https://administratie.dko3.cloud/#extra-evaluatie-structuur-blokken",
-			"weight": 0,
-			"longLabel": "Evaluatie > Evaluatieblokken",
-			"lowerCase": "evaluatie > evaluatieblokken"
-		},
-		{
-			"headerLabel": "Structuur",
-			"label": "Evaluatievakken",
-			"href": "https://administratie.dko3.cloud/#extra-evaluatie-structuur-vakken",
-			"weight": 0,
-			"longLabel": "Evaluatie > Evaluatievakken",
-			"lowerCase": "evaluatie > evaluatievakken"
-		},
-		{
-			"headerLabel": "Structuur",
-			"label": "Evaluatieprofielen",
-			"href": "https://administratie.dko3.cloud/#extra-evaluatie-structuur-profielen",
-			"weight": 0,
-			"longLabel": "Evaluatie > Evaluatieprofielen",
-			"lowerCase": "evaluatie > evaluatieprofielen"
-		},
-		{
-			"headerLabel": "Structuur",
-			"label": "Blokken zonder resultaat",
-			"href": "https://administratie.dko3.cloud/#extra-evaluatie-structuur-controle-blokken_zonder_resultaat",
-			"weight": 0,
-			"longLabel": "Evaluatie > Blokken zonder resultaat",
-			"lowerCase": "evaluatie > blokken zonder resultaat"
-		},
-		{
-			"headerLabel": "Structuur",
-			"label": "Vakken zonder resultaat",
-			"href": "https://administratie.dko3.cloud/#extra-evaluatie-structuur-controle-vakken_zonder_resultaat",
-			"weight": 0,
-			"longLabel": "Evaluatie > Vakken zonder resultaat",
-			"lowerCase": "evaluatie > vakken zonder resultaat"
-		},
-		{
-			"headerLabel": "Structuur",
-			"label": "Vakken met dubbele puntenlijstvelden",
-			"href": "https://administratie.dko3.cloud/#extra-evaluatie-structuur-controle-vakken_met_dubbele_puntenlijstvelden",
-			"weight": 0,
-			"longLabel": "Evaluatie > Vakken met dubbele puntenlijstvelden",
-			"lowerCase": "evaluatie > vakken met dubbele puntenlijstvelden"
-		},
-		{
-			"headerLabel": "Structuur",
-			"label": "Controle administratieve groepen",
-			"href": "https://administratie.dko3.cloud/#extra-evaluatie-structuur-controle-administratieve_groepen",
-			"weight": 0,
-			"longLabel": "Evaluatie > Controle administratieve groepen",
-			"lowerCase": "evaluatie > controle administratieve groepen"
-		},
-		{
-			"headerLabel": "Rapporten",
-			"label": "Rapportsjablonen",
-			"href": "https://administratie.dko3.cloud/#extra-evaluatie-rapportering-rapportsjablonen",
-			"weight": 0,
-			"longLabel": "Evaluatie > Rapportsjablonen",
-			"lowerCase": "evaluatie > rapportsjablonen"
-		},
-		{
-			"headerLabel": "Rapporten",
-			"label": "Afdrukken",
-			"href": "https://administratie.dko3.cloud/#extra-evaluatie-afdrukken",
-			"weight": 0,
-			"longLabel": "Evaluatie > Afdrukken",
-			"lowerCase": "evaluatie > afdrukken"
-		},
-		{
-			"headerLabel": "Toonmomenten & puntenlijsten",
-			"label": "Toonmomenten",
-			"href": "https://administratie.dko3.cloud/#extra-evaluatie-toonmomenten",
-			"weight": 0,
-			"longLabel": "Evaluatie > Toonmomenten",
-			"lowerCase": "evaluatie > toonmomenten"
-		},
-		{
-			"headerLabel": "Toonmomenten & puntenlijsten",
-			"label": "Puntenlijsten",
-			"href": "https://administratie.dko3.cloud/#extra-evaluatie-puntenlijsten",
-			"weight": 0,
-			"longLabel": "Evaluatie > Puntenlijsten",
-			"lowerCase": "evaluatie > puntenlijsten"
-		},
-		{
-			"headerLabel": "Toonmomenten & puntenlijsten",
-			"label": "Plichtwerken",
-			"href": "https://administratie.dko3.cloud/#extra-evaluatie-plichtwerken",
-			"weight": 0,
-			"longLabel": "Evaluatie > Plichtwerken",
-			"lowerCase": "evaluatie > plichtwerken"
-		},
-		{
-			"headerLabel": "Toonmomenten & puntenlijsten",
-			"label": "Leerlingen niet deelgenomen",
-			"href": "https://administratie.dko3.cloud/#extra-evaluatie-lijsten-puntenlijst_niet_deelgenomen",
-			"weight": 0,
-			"longLabel": "Evaluatie > Leerlingen niet deelgenomen",
-			"lowerCase": "evaluatie > leerlingen niet deelgenomen"
-		},
-		{
-			"headerLabel": "Toonmomenten & puntenlijsten",
-			"label": "Leerlingen met onvolledig programma",
-			"href": "https://administratie.dko3.cloud/#extra-evaluatie-lijsten-puntenlijst_onvolledig_programma",
-			"weight": 0,
-			"longLabel": "Evaluatie > Leerlingen met onvolledig programma",
-			"lowerCase": "evaluatie > leerlingen met onvolledig programma"
-		},
-		{
-			"headerLabel": "Toonmomenten & puntenlijsten",
-			"label": "Leerlingen met voorstel deliberatie",
-			"href": "https://administratie.dko3.cloud/#extra-evaluatie-lijsten-puntenlijst_voorstel_deliberatie",
-			"weight": 0,
-			"longLabel": "Evaluatie > Leerlingen met voorstel deliberatie",
-			"lowerCase": "evaluatie > leerlingen met voorstel deliberatie"
-		},
-		{
-			"headerLabel": "Toonmomenten & puntenlijsten",
-			"label": "Leerlingen op meerdere puntenlijsten",
-			"href": "https://administratie.dko3.cloud/#extra-evaluatie-lijsten-leerlingen_meerdere_puntenlijsten",
-			"weight": 0,
-			"longLabel": "Evaluatie > Leerlingen op meerdere puntenlijsten",
-			"lowerCase": "evaluatie > leerlingen op meerdere puntenlijsten"
-		},
-		{
-			"headerLabel": "Toonmomenten & puntenlijsten",
-			"label": "Leerlingen zonder puntenlijst",
-			"href": "https://administratie.dko3.cloud/#extra-evaluatie-lijsten-leerlingen_zonder_puntenlijst",
-			"weight": 0,
-			"longLabel": "Evaluatie > Leerlingen zonder puntenlijst",
-			"lowerCase": "evaluatie > leerlingen zonder puntenlijst"
+			"longLabel": "Assets > Interventies",
+			"lowerCase": "assets > interventies"
 		},
 		{
 			"headerLabel": "Beheer",
-			"label": "Beschikbaarheid",
-			"href": "https://administratie.dko3.cloud/#extra-evaluatie-beheer-beschikbaarheid",
+			"label": "Tarieven",
+			"href": "https://administratie.dko3.cloud/#extra-aenp-tarieven",
 			"weight": 0,
-			"longLabel": "Evaluatie > Beschikbaarheid",
-			"lowerCase": "evaluatie > beschikbaarheid"
+			"longLabel": "Assets > Tarieven",
+			"lowerCase": "assets > tarieven"
 		},
 		{
-			"headerLabel": "Jury",
-			"label": "Juryleden",
-			"href": "https://administratie.dko3.cloud/#extra-evaluatie-jury-juryleden",
+			"headerLabel": "Beheer",
+			"label": "Soorten assets",
+			"href": "https://administratie.dko3.cloud/#extra-aenp-soortenassets",
 			"weight": 0,
-			"longLabel": "Evaluatie > Juryleden",
-			"lowerCase": "evaluatie > juryleden"
+			"longLabel": "Assets > Soorten assets",
+			"lowerCase": "assets > soorten assets"
 		},
 		{
-			"headerLabel": "Jury",
-			"label": "Erelonen",
-			"href": "https://administratie.dko3.cloud/#extra-evaluatie-jury-erelonen",
+			"headerLabel": "Beheer",
+			"label": "Soorten uitleningen",
+			"href": "https://administratie.dko3.cloud/#extra-aenp-soortenuitleningen",
 			"weight": 0,
-			"longLabel": "Evaluatie > Erelonen",
-			"lowerCase": "evaluatie > erelonen"
+			"longLabel": "Assets > Soorten uitleningen",
+			"lowerCase": "assets > soorten uitleningen"
 		},
 		{
-			"headerLabel": "Jury",
-			"label": "Verplaatsingsonkosten",
-			"href": "https://administratie.dko3.cloud/#extra-evaluatie-jury-verplaatsingsonkosten",
+			"headerLabel": "Beheer",
+			"label": "Soorten interventies",
+			"href": "https://administratie.dko3.cloud/#extra-aenp-soorteninterventies",
 			"weight": 0,
-			"longLabel": "Evaluatie > Verplaatsingsonkosten",
-			"lowerCase": "evaluatie > verplaatsingsonkosten"
+			"longLabel": "Assets > Soorten interventies",
+			"lowerCase": "assets > soorten interventies"
 		},
 		{
-			"headerLabel": "Controle resultaat",
-			"label": "Leerlingen zonder resultaat voor een blok",
-			"href": "https://administratie.dko3.cloud/#extra-evaluatie-lijsten-leerlingen_zonder_resultaat_voor_een_blok",
+			"headerLabel": "Beheer",
+			"label": "Eenheden",
+			"href": "https://administratie.dko3.cloud/#extra-aenp-eenheden",
 			"weight": 0,
-			"longLabel": "Evaluatie > Leerlingen zonder resultaat voor een blok",
-			"lowerCase": "evaluatie > leerlingen zonder resultaat voor een blok"
+			"longLabel": "Assets > Eenheden",
+			"lowerCase": "assets > eenheden"
 		},
 		{
-			"headerLabel": "Controle resultaat",
-			"label": "Leerlingen zonder resultaat voor een vak",
-			"href": "https://administratie.dko3.cloud/#extra-evaluatie-lijsten-leerlingen_zonder_resultaat_voor_een_vak",
+			"headerLabel": "Beheer",
+			"label": "Eigenaars",
+			"href": "https://administratie.dko3.cloud/#extra-aenp-eigenaars",
 			"weight": 0,
-			"longLabel": "Evaluatie > Leerlingen zonder resultaat voor een vak",
-			"lowerCase": "evaluatie > leerlingen zonder resultaat voor een vak"
+			"longLabel": "Assets > Eigenaars",
+			"lowerCase": "assets > eigenaars"
 		},
 		{
-			"headerLabel": "Controle resultaat",
-			"label": "Leerlingen zonder globaal resultaat",
-			"href": "https://administratie.dko3.cloud/#extra-evaluatie-lijsten-leerlingen_zonder_globaal_resultaat",
+			"headerLabel": "Beheer",
+			"label": "Leveranciers",
+			"href": "https://administratie.dko3.cloud/#extra-aenp-leveranciers",
 			"weight": 0,
-			"longLabel": "Evaluatie > Leerlingen zonder globaal resultaat",
-			"lowerCase": "evaluatie > leerlingen zonder globaal resultaat"
+			"longLabel": "Assets > Leveranciers",
+			"lowerCase": "assets > leveranciers"
 		},
 		{
-			"headerLabel": "Controle resultaat",
-			"label": "Leerlingen niet geslaagd voor een vak",
-			"href": "https://administratie.dko3.cloud/#extra-evaluatie-lijsten-leerlingen_niet_geslaagd_voor_een_vak",
+			"headerLabel": "Beheer",
+			"label": "Merken",
+			"href": "https://administratie.dko3.cloud/#extra-aenp-merken",
 			"weight": 0,
-			"longLabel": "Evaluatie > Leerlingen niet geslaagd voor een vak",
-			"lowerCase": "evaluatie > leerlingen niet geslaagd voor een vak"
+			"longLabel": "Assets > Merken",
+			"lowerCase": "assets > merken"
 		},
 		{
-			"headerLabel": "Controle resultaat",
-			"label": "Leerlingen globaal niet geslaagd",
-			"href": "https://administratie.dko3.cloud/#extra-evaluatie-lijsten-leerlingen_globaal_niet_geslaagd",
+			"headerLabel": "Beheer",
+			"label": "Types",
+			"href": "https://administratie.dko3.cloud/#extra-aenp-types",
 			"weight": 0,
-			"longLabel": "Evaluatie > Leerlingen globaal niet geslaagd",
-			"lowerCase": "evaluatie > leerlingen globaal niet geslaagd"
+			"longLabel": "Assets > Types",
+			"lowerCase": "assets > types"
+		},
+		{
+			"headerLabel": "Beheer",
+			"label": "In bulk koppelen...",
+			"href": "https://administratie.dko3.cloud/#extra-aenp-bulk",
+			"weight": 0,
+			"longLabel": "Assets > In bulk koppelen...",
+			"lowerCase": "assets > in bulk koppelen..."
+		},
+		{
+			"headerLabel": "Documentatie",
+			"label": "Classificatie",
+			"href": "https://administratie.dko3.cloud/#extra-aenp-documentatie-classificatie",
+			"weight": 0,
+			"longLabel": "Assets > Classificatie",
+			"lowerCase": "assets > classificatie"
 		}
-	],
-	"Academie": [
-		{
-			"headerLabel": "Vestigingsplaatsen",
-			"label": "Vestigingsplaatsen",
-			"href": "https://administratie.dko3.cloud/#extra-academie-vestigingsplaatsen",
-			"weight": 0,
-			"longLabel": "Academie > Vestigingsplaatsen",
-			"lowerCase": "academie > vestigingsplaatsen"
-		},
-		{
-			"headerLabel": "Vestigingsplaatsen",
-			"label": "Vestigingsplaatsen per schooljaar",
-			"href": "https://administratie.dko3.cloud/#extra-academie-vestigingsplaatsenperschooljaar",
-			"weight": 0,
-			"longLabel": "Academie > Vestigingsplaatsen per schooljaar",
-			"lowerCase": "academie > vestigingsplaatsen per schooljaar"
-		},
-		{
-			"headerLabel": "Vestigingsplaatsen",
-			"label": "Vestigingsplaatsen volgens AGODI",
-			"href": "https://administratie.dko3.cloud/#extra-academie-vestigingsplaatsenvolgensagodi",
-			"weight": 0,
-			"longLabel": "Academie > Vestigingsplaatsen volgens AGODI",
-			"lowerCase": "academie > vestigingsplaatsen volgens agodi"
-		},
-		{
-			"headerLabel": "Communicatie",
-			"label": "Providers",
-			"href": "https://administratie.dko3.cloud/#extra-academie-communicatie-providers",
-			"weight": 0,
-			"longLabel": "Academie > Providers",
-			"lowerCase": "academie > providers"
-		},
-		{
-			"headerLabel": "Communicatie",
-			"label": "Rapport naar...",
-			"href": "https://administratie.dko3.cloud/#extra-academie-communicatie-rapporten",
-			"weight": 0,
-			"longLabel": "Academie > Rapport naar...",
-			"lowerCase": "academie > rapport naar..."
-		},
-		{
-			"headerLabel": "Communicatie",
-			"label": "Campagnes",
-			"href": "https://administratie.dko3.cloud/#extra-academie-communicatie-lijsten-campagnes",
-			"weight": 0,
-			"longLabel": "Academie > Campagnes",
-			"lowerCase": "academie > campagnes"
-		},
-		{
-			"headerLabel": "Communicatie",
-			"label": "E-mailadres",
-			"href": "https://administratie.dko3.cloud/#extra-academie-communicatie-lijsten-leerlingen_zonder_email",
-			"weight": 0,
-			"longLabel": "Academie > E-mailadres",
-			"lowerCase": "academie > e-mailadres"
-		},
-		{
-			"headerLabel": "Communicatie",
-			"label": "Mobiel nummer voor verwittiging",
-			"href": "https://administratie.dko3.cloud/#extra-academie-communicatie-lijsten-leerlingen_zonder_sms",
-			"weight": 0,
-			"longLabel": "Academie > Mobiel nummer voor verwittiging",
-			"lowerCase": "academie > mobiel nummer voor verwittiging"
-		},
-		{
-			"headerLabel": "Communicatie",
-			"label": "Noodnummer (ICE)",
-			"href": "https://administratie.dko3.cloud/#extra-academie-communicatie-lijsten-leerlingen_zonder_noodnummer",
-			"weight": 0,
-			"longLabel": "Academie > Noodnummer (ICE)",
-			"lowerCase": "academie > noodnummer (ice)"
-		},
-		{
-			"headerLabel": "Syndication",
-			"label": "RSS-feeds",
-			"href": "https://administratie.dko3.cloud/#extra-academie-syndication-rssfeeds",
-			"weight": 0,
-			"longLabel": "Academie > RSS-feeds",
-			"lowerCase": "academie > rss-feeds"
-		},
-		{
-			"headerLabel": "WISA Synchronisatie",
-			"label": "Status alle academies van de IM",
-			"href": "https://administratie.dko3.cloud/#extra-academie-wisa-status",
-			"weight": 0,
-			"longLabel": "Academie > Status alle academies van de IM",
-			"lowerCase": "academie > status alle academies van de im"
-		},
-		{
-			"headerLabel": "mijnACADEMIE ™",
-			"label": "",
-			"href": "https://mijnacademie.be/",
-			"weight": 0,
-			"longLabel": "Academie > ",
-			"lowerCase": "academie > "
-		},
-		{
-			"headerLabel": "mijnACADEMIE ™",
-			"label": "Instellingen",
-			"href": "https://administratie.dko3.cloud/#extra-mijnacademie-instellingen",
-			"weight": 0,
-			"longLabel": "Academie > Instellingen",
-			"lowerCase": "academie > instellingen"
-		},
-		{
-			"headerLabel": "mijnACADEMIE ™",
-			"label": "Layout",
-			"href": "https://administratie.dko3.cloud/#extra-mijnacademie-layout",
-			"weight": 0,
-			"longLabel": "Academie > Layout",
-			"lowerCase": "academie > layout"
-		},
-		{
-			"headerLabel": "DKO3 ™",
-			"label": "Accountbeheer",
-			"href": "https://administratie.dko3.cloud/#extra-academie-accounts",
-			"weight": 0,
-			"longLabel": "Academie > Accountbeheer",
-			"lowerCase": "academie > accountbeheer"
-		},
-		{
-			"headerLabel": "DKO3 ™",
-			"label": "Niet-actieve accounts",
-			"href": "https://administratie.dko3.cloud/#extra-academie-accounts-nietactieve",
-			"weight": 0,
-			"longLabel": "Academie > Niet-actieve accounts",
-			"lowerCase": "academie > niet-actieve accounts"
-		},
-		{
-			"headerLabel": "DKO3 ™",
-			"label": "IDP Stedelijk Onderwijs Antwerpen",
-			"href": "https://administratie.dko3.cloud/#extra-academie-accounts-idp_antwerpen",
-			"weight": 0,
-			"longLabel": "Academie > IDP Stedelijk Onderwijs Antwerpen",
-			"lowerCase": "academie > idp stedelijk onderwijs antwerpen"
-		},
-		{
-			"headerLabel": "DKO3 ™",
-			"label": "Instellingen",
-			"href": "https://administratie.dko3.cloud/#extra-academie-instellingen",
-			"weight": 0,
-			"longLabel": "Academie > Instellingen",
-			"lowerCase": "academie > instellingen"
-		},
-		{
-			"headerLabel": "Documenten & bestanden",
-			"label": "Documentsjablonen",
-			"href": "https://administratie.dko3.cloud/#extra-academie-documentsjablonen",
-			"weight": 0,
-			"longLabel": "Academie > Documentsjablonen",
-			"lowerCase": "academie > documentsjablonen"
-		},
-		{
-			"headerLabel": "Documenten & bestanden",
-			"label": "Bestanden",
-			"href": "https://administratie.dko3.cloud/#extra-academie-bestanden",
-			"weight": 0,
-			"longLabel": "Academie > Bestanden",
-			"lowerCase": "academie > bestanden"
-		},
-		{
-			"headerLabel": "Documenten & bestanden",
-			"label": "Publieke bestanden",
-			"href": "https://administratie.dko3.cloud/#extra-academie-publiekebestanden",
-			"weight": 0,
-			"longLabel": "Academie > Publieke bestanden",
-			"lowerCase": "academie > publieke bestanden"
-		},
-		{
-			"headerLabel": "Documenten & bestanden",
-			"label": "Etiketformaten",
-			"href": "https://administratie.dko3.cloud/#extra-academie-etiketformaten",
-			"weight": 0,
-			"longLabel": "Academie > Etiketformaten",
-			"lowerCase": "academie > etiketformaten"
-		},
-		{
-			"headerLabel": "Documenten & bestanden",
-			"label": "Onze documenten",
-			"href": "https://administratie.dko3.cloud/#extra-academie-onze_documenten",
-			"weight": 0,
-			"longLabel": "Academie > Onze documenten",
-			"lowerCase": "academie > onze documenten"
-		},
-		{
-			"headerLabel": "Organisatie",
-			"label": "Lesvrije dagen",
-			"href": "https://administratie.dko3.cloud/#extra-academie-lesvrije_dagen",
-			"weight": 0,
-			"longLabel": "Academie > Lesvrije dagen",
-			"lowerCase": "academie > lesvrije dagen"
-		},
-		{
-			"headerLabel": "Organisatie",
-			"label": "Mijn weken",
-			"href": "https://administratie.dko3.cloud/#extra-academie-mijnweken",
-			"weight": 0,
-			"longLabel": "Academie > Mijn weken",
-			"lowerCase": "academie > mijn weken"
-		},
-		{
-			"headerLabel": "Organisatie",
-			"label": "Beschikbaarheid aanwezigheden",
-			"href": "https://administratie.dko3.cloud/#extra-academie-aanwezigheden-beschikbaarheid",
-			"weight": 0,
-			"longLabel": "Academie > Beschikbaarheid aanwezigheden",
-			"lowerCase": "academie > beschikbaarheid aanwezigheden"
-		},
-		{
-			"headerLabel": "Organisatie",
-			"label": "Gemiddeld aantal lestijden",
-			"href": "https://administratie.dko3.cloud/#extra-academie-lestijden",
-			"weight": 0,
-			"longLabel": "Academie > Gemiddeld aantal lestijden",
-			"lowerCase": "academie > gemiddeld aantal lestijden"
-		}
-	]
+	] }
 };
+//#endregion
+//#region typescript/powerQuery/default_items_types.ts
+function isDefaultQueryItemsWithVersion(item) {
+	return "__version__" in item && "queryItems" in item;
+}
 let powerQueryItems = [];
 function addQueryItem(headerLabel, label, href, func, longLabelText) {
 	powerQueryItems.push(createQueryItem(headerLabel, label, href, func, longLabelText));
@@ -2939,18 +1633,29 @@ function createQueryItem(headerLabel, label, href, func, longLabelText) {
 	};
 }
 function saveQueryItems(page, queryItems) {
-	let savedPowerQueryString = localStorage.getItem(POWER_QUERY_ID);
-	if (!savedPowerQueryString) savedPowerQueryString = "{}";
-	let savedPowerQuery = JSON.parse(savedPowerQueryString);
+	let savedPowerQuery = getSavedQueryItems();
 	savedPowerQuery[page] = queryItems;
-	localStorage.setItem(POWER_QUERY_ID, JSON.stringify(savedPowerQuery));
+	let queryItemsWithVersion = {
+		__version__: 1,
+		queryItems: savedPowerQuery
+	};
+	localStorage.setItem(POWER_QUERY_ID, JSON.stringify(queryItemsWithVersion));
+}
+function getSavedQueryItems() {
+	let savedPowerQuery = {};
+	let savedPowerQueryString = localStorage.getItem(POWER_QUERY_ID);
+	if (savedPowerQueryString) {
+		let savedPowerQueryTry = JSON.parse(savedPowerQueryString);
+		if (isDefaultQueryItemsWithVersion(savedPowerQueryTry)) {
+			if (savedPowerQueryTry.__version__ == 1) savedPowerQuery = savedPowerQueryTry.queryItems;
+		}
+	}
+	return savedPowerQuery;
 }
 function getSavedAndDefaultQueryItems() {
-	let savedPowerQuery = {};
 	let allItems = [];
-	let savedPowerQueryString = localStorage.getItem(POWER_QUERY_ID);
-	if (savedPowerQueryString) savedPowerQuery = JSON.parse(savedPowerQueryString);
-	let mergedPages = { ...defaultQueryItems };
+	let savedPowerQuery = getSavedQueryItems();
+	let mergedPages = { ...defaultQueryItems.queryItems };
 	for (let page in savedPowerQuery) mergedPages[page] = savedPowerQuery[page];
 	for (let page in mergedPages) allItems.push(...mergedPages[page]);
 	return allItems;
@@ -3096,13 +1801,13 @@ function isSorted(arr) {
 	for (let i = 0; i < arr.length - 1; i++) if (arr[i] > arr[i + 1]) return false;
 	return true;
 }
-function scrapeMenuPage(longLabelPrefix, linkConverter) {
+function scrapeMenuPage(page, longLabelPrefix, linkConverter) {
 	let queryItems = [];
 	let blocks = document.querySelectorAll("div.card-body");
 	for (let block of blocks) {
+		let headerLabel = page;
 		let header = block.querySelector("h5");
-		if (!header) continue;
-		let headerLabel = header.textContent.trim();
+		if (header) headerLabel = header.textContent.trim();
 		let links = block.querySelectorAll("a");
 		for (let link of links) {
 			if (!link.href) continue;
@@ -3229,7 +1934,7 @@ var MenuScrapingObserver = class MenuScrapingObserver extends ExactHashObserver 
 		if (this.isPageMatching()) this.onMutationPageWithMenu();
 	}
 	onMutationPageWithMenu() {
-		saveQueryItems(this.page, scrapeMenuPage(this.longLabelPrefix, MenuScrapingObserver.defaultLinkToQueryItem));
+		saveQueryItems(this.page, scrapeMenuPage(this.page, this.longLabelPrefix, MenuScrapingObserver.defaultLinkToQueryItem));
 		return true;
 	}
 	static defaultLinkToQueryItem(headerLabel, link, longLabelPrefix) {
@@ -12531,11 +11236,11 @@ var ExtraInschrijvingenObserver = class extends ExactHashObserver {
 let extraInschrijvingenObserver = new ExtraInschrijvingenObserver();
 let allLijstenObserver = new MenuScrapingObserver("#leerlingen-lijsten", "Lijsten", "Lijsten > ", "#div_leerlingen_lijsten");
 let financialObserver = new MenuScrapingObserver("#extra-financieel", "Financieel", "Financieel > ", "#view_contents > div:nth-child(2) > div:nth-child(3) > div:nth-child(2) > div > a:nth-child(8)");
-let assetsObserver = new MenuScrapingObserver("#extra-assets", "Assets", "Assets > ", "#view_contents > div:nth-child(2) > div:nth-child(2) > div > div > a:nth-child(10)");
+let assetsObserver = new MenuScrapingObserver("#extra-aenp", "Assets", "Assets > ", "#view_contents > div:nth-child(6)");
 let evaluatieObserver = new MenuScrapingObserver("#extra-evaluatie", "Evaluatie", "Evaluatie > ", "#view_contents > div:nth-child(3) > div:nth-child(3) > div:nth-child(3) > div > a:nth-child(10)");
 let academieMenuObserver = new MenuScrapingObserver("#extra-academie", "Academie", "Academie > ", "#view_contents > div:nth-child(2) > div:nth-child(3) > div:nth-child(2) > div > a:nth-child(12)");
 function onMutationExtraInschrijvingen(_mutation) {
-	saveQueryItems("ExtraInschrijvingen", scrapeMenuPage("Inschrijvingen > ", inschrijvingenLinkToQueryItem));
+	saveQueryItems("ExtraInschrijvingen", scrapeMenuPage("ExtraInschrijvingen", "Inschrijvingen > ", inschrijvingenLinkToQueryItem));
 	return true;
 }
 function inschrijvingenLinkToQueryItem(headerLabel, link, longLabelPrefix) {

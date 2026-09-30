@@ -10,3 +10,12 @@ export type DefaultQueryItem = {
 export type DefaultQueryItems = {
     [key: string]: DefaultQueryItem[];
 };
+
+export type DefaultQueryItemsWithVersion = {
+    __version__: number;
+    queryItems: DefaultQueryItems;
+}
+
+export function isDefaultQueryItemsWithVersion(item: object): item is DefaultQueryItemsWithVersion {
+    return '__version__' in item && 'queryItems' in item;
+}
