@@ -116,7 +116,7 @@
 		getTo(endChar, allowEscape = false) {
 			let start = this.currentPos + 1;
 			let end = start;
-			while (end < this.length && (this.text[end] != endChar || this.text[end - 1] == "'")) end++;
+			while (end < this.length && (this.text[end] != endChar || this.text[end - 1] == "\\")) end++;
 			if (end == this.length) return null;
 			this.currentPos = end;
 			return {
@@ -127,7 +127,7 @@
 		getToNot(notChar) {
 			let start = this.currentPos + 1;
 			let end = start;
-			while (end < this.length && (this.text[end] == notChar || this.text[end - 1] == "'")) end++;
+			while (end < this.length && (this.text[end] == notChar || this.text[end - 1] == "\\")) end++;
 			if (end == this.length) return null;
 			if (end == start) return null;
 			this.currentPos = end - 1;
