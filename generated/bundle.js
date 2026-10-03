@@ -7864,7 +7864,7 @@ async function fetchLes(id, signal, options) {
 //#region typescript/leerling/observer.ts
 var LeerlingObserver = class extends HashObserver {
 	constructor() {
-		super("#leerlingen-leerling", onMutation$8);
+		super("#leerlingen-leerling", onMutation$8, true);
 	}
 	isPageReallyLoaded() {
 		throw new Error("Method not implemented.");
@@ -7872,8 +7872,10 @@ var LeerlingObserver = class extends HashObserver {
 };
 var observer_default$9 = new LeerlingObserver();
 function onMutation$8(mutation) {
+	console.log("onMutation");
 	checkAndExpandTabs();
 	checkAndDecorate("vh_header_leerlingen_leerling_left_title", decorateName);
+	checkAndDecorate("form_leerling_fin_terugbetaling_transactie_toevoegen", decorateRefund);
 	let tabInschrijving = document.getElementById("leerling_inschrijvingen_weergave");
 	if (mutation.target === tabInschrijving) {
 		onInschrijvingChanged(tabInschrijving);
@@ -7893,6 +7895,17 @@ function onMutation$8(mutation) {
 		return true;
 	}
 	return false;
+}
+function decorateRefund() {
+	console.log("decorateRefund");
+	let select = document.getElementById("leerling_fin_terugbetaling_transactie_toevoegen_soort");
+	select.value = "14";
+	let option3 = select.querySelector("option[value='3']");
+	if (option3) option3.classList.add("lightRedBkg");
+	select.addEventListener("change", (ev) => {
+		console.log("decorateRefund change");
+		select.classList.toggle("lightRedBkg", ev.target.value === "3");
+	});
 }
 function checkAndExpandTabs() {
 	let tabsLeerling = document.querySelector("#tab_leerling");

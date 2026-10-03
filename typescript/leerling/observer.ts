@@ -11,7 +11,7 @@ import {buildLesTitle, createLesCard, LesInfo, Opleiding, scrapeOpleidingen} fro
 
 class LeerlingObserver extends HashObserver {
     constructor() {
-        super("#leerlingen-leerling", onMutation);
+        super("#leerlingen-leerling", onMutation, true);
     }
     isPageReallyLoaded(): boolean {
         throw new Error("Method not implemented.");
@@ -21,8 +21,11 @@ class LeerlingObserver extends HashObserver {
 export default new LeerlingObserver();
 
 function onMutation(mutation: MutationRecord) {
+    console.log("onMutation");
     checkAndExpandTabs();
     checkAndDecorate("vh_header_leerlingen_leerling_left_title", decorateName);
+    checkAndDecorate("form_leerling_fin_terugbetaling_transactie_toevoegen", decorateRefund);
+
     let tabInschrijving = document.getElementById("leerling_inschrijvingen_weergave");
     if (mutation.target === tabInschrijving) {
         // noinspection JSIgnoredPromiseFromCall
@@ -44,6 +47,22 @@ function onMutation(mutation: MutationRecord) {
         return true;
     }
     return false;
+}
+
+function decorateRefund() {
+    console.log("decorateRefund");
+    let select = document.getElementById("leerling_fin_terugbetaling_transactie_toevoegen_soort") as HTMLSelectElement;
+    select.value = "14";
+    //set option "3" red
+    let option3 = select.querySelector("option[value='3']");
+    if (option3) {
+        option3.classList.add("lightRedBkg");
+    }
+
+    select.addEventListener("change", (ev) => {
+        console.log("decorateRefund change");
+        select.classList.toggle("lightRedBkg", (ev.target as HTMLSelectElement).value === "3");
+    });
 }
 
 function checkAndExpandTabs(): void {

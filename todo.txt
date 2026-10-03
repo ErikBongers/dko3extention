@@ -72,8 +72,6 @@ Given the sender of the following mail has 3 children, Bob 5y, Alice 7y and Clar
         margin-inline-start: 0; // >> works!
         max-width: 100%;
 
-* voornaam achternaam ook voor personeelsfiche
-
 * lessen: filter op klassen met wachtlijst maar toch terug plaats.
   > add to checks.
   > have a menu-item checks

@@ -646,3 +646,8 @@ span.block {
         background-color: rgb(from var(--ai-highlight-bkgcolor) r g b / 30%);
     }
 }
+
+.lightRedBkg,
+select.lightRedBkg {
+    background-color: #ffb290;
+}
