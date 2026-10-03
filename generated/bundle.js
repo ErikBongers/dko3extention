@@ -7873,7 +7873,7 @@ var LeerlingObserver = class extends HashObserver {
 var observer_default$9 = new LeerlingObserver();
 function onMutation$8(mutation) {
 	checkAndExpandTabs();
-	checkAndDecorateName();
+	checkAndDecorate("vh_header_leerlingen_leerling_left_title", decorateName);
 	let tabInschrijving = document.getElementById("leerling_inschrijvingen_weergave");
 	if (mutation.target === tabInschrijving) {
 		onInschrijvingChanged(tabInschrijving);
@@ -7893,13 +7893,6 @@ function onMutation$8(mutation) {
 		return true;
 	}
 	return false;
-}
-function checkAndDecorateName() {
-	let header = document.getElementById("vh_header_leerlingen_leerling_left_title");
-	if (!header) return;
-	if (header.dataset.nameDecorated === "true") return;
-	decorateName(header);
-	header.dataset.nameDecorated = "true";
 }
 function checkAndExpandTabs() {
 	let tabsLeerling = document.querySelector("#tab_leerling");

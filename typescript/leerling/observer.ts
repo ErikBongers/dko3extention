@@ -1,10 +1,10 @@
-import {decorateName, Schoolyear, wrapElement} from "../globals";
+import {checkAndDecorate, decorateName, Schoolyear, wrapElement} from "../globals";
 import {HashObserver} from "../pageObserver";
 import {options} from "../plugin_options/options";
 import {fetchLes} from "../les/fetch";
 import {DropDownMenu} from "../dropDownMenus";
 import {DomeinString, LessenFilterBuilder} from "../lessen/fetch";
-import {emmet} from "../../libs/Emmeter/html";
+import {emmet} from "../../libs/Emmeter";
 import {GradeYear} from "../gradeYear";
 import {restorePage, savePage} from "../restorePage";
 import {buildLesTitle, createLesCard, LesInfo, Opleiding, scrapeOpleidingen} from "./scrape";
@@ -22,7 +22,7 @@ export default new LeerlingObserver();
 
 function onMutation(mutation: MutationRecord) {
     checkAndExpandTabs();
-    checkAndDecorateName();
+    checkAndDecorate("vh_header_leerlingen_leerling_left_title", decorateName);
     let tabInschrijving = document.getElementById("leerling_inschrijvingen_weergave");
     if (mutation.target === tabInschrijving) {
         // noinspection JSIgnoredPromiseFromCall
@@ -44,18 +44,6 @@ function onMutation(mutation: MutationRecord) {
         return true;
     }
     return false;
-}
-
-function checkAndDecorateName(): void {
-    let header = document.getElementById("vh_header_leerlingen_leerling_left_title") as HTMLHeadingElement;
-    if (!header)
-        return;
-    if (header.dataset.nameDecorated === "true")
-        return;
-
-    decorateName(header);
-    header.dataset.nameDecorated = "true";
-    return;
 }
 
 function checkAndExpandTabs(): void {
