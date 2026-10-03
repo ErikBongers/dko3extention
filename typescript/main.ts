@@ -1,6 +1,7 @@
 //to avoid "unused function" errors in linters, this file is called as a module.
 import {equals, getOptions, observers, registerObserver, settingsObservers} from "./globals";
 import leerlingObserver from "./leerling/observer";
+import personeelsLidObserver from "./personeelslid/observer";
 import lessenObserver from "./lessen/observer";
 import lesObserver from "./les/observer";
 import startPageObserver from "./startPage/observer";
@@ -83,6 +84,7 @@ function init() {
         registerObserver(afwezighedenObserver);
         registerObserver(startPageObserver);
         registerObserver(zoekenObserver);
+        registerObserver(personeelsLidObserver);
         onPageChanged();
         setupPowerQuery();
         getNotifRedButton();

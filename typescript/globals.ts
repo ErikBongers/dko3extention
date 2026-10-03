@@ -579,3 +579,56 @@ export function highlightText(element: HTMLElement | NodeListOf<HTMLElement>, wo
     }
 }
 
+export function decorateName(header: HTMLElement): void {
+    if (!options.reorderStudentName)
+        return;
+    let name = header.textContent;
+    let split = name.split(",");
+    let firstName = split.pop() ?? "";
+    let lastName = split.pop() ?? "";
+    let officialFirstName = "";
+    if (firstName.includes("(")) {
+        let matches = firstName.match(/(\S*) *\((.*)\)/);
+        if (matches?.length === 3) {
+            firstName = matches[2];
+            officialFirstName = matches[1];
+        }
+    }
+
+    header.textContent = "";
+    let spanFirstName = document.createElement("span");
+    spanFirstName.classList.add("firstName");
+    spanFirstName.innerText = firstName;
+    header.appendChild(spanFirstName);
+    header.appendChild(document.createTextNode(" "));
+    let spanLastName = document.createElement("span");
+    spanLastName.classList.add("lastName");
+    spanLastName.innerText = lastName;
+    header.appendChild(spanLastName);
+    if (officialFirstName) {
+        header.appendChild(document.createTextNode(" ("));
+        let spanCallName = document.createElement("span");
+        spanCallName.classList.add("officialName");
+        spanCallName.innerText = officialFirstName;
+        header.appendChild(spanCallName);
+        header.appendChild(document.createTextNode(")"));
+    }
+}
+
+export type Decorator = (header: HTMLElement) => void;
+
+export function checkAndDecorate(target: HTMLElement | string | null, decorate: Decorator): void {
+    if (!target)
+        return;
+
+    let el = typeof target === "string" ? document.getElementById(target) : target;
+    if (!el)
+        return;
+
+    if (el.dataset.nameDecorated === "true")
+        return;
+
+    decorate(el);
+    el.dataset.nameDecorated = "true";
+    return;
+}

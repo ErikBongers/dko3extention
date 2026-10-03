@@ -1036,6 +1036,46 @@ function highlightText(element, wordList, highlightClassName, extraClasses = [])
 		}
 	}
 }
+function decorateName(header) {
+	if (!options.reorderStudentName) return;
+	let split = header.textContent.split(",");
+	let firstName = split.pop() ?? "";
+	let lastName = split.pop() ?? "";
+	let officialFirstName = "";
+	if (firstName.includes("(")) {
+		let matches = firstName.match(/(\S*) *\((.*)\)/);
+		if (matches?.length === 3) {
+			firstName = matches[2];
+			officialFirstName = matches[1];
+		}
+	}
+	header.textContent = "";
+	let spanFirstName = document.createElement("span");
+	spanFirstName.classList.add("firstName");
+	spanFirstName.innerText = firstName;
+	header.appendChild(spanFirstName);
+	header.appendChild(document.createTextNode(" "));
+	let spanLastName = document.createElement("span");
+	spanLastName.classList.add("lastName");
+	spanLastName.innerText = lastName;
+	header.appendChild(spanLastName);
+	if (officialFirstName) {
+		header.appendChild(document.createTextNode(" ("));
+		let spanCallName = document.createElement("span");
+		spanCallName.classList.add("officialName");
+		spanCallName.innerText = officialFirstName;
+		header.appendChild(spanCallName);
+		header.appendChild(document.createTextNode(")"));
+	}
+}
+function checkAndDecorate(target, decorate) {
+	if (!target) return;
+	let el = typeof target === "string" ? document.getElementById(target) : target;
+	if (!el) return;
+	if (el.dataset.nameDecorated === "true") return;
+	decorate(el);
+	el.dataset.nameDecorated = "true";
+}
 //#endregion
 //#region typescript/gotoState.ts
 function saveGotoState(state) {
@@ -2899,14 +2939,14 @@ function swapColumns(row, index1, index2) {
 //#region typescript/table/observer.ts
 var TableObserver = class extends BaseObserver {
 	constructor() {
-		super(void 0, new AllPageFilter(), onMutation$9);
+		super(void 0, new AllPageFilter(), onMutation$10);
 	}
 	isPageReallyLoaded() {
 		return getBothToolbars() != void 0;
 	}
 };
-var observer_default$10 = new TableObserver();
-function onMutation$9(_mutation) {
+var observer_default$11 = new TableObserver();
+function onMutation$10(_mutation) {
 	let navigationBars = getBothToolbars();
 	if (!navigationBars) return false;
 	if (!findTableRefInCode()?.navigationData.isOnePage()) addTableNavigationButton(navigationBars, DOWNLOAD_TABLE_BTN_ID, "download full table", createDownloadTableWithExtraAction(), "fa-arrow-down");
@@ -6042,13 +6082,13 @@ function textToCodes(items, vakDefs) {
 //#region typescript/lessen/observer.ts
 var LessenObserver = class extends HashObserver {
 	constructor() {
-		super("#lessen-overzicht", onMutation$8, false, onPageRefreshed$1);
+		super("#lessen-overzicht", onMutation$9, false, onPageRefreshed$1);
 	}
 	isPageReallyLoaded() {
 		return document.getElementById("btn_lessen_overzicht_zoeken") != null;
 	}
 };
-var observer_default$9 = new LessenObserver();
+var observer_default$10 = new LessenObserver();
 function onPageRefreshed$1() {
 	console.log(`Lessen.onPageRefreshed: hash: ${location.hash}`);
 	if (location.hash != "#lessen-overzicht") return;
@@ -6063,7 +6103,7 @@ function addTrimesterButton() {
 	}
 	return true;
 }
-function onMutation$8(mutation) {
+function onMutation$9(mutation) {
 	addTrimesterButton();
 	let lessenOverzicht = document.getElementById(LESSEN_OVERZICHT_ID);
 	if (mutation.target !== lessenOverzicht) return false;
@@ -7824,14 +7864,14 @@ async function fetchLes(id, signal, options) {
 //#region typescript/leerling/observer.ts
 var LeerlingObserver = class extends HashObserver {
 	constructor() {
-		super("#leerlingen-leerling", onMutation$7);
+		super("#leerlingen-leerling", onMutation$8);
 	}
 	isPageReallyLoaded() {
 		throw new Error("Method not implemented.");
 	}
 };
-var observer_default$8 = new LeerlingObserver();
-function onMutation$7(mutation) {
+var observer_default$9 = new LeerlingObserver();
+function onMutation$8(mutation) {
 	checkAndExpandTabs();
 	checkAndDecorateName();
 	let tabInschrijving = document.getElementById("leerling_inschrijvingen_weergave");
@@ -7860,38 +7900,6 @@ function checkAndDecorateName() {
 	if (header.dataset.nameDecorated === "true") return;
 	decorateName(header);
 	header.dataset.nameDecorated = "true";
-}
-function decorateName(header) {
-	if (!options.reorderStudentName) return;
-	let split = header.textContent.split(",");
-	let firstName = split.pop() ?? "";
-	let lastName = split.pop() ?? "";
-	let officialFirstName = "";
-	if (firstName.includes("(")) {
-		let matches = firstName.match(/(\S*) *\((.*)\)/);
-		if (matches?.length === 3) {
-			firstName = matches[2];
-			officialFirstName = matches[1];
-		}
-	}
-	header.textContent = "";
-	let spanFirstName = document.createElement("span");
-	spanFirstName.classList.add("firstName");
-	spanFirstName.innerText = firstName;
-	header.appendChild(spanFirstName);
-	header.appendChild(document.createTextNode(" "));
-	let spanLastName = document.createElement("span");
-	spanLastName.classList.add("lastName");
-	spanLastName.innerText = lastName;
-	header.appendChild(spanLastName);
-	if (officialFirstName) {
-		header.appendChild(document.createTextNode(" ("));
-		let spanCallName = document.createElement("span");
-		spanCallName.classList.add("officialName");
-		spanCallName.innerText = officialFirstName;
-		header.appendChild(spanCallName);
-		header.appendChild(document.createTextNode(")"));
-	}
 }
 function checkAndExpandTabs() {
 	let tabsLeerling = document.querySelector("#tab_leerling");
@@ -8101,6 +8109,21 @@ async function getModules(_size, _modal, _file, args) {
 	template.innerHTML = text2;
 	let checks = template.content.querySelectorAll("i.fa-check-square");
 	return Array.from(checks).map((check) => check.parentNode.parentNode.parentNode.querySelector("strong").textContent);
+}
+//#endregion
+//#region typescript/personeelslid/observer.ts
+var PersoneelsLidObserver = class extends HashObserver {
+	constructor() {
+		super("#personeel-personeelslid", onMutation$7);
+	}
+	isPageReallyLoaded() {
+		throw new Error("Method not implemented.");
+	}
+};
+var observer_default$8 = new PersoneelsLidObserver();
+function onMutation$7() {
+	checkAndDecorate("vh_header_personeel_personeelslid_left_title", decorateName);
+	return false;
 }
 //#endregion
 //#region typescript/les/observer.ts
@@ -11292,12 +11315,12 @@ function init() {
 			checkGlobalSettings();
 			onPageChanged();
 		});
-		registerObserver(observer_default$8);
 		registerObserver(observer_default$9);
+		registerObserver(observer_default$10);
 		registerObserver(observer_default$7);
 		registerObserver(observer_default$5);
 		registerObserver(observer);
-		registerObserver(observer_default$10);
+		registerObserver(observer_default$11);
 		registerObserver(extraInschrijvingenObserver);
 		registerObserver(allLijstenObserver);
 		registerObserver(financialObserver);
@@ -11310,6 +11333,7 @@ function init() {
 		registerObserver(observer_default$1);
 		registerObserver(observer_default$6);
 		registerObserver(observer_default);
+		registerObserver(observer_default$8);
 		onPageChanged();
 		getNotifRedButton();
 		setupMenu();
