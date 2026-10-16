@@ -6,7 +6,7 @@ import {CloudData, UrenData} from "./urenData";
 import {emmet} from "../../libs/Emmeter/html";
 import {TeacherHoursSetupMapped} from "./hoursSettings";
 import observer from "./observer";
-import {InfoBlock} from "../infoBlock";
+import {InfoBlock} from "../utils/infoBlock";
 import {makeTableSortable} from "../table/tableSort";
 import {gotoTeacher} from "../personeel/scrape";
 

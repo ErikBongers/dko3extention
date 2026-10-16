@@ -2,7 +2,7 @@ import {options} from "./plugin_options/options";
 import {LessenFilterDomein, scrapeLessen} from "./lessen/fetch";
 import {LesType} from "./roster_diff/calcDiff";
 import {getSchoolIdString, Schoolyear} from "./globals";
-import {DropDownMenu} from "./dropDownMenus";
+import {DropDownMenu} from "./utils/dropDownMenus";
 import {fetchLes} from "./les/fetch";
 import {AssetRef, getSessionSchoolCache, LesRef, Ref, SessionDb, TeacherRef} from "./db/sessionDb";
 import {scrapeAssets} from "./assets/scrape";
@@ -10,7 +10,7 @@ import {StoreNames} from "idb";
 import {createLesCard, PlaceHolder} from "./leerling/scrape";
 import {clearSavedPage, waitForPageProbablyLoaded} from "./restorePage";
 import {scrapeTeachers} from "./personeel/scrape";
-import {getInfoBlockForPage, InfoBlock} from "./infoBlock";
+import {getInfoBlockForPage, InfoBlock} from "./utils/infoBlock";
 
 export function onPasteInGlobalSearchField(e: ClipboardEvent) {
     if (!options.stripCommasOnPaste)

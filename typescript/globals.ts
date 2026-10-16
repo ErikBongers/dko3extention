@@ -9,7 +9,7 @@ import {
 } from "./plugin_options/options";
 import {Actions, sendRequest, TabType} from "./messaging";
 import * as def from "./def"
-import {InfoBar} from "./infoBar";
+import {InfoBar} from "./utils/infoBar";
 
 export let observers: Observer[] = [];
 export let settingsObservers: (() => void)[] = [];

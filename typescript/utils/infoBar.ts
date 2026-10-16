@@ -1,5 +1,5 @@
-import * as def from "./def";
-import {emmet} from "../libs/Emmeter";
+import * as def from "../def";
+import {emmet} from "../../libs/Emmeter";
 
 export class InfoBar{
     parent: HTMLElement;

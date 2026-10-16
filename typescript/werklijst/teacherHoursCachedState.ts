@@ -8,7 +8,7 @@ import {fetchHoursSettingsOrSaveDefault} from "./prefillInstruments";
 import {getUrenVakLeraarFileName} from "./buildUren";
 import {setViewFromCurrentUrl} from "../globals";
 import {cloud} from "../cloud";
-import {InfoBlock} from "../infoBlock";
+import {InfoBlock} from "../utils/infoBlock";
 import {InfoBarTableFetchListener} from "../table/loadAnyTable";
 
 export class TeacherHoursCachedState {

@@ -23,8 +23,8 @@ import {defaultIgnoreList, defaultTagDefs, DiffSettings} from "./diffSettings";
 import {options} from "../plugin_options/options";
 import {DiffType, Weight} from "./calcDiff";
 import {GradeYear} from "../gradeYear";
-import {getInfoBlock} from "../infoBlock";
-import {unreachable} from "../unreachable";
+import {getInfoBlock} from "../utils/infoBlock";
+import {unreachable} from "../utils/unreachable";
 
 export async function fetchDiffSettingsOrDefault(academie: string, schoolYear: string) {
     let settings: DiffSettings | undefined;

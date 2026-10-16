@@ -1,8 +1,8 @@
 import {InfoBar} from "./infoBar";
 import {ProgressBar} from "./progressBar";
-import * as def from "./def";
-import {TableRef} from "./table/tableRef";
-import {InfoBarTableFetchListener} from "./table/loadAnyTable";
+import * as def from "../def";
+import {TableRef} from "../table/tableRef";
+import {InfoBarTableFetchListener} from "../table/loadAnyTable";
 
 export interface InfoBlock {
     infoBar: InfoBar,

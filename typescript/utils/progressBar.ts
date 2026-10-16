@@ -1,4 +1,4 @@
-import {emmet} from "../libs/Emmeter";
+import {emmet} from "../../libs/Emmeter";
 
 export class ProgressBar {
     private barElement: HTMLDivElement;

@@ -1,5 +1,5 @@
 import {getTableFromHash, InfoBarTableFetchListener} from "../table/loadAnyTable";
-import {getInfoBlock} from "../infoBlock";
+import {getInfoBlock} from "../utils/infoBlock";
 
 export interface Asset {
     id: string;

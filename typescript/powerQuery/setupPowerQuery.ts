@@ -2,7 +2,7 @@ import {isAlphaNumeric, Schoolyear} from "../globals";
 import * as def from "../def";
 import {getGotoStateOrDefault, Goto, PageName, saveGotoState} from "../gotoState";
 import {gotoDiffPage, gotoSnapshotPage} from "../menu";
-import {NavigatableList} from "../navigatableList";
+import {NavigatableList} from "../utils/navigatableList";
 import {emmet} from "../../libs/Emmeter";
 import {DEFAULT_QUERY_ITEMS__VERSION__, defaultQueryItems} from "./default_items";
 import {DefaultQueryItems, DefaultQueryItemsWithVersion, isDefaultQueryItemsWithVersion} from "./default_items_types";

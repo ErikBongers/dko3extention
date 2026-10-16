@@ -8,12 +8,12 @@ import {
 } from "./tableFetcher";
 import {createDownloadTableWithExtraAction, getChecksumBuilder} from "./observer";
 import {dateDiffToString, Result, setViewFromCurrentUrl} from "../globals";
-import {InfoBar} from "../infoBar";
-import {ProgressBar} from "../progressBar";
+import {InfoBar} from "../utils/infoBar";
+import {ProgressBar} from "../utils/progressBar";
 import * as def from "../def";
 import {executeTableCommands, TableHandlerForHeaders} from "./tableHeaders";
 import {FetchChain} from "./fetchChain";
-import {getInfoBlockForPage, createInfoBlockForTable, InfoBlock} from "../infoBlock";
+import {getInfoBlockForPage, createInfoBlockForTable, InfoBlock} from "../utils/infoBlock";
 import {DkoTableRef, PlainTableRef, TableRef} from "./tableRef";
 
 export async function  getWerklijstTableRef() {

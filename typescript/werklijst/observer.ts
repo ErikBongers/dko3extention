@@ -21,7 +21,7 @@ import {createDefaultTableFetcher, createDefaultTableRefAndInfoBlock} from "../t
 import {Actions, sendRequest, ServiceRequest, TabType} from "../messaging";
 import {TeacherHoursSetup} from "./hoursSettings";
 import {emmet} from "../../libs/Emmeter";
-import {getInfoBlock, InfoBlock} from "../infoBlock";
+import {getInfoBlock, InfoBlock} from "../utils/infoBlock";
 import {fetchMailMergeData} from "../table/mailMerge";
 import {TeacherHoursCachedState} from "./teacherHoursCachedState";
 import {hasWerklijstNoCriteria, scrapeCriteria, scrapeSelectedFieldIndexes} from "./criteria";

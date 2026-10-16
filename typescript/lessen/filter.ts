@@ -7,7 +7,7 @@ import {PageName} from "../gotoState";
 import {getDefaultPageSettings, LessenPageState} from "./build";
 import {isTrimesterTableVisible} from "./observer";
 import {emmet} from "../../libs/Emmeter/html";
-import {DropDownMenu} from "../dropDownMenus";
+import {DropDownMenu} from "../utils/dropDownMenus";
 import {scrapeLesInfo, scrapeStudentsCellMeta} from "./scrape";
 import {getPageSettings, savePageSettings} from "../pageState";
 

@@ -2,7 +2,7 @@ import {checkAndDecorate, decorateName, Schoolyear, wrapElement} from "../global
 import {HashObserver} from "../pageObserver";
 import {options} from "../plugin_options/options";
 import {fetchLes} from "../les/fetch";
-import {DropDownMenu} from "../dropDownMenus";
+import {DropDownMenu} from "../utils/dropDownMenus";
 import {DomeinString, LessenFilterBuilder} from "../lessen/fetch";
 import {emmet} from "../../libs/Emmeter";
 import {GradeYear} from "../gradeYear";

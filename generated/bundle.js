@@ -1141,7 +1141,7 @@ function gotoSnapshotPage() {
 	else location.href = "/#start-mijn_tijdslijn";
 }
 //#endregion
-//#region typescript/clampedValue.ts
+//#region typescript/utils/clampedValue.ts
 var ClampedValue = class {
 	_value = NaN;
 	min;
@@ -1396,7 +1396,7 @@ async function waitForPageProbablyLoaded() {
 	});
 }
 //#endregion
-//#region typescript/navigatableList.ts
+//#region typescript/utils/navigatableList.ts
 var NavigatableList = class {
 	list;
 	index;
@@ -2544,7 +2544,7 @@ var NavigatableFetchedTable = class {
 	}
 };
 //#endregion
-//#region typescript/dropDownMenus.ts
+//#region typescript/utils/dropDownMenus.ts
 var DropDownMenu = class {
 	menu;
 	container;
@@ -2973,7 +2973,7 @@ function createDownloadTableWithExtraAction() {
 	};
 }
 //#endregion
-//#region typescript/infoBar.ts
+//#region typescript/utils/infoBar.ts
 var InfoBar = class InfoBar {
 	parent;
 	container;
@@ -3040,7 +3040,7 @@ var InfoBar = class InfoBar {
 	}
 };
 //#endregion
-//#region typescript/progressBar.ts
+//#region typescript/utils/progressBar.ts
 var ProgressBar = class ProgressBar {
 	barElement;
 	parent;
@@ -3099,7 +3099,7 @@ var ProgressBar = class ProgressBar {
 	}
 };
 //#endregion
-//#region typescript/infoBlock.ts
+//#region typescript/utils/infoBlock.ts
 function createInfoBlockForTable(tableRef) {
 	return getInfoBlock(tableRef.createElementAboveTable("div"));
 }
@@ -3279,7 +3279,7 @@ async function scrapeTable(tableFetcher, rowConverter) {
 	return [...(await tableFetcher.fetch()).getRows()].map((row) => rowConverter(row)).filter((item) => item != null);
 }
 //#endregion
-//#region typescript/unreachable.ts
+//#region typescript/utils/unreachable.ts
 function unreachable(x) {
 	throw new Error("This error will never be thrown. It is used for type safety.");
 }

@@ -1,6 +1,6 @@
-import {emmet} from "../libs/Emmeter";
+import {emmet} from "../../libs/Emmeter";
 import {ClampedValue} from "./clampedValue";
-import {clearSavedPage} from "./restorePage";
+import {clearSavedPage} from "../restorePage";
 
 export class NavigatableList {
     readonly list: HTMLElement;

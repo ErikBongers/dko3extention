@@ -1,13 +1,13 @@
 import {createHtmlTable, DataCacheId, distinct, HtmlData, openHtmlTab, range} from "../globals";
 import {emmet} from "../../libs/Emmeter/html";
 import {checkAndDownloadTableRows} from "./loadAnyTable";
-import {DropDownMenu} from "../dropDownMenus";
+import {DropDownMenu} from "../utils/dropDownMenus";
 import {NavigatableTableFetcher, TableHandler} from "./tableFetcher";
 import * as def from "../def";
 import {options} from "../plugin_options/options";
 import {pageState} from "../pageState";
 import {Actions, HtmlDataRequestParams, sendRequest, ServiceRequest, TabType} from "../messaging";
-import {InfoBlock} from "../infoBlock";
+import {InfoBlock} from "../utils/infoBlock";
 import {ColumnValueFunc, getColumnIndex, getDefaultValueFuncs, sortTableByColumn} from "./tableSort";
 import MessageSender = chrome.runtime.MessageSender;
 import {TableRef} from "./tableRef";

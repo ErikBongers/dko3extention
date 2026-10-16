@@ -1,6 +1,6 @@
 import {InfoBarTableFetchListener} from "./loadAnyTable";
 import {createHtmlTable} from "../globals";
-import {InfoBlock} from "../infoBlock";
+import {InfoBlock} from "../utils/infoBlock";
 import {FIELD, Grouping} from "../werklijst/criteria";
 import {createWerklijstBuilderWithoutReset, createWerklijstBuilderWithReset} from "./werklijstBuilder";
 

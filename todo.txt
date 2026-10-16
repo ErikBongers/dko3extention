@@ -1,3 +1,27 @@
+* alt lessen: niet altijd alternatieven
+  > Yasemin Dua Sogut
+    Samenzang klas toont geen alternatieven.
+
+* goto les: click to quickly: "les niet gevonden"
+
+* download table openstaande saldos: kolom "saldo" heeft heel menu in hoofding van excel tabel.
+
+* create infoBlock.css - see gringo.
+
+* power menu: Inschrijvingen: beschikbaarheid toewijzen >niet bij defaults?
+ + add "Academie en instellingen" to menu defaults
+
+* lijst met volzette instrumenten: auto-check met vakgroepen of deze toe staan.
+
+* verhuur, standaard einddatum op 30/6 zetten!
+  > wachten of dit nodig is.
+  > knopje om dit te doen?
+  > rood/geel als het niet op die datum staat?
+
+* terugbetalingen nr excel copieren
+
+* lk afwezig: volledige dag aanvinken (werkt anders dan campagnes/verwittigen)
+
 * navigate plugin table details.
   > take into account plugin filters and sorting.
   > visually replace navigation buttons to indicate it's the custom one.

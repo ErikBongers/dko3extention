@@ -1,6 +1,6 @@
-import {emmet} from "../libs/Emmeter/html";
+import {emmet} from "../../libs/Emmeter";
 import {NavigatableList} from "./navigatableList";
-import {restorePage, savePage} from "./restorePage";
+import {restorePage, savePage} from "../restorePage";
 
 /*
 ##  Construct menus as follows:

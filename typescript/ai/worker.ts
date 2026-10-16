@@ -1,7 +1,7 @@
 import { env, pipeline } from '@huggingface/transformers';
 import {FindNamesInText, GetNames, WorkerRequest} from "./types";
 
-import {unreachable} from "../unreachable";
+import {unreachable} from "../utils/unreachable";
 
 async function runAiAndFilterPersons(text: string): Promise<string[]> {
     if(!extensionRoot){
