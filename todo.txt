@@ -1,4 +1,5 @@
 * TEST: drop dowm menus: css moved.
+  > And NavigatibleList has been sligthy altered (for gringo)
 
 * alt lessen: niet altijd alternatieven
   > Yasemin Dua Sogut

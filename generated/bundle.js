@@ -1402,6 +1402,7 @@ var NavigatableList = class {
 	index;
 	abortController;
 	indexChangedListeners = [];
+	onClickListeners = [];
 	constructor(list, abortController) {
 		this.list = list;
 		this.abortController = abortController;
@@ -1457,16 +1458,18 @@ var NavigatableList = class {
 	addItem(title, indentLevel, onClick) {
 		let indentClass = indentLevel ? ".menuIndent" + indentLevel : "";
 		let item = emmet.appendChild(this.list, `button.naked.hideFocus.dropDownItem.pre${indentClass}`).first;
-		this.setItemContent(this.list.children.length - 1, title);
+		let itemIndex = this.list.children.length - 1;
+		this.setItemContent(itemIndex, title);
 		if (typeof onClick === "string") item.setAttribute("onclick", onClick);
 		else if (typeof onClick === "function") item.onclick = (ev) => {
 			if (ev.target.checkVisibility()) {
 				clearSavedPage();
 				onClick(ev);
+				this.onClickListeners.forEach((listener) => listener(itemIndex));
 			} else console.log("Item clicked, but invisible");
 		};
-		this.index.setRange(0, this.list.children.length - 1);
-		return this.list.children.length - 1;
+		this.index.setRange(0, itemIndex);
+		return itemIndex;
 	}
 	setItemContent(index, title) {
 		let item = this.getItem(index);
@@ -1488,17 +1491,19 @@ var NavigatableList = class {
 			ev.stopPropagation();
 		};
 	}
-	addInfo(element, indentLevel) {
+	addInfo(item, indentLevel) {
 		let indentClass = indentLevel ? ".menuIndent" + indentLevel : "";
 		let { first } = emmet.appendChild(this.list, `div.dropDownInfo.dropDownIgnoreHide${indentClass}`);
-		let item = first;
-		item.onclick = (ev) => {
+		let wrapper = first;
+		if (typeof item === "string") wrapper.appendChild(document.createTextNode(item));
+		else wrapper.appendChild(item);
+		wrapper.onclick = (ev) => {
 			ev.stopPropagation();
 		};
-		item.appendChild(element);
 	}
 	clickItem(itemIndex) {
 		this.list.children[itemIndex].click();
+		this.onClickListeners.forEach((listener) => listener(itemIndex));
 	}
 	removeItem(index) {
 		if (index < 0 || index >= this.list.children.length) return false;
@@ -1528,6 +1533,9 @@ var NavigatableList = class {
 	}
 	addIndexChanged(listener) {
 		this.indexChangedListeners.push(listener);
+	}
+	addOnClickListener(listener) {
+		this.onClickListeners.push(listener);
 	}
 	remove() {
 		this.list.remove();

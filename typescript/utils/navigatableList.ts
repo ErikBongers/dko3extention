@@ -1,12 +1,13 @@
-import {emmet} from "../../libs/Emmeter";
 import {ClampedValue} from "./clampedValue";
 import {clearSavedPage} from "../restorePage";
+import {emmet} from "../../libs/Emmeter";
 
 export class NavigatableList {
     readonly list: HTMLElement;
     private index: ClampedValue;
     private readonly abortController: AbortController | undefined;
     private indexChangedListeners: ((index: number) => void)[] = [];
+    private onClickListeners: ((index: number) => void)[] = [];
 
     constructor(list: HTMLElement, abortController?: AbortController) {
         this.list = list;
@@ -78,20 +79,22 @@ export class NavigatableList {
     addItem(title: string | HTMLElement, indentLevel: number, onClick: ((ev: MouseEvent) => void) | string) {
         let indentClass = indentLevel ? ".menuIndent" + indentLevel : "";
         let item = emmet.appendChild(this.list, `button.naked.hideFocus.dropDownItem.pre${indentClass}`).first as HTMLButtonElement;
-        this.setItemContent(this.list.children.length - 1, title);
+        let itemIndex = this.list.children.length - 1;
+        this.setItemContent(itemIndex, title);
         if(typeof onClick === "string")
             item.setAttribute("onclick", onClick);
         else if(typeof onClick === "function")
             item.onclick = (ev) => {
                 if ((ev.target as HTMLElement).checkVisibility()) {
-                    clearSavedPage();
+                    clearSavedPage(); //todo: this is DKO3 specific. Move it out.
                     onClick(ev);
+                    this.onClickListeners.forEach(listener => listener(itemIndex));
                 }
                 else
                     console.log("Item clicked, but invisible");
             };
-        this.index.setRange(0, this.list.children.length - 1);
-        return this.list.children.length - 1;
+        this.index.setRange(0, itemIndex);
+        return itemIndex;
     }
 
     setItemContent(index: number, title: string | HTMLElement) {
@@ -118,18 +121,22 @@ export class NavigatableList {
         }
     }
 
-    addInfo(element: HTMLElement, indentLevel: number) {
+    addInfo(item: HTMLElement | string, indentLevel: number) {
         let indentClass = indentLevel ? ".menuIndent" + indentLevel : "";
         let {first} = emmet.appendChild(this.list, `div.dropDownInfo.dropDownIgnoreHide${indentClass}`);
-        let item = first as HTMLElement;
-        item.onclick = (ev) => {
+        let wrapper = first as HTMLElement;
+        if(typeof item === "string")
+            wrapper.appendChild(document.createTextNode(item));
+        else
+            wrapper.appendChild(item);
+        wrapper.onclick = (ev) => {
             ev.stopPropagation();
         }
-        item.appendChild(element);
     }
 
     clickItem(itemIndex: number) {
         (this.list.children[itemIndex] as HTMLElement).click();
+        this.onClickListeners.forEach(listener => listener(itemIndex));
     }
 
     removeItem(index: number) {
@@ -170,6 +177,10 @@ export class NavigatableList {
 
     addIndexChanged(listener: (index: number) => void) {
         this.indexChangedListeners.push(listener);
+    }
+
+    addOnClickListener(listener: (index: number) => void) {
+        this.onClickListeners.push(listener);
     }
 
     remove() {
