@@ -1,0 +1,84 @@
+.activePopoverButton {
+    anchor-name: --popoverButtonAnchor;
+}
+
+.popoverMenu {
+    position-anchor: --popoverButtonAnchor;
+    position-area: bottom span-right;
+    position-try-fallbacks: flip-block;
+}
+
+.dropDownMenu {
+    background-color: white;
+    min-width: 20ch;
+    box-shadow: 0 8px 16px 0 rgba(0,0,0,0.2);
+    z-index: 1;
+    & .menuIndent1
+    {
+        padding-left: 26px;
+    }
+
+    & .menuIndent2
+    {
+        padding-left: 46px;
+    }
+
+    & .menuIndent3
+    {
+        padding-left: 66px;
+    }
+    & .dropDownSeparator.menuIndent1 {
+        margin-left: 26px;
+        padding-left: 0;
+        background-color: transparent;
+    }
+    .selected {
+        background-color: var(--power-query-selected-item-color);
+    }
+}
+
+.shiftMenuLeft .dropDownMenu {
+    right: anchor(right);
+}
+
+.dropDownContainer {
+    position: relative;
+    display: inline-block;
+}
+
+button.dropDownItem {
+    color: black;
+    padding: 5px 16px;
+    text-decoration: none;
+    text-align: left;
+    display: block;
+    /*noinspection CssInvalidPropertyValue*/
+    width: -webkit-fill-available;
+}
+
+div.dropDownSeparator {
+    color: rgba(0,0,0, 0.7);
+    background-color: rgba(0,0,0, 0.05);
+    padding: 4px 16px 0 16px;
+    text-decoration: none;
+    text-align: left;
+    display: block;
+    /*noinspection CssInvalidPropertyValue*/
+    width: -webkit-fill-available;
+}
+
+div.dropDownInfo {
+    color: black;
+    padding: 5px 16px;
+    text-decoration: none;
+    text-align: left;
+    display: block;
+    /*noinspection CssInvalidPropertyValue*/
+    width: -webkit-fill-available;
+}
+
+/* Change color of dropdown links on hover */
+.dropDownItem:hover {background-color: #8080a030;}
+
+/* Show the dropdown menu on hover */
+/*.dropDownContainer:hover .dropDownMenu {display: block;}*/
