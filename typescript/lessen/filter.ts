@@ -1,5 +1,5 @@
 import {BlockInfo} from "./convert";
-import {createSearchField, distinct} from "../globals";
+import {distinct} from "../globals";
 import {combineFilters, createTextRowFilter, filterTable, filterTableRows, RowFilter} from "../filter";
 import * as def from "../def";
 import {FILTER_INFO_ID, LESSEN_TABLE_ID} from "../def";
@@ -10,6 +10,7 @@ import {emmet} from "../../libs/Emmeter/html";
 import {DropDownMenu} from "../utils/dropDownMenus";
 import {scrapeLesInfo, scrapeStudentsCellMeta} from "./scrape";
 import {getPageSettings, savePageSettings} from "../pageState";
+import {createSearchField} from "../utils/searchField";
 
 export function createBlockFilter(filter: (block: BlockInfo) => boolean): BlockInfo[] {
     return BlockInfo.getAllBlocks().filter(filter);

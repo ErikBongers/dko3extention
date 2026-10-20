@@ -1,5 +1,12 @@
-* TEST: drop dowm menus: css moved.
-  > And NavigatibleList has been sligthy altered (for gringo)
+* TEST:
+
+*  toon 2e lk in leerlingenficht (on demand?)
+
+* collapse (minimize) modals so you can see underneath
+  > Or draggable?
+    Or move to the side?
+
+
 
 * alt lessen: niet altijd alternatieven
   > Yasemin Dua Sogut

@@ -209,42 +209,6 @@ div.collapsed {
     display: none;
 }
 
-span.searchButton {
-    border-style: solid;
-    border-width: thin;
-    display: inline-block;
-    margin-left: .5ch;
-    & input {
-        border: none;
-        &:focus {
-            outline: none;
-        }
-    }
-    & button {
-        background-color: transparent;
-        border: none;
-        color: white;
-        padding: 0;
-        margin: 0;
-        text-align: center;
-        text-decoration: none;
-        display: inline-block;
-        font-size: 16px;
-        width: 1.5em;
-        height: 1.5em;
-        opacity: 0.5;
-        &:hover {
-            opacity: 1;
-        }
-        & img {
-            width: 20px;
-            height: 20px;
-            position: relative;
-            top: -.1em;
-        }
-    }
-}
-
 button.btn.svg img {
     width: 1em;
     position: relative;

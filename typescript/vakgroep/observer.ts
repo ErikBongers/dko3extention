@@ -1,6 +1,6 @@
 import {HashObserver} from "../pageObserver";
-import {createSearchField} from "../globals";
 import {createTextRowFilter, filterTable} from "../filter";
+import {createSearchField} from "../utils/searchField";
 
 class VakGroepObserver extends HashObserver {
     constructor() {
