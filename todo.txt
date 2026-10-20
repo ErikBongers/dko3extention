@@ -1,5 +1,3 @@
-* TEST:
-
 *  toon 2e lk in leerlingenficht (on demand?)
 
 * collapse (minimize) modals so you can see underneath

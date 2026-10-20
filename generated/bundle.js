@@ -822,25 +822,6 @@ function isAlphaNumeric(str) {
 function rangeGenerator(start, stop, step = 1) {
 	return Array(Math.ceil((stop - start) / step)).fill(start).map((x, y) => x + y * step);
 }
-function createSearchField(id, onSearchInput, value) {
-	let input = document.createElement("input");
-	input.type = "text";
-	input.id = id;
-	input.classList.add("tableFilter");
-	input.oninput = onSearchInput;
-	input.value = value;
-	input.placeholder = "filter";
-	let span = document.createElement("span");
-	span.classList.add("searchButton");
-	span.appendChild(input);
-	let { first: clearButton } = emmet.appendChild(span, `button>img[src="${chrome.runtime.getURL("images/circle-xmark-regular.svg")}"`);
-	clearButton.onclick = () => {
-		input.value = "";
-		input.oninput(void 0);
-		input.focus();
-	};
-	return span;
-}
 function getBothToolbars() {
 	let navigationBars = document.querySelectorAll("div.datatable-navigation-toolbar");
 	if (navigationBars.length < 2) return void 0;
@@ -5683,6 +5664,27 @@ function filterTable(table, rowFilter) {
 		tr.style.visibility = "visible";
 		tr.style.borderColor = "";
 	}
+}
+//#endregion
+//#region typescript/utils/searchField.ts
+function createSearchField(id, onSearchInput, value) {
+	let input = document.createElement("input");
+	input.type = "text";
+	input.id = id;
+	input.classList.add("tableFilter");
+	input.oninput = onSearchInput;
+	input.value = value;
+	input.placeholder = "filter";
+	let span = document.createElement("span");
+	span.classList.add("searchButton");
+	span.appendChild(input);
+	let { first: clearButton } = emmet.appendChild(span, `button>img[src="${chrome.runtime.getURL("images/circle-xmark-regular.svg")}"`);
+	clearButton.onclick = () => {
+		input.value = "";
+		input.oninput(void 0);
+		input.focus();
+	};
+	return span;
 }
 //#endregion
 //#region typescript/lessen/filter.ts
