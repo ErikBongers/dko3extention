@@ -7487,8 +7487,6 @@ function scrapeTrimesterModules(lessen) {
 				error,
 				url: getLesUrl(module.les.id)
 			});
-			console.error(error);
-			console.log(getLesUrl(module.les.id));
 			continue;
 		}
 		module.les.instrumentName = match[1];
@@ -7499,8 +7497,6 @@ function scrapeTrimesterModules(lessen) {
 				error,
 				url: getLesUrl(module.les.id)
 			});
-			console.error(error);
-			console.log(getLesUrl(module.les.id));
 			continue;
 		}
 		trimesterModules.push(module.les);

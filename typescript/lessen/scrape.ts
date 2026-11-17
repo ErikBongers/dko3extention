@@ -122,8 +122,6 @@ function scrapeTrimesterModules(lessen: HtmlLes[] ) {
         if (match?.length !== 3) {
             let error = `Module naam "${module.les.naam}" bevat een ongeldige instrument naam.`;
             errors.push({error, url: getLesUrl(module.les.id)});
-            console.error(error);
-            console.log(getLesUrl(module.les.id));
             continue;
         }
         module.les.instrumentName = match[1];
@@ -131,8 +129,6 @@ function scrapeTrimesterModules(lessen: HtmlLes[] ) {
         if(module.les.trimesterNo < 1 || module.les.trimesterNo > 3) {
             let error = `Module naam "${module.les.naam}" bevat een ongeldig trimester nummer.`;
             errors.push({error, url: getLesUrl(module.les.id)});
-            console.error(error);
-            console.log(getLesUrl(module.les.id));
             continue;
         }
         trimesterModules.push(module.les);
