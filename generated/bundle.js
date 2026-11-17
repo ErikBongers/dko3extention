@@ -7468,7 +7468,7 @@ function scrapeTrimesterModules(lessen) {
 	let trimesterModules = [];
 	for (let module of modules) {
 		module.les.students = scrapeStudents(module.studentsTable);
-		const match = module.les.naam.match(/.*\Snitiatie\s*(\S+).*(\d).*/);
+		const match = module.les.naam.match(/.*\Snitiatie\s*(\S+).*?(\d).*/);
 		if (match?.length !== 3) {
 			console.error(`Could not process trimester module "${module.les.naam}" (${module.les.id}).`);
 			continue;

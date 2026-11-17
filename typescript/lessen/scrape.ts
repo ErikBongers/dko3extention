@@ -109,7 +109,7 @@ function scrapeTrimesterModules(lessen: HtmlLes[] ) {
         module.les.students = scrapeStudents(module.studentsTable);
 
         //get name of instrument and trimester.
-        const reInstrument = /.*\Snitiatie\s*(\S+).*(\d).*/;
+        const reInstrument = /.*\Snitiatie\s*(\S+).*?(\d).*/;
         const match = module.les.naam.match(reInstrument);
         if (match?.length !== 3) {
             console.error(`Could not process trimester module "${module.les.naam}" (${module.les.id}).`);
