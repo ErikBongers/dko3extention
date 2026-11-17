@@ -1,3 +1,10 @@
+* Add validation to Initiatie les naam.
+  > only check if it starts with "[iI]nitiatie"
+  > only check if it's a module.
+  > show format and a red border when wrong.
+  > check instrument name as well?
+  > check trim no.
+
 *  toon 2e lk in leerlingenficht (on demand?)
 
 * collapse (minimize) modals so you can see underneath

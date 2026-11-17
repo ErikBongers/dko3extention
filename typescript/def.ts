@@ -45,3 +45,4 @@ export const OPTION_HIDE_IGNORED_DIFFS = "dko3plugin.hideIgnoredDiffs";
 export const OPTION_HIDE_NO_TEACHER_DIFFS = "dko3plugin.hideNoTeacherDiffs";
 export const PLUGIN_CONTAINER_ID = "pluginContainer";
 export const LOCAL_HOURS_SETTINGS = "localHoursSettings";
+export const TRIM_HEADER_ERRORS_ID = "trimHeaderErrors";

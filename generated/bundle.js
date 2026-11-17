@@ -580,6 +580,7 @@ const OPTION_HIDE_IGNORED_DIFFS = "dko3plugin.hideIgnoredDiffs";
 const OPTION_HIDE_NO_TEACHER_DIFFS = "dko3plugin.hideNoTeacherDiffs";
 const PLUGIN_CONTAINER_ID = "pluginContainer";
 const LOCAL_HOURS_SETTINGS = "localHoursSettings";
+const TRIM_HEADER_ERRORS_ID = "trimHeaderErrors";
 //#endregion
 //#region typescript/cloud.ts
 let cloud = { json: {
@@ -1056,6 +1057,9 @@ function checkAndDecorate(target, decorate) {
 	if (el.dataset.nameDecorated === "true") return;
 	decorate(el);
 	el.dataset.nameDecorated = "true";
+}
+function getLesUrl(id) {
+	return `/#lessen-les?id=${id}`;
 }
 //#endregion
 //#region typescript/gotoState.ts
@@ -5298,7 +5302,77 @@ function getSavedNameSorting() {
 	pageState = getPageSettings("Lessen", pageState);
 	return pageState.nameSorting;
 }
-function buildTrimesterTable(tableData, trimElements) {
+function addSortingAnchorOrText() {
+	let sorteerDiv = document.getElementById("trimSorteerDiv");
+	sorteerDiv.innerHTML = "Sorteer : ";
+	if (getSavedNameSorting() === 0) emmet.append(sorteerDiv, "a{Naam}[href=\"#\"]+{ | }+strong{Voornaam}");
+	else emmet.append(sorteerDiv, "strong{Naam}+{ | }+a{Voornaam}[href=\"#\"]");
+	for (let anchor of sorteerDiv.querySelectorAll("a")) anchor.onclick = (mouseEvent) => {
+		if (mouseEvent.target.textContent === "Naam") setSavedNameSorting(1);
+		else setSavedNameSorting(0);
+		showTrimesterTable(getTrimPageElements(), true);
+		addSortingAnchorOrText();
+		return false;
+	};
+}
+function setSorteerLine(showTrimTable) {
+	let pageState = getPageSettings("Lessen", getDefaultPageSettings());
+	let oldSorteerSpan = document.querySelector("#lessen_overzicht > span");
+	if (!document.getElementById("trimHeaderDiv")) emmet.indent.insertAfter(oldSorteerSpan, `
+            div#trimHeaderDiv
+                div#${TRIM_HEADER_ERRORS_ID}
+                div#trimSorteerDiv.text-muted
+                div#trimGroepeerDiv.text-muted
+        `);
+	let newGroupingDiv = document.getElementById("trimGroepeerDiv");
+	addSortingAnchorOrText();
+	newGroupingDiv.innerText = "Groepeer: ";
+	oldSorteerSpan.style.display = showTrimTable ? "none" : "";
+	newGroupingDiv.style.display = showTrimTable ? "" : "none";
+	appendGroupingAnchorOrText(newGroupingDiv, 1, pageState.grouping, "");
+	appendGroupingAnchorOrText(newGroupingDiv, 0, pageState.grouping, " | ");
+	appendGroupingAnchorOrText(newGroupingDiv, 2, pageState.grouping, " | ");
+	appendGroupingAnchorOrText(newGroupingDiv, 4, pageState.grouping, " | ");
+	appendGroupingAnchorOrText(newGroupingDiv, 5, pageState.grouping, " | ");
+}
+function appendGroupingAnchorOrText(target, grouping, activeSorting, separator) {
+	let sortingText = "";
+	switch (grouping) {
+		case 1:
+			sortingText = "instrument+leraar+lesuur";
+			break;
+		case 0:
+			sortingText = "leraar+instrument+lesuur";
+			break;
+		case 2:
+			sortingText = "leraar+lesuur";
+			break;
+		case 3:
+			sortingText = "instrument+lesuur";
+			break;
+		case 4:
+			sortingText = "instrument";
+			break;
+		case 5: sortingText = "leraar";
+	}
+	if (separator) separator = "{" + separator + "}+";
+	if (activeSorting === grouping) emmet.appendChild(target, separator + "strong{" + sortingText + "}");
+	else {
+		let button = emmet.appendChild(target, separator + "button.likeLink{" + sortingText + "}").last;
+		button.onclick = () => {
+			let pageState = getPageSettings("Lessen", getDefaultPageSettings());
+			pageState.grouping = grouping;
+			savePageSettings(pageState);
+			showTrimesterTable(getTrimPageElements(), true);
+			return false;
+		};
+	}
+}
+function buildTrimesterTable(tableData, trimElements, errors) {
+	setSorteerLine(true);
+	let errorDiv = document.getElementById(TRIM_HEADER_ERRORS_ID);
+	errorDiv.innerHTML = "";
+	for (let error of errors) errorDiv.innerHTML += `${error.error} <a href="${error.url}">link</a> <br> `;
 	pageState = getPageSettings("Lessen", pageState);
 	tableData.blocks.sort((block1, block2) => block1.instrumentName.localeCompare(block2.instrumentName));
 	trimElements.trimTableDiv = document.getElementById(TRIM_DIV_ID);
@@ -6281,77 +6355,12 @@ async function showTrimesterTable(trimElements, show) {
 	let toewijzingModules = connvertToewijzingenToModules(inputModules.jaarToewijzingen);
 	console.log(toewijzingModules);
 	inputModules.jaarModules = inputModules.jaarModules.concat(...toewijzingModules.values());
-	buildTrimesterTable(buildTableData(inputModules.trimesterModules.concat(inputModules.jaarModules)), trimElements);
+	buildTrimesterTable(buildTableData(inputModules.trimesterModules.concat(inputModules.jaarModules)), trimElements, inputModules.errors);
 	trimElements.lessenTable.style.display = show ? "none" : "table";
 	trimElements.trimTable.style.display = show ? "table" : "none";
 	trimElements.trimButton.title = show ? "Toon normaal" : "Toon trimesters";
 	setButtonHighlighted(TRIM_BUTTON_ID, show);
-	setSorteerLine(show);
 	applyFilters();
-}
-function addSortingAnchorOrText() {
-	let sorteerDiv = document.getElementById("trimSorteerDiv");
-	sorteerDiv.innerHTML = "Sorteer : ";
-	if (getSavedNameSorting() === 0) emmet.append(sorteerDiv, "a{Naam}[href=\"#\"]+{ | }+strong{Voornaam}");
-	else emmet.append(sorteerDiv, "strong{Naam}+{ | }+a{Voornaam}[href=\"#\"]");
-	for (let anchor of sorteerDiv.querySelectorAll("a")) anchor.onclick = (mouseEvent) => {
-		if (mouseEvent.target.textContent === "Naam") setSavedNameSorting(1);
-		else setSavedNameSorting(0);
-		showTrimesterTable(getTrimPageElements(), true);
-		addSortingAnchorOrText();
-		return false;
-	};
-}
-function setSorteerLine(showTrimTable) {
-	let pageState = getPageSettings("Lessen", getDefaultPageSettings());
-	let oldSorteerSpan = document.querySelector("#lessen_overzicht > span");
-	let newGroupingDiv = document.getElementById("trimGroepeerDiv");
-	if (!newGroupingDiv) newGroupingDiv = emmet.insertAfter(oldSorteerSpan, "div#trimGroepeerDiv.text-muted").first;
-	if (!document.getElementById("trimSorteerDiv")) {
-		emmet.insertBefore(newGroupingDiv, "div#trimSorteerDiv.text-muted");
-		addSortingAnchorOrText();
-	}
-	newGroupingDiv.innerText = "Groepeer: ";
-	oldSorteerSpan.style.display = showTrimTable ? "none" : "";
-	newGroupingDiv.style.display = showTrimTable ? "" : "none";
-	appendGroupingAnchorOrText(newGroupingDiv, 1, pageState.grouping, "");
-	appendGroupingAnchorOrText(newGroupingDiv, 0, pageState.grouping, " | ");
-	appendGroupingAnchorOrText(newGroupingDiv, 2, pageState.grouping, " | ");
-	appendGroupingAnchorOrText(newGroupingDiv, 4, pageState.grouping, " | ");
-	appendGroupingAnchorOrText(newGroupingDiv, 5, pageState.grouping, " | ");
-}
-function appendGroupingAnchorOrText(target, grouping, activeSorting, separator) {
-	let sortingText = "";
-	switch (grouping) {
-		case 1:
-			sortingText = "instrument+leraar+lesuur";
-			break;
-		case 0:
-			sortingText = "leraar+instrument+lesuur";
-			break;
-		case 2:
-			sortingText = "leraar+lesuur";
-			break;
-		case 3:
-			sortingText = "instrument+lesuur";
-			break;
-		case 4:
-			sortingText = "instrument";
-			break;
-		case 5: sortingText = "leraar";
-	}
-	if (separator) separator = "{" + separator + "}+";
-	if (activeSorting === grouping) emmet.appendChild(target, separator + "strong{" + sortingText + "}");
-	else {
-		let button = emmet.appendChild(target, separator + "button.likeLink{" + sortingText + "}").last;
-		button.onclick = () => {
-			let pageState = getPageSettings("Lessen", getDefaultPageSettings());
-			pageState.grouping = grouping;
-			savePageSettings(pageState);
-			showTrimesterTable(getTrimPageElements(), true);
-			return false;
-		};
-	}
 }
 //#endregion
 //#region typescript/lessen/fetch.ts
@@ -7457,8 +7466,10 @@ function scrapeJaarToewijzingen(jaarToewijzingTable) {
 }
 function scrapeModules(jaarToewijzingTable) {
 	let lessen = scrapeLessenOverzicht();
+	let scrapeResult = scrapeTrimesterModules(lessen);
 	return {
-		trimesterModules: scrapeTrimesterModules(lessen),
+		trimesterModules: scrapeResult.trimesterModules,
+		errors: scrapeResult.errors,
 		jaarModules: scrapeJaarModules(lessen),
 		jaarToewijzingen: scrapeJaarToewijzingen(jaarToewijzingTable)
 	};
@@ -7466,18 +7477,38 @@ function scrapeModules(jaarToewijzingTable) {
 function scrapeTrimesterModules(lessen) {
 	let modules = lessen.filter((les) => les.les.lesType === 0);
 	let trimesterModules = [];
+	let errors = [];
 	for (let module of modules) {
 		module.les.students = scrapeStudents(module.studentsTable);
 		const match = module.les.naam.match(/.*\Snitiatie\s*(\S+).*?(\d).*/);
 		if (match?.length !== 3) {
-			console.error(`Could not process trimester module "${module.les.naam}" (${module.les.id}).`);
+			let error = `Module naam "${module.les.naam}" bevat een ongeldige instrument naam.`;
+			errors.push({
+				error,
+				url: getLesUrl(module.les.id)
+			});
+			console.error(error);
+			console.log(getLesUrl(module.les.id));
 			continue;
 		}
 		module.les.instrumentName = match[1];
 		module.les.trimesterNo = parseInt(match[2]);
+		if (module.les.trimesterNo < 1 || module.les.trimesterNo > 3) {
+			let error = `Module naam "${module.les.naam}" bevat een ongeldig trimester nummer.`;
+			errors.push({
+				error,
+				url: getLesUrl(module.les.id)
+			});
+			console.error(error);
+			console.log(getLesUrl(module.les.id));
+			continue;
+		}
 		trimesterModules.push(module.les);
 	}
-	return trimesterModules;
+	return {
+		trimesterModules,
+		errors
+	};
 }
 function scrapeJaarModules(lessen) {
 	let modules = lessen.filter((les) => les.les.lesType === 1);

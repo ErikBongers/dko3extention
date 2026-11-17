@@ -9,6 +9,7 @@ import {
 } from "./plugin_options/options";
 import {Actions, sendRequest, TabType} from "./messaging";
 import * as def from "./def"
+import {DKO3_BASE_URL} from "./def"
 import {InfoBar} from "./utils/infoBar";
 
 export let observers: Observer[] = [];
@@ -610,4 +611,8 @@ export function checkAndDecorate(target: HTMLElement | string | null, decorate: 
     decorate(el);
     el.dataset.nameDecorated = "true";
     return;
+}
+
+export function getLesUrl(id: string) {
+    return DKO3_BASE_URL + `#lessen-les?id=${id}`;
 }

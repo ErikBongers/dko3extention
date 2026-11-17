@@ -1,3 +1,7 @@
+body {
+    --light-red: rgb(255, 193, 193);
+}
+
 #trimesterDiv {
     --les-button-bkgcolor: #6c757d;
     --offline-les-button-bkgcolor: rgb(from var(--les-button-bkgcolor) r g b / 0.3);
@@ -157,5 +161,13 @@
     & .yellowMarker, .lesError {
         background-color: rgba(255, 255, 0, 0.3);
         color: white !important;
+    }
+}
+
+#trimHeaderErrors {
+    background-color: var(--light-red);
+    padding: 1ch;
+    &:empty {
+        display: none;
     }
 }

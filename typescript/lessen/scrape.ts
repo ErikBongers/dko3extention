@@ -1,8 +1,9 @@
-import {FetchedTable, NavigatableFetchedTable} from "../table/tableFetcher";
+import {FetchedTable} from "../table/tableFetcher";
 import {dayToMinutes, Time, TimeSlice, timeToMinutes} from "../roster_diff/excelRoster";
 
 import {GradeYear} from "../gradeYear";
 import {LESSEN_TABLE_ID} from "../def";
+import {getLesUrl} from "../globals";
 
 export function scrapeLessenOverzicht(table?: HTMLTableElement) {
     if(!table)
@@ -94,16 +95,23 @@ function scrapeJaarToewijzingen(jaarToewijzingTable: (FetchedTable | undefined))
 
 export function scrapeModules(jaarToewijzingTable: FetchedTable | undefined) {
     let lessen = scrapeLessenOverzicht();
+    let scrapeResult = scrapeTrimesterModules(lessen);
     return {
-        trimesterModules: scrapeTrimesterModules(lessen),
+        trimesterModules: scrapeResult.trimesterModules,
+        errors: scrapeResult.errors,
         jaarModules: scrapeJaarModules(lessen),
         jaarToewijzingen: scrapeJaarToewijzingen(jaarToewijzingTable)};
 }
 
+export interface ScrapeError {
+    error: string;
+    url: string;
+}
 function scrapeTrimesterModules(lessen: HtmlLes[] ) {
     let modules = lessen.filter((les) => les.les.lesType === LesType.TrimesterModule);
 
     let trimesterModules: Les[] = [];
+    let errors: ScrapeError[] = [];
 
     for (let module of modules) {
         module.les.students = scrapeStudents(module.studentsTable);
@@ -112,15 +120,25 @@ function scrapeTrimesterModules(lessen: HtmlLes[] ) {
         const reInstrument = /.*\Snitiatie\s*(\S+).*?(\d).*/;
         const match = module.les.naam.match(reInstrument);
         if (match?.length !== 3) {
-            console.error(`Could not process trimester module "${module.les.naam}" (${module.les.id}).`);
+            let error = `Module naam "${module.les.naam}" bevat een ongeldige instrument naam.`;
+            errors.push({error, url: getLesUrl(module.les.id)});
+            console.error(error);
+            console.log(getLesUrl(module.les.id));
             continue;
         }
         module.les.instrumentName = match[1];
         module.les.trimesterNo = parseInt(match[2]);
+        if(module.les.trimesterNo < 1 || module.les.trimesterNo > 3) {
+            let error = `Module naam "${module.les.naam}" bevat een ongeldig trimester nummer.`;
+            errors.push({error, url: getLesUrl(module.les.id)});
+            console.error(error);
+            console.log(getLesUrl(module.les.id));
+            continue;
+        }
         trimesterModules.push(module.les);
     }
 
-    return trimesterModules;
+    return {trimesterModules, errors};
 }
 
 function scrapeJaarModules(lessen: HtmlLes[] ) {

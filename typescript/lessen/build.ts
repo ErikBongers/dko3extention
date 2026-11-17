@@ -1,13 +1,14 @@
 import {FULL_CLASS_BUTTON_ID, TRIM_DIV_ID} from "../def";
 import {db3, isButtonHighlighted, stripStudentName} from "../globals";
 import {BlockInfo, mergeBlockStudents, TableData} from "./convert";
-import {StudentInfo} from "./scrape";
+import {ScrapeError, StudentInfo} from "./scrape";
 import * as html from "../../libs/Emmeter/html";
 import {emmet} from "../../libs/Emmeter";
 import {PageName} from "../gotoState";
-import {getTrimPageElements} from "./observer";
+import {getTrimPageElements, showTrimesterTable} from "./observer";
 import {getPageSettings, PageSettings, savePageSettings} from "../pageState";
 import {gotoTeacher} from "../personeel/scrape";
+import * as def from "../def";
 
 const NBSP: number = 160;
 
@@ -70,7 +71,88 @@ export function getSavedNameSorting() {
     return pageState.nameSorting;
 }
 
-export function buildTrimesterTable(tableData: TableData, trimElements: TrimElements) {
+function addSortingAnchorOrText() {
+    let sorteerDiv = document.getElementById("trimSorteerDiv")!;
+    sorteerDiv.innerHTML = "Sorteer : ";
+    if(getSavedNameSorting() === NameSorting.FirstName) {
+        html.emmet.append(sorteerDiv, "a{Naam}[href=\"#\"]+{ | }+strong{Voornaam}");
+    } else {
+        html.emmet.append(sorteerDiv, "strong{Naam}+{ | }+a{Voornaam}[href=\"#\"]");
+    }
+    for (let anchor of sorteerDiv.querySelectorAll("a")) {
+        anchor.onclick = (mouseEvent: MouseEvent) => {
+            if ((mouseEvent.target as HTMLElement).textContent === "Naam")
+                setSavedNameSorting(NameSorting.LastName);
+            else
+                setSavedNameSorting(NameSorting.FirstName);
+            showTrimesterTable(getTrimPageElements(), true);
+            addSortingAnchorOrText();
+            return false;
+        };
+    }
+}
+
+function setSorteerLine(showTrimTable: boolean) {
+    let pageState = getPageSettings(PageName.Lessen, getDefaultPageSettings()) as LessenPageState;
+    let oldSorteerSpan = document.querySelector("#lessen_overzicht > span") as HTMLElement;
+    let trimHeaderDiv = document.getElementById("trimHeaderDiv");
+    if(!trimHeaderDiv) {
+        emmet.indent.insertAfter(oldSorteerSpan, `
+            div#trimHeaderDiv
+                div#${def.TRIM_HEADER_ERRORS_ID}
+                div#trimSorteerDiv.text-muted
+                div#trimGroepeerDiv.text-muted
+        `);
+    }
+    let newGroupingDiv = document.getElementById("trimGroepeerDiv")!;
+    addSortingAnchorOrText();
+    newGroupingDiv.innerText = "Groepeer: ";
+    oldSorteerSpan.style.display = showTrimTable ? "none" : "";
+    newGroupingDiv.style.display = showTrimTable ? "" : "none";
+
+    appendGroupingAnchorOrText(newGroupingDiv, TrimesterGrouping.InstrumentTeacherHour, pageState.grouping, "");
+    appendGroupingAnchorOrText(newGroupingDiv, TrimesterGrouping.TeacherInstrumentHour, pageState.grouping, " | ");
+    appendGroupingAnchorOrText(newGroupingDiv, TrimesterGrouping.TeacherHour, pageState.grouping, " | ");
+    appendGroupingAnchorOrText(newGroupingDiv, TrimesterGrouping.Instrument, pageState.grouping, " | ");
+    appendGroupingAnchorOrText(newGroupingDiv, TrimesterGrouping.Teacher, pageState.grouping, " | ");
+}
+
+function appendGroupingAnchorOrText(target: HTMLElement, grouping: TrimesterGrouping, activeSorting: TrimesterGrouping, separator: string) {
+    let sortingText = "";
+    switch (grouping) {
+        case TrimesterGrouping.InstrumentTeacherHour: sortingText = "instrument+leraar+lesuur"; break;
+        case TrimesterGrouping.TeacherInstrumentHour: sortingText = "leraar+instrument+lesuur"; break;
+        case TrimesterGrouping.TeacherHour: sortingText = "leraar+lesuur"; break;
+        case TrimesterGrouping.InstrumentHour: sortingText = "instrument+lesuur"; break;
+        case TrimesterGrouping.Instrument: sortingText = "instrument"; break;
+        case TrimesterGrouping.Teacher: sortingText = "leraar"; break;
+    }
+
+    if(separator)
+        separator = "{"+separator+"}+";
+
+    if (activeSorting === grouping) {
+        emmet.appendChild(target,  separator + "strong{" + sortingText + "}");
+    } else {
+        let button = emmet.appendChild(target, separator + "button.likeLink{" + sortingText + "}").last as HTMLButtonElement;
+        button.onclick = () => {
+            let pageState = getPageSettings(PageName.Lessen, getDefaultPageSettings()) as LessenPageState;
+            pageState.grouping = grouping;
+            savePageSettings(pageState);
+            showTrimesterTable(getTrimPageElements(), true);
+            return false;
+        };
+    }
+}
+
+export function buildTrimesterTable(tableData: TableData, trimElements: TrimElements, errors: ScrapeError[]) {
+    setSorteerLine(true);
+    let errorDiv = document.getElementById(def.TRIM_HEADER_ERRORS_ID)!;
+    errorDiv.innerHTML = "";
+    for (let error of errors) {
+        errorDiv.innerHTML += `${error.error} <a href="${error.url}">link</a> <br> `;
+    }
+
     pageState = getPageSettings(PageName.Lessen, pageState) as LessenPageState;
     tableData.blocks.sort((block1, block2) => block1.instrumentName!.localeCompare(block2.instrumentName!));
     trimElements.trimTableDiv = document.getElementById(TRIM_DIV_ID) as HTMLDivElement;
